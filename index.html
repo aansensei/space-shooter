@@ -21,26 +21,35 @@
             width: 100vw;
         }
 
-        /* LỚP 1: MÀN HÌNH VŨ TRỤ (Nằm đè lên game gốc) */
-        #star-canvas {
+        /* --- LỚP PHỦ EASTER EGG BẢO VỆ TOÀN MÀN HÌNH --- */
+        #easter-egg-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 9998;
-            pointer-events: none;
+            z-index: 99999;
+            /* Đè lên toàn bộ game gốc */
             background: #000;
         }
 
-        /* LỚP 2: KHUNG GIAO DIỆN BẢO MẬT */
-        #ui-wrapper {
-            position: fixed;
+        #star-canvas {
+            position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9999;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #ui-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
             pointer-events: all;
             background: rgba(10, 25, 47, 0.4);
             backdrop-filter: blur(4px);
@@ -51,7 +60,7 @@
             text-align: center;
         }
 
-        /* Giao diện Mật khẩu */
+        /* Form UI */
         #lock-screen {
             display: flex;
             flex-direction: column;
@@ -119,7 +128,7 @@
             text-shadow: 0 0 5px red;
         }
 
-        /* Giao diện Loading */
+        /* Giao diện Loading & Thanh Progress */
         #loading-screen {
             background: transparent;
             display: none;
@@ -127,58 +136,60 @@
             align-items: center;
         }
 
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left: 4px solid #00e5ff;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+        .progress-container {
+            width: 300px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00e5ff;
+            border-radius: 10px;
             margin-top: 25px;
-            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+            overflow: hidden;
+            position: relative;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #00e5ff;
+            box-shadow: 0 0 15px #00e5ff;
         }
     </style>
 </head>
 
 <body>
-    <canvas id="star-canvas"></canvas>
-
-    <div id="ui-wrapper">
-        <div id="lock-screen">
-            <h1
-                style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">
-                RESTRICTED AREA</h1>
-            <p style="color: #a0c4ff; margin-bottom: 30px; font-family: 'Roboto', sans-serif;">This fairy tale is
-                classified. Enter password to unlock.</p>
-
-            <input type="password" id="password-input" placeholder="Enter password...">
-            <button id="unlock-btn">Unlock Story</button>
-            <button id="fake-start-btn">View Fairy Tale</button>
-
-            <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
-        </div>
-
-        <div id="loading-screen">
-            <h1
-                style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
-                SYSTEM LOADING</h1>
-            <p style="color: #fff; font-family: 'Roboto', sans-serif;">Initiating hyperdrive jump...</p>
-            <div class="spinner"></div>
-        </div>
-    </div>
-
     <canvas id="gameCanvas"></canvas>
     <button id="startBtn">Start</button>
+
+    <div id="easter-egg-overlay">
+        <canvas id="star-canvas"></canvas>
+
+        <div id="ui-wrapper">
+            <div id="lock-screen">
+                <h1
+                    style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">
+                    RESTRICTED AREA</h1>
+                <p style="color: #a0c4ff; margin-bottom: 30px; font-family: 'Roboto', sans-serif;">This fairy tale is
+                    classified. Enter password to unlock.</p>
+
+                <input type="password" id="password-input" placeholder="Enter password...">
+                <button id="unlock-btn">Unlock Story</button>
+                <button id="fake-start-btn">View Fairy Tale</button>
+
+                <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
+            </div>
+
+            <div id="loading-screen">
+                <h1
+                    style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
+                    SYSTEM LOADING</h1>
+                <p style="color: #fff; font-family: 'Roboto', sans-serif; margin-bottom: 0;">Initiating hyperdrive
+                    jump...</p>
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById('star-canvas');
@@ -190,27 +201,29 @@
         canvas.height = height;
 
         const stars = [];
-        const numStars = 3000; // 3000 vì sao
+        const numStars = 3000;
         let speed = 0.5;
         let isWarping = false;
-        let isSimulationRunning = true; // Biến "công tắc" để tắt vũ trụ
+        let isSimulationRunning = true;
 
-        // Khởi tạo các vì sao
+        // Khởi tạo các vì sao có thêm thông số lung linh (twinkle)
         for (let i = 0; i < numStars; i++) {
             stars.push({
                 x: Math.random() * width - width / 2,
                 y: Math.random() * height - height / 2,
                 z: Math.random() * width,
-                pz: Math.random() * width // PZ cho thuật toán tia sáng bản cũ
+                pz: Math.random() * width, // Lưu lại Z cũ cho bản Warp vệt trắng
+                twinkleSpeed: 0.002 + Math.random() * 0.005, // Tốc độ chớp tắt
+                twinklePhase: Math.random() * Math.PI * 2 // Điểm bắt đầu chớp ngẫu nhiên
             });
         }
 
         function drawStars() {
-            // FIX LỖI ĐỨNG GAME: Tắt hẳn vòng lặp nếu game gốc bắt đầu
             if (!isSimulationRunning) return;
 
+            // Hiệu ứng đuôi sao chổi nhẹ khi Warp
             if (isWarping) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             } else {
                 ctx.fillStyle = '#000000';
             }
@@ -218,6 +231,7 @@
 
             const cx = width / 2;
             const cy = height / 2;
+            const time = Date.now();
 
             for (let i = 0; i < numStars; i++) {
                 let star = stars[i];
@@ -225,7 +239,7 @@
                 star.pz = star.z;
                 star.z -= speed;
 
-                // Reset sao nếu bay qua màn hình
+                // Reset sao
                 if (star.z <= 0) {
                     star.x = Math.random() * width - cx;
                     star.y = Math.random() * height - cy;
@@ -237,12 +251,20 @@
                 let py = cy + (star.y / star.z) * width;
                 let radius = (width / star.z) * 1.5;
 
-                // THUẬT TOÁN ĐỘ SÁNG MỚI: Tiến lại gần là RÕ 100%
-                let alpha = 1.5 - (star.z / (width / 2));
-                alpha = Math.max(0.1, Math.min(1, alpha));
+                // THUẬT TOÁN LÀM RÕ KHI TỚI GẦN
+                let baseAlpha = 1.2 - (star.z / width);
+
+                // THÊM HIỆU ỨNG LUNG LINH (Chỉ áp dụng khi đang trôi bình thường)
+                if (!isWarping) {
+                    let twinkle = 0.5 + 0.5 * Math.sin(time * star.twinkleSpeed + star.twinklePhase);
+                    baseAlpha = baseAlpha * twinkle;
+                }
+
+                // Ép độ sáng: Gần sát màn hình (z nhỏ) thì chắc chắn sáng rõ 100%
+                let alpha = Math.max(0.1, Math.min(1, baseAlpha));
 
                 if (isWarping) {
-                    // PHIÊN BẢN CŨ YÊU THÍCH: Vệt sáng tia chớp
+                    // PHIÊN BẢN WARP CŨ VỆT TRẮNG
                     let prevPx = cx + (star.x / star.pz) * width;
                     let prevPy = cy + (star.y / star.pz) * width;
 
@@ -253,17 +275,16 @@
                     ctx.lineTo(px, py);
                     ctx.stroke();
                 } else {
-                    // LÀM SÁNG RÕ KHÔNG BỊ BLUR:
-                    // 1. Quầng hào quang phát sáng (Halo)
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.2})`;
-                    ctx.beginPath();
-                    ctx.arc(px, py, radius * 3.5, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // 2. Lõi sao cực kỳ sắc bén (Core)
+                    // PHIÊN BẢN CHẤM TRÒN CỰC KỲ SẮC NÉT (Không bị Blur)
                     ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.arc(px, py, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Thêm 1 quầng sáng siêu nhỏ bao quanh để ngôi sao lung linh hơn
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+                    ctx.beginPath();
+                    ctx.arc(px, py, radius * 2.5, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -286,15 +307,16 @@
 
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
-            const starCanvas = document.getElementById('star-canvas');
             const uiWrapper = document.getElementById('ui-wrapper');
+            const easterEggOverlay = document.getElementById('easter-egg-overlay');
+            const progressBar = document.getElementById('progress-bar');
 
             const passwordInput = document.getElementById('password-input');
             const unlockBtn = document.getElementById('unlock-btn');
             const fakeStartBtn = document.getElementById('fake-start-btn');
             const errorMsg = document.getElementById('error-msg');
 
-            const realStartBtn = document.getElementById('startBtn'); // Nút gốc của game bạn
+            const realStartBtn = document.getElementById('startBtn');
 
             function checkPassword() {
                 if (btoa(passwordInput.value) === SECRET_CODE) {
@@ -317,26 +339,31 @@
             passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
             fakeStartBtn.addEventListener('click', () => {
+                // 1. KÍCH HOẠT GAME GỐC NGAY LẬP TỨC ĐỂ KHÔNG BỊ TRÌNH DUYỆT CHẶN ÂM THANH
+                if (realStartBtn) {
+                    realStartBtn.click();
+                    realStartBtn.style.display = 'none'; // Ẩn nút gốc đi
+                }
+
+                // 2. Chuyển UI sang Loading
                 lockScreen.style.display = 'none';
+                uiWrapper.style.backdropFilter = 'none'; // Bỏ làm mờ kính để thấy rõ Warp
+                uiWrapper.style.background = 'transparent';
                 loadingScreen.style.display = 'flex';
 
+                // 3. Kích hoạt Warp & Thanh Loading chạy trong 3 giây
                 isWarping = true;
-                speed = 35; // Tốc độ warp
+                speed = 40; // Tăng max tốc độ
 
                 setTimeout(() => {
-                    // 1. TẮT HẲN VÒNG LẶP RENDER VŨ TRỤ ĐỂ CỨU CPU
-                    isSimulationRunning = false;
+                    progressBar.style.transition = 'width 3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    progressBar.style.width = '100%';
+                }, 50);
 
-                    // 2. Kéo rèm che đi
-                    uiWrapper.style.display = 'none';
-                    starCanvas.style.display = 'none';
-
-                    // 3. Gọi lệnh bấm nút Start của Game
-                    if (realStartBtn) {
-                        realStartBtn.click();
-                        realStartBtn.style.display = 'none'; // Giấu nút sau khi bấm
-                    }
-
+                // 4. Mở rèm sau 3 giây
+                setTimeout(() => {
+                    isSimulationRunning = false; // Tắt vũ trụ để tiết kiệm CPU cho game
+                    easterEggOverlay.style.display = 'none'; // Giấu toàn bộ mặt nạ Easter Egg đi
                     document.body.style.overflow = 'auto';
                 }, 3000);
             });
