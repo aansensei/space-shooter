@@ -10,8 +10,6 @@
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
     <style>
         body {
             margin: 0;
@@ -23,8 +21,8 @@
             width: 100vw;
         }
 
-        /* Nền Vũ trụ 3D */
-        #three-container {
+        /* Nền Vũ trụ Canvas 2D */
+        #star-canvas {
             position: fixed;
             top: 0;
             left: 0;
@@ -32,6 +30,7 @@
             height: 100vh;
             z-index: 1;
             pointer-events: none;
+            background: #000;
         }
 
         /* Khung UI đè lên trên */
@@ -44,8 +43,7 @@
             z-index: 2;
             pointer-events: all;
             background: rgba(10, 25, 47, 0.4);
-            backdrop-filter: blur(5px);
-            /* Làm mờ nhẹ nền Three.js */
+            backdrop-filter: blur(4px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -153,7 +151,7 @@
 </head>
 
 <body>
-    <div id="three-container"></div>
+    <canvas id="star-canvas"></canvas>
 
     <div id="ui-wrapper">
         <div id="lock-screen">
@@ -174,7 +172,7 @@
             <h1
                 style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
                 SYSTEM LOADING</h1>
-            <p style="color: #fff; font-family: 'Roboto', sans-serif;">Initiating hyperdrive...</p>
+            <p style="color: #fff; font-family: 'Roboto', sans-serif;">Initiating hyperdrive jump...</p>
             <div class="spinner"></div>
         </div>
     </div>
@@ -185,65 +183,92 @@
     </div>
 
     <script>
-        // 1. Cài đặt Cảnh 3D cơ bản
-        const scene = new THREE.Scene();
-        // Viewpoint không gian 3 chiều tiến về phía trước
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
-        camera.position.z = 1; // Đặt camera ở gốc trục Z
-        camera.rotation.x = Math.PI / 2; // Quay camera ngửa lên để nhìn dọc trục Y
+        const canvas = document.getElementById('star-canvas');
+        const ctx = canvas.getContext('2d');
 
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('three-container').appendChild(renderer.domElement);
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
 
-        // 2. Tạo Đám mây điểm: Hàng nghìn ngôi sao
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 10000; // Tăng lên 10,000 ngôi sao để trông rộng lớn
-        const posArray = new Float32Array(starCount * 3); // Mảng tọa độ X, Y, Z cho mỗi sao
+        const stars = [];
+        const numStars = 1200; // Số lượng chấm tròn
+        let speed = 0.5; // Tốc độ trôi bình thường
+        let isWarping = false; // Trạng thái nhảy không gian
 
-        for (let i = 0; i < starCount * 3; i++) {
-            // Rải đều sao ra xa xung quanh gốc tọa độ
-            posArray[i] = (Math.random() - 0.5) * 800;
+        // Khởi tạo các vì sao
+        for (let i = 0; i < numStars; i++) {
+            stars.push({
+                x: Math.random() * width - width / 2,
+                y: Math.random() * height - height / 2,
+                z: Math.random() * width,
+                pz: Math.random() * width // Lưu lại độ sâu cũ để vẽ vệt sáng
+            });
         }
-        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
 
-        // 3. Phủ vật liệu: Tất cả các sao đều màu trắng
-        const starMaterial = new THREE.PointsMaterial({
-            color: 0xffffff, // MÀU TRẮNG PURE
-            size: 0.8, // Kích thước sao vừa phải
-            transparent: true,
-            opacity: 0.8 // Hơi mờ nhẹ để tạo chiều sâu
-        });
+        function drawStars() {
+            // Thủ thuật làm mờ: Nếu đang Warp thì không xóa hẳn nền, mà phủ 1 lớp đen mờ để tạo hiệu ứng "lưu ảnh" (đuôi sao chổi)
+            if (isWarping) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            } else {
+                ctx.fillStyle = '#000000';
+            }
+            ctx.fillRect(0, 0, width, height);
 
-        const stars = new THREE.Points(starGeo, starMaterial);
-        scene.add(stars);
+            const cx = width / 2;
+            const cy = height / 2;
 
-        let warpSpeed = 0.5; // Tốc độ bay rảnh rỗi ban đầu rất chậm
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#ffffff';
 
-        // 4. Vòng lặp Render liên tục để tạo chuyển động
-        function animate() {
-            const positions = starGeo.attributes.position.array;
+            for (let i = 0; i < numStars; i++) {
+                let star = stars[i];
 
-            // Duyệt qua từng ngôi sao (mỗi sao chiếm 3 giá trị X, Y, Z trong mảng)
-            for (let i = 1; i < starCount * 3; i += 3) {
-                // Giảm tọa độ trục Y để tạo cảm giác sao bay lùi lại (camera đang nhìn lên)
-                positions[i] -= warpSpeed;
+                star.pz = star.z; // Cập nhật z cũ
+                star.z -= speed;  // Sao tiến về phía camera
 
-                // Thuật toán tái chế: Nếu sao bay quá xa đằng sau, ném nó lại tít đằng trước
-                if (positions[i] < -400) {
-                    positions[i] = 400;
+                // Nếu bay qua khỏi màn hình thì reset lại phía xa
+                if (star.z <= 0) {
+                    star.x = Math.random() * width - cx;
+                    star.y = Math.random() * height - cy;
+                    star.z = width;
+                    star.pz = width;
+                }
+
+                // Chiếu tọa độ 3D lên màn hình 2D
+                let px = cx + (star.x / star.z) * width;
+                let py = cy + (star.y / star.z) * width;
+
+                // Sao càng gần thì kích thước càng to
+                let radius = (width / star.z) * 1.2;
+
+                if (isWarping) {
+                    // KHI NHẢY KHÔNG GIAN: Vẽ đường thẳng (vệt sáng) từ tọa độ cũ tới tọa độ mới
+                    let prevPx = cx + (star.x / star.pz) * width;
+                    let prevPy = cy + (star.y / star.pz) * width;
+
+                    ctx.lineWidth = radius;
+                    ctx.beginPath();
+                    ctx.moveTo(prevPx, prevPy);
+                    ctx.lineTo(px, py);
+                    ctx.stroke();
+                } else {
+                    // BÌNH THƯỜNG: Chỉ vẽ các chấm tròn sắc nét
+                    ctx.beginPath();
+                    ctx.arc(px, py, radius, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
-            // Báo cho Three.js biết dữ liệu vị trí đã thay đổi
-            starGeo.attributes.position.needsUpdate = true;
-
-            // Xoay nhẹ cả vũ trụ cho ma mị, tạo cảm giác viewpoint 3D
-            stars.rotation.y += 0.001;
-
-            renderer.render(scene, camera);
-            requestAnimationFrame(animate);
+            requestAnimationFrame(drawStars);
         }
-        animate(); // Kích hoạt vũ trụ
+        drawStars();
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        });
     </script>
 
     <script>
@@ -286,24 +311,18 @@
                 lockScreen.style.display = 'none';
                 loadingScreen.style.display = 'flex';
 
-                // HIỆU ỨNG TĂNG TỐC ĐỘT NGỘT: Đẩy warpSpeed lên cao để tạo cú nhảy không gian
-                warpSpeed = 25; // Tăng tốc độ bay rất nhanh
+                // KÍCH HOẠT NHẢY KHÔNG GIAN
+                isWarping = true;
+                speed = 35; // Ép tốc độ vút lên cực nhanh để tạo vệt sao chổi
 
                 setTimeout(() => {
                     uiWrapper.style.display = 'none'; // Tắt mờ UI
-                    document.getElementById('three-container').style.display = 'none'; // Tắt vũ trụ 3D
+                    canvas.style.display = 'none'; // Tắt vũ trụ
                     gameWrapper.style.display = 'block'; // Hiện Game chính
 
                     if (realStartBtn) realStartBtn.click(); // Tự động bấm nút Start gốc
                     document.body.style.overflow = 'auto'; // Khôi phục thanh cuộn
-                }, 3500); // Kéo dài thời gian loading lên 3.5 giây để ngắm sao băng
-            });
-
-            // Tự động điều chỉnh Canvas 3D khi thay đổi kích thước cửa sổ
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+                }, 3000); // Ngắm bước nhảy trong 3 giây
             });
         });
     </script>
