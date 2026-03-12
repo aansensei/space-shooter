@@ -33,6 +33,7 @@
             background: #000;
         }
 
+        /* Nền Vũ trụ Canvas */
         #star-canvas {
             position: absolute;
             top: 0;
@@ -43,6 +44,7 @@
             pointer-events: none;
         }
 
+        /* Khung UI đè lên trên */
         #ui-wrapper {
             position: absolute;
             top: 0;
@@ -152,6 +154,7 @@
             width: 0%;
             background: #00e5ff;
             box-shadow: 0 0 15px #00e5ff;
+            transition: width 3s linear;
         }
     </style>
 </head>
@@ -206,22 +209,19 @@
         let isWarping = false;
         let isSimulationRunning = true;
 
-        // Khởi tạo các vì sao có thêm thông số lung linh (twinkle)
+        // Khởi tạo các vì sao
         for (let i = 0; i < numStars; i++) {
             stars.push({
                 x: Math.random() * width - width / 2,
                 y: Math.random() * height - height / 2,
-                z: Math.random() * width,
-                pz: Math.random() * width, // Lưu lại Z cũ cho bản Warp vệt trắng
-                twinkleSpeed: 0.002 + Math.random() * 0.005, // Tốc độ chớp tắt
-                twinklePhase: Math.random() * Math.PI * 2 // Điểm bắt đầu chớp ngẫu nhiên
+                z: Math.random() * width
             });
         }
 
         function drawStars() {
             if (!isSimulationRunning) return;
 
-            // Hiệu ứng đuôi sao chổi nhẹ khi Warp
+            // Khi Warp thì tạo đuôi sao chổi bằng cách không xóa hẳn nền đen
             if (isWarping) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             } else {
@@ -231,42 +231,31 @@
 
             const cx = width / 2;
             const cy = height / 2;
-            const time = Date.now();
 
             for (let i = 0; i < numStars; i++) {
                 let star = stars[i];
-
-                star.pz = star.z;
                 star.z -= speed;
 
-                // Reset sao
+                // Reset sao nếu bay qua camera
                 if (star.z <= 0) {
                     star.x = Math.random() * width - cx;
                     star.y = Math.random() * height - cy;
                     star.z = width;
-                    star.pz = width;
                 }
 
                 let px = cx + (star.x / star.z) * width;
                 let py = cy + (star.y / star.z) * width;
                 let radius = (width / star.z) * 1.5;
 
-                // THUẬT TOÁN LÀM RÕ KHI TỚI GẦN
-                let baseAlpha = 1.2 - (star.z / width);
-
-                // THÊM HIỆU ỨNG LUNG LINH (Chỉ áp dụng khi đang trôi bình thường)
-                if (!isWarping) {
-                    let twinkle = 0.5 + 0.5 * Math.sin(time * star.twinkleSpeed + star.twinklePhase);
-                    baseAlpha = baseAlpha * twinkle;
-                }
-
-                // Ép độ sáng: Gần sát màn hình (z nhỏ) thì chắc chắn sáng rõ 100%
-                let alpha = Math.max(0.1, Math.min(1, baseAlpha));
+                // Độ sáng: Càng gần z=0 thì càng rõ nét 100%
+                let alpha = 1.2 - (star.z / width);
+                alpha = Math.max(0.1, Math.min(1, alpha));
 
                 if (isWarping) {
-                    // PHIÊN BẢN WARP CŨ VỆT TRẮNG
-                    let prevPx = cx + (star.x / star.pz) * width;
-                    let prevPy = cy + (star.y / star.pz) * width;
+                    // HIỆU ỨNG VỆT SÁNG TRẮNG CŨ BẠN THÍCH
+                    let prevZ = star.z + speed;
+                    let prevPx = cx + (star.x / prevZ) * width;
+                    let prevPy = cy + (star.y / prevZ) * width;
 
                     ctx.lineWidth = radius;
                     ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
@@ -275,16 +264,10 @@
                     ctx.lineTo(px, py);
                     ctx.stroke();
                 } else {
-                    // PHIÊN BẢN CHẤM TRÒN CỰC KỲ SẮC NÉT (Không bị Blur)
+                    // SAO CHẤM TRÒN SẮC NÉT (Không Blur, không nhấp nháy)
                     ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.arc(px, py, radius, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Thêm 1 quầng sáng siêu nhỏ bao quanh để ngôi sao lung linh hơn
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
-                    ctx.beginPath();
-                    ctx.arc(px, py, radius * 2.5, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -339,32 +322,29 @@
             passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
             fakeStartBtn.addEventListener('click', () => {
-                // 1. KÍCH HOẠT GAME GỐC NGAY LẬP TỨC ĐỂ KHÔNG BỊ TRÌNH DUYỆT CHẶN ÂM THANH
-                if (realStartBtn) {
-                    realStartBtn.click();
-                    realStartBtn.style.display = 'none'; // Ẩn nút gốc đi
-                }
-
-                // 2. Chuyển UI sang Loading
+                // 1. Chuyển UI sang Loading
                 lockScreen.style.display = 'none';
                 uiWrapper.style.backdropFilter = 'none'; // Bỏ làm mờ kính để thấy rõ Warp
                 uiWrapper.style.background = 'transparent';
                 loadingScreen.style.display = 'flex';
 
-                // 3. Kích hoạt Warp & Thanh Loading chạy trong 3 giây
+                // 2. Kích hoạt Warp & Thanh Loading chạy trong 3 giây
                 isWarping = true;
-                speed = 40; // Tăng max tốc độ
+                speed = 35; // Tăng max tốc độ
 
                 setTimeout(() => {
-                    progressBar.style.transition = 'width 3s cubic-bezier(0.4, 0, 0.2, 1)';
                     progressBar.style.width = '100%';
                 }, 50);
 
-                // 4. Mở rèm sau 3 giây
+                // 3. ĐỢI ĐÚNG 3 GIÂY RỒI MỚI BẤM START GAME (FIX LỖI ĐEN MÀN HÌNH)
                 setTimeout(() => {
-                    isSimulationRunning = false; // Tắt vũ trụ để tiết kiệm CPU cho game
-                    easterEggOverlay.style.display = 'none'; // Giấu toàn bộ mặt nạ Easter Egg đi
-                    document.body.style.overflow = 'auto';
+                    isSimulationRunning = false; // Tắt vòng lặp vũ trụ để nhường CPU cho game
+                    easterEggOverlay.style.display = 'none'; // Giấu rèm
+
+                    if (realStartBtn) {
+                        realStartBtn.style.display = 'none'; // Ẩn cái nút Start màu xanh gốc
+                        realStartBtn.click(); // Kích hoạt game lúc khung hình đã thoáng
+                    }
                 }, 3000);
             });
         });
