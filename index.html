@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Thần Binh Thiên Hà - Final Secret Edition</title>
+    <title>Thần Binh Thiên Hà - Top Secret Edition</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
         rel="stylesheet">
@@ -19,6 +19,7 @@
             width: 100vw;
         }
 
+        /* Lớp phủ che toàn bộ game lúc đầu */
         #easter-egg-overlay {
             position: fixed;
             top: 0;
@@ -29,7 +30,7 @@
             background: #000;
         }
 
-        #star-canvas {
+        #star-canvas-ui {
             position: absolute;
             top: 0;
             left: 0;
@@ -127,7 +128,7 @@
             position: relative;
         }
 
-        #prog-bar {
+        #prog-bar-fill {
             height: 100%;
             width: 0%;
             background: #00e5ff;
@@ -141,7 +142,7 @@
     <button id="startBtn">Start</button>
 
     <div id="easter-egg-overlay">
-        <canvas id="star-canvas"></canvas>
+        <canvas id="star-canvas-ui"></canvas>
         <div id="ui-wrapper">
             <div id="lock-screen">
                 <h1
@@ -161,31 +162,30 @@
                 <p style="color: #fff; font-family: 'Roboto', sans-serif; margin-bottom: 0;">Initiating hyperdrive
                     jump...</p>
                 <div class="progress-container">
-                    <div id="prog-bar"></div>
+                    <div id="prog-bar-fill"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        (function () {
-            const canvas = document.getElementById('star-canvas');
-            const ctx = canvas.getContext('2d');
-            let w = canvas.width = window.innerWidth;
-            let h = canvas.height = window.innerHeight;
+        (() => {
+            const uiCanvas = document.getElementById('star-canvas-ui');
+            const uiCtx = uiCanvas.getContext('2d');
+            let w = uiCanvas.width = window.innerWidth;
+            let h = uiCanvas.height = window.innerHeight;
 
             const stars = [];
-            const numStars = 3000;
-            let speed = 0.5, targetSpeed = 0.5;
-            let isRunning = true, isWarping = false;
-
-            // Shooting Star & Particle System
             const shootingStars = [];
-            const trailParticles = [];
-            let lastSS = Date.now();
+            const blinkParticles = [];
+            let speed = 0.5;
+            let targetSpeed = 0.5;
+            let isWarping = false;
+            let isLoopRunning = true;
+            let lastSSSpawn = Date.now();
 
-            // Khởi tạo 3000 ngôi sao
-            for (let i = 0; i < numStars; i++) {
+            // Khởi tạo 3000 ngôi sao với phân bổ đều
+            for (let i = 0; i < 3000; i++) {
                 stars.push({
                     x: (Math.random() - 0.5) * w * 2.5,
                     y: (Math.random() - 0.5) * h * 2.5,
@@ -195,124 +195,145 @@
                 stars[i].pz = stars[i].z;
             }
 
-            function spawnSS() {
+            function spawnShootingStar() {
                 shootingStars.push({
                     x: Math.random() * w + w / 2, y: -50,
-                    vx: -(Math.random() * 5 + 10), vy: Math.random() * 5 + 10,
-                    size: 2, opacity: 1
+                    vx: -(Math.random() * 4 + 10), vy: Math.random() * 4 + 8,
+                    size: 2, life: 1
                 });
             }
 
             function draw() {
-                if (!isRunning) return;
-                if (!isWarping && Date.now() - lastSS > 5000) { spawnSS(); lastSS = Date.now(); }
+                if (!isLoopRunning) return;
 
-                speed += (targetSpeed - speed) * 0.025;
-                ctx.fillStyle = isWarping ? 'rgba(0,0,0,0.3)' : '#000';
-                ctx.fillRect(0, 0, w, h);
+                // Gia tốc mượt mà
+                speed += (targetSpeed - speed) * 0.02;
 
-                // 1. VẼ SAO NỀN (STARFIELD)
+                // Spawn sao băng mỗi 5s
+                if (!isWarping && Date.now() - lastSSSpawn > 5000) {
+                    spawnShootingStar();
+                    lastSSSpawn = Date.now();
+                }
+
+                uiCtx.fillStyle = isWarping ? 'rgba(0,0,0,0.3)' : '#000';
+                uiCtx.fillRect(0, 0, w, h);
+
+                // --- VẼ SAO NỀN ---
                 for (let s of stars) {
-                    s.pz = s.z; s.z -= speed;
+                    s.pz = s.z;
+                    s.z -= speed;
+
                     if (s.z <= 0) {
                         s.z = w;
                         s.x = (Math.random() - 0.5) * w * 2.5;
                         s.y = (Math.random() - 0.5) * h * 2.5;
                         s.pz = w;
                     }
-                    let px = w / 2 + (s.x / s.z) * w, py = h / 2 + (s.y / s.z) * w;
-                    let ppx = w / 2 + (s.x / s.pz) * w, ppy = h / 2 + (s.y / s.pz) * w;
 
+                    let px = w / 2 + (s.x / s.z) * w;
+                    let py = h / 2 + (s.y / s.z) * w;
+                    let ppx = w / 2 + (s.x / s.pz) * w;
+                    let ppy = h / 2 + (s.y / s.pz) * w;
+
+                    // Sao bay gần màn hình (z nhỏ) sẽ sáng rõ và to hơn
                     let alpha = Math.min(1, 1.2 - s.z / w);
-                    ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-                    ctx.lineWidth = Math.min(3, (w / s.z) * 0.8);
+                    let radius = Math.min(4, (w / s.z) * 0.8);
 
-                    ctx.beginPath();
+                    uiCtx.strokeStyle = `rgba(255,255,255,${alpha})`;
+                    uiCtx.lineWidth = radius;
+
+                    uiCtx.beginPath();
                     if (!isWarping && Math.abs(px - ppx) < 1) {
-                        ctx.arc(px, py, ctx.lineWidth / 2, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-                        ctx.fill();
+                        // Vẽ chấm tròn nếu đang đứng yên/trôi chậm
+                        uiCtx.arc(px, py, radius / 2, 0, Math.PI * 2);
+                        uiCtx.fillStyle = `rgba(255,255,255,${alpha})`;
+                        uiCtx.fill();
                     } else {
-                        ctx.moveTo(ppx, ppy); ctx.lineTo(px, py); ctx.stroke();
+                        // Vẽ vệt dài trắng muốt nếu đang bay nhanh
+                        uiCtx.moveTo(ppx, ppy);
+                        uiCtx.lineTo(px, py);
+                        uiCtx.stroke();
                     }
                 }
 
-                // 2. VẼ SAO BĂNG & HẠT RƠI (SHOOTING STARS & BLINK PARTICLES)
+                // --- VẼ SAO BĂNG & HẠT GLOW ---
                 for (let i = shootingStars.length - 1; i >= 0; i--) {
-                    let s = shootingStars[i];
-                    s.x += s.vx; s.y += s.vy;
-                    if (s.x < -100 || s.y > h + 100) { shootingStars.splice(i, 1); continue; }
+                    let ss = shootingStars[i];
+                    ss.x += ss.vx; ss.y += ss.vy;
+                    if (ss.x < -100 || ss.y > h + 100) { shootingStars.splice(i, 1); continue; }
 
                     // Tạo hạt rơi ra (Blink blink)
-                    if (Math.random() > 0.3) {
-                        trailParticles.push({
-                            x: s.x, y: s.y,
+                    if (Math.random() > 0.4) {
+                        blinkParticles.push({
+                            x: ss.x, y: ss.y,
                             vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2,
                             life: 1, size: Math.random() * 3 + 1
                         });
                     }
 
-                    // Vẽ sao băng chính (Glow như cursor)
-                    ctx.save();
-                    ctx.shadowBlur = 15; ctx.shadowColor = '#00e5ff';
-                    ctx.fillStyle = '#fff';
-                    ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, 7); ctx.fill();
-
-                    // Đuôi tia chớp nhỏ
-                    ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.moveTo(s.x, s.y);
-                    ctx.lineTo(s.x - s.vx * 5, s.y - s.vy * 5); ctx.stroke();
-                    ctx.restore();
+                    uiCtx.save();
+                    uiCtx.shadowBlur = 15; uiCtx.shadowColor = '#00e5ff';
+                    uiCtx.fillStyle = '#fff';
+                    uiCtx.beginPath(); uiCtx.arc(ss.x, ss.y, ss.size, 0, 7); uiCtx.fill();
+                    uiCtx.restore();
                 }
 
-                // Vẽ các hạt blink rơi ra
-                for (let i = trailParticles.length - 1; i >= 0; i--) {
-                    let p = trailParticles[i];
+                // Vẽ các hạt blink rụng dọc đường
+                for (let i = blinkParticles.length - 1; i >= 0; i--) {
+                    let p = blinkParticles[i];
                     p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-                    if (p.life <= 0) { trailParticles.splice(i, 1); continue; }
-
-                    ctx.fillStyle = `rgba(0, 229, 255, ${p.life})`;
-                    if (Math.random() > 0.5) ctx.fillStyle = `rgba(255, 255, 255, ${p.life})`; // Hiệu ứng nhấp nháy trắng xanh
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, 7); ctx.fill();
+                    if (p.life <= 0) { blinkParticles.splice(i, 1); continue; }
+                    uiCtx.fillStyle = Math.random() > 0.5 ? `rgba(0, 229, 255, ${p.life})` : `rgba(255, 255, 255, ${p.life})`;
+                    uiCtx.beginPath(); uiCtx.arc(p.x, p.y, p.size * p.life, 0, 7); uiCtx.fill();
                 }
 
                 requestAnimationFrame(draw);
             }
             draw();
 
-            // Logic Mật khẩu & Chạy Game
-            const SECRET = 'a3NhbWFzdXByZW1hY3k=';
+            // Xử lý Mật khẩu
+            const SECRET_HASH = 'a3NhbWFzdXByZW1hY3k='; // ksamasupremacy
             document.getElementById('unlock-btn').onclick = () => {
-                const inp = document.getElementById('password-input');
-                if (btoa(inp.value) === SECRET) {
+                const input = document.getElementById('password-input');
+                if (btoa(input.value) === SECRET_HASH) {
                     document.getElementById('lock-screen').style.display = 'none';
                     document.getElementById('fake-start-btn').style.display = 'block';
-                } else { document.getElementById('error-msg').style.visibility = 'visible'; inp.value = ''; }
+                } else {
+                    document.getElementById('error-msg').style.visibility = 'visible';
+                    input.value = '';
+                }
             };
 
+            // Bắt đầu nhảy Warp và Game
             document.getElementById('fake-start-btn').onclick = () => {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('ui-wrapper').style.background = 'transparent';
                 document.getElementById('ui-wrapper').style.backdropFilter = 'none';
                 document.getElementById('loading-screen').style.display = 'flex';
 
-                isWarping = true; targetSpeed = 60;
-                let p = 0; const b = document.getElementById('prog-bar');
-                const iv = setInterval(() => {
-                    p += 0.8; b.style.width = p + '%';
-                    if (p >= 100) clearInterval(iv);
-                }, 20);
+                isWarping = true;
+                targetSpeed = 55; // Ép ga tối đa
+
+                let progress = 0;
+                const bar = document.getElementById('prog-bar-fill');
+                const interval = setInterval(() => {
+                    progress += 0.85;
+                    bar.style.width = Math.min(100, progress) + '%';
+                    if (progress >= 100) clearInterval(interval);
+                }, 25);
 
                 setTimeout(() => {
-                    isRunning = false;
+                    isLoopRunning = false;
                     document.getElementById('easter-egg-overlay').style.display = 'none';
-                    const realBtn = document.getElementById('startBtn');
-                    if (realBtn) { realBtn.style.display = 'none'; realBtn.click(); }
+                    const realStart = document.getElementById('startBtn');
+                    if (realStart) {
+                        realStart.style.display = 'none';
+                        realStart.click(); // Kích hoạt game sau khi Warp xong
+                    }
                 }, 3000);
             };
 
-            window.onresize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
+            window.onresize = () => { w = uiCanvas.width = window.innerWidth; h = uiCanvas.height = window.innerHeight; };
         })();
     </script>
 
