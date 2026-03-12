@@ -169,24 +169,26 @@
 
     <script>
         (function () {
-            const starCanvas = document.getElementById('star-canvas');
-            const starCtx = starCanvas.getContext('2d');
-            let w = starCanvas.width = window.innerWidth;
-            let h = starCanvas.height = window.innerHeight;
+            const canvas = document.getElementById('star-canvas');
+            const ctx = canvas.getContext('2d');
+            let w = canvas.width = window.innerWidth;
+            let h = canvas.height = window.innerHeight;
 
             const stars = [];
             const numStars = 3000;
-            let speed = 0.2, targetSpeed = 0.2;
+            let speed = 0.5, targetSpeed = 0.5;
             let isRunning = true, isWarping = false;
 
-            // Shooting Star System
+            // Shooting Star & Particle System
             const shootingStars = [];
+            const trailParticles = [];
             let lastSS = Date.now();
 
+            // Khởi tạo 3000 ngôi sao
             for (let i = 0; i < numStars; i++) {
                 stars.push({
-                    x: (Math.random() - 0.5) * w * 2,
-                    y: (Math.random() - 0.5) * h * 2,
+                    x: (Math.random() - 0.5) * w * 2.5,
+                    y: (Math.random() - 0.5) * h * 2.5,
                     z: Math.random() * w,
                     pz: 0
                 });
@@ -195,9 +197,9 @@
 
             function spawnSS() {
                 shootingStars.push({
-                    x: Math.random() * w + w / 4, y: -50,
-                    vx: -(Math.random() * 4 + 8), vy: Math.random() * 4 + 8,
-                    len: Math.random() * 100 + 150, opacity: 1
+                    x: Math.random() * w + w / 2, y: -50,
+                    vx: -(Math.random() * 5 + 10), vy: Math.random() * 5 + 10,
+                    size: 2, opacity: 1
                 });
             }
 
@@ -205,47 +207,81 @@
                 if (!isRunning) return;
                 if (!isWarping && Date.now() - lastSS > 5000) { spawnSS(); lastSS = Date.now(); }
 
-                speed += (targetSpeed - speed) * 0.02;
-                starCtx.fillStyle = '#000';
-                starCtx.fillRect(0, 0, w, h);
+                speed += (targetSpeed - speed) * 0.025;
+                ctx.fillStyle = isWarping ? 'rgba(0,0,0,0.3)' : '#000';
+                ctx.fillRect(0, 0, w, h);
 
-                // DRAW STARS
+                // 1. VẼ SAO NỀN (STARFIELD)
                 for (let s of stars) {
                     s.pz = s.z; s.z -= speed;
-                    if (s.z <= 0) { s.z = w; s.pz = w; }
+                    if (s.z <= 0) {
+                        s.z = w;
+                        s.x = (Math.random() - 0.5) * w * 2.5;
+                        s.y = (Math.random() - 0.5) * h * 2.5;
+                        s.pz = w;
+                    }
                     let px = w / 2 + (s.x / s.z) * w, py = h / 2 + (s.y / s.z) * w;
                     let ppx = w / 2 + (s.x / s.pz) * w, ppy = h / 2 + (s.y / s.pz) * w;
+
                     let alpha = Math.min(1, 1.2 - s.z / w);
-                    starCtx.strokeStyle = `rgba(255,255,255,${alpha})`;
-                    starCtx.lineWidth = Math.min(3, (w / s.z) * 0.8);
-                    starCtx.beginPath(); starCtx.moveTo(ppx, ppy); starCtx.lineTo(px, py); starCtx.stroke();
+                    ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+                    ctx.lineWidth = Math.min(3, (w / s.z) * 0.8);
+
+                    ctx.beginPath();
+                    if (!isWarping && Math.abs(px - ppx) < 1) {
+                        ctx.arc(px, py, ctx.lineWidth / 2, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                        ctx.fill();
+                    } else {
+                        ctx.moveTo(ppx, ppy); ctx.lineTo(px, py); ctx.stroke();
+                    }
                 }
 
-                // DRAW SHOOTING STARS WITH GLOW
+                // 2. VẼ SAO BĂNG & HẠT RƠI (SHOOTING STARS & BLINK PARTICLES)
                 for (let i = shootingStars.length - 1; i >= 0; i--) {
                     let s = shootingStars[i];
-                    s.x += s.vx; s.y += s.vy; s.opacity -= 0.015;
-                    if (s.opacity <= 0) { shootingStars.splice(i, 1); continue; }
+                    s.x += s.vx; s.y += s.vy;
+                    if (s.x < -100 || s.y > h + 100) { shootingStars.splice(i, 1); continue; }
 
-                    starCtx.save();
-                    // Glow effect Layers
-                    for (let j = 3; j > 0; j--) {
-                        starCtx.shadowBlur = j * 10; starCtx.shadowColor = 'rgba(0, 229, 255, 0.8)';
-                        starCtx.strokeStyle = `rgba(0, 229, 255, ${s.opacity * 0.3})`;
-                        starCtx.lineWidth = j * 2;
-                        starCtx.beginPath(); starCtx.moveTo(s.x, s.y);
-                        starCtx.lineTo(s.x - s.vx * (s.len / 10), s.y - s.vy * (s.len / 10)); starCtx.stroke();
+                    // Tạo hạt rơi ra (Blink blink)
+                    if (Math.random() > 0.3) {
+                        trailParticles.push({
+                            x: s.x, y: s.y,
+                            vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2,
+                            life: 1, size: Math.random() * 3 + 1
+                        });
                     }
-                    // Core
-                    starCtx.fillStyle = `rgba(255,255,255,${s.opacity})`;
-                    starCtx.beginPath(); starCtx.arc(s.x, s.y, 2, 0, 7); starCtx.fill();
-                    starCtx.restore();
+
+                    // Vẽ sao băng chính (Glow như cursor)
+                    ctx.save();
+                    ctx.shadowBlur = 15; ctx.shadowColor = '#00e5ff';
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, 7); ctx.fill();
+
+                    // Đuôi tia chớp nhỏ
+                    ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(s.x, s.y);
+                    ctx.lineTo(s.x - s.vx * 5, s.y - s.vy * 5); ctx.stroke();
+                    ctx.restore();
                 }
+
+                // Vẽ các hạt blink rơi ra
+                for (let i = trailParticles.length - 1; i >= 0; i--) {
+                    let p = trailParticles[i];
+                    p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+                    if (p.life <= 0) { trailParticles.splice(i, 1); continue; }
+
+                    ctx.fillStyle = `rgba(0, 229, 255, ${p.life})`;
+                    if (Math.random() > 0.5) ctx.fillStyle = `rgba(255, 255, 255, ${p.life})`; // Hiệu ứng nhấp nháy trắng xanh
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, 7); ctx.fill();
+                }
+
                 requestAnimationFrame(draw);
             }
             draw();
 
-            // Logic Pass & Game Start
+            // Logic Mật khẩu & Chạy Game
             const SECRET = 'a3NhbWFzdXByZW1hY3k=';
             document.getElementById('unlock-btn').onclick = () => {
                 const inp = document.getElementById('password-input');
@@ -260,17 +296,26 @@
                 document.getElementById('ui-wrapper').style.background = 'transparent';
                 document.getElementById('ui-wrapper').style.backdropFilter = 'none';
                 document.getElementById('loading-screen').style.display = 'flex';
-                isWarping = true; targetSpeed = 55;
+
+                isWarping = true; targetSpeed = 60;
                 let p = 0; const b = document.getElementById('prog-bar');
-                const iv = setInterval(() => { p += 1.1; b.style.width = p + '%'; if (p >= 100) clearInterval(iv); }, 30);
+                const iv = setInterval(() => {
+                    p += 0.8; b.style.width = p + '%';
+                    if (p >= 100) clearInterval(iv);
+                }, 20);
+
                 setTimeout(() => {
-                    isRunning = false; document.getElementById('easter-egg-overlay').style.display = 'none';
+                    isRunning = false;
+                    document.getElementById('easter-egg-overlay').style.display = 'none';
                     const realBtn = document.getElementById('startBtn');
                     if (realBtn) { realBtn.style.display = 'none'; realBtn.click(); }
                 }, 3000);
             };
+
+            window.onresize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
         })();
     </script>
+
     <script src="js/config.js"></script>
     <script src="js/entities.js"></script>
     <script src="js/skills.js"></script>
