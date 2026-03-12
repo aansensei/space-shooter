@@ -21,26 +21,28 @@
             width: 100vw;
         }
 
-        /* Nền Vũ trụ Canvas 2D */
+        /* BỨC MÀN VŨ TRỤ CANVAS 2D (Che đè lên game) */
         #star-canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 1;
+            z-index: 9998;
+            /* Nằm trên game gốc */
             pointer-events: none;
             background: #000;
         }
 
-        /* Khung UI đè lên trên */
+        /* KHUNG UI BẢO MẬT (Nằm cao nhất) */
         #ui-wrapper {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 2;
+            z-index: 9999;
+            /* Nằm trên cùng */
             pointer-events: all;
             background: rgba(10, 25, 47, 0.4);
             backdrop-filter: blur(4px);
@@ -177,10 +179,8 @@
         </div>
     </div>
 
-    <div id="game-wrapper" style="display: none; width: 100vw; height: 100vh; position: absolute; z-index: 10;">
-        <canvas id="gameCanvas"></canvas>
-        <button id="startBtn">Start</button>
-    </div>
+    <canvas id="gameCanvas"></canvas>
+    <button id="startBtn">Start</button>
 
     <script>
         const canvas = document.getElementById('star-canvas');
@@ -192,68 +192,58 @@
         canvas.height = height;
 
         const stars = [];
-        const numStars = 3000; // Số lượng sao
-        let speed = 0.5; // Tốc độ trôi bình thường
-        let isWarping = false; // Trạng thái nhảy không gian
+        const numStars = 2400;
+        let speed = 0.5;
+        let isWarping = false;
 
-        // Khởi tạo các vì sao
         for (let i = 0; i < numStars; i++) {
             stars.push({
                 x: Math.random() * width - width / 2,
                 y: Math.random() * height - height / 2,
-                z: Math.random() * width,
-                pz: Math.random() * width
+                z: Math.random() * width
             });
         }
 
         function drawStars() {
-            // Thủ thuật làm mờ: Nếu đang Warp thì phủ 1 lớp đen mờ để tạo hiệu ứng "lưu ảnh"
-            if (isWarping) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            } else {
-                ctx.fillStyle = '#000000';
-            }
+            ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, width, height);
 
             const cx = width / 2;
             const cy = height / 2;
 
-            // BẬT HIỆU ỨNG PHÁT SÁNG (GLOW)
             ctx.shadowBlur = isWarping ? 15 : 6;
             ctx.shadowColor = isWarping ? '#00e5ff' : '#ffffff';
 
             for (let i = 0; i < numStars; i++) {
                 let star = stars[i];
-
-                star.pz = star.z;
                 star.z -= speed;
 
-                // Reset sao về xa nếu bay qua camera
                 if (star.z <= 0) {
                     star.x = Math.random() * width - cx;
                     star.y = Math.random() * height - cy;
                     star.z = width;
-                    star.pz = width;
                 }
 
                 let px = cx + (star.x / star.z) * width;
                 let py = cy + (star.y / star.z) * width;
                 let radius = (width / star.z) * 1.2;
 
-                // THUẬT TOÁN ĐỘ SÁNG THEO Z: Gần thì sáng rõ, xa thì mờ nhạt
                 let alpha = 1 - (star.z / width);
                 alpha = Math.max(0.1, Math.min(1, alpha));
 
                 if (isWarping) {
-                    // KHI NHẢY KHÔNG GIAN: Vẽ vệt tia sáng
+                    // Cải tiến vệt tia sáng mượt hơn
+                    let prevZ = star.z + speed * 1.5;
+                    let prevPx = cx + (star.x / prevZ) * width;
+                    let prevPy = cy + (star.y / prevZ) * width;
+
                     ctx.lineWidth = radius;
-                    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.strokeStyle = `rgba(0, 229, 255, ${alpha})`;
                     ctx.beginPath();
-                    ctx.moveTo(cx + (star.x / star.pz) * width, cy + (star.y / star.pz) * width);
+                    ctx.moveTo(prevPx, prevPy);
                     ctx.lineTo(px, py);
                     ctx.stroke();
                 } else {
-                    // BÌNH THƯỜNG: Vẽ chấm tròn có halo
                     ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.arc(px, py, radius, 0, Math.PI * 2);
@@ -280,7 +270,7 @@
 
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
-            const gameWrapper = document.getElementById('game-wrapper');
+            const starCanvas = document.getElementById('star-canvas');
             const uiWrapper = document.getElementById('ui-wrapper');
 
             const passwordInput = document.getElementById('password-input');
@@ -309,23 +299,27 @@
             unlockBtn.addEventListener('click', checkPassword);
             passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
-            // SỰ KIỆN: Nhấn nút để bắt đầu nhảy siêu không gian
             fakeStartBtn.addEventListener('click', () => {
                 lockScreen.style.display = 'none';
                 loadingScreen.style.display = 'flex';
 
                 isWarping = true;
-                speed = 35; // Tăng tốc độ bay sầm sập
+                speed = 35;
 
                 setTimeout(() => {
+                    // Dẹp rèm vũ trụ đi
                     uiWrapper.style.display = 'none';
-                    canvas.style.display = 'none';
-                    gameWrapper.style.display = 'block';
+                    starCanvas.style.display = 'none';
 
-                    // Kích hoạt game gốc
-                    if (realStartBtn) realStartBtn.click();
+                    // Lệnh cho nút Start gốc tự động bấm
+                    if (realStartBtn) {
+                        realStartBtn.click();
+                        // Đảm bảo nút gốc biến mất sau khi bấm
+                        realStartBtn.style.display = 'none';
+                    }
+
                     document.body.style.overflow = 'auto';
-                }, 3000); // 3 Giây để ngắm vệt sao chổi
+                }, 3000);
             });
         });
     </script>
