@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Thần Binh Thiên Hà - Top Secret Edition</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <style>
         body {
@@ -78,8 +76,7 @@
             font-family: inherit;
         }
 
-        #unlock-btn,
-        #fake-start-btn {
+        #unlock-btn, #fake-start-btn {
             padding: 12px 35px;
             border-radius: 30px;
             border: none;
@@ -96,10 +93,20 @@
             box-shadow: 0 0 15px rgba(247, 37, 133, 0.4);
         }
 
+        #unlock-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(247, 37, 133, 0.7);
+        }
+
         #fake-start-btn {
             display: none;
             background: linear-gradient(45deg, #00e5ff, #007bff);
             box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+        }
+
+        #fake-start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
         }
 
         #error-msg {
@@ -139,14 +146,13 @@
 
 <body>
     <canvas id="gameCanvas"></canvas>
-    <button id="startBtn">Start</button>
+    <button id="startBtn" style="display: none;">Start</button>
 
     <div id="easter-egg-overlay">
         <canvas id="star-canvas-ui"></canvas>
         <div id="ui-wrapper">
             <div id="lock-screen">
-                <h1
-                    style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">
+                <h1 style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">
                     RESTRICTED AREA</h1>
                 <p style="color: #a0c4ff; margin-bottom: 30px; font-family: 'Roboto', sans-serif;">This fairy tale is
                     classified. Enter password to unlock.</p>
@@ -156,11 +162,9 @@
                 <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
             </div>
             <div id="loading-screen">
-                <h1
-                    style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
+                <h1 style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
                     SYSTEM LOADING</h1>
-                <p style="color: #fff; font-family: 'Roboto', sans-serif; margin-bottom: 0;">Initiating hyperdrive
-                    jump...</p>
+                <p style="color: #fff; font-family: 'Roboto', sans-serif; margin-bottom: 0;">Initiating hyperdrive jump...</p>
                 <div class="progress-container">
                     <div id="prog-bar-fill"></div>
                 </div>
@@ -184,8 +188,8 @@
             let isLoopRunning = true;
             let lastSSSpawn = Date.now();
 
-            // Khởi tạo 3000 ngôi sao với phân bổ đều
-            for (let i = 0; i < 3000; i++) {
+            // Khởi tạo 2400 ngôi sao
+            for (let i = 0; i < 2400; i++) {
                 stars.push({
                     x: (Math.random() - 0.5) * w * 2.5,
                     y: (Math.random() - 0.5) * h * 2.5,
@@ -215,10 +219,11 @@
                     lastSSSpawn = Date.now();
                 }
 
+                // Tạo vệt lưu ảnh khi Warp
                 uiCtx.fillStyle = isWarping ? 'rgba(0,0,0,0.3)' : '#000';
                 uiCtx.fillRect(0, 0, w, h);
 
-                // --- VẼ SAO NỀN ---
+                // --- VẼ SAO NỀN TỎA SÁNG ---
                 for (let s of stars) {
                     s.pz = s.z;
                     s.z -= speed;
@@ -235,9 +240,13 @@
                     let ppx = w / 2 + (s.x / s.pz) * w;
                     let ppy = h / 2 + (s.y / s.pz) * w;
 
-                    // Sao bay gần màn hình (z nhỏ) sẽ sáng rõ và to hơn
-                    let alpha = Math.min(1, 1.2 - s.z / w);
-                    let radius = Math.min(4, (w / s.z) * 0.8);
+                    // Tính toán độ rõ và kích thước dựa trên độ gần (z)
+                    let alpha = Math.min(1, 1.5 - s.z / w); // Càng gần (z nhỏ) thì alpha tiến tới 1
+                    let radius = Math.min(5, (w / s.z) * 0.9); // Càng gần bán kính càng to
+                    
+                    // Hiệu ứng phát sáng (Glow)
+                    uiCtx.shadowBlur = isWarping ? 15 : Math.max(0, 10 - (s.z / w) * 10);
+                    uiCtx.shadowColor = isWarping ? '#00e5ff' : `rgba(255, 255, 255, ${alpha})`;
 
                     uiCtx.strokeStyle = `rgba(255,255,255,${alpha})`;
                     uiCtx.lineWidth = radius;
@@ -249,20 +258,22 @@
                         uiCtx.fillStyle = `rgba(255,255,255,${alpha})`;
                         uiCtx.fill();
                     } else {
-                        // Vẽ vệt dài trắng muốt nếu đang bay nhanh
+                        // Vẽ vệt dài khi bay nhanh
                         uiCtx.moveTo(ppx, ppy);
                         uiCtx.lineTo(px, py);
                         uiCtx.stroke();
                     }
                 }
 
-                // --- VẼ SAO BĂNG & HẠT GLOW ---
+                // Reset shadow cho các hạt khác để tránh lỗi render
+                uiCtx.shadowBlur = 0;
+
+                // --- VẼ SAO BĂNG & HẠT GLOW LẤP LÁNH ---
                 for (let i = shootingStars.length - 1; i >= 0; i--) {
                     let ss = shootingStars[i];
                     ss.x += ss.vx; ss.y += ss.vy;
                     if (ss.x < -100 || ss.y > h + 100) { shootingStars.splice(i, 1); continue; }
 
-                    // Tạo hạt rơi ra (Blink blink)
                     if (Math.random() > 0.4) {
                         blinkParticles.push({
                             x: ss.x, y: ss.y,
@@ -278,7 +289,6 @@
                     uiCtx.restore();
                 }
 
-                // Vẽ các hạt blink rụng dọc đường
                 for (let i = blinkParticles.length - 1; i >= 0; i--) {
                     let p = blinkParticles[i];
                     p.x += p.vx; p.y += p.vy; p.life -= 0.02;
@@ -291,8 +301,9 @@
             }
             draw();
 
-            // Xử lý Mật khẩu
-            const SECRET_HASH = 'a3NhbWFzdXByZW1hY3k='; // ksamasupremacy
+            // Xử lý Mật khẩu - Chỉ giữ mã Hash Base64, không để lại text gốc
+            const SECRET_HASH = 'a3NhbWFzdXByZW1hY3k='; 
+            
             document.getElementById('unlock-btn').onclick = () => {
                 const input = document.getElementById('password-input');
                 if (btoa(input.value) === SECRET_HASH) {
@@ -303,8 +314,15 @@
                     input.value = '';
                 }
             };
+            
+            // Lắng nghe sự kiện Enter
+            document.getElementById('password-input').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('unlock-btn').click();
+                }
+            });
 
-            // Bắt đầu nhảy Warp và Game
+            // Bắt đầu nhảy Warp và Load Game
             document.getElementById('fake-start-btn').onclick = () => {
                 document.getElementById('lock-screen').style.display = 'none';
                 document.getElementById('ui-wrapper').style.background = 'transparent';
@@ -312,7 +330,7 @@
                 document.getElementById('loading-screen').style.display = 'flex';
 
                 isWarping = true;
-                targetSpeed = 55; // Ép ga tối đa
+                targetSpeed = 55; // Ép ga tối đa lên vận tốc ánh sáng
 
                 let progress = 0;
                 const bar = document.getElementById('prog-bar-fill');
@@ -330,7 +348,7 @@
                         realStart.style.display = 'none';
                         realStart.click(); // Kích hoạt game sau khi Warp xong
                     }
-                }, 3000);
+                }, 3000); // 3 giây ngắm Warp 
             };
 
             window.onresize = () => { w = uiCanvas.width = window.innerWidth; h = uiCanvas.height = window.innerHeight; };
