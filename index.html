@@ -33,7 +33,7 @@
             background: #000;
         }
 
-        /* Nền Vũ trụ Canvas */
+        /* Nền Vũ trụ Canvas - ĐÃ FIX Z-INDEX để hiện sao lên */
         #star-canvas {
             position: absolute;
             top: 0;
@@ -196,7 +196,6 @@
     </div>
 
     <script>
-        // Sử dụng IIFE (Hàm tự thực thi) để cách ly hoàn toàn biến của Easter Egg với Game
         (() => {
             const starCanvas = document.getElementById('star-canvas');
             const ctx = starCanvas.getContext('2d');
@@ -208,11 +207,15 @@
 
             const stars = [];
             const numStars = 3000;
-            let speed = 0.2; // Tốc độ trôi ban đầu rất chậm
-            let targetSpeed = 0.2; // Mục tiêu tốc độ để gia tốc mượt
+            let speed = 0.2;
+            let targetSpeed = 0.2;
             let isSimulationRunning = true;
 
-            // Khởi tạo các vì sao
+            // HỆ THỐNG SAO BĂNG (Shooting Stars)
+            let shootingStars = [];
+            let lastShootingStarTime = Date.now();
+            const shootingStarInterval = 5000; // 5 giây spawn 1 lần
+
             for (let i = 0; i < numStars; i++) {
                 stars.push({
                     x: (Math.random() - 0.5) * width * 2,
@@ -223,57 +226,107 @@
                 stars[i].pz = stars[i].z;
             }
 
+            function spawnShootingStar() {
+                // Đặt sao băng xuất phát từ phía trên, bên phải
+                shootingStars.push({
+                    x: Math.random() * width,
+                    y: -100,
+                    vx: -(Math.random() * 5 + 10), // Bay chéo qua trái
+                    vy: Math.random() * 5 + 10,   // Bay chéo xuống dưới
+                    length: Math.random() * 80 + 150, // Chiều dài đuôi
+                    size: Math.random() * 1.5 + 1.5, // Độ dày lõi
+                    opacity: 1 // Độ sáng ban đầu
+                });
+            }
+
             function drawStars() {
                 if (!isSimulationRunning) return;
 
-                // GIA TỐC MƯỢT MÀ: Thay vì nhảy vận tốc đột ngột, nó sẽ tăng dần dần
+                const currentTime = Date.now();
+                // Spawn sao băng mỗi 5 giây (nếu không đang Warp)
+                if (targetSpeed === 0.2 && currentTime - lastShootingStarTime > shootingStarInterval) {
+                    spawnShootingStar();
+                    lastShootingStarTime = currentTime;
+                }
+
                 speed += (targetSpeed - speed) * 0.015;
 
-                // Tạo bóng mờ cho đuôi sao chổi
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
                 ctx.fillRect(0, 0, width, height);
 
                 const cx = width / 2;
                 const cy = height / 2;
 
+                // VẼ CÁC VÌ SAO BÌNH THƯỜNG
                 for (let i = 0; i < numStars; i++) {
                     let star = stars[i];
 
                     star.pz = star.z;
                     star.z -= speed;
 
-                    // Reset sao nếu bay qua camera
                     if (star.z <= 0) {
                         star.x = (Math.random() - 0.5) * width * 2;
                         star.y = (Math.random() - 0.5) * height * 2;
                         star.z = width;
-                        star.pz = width; // Cập nhật PZ để vệt sáng không bị cắt ngang màn hình
+                        star.pz = width;
                     }
 
-                    // Tính tọa độ hiện tại
                     let px = cx + (star.x / star.z) * width;
                     let py = cy + (star.y / star.z) * width;
-
-                    // Tính tọa độ ngay trước đó
                     let prevPx = cx + (star.x / star.pz) * width;
                     let prevPy = cy + (star.y / star.pz) * width;
 
-                    // Độ sáng và độ dày: Càng gần z=0 thì càng rõ nét và to hơn
                     let alpha = 1.2 - (star.z / width);
                     alpha = Math.max(0.1, Math.min(1, alpha));
 
                     let thickness = (width / star.z) * 1.5;
                     thickness = Math.max(0.5, Math.min(4, thickness));
 
-                    // LUÔN LUÔN VẼ DƯỚI DẠNG ĐƯỜNG THẲNG
-                    // Khi đi chậm (z và pz sát nhau), nó tự động thành hình chấm
-                    // Khi đi nhanh (z và pz cách xa nhau), nó tự kéo dãn thành vệt sáng siêu mượt
                     ctx.lineWidth = thickness;
                     ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.moveTo(prevPx, prevPy);
                     ctx.lineTo(px, py);
                     ctx.stroke();
+                }
+
+                // VẼ SAO BĂNG
+                for (let i = shootingStars.length - 1; i >= 0; i--) {
+                    let ss = shootingStars[i];
+                    ss.x += ss.vx;
+                    ss.y += ss.vy;
+                    // Làm mờ dần
+                    ss.opacity -= 0.01;
+
+                    if (ss.opacity <= 0 || ss.x < -200 || ss.y > height + 200) {
+                        shootingStars.splice(i, 1);
+                        continue;
+                    }
+
+                    ctx.save();
+                    // Tạo quầng sáng (Glow) cho sao băng
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = 'rgba(0, 229, 255, 0.8)'; // Ánh sáng màu xanh nhạt
+
+                    // Vẽ đường thẳng dốc làm đuôi sao
+                    let grad = ctx.createLinearGradient(ss.x, ss.y, ss.x - (ss.vx / Math.abs(ss.vx)) * ss.length, ss.y - (ss.vy / Math.abs(ss.vy)) * ss.length);
+                    grad.addColorStop(0, `rgba(255, 255, 255, ${ss.opacity})`); // Đầu sáng
+                    grad.addColorStop(1, `rgba(0, 229, 255, 0)`); // Đuôi mờ dần
+
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = ss.size;
+                    ctx.beginPath();
+                    ctx.moveTo(ss.x, ss.y);
+                    ctx.lineTo(ss.x - (ss.vx / Math.abs(ss.vx)) * ss.length, ss.y - (ss.vy / Math.abs(ss.vy)) * ss.length);
+                    ctx.stroke();
+
+                    // Vẽ lõi sao băng sắc nét ở đầu
+                    ctx.fillStyle = `rgba(255, 255, 255, ${ss.opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(ss.x, ss.y, ss.size * 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
                 }
 
                 requestAnimationFrame(drawStars);
@@ -320,28 +373,28 @@
             passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
             fakeStartBtn.addEventListener('click', () => {
-                // Đổi giao diện từ Form sang Loading
+                // Tắt form
                 lockScreen.style.display = 'none';
                 uiWrapper.style.backdropFilter = 'none';
                 uiWrapper.style.background = 'transparent';
                 loadingScreen.style.display = 'flex';
 
-                // KÍCH HOẠT NHẢY KHÔNG GIAN BẰNG CÁCH TĂNG MỤC TIÊU VẬN TỐC LÊN MỨC WARP
+                // Bật Warp
                 targetSpeed = 50;
+                // Xóa hết sao băng cũ khi đang warp
+                shootingStars = [];
 
-                // Chạy thanh Loading
                 setTimeout(() => {
                     progressBar.style.width = '100%';
                 }, 50);
 
-                // Sau đúng 3.5 giây: Dọn dẹp hiệu ứng và chạy game
                 setTimeout(() => {
                     isSimulationRunning = false;
                     easterEggOverlay.style.display = 'none';
 
                     if (realStartBtn) {
-                        realStartBtn.style.display = 'none'; // Ẩn nút start gốc
-                        realStartBtn.click(); // Kích hoạt chạy game 
+                        realStartBtn.style.display = 'none';
+                        realStartBtn.click();
                     }
                 }, 3500);
             });
