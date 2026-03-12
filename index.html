@@ -192,7 +192,7 @@
         canvas.height = height;
 
         const stars = [];
-        const numStars = 2000; // Số lượng chấm tròn
+        const numStars = 2400; // Số lượng sao
         let speed = 0.5; // Tốc độ trôi bình thường
         let isWarping = false; // Trạng thái nhảy không gian
 
@@ -202,12 +202,12 @@
                 x: Math.random() * width - width / 2,
                 y: Math.random() * height - height / 2,
                 z: Math.random() * width,
-                pz: Math.random() * width // Lưu lại độ sâu cũ để vẽ vệt sáng
+                pz: Math.random() * width
             });
         }
 
         function drawStars() {
-            // Thủ thuật làm mờ: Nếu đang Warp thì không xóa hẳn nền, mà phủ 1 lớp đen mờ để tạo hiệu ứng "lưu ảnh" (đuôi sao chổi)
+            // Thủ thuật làm mờ: Nếu đang Warp thì phủ 1 lớp đen mờ để tạo hiệu ứng "lưu ảnh"
             if (isWarping) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
             } else {
@@ -218,16 +218,17 @@
             const cx = width / 2;
             const cy = height / 2;
 
-            ctx.fillStyle = '#ffffff';
-            ctx.strokeStyle = '#ffffff';
+            // BẬT HIỆU ỨNG PHÁT SÁNG (GLOW)
+            ctx.shadowBlur = isWarping ? 15 : 6;
+            ctx.shadowColor = isWarping ? '#00e5ff' : '#ffffff';
 
             for (let i = 0; i < numStars; i++) {
                 let star = stars[i];
 
-                star.pz = star.z; // Cập nhật z cũ
-                star.z -= speed;  // Sao tiến về phía camera
+                star.pz = star.z;
+                star.z -= speed;
 
-                // Nếu bay qua khỏi màn hình thì reset lại phía xa
+                // Reset sao về xa nếu bay qua camera
                 if (star.z <= 0) {
                     star.x = Math.random() * width - cx;
                     star.y = Math.random() * height - cy;
@@ -235,30 +236,32 @@
                     star.pz = width;
                 }
 
-                // Chiếu tọa độ 3D lên màn hình 2D
                 let px = cx + (star.x / star.z) * width;
                 let py = cy + (star.y / star.z) * width;
-
-                // Sao càng gần thì kích thước càng to
                 let radius = (width / star.z) * 1.2;
 
-                if (isWarping) {
-                    // KHI NHẢY KHÔNG GIAN: Vẽ đường thẳng (vệt sáng) từ tọa độ cũ tới tọa độ mới
-                    let prevPx = cx + (star.x / star.pz) * width;
-                    let prevPy = cy + (star.y / star.pz) * width;
+                // THUẬT TOÁN ĐỘ SÁNG THEO Z: Gần thì sáng rõ, xa thì mờ nhạt
+                let alpha = 1 - (star.z / width);
+                alpha = Math.max(0.1, Math.min(1, alpha));
 
+                if (isWarping) {
+                    // KHI NHẢY KHÔNG GIAN: Vẽ vệt tia sáng
                     ctx.lineWidth = radius;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
-                    ctx.moveTo(prevPx, prevPy);
+                    ctx.moveTo(cx + (star.x / star.pz) * width, cy + (star.y / star.pz) * width);
                     ctx.lineTo(px, py);
                     ctx.stroke();
                 } else {
-                    // BÌNH THƯỜNG: Chỉ vẽ các chấm tròn sắc nét
+                    // BÌNH THƯỜNG: Vẽ chấm tròn có halo
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.arc(px, py, radius, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
+
+            ctx.shadowBlur = 0;
             requestAnimationFrame(drawStars);
         }
         drawStars();
@@ -273,7 +276,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const CORRECT_PASSWORD = 'ksamasupremacy';
+            // MẬT KHẨU BẢO MẬT BẰNG BASE64 ('ksamasupremacy')
+            const SECRET_CODE = 'a3NhbWFzdXByZW1hY3k=';
 
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
@@ -287,7 +291,7 @@
             const realStartBtn = document.getElementById('startBtn');
 
             function checkPassword() {
-                if (passwordInput.value === CORRECT_PASSWORD) {
+                if (btoa(passwordInput.value) === SECRET_CODE) {
                     errorMsg.style.visibility = 'hidden';
                     passwordInput.style.display = 'none';
                     unlockBtn.style.display = 'none';
@@ -306,23 +310,23 @@
             unlockBtn.addEventListener('click', checkPassword);
             passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
-            // Khi nhấn nút View Fairy Tale
+            // SỰ KIỆN: Nhấn nút để bắt đầu nhảy siêu không gian
             fakeStartBtn.addEventListener('click', () => {
                 lockScreen.style.display = 'none';
                 loadingScreen.style.display = 'flex';
 
-                // KÍCH HOẠT NHẢY KHÔNG GIAN
                 isWarping = true;
-                speed = 35; // Ép tốc độ vút lên cực nhanh để tạo vệt sao chổi
+                speed = 35; // Tăng tốc độ bay sầm sập
 
                 setTimeout(() => {
-                    uiWrapper.style.display = 'none'; // Tắt mờ UI
-                    canvas.style.display = 'none'; // Tắt vũ trụ
-                    gameWrapper.style.display = 'block'; // Hiện Game chính
+                    uiWrapper.style.display = 'none';
+                    canvas.style.display = 'none';
+                    gameWrapper.style.display = 'block';
 
-                    if (realStartBtn) realStartBtn.click(); // Tự động bấm nút Start gốc
-                    document.body.style.overflow = 'auto'; // Khôi phục thanh cuộn
-                }, 3000); // Ngắm bước nhảy trong 3 giây
+                    // Kích hoạt game gốc
+                    if (realStartBtn) realStartBtn.click();
+                    document.body.style.overflow = 'auto';
+                }, 3000); // 3 Giây để ngắm vệt sao chổi
             });
         });
     </script>
