@@ -60,6 +60,7 @@
             justify-content: center;
             align-items: center;
             text-align: center;
+            transition: background 1s ease, backdrop-filter 1s ease;
         }
 
         /* Form UI */
@@ -154,7 +155,7 @@
             width: 0%;
             background: #00e5ff;
             box-shadow: 0 0 15px #00e5ff;
-            transition: width 3s linear;
+            transition: width 3.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 </head>
@@ -195,110 +196,108 @@
     </div>
 
     <script>
-        const canvas = document.getElementById('star-canvas');
-        const ctx = canvas.getContext('2d');
+        // Sử dụng IIFE (Hàm tự thực thi) để cách ly hoàn toàn biến của Easter Egg với Game
+        (() => {
+            const starCanvas = document.getElementById('star-canvas');
+            const ctx = starCanvas.getContext('2d');
 
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+            starCanvas.width = width;
+            starCanvas.height = height;
 
-        const stars = [];
-        const numStars = 3000;
-        let speed = 0.5;
-        let isWarping = false;
-        let isSimulationRunning = true;
+            const stars = [];
+            const numStars = 3000;
+            let speed = 0.2; // Tốc độ trôi ban đầu rất chậm
+            let targetSpeed = 0.2; // Mục tiêu tốc độ để gia tốc mượt
+            let isSimulationRunning = true;
 
-        // Khởi tạo các vì sao
-        for (let i = 0; i < numStars; i++) {
-            stars.push({
-                x: Math.random() * width - width / 2,
-                y: Math.random() * height - height / 2,
-                z: Math.random() * width
-            });
-        }
-
-        function drawStars() {
-            if (!isSimulationRunning) return;
-
-            // Khi Warp thì tạo đuôi sao chổi bằng cách không xóa hẳn nền đen
-            if (isWarping) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            } else {
-                ctx.fillStyle = '#000000';
-            }
-            ctx.fillRect(0, 0, width, height);
-
-            const cx = width / 2;
-            const cy = height / 2;
-
+            // Khởi tạo các vì sao
             for (let i = 0; i < numStars; i++) {
-                let star = stars[i];
-                star.z -= speed;
+                stars.push({
+                    x: (Math.random() - 0.5) * width * 2,
+                    y: (Math.random() - 0.5) * height * 2,
+                    z: Math.random() * width,
+                    pz: 0
+                });
+                stars[i].pz = stars[i].z;
+            }
 
-                // Reset sao nếu bay qua camera
-                if (star.z <= 0) {
-                    star.x = Math.random() * width - cx;
-                    star.y = Math.random() * height - cy;
-                    star.z = width;
-                }
+            function drawStars() {
+                if (!isSimulationRunning) return;
 
-                let px = cx + (star.x / star.z) * width;
-                let py = cy + (star.y / star.z) * width;
-                let radius = (width / star.z) * 1.5;
+                // GIA TỐC MƯỢT MÀ: Thay vì nhảy vận tốc đột ngột, nó sẽ tăng dần dần
+                speed += (targetSpeed - speed) * 0.015;
 
-                // Độ sáng: Càng gần z=0 thì càng rõ nét 100%
-                let alpha = 1.2 - (star.z / width);
-                alpha = Math.max(0.1, Math.min(1, alpha));
+                // Tạo bóng mờ cho đuôi sao chổi
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(0, 0, width, height);
 
-                if (isWarping) {
-                    // HIỆU ỨNG VỆT SÁNG TRẮNG CŨ BẠN THÍCH
-                    let prevZ = star.z + speed;
-                    let prevPx = cx + (star.x / prevZ) * width;
-                    let prevPy = cy + (star.y / prevZ) * width;
+                const cx = width / 2;
+                const cy = height / 2;
 
-                    ctx.lineWidth = radius;
+                for (let i = 0; i < numStars; i++) {
+                    let star = stars[i];
+
+                    star.pz = star.z;
+                    star.z -= speed;
+
+                    // Reset sao nếu bay qua camera
+                    if (star.z <= 0) {
+                        star.x = (Math.random() - 0.5) * width * 2;
+                        star.y = (Math.random() - 0.5) * height * 2;
+                        star.z = width;
+                        star.pz = width; // Cập nhật PZ để vệt sáng không bị cắt ngang màn hình
+                    }
+
+                    // Tính tọa độ hiện tại
+                    let px = cx + (star.x / star.z) * width;
+                    let py = cy + (star.y / star.z) * width;
+
+                    // Tính tọa độ ngay trước đó
+                    let prevPx = cx + (star.x / star.pz) * width;
+                    let prevPy = cy + (star.y / star.pz) * width;
+
+                    // Độ sáng và độ dày: Càng gần z=0 thì càng rõ nét và to hơn
+                    let alpha = 1.2 - (star.z / width);
+                    alpha = Math.max(0.1, Math.min(1, alpha));
+
+                    let thickness = (width / star.z) * 1.5;
+                    thickness = Math.max(0.5, Math.min(4, thickness));
+
+                    // LUÔN LUÔN VẼ DƯỚI DẠNG ĐƯỜNG THẲNG
+                    // Khi đi chậm (z và pz sát nhau), nó tự động thành hình chấm
+                    // Khi đi nhanh (z và pz cách xa nhau), nó tự kéo dãn thành vệt sáng siêu mượt
+                    ctx.lineWidth = thickness;
                     ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
                     ctx.beginPath();
                     ctx.moveTo(prevPx, prevPy);
                     ctx.lineTo(px, py);
                     ctx.stroke();
-                } else {
-                    // SAO CHẤM TRÒN SẮC NÉT (Không Blur, không nhấp nháy)
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                    ctx.beginPath();
-                    ctx.arc(px, py, radius, 0, Math.PI * 2);
-                    ctx.fill();
                 }
+
+                requestAnimationFrame(drawStars);
             }
+            drawStars();
 
-            requestAnimationFrame(drawStars);
-        }
-        drawStars();
+            window.addEventListener('resize', () => {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                starCanvas.width = width;
+                starCanvas.height = height;
+            });
 
-        window.addEventListener('resize', () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        });
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+            // 4. XỬ LÝ MẬT KHẨU & AUTO START
             const SECRET_CODE = 'a3NhbWFzdXByZW1hY3k=';
-
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
             const uiWrapper = document.getElementById('ui-wrapper');
             const easterEggOverlay = document.getElementById('easter-egg-overlay');
             const progressBar = document.getElementById('progress-bar');
-
             const passwordInput = document.getElementById('password-input');
             const unlockBtn = document.getElementById('unlock-btn');
             const fakeStartBtn = document.getElementById('fake-start-btn');
             const errorMsg = document.getElementById('error-msg');
-
             const realStartBtn = document.getElementById('startBtn');
 
             function checkPassword() {
@@ -306,7 +305,6 @@
                     errorMsg.style.visibility = 'hidden';
                     passwordInput.style.display = 'none';
                     unlockBtn.style.display = 'none';
-
                     fakeStartBtn.style.display = 'block';
                     lockScreen.querySelector('h1').innerText = '✅ ACCESS GRANTED';
                     lockScreen.querySelector('h1').style.color = '#fff';
@@ -322,32 +320,32 @@
             passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
             fakeStartBtn.addEventListener('click', () => {
-                // 1. Chuyển UI sang Loading
+                // Đổi giao diện từ Form sang Loading
                 lockScreen.style.display = 'none';
-                uiWrapper.style.backdropFilter = 'none'; // Bỏ làm mờ kính để thấy rõ Warp
+                uiWrapper.style.backdropFilter = 'none';
                 uiWrapper.style.background = 'transparent';
                 loadingScreen.style.display = 'flex';
 
-                // 2. Kích hoạt Warp & Thanh Loading chạy trong 3 giây
-                isWarping = true;
-                speed = 35; // Tăng max tốc độ
+                // KÍCH HOẠT NHẢY KHÔNG GIAN BẰNG CÁCH TĂNG MỤC TIÊU VẬN TỐC LÊN MỨC WARP
+                targetSpeed = 50;
 
+                // Chạy thanh Loading
                 setTimeout(() => {
                     progressBar.style.width = '100%';
                 }, 50);
 
-                // 3. ĐỢI ĐÚNG 3 GIÂY RỒI MỚI BẤM START GAME (FIX LỖI ĐEN MÀN HÌNH)
+                // Sau đúng 3.5 giây: Dọn dẹp hiệu ứng và chạy game
                 setTimeout(() => {
-                    isSimulationRunning = false; // Tắt vòng lặp vũ trụ để nhường CPU cho game
-                    easterEggOverlay.style.display = 'none'; // Giấu rèm
+                    isSimulationRunning = false;
+                    easterEggOverlay.style.display = 'none';
 
                     if (realStartBtn) {
-                        realStartBtn.style.display = 'none'; // Ẩn cái nút Start màu xanh gốc
-                        realStartBtn.click(); // Kích hoạt game lúc khung hình đã thoáng
+                        realStartBtn.style.display = 'none'; // Ẩn nút start gốc
+                        realStartBtn.click(); // Kích hoạt chạy game 
                     }
-                }, 3000);
+                }, 3500);
             });
-        });
+        })();
     </script>
 
     <script src="js/config.js"></script>
