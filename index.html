@@ -3,13 +3,212 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Thần Binh Thiên Hà</title>
+    <title>Thần Binh Thiên Hà - Classified</title>
     <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+
+        #lock-screen,
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 25, 47, 0.98);
+            /* Màu nền xanh tối Cyberpunk */
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Giao diện Mật khẩu */
+        #password-input {
+            padding: 12px 20px;
+            border-radius: 30px;
+            border: 2px solid #00e5ff;
+            background: rgba(0, 0, 0, 0.5);
+            color: #00e5ff;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            text-align: center;
+            outline: none;
+            width: 250px;
+            font-family: inherit;
+        }
+
+        #password-input::placeholder {
+            color: rgba(0, 229, 255, 0.5);
+        }
+
+        #unlock-btn,
+        #fake-start-btn {
+            padding: 12px 35px;
+            border-radius: 30px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            color: #fff;
+            font-size: 1.1rem;
+            font-family: inherit;
+        }
+
+        #unlock-btn {
+            background: linear-gradient(45deg, #f72585, #7209b7);
+            box-shadow: 0 0 15px rgba(247, 37, 133, 0.5);
+        }
+
+        #unlock-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(247, 37, 133, 0.8);
+        }
+
+        #fake-start-btn {
+            display: none;
+            background: linear-gradient(45deg, #00e5ff, #007bff);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+        }
+
+        #fake-start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
+        }
+
+        #error-msg {
+            color: #f72585;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            visibility: hidden;
+            text-shadow: 0 0 5px red;
+        }
+
+        /* Giao diện Loading */
+        #loading-screen {
+            background: #000;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #00e5ff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-top: 25px;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <button id="startBtn">Start</button>
+    <div id="lock-screen">
+        <h1 style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px;">RESTRICTED
+            AREA</h1>
+        <p style="color: #a0c4ff; margin-bottom: 30px;">This fairy tale is classified. Enter password to unlock.</p>
+
+        <input type="password" id="password-input" placeholder="Enter password...">
+        <button id="unlock-btn">Unlock Story</button>
+        <button id="fake-start-btn">View Fairy Tale</button>
+
+        <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
+    </div>
+
+    <div id="loading-screen">
+        <h1 style="color: #00e5ff; letter-spacing: 3px; text-shadow: 0 0 15px #00e5ff;">SYSTEM LOADING</h1>
+        <p style="color: #a0c4ff;">Syncing fairy tale database & assets...</p>
+        <div class="spinner"></div>
+    </div>
+
+    <div id="game-wrapper" style="display: none; width: 100vw; height: 100vh;">
+        <canvas id="gameCanvas"></canvas>
+        <button id="startBtn">Start</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const CORRECT_PASSWORD = 'ksamasupremacy'; // Mật khẩu của bạn
+
+            const lockScreen = document.getElementById('lock-screen');
+            const loadingScreen = document.getElementById('loading-screen');
+            const gameWrapper = document.getElementById('game-wrapper');
+
+            const passwordInput = document.getElementById('password-input');
+            const unlockBtn = document.getElementById('unlock-btn');
+            const fakeStartBtn = document.getElementById('fake-start-btn');
+            const errorMsg = document.getElementById('error-msg');
+
+            const realStartBtn = document.getElementById('startBtn'); // Đây là nút gốc của game bạn
+
+            // Xử lý kiểm tra mật khẩu
+            function checkPassword() {
+                if (passwordInput.value === CORRECT_PASSWORD) {
+                    errorMsg.style.visibility = 'hidden';
+                    passwordInput.style.display = 'none';
+                    unlockBtn.style.display = 'none';
+
+                    fakeStartBtn.style.display = 'block'; // Hiện nút vào game
+                    lockScreen.querySelector('h1').innerText = '✅ ACCESS GRANTED';
+                    lockScreen.querySelector('h1').style.color = '#00e5ff';
+                    lockScreen.querySelector('h1').style.textShadow = '0 0 15px #00e5ff';
+                } else {
+                    errorMsg.style.visibility = 'visible';
+                    passwordInput.style.borderColor = '#f72585';
+                    passwordInput.value = ''; // Xóa trắng ô nhập
+                }
+            }
+
+            unlockBtn.addEventListener('click', checkPassword);
+
+            // Cho phép ấn phím Enter để mở khóa
+            passwordInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    checkPassword();
+                }
+            });
+
+            // Xử lý khi ấn "View Fairy Tale"
+            fakeStartBtn.addEventListener('click', () => {
+                lockScreen.style.display = 'none'; // Tắt màn hình khóa
+                loadingScreen.style.display = 'flex'; // Bật màn hình Loading
+
+                // Giả lập Loading trong 2.5 giây
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none'; // Tắt Loading
+                    gameWrapper.style.display = 'block'; // Hiện khung game gốc lên
+
+                    // THỦ THUẬT: Dùng code "bấm hộ" vào nút Start gốc của game
+                    if (realStartBtn) {
+                        realStartBtn.click();
+                    }
+
+                    // Khôi phục lại thanh cuộn nếu game của bạn cần
+                    document.body.style.overflow = 'auto';
+                }, 2500);
+            });
+        });
+    </script>
 
     <script src="js/config.js"></script>
     <script src="js/entities.js"></script>
