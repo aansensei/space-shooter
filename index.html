@@ -3,28 +3,49 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Thần Binh Thiên Hà - Classified</title>
+    <title>Thần Binh Thiên Hà - Top Secret Edition</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         body {
             margin: 0;
-            background-color: #000;
+            background: #000;
             color: #fff;
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
+            height: 100vh;
+            width: 100vw;
         }
 
-        #lock-screen,
-        #loading-screen {
+        /* Nền Vũ trụ 3D */
+        #three-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(10, 25, 47, 0.98);
-            /* Màu nền xanh tối Cyberpunk */
-            z-index: 9999;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Khung UI đè lên trên */
+        #ui-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2;
+            pointer-events: all;
+            background: rgba(10, 25, 47, 0.4);
+            backdrop-filter: blur(5px);
+            /* Làm mờ nhẹ để nổi bật sao băng */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -32,12 +53,19 @@
             text-align: center;
         }
 
-        /* Giao diện Mật khẩu */
+        /* Form UI */
+        #lock-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
         #password-input {
             padding: 12px 20px;
             border-radius: 30px;
             border: 2px solid #00e5ff;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             color: #00e5ff;
             margin-bottom: 20px;
             font-size: 1.2rem;
@@ -48,7 +76,7 @@
         }
 
         #password-input::placeholder {
-            color: rgba(0, 229, 255, 0.5);
+            color: rgba(0, 229, 255, 0.4);
         }
 
         #unlock-btn,
@@ -66,23 +94,23 @@
 
         #unlock-btn {
             background: linear-gradient(45deg, #f72585, #7209b7);
-            box-shadow: 0 0 15px rgba(247, 37, 133, 0.5);
+            box-shadow: 0 0 15px rgba(247, 37, 133, 0.4);
         }
 
         #unlock-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(247, 37, 133, 0.8);
+            box-shadow: 0 0 25px rgba(247, 37, 133, 0.7);
         }
 
         #fake-start-btn {
             display: none;
             background: linear-gradient(45deg, #00e5ff, #007bff);
-            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
         }
 
         #fake-start-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
         }
 
         #error-msg {
@@ -95,8 +123,10 @@
 
         /* Giao diện Loading */
         #loading-screen {
-            background: #000;
+            background: transparent;
             display: none;
+            flex-direction: column;
+            align-items: center;
         }
 
         .spinner {
@@ -123,89 +153,152 @@
 </head>
 
 <body>
-    <div id="lock-screen">
-        <h1 style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px;">RESTRICTED
-            AREA</h1>
-        <p style="color: #a0c4ff; margin-bottom: 30px;">This fairy tale is classified. Enter password to unlock.</p>
+    <div id="three-container"></div>
 
-        <input type="password" id="password-input" placeholder="Enter password...">
-        <button id="unlock-btn">Unlock Story</button>
-        <button id="fake-start-btn">View Fairy Tale</button>
+    <div id="ui-wrapper">
+        <div id="lock-screen">
+            <h1
+                style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">
+                RESTRICTED AREA</h1>
+            <p style="color: #a0c4ff; margin-bottom: 30px; font-family: 'Roboto', sans-serif;">This fairy tale is
+                classified. Enter password to unlock.</p>
 
-        <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
+            <input type="password" id="password-input" placeholder="Enter password...">
+            <button id="unlock-btn">Unlock Story</button>
+            <button id="fake-start-btn">View Fairy Tale</button>
+
+            <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
+        </div>
+
+        <div id="loading-screen">
+            <h1
+                style="color: #00e5ff; letter-spacing: 3px; text-shadow: 0 0 15px #00e5ff; font-family: 'Playfair Display', serif;">
+                SYSTEM LOADING</h1>
+            <p style="color: #a0c4ff; font-family: 'Roboto', sans-serif;">Initiating warp drive...</p>
+            <div class="spinner"></div>
+        </div>
     </div>
 
-    <div id="loading-screen">
-        <h1 style="color: #00e5ff; letter-spacing: 3px; text-shadow: 0 0 15px #00e5ff;">SYSTEM LOADING</h1>
-        <p style="color: #a0c4ff;">Syncing fairy tale database & assets...</p>
-        <div class="spinner"></div>
-    </div>
-
-    <div id="game-wrapper" style="display: none; width: 100vw; height: 100vh;">
+    <div id="game-wrapper" style="display: none; width: 100vw; height: 100vh; position: absolute; z-index: 10;">
         <canvas id="gameCanvas"></canvas>
         <button id="startBtn">Start</button>
     </div>
 
     <script>
+        // Cài đặt cảnh 3D (Scene, Camera, Renderer)
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 1;
+        camera.rotation.x = Math.PI / 2; // Quay camera lên trên để nhìn dọc theo trục Y
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('three-container').appendChild(renderer.domElement);
+
+        // Tạo Đám mây điểm (Hàng ngàn ngôi sao)
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 8000; // Khởi tạo 8000 ngôi sao
+        const posArray = new Float32Array(starCount * 3); // Mảng tọa độ X, Y, Z
+
+        for (let i = 0; i < starCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 600; // Rải đều sao ra xung quanh
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+        // Phủ màu Cyan Neon đặc trưng của bạn
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0x00e5ff,
+            size: 0.7,
+            transparent: true
+        });
+
+        const stars = new THREE.Points(starGeo, starMaterial);
+        scene.add(stars);
+
+        let warpSpeed = 1; // Tốc độ bay lúc rảnh rỗi
+
+        // Vòng lặp Render liên tục (Giống hàm Update trong game)
+        function animate() {
+            const positions = starGeo.attributes.position.array;
+
+            for (let i = 1; i < starCount * 3; i += 3) {
+                // Giảm trục Y để sao lao xuống (vì camera đang ngửa lên)
+                positions[i] -= warpSpeed;
+
+                // Nếu sao bay qua khỏi màn hình ở đằng sau, ném nó lại tít đằng trước
+                if (positions[i] < -300) {
+                    positions[i] = 300;
+                }
+            }
+            starGeo.attributes.position.needsUpdate = true;
+
+            // Xoay nhẹ cả vũ trụ cho ma mị
+            stars.rotation.y += 0.002;
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate(); // Kích hoạt vũ trụ
+    </script>
+
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const CORRECT_PASSWORD = 'ksamasupremacy'; // Mật khẩu của bạn
+            const CORRECT_PASSWORD = 'ksamasupremacy';
 
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
             const gameWrapper = document.getElementById('game-wrapper');
+            const uiWrapper = document.getElementById('ui-wrapper');
 
             const passwordInput = document.getElementById('password-input');
             const unlockBtn = document.getElementById('unlock-btn');
             const fakeStartBtn = document.getElementById('fake-start-btn');
             const errorMsg = document.getElementById('error-msg');
+            const realStartBtn = document.getElementById('startBtn');
 
-            const realStartBtn = document.getElementById('startBtn'); // Đây là nút gốc của game bạn
-
-            // Xử lý kiểm tra mật khẩu
             function checkPassword() {
                 if (passwordInput.value === CORRECT_PASSWORD) {
                     errorMsg.style.visibility = 'hidden';
                     passwordInput.style.display = 'none';
                     unlockBtn.style.display = 'none';
 
-                    fakeStartBtn.style.display = 'block'; // Hiện nút vào game
+                    fakeStartBtn.style.display = 'block';
                     lockScreen.querySelector('h1').innerText = '✅ ACCESS GRANTED';
                     lockScreen.querySelector('h1').style.color = '#00e5ff';
                     lockScreen.querySelector('h1').style.textShadow = '0 0 15px #00e5ff';
                 } else {
                     errorMsg.style.visibility = 'visible';
                     passwordInput.style.borderColor = '#f72585';
-                    passwordInput.value = ''; // Xóa trắng ô nhập
+                    passwordInput.value = '';
                 }
             }
 
             unlockBtn.addEventListener('click', checkPassword);
+            passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
 
-            // Cho phép ấn phím Enter để mở khóa
-            passwordInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    checkPassword();
-                }
+            // Khi nhấn nút View Fairy Tale
+            fakeStartBtn.addEventListener('click', () => {
+                lockScreen.style.display = 'none';
+                loadingScreen.style.display = 'flex';
+
+                // HIỆU ỨNG TĂNG TỐC ĐỘT NGỘT: Đẩy warpSpeed từ 1 lên 20 để tạo cú nhảy không gian
+                warpSpeed = 20;
+
+                setTimeout(() => {
+                    uiWrapper.style.display = 'none'; // Tắt mờ
+                    document.getElementById('three-container').style.display = 'none'; // Tắt vũ trụ
+                    gameWrapper.style.display = 'block'; // Hiện Game gốc
+
+                    if (realStartBtn) realStartBtn.click();
+                    document.body.style.overflow = 'auto';
+                }, 3000); // Kéo dài loading ra 3 giây để ngắm sao băng cho đã
             });
 
-            // Xử lý khi ấn "View Fairy Tale"
-            fakeStartBtn.addEventListener('click', () => {
-                lockScreen.style.display = 'none'; // Tắt màn hình khóa
-                loadingScreen.style.display = 'flex'; // Bật màn hình Loading
-
-                // Giả lập Loading trong 2.5 giây
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none'; // Tắt Loading
-                    gameWrapper.style.display = 'block'; // Hiện khung game gốc lên
-
-                    // THỦ THUẬT: Dùng code "bấm hộ" vào nút Start gốc của game
-                    if (realStartBtn) {
-                        realStartBtn.click();
-                    }
-
-                    // Khôi phục lại thanh cuộn nếu game của bạn cần
-                    document.body.style.overflow = 'auto';
-                }, 2500);
+            // Reponsive cho Canvas 3D khi thay đổi kích thước cửa sổ
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
             });
         });
     </script>
