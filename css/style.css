@@ -39,3 +39,79 @@ canvas {
     transform: translate(-50%, -52%);
     box-shadow: 0 8px 25px rgba(35, 197, 184, 0.6);
 }
+
+/* --- GIAO DIỆN PAUSE & RESUME --- */
+#pause-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 5, 15, 0.85);
+    /* Nền tối mờ ám xanh */
+    backdrop-filter: blur(5px);
+    display: none;
+    /* Mặc định ẩn */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#pause-title {
+    color: #00ffff;
+    font-size: 50px;
+    letter-spacing: 5px;
+    text-shadow: 0 0 20px #00ffff;
+    margin-bottom: 10px;
+}
+
+#pause-subtitle {
+    color: #cbd5e1;
+    font-size: 20px;
+    margin-bottom: 40px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#resume-btn {
+    padding: 15px 40px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    background: transparent;
+    color: #fff;
+    border: 2px solid #00ffff;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3), inset 0 0 15px rgba(0, 255, 255, 0.2);
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#resume-btn:hover {
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(0, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+/* Thanh Loading */
+#resume-progress-container {
+    width: 400px;
+    height: 10px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 5px;
+    margin-top: 30px;
+    display: none;
+    /* Mặc định ẩn */
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+#resume-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #0ea5e9, #00ffff);
+    box-shadow: 0 0 10px #00ffff;
+}
