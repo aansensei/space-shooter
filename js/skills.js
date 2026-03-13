@@ -1,4 +1,4 @@
-// Skill A
+// --- Skill A – Cầu Định Vị ---
 function activateSkillA() {
     const currentTime = performance.now();
     if (gameState === "playing" && currentTime - lastSkillA >= skillACooldown) {
@@ -38,6 +38,7 @@ function updateSkillA(deltaTime) {
     if (!skillAActive) return;
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
+    // Điểm mấu chốt: Chỉ Quả cầu chính của Skill A mới BỎ QUA đạn địch khi tìm mục tiêu
     let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target);
@@ -106,7 +107,9 @@ function updateScatteredProjectiles(deltaTime) {
             if (proj.y < proj.size || proj.y > canvas.height - proj.size) { proj.vy *= -1; }
         }
         for (let enemy of enemies) {
-            if (Math.hypot(enemy.x - proj.x, enemy.y - proj.y) < enemy.size / 2 + proj.size) {
+            // Sửa: Mảnh vỡ có thể chạm và gây dame lên cả đạn địch
+            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            if (Math.hypot(enemy.x - proj.x, enemy.y - proj.y) < enemyRadius + proj.size) {
                 if (proj.isBouncingBall) {
                     if (!proj.hitEnemies) proj.hitEnemies = [];
                     if (proj.hitEnemies.includes(enemy)) continue;
@@ -122,7 +125,7 @@ function updateScatteredProjectiles(deltaTime) {
     }
 }
 
-// Skill S
+// --- Skill S – Tinh Linh Ký Ức ---
 function activateSkillS() {
     const currentTime = performance.now();
     if (gameState === "playing" && spirits.length < MAX_SPIRITS && currentTime - lastSkillS >= skillSCooldown) {
@@ -161,6 +164,7 @@ function updateSpirits(deltaTime) {
 
         if (spirit.shootTimer <= 0) {
             spirit.shootTimer = spiritFireRate;
+            // Tinh linh nhắm vào kẻ địch (findClosestEnemy đã loại trừ đạn)
             let closest = findClosestEnemy(spirit.x, spirit.y);
             if (closest) {
                 const speedMultiplier = gloryForJusticeActive ? 1.25 : 1;
@@ -196,9 +200,10 @@ function updateBladeArcProjectiles(deltaTime) {
             continue;
         }
         for (let enemy of enemies) {
-            // Không còn điều kiện loại trừ đạn địch ở đây nữa -> Có thể chém đạn địch.
             if (arc.hitEnemies.includes(enemy)) continue;
-            if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemy.size / 2) {
+            // Sửa: Đòn chém đi ngang qua đạn cũng làm tiêu hủy/gây sát thương lên đạn
+            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 dealDamage(enemy, arc);
                 arc.hitEnemies.push(enemy);
             }
@@ -220,7 +225,9 @@ function updateSpiritBullets(deltaTime) {
         } else { b.y -= 8 * dt * (b.speedMultiplier || 1); }
         b.lifetime -= deltaTime;
         for (let enemy of enemies) {
-            if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemy.size / 2 + b.size) {
+            // Sửa: Đạn tinh linh bay trên đường chạm đạn địch cũng nổ
+            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
                 dealDamage(enemy, b);
                 b.lifetime = 0;
                 createParticles(b.x, b.y, 5, 'lime', 1, 3);
@@ -248,6 +255,7 @@ function updateSpiritFinale(spirit, deltaTime) {
             spirit.finaleLastLaserTick -= deltaTime;
             if (spirit.finaleLastLaserTick <= 0) {
                 spirit.finaleLastLaserTick = 100;
+                // Sửa: Laze quét toàn màn hình càn quét luôn cả đạn địch
                 enemies.forEach(enemy => {
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
                     dealDamage(enemy, { damage: 10, percentDamage: 0.40 });
@@ -260,6 +268,7 @@ function updateSpiritFinale(spirit, deltaTime) {
             screenShake = { intensity: 25, duration: 600 };
             for (let i = 0; i < 8; i++) {
                 let angle = (Math.PI / 4) * i;
+                // Gọi mảng cầu bật nảy (đã cấu hình sẵn phá hủy đạn ở updateScatteredProjectiles)
                 scatteredProjectiles.push({
                     x: spirit.x, y: spirit.y,
                     vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15,
@@ -271,7 +280,7 @@ function updateSpiritFinale(spirit, deltaTime) {
     }
 }
 
-// Skill D
+// --- Skill D – Hố Đen ---
 function activateSkillD() {
     const currentTime = performance.now();
     if (gameState !== "playing" || skillDCharging || blackHole || currentTime - lastSkillD < skillDCooldown) return;
@@ -299,16 +308,17 @@ function updateSkillD(deltaTime) {
         for (let enemy of enemies) {
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
             if (d > 1) {
+                // Hố đen kéo luôn đạn
                 enemy.x += (dx / d) * pullSpeed * dt;
                 enemy.y += (dy / d) * pullSpeed * dt;
             }
-            if (d < blackHole.size / 2) { enemy.hp = 0; }
+            if (d < blackHole.size / 2) { enemy.hp = 0; } // Nuốt luôn đạn
         }
         if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
     }
 }
 
-// Skill F
+// --- Skill F - Quét Laze ---
 function activateSkillF() {
     const currentTime = performance.now();
     if (gameState === "playing" && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
@@ -337,14 +347,14 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                enemy.hp = 0;
+                enemy.hp = 0; // Laze Quét chém bay cả đạn
                 enemy.hitBySkillF = true;
             }
         }
     }
 }
 
-// Skill G
+// --- Skill G – Kết Giới Sinh Mệnh ---
 function activateSkillG() {
     if (gameState !== "playing" || skillGActive || skillGCharge < 100) return;
 
@@ -370,7 +380,9 @@ function endSkillG() {
     energyOrbs.forEach(orb => {
         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
-            if (enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemy.size / 2) {
+            // Sửa: Vụ nổ khi gộp/hết hạn của Skill G thổi bay cả đạn
+            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
             }
         });
@@ -381,7 +393,9 @@ function endSkillG() {
         if (coil.dotTargets) coil.dotTargets.clear();
         addExplosion(coil.x, coil.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
-            if (enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < explosionRadius + enemy.size / 2) {
+            // Sửa: Nổ cột Tesla tác động lên đạn
+            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
             }
         });
@@ -497,7 +511,9 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         const explosionRadius = orb.size * 5;
                         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                         enemies.forEach(enemy => {
-                            if (enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemy.size / 2) {
+                            // Sửa: Nổ cầu lẻ gây dame lên đạn
+                            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+                            if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                                 dealDamage(enemy, explosionProps);
                             }
                         });
@@ -509,7 +525,9 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 const explosionRadius = orb.size * 5;
                 addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                 enemies.forEach(enemy => {
-                    if (enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemy.size / 2) {
+                    // Sửa: Nổ cầu lẻ gây dame lên đạn
+                    let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+                    if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                         dealDamage(enemy, explosionProps);
                     }
                 });
@@ -529,14 +547,23 @@ function updateEnergyOrbs(deltaTime, currentTime) {
             }
 
             enemies.forEach(enemy => {
-                if (enemy.type === 'enemy_bullet') return;
-
+                // Đã loại bỏ lệnh return đối với đạn địch để đạn dính sát thương đường dây link
+                let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;
-                if (dist < enemy.size / 2 + linkThickness) {
-                    
-                    // Chạm dây giảm 20% tốc độ chạy (Tốc độ thực tế còn 80%)
-                    enemy.y -= (enemy.speed * dt * 0.20); 
+                if (dist < enemyRadius + linkThickness) {
+
+                    // Xử lý làm chậm tinh tế hơn (do đạn địch bay theo vx/vy)
+                    if (enemy.type !== 'enemy_bullet') {
+                        enemy.y -= (enemy.speed * dt * 0.20);
+                    } else {
+                        enemy.x -= (enemy.vx * dt * 0.20);
+                        enemy.y -= (enemy.vy * dt * 0.20);
+                    }
+
+                    if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
+                        enemy.shootTimer += deltaTime * 0.30;
+                    }
 
                     const dotMap = orb.linkedTo.dotTargets;
                     if (!dotMap.has(enemy)) {
@@ -561,7 +588,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 }
 
 function spawnTeslaCoil(midX, midY) {
-    if (teslaCoils.length >= MAX_TESLA_COILS) return;
+    if (teslaCoils.length >= 4) return; // Mức giới hạn 4 trụ như lần cập nhật trước
 
     addExplosion(midX, midY, 100, 'electric_blue');
 
@@ -582,11 +609,14 @@ function updateTeslaCoils(deltaTime, currentTime) {
 
         // Từ trường Tesla Coil làm chậm quái 20%
         enemies.forEach(enemy => {
-            if (enemy.type === 'enemy_bullet') return;
-            let enemyRadius = enemy.size / 2;
+            // Loại bỏ lệnh return đạn địch để đạn cũng bị làm chậm bởi luồng điện nếu cần
+            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
-                // Kẻ địch nằm trong vùng từ trường bị giảm 20% tốc độ chạy
-                enemy.y -= (enemy.speed * dt * 0.20);
+                // Đạn địch được xử lý làm chậm chủ yếu ở main.js, 
+                // nhưng nếu để ở đây thì nhớ trừ vào vx/vy cho chuẩn vật lý
+                if (enemy.type !== 'enemy_bullet') {
+                    enemy.y -= (enemy.speed * dt * 0.20);
+                }
             }
         });
 
