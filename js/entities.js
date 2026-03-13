@@ -154,8 +154,8 @@ function updateSentinels(deltaTime) {
     let sentinelFireRate = 75; // SỬA: Fire rate gốc 75ms
     let activeCount = sentinels.length;
 
-    // SỬA: Tâm lý bầy đàn (Trên 5 con -> Tăng 15% tốc bắn)
-    if (activeCount > 5) sentinelFireRate /= 1.15;
+    // SỬA: Tâm lý bầy đàn (Trên 5 con -> Tăng 20% tốc bắn)
+    if (activeCount > 5) sentinelFireRate /= 1.2;
 
     if (gloryForJusticeActive) {
         sentinelFireRate /= 1.40;
