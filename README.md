@@ -102,7 +102,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Detailed Mechanic:**
   * *Aura & Buffs:* Instantly grants the *Glory for Justice* passive buff while active.
   * *Energy Links:* Orbs find pairs and link together for 5 seconds. Enemies walking through the energy link have their **movement speed reduced by 8%** and take DoT (Damage over Time) shocks dealing 5 Base + 3% Max HP every 200ms.
-  * *Tesla Coils:* After 5 seconds, paired orbs merge into a Tesla Coil. The Coil has a magnetic aura (Radius 200) that **slows all enemies inside by 8%**.
+  * *Tesla Coils:* After 5 seconds, paired orbs merge into a Tesla Coil. The Coil has a magnetic aura (Radius 200) that **slows all enemies inside by 8%** and rapidly shocks them, dealing **10 Base + 10% Max HP damage every 50ms**.
   * *Detonation:* When a Coil's HP (30) depletes or the 30-second skill duration ends, all Orbs and Coils detonate. Coils deal 10 Base + 15% Max HP in a massive AoE.
 
 ---
