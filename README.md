@@ -1,4 +1,4 @@
-# Space Shooter (Thần Binh Thiên Hà)
+# Space Shooter
 
 # Author: An Nguyen
 
@@ -29,80 +29,83 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Movement Speed:** 8.6
 * **Auto-Fire Rate:** 170ms per volley.
 * **Normal Attack:** Fires 5 bullets in a 45-degree spread.
-  * *Damage:* 6 Base + 3% of target's Max HP.
-  * *Bullet Speed:* 10.4 | *Size:* 6.25.
+  * *Damage:* 6 Base + 4% of target's Max HP.
+  * *Bullet Speed:* 11.2 | *Size:* 6.5.
 * **Charged Shot (Hold & Release Space):**
   * *Max Charge Time:* 1000ms.
   * *Max Damage Multiplier:* Up to 10x damage (caps at 12% of target's Max HP).
 * **Overload Laser (Hold Space for 5s):**
   * *Duration:* 12 seconds.
-  * *Cooldown:* 15 seconds.
-  * *Damage:* Strikes every 250ms (Tick), dealing 10 Base + 24% of target's Max HP per tick.
+  * *Cooldown:* 12 seconds.
+  * *Damage:* Strikes every 175ms (Tick), dealing 10 Base + 26% of target's Max HP per tick.
 
 ### 2. Passive Abilities
 
-**Glory for Justice (Vinh Quang Công Lý)**
+**Glory for Justice**
 
 * **Activation:** Automatically triggers when there are **more than 4 enemies** on the screen, OR when **Skill G** is active, OR when **The Boss** is on the field.
-* **Effects:** * *Damage Buff:* Increases the total damage of all player and allied attacks by **1.4x** (excludes Chain Lightning and Tesla DoT).
+* **Effects:** * *Damage Buff:* Increases the total damage of all player and allied attacks by **1.4x** (includes Chain Lightning and Tesla DoT).
   * *Fire Rate:* Player and Sentinel auto-fire rates are increased by **1.4x**.
   * *Projectile Speed:* Spirit bullets (Skill S) flight speed is increased by **1.25x**.
-  * *Chain Lightning:* Attacks trigger a chain lightning effect (250ms internal cooldown) that arcs to up to 3 nearby enemies, dealing an additional **5.5% to 11%** of the initial attack's total damage.
+  * *Chain Lightning:* Attacks trigger a chain lightning effect (250ms internal cooldown) that arcs to up to **6 nearby enemies**, dealing an additional **21%** of the initial attack's total damage.
 
-**Sentinels (Vệ Binh Thiên Hà)**
+**Sentinels**
 
-* **Activation:** 1 Sentinel automatically spawns for every 5 enemies killed.
+* **Activation:** 1 Sentinel automatically spawns for every **4 enemies** killed.
 * **Limit:** Maximum 10 Sentinels on the battlefield. If the limit is reached and a new Sentinel spawns, the Sentinel with the lowest HP will automatically self-destruct to make room.
-* **Stats:** 150 HP | Fire rate: 80ms.
+* **Stats:** 160 HP | Base Fire rate: 75ms.
 * **Normal Shot:** Deals 4 Base + 3.5% Max HP (Speed 9, Size 7.8).
-* **Special Shot:** Every 4th shot is a massive bullet dealing 4 Base + 5% Max HP with 10% extra speed.
+* **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
+  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **2 HP** to the Sentinel that fired it.
+* **Herd Mentality (Synergy):** * If there are **more than 5 Sentinels** on the map, the fire rate of all Sentinels is increased by **20%**.
+  * If there are **10 Sentinels** (maximum capacity) on the map, every single shot fired by the Sentinels becomes a Special Shot.
 * **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (2 Damage, Speed 8).
 
-**Final Defense (Phòng Hộ Cuối Cùng)**
+**Final Defense**
 
 * A hidden automated defense mechanism that activates temporary invulnerability shields (Player Shield & Boundary Shield) to prevent instant, unfair deaths in bullet-hell situations.
-* **Cooldown:** Once a shield is broken, it requires **30 seconds** to regenerate.
+* **Cooldown:** Once a shield is broken, it requires **25 seconds** to regenerate.
 
 ---
 
 ## Active Skills
 
-### Skill A: Thunder Orbs (Lôi Quang Cầu) (Key: A)
+### Skill A: Thunder Orbs (Key: A)
 
 * **Cooldown:** 9 seconds.
 * **Basic Stats:** Summons 15 homing energy orbs (Max 60 on screen). Sensor radius is 90% of the screen.
-* **Detailed Mechanic:** Orbs automatically seek out enemies (ignoring enemy bullets). Upon impact, they deal **10 Base + 18% Target Max HP** damage. The orb then shatters into 10 smaller scattered projectiles dealing 4 damage each, bouncing around the map.
+* **Detailed Mechanic:** Orbs automatically seek out enemies (ignoring enemy bullets). Upon impact, they deal **10 Base + 24% Target Max HP** damage. The orb then shatters into **16 smaller scattered projectiles** dealing **4 Base + 2% Target Max HP** damage each, blasting outward in all directions across the map.
 
-### Skill S: Remembrance Spirit (Tinh Linh Hồi Ức) (Key: S)
+### Skill S: Remembrance Spirit (Key: S)
 
 * **Cooldown:** 15 seconds.
-* **Basic Stats:** Summons an ancient Spirit (Max 2). Lasts for 35 seconds. Fire rate: 70ms.
+* **Basic Stats:** Summons an ancient Spirit (Max 2). Lasts for 35 seconds. Base Fire rate: 65ms. Projectile flight speed is increased by 10%.
 * **Detailed Mechanic:** * *Anti-Projectile:* All attacks generated by the Spirit (bullets, blade arcs, finale lasers, and plasma balls) cut through and destroy enemy bullets on contact.
-  * *Spirit Bullets:* Fires homing projectiles that deal 4 Base + 3.20% Max HP.
-  * *Blade Arc (Phong Trảm):* Every 5 shots, the Spirit unleashes a massive blade arc (125 radius) dealing 10 Base + 13.15% Max HP.
+  * *Spirit Bullets:* Fires homing projectiles that deal **5 Base + 4% Max HP**.
+  * *Blade Arc:* Every 5 shots, the Spirit unleashes a massive blade arc (125 radius) dealing **10 Base + 16% Max HP**.
   * *Finale:* After 35 seconds, the Spirit stops, charges for 2.5s, and fires a devastating screen-wide laser (10 Base + 40% Max HP per tick) before exploding into 8 massive bouncing plasma balls.
 
-### Skill D: Cosmic Black Hole (Băng Hoại Hư Vô) (Key: D)
+### Skill D: Cosmic Black Hole (Key: D)
 
 * **Cooldown:** 15 seconds.
-* **Basic Stats:** Charges for 2.7 seconds to spawn a Black Hole.
-* **Detailed Mechanic:** Sucks all enemies and enemy bullets toward its center with a gravitational pull speed of 5.5. Any enemy (including Bosses) that touches the absolute center of the black hole is **instantly executed (HP = 0)**.
+* **Basic Stats:** Charges for 2 seconds to spawn a Black Hole.
+* **Detailed Mechanic:** Sucks all enemies and enemy bullets toward its center with a powerful gravitational pull speed of **6**. Any enemy (including Bosses) that touches the absolute center of the black hole is **instantly executed (HP = 0)**.
 
-### Skill F: Annihilation Sweep(Hư Không Trảm) (Key: F)
+### Skill F: Annihilation Sweep (Key: F)
 
 * **Cooldown:** 10 seconds.
 * **Basic Stats:** 1.5s charge time, 1s execution time.
 * **Detailed Mechanic:** Charges energy and then sweeps a gigantic, visually enhanced radiant plasma beam across the entire screen in 1 second, causing violent screen shake and scattering particle energy. Any enemy caught in the sweep angle is instantly vaporized.
 
-### Skill G: Life Domain / Tesla Matrix (Kết Giới Sinh Mệnh) (Key: G)
+### Skill G: Life Domain / Tesla Matrix (Key: G)
 
-* **Charge Requirement:** Charges from 0% to 100% (**+0.5% per enemy kill**).
+* **Charge Requirement:** Charges from 0% to 100% (+0.5% per enemy kill).
 * **Duration:** 30 seconds.
 * **Basic Stats:** Spawns Energy Orbs (Size 15) and Tesla Coils (Size 20). Max 4 Tesla Coils.
 * **Detailed Mechanic:**
-  * *Aura & Buffs:* Instantly grants the *Glory for Justice* passive buff while active.
-  * *Energy Links:* Orbs find pairs and link together for 5 seconds. Enemies walking through the energy link have their **movement speed reduced by 8%** and take DoT (Damage over Time) shocks dealing 5 Base + 3% Max HP every 200ms.
-  * *Tesla Coils:* After 5 seconds, paired orbs merge into a Tesla Coil. The Coil has a magnetic aura (Radius 200) that **slows all enemies inside by 8%** and rapidly shocks them, dealing **10 Base + 10% Max HP damage every 50ms**.
+  * *Aura & Buffs:* Instantly grants the Glory for Justice passive buff while active.
+  * *Energy Links:* Orbs find pairs and link together for 5 seconds. Enemies walking through the energy link have their movement speed reduced by 8% and take DoT (Damage over Time) shocks dealing **6 Base + 4% Max HP every 125ms**.
+  * *Tesla Coils:* After 5 seconds, paired orbs merge into a Tesla Coil. The Coil has a magnetic aura (Radius 200) that slows all enemies inside by 8% and rapidly shocks them, dealing **10 Base + 13% Max HP damage every 50ms**.
   * *Detonation:* When a Coil's HP (30) depletes or the 30-second skill duration ends, all Orbs and Coils detonate. Coils deal 10 Base + 15% Max HP in a massive AoE.
 
 ---
@@ -113,10 +116,10 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ### Normal & Mini-Bosses
 
-* **Normal Enemies:** Spawn continuously. Base HP begins roughly between 1 and 5 (capped at 52) and scales infinitely based on how long the player has survived.
+* **Normal Enemies:** Spawn continuously. Base HP begins roughly between 1 and 5 (capped at **60**) and scales infinitely based on how long the player has survived. Visually distinct with bright, vibrant colors to stand out from enemy projectiles.
 * **Mini-Boss:** 30% chance to spawn instead of a normal enemy. Features significantly higher HP (roughly 125 to 502 Base HP) and heavy damage output.
 
-### The Boss & "Demon Gift" (Phước Lành của Ma Vương)
+### The Boss & "Demon Gift"
 
 * **Boss:** 3% chance to spawn. Massive in size with a colossal HP bar (roughly 1255 to 5023 Base HP).
 * **Passive: Demon Gift:** The Boss possesses a terrifying self-preservation mechanic with multiple triggers based on its HP thresholds.
@@ -124,4 +127,4 @@ An intense, highly polished arcade space survival game featuring deep combat mec
     * *Global Heal:* Heals all other enemies on the screen for an amount equal to **15% of the Boss's Maximum HP**.
     * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
     * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 4 seconds**. If triggered sequentially before the buff expires, it stacks up to a maximum of 2 times (capping at **30% Damage Reduction**).
-  * **Maou Haki:** Activates exactly when HP drops to **50%**. The Boss emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.
+  * **50% HP Shockwave (Maou Haki):** Activates exactly when HP drops to **50%**. The Boss emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.
