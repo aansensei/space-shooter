@@ -3,10 +3,10 @@ function update(deltaTime) {
     const currentTime = performance.now();
     const dt = deltaTime / 16.67;
 
-    // SỬA: Điều kiện Vinh quang cho kẻ yếu (có Boss trên sân)
+    // Điều kiện Vinh quang cho kẻ yếu (có Boss trên sân)
     gloryForJusticeActive = (enemies.filter(e => e.type !== 'enemy_bullet').length > 4) || skillGActive || enemies.some(e => e.type === 'boss');
 
-    // --- MỚI: Xử lý Sóng xung kích của Boss ---
+    // --- Xử lý Sóng xung kích của Boss ---
     bossShockwaves.forEach(wave => {
         if (!wave.active) return;
         wave.radius += wave.speed * dt;
@@ -68,6 +68,27 @@ function update(deltaTime) {
 
     if (keys.left && player.x > player.width / 2) player.x -= player.speed * dt;
     if (keys.right && player.x < canvas.width - player.width / 2) player.x += player.speed * dt;
+
+    if (Math.random() < 0.6) { // 60% tỉ lệ tạo hạt mỗi frame
+        // Hạt từ động cơ trái
+        particles.push({
+            x: player.x - 5.5 + (Math.random() * 2 - 1),
+            y: player.y + 26,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: 4 + Math.random() * 3, // Hạt rơi xuống với tốc độ nhanh
+            lifetime: 100 + Math.random() * 100, maxLifetime: 200,
+            size: Math.random() * 2 + 1, color: 'rgba(0, 255, 255, 0.7)' // Hạt màu Cyan mờ
+        });
+        // Hạt từ động cơ phải
+        particles.push({
+            x: player.x + 5.5 + (Math.random() * 2 - 1),
+            y: player.y + 26,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: 4 + Math.random() * 3,
+            lifetime: 100 + Math.random() * 100, maxLifetime: 200,
+            size: Math.random() * 2 + 1, color: 'rgba(0, 255, 255, 0.7)'
+        });
+    }
 
     fireAutoShot();
 
@@ -315,7 +336,7 @@ function gameLoop(timeStamp) {
 }
 
 function startGame() {
-    gameState = "playing"; lives = 10; // SỬA: Bắt đầu với 10 mạng
+    gameState = "playing"; lives = 10;
     score = 0;
     nextLifeMilestone = 500000;
     bullets = []; enemies = []; explosions = []; particles = [];
@@ -323,7 +344,7 @@ function startGame() {
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; blackHole = null;
-    bossShockwaves = []; // Reset sóng xung kích
+    bossShockwaves = [];
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 
