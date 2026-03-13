@@ -3,15 +3,12 @@ function update(deltaTime) {
     const currentTime = performance.now();
     const dt = deltaTime / 16.67;
 
-    // Điều kiện Vinh quang cho kẻ yếu (có Boss trên sân)
     gloryForJusticeActive = (enemies.filter(e => e.type !== 'enemy_bullet').length > 4) || skillGActive || enemies.some(e => e.type === 'boss');
 
-    // --- Xử lý Sóng xung kích của Boss ---
     bossShockwaves.forEach(wave => {
         if (!wave.active) return;
         wave.radius += wave.speed * dt;
 
-        // Xóa đạn của Player
         for (let i = bullets.length - 1; i >= 0; i--) {
             let d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
             if (d < wave.radius + 20) {
@@ -19,8 +16,6 @@ function update(deltaTime) {
                 bullets.splice(i, 1);
             }
         }
-
-        // Xóa đạn của Tinh Linh S
         for (let i = spiritBullets.length - 1; i >= 0; i--) {
             let d = Math.hypot(spiritBullets[i].x - wave.x, spiritBullets[i].y - wave.y);
             if (d < wave.radius + 20) {
@@ -29,12 +24,11 @@ function update(deltaTime) {
             }
         }
 
-        // Gây sát thương 20% cho Sentinels
         sentinels.forEach(sentinel => {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.20 }); // Mất 20% máu
+                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.20 });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -44,7 +38,6 @@ function update(deltaTime) {
         if (wave.radius >= wave.maxRadius) wave.active = false;
     });
     bossShockwaves = bossShockwaves.filter(w => w.active);
-    // --- HẾT ---
 
     if (skillGActive && currentTime > skillGEndTime) {
         endSkillG();
@@ -69,17 +62,15 @@ function update(deltaTime) {
     if (keys.left && player.x > player.width / 2) player.x -= player.speed * dt;
     if (keys.right && player.x < canvas.width - player.width / 2) player.x += player.speed * dt;
 
-    if (Math.random() < 0.6) { // 60% tỉ lệ tạo hạt mỗi frame
-        // Hạt từ động cơ trái
+    if (Math.random() < 0.6) {
         particles.push({
             x: player.x - 5.5 + (Math.random() * 2 - 1),
             y: player.y + 26,
             vx: (Math.random() - 0.5) * 0.5,
-            vy: 4 + Math.random() * 3, // Hạt rơi xuống với tốc độ nhanh
+            vy: 4 + Math.random() * 3,
             lifetime: 100 + Math.random() * 100, maxLifetime: 200,
-            size: Math.random() * 2 + 1, color: 'rgba(0, 255, 255, 0.7)' // Hạt màu Cyan mờ
+            size: Math.random() * 2 + 1, color: 'rgba(0, 255, 255, 0.7)'
         });
-        // Hạt từ động cơ phải
         particles.push({
             x: player.x + 5.5 + (Math.random() * 2 - 1),
             y: player.y + 26,
@@ -115,7 +106,7 @@ function update(deltaTime) {
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
-                            dealDamage(enemy, { damage: 10, percentDamage: 0.24 });
+                            dealDamage(enemy, { damage: 10, percentDamage: 0.26 }); // SỬA: Sát thương laze 26%
                             break;
                         }
                     }
@@ -172,7 +163,7 @@ function update(deltaTime) {
                 }
 
                 if (currentTime - coil.dotTargets.get(enemy) >= 50) {
-                    dealDamage(enemy, { damage: 10, percentDamage: 0.10, isTeslaDot: true });
+                    dealDamage(enemy, { damage: 10, percentDamage: 0.13, isTeslaDot: true }); // SỬA: Sát thương từ trường 13%
                     coil.dotTargets.set(enemy, currentTime);
                 }
             }
@@ -201,7 +192,7 @@ function update(deltaTime) {
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.width / 2) {
                 if (finalDefense.playerShield) {
                     finalDefense.playerShield = false;
-                    finalDefense.playerCooldownEnd = performance.now() + 30000;
+                    finalDefense.playerCooldownEnd = performance.now() + 25000; // SỬA: Giảm xuống 25s
                     addExplosion(enemy.x, enemy.y, 50, 'cyan');
                 } else {
                     lives--;
@@ -247,7 +238,7 @@ function update(deltaTime) {
             if (enemy.type !== 'enemy_bullet') {
                 if (finalDefense.boundaryShield) {
                     finalDefense.boundaryShield = false;
-                    finalDefense.boundaryCooldownEnd = performance.now() + 30000;
+                    finalDefense.boundaryCooldownEnd = performance.now() + 25000; // SỬA: Giảm xuống 25s
                     addExplosion(enemy.x, enemy.y, 100, 'cyan');
                     enemies.splice(i, 1);
                 } else {
@@ -260,7 +251,7 @@ function update(deltaTime) {
         } else if (enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.width / 2) {
             if (finalDefense.playerShield) {
                 finalDefense.playerShield = false;
-                finalDefense.playerCooldownEnd = performance.now() + 30000;
+                finalDefense.playerCooldownEnd = performance.now() + 25000; // SỬA: Giảm xuống 25s
                 addExplosion(enemy.x, enemy.y, 100, 'cyan');
             } else {
                 lives--;
@@ -301,6 +292,13 @@ function update(deltaTime) {
                     b.hitEnemies.push(enemy);
                 } else {
                     dealDamage(enemy, b);
+
+                    // SỬA: Đạn Sentinel chọc thủng kẻ địch sẽ hồi máu cho Sentinel
+                    if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
+                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
+                        createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3); // Bắn hạt xanh lá báo hiệu hồi máu
+                    }
+
                     bullets.splice(i, 1);
                     break;
                 }
