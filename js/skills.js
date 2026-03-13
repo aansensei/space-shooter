@@ -1,4 +1,3 @@
-// --- Skill A – Cầu Định Vị ---
 function activateSkillA() {
     const currentTime = performance.now();
     if (gameState === "playing" && currentTime - lastSkillA >= skillACooldown) {
@@ -38,7 +37,7 @@ function updateSkillA(deltaTime) {
     if (!skillAActive) return;
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
-    // Điểm mấu chốt: Chỉ Quả cầu chính của Skill A mới BỎ QUA đạn địch khi tìm mục tiêu
+
     let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target);
@@ -67,9 +66,12 @@ function updateSkillA(deltaTime) {
                 lifetime: 200, maxLifetime: 200, size: 4, color: 'rgba(0, 255, 255, 0.7)'
             });
             if (dist < orb.target.size / 2 + orb.size) {
-                dealDamage(orb.target, { damage: 10, percentDamage: 0.18 });
+                // SỬA: Sát thương cầu A tăng lên 24% Max HP
+                dealDamage(orb.target, { damage: 10, percentDamage: 0.24 });
                 orb.target.isTargetedByA = false;
-                spawnScatteredProjectiles(orb.x, orb.y, 10, 4);
+
+                // SỬA: Bung ra 16 mảnh (16 hướng)
+                spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 4, percentDamage: 0.02 });
                 addExplosion(orb.x, orb.y, 30, 'cyan');
                 skillAOrbs.splice(i, 1);
                 rebalanceSkillAOrbs();
@@ -83,13 +85,15 @@ function updateSkillA(deltaTime) {
     if (skillAOrbs.length === 0) skillAActive = false;
 }
 
-function spawnScatteredProjectiles(x, y, count, damage) {
+function spawnScatteredProjectiles(x, y, count, damageProps) {
     for (let i = 0; i < count; i++) {
         let angle = (Math.PI * 2 / count) * i;
         scatteredProjectiles.push({
             x, y,
-            vx: Math.cos(angle) * (5 + Math.random() * 2), vy: Math.sin(angle) * (5 + Math.random() * 2),
-            damage, size: 4, lifetime: 1000, maxLifetime: 1000
+            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12, // Tốc độ siêu nhanh bung ra mọi hướng
+            damage: damageProps.damage,
+            percentDamage: damageProps.percentDamage || 0,
+            size: 4, lifetime: 3000, maxLifetime: 3000 // Tăng lifetime bay hết map
         });
     }
 }
@@ -102,12 +106,13 @@ function updateScatteredProjectiles(deltaTime) {
         proj.y += proj.vy * dt;
         proj.lifetime -= deltaTime;
         if (proj.lifetime <= 0) { scatteredProjectiles.splice(i, 1); continue; }
+
         if (proj.isBouncingBall) {
             if (proj.x < proj.size || proj.x > canvas.width - proj.size) { proj.vx *= -1; }
             if (proj.y < proj.size || proj.y > canvas.height - proj.size) { proj.vy *= -1; }
         }
+
         for (let enemy of enemies) {
-            // Sửa: Mảnh vỡ có thể chạm và gây dame lên cả đạn địch
             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - proj.x, enemy.y - proj.y) < enemyRadius + proj.size) {
                 if (proj.isBouncingBall) {
@@ -157,20 +162,20 @@ function updateSpirits(deltaTime) {
         spirit.y += (player.y + Math.sin(t * 2) * 72 - spirit.y) * 0.1;
 
         spirit.shootTimer -= deltaTime;
-        let spiritFireRate = 70;
+        let spiritFireRate = 65; // SỬA: Bắn nhanh hơn (65ms)
         if (gloryForJusticeActive) {
             spiritFireRate /= 1.40;
         }
 
         if (spirit.shootTimer <= 0) {
             spirit.shootTimer = spiritFireRate;
-            // Tinh linh nhắm vào kẻ địch (findClosestEnemy đã loại trừ đạn)
             let closest = findClosestEnemy(spirit.x, spirit.y);
             if (closest) {
-                const speedMultiplier = gloryForJusticeActive ? 1.25 : 1;
+                const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * 1.10; // SỬA: Tăng thêm 10% tốc độ đạn
                 spiritBullets.push({
-                    // SỬA: Damage 4 + 3.20% Max HP
-                    x: spirit.x, y: spirit.y, damage: 4, percentDamage: 0.032, size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier
+                    x: spirit.x, y: spirit.y,
+                    damage: 5, percentDamage: 0.04, // SỬA: Dame 5 Base + 4% Max HP
+                    size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier
                 });
                 spirit.shotsFiredSinceBarrage++;
             }
@@ -185,7 +190,8 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 12;
                 vy = (closest.y - spirit.y) / d * 12;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.1315, hitEnemies: [] });
+            // SỬA: Phong Trảm gây 10 Base + 16% Max HP
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.16, hitEnemies: [] });
         }
     }
 }
@@ -202,7 +208,6 @@ function updateBladeArcProjectiles(deltaTime) {
         }
         for (let enemy of enemies) {
             if (arc.hitEnemies.includes(enemy)) continue;
-            // Sửa: Đòn chém đi ngang qua đạn cũng làm tiêu hủy/gây sát thương lên đạn
             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 dealDamage(enemy, arc);
@@ -219,14 +224,13 @@ function updateSpiritBullets(deltaTime) {
         if (b.target && enemies.includes(b.target)) {
             let dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
             if (d > 0) {
-                const speed = 8 * (b.speedMultiplier || 1);
+                const speed = 8.8 * (b.speedMultiplier || 1); // SỬA: Base speed 8 -> 8.8 (Tăng 10%)
                 b.x += (dx / d) * speed * dt;
                 b.y += (dy / d) * speed * dt;
             }
-        } else { b.y -= 8 * dt * (b.speedMultiplier || 1); }
+        } else { b.y -= 8.8 * dt * (b.speedMultiplier || 1); }
         b.lifetime -= deltaTime;
         for (let enemy of enemies) {
-            // Sửa: Đạn tinh linh bay trên đường chạm đạn địch cũng nổ
             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
                 dealDamage(enemy, b);
@@ -256,7 +260,6 @@ function updateSpiritFinale(spirit, deltaTime) {
             spirit.finaleLastLaserTick -= deltaTime;
             if (spirit.finaleLastLaserTick <= 0) {
                 spirit.finaleLastLaserTick = 100;
-                // Sửa: Laze quét toàn màn hình càn quét luôn cả đạn địch
                 enemies.forEach(enemy => {
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
                     dealDamage(enemy, { damage: 10, percentDamage: 0.40 });
@@ -269,10 +272,9 @@ function updateSpiritFinale(spirit, deltaTime) {
             screenShake = { intensity: 25, duration: 600 };
             for (let i = 0; i < 8; i++) {
                 let angle = (Math.PI / 4) * i;
-                // Gọi mảng cầu bật nảy (đã cấu hình sẵn phá hủy đạn ở updateScatteredProjectiles)
                 scatteredProjectiles.push({
                     x: spirit.x, y: spirit.y,
-                    vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15, // ĐÃ SỬA LỖI TẠI ĐÂY: Thêm chữ vy:
+                    vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15,
                     damage: 10, percentDamage: 0.25, size: 56, lifetime: 4000, isBouncingBall: true
                 });
             }
@@ -305,15 +307,15 @@ function updateSkillD(deltaTime) {
         blackHole.y += blackHole.vy * dt;
         blackHole.activeTime += deltaTime;
         if (blackHole.size < blackHole.maxSize) blackHole.size += 1 * dt;
-        const pullSpeed = 5.5;
+
+        const pullSpeed = 6; // SỬA: Tăng lực hút lên 6
         for (let enemy of enemies) {
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
             if (d > 1) {
-                // Hố đen kéo luôn đạn
                 enemy.x += (dx / d) * pullSpeed * dt;
                 enemy.y += (dy / d) * pullSpeed * dt;
             }
-            if (d < blackHole.size / 2) { enemy.hp = 0; } // Nuốt luôn đạn
+            if (d < blackHole.size / 2) { enemy.hp = 0; }
         }
         if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
     }
@@ -348,12 +350,11 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                enemy.hp = 0; // Laze Quét chém bay cả đạn
+                enemy.hp = 0;
                 enemy.hitBySkillF = true;
             }
         }
 
-        // SỬA: Thêm hạt hạt bung ra tại đường quét để hiệu ứng rực rỡ hơn
         let length = Math.random() * canvas.width;
         let px = player.x + Math.cos(currentAngle) * length;
         let py = player.y + Math.sin(currentAngle) * length;
@@ -393,7 +394,6 @@ function endSkillG() {
     energyOrbs.forEach(orb => {
         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
-            // Sửa: Vụ nổ khi gộp/hết hạn của Skill G thổi bay cả đạn
             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
@@ -406,7 +406,6 @@ function endSkillG() {
         if (coil.dotTargets) coil.dotTargets.clear();
         addExplosion(coil.x, coil.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
-            // Sửa: Nổ cột Tesla tác động lên đạn
             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
@@ -524,7 +523,6 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         const explosionRadius = orb.size * 5;
                         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                         enemies.forEach(enemy => {
-                            // Sửa: Nổ cầu lẻ gây dame lên đạn
                             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
                             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                                 dealDamage(enemy, explosionProps);
@@ -538,7 +536,6 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 const explosionRadius = orb.size * 5;
                 addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                 enemies.forEach(enemy => {
-                    // Sửa: Nổ cầu lẻ gây dame lên đạn
                     let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
                     if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                         dealDamage(enemy, explosionProps);
@@ -560,13 +557,11 @@ function updateEnergyOrbs(deltaTime, currentTime) {
             }
 
             enemies.forEach(enemy => {
-                // Đã loại bỏ lệnh return đối với đạn địch để đạn dính sát thương đường dây link
                 let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;
                 if (dist < enemyRadius + linkThickness) {
 
-                    // SỬA: Giảm tốc độ từ 20% còn 8%
                     if (enemy.type !== 'enemy_bullet') {
                         enemy.y -= (enemy.speed * dt * 0.08);
                     } else {
@@ -582,8 +577,9 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     if (!dotMap.has(enemy)) {
                         dotMap.set(enemy, currentTime);
                     }
-                    if (currentTime - dotMap.get(enemy) >= 200) {
-                        dealDamage(enemy, { damage: 5, percentDamage: 0.03, isTeslaDot: true });
+                    // SỬA: Sát thương giật sét của Link 125ms một lần, 6 Base + 4% Max HP
+                    if (currentTime - dotMap.get(enemy) >= 125) {
+                        dealDamage(enemy, { damage: 6, percentDamage: 0.04, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                     }
                 } else {
@@ -601,7 +597,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 }
 
 function spawnTeslaCoil(midX, midY) {
-    if (teslaCoils.length >= 4) return; // Mức giới hạn 4 trụ như lần cập nhật trước
+    if (teslaCoils.length >= 4) return;
 
     addExplosion(midX, midY, 100, 'electric_blue');
 
@@ -621,7 +617,6 @@ function updateTeslaCoils(deltaTime, currentTime) {
         const coil = teslaCoils[i];
 
         enemies.forEach(enemy => {
-            // SỬA: Bán kính và tốc độ giảm từ 20% xuống 8%
             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
                 if (enemy.type !== 'enemy_bullet') {
