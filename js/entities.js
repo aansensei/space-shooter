@@ -162,7 +162,7 @@ function updateSentinels(deltaTime) {
     }
 
     // SỬA: Tâm lý bầy đàn (10 con)
-    let swarmSpecialForced = activeCount = 10;
+    let swarmSpecialForced = activeCount >= 10;
 
     for (let i = sentinels.length - 1; i >= 0; i--) {
         const sentinel = sentinels[i];
