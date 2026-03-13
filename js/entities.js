@@ -63,21 +63,23 @@ function fireChargedBullet(multiplier) {
 function spawnEnemy() {
     const rand = Math.random();
 
-    if (rand < 0.026) {
+    if (rand < 0.03) { // SỬA: 3% Boss
         const baseSize = (20 + Math.random() * 10);
         const size = baseSize * 10;
-        const hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15;
+        let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15;
+        hp *= 1.05; // SỬA: Tăng 5% HP
         enemies.push({
             x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
             speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
             type: 'boss', shootTimer: (autoFireInterval * 2) * 0.75,
-            demonGift70Triggered: false, demonGift40Triggered: false, demonGift10Triggered: false, demonGift1Triggered: false
+            demonGift70Triggered: false, demonGift50Triggered: false, demonGift40Triggered: false, demonGift10Triggered: false, demonGift1Triggered: false
         });
-    } else if (rand < 0.286) {
+    } else if (rand < 0.33) { // SỬA: 30% Mini-Boss (0.30 + 0.03)
         const baseSize = (20 + Math.random() * 10);
         const size = baseSize * 5;
-        const hp = (((100 + Math.random() * 300) * 0.8) * 1.3) * 1.15;
+        let hp = (((100 + Math.random() * 300) * 0.8) * 1.3) * 1.15;
+        hp *= 1.05; // SỬA: Tăng 5% HP
         enemies.push({
             x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
             speed: (1 + Math.random() * 2) * 0.8 * 0.80, hp: hp, maxHp: hp,
@@ -87,7 +89,8 @@ function spawnEnemy() {
     } else {
         const size = 20 + Math.random() * 10;
         const hpFromTime = Math.floor((performance.now() - gameStartTime) / 15000);
-        const hp = Math.min(50, (Math.floor(Math.random() * 5) + 1 + hpFromTime));
+        let hp = Math.min(50, (Math.floor(Math.random() * 5) + 1 + hpFromTime));
+        hp *= 1.05; // SỬA: Tăng 5% HP
         enemies.push({
             x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
             speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
@@ -125,7 +128,7 @@ function spawnSentinel(x, y) {
     createParticles(x, y, 30, '#00FFFF', 2, 8);
 
     if (sentinels.length >= MAX_SENTINELS) {
-        sentinels.sort((a, b) => a.hp - b.hp);
+        sentinels.sort((a, b) => a.hp - b.hp); // Tự hủy con HP thấp nhất
         destroySentinel(sentinels[0]);
         sentinels.splice(0, 1);
     }
@@ -149,7 +152,7 @@ function destroySentinel(sentinel) {
 }
 
 function updateSentinels(deltaTime) {
-    let sentinelFireRate = 95;
+    let sentinelFireRate = 80; // SỬA: Giảm từ 95ms -> 80ms
     if (gloryForJusticeActive) {
         sentinelFireRate /= 1.40;
     }
@@ -177,7 +180,7 @@ function updateSentinels(deltaTime) {
                 x: sentinel.x + Math.cos(angle) * sentinel.size,
                 y: sentinel.y + Math.sin(angle) * sentinel.size,
                 vx: Math.cos(angle) * 9 * speedMultiplier, vy: Math.sin(angle) * 9 * speedMultiplier,
-                damage: 3, percentDamage: 0.03, size: 7.8, type: 'sentinel_auto'
+                damage: 4, percentDamage: 0.035, size: 7.8, type: 'sentinel_auto' // SỬA: 4 Base + 3.5%
             });
             particles.push({ x: sentinel.x + Math.cos(angle) * (sentinel.size + 5), y: sentinel.y + Math.sin(angle) * (sentinel.size + 5), vx: 0, vy: 0, lifetime: 100, maxLifetime: 100, size: 5, color: 'orange' });
 
@@ -221,9 +224,10 @@ function findClosestSentinelOrPlayer(x, y) {
     return closest;
 }
 
+// SỬA: Xử lý cộng dồn Demon Gift
 function triggerDemonGift(boss) {
     demonGiftEffect.active = true;
-    demonGiftEffect.endTime = performance.now() + 3500;
+    demonGiftEffect.endTime = performance.now() + 4000; // Tăng lên 4s
 
     enemies.forEach(enemy => {
         if (enemy === boss) return;
@@ -237,9 +241,26 @@ function triggerDemonGift(boss) {
         }
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
 
-        enemy.damageReductionBuff = { endTime: performance.now() + 3500, value: 0.18 };
+        // Cộng dồn stack miễn thương
+        enemy.demonGiftStacks = (enemy.demonGiftStacks || 0) + 1;
+        if (enemy.demonGiftStacks > 2) enemy.demonGiftStacks = 2; // Tối đa 2 stack
+        enemy.demonGiftEndTime = performance.now() + 4000; // 4s
     });
 }
+
+// MỚI: Hàm tạo sóng xung kích Boss
+function spawnBossShockwave(x, y) {
+    bossShockwaves.push({
+        x: x, y: y,
+        radius: 0,
+        maxRadius: Math.hypot(canvas.width, canvas.height),
+        speed: 12,
+        hitSentinels: new Set(),
+        active: true
+    });
+    screenShake = { intensity: 20, duration: 600 };
+}
+
 
 function dealDamage(enemy, source) {
     const oldHP = enemy.hp;
@@ -252,9 +273,10 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * 1.40);
     }
 
+    // SỬA: Tính toán miễn thương theo Stack
     let combinedDR = 0;
-    if (enemy.damageReductionBuff && performance.now() < enemy.damageReductionBuff.endTime) {
-        combinedDR += enemy.damageReductionBuff.value;
+    if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
+        combinedDR += (enemy.demonGiftStacks === 2) ? 0.30 : 0.18; // 2 stack = 30%, 1 stack = 18%
     }
 
     if ((enemy.type === 'boss' || enemy.type === 'mini-boss') && enemy.hp < enemy.maxHp * 0.6) {
@@ -280,7 +302,8 @@ function dealDamage(enemy, source) {
     if (isChainable && isBossOrMiniBossPresent && now > chainLightningCooldownEnd) {
         chainLightningCooldownEnd = now + 250;
         screenShake = { intensity: 3, duration: 100 };
-        const chainDamage = totalDamage * (0.05 + Math.random() * 0.05);
+        // SỬA: Tăng thêm 10% sát thương cho dây sét
+        const chainDamage = totalDamage * (0.055 + Math.random() * 0.055);
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
             if (chainedCount >= 3) break;
@@ -297,7 +320,15 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'boss') {
         const oldPercent = oldHP / enemy.maxHp;
         const newPercent = enemy.hp / enemy.maxHp;
+
         if (oldPercent > 0.7 && newPercent <= 0.7 && !enemy.demonGift70Triggered) { triggerDemonGift(enemy); enemy.demonGift70Triggered = true; }
+
+        // MỚI: Cột mốc 50% HP
+        if (oldPercent > 0.5 && newPercent <= 0.5 && !enemy.demonGift50Triggered) {
+            spawnBossShockwave(enemy.x, enemy.y);
+            enemy.demonGift50Triggered = true;
+        }
+
         if (oldPercent > 0.4 && newPercent <= 0.4 && !enemy.demonGift40Triggered) { triggerDemonGift(enemy); enemy.demonGift40Triggered = true; }
         if (oldPercent > 0.1 && newPercent <= 0.1 && !enemy.demonGift10Triggered) { triggerDemonGift(enemy); enemy.demonGift10Triggered = true; }
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { triggerDemonGift(enemy); enemy.demonGift1Triggered = true; }
