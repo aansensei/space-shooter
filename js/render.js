@@ -26,7 +26,7 @@ function draw() {
         spirits.forEach(drawSpirit);
         if (blackHole) drawBlackHole();
 
-        // MỚI: Vẽ sóng xung kích của Boss
+        // Vẽ sóng xung kích của Boss
         drawBossShockwaves();
 
         if (laserActive) {
@@ -84,7 +84,6 @@ function draw() {
     ctx.restore();
 }
 
-// Hàm vẽ Sóng xung kích của Boss
 function drawBossShockwaves() {
     bossShockwaves.forEach(wave => {
         ctx.save();
@@ -127,7 +126,7 @@ function drawChainLightning(effect) {
 
 function drawDemonGiftAura() {
     const elapsed = demonGiftEffect.endTime - performance.now();
-    const alpha = Math.max(0, (elapsed / 4000) * 0.25); // SỬA: Duration 4000
+    const alpha = Math.max(0, (elapsed / 4000) * 0.25);
 
     ctx.save();
     const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width);
@@ -256,22 +255,125 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(player.x + xOffset, player.y);
-    const grad = ctx.createLinearGradient(0, -player.height / 2, 0, player.height / 2);
-    grad.addColorStop(0, "#00aaff"); grad.addColorStop(1, "#ffffff");
-    ctx.fillStyle = grad;
+
+    // 1. Cánh phụ dưới (Layer dưới cùng - Màu tối)
+    ctx.fillStyle = '#0f172a';
     ctx.beginPath();
-    ctx.moveTo(0, -player.height / 2);
-    ctx.lineTo(player.width / 2, player.height / 2);
-    ctx.lineTo(-player.width / 2, player.height / 2);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(24, 12);
+    ctx.lineTo(24, 20);
+    ctx.lineTo(10, 16);
+    ctx.lineTo(-10, 16);
+    ctx.lineTo(-24, 20);
+    ctx.lineTo(-24, 12);
     ctx.closePath();
     ctx.fill();
 
+    // 2. Cánh chính (Màu xanh đen Dark Blue)
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(28, 10);
+    ctx.lineTo(26, 16);
+    ctx.lineTo(8, 12);
+    ctx.lineTo(-8, 12);
+    ctx.lineTo(-26, 16);
+    ctx.lineTo(-28, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8'; // Viền sáng
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 3. Thân giữa (Màu xám bạc Metallic)
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.moveTo(0, -26); // Mũi phi thuyền
+    ctx.lineTo(8, -8);
+    ctx.lineTo(12, 18);
+    ctx.lineTo(6, 22);
+    ctx.lineTo(-6, 22);
+    ctx.lineTo(-12, 18);
+    ctx.lineTo(-8, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 4. Lõi gân xanh chéo (Điểm nhấn dọc thân)
+    ctx.fillStyle = '#0ea5e9';
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(7, 4);
+    ctx.lineTo(-7, 14);
+    ctx.lineTo(0, 18);
+    ctx.lineTo(9, 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // 5. Buồng lái (Cockpit - Màu kính Cyan)
+    ctx.fillStyle = '#22d3ee';
+    ctx.beginPath();
+    ctx.moveTo(0, -14);
+    ctx.lineTo(4, -2);
+    ctx.lineTo(0, 8);
+    ctx.lineTo(-4, -2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Bóng sáng chiếu trên kính buồng lái
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.lineTo(2, -2);
+    ctx.lineTo(0, 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // 6. Hai ống xả động cơ
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(-8, 22, 5, 4);
+    ctx.fillRect(3, 22, 5, 4);
+
+    // ==========================================
+    // HIỆU ỨNG PHÓNG LỬA (PLASMA FLAMES)
+    // ==========================================
+    let flameH = 12 + Math.random() * 15; // Chiều dài lửa giật ngẫu nhiên
+
+    // Lửa trái
+    const flameGradL = ctx.createLinearGradient(0, 26, 0, 26 + flameH);
+    flameGradL.addColorStop(0, "white");
+    flameGradL.addColorStop(0.3, "#00FFFF");
+    flameGradL.addColorStop(1, "rgba(0, 150, 255, 0)");
+    ctx.fillStyle = flameGradL;
+    ctx.beginPath();
+    ctx.moveTo(-8, 26);
+    ctx.lineTo(-5.5, 26 + flameH);
+    ctx.lineTo(-3, 26);
+    ctx.closePath();
+    ctx.fill();
+
+    // Lửa phải
+    const flameGradR = ctx.createLinearGradient(0, 26, 0, 26 + flameH);
+    flameGradR.addColorStop(0, "white");
+    flameGradR.addColorStop(0.3, "#00FFFF");
+    flameGradR.addColorStop(1, "rgba(0, 150, 255, 0)");
+    ctx.fillStyle = flameGradR;
+    ctx.beginPath();
+    ctx.moveTo(3, 26);
+    ctx.lineTo(5.5, 26 + flameH);
+    ctx.lineTo(8, 26);
+    ctx.closePath();
+    ctx.fill();
+
+    // 7. Dấu ấn vinh quang (Buff Vinh Quang Cho Kẻ Yếu)
     if (gloryForJusticeActive && alpha === 1) {
         ctx.fillStyle = 'lime';
         ctx.beginPath();
-        ctx.moveTo(-5, -player.height - 5);
-        ctx.lineTo(5, -player.height - 5);
-        ctx.lineTo(0, -player.height - 15);
+        ctx.moveTo(-5, -32);
+        ctx.lineTo(5, -32);
+        ctx.lineTo(0, -42);
         ctx.closePath();
         ctx.fill();
     }
@@ -279,6 +381,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.restore();
 }
 
+// HÀM BỊ MẤT ĐÃ ĐƯỢC KHÔI PHỤC LẠI Ở ĐÂY
 function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
     ctx.save();
     const grad = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
@@ -360,7 +463,6 @@ function drawEnemy(enemy) {
 
     if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
         ctx.save();
-        // SỬA: Đổi màu khiên nếu 2 stack (miễn 30%)
         ctx.strokeStyle = enemy.demonGiftStacks === 2 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(138, 43, 226, 0.8)';
         ctx.lineWidth = enemy.demonGiftStacks === 2 ? 5 : 3;
         ctx.beginPath();
@@ -599,7 +701,6 @@ function drawSkillF() {
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
         ctx.rotate(currentAngle);
 
-        // SỬA: Hiệu ứng Quét Plasma rực rỡ hơn
         // Lõi beam
         ctx.fillStyle = "white";
         ctx.shadowColor = "cyan";
