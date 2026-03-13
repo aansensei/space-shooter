@@ -196,6 +196,7 @@ function updateBladeArcProjectiles(deltaTime) {
             continue;
         }
         for (let enemy of enemies) {
+            // Không còn điều kiện loại trừ đạn địch ở đây nữa -> Có thể chém đạn địch.
             if (arc.hitEnemies.includes(enemy)) continue;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemy.size / 2) {
                 dealDamage(enemy, arc);
@@ -533,11 +534,9 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;
                 if (dist < enemy.size / 2 + linkThickness) {
-                    enemy.y -= (enemy.speed * dt * 0.45);
-
-                    if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
-                        enemy.shootTimer += deltaTime * 0.30;
-                    }
+                    
+                    // Chạm dây giảm 20% tốc độ chạy (Tốc độ thực tế còn 80%)
+                    enemy.y -= (enemy.speed * dt * 0.20); 
 
                     const dotMap = orb.linkedTo.dotTargets;
                     if (!dotMap.has(enemy)) {
@@ -577,8 +576,19 @@ function spawnTeslaCoil(midX, midY) {
 }
 
 function updateTeslaCoils(deltaTime, currentTime) {
+    let dt = deltaTime / 16.67;
     for (let i = teslaCoils.length - 1; i >= 0; i--) {
         const coil = teslaCoils[i];
+
+        // Từ trường Tesla Coil làm chậm quái 20%
+        enemies.forEach(enemy => {
+            if (enemy.type === 'enemy_bullet') return;
+            let enemyRadius = enemy.size / 2;
+            if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
+                // Kẻ địch nằm trong vùng từ trường bị giảm 20% tốc độ chạy
+                enemy.y -= (enemy.speed * dt * 0.20);
+            }
+        });
 
         if (coil.hp <= 0) {
             const explosionProps = { damage: 10, percentDamage: 0.15 };

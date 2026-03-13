@@ -23,7 +23,7 @@ function handleEnemyKill(enemy) {
     }
 
     if (skillGCharge < 100) {
-        skillGCharge = Math.min(100, skillGCharge + 1);
+        skillGCharge = Math.min(100, skillGCharge + 0.5);
     }
     if (skillGActive) {
         spawnEnergyOrb(enemy.x, enemy.y);
