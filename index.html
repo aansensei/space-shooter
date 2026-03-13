@@ -201,9 +201,8 @@
             starCanvas.height = height;
 
             const stars = [];
-            // 1. TĂNG SỐ LƯỢNG SAO (Từ 3000 lên 5000)
             const numStars = 5000;
-            let speed = 0.8; // Nhích tốc độ ban đầu lên một chút cho sống động
+            let speed = 0.8;
             let targetSpeed = 0.8;
             let isWarping = false;
             let isSimulationRunning = true;
@@ -244,11 +243,9 @@
                     let px = cx + (star.x / star.z) * width;
                     let py = cy + (star.y / star.z) * width;
 
-                    // 2. TĂNG KÍCH THƯỚC SAO (Nhân 2.5 thay vì 1.5, giới hạn min là 1.2px)
                     let radius = (width / star.z) * 2.5;
                     radius = Math.max(1.2, Math.min(8, radius));
 
-                    // 3. TĂNG ĐỘ SÁNG (Chỉnh công thức để sao xa cũng sáng rực hơn)
                     let alpha = 1.8 - (star.z / width);
                     alpha = Math.max(0.35, Math.min(1, alpha));
 
@@ -282,8 +279,10 @@
                 starCanvas.height = height;
             });
 
-            // LOGIC XỬ LÝ GIAO DIỆN
+            // LOGIC XỬ LÝ GIAO DIỆN & MẬT KHẨU
             const SECRET_CODE = 'a3NhbWFzdXByZW1hY3k=';
+            const AUTH_EXPIRY_MS = 5 * 60 * 1000; // 5 phút (tính bằng mili-giây)
+
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
             const uiWrapper = document.getElementById('ui-wrapper');
@@ -295,15 +294,32 @@
             const errorMsg = document.getElementById('error-msg');
             const realStartBtn = document.getElementById('startBtn');
 
+            // Hàm mở khóa giao diện
+            function unlockUI() {
+                errorMsg.style.visibility = 'hidden';
+                passwordInput.style.display = 'none';
+                unlockBtn.style.display = 'none';
+                fakeStartBtn.style.display = 'block';
+                lockScreen.querySelector('h1').innerText = '✅ ACCESS GRANTED';
+                lockScreen.querySelector('h1').style.color = '#fff';
+                lockScreen.querySelector('h1').style.textShadow = '0 0 15px #fff';
+            }
+
+            // KIỂM TRA LƯU TRỮ IP/TRÌNH DUYỆT KHI MỞ TRANG
+            const savedAuthTime = localStorage.getItem('spaceShooterAuthTime');
+            if (savedAuthTime && (Date.now() - parseInt(savedAuthTime)) < AUTH_EXPIRY_MS) {
+                // Nếu chưa quá 5 phút, tự động mở khóa
+                unlockUI();
+            } else {
+                // Xóa dữ liệu cũ nếu đã hết hạn
+                localStorage.removeItem('spaceShooterAuthTime');
+            }
+
             function checkPassword() {
                 if (btoa(passwordInput.value) === SECRET_CODE) {
-                    errorMsg.style.visibility = 'hidden';
-                    passwordInput.style.display = 'none';
-                    unlockBtn.style.display = 'none';
-                    fakeStartBtn.style.display = 'block';
-                    lockScreen.querySelector('h1').innerText = '✅ ACCESS GRANTED';
-                    lockScreen.querySelector('h1').style.color = '#fff';
-                    lockScreen.querySelector('h1').style.textShadow = '0 0 15px #fff';
+                    // Lưu lại thời gian đăng nhập thành công
+                    localStorage.setItem('spaceShooterAuthTime', Date.now().toString());
+                    unlockUI();
                 } else {
                     errorMsg.style.visibility = 'visible';
                     passwordInput.style.borderColor = '#f72585';
