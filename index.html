@@ -4,52 +4,159 @@
 <head>
     <meta charset="UTF-8">
     <title>Thần Binh Thiên Hà - Top Secret Edition</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap" rel="stylesheet">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
-    
+
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: 'Courier New', Courier, monospace; overflow: hidden; height: 100vh; width: 100vw;}
+        body {
+            margin: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
 
         /* --- LỚP PHỦ EASTER EGG BẢO VỆ TOÀN MÀN HÌNH --- */
         #easter-egg-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 99999; /* Đè lên toàn bộ game gốc */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 99999;
+            /* Đè lên toàn bộ game gốc */
             background: #000;
         }
 
         /* Nền Vũ trụ Canvas */
         #star-canvas {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
         }
 
         /* Khung UI đè lên trên */
         #ui-wrapper {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: all;
-            background: rgba(10, 25, 47, 0.4); backdrop-filter: blur(4px); 
-            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: all;
+            background: rgba(10, 25, 47, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
             transition: background 1s ease, backdrop-filter 1s ease;
         }
 
         /* Form UI */
-        #lock-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #password-input { padding: 12px 20px; border-radius: 30px; border: 2px solid #00e5ff; background: rgba(0,0,0,0.6); color: #fff; margin-bottom: 20px; font-size: 1.2rem; text-align: center; outline: none; width: 250px; font-family: inherit;}
-        #password-input::placeholder { color: rgba(255, 255, 255, 0.4); }
-        
-        #unlock-btn, #fake-start-btn { padding: 12px 35px; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; color: #fff; font-size: 1.1rem; font-family: inherit;}
-        #unlock-btn { background: linear-gradient(45deg, #f72585, #7209b7); box-shadow: 0 0 15px rgba(247, 37, 133, 0.4); }
-        #unlock-btn:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(247, 37, 133, 0.7); }
-        
-        #fake-start-btn { display: none; background: linear-gradient(45deg, #00e5ff, #007bff); box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
-        #fake-start-btn:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(0, 229, 255, 0.7); }
+        #lock-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
 
-        #error-msg { color: #f72585; font-size: 0.9rem; margin-top: 15px; visibility: hidden; text-shadow: 0 0 5px red;}
+        #password-input {
+            padding: 12px 20px;
+            border-radius: 30px;
+            border: 2px solid #00e5ff;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            text-align: center;
+            outline: none;
+            width: 250px;
+            font-family: inherit;
+        }
+
+        #password-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        #unlock-btn,
+        #fake-start-btn {
+            padding: 12px 35px;
+            border-radius: 30px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            color: #fff;
+            font-size: 1.1rem;
+            font-family: inherit;
+        }
+
+        #unlock-btn {
+            background: linear-gradient(45deg, #f72585, #7209b7);
+            box-shadow: 0 0 15px rgba(247, 37, 133, 0.4);
+        }
+
+        #unlock-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(247, 37, 133, 0.7);
+        }
+
+        #fake-start-btn {
+            display: none;
+            background: linear-gradient(45deg, #00e5ff, #007bff);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+        }
+
+        #fake-start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
+        }
+
+        #error-msg {
+            color: #f72585;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            visibility: hidden;
+            text-shadow: 0 0 5px red;
+        }
 
         /* Giao diện Loading & Thanh Progress */
-        #loading-screen { background: transparent; display: none; flex-direction: column; align-items: center;}
-        
-        .progress-container { width: 300px; height: 8px; background: rgba(255, 255, 255, 0.1); border: 1px solid #00e5ff; border-radius: 10px; margin-top: 25px; overflow: hidden; position: relative; }
-        .progress-bar { height: 100%; width: 0%; background: #00e5ff; box-shadow: 0 0 15px #00e5ff; transition: width 3.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        #loading-screen {
+            background: transparent;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .progress-container {
+            width: 300px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00e5ff;
+            border-radius: 10px;
+            margin-top: 25px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #00e5ff;
+            box-shadow: 0 0 15px #00e5ff;
+            transition: width 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
     </style>
 </head>
 
@@ -61,20 +168,26 @@
         <canvas id="star-canvas"></canvas>
 
         <div id="ui-wrapper">
-            <div id="lock-screen"> 
-                <h1 style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">RESTRICTED AREA</h1>
-                <p style="color: #a0c4ff; margin-bottom: 30px; font-family: 'Roboto', sans-serif;">This fairy tale is classified. Enter password to unlock.</p>
-                
+            <div id="lock-screen">
+                <h1
+                    style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">
+                    RESTRICTED AREA</h1>
+                <p style="color: #a0c4ff; margin-bottom: 30px; font-family: 'Roboto', sans-serif;">This fairy tale is
+                    classified. Enter password to unlock.</p>
+
                 <input type="password" id="password-input" placeholder="Enter password...">
                 <button id="unlock-btn">Unlock Story</button>
                 <button id="fake-start-btn">View Fairy Tale</button>
-                
+
                 <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
             </div>
 
             <div id="loading-screen">
-                <h1 style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">SYSTEM LOADING</h1>
-                <p style="color: #fff; font-family: 'Roboto', sans-serif; margin-bottom: 0;">Initiating hyperdrive jump...</p>
+                <h1
+                    style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
+                    SYSTEM LOADING</h1>
+                <p style="color: #fff; font-family: 'Roboto', sans-serif; margin-bottom: 0;">Initiating hyperdrive
+                    jump...</p>
                 <div class="progress-container">
                     <div id="progress-bar" class="progress-bar"></div>
                 </div>
@@ -94,11 +207,11 @@
             starCanvas.height = height;
 
             const stars = [];
-            const numStars = 3000; 
+            const numStars = 3000;
             let speed = 0.5; // Đủ nhanh để thấy sao đang bay lại gần
-            let targetSpeed = 0.5; 
-            let isWarping = false; 
-            let isSimulationRunning = true; 
+            let targetSpeed = 0.5;
+            let isWarping = false;
+            let isSimulationRunning = true;
 
             // Khởi tạo các vì sao
             for (let i = 0; i < numStars; i++) {
@@ -110,7 +223,7 @@
             }
 
             function drawStars() {
-                if (!isSimulationRunning) return; 
+                if (!isSimulationRunning) return;
 
                 // Gia tốc mượt mà khi đổi tốc độ
                 speed += (targetSpeed - speed) * 0.02;
@@ -130,7 +243,7 @@
 
                 for (let i = 0; i < numStars; i++) {
                     let star = stars[i];
-                    star.z -= speed;  
+                    star.z -= speed;
 
                     // Reset sao khi bay sát mặt màn hình
                     if (star.z <= 0) {
@@ -146,11 +259,11 @@
                     radius = Math.max(0.5, Math.min(5, radius)); // Giới hạn kích thước tránh loang to quá
 
                     let alpha = 1.2 - (star.z / width);
-                    alpha = Math.max(0.1, Math.min(1, alpha)); 
+                    alpha = Math.max(0.1, Math.min(1, alpha));
 
                     if (isWarping) {
                         // VẼ VỆT SÁNG (Dùng lineTo)
-                        let prevZ = star.z + speed; 
+                        let prevZ = star.z + speed;
                         let prevPx = cx + (star.x / prevZ) * width;
                         let prevPy = cy + (star.y / prevZ) * width;
 
@@ -168,7 +281,7 @@
                         ctx.fill();
                     }
                 }
-                
+
                 requestAnimationFrame(drawStars);
             }
             drawStars();
@@ -191,7 +304,7 @@
             const unlockBtn = document.getElementById('unlock-btn');
             const fakeStartBtn = document.getElementById('fake-start-btn');
             const errorMsg = document.getElementById('error-msg');
-            const realStartBtn = document.getElementById('startBtn'); 
+            const realStartBtn = document.getElementById('startBtn');
 
             function checkPassword() {
                 if (btoa(passwordInput.value) === SECRET_CODE) {
@@ -215,13 +328,13 @@
             fakeStartBtn.addEventListener('click', () => {
                 // Đổi UI sang trạng thái Loading
                 lockScreen.style.display = 'none';
-                uiWrapper.style.backdropFilter = 'none'; 
-                uiWrapper.style.background = 'transparent'; 
+                uiWrapper.style.backdropFilter = 'none';
+                uiWrapper.style.background = 'transparent';
                 loadingScreen.style.display = 'flex';
 
                 // KÍCH HOẠT HIỆU ỨNG WARP (Đổi style và tăng tốc độ)
                 isWarping = true;
-                targetSpeed = 40; 
+                targetSpeed = 40;
 
                 // Chạy thanh progress
                 setTimeout(() => {
@@ -230,14 +343,14 @@
 
                 // Sau 3.5s dọn dẹp hệ thống và vào game thật
                 setTimeout(() => {
-                    isSimulationRunning = false; 
-                    easterEggOverlay.style.display = 'none'; 
-                    
+                    isSimulationRunning = false;
+                    easterEggOverlay.style.display = 'none';
+
                     if (realStartBtn) {
-                        realStartBtn.style.display = 'none'; 
-                        realStartBtn.click(); 
+                        realStartBtn.style.display = 'none';
+                        realStartBtn.click();
                     }
-                }, 3500); 
+                }, 3500);
             });
         })();
     </script>
