@@ -1,4 +1,4 @@
-// Skill A
+// --- Skill A – Cầu Định Vị ---
 function activateSkillA() {
     const currentTime = performance.now();
     if (gameState === "playing" && currentTime - lastSkillA >= skillACooldown) {
@@ -122,7 +122,7 @@ function updateScatteredProjectiles(deltaTime) {
     }
 }
 
-// Skill S
+// --- Skill S – Tinh Linh Ký Ức ---
 function activateSkillS() {
     const currentTime = performance.now();
     if (gameState === "playing" && spirits.length < MAX_SPIRITS && currentTime - lastSkillS >= skillSCooldown) {
@@ -270,7 +270,7 @@ function updateSpiritFinale(spirit, deltaTime) {
     }
 }
 
-// Skill D
+// --- Skill D – Hố Đen ---
 function activateSkillD() {
     const currentTime = performance.now();
     if (gameState !== "playing" || skillDCharging || blackHole || currentTime - lastSkillD < skillDCooldown) return;
@@ -307,7 +307,7 @@ function updateSkillD(deltaTime) {
     }
 }
 
-// Skill F
+// --- Skill F - Quét Laze ---
 function activateSkillF() {
     const currentTime = performance.now();
     if (gameState === "playing" && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
@@ -343,7 +343,7 @@ function updateSkillF(deltaTime) {
     }
 }
 
-// Skill G
+// --- Skill G – Kết Giới Sinh Mệnh (CẬP NHẬT BALANCE) ---
 function activateSkillG() {
     if (gameState !== "playing" || skillGActive || skillGCharge < 100) return;
 
@@ -406,7 +406,8 @@ function spawnEnergyOrb(x, y) {
 }
 
 function tryLinkOrbs(newOrb) {
-    if (teslaCoils.length >= MAX_TESLA_COILS) return;
+    // UPDATED: Giảm số lượng Cột Tesla tối đa xuống 4
+    if (teslaCoils.length >= 4) return;
 
     let closestUnlinkedOrb = null;
     let minDis = Infinity;
@@ -533,7 +534,8 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;
                 if (dist < enemy.size / 2 + linkThickness) {
-                    enemy.y -= (enemy.speed * dt * 0.45);
+                    // UPDATED: Làm chậm 20% (tốc độ còn 80%)
+                    enemy.y -= (enemy.speed * dt * 0.20);
 
                     if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
                         enemy.shootTimer += deltaTime * 0.30;
@@ -562,7 +564,8 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 }
 
 function spawnTeslaCoil(midX, midY) {
-    if (teslaCoils.length >= MAX_TESLA_COILS) return;
+    // UPDATED: Giảm số lượng Cột Tesla tối đa xuống 4
+    if (teslaCoils.length >= 4) return;
 
     addExplosion(midX, midY, 100, 'electric_blue');
 
