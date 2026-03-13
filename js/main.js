@@ -3,7 +3,48 @@ function update(deltaTime) {
     const currentTime = performance.now();
     const dt = deltaTime / 16.67;
 
-    gloryForJusticeActive = (enemies.filter(e => e.type !== 'enemy_bullet').length > 4) || skillGActive;
+    // SỬA: Điều kiện Vinh quang cho kẻ yếu (có Boss trên sân)
+    gloryForJusticeActive = (enemies.filter(e => e.type !== 'enemy_bullet').length > 4) || skillGActive || enemies.some(e => e.type === 'boss');
+
+    // --- MỚI: Xử lý Sóng xung kích của Boss ---
+    bossShockwaves.forEach(wave => {
+        if (!wave.active) return;
+        wave.radius += wave.speed * dt;
+
+        // Xóa đạn của Player
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            let d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
+            if (d < wave.radius + 20) {
+                createParticles(bullets[i].x, bullets[i].y, 3, 'purple', 1, 3);
+                bullets.splice(i, 1);
+            }
+        }
+
+        // Xóa đạn của Tinh Linh S
+        for (let i = spiritBullets.length - 1; i >= 0; i--) {
+            let d = Math.hypot(spiritBullets[i].x - wave.x, spiritBullets[i].y - wave.y);
+            if (d < wave.radius + 20) {
+                createParticles(spiritBullets[i].x, spiritBullets[i].y, 3, 'purple', 1, 3);
+                spiritBullets.splice(i, 1);
+            }
+        }
+
+        // Gây sát thương 20% cho Sentinels
+        sentinels.forEach(sentinel => {
+            if (!wave.hitSentinels.has(sentinel)) {
+                let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
+                if (d <= wave.radius) {
+                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.20 }); // Mất 20% máu
+                    wave.hitSentinels.add(sentinel);
+                    addExplosion(sentinel.x, sentinel.y, 40, 'purple');
+                }
+            }
+        });
+
+        if (wave.radius >= wave.maxRadius) wave.active = false;
+    });
+    bossShockwaves = bossShockwaves.filter(w => w.active);
+    // --- HẾT ---
 
     if (skillGActive && currentTime > skillGEndTime) {
         endSkillG();
@@ -274,13 +315,15 @@ function gameLoop(timeStamp) {
 }
 
 function startGame() {
-    gameState = "playing"; lives = 15; score = 0;
+    gameState = "playing"; lives = 10; // SỬA: Bắt đầu với 10 mạng
+    score = 0;
     nextLifeMilestone = 500000;
     bullets = []; enemies = []; explosions = []; particles = [];
     skillAOrbs = []; scatteredProjectiles = [];
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; blackHole = null;
+    bossShockwaves = []; // Reset sóng xung kích
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 

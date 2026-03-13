@@ -4,7 +4,7 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 const btnMarginLeft = 20, btnMarginBottom = 20, btnRadius = 25, btnGap = 12;
-let gameState = "start", lives = 15, score = 0, gameStartTime = 0;
+let gameState = "start", lives = 10, score = 0, gameStartTime = 0; // SỬA: lives = 10
 let nextLifeMilestone = 500000;
 
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6 };
@@ -18,10 +18,13 @@ let gloryForJusticeActive = false;
 let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 let chainLightningCooldownEnd = 0;
 
+// MỚI: Sóng xung kích của Boss
+let bossShockwaves = [];
+
 // Nội tại Vệ Binh
 let sentinels = [];
 let killCountForPassive = 0;
-const MAX_SENTINELS = 15;
+const MAX_SENTINELS = 10; // SỬA: Giảm xuống 10
 
 // Skill A
 let skillAOrbs = [], skillAActive = false, lastSkillA = -Infinity;
@@ -63,7 +66,7 @@ const TESLA_AURA_RADIUS = TESLA_COIL_SIZE * 10;
 
 // Tụ đạn & Overload
 let charging = false, chargeStartTime = 0;
-const maxChargeTime = 1300;
+const maxChargeTime = 1000; // SỬA: 1300ms -> 1000ms
 const maxMultiplier = 10;
 const overloadChargeTime = 5000;
 
