@@ -1,7 +1,7 @@
 # Space Shooter ( Thần Binh Thiên Hà)
 
-**Play the game here:** [https://aansensei.github.io/space-shooter/](https://aansensei.github.io/space-shooter/) \n
-**The password is**: the first letter of my favorite character + a japanese honorific meaning "lord/master" + the english word meaning "ultimate dominance" (16 letters, all lowercase)
+**Play the game here:** [https://aansensei.github.io/space-shooter/](https://aansensei.github.io/space-shooter/) 
+\n**The password is**: the first letter of my favorite character + a japanese honorific meaning "lord/master" + the english word meaning "ultimate dominance" (16 letters, all lowercase)
 An intense, highly polished arcade space survival game featuring deep combat mechanics, percentage-based scaling damage, and massive screen-clearing abilities. 
 
 ---
