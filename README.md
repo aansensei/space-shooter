@@ -1,78 +1,104 @@
-# Space Shooter – Comprehensive Upgrade (FX & Balance)
+# Space Shooter ( Thần Binh Thiên Hà)
 
-## 🎮 Gameplay & Movement
-- **Objective**: Survive against endless waves of enemies and score as high as possible.
-- **Movement**: Use the **Left Arrow (ArrowLeft)** and **Right Arrow (ArrowRight)** keys to move the spaceship sideways.
-- **Lives**: You start with 15 lives. For every 500,000 points earned, you will gain 1 extra life.
-- **Glory for Justice Mechanic**: Automatically triggers when there are more than 4 enemies on screen or when Skill G is active. This state increases the auto-fire rate by 1.4x and projectile speed by 1.25x. For Sentinels, the fire rate is also increased (cooldown divided by 1.40).
+**Play the game here:** [https://aansensei.github.io/space-shooter/](https://aansensei.github.io/space-shooter/)
+the password is: the first letter of my favorite character + a japanese honorific meaning "lord/master" + the english word meaning "ultimate dominance" (16 letters, all lowercase)
+An intense, highly polished arcade space survival game featuring deep combat mechanics, percentage-based scaling damage, and massive screen-clearing abilities. 
 
-## ⚔️ Normal Attack & Overload
-- **Player Stats**:
-  - Movement Speed: 8.6
-  - Auto-fire Interval: 170ms per volley.
-- **Normal Attack (Auto Fire)**:
-  - Fires 5 bullets per volley with a spread angle of 45 degrees (PI/4).
-  - Bullet Speed: 10.4
-  - Base Damage: 6
-  - Percentage Damage: 3% of target's max HP (0.03).
-  - Bullet Size: 6.25.
-- **Charged Attack (Hold Space)**:
-  - Maximum Charge Time for a super bullet: 1300ms.
-  - Max Damage Multiplier: x10.
-  - Max Percentage Damage (at full charge): 12% (0.12).
-- **Overload Laser (Hold Space Long)**:
-  - Requires holding the Spacebar for 5000ms to activate Overload.
-  - Laser Duration: 12 seconds (12000ms).
-  - Laser Cooldown: 15 seconds (15000ms).
-  - The Laser ticks (deals damage) every 250ms.
-  - Laser Damage: 10 base + 24% of the target's HP (0.24) per tick.
+---
 
-## 🤖 Passive Skill: Sentinel
-- For every 5 enemies killed, you summon 1 Sentinel.
-- Maximum Limit: Up to 15 Sentinels on the field at once.
-- Sentinel HP: 150.
-- Fire Rate: 95ms per shot.
-- **Normal Bullet**: Deals 3 base damage + 3% max HP. Bullet speed is 9, size 7.8.
-- **Special Bullet**: Every 4 normal shots, the Sentinel fires 1 special bullet dealing 4 base damage + 5% max HP (massive size 30, speed multiplier 1.1x).
-- **Death Effect**: When a Sentinel's HP reaches 0, it explodes, causing screen shake and shooting 10 projectiles (damage 2, size 6, speed 8) in all directions.
+## 🎮 How to Play
+* **Objective:** Survive endless waves of scaling enemies, manage your skills efficiently, and achieve the highest score possible.
+* **Movement:** Use the **Left Arrow** and **Right Arrow** keys to steer your spaceship.
+* **Basic Attack:** The ship fires automatically.
+* **Charge Attack:** Press and hold the **Spacebar** to charge a powerful shot. Release to fire.
+* **Overload Laser:** Hold the **Spacebar** for exactly 5 seconds to unleash a massive continuous laser beam.
+* **Active Skills:** Press **A, S, D, F, G** to activate powerful tactical abilities (details below).
+* **Lives:** You start with **15 lives**. Every **500,000 points** grants you **1 extra life**.
+
+---
+
+## ⚔️ Combat System & Base Stats
+
+### 1. The Spaceship (Player)
+* **Movement Speed:** 8.6
+* **Auto-Fire Rate:** 170ms per volley.
+* **Normal Attack:** Fires 5 bullets in a 45-degree spread. 
+  * *Damage:* 6 Base + 3% of target's Max HP.
+  * *Bullet Speed:* 10.4 | *Size:* 6.25.
+* **Charged Shot (Hold & Release Space):**
+  * *Max Charge Time:* 1300ms.
+  * *Max Damage Multiplier:* Up to 10x damage (caps at 12% of target's Max HP).
+* **Overload Laser (Hold Space for 5s):**
+  * *Duration:* 12 seconds.
+  * *Cooldown:* 15 seconds.
+  * *Damage:* Strikes every 250ms (Tick), dealing 10 Base + 24% of target's Max HP per tick.
+
+### 2. Passive Abilities
+
+**Glory for Justice (Vinh Quang Cho Kẻ Yếu)**
+* **Activation:** Automatically triggers when there are **more than 4 enemies** on the screen OR when **Skill G** is active.
+* **Effects:** * Player auto-fire rate is increased by **1.4x**.
+  * Sentinel (Ally) fire rate is increased by **1.4x**.
+  * Spirit bullets (Skill S) flight speed is increased by **1.25x**.
+
+**Sentinels (Vệ Binh)**
+* **Activation:** 1 Sentinel automatically spawns for every 5 enemies killed.
+* **Limit:** Maximum 15 Sentinels on the battlefield.
+* **Stats:** 150 HP | Fire rate: 95ms.
+* **Normal Shot:** Deals 3 Base + 3% Max HP (Speed 9, Size 7.8).
+* **Special Shot:** Every 4th shot is a massive bullet dealing 4 Base + 5% Max HP with 10% extra speed.
+* **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (2 Damage, Speed 8).
+
+**Final Defense**
+* A hidden automated defense mechanism that activates temporary invulnerability shields (Player Shield & Boundary Shield) to prevent instant, unfair deaths in bullet-hell situations.
+
+---
 
 ## 🔮 Active Skills
 
-### 1. Skill A – Tracking Orbs (Key A)
-- **Cooldown**: 9 seconds (9000ms).
-- **Effect**: Summons 15 energy orbs per use. A maximum of 60 orbs can be maintained at once.
-- **Damage**: Each orb automatically tracks targets. Upon collision, it explodes dealing 10 base damage + 18% target HP.
-- **Scattered Projectiles**: The orb breaks into 10 smaller projectiles (damage 4, size 4) that scatter around.
+### Skill A: Tracking Orbs (Key: A)
+* **Cooldown:** 9 seconds.
+* **Basic Stats:** Summons 15 homing energy orbs (Max 60 on screen). Sensor radius is 90% of the screen.
+* **Detailed Mechanic:** Orbs automatically seek out enemies. Upon impact, they deal **10 Base + 18% Target Max HP** damage. The orb then shatters into 10 smaller scattered projectiles dealing 4 damage each, bouncing around the map.
 
-### 2. Skill S – Spirit Memory (Key S)
-- **Cooldown**: 15 seconds (15000ms).
-- **Effect**: Summons a Spirit. Maximum 2 Spirits on the field.
-- **Duration**: 35 seconds (35000ms).
-- **Fire Rate**: 70ms per shot. Spirit bullets deal 3 damage + 3.15% max HP (size 7.2).
-- **Blade Arc**: Every 5 shots, the Spirit fires 1 massive Blade Arc (radius 125) dealing 10 damage + 13.15% max HP.
-- **Finale**: After 35 seconds, the Spirit stops moving, charges for 2.5 seconds (2500ms), and unleashes a massive laser across the screen toward enemies.
+### Skill S: Spirit Memory (Key: S)
+* **Cooldown:** 15 seconds.
+* **Basic Stats:** Summons an ancient Spirit (Max 2). Lasts for 35 seconds. Fire rate: 70ms.
+* **Detailed Mechanic:** * *Spirit Bullets:* Deal 3 Base + 3.15% Max HP.
+  * *Blade Arc:* Every 5 shots, the Spirit unleashes a massive blade arc (125 radius) dealing 10 Base + 13.15% Max HP. **This arc cuts through and destroys enemy bullets.**
+  * *Finale:* After 35 seconds, the Spirit stops, charges for 2.5s, and fires a devastating screen-wide laser (10 Base + 40% Max HP per tick) before exploding into 8 massive bouncing plasma balls.
 
-### 3. Skill D – Black Hole (Key D)
-- **Cooldown**: 15 seconds (15000ms).
-- **Effect**: Charges for 2.7 seconds (2700ms) to open a black hole.
-- **Pull Speed**: Sucks all enemies towards its center with a speed of 5.5.
-- **Damage**: Any enemy pulled into the exact center of the black hole is instantly killed (HP = 0).
+### Skill D: Cosmic Black Hole (Key: D)
+* **Cooldown:** 15 seconds.
+* **Basic Stats:** Charges for 2.7 seconds to spawn a Black Hole.
+* **Detailed Mechanic:** Sucks all enemies toward its center with a gravitational pull speed of 5.5. Any enemy (including Bosses) that touches the absolute center of the black hole is **instantly executed (HP = 0)**.
 
-### 4. Skill F - Laser Sweep (Key F)
-- **Cooldown**: 10 seconds (10000ms).
-- **Mechanic**: Charges for 1.5 seconds (1500ms) before sweeping a gigantic laser across the screen for 1 second (1000ms).
+### Skill F: Annihilation Sweep (Key: F)
+* **Cooldown:** 10 seconds.
+* **Basic Stats:** 1.5s charge time, 1s execution time.
+* **Detailed Mechanic:** Charges energy and then sweeps a gigantic laser across the entire screen in 1 second, causing violent screen shake. Any enemy caught in the sweep angle is instantly vaporized.
 
-### 5. Skill G - Life Barrier / Domain (Key G)
-- **Charge (Energy)**: Charges from 0-100%. Restores 1% for each enemy killed.
-- **Effect**: When activated, creates Energy Orbs (size 15) and Tesla Coils (size 20). 
-- **Max Tesla Coils**: Up to 6 Tesla Coils on the field.
-- **Tesla Aura**: The magnetic interference zone has an effective radius of 200.
+### Skill G: Life Domain / Tesla Matrix (Key: G)
+* **Charge Requirement:** Charges from 0% to 100% (**+0.5% per enemy kill**).
+* **Duration:** 30 seconds.
+* **Basic Stats:** Spawns Energy Orbs (Size 15) and Tesla Coils (Size 20). Max 4 Tesla Coils.
+* **Detailed Mechanic:**
+  * *Aura & Buffs:* Instantly grants the *Glory for Justice* passive buff while active.
+  * *Energy Links:* Orbs find pairs and link together for 5 seconds. Enemies walking through the energy link have their **movement speed reduced by 20%** and take DoT (Damage over Time) shocks dealing 5 Base + 3% Max HP every 200ms.
+  * *Tesla Coils:* After 5 seconds, paired orbs merge into a Tesla Coil. The Coil has a magnetic aura (Radius 200) that **slows all enemies inside by 20%**. 
+  * *Detonation:* When a Coil's HP (30) depletes or the 30-second skill duration ends, all Orbs and Coils detonate. Coils deal 10 Base + 15% Max HP in a massive AoE.
 
-## 👾 Enemies & Bosses
-- **Boss**: Has a 2.6% spawn chance. Extremely large in size and possesses massive HP.
-- **Mini-Boss**: Has a 26% spawn chance with medium difficulty.
-- **Normal Enemy**: Spawns with the remaining chance. Their HP scales up based on how long the player has survived (time elapsed).
-- **Boss Passive (Demon Gift)**: Triggers when the Boss's HP drops to 70%, 40%, 10%, and 1%.
-  - Heals all other enemies on the field for 15% of the Boss's Max HP.
-  - If the heal exceeds an enemy's Max HP, the excess healing is converted into a Shield (at a 21% ratio).
-  - Grants other enemies an 18% damage reduction buff that lasts for 3.5 seconds.
+---
+
+## 👾 Entities: Enemies & Bosses
+
+### Normal & Mini-Bosses
+* **Normal Enemies:** Spawn continuously. Their HP pool scales infinitely based on how long the player has survived.
+* **Mini-Boss:** 26% chance to spawn instead of a normal enemy. Has significantly higher HP and damage output.
+
+### The Boss & "Demon Gift"
+* **Boss:** 2.6% chance to spawn. Massive in size with a colossal HP bar.
+* **Passive: Demon Gift:** The Boss possesses a terrifying self-preservation mechanic that triggers exactly when its HP drops to **70%, 40%, 10%, and 1%**.
+  * *Global Heal:* Heals all other enemies on the screen for an amount equal to **15% of the Boss's Maximum HP**.
+  * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
+  * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 3.5 seconds**.
