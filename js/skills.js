@@ -169,7 +169,8 @@ function updateSpirits(deltaTime) {
             if (closest) {
                 const speedMultiplier = gloryForJusticeActive ? 1.25 : 1;
                 spiritBullets.push({
-                    x: spirit.x, y: spirit.y, damage: 3, percentDamage: 0.0315, size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier
+                    // SỬA: Damage 4 + 3.20% Max HP
+                    x: spirit.x, y: spirit.y, damage: 4, percentDamage: 0.032, size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier
                 });
                 spirit.shotsFiredSinceBarrage++;
             }
@@ -271,7 +272,7 @@ function updateSpiritFinale(spirit, deltaTime) {
                 // Gọi mảng cầu bật nảy (đã cấu hình sẵn phá hủy đạn ở updateScatteredProjectiles)
                 scatteredProjectiles.push({
                     x: spirit.x, y: spirit.y,
-                    vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15,
+                    vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15, // ĐÃ SỬA LỖI TẠI ĐÂY: Thêm chữ vy:
                     damage: 10, percentDamage: 0.25, size: 56, lifetime: 4000, isBouncingBall: true
                 });
             }
@@ -351,6 +352,18 @@ function updateSkillF(deltaTime) {
                 enemy.hitBySkillF = true;
             }
         }
+
+        // SỬA: Thêm hạt hạt bung ra tại đường quét để hiệu ứng rực rỡ hơn
+        let length = Math.random() * canvas.width;
+        let px = player.x + Math.cos(currentAngle) * length;
+        let py = player.y + Math.sin(currentAngle) * length;
+        particles.push({
+            x: px, y: py,
+            vx: Math.cos(currentAngle + Math.PI / 2) * (Math.random() * 5 + 2),
+            vy: Math.sin(currentAngle + Math.PI / 2) * (Math.random() * 5 + 2),
+            lifetime: 200 + Math.random() * 100, maxLifetime: 300,
+            size: Math.random() * 4 + 2, color: 'cyan'
+        });
     }
 }
 
@@ -553,12 +566,12 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 const linkThickness = ENERGY_ORB_SIZE / 2;
                 if (dist < enemyRadius + linkThickness) {
 
-                    // Xử lý làm chậm tinh tế hơn (do đạn địch bay theo vx/vy)
+                    // SỬA: Giảm tốc độ từ 20% còn 8%
                     if (enemy.type !== 'enemy_bullet') {
-                        enemy.y -= (enemy.speed * dt * 0.20);
+                        enemy.y -= (enemy.speed * dt * 0.08);
                     } else {
-                        enemy.x -= (enemy.vx * dt * 0.20);
-                        enemy.y -= (enemy.vy * dt * 0.20);
+                        enemy.x -= (enemy.vx * dt * 0.08);
+                        enemy.y -= (enemy.vy * dt * 0.08);
                     }
 
                     if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
@@ -607,15 +620,12 @@ function updateTeslaCoils(deltaTime, currentTime) {
     for (let i = teslaCoils.length - 1; i >= 0; i--) {
         const coil = teslaCoils[i];
 
-        // Từ trường Tesla Coil làm chậm quái 20%
         enemies.forEach(enemy => {
-            // Loại bỏ lệnh return đạn địch để đạn cũng bị làm chậm bởi luồng điện nếu cần
+            // SỬA: Bán kính và tốc độ giảm từ 20% xuống 8%
             let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
-                // Đạn địch được xử lý làm chậm chủ yếu ở main.js, 
-                // nhưng nếu để ở đây thì nhớ trừ vào vx/vy cho chuẩn vật lý
                 if (enemy.type !== 'enemy_bullet') {
-                    enemy.y -= (enemy.speed * dt * 0.20);
+                    enemy.y -= (enemy.speed * dt * 0.08);
                 }
             }
         });

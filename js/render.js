@@ -26,6 +26,9 @@ function draw() {
         spirits.forEach(drawSpirit);
         if (blackHole) drawBlackHole();
 
+        // MỚI: Vẽ sóng xung kích của Boss
+        drawBossShockwaves();
+
         if (laserActive) {
             playerClones.forEach(clone => drawPlayer(0.5, clone.xOffset));
             drawLaser();
@@ -81,6 +84,26 @@ function draw() {
     ctx.restore();
 }
 
+// Hàm vẽ Sóng xung kích của Boss
+function drawBossShockwaves() {
+    bossShockwaves.forEach(wave => {
+        ctx.save();
+        ctx.strokeStyle = "rgba(138, 43, 226, 0.8)"; // Màu tím rực
+        ctx.lineWidth = 15;
+        ctx.shadowColor = "#FF00FF";
+        ctx.shadowBlur = 30;
+
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Lõi sáng mờ bên trong
+        ctx.fillStyle = "rgba(138, 43, 226, 0.1)";
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
 function drawChainLightning(effect) {
     ctx.save();
     ctx.strokeStyle = `rgba(255, 165, 0, ${effect.lifetime / effect.maxLifetime})`;
@@ -104,7 +127,7 @@ function drawChainLightning(effect) {
 
 function drawDemonGiftAura() {
     const elapsed = demonGiftEffect.endTime - performance.now();
-    const alpha = (elapsed / 3500) * 0.2;
+    const alpha = Math.max(0, (elapsed / 4000) * 0.25); // SỬA: Duration 4000
 
     ctx.save();
     const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width);
@@ -335,10 +358,11 @@ function drawEnemy(enemy) {
         ctx.fillText(Math.ceil(enemy.shield), enemy.x, barY - 2);
     }
 
-    if (enemy.damageReductionBuff && performance.now() < enemy.damageReductionBuff.endTime) {
+    if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
         ctx.save();
-        ctx.strokeStyle = 'rgba(138, 43, 226, 0.8)';
-        ctx.lineWidth = 3;
+        // SỬA: Đổi màu khiên nếu 2 stack (miễn 30%)
+        ctx.strokeStyle = enemy.demonGiftStacks === 2 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(138, 43, 226, 0.8)';
+        ctx.lineWidth = enemy.demonGiftStacks === 2 ? 5 : 3;
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 5, 0, Math.PI * 2);
         ctx.stroke();
@@ -563,19 +587,44 @@ function drawSkillF() {
     ctx.save();
     ctx.translate(player.x, player.y);
     const radius = Math.max(canvas.width, canvas.height);
+
     if (skillFState === "charging") {
         let p = (currentTime - skillFChargeStart) / 1500;
         ctx.fillStyle = `rgba(0, 255, 255, ${.1 + p * .2})`;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, -Math.PI, 0); ctx.closePath(); ctx.fill()
     }
+
     if (skillFState === "sweeping") {
         let sweepProgress = (currentTime - skillFSweepStart) / skillFSweepDuration;
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
         ctx.rotate(currentAngle);
-        const grad = ctx.createLinearGradient(0, 0, radius, 0);
-        grad.addColorStop(0, "white"); grad.addColorStop(.1, "cyan"); grad.addColorStop(1, "rgba(0,255,255,0)");
-        ctx.fillStyle = grad; ctx.shadowColor = 'white'; ctx.shadowBlur = 30;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -20); ctx.lineTo(radius, 20); ctx.closePath(); ctx.fill()
+
+        // SỬA: Hiệu ứng Quét Plasma rực rỡ hơn
+        // Lõi beam
+        ctx.fillStyle = "white";
+        ctx.shadowColor = "cyan";
+        ctx.shadowBlur = 40;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(radius, -15);
+        ctx.lineTo(radius, 15);
+        ctx.fill();
+
+        // Hào quang beam
+        ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(radius, -40);
+        ctx.lineTo(radius, 40);
+        ctx.fill();
+
+        // Tia chớp nhỏ bên trong
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(radius, Math.random() * 20 - 10);
+        ctx.stroke();
     }
     ctx.restore()
 }
