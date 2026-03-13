@@ -329,7 +329,7 @@ function update(deltaTime) {
 function gameLoop(timeStamp) {
     if (!lastTimeStamp) lastTimeStamp = timeStamp;
     let deltaTime = timeStamp - lastTimeStamp;
-    if (deltaTime > 1000) { gamePaused = true; showStartButton("Tiếp Tục"); requestAnimationFrame(gameLoop); return; }
+    if (deltaTime > 1000) { gamePaused = true; showPauseScreen(); requestAnimationFrame(gameLoop); return; }
     lastTimeStamp = timeStamp;
     if (!gamePaused && !loading) { update(deltaTime); draw(); }
     requestAnimationFrame(gameLoop);
