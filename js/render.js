@@ -26,7 +26,6 @@ function draw() {
         spirits.forEach(drawSpirit);
         if (blackHole) drawBlackHole();
 
-        // Vẽ sóng xung kích của Boss
         drawBossShockwaves();
 
         if (laserActive) {
@@ -76,18 +75,13 @@ function draw() {
         ctx.fillStyle = "white";
         ctx.fillText("Tổng Điểm: " + score, canvas.width / 2, canvas.height / 2 + 30);
     }
-    if (loading || gamePaused) {
-        ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.textAlign = "center"; ctx.font = "40px Arial"; ctx.fillStyle = "yellow";
-        ctx.fillText(loading ? "Loading..." : "Game Paused", canvas.width / 2, canvas.height / 2);
-    }
     ctx.restore();
 }
 
 function drawBossShockwaves() {
     bossShockwaves.forEach(wave => {
         ctx.save();
-        ctx.strokeStyle = "rgba(138, 43, 226, 0.8)"; // Màu tím rực
+        ctx.strokeStyle = "rgba(138, 43, 226, 0.8)";
         ctx.lineWidth = 15;
         ctx.shadowColor = "#FF00FF";
         ctx.shadowBlur = 30;
@@ -96,7 +90,6 @@ function drawBossShockwaves() {
         ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Lõi sáng mờ bên trong
         ctx.fillStyle = "rgba(138, 43, 226, 0.1)";
         ctx.fill();
         ctx.restore();
@@ -105,22 +98,32 @@ function drawBossShockwaves() {
 
 function drawChainLightning(effect) {
     ctx.save();
-    ctx.strokeStyle = `rgba(255, 165, 0, ${effect.lifetime / effect.maxLifetime})`;
-    ctx.lineWidth = 3;
-    ctx.shadowColor = 'orange';
-    ctx.shadowBlur = 10;
+    let alpha = effect.lifetime / effect.maxLifetime;
+
+    // SỬA: Đường điện chính rõ ràng, sáng rực rỡ hơn
+    ctx.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
+    ctx.lineWidth = 5;
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 20;
+
     ctx.beginPath();
     ctx.moveTo(effect.x1, effect.y1);
     for (let i = 0; i < 5; i++) {
         const progress = i / 4;
         const nx = effect.x1 + (effect.x2 - effect.x1) * progress;
         const ny = effect.y1 + (effect.y2 - effect.y1) * progress;
-        const offsetX = (Math.random() - 0.5) * 20 * (1 - Math.abs(progress - 0.5) * 2);
-        const offsetY = (Math.random() - 0.5) * 20 * (1 - Math.abs(progress - 0.5) * 2);
+        const offsetX = (Math.random() - 0.5) * 30 * (1 - Math.abs(progress - 0.5) * 2);
+        const offsetY = (Math.random() - 0.5) * 30 * (1 - Math.abs(progress - 0.5) * 2);
         ctx.lineTo(nx + offsetX, ny + offsetY);
     }
     ctx.lineTo(effect.x2, effect.y2);
     ctx.stroke();
+
+    // SỬA: Lõi điện màu trắng
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
     ctx.restore();
 }
 
@@ -256,7 +259,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.globalAlpha = alpha;
     ctx.translate(player.x + xOffset, player.y);
 
-    // 1. Cánh phụ dưới (Layer dưới cùng - Màu tối)
     ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -269,7 +271,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.closePath();
     ctx.fill();
 
-    // 2. Cánh chính (Màu xanh đen Dark Blue)
     ctx.fillStyle = '#1e293b';
     ctx.beginPath();
     ctx.moveTo(0, -10);
@@ -281,14 +282,13 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.lineTo(-28, 10);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = '#38bdf8'; // Viền sáng
+    ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // 3. Thân giữa (Màu xám bạc Metallic)
     ctx.fillStyle = '#cbd5e1';
     ctx.beginPath();
-    ctx.moveTo(0, -26); // Mũi phi thuyền
+    ctx.moveTo(0, -26);
     ctx.lineTo(8, -8);
     ctx.lineTo(12, 18);
     ctx.lineTo(6, 22);
@@ -301,7 +301,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // 4. Lõi gân xanh chéo (Điểm nhấn dọc thân)
     ctx.fillStyle = '#0ea5e9';
     ctx.beginPath();
     ctx.moveTo(0, -12);
@@ -312,7 +311,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.closePath();
     ctx.fill();
 
-    // 5. Buồng lái (Cockpit - Màu kính Cyan)
     ctx.fillStyle = '#22d3ee';
     ctx.beginPath();
     ctx.moveTo(0, -14);
@@ -322,7 +320,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.closePath();
     ctx.fill();
 
-    // Bóng sáng chiếu trên kính buồng lái
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.moveTo(0, -12);
@@ -331,17 +328,12 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.closePath();
     ctx.fill();
 
-    // 6. Hai ống xả động cơ
     ctx.fillStyle = '#334155';
     ctx.fillRect(-8, 22, 5, 4);
     ctx.fillRect(3, 22, 5, 4);
 
-    // ==========================================
-    // HIỆU ỨNG PHÓNG LỬA (PLASMA FLAMES)
-    // ==========================================
-    let flameH = 12 + Math.random() * 15; // Chiều dài lửa giật ngẫu nhiên
+    let flameH = 12 + Math.random() * 15;
 
-    // Lửa trái
     const flameGradL = ctx.createLinearGradient(0, 26, 0, 26 + flameH);
     flameGradL.addColorStop(0, "white");
     flameGradL.addColorStop(0.3, "#00FFFF");
@@ -354,7 +346,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.closePath();
     ctx.fill();
 
-    // Lửa phải
     const flameGradR = ctx.createLinearGradient(0, 26, 0, 26 + flameH);
     flameGradR.addColorStop(0, "white");
     flameGradR.addColorStop(0.3, "#00FFFF");
@@ -367,7 +358,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.closePath();
     ctx.fill();
 
-    // 7. Dấu ấn vinh quang (Buff Vinh Quang Cho Kẻ Yếu)
     if (gloryForJusticeActive && alpha === 1) {
         ctx.fillStyle = 'lime';
         ctx.beginPath();
@@ -381,7 +371,6 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.restore();
 }
 
-// HÀM BỊ MẤT ĐÃ ĐƯỢC KHÔI PHỤC LẠI Ở ĐÂY
 function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
     ctx.save();
     const grad = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
@@ -435,11 +424,18 @@ function drawEnemy(enemy) {
     } else {
         ctx.save();
         const hpRatio = enemy.hp / enemy.maxHp;
-        const color = `rgb(255, ${Math.floor(hpRatio * 150)}, ${Math.floor(hpRatio * 150)})`;
+        // SỬA: Màu tươi sáng, chuyển từ xanh lá sang xanh cyan dựa trên lượng máu
+        const hue = 120 + hpRatio * 60;
+        const color = `hsl(${hue}, 100%, 55%)`;
+
         const grad = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, enemy.size);
-        grad.addColorStop(0, color);
-        grad.addColorStop(1, "black");
+        grad.addColorStop(0, "white");
+        grad.addColorStop(0.3, color);
+        grad.addColorStop(1, "rgba(0, 50, 100, 0.8)");
+
         ctx.fillStyle = grad;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
         ctx.fill();
@@ -701,7 +697,6 @@ function drawSkillF() {
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
         ctx.rotate(currentAngle);
 
-        // Lõi beam
         ctx.fillStyle = "white";
         ctx.shadowColor = "cyan";
         ctx.shadowBlur = 40;
@@ -711,7 +706,6 @@ function drawSkillF() {
         ctx.lineTo(radius, 15);
         ctx.fill();
 
-        // Hào quang beam
         ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -719,7 +713,6 @@ function drawSkillF() {
         ctx.lineTo(radius, 40);
         ctx.fill();
 
-        // Tia chớp nhỏ bên trong
         ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
         ctx.lineWidth = 2;
         ctx.beginPath();
