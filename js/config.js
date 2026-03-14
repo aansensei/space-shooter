@@ -18,8 +18,12 @@ let gloryForJusticeActive = false;
 let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 let chainLightningCooldownEnd = 0;
 
+// MỚI: Biến quản lý Bảo hiểm 1 lần (Last Stand)
+let hasTriggeredLastStand = false;
+let playerAbsoluteShield = false;
+
 let bossShockwaves = [];
-let aegisLasers = []; // MỚI: Mảng chứa laze của Thiên Thuẫn Hạch
+let aegisLasers = [];
 
 // Nội tại Vệ Binh
 let sentinels = [];

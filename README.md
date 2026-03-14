@@ -61,10 +61,10 @@ An intense, highly polished arcade space survival game featuring deep combat mec
   * If there are **10 Sentinels** (maximum capacity) on the map, every single shot fired by the Sentinels becomes a Special Shot.
 * **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (2 Damage, Speed 8).
 
-**Final Defense**
+**Final Defense & Last Stand**
 
-* A hidden automated defense mechanism that activates temporary invulnerability shields (Player Shield & Boundary Shield) to prevent instant, unfair deaths in bullet-hell situations.
-* **Cooldown:** Once a shield is broken, it requires **25 seconds** to regenerate.
+* **Final Defense:** A hidden automated defense mechanism that activates temporary invulnerability shields (Player Shield & Boundary Shield) to prevent instant, unfair deaths in bullet-hell situations. Once a shield is broken, it requires **25 seconds** to regenerate.
+* **Last Stand (Absolute Shield):** If the player is struck by a fatal blow while having exactly **1 life remaining**, they cheat death. The player and all active Sentinels instantly receive a Golden Absolute Shield that completely absorbs and nullifies 1 instance of any damage. This effect can only trigger **once per game**.
 
 ---
 
@@ -89,13 +89,13 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 * **Cooldown:** 15 seconds.
 * **Basic Stats:** Charges for 2 seconds to spawn a Black Hole.
-* **Detailed Mechanic:** Sucks all enemies and enemy bullets toward its center with a powerful gravitational pull speed of **6**. Any enemy (including Bosses) that touches the absolute center of the black hole is **instantly executed (HP = 0)**.
+* **Detailed Mechanic:** Sucks all enemies and enemy bullets toward its center with a powerful gravitational pull speed of **6**. Any enemy (including Bosses) that touches the absolute center of the black hole takes an astronomical **999,999,999 damage**, instantly obliterating them or instantly shattering Absolute Shields.
 
 ### Skill F: Annihilation Sweep (Key: F)
 
 * **Cooldown:** 10 seconds.
 * **Basic Stats:** 1.5s charge time, 1s execution time.
-* **Detailed Mechanic:** Charges energy and then sweeps a gigantic, visually enhanced radiant plasma beam across the entire screen in 1 second, causing violent screen shake and scattering particle energy. Any enemy caught in the sweep angle is instantly vaporized.
+* **Detailed Mechanic:** Charges energy and then sweeps a gigantic, visually enhanced radiant plasma beam across the entire screen in 1 second, causing violent screen shake and scattering particle energy. Any enemy caught in the sweep angle takes **999,999,999 damage**, instantly vaporizing them or shattering Absolute Shields.
 
 ### Skill G: Life Domain / Tesla Matrix (Key: G)
 
@@ -118,6 +118,16 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 * **Normal Enemies:** Spawn continuously. Base HP begins roughly between 1 and 5 (capped at **60**) and scales infinitely based on how long the player has survived. Visually distinct with bright, vibrant colors to stand out from enemy projectiles.
 * **Mini-Boss:** 30% chance to spawn instead of a normal enemy. Features significantly higher HP (roughly 125 to 502 Base HP) and heavy damage output.
+
+### Heavenly Aegis Core
+
+* **Spawn Condition:** 20% chance to spawn instead of a normal enemy (Only 1 can exist on the map at a time).
+* **Stats:** Size is 70% of a Mini-Boss. Base HP scales from **300 to 560**.
+* **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
+* **Support Aura:** Emits a massive radar field covering half the map width.
+  * Allies inside the aura heal for **0.85% of the Aegis Core's Max HP** per second.
+  * Allies inside also receive a shield equal to **35% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **5% Damage Reduction**.
+* **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and 2 random Sentinels with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player instantly breaks their shield or removes 1 life (triggering Last Stand if applicable), while hitting Sentinels drains 5% of their Max HP.
 
 ### The Boss & "Demon Gift"
 

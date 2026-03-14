@@ -88,10 +88,8 @@ function spawnEnemy() {
         });
     } else if (rand < 0.53 && !hasAegis) {
         const baseSize = (20 + Math.random() * 10);
-        // SỬA: Kích thước giảm còn 70% so với ban đầu
         const size = ((baseSize * 5) / 2) * 0.7;
         const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
-        // SỬA: HP cơ bản 300 -> 560
         let hp = Math.min(560, 300 + hpFromTime * 8);
 
         enemies.push({
@@ -115,16 +113,15 @@ function spawnEnemy() {
     }
 }
 
-// Tạo đường laze nhắm mục tiêu (Lumen Nova)
 function createAegisTelegraph(startX, startY, target) {
     let angle = Math.atan2(target.y - startY, target.x - startX);
-    let length = Math.hypot(canvas.width, canvas.height); // Kéo dài ra khỏi màn hình
+    let length = Math.hypot(canvas.width, canvas.height);
     let endX = startX + Math.cos(angle) * length;
     let endY = startY + Math.sin(angle) * length;
     aegisLasers.push({
         start: { x: startX, y: startY },
         end: { x: endX, y: endY },
-        delay: 1000, // 1 giây delay
+        delay: 1000,
         fired: false,
         duration: 0
     });
@@ -164,7 +161,8 @@ function spawnSentinel(x, y) {
     }
     sentinels.push({
         x, y, hp: 160, maxHp: 160, angle: -Math.PI / 2, shootTimer: 0,
-        target: null, size: 15, shotsFiredSinceSpecial: 0
+        target: null, size: 15, shotsFiredSinceSpecial: 0,
+        absoluteShield: false // MỚI: Thuộc tính khiên vàng
     });
 }
 
@@ -185,7 +183,7 @@ function updateSentinels(deltaTime) {
     let sentinelFireRate = 75;
     let activeCount = sentinels.length;
 
-    if (activeCount > 5) sentinelFireRate /= 1.20; // SỬA: Tăng 20% khi có >5
+    if (activeCount > 5) sentinelFireRate /= 1.20;
 
     if (gloryForJusticeActive) {
         sentinelFireRate /= 1.40;
@@ -297,12 +295,20 @@ function spawnBossShockwave(x, y) {
 
 
 function dealDamage(enemy, source) {
-    // MỚI: Xử lý Khiên bất tử 1 lần của Aegis Core
     if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
         if (source.damage > 0 || source.percentDamage > 0) {
-            enemy.aegisInvulnerable = false; // Phá khiên
+            enemy.aegisInvulnerable = false;
             addExplosion(enemy.x, enemy.y, enemy.size * 1.5, 'white');
-            return; // Khóa toàn bộ sát thương đòn này
+            return;
+        }
+    }
+
+    // MỚI: Sentinel dùng Khiên Vàng bảo hiểm 1 lần
+    if (enemy.absoluteShield) {
+        if (source.damage > 0 || source.percentDamage > 0) {
+            enemy.absoluteShield = false;
+            addExplosion(enemy.x, enemy.y, enemy.size * 2, 'gold'); // Nổ vàng đẹp mắt
+            return; // Hấp thụ hoàn toàn
         }
     }
 
@@ -331,7 +337,6 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // MỚI: Miễn thương 5% từ khiên của Aegis Core
     if (enemy.shield > 0 && enemy.aegisShieldReceived) {
         combinedDR += 0.05;
     }
