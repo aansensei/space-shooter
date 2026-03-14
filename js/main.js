@@ -39,6 +39,41 @@ function update(deltaTime) {
     });
     bossShockwaves = bossShockwaves.filter(w => w.active);
 
+    // MỚI: Xử lý Kỹ năng của Aegis Lasers (Lumen Nova)
+    aegisLasers.forEach(laser => {
+        if (!laser.fired) {
+            laser.delay -= deltaTime;
+            if (laser.delay <= 0) {
+                laser.fired = true;
+                laser.duration = 200; // Hiển thị tia chớp 200ms
+                screenShake = { intensity: 8, duration: 200 };
+
+                // Xét va chạm Player
+                if (distToSegment(player, laser.start, laser.end) < player.width / 2 + 15) {
+                    if (finalDefense.playerShield) {
+                        finalDefense.playerShield = false;
+                        finalDefense.playerCooldownEnd = performance.now() + 25000;
+                        addExplosion(player.x, player.y, 50, 'cyan');
+                    } else {
+                        lives--;
+                    }
+                }
+
+                // Xét va chạm Sentinel
+                sentinels.forEach(s => {
+                    if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
+                        dealDamage(s, { damage: s.maxHp * 0.05 });
+                        addExplosion(s.x, s.y, 20, 'red');
+                    }
+                });
+            }
+        } else {
+            laser.duration -= deltaTime;
+        }
+    });
+    aegisLasers = aegisLasers.filter(l => !l.fired || l.duration > 0);
+
+
     if (skillGActive && currentTime > skillGEndTime) {
         endSkillG();
     }
@@ -106,7 +141,7 @@ function update(deltaTime) {
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
-                            dealDamage(enemy, { damage: 10, percentDamage: 0.26 }); // SỬA: Sát thương laze 26%
+                            dealDamage(enemy, { damage: 10, percentDamage: 0.26 });
                             break;
                         }
                     }
@@ -129,6 +164,34 @@ function update(deltaTime) {
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
 
+        // MỚI: Tính năng vòng hào quang của Heavenly Aegis Core
+        if (enemy.type === 'aegis_core') {
+            let healAmt = enemy.maxHp * 0.0085 * (deltaTime / 1000); // 0.85% max hp mỗi giây
+            let shieldAmt = enemy.maxHp * 0.35; // 35% max hp làm khiên
+            let auraRadius = canvas.width / 2; // SỬA: Bán kính bằng nửa bản đồ
+
+            enemies.forEach(ally => {
+                if (ally.type === 'enemy_bullet') return; // Cả bản thân cũng nhận
+                let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
+                if (d <= auraRadius) { // SỬA: Chỉ buff cho kẻ địch nằm trong vùng nửa bản đồ
+                    ally.hp = Math.min(ally.maxHp, ally.hp + healAmt);
+                    if (!ally.aegisShieldReceived) {
+                        ally.shield = (ally.shield || 0) + shieldAmt;
+                        ally.aegisShieldReceived = true;
+                    }
+                }
+            });
+
+            // Laze Lumen Nova
+            enemy.shootTimer -= deltaTime;
+            if (enemy.shootTimer <= 0) {
+                enemy.shootTimer = 5000; // 5s một lần
+                createAegisTelegraph(enemy.x, enemy.y, player);
+                let availableSents = [...sentinels].sort(() => 0.5 - Math.random()).slice(0, 2);
+                availableSents.forEach(s => createAegisTelegraph(enemy.x, enemy.y, s));
+            }
+        }
+
         let teslaSpeedMultiplier = 1.0;
         let teslaAttackSpeedMultiplier = 1.0;
         let inTeslaAura = false;
@@ -150,7 +213,7 @@ function update(deltaTime) {
                     }
                 } else {
                     teslaSpeedMultiplier = 0.30;
-                    if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
+                    if (enemy.type === 'boss' || enemy.type === 'mini-boss' || enemy.type === 'aegis_core') {
                         teslaAttackSpeedMultiplier = 2.0;
                     }
                 }
@@ -163,7 +226,7 @@ function update(deltaTime) {
                 }
 
                 if (currentTime - coil.dotTargets.get(enemy) >= 50) {
-                    dealDamage(enemy, { damage: 10, percentDamage: 0.13, isTeslaDot: true }); // SỬA: Sát thương từ trường 13%
+                    dealDamage(enemy, { damage: 10, percentDamage: 0.13, isTeslaDot: true });
                     coil.dotTargets.set(enemy, currentTime);
                 }
             }
@@ -192,7 +255,7 @@ function update(deltaTime) {
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.width / 2) {
                 if (finalDefense.playerShield) {
                     finalDefense.playerShield = false;
-                    finalDefense.playerCooldownEnd = performance.now() + 25000; // SỬA: Giảm xuống 25s
+                    finalDefense.playerCooldownEnd = performance.now() + 25000;
                     addExplosion(enemy.x, enemy.y, 50, 'cyan');
                 } else {
                     lives--;
@@ -238,7 +301,7 @@ function update(deltaTime) {
             if (enemy.type !== 'enemy_bullet') {
                 if (finalDefense.boundaryShield) {
                     finalDefense.boundaryShield = false;
-                    finalDefense.boundaryCooldownEnd = performance.now() + 25000; // SỬA: Giảm xuống 25s
+                    finalDefense.boundaryCooldownEnd = performance.now() + 25000;
                     addExplosion(enemy.x, enemy.y, 100, 'cyan');
                     enemies.splice(i, 1);
                 } else {
@@ -251,7 +314,7 @@ function update(deltaTime) {
         } else if (enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.width / 2) {
             if (finalDefense.playerShield) {
                 finalDefense.playerShield = false;
-                finalDefense.playerCooldownEnd = performance.now() + 25000; // SỬA: Giảm xuống 25s
+                finalDefense.playerCooldownEnd = performance.now() + 25000;
                 addExplosion(enemy.x, enemy.y, 100, 'cyan');
             } else {
                 lives--;
@@ -293,10 +356,9 @@ function update(deltaTime) {
                 } else {
                     dealDamage(enemy, b);
 
-                    // SỬA: Đạn Sentinel chọc thủng kẻ địch sẽ hồi máu cho Sentinel
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
                         b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
-                        createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3); // Bắn hạt xanh lá báo hiệu hồi máu
+                        createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
 
                     bullets.splice(i, 1);
@@ -343,6 +405,7 @@ function startGame() {
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; blackHole = null;
     bossShockwaves = [];
+    aegisLasers = []; // Reset Laze
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 

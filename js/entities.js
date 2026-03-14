@@ -17,7 +17,7 @@ function handleEnemyKill(enemy) {
     }
     addExplosion(enemy.x, enemy.y, enemy.size);
     killCountForPassive++;
-    if (killCountForPassive % 4 === 0) { // SỬA: Mỗi 4 mạng
+    if (killCountForPassive % 4 === 0) {
         spawnSentinel(player.x, player.y);
     }
 
@@ -42,8 +42,8 @@ function fireAutoShot() {
         const angle = baseAngle + startAngle + (i * angleStep);
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
-            vx: Math.cos(angle) * 11.2 * speedMultiplier, vy: Math.sin(angle) * 11.2 * speedMultiplier, // SỬA: Tốc độ 11.2
-            damage: 6, percentDamage: 0.04, size: 6.5, type: 'player_auto' // SỬA: 4% Max HP, Size 6.5
+            vx: Math.cos(angle) * 11.2 * speedMultiplier, vy: Math.sin(angle) * 11.2 * speedMultiplier,
+            damage: 6, percentDamage: 0.04, size: 6.5, type: 'player_auto'
         });
     }
 }
@@ -61,6 +61,7 @@ function fireChargedBullet(multiplier) {
 
 function spawnEnemy() {
     const rand = Math.random();
+    let hasAegis = enemies.some(e => e.type === 'aegis_core');
 
     if (rand < 0.03) {
         const baseSize = (20 + Math.random() * 10);
@@ -85,10 +86,25 @@ function spawnEnemy() {
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
             type: 'mini-boss', shootTimer: autoFireInterval * 2
         });
+    } else if (rand < 0.53 && !hasAegis) {
+        const baseSize = (20 + Math.random() * 10);
+        // SỬA: Kích thước giảm còn 70% so với ban đầu
+        const size = ((baseSize * 5) / 2) * 0.7;
+        const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+        // SỬA: HP cơ bản 300 -> 560
+        let hp = Math.min(560, 300 + hpFromTime * 8);
+
+        enemies.push({
+            x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
+            speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
+            isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+            type: 'aegis_core', shootTimer: 3000,
+            aegisInvulnerable: true, aegisShieldReceived: false
+        });
     } else {
         const size = 20 + Math.random() * 10;
         const hpFromTime = Math.floor((performance.now() - gameStartTime) / 15000);
-        let hp = Math.min(60, (Math.floor(Math.random() * 5) + 1 + hpFromTime)); // SỬA: Cap HP tăng từ 52 -> 60
+        let hp = Math.min(60, (Math.floor(Math.random() * 5) + 1 + hpFromTime));
         hp *= 1.05;
         enemies.push({
             x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
@@ -97,6 +113,21 @@ function spawnEnemy() {
             type: 'normal'
         });
     }
+}
+
+// Tạo đường laze nhắm mục tiêu (Lumen Nova)
+function createAegisTelegraph(startX, startY, target) {
+    let angle = Math.atan2(target.y - startY, target.x - startX);
+    let length = Math.hypot(canvas.width, canvas.height); // Kéo dài ra khỏi màn hình
+    let endX = startX + Math.cos(angle) * length;
+    let endY = startY + Math.sin(angle) * length;
+    aegisLasers.push({
+        start: { x: startX, y: startY },
+        end: { x: endX, y: endY },
+        delay: 1000, // 1 giây delay
+        fired: false,
+        duration: 0
+    });
 }
 
 function createParticles(x, y, count, color, minSpeed, maxSpeed) {
@@ -132,7 +163,7 @@ function spawnSentinel(x, y) {
         sentinels.splice(0, 1);
     }
     sentinels.push({
-        x, y, hp: 160, maxHp: 160, angle: -Math.PI / 2, shootTimer: 0, // SỬA: Máu lên 160
+        x, y, hp: 160, maxHp: 160, angle: -Math.PI / 2, shootTimer: 0,
         target: null, size: 15, shotsFiredSinceSpecial: 0
     });
 }
@@ -151,17 +182,15 @@ function destroySentinel(sentinel) {
 }
 
 function updateSentinels(deltaTime) {
-    let sentinelFireRate = 75; // SỬA: Fire rate gốc 75ms
+    let sentinelFireRate = 75;
     let activeCount = sentinels.length;
 
-    // SỬA: Tâm lý bầy đàn (Trên 5 con -> Tăng 20% tốc bắn)
-    if (activeCount > 5) sentinelFireRate /= 1.2;
+    if (activeCount > 5) sentinelFireRate /= 1.20; // SỬA: Tăng 20% khi có >5
 
     if (gloryForJusticeActive) {
         sentinelFireRate /= 1.40;
     }
 
-    // SỬA: Tâm lý bầy đàn (10 con)
     let swarmSpecialForced = activeCount >= 10;
 
     for (let i = sentinels.length - 1; i >= 0; i--) {
@@ -191,7 +220,6 @@ function updateSentinels(deltaTime) {
                 bullets.push({
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    // SỬA: Dame 6 Base + 7% Max HP, Tốc độ cộng 12% (1.12), Mang theo chủ nhân để Hồi máu
                     damage: 6, percentDamage: 0.07, size: 30, type: 'sentinel_special',
                     target: sentinel.target, speedMultiplier: 1.12 * speedMultiplier,
                     sourceSentinel: sentinel
@@ -269,13 +297,21 @@ function spawnBossShockwave(x, y) {
 
 
 function dealDamage(enemy, source) {
+    // MỚI: Xử lý Khiên bất tử 1 lần của Aegis Core
+    if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
+        if (source.damage > 0 || source.percentDamage > 0) {
+            enemy.aegisInvulnerable = false; // Phá khiên
+            addExplosion(enemy.x, enemy.y, enemy.size * 1.5, 'white');
+            return; // Khóa toàn bộ sát thương đòn này
+        }
+    }
+
     const oldHP = enemy.hp;
     enemy.shield = enemy.shield || 0;
     const enemyMaxHp = enemy.maxHp || enemy.hp;
     const effectiveHp = enemyMaxHp + enemy.shield;
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
-    // SỬA: Tính chung Chain/Tesla vào Buff 1.4x (Loại bỏ điều kiện chặn)
     if (gloryForJusticeActive) {
         totalDamage = Math.ceil(totalDamage * 1.40);
     }
@@ -295,6 +331,11 @@ function dealDamage(enemy, source) {
         }
     }
 
+    // MỚI: Miễn thương 5% từ khiên của Aegis Core
+    if (enemy.shield > 0 && enemy.aegisShieldReceived) {
+        combinedDR += 0.05;
+    }
+
     totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
 
     const damageToShield = Math.min(enemy.shield, totalDamage);
@@ -308,14 +349,14 @@ function dealDamage(enemy, source) {
     if (isChainable && isBossOrMiniBossPresent && now > chainLightningCooldownEnd) {
         chainLightningCooldownEnd = now + 250;
         screenShake = { intensity: 3, duration: 100 };
-        const chainDamage = totalDamage * 0.21; // SỬA: Bằng 21% sát thương từ đòn đánh đầu
+        const chainDamage = totalDamage * 0.21;
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
-            if (chainedCount >= 6) break; // SỬA: Giật sang 6 mục tiêu
+            if (chainedCount >= 6) break;
             if (otherEnemy !== enemy && otherEnemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
                 dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true });
                 chainLightningEffects.push({
-                    x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250 // Tăng thời gian sống tia sét
+                    x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250
                 });
                 chainedCount++;
             }

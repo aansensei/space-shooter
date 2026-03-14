@@ -19,6 +19,7 @@ let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd
 let chainLightningCooldownEnd = 0;
 
 let bossShockwaves = [];
+let aegisLasers = []; // MỚI: Mảng chứa laze của Thiên Thuẫn Hạch
 
 // Nội tại Vệ Binh
 let sentinels = [];
@@ -40,7 +41,7 @@ let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [];
 
 // Skill D
 let skillDCharging = false, skillDChargeStartTime = 0;
-const skillDChargeTime = 2000; // SỬA: Giảm xuống 2s
+const skillDChargeTime = 2000;
 let blackHole = null, lastSkillD = -Infinity;
 const skillDCooldown = 15000;
 
@@ -72,8 +73,8 @@ const overloadChargeTime = 5000;
 // Tia laze
 let laserActive = false, laserStartTime = 0, lastLaserTick = 0;
 const laserDuration = 12000;
-const laserCooldownDuration = 12000; // SỬA: Giảm cooldown còn 12s
-const laserTickInterval = 175; // SỬA: Giảm tick xuống 175ms
+const laserCooldownDuration = 12000;
+const laserTickInterval = 175;
 let laserCooldownEnd = 0;
 
 // Spawn enemy
