@@ -85,7 +85,7 @@ function update(deltaTime) {
 
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: s.maxHp * 0.05 });
+                        dealDamage(s, { damage: s.maxHp * 0.125 });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
