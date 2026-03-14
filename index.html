@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Thần Binh Thiên Hà - Top Secret Edition</title>
+    <title>Pisces: Space Journey</title>
 
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
@@ -67,64 +67,25 @@
             align-items: center;
         }
 
-        #password-input {
-            padding: 12px 20px;
-            border-radius: 30px;
-            border: 2px solid #00e5ff;
-            background: rgba(0, 0, 0, 0.6);
-            color: #fff;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            text-align: center;
-            outline: none;
-            width: 250px;
-            font-family: inherit;
-        }
-
-        #password-input::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        #unlock-btn,
-        #fake-start-btn {
-            padding: 12px 35px;
+        #start-hyperjump-btn {
+            padding: 15px 40px;
             border-radius: 30px;
             border: none;
             font-weight: bold;
             cursor: pointer;
             transition: 0.3s;
             color: #fff;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-family: inherit;
-        }
-
-        #unlock-btn {
-            background: linear-gradient(45deg, #f72585, #7209b7);
-            box-shadow: 0 0 15px rgba(247, 37, 133, 0.4);
-        }
-
-        #unlock-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(247, 37, 133, 0.7);
-        }
-
-        #fake-start-btn {
-            display: none;
             background: linear-gradient(45deg, #00e5ff, #007bff);
             box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
-        #fake-start-btn:hover {
+        #start-hyperjump-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
-        }
-
-        #error-msg {
-            color: #f72585;
-            font-size: 0.9rem;
-            margin-top: 15px;
-            visibility: hidden;
-            text-shadow: 0 0 5px red;
         }
 
         #loading-screen {
@@ -150,12 +111,30 @@
             width: 0%;
             background: #00e5ff;
             box-shadow: 0 0 15px #00e5ff;
-            transition: width 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+            /* SỬA: Đường cong cubic-bezier giúp thanh chạy cực chậm khúc đầu và vút nhanh khúc cuối */
+            transition: width 3.5s cubic-bezier(0.55, 0.085, 0.68, 0.53);
+        }
+
+        /* --- HIỆU ỨNG LÓA SÁNG KHI ĐẾN NƠI --- */
+        #white-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #ffffff;
+            opacity: 0;
+            z-index: 9999999;
+            pointer-events: none;
+            transition: opacity 0.1s;
+            /* Sẽ được điều khiển bằng JS */
         }
     </style>
 </head>
 
 <body>
+    <div id="white-flash"></div>
+
     <canvas id="gameCanvas"></canvas>
     <div id="pause-overlay">
         <h2 id="pause-title">SYSTEM PAUSED</h2>
@@ -166,8 +145,7 @@
             <div id="resume-progress-bar"></div>
         </div>
     </div>
-    <canvas id="gameCanvas"></canvas>
-    <button id="startBtn">Bắt Đầu</button>
+
     <button id="startBtn" style="display: none;">Start</button>
 
     <div id="easter-egg-overlay">
@@ -176,22 +154,18 @@
         <div id="ui-wrapper">
             <div id="lock-screen">
                 <h1
-                    style="color: #f72585; font-size: 2.5rem; text-shadow: 0 0 15px #f72585; margin-bottom: 5px; font-family: 'Playfair Display', serif;">
-                    RESTRICTED AREA</h1>
-                <p style="color: #a0c4ff; margin-bottom: 30px; font-family: 'Roboto', sans-serif;">This fairy tale is
-                    classified. Enter password to unlock.</p>
+                    style="color: #00e5ff; font-size: 3.5rem; text-shadow: 0 0 25px rgba(0, 229, 255, 0.8); margin-bottom: 40px; font-family: 'Playfair Display', serif; letter-spacing: 3px;">
+                    Pisces: Space Journey
+                </h1>
 
-                <input type="password" id="password-input" placeholder="Enter password...">
-                <button id="unlock-btn">Unlock Story</button>
-                <button id="fake-start-btn">View Fairy Tale</button>
-
-                <p id="error-msg">❌ Access Denied: Incorrect Password.</p>
+                <button id="start-hyperjump-btn">Initiate Hyperjump</button>
             </div>
 
             <div id="loading-screen">
                 <h1
                     style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
-                    SYSTEM LOADING</h1>
+                    SYSTEM LOADING
+                </h1>
                 <p style="color: #fff; font-family: 'Roboto', sans-serif; margin-bottom: 0;">Initiating hyperdrive
                     jump...</p>
                 <div class="progress-container">
@@ -212,38 +186,133 @@
             starCanvas.height = height;
 
             const stars = [];
-            const numStars = 5000;
+            const numStars = 7000; // Tăng số lượng sao lên rất nhiều để tạo độ sâu
             let speed = 0.8;
-            let targetSpeed = 0.8;
             let isWarping = false;
             let isSimulationRunning = true;
+            let warpStartTime = 0;
 
+            // --- TẠO CÁC CHÒM SAO HOÀNG ĐẠO BẤT ĐỘNG ---
+            const constellations = [
+                // Pisces (Cung Song Ngư - Ở giữa)
+                {
+                    points: [
+                        { x: -0.2, y: -0.2 }, { x: -0.15, y: -0.25 }, { x: -0.1, y: -0.15 }, { x: -0.18, y: -0.1 }, // Cá 1
+                        { x: -0.08, y: -0.05 }, { x: 0, y: 0 }, { x: 0.1, y: 0.05 }, // Dây nối
+                        { x: 0.18, y: 0.02 }, { x: 0.25, y: 0.05 }, { x: 0.28, y: 0.15 }, { x: 0.15, y: 0.12 } // Cá 2
+                    ],
+                    links: [
+                        [0, 1], [1, 2], [2, 3], [3, 0],
+                        [3, 4], [4, 5], [5, 6], [6, 7],
+                        [7, 8], [8, 9], [9, 10], [10, 7]
+                    ]
+                },
+                // Aries (Bạch Dương - Góc trên phải)
+                {
+                    points: [{ x: 0.25, y: -0.3 }, { x: 0.3, y: -0.35 }, { x: 0.4, y: -0.38 }, { x: 0.45, y: -0.32 }],
+                    links: [[0, 1], [1, 2], [2, 3]]
+                },
+                // Scorpius (Thiên Yết - Góc dưới trái)
+                {
+                    points: [
+                        { x: -0.4, y: 0.2 }, { x: -0.35, y: 0.25 }, { x: -0.3, y: 0.35 },
+                        { x: -0.2, y: 0.38 }, { x: -0.15, y: 0.3 }, { x: -0.18, y: 0.25 }
+                    ],
+                    links: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]
+                }
+            ];
+
+            // Thêm hiệu ứng nhấp nháy cho các vì sao trong chòm sao
+            constellations.forEach(c => {
+                c.points.forEach(p => {
+                    p.twinkleOffset = Math.random() * Math.PI * 2;
+                    p.twinkleSpeed = 0.001 + Math.random() * 0.002;
+                    p.size = 1.5 + Math.random() * 1.5;
+                });
+            });
+
+            // TẠO CÁC VÌ SAO CHUYỂN ĐỘNG VỚI MÀU SẮC & ĐỘ SÂU (PARALLAX)
             for (let i = 0; i < numStars; i++) {
+                let isDistant = Math.random() < 0.25;
+                let colorType = Math.random();
+                let r = 255, g = 255, b = 255;
+
+                if (isDistant) {
+                    if (colorType < 0.33) { r = 150; g = 220; b = 255; } // Xanh ngọc
+                    else if (colorType < 0.66) { r = 255; g = 180; b = 220; } // Hồng
+                    else { r = 220; g = 150; b = 255; } // Tím
+                }
+
                 stars.push({
                     x: (Math.random() - 0.5) * width * 2,
                     y: (Math.random() - 0.5) * height * 2,
-                    z: Math.random() * width
+                    z: Math.random() * width,
+                    r: r, g: g, b: b,
+                    speedMod: isDistant ? (0.1 + Math.random() * 0.2) : (1 + Math.random() * 0.5),
+                    sizeMod: isDistant ? (Math.random() * 2 + 1.5) : (Math.random() * 1.2 + 0.5)
                 });
             }
 
             function drawStars() {
                 if (!isSimulationRunning) return;
 
-                speed += (targetSpeed - speed) * 0.02;
-
-                if (isWarping) {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-                } else {
-                    ctx.fillStyle = '#000000';
-                }
-                ctx.fillRect(0, 0, width, height);
-
                 const cx = width / 2;
                 const cy = height / 2;
 
+                if (isWarping) {
+                    // Áp dụng gia tốc mũ 4 (Bắt đầu rất chậm, vuốt cực nhanh ở cuối)
+                    let progress = (Date.now() - warpStartTime) / 3500;
+                    if (progress > 1) progress = 1;
+                    speed = 0.8 + Math.pow(progress, 4) * 200;
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                } else {
+                    speed = 0.8;
+                    ctx.fillStyle = '#000000';
+                }
+
+                ctx.fillRect(0, 0, width, height);
+
+                // --- VẼ CHÒM SAO HOÀNG ĐẠO BẤT ĐỘNG TẠI BACKGROUND ---
+                let constellationAlpha = isWarping ? Math.max(0, 1 - (Date.now() - warpStartTime) / 1500) : 0.7;
+                if (constellationAlpha > 0) {
+                    constellations.forEach(c => {
+                        // Vẽ đường nối
+                        ctx.strokeStyle = `rgba(0, 229, 255, ${constellationAlpha * 0.3})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        c.links.forEach(link => {
+                            let p1 = c.points[link[0]];
+                            let p2 = c.points[link[1]];
+                            ctx.moveTo(cx + p1.x * width, cy + p1.y * width);
+                            ctx.lineTo(cx + p2.x * width, cy + p2.y * width);
+                        });
+                        ctx.stroke();
+
+                        // Vẽ sao sáng
+                        c.points.forEach(p => {
+                            let tw = Math.sin(Date.now() * p.twinkleSpeed + p.twinkleOffset);
+                            let starAlpha = constellationAlpha * (0.4 + 0.6 * tw);
+
+                            ctx.fillStyle = `rgba(200, 255, 255, ${starAlpha})`;
+                            ctx.beginPath();
+                            ctx.arc(cx + p.x * width, cy + p.y * width, p.size + tw * 0.5, 0, Math.PI * 2);
+                            ctx.fill();
+
+                            // Hào quang
+                            ctx.fillStyle = `rgba(0, 229, 255, ${starAlpha * 0.4})`;
+                            ctx.beginPath();
+                            ctx.arc(cx + p.x * width, cy + p.y * width, p.size * 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                    });
+                }
+
+                // --- VẼ SAO CHUYỂN ĐỘNG ---
                 for (let i = 0; i < numStars; i++) {
                     let star = stars[i];
-                    star.z -= speed;
+                    let currentStarSpeed = speed * star.speedMod;
+                    star.z -= currentStarSpeed;
 
                     if (star.z <= 0) {
                         star.x = (Math.random() - 0.5) * width * 2;
@@ -254,25 +323,25 @@
                     let px = cx + (star.x / star.z) * width;
                     let py = cy + (star.y / star.z) * width;
 
-                    let radius = (width / star.z) * 2.5;
-                    radius = Math.max(1.2, Math.min(8, radius));
+                    let radius = (width / star.z) * star.sizeMod;
+                    radius = Math.max(1, Math.min(8, radius));
 
-                    let alpha = 1.8 - (star.z / width);
-                    alpha = Math.max(0.35, Math.min(1, alpha));
+                    let alpha = 1.5 - (star.z / width);
+                    alpha = Math.max(0.1, Math.min(1, alpha));
 
                     if (isWarping) {
-                        let prevZ = star.z + speed;
+                        let prevZ = star.z + currentStarSpeed;
                         let prevPx = cx + (star.x / prevZ) * width;
                         let prevPy = cy + (star.y / prevZ) * width;
 
                         ctx.lineWidth = radius;
-                        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                        ctx.strokeStyle = `rgba(${star.r}, ${star.g}, ${star.b}, ${alpha})`;
                         ctx.beginPath();
                         ctx.moveTo(prevPx, prevPy);
                         ctx.lineTo(px, py);
                         ctx.stroke();
                     } else {
-                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                        ctx.fillStyle = `rgba(${star.r}, ${star.g}, ${star.b}, ${alpha})`;
                         ctx.beginPath();
                         ctx.arc(px, py, radius, 0, Math.PI * 2);
                         ctx.fill();
@@ -290,70 +359,37 @@
                 starCanvas.height = height;
             });
 
-            // LOGIC XỬ LÝ GIAO DIỆN & MẬT KHẨU
-            const SECRET_CODE = 'a3NhbWFzdXByZW1hY3k=';
-            const AUTH_EXPIRY_MS = 5 * 60 * 1000; // 5 phút (tính bằng mili-giây)
-
+            // LOGIC XỬ LÝ GIAO DIỆN CHUYỂN CẢNH
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
             const uiWrapper = document.getElementById('ui-wrapper');
             const easterEggOverlay = document.getElementById('easter-egg-overlay');
             const progressBar = document.getElementById('progress-bar');
-            const passwordInput = document.getElementById('password-input');
-            const unlockBtn = document.getElementById('unlock-btn');
-            const fakeStartBtn = document.getElementById('fake-start-btn');
-            const errorMsg = document.getElementById('error-msg');
+            const startHyperjumpBtn = document.getElementById('start-hyperjump-btn');
             const realStartBtn = document.getElementById('startBtn');
+            const whiteFlash = document.getElementById('white-flash');
 
-            // Hàm mở khóa giao diện
-            function unlockUI() {
-                errorMsg.style.visibility = 'hidden';
-                passwordInput.style.display = 'none';
-                unlockBtn.style.display = 'none';
-                fakeStartBtn.style.display = 'block';
-                lockScreen.querySelector('h1').innerText = '✅ ACCESS GRANTED';
-                lockScreen.querySelector('h1').style.color = '#fff';
-                lockScreen.querySelector('h1').style.textShadow = '0 0 15px #fff';
-            }
-
-            // KIỂM TRA LƯU TRỮ IP/TRÌNH DUYỆT KHI MỞ TRANG
-            const savedAuthTime = localStorage.getItem('spaceShooterAuthTime');
-            if (savedAuthTime && (Date.now() - parseInt(savedAuthTime)) < AUTH_EXPIRY_MS) {
-                // Nếu chưa quá 5 phút, tự động mở khóa
-                unlockUI();
-            } else {
-                // Xóa dữ liệu cũ nếu đã hết hạn
-                localStorage.removeItem('spaceShooterAuthTime');
-            }
-
-            function checkPassword() {
-                if (btoa(passwordInput.value) === SECRET_CODE) {
-                    // Lưu lại thời gian đăng nhập thành công
-                    localStorage.setItem('spaceShooterAuthTime', Date.now().toString());
-                    unlockUI();
-                } else {
-                    errorMsg.style.visibility = 'visible';
-                    passwordInput.style.borderColor = '#f72585';
-                    passwordInput.value = '';
-                }
-            }
-
-            unlockBtn.addEventListener('click', checkPassword);
-            passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPassword(); });
-
-            fakeStartBtn.addEventListener('click', () => {
+            startHyperjumpBtn.addEventListener('click', () => {
                 lockScreen.style.display = 'none';
                 uiWrapper.style.backdropFilter = 'none';
                 uiWrapper.style.background = 'transparent';
                 loadingScreen.style.display = 'flex';
 
                 isWarping = true;
-                targetSpeed = 40;
+                warpStartTime = Date.now();
 
+                // Bắt đầu chạy thanh loading trong 3.5s
                 setTimeout(() => {
                     progressBar.style.width = '100%';
                 }, 50);
 
+                // Giây thứ 2.5: Bắt đầu chớp sáng trắng che mắt
+                setTimeout(() => {
+                    whiteFlash.style.transition = 'opacity 1s ease-in';
+                    whiteFlash.style.opacity = '1';
+                }, 2500);
+
+                // Giây thứ 3.5: Ánh sáng đạt đỉnh, gỡ màn hình chờ, bật game ẩn bên dưới
                 setTimeout(() => {
                     isSimulationRunning = false;
                     easterEggOverlay.style.display = 'none';
@@ -362,6 +398,12 @@
                         realStartBtn.style.display = 'none';
                         realStartBtn.click();
                     }
+
+                    // Kéo màn trập ánh sáng xuống lộ ra phi thuyền
+                    setTimeout(() => {
+                        whiteFlash.style.transition = 'opacity 1.5s ease-out';
+                        whiteFlash.style.opacity = '0';
+                    }, 100);
                 }, 3500);
             });
         })();
