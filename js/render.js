@@ -20,7 +20,6 @@ function draw() {
         teslaCoils.forEach(drawTeslaCoil);
         energyOrbs.forEach(drawEnergyOrb);
 
-        // Vẽ cảnh báo Laze của Aegis Core dưới lớp Enemy
         drawAegisLasers();
 
         enemies.forEach(drawEnemy);
@@ -85,7 +84,6 @@ function drawAegisLasers() {
     aegisLasers.forEach(laser => {
         ctx.save();
         if (!laser.fired) {
-            // Khung cột nhắm (Cột hình chữ nhật hẹp)
             ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
             ctx.lineWidth = 20;
             ctx.beginPath();
@@ -93,7 +91,6 @@ function drawAegisLasers() {
             ctx.lineTo(laser.end.x, laser.end.y);
             ctx.stroke();
 
-            // Vạch đứt ngắm
             ctx.strokeStyle = "rgba(255, 100, 100, 0.8)";
             ctx.lineWidth = 2;
             ctx.setLineDash([15, 15]);
@@ -103,7 +100,6 @@ function drawAegisLasers() {
             ctx.stroke();
             ctx.setLineDash([]);
         } else {
-            // Laze giật
             let prog = laser.duration / 200;
             ctx.strokeStyle = `rgba(255, 50, 50, ${prog})`;
             ctx.lineWidth = 40 * prog;
@@ -114,7 +110,6 @@ function drawAegisLasers() {
             ctx.lineTo(laser.end.x, laser.end.y);
             ctx.stroke();
 
-            // Lõi laze sáng
             ctx.strokeStyle = `rgba(255, 255, 255, ${prog})`;
             ctx.lineWidth = 15 * prog;
             ctx.beginPath();
@@ -189,6 +184,20 @@ function drawDemonGiftAura() {
 function drawFinalDefense() {
     const now = performance.now();
     ctx.save();
+
+    // MỚI: Vẽ Khiên Vàng Tuyệt Đối của người chơi
+    if (playerAbsoluteShield) {
+        ctx.strokeStyle = '#FFD700'; // Vàng Gold
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#FFA500';
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.width + 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    }
+
     if (finalDefense.playerShield) {
         ctx.strokeStyle = '#00FFFF';
         ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
@@ -266,6 +275,21 @@ function drawSentinel(sentinel) {
         ctx.lineTo(x, y - size - 35);
         ctx.closePath();
         ctx.fill();
+    }
+
+    // MỚI: Vẽ Khiên Vàng cho Sentinel
+    if (sentinel.absoluteShield) {
+        ctx.save();
+        ctx.strokeStyle = '#FFD700';
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#FFA500';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(x, y, size + 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     }
 }
 
@@ -442,41 +466,34 @@ function drawAegisCore(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    let auraRadius = canvas.width / 2; // Bán kính cỡ nửa bản đồ
+    let auraRadius = canvas.width / 2;
 
-    // --- 1. VÒNG NỀN TRONG SUỐT ---
     ctx.beginPath();
     ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255, 50, 50, 0.06)"; // Trong suốt mờ mờ ảo ảo
+    ctx.fillStyle = "rgba(255, 50, 50, 0.06)";
     ctx.fill();
 
-    // Viền vòng kết giới phong cách radar
     ctx.strokeStyle = "rgba(255, 77, 77, 0.4)";
     ctx.lineWidth = 2;
-    ctx.setLineDash([20, 15, 5, 15]); // Nét đứt
+    ctx.setLineDash([20, 15, 5, 15]);
     ctx.stroke();
-    ctx.setLineDash([]); // Reset lại nét vẽ
+    ctx.setLineDash([]);
 
-    // --- 2. HIỆU ỨNG QUÉT RADAR ---
-    let radarAngle = (performance.now() / 800) % (Math.PI * 2); // Tốc độ quét
+    let radarAngle = (performance.now() / 800) % (Math.PI * 2);
     ctx.save();
     ctx.rotate(radarAngle);
 
-    // Vẽ cái bóng quét (đuôi radar)
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    // Quét một góc 60 độ (-Math.PI/3) đằng sau tia sáng
     ctx.arc(0, 0, auraRadius, -Math.PI / 3, 0);
     ctx.closePath();
 
-    // Gradient cho phần đuôi radar nhạt dần từ ngoài vào trong
     let radarGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, auraRadius);
     radarGrad.addColorStop(0, "rgba(255, 50, 50, 0.3)");
     radarGrad.addColorStop(1, "rgba(255, 50, 50, 0)");
     ctx.fillStyle = radarGrad;
     ctx.fill();
 
-    // Tia ngắm chính (Leading edge - Vạch sáng nhất)
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(auraRadius, 0);
@@ -485,9 +502,8 @@ function drawAegisCore(enemy) {
     ctx.shadowColor = "red";
     ctx.shadowBlur = 15;
     ctx.stroke();
-    ctx.restore(); // Kết thúc phần vẽ radar xoay
+    ctx.restore();
 
-    // --- 3. LỚP KHIÊN TRẮNG BẤT TỬ (Custos Aeternus) ---
     if (enemy.aegisInvulnerable) {
         ctx.beginPath();
         ctx.arc(0, 0, enemy.size + 15, 0, Math.PI * 2);
@@ -499,8 +515,6 @@ function drawAegisCore(enemy) {
         ctx.shadowBlur = 0;
     }
 
-    // --- 4. VẼ BẢN THỂ AEGIS CORE ---
-    // Khối Robot cầu (Màu kim loại)
     const bodyGrad = ctx.createRadialGradient(0, 0, enemy.size * 0.2, 0, 0, enemy.size);
     bodyGrad.addColorStop(0, "#f5f5f5");
     bodyGrad.addColorStop(0.6, "#d0d0d0");
@@ -513,7 +527,6 @@ function drawAegisCore(enemy) {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Lõi năng lượng đỏ (Giữa)
     const coreGrad = ctx.createLinearGradient(0, -enemy.size * 0.4, 0, enemy.size * 0.4);
     coreGrad.addColorStop(0, "#ff3333");
     coreGrad.addColorStop(1, "#800000");
@@ -526,7 +539,6 @@ function drawAegisCore(enemy) {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Con mắt khối vuông đỏ đậm
     ctx.strokeStyle = "#ff6666";
     ctx.lineWidth = 2.5;
     ctx.fillStyle = "#330000";
@@ -702,7 +714,7 @@ function drawExplosion(exp) {
     let radius = exp.size * (1 + p);
     ctx.globalAlpha = 1 - p;
     ctx.fillStyle = exp.color;
-    if (exp.color === '#00FFFF') {
+    if (exp.color === '#00FFFF' || exp.color === 'gold') {
         ctx.shadowColor = 'white';
         ctx.shadowBlur = 20;
     }
