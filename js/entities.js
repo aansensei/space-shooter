@@ -90,7 +90,9 @@ function spawnEnemy() {
         const baseSize = (20 + Math.random() * 10);
         const size = ((baseSize * 5) / 2) * 0.7;
         const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
-        let hp = Math.min(560, 300 + hpFromTime * 8);
+
+        // SỬA Ở ĐÂY: HP cơ bản từ 385 -> 680
+        let hp = Math.min(680, 385 + hpFromTime * 12);
 
         enemies.push({
             x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
@@ -337,9 +339,16 @@ function dealDamage(enemy, source) {
         }
     }
 
-    if (enemy.shield > 0 && enemy.aegisShieldReceived) {
-        combinedDR += 0.05;
+    // MỚI: Bản thân Aegis Core luôn có thêm 10% miễn thương cứng
+    if (enemy.type === 'aegis_core') {
+        combinedDR += 0.10;
     }
+
+    // SỬA: Lớp khiên của Aegis Core giờ cho 15% miễn thương (thay vì 5%)
+    if (enemy.shield > 0 && enemy.aegisShieldReceived) {
+        combinedDR += 0.15;
+    }
+    // -----------------
 
     totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
 
