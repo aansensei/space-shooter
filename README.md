@@ -124,7 +124,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Spawn Condition:** 20% chance to spawn instead of a normal enemy (Only 1 can exist on the map at a time).
 * **Stats:** Size is 70% of a Mini-Boss. Base HP scales from **385 to 680**. Has an inherent flat **10% Damage Reduction**.
 * **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
-* **Support Aura:** Emits a massive radar field covering half the map width.
+* **Skill: Support Aura:** Emits a massive radar field covering half the map width.
   * Enemies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second and get a **5% movement speed** buff.
   * Enemies inside also receive a shield equal to **38% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
 * **Skill: Lumen Nova:** After appeared, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player instantly breaks their shield or removes 1 life (triggering Last Stand if applicable), while hitting Sentinels drains **12.5% of their Max HP**.
