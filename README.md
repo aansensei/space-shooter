@@ -16,7 +16,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Charge Attack:** Press and hold the **Spacebar** to charge a powerful shot. Release to fire.
 * **Overload Laser:** Hold the **Spacebar** for exactly 5 seconds to unleash a massive continuous laser beam.
 * **Active Skills:** Press **A, S, D, F, G** to activate powerful tactical abilities (details below).
-* **Lives:** You start with **10 lives**. Every **500,000 points** grants you **1 extra life**.
+* **Lives:** You start with **12 lives**. Every **500,000 points** grants you **1 extra life**.
 
 ---
 
@@ -46,18 +46,20 @@ An intense, highly polished arcade space survival game featuring deep combat mec
   * *Fire Rate:* Player and Sentinel auto-fire rates are increased by **1.4x**.
   * *Projectile Speed:* Spirit bullets (Skill S) flight speed is increased by **1.25x**.
   * *Chain Lightning:* Attacks trigger a chain lightning effect (250ms internal cooldown) that arcs to up to **6 nearby enemies**, dealing an additional **21%** of the initial attack's total damage.
+  * *Sentinel Protection:* Grants all active Sentinels a flat **12% Damage Reduction**.
 
 **Sentinels**
 
 * **Activation:** 1 Sentinel automatically spawns for every **4 enemies** killed.
-* **Limit:** Maximum 10 Sentinels on the battlefield. If the limit is reached and a new Sentinel spawns, the Sentinel with the lowest HP will automatically self-destruct to make room.
-* **Stats:** 160 HP | Base Fire rate: 75ms.
+* **Limit:** Maximum **12 Sentinels** on the battlefield. If the limit is reached and a new Sentinel spawns, the Sentinel with the lowest HP will automatically self-destruct to make room.
+* **Stats:** **210 Base HP** | Base Fire rate: 75ms.
 * **Normal Shot:** Deals 4 Base + 3.5% Max HP (Speed 9, Size 7.8).
 * **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
-  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **2 HP** to the Sentinel that fired it.
-* **Herd Mentality (Synergy):** * If there are **more than 5 Sentinels** on the map, the fire rate of all Sentinels is increased by **20%**.
-  * If there are **10 Sentinels** (maximum capacity) on the map, every single shot fired by the Sentinels becomes a Special Shot.
-* **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (2 Damage, Speed 8).
+  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **4 HP** to the Sentinel that fired it.
+* **Herd Mentality (Synergy):** * **Tier 1 (Less than 5 Sentinels):** Max HP is increased by **30%** (273 HP). Sentinels emit a Cyan glow.
+  * **Tier 2 (5 to 9 Sentinels):** Fire rate is increased by **20%** and damage output is increased by **10%**. Sentinels emit a Magenta glow.
+  * **Tier 3 (10 or more Sentinels):** Every single shot fired by the Sentinels becomes a Special Shot. Sentinels emit a Gold glow.
+* **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (**2 Base + 2% Target Max HP** Damage, Speed 8).
 
 **Final Defense & Last Stand**
 
@@ -123,9 +125,10 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Stats:** Size is 70% of a Mini-Boss. Base HP scales from **385 to 680**. Has an inherent flat **10% Damage Reduction**.
 * **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
 * **Skill: Support Aura:** Emits a massive radar field covering half the map width.
-  * Enemies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second and get a **5% movement speed** buff.
-  * Enemies inside also receive a shield equal to **38% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
-* **Skill: Lumen Nova:** After appeared, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player instantly breaks their shield or removes 1 life (triggering Last Stand if applicable), while hitting Sentinels drains **12.5% of their Max HP**.
+  * Allies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second.
+  * Allies inside also receive a shield equal to **38% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
+  * Enemies and enemy bullets inside the aura gain a **5% movement speed increase**.
+* **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player instantly breaks their shield or removes 1 life (triggering Last Stand if applicable), while hitting Sentinels drains **12.5% of their Max HP**.
 
 ### The Boss & "Demon Gift"
 
@@ -135,4 +138,4 @@ An intense, highly polished arcade space survival game featuring deep combat mec
     * *Global Heal:* Heals all other enemies on the screen for an amount equal to **15% of the Boss's Maximum HP**.
     * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
     * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 4 seconds**. If triggered sequentially before the buff expires, it stacks up to a maximum of 2 times (capping at **30% Damage Reduction**).
-  * **Maou Haki:** Activates exactly when HP drops to **50%**. The Boss emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.
+  * **50% HP Shockwave (Maou Haki):** Activates exactly when HP drops to **50%**. The Boss emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.

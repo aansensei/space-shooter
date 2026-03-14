@@ -4,7 +4,7 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 const btnMarginLeft = 20, btnMarginBottom = 20, btnRadius = 25, btnGap = 12;
-let gameState = "start", lives = 10, score = 0, gameStartTime = 0;
+let gameState = "start", lives = 12, score = 0, gameStartTime = 0; // SỬA: 12 mạng
 let nextLifeMilestone = 500000;
 
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6 };
@@ -18,7 +18,6 @@ let gloryForJusticeActive = false;
 let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 let chainLightningCooldownEnd = 0;
 
-// MỚI: Biến quản lý Bảo hiểm 1 lần (Last Stand)
 let hasTriggeredLastStand = false;
 let playerAbsoluteShield = false;
 
@@ -28,7 +27,7 @@ let aegisLasers = [];
 // Nội tại Vệ Binh
 let sentinels = [];
 let killCountForPassive = 0;
-const MAX_SENTINELS = 10;
+const MAX_SENTINELS = 12; // SỬA: Tối đa 12 Sentinels
 
 // Skill A
 let skillAOrbs = [], skillAActive = false, lastSkillA = -Infinity;
