@@ -66,11 +66,9 @@ function updateSkillA(deltaTime) {
                 lifetime: 200, maxLifetime: 200, size: 4, color: 'rgba(0, 255, 255, 0.7)'
             });
             if (dist < orb.target.size / 2 + orb.size) {
-                // SỬA: Sát thương cầu A tăng lên 24% Max HP
                 dealDamage(orb.target, { damage: 10, percentDamage: 0.24 });
                 orb.target.isTargetedByA = false;
 
-                // SỬA: Bung ra 16 mảnh (16 hướng)
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 4, percentDamage: 0.02 });
                 addExplosion(orb.x, orb.y, 30, 'cyan');
                 skillAOrbs.splice(i, 1);
@@ -90,10 +88,10 @@ function spawnScatteredProjectiles(x, y, count, damageProps) {
         let angle = (Math.PI * 2 / count) * i;
         scatteredProjectiles.push({
             x, y,
-            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12, // Tốc độ siêu nhanh bung ra mọi hướng
+            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
             damage: damageProps.damage,
             percentDamage: damageProps.percentDamage || 0,
-            size: 4, lifetime: 3000, maxLifetime: 3000 // Tăng lifetime bay hết map
+            size: 4, lifetime: 3000, maxLifetime: 3000
         });
     }
 }
@@ -162,7 +160,7 @@ function updateSpirits(deltaTime) {
         spirit.y += (player.y + Math.sin(t * 2) * 72 - spirit.y) * 0.1;
 
         spirit.shootTimer -= deltaTime;
-        let spiritFireRate = 65; // SỬA: Bắn nhanh hơn (65ms)
+        let spiritFireRate = 65;
         if (gloryForJusticeActive) {
             spiritFireRate /= 1.40;
         }
@@ -171,10 +169,10 @@ function updateSpirits(deltaTime) {
             spirit.shootTimer = spiritFireRate;
             let closest = findClosestEnemy(spirit.x, spirit.y);
             if (closest) {
-                const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * 1.10; // SỬA: Tăng thêm 10% tốc độ đạn
+                const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * 1.10;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 5, percentDamage: 0.04, // SỬA: Dame 5 Base + 4% Max HP
+                    damage: 5, percentDamage: 0.04,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier
                 });
                 spirit.shotsFiredSinceBarrage++;
@@ -190,7 +188,6 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 12;
                 vy = (closest.y - spirit.y) / d * 12;
             }
-            // SỬA: Phong Trảm gây 10 Base + 16% Max HP
             bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.16, hitEnemies: [] });
         }
     }
@@ -224,7 +221,7 @@ function updateSpiritBullets(deltaTime) {
         if (b.target && enemies.includes(b.target)) {
             let dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
             if (d > 0) {
-                const speed = 8.8 * (b.speedMultiplier || 1); // SỬA: Base speed 8 -> 8.8 (Tăng 10%)
+                const speed = 8.8 * (b.speedMultiplier || 1);
                 b.x += (dx / d) * speed * dt;
                 b.y += (dy / d) * speed * dt;
             }
@@ -308,14 +305,18 @@ function updateSkillD(deltaTime) {
         blackHole.activeTime += deltaTime;
         if (blackHole.size < blackHole.maxSize) blackHole.size += 1 * dt;
 
-        const pullSpeed = 6; // SỬA: Tăng lực hút lên 6
+        const pullSpeed = 6;
         for (let enemy of enemies) {
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
             if (d > 1) {
                 enemy.x += (dx / d) * pullSpeed * dt;
                 enemy.y += (dy / d) * pullSpeed * dt;
             }
-            if (d < blackHole.size / 2) { enemy.hp = 0; }
+            if (d < blackHole.size / 2) {
+                // SỬA QUAN TRỌNG: Gọi dealDamage lượng khổng lồ thay vì đặt hp = 0 
+                // để Khiên Bất Tử của Aegis Core có thể chặn được 1 nhịp.
+                dealDamage(enemy, { damage: enemy.maxHp * 1000000 });
+            }
         }
         if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
     }
@@ -350,7 +351,8 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                enemy.hp = 0;
+                // SỬA QUAN TRỌNG: Giống hố đen, dùng dealDamage để kích hoạt khiên
+                dealDamage(enemy, { damage: enemy.maxHp * 100000000 });
                 enemy.hitBySkillF = true;
             }
         }
@@ -577,7 +579,6 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     if (!dotMap.has(enemy)) {
                         dotMap.set(enemy, currentTime);
                     }
-                    // SỬA: Sát thương giật sét của Link 125ms một lần, 6 Base + 4% Max HP
                     if (currentTime - dotMap.get(enemy) >= 125) {
                         dealDamage(enemy, { damage: 6, percentDamage: 0.04, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
