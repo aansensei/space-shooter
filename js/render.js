@@ -468,41 +468,45 @@ function drawAegisCore(enemy) {
 
     let auraRadius = canvas.width / 2;
 
+    // Vòng Kết giới nền mờ
     ctx.beginPath();
     ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255, 50, 50, 0.06)";
+    ctx.fillStyle = "rgba(255, 50, 50, 0.04)";
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255, 77, 77, 0.4)";
+    ctx.strokeStyle = "rgba(255, 77, 77, 0.2)";
     ctx.lineWidth = 2;
     ctx.setLineDash([20, 15, 5, 15]);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    let radarAngle = (performance.now() / 800) % (Math.PI * 2);
-    ctx.save();
-    ctx.rotate(radarAngle);
+    // --- SỬA: HIỆU ỨNG SÓNG ÂM LAN TỎA ---
+    let speedPulse = 0.25; // Tốc độ lan ra của sóng
+    let maxR = auraRadius;
 
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.arc(0, 0, auraRadius, -Math.PI / 3, 0);
-    ctx.closePath();
+    // Tạo 2 sóng đuổi nhau liên tục
+    let wave1 = (performance.now() * speedPulse) % maxR;
+    let wave2 = (performance.now() * speedPulse + maxR / 2) % maxR;
 
-    let radarGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, auraRadius);
-    radarGrad.addColorStop(0, "rgba(255, 50, 50, 0.3)");
-    radarGrad.addColorStop(1, "rgba(255, 50, 50, 0)");
-    ctx.fillStyle = radarGrad;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(auraRadius, 0);
-    ctx.strokeStyle = "rgba(255, 150, 150, 0.9)";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.shadowColor = "red";
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 10;
+
+    // Vẽ sóng 1
+    ctx.beginPath();
+    ctx.arc(0, 0, wave1, 0, Math.PI * 2);
+    // Độ mờ giảm dần khi sóng lan ra xa tâm
+    ctx.strokeStyle = `rgba(255, 77, 77, ${1 - wave1 / maxR})`;
     ctx.stroke();
-    ctx.restore();
+
+    // Vẽ sóng 2
+    ctx.beginPath();
+    ctx.arc(0, 0, wave2, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 77, 77, ${1 - wave2 / maxR})`;
+    ctx.stroke();
+
+    ctx.shadowBlur = 0; // Tắt shadow để vẽ body không bị nhòe
+    // ----------------------------------------
 
     if (enemy.aegisInvulnerable) {
         ctx.beginPath();

@@ -98,7 +98,7 @@ function spawnEnemy() {
             x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
             speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'aegis_core', shootTimer: 3000,
+            type: 'aegis_core', shootTimer: 100,
             aegisInvulnerable: true, aegisShieldReceived: false
         });
     } else {
