@@ -1,3 +1,29 @@
+// MỚI: Hàm xử lý Mất Mạng hoặc Kích hoạt Last Stand
+function loseLife() {
+    // 1. Nếu đang có Khiên Vàng, chặn đòn này
+    if (playerAbsoluteShield) {
+        playerAbsoluteShield = false;
+        addExplosion(player.x, player.y, 150, 'gold');
+        screenShake = { intensity: 15, duration: 400 };
+        return;
+    }
+
+    // 2. Nếu sắp chết (còn 1 mạng) và chưa từng kích hoạt Last Stand
+    if (lives === 1 && !hasTriggeredLastStand) {
+        hasTriggeredLastStand = true;
+        playerAbsoluteShield = true; // Cho người chơi
+        sentinels.forEach(s => s.absoluteShield = true); // Cho dàn đệ tử
+
+        screenShake = { intensity: 25, duration: 800 };
+        createParticles(player.x, player.y, 150, 'gold', 4, 12);
+        addExplosion(player.x, player.y, 250, 'gold'); // Bùng nổ hào quang vàng rực
+        return; // Sống sót thần kỳ
+    }
+
+    // 3. Nếu không thỏa mãn gì cả -> Trừ mạng bình thường
+    lives--;
+}
+
 function update(deltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
@@ -39,27 +65,24 @@ function update(deltaTime) {
     });
     bossShockwaves = bossShockwaves.filter(w => w.active);
 
-    // MỚI: Xử lý Kỹ năng của Aegis Lasers (Lumen Nova)
     aegisLasers.forEach(laser => {
         if (!laser.fired) {
             laser.delay -= deltaTime;
             if (laser.delay <= 0) {
                 laser.fired = true;
-                laser.duration = 200; // Hiển thị tia chớp 200ms
+                laser.duration = 200;
                 screenShake = { intensity: 8, duration: 200 };
 
-                // Xét va chạm Player
                 if (distToSegment(player, laser.start, laser.end) < player.width / 2 + 15) {
                     if (finalDefense.playerShield) {
                         finalDefense.playerShield = false;
                         finalDefense.playerCooldownEnd = performance.now() + 25000;
                         addExplosion(player.x, player.y, 50, 'cyan');
                     } else {
-                        lives--;
+                        loseLife(); // SỬA
                     }
                 }
 
-                // Xét va chạm Sentinel
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
                         dealDamage(s, { damage: s.maxHp * 0.05 });
@@ -164,16 +187,15 @@ function update(deltaTime) {
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
 
-        // MỚI: Tính năng vòng hào quang của Heavenly Aegis Core
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.0085 * (deltaTime / 1000); // 0.85% max hp mỗi giây
-            let shieldAmt = enemy.maxHp * 0.35; // 35% max hp làm khiên
-            let auraRadius = canvas.width / 2; // SỬA: Bán kính bằng nửa bản đồ
+            let healAmt = enemy.maxHp * 0.0085 * (deltaTime / 1000);
+            let shieldAmt = enemy.maxHp * 0.35;
+            let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
-                if (ally.type === 'enemy_bullet') return; // Cả bản thân cũng nhận
+                if (ally.type === 'enemy_bullet') return;
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
-                if (d <= auraRadius) { // SỬA: Chỉ buff cho kẻ địch nằm trong vùng nửa bản đồ
+                if (d <= auraRadius) {
                     ally.hp = Math.min(ally.maxHp, ally.hp + healAmt);
                     if (!ally.aegisShieldReceived) {
                         ally.shield = (ally.shield || 0) + shieldAmt;
@@ -182,10 +204,9 @@ function update(deltaTime) {
                 }
             });
 
-            // Laze Lumen Nova
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
-                enemy.shootTimer = 5000; // 5s một lần
+                enemy.shootTimer = 5000;
                 createAegisTelegraph(enemy.x, enemy.y, player);
                 let availableSents = [...sentinels].sort(() => 0.5 - Math.random()).slice(0, 2);
                 availableSents.forEach(s => createAegisTelegraph(enemy.x, enemy.y, s));
@@ -258,7 +279,7 @@ function update(deltaTime) {
                     finalDefense.playerCooldownEnd = performance.now() + 25000;
                     addExplosion(enemy.x, enemy.y, 50, 'cyan');
                 } else {
-                    lives--;
+                    loseLife(); // SỬA
                 }
                 enemy.hp = 0;
             }
@@ -305,7 +326,7 @@ function update(deltaTime) {
                     addExplosion(enemy.x, enemy.y, 100, 'cyan');
                     enemies.splice(i, 1);
                 } else {
-                    lives--;
+                    loseLife(); // SỬA
                     enemies.splice(i, 1);
                 }
             } else {
@@ -317,7 +338,7 @@ function update(deltaTime) {
                 finalDefense.playerCooldownEnd = performance.now() + 25000;
                 addExplosion(enemy.x, enemy.y, 100, 'cyan');
             } else {
-                lives--;
+                loseLife(); // SỬA
             }
             enemies.splice(i, 1);
         }
@@ -405,9 +426,13 @@ function startGame() {
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; blackHole = null;
     bossShockwaves = [];
-    aegisLasers = []; // Reset Laze
+    aegisLasers = [];
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
+
+    // MỚI: Reset biến Bảo hiểm khi chơi ván mới
+    hasTriggeredLastStand = false;
+    playerAbsoluteShield = false;
 
     skillGCharge = 0;
     skillGActive = false;

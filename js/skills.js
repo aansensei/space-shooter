@@ -128,7 +128,6 @@ function updateScatteredProjectiles(deltaTime) {
     }
 }
 
-// --- Skill S – Tinh Linh Ký Ức ---
 function activateSkillS() {
     const currentTime = performance.now();
     if (gameState === "playing" && spirits.length < MAX_SPIRITS && currentTime - lastSkillS >= skillSCooldown) {
@@ -280,7 +279,6 @@ function updateSpiritFinale(spirit, deltaTime) {
     }
 }
 
-// --- Skill D – Hố Đen ---
 function activateSkillD() {
     const currentTime = performance.now();
     if (gameState !== "playing" || skillDCharging || blackHole || currentTime - lastSkillD < skillDCooldown) return;
@@ -313,16 +311,13 @@ function updateSkillD(deltaTime) {
                 enemy.y += (dy / d) * pullSpeed * dt;
             }
             if (d < blackHole.size / 2) {
-                // SỬA QUAN TRỌNG: Gọi dealDamage lượng khổng lồ thay vì đặt hp = 0 
-                // để Khiên Bất Tử của Aegis Core có thể chặn được 1 nhịp.
-                dealDamage(enemy, { damage: enemy.maxHp * 1000000 });
+                dealDamage(enemy, { damage: enemy.maxHp * 999999999 }); // Dùng sát thương siêu lớn để ép vỡ Khiên Vàng
             }
         }
         if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
     }
 }
 
-// --- Skill F - Quét Laze ---
 function activateSkillF() {
     const currentTime = performance.now();
     if (gameState === "playing" && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
@@ -351,8 +346,7 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                // SỬA QUAN TRỌNG: Giống hố đen, dùng dealDamage để kích hoạt khiên
-                dealDamage(enemy, { damage: enemy.maxHp * 100000000 });
+                dealDamage(enemy, { damage: enemy.maxHp * 999999999 }); // Ép vỡ khiên hoặc chết ngay
                 enemy.hitBySkillF = true;
             }
         }
@@ -370,7 +364,6 @@ function updateSkillF(deltaTime) {
     }
 }
 
-// --- Skill G – Kết Giới Sinh Mệnh ---
 function activateSkillG() {
     if (gameState !== "playing" || skillGActive || skillGCharge < 100) return;
 
