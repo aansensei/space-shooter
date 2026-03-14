@@ -1,6 +1,4 @@
-// MỚI: Hàm xử lý Mất Mạng hoặc Kích hoạt Last Stand
 function loseLife() {
-    // 1. Nếu đang có Khiên Vàng, chặn đòn này
     if (playerAbsoluteShield) {
         playerAbsoluteShield = false;
         addExplosion(player.x, player.y, 150, 'gold');
@@ -8,19 +6,17 @@ function loseLife() {
         return;
     }
 
-    // 2. Nếu sắp chết (còn 1 mạng) và chưa từng kích hoạt Last Stand
     if (lives === 1 && !hasTriggeredLastStand) {
         hasTriggeredLastStand = true;
-        playerAbsoluteShield = true; // Cho người chơi
-        sentinels.forEach(s => s.absoluteShield = true); // Cho dàn đệ tử
+        playerAbsoluteShield = true;
+        sentinels.forEach(s => s.absoluteShield = true);
 
         screenShake = { intensity: 25, duration: 800 };
         createParticles(player.x, player.y, 150, 'gold', 4, 12);
-        addExplosion(player.x, player.y, 250, 'gold'); // Bùng nổ hào quang vàng rực
-        return; // Sống sót thần kỳ
+        addExplosion(player.x, player.y, 250, 'gold');
+        return;
     }
 
-    // 3. Nếu không thỏa mãn gì cả -> Trừ mạng bình thường
     lives--;
 }
 
@@ -85,7 +81,7 @@ function update(deltaTime) {
 
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: s.maxHp * 0.125 }); // Trừ 12.5% máu Sentinel
+                        dealDamage(s, { damage: s.maxHp * 0.125 });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -188,12 +184,11 @@ function update(deltaTime) {
         let enemy = enemies[i];
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.0155 * (deltaTime / 1000); // 1.55% Heal
-            let shieldAmt = enemy.maxHp * 0.38; // 38% Shield
+            let healAmt = enemy.maxHp * 0.0155 * (deltaTime / 1000);
+            let shieldAmt = enemy.maxHp * 0.38;
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
-                // Cho phép cả đạn (enemy_bullet) nhận buff
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
                     ally.hp = Math.min(ally.maxHp, ally.hp + healAmt);
@@ -208,7 +203,6 @@ function update(deltaTime) {
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 5000;
                 createAegisTelegraph(enemy.x, enemy.y, player);
-                // Chọn 3 Sentinels ngẫu nhiên thay vì 2
                 let availableSents = [...sentinels].sort(() => 0.5 - Math.random()).slice(0, 3);
                 availableSents.forEach(s => createAegisTelegraph(enemy.x, enemy.y, s));
             }
@@ -219,12 +213,11 @@ function update(deltaTime) {
         let inTeslaAura = false;
         let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
 
-        // Tính toán buff tốc độ 5% của Aegis Core Aura
         let aegisSpeedMultiplier = 1.0;
         for (const aegis of enemies) {
             if (aegis.type === 'aegis_core') {
                 if (Math.hypot(enemy.x - aegis.x, enemy.y - aegis.y) <= canvas.width / 2) {
-                    aegisSpeedMultiplier = 1.05; // Tăng 5% tốc độ di chuyển
+                    aegisSpeedMultiplier = 1.05;
                     break;
                 }
             }
@@ -282,7 +275,6 @@ function update(deltaTime) {
         }
 
         if (enemy.type === 'enemy_bullet') {
-            // Áp dụng buff tốc độ 5% của Aegis Core
             enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
             enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
@@ -304,7 +296,6 @@ function update(deltaTime) {
                 }
             }
         } else {
-            // Áp dụng buff tốc độ 5% của Aegis Core
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
             if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
@@ -392,7 +383,8 @@ function update(deltaTime) {
                     dealDamage(enemy, b);
 
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
-                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
+                        // SỬA: Hồi 4 HP cho Sentinel khi đạn đặc biệt trúng địch
+                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 4);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
 
@@ -426,12 +418,13 @@ function gameLoop(timeStamp) {
     let deltaTime = timeStamp - lastTimeStamp;
     if (deltaTime > 1000) { gamePaused = true; showPauseScreen(); requestAnimationFrame(gameLoop); return; }
     lastTimeStamp = timeStamp;
-    if (!gamePaused && !loading) { update(deltaTime); draw(); }
+    // SỬA: Pass deltaTime xuống hàm draw() để vẽ nền vũ trụ chuyển động
+    if (!gamePaused && !loading) { update(deltaTime); draw(deltaTime); }
     requestAnimationFrame(gameLoop);
 }
 
 function startGame() {
-    gameState = "playing"; lives = 10;
+    gameState = "playing"; lives = 12; // SỬA: 12 mạng
     score = 0;
     nextLifeMilestone = 500000;
     bullets = []; enemies = []; explosions = []; particles = [];
@@ -463,4 +456,5 @@ function startGame() {
     if (lastTimeStamp === 0) { lastTimeStamp = performance.now(); requestAnimationFrame(gameLoop); }
 }
 
-draw();
+// SỬA: Gọi draw() lần đầu với giá trị khởi tạo (16.67ms)
+draw(16.67);

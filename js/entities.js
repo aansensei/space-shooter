@@ -90,15 +90,13 @@ function spawnEnemy() {
         const baseSize = (20 + Math.random() * 10);
         const size = ((baseSize * 5) / 2) * 0.7;
         const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
-
-        // SỬA Ở ĐÂY: HP cơ bản từ 385 -> 680
         let hp = Math.min(680, 385 + hpFromTime * 12);
 
         enemies.push({
             x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
             speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'aegis_core', shootTimer: 100,
+            type: 'aegis_core', shootTimer: 0,
             aegisInvulnerable: true, aegisShieldReceived: false
         });
     } else {
@@ -161,10 +159,16 @@ function spawnSentinel(x, y) {
         destroySentinel(sentinels[0]);
         sentinels.splice(0, 1);
     }
+
+    // MỚI: Khởi tạo HP của Vệ Binh (Tier 1: <5 con sẽ được 273 HP, ngược lại 210 HP)
+    let currentTier = (sentinels.length + 1 >= 10) ? 3 : ((sentinels.length + 1 >= 5) ? 2 : 1);
+    let initialMaxHp = (currentTier === 1) ? 273 : 210;
+
     sentinels.push({
-        x, y, hp: 160, maxHp: 160, angle: -Math.PI / 2, shootTimer: 0,
+        x, y, hp: initialMaxHp, maxHp: initialMaxHp, angle: -Math.PI / 2, shootTimer: 0,
         target: null, size: 15, shotsFiredSinceSpecial: 0,
-        absoluteShield: false // MỚI: Thuộc tính khiên vàng
+        absoluteShield: false,
+        synergyTier: currentTier
     });
 }
 
@@ -176,22 +180,42 @@ function destroySentinel(sentinel) {
         bullets.push({
             x: sentinel.x, y: sentinel.y,
             vx: Math.cos(angle) * 8, vy: Math.sin(angle) * 8,
-            damage: 2, size: 6, type: 'sentinel_death'
+            damage: 2, percentDamage: 0.02, size: 6, type: 'sentinel_death' // SỬA: Thêm 2% max HP vào nổ
         });
     }
 }
 
 function updateSentinels(deltaTime) {
-    let sentinelFireRate = 75;
     let activeCount = sentinels.length;
+    let sentinelFireRate = 75;
+    let damageMultiplier = 1.0;
 
-    if (activeCount > 5) sentinelFireRate /= 1.20;
+    // Phân định Nấc bầy đàn
+    let isTier1 = activeCount < 5;
+    let isTier2 = activeCount >= 5 && activeCount < 10;
+    let isTier3 = activeCount >= 10;
+    let swarmSpecialForced = activeCount >= 10;
+
+    if (activeCount >= 5) {
+        sentinelFireRate /= 1.20; // Tier 2: +20% tốc bắn
+        damageMultiplier = 1.10; // Tier 2: +10% sát thương
+    }
 
     if (gloryForJusticeActive) {
         sentinelFireRate /= 1.40;
     }
 
-    let swarmSpecialForced = activeCount >= 10;
+    // Tự động giãn/thu Máu tối đa khi chuyển Nấc (Tier)
+    for (let i = 0; i < sentinels.length; i++) {
+        let s = sentinels[i];
+        let newTier = isTier3 ? 3 : (isTier2 ? 2 : 1);
+        if (s.synergyTier !== newTier) {
+            let oldMax = s.maxHp;
+            s.maxHp = (newTier === 1) ? 273 : 210; // Nếu ít hơn 5 con thì được 273 HP (tăng 30%)
+            s.hp = s.hp * (s.maxHp / oldMax); // Scale tỉ lệ máu hiện tại
+            s.synergyTier = newTier;
+        }
+    }
 
     for (let i = sentinels.length - 1; i >= 0; i--) {
         const sentinel = sentinels[i];
@@ -220,7 +244,7 @@ function updateSentinels(deltaTime) {
                 bullets.push({
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    damage: 6, percentDamage: 0.07, size: 30, type: 'sentinel_special',
+                    damage: 6 * damageMultiplier, percentDamage: 0.07 * damageMultiplier, size: 30, type: 'sentinel_special',
                     target: sentinel.target, speedMultiplier: 1.12 * speedMultiplier,
                     sourceSentinel: sentinel
                 });
@@ -229,7 +253,7 @@ function updateSentinels(deltaTime) {
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
                     vx: Math.cos(angle) * 9 * speedMultiplier, vy: Math.sin(angle) * 9 * speedMultiplier,
-                    damage: 4, percentDamage: 0.035, size: 7.8, type: 'sentinel_auto'
+                    damage: 4 * damageMultiplier, percentDamage: 0.035 * damageMultiplier, size: 7.8, type: 'sentinel_auto'
                 });
                 particles.push({ x: sentinel.x + Math.cos(angle) * (sentinel.size + 5), y: sentinel.y + Math.sin(angle) * (sentinel.size + 5), vx: 0, vy: 0, lifetime: 100, maxLifetime: 100, size: 5, color: 'orange' });
             }
@@ -305,12 +329,11 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // MỚI: Sentinel dùng Khiên Vàng bảo hiểm 1 lần
     if (enemy.absoluteShield) {
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.absoluteShield = false;
-            addExplosion(enemy.x, enemy.y, enemy.size * 2, 'gold'); // Nổ vàng đẹp mắt
-            return; // Hấp thụ hoàn toàn
+            addExplosion(enemy.x, enemy.y, enemy.size * 2, 'gold');
+            return;
         }
     }
 
@@ -339,16 +362,19 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // MỚI: Bản thân Aegis Core luôn có thêm 10% miễn thương cứng
     if (enemy.type === 'aegis_core') {
         combinedDR += 0.10;
     }
 
-    // SỬA: Lớp khiên của Aegis Core giờ cho 15% miễn thương (thay vì 5%)
     if (enemy.shield > 0 && enemy.aegisShieldReceived) {
         combinedDR += 0.15;
     }
-    // -----------------
+
+    // MỚI: 12% Miễn thương cho Vệ Binh từ buff Glory for Justice
+    let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
+    if (isSentinel && gloryForJusticeActive) {
+        combinedDR += 0.12;
+    }
 
     totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
 

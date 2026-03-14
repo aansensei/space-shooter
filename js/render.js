@@ -1,9 +1,49 @@
-function draw() {
+let bgStars = []; // Biến chứa các vì sao tĩnh cho màn chơi
+
+// Hàm vẽ nền vũ trụ tĩnh cho Game Canvas
+function drawSpaceBackground(deltaTime) {
+    ctx.fillStyle = '#050510'; // Nền đen ám xanh biển sâu thẳm
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Khởi tạo sao nếu chưa có
+    if (bgStars.length === 0) {
+        for (let i = 0; i < 150; i++) {
+            bgStars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 1.5 + 0.5,
+                speed: Math.random() * 2 + 0.5,
+                color: Math.random() > 0.8 ? '#00e5ff' : (Math.random() > 0.5 ? '#ffffff' : '#ff00ff')
+            });
+        }
+    }
+
+    let dt = deltaTime ? deltaTime / 16.67 : 1;
+    ctx.save();
+    bgStars.forEach(star => {
+        star.y += star.speed * dt;
+        // Nếu sao trôi ra khỏi màn hình thì reset lên trên cùng
+        if (star.y > canvas.height) {
+            star.y = 0;
+            star.x = Math.random() * canvas.width;
+        }
+        ctx.fillStyle = star.color;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.restore();
+}
+
+function draw(deltaTime) { // SỬA: Nhận thêm biến deltaTime
     ctx.save();
     if (screenShake.duration > 0) {
         ctx.translate((Math.random() - 0.5) * screenShake.intensity, (Math.random() - 0.5) * screenShake.intensity);
     }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // MỚI: Vẽ bầu trời sao động thay vì chỉ xóa trắng bằng clearRect
+    drawSpaceBackground(deltaTime);
 
     if (demonGiftEffect.active && performance.now() < demonGiftEffect.endTime) {
         drawDemonGiftAura();
@@ -185,9 +225,8 @@ function drawFinalDefense() {
     const now = performance.now();
     ctx.save();
 
-    // MỚI: Vẽ Khiên Vàng Tuyệt Đối của người chơi
     if (playerAbsoluteShield) {
-        ctx.strokeStyle = '#FFD700'; // Vàng Gold
+        ctx.strokeStyle = '#FFD700';
         ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
         ctx.lineWidth = 4;
         ctx.shadowColor = '#FFA500';
@@ -247,11 +286,26 @@ function drawSentinel(sentinel) {
     ctx.save();
     ctx.translate(x, y);
 
+    // MỚI: Màu Glow biến thiên dựa theo mốc Bầy Đàn
+    let activeCount = sentinels.length;
+    let glowColor = '#00FFFF'; // Màu Cyan (Dưới 5 con)
+    if (activeCount >= 10) glowColor = '#FFD700'; // Màu Gold (10+ con)
+    else if (activeCount >= 5) glowColor = '#FF00FF'; // Màu Magenta (5-9 con)
+
     const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
     bodyGrad.addColorStop(0, '#FFFFFF'); bodyGrad.addColorStop(0.5, '#AAAAAA'); bodyGrad.addColorStop(1, '#666666');
     ctx.fillStyle = bodyGrad;
+
+    // Tạo hào quang đổi màu
+    ctx.shadowColor = glowColor;
+    ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#00FFFF'; ctx.lineWidth = 2; ctx.stroke();
+
+    // Viền cũng đổi màu
+    ctx.strokeStyle = glowColor;
+    ctx.lineWidth = 2; ctx.stroke();
+
+    ctx.shadowBlur = 0; // Tắt glow cho súng
 
     ctx.rotate(angle);
     const gunWidth = size * 0.8, gunHeight = size * 0.8;
@@ -277,7 +331,6 @@ function drawSentinel(sentinel) {
         ctx.fill();
     }
 
-    // MỚI: Vẽ Khiên Vàng cho Sentinel
     if (sentinel.absoluteShield) {
         ctx.save();
         ctx.strokeStyle = '#FFD700';
@@ -468,7 +521,6 @@ function drawAegisCore(enemy) {
 
     let auraRadius = canvas.width / 2;
 
-    // Vòng Kết giới nền mờ
     ctx.beginPath();
     ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(255, 50, 50, 0.04)";
@@ -480,11 +532,9 @@ function drawAegisCore(enemy) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // --- SỬA: HIỆU ỨNG SÓNG ÂM LAN TỎA ---
-    let speedPulse = 0.25; // Tốc độ lan ra của sóng
+    let speedPulse = 0.25;
     let maxR = auraRadius;
 
-    // Tạo 2 sóng đuổi nhau liên tục
     let wave1 = (performance.now() * speedPulse) % maxR;
     let wave2 = (performance.now() * speedPulse + maxR / 2) % maxR;
 
@@ -492,21 +542,17 @@ function drawAegisCore(enemy) {
     ctx.shadowColor = "red";
     ctx.shadowBlur = 10;
 
-    // Vẽ sóng 1
     ctx.beginPath();
     ctx.arc(0, 0, wave1, 0, Math.PI * 2);
-    // Độ mờ giảm dần khi sóng lan ra xa tâm
     ctx.strokeStyle = `rgba(255, 77, 77, ${1 - wave1 / maxR})`;
     ctx.stroke();
 
-    // Vẽ sóng 2
     ctx.beginPath();
     ctx.arc(0, 0, wave2, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(255, 77, 77, ${1 - wave2 / maxR})`;
     ctx.stroke();
 
-    ctx.shadowBlur = 0; // Tắt shadow để vẽ body không bị nhòe
-    // ----------------------------------------
+    ctx.shadowBlur = 0;
 
     if (enemy.aegisInvulnerable) {
         ctx.beginPath();
