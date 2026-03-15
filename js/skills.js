@@ -4,7 +4,7 @@ function activateSkillA() {
         if (skillAOrbs.length >= maxSkillAOrbs) return;
         lastSkillA = currentTime;
         skillAActive = true;
-        const orbsToAdd = Math.min(15, maxSkillAOrbs - skillAOrbs.length);
+        const orbsToAdd = Math.min(20, maxSkillAOrbs - skillAOrbs.length);
         for (let i = 0; i < orbsToAdd; i++) {
             skillAOrbs.push({
                 angle: 0, radius: 0, target: null,
@@ -306,12 +306,15 @@ function updateSkillD(deltaTime) {
         const pullSpeed = 6;
         for (let enemy of enemies) {
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            if (d > 1) {
-                enemy.x += (dx / d) * pullSpeed * dt;
-                enemy.y += (dy / d) * pullSpeed * dt;
+            // HOTFIX: Kén (Embryo) hoàn toàn miễn nhiễm sức hút của Hố Đen
+            if (enemy.type !== 'embryo') {
+                if (d > 1) {
+                    enemy.x += (dx / d) * pullSpeed * dt;
+                    enemy.y += (dy / d) * pullSpeed * dt;
+                }
             }
             if (d < blackHole.size / 2) {
-                dealDamage(enemy, { damage: enemy.maxHp * 999999999 }); // Dùng sát thương siêu lớn để ép vỡ Khiên Vàng
+                dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
             }
         }
         if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
@@ -346,7 +349,7 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                dealDamage(enemy, { damage: enemy.maxHp * 999999999 }); // Ép vỡ khiên hoặc chết ngay
+                dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
                 enemy.hitBySkillF = true;
             }
         }

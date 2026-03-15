@@ -1,11 +1,9 @@
-let bgStars = []; // Biến chứa các vì sao tĩnh cho màn chơi
+let bgStars = [];
 
-// Hàm vẽ nền vũ trụ tĩnh cho Game Canvas
 function drawSpaceBackground(deltaTime) {
-    ctx.fillStyle = '#050510'; // Nền đen ám xanh biển sâu thẳm
+    ctx.fillStyle = '#050510';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Khởi tạo sao nếu chưa có
     if (bgStars.length === 0) {
         for (let i = 0; i < 150; i++) {
             bgStars.push({
@@ -22,7 +20,6 @@ function drawSpaceBackground(deltaTime) {
     ctx.save();
     bgStars.forEach(star => {
         star.y += star.speed * dt;
-        // Nếu sao trôi ra khỏi màn hình thì reset lên trên cùng
         if (star.y > canvas.height) {
             star.y = 0;
             star.x = Math.random() * canvas.width;
@@ -36,13 +33,12 @@ function drawSpaceBackground(deltaTime) {
     ctx.restore();
 }
 
-function draw(deltaTime) { // SỬA: Nhận thêm biến deltaTime
+function draw(deltaTime) {
     ctx.save();
     if (screenShake.duration > 0) {
         ctx.translate((Math.random() - 0.5) * screenShake.intensity, (Math.random() - 0.5) * screenShake.intensity);
     }
 
-    // MỚI: Vẽ bầu trời sao động thay vì chỉ xóa trắng bằng clearRect
     drawSpaceBackground(deltaTime);
 
     if (demonGiftEffect.active && performance.now() < demonGiftEffect.endTime) {
@@ -286,26 +282,23 @@ function drawSentinel(sentinel) {
     ctx.save();
     ctx.translate(x, y);
 
-    // MỚI: Màu Glow biến thiên dựa theo mốc Bầy Đàn
     let activeCount = sentinels.length;
-    let glowColor = '#00FFFF'; // Màu Cyan (Dưới 5 con)
-    if (activeCount >= 10) glowColor = '#FFD700'; // Màu Gold (10+ con)
-    else if (activeCount >= 5) glowColor = '#FF00FF'; // Màu Magenta (5-9 con)
+    let glowColor = '#00FFFF'; // Tier 1: Cyan
+    if (activeCount >= 10) glowColor = '#FFD700'; // Tier 3: Gold
+    else if (activeCount >= 5) glowColor = '#FF00FF'; // Tier 2: Magenta
 
     const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
     bodyGrad.addColorStop(0, '#FFFFFF'); bodyGrad.addColorStop(0.5, '#AAAAAA'); bodyGrad.addColorStop(1, '#666666');
     ctx.fillStyle = bodyGrad;
 
-    // Tạo hào quang đổi màu
     ctx.shadowColor = glowColor;
     ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.fill();
 
-    // Viền cũng đổi màu
     ctx.strokeStyle = glowColor;
     ctx.lineWidth = 2; ctx.stroke();
 
-    ctx.shadowBlur = 0; // Tắt glow cho súng
+    ctx.shadowBlur = 0;
 
     ctx.rotate(angle);
     const gunWidth = size * 0.8, gunHeight = size * 0.8;
@@ -600,9 +593,23 @@ function drawAegisCore(enemy) {
 }
 
 function drawEnemy(enemy) {
+    if (enemy.soulReaver) {
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y - enemy.size - 25);
+        ctx.strokeStyle = '#FF4500';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = 'red';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(-10, -10); ctx.lineTo(10, 10);
+        ctx.moveTo(10, -10); ctx.lineTo(-10, 10);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     if (enemy.type === 'aegis_core') {
         drawAegisCore(enemy);
-    } else if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
+    } else if (enemy.type === 'boss' || enemy.type === 'thaelis') {
         const rotation = performance.now() / (enemy.type === 'boss' ? 2000 : 3000);
         const color1 = enemy.type === 'boss' ? '#FF00FF' : '#FFD700';
         const color2 = enemy.type === 'boss' ? '#8A2BE2' : '#FFA500';
@@ -621,7 +628,17 @@ function drawEnemy(enemy) {
             ctx.fill();
             ctx.restore();
         }
-    } else if (enemy.type === 'enemy_bullet') {
+    } else if (enemy.type === 'embryo') {
+        ctx.save();
+        const pulse = Math.abs(Math.sin(performance.now() / 150)) * 3;
+        ctx.fillStyle = '#8A2BE2';
+        ctx.shadowColor = '#FF00FF';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.ellipse(enemy.x, enemy.y, enemy.size - 2 + pulse, enemy.size + 2 + pulse, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    } else if (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') {
         ctx.save();
         ctx.fillStyle = 'red';
         ctx.shadowColor = 'white';
@@ -629,6 +646,13 @@ function drawEnemy(enemy) {
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
         ctx.fill();
+
+        if (enemy.type === 'enemy_bullet_large') {
+            ctx.fillStyle = 'orange';
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, enemy.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
     } else {
         ctx.save();
@@ -650,6 +674,7 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
+    // HOTFIX: Xóa điều kiện chặn vẽ HP, mọi quái và đạn đều hiển thị
     if (enemy.shield > 0) {
         const barWidth = enemy.size;
         const barHeight = 5;
@@ -678,6 +703,7 @@ function drawEnemy(enemy) {
     ctx.save();
     ctx.fillStyle = "white";
     ctx.font = "14px Arial";
+    if (enemy.type === 'enemy_bullet_small') ctx.font = "10px Arial"; // Thu nhỏ font cho đạn nhỏ
     ctx.textAlign = "center";
     ctx.fillText(Math.ceil(enemy.hp), enemy.x, enemy.y + 5);
     ctx.restore();
