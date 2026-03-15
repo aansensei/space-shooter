@@ -60,8 +60,8 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
   * *Vampiric Effect:* Each Special Shot that hits an enemy restores **3 HP** to the Sentinel that fired it.
 * **Herd Mentality (Synergy):** * **Tier 1 (Less than 5 Sentinels):** Max HP is increased by **30%** (338 HP). Sentinels emit a Cyan glow.
-  * **Tier 2 (5 to 9 Sentinels):** Fire rate is increased by **20%** and damage output is increased by **10%**. Sentinels emit a Magenta glow.
-  * **Tier 3 (10 or more Sentinels):** Every single shot fired by the Sentinels becomes a Special Shot. Sentinels emit a Gold glow.
+  * **Tier 2 (5 to 11 Sentinels):** Fire rate is increased by **20%** and damage output is increased by **10%**. Sentinels emit a Magenta glow.
+  * **Tier 3 (12 Sentinels):** Every single shot fired by the Sentinels becomes a Special Shot. Sentinels emit a Gold glow.
 * **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (**2 Base + 2% Target Max HP** Damage, Speed 8).
 
 **Final Defense & Last Stand**
@@ -76,9 +76,10 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 ### Skill A: Thunder Orbs (Key: A)
 
 * **Cooldown:** 9 seconds.
-* **Basic Stats:** Summons 20 homing energy orbs (Max 60 on screen). Sensor radius is 90% of the screen.
+* **Basic Stats:** Summons 20 homing energy orbs (Max **80** on screen). Sensor radius is 90% of the screen.
 * **Detailed Mechanic:** Orbs automatically seek out enemies (ignoring enemy bullets). Upon impact, they deal **10 Base + 24% Target Max HP** damage. The orb then shatters into **16 smaller scattered projectiles** dealing **4 Base + 2% Target Max HP** damage each, blasting outward in all directions across the map.
-* *Orb Shield:* While Thunder Orbs are actively orbiting the player, if the player takes fatal damage (would lose a life), **1 Orb is consumed instead** to completely absorb the hit, saving the player's life. The remaining orbs instantly rebalance their formation.
+  * **Orb Sacrifice (Defensive Priority 1):** Up to **3 random Orbs** in the formation will be marked with a **Yellow glow**. If the player is hit by an enemy bullet, laser, or enemy body, **1 Yellow Orb is consumed** to completely absorb the hit and prevent the player from losing a life. The remaining orbs instantly rebalance their formation.
+  * **Defense Hierarchy:** The game checks defenses in this strict order when the player takes a hit: `Orb Sacrifice -> Final Defense (Player Shield) -> Last Stand (Absolute Shield) -> Lose a Life`.
 
 ### Skill S: Remembrance Spirit (Key: S)
 
@@ -124,13 +125,13 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **HP Scaling:** Base HP begins roughly between 1 and 5 (capped at **60**) and scales infinitely based on how long the player has survived. Visually distinct with bright, vibrant colors to stand out from enemy projectiles.
 * **Attack:** Fires **1 bullet every 1 second**. The damage and health of this bullet are directly equal to the Normal Enemy's current HP at the moment it is fired.
 
-### Thaelis(Elite)
+### Thaelis (Elite)
 
 * **Spawn Condition:** **26% chance** to spawn instead of a normal enemy.
 * **Stats:** Considerably slower than normal enemies (Speed reduced by 5%). HP scales roughly between **300 and 680 Base HP**.
 * **Attack:** Fires a massive projectile every **1 seconds**. After flying for 0.6 seconds, the projectile splits into **3 smaller bullets** targeting the player or sentinels. If a small bullet hits the player, the player loses 1 life. If a small bullet hits a Sentinel, the Sentinel loses **60HP**.
 * **Passive: Reincarnation:** Upon reaching 0 HP, Thaelis does not die completely. Instead, it splits into **3 Embryos** placed in a triangular formation (120 degrees apart).
-  * *Embryo Mechanics:* Each Embryo possesses 33% of Thaelis's Max HP plus an additional random 50-100 HP. Embryos have a massive **90% Damage Reduction** and are immune to Crowd Control (e.g., Black Holes, Tesla Coils).
+  * *Embryo Mechanics:* Each Embryo possesses 33% of Thaelis's Max HP plus an additional random 50-100 HP. Embryos have a massive **90% Damage Reduction** and are immune to Crowd Control (e.g., Black Holes, Tesla Coils). They cannot receive shields from Aegis Core or Demon Gift.
   * *Hatching:* After 3 seconds, if an Embryo is not destroyed, it hatches into a brand new Normal Enemy with HP equal to the Embryo's remaining HP + 60 Base HP.
 
 ### Heavenly Aegis Core (Elite)
@@ -142,7 +143,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
   * Allies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second.
   * Allies inside also receive a shield equal to **38% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
   * Enemies and enemy bullets inside the aura gain a **5% movement speed increase**.
-* **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player instantly breaks their shield or removes 1 life (triggering Last Stand if applicable), while hitting Sentinels drains **12.5% of their Max HP**.
+* **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player triggers `playerTakesHit()` (which attempts to consume Orbs/Shields or removes 1 life), while hitting Sentinels drains **12.5% of their Max HP**.
 
 ### Dargruel ( Ultra - Elite)
 

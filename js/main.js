@@ -20,25 +20,29 @@ function loseLife() {
     lives--;
 }
 
-// MỚI: Hàm xử lý Độc lập khi người chơi dính đạn địch/laze địch/va chạm
 function playerTakesHit() {
-    // ƯU TIÊN 1: Hy sinh Lôi Quang Cầu (Chiêu A)
-    if (skillAActive && skillAOrbs.length > 0) {
-        // Tìm quả chưa khóa mục tiêu để hy sinh, nếu không có thì lấy quả cuối cùng
-        let orbIndex = skillAOrbs.findIndex(orb => !orb.target);
+    // ƯU TIÊN 1: Hy sinh Lôi Quang Cầu VÀNG (Chiêu A)
+    if (skillAActive && skillADefensiveCharges > 0 && skillAOrbs.length > 0) {
+        skillADefensiveCharges--;
+
+        let orbIndex = skillAOrbs.findIndex(orb => orb.isDefensive && !orb.target);
+        if (orbIndex === -1) orbIndex = skillAOrbs.findIndex(orb => orb.isDefensive);
         if (orbIndex === -1) orbIndex = skillAOrbs.length - 1;
 
-        let orb = skillAOrbs.splice(orbIndex, 1)[0];
+        if (orbIndex !== -1) {
+            let orb = skillAOrbs.splice(orbIndex, 1)[0];
 
-        // Nổ bùm lấp lánh chặn đạn
-        addExplosion(orb.x, orb.y, 40, 'cyan');
-        addExplosion(player.x, player.y, 80, 'blue');
-        createParticles(player.x, player.y, 20, 'cyan', 2, 6);
+            addExplosion(orb.x, orb.y, 40, 'yellow');
+            addExplosion(player.x, player.y, 80, 'gold');
+            createParticles(player.x, player.y, 20, 'yellow', 2, 6);
 
-        if (skillAOrbs.length === 0) skillAActive = false;
-        else rebalanceSkillAOrbs();
-
-        return; // Đã cản sát thương thành công
+            if (skillAOrbs.length === 0) skillAActive = false;
+            else {
+                updateDefensiveOrbs(); // Gán ngay 1 quả xanh thành vàng để thế chỗ
+                rebalanceSkillAOrbs();
+            }
+            return; // Đã cản sát thương thành công
+        }
     }
 
     // ƯU TIÊN 2: Khiên phòng hộ cuối cùng (Final Defense)
@@ -49,7 +53,7 @@ function playerTakesHit() {
         return;
     }
 
-    // ƯU TIÊN 3: Last Stand (Bảo hiểm mạng cuối) -> Mất mạng
+    // ƯU TIÊN 3: Mất mạng
     loseLife();
 }
 
@@ -58,7 +62,7 @@ function update(deltaTime) {
     const currentTime = performance.now();
     const dt = deltaTime / 16.67;
 
-    gloryForJusticeActive = (enemies.filter(e => e.type !== 'enemy_bullet' && e.type !== 'enemy_bullet_large' && e.type !== 'enemy_bullet_small').length > 4) || skillGActive || enemies.some(e => e.type === 'boss');
+    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet')).length > 4) || skillGActive || enemies.some(e => e.type === 'boss');
 
     bossShockwaves.forEach(wave => {
         if (!wave.active) return;
@@ -103,7 +107,7 @@ function update(deltaTime) {
                 screenShake = { intensity: 8, duration: 200 };
 
                 if (distToSegment(player, laser.start, laser.end) < player.width / 2 + 15) {
-                    playerTakesHit(); // SỬA: Dùng hàm ưu tiên mới
+                    playerTakesHit();
                 }
 
                 sentinels.forEach(s => {
@@ -196,8 +200,7 @@ function update(deltaTime) {
 
             const pullRadius = 200, pullStrength = 0.05;
             enemies.forEach(enemy => {
-                if (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') return;
-                if (enemy.type === 'embryo') return;
+                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo') return;
 
                 let closestLaserX = player.x + allLasers.reduce((prev, curr) =>
                     Math.abs(enemy.x - (player.x + curr.xOffset)) < Math.abs(enemy.x - (player.x + prev.xOffset)) ? curr : prev, { xOffset: 0 }).xOffset;
@@ -260,7 +263,7 @@ function update(deltaTime) {
         let teslaSpeedMultiplier = 1.0;
         let teslaAttackSpeedMultiplier = 1.0;
         let inTeslaAura = false;
-        let enemyRadius = (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') ? enemy.size : enemy.size / 2;
+        let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
 
         let aegisSpeedMultiplier = 1.0;
         for (const aegis of enemies) {
@@ -280,7 +283,7 @@ function update(deltaTime) {
             if (distToCoil < TESLA_AURA_RADIUS + enemyRadius) {
                 inTeslaAura = true;
 
-                if (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') {
+                if (enemy.type.startsWith('enemy_bullet')) {
                     teslaSpeedMultiplier = 0.50;
                     if (distToCoil < coil.size / 2 + enemy.size) {
                         coil.hp -= enemy.hp;
@@ -330,7 +333,7 @@ function update(deltaTime) {
                 }
             }
 
-            if (enemy.type !== 'enemy_bullet' && enemy.type !== 'enemy_bullet_large' && enemy.type !== 'enemy_bullet_small' && enemy.type !== 'embryo') {
+            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
                 if (!enemy.hatched) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
@@ -340,12 +343,12 @@ function update(deltaTime) {
             continue;
         }
 
-        if (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') {
+        if (enemy.type.startsWith('enemy_bullet')) {
             enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
             enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.width / 2) {
-                playerTakesHit(); // SỬA: Dùng hàm ưu tiên mới
+                playerTakesHit();
                 enemy.hp = 0;
             }
 
@@ -382,9 +385,8 @@ function update(deltaTime) {
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.width / 2) {
-                playerTakesHit(); // SỬA: Va chạm trực tiếp quái vật cũng gọi hàm này
+                playerTakesHit();
                 if (enemy.type === 'boss' || enemy.type === 'thaelis') {
-                    // Boss không tự chết khi đụng
                 } else {
                     enemy.hp = 0;
                 }
@@ -438,7 +440,7 @@ function update(deltaTime) {
                 }
             }
 
-            if (enemy.type !== 'enemy_bullet' && enemy.type !== 'enemy_bullet_large' && enemy.type !== 'enemy_bullet_small' && enemy.type !== 'embryo') {
+            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
                 if (!enemy.hatched) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
@@ -449,14 +451,14 @@ function update(deltaTime) {
         }
 
         if (enemy.y > boundaryY + enemy.size / 2) {
-            if (enemy.type !== 'enemy_bullet' && enemy.type !== 'enemy_bullet_large' && enemy.type !== 'enemy_bullet_small') {
+            if (!enemy.type.startsWith('enemy_bullet')) {
                 if (finalDefense.boundaryShield) {
                     finalDefense.boundaryShield = false;
                     finalDefense.boundaryCooldownEnd = performance.now() + 25000;
                     addExplosion(enemy.x, enemy.y, 100, 'cyan');
                     enemies.splice(i, 1);
                 } else {
-                    loseLife(); // Vượt biên thì mất mạng trực tiếp không tính Khiên/Orb
+                    loseLife();
                     enemies.splice(i, 1);
                 }
             } else {
@@ -488,7 +490,7 @@ function update(deltaTime) {
         if (b.y < -b.size || b.x < -b.size || b.x > canvas.width + b.size) { bullets.splice(i, 1); continue; }
 
         for (let enemy of enemies) {
-            let enemyRadius = (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') ? enemy.size : enemy.size / 2;
+            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
                 if (b.type === 'player_charged') {
                     if (!b.hitEnemies) b.hitEnemies = [];
@@ -543,6 +545,8 @@ function startGame() {
     nextLifeMilestone = 500000;
     bullets = []; enemies = []; explosions = []; particles = [];
     skillAOrbs = []; scatteredProjectiles = [];
+    skillADefensiveCharges = 0; // MỚI: Reset số lượt đỡ mạng khi chơi lại
+
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; blackHole = null;
