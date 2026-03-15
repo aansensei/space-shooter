@@ -1,16 +1,41 @@
+// MỚI: Hàm để tự động cập nhật số lượng cầu vàng trên sân
+function updateDefensiveOrbs() {
+    let currentDefensive = skillAOrbs.filter(o => o.isDefensive).length;
+    let targetDefensive = Math.min(skillADefensiveCharges, skillAOrbs.length);
+    let needed = targetDefensive - currentDefensive;
+
+    if (needed > 0) {
+        let nonDefensiveOrbs = skillAOrbs.filter(o => !o.isDefensive);
+        nonDefensiveOrbs.sort(() => 0.5 - Math.random());
+        for (let i = 0; i < needed && i < nonDefensiveOrbs.length; i++) {
+            nonDefensiveOrbs[i].isDefensive = true;
+        }
+    } else if (needed < 0) {
+        let defensiveOrbs = skillAOrbs.filter(o => o.isDefensive);
+        for (let i = 0; i < -needed && i < defensiveOrbs.length; i++) {
+            defensiveOrbs[i].isDefensive = false;
+        }
+    }
+}
+
 function activateSkillA() {
     const currentTime = performance.now();
     if (gameState === "playing" && currentTime - lastSkillA >= skillACooldown) {
         if (skillAOrbs.length >= maxSkillAOrbs) return;
         lastSkillA = currentTime;
         skillAActive = true;
+        skillADefensiveCharges = 3; // MỚI: 3 lượt đỡ mạng
+
         const orbsToAdd = Math.min(20, maxSkillAOrbs - skillAOrbs.length);
         for (let i = 0; i < orbsToAdd; i++) {
             skillAOrbs.push({
                 angle: 0, radius: 0, target: null,
-                x: player.x, y: player.y, speed: 0, size: 8
+                x: player.x, y: player.y, speed: 0, size: 8,
+                isDefensive: false
             });
         }
+
+        updateDefensiveOrbs();
         rebalanceSkillAOrbs();
     }
 }
@@ -38,7 +63,9 @@ function updateSkillA(deltaTime) {
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
 
-    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && enemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
+    // SỬA: Chỉ target kẻ địch, KHÔNG target bất kỳ thứ gì có chữ "enemy_bullet"
+    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
+
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target);
         if (availableOrb) {
@@ -54,6 +81,7 @@ function updateSkillA(deltaTime) {
             if (!enemies.includes(orb.target) || orb.target.hp <= 0) {
                 if (orb.target) orb.target.isTargetedByA = false;
                 skillAOrbs.splice(i, 1);
+                updateDefensiveOrbs(); // Nếu quả cầu bị rớt, update lại màu
                 rebalanceSkillAOrbs();
                 continue;
             }
@@ -63,15 +91,17 @@ function updateSkillA(deltaTime) {
             orb.y += (dy / dist) * orb.speed * dt;
             particles.push({
                 x: orb.x, y: orb.y, vx: -(dx / dist) * 2, vy: -(dy / dist) * 2,
-                lifetime: 200, maxLifetime: 200, size: 4, color: 'rgba(0, 255, 255, 0.7)'
+                lifetime: 200, maxLifetime: 200, size: 4, color: orb.isDefensive ? 'rgba(255, 255, 0, 0.7)' : 'rgba(0, 255, 255, 0.7)'
             });
             if (dist < orb.target.size / 2 + orb.size) {
                 dealDamage(orb.target, { damage: 10, percentDamage: 0.24 });
                 orb.target.isTargetedByA = false;
 
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 4, percentDamage: 0.02 });
-                addExplosion(orb.x, orb.y, 30, 'cyan');
+                addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
                 skillAOrbs.splice(i, 1);
+
+                updateDefensiveOrbs(); // Bôi vàng quả cầu khác nếu quả vàng vừa dùng để đâm địch
                 rebalanceSkillAOrbs();
             }
         } else {
@@ -111,7 +141,7 @@ function updateScatteredProjectiles(deltaTime) {
         }
 
         for (let enemy of enemies) {
-            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - proj.x, enemy.y - proj.y) < enemyRadius + proj.size) {
                 if (proj.isBouncingBall) {
                     if (!proj.hitEnemies) proj.hitEnemies = [];
@@ -204,7 +234,7 @@ function updateBladeArcProjectiles(deltaTime) {
         }
         for (let enemy of enemies) {
             if (arc.hitEnemies.includes(enemy)) continue;
-            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 dealDamage(enemy, arc);
                 arc.hitEnemies.push(enemy);
@@ -227,7 +257,7 @@ function updateSpiritBullets(deltaTime) {
         } else { b.y -= 8.8 * dt * (b.speedMultiplier || 1); }
         b.lifetime -= deltaTime;
         for (let enemy of enemies) {
-            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
                 dealDamage(enemy, b);
                 b.lifetime = 0;
@@ -306,7 +336,6 @@ function updateSkillD(deltaTime) {
         const pullSpeed = 6;
         for (let enemy of enemies) {
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            // HOTFIX: Kén (Embryo) hoàn toàn miễn nhiễm sức hút của Hố Đen
             if (enemy.type !== 'embryo') {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
@@ -344,7 +373,10 @@ function updateSkillF(deltaTime) {
             skillFState = "ready";
             return;
         }
-        let currentAngle = (Math.PI) * sweepProgress - Math.PI;
+        let currentAngle = -Math.PI + Math.PI * sweepProgress;
+
+        // SỬA: ĐÃ GỠ BỎ `ctx.rotate(currentAngle)` KHỎI ĐÂY ĐỂ TRÁNH LỖI MÀN HÌNH
+
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
@@ -392,7 +424,7 @@ function endSkillG() {
     energyOrbs.forEach(orb => {
         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
-            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
             }
@@ -404,7 +436,7 @@ function endSkillG() {
         if (coil.dotTargets) coil.dotTargets.clear();
         addExplosion(coil.x, coil.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
-            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
             }
@@ -521,7 +553,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         const explosionRadius = orb.size * 5;
                         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                         enemies.forEach(enemy => {
-                            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+                            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                                 dealDamage(enemy, explosionProps);
                             }
@@ -534,7 +566,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 const explosionRadius = orb.size * 5;
                 addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                 enemies.forEach(enemy => {
-                    let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+                    let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                     if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                         dealDamage(enemy, explosionProps);
                     }
@@ -555,19 +587,19 @@ function updateEnergyOrbs(deltaTime, currentTime) {
             }
 
             enemies.forEach(enemy => {
-                let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+                let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;
                 if (dist < enemyRadius + linkThickness) {
 
-                    if (enemy.type !== 'enemy_bullet') {
+                    if (!enemy.type.startsWith('enemy_bullet')) {
                         enemy.y -= (enemy.speed * dt * 0.08);
                     } else {
                         enemy.x -= (enemy.vx * dt * 0.08);
                         enemy.y -= (enemy.vy * dt * 0.08);
                     }
 
-                    if (enemy.type === 'boss' || enemy.type === 'mini-boss') {
+                    if (enemy.type === 'boss' || enemy.type === 'thaelis') {
                         enemy.shootTimer += deltaTime * 0.30;
                     }
 
@@ -614,9 +646,9 @@ function updateTeslaCoils(deltaTime, currentTime) {
         const coil = teslaCoils[i];
 
         enemies.forEach(enemy => {
-            let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
-                if (enemy.type !== 'enemy_bullet') {
+                if (!enemy.type.startsWith('enemy_bullet')) {
                     enemy.y -= (enemy.speed * dt * 0.08);
                 }
             }
@@ -626,7 +658,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
             const explosionProps = { damage: 10, percentDamage: 0.15 };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {
-                let enemyRadius = (enemy.type === 'enemy_bullet') ? enemy.size : enemy.size / 2;
+                let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                 if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
                     dealDamage(enemy, explosionProps);
                 }

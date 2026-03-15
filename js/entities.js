@@ -161,7 +161,7 @@ function spawnSentinel(x, y) {
         sentinels.splice(0, 1);
     }
 
-    let currentTier = (sentinels.length + 1 >= 10) ? 3 : ((sentinels.length + 1 >= 5) ? 2 : 1);
+    let currentTier = (sentinels.length + 1 >= 12) ? 3 : ((sentinels.length + 1 >= 5) ? 2 : 1);
     let initialMaxHp = (currentTier === 1) ? 338 : 260;
 
     sentinels.push({
@@ -193,7 +193,7 @@ function updateSentinels(deltaTime) {
     let isTier1 = activeCount < 5;
     let isTier2 = activeCount >= 5 && activeCount < 10;
     let isTier3 = activeCount >= 10;
-    let swarmSpecialForced = activeCount >= 10;
+    let swarmSpecialForced = activeCount >= 12;
 
     if (activeCount >= 5) {
         sentinelFireRate /= 1.20;

@@ -283,9 +283,9 @@ function drawSentinel(sentinel) {
     ctx.translate(x, y);
 
     let activeCount = sentinels.length;
-    let glowColor = '#00FFFF'; // Tier 1: Cyan
-    if (activeCount >= 10) glowColor = '#FFD700'; // Tier 3: Gold
-    else if (activeCount >= 5) glowColor = '#FF00FF'; // Tier 2: Magenta
+    let glowColor = '#00FFFF';
+    if (activeCount >= 12) glowColor = '#FFD700';
+    else if (activeCount >= 5) glowColor = '#FF00FF';
 
     const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
     bodyGrad.addColorStop(0, '#FFFFFF'); bodyGrad.addColorStop(0.5, '#AAAAAA'); bodyGrad.addColorStop(1, '#666666');
@@ -638,7 +638,7 @@ function drawEnemy(enemy) {
         ctx.ellipse(enemy.x, enemy.y, enemy.size - 2 + pulse, enemy.size + 2 + pulse, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-    } else if (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') {
+    } else if (enemy.type.startsWith('enemy_bullet')) {
         ctx.save();
         ctx.fillStyle = 'red';
         ctx.shadowColor = 'white';
@@ -674,36 +674,37 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // HOTFIX: Xóa điều kiện chặn vẽ HP, mọi quái và đạn đều hiển thị
-    if (enemy.shield > 0) {
-        const barWidth = enemy.size;
-        const barHeight = 5;
-        const barX = enemy.x - barWidth / 2;
-        const barY = enemy.y - enemy.size / 2 - 15;
-        ctx.fillStyle = 'rgba(0, 150, 255, 0.5)';
-        ctx.fillRect(barX, barY, barWidth, barHeight);
-        ctx.strokeStyle = '#00FFFF';
-        ctx.strokeRect(barX, barY, barWidth, barHeight);
-        ctx.fillStyle = "white";
-        ctx.font = "12px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(Math.ceil(enemy.shield), enemy.x, barY - 2);
-    }
+    if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
+        if (enemy.shield > 0) {
+            const barWidth = enemy.size;
+            const barHeight = 5;
+            const barX = enemy.x - barWidth / 2;
+            const barY = enemy.y - enemy.size / 2 - 15;
+            ctx.fillStyle = 'rgba(0, 150, 255, 0.5)';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+            ctx.strokeStyle = '#00FFFF';
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+            ctx.fillStyle = "white";
+            ctx.font = "12px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(Math.ceil(enemy.shield), enemy.x, barY - 2);
+        }
 
-    if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
-        ctx.save();
-        ctx.strokeStyle = enemy.demonGiftStacks === 2 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(138, 43, 226, 0.8)';
-        ctx.lineWidth = enemy.demonGiftStacks === 2 ? 5 : 3;
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
+        if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
+            ctx.save();
+            ctx.strokeStyle = enemy.demonGiftStacks === 2 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(138, 43, 226, 0.8)';
+            ctx.lineWidth = enemy.demonGiftStacks === 2 ? 5 : 3;
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
 
     ctx.save();
     ctx.fillStyle = "white";
     ctx.font = "14px Arial";
-    if (enemy.type === 'enemy_bullet_small') ctx.font = "10px Arial"; // Thu nhỏ font cho đạn nhỏ
+    if (enemy.type === 'enemy_bullet_small') ctx.font = "10px Arial";
     ctx.textAlign = "center";
     ctx.fillText(Math.ceil(enemy.hp), enemy.x, enemy.y + 5);
     ctx.restore();
@@ -790,7 +791,7 @@ function drawExplosion(exp) {
     let radius = exp.size * (1 + p);
     ctx.globalAlpha = 1 - p;
     ctx.fillStyle = exp.color;
-    if (exp.color === '#00FFFF' || exp.color === 'gold') {
+    if (exp.color === '#00FFFF' || exp.color === 'gold' || exp.color === 'yellow') {
         ctx.shadowColor = 'white';
         ctx.shadowBlur = 20;
     }
@@ -830,9 +831,17 @@ function drawSkillA() {
     ctx.strokeStyle = "rgba(0, 255, 255, 0.3)"; ctx.lineWidth = 2; ctx.setLineDash([10, 5]);
     ctx.beginPath(); ctx.arc(player.x, player.y, skillASensorRadius, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
+
     skillAOrbs.forEach(orb => {
         ctx.save();
-        ctx.fillStyle = "cyan"; ctx.shadowColor = "white"; ctx.shadowBlur = 15;
+        if (orb.isDefensive) {
+            ctx.fillStyle = "yellow";
+            ctx.shadowColor = "orange";
+        } else {
+            ctx.fillStyle = "cyan";
+            ctx.shadowColor = "white";
+        }
+        ctx.shadowBlur = 15;
         ctx.beginPath(); ctx.arc(orb.x, orb.y, orb.size, 0, Math.PI * 2); ctx.fill();
         ctx.restore()
     })
