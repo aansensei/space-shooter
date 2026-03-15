@@ -45,20 +45,21 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Effects:** * *Damage Buff:* Increases the total damage of all player and allied attacks by **1.4x** (includes Chain Lightning and Tesla DoT).
   * *Fire Rate:* Player and Sentinel auto-fire rates are increased by **1.4x**.
   * *Projectile Speed:* Spirit bullets (Skill S) flight speed is increased by **1.25x**.
-  * *Chain Lightning:* Attacks trigger a chain lightning effect (250ms internal cooldown) that arcs to up to **6 nearby enemies**, dealing an additional **21%** of the initial attack's total damage.
+  * *Chain Lightning:* Attacks trigger a chain lightning effect (**150ms** internal cooldown) that arcs to up to **6 nearby enemies**, dealing an additional **25%** of the initial attack's total damage.
+  * *Soul Reaver Debuff:* Enemies hit by Chain Lightning have a **50% chance** to be afflicted with the Soul Reaver debuff (indicated by an orange crossed-swords icon). Soul Reaver reduces all healing and shielding received by the target by **20%**.
   * *Sentinel Protection:* Grants all active Sentinels a flat **12% Damage Reduction**.
 
 **Sentinels**
 
 * **Activation:** 1 Sentinel automatically spawns for every **4 enemies** killed.
 * **Limit:** Maximum **12 Sentinels** on the battlefield. If the limit is reached and a new Sentinel spawns, the Sentinel with the lowest HP will automatically self-destruct to make room.
-* **Stats & Mechanics:** **210 Base HP** | Base Fire rate: 75ms.
+* **Stats & Mechanics:** **260 Base HP** | Base Fire rate: 75ms.
   * *Recoil Damage:* A Sentinel automatically loses **1 HP** every time it fires a shot.
   * *Vulnerability:* If hit by an enemy bullet, a Sentinel takes damage equal to the **enemy bullet's remaining HP**.
 * **Normal Shot:** Deals 4 Base + 3.5% Max HP (Speed 9, Size 7.8).
 * **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
-  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **4 HP** to the Sentinel that fired it.
-* **Herd Mentality (Synergy):** * **Tier 1 (Less than 5 Sentinels):** Max HP is increased by **30%** (273 HP). Sentinels emit a Cyan glow.
+  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **3 HP** to the Sentinel that fired it.
+* **Herd Mentality (Synergy):** * **Tier 1 (Less than 5 Sentinels):** Max HP is increased by **30%** (338 HP). Sentinels emit a Cyan glow.
   * **Tier 2 (5 to 9 Sentinels):** Fire rate is increased by **20%** and damage output is increased by **10%**. Sentinels emit a Magenta glow.
   * **Tier 3 (10 or more Sentinels):** Every single shot fired by the Sentinels becomes a Special Shot. Sentinels emit a Gold glow.
 * **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (**2 Base + 2% Target Max HP** Damage, Speed 8).
@@ -75,8 +76,9 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 ### Skill A: Thunder Orbs (Key: A)
 
 * **Cooldown:** 9 seconds.
-* **Basic Stats:** Summons 15 homing energy orbs (Max 60 on screen). Sensor radius is 90% of the screen.
+* **Basic Stats:** Summons 20 homing energy orbs (Max 60 on screen). Sensor radius is 90% of the screen.
 * **Detailed Mechanic:** Orbs automatically seek out enemies (ignoring enemy bullets). Upon impact, they deal **10 Base + 24% Target Max HP** damage. The orb then shatters into **16 smaller scattered projectiles** dealing **4 Base + 2% Target Max HP** damage each, blasting outward in all directions across the map.
+* *Orb Shield:* While Thunder Orbs are actively orbiting the player, if the player takes fatal damage (would lose a life), **1 Orb is consumed instead** to completely absorb the hit, saving the player's life. The remaining orbs instantly rebalance their formation.
 
 ### Skill S: Remembrance Spirit (Key: S)
 
@@ -91,7 +93,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 * **Cooldown:** 15 seconds.
 * **Basic Stats:** Charges for 2 seconds to spawn a Black Hole.
-* **Detailed Mechanic:** Sucks all enemies and enemy bullets toward its center with a powerful gravitational pull speed of **6**. Any enemy (including Bosses) that touches the absolute center of the black hole takes an astronomical **999,999,999 damage**, instantly obliterating them or instantly shattering Absolute Shields.
+* **Detailed Mechanic:** Sucks all enemies and enemy bullets toward its center with a powerful gravitational pull speed of **6**. Any enemy (including Bosses) that touches the absolute center of the black hole takes an astronomical **999,999,999 damage**, instantly obliterating them or instantly shattering Absolute Shields. (Note: Embryos are immune to gravitational pull).
 
 ### Skill F: Annihilation Sweep (Key: F)
 
@@ -114,15 +116,27 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ## Entities: Enemies & Bosses
 
-### Normal & Mini-Bosses
+*Note: All enemies (Normal, Thaelis, Boss) have a baseline 5% Max HP amplification factor built into their health pools.*
 
-* **Normal Enemies:** Spawn continuously. Base HP begins roughly between 1 and 5 (capped at **60**) and scales infinitely based on how long the player has survived. Visually distinct with bright, vibrant colors to stand out from enemy projectiles.
-* **Mini-Boss:** 30% chance to spawn instead of a normal enemy. Features significantly higher HP (roughly 125 to 502 Base HP) and heavy damage output.
+### Normal Enemies
 
-### Heavenly Aegis Core
+* **Spawn Rate:** Spawn continuously.
+* **HP Scaling:** Base HP begins roughly between 1 and 5 (capped at **60**) and scales infinitely based on how long the player has survived. Visually distinct with bright, vibrant colors to stand out from enemy projectiles.
+* **Attack:** Fires **1 bullet every 1 second**. The damage and health of this bullet are directly equal to the Normal Enemy's current HP at the moment it is fired.
 
-* **Spawn Condition:** 20% chance to spawn instead of a normal enemy (Only 1 can exist on the map at a time).
-* **Stats:** Size is 70% of a Mini-Boss. Base HP scales from **385 to 680**. Has an inherent flat **10% Damage Reduction**.
+### Thaelis(Elite)
+
+* **Spawn Condition:** **26% chance** to spawn instead of a normal enemy.
+* **Stats:** Considerably slower than normal enemies (Speed reduced by 5%). HP scales roughly between **300 and 680 Base HP**.
+* **Attack:** Fires a massive projectile every **1 seconds**. After flying for 0.6 seconds, the projectile splits into **3 smaller bullets** targeting the player or sentinels. If a small bullet hits the player, the player loses 1 life. If a small bullet hits a Sentinel, the Sentinel loses **60HP**.
+* **Passive: Reincarnation:** Upon reaching 0 HP, Thaelis does not die completely. Instead, it splits into **3 Embryos** placed in a triangular formation (120 degrees apart).
+  * *Embryo Mechanics:* Each Embryo possesses 33% of Thaelis's Max HP plus an additional random 50-100 HP. Embryos have a massive **90% Damage Reduction** and are immune to Crowd Control (e.g., Black Holes, Tesla Coils).
+  * *Hatching:* After 3 seconds, if an Embryo is not destroyed, it hatches into a brand new Normal Enemy with HP equal to the Embryo's remaining HP + 60 Base HP.
+
+### Heavenly Aegis Core (Elite)
+
+* **Spawn Condition:** **20% chance** to spawn instead of a normal enemy (Only 1 can exist on the map at a time).
+* **Stats:** Base HP scales from **400 to 750**. Has an inherent flat **10% Damage Reduction**.
 * **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
 * **Skill: Support Aura:** Emits a massive radar field covering half the map width.
   * Allies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second.
@@ -130,12 +144,12 @@ An intense, highly polished arcade space survival game featuring deep combat mec
   * Enemies and enemy bullets inside the aura gain a **5% movement speed increase**.
 * **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player instantly breaks their shield or removes 1 life (triggering Last Stand if applicable), while hitting Sentinels drains **12.5% of their Max HP**.
 
-### The Boss & "Demon Gift"
+### Dargruel ( Ultra - Elite)
 
-* **Boss:** 3% chance to spawn. Massive in size with a colossal HP bar (roughly 1255 to 5023 Base HP).
-* **Passive: Demon Gift:** The Boss possesses a terrifying self-preservation mechanic with multiple triggers based on its HP thresholds.
+* **Dargruel:** 3% chance to spawn. Massive in size with a colossal HP bar (roughly 1255 to 5023 Base HP).
+* **Passive: Demon Gift:** Dargruel possesses a terrifying self-preservation mechanic with multiple triggers based on its HP thresholds.
   * **Health Triggers:** Activates exactly when HP drops to **70%, 40%, 10%, and 1%**.
     * *Global Heal:* Heals all other enemies on the screen for an amount equal to **15% of the Boss's Maximum HP**.
     * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
     * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 4 seconds**. If triggered sequentially before the buff expires, it stacks up to a maximum of 2 times (capping at **30% Damage Reduction**).
-  * **Maou Haki:** Activates exactly when HP drops to **50%**. The Boss emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.
+  * **Maou Haki:** Activates exactly when HP drops to **50%**. Dargruel emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.

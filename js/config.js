@@ -31,7 +31,7 @@ const MAX_SENTINELS = 12; // SỬA: Tối đa 12 Sentinels
 
 // Skill A
 let skillAOrbs = [], skillAActive = false, lastSkillA = -Infinity;
-const skillACooldown = 9000, maxSkillAOrbs = 60;
+const skillACooldown = 9000, maxSkillAOrbs = 80;
 let skillASensorRadius = 0;
 let scatteredProjectiles = [];
 

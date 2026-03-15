@@ -75,22 +75,23 @@ function spawnEnemy() {
             type: 'boss', shootTimer: (autoFireInterval * 2) * 0.75,
             demonGift70Triggered: false, demonGift50Triggered: false, demonGift40Triggered: false, demonGift10Triggered: false, demonGift1Triggered: false
         });
-    } else if (rand < 0.33) {
+    } else if (rand < 0.29) {
         const baseSize = (20 + Math.random() * 10);
         const size = baseSize * 5;
-        let hp = (((100 + Math.random() * 300) * 0.8) * 1.3) * 1.15;
-        hp *= 1.05;
+        const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+        let hp = Math.min(680, 300 + hpFromTime * 12);
         enemies.push({
             x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
-            speed: (1 + Math.random() * 2) * 0.8 * 0.80, hp: hp, maxHp: hp,
+            speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
+            hp: hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'mini-boss', shootTimer: autoFireInterval * 2
+            type: 'thaelis', shootTimer: 1000, reincarnated: false
         });
-    } else if (rand < 0.53 && !hasAegis) {
+    } else if (rand < 0.49 && !hasAegis) {
         const baseSize = (20 + Math.random() * 10);
         const size = ((baseSize * 5) / 2) * 0.7;
         const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
-        let hp = Math.min(680, 385 + hpFromTime * 12);
+        let hp = Math.min(750, 400 + hpFromTime * 15);
 
         enemies.push({
             x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
@@ -108,7 +109,7 @@ function spawnEnemy() {
             x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
             speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'normal'
+            type: 'normal', shootTimer: 1000
         });
     }
 }
@@ -160,9 +161,8 @@ function spawnSentinel(x, y) {
         sentinels.splice(0, 1);
     }
 
-    // MỚI: Khởi tạo HP của Vệ Binh (Tier 1: <5 con sẽ được 273 HP, ngược lại 210 HP)
     let currentTier = (sentinels.length + 1 >= 10) ? 3 : ((sentinels.length + 1 >= 5) ? 2 : 1);
-    let initialMaxHp = (currentTier === 1) ? 273 : 210;
+    let initialMaxHp = (currentTier === 1) ? 338 : 260;
 
     sentinels.push({
         x, y, hp: initialMaxHp, maxHp: initialMaxHp, angle: -Math.PI / 2, shootTimer: 0,
@@ -180,7 +180,7 @@ function destroySentinel(sentinel) {
         bullets.push({
             x: sentinel.x, y: sentinel.y,
             vx: Math.cos(angle) * 8, vy: Math.sin(angle) * 8,
-            damage: 2, percentDamage: 0.02, size: 6, type: 'sentinel_death' // SỬA: Thêm 2% max HP vào nổ
+            damage: 2, percentDamage: 0.02, size: 6, type: 'sentinel_death'
         });
     }
 }
@@ -190,29 +190,27 @@ function updateSentinels(deltaTime) {
     let sentinelFireRate = 75;
     let damageMultiplier = 1.0;
 
-    // Phân định Nấc bầy đàn
     let isTier1 = activeCount < 5;
     let isTier2 = activeCount >= 5 && activeCount < 10;
     let isTier3 = activeCount >= 10;
     let swarmSpecialForced = activeCount >= 10;
 
     if (activeCount >= 5) {
-        sentinelFireRate /= 1.20; // Tier 2: +20% tốc bắn
-        damageMultiplier = 1.10; // Tier 2: +10% sát thương
+        sentinelFireRate /= 1.20;
+        damageMultiplier = 1.10;
     }
 
     if (gloryForJusticeActive) {
         sentinelFireRate /= 1.40;
     }
 
-    // Tự động giãn/thu Máu tối đa khi chuyển Nấc (Tier)
     for (let i = 0; i < sentinels.length; i++) {
         let s = sentinels[i];
         let newTier = isTier3 ? 3 : (isTier2 ? 2 : 1);
         if (s.synergyTier !== newTier) {
             let oldMax = s.maxHp;
-            s.maxHp = (newTier === 1) ? 273 : 210; // Nếu ít hơn 5 con thì được 273 HP (tăng 30%)
-            s.hp = s.hp * (s.maxHp / oldMax); // Scale tỉ lệ máu hiện tại
+            s.maxHp = (newTier === 1) ? 338 : 260;
+            s.hp = s.hp * (s.maxHp / oldMax);
             s.synergyTier = newTier;
         }
     }
@@ -269,7 +267,7 @@ function updateSentinels(deltaTime) {
 function findClosestEnemy(x, y) {
     let closest = null, closestDist = Infinity;
     for (let enemy of enemies) {
-        if (enemy.type === 'enemy_bullet') continue;
+        if (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') continue;
         let d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d < closestDist) { closest = enemy; closestDist = d; }
     }
@@ -292,13 +290,19 @@ function triggerDemonGift(boss) {
 
     enemies.forEach(enemy => {
         if (enemy === boss) return;
-        const healAmount = boss.maxHp * 0.15;
+        const healAmount = enemy.soulReaver ? (boss.maxHp * 0.15 * 0.8) : (boss.maxHp * 0.15);
         const potentialHp = enemy.hp + healAmount;
 
         if (potentialHp > enemy.maxHp) {
-            const overheal = potentialHp - enemy.maxHp;
-            enemy.shield = (enemy.shield || 0) + Math.ceil(overheal * 0.21);
+            // HOTFIX: Kén và Đạn không thể nhận Khiên từ Boss
+            if (enemy.type !== 'embryo' && !enemy.type.startsWith('enemy_bullet')) {
+                const overheal = potentialHp - enemy.maxHp;
+                let shieldGain = Math.ceil(overheal * 0.21);
+                if (enemy.soulReaver) shieldGain *= 0.8;
+                enemy.shield = (enemy.shield || 0) + shieldGain;
+            }
         }
+        // HOTFIX: Cả Kén và Đạn vẫn được hồi máu lên đến maxHP của chúng
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
 
         enemy.demonGiftStacks = (enemy.demonGiftStacks || 0) + 1;
@@ -337,6 +341,10 @@ function dealDamage(enemy, source) {
         }
     }
 
+    if (source.applySoulReaver) {
+        enemy.soulReaver = true;
+    }
+
     const oldHP = enemy.hp;
     enemy.shield = enemy.shield || 0;
     const enemyMaxHp = enemy.maxHp || enemy.hp;
@@ -352,12 +360,12 @@ function dealDamage(enemy, source) {
         combinedDR += (enemy.demonGiftStacks === 2) ? 0.30 : 0.18;
     }
 
-    if ((enemy.type === 'boss' || enemy.type === 'mini-boss') && enemy.hp < enemy.maxHp * 0.6) {
+    if ((enemy.type === 'boss' || enemy.type === 'thaelis') && enemy.hp < enemy.maxHp * 0.6) {
         const hpPercent = (enemy.hp / enemy.maxHp) * 100;
         const percentPointsLost = 60 - hpPercent;
         if (enemy.type === 'boss') {
             combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
-        } else if (enemy.type === 'mini-boss') {
+        } else if (enemy.type === 'thaelis') {
             combinedDR += Math.min(0.52, (percentPointsLost / 100));
         }
     }
@@ -370,7 +378,10 @@ function dealDamage(enemy, source) {
         combinedDR += 0.15;
     }
 
-    // MỚI: 12% Miễn thương cho Vệ Binh từ buff Glory for Justice
+    if (enemy.type === 'embryo') {
+        combinedDR += 0.90;
+    }
+
     let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
     if (isSentinel && gloryForJusticeActive) {
         combinedDR += 0.12;
@@ -384,17 +395,19 @@ function dealDamage(enemy, source) {
     enemy.hp -= totalDamage;
 
     const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
-    const isBossOrMiniBossPresent = enemies.some(e => e.type === 'boss' || e.type === 'mini-boss');
+    const isBossOrMiniBossPresent = enemies.some(e => e.type === 'boss' || e.type === 'thaelis');
     const now = performance.now();
+
     if (isChainable && isBossOrMiniBossPresent && now > chainLightningCooldownEnd) {
-        chainLightningCooldownEnd = now + 250;
+        chainLightningCooldownEnd = now + 150;
         screenShake = { intensity: 3, duration: 100 };
-        const chainDamage = totalDamage * 0.21;
+        const chainDamage = totalDamage * 0.25;
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
             if (chainedCount >= 6) break;
-            if (otherEnemy !== enemy && otherEnemy.type !== 'enemy_bullet' && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
-                dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true });
+            if (otherEnemy !== enemy && otherEnemy.type !== 'enemy_bullet' && otherEnemy.type !== 'enemy_bullet_large' && otherEnemy.type !== 'enemy_bullet_small' && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
+                let debuff = Math.random() < 0.5;
+                dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff });
                 chainLightningEffects.push({
                     x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250
                 });
