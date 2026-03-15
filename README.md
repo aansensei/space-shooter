@@ -52,7 +52,9 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 * **Activation:** 1 Sentinel automatically spawns for every **4 enemies** killed.
 * **Limit:** Maximum **12 Sentinels** on the battlefield. If the limit is reached and a new Sentinel spawns, the Sentinel with the lowest HP will automatically self-destruct to make room.
-* **Stats:** **210 Base HP** | Base Fire rate: 75ms.
+* **Stats & Mechanics:** **210 Base HP** | Base Fire rate: 75ms.
+  * *Recoil Damage:* A Sentinel automatically loses **1 HP** every time it fires a shot.
+  * *Vulnerability:* If hit by an enemy bullet, a Sentinel takes damage equal to the **enemy bullet's remaining HP**.
 * **Normal Shot:** Deals 4 Base + 3.5% Max HP (Speed 9, Size 7.8).
 * **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
   * *Vampiric Effect:* Each Special Shot that hits an enemy restores **4 HP** to the Sentinel that fired it.
@@ -112,8 +114,6 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ## Entities: Enemies & Bosses
 
-*Note: All enemies (Normal, Mini-Boss, Boss) have a baseline 5% Max HP amplification factor built into their health pools.*
-
 ### Normal & Mini-Bosses
 
 * **Normal Enemies:** Spawn continuously. Base HP begins roughly between 1 and 5 (capped at **60**) and scales infinitely based on how long the player has survived. Visually distinct with bright, vibrant colors to stand out from enemy projectiles.
@@ -138,4 +138,4 @@ An intense, highly polished arcade space survival game featuring deep combat mec
     * *Global Heal:* Heals all other enemies on the screen for an amount equal to **15% of the Boss's Maximum HP**.
     * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
     * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 4 seconds**. If triggered sequentially before the buff expires, it stacks up to a maximum of 2 times (capping at **30% Damage Reduction**).
-  * **50% HP Shockwave (Maou Haki):** Activates exactly when HP drops to **50%**. The Boss emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.
+  * **Maou Haki:** Activates exactly when HP drops to **50%**. The Boss emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.
