@@ -24,7 +24,7 @@ function activateSkillA() {
         if (skillAOrbs.length >= maxSkillAOrbs) return;
         lastSkillA = currentTime;
         skillAActive = true;
-        skillADefensiveCharges = 3; // MỚI: 3 lượt đỡ mạng
+        skillADefensiveCharges = 3; // Cấp 3 lượt đỡ mạng
 
         const orbsToAdd = Math.min(20, maxSkillAOrbs - skillAOrbs.length);
         for (let i = 0; i < orbsToAdd; i++) {
@@ -63,15 +63,24 @@ function updateSkillA(deltaTime) {
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
 
-    // SỬA: Chỉ target kẻ địch, KHÔNG target bất kỳ thứ gì có chữ "enemy_bullet"
+    // SỬA: Chỉ target kẻ địch, KHÔNG target đạn địch (enemy_bullet)
     let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
 
     if (availableEnemy) {
-        let availableOrb = skillAOrbs.find(orb => !orb.target);
+        // Ưu tiên chọn quả xanh đi đánh, chỉ chọn quả vàng khi hết quả xanh
+        let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive);
+        if (!availableOrb) availableOrb = skillAOrbs.find(orb => !orb.target);
+
         if (availableOrb) {
             availableOrb.target = availableEnemy;
             availableOrb.speed = 10;
             availableEnemy.isTargetedByA = true;
+
+            // Nếu quả đem đi đánh là quả vàng, lập tức mất màu vàng và bôi vàng quả xanh khác thế chỗ
+            if (availableOrb.isDefensive) {
+                availableOrb.isDefensive = false;
+                updateDefensiveOrbs();
+            }
             rebalanceSkillAOrbs();
         }
     }
@@ -81,7 +90,7 @@ function updateSkillA(deltaTime) {
             if (!enemies.includes(orb.target) || orb.target.hp <= 0) {
                 if (orb.target) orb.target.isTargetedByA = false;
                 skillAOrbs.splice(i, 1);
-                updateDefensiveOrbs(); // Nếu quả cầu bị rớt, update lại màu
+                updateDefensiveOrbs();
                 rebalanceSkillAOrbs();
                 continue;
             }
@@ -101,7 +110,7 @@ function updateSkillA(deltaTime) {
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
                 skillAOrbs.splice(i, 1);
 
-                updateDefensiveOrbs(); // Bôi vàng quả cầu khác nếu quả vàng vừa dùng để đâm địch
+                updateDefensiveOrbs();
                 rebalanceSkillAOrbs();
             }
         } else {
@@ -375,7 +384,7 @@ function updateSkillF(deltaTime) {
         }
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
 
-        // SỬA: ĐÃ GỠ BỎ `ctx.rotate(currentAngle)` KHỎI ĐÂY ĐỂ TRÁNH LỖI MÀN HÌNH
+        // ĐÃ XÓA ctx.rotate Ở ĐÂY ĐỂ TRÁNH LỖI GIẬT/XOAY MÀN HÌNH TUNG TÓE
 
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;

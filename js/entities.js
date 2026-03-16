@@ -191,8 +191,8 @@ function updateSentinels(deltaTime) {
     let damageMultiplier = 1.0;
 
     let isTier1 = activeCount < 5;
-    let isTier2 = activeCount >= 5 && activeCount < 10;
-    let isTier3 = activeCount >= 10;
+    let isTier2 = activeCount >= 5 && activeCount < 12;
+    let isTier3 = activeCount >= 12;
     let swarmSpecialForced = activeCount >= 12;
 
     if (activeCount >= 5) {
@@ -267,7 +267,7 @@ function updateSentinels(deltaTime) {
 function findClosestEnemy(x, y) {
     let closest = null, closestDist = Infinity;
     for (let enemy of enemies) {
-        if (enemy.type === 'enemy_bullet' || enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small') continue;
+        if (enemy.type.startsWith('enemy_bullet')) continue;
         let d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d < closestDist) { closest = enemy; closestDist = d; }
     }
@@ -294,15 +294,12 @@ function triggerDemonGift(boss) {
         const potentialHp = enemy.hp + healAmount;
 
         if (potentialHp > enemy.maxHp) {
-            // HOTFIX: Kén và Đạn không thể nhận Khiên từ Boss
-            if (enemy.type !== 'embryo' && !enemy.type.startsWith('enemy_bullet')) {
-                const overheal = potentialHp - enemy.maxHp;
-                let shieldGain = Math.ceil(overheal * 0.21);
-                if (enemy.soulReaver) shieldGain *= 0.8;
-                enemy.shield = (enemy.shield || 0) + shieldGain;
-            }
+            // Đã Sửa: Cho phép Kén và Đạn nhận Khiên bình thường (Không chặn nữa)
+            const overheal = potentialHp - enemy.maxHp;
+            let shieldGain = Math.ceil(overheal * 0.21);
+            if (enemy.soulReaver) shieldGain *= 0.8;
+            enemy.shield = (enemy.shield || 0) + shieldGain;
         }
-        // HOTFIX: Cả Kén và Đạn vẫn được hồi máu lên đến maxHP của chúng
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
 
         enemy.demonGiftStacks = (enemy.demonGiftStacks || 0) + 1;
@@ -322,7 +319,6 @@ function spawnBossShockwave(x, y) {
     });
     screenShake = { intensity: 20, duration: 600 };
 }
-
 
 function dealDamage(enemy, source) {
     if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
@@ -387,7 +383,13 @@ function dealDamage(enemy, source) {
         combinedDR += 0.12;
     }
 
+    // HOTFIX: Giới hạn Miễn Thương ở mức 99% để tránh bị số âm làm tăng Khiên
+    combinedDR = Math.min(0.99, combinedDR);
+
     totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
+
+    // HOTFIX: Không cho phép sát thương bị âm
+    totalDamage = Math.max(0, totalDamage);
 
     const damageToShield = Math.min(enemy.shield, totalDamage);
     enemy.shield -= damageToShield;
@@ -405,7 +407,7 @@ function dealDamage(enemy, source) {
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
             if (chainedCount >= 6) break;
-            if (otherEnemy !== enemy && otherEnemy.type !== 'enemy_bullet' && otherEnemy.type !== 'enemy_bullet_large' && otherEnemy.type !== 'enemy_bullet_small' && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
+            if (otherEnemy !== enemy && !otherEnemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
                 let debuff = Math.random() < 0.5;
                 dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff });
                 chainLightningEffects.push({
