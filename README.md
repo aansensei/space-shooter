@@ -58,7 +58,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
   * *Vulnerability:* If hit by an enemy bullet, a Sentinel takes damage equal to the **enemy bullet's remaining HP**.
 * **Normal Shot:** Deals 4 Base + 3.5% Max HP (Speed 9, Size 7.8).
 * **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
-  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **3 HP** to the Sentinel that fired it.
+  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **2 HP** to the Sentinel that fired it.
 * **Herd Mentality (Synergy):** * **Tier 1 (Less than 5 Sentinels):** Max HP is increased by **30%** (338 HP). Sentinels emit a Cyan glow.
   * **Tier 2 (5 to 11 Sentinels):** Fire rate is increased by **20%** and damage output is increased by **10%**. Sentinels emit a Magenta glow.
   * **Tier 3 (12 Sentinels):** Every single shot fired by the Sentinels becomes a Special Shot. Sentinels emit a Gold glow.
