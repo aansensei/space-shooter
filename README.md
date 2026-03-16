@@ -15,7 +15,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Basic Attack:** The ship fires automatically.
 * **Charge Attack:** Press and hold the **Spacebar** to charge a powerful shot. Release to fire.
 * **Overload Laser:** Hold the **Spacebar** for exactly 5 seconds to unleash a massive continuous laser beam.
-* **Active Skills:** Press **A, S, D, F, G** to activate powerful tactical abilities (details below).
+* **Active Skills:** Press **Shift, A, S, D, F, G** to activate powerful tactical abilities (details below).
 * **Lives:** You start with **12 lives**. Every **500,000 points** grants you **1 extra life**.
 
 ---
@@ -75,13 +75,21 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ## Active Skills
 
+### Skill Shift: Yog-Sothoth (Key: Shift Left/Right)
+
+* **Cooldown:** 15 seconds.
+* **Duration:** Up to 8 seconds (Auto-cancels after).
+* **Mechanic:** Warps spacetime, creating a nostalgic domain that drastically slows down everything on the battlefield (allies, enemies, bullets, movement timers) by **85%**. The screen takes on a sepia tone, while enemies and their projectiles glow bright red for clear visibility.
+* **Invincibility:** The player is completely immune to all damage while this domain is active.
+* **Teleportation:** While holding Shift, teleportation arrows extend from the player up to half the screen width (scaling over 3 seconds) with projected shadows. Pressing the **Left or Right Arrow Key** instantly teleports the player to the projected shadow location, ensuring safety.
+
 ### Skill A: Thunder Orbs (Key: A)
 
 * **Cooldown:** 9 seconds.
 * **Basic Stats:** Summons 20 homing energy orbs (Max **80** on screen). Sensor radius is 90% of the screen.
 * **Detailed Mechanic:** Orbs automatically seek out enemies (ignoring enemy bullets). Upon impact, they deal **10 Base + 24% Target Max HP** damage. The orb then shatters into **16 smaller scattered projectiles** dealing **4 Base + 2% Target Max HP** damage each, blasting outward in all directions across the map.
   * **Orb Sacrifice (Defensive Priority 1):** Up to **3 random Orbs** in the formation will be marked with a **Yellow glow**. If the player is hit by an enemy bullet, laser, or enemy body, **1 Yellow Orb is consumed** to completely absorb the hit and prevent the player from losing a life. The remaining orbs instantly rebalance their formation.
-  * **Defense Hierarchy:** The game checks defenses in this strict order when the player takes a hit: `Orb Sacrifice -> Final Defense (Player Shield) -> Last Stand (Absolute Shield) -> Lose a Life`.
+  * **Defense Hierarchy:** The game checks defenses in this strict order when the player takes a hit: `Yog-Sothoth Invincibility -> Orb Sacrifice -> Final Defense (Player Shield) -> Last Stand (Absolute Shield) -> Lose a Life`.
 
 ### Skill S: Remembrance Spirit (Key: S)
 

@@ -29,12 +29,20 @@ let sentinels = [];
 let killCountForPassive = 0;
 const MAX_SENTINELS = 12;
 
+// Skill Shift: Yog-Sothoth (Thao túng Không Thời Gian)
+let skillShiftActive = false;
+let skillShiftChargeStart = 0;
+const skillShiftCooldown = 15000; // 15 giây
+let lastSkillShift = -Infinity;
+const skillShiftMaxCharge = 3000; // 3 giây tụ lực tối đa
+const skillShiftMaxHold = 8000; // 8 giây giữ tối đa tự hủy
+
 // Skill A
 let skillAOrbs = [], skillAActive = false, lastSkillA = -Infinity;
-const skillACooldown = 9000, maxSkillAOrbs = 80; // SỬA: Tối đa 80 quả
+const skillACooldown = 9000, maxSkillAOrbs = 80;
 let skillASensorRadius = 0;
 let scatteredProjectiles = [];
-let skillADefensiveCharges = 0; // MỚI: Biến đếm số lượt đỡ mạng của Lôi Quang Cầu
+let skillADefensiveCharges = 0;
 
 // Skill S
 let spirits = [];
