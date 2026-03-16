@@ -143,9 +143,9 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
 * **Skill: Support Aura:** Emits a massive radar field covering half the map width.
   * Allies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second.
-  * Allies (including bullets and embryos) inside also receive a shield equal to **38% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
+  * Allies (including bullets and embryos) inside also receive a shield equal to **40% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
   * Enemies and enemy bullets inside the aura gain a **5% movement speed increase**.
-* **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player triggers `playerTakesHit()` (which attempts to consume Orbs/Shields or removes 1 life), while hitting Sentinels drains **12.5% of their Max HP**.
+* **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player triggers `playerTakesHit()` (which attempts to consume Orbs/Shields or removes 1 life), while hitting Sentinels drains **18% of their Max HP**.
 
 ### Dargruel ( Ultra - Elite)
 
@@ -155,4 +155,4 @@ An intense, highly polished arcade space survival game featuring deep combat mec
     * *Global Heal:* Heals all other enemies on the screen (including bullets and embryos) for an amount equal to **15% of the Boss's Maximum HP**.
     * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
     * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 4 seconds**. If triggered sequentially before the buff expires, it stacks up to a maximum of 2 times (capping at **30% Damage Reduction**).
-  * **Maou Haki:** Activates exactly when HP drops to **50%**. Dargruel emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.
+  * **Maou Haki:** Activates exactly when HP drops to **50%**. Dargruel emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **25% of its Maximum HP**.
