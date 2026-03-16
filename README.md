@@ -22,6 +22,8 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ## Combat System & Base Stats
 
+**Note:** Damage Reduction from all sources combined (Boss aura, Aegis shield, Embryo shield, etc.) is strictly capped at a maximum of **99%**.
+
 ### 1. The Spaceship (Player)
 
 * **Movement Speed:** 8.6
@@ -58,7 +60,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
   * *Vulnerability:* If hit by an enemy bullet, a Sentinel takes damage equal to the **enemy bullet's remaining HP**.
 * **Normal Shot:** Deals 4 Base + 3.5% Max HP (Speed 9, Size 7.8).
 * **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
-  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **2 HP** to the Sentinel that fired it.
+  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **3 HP** to the Sentinel that fired it.
 * **Herd Mentality (Synergy):** * **Tier 1 (Less than 5 Sentinels):** Max HP is increased by **30%** (338 HP). Sentinels emit a Cyan glow.
   * **Tier 2 (5 to 11 Sentinels):** Fire rate is increased by **20%** and damage output is increased by **10%**. Sentinels emit a Magenta glow.
   * **Tier 3 (12 Sentinels):** Every single shot fired by the Sentinels becomes a Special Shot. Sentinels emit a Gold glow.
@@ -128,10 +130,10 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 ### Thaelis (Elite)
 
 * **Spawn Condition:** **26% chance** to spawn instead of a normal enemy.
-* **Stats:** Considerably slower than normal enemies (Speed reduced by 5%). HP scales roughly between **300 and 680 Base HP**.
-* **Attack:** Fires a massive projectile every **1 seconds**. After flying for 0.6 seconds, the projectile splits into **3 smaller bullets** targeting the player or sentinels. If a small bullet hits the player, the player loses 1 life. If a small bullet hits a Sentinel, the Sentinel loses **60HP**.
+* **Stats:** Considerably slower than normal enemies (Speed reduced by 25%). HP scales roughly between **300 and 680 Base HP**.
+* **Attack:** Fires a massive projectile (Speed 3.36, Size 18, 180 HP) every **1 second**. After flying for 0.6 seconds, the projectile splits into **3 smaller bullets** (Speed 3.73, Size 10.8, 60 HP) targeting the player or sentinels. If a small bullet hits the player, the player loses 1 life. If a small bullet hits a Sentinel, the Sentinel loses **2% of its Max HP**.
 * **Passive: Reincarnation:** Upon reaching 0 HP, Thaelis does not die completely. Instead, it splits into **3 Embryos** placed in a triangular formation (120 degrees apart).
-  * *Embryo Mechanics:* Each Embryo possesses 33% of Thaelis's Max HP plus an additional random 50-100 HP. Embryos have a massive **90% Damage Reduction** and are immune to Crowd Control (e.g., Black Holes, Tesla Coils). They cannot receive shields from Aegis Core or Demon Gift.
+  * *Embryo Mechanics:* Each Embryo possesses 33% of Thaelis's Max HP plus an additional random 50-100 HP. Embryos have a massive **90% Damage Reduction** and are immune to Crowd Control (e.g., Black Holes, Tesla Coils). They CAN receive shields and heals from Aegis Core or Demon Gift.
   * *Hatching:* After 3 seconds, if an Embryo is not destroyed, it hatches into a brand new Normal Enemy with HP equal to the Embryo's remaining HP + 60 Base HP.
 
 ### Heavenly Aegis Core (Elite)
@@ -141,7 +143,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
 * **Skill: Support Aura:** Emits a massive radar field covering half the map width.
   * Allies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second.
-  * Allies inside also receive a shield equal to **38% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
+  * Allies (including bullets and embryos) inside also receive a shield equal to **38% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
   * Enemies and enemy bullets inside the aura gain a **5% movement speed increase**.
 * **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player triggers `playerTakesHit()` (which attempts to consume Orbs/Shields or removes 1 life), while hitting Sentinels drains **12.5% of their Max HP**.
 
@@ -150,7 +152,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 * **Dargruel:** 3% chance to spawn. Massive in size with a colossal HP bar (roughly 1255 to 5023 Base HP).
 * **Passive: Demon Gift:** Dargruel possesses a terrifying self-preservation mechanic with multiple triggers based on its HP thresholds.
   * **Health Triggers:** Activates exactly when HP drops to **70%, 40%, 10%, and 1%**.
-    * *Global Heal:* Heals all other enemies on the screen for an amount equal to **15% of the Boss's Maximum HP**.
+    * *Global Heal:* Heals all other enemies on the screen (including bullets and embryos) for an amount equal to **15% of the Boss's Maximum HP**.
     * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
     * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 4 seconds**. If triggered sequentially before the buff expires, it stacks up to a maximum of 2 times (capping at **30% Damage Reduction**).
   * **Maou Haki:** Activates exactly when HP drops to **50%**. Dargruel emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **20% of its Maximum HP**.

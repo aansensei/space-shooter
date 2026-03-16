@@ -38,10 +38,10 @@ function playerTakesHit() {
 
             if (skillAOrbs.length === 0) skillAActive = false;
             else {
-                updateDefensiveOrbs(); // Gán ngay 1 quả xanh thành vàng để thế chỗ
+                updateDefensiveOrbs();
                 rebalanceSkillAOrbs();
             }
-            return; // Đã cản sát thương thành công
+            return;
         }
     }
 
@@ -53,7 +53,7 @@ function playerTakesHit() {
         return;
     }
 
-    // ƯU TIÊN 3: Mất mạng
+    // ƯU TIÊN 3: Last Stand -> Mất mạng
     loseLife();
 }
 
@@ -241,12 +241,11 @@ function update(deltaTime) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.8 : healAmt;
                     ally.hp = Math.min(ally.maxHp, ally.hp + finalHeal);
 
-                    if (ally.type !== 'embryo' && !ally.type.startsWith('enemy_bullet')) {
-                        if (!ally.aegisShieldReceived) {
-                            let finalShield = ally.soulReaver ? shieldAmt * 0.8 : shieldAmt;
-                            ally.shield = (ally.shield || 0) + finalShield;
-                            ally.aegisShieldReceived = true;
-                        }
+                    // SỬA CHỮA: Cấp Khiên cho cả Kén và Đạn địch
+                    if (!ally.aegisShieldReceived) {
+                        let finalShield = ally.soulReaver ? shieldAmt * 0.8 : shieldAmt;
+                        ally.shield = (ally.shield || 0) + finalShield;
+                        ally.aegisShieldReceived = true;
                     }
                 }
             });
@@ -501,7 +500,7 @@ function update(deltaTime) {
                     dealDamage(enemy, b);
 
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
-                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
+                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 3);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
 
@@ -545,7 +544,7 @@ function startGame() {
     nextLifeMilestone = 500000;
     bullets = []; enemies = []; explosions = []; particles = [];
     skillAOrbs = []; scatteredProjectiles = [];
-    skillADefensiveCharges = 0; // MỚI: Reset số lượt đỡ mạng khi chơi lại
+    skillADefensiveCharges = 0;
 
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
