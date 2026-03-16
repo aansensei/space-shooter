@@ -33,6 +33,62 @@ function drawSpaceBackground(deltaTime) {
     ctx.restore();
 }
 
+function drawSkillShiftEffects() {
+    if (!skillShiftActive) return;
+
+    let chargeDuration = performance.now() - skillShiftChargeStart;
+    let chargeRatio = Math.min(chargeDuration / skillShiftMaxCharge, 1);
+    let maxDist = canvas.width * 0.45;
+    let dist = chargeRatio * maxDist;
+
+    let leftX = Math.max(player.width / 2 + 10, player.x - dist);
+    let rightX = Math.min(canvas.width - player.width / 2 - 10, player.x + dist);
+
+    ctx.save();
+    ctx.shadowColor = "#ff00ff";
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = "rgba(255, 0, 255, 0.8)";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([15, 10]);
+
+    if (player.x - leftX > 20) {
+        ctx.beginPath();
+        ctx.moveTo(player.x - 25, player.y);
+        ctx.lineTo(leftX + 25, player.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(leftX + 25, player.y);
+        ctx.lineTo(leftX + 45, player.y - 12);
+        ctx.lineTo(leftX + 45, player.y + 12);
+        ctx.closePath();
+        ctx.fillStyle = "#ff00ff";
+        ctx.fill();
+    }
+
+    if (rightX - player.x > 20) {
+        ctx.beginPath();
+        ctx.moveTo(player.x + 25, player.y);
+        ctx.lineTo(rightX - 25, player.y);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(rightX - 25, player.y);
+        ctx.lineTo(rightX - 45, player.y - 12);
+        ctx.lineTo(rightX - 45, player.y + 12);
+        ctx.closePath();
+        ctx.fillStyle = "#ff00ff";
+        ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.3 + Math.abs(Math.sin(performance.now() / 150)) * 0.3;
+    drawPlayer(ctx.globalAlpha, leftX - player.x);
+    drawPlayer(ctx.globalAlpha, rightX - player.x);
+    ctx.restore();
+}
+
 function draw(deltaTime) {
     ctx.save();
     if (screenShake.duration > 0) {
@@ -40,6 +96,30 @@ function draw(deltaTime) {
     }
 
     drawSpaceBackground(deltaTime);
+
+    // MỚI: Hiệu ứng lan tỏa Lãnh Địa Yog-Sothoth
+    if (gameState === "playing" && skillShiftActive) {
+        let elapsed = performance.now() - skillShiftChargeStart;
+        let maxRadius = Math.hypot(canvas.width, canvas.height);
+        // Lãnh địa mở rộng bao trùm màn hình trong vòng 400ms
+        let currentDomainRadius = Math.min(maxRadius, maxRadius * (elapsed / 400));
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, currentDomainRadius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(40, 20, 5, 0.65)"; // Tone Sepia tối
+        ctx.fill();
+
+        // Vòng sóng viền ngoài của lãnh địa khi đang mở rộng
+        if (currentDomainRadius < maxRadius) {
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = "rgba(255, 100, 50, 0.8)";
+            ctx.shadowColor = "orange";
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
 
     if (demonGiftEffect.active && performance.now() < demonGiftEffect.endTime) {
         drawDemonGiftAura();
@@ -80,6 +160,8 @@ function draw(deltaTime) {
         chainLightningEffects.forEach(drawChainLightning);
         if (skillFState !== 'ready') drawSkillF();
         if (charging) drawChargeMeter();
+
+        if (skillShiftActive) drawSkillShiftEffects();
 
         ctx.save();
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
@@ -607,6 +689,30 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
+    // MỚI: Check xem enemy có nằm trong bán kính lãnh địa đang bung ra không để vẽ viền đỏ
+    if (skillShiftActive) {
+        let elapsed = performance.now() - skillShiftChargeStart;
+        let maxRadius = Math.hypot(canvas.width, canvas.height);
+        let currentDomainRadius = Math.min(maxRadius, maxRadius * (elapsed / 400));
+        let distToPlayer = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+
+        if (distToPlayer <= currentDomainRadius) {
+            ctx.save();
+            ctx.shadowColor = "#ff0044";
+            ctx.shadowBlur = 25;
+            ctx.strokeStyle = "rgba(255, 50, 50, 0.9)";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            if (enemy.type === 'embryo') {
+                ctx.ellipse(enemy.x, enemy.y, enemy.size + 4, enemy.size + 8, 0, 0, Math.PI * 2);
+            } else {
+                ctx.arc(enemy.x, enemy.y, enemy.size + 4, 0, Math.PI * 2);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
     if (enemy.type === 'aegis_core') {
         drawAegisCore(enemy);
     } else if (enemy.type === 'boss' || enemy.type === 'thaelis') {
@@ -674,31 +780,29 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
-        if (enemy.shield > 0) {
-            const barWidth = enemy.size;
-            const barHeight = 5;
-            const barX = enemy.x - barWidth / 2;
-            const barY = enemy.y - enemy.size / 2 - 15;
-            ctx.fillStyle = 'rgba(0, 150, 255, 0.5)';
-            ctx.fillRect(barX, barY, barWidth, barHeight);
-            ctx.strokeStyle = '#00FFFF';
-            ctx.strokeRect(barX, barY, barWidth, barHeight);
-            ctx.fillStyle = "white";
-            ctx.font = "12px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText(Math.ceil(enemy.shield), enemy.x, barY - 2);
-        }
+    if (enemy.shield > 0) {
+        const barWidth = enemy.size;
+        const barHeight = 5;
+        const barX = enemy.x - barWidth / 2;
+        const barY = enemy.y - enemy.size / 2 - 15;
+        ctx.fillStyle = 'rgba(0, 150, 255, 0.5)';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+        ctx.strokeStyle = '#00FFFF';
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(Math.ceil(enemy.shield), enemy.x, barY - 2);
+    }
 
-        if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
-            ctx.save();
-            ctx.strokeStyle = enemy.demonGiftStacks === 2 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(138, 43, 226, 0.8)';
-            ctx.lineWidth = enemy.demonGiftStacks === 2 ? 5 : 3;
-            ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 5, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.restore();
-        }
+    if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
+        ctx.save();
+        ctx.strokeStyle = enemy.demonGiftStacks === 2 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(138, 43, 226, 0.8)';
+        ctx.lineWidth = enemy.demonGiftStacks === 2 ? 5 : 3;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
     }
 
     ctx.save();
@@ -938,6 +1042,8 @@ function drawSkillF() {
     if (skillFState === "sweeping") {
         let sweepProgress = (currentTime - skillFSweepStart) / skillFSweepDuration;
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
+
+        ctx.save();
         ctx.rotate(currentAngle);
 
         ctx.fillStyle = "white";
@@ -962,6 +1068,8 @@ function drawSkillF() {
         ctx.moveTo(0, 0);
         ctx.lineTo(radius, Math.random() * 20 - 10);
         ctx.stroke();
+
+        ctx.restore();
     }
     ctx.restore()
 }
@@ -1159,6 +1267,45 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
 function drawSkillButtons() {
     const baseX = btnMarginLeft + btnRadius, baseY = canvas.height - btnMarginBottom - btnRadius, step = btnRadius * 2 + btnGap;
     const skillAReady = (performance.now() - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
+
+    ctx.save();
+    let shiftBtnRadius = 15;
+    let shiftX = baseX;
+    let shiftY = baseY - btnRadius - shiftBtnRadius - 10;
+
+    let shiftRemaining = Math.max(0, (skillShiftCooldown - (performance.now() - lastSkillShift)) / 1000);
+    let shiftReady = shiftRemaining <= 0 && !skillShiftActive;
+
+    ctx.beginPath();
+    ctx.arc(shiftX, shiftY, shiftBtnRadius, 0, Math.PI * 2);
+    ctx.fillStyle = shiftReady ? '#8A2BE2' : '#333';
+    ctx.fill();
+    ctx.strokeStyle = shiftReady ? 'white' : '#666';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    if (shiftRemaining > 0) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.beginPath();
+        ctx.moveTo(shiftX, shiftY);
+        ctx.arc(shiftX, shiftY, shiftBtnRadius, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - shiftRemaining * 1000 / skillShiftCooldown));
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    ctx.fillStyle = "white";
+    ctx.font = "bold 10px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    if (skillShiftActive) {
+        ctx.fillRect(shiftX - 4, shiftY - 4, 3, 8);
+        ctx.fillRect(shiftX + 1, shiftY - 4, 3, 8);
+    } else {
+        ctx.fillText("SH", shiftX, shiftY);
+    }
+    ctx.restore();
+
     drawSkillButton(baseX, baseY, 'A', 'blue', skillACooldown, lastSkillA, !skillAReady);
     drawSkillButton(baseX + step, baseY, 'S', 'green', skillSCooldown, lastSkillS, spirits.length >= MAX_SPIRITS);
     drawSkillButton(baseX + 2 * step, baseY, 'D', '#4B0082', skillDCooldown, lastSkillD, skillDCharging || blackHole);

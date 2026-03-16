@@ -21,6 +21,9 @@ function loseLife() {
 }
 
 function playerTakesHit() {
+    // ƯU TIÊN 0: Yog-Sothoth - Miễn mọi sát thương trong Lãnh địa Thời Gian
+    if (skillShiftActive) return;
+
     // ƯU TIÊN 1: Hy sinh Lôi Quang Cầu VÀNG (Chiêu A)
     if (skillAActive && skillADefensiveCharges > 0 && skillAOrbs.length > 0) {
         skillADefensiveCharges--;
@@ -57,10 +60,38 @@ function playerTakesHit() {
     loseLife();
 }
 
-function update(deltaTime) {
+function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
+
+    // KIỂM TRA LÃNH ĐỊA THỜI GIAN: Tự hủy sau 8 giây
+    if (skillShiftActive && currentTime - skillShiftChargeStart >= skillShiftMaxHold) {
+        cancelSkillShift();
+    }
+
+    // THUẬT TOÁN BẺ CONG THỜI GIAN: Giảm 85% tốc độ mô phỏng
+    const timeScale = skillShiftActive ? 0.15 : 1.0;
+    const deltaTime = rawDeltaTime * timeScale; // Bẻ cong deltaTime vật lý
     const dt = deltaTime / 16.67;
+
+    // Bẻ cong (kéo dài) các Timer hồi chiêu của phe người chơi và Enemy Spawn
+    if (skillShiftActive) {
+        let delay = rawDeltaTime * 0.85;
+        lastAutoFire += delay;
+        if (charging) chargeStartTime += delay;
+        if (laserActive) {
+            laserStartTime += delay;
+            lastLaserTick += delay;
+        }
+        lastSkillA += delay;
+        lastSkillS += delay;
+        lastSkillD += delay;
+        lastSkillF += delay;
+        if (skillGActive) skillGEndTime += delay;
+        finalDefense.playerCooldownEnd += delay;
+        finalDefense.boundaryCooldownEnd += delay;
+        lastEnemySpawn += delay;
+    }
 
     gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet')).length > 4) || skillGActive || enemies.some(e => e.type === 'boss');
 
@@ -118,11 +149,10 @@ function update(deltaTime) {
                 });
             }
         } else {
-            laser.duration -= deltaTime;
+            laser.duration -= deltaTime; // Laze mờ đi cũng chậm lại
         }
     });
     aegisLasers = aegisLasers.filter(l => !l.fired || l.duration > 0);
-
 
     if (skillGActive && currentTime > skillGEndTime) {
         endSkillG();
@@ -241,7 +271,6 @@ function update(deltaTime) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.8 : healAmt;
                     ally.hp = Math.min(ally.maxHp, ally.hp + finalHeal);
 
-                    // SỬA CHỮA: Cấp Khiên cho cả Kén và Đạn địch
                     if (!ally.aegisShieldReceived) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.8 : shieldAmt;
                         ally.shield = (ally.shield || 0) + finalShield;
@@ -299,10 +328,10 @@ function update(deltaTime) {
 
                 if (!coil.dotTargets) coil.dotTargets = new Map();
                 if (!coil.dotTargets.has(enemy)) {
-                    coil.dotTargets.set(enemy, currentTime);
+                    coil.dotTargets.set(enemy, currentTime); // Dot timer runs in real-time
                 }
 
-                if (currentTime - coil.dotTargets.get(enemy) >= 50) {
+                if (currentTime - coil.dotTargets.get(enemy) >= 125) {
                     dealDamage(enemy, { damage: 10, percentDamage: 0.13, isTeslaDot: true });
                     coil.dotTargets.set(enemy, currentTime);
                 }
@@ -545,6 +574,11 @@ function startGame() {
     bullets = []; enemies = []; explosions = []; particles = [];
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
+
+    // Reset Skill Shift
+    skillShiftActive = false;
+    skillShiftChargeStart = 0;
+    lastSkillShift = -Infinity;
 
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;

@@ -26,7 +26,7 @@ function hideStartButton() {
     startBtn.style.display = "none";
 }
 
-// --- LOGIC MÀN HÌNH PAUSE MỚI ---
+// --- LOGIC MÀN HÌNH PAUSE ---
 function showPauseScreen() {
     pauseOverlay.style.display = "flex";
     resumeBtn.style.display = "block";
@@ -36,30 +36,27 @@ function showPauseScreen() {
 }
 
 resumeBtn.addEventListener("click", () => {
-    // 1. Ẩn nút và chữ, hiện thanh loading
     resumeBtn.style.display = "none";
     pauseSubtitle.style.display = "none";
     pauseTitle.innerText = "REBOOTING SYSTEMS...";
     progressContainer.style.display = "block";
     progressBar.style.width = "0%";
 
-    const loadingDuration = 2000; // Thay đổi thời gian load ở đây (2000ms = 2 giây)
+    const loadingDuration = 2000;
     const startTime = performance.now();
 
-    // 2. Chạy animation loading chuẩn xác theo thời gian thực
     function animateLoading(currentTime) {
         const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / loadingDuration, 1); // max là 1 (100%)
+        const progress = Math.min(elapsed / loadingDuration, 1);
 
         progressBar.style.width = (progress * 100) + "%";
 
         if (progress < 1) {
-            requestAnimationFrame(animateLoading); // Tiếp tục gọi nếu chưa đầy
+            requestAnimationFrame(animateLoading);
         } else {
-            // 3. Đã load xong 100%, tắt overlay và tiếp tục game
             pauseOverlay.style.display = "none";
             gamePaused = false;
-            lastTimeStamp = performance.now(); // Reset time để game không bị lặp lại lỗi pause
+            lastTimeStamp = performance.now();
             requestAnimationFrame(gameLoop);
         }
     }
@@ -69,9 +66,27 @@ resumeBtn.addEventListener("click", () => {
 
 document.addEventListener("keydown", (e) => {
     if (gameState !== "playing") return;
-    if (e.code === "ArrowLeft") keys.left = true;
-    if (e.code === "ArrowRight") keys.right = true;
-    if (e.code === "Space" && !charging && !laserActive) { charging = true; chargeStartTime = performance.now(); e.preventDefault(); }
+
+    // Skill Shift: Yog-Sothoth
+    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown) {
+            skillShiftActive = true;
+            skillShiftChargeStart = performance.now();
+        }
+        e.preventDefault();
+    }
+
+    if (skillShiftActive) {
+        // Trong lãnh địa, ấn phím điều hướng để Dịch Chuyển
+        if (e.code === "ArrowLeft") { executeShiftTeleport('left'); e.preventDefault(); return; }
+        if (e.code === "ArrowRight") { executeShiftTeleport('right'); e.preventDefault(); return; }
+    } else {
+        // Di chuyển bình thường
+        if (e.code === "ArrowLeft") keys.left = true;
+        if (e.code === "ArrowRight") keys.right = true;
+    }
+
+    if (e.code === "Space" && !charging && !laserActive && !skillShiftActive) { charging = true; chargeStartTime = performance.now(); e.preventDefault(); }
     if (e.code === "KeyA") { activateSkillA(); e.preventDefault(); }
     if (e.code === "KeyS") { activateSkillS(); e.preventDefault(); }
     if (e.code === "KeyD") { activateSkillD(); e.preventDefault(); }
@@ -82,6 +97,12 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("keyup", (e) => {
     if (e.code === "ArrowLeft") keys.left = false;
     if (e.code === "ArrowRight") keys.right = false;
+
+    // Hủy trạng thái Lãnh địa nếu nhả phím Shift
+    if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        cancelSkillShift();
+    }
+
     if (e.code === "Space" && charging && !laserActive) {
         let chargeDuration = performance.now() - chargeStartTime;
         if (chargeDuration < overloadChargeTime) {

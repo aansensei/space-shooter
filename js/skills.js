@@ -1,4 +1,3 @@
-// MỚI: Hàm để tự động cập nhật số lượng cầu vàng trên sân
 function updateDefensiveOrbs() {
     let currentDefensive = skillAOrbs.filter(o => o.isDefensive).length;
     let targetDefensive = Math.min(skillADefensiveCharges, skillAOrbs.length);
@@ -24,7 +23,7 @@ function activateSkillA() {
         if (skillAOrbs.length >= maxSkillAOrbs) return;
         lastSkillA = currentTime;
         skillAActive = true;
-        skillADefensiveCharges = 3; // Cấp 3 lượt đỡ mạng
+        skillADefensiveCharges = 3;
 
         const orbsToAdd = Math.min(20, maxSkillAOrbs - skillAOrbs.length);
         for (let i = 0; i < orbsToAdd; i++) {
@@ -63,11 +62,9 @@ function updateSkillA(deltaTime) {
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
 
-    // SỬA: Chỉ target kẻ địch, KHÔNG target đạn địch (enemy_bullet)
     let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
 
     if (availableEnemy) {
-        // Ưu tiên chọn quả xanh đi đánh, chỉ chọn quả vàng khi hết quả xanh
         let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive);
         if (!availableOrb) availableOrb = skillAOrbs.find(orb => !orb.target);
 
@@ -76,7 +73,6 @@ function updateSkillA(deltaTime) {
             availableOrb.speed = 10;
             availableEnemy.isTargetedByA = true;
 
-            // Nếu quả đem đi đánh là quả vàng, lập tức mất màu vàng và bôi vàng quả xanh khác thế chỗ
             if (availableOrb.isDefensive) {
                 availableOrb.isDefensive = false;
                 updateDefensiveOrbs();
@@ -384,8 +380,6 @@ function updateSkillF(deltaTime) {
         }
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
 
-        // ĐÃ XÓA ctx.rotate Ở ĐÂY ĐỂ TRÁNH LỖI GIẬT/XOAY MÀN HÌNH TUNG TÓE
-
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
@@ -676,5 +670,37 @@ function updateTeslaCoils(deltaTime, currentTime) {
             coil.dotTargets.clear();
             teslaCoils.splice(i, 1);
         }
+    }
+}
+
+// MỚI: Hàm xử lý dịch chuyển khi dùng Shift
+function executeShiftTeleport(direction) {
+    if (!skillShiftActive) return;
+    let chargeDuration = performance.now() - skillShiftChargeStart;
+    let chargeRatio = Math.min(chargeDuration / skillShiftMaxCharge, 1);
+    let maxDist = canvas.width / 2; // Tối đa đi được nửa màn hình
+    let dist = chargeRatio * maxDist;
+
+    if (direction === 'left') {
+        player.x -= dist;
+    } else if (direction === 'right') {
+        player.x += dist;
+    }
+
+    // Giới hạn không cho người chơi bay khỏi màn hình
+    player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+
+    // Hiệu ứng dịch chuyển
+    addExplosion(player.x, player.y, 60, 'purple');
+    createParticles(player.x, player.y, 30, 'magenta', 3, 10);
+    screenShake = { intensity: 10, duration: 200 };
+
+    cancelSkillShift();
+}
+
+function cancelSkillShift() {
+    if (skillShiftActive) {
+        skillShiftActive = false;
+        lastSkillShift = performance.now(); // Hủy chiêu đưa vào trạng thái hồi
     }
 }
