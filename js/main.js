@@ -87,7 +87,7 @@ function update(deltaTime) {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.20 });
+                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.25 });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -112,7 +112,7 @@ function update(deltaTime) {
 
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: s.maxHp * 0.125 });
+                        dealDamage(s, { damage: s.maxHp * 0.18 });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -232,7 +232,7 @@ function update(deltaTime) {
 
         if (enemy.type === 'aegis_core') {
             let healAmt = enemy.maxHp * 0.0155 * (deltaTime / 1000);
-            let shieldAmt = enemy.maxHp * 0.38;
+            let shieldAmt = enemy.maxHp * 0.40;
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
