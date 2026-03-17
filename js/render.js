@@ -1591,11 +1591,34 @@ function drawParticle(p) {
 // ── Skill A – Thunder Orbs ────────────────────────────────────
 function drawSkillA() {
     const now = performance.now();
-    // Sensor circle
+
+    // ── Binary ring: vòng tròn tạo bởi ký tự 0 và 1 xoay quanh ──
     ctx.save();
-    ctx.strokeStyle = "rgba(0,255,255,0.2)";
-    ctx.lineWidth = 1.5; ctx.setLineDash([8, 5]);
-    ctx.beginPath(); ctx.arc(player.x, player.y, skillASensorRadius, 0, Math.PI * 2); ctx.stroke();
+    const R = skillASensorRadius;
+    const charCount = Math.max(60, Math.floor(2 * Math.PI * R / 11));
+    const rotSpeed = now / 6000;
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < charCount; i++) {
+        const angle = (i / charCount) * Math.PI * 2 + rotSpeed;
+        const cx = player.x + Math.cos(angle) * R;
+        const cy = player.y + Math.sin(angle) * R;
+
+        // Xen kẽ 0/1, thay đổi theo thời gian để trông sống động
+        const ch = ((i + Math.floor(now / 800 + i * 0.7)) % 2 === 0) ? '0' : '1';
+
+        // Sóng độ sáng chạy dọc vòng tròn
+        const wave = 0.35 + 0.5 * Math.abs(Math.sin(now / 900 + i * 0.18));
+        ctx.fillStyle = `rgba(0, 230, 255, ${wave})`;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle + Math.PI / 2); // chữ hướng theo tiếp tuyến vòng
+        ctx.fillText(ch, 0, 0);
+        ctx.restore();
+    }
     ctx.restore();
 
     skillAOrbs.forEach(orb => {
@@ -1748,27 +1771,171 @@ function drawSpirit(spirit) {
 
 // ── Blade arc ─────────────────────────────────────────────────
 function drawBladeArcProjectile(arc) {
+    const now = performance.now();
     ctx.save();
     const angle = Math.atan2(arc.vy, arc.vx);
     const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2;
 
-    // outer glow arc
+    // ── LAYER 0: wide energy wash behind the arc ──────────────
+    ctx.strokeStyle = 'rgba(120,255,0,0.12)';
+    ctx.lineWidth = 28;
+    ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
+
+    // outer glow arc (original)
     ctx.strokeStyle = 'rgba(173,255,47,0.3)';
     ctx.lineWidth = 14;
     ctx.shadowColor = 'rgba(150,255,0,0.5)'; ctx.shadowBlur = 10;
     ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
 
-    // main arc
+    // main arc (original)
     ctx.strokeStyle = 'rgba(173,255,47,0.95)';
     ctx.lineWidth = 5;
     ctx.shadowColor = 'white'; ctx.shadowBlur = 18;
     ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
 
-    // bright inner edge
+    // bright inner edge (original)
     ctx.strokeStyle = 'rgba(255,255,220,0.6)';
     ctx.lineWidth = 1.5;
     ctx.shadowBlur = 0;
     ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius - 2, sa, ea); ctx.stroke();
+
+    // ── LAYER 1: Digital pixel squares along the arc ──────────
+    // Scatter small glowing squares that float around the arc path
+    ctx.shadowBlur = 0;
+    const sqCount = 14;
+    for (let i = 0; i < sqCount; i++) {
+        // spread each square across the semicircle
+        const t = i / (sqCount - 1); // 0..1
+        const arcAngle = sa + (ea - sa) * t;
+
+        // alternate between arc surface and slightly off-radius
+        const radOffset = (((i * 37 + Math.floor(now / 120)) % 5) - 2) * 5;
+        const r = arc.radius + radOffset;
+
+        const sx = arc.x + Math.cos(arcAngle) * r;
+        const sy = arc.y + Math.sin(arcAngle) * r;
+
+        // size pulses per square, staggered
+        const sqPhase = now / 180 + i * 0.9;
+        const sqSize = 3 + 2 * Math.abs(Math.sin(sqPhase));
+
+        // flicker opacity
+        const sqAlpha = 0.55 + 0.45 * Math.abs(Math.sin(now / 130 + i * 1.3));
+
+        // color cycles: lime → cyan → white
+        const col = (i % 3 === 0) ? `rgba(0,255,200,${sqAlpha})`
+            : (i % 3 === 1) ? `rgba(173,255,47,${sqAlpha})`
+                : `rgba(220,255,150,${sqAlpha * 0.7})`;
+
+        ctx.fillStyle = col;
+        // rotate each square independently
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(now / 400 + i * 0.7);
+        ctx.fillRect(-sqSize / 2, -sqSize / 2, sqSize, sqSize);
+        // inner bright dot on some squares
+        if (i % 2 === 0) {
+            ctx.fillStyle = `rgba(255,255,255,${sqAlpha * 0.8})`;
+            ctx.fillRect(-1, -1, 2, 2);
+        }
+        ctx.restore();
+    }
+
+    // ── LAYER 2: Lithium-style atom particles ejected from arc ─
+    // These stream outward from the arc face (forward direction)
+    const liCount = 10;
+    for (let i = 0; i < liCount; i++) {
+        // each particle samples a position along the arc
+        const t = (i / liCount + ((now / 600) % 1)) % 1;
+        const arcAngle = sa + (ea - sa) * t;
+
+        // base pos on arc edge
+        const bx = arc.x + Math.cos(arcAngle) * arc.radius;
+        const by = arc.y + Math.sin(arcAngle) * arc.radius;
+
+        // drift outward in the arc's facing direction over time
+        const driftPhase = (now / 500 + i * 0.63) % 1;
+        const driftDist = driftPhase * (arc.radius * 0.55);
+
+        // outward direction = away from arc center
+        const outX = Math.cos(arcAngle) * driftDist;
+        const outY = Math.sin(arcAngle) * driftDist;
+
+        // small lateral wobble
+        const wobble = Math.sin(now / 200 + i * 1.7) * 6;
+        const perpX = -Math.sin(arcAngle) * wobble;
+        const perpY = Math.cos(arcAngle) * wobble;
+
+        const px = bx + outX + perpX;
+        const py = by + outY + perpY;
+
+        // fade out as they drift
+        const pAlpha = (1 - driftPhase) * 0.9;
+        const pSize = 3.5 * (1 - driftPhase * 0.5);
+
+        ctx.save();
+        // lithium-style: small nucleus dot + two orbital rings
+        ctx.globalAlpha = pAlpha;
+
+        // nucleus
+        const nucleusGrad = ctx.createRadialGradient(px, py, 0, px, py, pSize);
+        nucleusGrad.addColorStop(0, '#ffffff');
+        nucleusGrad.addColorStop(0.4, '#aaff44');
+        nucleusGrad.addColorStop(1, 'rgba(0,200,60,0)');
+        ctx.fillStyle = nucleusGrad;
+        ctx.beginPath(); ctx.arc(px, py, pSize, 0, Math.PI * 2); ctx.fill();
+
+        // two tiny orbital rings (ellipses, rotated differently per particle)
+        const orbitR1 = pSize * 2.2;
+        const orbitR2 = pSize * 1.8;
+        const orbitRot1 = now / 350 + i * 1.1;
+        const orbitRot2 = -now / 280 + i * 0.8;
+
+        ctx.strokeStyle = `rgba(100,255,80,${pAlpha * 0.8})`;
+        ctx.lineWidth = 0.8;
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(orbitRot1);
+        ctx.beginPath(); ctx.ellipse(0, 0, orbitR1, orbitR1 * 0.35, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(orbitRot2);
+        ctx.beginPath(); ctx.ellipse(0, 0, orbitR2 * 0.4, orbitR2, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+
+        // tiny electron dot orbiting nucleus
+        const eDot = { r: orbitR1, a: now / 220 + i * 0.5 };
+        ctx.fillStyle = `rgba(200,255,150,${pAlpha})`;
+        ctx.beginPath();
+        ctx.arc(px + Math.cos(eDot.a) * eDot.r, py + Math.sin(eDot.a) * eDot.r * 0.35, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // ── LAYER 3: Edge sparks at arc tips ──────────────────────
+    for (let tip = 0; tip < 2; tip++) {
+        const tipAngle = tip === 0 ? sa : ea;
+        const tx = arc.x + Math.cos(tipAngle) * arc.radius;
+        const ty = arc.y + Math.sin(tipAngle) * arc.radius;
+
+        // 3 short spark lines radiating from each tip
+        for (let s = 0; s < 3; s++) {
+            const sparkAngle = tipAngle + (s - 1) * 0.4 + Math.sin(now / 100 + s) * 0.2;
+            const sparkLen = 6 + 4 * Math.abs(Math.sin(now / 80 + s * 2.1));
+            const sAlpha = 0.5 + 0.5 * Math.abs(Math.sin(now / 90 + s));
+            ctx.strokeStyle = `rgba(200,255,100,${sAlpha})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + Math.cos(sparkAngle) * sparkLen, ty + Math.sin(sparkAngle) * sparkLen);
+            ctx.stroke();
+        }
+    }
+
     ctx.restore();
 }
 
