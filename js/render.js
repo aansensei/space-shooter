@@ -85,61 +85,110 @@ function drawSkillShiftEffects() {
     let leftX = Math.max(player.width / 2 + 10, player.x - dist);
     let rightX = Math.min(canvas.width - player.width / 2 - 10, player.x + dist);
 
-    const pulse = 0.6 + 0.4 * Math.abs(Math.sin(now / 200));
+    // ── TELEPORT DESTINATION PORTALS (left & right) ──────────────
+    function drawPortal(px, py) {
+        const pulse = 0.7 + 0.3 * Math.sin(now / 160);
+        const spinA = now / 700;
+        const spinB = -now / 500;
+        const portalR = 22 + 6 * chargeRatio;
 
+        ctx.save();
+        ctx.translate(px, py);
+
+        // outer ring glow
+        ctx.strokeStyle = `rgba(160,0,255,${0.5 * pulse})`;
+        ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.arc(0, 0, portalR + 8, 0, Math.PI * 2); ctx.stroke();
+
+        // rotating segmented ring A
+        ctx.rotate(spinA);
+        ctx.strokeStyle = `rgba(220,80,255,${0.85 * pulse})`;
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, portalR, a, a + Math.PI / 7);
+            ctx.stroke();
+        }
+
+        // rotating segmented ring B (inner, opposite)
+        ctx.rotate(spinB - spinA);
+        ctx.strokeStyle = `rgba(255,180,255,${0.7 * pulse})`;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2 + 0.3;
+            ctx.beginPath();
+            ctx.arc(0, 0, portalR * 0.65, a, a + Math.PI / 5);
+            ctx.stroke();
+        }
+
+        // void core
+        ctx.rotate(-spinB);
+        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, portalR * 0.55);
+        coreGrad.addColorStop(0, `rgba(255,255,255,${0.9 * pulse})`);
+        coreGrad.addColorStop(0.3, `rgba(200,80,255,${0.8 * pulse})`);
+        coreGrad.addColorStop(0.7, `rgba(60,0,120,0.6)`);
+        coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath(); ctx.arc(0, 0, portalR * 0.55, 0, Math.PI * 2); ctx.fill();
+
+        // space crack lines inside portal
+        ctx.strokeStyle = `rgba(255,200,255,${0.6 * pulse})`;
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 5; i++) {
+            const ca = (i / 5) * Math.PI * 2 + now / 900;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            const cl = portalR * 0.5 * Math.abs(Math.sin(now / 400 + i));
+            ctx.lineTo(Math.cos(ca) * cl, Math.sin(ca) * cl);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    // ── CONNECTOR LINE between portals ────────────────────────────
     ctx.save();
-    ctx.shadowColor = "#df44ff";
-    ctx.shadowBlur = 20;
-    ctx.strokeStyle = `rgba(255,0,255,${pulse})`;
-    ctx.lineWidth = 3;
-    ctx.setLineDash([14, 8]);
-
-    // left arm
-    if (player.x - leftX > 20) {
-        ctx.beginPath();
-        ctx.moveTo(player.x - 25, player.y);
-        ctx.lineTo(leftX + 25, player.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        // arrowhead with glow ring
-        ctx.fillStyle = "#ff00ff";
-        ctx.beginPath();
-        ctx.moveTo(leftX + 25, player.y);
-        ctx.lineTo(leftX + 45, player.y - 12);
-        ctx.lineTo(leftX + 45, player.y + 12);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,180,255,0.5)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.setLineDash([14, 8]);
-    }
-    // right arm
-    if (rightX - player.x > 20) {
-        ctx.beginPath();
-        ctx.moveTo(player.x + 25, player.y);
-        ctx.lineTo(rightX - 25, player.y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = "#ff00ff";
-        ctx.beginPath();
-        ctx.moveTo(rightX - 25, player.y);
-        ctx.lineTo(rightX - 45, player.y - 12);
-        ctx.lineTo(rightX - 45, player.y + 12);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,180,255,0.5)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-    }
+    const connPulse = 0.4 + 0.3 * Math.abs(Math.sin(now / 220));
+    // dashed cursed-energy thread
+    ctx.strokeStyle = `rgba(200,0,255,${connPulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([10, 14]);
+    ctx.lineDashOffset = -(now / 40) % 24;
+    ctx.beginPath();
+    ctx.moveTo(leftX, player.y);
+    ctx.lineTo(rightX, player.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
     ctx.restore();
 
-    // ghost shadows
+    if (player.x - leftX > 30) drawPortal(leftX, player.y);
+    if (rightX - player.x > 30) drawPortal(rightX, player.y);
+
+    // ── GHOST SHADOWS at destinations ─────────────────────────────
     ctx.save();
-    const ghostAlpha = 0.25 + Math.abs(Math.sin(now / 150)) * 0.3;
+    const ghostAlpha = 0.18 + Math.abs(Math.sin(now / 200)) * 0.22;
     ctx.globalAlpha = ghostAlpha;
     drawPlayer(1, leftX - player.x);
     drawPlayer(1, rightX - player.x);
+    ctx.restore();
+
+    // ── CURSED ENERGY PARTICLES streaming along the connector ─────
+    ctx.save();
+    const streamCount = 8;
+    for (let i = 0; i < streamCount; i++) {
+        const t = ((now / 600 + i / streamCount) % 1);
+        const sx = leftX + (rightX - leftX) * t;
+        const sy = player.y + Math.sin(now / 200 + i * 1.2) * 6;
+        const sAlpha = 0.6 * Math.sin(t * Math.PI);
+        const sSize = 2.5 + 1.5 * Math.sin(now / 150 + i);
+        ctx.fillStyle = `rgba(200,80,255,${sAlpha})`;
+        ctx.beginPath(); ctx.arc(sx, sy, sSize, 0, Math.PI * 2); ctx.fill();
+        // bright core dot
+        ctx.fillStyle = `rgba(255,220,255,${sAlpha * 0.8})`;
+        ctx.beginPath(); ctx.arc(sx, sy, sSize * 0.4, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
 }
 
@@ -155,34 +204,434 @@ function draw(deltaTime) {
 
     drawSpaceBackground(deltaTime);
 
-    // Yog-Sothoth domain overlay
+    // ── Yog-Sothoth Domain Expansion (JJK signature) ─────────────
     if (gameState === "playing" && skillShiftActive) {
-        let elapsed = performance.now() - skillShiftChargeStart;
+        const now = performance.now();
+        let elapsed = now - skillShiftChargeStart;
         let maxRadius = Math.hypot(canvas.width, canvas.height);
-        let currentDomainRadius = Math.min(maxRadius, maxRadius * (elapsed / 400));
+        let expandT = Math.min(elapsed / 600, 1);
+        let easeExpand = 1 - Math.pow(1 - expandT, 3);
+        let currentDomainRadius = maxRadius * easeExpand;
+        const domainFull = expandT >= 1;
+        const cx = player.x, cy = player.y;
+        // chargeRatio: 0→1 over skillShiftMaxCharge (3s) — used for energy buildup visuals
+        const chargeRatio = Math.min(elapsed / skillShiftMaxCharge, 1);
 
         ctx.save();
+
+        // ════════════════════════════════════════════════════════════
+        // PHASE A — PRE-EXPANSION: CURSED ENERGY CHARGING VORTEX
+        // Visible the entire time but peaks before domain opens
+        // ════════════════════════════════════════════════════════════
+
+        // A1. DARK AURA GROUND PULSE — circular shockwave rings emanating outward
+        {
+            const ringCount = 4;
+            for (let i = 0; i < ringCount; i++) {
+                const phase = ((now / 900) + i / ringCount) % 1;
+                const ringR = 30 + phase * 220 * (0.4 + chargeRatio * 0.6);
+                const ringA = (1 - phase) * 0.55 * chargeRatio;
+                ctx.strokeStyle = `rgba(120,0,255,${ringA})`;
+                ctx.lineWidth = 3 * (1 - phase);
+                ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI * 2); ctx.stroke();
+            }
+        }
+
+        // A2. SPIRAL ENERGY STREAMS — 6 cursed-energy tendrils spiraling INTO player
+        {
+            const spiralCount = 6;
+            for (let i = 0; i < spiralCount; i++) {
+                const baseAngle = (i / spiralCount) * Math.PI * 2;
+                const spinOffset = now / 500 * (i % 2 === 0 ? 1 : -0.7);
+                ctx.save();
+                ctx.translate(cx, cy);
+
+                const streamLen = 160 + chargeRatio * 180;
+                const steps = 28;
+                ctx.beginPath();
+                for (let s = steps; s >= 0; s--) {
+                    const t = s / steps; // 1 = far, 0 = near player
+                    const dist = t * streamLen;
+                    const spiral = baseAngle + spinOffset + t * 2.8 * (i % 2 === 0 ? 1 : -1);
+                    const px2 = Math.cos(spiral) * dist;
+                    const py2 = Math.sin(spiral) * dist;
+                    s === steps ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
+                }
+                const streamAlpha = (0.4 + chargeRatio * 0.55) * (0.6 + 0.4 * Math.sin(now / 220 + i));
+                ctx.strokeStyle = i % 2 === 0
+                    ? `rgba(180,0,255,${streamAlpha})`
+                    : `rgba(255,80,255,${streamAlpha * 0.8})`;
+                ctx.lineWidth = 1.2 + chargeRatio * 1.5;
+                ctx.stroke();
+
+                // bright core on stream
+                ctx.strokeStyle = `rgba(255,200,255,${streamAlpha * 0.5})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // A3. PARTICLE VORTEX — dozens of cursed sparks sucked inward
+        {
+            const pCount = Math.floor(18 + chargeRatio * 30);
+            for (let i = 0; i < pCount; i++) {
+                // each particle: orbit that shrinks over time (pulled in)
+                const seed = i * 137.508; // golden angle distribution
+                const orbitPhase = ((now / (700 + (i % 5) * 120) + i * 0.19) % 1);
+                const orbitR = 20 + (1 - orbitPhase) * (100 + (i % 7) * 20) * (0.5 + chargeRatio * 0.5);
+                const angle = seed + orbitPhase * Math.PI * 4 * (i % 2 === 0 ? 1 : -1) + now / (800 + i * 30);
+                const px2 = cx + Math.cos(angle) * orbitR;
+                const py2 = cy + Math.sin(angle) * orbitR;
+                const pAlpha = orbitPhase * (0.6 + chargeRatio * 0.4);
+                const pSize = 2 + (1 - orbitPhase) * 2.5;
+                ctx.fillStyle = i % 3 === 0
+                    ? `rgba(255,100,255,${pAlpha})`
+                    : i % 3 === 1
+                        ? `rgba(160,0,255,${pAlpha})`
+                        : `rgba(220,180,255,${pAlpha * 0.7})`;
+                ctx.beginPath(); ctx.arc(px2, py2, pSize, 0, Math.PI * 2); ctx.fill();
+                // tiny white core
+                ctx.fillStyle = `rgba(255,255,255,${pAlpha * 0.6})`;
+                ctx.beginPath(); ctx.arc(px2, py2, pSize * 0.35, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        // A4. EYE OF THE STORM — concentric charged rings tight around player
+        {
+            const ringCount = 3;
+            for (let i = 0; i < ringCount; i++) {
+                const r = (14 + i * 12) + 4 * Math.sin(now / 160 + i * 1.1);
+                const a = (0.5 + chargeRatio * 0.5) * (0.7 - i * 0.15);
+                ctx.strokeStyle = i === 0
+                    ? `rgba(255,255,255,${a})`
+                    : i === 1
+                        ? `rgba(220,100,255,${a})`
+                        : `rgba(120,0,200,${a * 0.7})`;
+                ctx.lineWidth = 3 - i * 0.8;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(now / (600 + i * 300) * (i % 2 === 0 ? 1 : -1));
+                // segmented ring
+                const segs = 6 + i * 2;
+                for (let s = 0; s < segs; s++) {
+                    const sa2 = (s / segs) * Math.PI * 2;
+                    const ea2 = sa2 + Math.PI / (segs * 0.65);
+                    ctx.beginPath(); ctx.arc(0, 0, r, sa2, ea2); ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // PHASE B — DOMAIN VOID FILL + HEX FLOOR
+        // ════════════════════════════════════════════════════════════
+
+        // B1. HEX FLOOR — slowly scrolling to feel alive
+        if (domainFull) {
+            const hexR = 38;
+            const hexW = hexR * Math.sqrt(3);
+            const hexH = hexR * 2;
+            const cols = Math.ceil(canvas.width / hexW) + 2;
+            const rows = Math.ceil(canvas.height / (hexH * 0.75)) + 2;
+            const gridT = Math.min((elapsed - 600) / 500, 1);
+            // scroll offset
+            const scrollX = (now / 6000 * hexW) % hexW;
+            const scrollY = (now / 9000 * hexH * 0.75) % (hexH * 0.75);
+
+            ctx.save();
+            ctx.translate(-scrollX, -scrollY);
+            for (let r = -2; r < rows + 1; r++) {
+                for (let c = -2; c < cols + 1; c++) {
+                    const hx = c * hexW + (r % 2 === 0 ? 0 : hexW * 0.5);
+                    const hy = r * hexH * 0.75;
+                    // distance-based dim from center
+                    const dist = Math.hypot(hx + scrollX - cx, hy + scrollY - cy);
+                    const distAlpha = Math.max(0, 1 - dist / (maxRadius * 0.6));
+                    const pulse = 0.5 + 0.5 * Math.sin(now / 1200 + (hx * 0.02) + (hy * 0.015));
+                    ctx.globalAlpha = gridT * distAlpha * pulse * 0.22;
+                    ctx.strokeStyle = '#8800ff';
+                    ctx.lineWidth = 0.9;
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+                        const px3 = hx + Math.cos(a) * hexR;
+                        const py3 = hy + Math.sin(a) * hexR;
+                        i === 0 ? ctx.moveTo(px3, py3) : ctx.lineTo(px3, py3);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    // occasional hex fill glow
+                    if ((r * 7 + c * 13) % 11 === 0) {
+                        ctx.globalAlpha = gridT * distAlpha * 0.06;
+                        ctx.fillStyle = '#6600ff';
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+
+        // B2. DARK VOID FILL
         ctx.beginPath();
-        ctx.arc(player.x, player.y, currentDomainRadius, 0, Math.PI * 2);
-        // Layered sepia gradient
-        const domGrad = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, currentDomainRadius);
-        domGrad.addColorStop(0, 'rgba(60,25,0,0.55)');
-        domGrad.addColorStop(0.6, 'rgba(40,15,0,0.62)');
-        domGrad.addColorStop(1, 'rgba(20,5,0,0.70)');
+        ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2);
+        const domGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, currentDomainRadius);
+        domGrad.addColorStop(0, 'rgba(15,0,40,0.82)');
+        domGrad.addColorStop(0.4, 'rgba(22,0,55,0.88)');
+        domGrad.addColorStop(0.75, 'rgba(35,0,75,0.92)');
+        domGrad.addColorStop(1, 'rgba(5,0,20,0.96)');
         ctx.fillStyle = domGrad;
         ctx.fill();
 
-        if (currentDomainRadius < maxRadius) {
-            ctx.lineWidth = 12;
-            ctx.strokeStyle = "rgba(255,100,30,0.9)";
-            ctx.shadowColor = "#ff6010";
-            ctx.shadowBlur = 35;
-            ctx.stroke();
-            // inner glow ring
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = "rgba(255,220,100,0.4)";
-            ctx.stroke();
+        // B2b. PURPLE TINT OVERLAY — flat screen-wide purple wash inside domain
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.fillStyle = 'rgba(80,0,160,0.22)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
+        // ════════════════════════════════════════════════════════════
+        // PHASE C — BOUNDARY, CRACKS, RAYS, RUNES (full domain)
+        // ════════════════════════════════════════════════════════════
+
+        // C1. BOUNDARY RING
+        if (!domainFull) {
+            // --- expanding shockwave wall ---
+            ctx.lineWidth = 16;
+            ctx.strokeStyle = 'rgba(160,0,255,0.95)';
+            ctx.shadowColor = '#df00ff'; ctx.shadowBlur = 50;
+            ctx.beginPath(); ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2); ctx.stroke();
+
+            if (currentDomainRadius > 10) {
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = 'rgba(255,180,255,0.75)';
+                ctx.shadowBlur = 22;
+                ctx.beginPath(); ctx.arc(cx, cy, Math.max(1, currentDomainRadius - 7), 0, Math.PI * 2); ctx.stroke();
+            }
+
+            // trailing shockwave ring
+            const shockR = currentDomainRadius + 12 * (1 - expandT);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = `rgba(255,255,255,${(1 - expandT) * 0.95})`;
+            ctx.shadowBlur = 12;
+            if (shockR > 0) { ctx.beginPath(); ctx.arc(cx, cy, shockR, 0, Math.PI * 2); ctx.stroke(); }
+
+            // second inner ring
+            const innerR = currentDomainRadius * 0.85;
+            if (innerR > 1) {
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = `rgba(200,100,255,${(1 - expandT) * 0.6})`;
+                ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(cx, cy, innerR, 0, Math.PI * 2); ctx.stroke();
+            }
+        } else {
+            // --- stable domain wall: two counter-rotating segmented rings ---
+            const wallPulse = 0.6 + 0.4 * Math.sin(now / 280);
+            // outer slow ring
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(now / 8000);
+            const wallSegs = 24;
+            for (let i = 0; i < wallSegs; i++) {
+                const wa = (i / wallSegs) * Math.PI * 2;
+                const wa2 = wa + Math.PI / (wallSegs * 0.6);
+                ctx.strokeStyle = `rgba(140,0,240,${wallPulse * 0.8})`;
+                ctx.lineWidth = 8;
+                ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 18;
+                ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.998, wa, wa2); ctx.stroke();
+            }
+            // inner fast ring opposite direction
+            ctx.rotate(-now / 3500);
+            for (let i = 0; i < 12; i++) {
+                const wa = (i / 12) * Math.PI * 2 + 0.13;
+                const wa2 = wa + Math.PI / 9;
+                ctx.strokeStyle = `rgba(220,80,255,${wallPulse * 0.45})`;
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 8;
+                ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.992, wa, wa2); ctx.stroke();
+            }
+            ctx.restore();
         }
+        ctx.shadowBlur = 0;
+
+        // C2. SPACE CRACKS from origin
+        {
+            const crackCount = 16;
+            const crackAlpha = Math.min(elapsed / 280, 1);
+            for (let i = 0; i < crackCount; i++) {
+                const baseAngle = (i / crackCount) * Math.PI * 2 + (i % 2) * 0.12;
+                const crackLen = (50 + (i % 4) * 35 + (i % 6) * 18) * crackAlpha;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(baseAngle);
+                ctx.strokeStyle = `rgba(180,0,255,${0.9 * crackAlpha})`;
+                ctx.lineWidth = 1.2 + (i % 4) * 0.45;
+                ctx.beginPath(); ctx.moveTo(0, 0);
+                let lx = 0, ly = 0;
+                const segments = 4 + (i % 3);
+                for (let s = 0; s < segments; s++) {
+                    const segLen = crackLen / segments;
+                    const fork = ((s % 2 === 0) ? 0.28 : -0.22) * (1 + (i % 3) * 0.2);
+                    lx += Math.cos(fork) * segLen;
+                    ly += Math.sin(fork) * segLen * 0.55;
+                    ctx.lineTo(lx, ly);
+                    // branch crack on some segments
+                    if (s === 2 && i % 3 === 0) {
+                        ctx.save();
+                        ctx.moveTo(lx, ly);
+                        ctx.lineTo(lx + Math.cos(fork + 0.6) * segLen * 0.5, ly + Math.sin(fork + 0.6) * segLen * 0.3);
+                        ctx.stroke();
+                        ctx.restore();
+                        ctx.beginPath(); ctx.moveTo(lx, ly);
+                    }
+                }
+                ctx.stroke();
+                // bright core on crack
+                ctx.strokeStyle = `rgba(240,210,255,${0.55 * crackAlpha})`;
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // C3. SWEEPING VOID RAYS from center (rotate slowly)
+        {
+            const rayAlpha = domainFull ? Math.min((elapsed - 600) / 350, 1) * 0.6 : 0;
+            if (rayAlpha > 0) {
+                const rayCount = 12;
+                for (let i = 0; i < rayCount; i++) {
+                    const ra = (i / rayCount) * Math.PI * 2 + now / 5500 * (i % 2 === 0 ? 1 : -0.6);
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(ra);
+                    const rayGrad = ctx.createLinearGradient(0, 0, maxRadius, 0);
+                    const isMain = i % 3 === 0;
+                    rayGrad.addColorStop(0, `rgba(200,0,255,${rayAlpha * (isMain ? 1 : 0.5)})`);
+                    rayGrad.addColorStop(0.25, `rgba(120,0,200,${rayAlpha * 0.4})`);
+                    rayGrad.addColorStop(1, 'rgba(30,0,80,0)');
+                    ctx.fillStyle = rayGrad;
+                    const beamW = isMain
+                        ? 10 + 6 * Math.abs(Math.sin(now / 500 + i))
+                        : 3 + 2 * Math.abs(Math.sin(now / 700 + i));
+                    ctx.globalAlpha = rayAlpha;
+                    ctx.fillRect(0, -beamW / 2, maxRadius, beamW);
+                    ctx.restore();
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // C4. ORBITING CURSED RUNE RINGS (3 orbits, different speeds/dirs)
+        {
+            const runeAlpha = Math.min(elapsed / 450, 1);
+            const runes = ['∞', '✦', '⬡', '卍', '∑', '⌬', '⊗', '◈', 'Ω', '⚡', '꩜', '⌖'];
+            [[70, 4, 1], [130, 5, -0.65], [200, 7, 0.4]].forEach(([orbitR, count, dir], oi) => {
+                const rotSpeed = dir * (now / (2200 + oi * 500));
+                for (let i = 0; i < count; i++) {
+                    const ra = (i / count) * Math.PI * 2 + rotSpeed;
+                    const rx = cx + Math.cos(ra) * orbitR;
+                    const ry = cy + Math.sin(ra) * orbitR;
+                    const flicker = 0.55 + 0.45 * Math.sin(now / 250 + i * 1.9 + oi * 2.3);
+                    ctx.save();
+                    ctx.globalAlpha = runeAlpha * flicker;
+                    ctx.translate(rx, ry);
+                    ctx.rotate(ra + Math.PI / 2 + now / 1200 * dir);
+                    const fSize = 11 + oi * 4;
+                    ctx.font = `bold ${fSize}px monospace`;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillStyle = oi === 0 ? '#dd55ff' : oi === 1 ? '#ff44ee' : '#9900ff';
+                    ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 10;
+                    ctx.fillText(runes[(i + oi * 4) % runes.length], 0, 0);
+                    // trailing ghost rune
+                    ctx.globalAlpha *= 0.25;
+                    ctx.translate(-Math.cos(ra) * 8, -Math.sin(ra) * 8);
+                    ctx.fillText(runes[(i + oi * 4) % runes.length], 0, 0);
+                    ctx.restore();
+                }
+            });
+        }
+
+        // C5. LIGHTNING VEINS — random lightning that re-draws each frame inside domain
+        if (domainFull) {
+            const veinAlpha = Math.min((elapsed - 600) / 600, 1) * 0.7;
+            const veinCount = 5;
+            for (let i = 0; i < veinCount; i++) {
+                // each vein: from player outward to a semi-random far point
+                const seed = Math.floor(now / 180 + i * 7); // re-seeds every 180ms
+                const ang = ((seed * 137.5 + i * 60) % 360) * Math.PI / 180;
+                const len = 150 + (seed % 5) * 80;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(ang);
+                ctx.strokeStyle = `rgba(200,100,255,${veinAlpha * (0.5 + 0.5 * (i % 2))})`;
+                ctx.lineWidth = 1 + (i % 3) * 0.5;
+                ctx.beginPath(); ctx.moveTo(0, 0);
+                let vx = 0, vy = 0;
+                const vsegs = 6;
+                for (let s = 0; s < vsegs; s++) {
+                    vx += len / vsegs + (((seed * (s + 1) * 13) % 20) - 10);
+                    vy += (((seed * (s + 3) * 17 + i) % 24) - 12) * 0.6;
+                    ctx.lineTo(vx, vy);
+                }
+                ctx.stroke();
+                // bright white core
+                ctx.strokeStyle = `rgba(255,240,255,${veinAlpha * 0.35})`;
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // C6. DOMAIN TITLE TEXT — "領域展開" fades in briefly
+        {
+            const textT = Math.min(elapsed / 250, 1) * Math.max(0, 1 - (elapsed - 250) / 600);
+            if (textT > 0.02) {
+                ctx.save();
+                ctx.globalAlpha = textT * 0.75;
+                ctx.font = 'bold 28px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 20;
+                ctx.fillText('YOG-SOTHOTH', cx, cy - 70);
+                ctx.font = 'italic 13px monospace';
+                ctx.fillStyle = '#dd88ff';
+                ctx.shadowBlur = 8;
+                ctx.fillText('Cursed Domain Expansion', cx, cy - 46);
+                ctx.restore();
+            }
+        }
+
+        // C7. CORE BURST at player — grows and pulses
+        {
+            const coreSize = 22 + 10 * Math.sin(now / 160);
+            const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreSize * 2.2);
+            coreGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+            coreGrad.addColorStop(0.15, 'rgba(240,180,255,0.85)');
+            coreGrad.addColorStop(0.4, 'rgba(160,0,255,0.55)');
+            coreGrad.addColorStop(0.75, 'rgba(60,0,120,0.25)');
+            coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = coreGrad;
+            ctx.globalAlpha = Math.min(elapsed / 200, 1);
+            ctx.beginPath(); ctx.arc(cx, cy, coreSize * 2.2, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // four diagonal energy spikes from core
+            const spikeLen = 18 + chargeRatio * 22;
+            for (let i = 0; i < 4; i++) {
+                const sa2 = Math.PI / 4 + i * Math.PI / 2 + now / 1800;
+                ctx.strokeStyle = `rgba(220,120,255,${0.7 * Math.min(elapsed / 200, 1)})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(sa2) * spikeLen, cy + Math.sin(sa2) * spikeLen);
+                ctx.stroke();
+            }
+        }
+
         ctx.restore();
     }
 
@@ -652,6 +1101,17 @@ function drawSentinel(sentinel) {
         ctx.fill(); ctx.stroke();
         ctx.restore();
     }
+
+    // ── Domain purple ally tint ──
+    if (skillShiftActive) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(140,0,255,0.28)';
+        ctx.beginPath(); ctx.arc(x, y, size * 1.15, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(200,80,255,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, size * 1.2, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+    }
 }
 
 // ── Bullets (no shadowBlur – use gradient layers for depth) ──
@@ -1041,10 +1501,20 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.beginPath(); ctx.arc(0, -36, 1.5, 0, Math.PI * 2); ctx.fill();
     }
 
+    // ── Domain purple ally tint on player ──
+    if (skillShiftActive && alpha === 1) {
+        ctx.fillStyle = 'rgba(120,0,220,0.30)';
+        ctx.beginPath();
+        ctx.moveTo(0, -28); ctx.lineTo(24, 12); ctx.lineTo(24, 20);
+        ctx.lineTo(10, 16); ctx.lineTo(-10, 16); ctx.lineTo(-24, 20);
+        ctx.lineTo(-24, 12); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(180,60,255,0.65)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
     ctx.restore();
 }
-
-// ── Polygon helper (boss/thaelis) ─────────────────────────────
 function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
     ctx.save();
     const grad = ctx.createRadialGradient(x, y, radius * 0.15, x, y, radius);
@@ -1167,22 +1637,82 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // Yog-Sothoth domain red outline
+    // Yog-Sothoth domain TARGET LOCK effect
     if (skillShiftActive) {
-        let elapsed = performance.now() - skillShiftChargeStart;
+        const now = performance.now();
+        let elapsed = now - skillShiftChargeStart;
         let maxRadius = Math.hypot(canvas.width, canvas.height);
-        let domR = Math.min(maxRadius, maxRadius * (elapsed / 400));
+        let domR = Math.min(maxRadius, maxRadius * (elapsed / 600));
         if (Math.hypot(enemy.x - player.x, enemy.y - player.y) <= domR) {
+            const er = (enemy.size || 20) + 6;
+            const pulse = 0.6 + 0.4 * Math.sin(now / 120 + enemy.x * 0.05);
+            const lockIn = Math.min(elapsed / 400, 1); // fade-in
+
             ctx.save();
-            ctx.shadowColor = "#ff0044"; ctx.shadowBlur = 22;
-            ctx.strokeStyle = "rgba(255,40,40,0.95)"; ctx.lineWidth = 2.5;
+            ctx.globalAlpha = lockIn;
+
+            // 1. Red scan fill
+            ctx.fillStyle = `rgba(255,20,20,${0.08 * pulse})`;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er * 1.3, 0, Math.PI * 2); ctx.fill();
+
+            // 2. Outer rotating dashed ring
+            ctx.save();
+            ctx.translate(enemy.x, enemy.y);
+            ctx.rotate(now / 800);
+            ctx.strokeStyle = `rgba(255,60,60,${0.85 * pulse})`;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath(); ctx.arc(0, 0, er + 6, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // 3. Inner solid ring
+            ctx.strokeStyle = `rgba(255,40,40,${0.95})`;
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 16;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 4. Four corner brackets (crosshair corners)
+            const bSize = er * 0.55;
+            const bGap = er * 0.35;
+            const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+            ctx.strokeStyle = `rgba(255,80,80,${0.9 * pulse})`;
+            ctx.lineWidth = 2;
+            corners.forEach(([dx, dy]) => {
+                const bx = enemy.x + dx * (er + bGap * 0.5);
+                const by = enemy.y + dy * (er + bGap * 0.5);
+                ctx.beginPath();
+                ctx.moveTo(bx, by - dy * bSize * 0.5);
+                ctx.lineTo(bx, by);
+                ctx.lineTo(bx - dx * bSize * 0.5, by);
+                ctx.stroke();
+            });
+
+            // 5. Center crosshair dot
+            ctx.fillStyle = `rgba(255,100,100,${pulse})`;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, 3, 0, Math.PI * 2); ctx.fill();
+
+            // 6. Horizontal + vertical scan lines (thin)
+            ctx.strokeStyle = `rgba(255,30,30,${0.3 * pulse})`;
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            if (enemy.type === 'embryo') {
-                ctx.ellipse(enemy.x, enemy.y, enemy.size + 4, enemy.size + 8, 0, 0, Math.PI * 2);
-            } else {
-                ctx.arc(enemy.x, enemy.y, enemy.size + 4, 0, Math.PI * 2);
-            }
+            ctx.moveTo(enemy.x - er * 1.5, enemy.y);
+            ctx.lineTo(enemy.x + er * 1.5, enemy.y);
+            ctx.moveTo(enemy.x, enemy.y - er * 1.5);
+            ctx.lineTo(enemy.x, enemy.y + er * 1.5);
             ctx.stroke();
+
+            // 7. LOCKED label above enemy
+            if (elapsed > 500) {
+                const textAlpha = Math.min((elapsed - 500) / 200, 1) * (0.7 + 0.3 * pulse);
+                ctx.fillStyle = `rgba(255,80,80,${textAlpha})`;
+                ctx.font = 'bold 9px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('LOCKED', enemy.x, enemy.y - er - 8);
+            }
+
             ctx.restore();
         }
     }
@@ -1766,6 +2296,18 @@ function drawSpirit(spirit) {
         ctx.closePath(); ctx.fill();
         ctx.shadowBlur = 0;
     }
+
+    // ── Domain purple ally tint ──
+    if (skillShiftActive) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(140,0,255,0.32)';
+        ctx.beginPath(); ctx.arc(spirit.x, spirit.y, size * 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(220,100,255,0.75)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(spirit.x, spirit.y, size * 1.3, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+    }
+
     ctx.restore();
 }
 
@@ -1984,69 +2526,215 @@ function drawBlackHole() {
 // ── Skill F – Annihilation Sweep ──────────────────────────────
 function drawSkillF() {
     const now = performance.now();
-    ctx.save();
-    ctx.translate(player.x, player.y);
     const radius = Math.max(canvas.width, canvas.height);
 
+    // ── CHARGING phase ────────────────────────────────────────────
     if (skillFState === "charging") {
-        let p = (now - skillFChargeStart) / 1500;
-        // concentric charging circles
+        const p = Math.min((now - skillFChargeStart) / 1500, 1);
+
+        // --- half-plane glow (charging side preview) ---
+        ctx.save();
+        ctx.translate(player.x, player.y);
         for (let i = 3; i >= 1; i--) {
             const r = player.width * (i * 2) * p;
             ctx.fillStyle = `rgba(0,255,255,${(0.05 + p * 0.08) / i})`;
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
         }
-        ctx.fillStyle = `rgba(0,255,255,${0.1 + p * 0.2})`;
+        ctx.fillStyle = `rgba(0,255,255,${0.08 + p * 0.14})`;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, -Math.PI, 0); ctx.closePath(); ctx.fill();
-        // charge energy tendrils
-        ctx.strokeStyle = `rgba(100,255,255,${p * 0.5})`;
-        ctx.lineWidth = 1;
         for (let i = 0; i < 8; i++) {
             const a = (i / 8) * Math.PI - Math.PI / 2;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
+            ctx.strokeStyle = `rgba(100,255,255,${p * 0.45})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(0, 0);
             ctx.lineTo(Math.cos(a) * radius * p * 0.6, Math.sin(a) * radius * p * 0.6);
             ctx.stroke();
         }
+        ctx.restore();
+
+        // --- TARGET LOCK on every enemy ---
+        ctx.save();
+        enemies.forEach(enemy => {
+            const er = (enemy.size || 20) + 5;
+            const pulse = 0.55 + 0.45 * Math.sin(now / 100 + enemy.x * 0.08);
+            const lockIn = Math.min(p * 2, 1);
+            ctx.save();
+            ctx.globalAlpha = lockIn;
+
+            // scan fill
+            ctx.fillStyle = `rgba(0,255,200,${0.07 * pulse})`;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er * 1.4, 0, Math.PI * 2); ctx.fill();
+
+            // outer rotating dashed ring
+            ctx.save();
+            ctx.translate(enemy.x, enemy.y); ctx.rotate(-now / 350);
+            ctx.strokeStyle = `rgba(0,220,255,${0.7 * pulse})`;
+            ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
+            ctx.beginPath(); ctx.arc(0, 0, er + 8, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]); ctx.restore();
+
+            // inner solid ring
+            ctx.strokeStyle = 'rgba(0,255,220,0.9)';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'cyan'; ctx.shadowBlur = 14;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // corner brackets
+            const bSize = er * 0.5, bGap = er * 0.3;
+            [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
+                const bx = enemy.x + dx * (er + bGap * 0.4);
+                const by = enemy.y + dy * (er + bGap * 0.4);
+                ctx.strokeStyle = `rgba(100,255,240,${0.9 * pulse})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(bx, by - dy * bSize * 0.5); ctx.lineTo(bx, by);
+                ctx.lineTo(bx - dx * bSize * 0.5, by); ctx.stroke();
+            });
+
+            // crosshair lines
+            ctx.strokeStyle = `rgba(0,255,200,${0.22 * pulse})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(enemy.x - er * 1.6, enemy.y); ctx.lineTo(enemy.x + er * 1.6, enemy.y);
+            ctx.moveTo(enemy.x, enemy.y - er * 1.6); ctx.lineTo(enemy.x, enemy.y + er * 1.6);
+            ctx.stroke();
+
+            // dashed line from player to enemy
+            if (p > 0.5) {
+                ctx.strokeStyle = `rgba(0,200,255,${(p - 0.5) * 0.5 * pulse})`;
+                ctx.lineWidth = 0.8; ctx.setLineDash([6, 10]);
+                ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(enemy.x, enemy.y); ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // TARGET label
+            if (p > 0.6) {
+                ctx.fillStyle = `rgba(0,255,220,${Math.min((p - 0.6) * 5, 1) * (0.7 + 0.3 * pulse)})`;
+                ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText('TARGET', enemy.x, enemy.y - er - 6);
+            }
+            ctx.restore();
+        });
+        ctx.restore();
+        return;
     }
 
+    // ── SWEEPING phase ────────────────────────────────────────────
     if (skillFState === "sweeping") {
-        let sp = (now - skillFSweepStart) / skillFSweepDuration;
-        let currentAngle = -Math.PI + Math.PI * sp;
+        const sp = (now - skillFSweepStart) / skillFSweepDuration;
+        const currentAngle = -Math.PI + Math.PI * sp;
 
+        // --- MATRIX RAIN inside the swept area ---
         ctx.save();
+        // clip to the already-swept cone sector
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y);
+        ctx.arc(player.x, player.y, radius, -Math.PI, currentAngle);
+        ctx.closePath();
+        ctx.clip();
+
+        // matrix digital rain columns
+        const colW = 18;
+        const cols = Math.ceil(canvas.width / colW) + 1;
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        for (let c = 0; c < cols; c++) {
+            const cx2 = c * colW;
+            const dropCount = 4 + (c % 3);
+            for (let d = 0; d < dropCount; d++) {
+                const charT = ((now / (120 + c * 7) + d * 0.28 + c * 0.11) % 1);
+                const cy2 = charT * canvas.height;
+                const ch = String.fromCharCode(0x30A0 + ((Math.floor(now / 90) + c * 3 + d * 7) % 96));
+                const bright = d === 0 ? 1 : 0.35 + 0.3 * Math.sin(charT * Math.PI);
+                ctx.fillStyle = d === 0
+                    ? `rgba(200,255,220,${bright * 0.9})`
+                    : `rgba(0,220,80,${bright * 0.55})`;
+                ctx.fillText(ch, cx2, cy2);
+            }
+        }
+        ctx.restore();
+
+        // --- SWEEP BLADE ---
+        ctx.save();
+        ctx.translate(player.x, player.y);
         ctx.rotate(currentAngle);
 
         // wide outer glow cone
-        ctx.fillStyle = "rgba(0,255,255,0.12)";
+        ctx.fillStyle = 'rgba(0,255,255,0.12)';
         ctx.shadowColor = 'cyan'; ctx.shadowBlur = 40;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -60); ctx.lineTo(radius, 60);
         ctx.closePath(); ctx.fill();
 
         // bright solid blade
-        ctx.fillStyle = "white";
-        ctx.shadowColor = "cyan"; ctx.shadowBlur = 50;
+        ctx.fillStyle = 'white';
+        ctx.shadowColor = 'cyan'; ctx.shadowBlur = 50;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -12); ctx.lineTo(radius, 12);
         ctx.closePath(); ctx.fill();
 
         // cyan flanks
-        ctx.fillStyle = "rgba(0,255,255,0.65)";
+        ctx.fillStyle = 'rgba(0,255,255,0.65)';
         ctx.shadowBlur = 25;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -42); ctx.lineTo(radius, 42);
         ctx.closePath(); ctx.fill();
 
         // jitter streak
-        ctx.strokeStyle = "rgba(255,255,255,0.85)";
-        ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(radius, (Math.random() - 0.5) * 18);
-        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.5; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(radius, (Math.random() - 0.5) * 18); ctx.stroke();
+
+        // blade edge particle sparks
+        for (let i = 0; i < 6; i++) {
+            const dist = 40 + Math.random() * (radius - 60);
+            const off = (Math.random() - 0.5) * 30;
+            ctx.fillStyle = `rgba(180,255,255,${0.4 + Math.random() * 0.5})`;
+            ctx.beginPath(); ctx.arc(dist, off, 1.5 + Math.random() * 2, 0, Math.PI * 2); ctx.fill();
+        }
 
         ctx.restore();
+
+        // --- MATRIX SCAN LINES on swept area overlay ---
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y);
+        ctx.arc(player.x, player.y, radius, -Math.PI, currentAngle);
+        ctx.closePath();
+        ctx.clip();
+        const scanLine = (now / 3) % canvas.height;
+        ctx.fillStyle = 'rgba(0,255,120,0.06)';
+        ctx.fillRect(0, scanLine, canvas.width, 3);
+        ctx.fillRect(0, scanLine - canvas.height * 0.5, canvas.width, 2);
+        ctx.restore();
+
+        // --- HEX GRID overlay in swept area ---
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y);
+        ctx.arc(player.x, player.y, radius, -Math.PI, currentAngle);
+        ctx.closePath();
+        ctx.clip();
+        const hR = 28;
+        const hW = hR * Math.sqrt(3), hH = hR * 2;
+        ctx.strokeStyle = 'rgba(0,200,100,0.12)';
+        ctx.lineWidth = 0.8;
+        const hCols = Math.ceil(canvas.width / hW) + 2;
+        const hRows = Math.ceil(canvas.height / (hH * 0.75)) + 2;
+        for (let r = -1; r < hRows; r++) {
+            for (let c = -1; c < hCols; c++) {
+                const hx = c * hW + (r % 2 === 0 ? 0 : hW * 0.5);
+                const hy = r * hH * 0.75;
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+                    i === 0 ? ctx.moveTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR)
+                        : ctx.lineTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR);
+                }
+                ctx.closePath(); ctx.stroke();
+            }
+        }
+        ctx.restore();
     }
-    ctx.restore();
 }
 
 // ── Skill G barrier ───────────────────────────────────────────
