@@ -130,6 +130,38 @@
             /* Sẽ được điều khiển bằng JS */
         }
     </style>
+    <script>
+        // ── BẢO VỆ CODE — Lớp 1 ──────────────────────────────────
+        (function () {
+            // 1. Chặn chuột phải
+            document.addEventListener('contextmenu', e => e.preventDefault());
+
+            // 2. Chặn phím tắt soi code
+            document.addEventListener('keydown', e => {
+                const ctrl = e.ctrlKey || e.metaKey;
+                const shift = e.shiftKey;
+
+                if (e.key === 'F12') { e.preventDefault(); return; }
+                if (ctrl && e.key.toLowerCase() === 'u') { e.preventDefault(); return; } // View Source
+                if (ctrl && shift && e.key === 'I') { e.preventDefault(); return; } // DevTools
+                if (ctrl && shift && e.key === 'J') { e.preventDefault(); return; } // Console
+                if (ctrl && shift && e.key === 'C') { e.preventDefault(); return; } // Inspector
+                if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); return; } // Save page
+            });
+
+            // 3. Phát hiện DevTools mở (trick resize)
+            const threshold = 160;
+            setInterval(() => {
+                if (
+                    window.outerWidth - window.innerWidth > threshold ||
+                    window.outerHeight - window.innerHeight > threshold
+                ) {
+                    document.body.innerHTML = '';
+                    window.location.reload();
+                }
+            }, 1000);
+        })();
+    </script>
 </head>
 
 <body>
