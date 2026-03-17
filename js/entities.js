@@ -60,58 +60,104 @@ function fireChargedBullet(multiplier) {
 }
 
 function spawnEnemy() {
-    const rand = Math.random();
-    let hasAegis = enemies.some(e => e.type === 'aegis_core');
+    const now = performance.now();
+    const elapsedSec = (now - gameStartTime) / 1000;
 
-    if (rand < 0.03) {
-        const baseSize = (20 + Math.random() * 10);
-        const size = baseSize * 10;
-        let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15;
-        hp *= 1.05;
-        enemies.push({
-            x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
-            speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
-            isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'boss', shootTimer: (autoFireInterval * 2) * 0.75,
-            demonGift70Triggered: false, demonGift50Triggered: false, demonGift40Triggered: false, demonGift10Triggered: false, demonGift1Triggered: false
-        });
-    } else if (rand < 0.29) {
-        const baseSize = (20 + Math.random() * 10);
-        const size = baseSize * 5;
-        const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
-        let hp = Math.min(680, 300 + hpFromTime * 12);
-        enemies.push({
-            x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
-            speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
-            hp: hp, maxHp: hp,
-            isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'thaelis', shootTimer: 1000, reincarnated: false
-        });
-    } else if (rand < 0.49 && !hasAegis) {
-        const baseSize = (20 + Math.random() * 10);
-        const size = ((baseSize * 5) / 2) * 0.7;
-        const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
-        let hp = Math.min(750, 400 + hpFromTime * 15);
+    // ── Elite counts ──
+    const dargruelCount = enemies.filter(e => e.type === 'boss').length;
+    const thaelisCount = enemies.filter(e => e.type === 'thaelis').length;
+    const aegisCount = enemies.filter(e => e.type === 'aegis_core').length;
+    const totalElite = dargruelCount + thaelisCount + aegisCount;
 
-        enemies.push({
-            x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
-            speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
-            isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'aegis_core', shootTimer: 0,
-            aegisInvulnerable: true, aegisShieldReceived: false
-        });
-    } else {
-        const size = 20 + Math.random() * 10;
-        const hpFromTime = Math.floor((performance.now() - gameStartTime) / 15000);
-        let hp = Math.min(60, (Math.floor(Math.random() * 5) + 1 + hpFromTime));
-        hp *= 1.05;
-        enemies.push({
-            x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
-            speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
-            isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-            type: 'normal', shootTimer: 1000
-        });
+    // Before 30s: only normal enemies
+    if (elapsedSec < 30) {
+        spawnNormalEnemy();
+        return;
     }
+
+    // ── Time-scaled rates: ramp from 30s → 4min then hold ──
+    const t = Math.min(1, (elapsedSec - 30) / 210); // 0→1 over 3.5min
+
+    const dargruelRate = 0.04 + t * 0.09;  // 4% → 13%
+    const aegisRate = 0.06 + t * 0.08;  // 6% → 14%
+    const thaelisRate = 0.12 + t * 0.13;  // 12% → 25%
+
+    // ── Hard caps per type & total elite ──
+    const canSpawnDargruel = dargruelCount < 2 && totalElite < 6;
+    const canSpawnAegis = aegisCount < 2 && totalElite < 6;
+    const canSpawnThaelis = thaelisCount < 3 && totalElite < 6;
+
+    // ── Roll ──
+    const rand = Math.random();
+    let cursor = 0;
+
+    if (canSpawnDargruel && rand < (cursor += dargruelRate)) {
+        spawnDargruel(); return;
+    }
+    if (canSpawnAegis && rand < (cursor += aegisRate)) {
+        spawnAegisCore(); return;
+    }
+    if (canSpawnThaelis && rand < (cursor += thaelisRate)) {
+        spawnThaelis(); return;
+    }
+
+    spawnNormalEnemy();
+}
+
+function spawnDargruel() {
+    const baseSize = (20 + Math.random() * 10);
+    const size = baseSize * 10;
+    let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15;
+    hp *= 1.05;
+    enemies.push({
+        x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
+        speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+        type: 'boss', shootTimer: (autoFireInterval * 2) * 0.75,
+        demonGift70Triggered: false, demonGift50Triggered: false,
+        demonGift40Triggered: false, demonGift10Triggered: false, demonGift1Triggered: false
+    });
+}
+
+function spawnThaelis() {
+    const baseSize = (20 + Math.random() * 10);
+    const size = baseSize * 5;
+    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+    let hp = Math.min(680, 300 + hpFromTime * 12);
+    enemies.push({
+        x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
+        speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
+        hp: hp, maxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+        type: 'thaelis', shootTimer: 1000, reincarnated: false
+    });
+}
+
+function spawnAegisCore() {
+    const baseSize = (20 + Math.random() * 10);
+    const size = ((baseSize * 5) / 2) * 0.7;
+    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+    let hp = Math.min(750, 400 + hpFromTime * 15);
+    enemies.push({
+        x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
+        speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+        type: 'aegis_core', shootTimer: 0,
+        aegisInvulnerable: true, aegisShieldReceived: false
+    });
+}
+
+function spawnNormalEnemy() {
+    const size = 20 + Math.random() * 10;
+    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 15000);
+    let hp = Math.min(60, (Math.floor(Math.random() * 5) + 1 + hpFromTime));
+    hp *= 1.05;
+    enemies.push({
+        x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
+        speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+        type: 'normal', shootTimer: 1000
+    });
 }
 
 function createAegisTelegraph(startX, startY, target) {
