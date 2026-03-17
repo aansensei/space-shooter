@@ -590,17 +590,31 @@ function draw(deltaTime) {
             const textT = Math.min(elapsed / 250, 1) * Math.max(0, 1 - (elapsed - 250) / 600);
             if (textT > 0.02) {
                 ctx.save();
-                ctx.globalAlpha = textT * 0.75;
-                ctx.font = 'bold 28px serif';
+
+                // ── BIG KANJI BEHIND (mờ, to, đỏ tím) ──
+                ctx.globalAlpha = textT * 0.38;
+                ctx.font = 'bold 130px serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#cc44ff';
+                ctx.shadowColor = '#8800cc'; ctx.shadowBlur = 40;
+                ctx.fillText('律域展開', cx, cy - 30);
+
+                // ── EN TITLE FRONT (sắc nét, sáng) ──
+                ctx.globalAlpha = textT * 0.92;
+                ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 22;
+
+                // tên lớn
+                ctx.font = 'bold 32px "Arial Black", sans-serif';
                 ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 20;
-                ctx.fillText('YOG-SOTHOTH', cx, cy - 70);
-                ctx.font = 'italic 13px monospace';
+                ctx.fillText('YOG-SOTHOTH', cx, cy - 72);
+
+                // subtitle nhỏ
+                ctx.font = 'italic 14px monospace';
                 ctx.fillStyle = '#dd88ff';
-                ctx.shadowBlur = 8;
-                ctx.fillText('Cursed Domain Expansion', cx, cy - 46);
+                ctx.shadowBlur = 10;
+                ctx.fillText('— Cursed Domain Expansion —', cx, cy - 46);
+
                 ctx.restore();
             }
         }
@@ -2652,6 +2666,36 @@ function drawSkillF() {
             ctx.restore();
         });
         ctx.restore();
+
+        // ── ANNIHILATION TITLE — xuất hiện khi đang tụ lực ──────
+        {
+            const textT = Math.min(p / 0.4, 1); // fade in trong 40% đầu charge
+            if (textT > 0.02) {
+                ctx.save();
+                // kanji lớn mờ phía sau
+                ctx.globalAlpha = textT * 0.28;
+                ctx.font = 'bold 120px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#00ffff';
+                ctx.shadowColor = '#00aacc'; ctx.shadowBlur = 40;
+                ctx.fillText('殲滅掃射', player.x, player.y - 80);
+
+                // EN title phía trước
+                ctx.globalAlpha = textT * 0.9;
+                ctx.font = 'bold 34px "Arial Black", sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'cyan'; ctx.shadowBlur = 24;
+                ctx.fillText('ANNIHILATION', player.x, player.y - 120);
+
+                ctx.font = 'italic 13px monospace';
+                ctx.fillStyle = '#aaffff';
+                ctx.shadowBlur = 8;
+                ctx.fillText('— Thiên Ý Trảm —', player.x, player.y - 96);
+                ctx.restore();
+            }
+        }
+
         return;
     }
 
