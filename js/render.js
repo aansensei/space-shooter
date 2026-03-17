@@ -527,7 +527,7 @@ function draw(deltaTime) {
         // C4. ORBITING CURSED RUNE RINGS (3 orbits, different speeds/dirs)
         {
             const runeAlpha = Math.min(elapsed / 450, 1);
-            const runes = ['∞', '✦', '⬡', '卍', '∑', '⌬', '⊗', '◈', 'Ω', '⚡', '꩜', '⌖'];
+            const runes = ['∞', '✦', '⬡', '✺', '∑', '⌬', '⊗', '◈', 'Ω', '⚡', '꩜', '⌖'];
             [[70, 4, 1], [130, 5, -0.65], [200, 7, 0.4]].forEach(([orbitR, count, dir], oi) => {
                 const rotSpeed = dir * (now / (2200 + oi * 500));
                 for (let i = 0; i < count; i++) {
