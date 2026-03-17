@@ -1538,17 +1538,13 @@ function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
 }
 
 // ── Aegis Core ────────────────────────────────────────────────
-// Particle pool for aegis square waves — persists across frames
-const _aegisSquares = [];
-let _aegisLastSpawn = 0;
-
 function drawAegisCore(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
     const now = performance.now();
     const auraRadius = canvas.width / 2;
 
-    // ── 1. BOUNDARY RING — đậm rõ ─────────────────────────────
+    // ── 1. BOUNDARY RING ──────────────────────────────────────
     ctx.lineWidth = 18;
     ctx.strokeStyle = 'rgba(255,30,30,0.18)';
     ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.stroke();
@@ -1571,89 +1567,51 @@ function drawAegisCore(enemy) {
     ctx.setLineDash([]); ctx.restore();
     ctx.shadowBlur = 0;
 
-    // ── 2. SQUARE WAVE PARTICLES ───────────────────────────────
-    // Spawn mới — mỗi ~120ms bắn ra 1 làn (8-12 ô trải đều quanh core)
-    if (now - _aegisLastSpawn > 120) {
-        _aegisLastSpawn = now;
-        const batchCount = 10 + Math.floor(Math.random() * 4);
-        for (let i = 0; i < batchCount; i++) {
-            const angle = (i / batchCount) * Math.PI * 2 + Math.random() * 0.18;
-            _aegisSquares.push({
-                angle,                          // hướng đi
-                r: enemy.size * 1.1,            // bắt đầu từ ngay ngoài core
-                speed: 55 + Math.random() * 45, // px/s
-                size: 7 + Math.random() * 8,    // kích thước ô
-                born: now,
-                // sóng riêng cho ô này
-                waveFreq: 3.5 + Math.random() * 2.5,
-                waveAmp: 0.35 + Math.random() * 0.3,
-                rotSpeed: (Math.random() - 0.5) * 1.5,
-            });
+    // ── 2. SQUARE RINGS lan từ core ra limit ──────────────────
+    // Hai vòng offset nhau nửa chu kỳ, giống pulse ring cũ
+    // nhưng mỗi vòng là một chuỗi ô vuông xếp trên đường tròn
+    const ringPeriod = 2200; // ms mỗi vòng đi từ core → limit
+    const sqSize = 9;        // kích thước mỗi ô vuông
+
+    for (let wave = 0; wave < 2; wave++) {
+        // progress 0→1: core→limit
+        const t = ((now + wave * ringPeriod / 2) % ringPeriod) / ringPeriod;
+        const r = enemy.size * 1.1 + t * (auraRadius - enemy.size * 1.1);
+
+        // fade: hiện nhanh, mờ dần khi gần limit
+        const alpha = (1 - Math.pow(t, 1.8)) * 0.75;
+        if (alpha < 0.02) continue;
+
+        // màu theo progress: đỏ → cam → vàng
+        const g = Math.floor(t * 130);
+        ctx.fillStyle = `rgba(255,${g},0,${alpha})`;
+        ctx.strokeStyle = `rgba(255,${Math.min(g + 80, 255)},40,${alpha * 0.7})`;
+        ctx.lineWidth = 0.7;
+
+        // số ô vuông vừa đủ xếp quanh vòng tròn bán kính r
+        const sqCount = Math.max(8, Math.floor((2 * Math.PI * r) / (sqSize + 3)));
+        // xoay nhẹ theo thời gian để không bị static
+        const rotOffset = now / 4000 * (wave % 2 === 0 ? 1 : -1);
+
+        for (let i = 0; i < sqCount; i++) {
+            const angle = (i / sqCount) * Math.PI * 2 + rotOffset;
+            const sx = Math.cos(angle) * r;
+            const sy = Math.sin(angle) * r;
+
+            // nhấp nhô nhỏ theo sin — mỗi ô lệch phase
+            const wobble = 1 + 0.25 * Math.sin(now / 300 + i * 0.6 + wave * 3.14);
+            const half = (sqSize * wobble) / 2;
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(angle); // ô vuông hướng theo tiếp tuyến
+            ctx.fillRect(-half, -half, half * 2, half * 2);
+            ctx.strokeRect(-half, -half, half * 2, half * 2);
+            ctx.restore();
         }
     }
 
-    // Update + draw từng ô
-    for (let k = _aegisSquares.length - 1; k >= 0; k--) {
-        const sq = _aegisSquares[k];
-        const age = (now - sq.born) / 1000; // giây
-        sq.r += sq.speed * (16.67 / 1000);  // advance ~1 frame step
-
-        // xóa khi ra ngoài limit
-        if (sq.r >= auraRadius) {
-            _aegisSquares.splice(k, 1);
-            continue;
-        }
-
-        const progress = sq.r / auraRadius;  // 0 = core, 1 = limit
-
-        // sóng nhấp nhô: scale lên xuống theo sin
-        const wave = Math.sin(age * sq.waveFreq * Math.PI * 2);
-        const waveFactor = 1 + wave * sq.waveAmp; // 0.65 → 1.35
-
-        // fade: hiện dần lúc mới sinh, mờ dần khi gần limit
-        const fadeIn = Math.min(age / 0.12, 1);
-        const fadeOut = 1 - Math.pow(progress, 2.5);
-        const alpha = fadeIn * fadeOut * (0.55 + wave * 0.2);
-
-        if (alpha <= 0.01) continue;
-
-        const halfSq = (sq.size * waveFactor) / 2;
-        const sx = Math.cos(sq.angle) * sq.r;
-        const sy = Math.sin(sq.angle) * sq.r;
-
-        // màu: đỏ đậm lúc gần core → cam rồi nhạt dần
-        const g = Math.floor(20 + progress * 100);
-        const bright = 0.6 + wave * 0.4;
-
-        ctx.save();
-        ctx.translate(sx, sy);
-        ctx.rotate(sq.angle + age * sq.rotSpeed);
-
-        ctx.fillStyle = `rgba(255,${g},10,${alpha * bright})`;
-        ctx.strokeStyle = `rgba(255,${Math.min(g + 80, 255)},60,${alpha * 0.85})`;
-        ctx.lineWidth = 0.8;
-        ctx.fillRect(-halfSq, -halfSq, halfSq * 2, halfSq * 2);
-        ctx.strokeRect(-halfSq, -halfSq, halfSq * 2, halfSq * 2);
-
-        // điểm sáng tâm khi sóng đỉnh
-        if (wave > 0.6) {
-            ctx.fillStyle = `rgba(255,220,160,${(wave - 0.6) * alpha * 2})`;
-            ctx.fillRect(-2, -2, 4, 4);
-        }
-        ctx.restore();
-    }
-
-    // ── 3. PULSE RINGS ─────────────────────────────────────────
-    const speedP = 0.25;
-    const w1 = (now * speedP) % auraRadius, w2 = (now * speedP + auraRadius / 2) % auraRadius;
-    ctx.lineWidth = 3; ctx.shadowColor = 'red'; ctx.shadowBlur = 8;
-    ctx.strokeStyle = `rgba(255,77,77,${1 - w1 / auraRadius})`;
-    ctx.beginPath(); ctx.arc(0, 0, w1, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = `rgba(255,77,77,${1 - w2 / auraRadius})`;
-    ctx.beginPath(); ctx.arc(0, 0, w2, 0, Math.PI * 2); ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // ── 4. BODY ────────────────────────────────────────────────
+    // ── 3. BODY ───────────────────────────────────────────────
     if (enemy.aegisInvulnerable) {
         ctx.beginPath(); ctx.arc(0, 0, enemy.size + 15, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 4;
