@@ -137,7 +137,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ### Thaelis (Elite)
 
-* **Spawn Condition:** **26% chance** to spawn instead of a normal enemy.
+* **Spawn Condition:** Unavailable in the first 30 seconds. After that, spawn rate scales from **12% → 25%** over time. Maximum **3 Thaelis** on screen simultaneously. Part of a shared elite cap of **6 total elite enemies** on screen at once.
 * **Stats:** Considerably slower than normal enemies (Speed reduced by 25%). HP scales roughly between **300 and 680 Base HP**.
 * **Attack:** Fires a massive projectile (Speed 3.36, Size 18, 180 HP) every **1 second**. After flying for 0.6 seconds, the projectile splits into **3 smaller bullets** (Speed 3.73, Size 10.8, 60 HP) targeting the player or sentinels. If a small bullet hits the player, the player loses 1 life. If a small bullet hits a Sentinel, the Sentinel loses **2% of its Max HP**.
 * **Passive: Reincarnation:** Upon reaching 0 HP, Thaelis does not die completely. Instead, it splits into **3 Embryos** placed in a triangular formation (120 degrees apart).
@@ -146,7 +146,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ### Heavenly Aegis Core (Elite)
 
-* **Spawn Condition:** **20% chance** to spawn instead of a normal enemy (Only 1 can exist on the map at a time).
+* **Spawn Condition:** Unavailable in the first 30 seconds. After that, spawn rate scales from **6% → 14%** over time. Maximum **2 Aegis Cores** on screen simultaneously. Part of a shared elite cap of **6 total elite enemies** on screen at once.
 * **Stats:** Base HP scales from **400 to 750**. Has an inherent flat **10% Damage Reduction**.
 * **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
 * **Skill: Support Aura:** Emits a massive radar field covering half the map width.
@@ -157,7 +157,7 @@ An intense, highly polished arcade space survival game featuring deep combat mec
 
 ### Dargruel ( Ultra - Elite)
 
-* **Dargruel:** 3% chance to spawn. Massive in size with a colossal HP bar (roughly 1255 to 5023 Base HP).
+* **Dargruel:** Unavailable in the first 30 seconds. After that, spawn rate scales from **4% → 13%** over time. Maximum **2 Dargruels** on screen simultaneously. Part of a shared elite cap of **6 total elite enemies** on screen at once. Massive in size with a colossal HP bar (roughly 1255 to 5023 Base HP).
 * **Passive: Demon Gift:** Dargruel possesses a terrifying self-preservation mechanic with multiple triggers based on its HP thresholds.
   * **Health Triggers:** Activates exactly when HP drops to **70%, 40%, 10%, and 1%**.
     * *Global Heal:* Heals all other enemies on the screen (including bullets and embryos) for an amount equal to **15% of the Boss's Maximum HP**.
