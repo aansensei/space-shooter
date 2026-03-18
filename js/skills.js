@@ -701,6 +701,6 @@ function executeShiftTeleport(direction) {
 function cancelSkillShift() {
     if (skillShiftActive) {
         skillShiftActive = false;
-        lastSkillShift = performance.now(); // Hủy chiêu đưa vào trạng thái hồi
+        lastSkillShift = performance.now(); // Hủy chiêu đưa vào trạng thái hồii
     }
 }
