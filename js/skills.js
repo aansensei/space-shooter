@@ -151,9 +151,11 @@ function updateScatteredProjectiles(deltaTime) {
                 if (proj.isBouncingBall) {
                     if (!proj.hitEnemies) proj.hitEnemies = [];
                     if (proj.hitEnemies.includes(enemy)) continue;
+                    if (checkMarchosiasArcShield(enemy, proj, proj.x, proj.y)) { proj.hitEnemies.push(enemy); continue; }
                     dealDamage(enemy, proj);
                     proj.hitEnemies.push(enemy);
                 } else {
+                    if (checkMarchosiasArcShield(enemy, proj, proj.x, proj.y)) { proj.lifetime = 0; break; }
                     dealDamage(enemy, proj);
                     proj.lifetime = 0;
                     break;
@@ -241,6 +243,7 @@ function updateBladeArcProjectiles(deltaTime) {
             if (arc.hitEnemies.includes(enemy)) continue;
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
+                if (checkMarchosiasArcShield(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
                 dealDamage(enemy, arc);
                 arc.hitEnemies.push(enemy);
             }
@@ -264,6 +267,9 @@ function updateSpiritBullets(deltaTime) {
         for (let enemy of enemies) {
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
+                if (checkMarchosiasArcShield(enemy, b, b.x, b.y)) {
+                    b.lifetime = 0; break;
+                }
                 dealDamage(enemy, b);
                 b.lifetime = 0;
                 createParticles(b.x, b.y, 5, 'lime', 1, 3);
@@ -348,7 +354,12 @@ function updateSkillD(deltaTime) {
                 }
             }
             if (d < blackHole.size / 2) {
-                dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
+                // Blackhole chạm khiên Mar → tính 1 hit liên tục, không insta-kill Mar qua khiên
+                if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
+                    if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                } else {
+                    dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
+                }
             }
         }
         if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
@@ -384,7 +395,12 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
+                // Skill F chạm khiên Mar → tính 1 hit, không damage Mar
+                if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
+                    if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                } else {
+                    dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
+                }
                 enemy.hitBySkillF = true;
             }
         }
@@ -702,5 +718,34 @@ function cancelSkillShift() {
     if (skillShiftActive) {
         skillShiftActive = false;
         lastSkillShift = performance.now(); // Hủy chiêu đưa vào trạng thái hồii
+    }
+}
+// ── Marchosias Blade — global array, không bị ngắt bởi bất kỳ nguồn nào ──
+function updateMarchosiasBlades(deltaTime) {
+    const dt = deltaTime / 16.67;
+    for (let i = marchosiasBlades.length - 1; i >= 0; i--) {
+        const blade = marchosiasBlades[i];
+        blade.x += blade.vx * dt;
+        blade.y += blade.vy * dt;
+
+        // Hit player
+        if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.width / 2) {
+            blade.hitPlayer = true;
+            playerTakesHit();
+        }
+        // Hit sentinel
+        for (const s of sentinels) {
+            if (!blade.hitEnemies.includes(s) && Math.hypot(blade.x - s.x, blade.y - s.y) < blade.radius + s.size) {
+                dealDamage(s, { damage: s.maxHp * 0.20 });
+                blade.hitEnemies.push(s);
+                addExplosion(s.x, s.y, 20, '#ff6600');
+            }
+        }
+
+        // Xóa khi ra ngoài màn hình
+        if (blade.x < -blade.radius || blade.x > canvas.width + blade.radius ||
+            blade.y < -blade.radius || blade.y > canvas.height + blade.radius) {
+            marchosiasBlades.splice(i, 1);
+        }
     }
 }

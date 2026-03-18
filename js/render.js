@@ -660,6 +660,7 @@ function draw(deltaTime) {
         sentinels.forEach(drawSentinel);
         if (skillAActive) drawSkillA();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
+        marchosiasBlades.forEach(_drawMarchoBlade);
         scatteredProjectiles.forEach(drawScatteredProjectile);
 
         teslaCoils.forEach(drawTeslaCoil);
@@ -1774,6 +1775,10 @@ function drawEnemy(enemy) {
         _drawBossOrThaelis(enemy);
     } else if (enemy.type === 'embryo') {
         _drawEmbryo(enemy);
+    } else if (enemy.type === 'marchosias') {
+        _drawMarchosias(enemy);
+    } else if (enemy.type === 'marchosias_minion') {
+        _drawMarchosiasMinion(enemy);
     } else if (enemy.type.startsWith('enemy_bullet')) {
         _drawEnemyBullet(enemy);
     } else {
@@ -1790,6 +1795,59 @@ function drawEnemy(enemy) {
         ctx.fillStyle = "white"; ctx.font = "11px Arial"; ctx.textAlign = "center";
         ctx.fillText(Math.ceil(enemy.shield), enemy.x, by - 2);
     }
+
+    // MARCHOSIAS PARASITE SHIELD bar (green arc shield on host)
+    if (enemy.marchosiasParasiteShield && enemy.marchosiasParasiteShield > 0) {
+        ctx.save();
+        const pR = enemy.size / 2 + 8;
+        // rotating dashed ring
+        const now3 = performance.now();
+        ctx.translate(enemy.x, enemy.y);
+        ctx.rotate(now3 / 900);
+        ctx.strokeStyle = 'rgba(0,255,136,0.85)';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath(); ctx.arc(0, 0, pR, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        // HP label
+        ctx.save();
+        ctx.fillStyle = '#00ff88'; ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('⬡' + Math.ceil(enemy.marchosiasParasiteShield), enemy.x, enemy.y - enemy.size / 2 - 24);
+        ctx.restore();
+    }
+
+    // MARCHOSIAS counter windup telegraph (rectangular warning beam)
+    if (enemy.type === 'marchosias' && enemy.counterState === 'windup' && enemy.counterTarget) {
+        ctx.save();
+        const now4 = performance.now();
+        const pulse4 = 0.4 + 0.4 * Math.sin(now4 / 80);
+        const tx = enemy.counterTarget.x, ty = enemy.counterTarget.y;
+        const angle4 = Math.atan2(ty - enemy.y, tx - enemy.x);
+        const len4 = Math.hypot(tx - enemy.x, ty - enemy.y) + 60;
+        // half-width of blade
+        const halfW = 40;
+
+        ctx.translate(enemy.x, enemy.y);
+        ctx.rotate(angle4);
+
+        // Warning rectangle
+        ctx.fillStyle = `rgba(255,80,0,${pulse4 * 0.22})`;
+        ctx.fillRect(0, -halfW, len4, halfW * 2);
+        // bright edge lines
+        ctx.strokeStyle = `rgba(255,140,0,${pulse4 * 0.9})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -halfW); ctx.lineTo(len4, -halfW);
+        ctx.moveTo(0, halfW); ctx.lineTo(len4, halfW);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // MARCHOSIAS BLADE PROJECTILES
+    // Marchosias blades drawn separately from global marchosiasBlades array
 
     // Demon Gift ring
     if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
@@ -1945,6 +2003,208 @@ function _drawEnemyBullet(enemy) {
     // glint
     ctx.fillStyle = 'rgba(255,255,200,0.4)';
     ctx.beginPath(); ctx.ellipse(enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, enemy.size * 0.2, enemy.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+}
+
+// ── Marchosias ────────────────────────────────────────────────
+function _drawMarchosias(enemy) {
+    const now = performance.now();
+    const r = enemy.size / 2;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    // Outer pulsing aura
+    const haloA = 0.12 + 0.06 * Math.sin(now / 350);
+    ctx.fillStyle = `rgba(0,255,120,${haloA})`;
+    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.arc(0, 0, r + 10, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Hexagon body (6-sided like ref image)
+    ctx.strokeStyle = '#00cc66'; ctx.lineWidth = 2;
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+            : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Inner triangle frame (structural lines from center to alternating vertices)
+    ctx.strokeStyle = 'rgba(0,200,100,0.5)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 - Math.PI / 6;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        ctx.stroke();
+    }
+
+    // Rotating gear-teeth ring
+    ctx.save();
+    ctx.rotate(now / 2500);
+    ctx.strokeStyle = 'rgba(0,180,80,0.6)'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.88, Math.sin(a) * r * 0.88);
+        ctx.lineTo(Math.cos(a) * r * 0.98, Math.sin(a) * r * 0.98);
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    // Core gem — green glowing orb
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.32);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.4, '#00ff88');
+    coreGrad.addColorStop(1, '#006633');
+    ctx.fillStyle = coreGrad;
+    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Panel detail rectangles (from ref image)
+    ctx.strokeStyle = 'rgba(0,220,100,0.4)'; ctx.lineWidth = 1;
+    const panelW = r * 0.35, panelH = r * 0.18;
+    [[-r * 0.55, 0], [r * 0.55, 0], [0, -r * 0.55], [0, r * 0.55]].forEach(([px, py]) => {
+        ctx.strokeRect(px - panelW / 2, py - panelH / 2, panelW, panelH);
+    });
+
+    ctx.restore();
+
+    // ── ARC SHIELD (¼ circle arc, rotates around Marchosias) ──
+    if (enemy.arcShield && enemy.arcShield.hp > 0) {
+        const shieldR = r + 16;
+        const sa = enemy.arcShield.angle - Math.PI / 4;
+        const ea = enemy.arcShield.angle + Math.PI / 4;
+        const shieldPct = enemy.arcShield.hp / enemy.arcShield.maxHp;
+
+        ctx.save();
+        // Outer glow
+        ctx.strokeStyle = `rgba(0,255,136,${0.3 + shieldPct * 0.3})`;
+        ctx.lineWidth = 14;
+        ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, shieldR, sa, ea); ctx.stroke();
+
+        // Main arc bright
+        ctx.strokeStyle = `rgba(160,255,200,${0.7 + shieldPct * 0.25})`;
+        ctx.lineWidth = 5;
+        ctx.shadowColor = 'white'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, shieldR, sa, ea); ctx.stroke();
+
+        // Inner bright edge
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = 1.5; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, shieldR - 4, sa, ea); ctx.stroke();
+
+        // Sparkling particles at arc tips
+        for (let tip = 0; tip < 2; tip++) {
+            const tipA = tip === 0 ? sa : ea;
+            const tx2 = enemy.x + Math.cos(tipA) * shieldR;
+            const ty2 = enemy.y + Math.sin(tipA) * shieldR;
+            for (let s = 0; s < 2; s++) {
+                const sA = tipA + (s - 0.5) * 0.5 + Math.sin(now / 90 + s) * 0.2;
+                const sLen = 5 + 3 * Math.abs(Math.sin(now / 80 + s));
+                ctx.strokeStyle = `rgba(180,255,180,${0.6 + 0.4 * Math.sin(now / 70 + s)})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(tx2, ty2);
+                ctx.lineTo(tx2 + Math.cos(sA) * sLen, ty2 + Math.sin(sA) * sLen);
+                ctx.stroke();
+            }
+        }
+
+        // Arc shield HP bar
+        const bw = 50, bh = 4;
+        const bx = enemy.x - bw / 2, by = enemy.y - r - 30;
+        ctx.fillStyle = '#003322'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+        ctx.fillStyle = '#00ff88'; ctx.fillRect(bx, by, bw * shieldPct, bh);
+        ctx.strokeStyle = '#00cc66'; ctx.lineWidth = 0.8; ctx.strokeRect(bx, by, bw, bh);
+        ctx.fillStyle = '#00ff88'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('SHIELD', enemy.x, by - 2);
+
+        ctx.restore();
+    }
+
+    // HP bar
+    const bw2 = enemy.size * 0.9, bh2 = 6;
+    const bx2 = enemy.x - bw2 / 2, by2 = enemy.y - r - 12;
+    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(bx2 - 1, by2 - 1, bw2 + 2, bh2 + 2);
+    ctx.fillStyle = '#222'; ctx.fillRect(bx2, by2, bw2, bh2);
+    const hpPct = enemy.hp / enemy.maxHp;
+    ctx.fillStyle = hpPct > 0.5 ? '#00ff88' : hpPct > 0.25 ? '#ffaa00' : '#ff3300';
+    ctx.fillRect(bx2, by2, bw2 * hpPct, bh2);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.strokeRect(bx2, by2, bw2, bh2);
+}
+
+// ── Marchosias Minion (Robot Mini) ────────────────────────────
+function _drawMarchosiasMinion(enemy) {
+    const now = performance.now();
+    const r = enemy.size / 2;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    // Triangular body (from ref image — image 4 small triangle robots)
+    const pulse = 0.8 + 0.2 * Math.sin(now / 200);
+    ctx.fillStyle = '#0d1f17';
+    ctx.strokeStyle = `rgba(0,200,80,${pulse})`;
+    ctx.lineWidth = 1.8;
+    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.lineTo(r * 0.87, r * 0.5);
+    ctx.lineTo(-r * 0.87, r * 0.5);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Inner glow core
+    const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.38);
+    cg.addColorStop(0, '#ffffff');
+    cg.addColorStop(0.5, '#00ff88');
+    cg.addColorStop(1, 'rgba(0,100,50,0.4)');
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore();
+}
+
+// ── Marchosias Blade Projectile (different from spirit blade) ─
+function _drawMarchoBlade(blade) {
+    const now = performance.now();
+    ctx.save();
+    const angle = Math.atan2(blade.vy, blade.vx);
+    const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2;
+
+    // Outer orange-red glow (visually distinct from green spirit blade)
+    ctx.strokeStyle = 'rgba(255,80,0,0.35)';
+    ctx.lineWidth = 18;
+    ctx.shadowColor = 'rgba(255,120,0,0.6)'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(blade.x, blade.y, blade.radius, sa, ea); ctx.stroke();
+
+    // Main orange arc
+    ctx.strokeStyle = 'rgba(255,140,30,0.95)';
+    ctx.lineWidth = 5;
+    ctx.shadowColor = 'white'; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.arc(blade.x, blade.y, blade.radius, sa, ea); ctx.stroke();
+
+    // Bright inner edge
+    ctx.strokeStyle = 'rgba(255,230,180,0.7)';
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(blade.x, blade.y, blade.radius - 3, sa, ea); ctx.stroke();
+
+    // Energy slash marks (3 diagonal lines across the arc = katana look)
+    ctx.strokeStyle = `rgba(255,200,100,${0.5 + 0.4 * Math.sin(now / 60)})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+        const slashA = sa + (ea - sa) * ((i + 1) / 4);
+        const px1 = blade.x + Math.cos(slashA) * (blade.radius - 10);
+        const py1 = blade.y + Math.sin(slashA) * (blade.radius - 10);
+        const px2 = blade.x + Math.cos(slashA) * (blade.radius + 10);
+        const py2 = blade.y + Math.sin(slashA) * (blade.radius + 10);
+        ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.stroke();
+    }
+
     ctx.restore();
 }
 
