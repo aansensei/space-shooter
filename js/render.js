@@ -4,8 +4,8 @@
 // ============================================================
 
 let bgStars = [];
-// Pre-generate nebula points once
 let nebulaPoints = null;
+let _skillGActivatedAt = -Infinity; // track khi nào G vừa được bật
 
 // ── lightweight cached offscreen canvas for glow ─────────────
 function getOffCtx(w, h) {
@@ -2416,8 +2416,9 @@ function drawSpirit(spirit) {
 
     // ── TITLE + HEXAGRAM — hiện trên đầu player, chỉ lần đầu ─
     // Chỉ render cho spirit đầu tiên trong mảng để tránh vẽ đè nhiều lần
-    if (spirits.length > 0 && spirit === spirits[0]) {
-        const textT = Math.min(age / 150, 1) * Math.max(0, 1 - (age - 150) / 1250);
+    if (spirits.length > 0 && spirit === spirits[spirits.length - 1]) {
+        const elapsed = now - lastSkillS;
+        const textT = Math.min(elapsed / 150, 1) * Math.max(0, 1 - (elapsed - 150) / 1250);
         if (textT > 0.02) {
             const tx = player.x;
             const ty = player.y - 100;
@@ -3126,9 +3127,12 @@ function drawSkillGBarrier() {
 
     // ── TITLE FLASH khi G vừa kích hoạt ─────────────────────
     {
-        const elapsed = now - skillGEndTime + (skillGActive ? (skillGEndTime - now) : 0);
-        // dùng skillGActive để biết mới bật: flash 1.4s đầu khi active
-        const activeElapsed = skillGActive ? Math.max(0, now - (skillGEndTime - 8000)) : Infinity;
+        // Detect lần đầu active trong frame này
+        if (skillGActive && now - _skillGActivatedAt > 500) {
+            // Nếu barrier vừa bật (opacity đang tăng từ 0)
+            if (skillGBorderOpacity < 0.15) _skillGActivatedAt = now;
+        }
+        const activeElapsed = now - _skillGActivatedAt;
         const textT = Math.min(activeElapsed / 150, 1) * Math.max(0, 1 - (activeElapsed - 150) / 1250);
         if (textT > 0.02) {
             ctx.save();
