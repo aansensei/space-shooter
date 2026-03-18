@@ -121,7 +121,7 @@ Each shield takes **25 seconds** to regenerate after being broken.
 
 Hold Shift to open a cursed domain. Everything on the battlefield — enemies, bullets, movement, all timers — slows to **15% of normal speed**. You are **completely invincible** while the domain is active.
 
-While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). A ghost shows where you'll land.
+While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). Two doppelgangers placeholder shows where you'll land.
 
 ---
 
