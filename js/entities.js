@@ -41,35 +41,30 @@ function _tryTriggerMarchosiasCounter(enemy) {
     enemy.counterTarget = { x: player.x, y: player.y };
 }
 
-// Khi Mar chết — bắn ngay tất cả Sword còn lại mà không cần windup
+// Spawn tất cả Sword còn lại ngay khi HP <= 1%
+// Blade được spawn với delay=1000ms — trong thời gian này chỉ hiện warning beam,
+// sau đúng 1 giây mới bắt đầu di chuyển và có thể hit
 function _fireMarchosiasDeathSwords(enemy) {
     enemy.counterSlashCount = (enemy.counterSlashCount || 0);
     const remaining = 3 - enemy.counterSlashCount;
     if (remaining <= 0) return;
+    enemy.counterSlashCount = 3; // đánh dấu đã dùng hết slot
 
-    // Nếu đang windup dở → cũng bắn luôn cái đó
-    if (enemy.counterState === 'windup' && enemy.counterTarget) {
-        const angle = Math.atan2(enemy.counterTarget.y - enemy.y, enemy.counterTarget.x - enemy.x);
-        marchosiasBlades.push({
-            x: enemy.x, y: enemy.y,
-            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
-            radius: 80, hitEnemies: [], hitPlayer: false,
-        });
-        enemy.counterState = null;
-        enemy.counterSlashCount++;
-    }
-
-    // Bắn thêm các lần còn thiếu đến đủ 3
-    const stillRemaining = 3 - enemy.counterSlashCount;
-    for (let i = 0; i < stillRemaining; i++) {
-        // Mỗi lần lệch góc nhẹ để không chồng lên nhau
-        const spread = (i - (stillRemaining - 1) / 2) * 0.2;
+    for (let i = 0; i < remaining; i++) {
+        const spread = (i - (remaining - 1) / 2) * 0.22;
         const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
         const angle = baseAngle + spread;
         marchosiasBlades.push({
             x: enemy.x, y: enemy.y,
-            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
-            radius: 80, hitEnemies: [], hitPlayer: false,
+            vx: Math.cos(angle) * 12,
+            vy: Math.sin(angle) * 12,
+            angle: angle,          // hướng để vẽ warning beam
+            radius: 80,
+            delay: 1000,           // ms còn lại trước khi blade kích hoạt
+            active: false,         // false = đang warning, true = đang bay
+            hitEnemies: [], hitPlayer: false,
+            // vị trí spawn để vẽ warning beam
+            originX: enemy.x, originY: enemy.y,
         });
     }
 }

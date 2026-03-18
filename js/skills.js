@@ -725,6 +725,17 @@ function updateMarchosiasBlades(deltaTime) {
     const dt = deltaTime / 16.67;
     for (let i = marchosiasBlades.length - 1; i >= 0; i--) {
         const blade = marchosiasBlades[i];
+
+        // Nếu đang trong warning phase — đếm ngược delay
+        if (!blade.active) {
+            blade.delay -= deltaTime;
+            if (blade.delay <= 0) {
+                blade.active = true; // kích hoạt — bắt đầu bay
+            }
+            continue; // chưa active → không di chuyển, không hit
+        }
+
+        // Active — di chuyển bình thường
         blade.x += blade.vx * dt;
         blade.y += blade.vy * dt;
 

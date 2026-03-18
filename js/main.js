@@ -460,6 +460,12 @@ function update(rawDeltaTime) {
 
             // ── MARCHOSIAS ────────────────────────────────────────────
             if (enemy.type === 'marchosias') {
+                // Trigger Sword khi HP còn <= 1% lần đầu tiên
+                if (!enemy.swordLastStandTriggered && enemy.hp <= enemy.maxHp * 0.01) {
+                    enemy.swordLastStandTriggered = true;
+                    _fireMarchosiasDeathSwords(enemy);
+                }
+
                 // Khiên hướng về phía player — tâm cung luôn track player
                 // Cung 90° (±45°) đặt ở hướng từ Marchosias → player
                 if (enemy.arcShield) {
@@ -500,11 +506,13 @@ function update(rawDeltaTime) {
                     if (enemy.counterTimer <= 0) {
                         const tx = enemy.counterTarget.x, ty = enemy.counterTarget.y;
                         const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
-                        // Push vào global array — blade tồn tại độc lập, không bị ngắt khi Mar chết
                         marchosiasBlades.push({
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
+                            angle: angle,
                             radius: 80,
+                            delay: 0, active: true, // đã qua windup → active ngay
+                            originX: enemy.x, originY: enemy.y,
                             hitEnemies: [], hitPlayer: false,
                         });
                         enemy.counterState = null;
