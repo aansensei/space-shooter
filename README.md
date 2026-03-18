@@ -51,6 +51,16 @@ Deals **10 base + 26% of target's Max HP** per tick, every 175ms. Also pulls nea
 
 ## Passive Abilities
 
+### Vulnerability (Trọng Thương)
+
+A powerful inherent combat status effect that weakens enemies over time.
+
+- **Application Chance:** The player's basic auto-attacks have a **10% chance** to inflict Vulnerability on hit. All other allied attacks (Sentinels, Spirits, Black Hole, etc., excluding Chain Lightning and Tesla DoT) have a **5% chance**.
+- **Effects:**
+  - **Shield Shred:** Instantly destroys **5% of the enemy's current Shield** upon application.
+  - **Damage Amplification:** Increases all incoming damage to that enemy by **10% per stack**.
+- **Stacking & Duration:** Stacks up to **3 times** (for a maximum of +30% damage taken). The effect lasts for **3 seconds**, and applying a new stack refreshes the duration.
+
 ### Glory for Justice
 
 Activates automatically when **any of the following** is true:
