@@ -38,8 +38,40 @@ function _tryTriggerMarchosiasCounter(enemy) {
     enemy.counterSlashCount++;
     enemy.counterState = 'windup';
     enemy.counterTimer = 1000;
-    // Snapshot vị trí player ngay lúc này — không dí theo
     enemy.counterTarget = { x: player.x, y: player.y };
+}
+
+// Khi Mar chết — bắn ngay tất cả Sword còn lại mà không cần windup
+function _fireMarchosiasDeathSwords(enemy) {
+    enemy.counterSlashCount = (enemy.counterSlashCount || 0);
+    const remaining = 3 - enemy.counterSlashCount;
+    if (remaining <= 0) return;
+
+    // Nếu đang windup dở → cũng bắn luôn cái đó
+    if (enemy.counterState === 'windup' && enemy.counterTarget) {
+        const angle = Math.atan2(enemy.counterTarget.y - enemy.y, enemy.counterTarget.x - enemy.x);
+        marchosiasBlades.push({
+            x: enemy.x, y: enemy.y,
+            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
+            radius: 80, hitEnemies: [], hitPlayer: false,
+        });
+        enemy.counterState = null;
+        enemy.counterSlashCount++;
+    }
+
+    // Bắn thêm các lần còn thiếu đến đủ 3
+    const stillRemaining = 3 - enemy.counterSlashCount;
+    for (let i = 0; i < stillRemaining; i++) {
+        // Mỗi lần lệch góc nhẹ để không chồng lên nhau
+        const spread = (i - (stillRemaining - 1) / 2) * 0.2;
+        const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        const angle = baseAngle + spread;
+        marchosiasBlades.push({
+            x: enemy.x, y: enemy.y,
+            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
+            radius: 80, hitEnemies: [], hitPlayer: false,
+        });
+    }
 }
 
 function distToSegment(p, v, w) {
