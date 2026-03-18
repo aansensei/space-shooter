@@ -1689,6 +1689,11 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
+    // VULNERABILITY (Trọng Thương) icon
+    if (enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime) {
+        _drawVulnerabilityIcon(enemy);
+    }
+
     // Yog-Sothoth domain TARGET LOCK effect
     if (skillShiftActive) {
         const now = performance.now();
@@ -2138,6 +2143,168 @@ function _drawMarchosias(enemy) {
 }
 
 // ── Marchosias Minion (Robot Mini) ────────────────────────────
+// ── Vulnerability Icon (Trọng Thương) ─────────────────────────
+// Thiết kế dựa theo HTML reference: trái tim kim loại bị chẻ + dấu X neon đỏ
+function _drawVulnerabilityIcon(enemy) {
+    const now = performance.now();
+    const stacks = enemy.vulnStacks || 0;
+    const remaining = Math.max(0, (enemy.vulnEndTime - now) / 3000); // 0..1
+
+    // Icon đặt phía trên enemy, offset sang phải nếu có soulReaver
+    const iconX = enemy.soulReaver ? enemy.x + 14 : enemy.x;
+    const iconY = enemy.y - (enemy.size || 20) - 28;
+    const R = 11; // bán kính icon
+
+    ctx.save();
+    ctx.translate(iconX, iconY);
+
+    // Pulse scale nhẹ
+    const pulse = 0.97 + 0.03 * Math.sin(now / 200);
+    ctx.scale(pulse, pulse);
+
+    // ── Nền tròn tối ──────────────────────────────────────────
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10,0,3,0.82)';
+    ctx.fill();
+
+    // Viền đỏ + glow
+    ctx.strokeStyle = '#ff1a40';
+    ctx.lineWidth = 1.8;
+    ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // LED dots top & bottom (từ design)
+    for (const [lx, ly] of [[0, -R + 1.5], [0, R - 1.5]]) {
+        ctx.fillStyle = '#ff1a40';
+        ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(lx, ly, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // ── Trái tim bị chẻ đôi (hai nửa lệch nhau) ──────────────
+    // Vẽ heart path bằng bezier, clip thành 2 nửa, dịch chúng ra
+    const drawHeart = (clipLeft) => {
+        ctx.save();
+        // Clip nửa trái hoặc phải
+        ctx.beginPath();
+        if (clipLeft) ctx.rect(-R, -R, R * 0.92, R * 2);
+        else ctx.rect(-R * 0.08, -R, R * 1.1, R * 2);
+        ctx.clip();
+
+        // Offset lệch nhau
+        const ox = clipLeft ? -1.5 : 1.5;
+        const oy = clipLeft ? -1 : 1;
+        ctx.translate(ox, oy);
+
+        // Heart shape
+        const s = 0.45;
+        ctx.beginPath();
+        ctx.moveTo(0, 2 * s);
+        ctx.bezierCurveTo(-8 * s, -2 * s, -10 * s, -8 * s, 0, -8 * s);
+        ctx.bezierCurveTo(10 * s, -8 * s, 8 * s, -2 * s, 0, 2 * s);
+        ctx.bezierCurveTo(-4 * s, 5 * s, -8 * s, 7 * s, 0, 11 * s);
+        ctx.bezierCurveTo(8 * s, 7 * s, 4 * s, 5 * s, 0, 2 * s);
+        ctx.closePath();
+
+        // Kim loại tối + ánh đỏ
+        const grad = ctx.createRadialGradient(-1, -2, 0, 0, 0, 9 * s);
+        grad.addColorStop(0, '#3a2a2e');
+        grad.addColorStop(0.5, '#2a1c20');
+        grad.addColorStop(1, '#150a0c');
+        ctx.fillStyle = grad;
+        ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Mạch điện mờ (circuit lines)
+        ctx.strokeStyle = 'rgba(255,26,64,0.25)';
+        ctx.lineWidth = 0.5;
+        for (let ci = -8; ci <= 8; ci += 4) {
+            ctx.beginPath();
+            ctx.moveTo(ci * s, -9 * s); ctx.lineTo(ci * s, 11 * s);
+            ctx.stroke();
+        }
+
+        // Viền sáng đỏ ở mép cắt
+        ctx.strokeStyle = clipLeft ? '#ff1a40' : 'rgba(255,100,80,0.6)';
+        ctx.lineWidth = clipLeft ? 1.5 : 0.8;
+        ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.moveTo(0, -9 * s); ctx.lineTo(0, 11 * s);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+    };
+
+    drawHeart(true);
+    drawHeart(false);
+
+    // ── Dấu X neon laser ──────────────────────────────────────
+    const xFlare = 0.7 + 0.3 * Math.sin(now / 120);
+    ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 10 * xFlare;
+
+    // Line 1: dài hơn, góc -45°
+    ctx.save();
+    ctx.rotate(-Math.PI / 4);
+    const lg1 = ctx.createLinearGradient(-R * 0.85, 0, R * 0.85, 0);
+    lg1.addColorStop(0, 'rgba(255,255,255,0.9)');
+    lg1.addColorStop(0.5, '#ff1a40');
+    lg1.addColorStop(1, 'rgba(255,255,255,0.9)');
+    ctx.strokeStyle = lg1; ctx.lineWidth = 2.2 * xFlare;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-R * 0.85, 0); ctx.lineTo(R * 0.85, 0); ctx.stroke();
+    ctx.restore();
+
+    // Line 2: ngắn hơn, góc +45°
+    ctx.save();
+    ctx.rotate(Math.PI / 4);
+    const lg2 = ctx.createLinearGradient(-R * 0.65, 0, R * 0.65, 0);
+    lg2.addColorStop(0, 'rgba(255,255,255,0.85)');
+    lg2.addColorStop(0.5, '#ff1a40');
+    lg2.addColorStop(1, 'rgba(255,255,255,0.85)');
+    ctx.strokeStyle = lg2; ctx.lineWidth = 1.7 * xFlare;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-R * 0.65, 0); ctx.lineTo(R * 0.65, 0); ctx.stroke();
+    ctx.restore();
+
+    ctx.shadowBlur = 0;
+
+    // Tia lửa tại giao điểm X
+    for (let si = 0; si < 4; si++) {
+        const sa = (now / 300 + si * Math.PI / 2);
+        const sd = 3.5 + 2 * Math.abs(Math.sin(now / 80 + si));
+        const sparkA = 0.5 + 0.5 * Math.abs(Math.sin(now / 100 + si * 1.3));
+        ctx.fillStyle = `rgba(255,${180 + si * 20},${80 + si * 30},${sparkA})`;
+        ctx.beginPath();
+        ctx.arc(Math.cos(sa) * sd * 0.4, Math.sin(sa) * sd * 0.4, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ── Stack indicator + cooldown ring ───────────────────────
+    // Cooldown ring (depletes counterclockwise)
+    ctx.strokeStyle = `rgba(255,26,64,${0.4 + 0.3 * remaining})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, R + 3.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * remaining);
+    ctx.stroke();
+
+    // Stack dots dưới icon
+    for (let s = 0; s < 3; s++) {
+        const filled = s < stacks;
+        ctx.beginPath();
+        ctx.arc(-4 + s * 4, R + 5, 2, 0, Math.PI * 2);
+        ctx.fillStyle = filled ? '#ff1a40' : 'rgba(255,26,64,0.25)';
+        if (filled) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+}
+
 function _drawMarchosiasMinion(enemy) {
     const now = performance.now();
     const r = enemy.size / 2;
