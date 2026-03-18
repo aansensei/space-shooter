@@ -668,7 +668,8 @@ function draw(deltaTime) {
 
         drawAegisLasers();
 
-        enemies.forEach(drawEnemy);
+        // Draw non-bullet enemies first (background layer)
+        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet')) drawEnemy(e); });
         bullets.forEach(drawBullet);
         spiritBullets.forEach(drawSpiritBullet);
         spirits.forEach(drawSpirit);
@@ -692,6 +693,9 @@ function draw(deltaTime) {
         if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();
         if (skillShiftActive) drawSkillShiftEffects();
+
+        // ── ENEMY BULLETS: top layer, always visible ──
+        enemies.forEach(e => { if (e.type.startsWith('enemy_bullet')) drawEnemy(e); });
 
         // boundary line
         ctx.save();
@@ -1530,6 +1534,28 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.stroke();
     }
 
+    // ── Accurate Parry buff glow ──
+    if (alpha === 1 && accurateParryActive && performance.now() < accurateParryEndTime) {
+        const parryRemain = (accurateParryEndTime - performance.now()) / 4000;
+        const pp = 0.6 + 0.4 * Math.sin(now / 100);
+        ctx.strokeStyle = `rgba(255,220,0,${pp * parryRemain})`;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 16;
+        ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    // ── Hitbox dot — neon cyan chấm sáng tại tâm ──
+    if (alpha === 1) {
+        const hdPulse = 0.7 + 0.3 * Math.sin(now / 400);
+        ctx.fillStyle = `rgba(0,255,255,${0.12 * hdPulse})`;
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(0,255,255,${0.9 * hdPulse})`;
+        ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.arc(0, 0, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
+
     ctx.restore();
 }
 function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
@@ -1824,31 +1850,47 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // MARCHOSIAS counter windup telegraph (rectangular warning beam)
-    if (enemy.type === 'marchosias' && enemy.counterState === 'windup' && enemy.counterTarget) {
-        ctx.save();
-        const now4 = performance.now();
-        const pulse4 = 0.4 + 0.4 * Math.sin(now4 / 80);
-        const tx = enemy.counterTarget.x, ty = enemy.counterTarget.y;
-        const angle4 = Math.atan2(ty - enemy.y, tx - enemy.x);
-        const len4 = Math.hypot(tx - enemy.x, ty - enemy.y) + 60;
-        // half-width of blade
-        const halfW = 40;
+    // MARCHOSIAS counter windup telegraphs (hỗ trợ nhiều windup song song)
+    if (enemy.type === 'marchosias' && enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
+        const halfW = 36;
+        for (const windup of enemy.marchosiasWindups) {
+            ctx.save();
+            const tx = windup.target.x, ty = windup.target.y;
+            const angle4 = Math.atan2(ty - enemy.y, tx - enemy.x);
+            const len4 = Math.hypot(tx - enemy.x, ty - enemy.y) + 80;
 
-        ctx.translate(enemy.x, enemy.y);
-        ctx.rotate(angle4);
+            ctx.translate(enemy.x, enemy.y);
+            ctx.rotate(angle4);
 
-        // Warning rectangle
-        ctx.fillStyle = `rgba(255,80,0,${pulse4 * 0.22})`;
-        ctx.fillRect(0, -halfW, len4, halfW * 2);
-        // bright edge lines
-        ctx.strokeStyle = `rgba(255,140,0,${pulse4 * 0.9})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, -halfW); ctx.lineTo(len4, -halfW);
-        ctx.moveTo(0, halfW); ctx.lineTo(len4, halfW);
-        ctx.stroke();
-        ctx.restore();
+            // Static warning fill — không pulse, luôn hiển thị rõ
+            ctx.fillStyle = 'rgba(255,80,0,0.18)';
+            ctx.fillRect(0, -halfW, len4, halfW * 2);
+
+            // Bright static edge lines
+            ctx.strokeStyle = 'rgba(255,160,0,0.85)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -halfW); ctx.lineTo(len4, -halfW);
+            ctx.moveTo(0, halfW); ctx.lineTo(len4, halfW);
+            ctx.stroke();
+
+            // Center dashed line
+            ctx.strokeStyle = 'rgba(255,220,80,0.6)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([14, 8]);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len4, 0); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Impact marker at target position
+            const markerX = Math.hypot(tx - enemy.x, ty - enemy.y);
+            ctx.strokeStyle = 'rgba(255,100,0,0.9)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(markerX, -halfW); ctx.lineTo(markerX, halfW);
+            ctx.stroke();
+
+            ctx.restore();
+        }
     }
 
     // MARCHOSIAS BLADE PROJECTILES
@@ -1979,10 +2021,21 @@ function _drawEmbryo(enemy) {
 }
 
 function _drawEnemyBullet(enemy) {
-    // ENEMY – clear red/orange, no shadowBlur
+    const now = performance.now();
     ctx.save();
     const isLarge = enemy.type === 'enemy_bullet_large';
-    // outer faint corona (fill only)
+    const isSmall = enemy.type === 'enemy_bullet_small';
+
+    // ── Pulsing white outline — always cuts through effects ──
+    const blink = 0.55 + 0.45 * Math.sin(now / 90); // fast blink
+    ctx.strokeStyle = `rgba(255,255,255,${blink})`;
+    ctx.lineWidth = isLarge ? 2.5 : 1.8;
+    ctx.shadowColor = 'white';
+    ctx.shadowBlur = isLarge ? 12 : 8;
+    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // outer faint corona
     ctx.fillStyle = isLarge ? 'rgba(255,100,20,0.22)' : 'rgba(220,0,0,0.2)';
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 1.5, 0, Math.PI * 2); ctx.fill();
     // main body
@@ -1993,12 +2046,12 @@ function _drawEnemyBullet(enemy) {
     bg.addColorStop(1, isLarge ? 'rgba(120,30,0,0.8)' : 'rgba(100,0,0,0.8)');
     ctx.fillStyle = bg;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
-    // rim stroke for definition
+    // rim stroke
     ctx.strokeStyle = isLarge ? 'rgba(255,150,50,0.7)' : 'rgba(255,60,20,0.7)';
     ctx.lineWidth = 0.8;
+    ctx.shadowBlur = 0;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.stroke();
     if (isLarge) {
-        // inner hot core
         const ig = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, enemy.size * 0.42);
         ig.addColorStop(0, 'rgba(255,240,100,0.95)');
         ig.addColorStop(1, 'rgba(255,140,0,0.5)');

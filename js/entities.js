@@ -10,7 +10,7 @@ function checkMarchosiasArcShield(enemy, source, bx, by) {
     // Damage khiên — 50% DR, KHÔNG damage Mar
     const effectiveHp = enemy.arcShield.maxHp;
     let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
-    if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.40);
+    if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.55);
     dmg = Math.ceil(dmg * 0.50);
     const shieldWasAlive = enemy.arcShield.hp > 0;
     enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
@@ -30,34 +30,38 @@ function checkMarchosiasArcShield(enemy, source, bx, by) {
     return true; // đạn bị hấp thụ, KHÔNG damage Mar
 }
 
+// Kích hoạt Sword — không giới hạn số lần, có thể chạy song song nhiều windup
+// Cooldown 0.75s giữa các lần trigger để tránh spam
 function _tryTriggerMarchosiasCounter(enemy) {
-    if (enemy.counterState) return;
-    enemy.counterSlashCount = (enemy.counterSlashCount || 0);
-    if (enemy.counterSlashCount >= 3) return;
-    enemy.counterSlashCount++;
-    enemy.counterState = 'windup';
-    enemy.counterTimer = 1000;
-    enemy.counterTarget = { x: player.x, y: player.y };
+    const now = performance.now();
+    if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
+    // Cooldown 0.75s kể từ lần trigger gần nhất
+    if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 750) return;
+    enemy.lastSwordTriggerTime = now;
+    enemy.marchosiasWindups.push({
+        timer: 1000,
+        target: { x: player.x, y: player.y }
+    });
 }
 
+// Khi HP Mar <= 1% — bắn tất cả Sword còn thiếu ngay lập tức (dùng delay system)
 function _fireMarchosiasDeathSwords(enemy) {
-    enemy.counterSlashCount = (enemy.counterSlashCount || 0);
-    const remaining = 3 - enemy.counterSlashCount;
-    if (remaining <= 0) return;
-    enemy.counterSlashCount = 3;
+    if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
 
-    for (let i = 0; i < remaining; i++) {
-        const spread = (i - (remaining - 1) / 2) * 0.22;
+    // Số windup đang pending
+    const pendingWindups = enemy.marchosiasWindups.length;
+    // Nếu không có gì đang pending thì tạo 3 đòn ngay
+    const toFire = Math.max(1, 3 - pendingWindups);
+
+    for (let i = 0; i < toFire; i++) {
+        const spread = (i - (toFire - 1) / 2) * 0.22;
         const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
         const angle = baseAngle + spread;
         marchosiasBlades.push({
             x: enemy.x, y: enemy.y,
-            vx: Math.cos(angle) * 12,
-            vy: Math.sin(angle) * 12,
-            angle: angle,
-            radius: 80,
-            delay: 1000,
-            active: false,
+            vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
+            angle: angle, radius: 88,
+            delay: 1000, active: false,
             hitEnemies: [], hitPlayer: false,
             originX: enemy.x, originY: enemy.y,
         });
@@ -69,9 +73,9 @@ function applyVulnerability(enemy) {
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
     if (stacks < 3) {
-        // Lập tức giảm 15% khiên hiện tại
+        // Lập tức giảm 24% khiên hiện tại
         if (enemy.shield > 0) {
-            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.85));
+            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.76));
         }
         enemy.vulnStacks = stacks + 1;
     }
@@ -125,7 +129,7 @@ function fireAutoShot() {
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 11.2 * speedMultiplier, vy: Math.sin(angle) * 11.2 * speedMultiplier,
             damage: 6, percentDamage: 0.04, size: 6.5, type: 'player_auto',
-            applyVuln: true, vulnChance: 0.10  // 10% khả năng gây Trọng Thương
+            applyVuln: true, vulnChance: 0.25  // 25% khả năng gây Trọng Thương
         });
     }
 }
@@ -176,7 +180,7 @@ function spawnEnemy() {
     const canSpawnDargruel = dargruelCount < 2 && totalElite < 6;
     const canSpawnAegis = aegisCount < 2 && totalElite < 6;
     const canSpawnThaelis = thaelisCount < 3 && totalElite < 6;
-    const canSpawnMarchosias = marchosiasCount < 1 && totalElite < 6;
+    const canSpawnMarchosias = marchosiasCount < 2 && totalElite < 6;
 
     const rand = Math.random();
     let cursor = 0;
@@ -362,7 +366,7 @@ function spawnSentinel(x, y) {
     }
 
     let currentTier = (sentinels.length + 1 >= 12) ? 3 : ((sentinels.length + 1 >= 5) ? 2 : 1);
-    let initialMaxHp = (currentTier === 1) ? 338 : 260;
+    let initialMaxHp = (currentTier === 1) ? 389 : 299;
 
     sentinels.push({
         x, y, hp: initialMaxHp, maxHp: initialMaxHp, angle: -Math.PI / 2, shootTimer: 0,
@@ -395,6 +399,9 @@ function updateSentinels(deltaTime) {
     let isTier3 = activeCount >= 12;
     let swarmSpecialForced = activeCount >= 12;
 
+    // Tier 1: +10% bullet speed (added below via herdSpeedBonus)
+    const herdSpeedBonus = isTier1 ? 1.10 : 1.0;
+
     if (activeCount >= 5) {
         sentinelFireRate /= 1.20;
         damageMultiplier = 1.10;
@@ -409,7 +416,7 @@ function updateSentinels(deltaTime) {
         let newTier = isTier3 ? 3 : (isTier2 ? 2 : 1);
         if (s.synergyTier !== newTier) {
             let oldMax = s.maxHp;
-            s.maxHp = (newTier === 1) ? 338 : 260;
+            s.maxHp = (newTier === 1) ? 389 : 299;
             s.hp = s.hp * (s.maxHp / oldMax);
             s.synergyTier = newTier;
         }
@@ -432,7 +439,7 @@ function updateSentinels(deltaTime) {
             sentinel.shootTimer = sentinelFireRate;
             sentinel.hp--;
             const angle = sentinel.angle;
-            const speedMultiplier = gloryForJusticeActive ? 1.25 : 1;
+            const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * herdSpeedBonus;
 
             sentinel.shotsFiredSinceSpecial++;
 
@@ -490,13 +497,13 @@ function triggerDemonGift(boss) {
 
     enemies.forEach(enemy => {
         if (enemy === boss) return;
-        const healAmount = enemy.soulReaver ? (boss.maxHp * 0.15 * 0.8) : (boss.maxHp * 0.15);
+        const healAmount = enemy.soulReaver ? (boss.maxHp * 0.15 * 0.75) : (boss.maxHp * 0.15);
         const potentialHp = enemy.hp + healAmount;
 
         if (potentialHp > enemy.maxHp) {
             const overheal = potentialHp - enemy.maxHp;
             let shieldGain = Math.ceil(overheal * 0.21);
-            if (enemy.soulReaver) shieldGain *= 0.8;
+            if (enemy.soulReaver) shieldGain *= 0.75;
             enemy.shield = (enemy.shield || 0) + shieldGain;
         }
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
@@ -523,7 +530,7 @@ function dealDamage(enemy, source) {
     if (enemy.marchosiasParasiteShield && enemy.marchosiasParasiteShield > 0) {
         const effectiveHpForParasite = (enemy.maxHp || enemy.hp) + (enemy.marchosiasParasiteShield || 0);
         let parasiteDmg = Math.ceil((source.damage || 0) + (effectiveHpForParasite * (source.percentDamage || 0)));
-        if (gloryForJusticeActive) parasiteDmg = Math.ceil(parasiteDmg * 1.40);
+        if (gloryForJusticeActive) parasiteDmg = Math.ceil(parasiteDmg * 1.55);
         parasiteDmg = Math.max(0, parasiteDmg);
 
         if (parasiteDmg <= 0) {
@@ -572,7 +579,12 @@ function dealDamage(enemy, source) {
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
     if (gloryForJusticeActive) {
-        totalDamage = Math.ceil(totalDamage * 1.40);
+        totalDamage = Math.ceil(totalDamage * 1.55);
+    }
+
+    // Accurate Parry buff: +25% tất cả damage đầu ra trong 4s
+    if (accurateParryActive && performance.now() < accurateParryEndTime) {
+        totalDamage = Math.ceil(totalDamage * 1.25);
     }
 
     // Áp dụng tăng sát thương từ Trọng Thương (+25% mỗi stack)
@@ -613,7 +625,11 @@ function dealDamage(enemy, source) {
 
     let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
     if (isSentinel && gloryForJusticeActive) {
-        combinedDR += 0.12;
+        combinedDR += 0.20; // Glory for Justice sentinel DR
+    }
+    // Tier 2 Herd Mentality: +10% DR thêm khi có 5-11 sentinels
+    if (isSentinel && sentinels.length >= 5 && sentinels.length < 12) {
+        combinedDR += 0.10;
     }
 
     combinedDR = Math.min(0.99, combinedDR);
@@ -631,12 +647,12 @@ function dealDamage(enemy, source) {
     if (isChainable && isBossOrMiniBossPresent && currentTime > chainLightningCooldownEnd) {
         chainLightningCooldownEnd = currentTime + 150;
         screenShake = { intensity: 3, duration: 100 };
-        const chainDamage = totalDamage * 0.25;
+        const chainDamage = totalDamage * 0.30;
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
             if (chainedCount >= 6) break;
             if (otherEnemy !== enemy && !otherEnemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
-                let debuff = Math.random() < 0.5;
+                let debuff = Math.random() < 0.55;
                 dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff });
                 chainLightningEffects.push({
                     x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250
@@ -646,10 +662,10 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Trigger Trọng thương từ nguồn sát thương (Đạn player 10%, Đạn đệ tử 5%)
+    // Trigger Trọng thương: player auto 25%, tất cả nguồn khác 15% (bao gồm chain lightning và tesla)
     if (source.applyVuln && Math.random() < (source.vulnChance || 0)) {
         applyVulnerability(enemy);
-    } else if (!source.applyVuln && !source.isChainLightning && !source.isTeslaDot && Math.random() < 0.05) {
+    } else if (!source.applyVuln && Math.random() < 0.15) {
         applyVulnerability(enemy);
     }
 
