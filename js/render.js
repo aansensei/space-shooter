@@ -2172,10 +2172,44 @@ function _drawMarchosiasMinion(enemy) {
 function _drawMarchoBlade(blade) {
     const now = performance.now();
     ctx.save();
-    const angle = Math.atan2(blade.vy, blade.vx);
+    const angle = blade.active ? Math.atan2(blade.vy, blade.vx) : blade.angle;
+
+    // ── WARNING PHASE: chỉ hiện đường cảnh báo vàng cam ─────────
+    if (!blade.active) {
+        const pulse = 0.45 + 0.45 * Math.sin(now / 80);
+        const warnLen = Math.hypot(canvas.width, canvas.height); // đến tận rìa màn hình
+        const halfW = 28; // nửa chiều rộng warning beam
+
+        ctx.translate(blade.originX, blade.originY);
+        ctx.rotate(angle);
+
+        // fill mờ
+        ctx.fillStyle = `rgba(255,180,0,${pulse * 0.18})`;
+        ctx.fillRect(0, -halfW, warnLen, halfW * 2);
+
+        // viền cam sáng
+        ctx.strokeStyle = `rgba(255,150,0,${pulse * 0.85})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, -halfW); ctx.lineTo(warnLen, -halfW);
+        ctx.moveTo(0, halfW); ctx.lineTo(warnLen, halfW);
+        ctx.stroke();
+
+        // đường trung tâm nhấp nháy
+        ctx.setLineDash([12, 8]);
+        ctx.strokeStyle = `rgba(255,220,80,${pulse * 0.7})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(warnLen, 0); ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.restore();
+        return;
+    }
+
+    // ── ACTIVE PHASE: vẽ blade arc ───────────────────────────────
     const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2;
 
-    // Outer orange-red glow (visually distinct from green spirit blade)
+    // Outer orange-red glow
     ctx.strokeStyle = 'rgba(255,80,0,0.35)';
     ctx.lineWidth = 18;
     ctx.shadowColor = 'rgba(255,120,0,0.6)'; ctx.shadowBlur = 12;
@@ -2193,7 +2227,7 @@ function _drawMarchoBlade(blade) {
     ctx.shadowBlur = 0;
     ctx.beginPath(); ctx.arc(blade.x, blade.y, blade.radius - 3, sa, ea); ctx.stroke();
 
-    // Energy slash marks (3 diagonal lines across the arc = katana look)
+    // Energy slash marks
     ctx.strokeStyle = `rgba(255,200,100,${0.5 + 0.4 * Math.sin(now / 60)})`;
     ctx.lineWidth = 1;
     for (let i = 0; i < 3; i++) {
