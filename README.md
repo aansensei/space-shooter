@@ -1,166 +1,326 @@
-# Space Shooter
+# Pisces: Space Journey
 
-# Author: An Nguyen
+**Author:** An Nguyen
 
-**Play the game here:** [https://aansensei.github.io/space-shooter/](https://aansensei.github.io/space-shooter/)
+**Play the game:** [https://aansensei.github.io/space-shooter/](https://aansensei.github.io/space-shooter/)
 
-An intense, highly polished arcade space survival game featuring deep combat mechanics, percentage-based scaling damage, and massive screen-clearing abilities.
+A fast-paced arcade space shooter with deep combat mechanics, percentage-based damage scaling, and powerful screen-clearing abilities. Survive endless enemy waves, manage your cooldowns, and go for the highest score.
 
 ---
 
 ## How to Play
 
-* **Objective:** Survive endless waves of scaling enemies, manage your skills efficiently, and achieve the highest score possible.
-* **Movement:** Use the **Left Arrow** and **Right Arrow** keys to steer your spaceship.
-* **Basic Attack:** The ship fires automatically.
-* **Charge Attack:** Press and hold the **Spacebar** to charge a powerful shot. Release to fire.
-* **Overload Laser:** Hold the **Spacebar** for exactly 5 seconds to unleash a massive continuous laser beam.
-* **Active Skills:** Press **Shift, A, S, D, F, G** to activate powerful tactical abilities (details below).
-* **Lives:** You start with **12 lives**. Every **500,000 points** grants you **1 extra life**.
+| Input | Action |
+|---|---|
+| ← → Arrow Keys | Move left / right |
+| Spacebar (tap & hold) | Charge shot — release to fire |
+| Spacebar (hold 5 seconds) | Overload Laser |
+| Shift Left / Right | Skill: Yog-Sothoth Domain |
+| A | Skill: Thunder Orbs |
+| S | Skill: Remembrance Spirit |
+| D | Skill: Cosmic Black Hole |
+| F | Skill: Annihilation Sweep |
+| G | Skill: Life Domain / Tesla Matrix |
+
+- You start with **12 lives**. Earn **+1 life** every **500,000 points**.
+- Your ship fires automatically at all times.
 
 ---
 
-## Combat System & Base Stats
+## General Combat Rules
 
-**Note:** Damage Reduction from all sources combined (Boss aura, Aegis shield, Embryo shield, etc.) is strictly capped at a maximum of **99%**.
+- All damage reduction from any source is **hard-capped at 99%** — nothing is ever completely immune to damage.
+- Damage from percentage-based effects is calculated against the **effective HP** (Body HP + Shield HP combined).
+- When Glory for Justice is active, all friendly damage (player, sentinels, chain lightning, tesla) is multiplied by **1.4x**.
 
-### 1. The Spaceship (Player)
+---
 
-* **Movement Speed:** 8.6
-* **Auto-Fire Rate:** 170ms per volley.
-* **Normal Attack:** Fires 5 bullets in a 45-degree spread.
-  * *Damage:* 6 Base + 4% of target's Max HP.
-  * *Bullet Speed:* 11.2 | *Size:* 6.5.
-* **Charged Shot (Hold & Release Space):**
-  * *Max Charge Time:* 1000ms.
-  * *Max Damage Multiplier:* Up to 10x damage (caps at 12% of target's Max HP).
-* **Overload Laser (Hold Space for 5s):**
-  * *Duration:* 12 seconds.
-  * *Cooldown:* 12 seconds.
-  * *Damage:* Strikes every 175ms (Tick), dealing 10 Base + 26% of target's Max HP per tick.
+## Player Stats & Attacks
 
-### 2. Passive Abilities
+**Auto-Fire** — Fires 5 bullets in a 45-degree spread every 170ms.
+Each bullet deals **6 base + 4% of target's Max HP**.
 
-**Glory for Justice**
+**Charged Shot** — Hold Space to charge for up to 1 second, then release.
+Damage scales up to **10x**, capping at **12% of target's Max HP** at full charge.
 
-* **Activation:** Automatically triggers when there are **more than 4 enemies** on the screen, OR when **Skill G** is active, OR when **The Boss** is on the field.
-* **Effects:** * *Damage Buff:* Increases the total damage of all player and allied attacks by **1.4x** (includes Chain Lightning and Tesla DoT).
-  * *Fire Rate:* Player and Sentinel auto-fire rates are increased by **1.4x**.
-  * *Projectile Speed:* Spirit bullets (Skill S) flight speed is increased by **1.25x**.
-  * *Chain Lightning:* Attacks trigger a chain lightning effect (**150ms** internal cooldown) that arcs to up to **6 nearby enemies**, dealing an additional **25%** of the initial attack's total damage.
-  * *Soul Reaver Debuff:* Enemies hit by Chain Lightning have a **50% chance** to be afflicted with the Soul Reaver debuff (indicated by an orange crossed-swords icon). Soul Reaver reduces all healing and shielding received by the target by **20%**.
-  * *Sentinel Protection:* Grants all active Sentinels a flat **12% Damage Reduction**.
+**Overload Laser** — Hold Space for a full 5 seconds without releasing.
+Fires a continuous beam for **12 seconds** (12s cooldown after).
+Deals **10 base + 26% of target's Max HP** per tick, every 175ms. Also pulls nearby enemies toward the beam.
 
-**Sentinels**
+---
 
-* **Activation:** 1 Sentinel automatically spawns for every **4 enemies** killed.
-* **Limit:** Maximum **12 Sentinels** on the battlefield. If the limit is reached and a new Sentinel spawns, the Sentinel with the lowest HP will automatically self-destruct to make room.
-* **Stats & Mechanics:** **260 Base HP** | Base Fire rate: 75ms.
-  * *Recoil Damage:* A Sentinel automatically loses **1 HP** every time it fires a shot.
-  * *Vulnerability:* If hit by an enemy bullet, a Sentinel takes damage equal to the **enemy bullet's remaining HP**.
-* **Normal Shot:** Deals 4 Base + 3.5% Max HP (Speed 9, Size 7.8).
-* **Special Shot:** Every 4th shot is a massive homing bullet dealing **6 Base + 7% Max HP** with **12% extra speed**.
-  * *Vampiric Effect:* Each Special Shot that hits an enemy restores **3 HP** to the Sentinel that fired it.
-* **Herd Mentality (Synergy):** * **Tier 1 (Less than 5 Sentinels):** Max HP is increased by **30%** (338 HP). Sentinels emit a Cyan glow.
-  * **Tier 2 (5 to 11 Sentinels):** Fire rate is increased by **20%** and damage output is increased by **10%**. Sentinels emit a Magenta glow.
-  * **Tier 3 (12 Sentinels):** Every single shot fired by the Sentinels becomes a Special Shot. Sentinels emit a Gold glow.
-* **Death Throes:** Upon dying, causes screen shake and explodes into 10 scattered projectiles (**2 Base + 2% Target Max HP** Damage, Speed 8).
+## Passive Abilities
 
-**Final Defense & Last Stand**
+### Glory for Justice
 
-* **Final Defense:** A hidden automated defense mechanism that activates temporary invulnerability shields (Player Shield & Boundary Shield) to prevent instant, unfair deaths in bullet-hell situations. Once a shield is broken, it requires **25 seconds** to regenerate.
-* **Last Stand (Absolute Shield):** If the player is struck by a fatal blow while having exactly **1 life remaining**, they cheat death. The player and all active Sentinels instantly receive a Golden Absolute Shield that completely absorbs and nullifies 1 instance of any damage. This effect can only trigger **once per game**.
+Activates automatically when **any of the following** is true:
+
+- More than 4 enemies are on screen
+- A Boss (Dargruel) is present
+- Skill G is active
+
+**While active:**
+
+- All friendly damage ×1.4 (player, sentinels, chain lightning, tesla DoT)
+- Player and Sentinel fire rate ×1.4
+- Spirit bullets (Skill S) move 25% faster
+- Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to 6 nearby enemies for 25% of the triggering hit's damage
+- Chain Lightning hits have a **50% chance** to apply **Soul Reaver** on the target, reducing all healing/shielding that enemy receives by 20% (marked with a crossed-swords icon)
+- All active Sentinels gain **+12% Damage Reduction**
+
+---
+
+### Sentinels
+
+A Sentinel spawns automatically every **4 enemy kills**. Maximum **12 Sentinels** at once — if the cap is hit, the weakest Sentinel self-destructs to make room.
+
+**Base stats:** 260 HP | 75ms fire interval
+
+- Loses **1 HP** every time it fires (recoil).
+- Takes damage equal to the HP of any enemy bullet that hits it.
+- Every **4th shot** is a Special Shot: homing, deals **6 base + 7% Max HP**, +12% speed, and **heals the firing Sentinel for 3 HP** on hit.
+
+**Herd Mentality** — bonuses scale with how many Sentinels are alive:
+
+| Count | Bonus | Glow |
+|---|---|---|
+| 1–4 | +30% Max HP (338 HP total) | Cyan |
+| 5–11 | +20% fire rate, +10% damage | Magenta |
+| 12 | Every shot becomes a Special Shot | Gold |
+
+**On death** — explodes into 10 scattered projectiles (2 base + 2% target Max HP, speed 8) and causes a brief screen shake.
+
+---
+
+### Final Defense & Last Stand
+
+**Final Defense** is an automatic safety net. The player has two hidden shields:
+
+- **Player Shield** — absorbs 1 hit that would otherwise cost a life.
+- **Boundary Shield** — absorbs 1 enemy that crosses the bottom boundary.
+
+Each shield takes **25 seconds** to regenerate after being broken.
+
+**Last Stand** — triggers once per game only. If the player takes a fatal hit while on their **last life**, they survive. The player and all active Sentinels instantly gain a **Golden Absolute Shield** that blocks the next hit of any damage, including Black Holes and Skill F. This can only happen once.
+
+**Hit absorption priority (highest to lowest):**
+
+1. Yog-Sothoth Domain — complete immunity
+2. Thunder Orb Sacrifice (yellow orb from Skill A)
+3. Final Defense Player Shield
+4. Last Stand Absolute Shield
+5. Lose a life
 
 ---
 
 ## Active Skills
 
-### Skill Shift: Yog-Sothoth (Key: Shift Left/Right)
+### Shift — Yog-Sothoth: Cursed Domain Expansion
 
-* **Cooldown:** 15 seconds.
-* **Duration:** Up to 8 seconds (Auto-cancels after).
-* **Mechanic:** Warps spacetime, creating a nostalgic domain that drastically slows down everything on the battlefield (allies, enemies, bullets, movement timers) by **85%**. The screen takes on a sepia tone, while enemies and their projectiles glow bright red for clear visibility.
-* **Invincibility:** The player is completely immune to all damage while this domain is active.
-* **Teleportation:** While holding Shift, teleportation arrows extend from the player up to half the screen width (scaling over 3 seconds) with projected shadows. Pressing the **Left or Right Arrow Key** instantly teleports the player to the projected shadow location, ensuring safety.
+**Cooldown:** 15s | **Max duration:** 8s (auto-cancels)
 
-### Skill A: Thunder Orbs (Key: A)
+Hold Shift to open a cursed domain. Everything on the battlefield — enemies, bullets, movement, all timers — slows to **15% of normal speed**. You are **completely invincible** while the domain is active.
 
-* **Cooldown:** 9 seconds.
-* **Basic Stats:** Summons 20 homing energy orbs (Max **80** on screen). Sensor radius is 90% of the screen.
-* **Detailed Mechanic:** Orbs automatically seek out enemies (ignoring enemy bullets). Upon impact, they deal **10 Base + 24% Target Max HP** damage. The orb then shatters into **16 smaller scattered projectiles** dealing **4 Base + 2% Target Max HP** damage each, blasting outward in all directions across the map.
-  * **Orb Sacrifice (Defensive Priority 1):** Up to **3 random Orbs** in the formation will be marked with a **Yellow glow**. If the player is hit by an enemy bullet, laser, or enemy body, **1 Yellow Orb is consumed** to completely absorb the hit and prevent the player from losing a life. The remaining orbs instantly rebalance their formation.
-  * **Defense Hierarchy:** The game checks defenses in this strict order when the player takes a hit: `Yog-Sothoth Invincibility -> Orb Sacrifice -> Final Defense (Player Shield) -> Last Stand (Absolute Shield) -> Lose a Life`.
-
-### Skill S: Remembrance Spirit (Key: S)
-
-* **Cooldown:** 15 seconds.
-* **Basic Stats:** Summons an ancient Spirit (Max 2). Lasts for 35 seconds. Base Fire rate: 65ms. Projectile flight speed is increased by 10%.
-* **Detailed Mechanic:** * *Anti-Projectile:* All attacks generated by the Spirit (bullets, blade arcs, finale lasers, and plasma balls) cut through and destroy enemy bullets on contact.
-  * *Spirit Bullets:* Fires homing projectiles that deal **5 Base + 4% Max HP**.
-  * *Blade Arc:* Every 5 shots, the Spirit unleashes a massive blade arc (125 radius) dealing **10 Base + 16% Max HP**.
-  * *Finale:* After 35 seconds, the Spirit stops, charges for 2.5s, and fires a devastating screen-wide laser (10 Base + 40% Max HP per tick) before exploding into 8 massive bouncing plasma balls.
-
-### Skill D: Cosmic Black Hole (Key: D)
-
-* **Cooldown:** 15 seconds.
-* **Basic Stats:** Charges for 2 seconds to spawn a Black Hole.
-* **Detailed Mechanic:** Sucks all enemies and enemy bullets toward its center with a powerful gravitational pull speed of **6**. Any enemy (including Bosses) that touches the absolute center of the black hole takes an astronomical **999,999,999 damage**, instantly obliterating them or instantly shattering Absolute Shields. (Note: Embryos are immune to gravitational pull).
-
-### Skill F: Annihilation Sweep (Key: F)
-
-* **Cooldown:** 10 seconds.
-* **Basic Stats:** 1.5s charge time, 1s execution time.
-* **Detailed Mechanic:** Charges energy and then sweeps a gigantic, visually enhanced radiant plasma beam across the entire screen in 1 second, causing violent screen shake and scattering particle energy. Any enemy caught in the sweep angle takes **999,999,999 damage**, instantly vaporizing them or shattering Absolute Shields.
-
-### Skill G: Life Domain / Tesla Matrix (Key: G)
-
-* **Charge Requirement:** Charges from 0% to 100% (+0.5% per enemy kill).
-* **Duration:** 30 seconds.
-* **Basic Stats:** Spawns Energy Orbs (Size 15) and Tesla Coils (Size 20). Max 4 Tesla Coils.
-* **Detailed Mechanic:**
-  * *Aura & Buffs:* Instantly grants the Glory for Justice passive buff while active.
-  * *Energy Links:* Orbs find pairs and link together for 5 seconds. Enemies walking through the energy link have their movement speed reduced by 8% and take DoT (Damage over Time) shocks dealing **6 Base + 4% Max HP every 125ms**.
-  * *Tesla Coils:* After 5 seconds, paired orbs merge into a Tesla Coil. The Coil has a magnetic aura (Radius 200) that slows all enemies inside by 8% and rapidly shocks them, dealing **10 Base + 13% Max HP damage every 50ms**.
-  * *Detonation:* When a Coil's HP (30) depletes or the 30-second skill duration ends, all Orbs and Coils detonate. Coils deal 10 Base + 15% Max HP in a massive AoE.
+While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). A ghost shows where you'll land.
 
 ---
 
-## Entities: Enemies & Bosses
+### A — Thunder Orbs: Celestial Thunderburst
 
-*Note: All enemies (Normal, Thaelis, Boss) have a baseline 5% Max HP amplification factor built into their health pools.*
+**Cooldown:** 9s
 
-### Normal Enemies
+Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **10 base + 24% Max HP** on impact, then shatters into **16 scattered projectiles** (4 base + 2% Max HP each) that fly outward in all directions.
 
-* **Spawn Rate:** Spawn continuously.
-* **HP Scaling:** Base HP begins roughly between 1 and 5 (capped at **60**) and scales infinitely based on how long the player has survived. Visually distinct with bright, vibrant colors to stand out from enemy projectiles.
-* **Attack:** Fires **1 bullet every 1 second**. The damage and health of this bullet are directly equal to the Normal Enemy's current HP at the moment it is fired.
+**Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage.
+
+---
+
+### S — Remembrance Spirit: Summoned Spirit Judgment
+
+**Cooldown:** 15s | **Max:** 2 Spirits
+
+Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every 65ms (+10% bullet speed).
+
+- **Spirit Bullet:** 5 base + 4% Max HP, homing.
+- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 10 base + 16% Max HP.
+- **All Spirit attacks** cut through and destroy enemy bullets on contact.
+- **Finale (at 35s):** The Spirit moves to the center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% Max HP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% Max HP, bounce off walls).
+
+---
+
+### D — Cosmic Black Hole: Singularity
+
+**Cooldown:** 15s | **Charge time:** 2 seconds
+
+After a 2-second charge, spawns a Black Hole that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
+
+- Embryos are immune to the gravitational pull but still die at the center.
+- The Black Hole slowly floats upward and disappears off-screen.
+
+---
+
+### F — Annihilation Sweep: Thiên Ý Trảm
+
+**Cooldown:** 10s | **Charge:** 1.5s | **Sweep:** 1s
+
+Charges up, then sweeps a massive plasma beam across the entire screen from one side to the other. Every enemy in the beam's path takes **999,999,999 damage** — instant kill, even through Absolute Shields.
+
+---
+
+### G — Life Domain / Tesla Matrix: Sinh Mệnh Kết Giới
+
+**Charge:** fills +0.5% per enemy kill | **Duration:** 30s
+
+Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locations throughout the duration.
+
+**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **6 base + 4% Max HP** damage every 125ms.
+
+**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and continuously shocks them for **10 base + 13% Max HP every 50ms**.
+
+**Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode simultaneously. Each coil explosion deals **10 base + 15% Max HP** in a large area.
+
+---
+
+## Enemies
+
+*All enemies have a hidden +5% HP bonus applied to their base stats.*
+
+---
+
+### Normal Enemy
+
+Spawns continuously from the start of the game. HP starts between 1–5 and scales up over time (capped at 60 HP). Fires 1 bullet per second — the bullet has the same HP as the enemy when it fires.
+
+---
 
 ### Thaelis (Elite)
 
-* **Spawn Condition:** Unavailable in the first 30 seconds. After that, spawn rate scales from **12% → 25%** over time. Maximum **3 Thaelis** on screen simultaneously. Part of a shared elite cap of **6 total elite enemies** on screen at once.
-* **Stats:** Considerably slower than normal enemies (Speed reduced by 25%). HP scales roughly between **300 and 680 Base HP**.
-* **Attack:** Fires a massive projectile (Speed 3.36, Size 18, 180 HP) every **1 second**. After flying for 0.6 seconds, the projectile splits into **3 smaller bullets** (Speed 3.73, Size 10.8, 60 HP) targeting the player or sentinels. If a small bullet hits the player, the player loses 1 life. If a small bullet hits a Sentinel, the Sentinel loses **2% of its Max HP**.
-* **Passive: Reincarnation:** Upon reaching 0 HP, Thaelis does not die completely. Instead, it splits into **3 Embryos** placed in a triangular formation (120 degrees apart).
-  * *Embryo Mechanics:* Each Embryo possesses 33% of Thaelis's Max HP plus an additional random 50-100 HP. Embryos have a massive **90% Damage Reduction** and are immune to Crowd Control (e.g., Black Holes, Tesla Coils). They CAN receive shields and heals from Aegis Core or Demon Gift.
-  * *Hatching:* After 3 seconds, if an Embryo is not destroyed, it hatches into a brand new Normal Enemy with HP equal to the Embryo's remaining HP + 60 Base HP.
+**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen
+
+Slower than normals (-25% speed). HP: 300–680.
+
+Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
+
+**Reincarnation** — At 0 HP, Thaelis doesn't die. It splits into 3 Embryos in a triangle formation:
+
+- Each Embryo has 33% of Thaelis's Max HP + 50–100 bonus HP.
+- Embryos have **90% Damage Reduction** and are immune to crowd control (Black Holes, Tesla Coils).
+- After 3 seconds, any surviving Embryo hatches into a new Normal Enemy (Embryo's remaining HP + 60 base HP).
+
+---
 
 ### Heavenly Aegis Core (Elite)
 
-* **Spawn Condition:** Unavailable in the first 30 seconds. After that, spawn rate scales from **6% → 14%** over time. Maximum **2 Aegis Cores** on screen simultaneously. Part of a shared elite cap of **6 total elite enemies** on screen at once.
-* **Stats:** Base HP scales from **400 to 750**. Has an inherent flat **10% Damage Reduction**.
-* **Passive: Custos Aeternus:** Spawns with an Absolute Shield that completely absorbs and negates 1 instance of any damage (even Black Holes or Sweeping Lasers).
-* **Skill: Support Aura:** Emits a massive radar field covering half the map width.
-  * Allies inside the aura heal for **1.55% of the Aegis Core's Max HP** per second.
-  * Allies (including bullets and embryos) inside also receive a shield equal to **40% of the Aegis Core's Max HP**. Any enemy holding this shield gains a flat **15% Damage Reduction**.
-  * Enemies and enemy bullets inside the aura gain a **5% movement speed increase**.
-* **Skill: Lumen Nova:** Every 5 seconds, the Aegis Core telegraphs the locations of the player and **3 random Sentinels** with targeting lines. After a 1-second delay, it fires hyper-fast lasers along those paths. Hitting the player triggers `playerTakesHit()` (which attempts to consume Orbs/Shields or removes 1 life), while hitting Sentinels drains **18% of their Max HP**.
+**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen
 
-### Dargruel ( Ultra - Elite)
+HP: 400–750. Innate +10% Damage Reduction.
 
-* **Dargruel:** Unavailable in the first 30 seconds. After that, spawn rate scales from **4% → 13%** over time. Maximum **2 Dargruels** on screen simultaneously. Part of a shared elite cap of **6 total elite enemies** on screen at once. Massive in size with a colossal HP bar (roughly 1255 to 5023 Base HP).
-* **Passive: Demon Gift:** Dargruel possesses a terrifying self-preservation mechanic with multiple triggers based on its HP thresholds.
-  * **Health Triggers:** Activates exactly when HP drops to **70%, 40%, 10%, and 1%**.
-    * *Global Heal:* Heals all other enemies on the screen (including bullets and embryos) for an amount equal to **15% of the Boss's Maximum HP**.
-    * *Overheal Shield:* If the heal amount exceeds a minion's Max HP, the excess healing is converted into a sturdy Shield at a 21% efficiency rate.
-    * *Damage Reduction:* Grants all minions an aura that reduces incoming damage by **18% for 4 seconds**. If triggered sequentially before the buff expires, it stacks up to a maximum of 2 times (capping at **30% Damage Reduction**).
-  * **Maou Haki:** Activates exactly when HP drops to **50%**. Dargruel emits a devastating screen-wide purple shockwave. This blast instantly clears all player and allied projectiles from the screen. Additionally, any Sentinel caught in the shockwave immediately loses **25% of its Maximum HP**.
+**Custos Aeternus** — Spawns with 1 Absolute Shield that absorbs any single hit, including Black Holes and Skill F.
+
+**Support Aura** — Constantly emits a field covering half the screen width:
+
+- Heals all ally units inside for 1.55% of Aegis Core's Max HP per second.
+- Grants a shield equal to 40% of Aegis Core's Max HP to all allies inside (including bullets and embryos). Shielded units gain +15% Damage Reduction.
+- All enemies and enemy bullets inside move 5% faster.
+
+**Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a shield/orb). Hitting a Sentinel deals 18% of its Max HP as damage.
+
+---
+
+### Marchosias (Elite)
+
+**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 1 on screen
+
+Size equal to Thaelis. Speed slightly below Aegis Core (-10%). HP: 1,000–2,200. Permanent **20% Damage Reduction** on its body.
+
+---
+
+#### Sword & Shield
+
+Marchosias carries an **Arc Shield** — a glowing 90-degree arc (quarter-circle) that rotates to always face the player's current position.
+
+**The shield has its own HP pool** equal to Marchosias's Max HP. They are tracked completely separately — hitting the shield does **not** damage Marchosias's body at all.
+
+Shield properties:
+
+- **50% Damage Reduction** on all incoming damage.
+- **Cannot receive any buffs** — no heals, no Damage Reduction boosts, no Aegis shields. The shield is completely buff-immune. Marchosias's body can still receive buffs normally.
+
+**What counts as a shield hit:** Any attack that contacts the shield — player bullets, sentinel bullets, spirit bullets, scattered projectiles, Overload Laser ticks, Skill F sweep contacts, and Black Hole center ticks.
+
+**Sword Counter** — Each shield hit has a **10% chance** to trigger a Counter Slash. Two additional automatic triggers:
+
+- Shield is destroyed → Counter Slash fires immediately.
+- Marchosias dies for any reason → Counter Slash fires immediately.
+
+Counter Slashes are limited to a maximum of **3 per Marchosias**, counted across all sources combined.
+
+**Counter Slash sequence:**
+
+1. An orange glowing rectangular warning beam projects from Marchosias toward your **current position** — you have **1 second** to reposition.
+2. After 1 second, an orange arc projectile (radius 80) launches toward where you were standing. **It travels in a straight line and does not track you.**
+3. If it hits the player, normal protection rules apply (orb → shield → last stand → lose a life).
+4. If it hits a Sentinel, it deals **20% of that Sentinel's Max HP**.
+
+**The Counter Slash is unstoppable.** Once fired, it cannot be destroyed or blocked by anything — not spirit blade arcs, not the Black Hole, not Skill F, not Tesla. It simply travels until it exits the screen. It also does not destroy any allied projectiles it passes through.
+
+---
+
+#### Normal Attack
+
+Fires **2 bullets per second** aimed at the nearest player or Sentinel's position at the moment of firing. Bullets travel in a straight line and **do not home**. Each bullet has HP equal to ⌈1.25% of Marchosias's current HP⌉.
+
+---
+
+#### Assimilation (Death Passive)
+
+When Marchosias reaches 0 HP, it explodes and splits into **3 Minion Robots** (triangular shape, same size as a Normal Enemy). Each minion randomly inherits **15–25%** of Marchosias's Max HP.
+
+Each minion immediately checks for a nearby valid host (any enemy within 1.5× the minion's own radius, excluding other Minion Robots):
+
+**Host found → Parasite Mode:**
+
+- The minion vanishes and becomes a **Parasite Shield** on the host.
+- Shield HP equals the minion's current HP at the moment of parasitizing.
+- A green rotating ring appears on the host to show the parasite shield.
+- The shield absorbs damage before any other shield on that unit.
+- It **cannot receive any buffs, heals, or regeneration** — it can only be whittled down by attacks.
+
+**No host nearby → Hunt Mode:**
+
+- The minion locks onto the player and charges at **+35% movement speed**.
+- Fires bullets and deals contact damage like a normal enemy.
+
+---
+
+### Dargruel (Ultra-Elite / Boss)
+
+**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen
+
+Massive size. HP: roughly 1,255–5,023.
+
+**Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
+
+- Heals all other enemies on screen for **15% of Dargruel's Max HP** (including bullets and embryos).
+- If the heal exceeds a target's Max HP, the overflow becomes a shield at 21% efficiency.
+- All units on screen gain **18% Damage Reduction for 4 seconds**. Stacks up to 2 times for a maximum of **30% Damage Reduction**.
+
+**Maou Haki** — Triggers once at exactly **50% HP**:
+
+- Fires a screen-wide purple shockwave that instantly clears all player and ally projectiles from the screen.
+- Any Sentinel the shockwave passes through loses **25% of its Max HP**.
+
+---
+
+## Elite Spawn Summary
+
+All elites share a combined cap of **6 elite enemies on screen at once**, plus individual per-type caps below.
+
+| Enemy | Unlocks | Spawn Rate | Cap |
+|---|---|---|---|
+| Marchosias | 20s | 5% → 13% | 1 |
+| Thaelis | 30s | 12% → 25% | 3 |
+| Aegis Core | 30s | 6% → 14% | 2 |
+| Dargruel | 30s | 4% → 13% | 2 |
+
+Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum.

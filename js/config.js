@@ -23,6 +23,7 @@ let playerAbsoluteShield = false;
 
 let bossShockwaves = [];
 let aegisLasers = [];
+let marchosiasBlades = []; // Global array — blades tồn tại độc lập, không bị ngắt
 
 // Nội tại Vệ Binh
 let sentinels = [];

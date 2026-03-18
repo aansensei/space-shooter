@@ -221,7 +221,12 @@ function update(rawDeltaTime) {
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
-                            dealDamage(enemy, { damage: 10, percentDamage: 0.26 });
+                            // Laser chạm khiên Mar → tính 1 hit, không damage Mar
+                            if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
+                                if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                            } else {
+                                dealDamage(enemy, { damage: 10, percentDamage: 0.26 });
+                            }
                             break;
                         }
                     }
@@ -409,7 +414,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-        } else if (enemy.type !== 'embryo') {
+        } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.width / 2) {
@@ -452,6 +457,78 @@ function update(rawDeltaTime) {
                     }
                 }
             }
+
+            // ── MARCHOSIAS ────────────────────────────────────────────
+            if (enemy.type === 'marchosias') {
+                // Khiên hướng về phía player — tâm cung luôn track player
+                // Cung 90° (±45°) đặt ở hướng từ Marchosias → player
+                if (enemy.arcShield) {
+                    const targetAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                    // Xoay mượt về hướng player
+                    let diff = targetAngle - enemy.arcShield.angle;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    enemy.arcShield.angle += diff * 0.08 * dt;
+                }
+
+                // Tấn công bình thường: 2 đạn/giây, target vị trí player hoặc sentinel gần nhất
+                enemy.shootTimer -= deltaTime;
+                if (enemy.shootTimer <= 0) {
+                    enemy.shootTimer = 1000;
+                    const bulletHp = Math.ceil(enemy.hp * 0.0125);
+                    const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
+                    if (target) {
+                        for (let bshot = 0; bshot < 2; bshot++) {
+                            const spreadA = (bshot - 0.5) * 0.18;
+                            const baseA = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+                            const angle = baseA + spreadA;
+                            enemies.push({
+                                x: enemy.x, y: enemy.y,
+                                vx: Math.cos(angle) * (player.speed / 3),
+                                vy: Math.sin(angle) * (player.speed / 3),
+                                damage: 2, size: 10,
+                                hp: bulletHp, maxHp: bulletHp,
+                                type: 'enemy_bullet', shield: 0
+                            });
+                        }
+                    }
+                }
+
+                // Counter windup → slash
+                if (enemy.counterState === 'windup') {
+                    enemy.counterTimer -= deltaTime;
+                    if (enemy.counterTimer <= 0) {
+                        const tx = enemy.counterTarget.x, ty = enemy.counterTarget.y;
+                        const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
+                        // Push vào global array — blade tồn tại độc lập, không bị ngắt khi Mar chết
+                        marchosiasBlades.push({
+                            x: enemy.x, y: enemy.y,
+                            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
+                            radius: 80,
+                            hitEnemies: [], hitPlayer: false,
+                        });
+                        enemy.counterState = null;
+                    }
+                }
+            }
+
+            // ── MARCHOSIAS MINION (handled in separate else-if below) ──
+        } else if (enemy.type === 'marchosias_minion') {
+            const mmdx = player.x - enemy.x, mmdy = player.y - enemy.y;
+            const mmd = Math.hypot(mmdx, mmdy);
+            if (mmd > 0) { enemy.x += (mmdx / mmd) * enemy.speed * dt; enemy.y += (mmdy / mmd) * enemy.speed * dt; }
+            enemy.shootTimer -= deltaTime;
+            if (enemy.shootTimer <= 0) {
+                enemy.shootTimer = 1000;
+                const tgt = findClosestSentinelOrPlayer(enemy.x, enemy.y);
+                if (tgt) {
+                    const ang = Math.atan2(tgt.y - enemy.y, tgt.x - enemy.x);
+                    enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(ang) * (player.speed / 3), vy: Math.sin(ang) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0 });
+                }
+            }
+            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.width / 2) {
+                playerTakesHit(); enemy.hp = 0;
+            }
         }
 
         if (enemy.hp <= 0) {
@@ -465,6 +542,20 @@ function update(rawDeltaTime) {
                         size: 15, speed: 0, hp: eggHp, maxHp: eggHp, type: 'embryo',
                         shield: 0, hatchTimer: 3000, originalHpAtHatch: eggHp
                     });
+                }
+            }
+
+            // ASSIMILATION: Marchosias tách 3 robot nhỏ khi chết
+            if (enemy.type === 'marchosias') {
+                // Kích hoạt nhát chém lần cuối khi chết (nếu còn slot)
+                _tryTriggerMarchosiasCounter(enemy);
+                addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
+                createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
+                for (let k = 0; k < 3; k++) {
+                    const spawnAngle = (Math.PI * 2 / 3) * k;
+                    const spawnX = enemy.x + Math.cos(spawnAngle) * enemy.size * 0.5;
+                    const spawnY = enemy.y + Math.sin(spawnAngle) * enemy.size * 0.5;
+                    spawnMarchosiasMinion(spawnX, spawnY, enemy.maxHp);
                 }
             }
 
@@ -520,6 +611,38 @@ function update(rawDeltaTime) {
         for (let enemy of enemies) {
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
+
+                // ── MARCHOSIAS ARC SHIELD CHECK ──────────────────────
+                if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
+                    const bulletAngle = Math.atan2(b.y - enemy.y, b.x - enemy.x);
+                    const shieldAngle = enemy.arcShield.angle;
+                    let angleDiff = bulletAngle - shieldAngle;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+                    if (Math.abs(angleDiff) < Math.PI / 4) {
+                        // Trúng khiên — 50% DR, KHÔNG damage Mar
+                        const effectiveHp = enemy.arcShield.maxHp;
+                        let dmg = Math.ceil(b.damage + (effectiveHp * (b.percentDamage || 0)));
+                        if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.40);
+                        dmg = Math.ceil(dmg * 0.50);
+                        const shieldWasAlive = enemy.arcShield.hp > 0;
+                        enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
+
+                        // Mỗi đòn trúng khiên: 10% chance counter
+                        if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                        // Khiên vừa vỡ → counter ngay
+                        if (shieldWasAlive && enemy.arcShield.hp <= 0) {
+                            addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
+                            _tryTriggerMarchosiasCounter(enemy);
+                        }
+
+                        createParticles(b.x, b.y, 3, '#aaffaa', 1, 4);
+                        bullets.splice(i, 1);
+                        break;
+                    }
+                }
+
                 if (b.type === 'player_charged') {
                     if (!b.hitEnemies) b.hitEnemies = [];
                     if (b.hitEnemies.includes(enemy)) continue;
@@ -554,6 +677,7 @@ function update(rawDeltaTime) {
     updateSkillF(deltaTime);
     updateEnergyOrbs(deltaTime, currentTime);
     updateTeslaCoils(deltaTime, currentTime);
+    updateMarchosiasBlades(deltaTime);
 
     if (screenShake.duration > 0) screenShake.duration -= deltaTime;
 }
@@ -585,6 +709,7 @@ function startGame() {
     spirits = []; blackHole = null;
     bossShockwaves = [];
     aegisLasers = [];
+    marchosiasBlades = [];
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 

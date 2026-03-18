@@ -1,3 +1,47 @@
+// Returns true if the hit was absorbed by the arcShield
+function checkMarchosiasArcShield(enemy, source, bx, by) {
+    if (enemy.type !== 'marchosias' || !enemy.arcShield || enemy.arcShield.hp <= 0) return false;
+    const bulletAngle = Math.atan2(by - enemy.y, bx - enemy.x);
+    let diff = bulletAngle - enemy.arcShield.angle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    if (Math.abs(diff) >= Math.PI / 4) return false; // outside 90° arc
+
+    // Damage khiên — 50% DR, KHÔNG damage Mar
+    const effectiveHp = enemy.arcShield.maxHp;
+    let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
+    if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.40);
+    dmg = Math.ceil(dmg * 0.50);
+    const shieldWasAlive = enemy.arcShield.hp > 0;
+    enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
+
+    // Mỗi đòn trúng khiên: 10% chance kích hoạt Sword
+    if (Math.random() < 0.10) {
+        _tryTriggerMarchosiasCounter(enemy);
+    }
+
+    // Khiên vừa vỡ → kích hoạt luôn
+    if (shieldWasAlive && enemy.arcShield.hp <= 0) {
+        addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
+        _tryTriggerMarchosiasCounter(enemy);
+    }
+
+    createParticles(bx, by, 3, '#aaffaa', 1, 4);
+    return true; // đạn bị hấp thụ, KHÔNG damage Mar
+}
+
+// Kích hoạt nhát chém nếu còn slot (max 3 lần), nhắm vị trí player LÚC NÀY
+function _tryTriggerMarchosiasCounter(enemy) {
+    if (enemy.counterState) return;
+    enemy.counterSlashCount = (enemy.counterSlashCount || 0);
+    if (enemy.counterSlashCount >= 3) return;
+    enemy.counterSlashCount++;
+    enemy.counterState = 'windup';
+    enemy.counterTimer = 1000;
+    // Snapshot vị trí player ngay lúc này — không dí theo
+    enemy.counterTarget = { x: player.x, y: player.y };
+}
+
 function distToSegment(p, v, w) {
     const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
     if (l2 == 0) return Math.hypot(p.x - v.x, p.y - v.y);
@@ -67,10 +111,23 @@ function spawnEnemy() {
     const dargruelCount = enemies.filter(e => e.type === 'boss').length;
     const thaelisCount = enemies.filter(e => e.type === 'thaelis').length;
     const aegisCount = enemies.filter(e => e.type === 'aegis_core').length;
-    const totalElite = dargruelCount + thaelisCount + aegisCount;
+    const marchosiasCount = enemies.filter(e => e.type === 'marchosias').length;
+    const totalElite = dargruelCount + thaelisCount + aegisCount + marchosiasCount;
 
-    // Before 30s: only normal enemies
+    // Before 20s: only normal enemies
+    if (elapsedSec < 20) {
+        spawnNormalEnemy();
+        return;
+    }
+
+    // Marchosias available từ 20s, các elite khác từ 30s
     if (elapsedSec < 30) {
+        // Chỉ roll Marchosias hoặc normal
+        const marchosiasCountEarly = enemies.filter(e => e.type === 'marchosias').length;
+        const tEarly = Math.min(1, (elapsedSec - 20) / 10); // 0→1 trong 10s
+        if (marchosiasCountEarly < 1 && Math.random() < 0.04 + tEarly * 0.04) {
+            spawnMarchosias(); return;
+        }
         spawnNormalEnemy();
         return;
     }
@@ -81,11 +138,13 @@ function spawnEnemy() {
     const dargruelRate = 0.04 + t * 0.09;  // 4% → 13%
     const aegisRate = 0.06 + t * 0.08;  // 6% → 14%
     const thaelisRate = 0.12 + t * 0.13;  // 12% → 25%
+    const marchosiasRate = 0.05 + t * 0.08; // 5% → 13%, available after 20s
 
     // ── Hard caps per type & total elite ──
     const canSpawnDargruel = dargruelCount < 2 && totalElite < 6;
     const canSpawnAegis = aegisCount < 2 && totalElite < 6;
     const canSpawnThaelis = thaelisCount < 3 && totalElite < 6;
+    const canSpawnMarchosias = marchosiasCount < 1 && totalElite < 6;
 
     // ── Roll ──
     const rand = Math.random();
@@ -99,6 +158,9 @@ function spawnEnemy() {
     }
     if (canSpawnThaelis && rand < (cursor += thaelisRate)) {
         spawnThaelis(); return;
+    }
+    if (canSpawnMarchosias && rand < (cursor += marchosiasRate)) {
+        spawnMarchosias(); return;
     }
 
     spawnNormalEnemy();
@@ -145,6 +207,79 @@ function spawnAegisCore() {
         type: 'aegis_core', shootTimer: 0,
         aegisInvulnerable: true, aegisShieldReceived: false
     });
+}
+
+function spawnMarchosias() {
+    // Size bằng Thaelis: baseSize * 5
+    const baseSize = (20 + Math.random() * 10);
+    const size = baseSize * 5;
+    // Speed chậm hơn Aegis 10% — Aegis speed ~0.4*rand, Marchosias = 0.9 * aegis
+    const speed = (1 + Math.random() * 2) * 0.4 * 0.9;
+    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+    let hp = Math.min(2200, 1000 + hpFromTime * 30);
+
+    // Khiên có HP bằng HP của Marchosias — tồn tại độc lập
+    const shieldHp = hp;
+
+    enemies.push({
+        x: Math.random() * (canvas.width - size * 2) + size, y: -size,
+        size, speed, hp, maxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+        type: 'marchosias',
+        shootTimer: 1000,
+        // Sword & Shield
+        DR: 0.20,                   // 20% miễn thương bản thân
+        arcShield: {
+            hp: shieldHp,
+            maxHp: shieldHp,
+            angle: 0,               // góc xoay hiện tại
+            rotSpeed: 0.018,        // rad/frame — xoay liên tục
+            hitCount: 0,            // đếm đòn trúng khiên
+        },
+        // Sword & Shield — counterattack state
+        counterState: null,         // null | 'windup' | 'slash'
+        counterTimer: 0,
+        counterTarget: null,        // {x,y} locked position khi counter
+        // Blade projectiles fired by Marchosias
+        marchosiasBlades: [],
+    });
+}
+
+function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
+    // Robot mini — kích thước bằng normal enemy
+    const size = 20 + Math.random() * 10;
+    const inheritPct = 0.15 + Math.random() * 0.10; // 15%→25%
+    const hp = Math.ceil(parentMaxHp * inheritPct);
+
+    // Tìm kẻ địch gần để ký sinh (không phải minion loại này)
+    const paraRange = size * 1.5;
+    const host = enemies.find(e =>
+        e !== null &&
+        e.type !== 'marchosias_minion' &&
+        !e.type.startsWith('enemy_bullet') &&
+        Math.hypot(e.x - parentX, e.y - parentY) < paraRange
+    );
+
+    if (host) {
+        // Ký sinh: thêm khiên lên host, giá trị = hp của minion
+        // Khiên này KHÔNG nhận buff — đánh dấu isMarchosiasShield
+        host.marchosiasParasiteShield = (host.marchosiasParasiteShield || 0) + hp;
+        // Hiệu ứng ký sinh
+        createParticles(host.x, host.y, 20, '#00ff88', 2, 6);
+        addExplosion(host.x, host.y, host.size * 0.8, '#00ff88');
+    } else {
+        // Không có host → chạy về phía player, tăng tốc 35%
+        const baseSpeed = (1 + Math.random() * 2) * 0.8;
+        enemies.push({
+            x: parentX + (Math.random() - 0.5) * 40,
+            y: parentY + (Math.random() - 0.5) * 40,
+            size, speed: baseSpeed * 1.35,
+            hp, maxHp: hp,
+            isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+            type: 'marchosias_minion',
+            shootTimer: 1000,
+        });
+    }
 }
 
 function spawnNormalEnemy() {
@@ -367,6 +502,29 @@ function spawnBossShockwave(x, y) {
 }
 
 function dealDamage(enemy, source) {
+    // MARCHOSIAS PARASITE SHIELD — không nhận buff, absorb damage trước shield thường
+    if (enemy.marchosiasParasiteShield && enemy.marchosiasParasiteShield > 0) {
+        const effectiveHpForParasite = (enemy.maxHp || enemy.hp) + (enemy.marchosiasParasiteShield || 0);
+        let parasiteDmg = Math.ceil((source.damage || 0) + (effectiveHpForParasite * (source.percentDamage || 0)));
+        if (gloryForJusticeActive) parasiteDmg = Math.ceil(parasiteDmg * 1.40);
+        parasiteDmg = Math.max(0, parasiteDmg);
+
+        if (parasiteDmg <= 0) {
+            // nothing to absorb
+        } else if (enemy.marchosiasParasiteShield >= parasiteDmg) {
+            enemy.marchosiasParasiteShield -= parasiteDmg;
+            return;
+        } else {
+            // Khiên vỡ, damage overflow xuyên vào enemy — giảm source.damage tương ứng
+            const overflow = parasiteDmg - enemy.marchosiasParasiteShield;
+            enemy.marchosiasParasiteShield = 0;
+            addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#00ff88');
+            // Tiếp tục với damage đã giảm
+            const origDmg = source.damage || 0;
+            source = Object.assign({}, source, { damage: Math.max(0, origDmg - (parasiteDmg - overflow)) });
+        }
+    }
+
     if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.aegisInvulnerable = false;
@@ -418,6 +576,10 @@ function dealDamage(enemy, source) {
 
     if (enemy.shield > 0 && enemy.aegisShieldReceived) {
         combinedDR += 0.15;
+    }
+
+    if (enemy.type === 'marchosias') {
+        combinedDR += 0.20;
     }
 
     if (enemy.type === 'embryo') {
