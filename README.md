@@ -121,7 +121,7 @@ Each shield takes **25 seconds** to regenerate after being broken.
 
 Hold Shift to open a cursed domain. Everything on the battlefield — enemies, bullets, movement, all timers — slows to **15% of normal speed**. You are **completely invincible** while the domain is active.
 
-While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). Two hollow placeholders shows where you'll land.
+While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). A ghost shows where you'll land.
 
 ---
 
@@ -235,7 +235,7 @@ Size equal to Thaelis. Speed slightly below Aegis Core (-10%). HP: 1,000–2,200
 
 ---
 
-#### Sword & Shield
+**Sword & Shield**
 
 Marchosias carries an **Arc Shield** — a glowing 90-degree arc (quarter-circle) that rotates to always face the player's current position.
 
@@ -266,13 +266,13 @@ Swords are limited to a maximum of **3 per Marchosias**, counted across all sour
 
 ---
 
-#### Normal Attack
+**Normal Attack**
 
 Fires **2 bullets per second** aimed at the nearest player or Sentinel's position at the moment of firing. Bullets travel in a straight line and **do not home**. Each bullet has HP equal to ⌈1.25% of Marchosias's current HP⌉.
 
 ---
 
-#### Assimilation (Death Passive)
+**Assimilation — Death Passive**
 
 When Marchosias reaches 0 HP, it explodes and splits into **3 Minion Robots** (triangular shape, same size as a Normal Enemy). Each minion randomly inherits **15–25%** of Marchosias's Max HP.
 
