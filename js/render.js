@@ -585,10 +585,11 @@ function draw(deltaTime) {
             }
         }
 
-        // C6. DOMAIN TITLE TEXT — "領域展開" fades in briefly
+        // C6. DOMAIN TITLE TEXT — fades in briefly
         {
-            const textT = Math.min(elapsed / 250, 1) * Math.max(0, 1 - (elapsed - 250) / 600);
+            const textT = Math.min(elapsed / 200, 1) * Math.max(0, 1 - (elapsed - 200) / 1500);
             if (textT > 0.02) {
+                if (elapsed < 280) screenShake = { intensity: 4, duration: 100 };
                 ctx.save();
 
                 // ── BIG KANJI BEHIND (mờ, to, đỏ tím) ──
@@ -613,7 +614,7 @@ function draw(deltaTime) {
                 ctx.font = 'italic 14px monospace';
                 ctx.fillStyle = '#dd88ff';
                 ctx.shadowBlur = 10;
-                ctx.fillText('— Cursed Domain Expansion —', cx, cy - 46);
+                ctx.fillText('— Bành trướng lãnh địa —', cx, cy - 46);
 
                 ctx.restore();
             }
@@ -687,6 +688,7 @@ function draw(deltaTime) {
         particles.forEach(drawParticle);
         chainLightningEffects.forEach(drawChainLightning);
         if (skillFState !== 'ready') drawSkillF();
+        if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();
         if (skillShiftActive) drawSkillShiftEffects();
 
@@ -1986,7 +1988,8 @@ function _drawNormalEnemy(enemy) {
 
 // ── Charge effect ─────────────────────────────────────────────
 function drawChargeEffect() {
-    let chargeDuration = performance.now() - chargeStartTime;
+    const now = performance.now();
+    let chargeDuration = now - chargeStartTime;
     let chargeRatio = Math.min(chargeDuration / overloadChargeTime, 1);
     let radius = player.width / 2 + chargeRatio * player.width * 2;
 
@@ -1999,28 +2002,95 @@ function drawChargeEffect() {
     }
     const color = `rgba(${r},${g},${b},0.85)`;
 
-    if (chargeDuration > 3000 && chargeDuration < overloadChargeTime) {
-        screenShake = { intensity: (chargeRatio - 0.6) * 10, duration: 50 };
+    // screen shake — chỉ giật nhẹ lúc title flash, không giật liên tục
+    if (chargeDuration < 250) {
+        screenShake = { intensity: 5, duration: 80 };
+    }
+
+    // ── TINH VƯƠNG TITLE — flash ở đầu charge ──────────────────
+    {
+        const titleDur = 1400;
+        const textT = chargeDuration < titleDur
+            ? Math.min(chargeDuration / 120, 1) * Math.max(0, 1 - (chargeDuration - 120) / (titleDur - 120))
+            : 0;
+        if (textT > 0.02) {
+            if (chargeDuration < 200) screenShake = { intensity: 6, duration: 120 };
+            ctx.save();
+            ctx.globalAlpha = textT * 0.32;
+            ctx.font = 'bold 110px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ff4400';
+            ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 50;
+            ctx.fillText('星王：滅世爆發', player.x, player.y - 85);
+
+            ctx.globalAlpha = textT * 0.95;
+            ctx.font = 'bold 30px "Arial Black", sans-serif';
+            ctx.fillStyle = '#ffdd00';
+            ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 28;
+            ctx.fillText('STAR SOVEREIGN', player.x, player.y - 128);
+
+            ctx.font = 'italic 13px monospace';
+            ctx.fillStyle = '#ffcc44';
+            ctx.shadowBlur = 10;
+            ctx.fillText('— Tinh Vương: Bộc Viêm Bá —', player.x, player.y - 104);
+            ctx.restore();
+        }
     }
 
     ctx.save();
     ctx.translate(player.x, player.y);
-    // outer bloom
+
+    // ── ENERGY VORTEX — xoáy vào player khi đang tụ ────────────
+    const spiralCount = 5;
+    for (let i = 0; i < spiralCount; i++) {
+        const spinDir = i % 2 === 0 ? 1 : -1;
+        const spinOffset = now / (500 + i * 80) * spinDir;
+        const streamLen = 80 + chargeRatio * 140;
+        ctx.beginPath();
+        const steps = 20;
+        for (let s = steps; s >= 0; s--) {
+            const t = s / steps;
+            const dist = t * streamLen;
+            const angle = (i / spiralCount) * Math.PI * 2 + spinOffset + t * 2.2 * spinDir;
+            const px2 = Math.cos(angle) * dist;
+            const py2 = Math.sin(angle) * dist;
+            s === steps ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
+        }
+        const streamA = (0.25 + chargeRatio * 0.5) * (0.5 + 0.5 * Math.sin(now / 180 + i));
+        ctx.strokeStyle = `rgba(${r},${Math.min(g + 40, 255)},${b},${streamA})`;
+        ctx.lineWidth = 0.8 + chargeRatio;
+        ctx.stroke();
+    }
+
+    // ── SHOCKWAVE RINGS lan ra ──────────────────────────────────
+    for (let w = 0; w < 3; w++) {
+        const phase = ((now / (600 - chargeRatio * 200) + w / 3) % 1);
+        const wR = 20 + phase * radius * 2.2;
+        const wA = (1 - phase) * 0.4 * chargeRatio;
+        ctx.strokeStyle = `rgba(${r},${g},${b},${wA})`;
+        ctx.lineWidth = 2 * (1 - phase);
+        ctx.beginPath(); ctx.arc(0, 0, wR, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // ── OUTER BLOOM ─────────────────────────────────────────────
     ctx.strokeStyle = `rgba(${r},${g},${b},0.25)`;
     ctx.lineWidth = 10 + 8 * chargeRatio;
     ctx.shadowColor = color; ctx.shadowBlur = 25;
     ctx.beginPath(); ctx.arc(0, 0, radius * 1.15, 0, Math.PI * 2); ctx.stroke();
-    // main ring
+
+    // ── MAIN RING ───────────────────────────────────────────────
     ctx.strokeStyle = color;
     ctx.lineWidth = 2 + 4 * chargeRatio;
     ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
-    // rotating inner tick marks
+
+    // ── ROTATING TICK MARKS ─────────────────────────────────────
     const ticks = 8;
     ctx.strokeStyle = `rgba(${r},${g},${b},0.6)`;
     ctx.lineWidth = 1.5;
     ctx.shadowBlur = 0;
-    ctx.rotate(performance.now() / 400);
+    ctx.rotate(now / 400);
     for (let i = 0; i < ticks; i++) {
         const a = (i / ticks) * Math.PI * 2;
         ctx.beginPath();
@@ -2064,13 +2134,14 @@ function drawChargeMeter() {
 
 // ── Overload laser ────────────────────────────────────────────
 function drawLaser() {
+    const now = performance.now();
     const laserBeamWidth = 100;
     const allLasers = [{ xOffset: 0 }, ...playerClones];
     allLasers.forEach(clone => {
         const laserX = player.x + clone.xOffset;
         ctx.save();
 
-        const wobble = Math.sin(performance.now() / 28 + clone.xOffset / 50) * 9;
+        const wobble = Math.sin(now / 28 + clone.xOffset / 50) * 9;
         const cw = laserBeamWidth + wobble;
         const cx = laserX - cw / 2;
 
@@ -2113,6 +2184,39 @@ function drawLaser() {
             });
         }
     });
+
+    // ── EXECUTION TITLE — chỉ hiện 1 giây đầu rồi tắt ──────
+    {
+        const laserElapsed = now - laserStartTime;
+        const fadeIn = Math.min(laserElapsed / 150, 1);
+        const fadeOut = Math.max(0, 1 - (laserElapsed - 600) / 400);
+        const textT = laserElapsed < 1000 ? fadeIn * fadeOut : 0;
+
+        if (textT > 0.02) {
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.globalAlpha = textT * 0.35;
+            ctx.font = 'bold 115px serif';
+            ctx.fillStyle = '#ff6600';
+            ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 50;
+            ctx.fillText('開炸斬決', player.x, player.y - 80);
+
+            ctx.globalAlpha = textT * 0.98;
+            ctx.font = 'bold 36px "Arial Black", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 35;
+            ctx.fillText('EXECUTION', player.x, player.y - 124);
+
+            ctx.globalAlpha = textT * 0.98;
+            ctx.font = 'italic 14px monospace';
+            ctx.fillStyle = '#ffdd88';
+            ctx.shadowBlur = 12;
+            ctx.fillText('— Khai Triển —', player.x, player.y - 100);
+            ctx.restore();
+        }
+    }
 }
 
 // ── Explosion ─────────────────────────────────────────────────
@@ -2277,7 +2381,6 @@ function drawSpirit(spirit) {
     if (!spirit) return;
     const now = performance.now();
     const timeRemaining = spirit.duration - (now - spirit.spawnTime);
-    if (timeRemaining < 3000 && Math.floor(now / 150) % 2 === 0) return;
 
     ctx.save();
 
@@ -2530,6 +2633,98 @@ function drawBladeArcProjectile(arc) {
     ctx.restore();
 }
 
+// ── Skill D – Black Hole charging ────────────────────────────
+function drawSkillDCharging() {
+    const now = performance.now();
+    const p = Math.min((now - skillDChargeStartTime) / skillDChargeTime, 1);
+    const cx = player.x, cy = player.y;
+
+    ctx.save();
+
+    // 1. GRAVITY RINGS — co lại vào tâm
+    for (let ring = 0; ring < 4; ring++) {
+        const phase = ((now / (900 - p * 300) + ring / 4) % 1);
+        const ringR = 20 + phase * (60 + p * 120);
+        const ringA = (1 - phase) * 0.5 * p;
+        ctx.strokeStyle = `rgba(120,0,200,${ringA})`;
+        ctx.lineWidth = 2.5 * (1 - phase);
+        ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // 2. MATTER STREAMS — phân tử xoáy vào từ xung quanh
+    const streamCount = 8;
+    for (let i = 0; i < streamCount; i++) {
+        const spinDir = i % 2 === 0 ? 1 : -1;
+        const baseAngle = (i / streamCount) * Math.PI * 2;
+        const spinOffset = now / (600 + i * 50) * spinDir;
+        const len = 60 + p * 160;
+
+        ctx.beginPath();
+        const steps = 22;
+        for (let s = steps; s >= 0; s--) {
+            const t = s / steps;
+            const dist = t * len;
+            const angle = baseAngle + spinOffset + t * 2.5 * spinDir;
+            const px2 = cx + Math.cos(angle) * dist;
+            const py2 = cy + Math.sin(angle) * dist;
+            s === steps ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
+        }
+        const sA = 0.2 + p * 0.6;
+        ctx.strokeStyle = i % 2 === 0
+            ? `rgba(160,0,255,${sA})`
+            : `rgba(80,0,180,${sA * 0.7})`;
+        ctx.lineWidth = 0.8 + p * 1.2;
+        ctx.stroke();
+    }
+
+    // 3. DARK CORE hình thành
+    const coreR = 4 + p * 16;
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 2);
+    coreGrad.addColorStop(0, 'rgba(0,0,0,1)');
+    coreGrad.addColorStop(0.4, `rgba(40,0,80,${0.8 * p})`);
+    coreGrad.addColorStop(0.8, `rgba(100,0,180,${0.4 * p})`);
+    coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath(); ctx.arc(cx, cy, coreR * 2, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = `rgba(180,80,255,0.8)`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#8800ff'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 4. TITLE — hiện NGAY khi ấn, mờ dần khi gần đầy
+    {
+        const textT = Math.min(p / 0.15, 1) * Math.max(0, 1 - (p - 0.7) / 0.3);
+        if (textT > 0.02) {
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.globalAlpha = textT * 0.28;
+            ctx.font = 'bold 110px serif';
+            ctx.fillStyle = '#6600cc';
+            ctx.shadowColor = '#4400aa'; ctx.shadowBlur = 40;
+            ctx.fillText('虛空崩塌', cx, cy - 80);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'bold 30px "Arial Black", sans-serif';
+            ctx.fillStyle = '#cc88ff';
+            ctx.shadowColor = '#8800ff'; ctx.shadowBlur = 28;
+            ctx.fillText('SINGULARITY', cx, cy - 122);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'italic 13px monospace';
+            ctx.fillStyle = '#bb66ff';
+            ctx.shadowBlur = 10;
+            ctx.fillText('— Hố Đen Triệu Hoán —', cx, cy - 98);
+            ctx.restore();
+        }
+    }
+
+    ctx.restore();
+}
+
 // ── Black hole ────────────────────────────────────────────────
 function drawBlackHole() {
     const now = performance.now();
@@ -2667,27 +2862,28 @@ function drawSkillF() {
         });
         ctx.restore();
 
-        // ── ANNIHILATION TITLE — xuất hiện khi đang tụ lực ──────
+        // ── ANNIHILATION TITLE ───────────────────────────────────
         {
-            const textT = Math.min(p / 0.4, 1); // fade in trong 40% đầu charge
+            const textT = Math.min(p / 0.25, 1) * Math.max(0, 1 - (p - 0.6) / 0.4);
             if (textT > 0.02) {
+                if (p < 0.05) screenShake = { intensity: 4, duration: 100 };
                 ctx.save();
-                // kanji lớn mờ phía sau
-                ctx.globalAlpha = textT * 0.28;
-                ctx.font = 'bold 120px serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+
+                ctx.globalAlpha = textT * 0.28;
+                ctx.font = 'bold 120px serif';
                 ctx.fillStyle = '#00ffff';
                 ctx.shadowColor = '#00aacc'; ctx.shadowBlur = 40;
                 ctx.fillText('殲滅掃射', player.x, player.y - 80);
 
-                // EN title phía trước
                 ctx.globalAlpha = textT * 0.9;
                 ctx.font = 'bold 34px "Arial Black", sans-serif';
                 ctx.fillStyle = '#ffffff';
                 ctx.shadowColor = 'cyan'; ctx.shadowBlur = 24;
                 ctx.fillText('ANNIHILATION', player.x, player.y - 120);
 
+                ctx.globalAlpha = textT * 0.9;
                 ctx.font = 'italic 13px monospace';
                 ctx.fillStyle = '#aaffff';
                 ctx.shadowBlur = 8;
