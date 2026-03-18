@@ -69,9 +69,9 @@ function applyVulnerability(enemy) {
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
     if (stacks < 3) {
-        // Lập tức giảm 5% khiên hiện tại
+        // Lập tức giảm 15% khiên hiện tại
         if (enemy.shield > 0) {
-            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.95));
+            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.85));
         }
         enemy.vulnStacks = stacks + 1;
     }
@@ -559,7 +559,6 @@ function dealDamage(enemy, source) {
         enemy.soulReaver = true;
     }
 
-    // SỬA: Dùng chung 1 biến currentTime để tránh lỗi khai báo trùng 'now'
     const currentTime = performance.now();
     if (enemy.vulnStacks && enemy.vulnEndTime && currentTime > enemy.vulnEndTime) {
         enemy.vulnStacks = 0;
@@ -576,9 +575,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * 1.40);
     }
 
-    // Áp dụng tăng sát thương từ Trọng Thương (+10% mỗi stack)
+    // Áp dụng tăng sát thương từ Trọng Thương (+25% mỗi stack)
     if (enemy.vulnStacks && enemy.vulnStacks > 0) {
-        totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.10));
+        totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.25));
     }
 
     let combinedDR = 0;

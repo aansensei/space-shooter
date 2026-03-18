@@ -57,9 +57,9 @@ A powerful inherent combat status effect that weakens enemies over time.
 
 - **Application Chance:** The player's basic auto-attacks have a **10% chance** to inflict Vulnerability on hit. All other allied attacks (Sentinels, Spirits, Black Hole, etc., excluding Chain Lightning and Tesla DoT) have a **5% chance**.
 - **Effects:**
-  - **Shield Shred:** Instantly destroys **5% of the enemy's current Shield** upon application.
-  - **Damage Amplification:** Increases all incoming damage to that enemy by **10% per stack**.
-- **Stacking & Duration:** Stacks up to **3 times** (for a maximum of +30% damage taken). The effect lasts for **3 seconds**, and applying a new stack refreshes the duration.
+  - **Shield Shred:** Instantly destroys **15% of the enemy's current Shield** upon application.
+  - **Damage Amplification:** Increases all incoming damage to that enemy by **25% per stack**.
+- **Stacking & Duration:** Stacks up to **3 times** (for a maximum of +75% damage taken). The effect lasts for **3 seconds**, and applying a new stack refreshes the duration.
 
 ### Glory for Justice
 
@@ -214,7 +214,7 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 **Reincarnation** — At 0 HP, Thaelis doesn't die. It splits into 3 Embryos in a triangle formation:
 
 - Each Embryo has 33% of Thaelis's Max HP + 50–100 bonus HP.
-- Embryos have **90% Damage Reduction** and are immune to crowd control (Black Holes, Tesla Coils).
+- Embryos have **90% Damage Reduction** and are immune to crowd control (Black Holes, Tesla Coils). They CAN receive shields and heals from Aegis Core or Demon Gift.
 - After 3 seconds, any surviving Embryo hatches into a new Normal Enemy (Embryo's remaining HP + 60 base HP).
 
 ---
@@ -233,7 +233,7 @@ HP: 400–750. Innate +10% Damage Reduction.
 - Grants a shield equal to 40% of Aegis Core's Max HP to all allies inside (including bullets and embryos). Shielded units gain +15% Damage Reduction.
 - All enemies and enemy bullets inside move 5% faster.
 
-**Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a shield/orb). Hitting a Sentinel deals 18% of its Max HP as damage.
+**Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player triggers `playerTakesHit()` (which attempts to consume Orbs/Shields or removes 1 life), while hitting Sentinels drains **18% of their Max HP**.
 
 ---
 
