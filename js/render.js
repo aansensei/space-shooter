@@ -2414,82 +2414,80 @@ function drawSpirit(spirit) {
 
     ctx.save();
 
-    // ── TITLE FLASH khi spirit mới xuất hiện (1.4s đầu) ─────
-    {
+    // ── TITLE + HEXAGRAM — hiện trên đầu player, chỉ lần đầu ─
+    // Chỉ render cho spirit đầu tiên trong mảng để tránh vẽ đè nhiều lần
+    if (spirits.length > 0 && spirit === spirits[0]) {
         const textT = Math.min(age / 150, 1) * Math.max(0, 1 - (age - 150) / 1250);
         if (textT > 0.02) {
+            const tx = player.x;
+            const ty = player.y - 100;
+
             ctx.save();
+
+            // HEXAGRAM bao quanh player — cùng fade với textT
+            {
+                const hexR = 55 + 5 * Math.sin(now / 400);
+                const rot1 = now / 2200, rot2 = -now / 1800;
+                ctx.globalAlpha = textT * 0.65;
+                ctx.translate(player.x, player.y);
+
+                // outer dashed circle
+                ctx.strokeStyle = 'rgba(255,100,255,0.55)';
+                ctx.lineWidth = 1.2; ctx.setLineDash([7, 5]);
+                ctx.beginPath(); ctx.arc(0, 0, hexR * 1.3, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]);
+
+                // 2 tam giác ngược chiều
+                for (let tri = 0; tri < 2; tri++) {
+                    const rot = tri === 0 ? rot1 : rot2;
+                    ctx.strokeStyle = tri === 0 ? 'rgba(255,80,255,0.85)' : 'rgba(200,0,255,0.7)';
+                    ctx.lineWidth = 1.6;
+                    ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    for (let i = 0; i < 3; i++) {
+                        const a = rot + (i / 3) * Math.PI * 2 + (tri === 1 ? Math.PI : 0);
+                        i === 0 ? ctx.moveTo(Math.cos(a) * hexR, Math.sin(a) * hexR)
+                            : ctx.lineTo(Math.cos(a) * hexR, Math.sin(a) * hexR);
+                    }
+                    ctx.closePath(); ctx.stroke();
+                }
+
+                // 6 điểm sáng đỉnh
+                ctx.shadowBlur = 6;
+                for (let i = 0; i < 6; i++) {
+                    const a = rot1 + (i / 6) * Math.PI * 2;
+                    ctx.fillStyle = `rgba(255,180,255,${0.8 + 0.2 * Math.sin(now / 250 + i)})`;
+                    ctx.beginPath(); ctx.arc(Math.cos(a) * hexR, Math.sin(a) * hexR, 3, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.restore();
+            ctx.save();
+
+            // CHỮ phía trước hexagram
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-            ctx.globalAlpha = textT * 0.26;
-            ctx.font = 'bold 110px serif';
+            ctx.globalAlpha = textT * 0.24;
+            ctx.font = 'bold 85px serif';
             ctx.fillStyle = '#ff44ff';
-            ctx.shadowColor = '#cc00cc'; ctx.shadowBlur = 45;
-            ctx.fillText('星王：召靈審滅', spirit.x, spirit.y - 85);
+            ctx.shadowColor = '#cc00cc'; ctx.shadowBlur = 40;
+            ctx.fillText('星王：召靈審滅', tx, ty - 8);
 
             ctx.globalAlpha = textT * 0.92;
-            ctx.font = 'bold 27px "Arial Black", sans-serif';
+            ctx.font = 'bold 22px "Arial Black", sans-serif';
             ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 26;
-            ctx.fillText('SUMMONED SPIRIT JUDGMENT', spirit.x, spirit.y - 127);
+            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 22;
+            ctx.fillText('SUMMONED SPIRIT JUDGMENT', tx, ty - 50);
 
             ctx.globalAlpha = textT * 0.92;
-            ctx.font = 'italic 13px monospace';
+            ctx.font = 'italic 12px monospace';
             ctx.fillStyle = '#ff88ff';
-            ctx.shadowBlur = 10;
-            ctx.fillText('— Tinh Vương: Triệu Linh Diệt Phán —', spirit.x, spirit.y - 103);
+            ctx.shadowBlur = 8;
+            ctx.fillText('— Tinh Vương: Triệu Linh Diệt Phán —', tx, ty - 30);
+
             ctx.restore();
         }
-    }
-
-    // ── HEXAGRAM SUMMONING CIRCLE (vòng ngôi sao 6 cánh) ────
-    {
-        const hexR = (spirit.isFinishing ? 55 : 35) + 5 * Math.sin(now / 400);
-        const rot1 = now / 2200;
-        const rot2 = -now / 1800;
-        const hexAlpha = Math.min(age / 300, 1) * 0.55;
-
-        ctx.save();
-        ctx.translate(spirit.x, spirit.y);
-        ctx.globalAlpha = hexAlpha;
-
-        // outer dashed circle
-        ctx.strokeStyle = 'rgba(255,100,255,0.5)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([6, 5]);
-        ctx.beginPath(); ctx.arc(0, 0, hexR * 1.28, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-
-        // two overlapping triangles = Star of David
-        for (let tri = 0; tri < 2; tri++) {
-            const rot = tri === 0 ? rot1 : rot2;
-            ctx.strokeStyle = tri === 0
-                ? `rgba(255,80,255,0.75)`
-                : `rgba(200,0,255,0.6)`;
-            ctx.lineWidth = 1.4;
-            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 8;
-            ctx.beginPath();
-            for (let i = 0; i < 3; i++) {
-                const a = rot + (i / 3) * Math.PI * 2 + (tri === 1 ? Math.PI : 0);
-                const px2 = Math.cos(a) * hexR;
-                const py2 = Math.sin(a) * hexR;
-                i === 0 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
-            }
-            ctx.closePath(); ctx.stroke();
-        }
-
-        // 6 dots at star tips
-        for (let i = 0; i < 6; i++) {
-            const a = rot1 + (i / 6) * Math.PI * 2;
-            const dotPulse = 0.6 + 0.4 * Math.sin(now / 250 + i * 1.05);
-            ctx.fillStyle = `rgba(255,180,255,${dotPulse * hexAlpha * 1.8})`;
-            ctx.shadowBlur = 6;
-            ctx.beginPath();
-            ctx.arc(Math.cos(a) * hexR, Math.sin(a) * hexR, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-        ctx.restore();
     }
 
     // Finale charge aura
