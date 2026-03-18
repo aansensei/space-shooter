@@ -25,6 +25,10 @@ let bossShockwaves = [];
 let aegisLasers = [];
 let marchosiasBlades = []; // Global array — blades tồn tại độc lập, không bị ngắt
 
+// Accurate Parry (Yog-Sothoth)
+let accurateParryActive = false;
+let accurateParryEndTime = 0;
+
 // Nội tại Vệ Binh
 let sentinels = [];
 let killCountForPassive = 0;
@@ -81,7 +85,7 @@ const TESLA_AURA_RADIUS = TESLA_COIL_SIZE * 10;
 let charging = false, chargeStartTime = 0;
 const maxChargeTime = 1000;
 const maxMultiplier = 10;
-const overloadChargeTime = 5000;
+const overloadChargeTime = 3000;
 
 // Tia laze
 let laserActive = false, laserStartTime = 0, lastLaserTick = 0;

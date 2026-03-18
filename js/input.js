@@ -118,3 +118,10 @@ window.addEventListener("resize", function () {
     player.y = canvas.height - 60;
     skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
 });
+// Tự động pause khi chuyển tab
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && gameState === 'playing' && !gamePaused) {
+        gamePaused = true;
+        showPauseScreen();
+    }
+});

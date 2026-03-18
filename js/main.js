@@ -22,7 +22,11 @@ function loseLife() {
 
 function playerTakesHit() {
     // ƯU TIÊN 0: Yog-Sothoth - Miễn mọi sát thương trong Lãnh địa Thời Gian
-    if (skillShiftActive) return;
+    if (skillShiftActive) {
+        // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
+        _triggerAccurateParry();
+        return;
+    }
 
     // ƯU TIÊN 1: Hy sinh Lôi Quang Cầu VÀNG (Chiêu A)
     if (skillAActive && skillADefensiveCharges > 0 && skillAOrbs.length > 0) {
@@ -60,6 +64,23 @@ function playerTakesHit() {
     loseLife();
 }
 
+function _triggerAccurateParry() {
+    const now = performance.now();
+    accurateParryActive = true;
+    accurateParryEndTime = now + 4000;
+
+    // Visual feedback
+    addExplosion(player.x, player.y, 80, '#ffdd00');
+    createParticles(player.x, player.y, 30, '#ffdd00', 3, 10);
+    screenShake = { intensity: 8, duration: 200 };
+
+    // Tất cả sentinel nhận khiên 25% Max HP
+    sentinels.forEach(s => {
+        const shieldGain = Math.ceil(s.maxHp * 0.25);
+        s.shield = (s.shield || 0) + shieldGain;
+    });
+}
+
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
@@ -93,7 +114,13 @@ function update(rawDeltaTime) {
         lastEnemySpawn += delay;
     }
 
-    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet')).length > 4) || skillGActive || enemies.some(e => e.type === 'boss');
+    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet')).length > 4) || skillGActive ||
+        enemies.some(e => e.type === 'boss' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias');
+
+    // Accurate Parry expiry
+    if (accurateParryActive && performance.now() >= accurateParryEndTime) {
+        accurateParryActive = false;
+    }
 
     bossShockwaves.forEach(wave => {
         if (!wave.active) return;
@@ -223,7 +250,7 @@ function update(rawDeltaTime) {
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                             // Laser chạm khiên Mar → tính 1 hit, không damage Mar
                             if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
-                                if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                                if (Math.random() < 0.20) _tryTriggerMarchosiasCounter(enemy);
                             } else {
                                 dealDamage(enemy, { damage: 10, percentDamage: 0.26 });
                             }
@@ -273,11 +300,11 @@ function update(rawDeltaTime) {
             enemies.forEach(ally => {
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
-                    let finalHeal = ally.soulReaver ? healAmt * 0.8 : healAmt;
+                    let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
                     ally.hp = Math.min(ally.maxHp, ally.hp + finalHeal);
 
                     if (!ally.aegisShieldReceived) {
-                        let finalShield = ally.soulReaver ? shieldAmt * 0.8 : shieldAmt;
+                        let finalShield = ally.soulReaver ? shieldAmt * 0.75 : shieldAmt;
                         ally.shield = (ally.shield || 0) + finalShield;
                         ally.aegisShieldReceived = true;
                     }
@@ -500,22 +527,23 @@ function update(rawDeltaTime) {
                     }
                 }
 
-                // Counter windup → slash
-                if (enemy.counterState === 'windup') {
-                    enemy.counterTimer -= deltaTime;
-                    if (enemy.counterTimer <= 0) {
-                        const tx = enemy.counterTarget.x, ty = enemy.counterTarget.y;
+                // Counter windups — xử lý nhiều đòn song song, không giới hạn
+                if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
+                for (let wi = enemy.marchosiasWindups.length - 1; wi >= 0; wi--) {
+                    const windup = enemy.marchosiasWindups[wi];
+                    windup.timer -= deltaTime;
+                    if (windup.timer <= 0) {
+                        const tx = windup.target.x, ty = windup.target.y;
                         const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
                         marchosiasBlades.push({
                             x: enemy.x, y: enemy.y,
-                            vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
-                            angle: angle,
-                            radius: 80,
-                            delay: 0, active: true, // đã qua windup → active ngay
+                            vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
+                            angle: angle, radius: 88,
+                            delay: 0, active: true,
                             originX: enemy.x, originY: enemy.y,
                             hitEnemies: [], hitPlayer: false,
                         });
-                        enemy.counterState = null;
+                        enemy.marchosiasWindups.splice(wi, 1);
                     }
                 }
             }
@@ -632,13 +660,13 @@ function update(rawDeltaTime) {
                         // Trúng khiên — 50% DR, KHÔNG damage Mar
                         const effectiveHp = enemy.arcShield.maxHp;
                         let dmg = Math.ceil(b.damage + (effectiveHp * (b.percentDamage || 0)));
-                        if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.40);
+                        if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.55);
                         dmg = Math.ceil(dmg * 0.50);
                         const shieldWasAlive = enemy.arcShield.hp > 0;
                         enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
 
                         // Mỗi đòn trúng khiên: 10% chance counter
-                        if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                        if (Math.random() < 0.20) _tryTriggerMarchosiasCounter(enemy);
                         // Khiên vừa vỡ → counter ngay
                         if (shieldWasAlive && enemy.arcShield.hp <= 0) {
                             addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
@@ -676,6 +704,7 @@ function update(rawDeltaTime) {
     chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
 
     updateSentinels(deltaTime);
+    updateSoulReaverDoT(deltaTime);
     updateSkillA(deltaTime);
     updateScatteredProjectiles(deltaTime);
     updateSpirits(deltaTime);
@@ -693,7 +722,16 @@ function update(rawDeltaTime) {
 function gameLoop(timeStamp) {
     if (!lastTimeStamp) lastTimeStamp = timeStamp;
     let deltaTime = timeStamp - lastTimeStamp;
-    if (deltaTime > 1000) { gamePaused = true; showPauseScreen(); requestAnimationFrame(gameLoop); return; }
+    // Cap deltaTime — if too large, the tab was in background; pause and reset clock
+    if (deltaTime > 200) {
+        lastTimeStamp = timeStamp;
+        if (gameState === "playing" && !gamePaused) {
+            gamePaused = true;
+            showPauseScreen();
+        }
+        requestAnimationFrame(gameLoop);
+        return;
+    }
     lastTimeStamp = timeStamp;
     if (!gamePaused && !loading) { update(deltaTime); draw(deltaTime); }
     requestAnimationFrame(gameLoop);
@@ -718,6 +756,8 @@ function startGame() {
     bossShockwaves = [];
     aegisLasers = [];
     marchosiasBlades = [];
+    accurateParryActive = false;
+    accurateParryEndTime = 0;
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 

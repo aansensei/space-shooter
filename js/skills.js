@@ -99,7 +99,7 @@ function updateSkillA(deltaTime) {
                 lifetime: 200, maxLifetime: 200, size: 4, color: orb.isDefensive ? 'rgba(255, 255, 0, 0.7)' : 'rgba(0, 255, 255, 0.7)'
             });
             if (dist < orb.target.size / 2 + orb.size) {
-                dealDamage(orb.target, { damage: 10, percentDamage: 0.24 });
+                dealDamage(orb.target, { damage: 11, percentDamage: 0.28 });
                 orb.target.isTargetedByA = false;
 
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 4, percentDamage: 0.02 });
@@ -205,7 +205,7 @@ function updateSpirits(deltaTime) {
             spirit.shootTimer = spiritFireRate;
             let closest = findClosestEnemy(spirit.x, spirit.y);
             if (closest) {
-                const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * 1.10;
+                const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.10;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
                     damage: 5, percentDamage: 0.04,
@@ -218,11 +218,11 @@ function updateSpirits(deltaTime) {
         if (spirit.shotsFiredSinceBarrage >= 5) {
             spirit.shotsFiredSinceBarrage = 0;
             let closest = findClosestEnemy(spirit.x, spirit.y);
-            let vx = 0, vy = -12;
+            let vx = 0, vy = -13.2;
             if (closest) {
                 const d = Math.hypot(closest.x - spirit.x, closest.y - spirit.y);
-                vx = (closest.x - spirit.x) / d * 12;
-                vy = (closest.y - spirit.y) / d * 12;
+                vx = (closest.x - spirit.x) / d * 13.2;
+                vy = (closest.y - spirit.y) / d * 13.2;
             }
             bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.16, hitEnemies: [] });
         }
@@ -757,6 +757,29 @@ function updateMarchosiasBlades(deltaTime) {
         if (blade.x < -blade.radius || blade.x > canvas.width + blade.radius ||
             blade.y < -blade.radius || blade.y > canvas.height + blade.radius) {
             marchosiasBlades.splice(i, 1);
+        }
+    }
+}
+// ── Soul Reaver DoT (Cắn nuốt linh hồn) ─────────────────────────
+// Kẻ địch có soulReaver bị trừ 10 base + 5% MaxHP mỗi 0.5 giây (bỏ qua khiên)
+function updateSoulReaverDoT(deltaTime) {
+    if (!gloryForJusticeActive) return; // chỉ active khi Glory for Justice bật
+    const now = performance.now();
+    for (const enemy of enemies) {
+        if (!enemy.soulReaver) continue;
+        if (!enemy.soulReaverDotTimer) enemy.soulReaverDotTimer = 0;
+        enemy.soulReaverDotTimer -= deltaTime;
+        if (enemy.soulReaverDotTimer <= 0) {
+            enemy.soulReaverDotTimer = 500; // 0.5 giây
+            // Sát thương chuẩn bỏ qua khiên — áp thẳng vào HP
+            const dotDmg = Math.ceil(10 + (enemy.maxHp || enemy.hp) * 0.05);
+            enemy.hp -= dotDmg;
+            // Particle nhỏ màu cam để thể hiện DoT
+            createParticles(
+                enemy.x + (Math.random() - 0.5) * (enemy.size || 20),
+                enemy.y + (Math.random() - 0.5) * (enemy.size || 20),
+                3, '#FF4500', 1, 3
+            );
         }
     }
 }
