@@ -2275,6 +2275,35 @@ function drawParticle(p) {
 function drawSkillA() {
     const now = performance.now();
 
+    // ── TITLE FLASH khi skill A vừa kích hoạt ────────────────
+    {
+        const elapsed = now - lastSkillA;
+        const textT = Math.min(elapsed / 150, 1) * Math.max(0, 1 - (elapsed - 150) / 1200);
+        if (textT > 0.02) {
+            ctx.save();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            ctx.globalAlpha = textT * 0.26;
+            ctx.font = 'bold 110px serif';
+            ctx.fillStyle = '#00eeff';
+            ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 45;
+            ctx.fillText('星王：天雷爆星', player.x, player.y - 80);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'bold 29px "Arial Black", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#00ddff'; ctx.shadowBlur = 26;
+            ctx.fillText('CELESTIAL THUNDERBURST', player.x, player.y - 122);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'italic 13px monospace';
+            ctx.fillStyle = '#88eeff';
+            ctx.shadowBlur = 10;
+            ctx.fillText('— Tinh Vương: Thiên Lôi Bộc Tinh —', player.x, player.y - 98);
+            ctx.restore();
+        }
+    }
+
     // ── Binary ring: vòng tròn tạo bởi ký tự 0 và 1 xoay quanh ──
     ctx.save();
     const R = skillASensorRadius;
@@ -2381,8 +2410,87 @@ function drawSpirit(spirit) {
     if (!spirit) return;
     const now = performance.now();
     const timeRemaining = spirit.duration - (now - spirit.spawnTime);
+    const age = now - spirit.spawnTime;
 
     ctx.save();
+
+    // ── TITLE FLASH khi spirit mới xuất hiện (1.4s đầu) ─────
+    {
+        const textT = Math.min(age / 150, 1) * Math.max(0, 1 - (age - 150) / 1250);
+        if (textT > 0.02) {
+            ctx.save();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+            ctx.globalAlpha = textT * 0.26;
+            ctx.font = 'bold 110px serif';
+            ctx.fillStyle = '#ff44ff';
+            ctx.shadowColor = '#cc00cc'; ctx.shadowBlur = 45;
+            ctx.fillText('星王：召靈審滅', spirit.x, spirit.y - 85);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'bold 27px "Arial Black", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 26;
+            ctx.fillText('SUMMONED SPIRIT JUDGMENT', spirit.x, spirit.y - 127);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'italic 13px monospace';
+            ctx.fillStyle = '#ff88ff';
+            ctx.shadowBlur = 10;
+            ctx.fillText('— Tinh Vương: Triệu Linh Diệt Phán —', spirit.x, spirit.y - 103);
+            ctx.restore();
+        }
+    }
+
+    // ── HEXAGRAM SUMMONING CIRCLE (vòng ngôi sao 6 cánh) ────
+    {
+        const hexR = (spirit.isFinishing ? 55 : 35) + 5 * Math.sin(now / 400);
+        const rot1 = now / 2200;
+        const rot2 = -now / 1800;
+        const hexAlpha = Math.min(age / 300, 1) * 0.55;
+
+        ctx.save();
+        ctx.translate(spirit.x, spirit.y);
+        ctx.globalAlpha = hexAlpha;
+
+        // outer dashed circle
+        ctx.strokeStyle = 'rgba(255,100,255,0.5)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath(); ctx.arc(0, 0, hexR * 1.28, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // two overlapping triangles = Star of David
+        for (let tri = 0; tri < 2; tri++) {
+            const rot = tri === 0 ? rot1 : rot2;
+            ctx.strokeStyle = tri === 0
+                ? `rgba(255,80,255,0.75)`
+                : `rgba(200,0,255,0.6)`;
+            ctx.lineWidth = 1.4;
+            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 8;
+            ctx.beginPath();
+            for (let i = 0; i < 3; i++) {
+                const a = rot + (i / 3) * Math.PI * 2 + (tri === 1 ? Math.PI : 0);
+                const px2 = Math.cos(a) * hexR;
+                const py2 = Math.sin(a) * hexR;
+                i === 0 ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
+            }
+            ctx.closePath(); ctx.stroke();
+        }
+
+        // 6 dots at star tips
+        for (let i = 0; i < 6; i++) {
+            const a = rot1 + (i / 6) * Math.PI * 2;
+            const dotPulse = 0.6 + 0.4 * Math.sin(now / 250 + i * 1.05);
+            ctx.fillStyle = `rgba(255,180,255,${dotPulse * hexAlpha * 1.8})`;
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * hexR, Math.sin(a) * hexR, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
 
     // Finale charge aura
     if (spirit.isFinishing && spirit.finaleState === 'charging') {
@@ -3017,6 +3125,38 @@ function drawSkillGBarrier() {
     if (skillGBorderOpacity <= 0) return;
     const now = performance.now();
     ctx.save();
+
+    // ── TITLE FLASH khi G vừa kích hoạt ─────────────────────
+    {
+        const elapsed = now - skillGEndTime + (skillGActive ? (skillGEndTime - now) : 0);
+        // dùng skillGActive để biết mới bật: flash 1.4s đầu khi active
+        const activeElapsed = skillGActive ? Math.max(0, now - (skillGEndTime - 8000)) : Infinity;
+        const textT = Math.min(activeElapsed / 150, 1) * Math.max(0, 1 - (activeElapsed - 150) / 1250);
+        if (textT > 0.02) {
+            ctx.save();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const mx = canvas.width / 2, my = canvas.height / 2 - 60;
+
+            ctx.globalAlpha = textT * 0.26;
+            ctx.font = 'bold 110px serif';
+            ctx.fillStyle = '#00ffaa';
+            ctx.shadowColor = '#00cc88'; ctx.shadowBlur = 45;
+            ctx.fillText('星王：生命結界', mx, my - 25);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'bold 30px "Arial Black", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#00ffaa'; ctx.shadowBlur = 26;
+            ctx.fillText('LIFE DOMAIN', mx, my - 67);
+
+            ctx.globalAlpha = textT * 0.92;
+            ctx.font = 'italic 13px monospace';
+            ctx.fillStyle = '#88ffcc';
+            ctx.shadowBlur = 10;
+            ctx.fillText('— Tinh Vương: Sinh Mệnh Kết Giới —', mx, my - 43);
+            ctx.restore();
+        }
+    }
 
     // interior tint
     ctx.fillStyle = `rgba(0,40,70,${skillGBorderOpacity * 0.18})`;
