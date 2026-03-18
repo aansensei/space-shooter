@@ -3654,99 +3654,139 @@ function drawTeslaCoil(coil) {
 }
 
 // ── Skill buttons (UI – unchanged logic, minor glow) ─────────
-function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondition, chargePercent = -1) {
+function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondition, chargePercent = -1, r = btnRadius) {
     ctx.save();
     const now = performance.now();
     let isReady = false, remaining = 0;
+    const fontSize = Math.max(10, Math.floor(r * 0.75));
+    const cdFontSize = Math.max(9, Math.floor(r * 0.65));
 
     if (chargePercent !== -1) {
         isReady = chargePercent >= 100;
-        ctx.beginPath(); ctx.arc(x, y, btnRadius, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = isReady ? color : '#333'; ctx.fill();
 
         if (chargePercent > 0 && chargePercent < 100) {
             ctx.save();
             ctx.beginPath(); ctx.moveTo(x, y);
-            ctx.arc(x, y, btnRadius, Math.PI / 2, Math.PI / 2 + (2 * Math.PI * (chargePercent / 100)), false);
+            ctx.arc(x, y, r, Math.PI / 2, Math.PI / 2 + (2 * Math.PI * (chargePercent / 100)), false);
             ctx.closePath();
-            const grad = ctx.createRadialGradient(x, y, 0, x, y, btnRadius);
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
             grad.addColorStop(0, 'white'); grad.addColorStop(1, color);
             ctx.fillStyle = grad; ctx.globalAlpha = 0.7; ctx.fill();
             ctx.restore();
         }
 
-        ctx.strokeStyle = isReady ? 'white' : '#666'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.strokeStyle = isReady ? 'white' : '#666'; ctx.lineWidth = 2; ctx.stroke();
 
         if (isReady) {
             ctx.save();
-            ctx.shadowColor = 'white'; ctx.shadowBlur = 20;
-            ctx.strokeStyle = color; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(x, y, btnRadius + 5 + Math.sin(now / 150) * 2, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowColor = 'white'; ctx.shadowBlur = 16;
+            ctx.strokeStyle = color; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(x, y, r + 4 + Math.sin(now / 150) * 2, 0, Math.PI * 2); ctx.stroke();
             ctx.restore();
         }
 
-        ctx.fillStyle = "white"; ctx.font = "bold 20px Arial";
-        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = 'white'; ctx.font = `bold ${fontSize}px Arial`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(key, x, y);
-        if (!isReady) { ctx.font = "bold 14px Arial"; ctx.fillText(Math.floor(chargePercent) + "%", x, y + 2); }
+        if (!isReady) { ctx.font = `bold ${cdFontSize}px Arial`; ctx.fillText(Math.floor(chargePercent) + '%', x, y + 1); }
 
     } else {
         remaining = Math.max(0, (cooldown - (now - lastActivation)) / 1e3);
         isReady = remaining <= 0 && !activeCondition;
 
-        ctx.beginPath(); ctx.arc(x, y, btnRadius, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fillStyle = isReady ? color : '#333'; ctx.fill();
-        ctx.strokeStyle = isReady ? 'white' : '#666'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.strokeStyle = isReady ? 'white' : '#666'; ctx.lineWidth = 2; ctx.stroke();
 
         if (remaining > 0) {
-            ctx.fillStyle = "rgba(0,0,0,0.6)";
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.beginPath(); ctx.moveTo(x, y);
-            ctx.arc(x, y, btnRadius, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - remaining * 1e3 / cooldown));
+            ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - remaining * 1e3 / cooldown));
             ctx.closePath(); ctx.fill();
         }
 
-        ctx.fillStyle = "white"; ctx.font = "bold 20px Arial";
-        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = 'white'; ctx.font = `bold ${fontSize}px Arial`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(key, x, y);
-        if (remaining > 0) { ctx.font = "bold 16px Arial"; ctx.fillText(Math.ceil(remaining), x, y + 2); }
+        if (remaining > 0) { ctx.font = `bold ${cdFontSize}px Arial`; ctx.fillText(Math.ceil(remaining), x, y + 1); }
     }
     ctx.restore();
 }
 
 function drawSkillButtons() {
-    const baseX = btnMarginLeft + btnRadius, baseY = canvas.height - btnMarginBottom - btnRadius, step = btnRadius * 2 + btnGap;
-    const skillAReady = (performance.now() - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
+    const now = performance.now();
+    const skillAReady = (now - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
 
+    // ── Layout: 3 hàng × 2 cột ────────────────────────────────
+    const r = 20;
+    const gap = 7;
+    const step = r * 2 + gap;
+    const marginL = 16, marginB = 16;
+
+    // Cột
+    const col1X = marginL + r;
+    const col2X = col1X + step;
+
+    // Hàng (từ dưới lên)
+    const row3Y = canvas.height - marginB - r;       // hàng 3 (dưới cùng)
+    const row2Y = row3Y - step;                       // hàng 2
+    const row1Y = row2Y - step;                       // hàng 1 (trên cùng)
+
+    // Vị trí:
+    //  [SH]  [A]
+    //  [S]   [D]
+    //  [F]   [G]
+    const positions = {
+        SH: { x: col1X, y: row1Y },
+        A: { x: col2X, y: row1Y },
+        S: { x: col1X, y: row2Y },
+        D: { x: col2X, y: row2Y },
+        F: { x: col1X, y: row3Y },
+        G: { x: col2X, y: row3Y },
+    };
+
+    // ── Nền panel mờ ─────────────────────────────────────────
     ctx.save();
-    let shiftBtnRadius = 15;
-    let shiftX = baseX, shiftY = baseY - btnRadius - shiftBtnRadius - 10;
-    let shiftRemaining = Math.max(0, (skillShiftCooldown - (performance.now() - lastSkillShift)) / 1000);
+    const padX = 8, padY = 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.roundRect(col1X - r - padX, row1Y - r - padY, step + padX * 2, step * 2 + r * 2 + padY * 2, 10);
+    ctx.fill();
+    ctx.restore();
+
+    // ── Shift ────────────────────────────────────────────────
+    ctx.save();
+    const { x: shiftX, y: shiftY } = positions.SH;
+    let shiftRemaining = Math.max(0, (skillShiftCooldown - (now - lastSkillShift)) / 1000);
     let shiftReady = shiftRemaining <= 0 && !skillShiftActive;
 
-    ctx.beginPath(); ctx.arc(shiftX, shiftY, shiftBtnRadius, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(shiftX, shiftY, r, 0, Math.PI * 2);
     ctx.fillStyle = shiftReady ? '#8A2BE2' : '#333'; ctx.fill();
     ctx.strokeStyle = shiftReady ? 'white' : '#666'; ctx.lineWidth = 2; ctx.stroke();
 
     if (shiftRemaining > 0) {
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.beginPath(); ctx.moveTo(shiftX, shiftY);
-        ctx.arc(shiftX, shiftY, shiftBtnRadius, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - shiftRemaining * 1000 / skillShiftCooldown));
+        ctx.arc(shiftX, shiftY, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - shiftRemaining * 1000 / skillShiftCooldown));
         ctx.closePath(); ctx.fill();
     }
-
-    ctx.fillStyle = "white"; ctx.font = "bold 10px Arial";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = 'white'; ctx.font = 'bold 9px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if (skillShiftActive) {
-        ctx.fillRect(shiftX - 4, shiftY - 4, 3, 8);
-        ctx.fillRect(shiftX + 1, shiftY - 4, 3, 8);
+        ctx.fillRect(shiftX - 3, shiftY - 4, 2, 8);
+        ctx.fillRect(shiftX + 1, shiftY - 4, 2, 8);
     } else {
-        ctx.fillText("SH", shiftX, shiftY);
+        ctx.fillText('SH', shiftX, shiftY);
+        if (shiftRemaining > 0) ctx.fillText(Math.ceil(shiftRemaining), shiftX, shiftY + r + 6);
     }
     ctx.restore();
 
-    drawSkillButton(baseX, baseY, 'A', 'blue', skillACooldown, lastSkillA, !skillAReady);
-    drawSkillButton(baseX + step, baseY, 'S', 'green', skillSCooldown, lastSkillS, spirits.length >= MAX_SPIRITS);
-    drawSkillButton(baseX + 2 * step, baseY, 'D', '#4B0082', skillDCooldown, lastSkillD, skillDCharging || blackHole);
-    drawSkillButton(baseX + 3 * step, baseY, 'F', 'red', skillFCooldown, lastSkillF, skillFState !== 'ready');
-    drawSkillButton(baseX + 4 * step, baseY, 'G', '#00BCD4', -1, 0, skillGActive, skillGCharge);
+    // ── A, S, D, F, G ────────────────────────────────────────
+    drawSkillButton(positions.A.x, positions.A.y, 'A', 'blue', skillACooldown, lastSkillA, !skillAReady, -1, r);
+    drawSkillButton(positions.S.x, positions.S.y, 'S', 'green', skillSCooldown, lastSkillS, spirits.length >= MAX_SPIRITS, -1, r);
+    drawSkillButton(positions.D.x, positions.D.y, 'D', '#4B0082', skillDCooldown, lastSkillD, skillDCharging || blackHole, -1, r);
+    drawSkillButton(positions.F.x, positions.F.y, 'F', 'red', skillFCooldown, lastSkillF, skillFState !== 'ready', -1, r);
+    drawSkillButton(positions.G.x, positions.G.y, 'G', '#00BCD4', -1, 0, skillGActive, skillGCharge, r);
 }
