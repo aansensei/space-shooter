@@ -121,7 +121,7 @@ Each shield takes **25 seconds** to regenerate after being broken.
 
 Hold Shift to open a cursed domain. Everything on the battlefield — enemies, bullets, movement, all timers — slows to **15% of normal speed**. You are **completely invincible** while the domain is active.
 
-While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). Two doppelgangers placeholder shows where you'll land.
+While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). Two hollow placeholders shows where you'll land.
 
 ---
 
@@ -248,21 +248,21 @@ Shield properties:
 
 **What counts as a shield hit:** Any attack that contacts the shield — player bullets, sentinel bullets, spirit bullets, scattered projectiles, Overload Laser ticks, Skill F sweep contacts, and Black Hole center ticks.
 
-**Sword Counter** — Each shield hit has a **10% chance** to trigger a Counter Slash. Two additional automatic triggers:
+**Sword Counter** — Each shield hit has a **10% chance** to trigger a Sword. Two additional automatic triggers:
 
-- Shield is destroyed → Counter Slash fires immediately.
-- Marchosias dies for any reason → Counter Slash fires immediately.
+- Shield is destroyed → Sword fires immediately.
+- Marchosias dies for any reason → **all remaining Sword slots fire at once** (e.g. if 0 Swords have triggered yet, all 3 fire simultaneously on death).
 
-Counter Slashes are limited to a maximum of **3 per Marchosias**, counted across all sources combined.
+Swords are limited to a maximum of **3 per Marchosias**, counted across all sources combined.
 
-**Counter Slash sequence:**
+**Sword sequence:**
 
 1. An orange glowing rectangular warning beam projects from Marchosias toward your **current position** — you have **1 second** to reposition.
 2. After 1 second, an orange arc projectile (radius 80) launches toward where you were standing. **It travels in a straight line and does not track you.**
 3. If it hits the player, normal protection rules apply (orb → shield → last stand → lose a life).
 4. If it hits a Sentinel, it deals **20% of that Sentinel's Max HP**.
 
-**The Counter Slash is unstoppable.** Once fired, it cannot be destroyed or blocked by anything — not spirit blade arcs, not the Black Hole, not Skill F, not Tesla. It simply travels until it exits the screen. It also does not destroy any allied projectiles it passes through.
+**The Sword is unstoppable.** Once fired, it cannot be destroyed or blocked by anything — not spirit blade arcs, not the Black Hole, not Skill F, not Tesla. It simply travels until it exits the screen. It also does not destroy any allied projectiles it passes through.
 
 ---
 

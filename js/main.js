@@ -547,8 +547,8 @@ function update(rawDeltaTime) {
 
             // ASSIMILATION: Marchosias tách 3 robot nhỏ khi chết
             if (enemy.type === 'marchosias') {
-                // Kích hoạt nhát chém lần cuối khi chết (nếu còn slot)
-                _tryTriggerMarchosiasCounter(enemy);
+                // Bắn tất cả Sword còn lại ngay lập tức khi chết
+                _fireMarchosiasDeathSwords(enemy);
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
                 for (let k = 0; k < 3; k++) {

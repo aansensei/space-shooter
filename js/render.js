@@ -2282,7 +2282,7 @@ function drawChargeEffect() {
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#ff4400';
             ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 50;
-            ctx.fillText('星王：滅世爆發', player.x, player.y - 85);
+            ctx.fillText('星王滅世爆發', player.x, player.y - 85);
 
             ctx.globalAlpha = textT * 0.95;
             ctx.font = 'bold 30px "Arial Black", sans-serif';
@@ -2547,7 +2547,7 @@ function drawSkillA() {
             ctx.font = 'bold 110px serif';
             ctx.fillStyle = '#00eeff';
             ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 45;
-            ctx.fillText('星王：天雷爆星', player.x, player.y - 80);
+            ctx.fillText('星王天雷爆星', player.x, player.y - 80);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'bold 29px "Arial Black", sans-serif';
@@ -2733,7 +2733,7 @@ function drawSpirit(spirit) {
             ctx.font = 'bold 85px serif';
             ctx.fillStyle = '#ff44ff';
             ctx.shadowColor = '#cc00cc'; ctx.shadowBlur = 40;
-            ctx.fillText('星王：召靈審滅', tx, ty - 8);
+            ctx.fillText('星王召靈審滅', tx, ty - 8);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'bold 22px "Arial Black", sans-serif';
@@ -3403,7 +3403,7 @@ function drawSkillGBarrier() {
             ctx.font = 'bold 110px serif';
             ctx.fillStyle = '#00ffaa';
             ctx.shadowColor = '#00cc88'; ctx.shadowBlur = 45;
-            ctx.fillText('星王：生命結界', mx, my - 25);
+            ctx.fillText('星王生命結界', mx, my - 25);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'bold 30px "Arial Black", sans-serif';
