@@ -223,7 +223,6 @@
             setInterval(() => {
                 if (window.outerWidth - window.innerWidth > threshold ||
                     window.outerHeight - window.innerHeight > threshold) {
-                    document.body.innerHTML = '';
                     window.location.reload();
                 }
             }, 1000);
