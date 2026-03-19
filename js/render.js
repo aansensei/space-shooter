@@ -712,10 +712,19 @@ function draw(deltaTime) {
     if (gameState === "playing") {
         drawSkillButtons();
         ctx.fillStyle = "white"; ctx.font = "20px Arial"; ctx.textAlign = "right";
-        ctx.fillText("Score: " + score, canvas.width - 20, 30);
-        ctx.fillText("Lives: " + lives, canvas.width - 20, 60);
-        ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, 90);
-        ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, 120);
+
+        // Bộ đếm thời gian game — chậm lại khi dùng Yog-Sothoth
+        const elapsedSec = Math.floor(gameElapsedTime / 1000);
+        const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+        const ss = String(elapsedSec % 60).padStart(2, '0');
+        ctx.fillStyle = '#aaddff'; ctx.font = 'bold 22px monospace';
+        ctx.fillText(`⏱ ${mm}:${ss}`, canvas.width - 20, 28);
+
+        ctx.fillStyle = "white"; ctx.font = "20px Arial";
+        ctx.fillText("Score: " + score, canvas.width - 20, 56);
+        ctx.fillText("Lives: " + lives, canvas.width - 20, 82);
+        ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, 108);
+        ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, 134);
     } else if (gameState === "start") {
         ctx.textAlign = "center"; ctx.font = "40px Arial"; ctx.fillStyle = "white";
         ctx.fillText("Space Shooter Pro", canvas.width / 2, canvas.height / 2 - 50);

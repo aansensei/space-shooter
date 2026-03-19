@@ -95,6 +95,9 @@ function update(rawDeltaTime) {
     const deltaTime = rawDeltaTime * timeScale; // Bẻ cong deltaTime vật lý
     const dt = deltaTime / 16.67;
 
+    // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
+    gameElapsedTime += deltaTime;
+
     // Bẻ cong (kéo dài) các Timer hồi chiêu của phe người chơi và Enemy Spawn
     if (skillShiftActive) {
         let delay = rawDeltaTime * 0.85;
@@ -722,19 +725,21 @@ function update(rawDeltaTime) {
 function gameLoop(timeStamp) {
     if (!lastTimeStamp) lastTimeStamp = timeStamp;
     let deltaTime = timeStamp - lastTimeStamp;
-    // Cap deltaTime — if too large, the tab was in background; pause and reset clock
-    if (deltaTime > 200) {
-        lastTimeStamp = timeStamp;
-        if (gameState === "playing" && !gamePaused) {
-            gamePaused = true;
-            showPauseScreen();
-        }
-        requestAnimationFrame(gameLoop);
-        return;
-    }
     lastTimeStamp = timeStamp;
-    if (!gamePaused && !loading) { update(deltaTime); draw(deltaTime); }
-    requestAnimationFrame(gameLoop);
+
+    // deltaTime quá lớn → tab bị ẩn hoặc máy lag → pause và reset clock
+    if (deltaTime > 200 && gameState === "playing" && !gamePaused) {
+        gamePaused = true;
+        showPauseScreen();
+    }
+
+    // Luôn vẽ (để màn hình không đóng băng), chỉ update khi không pause
+    if (!gamePaused && !loading) {
+        update(Math.min(deltaTime, 200));
+    }
+    draw(gamePaused || loading ? 0 : deltaTime);
+
+    requestAnimationFrame(gameLoop); // luôn chạy loop
 }
 
 function startGame() {
@@ -773,11 +778,14 @@ function startGame() {
 
     player.x = canvas.width / 2;
     gameStartTime = lastEnemySpawn = lastAutoFire = performance.now();
+    gameElapsedTime = 0;
     laserActive = false; laserCooldownEnd = 0; charging = false; gamePaused = false;
     lastSkillA = -Infinity; lastSkillS = -Infinity; lastSkillD = -Infinity; lastSkillF = -Infinity;
     skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
     hideStartButton();
-    if (lastTimeStamp === 0) { lastTimeStamp = performance.now(); requestAnimationFrame(gameLoop); }
+    lastTimeStamp = performance.now();
+    // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file — không cần khởi động lại
 }
 
-draw(16.67);
+// Khởi động game loop một lần duy nhất khi trang load
+requestAnimationFrame(gameLoop);

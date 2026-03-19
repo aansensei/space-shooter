@@ -36,7 +36,7 @@ function _tryTriggerMarchosiasCounter(enemy) {
     const now = performance.now();
     if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
     // Cooldown 0.75s kể từ lần trigger gần nhất
-    if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 750) return;
+    if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 650) return;
     enemy.lastSwordTriggerTime = now;
     enemy.marchosiasWindups.push({
         timer: 1000,
@@ -146,8 +146,7 @@ function fireChargedBullet(multiplier) {
 }
 
 function spawnEnemy() {
-    const now = performance.now();
-    const elapsedSec = (now - gameStartTime) / 1000;
+    const elapsedSec = gameElapsedTime / 1000; // Dùng game time (bị slow bởi Yog-Sothoth)
 
     const dargruelCount = enemies.filter(e => e.type === 'boss').length;
     const thaelisCount = enemies.filter(e => e.type === 'thaelis').length;
@@ -219,7 +218,7 @@ function spawnDargruel() {
 function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
-    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+    const hpFromTime = Math.floor(gameElapsedTime / 10000);
     let hp = Math.min(680, 300 + hpFromTime * 12);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
@@ -233,7 +232,7 @@ function spawnThaelis() {
 function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
-    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+    const hpFromTime = Math.floor(gameElapsedTime / 10000);
     let hp = Math.min(750, 400 + hpFromTime * 15);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
@@ -248,7 +247,7 @@ function spawnMarchosias() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9;
-    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 10000);
+    const hpFromTime = Math.floor(gameElapsedTime / 10000);
     let hp = Math.min(2200, 1000 + hpFromTime * 30);
 
     const shieldHp = hp;
@@ -307,7 +306,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 
 function spawnNormalEnemy() {
     const size = 20 + Math.random() * 10;
-    const hpFromTime = Math.floor((performance.now() - gameStartTime) / 15000);
+    const hpFromTime = Math.floor(gameElapsedTime / 15000);
     let hp = Math.min(60, (Math.floor(Math.random() * 5) + 1 + hpFromTime));
     hp *= 1.05;
     enemies.push({

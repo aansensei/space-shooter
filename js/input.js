@@ -48,16 +48,15 @@ resumeBtn.addEventListener("click", () => {
     function animateLoading(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / loadingDuration, 1);
-
         progressBar.style.width = (progress * 100) + "%";
 
         if (progress < 1) {
             requestAnimationFrame(animateLoading);
         } else {
+            // Loading xong — ẩn overlay, reset clock, game loop tự chạy tiếp
             pauseOverlay.style.display = "none";
             gamePaused = false;
-            lastTimeStamp = performance.now();
-            requestAnimationFrame(gameLoop);
+            lastTimeStamp = performance.now(); // reset để tránh deltaTime spike
         }
     }
 

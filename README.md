@@ -41,7 +41,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 ## Player Stats & Attacks
 
-**Auto-Fire** — Fires 5 bullets in a 45-degree spread every 170ms. Each bullet deals **6 base + 4% of target's Max HP**. Each bullet has a **25% chance** to apply Vulnerability.
+**Auto-Fire** — Fires 5 bullets in a 45-degree spread every 170ms. Each bullet deals **6 base + 4% of target's Max HP**. Each bullet independently rolls a **25% chance** to apply Vulnerability.
 
 **Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10x**, capping at **12% of target's Max HP** at full charge.
 
@@ -53,12 +53,12 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 ### Vulnerability (Trọng Thương)
 
-A debuff that weakens enemies, applied by all friendly attacks.
+A stacking debuff inflicted by all friendly attacks that progressively weakens enemies.
 
-- **Application Chance:** Player auto-fire has a **25% chance** per bullet. All other allied sources (Sentinels, Spirits, Skill A orbs, Black Hole, Laser, Chain Lightning, Tesla DoT, etc.) have a **15% chance**.
-- **On Application — Shield Shred:** Instantly destroys **24% of the enemy's current Shield**.
-- **Damage Amplification:** Increases all incoming damage to that enemy by **+10% per stack**.
-- **Stacking:** Up to **3 stacks** (maximum +30% incoming damage). Each new stack refreshes the 3-second duration.
+- **Application Chance:** Player auto-fire bullets each have a **25% chance** per hit. All other allied sources — Sentinels, Spirits, Skill A orbs, Black Hole, Overload Laser, Chain Lightning, Tesla DoT, and all other damage sources — have a **15% chance**.
+- **On Application — Shield Shred:** Instantly destroys **24% of the enemy's current Shield HP** (not Max HP — the shred scales down as the shield depletes).
+- **Damage Amplification:** Each stack increases all incoming damage to that enemy by **+25%**. At maximum stacks the enemy takes **+75% more damage** from all sources.
+- **Stacking:** Caps at **3 stacks**. Applying a new stack (whether the cap is reached or not) fully **refreshes the 3-second duration**. Stacks are lost all at once when the timer expires.
 
 ---
 
@@ -135,11 +135,12 @@ Hold Shift to open a cursed domain. Everything on the battlefield — enemies, b
 
 While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). A ghost shadow shows where you'll land.
 
-**Accurate Parry** — If an enemy attack reaches the player while the domain is active, it is automatically blocked. This triggers a powerful counter-buff for 4 seconds:
+**Accurate Parry** — If an enemy attack reaches the player while the domain is active, it is automatically blocked. This triggers a powerful counter-buff lasting **4 seconds**:
 
 - All friendly damage output increases by **+25%**.
 - All active Sentinels instantly gain a shield equal to **25% of their Max HP**.
-- A golden aura appears around the player to indicate the buff is active.
+- A golden aura appears around the player while the buff is active.
+- **The buff persists even after the domain ends** — closing the domain early does not cancel Accurate Parry.
 
 ---
 
@@ -209,11 +210,13 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 Spawns continuously from the start. HP starts between 1–5 and scales up over time (capped at 60 HP). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
+**Score on kill:** 10 – 630 points (scales with HP at spawn)
+
 ---
 
 ### Thaelis (Elite)
 
-**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen
+**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** 3,000 – 6,800 points
 
 Slower than normals (-25% speed). HP: 300–680.
 
@@ -229,7 +232,7 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 ### Heavenly Aegis Core (Elite)
 
-**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen
+**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** 4,000 – 7,500 points
 
 HP: 400–750. Innate +10% Damage Reduction.
 
@@ -247,64 +250,62 @@ HP: 400–750. Innate +10% Damage Reduction.
 
 ### Marchosias (Elite)
 
-**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen
+**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** 10,000 – 22,000 points
 
-Size equal to Thaelis. Speed slightly below Aegis Core (-10%). HP: 1,000–2,200. Permanent **20% Damage Reduction** on its body.
+A heavily armored hexagonal mech with size equal to Thaelis, speed slightly below Aegis Core (-10%), and HP ranging from **1,000 to 2,200**. Marchosias has a permanent **20% Damage Reduction** on its own body at all times.
 
 ---
 
 **Sword & Shield**
 
-Marchosias carries an **Arc Shield** — a glowing 90-degree arc (quarter-circle) that constantly rotates to face the player's current position.
+Marchosias carries a rotating **Arc Shield** — a glowing 90-degree arc (quarter-circle) that continuously tracks and faces the player. The shield and Marchosias's body HP are **completely independent pools**, each equal to Marchosias's Max HP at spawn. Damage dealt to the shield never reduces body HP, and vice versa.
 
-**The shield has its own HP pool** equal to Marchosias's Max HP. The two pools are completely independent — hitting the shield does **not** damage Marchosias's body.
+*Shield properties:*
 
-Shield properties:
+- **50% Damage Reduction** on all incoming damage.
+- **Completely buff-immune:** cannot receive heals, Damage Reduction boosts, Aegis shields, or any other beneficial effect. Marchosias's body is unaffected by this restriction.
 
-- **50% Damage Reduction** on all incoming hits.
-- **Cannot receive any buffs** — no heals, no Damage Reduction boosts, no Aegis shields. Marchosias's body can still receive buffs normally.
+*What counts as a shield hit:* Any attack that lands within the 90° arc — player bullets, Sentinel bullets, Spirit bullets, scattered projectiles, Overload Laser ticks, Skill F sweep, and Black Hole center ticks all register individually.
 
-**What counts as a shield hit:** Player bullets, sentinel bullets, spirit bullets, scattered projectiles, Overload Laser ticks, Skill F sweep, and Black Hole center ticks.
+*Sword trigger conditions:*
 
-**Sword** — Each shield hit has a **20% chance** to trigger a Sword. Additional automatic triggers:
+- Every shield hit has a **20% independent chance** to queue a Sword.
+- If the shield is fully destroyed, a Sword is queued immediately.
+- When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (up to 3, each spread slightly apart in angle).
 
-- Shield is destroyed → Sword triggers immediately.
-- Marchosias HP drops to 1% → all Swords fire at once (up to 3, spread slightly apart).
+There is no hard limit on total Swords per fight. Each individual Marchosias has its own independent **0.65-second cooldown** between triggers — if two Marchosias are on screen simultaneously, each can trigger and fire Swords on their own timers, potentially landing multiple Swords at once. Multiple queued Swords on the same Marchosias count down their 1-second windups in parallel and fire independently.
 
-There is **no limit** on total Swords, but there is a **0.75-second cooldown** between each trigger — a new Sword cannot be queued until 0.75 seconds after the previous trigger. Multiple queued windups run simultaneously.
+*Sword sequence:*
 
-**Sword sequence:**
-
-1. A static orange warning beam extends from Marchosias to your **current position** and holds there for 1 second — this is your window to move out of the path.
-2. After 1 second, an orange arc projectile (radius 88) launches along that exact line. **It does not track you.**
-3. If it hits the player, normal protection rules apply (orb sacrifice → shield → last stand → lose a life).
-4. If it hits a Sentinel, it deals **20% of that Sentinel's Max HP**.
-
-**The Sword is permanent and unstoppable.** Once fired, nothing can destroy or deflect it — not Spirit blade arcs, not the Black Hole, not Skill F, not Tesla. It does not destroy allied projectiles either. It travels until it exits the screen.
+1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** and remains visible for 1 second.
+2. After 1 second, an orange arc projectile (radius 88, faster than the Spirit's blade arc) launches along that exact line. **It does not home or adjust its course.**
+3. If it strikes the player, all normal protective layers apply in order: Orb Sacrifice → Final Defense Shield → Last Stand → lose a life.
+4. If it strikes a Sentinel, it deals **20% of that Sentinel's Max HP** as damage.
+5. **The Sword cannot be destroyed or deflected by anything** — not Spirit blade arcs, not the Black Hole, not Skill F, not Tesla Coils. It also passes through all allied projectiles without destroying them. It persists until it exits the screen.
 
 ---
 
 **Normal Attack**
 
-Fires **2 bullets per second** at the nearest player or Sentinel's position at the time of firing. Bullets travel in a straight line and **do not home**. Each bullet's HP equals ⌈1.25% of Marchosias's current HP⌉.
+Every second, Marchosias fires **2 bullets** simultaneously at the nearest player or Sentinel's position at that exact moment. The bullets travel in straight lines and **do not home**. Each bullet's HP equals ⌈1.25% of Marchosias's current HP⌉, scaling down as Marchosias takes damage.
 
 ---
 
 **Assimilation — Death Passive**
 
-When Marchosias reaches 0 HP, it explodes into **3 Minion Robots** (triangular shape, Normal Enemy size). Each minion inherits **15–25%** of Marchosias's Max HP at random.
+When Marchosias's body reaches 0 HP, it explodes and spawns **3 Minion Robots** (triangular shape, same size as a Normal Enemy). Each minion independently inherits **15–25%** of Marchosias's **Max HP** (not current HP) at random.
 
-Each minion immediately scans for a nearby host (any enemy within 1.5× the minion's radius, excluding other Minion Robots):
+Each minion immediately scans within **1.5× its own radius** for a valid host — any living enemy except other Minion Robots:
 
-**Host found → Parasite Mode:** The minion vanishes and attaches as a **Parasite Shield** on the host. Shield HP equals the minion's current HP. Absorbs damage before any other shield. Cannot receive any buffs, heals, or regeneration. A green rotating ring marks the affected host.
+**Host found → Parasite Mode:** The minion vanishes and attaches to the host as a **Parasite Shield**. The shield's HP equals the minion's current HP at the moment of attachment. This shield absorbs incoming damage before any other shield on that unit, including Aegis shields. It is **completely buff-immune** — no heals, no regeneration, no Damage Reduction bonuses of any kind can affect it. A green rotating ring marks infected hosts.
 
-**No host nearby → Hunt Mode:** Locks onto the player and charges at **+35% movement speed**, firing bullets and dealing contact damage.
+**No host nearby → Hunt Mode:** The minion locks onto the player and charges directly at **+35% increased movement speed**, firing bullets like a normal enemy and dealing contact damage on collision.
 
 ---
 
 ### Dargruel (Ultra-Elite / Boss)
 
-**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen
+**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 12,550 – 50,230 points
 
 Massive size. HP: roughly 1,255–5,023.
 
