@@ -86,7 +86,9 @@ Activates automatically when **any of the following** is true:
 
 A Sentinel spawns automatically every **4 enemy kills**. Maximum **12 Sentinels** at once — if the cap is hit, the weakest Sentinel self-destructs to make room.
 
-**Base stats:** 299 HP | 75ms fire interval
+Each enemy kill has a **30% chance** to grant an extra kill count — meaning a single kill can count as 2 toward the next Sentinel spawn. When a Sentinel spawns, it has a **36% chance** to be a **Fortified Sentinel** with **+50% Max HP**.
+
+**Base stats:** 299 HP | 75ms fire interval *(Fortified: 448 HP)*
 
 - Loses **1 HP** every time it fires (recoil).
 - Takes damage equal to the HP of any enemy bullet that hits it.
@@ -214,9 +216,9 @@ Spawns continuously from the start. HP starts between 1–5 and scales up over t
 
 ---
 
-### Thaelis (Elite)
+### Thaelis (Abnormal)
 
-**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** 3,000 – 6,800 points
+**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** 3,000 – 6,800 points | **Speed:** 1.4 u/s
 
 Slower than normals (-25% speed). HP: 300–680.
 
@@ -232,7 +234,7 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 ### Heavenly Aegis Core (Elite)
 
-**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** 4,000 – 7,500 points
+**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** 4,000 – 7,500 points | **Speed:** 1.8 u/s
 
 HP: 400–750. Innate +10% Damage Reduction.
 
@@ -250,7 +252,7 @@ HP: 400–750. Innate +10% Damage Reduction.
 
 ### Marchosias (Elite)
 
-**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** 10,000 – 22,000 points
+**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** 10,000 – 22,000 points | **Speed:** ~1.5 u/s
 
 A heavily armored hexagonal mech with size equal to Thaelis, speed slightly below Aegis Core (-10%), and HP ranging from **1,000 to 2,200**. Marchosias has a permanent **20% Damage Reduction** on its own body at all times.
 
@@ -303,11 +305,11 @@ Each minion immediately scans within **1.5× its own radius** for a valid host �
 
 ---
 
-### Dargruel (Ultra-Elite / Boss)
+### Dargruel (Dominator)
 
-**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 12,550 – 50,230 points
+**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 14,060 – 56,260 points | **Speed:** ~1.8 u/s
 
-Massive size. HP: roughly 1,255–5,023.
+Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction** on its body.
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
@@ -322,15 +324,96 @@ Massive size. HP: roughly 1,255–5,023.
 
 ---
 
-## Elite Spawn Summary
+### Leviathan (Dominator)
 
-All elites share a combined cap of **6 elite enemies on screen at once**, plus individual per-type caps.
+**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Spawn cooldown:** 15s between appearances | **Score on kill:** 31,500 – 63,000 points | **Speed:** ~1.3 u/s
 
-| Enemy | Unlocks | Spawn Rate | Cap |
-|---|---|---|---|
-| Marchosias | 20s | 5% → 13% | 2 |
-| Thaelis | 30s | 12% → 25% | 3 |
-| Aegis Core | 30s | 6% → 14% | 2 |
-| Dargruel | 30s | 4% → 13% | 2 |
+A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: 3,000–6,000. Has a **15% base Damage Reduction** on its body.
 
-Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum.
+---
+
+**Passive: All for One**
+
+When Leviathan spawns, it instantly marks **6 random enemies** on screen (excluding enemy bullets and Embryos) with the **Envy** seal — visible as a spinning red chain ring. Enemies bearing Envy gain:
+
+- **+36% Max HP** and a corresponding HP increase.
+- **+36% Damage Reduction** (stacks with all other DR sources).
+- **A shield** worth 18% of Leviathan's current HP at the moment of marking.
+
+As long as at least one Envy enemy lives, Leviathan is encased in an **unbreakable spherical shield** that absorbs all damage — including Absolute Shields, Black Holes, and Skill F. The shield cannot be bypassed or reduced in any way.
+
+Every attack that hits the shield registers as a **hit** (laser ticks, Skill F contacts, Black Hole center ticks, and individual bullet impacts all count separately). The running hit total and the Envy kill count are both displayed above Leviathan: `X/6` kills and `N hits`.
+
+When an Envy enemy is killed, a projectile visually flies from the kill site into Leviathan's shield. When all 6 Envy targets are eliminated, the shield **shatters** in a burst of cyan energy, triggering a screen shake.
+
+While the shield is active, Leviathan's wing-plates are closed, protecting the core. When the shield breaks, the wings spread open to reveal the eye.
+
+---
+
+**Passive: Last Rites**
+
+When Leviathan is destroyed, each of its 9 wing-plates marks a directional line on screen. After **1.5 seconds**, a laser fires outward from each wing along that exact line to the edge of the map. These lasers **persist even after death** and cannot be stopped.
+
+- Hitting the player costs **1 life** (subject to normal protection layers).
+- Hitting a Sentinel deals **(total shield hits ÷ 3) × 0.15%** of that Sentinel's Max HP.
+
+---
+
+**Normal Attack**
+
+Every **0.75 seconds**, fires 3 bullets in a slight spread aimed at the nearest player or Sentinel. Each bullet has HP equal to **2% of Leviathan's current HP**.
+
+*Only active after the All for One shield has been broken.*
+
+---
+
+**Skill: Perseverance**
+
+*Unlocks only after the All for One shield is broken.*
+
+After the shield shatters, Leviathan's wing-plates spread wide and the entity begins to glow. It gains **+36% Damage Reduction** permanently for the rest of the fight. Every **3.5 seconds** (cooldown starts after the sweep completes), Leviathan charges for **1 second** then fires a **sweeping fan laser** from its core eye across a 216-degree arc.
+
+The sweep destroys most allied projectiles in its path — including player bullets, Sentinel shots, Spirit bullets, and Skill A orbs. It does **not** destroy: Overload Laser beam, Black Hole (Skill D), Spirit Blade Arc and Spirit Finale (Skill S), Annihilation Sweep (Skill F), or any Skill G entities.
+
+- Hitting the player costs **1 life** (normal protective layers apply: domain, orb sacrifice, Final Defense, Last Stand).
+- Hitting a Sentinel deals **hits × (0.2%–0.35%)** of that Sentinel's Max HP.
+
+**Interrupt immunity:** Once the 1-second charge completes and the sweep begins, it cannot be cancelled for any reason — even if Leviathan is killed mid-sweep, the laser finishes its arc.
+
+---
+
+## Enemy Class System
+
+Enemies are divided into five tiers of power. All enemies of class **Abnormal and above** share a combined cap of **6 on screen at once**, in addition to their individual caps.
+
+| Class | Examples |
+|---|---|
+| **Normal** | Standard enemy |
+| **Abnormal** | Thaelis |
+| **Elite** | Marchosias, Heavenly Aegis Core |
+| **Dominator** | Dargruel, Leviathan |
+| **Administrator** | Kanade of the Endless Nights |
+
+---
+
+## Spawn Summary
+
+| Enemy | Class | Unlocks | Spawn Rate | Cap | Speed |
+|---|---|---|---|---|---|
+| Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.5 u/s |
+| Thaelis | Abnormal | 30s | 12% → 25% | 3 | ~1.4 u/s |
+| Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s |
+| Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s |
+| Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.3 u/s |
+
+Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum. Leviathan also has a **15-second cooldown** between each appearance regardless of spawn rate.
+
+---
+
+## Administrator Class
+
+### Kanade of the Endless Nights
+
+*— Undefined —*
+
+An Administrator-class entity exists beyond reality and governs it as a system rather than living within it. She created the Endless Nights Protocol to endlessly replicate universes and timelines, preventing all forms of finality and turning existence into an infinite chain of rewritten outcomes. With absolute control over causality, she can duplicate, overwrite, and define reality itself, yet she remains a distant overseer driven by the fear of an irreversible end. However, the emergence of Irregulars, entities beyond her authority, introduces a flaw in her perfect system and threatens the endless continuity she maintains.

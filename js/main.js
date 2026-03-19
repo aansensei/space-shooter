@@ -254,6 +254,9 @@ function update(rawDeltaTime) {
                             // Laser chạm khiên Mar → tính 1 hit, không damage Mar
                             if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
                                 if (Math.random() < 0.20) _tryTriggerMarchosiasCounter(enemy);
+                            } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                                // Laser hit Leviathan shield → count hits, no body damage
+                                enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
                                 dealDamage(enemy, { damage: 10, percentDamage: 0.26 });
                             }
@@ -352,6 +355,9 @@ function update(rawDeltaTime) {
                         coil.hp -= enemy.hp;
                         enemy.hp = 0;
                     }
+                } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                    // Leviathan immune to CC while shield active — no slow, still takes dot
+                    teslaSpeedMultiplier = 1.0;
                 } else {
                     teslaSpeedMultiplier = 0.30;
                     if (enemy.type === 'boss' || enemy.type === 'thaelis' || enemy.type === 'aegis_core') {
@@ -383,6 +389,20 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
+            // Leviathan: vào dying phase khi hp<=0 lần đầu
+            if (enemy.type === 'leviathan' && !enemy.dyingLaserPhase) {
+                enemy.hp = 0.001;
+                enemy.dyingLaserPhase = true;
+                enemy.dyingLaserTimer = 1500;
+                screenShake = { intensity: 10, duration: 300 };
+                continue;
+            }
+            // Leviathan đang dying — chỉ die khi hp=-1 (set bởi updateLeviathan)
+            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && enemy.hp > -0.5) {
+                enemy.hp = 0.001; // giữ alive
+                continue;
+            }
+
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
                 enemy.reincarnated = true;
                 for (let k = 0; k < 3; k++) {
@@ -443,6 +463,10 @@ function update(rawDeltaTime) {
                     }
                 }
             }
+
+        } else if (enemy.type === 'leviathan') {
+            // Leviathan update handled by updateLeviathan()
+            updateLeviathan(enemy, deltaTime);
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
@@ -571,6 +595,20 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
+            // Leviathan dying phase
+            if (enemy.type === 'leviathan' && !enemy.dyingLaserPhase) {
+                enemy.hp = 0.001;
+                enemy.dyingLaserPhase = true;
+                enemy.dyingLaserTimer = 1500;
+                screenShake = { intensity: 10, duration: 300 };
+                continue;
+            }
+            // Leviathan đang dying — chỉ die khi hp=-1
+            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && enemy.hp > -0.5) {
+                enemy.hp = 0.001;
+                continue;
+            }
+
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
                 enemy.reincarnated = true;
                 for (let k = 0; k < 3; k++) {
@@ -586,7 +624,6 @@ function update(rawDeltaTime) {
 
             // ASSIMILATION: Marchosias tách 3 robot nhỏ khi chết
             if (enemy.type === 'marchosias') {
-                // Bắn tất cả Sword còn lại ngay lập tức khi chết
                 _fireMarchosiasDeathSwords(enemy);
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
@@ -650,6 +687,14 @@ function update(rawDeltaTime) {
         for (let enemy of enemies) {
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
+
+                // ── LEVIATHAN ALL FOR ONE SHIELD CHECK ──────────────
+                if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                    enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
+                    createParticles(b.x, b.y, 2, '#00e5ff', 1, 3);
+                    bullets.splice(i, 1);
+                    break;
+                }
 
                 // ── MARCHOSIAS ARC SHIELD CHECK ──────────────────────
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
@@ -719,6 +764,92 @@ function update(rawDeltaTime) {
     updateTeslaCoils(deltaTime, currentTime);
     updateMarchosiasBlades(deltaTime);
 
+    // Update Leviathan handled inside enemies for loop above
+
+    // Leviathan Perseverance sweep — xóa đạn phe player và check hit
+    enemies.forEach(e => {
+        if (e.type === 'leviathan' && e.perseveranceFiring) {
+            const sweepAngle = e.perseveranceSweepCurrent;
+            const sweepHalfWidth = 0.18; // ~10 độ mỗi bên
+            // Xóa đạn phe player trong vùng quét (trừ những thứ immune)
+            const immuneTypes = ['spirit_blade_arc', 'skill_f', 'black_hole', 'energy_link', 'tesla_lightning', 'overload_laser'];
+            bullets = bullets.filter(b => {
+                const a = Math.atan2(b.y - e.y, b.x - e.x);
+                const diff = Math.abs(((a - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
+                if (diff < sweepHalfWidth && Math.hypot(b.x - e.x, b.y - e.y) < canvas.width) {
+                    return false; // xóa đạn
+                }
+                return true;
+            });
+            spiritBullets = spiritBullets.filter(b => {
+                const a = Math.atan2(b.y - e.y, b.x - e.x);
+                const diff = Math.abs(((a - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
+                return diff >= sweepHalfWidth;
+            });
+            skillAOrbs = skillAOrbs.filter(b => {
+                const a = Math.atan2(b.y - e.y, b.x - e.x);
+                const diff = Math.abs(((a - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
+                return diff >= sweepHalfWidth;
+            });
+            // Hit player
+            const pa = Math.atan2(player.y - e.y, player.x - e.x);
+            const pdiff = Math.abs(((pa - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
+            if (pdiff < sweepHalfWidth && Math.hypot(player.x - e.x, player.y - e.y) < canvas.width * 0.8) {
+                if (!e._persHitPlayer) { e._persHitPlayer = true; playerTakesHit(); }
+            } else { e._persHitPlayer = false; }
+            // Hit sentinels
+            const hits = e.afoHitCount || 1;
+            sentinels.forEach(s => {
+                const sa = Math.atan2(s.y - e.y, s.x - e.x);
+                const sdiff = Math.abs(((sa - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
+                if (sdiff < sweepHalfWidth) {
+                    const pct = 0.002 + (hits / 1000) * 0.0015;
+                    dealDamage(s, { damage: 0, percentDamage: Math.min(0.0035, pct) });
+                }
+            });
+        }
+    });
+
+    // Leviathan death lasers — tồn tại độc lập sau khi Leviathan chết
+    if (!window._levDeathLasers) window._levDeathLasers = [];
+    window._levDeathLasers = window._levDeathLasers.filter(laser => {
+        laser.elapsed = (laser.elapsed || 0) + deltaTime;
+        if (!laser.active) return false;
+
+        // Hit check khi laser đang active
+        if (!laser.hitPlayer) {
+            const dx = Math.cos(laser.angle), dy = Math.sin(laser.angle);
+            // Kiểm tra khoảng cách vuông góc từ player đến đường thẳng laser
+            const tx = player.x - laser.ox, ty = player.y - laser.oy;
+            const proj = tx * dx + ty * dy;
+            if (proj > 0) {
+                const perpX = tx - proj * dx, perpY = ty - proj * dy;
+                if (Math.hypot(perpX, perpY) < player.hitRadius + 10) {
+                    laser.hitPlayer = true;
+                    playerTakesHit();
+                }
+            }
+        }
+        sentinels.forEach(s => {
+            if (!laser.hitSentinels) laser.hitSentinels = new Set();
+            if (!laser.hitSentinels.has(s)) {
+                const dx = Math.cos(laser.angle), dy = Math.sin(laser.angle);
+                const tx = s.x - laser.ox, ty = s.y - laser.oy;
+                const proj = tx * dx + ty * dy;
+                if (proj > 0) {
+                    const perpX = tx - proj * dx, perpY = ty - proj * dy;
+                    if (Math.hypot(perpX, perpY) < s.size + 10) {
+                        laser.hitSentinels.add(s);
+                        const hits = laser.levHits || 1;
+                        dealDamage(s, { damage: 0, percentDamage: (hits / 3) * 0.0015 });
+                    }
+                }
+            }
+        });
+
+        return laser.elapsed < laser.lifetime;
+    });
+
     if (screenShake.duration > 0) screenShake.duration -= deltaTime;
 }
 
@@ -761,6 +892,8 @@ function startGame() {
     bossShockwaves = [];
     aegisLasers = [];
     marchosiasBlades = [];
+    window._levDeathLasers = [];
+    window._lastLeviathanSpawnTime = null;
     accurateParryActive = false;
     accurateParryEndTime = 0;
     skillAActive = false; skillDCharging = false; skillFState = "ready";

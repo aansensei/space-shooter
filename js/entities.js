@@ -101,9 +101,26 @@ function handleEnemyKill(enemy) {
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }
     addExplosion(enemy.x, enemy.y, enemy.size);
+
+    // Envy: nếu kẻ địch bị kill mang dấu Envy → báo cho Leviathan
+    if (enemy.hasEnvy && enemy.envyLev && !enemy.envyLev.afoShieldBroken) {
+        const lev = enemy.envyLev;
+        lev.afoEnvyKills = (lev.afoEnvyKills || 0) + 1;
+        // Projectile bay vào khiên Leviathan (visual)
+        particles.push({
+            isEnvyImpact: true,
+            x: enemy.x, y: enemy.y,
+            tx: lev.x, ty: lev.y,
+            progress: 0, speed: 0.04,
+            color: '#ff4444'
+        });
+    }
+
     killCountForPassive++;
+    // 30% cơ hội nhận thêm 1 điểm kill (tiến nhanh hơn tới mốc 4)
+    if (Math.random() < 0.30) killCountForPassive++;
     if (killCountForPassive % 4 === 0) {
-        spawnSentinel(player.x, player.y);
+        spawnSentinel(player.x, player.y, false);
     }
 
     if (skillGCharge < 100) {
@@ -152,7 +169,8 @@ function spawnEnemy() {
     const thaelisCount = enemies.filter(e => e.type === 'thaelis').length;
     const aegisCount = enemies.filter(e => e.type === 'aegis_core').length;
     const marchosiasCount = enemies.filter(e => e.type === 'marchosias').length;
-    const totalElite = dargruelCount + thaelisCount + aegisCount + marchosiasCount;
+    const leviathanCount = enemies.filter(e => e.type === 'leviathan').length;
+    const totalElite = dargruelCount + thaelisCount + aegisCount + marchosiasCount + leviathanCount;
 
     if (elapsedSec < 20) {
         spawnNormalEnemy();
@@ -176,14 +194,21 @@ function spawnEnemy() {
     const thaelisRate = 0.12 + t * 0.13;
     const marchosiasRate = 0.05 + t * 0.08;
 
+    // Leviathan: unlock sau 36s, không có cooldown riêng
+    const leviathanRate = elapsedSec >= 36 ? (0.02 + t * 0.04) : 0;
+
     const canSpawnDargruel = dargruelCount < 2 && totalElite < 6;
     const canSpawnAegis = aegisCount < 2 && totalElite < 6;
     const canSpawnThaelis = thaelisCount < 3 && totalElite < 6;
     const canSpawnMarchosias = marchosiasCount < 2 && totalElite < 6;
+    const canSpawnLeviathan = leviathanCount < 1 && totalElite < 6;
 
     const rand = Math.random();
     let cursor = 0;
 
+    if (canSpawnLeviathan && leviathanRate > 0 && rand < (cursor += leviathanRate)) {
+        spawnLeviathan(); return;
+    }
     if (canSpawnDargruel && rand < (cursor += dargruelRate)) {
         spawnDargruel(); return;
     }
@@ -203,7 +228,8 @@ function spawnEnemy() {
 function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
-    let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15;
+    // Base HP tăng thêm 12%
+    let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15 * 1.12;
     hp *= 1.05;
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
@@ -352,7 +378,7 @@ function addExplosion(x, y, size, color = 'orange') {
     createParticles(x, y, 20, finalColor, 1, 5);
 }
 
-function spawnSentinel(x, y) {
+function spawnSentinel(x, y, forceNormal = false) {
     for (let i = 0; i < 3; i++) {
         particles.push({ isSummonRing: true, x, y, lifetime: 500, maxLifetime: 500, radius: i * 20 });
     }
@@ -367,11 +393,18 @@ function spawnSentinel(x, y) {
     let currentTier = (sentinels.length + 1 >= 12) ? 3 : ((sentinels.length + 1 >= 5) ? 2 : 1);
     let initialMaxHp = (currentTier === 1) ? 389 : 299;
 
+    // 36% cơ hội sentinel có HP cao hơn 50%
+    const isFortified = !forceNormal && Math.random() < 0.36;
+    if (isFortified) {
+        initialMaxHp = Math.ceil(initialMaxHp * 1.5);
+    }
+
     sentinels.push({
         x, y, hp: initialMaxHp, maxHp: initialMaxHp, angle: -Math.PI / 2, shootTimer: 0,
         target: null, size: 15, shotsFiredSinceSpecial: 0,
         absoluteShield: false,
-        synergyTier: currentTier
+        synergyTier: currentTier,
+        isFortified
     });
 }
 
@@ -618,6 +651,19 @@ function dealDamage(enemy, source) {
         combinedDR += 0.20;
     }
 
+    if (enemy.type === 'boss') {
+        combinedDR += 0.15; // Dargruel base DR
+    }
+
+    if (enemy.type === 'leviathan') {
+        combinedDR += 0.15; // Leviathan base DR (shield handled separately)
+    }
+
+    // Envy DR (cộng dồn cho mọi kẻ địch có Envy)
+    if (enemy.hasEnvy && enemy.envyDR) {
+        combinedDR += enemy.envyDR;
+    }
+
     if (enemy.type === 'embryo') {
         combinedDR += 0.90;
     }
@@ -676,5 +722,187 @@ function dealDamage(enemy, source) {
         if (oldPercent > 0.4 && newPercent <= 0.4 && !enemy.demonGift40Triggered) { triggerDemonGift(enemy); enemy.demonGift40Triggered = true; }
         if (oldPercent > 0.1 && newPercent <= 0.1 && !enemy.demonGift10Triggered) { triggerDemonGift(enemy); enemy.demonGift10Triggered = true; }
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { triggerDemonGift(enemy); enemy.demonGift1Triggered = true; }
+    }
+}
+// ══════════════════════════════════════════════════════════
+// LEVIATHAN — Dominator Class
+// ══════════════════════════════════════════════════════════
+
+function spawnLeviathan() {
+    const baseSize = 25 + Math.random() * 5;
+    const size = baseSize * 10;
+    const hpFromTime = Math.floor(gameElapsedTime / 10000);
+    let hp = Math.min(6000, 3000 + hpFromTime * 30);
+    hp *= 1.05;
+
+    const lev = {
+        x: Math.random() * (canvas.width - size * 2) + size,
+        y: -size,
+        size,
+        speed: (1 + Math.random() * 0.5) * 0.8 * 0.85 * 0.85,
+        hp, maxHp: hp,
+        type: 'leviathan',
+        shield: 0,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false,
+
+        afoShieldActive: true,
+        afoEnvyMarked: true,      // mark ngay khi spawn
+        afoEnvyKills: 0,
+        afoEnvyTotal: 0,
+        afoHitCount: 0,
+        afoShieldBroken: false,
+
+        perseveranceCooldown: Infinity,
+        perseveranceCharging: false,
+        perseveranceChargeStart: 0,
+        perseveranceFiring: false,
+        perseveranceSweepCurrent: null,
+
+        shootTimer: 750,
+        shootInterval: 750,
+
+        dyingLaserPhase: false,
+        dyingLaserTimer: 0,
+        dyingLaserFired: false,
+    };
+    enemies.push(lev);
+    // Áp Envy ngay tất cả kẻ địch hiện có trên màn hình
+    _applyLeviathanEnvy(lev);
+}
+
+function _applyLeviathanEnvy(lev) {
+    // Áp Envy lên TẤT CẢ kẻ địch trên màn hình (không giới hạn 6)
+    const targets = enemies.filter(e =>
+        e !== lev &&
+        !e.type.startsWith('enemy_bullet') &&
+        e.type !== 'embryo' &&
+        e.type !== 'leviathan' &&
+        !e.hasEnvy
+    );
+    targets.forEach(e => {
+        e.hasEnvy = true;
+        e.envyLev = lev;
+        e.maxHp = Math.ceil(e.maxHp * 1.36);
+        e.hp = Math.min(e.hp * 1.36, e.maxHp);
+        e.envyShield = Math.ceil(lev.hp * 0.18);
+        e.shield = (e.shield || 0) + e.envyShield;
+        e.envyDR = 0.36;
+        e.envyChainAngle = 0;
+        e.envyGlowPhase = Math.random() * Math.PI * 2;
+    });
+    lev.afoEnvyTotal = targets.length;
+    lev.afoEnvyKills = 0;
+}
+
+function updateLeviathan(enemy, deltaTime) {
+    const now = performance.now();
+
+    // === Death laser phase ===
+    if (enemy.dyingLaserPhase) {
+        enemy.dyingLaserTimer -= deltaTime;
+        if (enemy.dyingLaserTimer <= 0 && !enemy.dyingLaserFired) {
+            enemy.dyingLaserFired = true;
+            if (!window._levDeathLasers) window._levDeathLasers = [];
+            for (let k = 0; k < 9; k++) {
+                const wingAngle = (Math.PI * 2 / 9) * k - Math.PI / 2;
+                window._levDeathLasers.push({
+                    ox: enemy.x, oy: enemy.y,
+                    angle: wingAngle,
+                    active: true,
+                    lifetime: 900,     // tổng thời gian laser hiện
+                    elapsed: 0,
+                    hitPlayer: false,
+                    hitSentinels: new Set(),
+                    levHits: enemy.afoHitCount || 1
+                });
+            }
+        }
+        if (enemy.dyingLaserFired && enemy.dyingLaserTimer <= -900) {
+            enemy.hp = -1;
+        }
+        return;
+    }
+
+    // === Di chuyển xuống ===
+    enemy.y += enemy.speed * (deltaTime / 16.67);
+    if (enemy.y > canvas.height + enemy.size) { enemy.hp = -1; return; }
+
+    // === Khiên All for One ===
+    if (enemy.afoShieldActive) {
+        const needed = enemy.afoEnvyTotal || 6;
+        if (enemy.afoEnvyKills >= needed && !enemy.afoShieldBroken) {
+            enemy.afoShieldActive = false;
+            enemy.afoShieldBroken = true;
+            addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
+            for (let i = 0; i < 40; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const spd = 3 + Math.random() * 8;
+                particles.push({
+                    x: enemy.x, y: enemy.y,
+                    vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+                    color: i % 2 === 0 ? '#00e5ff' : '#ffffff',
+                    size: 4 + Math.random() * 5,
+                    lifetime: 800, maxLifetime: 800
+                });
+            }
+            screenShake = { intensity: 15, duration: 500 };
+            // Bắt đầu charge Perseverance ngay
+            enemy.perseveranceCharging = true;
+            enemy.perseveranceChargeStart = now;
+            enemy.shootTimer = 750;
+        }
+        if (enemy.afoShieldActive) return;
+    }
+
+    // === Perseverance ===
+    if (enemy.perseveranceCharging) {
+        if (now - enemy.perseveranceChargeStart >= 1000) {
+            enemy.perseveranceCharging = false;
+            enemy.perseveranceFiring = true;
+            const angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+            enemy.perseveranceSweepCurrent = angleToPlayer - Math.PI * 0.6;
+            enemy.perseveranceSweepEnd = angleToPlayer + Math.PI * 0.6;
+        }
+    }
+
+    if (enemy.perseveranceFiring) {
+        const sweepSpeed = (Math.PI * 1.2) / 1200;
+        enemy.perseveranceSweepCurrent += sweepSpeed * deltaTime;
+        if (enemy.perseveranceSweepCurrent >= enemy.perseveranceSweepEnd) {
+            enemy.perseveranceFiring = false;
+            enemy.perseveranceSweepCurrent = null;
+            enemy.perseveranceCooldown = now + 3500;
+        }
+    } else if (!enemy.perseveranceCharging && enemy.afoShieldBroken) {
+        if (now >= (enemy.perseveranceCooldown || 0)) {
+            enemy.perseveranceCharging = true;
+            enemy.perseveranceChargeStart = now;
+        }
+    }
+
+    // === Normal attack — bắn MỌI LÚC ===
+    enemy.shootTimer -= deltaTime;
+    if (enemy.shootTimer <= 0) {
+        enemy.shootTimer = enemy.shootInterval;
+        const targets = [...sentinels, player];
+        let nearest = null, minDist = Infinity;
+        targets.forEach(t => {
+            const d = Math.hypot(t.x - enemy.x, t.y - enemy.y);
+            if (d < minDist) { minDist = d; nearest = t; }
+        });
+        if (nearest) {
+            const baseAngle = Math.atan2(nearest.y - enemy.y, nearest.x - enemy.x);
+            const spread = 0.22;
+            for (let i = -1; i <= 1; i++) {
+                const a = baseAngle + i * spread;
+                const bulletHp = Math.ceil(enemy.maxHp * 0.02);
+                enemies.push({
+                    x: enemy.x, y: enemy.y,
+                    vx: Math.cos(a) * 5.5, vy: Math.sin(a) * 5.5,
+                    hp: bulletHp, maxHp: bulletHp, size: 10,
+                    type: 'enemy_bullet', isSplit: false
+                });
+            }
+        }
     }
 }

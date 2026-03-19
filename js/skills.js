@@ -347,7 +347,7 @@ function updateSkillD(deltaTime) {
         const pullSpeed = 6;
         for (let enemy of enemies) {
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            if (enemy.type !== 'embryo') {
+            if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
                     enemy.y += (dy / d) * pullSpeed * dt;
@@ -357,6 +357,8 @@ function updateSkillD(deltaTime) {
                 // Blackhole chạm khiên Mar → tính 1 hit liên tục, không insta-kill Mar qua khiên
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                    enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                 } else {
                     dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
                 }
@@ -398,6 +400,9 @@ function updateSkillF(deltaTime) {
                 // Skill F chạm khiên Mar → tính 1 hit, không damage Mar
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                    enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
+                    enemy.hitBySkillF = true;
                 } else {
                     dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
                 }
@@ -611,9 +616,9 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 const linkThickness = ENERGY_ORB_SIZE / 2;
                 if (dist < enemyRadius + linkThickness) {
 
-                    if (!enemy.type.startsWith('enemy_bullet')) {
+                    if (!enemy.type.startsWith('enemy_bullet') && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
                         enemy.y -= (enemy.speed * dt * 0.08);
-                    } else {
+                    } else if (!enemy.type.startsWith('enemy_bullet') && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
                         enemy.x -= (enemy.vx * dt * 0.08);
                         enemy.y -= (enemy.vy * dt * 0.08);
                     }

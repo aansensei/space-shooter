@@ -719,6 +719,7 @@ function draw(deltaTime) {
         energyOrbs.forEach(drawEnergyOrb);
 
         drawAegisLasers();
+        _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
 
         // Draw non-bullet enemies first (background layer)
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet')) drawEnemy(e); });
@@ -949,6 +950,129 @@ function _drawStartScreen() {
 }
 
 // ── Aegis lasers ──────────────────────────────────────────────
+// ── Leviathan standalone effects (survive enemy death) ────────
+function _drawLeviathanEffects() {
+    const now = performance.now();
+    const len = Math.hypot(canvas.width, canvas.height) * 1.5;
+
+    enemies.forEach(e => {
+        if (e.type !== 'leviathan') return;
+
+        // ── Perseverance charge warning zone (giống Skill F: hiện vùng quét trước)
+        if (e.perseveranceCharging) {
+            const prog = Math.min(1, (now - e.perseveranceChargeStart) / 1000);
+            const angleToPlayer = Math.atan2(player.y - e.y, player.x - e.x);
+            const sweepStart = angleToPlayer - Math.PI * 0.6;
+            const sweepEnd = angleToPlayer + Math.PI * 0.6;
+
+            ctx.save();
+            ctx.translate(e.x, e.y);
+
+            // Vùng quét fan (warning zone)
+            ctx.globalAlpha = prog * 0.18;
+            ctx.fillStyle = '#00e5ff';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, len * 0.6, sweepStart, sweepEnd);
+            ctx.closePath();
+            ctx.fill();
+
+            // Viền fan
+            ctx.globalAlpha = prog * 0.5;
+            ctx.strokeStyle = '#00e5ff';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, len * 0.6, sweepStart, sweepEnd);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Charge glow tại lõi
+            ctx.globalAlpha = prog * 0.7;
+            ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 30;
+            ctx.fillStyle = 'rgba(0,229,255,0.6)';
+            ctx.beginPath(); ctx.arc(0, 0, e.size * 0.25, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.restore();
+        }
+
+        // ── Perseverance sweep laser
+        if (e.perseveranceFiring && e.perseveranceSweepCurrent != null) {
+            ctx.save();
+            ctx.translate(e.x, e.y);
+            ctx.rotate(e.perseveranceSweepCurrent);
+
+            ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 50;
+            ctx.strokeStyle = 'rgba(0,229,255,0.2)';
+            ctx.lineWidth = 60;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(0,229,255,0.95)';
+            ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // ── Dying phase: freeze glow + warning beams
+        if (e.dyingLaserPhase && !e.dyingLaserFired) {
+            const warnProg = Math.max(0, 1 - e.dyingLaserTimer / 1500);
+            for (let k = 0; k < 9; k++) {
+                const a = (Math.PI * 2 / 9) * k - Math.PI / 2;
+                ctx.save();
+                ctx.translate(e.x, e.y);
+                ctx.rotate(a);
+                ctx.globalAlpha = warnProg * 0.55;
+                ctx.strokeStyle = '#ff4400';
+                ctx.lineWidth = 5;
+                ctx.setLineDash([12, 8]);
+                ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+        }
+    });
+
+    // ── Death lasers (tồn tại sau khi Leviathan chết)
+    if (!window._levDeathLasers) return;
+    window._levDeathLasers.forEach(laser => {
+        if (!laser.active) return;
+        const elapsed = laser.elapsed || 0;
+        const lifetime = laser.lifetime || 900;
+        const fade = Math.max(0, 1 - elapsed / lifetime);
+
+        ctx.save();
+        ctx.translate(laser.ox, laser.oy);
+        ctx.rotate(laser.angle);
+        ctx.globalAlpha = fade;
+
+        ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 40;
+        ctx.strokeStyle = 'rgba(255,80,0,0.3)';
+        ctx.lineWidth = 35;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+
+        ctx.strokeStyle = '#ff4444';
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+
+        ctx.restore();
+    });
+}
+
 function drawAegisLasers() {
     aegisLasers.forEach(laser => {
         ctx.save();
@@ -1935,6 +2059,30 @@ function drawEnemy(enemy) {
         _drawVulnerabilityIcon(enemy);
     }
 
+    // Envy glow — phát sáng đỏ rực khi có Envy
+    if (enemy.hasEnvy) {
+        const now2 = performance.now();
+        const pulse = 0.5 + 0.5 * Math.sin(now2 / 250 + (enemy.envyGlowPhase || 0));
+        ctx.save();
+        // Outer glow
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 30 + pulse * 20;
+        ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        // Inner fill glow
+        ctx.globalAlpha = pulse * 0.25;
+        ctx.fillStyle = '#ff2200';
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        _drawEnvyChain(enemy);
+    }
+
     // Yog-Sothoth domain TARGET LOCK effect
     if (skillShiftActive) {
         const now = performance.now();
@@ -2025,6 +2173,8 @@ function drawEnemy(enemy) {
         _drawMarchosias(enemy);
     } else if (enemy.type === 'marchosias_minion') {
         _drawMarchosiasMinion(enemy);
+    } else if (enemy.type === 'leviathan') {
+        _drawLeviathan(enemy);
     } else if (enemy.type.startsWith('enemy_bullet')) {
         _drawEnemyBullet(enemy);
     } else {
@@ -2603,7 +2753,232 @@ function _drawMarchosiasMinion(enemy) {
     ctx.restore();
 }
 
-// ── Marchosias Blade Projectile (different from spirit blade) ─
+// ── Leviathan — Dominator Class ──────────────────────────────
+function _drawLeviathan(enemy) {
+    const now = performance.now();
+    const cx = enemy.x, cy = enemy.y;
+    const r = enemy.size / 2;
+    const shieldActive = enemy.afoShieldActive;
+    const NUM_WINGS = 9;
+    const dying = enemy.dyingLaserPhase;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // ── Wing animation (từ HTML gốc: armor-transform)
+    // Khi có khiên: thu lại che lõi (translateY nhỏ)
+    // Khi vỡ khiên / dying: mở bung ra (translateY lớn)
+    // Animation cycle 6s giống HTML: idle(0-25%) → rage(45-80%) → idle(100%)
+    const cycleMs = 6000;
+    const t6 = (now % cycleMs) / cycleMs; // 0..1
+    let wingPhase; // 0=closed, 1=open
+    if (shieldActive || dying) {
+        // Khi còn khiên: ĐÓNG hoàn toàn
+        wingPhase = shieldActive ? 0 : 1;
+    } else {
+        // Sau khi vỡ khiên: animation mở/đóng theo chu kỳ
+        if (t6 < 0.25) wingPhase = 0;
+        else if (t6 < 0.35) wingPhase = (t6 - 0.25) / 0.10; // ease open
+        else if (t6 < 0.80) wingPhase = 1;
+        else wingPhase = 1 - (t6 - 0.80) / 0.20; // ease close
+        wingPhase = Math.max(0, Math.min(1, wingPhase));
+    }
+
+    for (let i = 0; i < NUM_WINGS; i++) {
+        const baseAngle = (Math.PI * 2 / NUM_WINGS) * i; // --i * 40deg từ HTML
+        // Closed: translateY -45px scaled, Open: -95px scaled
+        const closedDist = r * 0.45;
+        const openDist = r * 0.95;
+        const wingDist = closedDist + (openDist - closedDist) * wingPhase;
+        const wingLen = r * 1.1;
+        const wingW = r * 0.28;
+        const hw = wingW / 2;
+        const scale = 1 + wingPhase * 0.05; // slight scale on open
+
+        ctx.save();
+        ctx.rotate(baseAngle);
+        ctx.translate(0, -wingDist);
+        ctx.scale(scale, scale);
+
+        // Trapezoid (clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%) từ HTML)
+        ctx.beginPath();
+        ctx.moveTo(-hw * 0.4, -wingLen);  // top-left  (30%)
+        ctx.lineTo(hw * 0.4, -wingLen);  // top-right (70%)
+        ctx.lineTo(hw, 0);         // bottom-right (100%)
+        ctx.lineTo(-hw, 0);         // bottom-left  (0%)
+        ctx.closePath();
+
+        // Gradient giống HTML: #00e5ff top → dark steel bottom
+        const wg = ctx.createLinearGradient(0, -wingLen, 0, 0);
+        wg.addColorStop(0, '#00e5ff');
+        wg.addColorStop(0.15, '#2d3748');
+        wg.addColorStop(0.80, '#1a1c29');
+        wg.addColorStop(1, '#0f172a');
+        ctx.fillStyle = wg;
+        ctx.shadowColor = '#00e5ff';
+        ctx.shadowBlur = 8 + wingPhase * 6;
+        ctx.fill();
+
+        // Inner panel (segment::before từ HTML)
+        ctx.beginPath();
+        ctx.moveTo(-hw * 0.20, -wingLen * 0.85);
+        ctx.lineTo(hw * 0.20, -wingLen * 0.85);
+        ctx.lineTo(hw * 0.60, -wingLen * 0.15);
+        ctx.lineTo(-hw * 0.60, -wingLen * 0.15);
+        ctx.closePath();
+        ctx.fillStyle = '#374151';
+        ctx.shadowBlur = 0;
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // ── Energy vortex (chỉ khi khiên đã vỡ)
+    if (!shieldActive) {
+        ctx.save();
+        ctx.rotate(now / 400);
+        for (let i = 0; i < 8; i++) {
+            const sa = (Math.PI * 2 / 8) * i;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.52, sa, sa + Math.PI / 8);
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = i % 2 === 0 ? 'rgba(0,229,255,0.85)' : 'rgba(157,0,255,0.85)';
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    // ── Core
+    const coreR = r * 0.32;
+    const beat = 0.9 + 0.15 * Math.abs(Math.sin(now / 500));
+
+    const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR * beat * 2);
+    cg.addColorStop(0, 'rgba(157,0,255,0.5)');
+    cg.addColorStop(0.5, 'rgba(0,229,255,0.2)');
+    cg.addColorStop(1, 'transparent');
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * beat * 2, 0, Math.PI * 2); ctx.fill();
+
+    const coreG = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR * beat);
+    coreG.addColorStop(0, '#020205');
+    coreG.addColorStop(0.6, '#2a0066');
+    coreG.addColorStop(1, '#00e5ff');
+    ctx.fillStyle = coreG;
+    ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * beat, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // ── Eye (tracks player)
+    const eyeAngle = Math.atan2(player.y - cy, player.x - cx);
+    const eOff = coreR * 0.30;
+    const ex = Math.cos(eyeAngle) * eOff;
+    const ey = Math.sin(eyeAngle) * eOff;
+    const eR = coreR * 0.28;
+    ctx.fillStyle = '#e8e8ff';
+    ctx.beginPath(); ctx.arc(ex, ey, eR, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath(); ctx.arc(ex, ey, eR * 0.62, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(ex, ey, eR * 0.30, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'rgba(0,229,255,0.7)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(ex, ey, eR, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // ── All for One shield (unbreakable-shield từ HTML)
+    if (shieldActive) {
+        const sR = r * 1.55;
+        const spinA = (now / 15000) * Math.PI * 2;
+        const pulse = 0.85 + 0.15 * Math.sin(now / 1500);
+
+        // Radial fill
+        const sg = ctx.createRadialGradient(0, 0, sR * 0.7, 0, 0, sR);
+        sg.addColorStop(0, `rgba(0,229,255,${0.05 * pulse})`);
+        sg.addColorStop(0.8, `rgba(0,229,255,${0.15 * pulse})`);
+        sg.addColorStop(1, `rgba(0,229,255,${0.4 * pulse})`);
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.arc(0, 0, sR, 0, Math.PI * 2); ctx.fill();
+
+        // Outer border spinning (spin-slow 15s)
+        ctx.save();
+        ctx.rotate(spinA);
+        ctx.strokeStyle = `rgba(0,229,255,${0.8 * pulse})`;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(0, 0, sR, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+
+        // Inner dashed ring spinning reverse (unbreakable-shield::after)
+        ctx.save();
+        ctx.rotate(-spinA * 1.5);
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = `rgba(255,255,255,${0.55 * pulse})`;
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(0, 0, sR * 0.94, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // x/6 counter
+        const needed = enemy.afoEnvyTotal || 6;
+        const kills = enemy.afoEnvyKills || 0;
+        const hits = enemy.afoHitCount || 0;
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 14px monospace';
+        ctx.fillStyle = '#00e5ff';
+        ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 8;
+        ctx.fillText(`${kills}/${needed}`, 0, -sR - 18);
+        ctx.font = '11px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.shadowBlur = 0;
+        ctx.fillText(`${hits} hits`, 0, -sR - 4);
+    }
+
+    // ── Dying: freeze glow
+    if (dying) {
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.8);
+        glow.addColorStop(0, 'rgba(255,100,0,0.5)');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+// ── Envy chain effect (drawn on enemies with hasEnvy) ────────
+function _drawEnvyChain(enemy) {
+    const now = performance.now();
+    const r = (enemy.size / 2) + 10;
+    const numLinks = 12;
+    enemy.envyChainAngle = (enemy.envyChainAngle || 0) + 0.02;
+
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    for (let i = 0; i < numLinks; i++) {
+        const a = enemy.envyChainAngle + (Math.PI * 2 / numLinks) * i;
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        const linkSize = 4;
+        const pulse = 0.6 + 0.4 * Math.sin(now / 300 + i);
+        ctx.fillStyle = `rgba(220,0,0,${pulse})`;
+        ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 6;
+        ctx.fillRect(x - linkSize / 2, y - linkSize / 2, linkSize, linkSize * 0.6);
+        // Connect links
+        if (i > 0) {
+            const pa = enemy.envyChainAngle + (Math.PI * 2 / numLinks) * (i - 1);
+            const px = Math.cos(pa) * r, py = Math.sin(pa) * r;
+            ctx.strokeStyle = `rgba(180,0,0,${pulse * 0.7})`;
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 3;
+            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
+        }
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
 function _drawMarchoBlade(blade) {
     const now = performance.now();
     ctx.save();
