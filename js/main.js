@@ -167,7 +167,7 @@ function update(rawDeltaTime) {
                 laser.duration = 200;
                 screenShake = { intensity: 8, duration: 200 };
 
-                if (distToSegment(player, laser.start, laser.end) < player.width / 2 + 15) {
+                if (distToSegment(player, laser.start, laser.end) < player.hitRadius + 15) {
                     playerTakesHit();
                 }
 
@@ -410,7 +410,7 @@ function update(rawDeltaTime) {
             enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
             enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.width / 2) {
+            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
                 playerTakesHit();
                 enemy.hp = 0;
             }
@@ -447,7 +447,7 @@ function update(rawDeltaTime) {
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.width / 2) {
+            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit();
                 if (enemy.type === 'boss' || enemy.type === 'thaelis') {
                 } else {
@@ -565,7 +565,7 @@ function update(rawDeltaTime) {
                     enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(ang) * (player.speed / 3), vy: Math.sin(ang) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0 });
                 }
             }
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.width / 2) {
+            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(); enemy.hp = 0;
             }
         }
