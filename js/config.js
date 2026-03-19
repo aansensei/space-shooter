@@ -8,7 +8,7 @@ let gameState = "start", lives = 12, score = 0, gameStartTime = 0;
 let gameElapsedTime = 0; // Thời gian game thực tế (bị slow bởi Yog-Sothoth)
 let nextLifeMilestone = 500000;
 
-const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6 };
+const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5 };
 let playerClones = [];
 let lastAutoFire = 0;
 const autoFireInterval = 170;

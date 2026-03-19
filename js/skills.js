@@ -740,7 +740,7 @@ function updateMarchosiasBlades(deltaTime) {
         blade.y += blade.vy * dt;
 
         // Hit player
-        if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.width / 2) {
+        if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.hitRadius) {
             blade.hitPlayer = true;
             playerTakesHit();
         }
