@@ -19,59 +19,111 @@ function drawSpaceBackground(deltaTime) {
     ctx.fillStyle = '#03030f';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Nebula cloud (drawn once, very cheap)
+    // Nebula clouds — mờ nhẹ
     if (!nebulaPoints) {
         nebulaPoints = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 5; i++) {
             nebulaPoints.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height * 0.7,
-                r: 80 + Math.random() * 180,
-                h: Math.floor(Math.random() * 360),
-                a: 0.04 + Math.random() * 0.07
+                r: 120 + Math.random() * 200,
+                h: [200, 260, 180, 300, 220][i],
+                a: 0.03 + Math.random() * 0.04
             });
         }
     }
     ctx.save();
     nebulaPoints.forEach(n => {
         const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-        g.addColorStop(0, `hsla(${n.h},80%,40%,${n.a})`);
+        g.addColorStop(0, `hsla(${n.h},70%,35%,${n.a})`);
         g.addColorStop(1, 'transparent');
         ctx.fillStyle = g;
         ctx.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
     });
     ctx.restore();
 
+    // ── Star field với hiệu ứng parallax zoom ────────────────────
+    // Mỗi sao có z (độ sâu 0→1), bay từ tâm ra rìa màn hình
+    // z nhỏ = xa (nhỏ mờ), z lớn = gần (to sáng)
     if (bgStars.length === 0) {
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 280; i++) {
             bgStars.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                size: Math.random() * 1.8 + 0.3,
-                speed: Math.random() * 1.8 + 0.3,
-                color: Math.random() > 0.8 ? '#00e5ff' : (Math.random() > 0.5 ? '#ffffff' : '#ff88ff'),
+                // Vị trí gốc trong không gian -1..1
+                ox: Math.random() * 2 - 1,
+                oy: Math.random() * 2 - 1,
+                z: Math.random(),           // độ sâu hiện tại
+                speed: 0.0003 + Math.random() * 0.0006, // tốc độ z tiến về phía camera
+                color: Math.random() > 0.75 ? '#00e5ff' : (Math.random() > 0.45 ? '#ffffff' : '#ffccff'),
                 phase: Math.random() * Math.PI * 2
             });
         }
     }
 
     const now = performance.now();
-    let dt = deltaTime ? deltaTime / 16.67 : 1;
+    const dt = deltaTime ? deltaTime / 16.67 : 1;
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+
     ctx.save();
-    bgStars.forEach(star => {
-        star.y += star.speed * dt;
-        if (star.y > canvas.height) { star.y = 0; star.x = Math.random() * canvas.width; }
-        const twinkle = 0.4 + 0.4 * Math.sin(now / 700 + star.phase);
-        ctx.globalAlpha = twinkle;
+    for (const star of bgStars) {
+        // Tiến z về 1 (gần camera)
+        star.z += star.speed * dt;
+        if (star.z >= 1) {
+            // Reset xa lại
+            star.ox = Math.random() * 2 - 1;
+            star.oy = Math.random() * 2 - 1;
+            star.z = 0.01;
+        }
+
+        // Project: z=0 → ở tâm màn hình, z=1 → ở rìa
+        const perspective = 1 / (1 - star.z * 0.95);
+        const sx = cx + star.ox * cx * perspective;
+        const sy = cy + star.oy * cy * perspective;
+
+        // Clip ngoài màn hình
+        if (sx < 0 || sx > W || sy < 0 || sy > H) continue;
+
+        // Kích thước và độ sáng tăng theo z
+        const size = 0.2 + star.z * star.z * 3.5;
+        const brightness = star.z * star.z; // dim xa, sáng gần
+        // Nhấp nháy nhẹ (dim hơn ở xa, nháy ít hơn)
+        const twinkle = brightness < 0.3
+            ? brightness
+            : brightness * (0.75 + 0.25 * Math.sin(now / 500 + star.phase));
+
+        ctx.globalAlpha = Math.min(1, twinkle * 1.2);
         ctx.fillStyle = star.color;
-        ctx.shadowColor = star.color;
-        ctx.shadowBlur = star.size > 1.2 ? 4 : 0;
+
+        // Glow cho sao gần (z > 0.65)
+        if (star.z > 0.65) {
+            ctx.shadowColor = star.color;
+            ctx.shadowBlur = size * 3;
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
+        // Vệt chuyển động cho sao rất gần (z > 0.82)
+        if (star.z > 0.82) {
+            const prevZ = star.z - star.speed * dt * 3;
+            const prevP = 1 / (1 - Math.max(0, prevZ) * 0.95);
+            const px = cx + star.ox * cx * prevP;
+            const py = cy + star.oy * cy * prevP;
+            ctx.strokeStyle = star.color;
+            ctx.lineWidth = size * 0.7;
+            ctx.globalAlpha = Math.min(1, twinkle * 0.6);
+            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy); ctx.stroke();
+            ctx.globalAlpha = Math.min(1, twinkle * 1.2);
+        }
+
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.arc(sx, sy, Math.max(0.3, size), 0, Math.PI * 2);
         ctx.fill();
-    });
+        ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
     ctx.restore();
 }
+
 
 // ── Yog-Sothoth shift arrows ──────────────────────────────────
 function drawSkillShiftEffects() {
@@ -726,8 +778,7 @@ function draw(deltaTime) {
         ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, 108);
         ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, 134);
     } else if (gameState === "start") {
-        ctx.textAlign = "center"; ctx.font = "40px Arial"; ctx.fillStyle = "white";
-        ctx.fillText("Space Shooter Pro", canvas.width / 2, canvas.height / 2 - 50);
+        _drawStartScreen();
     } else if (gameState === "gameover") {
         ctx.fillStyle = "rgba(0,0,0,0.7)";
         ctx.fillRect(canvas.width / 2 - 250, canvas.height / 2 - 100, 500, 200);
@@ -739,6 +790,161 @@ function draw(deltaTime) {
         ctx.fillStyle = "white";
         ctx.fillText("Tổng Điểm: " + score, canvas.width / 2, canvas.height / 2 + 30);
     }
+    ctx.restore();
+}
+
+// ── Start Screen — Pisces Constellation ───────────────────────
+function _drawStartScreen() {
+    const now = performance.now();
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    // ── Pisces constellation star positions (normalized -1..1 → screen)
+    // Based on real Pisces star pattern: two fish connected by a cord
+    const scale = Math.min(canvas.width, canvas.height) * 0.30;
+    const offX = cx;
+    const offY = cy - scale * 0.05;
+
+    // Stars: [x, y, magnitude] — normalized coords centered on constellation
+    const piscesStars = [
+        // Western fish (top-left loop)
+        [-0.55, 0.10, 2.8], // η Psc
+        [-0.72, 0.00, 3.6], // ο Psc
+        [-0.82, -0.14, 4.1], // α Psc (Alrescha - knot)
+        [-0.68, -0.28, 4.2],
+        [-0.48, -0.32, 4.3],
+        [-0.30, -0.20, 3.9],
+        [-0.38, -0.06, 3.7],
+        // Cord connecting
+        [-0.22, 0.08, 4.4],
+        [-0.06, 0.18, 4.3],
+        [0.10, 0.12, 4.2],
+        // Eastern fish (right circle)
+        [0.26, 0.04, 3.5], // γ Psc
+        [0.42, -0.10, 3.7], // κ Psc
+        [0.58, -0.22, 4.0],
+        [0.62, -0.06, 3.8],
+        [0.54, 0.12, 4.1],
+        [0.38, 0.22, 3.9],
+        [0.22, 0.18, 3.6], // ε Psc
+    ];
+
+    // Constellation lines (index pairs)
+    const lines = [
+        [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 0], // western fish loop
+        [6, 7], [7, 8], [8, 9], [9, 10],                  // cord
+        [10, 11], [11, 12], [12, 13], [13, 14], [14, 15], [15, 16], [16, 10] // eastern fish loop
+    ];
+
+    // ── Draw constellation lines — sáng rõ hơn
+    ctx.save();
+    lines.forEach(([a, b]) => {
+        const ax = offX + piscesStars[a][0] * scale;
+        const ay = offY + piscesStars[a][1] * scale;
+        const bx = offX + piscesStars[b][0] * scale;
+        const by = offY + piscesStars[b][1] * scale;
+
+        const lineAlpha = 0.28 + 0.12 * Math.sin(now / 2000 + a * 0.4);
+        ctx.strokeStyle = `rgba(140, 230, 255, ${lineAlpha})`;
+        ctx.lineWidth = 1.2;
+        ctx.shadowColor = '#40ccff';
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+        ctx.stroke();
+    });
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // ── Draw constellation stars — rực rỡ, nhấp nháy như ánh sáng cuối đường
+    piscesStars.forEach(([sx, sy, mag], idx) => {
+        const px = offX + sx * scale;
+        const py = offY + sy * scale;
+
+        // Nhấp nháy: dim xuống rồi sáng lại, mỗi sao lệch pha
+        const t = now / 1000 + idx * 0.73;
+        // "Ánh sáng cuối con đường" — gần như tắt hẳn rồi bùng sáng lại
+        const raw = Math.sin(t) * Math.sin(t * 0.7) * Math.sin(t * 1.3);
+        const twinkle = 0.35 + 0.65 * (raw * 0.5 + 0.5);
+
+        const r = Math.max(1.8, (5.2 - mag) * 1.1); // kích thước theo magnitude
+        const baseAlpha = (5.5 - mag) / 4.5; // sao sáng hơn = alpha cao hơn
+
+        ctx.save();
+
+        // Diffraction spikes (4 tia) — chỉ sao sáng nhất
+        if (mag < 3.8) {
+            ctx.globalAlpha = twinkle * baseAlpha * 0.55;
+            ctx.strokeStyle = '#c0eeff';
+            ctx.lineWidth = 0.8;
+            const spikeLen = r * 4.5 * twinkle;
+            ctx.shadowColor = '#80ddff'; ctx.shadowBlur = 3;
+            [[px - spikeLen, py, px + spikeLen, py], [px, py - spikeLen, px, py + spikeLen]].forEach(([x1, y1, x2, y2]) => {
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            });
+        }
+
+        // Outer glow halo
+        ctx.globalAlpha = twinkle * baseAlpha * 0.45;
+        const haloR = r * 5 * (0.8 + 0.2 * twinkle);
+        const hG = ctx.createRadialGradient(px, py, 0, px, py, haloR);
+        hG.addColorStop(0, 'rgba(140,220,255,0.9)');
+        hG.addColorStop(0.4, 'rgba(80,180,255,0.3)');
+        hG.addColorStop(1, 'transparent');
+        ctx.fillStyle = hG;
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(px, py, haloR, 0, Math.PI * 2); ctx.fill();
+
+        // Core star — sáng rõ
+        ctx.globalAlpha = twinkle * Math.min(1, baseAlpha * 1.3);
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = r * 3;
+        const cG = ctx.createRadialGradient(px, py, 0, px, py, r * 1.6);
+        cG.addColorStop(0, '#ffffff');
+        cG.addColorStop(0.25, '#d0f0ff');
+        cG.addColorStop(0.7, 'rgba(80,200,255,0.5)');
+        cG.addColorStop(1, 'transparent');
+        ctx.fillStyle = cG;
+        ctx.beginPath(); ctx.arc(px, py, r * 1.6, 0, Math.PI * 2); ctx.fill();
+
+        ctx.restore();
+    });
+
+    // ── Subtle "PISCES" label near constellation
+    ctx.save();
+    ctx.textAlign = 'right';
+    ctx.font = '11px monospace';
+    ctx.fillStyle = `rgba(100,200,255,${0.25 + 0.12 * Math.sin(now / 2000)})`;
+    ctx.letterSpacing = '3px';
+    ctx.fillText('♓  PISCES', offX + piscesStars[14][0] * scale + 30, offY + piscesStars[14][1] * scale - 14);
+    ctx.restore();
+
+    // ── Title text
+    ctx.save();
+    ctx.textAlign = 'center';
+
+    // Subtle glow behind title
+    ctx.shadowColor = '#00ddff';
+    ctx.shadowBlur = 38;
+    ctx.font = 'bold 62px "Georgia", serif';
+    const titlePulse = 0.88 + 0.12 * Math.sin(now / 1800);
+    ctx.fillStyle = `rgba(0, 220, 255, ${titlePulse})`;
+    ctx.fillText('Pisces: Space Journey', cx, cy - scale * 0.72);
+    ctx.shadowBlur = 0;
+
+    // Thin underline
+    const titleW = ctx.measureText('Pisces: Space Journey').width;
+    const lineY = cy - scale * 0.72 + 10;
+    const lineAlpha = 0.25 + 0.15 * Math.sin(now / 1400);
+    const lineG = ctx.createLinearGradient(cx - titleW / 2, 0, cx + titleW / 2, 0);
+    lineG.addColorStop(0, 'transparent');
+    lineG.addColorStop(0.3, `rgba(0,200,255,${lineAlpha})`);
+    lineG.addColorStop(0.7, `rgba(0,200,255,${lineAlpha})`);
+    lineG.addColorStop(1, 'transparent');
+    ctx.strokeStyle = lineG;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx - titleW / 2, lineY); ctx.lineTo(cx + titleW / 2, lineY); ctx.stroke();
+
     ctx.restore();
 }
 
