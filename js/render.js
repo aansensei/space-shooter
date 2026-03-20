@@ -958,9 +958,10 @@ function _drawLeviathanEffects() {
     enemies.forEach(e => {
         if (e.type !== 'leviathan') return;
 
-        // ── Perseverance charge warning zone (giống Skill F: hiện vùng quét trước)
+        // ── Perseverance charge warning zone
         if (e.perseveranceCharging) {
             const prog = Math.min(1, (now - e.perseveranceChargeStart) / 1000);
+            // Tính góc đến player real-time trong charge phase
             const angleToPlayer = Math.atan2(player.y - e.y, player.x - e.x);
             const sweepStart = angleToPlayer - Math.PI * 0.6;
             const sweepEnd = angleToPlayer + Math.PI * 0.6;
@@ -968,49 +969,50 @@ function _drawLeviathanEffects() {
             ctx.save();
             ctx.translate(e.x, e.y);
 
-            // Vùng quét fan (warning zone)
-            ctx.globalAlpha = prog * 0.18;
-            ctx.fillStyle = '#00e5ff';
+            // Vùng quét fan đỏ
+            ctx.globalAlpha = prog * 0.20;
+            ctx.fillStyle = '#ff0000';
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.arc(0, 0, len * 0.6, sweepStart, sweepEnd);
+            ctx.arc(0, 0, len * 0.7, sweepStart, sweepEnd);
             ctx.closePath();
             ctx.fill();
 
-            // Viền fan
-            ctx.globalAlpha = prog * 0.5;
-            ctx.strokeStyle = '#00e5ff';
-            ctx.lineWidth = 1.5;
+            // Viền đỏ
+            ctx.globalAlpha = prog * 0.6;
+            ctx.strokeStyle = '#ff2200';
+            ctx.lineWidth = 2;
             ctx.setLineDash([8, 6]);
+            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.arc(0, 0, len * 0.6, sweepStart, sweepEnd);
+            ctx.arc(0, 0, len * 0.7, sweepStart, sweepEnd);
             ctx.closePath();
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Charge glow tại lõi
-            ctx.globalAlpha = prog * 0.7;
-            ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 30;
-            ctx.fillStyle = 'rgba(0,229,255,0.6)';
-            ctx.beginPath(); ctx.arc(0, 0, e.size * 0.25, 0, Math.PI * 2); ctx.fill();
+            // Charge glow đỏ tại lõi
+            ctx.globalAlpha = prog * 0.8;
+            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 40;
+            ctx.fillStyle = 'rgba(255,0,0,0.5)';
+            ctx.beginPath(); ctx.arc(0, 0, e.size * 0.28, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
 
             ctx.restore();
         }
 
-        // ── Perseverance sweep laser
+        // ── Perseverance sweep laser — màu đỏ
         if (e.perseveranceFiring && e.perseveranceSweepCurrent != null) {
             ctx.save();
             ctx.translate(e.x, e.y);
             ctx.rotate(e.perseveranceSweepCurrent);
 
-            ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 50;
-            ctx.strokeStyle = 'rgba(0,229,255,0.2)';
+            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 50;
+            ctx.strokeStyle = 'rgba(255,0,0,0.2)';
             ctx.lineWidth = 60;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
 
-            ctx.strokeStyle = 'rgba(0,229,255,0.95)';
+            ctx.strokeStyle = 'rgba(255,40,0,0.95)';
             ctx.lineWidth = 10;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
 
@@ -2920,7 +2922,7 @@ function _drawLeviathan(enemy) {
         ctx.restore();
 
         // x/6 counter
-        const needed = enemy.afoEnvyTotal || 6;
+        const needed = enemy.afoEnvyTotal || 0;
         const kills = enemy.afoEnvyKills || 0;
         const hits = enemy.afoHitCount || 0;
         ctx.textAlign = 'center';

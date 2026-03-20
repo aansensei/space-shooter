@@ -304,6 +304,12 @@ function update(rawDeltaTime) {
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
+                if (ally === enemy) {
+                    // Aegis tự heal chính mình — 50% hiệu quả
+                    let selfHeal = healAmt * 0.5;
+                    enemy.hp = Math.min(enemy.maxHp, enemy.hp + selfHeal);
+                    return;
+                }
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
@@ -389,17 +395,15 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
-            // Leviathan: vào dying phase khi hp<=0 lần đầu
+            // Leviathan: chỉ die thực sự khi dyingLaserPhase đã xong (hp set về 0 bởi updateLeviathan)
+            // updateLeviathan giữ hp=1 trong suốt dying phase, chỉ set hp=0 sau khi laser xong
             if (enemy.type === 'leviathan' && !enemy.dyingLaserPhase) {
-                enemy.hp = 0.001;
-                enemy.dyingLaserPhase = true;
-                enemy.dyingLaserTimer = 1500;
-                screenShake = { intensity: 10, duration: 300 };
+                // hp xuống 0 nhưng chưa trigger dying phase — updateLeviathan sẽ handle
+                // (Điều này không nên xảy ra vì updateLeviathan trigger dying tại hp<=1)
                 continue;
             }
-            // Leviathan đang dying — chỉ die khi hp=-1 (set bởi updateLeviathan)
-            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && enemy.hp > -0.5) {
-                enemy.hp = 0.001; // giữ alive
+            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && !enemy.dyingLaserFired) {
+                // Đang trong warning phase — giữ alive
                 continue;
             }
 
@@ -595,17 +599,11 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
-            // Leviathan dying phase
+            // Leviathan: giữ alive trong dying phase
             if (enemy.type === 'leviathan' && !enemy.dyingLaserPhase) {
-                enemy.hp = 0.001;
-                enemy.dyingLaserPhase = true;
-                enemy.dyingLaserTimer = 1500;
-                screenShake = { intensity: 10, duration: 300 };
                 continue;
             }
-            // Leviathan đang dying — chỉ die khi hp=-1
-            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && enemy.hp > -0.5) {
-                enemy.hp = 0.001;
+            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && !enemy.dyingLaserFired) {
                 continue;
             }
 
@@ -624,6 +622,23 @@ function update(rawDeltaTime) {
 
             // ASSIMILATION: Marchosias tách 3 robot nhỏ khi chết
             if (enemy.type === 'marchosias') {
+                // Convert tất cả pending windups thành blades ngay lập tức (không để mất khi splice)
+                if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
+                    enemy.marchosiasWindups.forEach(windup => {
+                        const tx = windup.target.x, ty = windup.target.y;
+                        const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
+                        marchosiasBlades.push({
+                            x: enemy.x, y: enemy.y,
+                            vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
+                            angle, radius: 88,
+                            delay: windup.timer > 0 ? windup.timer : 0,
+                            active: windup.timer <= 0,
+                            originX: enemy.x, originY: enemy.y,
+                            hitEnemies: [], hitPlayer: false,
+                        });
+                    });
+                    enemy.marchosiasWindups = [];
+                }
                 _fireMarchosiasDeathSwords(enemy);
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
@@ -736,7 +751,7 @@ function update(rawDeltaTime) {
                     dealDamage(enemy, b);
 
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
-                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 3);
+                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 4);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
 
