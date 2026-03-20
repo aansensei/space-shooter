@@ -948,7 +948,7 @@ function updateLeviathan(enemy, deltaTime) {
         }
     }
 
-    // Normal attack — chỉ bắn sau khi shield vỡ
+    // Normal attack — chỉ bắn sau khi shield vỡaa
     if (enemy.afoShieldBroken) {
         enemy.shootTimer -= deltaTime;
         if (enemy.shootTimer <= 0) {

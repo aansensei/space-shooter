@@ -330,17 +330,28 @@ Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction** on i
 
 **Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Score on kill:** 42,000 – 73,500 points | **Speed:** ~1.3 u/s
 
-A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **4,000–7,000**. Has a **15% base Damage Reduction** on its body.
+A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **4,000–7,000**. Has a **45% base Damage Reduction** on its body after the shield breaks.
+
+---
+
+**Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
+
+When Leviathan appears, every enemy on screen instantly receives the **Envy** mark — visible as a white pulsing ring with spinning dashes around their body. Marked enemies gain:
+
+- **+25% Damage Reduction** (stacks with all other DR sources, hard-capped at 99%).
+- **+25% effectiveness from all healing sources** — including Aegis Core aura, Dargruel's Demon Gift, and any other regeneration.
+
+The mark is permanent and cannot be removed.
 
 ---
 
 **Passive: All for One**
 
-When Leviathan spawns, it selects a secret **kill quota Y** (randomly 4, 5, 6, 7, or 8). Until that many enemies are killed anywhere on screen, Leviathan is encased in an **unbreakable spherical shield** that absorbs all damage from all sources — including Overload Laser, Black Hole, Skill F, and all other attacks. The shield cannot be bypassed or reduced in any way.
+When Leviathan spawns, it selects a secret **kill quota Y** (randomly 6, 7, 8, or 9). Until that many enemies are killed anywhere on screen, Leviathan is encased in an **unbreakable spherical shield** that absorbs all damage from all sources — including Overload Laser, Black Hole, Skill F, and all other attacks. The shield cannot be bypassed or reduced in any way.
 
 Every attack that lands on the shield is counted as a **hit** (up to a maximum of 200). The current kill count and quota are displayed **below** Leviathan: `X/Y kills`. The hit count is shown beneath that: `N/200 hits`.
 
-When the kill quota is reached, the shield **shatters** in a burst of cyan energy with a screen shake. Leviathan's wing-plates spread open to reveal the core, and Perseverance begins immediately.
+When the kill quota is reached, Leviathan immediately begins a **cyan announcement sweep** (Perseverance, 1s charge + 1.2s sweep) — then the shield **shatters** in a burst of cyan energy with a screen shake, and the regular Perseverance cycle begins.
 
 While the shield is active, Leviathan's wing-plates are folded inward. They open fully when the shield breaks.
 
