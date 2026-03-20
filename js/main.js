@@ -966,5 +966,5 @@ function startGame() {
     // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file — không cần khởi động lại
 }
 
-// Khởi động game loop một lần duy nhất khi trang load
+// Khởi động game loop một lần duy nhất khi trang loadaa
 requestAnimationFrame(gameLoop);

@@ -2048,6 +2048,31 @@ function drawAegisCore(enemy) {
     ctx.fillStyle = `rgba(255,100,100,${pulse})`;
     ctx.beginPath(); ctx.arc(0, 0, rs * 0.45, 0, Math.PI * 2); ctx.fill();
 
+    // ── NEW: counter-rotating rune marks on body ──
+    ctx.save();
+    ctx.rotate(-now / 2500);
+    ctx.strokeStyle = 'rgba(255,60,60,0.35)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+        const ra = (i / 4) * Math.PI * 2;
+        const rx = Math.cos(ra) * enemy.size * 0.62;
+        const ry = Math.sin(ra) * enemy.size * 0.62;
+        ctx.beginPath();
+        ctx.moveTo(rx - 3, ry - 3); ctx.lineTo(rx + 3, ry + 3);
+        ctx.moveTo(rx + 3, ry - 3); ctx.lineTo(rx - 3, ry + 3);
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    // ── NEW: blink flash on Custos shield hit ──
+    if (enemy.aegisInvulnerable) {
+        const flashPulse = 0.3 + 0.7 * Math.abs(Math.sin(now / 150));
+        ctx.strokeStyle = `rgba(255,255,255,${flashPulse})`;
+        ctx.lineWidth = 2; ctx.shadowColor = 'white'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(0, 0, enemy.size * 0.75, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
     ctx.restore();
 }
 
@@ -2056,22 +2081,42 @@ function drawEnemy(enemy) {
     // ── Thủ Lĩnh Bầy Đàn (Leviathan Envy): white pulsing ring
     if (enemy.levEnvy) {
         const now0 = performance.now();
-        const pulse = 0.55 + 0.45 * Math.sin(now0 / 350 + enemy.x * 0.03);
+        const pulse = 0.6 + 0.4 * Math.abs(Math.sin(now0 / 400 + enemy.x * 0.01));
+        const r0 = (enemy.size / 2) + 8;
         ctx.save();
-        ctx.strokeStyle = `rgba(255,255,255,${pulse})`;
-        ctx.lineWidth = 2.5;
+        ctx.globalAlpha = 1;
+
+        // Outer glow ring
         ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 12 + pulse * 8;
+        ctx.shadowBlur = 16;
+        ctx.strokeStyle = `rgba(255,255,255,${0.7 + pulse * 0.3})`;
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 7, 0, Math.PI * 2);
+        ctx.arc(enemy.x, enemy.y, r0, 0, Math.PI * 2);
         ctx.stroke();
-        // Second inner ring slightly smaller
-        ctx.globalAlpha = pulse * 0.4;
-        ctx.lineWidth = 1;
-        ctx.shadowBlur = 4;
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 3, 0, Math.PI * 2);
-        ctx.stroke();
+
+        // Spinning dashed inner ring
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = `rgba(220,240,255,${0.45 + pulse * 0.2})`;
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([5, 5]);
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        ctx.rotate(now0 / 1200);
+        ctx.beginPath(); ctx.arc(0, 0, r0 - 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        ctx.setLineDash([]);
+
+        // 4 corner dots
+        ctx.fillStyle = `rgba(255,255,255,${pulse})`;
+        ctx.shadowColor = '#aaccff'; ctx.shadowBlur = 8;
+        for (let d = 0; d < 4; d++) {
+            const a = (now0 / 2000) + d * Math.PI / 2;
+            ctx.beginPath();
+            ctx.arc(enemy.x + Math.cos(a) * r0, enemy.y + Math.sin(a) * r0, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
         ctx.restore();
     }
 
@@ -2335,7 +2380,23 @@ function _drawBossOrThaelis(enemy) {
         ctx.restore();
     }
 
-    // rotating orbit dots
+    // ── NEW: energy crackle arcs at low HP ──
+    if (hpPct < 0.4) {
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        const crackleCount = Math.floor((1 - hpPct / 0.4) * 4) + 2;
+        for (let c = 0; c < crackleCount; c++) {
+            const a0 = (now / 180 + c * Math.PI * 2 / crackleCount) % (Math.PI * 2);
+            const a1 = a0 + 0.4 + Math.sin(now / 90 + c) * 0.2;
+            const cr = r + 8 + Math.sin(now / 120 + c * 1.7) * 4;
+            ctx.strokeStyle = `rgba(${isBoss ? '255,80,255' : '255,220,50'},${0.6 + 0.4 * Math.sin(now / 80 + c)})`;
+            ctx.lineWidth = 1;
+            ctx.shadowColor = color1; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(0, 0, cr, a0, a1); ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
     ctx.save();
     const orbitR = r + 18;
     const dotCount = 6;
@@ -2500,6 +2561,26 @@ function _drawMarchosias(enemy) {
     [[-r * 0.55, 0], [r * 0.55, 0], [0, -r * 0.55], [0, r * 0.55]].forEach(([px, py]) => {
         ctx.strokeRect(px - panelW / 2, py - panelH / 2, panelW, panelH);
     });
+
+    // ── NEW: rage shimmer at low HP ──
+    const marHpPct = enemy.hp / enemy.maxHp;
+    if (marHpPct < 0.3) {
+        ctx.save();
+        ctx.translate(0, 0);
+        const rageCount = 5;
+        const rageAlpha = (0.3 - marHpPct) / 0.3;
+        for (let ri = 0; ri < rageCount; ri++) {
+            const ra = (now / 300 + ri * Math.PI * 2 / rageCount);
+            const rd = r * 0.85 + Math.sin(now / 130 + ri * 1.3) * r * 0.2;
+            ctx.fillStyle = `rgba(0,255,140,${rageAlpha * (0.5 + 0.5 * Math.sin(now / 80 + ri))})`;
+            ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(Math.cos(ra) * rd, Math.sin(ra) * rd, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
 
     ctx.restore();
 
@@ -2757,6 +2838,17 @@ function _drawMarchosiasMinion(enemy) {
     cg.addColorStop(1, 'rgba(0,100,50,0.4)');
     ctx.fillStyle = cg;
     ctx.beginPath(); ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2); ctx.fill();
+
+    // ── NEW: 3 orbiting micro-dots ──
+    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6;
+    ctx.fillStyle = 'rgba(0,255,136,0.9)';
+    for (let d = 0; d < 3; d++) {
+        const da = (now / 600 + d * Math.PI * 2 / 3);
+        ctx.beginPath();
+        ctx.arc(Math.cos(da) * r * 0.68, Math.sin(da) * r * 0.68, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.shadowBlur = 0;
 
     ctx.restore();
 }
@@ -3062,10 +3154,9 @@ function _drawMarchoBlade(blade) {
 }
 
 function _drawNormalEnemy(enemy) {
-    // ENEMY – warm red/orange hue scheme, no shadowBlur
+    const now = performance.now();
     const hpRatio = enemy.hp / enemy.maxHp;
-    // Red at low HP, orange at full HP (clearly enemy-colored)
-    const hue = 20 + hpRatio * 20; // 20-40 = orange→yellow-orange
+    const hue = 20 + hpRatio * 20;
     const color = `hsl(${hue},100%,58%)`;
     const darkColor = `hsl(${hue},90%,18%)`;
 
@@ -3090,6 +3181,25 @@ function _drawNormalEnemy(enemy) {
     ctx.strokeStyle = `hsla(${hue},100%,70%,0.65)`;
     ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.stroke();
+
+    // ── NEW: slow-spinning inner hex detail ──
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    ctx.rotate(now / 3500);
+    ctx.strokeStyle = `hsla(${hue},100%,75%,0.3)`;
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const nx = Math.cos(a) * enemy.size * 0.55;
+        const ny = Math.sin(a) * enemy.size * 0.55;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(nx, ny); ctx.stroke();
+    }
+    ctx.restore();
+
+    // ── NEW: tiny pulsing center dot ──
+    const cp = 0.7 + 0.3 * Math.sin(now / 250 + enemy.x);
+    ctx.fillStyle = `rgba(255,220,150,${cp})`;
+    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 0.12, 0, Math.PI * 2); ctx.fill();
 
     // glint
     ctx.fillStyle = 'rgba(255,255,220,0.5)';
