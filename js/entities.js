@@ -117,9 +117,9 @@ function handleEnemyKill(enemy) {
     }
 
     killCountForPassive++;
-    // 30% cơ hội nhận thêm 1 điểm kill (tiến nhanh hơn tới mốc 4)
+    // 30% cơ hội nhận thêm 1 điểm kill (tiến nhanh hơn tới mốc 3)
     if (Math.random() < 0.30) killCountForPassive++;
-    if (killCountForPassive % 4 === 0) {
+    if (killCountForPassive % 3 === 0) {
         spawnSentinel(player.x, player.y, false);
     }
 
@@ -391,7 +391,12 @@ function spawnSentinel(x, y, forceNormal = false) {
     }
 
     let currentTier = (sentinels.length + 1 >= 12) ? 3 : ((sentinels.length + 1 >= 5) ? 2 : 1);
-    let initialMaxHp = (currentTier === 1) ? 389 : 299;
+    // Base HP tăng dần theo thời gian: 300 → 450 trong 5 phút đầu
+    const hpScale = Math.min(1, gameElapsedTime / 300000); // 0→1 trong 5 phút
+    const baseHpMin = 300, baseHpMax = 450;
+    const baseHp = Math.round(baseHpMin + hpScale * (baseHpMax - baseHpMin));
+    // Tier 1: base scaling, Tier 2-3: 299 fixed (herd mentality override)
+    let initialMaxHp = (currentTier === 1) ? Math.max(389, baseHp) : 299;
 
     // 36% cơ hội sentinel có HP cao hơn 50%
     const isFortified = !forceNormal && Math.random() < 0.36;
@@ -683,8 +688,15 @@ function dealDamage(enemy, source) {
 
     const damageToShield = Math.min(enemy.shield, totalDamage);
     enemy.shield -= damageToShield;
+    enemy.shield = Math.max(0, enemy.shield);
     totalDamage -= damageToShield;
     enemy.hp -= totalDamage;
+    // HP tối thiểu là 0 — không có âm
+    enemy.hp = Math.max(0, enemy.hp);
+    // Leviathan: khi còn khiên thì giữ HP tối thiểu 2 (khiên chưa vỡ → không thể die)
+    if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+        enemy.hp = Math.max(2, enemy.hp);
+    }
 
     const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
     const isBossOrMiniBossPresent = enemies.some(e => e.type === 'boss' || e.type === 'thaelis');
@@ -732,7 +744,7 @@ function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
     const size = baseSize * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(6000, 3000 + hpFromTime * 30);
+    let hp = Math.min(7000, 4000 + hpFromTime * 30);
     hp *= 1.05;
 
     const lev = {
@@ -797,9 +809,11 @@ function _applyLeviathanEnvy(lev) {
 function updateLeviathan(enemy, deltaTime) {
     const now = performance.now();
 
-    // === Death laser phase ===
+    // === Death laser phase (HP đã về 1, đang bắn laser rồi mới die) ===
     if (enemy.dyingLaserPhase) {
         enemy.dyingLaserTimer -= deltaTime;
+
+        // Sau 1.5s warning → fire lasers
         if (enemy.dyingLaserTimer <= 0 && !enemy.dyingLaserFired) {
             enemy.dyingLaserFired = true;
             if (!window._levDeathLasers) window._levDeathLasers = [];
@@ -809,7 +823,7 @@ function updateLeviathan(enemy, deltaTime) {
                     ox: enemy.x, oy: enemy.y,
                     angle: wingAngle,
                     active: true,
-                    lifetime: 900,     // tổng thời gian laser hiện
+                    lifetime: 900,
                     elapsed: 0,
                     hitPlayer: false,
                     hitSentinels: new Set(),
@@ -817,20 +831,32 @@ function updateLeviathan(enemy, deltaTime) {
                 });
             }
         }
+
+        // Sau 1.5s + 0.9s → die thực sự (set hp = 0 để main loop bắt)
         if (enemy.dyingLaserFired && enemy.dyingLaserTimer <= -900) {
-            enemy.hp = -1;
+            enemy.hp = 0; // main loop sẽ xử lý death bình thường
         }
+        return; // không làm gì khác trong dying phase
+    }
+
+    // === Trigger dying phase khi HP xuống còn 1 (chỉ sau khi shield đã vỡ) ===
+    if (enemy.hp <= 1 && !enemy.dyingLaserPhase && enemy.afoShieldBroken) {
+        enemy.hp = 1;
+        enemy.dyingLaserPhase = true;
+        enemy.dyingLaserTimer = 1500;
+        screenShake = { intensity: 10, duration: 300 };
         return;
     }
 
     // === Di chuyển xuống ===
     enemy.y += enemy.speed * (deltaTime / 16.67);
-    if (enemy.y > canvas.height + enemy.size) { enemy.hp = -1; return; }
+    if (enemy.y > canvas.height + enemy.size) { enemy.hp = 0; return; }
 
     // === Khiên All for One ===
     if (enemy.afoShieldActive) {
-        const needed = enemy.afoEnvyTotal || 6;
-        if (enemy.afoEnvyKills >= needed && !enemy.afoShieldBroken) {
+        const needed = enemy.afoEnvyTotal;
+        // Nếu không có địch nào bị Envy (needed=0) thì shield KHÔNG vỡ tự động
+        if (needed > 0 && enemy.afoEnvyKills >= needed && !enemy.afoShieldBroken) {
             enemy.afoShieldActive = false;
             enemy.afoShieldBroken = true;
             addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
@@ -859,19 +885,25 @@ function updateLeviathan(enemy, deltaTime) {
         if (now - enemy.perseveranceChargeStart >= 1000) {
             enemy.perseveranceCharging = false;
             enemy.perseveranceFiring = true;
-            const angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-            enemy.perseveranceSweepCurrent = angleToPlayer - Math.PI * 0.6;
-            enemy.perseveranceSweepEnd = angleToPlayer + Math.PI * 0.6;
+            // Lưu góc đến player tại thời điểm bắt đầu sweep
+            enemy.perseveranceSweepOrigin = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+            enemy.perseveranceSweepProgress = 0; // 0 → 1 trong 1200ms
+            enemy.perseveranceSweepStart = now;
         }
     }
 
     if (enemy.perseveranceFiring) {
-        const sweepSpeed = (Math.PI * 1.2) / 1200;
-        enemy.perseveranceSweepCurrent += sweepSpeed * deltaTime;
-        if (enemy.perseveranceSweepCurrent >= enemy.perseveranceSweepEnd) {
+        const elapsed = now - enemy.perseveranceSweepStart;
+        enemy.perseveranceSweepProgress = Math.min(1, elapsed / 1200);
+        // sweepCurrent = origin - 108° + progress * 216°
+        enemy.perseveranceSweepCurrent = enemy.perseveranceSweepOrigin - Math.PI * 0.6
+            + enemy.perseveranceSweepProgress * Math.PI * 1.2;
+
+        if (enemy.perseveranceSweepProgress >= 1) {
             enemy.perseveranceFiring = false;
             enemy.perseveranceSweepCurrent = null;
-            enemy.perseveranceCooldown = now + 3500;
+            enemy.perseveranceSweepProgress = 0;
+            enemy.perseveranceCooldown = now + 2000;
         }
     } else if (!enemy.perseveranceCharging && enemy.afoShieldBroken) {
         if (now >= (enemy.perseveranceCooldown || 0)) {

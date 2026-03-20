@@ -38,14 +38,14 @@ const MAX_SENTINELS = 12;
 // Skill Shift: Yog-Sothoth (Thao túng Không Thời Gian)
 let skillShiftActive = false;
 let skillShiftChargeStart = 0;
-const skillShiftCooldown = 15000; // 15 giây
+const skillShiftCooldown = 12000; // 15s → 12s // 15 giây
 let lastSkillShift = -Infinity;
 const skillShiftMaxCharge = 3000; // 3 giây tụ lực tối đa
 const skillShiftMaxHold = 8000; // 8 giây giữ tối đa tự hủy
 
 // Skill A
 let skillAOrbs = [], skillAActive = false, lastSkillA = -Infinity;
-const skillACooldown = 9000, maxSkillAOrbs = 80;
+const skillACooldown = 6000, maxSkillAOrbs = 80;
 let skillASensorRadius = 0;
 let scatteredProjectiles = [];
 let skillADefensiveCharges = 0;
@@ -54,18 +54,18 @@ let skillADefensiveCharges = 0;
 let spirits = [];
 const MAX_SPIRITS = 2;
 let lastSkillS = -Infinity;
-const skillSCooldown = 15000;
+const skillSCooldown = 12000;
 let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [];
 
 // Skill D
 let skillDCharging = false, skillDChargeStartTime = 0;
 const skillDChargeTime = 2000;
 let blackHole = null, lastSkillD = -Infinity;
-const skillDCooldown = 15000;
+const skillDCooldown = 12000;
 
 // Skill F
 let lastSkillF = -Infinity;
-const skillFCooldown = 10000;
+const skillFCooldown = 7000;
 let skillFState = "ready", skillFChargeStart, skillFSweepStart;
 const skillFSweepDuration = 1000;
 let screenShake = { intensity: 0, duration: 0 };
@@ -91,7 +91,7 @@ const overloadChargeTime = 3000;
 // Tia laze
 let laserActive = false, laserStartTime = 0, lastLaserTick = 0;
 const laserDuration = 12000;
-const laserCooldownDuration = 12000;
+const laserCooldownDuration = 9000;
 const laserTickInterval = 175;
 let laserCooldownEnd = 0;
 

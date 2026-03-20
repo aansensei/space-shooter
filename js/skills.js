@@ -758,9 +758,9 @@ function updateMarchosiasBlades(deltaTime) {
             }
         }
 
-        // Xóa khi ra ngoài màn hình
-        if (blade.x < -blade.radius || blade.x > canvas.width + blade.radius ||
-            blade.y < -blade.radius || blade.y > canvas.height + blade.radius) {
+        // Xóa khi ra ngoài màn hình (chỉ check khi đang bay)
+        if (blade.active && (blade.x < -blade.radius || blade.x > canvas.width + blade.radius ||
+            blade.y < -blade.radius || blade.y > canvas.height + blade.radius)) {
             marchosiasBlades.splice(i, 1);
         }
     }
