@@ -961,29 +961,32 @@ function _drawLeviathanEffects() {
         // ── Perseverance charge warning zone
         if (e.perseveranceCharging) {
             const prog = Math.min(1, (now - e.perseveranceChargeStart) / 1000);
-            // Tính góc đến player real-time trong charge phase
             const angleToPlayer = Math.atan2(player.y - e.y, player.x - e.x);
             const sweepStart = angleToPlayer - Math.PI * 0.6;
             const sweepEnd = angleToPlayer + Math.PI * 0.6;
+            // During announcement phase: glow cyan not red (shield still active)
+            const isAnnounce = e.afoAnnouncing || e.afoAnnouncePending;
+            const fanColor = isAnnounce ? '#00e5ff' : '#ff0000';
+            const borderColor = isAnnounce ? '#00ccff' : '#ff2200';
 
             ctx.save();
             ctx.translate(e.x, e.y);
 
             // Vùng quét fan đỏ
             ctx.globalAlpha = prog * 0.20;
-            ctx.fillStyle = '#ff0000';
+            ctx.fillStyle = fanColor;
             ctx.beginPath();
             ctx.moveTo(0, 0);
             ctx.arc(0, 0, len * 0.7, sweepStart, sweepEnd);
             ctx.closePath();
             ctx.fill();
 
-            // Viền đỏ
+            // Viền
             ctx.globalAlpha = prog * 0.6;
-            ctx.strokeStyle = '#ff2200';
+            ctx.strokeStyle = borderColor;
             ctx.lineWidth = 2;
             ctx.setLineDash([8, 6]);
-            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8;
+            ctx.shadowColor = fanColor; ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.moveTo(0, 0);
             ctx.arc(0, 0, len * 0.7, sweepStart, sweepEnd);
@@ -991,28 +994,33 @@ function _drawLeviathanEffects() {
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Charge glow đỏ tại lõi
+            // Charge glow tại lõi
             ctx.globalAlpha = prog * 0.8;
-            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 40;
-            ctx.fillStyle = 'rgba(255,0,0,0.5)';
+            ctx.shadowColor = fanColor; ctx.shadowBlur = 40;
+            ctx.fillStyle = isAnnounce ? 'rgba(0,229,255,0.5)' : 'rgba(255,0,0,0.5)';
             ctx.beginPath(); ctx.arc(0, 0, e.size * 0.28, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
 
             ctx.restore();
         }
 
-        // ── Perseverance sweep laser — màu đỏ
+        // ── Perseverance sweep laser
         if (e.perseveranceFiring && e.perseveranceSweepCurrent != null) {
+            const isAnnounce2 = e.afoAnnouncing;
+            const laserGlow = isAnnounce2 ? '#00e5ff' : '#ff0000';
+            const laserCore = isAnnounce2 ? 'rgba(0,229,255,0.95)' : 'rgba(255,40,0,0.95)';
+            const laserOuter = isAnnounce2 ? 'rgba(0,229,255,0.2)' : 'rgba(255,0,0,0.2)';
+
             ctx.save();
             ctx.translate(e.x, e.y);
             ctx.rotate(e.perseveranceSweepCurrent);
 
-            ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 50;
-            ctx.strokeStyle = 'rgba(255,0,0,0.2)';
+            ctx.shadowColor = laserGlow; ctx.shadowBlur = 50;
+            ctx.strokeStyle = laserOuter;
             ctx.lineWidth = 60;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
 
-            ctx.strokeStyle = 'rgba(255,40,0,0.95)';
+            ctx.strokeStyle = laserCore;
             ctx.lineWidth = 10;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
 
@@ -1026,7 +1034,7 @@ function _drawLeviathanEffects() {
 
         // ── Dying phase: freeze glow + warning beams
         if (e.dyingLaserPhase && !e.dyingLaserFired) {
-            const warnProg = Math.max(0, 1 - e.dyingLaserTimer / 1500);
+            const warnProg = Math.max(0, 1 - e.dyingLaserTimer / 1000);
             for (let k = 0; k < 9; k++) {
                 const a = (Math.PI * 2 / 9) * k - Math.PI / 2;
                 ctx.save();
@@ -1049,7 +1057,7 @@ function _drawLeviathanEffects() {
     window._levDeathLasers.forEach(laser => {
         if (!laser.active) return;
         const elapsed = laser.elapsed || 0;
-        const lifetime = laser.lifetime || 900;
+        const lifetime = laser.lifetime || 600;
         const fade = Math.max(0, 1 - elapsed / lifetime);
 
         ctx.save();
@@ -2045,6 +2053,28 @@ function drawAegisCore(enemy) {
 
 // ── Enemy dispatcher ──────────────────────────────────────────
 function drawEnemy(enemy) {
+    // ── Thủ Lĩnh Bầy Đàn (Leviathan Envy): white pulsing ring
+    if (enemy.levEnvy) {
+        const now0 = performance.now();
+        const pulse = 0.55 + 0.45 * Math.sin(now0 / 350 + enemy.x * 0.03);
+        ctx.save();
+        ctx.strokeStyle = `rgba(255,255,255,${pulse})`;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 12 + pulse * 8;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 7, 0, Math.PI * 2);
+        ctx.stroke();
+        // Second inner ring slightly smaller
+        ctx.globalAlpha = pulse * 0.4;
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     // Soul reaver icon
     if (enemy.soulReaver) {
         ctx.save();
@@ -2059,30 +2089,6 @@ function drawEnemy(enemy) {
     // VULNERABILITY (Trọng Thương) icon
     if (enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime) {
         _drawVulnerabilityIcon(enemy);
-    }
-
-    // Envy glow — phát sáng đỏ rực khi có Envy
-    if (enemy.hasEnvy) {
-        const now2 = performance.now();
-        const pulse = 0.5 + 0.5 * Math.sin(now2 / 250 + (enemy.envyGlowPhase || 0));
-        ctx.save();
-        // Outer glow
-        ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 30 + pulse * 20;
-        ctx.strokeStyle = `rgba(255, 0, 0, ${0.5 + pulse * 0.5})`;
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 6, 0, Math.PI * 2);
-        ctx.stroke();
-        // Inner fill glow
-        ctx.globalAlpha = pulse * 0.25;
-        ctx.fillStyle = '#ff2200';
-        ctx.shadowBlur = 0;
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        _drawEnvyChain(enemy);
     }
 
     // Yog-Sothoth domain TARGET LOCK effect
@@ -2767,35 +2773,36 @@ function _drawLeviathan(enemy) {
     ctx.save();
     ctx.translate(cx, cy);
 
-    // ── Wing animation (từ HTML gốc: armor-transform)
-    // Khi có khiên: thu lại che lõi (translateY nhỏ)
-    // Khi vỡ khiên / dying: mở bung ra (translateY lớn)
-    // Animation cycle 6s giống HTML: idle(0-25%) → rage(45-80%) → idle(100%)
+    // ── Wing animation
     const cycleMs = 6000;
-    const t6 = (now % cycleMs) / cycleMs; // 0..1
-    let wingPhase; // 0=closed, 1=open
+    const t6 = (now % cycleMs) / cycleMs;
+    let wingPhase;
     if (shieldActive || dying) {
-        // Khi còn khiên: ĐÓNG hoàn toàn
         wingPhase = shieldActive ? 0 : 1;
     } else {
-        // Sau khi vỡ khiên: animation mở/đóng theo chu kỳ
         if (t6 < 0.25) wingPhase = 0;
-        else if (t6 < 0.35) wingPhase = (t6 - 0.25) / 0.10; // ease open
+        else if (t6 < 0.35) wingPhase = (t6 - 0.25) / 0.10;
         else if (t6 < 0.80) wingPhase = 1;
-        else wingPhase = 1 - (t6 - 0.80) / 0.20; // ease close
+        else wingPhase = 1 - (t6 - 0.80) / 0.20;
         wingPhase = Math.max(0, Math.min(1, wingPhase));
     }
 
+    // Counter-clockwise slow rotation of the whole wing arrangement
+    const wingRotOffset = -(now / 9000) * Math.PI * 2;
+
     for (let i = 0; i < NUM_WINGS; i++) {
-        const baseAngle = (Math.PI * 2 / NUM_WINGS) * i; // --i * 40deg từ HTML
-        // Closed: translateY -45px scaled, Open: -95px scaled
+        const baseAngle = (Math.PI * 2 / NUM_WINGS) * i + wingRotOffset;
+
+        // Bobbing: each wing oscillates slightly in/out at different phases
+        const bob = Math.sin(now / 700 + i * (Math.PI * 2 / NUM_WINGS)) * r * 0.06;
+
         const closedDist = r * 0.45;
         const openDist = r * 0.95;
-        const wingDist = closedDist + (openDist - closedDist) * wingPhase;
+        const wingDist = closedDist + (openDist - closedDist) * wingPhase + bob;
         const wingLen = r * 1.1;
         const wingW = r * 0.28;
         const hw = wingW / 2;
-        const scale = 1 + wingPhase * 0.05; // slight scale on open
+        const scale = 1 + wingPhase * 0.05;
 
         ctx.save();
         ctx.rotate(baseAngle);
@@ -2921,19 +2928,19 @@ function _drawLeviathan(enemy) {
         ctx.setLineDash([]);
         ctx.restore();
 
-        // x/6 counter
-        const needed = enemy.afoEnvyTotal || 0;
-        const kills = enemy.afoEnvyKills || 0;
-        const hits = enemy.afoHitCount || 0;
+        // Kill counter (bên dưới Leviathan)
+        const quota = enemy.afoKillQuota || '?';
+        const kills = enemy.afoKillCount || 0;
+        const hits = Math.min(200, enemy.afoHitCount || 0);
         ctx.textAlign = 'center';
-        ctx.font = 'bold 14px monospace';
-        ctx.fillStyle = '#00e5ff';
-        ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 8;
-        ctx.fillText(`${kills}/${needed}`, 0, -sR - 18);
+        ctx.font = 'bold 15px monospace';
+        ctx.fillStyle = kills >= quota ? '#00ff88' : '#00e5ff';
+        ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 8;
+        ctx.fillText(`${kills}/${quota} kills`, 0, sR + 20);
         ctx.font = '11px monospace';
         ctx.fillStyle = 'rgba(255,255,255,0.65)';
         ctx.shadowBlur = 0;
-        ctx.fillText(`${hits} hits`, 0, -sR - 4);
+        ctx.fillText(`${hits}/200 hits`, 0, sR + 36);
     }
 
     // ── Dying: freeze glow
