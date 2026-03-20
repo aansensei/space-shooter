@@ -131,9 +131,11 @@ Each shield regenerates after **25 seconds**.
 
 ### Shift — Yog-Sothoth: Cursed Domain Expansion
 
-**Cooldown:** 15s | **Max duration:** 8s (auto-cancels)
+**Cooldown:** 12s | **Max duration:** 8s (auto-cancels)
 
-Hold Shift to open a cursed domain. Everything on the battlefield — enemies, bullets, movement, all timers — slows to **15% of normal speed**. You are **completely invincible** while the domain is active.
+Hold Shift to open a cursed domain. Everything on the battlefield — enemies, movement, all timers — slows to **15% of normal speed**. You are **completely invincible** while the domain is active.
+
+**All enemy bullets on screen are immediately destroyed** when the domain opens, and no new enemy bullets can exist while the domain is active.
 
 While active, press **← or →** to teleport. The teleport range increases the longer you hold Shift (up to half the screen width). A ghost shadow shows where you'll land.
 
@@ -326,59 +328,53 @@ Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction** on i
 
 ### Leviathan (Dominator)
 
-**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Spawn cooldown:** 15s between appearances | **Score on kill:** 31,500 – 63,000 points | **Speed:** ~1.3 u/s
+**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Score on kill:** 42,000 – 73,500 points | **Speed:** ~1.3 u/s
 
-A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: 3,000–6,000. Has a **15% base Damage Reduction** on its body.
+A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **4,000–7,000**. Has a **15% base Damage Reduction** on its body.
 
 ---
 
 **Passive: All for One**
 
-When Leviathan spawns, it instantly marks **6 random enemies** on screen (excluding enemy bullets and Embryos) with the **Envy** seal — visible as a spinning red chain ring. Enemies bearing Envy gain:
+When Leviathan spawns, it selects a secret **kill quota Y** (randomly 4, 5, 6, 7, or 8). Until that many enemies are killed anywhere on screen, Leviathan is encased in an **unbreakable spherical shield** that absorbs all damage from all sources — including Overload Laser, Black Hole, Skill F, and all other attacks. The shield cannot be bypassed or reduced in any way.
 
-- **+36% Max HP** and a corresponding HP increase.
-- **+36% Damage Reduction** (stacks with all other DR sources).
-- **A shield** worth 18% of Leviathan's current HP at the moment of marking.
+Every attack that lands on the shield is counted as a **hit** (up to a maximum of 200). The current kill count and quota are displayed **below** Leviathan: `X/Y kills`. The hit count is shown beneath that: `N/200 hits`.
 
-As long as at least one Envy enemy lives, Leviathan is encased in an **unbreakable spherical shield** that absorbs all damage — including Absolute Shields, Black Holes, and Skill F. The shield cannot be bypassed or reduced in any way.
+When the kill quota is reached, the shield **shatters** in a burst of cyan energy with a screen shake. Leviathan's wing-plates spread open to reveal the core, and Perseverance begins immediately.
 
-Every attack that hits the shield registers as a **hit** (laser ticks, Skill F contacts, Black Hole center ticks, and individual bullet impacts all count separately). The running hit total and the Envy kill count are both displayed above Leviathan: `X/6` kills and `N hits`.
-
-When an Envy enemy is killed, a projectile visually flies from the kill site into Leviathan's shield. When all 6 Envy targets are eliminated, the shield **shatters** in a burst of cyan energy, triggering a screen shake.
-
-While the shield is active, Leviathan's wing-plates are closed, protecting the core. When the shield breaks, the wings spread open to reveal the eye.
+While the shield is active, Leviathan's wing-plates are folded inward. They open fully when the shield breaks.
 
 ---
 
 **Passive: Last Rites**
 
-When Leviathan is destroyed, each of its 9 wing-plates marks a directional line on screen. After **1.5 seconds**, a laser fires outward from each wing along that exact line to the edge of the map. These lasers **persist even after death** and cannot be stopped.
+When Leviathan's HP is reduced to 1, it freezes in place. Each of its 9 wing-plates projects a **warning beam** in its direction for **1.5 seconds**. After the warning, a laser fires outward along each wing-line to the edge of the map and remains active for **0.9 seconds**. These lasers persist even after Leviathan is removed from the field.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
-- Hitting a Sentinel deals **(total shield hits ÷ 3) × 0.15%** of that Sentinel's Max HP.
+- Hitting a Sentinel deals **(total hit count ÷ 3) × 0.15%** of that Sentinel's Max HP.
+
+Leviathan is removed from the field once all 9 lasers expire.
 
 ---
 
 **Normal Attack**
 
-Every **0.75 seconds**, fires 3 bullets in a slight spread aimed at the nearest player or Sentinel. Each bullet has HP equal to **2% of Leviathan's current HP**.
-
-*Only active after the All for One shield has been broken.*
+Always active. Every **0.75 seconds**, fires 3 bullets in a slight spread aimed at the nearest player or Sentinel. Each bullet has HP equal to **2% of Leviathan's Max HP**.
 
 ---
 
 **Skill: Perseverance**
 
-*Unlocks only after the All for One shield is broken.*
+*Activates immediately when the All for One shield breaks.*
 
-After the shield shatters, Leviathan's wing-plates spread wide and the entity begins to glow. It gains **+36% Damage Reduction** permanently for the rest of the fight. Every **3.5 seconds** (cooldown starts after the sweep completes), Leviathan charges for **1 second** then fires a **sweeping fan laser** from its core eye across a 216-degree arc.
+A **warning fan** in deep red covers a **216-degree arc** aimed at the player's current position for **1 second** (charge phase). After the charge, a sweeping red laser fires across the full arc over **1.2 seconds**. After the sweep ends, there is a **2-second cooldown**, then the cycle repeats.
 
 The sweep destroys most allied projectiles in its path — including player bullets, Sentinel shots, Spirit bullets, and Skill A orbs. It does **not** destroy: Overload Laser beam, Black Hole (Skill D), Spirit Blade Arc and Spirit Finale (Skill S), Annihilation Sweep (Skill F), or any Skill G entities.
 
-- Hitting the player costs **1 life** (normal protective layers apply: domain, orb sacrifice, Final Defense, Last Stand).
+- Hitting the player costs **1 life** (normal protective layers apply).
 - Hitting a Sentinel deals **hits × (0.2%–0.35%)** of that Sentinel's Max HP.
 
-**Interrupt immunity:** Once the 1-second charge completes and the sweep begins, it cannot be cancelled for any reason — even if Leviathan is killed mid-sweep, the laser finishes its arc.
+Perseverance will always complete its current sweep before Leviathan can enter its death sequence.
 
 ---
 
@@ -406,7 +402,7 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 | Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s |
 | Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.3 u/s |
 
-Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum. Leviathan also has a **15-second cooldown** between each appearance regardless of spawn rate.
+Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum.
 
 ---
 

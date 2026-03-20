@@ -299,21 +299,26 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.0155 * (deltaTime / 1000);
+            let healAmt = enemy.maxHp * 0.025 * (deltaTime / 1000); // 2.5% per second
             let shieldAmt = enemy.maxHp * 0.40;
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
-                if (ally === enemy) {
-                    // Aegis tự heal chính mình — 50% hiệu quả
-                    let selfHeal = healAmt * 0.5;
-                    enemy.hp = Math.min(enemy.maxHp, enemy.hp + selfHeal);
-                    return;
-                }
+                if (ally === enemy) return; // Aegis không tự heal
+                if (ally.type === 'leviathan' && ally.dyingLaserPhase) return; // no heal during death
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
-                    ally.hp = Math.min(ally.maxHp, ally.hp + finalHeal);
+                    if (ally.levEnvy) finalHeal *= 1.25; // Envy: +25% heal
+                    const newHp = ally.hp + finalHeal;
+                    if (newHp > ally.maxHp) {
+                        // Overheal: 50% of excess → shield
+                        const overheal = newHp - ally.maxHp;
+                        ally.hp = ally.maxHp;
+                        ally.shield = (ally.shield || 0) + overheal * 0.5;
+                    } else {
+                        ally.hp = Math.max(0, newHp);
+                    }
 
                     if (!ally.aegisShieldReceived) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.75 : shieldAmt;
@@ -395,16 +400,27 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
-            // Leviathan: chỉ die thực sự khi dyingLaserPhase đã xong (hp set về 0 bởi updateLeviathan)
-            // updateLeviathan giữ hp=1 trong suốt dying phase, chỉ set hp=0 sau khi laser xong
-            if (enemy.type === 'leviathan' && !enemy.dyingLaserPhase) {
-                // hp xuống 0 nhưng chưa trigger dying phase — updateLeviathan sẽ handle
-                // (Điều này không nên xảy ra vì updateLeviathan trigger dying tại hp<=1)
-                continue;
-            }
-            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && !enemy.dyingLaserFired) {
-                // Đang trong warning phase — giữ alive
-                continue;
+            // ── LEVIATHAN: chỉ die khi laser sequence hoàn tất ──────────
+            if (enemy.type === 'leviathan') {
+                if (!enemy.dyingLaserPhase) {
+                    // HP bị giảm về 0 bởi nguồn bên ngoài (Tesla, energy link...)
+                    // trước khi updateLeviathan kịp trigger dying phase
+                    // → Trigger ngay tại đây
+                    if (enemy.afoShieldBroken) {
+                        enemy.hp = 1;
+                        enemy.dyingLaserPhase = true;
+                        enemy.dyingLaserTimer = 1500;
+                        screenShake = { intensity: 10, duration: 300 };
+                    } else {
+                        enemy.hp = 1; // shield active: cannot die
+                    }
+                    continue;
+                }
+                // Đang trong dying phase: giữ alive cho đến khi laser xong
+                if (!enemy.dyingLaserFired || enemy.dyingLaserTimer > -600) {
+                    continue;
+                }
+                // Laser sequence done → fall through to normal death handling
             }
 
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
@@ -599,12 +615,22 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
-            // Leviathan: giữ alive trong dying phase
-            if (enemy.type === 'leviathan' && !enemy.dyingLaserPhase) {
-                continue;
-            }
-            if (enemy.type === 'leviathan' && enemy.dyingLaserPhase && !enemy.dyingLaserFired) {
-                continue;
+            // ── LEVIATHAN: same guard ─────────────────────────────────────
+            if (enemy.type === 'leviathan') {
+                if (!enemy.dyingLaserPhase) {
+                    if (enemy.afoShieldBroken) {
+                        enemy.hp = 1;
+                        enemy.dyingLaserPhase = true;
+                        enemy.dyingLaserTimer = 1500;
+                        screenShake = { intensity: 10, duration: 300 };
+                    } else {
+                        enemy.hp = 1;
+                    }
+                    continue;
+                }
+                if (!enemy.dyingLaserFired || enemy.dyingLaserTimer > -600) {
+                    continue;
+                }
             }
 
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
@@ -676,6 +702,11 @@ function update(rawDeltaTime) {
             }
         }
         if (lives <= 0) { gameState = "gameover"; showStartButton("Chơi Lại"); }
+    }
+
+    // ── Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới ──
+    if (skillShiftActive) {
+        enemies = enemies.filter(e => !e.type.startsWith('enemy_bullet'));
     }
 
     const elapsedTime = currentTime - gameStartTime;

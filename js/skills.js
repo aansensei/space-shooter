@@ -397,14 +397,13 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                // Skill F chạm khiên Mar → tính 1 hit, không damage Mar
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
-                    enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
-                    enemy.hitBySkillF = true;
+                    enemy.afoHitCount = Math.min(200, (enemy.afoHitCount || 0) + 1);
                 } else {
-                    dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
+                    // Instant kill — enemy_bullet, normal, elite, anything
+                    dealDamage(enemy, { damage: enemy.maxHp * 999999 + (enemy.shield || 0) * 999999 });
                 }
                 enemy.hitBySkillF = true;
             }
@@ -722,7 +721,14 @@ function executeShiftTeleport(direction) {
 function cancelSkillShift() {
     if (skillShiftActive) {
         skillShiftActive = false;
-        lastSkillShift = performance.now(); // Hủy chiêu đưa vào trạng thái hồii
+        lastSkillShift = performance.now();
+
+        // Xóa tất cả enemy bullet trong vùng phạm vi Shift (bán kính = nửa màn hình)
+        const shiftRadius = Math.min(canvas.width, canvas.height) * 0.45;
+        enemies = enemies.filter(e => {
+            if (!e.type.startsWith('enemy_bullet')) return true;
+            return Math.hypot(e.x - player.x, e.y - player.y) > shiftRadius;
+        });
     }
 }
 // ── Marchosias Blade — global array, không bị ngắt bởi bất kỳ nguồn nào ──
