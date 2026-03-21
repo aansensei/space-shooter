@@ -76,7 +76,7 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 Activates automatically when **any of the following** is true:
 
 - More than 4 enemies are on screen
-- Any elite enemy is present (Thaelis, Aegis Core, Marchosias, or Dargruel)
+- Any **elite or higher** enemy is present (Heavenly Aegis Core, Marchosias, Leviathan or Dargruel)
 - Skill G is active
 
 **While active:**
