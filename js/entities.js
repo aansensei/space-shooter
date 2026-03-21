@@ -101,6 +101,7 @@ function handleEnemyKill(enemy) {
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }
     addExplosion(enemy.x, enemy.y, enemy.size);
+    if (enemy.type === 'leviathan') window._lastLeviathanKillTime = performance.now();
 
     // Leviathan AFO: mỗi kill tăng counter cho tất cả Leviathan đang có khiên
     enemies.forEach(lev => {
@@ -187,8 +188,10 @@ function spawnEnemy() {
     const thaelisRate = 0.12 + t * 0.13;
     const marchosiasRate = 0.05 + t * 0.08;
 
-    // Leviathan: unlock sau 36s, không có cooldown riêng
-    const leviathanRate = elapsedSec >= 36 ? (0.02 + t * 0.04) : 0;
+    // Leviathan: unlock sau 36s, cooldown 6s giữa mỗi lần spawn
+    const levCooldownOk = !window._lastLeviathanKillTime ||
+        (performance.now() - window._lastLeviathanKillTime) >= 6000;
+    const leviathanRate = (elapsedSec >= 36 && levCooldownOk) ? (0.02 + t * 0.04) : 0;
 
     const canSpawnDargruel = dargruelCount < 2 && totalElite < 6;
     const canSpawnAegis = aegisCount < 2 && totalElite < 6;
@@ -467,7 +470,7 @@ function updateSentinels(deltaTime) {
         sentinel.shootTimer -= deltaTime;
         if (sentinel.shootTimer <= 0 && sentinel.target) {
             sentinel.shootTimer = sentinelFireRate;
-            sentinel.hp--;
+            sentinel.hp = Math.max(0, sentinel.hp - 1);
             const angle = sentinel.angle;
             const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * herdSpeedBonus;
 
@@ -527,7 +530,8 @@ function triggerDemonGift(boss) {
 
     enemies.forEach(enemy => {
         if (enemy === boss) return;
-        if (enemy.type === 'leviathan' && enemy.dyingLaserPhase) return; // no heal during death
+        if (enemy.hp <= 0 || enemy._markedForDeath) return; // đã chết — không heal
+        if (enemy.type === 'leviathan' && enemy._deathLaserSpawned) return;
         const healBase = boss.maxHp * 0.15;
         const healMultiplier = enemy.levEnvy ? 1.25 : 1.0; // Envy: +25% heal
         const healAmount = (enemy.soulReaver ? healBase * 0.75 : healBase) * healMultiplier;
@@ -582,7 +586,7 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
         // Shield blocks ALL damage — chỉ đếm hit (max 200)
         if (source.damage > 0 || source.percentDamage > 0) {
-            enemy.afoHitCount = Math.min(200, (enemy.afoHitCount || 0) + 1);
+            enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
         }
         return;
     }
@@ -699,10 +703,52 @@ function dealDamage(enemy, source) {
     enemy.shield = Math.max(0, enemy.shield);
     totalDamage -= damageToShield;
     enemy.hp -= totalDamage;
-    // HP tối thiểu là 0
     enemy.hp = Math.max(0, enemy.hp);
-    // Leviathan: khi còn khiên giữ HP min 2 (không bao giờ đến đây vì shield block trên)
-    // Khi shield đã vỡ, HP có thể về 0 để trigger dying phase
+    if (enemy.hp <= 0) enemy._markedForDeath = true;
+
+    // Leviathan: khi HP về 0 (hoặc đã ≤ 1), spawn death lasers ngay nếu chưa spawn
+    if (enemy.type === 'leviathan' && enemy.hp <= 1 && !enemy._deathLaserSpawned) {
+        enemy._deathLaserSpawned = true;
+        enemy.hp = 0;
+        if (!window._levDeathLasers) window._levDeathLasers = [];
+        const hits = enemy.afoHitCount || 1;
+        const lx = enemy.x, ly = enemy.y;
+        const NUM_WINGS = 9;
+
+        // Build target angles: mỗi sentinel nhận 1 laser, player nhận phần còn lại
+        const angles = [];
+        const sentCopy = [...sentinels].slice(0, NUM_WINGS - 1);
+        sentCopy.forEach(s => angles.push(Math.atan2(s.y - ly, s.x - lx)));
+
+        // Player luôn nhận ít nhất 1
+        const pAngle = Math.atan2(player.y - ly, player.x - lx);
+        angles.push(pAngle);
+
+        // Spread nếu còn thiếu
+        let si = 1;
+        while (angles.length < NUM_WINGS) {
+            const side = si % 2 === 0 ? 1 : -1;
+            angles.push(pAngle + side * Math.ceil(si / 2) * 0.28);
+            si++;
+        }
+
+        // Cánh ban đầu ở góc đều nhau (như bình thường)
+        // Chúng sẽ quay về targetAngle trong warnTime (animation trong render)
+        angles.slice(0, NUM_WINGS).forEach((targetAngle, k) => {
+            const defaultAngle = (Math.PI * 2 / NUM_WINGS) * k - Math.PI / 2;
+            window._levDeathLasers.push({
+                ox: lx, oy: ly,
+                angle: targetAngle,          // góc cuối (nơi laser bắn)
+                startAngle: defaultAngle,     // góc đầu (vị trí cánh ban đầu)
+                warnTime: 1200,              // ms animation cánh xoay + warning
+                activeTime: 900,
+                elapsed: 0,
+                hitPlayer: false, hitSentinels: new Set(),
+                levHits: hits
+            });
+        });
+        screenShake = { intensity: 12, duration: 400 };
+    }
 
     const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
     const isBossOrMiniBossPresent = enemies.some(e => e.type === 'boss' || e.type === 'thaelis');
@@ -812,106 +858,53 @@ function _applyLeviathanEnvy(lev) {
 function updateLeviathan(enemy, deltaTime) {
     const now = performance.now();
 
-    // ══ PHASE 1: DYING LASER ═══════════════════════════════════════
-    if (enemy.dyingLaserPhase) {
-        enemy.dyingLaserTimer -= deltaTime;
+    // Đã die (hp=0 set bởi dealDamage) → skip, main loop sẽ splice
+    if (enemy.hp <= 0) return;
 
-        if (enemy.dyingLaserTimer <= 0 && !enemy.dyingLaserFired) {
-            enemy.dyingLaserFired = true;
-            if (!window._levDeathLasers) window._levDeathLasers = [];
-            for (let k = 0; k < 9; k++) {
-                const wingAngle = (Math.PI * 2 / 9) * k - Math.PI / 2;
-                window._levDeathLasers.push({
-                    ox: enemy.x, oy: enemy.y, angle: wingAngle,
-                    active: true, lifetime: 600, elapsed: 0,
-                    hitPlayer: false, hitSentinels: new Set(),
-                    levHits: Math.min(200, enemy.afoHitCount || 1)
-                });
-            }
-        }
-
-        // After warning + laser duration → actually die
-        if (enemy.dyingLaserFired && enemy.dyingLaserTimer <= -600) {
-            enemy.hp = 0;
-        }
-        return;
-    }
-
-    // ══ TRIGGER DYING: HP≤1, shield broken, not mid-perseverance ══
-    if (enemy.afoShieldBroken && enemy.hp <= 1 && !enemy.dyingLaserPhase
-        && !enemy.perseveranceCharging && !enemy.perseveranceFiring) {
-        enemy.hp = 1;
-        enemy.dyingLaserPhase = true;
-        enemy.dyingLaserTimer = 1000; // 1s warning
-        screenShake = { intensity: 10, duration: 300 };
-        return;
-    }
-
-    // ══ MOVE DOWN ═════════════════════════════════════════════════
+    // ══ MOVE DOWN ═══════════════════════════════════════════════════
     enemy.y += enemy.speed * (deltaTime / 16.67);
     if (enemy.y > canvas.height + enemy.size) { enemy.hp = 0; return; }
 
     // ══ PHASE 2: ALL FOR ONE SHIELD ═══════════════════════════════
     if (enemy.afoShieldActive) {
-        // Quota just reached → begin announcement sweep
         if (enemy.afoKillCount >= enemy.afoKillQuota && !enemy.afoAnnouncePending && !enemy.afoAnnouncing) {
             enemy.afoAnnouncePending = true;
-            // Start charging immediately
             enemy.perseveranceCharging = true;
             enemy.perseveranceChargeStart = now;
         }
 
-        // Run Perseverance charge during announcement
         if (enemy.afoAnnouncePending || enemy.afoAnnouncing) {
             if (enemy.perseveranceCharging) {
                 if (now - enemy.perseveranceChargeStart >= 1000) {
-                    // Fire the announcement sweep
                     enemy.perseveranceCharging = false;
-                    enemy.perseveranceFiring = true;
                     enemy.afoAnnouncePending = false;
                     enemy.afoAnnouncing = true;
-                    enemy.perseveranceSweepOrigin = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-                    enemy.perseveranceSweepStart = now;
-                    enemy.perseveranceSweepProgress = 0;
-                    enemy.perseveranceSweepCurrent = enemy.perseveranceSweepOrigin - Math.PI * 0.6;
+                    _spawnPerseveranceBeam(enemy, now);
                 }
             }
-
-            if (enemy.perseveranceFiring) {
-                const elapsed = now - enemy.perseveranceSweepStart;
-                enemy.perseveranceSweepProgress = Math.min(1, elapsed / 1200);
-                enemy.perseveranceSweepCurrent = enemy.perseveranceSweepOrigin
-                    - Math.PI * 0.6
-                    + enemy.perseveranceSweepProgress * Math.PI * 1.2;
-
-                if (enemy.perseveranceSweepProgress >= 1) {
-                    // Sweep done → BREAK THE SHIELD
-                    enemy.perseveranceFiring = false;
-                    enemy.perseveranceSweepCurrent = null;
-                    enemy.afoAnnouncing = false;
-                    enemy.afoShieldActive = false;
-                    enemy.afoShieldBroken = true;
-
-                    addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
-                    for (let i = 0; i < 40; i++) {
-                        const a = Math.random() * Math.PI * 2;
-                        particles.push({
-                            x: enemy.x, y: enemy.y,
-                            vx: Math.cos(a) * (3 + Math.random() * 8),
-                            vy: Math.sin(a) * (3 + Math.random() * 8),
-                            color: i % 2 === 0 ? '#00e5ff' : '#ffffff',
-                            size: 4 + Math.random() * 5, lifetime: 800, maxLifetime: 800
-                        });
-                    }
-                    screenShake = { intensity: 15, duration: 500 };
-                    // Next Perseverance after 2s cooldown
-                    enemy.perseveranceCooldown = now + 2000;
-                    enemy.shootTimer = 750;
+            if (enemy.afoAnnouncing && !_hasPersBeam(enemy)) {
+                // Sweep done → BREAK THE SHIELD
+                enemy.afoAnnouncing = false;
+                enemy.afoShieldActive = false;
+                enemy.afoShieldBroken = true;
+                addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
+                for (let i = 0; i < 40; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    particles.push({
+                        x: enemy.x, y: enemy.y,
+                        vx: Math.cos(a) * (3 + Math.random() * 8),
+                        vy: Math.sin(a) * (3 + Math.random() * 8),
+                        color: i % 2 === 0 ? '#00e5ff' : '#ffffff',
+                        size: 4 + Math.random() * 5, lifetime: 800, maxLifetime: 800
+                    });
                 }
+                screenShake = { intensity: 15, duration: 500 };
+                enemy.perseveranceCooldown = now + 2000;
+                enemy.shootTimer = 750;
             }
         }
 
-        if (enemy.afoShieldActive) return; // shield still active: block attacks
+        if (enemy.afoShieldActive) return;
     }
 
     // ══ PHASE 3: POST-SHIELD — PERSEVERANCE + ATTACK ══════════════
@@ -920,35 +913,16 @@ function updateLeviathan(enemy, deltaTime) {
     if (enemy.perseveranceCharging) {
         if (now - enemy.perseveranceChargeStart >= 1000) {
             enemy.perseveranceCharging = false;
-            enemy.perseveranceFiring = true;
-            enemy.perseveranceSweepOrigin = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-            enemy.perseveranceSweepStart = now;
-            enemy.perseveranceSweepProgress = 0;
-            enemy.perseveranceSweepCurrent = enemy.perseveranceSweepOrigin - Math.PI * 0.6;
+            _spawnPerseveranceBeam(enemy, now);
         }
-    }
-
-    if (enemy.perseveranceFiring) {
-        const elapsed = now - enemy.perseveranceSweepStart;
-        enemy.perseveranceSweepProgress = Math.min(1, elapsed / 1200);
-        enemy.perseveranceSweepCurrent = enemy.perseveranceSweepOrigin
-            - Math.PI * 0.6
-            + enemy.perseveranceSweepProgress * Math.PI * 1.2;
-
-        if (enemy.perseveranceSweepProgress >= 1) {
-            enemy.perseveranceFiring = false;
-            enemy.perseveranceSweepCurrent = null;
-            enemy.perseveranceSweepProgress = 0;
-            enemy.perseveranceCooldown = now + 2000;
-        }
-    } else if (!enemy.perseveranceCharging && enemy.afoShieldBroken) {
-        if (now >= enemy.perseveranceCooldown) {
+    } else if (!_hasPersBeam(enemy) && enemy.afoShieldBroken) {
+        if (now >= (enemy.perseveranceCooldown || 0)) {
             enemy.perseveranceCharging = true;
             enemy.perseveranceChargeStart = now;
         }
     }
 
-    // Normal attack — chỉ bắn sau khi shield vỡaa
+    // Normal attack
     if (enemy.afoShieldBroken) {
         enemy.shootTimer -= deltaTime;
         if (enemy.shootTimer <= 0) {
@@ -974,4 +948,25 @@ function updateLeviathan(enemy, deltaTime) {
             }
         }
     }
+}
+
+// Spawn Perseverance beam — quét 360° toàn bản đồ
+function _spawnPerseveranceBeam(enemy, now) {
+    if (!window._levPersBeams) window._levPersBeams = [];
+    window._levPersBeams.push({
+        ox: enemy.x, oy: enemy.y,
+        sweepOrigin: -Math.PI,        // bắt đầu từ -180°
+        sweepStart: now,
+        duration: 1800,               // 1.8s quét đủ 360°
+        done: false,
+        ownerRef: enemy,
+        hitPlayer: false,
+        hitSentinels: new Map()       // Map cho cooldown per-sentinel
+    });
+}
+
+// Check xem enemy Lev có beam đang active không
+function _hasPersBeam(enemy) {
+    if (!window._levPersBeams) return false;
+    return window._levPersBeams.some(b => b.ownerRef === enemy && !b.done);
 }

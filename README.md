@@ -45,7 +45,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 **Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10x**, capping at **12% of target's Max HP** at full charge.
 
-**Overload Laser** — Hold Space for a full **3 seconds** without releasing. Fires a continuous beam for **12 seconds** (12s cooldown after). Deals **10 base + 26% of target's Max HP** per tick every 175ms. Also pulls nearby enemies toward the beam.
+**Overload Laser** — Hold Space for a full **3 seconds** without releasing. Fires a continuous beam for **12 seconds** (9s cooldown after). Deals **10 base + 26% of target's Max HP** per tick every 175ms. Also pulls nearby enemies toward the beam.
 
 ---
 
@@ -84,15 +84,15 @@ Activates automatically when **any of the following** is true:
 
 ### Sentinels
 
-A Sentinel spawns automatically every **4 enemy kills**. Maximum **12 Sentinels** at once — if the cap is hit, the weakest Sentinel self-destructs to make room.
+A Sentinel spawns automatically every **3 enemy kills**. Maximum **12 Sentinels** at once — if the cap is hit, the weakest Sentinel self-destructs to make room.
 
 Each enemy kill has a **30% chance** to grant an extra kill count — meaning a single kill can count as 2 toward the next Sentinel spawn. When a Sentinel spawns, it has a **36% chance** to be a **Fortified Sentinel** with **+50% Max HP**.
 
-**Base stats:** 299 HP | 75ms fire interval *(Fortified: 448 HP)*
+**Base stats:** 300–450 HP (scales up over the first 5 minutes) | 75ms fire interval *(Fortified: 450–675 HP)*
 
 - Loses **1 HP** every time it fires (recoil).
 - Takes damage equal to the HP of any enemy bullet that hits it.
-- Every **4th shot** is a Special Shot: homing, deals **6 base + 7% Max HP**, +12% speed, and **heals the firing Sentinel for 3 HP** on hit.
+- Every **4th shot** is a Special Shot: homing, deals **6 base + 7% Max HP**, +12% speed, and **heals the firing Sentinel for 4 HP** on hit.
 
 **Herd Mentality** — bonuses scale with how many Sentinels are alive:
 
@@ -150,7 +150,7 @@ While active, press **← or →** to teleport. The teleport range increases the
 
 ### A — Thunder Orbs: Celestial Thunderburst
 
-**Cooldown:** 9s
+**Cooldown:** 6s
 
 Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **11 base + 28% Max HP** on impact, then shatters into **16 scattered projectiles** (4 base + 2% Max HP each) that fly outward in all directions.
 
@@ -160,7 +160,7 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 ### S — Remembrance Spirit: Summoned Spirit Judgment
 
-**Cooldown:** 15s | **Max:** 2 Spirits
+**Cooldown:** 12s | **Max:** 2 Spirits
 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every 65ms.
 
@@ -173,7 +173,7 @@ Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets 
 
 ### D — Cosmic Black Hole: Singularity
 
-**Cooldown:** 15s | **Charge time:** 2 seconds
+**Cooldown:** 12s | **Charge time:** 2 seconds
 
 After a 2-second charge, spawns a Black Hole that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
@@ -184,7 +184,7 @@ After a 2-second charge, spawns a Black Hole that pulls all enemies and enemy bu
 
 ### F — Annihilation Sweep: Thiên Ý Trảm
 
-**Cooldown:** 10s | **Charge:** 1.5s | **Sweep:** 1s
+**Cooldown:** 7s | **Charge:** 1.5s | **Sweep:** 1s
 
 Charges up, then sweeps a massive plasma beam across the entire screen. Every enemy in the sweep path takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
@@ -349,7 +349,7 @@ The mark is permanent and cannot be removed.
 
 When Leviathan spawns, it selects a secret **kill quota Y** (randomly 6, 7, 8, or 9). Until that many enemies are killed anywhere on screen, Leviathan is encased in an **unbreakable spherical shield** that absorbs all damage from all sources — including Overload Laser, Black Hole, Skill F, and all other attacks. The shield cannot be bypassed or reduced in any way.
 
-Every attack that lands on the shield is counted as a **hit** (up to a maximum of 200). The current kill count and quota are displayed **below** Leviathan: `X/Y kills`. The hit count is shown beneath that: `N/200 hits`.
+Every attack that lands on the shield is counted as a **hit** (up to a maximum of **250**). The current kill count and quota are displayed **below** Leviathan: `X/Y kills`. The hit count is shown beneath that: `N/250 hits`.
 
 When the kill quota is reached, Leviathan immediately begins a **cyan announcement sweep** (Perseverance, 1s charge + 1.2s sweep) — then the shield **shatters** in a burst of cyan energy with a screen shake, and the regular Perseverance cycle begins.
 
@@ -359,12 +359,10 @@ While the shield is active, Leviathan's wing-plates are folded inward. They open
 
 **Passive: Last Rites**
 
-When Leviathan's HP is reduced to 1, it freezes in place. Each of its 9 wing-plates projects a **warning beam** in its direction for **1.5 seconds**. After the warning, a laser fires outward along each wing-line to the edge of the map and remains active for **0.9 seconds**. These lasers persist even after Leviathan is removed from the field.
+When Leviathan's HP is reduced to **1**, it triggers **Last Rites** regardless of what attack caused it — including Black Hole, Skill F, or any other instant-kill source. Each of its 9 wing-plates projects a **warning beam** in its direction for **1 second**. After the warning, a laser fires outward along each wing-line to the edge of the map and remains active for **0.9 seconds**. These lasers spawn as independent objects and persist even after Leviathan is removed from the field.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
-- Hitting a Sentinel deals **(total hit count ÷ 3) × 0.15%** of that Sentinel's Max HP.
-
-Leviathan is removed from the field once all 9 lasers expire.
+- Hitting a Sentinel deals **4% of that Sentinel's Max HP** per hit.
 
 ---
 
@@ -383,7 +381,7 @@ A **warning fan** in deep red covers a **216-degree arc** aimed at the player's 
 The sweep destroys most allied projectiles in its path — including player bullets, Sentinel shots, Spirit bullets, and Skill A orbs. It does **not** destroy: Overload Laser beam, Black Hole (Skill D), Spirit Blade Arc and Spirit Finale (Skill S), Annihilation Sweep (Skill F), or any Skill G entities.
 
 - Hitting the player costs **1 life** (normal protective layers apply).
-- Hitting a Sentinel deals **hits × (0.2%–0.35%)** of that Sentinel's Max HP.
+- Hitting a Sentinel deals **1%–3% of that Sentinel's Max HP** per hit tick, scaling linearly with Leviathan's accumulated hit count (1% at 0 hits, 3% at 250 hits).
 
 Perseverance will always complete its current sweep before Leviathan can enter its death sequence.
 
@@ -405,13 +403,13 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 
 ## Spawn Summary
 
-| Enemy | Class | Unlocks | Spawn Rate | Cap | Speed |
-|---|---|---|---|---|---|
-| Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.5 u/s |
-| Thaelis | Abnormal | 30s | 12% → 25% | 3 | ~1.4 u/s |
-| Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s |
-| Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s |
-| Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.3 u/s |
+| Enemy | Class | Unlocks | Spawn Rate | Cap | Speed | Respawn Cooldown |
+|---|---|---|---|---|---|---|
+| Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.5 u/s | — |
+| Thaelis | Abnormal | 30s | 12% → 25% | 3 | ~1.4 u/s | — |
+| Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s | — |
+| Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s | — |
+| Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.3 u/s | 6s after kill |
 
 Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum.
 
@@ -424,3 +422,77 @@ Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at the
 *— Undefined —*
 
 An Administrator-class entity exists beyond reality and governs it as a system rather than living within it. She created the Endless Nights Protocol to endlessly replicate universes and timelines, preventing all forms of finality and turning existence into an infinite chain of rewritten outcomes. With absolute control over causality, she can duplicate, overwrite, and define reality itself, yet she remains a distant overseer driven by the fear of an irreversible end. However, the emergence of Irregulars, entities beyond her authority, introduces a flaw in her perfect system and threatens the endless continuity she maintains.
+
+---
+
+## Glossary
+
+A reference for all mechanical terms used throughout this document.
+
+---
+
+### Damage & Reduction
+
+**Damage Reduction (DR)** — A percentage of incoming damage that is negated before it is applied. Multiple DR sources stack additively. Hard-capped at **99%** — nothing is ever completely immune to damage through DR alone.
+
+**Percentage Damage** — Damage calculated as a % of the target's Max HP (or effective HP). Bypasses shield absorption the same way base damage does unless otherwise noted.
+
+**True Damage** — Damage that bypasses all Shields entirely and is applied directly to HP. Cannot be reduced by shield absorption.
+
+**Shield** — An HP buffer that absorbs incoming damage before the body's HP is touched. Shields can be stacked from multiple sources. Destroyed shields do not reduce the target's Max HP.
+
+**Vulnerability (Trọng Thương)** — A stacking debuff that amplifies all incoming damage by +25% per stack (up to 3 stacks, max +75%). Each application also shreds 24% of the target's current Shield HP.
+
+**Overheal** — When a heal would push a target above Max HP, the excess is converted into a Shield at reduced efficiency (typically 21–50% of the overflow).
+
+---
+
+### Status Effects & Debuffs
+
+**Soul Reaver** — A debuff marked by a crossed-swords icon. Reduces all healing and shielding the target receives by 25%. Afflicted units also take Soul Devourer true damage every 0.5 seconds.
+
+**Envy** — A permanent mark applied by Leviathan's Herd Leader passive. Marked enemies gain +25% DR and receive 25% more healing from all sources.
+
+**Demon Gift Stacks** — A temporary DR buff granted by Dargruel's Demon Gift passive. Stacks up to 2 times for a max of +30% DR lasting 4 seconds.
+
+---
+
+### Crowd Control
+
+**CC Immunity** — The target cannot be affected by any movement-impairing or displacement effect. This includes Black Hole pull, Tesla Coil slow, and Energy Link drag. CC Immunity does **not** block damage.
+
+**Iron Body** — A state of complete invulnerability. The target is immune to all damage from all sources — base damage, percentage damage, true damage, and any other type. Effects that normally bypass shields or DR still deal zero damage during Iron Body. Examples: Leviathan's All for One Shield, Yog-Sothoth Domain for the player.
+
+---
+
+### Shields (Named Types)
+
+**Absolute Shield** — A one-hit shield that blocks the next incoming hit entirely, regardless of damage amount. Granted by Last Stand and Accurate Parry.
+
+**Parasite Shield** — Marchosias Minion's host shield. Absorbs damage before all other shields. Completely buff-immune — cannot be healed, regenerated, or given DR bonuses.
+
+**Aegis Shield** — The permanent shield granted by Aegis Core's aura. Provides a +15% DR bonus to the bearer while it has any HP remaining.
+
+**Envy Shield** — A supplementary shield attached to enemies by Leviathan's All for One passive when they receive the Envy mark.
+
+**Boundary Shield / Player Shield** — The two components of Final Defense. Each absorbs one hit or one boundary breach before entering a 25-second regeneration cooldown.
+
+---
+
+### Healing
+
+**Aura Heal** — Continuous percentage-based HP regeneration applied each frame by Aegis Core to all allies within its aura radius. Cannot target enemies at 0 HP.
+
+**Demon Gift Heal** — A burst heal triggered at HP thresholds by Dargruel. Overflow converts to a shield at 21% efficiency. Cannot target enemies at 0 HP.
+
+**Sentinel Special Heal** — Every 4th Sentinel shot heals the firing Sentinel for 4 HP on a confirmed hit.
+
+---
+
+### Other
+
+**Spawn Rate** — The per-frame probability that a given enemy type is selected during a spawn tick. Multiple enemy types compete for each spawn slot; spawn rates shown are individual chances before competition.
+
+**Elite Cap** — All enemies of class Abnormal and above share a combined limit of 6 on screen simultaneously, in addition to each enemy type's individual cap.
+
+**Score Milestone** — Every 500,000 score grants +1 life and resets the milestone counter upward by another 500,000.

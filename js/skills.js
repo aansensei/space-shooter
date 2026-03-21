@@ -785,6 +785,8 @@ function updateSoulReaverDoT(deltaTime) {
             // Sát thương chuẩn bỏ qua khiên — áp thẳng vào HP
             const dotDmg = Math.ceil(10 + (enemy.maxHp || enemy.hp) * 0.05);
             enemy.hp -= dotDmg;
+            enemy.hp = Math.max(0, enemy.hp);
+            if (enemy.hp <= 0) enemy._markedForDeath = true;
             // Particle nhỏ màu cam để thể hiện DoT
             createParticles(
                 enemy.x + (Math.random() - 0.5) * (enemy.size || 20),
