@@ -825,13 +825,14 @@ function update(rawDeltaTime) {
         if (!beam.hitSentinels) beam.hitSentinels = new Map();
         const nowMs2 = performance.now();
         const ownerHits = Math.min(250, beam.ownerRef ? (beam.ownerRef.afoHitCount || 0) : 0);
-        const persPct = 0.01 + (ownerHits / 250) * 0.02;
+        // Công thức: hits × (1%→3%), cap 50% maxHP mỗi hit
+        const scaledPct = 0.01 + (ownerHits / 250) * 0.02; // 1% → 3%
         sentinels.forEach(s => {
             if (angHit(s.x, s.y, 20)) {
                 const last = beam.hitSentinels.get(s) || 0;
                 if (nowMs2 - last > 80) {
                     beam.hitSentinels.set(s, nowMs2);
-                    const dmg = Math.ceil(s.maxHp * persPct);
+                    const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPct * ownerHits));
                     s.hp = Math.max(0, s.hp - dmg);
                     if (s.hp <= 0) s._markedForDeath = true;
                     // Hit effect: red slash particles + mini explosion
@@ -892,15 +893,15 @@ function update(rawDeltaTime) {
                 playerTakesHit();
             }
 
-            // Hit sentinels — true damage, scale = hits (full, no division)
+            // Hit sentinels — true damage: (hits/2) × (1%→3%), cap 50%
             if (!laser.hitSentinels) laser.hitSentinels = new Set();
             const hits = laser.levHits || 1;
-            const dmgPct = Math.min(0.50, hits / 250 * 0.5); // 0% → 50% maxHP at 250 hits
+            const halfHits = hits / 2;
+            const scaledPctLaser = 0.01 + (hits / 250) * 0.02;
             sentinels.forEach(s => {
                 if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
                     laser.hitSentinels.add(s);
-                    // True damage
-                    const dmg = Math.ceil(s.maxHp * dmgPct);
+                    const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPctLaser * halfHits));
                     s.hp = Math.max(0, s.hp - dmg);
                     if (s.hp <= 0) s._markedForDeath = true;
                 }
