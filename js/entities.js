@@ -686,11 +686,27 @@ function dealDamage(enemy, source) {
     }
 
     let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
+
+    // ── Sentinel Parry (khi Glory for Justice active) ────────────────
+    // 16% cơ hội né toàn bộ hit, kích hoạt Parry buff
+    if (isSentinel && gloryForJusticeActive && (source.damage > 0 || source.percentDamage > 0)
+        && !source.isTeslaDot && !source.isChainLightning) {
+        if (Math.random() < 0.20) {
+            // Né thành công — kích hoạt Parry
+            _triggerSentinelParry(enemy);
+            return; // bỏ qua toàn bộ damage này
+        }
+    }
+
     if (isSentinel && gloryForJusticeActive) {
         combinedDR += 0.20; // Glory for Justice sentinel DR
     }
     // Tier 2 Herd Mentality: +10% DR thêm khi có 5-11 sentinels
     if (isSentinel && sentinels.length >= 5 && sentinels.length < 12) {
+        combinedDR += 0.10;
+    }
+    // Sentinel Parry buff: +10% DR (có thể cộng dồn)
+    if (isSentinel && enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) {
         combinedDR += 0.10;
     }
 
