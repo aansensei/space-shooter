@@ -665,6 +665,14 @@
             // ── MOBILE CONTROLS INIT ──────────────────────────────────
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
+                // CSS scale canvas to 72% — visual zoom out, logic unchanged
+                const cv = document.getElementById('gameCanvas');
+                if (cv) {
+                    cv.style.transformOrigin = 'top left';
+                    cv.style.transform = 'scale(0.72)';
+                    cv.style.width = (100 / 0.72) + 'vw';
+                    cv.style.height = (100 / 0.72) + 'vh';
+                }
                 const mc = document.getElementById('mc');
                 mc.style.display = 'block';
                 mc.innerHTML = _buildMobileHTML();
@@ -675,38 +683,38 @@
                 // Wrappers for hold-based buttons (YOG, CHARGE, arrows)
                 // Use ontouchstart/end directly — modern mobile handles multi-touch fine
                 return `
-                <div class="mb mb-sk" id="mb-yog" style="bottom:220px;left:10px;"
+                <div class="mb mb-sk" id="mb-yog" style="bottom:180px;left:10px;"
                     ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')"
                     onmousedown="_mbDown('mb-yog')" onmouseup="_mbUp('mb-yog')">
                     <canvas width="58" height="58" id="mb-yog-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#ffcc00;font-size:11px;font-weight:800;">YOG</span>
                 </div>
-                <div class="mb mb-sk" id="mb-a" style="bottom:220px;left:78px;"
+                <div class="mb mb-sk" id="mb-a" style="bottom:180px;left:78px;"
                     ontouchstart="event.preventDefault();activateSkillA()" onmousedown="activateSkillA()">
                     <canvas width="58" height="58" id="mb-a-cv"></canvas>
                     <span style="position:relative;z-index:2;">A</span>
                 </div>
-                <div class="mb mb-sk" id="mb-s" style="bottom:152px;left:10px;"
+                <div class="mb mb-sk" id="mb-s" style="bottom:112px;left:10px;"
                     ontouchstart="event.preventDefault();activateSkillS()" onmousedown="activateSkillS()">
                     <canvas width="58" height="58" id="mb-s-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#00e5ff;">S</span>
                 </div>
-                <div class="mb mb-sk" id="mb-d" style="bottom:152px;left:78px;"
+                <div class="mb mb-sk" id="mb-d" style="bottom:112px;left:78px;"
                     ontouchstart="event.preventDefault();activateSkillD()" onmousedown="activateSkillD()">
                     <canvas width="58" height="58" id="mb-d-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#bb88ff;">D</span>
                 </div>
-                <div class="mb mb-sk" id="mb-f" style="bottom:84px;left:10px;"
+                <div class="mb mb-sk" id="mb-f" style="bottom:44px;left:10px;"
                     ontouchstart="event.preventDefault();activateSkillF()" onmousedown="activateSkillF()">
                     <canvas width="58" height="58" id="mb-f-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#ff6666;">F</span>
                 </div>
-                <div class="mb mb-sk" id="mb-g" style="bottom:84px;left:78px;"
+                <div class="mb mb-sk" id="mb-g" style="bottom:44px;left:78px;"
                     ontouchstart="event.preventDefault();activateSkillG()" onmousedown="activateSkillG()">
                     <canvas width="58" height="58" id="mb-g-cv"></canvas>
                     <span id="mb-g-lbl" style="position:relative;z-index:2;color:#00ffcc;">G</span>
                 </div>
-                <div class="mb mb-sk" id="mb-ch" style="bottom:296px;left:10px;"
+                <div class="mb mb-sk" id="mb-ch" style="bottom:256px;left:10px;"
                     ontouchstart="event.preventDefault();_mbDown('mb-ch')" ontouchend="_mbUp('mb-ch')"
                     onmousedown="_mbDown('mb-ch')" onmouseup="_mbUp('mb-ch')">
                     <canvas width="58" height="58" id="mb-ch-cv"></canvas>

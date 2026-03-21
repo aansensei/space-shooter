@@ -247,16 +247,6 @@ function drawSkillShiftEffects() {
 // ── main draw ─────────────────────────────────────────────────
 function draw(deltaTime) {
     ctx.save();
-
-    // Mobile: zoom out to 70% — game world nhìn xa hơn
-    const _mobileScale = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 0.70 : 1.0;
-    if (_mobileScale !== 1.0) {
-        const ox = canvas.width * (1 - _mobileScale) / 2;
-        const oy = canvas.height * (1 - _mobileScale) / 2;
-        ctx.translate(ox, oy);
-        ctx.scale(_mobileScale, _mobileScale);
-    }
-
     if (screenShake.duration > 0) {
         ctx.translate(
             (Math.random() - 0.5) * screenShake.intensity,
@@ -889,8 +879,6 @@ function draw(deltaTime) {
 
     if (gameState === "playing") {
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset to identity for HUD
         ctx.fillStyle = "white"; ctx.font = "20px Arial"; ctx.textAlign = "right";
 
         // Bộ đếm thời gian game — chậm lại khi dùng Yog-Sothoth
@@ -905,7 +893,6 @@ function draw(deltaTime) {
         ctx.fillText("Lives: " + lives, canvas.width - 20, 82);
         ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, 108);
         ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, 134);
-        ctx.restore(); // end HUD identity transform
     } else if (gameState === "start") {
         _drawStartScreen();
     } else if (gameState === "gameover") {
