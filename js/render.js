@@ -878,7 +878,7 @@ function draw(deltaTime) {
     }
 
     if (gameState === "playing") {
-        drawSkillButtons();
+        if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
         ctx.fillStyle = "white"; ctx.font = "20px Arial"; ctx.textAlign = "right";
 
         // Bộ đếm thời gian game — chậm lại khi dùng Yog-Sothoth
