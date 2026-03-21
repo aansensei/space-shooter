@@ -254,7 +254,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ### Normal Enemy
 
-Spawns continuously from the start. HP starts between 1–5 and scales up over time (capped at 60 HP). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
+Spawns continuously from the start. HP starts between 1–6 and scales up over time (capped at 72 HP). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
 **Score on kill:** 10 – 630 points
 
@@ -264,7 +264,7 @@ Spawns continuously from the start. HP starts between 1–5 and scales up over t
 
 **Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** 3,000 – 6,800 points | **Speed:** 1.4 u/s
 
-HP: 300–680. Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
+HP: 360–816. Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
 
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
@@ -278,7 +278,7 @@ HP: 300–680. Fires a large projectile every second. After 0.6 seconds of fligh
 
 **Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** 4,000 – 7,500 points | **Speed:** 1.8 u/s
 
-HP: 400–750. Innate **+10% Damage Reduction**.
+HP: 480–900. Innate **+10% Damage Reduction**.
 
 **Custos Aeternus** — Spawns with an **Iron Body shield**: the first hit it receives from any source — including Black Holes and Skill F — is completely nullified. The shield does not reduce or absorb damage; it places the target in Iron Body for that one hit, making it completely immune. After the shield breaks, Aegis Core takes damage normally.
 
@@ -297,7 +297,7 @@ HP: 400–750. Innate **+10% Damage Reduction**.
 
 **Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** 10,000 – 22,000 points | **Speed:** ~1.5 u/s
 
-A heavily armored hexagonal mech with HP ranging from **1,000 to 2,200**. Marchosias has a permanent **20% Damage Reduction** on its own body at all times.
+A heavily armored hexagonal mech with HP ranging from **1,200 to 2,640**. Marchosias has a permanent **20% Damage Reduction** on its own body at all times.
 
 ---
 
@@ -350,7 +350,7 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 **Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 14,060 – 56,260 points | **Speed:** ~1.8 u/s
 
-Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction**.
+Massive size. HP: roughly 1,687–6,751. Permanent **15% Damage Reduction**.
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
@@ -368,7 +368,7 @@ Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction**.
 
 **Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** 42,000 – 73,500 points | **Speed:** ~1.3 u/s
 
-A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **4,000–7,000**. **45% base Damage Reduction** on its body after the shield breaks.
+A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **4,800–8,400**. **45% base Damage Reduction** on its body after the shield breaks.
 
 ---
 

@@ -225,7 +225,7 @@ function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
     // Base HP tăng thêm 12%
-    let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15 * 1.12;
+    let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15 * 1.12 * 1.20;
     hp *= 1.05;
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
@@ -241,7 +241,7 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(680, 300 + hpFromTime * 12);
+    let hp = Math.min(816, 360 + hpFromTime * 14);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -255,7 +255,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(750, 400 + hpFromTime * 15);
+    let hp = Math.min(900, 480 + hpFromTime * 18);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
@@ -270,7 +270,7 @@ function spawnMarchosias() {
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(2200, 1000 + hpFromTime * 30);
+    let hp = Math.min(2640, 1200 + hpFromTime * 36);
 
     const shieldHp = hp;
 
@@ -329,7 +329,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 function spawnNormalEnemy() {
     const size = 20 + Math.random() * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 15000);
-    let hp = Math.min(60, (Math.floor(Math.random() * 5) + 1 + hpFromTime));
+    let hp = Math.min(72, (Math.floor(Math.random() * 6) + 1 + hpFromTime));
     hp *= 1.05;
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
@@ -828,7 +828,7 @@ function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
     const size = baseSize * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(7000, 4000 + hpFromTime * 30);
+    let hp = Math.min(8400, 4800 + hpFromTime * 36);
     hp = Math.ceil(hp * 1.05);
 
     // Y = random 6-9 kills để trigger announcement Perseverance → vỡ khiên
