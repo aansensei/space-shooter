@@ -121,6 +121,31 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
   - All Sentinels gain **+10% Damage Reduction** (stacks with all other DR sources).
 - Tesla DoT and Chain Lightning cannot trigger Sentinel Parry.
 
+**Vanguard Network (Liên kết Vanguard)** — Activates automatically when **5 or more** Sentinels are alive (Magenta or Gold glow). All Sentinels are connected by energy threads and share incoming damage.
+
+*Damage Sharing:* Any hit directed at a Sentinel is intercepted by the network. The raw damage is split equally among all N Sentinels — each receiving `ceil(damage ÷ N)` as true damage (bypasses shields). A hit that would kill one Sentinel outright now only trims a small fraction of every Sentinel's HP.
+
+*AoE Dampening (Layer 1 — Bộ Giảm Chấn):* The network tracks how many Sentinels a given source has already hit. Each source (a Perseverance sweep, a death laser, etc.) gets its own independent hit counter:
+
+| Hit count from same source | Damage into network |
+|---|---|
+| 1st and 2nd Sentinel | 100% |
+| 3rd Sentinel | 50% |
+| 4th Sentinel onward | 15% |
+
+A Perseverance sweep passing through 10 Sentinels only delivers the equivalent of ~3.6× a single hit's damage to the network, instead of 10×. Each distinct source resets after 200ms of inactivity.
+
+*Fuse Protocol (Layer 2 — Cầu Chì Hy Sinh):* The network tracks total damage received over the last **0.5 seconds**. If this sum exceeds **26% of the combined Max HP of all Sentinels**, the fuse blows:
+
+1. The **Sentinel with the lowest HP** is sacrificed — it explodes and fires its death projectiles normally.
+2. All remaining Sentinels instantly receive **Iron Body for 0.75 seconds** — complete invulnerability, immune to all damage from all sources with no exceptions.
+3. The Magenta/Gold glow flickers white rapidly during Iron Body.
+4. The fuse cannot trigger again for **3 seconds**.
+
+Iron Body from the Fuse Protocol protects against all damage sources including Perseverance true damage and Last Rites lasers — giving the formation time to survive the remainder of a sweep or AoE burst. The cost is always exactly 1 Sentinel.
+
+Sentinels with Iron Body active are individually immune in all damage paths (dealDamage, Perseverance, Last Rites). Tesla DoT and Chain Lightning are excluded from AoE Dampening tracking — they do not consume hit counts.
+
 **On death** — explodes into 10 scattered projectiles (2 base + 2% target Max HP, speed 8) and causes a brief screen shake.
 
 ---

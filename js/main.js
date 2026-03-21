@@ -856,11 +856,11 @@ function update(rawDeltaTime) {
             beam.hitPlayer = false;
         }
 
-        // Hit sentinels — TRUE DAMAGE, scale 1%→3% per hit (cap 250)
+        // Hit sentinels — route qua Vanguard Network nếu active, else direct true damage
         if (!beam.hitSentinels) beam.hitSentinels = new Map();
         const nowMs2 = performance.now();
+        if (!beam.id) beam.id = 'pers_' + nowMs2;
         const ownerHits = Math.min(250, beam.ownerRef ? (beam.ownerRef.afoHitCount || 0) : 0);
-        // Công thức: hits × (1%→3%), cap 50% maxHP mỗi hit
         const scaledPct = 0.01 + (ownerHits / 250) * 0.02; // 1% → 3%
         sentinels.forEach(s => {
             if (angHit(s.x, s.y, 20)) {
@@ -868,9 +868,18 @@ function update(rawDeltaTime) {
                 if (nowMs2 - last > 80) {
                     beam.hitSentinels.set(s, nowMs2);
                     const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPct * ownerHits));
-                    s.hp = Math.max(0, s.hp - dmg);
-                    if (s.hp <= 0) s._markedForDeath = true;
-                    // Hit effect: red slash particles + mini explosion
+
+                    if (sentinels.length >= 5) {
+                        // Vanguard Network: dùng beam.id làm sourceTag cho AoE dampening
+                        _applyVanguardDamage(dmg, beam.id);
+                    } else {
+                        // Trực tiếp (< 5 sentinels)
+                        if (!(s.ironBody && nowMs2 < s.ironBodyEnd)) {
+                            s.hp = Math.max(0, s.hp - dmg);
+                            if (s.hp <= 0) s._markedForDeath = true;
+                        }
+                    }
+                    // Visual effect
                     addExplosion(s.x, s.y, s.size * 0.9, '#ff2200');
                     for (let p = 0; p < 6; p++) {
                         const a = beam.sweepCurrent + (Math.random() - 0.5) * 0.9;
@@ -930,6 +939,7 @@ function update(rawDeltaTime) {
 
             // Hit sentinels — true damage: (hits/2) × (1%→3%), cap 50%
             if (!laser.hitSentinels) laser.hitSentinels = new Set();
+            if (!laser.id) laser.id = 'lastrites_' + laser.angle.toFixed(4);
             const hits = laser.levHits || 1;
             const halfHits = hits / 2;
             const scaledPctLaser = 0.01 + (hits / 250) * 0.02;
@@ -937,8 +947,14 @@ function update(rawDeltaTime) {
                 if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
                     laser.hitSentinels.add(s);
                     const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPctLaser * halfHits));
-                    s.hp = Math.max(0, s.hp - dmg);
-                    if (s.hp <= 0) s._markedForDeath = true;
+                    if (sentinels.length >= 5) {
+                        _applyVanguardDamage(dmg, laser.id);
+                    } else {
+                        if (!(s.ironBody && performance.now() < s.ironBodyEnd)) {
+                            s.hp = Math.max(0, s.hp - dmg);
+                            if (s.hp <= 0) s._markedForDeath = true;
+                        }
+                    }
                 }
             });
         }
@@ -991,6 +1007,7 @@ function startGame() {
     window._levPersBeams = [];
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
+    window._vanguardState = { hitWindow: [], recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     accurateParryActive = false;
     accurateParryEndTime = 0;
     skillAActive = false; skillDCharging = false; skillFState = "ready";
