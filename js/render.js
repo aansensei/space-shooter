@@ -955,130 +955,158 @@ function _drawLeviathanEffects() {
     const now = performance.now();
     const len = Math.hypot(canvas.width, canvas.height) * 1.5;
 
+    // ── Perseverance charge warning (full circle spin — báo hiệu quét 360°)
     enemies.forEach(e => {
         if (e.type !== 'leviathan') return;
+        if (!e.perseveranceCharging) return;
 
-        // ── Perseverance charge warning zone
-        if (e.perseveranceCharging) {
-            const prog = Math.min(1, (now - e.perseveranceChargeStart) / 1000);
-            const angleToPlayer = Math.atan2(player.y - e.y, player.x - e.x);
-            const sweepStart = angleToPlayer - Math.PI * 0.6;
-            const sweepEnd = angleToPlayer + Math.PI * 0.6;
-            // During announcement phase: glow cyan not red (shield still active)
-            const isAnnounce = e.afoAnnouncing || e.afoAnnouncePending;
-            const fanColor = isAnnounce ? '#00e5ff' : '#ff0000';
-            const borderColor = isAnnounce ? '#00ccff' : '#ff2200';
+        const prog = Math.min(1, (now - e.perseveranceChargeStart) / 1000);
+        const glowColor = '#ff0000';
 
-            ctx.save();
-            ctx.translate(e.x, e.y);
+        ctx.save();
+        ctx.translate(e.x, e.y);
 
-            // Vùng quét fan đỏ
-            ctx.globalAlpha = prog * 0.20;
-            ctx.fillStyle = fanColor;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, len * 0.7, sweepStart, sweepEnd);
-            ctx.closePath();
-            ctx.fill();
+        // Full circle warning pulse — expanding ring
+        ctx.globalAlpha = prog * 0.25;
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = 3 + prog * 8;
+        ctx.shadowColor = glowColor; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(0, 0, e.size * (0.6 + prog * 1.4), 0, Math.PI * 2); ctx.stroke();
 
-            // Viền
-            ctx.globalAlpha = prog * 0.6;
-            ctx.strokeStyle = borderColor;
-            ctx.lineWidth = 2;
-            ctx.setLineDash([8, 6]);
-            ctx.shadowColor = fanColor; ctx.shadowBlur = 8;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, len * 0.7, sweepStart, sweepEnd);
-            ctx.closePath();
-            ctx.stroke();
-            ctx.setLineDash([]);
+        // Spinning dashes
+        ctx.globalAlpha = prog * 0.5;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([10, 8]);
+        ctx.save(); ctx.rotate(now / 300);
+        ctx.beginPath(); ctx.arc(0, 0, e.size * 0.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        ctx.setLineDash([]);
 
-            // Charge glow tại lõi
-            ctx.globalAlpha = prog * 0.8;
-            ctx.shadowColor = fanColor; ctx.shadowBlur = 40;
-            ctx.fillStyle = isAnnounce ? 'rgba(0,229,255,0.5)' : 'rgba(255,0,0,0.5)';
-            ctx.beginPath(); ctx.arc(0, 0, e.size * 0.28, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
+        // Core glow
+        ctx.globalAlpha = prog * 0.8;
+        ctx.shadowColor = glowColor; ctx.shadowBlur = 40;
+        ctx.fillStyle = 'rgba(255,0,0,0.5)';
+        ctx.beginPath(); ctx.arc(0, 0, e.size * 0.28, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    });
 
-            ctx.restore();
-        }
+    // ── Perseverance sweep beams (objects độc lập trong _levPersBeams)
+    if (window._levPersBeams) {
+        window._levPersBeams.forEach(beam => {
+            if (beam.done) return;
+            // sweepCurrent được update bởi main.js mỗi frame
+            const sweepAngle = beam.sweepCurrent !== undefined ? beam.sweepCurrent
+                : (beam.sweepOrigin + (beam.progress || 0) * Math.PI * 2);
 
-        // ── Perseverance sweep laser
-        if (e.perseveranceFiring && e.perseveranceSweepCurrent != null) {
-            const isAnnounce2 = e.afoAnnouncing;
-            const laserGlow = isAnnounce2 ? '#00e5ff' : '#ff0000';
-            const laserCore = isAnnounce2 ? 'rgba(0,229,255,0.95)' : 'rgba(255,40,0,0.95)';
-            const laserOuter = isAnnounce2 ? 'rgba(0,229,255,0.2)' : 'rgba(255,0,0,0.2)';
+            // Luôn đỏ — cả lúc announce lẫn post-shield
+            const laserGlow = '#ff0000';
+            const laserCore = 'rgba(255,30,0,0.95)';
+            const laserOuter = 'rgba(255,0,0,0.2)';
 
             ctx.save();
-            ctx.translate(e.x, e.y);
-            ctx.rotate(e.perseveranceSweepCurrent);
+            ctx.translate(beam.ox, beam.oy);
+            ctx.rotate(sweepAngle);
 
-            ctx.shadowColor = laserGlow; ctx.shadowBlur = 50;
+            // Wide outer glow
+            ctx.shadowColor = laserGlow; ctx.shadowBlur = 60;
             ctx.strokeStyle = laserOuter;
-            ctx.lineWidth = 60;
+            ctx.lineWidth = 70;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
 
+            // Core beam
             ctx.strokeStyle = laserCore;
             ctx.lineWidth = 10;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
 
+            // White center line
             ctx.shadowBlur = 0;
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
 
             ctx.restore();
-        }
+        });
+    }
 
-        // ── Dying phase: freeze glow + warning beams
-        if (e.dyingLaserPhase && !e.dyingLaserFired) {
-            const warnProg = Math.max(0, 1 - e.dyingLaserTimer / 1000);
-            for (let k = 0; k < 9; k++) {
-                const a = (Math.PI * 2 / 9) * k - Math.PI / 2;
-                ctx.save();
-                ctx.translate(e.x, e.y);
-                ctx.rotate(a);
-                ctx.globalAlpha = warnProg * 0.55;
-                ctx.strokeStyle = '#ff4400';
-                ctx.lineWidth = 5;
-                ctx.setLineDash([12, 8]);
-                ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 10;
-                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.restore();
-            }
-        }
-    });
-
-    // ── Death lasers (tồn tại sau khi Leviathan chết)
+    // ── Death lasers — with wing rotation animation
     if (!window._levDeathLasers) return;
     window._levDeathLasers.forEach(laser => {
-        if (!laser.active) return;
         const elapsed = laser.elapsed || 0;
-        const lifetime = laser.lifetime || 600;
-        const fade = Math.max(0, 1 - elapsed / lifetime);
+        const warnTime = laser.warnTime || 1200;
+        const activeTime = laser.activeTime || 900;
+        const total = warnTime + activeTime;
+        if (elapsed >= total) return;
+
+        const isActive = elapsed >= warnTime;
+        const warnProg = Math.min(1, elapsed / warnTime); // 0→1 during warn
+        const activeFade = isActive ? Math.max(0, 1 - (elapsed - warnTime) / activeTime) : 0;
+
+        // Smooth wing rotation: easeInOutCubic from startAngle → targetAngle
+        const startA = laser.startAngle !== undefined ? laser.startAngle : laser.angle;
+        const targetA = laser.angle;
+        // Normalize angle diff to shortest path
+        let diff = targetA - startA;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        // easeInOutCubic
+        const t = warnProg;
+        const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        const currentAngle = startA + diff * ease;
 
         ctx.save();
         ctx.translate(laser.ox, laser.oy);
-        ctx.rotate(laser.angle);
-        ctx.globalAlpha = fade;
 
-        ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 40;
-        ctx.strokeStyle = 'rgba(255,80,0,0.3)';
-        ctx.lineWidth = 35;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+        if (!isActive) {
+            // ── Wing shape rotating into position ──
+            const wingLen = 60 + warnProg * 40; // cánh vươn ra khi xoay
+            const wingW = 14;
+            const hw = wingW / 2;
 
-        ctx.strokeStyle = '#ff4444';
-        ctx.lineWidth = 7;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+            ctx.save();
+            ctx.rotate(currentAngle);
+            // Cánh hình thang
+            const wg = ctx.createLinearGradient(0, 0, wingLen, 0);
+            wg.addColorStop(0, '#ff4400');
+            wg.addColorStop(0.3, '#2d1810');
+            wg.addColorStop(1, '#0f0a08');
+            ctx.fillStyle = wg;
+            ctx.shadowColor = '#ff4400';
+            ctx.shadowBlur = 8 + warnProg * 20;
+            ctx.beginPath();
+            ctx.moveTo(0, -hw * 0.4);
+            ctx.lineTo(0, hw * 0.4);
+            ctx.lineTo(wingLen, hw * 0.7);
+            ctx.lineTo(wingLen, -hw * 0.7);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
 
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
-
+            // Dashed warning line
+            ctx.rotate(currentAngle);
+            ctx.globalAlpha = warnProg * 0.7;
+            ctx.strokeStyle = '#ff6600';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 12;
+            ctx.setLineDash([10, 7]);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+            ctx.setLineDash([]);
+        } else {
+            // ── Active laser beam ──
+            ctx.rotate(targetA);
+            ctx.globalAlpha = activeFade;
+            ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 40;
+            ctx.strokeStyle = 'rgba(255,80,0,0.3)';
+            ctx.lineWidth = 35;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 7;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+        }
         ctx.restore();
     });
 }
@@ -1141,39 +1169,94 @@ function drawAegisLasers() {
     });
 }
 
-// ── Boss shockwaves ───────────────────────────────────────────
+// ── Boss shockwaves (Maou Haki) ───────────────────────────────
 function drawBossShockwaves() {
+    const now = performance.now();
     bossShockwaves.forEach(wave => {
         if (!wave || wave.radius <= 0) return;
+        const maxR = wave.maxRadius || canvas.width;
+        const prog = wave.radius / maxR;             // 0→1 as wave expands
+        const fade = Math.max(0, 1 - prog);          // bright at center, fades out
+        const blink = 0.7 + 0.3 * Math.sin(now / 40); // fast blink
+
         ctx.save();
-        // outer halo
-        ctx.strokeStyle = "rgba(200,0,255,0.25)";
-        ctx.lineWidth = 28;
+
+        // ── 1. Dense fill — thick translucent purple zone ──
+        const fillAlpha = fade * 0.22 * blink;
+        ctx.fillStyle = `rgba(100,0,200,${fillAlpha})`;
+        ctx.beginPath();
+        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ── 2. Persian arabesque pattern (rotating geometric lines) ──
+        const patternCount = 8;
+        ctx.save();
+        ctx.translate(wave.x, wave.y);
+        ctx.rotate(now / 800 + wave.radius * 0.01);
+        for (let i = 0; i < patternCount; i++) {
+            const a = (Math.PI * 2 / patternCount) * i;
+            const r1 = wave.radius * 0.15;
+            const r2 = wave.radius * 0.85;
+            ctx.strokeStyle = `rgba(200,100,255,${fade * 0.35 * blink})`;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+            ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+            ctx.stroke();
+            // Cross petals
+            const a2 = a + Math.PI / patternCount;
+            const rm = wave.radius * 0.55;
+            ctx.strokeStyle = `rgba(220,150,255,${fade * 0.25})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+            ctx.quadraticCurveTo(
+                Math.cos(a2) * rm * 0.7, Math.sin(a2) * rm * 0.7,
+                Math.cos(a + Math.PI / (patternCount * 0.5)) * r2 * 0.7,
+                Math.sin(a + Math.PI / (patternCount * 0.5)) * r2 * 0.7
+            );
+            ctx.stroke();
+        }
+        // Inner hexagonal frame
+        ctx.strokeStyle = `rgba(180,80,255,${fade * 0.45 * blink})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (Math.PI * 2 / 6) * i - Math.PI / 6;
+            const r = wave.radius * 0.42;
+            i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+                : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+
+        // ── 3. Outer halo ──
+        ctx.strokeStyle = `rgba(180,0,255,${fade * 0.30 * blink})`;
+        ctx.lineWidth = 32;
         ctx.beginPath();
         ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
         ctx.stroke();
-        // main ring
-        ctx.strokeStyle = "rgba(138,43,226,0.85)";
-        ctx.lineWidth = 8;
-        ctx.shadowColor = "#FF00FF";
-        ctx.shadowBlur = 30;
+
+        // ── 4. Main ring ──
+        ctx.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * blink) * fade})`;
+        ctx.lineWidth = 7;
+        ctx.shadowColor = '#CC00FF';
+        ctx.shadowBlur = 25 + 15 * blink;
         ctx.beginPath();
         ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
-        // inner bright edge (only if radius large enough)
-        if (wave.radius > 8) {
-            ctx.strokeStyle = "rgba(255,180,255,0.5)";
+
+        // ── 5. Inner bright edge ──
+        if (wave.radius > 12) {
+            ctx.strokeStyle = `rgba(255,200,255,${fade * 0.6 * blink})`;
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(wave.x, wave.y, wave.radius - 6, 0, Math.PI * 2);
+            ctx.arc(wave.x, wave.y, wave.radius - 7, 0, Math.PI * 2);
             ctx.stroke();
         }
-        // fill ripple
-        ctx.fillStyle = "rgba(138,43,226,0.06)";
-        ctx.beginPath();
-        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
-        ctx.fill();
+
         ctx.restore();
     });
 }
@@ -2272,6 +2355,7 @@ function drawEnemy(enemy) {
     if (enemy.type === 'marchosias' && enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
         const halfW = 36;
         for (const windup of enemy.marchosiasWindups) {
+            if (!windup.target) continue;
             ctx.save();
             const tx = windup.target.x, ty = windup.target.y;
             const angle4 = Math.atan2(ty - enemy.y, tx - enemy.x);

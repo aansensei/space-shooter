@@ -304,8 +304,15 @@ function update(rawDeltaTime) {
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
-                if (ally === enemy) return; // Aegis không tự heal
-                if (ally.type === 'leviathan' && ally.dyingLaserPhase) return; // no heal during death
+                if (ally === enemy) {
+                    // Aegis tự heal 50% hiệu quả (không heal khi đang chết)
+                    if (!ally._markedForDeath) enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.5);
+                    return;
+                }
+                // Không heal/shield kẻ địch đã chết hoặc đang chết
+                if (ally.hp <= 0 || ally._markedForDeath) return;
+                // Leviathan đã kích hoạt death laser → không heal/shield
+                if (ally.type === 'leviathan' && ally._deathLaserSpawned) return;
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
@@ -400,28 +407,8 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
-            // ── LEVIATHAN: chỉ die khi laser sequence hoàn tất ──────────
-            if (enemy.type === 'leviathan') {
-                if (!enemy.dyingLaserPhase) {
-                    // HP bị giảm về 0 bởi nguồn bên ngoài (Tesla, energy link...)
-                    // trước khi updateLeviathan kịp trigger dying phase
-                    // → Trigger ngay tại đây
-                    if (enemy.afoShieldBroken) {
-                        enemy.hp = 1;
-                        enemy.dyingLaserPhase = true;
-                        enemy.dyingLaserTimer = 1500;
-                        screenShake = { intensity: 10, duration: 300 };
-                    } else {
-                        enemy.hp = 1; // shield active: cannot die
-                    }
-                    continue;
-                }
-                // Đang trong dying phase: giữ alive cho đến khi laser xong
-                if (!enemy.dyingLaserFired || enemy.dyingLaserTimer > -600) {
-                    continue;
-                }
-                // Laser sequence done → fall through to normal death handling
-            }
+            // LEVIATHAN: death laser đã được spawn trong dealDamage khi HP→0
+            // Không cần spawn thêm ở đây nữa
 
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
                 enemy.reincarnated = true;
@@ -580,6 +567,7 @@ function update(rawDeltaTime) {
                     const windup = enemy.marchosiasWindups[wi];
                     windup.timer -= deltaTime;
                     if (windup.timer <= 0) {
+                        if (!windup.target) { enemy.marchosiasWindups.splice(wi, 1); continue; }
                         const tx = windup.target.x, ty = windup.target.y;
                         const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
                         marchosiasBlades.push({
@@ -615,23 +603,7 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.hp <= 0) {
-            // ── LEVIATHAN: same guard ─────────────────────────────────────
-            if (enemy.type === 'leviathan') {
-                if (!enemy.dyingLaserPhase) {
-                    if (enemy.afoShieldBroken) {
-                        enemy.hp = 1;
-                        enemy.dyingLaserPhase = true;
-                        enemy.dyingLaserTimer = 1500;
-                        screenShake = { intensity: 10, duration: 300 };
-                    } else {
-                        enemy.hp = 1;
-                    }
-                    continue;
-                }
-                if (!enemy.dyingLaserFired || enemy.dyingLaserTimer > -600) {
-                    continue;
-                }
-            }
+            // LEVIATHAN: laser đã spawn trong dealDamage → die bình thường
 
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
                 enemy.reincarnated = true;
@@ -651,6 +623,7 @@ function update(rawDeltaTime) {
                 // Convert tất cả pending windups thành blades ngay lập tức (không để mất khi splice)
                 if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
                     enemy.marchosiasWindups.forEach(windup => {
+                        if (!windup.target) return;
                         const tx = windup.target.x, ty = windup.target.y;
                         const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
                         marchosiasBlades.push({
@@ -812,88 +785,128 @@ function update(rawDeltaTime) {
 
     // Update Leviathan handled inside enemies for loop above
 
-    // Leviathan Perseverance sweep — xóa đạn phe player và check hit
-    enemies.forEach(e => {
-        if (e.type === 'leviathan' && e.perseveranceFiring) {
-            const sweepAngle = e.perseveranceSweepCurrent;
-            const sweepHalfWidth = 0.18; // ~10 độ mỗi bên
-            // Xóa đạn phe player trong vùng quét (trừ những thứ immune)
-            const immuneTypes = ['spirit_blade_arc', 'skill_f', 'black_hole', 'energy_link', 'tesla_lightning', 'overload_laser'];
-            bullets = bullets.filter(b => {
-                const a = Math.atan2(b.y - e.y, b.x - e.x);
-                const diff = Math.abs(((a - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
-                if (diff < sweepHalfWidth && Math.hypot(b.x - e.x, b.y - e.y) < canvas.width) {
-                    return false; // xóa đạn
-                }
-                return true;
-            });
-            spiritBullets = spiritBullets.filter(b => {
-                const a = Math.atan2(b.y - e.y, b.x - e.x);
-                const diff = Math.abs(((a - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
-                return diff >= sweepHalfWidth;
-            });
-            skillAOrbs = skillAOrbs.filter(b => {
-                const a = Math.atan2(b.y - e.y, b.x - e.x);
-                const diff = Math.abs(((a - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
-                return diff >= sweepHalfWidth;
-            });
-            // Hit player
-            const pa = Math.atan2(player.y - e.y, player.x - e.x);
-            const pdiff = Math.abs(((pa - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
-            if (pdiff < sweepHalfWidth && Math.hypot(player.x - e.x, player.y - e.y) < canvas.width * 0.8) {
-                if (!e._persHitPlayer) { e._persHitPlayer = true; playerTakesHit(); }
-            } else { e._persHitPlayer = false; }
-            // Hit sentinels
-            const hits = e.afoHitCount || 1;
-            sentinels.forEach(s => {
-                const sa = Math.atan2(s.y - e.y, s.x - e.x);
-                const sdiff = Math.abs(((sa - sweepAngle) + Math.PI) % (Math.PI * 2) - Math.PI);
-                if (sdiff < sweepHalfWidth) {
-                    const pct = 0.002 + (hits / 1000) * 0.0015;
-                    dealDamage(s, { damage: 0, percentDamage: Math.min(0.0035, pct) });
-                }
-            });
-        }
-    });
+    // ── Leviathan Perseverance beams (independent objects) ──────────
+    if (!window._levPersBeams) window._levPersBeams = [];
+    window._levPersBeams = window._levPersBeams.filter(beam => {
+        if (beam.done) return false;
+        const now2 = performance.now();
+        const elapsed = now2 - beam.sweepStart;
+        const progress = Math.min(1, elapsed / beam.duration); // 0→1 in 1800ms
+        // 360° sweep: -π → +π
+        beam.sweepCurrent = beam.sweepOrigin + progress * Math.PI * 2;
+        beam.progress = progress;
 
-    // Leviathan death lasers — tồn tại độc lập sau khi Leviathan chết
-    if (!window._levDeathLasers) window._levDeathLasers = [];
-    window._levDeathLasers = window._levDeathLasers.filter(laser => {
-        laser.elapsed = (laser.elapsed || 0) + deltaTime;
-        if (!laser.active) return false;
+        // Reset player hit flag each full rotation start
+        if (progress < 0.02) beam.hitPlayer = false;
 
-        // Hit check khi laser đang active
-        if (!laser.hitPlayer) {
-            const dx = Math.cos(laser.angle), dy = Math.sin(laser.angle);
-            // Kiểm tra khoảng cách vuông góc từ player đến đường thẳng laser
-            const tx = player.x - laser.ox, ty = player.y - laser.oy;
-            const proj = tx * dx + ty * dy;
-            if (proj > 0) {
-                const perpX = tx - proj * dx, perpY = ty - proj * dy;
-                if (Math.hypot(perpX, perpY) < player.hitRadius + 10) {
-                    laser.hitPlayer = true;
-                    playerTakesHit();
-                }
-            }
+        // Angular hit check từ beam origin
+        const angHit = (px, py, halfDeg) => {
+            const tx = px - beam.ox, ty = py - beam.oy;
+            if (tx * tx + ty * ty < 4) return false;
+            let diff = Math.atan2(ty, tx) - beam.sweepCurrent;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            return Math.abs(diff) < (halfDeg * Math.PI / 180);
+        };
+
+        // Destroy player bullets in beam path
+        bullets = bullets.filter(b => !angHit(b.x, b.y, 14));
+        spiritBullets = spiritBullets.filter(b => !angHit(b.x, b.y, 14));
+        skillAOrbs = skillAOrbs.filter(b => !angHit(b.x, b.y, 14));
+
+        // Hit player
+        if (angHit(player.x, player.y, 18)) {
+            if (!beam.hitPlayer) { beam.hitPlayer = true; playerTakesHit(); }
+        } else {
+            beam.hitPlayer = false;
         }
+
+        // Hit sentinels — TRUE DAMAGE, scale 1%→3% per hit (cap 250)
+        if (!beam.hitSentinels) beam.hitSentinels = new Map();
+        const nowMs2 = performance.now();
+        const ownerHits = Math.min(250, beam.ownerRef ? (beam.ownerRef.afoHitCount || 0) : 0);
+        const persPct = 0.01 + (ownerHits / 250) * 0.02;
         sentinels.forEach(s => {
-            if (!laser.hitSentinels) laser.hitSentinels = new Set();
-            if (!laser.hitSentinels.has(s)) {
-                const dx = Math.cos(laser.angle), dy = Math.sin(laser.angle);
-                const tx = s.x - laser.ox, ty = s.y - laser.oy;
-                const proj = tx * dx + ty * dy;
-                if (proj > 0) {
-                    const perpX = tx - proj * dx, perpY = ty - proj * dy;
-                    if (Math.hypot(perpX, perpY) < s.size + 10) {
-                        laser.hitSentinels.add(s);
-                        const hits = laser.levHits || 1;
-                        dealDamage(s, { damage: 0, percentDamage: (hits / 3) * 0.0015 });
+            if (angHit(s.x, s.y, 20)) {
+                const last = beam.hitSentinels.get(s) || 0;
+                if (nowMs2 - last > 80) {
+                    beam.hitSentinels.set(s, nowMs2);
+                    const dmg = Math.ceil(s.maxHp * persPct);
+                    s.hp = Math.max(0, s.hp - dmg);
+                    if (s.hp <= 0) s._markedForDeath = true;
+                    // Hit effect: red slash particles + mini explosion
+                    addExplosion(s.x, s.y, s.size * 0.9, '#ff2200');
+                    for (let p = 0; p < 6; p++) {
+                        const a = beam.sweepCurrent + (Math.random() - 0.5) * 0.9;
+                        particles.push({
+                            x: s.x, y: s.y,
+                            vx: Math.cos(a) * (3 + Math.random() * 6),
+                            vy: Math.sin(a) * (3 + Math.random() * 6),
+                            color: p < 2 ? '#ffffff' : '#ff3300',
+                            size: 2 + Math.random() * 3,
+                            lifetime: 200 + Math.random() * 100, maxLifetime: 300
+                        });
                     }
                 }
             }
         });
 
-        return laser.elapsed < laser.lifetime;
+        if (progress >= 1) {
+            beam.done = true;
+            if (beam.ownerRef && !beam.ownerRef._deathLaserSpawned) {
+                beam.ownerRef.perseveranceCooldown = performance.now() + 2000;
+            }
+            return false;
+        }
+        return true;
+    });
+
+    // ── Leviathan death lasers (independent objects) ─────────────────
+    if (!window._levDeathLasers) window._levDeathLasers = [];
+    window._levDeathLasers = window._levDeathLasers.filter(laser => {
+        laser.elapsed = (laser.elapsed || 0) + deltaTime;
+        const warnTime = laser.warnTime || 1200;
+        const activeTime = laser.activeTime || 800;
+        const isActive = laser.elapsed >= warnTime;
+        const isDone = laser.elapsed >= warnTime + activeTime;
+        if (isDone) return false;
+
+        // Only deal damage during active phase
+        if (isActive) {
+            const dx = Math.cos(laser.angle), dy = Math.sin(laser.angle);
+
+            // Angular hit: reliable at any distance
+            const angHitLaser = (px, py, halfDeg) => {
+                const tx = px - laser.ox, ty = py - laser.oy;
+                const proj = tx * dx + ty * dy;
+                if (proj < 0) return false;
+                const dist = Math.hypot(tx, ty);
+                if (dist < 1) return true;
+                return (proj / dist) >= Math.cos(halfDeg * Math.PI / 180);
+            };
+
+            // Hit player (pixel distance OK — player is large target)
+            const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
+            if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
+                laser.hitPlayer = true;
+                playerTakesHit();
+            }
+
+            // Hit sentinels — true damage, scale = hits (full, no division)
+            if (!laser.hitSentinels) laser.hitSentinels = new Set();
+            const hits = laser.levHits || 1;
+            const dmgPct = Math.min(0.50, hits / 250 * 0.5); // 0% → 50% maxHP at 250 hits
+            sentinels.forEach(s => {
+                if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
+                    laser.hitSentinels.add(s);
+                    // True damage
+                    const dmg = Math.ceil(s.maxHp * dmgPct);
+                    s.hp = Math.max(0, s.hp - dmg);
+                    if (s.hp <= 0) s._markedForDeath = true;
+                }
+            });
+        }
+        return true;
     });
 
     if (screenShake.duration > 0) screenShake.duration -= deltaTime;
@@ -939,7 +952,9 @@ function startGame() {
     aegisLasers = [];
     marchosiasBlades = [];
     window._levDeathLasers = [];
+    window._levPersBeams = [];
     window._lastLeviathanSpawnTime = null;
+    window._lastLeviathanKillTime = null;
     accurateParryActive = false;
     accurateParryEndTime = 0;
     skillAActive = false; skillDCharging = false; skillFState = "ready";
