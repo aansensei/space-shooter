@@ -32,18 +32,27 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 ## General Combat Rules
 
-- All damage reduction from any source is **hard-capped at 99%** — nothing is ever completely immune to damage.
-- Damage from percentage-based effects is calculated against the **effective HP** (Body HP + Shield HP combined).
-- When Glory for Justice is active, all friendly damage is multiplied by **1.55x**.
-- When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25x** (stacks on top of Glory for Justice).
+**Damage Reduction (DR)** is a percentage of incoming damage that is negated before it is applied. All DR sources stack additively and are hard-capped at **99%** — nothing is ever completely immune to damage through DR alone.
+
+**Shields** are an HP buffer that absorbs incoming damage before the body's HP is touched. Shields can be stacked from multiple sources. Destroying a shield does not reduce the target's Max HP.
+
+**Percentage damage** is calculated against the target's effective HP (Body HP + Shield HP combined). It hits the shield first before reaching body HP like all other damage.
+
+**True damage** bypasses all Shields entirely and is applied directly to HP, ignoring shield absorption completely.
+
+**Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Black Hole, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
+
+**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Black Hole pull, Tesla Coil slow, Energy Link drag. CC Immunity does not block damage.
+
+When **Glory for Justice** is active, all friendly damage is multiplied by **1.55×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
 
 ---
 
 ## Player Stats & Attacks
 
-**Auto-Fire** — Fires 5 bullets in a 45-degree spread every 170ms. Each bullet deals **6 base + 4% of target's Max HP**. Each bullet independently rolls a **25% chance** to apply Vulnerability.
+**Auto-Fire** — Fires 5 bullets in a 45-degree spread every 170ms. Each bullet deals **6 base + 4% of target's Max HP**. Each bullet independently rolls a **25% chance** to apply Vulnerability (Trọng Thương).
 
-**Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10x**, capping at **12% of target's Max HP** at full charge.
+**Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10×**, capping at **12% of target's Max HP** at full charge.
 
 **Overload Laser** — Hold Space for a full **3 seconds** without releasing. Fires a continuous beam for **12 seconds** (9s cooldown after). Deals **10 base + 26% of target's Max HP** per tick every 175ms. Also pulls nearby enemies toward the beam.
 
@@ -56,9 +65,9 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 A stacking debuff inflicted by all friendly attacks that progressively weakens enemies.
 
 - **Application Chance:** Player auto-fire bullets each have a **25% chance** per hit. All other allied sources — Sentinels, Spirits, Skill A orbs, Black Hole, Overload Laser, Chain Lightning, Tesla DoT, and all other damage sources — have a **15% chance**.
-- **On Application — Shield Shred:** Instantly destroys **24% of the enemy's current Shield HP** (not Max HP — the shred scales down as the shield depletes).
+- **On Application — Shield Shred:** Instantly destroys **24% of the enemy's current Shield HP** (scales down as the shield depletes — it always shreds 24% of whatever shield HP remains at that moment).
 - **Damage Amplification:** Each stack increases all incoming damage to that enemy by **+25%**. At maximum stacks the enemy takes **+75% more damage** from all sources.
-- **Stacking:** Caps at **3 stacks**. Applying a new stack (whether the cap is reached or not) fully **refreshes the 3-second duration**. Stacks are lost all at once when the timer expires.
+- **Stacking:** Caps at **3 stacks**. Applying a new stack (whether the cap is reached or not) fully **refreshes the 3-second duration**. All stacks are lost at once when the timer expires.
 
 ---
 
@@ -76,8 +85,8 @@ Activates automatically when **any of the following** is true:
 - Player and Sentinel fire rate ×1.4
 - Spirit bullets (Skill S) move **30%** faster
 - Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to 6 nearby enemies for **30%** of the triggering hit's damage
-- Chain Lightning hits have a **55% chance** to apply **Soul Reaver** on the target — reducing all healing and shielding that enemy receives by **25%** (marked with a crossed-swords icon)
-- **Soul Devourer (Cắn nuốt linh hồn):** Every 0.5 seconds, enemies afflicted with Soul Reaver take **10 base + 5% Max HP** as true damage that bypasses all shields
+- Chain Lightning hits have a **55% chance** to apply **Soul Reaver** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **25%**
+- **Soul Devourer (Cắn nuốt linh hồn):** Every 0.5 seconds, enemies with Soul Reaver take **10 base + 5% Max HP** as true damage (bypasses all shields)
 - All active Sentinels gain **+20% Damage Reduction**
 
 ---
@@ -110,16 +119,14 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 
 **Final Defense** is an automatic safety net with two hidden shields:
 
-- **Player Shield** — absorbs 1 hit that would otherwise cost a life.
-- **Boundary Shield** — absorbs 1 enemy that crosses the bottom boundary.
+- **Player Shield** — completely absorbs the next hit that would cost a life, regardless of damage amount. Regenerates after **25 seconds**.
+- **Boundary Shield** — absorbs 1 enemy that crosses the bottom boundary. Regenerates after **25 seconds**.
 
-Each shield regenerates after **25 seconds**.
-
-**Last Stand** — triggers once per game only. If the player takes a fatal hit on their **last life**, they survive. The player and all active Sentinels instantly gain a **Golden Absolute Shield** that blocks the next hit of any damage. This can only happen once.
+**Last Stand** — triggers once per game only. If the player takes a fatal hit on their **last life**, they survive. The player and all active Sentinels instantly gain an **Absolute Shield** — a one-hit shield that completely blocks the next incoming hit of any damage amount. This can only happen once per game.
 
 **Hit absorption priority (highest to lowest):**
 
-1. Yog-Sothoth Domain — complete immunity (+ triggers Accurate Parry if hit occurs)
+1. Yog-Sothoth Domain — Iron Body (complete immunity, + triggers Accurate Parry if a hit occurs)
 2. Thunder Orb Sacrifice (yellow orb from Skill A)
 3. Final Defense Player Shield
 4. Last Stand Absolute Shield
@@ -133,7 +140,7 @@ Each shield regenerates after **25 seconds**.
 
 **Cooldown:** 12s | **Max duration:** 8s (auto-cancels)
 
-Hold Shift to open a cursed domain. Everything on the battlefield — enemies, movement, all timers — slows to **15% of normal speed**. You are **completely invincible** while the domain is active.
+Hold Shift to open a cursed domain. Everything on the battlefield — enemies, movement, all timers — slows to **15% of normal speed**. You enter **Iron Body** (complete invulnerability — no damage source can touch you) while the domain is active.
 
 **All enemy bullets on screen are immediately destroyed** when the domain opens, and no new enemy bullets can exist while the domain is active.
 
@@ -154,7 +161,7 @@ While active, press **← or →** to teleport. The teleport range increases the
 
 Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **11 base + 28% Max HP** on impact, then shatters into **16 scattered projectiles** (4 base + 2% Max HP each) that fly outward in all directions.
 
-**Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage.
+**Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage (acts as an Absolute Shield for that single hit).
 
 ---
 
@@ -165,7 +172,7 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every 65ms.
 
 - **Spirit Bullet:** 5 base + 4% Max HP, homing, +10% flight speed bonus.
-- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125, speed +10% faster than before) dealing 10 base + 16% Max HP.
+- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 10 base + 16% Max HP.
 - **All Spirit attacks** cut through and destroy enemy bullets on contact.
 - **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% Max HP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% Max HP, bounce off walls).
 
@@ -177,7 +184,7 @@ Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets 
 
 After a 2-second charge, spawns a Black Hole that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
-- Embryos are immune to the gravitational pull but still die at the center.
+- Embryos have **CC Immunity** — immune to the gravitational pull but still die at the center.
 - The Black Hole slowly floats upward and disappears off-screen.
 
 ---
@@ -214,7 +221,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 Spawns continuously from the start. HP starts between 1–5 and scales up over time (capped at 60 HP). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
-**Score on kill:** 10 – 630 points (scales with HP at spawn)
+**Score on kill:** 10 – 630 points
 
 ---
 
@@ -222,14 +229,12 @@ Spawns continuously from the start. HP starts between 1–5 and scales up over t
 
 **Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** 3,000 – 6,800 points | **Speed:** 1.4 u/s
 
-Slower than normals (-25% speed). HP: 300–680.
-
-Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
+HP: 300–680. Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
 
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
 - Each Embryo has 33% of Thaelis's Max HP + 50–100 bonus HP.
-- Embryos have **90% Damage Reduction** and are immune to crowd control (Black Holes, Tesla). They CAN receive shields and heals from Aegis Core or Demon Gift.
+- Embryos have **90% Damage Reduction** and **CC Immunity** (immune to Black Hole pull and Tesla slow). They CAN receive shields and heals from Aegis Core or Demon Gift.
 - After 3 seconds, any surviving Embryo hatches into a new Normal Enemy (Embryo's HP + 60 base HP).
 
 ---
@@ -238,14 +243,15 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 **Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** 4,000 – 7,500 points | **Speed:** 1.8 u/s
 
-HP: 400–750. Innate +10% Damage Reduction.
+HP: 400–750. Innate **+10% Damage Reduction**.
 
-**Custos Aeternus** — Spawns with 1 Absolute Shield that absorbs any single hit, including Black Holes and Skill F.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the first hit it receives from any source — including Black Holes and Skill F — is completely nullified. The shield does not reduce or absorb damage; it places the target in Iron Body for that one hit, making it completely immune. After the shield breaks, Aegis Core takes damage normally.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for 1.55% of Aegis Core's Max HP per second.
-- Grants a shield equal to 40% of Aegis Core's Max HP to all allies inside. Shielded units gain +15% Damage Reduction.
+- Heals all ally units inside for **1.55% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Grants a **shield** equal to **40% of Aegis Core's Max HP** to all allies inside (once per ally). Shielded units gain **+15% Damage Reduction** while the shield has any HP remaining.
+- If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
 - All enemies and enemy bullets inside move 5% faster.
 
 **Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a protective layer). Hitting a Sentinel deals 18% of its Max HP.
@@ -256,54 +262,52 @@ HP: 400–750. Innate +10% Damage Reduction.
 
 **Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** 10,000 – 22,000 points | **Speed:** ~1.5 u/s
 
-A heavily armored hexagonal mech with size equal to Thaelis, speed slightly below Aegis Core (-10%), and HP ranging from **1,000 to 2,200**. Marchosias has a permanent **20% Damage Reduction** on its own body at all times.
+A heavily armored hexagonal mech with HP ranging from **1,000 to 2,200**. Marchosias has a permanent **20% Damage Reduction** on its own body at all times.
 
 ---
 
 **Sword & Shield**
 
-Marchosias carries a rotating **Arc Shield** — a glowing 90-degree arc (quarter-circle) that continuously tracks and faces the player. The shield and Marchosias's body HP are **completely independent pools**, each equal to Marchosias's Max HP at spawn. Damage dealt to the shield never reduces body HP, and vice versa.
+Marchosias carries a rotating **Arc Shield** — a glowing 90-degree arc that continuously tracks and faces the player. The shield and Marchosias's body HP are **completely independent pools**, each equal to Marchosias's Max HP at spawn.
 
 *Shield properties:*
 
-- **50% Damage Reduction** on all incoming damage.
-- **Completely buff-immune:** cannot receive heals, Damage Reduction boosts, Aegis shields, or any other beneficial effect. Marchosias's body is unaffected by this restriction.
-
-*What counts as a shield hit:* Any attack that lands within the 90° arc — player bullets, Sentinel bullets, Spirit bullets, scattered projectiles, Overload Laser ticks, Skill F sweep, and Black Hole center ticks all register individually.
+- **50% Damage Reduction** on all incoming damage to the shield.
+- **Completely buff-immune:** the shield cannot receive heals, DR boosts, Aegis shields, or any other beneficial effect.
 
 *Sword trigger conditions:*
 
 - Every shield hit has a **20% independent chance** to queue a Sword.
 - If the shield is fully destroyed, a Sword is queued immediately.
-- When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (up to 3, each spread slightly apart in angle).
+- When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (up to 3, each spread slightly apart).
 
-There is no hard limit on total Swords per fight. Each individual Marchosias has its own independent **0.65-second cooldown** between triggers — if two Marchosias are on screen simultaneously, each can trigger and fire Swords on their own timers, potentially landing multiple Swords at once. Multiple queued Swords on the same Marchosias count down their 1-second windups in parallel and fire independently.
+There is no hard limit on total Swords per fight. Each Marchosias has its own independent **0.65-second cooldown** between triggers. Multiple queued Swords count down their 1-second windups in parallel and fire independently.
 
 *Sword sequence:*
 
-1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** and remains visible for 1 second.
-2. After 1 second, an orange arc projectile (radius 88, faster than the Spirit's blade arc) launches along that exact line. **It does not home or adjust its course.**
-3. If it strikes the player, all normal protective layers apply in order: Orb Sacrifice → Final Defense Shield → Last Stand → lose a life.
-4. If it strikes a Sentinel, it deals **20% of that Sentinel's Max HP** as damage.
-5. **The Sword cannot be destroyed or deflected by anything** — not Spirit blade arcs, not the Black Hole, not Skill F, not Tesla Coils. It also passes through all allied projectiles without destroying them. It persists until it exits the screen.
+1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** for 1 second.
+2. After 1 second, an orange arc projectile (radius 88) launches along that exact line. It does not home.
+3. Hits the player → all normal protective layers apply (Orb Sacrifice → Final Defense → Last Stand → lose a life).
+4. Hits a Sentinel → deals **20% of that Sentinel's Max HP**.
+5. **Cannot be destroyed or deflected by anything.** Persists until it exits the screen.
 
 ---
 
 **Normal Attack**
 
-Every second, Marchosias fires **2 bullets** simultaneously at the nearest player or Sentinel's position at that exact moment. The bullets travel in straight lines and **do not home**. Each bullet's HP equals ⌈1.25% of Marchosias's current HP⌉, scaling down as Marchosias takes damage.
+Every second, fires **2 bullets** simultaneously at the nearest player or Sentinel. Each bullet's HP equals ⌈1.25% of Marchosias's current HP⌉.
 
 ---
 
 **Assimilation — Death Passive**
 
-When Marchosias's body reaches 0 HP, it explodes and spawns **3 Minion Robots** (triangular shape, same size as a Normal Enemy). Each minion independently inherits **15–25%** of Marchosias's **Max HP** (not current HP) at random.
+At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **15–25%** of Marchosias's Max HP at random.
 
-Each minion immediately scans within **1.5× its own radius** for a valid host — any living enemy except other Minion Robots:
+Each minion scans within **1.5× its own radius** for a valid host:
 
-**Host found → Parasite Mode:** The minion vanishes and attaches to the host as a **Parasite Shield**. The shield's HP equals the minion's current HP at the moment of attachment. This shield absorbs incoming damage before any other shield on that unit, including Aegis shields. It is **completely buff-immune** — no heals, no regeneration, no Damage Reduction bonuses of any kind can affect it. A green rotating ring marks infected hosts.
+**Host found → Parasite Mode:** Attaches as a **Parasite Shield** — absorbs damage before all other shields, including Aegis shields. Completely buff-immune: no heals, no regeneration, no DR bonuses can affect it. A green rotating ring marks infected hosts.
 
-**No host nearby → Hunt Mode:** The minion locks onto the player and charges directly at **+35% increased movement speed**, firing bullets like a normal enemy and dealing contact damage on collision.
+**No host nearby → Hunt Mode:** Charges the player at **+35% speed**, firing bullets and dealing contact damage.
 
 ---
 
@@ -311,15 +315,14 @@ Each minion immediately scans within **1.5× its own radius** for a valid host �
 
 **Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 14,060 – 56,260 points | **Speed:** ~1.8 u/s
 
-Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction** on its body.
+Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction**.
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
-- Heals all other enemies on screen for **15% of Dargruel's Max HP** (including bullets and embryos). Enemies with Soul Reaver receive only 75% of this heal.
-- If the heal exceeds a target's Max HP, the overflow becomes a shield at 21% efficiency.
-- All units gain **18% Damage Reduction for 4 seconds**. Stacks up to 2 times (max **30%**).
+- Heals all other enemies for **15% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 21% efficiency. Cannot heal enemies at 0 HP.
+- All units gain **+18% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+30%**).
 
-**Maou Haki** — Triggers once at exactly **50% HP**:
+**Maou Haki** — Triggers once at **50% HP**:
 
 - Fires a screen-wide purple shockwave that instantly destroys all player and ally projectiles.
 - Any Sentinel hit loses **25% of its Max HP**.
@@ -328,38 +331,34 @@ Massive size. HP: roughly 1,406–5,626. Permanent **15% Damage Reduction** on i
 
 ### Leviathan (Dominator)
 
-**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Score on kill:** 42,000 – 73,500 points | **Speed:** ~1.3 u/s
+**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** 42,000 – 73,500 points | **Speed:** ~1.3 u/s
 
-A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **4,000–7,000**. Has a **45% base Damage Reduction** on its body after the shield breaks.
+A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **4,000–7,000**. **45% base Damage Reduction** on its body after the shield breaks.
 
 ---
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
 
-When Leviathan appears, every enemy on screen instantly receives the **Envy** mark — visible as a white pulsing ring with spinning dashes around their body. Marked enemies gain:
+When Leviathan appears, every enemy on screen instantly receives the **Envy** mark — visible as a red pulsing ring. Envy is permanent and cannot be removed:
 
-- **+25% Damage Reduction** (stacks with all other DR sources, hard-capped at 99%).
-- **+25% effectiveness from all healing sources** — including Aegis Core aura, Dargruel's Demon Gift, and any other regeneration.
-
-The mark is permanent and cannot be removed.
+- **+25% Damage Reduction** (stacks with all other DR, hard-capped at 99%).
+- **+25% effectiveness from all healing sources**.
 
 ---
 
 **Passive: All for One**
 
-When Leviathan spawns, it selects a secret **kill quota Y** (randomly 6, 7, 8, or 9). Until that many enemies are killed anywhere on screen, Leviathan is encased in an **unbreakable spherical shield** that absorbs all damage from all sources — including Overload Laser, Black Hole, Skill F, and all other attacks. The shield cannot be bypassed or reduced in any way.
+Leviathan spawns with a secret **kill quota Y** (6–9). Until that many enemies are killed, Leviathan is encased in an **Iron Body shield** — every damage source deals absolutely zero damage. Not reduced — zero. The shield is displayed as a glowing sphere; the wing-plates fold inward while it is active.
 
-Every attack that lands on the shield is counted as a **hit** (up to a maximum of **250**). The current kill count and quota are displayed **below** Leviathan: `X/Y kills`. The hit count is shown beneath that: `N/250 hits`.
+Every attack that lands on the shield counts as a **hit** (capped at 250). Displayed as `X/Y kills` and `N/250 hits` below Leviathan. While shielded, Leviathan has **CC Immunity** — immune to Black Hole pull and Tesla slow.
 
-When the kill quota is reached, Leviathan immediately begins a **cyan announcement sweep** (Perseverance, 1s charge + 1.2s sweep) — then the shield **shatters** in a burst of cyan energy with a screen shake, and the regular Perseverance cycle begins.
-
-While the shield is active, Leviathan's wing-plates are folded inward. They open fully when the shield breaks.
+When the quota is reached, Leviathan charges a **Perseverance sweep** (red warning + full 360° laser), then the shield shatters and combat begins.
 
 ---
 
 **Passive: Last Rites**
 
-When Leviathan's HP is reduced to **1**, it triggers **Last Rites** regardless of what attack caused it — including Black Hole, Skill F, or any other instant-kill source. Each of its 9 wing-plates projects a **warning beam** in its direction for **1 second**. After the warning, a laser fires outward along each wing-line to the edge of the map and remains active for **0.9 seconds**. These lasers spawn as independent objects and persist even after Leviathan is removed from the field.
+When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns. All 9 lasers then fire simultaneously, reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
 - Hitting a Sentinel deals **4% of that Sentinel's Max HP** per hit.
@@ -368,7 +367,7 @@ When Leviathan's HP is reduced to **1**, it triggers **Last Rites** regardless o
 
 **Normal Attack**
 
-Always active. Every **0.75 seconds**, fires 3 bullets in a slight spread aimed at the nearest player or Sentinel. Each bullet has HP equal to **2% of Leviathan's Max HP**.
+Always active. Every **0.75 seconds**, fires 3 bullets in a slight spread at the nearest player or Sentinel. Each bullet's HP equals **2% of Leviathan's Max HP**.
 
 ---
 
@@ -376,14 +375,12 @@ Always active. Every **0.75 seconds**, fires 3 bullets in a slight spread aimed 
 
 *Activates immediately when the All for One shield breaks.*
 
-A **warning fan** in deep red covers a **216-degree arc** aimed at the player's current position for **1 second** (charge phase). After the charge, a sweeping red laser fires across the full arc over **1.2 seconds**. After the sweep ends, there is a **2-second cooldown**, then the cycle repeats.
+A deep red warning zone pulses outward for **1 second** (charge phase). After the charge, a sweeping red laser rotates a full **360°** over **1.8 seconds**. After the sweep ends, there is a **2-second cooldown**, then the cycle repeats.
 
-The sweep destroys most allied projectiles in its path — including player bullets, Sentinel shots, Spirit bullets, and Skill A orbs. It does **not** destroy: Overload Laser beam, Black Hole (Skill D), Spirit Blade Arc and Spirit Finale (Skill S), Annihilation Sweep (Skill F), or any Skill G entities.
+The sweep destroys most allied projectiles in its path — including player bullets, Sentinel shots, Spirit bullets, and Skill A orbs. It does **not** destroy: Overload Laser, Black Hole, Spirit Blade Arc, Spirit Finale, Skill F, or any Skill G entities.
 
 - Hitting the player costs **1 life** (normal protective layers apply).
-- Hitting a Sentinel deals **1%–3% of that Sentinel's Max HP** per hit tick, scaling linearly with Leviathan's accumulated hit count (1% at 0 hits, 3% at 250 hits).
-
-Perseverance will always complete its current sweep before Leviathan can enter its death sequence.
+- Hitting a Sentinel deals **true damage** (bypasses all shields): **1%–3% of that Sentinel's Max HP** per hit tick, scaling with accumulated hit count (1% at 0 hits, 3% at 250 hits).
 
 ---
 
@@ -422,77 +419,3 @@ Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at the
 *— Undefined —*
 
 An Administrator-class entity exists beyond reality and governs it as a system rather than living within it. She created the Endless Nights Protocol to endlessly replicate universes and timelines, preventing all forms of finality and turning existence into an infinite chain of rewritten outcomes. With absolute control over causality, she can duplicate, overwrite, and define reality itself, yet she remains a distant overseer driven by the fear of an irreversible end. However, the emergence of Irregulars, entities beyond her authority, introduces a flaw in her perfect system and threatens the endless continuity she maintains.
-
----
-
-## Glossary
-
-A reference for all mechanical terms used throughout this document.
-
----
-
-### Damage & Reduction
-
-**Damage Reduction (DR)** — A percentage of incoming damage that is negated before it is applied. Multiple DR sources stack additively. Hard-capped at **99%** — nothing is ever completely immune to damage through DR alone.
-
-**Percentage Damage** — Damage calculated as a % of the target's Max HP (or effective HP). Bypasses shield absorption the same way base damage does unless otherwise noted.
-
-**True Damage** — Damage that bypasses all Shields entirely and is applied directly to HP. Cannot be reduced by shield absorption.
-
-**Shield** — An HP buffer that absorbs incoming damage before the body's HP is touched. Shields can be stacked from multiple sources. Destroyed shields do not reduce the target's Max HP.
-
-**Vulnerability (Trọng Thương)** — A stacking debuff that amplifies all incoming damage by +25% per stack (up to 3 stacks, max +75%). Each application also shreds 24% of the target's current Shield HP.
-
-**Overheal** — When a heal would push a target above Max HP, the excess is converted into a Shield at reduced efficiency (typically 21–50% of the overflow).
-
----
-
-### Status Effects & Debuffs
-
-**Soul Reaver** — A debuff marked by a crossed-swords icon. Reduces all healing and shielding the target receives by 25%. Afflicted units also take Soul Devourer true damage every 0.5 seconds.
-
-**Envy** — A permanent mark applied by Leviathan's Herd Leader passive. Marked enemies gain +25% DR and receive 25% more healing from all sources.
-
-**Demon Gift Stacks** — A temporary DR buff granted by Dargruel's Demon Gift passive. Stacks up to 2 times for a max of +30% DR lasting 4 seconds.
-
----
-
-### Crowd Control
-
-**CC Immunity** — The target cannot be affected by any movement-impairing or displacement effect. This includes Black Hole pull, Tesla Coil slow, and Energy Link drag. CC Immunity does **not** block damage.
-
-**Iron Body** — A state of complete invulnerability. The target is immune to all damage from all sources — base damage, percentage damage, true damage, and any other type. Effects that normally bypass shields or DR still deal zero damage during Iron Body. Examples: Leviathan's All for One Shield, Yog-Sothoth Domain for the player.
-
----
-
-### Shields (Named Types)
-
-**Absolute Shield** — A one-hit shield that blocks the next incoming hit entirely, regardless of damage amount. Granted by Last Stand and Accurate Parry.
-
-**Parasite Shield** — Marchosias Minion's host shield. Absorbs damage before all other shields. Completely buff-immune — cannot be healed, regenerated, or given DR bonuses.
-
-**Aegis Shield** — The permanent shield granted by Aegis Core's aura. Provides a +15% DR bonus to the bearer while it has any HP remaining.
-
-**Envy Shield** — A supplementary shield attached to enemies by Leviathan's All for One passive when they receive the Envy mark.
-
-**Boundary Shield / Player Shield** — The two components of Final Defense. Each absorbs one hit or one boundary breach before entering a 25-second regeneration cooldown.
-
----
-
-### Healing
-
-**Aura Heal** — Continuous percentage-based HP regeneration applied each frame by Aegis Core to all allies within its aura radius. Cannot target enemies at 0 HP.
-
-**Demon Gift Heal** — A burst heal triggered at HP thresholds by Dargruel. Overflow converts to a shield at 21% efficiency. Cannot target enemies at 0 HP.
-
-**Sentinel Special Heal** — Every 4th Sentinel shot heals the firing Sentinel for 4 HP on a confirmed hit.
-
----
-
-### Other
-
-**Spawn Rate** — The per-frame probability that a given enemy type is selected during a spawn tick. Multiple enemy types compete for each spawn slot; spawn rates shown are individual chances before competition.
-
-**Elite Cap** — All enemies of class Abnormal and above share a combined limit of 6 on screen simultaneously, in addition to each enemy type's individual cap.
-
-**Score Milestone** — Every 500,000 score grants +1 life and resets the milestone counter upward by another 500,000.
