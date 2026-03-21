@@ -256,15 +256,7 @@ function draw(deltaTime) {
 
     drawSpaceBackground(deltaTime);
 
-    // Mobile zoom-out: scale 0.78 anchored top-center
-    // Background already full size, game world smaller → enemies visible from top spawn
     const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
-    if (_isMobile) {
-        const s = 0.78;
-        ctx.save();
-        ctx.translate(canvas.width * (1 - s) / 2, 0); // centered horizontally, flush top
-        ctx.scale(s, s);
-    }
 
     // ── Yog-Sothoth Domain Expansion (JJK signature) ─────────────
     if (gameState === "playing" && skillShiftActive) {
@@ -889,9 +881,6 @@ function draw(deltaTime) {
 
     if (gameState === "playing") {
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
-        // Close mobile zoom before HUD — HUD always full size
-        if (_isMobile) ctx.restore();
-
         // HUD — smaller on mobile
         const hudFont = _isMobile ? '13px Arial' : '20px Arial';
         const hudTimer = _isMobile ? 'bold 15px monospace' : 'bold 22px monospace';
