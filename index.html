@@ -20,34 +20,12 @@
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
             height: 100vh;
-            height: 100dvh;
             width: 100vw;
             -webkit-user-select: none;
             user-select: none;
-            touch-action: none;
         }
 
-        /* Canvas fills screen fully on mobile */
-        #gameCanvas {
-            display: block;
-            width: 100vw !important;
-            height: 100dvh !important;
-            touch-action: none;
-        }
 
-        /* Prevent double-tap zoom globally */
-        * {
-            touch-action: manipulation;
-        }
-
-        #mobile-controls * {
-            touch-action: none;
-        }
-
-        .marrow,
-        .msb {
-            touch-action: none !important;
-        }
 
         /* --- LỚP PHỦ EASTER EGG BẢO VỆ TOÀN MÀN HÌNH --- */
         #easter-egg-overlay {
@@ -286,264 +264,6 @@
     <!-- Click-to-start (che toàn màn hình, click để unlock audio) -->
     <div id="click-to-start"><span>Click anywhere to start</span></div>
 
-    <!-- ══ MOBILE TOUCH CONTROLS ══════════════════════════════════════ -->
-    <div id="mobile-controls" style="display:none;">
-
-        <!-- LEFT SIDE: Skills (2 columns × 3 rows) + CHARGE -->
-        <!-- Row 1 (top) -->
-        <div class="msb-wrap" style="left:12px; bottom:220px;" id="mwrap-shift">
-            <button class="msb" id="mbtn-shift" onmousedown="mobileShift(true)" onmouseup="mobileShift(false)">
-                <svg class="msb-cd" viewBox="0 0 64 64">
-                    <circle class="msb-cd-bg" cx="32" cy="32" r="29" />
-                    <circle class="msb-cd-ring" id="mcd-shift" cx="32" cy="32" r="29" />
-                </svg>
-                <span style="color:#ffcc00;font-size:10px;font-weight:800;">YOG</span>
-            </button>
-        </div>
-        <div class="msb-wrap" style="left:68px; bottom:220px;" id="mwrap-a">
-            <button class="msb" id="mbtn-a" onclick="activateSkillA()">
-                <svg class="msb-cd" viewBox="0 0 64 64">
-                    <circle class="msb-cd-bg" cx="32" cy="32" r="29" />
-                    <circle class="msb-cd-ring" id="mcd-a" cx="32" cy="32" r="29" />
-                </svg>
-                <span>A</span>
-            </button>
-        </div>
-        <!-- Row 2 -->
-        <div class="msb-wrap" style="left:12px; bottom:140px;" id="mwrap-s">
-            <button class="msb" id="mbtn-s" onclick="activateSkillS()">
-                <svg class="msb-cd" viewBox="0 0 64 64">
-                    <circle class="msb-cd-bg" cx="32" cy="32" r="29" />
-                    <circle class="msb-cd-ring" id="mcd-s" cx="32" cy="32" r="29" />
-                </svg>
-                <span style="color:#00e5ff;">S</span>
-            </button>
-        </div>
-        <div class="msb-wrap" style="left:68px; bottom:140px;" id="mwrap-d">
-            <button class="msb" id="mbtn-d" onclick="activateSkillD()">
-                <svg class="msb-cd" viewBox="0 0 64 64">
-                    <circle class="msb-cd-bg" cx="32" cy="32" r="29" />
-                    <circle class="msb-cd-ring" id="mcd-d" cx="32" cy="32" r="29" />
-                </svg>
-                <span style="color:#bb88ff;">D</span>
-            </button>
-        </div>
-        <!-- Row 3 -->
-        <div class="msb-wrap" style="left:12px; bottom:60px;" id="mwrap-f">
-            <button class="msb" id="mbtn-f" onclick="activateSkillF()">
-                <svg class="msb-cd" viewBox="0 0 64 64">
-                    <circle class="msb-cd-bg" cx="32" cy="32" r="29" />
-                    <circle class="msb-cd-ring" id="mcd-f" cx="32" cy="32" r="29" />
-                </svg>
-                <span style="color:#ff6666;">F</span>
-            </button>
-        </div>
-        <div class="msb-wrap" style="left:68px; bottom:60px;" id="mwrap-g">
-            <button class="msb" id="mbtn-g" onclick="activateSkillG()">
-                <svg class="msb-cd" viewBox="0 0 64 64">
-                    <circle class="msb-cd-bg" cx="32" cy="32" r="29" />
-                    <circle class="msb-cd-ring" id="mcd-g" cx="32" cy="32" r="29" />
-                </svg>
-                <span style="color:#00ffcc;">G</span>
-            </button>
-        </div>
-
-        <!-- CHARGE above skill rows (left side) -->
-        <div class="msb-wrap" style="left:6px; bottom:290px;">
-            <button class="msb msb-charge" id="mbtn-charge" onmousedown="mobileSpace(true)"
-                onmouseup="mobileSpace(false)">
-                <svg class="msb-cd" viewBox="0 0 64 64">
-                    <circle class="msb-cd-bg" cx="32" cy="32" r="29" />
-                    <circle class="msb-cd-ring" id="mcd-charge" cx="32" cy="32" r="29" />
-                </svg>
-                <span style="color:#00e5ff;font-size:9px;font-weight:800;letter-spacing:0.5px;">CHARGE</span>
-            </button>
-        </div>
-
-        <!-- RIGHT SIDE: Movement arrows - bottom-right -->
-        <button class="marrow" id="mbtn-left" onmousedown="mobileKey('left',true)" onmouseup="mobileKey('left',false)"
-            style="right:88px; bottom:28px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"
-                stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-            </svg>
-        </button>
-        <button class="marrow" id="mbtn-right" onmousedown="mobileKey('right',true)"
-            onmouseup="mobileKey('right',false)" style="right:10px; bottom:28px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"
-                stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-            </svg>
-        </button>
-
-    </div><!-- end #mobile-controls -->
-
-    <style>
-        /* ── Platform selector buttons ── */
-        .platform-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding: 16px 28px;
-            background: rgba(0, 229, 255, 0.06);
-            border: 1.5px solid rgba(0, 229, 255, 0.3);
-            border-radius: 14px;
-            color: rgba(0, 229, 255, 0.55);
-            cursor: pointer;
-            font-family: 'Roboto', sans-serif;
-            font-size: 13px;
-            letter-spacing: 1px;
-            transition: all 0.2s;
-        }
-
-        .platform-btn:hover {
-            background: rgba(0, 229, 255, 0.12);
-            border-color: rgba(0, 229, 255, 0.6);
-            color: #00e5ff;
-        }
-
-        .platform-btn.active {
-            background: rgba(0, 229, 255, 0.15);
-            border-color: #00e5ff;
-            color: #00e5ff;
-            box-shadow: 0 0 18px rgba(0, 229, 255, 0.35);
-        }
-
-        .platform-btn svg {
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-
-        .platform-btn.active svg,
-        .platform-btn:hover svg {
-            opacity: 1;
-        }
-
-        /* ── Mobile controls container ── */
-        #mobile-controls {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            /* container transparent; only buttons intercept */
-            z-index: 200;
-        }
-
-        #mobile-controls .msb-wrap,
-        #mobile-controls .marrow {
-            pointer-events: all;
-        }
-
-        /* ── Skill button wrapper (for positioning) ── */
-        .msb-wrap {
-            position: fixed;
-            pointer-events: all;
-        }
-
-        /* ── Skill button base ── */
-        .msb {
-            position: relative;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: rgba(20, 20, 40, 0.55);
-            border: 2px solid rgba(255, 255, 255, 0.18);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            touch-action: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            font-family: 'Roboto Mono', monospace;
-            font-size: 14px;
-            font-weight: 700;
-            color: white;
-            transition: transform 0.07s;
-            overflow: hidden;
-        }
-
-        .msb span {
-            position: relative;
-            z-index: 2;
-            pointer-events: none;
-        }
-
-        .msb-press {
-            transform: scale(0.88);
-        }
-
-        .msb-charge {
-            width: 56px;
-            height: 56px;
-            background: rgba(0, 40, 60, 0.55);
-            border-color: rgba(0, 200, 255, 0.35);
-        }
-
-        /* ── Cooldown SVG ring overlay ── */
-        .msb-cd {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg);
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .msb-cd-bg {
-            fill: none;
-            stroke: rgba(255, 255, 255, 0.07);
-            stroke-width: 4;
-        }
-
-        .msb-cd-ring {
-            fill: none;
-            stroke: rgba(255, 255, 255, 0.55);
-            stroke-width: 4;
-            stroke-dasharray: 182;
-            stroke-dashoffset: 0;
-            stroke-linecap: round;
-            transition: stroke 0.3s;
-        }
-
-        /* Dim button when on cooldown */
-        .msb.on-cd {
-            opacity: 0.45;
-        }
-
-        /* ── Arrow buttons ── */
-        .marrow {
-            position: fixed;
-            width: 68px;
-            height: 68px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.07);
-            border: 2px solid rgba(255, 255, 255, 0.22);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            touch-action: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            transition: background 0.08s;
-        }
-
-        .marrow:active,
-        .marrow.pressed {
-            background: rgba(255, 255, 255, 0.22);
-        }
-
-        .marrow svg {
-            width: 28px;
-            height: 28px;
-            pointer-events: none;
-        }
-    </style>
-
     <div id="white-flash"></div>
 
     <canvas id="gameCanvas"></canvas>
@@ -563,15 +283,14 @@
         <div id="ui-wrapper">
             <div id="lock-screen">
                 <h1
-                    style="color: #00e5ff; font-size: clamp(1.6rem, 5vw, 3.5rem); text-shadow: 0 0 25px rgba(0, 229, 255, 0.8); margin-bottom: 20px; font-family: 'Playfair Display', serif; letter-spacing: 3px;">
+                    style="color:#00e5ff; font-size:clamp(1.6rem,5vw,3.5rem); text-shadow:0 0 25px rgba(0,229,255,0.8); margin-bottom:20px; font-family:'Playfair Display',serif; letter-spacing:3px;">
                     Pisces: Space Journey
                 </h1>
 
-                <!-- Platform selector -->
-                <div id="platform-selector" style="display:flex; gap:24px; justify-content:center; margin-bottom:16px;">
-                    <button class="platform-btn active" id="btn-pc" onclick="selectPlatform('pc')">
-                        <!-- Monitor icon -->
-                        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                <!-- Platform picker -->
+                <div style="display:flex; gap:20px; justify-content:center; margin-bottom:28px;">
+                    <button id="btn-pc" onclick="selectPlatform('pc')" class="pf-btn pf-active">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="2" y="3" width="20" height="14" rx="2" />
                             <line x1="8" y1="21" x2="16" y2="21" />
@@ -579,9 +298,8 @@
                         </svg>
                         <span>PC</span>
                     </button>
-                    <button class="platform-btn" id="btn-mobile" onclick="selectPlatform('mobile')">
-                        <!-- Phone icon -->
-                        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    <button id="btn-mobile" onclick="selectPlatform('mobile')" class="pf-btn">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="5" y="2" width="14" height="20" rx="2" />
                             <circle cx="12" cy="18" r="1" />
@@ -607,220 +325,6 @@
     </div>
 
     <script>
-        // ── PLATFORM SELECTION ────────────────────────────────────
-        let _platform = 'pc';
-        function selectPlatform(p) {
-            _platform = p;
-            document.getElementById('btn-pc').classList.toggle('active', p === 'pc');
-            document.getElementById('btn-mobile').classList.toggle('active', p === 'mobile');
-        }
-
-        // ── MOBILE INPUT HANDLERS ──────────────────────────────────
-        function mobileKey(dir, down) {
-            if (typeof keys !== 'undefined') keys[dir] = down;
-        }
-
-        function mobileSpace(down) {
-            if (typeof gameState === 'undefined' || gameState !== 'playing') return;
-            if (down) {
-                if (!charging && !laserActive && !skillShiftActive) {
-                    charging = true;
-                    chargeStartTime = performance.now();
-                }
-            } else {
-                if (charging && !laserActive) {
-                    let dur = performance.now() - chargeStartTime;
-                    if (dur < overloadChargeTime) {
-                        let mult = 1 + ((Math.min(dur, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
-                        fireChargedBullet(Math.min(mult, maxMultiplier));
-                    }
-                    charging = false;
-                }
-            }
-        }
-
-        function mobileShift(down) {
-            if (typeof gameState === 'undefined' || gameState !== 'playing') return;
-            if (down) {
-                if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown) {
-                    skillShiftActive = true;
-                    skillShiftChargeStart = performance.now();
-                }
-            } else {
-                if (typeof cancelSkillShift === 'function') cancelSkillShift();
-            }
-        }
-
-        // ── GLOBAL MULTI-TOUCH TRACKER ────────────────────────────
-        // Uses document-level listener so multi-finger works regardless of
-        // which element currently "owns" a touch (iOS/Android limitation)
-        function _setupGlobalTouch() {
-            // Buttons we track by id → action handler
-            const _btnActions = {
-                'mbtn-left': { down: () => mobileKey('left', true), up: () => mobileKey('left', false) },
-                'mbtn-right': { down: () => mobileKey('right', true), up: () => mobileKey('right', false) },
-                'mbtn-shift': { down: () => mobileShift(true), up: () => mobileShift(false) },
-                'mbtn-charge': { down: () => mobileSpace(true), up: () => mobileSpace(false) },
-            };
-
-            // Map touchId → buttonId
-            const _activeTouch = new Map();
-
-            function _btnAt(x, y) {
-                // Check each tracked button's bounding rect
-                for (const id of Object.keys(_btnActions)) {
-                    const el = document.getElementById(id);
-                    if (!el) continue;
-                    const r = el.getBoundingClientRect();
-                    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return id;
-                }
-                return null;
-            }
-
-            function _press(id) {
-                if (!id || !_btnActions[id]) return;
-                _btnActions[id].down();
-                const el = document.getElementById(id);
-                if (el) el.classList.add('msb-press', 'pressed');
-            }
-
-            function _release(id) {
-                if (!id || !_btnActions[id]) return;
-                _btnActions[id].up();
-                const el = document.getElementById(id);
-                if (el) el.classList.remove('msb-press', 'pressed');
-            }
-
-            document.addEventListener('touchstart', e => {
-                for (const t of e.changedTouches) {
-                    const id = _btnAt(t.clientX, t.clientY);
-                    if (id) {
-                        e.preventDefault();
-                        _activeTouch.set(t.identifier, id);
-                        _press(id);
-                    }
-                }
-            }, { passive: false });
-
-            document.addEventListener('touchend', e => {
-                for (const t of e.changedTouches) {
-                    const id = _activeTouch.get(t.identifier);
-                    if (id) {
-                        _release(id);
-                        _activeTouch.delete(t.identifier);
-                    }
-                }
-            }, { passive: false });
-
-            document.addEventListener('touchcancel', e => {
-                for (const t of e.changedTouches) {
-                    const id = _activeTouch.get(t.identifier);
-                    if (id) { _release(id); _activeTouch.delete(t.identifier); }
-                }
-            }, { passive: false });
-
-            document.addEventListener('touchmove', e => {
-                for (const t of e.changedTouches) {
-                    const oldId = _activeTouch.get(t.identifier);
-                    const newId = _btnAt(t.clientX, t.clientY);
-                    if (newId !== oldId) {
-                        if (oldId) _release(oldId);
-                        if (newId) { _press(newId); _activeTouch.set(t.identifier, newId); }
-                        else _activeTouch.delete(t.identifier);
-                    }
-                }
-            }, { passive: false });
-        }
-
-        // ── COOLDOWN RING UPDATER ─────────────────────────────────
-        // circumference of r=29 circle = 2*π*29 ≈ 182
-        const CD_CIRC = 182;
-
-        function _mcdSet(id, pct) {
-            // pct 0=full cooldown (ring full), 1=ready (ring empty/hidden)
-            const el = document.getElementById(id);
-            if (!el) return;
-            const offset = CD_CIRC * (1 - pct); // how much is NOT covered
-            el.style.strokeDashoffset = CD_CIRC - offset; // visible arc = ready portion
-            // Actually: show cooldown as a draining ring
-            // offset=0 → full ring visible (ready), offset=182 → no ring (full CD)
-            el.style.strokeDashoffset = CD_CIRC * pct; // pct=1 ready, pct=0 on CD
-        }
-
-        function _mobileUpdateCooldowns() {
-            if (_platform !== 'mobile') return;
-            const now = performance.now();
-
-            // Helper: ratio 0→1 where 1=ready
-            function ready(last, cd) {
-                const elapsed = now - last;
-                return Math.min(1, elapsed / cd);
-            }
-            function readyEnd(endTime, cd) {
-                if (endTime <= 0) return 1;
-                return Math.min(1, Math.max(0, (now - (endTime - cd)) / cd));
-            }
-
-            // YOG/Shift
-            const shiftR = ready(lastSkillShift, skillShiftCooldown);
-            _mcdSet('mcd-shift', shiftR);
-            const mbShift = document.getElementById('mbtn-shift');
-            if (mbShift) mbShift.classList.toggle('on-cd', shiftR < 1);
-
-            // A
-            const aR = ready(lastSkillA, skillACooldown);
-            _mcdSet('mcd-a', aR);
-            const mbA = document.getElementById('mbtn-a');
-            if (mbA) mbA.classList.toggle('on-cd', aR < 1);
-
-            // S
-            const sR = ready(lastSkillS, skillSCooldown);
-            _mcdSet('mcd-s', sR);
-            const mbS = document.getElementById('mbtn-s');
-            if (mbS) mbS.classList.toggle('on-cd', sR < 1);
-
-            // D
-            const dR = ready(lastSkillD, skillDCooldown);
-            _mcdSet('mcd-d', dR);
-            const mbD = document.getElementById('mbtn-d');
-            if (mbD) mbD.classList.toggle('on-cd', dR < 1);
-
-            // F
-            const fR = ready(lastSkillF, skillFCooldown);
-            _mcdSet('mcd-f', fR);
-            const mbF = document.getElementById('mbtn-f');
-            if (mbF) mbF.classList.toggle('on-cd', fR < 1);
-
-            // G (charge-based: 0→100)
-            const gCharge = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
-            const gActive = typeof skillGActive !== 'undefined' && skillGActive;
-            const gR = gActive ? 1 : Math.min(1, gCharge / 100);
-            _mcdSet('mcd-g', gR);
-            const mbG = document.getElementById('mbtn-g');
-            if (mbG) {
-                mbG.classList.toggle('on-cd', gR < 1);
-                const gSpan = mbG.querySelector('span');
-                if (gSpan) gSpan.textContent = (!gActive && gR < 1) ? Math.floor(gR * 100) + '%' : 'G';
-            }
-
-            // CHARGE/laser
-            const chargeR = readyEnd(laserCooldownEnd, laserCooldownDuration);
-            _mcdSet('mcd-charge', chargeR);
-            const mbCharge = document.getElementById('mbtn-charge');
-            if (mbCharge) mbCharge.classList.toggle('on-cd', chargeR < 1);
-
-            requestAnimationFrame(_mobileUpdateCooldowns);
-        }
-
-        // Show mobile controls + start cooldown loop when game starts
-        function _initMobileControls() {
-            if (_platform === 'mobile') {
-                document.getElementById('mobile-controls').style.display = 'block';
-                _setupGlobalTouch();
-                requestAnimationFrame(_mobileUpdateCooldowns);
-            }
-        }
-
         // ── AUDIO SYSTEM ──────────────────────────────────────────
         const sndTitle = document.getElementById('snd-title');
         const sndHyperjump = document.getElementById('snd-hyperjump');
@@ -1024,7 +528,7 @@
                     isSimulationRunning = false;
                     easterEggOverlay.style.display = 'none';
                     if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
-                    _initMobileControls();
+                    if (typeof _initMobileControls === 'function') _initMobileControls();
 
                     // Audio: ingame BGM
                     audioPlay(sndIngame);
@@ -1044,6 +548,290 @@
     <script src="js/render.js"></script>
     <script src="js/input.js"></script>
     <script src="js/main.js"></script>
+
+    <!-- ══ MOBILE UI (injected after game scripts load) ══════════════ -->
+    <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:none; z-index:300;"></div>
+
+    <style>
+        /* Platform picker buttons */
+        .pf-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            background: rgba(0, 229, 255, 0.06);
+            border: 1.5px solid rgba(0, 229, 255, 0.3);
+            color: rgba(0, 229, 255, 0.5);
+            transition: all 0.2s;
+        }
+
+        .pf-btn:hover {
+            background: rgba(0, 229, 255, 0.12);
+            border-color: rgba(0, 229, 255, 0.6);
+            color: #00e5ff;
+        }
+
+        .pf-active {
+            background: rgba(0, 229, 255, 0.15) !important;
+            border-color: #00e5ff !important;
+            color: #00e5ff !important;
+            box-shadow: 0 0 16px rgba(0, 229, 255, 0.3);
+        }
+
+        .pf-btn svg {
+            opacity: 0.7;
+        }
+
+        .pf-active svg {
+            opacity: 1;
+        }
+
+        /* Mobile buttons */
+        .mb {
+            position: fixed;
+            pointer-events: all;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Skill buttons */
+        .mb-sk {
+            width: 58px;
+            height: 58px;
+            background: rgba(15, 15, 35, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .mb-sk.cd {
+            opacity: 0.4;
+        }
+
+        .mb-sk canvas {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        /* Arrow buttons */
+        .mb-ar {
+            width: 72px;
+            height: 72px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .mb-ar svg {
+            width: 30px;
+            height: 30px;
+            pointer-events: none;
+        }
+
+        .mb-ar.held {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .mb-sk.held {
+            transform: scale(0.9);
+        }
+    </style>
+
+    <script>
+        (function () {
+            let _plat = 'pc';
+            window._platform = 'pc'; // exposed for render.js
+
+            window.selectPlatform = function (p) {
+                _plat = p;
+                window._platform = p; // keep render.js in sync
+                document.getElementById('btn-pc').classList.toggle('pf-active', p === 'pc');
+                document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
+            };
+
+            // ── MOBILE CONTROLS INIT ──────────────────────────────────
+            window._initMobileControls = function () {
+                if (_plat !== 'mobile') return;
+                const mc = document.getElementById('mc');
+                mc.style.display = 'block';
+                mc.innerHTML = _buildMobileHTML();
+                _startCooldownLoop();
+            };
+
+            function _buildMobileHTML() {
+                // Wrappers for hold-based buttons (YOG, CHARGE, arrows)
+                // Use ontouchstart/end directly — modern mobile handles multi-touch fine
+                return `
+                <div class="mb mb-sk" id="mb-yog" style="bottom:220px;left:10px;"
+                    ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')"
+                    onmousedown="_mbDown('mb-yog')" onmouseup="_mbUp('mb-yog')">
+                    <canvas width="58" height="58" id="mb-yog-cv"></canvas>
+                    <span style="position:relative;z-index:2;color:#ffcc00;font-size:11px;font-weight:800;">YOG</span>
+                </div>
+                <div class="mb mb-sk" id="mb-a" style="bottom:220px;left:78px;"
+                    ontouchstart="event.preventDefault();activateSkillA()" onmousedown="activateSkillA()">
+                    <canvas width="58" height="58" id="mb-a-cv"></canvas>
+                    <span style="position:relative;z-index:2;">A</span>
+                </div>
+                <div class="mb mb-sk" id="mb-s" style="bottom:152px;left:10px;"
+                    ontouchstart="event.preventDefault();activateSkillS()" onmousedown="activateSkillS()">
+                    <canvas width="58" height="58" id="mb-s-cv"></canvas>
+                    <span style="position:relative;z-index:2;color:#00e5ff;">S</span>
+                </div>
+                <div class="mb mb-sk" id="mb-d" style="bottom:152px;left:78px;"
+                    ontouchstart="event.preventDefault();activateSkillD()" onmousedown="activateSkillD()">
+                    <canvas width="58" height="58" id="mb-d-cv"></canvas>
+                    <span style="position:relative;z-index:2;color:#bb88ff;">D</span>
+                </div>
+                <div class="mb mb-sk" id="mb-f" style="bottom:84px;left:10px;"
+                    ontouchstart="event.preventDefault();activateSkillF()" onmousedown="activateSkillF()">
+                    <canvas width="58" height="58" id="mb-f-cv"></canvas>
+                    <span style="position:relative;z-index:2;color:#ff6666;">F</span>
+                </div>
+                <div class="mb mb-sk" id="mb-g" style="bottom:84px;left:78px;"
+                    ontouchstart="event.preventDefault();activateSkillG()" onmousedown="activateSkillG()">
+                    <canvas width="58" height="58" id="mb-g-cv"></canvas>
+                    <span id="mb-g-lbl" style="position:relative;z-index:2;color:#00ffcc;">G</span>
+                </div>
+                <div class="mb mb-sk" id="mb-ch" style="bottom:296px;left:10px;"
+                    ontouchstart="event.preventDefault();_mbDown('mb-ch')" ontouchend="_mbUp('mb-ch')"
+                    onmousedown="_mbDown('mb-ch')" onmouseup="_mbUp('mb-ch')">
+                    <canvas width="58" height="58" id="mb-ch-cv"></canvas>
+                    <span style="position:relative;z-index:2;color:#00e5ff;font-size:9px;font-weight:800;">CHARGE</span>
+                </div>
+                <button class="mb mb-ar" style="position:fixed;bottom:28px;right:90px;"
+                    ontouchstart="event.preventDefault();_mbDown('mb-left')" ontouchend="_mbUp('mb-left')"
+                    onmousedown="_mbDown('mb-left')" onmouseup="_mbUp('mb-left')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <button class="mb mb-ar" style="position:fixed;bottom:28px;right:10px;"
+                    ontouchstart="event.preventDefault();_mbDown('mb-right')" ontouchend="_mbUp('mb-right')"
+                    onmousedown="_mbDown('mb-right')" onmouseup="_mbUp('mb-right')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+            `;
+            }
+
+            // ── HOLD BUTTON ACTIONS ───────────────────────────────────
+            window._mbDown = function (id) {
+                try {
+                    if (id === 'mb-yog') {
+                        if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown) {
+                            skillShiftActive = true; skillShiftChargeStart = performance.now();
+                        }
+                    } else if (id === 'mb-ch') {
+                        if (!charging && !laserActive && !skillShiftActive) {
+                            charging = true; chargeStartTime = performance.now();
+                        }
+                    } else if (id === 'mb-left') {
+                        if (skillShiftActive) executeShiftTeleport('left');
+                        else keys.left = true;
+                    } else if (id === 'mb-right') {
+                        if (skillShiftActive) executeShiftTeleport('right');
+                        else keys.right = true;
+                    }
+                } catch (e) { }
+            };
+            window._mbUp = function (id) {
+                try {
+                    if (id === 'mb-yog') {
+                        if (typeof cancelSkillShift === 'function') cancelSkillShift();
+                    } else if (id === 'mb-ch') {
+                        if (charging && !laserActive) {
+                            const dur = performance.now() - chargeStartTime;
+                            if (dur < overloadChargeTime) {
+                                const m = 1 + ((Math.min(dur, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
+                                fireChargedBullet(Math.min(m, maxMultiplier));
+                            }
+                            charging = false;
+                        }
+                    } else if (id === 'mb-left') { keys.left = false; }
+                    else if (id === 'mb-right') { keys.right = false; }
+                } catch (e) { }
+            };
+
+            // ── COOLDOWN RING PAINTER ────────────────────────────────
+            const CIRC = 2 * Math.PI * 26; // r=26 on 58×58 canvas
+            function _paintRing(cvId, frac, color) {
+                const cv = document.getElementById(cvId);
+                if (!cv) return;
+                const ctx = cv.getContext('2d');
+                ctx.clearRect(0, 0, 58, 58);
+                if (frac >= 1) return; // ready — no ring needed
+                // background arc
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.lineWidth = 4; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.arc(29, 29, 26, 0, Math.PI * 2); ctx.stroke();
+                // cooldown arc (how much is remaining)
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                ctx.arc(29, 29, 26, -Math.PI / 2, -Math.PI / 2 + (1 - frac) * Math.PI * 2);
+                ctx.stroke();
+            }
+
+            function _ready(last, cd) { return Math.min(1, (performance.now() - last) / cd); }
+            function _readyEnd(end, cd) { if (!end || end <= 0) return 1; return Math.min(1, Math.max(0, (performance.now() - (end - cd)) / cd)); }
+
+            function _startCooldownLoop() {
+                function loop() {
+                    if (_plat !== 'mobile') return;
+                    try {
+                        const now = performance.now();
+                        // YOG
+                        const yr = _ready(lastSkillShift, skillShiftCooldown);
+                        _paintRing('mb-yog-cv', yr, '#ffcc00');
+                        document.getElementById('mb-yog')?.classList.toggle('cd', yr < 1);
+                        // A
+                        const ar = _ready(lastSkillA, skillACooldown);
+                        _paintRing('mb-a-cv', ar, '#8888ff');
+                        document.getElementById('mb-a')?.classList.toggle('cd', ar < 1);
+                        // S
+                        const sr = _ready(lastSkillS, skillSCooldown);
+                        _paintRing('mb-s-cv', sr, '#00e5ff');
+                        document.getElementById('mb-s')?.classList.toggle('cd', sr < 1);
+                        // D
+                        const dr = _ready(lastSkillD, skillDCooldown);
+                        _paintRing('mb-d-cv', dr, '#bb88ff');
+                        document.getElementById('mb-d')?.classList.toggle('cd', dr < 1);
+                        // F
+                        const fr = _ready(lastSkillF, skillFCooldown);
+                        _paintRing('mb-f-cv', fr, '#ff6666');
+                        document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
+                        // G — charge based 0-100
+                        const gc = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
+                        const gr = (typeof skillGActive !== 'undefined' && skillGActive) ? 1 : gc / 100;
+                        _paintRing('mb-g-cv', gr, '#00ffcc');
+                        const gEl = document.getElementById('mb-g');
+                        if (gEl) {
+                            gEl.classList.toggle('cd', gr < 1);
+                            gEl.querySelector('span').textContent = (gr < 1 && !skillGActive) ? Math.floor(gr * 100) + '%' : 'G';
+                        }
+                        // CHARGE / laser
+                        const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
+                        _paintRing('mb-ch-cv', cr, '#00e5ff');
+                        document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
+                    } catch (e) { }
+                    requestAnimationFrame(loop);
+                }
+                requestAnimationFrame(loop);
+            }
+
+            // ── MULTI-TOUCH: handled via direct ontouchstart on each button ──
+        })();
+    </script>
 </body>
 
 </html>
