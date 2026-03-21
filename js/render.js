@@ -891,20 +891,26 @@ function draw(deltaTime) {
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
         // Close mobile zoom before HUD — HUD always full size
         if (_isMobile) ctx.restore();
-        ctx.fillStyle = "white"; ctx.font = "20px Arial"; ctx.textAlign = "right";
 
-        // Bộ đếm thời gian game — chậm lại khi dùng Yog-Sothoth
+        // HUD — smaller on mobile
+        const hudFont = _isMobile ? '13px Arial' : '20px Arial';
+        const hudTimer = _isMobile ? 'bold 15px monospace' : 'bold 22px monospace';
+        const hudLine = _isMobile ? 20 : 26; // line spacing
+        const hudStartY = _isMobile ? 18 : 28;
+        ctx.textAlign = "right";
+
+        // Timer
         const elapsedSec = Math.floor(gameElapsedTime / 1000);
         const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
         const ss = String(elapsedSec % 60).padStart(2, '0');
-        ctx.fillStyle = '#aaddff'; ctx.font = 'bold 22px monospace';
-        ctx.fillText(`⏱ ${mm}:${ss}`, canvas.width - 20, 28);
+        ctx.fillStyle = '#aaddff'; ctx.font = hudTimer;
+        ctx.fillText(`⏱ ${mm}:${ss}`, canvas.width - 20, hudStartY);
 
-        ctx.fillStyle = "white"; ctx.font = "20px Arial";
-        ctx.fillText("Score: " + score, canvas.width - 20, 56);
-        ctx.fillText("Lives: " + lives, canvas.width - 20, 82);
-        ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, 108);
-        ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, 134);
+        ctx.fillStyle = "white"; ctx.font = hudFont;
+        ctx.fillText("Score: " + score, canvas.width - 20, hudStartY + hudLine);
+        ctx.fillText("Lives: " + lives, canvas.width - 20, hudStartY + hudLine * 2);
+        ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, hudStartY + hudLine * 3);
+        ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, hudStartY + hudLine * 4);
     } else if (gameState === "start") {
         _drawStartScreen();
     } else if (gameState === "gameover") {
