@@ -205,7 +205,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 **Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **6 base + 4% Max HP** damage every 125ms.
 
-**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **10 base + 13% Max HP every 50ms**.
+**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **10 base + 13% Max HP** every 50ms.
 
 **Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **10 base + 15% Max HP** in a large area.
 
@@ -249,7 +249,7 @@ HP: 400–750. Innate **+10% Damage Reduction**.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for **1.55% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Heals all ally units inside for **2.5% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
 - Grants a **shield** equal to **40% of Aegis Core's Max HP** to all allies inside (once per ally). Shielded units gain **+15% Damage Reduction** while the shield has any HP remaining.
 - If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
 - All enemies and enemy bullets inside move 5% faster.
@@ -361,7 +361,7 @@ When the quota is reached, Leviathan charges a **Perseverance sweep** (red warni
 When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns. All 9 lasers then fire simultaneously, reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
-- Hitting a Sentinel deals **4% of that Sentinel's Max HP** per hit.
+- Hitting a Sentinel deals **true damage**: **(hits ÷ 2) × (1%–3% of that Sentinel's Max HP)**, capped at **50% of Max HP**. The percentage scales with accumulated hit count (1% at 0 hits, 3% at 250 hits).
 
 ---
 
@@ -380,7 +380,7 @@ A deep red warning zone pulses outward for **1 second** (charge phase). After th
 The sweep destroys most allied projectiles in its path — including player bullets, Sentinel shots, Spirit bullets, and Skill A orbs. It does **not** destroy: Overload Laser, Black Hole, Spirit Blade Arc, Spirit Finale, Skill F, or any Skill G entities.
 
 - Hitting the player costs **1 life** (normal protective layers apply).
-- Hitting a Sentinel deals **true damage** (bypasses all shields): **1%–3% of that Sentinel's Max HP** per hit tick, scaling with accumulated hit count (1% at 0 hits, 3% at 250 hits).
+- Hitting a Sentinel deals **true damage** (bypasses all shields): **hits × (1%–3% of that Sentinel's Max HP)** per sweep, capped at **50% of Max HP**. The per-hit percentage scales with accumulated hit count (1% at 0 hits, 3% at 250 hits).
 
 ---
 
