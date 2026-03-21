@@ -672,6 +672,14 @@
                 // Canvas must not intercept touches — buttons need to receive them
                 const cv = document.getElementById('gameCanvas');
                 if (cv) cv.style.pointerEvents = 'none';
+
+                // Mobile: move player + boundary down to bottom of scaled view
+                // With scale 0.78, the visible bottom of game world = canvas.height / 0.78
+                // We want player near canvas bottom → set y close to boundaryY
+                if (typeof player !== 'undefined') {
+                    player.y = canvas.height - 28;
+                }
+
                 const mc = document.getElementById('mc');
                 mc.style.display = 'block';
                 mc.innerHTML = _buildMobileHTML();
