@@ -425,7 +425,41 @@ function draw(deltaTime) {
             ctx.globalAlpha = 1;
         }
 
-        // B2. DARK VOID FILL
+        // B1b. PERSIAN TILE OVERLAY — hoa văn Ba Tư cuộn theo domain
+        if (domainFull) {
+            const tileT = Math.min((elapsed - 700) / 600, 1);
+            const tSize = 52; // tile size
+            const cols2 = Math.ceil(canvas.width / tSize) + 2;
+            const rows2 = Math.ceil(canvas.height / tSize) + 2;
+            // slow drift + rotation
+            const driftX = (now / 7000 * tSize) % tSize;
+            const driftY = (now / 9500 * tSize) % tSize;
+
+            ctx.save();
+            ctx.translate(-driftX, -driftY);
+            // clip to domain circle
+            ctx.beginPath();
+            ctx.arc(cx + driftX, cy + driftY, maxRadius * 0.98, 0, Math.PI * 2);
+            ctx.clip();
+
+            for (let row2 = -1; row2 < rows2 + 1; row2++) {
+                for (let col2 = -1; col2 < cols2 + 1; col2++) {
+                    const tx3 = col2 * tSize + (row2 % 2 === 0 ? 0 : tSize * 0.5);
+                    const ty3 = row2 * tSize;
+                    // distance fade from center
+                    const dist2 = Math.hypot(tx3 + driftX - cx, ty3 + driftY - cy);
+                    const distFade = Math.max(0, 1 - dist2 / (maxRadius * 0.95));
+                    const pulse2 = 0.5 + 0.5 * Math.sin(now / 1800 + tx3 * 0.025 + ty3 * 0.018);
+                    const alpha2 = tileT * distFade * pulse2 * 0.30;
+                    if (alpha2 < 0.04) continue;
+                    // Alternate hue per tile for Ba Tư multi-color feel
+                    const hue2 = 260 + ((row2 * 3 + col2 * 7) % 40) - 20;
+                    _drawPersianTile(tx3, ty3, tSize * 0.9, alpha2, hue2);
+                }
+            }
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
         ctx.beginPath();
         ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2);
         const domGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, currentDomainRadius);
@@ -634,6 +668,85 @@ function draw(deltaTime) {
                 ctx.lineWidth = 0.6;
                 ctx.stroke();
                 ctx.restore();
+            }
+        }
+
+        // C5b. PERSIAN TILE PATTERN — Ottoman-style geometric overlay inside domain
+        if (domainFull) {
+            const tileAlpha = Math.min((elapsed - 600) / 800, 1) * 0.18;
+            if (tileAlpha > 0) {
+                const tileSize = 60; // tile unit size
+                const cols = Math.ceil(canvas.width / tileSize) + 3;
+                const rows = Math.ceil(canvas.height / tileSize) + 3;
+                // Slow scroll + rotate
+                const scrollX2 = (now / 12000 * tileSize) % tileSize;
+                const scrollY2 = (now / 18000 * tileSize) % tileSize;
+
+                ctx.save();
+                ctx.clip(); // clip to domain circle (already set by void fill above? no — re-clip)
+                ctx.beginPath(); ctx.arc(cx, cy, currentDomainRadius * 0.96, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.translate(-scrollX2, -scrollY2);
+
+                for (let r = -2; r < rows + 2; r++) {
+                    for (let c = -2; c < cols + 2; c++) {
+                        const tx2 = c * tileSize, ty2 = r * tileSize;
+                        const dist2 = Math.hypot(tx2 + scrollX2 - cx, ty2 + scrollY2 - cy);
+                        const distFade = Math.max(0, 1 - dist2 / (currentDomainRadius * 0.9));
+                        if (distFade < 0.01) continue;
+                        const alpha = tileAlpha * distFade;
+                        const cx2 = tx2 + tileSize / 2, cy2 = ty2 + tileSize / 2;
+                        const s = tileSize * 0.5;
+                        const pulse2 = 0.8 + 0.2 * Math.sin(now / 1800 + r * 0.4 + c * 0.5);
+                        const a = alpha * pulse2;
+
+                        // ── Diamond outline ──
+                        ctx.strokeStyle = `rgba(180,80,255,${a * 1.2})`;
+                        ctx.lineWidth = 0.9;
+                        ctx.beginPath();
+                        ctx.moveTo(cx2, cy2 - s);
+                        ctx.lineTo(cx2 + s, cy2);
+                        ctx.lineTo(cx2, cy2 + s);
+                        ctx.lineTo(cx2 - s, cy2);
+                        ctx.closePath();
+                        ctx.stroke();
+
+                        // ── 4-petal flower in center ──
+                        const pr = s * 0.32;
+                        ctx.strokeStyle = `rgba(220,140,255,${a})`;
+                        ctx.lineWidth = 0.8;
+                        for (let p = 0; p < 4; p++) {
+                            const pa = (p / 4) * Math.PI * 2;
+                            const px4 = cx2 + Math.cos(pa) * pr * 0.45;
+                            const py4 = cy2 + Math.sin(pa) * pr * 0.45;
+                            ctx.beginPath();
+                            ctx.ellipse(
+                                cx2 + Math.cos(pa) * pr * 0.5,
+                                cy2 + Math.sin(pa) * pr * 0.5,
+                                pr * 0.55, pr * 0.28,
+                                pa, 0, Math.PI * 2
+                            );
+                            ctx.stroke();
+                        }
+
+                        // ── Cross lines ──
+                        ctx.strokeStyle = `rgba(160,60,255,${a * 0.7})`;
+                        ctx.lineWidth = 0.6;
+                        ctx.beginPath();
+                        ctx.moveTo(cx2 - s * 0.5, cy2); ctx.lineTo(cx2 + s * 0.5, cy2);
+                        ctx.moveTo(cx2, cy2 - s * 0.5); ctx.lineTo(cx2, cy2 + s * 0.5);
+                        ctx.stroke();
+
+                        // ── Corner dots ──
+                        const cornersAt = [[cx2 - s * 0.6, cy2], [cx2 + s * 0.6, cy2], [cx2, cy2 - s * 0.6], [cx2, cy2 + s * 0.6]];
+                        ctx.fillStyle = `rgba(240,180,255,${a * 0.9})`;
+                        cornersAt.forEach(([dpx, dpy]) => {
+                            ctx.beginPath(); ctx.arc(dpx, dpy, 1.5, 0, Math.PI * 2); ctx.fill();
+                        });
+                    }
+                }
+                ctx.restore();
+                ctx.globalAlpha = 1;
             }
         }
 
@@ -1169,92 +1282,180 @@ function drawAegisLasers() {
     });
 }
 
+// ── Persian/Moroccan tile pattern helper ─────────────────────
+// Vẽ một tile hoa văn Ba Tư tại (tx,ty), kích thước tileSize, với alpha và màu chủ
+function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
+    const h = tileSize / 2;
+    const q = tileSize / 4;
+    const e = tileSize / 8;
+
+    ctx.save();
+    ctx.translate(tx, ty);
+
+    // ── Outer diamond frame ──
+    ctx.strokeStyle = `hsla(${hue},70%,55%,${baseAlpha * 0.9})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -h); ctx.lineTo(h, 0);
+    ctx.lineTo(0, h); ctx.lineTo(-h, 0);
+    ctx.closePath(); ctx.stroke();
+
+    // ── Inner square (rotated 45° = diamond) ──
+    const iS = h * 0.55;
+    ctx.strokeStyle = `hsla(${hue + 20},65%,65%,${baseAlpha * 0.7})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -iS); ctx.lineTo(iS, 0);
+    ctx.lineTo(0, iS); ctx.lineTo(-iS, 0);
+    ctx.closePath(); ctx.stroke();
+
+    // ── 4-petal flower (arabesque) ──
+    const petalR = h * 0.38;
+    for (let p = 0; p < 4; p++) {
+        const pa = (p / 4) * Math.PI * 2;
+        const px = Math.cos(pa) * petalR * 0.42;
+        const py = Math.sin(pa) * petalR * 0.42;
+        ctx.strokeStyle = `hsla(${hue + 30},75%,70%,${baseAlpha * 0.8})`;
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.ellipse(px, py, petalR * 0.38, petalR * 0.22,
+            pa + Math.PI / 2, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // ── Center cross ──
+    ctx.strokeStyle = `hsla(${hue},80%,80%,${baseAlpha * 0.6})`;
+    ctx.lineWidth = 0.8;
+    const cs = h * 0.18;
+    ctx.beginPath();
+    ctx.moveTo(-cs, 0); ctx.lineTo(cs, 0);
+    ctx.moveTo(0, -cs); ctx.lineTo(0, cs);
+    ctx.stroke();
+
+    // ── 4 corner accent dots ──
+    const dotR = h * 0.07;
+    ctx.fillStyle = `hsla(${hue + 40},80%,80%,${baseAlpha * 0.7})`;
+    for (let p = 0; p < 4; p++) {
+        const pa = (p / 4) * Math.PI * 2 + Math.PI / 4;
+        ctx.beginPath();
+        ctx.arc(Math.cos(pa) * h * 0.7, Math.sin(pa) * h * 0.7, dotR, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ── 8-fold star lines ──
+    ctx.strokeStyle = `hsla(${hue + 10},60%,60%,${baseAlpha * 0.4})`;
+    ctx.lineWidth = 0.6;
+    for (let s = 0; s < 8; s++) {
+        const sa = (s / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(sa) * h * 0.2, Math.sin(sa) * h * 0.2);
+        ctx.lineTo(Math.cos(sa) * h * 0.48, Math.sin(sa) * h * 0.48);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
 // ── Boss shockwaves (Maou Haki) ───────────────────────────────
 function drawBossShockwaves() {
     const now = performance.now();
     bossShockwaves.forEach(wave => {
         if (!wave || wave.radius <= 0) return;
         const maxR = wave.maxRadius || canvas.width;
-        const prog = wave.radius / maxR;             // 0→1 as wave expands
-        const fade = Math.max(0, 1 - prog);          // bright at center, fades out
-        const blink = 0.7 + 0.3 * Math.sin(now / 40); // fast blink
+        const prog = Math.min(1, wave.radius / maxR);
+        const fade = Math.max(0, 1 - prog);
+        const blink = 0.7 + 0.3 * Math.sin(now / 40);
 
-        ctx.save();
-
-        // ── 1. Dense fill — thick translucent purple zone ──
-        const fillAlpha = fade * 0.22 * blink;
-        ctx.fillStyle = `rgba(100,0,200,${fillAlpha})`;
-        ctx.beginPath();
-        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // ── 2. Persian arabesque pattern (rotating geometric lines) ──
-        const patternCount = 8;
         ctx.save();
         ctx.translate(wave.x, wave.y);
-        ctx.rotate(now / 800 + wave.radius * 0.01);
-        for (let i = 0; i < patternCount; i++) {
-            const a = (Math.PI * 2 / patternCount) * i;
-            const r1 = wave.radius * 0.15;
-            const r2 = wave.radius * 0.85;
-            ctx.strokeStyle = `rgba(200,100,255,${fade * 0.35 * blink})`;
-            ctx.lineWidth = 1.2;
+
+        // ── 1. Dense fill ──
+        ctx.globalAlpha = fade * 0.20 * blink;
+        ctx.fillStyle = 'rgba(100,0,200,1)';
+        ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // ── 2. Lightweight Persian arcs (8 rotating arcs — NO grid loop) ──
+        const numArcs = 8;
+        const rot = now / 1200;
+        ctx.save();
+        ctx.rotate(rot);
+        for (let i = 0; i < numArcs; i++) {
+            const a = (Math.PI * 2 / numArcs) * i;
+            const r1 = wave.radius * 0.25, r2 = wave.radius * 0.80;
+            ctx.strokeStyle = `rgba(200,80,255,${fade * 0.40 * blink})`;
+            ctx.lineWidth = 1.0;
+            // Radial spoke
             ctx.beginPath();
             ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
             ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
             ctx.stroke();
-            // Cross petals
-            const a2 = a + Math.PI / patternCount;
-            const rm = wave.radius * 0.55;
-            ctx.strokeStyle = `rgba(220,150,255,${fade * 0.25})`;
-            ctx.lineWidth = 0.8;
-            ctx.beginPath();
-            ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
-            ctx.quadraticCurveTo(
-                Math.cos(a2) * rm * 0.7, Math.sin(a2) * rm * 0.7,
-                Math.cos(a + Math.PI / (patternCount * 0.5)) * r2 * 0.7,
-                Math.sin(a + Math.PI / (patternCount * 0.5)) * r2 * 0.7
-            );
-            ctx.stroke();
         }
-        // Inner hexagonal frame
-        ctx.strokeStyle = `rgba(180,80,255,${fade * 0.45 * blink})`;
+        // Inner hex (single path, no loop)
+        ctx.strokeStyle = `rgba(180,80,255,${fade * 0.50 * blink})`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
-            const a = (Math.PI * 2 / 6) * i - Math.PI / 6;
+            const a = (Math.PI * 2 / 6) * i;
             const r = wave.radius * 0.42;
             i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
                 : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
         }
-        ctx.closePath();
-        ctx.stroke();
+        ctx.closePath(); ctx.stroke();
+        // Counter-rotate arc ring
+        ctx.rotate(-rot * 1.7);
+        ctx.strokeStyle = `rgba(220,130,255,${fade * 0.28})`;
+        ctx.lineWidth = 1.0;
+        ctx.setLineDash([6, 10]);
+        ctx.beginPath(); ctx.arc(0, 0, wave.radius * 0.62, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
         ctx.restore();
 
         // ── 3. Outer halo ──
-        ctx.strokeStyle = `rgba(180,0,255,${fade * 0.30 * blink})`;
-        ctx.lineWidth = 32;
-        ctx.beginPath();
-        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.globalAlpha = fade * 0.28 * blink;
+        ctx.strokeStyle = 'rgba(180,0,255,1)';
+        ctx.lineWidth = 28;
+        ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 1;
 
-        // ── 4. Main ring ──
+        // ── 4. Flying sparks on outer ring ──
+        const sparkCount = 10;
+        for (let i = 0; i < sparkCount; i++) {
+            // Each spark orbits at slightly different speed & radius offset
+            const sparkAngle = (Math.PI * 2 / sparkCount) * i + now / (400 + i * 33);
+            const rOff = wave.radius + Math.sin(now / 180 + i * 1.3) * 8;
+            const sx = Math.cos(sparkAngle) * rOff;
+            const sy = Math.sin(sparkAngle) * rOff;
+            const sparkFade = fade * blink * (0.6 + 0.4 * Math.sin(now / 120 + i));
+            // Spark body
+            ctx.shadowColor = '#FF44FF'; ctx.shadowBlur = 10;
+            ctx.fillStyle = `rgba(255,180,255,${sparkFade * 0.9})`;
+            ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill();
+            // Spark tail
+            const tailAngle = sparkAngle - 0.18;
+            ctx.strokeStyle = `rgba(200,100,255,${sparkFade * 0.5})`;
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(Math.cos(tailAngle) * (rOff - 14), Math.sin(tailAngle) * (rOff - 14));
+            ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+
+        // ── 5. Main ring ──
         ctx.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * blink) * fade})`;
         ctx.lineWidth = 7;
         ctx.shadowColor = '#CC00FF';
-        ctx.shadowBlur = 25 + 15 * blink;
-        ctx.beginPath();
-        ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.shadowBlur = 20 + 12 * blink;
+        ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // ── 5. Inner bright edge ──
+        // ── 6. Inner bright edge ──
         if (wave.radius > 12) {
-            ctx.strokeStyle = `rgba(255,200,255,${fade * 0.6 * blink})`;
+            ctx.strokeStyle = `rgba(255,200,255,${fade * 0.55 * blink})`;
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(wave.x, wave.y, wave.radius - 7, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, wave.radius - 7, 0, Math.PI * 2); ctx.stroke();
         }
 
         ctx.restore();
