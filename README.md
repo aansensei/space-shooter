@@ -76,7 +76,7 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 Activates automatically when **any of the following** is true:
 
 - More than 4 enemies are on screen
-- Any **elite or higher** enemy is present (Heavenly Aegis Core, Marchosias, Leviathan or Dargruel)
+- Any elite enemy is present (Thaelis, Aegis Core, Marchosias, or Dargruel)
 - Skill G is active
 
 **While active:**
@@ -110,6 +110,16 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 | 1–4 | +30% Max HP → **389 HP total**, +10% bullet speed | Cyan |
 | 5–11 | +20% fire rate, +10% damage, +10% Damage Reduction | Magenta |
 | 12 | Every shot becomes a Special Shot | Gold |
+
+**Sentinel Parry** — While Glory for Justice is active, every hit a Sentinel receives has a **20% chance** to be completely negated (the damage is fully ignored). On a successful parry:
+
+- A golden burst flares at the parrying Sentinel.
+- **Counter-buff activates for 4 seconds** (same as Accurate Parry):
+  - All friendly damage output ×**1.25** (stacks with Glory for Justice).
+  - All active Sentinels instantly gain a shield equal to **25% of their Max HP**.
+  - A golden aura appears around the player.
+  - All Sentinels gain **+10% Damage Reduction** (stacks with all other DR sources).
+- Tesla DoT and Chain Lightning cannot trigger Sentinel Parry.
 
 **On death** — explodes into 10 scattered projectiles (2 base + 2% target Max HP, speed 8) and causes a brief screen shake.
 

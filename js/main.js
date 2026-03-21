@@ -81,6 +81,41 @@ function _triggerAccurateParry() {
     });
 }
 
+// ── Sentinel Parry buff ───────────────────────────────────────────────
+function _triggerSentinelParry(parrySentinel) {
+    const now = performance.now();
+
+    accurateParryActive = true;
+    accurateParryEndTime = now + 4000;
+
+    // Bright gold burst at the sentinel that parried
+    addExplosion(parrySentinel.x, parrySentinel.y, parrySentinel.size * 3, '#ffdd00');
+    addExplosion(parrySentinel.x, parrySentinel.y, parrySentinel.size * 1.5, '#ffffff');
+    // Radial gold particles bursting outward
+    for (let i = 0; i < 22; i++) {
+        const a = (Math.PI * 2 / 22) * i;
+        const spd = 5 + Math.random() * 7;
+        particles.push({
+            x: parrySentinel.x, y: parrySentinel.y,
+            vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+            color: i % 3 === 0 ? '#ffffff' : (i % 3 === 1 ? '#ffe066' : '#ffaa00'),
+            size: 3 + Math.random() * 4,
+            lifetime: 400 + Math.random() * 200, maxLifetime: 600
+        });
+    }
+    // Gold ring ripple at player
+    addExplosion(player.x, player.y, 70, '#ffcc00');
+    createParticles(player.x, player.y, 18, '#ffdd00', 2, 7);
+    screenShake = { intensity: 7, duration: 200 };
+
+    // All sentinels: shield 25% + DR buff 10% for 4s
+    sentinels.forEach(s => {
+        s.shield = (s.shield || 0) + Math.ceil(s.maxHp * 0.25);
+        s.sentinelParryBuff = true;
+        s.sentinelParryBuffEnd = now + 4000;
+    });
+}
+
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
