@@ -823,6 +823,8 @@ function draw(deltaTime) {
 
     if (gameState === "playing") {
         sentinels.forEach(drawSentinel);
+        // Vanguard Network threads (5+ sentinels)
+        if (sentinels.length >= 5) _drawVanguardThreads();
         if (skillAActive) drawSkillA();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
         marchosiasBlades.forEach(_drawMarchoBlade);
@@ -1646,6 +1648,43 @@ function drawPlayerAura() {
 }
 
 // ── Sentinel ──────────────────────────────────────────────────
+// ── Vanguard Network energy threads ────────────────────────────────────
+function _drawVanguardThreads() {
+    const now = performance.now();
+    const n = sentinels.length;
+    const pulse = 0.4 + 0.3 * Math.sin(now / 400);
+    const color = n >= 12 ? '#FFD700' : '#FF00FF';
+
+    ctx.save();
+    ctx.globalAlpha = pulse * 0.5;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 8]);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+
+    // Connect each sentinel to its 2 nearest neighbours (not all pairs — too dense)
+    for (let i = 0; i < n; i++) {
+        const a = sentinels[i];
+        // Find 2 closest
+        const dists = sentinels
+            .map((b, j) => ({ j, d: j === i ? Infinity : Math.hypot(a.x - b.x, a.y - b.y) }))
+            .sort((x, y) => x.d - y.d)
+            .slice(0, 2);
+        dists.forEach(({ j, d }) => {
+            if (j > i) { // draw each pair once
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(sentinels[j].x, sentinels[j].y);
+                ctx.stroke();
+            }
+        });
+    }
+
+    ctx.setLineDash([]);
+    ctx.restore();
+}
+
 function drawSentinel(sentinel) {
     const { x, y, size, angle, hp, maxHp } = sentinel;
     const now = performance.now();
@@ -1654,6 +1693,25 @@ function drawSentinel(sentinel) {
     let glowColor = '#00FFFF';
     if (activeCount >= 12) glowColor = '#FFD700';
     else if (activeCount >= 5) glowColor = '#FF00FF';
+
+    // ── Iron Body flicker ──────────────────────────────────────────
+    const ironActive = sentinel.ironBody && now < sentinel.ironBodyEnd;
+    if (ironActive) {
+        const flicker = Math.sin(now / 40) > 0; // fast blink ~12Hz
+        if (!flicker) {
+            // Skip drawing this frame — creates the flicker effect
+            // Still draw a bright white outline so position is visible
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+            return;
+        }
+        glowColor = '#ffffff'; // white glow during iron body
+    }
 
     ctx.save();
     ctx.translate(x, y);

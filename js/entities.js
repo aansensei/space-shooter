@@ -687,15 +687,31 @@ function dealDamage(enemy, source) {
 
     let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
 
+    // ── Iron Body (Bất tử tuyệt đối) — bypass all damage ───────────
+    if (isSentinel && enemy.ironBody && performance.now() < enemy.ironBodyEnd) {
+        return; // hoàn toàn miễn sát thương
+    }
+
     // ── Sentinel Parry (khi Glory for Justice active) ────────────────
-    // 16% cơ hội né toàn bộ hit, kích hoạt Parry buff
     if (isSentinel && gloryForJusticeActive && (source.damage > 0 || source.percentDamage > 0)
         && !source.isTeslaDot && !source.isChainLightning) {
         if (Math.random() < 0.20) {
-            // Né thành công — kích hoạt Parry
             _triggerSentinelParry(enemy);
-            return; // bỏ qua toàn bộ damage này
+            return;
         }
+    }
+
+    // ── Vanguard Network (Liên kết Vanguard) — 5+ sentinels ──────────
+    if (isSentinel && sentinels.length >= 5 && (source.damage > 0 || source.percentDamage > 0)) {
+        const effHp = (enemy.maxHp || enemy.hp) + (enemy.shield || 0);
+        let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
+        if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.55);
+        if (accurateParryActive && performance.now() < accurateParryEndTime) rawDmg = Math.ceil(rawDmg * 1.25);
+        if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.25));
+        rawDmg = Math.max(0, rawDmg);
+        // sourceTag = 'dealDamage_' + (source tag nếu có)
+        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic');
+        return;
     }
 
     if (isSentinel && gloryForJusticeActive) {
@@ -985,4 +1001,90 @@ function _spawnPerseveranceBeam(enemy, now) {
 function _hasPersBeam(enemy) {
     if (!window._levPersBeams) return false;
     return window._levPersBeams.some(b => b.ownerRef === enemy && !b.done);
+}
+// ── Vanguard Network central damage handler ──────────────────────────
+// Mọi nguồn damage vào sentinel đều đi qua đây khi network active (5+ sentinels)
+// rawDmg: damage đã tính (sau multipliers), sourceTag: string unique per source instance
+function _applyVanguardDamage(rawDmg, sourceTag) {
+    if (!window._vanguardState || sentinels.length < 5) return;
+    if (rawDmg <= 0) return;
+    const vs = window._vanguardState;
+    const now = performance.now();
+
+    // ── AoE Dampening bằng sourceTag ──────────────────────────────
+    // Mỗi sourceTag (beam id, laser id, ...) có counter riêng
+    if (!vs.tagHitCount) vs.tagHitCount = {};
+    if (!vs.tagHitTime) vs.tagHitTime = {};
+
+    // Reset counter nếu source này lần trước đã > 200ms trước
+    if (!vs.tagHitCount[sourceTag] || now - (vs.tagHitTime[sourceTag] || 0) > 200) {
+        vs.tagHitCount[sourceTag] = 0;
+    }
+    vs.tagHitCount[sourceTag]++;
+    vs.tagHitTime[sourceTag] = now;
+
+    const hitIdx = vs.tagHitCount[sourceTag];
+    let dampening = 1.0;
+    if (hitIdx >= 4) dampening = 0.15;
+    else if (hitIdx === 3) dampening = 0.50;
+
+    const dampenedDmg = Math.ceil(rawDmg * dampening);
+
+    // ── Chia đều true damage cho tất cả sentinel ──────────────────
+    const n = sentinels.length;
+    const dmgPerSentinel = Math.ceil(dampenedDmg / n);
+
+    sentinels.forEach(s => {
+        if (s.ironBody && now < s.ironBodyEnd) return;
+        s.hp = Math.max(0, s.hp - dmgPerSentinel);
+        if (s.hp <= 0) s._markedForDeath = true;
+    });
+
+    // ── Track cho Fuse Protocol (26% threshold) ───────────────────
+    vs.recentDamage = vs.recentDamage.filter(d => now - d.time < 500);
+    vs.recentDamage.push({ time: now, damage: dampenedDmg });
+
+    const totalRecentDmg = vs.recentDamage.reduce((a, b) => a + b.damage, 0);
+    const totalNetworkMaxHp = sentinels.reduce((a, s) => a + s.maxHp, 0);
+    if (totalRecentDmg > totalNetworkMaxHp * 0.26
+        && !vs.fuseTriggered
+        && now > (vs.fuseCooldownEnd || 0)) {
+        vs.fuseTriggered = true;
+        vs.fuseCooldownEnd = now + 3000;
+        _triggerVanguardFuse();
+    }
+}
+
+// ── Vanguard Fuse Protocol (Cầu Chì Hy Sinh) ────────────────────────
+function _triggerVanguardFuse() {
+    const now = performance.now();
+    window._vanguardState.fuseTriggered = false;
+
+    if (sentinels.length < 2) return;
+
+    // Tìm sentinel HP thấp nhất
+    let weakestIdx = 0;
+    for (let i = 1; i < sentinels.length; i++) {
+        if (sentinels[i].hp < sentinels[weakestIdx].hp) weakestIdx = i;
+    }
+    const weakest = sentinels[weakestIdx];
+
+    // Phát nổ — bung đạn như chết thường
+    destroySentinel(weakest);
+    sentinels.splice(weakestIdx, 1);
+
+    // Iron Body 0.75s cho tất cả sentinel còn lại
+    sentinels.forEach(s => {
+        s.ironBody = true;
+        s.ironBodyEnd = now + 750;
+    });
+
+    // Visual: flash trắng mạnh
+    addExplosion(weakest.x, weakest.y, 100, '#ffffff');
+    addExplosion(weakest.x, weakest.y, 60, '#ffcc00');
+    screenShake = { intensity: 12, duration: 350 };
+    createParticles(weakest.x, weakest.y, 30, '#ffffff', 4, 12);
+
+    // Reset damage window
+    window._vanguardState.recentDamage = [];
 }
