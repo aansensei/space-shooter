@@ -551,7 +551,7 @@
     <script src="js/main.js"></script>
 
     <!-- ══ MOBILE UI (injected after game scripts load) ══════════════ -->
-    <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:none; z-index:300;"></div>
+    <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:all; z-index:300;"></div>
 
     <style>
         /* Platform picker buttons */
@@ -669,6 +669,9 @@
             // ── MOBILE CONTROLS INIT ──────────────────────────────────
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
+                // Canvas must not intercept touches — buttons need to receive them
+                const cv = document.getElementById('gameCanvas');
+                if (cv) cv.style.pointerEvents = 'none';
                 const mc = document.getElementById('mc');
                 mc.style.display = 'block';
                 mc.innerHTML = _buildMobileHTML();
@@ -731,7 +734,7 @@
 
             // ── HOLD BUTTON ACTIONS ───────────────────────────────────
             // Micro haptic — 15ms, barely perceptible
-            function _hap() { try { navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
+            window._hap = function () { try { navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
 
             window._mbDown = function (id) {
                 _hap();

@@ -256,14 +256,13 @@ function draw(deltaTime) {
 
     drawSpaceBackground(deltaTime);
 
-    // Mobile zoom-out: scale game world to 72%, anchored at bottom-center
-    // Background already drawn above at full size
+    // Mobile zoom-out: scale 0.78 anchored top-center
+    // Background already full size, game world smaller → enemies visible from top spawn
     const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
     if (_isMobile) {
-        const s = 0.72;
+        const s = 0.78;
         ctx.save();
-        // Anchor at bottom-center: sides balanced, bottom flush
-        ctx.translate(canvas.width * (1 - s) / 2, canvas.height * (1 - s));
+        ctx.translate(canvas.width * (1 - s) / 2, 0); // centered horizontally, flush top
         ctx.scale(s, s);
     }
 
