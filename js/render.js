@@ -865,7 +865,7 @@ function draw(deltaTime) {
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
 
         // Draw non-bullet enemies first (background layer)
-        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet')) drawEnemy(e); });
+        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') drawEnemy(e); });
         bullets.forEach(drawBullet);
         spiritBullets.forEach(drawSpiritBullet);
         spirits.forEach(drawSpirit);
@@ -891,7 +891,7 @@ function draw(deltaTime) {
         if (skillShiftActive) drawSkillShiftEffects();
 
         // ── ENEMY BULLETS: top layer, always visible ──
-        enemies.forEach(e => { if (e.type.startsWith('enemy_bullet')) drawEnemy(e); });
+        enemies.forEach(e => { if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') drawEnemy(e); });
 
         // boundary line
         ctx.save();
@@ -2453,6 +2453,86 @@ function drawAegisCore(enemy) {
 
 // ── Enemy dispatcher ──────────────────────────────────────────
 function drawEnemy(enemy) {
+    // ── Abyssal Chain render ──────────────────────────────────────
+    if (enemy.type === 'abyssal_chain') {
+        const now0 = performance.now();
+        const pulse = 0.6 + 0.4 * Math.sin(now0 / 60);
+
+        // Trailing purple sparks
+        const trailCount = _mobPerf ? 3 : 6;
+        for (let t = 1; t <= trailCount; t++) {
+            const tf = t / trailCount;
+            const tx = enemy.x - enemy.vx * tf * 0.5;
+            const ty = enemy.y - enemy.vy * tf * 0.5;
+            ctx.save();
+            ctx.globalAlpha = (1 - tf) * 0.75;
+            if (!_mobPerf) { ctx.shadowColor = '#dd00ff'; ctx.shadowBlur = 14; }
+            ctx.fillStyle = tf < 0.4 ? '#ff88ff' : '#9900cc';
+            ctx.beginPath();
+            ctx.arc(tx + (Math.random() - 0.5) * 4, ty + (Math.random() - 0.5) * 4, Math.max(1, enemy.size * (1 - tf * 0.6) * 0.38), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Rope from Dargruel to chain head
+        const ox = enemy.ownerRef ? enemy.ownerRef.x : enemy.originX;
+        const oy = enemy.ownerRef ? enemy.ownerRef.y : enemy.originY;
+        ctx.save();
+        const dx = enemy.x - ox, dy = enemy.y - oy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 1) {
+            const segs = Math.max(3, Math.floor(dist / 24));
+            if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 12; }
+            ctx.strokeStyle = `rgba(180,0,255,${0.6 + pulse * 0.2})`;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(ox, oy);
+            for (let s = 1; s <= segs; s++) {
+                const t = s / segs;
+                const jitter = s < segs ? Math.sin(now0 / 100 + s * 2.1) * 6 : 0;
+                ctx.lineTo(ox + dx * t - (dy / dist) * jitter, oy + dy * t + (dx / dist) * jitter);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        ctx.restore();
+
+        // Chain head
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        const angle = Math.atan2(enemy.vy, enemy.vx);
+        ctx.rotate(angle);
+        // Outer glow halo
+        if (!_mobPerf) { ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 32; }
+        ctx.fillStyle = `rgba(180,0,255,${0.22 + pulse * 0.1})`;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, enemy.size * 2.3, enemy.size * 1.05, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Main body
+        if (!_mobPerf) ctx.shadowBlur = 24;
+        ctx.fillStyle = `rgba(110,0,210,${0.94 + pulse * 0.06})`;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, enemy.size * 1.75, enemy.size * 0.78, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(240,120,255,${0.92 + pulse * 0.08})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        // Dark gem core
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#07001a';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, enemy.size * 0.55, enemy.size * 0.36, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Gem glint
+        ctx.fillStyle = `rgba(245,170,255,${0.5 + pulse * 0.5})`;
+        ctx.beginPath();
+        ctx.ellipse(-enemy.size * 0.22, -enemy.size * 0.14, enemy.size * 0.2, enemy.size * 0.11, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        return;
+    }
+
     // ── Thủ Lĩnh Bầy Đàn (Leviathan Envy): white pulsing ring
     if (enemy.levEnvy) {
         const now0 = performance.now();
@@ -3935,7 +4015,22 @@ function drawSkillA() {
     skillAOrbs.forEach(orb => {
         ctx.save();
         const pulse = 1 + 0.18 * Math.abs(Math.sin(now / 220 + orb.x));
-        const r = orb.size * pulse;  // visual only, hitbox = orb.size
+        const r = orb.size * pulse;
+        const playerSilenced = typeof player !== 'undefined' && player._silenced;
+
+        // Red orbit ring when silenced — draw before orb body
+        if (!orb.target && playerSilenced) {
+            ctx.save();
+            const orbitR = orb.radius || 60;
+            ctx.strokeStyle = 'rgba(255,40,40,0.45)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, orbitR, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
 
         if (orb.isDefensive) {
             // yellow defensive orb – layered glow
@@ -5016,6 +5111,17 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(key, x, y);
         if (remaining > 0) { ctx.font = `bold ${cdFontSize}px Arial`; ctx.fillText(Math.ceil(remaining), x, y + 1); }
+    }
+    // ── Silence overlay: red X when player is silenced ───────────
+    if (typeof player !== 'undefined' && player._silenced) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,30,30,0.9)';
+        ctx.lineWidth = Math.max(2, r * 0.25);
+        ctx.lineCap = 'round';
+        const d = r * 0.65;
+        ctx.beginPath(); ctx.moveTo(x - d, y - d); ctx.lineTo(x + d, y + d); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + d, y - d); ctx.lineTo(x - d, y + d); ctx.stroke();
+        ctx.restore();
     }
     ctx.restore();
 }

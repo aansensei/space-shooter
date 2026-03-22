@@ -244,8 +244,15 @@ function update(rawDeltaTime) {
         if (!finalDefense.boundaryShield) finalDefense.boundaryShield = true;
     }
 
-    if (keys.left && player.x > player.width / 2) player.x -= player.speed * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2) player.x += player.speed * dt;
+    // ── Silence/Root expiry ───────────────────────────────────────
+    if (player._silenced && currentTime >= player._silenceEnd) {
+        player._silenced = false;
+        player._rooted = false;
+        player._silenceEnd = 0;
+    }
+
+    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * dt;
+    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * dt;
 
     if (Math.random() < 0.6) {
         particles.push({
@@ -266,7 +273,8 @@ function update(rawDeltaTime) {
         });
     }
 
-    fireAutoShot();
+    // Block auto-fire while silenced
+    if (!player._silenced) fireAutoShot();
 
     if (charging && !laserActive && currentTime - chargeStartTime >= overloadChargeTime && currentTime >= laserCooldownEnd) {
         laserActive = true; laserStartTime = currentTime; charging = false;
@@ -463,6 +471,11 @@ function update(rawDeltaTime) {
                 }
             }
 
+            if (enemy.type === 'abyssal_chain') {
+                // Chain consumed — no kill, no life loss, no explosion
+                enemies.splice(i, 1); continue;
+            }
+
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
                 if (!enemy.hatched) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
@@ -473,7 +486,42 @@ function update(rawDeltaTime) {
             continue;
         }
 
-        if (enemy.type.startsWith('enemy_bullet')) {
+        // ── Abyssal Chain movement + collision ───────────────────────
+        if (enemy.type === 'abyssal_chain') {
+            enemy.x += enemy.vx * dt;
+            enemy.y += enemy.vy * dt;
+
+            // Hit player — silence always applies, bypasses ALL protections
+            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
+                player._silenced = true;
+                player._silenceEnd = currentTime + 1000;
+                player._rooted = true;
+                screenShake = { intensity: 6, duration: 250 };
+                // Haptic on mobile
+                try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
+                enemy.hp = 0;
+            }
+
+            // Hit sentinel — true damage 15% maxHP
+            if (enemy.hp > 0) {
+                for (const s of sentinels) {
+                    if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
+                        const dmg = Math.ceil(s.maxHp * 0.15);
+                        s.hp = Math.max(0, s.hp - dmg);
+                        if (s.hp <= 0) s._markedForDeath = true;
+                        addExplosion(enemy.x, enemy.y, 30, '#660033');
+                        enemy.hp = 0;
+                        break;
+                    }
+                }
+            }
+
+            // Off-screen — bay hết màn hình mới dừng
+            if (enemy.x < -200 || enemy.x > canvas.width + 200 || enemy.y < -200 || enemy.y > canvas.height + 200) {
+                enemies.splice(enemies.indexOf(enemy), 1);
+            }
+
+        } else if (enemy.type.startsWith('enemy_bullet')) {
             enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
             enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
@@ -531,6 +579,12 @@ function update(rawDeltaTime) {
                 if (gloryForJusticeActive) currentShootTimer *= 1.25;
                 currentShootTimer *= teslaAttackSpeedMultiplier;
 
+                // Maître suprême: normal attack +5% speed per sentinel, max +20%
+                if (enemy.type === 'boss') {
+                    const speedBonus = Math.min(0.20, sentinels.length * 0.05);
+                    currentShootTimer *= (1 - speedBonus);
+                }
+
                 enemy.shootTimer -= deltaTime;
                 if (enemy.shootTimer <= 0) {
                     enemy.shootTimer = currentShootTimer;
@@ -543,6 +597,48 @@ function update(rawDeltaTime) {
                             const bulletHp = Math.ceil(10 + Math.random() * 30);
                             enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: 2, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0 });
                         }
+                    }
+                }
+
+                // ── Hắc Ám Xiềng Xích (Abyssal Chains) — Dargruel only ──
+                if (enemy.type === 'boss') {
+                    if (!enemy.chainTimer && enemy.chainTimer !== 0) enemy.chainTimer = 0; // fire immediately on spawn
+                    enemy.chainTimer -= deltaTime;
+                    if (enemy.chainTimer <= 0) {
+                        enemy.chainTimer = 1500;
+                        const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                        const spread = 0.28;
+                        const angles4 = [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5];
+                        for (const k of angles4) {
+                            const a = baseAngle + k;
+                            const chainSpeed = 9.35; // 8.13 * 1.15
+                            enemies.push({
+                                x: enemy.x, y: enemy.y,
+                                vx: Math.cos(a) * chainSpeed,
+                                vy: Math.sin(a) * chainSpeed,
+                                size: 16, hp: 9999, maxHp: 9999,
+                                type: 'abyssal_chain',
+                                shield: 0, damage: 0,
+                                originX: enemy.x, originY: enemy.y,
+                                ownerRef: enemy,
+                                piercing: true
+                            });
+                        }
+                    }
+                    // hp=1 burst: fire immediately extra volley
+                    if (enemy.hp <= 1 && !enemy._chainDeath) {
+                        enemy._chainDeath = true;
+                        const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                        const spread = 0.28;
+                        [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5].forEach(k => {
+                            enemies.push({
+                                x: enemy.x, y: enemy.y,
+                                vx: Math.cos(baseAngle + k) * 9.35, vy: Math.sin(baseAngle + k) * 9.35,
+                                size: 16, hp: 9999, maxHp: 9999,
+                                type: 'abyssal_chain', shield: 0, damage: 0,
+                                originX: enemy.x, originY: enemy.y, ownerRef: enemy, piercing: true
+                            });
+                        });
                     }
                 }
             }
@@ -644,6 +740,9 @@ function update(rawDeltaTime) {
 
         if (enemy.hp <= 0) {
             // LEVIATHAN: laser đã spawn trong dealDamage → die bình thường
+            if (enemy.type === 'abyssal_chain') {
+                enemies.splice(i, 1); continue;
+            }
 
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
                 enemy.reincarnated = true;
@@ -700,6 +799,7 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.y > boundaryY + enemy.size / 2) {
+            if (enemy.type === 'abyssal_chain') { enemies.splice(i, 1); continue; }
             if (!enemy.type.startsWith('enemy_bullet')) {
                 if (finalDefense.boundaryShield) {
                     finalDefense.boundaryShield = false;
@@ -719,7 +819,8 @@ function update(rawDeltaTime) {
 
     // ── Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới ──
     if (skillShiftActive) {
-        enemies = enemies.filter(e => !e.type.startsWith('enemy_bullet'));
+        // Abyssal Chains survive YOG — piercing, cannot be cleared by any means
+        enemies = enemies.filter(e => e.type === 'abyssal_chain' || !e.type.startsWith('enemy_bullet'));
     }
 
     const elapsedTime = currentTime - gameStartTime;
@@ -747,7 +848,8 @@ function update(rawDeltaTime) {
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
 
-                // ── LEVIATHAN ALL FOR ONE SHIELD CHECK ──────────────
+                // ── ABYSSAL CHAIN: piercing, immune to all player attacks ──
+                if (enemy.type === 'abyssal_chain') { continue; }
                 if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     createParticles(b.x, b.y, 2, '#00e5ff', 1, 3);
