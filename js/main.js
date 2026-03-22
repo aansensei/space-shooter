@@ -1029,6 +1029,10 @@ function startGame() {
     teslaCoils = [];
 
     player.x = canvas.width / 2;
+    // Mobile: re-pin player to boundary (canvas may have been resized)
+    if (typeof _platform !== 'undefined' && _platform === 'mobile') {
+        player.y = boundaryY - 18;
+    }
     gameStartTime = lastEnemySpawn = lastAutoFire = performance.now();
     gameElapsedTime = 0;
     laserActive = false; laserCooldownEnd = 0; charging = false; gamePaused = false;

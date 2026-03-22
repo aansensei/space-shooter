@@ -100,4 +100,4 @@ let lastEnemySpawn = 0;
 const initialSpawnInterval = 1494, spawnDecreaseRate = 50, minSpawnInterval = 370;
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
-const boundaryY = canvas.height - 10;
+let boundaryY = canvas.height - 10;

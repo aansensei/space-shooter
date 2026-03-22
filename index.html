@@ -669,9 +669,29 @@
             // ── MOBILE CONTROLS INIT ──────────────────────────────────
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
-                // Canvas must not intercept touches
+
+                // ── ZOOM-OUT: expand logical canvas to 1/0.78 of physical screen ──
+                // Physical CSS size stays = screen size (no black bars)
+                // Logical coordinate space is larger → everything appears smaller
+                const physW = window.innerWidth;
+                const physH = window.innerHeight;
+                const S = 1 / 0.78; // 1.282
                 const cv = document.getElementById('gameCanvas');
-                if (cv) cv.style.pointerEvents = 'none';
+                cv.style.width = physW + 'px';
+                cv.style.height = physH + 'px';
+                cv.width = Math.round(physW * S);
+                cv.height = Math.round(physH * S);
+
+                // Update all canvas-dependent globals
+                boundaryY = cv.height - 10;
+                player.x = cv.width / 2;
+                player.y = boundaryY - 18;
+                if (typeof skillASensorRadius !== 'undefined')
+                    skillASensorRadius = Math.min(cv.width, cv.height) * 0.9;
+
+                // Canvas must not intercept touches — buttons on top
+                cv.style.pointerEvents = 'none';
+
                 const mc = document.getElementById('mc');
                 mc.style.display = 'block';
                 mc.innerHTML = _buildMobileHTML();
