@@ -669,27 +669,9 @@
             // ── MOBILE CONTROLS INIT ──────────────────────────────────
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
-
-                // Zoom-out: shrink logical canvas to 78% width, full height stays
-                // This makes all game objects smaller naturally, no black bars
+                // Canvas must not intercept touches
                 const cv = document.getElementById('gameCanvas');
-                const physW = window.innerWidth;
-                const physH = window.innerHeight;
-                // CSS: canvas fills screen physically
-                cv.style.width = physW + 'px';
-                cv.style.height = physH + 'px';
-                // Logical size: wider = smaller objects (letterbox effect)
-                const scale = 0.72;
-                cv.width = Math.round(physW / scale);
-                cv.height = Math.round(physH / scale);
-                // Update game globals that depend on canvas size
-                if (typeof player !== 'undefined') {
-                    player.x = cv.width / 2;
-                    player.y = cv.height - 60;
-                }
-                // Canvas must not intercept touches — buttons need to receive them
-                cv.style.pointerEvents = 'none';
-
+                if (cv) cv.style.pointerEvents = 'none';
                 const mc = document.getElementById('mc');
                 mc.style.display = 'block';
                 mc.innerHTML = _buildMobileHTML();
