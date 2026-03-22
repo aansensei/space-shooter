@@ -871,6 +871,27 @@
                         const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
                         _paintRing('mb-ch-cv', cr, '#00e5ff');
                         document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
+
+                        // ── Silence X overlay on all skill buttons ────────────
+                        const silenced = typeof player !== 'undefined' && player._silenced;
+                        const skillBtnIds = ['mb-yog', 'mb-a', 'mb-s', 'mb-d', 'mb-f', 'mb-g', 'mb-ch'];
+                        skillBtnIds.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (!el) return;
+                            let xEl = el.querySelector('.silence-x');
+                            if (silenced) {
+                                if (!xEl) {
+                                    xEl = document.createElement('div');
+                                    xEl.className = 'silence-x';
+                                    xEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:10;display:flex;align-items:center;justify-content:center;';
+                                    xEl.innerHTML = '<svg viewBox="0 0 40 40" width="70%" height="70%"><line x1="5" y1="5" x2="35" y2="35" stroke="rgba(255,30,30,0.9)" stroke-width="5" stroke-linecap="round"/><line x1="35" y1="5" x2="5" y2="35" stroke="rgba(255,30,30,0.9)" stroke-width="5" stroke-linecap="round"/></svg>';
+                                    el.style.position = 'relative';
+                                    el.appendChild(xEl);
+                                }
+                            } else {
+                                if (xEl) xEl.remove();
+                            }
+                        });
                     } catch (e) { }
                     requestAnimationFrame(loop);
                 }

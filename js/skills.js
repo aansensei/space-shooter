@@ -19,6 +19,7 @@ function updateDefensiveOrbs() {
 
 function activateSkillA() {
     const currentTime = performance.now();
+    if (typeof player !== "undefined" && player._silenced) return; // Silence
     if (gameState === "playing" && currentTime - lastSkillA >= skillACooldown) {
         if (skillAOrbs.length >= maxSkillAOrbs) return;
         lastSkillA = currentTime;
@@ -82,6 +83,14 @@ function updateSkillA(deltaTime) {
     }
     for (let i = skillAOrbs.length - 1; i >= 0; i--) {
         let orb = skillAOrbs[i];
+        // When player is silenced, orbs stop targeting and return to orbit
+        const playerSilenced = typeof player !== 'undefined' && player._silenced;
+        if (orb.target && playerSilenced) {
+            // Release target, return to orbit
+            orb.target.isTargetedByA = false;
+            orb.target = null;
+            orb.speed = 0;
+        }
         if (orb.target) {
             if (!enemies.includes(orb.target) || orb.target.hp <= 0) {
                 if (orb.target) orb.target.isTargetedByA = false;
@@ -167,6 +176,7 @@ function updateScatteredProjectiles(deltaTime) {
 
 function activateSkillS() {
     const currentTime = performance.now();
+    if (typeof player !== "undefined" && player._silenced) return; // Silence
     if (gameState === "playing" && spirits.length < MAX_SPIRITS && currentTime - lastSkillS >= skillSCooldown) {
         lastSkillS = currentTime;
         spirits.push({
@@ -240,6 +250,7 @@ function updateBladeArcProjectiles(deltaTime) {
             continue;
         }
         for (let enemy of enemies) {
+            if (enemy.type === 'abyssal_chain') continue; // piercing
             if (arc.hitEnemies.includes(enemy)) continue;
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
@@ -265,6 +276,7 @@ function updateSpiritBullets(deltaTime) {
         } else { b.y -= 8.8 * dt * (b.speedMultiplier || 1); }
         b.lifetime -= deltaTime;
         for (let enemy of enemies) {
+            if (enemy.type === 'abyssal_chain') continue; // piercing
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
                 if (checkMarchosiasArcShield(enemy, b, b.x, b.y)) {
@@ -298,6 +310,7 @@ function updateSpiritFinale(spirit, deltaTime) {
             if (spirit.finaleLastLaserTick <= 0) {
                 spirit.finaleLastLaserTick = 100;
                 enemies.forEach(enemy => {
+                    if (enemy.type === 'abyssal_chain') return;
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
                     dealDamage(enemy, { damage: 10, percentDamage: 0.40 });
                 });
@@ -322,6 +335,7 @@ function updateSpiritFinale(spirit, deltaTime) {
 
 function activateSkillD() {
     const currentTime = performance.now();
+    if (typeof player !== 'undefined' && player._silenced) return;
     if (gameState !== "playing" || skillDCharging || blackHole || currentTime - lastSkillD < skillDCooldown) return;
     skillDCharging = true;
     skillDChargeStartTime = performance.now();
@@ -346,6 +360,7 @@ function updateSkillD(deltaTime) {
 
         const pullSpeed = 6;
         for (let enemy of enemies) {
+            if (enemy.type === 'abyssal_chain') continue; // piercing — immune to black hole
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
             if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
                 if (d > 1) {
@@ -370,6 +385,7 @@ function updateSkillD(deltaTime) {
 
 function activateSkillF() {
     const currentTime = performance.now();
+    if (typeof player !== "undefined" && player._silenced) return; // Silence
     if (gameState === "playing" && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
         lastSkillF = currentTime;
         skillFState = "charging";
@@ -395,6 +411,7 @@ function updateSkillF(deltaTime) {
 
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;
+            if (enemy.type === 'abyssal_chain') continue; // piercing — immune to skill F
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
@@ -423,6 +440,7 @@ function updateSkillF(deltaTime) {
 }
 
 function activateSkillG() {
+    if (typeof player !== 'undefined' && player._silenced) return;
     if (gameState !== "playing" || skillGActive || skillGCharge < 100) return;
 
     skillGActive = true;

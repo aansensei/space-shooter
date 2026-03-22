@@ -350,12 +350,23 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 **Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 14,060 – 56,260 points | **Speed:** ~1.8 u/s
 
-Massive size. HP: roughly 2,520–8,399. Permanent **15% Damage Reduction**.
+Massive size. HP: roughly 2,520–8,399. Permanent Damage Reduction from **Passive: Maître Suprême** (see below).
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
 - Heals all other enemies for **15% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 21% efficiency. Cannot heal enemies at 0 HP.
 - All units gain **+18% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+30%**).
+
+**Passive: Maître Suprême** — Dargruel's base Damage Reduction scales with the battlefield:
+
+- **25% base DR** at all times.
+- **+2% DR per active Sentinel** on screen. Capped at **36% total DR**.
+- **+5% normal attack speed per active Sentinel**, capped at **+20%**.
+
+**Skill: Abyssal Chains (Hắc Ám Xiềng Xích)** — Every **2 seconds**, fires **3 dark chains** in a spread aimed at the player's current position. Chains are **piercing** — they cannot be destroyed or deflected by any player or Sentinel projectile.
+
+- **Hit player** → **Root & Silence for 1 second**: the player cannot move (← →) or use any skill including Yog-Sothoth Domain. All skill icons display a red X during this state.
+- **Hit Sentinel** → instant **true damage equal to 15% of that Sentinel's Max HP** (bypasses all shields), chain explodes on contact.
 
 **Maou Haki** — Triggers once at **50% HP**:
 

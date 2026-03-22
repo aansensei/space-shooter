@@ -69,7 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Skill Shift: Yog-Sothoth
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
-            if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown) {
+            if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown
+                && !(typeof player !== 'undefined' && player._silenced)) {
                 skillShiftActive = true;
                 skillShiftChargeStart = performance.now();
             }

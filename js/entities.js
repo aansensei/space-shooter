@@ -235,6 +235,7 @@ function spawnDargruel() {
         speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'boss', shootTimer: (autoFireInterval * 2) * 0.75,
+        chainTimer: 0, // fire first volley immediately on spawn
         demonGift70Triggered: false, demonGift50Triggered: false,
         demonGift40Triggered: false, demonGift10Triggered: false, demonGift1Triggered: false
     });
@@ -676,7 +677,9 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'boss') {
-        combinedDR += 0.15; // Dargruel base DR
+        // Maître suprême: 25% base + 2% per sentinel, capped at 36%
+        const maitreDR = Math.min(0.36, 0.25 + sentinels.length * 0.02);
+        combinedDR += maitreDR;
     }
 
     if (enemy.type === 'leviathan') {
