@@ -63,7 +63,7 @@ function updateSkillA(deltaTime) {
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
 
-    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
+    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
 
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive);

@@ -157,7 +157,7 @@ function update(rawDeltaTime) {
         lastEnemySpawn += delay;
     }
 
-    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet')).length > 4) || skillGActive ||
+    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
         enemies.some(e => e.type === 'boss' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias');
 
     // Accurate Parry expiry
@@ -474,6 +474,37 @@ function update(rawDeltaTime) {
             if (enemy.type === 'abyssal_chain') {
                 // Chain consumed — no kill, no life loss, no explosion
                 enemies.splice(i, 1); continue;
+            }
+
+            // MARCHOSIAS: convert pending windups → blades on death (Skill F / Black Hole path)
+            if (enemy.type === 'marchosias') {
+                if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
+                    enemy.marchosiasWindups.forEach(windup => {
+                        if (!windup.target) return;
+                        const angle = Math.atan2(windup.target.y - enemy.y, windup.target.x - enemy.x);
+                        marchosiasBlades.push({
+                            x: enemy.x, y: enemy.y,
+                            vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
+                            angle, radius: 88,
+                            delay: windup.timer > 0 ? windup.timer : 0,
+                            active: windup.timer <= 0,
+                            originX: enemy.x, originY: enemy.y,
+                            hitEnemies: [], hitPlayer: false,
+                        });
+                    });
+                    enemy.marchosiasWindups = [];
+                }
+                _fireMarchosiasDeathSwords(enemy);
+                addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
+                createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
+                for (let k = 0; k < 3; k++) {
+                    const spawnAngle = (Math.PI * 2 / 3) * k;
+                    spawnMarchosiasMinion(
+                        enemy.x + Math.cos(spawnAngle) * enemy.size * 0.5,
+                        enemy.y + Math.sin(spawnAngle) * enemy.size * 0.5,
+                        enemy.maxHp
+                    );
+                }
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {

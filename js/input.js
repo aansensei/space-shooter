@@ -1,3 +1,18 @@
+// ── Global UI helpers — called from main.js ───────────────────
+function showStartButton(text) {
+    const btn = document.getElementById("startBtn");
+    if (!btn) return;
+    btn.textContent = text;
+    btn.style.top = (typeof gameState !== 'undefined' && gameState === "gameover")
+        ? "calc(50% + 80px)" : "50%";
+    btn.style.display = "block";
+}
+
+function hideStartButton() {
+    const btn = document.getElementById("startBtn");
+    if (btn) btn.style.display = "none";
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById("startBtn");
 
@@ -13,21 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startGame();
     });
 
-    function showStartButton(text) {
-        startBtn.textContent = text;
-        if (gameState === "gameover") {
-            startBtn.style.top = "calc(50% + 80px)";
-        } else {
-            startBtn.style.top = "50%";
-        }
-        startBtn.style.display = "block";
-    }
-
-    function hideStartButton() {
-        startBtn.style.display = "none";
-    }
-
-    // --- LOGIC MÀN HÌNH PAUSE ---
+    // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded
     function showPauseScreen() {
         pauseOverlay.style.display = "flex";
         resumeBtn.style.display = "block";

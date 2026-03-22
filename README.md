@@ -350,7 +350,7 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 **Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 14,060 – 56,260 points | **Speed:** ~1.8 u/s
 
-Massive size. HP: roughly 2,520–8,399. Permanent Damage Reduction from **Passive: Maître Suprême** (see below).
+Massive size. HP: roughly 2,520–8,399. Permanent Damage Reduction from **Passive: Maître Suprême** (see below). No base DR — all DR is dynamic.
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
@@ -363,9 +363,9 @@ Massive size. HP: roughly 2,520–8,399. Permanent Damage Reduction from **Passi
 - **+2% DR per active Sentinel** on screen. Capped at **36% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 
-**Skill: Abyssal Chains (Hắc Ám Xiềng Xích)** — Every **2 seconds**, fires **3 dark chains** in a spread aimed at the player's current position. Chains are **piercing** — they cannot be destroyed or deflected by any player or Sentinel projectile.
+**Skill: Abyssal Chains( Hắc Ám Xiềng Xích )** — Every **2 seconds**, fires **4 dark chains** in a spread aimed at the player's current position. Chains are **piercing** — they cannot be destroyed or deflected by any source: player bullets, Sentinel bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, or spirit finale. Chains also cannot be targeted by Skill A orbs.
 
-- **Hit player** → **Root & Silence for 1 second**: the player cannot move (← →) or use any skill including Yog-Sothoth Domain. All skill icons display a red X during this state.
+- **Hit player** → **Root & Silence for 1 second**: the player cannot move (← →), cannot use any skill including Yog-Sothoth Domain, and **auto-fire stops** for the duration. Skill A orbs stop targeting and return to orbit. All skill icons display a red X during this state. The chain also re-applies silence even if already silenced (refreshes timer).
 - **Hit Sentinel** → instant **true damage equal to 15% of that Sentinel's Max HP** (bypasses all shields), chain explodes on contact.
 
 **Maou Haki** — Triggers once at **50% HP**:
