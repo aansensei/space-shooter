@@ -274,17 +274,23 @@ function draw(deltaTime) {
     }
 
     const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
+    const _MOB_SCALE = 0.78;
 
     // ── Mobile particle cap: keep max 120 ────────────────────────
     if (_isMobile && particles.length > 120) {
         particles.splice(0, particles.length - 120);
     }
 
-    // ── Mobile shadowBlur suppressor ─────────────────────────────
-    // Proxy ctx.shadowBlur setter to clamp to 0 on mobile
-    // (applied per-frame via a simple flag checked at draw time)
-
+    // Step 1: background always full canvas (no black bars)
     drawSpaceBackground(deltaTime);
+
+    // Step 2: scale game world 78% on mobile, anchored top-center
+    // Background already drawn — scale only affects game objects below
+    if (_isMobile) {
+        ctx.save();
+        ctx.translate(canvas.width * (1 - _MOB_SCALE) / 2, 0);
+        ctx.scale(_MOB_SCALE, _MOB_SCALE);
+    }
 
     // ── Yog-Sothoth Domain Expansion (JJK signature) ─────────────
     if (gameState === "playing" && skillShiftActive) {
@@ -909,6 +915,8 @@ function draw(deltaTime) {
 
     if (gameState === "playing") {
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
+        // Close mobile scale — HUD vẽ ở full canvas coords
+        if (_isMobile) ctx.restore();
         // HUD — smaller on mobile
         const hudFont = _isMobile ? '13px Arial' : '20px Arial';
         const hudTimer = _isMobile ? 'bold 15px monospace' : 'bold 22px monospace';

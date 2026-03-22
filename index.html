@@ -670,25 +670,27 @@
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
 
-                // ── ZOOM-OUT ──────────────────────────────────────────
+                // Canvas = đúng kích thước màn hình (không phình to)
+                const cv = document.getElementById('gameCanvas');
                 const physW = window.innerWidth;
                 const physH = window.innerHeight;
-                const S = 1 / 0.78;
-                const cv = document.getElementById('gameCanvas');
                 cv.style.width = physW + 'px';
                 cv.style.height = physH + 'px';
-                cv.width = Math.round(physW * S);
-                cv.height = Math.round(physH * S);
+                cv.width = physW;
+                cv.height = physH;
 
-                boundaryY = cv.height - 10;
-                player.x = cv.width / 2;
-                player.y = boundaryY - 18;
+                // boundaryY và player.y cần tính ngược scale để sau khi scale(0.78)
+                // chúng vẫn xuất hiện ở đáy màn hình thật
+                // scaled_y = y * 0.78 → để scaled_y = physH - N → y = (physH - N) / 0.78
+                const S = 1 / 0.78;
+                boundaryY = Math.round((physH - 8) * S);
+                player.x = Math.round(physW * S / 2); // center of scaled world
+                player.y = Math.round((physH - 26) * S);
                 if (typeof skillASensorRadius !== 'undefined')
-                    skillASensorRadius = Math.min(cv.width, cv.height) * 0.9;
+                    skillASensorRadius = Math.min(physW, physH) * S * 0.9;
 
                 cv.style.pointerEvents = 'none';
 
-                // ── INIT PERF FLAGS ───────────────────────────────────
                 if (typeof _initMobilePerf === 'function') _initMobilePerf();
 
                 const mc = document.getElementById('mc');

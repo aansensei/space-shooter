@@ -1038,7 +1038,7 @@ function startGame() {
     teslaCoils = [];
 
     player.x = canvas.width / 2;
-    // Mobile: re-pin player to boundary (canvas may have been resized)
+    // Mobile: tính ngược scale để player xuất hiện đúng đáy màn hình sau ctx.scale(0.78)
     if (typeof _platform !== 'undefined' && _platform === 'mobile') {
         player.y = boundaryY - 18;
     }
