@@ -15,44 +15,77 @@ function getOffCtx(w, h) {
 }
 
 // ── star-field with subtle twinkle ───────────────────────────
-function drawSpaceBackground(deltaTime) {
-    ctx.fillStyle = '#03030f';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+// ══ MOBILE PERFORMANCE FLAGS ═══════════════════════════════════
+// Set once when platform is known. PC path untouched.
+let _mobPerf = false; // true when mobile mode active
+let _bgOffscreen = null; // cached background canvas
+let _bgDirty = true;    // redraw background this frame?
+let _bgCacheFrame = 0;  // frame counter for cache refresh
 
-    // Nebula clouds — mờ nhẹ
+// Intercept ctx.shadowBlur on mobile — return to 0 for most calls
+// Wrapped lazily after canvas is set up (see initMobilePerf)
+function _initMobilePerf() {
+    _mobPerf = true;
+    _bgDirty = true;
+}
+
+// ══ END MOBILE FLAGS ════════════════════════════════════════════
+
+function drawSpaceBackground(deltaTime) {
+    // ── Mobile: cache background, redraw every 3 frames ──────────
+    if (_mobPerf) {
+        _bgCacheFrame++;
+        const needRedraw = _bgDirty || (_bgCacheFrame % 3 === 0);
+
+        if (needRedraw || !_bgOffscreen || _bgOffscreen.width !== canvas.width || _bgOffscreen.height !== canvas.height) {
+            // Create or resize offscreen canvas
+            if (!_bgOffscreen) _bgOffscreen = document.createElement('canvas');
+            _bgOffscreen.width = canvas.width;
+            _bgOffscreen.height = canvas.height;
+            const oCtx = _bgOffscreen.getContext('2d');
+            _drawSpaceBgTo(oCtx, deltaTime, canvas.width, canvas.height);
+            _bgDirty = false;
+        }
+        ctx.drawImage(_bgOffscreen, 0, 0);
+        return;
+    }
+    // ── PC: draw directly as before ───────────────────────────────
+    _drawSpaceBgTo(ctx, deltaTime, canvas.width, canvas.height);
+}
+
+function _drawSpaceBgTo(c, deltaTime, W, H) {
+    c.fillStyle = '#03030f';
+    c.fillRect(0, 0, W, H);
+
+    // Nebula clouds
     if (!nebulaPoints) {
         nebulaPoints = [];
         for (let i = 0; i < 5; i++) {
             nebulaPoints.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height * 0.7,
+                x: Math.random() * W,
+                y: Math.random() * H * 0.7,
                 r: 120 + Math.random() * 200,
                 h: [200, 260, 180, 300, 220][i],
                 a: 0.03 + Math.random() * 0.04
             });
         }
     }
-    ctx.save();
+    c.save();
     nebulaPoints.forEach(n => {
-        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+        const g = c.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
         g.addColorStop(0, `hsla(${n.h},70%,35%,${n.a})`);
         g.addColorStop(1, 'transparent');
-        ctx.fillStyle = g;
-        ctx.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
+        c.fillStyle = g;
+        c.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
     });
-    ctx.restore();
+    c.restore();
 
-    // ── Star field với hiệu ứng parallax zoom ────────────────────
-    // Mỗi sao có z (độ sâu 0→1), bay từ tâm ra rìa màn hình
-    // z nhỏ = xa (nhỏ mờ), z lớn = gần (to sáng)
     if (bgStars.length === 0) {
         for (let i = 0; i < 280; i++) {
             bgStars.push({
-                // Vị trí gốc trong không gian -1..1
-                ox: Math.random() * 2 - 1,
-                oy: Math.random() * 2 - 1,
-                z: Math.random(),           // độ sâu hiện tại
-                speed: 0.0003 + Math.random() * 0.0006, // tốc độ z tiến về phía camera
+                ox: Math.random() * 2 - 1, oy: Math.random() * 2 - 1,
+                z: Math.random(),
+                speed: 0.0003 + Math.random() * 0.0006,
                 color: Math.random() > 0.75 ? '#00e5ff' : (Math.random() > 0.45 ? '#ffffff' : '#ffccff'),
                 phase: Math.random() * Math.PI * 2
             });
@@ -61,67 +94,53 @@ function drawSpaceBackground(deltaTime) {
 
     const now = performance.now();
     const dt = deltaTime ? deltaTime / 16.67 : 1;
-    const W = canvas.width, H = canvas.height;
-    const cx = W / 2, cy = H / 2;
+    const cxW = W / 2, cyH = H / 2;
 
-    ctx.save();
+    c.save();
     for (const star of bgStars) {
-        // Tiến z về 1 (gần camera)
         star.z += star.speed * dt;
-        if (star.z >= 1) {
-            // Reset xa lại
-            star.ox = Math.random() * 2 - 1;
-            star.oy = Math.random() * 2 - 1;
-            star.z = 0.01;
-        }
+        if (star.z >= 1) { star.ox = Math.random() * 2 - 1; star.oy = Math.random() * 2 - 1; star.z = 0.01; }
 
-        // Project: z=0 → ở tâm màn hình, z=1 → ở rìa
         const perspective = 1 / (1 - star.z * 0.95);
-        const sx = cx + star.ox * cx * perspective;
-        const sy = cy + star.oy * cy * perspective;
-
-        // Clip ngoài màn hình
+        const sx = cxW + star.ox * cxW * perspective;
+        const sy = cyH + star.oy * cyH * perspective;
         if (sx < 0 || sx > W || sy < 0 || sy > H) continue;
 
-        // Kích thước và độ sáng tăng theo z
         const size = 0.2 + star.z * star.z * 3.5;
-        const brightness = star.z * star.z; // dim xa, sáng gần
-        // Nhấp nháy nhẹ (dim hơn ở xa, nháy ít hơn)
-        const twinkle = brightness < 0.3
-            ? brightness
+        const brightness = star.z * star.z;
+        const twinkle = brightness < 0.3 ? brightness
             : brightness * (0.75 + 0.25 * Math.sin(now / 500 + star.phase));
 
-        ctx.globalAlpha = Math.min(1, twinkle * 1.2);
-        ctx.fillStyle = star.color;
+        c.globalAlpha = Math.min(1, twinkle * 1.2);
+        c.fillStyle = star.color;
 
-        // Glow cho sao gần (z > 0.65)
-        if (star.z > 0.65) {
-            ctx.shadowColor = star.color;
-            ctx.shadowBlur = size * 3;
+        // Mobile: skip shadowBlur for stars entirely (big GPU win)
+        if (!_mobPerf && star.z > 0.65) {
+            c.shadowColor = star.color;
+            c.shadowBlur = size * 3;
         } else {
-            ctx.shadowBlur = 0;
+            c.shadowBlur = 0;
         }
 
-        // Vệt chuyển động cho sao rất gần (z > 0.82)
-        if (star.z > 0.82) {
+        if (!_mobPerf && star.z > 0.82) {
             const prevZ = star.z - star.speed * dt * 3;
             const prevP = 1 / (1 - Math.max(0, prevZ) * 0.95);
-            const px = cx + star.ox * cx * prevP;
-            const py = cy + star.oy * cy * prevP;
-            ctx.strokeStyle = star.color;
-            ctx.lineWidth = size * 0.7;
-            ctx.globalAlpha = Math.min(1, twinkle * 0.6);
-            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(sx, sy); ctx.stroke();
-            ctx.globalAlpha = Math.min(1, twinkle * 1.2);
+            const px = cxW + star.ox * cxW * prevP;
+            const py = cyH + star.oy * cyH * prevP;
+            c.strokeStyle = star.color;
+            c.lineWidth = size * 0.7;
+            c.globalAlpha = Math.min(1, twinkle * 0.6);
+            c.beginPath(); c.moveTo(px, py); c.lineTo(sx, sy); c.stroke();
+            c.globalAlpha = Math.min(1, twinkle * 1.2);
         }
 
-        ctx.beginPath();
-        ctx.arc(sx, sy, Math.max(0.3, size), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        c.beginPath();
+        c.arc(sx, sy, Math.max(0.3, size), 0, Math.PI * 2);
+        c.fill();
+        c.shadowBlur = 0;
     }
-    ctx.globalAlpha = 1;
-    ctx.restore();
+    c.globalAlpha = 1;
+    c.restore();
 }
 
 
@@ -255,6 +274,15 @@ function draw(deltaTime) {
     }
 
     const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
+
+    // ── Mobile particle cap: keep max 120 ────────────────────────
+    if (_isMobile && particles.length > 120) {
+        particles.splice(0, particles.length - 120);
+    }
+
+    // ── Mobile shadowBlur suppressor ─────────────────────────────
+    // Proxy ctx.shadowBlur setter to clamp to 0 on mobile
+    // (applied per-frame via a simple flag checked at draw time)
 
     drawSpaceBackground(deltaTime);
 

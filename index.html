@@ -670,27 +670,42 @@
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
 
-                // ── ZOOM-OUT: expand logical canvas to 1/0.78 of physical screen ──
-                // Physical CSS size stays = screen size (no black bars)
-                // Logical coordinate space is larger → everything appears smaller
+                // ── ZOOM-OUT ──────────────────────────────────────────
                 const physW = window.innerWidth;
                 const physH = window.innerHeight;
-                const S = 1 / 0.78; // 1.282
+                const S = 1 / 0.78;
                 const cv = document.getElementById('gameCanvas');
                 cv.style.width = physW + 'px';
                 cv.style.height = physH + 'px';
                 cv.width = Math.round(physW * S);
                 cv.height = Math.round(physH * S);
 
-                // Update all canvas-dependent globals
                 boundaryY = cv.height - 10;
                 player.x = cv.width / 2;
                 player.y = boundaryY - 18;
                 if (typeof skillASensorRadius !== 'undefined')
                     skillASensorRadius = Math.min(cv.width, cv.height) * 0.9;
 
-                // Canvas must not intercept touches — buttons on top
                 cv.style.pointerEvents = 'none';
+
+                // ── SHADOWBLUR SUPPRESSOR ─────────────────────────────
+                // Override ctx.shadowBlur to always be 0 on mobile
+                // Saves 1 GPU blur pass per draw call — biggest perf win
+                if (typeof ctx !== 'undefined' && ctx) {
+                    let _sb = 0;
+                    Object.defineProperty(ctx, 'shadowBlur', {
+                        get() { return _sb; },
+                        set(v) { _sb = 0; } // always clamp to 0
+                    });
+                    // Also zero out shadowColor to avoid any state residue
+                    Object.defineProperty(ctx, 'shadowColor', {
+                        get() { return 'transparent'; },
+                        set(v) { }
+                    });
+                }
+
+                // ── INIT PERF FLAGS ───────────────────────────────────
+                if (typeof _initMobilePerf === 'function') _initMobilePerf();
 
                 const mc = document.getElementById('mc');
                 mc.style.display = 'block';
