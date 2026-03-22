@@ -688,22 +688,6 @@
 
                 cv.style.pointerEvents = 'none';
 
-                // ── SHADOWBLUR SUPPRESSOR ─────────────────────────────
-                // Override ctx.shadowBlur to always be 0 on mobile
-                // Saves 1 GPU blur pass per draw call — biggest perf win
-                if (typeof ctx !== 'undefined' && ctx) {
-                    let _sb = 0;
-                    Object.defineProperty(ctx, 'shadowBlur', {
-                        get() { return _sb; },
-                        set(v) { _sb = 0; } // always clamp to 0
-                    });
-                    // Also zero out shadowColor to avoid any state residue
-                    Object.defineProperty(ctx, 'shadowColor', {
-                        get() { return 'transparent'; },
-                        set(v) { }
-                    });
-                }
-
                 // ── INIT PERF FLAGS ───────────────────────────────────
                 if (typeof _initMobilePerf === 'function') _initMobilePerf();
 
