@@ -972,6 +972,15 @@ function update(rawDeltaTime) {
 function gameLoop(timeStamp) {
     if (!lastTimeStamp) lastTimeStamp = timeStamp;
     let deltaTime = timeStamp - lastTimeStamp;
+
+    // ── Mobile 45fps throttle: skip frame if < 22ms since last ──
+    if (typeof _platform !== 'undefined' && _platform === 'mobile') {
+        if (deltaTime < 22) { // ~45fps cap
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+    }
+
     lastTimeStamp = timeStamp;
 
     // deltaTime quá lớn → tab bị ẩn hoặc máy lag → pause và reset clock
