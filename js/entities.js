@@ -34,6 +34,7 @@ function checkMarchosiasArcShield(enemy, source, bx, by) {
 // Cooldown 0.75s giữa các lần trigger để tránh spam
 function _tryTriggerMarchosiasCounter(enemy) {
     const now = performance.now();
+    if (enemy.hp <= 0 || enemy._markedForDeath) return; // already dead
     if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
     // Cooldown 0.75s kể từ lần trigger gần nhất
     if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 650) return;
