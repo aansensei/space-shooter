@@ -2280,6 +2280,60 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.beginPath(); ctx.arc(0, 0, 0.8, 0, Math.PI * 2); ctx.fill();
     }
 
+    // ── Silence lock icon — tím đè lên tàu khi bị câm lặng ──
+    if (alpha === 1 && typeof player !== 'undefined' && player._silenced) {
+        const lNow = performance.now();
+        const lPulse = 0.7 + 0.3 * Math.sin(lNow / 80);
+        const remaining = Math.max(0, (player._silenceEnd - lNow) / 1000);
+        const fade = Math.min(1, remaining * 4);
+
+        ctx.save();
+        ctx.globalAlpha = 0.95 * fade;
+
+        // Lock shackle (arc on top)
+        if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 20; }
+        ctx.strokeStyle = `rgba(210,0,255,${lPulse})`;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(0, -5, 10, Math.PI, 0);
+        ctx.stroke();
+
+        // Lock body — manual rounded rect (no roundRect for iOS compat)
+        const lx = -12, ly = -5, lw = 24, lh = 20, lr = 4;
+        ctx.beginPath();
+        ctx.moveTo(lx + lr, ly);
+        ctx.lineTo(lx + lw - lr, ly);
+        ctx.arcTo(lx + lw, ly, lx + lw, ly + lr, lr);
+        ctx.lineTo(lx + lw, ly + lh - lr);
+        ctx.arcTo(lx + lw, ly + lh, lx + lw - lr, ly + lh, lr);
+        ctx.lineTo(lx + lr, ly + lh);
+        ctx.arcTo(lx, ly + lh, lx, ly + lh - lr, lr);
+        ctx.lineTo(lx, ly + lr);
+        ctx.arcTo(lx, ly, lx + lr, ly, lr);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(lx, ly, lx, ly + lh);
+        grad.addColorStop(0, `rgba(150,0,220,${0.92 * lPulse})`);
+        grad.addColorStop(1, `rgba(70,0,140,${0.92 * lPulse})`);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(230,100,255,${lPulse})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Keyhole circle
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = `rgba(255,200,255,${0.9 * lPulse})`;
+        ctx.beginPath();
+        ctx.arc(0, 2, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Keyhole slot
+        ctx.fillStyle = `rgba(70,0,140,${lPulse})`;
+        ctx.fillRect(-2, 2, 4, 7);
+
+        ctx.restore();
+    }
+
     ctx.restore();
 }
 function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
@@ -2469,9 +2523,32 @@ function drawEnemy(enemy) {
             if (!_mobPerf) { ctx.shadowColor = '#dd00ff'; ctx.shadowBlur = 14; }
             ctx.fillStyle = tf < 0.4 ? '#ff88ff' : '#9900cc';
             ctx.beginPath();
-            ctx.arc(tx + (Math.random() - 0.5) * 4, ty + (Math.random() - 0.5) * 4, Math.max(1, enemy.size * (1 - tf * 0.6) * 0.38), 0, Math.PI * 2);
+            ctx.arc(tx, ty, Math.max(1, enemy.size * (1 - tf * 0.6) * 0.38), 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
+        }
+
+        // Triangle molecule particles — stored per-chain, drawn here
+        if (enemy.molParticles && enemy.molParticles.length > 0) {
+            for (const mp of enemy.molParticles) {
+                const alpha = Math.min(1, mp.life / mp.maxLife) * 0.9;
+                const blink = 0.5 + 0.5 * Math.abs(Math.sin(now0 / 100 + mp.x * 0.1));
+                ctx.save();
+                ctx.globalAlpha = alpha * blink;
+                ctx.translate(mp.x, mp.y);
+                ctx.rotate(mp.angle);
+                if (!_mobPerf) { ctx.shadowColor = mp.col; ctx.shadowBlur = 8; }
+                ctx.fillStyle = mp.col;
+                // Equilateral triangle
+                const s = mp.size;
+                ctx.beginPath();
+                ctx.moveTo(0, -s);
+                ctx.lineTo(s * 0.866, s * 0.5);
+                ctx.lineTo(-s * 0.866, s * 0.5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
         }
 
         // Rope from Dargruel to chain head
@@ -3263,6 +3340,22 @@ function _drawVulnerabilityIcon(enemy) {
         if (filled) { if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 5; }
         ctx.fill();
         ctx.shadowBlur = 0;
+    }
+
+    // Sword queue counter — Roman numerals below Mar
+    const queueCount = (enemy.marchosiasWindups || []).length;
+    if (queueCount > 0) {
+        const romans = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+        const roman = romans[Math.min(queueCount, romans.length - 1)];
+        const yOff = R + 22;
+        ctx.save();
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; }
+        ctx.fillStyle = '#00ff88';
+        ctx.font = `bold ${Math.max(11, Math.floor(R * 0.28))}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(roman, 0, yOff);
+        ctx.restore();
     }
 
     ctx.restore();
