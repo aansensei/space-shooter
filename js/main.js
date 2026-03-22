@@ -296,6 +296,7 @@ function update(rawDeltaTime) {
             if (currentTime - lastLaserTick > laserTickInterval) {
                 lastLaserTick = currentTime;
                 enemies.forEach(enemy => {
+                    if (enemy.type === 'abyssal_chain') return;
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
@@ -316,7 +317,7 @@ function update(rawDeltaTime) {
 
             const pullRadius = 200, pullStrength = 0.05;
             enemies.forEach(enemy => {
-                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo') return;
+                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo' || enemy.type === 'abyssal_chain') return;
 
                 let closestLaserX = player.x + allLasers.reduce((prev, curr) =>
                     Math.abs(enemy.x - (player.x + curr.xOffset)) < Math.abs(enemy.x - (player.x + prev.xOffset)) ? curr : prev, { xOffset: 0 }).xOffset;
@@ -479,9 +480,12 @@ function update(rawDeltaTime) {
             // MARCHOSIAS: convert pending windups → blades on death (Skill F / Black Hole path)
             if (enemy.type === 'marchosias') {
                 if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
-                    enemy.marchosiasWindups.forEach(windup => {
+                    const count = enemy.marchosiasWindups.length;
+                    enemy.marchosiasWindups.forEach((windup, idx) => {
                         if (!windup.target) return;
-                        const angle = Math.atan2(windup.target.y - enemy.y, windup.target.x - enemy.x);
+                        const baseAngle = Math.atan2(windup.target.y - enemy.y, windup.target.x - enemy.x);
+                        const spread = (idx - (count - 1) / 2) * 0.18;
+                        const angle = baseAngle + spread;
                         marchosiasBlades.push({
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
@@ -494,7 +498,6 @@ function update(rawDeltaTime) {
                     });
                     enemy.marchosiasWindups = [];
                 }
-                _fireMarchosiasDeathSwords(enemy);
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
                 for (let k = 0; k < 3; k++) {
@@ -521,6 +524,36 @@ function update(rawDeltaTime) {
         if (enemy.type === 'abyssal_chain') {
             enemy.x += enemy.vx * dt;
             enemy.y += enemy.vy * dt;
+
+            // Triangle molecule particles — spawn + update
+            if (!enemy.molParticles) enemy.molParticles = [];
+            // Spawn new triangle every ~80ms
+            if (!enemy._lastMolSpawn || currentTime - enemy._lastMolSpawn > 80) {
+                enemy._lastMolSpawn = currentTime;
+                const perpAngle = Math.atan2(enemy.vy, enemy.vx) + Math.PI / 2;
+                const side = Math.random() < 0.5 ? 1 : -1;
+                enemy.molParticles.push({
+                    x: enemy.x + Math.cos(perpAngle) * side * (Math.random() * 6),
+                    y: enemy.y + Math.sin(perpAngle) * side * (Math.random() * 6),
+                    vx: (Math.random() - 0.5) * 1.5 - enemy.vx * 0.08,
+                    vy: (Math.random() - 0.5) * 1.5 - enemy.vy * 0.08,
+                    life: 500 + Math.random() * 300,
+                    maxLife: 700,
+                    size: 3 + Math.random() * 3,
+                    angle: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 0.12,
+                    col: Math.random() < 0.5 ? '#cc44ff' : '#8800cc'
+                });
+            }
+            // Update existing particles
+            for (let mi = enemy.molParticles.length - 1; mi >= 0; mi--) {
+                const mp = enemy.molParticles[mi];
+                mp.x += mp.vx * dt;
+                mp.y += mp.vy * dt;
+                mp.angle += mp.spin * dt;
+                mp.life -= deltaTime;
+                if (mp.life <= 0) { enemy.molParticles.splice(mi, 1); }
+            }
 
             // Hit player — silence always applies, bypasses ALL protections
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
@@ -790,12 +823,13 @@ function update(rawDeltaTime) {
 
             // ASSIMILATION: Marchosias tách 3 robot nhỏ khi chết
             if (enemy.type === 'marchosias') {
-                // Convert tất cả pending windups thành blades ngay lập tức (không để mất khi splice)
                 if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
-                    enemy.marchosiasWindups.forEach(windup => {
+                    const count = enemy.marchosiasWindups.length;
+                    enemy.marchosiasWindups.forEach((windup, idx) => {
                         if (!windup.target) return;
-                        const tx = windup.target.x, ty = windup.target.y;
-                        const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
+                        const baseAngle = Math.atan2(windup.target.y - enemy.y, windup.target.x - enemy.x);
+                        const spread = (idx - (count - 1) / 2) * 0.18;
+                        const angle = baseAngle + spread;
                         marchosiasBlades.push({
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
@@ -808,7 +842,6 @@ function update(rawDeltaTime) {
                     });
                     enemy.marchosiasWindups = [];
                 }
-                _fireMarchosiasDeathSwords(enemy);
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
                 for (let k = 0; k < 3; k++) {

@@ -45,28 +45,26 @@ function _tryTriggerMarchosiasCounter(enemy) {
     });
 }
 
-// Khi HP Mar <= 1% — bắn tất cả Sword còn thiếu ngay lập tức (dùng delay system)
+// Khi HP Mar <= 1% — bắn tất cả Sword đang pending trong queue ngay lập tức
 function _fireMarchosiasDeathSwords(enemy) {
-    if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
-
-    // Số windup đang pending
-    const pendingWindups = enemy.marchosiasWindups.length;
-    // Nếu không có gì đang pending thì tạo 3 đòn ngay
-    const toFire = Math.max(1, 3 - pendingWindups);
-
-    for (let i = 0; i < toFire; i++) {
-        const spread = (i - (toFire - 1) / 2) * 0.22;
-        const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+    if (!enemy.marchosiasWindups || enemy.marchosiasWindups.length === 0) return;
+    // Fire all queued windups instantly, spread slightly
+    const count = enemy.marchosiasWindups.length;
+    enemy.marchosiasWindups.forEach((windup, idx) => {
+        if (!windup.target) return;
+        const baseAngle = Math.atan2(windup.target.y - enemy.y, windup.target.x - enemy.x);
+        const spread = (idx - (count - 1) / 2) * 0.18;
         const angle = baseAngle + spread;
         marchosiasBlades.push({
             x: enemy.x, y: enemy.y,
             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
-            angle: angle, radius: 88,
-            delay: 1000, active: false,
+            angle, radius: 88,
+            delay: 0, active: true, // fire immediately
             hitEnemies: [], hitPlayer: false,
             originX: enemy.x, originY: enemy.y,
         });
-    }
+    });
+    enemy.marchosiasWindups = [];
 }
 
 // ── VULNERABILITY (Trọng Thương) ──────────────────────────────
@@ -513,6 +511,7 @@ function findClosestEnemy(x, y) {
     let closest = null, closestDist = Infinity;
     for (let enemy of enemies) {
         if (enemy.type.startsWith('enemy_bullet')) continue;
+        if (enemy.type === 'abyssal_chain') continue; // chains cannot be targeted
         let d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d < closestDist) { closest = enemy; closestDist = d; }
     }

@@ -876,20 +876,20 @@
                         const silenced = typeof player !== 'undefined' && player._silenced;
                         const skillBtnIds = ['mb-yog', 'mb-a', 'mb-s', 'mb-d', 'mb-f', 'mb-g', 'mb-ch'];
                         skillBtnIds.forEach(id => {
-                            const el = document.getElementById(id);
-                            if (!el) return;
-                            let xEl = el.querySelector('.silence-x');
+                            const cv = document.getElementById(id + '-cv');
+                            if (!cv) return;
                             if (silenced) {
-                                if (!xEl) {
-                                    xEl = document.createElement('div');
-                                    xEl.className = 'silence-x';
-                                    xEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:10;display:flex;align-items:center;justify-content:center;';
-                                    xEl.innerHTML = '<svg viewBox="0 0 40 40" width="70%" height="70%"><line x1="5" y1="5" x2="35" y2="35" stroke="rgba(255,30,30,0.9)" stroke-width="5" stroke-linecap="round"/><line x1="35" y1="5" x2="5" y2="35" stroke="rgba(255,30,30,0.9)" stroke-width="5" stroke-linecap="round"/></svg>';
-                                    el.style.position = 'relative';
-                                    el.appendChild(xEl);
-                                }
-                            } else {
-                                if (xEl) xEl.remove();
+                                // Draw X on the cooldown canvas — no DOM injection, no position change
+                                const c2 = cv.getContext('2d');
+                                const w = cv.width, h = cv.height;
+                                c2.save();
+                                c2.strokeStyle = 'rgba(255,30,30,0.9)';
+                                c2.lineWidth = 6;
+                                c2.lineCap = 'round';
+                                const m = w * 0.2;
+                                c2.beginPath(); c2.moveTo(m, m); c2.lineTo(w - m, h - m); c2.stroke();
+                                c2.beginPath(); c2.moveTo(w - m, m); c2.lineTo(m, h - m); c2.stroke();
+                                c2.restore();
                             }
                         });
                     } catch (e) { }
