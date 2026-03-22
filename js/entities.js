@@ -72,12 +72,16 @@ function _fireMarchosiasDeathSwords(enemy) {
 function applyVulnerability(enemy) {
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
-    if (stacks < 3) {
-        // Lập tức giảm 24% khiên hiện tại
+    if (stacks < 4) {
+        // Lập tức giảm 26% khiên hiện tại
         if (enemy.shield > 0) {
-            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.76));
+            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.74));
         }
         enemy.vulnStacks = stacks + 1;
+        // Full stack (4): kích hoạt 2s true damage window
+        if (enemy.vulnStacks === 4) {
+            enemy.vulnTrueDmgEnd = now + 2000;
+        }
     }
     // Reset lại thời gian 3 giây mỗi khi cộng dồn
     enemy.vulnEndTime = now + 3000;
@@ -140,7 +144,7 @@ function fireAutoShot() {
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 11.2 * speedMultiplier, vy: Math.sin(angle) * 11.2 * speedMultiplier,
             damage: 6, percentDamage: 0.04, size: 6.5, type: 'player_auto',
-            applyVuln: true, vulnChance: 0.25  // 25% khả năng gây Trọng Thương
+            applyVuln: true, vulnChance: 0.28  // 28% khả năng gây Trọng Thương
         });
     }
 }
@@ -225,8 +229,7 @@ function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
     // Base HP tăng thêm 12%
-    let hp = ((((100 + Math.random() * 300) * 10) * 0.8) * 1.3) * 1.15 * 1.12 * 1.20;
-    hp *= 1.05;
+    let hp = Math.ceil((2400 + Math.random() * 5599) * 1.05);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
@@ -241,7 +244,7 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(816, 360 + hpFromTime * 14);
+    let hp = Math.min(947, 418 + hpFromTime * 16);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -255,7 +258,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(900, 480 + hpFromTime * 18);
+    let hp = Math.min(1044, 557 + hpFromTime * 21);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
@@ -270,7 +273,7 @@ function spawnMarchosias() {
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(2640, 1200 + hpFromTime * 36);
+    let hp = Math.min(3062, 1392 + hpFromTime * 42);
 
     const shieldHp = hp;
 
@@ -329,7 +332,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 function spawnNormalEnemy() {
     const size = 20 + Math.random() * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 15000);
-    let hp = Math.min(72, (Math.floor(Math.random() * 6) + 1 + hpFromTime));
+    let hp = Math.min(84, (Math.floor(Math.random() * 7) + 1 + hpFromTime));
     hp *= 1.05;
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
@@ -619,6 +622,7 @@ function dealDamage(enemy, source) {
     if (enemy.vulnStacks && enemy.vulnEndTime && currentTime > enemy.vulnEndTime) {
         enemy.vulnStacks = 0;
         enemy.vulnEndTime = 0;
+        enemy.vulnTrueDmgEnd = 0;
     }
 
     const oldHP = enemy.hp;
@@ -636,10 +640,13 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * 1.25);
     }
 
-    // Áp dụng tăng sát thương từ Trọng Thương (+25% mỗi stack)
+    // Trọng Thương: +16% mỗi stack (max 4 stacks = +64%)
     if (enemy.vulnStacks && enemy.vulnStacks > 0) {
-        totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.25));
+        totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.16));
     }
+
+    // True damage window: 4 stacks đủ → 2 giây tiếp theo bypass shield hoàn toàn
+    const inTrueDmgWindow = enemy.vulnTrueDmgEnd && performance.now() < enemy.vulnTrueDmgEnd;
 
     let combinedDR = 0;
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
@@ -707,7 +714,7 @@ function dealDamage(enemy, source) {
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
         if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.55);
         if (accurateParryActive && performance.now() < accurateParryEndTime) rawDmg = Math.ceil(rawDmg * 1.25);
-        if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.25));
+        if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.16));
         rawDmg = Math.max(0, rawDmg);
         // sourceTag = 'dealDamage_' + (source tag nếu có)
         _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic');
@@ -730,11 +737,16 @@ function dealDamage(enemy, source) {
     totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
     totalDamage = Math.max(0, totalDamage);
 
-    const damageToShield = Math.min(enemy.shield, totalDamage);
-    enemy.shield -= damageToShield;
-    enemy.shield = Math.max(0, enemy.shield);
-    totalDamage -= damageToShield;
-    enemy.hp -= totalDamage;
+    // True damage window (4 Trọng Thương stacks): bypass shield hoàn toàn trong 2s
+    if (inTrueDmgWindow) {
+        enemy.hp -= totalDamage; // skip shield, apply trực tiếp vào HP
+    } else {
+        const damageToShield = Math.min(enemy.shield, totalDamage);
+        enemy.shield -= damageToShield;
+        enemy.shield = Math.max(0, enemy.shield);
+        totalDamage -= damageToShield;
+        enemy.hp -= totalDamage;
+    }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
 
@@ -828,7 +840,7 @@ function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
     const size = baseSize * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(8400, 4800 + hpFromTime * 36);
+    let hp = Math.min(9744, 5568 + hpFromTime * 42);
     hp = Math.ceil(hp * 1.05);
 
     // Y = random 6-9 kills để trigger announcement Perseverance → vỡ khiên
