@@ -518,13 +518,13 @@ function draw(deltaTime) {
             // --- expanding shockwave wall ---
             ctx.lineWidth = 16;
             ctx.strokeStyle = 'rgba(160,0,255,0.95)';
-            ctx.shadowColor = '#df00ff'; ctx.shadowBlur = 50;
+            if (!_mobPerf) ctx.shadowColor = '#df00ff'; if (!_mobPerf) ctx.shadowBlur = 50;
             ctx.beginPath(); ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2); ctx.stroke();
 
             if (currentDomainRadius > 10) {
                 ctx.lineWidth = 6;
                 ctx.strokeStyle = 'rgba(255,180,255,0.75)';
-                ctx.shadowBlur = 22;
+                if (!_mobPerf) ctx.shadowBlur = 22;
                 ctx.beginPath(); ctx.arc(cx, cy, Math.max(1, currentDomainRadius - 7), 0, Math.PI * 2); ctx.stroke();
             }
 
@@ -532,7 +532,7 @@ function draw(deltaTime) {
             const shockR = currentDomainRadius + 12 * (1 - expandT);
             ctx.lineWidth = 2.5;
             ctx.strokeStyle = `rgba(255,255,255,${(1 - expandT) * 0.95})`;
-            ctx.shadowBlur = 12;
+            if (!_mobPerf) ctx.shadowBlur = 12;
             if (shockR > 0) { ctx.beginPath(); ctx.arc(cx, cy, shockR, 0, Math.PI * 2); ctx.stroke(); }
 
             // second inner ring
@@ -556,7 +556,7 @@ function draw(deltaTime) {
                 const wa2 = wa + Math.PI / (wallSegs * 0.6);
                 ctx.strokeStyle = `rgba(140,0,240,${wallPulse * 0.8})`;
                 ctx.lineWidth = 8;
-                ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 18;
+                if (!_mobPerf) ctx.shadowColor = '#9900ff'; if (!_mobPerf) ctx.shadowBlur = 18;
                 ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.998, wa, wa2); ctx.stroke();
             }
             // inner fast ring opposite direction
@@ -566,7 +566,7 @@ function draw(deltaTime) {
                 const wa2 = wa + Math.PI / 9;
                 ctx.strokeStyle = `rgba(220,80,255,${wallPulse * 0.45})`;
                 ctx.lineWidth = 3;
-                ctx.shadowBlur = 8;
+                if (!_mobPerf) ctx.shadowBlur = 8;
                 ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.992, wa, wa2); ctx.stroke();
             }
             ctx.restore();
@@ -659,7 +659,7 @@ function draw(deltaTime) {
                     ctx.font = `bold ${fSize}px monospace`;
                     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillStyle = oi === 0 ? '#dd55ff' : oi === 1 ? '#ff44ee' : '#9900ff';
-                    ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 10;
+                    if (!_mobPerf) ctx.shadowColor = '#cc00ff'; if (!_mobPerf) ctx.shadowBlur = 10;
                     ctx.fillText(runes[(i + oi * 4) % runes.length], 0, 0);
                     // trailing ghost rune
                     ctx.globalAlpha *= 0.25;
@@ -793,12 +793,12 @@ function draw(deltaTime) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#cc44ff';
-                ctx.shadowColor = '#8800cc'; ctx.shadowBlur = 40;
+                if (!_mobPerf) ctx.shadowColor = '#8800cc'; if (!_mobPerf) ctx.shadowBlur = 40;
                 ctx.fillText('律域展開', cx, cy - 30);
 
                 // ── EN TITLE FRONT (sắc nét, sáng) ──
                 ctx.globalAlpha = textT * 0.92;
-                ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 22;
+                if (!_mobPerf) ctx.shadowColor = '#cc00ff'; if (!_mobPerf) ctx.shadowBlur = 22;
 
                 // tên lớn
                 ctx.font = 'bold 32px "Arial Black", sans-serif';
@@ -808,7 +808,7 @@ function draw(deltaTime) {
                 // subtitle nhỏ
                 ctx.font = 'italic 14px monospace';
                 ctx.fillStyle = '#dd88ff';
-                ctx.shadowBlur = 10;
+                if (!_mobPerf) ctx.shadowBlur = 10;
                 ctx.fillText('— Bành trướng lãnh địa —', cx, cy - 46);
 
                 ctx.restore();
@@ -998,8 +998,8 @@ function _drawStartScreen() {
         const lineAlpha = 0.28 + 0.12 * Math.sin(now / 2000 + a * 0.4);
         ctx.strokeStyle = `rgba(140, 230, 255, ${lineAlpha})`;
         ctx.lineWidth = 1.2;
-        ctx.shadowColor = '#40ccff';
-        ctx.shadowBlur = 4;
+        if (!_mobPerf) ctx.shadowColor = '#40ccff';
+        if (!_mobPerf) ctx.shadowBlur = 4;
         ctx.beginPath();
         ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
         ctx.stroke();
@@ -1029,7 +1029,7 @@ function _drawStartScreen() {
             ctx.strokeStyle = '#c0eeff';
             ctx.lineWidth = 0.8;
             const spikeLen = r * 4.5 * twinkle;
-            ctx.shadowColor = '#80ddff'; ctx.shadowBlur = 3;
+            if (!_mobPerf) ctx.shadowColor = '#80ddff'; if (!_mobPerf) ctx.shadowBlur = 3;
             [[px - spikeLen, py, px + spikeLen, py], [px, py - spikeLen, px, py + spikeLen]].forEach(([x1, y1, x2, y2]) => {
                 ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
             });
@@ -1048,8 +1048,8 @@ function _drawStartScreen() {
 
         // Core star — sáng rõ
         ctx.globalAlpha = twinkle * Math.min(1, baseAlpha * 1.3);
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = r * 3;
+        if (!_mobPerf) ctx.shadowColor = '#ffffff';
+        if (!_mobPerf) ctx.shadowBlur = r * 3;
         const cG = ctx.createRadialGradient(px, py, 0, px, py, r * 1.6);
         cG.addColorStop(0, '#ffffff');
         cG.addColorStop(0.25, '#d0f0ff');
@@ -1075,8 +1075,8 @@ function _drawStartScreen() {
     ctx.textAlign = 'center';
 
     // Subtle glow behind title
-    ctx.shadowColor = '#00ddff';
-    ctx.shadowBlur = 38;
+    if (!_mobPerf) ctx.shadowColor = '#00ddff';
+    if (!_mobPerf) ctx.shadowBlur = 38;
     ctx.font = 'bold 62px "Georgia", serif';
     const titlePulse = 0.88 + 0.12 * Math.sin(now / 1800);
     ctx.fillStyle = `rgba(0, 220, 255, ${titlePulse})`;
@@ -1120,7 +1120,7 @@ function _drawLeviathanEffects() {
         ctx.globalAlpha = prog * 0.25;
         ctx.strokeStyle = glowColor;
         ctx.lineWidth = 3 + prog * 8;
-        ctx.shadowColor = glowColor; ctx.shadowBlur = 20;
+        if (!_mobPerf) ctx.shadowColor = glowColor; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(0, 0, e.size * (0.6 + prog * 1.4), 0, Math.PI * 2); ctx.stroke();
 
         // Spinning dashes
@@ -1134,7 +1134,7 @@ function _drawLeviathanEffects() {
 
         // Core glow
         ctx.globalAlpha = prog * 0.8;
-        ctx.shadowColor = glowColor; ctx.shadowBlur = 40;
+        if (!_mobPerf) ctx.shadowColor = glowColor; if (!_mobPerf) ctx.shadowBlur = 40;
         ctx.fillStyle = 'rgba(255,0,0,0.5)';
         ctx.beginPath(); ctx.arc(0, 0, e.size * 0.28, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
@@ -1159,7 +1159,7 @@ function _drawLeviathanEffects() {
             ctx.rotate(sweepAngle);
 
             // Wide outer glow
-            ctx.shadowColor = laserGlow; ctx.shadowBlur = 60;
+            if (!_mobPerf) ctx.shadowColor = laserGlow; if (!_mobPerf) ctx.shadowBlur = 60;
             ctx.strokeStyle = laserOuter;
             ctx.lineWidth = 70;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
@@ -1221,8 +1221,8 @@ function _drawLeviathanEffects() {
             wg.addColorStop(0.3, '#2d1810');
             wg.addColorStop(1, '#0f0a08');
             ctx.fillStyle = wg;
-            ctx.shadowColor = '#ff4400';
-            ctx.shadowBlur = 8 + warnProg * 20;
+            if (!_mobPerf) ctx.shadowColor = '#ff4400';
+            if (!_mobPerf) ctx.shadowBlur = 8 + warnProg * 20;
             ctx.beginPath();
             ctx.moveTo(0, -hw * 0.4);
             ctx.lineTo(0, hw * 0.4);
@@ -1237,7 +1237,7 @@ function _drawLeviathanEffects() {
             ctx.globalAlpha = warnProg * 0.7;
             ctx.strokeStyle = '#ff6600';
             ctx.lineWidth = 3;
-            ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 12;
+            if (!_mobPerf) ctx.shadowColor = '#ff4400'; if (!_mobPerf) ctx.shadowBlur = 12;
             ctx.setLineDash([10, 7]);
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
             ctx.setLineDash([]);
@@ -1245,7 +1245,7 @@ function _drawLeviathanEffects() {
             // ── Active laser beam ──
             ctx.rotate(targetA);
             ctx.globalAlpha = activeFade;
-            ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 40;
+            if (!_mobPerf) ctx.shadowColor = '#ff2200'; if (!_mobPerf) ctx.shadowBlur = 40;
             ctx.strokeStyle = 'rgba(255,80,0,0.3)';
             ctx.lineWidth = 35;
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
@@ -1276,7 +1276,7 @@ function drawAegisLasers() {
             ctx.strokeStyle = "rgba(255,100,100,0.9)";
             ctx.lineWidth = 1.5;
             ctx.setLineDash([12, 12]);
-            ctx.shadowColor = 'red'; ctx.shadowBlur = 8;
+            if (!_mobPerf) ctx.shadowColor = 'red'; if (!_mobPerf) ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
             ctx.lineTo(laser.end.x, laser.end.y);
@@ -1292,8 +1292,8 @@ function drawAegisLasers() {
             // outer glow
             ctx.strokeStyle = `rgba(255,30,30,${prog * 0.6})`;
             ctx.lineWidth = 50 * prog;
-            ctx.shadowColor = "red";
-            ctx.shadowBlur = 40;
+            if (!_mobPerf) ctx.shadowColor = "red";
+            if (!_mobPerf) ctx.shadowBlur = 40;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
             ctx.lineTo(laser.end.x, laser.end.y);
@@ -1301,7 +1301,7 @@ function drawAegisLasers() {
             // core beam
             ctx.strokeStyle = `rgba(255,80,80,${prog})`;
             ctx.lineWidth = 30 * prog;
-            ctx.shadowBlur = 20;
+            if (!_mobPerf) ctx.shadowBlur = 20;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
             ctx.lineTo(laser.end.x, laser.end.y);
@@ -1465,7 +1465,7 @@ function drawBossShockwaves() {
             const sy = Math.sin(sparkAngle) * rOff;
             const sparkFade = fade * blink * (0.6 + 0.4 * Math.sin(now / 120 + i));
             // Spark body
-            ctx.shadowColor = '#FF44FF'; ctx.shadowBlur = 10;
+            if (!_mobPerf) ctx.shadowColor = '#FF44FF'; if (!_mobPerf) ctx.shadowBlur = 10;
             ctx.fillStyle = `rgba(255,180,255,${sparkFade * 0.9})`;
             ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill();
             // Spark tail
@@ -1483,8 +1483,8 @@ function drawBossShockwaves() {
         // ── 5. Main ring ──
         ctx.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * blink) * fade})`;
         ctx.lineWidth = 7;
-        ctx.shadowColor = '#CC00FF';
-        ctx.shadowBlur = 20 + 12 * blink;
+        if (!_mobPerf) ctx.shadowColor = '#CC00FF';
+        if (!_mobPerf) ctx.shadowBlur = 20 + 12 * blink;
         ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
 
@@ -1593,8 +1593,8 @@ function drawFinalDefense() {
         ctx.strokeStyle = '#FFD700';
         ctx.fillStyle = 'rgba(255,215,0,0.15)';
         ctx.lineWidth = 3.5;
-        ctx.shadowColor = '#FFA500';
-        ctx.shadowBlur = 25;
+        if (!_mobPerf) ctx.shadowColor = '#FFA500';
+        if (!_mobPerf) ctx.shadowBlur = 25;
         ctx.beginPath(); ctx.arc(player.x, player.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         // rotating outer ring
         ctx.save();
@@ -1616,8 +1616,8 @@ function drawFinalDefense() {
         // main ring
         ctx.strokeStyle = '#00FFFF';
         ctx.lineWidth = 2;
-        ctx.shadowColor = 'white';
-        ctx.shadowBlur = 12;
+        if (!_mobPerf) ctx.shadowColor = 'white';
+        if (!_mobPerf) ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.arc(player.x, player.y, r, 0, Math.PI * 2); ctx.stroke();
         // inner dotted detail ring
         ctx.save();
@@ -1633,8 +1633,8 @@ function drawFinalDefense() {
 
     if (finalDefense.boundaryShield) {
         ctx.fillStyle = 'rgba(0,255,255,0.18)';
-        ctx.shadowColor = 'cyan';
-        ctx.shadowBlur = 20;
+        if (!_mobPerf) ctx.shadowColor = 'cyan';
+        if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.fillRect(0, boundaryY, canvas.width, 10);
         ctx.strokeStyle = 'rgba(0,255,255,0.6)';
         ctx.lineWidth = 1;
@@ -1669,7 +1669,7 @@ function drawPlayerAura() {
     if (progress > 0.5) {
         const sparkCount = 3;
         const now = performance.now();
-        ctx.shadowColor = 'yellow'; ctx.shadowBlur = 8;
+        if (!_mobPerf) ctx.shadowColor = 'yellow'; if (!_mobPerf) ctx.shadowBlur = 8;
         for (let i = 0; i < sparkCount; i++) {
             const angle = (now / 600 + i * Math.PI * 2 / sparkCount);
             const sr = radius * 0.85;
@@ -1695,8 +1695,8 @@ function _drawVanguardThreads() {
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 8]);
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 6;
+    if (!_mobPerf) ctx.shadowColor = color;
+    if (!_mobPerf) ctx.shadowBlur = 6;
 
     // Connect each sentinel to its 2 nearest neighbours (not all pairs — too dense)
     for (let i = 0; i < n; i++) {
@@ -1740,7 +1740,7 @@ function drawSentinel(sentinel) {
             ctx.translate(x, y);
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 3;
-            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 20;
+            if (!_mobPerf) ctx.shadowColor = '#ffffff'; if (!_mobPerf) ctx.shadowBlur = 20;
             ctx.beginPath(); ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2); ctx.stroke();
             ctx.restore();
             return;
@@ -1843,7 +1843,7 @@ function drawSentinel(sentinel) {
         ctx.strokeStyle = '#FFD700';
         ctx.fillStyle = 'rgba(255,215,0,0.18)';
         ctx.lineWidth = 3;
-        ctx.shadowColor = '#FFA500'; ctx.shadowBlur = 18;
+        if (!_mobPerf) ctx.shadowColor = '#FFA500'; if (!_mobPerf) ctx.shadowBlur = 18;
         ctx.beginPath(); ctx.arc(x, y, size + 9, 0, Math.PI * 2);
         ctx.fill(); ctx.stroke();
         ctx.restore();
@@ -2266,7 +2266,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         const pp = 0.6 + 0.4 * Math.sin(now / 100);
         ctx.strokeStyle = `rgba(255,220,0,${pp * parryRemain})`;
         ctx.lineWidth = 2.5;
-        ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 16;
+        if (!_mobPerf) ctx.shadowColor = '#ffdd00'; if (!_mobPerf) ctx.shadowBlur = 16;
         ctx.beginPath(); ctx.arc(0, 0, 32, 0, Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
     }
@@ -2320,12 +2320,12 @@ function drawAegisCore(enemy) {
 
     ctx.lineWidth = 8;
     ctx.strokeStyle = 'rgba(255,60,60,0.6)';
-    ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 30;
+    if (!_mobPerf) ctx.shadowColor = '#ff2200'; if (!_mobPerf) ctx.shadowBlur = 30;
     ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.stroke();
 
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = 'rgba(255,160,120,0.95)';
-    ctx.shadowColor = '#ff8866'; ctx.shadowBlur = 14;
+    if (!_mobPerf) ctx.shadowColor = '#ff8866'; if (!_mobPerf) ctx.shadowBlur = 14;
     ctx.beginPath(); ctx.arc(0, 0, auraRadius - 5, 0, Math.PI * 2); ctx.stroke();
 
     ctx.save();
@@ -2384,7 +2384,7 @@ function drawAegisCore(enemy) {
     if (enemy.aegisInvulnerable) {
         ctx.beginPath(); ctx.arc(0, 0, enemy.size + 15, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 4;
-        ctx.shadowColor = 'white'; ctx.shadowBlur = 18; ctx.stroke(); ctx.shadowBlur = 0;
+        if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 18; ctx.stroke(); ctx.shadowBlur = 0;
     }
 
     const bodyGrad = ctx.createRadialGradient(0, 0, enemy.size * 0.15, 0, 0, enemy.size);
@@ -2410,7 +2410,7 @@ function drawAegisCore(enemy) {
 
     const coreGrad = ctx.createLinearGradient(0, -enemy.size * 0.4, 0, enemy.size * 0.4);
     coreGrad.addColorStop(0, '#ff3333'); coreGrad.addColorStop(1, '#800000');
-    ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 18;
+    if (!_mobPerf) ctx.shadowColor = '#ff3333'; if (!_mobPerf) ctx.shadowBlur = 18;
     ctx.fillStyle = coreGrad;
     ctx.beginPath(); ctx.arc(0, 0, enemy.size * 0.35, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
@@ -2445,7 +2445,7 @@ function drawAegisCore(enemy) {
     if (enemy.aegisInvulnerable) {
         const flashPulse = 0.3 + 0.7 * Math.abs(Math.sin(now / 150));
         ctx.strokeStyle = `rgba(255,255,255,${flashPulse})`;
-        ctx.lineWidth = 2; ctx.shadowColor = 'white'; ctx.shadowBlur = 20;
+        ctx.lineWidth = 2; if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(0, 0, enemy.size * 0.75, 0, Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
     }
@@ -2464,8 +2464,8 @@ function drawEnemy(enemy) {
         ctx.globalAlpha = 1;
 
         // Outer glow ring
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 16;
+        if (!_mobPerf) ctx.shadowColor = '#ffffff';
+        if (!_mobPerf) ctx.shadowBlur = 16;
         ctx.strokeStyle = `rgba(255,255,255,${0.7 + pulse * 0.3})`;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -2486,7 +2486,7 @@ function drawEnemy(enemy) {
 
         // 4 corner dots
         ctx.fillStyle = `rgba(255,255,255,${pulse})`;
-        ctx.shadowColor = '#aaccff'; ctx.shadowBlur = 8;
+        if (!_mobPerf) ctx.shadowColor = '#aaccff'; if (!_mobPerf) ctx.shadowBlur = 8;
         for (let d = 0; d < 4; d++) {
             const a = (now0 / 2000) + d * Math.PI / 2;
             ctx.beginPath();
@@ -2502,7 +2502,7 @@ function drawEnemy(enemy) {
         ctx.save();
         ctx.translate(enemy.x, enemy.y - enemy.size - 25);
         ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 2.5;
-        ctx.shadowColor = 'red'; ctx.shadowBlur = 10;
+        if (!_mobPerf) ctx.shadowColor = 'red'; if (!_mobPerf) ctx.shadowBlur = 10;
         ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(8, 8);
         ctx.moveTo(8, -8); ctx.lineTo(-8, 8); ctx.stroke();
         ctx.restore();
@@ -2545,7 +2545,7 @@ function drawEnemy(enemy) {
             // 3. Inner solid ring
             ctx.strokeStyle = `rgba(255,40,40,${0.95})`;
             ctx.lineWidth = 2;
-            ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 16;
+            if (!_mobPerf) ctx.shadowColor = '#ff0022'; if (!_mobPerf) ctx.shadowBlur = 16;
             ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er, 0, Math.PI * 2); ctx.stroke();
             ctx.shadowBlur = 0;
 
@@ -2632,7 +2632,7 @@ function drawEnemy(enemy) {
         ctx.rotate(now3 / 900);
         ctx.strokeStyle = 'rgba(0,255,136,0.85)';
         ctx.lineWidth = 3;
-        ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12;
+        if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 12;
         ctx.setLineDash([8, 6]);
         ctx.beginPath(); ctx.arc(0, 0, pR, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
@@ -2723,7 +2723,7 @@ function _drawBossOrThaelis(enemy) {
     const haloAlpha = 0.15 + 0.1 * Math.abs(Math.sin(now / 400));
     ctx.save();
     ctx.fillStyle = isBoss ? `rgba(255,0,255,${haloAlpha})` : `rgba(255,200,0,${haloAlpha})`;
-    ctx.shadowColor = color1; ctx.shadowBlur = 20;
+    if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 20;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 10, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
@@ -2743,7 +2743,7 @@ function _drawBossOrThaelis(enemy) {
     cg.addColorStop(0.5, color1);
     cg.addColorStop(1, color2);
     ctx.fillStyle = cg;
-    ctx.shadowColor = color1; ctx.shadowBlur = 15;
+    if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r * 0.28, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
@@ -2753,7 +2753,7 @@ function _drawBossOrThaelis(enemy) {
         const pulse = Math.abs(Math.sin(now / 180)) * 10;
         ctx.save();
         ctx.fillStyle = isBoss ? `rgba(255,0,255,0.22)` : `rgba(255,215,0,0.22)`;
-        ctx.shadowColor = color1; ctx.shadowBlur = 25;
+        if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 25;
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 12 + pulse, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
     }
@@ -2769,7 +2769,7 @@ function _drawBossOrThaelis(enemy) {
             const cr = r + 8 + Math.sin(now / 120 + c * 1.7) * 4;
             ctx.strokeStyle = `rgba(${isBoss ? '255,80,255' : '255,220,50'},${0.6 + 0.4 * Math.sin(now / 80 + c)})`;
             ctx.lineWidth = 1;
-            ctx.shadowColor = color1; ctx.shadowBlur = 8;
+            if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 8;
             ctx.beginPath(); ctx.arc(0, 0, cr, a0, a1); ctx.stroke();
         }
         ctx.shadowBlur = 0;
@@ -2778,7 +2778,7 @@ function _drawBossOrThaelis(enemy) {
     ctx.save();
     const orbitR = r + 18;
     const dotCount = 6;
-    ctx.shadowColor = color1; ctx.shadowBlur = 10;
+    if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 10;
     ctx.fillStyle = color1;
     for (let i = 0; i < dotCount; i++) {
         const a = rotation * (isBoss ? 2 : 1.5) + (i / dotCount) * Math.PI * 2;
@@ -2796,7 +2796,7 @@ function _drawEmbryo(enemy) {
     // outer membrane glow
     ctx.save();
     ctx.fillStyle = 'rgba(138,43,226,0.18)';
-    ctx.shadowColor = '#FF00FF'; ctx.shadowBlur = 20;
+    if (!_mobPerf) ctx.shadowColor = '#FF00FF'; if (!_mobPerf) ctx.shadowBlur = 20;
     ctx.beginPath();
     ctx.ellipse(enemy.x, enemy.y, enemy.size + 5 + pulse, enemy.size + 9 + pulse, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -2811,7 +2811,7 @@ function _drawEmbryo(enemy) {
     eg.addColorStop(0.8, '#4a0080');
     eg.addColorStop(1, 'rgba(30,0,60,0.6)');
     ctx.fillStyle = eg;
-    ctx.shadowColor = '#FF00FF'; ctx.shadowBlur = 12;
+    if (!_mobPerf) ctx.shadowColor = '#FF00FF'; if (!_mobPerf) ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.ellipse(enemy.x, enemy.y, enemy.size - 2 + pulse, enemy.size + 2 + pulse, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -2842,8 +2842,8 @@ function _drawEnemyBullet(enemy) {
     const blink = 0.55 + 0.45 * Math.sin(now / 90); // fast blink
     ctx.strokeStyle = `rgba(255,255,255,${blink})`;
     ctx.lineWidth = isLarge ? 2.5 : 1.8;
-    ctx.shadowColor = 'white';
-    ctx.shadowBlur = isLarge ? 12 : 8;
+    if (!_mobPerf) ctx.shadowColor = 'white';
+    if (!_mobPerf) ctx.shadowBlur = isLarge ? 12 : 8;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
 
@@ -2886,7 +2886,7 @@ function _drawMarchosias(enemy) {
     // Outer pulsing aura
     const haloA = 0.12 + 0.06 * Math.sin(now / 350);
     ctx.fillStyle = `rgba(0,255,120,${haloA})`;
-    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 18;
+    if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 18;
     ctx.beginPath(); ctx.arc(0, 0, r + 10, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -2929,7 +2929,7 @@ function _drawMarchosias(enemy) {
     coreGrad.addColorStop(0.4, '#00ff88');
     coreGrad.addColorStop(1, '#006633');
     ctx.fillStyle = coreGrad;
-    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
+    if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 14;
     ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -2951,7 +2951,7 @@ function _drawMarchosias(enemy) {
             const ra = (now / 300 + ri * Math.PI * 2 / rageCount);
             const rd = r * 0.85 + Math.sin(now / 130 + ri * 1.3) * r * 0.2;
             ctx.fillStyle = `rgba(0,255,140,${rageAlpha * (0.5 + 0.5 * Math.sin(now / 80 + ri))})`;
-            ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6;
+            if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 6;
             ctx.beginPath();
             ctx.arc(Math.cos(ra) * rd, Math.sin(ra) * rd, 2.5, 0, Math.PI * 2);
             ctx.fill();
@@ -2973,13 +2973,13 @@ function _drawMarchosias(enemy) {
         // Outer glow
         ctx.strokeStyle = `rgba(0,255,136,${0.3 + shieldPct * 0.3})`;
         ctx.lineWidth = 14;
-        ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20;
+        if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, shieldR, sa, ea); ctx.stroke();
 
         // Main arc bright
         ctx.strokeStyle = `rgba(160,255,200,${0.7 + shieldPct * 0.25})`;
         ctx.lineWidth = 5;
-        ctx.shadowColor = 'white'; ctx.shadowBlur = 10;
+        if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 10;
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, shieldR, sa, ea); ctx.stroke();
 
         // Inner bright edge
@@ -3056,14 +3056,14 @@ function _drawVulnerabilityIcon(enemy) {
     // Viền đỏ + glow
     ctx.strokeStyle = '#ff1a40';
     ctx.lineWidth = 1.8;
-    ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 8;
+    if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 8;
     ctx.stroke();
     ctx.shadowBlur = 0;
 
     // LED dots top & bottom (từ design)
     for (const [lx, ly] of [[0, -R + 1.5], [0, R - 1.5]]) {
         ctx.fillStyle = '#ff1a40';
-        ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 6;
+        if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 6;
         ctx.beginPath(); ctx.arc(lx, ly, 2.2, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
     }
@@ -3099,7 +3099,7 @@ function _drawVulnerabilityIcon(enemy) {
         grad.addColorStop(0.5, '#2a1c20');
         grad.addColorStop(1, '#150a0c');
         ctx.fillStyle = grad;
-        ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 6;
+        if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 6;
         ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -3115,7 +3115,7 @@ function _drawVulnerabilityIcon(enemy) {
         // Viền sáng đỏ ở mép cắt
         ctx.strokeStyle = clipLeft ? '#ff1a40' : 'rgba(255,100,80,0.6)';
         ctx.lineWidth = clipLeft ? 1.5 : 0.8;
-        ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5;
+        if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 5;
         ctx.beginPath();
         ctx.moveTo(0, -9 * s); ctx.lineTo(0, 11 * s);
         ctx.stroke();
@@ -3129,7 +3129,7 @@ function _drawVulnerabilityIcon(enemy) {
 
     // ── Dấu X neon laser ──────────────────────────────────────
     const xFlare = 0.7 + 0.3 * Math.sin(now / 120);
-    ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 10 * xFlare;
+    if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 10 * xFlare;
 
     // Line 1: dài hơn, góc -45°
     ctx.save();
@@ -3182,7 +3182,7 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.beginPath();
         ctx.arc(-4 + s * 4, R + 5, 2, 0, Math.PI * 2);
         ctx.fillStyle = filled ? '#ff1a40' : 'rgba(255,26,64,0.25)';
-        if (filled) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
+        if (filled) { if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 5; }
         ctx.fill();
         ctx.shadowBlur = 0;
     }
@@ -3201,7 +3201,7 @@ function _drawMarchosiasMinion(enemy) {
     ctx.fillStyle = '#0d1f17';
     ctx.strokeStyle = `rgba(0,200,80,${pulse})`;
     ctx.lineWidth = 1.8;
-    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10;
+    if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.moveTo(0, -r);
     ctx.lineTo(r * 0.87, r * 0.5);
@@ -3218,7 +3218,7 @@ function _drawMarchosiasMinion(enemy) {
     ctx.beginPath(); ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2); ctx.fill();
 
     // ── NEW: 3 orbiting micro-dots ──
-    ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6;
+    if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 6;
     ctx.fillStyle = 'rgba(0,255,136,0.9)';
     for (let d = 0; d < 3; d++) {
         const da = (now / 600 + d * Math.PI * 2 / 3);
@@ -3294,8 +3294,8 @@ function _drawLeviathan(enemy) {
         wg.addColorStop(0.80, '#1a1c29');
         wg.addColorStop(1, '#0f172a');
         ctx.fillStyle = wg;
-        ctx.shadowColor = '#00e5ff';
-        ctx.shadowBlur = 8 + wingPhase * 6;
+        if (!_mobPerf) ctx.shadowColor = '#00e5ff';
+        if (!_mobPerf) ctx.shadowBlur = 8 + wingPhase * 6;
         ctx.fill();
 
         // Inner panel (segment::before từ HTML)
@@ -3343,7 +3343,7 @@ function _drawLeviathan(enemy) {
     coreG.addColorStop(0.6, '#2a0066');
     coreG.addColorStop(1, '#00e5ff');
     ctx.fillStyle = coreG;
-    ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 18;
+    if (!_mobPerf) ctx.shadowColor = '#9d00ff'; if (!_mobPerf) ctx.shadowBlur = 18;
     ctx.beginPath(); ctx.arc(0, 0, coreR * beat, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -3359,7 +3359,7 @@ function _drawLeviathan(enemy) {
     ctx.beginPath(); ctx.arc(ex, ey, eR * 0.62, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.arc(ex, ey, eR * 0.30, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 10;
+    if (!_mobPerf) ctx.shadowColor = '#00e5ff'; if (!_mobPerf) ctx.shadowBlur = 10;
     ctx.strokeStyle = 'rgba(0,229,255,0.7)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(ex, ey, eR, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
@@ -3383,7 +3383,7 @@ function _drawLeviathan(enemy) {
         ctx.rotate(spinA);
         ctx.strokeStyle = `rgba(0,229,255,${0.8 * pulse})`;
         ctx.lineWidth = 3;
-        ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 20;
+        if (!_mobPerf) ctx.shadowColor = '#00e5ff'; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(0, 0, sR, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
 
@@ -3405,7 +3405,7 @@ function _drawLeviathan(enemy) {
         ctx.textAlign = 'center';
         ctx.font = 'bold 15px monospace';
         ctx.fillStyle = kills >= quota ? '#00ff88' : '#00e5ff';
-        ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 8;
+        if (!_mobPerf) ctx.shadowColor = ctx.fillStyle; if (!_mobPerf) ctx.shadowBlur = 8;
         ctx.fillText(`${kills}/${quota} kills`, 0, sR + 20);
         ctx.font = '11px monospace';
         ctx.fillStyle = 'rgba(255,255,255,0.65)';
@@ -3442,7 +3442,7 @@ function _drawEnvyChain(enemy) {
         const linkSize = 4;
         const pulse = 0.6 + 0.4 * Math.sin(now / 300 + i);
         ctx.fillStyle = `rgba(220,0,0,${pulse})`;
-        ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 6;
+        if (!_mobPerf) ctx.shadowColor = '#ff0000'; if (!_mobPerf) ctx.shadowBlur = 6;
         ctx.fillRect(x - linkSize / 2, y - linkSize / 2, linkSize, linkSize * 0.6);
         // Connect links
         if (i > 0) {
@@ -3450,7 +3450,7 @@ function _drawEnvyChain(enemy) {
             const px = Math.cos(pa) * r, py = Math.sin(pa) * r;
             ctx.strokeStyle = `rgba(180,0,0,${pulse * 0.7})`;
             ctx.lineWidth = 1.5;
-            ctx.shadowBlur = 3;
+            if (!_mobPerf) ctx.shadowBlur = 3;
             ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
         }
     }
@@ -3501,13 +3501,13 @@ function _drawMarchoBlade(blade) {
     // Outer orange-red glow
     ctx.strokeStyle = 'rgba(255,80,0,0.35)';
     ctx.lineWidth = 18;
-    ctx.shadowColor = 'rgba(255,120,0,0.6)'; ctx.shadowBlur = 12;
+    if (!_mobPerf) ctx.shadowColor = 'rgba(255,120,0,0.6)'; if (!_mobPerf) ctx.shadowBlur = 12;
     ctx.beginPath(); ctx.arc(blade.x, blade.y, blade.radius, sa, ea); ctx.stroke();
 
     // Main orange arc
     ctx.strokeStyle = 'rgba(255,140,30,0.95)';
     ctx.lineWidth = 5;
-    ctx.shadowColor = 'white'; ctx.shadowBlur = 14;
+    if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 14;
     ctx.beginPath(); ctx.arc(blade.x, blade.y, blade.radius, sa, ea); ctx.stroke();
 
     // Bright inner edge
@@ -3622,18 +3622,18 @@ function drawChargeEffect() {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#ff4400';
-            ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 50;
+            if (!_mobPerf) ctx.shadowColor = '#ff2200'; if (!_mobPerf) ctx.shadowBlur = 50;
             ctx.fillText('星王滅世爆發', player.x, player.y - 85);
 
             ctx.globalAlpha = textT * 0.95;
             ctx.font = 'bold 30px "Arial Black", sans-serif';
             ctx.fillStyle = '#ffdd00';
-            ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 28;
+            if (!_mobPerf) ctx.shadowColor = '#ff8800'; if (!_mobPerf) ctx.shadowBlur = 28;
             ctx.fillText('STAR SOVEREIGN', player.x, player.y - 128);
 
             ctx.font = 'italic 13px monospace';
             ctx.fillStyle = '#ffcc44';
-            ctx.shadowBlur = 10;
+            if (!_mobPerf) ctx.shadowBlur = 10;
             ctx.fillText('— Tinh Vương: Bộc Viêm Bá —', player.x, player.y - 104);
             ctx.restore();
         }
@@ -3677,13 +3677,13 @@ function drawChargeEffect() {
     // ── OUTER BLOOM ─────────────────────────────────────────────
     ctx.strokeStyle = `rgba(${r},${g},${b},0.25)`;
     ctx.lineWidth = 10 + 8 * chargeRatio;
-    ctx.shadowColor = color; ctx.shadowBlur = 25;
+    if (!_mobPerf) ctx.shadowColor = color; if (!_mobPerf) ctx.shadowBlur = 25;
     ctx.beginPath(); ctx.arc(0, 0, radius * 1.15, 0, Math.PI * 2); ctx.stroke();
 
     // ── MAIN RING ───────────────────────────────────────────────
     ctx.strokeStyle = color;
     ctx.lineWidth = 2 + 4 * chargeRatio;
-    ctx.shadowBlur = 15;
+    if (!_mobPerf) ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
 
     // ── ROTATING TICK MARKS ─────────────────────────────────────
@@ -3762,12 +3762,12 @@ function drawLaser() {
         grad.addColorStop(0.9, "rgba(0,220,255,0.55)");
         grad.addColorStop(1, "rgba(0,255,255,0)");
         ctx.fillStyle = grad;
-        ctx.shadowColor = 'cyan'; ctx.shadowBlur = 35;
+        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 35;
         ctx.fillRect(cx, 0, cw, player.y);
 
         // bright core streak
         ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.shadowBlur = 15;
+        if (!_mobPerf) ctx.shadowBlur = 15;
         ctx.fillRect(laserX - 4, 0, 8, player.y);
 
         ctx.restore();
@@ -3801,19 +3801,19 @@ function drawLaser() {
             ctx.globalAlpha = textT * 0.35;
             ctx.font = 'bold 115px serif';
             ctx.fillStyle = '#ff6600';
-            ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 50;
+            if (!_mobPerf) ctx.shadowColor = '#ffaa00'; if (!_mobPerf) ctx.shadowBlur = 50;
             ctx.fillText('開炸斬決', player.x, player.y - 80);
 
             ctx.globalAlpha = textT * 0.98;
             ctx.font = 'bold 36px "Arial Black", sans-serif';
             ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 35;
+            if (!_mobPerf) ctx.shadowColor = '#ffcc00'; if (!_mobPerf) ctx.shadowBlur = 35;
             ctx.fillText('EXECUTION', player.x, player.y - 124);
 
             ctx.globalAlpha = textT * 0.98;
             ctx.font = 'italic 14px monospace';
             ctx.fillStyle = '#ffdd88';
-            ctx.shadowBlur = 12;
+            if (!_mobPerf) ctx.shadowBlur = 12;
             ctx.fillText('— Khai Triển —', player.x, player.y - 100);
             ctx.restore();
         }
@@ -3830,7 +3830,7 @@ function drawExplosion(exp) {
     // outer shockwave ring
     ctx.strokeStyle = exp.color;
     ctx.lineWidth = 3 * (1 - p);
-    ctx.shadowColor = exp.color; ctx.shadowBlur = 15;
+    if (!_mobPerf) ctx.shadowColor = exp.color; if (!_mobPerf) ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(exp.x, exp.y, radius * 1.2, 0, Math.PI * 2); ctx.stroke();
 
     // main fill
@@ -3839,7 +3839,7 @@ function drawExplosion(exp) {
     eg.addColorStop(0.3, exp.color);
     eg.addColorStop(1, 'transparent');
     ctx.fillStyle = eg;
-    ctx.shadowBlur = 20;
+    if (!_mobPerf) ctx.shadowBlur = 20;
     ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 }
@@ -3850,22 +3850,22 @@ function drawParticle(p) {
     if (p.isSummonRing) {
         let prog = p.lifetime / p.maxLifetime;
         ctx.strokeStyle = `rgba(0,255,255,${prog})`;
-        ctx.lineWidth = 3; ctx.shadowColor = 'cyan'; ctx.shadowBlur = 8;
+        ctx.lineWidth = 3; if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 8;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (1 - prog) * 50, 0, Math.PI * 2); ctx.stroke();
     } else if (p.isLaserLine) {
         ctx.globalAlpha = p.lifetime / p.maxLifetime;
         ctx.strokeStyle = p.color; ctx.lineWidth = 5;
-        ctx.shadowColor = 'red'; ctx.shadowBlur = 15;
+        if (!_mobPerf) ctx.shadowColor = 'red'; if (!_mobPerf) ctx.shadowBlur = 15;
         ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
     } else if (p.isSkillGAura) {
         let prog = p.lifetime / p.maxLifetime;
         ctx.strokeStyle = `rgba(0,180,255,${prog})`;
-        ctx.lineWidth = 10; ctx.shadowColor = 'cyan'; ctx.shadowBlur = 20;
+        ctx.lineWidth = 10; if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (1 - prog) * p.maxRadius, 0, Math.PI * 2); ctx.stroke();
     } else {
         ctx.globalAlpha = p.lifetime / p.maxLifetime;
         // small glow on particles
-        ctx.shadowColor = p.color; ctx.shadowBlur = 5;
+        if (!_mobPerf) ctx.shadowColor = p.color; if (!_mobPerf) ctx.shadowBlur = 5;
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
     }
@@ -3887,19 +3887,19 @@ function drawSkillA() {
             ctx.globalAlpha = textT * 0.26;
             ctx.font = 'bold 110px serif';
             ctx.fillStyle = '#00eeff';
-            ctx.shadowColor = '#00aaff'; ctx.shadowBlur = 45;
+            if (!_mobPerf) ctx.shadowColor = '#00aaff'; if (!_mobPerf) ctx.shadowBlur = 45;
             ctx.fillText('星王天雷爆星', player.x, player.y - 80);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'bold 29px "Arial Black", sans-serif';
             ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = '#00ddff'; ctx.shadowBlur = 26;
+            if (!_mobPerf) ctx.shadowColor = '#00ddff'; if (!_mobPerf) ctx.shadowBlur = 26;
             ctx.fillText('CELESTIAL THUNDERBURST', player.x, player.y - 122);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'italic 13px monospace';
             ctx.fillStyle = '#88eeff';
-            ctx.shadowBlur = 10;
+            if (!_mobPerf) ctx.shadowBlur = 10;
             ctx.fillText('— Tinh Vương: Thiên Lôi Bộc Tinh —', player.x, player.y - 98);
             ctx.restore();
         }
@@ -3941,7 +3941,7 @@ function drawSkillA() {
 
         if (orb.isDefensive) {
             // yellow defensive orb – layered glow
-            ctx.shadowColor = "orange"; ctx.shadowBlur = 20;
+            if (!_mobPerf) ctx.shadowColor = "orange"; if (!_mobPerf) ctx.shadowBlur = 20;
             ctx.fillStyle = 'rgba(255,200,0,0.25)';
             ctx.beginPath(); ctx.arc(orb.x, orb.y, r * 1.6, 0, Math.PI * 2); ctx.fill();
             const dg = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, r);
@@ -3952,7 +3952,7 @@ function drawSkillA() {
             ctx.beginPath(); ctx.arc(orb.x, orb.y, r, 0, Math.PI * 2); ctx.fill();
         } else {
             // cyan orb
-            ctx.shadowColor = "white"; ctx.shadowBlur = 18;
+            if (!_mobPerf) ctx.shadowColor = "white"; if (!_mobPerf) ctx.shadowBlur = 18;
             ctx.fillStyle = 'rgba(0,200,255,0.18)';
             ctx.beginPath(); ctx.arc(orb.x, orb.y, r * 1.6, 0, Math.PI * 2); ctx.fill();
             const cg = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, r);
@@ -3964,7 +3964,7 @@ function drawSkillA() {
             // tiny orbiting dot
             const dotAngle = now / 500 + orb.x * 0.1;
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
-            ctx.shadowBlur = 4;
+            if (!_mobPerf) ctx.shadowBlur = 4;
             ctx.beginPath();
             ctx.arc(orb.x + Math.cos(dotAngle) * r * 0.7, orb.y + Math.sin(dotAngle) * r * 0.7, 1.8, 0, Math.PI * 2);
             ctx.fill();
@@ -3987,7 +3987,7 @@ function drawScatteredProjectile(p) {
         grad.addColorStop(0.7, '#cc0000');
         grad.addColorStop(1, 'darkred');
         ctx.fillStyle = grad;
-        ctx.shadowColor = 'red'; ctx.shadowBlur = 22;
+        if (!_mobPerf) ctx.shadowColor = 'red'; if (!_mobPerf) ctx.shadowBlur = 22;
         ctx.beginPath(); ctx.arc(p.x, p.y, cs, 0, Math.PI * 2); ctx.fill();
         // bright highlight dot
         ctx.fillStyle = 'rgba(255,220,200,0.7)';
@@ -4000,7 +4000,7 @@ function drawScatteredProjectile(p) {
         sg.addColorStop(0.5, '#ff8800');
         sg.addColorStop(1, 'rgba(200,60,0,0.5)');
         ctx.fillStyle = sg;
-        ctx.shadowColor = 'orange'; ctx.shadowBlur = 8;
+        if (!_mobPerf) ctx.shadowColor = 'orange'; if (!_mobPerf) ctx.shadowBlur = 8;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
@@ -4044,7 +4044,7 @@ function drawSpirit(spirit) {
                     const rot = tri === 0 ? rot1 : rot2;
                     ctx.strokeStyle = tri === 0 ? 'rgba(255,80,255,0.85)' : 'rgba(200,0,255,0.7)';
                     ctx.lineWidth = 1.6;
-                    ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 10;
+                    if (!_mobPerf) ctx.shadowColor = '#ff00ff'; if (!_mobPerf) ctx.shadowBlur = 10;
                     ctx.beginPath();
                     for (let i = 0; i < 3; i++) {
                         const a = rot + (i / 3) * Math.PI * 2 + (tri === 1 ? Math.PI : 0);
@@ -4055,7 +4055,7 @@ function drawSpirit(spirit) {
                 }
 
                 // 6 điểm sáng đỉnh
-                ctx.shadowBlur = 6;
+                if (!_mobPerf) ctx.shadowBlur = 6;
                 for (let i = 0; i < 6; i++) {
                     const a = rot1 + (i / 6) * Math.PI * 2;
                     ctx.fillStyle = `rgba(255,180,255,${0.8 + 0.2 * Math.sin(now / 250 + i)})`;
@@ -4073,19 +4073,19 @@ function drawSpirit(spirit) {
             ctx.globalAlpha = textT * 0.24;
             ctx.font = 'bold 85px serif';
             ctx.fillStyle = '#ff44ff';
-            ctx.shadowColor = '#cc00cc'; ctx.shadowBlur = 40;
+            if (!_mobPerf) ctx.shadowColor = '#cc00cc'; if (!_mobPerf) ctx.shadowBlur = 40;
             ctx.fillText('星王召靈審滅', tx, ty - 8);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'bold 22px "Arial Black", sans-serif';
             ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 22;
+            if (!_mobPerf) ctx.shadowColor = '#ff00ff'; if (!_mobPerf) ctx.shadowBlur = 22;
             ctx.fillText('SUMMONED SPIRIT JUDGMENT', tx, ty - 50);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'italic 12px monospace';
             ctx.fillStyle = '#ff88ff';
-            ctx.shadowBlur = 8;
+            if (!_mobPerf) ctx.shadowBlur = 8;
             ctx.fillText('— Tinh Vương: Triệu Linh Diệt Phán —', tx, ty - 30);
 
             ctx.restore();
@@ -4105,7 +4105,7 @@ function drawSpirit(spirit) {
     const coronaR = size * 1.8;
     ctx.strokeStyle = 'rgba(255,0,255,0.3)';
     ctx.lineWidth = 2;
-    ctx.shadowColor = 'magenta'; ctx.shadowBlur = 12;
+    if (!_mobPerf) ctx.shadowColor = 'magenta'; if (!_mobPerf) ctx.shadowBlur = 12;
     ctx.beginPath(); ctx.arc(spirit.x, spirit.y, coronaR, 0, Math.PI * 2); ctx.stroke();
 
     // rotating trailing petals
@@ -4126,7 +4126,7 @@ function drawSpirit(spirit) {
     grad.addColorStop(0.7, 'magenta');
     grad.addColorStop(1, 'purple');
     ctx.fillStyle = grad;
-    ctx.shadowColor = 'magenta'; ctx.shadowBlur = 22;
+    if (!_mobPerf) ctx.shadowColor = 'magenta'; if (!_mobPerf) ctx.shadowBlur = 22;
     ctx.beginPath(); ctx.arc(spirit.x, spirit.y, size, 0, Math.PI * 2); ctx.fill();
 
     // inner highlight
@@ -4148,7 +4148,7 @@ function drawSpirit(spirit) {
     // glory indicator
     if (gloryForJusticeActive) {
         ctx.fillStyle = 'lime';
-        ctx.shadowColor = 'lime'; ctx.shadowBlur = 6;
+        if (!_mobPerf) ctx.shadowColor = 'lime'; if (!_mobPerf) ctx.shadowBlur = 6;
         ctx.beginPath();
         ctx.moveTo(spirit.x - 5, spirit.y - size - 26);
         ctx.lineTo(spirit.x + 5, spirit.y - size - 26);
@@ -4186,13 +4186,13 @@ function drawBladeArcProjectile(arc) {
     // outer glow arc (original)
     ctx.strokeStyle = 'rgba(173,255,47,0.3)';
     ctx.lineWidth = 14;
-    ctx.shadowColor = 'rgba(150,255,0,0.5)'; ctx.shadowBlur = 10;
+    if (!_mobPerf) ctx.shadowColor = 'rgba(150,255,0,0.5)'; if (!_mobPerf) ctx.shadowBlur = 10;
     ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
 
     // main arc (original)
     ctx.strokeStyle = 'rgba(173,255,47,0.95)';
     ctx.lineWidth = 5;
-    ctx.shadowColor = 'white'; ctx.shadowBlur = 18;
+    if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 18;
     ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
 
     // bright inner edge (original)
@@ -4397,7 +4397,7 @@ function drawSkillDCharging() {
 
     ctx.strokeStyle = `rgba(180,80,255,0.8)`;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = '#8800ff'; ctx.shadowBlur = 20;
+    if (!_mobPerf) ctx.shadowColor = '#8800ff'; if (!_mobPerf) ctx.shadowBlur = 20;
     ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
 
@@ -4412,19 +4412,19 @@ function drawSkillDCharging() {
             ctx.globalAlpha = textT * 0.28;
             ctx.font = 'bold 110px serif';
             ctx.fillStyle = '#6600cc';
-            ctx.shadowColor = '#4400aa'; ctx.shadowBlur = 40;
+            if (!_mobPerf) ctx.shadowColor = '#4400aa'; if (!_mobPerf) ctx.shadowBlur = 40;
             ctx.fillText('虛空崩塌', cx, cy - 80);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'bold 30px "Arial Black", sans-serif';
             ctx.fillStyle = '#cc88ff';
-            ctx.shadowColor = '#8800ff'; ctx.shadowBlur = 28;
+            if (!_mobPerf) ctx.shadowColor = '#8800ff'; if (!_mobPerf) ctx.shadowBlur = 28;
             ctx.fillText('SINGULARITY', cx, cy - 122);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'italic 13px monospace';
             ctx.fillStyle = '#bb66ff';
-            ctx.shadowBlur = 10;
+            if (!_mobPerf) ctx.shadowBlur = 10;
             ctx.fillText('— Hố Đen Triệu Hoán —', cx, cy - 98);
             ctx.restore();
         }
@@ -4460,7 +4460,7 @@ function drawBlackHole() {
     // accretion ring dashes
     ctx.strokeStyle = 'rgba(255,255,255,0.6)';
     ctx.lineWidth = 2.5;
-    ctx.shadowColor = 'magenta'; ctx.shadowBlur = 12;
+    if (!_mobPerf) ctx.shadowColor = 'magenta'; if (!_mobPerf) ctx.shadowBlur = 12;
     ctx.rotate(angle);
     ctx.beginPath(); ctx.arc(0, 0, blackHole.size * 0.82, 0, Math.PI * 0.5); ctx.stroke();
     ctx.beginPath(); ctx.arc(0, 0, blackHole.size * 0.82, Math.PI, Math.PI * 1.5); ctx.stroke();
@@ -4528,7 +4528,7 @@ function drawSkillF() {
             // inner solid ring
             ctx.strokeStyle = 'rgba(0,255,220,0.9)';
             ctx.lineWidth = 2;
-            ctx.shadowColor = 'cyan'; ctx.shadowBlur = 14;
+            if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 14;
             ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er, 0, Math.PI * 2); ctx.stroke();
             ctx.shadowBlur = 0;
 
@@ -4582,19 +4582,19 @@ function drawSkillF() {
                 ctx.globalAlpha = textT * 0.28;
                 ctx.font = 'bold 120px serif';
                 ctx.fillStyle = '#00ffff';
-                ctx.shadowColor = '#00aacc'; ctx.shadowBlur = 40;
+                if (!_mobPerf) ctx.shadowColor = '#00aacc'; if (!_mobPerf) ctx.shadowBlur = 40;
                 ctx.fillText('殲滅掃射', player.x, player.y - 80);
 
                 ctx.globalAlpha = textT * 0.9;
                 ctx.font = 'bold 34px "Arial Black", sans-serif';
                 ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = 'cyan'; ctx.shadowBlur = 24;
+                if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 24;
                 ctx.fillText('ANNIHILATION', player.x, player.y - 120);
 
                 ctx.globalAlpha = textT * 0.9;
                 ctx.font = 'italic 13px monospace';
                 ctx.fillStyle = '#aaffff';
-                ctx.shadowBlur = 8;
+                if (!_mobPerf) ctx.shadowBlur = 8;
                 ctx.fillText('— Thiên Ý Trảm —', player.x, player.y - 96);
                 ctx.restore();
             }
@@ -4645,25 +4645,25 @@ function drawSkillF() {
 
         // wide outer glow cone
         ctx.fillStyle = 'rgba(0,255,255,0.12)';
-        ctx.shadowColor = 'cyan'; ctx.shadowBlur = 40;
+        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 40;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -60); ctx.lineTo(radius, 60);
         ctx.closePath(); ctx.fill();
 
         // bright solid blade
         ctx.fillStyle = 'white';
-        ctx.shadowColor = 'cyan'; ctx.shadowBlur = 50;
+        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 50;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -12); ctx.lineTo(radius, 12);
         ctx.closePath(); ctx.fill();
 
         // cyan flanks
         ctx.fillStyle = 'rgba(0,255,255,0.65)';
-        ctx.shadowBlur = 25;
+        if (!_mobPerf) ctx.shadowBlur = 25;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -42); ctx.lineTo(radius, 42);
         ctx.closePath(); ctx.fill();
 
         // jitter streak
         ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-        ctx.lineWidth = 1.5; ctx.shadowBlur = 10;
+        ctx.lineWidth = 1.5; if (!_mobPerf) ctx.shadowBlur = 10;
         ctx.beginPath(); ctx.moveTo(0, 0);
         ctx.lineTo(radius, (Math.random() - 0.5) * 18); ctx.stroke();
 
@@ -4743,19 +4743,19 @@ function drawSkillGBarrier() {
             ctx.globalAlpha = textT * 0.26;
             ctx.font = 'bold 110px serif';
             ctx.fillStyle = '#00ffaa';
-            ctx.shadowColor = '#00cc88'; ctx.shadowBlur = 45;
+            if (!_mobPerf) ctx.shadowColor = '#00cc88'; if (!_mobPerf) ctx.shadowBlur = 45;
             ctx.fillText('星王生命結界', mx, my - 25);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'bold 30px "Arial Black", sans-serif';
             ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = '#00ffaa'; ctx.shadowBlur = 26;
+            if (!_mobPerf) ctx.shadowColor = '#00ffaa'; if (!_mobPerf) ctx.shadowBlur = 26;
             ctx.fillText('LIFE DOMAIN', mx, my - 67);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'italic 13px monospace';
             ctx.fillStyle = '#88ffcc';
-            ctx.shadowBlur = 10;
+            if (!_mobPerf) ctx.shadowBlur = 10;
             ctx.fillText('— Tinh Vương: Sinh Mệnh Kết Giới —', mx, my - 43);
             ctx.restore();
         }
@@ -4779,14 +4779,14 @@ function drawSkillGBarrier() {
 
     // outer glow frame
     ctx.strokeStyle = `rgba(0,180,255,${skillGBorderOpacity * 0.7})`;
-    ctx.shadowColor = 'cyan'; ctx.shadowBlur = 35;
+    if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 35;
     ctx.lineWidth = 10;
     ctx.strokeRect(5, 5, canvas.width - 10, boundaryY - 5);
 
     // inner thin highlight line
     ctx.strokeStyle = `rgba(150,255,255,${skillGBorderOpacity * 0.5})`;
     ctx.lineWidth = 2;
-    ctx.shadowBlur = 8;
+    if (!_mobPerf) ctx.shadowBlur = 8;
     ctx.strokeRect(10, 10, canvas.width - 20, boundaryY - 10);
 
     ctx.restore();
@@ -4815,7 +4815,7 @@ function drawEnergyOrb(orb) {
     grad.addColorStop(0.8, '#0066cc');
     grad.addColorStop(1, 'rgba(0,40,120,0.4)');
     ctx.fillStyle = grad;
-    ctx.shadowColor = 'white'; ctx.shadowBlur = 14;
+    if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 14;
     ctx.beginPath(); ctx.arc(orb.x, orb.y, radius, 0, Math.PI * 2); ctx.fill();
 
     // inner highlight
@@ -4833,26 +4833,26 @@ function drawEnergyOrb(orb) {
         // outer glow beam
         ctx.strokeStyle = 'rgba(0,200,255,0.25)';
         ctx.lineWidth = orb.size * 2;
-        ctx.shadowColor = 'white'; ctx.shadowBlur = 20;
+        if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.moveTo(orb.x, orb.y); ctx.lineTo(orb2.x, orb2.y); ctx.stroke();
 
         // main beam
         ctx.strokeStyle = 'rgba(0,255,255,0.75)';
         ctx.lineWidth = orb.size;
-        ctx.shadowBlur = 12;
+        if (!_mobPerf) ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.moveTo(orb.x, orb.y); ctx.lineTo(orb2.x, orb2.y); ctx.stroke();
 
         // bright core
         ctx.strokeStyle = 'rgba(255,255,255,0.9)';
         ctx.lineWidth = 2;
-        ctx.shadowBlur = 6;
+        if (!_mobPerf) ctx.shadowBlur = 6;
         ctx.beginPath(); ctx.moveTo(orb.x, orb.y); ctx.lineTo(orb2.x, orb2.y); ctx.stroke();
 
         // animated energy packet
         const t = (now / 1200) % 1;
         const ex = orb.x + (orb2.x - orb.x) * t;
         const ey = orb.y + (orb2.y - orb.y) * t;
-        ctx.fillStyle = 'white'; ctx.shadowColor = 'cyan'; ctx.shadowBlur = 10;
+        ctx.fillStyle = 'white'; if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 10;
         ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
@@ -4877,7 +4877,7 @@ function drawTeslaCoil(coil) {
 
     // outer glow ring
     ctx.fillStyle = 'rgba(0,200,255,0.15)';
-    ctx.shadowColor = 'cyan'; ctx.shadowBlur = 30;
+    if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 30;
     ctx.beginPath(); ctx.arc(coil.x, coil.y, br * 1.5, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -4911,7 +4911,7 @@ function drawTeslaCoil(coil) {
     bodyGrad.addColorStop(0.8, '#0088AA');
     bodyGrad.addColorStop(1, '#004455');
     ctx.fillStyle = bodyGrad;
-    ctx.shadowColor = 'cyan'; ctx.shadowBlur = 28;
+    if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 28;
     ctx.beginPath(); ctx.arc(coil.x, coil.y, br, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -4934,7 +4934,7 @@ function drawTeslaCoil(coil) {
     if (Math.random() < 0.35) {
         ctx.strokeStyle = `rgba(200,255,255,${0.5 + Math.random() * 0.5})`;
         ctx.lineWidth = 1.5 + Math.random();
-        ctx.shadowColor = 'white'; ctx.shadowBlur = 8;
+        if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 8;
         const sa = Math.random() * Math.PI * 2;
         const sd = br + Math.random() * 28;
         ctx.beginPath();
@@ -4988,7 +4988,7 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
 
         if (isReady) {
             ctx.save();
-            ctx.shadowColor = 'white'; ctx.shadowBlur = 16;
+            if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 16;
             ctx.strokeStyle = color; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(x, y, r + 4 + Math.sin(now / 150) * 2, 0, Math.PI * 2); ctx.stroke();
             ctx.restore();
