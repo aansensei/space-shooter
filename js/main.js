@@ -120,6 +120,11 @@ function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
 
+    // Mobile: pin player.y to boundaryY every frame — triệt để fix position
+    if (typeof _platform !== 'undefined' && _platform === 'mobile') {
+        player.y = boundaryY - 18;
+    }
+
     // KIỂM TRA LÃNH ĐỊA THỜI GIAN: Tự hủy sau 8 giây
     if (skillShiftActive && currentTime - skillShiftChargeStart >= skillShiftMaxHold) {
         cancelSkillShift();
