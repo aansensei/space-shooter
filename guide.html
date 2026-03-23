@@ -1332,137 +1332,125 @@
           const { c, w, h } = sd;
           function drawDar(t) {
             c.clearRect(0, 0, w, h);
-            const cx2 = w * 0.2, cy2 = h * 0.45, r = 20;
+            const cx2 = w * 0.22, cy2 = h * 0.50, r = Math.min(h, w * 0.32) * 0.45;
+            const pulse = 0.5 + 0.5 * Math.sin(t / 300);
 
-            // ── MAOU HAKI SHOCKWAVE (every 6s cycle, lasts 1.5s) ──
-            const hakiCycle = 6000;
-            const hakiPhase = (t % hakiCycle) / hakiCycle;
+            // ── MAOU HAKI SHOCKWAVE (every 6s) ──
+            const hakiPhase = (t % 6000) / 6000;
             if (hakiPhase > 0.7 && hakiPhase < 0.95) {
-              const hakiT = (hakiPhase - 0.7) / 0.25;
-              const hakiR = hakiT * Math.max(w, h) * 0.9;
-              const hakiFade = Math.max(0, 1 - hakiT);
-              const hakiBlink = 0.7 + 0.3 * Math.sin(t / 40);
-              // Dense purple fill
-              c.globalAlpha = hakiFade * 0.18 * hakiBlink;
-              c.fillStyle = 'rgba(100,0,200,1)';
-              c.beginPath(); c.arc(cx2, cy2, hakiR, 0, Math.PI * 2); c.fill();
+              const hT = (hakiPhase - 0.7) / 0.25;
+              const hR = hT * Math.max(w, h) * 0.85;
+              const hFade = Math.max(0, 1 - hT);
+              const hBlink = 0.7 + 0.3 * Math.sin(t / 40);
+              c.globalAlpha = hFade * 0.15 * hBlink;
+              c.fillStyle = 'rgba(100,0,200,1)'; c.beginPath(); c.arc(cx2, cy2, hR, 0, Math.PI * 2); c.fill();
               c.globalAlpha = 1;
-              // Rotating arcs inside
-              c.save(); c.translate(cx2, cy2); c.rotate(t / 1200);
-              for (let i = 0; i < 8; i++) {
-                const a = (Math.PI * 2 / 8) * i;
-                const r1 = hakiR * 0.25, r2 = hakiR * 0.8;
-                c.strokeStyle = `rgba(200,80,255,${hakiFade * 0.35 * hakiBlink})`; c.lineWidth = 1;
-                c.beginPath(); c.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); c.lineTo(Math.cos(a) * r2, Math.sin(a) * r2); c.stroke();
-              }
-              // Inner hex
-              c.strokeStyle = `rgba(180,80,255,${hakiFade * 0.45 * hakiBlink})`; c.lineWidth = 1.5;
-              c.beginPath();
-              for (let i = 0; i < 6; i++) { const a = (Math.PI * 2 / 6) * i; const hr = hakiR * 0.42; i === 0 ? c.moveTo(Math.cos(a) * hr, Math.sin(a) * hr) : c.lineTo(Math.cos(a) * hr, Math.sin(a) * hr); }
-              c.closePath(); c.stroke();
-              c.restore();
-              // Main ring
-              c.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * hakiBlink) * hakiFade})`; c.lineWidth = 5;
-              c.beginPath(); c.arc(cx2, cy2, hakiR, 0, Math.PI * 2); c.stroke();
-              // Flying sparks
-              for (let i = 0; i < 8; i++) {
-                const sa = (Math.PI * 2 / 8) * i + t / 400;
-                const sOff = hakiR + Math.sin(t / 180 + i) * 6;
-                c.fillStyle = `rgba(255,180,255,${hakiFade * hakiBlink * 0.7})`; c.beginPath();
-                c.arc(cx2 + Math.cos(sa) * sOff, cy2 + Math.sin(sa) * sOff, 2.5, 0, Math.PI * 2); c.fill();
-              }
-              // Label
-              c.fillStyle = `rgba(200,100,255,${hakiFade})`; c.font = 'bold 10px Orbitron, sans-serif'; c.textAlign = 'center';
-              c.fillText('MAOU HAKI', cx2, cy2 - hakiR - 5);
-              c.fillStyle = `rgba(200,100,255,${hakiFade * 0.6})`; c.font = '7px Share Tech Mono, monospace';
-              c.fillText('destroys all projectiles', cx2, cy2 - hakiR + 6);
-              c.textAlign = 'left';
+              c.strokeStyle = `rgba(138,43,226,${hFade * (0.7 + 0.3 * hBlink)})`; c.lineWidth = 4;
+              c.beginPath(); c.arc(cx2, cy2, hR, 0, Math.PI * 2); c.stroke();
+              c.fillStyle = `rgba(200,100,255,${hFade})`; c.font = 'bold 9px Orbitron, sans-serif'; c.textAlign = 'center';
+              c.fillText('MAOU HAKI', cx2, cy2 - hR - 4); c.textAlign = 'left';
             }
 
-            // Body aura
-            c.fillStyle = `rgba(255,0,255,${0.12 + 0.08 * Math.sin(t / 400)})`;
-            c.beginPath(); c.arc(cx2, cy2, r + 10, 0, Math.PI * 2); c.fill();
-            // Octagon
-            c.save(); c.translate(cx2, cy2); c.rotate(t / 2000);
-            c.fillStyle = '#1a1a2e'; c.strokeStyle = '#FF00FF'; c.lineWidth = 1.5;
-            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r, py = Math.sin(a) * r; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.fill(); c.stroke();
-            c.restore();
-            c.save(); c.translate(cx2, cy2); c.rotate(-t / 2600);
-            c.strokeStyle = '#8A2BE2'; c.lineWidth = 1; c.globalAlpha = 0.55;
-            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r * 0.55, py = Math.sin(a) * r * 0.55; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.stroke();
-            c.globalAlpha = 1; c.restore();
-            // Core gem
-            const cg2 = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, r * 0.28);
-            cg2.addColorStop(0, '#fff'); cg2.addColorStop(0.5, '#FF00FF'); cg2.addColorStop(1, '#8A2BE2');
-            c.fillStyle = cg2; c.beginPath(); c.arc(cx2, cy2, r * 0.28, 0, Math.PI * 2); c.fill();
-            // Orbiting
-            c.fillStyle = '#FF00FF';
-            for (let i = 0; i < 6; i++) { const a = t / 1300 + (i / 6) * Math.PI * 2; c.beginPath(); c.arc(cx2 + Math.cos(a) * (r + 14), cy2 + Math.sin(a) * (r + 14), 2.5, 0, Math.PI * 2); c.fill(); }
+            // ── NEW DARGRUEL BODY ──
+            // 1. Abyss aura
+            c.fillStyle = `rgba(138,43,226,${0.12 + 0.08 * pulse})`;
+            c.beginPath(); c.arc(cx2, cy2, r * 1.5, 0, Math.PI * 2); c.fill();
 
-            // ── ABYSSAL CHAIN FAN (4 chains firing in fan spread) ──
-            const chainCycle = 3000;
-            const chainPhase = (t % chainCycle) / chainCycle;
+            // 2. Maître Suprême rotating dashed ring (simulated 5 sentinels)
+            const simSents = 5, drLevel = Math.min(simSents, 18);
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 1200);
+            c.strokeStyle = `rgba(180,0,255,${0.3 + 0.03 * drLevel})`; c.lineWidth = 2 + drLevel * 0.15;
+            c.setLineDash([12, 8]); c.beginPath(); c.arc(0, 0, r * 1.25, 0, Math.PI * 2); c.stroke();
+            c.setLineDash([]); c.restore();
+
+            // 3. Main octagon
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 3500);
+            const bodyG = c.createRadialGradient(0, 0, 0, 0, 0, r);
+            bodyG.addColorStop(0, '#15002a'); bodyG.addColorStop(0.7, '#2d004d'); bodyG.addColorStop(1, '#0d001a');
+            c.fillStyle = bodyG; c.strokeStyle = '#6a0dad'; c.lineWidth = 3;
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; i === 0 ? c.moveTo(Math.cos(a) * r, Math.sin(a) * r) : c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); c.fill(); c.stroke();
+
+            // 4. Counter-rotating inner octagon + veins
+            c.rotate(-t / 3500 * 3.5); c.strokeStyle = '#8A2BE2'; c.lineWidth = 1.5;
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + Math.PI / 8; i === 0 ? c.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75) : c.lineTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75); } c.closePath(); c.stroke();
+            c.strokeStyle = 'rgba(138,43,226,0.4)';
+            for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75); c.lineTo(Math.cos(a + Math.PI) * r * 0.75, Math.sin(a + Math.PI) * r * 0.75); c.stroke(); }
+            c.restore();
+
+            // 5. Abyss Eye core
+            c.save(); c.translate(cx2, cy2);
+            const coreR = r * 0.35, corePulse = 0.85 + 0.15 * Math.sin(t / 150);
+            const cg2 = c.createRadialGradient(0, 0, 0, 0, 0, coreR * corePulse);
+            cg2.addColorStop(0, '#fff'); cg2.addColorStop(0.3, '#df88ff'); cg2.addColorStop(0.7, '#4B0082'); cg2.addColorStop(1, 'transparent');
+            c.fillStyle = cg2; c.beginPath(); c.arc(0, 0, coreR * corePulse, 0, Math.PI * 2); c.fill();
+
+            // 5.5 Four triangles
+            c.rotate(t / 2500);
+            const triD = coreR + 6, triPulse = 0.6 + 0.4 * Math.sin(t / 100);
+            c.fillStyle = `rgba(223,136,255,${triPulse})`;
+            for (let i = 0; i < 4; i++) {
+              c.save(); c.rotate((i * Math.PI) / 2); c.translate(triD, 0);
+              c.beginPath(); c.moveTo(10, 0); c.lineTo(0, -5); c.lineTo(0, 5); c.closePath(); c.fill();
+              c.restore();
+            }
+            c.restore();
+
+            // 6. Chain nodes
+            c.save(); c.translate(cx2, cy2);
+            for (let i = 0; i < 4; i++) {
+              const a = (i / 4) * Math.PI * 2;
+              const px = Math.cos(a) * r * 0.88, py = Math.sin(a) * r * 0.88;
+              c.fillStyle = '#07001a'; c.strokeStyle = '#9900ff'; c.lineWidth = 1.5;
+              c.beginPath(); c.arc(px, py, 4, 0, Math.PI * 2); c.fill(); c.stroke();
+              c.fillStyle = `rgba(223,136,255,${0.6 + 0.4 * pulse})`;
+              c.beginPath(); c.arc(px, py, 1.5, 0, Math.PI * 2); c.fill();
+            }
+            c.restore();
+
+            // ── ABYSSAL CHAIN FAN ──
+            const chainPhase = (t % 3000) / 3000;
             if (chainPhase < 0.65) {
               const chainT = chainPhase / 0.65;
-              const chainDist = chainT * w * 0.6;
-              const fanAngles = [-0.4, -0.13, 0.13, 0.4]; // 4 chains in fan
-              const baseFanAngle = Math.PI * 0.1; // aim right-ish
-              const pulse = 0.6 + 0.4 * Math.sin(t / 60);
-
+              const chainDist = chainT * w * 0.55;
+              const fanAngles = [-0.4, -0.13, 0.13, 0.4];
+              const baseFanAngle = Math.PI * 0.08;
               fanAngles.forEach((offset, idx) => {
                 const angle = baseFanAngle + offset;
                 const headX = cx2 + Math.cos(angle) * chainDist;
                 const headY = cy2 + Math.sin(angle) * chainDist;
                 const chainFade = chainT < 0.1 ? chainT / 0.1 : (chainT > 0.8 ? (1 - chainT) / 0.2 : 1);
-
-                // Trailing purple sparks
-                for (let tr = 1; tr <= 4; tr++) {
-                  const tf = tr / 4;
-                  const tx = cx2 + Math.cos(angle) * chainDist * (1 - tf * 0.5);
-                  const ty = cy2 + Math.sin(angle) * chainDist * (1 - tf * 0.5);
-                  c.fillStyle = tf < 0.4 ? `rgba(255,136,255,${(1 - tf) * 0.6 * chainFade})` : `rgba(153,0,204,${(1 - tf) * 0.4 * chainFade})`;
-                  c.beginPath(); c.arc(tx, ty, Math.max(1, 4 * (1 - tf * 0.6) * 0.38), 0, Math.PI * 2); c.fill();
-                }
-
-                // Rope from Dargruel to chain head
-                c.strokeStyle = `rgba(180,0,255,${(0.5 + pulse * 0.2) * chainFade})`; c.lineWidth = 2.5;
+                // Rope
+                c.strokeStyle = `rgba(180,0,255,${0.5 * chainFade})`; c.lineWidth = 2;
                 c.setLineDash([5, 5]); c.lineDashOffset = -(t / 30);
                 c.beginPath(); c.moveTo(cx2, cy2);
-                // Jitter segments
-                const segs = 4;
-                for (let s = 1; s <= segs; s++) {
-                  const st = s / segs;
-                  const jitter = s < segs ? Math.sin(t / 100 + s * 2.1 + idx) * 5 : 0;
-                  const dx = headX - cx2, dy = headY - cy2, dist = Math.hypot(dx, dy);
-                  c.lineTo(cx2 + dx * st - (dy / (dist || 1)) * jitter, cy2 + dy * st + (dx / (dist || 1)) * jitter);
+                for (let s = 1; s <= 4; s++) {
+                  const st = s / 4, j = s < 4 ? Math.sin(t / 100 + s * 2.1 + idx) * 4 : 0;
+                  const dx = headX - cx2, dy = headY - cy2, dist = Math.hypot(dx, dy) || 1;
+                  c.lineTo(cx2 + dx * st - (dy / dist) * j, cy2 + dy * st + (dx / dist) * j);
                 }
                 c.stroke(); c.setLineDash([]); c.lineDashOffset = 0;
-
-                // Chain head (ellipse with gem core)
+                // Head
                 c.save(); c.translate(headX, headY); c.rotate(angle);
-                c.fillStyle = `rgba(110,0,210,${0.9 * chainFade})`; c.beginPath(); c.ellipse(0, 0, 10, 4.5, 0, 0, Math.PI * 2); c.fill();
-                c.strokeStyle = `rgba(240,120,255,${0.85 * chainFade})`; c.lineWidth = 1.5; c.beginPath(); c.ellipse(0, 0, 10, 4.5, 0, 0, Math.PI * 2); c.stroke();
-                c.fillStyle = '#07001a'; c.beginPath(); c.ellipse(0, 0, 3.5, 2, 0, 0, Math.PI * 2); c.fill();
-                // Gem glint
-                c.fillStyle = `rgba(245,170,255,${(0.5 + pulse * 0.5) * chainFade})`; c.beginPath(); c.ellipse(-2, -1, 1.5, 0.8, -0.5, 0, Math.PI * 2); c.fill();
+                c.fillStyle = `rgba(110,0,210,${0.9 * chainFade})`; c.beginPath(); c.ellipse(0, 0, 9, 4, 0, 0, Math.PI * 2); c.fill();
+                c.strokeStyle = `rgba(240,120,255,${0.85 * chainFade})`; c.lineWidth = 1.5; c.beginPath(); c.ellipse(0, 0, 9, 4, 0, 0, Math.PI * 2); c.stroke();
                 c.restore();
               });
             }
 
             // Info labels
             c.fillStyle = '#cc55ff'; c.font = 'bold 8px Orbitron, sans-serif';
-            c.fillText('DEMON GIFT @70/40/10/1%', w * 0.55, h * 0.15);
+            c.fillText('DEMON GIFT @70/40/10/1%', w * 0.52, h * 0.15);
             c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('Heals enemies, +18% DR 4s', w * 0.55, h * 0.15 + 13);
-            c.fillText('25% base DR + 2%/sentinel', w * 0.55, h * 0.15 + 26);
-            c.fillStyle = '#cc55ff88'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('4 PIERCING CHAINS / 1.5s', w * 0.55, h * 0.55);
-            c.fillText('Hit player → Root & Silence 1s', w * 0.55, h * 0.55 + 13);
-            c.fillText('Hit sentinel → 15% Max HP true dmg', w * 0.55, h * 0.55 + 26);
+            c.fillText('25% base DR + 2%/sentinel (cap 36%)', w * 0.52, h * 0.15 + 13);
+            c.fillText('Attack speed +5%/sentinel (cap 20%)', w * 0.52, h * 0.15 + 26);
+            c.fillStyle = '#cc55ff88';
+            c.fillText('4 PIERCING CHAINS / 1.5s', w * 0.52, h * 0.58);
+            c.fillText('Hit player → Root & Silence 1s', w * 0.52, h * 0.58 + 13);
             activeAnimations.push(requestAnimationFrame(() => drawDar(performance.now())));
           }
           drawDar(performance.now());
         }
+
 
         // Leviathan — 2 phases in 1 canvas, sequential
         const sl = setup('cvLeviat');
