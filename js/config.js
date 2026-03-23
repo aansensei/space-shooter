@@ -11,7 +11,7 @@ let nextLifeMilestone = 500000;
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5 };
 let playerClones = [];
 let lastAutoFire = 0;
-const autoFireInterval = 170;
+const autoFireInterval = 142; // 170 / 1.2 (+20% fire rate)
 
 let bullets = [], enemies = [], explosions = [], particles = [], chainLightningEffects = [];
 let demonGiftEffect = { active: false, endTime: 0 };

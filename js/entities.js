@@ -141,7 +141,7 @@ function fireAutoShot() {
         const angle = baseAngle + startAngle + (i * angleStep);
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
-            vx: Math.cos(angle) * 11.2 * speedMultiplier, vy: Math.sin(angle) * 11.2 * speedMultiplier,
+            vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
             damage: 6, percentDamage: 0.04, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28  // 28% khả năng gây Trọng Thương
         });
@@ -428,7 +428,7 @@ function destroySentinel(sentinel) {
 
 function updateSentinels(deltaTime) {
     let activeCount = sentinels.length;
-    let sentinelFireRate = 75;
+    let sentinelFireRate = 62.5; // 75 / 1.2 (+20% fire rate)
     let damageMultiplier = 1.0;
 
     let isTier1 = activeCount < 5;
@@ -494,7 +494,7 @@ function updateSentinels(deltaTime) {
                 bullets.push({
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    vx: Math.cos(angle) * 9 * speedMultiplier, vy: Math.sin(angle) * 9 * speedMultiplier,
+                    vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
                     damage: 4 * damageMultiplier, percentDamage: 0.035 * damageMultiplier, size: 7.8, type: 'sentinel_auto'
                 });
                 particles.push({ x: sentinel.x + Math.cos(angle) * (sentinel.size + 5), y: sentinel.y + Math.sin(angle) * (sentinel.size + 5), vx: 0, vy: 0, lifetime: 100, maxLifetime: 100, size: 5, color: 'orange' });
