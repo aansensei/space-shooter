@@ -38,7 +38,7 @@ const MAX_SENTINELS = 12;
 // Skill Shift: Yog-Sothoth (Thao túng Không Thời Gian)
 let skillShiftActive = false;
 let skillShiftChargeStart = 0;
-const skillShiftCooldown = 12000; // 15s → 12s // 15 giây
+const skillShiftCooldown = 11000; // base CD 11s (scales with hold duration)
 let lastSkillShift = -Infinity;
 const skillShiftMaxCharge = 3000; // 3 giây tụ lực tối đa
 const skillShiftMaxHold = 8000; // 8 giây giữ tối đa tự hủy

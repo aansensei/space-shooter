@@ -739,8 +739,27 @@ function executeShiftTeleport(direction) {
 
 function cancelSkillShift() {
     if (skillShiftActive) {
+        const holdDuration = (performance.now() - skillShiftChargeStart) / 1000; // seconds
         skillShiftActive = false;
-        lastSkillShift = performance.now();
+
+        // Dynamic cooldown: shorter hold → shorter CD
+        // Base CD: 11s. Reductions:
+        //   < 2s held  → -90% CD  (11s * 0.10 = 1.1s)
+        //   2s–5s      → -60% CD  (11s * 0.40 = 4.4s)
+        //   5s–7s      → -10% CD  (11s * 0.90 = 9.9s)
+        //   >= 7s      → full CD  (11s)
+        let cdMultiplier;
+        if (holdDuration < 2) {
+            cdMultiplier = 0.10;
+        } else if (holdDuration < 5) {
+            cdMultiplier = 0.40;
+        } else if (holdDuration < 7) {
+            cdMultiplier = 0.90;
+        } else {
+            cdMultiplier = 1.0;
+        }
+        const effectiveCD = skillShiftCooldown * cdMultiplier;
+        lastSkillShift = performance.now() - (skillShiftCooldown - effectiveCD);
 
         // Xóa tất cả enemy bullet trong vùng phạm vi Shift (bán kính = nửa màn hình)
         const shiftRadius = Math.min(canvas.width, canvas.height) * 0.45;
