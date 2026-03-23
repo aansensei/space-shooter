@@ -252,7 +252,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ---
 
-### Normal Enemy
+### Apostles (Norma)
 
 Spawns continuously from the start. HP starts between **9–12** and scales up over time (capped at **96 HP**). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
@@ -412,7 +412,7 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 
 | Class | Examples |
 |---|---|
-| **Normal** | Standard enemy |
+| **Normal** | Apostles |
 | **Abnormal** | Thaelis |
 | **Elite** | Marchosias, Heavenly Aegis Core |
 | **Dominator** | Dargruel, Leviathan |

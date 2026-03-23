@@ -2364,147 +2364,182 @@ function drawAegisCore(enemy) {
     ctx.translate(enemy.x, enemy.y);
     const now = performance.now();
     const auraRadius = canvas.width / 2;
+    const r = enemy.size;
 
-    // ── 1. BOUNDARY RING ──────────────────────────────────────
-    ctx.lineWidth = 18;
-    ctx.strokeStyle = 'rgba(255,30,30,0.18)';
-    ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.stroke();
+    // ── 1. AURA ZONE BACKGROUND (red tint) ────────────────────
+    const zoneGrad = ctx.createRadialGradient(0, 0, r, 0, 0, auraRadius);
+    zoneGrad.addColorStop(0, 'rgba(255,0,0,0.02)');
+    zoneGrad.addColorStop(0.7, 'rgba(200,0,0,0.04)');
+    zoneGrad.addColorStop(1, 'rgba(220,0,0,0.16)');
+    ctx.fillStyle = zoneGrad;
+    ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.fill();
 
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = 'rgba(255,60,60,0.6)';
-    if (!_mobPerf) ctx.shadowColor = '#ff2200'; if (!_mobPerf) ctx.shadowBlur = 30;
-    ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.stroke();
-
+    // ── 2. LIMIT BOUNDARY RING (red) ─────────────────────────
+    ctx.strokeStyle = 'rgba(255,40,40,0.85)';
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = 'rgba(255,160,120,0.95)';
-    if (!_mobPerf) ctx.shadowColor = '#ff8866'; if (!_mobPerf) ctx.shadowBlur = 14;
-    ctx.beginPath(); ctx.arc(0, 0, auraRadius - 5, 0, Math.PI * 2); ctx.stroke();
-
-    ctx.save();
-    ctx.rotate(now / 6000);
-    ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,100,80,0.4)';
-    ctx.shadowBlur = 0; ctx.setLineDash([20, 18, 5, 18]);
-    ctx.beginPath(); ctx.arc(0, 0, auraRadius + 7, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]); ctx.restore();
+    if (!_mobPerf) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 18; }
+    ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── 2. SQUARE RINGS lan từ core ra limit ──────────────────
-    // Hai vòng offset nhau nửa chu kỳ, giống pulse ring cũ
-    // nhưng mỗi vòng là một chuỗi ô vuông xếp trên đường tròn
-    const ringPeriod = 2200; // ms mỗi vòng đi từ core → limit
-    const sqSize = 9;        // kích thước mỗi ô vuông
-
-    for (let wave = 0; wave < 2; wave++) {
-        // progress 0→1: core→limit
-        const t = ((now + wave * ringPeriod / 2) % ringPeriod) / ringPeriod;
-        const r = enemy.size * 1.1 + t * (auraRadius - enemy.size * 1.1);
-
-        // fade: hiện nhanh, mờ dần khi gần limit
-        const alpha = (1 - Math.pow(t, 1.8)) * 0.75;
-        if (alpha < 0.02) continue;
-
-        // màu theo progress: đỏ → cam → vàng
-        const g = Math.floor(t * 130);
-        ctx.fillStyle = `rgba(255,${g},0,${alpha})`;
-        ctx.strokeStyle = `rgba(255,${Math.min(g + 80, 255)},40,${alpha * 0.7})`;
-        ctx.lineWidth = 0.7;
-
-        // số ô vuông vừa đủ xếp quanh vòng tròn bán kính r
-        const sqCount = Math.max(8, Math.floor((2 * Math.PI * r) / (sqSize + 3)));
-        // xoay nhẹ theo thời gian để không bị static
-        const rotOffset = now / 4000 * (wave % 2 === 0 ? 1 : -1);
-
-        for (let i = 0; i < sqCount; i++) {
-            const angle = (i / sqCount) * Math.PI * 2 + rotOffset;
-            const sx = Math.cos(angle) * r;
-            const sy = Math.sin(angle) * r;
-
-            // nhấp nhô nhỏ theo sin — mỗi ô lệch phase
-            const wobble = 1 + 0.25 * Math.sin(now / 300 + i * 0.6 + wave * 3.14);
-            const half = (sqSize * wobble) / 2;
-
-            ctx.save();
-            ctx.translate(sx, sy);
-            ctx.rotate(angle); // ô vuông hướng theo tiếp tuyến
-            ctx.fillRect(-half, -half, half * 2, half * 2);
-            ctx.strokeRect(-half, -half, half * 2, half * 2);
-            ctx.restore();
-        }
-    }
-
-    // ── 3. BODY ───────────────────────────────────────────────
-    if (enemy.aegisInvulnerable) {
-        ctx.beginPath(); ctx.arc(0, 0, enemy.size + 15, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 4;
-        if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 18; ctx.stroke(); ctx.shadowBlur = 0;
-    }
-
-    const bodyGrad = ctx.createRadialGradient(0, 0, enemy.size * 0.15, 0, 0, enemy.size);
-    bodyGrad.addColorStop(0, '#f8f8f8'); bodyGrad.addColorStop(0.5, '#c8c8c8');
-    bodyGrad.addColorStop(0.85, '#888'); bodyGrad.addColorStop(1, '#555');
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath(); ctx.arc(0, 0, enemy.size, 0, Math.PI * 2); ctx.fill();
-
+    // Rotating gold dashed inner ring
     ctx.save();
-    ctx.rotate(now / 3000);
-    ctx.strokeStyle = 'rgba(120,120,120,0.6)'; ctx.lineWidth = 1.5;
-    for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * enemy.size * 0.88, Math.sin(a) * enemy.size * 0.88);
-        ctx.lineTo(Math.cos(a) * enemy.size * 0.97, Math.sin(a) * enemy.size * 0.97);
-        ctx.stroke();
-    }
+    ctx.rotate(now / 5000);
+    ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([15, 12, 4, 12]);
+    ctx.beginPath(); ctx.arc(0, 0, auraRadius - 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
 
-    ctx.strokeStyle = '#707070'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(0, 0, enemy.size, 0, Math.PI * 2); ctx.stroke();
-
-    const coreGrad = ctx.createLinearGradient(0, -enemy.size * 0.4, 0, enemy.size * 0.4);
-    coreGrad.addColorStop(0, '#ff3333'); coreGrad.addColorStop(1, '#800000');
-    if (!_mobPerf) ctx.shadowColor = '#ff3333'; if (!_mobPerf) ctx.shadowBlur = 18;
-    ctx.fillStyle = coreGrad;
-    ctx.beginPath(); ctx.arc(0, 0, enemy.size * 0.35, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-
-    ctx.strokeStyle = '#ff6666'; ctx.lineWidth = 2;
-    ctx.fillStyle = '#220000';
-    const rs = enemy.size * 0.2;
-    ctx.fillRect(-rs, -rs, rs * 2, rs * 2);
-    ctx.strokeRect(-rs, -rs, rs * 2, rs * 2);
-
-    const pulse = 0.6 + 0.4 * Math.abs(Math.sin(now / 220));
-    ctx.fillStyle = `rgba(255,100,100,${pulse})`;
-    ctx.beginPath(); ctx.arc(0, 0, rs * 0.45, 0, Math.PI * 2); ctx.fill();
-
-    // ── NEW: counter-rotating rune marks on body ──
+    // 4 mechanical bracket locks on aura edge
     ctx.save();
-    ctx.rotate(-now / 2500);
-    ctx.strokeStyle = 'rgba(255,60,60,0.35)';
-    ctx.lineWidth = 1;
+    ctx.rotate(-now / 8000);
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 4;
     for (let i = 0; i < 4; i++) {
-        const ra = (i / 4) * Math.PI * 2;
-        const rx = Math.cos(ra) * enemy.size * 0.62;
-        const ry = Math.sin(ra) * enemy.size * 0.62;
         ctx.beginPath();
-        ctx.moveTo(rx - 3, ry - 3); ctx.lineTo(rx + 3, ry + 3);
-        ctx.moveTo(rx + 3, ry - 3); ctx.lineTo(rx - 3, ry + 3);
+        ctx.arc(0, 0, auraRadius, i * Math.PI / 2 - 0.08, i * Math.PI / 2 + 0.08);
+        ctx.stroke();
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(Math.cos(i * Math.PI / 2) * (auraRadius - 14),
+            Math.sin(i * Math.PI / 2) * (auraRadius - 14), 2.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+
+    // ── 3. CIRCULAR PULSE WAVES (gold → red) ─────────────────
+    if (!enemy._aegisPulses) enemy._aegisPulses = [];
+    if (!enemy._lastPulseSpawn || now - enemy._lastPulseSpawn > 1500) {
+        enemy._aegisPulses.push({ startTime: now, duration: 1400, startR: r * 1.2, endR: auraRadius });
+        enemy._lastPulseSpawn = now;
+    }
+    for (let pi = enemy._aegisPulses.length - 1; pi >= 0; pi--) {
+        const p = enemy._aegisPulses[pi];
+        const elapsed = now - p.startTime;
+        const tp = elapsed / p.duration;
+        if (tp >= 1) { enemy._aegisPulses.splice(pi, 1); continue; }
+        const easeT = 1 - Math.pow(1 - tp, 2.5);
+        const currentR = p.startR + easeT * (p.endR - p.startR);
+        const alpha = (1 - tp) * 0.75;
+        const gCol = Math.floor(215 * (1 - tp));
+        const pulseColor = `rgba(255,${gCol},0,${alpha})`;
+        ctx.save();
+        if (!_mobPerf) { ctx.shadowColor = pulseColor; ctx.shadowBlur = 10 * (1 - tp); }
+        ctx.strokeStyle = pulseColor; ctx.lineWidth = 4 * (1 - tp) + 1;
+        ctx.beginPath(); ctx.arc(0, 0, currentR, 0, Math.PI * 2); ctx.stroke();
+        ctx.save();
+        ctx.rotate(tp * Math.PI * 0.5);
+        ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.8})`; ctx.lineWidth = 1.5;
+        ctx.setLineDash([5 + tp * 15, 8 + tp * 5]);
+        ctx.beginPath(); ctx.arc(0, 0, currentR * 0.94, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        if (!_mobPerf) {
+            ctx.strokeStyle = `rgba(255,${gCol},0,${alpha * 0.25})`; ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 6]);
+            for (let s = 0; s < 12; s++) {
+                const a = (s / 12) * Math.PI * 2 + now / 4000;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * p.startR, Math.sin(a) * p.startR);
+                ctx.lineTo(Math.cos(a) * currentR, Math.sin(a) * currentR);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // ── 4. CUSTOS AETERNUS SHIELD (gold, Iron Body) ───────────
+    if (enemy.aegisInvulnerable) {
+        ctx.save();
+        const shieldR = r * 1.6;
+        const shieldPulse = 0.8 + 0.2 * Math.sin(now / 150);
+        if (!_mobPerf) { ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 25; }
+        ctx.strokeStyle = `rgba(255,215,0,${shieldPulse})`; ctx.lineWidth = 3;
+        ctx.fillStyle = 'rgba(255,215,0,0.08)';
+        ctx.beginPath(); ctx.arc(0, 0, shieldR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.rotate(now / 3000);
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1;
+        if (!_mobPerf) ctx.shadowBlur = 5;
+        ctx.beginPath();
+        for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2;
+            const nextA = ((i + 3) / 12) * Math.PI * 2;
+            ctx.moveTo(Math.cos(a) * shieldR, Math.sin(a) * shieldR);
+            ctx.lineTo(Math.cos(nextA) * shieldR, Math.sin(nextA) * shieldR);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // ── 5. ARMILLARY RINGS ────────────────────────────────────
+    ctx.save();
+    if (!_mobPerf) { ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 10; }
+    ctx.strokeStyle = 'rgba(200,200,220,0.8)'; ctx.lineWidth = 2.5;
+    ctx.save();
+    ctx.rotate(now / 1500);
+    ctx.scale(1, 0.3 + 0.1 * Math.sin(now / 1000));
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.3, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.rotate(-now / 1800 + Math.PI / 4);
+    ctx.scale(0.35 + 0.15 * Math.sin(now / 1200), 1);
+    ctx.strokeStyle = 'rgba(255,100,100,0.7)';
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.4, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // ── 6. MAIN BODY SHELL ────────────────────────────────────
+    const shellGrad = ctx.createRadialGradient(0, 0, r * 0.4, 0, 0, r);
+    shellGrad.addColorStop(0, '#e0e0e0'); shellGrad.addColorStop(0.5, '#7a7a7a');
+    shellGrad.addColorStop(0.85, '#2b2b2b'); shellGrad.addColorStop(1, '#050505');
+    ctx.fillStyle = shellGrad; ctx.strokeStyle = '#444'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.save();
+    ctx.rotate(-now / 4000);
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3);
+        ctx.lineTo(Math.cos(a) * r * 0.98, Math.sin(a) * r * 0.98);
         ctx.stroke();
     }
     ctx.restore();
 
-    // ── NEW: blink flash on Custos shield hit ──
-    if (enemy.aegisInvulnerable) {
-        const flashPulse = 0.3 + 0.7 * Math.abs(Math.sin(now / 150));
-        ctx.strokeStyle = `rgba(255,255,255,${flashPulse})`;
-        ctx.lineWidth = 2; if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 20;
-        ctx.beginPath(); ctx.arc(0, 0, enemy.size * 0.75, 0, Math.PI * 2); ctx.stroke();
-        ctx.shadowBlur = 0;
+    // ── 7. MECHANICAL IRIS + CORE ─────────────────────────────
+    const innerR = r * 0.45;
+    ctx.fillStyle = '#050000';
+    ctx.beginPath(); ctx.arc(0, 0, innerR, 0, Math.PI * 2); ctx.fill();
+    const coreBeat = 0.85 + 0.2 * Math.abs(Math.sin(now / 750));
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerR * coreBeat);
+    coreGrad.addColorStop(0, '#ffffff'); coreGrad.addColorStop(0.2, '#ffdd44');
+    coreGrad.addColorStop(0.5, '#ff2200'); coreGrad.addColorStop(1, 'transparent');
+    if (!_mobPerf) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 20; }
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath(); ctx.arc(0, 0, innerR * coreBeat, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.save();
+    ctx.rotate(now / 2000);
+    ctx.fillStyle = '#111'; ctx.strokeStyle = '#ff8888'; ctx.lineWidth = 1;
+    for (let i = 0; i < 6; i++) {
+        ctx.save(); ctx.rotate((i / 6) * Math.PI * 2);
+        ctx.beginPath();
+        ctx.moveTo(innerR * 0.4, 0);
+        ctx.lineTo(innerR, -innerR * 0.4);
+        ctx.lineTo(innerR, innerR * 0.4);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
     }
+    ctx.restore();
+    ctx.fillStyle = `rgba(255,255,255,${0.8 + 0.2 * Math.sin(now / 100)})`;
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2); ctx.fill();
 
     ctx.restore();
 }
-
 // ── Enemy dispatcher ──────────────────────────────────────────
 function drawEnemy(enemy) {
     // ── Abyssal Chain render ──────────────────────────────────────
@@ -3804,56 +3839,71 @@ function _drawMarchoBlade(blade) {
 function _drawNormalEnemy(enemy) {
     const now = performance.now();
     const hpRatio = enemy.hp / enemy.maxHp;
-    const hue = 20 + hpRatio * 20;
-    const color = `hsl(${hue},100%,58%)`;
-    const darkColor = `hsl(${hue},90%,18%)`;
+    const hue = 10 + hpRatio * 40; // 50=orange, 10=red
+    const glowColor = `hsl(${hue},100%,55%)`;
+    const darkColor = `hsl(${hue},90%,25%)`;
 
-    ctx.save();
-    // faint outer ring
-    ctx.fillStyle = `hsla(${hue},100%,50%,0.13)`;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 1.3, 0, Math.PI * 2); ctx.fill();
-
-    // main gradient body
-    const grad = ctx.createRadialGradient(
-        enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, 0,
-        enemy.x, enemy.y, enemy.size
-    );
-    grad.addColorStop(0, "white");
-    grad.addColorStop(0.28, color);
-    grad.addColorStop(0.72, darkColor);
-    grad.addColorStop(1, "rgba(30,0,0,0.85)");
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
-
-    // rim stroke
-    ctx.strokeStyle = `hsla(${hue},100%,70%,0.65)`;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.stroke();
-
-    // ── NEW: slow-spinning inner hex detail ──
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
-    ctx.rotate(now / 3500);
-    ctx.strokeStyle = `hsla(${hue},100%,75%,0.3)`;
-    ctx.lineWidth = 0.8;
+    const r = enemy.size;
+
+    // 1. Warning aura
+    ctx.fillStyle = `hsla(${hue},100%,50%,0.15)`;
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.4, 0, Math.PI * 2); ctx.fill();
+
+    // 2. Rotating body + clamps
+    ctx.save();
+    ctx.rotate(now / 1800);
+
+    // Hex frame
+    ctx.fillStyle = '#181822';
+    ctx.strokeStyle = '#3a3a4a';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
     for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2;
-        const nx = Math.cos(a) * enemy.size * 0.55;
-        const ny = Math.sin(a) * enemy.size * 0.55;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(nx, ny); ctx.stroke();
+        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+            : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // 3 armored clamps
+    for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((i / 3) * Math.PI * 2 + Math.PI / 6);
+        ctx.fillStyle = '#22222e';
+        ctx.beginPath();
+        ctx.moveTo(r * 0.5, -r * 0.25);
+        ctx.lineTo(r * 1.1, -r * 0.15);
+        ctx.lineTo(r * 1.1, r * 0.15);
+        ctx.lineTo(r * 0.5, r * 0.25);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = darkColor; ctx.lineWidth = 2; ctx.stroke();
+        // Glow slit
+        ctx.fillStyle = glowColor;
+        ctx.fillRect(r * 0.85, -r * 0.05, r * 0.2, r * 0.1);
+        ctx.restore();
     }
     ctx.restore();
 
-    // ── NEW: tiny pulsing center dot ──
-    const cp = 0.7 + 0.3 * Math.sin(now / 250 + enemy.x);
-    ctx.fillStyle = `rgba(255,220,150,${cp})`;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 0.12, 0, Math.PI * 2); ctx.fill();
+    // 3. Eye (non-rotating, pulsing)
+    const pulse = 0.8 + 0.2 * Math.sin(now / 150 + enemy.x);
+    const eyeR = r * 0.5;
+    ctx.fillStyle = '#0a0a0f';
+    ctx.beginPath(); ctx.arc(0, 0, eyeR * 1.1, 0, Math.PI * 2); ctx.fill();
+    const eyeGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, eyeR * pulse);
+    eyeGrad.addColorStop(0, '#ffffff');
+    eyeGrad.addColorStop(0.3, glowColor);
+    eyeGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = eyeGrad;
+    if (!_mobPerf) { ctx.shadowColor = glowColor; ctx.shadowBlur = 10; }
+    ctx.beginPath(); ctx.arc(0, 0, eyeR * pulse, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Pupil
+    ctx.fillStyle = '#050508';
+    ctx.beginPath(); ctx.arc(0, 0, eyeR * 0.25, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = glowColor; ctx.lineWidth = 1; ctx.stroke();
 
-    // glint
-    ctx.fillStyle = 'rgba(255,255,220,0.5)';
-    ctx.beginPath();
-    ctx.ellipse(enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, enemy.size * 0.22, enemy.size * 0.13, -Math.PI / 4, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
 }
 
