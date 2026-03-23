@@ -325,8 +325,59 @@
                     </button>
                 </div>
 
+                <!-- Guide button — above hyperjump -->
+                <button id="guideBtn" onclick="openGuide()" style="
+                    margin-bottom:14px; padding:8px 22px;
+                    font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700;
+                    letter-spacing:2px; text-transform:uppercase;
+                    color:#00e5ff; background:rgba(0,20,40,0.7);
+                    border:1.5px solid rgba(0,229,255,0.4); border-radius:6px;
+                    cursor:pointer; backdrop-filter:blur(8px);
+                    box-shadow:0 0 20px rgba(0,229,255,0.15);
+                    transition:all 0.3s;
+                ">⬡ Guide</button>
+
                 <button id="start-hyperjump-btn">Initiate Hyperjump</button>
             </div>
+
+            <!-- Guide iframe overlay -->
+            <div id="guideOverlay" style="display:none; position:fixed; inset:0; z-index:500;
+                background:rgba(0,3,10,0.92); backdrop-filter:blur(14px);
+                justify-content:center; align-items:center;">
+                <div
+                    style="position:relative; width:min(94vw,860px); max-height:92vh; display:flex; flex-direction:column;">
+                    <button onclick="closeGuide()" style="
+                        position:absolute; top:-16px; right:-16px; z-index:10;
+                        width:36px; height:36px; background:rgba(255,60,60,0.15);
+                        border:1px solid rgba(255,60,60,0.4); border-radius:8px;
+                        color:#ff6666; font-size:20px; cursor:pointer;
+                        display:flex; align-items:center; justify-content:center;
+                        transition:all 0.2s;
+                    ">✕</button>
+                    <iframe id="guideFrame" src="" style="
+                        width:100%; height:88vh; border:1px solid rgba(0,200,255,0.18);
+                        border-radius:14px; background:#03030f; display:block;
+                    " frameborder="0"></iframe>
+                </div>
+            </div>
+            <script>
+                function openGuide() {
+                    const ov = document.getElementById('guideOverlay');
+                    const fr = document.getElementById('guideFrame');
+                    ov.style.display = 'flex';
+                    if (!fr.getAttribute('data-loaded')) {
+                        fr.src = 'guide.html';
+                        fr.setAttribute('data-loaded', '1');
+                    }
+                }
+                function closeGuide() {
+                    document.getElementById('guideOverlay').style.display = 'none';
+                }
+                document.getElementById('guideOverlay').addEventListener('click', function (e) {
+                    if (e.target === this) closeGuide();
+                });
+            </script>
+
             <div id="loading-screen">
                 <h1
                     style="color: #fff; letter-spacing: 3px; text-shadow: 0 0 15px #fff; font-family: 'Playfair Display', serif;">
@@ -527,6 +578,7 @@
 
             document.getElementById('start-hyperjump-btn').addEventListener('click', () => {
                 lockScreen.style.display = 'none';
+                const _gb = document.getElementById('guideBtn'); if (_gb) _gb.style.display = 'none';
                 uiWrapper.style.backdropFilter = 'none';
                 uiWrapper.style.background = 'transparent';
                 loadingScreen.style.display = 'flex';
@@ -900,6 +952,7 @@
 
             // ── MULTI-TOUCH: handled via direct ontouchstart on each button ──
         })();
+
     </script>
 </body>
 

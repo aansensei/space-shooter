@@ -359,7 +359,7 @@ HP: **2,520–8,399**. DR is fully dynamic — see Passive below.
 - **+2% DR per active Sentinel** on screen. Capped at **36% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 
-**Skill: Hắc Ám Xiềng Xích (Abyssal Chains)** — Every **1.5 seconds**, fires **4 dark chains** in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
+**Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **1.5 seconds**, fires **4 dark chains** in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
 - **Hit player** → **Root & Silence for 1 second**: cannot move, cannot use any skill (including Shift), auto-fire stops, Skill A orbs return to orbit. A purple lock icon appears on the ship and a red X overlays all skill icons. Re-applies silence even if already silenced.
 - **Hit Sentinel** → **true damage equal to 15% of that Sentinel's Max HP**, chain consumed on contact.
