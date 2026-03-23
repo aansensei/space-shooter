@@ -94,7 +94,8 @@
         }
 
         #start-hyperjump-btn {
-            padding: 15px 40px;
+            width: 340px;
+            padding: 15px 0;
             border-radius: 30px;
             border: none;
             font-weight: bold;
@@ -304,9 +305,9 @@
                     Pisces: Space Journey
                 </h1>
 
-                <!-- Platform picker -->
-                <div style="display:flex; gap:20px; justify-content:center; margin-bottom:28px;">
-                    <button id="btn-pc" onclick="selectPlatform('pc')" class="pf-btn pf-active">
+                <!-- Platform picker — equal size buttons -->
+                <div style="display:flex; gap:20px; justify-content:center; margin-bottom:16px; width:340px;">
+                    <button id="btn-pc" onclick="selectPlatform('pc')" class="pf-btn pf-active" style="flex:1;">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -315,7 +316,7 @@
                         </svg>
                         <span>PC</span>
                     </button>
-                    <button id="btn-mobile" onclick="selectPlatform('mobile')" class="pf-btn">
+                    <button id="btn-mobile" onclick="selectPlatform('mobile')" class="pf-btn" style="flex:1;">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="5" y="2" width="14" height="20" rx="2" />
@@ -325,16 +326,16 @@
                     </button>
                 </div>
 
-                <!-- Guide button — above hyperjump -->
+                <!-- Guide button — same width as hyperjump, centered between rows -->
                 <button id="guideBtn" onclick="openGuide()" style="
-                    margin-bottom:14px; padding:8px 22px;
+                    width:340px; margin-bottom:16px; padding:12px 0;
                     font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700;
                     letter-spacing:2px; text-transform:uppercase;
                     color:#00e5ff; background:rgba(0,20,40,0.7);
-                    border:1.5px solid rgba(0,229,255,0.4); border-radius:6px;
+                    border:1.5px solid rgba(0,229,255,0.4); border-radius:30px;
                     cursor:pointer; backdrop-filter:blur(8px);
                     box-shadow:0 0 20px rgba(0,229,255,0.15);
-                    transition:all 0.3s;
+                    transition:all 0.25s;
                 ">⬡ Guide</button>
 
                 <button id="start-hyperjump-btn">Initiate Hyperjump</button>
