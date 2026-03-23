@@ -6,11 +6,18 @@ function showStartButton(text) {
     btn.style.top = (typeof gameState !== 'undefined' && gameState === "gameover")
         ? "calc(50% + 80px)" : "50%";
     btn.style.display = "block";
+    // On mobile, #mc (z-index:300) covers the screen — lift button above it
+    btn.style.zIndex = "400";
+    btn.style.position = "fixed";
+    btn.style.left = "50%";
+    btn.style.transform = "translateX(-50%)";
+    btn.style.pointerEvents = "all";
+    btn.style.touchAction = "manipulation";
 }
 
 function hideStartButton() {
     const btn = document.getElementById("startBtn");
-    if (btn) btn.style.display = "none";
+    if (btn) { btn.style.display = "none"; btn.style.zIndex = ""; }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,6 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
     startBtn.addEventListener("click", () => {
         startGame();
     });
+    // Mobile: touchstart fires more reliably than click on overlapped elements
+    startBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        startGame();
+    }, { passive: false });
 
     // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded
     function showPauseScreen() {
