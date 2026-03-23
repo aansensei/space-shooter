@@ -478,14 +478,14 @@
       enemies: `
 <div class="card"><h2 class="dsname">ENEMY CLASSES</h2><table class="controls-table">
 <tr><th>Class</th><th>Examples</th><th>Info</th></tr>
-<tr><td style="color:#aaaaaa">Normal</td><td>Standard</td><td>HP 9–96, scales</td></tr>
+<tr><td style="color:#aaaaaa">Apostles</td><td>Standard</td><td>HP 9–96, scales</td></tr>
 <tr><td style="color:#22cc55">Abnormal</td><td>Thaelis</td><td rowspan="4">Combined cap: 6</td></tr>
 <tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis</td></tr>
 <tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td></tr>
 <tr><td style="color:#ff2244">Administrator</td><td>Kanade</td></tr>
 </table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus.</p></div>
 
-<div class="card"><h2 class="dsname" style="color:#aaaaaa">NORMAL ENEMY</h2><div class="sub">HP 9–96 • FIRES 1 BULLET/SEC</div>
+<div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLES</h2><div class="sub">HP 9–96 • FIRES 1 BULLET/SEC</div>
 <div class="ab" style="height:100px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div></div>
 
 <div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">30s • HP 500–1,100 • CAP 3</div>
@@ -1022,40 +1022,47 @@
 
       // ── ENEMY TAB CANVASES ──
       if (tab === 'enemies') {
-        // Normal enemy
+        // Apostles
         const sn = setup('cvNormal');
         if (sn) {
           const { c, w, h } = sn;
           function drawNorm(t) {
             c.clearRect(0, 0, w, h);
-            const ex = w * 0.22, ey = h * 0.5, r = 16;
-            // Body - GRAY
-            const g = c.createRadialGradient(ex - r * 0.28, ey - r * 0.28, 0, ex, ey, r);
-            g.addColorStop(0, '#fff'); g.addColorStop(0.28, 'hsl(0,0%,65%)'); g.addColorStop(0.72, 'hsl(0,0%,25%)'); g.addColorStop(1, 'rgba(15,15,15,0.85)');
-            c.fillStyle = g; c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.fill();
-            // Hex spokes
-            c.save(); c.translate(ex, ey); c.rotate(t / 3500);
-            c.strokeStyle = 'hsla(0,0%,75%,0.3)'; c.lineWidth = 0.8;
-            for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55); c.stroke(); }
+            const ex = w * 0.28, ey = h * 0.5, r = 16;
+            const hpRatio = 0.7 + 0.3 * Math.sin(t / 3000); // demo HP oscillation
+            const hue = 10 + hpRatio * 40;
+            const glowColor = `hsl(${hue},100%,55%)`;
+            const darkColor = `hsl(${hue},90%,25%)`;
+
+            // Warning aura
+            c.fillStyle = `hsla(${hue},100%,50%,0.15)`;
+            c.beginPath(); c.arc(ex, ey, r * 1.4, 0, Math.PI * 2); c.fill();
+
+            // Rotating hex + clamps
+            c.save(); c.translate(ex, ey); c.rotate(t / 1800);
+            c.fillStyle = '#181822'; c.strokeStyle = '#3a3a4a'; c.lineWidth = 2;
+            c.beginPath();
+            for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; i === 0 ? c.moveTo(Math.cos(a) * r, Math.sin(a) * r) : c.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+            c.closePath(); c.fill(); c.stroke();
+            for (let i = 0; i < 3; i++) {
+              c.save(); c.rotate((i / 3) * Math.PI * 2 + Math.PI / 6);
+              c.fillStyle = '#22222e';
+              c.beginPath(); c.moveTo(r * 0.5, -r * 0.25); c.lineTo(r * 1.1, -r * 0.15); c.lineTo(r * 1.1, r * 0.15); c.lineTo(r * 0.5, r * 0.25); c.closePath(); c.fill();
+              c.strokeStyle = darkColor; c.lineWidth = 1.5; c.stroke();
+              c.fillStyle = glowColor; c.fillRect(r * 0.85, -r * 0.05, r * 0.2, r * 0.1);
+              c.restore();
+            }
             c.restore();
-            c.strokeStyle = 'hsla(0,0%,70%,0.65)'; c.lineWidth = 0.8; c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
-            c.fillStyle = `rgba(200,200,200,${0.5 + 0.5 * Math.sin(t / 250)})`; c.beginPath(); c.arc(ex, ey, r * 0.12, 0, Math.PI * 2); c.fill();
-            // Glint
-            c.fillStyle = 'rgba(240,240,240,0.4)'; c.save(); c.translate(ex - r * 0.28, ey - r * 0.28); c.rotate(-0.8);
-            c.beginPath(); c.ellipse(0, 0, r * 0.22, r * 0.13, 0, 0, Math.PI * 2); c.fill(); c.restore();
-            // Bullet
-            const bt = ((t / 8) % 80) / 80;
-            const bx = ex, by = ey + r + 5 + bt * (h - ey - r - 10);
-            const bg = c.createRadialGradient(bx - 2, by - 2, 0, bx, by, 5);
-            bg.addColorStop(0, '#fff'); bg.addColorStop(0.25, '#ff4400'); bg.addColorStop(0.65, '#cc0000'); bg.addColorStop(1, 'rgba(100,0,0,0.8)');
-            c.fillStyle = bg; c.beginPath(); c.arc(bx, by, 5, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = `rgba(255,255,255,${0.55 + 0.45 * Math.sin(t / 90)})`; c.lineWidth = 1.5; c.beginPath(); c.arc(bx, by, 6.5, 0, Math.PI * 2); c.stroke();
-            // Labels
-            c.fillStyle = '#ff884488'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'left';
-            c.fillText('← white pulse = enemy bullet', ex + r + 20, ey);
-            c.fillText('HP 9-96, fires 1/sec', w * 0.55, h * 0.3);
-            c.fillText('Bullet HP = enemy HP at fire time', w * 0.55, h * 0.3 + 14);
-            c.fillText('Score: HP × 6', w * 0.55, h * 0.3 + 28);
+
+            // Eye
+            const pulse = 0.8 + 0.2 * Math.sin(t / 150);
+            const eyeR = r * 0.5;
+            c.fillStyle = '#0a0a0f'; c.beginPath(); c.arc(ex, ey, eyeR * 1.1, 0, Math.PI * 2); c.fill();
+            const eyeG = c.createRadialGradient(ex, ey, 0, ex, ey, eyeR * pulse);
+            eyeG.addColorStop(0, '#fff'); eyeG.addColorStop(0.3, glowColor); eyeG.addColorStop(1, 'transparent');
+            c.fillStyle = eyeG; c.beginPath(); c.arc(ex, ey, eyeR * pulse, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#050508'; c.beginPath(); c.arc(ex, ey, eyeR * 0.25, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = glowColor; c.lineWidth = 1; c.stroke();
             activeAnimations.push(requestAnimationFrame(() => drawNorm(performance.now())));
           }
           drawNorm(performance.now());
@@ -1117,96 +1124,128 @@
         const sa = setup('cvAegis');
         if (sa) {
           const { c, w, h } = sa;
+          // pulse state
+          let aegPulses = [], aegLastPulse = 0;
           function drawAeg(t) {
             c.clearRect(0, 0, w, h);
-            const cx2 = w * 0.22, cy2 = h * 0.5, r = 16;
-            // Aura boundary
-            c.strokeStyle = `rgba(255,60,60,${0.2 + 0.15 * Math.sin(t / 800)})`;
-            c.lineWidth = 2; c.beginPath(); c.arc(cx2, cy2, 50, 0, Math.PI * 2); c.stroke();
-            // Square wave rings
-            const ringT = ((t / 2200) % 1);
-            const ringR = r * 1.1 + ringT * (50 - r * 1.1);
-            c.fillStyle = `rgba(255,${Math.floor(ringT * 130)},0,${(1 - Math.pow(ringT, 1.8)) * 0.5})`;
-            const sqc = Math.max(6, Math.floor(2 * Math.PI * ringR / 12));
-            for (let i = 0; i < sqc; i++) {
-              const a = (i / sqc) * Math.PI * 2 + t / 4000;
-              c.save(); c.translate(cx2 + Math.cos(a) * ringR, cy2 + Math.sin(a) * ringR); c.rotate(a);
-              c.fillRect(-4, -4, 8, 8); c.restore();
-            }
-            // Body
-            const bg = c.createRadialGradient(cx2, cy2, r * 0.15, cx2, cy2, r);
-            bg.addColorStop(0, '#f8f8f8'); bg.addColorStop(0.5, '#c8c8c8'); bg.addColorStop(0.85, '#888'); bg.addColorStop(1, '#555');
-            c.fillStyle = bg; c.beginPath(); c.arc(cx2, cy2, r, 0, Math.PI * 2); c.fill();
-            // Tick marks
-            c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
-            c.strokeStyle = 'rgba(120,120,120,0.6)'; c.lineWidth = 1.2;
-            for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.88, Math.sin(a) * r * 0.88); c.lineTo(Math.cos(a) * r * 0.97, Math.sin(a) * r * 0.97); c.stroke(); }
-            c.restore();
-            c.strokeStyle = '#707070'; c.lineWidth = 1.2; c.beginPath(); c.arc(cx2, cy2, r, 0, Math.PI * 2); c.stroke();
-            // Red core
-            const cg = c.createLinearGradient(cx2, cy2 - r * 0.4, cx2, cy2 + r * 0.4);
-            cg.addColorStop(0, '#ff3333'); cg.addColorStop(1, '#800000');
-            c.fillStyle = cg; c.beginPath(); c.arc(cx2, cy2, r * 0.35, 0, Math.PI * 2); c.fill();
-            const rs = r * 0.2;
-            c.fillStyle = '#220000'; c.fillRect(cx2 - rs, cy2 - rs, rs * 2, rs * 2);
-            c.strokeStyle = '#ff6666'; c.lineWidth = 1.5; c.strokeRect(cx2 - rs, cy2 - rs, rs * 2, rs * 2);
-            c.fillStyle = `rgba(255,100,100,${0.6 + 0.4 * Math.sin(t / 220)})`;
-            c.beginPath(); c.arc(cx2, cy2, rs * 0.45, 0, Math.PI * 2); c.fill();
+            const cx2 = w * 0.22, cy2 = h * 0.5, r = 17;
+            const auraR = Math.min(w * 0.48, h * 0.46);
 
-            // ── LUMEN NOVA ANIMATION ──
-            const novaCycle = 5000; // matches every 5s
-            const novaPhase = (t % novaCycle) / novaCycle;
-            // Targets: player + 3 sentinels
+            // 1. Zone background
+            const zg = c.createRadialGradient(cx2, cy2, r, cx2, cy2, auraR);
+            zg.addColorStop(0, 'rgba(255,0,0,0.02)'); zg.addColorStop(0.7, 'rgba(200,0,0,0.04)'); zg.addColorStop(1, 'rgba(220,0,0,0.16)');
+            c.fillStyle = zg; c.beginPath(); c.arc(cx2, cy2, auraR, 0, Math.PI * 2); c.fill();
+
+            // 2. Limit boundary ring (red)
+            c.strokeStyle = 'rgba(255,40,40,0.85)'; c.lineWidth = 2.5;
+            c.beginPath(); c.arc(cx2, cy2, auraR, 0, Math.PI * 2); c.stroke();
+            // Gold dashed inner
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 5000);
+            c.strokeStyle = 'rgba(255,215,0,0.6)'; c.lineWidth = 1.5; c.setLineDash([10, 8, 3, 8]);
+            c.beginPath(); c.arc(0, 0, auraR - 5, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); c.restore();
+            // 4 bracket locks
+            c.save(); c.translate(cx2, cy2); c.rotate(-t / 8000);
+            c.strokeStyle = 'rgba(255,255,255,0.85)'; c.lineWidth = 3;
+            for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(0, 0, auraR, i * Math.PI / 2 - 0.08, i * Math.PI / 2 + 0.08); c.stroke(); }
+            c.restore();
+
+            // 3. Pulse waves (gold → red)
+            if (t - aegLastPulse > 1500) { aegPulses.push({ st: t, dur: 1400, sr: r * 1.2, er: auraR }); aegLastPulse = t; }
+            for (let pi = aegPulses.length - 1; pi >= 0; pi--) {
+              const p = aegPulses[pi]; const tp = (t - p.st) / p.dur;
+              if (tp >= 1) { aegPulses.splice(pi, 1); continue; }
+              const et = 1 - Math.pow(1 - tp, 2.5); const cr = p.sr + et * (p.er - p.sr); const al = (1 - tp) * 0.75;
+              const gCol = Math.floor(215 * (1 - tp));
+              c.strokeStyle = `rgba(255,${gCol},0,${al})`; c.lineWidth = 4 * (1 - tp) + 1;
+              c.beginPath(); c.arc(cx2, cy2, cr, 0, Math.PI * 2); c.stroke();
+              c.save(); c.translate(cx2, cy2); c.rotate(tp * Math.PI * 0.5);
+              c.strokeStyle = `rgba(255,255,255,${al * 0.7})`; c.lineWidth = 1; c.setLineDash([5 + tp * 10, 8]);
+              c.beginPath(); c.arc(0, 0, cr * 0.94, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); c.restore();
+            }
+
+            // 4. Custos shield (gold)
+            const shieldR = r * 1.65;
+            const sp = 0.8 + 0.2 * Math.sin(t / 150);
+            c.strokeStyle = `rgba(255,215,0,${sp})`; c.lineWidth = 2.5;
+            c.fillStyle = 'rgba(255,215,0,0.07)';
+            c.beginPath(); c.arc(cx2, cy2, shieldR, 0, Math.PI * 2); c.fill(); c.stroke();
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
+            c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 0.8;
+            c.beginPath();
+            for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2, na = ((i + 3) / 12) * Math.PI * 2; c.moveTo(Math.cos(a) * shieldR, Math.sin(a) * shieldR); c.lineTo(Math.cos(na) * shieldR, Math.sin(na) * shieldR); }
+            c.stroke(); c.restore();
+
+            // 5. Armillary rings
+            c.save(); c.translate(cx2, cy2);
+            c.strokeStyle = 'rgba(200,200,220,0.8)'; c.lineWidth = 2;
+            c.save(); c.rotate(t / 1500); c.scale(1, 0.3 + 0.1 * Math.sin(t / 1000));
+            c.beginPath(); c.arc(0, 0, r * 1.35, 0, Math.PI * 2); c.stroke(); c.restore();
+            c.save(); c.rotate(-t / 1800 + Math.PI / 4); c.scale(0.35 + 0.15 * Math.sin(t / 1200), 1);
+            c.strokeStyle = 'rgba(255,100,100,0.7)';
+            c.beginPath(); c.arc(0, 0, r * 1.45, 0, Math.PI * 2); c.stroke(); c.restore();
+            c.restore();
+
+            // 6. Shell body
+            c.save(); c.translate(cx2, cy2);
+            const sg = c.createRadialGradient(0, 0, r * 0.4, 0, 0, r);
+            sg.addColorStop(0, '#e0e0e0'); sg.addColorStop(0.5, '#7a7a7a'); sg.addColorStop(0.85, '#2b2b2b'); sg.addColorStop(1, '#050505');
+            c.fillStyle = sg; c.strokeStyle = '#444'; c.lineWidth = 1.5;
+            c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill(); c.stroke();
+            c.rotate(-t / 4000); c.strokeStyle = 'rgba(0,0,0,0.7)'; c.lineWidth = 1;
+            for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3); c.lineTo(Math.cos(a) * r * 0.98, Math.sin(a) * r * 0.98); c.stroke(); }
+            c.restore();
+
+            // 7. Mechanical iris
+            c.save(); c.translate(cx2, cy2);
+            const iR = r * 0.45;
+            c.fillStyle = '#050000'; c.beginPath(); c.arc(0, 0, iR, 0, Math.PI * 2); c.fill();
+            const cb = 0.85 + 0.2 * Math.abs(Math.sin(t / 750));
+            const cg2 = c.createRadialGradient(0, 0, 0, 0, 0, iR * cb);
+            cg2.addColorStop(0, '#fff'); cg2.addColorStop(0.2, '#ffdd44'); cg2.addColorStop(0.5, '#ff2200'); cg2.addColorStop(1, 'transparent');
+            c.fillStyle = cg2; c.beginPath(); c.arc(0, 0, iR * cb, 0, Math.PI * 2); c.fill();
+            c.rotate(t / 2000); c.fillStyle = '#111'; c.strokeStyle = '#ff8888'; c.lineWidth = 0.8;
+            for (let i = 0; i < 6; i++) { c.save(); c.rotate((i / 6) * Math.PI * 2); c.beginPath(); c.moveTo(iR * 0.4, 0); c.lineTo(iR, -iR * 0.4); c.lineTo(iR, iR * 0.4); c.closePath(); c.fill(); c.stroke(); c.restore(); }
+            c.fillStyle = `rgba(255,255,255,${0.8 + 0.2 * Math.sin(t / 100)})`;
+            c.beginPath(); c.arc(0, 0, r * 0.12, 0, Math.PI * 2); c.fill();
+            c.restore();
+
+            // ── LUMEN NOVA ──
+            const novaPhase = (t % 5000) / 5000;
             const novaTargets = [[w * 0.6, h * 0.75], [w * 0.45, h * 0.25], [w * 0.75, h * 0.35], [w * 0.85, h * 0.7]];
             if (novaPhase < 0.3) {
-              // Warning phase: dashed targeting lines + crosshair at target
-              const warnAlpha = novaPhase / 0.3;
+              const wA = novaPhase / 0.3;
               novaTargets.forEach(([tx, ty], ti) => {
-                // Wide warning zone
-                c.strokeStyle = `rgba(255,0,0,${warnAlpha * 0.1})`; c.lineWidth = 16;
+                c.strokeStyle = `rgba(255,0,0,${wA * 0.1})`; c.lineWidth = 16;
                 c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
-                // Dashed targeting line
-                c.strokeStyle = `rgba(255,100,100,${warnAlpha * 0.75})`; c.lineWidth = 1.2;
+                c.strokeStyle = `rgba(255,100,100,${wA * 0.75})`; c.lineWidth = 1.2;
                 c.setLineDash([8, 8]); c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke(); c.setLineDash([]);
-                // Crosshair dot at target
-                c.fillStyle = `rgba(255,80,80,${warnAlpha * 0.8})`;
-                c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.fill();
-                // Target type label
-                c.fillStyle = `rgba(255,100,100,${warnAlpha * 0.6})`; c.font = '6px Share Tech Mono, monospace'; c.textAlign = 'center';
+                c.fillStyle = `rgba(255,80,80,${wA * 0.8})`; c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.fill();
+                c.fillStyle = `rgba(255,100,100,${wA * 0.6})`; c.font = '6px Share Tech Mono,monospace'; c.textAlign = 'center';
                 c.fillText(ti === 0 ? 'PLAYER' : 'SENTINEL', tx, ty - 7); c.textAlign = 'left';
               });
             } else if (novaPhase < 0.45) {
-              // Fire phase: bright laser beams
-              const fireAlpha = 1 - (novaPhase - 0.3) / 0.15;
+              const fA = 1 - (novaPhase - 0.3) / 0.15;
               novaTargets.forEach(([tx, ty]) => {
-                // Outer glow beam
-                c.strokeStyle = `rgba(255,30,30,${fireAlpha * 0.5})`; c.lineWidth = 25 * fireAlpha;
+                c.strokeStyle = `rgba(255,30,30,${fA * 0.5})`; c.lineWidth = 25 * fA;
                 c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
-                // Core beam
-                c.strokeStyle = `rgba(255,80,80,${fireAlpha * 0.85})`; c.lineWidth = 12 * fireAlpha;
+                c.strokeStyle = `rgba(255,255,255,${fA * 0.9})`; c.lineWidth = 4 * fA;
                 c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
-                // Bright center
-                c.strokeStyle = `rgba(255,255,255,${fireAlpha * 0.9})`; c.lineWidth = 4 * fireAlpha;
-                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
-                // Impact flash at target
-                c.fillStyle = `rgba(255,200,200,${fireAlpha * 0.6})`;
-                c.beginPath(); c.arc(tx, ty, 10 * fireAlpha, 0, Math.PI * 2); c.fill();
               });
             }
 
             // Labels
-            c.fillStyle = '#ff8844'; c.font = 'bold 9px Orbitron, sans-serif'; c.textAlign = 'left';
-            c.fillText('CUSTOS AETERNUS', w * 0.5, h * 0.12);
-            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('1st hit nullified (Iron Body)', w * 0.5, h * 0.12 + 13);
-            c.fillStyle = '#ff8844'; c.font = 'bold 9px Orbitron, sans-serif';
-            c.fillText('SUPPORT AURA', w * 0.5, h * 0.12 + 30);
-            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('Heals 2.5% HP/s • Shield 40% HP', w * 0.5, h * 0.12 + 43);
-            c.fillStyle = '#ff8844'; c.font = 'bold 9px Orbitron, sans-serif';
-            c.fillText('LUMEN NOVA (every 5s)', w * 0.5, h * 0.12 + 60);
-            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('Targets player + 3 sentinels → fires', w * 0.5, h * 0.12 + 73);
+            c.fillStyle = '#ff8844'; c.font = 'bold 8px Orbitron,sans-serif'; c.textAlign = 'left';
+            c.fillText('CUSTOS AETERNUS', w * 0.5, h * 0.1);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
+            c.fillText('1st hit = Iron Body', w * 0.5, h * 0.1 + 12);
+            c.fillStyle = '#ff8844'; c.font = 'bold 8px Orbitron,sans-serif';
+            c.fillText('SUPPORT AURA', w * 0.5, h * 0.1 + 28);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
+            c.fillText('Heal 2.5%/s • Shield 40% HP', w * 0.5, h * 0.1 + 40);
+            c.fillStyle = '#ff8844'; c.font = 'bold 8px Orbitron,sans-serif';
+            c.fillText('LUMEN NOVA (5s)', w * 0.5, h * 0.1 + 56);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
+            c.fillText('Targets + fires lasers', w * 0.5, h * 0.1 + 68);
             activeAnimations.push(requestAnimationFrame(() => drawAeg(performance.now())));
           }
           drawAeg(performance.now());
