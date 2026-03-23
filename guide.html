@@ -486,39 +486,56 @@
 </table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus.</p></div>
 
 <div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLES <span class="dsclass" style="font-size:9px;color:#aaaaaa">LESSER</span></h2><div class="sub">HP 9–96 • FIRES 1 BULLET/SEC</div>
-<div class="ab" style="height:100px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div></div>
+<div class="ab" style="height:100px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 1 bullet per second. Bullet HP = enemy's HP at moment of firing.</li>
+<li>HP scales from 9–96 over time. Eye color shifts orange → red at low HP.</li>
+</ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">30s • HP 500–1,100 • CAP 3</div>
 <div class="ab" style="height:110px"><canvas id="cvThaelis" style="width:100%;height:100%"></canvas></div>
-<ul><li>Large projectile splits into <span class="hr">3 homing bullets</span> after 0.6s.</li>
-<li><b>Reincarnation:</b> death → 3 Embryos (90% DR, CC immune) → hatch @3s.</li></ul></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Reincarnation</b> — at 0 HP splits into 3 Embryos (90% DR, CC immune, hatch @3s → new enemy).</li>
+<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a large projectile every 1s. Splits into <span class="hr">3 homing bullets</span> after 0.6s of flight. Bullets deal 1 life (player) or 2% MaxHP (Sentinel).</li>
+</ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 1,200–2,500 • +10% DR</div>
 <div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
-<ul><li><b>Custos Aeternus:</b> 1st hit = Iron Body (nullified).</li>
-<li><b>Support Aura:</b> heals 2.5% HP/s, grants 40% HP shield + 15% DR.</li>
-<li><b>Lumen Nova:</b> every 5s targets + fires lasers.</li></ul></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — 1st hit is completely nullified (Iron Body for that instant).</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Support Aura</b> — heals all allies 2.5% MaxHP/s, grants 40% MaxHP shield + 15% DR. Speeds up all enemies inside.</li>
+<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> N/A — Aegis Core does not fire bullets.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lumen Nova</b> — every 5s: marks player + 3 Sentinels, fires lasers after 1s warning.</li>
+</ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">20s • HP 1,392–3,062 • 20% DR</div>
 <div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
-<ul><li><b>Arc Shield:</b> 90° rotating, 50% DR, buff-immune.</li>
-<li><b>Swords:</b> 20% per shield hit. At 1% HP → all fire at once. <span class="hr">Indestructible.</span></li>
-<li>Death → 3 minions (parasite or hunt).</li></ul></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Arc Shield</b> — 90° rotating shield, 50% DR, buff-immune. Independent HP pool = Marchosias MaxHP.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Assimilation</b> — death → 3 Minion Robots (15–25% MaxHP). Attach as Parasite Shields or hunt the player.</li>
+<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 2 bullets every 1s at nearest target. Bullet HP = ⌈1.25% current HP⌉.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — 20% chance per shield hit; queues a sword. At 1% HP all queued swords fire. <span class="hr">Indestructible.</span></li>
+</ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">30s • HP 2,520–8,399 • CAP 2</div>
-<div class="ab" style="height:110px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
-<ul><li><b>Passive: Maître Suprême</b> — <span class="dmg">25% base DR</span> at all times. <span class="dmg">+2% DR per active Sentinel</span> (cap <span class="dmg">36%</span>). <span class="hi">+5% attack speed per Sentinel</span> (cap <span class="hi">+20%</span>).</li>
-<li><b>Demon Gift</b> @70/40/10/1%: heals enemies, +18% DR 4s.</li>
-<li><b>Abyssal Chains:</b> 4 piercing chains every 1.5s → <span class="hr">Root & Silence 1s</span>.</li>
-<li><b>Maou Haki</b> @50%: screen-wide shockwave destroys all projectiles.</li></ul></div>
+<div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Maître Suprême</b> — <span class="dmg">25% base DR</span>. <span class="dmg">+2% DR/Sentinel</span> (cap <span class="dmg">36%</span>). <span class="hi">+5% atk speed/Sentinel</span> (cap <span class="hi">+20%</span>).</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Demon Gift</b> @70/40/10/1% HP: heals all enemies <span class="dmg">15% Dargruel MaxHP</span>, all units +18% DR for 4s.</li>
+<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 1 bullet every ~255ms at nearest player or Sentinel.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Abyssal Chains</b> — 4 piercing chains every 1.5s → <span class="hr">Root & Silence 1s</span>. Indestructible.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Maou Haki</b> @50% HP: screen-wide shockwave, destroys all friendly projectiles. Sentinels −25% MaxHP.</li>
+</ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">36s • HP 5,568–9,744 • 45% DR • CAP 1</div>
-<div class="ab" style="height:160px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
-<ul><li><b>All for One:</b> Iron Body shield until kill quota (6–9). Wings folded. CC immune.</li>
-<li><b>Herd Leader:</b> all enemies get <span class="hr">Envy</span> (+25% DR, +25% heal).</li>
-<li><b>Perseverance:</b> shield breaks → red warning → 360° sweeping laser.</li>
-<li><b>Last Rites</b> @HP 1: each wing-plate rotates to aim a target → all 9 fire simultaneously.</li>
-<li>Lasers are <span class="hr">independent objects</span> — persist even after Leviathan dies.</li></ul></div>
+<div class="ab" style="height:130px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Iron Body shield until kill quota (6–9). Wings folded. CC immune.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received.</li>
+<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Every 0.75s fires 3 bullets at nearest target. Bullet HP = 2% Leviathan MaxHP.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — red warning + full 360° sweeping laser. Fires when AFO shield breaks.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Last Rites</b> @HP 1 — 9 wing-plates lock onto targets, all fire simultaneously. Lasers <span class="hr">persist after death</span>.</li>
+</ul></div>
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">ADMINISTRATOR</span></h2>
 <div class="sub" style="color:#ff2244aa">— UNDEFINED —</div>
@@ -1505,7 +1522,7 @@
           ];
           function drawLev(t) {
             c.clearRect(0, 0, w, h);
-            const cx2 = w * 0.28, cy2 = h * 0.5, r = 20;
+            const cx2 = w * 0.25, cy2 = h * 0.5, r = Math.min(h, w * 0.32) * 0.405;
             const NUM_W = 9;
             const laserLen = Math.max(w, h);
 
