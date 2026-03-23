@@ -1,0 +1,2619 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pisces: Space Journey — General Guide</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&display=swap');
+
+    :root {
+      --bg: #03030f;
+      --panel: rgba(8, 12, 28, 0.96);
+      --card: rgba(12, 18, 40, 0.85);
+      --glow: rgba(0, 200, 255, 0.25);
+      --cyan: #00e5ff;
+      --purple: #a855f7;
+      --magenta: #ff00ff;
+      --gold: #ffd700;
+      --red: #ff4444;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --txt: #e8edf5;
+      --dim: #8899bb
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--txt);
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column
+    }
+
+    #guideBtn {
+      display: none
+    }
+
+    #guideOverlay {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #guideModal {
+      width: 100%;
+      height: 100%;
+      background: var(--panel);
+      border: none;
+      border-radius: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .guide-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 22px;
+      border-bottom: 1px solid rgba(0, 200, 255, 0.12);
+      background: linear-gradient(180deg, rgba(0, 40, 80, 0.3), transparent);
+      flex-shrink: 0
+    }
+
+    .guide-header h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, #00e5ff, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent
+    }
+
+    .guide-header .sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 1px
+    }
+
+    #closeBtn {
+      display: none
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 0;
+      padding: 0 14px;
+      border-bottom: 1px solid rgba(0, 200, 255, 0.08);
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none
+    }
+
+    .tab-nav::-webkit-scrollbar {
+      display: none
+    }
+
+    .tab-btn {
+      padding: 9px 14px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--dim);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .25s
+    }
+
+    .tab-btn:hover {
+      color: var(--cyan)
+    }
+
+    .tab-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+      text-shadow: 0 0 12px rgba(0, 229, 255, 0.5)
+    }
+
+    .guide-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 22px 30px;
+      scroll-behavior: smooth
+    }
+
+    .guide-body::-webkit-scrollbar {
+      width: 5px
+    }
+
+    .guide-body::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    .guide-body::-webkit-scrollbar-thumb {
+      background: rgba(0, 200, 255, 0.2);
+      border-radius: 4px
+    }
+
+    .tab-content {
+      display: none
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn .3s ease
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(0, 200, 255, 0.1);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      transition: border-color .3s
+    }
+
+    .card:hover {
+      border-color: rgba(0, 200, 255, 0.25)
+    }
+
+    .card h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 3px
+    }
+
+    .card .sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--dim);
+      margin-bottom: 10px
+    }
+
+    .card p,
+    .card li {
+      font-size: 13.5px;
+      line-height: 1.6
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0
+    }
+
+    .card li::before {
+      content: '▸';
+      color: var(--cyan);
+      margin-right: 7px;
+      font-weight: bold
+    }
+
+    .card li {
+      margin-bottom: 5px
+    }
+
+    .hi {
+      color: var(--cyan);
+      font-weight: 600
+    }
+
+    .hp {
+      color: var(--purple);
+      font-weight: 600
+    }
+
+    .hg {
+      color: var(--gold);
+      font-weight: 600
+    }
+
+    .hr {
+      color: var(--red);
+      font-weight: 600
+    }
+
+    .hgr {
+      color: var(--green);
+      font-weight: 600
+    }
+
+    .dmg {
+      color: #ff8844;
+      font-weight: 600
+    }
+
+    .key {
+      display: inline-block;
+      padding: 1px 7px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: #fff;
+      vertical-align: middle
+    }
+
+    .cd {
+      display: inline-block;
+      padding: 1px 6px;
+      background: rgba(255, 100, 0, 0.12);
+      border: 1px solid rgba(255, 100, 0, 0.3);
+      border-radius: 4px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: #ff8844;
+      margin-left: 4px
+    }
+
+    .ab {
+      width: 100%;
+      height: 150px;
+      background: rgba(0, 5, 15, 0.6);
+      border: 1px solid rgba(0, 200, 255, 0.08);
+      border-radius: 10px;
+      margin: 10px 0;
+      overflow: hidden
+    }
+
+    .ab svg {
+      width: 100%;
+      height: 100%
+    }
+
+    .controls-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0
+    }
+
+    .controls-table th,
+    .controls-table td {
+      padding: 6px 10px;
+      text-align: left;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04)
+    }
+
+    .controls-table th {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--dim)
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    @keyframes spinR {
+      to {
+        transform: rotate(-360deg)
+      }
+    }
+
+    .dsname {
+      font-family: 'Cinzel', 'Palatino Linotype', serif;
+      letter-spacing: 2px;
+    }
+
+    .dsclass {
+      font-family: 'Cinzel', serif;
+      font-size: 9px;
+      letter-spacing: 3px;
+      opacity: 0.75;
+    }
+
+    /* Scroll-reveal */
+    .card {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity .45s ease, transform .45s ease, border-color .3s
+    }
+
+    .card.visible {
+      opacity: 1;
+      transform: translateY(0)
+    }
+  </style>
+</head>
+
+<body>
+  <button id="guideBtn">⬡ Guide</button>
+  <div id="guideOverlay">
+    <div id="guideModal">
+      <div class="guide-header">
+        <div>
+          <h1>GENERAL GUIDE</h1>
+          <div class="sub">PISCES: SPACE JOURNEY — COMBAT MANUAL</div>
+        </div><button id="closeBtn">✕</button>
+      </div>
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="basics">Basics</button>
+        <button class="tab-btn" data-tab="passives">Passives</button>
+        <button class="tab-btn" data-tab="skills">Skills</button>
+        <button class="tab-btn" data-tab="enemies">Enemies</button>
+        <button class="tab-btn" data-tab="rules">Combat</button>
+      </div>
+      <div class="guide-body" id="guideBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // All guide content is built via JS to keep HTML size manageable
+    const G = document.getElementById('guideBody');
+
+    const TABS = {
+      basics: `
+<div class="card">
+<h2 style="color:var(--cyan)">YOUR SHIP</h2>
+<div class="sub">PISCES-CLASS INTERCEPTOR</div>
+<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas></div>
+<p>Your ship auto-fires <span class="hp">5 purple bullets</span> in a 45° spread every 170ms. The tiny <span class="hi">cyan dot</span> is your true hitbox — only contact with that dot costs a life.</p>
+</div>
+<div class="card">
+<h2 style="color:var(--cyan)">CONTROLS</h2>
+<table class="controls-table">
+<tr><th>Input</th><th>Action</th></tr>
+<tr><td><span class="key">← →</span></td><td>Move left / right</td></tr>
+<tr><td><span class="key">Space</span> tap+hold</td><td>Charge Shot (up to 10× dmg) — release to fire</td></tr>
+<tr><td><span class="key">Space</span> hold 3s</td><td>Overload Laser — 12s continuous beam</td></tr>
+<tr><td><span class="key">Shift</span></td><td>Yog-Sothoth Domain (time slow + Iron Body)</td></tr>
+<tr><td><span class="key">A</span></td><td>Thunder Orbs — 20 homing energy orbs</td></tr>
+<tr><td><span class="key">S</span></td><td>Remembrance Spirit — summon spirit ally</td></tr>
+<tr><td><span class="key">D</span></td><td>Cosmic Black Hole — singularity pull</td></tr>
+<tr><td><span class="key">F</span></td><td>Annihilation Sweep — full screen beam</td></tr>
+<tr><td><span class="key">G</span></td><td>Life Domain / Tesla Matrix</td></tr>
+</table></div>
+<div class="card"><h2 style="color:var(--gold)">LIVES & SCORING</h2><ul>
+<li>Start with <span class="hg">12 lives</span>. Earn <span class="hgr">+1 life</span> every <span class="dmg">500,000 pts</span>.</li>
+<li>Score = enemy Max HP × 6.</li><li>Game auto-pauses on tab switch.</li></ul></div>`,
+
+      passives: `
+<div class="card">
+<h2 style="color:var(--cyan)">SENTINELS</h2>
+<div class="sub">PASSIVE — SPAWNS EVERY 3 KILLS • MAX 12</div>
+<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li>Spawns every <span class="hi">3 kills</span>. 36% chance <b>Fortified</b> (+50% Max HP).</li>
+<li>Every 4th shot = <span class="hg">Special Shot</span>: homing, heals 4 HP on hit.</li>
+<li><span style="color:#00FFFF">Cyan 1-4:</span> +30% HP, +10% bullet speed.</li>
+<li><span style="color:#FF00FF">Magenta 5-11:</span> +20% fire rate, +10% dmg, +10% DR. <b>Vanguard Network</b>.</li>
+<li><span style="color:#FFD700">Gold ×12:</span> Every shot = Special Shot.</li>
+<li><b>Sentinel Parry</b> (Glory active): 20% negate → <span class="hg">Accurate Parry</span> 4s.</li>
+<li>On death: <span class="dmg">10 scattered projectiles</span>.</li></ul></div>
+<div class="card"><h2 style="color:var(--red)">VULNERABILITY</h2><div class="sub">DEBUFF — STACKS ×4 • 3s DURATION</div>
+<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas></div>
+<ul><li>Auto-fire <span class="dmg">28%</span> chance, others <span class="dmg">15%</span>. Each stack: <span class="hr">+16% dmg taken</span>, shreds <span class="dmg">26% Shield</span>.</li>
+<li>At 4 stacks: <span class="hr">true damage</span> for 2s (bypasses shields).</li></ul></div>
+<div class="card"><h2 style="color:var(--green)">GLORY FOR JUSTICE</h2><div class="sub">ACTIVATES: 4+ ENEMIES / ELITE / SKILL G</div>
+<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas></div>
+<ul><li>All friendly dmg <span class="hgr">×1.55</span>, fire rate <span class="hgr">×1.4</span>.</li>
+<li><b>Chain Lightning</b>: arcs 6 enemies at 30% dmg. 55% → <span class="hr">Soul Reaver</span> (−25% heal, true DoT).</li>
+<li>Sentinels: +20% DR, Parry active.</li></ul></div>
+<div class="card"><h2 style="color:var(--gold)">FINAL DEFENSE & LAST STAND</h2><div class="sub">AUTO SAFETY NETS</div>
+<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><b>Player Shield:</b> absorbs 1 hit <span class="cd">25s regen</span>. <b>Boundary Shield:</b> absorbs 1 crossing enemy <span class="cd">25s</span>.</li>
+<li><b>Last Stand:</b> last life fatal hit → survive + <span class="hg">Absolute Shield</span> on you + Sentinels. <span class="hg">Once only.</span></li>
+<li>Priority: <span class="hp">Domain</span> → <span class="hi">Orb Sacrifice</span> → Player Shield → Last Stand → Lose life.</li></ul></div>`,
+
+      skills: `
+<div class="card"><h2 style="color:#ff8800"><span class="key">Space</span> CHARGED SHOT & OVERLOAD LASER</h2>
+<div class="sub">HOLD SPACE TO CHARGE • 3s = OVERLOAD <span class="cd">LASER CD 9s</span></div>
+<div class="ab" style="height:170px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas></div>
+<ul><li><b>Charged Shot:</b> hold up to 1s → release. Damage scales up to <span class="dmg">10× (12% Max HP)</span>.</li>
+<li><b>Overload Laser:</b> hold 3s without releasing → continuous beam for <span class="hi">12 seconds</span>.</li>
+<li>Laser deals <span class="dmg">10 + 26% Max HP</span> per tick every 175ms. Pulls nearby enemies toward beam.</li>
+<li>While active, <span class="hi">4 clone afterimages</span> appear (2 each side, 5 ships total) firing parallel beams.</li></ul></div>
+
+<div class="card"><h2 style="color:var(--purple)"><span class="key">Shift</span> YOG-SOTHOTH DOMAIN</h2><div class="sub">SPACE-TIME MANIPULATION <span class="cd">CD 12s</span> <span class="cd">MAX 8s</span></div>
+<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas></div>
+<ul><li>Hold Shift: world at <span class="hp">15% speed</span>. You gain <b>Iron Body</b>.</li>
+<li>All enemy bullets <span class="hr">destroyed</span>. <span class="key">←→</span> teleport.</li>
+<li><span class="hg">Accurate Parry:</span> hit during domain → +25% dmg 4s, Sentinel shields.</li></ul></div>
+
+<div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THUNDER ORBS</h2><div class="sub">CELESTIAL THUNDERBURST <span class="cd">CD 6s</span></div>
+<div class="ab"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas></div>
+<ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">11 + 28% HP</span>.</li>
+<li>Impact → <span class="dmg">16 scattered shards</span> (4 + 2% HP each).</li>
+<li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits (Absolute Shield).</li></ul></div>
+
+<div class="card"><h2 style="color:#ff44aa"><span class="key">S</span> REMEMBRANCE SPIRIT</h2><div class="sub"><span class="cd">CD 12s</span> <span class="cd">35s • MAX 2</span></div>
+<div class="ab"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas></div>
+<ul><li>Orbiting Spirit fires homing bullets every 65ms (<span class="dmg">5 + 4% HP</span>).</li>
+<li>Every 5th shot: <b>Blade Arc</b> (<span class="dmg">10 + 16% HP</span>). Destroys enemy bullets.</li>
+<li><b>Finale @35s:</b> lasers + 8 bouncing plasma balls.</li></ul></div>
+
+<div class="card"><h2 style="color:#9333ea"><span class="key">D</span> BLACK HOLE</h2><div class="sub"><span class="cd">CD 12s</span> <span class="cd">2s CHARGE</span></div>
+<div class="ab"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas></div>
+<ul><li>Pulls all enemies + bullets. Center = <span class="hr">999,999,999 dmg</span> instant kill.</li></ul></div>
+
+<div class="card"><h2 style="color:var(--red)"><span class="key">F</span> ANNIHILATION SWEEP</h2><div class="sub">THIÊN Ý TRẢM <span class="cd">CD 7s</span> <span class="cd">1.5s CHARGE + 1s SWEEP</span></div>
+<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas></div>
+<ul><li><b>Charge:</b> half-plane cyan glow, TARGET LOCK crosshairs on all enemies, dashed lines from player.</li>
+<li><b>Sweep:</b> rotating blade from left→right. <span class="hr">999,999,999 dmg</span> instant kill.</li>
+<li>Swept area fills with <span class="hgr">matrix digital rain</span> + hex grid overlay.</li></ul></div>
+
+<div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> TESLA MATRIX</h2><div class="sub"><span class="cd">CHARGE VIA KILLS</span> <span class="cd">30s</span></div>
+<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas></div>
+<ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">6+4% HP</span>/125ms).</li>
+<li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">10+13% HP</span>/50ms.</li>
+<li>Detonation: <span class="dmg">10+15% HP</span> area.</li></ul></div>`,
+
+      enemies: `
+<div class="card"><h2 class="dsname">ENEMY CLASSES</h2><table class="controls-table">
+<tr><th>Class</th><th>Examples</th><th>Info</th></tr>
+<tr><td style="color:#aaaaaa">Normal</td><td>Standard</td><td>HP 9–96, scales</td></tr>
+<tr><td style="color:#22cc55">Abnormal</td><td>Thaelis</td><td rowspan="4">Combined cap: 6</td></tr>
+<tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis</td></tr>
+<tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td></tr>
+<tr><td style="color:#ff2244">Administrator</td><td>Kanade</td></tr>
+</table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus.</p></div>
+
+<div class="card"><h2 class="dsname" style="color:#aaaaaa">NORMAL ENEMY</h2><div class="sub">HP 9–96 • FIRES 1 BULLET/SEC</div>
+<div class="ab" style="height:100px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div></div>
+
+<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">30s • HP 500–1,100 • CAP 3</div>
+<div class="ab" style="height:110px"><canvas id="cvThaelis" style="width:100%;height:100%"></canvas></div>
+<ul><li>Large projectile splits into <span class="hr">3 homing bullets</span> after 0.6s.</li>
+<li><b>Reincarnation:</b> death → 3 Embryos (90% DR, CC immune) → hatch @3s.</li></ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 1,200–2,500 • +10% DR</div>
+<div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
+<ul><li><b>Custos Aeternus:</b> 1st hit = Iron Body (nullified).</li>
+<li><b>Support Aura:</b> heals 2.5% HP/s, grants 40% HP shield + 15% DR.</li>
+<li><b>Lumen Nova:</b> every 5s targets + fires lasers.</li></ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">20s • HP 1,392–3,062 • 20% DR</div>
+<div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
+<ul><li><b>Arc Shield:</b> 90° rotating, 50% DR, buff-immune.</li>
+<li><b>Swords:</b> 20% per shield hit. At 1% HP → all fire at once. <span class="hr">Indestructible.</span></li>
+<li>Death → 3 minions (parasite or hunt).</li></ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">30s • HP 2,520–8,399 • CAP 2</div>
+<div class="ab" style="height:110px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
+<ul><li><b>Demon Gift</b> @70/40/10/1%: heals enemies, +18% DR 4s.</li>
+<li><b>Abyssal Chains:</b> 4 piercing chains every 1.5s → <span class="hr">Root & Silence 1s</span>.</li>
+<li><b>Maou Haki</b> @50%: screen-wide shockwave destroys all projectiles.</li></ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">36s • HP 5,568–9,744 • 45% DR • CAP 1</div>
+<div class="ab" style="height:160px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
+<ul><li><b>All for One:</b> Iron Body shield until kill quota (6–9). Wings folded. CC immune.</li>
+<li><b>Herd Leader:</b> all enemies get <span class="hr">Envy</span> (+25% DR, +25% heal).</li>
+<li><b>Perseverance:</b> shield breaks → red warning → 360° sweeping laser.</li>
+<li><b>Last Rites</b> @HP 1: each wing-plate rotates to aim a target → all 9 fire simultaneously.</li>
+<li>Lasers are <span class="hr">independent objects</span> — persist even after Leviathan dies.</li></ul></div>
+<div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
+<h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">ADMINISTRATOR</span></h2>
+<div class="sub" style="color:#ff2244aa">— UNDEFINED —</div>
+<div class="ab" style="height:160px"><canvas id="cvKanade" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li>An Administrator exists beyond reality, governing it as a <span class="hr">system</span> — not living within it.</li>
+<li>Created the <span class="hg">Endless Nights Protocol</span>: infinite universe replication, preventing all finality.</li>
+<li>Absolute control over causality — can duplicate, overwrite, and define reality.</li>
+<li>Distant overseer driven by fear of irreversible ends. Threatened by <span class="hi">Irregulars</span> beyond her authority.</li>
+</ul></div>`,
+
+      rules: `
+<div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% negated. Stacks additively, capped <span class="hi">99%</span>.</p></div>
+<div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>HP buffer before body. Stackable. Destroying shield ≠ reduce Max HP.</p></div>
+<div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Against effective HP (Body+Shield). Hits shield first.</p></div>
+<div class="card"><h2 style="color:var(--red)">TRUE DAMAGE</h2><p>Bypasses all Shields. Directly to HP.</p></div>
+<div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Complete immunity to <b>all damage</b> — %, true, Black Hole, Skill F. Absolute.</p></div>
+<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed. Does NOT block damage.</p></div>
+<div class="card"><h2 style="color:#cc55ff">ROOT & SILENCE</h2>
+<p>Inflicted by Dargruel's <b>Abyssal Chains</b>. Lasts <span class="hr">1 second</span>, re-applies on each hit even if already active.</p>
+<ul><li><b>Root:</b> Cannot move at all.</li>
+<li><b>Silence:</b> Cannot use <b>any skill</b> — Shift, A, S, D, F, G are all locked. Auto-fire <span class="hr">stops completely</span>.</li>
+<li>Skill A orbs return to orbit (stop targeting).</li>
+<li>A <span class="hp">purple lock icon</span> appears on the ship and a <span class="hr">red X</span> overlays all skill buttons.</li></ul></div>
+<div class="card"><h2 style="color:var(--green)">MULTIPLIERS</h2><ul>
+<li><span class="hgr">Glory:</span> ×1.55 | <span class="hg">Parry:</span> ×1.25 | Combined: <span class="dmg">×1.9375</span></li></ul></div>`
+    };
+
+    // ── Render tab content ──
+    function showTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      G.innerHTML = '<div class="tab-content active">' + TABS[name] + '</div>';
+      requestAnimationFrame(() => { attachScrollReveal(); requestAnimationFrame(() => initCanvases(name)); });
+    }
+
+    // ── Scroll-reveal via IntersectionObserver ──
+    function attachScrollReveal() {
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            obs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.08 });
+      document.querySelectorAll('.card').forEach(c => { c.classList.remove('visible'); obs.observe(c); });
+    }
+
+    showTab('basics');
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => { showTab(b.dataset.tab); G.scrollTop = 0; }));
+
+    // ── Open/Close ──
+    const ov = document.getElementById('guideOverlay');
+    // guide is always open in iframe mode
+    function closeG() { if (window.parent && window.parent !== window) window.parent.closeGuide(); }
+    // closeBtn hidden
+    ov.addEventListener('click', e => { if (e.target === ov) closeG(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('open')) closeG(); });
+
+    // ══════════ CANVAS ANIMATIONS (accurate to render.js) ══════════
+    let activeAnimations = [];
+    function initCanvases(tab) {
+      activeAnimations.forEach(id => cancelAnimationFrame(id));
+      activeAnimations = [];
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      function setup(id) {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        el.width = r.width * dpr; el.height = r.height * dpr;
+        const c = el.getContext('2d');
+        c.scale(dpr, dpr);
+        return { c, w: r.width, h: r.height };
+      }
+
+      // ── PLAYER SHIP ──
+      if (tab === 'basics') {
+        const s = setup('cvShip');
+        if (s) {
+          const { c, w, h } = s;
+          function drawShipAnim(t) {
+            c.clearRect(0, 0, w, h);
+            // Stars
+            for (let i = 0; i < 40; i++) {
+              const sx = (i * 97.3 + t * 0.01 * (i % 3 + 1)) % w;
+              const sy = (i * 53.7) % h;
+              c.fillStyle = i % 4 === 0 ? '#00e5ff' : '#fff';
+              c.globalAlpha = 0.1 + 0.1 * Math.sin(t / 500 + i);
+              c.beginPath(); c.arc(sx, sy, 0.6, 0, Math.PI * 2); c.fill();
+            }
+            c.globalAlpha = 1;
+
+            const cx = w * 0.33, cy = h * 0.52;
+            c.save(); c.translate(cx, cy);
+            // Exhaust
+            const fh = 12 + Math.sin(t / 60) * 6;
+            const eg = c.createRadialGradient(0, 30, 0, 0, 36, 14);
+            eg.addColorStop(0, 'rgba(0,180,255,0.3)'); eg.addColorStop(1, 'transparent');
+            c.fillStyle = eg; c.fillRect(-14, 24, 28, 24);
+            // Flames
+            c.fillStyle = '#00b4ff'; c.globalAlpha = 0.6;
+            c.beginPath(); c.moveTo(-8, 27); c.lineTo(-4, 27); c.lineTo(-6, 27 + fh); c.closePath(); c.fill();
+            c.beginPath(); c.moveTo(4, 27); c.lineTo(8, 27); c.lineTo(6, 27 + fh); c.closePath(); c.fill();
+            c.globalAlpha = 1;
+            // Hull
+            c.fillStyle = '#0a1428';
+            c.beginPath(); c.moveTo(0, 0); c.lineTo(24, 12); c.lineTo(24, 20); c.lineTo(10, 16); c.lineTo(-10, 16); c.lineTo(-24, 20); c.lineTo(-24, 12); c.closePath(); c.fill();
+            // Wings
+            const wg = c.createLinearGradient(0, -10, 0, 20);
+            wg.addColorStop(0, '#1e3a5f'); wg.addColorStop(0.5, '#162d4a'); wg.addColorStop(1, '#0d1f33');
+            c.fillStyle = wg;
+            c.beginPath(); c.moveTo(0, -10); c.lineTo(28, 10); c.lineTo(26, 16); c.lineTo(8, 12); c.lineTo(-8, 12); c.lineTo(-26, 16); c.lineTo(-28, 10); c.closePath(); c.fill();
+            c.strokeStyle = '#38bdf8'; c.lineWidth = 1;
+            c.beginPath(); c.moveTo(0, -10); c.lineTo(28, 10); c.lineTo(26, 16); c.lineTo(8, 12); c.lineTo(-8, 12); c.lineTo(-26, 16); c.lineTo(-28, 10); c.closePath(); c.stroke();
+            c.fillStyle = '#0ea5e9'; c.fillRect(22, 14, 5, 3); c.fillRect(-27, 14, 5, 3);
+            // Fuselage
+            const bg = c.createLinearGradient(-12, -26, 12, 22);
+            bg.addColorStop(0, '#dde8f0'); bg.addColorStop(0.3, '#b0c8dc'); bg.addColorStop(0.7, '#7a9ab8'); bg.addColorStop(1, '#4a6a88');
+            c.fillStyle = bg;
+            c.beginPath(); c.moveTo(0, -26); c.lineTo(8, -8); c.lineTo(12, 18); c.lineTo(6, 22); c.lineTo(-6, 22); c.lineTo(-12, 18); c.lineTo(-8, -8); c.closePath(); c.fill();
+            c.strokeStyle = '#0284c7'; c.lineWidth = 1;
+            c.beginPath(); c.moveTo(0, -26); c.lineTo(8, -8); c.lineTo(12, 18); c.lineTo(6, 22); c.lineTo(-6, 22); c.lineTo(-12, 18); c.lineTo(-8, -8); c.closePath(); c.stroke();
+            // Ribs
+            c.strokeStyle = 'rgba(2,132,199,0.4)'; c.lineWidth = 0.7;
+            [[-5, -12, 5, -12], [-7, -2, 7, -2], [-9, 8, 9, 8]].forEach(l => { c.beginPath(); c.moveTo(l[0], l[1]); c.lineTo(l[2], l[3]); c.stroke(); });
+            // Cockpit
+            c.fillStyle = '#0369a1';
+            c.beginPath(); c.moveTo(0, -13); c.lineTo(8, 4); c.lineTo(8, 14); c.lineTo(-8, 14); c.lineTo(-8, 4); c.closePath(); c.fill();
+            const gg = c.createLinearGradient(-7, -13, 7, 14);
+            gg.addColorStop(0, '#67e8f9'); gg.addColorStop(0.4, '#0ea5e9'); gg.addColorStop(1, '#0c4a6e');
+            c.fillStyle = gg;
+            c.beginPath(); c.moveTo(0, -12); c.lineTo(7, 4); c.lineTo(7, 13); c.lineTo(-7, 13); c.lineTo(-7, 4); c.closePath(); c.fill();
+            c.fillStyle = 'rgba(255,255,255,0.45)';
+            c.beginPath(); c.moveTo(-5, -10); c.lineTo(-3, -10); c.lineTo(-5, 10); c.lineTo(-6, 10); c.closePath(); c.fill();
+            // Nose
+            c.fillStyle = '#e2e8f0';
+            c.beginPath(); c.moveTo(0, -26); c.lineTo(3, -16); c.lineTo(-3, -16); c.closePath(); c.fill();
+            // Thrusters
+            c.fillStyle = '#1e293b'; c.fillRect(-9, 21, 6, 6); c.fillRect(3, 21, 6, 6);
+            // Hitbox
+            const hr = 3 + Math.sin(t / 300) * 0.8;
+            c.fillStyle = '#00e5ff'; c.beginPath(); c.arc(0, 0, hr, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = 'rgba(0,229,255,0.25)'; c.lineWidth = 0.5;
+            c.beginPath(); c.arc(0, 0, hr + 4 + Math.sin(t / 500) * 2, 0, Math.PI * 2); c.stroke();
+            c.restore();
+            // Auto-fire: 5 bullets SIMULTANEOUSLY in 45° fan spread
+            // Wave repeats: all 5 appear at same distance, fly out together
+            const spreadAngle = Math.PI / 4; // 45°
+            const baseAngle = -Math.PI / 2;  // straight up
+            const numB = 5;
+            const wavePeriod = 800; // ms between volleys
+            const bulletSpeed = 0.12; // distance per ms
+            // Multiple volleys visible at once
+            for (let v = 0; v < 3; v++) {
+              const waveAge = ((t + v * wavePeriod / 3) % wavePeriod); // ms since this volley fired
+              const dist = waveAge * bulletSpeed;
+              const alpha = Math.max(0, 1 - dist / (h * 0.6));
+              if (alpha <= 0) continue;
+              c.globalAlpha = alpha;
+              for (let i = 0; i < numB; i++) {
+                const angle = baseAngle + (-spreadAngle / 2) + (i * spreadAngle / (numB - 1));
+                const bx = cx + Math.cos(angle) * dist;
+                const by = cy + Math.sin(angle) * dist;
+                const br = 3;
+                // Outer glow
+                c.fillStyle = 'rgba(160,80,255,0.15)';
+                c.beginPath(); c.arc(bx, by, br * 1.4, 0, Math.PI * 2); c.fill();
+                // Main body gradient (matching drawBullet player_auto)
+                const pg = c.createRadialGradient(bx - br * 0.2, by - br * 0.2, 0, bx, by, br);
+                pg.addColorStop(0, '#ffffff'); pg.addColorStop(0.3, '#cc88ff');
+                pg.addColorStop(0.7, '#7700cc'); pg.addColorStop(1, 'rgba(40,0,80,0.5)');
+                c.fillStyle = pg;
+                c.beginPath(); c.arc(bx, by, br, 0, Math.PI * 2); c.fill();
+                // Glint
+                c.fillStyle = 'rgba(240,200,255,0.45)';
+                c.beginPath(); c.ellipse(bx - br * 0.2, by - br * 0.2, br * 0.22, br * 0.13, -0.8, 0, Math.PI * 2); c.fill();
+              }
+            }
+            c.globalAlpha = 1;
+            // Labels
+            c.fillStyle = '#00e5ff'; c.font = '9px Share Tech Mono, monospace';
+            c.fillText('← HITBOX (cyan dot)', cx + 28, cy + 2);
+            c.fillStyle = 'rgba(0,229,255,0.5)'; c.font = '8px Share Tech Mono, monospace';
+            c.fillText('Auto-fire: 5 bullets / 170ms', w * 0.55, h * 0.55);
+            c.fillText('45° fan spread', w * 0.55, h * 0.55 + 14);
+            c.fillText('Each: 6 base + 4% Max HP', w * 0.55, h * 0.55 + 28);
+            c.fillText('28% chance Vulnerability', w * 0.55, h * 0.55 + 42);
+
+            activeAnimations.push(requestAnimationFrame(() => drawShipAnim(performance.now())));
+          }
+          drawShipAnim(performance.now());
+        }
+      }
+
+      // ── SENTINELS ──
+      if (tab === 'passives') {
+        const s = setup('cvSentinels');
+        if (s) {
+          const { c, w, h } = s;
+          function drawSents(t) {
+            c.clearRect(0, 0, w, h);
+            const tiers = [
+              { x: w * 0.18, color: '#00FFFF', label: 'CYAN 1-4', sub: '+30% HP, +10% spd', speed: 5000 },
+              { x: w * 0.48, color: '#FF00FF', label: 'MAGENTA 5-11', sub: 'Vanguard Network', speed: 4000 },
+              { x: w * 0.78, color: '#FFD700', label: 'GOLD ×12', sub: 'All = Special Shot', speed: 3000 }
+            ];
+            tiers.forEach(tier => {
+              const cy2 = h * 0.45, r = 14;
+              // Orbit ring
+              c.save(); c.translate(tier.x, cy2); c.rotate(t / tier.speed);
+              c.strokeStyle = tier.color + '88'; c.lineWidth = 0.8; c.setLineDash([5, 7]);
+              c.beginPath(); c.arc(0, 0, r + 6, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+              c.restore();
+              // Body
+              const bg = c.createRadialGradient(tier.x, cy2, 0, tier.x, cy2, r);
+              bg.addColorStop(0, '#fff'); bg.addColorStop(0.35, '#ccc'); bg.addColorStop(0.75, '#888'); bg.addColorStop(1, '#444');
+              c.fillStyle = bg; c.beginPath(); c.arc(tier.x, cy2, r, 0, Math.PI * 2); c.fill();
+              c.strokeStyle = tier.color; c.lineWidth = 1.5; c.beginPath(); c.arc(tier.x, cy2, r, 0, Math.PI * 2); c.stroke();
+              // Core
+              const cg = c.createRadialGradient(tier.x, cy2, 0, tier.x, cy2, 5);
+              cg.addColorStop(0, '#fff'); cg.addColorStop(0.5, tier.color); cg.addColorStop(1, tier.color + '44');
+              c.fillStyle = cg; c.beginPath(); c.arc(tier.x, cy2, 5, 0, Math.PI * 2); c.fill();
+              // Panel lines
+              c.strokeStyle = tier.color + '66'; c.lineWidth = 0.8;
+              c.beginPath(); c.moveTo(tier.x - 6, cy2 - 3.5); c.lineTo(tier.x - 6, cy2 + 3.5); c.stroke();
+              c.beginPath(); c.moveTo(tier.x + 6, cy2 - 3.5); c.lineTo(tier.x + 6, cy2 + 3.5); c.stroke();
+              // Gun arm
+              c.save(); c.translate(tier.x, cy2); c.rotate(t / (tier.speed * 0.8));
+              c.fillStyle = '#3a3a3a'; c.fillRect(7, -3.5, 9, 7);
+              c.fillStyle = '#666'; c.fillRect(7, -3.5, 2.7, 7);
+              c.strokeStyle = '#888'; c.lineWidth = 0.5; c.strokeRect(7, -3.5, 9, 7);
+              c.fillStyle = tier.color; c.fillRect(14, -1.5, 3, 3);
+              c.restore();
+              // Labels
+              c.fillStyle = tier.color; c.font = 'bold 8px Share Tech Mono, monospace'; c.textAlign = 'center';
+              c.fillText(tier.label, tier.x, cy2 + r + 16);
+              c.fillStyle = tier.color + '88'; c.font = '7px Share Tech Mono, monospace';
+              c.fillText(tier.sub, tier.x, cy2 + r + 26);
+              c.textAlign = 'left';
+            });
+            // Vanguard thread
+            c.strokeStyle = '#FF00FF44'; c.lineWidth = 0.6; c.setLineDash([3, 4]);
+            c.globalAlpha = 0.3 + 0.3 * Math.sin(t / 800);
+            c.beginPath(); c.moveTo(w * 0.18, h * 0.45); c.lineTo(w * 0.48, h * 0.45); c.lineTo(w * 0.78, h * 0.45); c.stroke();
+            c.setLineDash([]); c.globalAlpha = 1;
+            activeAnimations.push(requestAnimationFrame(() => drawSents(performance.now())));
+          }
+          drawSents(performance.now());
+        }
+
+        // ── VULNERABILITY ──
+        const sv = setup('cvVuln');
+        if (sv) {
+          const { c, w, h } = sv;
+          function drawVuln(t) {
+            c.clearRect(0, 0, w, h);
+            const ex = w * 0.3, ey = h * 0.45;
+            // Enemy
+            const eg = c.createRadialGradient(ex - 4, ey - 4, 0, ex, ey, 18);
+            eg.addColorStop(0, '#fff'); eg.addColorStop(0.28, 'hsl(35,100%,58%)'); eg.addColorStop(0.72, 'hsl(35,90%,18%)'); eg.addColorStop(1, 'rgba(30,0,0,0.85)');
+            c.fillStyle = eg; c.beginPath(); c.arc(ex, ey, 18, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = 'rgba(255,60,20,0.7)'; c.lineWidth = 0.8; c.beginPath(); c.arc(ex, ey, 18, 0, Math.PI * 2); c.stroke();
+            // Broken heart icon above enemy (matches render.js exactly) + stack number bottom-right
+            const stackCount = Math.min(4, Math.floor(((t % 4000) / 4000) * 5));
+            if (stackCount > 0) {
+              c.save();
+              c.translate(ex, ey - 34);
+              const R2 = 10;
+              const pulse = 0.7 + 0.3 * Math.sin(t / 200);
+
+              // Outer ring
+              c.strokeStyle = `rgba(255,26,64,${pulse})`; c.lineWidth = 1.5;
+              c.beginPath(); c.arc(0, 0, R2, 0, Math.PI * 2); c.stroke();
+              // LED dots
+              c.fillStyle = `rgba(255,26,64,${pulse})`;
+              c.beginPath(); c.arc(0, -R2 + 2, 2, 0, Math.PI * 2); c.fill();
+              c.beginPath(); c.arc(0, R2 - 2, 2, 0, Math.PI * 2); c.fill();
+
+              // Broken heart — two halves offset
+              function drawHalf(left) {
+                c.save();
+                c.beginPath();
+                if (left) c.rect(-R2, -R2, R2 * 0.9, R2 * 2);
+                else c.rect(-R2 * 0.1, -R2, R2 * 1.1, R2 * 2);
+                c.clip();
+                c.translate(left ? -1.5 : 1.5, left ? -1 : 1);
+                const s = 0.45;
+                c.beginPath();
+                c.moveTo(0, 2 * s); c.bezierCurveTo(-8 * s, -2 * s, -10 * s, -8 * s, 0, -8 * s);
+                c.bezierCurveTo(10 * s, -8 * s, 8 * s, -2 * s, 0, 2 * s);
+                c.bezierCurveTo(-4 * s, 5 * s, -8 * s, 7 * s, 0, 11 * s);
+                c.bezierCurveTo(8 * s, 7 * s, 4 * s, 5 * s, 0, 2 * s); c.closePath();
+                const hg = c.createRadialGradient(-1, -2, 0, 0, 0, 9 * s);
+                hg.addColorStop(0, '#3a2a2e'); hg.addColorStop(0.5, '#2a1c20'); hg.addColorStop(1, '#150a0c');
+                c.fillStyle = hg; c.fill();
+                // Crack line
+                c.strokeStyle = left ? '#ff1a40' : 'rgba(255,100,80,0.6)';
+                c.lineWidth = left ? 1.5 : 0.8;
+                c.beginPath(); c.moveTo(0, -9 * s); c.lineTo(0, 11 * s); c.stroke();
+                c.restore();
+              }
+              drawHalf(true); drawHalf(false);
+
+              // X neon slash
+              const xp = 0.7 + 0.3 * Math.sin(t / 120);
+              c.save(); c.rotate(-Math.PI / 4); c.strokeStyle = '#ff1a40'; c.lineWidth = 2 * xp; c.lineCap = 'round';
+              c.beginPath(); c.moveTo(-R2 * 0.8, 0); c.lineTo(R2 * 0.8, 0); c.stroke(); c.restore();
+              c.save(); c.rotate(Math.PI / 4); c.strokeStyle = '#ff1a40'; c.lineWidth = 1.5 * xp;
+              c.beginPath(); c.moveTo(-R2 * 0.6, 0); c.lineTo(R2 * 0.6, 0); c.stroke(); c.restore();
+
+              // Stack number — bottom right of icon
+              c.fillStyle = '#ff1a40';
+              c.font = `bold 9px Orbitron, sans-serif`; c.textAlign = 'left';
+              c.fillText(stackCount, R2 * 0.5, R2 + 2);
+
+              c.restore();
+            }
+            // Shield bar
+            const sw = 45, phase = (t / 4000) % 1;
+            c.fillStyle = '#224488'; c.fillRect(ex - sw / 2, ey + 24, sw, 5);
+            c.fillStyle = '#3366aa'; c.fillRect(ex - sw / 2, ey + 24, sw * (1 - phase * 0.7), 5);
+            c.strokeStyle = '#4488cc'; c.lineWidth = 0.5; c.strokeRect(ex - sw / 2, ey + 24, sw, 5);
+            c.fillStyle = '#4488cc88'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('SHIELD SHRED', ex, ey + 42);
+            // Info
+            c.textAlign = 'left'; c.fillStyle = '#ff6666'; c.font = 'bold 13px Orbitron, sans-serif';
+            c.globalAlpha = 0.6 + 0.4 * Math.sin(t / 700);
+            c.fillText('+64% DMG', w * 0.58, h * 0.35);
+            c.globalAlpha = 1;
+            c.fillStyle = '#ff444488'; c.font = '8px Share Tech Mono, monospace';
+            c.fillText('at 4 stacks', w * 0.58, h * 0.35 + 14);
+            c.fillStyle = '#ff2200'; c.fillText('MAX → TRUE DMG 2s', w * 0.58, h * 0.35 + 30);
+            c.fillStyle = '#ff884488'; c.fillText('Auto 28% | Others 15%', w * 0.58, h * 0.35 + 46);
+            c.textAlign = 'left';
+            activeAnimations.push(requestAnimationFrame(() => drawVuln(performance.now())));
+          }
+          drawVuln(performance.now());
+        }
+
+        // ── GLORY ──
+        const sg = setup('cvGlory');
+        if (sg) {
+          const { c, w, h } = sg;
+          function drawGlory(t) {
+            c.clearRect(0, 0, w, h);
+            // Dark bg
+            c.fillStyle = 'rgba(0,5,15,0.6)'; c.fillRect(0, 0, w, h);
+
+            const enemies = [{ x: w * 0.08, y: h * 0.38 }, { x: w * 0.25, y: h * 0.25 }, { x: w * 0.44, y: h * 0.42 }, { x: w * 0.63, y: h * 0.28 }, { x: w * 0.8, y: h * 0.45 }, { x: w * 0.95, y: h * 0.35 }];
+
+            // Jagged chain lightning helper
+            function jagged(ax, ay, bx, by, segs, jitter, col, alpha, lw) {
+              const pts = [{ x: ax, y: ay }];
+              for (let s = 1; s < segs; s++) { const frac = s / segs; const jx = (Math.random() - 0.5) * jitter; const jy = (Math.random() - 0.5) * jitter; pts.push({ x: ax + (bx - ax) * frac + jx, y: ay + (by - ay) * frac + jy }); }
+              pts.push({ x: bx, y: by });
+              // Outer glow pass
+              c.globalAlpha = alpha * 0.3; c.strokeStyle = col; c.lineWidth = lw * 3;
+              c.beginPath(); pts.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y)); c.stroke();
+              // Core pass
+              c.globalAlpha = alpha; c.lineWidth = lw;
+              c.beginPath(); pts.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y)); c.stroke();
+              c.globalAlpha = 1;
+            }
+
+            // Chain arc: flash every ~300ms per link
+            const linkPhase = (t % 1800) / 1800;
+            for (let i = 0; i < enemies.length - 1; i++) {
+              const flash = ((t / 300 + i * 0.4) % 1) < 0.55;
+              if (flash) {
+                const a = enemies[i], b = enemies[i + 1];
+                jagged(a.x, a.y, b.x, b.y, 8, 14, '#00e5ff', 0.9, 1.5);
+              }
+            }
+
+            // Enemy circles
+            enemies.forEach((e, i) => {
+              const soulReaver = i === 2 || i === 4;
+              const pulse = 0.7 + 0.3 * Math.sin(t / 300 + i);
+              // Glow ring
+              if (soulReaver) { c.strokeStyle = `rgba(255,69,0,${0.5 * pulse})`; c.lineWidth = 2; c.beginPath(); c.arc(e.x, e.y, 14, 0, Math.PI * 2); c.stroke(); }
+              c.fillStyle = '#220808'; c.beginPath(); c.arc(e.x, e.y, 9, 0, Math.PI * 2); c.fill();
+              c.strokeStyle = soulReaver ? '#ff4500' : '#555'; c.lineWidth = 1; c.stroke();
+              // Soul Reaver X
+              if (soulReaver) {
+                c.save(); c.translate(e.x, e.y - 13); c.globalAlpha = pulse;
+                c.strokeStyle = '#ff4500'; c.lineWidth = 1.5;
+                c.beginPath(); c.moveTo(-4, -4); c.lineTo(4, 4); c.stroke();
+                c.beginPath(); c.moveTo(4, -4); c.lineTo(-4, 4); c.stroke();
+                c.restore();
+              }
+            });
+
+            // Labels
+            c.textAlign = 'center';
+            c.fillStyle = '#22c55e'; c.font = 'bold 11px Orbitron, sans-serif';
+            c.globalAlpha = 0.7 + 0.3 * Math.sin(t / 900);
+            c.fillText('×1.55 ALL FRIENDLY DAMAGE', w / 2, h * 0.78);
+            c.globalAlpha = 0.55; c.fillStyle = '#22c55e'; c.font = '8px Share Tech Mono, monospace';
+            c.fillText('CHAIN LIGHTNING → SOUL REAVER → ×1.4 fire rate', w / 2, h * 0.78 + 14);
+            c.globalAlpha = 1; c.textAlign = 'left';
+            activeAnimations.push(requestAnimationFrame(() => drawGlory(performance.now())));
+          }
+          drawGlory(performance.now());
+        }
+      }
+
+
+      // ── FINAL DEFENSE ──
+      if (tab === 'passives') {
+        const sfd = setup('cvFinal');
+        if (sfd) {
+          const { c, w, h } = sfd;
+          function drawFinal(t) {
+            c.clearRect(0, 0, w, h);
+            c.fillStyle = 'rgba(0,5,15,0.5)'; c.fillRect(0, 0, w, h);
+
+            // 10s cycle: phase 0-0.3 normal, 0.3-0.5 hit absorbed, 0.5-0.7 regen, 0.7-0.85 last stand, 0.85-1 absolute shield
+            const cycle = 10000, phase = (t % cycle) / cycle;
+            const shipX = w * 0.5, shipY = h * 0.65;
+
+            // Boundary line
+            const bY = h * 0.82;
+            c.strokeStyle = 'rgba(0,255,255,0.3)'; c.lineWidth = 1.5; c.setLineDash([8, 8]);
+            c.beginPath(); c.moveTo(0, bY); c.lineTo(w, bY); c.stroke(); c.setLineDash([]);
+            c.fillStyle = 'rgba(0,255,255,0.4)'; c.font = '7px Share Tech Mono,monospace';
+            c.fillText('BOUNDARY', 6, bY - 4);
+
+            // Enemy approaching
+            const eMarchX = phase < 0.5 ? w * 0.85 - phase * w * 1.0 : (phase < 0.55 ? w * 0.35 : -50);
+            if (phase < 0.55) {
+              c.fillStyle = '#330808'; c.beginPath(); c.arc(eMarchX, bY + 10, 8, 0, Math.PI * 2); c.fill();
+              c.strokeStyle = '#ff4400'; c.lineWidth = 1; c.stroke();
+            }
+
+            // Boundary shield hit flash
+            if (phase >= 0.3 && phase < 0.5) {
+              const fl = (phase - 0.3) / 0.2;
+              const flashA = fl < 0.5 ? fl * 2 : 2 - fl * 2;
+              c.strokeStyle = `rgba(0,255,255,${flashA * 0.9})`; c.lineWidth = 3 + flashA * 4;
+              c.beginPath(); c.moveTo(0, bY); c.lineTo(w, bY); c.stroke();
+              c.fillStyle = `rgba(0,255,255,${flashA * 0.15})`; c.fillRect(0, bY - 20, w, 20);
+              if (flashA > 0.3) { c.fillStyle = `rgba(0,255,255,${flashA})`; c.font = 'bold 9px Orbitron,sans-serif'; c.textAlign = 'center'; c.fillText('BOUNDARY SHIELD', w / 2, bY - 6); c.textAlign = 'left'; }
+            }
+
+            // Player shield - cyan ring
+            const shieldActive = phase < 0.3 || phase > 0.6;
+            if (shieldActive) {
+              const pulse = 0.6 + 0.4 * Math.sin(t / 350);
+              c.strokeStyle = `rgba(0,229,255,${0.6 * pulse})`; c.lineWidth = 2;
+              c.beginPath(); c.arc(shipX, shipY, 26, 0, Math.PI * 2); c.stroke();
+              // rotating dash
+              c.save(); c.translate(shipX, shipY); c.rotate(t / 1200);
+              c.setLineDash([8, 16]); c.strokeStyle = `rgba(0,229,255,${0.3 * pulse})`; c.lineWidth = 1;
+              c.beginPath(); c.arc(0, 0, 30, 0, Math.PI * 2); c.stroke();
+              c.setLineDash([]); c.restore();
+            }
+
+            // Last Stand activation
+            if (phase >= 0.7 && phase < 0.85) {
+              const lsP = (phase - 0.7) / 0.15;
+              const lsPulse = 0.5 + 0.5 * Math.sin(t / 120);
+              c.fillStyle = `rgba(255,215,0,${lsP * 0.12})`; c.fillRect(0, 0, w, h);
+              c.strokeStyle = `rgba(255,215,0,${lsPulse * 0.9})`; c.lineWidth = 3 + lsPulse * 2;
+              c.beginPath(); c.arc(shipX, shipY, 28 + lsPulse * 4, 0, Math.PI * 2); c.stroke();
+              c.fillStyle = `rgba(255,215,0,${lsP})`; c.font = 'bold 10px Orbitron,sans-serif'; c.textAlign = 'center';
+              c.fillText('LAST STAND', w / 2, shipY - 40); c.textAlign = 'left';
+            }
+
+            // Absolute shield - gold ring
+            if (phase >= 0.85) {
+              const asP = (phase - 0.85) / 0.15;
+              const pulse = 0.7 + 0.3 * Math.sin(t / 200);
+              c.strokeStyle = `rgba(255,215,0,${0.8 * pulse})`; c.lineWidth = 3;
+              c.beginPath(); c.arc(shipX, shipY, 32, 0, Math.PI * 2); c.stroke();
+              c.save(); c.translate(shipX, shipY); c.rotate(-t / 800);
+              c.setLineDash([5, 5]); c.strokeStyle = `rgba(255,215,0,${0.4 * pulse})`; c.lineWidth = 1.5;
+              c.beginPath(); c.arc(0, 0, 38, 0, Math.PI * 2); c.stroke();
+              c.setLineDash([]); c.restore();
+              c.fillStyle = `rgba(255,215,0,${asP * 0.8})`; c.font = 'bold 9px Orbitron,sans-serif'; c.textAlign = 'center';
+              c.fillText('ABSOLUTE SHIELD', w / 2, shipY - 44); c.textAlign = 'left';
+            }
+
+            // Ship
+            c.save(); c.translate(shipX, shipY);
+            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -16); c.lineTo(10, 0); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 0); c.closePath(); c.fill();
+            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.8; c.stroke();
+            c.restore();
+
+            // Label
+            const lbl = phase < 0.3 ? 'SHIELDS ACTIVE' : phase < 0.5 ? 'BOUNDARY HIT' : phase < 0.7 ? 'REGEN...' : phase < 0.85 ? 'LAST STAND!' : 'ABSOLUTE SHIELD';
+            const lblCol = phase >= 0.7 ? '#ffd700' : '#00e5ff';
+            c.fillStyle = lblCol; c.font = '7px Share Tech Mono,monospace'; c.textAlign = 'right';
+            c.fillText(lbl, w - 8, h - 6); c.textAlign = 'left';
+
+            activeAnimations.push(requestAnimationFrame(() => drawFinal(performance.now())));
+          }
+          drawFinal(performance.now());
+        }
+      }
+
+      // ── ENEMY TAB CANVASES ──
+      if (tab === 'enemies') {
+        // Normal enemy
+        const sn = setup('cvNormal');
+        if (sn) {
+          const { c, w, h } = sn;
+          function drawNorm(t) {
+            c.clearRect(0, 0, w, h);
+            const ex = w * 0.22, ey = h * 0.5, r = 16;
+            // Body - GRAY
+            const g = c.createRadialGradient(ex - r * 0.28, ey - r * 0.28, 0, ex, ey, r);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.28, 'hsl(0,0%,65%)'); g.addColorStop(0.72, 'hsl(0,0%,25%)'); g.addColorStop(1, 'rgba(15,15,15,0.85)');
+            c.fillStyle = g; c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.fill();
+            // Hex spokes
+            c.save(); c.translate(ex, ey); c.rotate(t / 3500);
+            c.strokeStyle = 'hsla(0,0%,75%,0.3)'; c.lineWidth = 0.8;
+            for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55); c.stroke(); }
+            c.restore();
+            c.strokeStyle = 'hsla(0,0%,70%,0.65)'; c.lineWidth = 0.8; c.beginPath(); c.arc(ex, ey, r, 0, Math.PI * 2); c.stroke();
+            c.fillStyle = `rgba(200,200,200,${0.5 + 0.5 * Math.sin(t / 250)})`; c.beginPath(); c.arc(ex, ey, r * 0.12, 0, Math.PI * 2); c.fill();
+            // Glint
+            c.fillStyle = 'rgba(240,240,240,0.4)'; c.save(); c.translate(ex - r * 0.28, ey - r * 0.28); c.rotate(-0.8);
+            c.beginPath(); c.ellipse(0, 0, r * 0.22, r * 0.13, 0, 0, Math.PI * 2); c.fill(); c.restore();
+            // Bullet
+            const bt = ((t / 8) % 80) / 80;
+            const bx = ex, by = ey + r + 5 + bt * (h - ey - r - 10);
+            const bg = c.createRadialGradient(bx - 2, by - 2, 0, bx, by, 5);
+            bg.addColorStop(0, '#fff'); bg.addColorStop(0.25, '#ff4400'); bg.addColorStop(0.65, '#cc0000'); bg.addColorStop(1, 'rgba(100,0,0,0.8)');
+            c.fillStyle = bg; c.beginPath(); c.arc(bx, by, 5, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = `rgba(255,255,255,${0.55 + 0.45 * Math.sin(t / 90)})`; c.lineWidth = 1.5; c.beginPath(); c.arc(bx, by, 6.5, 0, Math.PI * 2); c.stroke();
+            // Labels
+            c.fillStyle = '#ff884488'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'left';
+            c.fillText('← white pulse = enemy bullet', ex + r + 20, ey);
+            c.fillText('HP 9-96, fires 1/sec', w * 0.55, h * 0.3);
+            c.fillText('Bullet HP = enemy HP at fire time', w * 0.55, h * 0.3 + 14);
+            c.fillText('Score: HP × 6', w * 0.55, h * 0.3 + 28);
+            activeAnimations.push(requestAnimationFrame(() => drawNorm(performance.now())));
+          }
+          drawNorm(performance.now());
+        }
+
+        // Thaelis
+        const st = setup('cvThaelis');
+        if (st) {
+          const { c, w, h } = st;
+          function drawThal(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w * 0.2, cy2 = h * 0.45, r = 18;
+            // Halo
+            c.fillStyle = `rgba(255,200,0,${0.12 + 0.08 * Math.sin(t / 400)})`;
+            c.beginPath(); c.arc(cx2, cy2, r + 10, 0, Math.PI * 2); c.fill();
+            // Octagon
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
+            c.fillStyle = '#1a1a2e'; c.strokeStyle = '#FFD700'; c.lineWidth = 1.5;
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r, py = Math.sin(a) * r; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.fill(); c.stroke();
+            c.restore();
+            // Inner octagon
+            c.save(); c.translate(cx2, cy2); c.rotate(-t / 3900);
+            c.strokeStyle = '#FFA500'; c.lineWidth = 1; c.globalAlpha = 0.55;
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r * 0.55, py = Math.sin(a) * r * 0.55; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.stroke();
+            c.globalAlpha = 1; c.restore();
+            // Core
+            const cg = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, r * 0.28);
+            cg.addColorStop(0, '#fff'); cg.addColorStop(0.5, '#FFD700'); cg.addColorStop(1, '#FFA500');
+            c.fillStyle = cg; c.beginPath(); c.arc(cx2, cy2, r * 0.28, 0, Math.PI * 2); c.fill();
+            // Orbiting dots
+            c.fillStyle = '#FFD700';
+            for (let i = 0; i < 6; i++) { const a = t / 2000 + (i / 6) * Math.PI * 2; c.beginPath(); c.arc(cx2 + Math.cos(a) * (r + 12), cy2 + Math.sin(a) * (r + 12), 2, 0, Math.PI * 2); c.fill(); }
+            // Split projectile animation
+            const sp = (t / 2000) % 1;
+            if (sp < 0.4) { c.fillStyle = '#FFD700'; c.globalAlpha = 0.7; c.beginPath(); c.arc(cx2 + r + 20 + sp * 150, cy2 - 5, 5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
+            if (sp > 0.4 && sp < 0.9) {
+              const sp2 = (sp - 0.4) / 0.5;
+              c.fillStyle = '#ffaa00';[[-10, -15], [0, 0], [10, 15]].forEach(([dx, dy]) => { c.beginPath(); c.arc(cx2 + r + 80 + sp2 * 80 + dx, cy2 + dy * sp2, 3, 0, Math.PI * 2); c.fill(); });
+            }
+            // Embryo
+            const emx = w * 0.7, emy = h * 0.5;
+            const ep = Math.abs(Math.sin(t / 150)) * 3;
+            c.fillStyle = 'rgba(138,43,226,0.15)'; c.beginPath(); c.ellipse(emx, emy, 8 + ep, 11 + ep, 0, 0, Math.PI * 2); c.fill();
+            const emg = c.createRadialGradient(emx - 2, emy - 2, 0, emx, emy, 8 + ep);
+            emg.addColorStop(0, '#df88ff'); emg.addColorStop(0.4, '#8A2BE2'); emg.addColorStop(1, '#4a0080');
+            c.fillStyle = emg; c.beginPath(); c.ellipse(emx, emy, 6 + ep, 9 + ep, 0, 0, Math.PI * 2); c.fill();
+            // Labels
+            c.fillStyle = '#FFD70088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
+            c.fillText('splits into 3 homing', w * 0.42, h * 0.22);
+            c.fillText('EMBRYO (90% DR)', emx, emy + 18);
+            c.fillStyle = '#8A2BE255'; c.fillText('hatches @3s', emx, emy + 27);
+            c.textAlign = 'left';
+            activeAnimations.push(requestAnimationFrame(() => drawThal(performance.now())));
+          }
+          drawThal(performance.now());
+        }
+
+        // Aegis Core
+        const sa = setup('cvAegis');
+        if (sa) {
+          const { c, w, h } = sa;
+          function drawAeg(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w * 0.22, cy2 = h * 0.5, r = 16;
+            // Aura boundary
+            c.strokeStyle = `rgba(255,60,60,${0.2 + 0.15 * Math.sin(t / 800)})`;
+            c.lineWidth = 2; c.beginPath(); c.arc(cx2, cy2, 50, 0, Math.PI * 2); c.stroke();
+            // Square wave rings
+            const ringT = ((t / 2200) % 1);
+            const ringR = r * 1.1 + ringT * (50 - r * 1.1);
+            c.fillStyle = `rgba(255,${Math.floor(ringT * 130)},0,${(1 - Math.pow(ringT, 1.8)) * 0.5})`;
+            const sqc = Math.max(6, Math.floor(2 * Math.PI * ringR / 12));
+            for (let i = 0; i < sqc; i++) {
+              const a = (i / sqc) * Math.PI * 2 + t / 4000;
+              c.save(); c.translate(cx2 + Math.cos(a) * ringR, cy2 + Math.sin(a) * ringR); c.rotate(a);
+              c.fillRect(-4, -4, 8, 8); c.restore();
+            }
+            // Body
+            const bg = c.createRadialGradient(cx2, cy2, r * 0.15, cx2, cy2, r);
+            bg.addColorStop(0, '#f8f8f8'); bg.addColorStop(0.5, '#c8c8c8'); bg.addColorStop(0.85, '#888'); bg.addColorStop(1, '#555');
+            c.fillStyle = bg; c.beginPath(); c.arc(cx2, cy2, r, 0, Math.PI * 2); c.fill();
+            // Tick marks
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
+            c.strokeStyle = 'rgba(120,120,120,0.6)'; c.lineWidth = 1.2;
+            for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.88, Math.sin(a) * r * 0.88); c.lineTo(Math.cos(a) * r * 0.97, Math.sin(a) * r * 0.97); c.stroke(); }
+            c.restore();
+            c.strokeStyle = '#707070'; c.lineWidth = 1.2; c.beginPath(); c.arc(cx2, cy2, r, 0, Math.PI * 2); c.stroke();
+            // Red core
+            const cg = c.createLinearGradient(cx2, cy2 - r * 0.4, cx2, cy2 + r * 0.4);
+            cg.addColorStop(0, '#ff3333'); cg.addColorStop(1, '#800000');
+            c.fillStyle = cg; c.beginPath(); c.arc(cx2, cy2, r * 0.35, 0, Math.PI * 2); c.fill();
+            const rs = r * 0.2;
+            c.fillStyle = '#220000'; c.fillRect(cx2 - rs, cy2 - rs, rs * 2, rs * 2);
+            c.strokeStyle = '#ff6666'; c.lineWidth = 1.5; c.strokeRect(cx2 - rs, cy2 - rs, rs * 2, rs * 2);
+            c.fillStyle = `rgba(255,100,100,${0.6 + 0.4 * Math.sin(t / 220)})`;
+            c.beginPath(); c.arc(cx2, cy2, rs * 0.45, 0, Math.PI * 2); c.fill();
+
+            // ── LUMEN NOVA ANIMATION ──
+            const novaCycle = 5000; // matches every 5s
+            const novaPhase = (t % novaCycle) / novaCycle;
+            // Targets: player + 3 sentinels
+            const novaTargets = [[w * 0.6, h * 0.75], [w * 0.45, h * 0.25], [w * 0.75, h * 0.35], [w * 0.85, h * 0.7]];
+            if (novaPhase < 0.3) {
+              // Warning phase: dashed targeting lines + crosshair at target
+              const warnAlpha = novaPhase / 0.3;
+              novaTargets.forEach(([tx, ty], ti) => {
+                // Wide warning zone
+                c.strokeStyle = `rgba(255,0,0,${warnAlpha * 0.1})`; c.lineWidth = 16;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
+                // Dashed targeting line
+                c.strokeStyle = `rgba(255,100,100,${warnAlpha * 0.75})`; c.lineWidth = 1.2;
+                c.setLineDash([8, 8]); c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke(); c.setLineDash([]);
+                // Crosshair dot at target
+                c.fillStyle = `rgba(255,80,80,${warnAlpha * 0.8})`;
+                c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.fill();
+                // Target type label
+                c.fillStyle = `rgba(255,100,100,${warnAlpha * 0.6})`; c.font = '6px Share Tech Mono, monospace'; c.textAlign = 'center';
+                c.fillText(ti === 0 ? 'PLAYER' : 'SENTINEL', tx, ty - 7); c.textAlign = 'left';
+              });
+            } else if (novaPhase < 0.45) {
+              // Fire phase: bright laser beams
+              const fireAlpha = 1 - (novaPhase - 0.3) / 0.15;
+              novaTargets.forEach(([tx, ty]) => {
+                // Outer glow beam
+                c.strokeStyle = `rgba(255,30,30,${fireAlpha * 0.5})`; c.lineWidth = 25 * fireAlpha;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
+                // Core beam
+                c.strokeStyle = `rgba(255,80,80,${fireAlpha * 0.85})`; c.lineWidth = 12 * fireAlpha;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
+                // Bright center
+                c.strokeStyle = `rgba(255,255,255,${fireAlpha * 0.9})`; c.lineWidth = 4 * fireAlpha;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(tx, ty); c.stroke();
+                // Impact flash at target
+                c.fillStyle = `rgba(255,200,200,${fireAlpha * 0.6})`;
+                c.beginPath(); c.arc(tx, ty, 10 * fireAlpha, 0, Math.PI * 2); c.fill();
+              });
+            }
+
+            // Labels
+            c.fillStyle = '#ff8844'; c.font = 'bold 9px Orbitron, sans-serif'; c.textAlign = 'left';
+            c.fillText('CUSTOS AETERNUS', w * 0.5, h * 0.12);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('1st hit nullified (Iron Body)', w * 0.5, h * 0.12 + 13);
+            c.fillStyle = '#ff8844'; c.font = 'bold 9px Orbitron, sans-serif';
+            c.fillText('SUPPORT AURA', w * 0.5, h * 0.12 + 30);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('Heals 2.5% HP/s • Shield 40% HP', w * 0.5, h * 0.12 + 43);
+            c.fillStyle = '#ff8844'; c.font = 'bold 9px Orbitron, sans-serif';
+            c.fillText('LUMEN NOVA (every 5s)', w * 0.5, h * 0.12 + 60);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('Targets player + 3 sentinels → fires', w * 0.5, h * 0.12 + 73);
+            activeAnimations.push(requestAnimationFrame(() => drawAeg(performance.now())));
+          }
+          drawAeg(performance.now());
+        }
+
+        // Marchosias
+        const sm = setup('cvMarcho');
+        if (sm) {
+          const { c, w, h } = sm;
+          function drawMar(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w * 0.22, cy2 = h * 0.45, r = 20;
+            // Aura
+            c.fillStyle = `rgba(0,255,120,${0.08 + 0.04 * Math.sin(t / 350)})`;
+            c.beginPath(); c.arc(cx2, cy2, r + 10, 0, Math.PI * 2); c.fill();
+            // Hexagon
+            c.fillStyle = '#1a1a2e'; c.strokeStyle = '#00cc66'; c.lineWidth = 2;
+            c.beginPath();
+            for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 6; const px = cx2 + Math.cos(a) * r, py = cy2 + Math.sin(a) * r; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); }
+            c.closePath(); c.fill(); c.stroke();
+            // Inner triangles
+            c.strokeStyle = 'rgba(0,200,100,0.5)'; c.lineWidth = 1;
+            for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2 - Math.PI / 6; c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(cx2 + Math.cos(a) * r, cy2 + Math.sin(a) * r); c.stroke(); }
+            // Gear teeth
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 2500);
+            c.strokeStyle = 'rgba(0,180,80,0.6)'; c.lineWidth = 1.5;
+            for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.88, Math.sin(a) * r * 0.88); c.lineTo(Math.cos(a) * r * 0.98, Math.sin(a) * r * 0.98); c.stroke(); }
+            c.restore();
+            // Core
+            const cg = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, r * 0.32);
+            cg.addColorStop(0, '#fff'); cg.addColorStop(0.4, '#00ff88'); cg.addColorStop(1, '#006633');
+            c.fillStyle = cg; c.beginPath(); c.arc(cx2, cy2, r * 0.32, 0, Math.PI * 2); c.fill();
+            // Arc shield rotating
+            const shA = Math.atan2(0, 1) + t / 2000;
+            c.strokeStyle = 'rgba(0,255,136,0.3)'; c.lineWidth = 12;
+            c.beginPath(); c.arc(cx2, cy2, r + 14, shA - Math.PI / 4, shA + Math.PI / 4); c.stroke();
+            c.strokeStyle = 'rgba(160,255,200,0.7)'; c.lineWidth = 5;
+            c.beginPath(); c.arc(cx2, cy2, r + 14, shA - Math.PI / 4, shA + Math.PI / 4); c.stroke();
+            c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 1.5;
+            c.beginPath(); c.arc(cx2, cy2, r + 10, shA - Math.PI / 4, shA + Math.PI / 4); c.stroke();
+
+            // ── SWORD ANIMATION: warning beam → orange arc blade fires ──
+            const swordCycle = 3500;
+            const sp = (t % swordCycle) / swordCycle;
+            const swordOriginX = cx2, swordOriginY = cy2;
+            const swordTargetAngle = Math.PI * 0.35; // aim toward bottom-right
+            if (sp < 0.35) {
+              // Warning beam phase: orange dashed line from Mar to target
+              const warnAlpha = 0.4 + 0.5 * Math.sin(t / 80);
+              const warnLen = w * 0.55;
+              c.save(); c.translate(swordOriginX, swordOriginY); c.rotate(swordTargetAngle);
+              // Wide warning fill
+              c.fillStyle = `rgba(255,180,0,${warnAlpha * 0.15})`;
+              c.fillRect(0, -20, warnLen, 40);
+              // Edge lines
+              c.strokeStyle = `rgba(255,150,0,${warnAlpha * 0.7})`; c.lineWidth = 1.2;
+              c.beginPath(); c.moveTo(0, -20); c.lineTo(warnLen, -20); c.stroke();
+              c.beginPath(); c.moveTo(0, 20); c.lineTo(warnLen, 20); c.stroke();
+              // Center dashed
+              c.setLineDash([10, 7]); c.strokeStyle = `rgba(255,220,80,${warnAlpha * 0.6})`; c.lineWidth = 1;
+              c.beginPath(); c.moveTo(0, 0); c.lineTo(warnLen, 0); c.stroke(); c.setLineDash([]);
+              c.restore();
+            }
+            if (sp >= 0.35 && sp < 0.75) {
+              // Blade arc flying out from Marchosias
+              const flyT = (sp - 0.35) / 0.4;
+              const flyDist = flyT * w * 0.55;
+              const bx2 = swordOriginX + Math.cos(swordTargetAngle) * flyDist;
+              const by2 = swordOriginY + Math.sin(swordTargetAngle) * flyDist;
+              const bAngle = swordTargetAngle;
+              const bSa = bAngle - Math.PI / 2, bEa = bAngle + Math.PI / 2;
+              const bR = 28;
+              const bFade = flyT < 0.15 ? flyT / 0.15 : (flyT > 0.75 ? (1 - flyT) / 0.25 : 1);
+              // Outer orange-red glow
+              c.strokeStyle = `rgba(255,80,0,${bFade * 0.3})`; c.lineWidth = 16;
+              c.beginPath(); c.arc(bx2, by2, bR, bSa, bEa); c.stroke();
+              // Main orange arc
+              c.strokeStyle = `rgba(255,140,30,${bFade * 0.9})`; c.lineWidth = 5;
+              c.beginPath(); c.arc(bx2, by2, bR, bSa, bEa); c.stroke();
+              // Bright inner
+              c.strokeStyle = `rgba(255,230,180,${bFade * 0.6})`; c.lineWidth = 2;
+              c.beginPath(); c.arc(bx2, by2, bR - 3, bSa, bEa); c.stroke();
+              // Energy slashes
+              c.strokeStyle = `rgba(255,200,100,${bFade * (0.4 + 0.4 * Math.sin(t / 60))})`; c.lineWidth = 1;
+              for (let i = 0; i < 3; i++) {
+                const slA = bSa + (bEa - bSa) * ((i + 1) / 4);
+                c.beginPath();
+                c.moveTo(bx2 + Math.cos(slA) * (bR - 10), by2 + Math.sin(slA) * (bR - 10));
+                c.lineTo(bx2 + Math.cos(slA) * (bR + 10), by2 + Math.sin(slA) * (bR + 10));
+                c.stroke();
+              }
+            }
+            // Roman numeral counter
+            const swordCount = Math.floor((t / 4000) % 4) + 1;
+            const romans = ['I', 'II', 'III', 'IV'];
+            c.fillStyle = '#00ff88'; c.font = 'bold 10px serif'; c.textAlign = 'center';
+            c.fillText(romans[swordCount - 1], cx2, cy2 + r + 20);
+
+            // Minion triangle
+            const mx = w * 0.82, my = h * 0.75;
+            c.fillStyle = '#0d1f17'; c.strokeStyle = `rgba(0,200,80,${0.6 + 0.4 * Math.sin(t / 200)})`;
+            c.lineWidth = 1.2;
+            c.beginPath(); c.moveTo(mx, my - 8); c.lineTo(mx + 7, my + 4); c.lineTo(mx - 7, my + 4); c.closePath(); c.fill(); c.stroke();
+            const mg = c.createRadialGradient(mx, my, 0, mx, my, 3.5);
+            mg.addColorStop(0, '#fff'); mg.addColorStop(0.5, '#00ff88'); mg.addColorStop(1, 'rgba(0,100,50,0.4)');
+            c.fillStyle = mg; c.beginPath(); c.arc(mx, my, 3.5, 0, Math.PI * 2); c.fill();
+            // Labels
+            c.fillStyle = '#ff880088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
+            c.fillText('MINION', mx, my + 16);
+            c.textAlign = 'left';
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('Shield hit 20% → queue Sword', w * 0.5, h * 0.55);
+            c.fillText('HP 1% → all Swords fire at once', w * 0.5, h * 0.55 + 13);
+            c.fillText('Swords are INDESTRUCTIBLE', w * 0.5, h * 0.55 + 26);
+            activeAnimations.push(requestAnimationFrame(() => drawMar(performance.now())));
+          }
+          drawMar(performance.now());
+        }
+
+        // Dargruel
+        const sd = setup('cvDargruel');
+        if (sd) {
+          const { c, w, h } = sd;
+          function drawDar(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w * 0.2, cy2 = h * 0.45, r = 20;
+
+            // ── MAOU HAKI SHOCKWAVE (every 6s cycle, lasts 1.5s) ──
+            const hakiCycle = 6000;
+            const hakiPhase = (t % hakiCycle) / hakiCycle;
+            if (hakiPhase > 0.7 && hakiPhase < 0.95) {
+              const hakiT = (hakiPhase - 0.7) / 0.25;
+              const hakiR = hakiT * Math.max(w, h) * 0.9;
+              const hakiFade = Math.max(0, 1 - hakiT);
+              const hakiBlink = 0.7 + 0.3 * Math.sin(t / 40);
+              // Dense purple fill
+              c.globalAlpha = hakiFade * 0.18 * hakiBlink;
+              c.fillStyle = 'rgba(100,0,200,1)';
+              c.beginPath(); c.arc(cx2, cy2, hakiR, 0, Math.PI * 2); c.fill();
+              c.globalAlpha = 1;
+              // Rotating arcs inside
+              c.save(); c.translate(cx2, cy2); c.rotate(t / 1200);
+              for (let i = 0; i < 8; i++) {
+                const a = (Math.PI * 2 / 8) * i;
+                const r1 = hakiR * 0.25, r2 = hakiR * 0.8;
+                c.strokeStyle = `rgba(200,80,255,${hakiFade * 0.35 * hakiBlink})`; c.lineWidth = 1;
+                c.beginPath(); c.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); c.lineTo(Math.cos(a) * r2, Math.sin(a) * r2); c.stroke();
+              }
+              // Inner hex
+              c.strokeStyle = `rgba(180,80,255,${hakiFade * 0.45 * hakiBlink})`; c.lineWidth = 1.5;
+              c.beginPath();
+              for (let i = 0; i < 6; i++) { const a = (Math.PI * 2 / 6) * i; const hr = hakiR * 0.42; i === 0 ? c.moveTo(Math.cos(a) * hr, Math.sin(a) * hr) : c.lineTo(Math.cos(a) * hr, Math.sin(a) * hr); }
+              c.closePath(); c.stroke();
+              c.restore();
+              // Main ring
+              c.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * hakiBlink) * hakiFade})`; c.lineWidth = 5;
+              c.beginPath(); c.arc(cx2, cy2, hakiR, 0, Math.PI * 2); c.stroke();
+              // Flying sparks
+              for (let i = 0; i < 8; i++) {
+                const sa = (Math.PI * 2 / 8) * i + t / 400;
+                const sOff = hakiR + Math.sin(t / 180 + i) * 6;
+                c.fillStyle = `rgba(255,180,255,${hakiFade * hakiBlink * 0.7})`; c.beginPath();
+                c.arc(cx2 + Math.cos(sa) * sOff, cy2 + Math.sin(sa) * sOff, 2.5, 0, Math.PI * 2); c.fill();
+              }
+              // Label
+              c.fillStyle = `rgba(200,100,255,${hakiFade})`; c.font = 'bold 10px Orbitron, sans-serif'; c.textAlign = 'center';
+              c.fillText('MAOU HAKI', cx2, cy2 - hakiR - 5);
+              c.fillStyle = `rgba(200,100,255,${hakiFade * 0.6})`; c.font = '7px Share Tech Mono, monospace';
+              c.fillText('destroys all projectiles', cx2, cy2 - hakiR + 6);
+              c.textAlign = 'left';
+            }
+
+            // Body aura
+            c.fillStyle = `rgba(255,0,255,${0.12 + 0.08 * Math.sin(t / 400)})`;
+            c.beginPath(); c.arc(cx2, cy2, r + 10, 0, Math.PI * 2); c.fill();
+            // Octagon
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 2000);
+            c.fillStyle = '#1a1a2e'; c.strokeStyle = '#FF00FF'; c.lineWidth = 1.5;
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r, py = Math.sin(a) * r; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.fill(); c.stroke();
+            c.restore();
+            c.save(); c.translate(cx2, cy2); c.rotate(-t / 2600);
+            c.strokeStyle = '#8A2BE2'; c.lineWidth = 1; c.globalAlpha = 0.55;
+            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r * 0.55, py = Math.sin(a) * r * 0.55; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); c.stroke();
+            c.globalAlpha = 1; c.restore();
+            // Core gem
+            const cg2 = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, r * 0.28);
+            cg2.addColorStop(0, '#fff'); cg2.addColorStop(0.5, '#FF00FF'); cg2.addColorStop(1, '#8A2BE2');
+            c.fillStyle = cg2; c.beginPath(); c.arc(cx2, cy2, r * 0.28, 0, Math.PI * 2); c.fill();
+            // Orbiting
+            c.fillStyle = '#FF00FF';
+            for (let i = 0; i < 6; i++) { const a = t / 1300 + (i / 6) * Math.PI * 2; c.beginPath(); c.arc(cx2 + Math.cos(a) * (r + 14), cy2 + Math.sin(a) * (r + 14), 2.5, 0, Math.PI * 2); c.fill(); }
+
+            // ── ABYSSAL CHAIN FAN (4 chains firing in fan spread) ──
+            const chainCycle = 3000;
+            const chainPhase = (t % chainCycle) / chainCycle;
+            if (chainPhase < 0.65) {
+              const chainT = chainPhase / 0.65;
+              const chainDist = chainT * w * 0.6;
+              const fanAngles = [-0.4, -0.13, 0.13, 0.4]; // 4 chains in fan
+              const baseFanAngle = Math.PI * 0.1; // aim right-ish
+              const pulse = 0.6 + 0.4 * Math.sin(t / 60);
+
+              fanAngles.forEach((offset, idx) => {
+                const angle = baseFanAngle + offset;
+                const headX = cx2 + Math.cos(angle) * chainDist;
+                const headY = cy2 + Math.sin(angle) * chainDist;
+                const chainFade = chainT < 0.1 ? chainT / 0.1 : (chainT > 0.8 ? (1 - chainT) / 0.2 : 1);
+
+                // Trailing purple sparks
+                for (let tr = 1; tr <= 4; tr++) {
+                  const tf = tr / 4;
+                  const tx = cx2 + Math.cos(angle) * chainDist * (1 - tf * 0.5);
+                  const ty = cy2 + Math.sin(angle) * chainDist * (1 - tf * 0.5);
+                  c.fillStyle = tf < 0.4 ? `rgba(255,136,255,${(1 - tf) * 0.6 * chainFade})` : `rgba(153,0,204,${(1 - tf) * 0.4 * chainFade})`;
+                  c.beginPath(); c.arc(tx, ty, Math.max(1, 4 * (1 - tf * 0.6) * 0.38), 0, Math.PI * 2); c.fill();
+                }
+
+                // Rope from Dargruel to chain head
+                c.strokeStyle = `rgba(180,0,255,${(0.5 + pulse * 0.2) * chainFade})`; c.lineWidth = 2.5;
+                c.setLineDash([5, 5]); c.lineDashOffset = -(t / 30);
+                c.beginPath(); c.moveTo(cx2, cy2);
+                // Jitter segments
+                const segs = 4;
+                for (let s = 1; s <= segs; s++) {
+                  const st = s / segs;
+                  const jitter = s < segs ? Math.sin(t / 100 + s * 2.1 + idx) * 5 : 0;
+                  const dx = headX - cx2, dy = headY - cy2, dist = Math.hypot(dx, dy);
+                  c.lineTo(cx2 + dx * st - (dy / (dist || 1)) * jitter, cy2 + dy * st + (dx / (dist || 1)) * jitter);
+                }
+                c.stroke(); c.setLineDash([]); c.lineDashOffset = 0;
+
+                // Chain head (ellipse with gem core)
+                c.save(); c.translate(headX, headY); c.rotate(angle);
+                c.fillStyle = `rgba(110,0,210,${0.9 * chainFade})`; c.beginPath(); c.ellipse(0, 0, 10, 4.5, 0, 0, Math.PI * 2); c.fill();
+                c.strokeStyle = `rgba(240,120,255,${0.85 * chainFade})`; c.lineWidth = 1.5; c.beginPath(); c.ellipse(0, 0, 10, 4.5, 0, 0, Math.PI * 2); c.stroke();
+                c.fillStyle = '#07001a'; c.beginPath(); c.ellipse(0, 0, 3.5, 2, 0, 0, Math.PI * 2); c.fill();
+                // Gem glint
+                c.fillStyle = `rgba(245,170,255,${(0.5 + pulse * 0.5) * chainFade})`; c.beginPath(); c.ellipse(-2, -1, 1.5, 0.8, -0.5, 0, Math.PI * 2); c.fill();
+                c.restore();
+              });
+            }
+
+            // Info labels
+            c.fillStyle = '#cc55ff'; c.font = 'bold 8px Orbitron, sans-serif';
+            c.fillText('DEMON GIFT @70/40/10/1%', w * 0.55, h * 0.15);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('Heals enemies, +18% DR 4s', w * 0.55, h * 0.15 + 13);
+            c.fillText('25% base DR + 2%/sentinel', w * 0.55, h * 0.15 + 26);
+            c.fillStyle = '#cc55ff88'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('4 PIERCING CHAINS / 1.5s', w * 0.55, h * 0.55);
+            c.fillText('Hit player → Root & Silence 1s', w * 0.55, h * 0.55 + 13);
+            c.fillText('Hit sentinel → 15% Max HP true dmg', w * 0.55, h * 0.55 + 26);
+            activeAnimations.push(requestAnimationFrame(() => drawDar(performance.now())));
+          }
+          drawDar(performance.now());
+        }
+
+        // Leviathan — 2 phases in 1 canvas, sequential
+        const sl = setup('cvLeviat');
+        if (sl) {
+          const { c, w, h } = sl;
+          // Pre-compute Last Rites target positions (player + sentinels)
+          const lrTargets = [
+            [w * 0.65, h * 0.85], // player
+            [w * 0.45, h * 0.15], [w * 0.80, h * 0.25], [w * 0.90, h * 0.55],
+            [w * 0.15, h * 0.30], [w * 0.55, h * 0.35], [w * 0.75, h * 0.70],
+            [w * 0.10, h * 0.65], [w * 0.35, h * 0.80],
+          ];
+          function drawLev(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w * 0.28, cy2 = h * 0.5, r = 20;
+            const NUM_W = 9;
+            const laserLen = Math.max(w, h);
+
+            // ── BIG CYCLE: 16s total ──
+            // 0.00-0.25: AFO shield active (wings folded)
+            // 0.25-0.32: shield shatters, wings open
+            // 0.32-0.52: Perseverance (charge + 360° sweep)
+            // 0.52-0.56: brief pause, body glows red (HP→1)
+            // 0.56-0.76: Last Rites — wings rotate to aim targets
+            // 0.76-0.90: All 9 lasers fire simultaneously
+            // 0.90-1.00: lasers fade out, reset
+            const bigCycle = 12308; // 16000 / 1.30 = ~30% faster
+            const bp = (t % bigCycle) / bigCycle;
+
+            const isAFO = bp < 0.25;
+            const isShatter = bp >= 0.25 && bp < 0.32;
+            const isPers = bp >= 0.32 && bp < 0.52;
+            const isDying = bp >= 0.52 && bp < 0.56;
+            const isLRAim = bp >= 0.56 && bp < 0.76;
+            const isLRFire = bp >= 0.76 && bp < 0.90;
+            const isLRFade = bp >= 0.90;
+
+            // Wing open/close state
+            let wingPhase = 0; // 0=folded, 1=open
+            if (isAFO) wingPhase = 0;
+            else if (isShatter) wingPhase = (bp - 0.25) / 0.07;
+            else if (isPers || isDying) wingPhase = 1;
+            else wingPhase = 1; // open during Last Rites
+            wingPhase = Math.min(1, Math.max(0, wingPhase));
+
+            // Phase label
+            c.fillStyle = '#cc55ff88'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
+            if (isAFO) c.fillText('▶ ALL FOR ONE — IRON BODY', cx2, 10);
+            else if (isShatter) c.fillText('▶ SHIELD SHATTERS — WINGS OPEN', cx2, 10);
+            else if (isPers) c.fillText('▶ PERSEVERANCE — 360° LASER SWEEP', cx2, 10);
+            else if (isDying) c.fillText('▶ HP REACHES 1...', cx2, 10);
+            else if (isLRAim) c.fillText('▶ LAST RITES — WINGS LOCKING TARGETS', cx2, 10);
+            else if (isLRFire || isLRFade) c.fillText('▶ LAST RITES — ALL 9 LASERS FIRE', cx2, 10);
+            c.textAlign = 'left';
+
+            // ── Draw target markers during Last Rites phases ──
+            if (isLRAim || isLRFire || isLRFade) {
+              lrTargets.forEach(([tx, ty], ti) => {
+                c.globalAlpha = 0.4;
+                if (ti === 0) {
+                  // Player ship
+                  c.fillStyle = '#1a2a45';
+                  c.beginPath(); c.moveTo(tx, ty - 6); c.lineTo(tx + 5, ty); c.lineTo(tx + 4, ty + 3); c.lineTo(tx - 4, ty + 3); c.lineTo(tx - 5, ty); c.closePath(); c.fill();
+                  c.fillStyle = '#00e5ff'; c.beginPath(); c.arc(tx, ty, 1.5, 0, Math.PI * 2); c.fill();
+                } else {
+                  // Sentinel dot
+                  c.fillStyle = '#888'; c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.fill();
+                  c.strokeStyle = '#00FFFF55'; c.lineWidth = 0.8; c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.stroke();
+                }
+                c.globalAlpha = 1;
+              });
+            }
+
+            // ── WINGS (always drawn, phase controls fold/open) ──
+            // During Last Rites aiming: each wing rotates independently to its target
+            c.save(); c.translate(cx2, cy2);
+            const baseWingRot = -t / 9000; // slow counter-clockwise orbit
+            for (let i = 0; i < NUM_W; i++) {
+              const orbitAngle = (i / NUM_W) * Math.PI * 2 + baseWingRot;
+
+              let drawAngle = orbitAngle;
+              // During Last Rites aiming, wings rotate from orbit position to target
+              if (isLRAim) {
+                const aimP = (bp - 0.56) / 0.20;
+                const ease = aimP < 0.5 ? 4 * aimP * aimP * aimP : 1 - Math.pow(-2 * aimP + 2, 3) / 2;
+                const [tx, ty] = lrTargets[i];
+                const targetA = Math.atan2(ty - cy2, tx - cx2);
+                let diff = targetA - orbitAngle;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                drawAngle = orbitAngle + diff * ease;
+              } else if (isLRFire || isLRFade) {
+                // Locked on target
+                const [tx, ty] = lrTargets[i];
+                drawAngle = Math.atan2(ty - cy2, tx - cx2);
+              }
+
+              c.save(); c.rotate(drawAngle);
+              const wl = r * 1.0, ww = r * 0.26, hw = ww / 2;
+              const closedD = r * 0.45, openD = r * 0.90;
+              const wd = closedD + (openD - closedD) * wingPhase + Math.sin(t / 700 + i) * r * 0.04;
+              c.translate(wd, 0); // wing extends outward along its angle
+              // Trapezoid wing plate (pointing outward)
+              const wg = c.createLinearGradient(0, 0, wl, 0);
+              wg.addColorStop(0, '#00e5ff'); wg.addColorStop(0.15, '#2d3748'); wg.addColorStop(0.8, '#1a1c29'); wg.addColorStop(1, '#0f172a');
+              c.fillStyle = wg;
+              c.beginPath();
+              c.moveTo(0, -hw * 0.4); c.lineTo(0, hw * 0.4);
+              c.lineTo(wl, hw * 0.7); c.lineTo(wl, -hw * 0.7);
+              c.closePath(); c.fill();
+              // Inner panel
+              c.fillStyle = '#374151';
+              c.beginPath();
+              c.moveTo(wl * 0.15, -hw * 0.2); c.lineTo(wl * 0.15, hw * 0.2);
+              c.lineTo(wl * 0.85, hw * 0.6); c.lineTo(wl * 0.85, -hw * 0.6);
+              c.closePath(); c.fill();
+              c.restore();
+            }
+            c.restore();
+
+            // ── Last Rites: warning beams during aiming ──
+            if (isLRAim) {
+              const aimP = (bp - 0.56) / 0.20;
+              for (let i = 0; i < NUM_W; i++) {
+                const [tx, ty] = lrTargets[i];
+                const orbitAngle = (i / NUM_W) * Math.PI * 2 + baseWingRot;
+                const targetA = Math.atan2(ty - cy2, tx - cx2);
+                let diff = targetA - orbitAngle;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                const ease = aimP < 0.5 ? 4 * aimP * aimP * aimP : 1 - Math.pow(-2 * aimP + 2, 3) / 2;
+                const curA = orbitAngle + diff * ease;
+                // Dashed orange warning line
+                c.strokeStyle = `rgba(255,100,0,${aimP * 0.55 * (0.5 + 0.5 * Math.sin(t / 80 + i))})`;
+                c.lineWidth = 2; c.setLineDash([10, 7]);
+                const endX = cx2 + Math.cos(curA) * laserLen;
+                const endY = cy2 + Math.sin(curA) * laserLen;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(endX, endY); c.stroke();
+                c.setLineDash([]);
+              }
+            }
+
+            // ── Last Rites: all 9 lasers fire ──
+            if (isLRFire || isLRFade) {
+              const fireP = isLRFire ? (bp - 0.76) / 0.14 : 1;
+              const fadeMul = isLRFade ? Math.max(0, 1 - (bp - 0.90) / 0.10) : 1;
+              const alpha = fadeMul;
+              for (let i = 0; i < NUM_W; i++) {
+                const [tx, ty] = lrTargets[i];
+                const la = Math.atan2(ty - cy2, tx - cx2);
+                const endX = cx2 + Math.cos(la) * laserLen;
+                const endY = cy2 + Math.sin(la) * laserLen;
+                c.globalAlpha = alpha;
+                // Wide outer glow
+                c.strokeStyle = 'rgba(255,80,0,0.25)'; c.lineWidth = 28;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(endX, endY); c.stroke();
+                // Core
+                c.strokeStyle = '#ff4444'; c.lineWidth = 5;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(endX, endY); c.stroke();
+                // White center
+                c.strokeStyle = '#ffffff'; c.lineWidth = 1.5;
+                c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(endX, endY); c.stroke();
+              }
+              c.globalAlpha = 1;
+              // Flash text
+              if (isLRFire && fireP < 0.3) {
+                c.fillStyle = `rgba(255,100,0,${(0.3 - fireP) * 3})`; c.font = 'bold 11px Orbitron, sans-serif'; c.textAlign = 'center';
+                c.fillText('LAST RITES', cx2, cy2 - r - 30); c.textAlign = 'left';
+              }
+            }
+
+            // ── ENERGY VORTEX (only when shield broken, not during Last Rites fire) ──
+            if (!isAFO && !isLRFire && !isLRFade) {
+              c.save(); c.translate(cx2, cy2); c.rotate(t / 400);
+              for (let i = 0; i < 8; i++) {
+                const sa = (i / 8) * Math.PI * 2;
+                c.strokeStyle = i % 2 === 0 ? 'rgba(0,229,255,0.7)' : 'rgba(157,0,255,0.7)';
+                c.lineWidth = 2.5; c.beginPath(); c.arc(0, 0, r * 0.40, sa, sa + Math.PI / 8); c.stroke();
+              }
+              c.restore();
+            }
+
+            // ── CORE ──
+            const beat = 0.9 + 0.15 * Math.sin(t / 500);
+            const coreR = r * 0.30 * beat;
+            const coreG = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, coreR);
+            if (isDying) {
+              // Dying glow: red-orange
+              coreG.addColorStop(0, '#ffaa00'); coreG.addColorStop(0.6, '#ff4400'); coreG.addColorStop(1, '#880000');
+            } else {
+              coreG.addColorStop(0, '#020205'); coreG.addColorStop(0.6, '#2a0066'); coreG.addColorStop(1, '#00e5ff');
+            }
+            c.fillStyle = coreG; c.beginPath(); c.arc(cx2, cy2, coreR, 0, Math.PI * 2); c.fill();
+            // Eye
+            const eyeTarget = isLRAim || isLRFire ? lrTargets[0] : [w * 0.7, h * 0.8];
+            const eA = Math.atan2(eyeTarget[1] - cy2, eyeTarget[0] - cx2);
+            const eOff = coreR * 0.3, eR = coreR * 0.35;
+            const ex2 = cx2 + Math.cos(eA) * eOff, ey2 = cy2 + Math.sin(eA) * eOff;
+            c.fillStyle = '#e8e8ff'; c.beginPath(); c.arc(ex2, ey2, eR, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#00e5ff'; c.beginPath(); c.arc(ex2, ey2, eR * 0.6, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#000'; c.beginPath(); c.arc(ex2, ey2, eR * 0.28, 0, Math.PI * 2); c.fill();
+
+            // ── AFO SHIELD (phase 1 only) ──
+            if (isAFO) {
+              const sR = r * 1.5;
+              const pulse = 0.85 + 0.15 * Math.sin(t / 1500);
+              c.fillStyle = `rgba(0,229,255,${0.06 * pulse})`;
+              c.beginPath(); c.arc(cx2, cy2, sR, 0, Math.PI * 2); c.fill();
+              c.save(); c.translate(cx2, cy2); c.rotate(t / 15000);
+              c.strokeStyle = `rgba(0,229,255,${0.65 * pulse})`; c.lineWidth = 2;
+              c.beginPath(); c.arc(0, 0, sR, 0, Math.PI * 2); c.stroke(); c.restore();
+              c.save(); c.translate(cx2, cy2); c.rotate(-t / 10000);
+              c.setLineDash([8, 6]); c.strokeStyle = `rgba(255,255,255,${0.35 * pulse})`; c.lineWidth = 1;
+              c.beginPath(); c.arc(0, 0, sR * 0.94, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); c.restore();
+              // Kill counter
+              const fakeKills = Math.min(7, Math.floor((bp / 0.25) * 7));
+              c.fillStyle = '#00e5ff'; c.font = 'bold 10px monospace'; c.textAlign = 'center';
+              c.fillText(fakeKills + '/7 kills', cx2, cy2 + sR + 14);
+              c.font = '8px monospace'; c.fillStyle = '#ffffff88';
+              c.fillText('IRON BODY', cx2, cy2 + sR + 25); c.textAlign = 'left';
+            }
+
+            // ── PERSEVERANCE (after shield break) ──
+            if (isPers) {
+              const persT = (bp - 0.32) / 0.20;
+              if (persT < 0.35) {
+                // Charge warning
+                const chgP = persT / 0.35;
+                c.save(); c.translate(cx2, cy2);
+                c.strokeStyle = `rgba(255,0,0,${chgP * 0.35})`; c.lineWidth = 3 + chgP * 6;
+                c.beginPath(); c.arc(0, 0, r * (0.6 + chgP * 1.2), 0, Math.PI * 2); c.stroke();
+                c.save(); c.rotate(t / 300); c.globalAlpha = chgP * 0.5; c.setLineDash([8, 6]);
+                c.strokeStyle = '#ff0000'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, r * 0.8, 0, Math.PI * 2); c.stroke();
+                c.restore(); c.setLineDash([]); c.globalAlpha = 1;
+                c.restore();
+              } else {
+                // 360° sweep
+                const sweepP = (persT - 0.35) / 0.65;
+                const sweepA = sweepP * Math.PI * 2;
+                c.save(); c.translate(cx2, cy2); c.rotate(sweepA - Math.PI / 2);
+                c.strokeStyle = 'rgba(255,0,0,0.12)'; c.lineWidth = 35;
+                c.beginPath(); c.moveTo(0, 0); c.lineTo(laserLen, 0); c.stroke();
+                c.strokeStyle = 'rgba(255,30,0,0.85)'; c.lineWidth = 7;
+                c.beginPath(); c.moveTo(0, 0); c.lineTo(laserLen, 0); c.stroke();
+                c.strokeStyle = 'rgba(255,255,255,0.65)'; c.lineWidth = 1.5;
+                c.beginPath(); c.moveTo(0, 0); c.lineTo(laserLen, 0); c.stroke();
+                c.restore();
+              }
+            }
+
+            // ── DYING GLOW (HP→1) ──
+            if (isDying) {
+              const dyeP = (bp - 0.52) / 0.04;
+              const glow = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, r * 1.8);
+              glow.addColorStop(0, `rgba(255,100,0,${0.4 * dyeP})`); glow.addColorStop(1, 'transparent');
+              c.fillStyle = glow; c.beginPath(); c.arc(cx2, cy2, r * 1.8, 0, Math.PI * 2); c.fill();
+              c.fillStyle = `rgba(255,50,0,${dyeP * 0.6})`; c.font = 'bold 10px Orbitron, sans-serif'; c.textAlign = 'center';
+              c.fillText('HP → 1', cx2, cy2 + r + 22); c.textAlign = 'left';
+            }
+
+            // ── Right side labels ──
+            c.fillStyle = '#cc55ff'; c.font = 'bold 7px Orbitron, sans-serif';
+            c.fillText('HERD LEADER', w * 0.58, h * 0.15);
+            c.fillStyle = '#8899bb'; c.font = '6px Share Tech Mono, monospace';
+            c.fillText('+25% DR, +25% heals (all enemies)', w * 0.58, h * 0.15 + 11);
+            c.fillStyle = '#cc55ff'; c.font = 'bold 7px Orbitron, sans-serif';
+            c.fillText('PERSEVERANCE', w * 0.58, h * 0.15 + 26);
+            c.fillStyle = '#8899bb'; c.font = '6px Share Tech Mono, monospace';
+            c.fillText('360° red laser sweep', w * 0.58, h * 0.15 + 37);
+            c.fillStyle = '#cc55ff'; c.font = 'bold 7px Orbitron, sans-serif';
+            c.fillText('LAST RITES @HP=1', w * 0.58, h * 0.15 + 52);
+            c.fillStyle = '#8899bb'; c.font = '6px Share Tech Mono, monospace';
+            c.fillText('9 wings lock targets (ease rotation)', w * 0.58, h * 0.15 + 63);
+            c.fillText('All fire simultaneously', w * 0.58, h * 0.15 + 74);
+            c.fillText('Lasers persist after death', w * 0.58, h * 0.15 + 85);
+
+            activeAnimations.push(requestAnimationFrame(() => drawLev(performance.now())));
+          }
+          drawLev(performance.now());
+        }
+
+        // ── KANADE — Administrator ──
+        const sk = setup('cvKanade');
+        if (sk) {
+          const { c, w, h } = sk;
+          // Pre-generate cherry petals
+          const petals = Array.from({ length: 60 }, (_, i) => ({
+            x: Math.random() * w, y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.6,
+            vy: 0.4 + Math.random() * 0.8,
+            rot: Math.random() * Math.PI * 2,
+            rotV: (Math.random() - 0.5) * 0.06,
+            size: 3 + Math.random() * 5,
+            alpha: 0.4 + Math.random() * 0.6,
+            hue: 340 + Math.floor(Math.random() * 30),
+          }));
+          let lastT = 0;
+          function drawKanade(t) {
+            const dt = Math.min(t - lastT, 32); lastT = t;
+            c.clearRect(0, 0, w, h);
+            c.fillStyle = 'rgba(5,0,12,0.85)'; c.fillRect(0, 0, w, h);
+
+            const cx2 = w / 2, cy2 = h / 2;
+
+            // ── Update + draw cherry blossoms ──
+            petals.forEach(p => {
+              p.x += p.vx * dt * 0.06;
+              p.y += p.vy * dt * 0.06;
+              p.rot += p.rotV * dt * 0.06;
+              if (p.y > h + 10) { p.y = -10; p.x = Math.random() * w; }
+              if (p.x < -10) p.x = w + 5;
+              if (p.x > w + 10) p.x = -5;
+              // Petal shape: small ellipse rotated
+              c.save();
+              c.translate(p.x, p.y); c.rotate(p.rot);
+              c.globalAlpha = p.alpha * (0.6 + 0.4 * Math.sin(t / 600 + p.x));
+              c.fillStyle = `hsl(${p.hue},80%,78%)`;
+              c.beginPath();
+              c.ellipse(0, 0, p.size, p.size * 0.45, 0, 0, Math.PI * 2);
+              c.fill();
+              // Petal vein
+              c.strokeStyle = `hsla(${p.hue},60%,90%,0.4)`;
+              c.lineWidth = 0.4;
+              c.beginPath(); c.moveTo(-p.size * 0.8, 0); c.lineTo(p.size * 0.8, 0); c.stroke();
+              c.restore();
+            });
+            c.globalAlpha = 1;
+
+            // ── Mystery circle ──
+            const ringPulse = 0.5 + 0.5 * Math.sin(t / 600);
+            c.strokeStyle = `rgba(255,34,68,${0.3 + 0.2 * ringPulse})`; c.lineWidth = 1;
+            c.beginPath(); c.arc(cx2, cy2, 52, 0, Math.PI * 2); c.stroke();
+            c.strokeStyle = `rgba(200,0,50,${0.15 * ringPulse})`; c.lineWidth = 3;
+            c.beginPath(); c.arc(cx2, cy2, 52, 0, Math.PI * 2); c.stroke();
+
+            // ── 6-pointed red star ──
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 8000);
+            c.fillStyle = `rgba(180,0,40,${0.55 + 0.2 * ringPulse})`;
+            c.strokeStyle = `rgba(255,34,68,${0.8 + 0.2 * ringPulse})`; c.lineWidth = 1.2;
+            for (let pass = 0; pass < 2; pass++) {
+              c.save(); c.rotate(pass * Math.PI / 3);
+              c.beginPath();
+              for (let i = 0; i < 3; i++) {
+                const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+                i === 0 ? c.moveTo(Math.cos(a) * 30, Math.sin(a) * 30) : c.lineTo(Math.cos(a) * 30, Math.sin(a) * 30);
+              }
+              c.closePath();
+              if (pass === 0) c.fill(); else { c.globalAlpha = 0.5; c.fill(); c.globalAlpha = 1; }
+              c.stroke(); c.restore();
+            }
+            c.restore();
+
+            // ── Center question mark ──
+            c.save(); c.translate(cx2, cy2);
+            c.fillStyle = `rgba(255,220,230,${0.7 + 0.3 * Math.sin(t / 400)})`;
+            c.font = 'bold 22px Cinzel, serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+            c.fillText('?', 0, 1);
+            c.restore();
+
+            // ── Label ──
+            c.fillStyle = 'rgba(255,34,68,0.5)'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
+            c.fillText('— ADMINISTRATOR CLASS — UNDEFINED —', cx2, h - 8);
+
+            activeAnimations.push(requestAnimationFrame(() => drawKanade(performance.now())));
+          }
+          drawKanade(performance.now());
+        }
+      }
+
+      // ── SKILL TAB CANVASES ── (abbreviated for key ones)
+      if (tab === 'skills') {
+        // Yog-Sothoth
+        const ss = setup('cvShift');
+        if (ss) {
+          const { c, w, h } = ss;
+          function drawShift(t) {
+            c.clearRect(0, 0, w, h);
+            c.fillStyle = 'rgba(2,0,10,0.8)'; c.fillRect(0, 0, w, h);
+            const cx2 = w / 2, cy2 = h * 0.52;
+
+            // Domain expand/hold cycle (4s expand, 4s full, 2s close)
+            const cycle = 10000, cp = (t % cycle) / cycle;
+            const domR = cp < 0.4 ? 80 * (cp / 0.4) : cp < 0.8 ? 80 : 80 * (1 - (cp - 0.8) / 0.2);
+
+            // Space-time distortion: concentric ripple rings
+            for (let i = 0; i < 4; i++) {
+              const rp = ((t / 1800 + i * 0.25) % 1);
+              const rR = 8 + rp * domR;
+              if (rR > domR) continue;
+              c.strokeStyle = `rgba(160,0,255,${0.4 * (1 - rp)})`;
+              c.lineWidth = 1.5 * (1 - rp);
+              c.beginPath(); c.arc(cx2, cy2, rR, 0, Math.PI * 2); c.stroke();
+            }
+
+            // Domain fill (dark purple sphere)
+            if (domR > 5) {
+              const dg = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, domR);
+              dg.addColorStop(0, 'rgba(25,0,55,0.85)'); dg.addColorStop(0.6, 'rgba(20,0,45,0.65)'); dg.addColorStop(1, 'rgba(0,0,0,0)');
+              c.fillStyle = dg; c.beginPath(); c.arc(cx2, cy2, domR, 0, Math.PI * 2); c.fill();
+            }
+
+            // Hex grid inside domain — phase shifted
+            if (domR > 30) {
+              c.save();
+              c.beginPath(); c.arc(cx2, cy2, domR * 0.95, 0, Math.PI * 2); c.clip();
+              c.strokeStyle = '#6600cc'; c.lineWidth = 0.4; c.globalAlpha = 0.2;
+              const hs = 12, offset = (t / 80) % (hs * 1.73);
+              for (let row = -4; row < 5; row++) for (let col = -5; col < 6; col++) {
+                const hx = cx2 + col * hs * 1.73 + (row % 2) * hs * 0.87 + offset, hy = cy2 + row * hs * 1.5;
+                c.beginPath();
+                for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 6; i === 0 ? c.moveTo(hx + Math.cos(a) * hs * 0.55, hy + Math.sin(a) * hs * 0.55) : c.lineTo(hx + Math.cos(a) * hs * 0.55, hy + Math.sin(a) * hs * 0.55); }
+                c.closePath(); c.stroke();
+              }
+              c.globalAlpha = 1; c.restore();
+            }
+
+            // Slow-time effect: floating "0.15×" numbers drifting upward
+            for (let i = 0; i < 5; i++) {
+              const drift = ((t / 2000 + i * 0.2) % 1);
+              const nx = cx2 + (i - 2) * 18, ny = cy2 + 30 - drift * 80;
+              if (Math.hypot(nx - cx2, ny - cy2) > domR * 0.85) continue;
+              c.globalAlpha = (1 - drift) * 0.5;
+              c.fillStyle = '#aa44ff'; c.font = '6px Share Tech Mono, monospace'; c.textAlign = 'center';
+              c.fillText('×0.15', nx, ny);
+            }
+            c.globalAlpha = 1;
+
+            // Outer domain edge — bright ring
+            if (domR > 5) {
+              c.strokeStyle = `rgba(180,0,255,${0.7 + 0.3 * Math.sin(t / 400)})`; c.lineWidth = 2;
+              c.beginPath(); c.arc(cx2, cy2, domR, 0, Math.PI * 2); c.stroke();
+              // Dashed outer
+              c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
+              c.setLineDash([8, 14]); c.strokeStyle = 'rgba(200,80,255,0.3)'; c.lineWidth = 1.2;
+              c.beginPath(); c.arc(0, 0, domR + 6, 0, Math.PI * 2); c.stroke();
+              c.setLineDash([]); c.restore();
+            }
+
+            // Spiral energy arms
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 1200);
+            for (let arm = 0; arm < 4; arm++) {
+              const aBase = (arm / 4) * Math.PI * 2;
+              c.beginPath();
+              for (let s = 0; s <= 20; s++) {
+                const st = s / 20, r2 = st * domR * 0.85, a2 = aBase + st * 1.8;
+                s === 0 ? c.moveTo(Math.cos(a2) * r2, Math.sin(a2) * r2) : c.lineTo(Math.cos(a2) * r2, Math.sin(a2) * r2);
+              }
+              c.strokeStyle = `rgba(200,0,255,${0.15 + 0.1 * Math.sin(t / 500 + arm)})`;
+              c.lineWidth = 0.8; c.stroke();
+            }
+            c.restore();
+
+            // Player ship + Iron Body aura
+            c.save(); c.translate(cx2, cy2);
+            const ibPulse = 0.5 + 0.5 * Math.sin(t / 300);
+            c.strokeStyle = `rgba(180,80,255,${0.6 * ibPulse})`; c.lineWidth = 2.5;
+            c.beginPath(); c.arc(0, 0, 20, 0, Math.PI * 2); c.stroke();
+            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.fill();
+            c.strokeStyle = '#cc88ff'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.stroke();
+            c.restore();
+
+            // Teleport portals (left + right)
+            const portalDist = Math.min(domR * 0.75, 65);
+            [[cx2 - portalDist, cy2, -1], [cx2 + portalDist, cy2, 1]].forEach(([px, py, dir]) => {
+              const pp = 0.6 + 0.4 * Math.sin(t / 500 + dir);
+              c.save(); c.translate(px, py); c.rotate(dir * t / 1500);
+              c.strokeStyle = `rgba(200,80,255,${0.7 * pp})`; c.lineWidth = 2;
+              c.beginPath(); c.arc(0, 0, 11, 0, Math.PI * 2); c.stroke();
+              c.setLineDash([3, 5]); c.strokeStyle = `rgba(150,0,255,${0.4 * pp})`; c.lineWidth = 0.8;
+              c.beginPath(); c.arc(0, 0, 16, 0, Math.PI * 2); c.stroke();
+              c.setLineDash([]); c.restore();
+              // Ghost ship
+              c.globalAlpha = 0.28;
+              c.fillStyle = '#1a2a45';
+              c.beginPath(); c.moveTo(px, py - 9); c.lineTo(px + 7, py + 1); c.lineTo(px + 5, py + 4); c.lineTo(px - 5, py + 4); c.lineTo(px - 7, py + 1); c.closePath(); c.fill();
+              c.strokeStyle = '#aa55ff'; c.lineWidth = 0.6;
+              c.beginPath(); c.moveTo(px, py - 9); c.lineTo(px + 7, py + 1); c.lineTo(px + 5, py + 4); c.lineTo(px - 5, py + 4); c.lineTo(px - 7, py + 1); c.closePath(); c.stroke();
+              c.globalAlpha = 1;
+            });
+
+            // Connector beam
+            c.strokeStyle = 'rgba(180,0,255,0.25)'; c.lineWidth = 1; c.setLineDash([5, 9]); c.lineDashOffset = -(t / 50);
+            c.beginPath(); c.moveTo(cx2 - portalDist, cy2); c.lineTo(cx2 + portalDist, cy2); c.stroke();
+            c.setLineDash([]); c.lineDashOffset = 0;
+
+            // Label
+            c.fillStyle = '#bb88ff'; c.font = '8px Share Tech Mono, monospace'; c.textAlign = 'center';
+            c.fillText('IRON BODY • BULLETS DESTROYED • 15% TIME • ←→ TELEPORT', cx2, h - 8);
+            c.textAlign = 'left';
+            activeAnimations.push(requestAnimationFrame(() => drawShift(performance.now())));
+          }
+          drawShift(performance.now());
+        }
+
+        // Skill A
+        const ska = setup('cvSkillA');
+        if (ska) {
+          const { c, w, h } = ska;
+          function drawSkA(t) {
+            c.clearRect(0, 0, w, h);
+            c.fillStyle = 'rgba(0,3,15,0.7)'; c.fillRect(0, 0, w, h);
+            const cx2 = w * 0.32, cy2 = h * 0.52;
+
+            // Binary sensor ring — rotating text characters
+            const sensorR = 60;
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 5000);
+            const charCnt = 28;
+            c.font = '5px Share Tech Mono, monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
+            for (let i = 0; i < charCnt; i++) {
+              const a = (i / charCnt) * Math.PI * 2;
+              const ch = ((Math.floor(t / 200) + i) % 2).toString();
+              c.globalAlpha = 0.2 + 0.1 * Math.sin(t / 400 + i);
+              c.fillStyle = '#00e5ff';
+              c.save(); c.rotate(a); c.fillText(ch, 0, -sensorR); c.restore();
+            }
+            c.globalAlpha = 1; c.textBaseline = 'alphabetic'; c.restore();
+
+            // Orbiting orbs — 3 layers
+            const orbDef = [
+              { count: 5, r: 38, speed: 2800, start: 0 },
+              { count: 6, r: 54, speed: -4200, start: 0.15 },
+              { count: 4, r: 70, speed: 6000, start: 0.3 },
+            ];
+            let orbIdx = 0;
+            orbDef.forEach(({ count, r, speed, start }) => {
+              for (let i = 0; i < count; i++) {
+                const a = t / speed + (i / count) * Math.PI * 2 + start * Math.PI * 2;
+                const ox = cx2 + Math.cos(a) * r, oy = cy2 + Math.sin(a) * r;
+                const isYellow = orbIdx < 3;
+                const pulse = 1 + 0.2 * Math.sin(t / 200 + orbIdx);
+                const or = (isYellow ? 5.5 : 4.5) * pulse;
+                // Glow halo
+                c.fillStyle = isYellow ? 'rgba(255,200,0,0.18)' : 'rgba(0,200,255,0.14)';
+                c.beginPath(); c.arc(ox, oy, or * 2, 0, Math.PI * 2); c.fill();
+                // Orb body
+                const og = c.createRadialGradient(ox, oy, 0, ox, oy, or);
+                og.addColorStop(0, '#fff');
+                og.addColorStop(0.35, isYellow ? '#ffee00' : '#00ffff');
+                og.addColorStop(1, isYellow ? 'rgba(200,80,0,0.4)' : 'rgba(0,80,200,0.4)');
+                c.fillStyle = og; c.beginPath(); c.arc(ox, oy, or, 0, Math.PI * 2); c.fill();
+                // Trail line back to ship
+                if (r < 55) {
+                  c.globalAlpha = 0.06;
+                  c.strokeStyle = isYellow ? '#ffee00' : '#00e5ff'; c.lineWidth = 0.5;
+                  c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(ox, oy); c.stroke();
+                  c.globalAlpha = 1;
+                }
+                orbIdx++;
+              }
+            });
+
+            // Homing orb firing + impact explosion
+            const ft = (t / 2200) % 1;
+            const enemy = { x: w * 0.82, y: h * 0.28 };
+            if (ft < 0.55) {
+              // Orb flying toward enemy
+              const ox2 = cx2 + (enemy.x - cx2) * (ft / 0.55);
+              const oy2 = cy2 + (enemy.y - cy2) * (ft / 0.55) - Math.sin(ft / 0.55 * Math.PI) * 15;
+              // Tail
+              for (let tr = 1; tr <= 4; tr++) {
+                const tf2 = Math.max(0, ft - tr * 0.025);
+                const tx2 = cx2 + (enemy.x - cx2) * (tf2 / 0.55);
+                const ty2 = cy2 + (enemy.y - cy2) * (tf2 / 0.55) - Math.sin(tf2 / 0.55 * Math.PI) * 15;
+                c.globalAlpha = (1 - tr / 4) * 0.4;
+                c.fillStyle = '#00ffff'; c.beginPath(); c.arc(tx2, ty2, 3 - tr * 0.5, 0, Math.PI * 2); c.fill();
+              }
+              c.globalAlpha = 1;
+              const fg = c.createRadialGradient(ox2, oy2, 0, ox2, oy2, 5);
+              fg.addColorStop(0, '#fff'); fg.addColorStop(0.4, '#00ffff'); fg.addColorStop(1, 'rgba(0,80,200,0.3)');
+              c.fillStyle = fg; c.beginPath(); c.arc(ox2, oy2, 5, 0, Math.PI * 2); c.fill();
+            } else if (ft < 0.85) {
+              // Impact: cyan burst + 16 scattered shards
+              const imp = (ft - 0.55) / 0.3;
+              for (let i = 0; i < 16; i++) {
+                const sa = (i / 16) * Math.PI * 2;
+                const sd = imp * 28;
+                c.globalAlpha = Math.max(0, 1 - imp * 1.1);
+                const sc = i % 2 === 0 ? '#00ffff' : '#00aaff';
+                c.fillStyle = sc; c.beginPath(); c.arc(enemy.x + Math.cos(sa) * sd, enemy.y + Math.sin(sa) * sd, 2.5 - imp * 1.5, 0, Math.PI * 2); c.fill();
+              }
+              // Central flash
+              c.globalAlpha = Math.max(0, 0.8 - imp * 1.2);
+              c.fillStyle = '#fff'; c.beginPath(); c.arc(enemy.x, enemy.y, 8 + imp * 4, 0, Math.PI * 2); c.fill();
+              c.globalAlpha = 1;
+            }
+
+            // Enemy
+            c.fillStyle = '#330808'; c.beginPath(); c.arc(enemy.x, enemy.y, 10, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = '#661111'; c.lineWidth = 0.8; c.stroke();
+
+            // Ship
+            c.save(); c.translate(cx2, cy2);
+            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.fill();
+            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.stroke();
+            c.restore();
+
+            // Labels
+            c.fillStyle = '#FFD70088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'left';
+            c.fillText('YELLOW = SACRIFICE SHIELD', w * 0.58, h * 0.65);
+            c.fillText('20 orbs/cast (80 max)', w * 0.58, h * 0.65 + 12);
+            c.fillText('Impact → 16 scattered shards', w * 0.58, h * 0.65 + 24);
+            activeAnimations.push(requestAnimationFrame(() => drawSkA(performance.now())));
+          }
+          drawSkA(performance.now());
+        }
+
+        // Spirit
+        const sks = setup('cvSkillS');
+        if (sks) {
+          const { c, w, h } = sks;
+          // Store blade arcs that fly out from spirit
+          let bladeArcs = [];
+          let lastBladeTime = 0;
+          function drawSkS(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w * 0.35, cy2 = h * 0.5;
+            // Ship
+            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(cx2, cy2 - 10); c.lineTo(cx2 + 8, cy2 + 2); c.lineTo(cx2 + 6, cy2 + 5); c.lineTo(cx2 - 6, cy2 + 5); c.lineTo(cx2 - 8, cy2 + 2); c.closePath(); c.fill();
+            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(cx2, cy2 - 10); c.lineTo(cx2 + 8, cy2 + 2); c.lineTo(cx2 + 6, cy2 + 5); c.lineTo(cx2 - 6, cy2 + 5); c.lineTo(cx2 - 8, cy2 + 2); c.closePath(); c.stroke();
+            // Spirit orbiting
+            const sa = t / 3500;
+            const spx = cx2 + Math.cos(sa) * 45, spy = cy2 + Math.sin(sa) * 30;
+            // Corona
+            c.strokeStyle = 'rgba(255,0,255,0.3)'; c.lineWidth = 1.5; c.beginPath(); c.arc(spx, spy, 14, 0, Math.PI * 2); c.stroke();
+            // Petals orbiting
+            for (let i = 0; i < 5; i++) {
+              const pa = t / 800 + (i / 5) * Math.PI * 2;
+              c.fillStyle = 'rgba(255,100,255,0.35)'; c.beginPath(); c.arc(spx + Math.cos(pa) * 11, spy + Math.sin(pa) * 11, 2.5, 0, Math.PI * 2); c.fill();
+            }
+            // Body gradient
+            const sg = c.createRadialGradient(spx, spy, 0, spx, spy, 9);
+            sg.addColorStop(0, '#fff'); sg.addColorStop(0.35, '#ff88ff'); sg.addColorStop(0.7, 'magenta'); sg.addColorStop(1, 'purple');
+            c.fillStyle = sg; c.beginPath(); c.arc(spx, spy, 9, 0, Math.PI * 2); c.fill();
+            c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.ellipse(spx - 2, spy - 2, 2.5, 1.5, -Math.PI / 4, 0, Math.PI * 2); c.fill();
+            // Spirit bullets firing upward
+            for (let i = 0; i < 3; i++) {
+              const bt = ((t / 4 + i * 170) % 600) / 600;
+              c.fillStyle = '#ff44aa'; c.globalAlpha = 1 - bt;
+              const bAngle = -Math.PI / 2 + (i - 1) * 0.3;
+              c.beginPath(); c.arc(spx + Math.cos(bAngle) * bt * 55, spy + Math.sin(bAngle) * bt * 55, 2, 0, Math.PI * 2); c.fill();
+            }
+            c.globalAlpha = 1;
+
+            // ── BLADE ARC: spirit charges up then slashes, arc flies out ──
+            const bladeCycle = 2500; // ms per blade cycle
+            const bladePhase = (t % bladeCycle) / bladeCycle; // 0→1
+
+            // Phase 0.0-0.3: charge glow on spirit
+            if (bladePhase < 0.3) {
+              const chg = bladePhase / 0.3;
+              c.strokeStyle = `rgba(136,255,0,${chg * 0.6})`; c.lineWidth = 2 + chg * 2;
+              c.beginPath(); c.arc(spx, spy, 12 + chg * 6, 0, Math.PI * 2); c.stroke();
+              // Charging particles swirl in
+              for (let i = 0; i < 5; i++) {
+                const pa = t / 200 + (i / 5) * Math.PI * 2;
+                const pd = (1 - chg) * 25 + 5;
+                c.fillStyle = `rgba(136,255,0,${chg * 0.7})`;
+                c.beginPath(); c.arc(spx + Math.cos(pa) * pd, spy + Math.sin(pa) * pd, 1.5, 0, Math.PI * 2); c.fill();
+              }
+            }
+            // Phase 0.3-0.35: slash flash on spirit
+            if (bladePhase >= 0.3 && bladePhase < 0.35) {
+              c.fillStyle = 'rgba(200,255,100,0.4)';
+              c.beginPath(); c.arc(spx, spy, 20, 0, Math.PI * 2); c.fill();
+            }
+            // Phase 0.35-0.85: blade arc flies outward from spirit toward top-right
+            if (bladePhase >= 0.3 && bladePhase < 0.85) {
+              const flyT = (bladePhase - 0.3) / 0.55; // 0→1
+              const flyAngle = -Math.PI * 0.35; // fly direction (upper-right)
+              const flyDist = flyT * w * 0.45;
+              const arcX = spx + Math.cos(flyAngle) * flyDist;
+              const arcY = spy + Math.sin(flyAngle) * flyDist;
+              const arcAngle = flyAngle; // arc faces direction of travel
+              const arcSa = arcAngle - Math.PI / 2;
+              const arcEa = arcAngle + Math.PI / 2;
+              const arcR = 22 + flyT * 10;
+              const arcFade = flyT < 0.2 ? flyT / 0.2 : (flyT > 0.7 ? (1 - flyT) / 0.3 : 1);
+
+              // Outer wide glow
+              c.strokeStyle = `rgba(120,255,0,${arcFade * 0.15})`; c.lineWidth = 22;
+              c.beginPath(); c.arc(arcX, arcY, arcR, arcSa, arcEa); c.stroke();
+              // Main green arc (matching drawBladeArcProjectile)
+              c.strokeStyle = `rgba(136,255,0,${arcFade * 0.8})`; c.lineWidth = 4;
+              c.beginPath(); c.arc(arcX, arcY, arcR, arcSa, arcEa); c.stroke();
+              // Bright inner edge
+              c.strokeStyle = `rgba(200,255,150,${arcFade * 0.6})`; c.lineWidth = 1.5;
+              c.beginPath(); c.arc(arcX, arcY, arcR - 3, arcSa, arcEa); c.stroke();
+              // Energy slash marks
+              c.strokeStyle = `rgba(180,255,100,${arcFade * 0.5})`; c.lineWidth = 1;
+              for (let i = 0; i < 3; i++) {
+                const slA = arcSa + (arcEa - arcSa) * ((i + 1) / 4);
+                c.beginPath();
+                c.moveTo(arcX + Math.cos(slA) * (arcR - 8), arcY + Math.sin(slA) * (arcR - 8));
+                c.lineTo(arcX + Math.cos(slA) * (arcR + 8), arcY + Math.sin(slA) * (arcR + 8));
+                c.stroke();
+              }
+              // Trail particles
+              for (let i = 0; i < 4; i++) {
+                const tp = Math.max(0, flyT - i * 0.06);
+                const tx = spx + Math.cos(flyAngle) * (tp * w * 0.45);
+                const ty = spy + Math.sin(flyAngle) * (tp * w * 0.45);
+                c.fillStyle = `rgba(136,255,0,${arcFade * (0.4 - i * 0.1)})`;
+                c.beginPath(); c.arc(tx, ty, 2 - i * 0.3, 0, Math.PI * 2); c.fill();
+              }
+            }
+            // Labels
+            c.fillStyle = '#88ff0088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
+            if (bladePhase >= 0.3 && bladePhase < 0.8) c.fillText('BLADE ARC 16% HP', w * 0.6, h * 0.15);
+            c.textAlign = 'left';
+            // Finale label
+            c.fillStyle = '#ff44aa55'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('Finale @35s: lasers + 8 bouncing balls', w * 0.55, h * 0.85);
+            activeAnimations.push(requestAnimationFrame(() => drawSkS(performance.now())));
+          }
+          drawSkS(performance.now());
+        }
+
+        // Black Hole
+        const skd = setup('cvSkillD');
+        if (skd) {
+          const { c, w, h } = skd;
+          function drawSkD(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w / 2, cy2 = h * 0.48;
+            // Accretion
+            c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
+            c.strokeStyle = 'rgba(168,85,247,0.3)'; c.lineWidth = 1; c.beginPath(); c.ellipse(0, 0, 48, 12, 0, 0, Math.PI * 2); c.stroke();
+            c.restore();
+            c.save(); c.translate(cx2, cy2); c.rotate(-t / 2000);
+            c.strokeStyle = 'rgba(192,132,252,0.4)'; c.lineWidth = 0.8; c.beginPath(); c.ellipse(0, 0, 32, 8, 0, 0, Math.PI * 2); c.stroke();
+            c.restore();
+            // Pull ring
+            const pr = 52 + Math.sin(t / 1500) * 8;
+            c.strokeStyle = '#6b21a844'; c.lineWidth = 0.5; c.setLineDash([3, 6]);
+            c.beginPath(); c.arc(cx2, cy2, pr, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+            // Event horizon
+            c.fillStyle = '#000'; c.beginPath(); c.arc(cx2, cy2, 18, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#050010'; c.beginPath(); c.arc(cx2, cy2, 12, 0, Math.PI * 2); c.fill();
+            c.fillStyle = `rgba(168,85,247,${0.5 + 0.5 * Math.sin(t / 400)})`; c.beginPath(); c.arc(cx2, cy2, 3, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = `rgba(168,85,247,${0.3 + 0.4 * Math.sin(t / 600)})`; c.lineWidth = 2; c.beginPath(); c.arc(cx2, cy2, 22, 0, Math.PI * 2); c.stroke();
+            // Enemies pulled
+            const e1t = (t / 4000) % 1;
+            c.fillStyle = '#330808';
+            c.beginPath(); c.arc(w * 0.1 + e1t * (cx2 - w * 0.1 - 25), cy2 - 15 + e1t * 10, 7, 0, Math.PI * 2); c.fill();
+            c.beginPath(); c.arc(w * 0.9 - e1t * (w * 0.9 - cx2 - 25), cy2 + 20 - e1t * 15, 7, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#a855f788'; c.font = '8px Share Tech Mono, monospace'; c.textAlign = 'center';
+            c.fillText('CENTER = 999,999,999 DMG — INSTANT KILL', cx2, h - 8);
+            c.textAlign = 'left';
+            activeAnimations.push(requestAnimationFrame(() => drawSkD(performance.now())));
+          }
+          drawSkD(performance.now());
+        }
+
+        // Tesla Matrix
+        const skg = setup('cvSkillG');
+        if (skg) {
+          const { c, w, h } = skg;
+          function drawSkG(t) {
+            c.clearRect(0, 0, w, h);
+            // Orb pair + link
+            const o1x = w * 0.15, o2x = w * 0.35, oy = h * 0.4;
+            [[o1x, oy], [o2x, oy]].forEach(([ox, oy2]) => {
+              const or = 7 + Math.sin(t / 800 + ox) * 1.5;
+              const og = c.createRadialGradient(ox, oy2, 0, ox, oy2, or);
+              og.addColorStop(0, '#fff'); og.addColorStop(0.5, '#00e5ff'); og.addColorStop(1, '#006688');
+              c.fillStyle = og; c.beginPath(); c.arc(ox, oy2, or, 0, Math.PI * 2); c.fill();
+              c.strokeStyle = '#00e5ff'; c.lineWidth = 1; c.stroke();
+            });
+            c.strokeStyle = '#00e5ff'; c.lineWidth = 2; c.setLineDash([4, 4]); c.lineDashOffset = -(t / 60);
+            c.globalAlpha = 0.6; c.beginPath(); c.moveTo(o1x + 8, oy); c.lineTo(o2x - 8, oy); c.stroke();
+            c.setLineDash([]); c.lineDashOffset = 0; c.globalAlpha = 1;
+            c.fillStyle = '#00e5ff88'; c.font = '6px Share Tech Mono, monospace'; c.textAlign = 'center';
+            c.fillText('ENERGY LINK', (o1x + o2x) / 2, oy - 12);
+            // Arrow
+            c.fillStyle = '#00e5ff55'; c.font = '16px Rajdhani, sans-serif';
+            c.fillText('→', w * 0.42, oy + 4);
+            c.fillStyle = '#00e5ff44'; c.font = '6px Share Tech Mono, monospace';
+            c.fillText('merge @5s', w * 0.42, oy + 16);
+            // Tesla Coil
+            const tcx = w * 0.65, tcy = h * 0.45;
+            c.strokeStyle = `rgba(0,229,255,${0.2 + 0.2 * Math.sin(t / 800)})`; c.lineWidth = 0.5; c.setLineDash([3, 5]);
+            c.beginPath(); c.arc(tcx, tcy, 40, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+            const tr = 12 + Math.sin(t / 600) * 2;
+            const tg = c.createRadialGradient(tcx, tcy, 0, tcx, tcy, tr);
+            tg.addColorStop(0, '#fff'); tg.addColorStop(0.5, '#00e5ff'); tg.addColorStop(1, '#006688');
+            c.fillStyle = tg; c.beginPath(); c.arc(tcx, tcy, tr, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = '#00e5ff'; c.lineWidth = 1.5; c.stroke();
+            // Discharges
+            const sparks = [[28, -20], [-22, 25], [32, 12]];
+            sparks.forEach(([dx, dy], i) => {
+              c.globalAlpha = Math.max(0, Math.sin(t / 200 + i * 2));
+              c.strokeStyle = '#00ffff'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(tcx, tcy); c.lineTo(tcx + dx, tcy + dy); c.stroke();
+            });
+            c.globalAlpha = 1;
+            c.fillStyle = '#00e5ff'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('TESLA COIL', tcx, tcy + tr + 12);
+            c.fillStyle = '#00e5ff88'; c.font = '6px Share Tech Mono, monospace';
+            c.fillText('13% HP/50ms', tcx, tcy + tr + 21);
+            c.fillStyle = '#06b6d488'; c.font = '8px Share Tech Mono, monospace';
+            c.fillText('ORBS → LINK → COILS (×4) → DETONATE 15% HP', w / 2, h - 8);
+            c.textAlign = 'left';
+            activeAnimations.push(requestAnimationFrame(() => drawSkG(performance.now())));
+          }
+          drawSkG(performance.now());
+        }
+
+        // ── OVERLOAD LASER ──
+        const slz = setup('cvLaser');
+        if (slz) {
+          const { c, w, h } = slz;
+          function drawLaz(t) {
+            c.clearRect(0, 0, w, h);
+            const shipX = w * 0.5, shipY = h * 0.82;
+
+            // Stars
+            for (let i = 0; i < 20; i++) {
+              c.fillStyle = i % 3 === 0 ? '#00e5ff' : '#fff';
+              c.globalAlpha = 0.08 + 0.06 * Math.sin(t / 500 + i);
+              c.beginPath(); c.arc((i * 97.3) % w, (i * 53.7) % h, 0.5, 0, Math.PI * 2); c.fill();
+            }
+            c.globalAlpha = 1;
+
+            // ── CHARGE vs LASER cycle (4s charge buildup → 5s laser active → 1s gap) ──
+            const cycle = 10000;
+            const phase = (t % cycle) / cycle;
+            const isCharging = phase < 0.4;
+            const isLasering = phase >= 0.4 && phase < 0.9;
+
+            if (isCharging) {
+              // Charge phase: energy vortex spiraling into ship
+              const chg = phase / 0.4; // 0→1
+              // Vortex spirals
+              for (let i = 0; i < 4; i++) {
+                const spinDir = i % 2 === 0 ? 1 : -1;
+                const spinOff = t / (500 + i * 80) * spinDir;
+                const len = 40 + chg * 80;
+                c.beginPath();
+                for (let s = 14; s >= 0; s--) {
+                  const st = s / 14;
+                  const dist = st * len;
+                  const a = (i / 4) * Math.PI * 2 + spinOff + st * 2.2 * spinDir;
+                  const px = shipX + Math.cos(a) * dist;
+                  const py = shipY + Math.sin(a) * dist;
+                  s === 14 ? c.moveTo(px, py) : c.lineTo(px, py);
+                }
+                // Color shifts from cyan to red as charge builds
+                const rV = Math.floor(255 * Math.max(0, chg - 0.33) * 1.5);
+                const gV = Math.floor(255 * (1 - chg * 0.78));
+                c.strokeStyle = `rgba(${rV},${gV},255,${(0.2 + chg * 0.4) * (0.5 + 0.5 * Math.sin(t / 180 + i))})`;
+                c.lineWidth = 0.8 + chg;
+                c.stroke();
+              }
+              // Expanding rings
+              for (let rg = 0; rg < 3; rg++) {
+                const rPhase = ((t / (500 - chg * 200) + rg / 3) % 1);
+                const ringR = 10 + rPhase * (20 + chg * 50);
+                c.strokeStyle = `rgba(0,${Math.floor(255 * (1 - chg * 0.7))},255,${(1 - rPhase) * 0.3 * chg})`;
+                c.lineWidth = 1.5 * (1 - rPhase);
+                c.beginPath(); c.arc(shipX, shipY, ringR, 0, Math.PI * 2); c.stroke();
+              }
+              // Charge meter bar
+              const barW = 50, barH = 6;
+              const barX = shipX - barW / 2, barY = shipY + 22;
+              c.fillStyle = '#222'; c.fillRect(barX, barY, barW, barH);
+              const grad = c.createLinearGradient(barX, barY, barX + barW, barY);
+              grad.addColorStop(0, 'cyan'); grad.addColorStop(0.7, 'lime'); grad.addColorStop(1, 'red');
+              c.fillStyle = grad; c.fillRect(barX, barY, barW * chg, barH);
+              c.strokeStyle = '#fff'; c.lineWidth = 0.8; c.strokeRect(barX, barY, barW, barH);
+              // Text
+              if (chg > 0.6) {
+                c.fillStyle = `rgba(255,100,50,${(chg - 0.6) * 2.5})`; c.font = 'bold 10px Orbitron, sans-serif'; c.textAlign = 'center';
+                c.fillText('OVERLOAD', shipX, shipY - 35);
+                c.textAlign = 'left';
+              }
+            }
+
+            if (isLasering) {
+              // Laser active: wide cyan-white beam shooting upward
+              const laserT = (phase - 0.4) / 0.5;
+              const wobble = Math.sin(t / 28) * 8;
+              const beamW = 50 + wobble;
+              const bx = shipX - beamW / 2;
+
+              // Outer glow
+              const glow = c.createLinearGradient(bx - 15, 0, bx + beamW + 15, 0);
+              glow.addColorStop(0, 'rgba(0,255,255,0)'); glow.addColorStop(0.5, 'rgba(0,200,255,0.15)'); glow.addColorStop(1, 'rgba(0,255,255,0)');
+              c.fillStyle = glow; c.fillRect(bx - 15, 0, beamW + 30, shipY);
+
+              // Main beam gradient
+              const grad = c.createLinearGradient(bx, 0, bx + beamW, 0);
+              grad.addColorStop(0, 'rgba(0,255,255,0)'); grad.addColorStop(0.1, 'rgba(0,220,255,0.45)');
+              grad.addColorStop(0.5, 'rgba(255,255,255,0.85)'); grad.addColorStop(0.9, 'rgba(0,220,255,0.45)');
+              grad.addColorStop(1, 'rgba(0,255,255,0)');
+              c.fillStyle = grad; c.fillRect(bx, 0, beamW, shipY);
+
+              // Bright core line
+              c.fillStyle = 'rgba(255,255,255,0.55)';
+              c.fillRect(shipX - 3, 0, 6, shipY);
+
+              // Particles rising along beam
+              for (let i = 0; i < 8; i++) {
+                const py = ((t / 6 + i * 100) % (shipY * 1.2));
+                const px = shipX + (Math.random() - 0.5) * beamW * 0.6;
+                c.fillStyle = `rgba(${150 + Math.floor(Math.random() * 105)},255,255,0.6)`;
+                c.beginPath(); c.arc(px, shipY - py, 1 + Math.random() * 2.5, 0, Math.PI * 2); c.fill();
+              }
+
+              // Clone afterimages — same beam shape as main, 4 clones + 1 main = 5 total
+              const cloneOffsets = [-70, -35, 35, 70];
+              cloneOffsets.forEach((off, ci) => {
+                const cx2 = shipX + off;
+                const cAlpha = ci === 1 || ci === 2 ? 0.55 : 0.35;
+                const cWobble = Math.sin(t / 28 + ci * 0.8) * 6;
+                const cBeamW = (40 + cWobble) * (ci === 1 || ci === 2 ? 0.8 : 0.6);
+                const cbx = cx2 - cBeamW / 2;
+                // Outer glow same shape
+                const cGlowG = c.createLinearGradient(cbx - 8, 0, cbx + cBeamW + 8, 0);
+                cGlowG.addColorStop(0, 'rgba(0,255,255,0)'); cGlowG.addColorStop(0.5, `rgba(0,200,255,${0.1 * cAlpha})`); cGlowG.addColorStop(1, 'rgba(0,255,255,0)');
+                c.globalAlpha = cAlpha; c.fillStyle = cGlowG; c.fillRect(cbx - 8, 0, cBeamW + 16, shipY);
+                // Main beam gradient same as center
+                const cBG = c.createLinearGradient(cbx, 0, cbx + cBeamW, 0);
+                cBG.addColorStop(0, 'rgba(0,255,255,0)'); cBG.addColorStop(0.1, `rgba(0,220,255,${0.4 * cAlpha})`);
+                cBG.addColorStop(0.5, `rgba(255,255,255,${0.7 * cAlpha})`); cBG.addColorStop(0.9, `rgba(0,220,255,${0.4 * cAlpha})`);
+                cBG.addColorStop(1, 'rgba(0,255,255,0)');
+                c.fillStyle = cBG; c.fillRect(cbx, 0, cBeamW, shipY);
+                // Bright core
+                c.fillStyle = `rgba(255,255,255,${0.4 * cAlpha})`; c.fillRect(cx2 - 2, 0, 4, shipY);
+                c.globalAlpha = 1;
+                // Ghost ship
+                c.globalAlpha = cAlpha * 0.7;
+                c.fillStyle = '#1a2a45';
+                c.beginPath(); c.moveTo(cx2, shipY - 12); c.lineTo(cx2 + 8, shipY); c.lineTo(cx2 + 6, shipY + 4); c.lineTo(cx2 - 6, shipY + 4); c.lineTo(cx2 - 8, shipY); c.closePath(); c.fill();
+                c.strokeStyle = '#38bdf8'; c.lineWidth = 0.6;
+                c.beginPath(); c.moveTo(cx2, shipY - 12); c.lineTo(cx2 + 8, shipY); c.lineTo(cx2 + 6, shipY + 4); c.lineTo(cx2 - 6, shipY + 4); c.lineTo(cx2 - 8, shipY); c.closePath(); c.stroke();
+                c.globalAlpha = 1;
+              });
+
+              // Title flash at start
+              if (laserT < 0.2) {
+                const textA = (0.2 - laserT) * 5;
+                c.fillStyle = `rgba(255,255,255,${textA * 0.9})`; c.font = 'bold 11px Orbitron, sans-serif'; c.textAlign = 'center';
+                c.fillText('EXECUTION', shipX, h * 0.25);
+                c.fillStyle = `rgba(255,220,100,${textA * 0.7})`; c.font = 'italic 8px monospace';
+                c.fillText('— Khai Triển —', shipX, h * 0.25 + 14);
+                c.textAlign = 'left';
+              }
+            }
+
+            // Ship body (always drawn)
+            c.save(); c.translate(shipX, shipY);
+            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -14); c.lineTo(10, -2); c.lineTo(8, 4); c.lineTo(-8, 4); c.lineTo(-10, -2); c.closePath(); c.fill();
+            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(0, -14); c.lineTo(10, -2); c.lineTo(8, 4); c.lineTo(-8, 4); c.lineTo(-10, -2); c.closePath(); c.stroke();
+            c.restore();
+
+            // Right side info
+            c.fillStyle = '#00e5ff'; c.font = 'bold 9px Orbitron, sans-serif';
+            c.fillText('OVERLOAD LASER', w * 0.55, h * 0.2);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('Hold Space 3s → 12s beam', w * 0.55, h * 0.2 + 14);
+            c.fillText('10 + 26% Max HP / 175ms tick', w * 0.55, h * 0.2 + 27);
+            c.fillText('Pulls enemies toward beam', w * 0.55, h * 0.2 + 40);
+            c.fillText('5 ships fire parallel beams', w * 0.55, h * 0.2 + 53);
+            c.fillStyle = '#ff8800'; c.font = 'bold 9px Orbitron, sans-serif';
+            c.fillText('CHARGED SHOT', w * 0.55, h * 0.6);
+            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
+            c.fillText('Tap+hold Space (up to 1s)', w * 0.55, h * 0.6 + 14);
+            c.fillText('Damage scales to 10× (12% HP)', w * 0.55, h * 0.6 + 27);
+
+            activeAnimations.push(requestAnimationFrame(() => drawLaz(performance.now())));
+          }
+          drawLaz(performance.now());
+        }
+
+        // ── ANNIHILATION SWEEP (Skill F) ──
+        const skf = setup('cvSkillF');
+        if (skf) {
+          const { c, w, h } = skf;
+          function drawSkF(t) {
+            c.clearRect(0, 0, w, h);
+            const shipX = w * 0.15, shipY = h * 0.85;
+            const radius = Math.max(w, h) * 1.2;
+
+            // Full animation cycle: 1.5s charge → 1.5s sweep → 1s pause
+            const cycle = 4000;
+            const phase = (t % cycle) / cycle;
+            const isCharging = phase < 0.375;
+            const isSweeping = phase >= 0.375 && phase < 0.75;
+
+            if (isCharging) {
+              const p = phase / 0.375; // 0→1
+              c.save(); c.translate(shipX, shipY);
+              // Half-plane glow (charging upward)
+              c.fillStyle = `rgba(0,255,255,${0.04 + p * 0.1})`;
+              c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 120, -Math.PI, 0); c.closePath(); c.fill();
+              // Expanding rings
+              for (let i = 2; i >= 1; i--) {
+                c.fillStyle = `rgba(0,255,255,${(0.03 + p * 0.06) / i})`;
+                c.beginPath(); c.arc(0, 0, 20 * i * p, 0, Math.PI * 2); c.fill();
+              }
+              // Radiating lines
+              for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI - Math.PI / 2;
+                c.strokeStyle = `rgba(100,255,255,${p * 0.4})`; c.lineWidth = 1;
+                c.beginPath(); c.moveTo(0, 0);
+                c.lineTo(Math.cos(a) * 100 * p, Math.sin(a) * 100 * p); c.stroke();
+              }
+              c.restore();
+
+              // Target locks on "enemies"
+              const fakeEnemies = [[w * 0.4, h * 0.3], [w * 0.65, h * 0.25], [w * 0.8, h * 0.45]];
+              fakeEnemies.forEach(([ex, ey]) => {
+                const er = 12;
+                const pulse = 0.55 + 0.45 * Math.sin(t / 100 + ex * 0.08);
+                const lockIn = Math.min(p * 2, 1);
+                c.globalAlpha = lockIn;
+                // Scan fill
+                c.fillStyle = `rgba(0,255,200,${0.06 * pulse})`;
+                c.beginPath(); c.arc(ex, ey, er * 1.4, 0, Math.PI * 2); c.fill();
+                // Rotating dashed ring
+                c.save(); c.translate(ex, ey); c.rotate(-t / 350);
+                c.strokeStyle = `rgba(0,220,255,${0.6 * pulse})`; c.lineWidth = 1.2; c.setLineDash([5, 5]);
+                c.beginPath(); c.arc(0, 0, er + 6, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); c.restore();
+                // Inner ring
+                c.strokeStyle = 'rgba(0,255,220,0.8)'; c.lineWidth = 1.5;
+                c.beginPath(); c.arc(ex, ey, er, 0, Math.PI * 2); c.stroke();
+                // Corner brackets
+                [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
+                  const bx2 = ex + dx * (er + 3), by2 = ey + dy * (er + 3);
+                  c.strokeStyle = `rgba(100,255,240,${0.8 * pulse})`; c.lineWidth = 1.5;
+                  c.beginPath(); c.moveTo(bx2, by2 - dy * 5); c.lineTo(bx2, by2); c.lineTo(bx2 - dx * 5, by2); c.stroke();
+                });
+                // TARGET text
+                if (p > 0.6) {
+                  c.fillStyle = `rgba(0,255,220,${(p - 0.6) * 2.5 * pulse})`;
+                  c.font = 'bold 7px monospace'; c.textAlign = 'center';
+                  c.fillText('TARGET', ex, ey - er - 6); c.textAlign = 'left';
+                }
+                // Dashed line from ship
+                if (p > 0.4) {
+                  c.strokeStyle = `rgba(0,200,255,${(p - 0.4) * 0.6 * pulse})`; c.lineWidth = 0.6;
+                  c.setLineDash([5, 8]); c.beginPath(); c.moveTo(shipX, shipY); c.lineTo(ex, ey); c.stroke(); c.setLineDash([]);
+                }
+                c.globalAlpha = 1;
+                // Enemy body
+                c.fillStyle = '#330808'; c.beginPath(); c.arc(ex, ey, 8, 0, Math.PI * 2); c.fill();
+              });
+
+              // Title flash
+              if (p > 0.2 && p < 0.8) {
+                const tA = p < 0.5 ? (p - 0.2) * 3.33 : (0.8 - p) * 3.33;
+                c.fillStyle = `rgba(255,255,255,${tA * 0.8})`; c.font = 'bold 12px Orbitron, sans-serif'; c.textAlign = 'center';
+                c.fillText('ANNIHILATION', shipX + 30, h * 0.2);
+                c.fillStyle = `rgba(170,255,255,${tA * 0.7})`; c.font = 'italic 8px monospace';
+                c.fillText('— Thiên Ý Trảm —', shipX + 30, h * 0.2 + 14);
+                c.textAlign = 'left';
+              }
+            }
+
+            if (isSweeping) {
+              const sp = (phase - 0.375) / 0.375; // 0→1
+              const currentAngle = -Math.PI + Math.PI * sp;
+
+              // Matrix rain in swept area
+              c.save();
+              c.beginPath(); c.moveTo(shipX, shipY);
+              c.arc(shipX, shipY, radius, -Math.PI, currentAngle); c.closePath(); c.clip();
+              // Matrix columns
+              const colW = 14;
+              const cols = Math.ceil(w / colW) + 1;
+              c.font = '9px monospace'; c.textAlign = 'center';
+              for (let col = 0; col < cols; col++) {
+                const cx2 = col * colW;
+                for (let d = 0; d < 3; d++) {
+                  const charT = ((t / (110 + col * 5) + d * 0.3 + col * 0.1) % 1);
+                  const cy2 = charT * h;
+                  const ch = String.fromCharCode(0x30A0 + ((Math.floor(t / 90) + col * 3 + d * 7) % 96));
+                  c.fillStyle = d === 0 ? `rgba(200,255,220,${0.7})` : `rgba(0,220,80,${0.35 + 0.2 * Math.sin(charT * Math.PI)})`;
+                  c.fillText(ch, cx2, cy2);
+                }
+              }
+              // Hex grid overlay
+              c.strokeStyle = 'rgba(0,200,100,0.1)'; c.lineWidth = 0.6;
+              const hR = 22;
+              const hW = hR * Math.sqrt(3);
+              for (let row = -1; row < Math.ceil(h / (hR * 1.5)) + 1; row++) {
+                for (let col2 = -1; col2 < Math.ceil(w / hW) + 1; col2++) {
+                  const hx = col2 * hW + (row % 2 === 0 ? 0 : hW * 0.5);
+                  const hy = row * hR * 1.5;
+                  c.beginPath();
+                  for (let i = 0; i < 6; i++) {
+                    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+                    i === 0 ? c.moveTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR) : c.lineTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR);
+                  } c.closePath(); c.stroke();
+                }
+              }
+              // Scan line
+              c.fillStyle = 'rgba(0,255,120,0.06)'; c.fillRect(0, (t / 3) % h, w, 3);
+              c.restore();
+
+              // Sweep blade
+              c.save(); c.translate(shipX, shipY); c.rotate(currentAngle);
+              // Wide glow cone
+              c.fillStyle = 'rgba(0,255,255,0.1)';
+              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, -40); c.lineTo(radius, 40); c.closePath(); c.fill();
+              // Cyan flanks
+              c.fillStyle = 'rgba(0,255,255,0.5)';
+              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, -25); c.lineTo(radius, 25); c.closePath(); c.fill();
+              // White core blade
+              c.fillStyle = 'white';
+              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, -7); c.lineTo(radius, 7); c.closePath(); c.fill();
+              // Jitter streak
+              c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = 1;
+              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, (Math.sin(t / 20)) * 10); c.stroke();
+              // Sparks on blade edge
+              for (let i = 0; i < 5; i++) {
+                const dist = 30 + Math.random() * (w - 50);
+                const off = (Math.random() - 0.5) * 18;
+                c.fillStyle = `rgba(180,255,255,${0.4 + Math.random() * 0.5})`;
+                c.beginPath(); c.arc(dist, off, 1 + Math.random() * 1.5, 0, Math.PI * 2); c.fill();
+              }
+              c.restore();
+
+              // Enemies destroyed on contact
+              const fakeEnemies2 = [[w * 0.4, h * 0.3], [w * 0.65, h * 0.25], [w * 0.8, h * 0.45]];
+              fakeEnemies2.forEach(([ex, ey]) => {
+                const enemyAngle = Math.atan2(ey - shipY, ex - shipX);
+                if (enemyAngle < currentAngle) {
+                  // Already swept — show explosion remnant
+                  const fade = Math.max(0, 1 - (currentAngle - enemyAngle) * 2);
+                  c.globalAlpha = fade;
+                  c.fillStyle = '#00ffaa'; c.beginPath(); c.arc(ex, ey, 12 * (1 + (1 - fade) * 0.8), 0, Math.PI * 2); c.fill();
+                  c.globalAlpha = 1;
+                } else {
+                  c.fillStyle = '#330808'; c.beginPath(); c.arc(ex, ey, 8, 0, Math.PI * 2); c.fill();
+                }
+              });
+            }
+
+            // Ship (always visible)
+            c.save(); c.translate(shipX, shipY);
+            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -12); c.lineTo(9, 0); c.lineTo(7, 4); c.lineTo(-7, 4); c.lineTo(-9, 0); c.closePath(); c.fill();
+            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.7; c.beginPath(); c.moveTo(0, -12); c.lineTo(9, 0); c.lineTo(7, 4); c.lineTo(-7, 4); c.lineTo(-9, 0); c.closePath(); c.stroke();
+            c.restore();
+
+            activeAnimations.push(requestAnimationFrame(() => drawSkF(performance.now())));
+          }
+          drawSkF(performance.now());
+        }
+      }
+    }
+  </script>
+</body>
+
+</html>
