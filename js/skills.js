@@ -206,7 +206,7 @@ function updateSpirits(deltaTime) {
         spirit.y += (player.y + Math.sin(t * 2) * 72 - spirit.y) * 0.1;
 
         spirit.shootTimer -= deltaTime;
-        let spiritFireRate = 65;
+        let spiritFireRate = 54.2; // 65 / 1.2 (+20% fire rate)
         if (gloryForJusticeActive) {
             spiritFireRate /= 1.40;
         }
@@ -215,7 +215,7 @@ function updateSpirits(deltaTime) {
             spirit.shootTimer = spiritFireRate;
             let closest = findClosestEnemy(spirit.x, spirit.y);
             if (closest) {
-                const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.10;
+                const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32; // 1.10 * 1.2
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
                     damage: 5, percentDamage: 0.04,
@@ -228,11 +228,11 @@ function updateSpirits(deltaTime) {
         if (spirit.shotsFiredSinceBarrage >= 5) {
             spirit.shotsFiredSinceBarrage = 0;
             let closest = findClosestEnemy(spirit.x, spirit.y);
-            let vx = 0, vy = -13.2;
+            let vx = 0, vy = -15.84; // 13.2 * 1.2
             if (closest) {
                 const d = Math.hypot(closest.x - spirit.x, closest.y - spirit.y);
-                vx = (closest.x - spirit.x) / d * 13.2;
-                vy = (closest.y - spirit.y) / d * 13.2;
+                vx = (closest.x - spirit.x) / d * 15.84;
+                vy = (closest.y - spirit.y) / d * 15.84;
             }
             bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.16, hitEnemies: [] });
         }
@@ -628,6 +628,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
             }
 
             enemies.forEach(enemy => {
+                if (enemy.type === 'abyssal_chain') return;
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;

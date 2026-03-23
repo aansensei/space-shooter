@@ -50,7 +50,7 @@ When **Glory for Justice** is active, all friendly damage is multiplied by **1.5
 
 ## Player Stats & Attacks
 
-**Auto-Fire** — Fires 5 bullets in a 45-degree spread every 170ms. Each bullet deals **6 base + 4% of target's Max HP**. Each bullet independently rolls a **25% chance** to apply Vulnerability (Trọng Thương).
+**Auto-Fire** — Fires 5 bullets in a 45-degree spread every **142ms** (+20% vs base). Each bullet deals **6 base + 4% of target's Max HP**. Bullet speed increased +20%. Each bullet independently rolls a **25% chance** to apply Vulnerability (Trọng Thương).
 
 **Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10×**, capping at **12% of target's Max HP** at full charge.
 
@@ -97,7 +97,7 @@ A Sentinel spawns automatically every **3 enemy kills**. Maximum **12 Sentinels*
 
 Each enemy kill has a **30% chance** to grant an extra kill count — meaning a single kill can count as 2 toward the next Sentinel spawn. When a Sentinel spawns, it has a **36% chance** to be a **Fortified Sentinel** with **+50% Max HP**.
 
-**Base stats:** 300–450 HP (scales up over the first 5 minutes) | 75ms fire interval *(Fortified: 450–675 HP)*
+**Base stats:** 300–450 HP (scales up over the first 5 minutes) | **62.5ms fire interval** (+20% vs base) *(Fortified: 450–675 HP)*
 
 - Loses **1 HP** every time it fires (recoil).
 - Takes damage equal to the HP of any enemy bullet that hits it.
@@ -204,7 +204,7 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 **Cooldown:** 12s | **Max:** 2 Spirits
 
-Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every 65ms.
+Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
 - **Spirit Bullet:** 5 base + 4% Max HP, homing, +10% flight speed bonus.
 - **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 10 base + 16% Max HP.
