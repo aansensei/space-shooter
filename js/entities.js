@@ -97,7 +97,7 @@ function distToSegment(p, v, w) {
 }
 
 function handleEnemyKill(enemy) {
-    score = Math.ceil(score + enemy.maxHp * 10);
+    score = Math.ceil(score + enemy.maxHp * 6);
     if (score >= nextLifeMilestone) {
         lives++;
         nextLifeMilestone += 500000;
@@ -244,7 +244,7 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(947, 418 + hpFromTime * 16);
+    let hp = Math.min(1100, 500 + hpFromTime * 18);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -258,7 +258,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(1044, 557 + hpFromTime * 21);
+    let hp = Math.min(2500, 1200 + hpFromTime * 40);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
@@ -332,7 +332,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 function spawnNormalEnemy() {
     const size = 20 + Math.random() * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 15000);
-    let hp = Math.min(84, (Math.floor(Math.random() * 7) + 1 + hpFromTime));
+    let hp = Math.min(96, (Math.floor(Math.random() * 4) + 9 + hpFromTime));
     hp *= 1.05;
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,

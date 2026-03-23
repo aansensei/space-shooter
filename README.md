@@ -254,17 +254,19 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ### Normal Enemy
 
-Spawns continuously from the start. HP starts between 1–7 and scales up over time (capped at 84 HP). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
+Spawns continuously from the start. HP starts between **9–12** and scales up over time (capped at **96 HP**). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
-**Score on kill:** 10 – 630 points
+**Score on kill:** HP × 6 points
 
 ---
 
 ### Thaelis (Abnormal)
 
-**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** 3,000 – 6,800 points | **Speed:** 1.4 u/s
+**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
 
-HP: 418–947. Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
+HP: **500–1,100**.
+
+Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
 
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
@@ -276,9 +278,9 @@ HP: 418–947. Fires a large projectile every second. After 0.6 seconds of fligh
 
 ### Heavenly Aegis Core (Elite)
 
-**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** 4,000 – 7,500 points | **Speed:** 1.8 u/s
+**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.8 u/s
 
-HP: 557–1,044. Innate **+10% Damage Reduction**.
+HP: **1,200–2,500**. Innate **+10% Damage Reduction**.
 
 **Custos Aeternus** — Spawns with an **Iron Body shield**: the first hit it receives from any source — including Black Holes and Skill F — is completely nullified. The shield does not reduce or absorb damage; it places the target in Iron Body for that one hit, making it completely immune. After the shield breaks, Aegis Core takes damage normally.
 
@@ -295,11 +297,9 @@ HP: 557–1,044. Innate **+10% Damage Reduction**.
 
 ### Marchosias (Elite)
 
-**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** 10,000 – 22,000 points | **Speed:** ~1.5 u/s
+**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
-A heavily armored hexagonal mech with HP ranging from **1,392 to 3,062**. Marchosias has a permanent **20% Damage Reduction** on its own body at all times.
-
----
+HP: **1,392–3,062**. Permanent **20% Damage Reduction** on its body at all times.
 
 **Sword & Shield**
 
@@ -314,9 +314,9 @@ Marchosias carries a rotating **Arc Shield** — a glowing 90-degree arc that co
 
 - Every shield hit has a **20% independent chance** to queue a Sword.
 - If the shield is fully destroyed, a Sword is queued immediately.
-- When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (up to 3, each spread slightly apart).
+- When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (spread slightly apart). The count is displayed as Roman numerals below Marchosias at all times.
 
-There is no hard limit on total Swords per fight. Each Marchosias has its own independent **0.65-second cooldown** between triggers. Multiple queued Swords count down their 1-second windups in parallel and fire independently.
+There is no hard limit on total Swords per fight. Each Marchosias has its own independent **0.65-second cooldown** between triggers. Multiple queued Swords count down their 1-second windups in parallel and fire independently. **Swords cannot be interrupted** — even if Marchosias dies mid-windup, all pending Swords still fire from the death position.
 
 *Sword sequence:*
 
@@ -326,13 +326,9 @@ There is no hard limit on total Swords per fight. Each Marchosias has its own in
 4. Hits a Sentinel → deals **20% of that Sentinel's Max HP**.
 5. **Cannot be destroyed or deflected by anything.** Persists until it exits the screen.
 
----
-
 **Normal Attack**
 
 Every second, fires **2 bullets** simultaneously at the nearest player or Sentinel. Each bullet's HP equals ⌈1.25% of Marchosias's current HP⌉.
-
----
 
 **Assimilation — Death Passive**
 
@@ -348,25 +344,26 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 ### Dargruel (Dominator)
 
-**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** 14,060 – 56,260 points | **Speed:** ~1.8 u/s
+**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.8 u/s
 
-Massive size. HP: roughly 2,520–8,399. Permanent Damage Reduction from **Passive: Maître Suprême** (see below). No base DR — all DR is dynamic.
+HP: **2,520–8,399**. DR is fully dynamic — see Passive below.
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
 - Heals all other enemies for **15% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 21% efficiency. Cannot heal enemies at 0 HP.
 - All units gain **+18% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+30%**).
 
-**Passive: Maître Suprême** — Dargruel's base Damage Reduction scales with the battlefield:
+**Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
 
 - **25% base DR** at all times.
 - **+2% DR per active Sentinel** on screen. Capped at **36% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 
-**Skill: Abyssal Chains( Hắc Ám Xiềng Xích )** — Every **2 seconds**, fires **4 dark chains** in a spread aimed at the player's current position. Chains are **piercing** — they cannot be destroyed or deflected by any source: player bullets, Sentinel bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, or spirit finale. Chains also cannot be targeted by Skill A orbs.
+**Skill: Hắc Ám Xiềng Xích (Abyssal Chains)** — Every **1.5 seconds**, fires **4 dark chains** in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
-- **Hit player** → **Root & Silence for 1 second**: the player cannot move (← →), cannot use any skill including Yog-Sothoth Domain, and **auto-fire stops** for the duration. Skill A orbs stop targeting and return to orbit. All skill icons display a red X during this state. The chain also re-applies silence even if already silenced (refreshes timer).
-- **Hit Sentinel** → instant **true damage equal to 15% of that Sentinel's Max HP** (bypasses all shields), chain explodes on contact.
+- **Hit player** → **Root & Silence for 1 second**: cannot move, cannot use any skill (including Shift), auto-fire stops, Skill A orbs return to orbit. A purple lock icon appears on the ship and a red X overlays all skill icons. Re-applies silence even if already silenced.
+- **Hit Sentinel** → **true damage equal to 15% of that Sentinel's Max HP**, chain consumed on contact.
+- **On death at HP = 1**: immediately fires one extra volley of 4 chains.
 
 **Maou Haki** — Triggers once at **50% HP**:
 
@@ -377,11 +374,9 @@ Massive size. HP: roughly 2,520–8,399. Permanent Damage Reduction from **Passi
 
 ### Leviathan (Dominator)
 
-**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** 42,000 – 73,500 points | **Speed:** ~1.3 u/s
+**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.3 u/s
 
-A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times. HP: **5,568–9,744**. **45% base Damage Reduction** on its body after the shield breaks.
-
----
+HP: **5,568–9,744**. **45% base Damage Reduction** on its body after the shield breaks. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
 
@@ -389,8 +384,6 @@ When Leviathan appears, every enemy on screen instantly receives the **Envy** ma
 
 - **+25% Damage Reduction** (stacks with all other DR, hard-capped at 99%).
 - **+25% effectiveness from all healing sources**.
-
----
 
 **Passive: All for One**
 
@@ -400,8 +393,6 @@ Every attack that lands on the shield counts as a **hit** (capped at 250). Displ
 
 When the quota is reached, Leviathan charges a **Perseverance sweep** (red warning + full 360° laser), then the shield shatters and combat begins.
 
----
-
 **Passive: Last Rites**
 
 When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns. All 9 lasers then fire simultaneously, reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
@@ -409,26 +400,11 @@ When Leviathan's HP reaches **1** — by any source, including Black Hole and Sk
 - Hitting the player costs **1 life** (subject to normal protection layers).
 - Hitting a Sentinel deals **true damage**: **(hits ÷ 2) × (1%–3% of that Sentinel's Max HP)**, capped at **50% of Max HP**. The percentage scales with accumulated hit count (1% at 0 hits, 3% at 250 hits).
 
----
-
 **Normal Attack**
 
 Always active. Every **0.75 seconds**, fires 3 bullets in a slight spread at the nearest player or Sentinel. Each bullet's HP equals **2% of Leviathan's Max HP**.
 
----
-
 **Skill: Perseverance**
-
-*Activates immediately when the All for One shield breaks.*
-
-A deep red warning zone pulses outward for **1 second** (charge phase). After the charge, a sweeping red laser rotates a full **360°** over **1.8 seconds**. After the sweep ends, there is a **2-second cooldown**, then the cycle repeats.
-
-The sweep destroys most allied projectiles in its path — including player bullets, Sentinel shots, Spirit bullets, and Skill A orbs. It does **not** destroy: Overload Laser, Black Hole, Spirit Blade Arc, Spirit Finale, Skill F, or any Skill G entities.
-
-- Hitting the player costs **1 life** (normal protective layers apply).
-- Hitting a Sentinel deals **true damage** (bypasses all shields): **hits × (1%–3% of that Sentinel's Max HP)** per sweep, capped at **50% of Max HP**. The per-hit percentage scales with accumulated hit count (1% at 0 hits, 3% at 250 hits).
-
----
 
 ## Enemy Class System
 
