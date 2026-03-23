@@ -2868,81 +2868,180 @@ function drawEnemy(enemy) {
 function _drawBossOrThaelis(enemy) {
     const now = performance.now();
     const isBoss = enemy.type === 'boss';
-    const rotSpeed = isBoss ? 2000 : 3000;
-    const rotation = now / rotSpeed;
-    const color1 = isBoss ? '#FF00FF' : '#FFD700';
-    const color2 = isBoss ? '#8A2BE2' : '#FFA500';
-    const r = enemy.size / 2;
 
-    // outer pulsing halo
-    const haloAlpha = 0.15 + 0.1 * Math.abs(Math.sin(now / 400));
-    ctx.save();
-    ctx.fillStyle = isBoss ? `rgba(255,0,255,${haloAlpha})` : `rgba(255,200,0,${haloAlpha})`;
-    if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 20;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 10, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
+    // ── Thaelis keeps old render ──────────────────────────────────
+    if (!isBoss) {
+        const rotSpeed = 3000;
+        const rotation = now / rotSpeed;
+        const color1 = '#FFD700';
+        const color2 = '#FFA500';
+        const r = enemy.size / 2;
 
-    // main octagon body
-    drawPolygon(enemy.x, enemy.y, r, 8, rotation, color1, color2);
-
-    // counter-rotating inner octagon
-    ctx.save();
-    ctx.globalAlpha = 0.55;
-    drawPolygon(enemy.x, enemy.y, r * 0.55, 8, -rotation * 1.3, color2, color1);
-    ctx.restore();
-
-    // center core gem
-    ctx.save();
-    const cg = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, r * 0.28);
-    cg.addColorStop(0, 'white');
-    cg.addColorStop(0.5, color1);
-    cg.addColorStop(1, color2);
-    ctx.fillStyle = cg;
-    if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 15;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r * 0.28, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-
-    // low HP aura pulse
-    const hpPct = enemy.hp / enemy.maxHp;
-    if (hpPct < 0.6) {
-        const pulse = Math.abs(Math.sin(now / 180)) * 10;
+        const haloAlpha = 0.15 + 0.1 * Math.abs(Math.sin(now / 400));
         ctx.save();
-        ctx.fillStyle = isBoss ? `rgba(255,0,255,0.22)` : `rgba(255,215,0,0.22)`;
-        if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 25;
-        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 12 + pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,200,0,${haloAlpha})`;
+        if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 10, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        drawPolygon(enemy.x, enemy.y, r, 8, rotation, color1, color2);
+        ctx.save(); ctx.globalAlpha = 0.55;
+        drawPolygon(enemy.x, enemy.y, r * 0.55, 8, -rotation * 1.3, color2, color1);
+        ctx.restore();
+        ctx.save();
+        const cg = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, r * 0.28);
+        cg.addColorStop(0, 'white'); cg.addColorStop(0.5, color1); cg.addColorStop(1, color2);
+        ctx.fillStyle = cg;
+        if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r * 0.28, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        const hpPct2 = enemy.hp / enemy.maxHp;
+        if (hpPct2 < 0.6) {
+            const pulse2 = Math.abs(Math.sin(now / 180)) * 10;
+            ctx.save(); ctx.fillStyle = `rgba(255,215,0,0.22)`;
+            if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 25;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 12 + pulse2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        }
+        ctx.save();
+        const orbitR2 = r + 18;
+        if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 10;
+        ctx.fillStyle = color1;
+        for (let i = 0; i < 6; i++) {
+            const a = rotation * 1.5 + (i / 6) * Math.PI * 2;
+            ctx.beginPath(); ctx.arc(enemy.x + Math.cos(a) * orbitR2, enemy.y + Math.sin(a) * orbitR2, 2.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        return;
+    }
+
+    // ── NEW DARGRUEL DESIGN ───────────────────────────────────────
+    const r = enemy.size / 2;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 300);
+
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    // 1. Abyss aura (outer glow)
+    ctx.fillStyle = `rgba(138,43,226,${0.12 + 0.08 * pulse})`;
+    if (!_mobPerf) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 25; }
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // 2. Maître Suprême shield ring — scales with sentinel count
+    const activeSentinels = typeof sentinels !== 'undefined' ? sentinels.length : 0;
+    if (activeSentinels > 0) {
+        const drLevel = Math.min(activeSentinels, 18);
+        ctx.save();
+        ctx.rotate(now / 1200);
+        ctx.strokeStyle = `rgba(180,0,255,${0.3 + 0.03 * drLevel})`;
+        ctx.lineWidth = 2 + drLevel * 0.15;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.25, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
         ctx.restore();
     }
 
-    // ── NEW: energy crackle arcs at low HP ──
-    if (hpPct < 0.4) {
+    // 3. Main octagon body
+    const rot = now / 3500;
+    ctx.rotate(rot);
+    const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    bodyGrad.addColorStop(0, '#15002a');
+    bodyGrad.addColorStop(0.7, '#2d004d');
+    bodyGrad.addColorStop(1, '#0d001a');
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = '#6a0dad';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+            : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // 4. Counter-rotating inner octagon + veins
+    ctx.save();
+    ctx.rotate(-rot * 2.5);
+    ctx.strokeStyle = '#8A2BE2'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+        i === 0 ? ctx.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75)
+            : ctx.lineTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(138,43,226,0.4)';
+    for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75);
+        ctx.lineTo(Math.cos(a + Math.PI) * r * 0.75, Math.sin(a + Math.PI) * r * 0.75);
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    // 5. Abyss Eye core
+    const coreR = r * 0.35;
+    const corePulse = 0.85 + 0.15 * Math.sin(now / 150);
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR * corePulse);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.3, '#df88ff');
+    coreGrad.addColorStop(0.7, '#4B0082');
+    coreGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = coreGrad;
+    if (!_mobPerf) { ctx.shadowColor = '#df88ff'; ctx.shadowBlur = 15; }
+    ctx.beginPath(); ctx.arc(0, 0, coreR * corePulse, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // 5.5 Four directional triangles
+    ctx.save();
+    ctx.rotate(now / 2500);
+    const triDist = coreR + 8, triSize = 14, triWidth = 12;
+    const triPulse = 0.6 + 0.4 * Math.sin(now / 100);
+    ctx.fillStyle = `rgba(223,136,255,${triPulse})`;
+    if (!_mobPerf) { ctx.shadowColor = '#df88ff'; ctx.shadowBlur = 10; }
+    for (let i = 0; i < 4; i++) {
         ctx.save();
-        ctx.translate(enemy.x, enemy.y);
+        ctx.rotate((i * Math.PI) / 2);
+        ctx.translate(triDist, 0);
+        ctx.beginPath();
+        ctx.moveTo(triSize, 0);
+        ctx.lineTo(0, -triWidth / 2);
+        ctx.lineTo(0, triWidth / 2);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // 6. Chain nodes (4 ports)
+    for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2;
+        const px = Math.cos(a) * r * 0.88, py = Math.sin(a) * r * 0.88;
+        ctx.fillStyle = '#07001a'; ctx.strokeStyle = '#9900ff'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = `rgba(223,136,255,${0.6 + 0.4 * pulse})`;
+        ctx.beginPath(); ctx.arc(px, py, 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Low HP energy crackle
+    const hpPct = enemy.hp / enemy.maxHp;
+    if (hpPct < 0.4) {
         const crackleCount = Math.floor((1 - hpPct / 0.4) * 4) + 2;
         for (let c = 0; c < crackleCount; c++) {
             const a0 = (now / 180 + c * Math.PI * 2 / crackleCount) % (Math.PI * 2);
             const a1 = a0 + 0.4 + Math.sin(now / 90 + c) * 0.2;
             const cr = r + 8 + Math.sin(now / 120 + c * 1.7) * 4;
-            ctx.strokeStyle = `rgba(${isBoss ? '255,80,255' : '255,220,50'},${0.6 + 0.4 * Math.sin(now / 80 + c)})`;
+            ctx.strokeStyle = `rgba(255,80,255,${0.6 + 0.4 * Math.sin(now / 80 + c)})`;
             ctx.lineWidth = 1;
-            if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 8;
+            if (!_mobPerf) { ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 8; }
             ctx.beginPath(); ctx.arc(0, 0, cr, a0, a1); ctx.stroke();
         }
         ctx.shadowBlur = 0;
-        ctx.restore();
     }
-    ctx.save();
-    const orbitR = r + 18;
-    const dotCount = 6;
-    if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 10;
-    ctx.fillStyle = color1;
-    for (let i = 0; i < dotCount; i++) {
-        const a = rotation * (isBoss ? 2 : 1.5) + (i / dotCount) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.arc(enemy.x + Math.cos(a) * orbitR, enemy.y + Math.sin(a) * orbitR, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-    }
+
     ctx.restore();
 }
+
 
 function _drawEmbryo(enemy) {
     const now = performance.now();
