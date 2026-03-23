@@ -734,6 +734,8 @@ function executeShiftTeleport(direction) {
     createParticles(player.x, player.y, 30, 'magenta', 3, 10);
     screenShake = { intensity: 10, duration: 200 };
 
+    // Teleport used → full 11s cooldown
+    window._shiftTeleportUsed = true;
     cancelSkillShift();
 }
 
@@ -742,21 +744,21 @@ function cancelSkillShift() {
         const holdDuration = (performance.now() - skillShiftChargeStart) / 1000; // seconds
         skillShiftActive = false;
 
-        // Dynamic cooldown: shorter hold → shorter CD
-        // Base CD: 11s. Reductions:
-        //   < 2s held  → -90% CD  (11s * 0.10 = 1.1s)
-        //   2s–5s      → -60% CD  (11s * 0.40 = 4.4s)
-        //   5s–7s      → -10% CD  (11s * 0.90 = 9.9s)
-        //   >= 7s      → full CD  (11s)
+        // If teleport (←/→) was used during domain → always full 11s CD
+        const teleportUsed = !!window._shiftTeleportUsed;
+        window._shiftTeleportUsed = false; // reset flag
+
         let cdMultiplier;
-        if (holdDuration < 2) {
-            cdMultiplier = 0.10;
+        if (teleportUsed) {
+            cdMultiplier = 1.0; // full CD
+        } else if (holdDuration < 2) {
+            cdMultiplier = 0.10; // −90%  → 1.1s
         } else if (holdDuration < 5) {
-            cdMultiplier = 0.40;
+            cdMultiplier = 0.40; // −60%  → 4.4s
         } else if (holdDuration < 7) {
-            cdMultiplier = 0.90;
+            cdMultiplier = 0.90; // −10%  → 9.9s
         } else {
-            cdMultiplier = 1.0;
+            cdMultiplier = 1.0;  // full  → 11s
         }
         const effectiveCD = skillShiftCooldown * cdMultiplier;
         lastSkillShift = performance.now() - (skillShiftCooldown - effectiveCD);
