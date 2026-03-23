@@ -264,14 +264,14 @@ function spawnAegisCore() {
         speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'aegis_core', shootTimer: 0,
-        aegisInvulnerable: true, aegisShieldReceived: false
+        aegisInvulnerable: true, aegisCustosHits: 0, aegisShieldReceived: false
     });
 }
 
 function spawnMarchosias() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
-    const speed = (1 + Math.random() * 2) * 0.4 * 0.9;
+    const speed = (1 + Math.random() * 2) * 0.4 * 0.9 * 1.067; // ~1.6 u/s
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
     let hp = Math.min(3062, 1392 + hpFromTime * 42);
 
@@ -301,7 +301,7 @@ function spawnMarchosias() {
 function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
     const size = 20 + Math.random() * 10;
     const inheritPct = 0.15 + Math.random() * 0.10;
-    const hp = Math.ceil(parentMaxHp * inheritPct);
+    const hp = Math.ceil(parentMaxHp * inheritPct * 1.30); // +30% HP
 
     const paraRange = size * 1.5;
     const host = enemies.find(e =>
@@ -324,6 +324,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
             hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
             type: 'marchosias_minion',
+            DR: 0.75, // 75% innate DR
             shootTimer: 1000,
         });
     }
@@ -601,8 +602,11 @@ function dealDamage(enemy, source) {
     }
     if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
         if (source.damage > 0 || source.percentDamage > 0) {
-            enemy.aegisInvulnerable = false;
-            addExplosion(enemy.x, enemy.y, enemy.size * 1.5, 'white');
+            enemy.aegisCustosHits = (enemy.aegisCustosHits || 0) + 1;
+            addExplosion(enemy.x, enemy.y, enemy.size * 1.2, 'white');
+            if (enemy.aegisCustosHits >= 5) {
+                enemy.aegisInvulnerable = false;
+            }
             return;
         }
     }
@@ -654,14 +658,16 @@ function dealDamage(enemy, source) {
         combinedDR += (enemy.demonGiftStacks === 2) ? 0.30 : 0.18;
     }
 
-    if ((enemy.type === 'boss' || enemy.type === 'thaelis') && enemy.hp < enemy.maxHp * 0.6) {
+    if (enemy.type === 'boss' && enemy.hp < enemy.maxHp * 0.6) {
         const hpPercent = (enemy.hp / enemy.maxHp) * 100;
         const percentPointsLost = 60 - hpPercent;
-        if (enemy.type === 'boss') {
-            combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
-        } else if (enemy.type === 'thaelis') {
-            combinedDR += Math.min(0.52, (percentPointsLost / 100));
-        }
+        combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
+    }
+
+    // Tenacity: +1.5% DR per 1% HP lost, cap 75%
+    if (enemy.type === 'thaelis') {
+        const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
+        combinedDR += Math.min(0.75, hpLostPct * 0.015);
     }
 
     if (enemy.type === 'aegis_core') {
@@ -674,6 +680,10 @@ function dealDamage(enemy, source) {
 
     if (enemy.type === 'marchosias') {
         combinedDR += 0.20;
+    }
+
+    if (enemy.type === 'marchosias_minion' && enemy.DR) {
+        combinedDR += enemy.DR;
     }
 
     if (enemy.type === 'boss') {
@@ -853,7 +863,7 @@ function spawnLeviathan() {
         x: Math.random() * (canvas.width - size * 2) + size,
         y: -size,
         size,
-        speed: (1 + Math.random() * 0.5) * 0.8 * 0.85 * 0.85,
+        speed: (1 + Math.random() * 0.5) * 0.8 * 0.85 * 0.85 * 1.3, // ~1.5 u/s
         hp, maxHp: hp,
         type: 'leviathan',
         shield: 0,
