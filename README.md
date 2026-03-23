@@ -252,7 +252,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ---
 
-### Apostles (Norma)
+### Apostles (Normal)
 
 Spawns continuously from the start. HP starts between **9–12** and scales up over time (capped at **96 HP**). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
@@ -406,13 +406,20 @@ Always active. Every **0.75 seconds**, fires 3 bullets in a slight spread at the
 
 **Skill: Perseverance**
 
+Leviathan's only active attack. It fires automatically after the **All for One** shield breaks (as a combat opener) and again whenever triggered by other mechanics.
+
+1. A full red warning ring appears around Leviathan for **1 second**.
+2. A **360° laser** sweeps the entire screen, starting from a fixed angle and completing a full rotation. The sweep lasts approximately **1.5 seconds**.
+3. The laser deals true damage to everything it crosses: hitting the player costs **1 life** (subject to normal protection layers); hitting a Sentinel deals **1%–3% of that Sentinel's Max HP** (scaled by accumulated hit count), capped at **50% of Max HP**.
+4. The sweep cannot be blocked, deflected, or avoided by Yog-Sothoth Domain.
+
 ## Enemy Class System
 
 Enemies are divided into five tiers of power. All enemies of class **Abnormal and above** share a combined cap of **6 on screen at once**, in addition to their individual caps.
 
 | Class | Examples |
 |---|---|
-| **Normal** | Apostles |
+| **Normal** | Standard enemy |
 | **Abnormal** | Thaelis |
 | **Elite** | Marchosias, Heavenly Aegis Core |
 | **Dominator** | Dargruel, Leviathan |
