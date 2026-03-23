@@ -268,6 +268,11 @@ HP: **500–1,100**.
 
 Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
 
+**Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
+
+- For every **1% of Max HP lost**, Thaelis gains **+1.5% Damage Reduction** on its body. Capped at **75% total DR** from this source.
+- For every **1% of Max HP lost**, Thaelis's projectile speed and normal attack fire rate each increase by **+0.1%**. Capped at **+20%**.
+
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
 - Each Embryo has 33% of Thaelis's Max HP + 50–100 bonus HP.
@@ -282,11 +287,12 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 HP: **1,200–2,500**. Innate **+10% Damage Reduction**.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the first hit it receives from any source — including Black Holes and Skill F — is completely nullified. The shield does not reduce or absorb damage; it places the target in Iron Body for that one hit, making it completely immune. After the shield breaks, Aegis Core takes damage normally.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 5 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 5th hit the shield breaks and Aegis Core takes damage normally.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for **2.5% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Heals all ally units inside for **2.88% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Grants every allied unit inside a **5% of Aegis Core's Max HP shield every second** (passive tick — stacks on top of the one-time 40% shield; units with any remaining shield also benefit from the +15% DR bonus).
 - Grants a **shield** equal to **40% of Aegis Core's Max HP** to all allies inside (once per ally). Shielded units gain **+15% Damage Reduction** while the shield has any HP remaining.
 - If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
 - All enemies and enemy bullets inside move 5% faster.
@@ -297,7 +303,7 @@ HP: **1,200–2,500**. Innate **+10% Damage Reduction**.
 
 ### Marchosias (Elite)
 
-**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
+**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
 HP: **1,392–3,062**. Permanent **20% Damage Reduction** on its body at all times.
 
@@ -332,7 +338,7 @@ Every second, fires **2 bullets** simultaneously at the nearest player or Sentin
 
 **Assimilation — Death Passive**
 
-At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **15–25%** of Marchosias's Max HP at random.
+At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **15–25%** of Marchosias's Max HP at random, then boosted by a further **+30%**. Each minion has **75% innate Damage Reduction**.
 
 Each minion scans within **1.5× its own radius** for a valid host:
 
@@ -374,7 +380,7 @@ HP: **2,520–8,399**. DR is fully dynamic — see Passive below.
 
 ### Leviathan (Dominator)
 
-**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.3 u/s
+**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
 HP: **5,568–9,744**. **45% base Damage Reduction** on its body after the shield breaks. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 
@@ -431,11 +437,11 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 
 | Enemy | Class | Unlocks | Spawn Rate | Cap | Speed | Respawn Cooldown |
 |---|---|---|---|---|---|---|
-| Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.5 u/s | — |
+| Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.6 u/s | — |
 | Thaelis | Abnormal | 30s | 12% → 25% | 3 | ~1.4 u/s | — |
 | Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s | — |
 | Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s | — |
-| Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.3 u/s | 6s after kill |
+| Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.5 u/s | 6s after kill |
 
 Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum.
 

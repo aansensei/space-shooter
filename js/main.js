@@ -348,8 +348,9 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.025 * (deltaTime / 1000); // 2.5% per second
+            let healAmt = enemy.maxHp * 0.0288 * (deltaTime / 1000); // 2.88% per second
             let shieldAmt = enemy.maxHp * 0.40;
+            let tickShieldAmt = enemy.maxHp * 0.05 * (deltaTime / 1000); // 5% MaxHP shield/s
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
@@ -381,6 +382,9 @@ function update(rawDeltaTime) {
                         ally.shield = (ally.shield || 0) + finalShield;
                         ally.aegisShieldReceived = true;
                     }
+                    // 5% MaxHP tick shield per second — always applies
+                    const tsAmt = ally.soulReaver ? tickShieldAmt * 0.75 : tickShieldAmt;
+                    ally.shield = (ally.shield || 0) + tsAmt;
                 }
             });
 
@@ -639,7 +643,8 @@ function update(rawDeltaTime) {
             }
 
             if (enemy.type === 'boss' || enemy.type === 'thaelis') {
-                let currentShootTimer = (enemy.type === 'thaelis') ? 1000 : (autoFireInterval * 2) * 0.75;
+                const thaelisTenacityBonus = (enemy.type === 'thaelis') ? Math.min(0.20, (1 - enemy.hp / enemy.maxHp) * 0.001 * 100) : 0;
+                let currentShootTimer = (enemy.type === 'thaelis') ? 1000 / (1 + thaelisTenacityBonus) : (autoFireInterval * 2) * 0.75;
                 if (gloryForJusticeActive) currentShootTimer *= 1.25;
                 currentShootTimer *= teslaAttackSpeedMultiplier;
 
@@ -656,7 +661,10 @@ function update(rawDeltaTime) {
                     if (target) {
                         const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
                         if (enemy.type === 'thaelis') {
-                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 3.36, vy: Math.sin(angle) * 3.36, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600 });
+                            // Tenacity: +0.1% bullet speed per 1% HP lost, cap +20%
+                            const thaelisBonusPct = Math.min(0.20, (1 - enemy.hp / enemy.maxHp) * 0.001 * 100);
+                            const thaelisSpd = 3.36 * (1 + thaelisBonusPct);
+                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * thaelisSpd, vy: Math.sin(angle) * thaelisSpd, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600 });
                         } else {
                             const bulletHp = Math.ceil(10 + Math.random() * 30);
                             enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: 2, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0 });
