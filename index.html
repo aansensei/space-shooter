@@ -243,18 +243,13 @@
                 if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); return; }
             });
             const threshold = 160;
-            // Only run devtools detection on desktop — mobile browser chrome
-            // causes outerHeight - innerHeight > threshold naturally
-            const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-            if (!isMobileUA) {
-                setInterval(() => {
-                    if (window.outerWidth - window.innerWidth > threshold ||
-                        window.outerHeight - window.innerHeight > threshold) {
-                        document.body.innerHTML = '';
-                        window.location.reload();
-                    }
-                }, 1000);
-            }
+            setInterval(() => {
+                if (window.outerWidth - window.innerWidth > threshold ||
+                    window.outerHeight - window.innerHeight > threshold) {
+                    document.body.innerHTML = '';
+                    window.location.reload();
+                }
+            }, 1000);
         })();
     </script>
 </head>
