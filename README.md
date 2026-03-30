@@ -207,12 +207,7 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 ### S — Remembrance Spirit: Summoned Spirit Judgment
 
-**Cooldown:** 11s base — scales with hold duration (only if ←/→ teleport was **not** used; using teleport forces full 11s CD):
-
-- Held < 2s, no teleport → **1.1s** (−90%)
-- Held 2–5s, no teleport → **4.4s** (−60%)
-- Held 5–7s, no teleport → **9.9s** (−10%)
-- Held ≥ 7s or teleported → **11s** (full CD) | **Max:** 2 Spirits
+**Cooldown:** 12s | **Max:** 2 Spirits
 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
@@ -225,12 +220,7 @@ Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets 
 
 ### D — Cosmic Black Hole: Singularity
 
-**Cooldown:** 11s base — scales with hold duration (only if ←/→ teleport was **not** used; using teleport forces full 11s CD):
-
-- Held < 2s, no teleport → **1.1s** (−90%)
-- Held 2–5s, no teleport → **4.4s** (−60%)
-- Held 5–7s, no teleport → **9.9s** (−10%)
-- Held ≥ 7s or teleported → **11s** (full CD) | **Charge time:** 2 seconds
+**Cooldown:** 12s | **Charge:** 2s
 
 After a 2-second charge, spawns a Black Hole that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
