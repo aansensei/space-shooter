@@ -198,7 +198,6 @@ function activateSkillS() {
             shotsFiredSinceBarrage: 0, duration: 35000,
             spawnTime: currentTime, isFinishing: false, finaleState: null,
             isPhotokrystos: false, volleyCount: 0,
-            _pendingBrangs: 0,
         });
     }
 }
@@ -297,7 +296,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         for (const e of enemies) {
             if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
             if (Math.hypot(e.x - player.x, e.y - player.y) < dangerRadius) {
-                spawnPhotoBrangs(spirit.x, spirit.y, 1, spirit);
+                spawnPhotoBrangs(spirit.x, spirit.y, 1);
                 spirit._lastDangerBrang = now;
                 break;
             }
@@ -352,7 +351,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             if (spirit._btmTimer >= BTM_FIRE) {
                 spirit._btmPhase = 'releasing';
                 spirit._btmTimer = 0;
-                spawnPhotoBrangs(spirit.x, spirit.y, 5, spirit);
+                spawnPhotoBrangs(spirit.x, spirit.y, 5);
             }
         } else if (spirit._btmPhase === 'releasing') {
             // Final shockwave on entering releasing phase (fire once)
@@ -430,30 +429,21 @@ function updatePhotokrystos(spirit, deltaTime) {
     // ── Boomerang every 6 volleys ──
     if (spirit.volleyCount >= 6) {
         spirit.volleyCount = 0;
-        spawnPhotoBrangs(spirit.x, spirit.y, 2, spirit);
+        spawnPhotoBrangs(spirit.x, spirit.y, 2);
     }
-    // ── Fire pending brangs if enemies now available ──
-    if ((spirit._pendingBrangs || 0) > 0) {
-        const _anyEnemy = enemies.some(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath);
-        if (_anyEnemy) {
-            spawnPhotoBrangs(spirit.x, spirit.y, 0, spirit); // count=0, pending fires via queue logic
-        }
-    }
+
 }
 
-function spawnPhotoBrangs(fromX, fromY, count, spirit) {
+const MAX_PHOTO_BRANGS = 20;
+function spawnPhotoBrangs(fromX, fromY, count) {
     const validTargets = enemies.filter(e =>
         !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath
     );
-    if (validTargets.length === 0) {
-        // Queue pending brangs — will fire when enemy appears
-        if (spirit) spirit._pendingBrangs = (spirit._pendingBrangs || 0) + count;
-        return;
-    }
-    // Fire any queued brangs first
-    if (spirit && spirit._pendingBrangs > 0) {
-        count += spirit._pendingBrangs;
-        spirit._pendingBrangs = 0;
+    if (validTargets.length === 0) return; // no queue — just don't fire
+    // Cap at 20: remove oldest to make room
+    while (photoBrangs.length + count > MAX_PHOTO_BRANGS && photoBrangs.length > 0) {
+        const oldest = photoBrangs.shift(); // remove oldest
+        createParticles(oldest.x, oldest.y, 4, '#00ffaa', 1, 3); // small pop
     }
     for (let b = 0; b < count; b++) {
         const shuffled = [...validTargets].sort(() => Math.random() - 0.5);
