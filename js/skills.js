@@ -176,28 +176,74 @@ function updateScatteredProjectiles(deltaTime) {
 
 function activateSkillS() {
     const currentTime = performance.now();
-    if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState === "playing" && spirits.length < MAX_SPIRITS && currentTime - lastSkillS >= skillSCooldown) {
+    if (typeof player !== "undefined" && player._silenced) return;
+    if (gameState !== "playing") return;
+
+    // ── Primeval Creation: transform normal spirit → Phōtokrystos ──
+    const normalSpirit = spirits.find(sp => !sp.isFinishing && !sp.isPhotokrystos);
+    if (primevalEnergy >= 100 && normalSpirit) {
+        activatePrimevalCreation(normalSpirit);
+        return;
+    }
+
+    // ── Block while any spirit is alive (Phōtokrystos blocks until BTM ends) ──
+    if (spirits.length > 0) return;
+
+    // ── Normal summon: standard 12s CD only ──
+    if (currentTime - lastSkillS >= skillSCooldown) {
         lastSkillS = currentTime;
+        primevalEnergy = 0; // Energy only accumulates from this new spirit
         spirits.push({
             x: player.x, y: player.y, shootTimer: 0,
             shotsFiredSinceBarrage: 0, duration: 35000,
             spawnTime: currentTime, isFinishing: false, finaleState: null,
+            isPhotokrystos: false, volleyCount: 0,
+            _pendingBrangs: 0,
         });
     }
 }
 
+function activatePrimevalCreation(spirit) {
+    if (!spirit || spirit.isFinishing) return;
+    primevalEnergy = 0;
+    // Start summoning circle at spirit's position
+    primevalSummonEffect = {
+        x: spirit.x, y: spirit.y,
+        timer: 0, phase: 'converge', // converge → flash → done
+        targetSpirit: spirit,
+    };
+    // Brief invuln on spirit during summon
+    spirit._summoningUp = true;
+}
+
 function updateSpirits(deltaTime) {
+    // ── Update summoning effect ──
+    if (primevalSummonEffect) updatePrimevalSummonEffect(deltaTime);
+
     for (let i = spirits.length - 1; i >= 0; i--) {
         const spirit = spirits[i];
+
+        // ── Phōtokrystos branch ──
+        if (spirit.isPhotokrystos) {
+            updatePhotokrystos(spirit, deltaTime);
+            if (spirit._done) spirits.splice(i, 1);
+            continue;
+        }
+
+        // ── Normal spirit ──
         if (spirit.isFinishing) {
             updateSpiritFinale(spirit, deltaTime);
             if (!spirit.isFinishing) spirits.splice(i, 1);
             continue;
         }
+        // Block transformation if summon effect hasn't finished
+        if (spirit._summoningUp) continue;
+
         if (performance.now() - spirit.spawnTime >= spirit.duration) {
             spirit.isFinishing = true; spirit.finaleState = 'moving';
             spirit.finaleTargetPos = { x: canvas.width / 2, y: canvas.height / 2 };
+            // Reset energy — spirit entered finale without Primeval Creation
+            primevalEnergy = 0;
             continue;
         }
 
@@ -206,20 +252,19 @@ function updateSpirits(deltaTime) {
         spirit.y += (player.y + Math.sin(t * 2) * 72 - spirit.y) * 0.1;
 
         spirit.shootTimer -= deltaTime;
-        let spiritFireRate = 54.2; // 65 / 1.2 (+20% fire rate)
-        if (gloryForJusticeActive) {
-            spiritFireRate /= 1.40;
-        }
+        let spiritFireRate = 54.2;
+        if (gloryForJusticeActive) spiritFireRate /= 1.40;
 
         if (spirit.shootTimer <= 0) {
             spirit.shootTimer = spiritFireRate;
             let closest = findClosestEnemy(spirit.x, spirit.y);
             if (closest) {
-                const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32; // 1.10 * 1.2
+                const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
                     damage: 5, percentDamage: 0.04,
-                    size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier
+                    size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
+                    isSpirit: true,
                 });
                 spirit.shotsFiredSinceBarrage++;
             }
@@ -228,14 +273,322 @@ function updateSpirits(deltaTime) {
         if (spirit.shotsFiredSinceBarrage >= 5) {
             spirit.shotsFiredSinceBarrage = 0;
             let closest = findClosestEnemy(spirit.x, spirit.y);
-            let vx = 0, vy = -15.84; // 13.2 * 1.2
+            let vx = 0, vy = -15.84;
             if (closest) {
                 const d = Math.hypot(closest.x - spirit.x, closest.y - spirit.y);
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.16, hitEnemies: [] });
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.16, hitEnemies: [], isSpirit: true });
         }
+    }
+}
+
+// ─── PHŌTOKRYSTOS UPDATE ──────────────────────────────────────
+function updatePhotokrystos(spirit, deltaTime) {
+    const now = performance.now();
+    const age = now - spirit.spawnTime;
+    const BTM_START = 37000; // Back to Motherland at 37s
+    const DURATION = 40000;  // total 40s
+
+    // ── Danger? Not Today! ──
+    const dangerRadius = 100;
+    if (!spirit._lastDangerBrang || now - spirit._lastDangerBrang > 3000) {
+        for (const e of enemies) {
+            if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
+            if (Math.hypot(e.x - player.x, e.y - player.y) < dangerRadius) {
+                spawnPhotoBrangs(spirit.x, spirit.y, 1, spirit);
+                spirit._lastDangerBrang = now;
+                break;
+            }
+        }
+    }
+
+    // ── Duration: only start counting from first bullet ──
+    if (!spirit._combatStartTime) {
+        // waiting for first shot — don't count duration yet
+        // BTM check below uses _combatAge
+    }
+    const _combatAge = spirit._combatStartTime ? (now - spirit._combatStartTime) : 0;
+
+    // ── Back to Motherland phase ──
+    if (_combatAge >= BTM_START && !spirit._btmStarted) {
+        spirit._btmStarted = true;
+        spirit._btmPhase = 'warming'; // warming(0.5s) → firing(3.5s) → releasing(0.5s) → done
+        spirit._btmTimer = 0;
+        spirit._btmTickTimer = 0;
+        spirit._btmLightnings = []; // lightning bolt visuals for render
+    }
+
+    if (spirit._btmStarted) {
+        spirit._btmTimer += deltaTime;
+        const BTM_WARM = 500, BTM_FIRE = 3500, BTM_REL = 500;
+
+        if (spirit._btmPhase === 'warming' && spirit._btmTimer >= BTM_WARM) {
+            spirit._btmPhase = 'firing';
+            spirit._btmTimer = 0;
+        } else if (spirit._btmPhase === 'firing') {
+            spirit._btmTickTimer += deltaTime;
+            if (spirit._btmTickTimer >= 100) {
+                spirit._btmTickTimer = 0;
+                const dmgMult = gloryForJusticeActive ? 1.55 : 1;
+                spirit._btmLightnings = []; // reset each tick
+                // Hit ALL enemies on screen
+                for (const e of enemies) {
+                    if (e.type === 'abyssal_chain') continue;
+                    if (e.type.startsWith('enemy_bullet')) {
+                        // Destroy enemy bullets (except abyssal_chain, marchosiasBlades handled separately)
+                        e.hp = 0;
+                        continue;
+                    }
+                    dealDamage(e, {
+                        damage: 15 * dmgMult, percentDamage: 0.45,
+                        applyVuln: true, vulnChance: 0.15, isTrueDamage: true
+                    });
+                    // Record lightning bolt for render
+                    spirit._btmLightnings.push({ x: e.x, y: e.y });
+                }
+            }
+            if (spirit._btmTimer >= BTM_FIRE) {
+                spirit._btmPhase = 'releasing';
+                spirit._btmTimer = 0;
+                spawnPhotoBrangs(spirit.x, spirit.y, 5, spirit);
+            }
+        } else if (spirit._btmPhase === 'releasing') {
+            // Final shockwave on entering releasing phase (fire once)
+            if (!spirit._btmShockwaveFired) {
+                spirit._btmShockwaveFired = true;
+                bossShockwaves.push({
+                    x: spirit.x, y: spirit.y,
+                    radius: 0,
+                    maxRadius: Math.hypot(canvas.width, canvas.height) * 1.2,
+                    speed: 28,
+                    hitSentinels: new Set(),
+                    active: true,
+                    _isBTMWave: true,
+                    _hitEnemies: new Set(),
+                    _damage: 10, _percentDamage: 0.99, // 10 + 99% MaxHP
+                });
+                for (let ei = enemies.length - 1; ei >= 0; ei--) {
+                    if (enemies[ei].type.startsWith('enemy_bullet') && enemies[ei].type !== 'abyssal_chain') {
+                        enemies[ei].hp = 0;
+                    }
+                }
+                screenShake = { intensity: 30, duration: 800 };
+            }
+            if (spirit._btmTimer >= BTM_REL) {
+                spirit._done = true;
+                primevalEnergy = 0;
+                // CD was already started at summon time — do NOT reset it here
+                // Just unlock: spirits array will be empty → button unlocks naturally
+            }
+        }
+        return; // BTM active — don't do normal movement/attacks
+    }
+
+    // ── Normal Phōtokrystos movement ──
+    let t = now / 1000;
+    const orbitR = 85; // slightly larger than normal (72)
+    spirit.x += (player.x + Math.cos(t * 2) * orbitR - spirit.x) * 0.08;
+    spirit.y += (player.y + Math.sin(t * 2) * orbitR - spirit.y) * 0.08;
+
+    // ── Attack: 3 homing bullets per volley at 52ms ──
+    spirit.shootTimer -= deltaTime;
+    let photoFireRate = 43; // 52ms / 1.2 (+20% fire rate)
+    if (gloryForJusticeActive) photoFireRate /= 1.40;
+    if (spirit.shootTimer <= 0) {
+        spirit.shootTimer = photoFireRate;
+        const targets = [];
+        // Find up to 3 distinct closest enemies
+        const allValid = enemies.filter(e =>
+            !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath
+        ).sort((a, b) => Math.hypot(a.x - spirit.x, a.y - spirit.y) - Math.hypot(b.x - spirit.x, b.y - spirit.y));
+        if (allValid.length > 0) {
+            targets[0] = allValid[0];
+            targets[1] = allValid[Math.min(1, allValid.length - 1)];
+            targets[2] = allValid[Math.min(2, allValid.length - 1)];
+        }
+        if (targets.length > 0) {
+            // Duration starts from first shot
+            if (!spirit._combatStartTime) spirit._combatStartTime = now;
+            const dmgMult = gloryForJusticeActive ? 1.55 : 1;
+            const speedMult = (gloryForJusticeActive ? 1.30 : 1) * 1.3;
+            // All 3 homing, same damage (10 + 10%), apply Vulnerability
+            for (let bi = 0; bi < 3; bi++) {
+                spiritBullets.push({
+                    x: spirit.x, y: spirit.y,
+                    damage: 10 * dmgMult, percentDamage: 0.10,
+                    size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
+                    isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
+                    applyVuln: true, vulnChance: 0.15,
+                });
+            }
+            spirit.volleyCount = (spirit.volleyCount || 0) + 1;
+        }
+    }
+
+    // ── Boomerang every 6 volleys ──
+    if (spirit.volleyCount >= 6) {
+        spirit.volleyCount = 0;
+        spawnPhotoBrangs(spirit.x, spirit.y, 2, spirit);
+    }
+    // ── Fire pending brangs if enemies now available ──
+    if ((spirit._pendingBrangs || 0) > 0) {
+        const _anyEnemy = enemies.some(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath);
+        if (_anyEnemy) {
+            spawnPhotoBrangs(spirit.x, spirit.y, 0, spirit); // count=0, pending fires via queue logic
+        }
+    }
+}
+
+function spawnPhotoBrangs(fromX, fromY, count, spirit) {
+    const validTargets = enemies.filter(e =>
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath
+    );
+    if (validTargets.length === 0) {
+        // Queue pending brangs — will fire when enemy appears
+        if (spirit) spirit._pendingBrangs = (spirit._pendingBrangs || 0) + count;
+        return;
+    }
+    // Fire any queued brangs first
+    if (spirit && spirit._pendingBrangs > 0) {
+        count += spirit._pendingBrangs;
+        spirit._pendingBrangs = 0;
+    }
+    for (let b = 0; b < count; b++) {
+        const shuffled = [...validTargets].sort(() => Math.random() - 0.5);
+        const first = shuffled[0];
+        const dx = first.x - fromX, dy = first.y - fromY;
+        const d = Math.hypot(dx, dy) || 1;
+        photoBrangs.push({
+            x: fromX, y: fromY,
+            vx: (dx / d) * 17.5, vy: (dy / d) * 17.5,
+            targets: shuffled,
+            targetIdx: 0,
+            hitEnemies: [],
+            rotation: Math.random() * Math.PI * 2,
+            damage: 15, percentDamage: 0.24,
+            lifetime: 9000,
+        });
+    }
+}
+
+function updatePhotoBrangs(deltaTime) {
+    const dt = deltaTime / 16.67;
+    const BRANG_R = 48; // visual radius — any overlap = hit
+
+    for (let i = photoBrangs.length - 1; i >= 0; i--) {
+        const b = photoBrangs[i];
+        b.lifetime -= deltaTime;
+        b.rotation += 0.22 * dt;
+        if (b.lifetime <= 0) { photoBrangs.splice(i, 1); continue; }
+
+        // ── Cooldown per enemy to allow re-hit (every 200ms) ──
+        b._hitCooldowns = b._hitCooldowns || new Map();
+        const now_b = performance.now();
+
+        // ── Find current target ──
+        let tgt = null;
+        while (b.targetIdx < b.targets.length) {
+            const candidate = b.targets[b.targetIdx];
+            if (candidate && enemies.includes(candidate) && candidate.hp > 0 && !candidate._markedForDeath) {
+                tgt = candidate; break;
+            }
+            b.targetIdx++; // skip dead/gone targets
+        }
+
+        if (tgt) {
+            const dx = tgt.x - b.x, dy = tgt.y - b.y;
+            const d = Math.hypot(dx, dy) || 1;
+            // Steer toward target
+            const spd = 17.5;
+            b.vx += (dx / d * spd - b.vx) * 0.18;
+            b.vy += (dy / d * spd - b.vy) * 0.18;
+
+            // ── Hit: any overlap between boomerang and enemy ──
+            const hitDist = (tgt.size / 2) + BRANG_R; // generous — any edge contact
+            if (d < hitDist) {
+                const lastHit = b._hitCooldowns.get(tgt) || 0;
+                if (now_b - lastHit >= 200) { // can re-hit same enemy after 200ms
+                    b._hitCooldowns.set(tgt, now_b);
+                    const brangSrc = {
+                        damage: b.damage * (gloryForJusticeActive ? 1.55 : 1),
+                        percentDamage: b.percentDamage,
+                        applyVuln: true, vulnChance: 0.15,
+                        isTrueDamage: true
+                    };
+                    if (!checkMarchosiasArcShield(tgt, brangSrc, b.x, b.y)) {
+                        dealDamage(tgt, brangSrc);
+                        if (tgt.hp <= 0 && !tgt._spiritKillCounted) {
+                            tgt._spiritKillCounted = true;
+                            primevalEnergy = Math.min(100, primevalEnergy + 2);
+                        }
+                    }
+                    // Bounce to next target after hit
+                    b.targetIdx++;
+                }
+            }
+        } else {
+            // ── No target: fly straight, bounce off screen edges (max 2 bounces) ──
+            b._bounces = b._bounces || 0;
+            let bounced = false;
+            if (b.x < 0 || b.x > canvas.width) { b.vx = -b.vx; b._bounces++; bounced = true; }
+            if (b.y < 0 || b.y > canvas.height) { b.vy = -b.vy; b._bounces++; bounced = true; }
+            if (b._bounces >= 2 && !bounced) {
+                // Check if new enemies appeared
+                const newValid = enemies.filter(e =>
+                    !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath
+                );
+                if (newValid.length > 0) {
+                    b.targets = [...newValid].sort(() => Math.random() - 0.5);
+                    b.targetIdx = 0;
+                    b._bounces = 0;
+                } else {
+                    photoBrangs.splice(i, 1); continue;
+                }
+            }
+        }
+
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+
+        // ── Destroy enemy bullets along path ──
+        for (let ei = enemies.length - 1; ei >= 0; ei--) {
+            const eb = enemies[ei];
+            if (!eb.type.startsWith('enemy_bullet') || eb.type === 'abyssal_chain') continue;
+            if (Math.hypot(eb.x - b.x, eb.y - b.y) < BRANG_R + eb.size) eb.hp = 0;
+        }
+    }
+}
+
+function updatePrimevalSummonEffect(deltaTime) {
+    if (!primevalSummonEffect) return;
+    const eff = primevalSummonEffect;
+    eff.timer += deltaTime;
+
+    if (eff.phase === 'converge' && eff.timer >= 1800) {
+        eff.phase = 'flash';
+        eff.timer = 0;
+    } else if (eff.phase === 'flash' && eff.timer >= 400) {
+        // Transform the spirit
+        const spirit = eff.targetSpirit;
+        if (spirit && !spirit.isFinishing) {
+            spirit.isPhotokrystos = true;
+            spirit._summoningUp = false;
+            spirit.spawnTime = performance.now(); // reset 40s timer
+            spirit.duration = 40000;
+            spirit.shotsFiredSinceBarrage = 0;
+            spirit.volleyCount = 0;
+            spirit._btmStarted = false;
+            spirit._done = false;
+        }
+        primevalSummonEffect = null;
+    }
+
+    // Move effect to follow spirit during converge
+    if (eff.phase === 'converge' && eff.targetSpirit) {
+        eff.x = eff.targetSpirit.x;
+        eff.y = eff.targetSpirit.y;
     }
 }
 
@@ -256,6 +609,11 @@ function updateBladeArcProjectiles(deltaTime) {
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 if (checkMarchosiasArcShield(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
                 dealDamage(enemy, arc);
+                // Primeval Creation: blade arc from spirit = +2%
+                if (arc.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
+                    enemy._spiritKillCounted = true;
+                    primevalEnergy = Math.min(100, primevalEnergy + 2);
+                }
                 arc.hitEnemies.push(enemy);
             }
         }
@@ -266,7 +624,11 @@ function updateSpiritBullets(deltaTime) {
     let dt = deltaTime / 16.67;
     for (let i = spiritBullets.length - 1; i >= 0; i--) {
         let b = spiritBullets[i];
-        if (b.target && enemies.includes(b.target)) {
+        if (b.vx !== undefined && b.vy !== undefined && b.target === null) {
+            // Directional bullet (no homing)
+            b.x += b.vx * dt;
+            b.y += b.vy * dt;
+        } else if (b.target && enemies.includes(b.target)) {
             let dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
             if (d > 0) {
                 const speed = 8.8 * (b.speedMultiplier || 1);
@@ -277,14 +639,26 @@ function updateSpiritBullets(deltaTime) {
         b.lifetime -= deltaTime;
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing
+            // Phōtokrystos bullets destroy enemy bullets on contact
+            if (b.destroysEnemyBullets && enemy.type.startsWith('enemy_bullet')) {
+                if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < b.size + enemy.size) {
+                    enemy.hp = 0; // destroy bullet
+                }
+                continue;
+            }
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
                 if (checkMarchosiasArcShield(enemy, b, b.x, b.y)) {
                     b.lifetime = 0; break;
                 }
                 dealDamage(enemy, b);
+                // Primeval Creation: +2% from spirit kills (handleEnemyKill gives +1.25% to others)
+                if (b.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
+                    enemy._spiritKillCounted = true;
+                    primevalEnergy = Math.min(100, primevalEnergy + 2);
+                }
                 b.lifetime = 0;
-                createParticles(b.x, b.y, 5, 'lime', 1, 3);
+                createParticles(b.x, b.y, 5, b.isPhoto ? 'lime' : 'lime', 1, 3);
                 break;
             }
         }

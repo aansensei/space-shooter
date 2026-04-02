@@ -169,6 +169,34 @@ function update(rawDeltaTime) {
         if (!wave.active) return;
         wave.radius += wave.speed * dt;
 
+        if (wave._isBTMWave) {
+            // ── BTM final shockwave: 10 + 99% MaxHP, bypasses ALL shields/Iron Body ──
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                if (wave._hitEnemies.has(e)) continue;
+                const d = Math.hypot(e.x - wave.x, e.y - wave.y);
+                if (d < wave.radius + 20) {
+                    wave._hitEnemies.add(e);
+                    if (e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') {
+                        e.hp = 0; // clear bullets
+                    } else if (e.type !== 'abyssal_chain') {
+                        // Bypass everything: shields, DR, Iron Body, Absolute Shield
+                        const maxHp = e.maxHp || e.hp;
+                        const rawDmg = Math.ceil((wave._damage || 10) + maxHp * (wave._percentDamage || 0.99));
+                        e.hp = Math.max(0, e.hp - rawDmg);
+                        e.shield = 0;
+                        e.absoluteShield = false;
+                        e.aegisInvulnerable = false;
+                        e.marchosiasParasiteShield = 0;
+                        if (e.hp <= 0) e._markedForDeath = true;
+                        createParticles(e.x, e.y, 6, '#00ffaa', 1, 4);
+                    }
+                }
+            }
+            if (wave.radius >= wave.maxRadius) wave.active = false;
+            return;
+        }
+
         for (let i = bullets.length - 1; i >= 0; i--) {
             let d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
             if (d < wave.radius + 20) {
@@ -177,12 +205,14 @@ function update(rawDeltaTime) {
             }
         }
         for (let i = spiritBullets.length - 1; i >= 0; i--) {
+            if (spiritBullets[i].isPhoto) continue; // Phōtokrystos bullets immune to Maou Haki
             let d = Math.hypot(spiritBullets[i].x - wave.x, spiritBullets[i].y - wave.y);
             if (d < wave.radius + 20) {
                 createParticles(spiritBullets[i].x, spiritBullets[i].y, 3, 'purple', 1, 3);
                 spiritBullets.splice(i, 1);
             }
         }
+        // photoBrangs are immune to Maou Haki (like bladeArcProjectiles)
 
         sentinels.forEach(sentinel => {
             if (!wave.hitSentinels.has(sentinel)) {
@@ -985,12 +1015,19 @@ function update(rawDeltaTime) {
     chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
 
     updateSentinels(deltaTime);
+    // ── Blessing of the Primordial: passive while Phōtokrystos is active ──
+    const _photoActive = typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done);
+    sentinels.forEach(s => {
+        s._blessingDR = _photoActive ? 0.08 : 0;   // +8% DR
+        s._blessingDmg = _photoActive ? 0.10 : 0;  // +10% dmg (read in dealDamage via sentinel source)
+    });
     updateSoulReaverDoT(deltaTime);
     updateSkillA(deltaTime);
     updateScatteredProjectiles(deltaTime);
     updateSpirits(deltaTime);
     updateBladeArcProjectiles(deltaTime);
     updateSpiritBullets(deltaTime);
+    updatePhotoBrangs(deltaTime);
     updateSkillD(deltaTime);
     updateSkillF(deltaTime);
     updateEnergyOrbs(deltaTime, currentTime);
@@ -1188,6 +1225,8 @@ function startGame() {
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; blackHole = null;
+    photoBrangs = []; primevalSummonEffect = null;
+    primevalEnergy = 0; _spiritCooldownOverrideUntil = 0;
     bossShockwaves = [];
     aegisLasers = [];
     marchosiasBlades = [];

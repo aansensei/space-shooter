@@ -17,7 +17,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 | Spacebar (hold 3 seconds) | Overload Laser |
 | Shift Left / Right | Skill: Yog-Sothoth Domain |
 | A | Skill: Thunder Orbs |
-| S | Skill: Remembrance Spirit |
+| S | Skill: Remembrance Spirit / Primeval Creation |
 | D | Skill: Cosmic Black Hole |
 | F | Skill: Annihilation Sweep |
 | G | Skill: Life Domain / Tesla Matrix |
@@ -207,14 +207,37 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 ### S — Remembrance Spirit: Summoned Spirit Judgment
 
-**Cooldown:** 12s | **Max:** 2 Spirits
+**Cooldown:** 12s | Max 1 active Spirit
 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
 - **Spirit Bullet:** 5 base + 4% Max HP, homing, +10% flight speed bonus.
 - **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 10 base + 16% Max HP.
-- **All Spirit attacks** cut through and destroy enemy bullets on contact.
 - **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% Max HP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% Max HP, bounce off walls).
+
+---
+
+**Passive: Primeval Creation**
+
+Every time the Spirit (or its attacks) kills an enemy, it charges a **mana meter** displayed on the Skill S button: **+2% per spirit kill**, **+1.25% per kill from any other source**. At **100%**, press S again to transform the Spirit into **Phōtokrystos**. Cannot activate if the Spirit has already entered its Finale. The meter resets if the Spirit enters Finale without transformation.
+
+---
+
+### Phōtokrystos — Đại Tinh Linh Khởi Nguyên
+
+Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A summoning circle (8-pointed star, kanji **開天立地**) appears and the Spirit transforms. The 40-second duration begins on the **first attack** after transformation.
+
+**Duration:** 40s (from first shot) | **Cooldown:** 12s (starts at summon, unlocks after BTM ends) | **Size:** +20% vs normal Spirit
+
+**Normal Attack** — Every **43ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **10 base + 10% Max HP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
+
+**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **15 base + 24% Max HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present, the throw is queued; fires immediately when enemies appear. If target disappears mid-flight, the boomerang flies straight and bounces off screen edges up to 2 times.
+
+**Passive: Danger? Not Today!** — If any enemy enters **100px** of the player, Phōtokrystos instantly throws **1 boomerang** (3s cooldown).
+
+**Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels gain **+8% Damage Reduction**, all allied damage is boosted by **+10%**, and every time a Sentinel kills an enemy, **all Sentinels recover +2 HP**.
+
+**Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **15 base + 45% Max HP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% Max HP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
 
 ---
 
