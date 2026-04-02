@@ -4586,27 +4586,33 @@ function drawPhotokrystos(spirit) {
             ? Math.min(1, spirit._btmTimer / 500)
             : Math.min(1, spirit._btmTimer / 3500);
         ctx.save();
-        // ── Full-screen barrier overlay ──
+        // ── Full-screen barrier overlay (mobile: solid color, desktop: gradient) ──
         const barrierAlpha = btmRatio * 0.18;
-        const barrierGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        barrierGrad.addColorStop(0, `rgba(150,255,200,${barrierAlpha * 1.4})`);
-        barrierGrad.addColorStop(0.5, `rgba(0,255,120,${barrierAlpha})`);
-        barrierGrad.addColorStop(1, `rgba(0,80,40,${barrierAlpha * 0.5})`);
-        ctx.fillStyle = barrierGrad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Barrier border lines (top + sides)
-        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20 * btmRatio; }
+        if (_mobPerf) {
+            ctx.fillStyle = `rgba(0,200,80,${barrierAlpha})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else {
+            const barrierGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            barrierGrad.addColorStop(0, `rgba(150,255,200,${barrierAlpha * 1.4})`);
+            barrierGrad.addColorStop(0.5, `rgba(0,255,120,${barrierAlpha})`);
+            barrierGrad.addColorStop(1, `rgba(0,80,40,${barrierAlpha * 0.5})`);
+            ctx.fillStyle = barrierGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        // Barrier border + ornaments (mobile: border only)
         ctx.strokeStyle = `rgba(0,255,136,${0.7 * btmRatio})`; ctx.lineWidth = 3;
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20 * btmRatio; }
         ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
-        // Corner ornaments
-        const cLen = 30;
-        const corners = [[4, 4], [canvas.width - 4, 4], [4, canvas.height - 4], [canvas.width - 4, canvas.height - 4]];
-        const cDirs = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
-        ctx.strokeStyle = `rgba(167,255,197,${0.9 * btmRatio})`; ctx.lineWidth = 2.5;
-        for (let ci = 0; ci < 4; ci++) {
-            const [cx3, cy3] = corners[ci]; const [dx3, dy3] = cDirs[ci];
-            ctx.beginPath(); ctx.moveTo(cx3, cy3); ctx.lineTo(cx3 + dx3 * cLen, cy3); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(cx3, cy3); ctx.lineTo(cx3, cy3 + dy3 * cLen); ctx.stroke();
+        if (!_mobPerf) {
+            const cLen = 30;
+            const corners = [[4, 4], [canvas.width - 4, 4], [4, canvas.height - 4], [canvas.width - 4, canvas.height - 4]];
+            const cDirs = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
+            ctx.strokeStyle = `rgba(167,255,197,${0.9 * btmRatio})`; ctx.lineWidth = 2.5;
+            for (let ci = 0; ci < 4; ci++) {
+                const [cx3, cy3] = corners[ci]; const [dx3, dy3] = cDirs[ci];
+                ctx.beginPath(); ctx.moveTo(cx3, cy3); ctx.lineTo(cx3 + dx3 * cLen, cy3); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx3, cy3); ctx.lineTo(cx3, cy3 + dy3 * cLen); ctx.stroke();
+            }
         }
         ctx.shadowBlur = 0;
 
@@ -4885,38 +4891,42 @@ function drawPhotoBrang(b) {
     ctx.translate(b.x, b.y);
     ctx.rotate(b.rotation);
 
-    const R = 48; // +15% from 42 → 48
-    if (!_mobPerf) { ctx.shadowColor = '#a7ffc5'; ctx.shadowBlur = 18; }
+    const R = 48;
 
-    // Wide energy wash
-    ctx.strokeStyle = 'rgba(45,255,115,0.15)'; ctx.lineWidth = 24;
-    ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-
-    // Outer glow
-    ctx.strokeStyle = 'rgba(45,255,115,0.35)'; ctx.lineWidth = 14;
-    ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-
-    // Main blade arc
-    ctx.strokeStyle = 'rgba(167,255,197,0.95)'; ctx.lineWidth = 5;
-    if (!_mobPerf) { ctx.shadowColor = 'white'; ctx.shadowBlur = 18; }
-    ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-
-    // Bright inner edge
-    ctx.strokeStyle = 'rgba(255,255,230,0.6)'; ctx.lineWidth = 1.5;
-    ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(0, 0, R - 2, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-
-    // Sparkle dots along arc
-    const sqCount = 10;
-    for (let i = 0; i < sqCount; i++) {
-        const a = -Math.PI / 2 + (Math.PI / (sqCount - 1)) * i;
-        const r2 = R + (((i * 17 + Math.floor(now / 100)) % 4) - 2) * 4;
-        const sqA = 0.5 + 0.5 * Math.abs(Math.sin(now / 130 + i * 1.4));
-        ctx.fillStyle = `rgba(${180 + Math.floor(70 * Math.sin(i))},255,${180 + Math.floor(70 * Math.cos(i))},${sqA})`;
-        ctx.save(); ctx.translate(Math.cos(a) * r2, Math.sin(a) * r2); ctx.rotate(now / 200 + i);
-        ctx.fillRect(-2.5, -2.5, 5, 5); ctx.restore();
+    if (_mobPerf) {
+        // ── Mobile: lightweight 2-layer only ──
+        ctx.strokeStyle = 'rgba(45,255,115,0.5)'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,230,0.7)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, R - 2, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+    } else {
+        ctx.shadowColor = '#a7ffc5'; ctx.shadowBlur = 18;
+        // Wide energy wash
+        ctx.strokeStyle = 'rgba(45,255,115,0.15)'; ctx.lineWidth = 24;
+        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        // Outer glow
+        ctx.strokeStyle = 'rgba(45,255,115,0.35)'; ctx.lineWidth = 14;
+        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        // Main arc
+        ctx.strokeStyle = 'rgba(167,255,197,0.95)'; ctx.lineWidth = 5;
+        ctx.shadowColor = 'white'; ctx.shadowBlur = 18;
+        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        // Bright inner edge
+        ctx.strokeStyle = 'rgba(255,255,230,0.6)'; ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(0, 0, R - 2, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        // Sparkle dots
+        const sqCount = 10;
+        for (let i = 0; i < sqCount; i++) {
+            const a = -Math.PI / 2 + (Math.PI / (sqCount - 1)) * i;
+            const r2 = R + (((i * 17 + Math.floor(now / 100)) % 4) - 2) * 4;
+            const sqA = 0.5 + 0.5 * Math.abs(Math.sin(now / 130 + i * 1.4));
+            ctx.fillStyle = `rgba(${180 + Math.floor(70 * Math.sin(i))},255,${180 + Math.floor(70 * Math.cos(i))},${sqA})`;
+            ctx.save(); ctx.translate(Math.cos(a) * r2, Math.sin(a) * r2); ctx.rotate(now / 200 + i);
+            ctx.fillRect(-2.5, -2.5, 5, 5); ctx.restore();
+        }
+        ctx.shadowBlur = 0;
     }
-    ctx.shadowBlur = 0;
     ctx.restore();
 }
 
