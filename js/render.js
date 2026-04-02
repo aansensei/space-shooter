@@ -4583,8 +4583,46 @@ function drawPhotokrystos(spirit) {
     // BTM flame cone
     if (spirit._btmPhase === 'warming' || spirit._btmPhase === 'firing') {
         const btmRatio = spirit._btmPhase === 'warming'
-            ? Math.min(1, spirit._btmTimer / 500)
+            ? Math.min(1, spirit._btmTimer / 1200)
             : Math.min(1, spirit._btmTimer / 3500);
+
+        // ── Warming phase: dramatic flight aura ──
+        if (spirit._btmPhase === 'warming') {
+            const wp = btmRatio; // 0→1
+            ctx.save();
+            // Expanding energy ring
+            if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 30 * wp; }
+            for (let ring = 0; ring < 3; ring++) {
+                const ringR = (50 + ring * 35) * wp;
+                const ringA = Math.max(0, 0.7 - ring * 0.2) * (1 - wp * 0.5);
+                ctx.strokeStyle = `rgba(0,255,136,${ringA})`;
+                ctx.lineWidth = 4 - ring;
+                ctx.beginPath(); ctx.arc(sx, sy, ringR, 0, Math.PI * 2); ctx.stroke();
+            }
+            // Speed trail lines toward center
+            if (!_mobPerf) {
+                const cx2 = canvas.width / 2, cy2 = canvas.height * 0.35;
+                const dx2 = cx2 - sx, dy2 = cy2 - sy;
+                const len = Math.hypot(dx2, dy2) || 1;
+                for (let li = 0; li < 5; li++) {
+                    const frac = 0.2 + li * 0.15;
+                    ctx.strokeStyle = `rgba(167,255,197,${(0.6 - li * 0.1) * wp})`;
+                    ctx.lineWidth = 2 - li * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(sx + (dx2 / len) * frac * 60, sy + (dy2 / len) * frac * 60);
+                    ctx.lineTo(sx - (dx2 / len) * (frac * 40 + li * 8), sy - (dy2 / len) * (frac * 40 + li * 8));
+                    ctx.stroke();
+                }
+            }
+            // Wing glow pulse
+            const wPulse = 0.5 + 0.5 * Math.sin(now / 80); // fast pulse
+            ctx.globalAlpha = wp * wPulse * 0.5;
+            ctx.fillStyle = 'rgba(0,255,136,1)';
+            ctx.beginPath(); ctx.arc(sx, sy, 30 * (1 + wp * 0.5), 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
         ctx.save();
         // ── Full-screen barrier overlay (mobile: solid color, desktop: gradient) ──
         const barrierAlpha = btmRatio * 0.18;

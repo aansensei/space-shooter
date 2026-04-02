@@ -218,7 +218,7 @@ function update(rawDeltaTime) {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.25 });
+                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.30 });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -243,7 +243,7 @@ function update(rawDeltaTime) {
 
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: s.maxHp * 0.18 });
+                        dealDamage(s, { damage: s.maxHp * 0.20 });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -378,9 +378,9 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.0288 * (deltaTime / 1000); // 2.88% per second
+            let healAmt = enemy.maxHp * 0.03 * (deltaTime / 1000); // 3% per second
             let shieldAmt = enemy.maxHp * 0.40;
-            let tickShieldAmt = enemy.maxHp * 0.05 * (deltaTime / 1000); // 5% MaxHP shield/s
+            let tickShieldAmt = enemy.maxHp * 0.08 * (deltaTime / 1000); // 8% MaxHP shield/s
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
@@ -412,7 +412,7 @@ function update(rawDeltaTime) {
                         ally.shield = (ally.shield || 0) + finalShield;
                         ally.aegisShieldReceived = true;
                     }
-                    // 5% MaxHP tick shield per second — always applies
+                    // 8% MaxHP tick shield per second — always applies
                     const tsAmt = ally.soulReaver ? tickShieldAmt * 0.75 : tickShieldAmt;
                     ally.shield = (ally.shield || 0) + tsAmt;
                 }
