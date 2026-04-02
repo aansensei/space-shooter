@@ -321,8 +321,16 @@ function updatePhotokrystos(spirit, deltaTime) {
 
     if (spirit._btmStarted) {
         spirit._btmTimer += deltaTime;
-        const BTM_WARM = 500, BTM_FIRE = 3500, BTM_REL = 500;
+        const BTM_WARM = 1200, BTM_FIRE = 3500, BTM_REL = 500; // warming extended to 1.2s for dramatic flight
 
+        if (spirit._btmPhase === 'warming') {
+            // Fly smoothly to screen center
+            const targetX = canvas.width / 2;
+            const targetY = canvas.height * 0.35; // slightly above center — dramatic position
+            const flySpeed = Math.min(1, spirit._btmTimer / BTM_WARM); // 0→1 over warm period
+            spirit.x += (targetX - spirit.x) * 0.08;
+            spirit.y += (targetY - spirit.y) * 0.08;
+        }
         if (spirit._btmPhase === 'warming' && spirit._btmTimer >= BTM_WARM) {
             spirit._btmPhase = 'firing';
             spirit._btmTimer = 0;
@@ -1159,10 +1167,13 @@ function updateMarchosiasBlades(deltaTime) {
             blade.hitPlayer = true;
             playerTakesHit();
         }
-        // Hit sentinel
+        // Hit sentinel — damage scales down with number of sentinels already hit
         for (const s of sentinels) {
             if (!blade.hitEnemies.includes(s) && Math.hypot(blade.x - s.x, blade.y - s.y) < blade.radius + s.size) {
-                dealDamage(s, { damage: s.maxHp * 0.20 });
+                // 1st sentinel hit: 30%, 2nd: 28%, 3rd+: 24%
+                const hitsAlready = blade.hitEnemies.length;
+                const pct = hitsAlready === 0 ? 0.30 : hitsAlready === 1 ? 0.28 : 0.24;
+                dealDamage(s, { damage: s.maxHp * pct });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
             }

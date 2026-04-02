@@ -123,6 +123,8 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 
 **Vanguard Network (Liên kết Vanguard)** — Activates automatically when **5 or more** Sentinels are alive (Magenta or Gold glow). All Sentinels are connected by energy threads and share incoming damage.
 
+*Damage Dampening:* Incoming damage is reduced based on how many distinct sources hit the network within a 100ms window — **1–2 sources:** ×1.00 | **3–4:** ×0.75 | **5–6:** ×0.55 | **7–8:** ×0.40 | **9+:** ×0.30. Additionally, any single source that hits 3+ times within 200ms: hit 3 = ×0.50, hit 4+ = ×0.15.
+
 *Damage Sharing:* Any hit directed at a Sentinel is intercepted by the network. The raw damage is split equally among all N Sentinels — each receiving `ceil(damage ÷ N)` as true damage (bypasses shields). A hit that would kill one Sentinel outright now only trims a small fraction of every Sentinel's HP.
 
 *AoE Dampening (Layer 1 — Bộ Giảm Chấn):* The network tracks how many Sentinels a given source has already hit. Each source (a Perseverance sweep, a death laser, etc.) gets its own independent hit counter:
@@ -231,7 +233,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Normal Attack** — Every **43ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **10 base + 10% Max HP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
 
-**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **15 base + 24% Max HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present, the throw is queued; fires immediately when enemies appear. If target disappears mid-flight, the boomerang flies straight and bounces off screen edges up to 2 times.
+**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **15 base + 24% Max HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is skipped. If a target disappears mid-flight, the boomerang flies straight and bounces off screen edges up to 2 times.
 
 **Passive: Danger? Not Today!** — If any enemy enters **100px** of the player, Phōtokrystos instantly throws **1 boomerang** (3s cooldown).
 
@@ -319,13 +321,13 @@ HP: **1,200–2,500**. Innate **+10% Damage Reduction**.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for **2.88% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
-- Grants every allied unit inside a **5% of Aegis Core's Max HP shield every second** (passive tick — stacks on top of the one-time 40% shield; units with any remaining shield also benefit from the +15% DR bonus).
+- Heals all ally units inside for **3% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Grants every allied unit inside an **8% of Aegis Core's Max HP shield every second** (passive tick — stacks on top of the one-time 40% shield; units with any remaining shield also benefit from the +15% DR bonus).
 - Grants a **shield** equal to **40% of Aegis Core's Max HP** to all allies inside (once per ally). Shielded units gain **+15% Damage Reduction** while the shield has any HP remaining.
 - If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
 - All enemies and enemy bullets inside move 5% faster.
 
-**Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a protective layer). Hitting a Sentinel deals 18% of its Max HP.
+**Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a protective layer). Hitting a Sentinel deals **20% of its Max HP**.
 
 ---
 
@@ -357,7 +359,7 @@ There is no hard limit on total Swords per fight. Each Marchosias has its own in
 1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** for 1 second.
 2. After 1 second, an orange arc projectile (radius 88) launches along that exact line. It does not home.
 3. Hits the player → all normal protective layers apply (Orb Sacrifice → Final Defense → Last Stand → lose a life).
-4. Hits a Sentinel → deals **20% of that Sentinel's Max HP**.
+4. Hits a Sentinel → deals **30% of that Sentinel's Max HP** on the 1st sentinel hit, **28%** on the 2nd, **24%** on the 3rd and beyond (same blade, per bounce).
 5. **Cannot be destroyed or deflected by anything.** Persists until it exits the screen.
 
 **Normal Attack**
@@ -402,7 +404,7 @@ HP: **2,520–8,399**. DR is fully dynamic — see Passive below.
 **Maou Haki** — Triggers once at **50% HP**:
 
 - Fires a screen-wide purple shockwave that instantly destroys all player and ally projectiles.
-- Any Sentinel hit loses **25% of its Max HP**.
+- Any Sentinel hit loses **30% of its Max HP**.
 
 ---
 

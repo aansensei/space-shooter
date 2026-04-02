@@ -1053,12 +1053,10 @@ function _applyVanguardDamage(rawDmg, sourceTag) {
     const vs = window._vanguardState;
     const now = performance.now();
 
-    // ── AoE Dampening bằng sourceTag ──────────────────────────────
-    // Mỗi sourceTag (beam id, laser id, ...) có counter riêng
+    // ── Per-source AoE Dampening ──────────────────────────────────
     if (!vs.tagHitCount) vs.tagHitCount = {};
     if (!vs.tagHitTime) vs.tagHitTime = {};
 
-    // Reset counter nếu source này lần trước đã > 200ms trước
     if (!vs.tagHitCount[sourceTag] || now - (vs.tagHitTime[sourceTag] || 0) > 200) {
         vs.tagHitCount[sourceTag] = 0;
     }
@@ -1066,11 +1064,28 @@ function _applyVanguardDamage(rawDmg, sourceTag) {
     vs.tagHitTime[sourceTag] = now;
 
     const hitIdx = vs.tagHitCount[sourceTag];
-    let dampening = 1.0;
-    if (hitIdx >= 4) dampening = 0.15;
-    else if (hitIdx === 3) dampening = 0.50;
+    let perSourceDamp = 1.0;
+    if (hitIdx >= 4) perSourceDamp = 0.15;
+    else if (hitIdx === 3) perSourceDamp = 0.50;
 
-    const dampenedDmg = Math.ceil(rawDmg * dampening);
+    // ── Multi-source AoE Dampening ────────────────────────────────
+    // Track unique sources hitting in last 100ms (1 frame window)
+    if (!vs.frameSources) vs.frameSources = {};
+    if (!vs.frameSourcesTime) vs.frameSourcesTime = now;
+    // Reset frame bucket every 100ms
+    if (now - vs.frameSourcesTime > 100) {
+        vs.frameSources = {};
+        vs.frameSourcesTime = now;
+    }
+    vs.frameSources[sourceTag] = true;
+    const uniqueSources = Object.keys(vs.frameSources).length;
+    let multiSourceDamp = 1.0;
+    if (uniqueSources >= 9) multiSourceDamp = 0.30;
+    else if (uniqueSources >= 7) multiSourceDamp = 0.40;
+    else if (uniqueSources >= 5) multiSourceDamp = 0.55;
+    else if (uniqueSources >= 3) multiSourceDamp = 0.75;
+
+    const dampenedDmg = Math.ceil(rawDmg * perSourceDamp * multiSourceDamp);
 
     // ── Chia đều true damage cho tất cả sentinel ──────────────────
     const n = sentinels.length;
