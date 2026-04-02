@@ -225,7 +225,7 @@ Every time the Spirit (or its attacks) kills an enemy, it charges a **mana meter
 
 ### Phōtokrystos — Đại Tinh Linh Khởi Nguyên
 
-Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A summoning circle (8-pointed star, kanji **開天立地**) appears and the Spirit transforms. The 40-second duration begins on the **first attack** after transformation.
+Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A summoning circle appears and the Spirit transforms. The 40-second duration begins on the **first attack** after transformation.
 
 **Duration:** 40s (from first shot) | **Cooldown:** 12s (starts at summon, unlocks after BTM ends) | **Size:** +20% vs normal Spirit
 
