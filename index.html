@@ -3,14 +3,16 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pisces: Space Journey</title>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="apple-touch-icon" href="images/logo.png">
 
     <!-- Open Graph / Social Preview -->
     <meta property="og:title" content="Pisces: Space Journey" />
-    <meta property="og:description" content="A fast-paced arcade space shooter with deep combat mechanics. Survive endless enemy waves!" />
+    <meta property="og:description"
+        content="A fast-paced arcade space shooter with deep combat mechanics. Survive endless enemy waves!" />
     <meta property="og:image" content="https://aansensei.github.io/space-shooter/images/logo.png" />
     <meta property="og:url" content="https://aansensei.github.io/space-shooter/" />
     <meta property="og:type" content="website" />
@@ -48,7 +50,8 @@
             height: 100vh;
             z-index: 99999;
             background: #000;
-            touch-action: none; /* prevent double-tap zoom */
+            touch-action: none;
+            /* prevent double-tap zoom */
         }
 
         #star-canvas {
@@ -297,18 +300,28 @@
         <canvas id="star-canvas"></canvas>
         <div id="ui-wrapper">
             <div id="lock-screen">
-                <h1 style="color:#00e5ff; font-size:clamp(1.6rem,5vw,3.5rem); text-shadow:0 0 25px rgba(0,229,255,0.8); margin-bottom:20px; font-family:'Playfair Display',serif; letter-spacing:3px;">
+                <h1
+                    style="color:#00e5ff; font-size:clamp(1.6rem,5vw,3.5rem); text-shadow:0 0 25px rgba(0,229,255,0.8); margin-bottom:20px; font-family:'Playfair Display',serif; letter-spacing:3px;">
                     Pisces: Space Journey
                 </h1>
 
                 <!-- Platform picker — equal size buttons -->
                 <div style="display:flex; gap:20px; justify-content:center; margin-bottom:16px; width:340px;">
                     <button id="btn-pc" onclick="selectPlatform('pc')" class="pf-btn pf-active" style="flex:1;">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                        </svg>
                         <span>PC</span>
                     </button>
                     <button id="btn-mobile" onclick="selectPlatform('mobile')" class="pf-btn" style="flex:1;">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2" width="14" height="20" rx="2" />
+                            <circle cx="12" cy="18" r="1" />
+                        </svg>
                         <span>Mobile</span>
                     </button>
                 </div>
@@ -332,7 +345,8 @@
             <div id="guideOverlay" style="display:none; position:fixed; inset:0; z-index:500;
                 background:rgba(0,3,10,0.92); backdrop-filter:blur(14px);
                 justify-content:center; align-items:center;">
-                <div style="position:relative; width:min(94vw,860px); max-height:92vh; display:flex; flex-direction:column;">
+                <div
+                    style="position:relative; width:min(94vw,860px); max-height:92vh; display:flex; flex-direction:column;">
                     <button onclick="closeGuide()" style="
                         position:absolute; top:-16px; right:-16px; z-index:10;
                         width:36px; height:36px; background:rgba(255,60,60,0.15);
@@ -360,7 +374,7 @@
                 function closeGuide() {
                     document.getElementById('guideOverlay').style.display = 'none';
                 }
-                document.getElementById('guideOverlay').addEventListener('click', function(e) {
+                document.getElementById('guideOverlay').addEventListener('click', function (e) {
                     if (e.target === this) closeGuide();
                 });
             </script>
@@ -574,7 +588,7 @@
 
                 // Audio: soundtrack1 tiếp tục ở 50%, hyperjump sound chồng lên
                 sndTitle.volume = 0.25; // giảm 50% so với bình thường (0.50 → 0.25)
-                sndHyperjump.play().catch(()=>{});
+                sndHyperjump.play().catch(() => { });
 
                 setTimeout(() => { progressBar.style.width = '100%'; }, 50);
                 setTimeout(() => {
@@ -612,93 +626,152 @@
     <style>
         /* Platform picker buttons */
         .pf-btn {
-            display:flex; flex-direction:column; align-items:center; gap:6px;
-            padding:14px 24px; border-radius:12px; cursor:pointer;
-            font-family:'Roboto',sans-serif; font-size:12px; letter-spacing:1px;
-            background:rgba(0,229,255,0.06); border:1.5px solid rgba(0,229,255,0.3);
-            color:rgba(0,229,255,0.5); transition:all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            background: rgba(0, 229, 255, 0.06);
+            border: 1.5px solid rgba(0, 229, 255, 0.3);
+            color: rgba(0, 229, 255, 0.5);
+            transition: all 0.2s;
         }
-        .pf-btn:hover { background:rgba(0,229,255,0.12); border-color:rgba(0,229,255,0.6); color:#00e5ff; }
-        .pf-active { background:rgba(0,229,255,0.15) !important; border-color:#00e5ff !important; color:#00e5ff !important; box-shadow:0 0 16px rgba(0,229,255,0.3); }
-        .pf-btn svg { opacity:0.7; }
-        .pf-active svg { opacity:1; }
+
+        .pf-btn:hover {
+            background: rgba(0, 229, 255, 0.12);
+            border-color: rgba(0, 229, 255, 0.6);
+            color: #00e5ff;
+        }
+
+        .pf-active {
+            background: rgba(0, 229, 255, 0.15) !important;
+            border-color: #00e5ff !important;
+            color: #00e5ff !important;
+            box-shadow: 0 0 16px rgba(0, 229, 255, 0.3);
+        }
+
+        .pf-btn svg {
+            opacity: 0.7;
+        }
+
+        .pf-active svg {
+            opacity: 1;
+        }
 
         /* Mobile buttons */
-        .mb { position:fixed; pointer-events:all; border-radius:50%;
-              display:flex; align-items:center; justify-content:center;
-              cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
+        .mb {
+            position: fixed;
+            pointer-events: all;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         /* Skill buttons */
         .mb-sk {
-            width:58px; height:58px;
-            background:rgba(15,15,35,0.7);
-            border:2px solid rgba(255,255,255,0.2);
-            font-family:'Roboto Mono',monospace; font-size:13px; font-weight:700; color:#fff;
-            cursor:pointer; /* required for iOS touch on non-button elements */
+            width: 58px;
+            height: 58px;
+            background: rgba(15, 15, 35, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            /* required for iOS touch on non-button elements */
             -webkit-tap-highlight-color: transparent;
         }
-        .mb-sk.cd { opacity:0.4; }
-        .mb-sk canvas { position:absolute; inset:0; pointer-events:none; }
+
+        .mb-sk.cd {
+            opacity: 0.4;
+        }
+
+        .mb-sk canvas {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
 
         /* Arrow buttons */
         .mb-ar {
-            width:72px; height:72px;
-            background:rgba(255,255,255,0.07);
-            border:2px solid rgba(255,255,255,0.2);
+            width: 72px;
+            height: 72px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.2);
         }
-        .mb-ar svg { width:30px; height:30px; pointer-events:none; }
-        .mb-ar.held { background:rgba(255,255,255,0.25); }
-        .mb-sk.held { transform:scale(0.9); }
+
+        .mb-ar svg {
+            width: 30px;
+            height: 30px;
+            pointer-events: none;
+        }
+
+        .mb-ar.held {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .mb-sk.held {
+            transform: scale(0.9);
+        }
     </style>
 
     <script>
-    (function(){
-        let _plat = 'pc';
-        window._platform = 'pc'; // exposed for render.js
+        (function () {
+            let _plat = 'pc';
+            window._platform = 'pc'; // exposed for render.js
 
-        window.selectPlatform = function(p) {
-            _plat = p;
-            window._platform = p; // keep render.js in sync
-            document.getElementById('btn-pc').classList.toggle('pf-active', p==='pc');
-            document.getElementById('btn-mobile').classList.toggle('pf-active', p==='mobile');
-        };
+            window.selectPlatform = function (p) {
+                _plat = p;
+                window._platform = p; // keep render.js in sync
+                document.getElementById('btn-pc').classList.toggle('pf-active', p === 'pc');
+                document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
+            };
 
-        // ── MOBILE CONTROLS INIT ──────────────────────────────────
-        window._initMobileControls = function() {
-            if (_plat !== 'mobile') return;
+            // ── MOBILE CONTROLS INIT ──────────────────────────────────
+            window._initMobileControls = function () {
+                if (_plat !== 'mobile') return;
 
-            // Canvas inflate: logical size = screen * 1.282
-            // CSS size = screen (browser composites at CSS size — GPU safe)
-            // Result: game world fits full screen, objects appear 78% smaller
-            const physW = window.innerWidth;
-            const physH = window.innerHeight;
-            const S = 1 / 0.78; // 1.282
-            const cv = document.getElementById('gameCanvas');
-            cv.style.width  = physW + 'px';
-            cv.style.height = physH + 'px';
-            cv.width  = Math.round(physW * S);
-            cv.height = Math.round(physH * S);
+                // Canvas inflate: logical size = screen * 1.282
+                // CSS size = screen (browser composites at CSS size — GPU safe)
+                // Result: game world fits full screen, objects appear 78% smaller
+                const physW = window.innerWidth;
+                const physH = window.innerHeight;
+                const S = 1 / 0.78; // 1.282
+                const cv = document.getElementById('gameCanvas');
+                cv.style.width = physW + 'px';
+                cv.style.height = physH + 'px';
+                cv.width = Math.round(physW * S);
+                cv.height = Math.round(physH * S);
 
-            // Update game globals to use new logical size
-            boundaryY = cv.height - 10;
-            player.x  = cv.width  / 2;
-            player.y  = boundaryY - 18;
-            if (typeof skillASensorRadius !== 'undefined')
-                skillASensorRadius = Math.min(cv.width, cv.height) * 0.9;
+                // Update game globals to use new logical size
+                boundaryY = cv.height - 10;
+                player.x = cv.width / 2;
+                player.y = boundaryY - 18;
+                if (typeof skillASensorRadius !== 'undefined')
+                    skillASensorRadius = Math.min(cv.width, cv.height) * 0.9;
 
-            cv.style.pointerEvents = 'none';
-            if (typeof _initMobilePerf === 'function') _initMobilePerf();
+                cv.style.pointerEvents = 'none';
+                if (typeof _initMobilePerf === 'function') _initMobilePerf();
 
-            const mc = document.getElementById('mc');
-            mc.style.display = 'block';
-            mc.innerHTML = _buildMobileHTML();
-            _startCooldownLoop();
-        };
+                const mc = document.getElementById('mc');
+                mc.style.display = 'block';
+                mc.innerHTML = _buildMobileHTML();
+                _startCooldownLoop();
+            };
 
-        function _buildMobileHTML() {
-            // Wrappers for hold-based buttons (YOG, CHARGE, arrows)
-            // Use ontouchstart/end directly — modern mobile handles multi-touch fine
-            return `
+            function _buildMobileHTML() {
+                // Wrappers for hold-based buttons (YOG, CHARGE, arrows)
+                // Use ontouchstart/end directly — modern mobile handles multi-touch fine
+                return `
                 <div class="mb mb-sk" id="mb-yog" style="bottom:180px;left:26px;"
                     ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')"
                     onmousedown="_mbDown('mb-yog')" onmouseup="_mbUp('mb-yog')">
@@ -747,139 +820,173 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
             `;
-        }
+            }
 
-        // ── HOLD BUTTON ACTIONS ───────────────────────────────────
-        // Micro haptic — 15ms, barely perceptible
-        window._hap = function() { try { navigator.vibrate && navigator.vibrate(15); } catch(e){} }
+            // ── HOLD BUTTON ACTIONS ───────────────────────────────────
+            // Micro haptic — 15ms, barely perceptible
+            window._hap = function () { try { navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
 
-        window._mbDown = function(id) {
-            _hap();
-            try {
-                if (id==='mb-yog') {
-                    if (!skillShiftActive && performance.now()-lastSkillShift>=skillShiftCooldown) {
-                        skillShiftActive=true; skillShiftChargeStart=performance.now();
-                    }
-                } else if (id==='mb-ch') {
-                    if (!charging&&!laserActive&&!skillShiftActive) {
-                        charging=true; chargeStartTime=performance.now();
-                    }
-                } else if (id==='mb-left') {
-                    if (skillShiftActive) executeShiftTeleport('left');
-                    else keys.left=true;
-                } else if (id==='mb-right') {
-                    if (skillShiftActive) executeShiftTeleport('right');
-                    else keys.right=true;
-                }
-            } catch(e){}
-        };
-        window._mbUp = function(id) {
-            try {
-                if (id==='mb-yog') {
-                    if (typeof cancelSkillShift==='function') cancelSkillShift();
-                } else if (id==='mb-ch') {
-                    if (charging&&!laserActive) {
-                        const dur=performance.now()-chargeStartTime;
-                        if (dur<overloadChargeTime) {
-                            const m=1+((Math.min(dur,maxChargeTime)/maxChargeTime)*(maxMultiplier-1));
-                            fireChargedBullet(Math.min(m,maxMultiplier));
-                        }
-                        charging=false;
-                    }
-                } else if (id==='mb-left')  { keys.left=false;  }
-                  else if (id==='mb-right') { keys.right=false; }
-            } catch(e){}
-        };
-
-        // ── COOLDOWN RING PAINTER ────────────────────────────────
-        const CIRC = 2 * Math.PI * 26; // r=26 on 58×58 canvas
-        function _paintRing(cvId, frac, color) {
-            const cv = document.getElementById(cvId);
-            if (!cv) return;
-            const ctx = cv.getContext('2d');
-            ctx.clearRect(0,0,58,58);
-            if (frac >= 1) return; // ready — no ring needed
-            // background arc
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-            ctx.lineWidth = 4; ctx.lineCap = 'round';
-            ctx.beginPath(); ctx.arc(29,29,26,0,Math.PI*2); ctx.stroke();
-            // cooldown arc (how much is remaining)
-            ctx.strokeStyle = color;
-            ctx.beginPath();
-            ctx.arc(29,29,26, -Math.PI/2, -Math.PI/2 + (1-frac)*Math.PI*2);
-            ctx.stroke();
-        }
-
-        function _ready(last, cd) { return Math.min(1,(performance.now()-last)/cd); }
-        function _readyEnd(end, cd) { if(!end||end<=0)return 1; return Math.min(1,Math.max(0,(performance.now()-(end-cd))/cd)); }
-
-        function _startCooldownLoop() {
-            function loop() {
-                if (_plat !== 'mobile') return;
+            window._mbDown = function (id) {
+                _hap();
                 try {
-                    const now = performance.now();
-                    // YOG
-                    const yr = _ready(lastSkillShift, skillShiftCooldown);
-                    _paintRing('mb-yog-cv', yr, '#ffcc00');
-                    document.getElementById('mb-yog')?.classList.toggle('cd', yr<1);
-                    // A
-                    const ar = _ready(lastSkillA, skillACooldown);
-                    _paintRing('mb-a-cv', ar, '#8888ff');
-                    document.getElementById('mb-a')?.classList.toggle('cd', ar<1);
-                    // S
-                    const sr = _ready(lastSkillS, skillSCooldown);
-                    _paintRing('mb-s-cv', sr, '#00e5ff');
-                    document.getElementById('mb-s')?.classList.toggle('cd', sr<1);
-                    // D
-                    const dr = _ready(lastSkillD, skillDCooldown);
-                    _paintRing('mb-d-cv', dr, '#bb88ff');
-                    document.getElementById('mb-d')?.classList.toggle('cd', dr<1);
-                    // F
-                    const fr = _ready(lastSkillF, skillFCooldown);
-                    _paintRing('mb-f-cv', fr, '#ff6666');
-                    document.getElementById('mb-f')?.classList.toggle('cd', fr<1);
-                    // G — charge based 0-100
-                    const gc = typeof skillGCharge!=='undefined' ? skillGCharge : 0;
-                    const gr = (typeof skillGActive!=='undefined'&&skillGActive) ? 1 : gc/100;
-                    _paintRing('mb-g-cv', gr, '#00ffcc');
-                    const gEl = document.getElementById('mb-g');
-                    if (gEl) {
-                        gEl.classList.toggle('cd', gr<1);
-                        gEl.querySelector('span').textContent = (gr<1&&!skillGActive) ? Math.floor(gr*100)+'%' : 'G';
-                    }
-                    // CHARGE / laser
-                    const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
-                    _paintRing('mb-ch-cv', cr, '#00e5ff');
-                    document.getElementById('mb-ch')?.classList.toggle('cd', cr<1);
-
-                    // ── Silence X overlay on all skill buttons ────────────
-                    const silenced = typeof player !== 'undefined' && player._silenced;
-                    const skillBtnIds = ['mb-yog','mb-a','mb-s','mb-d','mb-f','mb-g','mb-ch'];
-                    skillBtnIds.forEach(id => {
-                        const cv = document.getElementById(id + '-cv');
-                        if (!cv) return;
-                        if (silenced) {
-                            // Draw X on the cooldown canvas — no DOM injection, no position change
-                            const c2 = cv.getContext('2d');
-                            const w = cv.width, h = cv.height;
-                            c2.save();
-                            c2.strokeStyle = 'rgba(255,30,30,0.9)';
-                            c2.lineWidth = 6;
-                            c2.lineCap = 'round';
-                            const m = w * 0.2;
-                            c2.beginPath(); c2.moveTo(m, m); c2.lineTo(w-m, h-m); c2.stroke();
-                            c2.beginPath(); c2.moveTo(w-m, m); c2.lineTo(m, h-m); c2.stroke();
-                            c2.restore();
+                    if (id === 'mb-yog') {
+                        if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown) {
+                            skillShiftActive = true; skillShiftChargeStart = performance.now();
                         }
-                    });
-                } catch(e){}
+                    } else if (id === 'mb-ch') {
+                        if (!charging && !laserActive && !skillShiftActive) {
+                            charging = true; chargeStartTime = performance.now();
+                        }
+                    } else if (id === 'mb-left') {
+                        if (skillShiftActive) executeShiftTeleport('left');
+                        else keys.left = true;
+                    } else if (id === 'mb-right') {
+                        if (skillShiftActive) executeShiftTeleport('right');
+                        else keys.right = true;
+                    }
+                } catch (e) { }
+            };
+            window._mbUp = function (id) {
+                try {
+                    if (id === 'mb-yog') {
+                        if (typeof cancelSkillShift === 'function') cancelSkillShift();
+                    } else if (id === 'mb-ch') {
+                        if (charging && !laserActive) {
+                            const dur = performance.now() - chargeStartTime;
+                            if (dur < overloadChargeTime) {
+                                const m = 1 + ((Math.min(dur, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
+                                fireChargedBullet(Math.min(m, maxMultiplier));
+                            }
+                            charging = false;
+                        }
+                    } else if (id === 'mb-left') { keys.left = false; }
+                    else if (id === 'mb-right') { keys.right = false; }
+                } catch (e) { }
+            };
+
+            // ── COOLDOWN RING PAINTER ────────────────────────────────
+            const CIRC = 2 * Math.PI * 26; // r=26 on 58×58 canvas
+            function _paintRing(cvId, frac, color) {
+                const cv = document.getElementById(cvId);
+                if (!cv) return;
+                const ctx = cv.getContext('2d');
+                ctx.clearRect(0, 0, 58, 58);
+                if (frac >= 1) return; // ready — no ring needed
+                // background arc
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.lineWidth = 4; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.arc(29, 29, 26, 0, Math.PI * 2); ctx.stroke();
+                // cooldown arc (how much is remaining)
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                ctx.arc(29, 29, 26, -Math.PI / 2, -Math.PI / 2 + (1 - frac) * Math.PI * 2);
+                ctx.stroke();
+            }
+
+            function _ready(last, cd) { return Math.min(1, (performance.now() - last) / cd); }
+            function _readyEnd(end, cd) { if (!end || end <= 0) return 1; return Math.min(1, Math.max(0, (performance.now() - (end - cd)) / cd)); }
+
+            function _startCooldownLoop() {
+                function loop() {
+                    if (_plat !== 'mobile') return;
+                    try {
+                        const now = performance.now();
+                        // YOG
+                        const yr = _ready(lastSkillShift, skillShiftCooldown);
+                        _paintRing('mb-yog-cv', yr, '#ffcc00');
+                        document.getElementById('mb-yog')?.classList.toggle('cd', yr < 1);
+                        // A
+                        const ar = _ready(lastSkillA, skillACooldown);
+                        _paintRing('mb-a-cv', ar, '#8888ff');
+                        document.getElementById('mb-a')?.classList.toggle('cd', ar < 1);
+                        // S
+                        // S: show mana if spirit alive, else cooldown
+                        const _hasSpirit2 = typeof spirits !== 'undefined' && spirits.some(s2 => !s2.isFinishing);
+                        const _pEnergy = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
+                        if (_hasSpirit2 || _pEnergy > 0) {
+                            // Draw mana bar on canvas
+                            const _sCv = document.getElementById('mb-s-cv');
+                            if (_sCv) {
+                                const _sc = _sCv.getContext('2d');
+                                _sc.clearRect(0, 0, 58, 58);
+                                // Background circle
+                                _sc.strokeStyle = 'rgba(0,255,136,0.25)';
+                                _sc.lineWidth = 4; _sc.lineCap = 'round';
+                                _sc.beginPath(); _sc.arc(29, 29, 26, 0, Math.PI * 2); _sc.stroke();
+                                // Mana fill arc (bottom-up like rising water)
+                                const mFrac = _pEnergy / 100;
+                                if (mFrac > 0) {
+                                    const startA = Math.PI / 2; // start at bottom
+                                    const endA = Math.PI / 2 + Math.PI * 2 * mFrac;
+                                    _sc.strokeStyle = _pEnergy >= 100 ? '#00ff88' : '#22cc66';
+                                    _sc.lineWidth = 4;
+                                    _sc.beginPath(); _sc.arc(29, 29, 26, startA, endA); _sc.stroke();
+                                }
+                                // Glow if ready
+                                if (_pEnergy >= 100) {
+                                    _sc.strokeStyle = 'rgba(0,255,136,0.6)';
+                                    _sc.lineWidth = 2;
+                                    _sc.beginPath(); _sc.arc(29, 29, 29 + Math.sin(now / 200) * 2, 0, Math.PI * 2); _sc.stroke();
+                                }
+                            }
+                            document.getElementById('mb-s')?.classList.toggle('cd', false);
+                        } else {
+                            const _oCd = (typeof _spiritCooldownOverrideUntil !== 'undefined' && _spiritCooldownOverrideUntil > now)
+                                ? (_spiritCooldownOverrideUntil - now + skillSCooldown) : skillSCooldown;
+                            const sr = _ready(lastSkillS, _oCd);
+                            _paintRing('mb-s-cv', sr, '#00e5ff');
+                            document.getElementById('mb-s')?.classList.toggle('cd', sr < 1);
+                        }
+                        // D
+                        const dr = _ready(lastSkillD, skillDCooldown);
+                        _paintRing('mb-d-cv', dr, '#bb88ff');
+                        document.getElementById('mb-d')?.classList.toggle('cd', dr < 1);
+                        // F
+                        const fr = _ready(lastSkillF, skillFCooldown);
+                        _paintRing('mb-f-cv', fr, '#ff6666');
+                        document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
+                        // G — charge based 0-100
+                        const gc = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
+                        const gr = (typeof skillGActive !== 'undefined' && skillGActive) ? 1 : gc / 100;
+                        _paintRing('mb-g-cv', gr, '#00ffcc');
+                        const gEl = document.getElementById('mb-g');
+                        if (gEl) {
+                            gEl.classList.toggle('cd', gr < 1);
+                            gEl.querySelector('span').textContent = (gr < 1 && !skillGActive) ? Math.floor(gr * 100) + '%' : 'G';
+                        }
+                        // CHARGE / laser
+                        const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
+                        _paintRing('mb-ch-cv', cr, '#00e5ff');
+                        document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
+
+                        // ── Silence X overlay on all skill buttons ────────────
+                        const silenced = typeof player !== 'undefined' && player._silenced;
+                        const skillBtnIds = ['mb-yog', 'mb-a', 'mb-s', 'mb-d', 'mb-f', 'mb-g', 'mb-ch'];
+                        skillBtnIds.forEach(id => {
+                            const cv = document.getElementById(id + '-cv');
+                            if (!cv) return;
+                            if (silenced) {
+                                // Draw X on the cooldown canvas — no DOM injection, no position change
+                                const c2 = cv.getContext('2d');
+                                const w = cv.width, h = cv.height;
+                                c2.save();
+                                c2.strokeStyle = 'rgba(255,30,30,0.9)';
+                                c2.lineWidth = 6;
+                                c2.lineCap = 'round';
+                                const m = w * 0.2;
+                                c2.beginPath(); c2.moveTo(m, m); c2.lineTo(w - m, h - m); c2.stroke();
+                                c2.beginPath(); c2.moveTo(w - m, m); c2.lineTo(m, h - m); c2.stroke();
+                                c2.restore();
+                            }
+                        });
+                    } catch (e) { }
+                    requestAnimationFrame(loop);
+                }
                 requestAnimationFrame(loop);
             }
-            requestAnimationFrame(loop);
-        }
 
-        // ── MULTI-TOUCH: handled via direct ontouchstart on each button ──
-    })();
+            // ── MULTI-TOUCH: handled via direct ontouchstart on each button ──
+        })();
 
     </script>
 </body>

@@ -52,7 +52,11 @@ let skillADefensiveCharges = 0;
 
 // Skill S
 let spirits = [];
-const MAX_SPIRITS = 2;
+const MAX_SPIRITS = 2; // kept for compatibility
+let primevalEnergy = 0; // 0–100: Primeval Creation meter
+let photoBrangs = []; // bouncing boomerangs from Phōtokrystos
+let primevalSummonEffect = null; // summoning circle animation
+let _spiritCooldownOverrideUntil = 0; // after Phōtokrystos BTM, force 40s CD
 let lastSkillS = -Infinity;
 const skillSCooldown = 12000;
 let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [];

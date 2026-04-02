@@ -98,6 +98,14 @@ function distToSegment(p, v, w) {
 
 function handleEnemyKill(enemy) {
     score = Math.ceil(score + enemy.maxHp * 6);
+    // Primeval Creation: +1.25% energy per kill from non-spirit sources
+    if (!enemy._spiritKillCounted) {
+        primevalEnergy = Math.min(100, (primevalEnergy || 0) + 1.25);
+    }
+    // Blessing of the Primordial: sentinel kill → all sentinels +2 HP
+    if (enemy._killedBySentinel) {
+        sentinels.forEach(sen => { sen.hp = Math.min(sen.maxHp || 100, sen.hp + 2); });
+    }
     if (score >= nextLifeMilestone) {
         lives++;
         nextLifeMilestone += 500000;
@@ -474,7 +482,9 @@ function updateSentinels(deltaTime) {
         sentinel.shootTimer -= deltaTime;
         if (sentinel.shootTimer <= 0 && sentinel.target) {
             sentinel.shootTimer = sentinelFireRate;
-            sentinel.hp = Math.max(0, sentinel.hp - 1);
+            const _bDR = sentinel._blessingDR || 0;
+            const _hpCost = Math.max(0, 1 - _bDR); // Blessing: -8% cost
+            sentinel.hp = Math.max(0, sentinel.hp - _hpCost);
             const angle = sentinel.angle;
             const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * herdSpeedBonus;
 
@@ -483,19 +493,22 @@ function updateSentinels(deltaTime) {
             if (sentinel.shotsFiredSinceSpecial >= 4 || swarmSpecialForced) {
                 if (!swarmSpecialForced) sentinel.shotsFiredSinceSpecial = 0;
 
+                const _bDmg = 1 + (sentinel._blessingDmg || 0);
                 bullets.push({
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    damage: 6 * damageMultiplier, percentDamage: 0.07 * damageMultiplier, size: 30, type: 'sentinel_special',
+                    damage: 6 * damageMultiplier * _bDmg, percentDamage: 0.07 * damageMultiplier * _bDmg, size: 30, type: 'sentinel_special',
                     target: sentinel.target, speedMultiplier: 1.12 * speedMultiplier,
-                    sourceSentinel: sentinel
+                    sourceSentinel: sentinel, _isSentinelBullet: true
                 });
             } else {
+                const _bDmg2 = 1 + (sentinel._blessingDmg || 0);
                 bullets.push({
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
                     vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
-                    damage: 4 * damageMultiplier, percentDamage: 0.035 * damageMultiplier, size: 7.8, type: 'sentinel_auto'
+                    damage: 4 * damageMultiplier * _bDmg2, percentDamage: 0.035 * damageMultiplier * _bDmg2, size: 7.8, type: 'sentinel_auto',
+                    _isSentinelBullet: true
                 });
                 particles.push({ x: sentinel.x + Math.cos(angle) * (sentinel.size + 5), y: sentinel.y + Math.sin(angle) * (sentinel.size + 5), vx: 0, vy: 0, lifetime: 100, maxLifetime: 100, size: 5, color: 'orange' });
             }
@@ -747,18 +760,22 @@ function dealDamage(enemy, source) {
     }
 
     combinedDR = Math.min(0.99, combinedDR);
-    totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
-    totalDamage = Math.max(0, totalDamage);
-
-    // True damage window (4 Trọng Thương stacks): bypass shield hoàn toàn trong 2s
-    if (inTrueDmgWindow) {
-        enemy.hp -= totalDamage; // skip shield, apply trực tiếp vào HP
-    } else {
-        const damageToShield = Math.min(enemy.shield, totalDamage);
-        enemy.shield -= damageToShield;
-        enemy.shield = Math.max(0, enemy.shield);
-        totalDamage -= damageToShield;
+    // True damage: skip DR and shield entirely
+    if (source.isTrueDamage) {
         enemy.hp -= totalDamage;
+    } else {
+        totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
+        totalDamage = Math.max(0, totalDamage);
+        // True damage window (4 Trọng Thương stacks): bypass shield hoàn toàn trong 2s
+        if (inTrueDmgWindow) {
+            enemy.hp -= totalDamage;
+        } else {
+            const damageToShield = Math.min(enemy.shield, totalDamage);
+            enemy.shield -= damageToShield;
+            enemy.shield = Math.max(0, enemy.shield);
+            totalDamage -= damageToShield;
+            enemy.hp -= totalDamage;
+        }
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
