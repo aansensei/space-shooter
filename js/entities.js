@@ -121,7 +121,7 @@ function handleEnemyKill(enemy) {
     killCountForPassive++;
     // 30% cơ hội nhận thêm 1 điểm kill (tiến nhanh hơn tới mốc 3)
     if (Math.random() < 0.30) killCountForPassive++;
-    if (killCountForPassive % 3 === 0) {
+    if (killCountForPassive % 4 === 0) {
         spawnSentinel(player.x, player.y, false);
     }
 
@@ -147,7 +147,7 @@ function fireAutoShot() {
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 6, percentDamage: 0.04, size: 6.5, type: 'player_auto',
+            damage: 30, percentDamage: 0.02, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28  // 28% khả năng gây Trọng Thương
         });
     }
@@ -338,8 +338,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 function spawnNormalEnemy() {
     const size = 20 + Math.random() * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 15000);
-    let hp = Math.min(96, (Math.floor(Math.random() * 4) + 9 + hpFromTime));
-    hp *= 1.05;
+    let hp = Math.min(200, (Math.floor(Math.random() * 10) + 10 + hpFromTime * 2));
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
@@ -494,7 +493,7 @@ function updateSentinels(deltaTime) {
                 bullets.push({
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    damage: 6 * damageMultiplier * _bDmg, percentDamage: 0.07 * damageMultiplier * _bDmg, size: 30, type: 'sentinel_special',
+                    damage: 50 * damageMultiplier * _bDmg, percentDamage: 0.03 * damageMultiplier * _bDmg, size: 30, type: 'sentinel_special',
                     target: sentinel.target, speedMultiplier: 1.12 * speedMultiplier,
                     sourceSentinel: sentinel, _isSentinelBullet: true
                 });
@@ -504,7 +503,7 @@ function updateSentinels(deltaTime) {
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
                     vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
-                    damage: 4 * damageMultiplier * _bDmg2, percentDamage: 0.035 * damageMultiplier * _bDmg2, size: 7.8, type: 'sentinel_auto',
+                    damage: 30 * damageMultiplier * _bDmg2, percentDamage: 0.015 * damageMultiplier * _bDmg2, size: 7.8, type: 'sentinel_auto',
                     _isSentinelBullet: true
                 });
                 particles.push({ x: sentinel.x + Math.cos(angle) * (sentinel.size + 5), y: sentinel.y + Math.sin(angle) * (sentinel.size + 5), vx: 0, vy: 0, lifetime: 100, maxLifetime: 100, size: 5, color: 'orange' });
