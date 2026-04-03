@@ -437,7 +437,7 @@ When the quota is reached, Leviathan charges a **Perseverance sweep** (red warni
 When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns. All 9 lasers then fire simultaneously, reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
-- Hitting a Sentinel deals **true damage**: **(hits ÷ 2) × (1%–3% of that Sentinel's Max HP)**, capped at **50% of Max HP**. The percentage scales with accumulated hit count (1% at 0 hits, 3% at 250 hits).
+- Hitting a Sentinel deals **true damage**: **(hits ÷ 2) × 2.5% of that Sentinel's Max HP** (e.g. 10 stacks = 12.5%, 20 stacks = 25%), capped at **55% of Max HP**.
 
 **Normal Attack**
 
