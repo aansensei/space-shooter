@@ -102,10 +102,7 @@ function handleEnemyKill(enemy) {
     if (!enemy._spiritKillCounted) {
         primevalEnergy = Math.min(100, (primevalEnergy || 0) + 1.25);
     }
-    // Blessing of the Primordial: sentinel kill → all sentinels +2 HP
-    if (enemy._killedBySentinel) {
-        sentinels.forEach(sen => { sen.hp = Math.min(sen.maxHp || 100, sen.hp + 2); });
-    }
+    // Blessing HP regen handled in main.js update loop
     if (score >= nextLifeMilestone) {
         lives++;
         nextLifeMilestone += 500000;
@@ -236,7 +233,7 @@ function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
     // Base HP tăng thêm 12%
-    let hp = Math.ceil((2400 + Math.random() * 5599) * 1.05);
+    let hp = Math.ceil(3000 + Math.random() * 7079); // range: 3000–10079 (floor 3000, ceil 8399×1.2)
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
@@ -266,7 +263,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(2500, 1200 + hpFromTime * 40);
+    let hp = Math.min(2600, 1500 + hpFromTime * 40);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
@@ -281,7 +278,7 @@ function spawnMarchosias() {
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9 * 1.067; // ~1.6 u/s
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(3062, 1392 + hpFromTime * 42);
+    let hp = Math.min(3100, 1600 + hpFromTime * 42);
 
     const shieldHp = hp;
 
@@ -483,7 +480,7 @@ function updateSentinels(deltaTime) {
         if (sentinel.shootTimer <= 0 && sentinel.target) {
             sentinel.shootTimer = sentinelFireRate;
             const _bDR = sentinel._blessingDR || 0;
-            const _hpCost = Math.max(0, 1 - _bDR); // Blessing: -8% cost
+            const _hpCost = Math.max(0, 1 - _bDR); // Blessing: -15% cost
             sentinel.hp = Math.max(0, sentinel.hp - _hpCost);
             const angle = sentinel.angle;
             const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * herdSpeedBonus;
@@ -617,7 +614,7 @@ function dealDamage(enemy, source) {
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.aegisCustosHits = (enemy.aegisCustosHits || 0) + 1;
             addExplosion(enemy.x, enemy.y, enemy.size * 1.2, 'white');
-            if (enemy.aegisCustosHits >= 5) {
+            if (enemy.aegisCustosHits >= 6) {
                 enemy.aegisInvulnerable = false;
             }
             return;
@@ -684,7 +681,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'aegis_core') {
-        combinedDR += 0.10;
+        combinedDR += 0.25;
     }
 
     if (enemy.shield > 0 && enemy.aegisShieldReceived) {
@@ -692,7 +689,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'marchosias') {
-        combinedDR += 0.20;
+        combinedDR += 0.25;
     }
 
     if (enemy.type === 'marchosias_minion' && enemy.DR) {
@@ -700,13 +697,13 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'boss') {
-        // Maître suprême: 25% base + 2% per sentinel, capped at 36%
-        const maitreDR = Math.min(0.36, 0.25 + sentinels.length * 0.02);
+        // Maître suprême: 30% base + 2.5% per sentinel, capped at 40%
+        const maitreDR = Math.min(0.40, 0.30 + sentinels.length * 0.025);
         combinedDR += maitreDR;
     }
 
     if (enemy.type === 'leviathan') {
-        combinedDR += 0.45; // Leviathan base DR 45% (shield handled separately)
+        combinedDR += 0.50; // Leviathan base DR 50% (shield handled separately)
     }
 
     if (enemy.type === 'embryo') {
@@ -716,6 +713,7 @@ function dealDamage(enemy, source) {
     // Thủ Lĩnh Bầy Đàn (Envy): +25% DR, cộng dồn với mọi nguồn
     if (enemy.levEnvy) {
         combinedDR += 0.25;
+        // Envy 1% MaxHP/s regen handled in main loop
     }
 
     let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
@@ -870,7 +868,7 @@ function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
     const size = baseSize * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(9744, 5568 + hpFromTime * 42);
+    let hp = Math.min(11693, 6682 + hpFromTime * 42); // +20% on both limits
     hp = Math.ceil(hp * 1.05);
 
     // Y = random 6-9 kills để trigger announcement Perseverance → vỡ khiên

@@ -1894,6 +1894,34 @@ function drawSentinel(sentinel) {
         ctx.beginPath(); ctx.arc(x, y, size * 1.2, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
     }
+
+    // ── Blessing of the Primordial — green outer ring + shield glow ──
+    if (sentinel._blessingDR && sentinel._blessingDR > 0) {
+        ctx.save();
+        const bPulse = 0.55 + 0.45 * Math.sin(now / 700);
+        // Outer blessing ring
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 8; }
+        ctx.strokeStyle = `rgba(0,255,136,${0.6 * bPulse})`;
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([4, 4]);
+        ctx.lineDashOffset = -(now / 80) % 8;
+        ctx.beginPath(); ctx.arc(x, y, size + 6, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]); ctx.shadowBlur = 0;
+        // Shield glow (brighter when _blessingShield is full 50)
+        if (sentinel._blessingShield && sentinel._blessingShield > 0) {
+            const shFrac = sentinel._blessingShield / 50;
+            ctx.fillStyle = `rgba(0,255,136,${0.08 * shFrac * bPulse})`;
+            ctx.beginPath(); ctx.arc(x, y, size * 1.1, 0, Math.PI * 2); ctx.fill();
+        }
+        // Leviathan bonus: extra gold tinge
+        const _levPresent = enemies && enemies.some(e => e.type === 'leviathan' && e.hp > 0);
+        if (_levPresent) {
+            ctx.strokeStyle = `rgba(255,215,0,${0.5 * bPulse})`;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.arc(x, y, size + 11, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+    }
 }
 
 // ── Bullets (no shadowBlur – use gradient layers for depth) ──
@@ -1996,17 +2024,33 @@ function _drawDiamond(ctx, x, y, r) {
 // ── Spirit bullets (ALLY – magenta-pink, no shadowBlur) ────────
 function drawSpiritBullet(b) {
     ctx.save();
-    ctx.fillStyle = 'rgba(255,80,200,0.15)';
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
-    const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-    sg.addColorStop(0, '#ffffff');
-    sg.addColorStop(0.3, '#ff88dd');
-    sg.addColorStop(0.7, '#cc00aa');
-    sg.addColorStop(1, 'rgba(80,0,60,0.5)');
-    ctx.fillStyle = sg;
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,220,240,0.55)';
-    ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.2, b.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
+    if (b.isPhoto) {
+        // Phōtokrystos bullets — dark green
+        ctx.fillStyle = 'rgba(0,180,60,0.15)';
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
+        const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
+        sg.addColorStop(0, '#ffffff');
+        sg.addColorStop(0.3, '#80ff90');
+        sg.addColorStop(0.7, '#00aa30');
+        sg.addColorStop(1, 'rgba(0,40,10,0.5)');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(200,255,210,0.55)';
+        ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.2, b.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
+    } else {
+        // Normal spirit bullets — magenta
+        ctx.fillStyle = 'rgba(255,80,200,0.15)';
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
+        const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
+        sg.addColorStop(0, '#ffffff');
+        sg.addColorStop(0.3, '#ff88dd');
+        sg.addColorStop(0.7, '#cc00aa');
+        sg.addColorStop(1, 'rgba(80,0,60,0.5)');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,220,240,0.55)';
+        ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.2, b.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
 }
 
