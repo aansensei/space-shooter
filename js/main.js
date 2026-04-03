@@ -338,7 +338,7 @@ function update(rawDeltaTime) {
                                 // Laser hit Leviathan shield → count hits, no body damage
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
-                                dealDamage(enemy, { damage: 10, percentDamage: 0.26 });
+                                dealDamage(enemy, { damage: 100, percentDamage: 0.16 });
                             }
                             break;
                         }
@@ -476,7 +476,7 @@ function update(rawDeltaTime) {
                 }
 
                 if (currentTime - coil.dotTargets.get(enemy) >= 125) {
-                    dealDamage(enemy, { damage: 10, percentDamage: 0.13, isTeslaDot: true });
+                    dealDamage(enemy, { damage: 100, percentDamage: 0.06, isTeslaDot: true });
                     coil.dotTargets.set(enemy, currentTime);
                 }
             }
@@ -1013,7 +1013,7 @@ function update(rawDeltaTime) {
                 if (b.type === 'player_charged') {
                     if (!b.hitEnemies) b.hitEnemies = [];
                     if (b.hitEnemies.includes(enemy)) continue;
-                    dealDamage(enemy, { damage: (b.damage >= maxMultiplier ? 10 : b.damage), percentDamage: (b.damage >= maxMultiplier ? 0.12 : 0) });
+                    dealDamage(enemy, { damage: (b.damage >= maxMultiplier ? 0 : b.damage), percentDamage: (b.damage >= maxMultiplier ? 0.07 : 0) });
                     b.hitEnemies.push(enemy);
                 } else {
                     dealDamage(enemy, b);
@@ -1057,15 +1057,21 @@ function update(rawDeltaTime) {
             window._blessingLevShieldGiven = false;
         }
 
-        // +3 HP/s to all sentinels
-        sentinels.forEach(s => {
-            s.hp = Math.min(s.maxHp || 100, s.hp + 3 * (deltaTime / 1000));
-        });
+        // +1.75% maxHp every 0.75s to all sentinels
+        if (!window._blessingRegenTimer) window._blessingRegenTimer = 0;
+        window._blessingRegenTimer += deltaTime;
+        if (window._blessingRegenTimer >= 750) {
+            window._blessingRegenTimer = 0;
+            sentinels.forEach(s => {
+                const healAmt2 = (s.maxHp || 100) * 0.0175;
+                s.hp = Math.min(s.maxHp || 100, s.hp + healAmt2);
+            });
+        }
         // +50 flat shield every 3s (capped at 50 for blessing portion)
         if (!window._blessingShieldTimer) window._blessingShieldTimer = 0;
         window._blessingShieldTimer += deltaTime;
         if (window._blessingShieldTimer >= 3000) {
-            window._blessingShieldTimer = 0; window._blessingLevShieldGiven = false;
+            window._blessingShieldTimer = 0; window._blessingLevShieldGiven = false; window._blessingRegenTimer = 0;
             sentinels.forEach(s => {
                 const current = s._blessingShield || 0;
                 const toAdd = Math.min(50 - current, 50);

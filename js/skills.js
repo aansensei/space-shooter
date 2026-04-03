@@ -108,7 +108,7 @@ function updateSkillA(deltaTime) {
                 lifetime: 200, maxLifetime: 200, size: 4, color: orb.isDefensive ? 'rgba(255, 255, 0, 0.7)' : 'rgba(0, 255, 255, 0.7)'
             });
             if (dist < orb.target.size / 2 + orb.size) {
-                dealDamage(orb.target, { damage: 11, percentDamage: 0.28 });
+                dealDamage(orb.target, { damage: 100, percentDamage: 0.24 });
                 orb.target.isTargetedByA = false;
 
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 4, percentDamage: 0.02 });
@@ -261,7 +261,7 @@ function updateSpirits(deltaTime) {
                 const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 5, percentDamage: 0.04,
+                    damage: 30, percentDamage: 0.015,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
                     isSpirit: true,
                 });
@@ -278,7 +278,7 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 10, percentDamage: 0.16, hitEnemies: [], isSpirit: true });
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 100, percentDamage: 0.10, hitEnemies: [], isSpirit: true });
         }
     }
 }
@@ -401,7 +401,7 @@ function updatePhotokrystos(spirit, deltaTime) {
 
     // ── Attack: 3 homing bullets per volley at 52ms ──
     spirit.shootTimer -= deltaTime;
-    let photoFireRate = 43; // 52ms / 1.2 (+20% fire rate)
+    let photoFireRate = 42; // fire rate
     if (gloryForJusticeActive) photoFireRate /= 1.40;
     if (spirit.shootTimer <= 0) {
         spirit.shootTimer = photoFireRate;
@@ -424,7 +424,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             for (let bi = 0; bi < 3; bi++) {
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 10 * dmgMult, percentDamage: 0.10,
+                    damage: 60 * dmgMult, percentDamage: 0.0425,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
                     applyVuln: true, vulnChance: 0.15,
@@ -465,7 +465,7 @@ function spawnPhotoBrangs(fromX, fromY, count) {
             targetIdx: 0,
             hitEnemies: [],
             rotation: Math.random() * Math.PI * 2,
-            damage: 15, percentDamage: 0.24,
+            damage: 200, percentDamage: 0.16,
             lifetime: 9000,
         });
     }
@@ -1022,7 +1022,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         dotMap.set(enemy, currentTime);
                     }
                     if (currentTime - dotMap.get(enemy) >= 125) {
-                        dealDamage(enemy, { damage: 6, percentDamage: 0.04, isTeslaDot: true });
+                        dealDamage(enemy, { damage: 40, percentDamage: 0.015, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                     }
                 } else {
