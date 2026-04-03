@@ -188,6 +188,7 @@ function update(rawDeltaTime) {
                         e.absoluteShield = false;
                         e.aegisInvulnerable = false;
                         e.marchosiasParasiteShield = 0;
+                        e.afoShieldActive = false; // AFO shield also bypassed
                         if (e.hp <= 0) e._markedForDeath = true;
                         createParticles(e.x, e.y, 6, '#00ffaa', 1, 4);
                     }
@@ -378,7 +379,7 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.03 * (deltaTime / 1000); // 3% per second
+            let healAmt = enemy.maxHp * 0.04 * (deltaTime / 1000); // 4% per second
             let shieldAmt = enemy.maxHp * 0.40;
             let tickShieldAmt = enemy.maxHp * 0.08 * (deltaTime / 1000); // 8% MaxHP shield/s
             let auraRadius = canvas.width / 2;
@@ -386,7 +387,7 @@ function update(rawDeltaTime) {
             enemies.forEach(ally => {
                 if (ally === enemy) {
                     // Aegis tự heal 50% hiệu quả (không heal khi đang chết)
-                    if (!ally._markedForDeath) enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.5);
+                    if (!ally._markedForDeath && enemy.hp > 0) enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.5);
                     return;
                 }
                 // Không heal/shield kẻ địch đã chết hoặc đang chết
@@ -397,6 +398,7 @@ function update(rawDeltaTime) {
                 if (d <= auraRadius) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
                     if (ally.levEnvy) finalHeal *= 1.25; // Envy: +25% heal
+                    if (ally.hp <= 0) return; // cannot heal at 0 HP
                     const newHp = ally.hp + finalHeal;
                     if (newHp > ally.maxHp) {
                         // Overheal: 50% of excess → shield
@@ -589,30 +591,42 @@ function update(rawDeltaTime) {
                 if (mp.life <= 0) { enemy.molParticles.splice(mi, 1); }
             }
 
-            // Hit player — silence always applies, bypasses ALL protections
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
+            // Hit player — silence/root (no life loss), can hit simultaneously with sentinel
+            if (!enemy._hitPlayer && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
+                enemy._hitPlayer = true;
                 player._silenced = true;
                 player._silenceEnd = currentTime + 1000;
                 player._rooted = true;
                 screenShake = { intensity: 6, duration: 250 };
-                // Haptic on mobile
                 try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
-                enemy.hp = 0;
+                // Chain is NOT consumed by hitting player — can still hit sentinel
             }
 
-            // Hit sentinel — true damage 15% maxHP
+            // Hit sentinel — true damage 15% maxHP, goes through Vanguard, respects Iron Body
             if (enemy.hp > 0) {
                 for (const s of sentinels) {
                     if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
-                        const dmg = Math.ceil(s.maxHp * 0.15);
-                        s.hp = Math.max(0, s.hp - dmg);
-                        if (s.hp <= 0) s._markedForDeath = true;
+                        if (s.ironBody && currentTime < s.ironBodyEnd) {
+                            // Iron Body: absorb but still consume chain
+                        } else {
+                            const rawDmgChain = Math.ceil(s.maxHp * 0.15);
+                            if (sentinels.length >= 5) {
+                                _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX);
+                            } else {
+                                const bDR = s._blessingDR || 0;
+                                const dmg = Math.ceil(rawDmgChain * (1 - bDR));
+                                s.hp = Math.max(0, s.hp - dmg);
+                                if (s.hp <= 0) s._markedForDeath = true;
+                            }
+                        }
                         addExplosion(enemy.x, enemy.y, 30, '#660033');
-                        enemy.hp = 0;
+                        enemy.hp = 0; // consume chain
                         break;
                     }
                 }
             }
+            // Also consume chain if hit player but no sentinel nearby
+            if (enemy._hitPlayer && enemy.hp > 0) { enemy.hp = 0; }
 
             // Off-screen — bay hết màn hình mới dừng
             if (enemy.x < -200 || enemy.x > canvas.width + 200 || enemy.y < -200 || enemy.y > canvas.height + 200) {
@@ -713,7 +727,7 @@ function update(rawDeltaTime) {
                         const angles4 = [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5];
                         for (const k of angles4) {
                             const a = baseAngle + k;
-                            const chainSpeed = 9.35; // 8.13 * 1.15
+                            const chainSpeed = 10.75; // 9.35 * 1.15 (+15%)
                             enemies.push({
                                 x: enemy.x, y: enemy.y,
                                 vx: Math.cos(a) * chainSpeed,
@@ -735,7 +749,7 @@ function update(rawDeltaTime) {
                         [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5].forEach(k => {
                             enemies.push({
                                 x: enemy.x, y: enemy.y,
-                                vx: Math.cos(baseAngle + k) * 9.35, vy: Math.sin(baseAngle + k) * 9.35,
+                                vx: Math.cos(baseAngle + k) * 10.75, vy: Math.sin(baseAngle + k) * 10.75,
                                 size: 16, hp: 9999, maxHp: 9999,
                                 type: 'abyssal_chain', shield: 0, damage: 0,
                                 originX: enemy.x, originY: enemy.y, ownerRef: enemy, piercing: true
@@ -838,6 +852,12 @@ function update(rawDeltaTime) {
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(); enemy.hp = 0;
             }
+        }
+
+        // Envy 1% MaxHP/s regen (applied to all envy-marked non-bullet enemies)
+        if (enemy.levEnvy && enemy.hp > 0 && !enemy._markedForDeath &&
+            !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.01 * (deltaTime / 1000));
         }
 
         if (enemy.hp <= 0) {
@@ -1017,10 +1037,48 @@ function update(rawDeltaTime) {
     updateSentinels(deltaTime);
     // ── Blessing of the Primordial: passive while Phōtokrystos is active ──
     const _photoActive = typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done);
+    const _levOnField = enemies.some(e => e.type === 'leviathan' && e.hp > 0);
     sentinels.forEach(s => {
-        s._blessingDR = _photoActive ? 0.08 : 0;   // +8% DR
-        s._blessingDmg = _photoActive ? 0.10 : 0;  // +10% dmg (read in dealDamage via sentinel source)
+        // Base blessing DR: +15%, +5% more if Leviathan on field
+        s._blessingDR = _photoActive ? (0.15 + (_levOnField ? 0.05 : 0)) : 0;
+        s._blessingDmg = _photoActive ? 0.15 : 0;
+        // Keep _blessingShield in sync — can't exceed actual shield
+        if (s._blessingShield && s._blessingShield > (s.shield || 0)) {
+            s._blessingShield = s.shield || 0;
+        }
+        if (!_photoActive) s._blessingShield = 0;
     });
+    if (_photoActive) {
+        // Leviathan on field: instant +50 shield (ignores cap, fires once per lev presence)
+        if (_levOnField && !window._blessingLevShieldGiven) {
+            window._blessingLevShieldGiven = true;
+            sentinels.forEach(s => { s.shield = (s.shield || 0) + 50; });
+        } else if (!_levOnField) {
+            window._blessingLevShieldGiven = false;
+        }
+
+        // +3 HP/s to all sentinels
+        sentinels.forEach(s => {
+            s.hp = Math.min(s.maxHp || 100, s.hp + 3 * (deltaTime / 1000));
+        });
+        // +50 flat shield every 3s (capped at 50 for blessing portion)
+        if (!window._blessingShieldTimer) window._blessingShieldTimer = 0;
+        window._blessingShieldTimer += deltaTime;
+        if (window._blessingShieldTimer >= 3000) {
+            window._blessingShieldTimer = 0; window._blessingLevShieldGiven = false;
+            sentinels.forEach(s => {
+                const current = s._blessingShield || 0;
+                const toAdd = Math.min(50 - current, 50);
+                if (toAdd > 0) {
+                    s.shield = (s.shield || 0) + toAdd;
+                    s._blessingShield = Math.min(50, current + toAdd);
+                }
+            });
+        }
+    } else {
+        window._blessingShieldTimer = 0;
+        window._blessingLevShieldGiven = false;
+    }
     updateSoulReaverDoT(deltaTime);
     updateSkillA(deltaTime);
     updateScatteredProjectiles(deltaTime);
@@ -1162,7 +1220,7 @@ function update(rawDeltaTime) {
             sentinels.forEach(s => {
                 if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
                     laser.hitSentinels.add(s);
-                    const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPctLaser * halfHits));
+                    const dmg = Math.min(Math.ceil(s.maxHp * 0.55), Math.ceil(s.maxHp * scaledPctLaser * halfHits));
                     if (sentinels.length >= 5) {
                         _applyVanguardDamage(dmg, laser.id);
                     } else {
@@ -1227,6 +1285,7 @@ function startGame() {
     spirits = []; blackHole = null;
     photoBrangs = []; primevalSummonEffect = null;
     primevalEnergy = 0; _spiritCooldownOverrideUntil = 0;
+    window._blessingShieldTimer = 0;
     bossShockwaves = [];
     aegisLasers = [];
     marchosiasBlades = [];

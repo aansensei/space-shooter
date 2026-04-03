@@ -237,7 +237,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Passive: Danger? Not Today!** — If any enemy enters **100px** of the player, Phōtokrystos instantly throws **1 boomerang** (3s cooldown).
 
-**Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels gain **+8% Damage Reduction**, all allied damage is boosted by **+10%**, and every time a Sentinel kills an enemy, **all Sentinels recover +2 HP**.
+**Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels gain **+15% Damage Reduction**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+3 HP per second**, and every **5 seconds** each Sentinel receives a flat **+50 HP shield**.
 
 **Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **15 base + 45% Max HP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% Max HP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
 
@@ -315,13 +315,15 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 **Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.8 u/s
 
-HP: **1,200–2,500**. Innate **+10% Damage Reduction**.
+HP: **1,500–2,600**. Innate **+10% Damage Reduction**.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 5 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 5th hit the shield breaks and Aegis Core takes damage normally.
+Permanent **25% Damage Reduction** at all times.
+
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 6 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 6th hit the shield breaks and Aegis Core takes damage normally.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for **3% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Heals all ally units inside for **4% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
 - Grants every allied unit inside an **8% of Aegis Core's Max HP shield every second** (passive tick — stacks on top of the one-time 40% shield; units with any remaining shield also benefit from the +15% DR bonus).
 - Grants a **shield** equal to **40% of Aegis Core's Max HP** to all allies inside (once per ally). Shielded units gain **+15% Damage Reduction** while the shield has any HP remaining.
 - If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
@@ -335,7 +337,7 @@ HP: **1,200–2,500**. Innate **+10% Damage Reduction**.
 
 **Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **1,392–3,062**. Permanent **20% Damage Reduction** on its body at all times.
+HP: **1,600–3,100**. Permanent **25% Damage Reduction** on its body at all times.
 
 **Sword & Shield**
 
@@ -359,7 +361,7 @@ There is no hard limit on total Swords per fight. Each Marchosias has its own in
 1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** for 1 second.
 2. After 1 second, an orange arc projectile (radius 88) launches along that exact line. It does not home.
 3. Hits the player → all normal protective layers apply (Orb Sacrifice → Final Defense → Last Stand → lose a life).
-4. Hits a Sentinel → deals **30% of that Sentinel's Max HP** on the 1st sentinel hit, **28%** on the 2nd, **24%** on the 3rd and beyond (same blade, per bounce).
+4. Hits a Sentinel → deals **32%** of that Sentinel's Max HP on the 1st hit, **28%** on the 2nd, **26%** on the 3rd and beyond.
 5. **Cannot be destroyed or deflected by anything.** Persists until it exits the screen.
 
 **Normal Attack**
@@ -382,7 +384,7 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 **Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.8 u/s
 
-HP: **2,520–8,399**. DR is fully dynamic — see Passive below.
+HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
@@ -391,14 +393,14 @@ HP: **2,520–8,399**. DR is fully dynamic — see Passive below.
 
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
 
-- **25% base DR** at all times.
-- **+2% DR per active Sentinel** on screen. Capped at **36% total DR**.
+- **30% base DR** at all times.
+- **+2.5% DR per active Sentinel** on screen. Capped at **40% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 
-**Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **1.5 seconds**, fires **4 dark chains** in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
+**Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **1.5 seconds**, fires **4 dark chains** (+15% speed) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
-- **Hit player** → **Root & Silence for 1 second**: cannot move, cannot use any skill (including Shift), auto-fire stops, Skill A orbs return to orbit. A purple lock icon appears on the ship and a red X overlays all skill icons. Re-applies silence even if already silenced.
-- **Hit Sentinel** → **true damage equal to 15% of that Sentinel's Max HP**, chain consumed on contact.
+- **Hit player** → **Root & Silence for 1 second** (no life loss). The chain is **not consumed** by the player hit — it continues and can also hit a Sentinel simultaneously.: cannot move, cannot use any skill (including Shift), auto-fire stops, Skill A orbs return to orbit. A purple lock icon appears on the ship and a red X overlays all skill icons. Re-applies silence even if already silenced.
+- **Hit Sentinel** → **true damage equal to 15% of that Sentinel's Max HP**, chain consumed on contact. A single chain can trigger both effects at once.
 - **On death at HP = 1**: immediately fires one extra volley of 4 chains.
 
 **Maou Haki** — Triggers once at **50% HP**:
@@ -412,7 +414,7 @@ HP: **2,520–8,399**. DR is fully dynamic — see Passive below.
 
 **Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
-HP: **5,568–9,744**. **45% base Damage Reduction** on its body after the shield breaks. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
+HP: **6,682–11,693**. **50% base Damage Reduction** on its body after the shield breaks. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
 
@@ -420,6 +422,7 @@ When Leviathan appears, every enemy on screen instantly receives the **Envy** ma
 
 - **+25% Damage Reduction** (stacks with all other DR, hard-capped at 99%).
 - **+25% effectiveness from all healing sources**.
+- **+1% Max HP regeneration per second** (continuous, cannot exceed Max HP).
 
 **Passive: All for One**
 

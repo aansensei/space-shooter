@@ -1172,7 +1172,7 @@ function updateMarchosiasBlades(deltaTime) {
             if (!blade.hitEnemies.includes(s) && Math.hypot(blade.x - s.x, blade.y - s.y) < blade.radius + s.size) {
                 // 1st sentinel hit: 30%, 2nd: 28%, 3rd+: 24%
                 const hitsAlready = blade.hitEnemies.length;
-                const pct = hitsAlready === 0 ? 0.30 : hitsAlready === 1 ? 0.28 : 0.24;
+                const pct = hitsAlready === 0 ? 0.32 : hitsAlready === 1 ? 0.28 : 0.26;
                 dealDamage(s, { damage: s.maxHp * pct });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
@@ -1198,7 +1198,8 @@ function updateSoulReaverDoT(deltaTime) {
         if (enemy.soulReaverDotTimer <= 0) {
             enemy.soulReaverDotTimer = 500; // 0.5 giây
             // Sát thương chuẩn bỏ qua khiên — áp thẳng vào HP
-            const dotDmg = Math.ceil(10 + (enemy.maxHp || enemy.hp) * 0.05);
+            const _srGlory = (typeof gloryForJusticeActive !== 'undefined' && gloryForJusticeActive) ? 1.55 : 1;
+            const dotDmg = Math.ceil((10 + (enemy.maxHp || enemy.hp) * 0.05) * _srGlory);
             enemy.hp -= dotDmg;
             enemy.hp = Math.max(0, enemy.hp);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
