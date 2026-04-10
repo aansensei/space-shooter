@@ -500,7 +500,7 @@
 <div class="card"><h2 class="dsname">ENEMY CLASSES</h2><table class="controls-table">
 <tr><th>Class</th><th>Examples</th><th>Info</th></tr>
 <tr><td style="color:#aaaaaa">Lesser</td><td>Apostles</td><td>HP 9–96, scales</td></tr>
-<tr><td style="color:#22cc55">Abnormal</td><td>Thaelis</td><td rowspan="4">Combined cap: 6</td></tr>
+<tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud</td><td rowspan="4">Combined cap: 6</td></tr>
 <tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis</td></tr>
 <tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td></tr>
 <tr><td style="color:#ff2244">Administrator</td><td>Kanade</td></tr>
@@ -519,6 +519,14 @@
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Reincarnation</b> — at 0 HP splits into 3 Embryos (90% DR, CC immune, hatch @3s → new enemy).</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a large projectile every 1s. Splits into <span class="hr">3 homing bullets</span> after 0.6s of flight. Bullets deal 1 life (player) or 2% MaxHP (Sentinel).</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Tenacity</b> — per 1% HP lost: <span class="dmg">+1.5% DR</span> (cap <span class="dmg">75%</span>) and <span class="hi">+0.1% bullet speed &amp; fire rate</span> (cap <span class="hi">+20%</span>).</li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">25s • HP 800–1,600 • CAP 2 • Speed 2.0 u/s • Base DR 15%</div>
+<div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random Sentinel/Player with a <span class="hr">red targeting circle</span>. After 1.5s countdown, a <span class="hr">red lightning bolt</span> strikes. Player hit = <span class="hr">1 life lost</span> (protections apply). Sentinels in 100px = <span class="dmg">15% MaxHP</span> damage.</li>
+<li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a 2-bullet volley every 400ms at nearest target. Disabled during Phantom / countdown.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in 100px radius — 1.5% MaxHP/tick for 2s. Immune to all damage &amp; CC.</li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 1,200–2,500 • +10% DR • Speed 1.8 u/s</div>
@@ -1158,6 +1166,205 @@
             activeAnimations.push(requestAnimationFrame(() => drawThal(performance.now())));
           }
           drawThal(performance.now());
+        }
+
+        // Veilshroud
+        const sv2 = setup('cvVeil');
+        if (sv2) {
+          const { c, w, h } = sv2;
+          // State cycle: 0=normal(2s) → 1=phantom(1.5s) → 2=lightning_warn(1.5s) → 3=strike(0.6s) → back
+          const CYCLE = [2000, 1500, 1500, 600];
+          const TOTAL = CYCLE.reduce((a, b) => a + b, 0);
+
+          function drawVeil(t) {
+            c.clearRect(0, 0, w, h);
+            const cx2 = w * 0.22, cy2 = h * 0.5, r = 20;
+
+            // Determine cycle phase
+            const tMod = t % TOTAL;
+            let phase = 0, phaseT = tMod;
+            for (let pi = 0; pi < CYCLE.length; pi++) {
+              if (phaseT < CYCLE[pi]) { phase = pi; phaseT = phaseT / CYCLE[pi]; break; }
+              phaseT -= CYCLE[pi];
+            }
+
+            // phantom lerp (0=normal violet, 1=phantom cyan)
+            let phantomLerp = 0;
+            if (phase === 0) phantomLerp = 0;
+            else if (phase === 1) phantomLerp = Math.min(1, phaseT / 0.25);
+            else if (phase === 2) phantomLerp = Math.max(0, 1 - phaseT / 0.3);
+            else phantomLerp = 0;
+
+            const cR = Math.round(140 + (0 - 140) * phantomLerp);
+            const cG = Math.round(20 + (230 - 20) * phantomLerp);
+            const cB = Math.round(255 + (200 - 255) * phantomLerp);
+            const mc = `rgb(${cR},${cG},${cB})`;
+            const baseAlpha = 1 - phantomLerp * 0.5;
+
+            c.save();
+            c.translate(cx2, cy2);
+            c.globalAlpha = baseAlpha;
+
+            // Glitch jitter in phantom
+            if (phase === 1 && Math.random() < 0.3) {
+              c.translate((Math.random() - 0.5) * 10 * phantomLerp, (Math.random() - 0.5) * 7 * phantomLerp);
+            }
+
+            // 1. Aura
+            const aG = c.createRadialGradient(0, 0, r * 0.4, 0, 0, r * 3.0);
+            aG.addColorStop(0, `rgba(${cR},${cG},${cB},0.16)`);
+            aG.addColorStop(1, 'transparent');
+            c.fillStyle = aG; c.beginPath(); c.arc(0, 0, r * 3.0, 0, Math.PI * 2); c.fill();
+
+            // 2. Void ribbons (5 petals)
+            const numR = 5;
+            for (let i = 0; i < numR; i++) {
+              c.save();
+              const rotSpd = t / (3000 - phantomLerp * 1400) * (i % 2 === 0 ? 1 : -1);
+              c.rotate((i / numR) * Math.PI * 2 + rotSpd);
+              const rLen = r * 2.5 + Math.sin(t / 400 + i) * 16;
+              const rWid = r * 0.35;
+              const wave = Math.sin(t / 250 + i) * 28;
+              const rg = c.createLinearGradient(0, 0, 0, -rLen);
+              rg.addColorStop(0, `rgba(${cR},${cG},${cB},${0.5 - phantomLerp * 0.22})`);
+              rg.addColorStop(0.7, `rgba(${Math.round(cR / 2)},${Math.round(cG / 2)},${Math.round(cB / 2)},0.12)`);
+              rg.addColorStop(1, 'transparent');
+              c.fillStyle = rg;
+              c.beginPath();
+              c.moveTo(-rWid / 2, 0);
+              c.quadraticCurveTo(wave - rWid, -rLen * 0.5, 0, -rLen);
+              c.quadraticCurveTo(wave + rWid, -rLen * 0.5, rWid / 2, 0);
+              c.closePath(); c.fill();
+              c.restore();
+            }
+
+            // 3. Armillary rings
+            c.strokeStyle = `rgba(${cR},${cG},${cB},0.8)`; c.lineWidth = 1.8;
+            c.beginPath(); c.ellipse(0, 0, r * 1.05, r * 0.38, t / 1000, 0, Math.PI * 2); c.stroke();
+            c.strokeStyle = `rgba(255,255,255,${0.3 + phantomLerp * 0.4})`; c.lineWidth = 1;
+            c.setLineDash([8, 12]);
+            c.beginPath(); c.ellipse(0, 0, r * 1.22, r * 0.46, -t / 800 + Math.PI / 4, 0, Math.PI * 2); c.stroke();
+            c.setLineDash([]);
+
+            // 4. Armor shards
+            const shOff = phantomLerp * 32;
+            const shAlpha = 1 - phantomLerp * 0.82;
+            c.fillStyle = `rgba(10,5,20,${shAlpha})`;
+            c.strokeStyle = `rgba(${cR},${cG},${cB},${0.8 + phantomLerp * 0.2})`; c.lineWidth = 1.4;
+            const shards = [
+              [[0, -r * 1.5 - shOff], [r * 0.46, -r * 0.55 - shOff * 0.5], [0, -r * 0.36], [-r * 0.46, -r * 0.55 - shOff * 0.5]],
+              [[0, r * 1.3 + shOff], [r * 0.36, r * 0.46 + shOff * 0.5], [0, r * 0.26], [-r * 0.36, r * 0.46 + shOff * 0.5]],
+              [[-r * 1.2 - shOff, 0], [-r * 0.46, -r * 0.26], [-r * 0.26, 0], [-r * 0.46, r * 0.26]],
+              [[r * 1.2 + shOff, 0], [r * 0.46, -r * 0.26], [r * 0.26, 0], [r * 0.46, r * 0.26]],
+            ];
+            shards.forEach(pts => {
+              c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+              for (let p = 1; p < pts.length; p++) c.lineTo(pts[p][0], pts[p][1]);
+              c.closePath();
+              if (phantomLerp < 0.88) c.fill();
+              c.stroke();
+            });
+
+            // 5. Singularity core
+            const coreR = r * 0.36 + phantomLerp * r * 0.18;
+            const accR2 = coreR * 1.5 + Math.sin(t / 100) * 2;
+            const accGrad = c.createRadialGradient(0, 0, coreR * 0.7, 0, 0, accR2);
+            accGrad.addColorStop(0, '#ffffff'); accGrad.addColorStop(0.4, mc); accGrad.addColorStop(1, 'transparent');
+            c.fillStyle = accGrad; c.beginPath(); c.arc(0, 0, accR2, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#000'; c.beginPath(); c.arc(0, 0, coreR, 0, Math.PI * 2); c.fill();
+            // iris
+            c.fillStyle = phantomLerp > 0.5 ? '#ffffff' : mc;
+            c.save(); c.rotate(t / 1500);
+            c.beginPath(); c.ellipse(0, 0, coreR * 0.12, coreR * 0.72, 0, 0, Math.PI * 2); c.fill();
+            c.restore();
+
+            c.restore(); // end entity
+
+            // ── PHASE LABELS (right side) ──
+            c.fillStyle = '#22cc55'; c.font = 'bold 8px Orbitron,sans-serif'; c.textAlign = 'left';
+            if (phase === 0) {
+              c.fillText('NORMAL STANCE', w * 0.48, h * 0.12);
+              c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
+              c.fillText('15% DR • firing 2-bullet volley', w * 0.48, h * 0.12 + 12);
+              // bullets flying
+              const bprog = (t / 600) % 1;
+              const bAngle = -0.25 + Math.sin(t / 800) * 0.15;
+              for (let bi = 0; bi < 2; bi++) {
+                const ba = bAngle + (bi - 0.5) * 0.2;
+                const bx = cx2 + Math.cos(ba) * (r + 10 + bprog * 80);
+                const by = cy2 + Math.sin(ba) * (r + 10 + bprog * 80);
+                c.fillStyle = `rgba(170,0,255,${1 - bprog})`;
+                c.beginPath(); c.arc(bx, by, 3, 0, Math.PI * 2); c.fill();
+              }
+              // State hint
+              c.fillStyle = 'rgba(0,229,204,0.55)'; c.font = '7px Share Tech Mono,monospace';
+              c.textAlign = 'center';
+              c.fillText('PHANTOM check every 0.45s (40%)', w * 0.5, h * 0.9);
+            } else if (phase === 1) {
+              c.fillStyle = '#00e5cc'; c.font = 'bold 8px Orbitron,sans-serif'; c.textAlign = 'left';
+              c.fillText('PHANTOM SHIFT', w * 0.48, h * 0.12);
+              c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
+              c.fillText('99% DR • frozen • 1.5s', w * 0.48, h * 0.12 + 12);
+              // pulsing cyan ring
+              const pR2 = r * 1.7 + Math.sin(t / 150) * 6;
+              c.strokeStyle = `rgba(0,229,204,${0.3 + phantomLerp * 0.5})`; c.lineWidth = 2;
+              c.setLineDash([6, 8]);
+              c.beginPath(); c.arc(cx2, cy2, pR2, 0, Math.PI * 2); c.stroke();
+              c.setLineDash([]);
+              c.fillStyle = 'rgba(0,229,204,0.5)'; c.textAlign = 'center'; c.font = '7px Share Tech Mono,monospace';
+              c.fillText('on hit: 40% instant dodge → Phantom', w * 0.5, h * 0.9);
+            } else if (phase === 2) {
+              // Lightning countdown animation
+              const tx = w * 0.72, ty = h * 0.55;
+              const circR = 32;
+              c.fillStyle = '#ff2244'; c.font = 'bold 8px Orbitron,sans-serif'; c.textAlign = 'left';
+              c.fillText('VOID STRIKE', w * 0.48, h * 0.12);
+              c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
+              c.fillText('targeting random sentinel/player', w * 0.48, h * 0.12 + 12);
+              // Target circle
+              c.strokeStyle = `rgba(255,30,30,0.75)`; c.lineWidth = 2;
+              c.setLineDash([7, 5]);
+              c.beginPath(); c.arc(tx, ty, circR, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+              // expanding fill from center
+              if (phaseT > 0.04) {
+                const fG = c.createRadialGradient(tx, ty, 0, tx, ty, circR * phaseT);
+                fG.addColorStop(0, `rgba(255,30,30,${0.32 * phaseT})`); fG.addColorStop(1, 'rgba(255,0,0,0)');
+                c.fillStyle = fG; c.beginPath(); c.arc(tx, ty, circR * phaseT, 0, Math.PI * 2); c.fill();
+              }
+              // crosshairs
+              c.strokeStyle = 'rgba(255,80,80,0.65)'; c.lineWidth = 1;
+              c.beginPath(); c.moveTo(tx - circR * 1.3, ty); c.lineTo(tx + circR * 1.3, ty);
+              c.moveTo(tx, ty - circR * 1.3); c.lineTo(tx, ty + circR * 1.3); c.stroke();
+              c.fillStyle = 'rgba(255,100,100,0.9)';
+              c.beginPath(); c.arc(tx, ty, 4, 0, Math.PI * 2); c.fill();
+              c.fillStyle = 'rgba(255,100,100,0.7)'; c.font = '7px Share Tech Mono,monospace'; c.textAlign = 'center';
+              c.fillText('TARGET', tx, ty - circR - 5);
+              c.fillText(`${((1 - phaseT) * 1.5).toFixed(1)}s`, tx, ty + circR + 12);
+            } else {
+              // Strike
+              const tx = w * 0.72, ty = h * 0.55;
+              const boltAlpha = 1 - phaseT;
+              // lightning bolt from top
+              c.strokeStyle = `rgba(255,255,255,${boltAlpha})`; c.lineWidth = 3 * boltAlpha;
+              const boltPts = [[tx, 0], [tx - 8, ty * 0.25], [tx + 10, ty * 0.45], [tx - 5, ty * 0.65], [tx + 6, ty * 0.82], [tx, ty]];
+              c.beginPath(); c.moveTo(boltPts[0][0], boltPts[0][1]);
+              for (const [bx, by] of boltPts.slice(1)) c.lineTo(bx, by); c.stroke();
+              c.strokeStyle = `rgba(255,30,50,${boltAlpha * 0.7})`; c.lineWidth = 6 * boltAlpha;
+              c.beginPath(); c.moveTo(boltPts[0][0], boltPts[0][1]);
+              for (const [bx, by] of boltPts.slice(1)) c.lineTo(bx, by); c.stroke();
+              // shockwave ring
+              const swR = 32 * (1 + phaseT * 0.6);
+              c.strokeStyle = `rgba(255,40,60,${boltAlpha * 0.8})`; c.lineWidth = 3;
+              c.beginPath(); c.arc(tx, ty, swR, 0, Math.PI * 2); c.stroke();
+              c.fillStyle = '#ff2244'; c.font = 'bold 8px Orbitron,sans-serif'; c.textAlign = 'left';
+              c.fillText('RED LIGHTNING', w * 0.48, h * 0.12);
+              c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
+              c.fillText('1 life (player) • 15% MaxHP (sentinels)', w * 0.48, h * 0.12 + 12);
+            }
+
+            activeAnimations.push(requestAnimationFrame(() => drawVeil(performance.now())));
+          }
+          drawVeil(performance.now());
         }
 
         // Aegis Core

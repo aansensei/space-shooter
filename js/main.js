@@ -394,6 +394,8 @@ function update(rawDeltaTime) {
                 if (ally.hp <= 0 || ally._markedForDeath) return;
                 // Leviathan đã kích hoạt death laser → không heal/shield
                 if (ally.type === 'leviathan' && ally._deathLaserSpawned) return;
+                // Void Echo không nhận heal/shield
+                if (ally.type === 'veilshroud_echo') return;
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
@@ -446,6 +448,7 @@ function update(rawDeltaTime) {
 
         for (const coil of teslaCoils) {
             if (coil.hp <= 0) continue;
+            if (enemy.type === 'veilshroud_echo') continue; // echo miễn CC
 
             const distToCoil = Math.hypot(enemy.x - coil.x, enemy.y - coil.y);
 
@@ -513,6 +516,29 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1); continue;
             }
 
+            // VEILSHROUD: Void Echo — để lại bóng ma khi chết
+            if (enemy.type === 'veilshroud' && !enemy._echoSpawned) {
+                enemy._echoSpawned = true;
+                enemies.push({
+                    x: enemy.x, y: enemy.y,
+                    size: enemy.size,
+                    hp: 9999, maxHp: 9999,
+                    isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+                    type: 'veilshroud_echo',
+                    speed: 0,
+                    echoTimer: 0,
+                    echoShootTimer: 0,
+                    echoShootInterval: 200,
+                    echoOriginMaxHp: enemy.maxHp,
+                    echoExplosionDone: false,
+                });
+            }
+
+            // VEILSHROUD ECHO: đã xử lý explosion trong updateVeilshroudEcho, chỉ cần xóa entity
+            if (enemy.type === 'veilshroud_echo') {
+                enemies.splice(i, 1); continue;
+            }
+
             // MARCHOSIAS: convert pending windups → blades on death (Skill F / Black Hole path)
             if (enemy.type === 'marchosias') {
                 if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
@@ -546,7 +572,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
+            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
                 if (!enemy.hatched) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
@@ -674,6 +700,12 @@ function update(rawDeltaTime) {
         } else if (enemy.type === 'leviathan') {
             // Leviathan update handled by updateLeviathan()
             updateLeviathan(enemy, deltaTime);
+
+        } else if (enemy.type === 'veilshroud') {
+            updateVeilshroud(enemy, deltaTime);
+
+        } else if (enemy.type === 'veilshroud_echo') {
+            updateVeilshroudEcho(enemy, deltaTime);
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
@@ -910,7 +942,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
+            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
                 if (!enemy.hatched) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
@@ -922,6 +954,7 @@ function update(rawDeltaTime) {
 
         if (enemy.y > boundaryY + enemy.size / 2) {
             if (enemy.type === 'abyssal_chain') { enemies.splice(i, 1); continue; }
+            if (enemy.type === 'veilshroud_echo') { /* echo stays at spawn, không xuống boundary */ continue; }
             if (!enemy.type.startsWith('enemy_bullet')) {
                 if (finalDefense.boundaryShield) {
                     finalDefense.boundaryShield = false;
@@ -972,6 +1005,8 @@ function update(rawDeltaTime) {
 
                 // ── ABYSSAL CHAIN: piercing, immune to all player attacks ──
                 if (enemy.type === 'abyssal_chain') { continue; }
+                // ── VEILSHROUD ECHO: untargetable / immune ──
+                if (enemy.type === 'veilshroud_echo') { continue; }
                 if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     createParticles(b.x, b.y, 2, '#00e5ff', 1, 3);
@@ -1242,6 +1277,39 @@ function update(rawDeltaTime) {
     });
 
     if (screenShake.duration > 0) screenShake.duration -= deltaTime;
+
+    // ── Veilshroud lightning effects (visual timer decay) ───────────
+    if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
+    window._veilshroudLightnings = window._veilshroudLightnings.filter(lt => {
+        lt.life -= deltaTime;
+        return lt.life > 0;
+    });
+
+    // ── Veilshroud echo explosion zones ─────────────────────────────
+    if (!window._veilshroudExplosions) window._veilshroudExplosions = [];
+    window._veilshroudExplosions = window._veilshroudExplosions.filter(ez => {
+        ez.life -= deltaTime;
+        ez.tickTimer += deltaTime;
+        if (ez.tickTimer >= ez.tickInterval) {
+            ez.tickTimer -= ez.tickInterval;
+            ez.hitPlayerThisTick = false;
+
+            // Damage ticks: sentinels
+            for (const s of sentinels) {
+                if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius) {
+                    const dmg = Math.ceil(s.maxHp * 0.015);
+                    dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl' });
+                    createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
+                }
+            }
+            // Damage ticks: player
+            if (!ez.hitPlayerThisTick && Math.hypot(player.x - ez.x, player.y - ez.y) < ez.radius) {
+                ez.hitPlayerThisTick = true;
+                playerTakesHit();
+            }
+        }
+        return ez.life > 0;
+    });
 }
 
 function gameLoop(timeStamp) {
@@ -1259,7 +1327,7 @@ function gameLoop(timeStamp) {
     lastTimeStamp = timeStamp;
 
     // deltaTime quá lớn → tab bị ẩn hoặc máy lag → pause và reset clock
-    if (deltaTime > 200 && gameState === "playing" && !gamePaused) {
+    if (deltaTime > 500 && gameState === "playing" && !gamePaused) {
         gamePaused = true;
         showPauseScreen();
     }

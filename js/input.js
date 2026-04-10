@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
         startGame();
     }, { passive: false });
 
-    // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded
-    function showPauseScreen() {
+    // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded — expose ra window để main.js gọi được
+    window.showPauseScreen = function showPauseScreen() {
         pauseOverlay.style.display = "flex";
         resumeBtn.style.display = "block";
         progressContainer.style.display = "none";
