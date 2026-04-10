@@ -863,6 +863,7 @@ function draw(deltaTime) {
 
         drawAegisLasers();
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
+        _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
 
         // Draw non-bullet enemies first (background layer)
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') drawEnemy(e); });
@@ -2876,6 +2877,10 @@ function drawEnemy(enemy) {
         _drawMarchosiasMinion(enemy);
     } else if (enemy.type === 'leviathan') {
         _drawLeviathan(enemy);
+    } else if (enemy.type === 'veilshroud') {
+        _drawVeilshroud(enemy);
+    } else if (enemy.type === 'veilshroud_echo') {
+        _drawVeilshroudEcho(enemy);
     } else if (enemy.type.startsWith('enemy_bullet')) {
         _drawEnemyBullet(enemy);
     } else {
@@ -5968,4 +5973,382 @@ function drawSkillButtons() {
     drawSkillButton(positions.D.x, positions.D.y, 'D', '#4B0082', skillDCooldown, lastSkillD, skillDCharging || blackHole, -1, r);
     drawSkillButton(positions.F.x, positions.F.y, 'F', 'red', skillFCooldown, lastSkillF, skillFState !== 'ready', -1, r);
     drawSkillButton(positions.G.x, positions.G.y, 'G', '#00BCD4', -1, 0, skillGActive, skillGCharge, r);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  VEILSHROUD RENDER
+// ════════════════════════════════════════════════════════════════
+
+function _drawVeilshroud(enemy) {
+    const now = performance.now();
+    const r = enemy.size / 2; // hitbox radius
+
+    // Lerp màu: Normal = Deep Violet, Phantom = Ghostly Cyan
+    const t = enemy.inPhantom ? Math.min(1, enemy.phantomTimer / 400) : Math.max(0, 1 - enemy.phantomTimer / 400);
+    const cNR = 140, cNG = 20, cNB = 255;   // violet
+    const cPR = 0, cPG = 230, cPB = 200;  // cyan
+    const curR = Math.round(cNR + (cPR - cNR) * t);
+    const curG = Math.round(cNG + (cPG - cNG) * t);
+    const curB = Math.round(cNB + (cPB - cNB) * t);
+    const mainColor = `rgb(${curR},${curG},${curB})`;
+    const baseAlpha = 1 - t * 0.5; // fade to 50% opacity in phantom
+
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    ctx.globalAlpha = baseAlpha;
+
+    // Glitch jitter khi phantom
+    if (enemy.inPhantom && Math.random() < 0.25) {
+        ctx.translate((Math.random() - 0.5) * 14 * t, (Math.random() - 0.5) * 9 * t);
+    }
+
+    // 1. AURA HƯ KHÔNG
+    const auraPulse = Math.sin(now / 300) * 12;
+    const auraR = r * 3.2 + auraPulse;
+    const auraG = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, auraR);
+    auraG.addColorStop(0, `rgba(${curR},${curG},${curB},0.18)`);
+    auraG.addColorStop(1, 'transparent');
+    ctx.fillStyle = auraG;
+    ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.fill();
+
+    // 2. VOID RIBBONS (áo choàng năng lượng uốn lượn)
+    const numRibbons = 5;
+    if (!_mobPerf) { ctx.shadowColor = mainColor; ctx.shadowBlur = 14; }
+    for (let i = 0; i < numRibbons; i++) {
+        ctx.save();
+        const rotSpeed = now / (3000 - t * 1400) * (i % 2 === 0 ? 1 : -1);
+        ctx.rotate((i / numRibbons) * Math.PI * 2 + rotSpeed);
+        const ribLen = r * 2.6 + Math.sin(now / 400 + i) * 20;
+        const ribWidth = r * 0.38;
+        const wave = Math.sin(now / 250 + i) * 35;
+        const ribG = ctx.createLinearGradient(0, 0, 0, -ribLen);
+        ribG.addColorStop(0, `rgba(${curR},${curG},${curB},${0.55 - t * 0.25})`);
+        ribG.addColorStop(0.7, `rgba(${Math.round(curR / 2)},${Math.round(curG / 2)},${Math.round(curB / 2)},0.15)`);
+        ribG.addColorStop(1, 'transparent');
+        ctx.fillStyle = ribG;
+        ctx.beginPath();
+        ctx.moveTo(-ribWidth / 2, 0);
+        ctx.quadraticCurveTo(wave - ribWidth, -ribLen * 0.5, 0, -ribLen);
+        ctx.quadraticCurveTo(wave + ribWidth, -ribLen * 0.5, ribWidth / 2, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,255,255,${0.08 + t * 0.18})`;
+        ctx.lineWidth = 1; ctx.stroke();
+        ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+
+    // 3. ARMILLARY RINGS
+    ctx.lineWidth = 2 + t * 1.5;
+    ctx.strokeStyle = `rgba(${curR},${curG},${curB},0.8)`;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.05, r * 0.38, now / 1000, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${0.35 + t * 0.4})`;
+    ctx.setLineDash([9, 13]);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.25, r * 0.48, -now / 800 + Math.PI / 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 4. FLOATING ARMOR SHARDS
+    const shardOffset = t * 35;
+    const shardAlpha = 1 - t * 0.82;
+    ctx.fillStyle = `rgba(10,5,20,${shardAlpha})`;
+    ctx.strokeStyle = `rgba(${curR},${curG},${curB},${0.8 + t * 0.2})`;
+    ctx.lineWidth = 1.5;
+    const armorShards = [
+        [[0, -r * 1.55 - shardOffset], [r * 0.48, -r * 0.58 - shardOffset * 0.5], [0, -r * 0.38], [-r * 0.48, -r * 0.58 - shardOffset * 0.5]],
+        [[0, r * 1.35 + shardOffset], [r * 0.38, r * 0.48 + shardOffset * 0.5], [0, r * 0.28], [-r * 0.38, r * 0.48 + shardOffset * 0.5]],
+        [[-r * 1.25 - shardOffset, 0], [-r * 0.48, -r * 0.28], [-r * 0.28, 0], [-r * 0.48, r * 0.28]],
+        [[r * 1.25 + shardOffset, 0], [r * 0.48, -r * 0.28], [r * 0.28, 0], [r * 0.48, r * 0.28]],
+    ];
+    armorShards.forEach(pts => {
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
+        ctx.closePath();
+        if (t < 0.88) ctx.fill();
+        ctx.stroke();
+    });
+
+    // 5. SINGULARITY CORE
+    const coreR = r * 0.38 + t * r * 0.18;
+    const accR = coreR * 1.5 + Math.sin(now / 100) * 2.5;
+    const accGrad = ctx.createRadialGradient(0, 0, coreR * 0.7, 0, 0, accR);
+    accGrad.addColorStop(0, '#ffffff');
+    accGrad.addColorStop(0.4, mainColor);
+    accGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = accGrad;
+    ctx.beginPath(); ctx.arc(0, 0, accR, 0, Math.PI * 2); ctx.fill();
+    // Event Horizon (black hole)
+    ctx.fillStyle = '#000000';
+    ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2); ctx.fill();
+    // Iris / khe nứt không gian
+    ctx.fillStyle = t > 0.5 ? '#ffffff' : mainColor;
+    if (!_mobPerf) { ctx.shadowColor = mainColor; ctx.shadowBlur = 14; }
+    ctx.save();
+    ctx.rotate(now / 1500);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, coreR * 0.13, coreR * 0.75, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.shadowBlur = 0;
+
+    // RGB Glitch separation (chỉ ở phantom)
+    if (t > 0.12 && !_mobPerf) {
+        const glAmt = t * 5;
+        ctx.globalCompositeOperation = 'screen';
+        ctx.strokeStyle = 'rgba(255,0,0,0.45)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(-glAmt, 0, coreR, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(0,0,255,0.45)';
+        ctx.beginPath(); ctx.arc(glAmt, 0, coreR, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    ctx.restore();
+
+    // HP bar
+    const bw = enemy.size, bh = 5;
+    const bx = enemy.x - bw / 2, by = enemy.y - enemy.size / 2 - 14;
+    ctx.fillStyle = '#330033'; ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = enemy.inPhantom ? '#00e5cc' : '#cc22ff';
+    ctx.fillRect(bx, by, bw * Math.max(0, enemy.hp / enemy.maxHp), bh);
+    ctx.strokeStyle = `rgba(${curR},${curG},${curB},0.8)`; ctx.lineWidth = 0.8;
+    ctx.strokeRect(bx, by, bw, bh);
+
+    // HP number
+    ctx.fillStyle = '#ffffff'; ctx.font = '11px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(Math.ceil(enemy.hp), enemy.x, by - 1);
+
+    // Phantom indicator
+    if (enemy.inPhantom) {
+        ctx.save();
+        ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(now / 200));
+        ctx.fillStyle = '#00e5cc'; ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText('PHANTOM', enemy.x, by - 14);
+        ctx.restore();
+    }
+
+    // Lightning countdown telegraph: vòng tròn tâm ngắm đếm ngược
+    if (enemy.lightningPending) {
+        const prog = Math.min(1, enemy.lightningCountdown / enemy.lightningCountdownDuration);
+        const tx = enemy.lightningTargetX, ty = enemy.lightningTargetY;
+        const circR = 100;
+        ctx.save();
+
+        // Outer dashed ring
+        ctx.strokeStyle = `rgba(255,30,30,${0.55 + prog * 0.45})`;
+        ctx.lineWidth = 2.5;
+        if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 14; }
+        ctx.setLineDash([8, 5]);
+        ctx.beginPath(); ctx.arc(tx, ty, circR, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Crosshair lines
+        ctx.strokeStyle = `rgba(255,60,60,0.7)`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(tx - circR * 1.3, ty); ctx.lineTo(tx + circR * 1.3, ty);
+        ctx.moveTo(tx, ty - circR * 1.3); ctx.lineTo(tx, ty + circR * 1.3);
+        ctx.stroke();
+
+        // Radial fill expanding from center outward (sáng lên từ tâm)
+        if (prog > 0.01) {
+            const fillGrad = ctx.createRadialGradient(tx, ty, 0, tx, ty, circR * prog);
+            fillGrad.addColorStop(0, `rgba(255,30,30,${0.35 * prog})`);
+            fillGrad.addColorStop(1, 'rgba(255,0,0,0)');
+            ctx.fillStyle = fillGrad;
+            ctx.beginPath(); ctx.arc(tx, ty, circR * prog, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // Center dot
+        ctx.fillStyle = `rgba(255,100,100,${0.7 + prog * 0.3})`;
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(tx, ty, 5, 0, Math.PI * 2); ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+function _drawVeilshroudEcho(enemy) {
+    const now = performance.now();
+    const echoT = enemy.echoTimer || 0;
+    const r = enemy.size / 2;
+
+    // Mức độ "charging" (3–5s: echo chuyển sang đỏ rực, sắp nổ)
+    const isCharging = echoT >= 3000;
+    const chargeProg = isCharging ? Math.min(1, (echoT - 3000) / 2000) : 0;
+
+    const pulse = 0.55 + 0.45 * Math.abs(Math.sin(now / 180 + enemy.x * 0.03));
+    const alpha = isCharging ? (0.5 + chargeProg * 0.4) : (0.5 + pulse * 0.3);
+
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    ctx.globalAlpha = alpha;
+
+    // Màu: cyan → đỏ khi charging
+    const eR = Math.round(200 * chargeProg);
+    const eG = Math.round(240 - 240 * chargeProg);
+    const eB = Math.round(255 - 200 * chargeProg);
+    const echoColor = `rgb(${eR},${eG},${eB})`;
+
+    // Aura mờ
+    const aG = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 3);
+    aG.addColorStop(0, `rgba(${eR},${eG},${eB},0.12)`);
+    aG.addColorStop(1, 'transparent');
+    ctx.fillStyle = aG;
+    ctx.beginPath(); ctx.arc(0, 0, r * 3, 0, Math.PI * 2); ctx.fill();
+
+    // Floating shards (wireframe / khung dây)
+    ctx.strokeStyle = `rgba(${eR},${eG},${eB},0.55)`;
+    ctx.lineWidth = 1.5;
+    if (!_mobPerf) { ctx.shadowColor = echoColor; ctx.shadowBlur = 8; }
+    const float = Math.sin(now / 700) * 6;
+    const crystalShards = [
+        [[0, -r * 1.65 - float], [r * 0.55, -r * 0.5 - float * 0.5], [0, -r * 0.2], [-r * 0.55, -r * 0.5 - float * 0.5]],
+        [[0, r * 1.45 + float], [r * 0.45, r * 0.42 + float * 0.5], [0, r * 0.12], [-r * 0.45, r * 0.42 + float * 0.5]],
+        [[-r * 1.35 - float, 0], [-r * 0.48, -r * 0.28], [-r * 0.22, 0], [-r * 0.48, r * 0.28]],
+        [[r * 1.35 + float, 0], [r * 0.48, -r * 0.28], [r * 0.22, 0], [r * 0.48, r * 0.28]],
+    ];
+    crystalShards.forEach(pts => {
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
+        ctx.closePath(); ctx.stroke();
+    });
+    ctx.shadowBlur = 0;
+
+    // Lõi đỏ rực (charging phase)
+    if (isCharging) {
+        if (!_mobPerf) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 20 + chargeProg * 40; }
+        ctx.fillStyle = `rgba(255,0,0,${chargeProg * 0.7})`;
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.35 + chargeProg * r * 0.45, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // Lõi trung tâm (event horizon mờ)
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = echoColor;
+    ctx.save();
+    ctx.rotate(now / 1400);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.1, r * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Vết nứt đỏ (charging phase)
+    if (isCharging) {
+        ctx.strokeStyle = `rgba(255,50,50,${chargeProg * 0.75})`;
+        ctx.lineWidth = 1.5;
+        for (let ci = 0; ci < 5; ci++) {
+            ctx.save();
+            ctx.rotate((ci / 5) * Math.PI * 2 + now / 2000);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(r * 0.45, r * 0.22);
+            ctx.lineTo(r * 0.9, -r * 0.1);
+            ctx.lineTo(r * 1.5, r * 0.32);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    ctx.restore();
+
+    // Timer bar
+    const bw = enemy.size, bh = 4;
+    const bx = enemy.x - bw / 2, by = enemy.y - enemy.size / 2 - 12;
+    const timeLeft = Math.max(0, 5000 - (enemy.echoTimer || 0));
+    ctx.fillStyle = '#330011'; ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = isCharging ? '#ff3300' : '#cc44ff';
+    ctx.fillRect(bx, by, bw * (timeLeft / 5000), bh);
+    ctx.strokeStyle = 'rgba(200,80,255,0.6)'; ctx.lineWidth = 0.8;
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.fillStyle = '#ffffff'; ctx.font = '10px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`ECHO ${(timeLeft / 1000).toFixed(1)}s`, enemy.x, by - 1);
+}
+
+// ─── VEILSHROUD EFFECTS: lightning + explosion zones ───────────
+function _drawVeilshroudEffects() {
+    const now = performance.now();
+
+    // ── Active lightning strikes ──
+    if (window._veilshroudLightnings) {
+        for (const lt of window._veilshroudLightnings) {
+            const prog = Math.min(1, lt.life / lt.maxLife);
+            const alpha = prog;
+            ctx.save();
+
+            // Outer shockwave circle
+            const waveR = lt.strikeRadius * (1.3 - prog * 0.3);
+            ctx.globalAlpha = alpha * 0.5;
+            ctx.strokeStyle = '#ff2233';
+            ctx.lineWidth = 3 + prog * 5;
+            if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 20; }
+            ctx.beginPath(); ctx.arc(lt.x, lt.y, waveR, 0, Math.PI * 2); ctx.stroke();
+
+            // Bolt from top of canvas
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3 * prog;
+            if (!_mobPerf) { ctx.shadowColor = '#ff2233'; ctx.shadowBlur = 18; }
+            _drawLightningBolt(ctx, lt.x, 0, lt.x, lt.y, 5, 28);
+
+            // Outer bolt (red tint)
+            ctx.strokeStyle = `rgba(255,30,50,${alpha * 0.65})`;
+            ctx.lineWidth = 6 * prog;
+            _drawLightningBolt(ctx, lt.x, 0, lt.x, lt.y, 4, 35);
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+
+    // ── Echo explosion zones ──
+    if (window._veilshroudExplosions) {
+        for (const ez of window._veilshroudExplosions) {
+            const prog = ez.life / ez.maxLife; // 1→0
+            ctx.save();
+            ctx.globalAlpha = prog * 0.45;
+            // Pulsing fill
+            const pulseR = ez.radius * (0.9 + 0.1 * Math.abs(Math.sin(now / 120)));
+            const expFill = ctx.createRadialGradient(ez.x, ez.y, 0, ez.x, ez.y, pulseR);
+            expFill.addColorStop(0, `rgba(200,0,255,${prog * 0.4})`);
+            expFill.addColorStop(0.7, `rgba(120,0,200,${prog * 0.2})`);
+            expFill.addColorStop(1, 'transparent');
+            ctx.fillStyle = expFill;
+            ctx.beginPath(); ctx.arc(ez.x, ez.y, pulseR, 0, Math.PI * 2); ctx.fill();
+            // Ring
+            ctx.globalAlpha = prog * 0.85;
+            ctx.strokeStyle = `rgba(200,50,255,${prog})`;
+            ctx.lineWidth = 2.5;
+            if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 16; }
+            ctx.beginPath(); ctx.arc(ez.x, ez.y, ez.radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+}
+
+// ─── Helper: vẽ tia sét zigzag ──────────────────────────────────
+function _drawLightningBolt(ctx, x1, y1, x2, y2, detail, jitter) {
+    const points = [[x1, y1]];
+    const steps = Math.max(2, detail);
+    for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        const mx = x1 + (x2 - x1) * t + (Math.random() - 0.5) * jitter;
+        const my = y1 + (y2 - y1) * t + (Math.random() - 0.5) * jitter * 0.5;
+        points.push([mx, my]);
+    }
+    points.push([x2, y2]);
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+    ctx.stroke();
 }
