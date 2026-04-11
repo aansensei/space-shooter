@@ -292,26 +292,26 @@ Spawns continuously from the start. HP starts between **9–12** and scales up o
 
 ### Veilshroud (Abnormal)
 
-**Available after:** 30s | **Spawn rate:** 5% → 12% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
+**Available after:** 25s | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
 
-HP: **800–1,600**. Innate **15% Damage Reduction**.
+HP: **800–1,600**. Innate **35% Damage Reduction**.
 
 A shifting entity that phases in and out of reality to avoid damage and punish careless positioning.
 
-**Alteration: Phase Shift** — Every **0.45 seconds**, Veilshroud has a **40% chance** to enter **Phantom** state for **1.5 seconds**. While in Phantom: **99% Damage Reduction**, movement and attacks stop. Additionally, every incoming hit has a **40% chance** to instantly trigger Phantom (the hit is completely negated — no damage applied).
+**Passive — Void Echo** — On death, leaves an **untargetable, immortal ghost** at the death position:
 
-**Alteration: Void Strike** — On exiting Phantom, Veilshroud marks a random Sentinel or the Player with a **red targeting reticle**. After a **1.5-second countdown** (the circle lights up from center to edge), a **red lightning bolt** strikes the marked position:
-
-- Player struck → **loses 1 life** (all normal protection layers apply in order).
-- Sentinels within **100px** of the strike → take **15% of their Max HP** as damage.
+- Fires double-rate bullets for **3 seconds** (200ms interval).
+- Charges up visually from seconds 3–5.
+- At **5 seconds**, detonates with a **100px radius explosion** that pulses **1.5% of target Max HP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost is fully immune to all damage and CC.
 
 **Normal Attack** — Fires **2 bullets** every **400ms** at the nearest target. Disabled while in Phantom or during a Void Strike countdown.
 
-**On Death — Void Echo** — Leaves an **untargetable, immortal ghost** at the death position:
+**Skill: Alteration — Phase Shift & Void Strike** — A combined passive skill with two linked effects:
 
-- Fires double-rate bullets for **5 seconds** (200ms interval).
-- Charges up visually from seconds 5–8.
-- At **8 seconds**, detonates with a **100px radius explosion** that pulses **1.5% of target Max HP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost cannot be targeted by any attack or skill.
+- Every **0.45 seconds**, has a **40% chance** to enter **Phantom** state for **1.5 seconds**: **99% DR**, movement and attacks stop.
+- Every incoming hit has an additional **40% chance** to instantly trigger Phantom (the hit is completely negated).
+- On Phantom exit, marks a random Sentinel or Player with a **red targeting reticle**. After a **1.5-second countdown**, a **red lightning bolt** strikes: Player = **1 life lost** (protections apply); Sentinels within **100px** = **15% Max HP** damage.
+- **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+25%**. Neither bonus applies while in Phantom.
 
 ---
 
@@ -325,8 +325,9 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 **Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
 
-- For every **1% of Max HP lost**, Thaelis gains **+1.5% Damage Reduction** on its body. Capped at **75% total DR** from this source.
+- For every **1% of Max HP lost**, Thaelis gains **+1.5% Damage Reduction** on its body. Capped at **85% total DR** from this source.
 - For every **1% of Max HP lost**, Thaelis's projectile speed and normal attack fire rate each increase by **+0.1%**. Capped at **+20%**.
+- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it gains a shield worth **10% of its Max HP**.
 
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
@@ -496,7 +497,7 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 | Enemy | Class | Unlocks | Spawn Rate | Cap | Speed | Respawn Cooldown |
 |---|---|---|---|---|---|---|
 | Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.6 u/s | — |
-| Veilshroud | Abnormal | 30s | 5% → 12% | 2 | 2.0 u/s | — |
+| Veilshroud | Abnormal | 25s | 12% → 25% | 2 | 2.0 u/s | — |
 | Thaelis | Abnormal | 30s | 12% → 25% | 3 | ~1.4 u/s | — |
 | Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s | — |
 | Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s | — |

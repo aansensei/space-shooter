@@ -209,8 +209,8 @@ function spawnEnemy() {
     const canSpawnLeviathan = leviathanCount < 1 && totalElite < 6;
     const canSpawnVeilshroud = veilshroudCount < 2 && totalElite < 6;
 
-    // Veilshroud: unlock sau 25s
-    const veilshroudRate = (elapsedSec >= 25) ? (0.05 + t * 0.07) : 0;
+    // Veilshroud: unlock sau 25s, tỉ lệ spawn bằng Thaelis
+    const veilshroudRate = (elapsedSec >= 25) ? (0.12 + t * 0.13) : 0;
 
     const rand = Math.random();
     let cursor = 0;
@@ -263,7 +263,8 @@ function spawnThaelis() {
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
         hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-        type: 'thaelis', shootTimer: 1000, reincarnated: false
+        type: 'thaelis', shootTimer: 1000, reincarnated: false,
+        _tenacityShield70: false, _tenacityShield40: false, _tenacityShield10: false
     });
 }
 
@@ -765,12 +766,17 @@ function triggerDemonGift(boss) {
         const healMultiplier = enemy.levEnvy ? 1.25 : 1.0; // Envy: +25% heal
         const healAmount = (enemy.soulReaver ? healBase * 0.75 : healBase) * healMultiplier;
         const potentialHp = enemy.hp + healAmount;
+        const veilNormal = enemy.type === 'veilshroud' && !enemy.inPhantom;
 
         if (potentialHp > enemy.maxHp) {
             const overheal = potentialHp - enemy.maxHp;
             let shieldGain = Math.ceil(overheal * 0.21);
             if (enemy.soulReaver) shieldGain *= 0.75;
+            if (veilNormal) shieldGain *= 1.25; // Alteration: +25% shield
             enemy.shield = (enemy.shield || 0) + shieldGain;
+        } else if (veilNormal) {
+            // Alteration: nhận thêm khiên bằng lượng hồi phục
+            enemy.shield = (enemy.shield || 0) + healAmount;
         }
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
 
@@ -888,10 +894,10 @@ function dealDamage(enemy, source) {
         combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
     }
 
-    // Tenacity: +1.5% DR per 1% HP lost, cap 75%
+    // Tenacity: +1.5% DR per 1% HP lost, cap 85%
     if (enemy.type === 'thaelis') {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
-        combinedDR += Math.min(0.75, hpLostPct * 0.015);
+        combinedDR += Math.min(0.85, hpLostPct * 0.015);
     }
 
     if (enemy.type === 'aegis_core') {
@@ -1088,6 +1094,16 @@ function dealDamage(enemy, source) {
         if (oldPercent > 0.4 && newPercent <= 0.4 && !enemy.demonGift40Triggered) { triggerDemonGift(enemy); enemy.demonGift40Triggered = true; }
         if (oldPercent > 0.1 && newPercent <= 0.1 && !enemy.demonGift10Triggered) { triggerDemonGift(enemy); enemy.demonGift10Triggered = true; }
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { triggerDemonGift(enemy); enemy.demonGift1Triggered = true; }
+    }
+
+    // Tenacity — mỗi khi mất 30% HP, nhận 1 lớp khiên 10% MaxHP
+    if (enemy.type === 'thaelis') {
+        const oldPct = oldHP / enemy.maxHp;
+        const newPct = enemy.hp / enemy.maxHp;
+        const shieldGrant = enemy.maxHp * 0.10;
+        if (oldPct > 0.70 && newPct <= 0.70 && !enemy._tenacityShield70) { enemy.shield = (enemy.shield || 0) + shieldGrant; enemy._tenacityShield70 = true; createParticles(enemy.x, enemy.y, 10, '#ffe066', 2, 6); }
+        if (oldPct > 0.40 && newPct <= 0.40 && !enemy._tenacityShield40) { enemy.shield = (enemy.shield || 0) + shieldGrant; enemy._tenacityShield40 = true; createParticles(enemy.x, enemy.y, 10, '#ffe066', 2, 6); }
+        if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityShield10) { enemy.shield = (enemy.shield || 0) + shieldGrant; enemy._tenacityShield10 = true; createParticles(enemy.x, enemy.y, 10, '#ffe066', 2, 6); }
     }
 }
 // ══════════════════════════════════════════════════════════

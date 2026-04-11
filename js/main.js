@@ -401,24 +401,31 @@ function update(rawDeltaTime) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
                     if (ally.levEnvy) finalHeal *= 1.25; // Envy: +25% heal
                     if (ally.hp <= 0) return; // cannot heal at 0 HP
+                    const veilNormal = ally.type === 'veilshroud' && !ally.inPhantom;
                     const newHp = ally.hp + finalHeal;
                     if (newHp > ally.maxHp) {
                         // Overheal: 50% of excess → shield
                         const overheal = newHp - ally.maxHp;
                         ally.hp = ally.maxHp;
-                        ally.shield = (ally.shield || 0) + overheal * 0.5;
+                        let overshield = overheal * 0.5;
+                        if (veilNormal) overshield *= 1.25; // Alteration: +25% shield
+                        ally.shield = (ally.shield || 0) + overshield;
                     } else {
                         ally.hp = Math.max(0, newHp);
+                        // Alteration: nhận thêm khiên bằng lượng hồi phục
+                        if (veilNormal) ally.shield = (ally.shield || 0) + finalHeal;
                     }
 
                     if (!ally.aegisShieldReceived) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.75 : shieldAmt;
+                        if (veilNormal) finalShield *= 1.25; // Alteration: +25% shield
                         ally.shield = (ally.shield || 0) + finalShield;
                         ally.aegisShieldReceived = true;
                     }
                     // 8% MaxHP tick shield per second — always applies
                     const tsAmt = ally.soulReaver ? tickShieldAmt * 0.75 : tickShieldAmt;
-                    ally.shield = (ally.shield || 0) + tsAmt;
+                    const finalTs = veilNormal ? tsAmt * 1.25 : tsAmt; // Alteration: +25% shield
+                    ally.shield = (ally.shield || 0) + finalTs;
                 }
             });
 
