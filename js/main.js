@@ -887,7 +887,17 @@ function update(rawDeltaTime) {
                             originX: enemy.x, originY: enemy.y,
                             hitEnemies: [], hitPlayer: false,
                         });
+                        // Lưu ghost windup để render vùng mờ sau khi bắn
+                        if (!enemy._ghostWindups) enemy._ghostWindups = [];
+                        enemy._ghostWindups.push({ targetX: tx, targetY: ty, originX: enemy.x, originY: enemy.y, fadeTimer: 750, maxFade: 750 });
                         enemy.marchosiasWindups.splice(wi, 1);
+                    }
+                }
+                // Giảm ghost fade timers
+                if (enemy._ghostWindups) {
+                    for (let gi = enemy._ghostWindups.length - 1; gi >= 0; gi--) {
+                        enemy._ghostWindups[gi].fadeTimer -= deltaTime;
+                        if (enemy._ghostWindups[gi].fadeTimer <= 0) enemy._ghostWindups.splice(gi, 1);
                     }
                 }
             }

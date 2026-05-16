@@ -29,6 +29,11 @@ let _bgCacheFrame = 0;  // frame counter for cache refresh
 function _initMobilePerf() {
     _mobPerf = true;
     _bgDirty = true;
+    // Triệt tiêu hoàn toàn shadow tại setter level — zero GPU cost
+    try {
+        Object.defineProperty(ctx, 'shadowBlur',  { get: () => 0, set: () => {}, configurable: true });
+        Object.defineProperty(ctx, 'shadowColor', { get: () => 'transparent', set: () => {}, configurable: true });
+    } catch(e) {}
 }
 
 // ══ END MOBILE FLAGS ════════════════════════════════════════════
@@ -37,7 +42,7 @@ function drawSpaceBackground(deltaTime) {
     // ── Mobile: cache background, redraw every 3 frames ──────────
     if (_mobPerf) {
         _bgCacheFrame++;
-        const needRedraw = _bgDirty || (_bgCacheFrame % 3 === 0);
+        const needRedraw = _bgDirty || (_bgCacheFrame % 4 === 0);
 
         if (needRedraw || !_bgOffscreen || _bgOffscreen.width !== canvas.width || _bgOffscreen.height !== canvas.height) {
             // Create or resize offscreen canvas
@@ -97,17 +102,10 @@ function _drawSpaceBgTo(c, deltaTime, W, H) {
         c.globalAlpha = alpha;
         c.strokeStyle = grad;
         c.lineWidth = s.size;
-        if (!_mobPerf && s.size > 1.2) {
-            c.shadowColor = s.color;
-            c.shadowBlur = s.size * 4;
-        } else {
-            c.shadowBlur = 0;
-        }
         c.beginPath();
         c.moveTo(tx, ty);
         c.lineTo(s.x, s.y);
         c.stroke();
-        c.shadowBlur = 0;
 
         // Bright head dot
         c.globalAlpha = Math.min(1, alpha * 1.4);
@@ -272,8 +270,8 @@ function draw(deltaTime) {
     const _MOB_SCALE = 0.78;
 
     // ── Mobile particle cap ───────────────────────────────────────
-    if (_isMobile && particles.length > 120) {
-        particles.splice(0, particles.length - 120);
+    if (_isMobile && particles.length > 80) {
+        particles.splice(0, particles.length - 80);
     }
 
     // Background full canvas
@@ -1019,33 +1017,30 @@ function _drawStartScreen() {
 
         ctx.save();
 
-        // Diffraction spikes (4 tia) — chỉ sao sáng nhất
-        if (mag < 3.8) {
-            ctx.globalAlpha = twinkle * baseAlpha * 0.55;
-            ctx.strokeStyle = '#c0eeff';
-            ctx.lineWidth = 0.8;
-            const spikeLen = r * 4.5 * twinkle;
-            if (!_mobPerf) ctx.shadowColor = '#80ddff'; if (!_mobPerf) ctx.shadowBlur = 3;
-            [[px - spikeLen, py, px + spikeLen, py], [px, py - spikeLen, px, py + spikeLen]].forEach(([x1, y1, x2, y2]) => {
-                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-            });
+        // Diffraction spikes + halo (skip on mobile)
+        if (!_mobPerf) {
+            if (mag < 3.8) {
+                ctx.globalAlpha = twinkle * baseAlpha * 0.55;
+                ctx.strokeStyle = '#c0eeff';
+                ctx.lineWidth = 0.8;
+                const spikeLen = r * 4.5 * twinkle;
+                [[px - spikeLen, py, px + spikeLen, py], [px, py - spikeLen, px, py + spikeLen]].forEach(([x1, y1, x2, y2]) => {
+                    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+                });
+            }
+            // Outer glow halo
+            ctx.globalAlpha = twinkle * baseAlpha * 0.45;
+            const haloR = r * 5 * (0.8 + 0.2 * twinkle);
+            const hG = ctx.createRadialGradient(px, py, 0, px, py, haloR);
+            hG.addColorStop(0, 'rgba(140,220,255,0.9)');
+            hG.addColorStop(0.4, 'rgba(80,180,255,0.3)');
+            hG.addColorStop(1, 'transparent');
+            ctx.fillStyle = hG;
+            ctx.beginPath(); ctx.arc(px, py, haloR, 0, Math.PI * 2); ctx.fill();
         }
-
-        // Outer glow halo
-        ctx.globalAlpha = twinkle * baseAlpha * 0.45;
-        const haloR = r * 5 * (0.8 + 0.2 * twinkle);
-        const hG = ctx.createRadialGradient(px, py, 0, px, py, haloR);
-        hG.addColorStop(0, 'rgba(140,220,255,0.9)');
-        hG.addColorStop(0.4, 'rgba(80,180,255,0.3)');
-        hG.addColorStop(1, 'transparent');
-        ctx.fillStyle = hG;
-        ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(px, py, haloR, 0, Math.PI * 2); ctx.fill();
 
         // Core star — sáng rõ
         ctx.globalAlpha = twinkle * Math.min(1, baseAlpha * 1.3);
-        if (!_mobPerf) ctx.shadowColor = '#ffffff';
-        if (!_mobPerf) ctx.shadowBlur = r * 3;
         const cG = ctx.createRadialGradient(px, py, 0, px, py, r * 1.6);
         cG.addColorStop(0, '#ffffff');
         cG.addColorStop(0.25, '#d0f0ff');
@@ -2956,6 +2951,41 @@ function drawEnemy(enemy) {
             ctx.moveTo(markerX, -halfW); ctx.lineTo(markerX, halfW);
             ctx.stroke();
 
+            ctx.restore();
+        }
+    }
+    // MARCHOSIAS ghost windup zones — fade từ phía Mar ra đến target theo nhát chém
+    if (enemy.type === 'marchosias' && enemy._ghostWindups && enemy._ghostWindups.length > 0) {
+        const halfW = 36;
+        for (const gw of enemy._ghostWindups) {
+            const alpha = Math.max(0, gw.fadeTimer / gw.maxFade); // 1→0
+            if (alpha <= 0) continue;
+            const angle4 = Math.atan2(gw.targetY - gw.originY, gw.targetX - gw.originX);
+            const len4 = Math.hypot(gw.targetX - gw.originX, gw.targetY - gw.originY) + 80;
+            // Phần hiển thị: từ visStart (phía Mar đã mất) đến len4 (phía target còn)
+            const visStart = (1 - alpha) * len4;
+            const visLen = len4 - visStart;
+            if (visLen <= 0) continue;
+            ctx.save();
+            ctx.globalAlpha = 0.42;
+            ctx.translate(gw.originX, gw.originY);
+            ctx.rotate(angle4);
+            // Clip chỉ phần còn hiện
+            ctx.beginPath();
+            ctx.rect(visStart, -halfW - 1, visLen + 1, halfW * 2 + 2);
+            ctx.clip();
+            // Fill mờ
+            ctx.fillStyle = 'rgba(255,80,0,0.2)';
+            ctx.fillRect(visStart, -halfW, visLen, halfW * 2);
+            // Edge lines nét đứt
+            ctx.strokeStyle = 'rgba(255,160,0,0.65)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([10, 6]);
+            ctx.beginPath();
+            ctx.moveTo(visStart, -halfW); ctx.lineTo(len4, -halfW);
+            ctx.moveTo(visStart, halfW);  ctx.lineTo(len4, halfW);
+            ctx.stroke();
+            ctx.setLineDash([]);
             ctx.restore();
         }
     }
@@ -6080,7 +6110,7 @@ function _drawVeilshroud(enemy) {
     ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.fill();
 
     // 2. VOID RIBBONS (áo choàng năng lượng uốn lượn)
-    const numRibbons = 5;
+    const numRibbons = _mobPerf ? 3 : 5;
     if (!_mobPerf) { ctx.shadowColor = mainColor; ctx.shadowBlur = 14; }
     for (let i = 0; i < numRibbons; i++) {
         ctx.save();
@@ -6119,26 +6149,28 @@ function _drawVeilshroud(enemy) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // 4. FLOATING ARMOR SHARDS
-    const shardOffset = t * 35;
-    const shardAlpha = 1 - t * 0.82;
-    ctx.fillStyle = `rgba(10,5,20,${shardAlpha})`;
-    ctx.strokeStyle = `rgba(${curR},${curG},${curB},${0.8 + t * 0.2})`;
-    ctx.lineWidth = 1.5;
-    const armorShards = [
-        [[0, -r * 1.55 - shardOffset], [r * 0.48, -r * 0.58 - shardOffset * 0.5], [0, -r * 0.38], [-r * 0.48, -r * 0.58 - shardOffset * 0.5]],
-        [[0, r * 1.35 + shardOffset], [r * 0.38, r * 0.48 + shardOffset * 0.5], [0, r * 0.28], [-r * 0.38, r * 0.48 + shardOffset * 0.5]],
-        [[-r * 1.25 - shardOffset, 0], [-r * 0.48, -r * 0.28], [-r * 0.28, 0], [-r * 0.48, r * 0.28]],
-        [[r * 1.25 + shardOffset, 0], [r * 0.48, -r * 0.28], [r * 0.28, 0], [r * 0.48, r * 0.28]],
-    ];
-    armorShards.forEach(pts => {
-        ctx.beginPath();
-        ctx.moveTo(pts[0][0], pts[0][1]);
-        for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
-        ctx.closePath();
-        if (t < 0.88) ctx.fill();
-        ctx.stroke();
-    });
+    // 4. FLOATING ARMOR SHARDS (skip on mobile)
+    if (!_mobPerf) {
+        const shardOffset = t * 35;
+        const shardAlpha = 1 - t * 0.82;
+        ctx.fillStyle = `rgba(10,5,20,${shardAlpha})`;
+        ctx.strokeStyle = `rgba(${curR},${curG},${curB},${0.8 + t * 0.2})`;
+        ctx.lineWidth = 1.5;
+        const armorShards = [
+            [[0, -r * 1.55 - shardOffset], [r * 0.48, -r * 0.58 - shardOffset * 0.5], [0, -r * 0.38], [-r * 0.48, -r * 0.58 - shardOffset * 0.5]],
+            [[0, r * 1.35 + shardOffset], [r * 0.38, r * 0.48 + shardOffset * 0.5], [0, r * 0.28], [-r * 0.38, r * 0.48 + shardOffset * 0.5]],
+            [[-r * 1.25 - shardOffset, 0], [-r * 0.48, -r * 0.28], [-r * 0.28, 0], [-r * 0.48, r * 0.28]],
+            [[r * 1.25 + shardOffset, 0], [r * 0.48, -r * 0.28], [r * 0.28, 0], [r * 0.48, r * 0.28]],
+        ];
+        armorShards.forEach(pts => {
+            ctx.beginPath();
+            ctx.moveTo(pts[0][0], pts[0][1]);
+            for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
+            ctx.closePath();
+            if (t < 0.88) ctx.fill();
+            ctx.stroke();
+        });
+    }
 
     // 5. SINGULARITY CORE
     const coreR = r * 0.38 + t * r * 0.18;
@@ -6199,6 +6231,25 @@ function _drawVeilshroud(enemy) {
         ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.fillText('PHANTOM', enemy.x, by - 14);
         ctx.restore();
+    }
+
+    // Vòng đỏ lưu lại sau khi sét đánh — fade dần 1.5s
+    if (enemy._lastLightningTime) {
+        const elapsed = performance.now() - enemy._lastLightningTime;
+        const fadeDur = 1500;
+        if (elapsed < fadeDur) {
+            const fa = (1 - elapsed / fadeDur) * 0.6;
+            ctx.save();
+            ctx.globalAlpha = fa;
+            ctx.strokeStyle = '#ff2233';
+            ctx.lineWidth = 2;
+            if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 10; }
+            ctx.setLineDash([8, 5]);
+            ctx.beginPath(); ctx.arc(enemy._lastLightningX, enemy._lastLightningY, 100, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
     }
 
     // Lightning countdown telegraph: vòng tròn tâm ngắm đếm ngược
@@ -6327,6 +6378,23 @@ function _drawVeilshroudEcho(enemy) {
     }
 
     ctx.restore();
+
+    // Vòng nét đứt 300px cảnh báo vùng nổ (hiện trước khi nổ trong giai đoạn charging)
+    if (isCharging) {
+        const warnA = 0.18 + chargeProg * 0.55;
+        ctx.save();
+        ctx.globalAlpha = warnA;
+        ctx.strokeStyle = `rgba(255,${Math.round(80 - chargeProg * 80)},${Math.round(80 - chargeProg * 80)},1)`;
+        ctx.lineWidth = 1.8;
+        if (!_mobPerf) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8 + chargeProg * 12; }
+        ctx.setLineDash([12, 8]);
+        ctx.lineDashOffset = -(now / 70) % 20;
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, 300, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineDashOffset = 0;
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
 
     // Timer bar
     const bw = enemy.size, bh = 4;

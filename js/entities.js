@@ -427,11 +427,7 @@ function updateVeilshroud(enemy, deltaTime) {
     // ── Lightning countdown & strike ──
     if (enemy.lightningPending) {
         enemy.lightningCountdown += deltaTime;
-        // Cập nhật vị trí theo target đang di chuyển (cho visual mềm mại)
-        if (enemy.lightningTargetRef) {
-            enemy.lightningTargetX = enemy.lightningTargetRef.x;
-            enemy.lightningTargetY = enemy.lightningTargetRef.y;
-        }
+        // Vị trí vòng mục tiêu cố định tại chỗ đặt, không dí theo player
         if (enemy.lightningCountdown >= enemy.lightningCountdownDuration) {
             _veilshroudStrike(enemy);
             enemy.lightningPending = false;
@@ -465,6 +461,10 @@ function _veilshroudBeginLightning(enemy) {
 function _veilshroudStrike(enemy) {
     const tx = enemy.lightningTargetX;
     const ty = enemy.lightningTargetY;
+    // Lưu vị trí sét cuối để render vòng đỏ lưu lại sau khi đánh
+    enemy._lastLightningX = tx;
+    enemy._lastLightningY = ty;
+    enemy._lastLightningTime = performance.now();
 
     // Tạo hiệu ứng visual
     if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
@@ -765,15 +765,18 @@ function triggerDemonGift(boss) {
         if (enemy.type === 'veilshroud_echo') return; // echo không nhận buff
         const healBase = boss.maxHp * 0.15;
         const healMultiplier = enemy.levEnvy ? 1.25 : 1.0; // Envy: +25% heal
-        const healAmount = (enemy.soulReaver ? healBase * 0.75 : healBase) * healMultiplier;
-        const potentialHp = enemy.hp + healAmount;
+        let healAmount = (enemy.soulReaver ? healBase * 0.75 : healBase) * healMultiplier;
         const veilNormal = enemy.type === 'veilshroud' && !enemy.inPhantom;
+        const veilPhantom = enemy.type === 'veilshroud' && enemy.inPhantom;
+        if (veilPhantom) healAmount *= 0.75; // Phantom: -25% heal & shield received
+        const potentialHp = enemy.hp + healAmount;
 
         if (potentialHp > enemy.maxHp) {
             const overheal = potentialHp - enemy.maxHp;
             let shieldGain = Math.ceil(overheal * 0.21);
             if (enemy.soulReaver) shieldGain *= 0.75;
             if (veilNormal) shieldGain *= 1.25; // Alteration: +25% shield
+            if (veilPhantom) shieldGain *= 0.75; // Phantom: -25% shield
             enemy.shield = (enemy.shield || 0) + shieldGain;
         } else if (veilNormal) {
             // Alteration: nhận thêm khiên bằng lượng hồi phục
@@ -1010,9 +1013,9 @@ function dealDamage(enemy, source) {
 
     // ── Damage caps apply regardless of true damage ──────────────
 
-    // Veilshroud Phantom: damage capped at 10% maxHP per hit
+    // Veilshroud Phantom: damage capped at 25% maxHP per hit
     if (enemy.type === 'veilshroud' && enemy.inPhantom) {
-        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.10));
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.25));
     }
 
     // Inevitable (Leviathan): if hit > 30% maxHP, cap at 7% for 2.5s (2s cooldown)
@@ -1029,7 +1032,7 @@ function dealDamage(enemy, source) {
             }
         }
         if (enemy._inevitableActive) {
-            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.07));
+            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.10));
         }
     }
 
@@ -1047,7 +1050,7 @@ function dealDamage(enemy, source) {
             }
         }
         if (enemy._maitreProtActive) {
-            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.10));
+            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.12));
         }
     }
 
