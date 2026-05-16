@@ -328,6 +328,7 @@ function update(rawDeltaTime) {
                 lastLaserTick = currentTime;
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
+                    if (enemy.type === 'veilshroud_echo') return; // untargetable
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
@@ -574,6 +575,7 @@ function update(rawDeltaTime) {
                             delay: windup.timer > 0 ? windup.timer : 0,
                             active: windup.timer <= 0,
                             originX: enemy.x, originY: enemy.y,
+                            targetX: windup.target.x, targetY: windup.target.y, // cho corridor style
                             hitEnemies: [], hitPlayer: false,
                         });
                     });
@@ -887,17 +889,25 @@ function update(rawDeltaTime) {
                             originX: enemy.x, originY: enemy.y,
                             hitEnemies: [], hitPlayer: false,
                         });
-                        // Lưu ghost windup để render vùng mờ sau khi bắn
-                        if (!enemy._ghostWindups) enemy._ghostWindups = [];
-                        enemy._ghostWindups.push({ targetX: tx, targetY: ty, originX: enemy.x, originY: enemy.y, fadeTimer: 750, maxFade: 750 });
+                        // Ghost đã được push khi windup bắt đầu — chỉ cần xoá windup
                         enemy.marchosiasWindups.splice(wi, 1);
                     }
                 }
-                // Giảm ghost fade timers
+                // Ghost timers: freezeTimer trước, rồi mới fadeTimer
                 if (enemy._ghostWindups) {
                     for (let gi = enemy._ghostWindups.length - 1; gi >= 0; gi--) {
-                        enemy._ghostWindups[gi].fadeTimer -= deltaTime;
-                        if (enemy._ghostWindups[gi].fadeTimer <= 0) enemy._ghostWindups.splice(gi, 1);
+                        const gw = enemy._ghostWindups[gi];
+                        if (gw.freezeTimer > 0) {
+                            gw.freezeTimer -= deltaTime;
+                            // Khi freeze vừa kết thúc: lock origin vào vị trí Mar hiện tại
+                            if (gw.freezeTimer <= 0) {
+                                gw.originX = enemy.x;
+                                gw.originY = enemy.y;
+                            }
+                        } else {
+                            gw.fadeTimer -= deltaTime;
+                            if (gw.fadeTimer <= 0) enemy._ghostWindups.splice(gi, 1);
+                        }
                     }
                 }
             }
@@ -962,6 +972,7 @@ function update(rawDeltaTime) {
                             delay: windup.timer > 0 ? windup.timer : 0,
                             active: windup.timer <= 0,
                             originX: enemy.x, originY: enemy.y,
+                            targetX: windup.target.x, targetY: windup.target.y, // cho corridor style
                             hitEnemies: [], hitPlayer: false,
                         });
                     });

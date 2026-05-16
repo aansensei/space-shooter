@@ -313,11 +313,11 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 - Charges up visually from seconds 3–5.
 - At **5 seconds**, detonates with a **1000px radius explosion** that pulses **2% of target Max HP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost is fully immune to all damage and CC.
 
-**Normal Attack** — Fires **2 bullets** every **400ms** at the nearest target. Disabled while in Phantom or during a Void Strike countdown.
+**Normal Attack** — Fires **2 bullets** every **500ms** at the nearest target. Disabled while in Phantom or during a Void Strike countdown.
 
 **Skill: Alteration — Phase Shift & Void Strike** — A combined passive skill with two linked effects:
 
-- Every **0.45 seconds**, has a **40% chance** to enter **Phantom** state for **1.5 seconds**: **99% DR**, movement and attacks stop. Additionally, while in Phantom, **no single hit can exceed 10% of Veilshroud's Max HP** (absolute damage cap on top of the 99% DR).
+- Every **0.45 seconds**, has a **40% chance** to enter **Phantom** state for **1.5 seconds**: **99% DR**, movement and attacks stop. Additionally, while in Phantom, **no single hit can exceed 25% of Veilshroud's Max HP** (absolute damage cap on top of the 99% DR). Healing and shields received by Veilshroud are also **reduced by 25%** while in Phantom.
 - Every incoming hit has an additional **40% chance** to instantly trigger Phantom (the hit is completely negated).
 - On Phantom exit, marks a random Sentinel or Player with a **red targeting reticle**. After a **1.5-second countdown**, a **red lightning bolt** strikes: Player = **1 life lost** (protections apply); Sentinels within **100px** = **15% Max HP** damage.
 - **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+25%**. Neither bonus applies while in Phantom.
@@ -432,7 +432,7 @@ HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 - **+2.5% DR per active Sentinel** on screen. Capped at **50% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 - **1% chance** to completely dodge any incoming hit.
-- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
+- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **12% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **1.5 seconds**, fires **4 dark chains** (+15% speed) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
@@ -457,7 +457,7 @@ HP: **6,682–11,693**. A massive armored entity with 9 segmented wing-plates su
 
 - **60% base Damage Reduction** at all times (active once the All for One shield breaks).
 - **1% chance** to completely dodge any incoming hit.
-- When any single hit would exceed **30% of Leviathan's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **7% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
+- When any single hit would exceed **30% of Leviathan's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
 
