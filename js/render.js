@@ -5,6 +5,8 @@
 
 let bgStars = [];
 let nebulaPoints = null;
+// Falling stars system
+let _fallingStars = [];
 let _skillGActivatedAt = -Infinity; // track khi nào G vừa được bật
 
 // ── lightweight cached offscreen canvas for glow ─────────────
@@ -54,93 +56,86 @@ function drawSpaceBackground(deltaTime) {
 }
 
 function _drawSpaceBgTo(c, deltaTime, W, H) {
-    c.fillStyle = '#03030f';
+    c.fillStyle = '#02020c';
     c.fillRect(0, 0, W, H);
 
-    // Nebula clouds
-    if (!nebulaPoints) {
-        nebulaPoints = [];
-        for (let i = 0; i < 5; i++) {
-            nebulaPoints.push({
-                x: Math.random() * W,
-                y: Math.random() * H * 0.7,
-                r: 120 + Math.random() * 200,
-                h: [200, 260, 180, 300, 220][i],
-                a: 0.03 + Math.random() * 0.04
-            });
-        }
-    }
-    c.save();
-    nebulaPoints.forEach(n => {
-        const g = c.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-        g.addColorStop(0, `hsla(${n.h},70%,35%,${n.a})`);
-        g.addColorStop(1, 'transparent');
-        c.fillStyle = g;
-        c.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
-    });
-    c.restore();
-
-    if (bgStars.length === 0) {
-        for (let i = 0; i < 280; i++) {
-            bgStars.push({
-                ox: Math.random() * 2 - 1, oy: Math.random() * 2 - 1,
-                z: Math.random(),
-                speed: 0.0003 + Math.random() * 0.0006,
-                color: Math.random() > 0.75 ? '#00e5ff' : (Math.random() > 0.45 ? '#ffffff' : '#ffccff'),
-                phase: Math.random() * Math.PI * 2
-            });
-        }
-    }
-
-    const now = performance.now();
     const dt = deltaTime ? deltaTime / 16.67 : 1;
-    const cxW = W / 2, cyH = H / 2;
+    const now = performance.now();
 
+    // ── Initialise falling stars pool ────────────────────────────
+    if (_fallingStars.length === 0) {
+        for (let i = 0; i < 80; i++) {
+            _fallingStars.push(_makeFallingStar(W, H, true));
+        }
+    }
+
+    // ── Update + draw each falling star ──────────────────────────
     c.save();
-    for (const star of bgStars) {
-        star.z += star.speed * dt;
-        if (star.z >= 1) { star.ox = Math.random() * 2 - 1; star.oy = Math.random() * 2 - 1; star.z = 0.01; }
+    for (let i = _fallingStars.length - 1; i >= 0; i--) {
+        const s = _fallingStars[i];
+        s.y += s.vy * dt;
+        s.x += s.vx * dt;
 
-        const perspective = 1 / (1 - star.z * 0.95);
-        const sx = cxW + star.ox * cxW * perspective;
-        const sy = cyH + star.oy * cyH * perspective;
-        if (sx < 0 || sx > W || sy < 0 || sy > H) continue;
+        // Reset when off bottom edge
+        if (s.y > H + s.len) {
+            _fallingStars[i] = _makeFallingStar(W, H, false);
+            continue;
+        }
 
-        const size = 0.2 + star.z * star.z * 3.5;
-        const brightness = star.z * star.z;
-        const twinkle = brightness < 0.3 ? brightness
-            : brightness * (0.75 + 0.25 * Math.sin(now / 500 + star.phase));
+        const twinkle = 0.55 + 0.45 * Math.sin(now / 600 + s.phase);
+        const alpha = s.brightness * twinkle;
 
-        c.globalAlpha = Math.min(1, twinkle * 1.2);
-        c.fillStyle = star.color;
+        // Trail line
+        const tx = s.x - s.vx * s.len / s.vy;
+        const ty = s.y - s.len;
 
-        // Mobile: skip shadowBlur for stars entirely (big GPU win)
-        if (!_mobPerf && star.z > 0.65) {
-            c.shadowColor = star.color;
-            c.shadowBlur = size * 3;
+        c.globalAlpha = 0;
+        const grad = c.createLinearGradient(tx, ty, s.x, s.y);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(1, s.color);
+
+        c.globalAlpha = alpha;
+        c.strokeStyle = grad;
+        c.lineWidth = s.size;
+        if (!_mobPerf && s.size > 1.2) {
+            c.shadowColor = s.color;
+            c.shadowBlur = s.size * 4;
         } else {
             c.shadowBlur = 0;
         }
-
-        if (!_mobPerf && star.z > 0.82) {
-            const prevZ = star.z - star.speed * dt * 3;
-            const prevP = 1 / (1 - Math.max(0, prevZ) * 0.95);
-            const px = cxW + star.ox * cxW * prevP;
-            const py = cyH + star.oy * cyH * prevP;
-            c.strokeStyle = star.color;
-            c.lineWidth = size * 0.7;
-            c.globalAlpha = Math.min(1, twinkle * 0.6);
-            c.beginPath(); c.moveTo(px, py); c.lineTo(sx, sy); c.stroke();
-            c.globalAlpha = Math.min(1, twinkle * 1.2);
-        }
-
         c.beginPath();
-        c.arc(sx, sy, Math.max(0.3, size), 0, Math.PI * 2);
-        c.fill();
+        c.moveTo(tx, ty);
+        c.lineTo(s.x, s.y);
+        c.stroke();
         c.shadowBlur = 0;
+
+        // Bright head dot
+        c.globalAlpha = Math.min(1, alpha * 1.4);
+        c.fillStyle = '#ffffff';
+        c.beginPath();
+        c.arc(s.x, s.y, Math.max(0.3, s.size * 0.6), 0, Math.PI * 2);
+        c.fill();
     }
     c.globalAlpha = 1;
     c.restore();
+}
+
+function _makeFallingStar(W, H, initial) {
+    const colors = ['#ffffff', '#c8dfff', '#ffe8cc', '#aaddff', '#ffddff'];
+    const vy = 1.8 + Math.random() * 5.5;
+    const angle = (Math.random() - 0.5) * 0.18; // slight diagonal
+    const size = 0.4 + Math.random() * 1.8;
+    return {
+        x: Math.random() * W,
+        y: initial ? Math.random() * H : -(20 + Math.random() * 60),
+        vx: Math.sin(angle) * vy,
+        vy,
+        len: 18 + size * 14 + Math.random() * 30,
+        size,
+        brightness: 0.35 + Math.random() * 0.65,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        phase: Math.random() * Math.PI * 2
+    };
 }
 
 
@@ -3922,7 +3917,80 @@ function _drawMarchoBlade(blade) {
     ctx.restore();
 }
 
+function _drawCoronationEffect(enemy) {
+    const now = performance.now();
+    const progress = Math.min(1, enemy.coronationTimer / enemy.coronationDuration);
+    const r = enemy.size;
+
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+
+    // Expanding golden aura rings
+    for (let k = 0; k < 3; k++) {
+        const ringPhase = ((now / 400) + k / 3) % 1;
+        const ringR = r * (1.0 + ringPhase * 2.2);
+        const ringAlpha = (1 - ringPhase) * 0.7 * (0.5 + 0.5 * progress);
+        ctx.globalAlpha = ringAlpha;
+        if (!_mobPerf) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 18; }
+        ctx.strokeStyle = `rgba(255,215,0,${0.9 * (1 - ringPhase)})`;
+        ctx.lineWidth = 2.5 * (1 - ringPhase * 0.6);
+        ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    // Golden lightning bolts (4-6 jagged bolts radiating out)
+    const boltCount = _mobPerf ? 3 : 6;
+    for (let b = 0; b < boltCount; b++) {
+        const baseAngle = (b / boltCount) * Math.PI * 2 + (now / 300);
+        const boltLen = r * (1.4 + Math.random() * 1.2);
+        const segments = 5;
+        ctx.save();
+        ctx.rotate(baseAngle);
+        if (!_mobPerf) { ctx.shadowColor = '#fff176'; ctx.shadowBlur = 14; }
+        ctx.strokeStyle = `rgba(255,215,0,${0.7 + 0.3 * Math.sin(now / 80 + b)})`;
+        ctx.lineWidth = 1.5 + Math.random() * 1.5;
+        ctx.beginPath();
+        let cx2 = 0, cy2 = r * 0.5;
+        ctx.moveTo(cx2, cy2);
+        for (let seg = 0; seg < segments; seg++) {
+            cx2 += (Math.random() - 0.5) * r * 0.4;
+            cy2 += (boltLen - r * 0.5) / segments;
+            ctx.lineTo(cx2, cy2);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // Gold flash body overlay
+    const flashAlpha = 0.35 + 0.35 * Math.sin(now / 60);
+    ctx.globalAlpha = flashAlpha;
+    if (!_mobPerf) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 22; }
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    // CORONATION label
+    ctx.fillStyle = '#fff176';
+    ctx.font = `bold ${Math.ceil(9 + progress * 3)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    if (!_mobPerf) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 10; }
+    ctx.fillText('CORONATION', 0, -r - 6);
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+}
+
 function _drawNormalEnemy(enemy) {
+    // Coronation overrides normal rendering
+    if (enemy.inCoronation) {
+        _drawCoronationEffect(enemy);
+        return;
+    }
+
     const now = performance.now();
     const hpRatio = enemy.hp / enemy.maxHp;
     const hue = 10 + hpRatio * 40; // 50=orange, 10=red
@@ -6315,22 +6383,25 @@ function _drawVeilshroudEffects() {
         for (const ez of window._veilshroudExplosions) {
             const prog = ez.life / ez.maxLife; // 1→0
             ctx.save();
-            ctx.globalAlpha = prog * 0.45;
-            // Pulsing fill
-            const pulseR = ez.radius * (0.9 + 0.1 * Math.abs(Math.sin(now / 120)));
-            const expFill = ctx.createRadialGradient(ez.x, ez.y, 0, ez.x, ez.y, pulseR);
-            expFill.addColorStop(0, `rgba(200,0,255,${prog * 0.4})`);
-            expFill.addColorStop(0.7, `rgba(120,0,200,${prog * 0.2})`);
-            expFill.addColorStop(1, 'transparent');
-            ctx.fillStyle = expFill;
-            ctx.beginPath(); ctx.arc(ez.x, ez.y, pulseR, 0, Math.PI * 2); ctx.fill();
-            // Ring
-            ctx.globalAlpha = prog * 0.85;
-            ctx.strokeStyle = `rgba(200,50,255,${prog})`;
-            ctx.lineWidth = 2.5;
-            if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 16; }
+
+            // Solid boundary ring
+            ctx.globalAlpha = prog * 0.9;
+            ctx.strokeStyle = `rgba(180,40,255,${prog})`;
+            ctx.lineWidth = 2;
+            if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 8; }
             ctx.beginPath(); ctx.arc(ez.x, ez.y, ez.radius, 0, Math.PI * 2); ctx.stroke();
             ctx.shadowBlur = 0;
+
+            // Dashed overlay
+            ctx.globalAlpha = prog * 0.7;
+            ctx.strokeStyle = `rgba(255,160,255,${prog * 0.9})`;
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([10, 7]);
+            ctx.lineDashOffset = -(now / 80) % 17;
+            ctx.beginPath(); ctx.arc(ez.x, ez.y, ez.radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.lineDashOffset = 0;
+
             ctx.restore();
         }
     }

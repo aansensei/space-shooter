@@ -63,7 +63,7 @@ function updateSkillA(deltaTime) {
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
 
-    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
+    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && Math.hypot(enemy.x - player.x, enemy.y - player.y) < skillASensorRadius);
 
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive);
@@ -734,6 +734,8 @@ function updateSkillD(deltaTime) {
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing — immune to black hole
             if (enemy.type === 'veilshroud_echo') continue; // echo miễn CC
+            if (enemy.inCoronation) continue; // untargetable during coronation
+            if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
             if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
                 if (d > 1) {
