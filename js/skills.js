@@ -155,6 +155,7 @@ function updateScatteredProjectiles(deltaTime) {
         }
 
         for (let enemy of enemies) {
+            if (enemy.type === 'veilshroud_echo') continue; // untargetable
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - proj.x, enemy.y - proj.y) < enemyRadius + proj.size) {
                 if (proj.isBouncingBall) {
@@ -408,7 +409,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         const targets = [];
         // Find up to 3 distinct closest enemies
         const allValid = enemies.filter(e =>
-            !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath
+            !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.hp > 0 && !e._markedForDeath
         ).sort((a, b) => Math.hypot(a.x - spirit.x, a.y - spirit.y) - Math.hypot(b.x - spirit.x, b.y - spirit.y));
         if (allValid.length > 0) {
             targets[0] = allValid[0];
@@ -445,7 +446,7 @@ function updatePhotokrystos(spirit, deltaTime) {
 const MAX_PHOTO_BRANGS = 20;
 function spawnPhotoBrangs(fromX, fromY, count) {
     const validTargets = enemies.filter(e =>
-        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.hp > 0 && !e._markedForDeath
     );
     if (validTargets.length === 0) return; // no queue — just don't fire
     // Cap at 20: remove oldest to make room
@@ -489,7 +490,7 @@ function updatePhotoBrangs(deltaTime) {
         let tgt = null;
         while (b.targetIdx < b.targets.length) {
             const candidate = b.targets[b.targetIdx];
-            if (candidate && enemies.includes(candidate) && candidate.hp > 0 && !candidate._markedForDeath) {
+            if (candidate && enemies.includes(candidate) && candidate.type !== 'veilshroud_echo' && candidate.hp > 0 && !candidate._markedForDeath) {
                 tgt = candidate; break;
             }
             b.targetIdx++; // skip dead/gone targets
@@ -602,6 +603,7 @@ function updateBladeArcProjectiles(deltaTime) {
         }
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing
+            if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (arc.hitEnemies.includes(enemy)) continue;
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
@@ -637,6 +639,7 @@ function updateSpiritBullets(deltaTime) {
         b.lifetime -= deltaTime;
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing
+            if (enemy.type === 'veilshroud_echo') continue; // untargetable
             // Phōtokrystos bullets destroy enemy bullets on contact
             if (b.destroysEnemyBullets && enemy.type.startsWith('enemy_bullet')) {
                 if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < b.size + enemy.size) {
@@ -683,6 +686,7 @@ function updateSpiritFinale(spirit, deltaTime) {
                 spirit.finaleLastLaserTick = 100;
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
+                    if (enemy.type === 'veilshroud_echo') return; // untargetable
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
                     dealDamage(enemy, { damage: 10, percentDamage: 0.40 });
                 });
@@ -787,6 +791,7 @@ function updateSkillF(deltaTime) {
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;
             if (enemy.type === 'abyssal_chain') continue; // piercing — immune to skill F
+            if (enemy.type === 'veilshroud_echo') continue; // untargetable
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {

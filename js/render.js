@@ -2911,75 +2911,39 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // MARCHOSIAS counter windup telegraphs (hỗ trợ nhiều windup song song)
-    if (enemy.type === 'marchosias' && enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
-        const halfW = 36;
-        for (const windup of enemy.marchosiasWindups) {
-            if (!windup.target) continue;
-            ctx.save();
-            const tx = windup.target.x, ty = windup.target.y;
-            const angle4 = Math.atan2(ty - enemy.y, tx - enemy.x);
-            const len4 = Math.hypot(tx - enemy.x, ty - enemy.y) + 80;
-
-            ctx.translate(enemy.x, enemy.y);
-            ctx.rotate(angle4);
-
-            // Static warning fill — không pulse, luôn hiển thị rõ
-            ctx.fillStyle = 'rgba(255,80,0,0.18)';
-            ctx.fillRect(0, -halfW, len4, halfW * 2);
-
-            // Bright static edge lines
-            ctx.strokeStyle = 'rgba(255,160,0,0.85)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, -halfW); ctx.lineTo(len4, -halfW);
-            ctx.moveTo(0, halfW); ctx.lineTo(len4, halfW);
-            ctx.stroke();
-
-            // Center dashed line
-            ctx.strokeStyle = 'rgba(255,220,80,0.6)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([14, 8]);
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len4, 0); ctx.stroke();
-            ctx.setLineDash([]);
-
-            // Impact marker at target position
-            const markerX = Math.hypot(tx - enemy.x, ty - enemy.y);
-            ctx.strokeStyle = 'rgba(255,100,0,0.9)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(markerX, -halfW); ctx.lineTo(markerX, halfW);
-            ctx.stroke();
-
-            ctx.restore();
-        }
-    }
-    // MARCHOSIAS ghost windup zones — fade từ phía Mar ra đến target theo nhát chém
+    // MARCHOSIAS ghost zones — 1 code path duy nhất (freeze khi windup, shrink sau khi bắn)
     if (enemy.type === 'marchosias' && enemy._ghostWindups && enemy._ghostWindups.length > 0) {
         const halfW = 36;
         for (const gw of enemy._ghostWindups) {
-            const alpha = Math.max(0, gw.fadeTimer / gw.maxFade); // 1→0
+            const frozen = gw.freezeTimer > 0;
+            const alpha = frozen ? 1.0 : Math.max(0, gw.fadeTimer / gw.maxFade);
             if (alpha <= 0) continue;
-            const angle4 = Math.atan2(gw.targetY - gw.originY, gw.targetX - gw.originX);
-            const len4 = Math.hypot(gw.targetX - gw.originX, gw.targetY - gw.originY) + 80;
-            // Phần hiển thị: từ visStart (phía Mar đã mất) đến len4 (phía target còn)
-            const visStart = (1 - alpha) * len4;
+            // Khi frozen: origin theo vị trí Mar hiện tại (Mar đang di chuyển)
+            // Khi fade: origin đã được lock tại vị trí Mar lúc chém ra
+            const ox = frozen ? enemy.x : gw.originX;
+            const oy = frozen ? enemy.y : gw.originY;
+            const angle4 = Math.atan2(gw.targetY - oy, gw.targetX - ox);
+            const len4 = Math.hypot(gw.targetX - ox, gw.targetY - oy) + 80;
+            // Khi frozen: full corridor; sau khi bắn: shrink từ phía Mar ra target
+            const visStart = frozen ? 0 : (1 - alpha) * len4;
             const visLen = len4 - visStart;
             if (visLen <= 0) continue;
             ctx.save();
-            ctx.globalAlpha = 0.42;
-            ctx.translate(gw.originX, gw.originY);
+            ctx.globalAlpha = alpha * 0.55 + 0.35;
+            ctx.translate(ox, oy);
             ctx.rotate(angle4);
-            // Clip chỉ phần còn hiện
             ctx.beginPath();
             ctx.rect(visStart, -halfW - 1, visLen + 1, halfW * 2 + 2);
             ctx.clip();
-            // Fill mờ
-            ctx.fillStyle = 'rgba(255,80,0,0.2)';
+            ctx.fillStyle = 'rgba(255,140,0,0.45)';
             ctx.fillRect(visStart, -halfW, visLen, halfW * 2);
-            // Edge lines nét đứt
-            ctx.strokeStyle = 'rgba(255,160,0,0.65)';
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(255,220,120,0.6)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([14, 8]);
+            ctx.beginPath(); ctx.moveTo(visStart, 0); ctx.lineTo(len4, 0); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.strokeStyle = 'rgba(255,210,0,0.92)';
+            ctx.lineWidth = 2.5;
             ctx.setLineDash([10, 6]);
             ctx.beginPath();
             ctx.moveTo(visStart, -halfW); ctx.lineTo(len4, -halfW);
@@ -3879,32 +3843,37 @@ function _drawMarchoBlade(blade) {
     ctx.save();
     const angle = blade.active ? Math.atan2(blade.vy, blade.vx) : blade.angle;
 
-    // ── WARNING PHASE: chỉ hiện đường cảnh báo vàng cam ─────────
+    // ── WARNING PHASE: cùng style với windup corridor / ghost ─────
     if (!blade.active) {
-        const pulse = 0.45 + 0.45 * Math.sin(now / 80);
-        const warnLen = Math.hypot(canvas.width, canvas.height); // đến tận rìa màn hình
-        const halfW = 28; // nửa chiều rộng warning beam
+        const halfW = 36;
+        // Dùng targetX/Y nếu có (blade từ death-convert), không thì dùng len cố định
+        const warnLen = (blade.targetX != null)
+            ? Math.hypot(blade.targetX - blade.originX, blade.targetY - blade.originY) + 80
+            : 500;
 
         ctx.translate(blade.originX, blade.originY);
         ctx.rotate(angle);
+        ctx.globalAlpha = 0.9;
 
-        // fill mờ
-        ctx.fillStyle = `rgba(255,180,0,${pulse * 0.18})`;
+        // Fill nền cam — giống windup corridor
+        ctx.fillStyle = 'rgba(255,140,0,0.45)';
         ctx.fillRect(0, -halfW, warnLen, halfW * 2);
 
-        // viền cam sáng
-        ctx.strokeStyle = `rgba(255,150,0,${pulse * 0.85})`;
-        ctx.lineWidth = 1.5;
+        // Đường giữa nét đứt
+        ctx.strokeStyle = 'rgba(255,220,120,0.6)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([14, 8]);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(warnLen, 0); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Edge lines nét đứt sáng
+        ctx.strokeStyle = 'rgba(255,210,0,0.92)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([10, 6]);
         ctx.beginPath();
         ctx.moveTo(0, -halfW); ctx.lineTo(warnLen, -halfW);
-        ctx.moveTo(0, halfW); ctx.lineTo(warnLen, halfW);
+        ctx.moveTo(0, halfW);  ctx.lineTo(warnLen, halfW);
         ctx.stroke();
-
-        // đường trung tâm nhấp nháy
-        ctx.setLineDash([12, 8]);
-        ctx.strokeStyle = `rgba(255,220,80,${pulse * 0.7})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(warnLen, 0); ctx.stroke();
         ctx.setLineDash([]);
 
         ctx.restore();
@@ -6233,12 +6202,12 @@ function _drawVeilshroud(enemy) {
         ctx.restore();
     }
 
-    // Vòng đỏ lưu lại sau khi sét đánh — fade dần 1.5s
+    // Vòng đỏ lưu lại sau khi sét đánh — fade từ 1.0 xuống 0 trong 1.5s (khớp với countdown end)
     if (enemy._lastLightningTime) {
         const elapsed = performance.now() - enemy._lastLightningTime;
         const fadeDur = 1500;
         if (elapsed < fadeDur) {
-            const fa = (1 - elapsed / fadeDur) * 0.6;
+            const fa = 1 - elapsed / fadeDur; // 1.0 → 0
             ctx.save();
             ctx.globalAlpha = fa;
             ctx.strokeStyle = '#ff2233';
@@ -6252,42 +6221,31 @@ function _drawVeilshroud(enemy) {
         }
     }
 
-    // Lightning countdown telegraph: vòng tròn tâm ngắm đếm ngược
+    // Lightning countdown telegraph — cùng style với post-strike ring để transition liền mạch
     if (enemy.lightningPending) {
         const prog = Math.min(1, enemy.lightningCountdown / enemy.lightningCountdownDuration);
         const tx = enemy.lightningTargetX, ty = enemy.lightningTargetY;
         const circR = 100;
         ctx.save();
 
-        // Outer dashed ring
-        ctx.strokeStyle = `rgba(255,30,30,${0.55 + prog * 0.45})`;
-        ctx.lineWidth = 2.5;
-        if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 14; }
+        // Radial fill mờ báo hiệu vùng nguy hiểm (prog càng cao càng sáng)
+        if (prog > 0.01) {
+            const fillGrad = ctx.createRadialGradient(tx, ty, 0, tx, ty, circR);
+            fillGrad.addColorStop(0, `rgba(255,34,51,${0.28 * prog})`);
+            fillGrad.addColorStop(1, 'rgba(255,0,0,0)');
+            ctx.fillStyle = fillGrad;
+            ctx.beginPath(); ctx.arc(tx, ty, circR, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // Vòng tròn nét đứt — giống post-strike (cùng màu, lineWidth, dash)
+        ctx.globalAlpha = 0.35 + prog * 0.65; // 0.35 lúc đầu → 1.0 lúc sắp đánh
+        ctx.strokeStyle = '#ff2233';
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 10; }
         ctx.setLineDash([8, 5]);
         ctx.beginPath(); ctx.arc(tx, ty, circR, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
-
-        // Crosshair lines
-        ctx.strokeStyle = `rgba(255,60,60,0.7)`;
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(tx - circR * 1.3, ty); ctx.lineTo(tx + circR * 1.3, ty);
-        ctx.moveTo(tx, ty - circR * 1.3); ctx.lineTo(tx, ty + circR * 1.3);
-        ctx.stroke();
-
-        // Radial fill expanding from center outward (sáng lên từ tâm)
-        if (prog > 0.01) {
-            const fillGrad = ctx.createRadialGradient(tx, ty, 0, tx, ty, circR * prog);
-            fillGrad.addColorStop(0, `rgba(255,30,30,${0.35 * prog})`);
-            fillGrad.addColorStop(1, 'rgba(255,0,0,0)');
-            ctx.fillStyle = fillGrad;
-            ctx.beginPath(); ctx.arc(tx, ty, circR * prog, 0, Math.PI * 2); ctx.fill();
-        }
-
-        // Center dot
-        ctx.fillStyle = `rgba(255,100,100,${0.7 + prog * 0.3})`;
         ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(tx, ty, 5, 0, Math.PI * 2); ctx.fill();
 
         ctx.restore();
     }
@@ -6413,6 +6371,32 @@ function _drawVeilshroudEcho(enemy) {
 // ─── VEILSHROUD EFFECTS: lightning + explosion zones ───────────
 function _drawVeilshroudEffects() {
     const now = performance.now();
+
+    // ── Pending Void Strike rings (host đã chết nhưng sét chưa ra) ──
+    if (window._veilshroudPendingStrikes && window._veilshroudPendingStrikes.length > 0) {
+        for (const ps of window._veilshroudPendingStrikes) {
+            const prog = Math.min(1, ps.countdown / ps.duration); // 0→1
+            const tx = ps.targetX, ty = ps.targetY;
+            ctx.save();
+            // Radial fill
+            if (prog > 0.01) {
+                const fg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 100);
+                fg.addColorStop(0, `rgba(255,34,51,${0.28 * prog})`);
+                fg.addColorStop(1, 'rgba(255,0,0,0)');
+                ctx.fillStyle = fg;
+                ctx.beginPath(); ctx.arc(tx, ty, 100, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 0.35 + prog * 0.65;
+            ctx.strokeStyle = '#ff2233';
+            ctx.lineWidth = 2;
+            if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 10; }
+            ctx.setLineDash([8, 5]);
+            ctx.beginPath(); ctx.arc(tx, ty, 100, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
 
     // ── Active lightning strikes ──
     if (window._veilshroudLightnings) {

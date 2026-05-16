@@ -39,9 +39,15 @@ function _tryTriggerMarchosiasCounter(enemy) {
     // Cooldown 0.75s kể từ lần trigger gần nhất
     if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 650) return;
     enemy.lastSwordTriggerTime = now;
-    enemy.marchosiasWindups.push({
-        timer: 1000,
-        target: { x: player.x, y: player.y }
+    const _wTx = player.x, _wTy = player.y;
+    enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } });
+    // Ngay khi windup bắt đầu: push ghost để dùng hiệu ứng mới xuyên suốt
+    if (!enemy._ghostWindups) enemy._ghostWindups = [];
+    enemy._ghostWindups.push({
+        targetX: _wTx, targetY: _wTy,
+        originX: enemy.x, originY: enemy.y,
+        freezeTimer: 1000, // giữ nguyên full corridor trong lúc windup
+        fadeTimer: 1200, maxFade: 1200,
     });
 }
 
@@ -382,9 +388,9 @@ function spawnVeilshroud() {
         lightningTargetX: 0,
         lightningTargetY: 0,
         lightningTargetRef: null,
-        // Normal attack
+        // Normal attack (−20% speed → interval × 1.25)
         shootTimer: 0,
-        shootInterval: 400,
+        shootInterval: 500,
     });
 }
 
