@@ -523,6 +523,18 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1); continue;
             }
 
+            // VEILSHROUD: save pending Void Strike so it fires even after host dies
+            if (enemy.type === 'veilshroud' && enemy.lightningPending) {
+                if (!window._veilshroudPendingStrikes) window._veilshroudPendingStrikes = [];
+                window._veilshroudPendingStrikes.push({
+                    countdown: enemy.lightningCountdown,
+                    duration: enemy.lightningCountdownDuration || 1500,
+                    targetRef: enemy.lightningTargetRef,
+                    targetX: enemy.lightningTargetX,
+                    targetY: enemy.lightningTargetY,
+                });
+            }
+
             // VEILSHROUD: Void Echo — để lại bóng ma khi chết
             if (enemy.type === 'veilshroud' && !enemy._echoSpawned) {
                 enemy._echoSpawned = true;
@@ -580,7 +592,7 @@ function update(rawDeltaTime) {
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
-                if (!enemy.hatched) handleEnemyKill(enemy);
+                if (!enemy.hatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
@@ -799,13 +811,19 @@ function update(rawDeltaTime) {
             }
 
             if (enemy.type === 'normal') {
-                enemy.shootTimer -= deltaTime;
-                if (enemy.shootTimer <= 0) {
-                    enemy.shootTimer = 1000;
-                    const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
-                    if (target) {
-                        const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-                        enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0 });
+                // Coronation passive — runs every frame, handles its own 1s tick
+                updateApostleCoronation(enemy, deltaTime);
+
+                // Frozen during coronation animation
+                if (!enemy.inCoronation) {
+                    enemy.shootTimer -= deltaTime;
+                    if (enemy.shootTimer <= 0) {
+                        enemy.shootTimer = 1000;
+                        const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
+                        if (target) {
+                            const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
+                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0 });
+                        }
                     }
                 }
             }
@@ -950,7 +968,7 @@ function update(rawDeltaTime) {
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
-                if (!enemy.hatched) handleEnemyKill(enemy);
+                if (!enemy.hatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
@@ -1014,6 +1032,8 @@ function update(rawDeltaTime) {
                 if (enemy.type === 'abyssal_chain') { continue; }
                 // ── VEILSHROUD ECHO: untargetable / immune ──
                 if (enemy.type === 'veilshroud_echo') { continue; }
+                // ── CORONATION: apostle is immortal and untargetable ──
+                if (enemy.inCoronation) { continue; }
                 if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     createParticles(b.x, b.y, 2, '#00e5ff', 1, 3);
@@ -1292,6 +1312,18 @@ function update(rawDeltaTime) {
         return lt.life > 0;
     });
 
+    // ── Veilshroud pending Void Strikes (persist after host death) ──
+    if (!window._veilshroudPendingStrikes) window._veilshroudPendingStrikes = [];
+    window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
+        ps.countdown += deltaTime;
+        if (ps.targetRef) { ps.targetX = ps.targetRef.x; ps.targetY = ps.targetRef.y; }
+        if (ps.countdown >= ps.duration) {
+            _veilshroudStrike({ lightningTargetX: ps.targetX, lightningTargetY: ps.targetY });
+            return false;
+        }
+        return true;
+    });
+
     // ── Veilshroud echo explosion zones ─────────────────────────────
     if (!window._veilshroudExplosions) window._veilshroudExplosions = [];
     window._veilshroudExplosions = window._veilshroudExplosions.filter(ez => {
@@ -1304,15 +1336,16 @@ function update(rawDeltaTime) {
             // Damage ticks: sentinels
             for (const s of sentinels) {
                 if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius) {
-                    const dmg = Math.ceil(s.maxHp * 0.015);
+                    const dmg = Math.ceil(s.maxHp * 0.02);
                     dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl' });
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }
             }
-            // Damage ticks: player
+            // Damage ticks: player — visual hit only, no life loss
             if (!ez.hitPlayerThisTick && Math.hypot(player.x - ez.x, player.y - ez.y) < ez.radius) {
                 ez.hitPlayerThisTick = true;
-                playerTakesHit();
+                screenShake = { intensity: 5, duration: 150 };
+                createParticles(player.x, player.y, 8, '#cc44ff', 2, 6);
             }
         }
         return ez.life > 0;

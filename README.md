@@ -288,6 +288,15 @@ Spawns continuously from the start. HP starts between **9–12** and scales up o
 
 **Score on kill:** HP × 6 points
 
+**Passive: Coronation (Đăng Cơ)** — Each Apostle on screen has a chance every second to undergo a transformation into a higher-tier enemy:
+
+- **Above the midscreen line**: **0.05% per second** chance.
+- **Below the midscreen line**: **0.5% per second** chance.
+- **Global limit**: At most **3 Coronations** can trigger within any 5-second window.
+- When triggered, the Apostle displays a golden lightning animation (≈ 2.2 seconds). During this time: it is **frozen** (no movement or attacks), **immortal** (immune to all damage), and **untargetable** (cannot be selected by Sentinels, Skill A, or any player mechanic).
+- After the animation ends, the Apostle is consumed and replaced by a random higher-tier enemy (**Marchosias**, **Veilshroud**, **Thaelis**, or **Dargruel**) at its position. The spawned enemy starts with full HP and all of its normal skills.
+- Coronation transformations do not grant kill score.
+
 ---
 
 ### Veilshroud (Abnormal)
@@ -302,13 +311,13 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 - Fires double-rate bullets for **3 seconds** (200ms interval).
 - Charges up visually from seconds 3–5.
-- At **5 seconds**, detonates with a **100px radius explosion** that pulses **1.5% of target Max HP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost is fully immune to all damage and CC.
+- At **5 seconds**, detonates with a **1000px radius explosion** that pulses **2% of target Max HP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost is fully immune to all damage and CC.
 
 **Normal Attack** — Fires **2 bullets** every **400ms** at the nearest target. Disabled while in Phantom or during a Void Strike countdown.
 
 **Skill: Alteration — Phase Shift & Void Strike** — A combined passive skill with two linked effects:
 
-- Every **0.45 seconds**, has a **40% chance** to enter **Phantom** state for **1.5 seconds**: **99% DR**, movement and attacks stop.
+- Every **0.45 seconds**, has a **40% chance** to enter **Phantom** state for **1.5 seconds**: **99% DR**, movement and attacks stop. Additionally, while in Phantom, **no single hit can exceed 10% of Veilshroud's Max HP** (absolute damage cap on top of the 99% DR).
 - Every incoming hit has an additional **40% chance** to instantly trigger Phantom (the hit is completely negated).
 - On Phantom exit, marks a random Sentinel or Player with a **red targeting reticle**. After a **1.5-second countdown**, a **red lightning bolt** strikes: Player = **1 life lost** (protections apply); Sentinels within **100px** = **15% Max HP** damage.
 - **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+25%**. Neither bonus applies while in Phantom.
@@ -325,7 +334,7 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 **Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
 
-- For every **1% of Max HP lost**, Thaelis gains **+1.5% Damage Reduction** on its body. Capped at **85% total DR** from this source.
+- For every **1% of Max HP lost**, Thaelis gains **+1.75% Damage Reduction** on its body. Capped at **90% total DR** from this source.
 - For every **1% of Max HP lost**, Thaelis's projectile speed and normal attack fire rate each increase by **+0.1%**. Capped at **+20%**.
 - Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it gains a shield worth **10% of its Max HP**.
 
@@ -419,9 +428,11 @@ HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
 
-- **30% base DR** at all times.
-- **+2.5% DR per active Sentinel** on screen. Capped at **40% total DR**.
+- **40% base DR** at all times.
+- **+2.5% DR per active Sentinel** on screen. Capped at **50% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
+- **1% chance** to completely dodge any incoming hit.
+- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **1.5 seconds**, fires **4 dark chains** (+15% speed) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
@@ -440,7 +451,13 @@ HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 
 **Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
-HP: **6,682–11,693**. **50% base Damage Reduction** on its body after the shield breaks. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
+HP: **6,682–11,693**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
+
+**Passive: Inevitable** — Leviathan's core resilience mechanics:
+
+- **60% base Damage Reduction** at all times (active once the All for One shield breaks).
+- **1% chance** to completely dodge any incoming hit.
+- When any single hit would exceed **30% of Leviathan's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **7% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
 

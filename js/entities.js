@@ -544,8 +544,8 @@ function updateVeilshroudEcho(enemy, deltaTime) {
 }
 
 function _veilshroudEchoExplode(enemy) {
-    const x = enemy.x, y = enemy.y, r = 100;
-    addExplosion(x, y, r * 2, '#aa00ff');
+    const x = enemy.x, y = enemy.y, r = 300;
+    addExplosion(x, y, 60, '#aa00ff');
     screenShake = { intensity: 12, duration: 500 };
     createParticles(x, y, 50, '#cc44ff', 2, 10);
 
@@ -735,8 +735,9 @@ function findClosestEnemy(x, y) {
     let closest = null, closestDist = Infinity;
     for (let enemy of enemies) {
         if (enemy.type.startsWith('enemy_bullet')) continue;
-        if (enemy.type === 'abyssal_chain') continue; // chains cannot be targeted
-        if (enemy.type === 'veilshroud_echo') continue; // echo is untargetable
+        if (enemy.type === 'abyssal_chain') continue;
+        if (enemy.type === 'veilshroud_echo') continue;
+        if (enemy.inCoronation) continue; // Coronation: untargetable during animation
         let d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d < closestDist) { closest = enemy; closestDist = d; }
     }
@@ -818,6 +819,9 @@ function dealDamage(enemy, source) {
         }
     }
 
+    // Coronation: apostle undergoing transformation — immortal, cannot take damage
+    if (enemy.type === 'normal' && enemy.inCoronation) return;
+
     if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
         // Shield blocks ALL damage — chỉ đếm hit (max 200)
         if (source.damage > 0 || source.percentDamage > 0) {
@@ -894,10 +898,10 @@ function dealDamage(enemy, source) {
         combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
     }
 
-    // Tenacity: +1.5% DR per 1% HP lost, cap 85%
+    // Tenacity: +1.75% DR per 1% HP lost, cap 90%
     if (enemy.type === 'thaelis') {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
-        combinedDR += Math.min(0.85, hpLostPct * 0.015);
+        combinedDR += Math.min(0.90, hpLostPct * 0.0175);
     }
 
     if (enemy.type === 'aegis_core') {
@@ -917,13 +921,17 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'boss') {
-        // Maître suprême: 30% base + 2.5% per sentinel, capped at 40%
-        const maitreDR = Math.min(0.40, 0.30 + sentinels.length * 0.025);
+        // Inevitable dodge for Dargruel: 1%
+        if (Math.random() < 0.01) return;
+        // Maître suprême: 40% base + 2.5% per sentinel, capped at 50%
+        const maitreDR = Math.min(0.50, 0.40 + sentinels.length * 0.025);
         combinedDR += maitreDR;
     }
 
     if (enemy.type === 'leviathan') {
-        combinedDR += 0.50; // Leviathan base DR 50% (shield handled separately)
+        // Inevitable: 1% dodge
+        if (Math.random() < 0.01) return;
+        combinedDR += 0.60; // Inevitable: 60% base DR
     }
 
     if (enemy.type === 'embryo') {
@@ -994,22 +1002,64 @@ function dealDamage(enemy, source) {
     }
 
     combinedDR = Math.min(0.99, combinedDR);
-    // True damage: skip DR and shield entirely
-    if (source.isTrueDamage) {
-        enemy.hp -= totalDamage;
-    } else {
+    // True damage skips DR; normal damage applies DR
+    if (!source.isTrueDamage) {
         totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
         totalDamage = Math.max(0, totalDamage);
-        // True damage window (4 Trọng Thương stacks): bypass shield hoàn toàn trong 2s
-        if (inTrueDmgWindow) {
-            enemy.hp -= totalDamage;
-        } else {
-            const damageToShield = Math.min(enemy.shield, totalDamage);
-            enemy.shield -= damageToShield;
-            enemy.shield = Math.max(0, enemy.shield);
-            totalDamage -= damageToShield;
-            enemy.hp -= totalDamage;
+    }
+
+    // ── Damage caps apply regardless of true damage ──────────────
+
+    // Veilshroud Phantom: damage capped at 10% maxHP per hit
+    if (enemy.type === 'veilshroud' && enemy.inPhantom) {
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.10));
+    }
+
+    // Inevitable (Leviathan): if hit > 30% maxHP, cap at 7% for 2.5s (2s cooldown)
+    if (enemy.type === 'leviathan') {
+        const now_ine = currentTime;
+        if (enemy._inevitableActive && now_ine >= (enemy._inevitableEnd || 0)) {
+            enemy._inevitableActive = false;
         }
+        if (totalDamage > enemy.maxHp * 0.30) {
+            if (!enemy._inevitableActive && now_ine >= (enemy._inevitableCooldownEnd || 0)) {
+                enemy._inevitableActive = true;
+                enemy._inevitableEnd = now_ine + 2500;
+                enemy._inevitableCooldownEnd = now_ine + 4500;
+            }
+        }
+        if (enemy._inevitableActive) {
+            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.07));
+        }
+    }
+
+    // Maître Suprême (Dargruel): if hit > 30% maxHP, cap at 10% for 2.5s (2s cooldown)
+    if (enemy.type === 'boss') {
+        const now_ms = currentTime;
+        if (enemy._maitreProtActive && now_ms >= (enemy._maitreProtEnd || 0)) {
+            enemy._maitreProtActive = false;
+        }
+        if (totalDamage > enemy.maxHp * 0.30) {
+            if (!enemy._maitreProtActive && now_ms >= (enemy._maitreProtCooldownEnd || 0)) {
+                enemy._maitreProtActive = true;
+                enemy._maitreProtEnd = now_ms + 2500;
+                enemy._maitreProtCooldownEnd = now_ms + 4500;
+            }
+        }
+        if (enemy._maitreProtActive) {
+            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.10));
+        }
+    }
+
+    // Apply damage: true damage and true-damage-window both bypass shield
+    if (source.isTrueDamage || inTrueDmgWindow) {
+        enemy.hp -= totalDamage;
+    } else {
+        const damageToShield = Math.min(enemy.shield, totalDamage);
+        enemy.shield -= damageToShield;
+        enemy.shield = Math.max(0, enemy.shield);
+        totalDamage -= damageToShield;
+        enemy.hp -= totalDamage;
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
@@ -1388,4 +1438,78 @@ function _triggerVanguardFuse() {
 
     // Reset damage window
     window._vanguardState.recentDamage = [];
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CORONATION (Đăng Cơ) — Apostle transformation passive
+// Max 3 per 5-second window; 0.05%/s above midscreen, 0.5%/s below
+// ══════════════════════════════════════════════════════════════════
+if (!window._coronationHistory) window._coronationHistory = [];
+
+function _getCoronationTransformType() {
+    const pool = ['marchosias', 'veilshroud', 'thaelis', 'boss'];
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function _spawnCoronationResult(enemy) {
+    const type = _getCoronationTransformType();
+    if (type === 'marchosias') spawnMarchosias();
+    else if (type === 'veilshroud') spawnVeilshroud();
+    else if (type === 'thaelis') spawnThaelis();
+    else spawnDargruel();
+
+    // Place the new enemy at the apostle's position
+    const spawned = enemies[enemies.length - 1];
+    if (spawned) {
+        spawned.x = enemy.x;
+        spawned.y = enemy.y;
+    }
+}
+
+function updateApostleCoronation(enemy, deltaTime) {
+    if (enemy._coronationConsumed) return; // already transformed — awaiting removal, no re-entry
+    if (!enemy.inCoronation) {
+        // Check per-second tick
+        if (!enemy.coronationCheckTimer) enemy.coronationCheckTimer = 0;
+        enemy.coronationCheckTimer += deltaTime;
+        if (enemy.coronationCheckTimer < 1000) return;
+        enemy.coronationCheckTimer = 0;
+
+        // Must be at least partially visible on screen
+        if (enemy.y < 0) return;
+
+        // Global limit: max 3 in 5 seconds
+        const now = performance.now();
+        window._coronationHistory = window._coronationHistory.filter(t => now - t < 5000);
+        if (window._coronationHistory.length >= 3) return;
+
+        const chance = enemy.y < canvas.height / 2 ? 0.0005 : 0.005;
+        if (Math.random() >= chance) return;
+
+        // Trigger Coronation
+        window._coronationHistory.push(now);
+        enemy.inCoronation = true;
+        enemy.coronationTimer = 0;
+        enemy.coronationDuration = 2200;
+        createParticles(enemy.x, enemy.y, 20, '#ffd700', 3, 8);
+    } else {
+        enemy.coronationTimer += deltaTime;
+        // Spawn golden lightning particles during animation
+        if (Math.random() < 0.3) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = enemy.size * (0.5 + Math.random() * 1.5);
+            createParticles(
+                enemy.x + Math.cos(angle) * dist,
+                enemy.y + Math.sin(angle) * dist,
+                2, '#ffd700', 4, 12
+            );
+        }
+        if (enemy.coronationTimer >= enemy.coronationDuration) {
+            addExplosion(enemy.x, enemy.y, enemy.size * 3, '#ffd700');
+            createParticles(enemy.x, enemy.y, 40, '#ffd700', 4, 14);
+            _spawnCoronationResult(enemy);
+            enemy.hp = 0; // remove original apostle silently (no kill credit)
+            enemy._coronationConsumed = true;
+        }
+    }
 }
