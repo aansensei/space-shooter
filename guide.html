@@ -441,10 +441,10 @@
 <li>Laser deals <span class="dmg">10 + 26% Max HP</span> per tick every 175ms. Pulls nearby enemies toward beam.</li>
 <li>While active, <span class="hi">4 clone afterimages</span> appear (2 each side, 5 ships total) firing parallel beams.</li></ul></div>
 
-<div class="card"><h2 style="color:var(--purple)"><span class="key">Shift</span> YOG-SOTHOTH DOMAIN</h2><div class="sub">SPACE-TIME MANIPULATION <span class="cd">CD 1.1s–11s</span> <span class="cd">MAX 8s</span></div>
+<div class="card"><h2 style="color:var(--purple)"><span class="key">Shift</span> YOG-SOTHOTH DOMAIN</h2><div class="sub">SPACE-TIME MANIPULATION <span class="cd">CD 1.1s–9s</span> <span class="cd">MAX 8s</span></div>
 <div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas></div>
 <ul><li>Hold Shift: world at <span class="hp">15% speed</span>. You gain <b>Iron Body</b>.</li>
-<li><b>Cooldown scales with hold time</b> (no teleport): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → 11s. <span class="hr">If ←/→ teleport used → always full 11s.</span></li>
+<li><b>Cooldown scales with hold time</b> (no teleport): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">If ←/→ teleport used → always full 9s.</span></li>
 <li>All enemy bullets <span class="hr">destroyed</span>. <span class="key">←→</span> teleport.</li>
 <li><span class="hg">Accurate Parry:</span> hit during domain → +25% dmg 4s, Sentinel shields.</li></ul></div>
 
@@ -511,7 +511,7 @@
 <ul>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 1 bullet per second. Bullet HP = enemy's HP at moment of firing.</li>
 <li>HP scales from 9–96 over time. Eye color shifts orange → red at low HP.</li>
-<li><span style="color:#ffd700;font-size:10px">PASSIVE</span> <b>Coronation</b> — While on screen, each Apostle rolls every second: <span class="hi">0.05%</span> chance above midscreen, <span class="hi">0.5%</span> below. Max <span class="hi">3</span> triggers per 5s globally. During the <span class="hi">~2.2s</span> golden lightning animation the Apostle is <b>frozen, immortal, and untargetable</b>. On completion it is consumed and replaced by a random higher-tier enemy (Marchosias, Veilshroud, Thaelis, or Dargruel) at full HP. No kill score.</li>
+<li><span style="color:#ffd700;font-size:10px">PASSIVE</span> <b>Coronation</b> — While on screen, each Apostle rolls every second: base <span class="hi">0.67%</span> chance above midscreen, <span class="hi">1%</span> below. Each Apostle death adds <span class="hi">+0.67%</span> (above) or <span class="hi">+1%</span> (below) cumulative — resets on trigger. Max <span class="hi">3</span> triggers per 5s globally. During the <span class="hi">~2.2s</span> animation the Apostle is <b>frozen</b> (<span class="hr">45% slower</span>), <b>immortal</b>, and <b>untargetable</b>. On completion it is consumed and replaced by a random higher-tier enemy (Marchosias, Veilshroud, Thaelis, or Dargruel) at full HP with a <span class="hg">1-hit Iron Body</span>. No kill score.</li>
 </ul></div>
 
 
@@ -2286,15 +2286,15 @@
             c.strokeStyle = `rgba(200,0,50,${0.15 * ringPulse})`; c.lineWidth = 3;
             c.beginPath(); c.arc(cx2, cy2, 52, 0, Math.PI * 2); c.stroke();
 
-            // ── 6-pointed red star ──
+            // ── 8-pointed red star ──
             c.save(); c.translate(cx2, cy2); c.rotate(t / 8000);
             c.fillStyle = `rgba(180,0,40,${0.55 + 0.2 * ringPulse})`;
             c.strokeStyle = `rgba(255,34,68,${0.8 + 0.2 * ringPulse})`; c.lineWidth = 1.2;
             for (let pass = 0; pass < 2; pass++) {
-              c.save(); c.rotate(pass * Math.PI / 3);
+              c.save(); c.rotate(pass * Math.PI / 4);
               c.beginPath();
-              for (let i = 0; i < 3; i++) {
-                const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+              for (let i = 0; i < 4; i++) {
+                const a = (i / 4) * Math.PI * 2 - Math.PI / 4;
                 i === 0 ? c.moveTo(Math.cos(a) * 30, Math.sin(a) * 30) : c.lineTo(Math.cos(a) * 30, Math.sin(a) * 30);
               }
               c.closePath();

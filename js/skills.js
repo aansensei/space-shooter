@@ -155,7 +155,9 @@ function updateScatteredProjectiles(deltaTime) {
         }
 
         for (let enemy of enemies) {
+            if (enemy.type === 'abyssal_chain') continue;   // piercing — immune
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
+            if (enemy.inCoronation) continue;               // untargetable during coronation
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - proj.x, enemy.y - proj.y) < enemyRadius + proj.size) {
                 if (proj.isBouncingBall) {
@@ -409,7 +411,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         const targets = [];
         // Find up to 3 distinct closest enemies
         const allValid = enemies.filter(e =>
-            !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.hp > 0 && !e._markedForDeath
+            !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
         ).sort((a, b) => Math.hypot(a.x - spirit.x, a.y - spirit.y) - Math.hypot(b.x - spirit.x, b.y - spirit.y));
         if (allValid.length > 0) {
             targets[0] = allValid[0];
@@ -446,7 +448,7 @@ function updatePhotokrystos(spirit, deltaTime) {
 const MAX_PHOTO_BRANGS = 20;
 function spawnPhotoBrangs(fromX, fromY, count) {
     const validTargets = enemies.filter(e =>
-        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.hp > 0 && !e._markedForDeath
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
     );
     if (validTargets.length === 0) return; // no queue — just don't fire
     // Cap at 20: remove oldest to make room
@@ -490,7 +492,7 @@ function updatePhotoBrangs(deltaTime) {
         let tgt = null;
         while (b.targetIdx < b.targets.length) {
             const candidate = b.targets[b.targetIdx];
-            if (candidate && enemies.includes(candidate) && candidate.type !== 'veilshroud_echo' && candidate.hp > 0 && !candidate._markedForDeath) {
+            if (candidate && enemies.includes(candidate) && candidate.type !== 'veilshroud_echo' && !candidate.inCoronation && candidate.hp > 0 && !candidate._markedForDeath) {
                 tgt = candidate; break;
             }
             b.targetIdx++; // skip dead/gone targets
@@ -536,7 +538,9 @@ function updatePhotoBrangs(deltaTime) {
             if (b._bounces >= 2 && !bounced) {
                 // Check if new enemies appeared
                 const newValid = enemies.filter(e =>
-                    !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.hp > 0 && !e._markedForDeath
+                    !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' &&
+                    e.type !== 'veilshroud_echo' && !e.inCoronation &&
+                    e.hp > 0 && !e._markedForDeath
                 );
                 if (newValid.length > 0) {
                     b.targets = [...newValid].sort(() => Math.random() - 0.5);
@@ -604,6 +608,7 @@ function updateBladeArcProjectiles(deltaTime) {
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
+            if (enemy.inCoronation) continue;
             if (arc.hitEnemies.includes(enemy)) continue;
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
@@ -640,6 +645,7 @@ function updateSpiritBullets(deltaTime) {
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
+            if (enemy.inCoronation) continue;
             // Phōtokrystos bullets destroy enemy bullets on contact
             if (b.destroysEnemyBullets && enemy.type.startsWith('enemy_bullet')) {
                 if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < b.size + enemy.size) {
@@ -687,6 +693,7 @@ function updateSpiritFinale(spirit, deltaTime) {
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return; // untargetable
+                    if (enemy.inCoronation) return;
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
                     dealDamage(enemy, { damage: 10, percentDamage: 0.40 });
                 });
@@ -792,15 +799,17 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             if (enemy.type === 'abyssal_chain') continue; // piercing — immune to skill F
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
+            if (enemy.inCoronation) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
-                    enemy.afoHitCount = Math.min(200, (enemy.afoHitCount || 0) + 1);
+                    enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
                 } else {
-                    // Instant kill — enemy_bullet, normal, elite, anything
-                    dealDamage(enemy, { damage: enemy.maxHp * 999999 + (enemy.shield || 0) * 999999 });
+                    // Instant kill — bypass tất cả damage calc, clear quái ngay lập tức
+                    enemy.shield = 0;
+                    enemy.hp = 0;
                 }
                 enemy.hitBySkillF = true;
             }
@@ -1009,6 +1018,8 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 
             enemies.forEach(enemy => {
                 if (enemy.type === 'abyssal_chain') return;
+                if (enemy.type === 'veilshroud_echo') return; // untargetable
+                if (enemy.inCoronation) return;               // untargetable during coronation
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;
@@ -1016,9 +1027,6 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 
                     if (!enemy.type.startsWith('enemy_bullet') && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
                         enemy.y -= (enemy.speed * dt * 0.08);
-                    } else if (!enemy.type.startsWith('enemy_bullet') && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
-                        enemy.x -= (enemy.vx * dt * 0.08);
-                        enemy.y -= (enemy.vy * dt * 0.08);
                     }
 
                     if (enemy.type === 'boss' || enemy.type === 'thaelis') {
@@ -1068,6 +1076,8 @@ function updateTeslaCoils(deltaTime, currentTime) {
         const coil = teslaCoils[i];
 
         enemies.forEach(enemy => {
+            if (enemy.type === 'veilshroud_echo') return; // untargetable
+            if (enemy.inCoronation) return;               // untargetable during coronation
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
                 if (!enemy.type.startsWith('enemy_bullet')) {
@@ -1114,7 +1124,7 @@ function executeShiftTeleport(direction) {
     createParticles(player.x, player.y, 30, 'magenta', 3, 10);
     screenShake = { intensity: 10, duration: 200 };
 
-    // Teleport used → full 11s cooldown
+    // Teleport used → 9s cooldown
     window._shiftTeleportUsed = true;
     cancelSkillShift();
 }
@@ -1124,23 +1134,20 @@ function cancelSkillShift() {
         const holdDuration = (performance.now() - skillShiftChargeStart) / 1000; // seconds
         skillShiftActive = false;
 
-        // If teleport (←/→) was used during domain → always full 11s CD
+        // If teleport (←/→) was used during domain → 9s CD (same as held ≥7s)
         const teleportUsed = !!window._shiftTeleportUsed;
         window._shiftTeleportUsed = false; // reset flag
 
-        let cdMultiplier;
-        if (teleportUsed) {
-            cdMultiplier = 1.0; // full CD
+        let effectiveCD;
+        if (teleportUsed || holdDuration >= 7) {
+            effectiveCD = 9000;                        // held ≥7s hoặc teleport → 9s (was 11s)
         } else if (holdDuration < 2) {
-            cdMultiplier = 0.10; // −90%  → 1.1s
+            effectiveCD = skillShiftCooldown * 0.10;   // −90% → 1.1s
         } else if (holdDuration < 5) {
-            cdMultiplier = 0.40; // −60%  → 4.4s
-        } else if (holdDuration < 7) {
-            cdMultiplier = 0.90; // −10%  → 9.9s
+            effectiveCD = skillShiftCooldown * 0.40;   // −60% → 4.4s
         } else {
-            cdMultiplier = 1.0;  // full  → 11s
+            effectiveCD = skillShiftCooldown * 0.90;   // −10% → 9.9s
         }
-        const effectiveCD = skillShiftCooldown * cdMultiplier;
         lastSkillShift = performance.now() - (skillShiftCooldown - effectiveCD);
 
         // Xóa tất cả enemy bullet trong vùng phạm vi Shift (bán kính = nửa màn hình)

@@ -311,10 +311,6 @@ function spawnMarchosias() {
             rotSpeed: 0.018,
             hitCount: 0,
         },
-        counterState: null,
-        counterTimer: 0,
-        counterTarget: null,
-        marchosiasBlades: [],
     });
 }
 
@@ -426,8 +422,14 @@ function updateVeilshroud(enemy, deltaTime) {
         if (enemy.phantomTimer >= enemy.phantomDuration) {
             enemy.inPhantom = false;
             enemy.phantomTimer = 0;
+            enemy.phantomFadeTimer = 400; // start fade-out back to violet
             _veilshroudBeginLightning(enemy);
         }
+    }
+
+    // ── Post-phantom color fade-out ──
+    if (!enemy.inPhantom && (enemy.phantomFadeTimer || 0) > 0) {
+        enemy.phantomFadeTimer = Math.max(0, enemy.phantomFadeTimer - deltaTime);
     }
 
     // ── Lightning countdown & strike ──
@@ -678,6 +680,7 @@ function updateSentinels(deltaTime) {
         if (s.synergyTier !== newTier) {
             let oldMax = s.maxHp;
             s.maxHp = (newTier === 1) ? 389 : 299;
+            if (s.isFortified) s.maxHp = Math.ceil(s.maxHp * 1.5); // re-apply fortified bonus
             s.hp = s.hp * (s.maxHp / oldMax);
             s.synergyTier = newTier;
         }
@@ -976,6 +979,13 @@ function dealDamage(enemy, source) {
         return; // hoàn toàn miễn sát thương
     }
 
+    // ── Coronation Iron Body perk — 1-hit block on spawned enemy ───
+    if (!isSentinel && enemy.ironBodyHits > 0) {
+        enemy.ironBodyHits--;
+        createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
+        return; // 1 hit absorbed
+    }
+
     // ── Sentinel Parry (khi Glory for Justice active) ────────────────
     if (isSentinel && gloryForJusticeActive && (source.damage > 0 || source.percentDamage > 0)
         && !source.isTeslaDot && !source.isChainLightning) {
@@ -1127,6 +1137,7 @@ function dealDamage(enemy, source) {
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
             if (chainedCount >= 6) break;
+            if (otherEnemy.type === 'veilshroud_echo' || otherEnemy.inCoronation) continue; // untargetable
             if (otherEnemy !== enemy && !otherEnemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
                 let debuff = Math.random() < 0.55;
                 dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff });
@@ -1225,7 +1236,7 @@ function spawnLeviathan() {
 function _applyLeviathanEnvy(lev) {
     enemies.forEach(e => {
         if (e === lev) return;
-        if (e.type.startsWith('enemy_bullet') || e.type === 'embryo') return;
+        if (e.type.startsWith('enemy_bullet') || e.type === 'embryo' || e.type === 'abyssal_chain') return;
         if (e.levEnvy) return; // already marked
         e.levEnvy = true;
         e.levEnvyLev = lev;
@@ -1451,9 +1462,11 @@ function _triggerVanguardFuse() {
 
 // ══════════════════════════════════════════════════════════════════
 // CORONATION (Đăng Cơ) — Apostle transformation passive
-// Max 3 per 5-second window; 0.05%/s above midscreen, 0.5%/s below
+// Max 3 per 5-second window; 0.67%/s above midscreen, 1%/s below
+// Death bonus: mỗi apostle chết +0.67% base chance (reset khi có 1 đứa trigger)
 // ══════════════════════════════════════════════════════════════════
 if (!window._coronationHistory) window._coronationHistory = [];
+if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
 
 function _getCoronationTransformType() {
     const pool = ['marchosias', 'veilshroud', 'thaelis', 'boss'];
@@ -1472,6 +1485,7 @@ function _spawnCoronationResult(enemy) {
     if (spawned) {
         spawned.x = enemy.x;
         spawned.y = enemy.y;
+        spawned.ironBodyHits = 1; // Coronation perk: blocks exactly 1 hit
     }
 }
 
@@ -1492,10 +1506,12 @@ function updateApostleCoronation(enemy, deltaTime) {
         window._coronationHistory = window._coronationHistory.filter(t => now - t < 5000);
         if (window._coronationHistory.length >= 3) return;
 
-        const chance = enemy.y < canvas.height / 2 ? 0.0005 : 0.005;
+        const baseChance = enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
+        const chance = baseChance + (window._coronationDeathBonus || 0);
         if (Math.random() >= chance) return;
 
-        // Trigger Coronation
+        // Trigger Coronation — reset death bonus
+        window._coronationDeathBonus = 0;
         window._coronationHistory.push(now);
         enemy.inCoronation = true;
         enemy.coronationTimer = 0;

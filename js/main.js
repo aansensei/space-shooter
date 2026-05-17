@@ -18,6 +18,7 @@ function loseLife() {
     }
 
     lives--;
+    window._hitVignetteStart = performance.now(); // trigger red border flash
 }
 
 function playerTakesHit() {
@@ -174,6 +175,8 @@ function update(rawDeltaTime) {
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
                 if (wave._hitEnemies.has(e)) continue;
+                if (e.type === 'veilshroud_echo') continue; // untargetable
+                if (e.inCoronation) continue;              // untargetable during coronation
                 const d = Math.hypot(e.x - wave.x, e.y - wave.y);
                 if (d < wave.radius + 20) {
                     wave._hitEnemies.add(e);
@@ -329,12 +332,13 @@ function update(rawDeltaTime) {
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return; // untargetable
+                    if (enemy.inCoronation) return; // untargetable during coronation
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                             // Laser chạm khiên Mar → tính 1 hit, không damage Mar
                             if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
-                                if (Math.random() < 0.20) _tryTriggerMarchosiasCounter(enemy);
+                                if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                             } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                 // Laser hit Leviathan shield → count hits, no body damage
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
@@ -350,6 +354,8 @@ function update(rawDeltaTime) {
             const pullRadius = 200, pullStrength = 0.05;
             enemies.forEach(enemy => {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo' || enemy.type === 'abyssal_chain') return;
+                if (enemy.type === 'veilshroud_echo') return; // untargetable
+                if (enemy.inCoronation) return; // untargetable during coronation
 
                 let closestLaserX = player.x + allLasers.reduce((prev, curr) =>
                     Math.abs(enemy.x - (player.x + curr.xOffset)) < Math.abs(enemy.x - (player.x + prev.xOffset)) ? curr : prev, { xOffset: 0 }).xOffset;
@@ -598,6 +604,11 @@ function update(rawDeltaTime) {
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
+            // Apostle chết bình thường → cộng bonus coronation theo vị trí
+            if (enemy.type === 'normal' && !enemy.inCoronation && !enemy._coronationConsumed) {
+                if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
+                window._coronationDeathBonus += enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
+            }
 
             enemies.splice(i, 1);
             continue;
@@ -729,9 +740,10 @@ function update(rawDeltaTime) {
             updateVeilshroudEcho(enemy, deltaTime);
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
-            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+            const _coronaSlow = (enemy.type === 'normal' && enemy.inCoronation) ? 0.55 : 1.0;
+            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow;
 
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
+            if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit();
                 if (enemy.type === 'boss' || enemy.type === 'thaelis') {
                 } else {
@@ -887,6 +899,8 @@ function update(rawDeltaTime) {
                             angle: angle, radius: 88,
                             delay: 0, active: true,
                             originX: enemy.x, originY: enemy.y,
+                            targetX: tx, targetY: ty, // corridor edge persistence
+                            _fireTime: performance.now(), // launch aura
                             hitEnemies: [], hitPlayer: false,
                         });
                         // Ghost đã được push khi windup bắt đầu — chỉ cần xoá windup
@@ -993,6 +1007,11 @@ function update(rawDeltaTime) {
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
+            // Apostle chết bình thường → cộng bonus coronation theo vị trí
+            if (enemy.type === 'normal' && !enemy.inCoronation && !enemy._coronationConsumed) {
+                if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
+                window._coronationDeathBonus += enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
+            }
 
             enemies.splice(i, 1);
             continue;
@@ -1080,7 +1099,7 @@ function update(rawDeltaTime) {
                         enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
 
                         // Mỗi đòn trúng khiên: 10% chance counter
-                        if (Math.random() < 0.20) _tryTriggerMarchosiasCounter(enemy);
+                        if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                         // Khiên vừa vỡ → counter ngay
                         if (shieldWasAlive && enemy.arcShield.hp <= 0) {
                             addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
@@ -1154,7 +1173,7 @@ function update(rawDeltaTime) {
         if (!window._blessingShieldTimer) window._blessingShieldTimer = 0;
         window._blessingShieldTimer += deltaTime;
         if (window._blessingShieldTimer >= 3000) {
-            window._blessingShieldTimer = 0; window._blessingLevShieldGiven = false; window._blessingRegenTimer = 0;
+            window._blessingShieldTimer = 0; window._blessingLevShieldGiven = false;
             sentinels.forEach(s => {
                 const current = s._blessingShield || 0;
                 const toAdd = Math.min(50 - current, 50);
