@@ -9,13 +9,6 @@ let nebulaPoints = null;
 let _fallingStars = [];
 let _skillGActivatedAt = -Infinity; // track khi nào G vừa được bật
 
-// ── lightweight cached offscreen canvas for glow ─────────────
-function getOffCtx(w, h) {
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    return c.getContext('2d');
-}
-
 // ── star-field with subtle twinkle ───────────────────────────
 // ══ MOBILE PERFORMANCE FLAGS ═══════════════════════════════════
 // Set once when platform is known. PC path untouched.
@@ -902,6 +895,32 @@ function draw(deltaTime) {
     }
 
     if (gameState === "playing") {
+        // ── Dark Souls red vignette ──────────────────────────────────
+        {
+            const _now = performance.now();
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            const innerR = Math.min(canvas.width, canvas.height) * 0.28;
+            const outerR = Math.hypot(canvas.width, canvas.height) * 0.62;
+
+            // Hit flash: 700ms fade after each life loss
+            const hitElapsed = _now - (window._hitVignetteStart || -Infinity);
+            const flashAlpha = hitElapsed < 700 ? (1 - hitElapsed / 700) * 0.65 : 0;
+
+            // Low-lives persistent pulse (< 5 lives)
+            const pulseAlpha = lives < 5 ? 0.20 + 0.14 * Math.abs(Math.sin(_now / 380)) : 0;
+
+            const vignetteAlpha = Math.max(flashAlpha, pulseAlpha);
+            if (vignetteAlpha > 0.01) {
+                const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+                grad.addColorStop(0, 'rgba(160,0,0,0)');
+                grad.addColorStop(1, `rgba(200,0,0,${vignetteAlpha})`);
+                ctx.save();
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+        }
+
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
         // HUD — smaller on mobile
         const hudFont = _isMobile ? '13px Arial' : '20px Arial';
@@ -917,9 +936,19 @@ function draw(deltaTime) {
         ctx.fillStyle = '#aaddff'; ctx.font = hudTimer;
         ctx.fillText(`⏱ ${mm}:${ss}`, canvas.width - 20, hudStartY);
 
-        ctx.fillStyle = "white"; ctx.font = hudFont;
+        ctx.font = hudFont;
+        ctx.fillStyle = 'white';
         ctx.fillText("Score: " + score, canvas.width - 20, hudStartY + hudLine);
+        // Lives: red + blink when < 5
+        if (lives < 5) {
+            const _t = performance.now();
+            const blink = 0.7 + 0.3 * Math.abs(Math.sin(_t / 380));
+            ctx.fillStyle = `rgb(255,${Math.round(40 * blink)},${Math.round(40 * blink)})`;
+        } else {
+            ctx.fillStyle = 'white';
+        }
         ctx.fillText("Lives: " + lives, canvas.width - 20, hudStartY + hudLine * 2);
+        ctx.fillStyle = 'white';
         ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, hudStartY + hudLine * 3);
         ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, hudStartY + hudLine * 4);
     } else if (gameState === "start") {
@@ -2942,14 +2971,17 @@ function drawEnemy(enemy) {
             ctx.setLineDash([14, 8]);
             ctx.beginPath(); ctx.moveTo(visStart, 0); ctx.lineTo(len4, 0); ctx.stroke();
             ctx.setLineDash([]);
-            ctx.strokeStyle = 'rgba(255,210,0,0.92)';
-            ctx.lineWidth = 2.5;
-            ctx.setLineDash([10, 6]);
-            ctx.beginPath();
-            ctx.moveTo(visStart, -halfW); ctx.lineTo(len4, -halfW);
-            ctx.moveTo(visStart, halfW);  ctx.lineTo(len4, halfW);
-            ctx.stroke();
-            ctx.setLineDash([]);
+            // Outer dashed lines: only during freeze (windup). After blade fires they're drawn on the blade itself.
+            if (frozen) {
+                ctx.strokeStyle = 'rgba(255,210,0,0.92)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([10, 6]);
+                ctx.beginPath();
+                ctx.moveTo(visStart, -halfW); ctx.lineTo(len4, -halfW);
+                ctx.moveTo(visStart, halfW);  ctx.lineTo(len4, halfW);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
             ctx.restore();
         }
     }
@@ -3805,39 +3837,6 @@ function _drawLeviathan(enemy) {
     ctx.restore();
 }
 
-// ── Envy chain effect (drawn on enemies with hasEnvy) ────────
-function _drawEnvyChain(enemy) {
-    const now = performance.now();
-    const r = (enemy.size / 2) + 10;
-    const numLinks = 12;
-    enemy.envyChainAngle = (enemy.envyChainAngle || 0) + 0.02;
-
-    ctx.save();
-    ctx.translate(enemy.x, enemy.y);
-
-    for (let i = 0; i < numLinks; i++) {
-        const a = enemy.envyChainAngle + (Math.PI * 2 / numLinks) * i;
-        const x = Math.cos(a) * r;
-        const y = Math.sin(a) * r;
-        const linkSize = 4;
-        const pulse = 0.6 + 0.4 * Math.sin(now / 300 + i);
-        ctx.fillStyle = `rgba(220,0,0,${pulse})`;
-        if (!_mobPerf) ctx.shadowColor = '#ff0000'; if (!_mobPerf) ctx.shadowBlur = 6;
-        ctx.fillRect(x - linkSize / 2, y - linkSize / 2, linkSize, linkSize * 0.6);
-        // Connect links
-        if (i > 0) {
-            const pa = enemy.envyChainAngle + (Math.PI * 2 / numLinks) * (i - 1);
-            const px = Math.cos(pa) * r, py = Math.sin(pa) * r;
-            ctx.strokeStyle = `rgba(180,0,0,${pulse * 0.7})`;
-            ctx.lineWidth = 1.5;
-            if (!_mobPerf) ctx.shadowBlur = 3;
-            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
-        }
-    }
-    ctx.shadowBlur = 0;
-    ctx.restore();
-}
-
 function _drawMarchoBlade(blade) {
     const now = performance.now();
     ctx.save();
@@ -3883,6 +3882,45 @@ function _drawMarchoBlade(blade) {
     // ── ACTIVE PHASE: vẽ blade arc ───────────────────────────────
     const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2;
 
+    // ── Outer corridor edges: persist on the blade until last 15% of screen ──
+    if (blade.y < canvas.height * 0.85 && blade.originX != null) {
+        const halfW = 36;
+        const corrLen = (blade.targetX != null)
+            ? Math.hypot(blade.targetX - blade.originX, blade.targetY - blade.originY) + 80
+            : Math.hypot(blade.x - blade.originX, blade.y - blade.originY) + 200;
+        ctx.save();
+        ctx.translate(blade.originX, blade.originY);
+        ctx.rotate(angle);
+        ctx.strokeStyle = 'rgba(255,210,0,0.85)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([10, 6]);
+        ctx.beginPath();
+        ctx.moveTo(0, -halfW); ctx.lineTo(corrLen, -halfW);
+        ctx.moveTo(0, halfW);  ctx.lineTo(corrLen, halfW);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+
+    // ── Launch aura: brief energy burst at origin when blade fires ──
+    if (blade._fireTime && now - blade._fireTime < 320) {
+        const elapsed = now - blade._fireTime;
+        const prog = elapsed / 320;
+        const burstAlpha = (1 - prog) * 0.9;
+        const burstR = 12 + prog * 52;
+        ctx.save();
+        if (!_mobPerf) { ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 18; }
+        ctx.globalAlpha = burstAlpha;
+        ctx.strokeStyle = 'rgba(255,190,50,0.95)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(blade.originX, blade.originY, burstR, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = burstAlpha * 0.45;
+        ctx.fillStyle = 'rgba(255,210,100,0.7)';
+        ctx.beginPath(); ctx.arc(blade.originX, blade.originY, burstR * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
     // Outer orange-red glow
     ctx.strokeStyle = 'rgba(255,80,0,0.35)';
     ctx.lineWidth = 18;
@@ -3920,6 +3958,30 @@ function _drawCoronationEffect(enemy) {
     const now = performance.now();
     const progress = Math.min(1, enemy.coronationTimer / enemy.coronationDuration);
     const r = enemy.size;
+
+    // ── Sky lightning bolt: golden bolt raining from top of screen (last 30% only) ──
+    if (progress > 0.70) {
+        const boltFlicker = 0.5 + 0.5 * Math.abs(Math.sin(now / 60));
+        const boltAlpha = Math.min(1, progress * 4) * boltFlicker;
+        ctx.save();
+        ctx.globalAlpha = boltAlpha;
+        if (!_mobPerf) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 24; }
+        // Glow halo pass
+        ctx.strokeStyle = 'rgba(255,200,0,0.30)';
+        ctx.lineWidth = 12;
+        _drawLightningBolt(ctx, enemy.x, 0, enemy.x, enemy.y, 5, 34);
+        // Main gold bolt
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2.5;
+        _drawLightningBolt(ctx, enemy.x, 0, enemy.x, enemy.y, 7, 22);
+        // White core
+        ctx.globalAlpha = boltAlpha * 0.7;
+        ctx.strokeStyle = '#fffde7';
+        ctx.lineWidth = 1;
+        _drawLightningBolt(ctx, enemy.x, 0, enemy.x, enemy.y, 7, 16);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
 
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
@@ -5038,7 +5100,7 @@ function drawPrimevalSummonEffect(eff) {
     ctx.restore();
 }
 
-// ─── PHOTOBRANG RENDER ────────────────────────────────────────
+// ─── PHOTOBRANG RENDER — 4-blade shuriken ─────────────────────
 function drawPhotoBrang(b) {
     const now = performance.now();
     ctx.save();
@@ -5047,40 +5109,65 @@ function drawPhotoBrang(b) {
 
     const R = 48;
 
+    // Blade shape helper: single blade pointing in +Y, same size as original arc
+    function bladePath() {
+        ctx.beginPath();
+        ctx.moveTo(-4, 8);
+        ctx.lineTo(-16, 30);
+        ctx.lineTo(0, R);
+        ctx.lineTo(16, 30);
+        ctx.lineTo(4, 8);
+        ctx.closePath();
+    }
+
     if (_mobPerf) {
-        // ── Mobile: lightweight 2-layer only ──
-        ctx.strokeStyle = 'rgba(45,255,115,0.5)'; ctx.lineWidth = 6;
-        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,230,0.7)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(0, 0, R - 2, -Math.PI / 2, Math.PI / 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(45,255,115,0.85)';
+        ctx.strokeStyle = 'rgba(200,255,220,0.8)'; ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+            ctx.save(); ctx.rotate(i * Math.PI / 2);
+            bladePath(); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
     } else {
-        ctx.shadowColor = '#a7ffc5'; ctx.shadowBlur = 18;
-        // Wide energy wash
-        ctx.strokeStyle = 'rgba(45,255,115,0.15)'; ctx.lineWidth = 24;
-        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-        // Outer glow
-        ctx.strokeStyle = 'rgba(45,255,115,0.35)'; ctx.lineWidth = 14;
-        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-        // Main arc
-        ctx.strokeStyle = 'rgba(167,255,197,0.95)'; ctx.lineWidth = 5;
-        ctx.shadowColor = 'white'; ctx.shadowBlur = 18;
-        ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-        // Bright inner edge
-        ctx.strokeStyle = 'rgba(255,255,230,0.6)'; ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(0, 0, R - 2, -Math.PI / 2, Math.PI / 2); ctx.stroke();
-        // Sparkle dots
-        const sqCount = 10;
-        for (let i = 0; i < sqCount; i++) {
-            const a = -Math.PI / 2 + (Math.PI / (sqCount - 1)) * i;
-            const r2 = R + (((i * 17 + Math.floor(now / 100)) % 4) - 2) * 4;
-            const sqA = 0.5 + 0.5 * Math.abs(Math.sin(now / 130 + i * 1.4));
-            ctx.fillStyle = `rgba(${180 + Math.floor(70 * Math.sin(i))},255,${180 + Math.floor(70 * Math.cos(i))},${sqA})`;
-            ctx.save(); ctx.translate(Math.cos(a) * r2, Math.sin(a) * r2); ctx.rotate(now / 200 + i);
-            ctx.fillRect(-2.5, -2.5, 5, 5); ctx.restore();
+        // ── Glow halo behind blades ──
+        ctx.shadowColor = '#a7ffc5'; ctx.shadowBlur = 22;
+        for (let i = 0; i < 4; i++) {
+            ctx.save(); ctx.rotate(i * Math.PI / 2);
+            ctx.fillStyle = 'rgba(45,255,115,0.18)';
+            ctx.beginPath();
+            ctx.moveTo(-8, 6); ctx.lineTo(-22, 30);
+            ctx.lineTo(0, R + 9);
+            ctx.lineTo(22, 30); ctx.lineTo(8, 6);
+            ctx.closePath(); ctx.fill();
+            ctx.restore();
+        }
+        // ── Main blades ──
+        for (let i = 0; i < 4; i++) {
+            ctx.save(); ctx.rotate(i * Math.PI / 2);
+            ctx.fillStyle = 'rgba(30,210,95,0.92)';
+            ctx.strokeStyle = 'rgba(167,255,197,0.95)'; ctx.lineWidth = 1.5;
+            ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 8;
+            bladePath(); ctx.fill(); ctx.stroke();
+            // Tip bright edge
+            ctx.shadowColor = 'white'; ctx.shadowBlur = 12;
+            ctx.strokeStyle = 'rgba(230,255,235,0.85)'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(-16, 30); ctx.lineTo(0, R); ctx.lineTo(16, 30);
+            ctx.stroke();
+            ctx.restore();
         }
         ctx.shadowBlur = 0;
+        // ── Center hub ──
+        ctx.shadowColor = 'white'; ctx.shadowBlur = 14;
+        ctx.fillStyle = 'rgba(167,255,197,0.95)';
+        ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
     }
+
     ctx.restore();
 }
 
@@ -6051,7 +6138,10 @@ function _drawVeilshroud(enemy) {
     const r = enemy.size / 2; // hitbox radius
 
     // Lerp màu: Normal = Deep Violet, Phantom = Ghostly Cyan
-    const t = enemy.inPhantom ? Math.min(1, enemy.phantomTimer / 400) : Math.max(0, 1 - enemy.phantomTimer / 400);
+    // inPhantom: fade in (0→1) via phantomTimer; after phantom: fade out (1→0) via phantomFadeTimer
+    const t = enemy.inPhantom
+        ? Math.min(1, enemy.phantomTimer / 400)
+        : Math.min(1, Math.max(0, (enemy.phantomFadeTimer || 0) / 400));
     const cNR = 140, cNG = 20, cNB = 255;   // violet
     const cPR = 0, cPG = 230, cPB = 200;  // cyan
     const curR = Math.round(cNR + (cPR - cNR) * t);

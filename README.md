@@ -175,12 +175,12 @@ Sentinels with Iron Body active are individually immune in all damage paths (dea
 
 ### Shift — Yog-Sothoth: Cursed Domain Expansion
 
-**Cooldown:** 11s base — scales with hold duration (only if ←/→ teleport was **not** used; using teleport forces full 11s CD):
+**Cooldown:** scales with hold duration (using teleport forces max CD):
 
 - Held < 2s, no teleport → **1.1s** (−90%)
 - Held 2–5s, no teleport → **4.4s** (−60%)
 - Held 5–7s, no teleport → **9.9s** (−10%)
-- Held ≥ 7s or teleported → **11s** (full CD) | **Max duration:** 8s (auto-cancels)
+- Held ≥ 7s or teleported → **9s** (max CD) | **Max duration:** 8s (auto-cancels)
 
 Hold Shift to open a cursed domain. Everything on the battlefield — enemies, movement, all timers — slows to **15% of normal speed**. You enter **Iron Body** (complete invulnerability — no damage source can touch you) while the domain is active.
 
@@ -290,11 +290,12 @@ Spawns continuously from the start. HP starts between **9–12** and scales up o
 
 **Passive: Coronation (Đăng Cơ)** — Each Apostle on screen has a chance every second to undergo a transformation into a higher-tier enemy:
 
-- **Above the midscreen line**: **0.05% per second** chance.
-- **Below the midscreen line**: **0.5% per second** chance.
+- **Above the midscreen line**: **0.67% per second** base chance.
+- **Below the midscreen line**: **1% per second** base chance.
+- **Death bonus**: Each Apostle that dies normally adds **+0.67%** (above midline) or **+1%** (below) to all remaining Apostles' base chance — cumulative. Resets to 0 when a Coronation triggers.
 - **Global limit**: At most **3 Coronations** can trigger within any 5-second window.
-- When triggered, the Apostle displays a golden lightning animation (≈ 2.2 seconds). During this time: it is **frozen** (no movement or attacks), **immortal** (immune to all damage), and **untargetable** (cannot be selected by Sentinels, Skill A, or any player mechanic).
-- After the animation ends, the Apostle is consumed and replaced by a random higher-tier enemy (**Marchosias**, **Veilshroud**, **Thaelis**, or **Dargruel**) at its position. The spawned enemy starts with full HP and all of its normal skills.
+- When triggered, the Apostle undergoes a ≈2.2s animation. During this time: it is **slowed 45%**, **immortal** (immune to all damage), and **untargetable** (cannot be selected by Sentinels, Skill A, or any player mechanic).
+- After the animation ends, the Apostle is consumed and replaced by a random higher-tier enemy (**Marchosias**, **Veilshroud**, **Thaelis**, or **Dargruel**) at its position. The spawned enemy starts with full HP and a **1-hit Iron Body** (blocks exactly one hit from any source).
 - Coronation transformations do not grant kill score.
 
 ---
