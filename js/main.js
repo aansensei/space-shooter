@@ -192,6 +192,10 @@ function update(rawDeltaTime) {
                         e.marchosiasParasiteShield = 0;
                         e.afoShieldActive = false; // AFO shield also bypassed
                         if (e.hp <= 0) e._markedForDeath = true;
+                        // Leviathan: Phōtokrystos BTM wave bypasses dealDamage → trigger last rites
+                        if (e.type === 'leviathan' && e.hp <= 0 && !e._deathLaserSpawned) {
+                            dealDamage(e, { damage: 0, percentDamage: 0 });
+                        }
                         createParticles(e.x, e.y, 6, '#00ffaa', 1, 4);
                     }
                 }
@@ -689,7 +693,7 @@ function update(rawDeltaTime) {
 
             // Off-screen — bay hết màn hình mới dừng
             if (enemy.x < -200 || enemy.x > canvas.width + 200 || enemy.y < -200 || enemy.y > canvas.height + 200) {
-                enemies.splice(enemies.indexOf(enemy), 1);
+                enemies.splice(i, 1); // O(1) vì loop đi ngược — không cần indexOf
             }
 
         } else if (enemy.type.startsWith('enemy_bullet')) {
@@ -1133,7 +1137,7 @@ function update(rawDeltaTime) {
         }
     }
 
-    particles = particles.filter(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.lifetime -= deltaTime; return p.lifetime > 0 });
+    particles = particles.filter(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.lifetime -= deltaTime; if (p.lifetime > 0) return true; _releaseParticle(p); return false; });
     explosions = explosions.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
     chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
 
@@ -1477,9 +1481,9 @@ function gameLoop(timeStamp) {
 
     // Luôn vẽ (để màn hình không đóng băng), chỉ update khi không pause
     if (!gamePaused && !loading) {
-        update(Math.min(deltaTime, 200));
+        update(Math.min(deltaTime, 50)); // cap 50ms — tránh physics jump khi tab quay lại
     }
-    draw(gamePaused || loading ? 0 : deltaTime);
+    draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50));
 
     requestAnimationFrame(gameLoop); // luôn chạy loop
 }

@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!skillShiftActive && performance.now() - lastSkillShift >= skillShiftCooldown
                 && !(typeof player !== 'undefined' && player._silenced)) {
                 skillShiftActive = true;
+                window._shiftActive = true;
                 skillShiftChargeStart = performance.now();
             }
             e.preventDefault();

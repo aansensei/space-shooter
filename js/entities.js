@@ -597,15 +597,30 @@ function createAegisTelegraph(startX, startY, target) {
     });
 }
 
+// ─── Particle Object Pool ──────────────────────────────────────
+const _particlePool = [];
+function _acquireParticle() {
+    const p = _particlePool.length > 0 ? _particlePool.pop() : {};
+    p.isSummonRing = false; p.isLaserLine = false; p.isSkillGAura = false; p._isTriangle = false;
+    p.vx = 0; p.vy = 0;
+    return p;
+}
+function _releaseParticle(p) {
+    if (_particlePool.length < 600) _particlePool.push(p);
+}
+
 function createParticles(x, y, count, color, minSpeed, maxSpeed) {
-    for (let i = 0; i < count; i++) {
+    const _actualCount = Math.ceil(count * (window._particleScale !== undefined ? window._particleScale : 1));
+    for (let i = 0; i < _actualCount; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * (maxSpeed - minSpeed) + minSpeed;
-        particles.push({
-            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-            lifetime: 300 + Math.random() * 200, maxLifetime: 300 + Math.random() * 200,
-            size: 1 + Math.random() * 2, color: color
-        });
+        const lt = 300 + Math.random() * 200;
+        const p = _acquireParticle();
+        p.x = x; p.y = y;
+        p.vx = Math.cos(angle) * speed; p.vy = Math.sin(angle) * speed;
+        p.lifetime = lt; p.maxLifetime = lt;
+        p.size = 1 + Math.random() * 2; p.color = color;
+        particles.push(p);
     }
 }
 
@@ -615,12 +630,15 @@ function addExplosion(x, y, size, color = 'orange') {
         finalColor = '#00FFFF';
     }
     explosions.push({ x, y, size, lifetime: 500, maxLifetime: 500, color: finalColor });
-    createParticles(x, y, 20, finalColor, 1, 5);
+    createParticles(x, y, 8, finalColor, 1, 5);
 }
 
 function spawnSentinel(x, y, forceNormal = false) {
     for (let i = 0; i < 3; i++) {
-        particles.push({ isSummonRing: true, x, y, lifetime: 500, maxLifetime: 500, radius: i * 20 });
+        const _sr = _acquireParticle();
+        _sr.isSummonRing = true; _sr.x = x; _sr.y = y;
+        _sr.lifetime = 500; _sr.maxLifetime = 500; _sr.radius = i * 20;
+        particles.push(_sr);
     }
     createParticles(x, y, 30, '#00FFFF', 2, 8);
 
@@ -755,7 +773,7 @@ function updateSentinels(deltaTime) {
                     damage: 30 * damageMultiplier * _bDmg2, percentDamage: 0.015 * damageMultiplier * _bDmg2, size: 7.8, type: 'sentinel_auto',
                     _isSentinelBullet: true
                 });
-                particles.push({ x: sentinel.x + Math.cos(angle) * (sentinel.size + 5), y: sentinel.y + Math.sin(angle) * (sentinel.size + 5), vx: 0, vy: 0, lifetime: 100, maxLifetime: 100, size: 5, color: 'orange' });
+                const _mz = _acquireParticle(); _mz.x = sentinel.x + Math.cos(angle) * (sentinel.size + 5); _mz.y = sentinel.y + Math.sin(angle) * (sentinel.size + 5); _mz.lifetime = 100; _mz.maxLifetime = 100; _mz.size = 5; _mz.color = 'orange'; particles.push(_mz);
             }
         }
 
@@ -1316,13 +1334,13 @@ function updateLeviathan(enemy, deltaTime) {
                 addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
                 for (let i = 0; i < 40; i++) {
                     const a = Math.random() * Math.PI * 2;
-                    particles.push({
-                        x: enemy.x, y: enemy.y,
-                        vx: Math.cos(a) * (3 + Math.random() * 8),
-                        vy: Math.sin(a) * (3 + Math.random() * 8),
-                        color: i % 2 === 0 ? '#00e5ff' : '#ffffff',
-                        size: 4 + Math.random() * 5, lifetime: 800, maxLifetime: 800
-                    });
+                    const _sp = _acquireParticle();
+                    _sp.x = enemy.x; _sp.y = enemy.y;
+                    _sp.vx = Math.cos(a) * (3 + Math.random() * 8);
+                    _sp.vy = Math.sin(a) * (3 + Math.random() * 8);
+                    _sp.color = i % 2 === 0 ? '#00e5ff' : '#ffffff';
+                    _sp.size = 4 + Math.random() * 5; _sp.lifetime = 800; _sp.maxLifetime = 800;
+                    particles.push(_sp);
                 }
                 screenShake = { intensity: 15, duration: 500 };
                 enemy.perseveranceCooldown = now + 2000;

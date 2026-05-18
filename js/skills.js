@@ -785,7 +785,6 @@ function updateSkillF(deltaTime) {
     if (skillFState === "charging" && currentTime - skillFChargeStart >= 1500) {
         skillFState = "sweeping";
         skillFSweepStart = currentTime;
-        screenShake = { intensity: 15, duration: skillFSweepDuration };
     }
     if (skillFState === "sweeping") {
         let sweepProgress = (currentTime - skillFSweepStart) / skillFSweepDuration;
@@ -810,6 +809,10 @@ function updateSkillF(deltaTime) {
                     // Instant kill — bypass tất cả damage calc, clear quái ngay lập tức
                     enemy.shield = 0;
                     enemy.hp = 0;
+                    // Leviathan: skill F bypasses dealDamage → trigger last rites manually
+                    if (enemy.type === 'leviathan' && !enemy._deathLaserSpawned) {
+                        dealDamage(enemy, { damage: 0, percentDamage: 0 });
+                    }
                 }
                 enemy.hitBySkillF = true;
             }
@@ -1133,6 +1136,7 @@ function cancelSkillShift() {
     if (skillShiftActive) {
         const holdDuration = (performance.now() - skillShiftChargeStart) / 1000; // seconds
         skillShiftActive = false;
+        window._shiftActive = false;
 
         // If teleport (←/→) was used during domain → 9s CD (same as held ≥7s)
         const teleportUsed = !!window._shiftTeleportUsed;
