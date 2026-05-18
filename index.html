@@ -530,6 +530,21 @@
                             <button class="stg-onoff-btn"                  id="shake-off" onclick="onShakeChange(false)">OFF</button>
                         </div>
                     </div>
+
+                    <div class="stg-divider"></div>
+
+                    <button onclick="applySettings()" style="
+                        width:100%; padding:10px 0; border-radius:10px;
+                        font-family:'Courier New',monospace; font-size:12px;
+                        font-weight:700; letter-spacing:2px; text-transform:uppercase;
+                        color:#fff; background:linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25));
+                        border:1.5px solid #00e5ff; cursor:pointer;
+                        box-shadow:0 0 15px rgba(0,229,255,0.2);
+                        transition:all 0.2s;
+                    " onmouseover="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.45),rgba(0,100,200,0.45))'"
+                       onmouseout="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25))'">
+                        Apply
+                    </button>
                 </div>
             </div>
 
@@ -594,14 +609,39 @@
             </style>
 
             <script>
-                // ── Settings state ────────────────────────────────────
-                window._smartQuality     = true;   // default: smart ON
-                window._screenShakeEnabled = true; // default: shake ON
-                window._masterVolume     = 1.0;
+                // ── Settings state (applied values) ──────────────────
+                window._smartQuality      = true;
+                window._screenShakeEnabled = true;
+                window._masterVolume      = 1.0;
+
+                // Store dataset on buttons for easy read-back
+                document.getElementById('q-low').dataset.level  = 3;
+                document.getElementById('q-med').dataset.level  = 1;
+                document.getElementById('q-high').dataset.level = 0;
 
                 function openSettings() {
-                    const ov = document.getElementById('settingsOverlay');
-                    ov.style.display = 'flex';
+                    // Sync UI to currently-applied state (discard any unsaved changes)
+                    const sq = window._smartQuality !== false;
+                    document.getElementById('sq-check').checked = sq;
+                    onSmartQualityChange(sq);
+
+                    // Highlight quality button matching live _gfxLevel
+                    const lvl = typeof window._gfxLevel !== 'undefined' ? window._gfxLevel : 0;
+                    document.querySelectorAll('.stg-q-btn').forEach(b => b.classList.remove('stg-q-active'));
+                    const qMap = { 0:'q-high', 1:'q-med', 2:'q-low', 3:'q-low' };
+                    const qBtn = document.getElementById(qMap[lvl] || 'q-high');
+                    if (qBtn) qBtn.classList.add('stg-q-active');
+
+                    // Volume
+                    const vol = typeof window._masterVolume !== 'undefined' ? window._masterVolume : 1.0;
+                    const slider = document.getElementById('vol-slider');
+                    slider.value = Math.round(vol * 100);
+                    document.getElementById('vol-label').textContent = slider.value + '%';
+
+                    // Screen shake
+                    onShakeChange(window._screenShakeEnabled !== false);
+
+                    document.getElementById('settingsOverlay').style.display = 'flex';
                 }
                 function closeSettings() {
                     document.getElementById('settingsOverlay').style.display = 'none';
@@ -610,9 +650,10 @@
                     if (e.target === this) closeSettings();
                 });
 
-                // Smart Quality toggle
+                // ── UI-only handlers (no apply yet) ──────────────────
+
+                // Smart Quality toggle → only update row lock visually
                 function onSmartQualityChange(enabled) {
-                    window._smartQuality = enabled;
                     const row  = document.getElementById('quality-row');
                     const note = document.getElementById('quality-note');
                     if (enabled) {
@@ -623,45 +664,53 @@
                         row.style.opacity = '1';
                         row.style.pointerEvents = 'auto';
                         note.style.display = 'none';
-                        // Apply currently highlighted quality immediately
-                        const active = document.querySelector('.stg-q-btn.stg-q-active');
-                        if (active) {
-                            const lvl = parseInt(active.dataset.level);
-                            if (typeof window._applyGfxLevel === 'function') window._applyGfxLevel(lvl);
-                        }
                     }
                 }
 
-                // Quality button click (level: 0=High, 1=Med, 3=Low)
+                // Quality button → only update active highlight
                 function onQualitySelect(level) {
                     document.querySelectorAll('.stg-q-btn').forEach(b => b.classList.remove('stg-q-active'));
                     const map = { 0:'q-high', 1:'q-med', 3:'q-low' };
                     const btn = document.getElementById(map[level]);
                     if (btn) btn.classList.add('stg-q-active');
-                    if (typeof window._applyGfxLevel === 'function') window._applyGfxLevel(level);
                 }
 
-                // Store dataset on buttons for easy read-back
-                document.getElementById('q-low').dataset.level  = 3;
-                document.getElementById('q-med').dataset.level  = 1;
-                document.getElementById('q-high').dataset.level = 0;
-
-                // Volume slider
+                // Volume slider → only update label
                 function onVolumeChange(val) {
-                    const v = val / 100;
-                    window._masterVolume = v;
                     document.getElementById('vol-label').textContent = val + '%';
-                    // sndTitle/sndHyperjump/sndIngame defined in audio script
-                    if (typeof sndTitle    !== 'undefined') sndTitle.volume    = 0.50 * v;
-                    if (typeof sndHyperjump!== 'undefined') sndHyperjump.volume= 0.80 * v;
-                    if (typeof sndIngame   !== 'undefined') sndIngame.volume   = 0.50 * v;
                 }
 
-                // Screen shake toggle
+                // Screen shake → only update button highlight
                 function onShakeChange(enabled) {
-                    window._screenShakeEnabled = enabled;
-                    document.getElementById('shake-on').classList.toggle('stg-onoff-active', enabled);
+                    document.getElementById('shake-on').classList.toggle('stg-onoff-active',  enabled);
                     document.getElementById('shake-off').classList.toggle('stg-onoff-active', !enabled);
+                }
+
+                // ── APPLY: read UI state, apply everything ────────────
+                function applySettings() {
+                    // Smart Quality
+                    const sqOn = document.getElementById('sq-check').checked;
+                    window._smartQuality = sqOn;
+
+                    // Manual quality (only if smart quality OFF)
+                    if (!sqOn) {
+                        const active = document.querySelector('.stg-q-btn.stg-q-active');
+                        if (active && typeof window._applyGfxLevel === 'function') {
+                            window._applyGfxLevel(parseInt(active.dataset.level));
+                        }
+                    }
+
+                    // Volume
+                    const v = parseInt(document.getElementById('vol-slider').value) / 100;
+                    window._masterVolume = v;
+                    if (typeof sndTitle     !== 'undefined') sndTitle.volume     = 0.50 * v;
+                    if (typeof sndHyperjump !== 'undefined') sndHyperjump.volume = 0.80 * v;
+                    if (typeof sndIngame    !== 'undefined') sndIngame.volume    = 0.50 * v;
+
+                    // Screen shake
+                    window._screenShakeEnabled = document.getElementById('shake-on').classList.contains('stg-onoff-active');
+
+                    closeSettings();
                 }
             </script>
 
@@ -981,9 +1030,9 @@
                         _upgChecks = 0;
                         _applyTier(target, avg1s);
                     } else if (_autoTier > 0 && avg1s >= _TIER_UP_AT[_autoTier]) {
-                        // Upgrade: cần 3 giây liên tiếp ở FPS đủ cao
+                        // Upgrade: cần 2 giây liên tiếp ở FPS đủ cao
                         _upgChecks++;
-                        if (_upgChecks >= 3) {
+                        if (_upgChecks >= 2) {
                             _upgChecks = 0;
                             _applyTier(_autoTier - 1, avg1s); // lên 1 bậc
                         }
@@ -1179,7 +1228,7 @@
                     skillASensorRadius = Math.min(cv.width, cv.height) * 0.9;
 
                 cv.style.pointerEvents = 'none';
-                if (typeof _initMobilePerf === 'function') _initMobilePerf();
+                // Mobile graphics = PC: không gọi _initMobilePerf()
 
                 const mc = document.getElementById('mc');
                 mc.style.display = 'block';

@@ -1485,6 +1485,12 @@ function gameLoop(timeStamp) {
     }
     draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50));
 
+    // Export object count cho quality tier system
+    window._objectCount = (enemies ? enemies.length : 0)
+        + (bullets ? bullets.length : 0)
+        + (spiritBullets ? spiritBullets.length : 0)
+        + (photoBrangs ? photoBrangs.length : 0);
+
     requestAnimationFrame(gameLoop); // luôn chạy loop
 }
 
