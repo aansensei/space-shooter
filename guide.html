@@ -410,12 +410,13 @@
 <div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li>Spawns every <span class="hi">3 kills</span>. 36% chance <b>Fortified</b> (+50% Max HP).</li>
-<li>Every 4th shot = <span class="hg">Special Shot</span>: homing, heals 4 HP on hit.</li>
+<li>Every 4th shot = <span class="hg">Special Shot</span>: homing, heals 2 HP on hit.</li>
 <li><span style="color:#00FFFF">Cyan 1-4:</span> +30% HP, +10% bullet speed.</li>
 <li><span style="color:#FF00FF">Magenta 5-11:</span> +20% fire rate, +10% dmg, +10% DR. <b>Vanguard Network</b>.</li>
 <li><span style="color:#FFD700">Gold ×12:</span> Every shot = Special Shot.</li>
-<li><b>Sentinel Parry</b> (Glory active): 20% negate → <span class="hg">Accurate Parry</span> 4s.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — Max HP grows: <span class="hg">+2% at 1 min · +3% at 2 min · +5% at 3 min</span>. While Glory for Justice active: every <span class="hi">10s</span> each Sentinel gains shield = <span class="hg">15% HP đã mất</span> (non-stacking, replaces previous pulse; 0 HP lost = no shield). Fires immediately on activation.</li>
+<li><b>5% base DR</b> at all times.</li>
+<li><b>Sentinel Parry</b> (Glory active): 20% negate → <span class="hg">Accurate Parry</span> 4s + <span class="hg">+10% DR</span> 4s.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — Max HP grows: <span class="hg">+2% at 1 min · +3% at 2 min · +5% at 3 min</span>. While Glory for Justice active: every <span class="hi">10s</span> each Sentinel gains shield = <span class="hg">18% HP đã mất + 4% Max HP</span> (non-stacking, replaces previous pulse). Fires immediately on activation.</li>
 <li>On death: <span class="dmg">10 scattered projectiles</span>.</li></ul></div>
 <div class="card"><h2 style="color:var(--red)">VULNERABILITY</h2><div class="sub">DEBUFF — STACKS ×4 • 3s DURATION</div>
 <div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas></div>
@@ -447,7 +448,7 @@
 <ul><li>Hold Shift: world at <span class="hp">15% speed</span>. You gain <b>Iron Body</b>.</li>
 <li><b>Cooldown scales with hold time</b> (no teleport): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">If ←/→ teleport used → always full 9s.</span></li>
 <li>All enemy bullets <span class="hr">destroyed</span>. <span class="key">←→</span> teleport.</li>
-<li><span class="hg">Accurate Parry:</span> hit during domain → +25% dmg 4s, Sentinel shields.</li></ul></div>
+<li><span class="hg">Accurate Parry:</span> hit during domain → +25% dmg 4s, Sentinel <b>Iron Body 1.25s</b>.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THUNDER ORBS</h2><div class="sub">CELESTIAL THUNDERBURST <span class="cd">CD 6s</span></div>
 <div class="ab"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas></div>
@@ -527,9 +528,9 @@
 <div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">25s • HP 800–1,600 • CAP 2 • Speed 2.0 u/s • Base DR 35%</div>
 <div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">7% EP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">2% EP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a 2-bullet volley every 500ms at nearest target. Disabled during Phantom / countdown.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). While in Phantom: <span class="dmg">no single hit can exceed 25% MaxHP</span> (absolute cap); healing &amp; shields received are reduced by <span class="dmg">25%</span>. On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random Sentinel/Player with a <span class="hr">red targeting circle</span>. After 1.5s countdown, a <span class="hr">red lightning bolt</span> strikes. Player hit = <span class="hr">1 life lost</span> (protections apply). Sentinels in 100px = <span class="dmg">20% EP</span> damage. In normal state: incoming healing also grants equal shield; incoming shield is boosted by <span class="hi">+25%</span> (no effect in Phantom).</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). While in Phantom: <span class="dmg">no single hit can exceed 25% MaxHP</span> (absolute cap); healing &amp; shields received are reduced by <span class="dmg">25%</span>. On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random Sentinel/Player with a <span class="hr">red targeting circle</span>. After 1.5s countdown, a <span class="hr">red lightning bolt</span> strikes. Player hit = <span class="hr">1 life lost</span> (protections apply). Sentinels in 100px = <span class="dmg">15% EP</span> damage. In normal state: incoming healing also grants equal shield; incoming shield is boosted by <span class="hi">+25%</span> (no effect in Phantom).</li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 1,200–2,500 • +10% DR • Speed 1.8 u/s</div>
@@ -558,7 +559,7 @@
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Demon Gift</b> @70/40/10/1% HP: heals all enemies <span class="dmg">15% Dargruel MaxHP</span>, all units +20% DR for 4s.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 1 bullet every ~255ms at nearest player or Sentinel.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Abyssal Chains</b> — 4 piercing chains every 1.5s → <span class="hr">Root & Silence 1s</span>. Indestructible.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Maou Haki</b> @50% HP: screen-wide shockwave, destroys all friendly projectiles. Sentinels −<span class="hr">40% EP</span>.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Maou Haki</b> @50% HP: screen-wide shockwave, destroys all friendly projectiles. Sentinels −<span class="hr">35% EP</span>.</li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">36s • HP 6,682–11,693 • CAP 1 • Speed ~1.5 u/s</div>
@@ -568,8 +569,8 @@
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Iron Body shield until kill quota (6–9). Wings folded. CC immune.</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Every 0.75s fires 3 bullets at nearest target. Bullet HP = 2% Leviathan MaxHP.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — red warning + full 360° sweeping laser. Fires when AFO shield breaks. Sentinel: <span class="hr">5% EP/tick</span>, cap <span class="hr">55% EP</span>.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Last Rites</b> @HP 1 — 9 wing-plates lock onto targets, all fire simultaneously. Sentinel: <span class="hr">flat 3% EP per hit</span>, cap <span class="hr">60% EP</span>. Lasers persist after death.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — red warning + full 360° sweeping laser. Fires when AFO shield breaks. Sentinel: <span class="hr">5% EP/tick</span>, cap <span class="hr">50% EP</span>.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Last Rites</b> @HP 1 — 9 wing-plates lock onto targets, all fire simultaneously. Sentinel: <span class="hr">flat 3% EP per hit</span>, cap <span class="hr">55% EP</span>. Lasers persist after death.</li>
 </ul></div>
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">ADMINISTRATOR</span></h2>
