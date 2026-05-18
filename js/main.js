@@ -1051,7 +1051,13 @@ function update(rawDeltaTime) {
     const elapsedTime = currentTime - gameStartTime;
     let currentSpawnInterval = Math.max(initialSpawnInterval - spawnDecreaseRate * (elapsedTime / 1000), minSpawnInterval);
     if (currentTime - lastEnemySpawn > currentSpawnInterval) {
-        spawnEnemy(); lastEnemySpawn = currentTime;
+        // Màn hình nhỏ (mobile/portrait): giới hạn 8 enemy thực tế cùng lúc
+        const _mobileEnemyCap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 10 : Infinity;
+        const _activeEnemies = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length;
+        if (_activeEnemies < _mobileEnemyCap) {
+            spawnEnemy();
+        }
+        lastEnemySpawn = currentTime;
     }
 
     for (let i = bullets.length - 1; i >= 0; i--) {

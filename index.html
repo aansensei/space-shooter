@@ -981,9 +981,9 @@
             const _TIER_UP_AT   = [Infinity, 30, 20];
 
             let _autoTier = 0;
-            let _upgChecks = 0;       // upgrade cần 3 checks liên tiếp
-            let _tickCount = 0;
-            let _fps1sArr = [];       // FPS samples trong 1 giây gần nhất
+            let _upgChecks = 0;       // upgrade cần 2 checks liên tiếp
+            let _lastTierCheck = 0;   // timestamp của lần check gần nhất
+            let _fps1sArr = [];       // raw dt samples trong 1 giây gần nhất
 
             function fpsColor(fps) {
                 if (fps >= 55) return '#4eff9a';
@@ -1018,10 +1018,12 @@
                 const fps = avg > 0 ? Math.round(1000 / avg) : 0;
 
                 // ── 1-second FPS average for tier decisions ────────
-                _fps1sArr.push(fps);
-                _tickCount++;
-                if (_tickCount % 60 === 0 && _fps1sArr.length > 0 && window._smartQuality !== false && !window._shiftActive) {
-                    const avg1s = _fps1sArr.reduce((a, b) => a + b, 0) / _fps1sArr.length;
+                // Push raw dt (không dùng rolling-avg fps để tránh lag khi FPS vừa drop)
+                if (dt > 0 && dt < 500) _fps1sArr.push(dt);
+                if (now - _lastTierCheck >= 1000 && _fps1sArr.length > 0 && window._smartQuality !== false && !window._shiftActive) {
+                    _lastTierCheck = now;
+                    const avgDt = _fps1sArr.reduce((a, b) => a + b, 0) / _fps1sArr.length;
+                    const avg1s = avgDt > 0 ? 1000 / avgDt : 0;
                     _fps1sArr = [];
                     const target = _targetTier(avg1s);
 
