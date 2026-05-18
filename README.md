@@ -36,7 +36,9 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 **Shields** are an HP buffer that absorbs incoming damage before the body's HP is touched. Shields can be stacked from multiple sources. Destroying a shield does not reduce the target's Max HP.
 
-**Percentage damage** is calculated against the target's effective HP (Body HP + Shield HP combined). It hits the shield first before reaching body HP like all other damage.
+**EP (Existence Point)** = Shield HP + Max HP. This is the base for all percentage-based damage scaling. EP reflects a sentinel's total existence — both its protective layer and its body. Max HP alone refers only to the body HP without shield.
+
+**Percentage damage** is calculated against the target's EP (Shield + Max HP). It hits the shield first before reaching body HP like all other damage.
 
 **True damage** bypasses all Shields entirely and is applied directly to HP, ignoring shield absorption completely.
 
@@ -125,7 +127,7 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 
 *Damage Dampening:* Incoming damage is reduced based on how many distinct sources hit the network within a 100ms window — **1–2 sources:** ×1.00 | **3–4:** ×0.75 | **5–6:** ×0.55 | **7–8:** ×0.40 | **9+:** ×0.30. Additionally, any single source that hits 3+ times within 200ms: hit 3 = ×0.50, hit 4+ = ×0.15.
 
-*Damage Sharing:* Any hit directed at a Sentinel is intercepted by the network. The raw damage is split equally among all N Sentinels — each receiving `ceil(damage ÷ N)` as true damage (bypasses shields). A hit that would kill one Sentinel outright now only trims a small fraction of every Sentinel's HP.
+*Damage Sharing:* Any hit directed at a Sentinel is intercepted by the network. The raw damage is split equally among all N Sentinels — each receiving `ceil(damage ÷ N)`, absorbed by the Sentinel's shield first then HP. A hit that would kill one Sentinel outright now only trims a small fraction of every Sentinel's HP.
 
 *AoE Dampening (Layer 1 — Bộ Giảm Chấn):* The network tracks how many Sentinels a given source has already hit. Each source (a Perseverance sweep, a death laser, etc.) gets its own independent hit counter:
 
@@ -140,13 +142,15 @@ A Perseverance sweep passing through 10 Sentinels only delivers the equivalent o
 *Fuse Protocol (Layer 2 — Cầu Chì Hy Sinh):* The network tracks total damage received over the last **0.5 seconds**. If this sum exceeds **26% of the combined Max HP of all Sentinels**, the fuse blows:
 
 1. The **Sentinel with the lowest HP** is sacrificed — it explodes and fires its death projectiles normally.
-2. All remaining Sentinels instantly receive **Iron Body for 0.75 seconds** — complete invulnerability, immune to all damage from all sources with no exceptions.
+2. All remaining Sentinels instantly receive **Iron Body for 1.25 seconds** — complete invulnerability, immune to all damage from all sources with no exceptions.
 3. The Magenta/Gold glow flickers white rapidly during Iron Body.
 4. The fuse cannot trigger again for **3 seconds**.
 
 Iron Body from the Fuse Protocol protects against all damage sources including Perseverance true damage and Last Rites lasers — giving the formation time to survive the remainder of a sweep or AoE burst. The cost is always exactly 1 Sentinel.
 
 Sentinels with Iron Body active are individually immune in all damage paths (dealDamage, Perseverance, Last Rites). Tesla DoT and Chain Lightning are excluded from AoE Dampening tracking — they do not consume hit counts.
+
+**Gaia Protection** — Sentinel Max HP grows passively over time: **+2%** at 1 min · **+3%** at 2 min · **+5%** at 3 min (cumulative +10% at 3 min). Current HP scales proportionally. While **Glory for Justice** is active, every **10 seconds** each Sentinel gains shield equal to **15% of lost HP** — non-stacking (each pulse replaces the previous GfJ shield portion). Fires immediately upon GfJ activation. If no HP has been lost, no shield is granted.
 
 **On death** — explodes into 10 scattered projectiles (2 base + 2% target Max HP, speed 8) and causes a brief screen shake.
 
@@ -312,7 +316,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 - Fires double-rate bullets for **3 seconds** (200ms interval).
 - Charges up visually from seconds 3–5.
-- At **5 seconds**, detonates with a **1000px radius explosion** that pulses **2% of target Max HP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost is fully immune to all damage and CC.
+- At **5 seconds**, detonates with a **1000px radius explosion** that pulses **7% of target EP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost is fully immune to all damage and CC.
 
 **Normal Attack** — Fires **2 bullets** every **500ms** at the nearest target. Disabled while in Phantom or during a Void Strike countdown.
 
@@ -320,7 +324,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 - Every **0.45 seconds**, has a **40% chance** to enter **Phantom** state for **1.5 seconds**: **99% DR**, movement and attacks stop. Additionally, while in Phantom, **no single hit can exceed 25% of Veilshroud's Max HP** (absolute damage cap on top of the 99% DR). Healing and shields received by Veilshroud are also **reduced by 25%** while in Phantom.
 - Every incoming hit has an additional **40% chance** to instantly trigger Phantom (the hit is completely negated).
-- On Phantom exit, marks a random Sentinel or Player with a **red targeting reticle**. After a **1.5-second countdown**, a **red lightning bolt** strikes: Player = **1 life lost** (protections apply); Sentinels within **100px** = **15% Max HP** damage.
+- On Phantom exit, marks a random Sentinel or Player with a **red targeting reticle**. After a **1.5-second countdown**, a **red lightning bolt** strikes: Player = **1 life lost** (protections apply); Sentinels within **100px** = **20% EP** damage.
 - **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+25%**. Neither bonus applies while in Phantom.
 
 ---
@@ -331,7 +335,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 HP: **500–1,100**.
 
-Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 2% Max HP to a Sentinel.
+Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 7% EP to a Sentinel.
 
 **Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
 
@@ -365,7 +369,7 @@ Permanent **25% Damage Reduction** at all times.
 - If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
 - All enemies and enemy bullets inside move 5% faster.
 
-**Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a protective layer). Hitting a Sentinel deals **20% of its Max HP**.
+**Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a protective layer). Hitting a Sentinel deals **25% of its EP**.
 
 ---
 
@@ -397,7 +401,7 @@ There is no hard limit on total Swords per fight. Each Marchosias has its own in
 1. A static orange warning beam extends from Marchosias to **your position at the moment of trigger** for 1 second.
 2. After 1 second, an orange arc projectile (radius 88) launches along that exact line. It does not home.
 3. Hits the player → all normal protective layers apply (Orb Sacrifice → Final Defense → Last Stand → lose a life).
-4. Hits a Sentinel → deals **32%** of that Sentinel's Max HP on the 1st hit, **28%** on the 2nd, **26%** on the 3rd and beyond.
+4. Hits a Sentinel → deals **32%** of that Sentinel's EP on the 1st hit, **28%** on the 2nd, **26%** on the 3rd and beyond.
 5. **Cannot be destroyed or deflected by anything.** Persists until it exits the screen.
 
 **Normal Attack**
@@ -427,24 +431,27 @@ HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 - Heals all other enemies for **15% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 21% efficiency. Cannot heal enemies at 0 HP.
 - All units gain **+18% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+30%**).
 
+**Passive: Inevitable** — Dargruel's innate evasion and damage mitigation:
+
+- **1% chance** to completely dodge any incoming hit.
+- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **12% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
+
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
 
 - **40% base DR** at all times.
 - **+2.5% DR per active Sentinel** on screen. Capped at **50% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
-- **1% chance** to completely dodge any incoming hit.
-- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **12% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **1.5 seconds**, fires **4 dark chains** (+15% speed) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
 - **Hit player** → **Root & Silence for 1 second** (no life loss). The chain is **not consumed** by the player hit — it continues and can also hit a Sentinel simultaneously.: cannot move, cannot use any skill (including Shift), auto-fire stops, Skill A orbs return to orbit. A purple lock icon appears on the ship and a red X overlays all skill icons. Re-applies silence even if already silenced.
-- **Hit Sentinel** → **true damage equal to 15% of that Sentinel's Max HP**, chain consumed on contact. A single chain can trigger both effects at once.
+- **Hit Sentinel** → **true damage equal to 20% of that Sentinel's EP**, chain consumed on contact. A single chain can trigger both effects at once.
 - **On death at HP = 1**: immediately fires one extra volley of 4 chains.
 
 **Maou Haki** — Triggers once at **50% HP**:
 
 - Fires a screen-wide purple shockwave that instantly destroys all player and ally projectiles.
-- Any Sentinel hit loses **30% of its Max HP**.
+- Any Sentinel hit loses **40% of its EP**.
 
 ---
 
@@ -481,7 +488,7 @@ When the quota is reached, Leviathan charges a **Perseverance sweep** (red warni
 When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns. All 9 lasers then fire simultaneously, reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
-- Hitting a Sentinel deals **true damage**: **(hits ÷ 2) × 2.5% of that Sentinel's Max HP** (e.g. 10 stacks = 12.5%, 20 stacks = 25%), capped at **55% of Max HP**.
+- Hitting a Sentinel deals **true damage**: **flat 3% of that Sentinel's EP per hit** (e.g. 10 stacks = 30%, 20 stacks = 60%), capped at **60% of EP**.
 
 **Normal Attack**
 
@@ -493,7 +500,7 @@ Leviathan's only active attack. It fires automatically after the **All for One**
 
 1. A full red warning ring appears around Leviathan for **1 second**.
 2. A **360° laser** sweeps the entire screen, starting from a fixed angle and completing a full rotation. The sweep lasts approximately **1.5 seconds**.
-3. The laser deals true damage to everything it crosses: hitting the player costs **1 life** (subject to normal protection layers); hitting a Sentinel deals **1%–3% of that Sentinel's Max HP** (scaled by accumulated hit count), capped at **50% of Max HP**.
+3. The laser deals true damage to everything it crosses: hitting the player costs **1 life** (subject to normal protection layers); hitting a Sentinel deals **flat 5% of that Sentinel's EP per tick**, capped at **55% of EP**.
 4. The sweep cannot be blocked, deflected, or avoided by Yog-Sothoth Domain.
 
 ## Enemy Class System
