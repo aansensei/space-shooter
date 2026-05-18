@@ -28,6 +28,29 @@ function _initMobilePerf() {
         Object.defineProperty(ctx, 'shadowColor', { get: () => 'transparent', set: () => {}, configurable: true });
     } catch(e) {}
 }
+// ── Auto quality tiers (0=FULL 1=MED 2=LOW 3=MIN) ────────────
+let _gfxLevel = 0;
+window._gfxLevel = 0;
+window._particleScale = 1.0;
+
+const _GFX_PARTICLE_SCALE = [1.0, 0.65, 0.35, 0.2];
+const _GFX_PARTICLE_CAP   = [350,  250,  150, 100];
+
+function _applyGfxLevel(level) {
+    if (_gfxLevel === level) return;
+    _gfxLevel = level;
+    window._gfxLevel = level;
+    window._particleScale = _GFX_PARTICLE_SCALE[level];
+    // Đổi _mobPerf trực tiếp — reversible, không dùng setter override vĩnh viễn
+    // Không đụng mobile: _platform === 'mobile' đã xử lý riêng
+    const _isNativeMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
+    if (!_isNativeMobile) {
+        _mobPerf = (level >= 2); // level 2 (LOW): disable all shadowBlur globally
+        _bgDirty = true;
+        window._lowPerfModeActive = (level >= 3);
+    }
+}
+window._applyGfxLevel = _applyGfxLevel;
 
 // ══ END MOBILE FLAGS ════════════════════════════════════════════
 
@@ -252,7 +275,7 @@ function drawSkillShiftEffects() {
 // ── main draw ─────────────────────────────────────────────────
 function draw(deltaTime) {
     ctx.save();
-    if (screenShake.duration > 0) {
+    if (screenShake.duration > 0 && _gfxLevel < 2 && window._screenShakeEnabled !== false) {
         ctx.translate(
             (Math.random() - 0.5) * screenShake.intensity,
             (Math.random() - 0.5) * screenShake.intensity
@@ -262,9 +285,10 @@ function draw(deltaTime) {
     const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
     const _MOB_SCALE = 0.78;
 
-    // ── Mobile particle cap ───────────────────────────────────────
-    if (_isMobile && particles.length > 80) {
-        particles.splice(0, particles.length - 80);
+    // ── Particle cap (tier-aware) ─────────────────────────────────
+    {
+        const _pCap = _isMobile ? 80 : (_GFX_PARTICLE_CAP[_gfxLevel] || 350);
+        if (particles.length > _pCap) particles.splice(0, particles.length - _pCap);
     }
 
     // Background full canvas
@@ -872,7 +896,33 @@ function draw(deltaTime) {
 
         if (charging && !laserActive) drawChargeEffect();
         explosions.forEach(drawExplosion);
-        particles.forEach(drawParticle);
+        // ── Batch particle draw ────────────────────────────────
+        {
+            const _specials = [];
+            const _batches = new Map();
+            for (const p of particles) {
+                if (p.isSummonRing || p.isLaserLine || p.isSkillGAura) { _specials.push(p); continue; }
+                // Round alpha to 0.05 steps — imperceptible diff, enables color+alpha batching
+                const _a = Math.round((p.lifetime / p.maxLifetime) * 20) / 20;
+                const _k = p.color + '|' + _a;
+                let _b = _batches.get(_k);
+                if (!_b) { _b = { color: p.color, alpha: _a, ps: [] }; _batches.set(_k, _b); }
+                _b.ps.push(p);
+            }
+            _specials.forEach(drawParticle);
+            ctx.save();
+            if (!_mobPerf) ctx.shadowBlur = 5;
+            for (const [, _b] of _batches) {
+                ctx.globalAlpha = _b.alpha;
+                if (!_mobPerf) ctx.shadowColor = _b.color;
+                ctx.fillStyle = _b.color;
+                ctx.beginPath();
+                for (const p of _b.ps) { ctx.moveTo(p.x + p.size, p.y); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); }
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+            ctx.restore();
+        }
         chainLightningEffects.forEach(drawChainLightning);
         if (skillFState !== 'ready') drawSkillF();
         if (skillDCharging) drawSkillDCharging();
@@ -2015,14 +2065,16 @@ function drawBullet(b) {
     switch (b.type) {
         case 'sentinel_special': {
             // ALLY – golden diamond, exact original shape (top/bot = size/2, sides = size/3)
-            // outer soft halo (no blur – just a faint fill)
-            ctx.fillStyle = 'rgba(255,210,0,0.18)';
-            ctx.beginPath();
-            ctx.moveTo(b.x, b.y - b.size * 0.75);
-            ctx.lineTo(b.x + b.size * 0.5, b.y);
-            ctx.lineTo(b.x, b.y + b.size * 0.75);
-            ctx.lineTo(b.x - b.size * 0.5, b.y);
-            ctx.closePath(); ctx.fill();
+            // outer soft halo — FULL quality only
+            if (_gfxLevel < 1) {
+                ctx.fillStyle = 'rgba(255,210,0,0.18)';
+                ctx.beginPath();
+                ctx.moveTo(b.x, b.y - b.size * 0.75);
+                ctx.lineTo(b.x + b.size * 0.5, b.y);
+                ctx.lineTo(b.x, b.y + b.size * 0.75);
+                ctx.lineTo(b.x - b.size * 0.5, b.y);
+                ctx.closePath(); ctx.fill();
+            }
             // main gradient diamond
             const dg = ctx.createRadialGradient(b.x, b.y - b.size * 0.2, 0, b.x, b.y, b.size * 0.5);
             dg.addColorStop(0, '#ffffff');
@@ -2047,9 +2099,11 @@ function drawBullet(b) {
         }
         case 'player_charged': {
             // ALLY – bright blue-white charged orb
-            // outer glow ring (fill only, no blur)
-            ctx.fillStyle = 'rgba(100,180,255,0.2)';
-            ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.45, 0, Math.PI * 2); ctx.fill();
+            // outer glow ring — FULL quality only
+            if (_gfxLevel < 1) {
+                ctx.fillStyle = 'rgba(100,180,255,0.2)';
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.45, 0, Math.PI * 2); ctx.fill();
+            }
             const cg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
             cg.addColorStop(0, '#ffffff');
             cg.addColorStop(0.35, '#88ccff');
@@ -2064,8 +2118,10 @@ function drawBullet(b) {
         }
         case 'sentinel_auto': case 'sentinel_death': {
             // ALLY – cyan-teal sentinel shot
-            ctx.fillStyle = 'rgba(0,200,220,0.15)';
-            ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
+            if (_gfxLevel < 1) {
+                ctx.fillStyle = 'rgba(0,200,220,0.15)';
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
+            }
             const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
             sg.addColorStop(0, '#ffffff');
             sg.addColorStop(0.3, '#44ffee');
@@ -2079,8 +2135,10 @@ function drawBullet(b) {
         }
         case 'player_auto': default: {
             // ALLY – violet-purple player auto shot
-            ctx.fillStyle = 'rgba(160,80,255,0.15)';
-            ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
+            if (_gfxLevel < 1) {
+                ctx.fillStyle = 'rgba(160,80,255,0.15)';
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
+            }
             const pg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
             pg.addColorStop(0, '#ffffff');
             pg.addColorStop(0.3, '#cc88ff');
@@ -2109,28 +2167,39 @@ function _drawDiamond(ctx, x, y, r) {
 // ── Spirit bullets (ALLY – magenta-pink, no shadowBlur) ────────
 function drawSpiritBullet(b) {
     ctx.save();
-    if (b.isPhoto) {
-        // Phōtokrystos bullets — dark green
+    if (_mobPerf || _gfxLevel >= 1) {
+        // Fast path: hình thoi, không gradient, không halo (medium+)
+        const _col  = b.isPhoto ? '#2dff73' : '#ff55cc';
+        const s = b.size, x = b.x, y = b.y;
+        // Inner main diamond
+        ctx.fillStyle = _col;
+        ctx.beginPath();
+        ctx.moveTo(x,   y - s);
+        ctx.lineTo(x + s, y);
+        ctx.lineTo(x,   y + s);
+        ctx.lineTo(x - s, y);
+        ctx.closePath(); ctx.fill();
+        // Center dot
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(x, y, s * 0.28, 0, Math.PI * 2); ctx.fill();
+    } else if (b.isPhoto) {
+        // Full quality — Phōtokrystos bullets — dark green
         ctx.fillStyle = 'rgba(0,180,60,0.15)';
         ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
         const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-        sg.addColorStop(0, '#ffffff');
-        sg.addColorStop(0.3, '#80ff90');
-        sg.addColorStop(0.7, '#00aa30');
-        sg.addColorStop(1, 'rgba(0,40,10,0.5)');
+        sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#80ff90');
+        sg.addColorStop(0.7, '#00aa30'); sg.addColorStop(1, 'rgba(0,40,10,0.5)');
         ctx.fillStyle = sg;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = 'rgba(200,255,210,0.55)';
         ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.2, b.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
     } else {
-        // Normal spirit bullets — magenta
+        // Full quality — Normal spirit bullets — magenta
         ctx.fillStyle = 'rgba(255,80,200,0.15)';
         ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
         const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-        sg.addColorStop(0, '#ffffff');
-        sg.addColorStop(0.3, '#ff88dd');
-        sg.addColorStop(0.7, '#cc00aa');
-        sg.addColorStop(1, 'rgba(80,0,60,0.5)');
+        sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#ff88dd');
+        sg.addColorStop(0.7, '#cc00aa'); sg.addColorStop(1, 'rgba(80,0,60,0.5)');
         ctx.fillStyle = sg;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = 'rgba(255,220,240,0.55)';
@@ -3299,19 +3368,29 @@ function _drawEnemyBullet(enemy) {
     const isLarge = enemy.type === 'enemy_bullet_large';
     const isSmall = enemy.type === 'enemy_bullet_small';
 
-    // ── Pulsing white outline — always cuts through effects ──
-    const blink = 0.55 + 0.45 * Math.sin(now / 90); // fast blink
+    // LOW (tier 2+): flat circle only — no gradient, no glow, no blink
+    if (_mobPerf) {
+        ctx.fillStyle = isLarge ? '#dd4400' : '#cc0000';
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        return;
+    }
+
+    // ── White outline: blink only at FULL quality ──
+    const blink = _gfxLevel >= 1 ? 0.78 : (0.55 + 0.45 * Math.sin(now / 90));
     ctx.strokeStyle = `rgba(255,255,255,${blink})`;
     ctx.lineWidth = isLarge ? 2.5 : 1.8;
-    if (!_mobPerf) ctx.shadowColor = 'white';
-    if (!_mobPerf) ctx.shadowBlur = isLarge ? 12 : 8;
+    if (_gfxLevel < 1) ctx.shadowColor = 'white';
+    if (_gfxLevel < 1) ctx.shadowBlur = isLarge ? 12 : 8;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // outer faint corona
-    ctx.fillStyle = isLarge ? 'rgba(255,100,20,0.22)' : 'rgba(220,0,0,0.2)';
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 1.5, 0, Math.PI * 2); ctx.fill();
-    // main body
+    // outer faint corona — FULL quality only
+    if (_gfxLevel < 1) {
+        ctx.fillStyle = isLarge ? 'rgba(255,100,20,0.22)' : 'rgba(220,0,0,0.2)';
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+    // main body gradient
     const bg = ctx.createRadialGradient(enemy.x - enemy.size * 0.25, enemy.y - enemy.size * 0.25, 0, enemy.x, enemy.y, enemy.size);
     bg.addColorStop(0, '#ffffff');
     bg.addColorStop(0.25, isLarge ? '#ffaa33' : '#ff4400');
@@ -3322,7 +3401,6 @@ function _drawEnemyBullet(enemy) {
     // rim stroke
     ctx.strokeStyle = isLarge ? 'rgba(255,150,50,0.7)' : 'rgba(255,60,20,0.7)';
     ctx.lineWidth = 0.8;
-    ctx.shadowBlur = 0;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.stroke();
     if (isLarge) {
         const ig = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, enemy.size * 0.42);
@@ -3331,9 +3409,11 @@ function _drawEnemyBullet(enemy) {
         ctx.fillStyle = ig;
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 0.42, 0, Math.PI * 2); ctx.fill();
     }
-    // glint
-    ctx.fillStyle = 'rgba(255,255,200,0.4)';
-    ctx.beginPath(); ctx.ellipse(enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, enemy.size * 0.2, enemy.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
+    // glint — FULL quality only
+    if (_gfxLevel < 1) {
+        ctx.fillStyle = 'rgba(255,255,200,0.4)';
+        ctx.beginPath(); ctx.ellipse(enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, enemy.size * 0.2, enemy.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
 }
 
@@ -4374,15 +4454,13 @@ function drawLaser() {
 
         // particles
         if (Math.random() < 0.55) {
-            particles.push({
-                x: laserX + (Math.random() - 0.5) * cw,
-                y: player.y,
-                vx: (Math.random() - 0.5) * 5,
-                vy: -Math.random() * 12 - 6,
-                lifetime: 280, maxLifetime: 280,
-                size: Math.random() * 3.5 + 1,
-                color: `rgba(${Math.floor(150 + Math.random() * 105)},255,255,0.8)`
-            });
+            const _lp = _acquireParticle();
+            _lp.x = laserX + (Math.random() - 0.5) * cw; _lp.y = player.y;
+            _lp.vx = (Math.random() - 0.5) * 5; _lp.vy = -Math.random() * 12 - 6;
+            _lp.lifetime = 280; _lp.maxLifetime = 280;
+            _lp.size = Math.random() * 3.5 + 1;
+            _lp.color = `rgba(${Math.floor(150 + Math.random() * 105)},255,255,0.8)`;
+            particles.push(_lp);
         }
     });
 
@@ -4427,20 +4505,25 @@ function drawExplosion(exp) {
     let radius = exp.size * (1 + p * 1.2);
     ctx.globalAlpha = 1 - p;
 
-    // outer shockwave ring
-    ctx.strokeStyle = exp.color;
-    ctx.lineWidth = 3 * (1 - p);
-    if (!_mobPerf) ctx.shadowColor = exp.color; if (!_mobPerf) ctx.shadowBlur = 15;
-    ctx.beginPath(); ctx.arc(exp.x, exp.y, radius * 1.2, 0, Math.PI * 2); ctx.stroke();
+    if (_mobPerf || _gfxLevel >= 2) {
+        // Tier 2/3 or mobile: flat circle, no gradient — fast path
+        ctx.fillStyle = exp.color;
+        ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
+    } else {
+        // High-quality: shockwave ring + radial gradient
+        ctx.strokeStyle = exp.color;
+        ctx.lineWidth = 3 * (1 - p);
+        ctx.shadowColor = exp.color; ctx.shadowBlur = 15;
+        ctx.beginPath(); ctx.arc(exp.x, exp.y, radius * 1.2, 0, Math.PI * 2); ctx.stroke();
 
-    // main fill
-    const eg = ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, radius);
-    eg.addColorStop(0, 'white');
-    eg.addColorStop(0.3, exp.color);
-    eg.addColorStop(1, 'transparent');
-    ctx.fillStyle = eg;
-    if (!_mobPerf) ctx.shadowBlur = 20;
-    ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
+        const eg = ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, radius);
+        eg.addColorStop(0, 'white');
+        eg.addColorStop(0.3, exp.color);
+        eg.addColorStop(1, 'transparent');
+        ctx.fillStyle = eg;
+        ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
 }
 
@@ -5027,17 +5110,17 @@ function drawPhotokrystos(spirit) {
         const wRel = wingFlap; // -1..1
         if (Math.abs(wRel) < 0.3) { // wings moving fast (near 0)
             for (const side of [-1, 1]) {
-                particles.push({
-                    x: sx + side * size * 1.4, y: sy - size * 0.2,
-                    vx: side * (0.3 + Math.random()) * 0.5,
-                    vy: 0.5 + Math.random() * 1.5,
-                    lifetime: 600 + Math.random() * 400, maxLifetime: 1000,
-                    size: 2.5 + Math.random() * 3,
-                    color: ['#ffffff', '#a7ffc5', '#2dff73', '#4dff91'][Math.floor(Math.random() * 4)],
-                    _isTriangle: true,
-                    _rotation: Math.random() * Math.PI * 2,
-                    _rotSpeed: (Math.random() - 0.5) * 0.1,
-                });
+                const _tp = _acquireParticle();
+                _tp.x = sx + side * size * 1.4; _tp.y = sy - size * 0.2;
+                _tp.vx = side * (0.3 + Math.random()) * 0.5; _tp.vy = 0.5 + Math.random() * 1.5;
+                const _tlt = 600 + Math.random() * 400;
+                _tp.lifetime = _tlt; _tp.maxLifetime = 1000;
+                _tp.size = 2.5 + Math.random() * 3;
+                _tp.color = ['#ffffff', '#a7ffc5', '#2dff73', '#4dff91'][Math.floor(Math.random() * 4)];
+                _tp._isTriangle = true;
+                _tp._rotation = Math.random() * Math.PI * 2;
+                _tp._rotSpeed = (Math.random() - 0.5) * 0.1;
+                particles.push(_tp);
             }
         }
     }
@@ -5185,7 +5268,8 @@ function drawPhotoBrang(b) {
         ctx.closePath();
     }
 
-    if (_mobPerf) {
+    if (_mobPerf || _gfxLevel >= 2) {
+        // Fast path: no shadow, no glow halo
         ctx.fillStyle = 'rgba(45,255,115,0.85)';
         ctx.strokeStyle = 'rgba(200,255,220,0.8)'; ctx.lineWidth = 1;
         for (let i = 0; i < 4; i++) {
@@ -6558,6 +6642,22 @@ function _drawVeilshroudEffects() {
         for (const lt of window._veilshroudLightnings) {
             const prog = Math.min(1, lt.life / lt.maxLife);
             const alpha = prog;
+
+            // ── Lazy path cache: compute once on first render, reuse for lifetime ──
+            if (!lt._paths) {
+                lt._paths = {
+                    main:  _genBoltPoints(lt.x, 0, lt.x, lt.y, 5, 28),
+                    outer: _genBoltPoints(lt.x, 0, lt.x, lt.y, 4, 35),
+                    subs:  (lt.hitSentinelPositions || []).map(pos => ({
+                        white: _genBoltPoints(lt.x, lt.y, pos.x, pos.y, 3, 14),
+                        red:   _genBoltPoints(lt.x, lt.y, pos.x, pos.y, 2, 20),
+                    })),
+                    player: (lt.hitPlayer && lt.playerHitPos)
+                        ? _genBoltPoints(lt.x, lt.y, lt.playerHitPos.x, lt.playerHitPos.y, 3, 18)
+                        : null,
+                };
+            }
+
             ctx.save();
 
             // Outer shockwave circle
@@ -6568,30 +6668,32 @@ function _drawVeilshroudEffects() {
             if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 20; }
             ctx.beginPath(); ctx.arc(lt.x, lt.y, waveR, 0, Math.PI * 2); ctx.stroke();
 
-            // Bolt from top of canvas
+            // Bolt from top of canvas (cached path)
             ctx.globalAlpha = alpha;
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 3 * prog;
             if (!_mobPerf) { ctx.shadowColor = '#ff2233'; ctx.shadowBlur = 18; }
-            _drawLightningBolt(ctx, lt.x, 0, lt.x, lt.y, 5, 28);
+            _strokeBoltPath(ctx, lt._paths.main);
 
-            // Outer bolt (red tint)
+            // Outer bolt (red tint, cached path)
             ctx.strokeStyle = `rgba(255,30,50,${alpha * 0.65})`;
             ctx.lineWidth = 6 * prog;
-            _drawLightningBolt(ctx, lt.x, 0, lt.x, lt.y, 4, 35);
+            _strokeBoltPath(ctx, lt._paths.outer);
 
             // ── Secondary bolts & impact rings at hit targets ──
-            if (lt.hitSentinelPositions && lt.hitSentinelPositions.length > 0) {
-                for (const pos of lt.hitSentinelPositions) {
+            if (lt._paths.subs && lt._paths.subs.length > 0) {
+                for (let _si = 0; _si < lt._paths.subs.length; _si++) {
+                    const pos = lt.hitSentinelPositions[_si];
+                    const sub = lt._paths.subs[_si];
                     // Sub-bolt từ điểm strike → sentinel
                     ctx.globalAlpha = alpha * 0.9;
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 2.5 * prog;
                     if (!_mobPerf) { ctx.shadowColor = '#ff1133'; ctx.shadowBlur = 14; }
-                    _drawLightningBolt(ctx, lt.x, lt.y, pos.x, pos.y, 3, 14);
+                    _strokeBoltPath(ctx, sub.white);
                     ctx.strokeStyle = `rgba(255,20,50,${alpha * 0.7})`;
                     ctx.lineWidth = 5 * prog;
-                    _drawLightningBolt(ctx, lt.x, lt.y, pos.x, pos.y, 2, 20);
+                    _strokeBoltPath(ctx, sub.red);
 
                     // Impact ring mở rộng tại sentinel
                     ctx.globalAlpha = alpha * 0.85;
@@ -6606,14 +6708,14 @@ function _drawVeilshroudEffects() {
                     ctx.beginPath(); ctx.arc(pos.x, pos.y, ir * 0.6, 0, Math.PI * 2); ctx.stroke();
                 }
             }
-            if (lt.hitPlayer && lt.playerHitPos) {
+            if (lt._paths.player) {
                 const pp = lt.playerHitPos;
-                // Sub-bolt → player
+                // Sub-bolt → player (cached path)
                 ctx.globalAlpha = alpha * 0.9;
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 3 * prog;
                 if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 18; }
-                _drawLightningBolt(ctx, lt.x, lt.y, pp.x, pp.y, 3, 18);
+                _strokeBoltPath(ctx, lt._paths.player);
                 // Impact ring mở rộng tại player
                 ctx.globalAlpha = alpha * 0.9;
                 ctx.strokeStyle = '#ff0022';
@@ -6656,19 +6758,27 @@ function _drawVeilshroudEffects() {
     }
 }
 
-// ─── Helper: vẽ tia sét zigzag ──────────────────────────────────
-function _drawLightningBolt(ctx, x1, y1, x2, y2, detail, jitter) {
-    const points = [[x1, y1]];
+// ─── Helper: generate zigzag bolt points (call once, cache result) ──
+function _genBoltPoints(x1, y1, x2, y2, detail, jitter) {
+    const pts = [[x1, y1]];
     const steps = Math.max(2, detail);
     for (let i = 1; i < steps; i++) {
         const t = i / steps;
-        const mx = x1 + (x2 - x1) * t + (Math.random() - 0.5) * jitter;
-        const my = y1 + (y2 - y1) * t + (Math.random() - 0.5) * jitter * 0.5;
-        points.push([mx, my]);
+        pts.push([
+            x1 + (x2 - x1) * t + (Math.random() - 0.5) * jitter,
+            y1 + (y2 - y1) * t + (Math.random() - 0.5) * jitter * 0.5
+        ]);
     }
-    points.push([x2, y2]);
+    pts.push([x2, y2]);
+    return pts;
+}
+function _strokeBoltPath(ctx, pts) {
     ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
-    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.stroke();
+}
+// ─── Helper: vẽ tia sét zigzag (re-random mỗi frame — dùng cho non-cached) ──
+function _drawLightningBolt(ctx, x1, y1, x2, y2, detail, jitter) {
+    _strokeBoltPath(ctx, _genBoltPoints(x1, y1, x2, y2, detail, jitter));
 }
