@@ -1187,8 +1187,8 @@ function updateMarchosiasBlades(deltaTime) {
             if (!blade.hitEnemies.includes(s) && Math.hypot(blade.x - s.x, blade.y - s.y) < blade.radius + s.size) {
                 // 1st sentinel hit: 30%, 2nd: 28%, 3rd+: 24%
                 const hitsAlready = blade.hitEnemies.length;
-                const pct = hitsAlready === 0 ? 0.32 : hitsAlready === 1 ? 0.28 : 0.26;
-                dealDamage(s, { damage: s.maxHp * pct });
+                const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
+                dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
             }

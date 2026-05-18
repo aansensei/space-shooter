@@ -474,26 +474,40 @@ function _veilshroudStrike(enemy) {
     enemy._lastLightningY = ty;
     enemy._lastLightningTime = performance.now();
 
-    // Tạo hiệu ứng visual
+    // Tạo object sét — lưu targets bị trúng để render hiệu ứng riêng
     if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
-    window._veilshroudLightnings.push({
+    const _lt = {
         x: tx, y: ty,
         life: 700, maxLife: 700,
         strikeRadius: 100,
-    });
+        hitSentinelPositions: [],  // {x,y} mỗi sentinel bị trúng
+        hitPlayer: false,
+        playerHitPos: null,
+    };
+    window._veilshroudLightnings.push(_lt);
 
     screenShake = { intensity: 9, duration: 350 };
 
-    // Trúng người chơi trong hitbox
+    // Trúng người chơi
     if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
+        _lt.hitPlayer = true;
+        _lt.playerHitPos = { x: player.x, y: player.y };
         playerTakesHit();
+        addExplosion(player.x, player.y, 90, '#ff0033');
+        createParticles(player.x, player.y, 35, '#ffffff', 4, 14);
+        createParticles(player.x, player.y, 20, '#ff3355', 2, 8);
+        screenShake = { intensity: 18, duration: 500 };
     }
 
     // Trúng sentinel trong phạm vi 100px
     for (const s of sentinels) {
         if (Math.hypot(s.x - tx, s.y - ty) < 100) {
-            const dmg = Math.ceil(s.maxHp * 0.15);
+            _lt.hitSentinelPositions.push({ x: s.x, y: s.y });
+            const dmg = Math.ceil((s.maxHp + (s.shield || 0)) * 0.15);
             dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx });
+            addExplosion(s.x, s.y, 60, '#ff1133');
+            createParticles(s.x, s.y, 22, '#ffffff', 3, 10);
+            createParticles(s.x, s.y, 14, '#ff3355', 2, 7);
         }
     }
     createParticles(tx, ty, 35, '#ff1133', 3, 10);
@@ -520,10 +534,10 @@ function _veilshroudFireVolley(enemy) {
 function updateVeilshroudEcho(enemy, deltaTime) {
     enemy.echoTimer += deltaTime;
 
-    // 0–3s: bắn đạn nhanh hơn (200ms)
+    // 0–3s: bắn đạn nhanh hơn (222ms — −10% fire rate so với 200ms gốc)
     if (enemy.echoTimer < 3000) {
         enemy.echoShootTimer += deltaTime;
-        if (enemy.echoShootTimer >= (enemy.echoShootInterval || 200)) {
+        if (enemy.echoShootTimer >= (enemy.echoShootInterval || 222)) {
             enemy.echoShootTimer = 0;
             const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
             if (target) {
@@ -611,8 +625,8 @@ function spawnSentinel(x, y, forceNormal = false) {
     createParticles(x, y, 30, '#00FFFF', 2, 8);
 
     if (sentinels.length >= MAX_SENTINELS) {
+        // BUG I fix: silent eviction — no explosion when at capacity
         sentinels.sort((a, b) => a.hp - b.hp);
-        destroySentinel(sentinels[0]);
         sentinels.splice(0, 1);
     }
 
@@ -637,6 +651,18 @@ function spawnSentinel(x, y, forceNormal = false) {
         synergyTier: currentTier,
         isFortified
     });
+
+    // BUG H fix: catch-up Gaia Protection milestones for late-spawned sentinels
+    const _gaiaMilestone = window._sentinelHpMilestone || 0;
+    if (_gaiaMilestone > 0) {
+        const _ns = sentinels[sentinels.length - 1];
+        let _gaiaMult = 1;
+        if (_gaiaMilestone >= 1) _gaiaMult *= 1.02;
+        if (_gaiaMilestone >= 2) _gaiaMult *= 1.03;
+        if (_gaiaMilestone >= 3) _gaiaMult *= 1.05;
+        _ns.maxHp = Math.ceil(_ns.maxHp * _gaiaMult);
+        _ns.hp = _ns.maxHp;
+    }
 }
 
 function destroySentinel(sentinel) {
@@ -681,7 +707,7 @@ function updateSentinels(deltaTime) {
             let oldMax = s.maxHp;
             s.maxHp = (newTier === 1) ? 389 : 299;
             if (s.isFortified) s.maxHp = Math.ceil(s.maxHp * 1.5); // re-apply fortified bonus
-            s.hp = s.hp * (s.maxHp / oldMax);
+            s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / oldMax));
             s.synergyTier = newTier;
         }
     }
@@ -710,7 +736,7 @@ function updateSentinels(deltaTime) {
             sentinel.shotsFiredSinceSpecial++;
 
             if (sentinel.shotsFiredSinceSpecial >= 4 || swarmSpecialForced) {
-                if (!swarmSpecialForced) sentinel.shotsFiredSinceSpecial = 0;
+                sentinel.shotsFiredSinceSpecial = 0;
 
                 const _bDmg = 1 + (sentinel._blessingDmg || 0);
                 bullets.push({
@@ -1003,11 +1029,21 @@ function dealDamage(enemy, source) {
         if (accurateParryActive && performance.now() < accurateParryEndTime) rawDmg = Math.ceil(rawDmg * 1.25);
         if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.16));
         rawDmg = Math.max(0, rawDmg);
-        // sourceTag = 'dealDamage_' + (source tag nếu có)
-        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic');
+        // BUG A fix: apply vanguard DR (each source 10%, max 30%)
+        const _vIsTrueDmg = source.isTrueDamage || inTrueDmgWindow;
+        if (!_vIsTrueDmg) {
+            let _vDR = 0.05; // base sentinel DR
+            if (gloryForJusticeActive) _vDR += 0.10;
+            if (sentinels.length >= 5 && sentinels.length < 12) _vDR += 0.10;
+            if (enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) _vDR += 0.10;
+            rawDmg = Math.ceil(rawDmg * (1 - _vDR));
+        }
+        rawDmg = Math.max(0, rawDmg);
+        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic', _vIsTrueDmg, enemy);
         return;
     }
 
+    if (isSentinel) combinedDR += 0.05; // base sentinel DR
     if (isSentinel && gloryForJusticeActive) {
         combinedDR += 0.20; // Glory for Justice sentinel DR
     }
@@ -1077,6 +1113,8 @@ function dealDamage(enemy, source) {
         const damageToShield = Math.min(enemy.shield, totalDamage);
         enemy.shield -= damageToShield;
         enemy.shield = Math.max(0, enemy.shield);
+        // Keep _gfjShield in sync with actual remaining shield
+        if (isSentinel) enemy._gfjShield = Math.min(enemy._gfjShield || 0, enemy.shield);
         totalDamage -= damageToShield;
         enemy.hp -= totalDamage;
     }
@@ -1361,7 +1399,8 @@ function _hasPersBeam(enemy) {
 // ── Vanguard Network central damage handler ──────────────────────────
 // Mọi nguồn damage vào sentinel đều đi qua đây khi network active (5+ sentinels)
 // rawDmg: damage đã tính (sau multipliers), sourceTag: string unique per source instance
-function _applyVanguardDamage(rawDmg, sourceTag) {
+// targetSentinel: sentinel bị nhắm trực tiếp (nhận thêm 50% damage gốc)
+function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSentinel = null) {
     if (!window._vanguardState || sentinels.length < 5) return;
     if (rawDmg <= 0) return;
     const vs = window._vanguardState;
@@ -1379,8 +1418,8 @@ function _applyVanguardDamage(rawDmg, sourceTag) {
 
     const hitIdx = vs.tagHitCount[sourceTag];
     let perSourceDamp = 1.0;
-    if (hitIdx >= 4) perSourceDamp = 0.15;
-    else if (hitIdx === 3) perSourceDamp = 0.50;
+    if (hitIdx >= 4) perSourceDamp = 0.32;
+    else if (hitIdx === 3) perSourceDamp = 0.62;
 
     // ── Multi-source AoE Dampening ────────────────────────────────
     // Track unique sources hitting in last 100ms (1 frame window)
@@ -1394,26 +1433,41 @@ function _applyVanguardDamage(rawDmg, sourceTag) {
     vs.frameSources[sourceTag] = true;
     const uniqueSources = Object.keys(vs.frameSources).length;
     let multiSourceDamp = 1.0;
-    if (uniqueSources >= 9) multiSourceDamp = 0.30;
-    else if (uniqueSources >= 7) multiSourceDamp = 0.40;
-    else if (uniqueSources >= 5) multiSourceDamp = 0.55;
-    else if (uniqueSources >= 3) multiSourceDamp = 0.75;
+    if (uniqueSources >= 9) multiSourceDamp = 0.52;
+    else if (uniqueSources >= 7) multiSourceDamp = 0.62;
+    else if (uniqueSources >= 5) multiSourceDamp = 0.72;
+    else if (uniqueSources >= 3) multiSourceDamp = 0.84;
 
     const dampenedDmg = Math.ceil(rawDmg * perSourceDamp * multiSourceDamp);
 
-    // ── Chia đều true damage cho tất cả sentinel ──────────────────
+    // ── Option A: 60% thẳng vào target, 40% chia đều toàn đàn ──────
     const n = sentinels.length;
-    const dmgPerSentinel = Math.ceil(dampenedDmg / n);
+    const sharedHalf = Math.ceil(dampenedDmg * 0.4);
+    const targetExtra = Math.ceil(dampenedDmg * 0.6);
+    const dmgPerSentinel = Math.ceil(sharedHalf / n); // phần chia đều cho mỗi con
 
     sentinels.forEach(s => {
         if (s.ironBody && now < s.ironBodyEnd) return;
-        s.hp = Math.max(0, s.hp - dmgPerSentinel);
+        const isTarget = targetSentinel !== null && s === targetSentinel;
+        const totalDmg = dmgPerSentinel + (isTarget ? targetExtra : 0);
+        if (isTrueDamage) {
+            // True damage bypasses shield
+            s.hp = Math.max(0, s.hp - totalDmg);
+        } else {
+            // Shield absorbs first, remainder hits HP
+            const shieldAbsorb = Math.min(s.shield || 0, totalDmg);
+            s.shield = Math.max(0, (s.shield || 0) - shieldAbsorb);
+            s._gfjShield = Math.min(s._gfjShield || 0, s.shield); // sync
+            const remainingDmg = totalDmg - shieldAbsorb;
+            s.hp = Math.max(0, s.hp - remainingDmg);
+        }
         if (s.hp <= 0) s._markedForDeath = true;
     });
 
     // ── Track cho Fuse Protocol (26% threshold) ───────────────────
+    // BUG J fix: use rawDmg (pre-dampening) for accurate threshold detection
     vs.recentDamage = vs.recentDamage.filter(d => now - d.time < 500);
-    vs.recentDamage.push({ time: now, damage: dampenedDmg });
+    vs.recentDamage.push({ time: now, damage: rawDmg });
 
     const totalRecentDmg = vs.recentDamage.reduce((a, b) => a + b.damage, 0);
     const totalNetworkMaxHp = sentinels.reduce((a, s) => a + s.maxHp, 0);
@@ -1444,10 +1498,10 @@ function _triggerVanguardFuse() {
     destroySentinel(weakest);
     sentinels.splice(weakestIdx, 1);
 
-    // Iron Body 0.75s cho tất cả sentinel còn lại
+    // Iron Body 1.25s cho tất cả sentinel còn lại — hoàn toàn bất khả xâm phạm
     sentinels.forEach(s => {
         s.ironBody = true;
-        s.ironBodyEnd = now + 750;
+        s.ironBodyEnd = now + 1250;
     });
 
     // Visual: flash trắng mạnh
@@ -1469,7 +1523,7 @@ if (!window._coronationHistory) window._coronationHistory = [];
 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
 
 function _getCoronationTransformType() {
-    const pool = ['marchosias', 'veilshroud', 'thaelis', 'boss'];
+    const pool = ['marchosias', 'veilshroud', 'thaelis', 'boss', 'leviathan'];
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -1478,6 +1532,7 @@ function _spawnCoronationResult(enemy) {
     if (type === 'marchosias') spawnMarchosias();
     else if (type === 'veilshroud') spawnVeilshroud();
     else if (type === 'thaelis') spawnThaelis();
+    else if (type === 'leviathan') spawnLeviathan();
     else spawnDargruel();
 
     // Place the new enemy at the apostle's position

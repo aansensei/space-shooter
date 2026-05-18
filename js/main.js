@@ -75,10 +75,10 @@ function _triggerAccurateParry() {
     createParticles(player.x, player.y, 30, '#ffdd00', 3, 10);
     screenShake = { intensity: 8, duration: 200 };
 
-    // Tất cả sentinel nhận khiên 25% Max HP
+    // Tất cả sentinel nhận Iron Body 1.25s
     sentinels.forEach(s => {
-        const shieldGain = Math.ceil(s.maxHp * 0.25);
-        s.shield = (s.shield || 0) + shieldGain;
+        s.ironBody = true;
+        s.ironBodyEnd = now + 1250;
     });
 }
 
@@ -109,9 +109,8 @@ function _triggerSentinelParry(parrySentinel) {
     createParticles(player.x, player.y, 18, '#ffdd00', 2, 7);
     screenShake = { intensity: 7, duration: 200 };
 
-    // All sentinels: shield 25% + DR buff 10% for 4s
+    // All sentinels: DR buff 10% for 4s
     sentinels.forEach(s => {
-        s.shield = (s.shield || 0) + Math.ceil(s.maxHp * 0.25);
         s.sentinelParryBuff = true;
         s.sentinelParryBuffEnd = now + 4000;
     });
@@ -218,11 +217,12 @@ function update(rawDeltaTime) {
         }
         // photoBrangs are immune to Maou Haki (like bladeArcProjectiles)
 
+        if (!wave._id) wave._id = 'shockwave_' + performance.now().toFixed(0);
         sentinels.forEach(sentinel => {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.30 });
+                    dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.35, _vanguardTag: wave._id });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -245,9 +245,10 @@ function update(rawDeltaTime) {
                     playerTakesHit();
                 }
 
+                if (!laser._id) laser._id = 'aegis_laser_' + performance.now().toFixed(0);
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: s.maxHp * 0.20 });
+                        dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * 0.20, _vanguardTag: laser._id });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -667,13 +668,13 @@ function update(rawDeltaTime) {
                         if (s.ironBody && currentTime < s.ironBodyEnd) {
                             // Iron Body: absorb but still consume chain
                         } else {
-                            const rawDmgChain = Math.ceil(s.maxHp * 0.15);
+                            const rawDmgChain = Math.ceil((s.maxHp + (s.shield || 0)) * 0.15);
                             if (sentinels.length >= 5) {
-                                _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX);
+                                // True damage: bypass shields & DR through vanguard
+                                _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s);
                             } else {
-                                const bDR = s._blessingDR || 0;
-                                const dmg = Math.ceil(rawDmgChain * (1 - bDR));
-                                s.hp = Math.max(0, s.hp - dmg);
+                                // True damage: bypass shields and DR directly
+                                s.hp = Math.max(0, s.hp - rawDmgChain);
                                 if (s.hp <= 0) s._markedForDeath = true;
                             }
                         }
@@ -703,9 +704,9 @@ function update(rawDeltaTime) {
             for (const sentinel of sentinels) {
                 if (enemy.hp > 0 && Math.hypot(enemy.x - sentinel.x, enemy.y - sentinel.y) < enemy.size + sentinel.size) {
                     if (enemy.type === 'enemy_bullet_small') {
-                        dealDamage(sentinel, { damage: sentinel.maxHp * 0.02 });
+                        dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.02, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
-                        dealDamage(sentinel, { damage: enemy.hp });
+                        dealDamage(sentinel, { damage: enemy.hp, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     }
                     enemy.hp = 0;
                     break;
@@ -1121,7 +1122,7 @@ function update(rawDeltaTime) {
                     dealDamage(enemy, b);
 
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
-                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 4);
+                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
 
@@ -1187,6 +1188,66 @@ function update(rawDeltaTime) {
         window._blessingShieldTimer = 0;
         window._blessingLevShieldGiven = false;
     }
+    // ── Sentinel MaxHP time scaling (one-shot milestones) ────────────
+    if (!window._sentinelHpMilestone) window._sentinelHpMilestone = 0;
+    const _elapsedMin = gameElapsedTime / 60000;
+    if (_elapsedMin >= 1 && window._sentinelHpMilestone < 1) {
+        window._sentinelHpMilestone = 1;
+        sentinels.forEach(s => {
+            const old = s.maxHp;
+            s.maxHp = Math.ceil(old * 1.02);
+            s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
+        });
+    }
+    if (_elapsedMin >= 2 && window._sentinelHpMilestone < 2) {
+        window._sentinelHpMilestone = 2;
+        sentinels.forEach(s => {
+            const old = s.maxHp;
+            s.maxHp = Math.ceil(old * 1.03);
+            s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
+        });
+    }
+    if (_elapsedMin >= 3 && window._sentinelHpMilestone < 3) {
+        window._sentinelHpMilestone = 3;
+        sentinels.forEach(s => {
+            const old = s.maxHp;
+            s.maxHp = Math.ceil(old * 1.05);
+            s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
+        });
+    }
+
+    // ── GfJ shield cleanup: remove immediately if sentinel heals to full HP ──
+    sentinels.forEach(s => {
+        if ((s._gfjShield || 0) > 0 && s.hp >= (s.maxHp || 100) - 1) {
+            s.shield = Math.max(0, (s.shield || 0) - s._gfjShield);
+            s._gfjShield = 0;
+        }
+    });
+
+    // ── GfJ shield pulse: fires immediately on activation, then every 10s ──
+    // Shield = 18% HP đã mất + 4% Max HP — non-stacking, replaces previous pulse
+    if (!window._gfjShieldTimer) window._gfjShieldTimer = 0;
+    if (!window._gfjWasActive) window._gfjWasActive = false;
+    if (gloryForJusticeActive) {
+        const _gfjJustActivated = !window._gfjWasActive;
+        window._gfjWasActive = true;
+        if (!_gfjJustActivated) window._gfjShieldTimer += deltaTime;
+        if (_gfjJustActivated || window._gfjShieldTimer >= 10000) {
+            window._gfjShieldTimer = 0;
+            sentinels.forEach(s => {
+                const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
+                const newGfj = Math.floor(lostHp * 0.18 + (s.maxHp || 100) * 0.04);
+                // Remove old GfJ portion first (prevents stacking)
+                s.shield = Math.max(0, (s.shield || 0) - (s._gfjShield || 0));
+                s._gfjShield = newGfj; // 0 if no HP lost
+                s.shield = (s.shield || 0) + newGfj;
+            });
+        }
+    } else {
+        window._gfjWasActive = false;
+        window._gfjShieldTimer = 0;
+    }
+
     updateSoulReaverDoT(deltaTime);
     updateSkillA(deltaTime);
     updateScatteredProjectiles(deltaTime);
@@ -1243,17 +1304,18 @@ function update(rawDeltaTime) {
         const nowMs2 = performance.now();
         if (!beam.id) beam.id = 'pers_' + nowMs2;
         const ownerHits = Math.min(250, beam.ownerRef ? (beam.ownerRef.afoHitCount || 0) : 0);
-        const scaledPct = 0.01 + (ownerHits / 250) * 0.02; // 1% → 3%
+        const scaledPct = 0.05; // flat 5% per tick
         sentinels.forEach(s => {
             if (angHit(s.x, s.y, 20)) {
                 const last = beam.hitSentinels.get(s) || 0;
                 if (nowMs2 - last > 80) {
                     beam.hitSentinels.set(s, nowMs2);
-                    const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPct * ownerHits));
+                    const ep = s.maxHp + (s.shield || 0);
+                    const dmg = Math.min(Math.ceil(ep * 0.50), Math.ceil(ep * scaledPct * ownerHits));
 
                     if (sentinels.length >= 5) {
                         // Vanguard Network: dùng beam.id làm sourceTag cho AoE dampening
-                        _applyVanguardDamage(dmg, beam.id);
+                        _applyVanguardDamage(dmg, beam.id, false, s);
                     } else {
                         // Trực tiếp (< 5 sentinels)
                         if (!(s.ironBody && nowMs2 < s.ironBodyEnd)) {
@@ -1324,13 +1386,14 @@ function update(rawDeltaTime) {
             if (!laser.id) laser.id = 'lastrites_' + laser.angle.toFixed(4);
             const hits = laser.levHits || 1;
             const halfHits = hits / 2;
-            const scaledPctLaser = 0.01 + (hits / 250) * 0.02;
+            const scaledPctLaser = 0.03; // flat 3% per hit
             sentinels.forEach(s => {
                 if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
                     laser.hitSentinels.add(s);
-                    const dmg = Math.min(Math.ceil(s.maxHp * 0.55), Math.ceil(s.maxHp * scaledPctLaser * halfHits));
+                    const ep = s.maxHp + (s.shield || 0);
+                    const dmg = Math.min(Math.ceil(ep * 0.55), Math.ceil(ep * scaledPctLaser * halfHits));
                     if (sentinels.length >= 5) {
-                        _applyVanguardDamage(dmg, laser.id);
+                        _applyVanguardDamage(dmg, laser.id, false, s);
                     } else {
                         if (!(s.ironBody && performance.now() < s.ironBodyEnd)) {
                             s.hp = Math.max(0, s.hp - dmg);
@@ -1376,7 +1439,7 @@ function update(rawDeltaTime) {
             // Damage ticks: sentinels
             for (const s of sentinels) {
                 if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius) {
-                    const dmg = Math.ceil(s.maxHp * 0.02);
+                    const dmg = Math.ceil((s.maxHp + (s.shield || 0)) * 0.02);
                     dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl' });
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }
@@ -1440,6 +1503,9 @@ function startGame() {
     photoBrangs = []; primevalSummonEffect = null;
     primevalEnergy = 0; _spiritCooldownOverrideUntil = 0;
     window._blessingShieldTimer = 0;
+    window._sentinelHpMilestone = 0;
+    window._gfjShieldTimer = 0;
+    window._gfjWasActive = false;
     bossShockwaves = [];
     aegisLasers = [];
     marchosiasBlades = [];
@@ -1447,7 +1513,8 @@ function startGame() {
     window._levPersBeams = [];
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
-    window._vanguardState = { hitWindow: [], recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
+    window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
+    window._blessingRegenTimer = 0;
     accurateParryActive = false;
     accurateParryEndTime = 0;
     skillAActive = false; skillDCharging = false; skillFState = "ready";

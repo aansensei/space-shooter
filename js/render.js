@@ -1803,6 +1803,27 @@ function drawSentinel(sentinel) {
         glowColor = '#ffffff'; // white glow during iron body
     }
 
+    // ── Shield bubble aura (behind body) ──────────────────────────
+    const _shieldVal = sentinel.shield || 0;
+    if (_shieldVal > 0) {
+        const _bR = size * 1.4;
+        const _bPulse = 0.5 + 0.5 * Math.sin(now / 600);
+        ctx.save();
+        const _bGrad = ctx.createRadialGradient(x, y, _bR * 0.3, x, y, _bR);
+        _bGrad.addColorStop(0,    'rgba(255,220,60,0.02)');
+        _bGrad.addColorStop(0.60, 'rgba(255,215,0,0.04)');
+        _bGrad.addColorStop(0.88, 'rgba(255,215,0,0.10)');
+        _bGrad.addColorStop(1,    `rgba(255,215,0,${0.22 * _bPulse})`);
+        ctx.fillStyle = _bGrad;
+        ctx.beginPath(); ctx.arc(x, y, _bR, 0, Math.PI * 2); ctx.fill();
+        if (!_mobPerf) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6; }
+        ctx.strokeStyle = `rgba(255,215,0,${0.35 * _bPulse})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(x, y, _bR, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
     ctx.save();
     ctx.translate(x, y);
 
@@ -1881,6 +1902,36 @@ function drawSentinel(sentinel) {
     ctx.strokeStyle = '#AAA'; ctx.lineWidth = 0.8;
     ctx.strokeRect(barX, barY, barW, barH);
 
+    // ── Shield bar (above HP bar) ──
+    const shieldVal = sentinel.shield || 0;
+    if (shieldVal > 0) {
+        const shBarH = 3;
+        const shBarY = barY - shBarH - 2;
+        const shPct = Math.min(1, shieldVal / maxHp);
+        ctx.fillStyle = '#111'; ctx.fillRect(barX - 1, shBarY - 1, barW + 2, shBarH + 2);
+        ctx.fillStyle = '#1a2a1a'; ctx.fillRect(barX, shBarY, barW, shBarH);
+        // Color: gold for GfJ portion, teal for blessing, white for other sources
+        // BUG F fix: clamp each segment so total never exceeds actual shieldVal
+        const gfjAmt = Math.min(sentinel._gfjShield || 0, shieldVal);
+        const blessAmt = Math.min(sentinel._blessingShield || 0, shieldVal - gfjAmt);
+        const otherAmt = Math.max(0, shieldVal - gfjAmt - blessAmt);
+        let drawn = 0;
+        if (otherAmt > 0) {
+            const w = Math.min(barW, barW * (otherAmt / maxHp));
+            ctx.fillStyle = '#aaaaff'; ctx.fillRect(barX + drawn, shBarY, w, shBarH); drawn += w;
+        }
+        if (blessAmt > 0) {
+            const w = Math.min(barW - drawn, barW * (blessAmt / maxHp));
+            ctx.fillStyle = '#00ff88'; ctx.fillRect(barX + drawn, shBarY, w, shBarH); drawn += w;
+        }
+        if (gfjAmt > 0) {
+            const w = Math.min(barW - drawn, barW * (gfjAmt / maxHp));
+            ctx.fillStyle = '#ffe066'; ctx.fillRect(barX + drawn, shBarY, w, shBarH);
+        }
+        ctx.strokeStyle = '#555'; ctx.lineWidth = 0.6;
+        ctx.strokeRect(barX, shBarY, barW, shBarH);
+    }
+
     // glory triangle
     if (gloryForJusticeActive) {
         ctx.fillStyle = 'lime';
@@ -1940,6 +1991,20 @@ function drawSentinel(sentinel) {
             ctx.lineWidth = 1.2;
             ctx.beginPath(); ctx.arc(x, y, size + 11, 0, Math.PI * 2); ctx.stroke();
         }
+        ctx.restore();
+    }
+
+    // ── GfJ shield glow ring ─────────────────────────────────────────
+    if (sentinel._gfjShield && sentinel._gfjShield > 0) {
+        ctx.save();
+        const gPulse = 0.6 + 0.4 * Math.sin(now / 400);
+        if (!_mobPerf) { ctx.shadowColor = '#ffe066'; ctx.shadowBlur = 10; }
+        ctx.strokeStyle = `rgba(255,224,102,${0.75 * gPulse})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.lineDashOffset = (now / 60) % 8;
+        ctx.beginPath(); ctx.arc(x, y, size + 14, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]); ctx.shadowBlur = 0;
         ctx.restore();
     }
 }
@@ -6514,6 +6579,48 @@ function _drawVeilshroudEffects() {
             ctx.strokeStyle = `rgba(255,30,50,${alpha * 0.65})`;
             ctx.lineWidth = 6 * prog;
             _drawLightningBolt(ctx, lt.x, 0, lt.x, lt.y, 4, 35);
+
+            // ── Secondary bolts & impact rings at hit targets ──
+            if (lt.hitSentinelPositions && lt.hitSentinelPositions.length > 0) {
+                for (const pos of lt.hitSentinelPositions) {
+                    // Sub-bolt từ điểm strike → sentinel
+                    ctx.globalAlpha = alpha * 0.9;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2.5 * prog;
+                    if (!_mobPerf) { ctx.shadowColor = '#ff1133'; ctx.shadowBlur = 14; }
+                    _drawLightningBolt(ctx, lt.x, lt.y, pos.x, pos.y, 3, 14);
+                    ctx.strokeStyle = `rgba(255,20,50,${alpha * 0.7})`;
+                    ctx.lineWidth = 5 * prog;
+                    _drawLightningBolt(ctx, lt.x, lt.y, pos.x, pos.y, 2, 20);
+
+                    // Impact ring mở rộng tại sentinel
+                    ctx.globalAlpha = alpha * 0.85;
+                    ctx.strokeStyle = '#ff2233';
+                    ctx.lineWidth = 2.5;
+                    if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 16; }
+                    const ir = 20 + (1 - prog) * 35;
+                    ctx.beginPath(); ctx.arc(pos.x, pos.y, ir, 0, Math.PI * 2); ctx.stroke();
+                    ctx.globalAlpha = alpha * 0.4;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.arc(pos.x, pos.y, ir * 0.6, 0, Math.PI * 2); ctx.stroke();
+                }
+            }
+            if (lt.hitPlayer && lt.playerHitPos) {
+                const pp = lt.playerHitPos;
+                // Sub-bolt → player
+                ctx.globalAlpha = alpha * 0.9;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3 * prog;
+                if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 18; }
+                _drawLightningBolt(ctx, lt.x, lt.y, pp.x, pp.y, 3, 18);
+                // Impact ring mở rộng tại player
+                ctx.globalAlpha = alpha * 0.9;
+                ctx.strokeStyle = '#ff0022';
+                ctx.lineWidth = 3;
+                const pr = 25 + (1 - prog) * 45;
+                ctx.beginPath(); ctx.arc(pp.x, pp.y, pr, 0, Math.PI * 2); ctx.stroke();
+            }
 
             ctx.shadowBlur = 0;
             ctx.restore();
