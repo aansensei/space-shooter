@@ -41,14 +41,9 @@ function _applyGfxLevel(level) {
     _gfxLevel = level;
     window._gfxLevel = level;
     window._particleScale = _GFX_PARTICLE_SCALE[level];
-    // Đổi _mobPerf trực tiếp — reversible, không dùng setter override vĩnh viễn
-    // Không đụng mobile: _platform === 'mobile' đã xử lý riêng
-    const _isNativeMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
-    if (!_isNativeMobile) {
-        _mobPerf = (level >= 2); // level 2 (LOW): disable all shadowBlur globally
-        _bgDirty = true;
-        window._lowPerfModeActive = (level >= 3);
-    }
+    _mobPerf = (level >= 2); // level 2 (LOW): disable all shadowBlur globally
+    _bgDirty = true;
+    window._lowPerfModeActive = (level >= 3);
 }
 window._applyGfxLevel = _applyGfxLevel;
 
@@ -287,7 +282,7 @@ function draw(deltaTime) {
 
     // ── Particle cap (tier-aware) ─────────────────────────────────
     {
-        const _pCap = _isMobile ? 80 : (_GFX_PARTICLE_CAP[_gfxLevel] || 350);
+        const _pCap = _GFX_PARTICLE_CAP[_gfxLevel] || 350;
         if (particles.length > _pCap) particles.splice(0, particles.length - _pCap);
     }
 
