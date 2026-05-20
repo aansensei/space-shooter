@@ -2,7 +2,7 @@ function loseLife() {
     if (playerAbsoluteShield) {
         playerAbsoluteShield = false;
         addExplosion(player.x, player.y, 150, 'gold');
-        screenShake = { intensity: 15, duration: 400 };
+        _setShake(15, 400);
         return;
     }
 
@@ -11,7 +11,7 @@ function loseLife() {
         playerAbsoluteShield = true;
         sentinels.forEach(s => s.absoluteShield = true);
 
-        screenShake = { intensity: 25, duration: 800 };
+        _setShake(25, 800);
         createParticles(player.x, player.y, 150, 'gold', 4, 12);
         addExplosion(player.x, player.y, 250, 'gold');
         return;
@@ -73,7 +73,7 @@ function _triggerAccurateParry() {
     // Visual feedback
     addExplosion(player.x, player.y, 80, '#ffdd00');
     createParticles(player.x, player.y, 30, '#ffdd00', 3, 10);
-    screenShake = { intensity: 8, duration: 200 };
+    _setShake(8, 200);
 
     // Tất cả sentinel nhận Iron Body 1.25s
     sentinels.forEach(s => {
@@ -107,7 +107,7 @@ function _triggerSentinelParry(parrySentinel) {
     // Gold ring ripple at player
     addExplosion(player.x, player.y, 70, '#ffcc00');
     createParticles(player.x, player.y, 18, '#ffdd00', 2, 7);
-    screenShake = { intensity: 7, duration: 200 };
+    _setShake(7, 200);
 
     // All sentinels: DR buff 10% for 4s
     sentinels.forEach(s => {
@@ -243,7 +243,7 @@ function update(rawDeltaTime) {
             if (laser.delay <= 0) {
                 laser.fired = true;
                 laser.duration = 200;
-                screenShake = { intensity: 8, duration: 200 };
+                _setShake(8, 200);
 
                 if (distToSegment(player, laser.start, laser.end) < player.hitRadius + 15) {
                     playerTakesHit();
@@ -660,7 +660,7 @@ function update(rawDeltaTime) {
                 player._silenced = true;
                 player._silenceEnd = currentTime + 1000;
                 player._rooted = true;
-                screenShake = { intensity: 6, duration: 250 };
+                _setShake(6, 250);
                 try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
                 // Chain is NOT consumed by hitting player — can still hit sentinel
             }
@@ -1039,7 +1039,7 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1);
             }
         }
-        if (lives <= 0) { gameState = "gameover"; showStartButton("Chơi Lại"); }
+        if (lives <= 0) { gameState = "gameover"; _gameOverPlayTime = performance.now() - gameStartTime; showStartButton("Play Again"); showMainMenuButton(); }
     }
 
     // ── Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới ──
@@ -1456,7 +1456,6 @@ function update(rawDeltaTime) {
             // Damage ticks: player — visual hit only, no life loss
             if (!ez.hitPlayerThisTick && Math.hypot(player.x - ez.x, player.y - ez.y) < ez.radius) {
                 ez.hitPlayerThisTick = true;
-                screenShake = { intensity: 5, duration: 150 };
                 createParticles(player.x, player.y, 8, '#cc44ff', 2, 6);
             }
         }
@@ -1556,6 +1555,7 @@ function startGame() {
     lastSkillA = -Infinity; lastSkillS = -Infinity; lastSkillD = -Infinity; lastSkillF = -Infinity;
     skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
     hideStartButton();
+    hideMainMenuButton();
     lastTimeStamp = performance.now();
     // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file — không cần khởi động lại
 }

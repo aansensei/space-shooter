@@ -6,6 +6,7 @@ canvas.height = window.innerHeight;
 const btnMarginLeft = 20, btnMarginBottom = 20, btnRadius = 25, btnGap = 12;
 let gameState = "start", lives = 12, score = 0, gameStartTime = 0;
 let gameElapsedTime = 0; // Thời gian game thực tế (bị slow bởi Yog-Sothoth)
+let _gameOverPlayTime = 0; // ms played, captured at game over
 let nextLifeMilestone = 500000;
 
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75 };
@@ -73,6 +74,12 @@ const skillFCooldown = 7000;
 let skillFState = "ready", skillFChargeStart, skillFSweepStart;
 const skillFSweepDuration = 1000;
 let screenShake = { intensity: 0, duration: 0 };
+// Throttle: chỉ upgrade shake nếu mạnh hơn hoặc shake hiện tại đã hết
+function _setShake(intensity, duration) {
+    if (intensity >= screenShake.intensity || screenShake.duration <= 0) {
+        screenShake = { intensity, duration };
+    }
+}
 
 // Skill G
 let skillGCharge = 0;
