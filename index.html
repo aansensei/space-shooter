@@ -24,6 +24,9 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
         rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 
     <style>
@@ -356,6 +359,7 @@
     </div>
 
     <button id="startBtn" style="display: none;">Start</button>
+    <button id="mainMenuBtn" style="display: none;">Main Menu</button>
 
     <div id="easter-egg-overlay">
         <canvas id="star-canvas"></canvas>
@@ -911,6 +915,32 @@
             const progressBar = document.getElementById('progress-bar');
             const realStartBtn = document.getElementById('startBtn');
             const whiteFlash = document.getElementById('white-flash');
+
+            // ── Return to main menu from in-game ──────────────────────
+            window._returnToMainMenu = function () {
+                // Restore overlay & lock screen
+                easterEggOverlay.style.display = 'block';
+                lockScreen.style.display = 'flex';
+                loadingScreen.style.display = 'none';
+                progressBar.style.width = '0%';
+                uiWrapper.style.backdropFilter = '';
+                uiWrapper.style.background = '';
+                // Show guide/settings buttons
+                const _gb = document.getElementById('guideBtn'); if (_gb) _gb.style.display = '';
+                const _sb = document.getElementById('settingsBtn'); if (_sb) _sb.style.display = '';
+                // Restart star animation
+                isWarping = false;
+                speed = 0.8;
+                isSimulationRunning = true;
+                drawStars();
+                // Audio: back to title BGM
+                if (typeof sndIngame !== 'undefined') { sndIngame.pause(); sndIngame.currentTime = 0; }
+                if (typeof audioPlay === 'function' && typeof sndTitle !== 'undefined') {
+                    sndTitle.volume = 0.5;
+                    audioPlay(sndTitle);
+                }
+                window._inGame = false;
+            };
 
             document.getElementById('start-hyperjump-btn').addEventListener('click', () => {
                 lockScreen.style.display = 'none';

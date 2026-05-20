@@ -486,7 +486,7 @@ function _veilshroudStrike(enemy) {
     };
     window._veilshroudLightnings.push(_lt);
 
-    screenShake = { intensity: 9, duration: 350 };
+    _setShake(9, 350);
 
     // Trúng người chơi
     if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
@@ -496,7 +496,7 @@ function _veilshroudStrike(enemy) {
         addExplosion(player.x, player.y, 90, '#ff0033');
         createParticles(player.x, player.y, 35, '#ffffff', 4, 14);
         createParticles(player.x, player.y, 20, '#ff3355', 2, 8);
-        screenShake = { intensity: 18, duration: 500 };
+        _setShake(18, 500);
     }
 
     // Trúng sentinel trong phạm vi 100px
@@ -568,7 +568,7 @@ function updateVeilshroudEcho(enemy, deltaTime) {
 function _veilshroudEchoExplode(enemy) {
     const x = enemy.x, y = enemy.y, r = 300;
     addExplosion(x, y, 60, '#aa00ff');
-    screenShake = { intensity: 12, duration: 500 };
+    _setShake(12, 500);
     createParticles(x, y, 50, '#cc44ff', 2, 10);
 
     // Tạo vùng nổ tick
@@ -685,7 +685,7 @@ function spawnSentinel(x, y, forceNormal = false) {
 
 function destroySentinel(sentinel) {
     addExplosion(sentinel.x, sentinel.y, 80, '#00FFFF');
-    screenShake = { intensity: 5, duration: 200 };
+    _setShake(5, 200);
     for (let i = 0; i < 10; i++) {
         const angle = (Math.PI * 2 / 10) * i;
         bullets.push({
@@ -852,7 +852,7 @@ function spawnBossShockwave(x, y) {
         hitSentinels: new Set(),
         active: true
     });
-    screenShake = { intensity: 20, duration: 600 };
+    _setShake(20, 600);
 }
 
 function dealDamage(enemy, source) {
@@ -1180,7 +1180,7 @@ function dealDamage(enemy, source) {
                 levHits: hits
             });
         });
-        screenShake = { intensity: 12, duration: 400 };
+        _setShake(12, 400);
     }
 
     const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
@@ -1188,7 +1188,6 @@ function dealDamage(enemy, source) {
 
     if (isChainable && isBossOrMiniBossPresent && currentTime > chainLightningCooldownEnd) {
         chainLightningCooldownEnd = currentTime + 150;
-        screenShake = { intensity: 3, duration: 100 };
         const chainDamage = totalDamage * 0.30;
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
@@ -1342,7 +1341,7 @@ function updateLeviathan(enemy, deltaTime) {
                     _sp.size = 4 + Math.random() * 5; _sp.lifetime = 800; _sp.maxLifetime = 800;
                     particles.push(_sp);
                 }
-                screenShake = { intensity: 15, duration: 500 };
+                _setShake(15, 500);
                 enemy.perseveranceCooldown = now + 2000;
                 enemy.shootTimer = 750;
             }
@@ -1525,7 +1524,7 @@ function _triggerVanguardFuse() {
     // Visual: flash trắng mạnh
     addExplosion(weakest.x, weakest.y, 100, '#ffffff');
     addExplosion(weakest.x, weakest.y, 60, '#ffcc00');
-    screenShake = { intensity: 12, duration: 350 };
+    _setShake(12, 350);
     createParticles(weakest.x, weakest.y, 30, '#ffffff', 4, 12);
 
     // Reset damage window

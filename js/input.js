@@ -3,25 +3,49 @@ function showStartButton(text) {
     const btn = document.getElementById("startBtn");
     if (!btn) return;
     btn.textContent = text;
-    btn.style.top = (typeof gameState !== 'undefined' && gameState === "gameover")
-        ? "calc(50% + 80px)" : "50%";
+    const _isGO = typeof gameState !== 'undefined' && gameState === "gameover";
+    btn.style.top = _isGO ? "calc(50% + 48px)" : "50%";
+    btn.style.transform = _isGO ? "translateX(-50%)" : "translate(-50%, -50%)";
+    if (_isGO) { btn.classList.add("ds-mode"); } else { btn.classList.remove("ds-mode"); }
     btn.style.display = "block";
     // On mobile, #mc (z-index:300) covers the screen — lift button above it
     btn.style.zIndex = "400";
     btn.style.position = "fixed";
     btn.style.left = "50%";
-    btn.style.transform = "translateX(-50%)";
     btn.style.pointerEvents = "all";
     btn.style.touchAction = "manipulation";
 }
 
 function hideStartButton() {
     const btn = document.getElementById("startBtn");
-    if (btn) { btn.style.display = "none"; btn.style.zIndex = ""; }
+    if (btn) { btn.style.display = "none"; btn.style.zIndex = ""; btn.classList.remove("ds-mode"); }
+}
+
+function showMainMenuButton() {
+    const btn = document.getElementById("mainMenuBtn");
+    if (btn) btn.style.display = "block";
+}
+
+function hideMainMenuButton() {
+    const btn = document.getElementById("mainMenuBtn");
+    if (btn) btn.style.display = "none";
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById("startBtn");
+    const mainMenuBtn = document.getElementById("mainMenuBtn");
+
+    if (mainMenuBtn) {
+        const _goToMenu = () => {
+            gameState = "start";
+            hideStartButton();
+            hideMainMenuButton();
+            screenShake.duration = 0;
+            if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
+        };
+        mainMenuBtn.addEventListener("click", _goToMenu);
+        mainMenuBtn.addEventListener("touchstart", (e) => { e.preventDefault(); _goToMenu(); }, { passive: false });
+    }
 
     // Elements của màn hình Pause
     const pauseOverlay = document.getElementById("pause-overlay");

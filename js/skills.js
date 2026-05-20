@@ -296,7 +296,7 @@ function updatePhotokrystos(spirit, deltaTime) {
     // ── Danger? Not Today! (DNT) ─────────────────────────────────
     const DNT_CD          = 10000; // 10s cooldown
     const DNT_AIM_DUR     = 100;   // 100ms lock-on
-    const DNT_FIRE_DUR    = 1000;  // 1s laser
+    const DNT_FIRE_DUR    = 2000;  // 2s laser
     const DNT_PENALTY_DUR = 3000;  // 3s -20% dmg penalty
     const DNT_BEAM_HALF   = 22;    // beam half-width for hit detection
 
@@ -308,15 +308,14 @@ function updatePhotokrystos(spirit, deltaTime) {
             for (const e of enemies) {
                 if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
                 if (e.hp <= 0) continue;
-                const nearPlayer = Math.hypot(e.x - player.x, e.y - player.y) < 80;
-                const nearBound  = e.y > boundY - 50;
+                const nearPlayer = Math.hypot(e.x - player.x, e.y - player.y) < 170;
+                const nearBound  = e.y > boundY - 170;
                 if (nearPlayer || nearBound) { trigger = e; break; }
             }
             if (trigger) {
                 spirit._dntState = 'aiming';
                 spirit._dntTimer = 0;
                 spirit._dntAngle = Math.atan2(trigger.y - spirit.y, trigger.x - spirit.x);
-                spirit._lastDnt  = now;
             }
         }
     }
@@ -325,11 +324,31 @@ function updatePhotokrystos(spirit, deltaTime) {
     if (spirit._dntState) {
         spirit._dntTimer += deltaTime;
 
-        if (spirit._dntState === 'aiming' && spirit._dntTimer >= DNT_AIM_DUR) {
-            spirit._dntState = 'firing';
-            spirit._dntTimer = 0;
+        if (spirit._dntState === 'aiming') {
+            // Re-lock to nearest threatening enemy every frame
+            const _boundY2 = typeof boundaryY !== 'undefined' ? boundaryY : canvas.height - 10;
+            let _best = null, _bestDist = Infinity;
+            for (const e of enemies) {
+                if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
+                if (e.hp <= 0) continue;
+                if (Math.hypot(e.x - player.x, e.y - player.y) < 170 || e.y > _boundY2 - 170) {
+                    const d = Math.hypot(e.x - spirit.x, e.y - spirit.y);
+                    if (d < _bestDist) { _bestDist = d; _best = e; }
+                }
+            }
+            if (_best) spirit._dntAngle = Math.atan2(_best.y - spirit.y, _best.x - spirit.x);
+            if (spirit._dntTimer >= DNT_AIM_DUR) {
+                spirit._dntState = 'firing';
+                spirit._dntTimer = 0;
+                spirit._dntBaseAngle = spirit._dntAngle; // freeze base for sweep
+            }
 
         } else if (spirit._dntState === 'firing') {
+            // Sweep ±20° around base angle over full fire duration
+            const _sweepRange = 0.35; // ~20°
+            const _sweepProg  = spirit._dntTimer / DNT_FIRE_DUR;
+            spirit._dntAngle  = spirit._dntBaseAngle + (_sweepProg - 0.5) * 2 * _sweepRange;
+
             // Beam hit: check every frame
             const bDx = Math.cos(spirit._dntAngle);
             const bDy = Math.sin(spirit._dntAngle);
@@ -356,6 +375,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                 spirit._dntState = 'recovering';
                 spirit._dntTimer = 0;
                 spirit._dntPenaltyUntil = now + DNT_PENALTY_DUR;
+                spirit._lastDnt = now; // CD bắt đầu tính sau khi beam kết thúc
             }
 
         } else if (spirit._dntState === 'recovering' && spirit._dntTimer >= DNT_PENALTY_DUR) {
@@ -378,6 +398,8 @@ function updatePhotokrystos(spirit, deltaTime) {
         spirit._btmTimer = 0;
         spirit._btmTickTimer = 0;
         spirit._btmLightnings = []; // lightning bolt visuals for render
+        // Thu hồi tất cả boomerang còn tồn tại
+        photoBrangs.forEach(b => { b._recalling = true; });
     }
 
     if (spirit._btmStarted) {
@@ -442,7 +464,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                         enemies[ei].hp = 0;
                     }
                 }
-                screenShake = { intensity: 30, duration: 800 };
+                _setShake(30, 800);
             }
             if (spirit._btmTimer >= BTM_REL) {
                 spirit._done = true;
@@ -508,18 +530,38 @@ function updatePhotokrystos(spirit, deltaTime) {
 
 }
 
-const MAX_PHOTO_BRANGS = 20;
+const MAX_PHOTO_BRANGS = 10;
+const MAX_BRANG_PENDING = 5;
 function spawnPhotoBrangs(fromX, fromY, count) {
+    const _photo = spirits.find(s => s.isPhotokrystos);
     const validTargets = enemies.filter(e =>
         !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
     );
-    if (validTargets.length === 0) return; // no queue — just don't fire
-    // Cap at 20: remove oldest to make room
-    while (photoBrangs.length + count > MAX_PHOTO_BRANGS && photoBrangs.length > 0) {
-        const oldest = photoBrangs.shift(); // remove oldest
-        createParticles(oldest.x, oldest.y, 4, '#00ffaa', 1, 3); // small pop
+    if (validTargets.length === 0) return;
+
+    // Đếm brang đang active (không đang về)
+    const activeCount = photoBrangs.filter(b => !b._recalling).length;
+    const canNow = Math.max(0, MAX_PHOTO_BRANGS - activeCount);
+    const throwNow = Math.min(count, canNow);
+    const toQueue  = count - throwNow;
+
+    // Queue những cái chưa đủ chỗ (tối đa 5 tích lũy)
+    if (toQueue > 0 && _photo) {
+        const spaceInQueue = MAX_BRANG_PENDING - (_photo._brangPending || 0);
+        const actualQueue  = Math.min(toQueue, spaceInQueue);
+        _photo._brangPending = (_photo._brangPending || 0) + actualQueue;
+        // Gọi những cái cũ nhất về để nhường chỗ
+        let toRecall = actualQueue;
+        for (let _bi = 0; _bi < photoBrangs.length && toRecall > 0; _bi++) {
+            if (!photoBrangs[_bi]._recalling) {
+                photoBrangs[_bi]._recalling = true;
+                toRecall--;
+            }
+        }
     }
-    for (let b = 0; b < count; b++) {
+
+    // Phóng ngay những cái đủ chỗ
+    for (let b = 0; b < throwNow; b++) {
         const shuffled = [...validTargets].sort(() => Math.random() - 0.5);
         const first = shuffled[0];
         const dx = first.x - fromX, dy = first.y - fromY;
@@ -540,12 +582,41 @@ function spawnPhotoBrangs(fromX, fromY, count) {
 function updatePhotoBrangs(deltaTime) {
     const dt = deltaTime / 16.67;
     const BRANG_R = 48; // visual radius — any overlap = hit
+    const _photo = spirits.find(s => s.isPhotokrystos); // dùng isPhotokrystos, không phải type
 
     for (let i = photoBrangs.length - 1; i >= 0; i--) {
         const b = photoBrangs[i];
-        b.lifetime -= deltaTime;
         b.rotation += 0.22 * dt;
-        if (b.lifetime <= 0) { photoBrangs.splice(i, 1); continue; }
+
+        // ── Recall mode: bay về phía tinh linh (nhanh hơn 60%) ──
+        if (b._recalling) {
+            if (_photo) {
+                const _rdx = _photo.x - b.x, _rdy = _photo.y - b.y;
+                const _rd  = Math.hypot(_rdx, _rdy) || 1;
+                b.vx += (_rdx / _rd * 35 - b.vx) * 0.28; // 22 → 35 (+60%)
+                b.vy += (_rdy / _rd * 35 - b.vy) * 0.28;
+                b.x  += b.vx * dt;
+                b.y  += b.vy * dt;
+                if (_rd < 35) {
+                    photoBrangs.splice(i, 1);
+                    // Phóng pending nếu còn
+                    if ((_photo._brangPending || 0) > 0) {
+                        _photo._brangPending--;
+                        spawnPhotoBrangs(_photo.x, _photo.y, 1);
+                    }
+                }
+            } else {
+                photoBrangs.splice(i, 1); // tinh linh đã biến mất
+            }
+            continue;
+        }
+
+        b.lifetime -= deltaTime;
+        if (b.lifetime <= 0) {
+            // Thu hồi thay vì biến mất
+            if (_photo) { b._recalling = true; } else { photoBrangs.splice(i, 1); }
+            continue;
+        }
 
         // ── Cooldown per enemy to allow re-hit (every 200ms) ──
         b._hitCooldowns = b._hitCooldowns || new Map();
@@ -610,7 +681,9 @@ function updatePhotoBrangs(deltaTime) {
                     b.targetIdx = 0;
                     b._bounces = 0;
                 } else {
-                    photoBrangs.splice(i, 1); continue;
+                    // Không còn enemy: thu hồi
+                    if (_photo) { b._recalling = true; } else { photoBrangs.splice(i, 1); }
+                    continue;
                 }
             }
         }
@@ -672,8 +745,15 @@ function updateBladeArcProjectiles(deltaTime) {
             if (enemy.type === 'abyssal_chain') continue; // piercing
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (enemy.inCoronation) continue;
+            // Enemy bullets: destroy directly, no hitEnemies tracking (can re-detect each frame)
+            if (enemy.type.startsWith('enemy_bullet')) {
+                if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemy.size) {
+                    enemy.hp = 0;
+                }
+                continue;
+            }
             if (arc.hitEnemies.includes(enemy)) continue;
-            let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
+            const enemyRadius = enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 if (checkMarchosiasArcShield(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
                 dealDamage(enemy, arc);
@@ -765,7 +845,7 @@ function updateSpiritFinale(spirit, deltaTime) {
             break;
         case 'firing':
             addExplosion(spirit.x, spirit.y, 200, 'red');
-            screenShake = { intensity: 25, duration: 600 };
+            _setShake(25, 600);
             for (let i = 0; i < 8; i++) {
                 let angle = (Math.PI / 4) * i;
                 scatteredProjectiles.push({
@@ -1188,7 +1268,7 @@ function executeShiftTeleport(direction) {
     // Hiệu ứng dịch chuyển
     addExplosion(player.x, player.y, 60, 'purple');
     createParticles(player.x, player.y, 30, 'magenta', 3, 10);
-    screenShake = { intensity: 10, duration: 200 };
+    _setShake(10, 200);
 
     // Teleport used → 9s cooldown
     window._shiftTeleportUsed = true;
