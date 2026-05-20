@@ -1429,7 +1429,6 @@ function update(rawDeltaTime) {
     if (!window._veilshroudPendingStrikes) window._veilshroudPendingStrikes = [];
     window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
         ps.countdown += deltaTime;
-        if (ps.targetRef) { ps.targetX = ps.targetRef.x; ps.targetY = ps.targetRef.y; }
         if (ps.countdown >= ps.duration) {
             _veilshroudStrike({ lightningTargetX: ps.targetX, lightningTargetY: ps.targetY });
             return false;

@@ -4872,12 +4872,81 @@ function drawSpirit(spirit) {
     _drawNormalSpirit(spirit);
 }
 
+// ─── PHOTOKRYSTOS — Silk Tail (DNT firing) ───────────────────
+function _drawPhotoSilkTail(sx, sy, behindAngle, now, progress) {
+    const alpha = Math.min(1, progress * 2.5);
+    if (alpha < 0.01) return;
+    const bDx = Math.cos(behindAngle), bDy = Math.sin(behindAngle);
+    const pDx = -bDy, pDy = bDx;
+    const t = now / 1000;
+
+    const strands = [
+        { off:  0,  len: 155, w: 2.6, ph: 0.0, rgb: [255, 255, 255] },
+        { off: -9,  len: 130, w: 2.0, ph: 0.7, rgb: [200, 255, 220] },
+        { off:  9,  len: 130, w: 2.0, ph: 1.4, rgb: [200, 255, 220] },
+        { off: -20, len: 105, w: 1.5, ph: 1.1, rgb: [100, 255, 160] },
+        { off:  20, len: 105, w: 1.5, ph: 1.8, rgb: [100, 255, 160] },
+        { off: -33, len:  80, w: 1.0, ph: 0.4, rgb: [45,  255, 115] },
+        { off:  33, len:  80, w: 1.0, ph: 2.1, rgb: [45,  255, 115] },
+        { off:  4,  len: 185, w: 0.8, ph: 2.8, rgb: [220, 255, 235] },
+        { off: -4,  len: 185, w: 0.8, ph: 3.5, rgb: [220, 255, 235] },
+    ];
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 7; }
+
+    for (const s of strands) {
+        const amp  = 14 + Math.abs(s.off) * 0.6;
+        const w1   = Math.sin(t * 3.6 + s.ph)           * amp;
+        const w2   = Math.sin(t * 2.9 + s.ph + 1.3)     * amp * 1.5;
+        const w3   = Math.sin(t * 4.3 + s.ph + 2.8)     * amp * 0.7;
+        const d1   = s.len * 0.28;
+        const cp1x = sx + bDx * d1 + pDx * (s.off + w1);
+        const cp1y = sy + bDy * d1 + pDy * (s.off + w1);
+        const d2   = s.len * 0.62;
+        const cp2x = sx + bDx * d2 + pDx * (s.off + w2);
+        const cp2y = sy + bDy * d2 + pDy * (s.off + w2);
+        const ex   = sx + bDx * s.len + pDx * (s.off + w3);
+        const ey   = sy + bDy * s.len + pDy * (s.off + w3);
+        const [r, g, b] = s.rgb;
+        const grad = ctx.createLinearGradient(sx, sy, ex, ey);
+        grad.addColorStop(0,    `rgba(${r},${g},${b},${0.92 * alpha})`);
+        grad.addColorStop(0.35, `rgba(${r},${g},${b},${0.65 * alpha})`);
+        grad.addColorStop(0.70, `rgba(${r},${g},${b},${0.28 * alpha})`);
+        grad.addColorStop(1,    `rgba(${r},${g},${b},0)`);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth   = s.w;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, ex, ey);
+        ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
 function drawPhotokrystos(spirit) {
     const now = performance.now();
     ctx.save();
     const sx = spirit.x, sy = spirit.y;
     const size = 18.2; // 20% larger than normal (15)
     const t = now / 1000;
+
+    // ── DNT: smooth body rotation toward locked target ────────────
+    if (!spirit._dntSpiritRot) spirit._dntSpiritRot = 0;
+    const _dntRotTarget = (spirit._dntState === 'aiming' || spirit._dntState === 'firing')
+        ? (spirit._dntAngle || 0) + Math.PI / 2  // front gem faces dntAngle
+        : 0;                                       // idle: return upright
+    const _dntRotSpeed = spirit._dntState === 'aiming'     ? 0.14
+                       : spirit._dntState === 'firing'      ? 0.06
+                       : spirit._dntState === 'recovering'  ? 0.04 : 0.03;
+    let _dntRotDiff = _dntRotTarget - spirit._dntSpiritRot;
+    while (_dntRotDiff >  Math.PI) _dntRotDiff -= Math.PI * 2;
+    while (_dntRotDiff < -Math.PI) _dntRotDiff += Math.PI * 2;
+    spirit._dntSpiritRot += _dntRotDiff * _dntRotSpeed;
 
     // ── 8-star summoning announcement (same as normal spirit title) ──
     if (spirits.length > 0 && spirit === spirits[spirits.length - 1]) {
@@ -5003,10 +5072,128 @@ function drawPhotokrystos(spirit) {
         ctx.restore();
     }
 
+    // ── Danger? Not Today! — laser beam ──────────────────────────
+    if (spirit._dntState === 'aiming' || spirit._dntState === 'firing') {
+        const angle  = spirit._dntAngle;
+        const bDx    = Math.cos(angle), bDy = Math.sin(angle);
+
+        // Screen-edge endpoint
+        let maxT = Infinity;
+        if (bDx >  0.0001) maxT = Math.min(maxT, (canvas.width  - sx) / bDx);
+        else if (bDx < -0.0001) maxT = Math.min(maxT, -sx / bDx);
+        if (bDy >  0.0001) maxT = Math.min(maxT, (canvas.height - sy) / bDy);
+        else if (bDy < -0.0001) maxT = Math.min(maxT, -sy / bDy);
+        const endX = sx + bDx * maxT;
+        const endY = sy + bDy * maxT;
+
+        ctx.save();
+
+        if (spirit._dntState === 'aiming') {
+            // Charge-up: dashed aim line + swelling glow
+            const aimP = Math.min(1, spirit._dntTimer / 100);
+            ctx.globalAlpha = aimP;
+            if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20; }
+            ctx.strokeStyle = `rgba(160,255,190,0.8)`;
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([10, 7]);
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
+            ctx.setLineDash([]);
+            // Swelling glow at origin
+            const swellG = ctx.createRadialGradient(sx, sy, 0, sx, sy, 20 * aimP);
+            swellG.addColorStop(0, 'rgba(255,255,255,0.9)');
+            swellG.addColorStop(0.4, 'rgba(100,255,160,0.6)');
+            swellG.addColorStop(1, 'rgba(0,200,80,0)');
+            ctx.fillStyle = swellG;
+            ctx.beginPath(); ctx.arc(sx, sy, 20 * aimP, 0, Math.PI * 2); ctx.fill();
+
+        } else { // 'firing'
+            const pulse = 0.75 + 0.25 * Math.sin(now / 25); // very fast shimmer
+
+            // ── Outer diffuse cone (wide, fades along length) ──
+            const outerGrad = ctx.createLinearGradient(sx, sy, endX, endY);
+            outerGrad.addColorStop(0,   `rgba(0,255,100,${0.45 * pulse})`);
+            outerGrad.addColorStop(0.35, `rgba(0,200,70,${0.25 * pulse})`);
+            outerGrad.addColorStop(1,    'rgba(0,80,30,0)');
+            ctx.strokeStyle = outerGrad;
+            ctx.lineWidth = 48 * pulse;
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = '#00ff66'; ctx.shadowBlur = 28; }
+            ctx.globalAlpha = 0.55;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
+
+            // ── Mid glow ──
+            ctx.lineWidth = 18 * pulse;
+            ctx.strokeStyle = `rgba(60,255,120,${0.85 * pulse})`;
+            ctx.globalAlpha = 0.75;
+            if (!_mobPerf) { ctx.shadowColor = '#80ffb0'; ctx.shadowBlur = 14; }
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
+
+            // ── Core beam — bright white-green, thin ──
+            ctx.lineWidth = 5.5 * pulse;
+            ctx.strokeStyle = `rgba(240,255,245,${0.95})`;
+            ctx.globalAlpha = 1;
+            if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8; }
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // ── Muzzle flash (dragon-spit origin) ──
+            if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 35; }
+            const muzzleR = 14 + 7 * pulse;
+            const mg = ctx.createRadialGradient(sx, sy, 0, sx, sy, muzzleR);
+            mg.addColorStop(0, 'rgba(255,255,255,1)');
+            mg.addColorStop(0.3, 'rgba(160,255,200,0.8)');
+            mg.addColorStop(1, 'rgba(0,200,80,0)');
+            ctx.fillStyle = mg;
+            ctx.globalAlpha = pulse;
+            ctx.beginPath(); ctx.arc(sx, sy, muzzleR, 0, Math.PI * 2); ctx.fill();
+
+            // ── Beam-end bloom ──
+            ctx.globalAlpha = 0.35 * pulse;
+            const bloomG = ctx.createRadialGradient(endX, endY, 0, endX, endY, 22);
+            bloomG.addColorStop(0, 'rgba(200,255,220,0.9)');
+            bloomG.addColorStop(1, 'rgba(0,180,60,0)');
+            ctx.fillStyle = bloomG;
+            ctx.beginPath(); ctx.arc(endX, endY, 22, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+            // ── Beam particles (desktop only) ──
+            if (!_mobPerf && Math.random() < 0.65) {
+                const frac = 0.08 + Math.random() * 0.85;
+                const px2 = sx + (endX - sx) * frac;
+                const py2 = sy + (endY - sy) * frac;
+                const perp = angle + Math.PI / 2;
+                const spread = (Math.random() - 0.5) * 20;
+                const _p = _acquireParticle();
+                _p.x = px2 + Math.cos(perp) * spread;
+                _p.y = py2 + Math.sin(perp) * spread;
+                _p.vx = (Math.random() - 0.5) * 1.5;
+                _p.vy = (Math.random() - 0.5) * 1.5;
+                _p.lifetime = 150 + Math.random() * 200;
+                _p.maxLifetime = _p.lifetime;
+                _p.size = 1.5 + Math.random() * 2.5;
+                _p.color = ['#a0ffcc', '#00ff88', '#ffffff', '#60ffb0'][Math.floor(Math.random() * 4)];
+                particles.push(_p);
+            }
+        }
+
+        ctx.restore();
+    }
+
+    // ── Silk tail: flowing ribbons behind spirit during DNT firing ─
+    if (spirit._dntState === 'firing' && spirit._dntAngle !== undefined) {
+        _drawPhotoSilkTail(sx, sy, spirit._dntAngle + Math.PI, now, spirit._dntTimer / 1000);
+    }
+
     // ── Wing flap: oscillate scaleX ──
     const wingFlap = Math.cos(t * (Math.PI * 2 / 4)); // 4s period
     const wingScale = 0.55 + 0.45 * Math.abs(wingFlap); // 0.55–1.0
     const wingBright = 1 + 0.5 * (1 - Math.abs(wingFlap));
+
+    // ── Rotation transform: body/wings/aura rotate to face DNT target ─
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(spirit._dntSpiritRot);
+    ctx.translate(-sx, -sy);
 
     // ── Outer aura ──
     if (!_mobPerf) { ctx.shadowColor = 'rgba(45,255,115,0.7)'; ctx.shadowBlur = 22; }
@@ -5099,6 +5286,7 @@ function drawPhotokrystos(spirit) {
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     ctx.beginPath(); ctx.ellipse(-size * 0.18, -size * 0.22, size * 0.28, size * 0.16, -Math.PI / 4, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
+    ctx.restore(); // end rotation transform
 
     // ── Particle trail (triangles from wings) ──
     if (!_mobPerf && Math.random() < 0.35) {

@@ -293,16 +293,74 @@ function updatePhotokrystos(spirit, deltaTime) {
     const BTM_START = 37000; // Back to Motherland at 37s
     const DURATION = 40000;  // total 40s
 
-    // ── Danger? Not Today! ──
-    const dangerRadius = 100;
-    if (!spirit._lastDangerBrang || now - spirit._lastDangerBrang > 3000) {
-        for (const e of enemies) {
-            if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
-            if (Math.hypot(e.x - player.x, e.y - player.y) < dangerRadius) {
-                spawnPhotoBrangs(spirit.x, spirit.y, 1);
-                spirit._lastDangerBrang = now;
-                break;
+    // ── Danger? Not Today! (DNT) ─────────────────────────────────
+    const DNT_CD          = 10000; // 10s cooldown
+    const DNT_AIM_DUR     = 100;   // 100ms lock-on
+    const DNT_FIRE_DUR    = 1000;  // 1s laser
+    const DNT_PENALTY_DUR = 3000;  // 3s -20% dmg penalty
+    const DNT_BEAM_HALF   = 22;    // beam half-width for hit detection
+
+    // Only check trigger when BTM is NOT active
+    if (!spirit._btmStarted && !spirit._dntState) {
+        if (!spirit._lastDnt || now - spirit._lastDnt >= DNT_CD) {
+            const boundY = typeof boundaryY !== 'undefined' ? boundaryY : canvas.height - 10;
+            let trigger = null;
+            for (const e of enemies) {
+                if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
+                if (e.hp <= 0) continue;
+                const nearPlayer = Math.hypot(e.x - player.x, e.y - player.y) < 80;
+                const nearBound  = e.y > boundY - 50;
+                if (nearPlayer || nearBound) { trigger = e; break; }
             }
+            if (trigger) {
+                spirit._dntState = 'aiming';
+                spirit._dntTimer = 0;
+                spirit._dntAngle = Math.atan2(trigger.y - spirit.y, trigger.x - spirit.x);
+                spirit._lastDnt  = now;
+            }
+        }
+    }
+
+    // DNT state machine
+    if (spirit._dntState) {
+        spirit._dntTimer += deltaTime;
+
+        if (spirit._dntState === 'aiming' && spirit._dntTimer >= DNT_AIM_DUR) {
+            spirit._dntState = 'firing';
+            spirit._dntTimer = 0;
+
+        } else if (spirit._dntState === 'firing') {
+            // Beam hit: check every frame
+            const bDx = Math.cos(spirit._dntAngle);
+            const bDy = Math.sin(spirit._dntAngle);
+            for (let ei = enemies.length - 1; ei >= 0; ei--) {
+                const e = enemies[ei];
+                if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') continue;
+                if (e.hp <= 0) continue;
+                // Perpendicular distance from beam line
+                const ex = e.x - spirit.x, ey = e.y - spirit.y;
+                const along = ex * bDx + ey * bDy;
+                const perp  = Math.abs(ex * bDy - ey * bDx);
+                if (along > 0 && perp < DNT_BEAM_HALF + (e.size || 20)) {
+                    // Instant kill — bypass all shields/protections
+                    e.shield = 0;
+                    e.hp = 0;
+                    if (e.type === 'leviathan' && !e._deathLaserSpawned) {
+                        dealDamage(e, { damage: 0, percentDamage: 0 });
+                    }
+                    addExplosion(e.x, e.y, (e.size || 20) * 0.9, '#00ffaa');
+                    createParticles(e.x, e.y, 10, '#a0ffcc', 1.5, 4);
+                }
+            }
+            if (spirit._dntTimer >= DNT_FIRE_DUR) {
+                spirit._dntState = 'recovering';
+                spirit._dntTimer = 0;
+                spirit._dntPenaltyUntil = now + DNT_PENALTY_DUR;
+            }
+
+        } else if (spirit._dntState === 'recovering' && spirit._dntTimer >= DNT_PENALTY_DUR) {
+            spirit._dntState = null;
+            spirit._dntTimer = 0;
         }
     }
 
@@ -396,13 +454,16 @@ function updatePhotokrystos(spirit, deltaTime) {
         return; // BTM active — don't do normal movement/attacks
     }
 
+    // DNT aiming/firing: spirit freezes, no normal attacks
+    if (spirit._dntState === 'aiming' || spirit._dntState === 'firing') return;
+
     // ── Normal Phōtokrystos movement ──
     let t = now / 1000;
     const orbitR = 85; // slightly larger than normal (72)
     spirit.x += (player.x + Math.cos(t * 2) * orbitR - spirit.x) * 0.08;
     spirit.y += (player.y + Math.sin(t * 2) * orbitR - spirit.y) * 0.08;
 
-    // ── Attack: 3 homing bullets per volley at 52ms ──
+    // ── Attack: 3 homing bullets per volley at 42ms ──
     spirit.shootTimer -= deltaTime;
     let photoFireRate = 42; // fire rate
     if (gloryForJusticeActive) photoFireRate /= 1.40;
@@ -422,12 +483,14 @@ function updatePhotokrystos(spirit, deltaTime) {
             // Duration starts from first shot
             if (!spirit._combatStartTime) spirit._combatStartTime = now;
             const dmgMult = gloryForJusticeActive ? 1.55 : 1;
+            // -20% dmg penalty for 3s after DNT laser
+            const dntMult = (spirit._dntPenaltyUntil && now < spirit._dntPenaltyUntil) ? 0.8 : 1;
             const speedMult = (gloryForJusticeActive ? 1.30 : 1) * 1.3;
-            // All 3 homing, same damage (10 + 10%), apply Vulnerability
+            // All 3 homing, same damage (10 + 4.25% HP), apply Vulnerability
             for (let bi = 0; bi < 3; bi++) {
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 60 * dmgMult, percentDamage: 0.0425,
+                    damage: 60 * dmgMult * dntMult, percentDamage: 0.0425 * dntMult,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
                     applyVuln: true, vulnChance: 0.15,

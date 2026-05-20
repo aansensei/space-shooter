@@ -438,9 +438,9 @@
 <div class="card"><h2 style="color:#ff8800"><span class="key">Space</span> CHARGED SHOT & OVERLOAD LASER</h2>
 <div class="sub">HOLD SPACE TO CHARGE • 3s = OVERLOAD <span class="cd">LASER CD 9s</span></div>
 <div class="ab" style="height:170px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas></div>
-<ul><li><b>Charged Shot:</b> hold up to 1s → release. Damage scales up to <span class="dmg">10× (12% Max HP)</span>.</li>
+<ul><li><b>Charged Shot:</b> hold up to 1s → release. Damage scales up to <span class="dmg">10× (12% EP)</span>.</li>
 <li><b>Overload Laser:</b> hold 3s without releasing → continuous beam for <span class="hi">12 seconds</span>.</li>
-<li>Laser deals <span class="dmg">10 + 26% Max HP</span> per tick every 175ms. Pulls nearby enemies toward beam.</li>
+<li>Laser deals <span class="dmg">10 + 26% EP</span> per tick every 175ms. Pulls nearby enemies toward beam.</li>
 <li>While active, <span class="hi">4 clone afterimages</span> appear (2 each side, 5 ships total) firing parallel beams.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--purple)"><span class="key">Shift</span> YOG-SOTHOTH DOMAIN</h2><div class="sub">SPACE-TIME MANIPULATION <span class="cd">CD 1.1s–9s</span> <span class="cd">MAX 8s</span></div>
@@ -452,8 +452,8 @@
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THUNDER ORBS</h2><div class="sub">CELESTIAL THUNDERBURST <span class="cd">CD 6s</span></div>
 <div class="ab"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas></div>
-<ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">11 + 28% HP</span>.</li>
-<li>Impact → <span class="dmg">16 scattered shards</span> (4 + 2% HP each).</li>
+<ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">11 + 28% EP</span>.</li>
+<li>Impact → <span class="dmg">16 scattered shards</span> (4 + 2% EP each).</li>
 <li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits (Absolute Shield).</li></ul></div>
 
 <div class="card"><h2 style="color:#ff44aa"><span class="key">S</span> REMEMBRANCE SPIRIT</h2>
@@ -464,8 +464,8 @@
 </div>
 <div id="sSpiritPane1">
   <div class="ab"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas></div>
-  <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">5 + 4% HP</span>).</li>
-  <li>Every 5th shot: <b>Blade Arc</b> (<span class="dmg">10 + 16% HP</span>). Destroys enemy bullets.</li>
+  <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">5 + 4% EP</span>).</li>
+  <li>Every 5th shot: <b>Blade Arc</b> (<span class="dmg">10 + 16% EP</span>). Destroys enemy bullets.</li>
   <li><b>Finale @35s:</b> lasers + 8 bouncing plasma balls.</li>
   <li><b>Primeval Creation:</b> Spirit kills charge a mana bar (+2% per kill). At 100%, press S again to transform.</li></ul>
 </div>
@@ -474,10 +474,10 @@
   <ul>
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Đại Tinh Linh Khởi Nguyên</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Blessing of the Primordial</b>: Sentinels +15% DR, ally dmg +15%, +3 HP/s regen, +50 shield/5s per sentinel.</li>
-  <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> <b>3 homing bullets</b> @ <b>43ms</b>: each <span class="dmg">10+10% HP</span>, all track targets. Destroys enemy bullets. Apply Vuln (15%).</li>
-  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">15+24% HP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Bounces 2× if target lost. Destroys bullets.</li>
-  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Danger? Not Today!</b> — enemy within 100px of player → instant boomerang. (3s CD)</li>
-  <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: full-screen lightning barrier 3.5s (<span class="dmg">15+45% True Dmg/100ms</span>, clears bullets) → shockwave (<span class="dmg">10+99% Max HP</span>, pierces ALL shields + Iron Body). CD: 12s from summon.</li>
+  <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> <b>3 homing bullets</b> @ <b>43ms</b>: each <span class="dmg">10+10% EP</span>, all track targets. Destroys enemy bullets. Apply Vuln (15%).</li>
+  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">15+24% EP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Bounces 2× if target lost. Destroys bullets.</li>
+  <li><span style="color:var(--cyan);font-size:10px">PASSIVE</span> <b>Danger? Not Today!</b> — enemy within <b>80px of player</b> or <b>50px of boundary</b> → spirit freezes 100ms then fires a <b>1s primeval laser</b> (instant kills all in path, bypasses all shields). <b>-20% dmg 3s</b> after. (10s CD)</li>
+  <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: full-screen lightning barrier 3.5s (<span class="dmg">15+45% EP True Dmg/100ms</span>, clears bullets) → shockwave (<span class="dmg">10+99% EP</span>, pierces ALL shields + Iron Body). CD: 12s from summon.</li>
   </ul>
 </div>
 </div>
@@ -494,9 +494,9 @@
 
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> TESLA MATRIX</h2><div class="sub"><span class="cd">CHARGE VIA KILLS</span> <span class="cd">30s</span></div>
 <div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas></div>
-<ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">6+4% HP</span>/125ms).</li>
-<li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">10+13% HP</span>/50ms.</li>
-<li>Detonation: <span class="dmg">10+15% HP</span> area.</li></ul></div>`,
+<ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">6+4% EP</span>/125ms).</li>
+<li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">10+13% EP</span>/50ms.</li>
+<li>Detonation: <span class="dmg">10+15% EP</span> area.</li></ul></div>`,
 
       enemies: `
 <div class="card"><h2 class="dsname">ENEMY CLASSES</h2><table class="controls-table">
@@ -760,7 +760,7 @@
             c.fillStyle = 'rgba(0,229,255,0.5)'; c.font = '8px Share Tech Mono, monospace';
             c.fillText('Auto-fire: 5 bullets / 170ms', w * 0.55, h * 0.55);
             c.fillText('45° fan spread', w * 0.55, h * 0.55 + 14);
-            c.fillText('Each: 6 base + 4% Max HP', w * 0.55, h * 0.55 + 28);
+            c.fillText('Each: 6 base + 4% EP', w * 0.55, h * 0.55 + 28);
             c.fillText('28% chance Vulnerability', w * 0.55, h * 0.55 + 42);
 
             activeAnimations.push(requestAnimationFrame(() => drawShipAnim(performance.now())));
@@ -1577,7 +1577,7 @@
               c.fillStyle = '#ff2244'; c.font = 'bold 8px Orbitron,sans-serif'; c.textAlign = 'left';
               c.fillText('VOID STRIKE', w * 0.48, h * 0.12);
               c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono,monospace';
-              c.fillText('1 life (player) • 15% MaxHP (sentinels)', w * 0.48, h * 0.12 + 12);
+              c.fillText('1 life (player) • 15% EP (sentinels)', w * 0.48, h * 0.12 + 12);
             }
 
             activeAnimations.push(requestAnimationFrame(() => drawVeil(performance.now())));
@@ -2662,7 +2662,7 @@
             }
             // Labels
             c.fillStyle = '#88ff0088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
-            if (bladePhase >= 0.3 && bladePhase < 0.8) c.fillText('BLADE ARC 16% HP', w * 0.6, h * 0.15);
+            if (bladePhase >= 0.3 && bladePhase < 0.8) c.fillText('BLADE ARC 16% EP', w * 0.6, h * 0.15);
             c.textAlign = 'left';
             // Finale label
             c.fillStyle = '#ff44aa55'; c.font = '7px Share Tech Mono, monospace';
@@ -2754,9 +2754,9 @@
             c.fillStyle = '#00e5ff'; c.font = '7px Share Tech Mono, monospace';
             c.fillText('TESLA COIL', tcx, tcy + tr + 12);
             c.fillStyle = '#00e5ff88'; c.font = '6px Share Tech Mono, monospace';
-            c.fillText('13% HP/50ms', tcx, tcy + tr + 21);
+            c.fillText('13% EP/50ms', tcx, tcy + tr + 21);
             c.fillStyle = '#06b6d488'; c.font = '8px Share Tech Mono, monospace';
-            c.fillText('ORBS → LINK → COILS (×4) → DETONATE 15% HP', w / 2, h - 8);
+            c.fillText('ORBS → LINK → COILS (×4) → DETONATE 15% EP', w / 2, h - 8);
             c.textAlign = 'left';
             activeAnimations.push(requestAnimationFrame(() => drawSkG(performance.now())));
           }
@@ -2916,14 +2916,14 @@
             c.fillText('OVERLOAD LASER', w * 0.55, h * 0.2);
             c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
             c.fillText('Hold Space 3s → 12s beam', w * 0.55, h * 0.2 + 14);
-            c.fillText('10 + 26% Max HP / 175ms tick', w * 0.55, h * 0.2 + 27);
+            c.fillText('10 + 26% EP / 175ms tick', w * 0.55, h * 0.2 + 27);
             c.fillText('Pulls enemies toward beam', w * 0.55, h * 0.2 + 40);
             c.fillText('5 ships fire parallel beams', w * 0.55, h * 0.2 + 53);
             c.fillStyle = '#ff8800'; c.font = 'bold 9px Orbitron, sans-serif';
             c.fillText('CHARGED SHOT', w * 0.55, h * 0.6);
             c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
             c.fillText('Tap+hold Space (up to 1s)', w * 0.55, h * 0.6 + 14);
-            c.fillText('Damage scales to 10× (12% HP)', w * 0.55, h * 0.6 + 27);
+            c.fillText('Damage scales to 10× (12% EP)', w * 0.55, h * 0.6 + 27);
 
             activeAnimations.push(requestAnimationFrame(() => drawLaz(performance.now())));
           }
