@@ -88,7 +88,7 @@ Activates automatically when **any of the following** is true:
 - Spirit bullets (Skill S) move **30%** faster
 - Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to 6 nearby enemies for **30%** of the triggering hit's damage
 - Chain Lightning hits have a **55% chance** to apply **Soul Reaver** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **25%**
-- **Soul Devourer (Cắn nuốt linh hồn):** Every 0.5 seconds, enemies with Soul Reaver take **10 base + 5% Max HP** as true damage (bypasses all shields)
+- **Soul Devourer (Cắn nuốt linh hồn):** Every 0.5 seconds, enemies with Soul Reaver take **10 base + 5% EP** as true damage (bypasses all shields)
 - All active Sentinels gain **+20% Damage Reduction**
 
 ---
@@ -103,7 +103,7 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 
 - Loses **1 HP** every time it fires (recoil).
 - Takes damage equal to the HP of any enemy bullet that hits it.
-- Every **4th shot** is a Special Shot: homing, deals **50 base + 3% Max HP**, +12% speed, and **heals the firing Sentinel for 2 HP** on hit.
+- Every **4th shot** is a Special Shot: homing, deals **50 base + 3% EP**, +12% speed, and **heals the firing Sentinel for 2 HP** on hit.
 
 **Herd Mentality** — bonuses scale with how many Sentinels are alive:
 
@@ -206,7 +206,7 @@ While active, press **← or →** to teleport. The teleport range increases the
 
 **Cooldown:** 6s
 
-Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **100 base + 24% Max HP** on impact, then shatters into **16 scattered projectiles** (4 base + 2% Max HP each) that fly outward in all directions.
+Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **100 base + 24% EP** on impact, then shatters into **16 scattered projectiles** (4 base + 2% EP each) that fly outward in all directions.
 
 **Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage (acts as an Absolute Shield for that single hit).
 
@@ -218,9 +218,9 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
-- **Spirit Bullet:** 30 base + 1.5% Max HP, homing, +10% flight speed bonus.
-- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 100 base + 10% Max HP.
-- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% Max HP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% Max HP, bounce off walls).
+- **Spirit Bullet:** 30 base + 1.5% EP, homing, +10% flight speed bonus.
+- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 100 base + 10% EP.
+- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% EP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% EP, bounce off walls).
 
 ---
 
@@ -236,15 +236,15 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Duration:** 40s (from first shot) | **Cooldown:** 12s (starts at summon, unlocks after BTM ends) | **Size:** +20% vs normal Spirit
 
-**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **60 base + 4.25% Max HP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
+**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **60 base + 4.25% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
 
-**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **200 base + 16% Max HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is skipped. If a target disappears mid-flight, the boomerang flies straight and bounces off screen edges up to 2 times.
+**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **200 base + 16% EP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is skipped. If a target disappears mid-flight, the boomerang flies straight and bounces off screen edges up to 2 times.
 
-**Passive: Danger? Not Today!** — If any enemy enters **100px** of the player, Phōtokrystos instantly throws **1 boomerang** (3s cooldown).
+**Passive: Danger? Not Today!** — Triggers when any enemy comes within **80px of the player** or within **50px of the bottom boundary**. Phōtokrystos halts all attacks, locks onto the target for **100ms**, then unleashes a **1-second primeval laser beam** in that direction — the beam extends to the screen edge and **instantly destroys every enemy it touches**, bypassing all shields, Iron Body, and invulnerability. Allies are unaffected. Each enemy killed by the beam produces a burst effect. After firing, Phōtokrystos suffers **−20% damage output for 3 seconds** from primeval energy exhaustion. **10-second cooldown.**
 
 **Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels gain **+15% Damage Reduction**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+3 HP per second**, and every **5 seconds** each Sentinel receives a flat **+50 HP shield**.
 
-**Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **15 base + 45% Max HP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% Max HP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
+**Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **15 base + 45% EP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% EP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
 
 ---
 
@@ -273,11 +273,11 @@ Charges up, then sweeps a massive plasma beam across the entire screen. Every en
 
 Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locations throughout the duration.
 
-**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **30 base + 2% Max HP** damage every 125ms.
+**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **30 base + 2% EP** damage every 125ms.
 
-**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **100 base + 6% Max HP** every 50ms.
+**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **100 base + 6% EP** every 50ms.
 
-**Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **10 base + 15% Max HP** in a large area.
+**Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **10 base + 15% EP** in a large area.
 
 ---
 
