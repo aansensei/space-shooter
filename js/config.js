@@ -1,4 +1,4 @@
-const canvas = document.getElementById("gameCanvas");
+﻿const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -9,15 +9,15 @@ let gameElapsedTime = 0; // Thời gian game thực tế (bị slow bởi Yog-So
 let _gameOverPlayTime = 0; // ms played, captured at game over
 let nextLifeMilestone = 500000;
 
-const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75 };
+const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75 }; // must match the cyan dot drawn in render.js, change both or neither
 let playerClones = [];
 let lastAutoFire = 0;
-const autoFireInterval = 135; // fire rate
+const autoFireInterval = 135; // 135ms = base 168ms with the +20% fire rate bonus already baked in
 
 let bullets = [], enemies = [], explosions = [], particles = [], chainLightningEffects = [];
 let demonGiftEffect = { active: false, endTime: 0 };
 let gloryForJusticeActive = false;
-let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
+let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 }; // both start true so they are ready from hit 1
 let chainLightningCooldownEnd = 0;
 
 let hasTriggeredLastStand = false;
@@ -40,7 +40,7 @@ const MAX_SENTINELS = 12;
 let skillShiftActive = false;
 let skillShiftChargeStart = 0;
 const skillShiftCooldown = 11000; // base CD 11s (scales with hold duration)
-let lastSkillShift = -Infinity;
+let lastSkillShift = -Infinity; // -Infinity so the skill is ready immediately, 0 would lock it for 11s on start
 const skillShiftMaxCharge = 3000; // 3 giây tụ lực tối đa
 const skillShiftMaxHold = 8000; // 8 giây giữ tối đa tự hủy
 

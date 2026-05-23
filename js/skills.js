@@ -1,4 +1,4 @@
-function updateDefensiveOrbs() {
+﻿function updateDefensiveOrbs() {
     let currentDefensive = skillAOrbs.filter(o => o.isDefensive).length;
     let targetDefensive = Math.min(skillADefensiveCharges, skillAOrbs.length);
     let needed = targetDefensive - currentDefensive;
@@ -47,10 +47,12 @@ function rebalanceSkillAOrbs() {
     const numLayers = Math.ceil(untargetedOrbs.length / orbsPerLayer);
     let orbIndex = 0;
     for (let layer = 0; layer < numLayers; layer++) {
+        // 60px inner gap keeps orbs away from the player hitbox, 35px per layer keeps rings visually distinct
         const layerRadius = 60 + layer * 35;
         const orbsInThisLayer = (layer === numLayers - 1) ? untargetedOrbs.length - orbIndex : orbsPerLayer;
         for (let i = 0; i < orbsInThisLayer; i++) {
             const orb = untargetedOrbs[orbIndex];
+            // divides a full circle evenly so orbs spread at equal angles around the player
             orb.angle = (Math.PI * 2 / orbsInThisLayer) * i;
             orb.radius = layerRadius;
             orbIndex++;
@@ -182,17 +184,17 @@ function activateSkillS() {
     if (typeof player !== "undefined" && player._silenced) return;
     if (gameState !== "playing") return;
 
-    // ── Primeval Creation: transform normal spirit → Phōtokrystos ──
+    // Primeval Creation: transform normal spirit → Phōtokrystos
     const normalSpirit = spirits.find(sp => !sp.isFinishing && !sp.isPhotokrystos);
     if (primevalEnergy >= 100 && normalSpirit) {
         activatePrimevalCreation(normalSpirit);
         return;
     }
 
-    // ── Block while any spirit is alive (Phōtokrystos blocks until BTM ends) ──
+    // Block while any spirit is alive (Phōtokrystos blocks until BTM ends)
     if (spirits.length > 0) return;
 
-    // ── Normal summon: standard 12s CD only ──
+    // Normal summon: standard 12s CD only
     if (currentTime - lastSkillS >= skillSCooldown) {
         lastSkillS = currentTime;
         primevalEnergy = 0; // Energy only accumulates from this new spirit
@@ -219,20 +221,20 @@ function activatePrimevalCreation(spirit) {
 }
 
 function updateSpirits(deltaTime) {
-    // ── Update summoning effect ──
+    // Update summoning effect
     if (primevalSummonEffect) updatePrimevalSummonEffect(deltaTime);
 
     for (let i = spirits.length - 1; i >= 0; i--) {
         const spirit = spirits[i];
 
-        // ── Phōtokrystos branch ──
+        // Phōtokrystos branch
         if (spirit.isPhotokrystos) {
             updatePhotokrystos(spirit, deltaTime);
             if (spirit._done) spirits.splice(i, 1);
             continue;
         }
 
-        // ── Normal spirit ──
+        // Normal spirit
         if (spirit.isFinishing) {
             updateSpiritFinale(spirit, deltaTime);
             if (!spirit.isFinishing) spirits.splice(i, 1);
@@ -286,14 +288,14 @@ function updateSpirits(deltaTime) {
     }
 }
 
-// ─── PHŌTOKRYSTOS UPDATE ──────────────────────────────────────
+// PHŌTOKRYSTOS UPDATE
 function updatePhotokrystos(spirit, deltaTime) {
     const now = performance.now();
     const age = now - spirit.spawnTime;
     const BTM_START = 37000; // Back to Motherland at 37s
     const DURATION = 40000;  // total 40s
 
-    // ── Danger? Not Today! (DNT) ─────────────────────────────────
+    // Danger? Not Today! (DNT)
     const DNT_CD          = 10000; // 10s cooldown
     const DNT_AIM_DUR     = 100;   // 100ms lock-on
     const DNT_FIRE_DUR    = 2000;  // 2s laser
@@ -384,14 +386,14 @@ function updatePhotokrystos(spirit, deltaTime) {
         }
     }
 
-    // ── Duration: only start counting from first bullet ──
+    // Duration: only start counting from first bullet
     if (!spirit._combatStartTime) {
         // waiting for first shot — don't count duration yet
         // BTM check below uses _combatAge
     }
     const _combatAge = spirit._combatStartTime ? (now - spirit._combatStartTime) : 0;
 
-    // ── Back to Motherland phase ──
+    // Back to Motherland phase
     if (_combatAge >= BTM_START && !spirit._btmStarted) {
         spirit._btmStarted = true;
         spirit._btmPhase = 'warming'; // warming(0.5s) → firing(3.5s) → releasing(0.5s) → done
@@ -479,13 +481,13 @@ function updatePhotokrystos(spirit, deltaTime) {
     // DNT aiming/firing: spirit freezes, no normal attacks
     if (spirit._dntState === 'aiming' || spirit._dntState === 'firing') return;
 
-    // ── Normal Phōtokrystos movement ──
+    // Normal Phōtokrystos movement
     let t = now / 1000;
     const orbitR = 85; // slightly larger than normal (72)
     spirit.x += (player.x + Math.cos(t * 2) * orbitR - spirit.x) * 0.08;
     spirit.y += (player.y + Math.sin(t * 2) * orbitR - spirit.y) * 0.08;
 
-    // ── Attack: 3 homing bullets per volley at 42ms ──
+    // Attack: 3 homing bullets per volley at 42ms
     spirit.shootTimer -= deltaTime;
     let photoFireRate = 42; // fire rate
     if (gloryForJusticeActive) photoFireRate /= 1.40;
@@ -522,7 +524,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         }
     }
 
-    // ── Boomerang every 6 volleys ──
+    // Boomerang every 6 volleys
     if (spirit.volleyCount >= 6) {
         spirit.volleyCount = 0;
         spawnPhotoBrangs(spirit.x, spirit.y, 2);
@@ -588,7 +590,7 @@ function updatePhotoBrangs(deltaTime) {
         const b = photoBrangs[i];
         b.rotation += 0.22 * dt;
 
-        // ── Recall mode: bay về phía tinh linh (nhanh hơn 60%) ──
+        // Recall mode: bay về phía tinh linh (nhanh hơn 60%)
         if (b._recalling) {
             if (_photo) {
                 const _rdx = _photo.x - b.x, _rdy = _photo.y - b.y;
@@ -618,11 +620,11 @@ function updatePhotoBrangs(deltaTime) {
             continue;
         }
 
-        // ── Cooldown per enemy to allow re-hit (every 200ms) ──
+        // Cooldown per enemy to allow re-hit (every 200ms)
         b._hitCooldowns = b._hitCooldowns || new Map();
         const now_b = performance.now();
 
-        // ── Find current target ──
+        // Find current target
         let tgt = null;
         while (b.targetIdx < b.targets.length) {
             const candidate = b.targets[b.targetIdx];
@@ -640,7 +642,7 @@ function updatePhotoBrangs(deltaTime) {
             b.vx += (dx / d * spd - b.vx) * 0.18;
             b.vy += (dy / d * spd - b.vy) * 0.18;
 
-            // ── Hit: any overlap between boomerang and enemy ──
+            // Hit: any overlap between boomerang and enemy
             const hitDist = (tgt.size / 2) + BRANG_R; // generous — any edge contact
             if (d < hitDist) {
                 const lastHit = b._hitCooldowns.get(tgt) || 0;
@@ -664,7 +666,7 @@ function updatePhotoBrangs(deltaTime) {
                 }
             }
         } else {
-            // ── No target: fly straight, bounce off screen edges (max 2 bounces) ──
+            // No target: fly straight, bounce off screen edges (max 2 bounces)
             b._bounces = b._bounces || 0;
             let bounced = false;
             if (b.x < 0 || b.x > canvas.width) { b.vx = -b.vx; b._bounces++; bounced = true; }
@@ -691,7 +693,7 @@ function updatePhotoBrangs(deltaTime) {
         b.x += b.vx * dt;
         b.y += b.vy * dt;
 
-        // ── Destroy enemy bullets along path ──
+        // Destroy enemy bullets along path
         for (let ei = enemies.length - 1; ei >= 0; ei--) {
             const eb = enemies[ei];
             if (!eb.type.startsWith('enemy_bullet') || eb.type === 'abyssal_chain') continue;
@@ -1305,7 +1307,7 @@ function cancelSkillShift() {
         });
     }
 }
-// ── Marchosias Blade — global array, không bị ngắt bởi bất kỳ nguồn nào ──
+// Marchosias Blade — global array, không bị ngắt bởi bất kỳ nguồn nào
 function updateMarchosiasBlades(deltaTime) {
     const dt = deltaTime / 16.67;
     for (let i = marchosiasBlades.length - 1; i >= 0; i--) {
@@ -1348,7 +1350,7 @@ function updateMarchosiasBlades(deltaTime) {
         }
     }
 }
-// ── Soul Reaver DoT (Cắn nuốt linh hồn) ─────────────────────────
+// Soul Reaver DoT (Cắn nuốt linh hồn)
 // Kẻ địch có soulReaver bị trừ 10 base + 5% MaxHP mỗi 0.5 giây (bỏ qua khiên)
 function updateSoulReaverDoT(deltaTime) {
     if (!gloryForJusticeActive) return; // chỉ active khi Glory for Justice bật
