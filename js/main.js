@@ -1,4 +1,4 @@
-function loseLife() {
+﻿function loseLife() {
     if (playerAbsoluteShield) {
         playerAbsoluteShield = false;
         addExplosion(player.x, player.y, 150, 'gold');
@@ -82,7 +82,7 @@ function _triggerAccurateParry() {
     });
 }
 
-// ── Sentinel Parry buff ───────────────────────────────────────────────
+// Sentinel Parry buff
 function _triggerSentinelParry(parrySentinel) {
     const now = performance.now();
 
@@ -131,6 +131,7 @@ function update(rawDeltaTime) {
     }
 
     // THUẬT TOÁN BẺ CONG THỜI GIAN: Giảm 85% tốc độ mô phỏng
+    // slowing deltaTime here auto-slows everything that uses it, no per-entity guards needed
     const timeScale = skillShiftActive ? 0.15 : 1.0;
     const deltaTime = rawDeltaTime * timeScale; // Bẻ cong deltaTime vật lý
     const dt = deltaTime / 16.67;
@@ -140,6 +141,7 @@ function update(rawDeltaTime) {
 
     // Bẻ cong (kéo dài) các Timer hồi chiêu của phe người chơi và Enemy Spawn
     if (skillShiftActive) {
+        // push timestamps forward so player cooldowns tick at real speed, not slowed speed
         let delay = rawDeltaTime * 0.85;
         lastAutoFire += delay;
         if (charging) chargeStartTime += delay;
@@ -157,7 +159,8 @@ function update(rawDeltaTime) {
         lastEnemySpawn += delay;
     }
 
-    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
+    // recalc every frame bc enemies spawn and die constantly
+    gloryForJusticeActive =(enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
         enemies.some(e => e.type === 'boss' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias');
 
     // Accurate Parry expiry
@@ -170,7 +173,7 @@ function update(rawDeltaTime) {
         wave.radius += wave.speed * dt;
 
         if (wave._isBTMWave) {
-            // ── BTM final shockwave: 10 + 99% MaxHP, bypasses ALL shields/Iron Body ──
+            // BTM final shockwave: 10 + 99% MaxHP, bypasses ALL shields/Iron Body
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
                 if (wave._hitEnemies.has(e)) continue;
@@ -283,7 +286,7 @@ function update(rawDeltaTime) {
         if (!finalDefense.boundaryShield) finalDefense.boundaryShield = true;
     }
 
-    // ── Silence/Root expiry ───────────────────────────────────────
+    // Silence/Root expiry
     if (player._silenced && currentTime >= player._silenceEnd) {
         player._silenced = false;
         player._rooted = false;
@@ -648,7 +651,7 @@ function update(rawDeltaTime) {
             continue;
         }
 
-        // ── Abyssal Chain movement + collision ───────────────────────
+        // Abyssal Chain movement + collision
         if (enemy.type === 'abyssal_chain') {
             enemy.x += enemy.vx * dt;
             enemy.y += enemy.vy * dt;
@@ -818,7 +821,7 @@ function update(rawDeltaTime) {
                     }
                 }
 
-                // ── Hắc Ám Xiềng Xích (Abyssal Chains) — Dargruel only ──
+                // Hắc Ám Xiềng Xích (Abyssal Chains) — Dargruel only
                 if (enemy.type === 'boss') {
                     if (!enemy.chainTimer && enemy.chainTimer !== 0) enemy.chainTimer = 0; // fire immediately on spawn
                     enemy.chainTimer -= deltaTime;
@@ -879,7 +882,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            // ── MARCHOSIAS ────────────────────────────────────────────
+            // MARCHOSIAS
             if (enemy.type === 'marchosias') {
                 // Trigger Sword khi HP còn <= 1% lần đầu tiên
                 if (!enemy.swordLastStandTriggered && enemy.hp <= enemy.maxHp * 0.01) {
@@ -963,7 +966,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            // ── MARCHOSIAS MINION (handled in separate else-if below) ──
+            // MARCHOSIAS MINION (handled in separate else-if below)
         } else if (enemy.type === 'marchosias_minion') {
             const mmdx = player.x - enemy.x, mmdy = player.y - enemy.y;
             const mmd = Math.hypot(mmdx, mmdy);
@@ -1099,7 +1102,7 @@ function update(rawDeltaTime) {
         if (lives <= 0) { gameState = "gameover"; _gameOverPlayTime = performance.now() - gameStartTime; showStartButton("Play Again"); showMainMenuButton(); }
     }
 
-    // ── Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới ──
+    // Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới
     if (skillShiftActive) {
         // Abyssal Chains survive YOG — piercing, cannot be cleared by any means
         enemies = enemies.filter(e => e.type === 'abyssal_chain' || !e.type.startsWith('enemy_bullet'));
@@ -1136,11 +1139,11 @@ function update(rawDeltaTime) {
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
 
-                // ── ABYSSAL CHAIN: piercing, immune to all player attacks ──
+                // ABYSSAL CHAIN: piercing, immune to all player attacks
                 if (enemy.type === 'abyssal_chain') { continue; }
-                // ── VEILSHROUD ECHO: untargetable / immune ──
+                // VEILSHROUD ECHO: untargetable / immune
                 if (enemy.type === 'veilshroud_echo') { continue; }
-                // ── CORONATION: apostle is immortal and untargetable ──
+                // CORONATION: apostle is immortal and untargetable
                 if (enemy.inCoronation) { continue; }
                 if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
@@ -1149,7 +1152,7 @@ function update(rawDeltaTime) {
                     break;
                 }
 
-                // ── MARCHOSIAS ARC SHIELD CHECK ──────────────────────
+                // MARCHOSIAS ARC SHIELD CHECK
                 if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
                     const bulletAngle = Math.atan2(b.y - enemy.y, b.x - enemy.x);
                     const shieldAngle = enemy.arcShield.angle;
@@ -1205,7 +1208,7 @@ function update(rawDeltaTime) {
     chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
 
     updateSentinels(deltaTime);
-    // ── Blessing of the Primordial: passive while Phōtokrystos is active ──
+    // Blessing of the Primordial: passive while Phōtokrystos is active
     const _photoActive = typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done);
     const _levOnField = enemies.some(e => e.type === 'leviathan' && e.hp > 0);
     sentinels.forEach(s => {
@@ -1255,7 +1258,7 @@ function update(rawDeltaTime) {
         window._blessingShieldTimer = 0;
         window._blessingLevShieldGiven = false;
     }
-    // ── Sentinel MaxHP time scaling (one-shot milestones) ────────────
+    // Sentinel MaxHP time scaling (one-shot milestones)
     if (!window._sentinelHpMilestone) window._sentinelHpMilestone = 0;
     const _elapsedMin = gameElapsedTime / 60000;
     if (_elapsedMin >= 1 && window._sentinelHpMilestone < 1) {
@@ -1283,7 +1286,7 @@ function update(rawDeltaTime) {
         });
     }
 
-    // ── GfJ shield cleanup: remove immediately if sentinel heals to full HP ──
+    // GfJ shield cleanup: remove immediately if sentinel heals to full HP
     sentinels.forEach(s => {
         if ((s._gfjShield || 0) > 0 && s.hp >= (s.maxHp || 100) - 1) {
             s.shield = Math.max(0, (s.shield || 0) - s._gfjShield);
@@ -1291,7 +1294,7 @@ function update(rawDeltaTime) {
         }
     });
 
-    // ── GfJ shield pulse: fires immediately on activation, then every 10s ──
+    // GfJ shield pulse: fires immediately on activation, then every 10s
     // Shield = 18% HP đã mất + 4% Max HP — non-stacking, replaces previous pulse
     if (!window._gfjShieldTimer) window._gfjShieldTimer = 0;
     if (!window._gfjWasActive) window._gfjWasActive = false;
@@ -1330,7 +1333,7 @@ function update(rawDeltaTime) {
 
     // Update Leviathan handled inside enemies for loop above
 
-    // ── Leviathan Perseverance beams (independent objects) ──────────
+    // Leviathan Perseverance beams (independent objects)
     if (!window._levPersBeams) window._levPersBeams = [];
     window._levPersBeams = window._levPersBeams.filter(beam => {
         if (beam.done) return false;
@@ -1417,7 +1420,7 @@ function update(rawDeltaTime) {
         return true;
     });
 
-    // ── Leviathan death lasers (independent objects) ─────────────────
+    // Leviathan death lasers (independent objects)
     if (!window._levDeathLasers) window._levDeathLasers = [];
     window._levDeathLasers = window._levDeathLasers.filter(laser => {
         laser.elapsed = (laser.elapsed || 0) + deltaTime;
@@ -1475,14 +1478,14 @@ function update(rawDeltaTime) {
 
     if (screenShake.duration > 0) screenShake.duration -= deltaTime;
 
-    // ── Veilshroud lightning effects (visual timer decay) ───────────
+    // Veilshroud lightning effects (visual timer decay)
     if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
     window._veilshroudLightnings = window._veilshroudLightnings.filter(lt => {
         lt.life -= deltaTime;
         return lt.life > 0;
     });
 
-    // ── Veilshroud pending Void Strikes (persist after host death) ──
+    // Veilshroud pending Void Strikes (persist after host death)
     if (!window._veilshroudPendingStrikes) window._veilshroudPendingStrikes = [];
     window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
         ps.countdown += deltaTime;
@@ -1493,7 +1496,7 @@ function update(rawDeltaTime) {
         return true;
     });
 
-    // ── Veilshroud echo explosion zones ─────────────────────────────
+    // Veilshroud echo explosion zones
     if (!window._veilshroudExplosions) window._veilshroudExplosions = [];
     window._veilshroudExplosions = window._veilshroudExplosions.filter(ez => {
         ez.life -= deltaTime;
@@ -1524,7 +1527,7 @@ function gameLoop(timeStamp) {
     if (!lastTimeStamp) lastTimeStamp = timeStamp;
     let deltaTime = timeStamp - lastTimeStamp;
 
-    // ── Mobile 45fps throttle: skip frame if < 22ms since last ──
+    // Mobile 45fps throttle: skip frame if < 22ms since last
     if (typeof _platform !== 'undefined' && _platform === 'mobile') {
         if (deltaTime < 22) { // ~45fps cap
             requestAnimationFrame(gameLoop);

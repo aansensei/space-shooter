@@ -1,4 +1,4 @@
-// ── Global UI helpers — called from main.js ───────────────────
+﻿// Global UI helpers — called from main.js
 function showStartButton(text) {
     const btn = document.getElementById("startBtn");
     if (!btn) return;
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Loading xong — ẩn overlay, reset clock, game loop tự chạy tiếp
                 pauseOverlay.style.display = "none";
                 gamePaused = false;
-                lastTimeStamp = performance.now(); // reset để tránh deltaTime spike
+                lastTimeStamp = performance.now(); // reset or pause duration becomes a giant deltaTime spike next frame
             }
         }
 
@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
         }
 
+        // must check shift first bc arrows inside domain = teleport, return early skips keys.left below
         if (skillShiftActive) {
             // Trong lãnh địa, ấn phím điều hướng để Dịch Chuyển
             if (e.code === "ArrowLeft") { executeShiftTeleport('left'); e.preventDefault(); return; }

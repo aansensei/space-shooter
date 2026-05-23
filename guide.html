@@ -1,4 +1,23 @@
 <!DOCTYPE html>
+<!--
+  guide.html
+
+  Standalone reference page for game mechanics, skill info, and enemy data.
+  Zero game engine code loads here. Nothing is shared with the js folder.
+
+  Tab navigation is pure HTML, CSS, and JS with no framework. Each tab renders
+  skill stats or enemy info next to a live canvas demo. Every demo runs its own
+  requestAnimationFrame loop that is entirely local to this file.
+
+  All mini animations are drawn with Canvas 2D from scratch. They show how
+  skills and enemies behave visually without reusing any engine code. CSS vars
+  at the top (--cyan, --purple, --gold etc) keep the neon color palette
+  consistent across all sections.
+
+  Visiting this page auto-pauses the main game bc input.js listens to the
+  document visibilitychange event and sets gamePaused to true whenever the
+  tab goes hidden.
+-->
 <html lang="en">
 
 <head>

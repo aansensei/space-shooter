@@ -1,7 +1,5 @@
-// ============================================================
-//  render.js  –  Enhanced Graphics v2  (hitbox-safe, 60fps)
-//  RULE: hitbox = original size/shape. Only VISUAL layers added.
-// ============================================================
+﻿// render.js  Enhanced Graphics v2  (hitbox-safe, 60fps)
+// RULE: hitbox = original size/shape. Only VISUAL layers added.
 
 let bgStars = [];
 let nebulaPoints = null;
@@ -9,8 +7,8 @@ let nebulaPoints = null;
 let _fallingStars = [];
 let _skillGActivatedAt = -Infinity; // track khi nào G vừa được bật
 
-// ── star-field with subtle twinkle ───────────────────────────
-// ══ MOBILE PERFORMANCE FLAGS ═══════════════════════════════════
+// star-field with subtle twinkle
+// MOBILE PERFORMANCE FLAGS
 // Set once when platform is known. PC path untouched.
 let _mobPerf = false; // true when mobile mode active
 let _bgOffscreen   = null; // cached background canvas
@@ -25,11 +23,12 @@ function _initMobilePerf() {
     _bgDirty = true;
     // Triệt tiêu hoàn toàn shadow tại setter level — zero GPU cost
     try {
+        // intercepts every shadowBlur setter globally so no if(_mobPerf) guards needed anywhere in draw code
         Object.defineProperty(ctx, 'shadowBlur',  { get: () => 0, set: () => {}, configurable: true });
         Object.defineProperty(ctx, 'shadowColor', { get: () => 'transparent', set: () => {}, configurable: true });
     } catch(e) {}
 }
-// ── Auto quality tiers (0=FULL 1=MED 2=LOW 3=MIN) ────────────
+// Auto quality tiers (0=FULL 1=MED 2=LOW 3=MIN)
 let _gfxLevel = 0;
 window._gfxLevel = 0;
 window._particleScale = 1.0;
@@ -49,13 +48,13 @@ function _applyGfxLevel(level) {
 }
 window._applyGfxLevel = _applyGfxLevel;
 
-// ══ END MOBILE FLAGS ════════════════════════════════════════════
+// END MOBILE FLAGS
 
 function drawSpaceBackground(deltaTime) {
-    // ── Mobile: cache background, redraw every 3 frames ──────────
+    // Mobile: cache background, redraw every 3 frames
     if (_mobPerf) {
         _bgCacheFrame++;
-        const needRedraw = _bgDirty || (_bgCacheFrame % 4 === 0);
+        const needRedraw = _bgDirty || (_bgCacheFrame % 4 === 0); // % 4 so animated bg elements don't freeze on cache
 
         if (needRedraw || !_bgOffscreen || _bgOffscreen.width !== canvas.width || _bgOffscreen.height !== canvas.height) {
             // Create or resize offscreen canvas
@@ -69,7 +68,7 @@ function drawSpaceBackground(deltaTime) {
         ctx.drawImage(_bgOffscreen, 0, 0);
         return;
     }
-    // ── PC: draw directly as before ───────────────────────────────
+    // PC: draw directly as before
     _drawSpaceBgTo(ctx, deltaTime, canvas.width, canvas.height);
 }
 
@@ -77,7 +76,7 @@ function _drawSpaceBgTo(c, deltaTime, W, H) {
     c.fillStyle = '#02020c';
     c.fillRect(0, 0, W, H);
 
-    // ── Nebula layer: HIGH quality only, generated once and cached ──
+    // Nebula layer: HIGH quality only, generated once and cached
     if (_gfxLevel < 1) {
         if (!_nebulaCanvas || _nebulaCanvas.width !== W || _nebulaCanvas.height !== H) {
             _nebulaCanvas = document.createElement('canvas');
@@ -105,14 +104,14 @@ function _drawSpaceBgTo(c, deltaTime, W, H) {
     const dt = deltaTime ? deltaTime / 16.67 : 1;
     const now = performance.now();
 
-    // ── Initialise falling stars pool ────────────────────────────
+    // Initialise falling stars pool
     if (_fallingStars.length === 0) {
         for (let i = 0; i < 80; i++) {
             _fallingStars.push(_makeFallingStar(W, H, true));
         }
     }
 
-    // ── Update + draw each falling star ──────────────────────────
+    // Update + draw each falling star
     c.save();
     for (let i = _fallingStars.length - 1; i >= 0; i--) {
         const s = _fallingStars[i];
@@ -175,7 +174,7 @@ function _makeFallingStar(W, H, initial) {
 }
 
 
-// ── Yog-Sothoth shift arrows ──────────────────────────────────
+// Yog-Sothoth shift arrows
 function drawSkillShiftEffects() {
     if (!skillShiftActive) return;
     const now = performance.now();
@@ -187,7 +186,7 @@ function drawSkillShiftEffects() {
     let leftX = Math.max(player.width / 2 + 10, player.x - dist);
     let rightX = Math.min(canvas.width - player.width / 2 - 10, player.x + dist);
 
-    // ── TELEPORT DESTINATION PORTALS (left & right) ──────────────
+    // TELEPORT DESTINATION PORTALS (left & right)
     function drawPortal(px, py) {
         const pulse = 0.7 + 0.3 * Math.sin(now / 160);
         const spinA = now / 700;
@@ -249,7 +248,7 @@ function drawSkillShiftEffects() {
         ctx.restore();
     }
 
-    // ── CONNECTOR LINE between portals ────────────────────────────
+    // CONNECTOR LINE between portals
     ctx.save();
     const connPulse = 0.4 + 0.3 * Math.abs(Math.sin(now / 220));
     // dashed cursed-energy thread
@@ -268,7 +267,7 @@ function drawSkillShiftEffects() {
     if (player.x - leftX > 30) drawPortal(leftX, player.y);
     if (rightX - player.x > 30) drawPortal(rightX, player.y);
 
-    // ── GHOST SHADOWS at destinations ─────────────────────────────
+    // GHOST SHADOWS at destinations
     ctx.save();
     const ghostAlpha = 0.18 + Math.abs(Math.sin(now / 200)) * 0.22;
     ctx.globalAlpha = ghostAlpha;
@@ -276,7 +275,7 @@ function drawSkillShiftEffects() {
     drawPlayer(1, rightX - player.x);
     ctx.restore();
 
-    // ── CURSED ENERGY PARTICLES streaming along the connector ─────
+    // CURSED ENERGY PARTICLES streaming along the connector
     ctx.save();
     const streamCount = 8;
     for (let i = 0; i < streamCount; i++) {
@@ -294,12 +293,13 @@ function drawSkillShiftEffects() {
     ctx.restore();
 }
 
-// ── main draw ─────────────────────────────────────────────────
+// main draw
 function draw(deltaTime) {
     ctx.save();
     if (screenShake.duration > 0 && _gfxLevel < 1 && window._screenShakeEnabled !== false && gameState !== 'gameover') {
         const _sNow = performance.now();
         const _sFade = screenShake.duration / 500; // fade out khi gần hết
+        // different freqs so x and y drift independently, same freq would feel like a diagonal slide
         ctx.translate(
             Math.sin(_sNow * 0.025) * screenShake.intensity * _sFade * 0.38,
             Math.cos(_sNow * 0.019) * screenShake.intensity * _sFade * 0.38
@@ -309,7 +309,7 @@ function draw(deltaTime) {
     const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
     const _MOB_SCALE = 0.78;
 
-    // ── Particle cap (tier-aware) ─────────────────────────────────
+    // Particle cap (tier-aware)
     {
         const _pCap = _GFX_PARTICLE_CAP[_gfxLevel] || 350;
         if (particles.length > _pCap) particles.splice(0, particles.length - _pCap);
@@ -318,7 +318,7 @@ function draw(deltaTime) {
     // Background full canvas
     drawSpaceBackground(deltaTime);
 
-    // ── Yog-Sothoth Domain Expansion (JJK signature) ─────────────
+    // Yog-Sothoth Domain Expansion (JJK signature)
     if (gameState === "playing" && skillShiftActive) {
         const now = performance.now();
         let elapsed = now - skillShiftChargeStart;
@@ -333,10 +333,8 @@ function draw(deltaTime) {
 
         ctx.save();
 
-        // ════════════════════════════════════════════════════════════
         // PHASE A — PRE-EXPANSION: CURSED ENERGY CHARGING VORTEX
         // Visible the entire time but peaks before domain opens
-        // ════════════════════════════════════════════════════════════
 
         // A1. DARK AURA GROUND PULSE — circular shockwave rings emanating outward
         {
@@ -437,9 +435,7 @@ function draw(deltaTime) {
             }
         }
 
-        // ════════════════════════════════════════════════════════════
         // PHASE B — DOMAIN VOID FILL + HEX FLOOR
-        // ════════════════════════════════════════════════════════════
 
         // B1. HEX FLOOR — slowly scrolling to feel alive
         if (domainFull) {
@@ -541,9 +537,7 @@ function draw(deltaTime) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        // ════════════════════════════════════════════════════════════
         // PHASE C — BOUNDARY, CRACKS, RAYS, RUNES (full domain)
-        // ════════════════════════════════════════════════════════════
 
         // C1. BOUNDARY RING
         if (!domainFull) {
@@ -762,7 +756,7 @@ function draw(deltaTime) {
                         const pulse2 = 0.8 + 0.2 * Math.sin(now / 1800 + r * 0.4 + c * 0.5);
                         const a = alpha * pulse2;
 
-                        // ── Diamond outline ──
+                        // Diamond outline
                         ctx.strokeStyle = `rgba(180,80,255,${a * 1.2})`;
                         ctx.lineWidth = 0.9;
                         ctx.beginPath();
@@ -773,7 +767,7 @@ function draw(deltaTime) {
                         ctx.closePath();
                         ctx.stroke();
 
-                        // ── 4-petal flower in center ──
+                        // 4-petal flower in center
                         const pr = s * 0.32;
                         ctx.strokeStyle = `rgba(220,140,255,${a})`;
                         ctx.lineWidth = 0.8;
@@ -791,7 +785,7 @@ function draw(deltaTime) {
                             ctx.stroke();
                         }
 
-                        // ── Cross lines ──
+                        // Cross lines
                         ctx.strokeStyle = `rgba(160,60,255,${a * 0.7})`;
                         ctx.lineWidth = 0.6;
                         ctx.beginPath();
@@ -799,7 +793,7 @@ function draw(deltaTime) {
                         ctx.moveTo(cx2, cy2 - s * 0.5); ctx.lineTo(cx2, cy2 + s * 0.5);
                         ctx.stroke();
 
-                        // ── Corner dots ──
+                        // Corner dots
                         const cornersAt = [[cx2 - s * 0.6, cy2], [cx2 + s * 0.6, cy2], [cx2, cy2 - s * 0.6], [cx2, cy2 + s * 0.6]];
                         ctx.fillStyle = `rgba(240,180,255,${a * 0.9})`;
                         cornersAt.forEach(([dpx, dpy]) => {
@@ -818,7 +812,7 @@ function draw(deltaTime) {
             if (textT > 0.02) {
                 ctx.save();
 
-                // ── BIG KANJI BEHIND (mờ, to, đỏ tím) ──
+                // BIG KANJI BEHIND (mờ, to, đỏ tím)
                 ctx.globalAlpha = textT * 0.38;
                 ctx.font = 'bold 130px serif';
                 ctx.textAlign = 'center';
@@ -827,7 +821,7 @@ function draw(deltaTime) {
                 if (!_mobPerf) ctx.shadowColor = '#8800cc'; if (!_mobPerf) ctx.shadowBlur = 40;
                 ctx.fillText('律域展開', cx, cy - 30);
 
-                // ── EN TITLE FRONT (sắc nét, sáng) ──
+                // EN TITLE FRONT (sắc nét, sáng)
                 ctx.globalAlpha = textT * 0.92;
                 if (!_mobPerf) ctx.shadowColor = '#cc00ff'; if (!_mobPerf) ctx.shadowBlur = 22;
 
@@ -920,7 +914,7 @@ function draw(deltaTime) {
 
         if (charging && !laserActive) drawChargeEffect();
         explosions.forEach(drawExplosion);
-        // ── Batch particle draw ────────────────────────────────
+        // Batch particle draw
         {
             const _specials = [];
             const _batches = new Map();
@@ -953,7 +947,7 @@ function draw(deltaTime) {
         if (charging) drawChargeMeter();
         if (skillShiftActive) drawSkillShiftEffects();
 
-        // ── ENEMY BULLETS: top layer, always visible ──
+        // ENEMY BULLETS: top layer, always visible
         enemies.forEach(e => { if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') drawEnemy(e); });
 
         // boundary line
@@ -969,7 +963,7 @@ function draw(deltaTime) {
     }
 
     if (gameState === "playing") {
-        // ── Cinematic dark vignette (HIGH full / MED half-strength) ──
+        // Cinematic dark vignette (HIGH full / MED half-strength)
         if (_gfxLevel < 2) {
             const _vcx = canvas.width / 2, _vcy = canvas.height / 2;
             const _vIn  = Math.min(canvas.width, canvas.height) * (_gfxLevel < 1 ? 0.22 : 0.36);
@@ -984,7 +978,7 @@ function draw(deltaTime) {
             ctx.restore();
         }
 
-        // ── Dark Souls red vignette ──────────────────────────────────
+        // Dark Souls red vignette
         {
             const _now = performance.now();
             const cx = canvas.width / 2, cy = canvas.height / 2;
@@ -1084,13 +1078,13 @@ function draw(deltaTime) {
     ctx.restore();
 }
 
-// ── Start Screen — Pisces Constellation ───────────────────────
+// Start Screen — Pisces Constellation
 function _drawStartScreen() {
     const now = performance.now();
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
 
-    // ── Pisces constellation star positions (normalized -1..1 → screen)
+    // Pisces constellation star positions (normalized -1..1 → screen)
     // Based on real Pisces star pattern: two fish connected by a cord
     const scale = Math.min(canvas.width, canvas.height) * 0.30;
     const offX = cx;
@@ -1127,7 +1121,7 @@ function _drawStartScreen() {
         [10, 11], [11, 12], [12, 13], [13, 14], [14, 15], [15, 16], [16, 10] // eastern fish loop
     ];
 
-    // ── Draw constellation lines — sáng rõ hơn
+    // Draw constellation lines — sáng rõ hơn
     ctx.save();
     lines.forEach(([a, b]) => {
         const ax = offX + piscesStars[a][0] * scale;
@@ -1147,7 +1141,7 @@ function _drawStartScreen() {
     ctx.shadowBlur = 0;
     ctx.restore();
 
-    // ── Draw constellation stars — rực rỡ, nhấp nháy như ánh sáng cuối đường
+    // Draw constellation stars — rực rỡ, nhấp nháy như ánh sáng cuối đường
     piscesStars.forEach(([sx, sy, mag], idx) => {
         const px = offX + sx * scale;
         const py = offY + sy * scale;
@@ -1198,7 +1192,7 @@ function _drawStartScreen() {
         ctx.restore();
     });
 
-    // ── Subtle "PISCES" label near constellation
+    // Subtle "PISCES" label near constellation
     ctx.save();
     ctx.textAlign = 'right';
     ctx.font = '11px monospace';
@@ -1207,7 +1201,7 @@ function _drawStartScreen() {
     ctx.fillText('♓  PISCES', offX + piscesStars[14][0] * scale + 30, offY + piscesStars[14][1] * scale - 14);
     ctx.restore();
 
-    // ── Title text
+    // Title text
     ctx.save();
     ctx.textAlign = 'center';
 
@@ -1236,13 +1230,13 @@ function _drawStartScreen() {
     ctx.restore();
 }
 
-// ── Aegis lasers ──────────────────────────────────────────────
-// ── Leviathan standalone effects (survive enemy death) ────────
+// Aegis lasers
+// Leviathan standalone effects (survive enemy death)
 function _drawLeviathanEffects() {
     const now = performance.now();
     const len = Math.hypot(canvas.width, canvas.height) * 1.5;
 
-    // ── Perseverance charge warning (full circle spin — báo hiệu quét 360°)
+    // Perseverance charge warning (full circle spin — báo hiệu quét 360°)
     enemies.forEach(e => {
         if (e.type !== 'leviathan') return;
         if (!e.perseveranceCharging) return;
@@ -1278,7 +1272,7 @@ function _drawLeviathanEffects() {
         ctx.restore();
     });
 
-    // ── Perseverance sweep beams (objects độc lập trong _levPersBeams)
+    // Perseverance sweep beams (objects độc lập trong _levPersBeams)
     if (window._levPersBeams) {
         window._levPersBeams.forEach(beam => {
             if (beam.done) return;
@@ -1316,7 +1310,7 @@ function _drawLeviathanEffects() {
         });
     }
 
-    // ── Death lasers — with wing rotation animation
+    // Death lasers — with wing rotation animation
     if (!window._levDeathLasers) return;
     window._levDeathLasers.forEach(laser => {
         const elapsed = laser.elapsed || 0;
@@ -1345,7 +1339,7 @@ function _drawLeviathanEffects() {
         ctx.translate(laser.ox, laser.oy);
 
         if (!isActive) {
-            // ── Wing shape rotating into position ──
+            // Wing shape rotating into position
             const wingLen = 60 + warnProg * 40; // cánh vươn ra khi xoay
             const wingW = 14;
             const hw = wingW / 2;
@@ -1379,7 +1373,7 @@ function _drawLeviathanEffects() {
             ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
             ctx.setLineDash([]);
         } else {
-            // ── Active laser beam ──
+            // Active laser beam
             ctx.rotate(targetA);
             ctx.globalAlpha = activeFade;
             if (!_mobPerf) ctx.shadowColor = '#ff2200'; if (!_mobPerf) ctx.shadowBlur = 40;
@@ -1456,7 +1450,7 @@ function drawAegisLasers() {
     });
 }
 
-// ── Persian/Moroccan tile pattern helper ─────────────────────
+// Persian/Moroccan tile pattern helper
 // Vẽ một tile hoa văn Ba Tư tại (tx,ty), kích thước tileSize, với alpha và màu chủ
 function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
     const h = tileSize / 2;
@@ -1466,7 +1460,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
     ctx.save();
     ctx.translate(tx, ty);
 
-    // ── Outer diamond frame ──
+    // Outer diamond frame
     ctx.strokeStyle = `hsla(${hue},70%,55%,${baseAlpha * 0.9})`;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1474,7 +1468,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
     ctx.lineTo(0, h); ctx.lineTo(-h, 0);
     ctx.closePath(); ctx.stroke();
 
-    // ── Inner square (rotated 45° = diamond) ──
+    // Inner square (rotated 45° = diamond)
     const iS = h * 0.55;
     ctx.strokeStyle = `hsla(${hue + 20},65%,65%,${baseAlpha * 0.7})`;
     ctx.lineWidth = 1;
@@ -1483,7 +1477,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
     ctx.lineTo(0, iS); ctx.lineTo(-iS, 0);
     ctx.closePath(); ctx.stroke();
 
-    // ── 4-petal flower (arabesque) ──
+    // 4-petal flower (arabesque)
     const petalR = h * 0.38;
     for (let p = 0; p < 4; p++) {
         const pa = (p / 4) * Math.PI * 2;
@@ -1497,7 +1491,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
         ctx.stroke();
     }
 
-    // ── Center cross ──
+    // Center cross
     ctx.strokeStyle = `hsla(${hue},80%,80%,${baseAlpha * 0.6})`;
     ctx.lineWidth = 0.8;
     const cs = h * 0.18;
@@ -1506,7 +1500,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
     ctx.moveTo(0, -cs); ctx.lineTo(0, cs);
     ctx.stroke();
 
-    // ── 4 corner accent dots ──
+    // 4 corner accent dots
     const dotR = h * 0.07;
     ctx.fillStyle = `hsla(${hue + 40},80%,80%,${baseAlpha * 0.7})`;
     for (let p = 0; p < 4; p++) {
@@ -1516,7 +1510,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
         ctx.fill();
     }
 
-    // ── 8-fold star lines ──
+    // 8-fold star lines
     ctx.strokeStyle = `hsla(${hue + 10},60%,60%,${baseAlpha * 0.4})`;
     ctx.lineWidth = 0.6;
     for (let s = 0; s < 8; s++) {
@@ -1530,7 +1524,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
     ctx.restore();
 }
 
-// ── Boss shockwaves (Maou Haki) ───────────────────────────────
+// Boss shockwaves (Maou Haki)
 function drawBossShockwaves() {
     const now = performance.now();
     bossShockwaves.forEach(wave => {
@@ -1539,7 +1533,7 @@ function drawBossShockwaves() {
         const prog = Math.min(1, wave.radius / maxR);
         const fade = Math.max(0, 1 - prog);
 
-        // ── BTM shockwave: green expanding ring ──
+        // BTM shockwave: green expanding ring
         if (wave._isBTMWave) {
             ctx.save(); ctx.translate(wave.x, wave.y);
             const blink2 = 0.7 + 0.3 * Math.sin(now / 50);
@@ -1584,7 +1578,7 @@ function drawBossShockwaves() {
         ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
 
-        // ── 2. Lightweight Persian arcs (8 rotating arcs — NO grid loop) ──
+        // 2. Lightweight Persian arcs (8 rotating arcs — NO grid loop)
         const numArcs = 8;
         const rot = now / 1200;
         ctx.save();
@@ -1620,14 +1614,14 @@ function drawBossShockwaves() {
         ctx.setLineDash([]);
         ctx.restore();
 
-        // ── 3. Outer halo ──
+        // 3. Outer halo
         ctx.globalAlpha = fade * 0.28 * blink;
         ctx.strokeStyle = 'rgba(180,0,255,1)';
         ctx.lineWidth = 28;
         ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // ── 4. Flying sparks on outer ring ──
+        // 4. Flying sparks on outer ring
         const sparkCount = 10;
         for (let i = 0; i < sparkCount; i++) {
             // Each spark orbits at slightly different speed & radius offset
@@ -1652,7 +1646,7 @@ function drawBossShockwaves() {
         }
         ctx.shadowBlur = 0;
 
-        // ── 5. Main ring ──
+        // 5. Main ring
         ctx.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * blink) * fade})`;
         ctx.lineWidth = 7;
         if (!_mobPerf) ctx.shadowColor = '#CC00FF';
@@ -1660,7 +1654,7 @@ function drawBossShockwaves() {
         ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // ── 6. Inner bright edge ──
+        // 6. Inner bright edge
         if (wave.radius > 12) {
             ctx.strokeStyle = `rgba(255,200,255,${fade * 0.55 * blink})`;
             ctx.lineWidth = 2;
@@ -1671,7 +1665,7 @@ function drawBossShockwaves() {
     });
 }
 
-// ── Chain lightning ───────────────────────────────────────────
+// Chain lightning
 function drawChainLightning(effect) {
     ctx.save();
     let alpha = effect.lifetime / effect.maxLifetime;
@@ -1710,7 +1704,7 @@ function _drawLightningPath(effect) {
     ctx.lineTo(effect.x2, effect.y2);
 }
 
-// ── Demon Gift aura ───────────────────────────────────────────
+// Demon Gift aura
 function drawDemonGiftAura() {
     const elapsed = demonGiftEffect.endTime - performance.now();
     const alpha = Math.max(0, (elapsed / 4000) * 0.28);
@@ -1754,7 +1748,7 @@ function drawDemonGiftAura() {
     ctx.restore();
 }
 
-// ── Final Defense shields ─────────────────────────────────────
+// Final Defense shields
 function drawFinalDefense() {
     const now = performance.now();
     ctx.save();
@@ -1818,7 +1812,7 @@ function drawFinalDefense() {
     ctx.restore();
 }
 
-// ── Player aura (kill charge) ─────────────────────────────────
+// Player aura (kill charge)
 function drawPlayerAura() {
     const auraLevel = killCountForPassive % 5;
     if (auraLevel === 0 && killCountForPassive > 0 && sentinels.length > 0) return;
@@ -1854,8 +1848,8 @@ function drawPlayerAura() {
     ctx.restore();
 }
 
-// ── Sentinel ──────────────────────────────────────────────────
-// ── Vanguard Network energy threads ────────────────────────────────────
+// Sentinel
+// Vanguard Network energy threads
 function _drawVanguardThreads() {
     const now = performance.now();
     const n = sentinels.length;
@@ -1901,7 +1895,7 @@ function drawSentinel(sentinel) {
     if (activeCount >= 12) glowColor = '#FFD700';
     else if (activeCount >= 5) glowColor = '#FF00FF';
 
-    // ── Iron Body flicker ──────────────────────────────────────────
+    // Iron Body flicker
     const ironActive = sentinel.ironBody && now < sentinel.ironBodyEnd;
     if (ironActive) {
         const flicker = Math.sin(now / 40) > 0; // fast blink ~12Hz
@@ -1920,7 +1914,7 @@ function drawSentinel(sentinel) {
         glowColor = '#ffffff'; // white glow during iron body
     }
 
-    // ── Shield bubble aura (behind body) ──────────────────────────
+    // Shield bubble aura (behind body)
     const _shieldVal = sentinel.shield || 0;
     if (_shieldVal > 0) {
         const _bR = size * 1.4;
@@ -1944,7 +1938,7 @@ function drawSentinel(sentinel) {
     ctx.save();
     ctx.translate(x, y);
 
-    // ── body glow ring (always) ──
+    // body glow ring (always)
     ctx.strokeStyle = glowColor;
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.stroke();
@@ -1960,7 +1954,7 @@ function drawSentinel(sentinel) {
     ctx.setLineDash([]);
     ctx.restore();
 
-    // ── multi-layer body ──
+    // multi-layer body
     const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
     bodyGrad.addColorStop(0, '#FFFFFF');
     bodyGrad.addColorStop(0.35, '#CCCCCC');
@@ -1990,7 +1984,7 @@ function drawSentinel(sentinel) {
     ctx.lineTo(size * 0.5, size * 0.3);
     ctx.stroke();
 
-    // ── gun arm ──
+    // gun arm
     ctx.rotate(angle);
     const gunW = size * 0.8, gunH = size * 0.75;
     ctx.fillStyle = '#3a3a3a';
@@ -2007,7 +2001,7 @@ function drawSentinel(sentinel) {
 
     ctx.restore();
 
-    // ── HP bar ──
+    // HP bar
     const barW = 42, barH = 5;
     const barX = x - barW / 2, barY = y - size - 16;
     ctx.fillStyle = '#1a1a1a'; ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
@@ -2019,7 +2013,7 @@ function drawSentinel(sentinel) {
     ctx.strokeStyle = '#AAA'; ctx.lineWidth = 0.8;
     ctx.strokeRect(barX, barY, barW, barH);
 
-    // ── Shield bar (above HP bar) ──
+    // Shield bar (above HP bar)
     const shieldVal = sentinel.shield || 0;
     if (shieldVal > 0) {
         const shBarH = 3;
@@ -2072,7 +2066,7 @@ function drawSentinel(sentinel) {
         ctx.restore();
     }
 
-    // ── Domain purple ally tint ──
+    // Domain purple ally tint
     if (skillShiftActive) {
         ctx.save();
         ctx.fillStyle = 'rgba(140,0,255,0.28)';
@@ -2083,7 +2077,7 @@ function drawSentinel(sentinel) {
         ctx.restore();
     }
 
-    // ── Blessing of the Primordial — green outer ring + shield glow ──
+    // Blessing of the Primordial — green outer ring + shield glow
     if (sentinel._blessingDR && sentinel._blessingDR > 0) {
         ctx.save();
         const bPulse = 0.55 + 0.45 * Math.sin(now / 700);
@@ -2111,7 +2105,7 @@ function drawSentinel(sentinel) {
         ctx.restore();
     }
 
-    // ── GfJ shield glow ring ─────────────────────────────────────────
+    // GfJ shield glow ring
     if (sentinel._gfjShield && sentinel._gfjShield > 0) {
         ctx.save();
         const gPulse = 0.6 + 0.4 * Math.sin(now / 400);
@@ -2126,10 +2120,10 @@ function drawSentinel(sentinel) {
     }
 }
 
-// ── Bullets (no shadowBlur – use gradient layers for depth) ──
+// Bullets (no shadowBlur – use gradient layers for depth)
 function drawBullet(b) {
     ctx.save();
-    // ── Smoke wisps (HIGH only) — faint white puffs, barely visible ─
+    // Smoke wisps (HIGH only) — faint white puffs, barely visible
     if (_gfxLevel < 1) {
         const _now2 = performance.now();
         for (let t = 1; t <= 2; t++) {
@@ -2244,7 +2238,7 @@ function _drawDiamond(ctx, x, y, r) {
     ctx.fill();
 }
 
-// ── Spirit bullets (ALLY – magenta-pink, no shadowBlur) ────────
+// Spirit bullets (ALLY – magenta-pink, no shadowBlur)
 function drawSpiritBullet(b) {
     ctx.save();
     if (_mobPerf || _gfxLevel >= 1) {
@@ -2290,14 +2284,14 @@ function drawSpiritBullet(b) {
     ctx.restore();
 }
 
-// ── Player ship ───────────────────────────────────────────────
+// Player ship
 function drawPlayer(alpha = 1, xOffset = 0) {
     const now = performance.now();
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(player.x + xOffset, player.y);
 
-    // ── engine exhaust plume (gradient fill, no blur) ──
+    // engine exhaust plume (gradient fill, no blur)
     const exG = ctx.createRadialGradient(0, 30, 0, 0, 38, 22);
     exG.addColorStop(0, 'rgba(0,180,255,0.28)');
     exG.addColorStop(0.5, 'rgba(0,100,200,0.1)');
@@ -2305,9 +2299,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.fillStyle = exG;
     ctx.fillRect(-22, 24, 44, 32);
 
-    // ═══════════════════════════════════════════
     //  LAYER 1 – MAIN HULL BASE (dark fuselage)
-    // ═══════════════════════════════════════════
     const hullG = ctx.createLinearGradient(-28, 0, 28, 0);
     hullG.addColorStop(0, '#0a1428');
     hullG.addColorStop(0.5, '#1a2a45');
@@ -2319,7 +2311,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.lineTo(-10, 16); ctx.lineTo(-24, 20); ctx.lineTo(-24, 12);
     ctx.closePath(); ctx.fill();
 
-    // ── hull surface panels (riveted look) ──
+    // hull surface panels (riveted look)
     // left panel
     ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.beginPath();
@@ -2330,9 +2322,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.moveTo(2, 2); ctx.lineTo(22, 14); ctx.lineTo(22, 20); ctx.lineTo(10, 16); ctx.lineTo(2, 14);
     ctx.closePath(); ctx.fill();
 
-    // ═══════════════════════════════════════════
     //  LAYER 2 – WINGS
-    // ═══════════════════════════════════════════
     const wingG = ctx.createLinearGradient(0, -10, 0, 20);
     wingG.addColorStop(0, '#1e3a5f');
     wingG.addColorStop(0.5, '#162d4a');
@@ -2374,9 +2364,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.fillRect(22, 14, 5, 1);
     ctx.fillRect(-27, 14, 5, 1);
 
-    // ═══════════════════════════════════════════
     //  LAYER 3 – FUSELAGE / BODY CENTER
-    // ═══════════════════════════════════════════
     const bodyG = ctx.createLinearGradient(-12, -26, 12, 22);
     bodyG.addColorStop(0, '#dde8f0');
     bodyG.addColorStop(0.3, '#b0c8dc');
@@ -2420,9 +2408,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.moveTo(-1, -24); ctx.lineTo(-7, -8); ctx.lineTo(-10, 18); ctx.lineTo(-4, 18); ctx.lineTo(0, -24);
     ctx.closePath(); ctx.fill();
 
-    // ═══════════════════════════════════════════
     //  LAYER 4 – COCKPIT GLASS
-    // ═══════════════════════════════════════════
     // cockpit frame
     ctx.fillStyle = '#0369a1';
     ctx.beginPath();
@@ -2457,9 +2443,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.fillStyle = 'rgba(0,200,255,0.18)';
     ctx.fillRect(-6, 4, 12, 4);
 
-    // ═══════════════════════════════════════════
     //  LAYER 5 – NOSE TIP
-    // ═══════════════════════════════════════════
     ctx.fillStyle = '#e2e8f0';
     ctx.beginPath();
     ctx.moveTo(0, -26); ctx.lineTo(3, -16); ctx.lineTo(-3, -16);
@@ -2469,9 +2453,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.moveTo(0, -26); ctx.lineTo(1.5, -20); ctx.lineTo(0, -18);
     ctx.closePath(); ctx.fill();
 
-    // ═══════════════════════════════════════════
     //  LAYER 6 – THRUSTERS
-    // ═══════════════════════════════════════════
     // thruster pods
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(-9, 21, 6, 6);
@@ -2498,7 +2480,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.fillStyle = nozzleG2;
     ctx.beginPath(); ctx.arc(6, 27, 2.5, 0, Math.PI * 2); ctx.fill();
 
-    // ── side micro-boosters ──
+    // side micro-boosters
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(-13, 18, 3, 5);
     ctx.fillRect(10, 18, 3, 5);
@@ -2506,9 +2488,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.strokeRect(-13, 18, 3, 5);
     ctx.strokeRect(10, 18, 3, 5);
 
-    // ═══════════════════════════════════════════
     //  LAYER 7 – ENGINE FLAMES (no blur)
-    // ═══════════════════════════════════════════
     const flameT = now / 60;
     const flameH = 10 + Math.sin(flameT) * 6 + Math.sin(flameT * 2.3) * 3;
 
@@ -2539,7 +2519,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     makeFlame(-6);
     makeFlame(6);
 
-    // ── Engine glow bloom (HIGH only) ────────────────────────────
+    // Engine glow bloom (HIGH only)
     if (_gfxLevel < 1) {
         const eGlow = ctx.createRadialGradient(0, 29, 0, 0, 36, 18 + flameH);
         eGlow.addColorStop(0, `rgba(0,220,255,${0.20 + 0.08 * Math.sin(flameT * 2.1)})`);
@@ -2549,7 +2529,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.fillRect(-18, 24, 36, flameH + 18);
     }
 
-    // ── micro-booster flames ──
+    // micro-booster flames
     const mfH = flameH * 0.5;
     [-11.5, 11.5].forEach(cx => {
         const mfg = ctx.createLinearGradient(cx, 23, cx, 23 + mfH);
@@ -2573,7 +2553,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.beginPath(); ctx.arc(0, -36, 1.5, 0, Math.PI * 2); ctx.fill();
     }
 
-    // ── Domain purple ally tint on player ──
+    // Domain purple ally tint on player
     if (skillShiftActive && alpha === 1) {
         ctx.fillStyle = 'rgba(120,0,220,0.30)';
         ctx.beginPath();
@@ -2585,7 +2565,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.stroke();
     }
 
-    // ── Accurate Parry buff glow ──
+    // Accurate Parry buff glow
     if (alpha === 1 && accurateParryActive && performance.now() < accurateParryEndTime) {
         const parryRemain = (accurateParryEndTime - performance.now()) / 4000;
         const pp = 0.6 + 0.4 * Math.sin(now / 100);
@@ -2596,7 +2576,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.shadowBlur = 0;
     }
 
-    // ── Hitbox dot — neon cyan chấm sáng tại tâm ──
+    // Hitbox dot — neon cyan chấm sáng tại tâm
     if (alpha === 1) {
         const hdPulse = 0.7 + 0.3 * Math.sin(now / 400);
         ctx.fillStyle = `rgba(0,255,255,${0.12 * hdPulse})`;
@@ -2607,7 +2587,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.beginPath(); ctx.arc(0, 0, 0.8, 0, Math.PI * 2); ctx.fill();
     }
 
-    // ── Silence lock icon — tím đè lên tàu khi bị câm lặng ──
+    // Silence lock icon — tím đè lên tàu khi bị câm lặng
     if (alpha === 1 && typeof player !== 'undefined' && player._silenced) {
         const lNow = performance.now();
         const lPulse = 0.7 + 0.3 * Math.sin(lNow / 80);
@@ -2661,7 +2641,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.restore();
     }
 
-    // ── Null Slash slow — purple ring + falling particles ──
+    // Null Slash slow — purple ring + falling particles
     if (alpha === 1 && typeof player !== 'undefined' && player._nullSlashSlowed) {
         const nsNow = performance.now();
         const nsRemaining = Math.max(0, (player._nullSlashSlowEnd - nsNow) / 1000);
@@ -2765,7 +2745,7 @@ function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
     ctx.restore();
 }
 
-// ── Aegis Core ────────────────────────────────────────────────
+// Aegis Core
 function drawAegisCore(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
@@ -2773,7 +2753,7 @@ function drawAegisCore(enemy) {
     const auraRadius = canvas.width / 2;
     const r = enemy.size;
 
-    // ── 1. AURA ZONE BACKGROUND (red tint) ────────────────────
+    // 1. AURA ZONE BACKGROUND (red tint)
     const zoneGrad = ctx.createRadialGradient(0, 0, r, 0, 0, auraRadius);
     zoneGrad.addColorStop(0, 'rgba(255,0,0,0.02)');
     zoneGrad.addColorStop(0.7, 'rgba(200,0,0,0.04)');
@@ -2781,7 +2761,7 @@ function drawAegisCore(enemy) {
     ctx.fillStyle = zoneGrad;
     ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.fill();
 
-    // ── 2. LIMIT BOUNDARY RING (red) ─────────────────────────
+    // 2. LIMIT BOUNDARY RING (red)
     ctx.strokeStyle = 'rgba(255,40,40,0.85)';
     ctx.lineWidth = 2.5;
     if (!_mobPerf) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 18; }
@@ -2814,7 +2794,7 @@ function drawAegisCore(enemy) {
     }
     ctx.restore();
 
-    // ── 3. CIRCULAR PULSE WAVES (gold → red) ─────────────────
+    // 3. CIRCULAR PULSE WAVES (gold → red)
     if (!enemy._aegisPulses) enemy._aegisPulses = [];
     if (!enemy._lastPulseSpawn || now - enemy._lastPulseSpawn > 1500) {
         enemy._aegisPulses.push({ startTime: now, duration: 1400, startR: r * 1.2, endR: auraRadius });
@@ -2857,7 +2837,7 @@ function drawAegisCore(enemy) {
         ctx.restore();
     }
 
-    // ── 4. CUSTOS AETERNUS SHIELD (gold, Iron Body) ───────────
+    // 4. CUSTOS AETERNUS SHIELD (gold, Iron Body)
     if (enemy.aegisInvulnerable) {
         ctx.save();
         const shieldR = r * 1.6;
@@ -2881,7 +2861,7 @@ function drawAegisCore(enemy) {
         ctx.restore();
     }
 
-    // ── 5. ARMILLARY RINGS ────────────────────────────────────
+    // 5. ARMILLARY RINGS
     ctx.save();
     if (!_mobPerf) { ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 10; }
     ctx.strokeStyle = 'rgba(200,200,220,0.8)'; ctx.lineWidth = 2.5;
@@ -2899,7 +2879,7 @@ function drawAegisCore(enemy) {
     ctx.shadowBlur = 0;
     ctx.restore();
 
-    // ── 6. MAIN BODY SHELL ────────────────────────────────────
+    // 6. MAIN BODY SHELL
     const shellGrad = ctx.createRadialGradient(0, 0, r * 0.4, 0, 0, r);
     shellGrad.addColorStop(0, '#e0e0e0'); shellGrad.addColorStop(0.5, '#7a7a7a');
     shellGrad.addColorStop(0.85, '#2b2b2b'); shellGrad.addColorStop(1, '#050505');
@@ -2917,7 +2897,7 @@ function drawAegisCore(enemy) {
     }
     ctx.restore();
 
-    // ── 7. MECHANICAL IRIS + CORE ─────────────────────────────
+    // 7. MECHANICAL IRIS + CORE
     const innerR = r * 0.45;
     ctx.fillStyle = '#050000';
     ctx.beginPath(); ctx.arc(0, 0, innerR, 0, Math.PI * 2); ctx.fill();
@@ -2947,9 +2927,9 @@ function drawAegisCore(enemy) {
 
     ctx.restore();
 }
-// ── Enemy dispatcher ──────────────────────────────────────────
+// Enemy dispatcher
 function drawEnemy(enemy) {
-    // ── Abyssal Chain render ──────────────────────────────────────
+    // Abyssal Chain render
     if (enemy.type === 'abyssal_chain') {
         const now0 = performance.now();
         const pulse = 0.6 + 0.4 * Math.sin(now0 / 60);
@@ -3052,7 +3032,7 @@ function drawEnemy(enemy) {
         return;
     }
 
-    // ── Thủ Lĩnh Bầy Đàn (Leviathan Envy): white pulsing ring
+    // Thủ Lĩnh Bầy Đàn (Leviathan Envy): white pulsing ring
     if (enemy.levEnvy) {
         const now0 = performance.now();
         const pulse = 0.6 + 0.4 * Math.abs(Math.sin(now0 / 400 + enemy.x * 0.01));
@@ -3190,7 +3170,7 @@ function drawEnemy(enemy) {
         }
     }
 
-    // ── Boss aura (HIGH + MED) ────────────────────────────────────
+    // Boss aura (HIGH + MED)
     if (_gfxLevel < 2) {
         const _bossTypes = { boss:[255,80,0], thaelis:[255,200,0], marchosias:[0,255,120], leviathan:[0,180,255], veilshroud:[160,0,255], aegis_core:[0,220,255] };
         const _bossCol = _bossTypes[enemy.type];
@@ -3209,7 +3189,7 @@ function drawEnemy(enemy) {
         }
     }
 
-    // ── Spawn warp-in contracting ring (HIGH only, first 600ms) ───
+    // Spawn warp-in contracting ring (HIGH only, first 600ms)
     if (_gfxLevel < 1 && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain') {
         if (!enemy._spawnTime) enemy._spawnTime = performance.now();
         const _spawnElapsed = performance.now() - enemy._spawnTime;
@@ -3356,7 +3336,7 @@ function _drawBossOrThaelis(enemy) {
     const now = performance.now();
     const isBoss = enemy.type === 'boss';
 
-    // ── Thaelis keeps old render ──────────────────────────────────
+    // Thaelis keeps old render
     if (!isBoss) {
         const rotSpeed = 3000;
         const rotation = now / rotSpeed;
@@ -3400,7 +3380,7 @@ function _drawBossOrThaelis(enemy) {
         return;
     }
 
-    // ── NEW DARGRUEL DESIGN ───────────────────────────────────────
+    // NEW DARGRUEL DESIGN
     const r = enemy.size / 2;
     const pulse = 0.5 + 0.5 * Math.sin(now / 300);
 
@@ -3587,7 +3567,7 @@ function _drawEnemyBullet(enemy) {
         return;
     }
 
-    // ── Motion trail (HIGH only) ─────────────────────────────────
+    // Motion trail (HIGH only)
     if (_gfxLevel < 1 && (enemy.vx || enemy.vy)) {
         const spd = Math.hypot(enemy.vx, enemy.vy) || 1;
         const ndx = -enemy.vx / spd, ndy = -enemy.vy / spd;
@@ -3601,7 +3581,7 @@ function _drawEnemyBullet(enemy) {
         ctx.globalAlpha = 1;
     }
 
-    // ── White outline: blink only at FULL quality ──
+    // White outline: blink only at FULL quality
     const blink = _gfxLevel >= 2 ? 0.78 : (0.55 + 0.45 * Math.sin(now / 90));
     ctx.strokeStyle = `rgba(255,255,255,${blink})`;
     ctx.lineWidth = isLarge ? 2.5 : 1.8;
@@ -3642,7 +3622,7 @@ function _drawEnemyBullet(enemy) {
     ctx.restore();
 }
 
-// ── Marchosias ────────────────────────────────────────────────
+// Marchosias
 function _drawMarchosias(enemy) {
     const now = performance.now();
     const r = enemy.size / 2;
@@ -3706,7 +3686,7 @@ function _drawMarchosias(enemy) {
         ctx.strokeRect(px - panelW / 2, py - panelH / 2, panelW, panelH);
     });
 
-    // ── NEW: rage shimmer at low HP ──
+    // NEW: rage shimmer at low HP
     const marHpPct = enemy.hp / enemy.maxHp;
     if (marHpPct < 0.3) {
         ctx.save();
@@ -3728,7 +3708,7 @@ function _drawMarchosias(enemy) {
 
     ctx.restore();
 
-    // ── ARC SHIELD (¼ circle arc, rotates around Marchosias) ──
+    // ARC SHIELD (¼ circle arc, rotates around Marchosias)
     if (enemy.arcShield && enemy.arcShield.hp > 0) {
         const shieldR = r + 16;
         const sa = enemy.arcShield.angle - Math.PI / 4;
@@ -3793,8 +3773,8 @@ function _drawMarchosias(enemy) {
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.strokeRect(bx2, by2, bw2, bh2);
 }
 
-// ── Marchosias Minion (Robot Mini) ────────────────────────────
-// ── Vulnerability Icon (Trọng Thương) ─────────────────────────
+// Marchosias Minion (Robot Mini)
+// Vulnerability Icon (Trọng Thương)
 // Thiết kế dựa theo HTML reference: trái tim kim loại bị chẻ + dấu X neon đỏ
 function _drawVulnerabilityIcon(enemy) {
     const now = performance.now();
@@ -3813,7 +3793,7 @@ function _drawVulnerabilityIcon(enemy) {
     const pulse = 0.97 + 0.03 * Math.sin(now / 200);
     ctx.scale(pulse, pulse);
 
-    // ── Nền tròn tối ──────────────────────────────────────────
+    // Nền tròn tối
     ctx.beginPath();
     ctx.arc(0, 0, R, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(10,0,3,0.82)';
@@ -3834,7 +3814,7 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.shadowBlur = 0;
     }
 
-    // ── Trái tim bị chẻ đôi (hai nửa lệch nhau) ──────────────
+    // Trái tim bị chẻ đôi (hai nửa lệch nhau)
     // Vẽ heart path bằng bezier, clip thành 2 nửa, dịch chúng ra
     const drawHeart = (clipLeft) => {
         ctx.save();
@@ -3893,7 +3873,7 @@ function _drawVulnerabilityIcon(enemy) {
     drawHeart(true);
     drawHeart(false);
 
-    // ── Dấu X neon laser ──────────────────────────────────────
+    // Dấu X neon laser
     const xFlare = 0.7 + 0.3 * Math.sin(now / 120);
     if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 10 * xFlare;
 
@@ -3934,7 +3914,7 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.fill();
     }
 
-    // ── Stack indicator + cooldown ring ───────────────────────
+    // Stack indicator + cooldown ring
     // Cooldown ring (depletes counterclockwise)
     ctx.strokeStyle = `rgba(255,26,64,${0.4 + 0.3 * remaining})`;
     ctx.lineWidth = 1.5;
@@ -3999,7 +3979,7 @@ function _drawMarchosiasMinion(enemy) {
     ctx.fillStyle = cg;
     ctx.beginPath(); ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2); ctx.fill();
 
-    // ── NEW: 3 orbiting micro-dots ──
+    // NEW: 3 orbiting micro-dots
     if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 6;
     ctx.fillStyle = 'rgba(0,255,136,0.9)';
     for (let d = 0; d < 3; d++) {
@@ -4013,7 +3993,7 @@ function _drawMarchosiasMinion(enemy) {
     ctx.restore();
 }
 
-// ── Leviathan — Dominator Class ──────────────────────────────
+// Leviathan — Dominator Class
 function _drawLeviathan(enemy) {
     const now = performance.now();
     const cx = enemy.x, cy = enemy.y;
@@ -4025,7 +4005,7 @@ function _drawLeviathan(enemy) {
     ctx.save();
     ctx.translate(cx, cy);
 
-    // ── Wing animation
+    // Wing animation
     const cycleMs = 6000;
     const t6 = (now % cycleMs) / cycleMs;
     let wingPhase;
@@ -4094,7 +4074,7 @@ function _drawLeviathan(enemy) {
         ctx.restore();
     }
 
-    // ── Energy vortex (chỉ khi khiên đã vỡ)
+    // Energy vortex (chỉ khi khiên đã vỡ)
     if (!shieldActive) {
         ctx.save();
         ctx.rotate(now / 400);
@@ -4109,7 +4089,7 @@ function _drawLeviathan(enemy) {
         ctx.restore();
     }
 
-    // ── Core
+    // Core
     const coreR = r * 0.32;
     const beat = 0.9 + 0.15 * Math.abs(Math.sin(now / 500));
 
@@ -4129,7 +4109,7 @@ function _drawLeviathan(enemy) {
     ctx.beginPath(); ctx.arc(0, 0, coreR * beat, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
-    // ── Eye (tracks player)
+    // Eye (tracks player)
     const eyeAngle = Math.atan2(player.y - cy, player.x - cx);
     const eOff = coreR * 0.30;
     const ex = Math.cos(eyeAngle) * eOff;
@@ -4146,7 +4126,7 @@ function _drawLeviathan(enemy) {
     ctx.beginPath(); ctx.arc(ex, ey, eR, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── All for One shield (unbreakable-shield từ HTML)
+    // All for One shield (unbreakable-shield từ HTML)
     if (shieldActive) {
         const sR = r * 1.55;
         const spinA = (now / 15000) * Math.PI * 2;
@@ -4195,7 +4175,7 @@ function _drawLeviathan(enemy) {
         ctx.fillText(`${hits}/200 hits`, 0, sR + 36);
     }
 
-    // ── Dying: freeze glow
+    // Dying: freeze glow
     if (dying) {
         const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.8);
         glow.addColorStop(0, 'rgba(255,100,0,0.5)');
@@ -4212,7 +4192,7 @@ function _drawMarchoBlade(blade) {
     ctx.save();
     const angle = blade.active ? Math.atan2(blade.vy, blade.vx) : blade.angle;
 
-    // ── WARNING PHASE: cùng style với windup corridor / ghost ─────
+    // WARNING PHASE: cùng style với windup corridor / ghost
     if (!blade.active) {
         const halfW = 36;
         // Dùng targetX/Y nếu có (blade từ death-convert), không thì dùng len cố định
@@ -4249,10 +4229,10 @@ function _drawMarchoBlade(blade) {
         return;
     }
 
-    // ── ACTIVE PHASE: vẽ blade arc ───────────────────────────────
+    // ACTIVE PHASE: vẽ blade arc
     const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2;
 
-    // ── Outer corridor edges: persist on the blade until last 15% of screen ──
+    // Outer corridor edges: persist on the blade until last 15% of screen
     if (blade.y < canvas.height * 0.85 && blade.originX != null) {
         const halfW = 36;
         const corrLen = (blade.targetX != null)
@@ -4272,7 +4252,7 @@ function _drawMarchoBlade(blade) {
         ctx.restore();
     }
 
-    // ── Launch aura: brief energy burst at origin when blade fires ──
+    // Launch aura: brief energy burst at origin when blade fires
     if (blade._fireTime && now - blade._fireTime < 320) {
         const elapsed = now - blade._fireTime;
         const prog = elapsed / 320;
@@ -4329,7 +4309,7 @@ function _drawCoronationEffect(enemy) {
     const progress = Math.min(1, enemy.coronationTimer / enemy.coronationDuration);
     const r = enemy.size;
 
-    // ── Sky lightning bolt: golden bolt raining from top of screen (last 30% only) ──
+    // Sky lightning bolt: golden bolt raining from top of screen (last 30% only)
     if (progress > 0.70) {
         const boltFlicker = 0.5 + 0.5 * Math.abs(Math.sin(now / 60));
         const boltAlpha = Math.min(1, progress * 4) * boltFlicker;
@@ -4441,7 +4421,7 @@ function _drawNormalEnemy(enemy) {
     ctx.rotate(now / 1800);
 
     // Hex frame
-    // ── Hex rim glow (HIGH only) ──────────────────────────────────
+    // Hex rim glow (HIGH only)
     if (_gfxLevel < 1) {
         const rimPulse = 0.5 + 0.5 * Math.sin(now / 260 + enemy.x * 0.04);
         ctx.strokeStyle = `hsla(${hue},100%,65%,${0.45 * rimPulse})`;
@@ -4468,7 +4448,7 @@ function _drawNormalEnemy(enemy) {
     }
     ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    // ── Inner counter-rotating energy ring (HIGH only) ────────────
+    // Inner counter-rotating energy ring (HIGH only)
     if (_gfxLevel < 1) {
         ctx.rotate(-now / 2200); // counter-rotate inside the main body rotation
         for (let i = 0; i < 6; i++) {
@@ -4535,7 +4515,7 @@ function _drawNormalEnemy(enemy) {
         }
     }
 
-    // ── Damage cracks (HIGH only, hp < 50%) ──────────────────────
+    // Damage cracks (HIGH only, hp < 50%)
     if (_gfxLevel < 1 && hpRatio < 0.5) {
         const crackIntensity = (0.5 - hpRatio) * 2; // 0→1 as hp goes 50%→0%
         ctx.save();
@@ -4578,7 +4558,7 @@ function _drawNormalEnemy(enemy) {
     ctx.restore();
 }
 
-// ── Charge effect ─────────────────────────────────────────────
+// Charge effect
 function drawChargeEffect() {
     const now = performance.now();
     let chargeDuration = now - chargeStartTime;
@@ -4599,7 +4579,7 @@ function drawChargeEffect() {
         _setShake(5, 80);
     }
 
-    // ── TINH VƯƠNG TITLE — flash ở đầu charge ──────────────────
+    // TINH VƯƠNG TITLE — flash ở đầu charge
     {
         const titleDur = 1400;
         const textT = chargeDuration < titleDur
@@ -4633,7 +4613,7 @@ function drawChargeEffect() {
     ctx.save();
     ctx.translate(player.x, player.y);
 
-    // ── ENERGY VORTEX — xoáy vào player khi đang tụ ────────────
+    // ENERGY VORTEX — xoáy vào player khi đang tụ
     const spiralCount = 5;
     for (let i = 0; i < spiralCount; i++) {
         const spinDir = i % 2 === 0 ? 1 : -1;
@@ -4655,7 +4635,7 @@ function drawChargeEffect() {
         ctx.stroke();
     }
 
-    // ── SHOCKWAVE RINGS lan ra ──────────────────────────────────
+    // SHOCKWAVE RINGS lan ra
     for (let w = 0; w < 3; w++) {
         const phase = ((now / (600 - chargeRatio * 200) + w / 3) % 1);
         const wR = 20 + phase * radius * 2.2;
@@ -4665,19 +4645,19 @@ function drawChargeEffect() {
         ctx.beginPath(); ctx.arc(0, 0, wR, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // ── OUTER BLOOM ─────────────────────────────────────────────
+    // OUTER BLOOM
     ctx.strokeStyle = `rgba(${r},${g},${b},0.25)`;
     ctx.lineWidth = 10 + 8 * chargeRatio;
     if (!_mobPerf) ctx.shadowColor = color; if (!_mobPerf) ctx.shadowBlur = 25;
     ctx.beginPath(); ctx.arc(0, 0, radius * 1.15, 0, Math.PI * 2); ctx.stroke();
 
-    // ── MAIN RING ───────────────────────────────────────────────
+    // MAIN RING
     ctx.strokeStyle = color;
     ctx.lineWidth = 2 + 4 * chargeRatio;
     if (!_mobPerf) ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
 
-    // ── ROTATING TICK MARKS ─────────────────────────────────────
+    // ROTATING TICK MARKS
     const ticks = 8;
     ctx.strokeStyle = `rgba(${r},${g},${b},0.6)`;
     ctx.lineWidth = 1.5;
@@ -4693,7 +4673,7 @@ function drawChargeEffect() {
     ctx.restore();
 }
 
-// ── Charge meter bar ──────────────────────────────────────────
+// Charge meter bar
 function drawChargeMeter() {
     if (!charging) return;
     const chargeDuration = performance.now() - chargeStartTime;
@@ -4724,7 +4704,7 @@ function drawChargeMeter() {
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 }
 
-// ── Overload laser ────────────────────────────────────────────
+// Overload laser
 function drawLaser() {
     const now = performance.now();
     const laserBeamWidth = 100;
@@ -4775,7 +4755,7 @@ function drawLaser() {
         }
     });
 
-    // ── EXECUTION TITLE — chỉ hiện 1 giây đầu rồi tắt ──────
+    // EXECUTION TITLE — chỉ hiện 1 giây đầu rồi tắt
     {
         const laserElapsed = now - laserStartTime;
         const fadeIn = Math.min(laserElapsed / 150, 1);
@@ -4809,7 +4789,7 @@ function drawLaser() {
     }
 }
 
-// ── Explosion ─────────────────────────────────────────────────
+// Explosion
 function drawExplosion(exp) {
     ctx.save();
     let p = 1 - exp.lifetime / exp.maxLifetime;
@@ -4821,7 +4801,7 @@ function drawExplosion(exp) {
         ctx.fillStyle = exp.color;
         ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
     } else {
-        // ── Fast outward shockwave ring (HIGH, first 40% of lifetime) ──
+        // Fast outward shockwave ring (HIGH, first 40% of lifetime)
         if (p < 0.4) {
             const rp = p / 0.4; // 0→1
             const shockR = exp.size * (1.6 + rp * 3.2);
@@ -4849,7 +4829,7 @@ function drawExplosion(exp) {
         ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
 
-        // ── Bloom pass: wide soft halo with screen blend (HIGH only) ──
+        // Bloom pass: wide soft halo with screen blend (HIGH only)
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = (1 - p) * 0.28;
@@ -4866,7 +4846,7 @@ function drawExplosion(exp) {
     ctx.restore();
 }
 
-// ── Particles ─────────────────────────────────────────────────
+// Particles
 function drawParticle(p) {
     ctx.save();
     if (p.isSummonRing) {
@@ -4895,11 +4875,11 @@ function drawParticle(p) {
     ctx.restore();
 }
 
-// ── Skill A – Thunder Orbs ────────────────────────────────────
+// Skill A – Thunder Orbs
 function drawSkillA() {
     const now = performance.now();
 
-    // ── TITLE FLASH khi skill A vừa kích hoạt ────────────────
+    // TITLE FLASH khi skill A vừa kích hoạt
     {
         const elapsed = now - lastSkillA;
         const textT = Math.min(elapsed / 150, 1) * Math.max(0, 1 - (elapsed - 150) / 1200);
@@ -4928,7 +4908,7 @@ function drawSkillA() {
         }
     }
 
-    // ── Binary ring: vòng tròn tạo bởi ký tự 0 và 1 xoay quanh ──
+    // Binary ring: vòng tròn tạo bởi ký tự 0 và 1 xoay quanh
     ctx.save();
     const R = skillASensorRadius;
     const charCount = Math.max(60, Math.floor(2 * Math.PI * R / 11));
@@ -5011,7 +4991,7 @@ function drawSkillA() {
     });
 }
 
-// ── Scattered / bouncing projectiles ─────────────────────────
+// Scattered / bouncing projectiles
 function drawScatteredProjectile(p) {
     ctx.save();
     ctx.globalAlpha = p.lifetime / p.maxLifetime;
@@ -5044,7 +5024,7 @@ function drawScatteredProjectile(p) {
     ctx.restore();
 }
 
-// ── Spirit ────────────────────────────────────────────────────
+// Spirit
 function _drawNormalSpirit(spirit) {
     if (!spirit) return;
     const now = performance.now();
@@ -5053,7 +5033,7 @@ function _drawNormalSpirit(spirit) {
 
     ctx.save();
 
-    // ── TITLE + HEXAGRAM — hiện trên đầu player, chỉ lần đầu ─
+    // TITLE + HEXAGRAM — hiện trên đầu player, chỉ lần đầu
     // Chỉ render cho spirit đầu tiên trong mảng để tránh vẽ đè nhiều lần
     if (spirits.length > 0 && spirit === spirits[spirits.length - 1]) {
         const elapsed = now - lastSkillS;
@@ -5195,7 +5175,7 @@ function _drawNormalSpirit(spirit) {
         ctx.shadowBlur = 0;
     }
 
-    // ── Domain purple ally tint ──
+    // Domain purple ally tint
     if (skillShiftActive) {
         ctx.save();
         ctx.fillStyle = 'rgba(140,0,255,0.32)';
@@ -5210,14 +5190,14 @@ function _drawNormalSpirit(spirit) {
 }
 
 
-// ─── PHŌTOKRYSTOS RENDER ─────────────────────────────────────
+// PHŌTOKRYSTOS RENDER
 function drawSpirit(spirit) {
     if (!spirit) return;
     if (spirit.isPhotokrystos) { drawPhotokrystos(spirit); return; }
     _drawNormalSpirit(spirit);
 }
 
-// ─── PHOTOKRYSTOS — Silk Tail (DNT firing) ───────────────────
+// PHOTOKRYSTOS — Silk Tail (DNT firing)
 function _drawPhotoSilkTail(sx, sy, behindAngle, now, progress) {
     const alpha = Math.min(1, progress * 2.5);
     if (alpha < 0.01) return;
@@ -5280,7 +5260,7 @@ function drawPhotokrystos(spirit) {
     const size = 18.2; // 20% larger than normal (15)
     const t = now / 1000;
 
-    // ── DNT: smooth body rotation toward locked target ────────────
+    // DNT: smooth body rotation toward locked target
     if (!spirit._dntSpiritRot) spirit._dntSpiritRot = 0;
     const _dntRotTarget = (spirit._dntState === 'aiming' || spirit._dntState === 'firing')
         ? (spirit._dntAngle || 0) + Math.PI / 2  // front gem faces dntAngle
@@ -5293,7 +5273,7 @@ function drawPhotokrystos(spirit) {
     while (_dntRotDiff < -Math.PI) _dntRotDiff += Math.PI * 2;
     spirit._dntSpiritRot += _dntRotDiff * _dntRotSpeed;
 
-    // ── 8-star summoning announcement (same as normal spirit title) ──
+    // 8-star summoning announcement (same as normal spirit title)
     if (spirits.length > 0 && spirit === spirits[spirits.length - 1]) {
         const elapsed = now - spirit.spawnTime;
         const textT = elapsed < 1500 ? Math.min(elapsed / 150, 1) * Math.max(0, 1 - (elapsed - 150) / 1250) : 0;
@@ -5321,7 +5301,7 @@ function drawPhotokrystos(spirit) {
             ? Math.min(1, spirit._btmTimer / 1200)
             : Math.min(1, spirit._btmTimer / 3500);
 
-        // ── Warming phase: dramatic flight aura ──
+        // Warming phase: dramatic flight aura
         if (spirit._btmPhase === 'warming') {
             const wp = btmRatio; // 0→1
             ctx.save();
@@ -5359,7 +5339,7 @@ function drawPhotokrystos(spirit) {
         }
 
         ctx.save();
-        // ── Full-screen barrier overlay (mobile: solid color, desktop: gradient) ──
+        // Full-screen barrier overlay (mobile: solid color, desktop: gradient)
         const barrierAlpha = btmRatio * 0.18;
         if (_mobPerf) {
             ctx.fillStyle = `rgba(0,200,80,${barrierAlpha})`;
@@ -5389,7 +5369,7 @@ function drawPhotokrystos(spirit) {
         }
         ctx.shadowBlur = 0;
 
-        // ── Lightning bolts: one per enemy each tick ──
+        // Lightning bolts: one per enemy each tick
         if (spirit._btmPhase === 'firing' && spirit._btmLightnings && spirit._btmLightnings.length > 0) {
             for (const tgt of spirit._btmLightnings) {
                 // Lightning bolt from top of screen to enemy
@@ -5417,7 +5397,7 @@ function drawPhotokrystos(spirit) {
         ctx.restore();
     }
 
-    // ── Danger? Not Today! — laser beam ──────────────────────────
+    // Danger? Not Today! — laser beam
     if (spirit._dntState === 'aiming' || spirit._dntState === 'firing') {
         const angle  = spirit._dntAngle;
         const bDx    = Math.cos(angle), bDy = Math.sin(angle);
@@ -5454,7 +5434,7 @@ function drawPhotokrystos(spirit) {
         } else { // 'firing'
             const pulse = 0.75 + 0.25 * Math.sin(now / 25); // very fast shimmer
 
-            // ── Outer diffuse cone (wide, fades along length) ──
+            // Outer diffuse cone (wide, fades along length)
             const outerGrad = ctx.createLinearGradient(sx, sy, endX, endY);
             outerGrad.addColorStop(0,   `rgba(0,255,100,${0.45 * pulse})`);
             outerGrad.addColorStop(0.35, `rgba(0,200,70,${0.25 * pulse})`);
@@ -5466,14 +5446,14 @@ function drawPhotokrystos(spirit) {
             ctx.globalAlpha = 0.55;
             ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
 
-            // ── Mid glow ──
+            // Mid glow
             ctx.lineWidth = 18 * pulse;
             ctx.strokeStyle = `rgba(60,255,120,${0.85 * pulse})`;
             ctx.globalAlpha = 0.75;
             if (!_mobPerf) { ctx.shadowColor = '#80ffb0'; ctx.shadowBlur = 14; }
             ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
 
-            // ── Core beam — bright white-green, thin ──
+            // Core beam — bright white-green, thin
             ctx.lineWidth = 5.5 * pulse;
             ctx.strokeStyle = `rgba(240,255,245,${0.95})`;
             ctx.globalAlpha = 1;
@@ -5481,7 +5461,7 @@ function drawPhotokrystos(spirit) {
             ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // ── Muzzle flash (dragon-spit origin) ──
+            // Muzzle flash (dragon-spit origin)
             if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 35; }
             const muzzleR = 14 + 7 * pulse;
             const mg = ctx.createRadialGradient(sx, sy, 0, sx, sy, muzzleR);
@@ -5492,7 +5472,7 @@ function drawPhotokrystos(spirit) {
             ctx.globalAlpha = pulse;
             ctx.beginPath(); ctx.arc(sx, sy, muzzleR, 0, Math.PI * 2); ctx.fill();
 
-            // ── Beam-end bloom ──
+            // Beam-end bloom
             ctx.globalAlpha = 0.35 * pulse;
             const bloomG = ctx.createRadialGradient(endX, endY, 0, endX, endY, 22);
             bloomG.addColorStop(0, 'rgba(200,255,220,0.9)');
@@ -5501,7 +5481,7 @@ function drawPhotokrystos(spirit) {
             ctx.beginPath(); ctx.arc(endX, endY, 22, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 
-            // ── Beam particles (desktop only) ──
+            // Beam particles (desktop only)
             if (!_mobPerf && Math.random() < 0.65) {
                 const frac = 0.08 + Math.random() * 0.85;
                 const px2 = sx + (endX - sx) * frac;
@@ -5524,23 +5504,23 @@ function drawPhotokrystos(spirit) {
         ctx.restore();
     }
 
-    // ── Silk tail: flowing ribbons behind spirit during DNT firing ─
+    // Silk tail: flowing ribbons behind spirit during DNT firing
     if (spirit._dntState === 'firing' && spirit._dntAngle !== undefined) {
         _drawPhotoSilkTail(sx, sy, spirit._dntAngle + Math.PI, now, spirit._dntTimer / 1000);
     }
 
-    // ── Wing flap: oscillate scaleX ──
+    // Wing flap: oscillate scaleX
     const wingFlap = Math.cos(t * (Math.PI * 2 / 4)); // 4s period
     const wingScale = 0.55 + 0.45 * Math.abs(wingFlap); // 0.55–1.0
     const wingBright = 1 + 0.5 * (1 - Math.abs(wingFlap));
 
-    // ── Rotation transform: body/wings/aura rotate to face DNT target ─
+    // Rotation transform: body/wings/aura rotate to face DNT target
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(spirit._dntSpiritRot);
     ctx.translate(-sx, -sy);
 
-    // ── Outer aura ──
+    // Outer aura
     if (!_mobPerf) { ctx.shadowColor = 'rgba(45,255,115,0.7)'; ctx.shadowBlur = 22; }
     const auraG = ctx.createRadialGradient(sx, sy, 0, sx, sy, size * 2.8);
     auraG.addColorStop(0, 'rgba(45,255,115,0.18)');
@@ -5550,7 +5530,7 @@ function drawPhotokrystos(spirit) {
     ctx.beginPath(); ctx.arc(sx, sy, size * 2.8, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
-    // ── Tail ── (3 feathers, oscillate up/down)
+    // Tail
     const tailFloat = Math.sin(t * (Math.PI * 2 / 4)) * 6; // 0→6→0
     ctx.save(); ctx.translate(sx, sy);
     const tg1 = ctx.createLinearGradient(0, 0, 0, size * 3.5);
@@ -5568,7 +5548,7 @@ function drawPhotokrystos(spirit) {
     ctx.globalAlpha = 1;
     ctx.restore();
 
-    // ── Left Wing ──
+    // Left Wing
     ctx.save(); ctx.translate(sx, sy); ctx.scale(wingScale, 1);
     if (!_mobPerf) { ctx.shadowColor = 'rgba(167,255,197,0.8)'; ctx.shadowBlur = 15 * wingBright; }
     const wg1 = ctx.createLinearGradient(-size * 1.8, -size * 0.5, 0, size * 0.5);
@@ -5584,7 +5564,7 @@ function drawPhotokrystos(spirit) {
     ctx.beginPath(); ctx.moveTo(-size * 0.25, size * 0); ctx.bezierCurveTo(-size, -size * 0.3, -size * 1.5, size * 0.2, -size * 1.8, size * 0.6); ctx.stroke();
     ctx.shadowBlur = 0; ctx.restore();
 
-    // ── Right Wing ──
+    // Right Wing
     ctx.save(); ctx.translate(sx, sy); ctx.scale(-wingScale, 1); // mirror
     if (!_mobPerf) { ctx.shadowColor = 'rgba(167,255,197,0.8)'; ctx.shadowBlur = 15 * wingBright; }
     ctx.fillStyle = wg1;
@@ -5595,7 +5575,7 @@ function drawPhotokrystos(spirit) {
     ctx.beginPath(); ctx.moveTo(-size * 0.25, size * 0); ctx.bezierCurveTo(-size, -size * 0.3, -size * 1.5, size * 0.2, -size * 1.8, size * 0.6); ctx.stroke();
     ctx.shadowBlur = 0; ctx.restore();
 
-    // ── Crystal body ──
+    // Crystal body
     ctx.save(); ctx.translate(sx, sy);
     const bodyFloat = Math.sin(t * (Math.PI * 2 / 4)) * 3;
     ctx.translate(0, bodyFloat);
@@ -5633,7 +5613,7 @@ function drawPhotokrystos(spirit) {
     ctx.restore();
     ctx.restore(); // end rotation transform
 
-    // ── Particle trail (triangles from wings) ──
+    // Particle trail (triangles from wings)
     if (!_mobPerf && Math.random() < 0.35) {
         const wRel = wingFlap; // -1..1
         if (Math.abs(wRel) < 0.3) { // wings moving fast (near 0)
@@ -5653,7 +5633,7 @@ function drawPhotokrystos(spirit) {
         }
     }
 
-    // ── Duration bar ──
+    // Duration bar
     if (!spirit._btmStarted) {
         const _cAge = spirit._combatStartTime ? (now - spirit._combatStartTime) : 0;
         const timeRemaining = Math.max(0, spirit.duration - _cAge);
@@ -5670,7 +5650,7 @@ function drawPhotokrystos(spirit) {
         ctx.fillText('Phōtokrystos', sx, by - 4);
     }
 
-    // ── Domain tint ──
+    // Domain tint
     if (skillShiftActive) {
         ctx.save(); ctx.fillStyle = 'rgba(140,0,255,0.28)';
         ctx.beginPath(); ctx.arc(sx, sy, size * 1.2, 0, Math.PI * 2); ctx.fill();
@@ -5682,9 +5662,9 @@ function drawPhotokrystos(spirit) {
     ctx.restore();
 }
 
-// ── Helper: rename old drawSpirit to _drawNormalSpirit ──
+// Helper: rename old drawSpirit to _drawNormalSpirit
 
-// ─── PRIMEVAL SUMMONING CIRCLE ────────────────────────────────
+// PRIMEVAL SUMMONING CIRCLE
 function drawPrimevalSummonEffect(eff) {
     const now = performance.now();
     const cx2 = eff.x, cy2 = eff.y;
@@ -5694,7 +5674,7 @@ function drawPrimevalSummonEffect(eff) {
         const progress = Math.min(1, eff.timer / 1800);
         const R = 80 + 20 * (1 - progress);
 
-        // ── 8-pointed star (octagram) ──
+        // 8-pointed star (octagram)
         ctx.save(); ctx.translate(cx2, cy2); ctx.rotate(progress * Math.PI * 0.5);
         if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20; }
         for (let star = 0; star < 2; star++) {
@@ -5776,7 +5756,7 @@ function drawPrimevalSummonEffect(eff) {
     ctx.restore();
 }
 
-// ─── PHOTOBRANG RENDER — 4-blade shuriken ─────────────────────
+// PHOTOBRANG RENDER — 4-blade shuriken
 function drawPhotoBrang(b) {
     const now = performance.now();
     ctx.save();
@@ -5808,7 +5788,7 @@ function drawPhotoBrang(b) {
         ctx.fillStyle = 'rgba(255,255,255,0.9)';
         ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
     } else {
-        // ── Glow halo behind blades ──
+        // Glow halo behind blades
         ctx.shadowColor = '#a7ffc5'; ctx.shadowBlur = 22;
         for (let i = 0; i < 4; i++) {
             ctx.save(); ctx.rotate(i * Math.PI / 2);
@@ -5820,7 +5800,7 @@ function drawPhotoBrang(b) {
             ctx.closePath(); ctx.fill();
             ctx.restore();
         }
-        // ── Main blades ──
+        // Main blades
         for (let i = 0; i < 4; i++) {
             ctx.save(); ctx.rotate(i * Math.PI / 2);
             ctx.fillStyle = 'rgba(30,210,95,0.92)';
@@ -5836,7 +5816,7 @@ function drawPhotoBrang(b) {
             ctx.restore();
         }
         ctx.shadowBlur = 0;
-        // ── Center hub ──
+        // Center hub
         ctx.shadowColor = 'white'; ctx.shadowBlur = 14;
         ctx.fillStyle = 'rgba(167,255,197,0.95)';
         ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
@@ -5848,14 +5828,14 @@ function drawPhotoBrang(b) {
     ctx.restore();
 }
 
-// ── Blade arc ─────────────────────────────────────────────────
+// Blade arc
 function drawBladeArcProjectile(arc) {
     const now = performance.now();
     ctx.save();
     const angle = Math.atan2(arc.vy, arc.vx);
     const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2;
 
-    // ── LAYER 0: wide energy wash behind the arc ──────────────
+    // LAYER 0: wide energy wash behind the arc
     ctx.strokeStyle = 'rgba(120,255,0,0.12)';
     ctx.lineWidth = 28;
     ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
@@ -5878,7 +5858,7 @@ function drawBladeArcProjectile(arc) {
     ctx.shadowBlur = 0;
     ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius - 2, sa, ea); ctx.stroke();
 
-    // ── LAYER 1: Digital pixel squares along the arc ──────────
+    // LAYER 1: Digital pixel squares along the arc
     // Scatter small glowing squares that float around the arc path
     ctx.shadowBlur = 0;
     const sqCount = 14;
@@ -5920,7 +5900,7 @@ function drawBladeArcProjectile(arc) {
         ctx.restore();
     }
 
-    // ── LAYER 2: Lithium-style atom particles ejected from arc ─
+    // LAYER 2: Lithium-style atom particles ejected from arc
     // These stream outward from the arc face (forward direction)
     const liCount = 10;
     for (let i = 0; i < liCount; i++) {
@@ -5995,7 +5975,7 @@ function drawBladeArcProjectile(arc) {
         ctx.restore();
     }
 
-    // ── LAYER 3: Edge sparks at arc tips ──────────────────────
+    // LAYER 3: Edge sparks at arc tips
     for (let tip = 0; tip < 2; tip++) {
         const tipAngle = tip === 0 ? sa : ea;
         const tx = arc.x + Math.cos(tipAngle) * arc.radius;
@@ -6018,7 +5998,7 @@ function drawBladeArcProjectile(arc) {
     ctx.restore();
 }
 
-// ── Skill D – Black Hole charging ────────────────────────────
+// Skill D – Black Hole charging
 function drawSkillDCharging() {
     const now = performance.now();
     const p = Math.min((now - skillDChargeStartTime) / skillDChargeTime, 1);
@@ -6110,14 +6090,14 @@ function drawSkillDCharging() {
     ctx.restore();
 }
 
-// ── Black hole ────────────────────────────────────────────────
+// Black hole
 function drawBlackHole() {
     const now = performance.now();
     ctx.save();
     const angle = blackHole.activeTime / 500;
     ctx.translate(blackHole.x, blackHole.y);
 
-    // ── Gravitational lens glow (HIGH full, MED dim) ─────────────────
+    // Gravitational lens glow (HIGH full, MED dim)
     if (_gfxLevel < 2) {
         const _lensA = _gfxLevel < 1 ? 1.0 : 0.40;
         const lensG = ctx.createRadialGradient(0, 0, blackHole.size * 0.85, 0, 0, blackHole.size * 2.0);
@@ -6128,7 +6108,7 @@ function drawBlackHole() {
         ctx.beginPath(); ctx.arc(0, 0, blackHole.size * 2.0, 0, Math.PI * 2); ctx.fill();
     }
 
-    // ── Accretion disk — BEHIND pass (far half, before BH body) ─────
+    // Accretion disk — BEHIND pass (far half, before BH body)
     // HIGH: animated sin oscillation   MED: static 5-layer   LOW: static 2-layer
     if (_gfxLevel < 3) {
         const _t   = now / 1000;
@@ -6163,7 +6143,7 @@ function drawBlackHole() {
         ctx.restore();
     }
 
-    // ── Infalling matter particles (HIGH only) ────────────────────
+    // Infalling matter particles (HIGH only)
     if (_gfxLevel < 1) {
         for (let i = 0; i < 6; i++) {
             const phase = ((angle * 0.35 + i / 6) % 1 + 1) % 1; // 0→1 cycling
@@ -6186,7 +6166,7 @@ function drawBlackHole() {
         ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // ── Main body + event horizon (HIGH: wobbling boundary) ─────────
+    // Main body + event horizon (HIGH: wobbling boundary)
     // Gradient radius slightly larger to cover wobble peaks
     const _ehWobble = _gfxLevel < 1 ? 0.07 : 0;
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, blackHole.size * (1 + _ehWobble));
@@ -6218,7 +6198,7 @@ function drawBlackHole() {
     }
     ctx.fill();
 
-    // ── Photon sphere ring (HIGH: pulsing, MED: static, LOW: dim static) ─
+    // Photon sphere ring (HIGH: pulsing, MED: static, LOW: dim static)
     if (_gfxLevel < 3) {
         const _psT = now / 1000;
         const _psP = _gfxLevel < 1 ? (0.70 + 0.30 * Math.sin(_psT * 1.4))
@@ -6235,7 +6215,7 @@ function drawBlackHole() {
         ctx.shadowBlur = 0;
     }
 
-    // ── Accretion disk — FRONT pass (near half, drawn over BH body) ─
+    // Accretion disk — FRONT pass (near half, drawn over BH body)
     // HIGH: animated   MED: static 5-layer   LOW: static 2-layer
     if (_gfxLevel < 3) {
         const _t   = now / 1000;
@@ -6274,12 +6254,12 @@ function drawBlackHole() {
     ctx.restore();
 }
 
-// ── Skill F – Annihilation Sweep ──────────────────────────────
+// Skill F – Annihilation Sweep
 function drawSkillF() {
     const now = performance.now();
     const radius = Math.max(canvas.width, canvas.height);
 
-    // ── CHARGING phase ────────────────────────────────────────────
+    // CHARGING phase
     if (skillFState === "charging") {
         const p = Math.min((now - skillFChargeStart) / 1500, 1);
 
@@ -6369,7 +6349,7 @@ function drawSkillF() {
         });
         ctx.restore();
 
-        // ── ANNIHILATION TITLE ───────────────────────────────────
+        // ANNIHILATION TITLE
         {
             const textT = Math.min(p / 0.25, 1) * Math.max(0, 1 - (p - 0.6) / 0.4);
             if (textT > 0.02) {
@@ -6402,7 +6382,7 @@ function drawSkillF() {
         return;
     }
 
-    // ── SWEEPING phase ────────────────────────────────────────────
+    // SWEEPING phase
     if (skillFState === "sweeping") {
         const sp = (now - skillFSweepStart) / skillFSweepDuration;
         const currentAngle = -Math.PI + Math.PI * sp;
@@ -6437,7 +6417,7 @@ function drawSkillF() {
         }
         ctx.restore();
 
-        // ── Afterimage ghost blades (HIGH only) ──────────────────────
+        // Afterimage ghost blades (HIGH only)
         if (_gfxLevel < 1) {
             for (let trail = 1; trail <= 3; trail++) {
                 const ghostAngle = currentAngle - trail * 0.10;
@@ -6534,13 +6514,13 @@ function drawSkillF() {
     }
 }
 
-// ── Skill G barrier ───────────────────────────────────────────
+// Skill G barrier
 function drawSkillGBarrier() {
     if (skillGBorderOpacity <= 0) return;
     const now = performance.now();
     ctx.save();
 
-    // ── TITLE FLASH khi G vừa kích hoạt ─────────────────────
+    // TITLE FLASH khi G vừa kích hoạt
     {
         // Detect lần đầu active trong frame này
         if (skillGActive && now - _skillGActivatedAt > 500) {
@@ -6603,7 +6583,7 @@ function drawSkillGBarrier() {
     if (!_mobPerf) ctx.shadowBlur = 8;
     ctx.strokeRect(10, 10, canvas.width - 20, boundaryY - 10);
 
-    // ── Pulse rings from player (HIGH only) ───────────────────────
+    // Pulse rings from player (HIGH only)
     if (_gfxLevel < 1 && skillGActive && typeof player !== 'undefined') {
         const phasePeriod = 1200;
         const phase = (now % phasePeriod) / phasePeriod; // 0→1 per cycle
@@ -6622,7 +6602,7 @@ function drawSkillGBarrier() {
     ctx.restore();
 }
 
-// ── Energy Orb (Skill G) ──────────────────────────────────────
+// Energy Orb (Skill G)
 function drawEnergyOrb(orb) {
     const now = performance.now();
     ctx.save();
@@ -6638,7 +6618,7 @@ function drawEnergyOrb(orb) {
     ctx.shadowBlur = 0;
     ctx.beginPath(); ctx.arc(orb.x, orb.y, radius * 2, 0, Math.PI * 2); ctx.fill();
 
-    // ── Stronger corona (HIGH + MED) ─────────────────────────────
+    // Stronger corona (HIGH + MED)
     if (_gfxLevel < 2) {
         const cPulse = 0.6 + 0.4 * Math.sin(now / 180 + (orb.id || 0) * 1.7);
         const cg = ctx.createRadialGradient(orb.x, orb.y, radius * 1.0, orb.x, orb.y, radius * 2.8);
@@ -6670,7 +6650,7 @@ function drawEnergyOrb(orb) {
     ctx.ellipse(orb.x - radius * 0.25, orb.y - radius * 0.25, radius * 0.28, radius * 0.16, -Math.PI / 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // ── Inner detail (HIGH only) ─────────────────────────────────
+    // Inner detail (HIGH only)
     if (_gfxLevel < 1) {
         const t = now / 1000;
         const orbId = orb.id || 0;
@@ -6741,7 +6721,7 @@ function drawEnergyOrb(orb) {
     ctx.restore();
 }
 
-// ── Tesla Coil (Skill G) ──────────────────────────────────────
+// Tesla Coil (Skill G)
 function drawTeslaCoil(coil) {
     const now = performance.now();
     ctx.save();
@@ -6843,7 +6823,7 @@ function drawTeslaCoil(coil) {
     ctx.restore();
 }
 
-// ── Skill buttons (UI – unchanged logic, minor glow) ─────────
+// Skill buttons (UI – unchanged logic, minor glow)
 function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondition, chargePercent = -1, r = btnRadius) {
     ctx.save();
     const now = performance.now();
@@ -6902,7 +6882,7 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
         ctx.fillText(key, x, y);
         if (remaining > 0) { ctx.font = `bold ${cdFontSize}px Arial`; ctx.fillText(Math.ceil(remaining), x, y + 1); }
     }
-    // ── Silence overlay: red X when player is silenced ───────────
+    // Silence overlay: red X when player is silenced
     if (typeof player !== 'undefined' && player._silenced) {
         ctx.save();
         ctx.strokeStyle = 'rgba(255,30,30,0.9)';
@@ -6920,7 +6900,7 @@ function drawSkillButtons() {
     const now = performance.now();
     const skillAReady = (now - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
 
-    // ── Layout: 3 hàng × 2 cột ────────────────────────────────
+    // Layout: 3 hàng × 2 cột
     const r = 20;
     const gap = 7;
     const step = r * 2 + gap;
@@ -6948,7 +6928,7 @@ function drawSkillButtons() {
         G: { x: col2X, y: row3Y },
     };
 
-    // ── Nền panel mờ ─────────────────────────────────────────
+    // Nền panel mờ
     ctx.save();
     const padX = 8, padY = 8;
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -6957,7 +6937,7 @@ function drawSkillButtons() {
     ctx.fill();
     ctx.restore();
 
-    // ── Shift ────────────────────────────────────────────────
+    // Shift
     ctx.save();
     const { x: shiftX, y: shiftY } = positions.SH;
     let shiftRemaining = Math.max(0, (skillShiftCooldown - (now - lastSkillShift)) / 1000);
@@ -6984,7 +6964,7 @@ function drawSkillButtons() {
     }
     ctx.restore();
 
-    // ── A, S, D, F, G ────────────────────────────────────────
+    // A, S, D, F, G
     drawSkillButton(positions.A.x, positions.A.y, 'A', 'blue', skillACooldown, lastSkillA, !skillAReady, -1, r);
     // Skill S button logic
     const _photo = spirits.find(s2 => s2.isPhotokrystos && !s2._done);
@@ -7012,9 +6992,7 @@ function drawSkillButtons() {
     drawSkillButton(positions.G.x, positions.G.y, 'G', '#00BCD4', -1, 0, skillGActive, skillGCharge, r);
 }
 
-// ════════════════════════════════════════════════════════════════
 //  VEILSHROUD RENDER
-// ════════════════════════════════════════════════════════════════
 
 function _drawVeilshroud(enemy) {
     const now = performance.now();
@@ -7341,11 +7319,11 @@ function _drawVeilshroudEcho(enemy) {
     ctx.fillText(`ECHO ${(timeLeft / 1000).toFixed(1)}s`, enemy.x, by - 1);
 }
 
-// ─── VEILSHROUD EFFECTS: lightning + explosion zones ───────────
+// VEILSHROUD EFFECTS: lightning + explosion zones
 function _drawVeilshroudEffects() {
     const now = performance.now();
 
-    // ── Pending Void Strike rings (host đã chết nhưng sét chưa ra) ──
+    // Pending Void Strike rings (host đã chết nhưng sét chưa ra)
     if (window._veilshroudPendingStrikes && window._veilshroudPendingStrikes.length > 0) {
         for (const ps of window._veilshroudPendingStrikes) {
             const prog = Math.min(1, ps.countdown / ps.duration); // 0→1
@@ -7371,13 +7349,13 @@ function _drawVeilshroudEffects() {
         }
     }
 
-    // ── Active lightning strikes ──
+    // Active lightning strikes
     if (window._veilshroudLightnings) {
         for (const lt of window._veilshroudLightnings) {
             const prog = Math.min(1, lt.life / lt.maxLife);
             const alpha = prog;
 
-            // ── Lazy path cache: compute once on first render, reuse for lifetime ──
+            // Lazy path cache: compute once on first render, reuse for lifetime
             if (!lt._paths) {
                 lt._paths = {
                     main:  _genBoltPoints(lt.x, 0, lt.x, lt.y, 5, 28),
@@ -7414,7 +7392,7 @@ function _drawVeilshroudEffects() {
             ctx.lineWidth = 6 * prog;
             _strokeBoltPath(ctx, lt._paths.outer);
 
-            // ── Secondary bolts & impact rings at hit targets ──
+            // Secondary bolts & impact rings at hit targets
             if (lt._paths.subs && lt._paths.subs.length > 0) {
                 for (let _si = 0; _si < lt._paths.subs.length; _si++) {
                     const pos = lt.hitSentinelPositions[_si];
@@ -7463,7 +7441,7 @@ function _drawVeilshroudEffects() {
         }
     }
 
-    // ── Echo explosion zones ──
+    // Echo explosion zones
     if (window._veilshroudExplosions) {
         for (const ez of window._veilshroudExplosions) {
             const prog = ez.life / ez.maxLife; // 1→0
@@ -7492,7 +7470,7 @@ function _drawVeilshroudEffects() {
     }
 }
 
-// ─── Helper: generate zigzag bolt points (call once, cache result) ──
+// Helper: generate zigzag bolt points (call once, cache result)
 function _genBoltPoints(x1, y1, x2, y2, detail, jitter) {
     const pts = [[x1, y1]];
     const steps = Math.max(2, detail);
@@ -7512,14 +7490,12 @@ function _strokeBoltPath(ctx, pts) {
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.stroke();
 }
-// ─── Helper: vẽ tia sét zigzag (re-random mỗi frame — dùng cho non-cached) ──
+// Helper: vẽ tia sét zigzag (re-random mỗi frame — dùng cho non-cached)
 function _drawLightningBolt(ctx, x1, y1, x2, y2, detail, jitter) {
     _strokeBoltPath(ctx, _genBoltPoints(x1, y1, x2, y2, detail, jitter));
 }
 
-// ═══════════════════════════════════════════════════════════════
 //  EGREGOR — Elite enemy render
-// ═══════════════════════════════════════════════════════════════
 function _drawEgregor(enemy) {
     const now = performance.now();
     const sc = (enemy.size / 2) / 110; // BASE_SIZE=110 in L2D
@@ -7533,7 +7509,7 @@ function _drawEgregor(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    // ── 0. AURA (pulsing radial, L2D: BASE*1.8 + sin/300*20) ────
+    // 0. AURA (pulsing radial, L2D: BASE*1.8 + sin/300*20)
     const auraRad = (110 * 1.8 + Math.sin(now / 300) * 20) * sc;
     const auraG = ctx.createRadialGradient(0, 0, 110 * 0.5 * sc, 0, 0, auraRad);
     auraG.addColorStop(0, isRage ? 'rgba(255,0,0,0.5)' : 'rgba(0,100,150,0.5)');
@@ -7541,7 +7517,7 @@ function _drawEgregor(enemy) {
     ctx.fillStyle = auraG;
     ctx.beginPath(); ctx.arc(0, 0, auraRad, 0, Math.PI * 2); ctx.fill();
 
-    // ── 1. TENTACLES — 10 × 16 segments, chain simulation ───────
+    // 1. TENTACLES — 10 × 16 segments, chain simulation
     const NUM_TENT = 10, NUM_SEG = 16;
     if (!enemy._tentacles) {
         enemy._tentacles = [];
@@ -7602,7 +7578,7 @@ function _drawEgregor(enemy) {
         }
     }
 
-    // ── 2. ORGANIC BODY (80-seg smooth blob, L2D noise formula) ──
+    // 2. ORGANIC BODY (80-seg smooth blob, L2D noise formula)
     const BASE = 110 * sc;
     const noiseI = 8 * sc; // L2D noiseIntensity = 8
     const tdiv = isRage ? 150 : 300;
@@ -7636,7 +7612,7 @@ function _drawEgregor(enemy) {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── 3. GILLS — 5 layers per side (MED+, quadratic bezier) ───
+    // 3. GILLS — 5 layers per side (MED+, quadratic bezier)
     if (_gfxLevel < 2) {
         const breathP = (Math.sin(now / 500) + 1) / 2;
         // Inner gill glow (L2D: center at y=25)
@@ -7677,7 +7653,7 @@ function _drawEgregor(enemy) {
         }
     }
 
-    // ── 4. FOUR EYES — L2D polar coords {a, d, s} ───────────────
+    // 4. FOUR EYES — L2D polar coords {a, d, s}
     const eyeDefs = [
         { a: -Math.PI / 3,           d: 30, s: 20 }, // large upper-right
         { a: -Math.PI * 2 / 3,       d: 30, s: 20 }, // large upper-left
@@ -7783,7 +7759,7 @@ function _drawEgregor(enemy) {
         ctx.stroke();
     }
 
-    // ── 5. RAGE STACK PIPS ───────────────────────────────────────
+    // 5. RAGE STACK PIPS
     if ((enemy._rageStacks || 0) > 0) {
         if (!_mobPerf) { ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 14; }
         for (let s = 0; s < enemy._rageStacks; s++) {
@@ -7796,7 +7772,7 @@ function _drawEgregor(enemy) {
         ctx.shadowBlur = 0;
     }
 
-    // ── 6. HP BAR + NAME ────────────────────────────────────────
+    // 6. HP BAR + NAME
     const hpRatio = enemy.hp / enemy.maxHp;
     const bw = enemy.size * 1.1, bh = 5;
     ctx.fillStyle = '#111';
@@ -7812,7 +7788,7 @@ function _drawEgregor(enemy) {
     ctx.restore();
 }
 
-// ── Egregor effect overlays: Psychic Tempest + Null Slash ──
+// Egregor effect overlays: Psychic Tempest + Null Slash
 function _drawEgregorEffects() {
     const now = performance.now();
     for (const enemy of enemies) {
@@ -7820,7 +7796,7 @@ function _drawEgregorEffects() {
         const ox = enemy._tempestOriginX || enemy.x;
         const oy = enemy._tempestOriginY || enemy.y;
 
-        // ── MIND LINK RANGE INDICATOR (red dashed circle 600px) ──
+        // MIND LINK RANGE INDICATOR (red dashed circle 600px)
         ctx.save();
         ctx.strokeStyle = `rgba(255,30,30,${0.45 + 0.2 * Math.sin(now / 400)})`;
         ctx.lineWidth = 1.5;
@@ -7830,7 +7806,7 @@ function _drawEgregorEffects() {
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, 600, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.restore();
 
-        // ── TEMPEST TELEGRAPHING ────────────────────────────────
+        // TEMPEST TELEGRAPHING
         if (enemy._tempestPhase === 'telegraphing') {
             for (const t of enemy._tempestTargets) {
                 const progress = 1 - t.countdown / 1200; // 0→1
@@ -7898,7 +7874,7 @@ function _drawEgregorEffects() {
             }
         }
 
-        // ── TEMPEST STRIKE (psychic purple bolts — more detail than Veilshroud) ──
+        // TEMPEST STRIKE (psychic purple bolts — more detail than Veilshroud)
         if (enemy._tempestPhase === 'striking') {
             for (const t of enemy._tempestTargets) {
                 if (!t.struck || t.strikeLife <= 0 || !t._mainBolt) continue;
@@ -7907,7 +7883,7 @@ function _drawEgregorEffects() {
                 ctx.save();
                 ctx.globalAlpha = fade;
 
-                // ── Layer 0: wide outer aura (deep purple) ──
+                // Layer 0: wide outer aura (deep purple)
                 if (!_mobPerf) { ctx.shadowColor = '#7700ff'; ctx.shadowBlur = 28; }
                 ctx.strokeStyle = `rgba(100,0,220,${fade * 0.5})`;
                 ctx.lineWidth = 14;
@@ -7917,7 +7893,7 @@ function _drawEgregorEffects() {
                 for (let k = 1; k < t._outerBolt.length; k++) ctx.lineTo(t._outerBolt[k].x, t._outerBolt[k].y);
                 ctx.stroke();
 
-                // ── Layer 1: magenta mid bolt ──
+                // Layer 1: magenta mid bolt
                 ctx.shadowBlur = 18;
                 ctx.strokeStyle = `rgba(220,50,255,${fade * 0.8})`;
                 ctx.lineWidth = 6;
@@ -7926,7 +7902,7 @@ function _drawEgregorEffects() {
                 for (let k = 1; k < t._outerBolt.length; k++) ctx.lineTo(t._outerBolt[k].x, t._outerBolt[k].y);
                 ctx.stroke();
 
-                // ── Layer 2: branch bolt (psychic violet) ──
+                // Layer 2: branch bolt (psychic violet)
                 if (t._branchA) {
                     ctx.strokeStyle = `rgba(180,80,255,${fade * 0.7})`;
                     ctx.lineWidth = 4;
@@ -7937,7 +7913,7 @@ function _drawEgregorEffects() {
                     ctx.stroke();
                 }
 
-                // ── Layer 3: main zigzag bolt (bright purple-white) ──
+                // Layer 3: main zigzag bolt (bright purple-white)
                 ctx.strokeStyle = `rgba(230,160,255,${fade})`;
                 ctx.lineWidth = 2.5;
                 ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 16;
@@ -7946,7 +7922,7 @@ function _drawEgregorEffects() {
                 for (let k = 1; k < t._mainBolt.length; k++) ctx.lineTo(t._mainBolt[k].x, t._mainBolt[k].y);
                 ctx.stroke();
 
-                // ── Layer 4: white-hot core bolt (thinnest) ──
+                // Layer 4: white-hot core bolt (thinnest)
                 ctx.strokeStyle = `rgba(255,255,255,${fade * 0.95})`;
                 ctx.lineWidth = 1.2;
                 ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8;
@@ -7958,7 +7934,7 @@ function _drawEgregorEffects() {
 
                 ctx.globalAlpha = 1;
 
-                // ── Impact rings (purple) ──
+                // Impact rings (purple)
                 const prog1 = 1 - fade;
                 ctx.globalAlpha = fade;
                 if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 18; }
@@ -7974,7 +7950,7 @@ function _drawEgregorEffects() {
                 ctx.lineWidth = 1.5;
                 ctx.beginPath(); ctx.arc(tx, ty, 8 + prog1 * 30, 0, Math.PI * 2); ctx.stroke();
 
-                // ── Starburst (MED+, first 150ms) ──
+                // Starburst (MED+, first 150ms)
                 if (t.strikeLife > 550 && _gfxLevel < 2) {
                     const sbA = (t.strikeLife - 550) / 150;
                     if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 14; }
@@ -8001,7 +7977,7 @@ function _drawEgregorEffects() {
                     ctx.shadowBlur = 0;
                 }
 
-                // ── Psychic impact orb at strike point ──
+                // Psychic impact orb at strike point
                 if (_gfxLevel < 2) {
                     const orbR = (1 - fade) * 20 + 5;
                     const orbG = ctx.createRadialGradient(tx, ty, 0, tx, ty, orbR);
@@ -8018,7 +7994,7 @@ function _drawEgregorEffects() {
             }
         }
 
-        // ── NULL SLASH — CHARGING (semicircle telegraph + charge glow) ──
+        // NULL SLASH — CHARGING (semicircle telegraph + charge glow)
         if (enemy._nullSlashPhase === 'charging') {
             const progress = Math.min(1, (enemy._nullSlashWindupTimer || 0) / (enemy._nullSlashWindupDur || 3000));
             const R = canvas.width * 0.5; // half-screen radius
@@ -8095,7 +8071,7 @@ function _drawEgregorEffects() {
             ctx.restore();
         }
 
-        // ── NULL SLASH — STRIKING (arc slash — tentacle sweeps 180° through target) ──
+        // NULL SLASH — STRIKING (arc slash — tentacle sweeps 180° through target)
         if (enemy._nullSlashPhase === 'striking') {
             const st  = enemy._nullSlashStrikeTimer || 0;
             const tx2 = enemy._nullSlashTargetX, ty2 = enemy._nullSlashTargetY;

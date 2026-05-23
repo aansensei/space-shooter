@@ -1,8 +1,9 @@
-// Returns true if the hit was absorbed by the arcShield
+﻿// Returns true if the hit was absorbed by the arcShield
 function checkMarchosiasArcShield(enemy, source, bx, by) {
     if (enemy.type !== 'marchosias' || !enemy.arcShield || enemy.arcShield.hp <= 0) return false;
     const bulletAngle = Math.atan2(by - enemy.y, bx - enemy.x);
     let diff = bulletAngle - enemy.arcShield.angle;
+    // while not if bc diff can overshoot multiple rotations, clamps to [-PI, PI]
     while (diff > Math.PI) diff -= Math.PI * 2;
     while (diff < -Math.PI) diff += Math.PI * 2;
     if (Math.abs(diff) >= Math.PI / 4) return false; // outside 90° arc
@@ -35,12 +36,12 @@ function checkMarchosiasArcShield(enemy, source, bx, by) {
 function _tryTriggerMarchosiasCounter(enemy) {
     const now = performance.now();
     if (enemy.hp <= 0 || enemy._markedForDeath) return; // already dead
-    if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
+    if (!enemy.marchosiasWindups) enemy.marchosiasWindups = []; // lazy init, not set at spawn
     // Cooldown 0.75s kể từ lần trigger gần nhất
     if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 650) return;
     enemy.lastSwordTriggerTime = now;
     const _wTx = player.x, _wTy = player.y;
-    enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } });
+    enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } }); // push not assign, multiple windups run in parallel and survive entity death
     // Ngay khi windup bắt đầu: push ghost để dùng hiệu ứng mới xuyên suốt
     if (!enemy._ghostWindups) enemy._ghostWindups = [];
     enemy._ghostWindups.push({
@@ -73,7 +74,7 @@ function _fireMarchosiasDeathSwords(enemy) {
     enemy.marchosiasWindups = [];
 }
 
-// ── VULNERABILITY (Trọng Thương) ──────────────────────────────
+// VULNERABILITY (Trọng Thương)
 function applyVulnerability(enemy) {
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
@@ -402,7 +403,7 @@ function spawnVeilshroud() {
     });
 }
 
-// ─── VEILSHROUD UPDATE ─────────────────────────────────────────
+// VEILSHROUD UPDATE
 function updateVeilshroud(enemy, deltaTime) {
     const dt = deltaTime / 16.67;
 
@@ -416,7 +417,7 @@ function updateVeilshroud(enemy, deltaTime) {
         playerTakesHit();
     }
 
-    // ── Phantom check (chỉ khi không pending lightning) ──
+    // Phantom check (chỉ khi không pending lightning)
     if (!enemy.inPhantom && !enemy.lightningPending) {
         enemy.phantomCheckTimer += deltaTime;
         if (enemy.phantomCheckTimer >= enemy.phantomCheckInterval) {
@@ -428,7 +429,7 @@ function updateVeilshroud(enemy, deltaTime) {
         }
     }
 
-    // ── Phantom state duration ──
+    // Phantom state duration
     if (enemy.inPhantom) {
         enemy.phantomTimer += deltaTime;
         if (enemy.phantomTimer >= enemy.phantomDuration) {
@@ -439,12 +440,12 @@ function updateVeilshroud(enemy, deltaTime) {
         }
     }
 
-    // ── Post-phantom color fade-out ──
+    // Post-phantom color fade-out
     if (!enemy.inPhantom && (enemy.phantomFadeTimer || 0) > 0) {
         enemy.phantomFadeTimer = Math.max(0, enemy.phantomFadeTimer - deltaTime);
     }
 
-    // ── Lightning countdown & strike ──
+    // Lightning countdown & strike
     if (enemy.lightningPending) {
         enemy.lightningCountdown += deltaTime;
         // Vị trí vòng mục tiêu cố định tại chỗ đặt, không dí theo player
@@ -456,7 +457,7 @@ function updateVeilshroud(enemy, deltaTime) {
         }
     }
 
-    // ── Normal attack: volley 2 viên / 400ms (không bắn khi phantom hoặc đang countdown) ──
+    // Normal attack: volley 2 viên / 400ms (không bắn khi phantom hoặc đang countdown)
     if (!enemy.inPhantom && !enemy.lightningPending) {
         enemy.shootTimer += deltaTime;
         if (enemy.shootTimer >= enemy.shootInterval) {
@@ -542,7 +543,7 @@ function _veilshroudFireVolley(enemy) {
     }
 }
 
-// ─── VEILSHROUD ECHO UPDATE ────────────────────────────────────
+// VEILSHROUD ECHO UPDATE
 function updateVeilshroudEcho(enemy, deltaTime) {
     enemy.echoTimer += deltaTime;
 
@@ -609,7 +610,7 @@ function createAegisTelegraph(startX, startY, target) {
     });
 }
 
-// ─── Particle Object Pool ──────────────────────────────────────
+// Particle Object Pool
 const _particlePool = [];
 function _acquireParticle() {
     const p = _particlePool.length > 0 ? _particlePool.pop() : {};
@@ -1084,19 +1085,19 @@ function dealDamage(enemy, source) {
 
     let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
 
-    // ── Iron Body (Bất tử tuyệt đối) — bypass all damage ───────────
+    // Iron Body (Bất tử tuyệt đối) — bypass all damage
     if (isSentinel && enemy.ironBody && performance.now() < enemy.ironBodyEnd) {
         return; // hoàn toàn miễn sát thương
     }
 
-    // ── Coronation Iron Body perk — 1-hit block on spawned enemy ───
+    // Coronation Iron Body perk — 1-hit block on spawned enemy
     if (!isSentinel && enemy.ironBodyHits > 0) {
         enemy.ironBodyHits--;
         createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
         return; // 1 hit absorbed
     }
 
-    // ── Sentinel Parry (khi Glory for Justice active) ────────────────
+    // Sentinel Parry (khi Glory for Justice active)
     if (isSentinel && gloryForJusticeActive && (source.damage > 0 || source.percentDamage > 0)
         && !source.isTeslaDot && !source.isChainLightning) {
         if (Math.random() < 0.20) {
@@ -1105,7 +1106,7 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // ── Vanguard Network (Liên kết Vanguard) — 5+ sentinels ──────────
+    // Vanguard Network (Liên kết Vanguard) — 5+ sentinels
     if (isSentinel && sentinels.length >= 5 && (source.damage > 0 || source.percentDamage > 0)) {
         const effHp = (enemy.maxHp || enemy.hp) + (enemy.shield || 0);
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
@@ -1147,7 +1148,7 @@ function dealDamage(enemy, source) {
         totalDamage = Math.max(0, totalDamage);
     }
 
-    // ── Damage caps apply regardless of true damage ──────────────
+    // Damage caps apply regardless of true damage
 
     // Veilshroud Phantom: damage capped at 25% maxHP per hit
     if (enemy.type === 'veilshroud' && enemy.inPhantom) {
@@ -1308,9 +1309,7 @@ function dealDamage(enemy, source) {
         if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityShield10) { enemy.shield = (enemy.shield || 0) + shieldGrant; enemy._tenacityShield10 = true; createParticles(enemy.x, enemy.y, 10, '#ffe066', 2, 6); }
     }
 }
-// ══════════════════════════════════════════════════════════
 // LEVIATHAN — Dominator Class
-// ══════════════════════════════════════════════════════════
 
 function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
@@ -1361,7 +1360,7 @@ function spawnLeviathan() {
         dyingLaserFired: false,
     };
     enemies.push(lev);
-    // ── Thủ Lĩnh Bầy Đàn: đánh dấu Envy lên tất cả enemy hiện có
+    // Thủ Lĩnh Bầy Đàn: đánh dấu Envy lên tất cả enemy hiện có
     _applyLeviathanEnvy(lev);
 }
 
@@ -1381,11 +1380,11 @@ function updateLeviathan(enemy, deltaTime) {
     // Đã die (hp=0 set bởi dealDamage) → skip, main loop sẽ splice
     if (enemy.hp <= 0) return;
 
-    // ══ MOVE DOWN ═══════════════════════════════════════════════════
+    // MOVE DOWN
     enemy.y += enemy.speed * (deltaTime / 16.67);
     if (enemy.y > canvas.height + enemy.size) { enemy.hp = 0; return; }
 
-    // ══ PHASE 2: ALL FOR ONE SHIELD ═══════════════════════════════
+    // PHASE 2: ALL FOR ONE SHIELD
     if (enemy.afoShieldActive) {
         if (enemy.afoKillCount >= enemy.afoKillQuota && !enemy.afoAnnouncePending && !enemy.afoAnnouncing) {
             enemy.afoAnnouncePending = true;
@@ -1427,7 +1426,7 @@ function updateLeviathan(enemy, deltaTime) {
         if (enemy.afoShieldActive) return;
     }
 
-    // ══ PHASE 3: POST-SHIELD — PERSEVERANCE + ATTACK ══════════════
+    // PHASE 3: POST-SHIELD — PERSEVERANCE + ATTACK
 
     // Perseverance cycle
     if (enemy.perseveranceCharging) {
@@ -1490,7 +1489,7 @@ function _hasPersBeam(enemy) {
     if (!window._levPersBeams) return false;
     return window._levPersBeams.some(b => b.ownerRef === enemy && !b.done);
 }
-// ── Vanguard Network central damage handler ──────────────────────────
+// Vanguard Network central damage handler
 // Mọi nguồn damage vào sentinel đều đi qua đây khi network active (5+ sentinels)
 // rawDmg: damage đã tính (sau multipliers), sourceTag: string unique per source instance
 // targetSentinel: sentinel bị nhắm trực tiếp (nhận thêm 50% damage gốc)
@@ -1500,7 +1499,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
     const vs = window._vanguardState;
     const now = performance.now();
 
-    // ── Per-source AoE Dampening ──────────────────────────────────
+    // Per-source AoE Dampening
     if (!vs.tagHitCount) vs.tagHitCount = {};
     if (!vs.tagHitTime) vs.tagHitTime = {};
 
@@ -1515,7 +1514,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
     if (hitIdx >= 4) perSourceDamp = 0.32;
     else if (hitIdx === 3) perSourceDamp = 0.62;
 
-    // ── Multi-source AoE Dampening ────────────────────────────────
+    // Multi-source AoE Dampening
     // Track unique sources hitting in last 100ms (1 frame window)
     if (!vs.frameSources) vs.frameSources = {};
     if (!vs.frameSourcesTime) vs.frameSourcesTime = now;
@@ -1534,7 +1533,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
 
     const dampenedDmg = Math.ceil(rawDmg * perSourceDamp * multiSourceDamp);
 
-    // ── Option A: 60% thẳng vào target, 40% chia đều toàn đàn ──────
+    // Option A: 60% thẳng vào target, 40% chia đều toàn đàn
     const n = sentinels.length;
     const sharedHalf = Math.ceil(dampenedDmg * 0.4);
     const targetExtra = Math.ceil(dampenedDmg * 0.6);
@@ -1558,7 +1557,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
         if (s.hp <= 0) s._markedForDeath = true;
     });
 
-    // ── Track cho Fuse Protocol (26% threshold) ───────────────────
+    // Track cho Fuse Protocol (26% threshold)
     // BUG J fix: use rawDmg (pre-dampening) for accurate threshold detection
     vs.recentDamage = vs.recentDamage.filter(d => now - d.time < 500);
     vs.recentDamage.push({ time: now, damage: rawDmg });
@@ -1574,7 +1573,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
     }
 }
 
-// ── Vanguard Fuse Protocol (Cầu Chì Hy Sinh) ────────────────────────
+// Vanguard Fuse Protocol (Cầu Chì Hy Sinh)
 function _triggerVanguardFuse() {
     const now = performance.now();
     window._vanguardState.fuseTriggered = false;
@@ -1608,11 +1607,9 @@ function _triggerVanguardFuse() {
     window._vanguardState.recentDamage = [];
 }
 
-// ══════════════════════════════════════════════════════════════════
 // CORONATION (Đăng Cơ) — Apostle transformation passive
 // Max 3 per 5-second window; 0.67%/s above midscreen, 1%/s below
 // Death bonus: mỗi apostle chết +0.67% base chance (reset khi có 1 đứa trigger)
-// ══════════════════════════════════════════════════════════════════
 if (!window._coronationHistory) window._coronationHistory = [];
 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
 
@@ -1702,9 +1699,7 @@ function updateApostleCoronation(enemy, deltaTime) {
     }
 }
 
-// ══════════════════════════════════════════════════════════
 // EGREGOR — Plump Parasite (Elite)
-// ══════════════════════════════════════════════════════════
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);

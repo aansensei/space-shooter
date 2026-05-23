@@ -1,4 +1,32 @@
 <!DOCTYPE html>
+<!--
+  index.html
+
+  Main entry point and game shell. All 6 JS modules load at the bottom in a
+  fixed order bc they all share global state from config.js. Order is:
+  config.js, entities.js, render.js, skills.js, input.js, main.js.
+  That order is strict bc each module references globals the previous one set up.
+
+  Title screen UI and the easter egg overlay live here. The star warp animation
+  runs on its own star-canvas using a perspective projection trick. Each star obj
+  stores x, y, z coords and the draw func divides x and y by z each frame to get
+  the zoom-in effect. When isWarping is true, speed ramps via Math.pow and stars
+  stretch into streaks instead of dots.
+
+  Clicking the hyperjump btn fires a 3.5s timed sequence. Stars accelerate, the
+  progress bar fills via a CSS cubic-bezier transition, a white flash div fades
+  in, then the overlay hides and realStartBtn.click() calls startGame() from the
+  listener registered in input.js.
+
+  Mobile skill btns in #mc each have their own small canvas for cooldown ring
+  indicators. The _startCooldownLoop func reads lastSkillX timestamps and
+  cooldown consts from config.js each frame then paints arc progress via
+  Canvas 2D. When player._silenced is true it draws a red X on every skill canvas.
+
+  F3 toggles a debug panel with live FPS and a console log mirror.
+  window._returnToMainMenu restores the overlay and restarts the star animation
+  when the player exits a match.
+-->
 <html lang="vi">
 
 <head>
