@@ -116,6 +116,7 @@ function handleEnemyKill(enemy) {
     }
     addExplosion(enemy.x, enemy.y, enemy.size);
     if (enemy.type === 'leviathan') window._lastLeviathanKillTime = performance.now();
+    if (enemy.type === 'egregor')   window._lastEgregorKillTime   = performance.now();
 
     // Leviathan AFO: mỗi kill tăng counter cho tất cả Leviathan đang có khiên
     enemies.forEach(lev => {
@@ -179,7 +180,8 @@ function spawnEnemy() {
     const marchosiasCount = enemies.filter(e => e.type === 'marchosias').length;
     const leviathanCount = enemies.filter(e => e.type === 'leviathan').length;
     const veilshroudCount = enemies.filter(e => e.type === 'veilshroud').length;
-    const totalElite = dargruelCount + thaelisCount + aegisCount + marchosiasCount + leviathanCount + veilshroudCount;
+    const egregorCount = enemies.filter(e => e.type === 'egregor').length;
+    const totalElite = dargruelCount + thaelisCount + aegisCount + marchosiasCount + leviathanCount + veilshroudCount + egregorCount;
 
     if (elapsedSec < 20) {
         spawnNormalEnemy();
@@ -203,17 +205,24 @@ function spawnEnemy() {
     const thaelisRate = 0.12 + t * 0.13;
     const marchosiasRate = 0.05 + t * 0.08;
 
-    // Leviathan: unlock sau 36s, cooldown 6s giữa mỗi lần spawn
+    // Leviathan: unlock sau 36s, cooldown 8s giữa mỗi lần spawn/chết
+    const _now = performance.now();
     const levCooldownOk = !window._lastLeviathanKillTime ||
-        (performance.now() - window._lastLeviathanKillTime) >= 6000;
+        (_now - window._lastLeviathanKillTime) >= 8000;
     const leviathanRate = (elapsedSec >= 36 && levCooldownOk) ? (0.02 + t * 0.04) : 0;
+
+    // Egregor: cooldown 6s sau khi bị tiêu diệt
+    const egrCooldownOk = !window._lastEgregorKillTime ||
+        (_now - window._lastEgregorKillTime) >= 6000;
 
     const canSpawnDargruel = dargruelCount < 2 && totalElite < 6;
     const canSpawnAegis = aegisCount < 2 && totalElite < 6;
     const canSpawnThaelis = thaelisCount < 3 && totalElite < 6;
     const canSpawnMarchosias = marchosiasCount < 2 && totalElite < 6;
-    const canSpawnLeviathan = leviathanCount < 1 && totalElite < 6;
-    const canSpawnVeilshroud = veilshroudCount < 2 && totalElite < 6;
+    const canSpawnLeviathan = leviathanCount < 1 && totalElite < 6 && levCooldownOk;
+    const canSpawnVeilshroud = veilshroudCount < 2 && totalElite < 6 && egregorCount === 0;
+    const canSpawnEgregor = egregorCount < 1 && totalElite < 6 && veilshroudCount === 0 && egrCooldownOk;
+    const egregorRate = (elapsedSec >= 0) ? 1 : 0; // TEMP: normally (elapsedSec >= 35) ? (0.03 + t * 0.09) : 0
 
     // Veilshroud: unlock sau 25s, tỉ lệ spawn bằng Thaelis
     const veilshroudRate = (elapsedSec >= 25) ? (0.12 + t * 0.13) : 0;
@@ -238,6 +247,9 @@ function spawnEnemy() {
     }
     if (canSpawnVeilshroud && veilshroudRate > 0 && rand < (cursor += veilshroudRate)) {
         spawnVeilshroud(); return;
+    }
+    if (canSpawnEgregor && egregorRate > 0 && rand < (cursor += egregorRate)) {
+        spawnEgregor(); return;
     }
 
     spawnNormalEnemy();
@@ -943,7 +955,57 @@ function dealDamage(enemy, source) {
     // True damage window: 4 stacks đủ → 2 giây tiếp theo bypass shield hoàn toàn
     const inTrueDmgWindow = enemy.vulnTrueDmgEnd && performance.now() < enemy.vulnTrueDmgEnd;
 
+    // Egregor — Collective Mind (tentacle shield bypassed when all tentacles are dead)
+    if (enemy.type === 'egregor' && !source.isTrueDamage) {
+        const _allTentDead = !enemy._tentacleHps || enemy._tentacleHps.every(hp => hp <= 0);
+        if (!_allTentDead) {
+            // Helper: deal damage to the first alive tentacle
+            const _applyTentacleDmg = () => {
+                const _tenDmg = Math.ceil(totalDamage * 0.50 * 0.80); // 40% of original
+                if (!enemy._tentacleHps) return;
+                const _ti = enemy._tentacleHps.findIndex(hp => hp > 0);
+                if (_ti === -1) return;
+                const _wasAlive = enemy._tentacleHps[_ti] > 0;
+                enemy._tentacleHps[_ti] = Math.max(0, enemy._tentacleHps[_ti] - _tenDmg);
+                if (_wasAlive && enemy._tentacleHps[_ti] <= 0) {
+                    const _sc = (enemy.size / 2) / 110;
+                    const _tiAngle = (_ti / 10) * Math.PI * 2;
+                    const _tipDist = (44 + 150 + (_ti % 5) * 16) * _sc;
+                    const _tipX = enemy.x + Math.cos(_tiAngle) * _tipDist;
+                    const _tipY = enemy.y + Math.sin(_tiAngle) * _tipDist;
+                    addExplosion(_tipX, _tipY, 55, '#00ffaa');
+                    createParticles(_tipX, _tipY, 20, '#00ffcc', 2, 7);
+                    createParticles(_tipX, _tipY, 10, '#ffffff', 1, 4);
+                }
+            };
+
+            if (!source.isPiercing) {
+                // Normal: 60% deflect, 40% → tentacle; body never reached while tentacles alive
+                if (Math.random() < 0.60) return;
+                _applyTentacleDmg();
+                return;
+            }
+
+            // Piercing: graze tentacle at 40% dmg, THEN body takes 30% (capped 30% MaxHP)
+            _applyTentacleDmg();
+            if (enemy.hp <= 0) return;
+            if (Math.random() < 0.05) return; // 5% body dodge
+            let _pierceDmg = Math.min(
+                Math.ceil(totalDamage * 0.30),
+                Math.ceil(enemy.maxHp * 0.30)
+            );
+            if (enemy._nullSlashPhase === 'charging') _pierceDmg = Math.ceil(_pierceDmg * 0.70);
+            enemy.hp = Math.max(0, enemy.hp - _pierceDmg);
+            return;
+        }
+        // All tentacles dead → fall through to normal damage below
+    }
+
     let combinedDR = 0;
+    // Egregor: Null Slash charging — +30% DR vs true damage too
+    if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging') {
+        combinedDR += 0.30;
+    }
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
         combinedDR += (enemy.demonGiftStacks === 2) ? 0.30 : 0.18;
     }
@@ -977,19 +1039,23 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'boss') {
-        // Inevitable dodge for Dargruel: 1%
-        if (Math.random() < 0.01) return;
+        // Inevitable dodge for Dargruel: 9%
+        if (Math.random() < 0.09) return;
         // Maître suprême: 40% base + 2.5% per sentinel, capped at 50%
         const maitreDR = Math.min(0.50, 0.40 + sentinels.length * 0.025);
         combinedDR += maitreDR;
     }
 
     if (enemy.type === 'leviathan') {
-        // Inevitable: 1% dodge
-        if (Math.random() < 0.01) return;
+        // Inevitable: 9% dodge
+        if (Math.random() < 0.09) return;
         combinedDR += 0.60; // Inevitable: 60% base DR
     }
 
+    // Egregor Null Slash charging: +30% DR on body hits
+    if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging') {
+        combinedDR += 0.30;
+    }
     if (enemy.type === 'embryo') {
         combinedDR += 0.90;
     }
@@ -1123,6 +1189,17 @@ function dealDamage(enemy, source) {
             totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.12));
         }
     }
+
+    // Collective Mind (Egregor): body per-hit cap for true damage
+    // Cap = max(25%, 90% - 10% per lost tentacle) of body MaxHP
+    if (enemy.type === 'egregor') {
+        const _lost = enemy._tentaclesLost || 0;
+        const _capPct = Math.max(0.25, 0.90 - 0.10 * _lost);
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
+    }
+
+    // Egregor: 5% body dodge on all true-damage hits
+    if (enemy.type === 'egregor' && Math.random() < 0.05) return;
 
     // Apply damage: true damage and true-damage-window both bypass shield
     if (source.isTrueDamage || inTrueDmgWindow) {
@@ -1540,7 +1617,20 @@ if (!window._coronationHistory) window._coronationHistory = [];
 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
 
 function _getCoronationTransformType() {
-    const pool = ['marchosias', 'veilshroud', 'thaelis', 'boss', 'leviathan'];
+    const _cn = performance.now();
+    const _levCount  = enemies.filter(e => e.type === 'leviathan').length;
+    const _veilCount = enemies.filter(e => e.type === 'veilshroud').length;
+    const _egrCount  = enemies.filter(e => e.type === 'egregor').length;
+    const _levCdOk   = !window._lastLeviathanKillTime || (_cn - window._lastLeviathanKillTime) >= 8000;
+    const _egrCdOk   = !window._lastEgregorKillTime   || (_cn - window._lastEgregorKillTime)   >= 6000;
+    // Mirror the same caps/exclusions as canSpawnXxx in spawnEnemy()
+    const _levOk  = _levCdOk  && _levCount  < 1;
+    const _veilOk = _veilCount < 2 && _egrCount  === 0;
+    const _egrOk  = _egrCdOk  && _egrCount  < 1 && _veilCount === 0;
+    const pool = ['marchosias', 'thaelis', 'boss'];
+    if (_veilOk) pool.push('veilshroud');
+    if (_levOk)  pool.push('leviathan');
+    if (_egrOk)  pool.push('egregor');
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -1550,6 +1640,7 @@ function _spawnCoronationResult(enemy) {
     else if (type === 'veilshroud') spawnVeilshroud();
     else if (type === 'thaelis') spawnThaelis();
     else if (type === 'leviathan') spawnLeviathan();
+    else if (type === 'egregor') spawnEgregor();
     else spawnDargruel();
 
     // Place the new enemy at the apostle's position
@@ -1607,6 +1698,324 @@ function updateApostleCoronation(enemy, deltaTime) {
             _spawnCoronationResult(enemy);
             enemy.hp = 0; // remove original apostle silently (no kill credit)
             enemy._coronationConsumed = true;
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// EGREGOR — Plump Parasite (Elite)
+// ══════════════════════════════════════════════════════════
+function spawnEgregor() {
+    const size = 160;
+    const hpFromTime = Math.floor(gameElapsedTime / 10000);
+    const hp = Math.min(3000, 1400 + hpFromTime * 45);
+    enemies.push({
+        x: Math.random() * (canvas.width - size * 2) + size,
+        y: -size,
+        size, speed: 1.5,
+        hp, maxHp: hp, _baseMaxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+        type: 'egregor',
+        // Mind Link — rage stacks
+        _rageStacks: 0,
+        _rageEndTimes: [],
+        // Psychic Tempest
+        _tempestPhase: 'ready',
+        _tempestTargets: [],
+        _tempestCooldownEnd: performance.now() + 8000, // 8s initial delay — prevent firing during descent
+        _tempestPending: false,
+        _tempestOriginX: 0, _tempestOriginY: 0,
+        // Null Slash
+        _nullSlashPhase: 'ready',
+        _nullSlashCooldownEnd: 0, // fire immediately on reaching hover position
+        _nullSlashWindupTimer: 0,
+        _nullSlashWindupDur: 3000,
+        _nullSlashStrikeTimer: 0,
+        _nullSlashAngle: 0,
+        _nullSlashTargetX: 0,
+        _nullSlashTargetY: 0,
+        _nullSlashDmgDealt: false,
+        _nullSlashTentPts: null,
+        // Collective Mind tentacles
+        _tentacleHps: null,   // initialized in updateEgregor on first tick
+        _tentaclesLost: 0,
+        // Movement
+        _hovering: false,
+        _hoverTime: 0,
+        _hoverBaseX: 0,
+        _hoverY: canvas.height * 0.22,
+        // Visual
+        _tentacles: null,
+        _eyeBlinkTimers: [0, 0, 0, 0],
+        _eyeNextBlinks: [2000, 2800, 1500, 3500],
+        _hoverPhase: Math.random() * Math.PI * 2,
+    });
+}
+
+function updateEgregor(enemy, deltaTime) {
+    const now = performance.now();
+    const dt = deltaTime / 16.67;
+
+    // Collective Mind — init tentacle HP pools on first tick
+    if (!enemy._tentacleHps) {
+        const tentHP = Math.ceil(enemy.maxHp * 0.75);
+        enemy._tentacleHps = Array(10).fill(tentHP);
+        enemy._tentaclesLost = 0;
+    }
+    // Sync lost count (source of truth: tentacleHps)
+    enemy._tentaclesLost = enemy._tentacleHps.filter(hp => hp <= 0).length;
+
+    // Rage stack decay (before movement so multipliers are current this frame)
+    enemy._rageEndTimes = (enemy._rageEndTimes || []).filter(t => t > now);
+    enemy._rageStacks = enemy._rageEndTimes.length;
+
+    // Speed/attack bonuses from rage
+    const _speedMult = 1 + enemy._rageStacks * 0.15;   // +15% move spd per stack
+    const _atkMult  = 1 + enemy._rageStacks * 0.12;    // +12% atk spd per stack → reduces tempest CD
+    // Rage active: all skills/effects 15% faster (except Null Slash — handled separately)
+    const _rageOn = (enemy._rageStacks > 0);
+    const _tempestCD = (4000 * (_rageOn ? 0.85 : 1.0)) / _atkMult;
+
+    // Movement: descend to ~22% down screen, then gentle hover (flag prevents re-entry jitter)
+    const targetY = canvas.height * 0.22;
+    if (!enemy._hovering) {
+        const _nsSlowMult = (enemy._nullSlashPhase === 'charging') ? 0.9 : 1.0;
+        enemy.y += enemy.speed * _speedMult * _nsSlowMult * dt;
+        if (enemy.y >= targetY) { enemy._hovering = true; enemy.y = targetY; enemy._hoverBaseX = enemy.x; }
+    } else {
+        enemy._hoverTime += deltaTime;
+        if (enemy._nullSlashPhase === 'charging') {
+            // Advance while charging
+            enemy.y = Math.min(canvas.height * 0.70, enemy.y + enemy.speed * _speedMult * 0.9 * dt);
+        } else if (enemy._nullSlashPhase === 'striking') {
+            // Hold position during strike animation — no Y change
+        } else {
+            // Ready (between strikes): slow drift forward so Egregor doesn't stand still
+            enemy.y = Math.min(canvas.height * 0.70, enemy.y + enemy.speed * _speedMult * 0.25 * dt);
+        }
+    }
+    if (enemy.x < enemy.size) enemy.x = enemy.size;
+    if (enemy.x > canvas.width - enemy.size) enemy.x = canvas.width - enemy.size;
+
+    _updateEgregorTempest(enemy, deltaTime, now, _tempestCD);
+    _updateEgregorNullSlash(enemy, deltaTime, now);
+
+    // Player body collision — 1.5s cooldown prevents per-frame life drain
+    if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
+        if (now >= (enemy._bodyHitCooldownEnd || 0)) {
+            playerTakesHit();
+            enemy._bodyHitCooldownEnd = now + 1500;
+        }
+    }
+}
+
+function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
+    if (enemy._tempestPhase === 'ready') {
+        if (now >= (enemy._tempestCooldownEnd || 0)) {
+            const pool = [...[player], ...sentinels].sort(() => Math.random() - 0.5);
+            const count = Math.min(3, pool.length);
+            enemy._tempestTargets = [];
+            for (let i = 0; i < count; i++) {
+                enemy._tempestTargets.push({
+                    target: pool[i],
+                    tx: pool[i].x, ty: pool[i].y,
+                    countdown: 1200, strikeLife: 0, strikeMaxLife: 700,
+                    struck: false, _mainBolt: null, _outerBolt: null, _thinBolt: null,
+                });
+            }
+            if (enemy._tempestTargets.length > 0) {
+                enemy._tempestPhase = 'telegraphing';
+                // Origin between gills (L2D gill center at y+25*sc from body center)
+                const _gillSc = (enemy.size / 2) / 110;
+                enemy._tempestOriginX = enemy.x;
+                enemy._tempestOriginY = enemy.y + 25 * _gillSc;
+            }
+        }
+        return;
+    }
+
+    if (enemy._tempestPhase === 'telegraphing') {
+        // Rage: countdown expires 15% faster
+        const _tempestTickMult = ((enemy._rageStacks || 0) > 0) ? (1 / 0.85) : 1.0;
+        let allDone = true;
+        for (const t of enemy._tempestTargets) {
+            t.countdown -= deltaTime * _tempestTickMult;
+            // No tracking: tx/ty are locked at targeting moment
+            if (t.countdown > 0) allDone = false;
+        }
+        if (allDone) {
+            const ox = enemy._tempestOriginX, oy = enemy._tempestOriginY;
+            // Muzzle burst from gill area
+            addExplosion(ox, oy, 65, '#8800cc');
+            createParticles(ox, oy, 22, '#cc44ff', 4, 10);
+            let _playerHit = false;
+            const _hitSentinels = new Set();
+            for (const t of enemy._tempestTargets) {
+                t.struck = true; t.strikeLife = 700;
+                t._mainBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty, 16, 32);
+                t._outerBolt = _egregorGenBolt(ox, oy, t.tx, t.ty, 12, 48);
+                t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
+                t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
+                // Damage (radius 100px) — player and each sentinel hit at most once per cast
+                if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
+                    playerTakesHit(); _playerHit = true;
+                }
+                for (const s of sentinels) {
+                    if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
+                        dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false });
+                        _hitSentinels.add(s);
+                    }
+                }
+            }
+            enemy._tempestPhase = 'striking';
+        }
+        return;
+    }
+
+    if (enemy._tempestPhase === 'striking') {
+        let anyAlive = false;
+        for (const t of enemy._tempestTargets) {
+            if (t.struck && t.strikeLife > 0) { t.strikeLife -= deltaTime; if (t.strikeLife > 0) anyAlive = true; }
+        }
+        if (!anyAlive) {
+            enemy._tempestPhase = 'ready';
+            enemy._tempestCooldownEnd = now + cooldown;
+            enemy._tempestTargets = [];
+        }
+    }
+}
+
+function _egregorGenBolt(x1, y1, x2, y2, detail, jitter) {
+    const pts = [{ x: x1, y: y1 }];
+    const dx = x2 - x1, dy = y2 - y1;
+    for (let i = 1; i < detail; i++) {
+        const t = i / detail;
+        const s = Math.sin(t * Math.PI);
+        pts.push({ x: x1 + dx * t + (Math.random() - 0.5) * jitter * 2 * s, y: y1 + dy * t + (Math.random() - 0.5) * jitter * 2 * s });
+    }
+    pts.push({ x: x2, y: y2 });
+    return pts;
+}
+
+// Fire pending Tempest immediately (called when Egregor dies mid-telegraph)
+function _forceFireEgregorTempest(enemy) {
+    if (enemy._tempestPhase !== 'telegraphing' || !enemy._tempestTargets.length) return;
+    const ox = enemy._tempestOriginX, oy = enemy._tempestOriginY;
+    addExplosion(ox, oy, 65, '#8800cc');
+    createParticles(ox, oy, 22, '#cc44ff', 4, 10);
+    let _playerHit = false;
+    const _hitSentinels = new Set();
+    for (const t of enemy._tempestTargets) {
+        t.struck = true; t.strikeLife = 700;
+        t._mainBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty, 16, 32);
+        t._outerBolt = _egregorGenBolt(ox, oy, t.tx, t.ty, 12, 48);
+        t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
+        t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
+        if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
+            playerTakesHit(); _playerHit = true;
+        }
+        for (const s of sentinels) {
+            if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
+                dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false });
+                _hitSentinels.add(s);
+            }
+        }
+    }
+    enemy._tempestPhase = 'striking';
+}
+
+function _updateEgregorNullSlash(enemy, deltaTime, now) {
+    if (enemy._nullSlashPhase === 'ready') {
+        if (now >= (enemy._nullSlashCooldownEnd || 0)) {
+            enemy._nullSlashPhase = 'charging';
+            enemy._nullSlashWindupTimer = 0;
+            // Windup: base 3s (no rage) / 2.5s (rage active), −0.25s per stack, min 1s
+            const _nsBase = ((enemy._rageStacks || 0) > 0) ? 2500 : 3000;
+            enemy._nullSlashWindupDur = Math.max(1000, _nsBase - (enemy._rageStacks || 0) * 250);
+            enemy._nullSlashTentPts = null;
+        }
+        return;
+    }
+
+    if (enemy._nullSlashPhase === 'charging') {
+        // Track player continuously during windup — lock angle+target only at the moment of release
+        enemy._nullSlashAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        enemy._nullSlashTargetX = player.x;
+        enemy._nullSlashTargetY = player.y;
+
+        enemy._nullSlashWindupTimer += deltaTime;
+        if (enemy._nullSlashWindupTimer >= enemy._nullSlashWindupDur) {
+            enemy._nullSlashPhase = 'striking';
+            enemy._nullSlashStrikeTimer = 0;
+            enemy._nullSlashDmgDealt = false;
+            // Lock hover Y reference so strike/ready phases don't snap
+            enemy._hoverY = Math.min(canvas.height * 0.55, enemy.y);
+            // angle+target already current — resume hoverBaseX to prevent X jump
+            const _ht2 = enemy._hoverTime;
+            const _dX = Math.sin(_ht2/1600 + enemy._hoverPhase + 1.4) * (canvas.width * 0.11)
+                      + Math.cos(_ht2/920  + enemy._hoverPhase + 0.8) * (canvas.width * 0.05);
+            enemy._hoverBaseX = enemy.x - _dX;
+        }
+        return;
+    }
+
+    if (enemy._nullSlashPhase === 'striking') {
+        enemy._nullSlashStrikeTimer += deltaTime;
+
+        // Damage check at 460ms — arc tip crosses target at sweep midpoint
+        if (!enemy._nullSlashDmgDealt && enemy._nullSlashStrikeTimer >= 460) {
+            enemy._nullSlashDmgDealt = true;
+            const sx = enemy._nullSlashTargetX, sy = enemy._nullSlashTargetY;
+            const _ex = enemy.x, _ey = enemy.y;
+            const _nsAng = enemy._nullSlashAngle;
+            const _arcR = Math.hypot(sx - _ex, sy - _ey);
+            // Hit: inside the 180° sweep sector, within arcR+100px of Egregor
+            const _inSlash = (tx, ty) => {
+                if (Math.hypot(tx - _ex, ty - _ey) > _arcR + 100) return false;
+                let dA = Math.atan2(ty - _ey, tx - _ex) - _nsAng;
+                while (dA > Math.PI) dA -= 2 * Math.PI;
+                while (dA < -Math.PI) dA += 2 * Math.PI;
+                return Math.abs(dA) <= Math.PI / 2;
+            };
+
+            // Player hit
+            if (_inSlash(player.x, player.y)) {
+                if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
+                    _triggerAccurateParry(); // Yog-Sothoth dodge — no life, no slow
+                } else {
+                    // Slow 50% for 1.5s, NO life loss
+                    player._nullSlashSlowed = true;
+                    player._nullSlashSlowEnd = now + 1500;
+                    addExplosion(player.x, player.y, 90, '#6600cc');
+                    createParticles(player.x, player.y, 25, '#aa44ff', 3, 10);
+                    _setShake(12, 350);
+                }
+            }
+
+            // Sentinel hits — all sentinels inside the arc sector
+            const hitSents = sentinels.filter(s => _inSlash(s.x, s.y));
+            const hc = hitSents.length;
+            if (hc > 0) {
+                const pct = hc === 1 ? 0.15 : hc === 2 ? 0.20 : 0.28;
+                // Rage bonus: +5% per stack, max +25%
+                const _nsRageMult = 1 + Math.min(5, enemy._rageStacks || 0) * 0.05;
+                for (const s of hitSents) {
+                    dealDamage(s, { damage: Math.ceil(s.maxHp * pct * _nsRageMult), isTrueDamage: true });
+                    addExplosion(s.x, s.y, 65, '#7700dd');
+                    createParticles(s.x, s.y, 18, '#cc44ff', 3, 7);
+                }
+                addExplosion(sx, sy, 140, '#5500bb');
+                createParticles(sx, sy, 35, '#9933ff', 5, 14);
+                createParticles(sx, sy, 15, '#ffffff', 4, 10);
+                _setShake(14, 400);
+            }
+        }
+
+        // Strike animation: 950ms (EXTEND 200 + SWEEP 520 + RETRACT 230)
+        if (enemy._nullSlashStrikeTimer >= 950) {
+            enemy._nullSlashPhase = 'ready';
+            enemy._nullSlashCooldownEnd = now + 3500; // 3.5s CD
+            enemy._nullSlashTentPts = null;
         }
     }
 }

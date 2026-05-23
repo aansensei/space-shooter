@@ -421,6 +421,22 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 ---
 
+### Egregor (Elite)
+
+**Available after:** 35s | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
+
+HP: **1,400–3,000**. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Hovers in the upper portion of the screen.
+
+**Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **75% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: **60% chance** the hit is fully deflected (zero damage); **40% chance** it is absorbed by one tentacle at **50% of original damage** with a flat **20% base DR** applied (net: 40% of the original hit). Tentacles cannot gain additional DR from any source. Egregor's body can only be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit, n = tentacles lost) or **piercing attacks** (tentacle takes 40% of hit, body takes **30% of original damage**, capped at **30% MaxHP**; no body damage if body HP is already 0). Body has a **5% passive dodge chance** on any hit. Egregor cannot coexist with Veilshroud on the field.
+
+**Passive: Mind Link** — Each time a non-Egregor enemy dies within **500px**, Egregor gains a **Rage Stack** (max 5 active at once, each lasting 8 seconds). Per stack gained: **+12% attack speed**, **+15% movement speed**, **+10% Max HP**, and **Heal 10% of current MaxHP**. Each stack also immediately queues a Psychic Tempest strike.
+
+**Skill: Psychic Tempest** — Triggered by each Rage Stack gained. Selects up to **3 random targets** from the player and active Sentinels. Target positions are **locked at the moment of cast** — the bolts do not track movement. After a **1.2-second telegraph** (shrinking impact ring + converging sparks + warning thread from Egregor), all selected targets are struck simultaneously by psychic lightning from Egregor's original position. The strike hits within **100px radius**: costs **1 player life** or deals **20% of Sentinel MaxHP** per hit. If Egregor dies during the telegraph phase, the bolts still fire. Tempest cooldown shortens with higher rage stacks.
+
+**Skill: Null Slash** (CD 3s) — After a windup of **1–3 seconds** (base 3s, reduced by 0.25s per Rage stack, minimum 1s), a semicircle telegraph (radius = half the screen width) expands facing the player. During the windup, Egregor moves **10% slower** and gains **+30% DR**. On expiry, a giant tentacle lunges toward the locked player position. **Player hit**: no life lost, but movement speed reduced by **50% for 1.5s** (Yog-Sothoth can dodge — still no life loss). **Sentinel hit**: **15% MaxHP true damage** (1 sentinel) / **20% MaxHP** (2 sentinels) / **28% MaxHP** (3+ sentinels).
+
+---
+
 ### Dargruel (Dominator)
 
 **Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.8 u/s
@@ -434,7 +450,7 @@ HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 
 **Passive: Inevitable** — Dargruel's innate evasion and damage mitigation:
 
-- **1% chance** to completely dodge any incoming hit.
+- **9% chance** to completely dodge any incoming hit.
 - When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **12% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
@@ -465,7 +481,7 @@ HP: **6,682–11,693**. A massive armored entity with 9 segmented wing-plates su
 **Passive: Inevitable** — Leviathan's core resilience mechanics:
 
 - **60% base Damage Reduction** at all times (active once the All for One shield breaks).
-- **1% chance** to completely dodge any incoming hit.
+- **9% chance** to completely dodge any incoming hit.
 - When any single hit would exceed **30% of Leviathan's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
@@ -504,6 +520,8 @@ Leviathan's only active attack. It fires automatically after the **All for One**
 3. The laser deals true damage to everything it crosses: hitting the player costs **1 life** (subject to normal protection layers); hitting a Sentinel deals **flat 5% of that Sentinel's EP per tick**, capped at **50% of EP**.
 4. The sweep cannot be blocked, deflected, or avoided by Yog-Sothoth Domain.
 
+---
+
 ## Enemy Class System
 
 Enemies are divided into five tiers of power. All enemies of class **Abnormal and above** share a combined cap of **6 on screen at once**, in addition to their individual caps.
@@ -512,7 +530,7 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 |---|---|
 | **Normal** | Standard enemy |
 | **Abnormal** | Thaelis, Veilshroud |
-| **Elite** | Marchosias, Heavenly Aegis Core |
+| **Elite** | Marchosias, Heavenly Aegis Core, Egregor |
 | **Dominator** | Dargruel, Leviathan |
 | **Administrator** | Kanade of the Endless Nights |
 
@@ -526,6 +544,7 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 | Veilshroud | Abnormal | 25s | 12% → 25% | 2 | 2.0 u/s | — |
 | Thaelis | Abnormal | 30s | 12% → 25% | 3 | ~1.4 u/s | — |
 | Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s | — |
+| Egregor | Elite | 35s | 3% → 12% | 1 | 1.5 u/s | — |
 | Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s | — |
 | Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.5 u/s | 6s after kill |
 

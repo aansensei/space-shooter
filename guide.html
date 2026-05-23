@@ -503,7 +503,7 @@
 <tr><th>Class</th><th>Examples</th><th>Info</th></tr>
 <tr><td style="color:#aaaaaa">Lesser</td><td>Apostles</td><td>HP 9–96, scales</td></tr>
 <tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud</td><td rowspan="4">Combined cap: 6</td></tr>
-<tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis</td></tr>
+<tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis, Egregor</td></tr>
 <tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td></tr>
 <tr><td style="color:#ff2244">Administrator</td><td>Kanade</td></tr>
 </table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus.</p></div>
@@ -551,10 +551,19 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — 20% chance per shield hit; queues a sword. At 1% HP all queued swords fire. <span class="hr">Indestructible.</span></li>
 </ul></div>
 
+<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">35s • HP 1,400–3,000 • CAP 1 • Speed 1.5 u/s</div>
+<div class="ab" style="height:140px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind</b> — <span class="hi">10 tentacles</span>, each with independent HP equal to <span class="hi">75% of Egregor's MaxHP</span>. Non-true-damage: <span class="hi">60%</span> fully deflected; <span class="hi">40%</span> absorbed by a tentacle at <span class="dmg">40% of original damage</span> (50% dmg × 80% after 20% base DR). Tentacles cannot gain additional DR. Body only reachable by <span class="dmg">true damage</span> (capped at <span class="hi">max(25%, 90−10n)%</span> MaxHP) or <span class="dmg">piercing attacks</span> (tentacle takes 40% dmg, body takes <span class="hi">30%</span> of original, capped <span class="hi">30% MaxHP</span>; no body damage if body already dead). Cannot coexist with Veilshroud. Body also has <span class="hg">5% chance to dodge any hit</span>.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Mind Link</b> — Each non-Egregor enemy death within <span class="hi">500px</span> grants a <span class="hg">Rage Stack</span> (max 5, 8s each). Per stack: <span class="hg">+12% attack speed</span>, <span class="hg">+15% movement speed</span>, <span class="hg">+10% Max HP</span>, <span class="hg">Heal 10% MaxHP</span>. Also queues a Psychic Tempest strike.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> — On each rage proc: selects up to <span class="hi">3</span> random targets (player + sentinels). After a <span class="hi">1.2s</span> telegraph (shrinking ring + converging sparks), simultaneous psychic lightning strikes (more layered than Veilshroud) in <span class="hi">100px</span> radius. Target positions <span class="hi">locked at cast</span> — bolts do not track. Fires even if Egregor dies mid-cast. Player: <span class="hr">costs 1 life</span>. Sentinel: <span class="hr">20% MaxHP damage</span>.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3s</span> — <span class="hi">Windup 1–3s</span> (reduced 0.25s per Rage stack, min 1s): semicircle telegraph (radius = ½ screen) faces player. During windup: <span class="hi">−10% movement speed</span>, <span class="hg">+30% DR</span>. On expiry: giant tentacle lunges toward player. <b>Player</b>: no life lost, <span class="hr">−50% movement 1.5s</span> (Yog-Sothoth can dodge, still no life). <b>Sentinel</b>: <span class="hr">15% MaxHP (1 target) / 20% (2) / 28% (3+)</span>, true damage.</li>
+</ul></div>
+
 <div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">30s • HP 2,520–8,399 • CAP 2 • Speed ~1.8 u/s</div>
 <div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="hi">1% dodge</span> on any hit. Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 12% MaxHP</span> (2s CD).</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="hi">9% dodge</span> on any hit. Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 12% MaxHP</span> (2s CD).</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Maître Suprême</b> — <span class="dmg">40% base DR</span>. <span class="dmg">+2.5% DR/Sentinel</span> (cap <span class="dmg">50%</span>). <span class="hi">+5% atk speed/Sentinel</span> (cap <span class="hi">+20%</span>).</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Demon Gift</b> @70/40/10/1% HP: heals all enemies <span class="dmg">15% Dargruel MaxHP</span>, all units +20% DR for 4s.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 1 bullet every ~255ms at nearest player or Sentinel.</li>
@@ -565,7 +574,7 @@
 <div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">36s • HP 6,682–11,693 • CAP 1 • Speed ~1.5 u/s</div>
 <div class="ab" style="height:130px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="dmg">60% base DR</span> (after AFO shield breaks). <span class="hi">1% dodge</span> on any hit. Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 10% MaxHP</span> (2s CD).</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="dmg">60% base DR</span> (after AFO shield breaks). <span class="hi">9% dodge</span> on any hit. Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 10% MaxHP</span> (2s CD).</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Iron Body shield until kill quota (6–9). Wings folded. CC immune.</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Every 0.75s fires 3 bullets at nearest target. Bullet HP = 2% Leviathan MaxHP.</li>
@@ -1830,6 +1839,167 @@
           drawMar(performance.now());
         }
 
+        // ── EGREGOR — Elite ──
+        const sEg = setup('cvEgregor');
+        if (sEg) {
+          const { c, w, h } = sEg;
+          const egCx = w * 0.28, egCy = h * 0.5;
+          const egSc = Math.min(w, h) * 0.28 / 110;
+          const egBase = 110 * egSc;
+          const NUM_TENT_G = 10, NUM_SEG_G = 12;
+          const egTents = [];
+          for (let i = 0; i < NUM_TENT_G; i++) {
+            egTents.push({
+              baseAngle: (i / NUM_TENT_G) * Math.PI * 2,
+              length: (150 + (i % 5) * 16) * egSc,
+              phase: (i * 2.39996) % (Math.PI * 2),
+              speedMult: 0.8 + (i % 3) * 0.3,
+            });
+          }
+          // Calm 0-4s → rage 4-9s cycle
+          function drawEg(t) {
+            c.clearRect(0, 0, w, h);
+            c.fillStyle = 'rgba(2,2,10,0.92)'; c.fillRect(0, 0, w, h);
+            const cp = (t % 9000) / 9000;
+            const rageF = cp < 0.5 ? (cp > 0.44 ? (cp - 0.44) / 0.06 : 0) : (cp > 0.94 ? (1 - (cp - 0.94) / 0.06) : 1);
+            const isR = rageF > 0.5;
+            const tentC = isR ? '#880011' : '#004455';
+            const strkC = isR ? '#ff3300' : '#00ffaa';
+            const glwC  = isR ? '#ff3300' : '#00ffaa';
+
+            c.save(); c.translate(egCx, egCy);
+
+            // Aura
+            const aRad = (110 * 1.8 + Math.sin(t / 300) * 20) * egSc;
+            const aG = c.createRadialGradient(0, 0, 110 * 0.5 * egSc, 0, 0, aRad);
+            aG.addColorStop(0, isR ? 'rgba(255,0,0,0.4)' : 'rgba(0,100,150,0.4)');
+            aG.addColorStop(1, 'transparent');
+            c.fillStyle = aG; c.beginPath(); c.arc(0, 0, aRad, 0, Math.PI * 2); c.fill();
+
+            // Tentacles (chain sim)
+            c.lineCap = 'round';
+            for (const tent of egTents) {
+              let cx2 = Math.cos(tent.baseAngle) * 110 * 0.4 * egSc;
+              let cy2 = Math.sin(tent.baseAngle) * 110 * 0.4 * egSc;
+              let cAngle = tent.baseAngle;
+              const sLen = tent.length / NUM_SEG_G;
+              const pts = [{ x: cx2, y: cy2, a: cAngle }];
+              const ws = isR ? 150 : 350;
+              for (let i = 0; i < NUM_SEG_G; i++) {
+                const wave = Math.sin(t / ws * tent.speedMult + i * 0.25 + tent.phase);
+                cAngle += wave * 0.2; cAngle = cAngle * 0.95 + tent.baseAngle * 0.05;
+                cx2 += Math.cos(cAngle) * sLen; cy2 += Math.sin(cAngle) * sLen;
+                pts.push({ x: cx2, y: cy2, a: cAngle });
+              }
+              for (let i = 0; i < pts.length - 1; i++) {
+                const tap = 1 - i / pts.length;
+                c.beginPath(); c.moveTo(pts[i].x, pts[i].y); c.lineTo(pts[i+1].x, pts[i+1].y);
+                c.lineWidth = Math.max(0.5, 36 * egSc * tap);
+                c.strokeStyle = tentC; c.stroke();
+              }
+              // Suckers
+              for (let i = 2; i < pts.length - 2; i++) {
+                const p = pts[i]; const tap = 1 - i / pts.length;
+                const px2 = Math.cos(p.a - Math.PI / 2), py2 = Math.sin(p.a - Math.PI / 2);
+                const sr = Math.max(0.4, 7 * egSc * tap);
+                const sx = p.x + px2 * 16 * egSc * tap, sy = p.y + py2 * 16 * egSc * tap;
+                c.fillStyle = isR ? '#440000' : '#002233'; c.beginPath(); c.arc(sx, sy, sr, 0, Math.PI * 2); c.fill();
+                c.fillStyle = isR ? '#ff4444' : '#00ffaa'; c.beginPath(); c.arc(sx, sy, sr * 0.55, 0, Math.PI * 2); c.fill();
+              }
+            }
+
+            // Body blob
+            const noiseI = 8 * egSc, tdiv = isR ? 150 : 300;
+            c.beginPath();
+            for (let i = 0; i <= 60; i++) {
+              const a = (i / 60) * Math.PI * 2;
+              const r = egBase + (Math.sin(a * 4 + t / tdiv) * 0.8 + Math.cos(a * 6 - t / (tdiv * 1.2)) * 0.5 + Math.sin(a * 3 + t / (tdiv * 0.8)) * 0.4) * noiseI;
+              i === 0 ? c.moveTo(Math.cos(a) * r, Math.sin(a) * r) : c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            c.closePath();
+            const bG = c.createRadialGradient(0, 0, 0, 0, 0, egBase * 1.2);
+            if (isR) { bG.addColorStop(0, '#550000'); bG.addColorStop(0.7, '#2b0000'); bG.addColorStop(1, '#ff0022'); }
+            else { bG.addColorStop(0, '#003344'); bG.addColorStop(0.7, '#001a2b'); bG.addColorStop(1, '#00ffcc'); }
+            c.fillStyle = bG; c.fill();
+            c.shadowColor = glwC; c.shadowBlur = isR ? 30 : 20;
+            c.strokeStyle = strkC; c.lineWidth = (isR ? 5 : 3) * egSc; c.stroke(); c.shadowBlur = 0;
+
+            // Gills (5 layers)
+            const brP = (Math.sin(t / 500) + 1) / 2;
+            for (const side of [-1, 1]) {
+              for (let i = 0; i < 5; i++) {
+                c.save();
+                c.translate(side * 12 * egSc, (10 + i * 12) * egSc);
+                c.rotate(side * (0.2 + brP * 0.3 + i * 0.1));
+                c.beginPath(); c.moveTo(0, 0);
+                c.quadraticCurveTo(side * 30 * egSc, -8 * egSc, side * 55 * egSc, 15 * egSc);
+                c.quadraticCurveTo(side * 20 * egSc, 25 * egSc, 0, 0);
+                c.fillStyle = isR ? '#660000' : '#004455'; c.fill();
+                c.shadowColor = isR ? '#ff4444' : '#00ffff'; c.shadowBlur = 6;
+                c.strokeStyle = isR ? '#ff4444' : '#00ffff'; c.lineWidth = 1.5; c.stroke();
+                c.shadowBlur = 0; c.restore();
+              }
+            }
+
+            // 4 eyes
+            const eyeD = [
+              { a: -Math.PI / 3,           d: 30, s: 20 },
+              { a: -Math.PI * 2 / 3,       d: 30, s: 20 },
+              { a: -Math.PI / 6 + 0.2,     d: 55, s: 12 },
+              { a: -Math.PI * 5 / 6 - 0.2, d: 55, s: 12 },
+            ];
+            // Fake player orbits for guide animation
+            const plxG = egCx + Math.cos(t * 0.0008) * 50, plyG = egCy + Math.sin(t * 0.0006) * 25 + 25;
+            for (const eye of eyeD) {
+              const ef = Math.sin(t / 500 + eye.a) * 4 * egSc;
+              const ex = Math.cos(eye.a) * (eye.d * egSc + ef);
+              const ey2 = Math.sin(eye.a) * (eye.d * egSc + ef);
+              const er = eye.s * egSc;
+              const ddx2 = plxG - egCx - ex, ddy2 = plyG - egCy - ey2;
+              const aTP = Math.atan2(ddy2, ddx2);
+              const maxPD = er * 0.4;
+              const pX = Math.cos(aTP) * Math.min(Math.hypot(ddx2, ddy2) * 0.05, maxPD);
+              const pY = Math.sin(aTP) * Math.min(Math.hypot(ddx2, ddy2) * 0.05, maxPD);
+              c.save(); c.translate(ex, ey2);
+              c.beginPath(); c.ellipse(0, 0, er, er, 0, 0, Math.PI * 2); c.clip();
+              c.fillStyle = isR ? '#ffcccc' : '#f0f8ff'; c.fillRect(-er, -er, er * 2, er * 2);
+              const iG2 = c.createRadialGradient(pX, pY, 0, pX, pY, er * (isR ? 0.7 : 0.6));
+              iG2.addColorStop(0, isR ? '#ffaa00' : '#00ffaa'); iG2.addColorStop(1, isR ? '#ff0000' : '#00aaff');
+              c.fillStyle = iG2; c.beginPath(); c.arc(pX, pY, er * (isR ? 0.7 : 0.6), 0, Math.PI * 2); c.fill();
+              const pd = isR ? 0.15 : 0.26;
+              c.fillStyle = '#000'; c.beginPath();
+              c.ellipse(pX, pY, er * pd, er * (isR ? 0.5 : pd * 1.5), aTP, 0, Math.PI * 2); c.fill();
+              c.fillStyle = 'rgba(255,255,255,0.8)'; c.beginPath(); c.arc(pX - er * 0.15, pY - er * 0.15, er * 0.12, 0, Math.PI * 2); c.fill();
+              c.restore();
+              c.strokeStyle = isR ? '#660000' : '#003344'; c.lineWidth = 2;
+              c.beginPath(); c.ellipse(ex, ey2, er, er, 0, 0, Math.PI * 2); c.stroke();
+            }
+
+            // State label
+            c.fillStyle = isR ? '#ff9999' : '#88ffd4';
+            c.font = `bold ${Math.ceil(7 + 6 * egSc)}px monospace`; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+            c.fillText(isR ? '▲ MIND LINK ACTIVE ▲' : '— COLLECTIVE MIND —', 0, egBase * 1.6);
+            c.restore();
+
+            // Info labels (right side)
+            c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+            c.fillStyle = '#ff8844'; c.font = 'bold 8px Orbitron, sans-serif';
+            c.fillText('COLLECTIVE MIND', w * 0.52, h * 0.12);
+            c.fillStyle = '#8899bb'; c.font = '6.5px Share Tech Mono, monospace';
+            c.fillText('10 tentacles · 75% MaxHP each', w * 0.52, h * 0.12 + 12);
+            c.fillText('Non-true: 60% deflect | 40%→tentacle (40% dmg)', w * 0.52, h * 0.12 + 23);
+            c.fillText('True dmg cap: max(25%, 90−10n)% per hit', w * 0.52, h * 0.12 + 34);
+            c.fillStyle = isR ? '#ff9999' : '#88ffd4'; c.font = 'bold 8px Orbitron, sans-serif';
+            c.fillText('MIND LINK' + (isR ? ' ▲ RAGE' : ''), w * 0.52, h * 0.62);
+            c.fillStyle = '#8899bb'; c.font = '6.5px Share Tech Mono, monospace';
+            c.fillText('+12% atk spd  +10% move spd  (per stack)', w * 0.52, h * 0.62 + 12);
+            c.fillText('+10% MaxHP  Heal 10% MaxHP  (per stack)', w * 0.52, h * 0.62 + 23);
+
+            activeAnimations.push(requestAnimationFrame(() => drawEg(performance.now())));
+          }
+          drawEg(performance.now());
+        }
+
         // Dargruel
         const sd = setup('cvDargruel');
         if (sd) {
@@ -1890,11 +2060,11 @@
 
             // 5.5 Four triangles
             c.rotate(t / 2500);
-            const triD = coreR + 6, triPulse = 0.6 + 0.4 * Math.sin(t / 100);
+            const triD = coreR + 8, triPulse = 0.6 + 0.4 * Math.sin(t / 100);
             c.fillStyle = `rgba(223,136,255,${triPulse})`;
             for (let i = 0; i < 4; i++) {
               c.save(); c.rotate((i * Math.PI) / 2); c.translate(triD, 0);
-              c.beginPath(); c.moveTo(10, 0); c.lineTo(0, -5); c.lineTo(0, 5); c.closePath(); c.fill();
+              c.beginPath(); c.moveTo(14, 0); c.lineTo(0, -6); c.lineTo(0, 6); c.closePath(); c.fill();
               c.restore();
             }
             c.restore();
@@ -2132,7 +2302,7 @@
               for (let i = 0; i < 8; i++) {
                 const sa = (i / 8) * Math.PI * 2;
                 c.strokeStyle = i % 2 === 0 ? 'rgba(0,229,255,0.7)' : 'rgba(157,0,255,0.7)';
-                c.lineWidth = 2.5; c.beginPath(); c.arc(0, 0, r * 0.40, sa, sa + Math.PI / 8); c.stroke();
+                c.lineWidth = 5; c.beginPath(); c.arc(0, 0, r * 0.52, sa, sa + Math.PI / 8); c.stroke();
               }
               c.restore();
             }
@@ -2681,22 +2851,52 @@
           function drawSkD(t) {
             c.clearRect(0, 0, w, h);
             const cx2 = w / 2, cy2 = h * 0.48;
-            // Accretion
-            c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
-            c.strokeStyle = 'rgba(168,85,247,0.3)'; c.lineWidth = 1; c.beginPath(); c.ellipse(0, 0, 48, 12, 0, 0, Math.PI * 2); c.stroke();
+            // ── Accretion disk (tilted, multi-layer, far half then near half) ──
+            const BH = 20; // event horizon radius
+            const diskTilt = 0.22 + Math.sin(t / 5500) * 0.05;
+            const diskLayers = [
+              { rx: BH * 1.78, lw: 18, r: 60,  g: 0,   b: 110, a: 0.22 },
+              { rx: BH * 1.52, lw: 12, r: 130, g: 0,   b: 200, a: 0.32 },
+              { rx: BH * 1.28, lw:  8, r: 190, g: 40,  b: 255, a: 0.50 },
+              { rx: BH * 1.09, lw:  5, r: 230, g: 120, b: 255, a: 0.68 },
+              { rx: BH * 0.95, lw:  2, r: 255, g: 220, b: 255, a: 0.88 },
+            ];
+            const ry = BH * 0.32;
+            // Far half (below event horizon)
+            c.save(); c.translate(cx2, cy2); c.rotate(diskTilt);
+            c.beginPath(); c.rect(-BH * 3, 0, BH * 6, BH * 3); c.clip();
+            for (const d of diskLayers) {
+              c.strokeStyle = `rgba(${d.r},${d.g},${d.b},${d.a})`;
+              c.lineWidth = d.lw;
+              c.beginPath(); c.ellipse(0, 0, d.rx, ry * (d.rx / (BH * 1.78)), 0, 0, Math.PI * 2); c.stroke();
+            }
             c.restore();
-            c.save(); c.translate(cx2, cy2); c.rotate(-t / 2000);
-            c.strokeStyle = 'rgba(192,132,252,0.4)'; c.lineWidth = 0.8; c.beginPath(); c.ellipse(0, 0, 32, 8, 0, 0, Math.PI * 2); c.stroke();
-            c.restore();
+            // Gravitational lens glow
+            const lensG = c.createRadialGradient(cx2, cy2, BH * 0.85, cx2, cy2, BH * 2.0);
+            lensG.addColorStop(0, 'rgba(200,80,255,0.22)'); lensG.addColorStop(0.5, 'rgba(100,0,180,0.08)'); lensG.addColorStop(1, 'rgba(0,0,0,0)');
+            c.fillStyle = lensG; c.beginPath(); c.arc(cx2, cy2, BH * 2.0, 0, Math.PI * 2); c.fill();
             // Pull ring
-            const pr = 52 + Math.sin(t / 1500) * 8;
-            c.strokeStyle = '#6b21a844'; c.lineWidth = 0.5; c.setLineDash([3, 6]);
+            const pr = BH * 2.6 + Math.sin(t / 1500) * 4;
+            c.strokeStyle = 'rgba(107,33,168,0.27)'; c.lineWidth = 0.7; c.setLineDash([3, 6]);
             c.beginPath(); c.arc(cx2, cy2, pr, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-            // Event horizon
-            c.fillStyle = '#000'; c.beginPath(); c.arc(cx2, cy2, 18, 0, Math.PI * 2); c.fill();
-            c.fillStyle = '#050010'; c.beginPath(); c.arc(cx2, cy2, 12, 0, Math.PI * 2); c.fill();
+            // Event horizon body
+            const ehG = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, BH);
+            ehG.addColorStop(0, '#000'); ehG.addColorStop(0.55, '#000'); ehG.addColorStop(0.8, '#080010'); ehG.addColorStop(1, 'rgba(0,0,0,0)');
+            c.fillStyle = ehG; c.beginPath(); c.arc(cx2, cy2, BH, 0, Math.PI * 2); c.fill();
+            // Distortion rings
+            for (let i = 3; i >= 1; i--) { c.strokeStyle = `rgba(180,0,255,${0.06 * i})`; c.lineWidth = 7; c.beginPath(); c.arc(cx2, cy2, BH * (0.9 + i * 0.18), 0, Math.PI * 2); c.stroke(); }
+            // Near half (above event horizon)
+            c.save(); c.translate(cx2, cy2); c.rotate(diskTilt);
+            c.beginPath(); c.rect(-BH * 3, -BH * 3, BH * 6, BH * 3); c.clip();
+            for (const d of diskLayers) {
+              c.strokeStyle = `rgba(${d.r},${d.g},${d.b},${Math.min(0.97, d.a * 1.15)})`;
+              c.lineWidth = d.lw;
+              c.beginPath(); c.ellipse(0, 0, d.rx, ry * (d.rx / (BH * 1.78)), 0, 0, Math.PI * 2); c.stroke();
+            }
+            c.restore();
+            // Singularity core pulse
             c.fillStyle = `rgba(168,85,247,${0.5 + 0.5 * Math.sin(t / 400)})`; c.beginPath(); c.arc(cx2, cy2, 3, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = `rgba(168,85,247,${0.3 + 0.4 * Math.sin(t / 600)})`; c.lineWidth = 2; c.beginPath(); c.arc(cx2, cy2, 22, 0, Math.PI * 2); c.stroke();
+            c.strokeStyle = `rgba(168,85,247,${0.3 + 0.4 * Math.sin(t / 600)})`; c.lineWidth = 2; c.beginPath(); c.arc(cx2, cy2, BH + 2, 0, Math.PI * 2); c.stroke();
             // Enemies pulled
             const e1t = (t / 4000) % 1;
             c.fillStyle = '#330808';

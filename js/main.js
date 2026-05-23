@@ -138,6 +138,12 @@ function update(rawDeltaTime) {
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
     gameElapsedTime += deltaTime;
 
+    // DEBUG: force-spawn Egregor at 7s for testing — xóa khi done
+    if (!window._debugEgregorSpawned && gameElapsedTime >= 7000) {
+        window._debugEgregorSpawned = true;
+        spawnEgregor();
+    }
+
     // Bẻ cong (kéo dài) các Timer hồi chiêu của phe người chơi và Enemy Spawn
     if (skillShiftActive) {
         let delay = rawDeltaTime * 0.85;
@@ -290,8 +296,13 @@ function update(rawDeltaTime) {
         player._silenceEnd = 0;
     }
 
-    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * dt;
+    // Null Slash slow expiry
+    if (player._nullSlashSlowed && currentTime >= player._nullSlashSlowEnd) {
+        player._nullSlashSlowed = false;
+    }
+    const _nullSlashSpeedMult = (player._nullSlashSlowed) ? 0.50 : 1.0;
+    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * dt;
+    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * dt;
 
     if (Math.random() < 0.6) {
         particles.push({
@@ -348,7 +359,7 @@ function update(rawDeltaTime) {
                                 // Laser hit Leviathan shield → count hits, no body damage
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
-                                dealDamage(enemy, { damage: 100, percentDamage: 0.16 });
+                                dealDamage(enemy, { damage: 100, percentDamage: 0.16, isPiercing: true });
                             }
                             break;
                         }
@@ -615,6 +626,30 @@ function update(rawDeltaTime) {
                 window._coronationDeathBonus += enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
             }
 
+            // Egregor — Mind Link: rage stack on nearby death → immediate Tempest
+            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'egregor') {
+                const _dNow = performance.now();
+                for (const _eg of enemies) {
+                    if (_eg.type !== 'egregor' || _eg === enemy) continue;
+                    if (Math.hypot(_eg.x - enemy.x, _eg.y - enemy.y) < 600) {
+                        if (!_eg._rageEndTimes) _eg._rageEndTimes = [];
+                        if (_eg._rageEndTimes.length < 5) {
+                            _eg._rageEndTimes.push(_dNow + 8000);
+                            _eg._rageStacks = _eg._rageEndTimes.length;
+                            _eg.maxHp = Math.ceil(_eg.maxHp * 1.10);
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.10));
+                        }
+                        // Rage gained → fire Tempest immediately on next frame
+                        if (_eg._tempestPhase === 'ready') _eg._tempestCooldownEnd = 0;
+                    }
+                }
+            }
+
+            // Egregor: fire pending Tempest even if body dies mid-telegraph
+            if (enemy.type === 'egregor' && enemy._tempestPhase === 'telegraphing') {
+                _forceFireEgregorTempest(enemy);
+            }
+
             enemies.splice(i, 1);
             continue;
         }
@@ -733,6 +768,9 @@ function update(rawDeltaTime) {
                     }
                 }
             }
+
+        } else if (enemy.type === 'egregor') {
+            updateEgregor(enemy, deltaTime);
 
         } else if (enemy.type === 'leviathan') {
             // Leviathan update handled by updateLeviathan()
@@ -1007,6 +1045,26 @@ function update(rawDeltaTime) {
                 }
             }
 
+            // Egregor — Mind Link: rage stack on nearby death → immediate Tempest
+            if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'egregor') {
+                const _dNow = performance.now();
+                for (const _eg of enemies) {
+                    if (_eg.type !== 'egregor' || _eg === enemy) continue;
+                    if (Math.hypot(_eg.x - enemy.x, _eg.y - enemy.y) < 600) {
+                        if (!_eg._rageEndTimes) _eg._rageEndTimes = [];
+                        if (_eg._rageEndTimes.length < 5) {
+                            _eg._rageEndTimes.push(_dNow + 8000);
+                            _eg._rageStacks = _eg._rageEndTimes.length;
+                            // Mind Link bonus: +10% MaxHP and heal 10% MaxHP
+                            _eg.maxHp = Math.ceil(_eg.maxHp * 1.10);
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.10));
+                        }
+                        // Rage gained → fire Tempest immediately on next frame
+                        if (_eg._tempestPhase === 'ready') _eg._tempestCooldownEnd = 0;
+                    }
+                }
+            }
+
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
                 if (!enemy.hatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
@@ -1016,6 +1074,11 @@ function update(rawDeltaTime) {
             if (enemy.type === 'normal' && !enemy.inCoronation && !enemy._coronationConsumed) {
                 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
                 window._coronationDeathBonus += enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
+            }
+
+            // Egregor: fire pending Tempest even if body dies mid-telegraph
+            if (enemy.type === 'egregor' && enemy._tempestPhase === 'telegraphing') {
+                _forceFireEgregorTempest(enemy);
             }
 
             enemies.splice(i, 1);
@@ -1063,7 +1126,7 @@ function update(rawDeltaTime) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (b.type === 'sentinel_special') {
-            if (b.target && enemies.includes(b.target)) {
+            if (b.target && enemies.includes(b.target) && !b.target.inCoronation && b.target.hp > 0) {
                 const dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
                 const speed = (9 * 0.65) * (b.speedMultiplier || 1);
                 if (d > 0) { b.x += (dx / d) * speed * dt; b.y += (dy / d) * speed * dt; }
@@ -1527,6 +1590,7 @@ function startGame() {
     window._levPersBeams = [];
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
+    window._lastEgregorKillTime = null;
     window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     window._blessingRegenTimer = 0;
     accurateParryActive = false;
