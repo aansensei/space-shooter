@@ -281,7 +281,7 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 100, percentDamage: 0.10, hitEnemies: [], isSpirit: true });
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 100, percentDamage: 0.10, hitEnemies: [], isSpirit: true, isPiercing: true });
         }
     }
 }
@@ -398,8 +398,8 @@ function updatePhotokrystos(spirit, deltaTime) {
         spirit._btmTimer = 0;
         spirit._btmTickTimer = 0;
         spirit._btmLightnings = []; // lightning bolt visuals for render
-        // Thu hồi tất cả boomerang còn tồn tại
-        photoBrangs.forEach(b => { b._recalling = true; });
+        // Thu hồi tức thì tất cả boomerang — xóa khỏi màn hình ngay lập tức
+        photoBrangs.length = 0;
     }
 
     if (spirit._btmStarted) {
