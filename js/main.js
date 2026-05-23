@@ -138,12 +138,6 @@ function update(rawDeltaTime) {
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
     gameElapsedTime += deltaTime;
 
-    // DEBUG: force-spawn Egregor at 7s for testing — xóa khi done
-    if (!window._debugEgregorSpawned && gameElapsedTime >= 7000) {
-        window._debugEgregorSpawned = true;
-        spawnEgregor();
-    }
-
     // Bẻ cong (kéo dài) các Timer hồi chiêu của phe người chơi và Enemy Spawn
     if (skillShiftActive) {
         let delay = rawDeltaTime * 0.85;
