@@ -298,8 +298,25 @@ function update(rawDeltaTime) {
         player._nullSlashSlowed = false;
     }
     const _nullSlashSpeedMult = (player._nullSlashSlowed) ? 0.50 : 1.0;
-    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * dt;
+
+    // Dimension Break zone: 20% slow when player stands on the lingering rift arc
+    let _dimBreakMult = 1.0;
+    for (const _dbE of enemies) {
+        if (_dbE.type !== 'egregor' || !_dbE._dimBreakZone) continue;
+        const dbz = _dbE._dimBreakZone;
+        if (currentTime >= dbz.expireAt) { _dbE._dimBreakZone = null; continue; }
+        const _dbDx = player.x - dbz.cx, _dbDy = player.y - dbz.cy;
+        const _dbDist = Math.hypot(_dbDx, _dbDy);
+        if (Math.abs(_dbDist - dbz.arcR) < 45) {
+            let _dbAng = Math.atan2(_dbDy, _dbDx) - dbz.angle;
+            while (_dbAng >  Math.PI) _dbAng -= 2 * Math.PI;
+            while (_dbAng < -Math.PI) _dbAng += 2 * Math.PI;
+            if (Math.abs(_dbAng) <= Math.PI / 2 + 0.15) { _dimBreakMult = 0.80; }
+        }
+    }
+
+    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
+    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
 
     if (Math.random() < 0.6) {
         particles.push({
@@ -429,23 +446,23 @@ function update(rawDeltaTime) {
                         ally.hp = ally.maxHp;
                         let overshield = overheal * 0.5;
                         if (veilNormal) overshield *= 1.25; // Alteration: +25% shield
-                        ally.shield = (ally.shield || 0) + overshield;
+                        _addEnemyShield(ally, overshield);
                     } else {
                         ally.hp = Math.max(0, newHp);
                         // Alteration: nhận thêm khiên bằng lượng hồi phục
-                        if (veilNormal) ally.shield = (ally.shield || 0) + finalHeal;
+                        if (veilNormal) _addEnemyShield(ally, finalHeal);
                     }
 
                     if (!ally.aegisShieldReceived) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.75 : shieldAmt;
                         if (veilNormal) finalShield *= 1.25; // Alteration: +25% shield
-                        ally.shield = (ally.shield || 0) + finalShield;
+                        _addEnemyShield(ally, finalShield);
                         ally.aegisShieldReceived = true;
                     }
                     // 8% MaxHP tick shield per second — always applies
                     const tsAmt = ally.soulReaver ? tickShieldAmt * 0.75 : tickShieldAmt;
                     const finalTs = veilNormal ? tsAmt * 1.25 : tsAmt; // Alteration: +25% shield
-                    ally.shield = (ally.shield || 0) + finalTs;
+                    _addEnemyShield(ally, finalTs);
                 }
             });
 
@@ -633,8 +650,17 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
-                            _eg.maxHp = Math.ceil(_eg.maxHp * 1.10);
-                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.10));
+                            // +15% MaxHP and heal 15% MaxHP
+                            _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.15));
+                            // Heal alive tentacles 15% of their max HP
+                            if (_eg._tentacleHps) {
+                                const _tMax = Math.ceil(_eg.maxHp * 0.78);
+                                for (let _ti = 0; _ti < _eg._tentacleHps.length; _ti++) {
+                                    if (_eg._tentacleHps[_ti] > 0)
+                                        _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.15));
+                                }
+                            }
                         }
                         // Rage gained → fire Tempest immediately on next frame
                         if (_eg._tempestPhase === 'ready') _eg._tempestCooldownEnd = 0;
@@ -740,7 +766,7 @@ function update(rawDeltaTime) {
             for (const sentinel of sentinels) {
                 if (enemy.hp > 0 && Math.hypot(enemy.x - sentinel.x, enemy.y - sentinel.y) < enemy.size + sentinel.size) {
                     if (enemy.type === 'enemy_bullet_small') {
-                        dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.02, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
+                        dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.12, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
                         dealDamage(sentinel, { damage: enemy.hp, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     }
@@ -810,8 +836,8 @@ function update(rawDeltaTime) {
                     if (target) {
                         const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
                         if (enemy.type === 'thaelis') {
-                            // Tenacity: +0.1% bullet speed per 1% HP lost, cap +20%
-                            const thaelisBonusPct = Math.min(0.20, (1 - enemy.hp / enemy.maxHp) * 0.001 * 100);
+                            // Tenacity: +3.5% bullet speed per 0.5% HP lost, cap +25%
+                            const thaelisBonusPct = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
                             const thaelisSpd = 3.36 * (1 + thaelisBonusPct);
                             enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * thaelisSpd, vy: Math.sin(angle) * thaelisSpd, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600 });
                         } else {
@@ -1052,9 +1078,17 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
-                            // Mind Link bonus: +10% MaxHP and heal 10% MaxHP
-                            _eg.maxHp = Math.ceil(_eg.maxHp * 1.10);
-                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.10));
+                            // +15% MaxHP and heal 15% MaxHP
+                            _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.15));
+                            // Heal alive tentacles 15% of their max HP
+                            if (_eg._tentacleHps) {
+                                const _tMax = Math.ceil(_eg.maxHp * 0.78);
+                                for (let _ti = 0; _ti < _eg._tentacleHps.length; _ti++) {
+                                    if (_eg._tentacleHps[_ti] > 0)
+                                        _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.15));
+                                }
+                            }
                         }
                         // Rage gained → fire Tempest immediately on next frame
                         if (_eg._tempestPhase === 'ready') _eg._tempestCooldownEnd = 0;

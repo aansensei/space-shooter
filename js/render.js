@@ -1553,7 +1553,7 @@ function drawBossShockwaves() {
             // Bright white inner edge
             if (!_mobPerf) ctx.shadowBlur = 10;
             ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.lineWidth = 2.5;
-            ctx.beginPath(); ctx.arc(0, 0, wave.radius - 10, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, Math.max(0, wave.radius - 10), 0, Math.PI * 2); ctx.stroke();
             // Trailing glow arc
             ctx.strokeStyle = `rgba(45,255,115,${fade * 0.35})`; ctx.lineWidth = 18;
             ctx.beginPath(); ctx.arc(0, 0, wave.radius + 14, 0, Math.PI * 2); ctx.stroke();
@@ -1792,7 +1792,7 @@ function drawFinalDefense() {
         ctx.strokeStyle = 'rgba(100,255,255,0.35)';
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 8]);
-        ctx.beginPath(); ctx.arc(0, 0, r - 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, Math.max(0, r - 5), 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
         ctx.restore();
     }
@@ -3377,6 +3377,46 @@ function _drawBossOrThaelis(enemy) {
             ctx.beginPath(); ctx.arc(enemy.x + Math.cos(a) * orbitR2, enemy.y + Math.sin(a) * orbitR2, 2.5, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
+
+        // Tenacity Barrier ring — lớp khiên riêng, hiển thị bên ngoài Thaelis
+        if ((enemy._tenacityBarrier || 0) > 0) {
+            const _bMax = enemy._tenacityBarrierMax || enemy._tenacityBarrier;
+            const _bFrac = enemy._tenacityBarrier / _bMax;
+            const _bR = r + 16 + 3 * Math.sin(now / 100);
+            const _bPulse = 0.70 + 0.30 * Math.sin(now / 80);
+            ctx.save();
+            // Outer glow
+            if (!_mobPerf) { ctx.shadowColor = '#ffee33'; ctx.shadowBlur = 20 + 8 * Math.sin(now / 130); }
+            // Full barrier ring (solid)
+            ctx.strokeStyle = `rgba(255,230,40,${_bPulse * 0.9})`;
+            ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, _bR, 0, Math.PI * 2); ctx.stroke();
+            // Depleting arc overlay (shows remaining HP fraction)
+            if (_bFrac < 0.999) {
+                ctx.strokeStyle = `rgba(80,40,0,0.65)`;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(enemy.x, enemy.y, _bR, -Math.PI / 2 + _bFrac * Math.PI * 2, -Math.PI / 2 + Math.PI * 2);
+                ctx.stroke();
+            }
+            // Inner shimmer ring
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = `rgba(255,255,160,${_bPulse * 0.45})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, _bR - 6, 0, Math.PI * 2); ctx.stroke();
+            // Rotating energy sparks on the ring
+            if (!_mobPerf) {
+                ctx.fillStyle = `rgba(255,240,80,${_bPulse * 0.85})`;
+                for (let _i = 0; _i < 6; _i++) {
+                    const _sA = (now / 500) + _i * Math.PI / 3;
+                    ctx.beginPath();
+                    ctx.arc(enemy.x + Math.cos(_sA) * _bR, enemy.y + Math.sin(_sA) * _bR, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+
         return;
     }
 
@@ -4998,7 +5038,7 @@ function drawScatteredProjectile(p) {
 
     if (p.isBouncingBall) {
         const pulse = Math.sin(performance.now() / 90) * 4;
-        const cs = p.size + pulse;  // visual only
+        const cs = Math.max(0.1, p.size + pulse);  // visual only
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, cs);
         grad.addColorStop(0, 'white');
         grad.addColorStop(0.35, '#ff4400');
@@ -6607,7 +6647,7 @@ function drawEnergyOrb(orb) {
     const now = performance.now();
     ctx.save();
     const pulse = Math.sin(now / 200 + orb.id) * 2.5;
-    let radius = orb.size + pulse;
+    let radius = Math.max(0.1, orb.size + pulse);
     if (orb.isMerging) {
         const mp = (now - orb.mergeStartTime) / 500;
         radius = Math.max(0, (orb.size + pulse) * (1 - mp));
@@ -7355,11 +7395,12 @@ function _drawVeilshroudEffects() {
             const prog = Math.min(1, lt.life / lt.maxLife);
             const alpha = prog;
 
-            // Lazy path cache: compute once on first render, reuse for lifetime
+            // Main bolt re-randomizes every frame → flickering lightning (matches guide behavior)
+            const _ltMain  = _genBoltPoints(lt.x, 0, lt.x, lt.y, 7, 32);
+            const _ltOuter = _genBoltPoints(lt.x, 0, lt.x, lt.y, 5, 42);
+            // Sub-bolt paths to locked target positions: cached (no need to re-random)
             if (!lt._paths) {
                 lt._paths = {
-                    main:  _genBoltPoints(lt.x, 0, lt.x, lt.y, 5, 28),
-                    outer: _genBoltPoints(lt.x, 0, lt.x, lt.y, 4, 35),
                     subs:  (lt.hitSentinelPositions || []).map(pos => ({
                         white: _genBoltPoints(lt.x, lt.y, pos.x, pos.y, 3, 14),
                         red:   _genBoltPoints(lt.x, lt.y, pos.x, pos.y, 2, 20),
@@ -7380,17 +7421,40 @@ function _drawVeilshroudEffects() {
             if (!_mobPerf) { ctx.shadowColor = '#ff0022'; ctx.shadowBlur = 20; }
             ctx.beginPath(); ctx.arc(lt.x, lt.y, waveR, 0, Math.PI * 2); ctx.stroke();
 
-            // Bolt from top of canvas (cached path)
+            // Main white bolt (re-randomized each frame → flickers)
             ctx.globalAlpha = alpha;
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 3 * prog;
-            if (!_mobPerf) { ctx.shadowColor = '#ff2233'; ctx.shadowBlur = 18; }
-            _strokeBoltPath(ctx, lt._paths.main);
+            if (!_mobPerf) { ctx.shadowColor = '#ff2233'; ctx.shadowBlur = 22; }
+            _strokeBoltPath(ctx, _ltMain);
 
-            // Outer bolt (red tint, cached path)
+            // Outer red bolt (re-randomized each frame → flickers)
             ctx.strokeStyle = `rgba(255,30,50,${alpha * 0.65})`;
-            ctx.lineWidth = 6 * prog;
-            _strokeBoltPath(ctx, lt._paths.outer);
+            ctx.lineWidth = 7 * prog;
+            _strokeBoltPath(ctx, _ltOuter);
+
+            // Branch bolts off main bolt (HIGH quality, adds visual richness)
+            if (!_mobPerf && _gfxLevel < 1 && alpha > 0.25) {
+                ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 10;
+                for (let _b = 0; _b < 4; _b++) {
+                    const _bSrc = _ltMain[1 + Math.floor((_ltMain.length - 2) * (_b + 0.5) / 4)];
+                    const _bSide = (_b % 2 === 0 ? 1 : -1);
+                    const _bAng  = Math.PI * 0.5 + _bSide * (0.35 + Math.random() * 0.55);
+                    const _bLen  = (20 + Math.random() * 35) * prog;
+                    ctx.strokeStyle = `rgba(255,${50 + _b * 25},${60 + _b * 15},${alpha * 0.55})`;
+                    ctx.lineWidth = (2.2 - _b * 0.3) * prog;
+                    ctx.beginPath(); ctx.moveTo(_bSrc[0], _bSrc[1]);
+                    let _bx = _bSrc[0], _by = _bSrc[1];
+                    for (let _s = 0; _s < 3; _s++) {
+                        const _sAng = _bAng + (Math.random() - 0.5) * 0.6;
+                        _bx += Math.cos(_sAng) * _bLen / 3;
+                        _by += Math.sin(_sAng) * _bLen / 3;
+                        ctx.lineTo(_bx, _by);
+                    }
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+            }
 
             // Secondary bolts & impact rings at hit targets
             if (lt._paths.subs && lt._paths.subs.length > 0) {
@@ -7997,7 +8061,8 @@ function _drawEgregorEffects() {
         // NULL SLASH — CHARGING (semicircle telegraph + charge glow)
         if (enemy._nullSlashPhase === 'charging') {
             const progress = Math.min(1, (enemy._nullSlashWindupTimer || 0) / (enemy._nullSlashWindupDur || 3000));
-            const R = canvas.width * 0.5; // half-screen radius
+            const rageStacks = enemy._rageStacks || 0;
+            const R = canvas.width * 0.5 + rageStacks * 5;
             const ang = enemy._nullSlashAngle || (Math.PI / 2);
             ctx.save();
 
@@ -8042,6 +8107,35 @@ function _drawEgregorEffects() {
             ctx.setLineDash([]); ctx.lineDashOffset = 0;
             ctx.shadowBlur = 0;
 
+            // Rage: crackling void energy lines inside the charging arc (stack 1+, MED+)
+            if (!_mobPerf && rageStacks >= 1 && progress > 0.20) {
+                const rcCount = rageStacks * 3; // 3-15 bolts
+                const rcCol   = rageStacks >= 4 ? 'rgba(180,240,255,' : rageStacks >= 2 ? 'rgba(170,90,255,' : 'rgba(140,40,220,';
+                const rcGlow  = rageStacks >= 4 ? '#88ddff' : '#8800cc';
+                ctx.save();
+                ctx.shadowColor = rcGlow; ctx.shadowBlur = rageStacks >= 3 ? 10 : 6;
+                ctx.lineWidth = rageStacks >= 3 ? 1.8 : 1.2;
+                for (let rc = 0; rc < rcCount; rc++) {
+                    const rcBaseAng = arcStart + (rc / rcCount) * Math.PI;
+                    const rcDist = curR * (0.15 + 0.55 * Math.abs(Math.sin(rc * 2.618)));
+                    let bx = enemy.x + Math.cos(rcBaseAng) * rcDist;
+                    let by = enemy.y + Math.sin(rcBaseAng) * rcDist;
+                    const rcAlpha = progress * (0.4 + 0.35 * Math.sin(now / 90 + rc * 1.3));
+                    ctx.strokeStyle = rcCol + rcAlpha + ')';
+                    ctx.globalAlpha = 1;
+                    ctx.beginPath(); ctx.moveTo(bx, by);
+                    for (let s = 0; s < 4; s++) {
+                        const sAng = rcBaseAng + Math.sin(rc * 4.37 + s * 2.09) * 0.7;
+                        const sLen = curR * (0.06 - s * 0.01);
+                        bx += Math.cos(sAng) * sLen;
+                        by += Math.sin(sAng) * sLen;
+                        ctx.lineTo(bx, by);
+                    }
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0; ctx.restore();
+            }
+
             // Converging charge particles (MED+)
             if (_gfxLevel < 2 && progress > 0.15) {
                 for (let cp = 0; cp < 8; cp++) {
@@ -8079,8 +8173,10 @@ function _drawEgregorEffects() {
 
             // Timing: shoot-out → arc sweep → retract (~950ms)
             const EXTEND = 200, SWEEP = 520, RETRACT = 230;
-            const nsAng   = enemy._nullSlashAngle || Math.atan2(ty2 - cy, tx2 - cx);
-            const R       = Math.hypot(tx2 - cx, ty2 - cy);
+            const nsAng      = enemy._nullSlashAngle || Math.atan2(ty2 - cy, tx2 - cx);
+            const rageStacks = enemy._rageStacks || 0;
+            const rageSizeMult = 1 + rageStacks * 0.05;  // +5% tentacle size per stack
+            const R          = Math.hypot(tx2 - cx, ty2 - cy) + rageStacks * 5; // +5px arc radius per stack
             const arcStart = nsAng - Math.PI / 2;
             const arcSpan  = Math.PI; // 180° sweep through target at midpoint
 
@@ -8100,6 +8196,12 @@ function _drawEgregorEffects() {
 
             if (ext > 0.01) {
             const tipAngle = arcStart + sweepT * arcSpan;
+
+            // Rift timing — stays open (sweepT=1) and fades quickly, independent of tentacle retract
+            const RIFT_FADE = 185;
+            let rST, rE;
+            if (st < EXTEND + SWEEP) { rST = sweepT; rE = ext; }
+            else { rST = 1.0; rE = Math.max(0, 1 - (st - EXTEND - SWEEP) / RIFT_FADE); }
 
             // Build rubber tentacle: base at Egregor, tip traces the arc
             // Rubber lag: base lags behind tip in sweep angle
@@ -8138,12 +8240,26 @@ function _drawEgregorEffects() {
                 ctx.shadowBlur = 0;
             }
 
+            // Aura — glowing void halo around tentacle (rage 1+)
+            if (!_mobPerf && rageStacks >= 1) {
+                ctx.shadowColor = rageStacks >= 3 ? '#bb77ff' : '#8800cc';
+                ctx.shadowBlur  = 28 + rageStacks * 12;
+                const auraA = Math.min(0.32, (0.06 + rageStacks * 0.035) * ext);
+                for (let si = 0; si < tentPts.length - 1; si++) {
+                    const p0 = tentPts[si], p1 = tentPts[si+1];
+                    ctx.strokeStyle = `rgba(140,0,255,${auraA * p0.w})`;
+                    ctx.lineWidth   = Math.max(8, 125 * p0.w * rageSizeMult);
+                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+            }
+
             // Layer 0: void core
             if (!_mobPerf) { ctx.shadowColor = '#1a0030'; ctx.shadowBlur = 45; }
             for (let si = 0; si < tentPts.length - 1; si++) {
                 const p0 = tentPts[si], p1 = tentPts[si+1];
                 ctx.strokeStyle = `rgba(6,0,18,0.97)`;
-                ctx.lineWidth = Math.max(2, 92 * p0.w);
+                ctx.lineWidth = Math.max(2, 92 * p0.w * rageSizeMult);
                 ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
             }
             // Layer 1: deep purple body
@@ -8151,7 +8267,7 @@ function _drawEgregorEffects() {
             for (let si = 0; si < tentPts.length - 1; si++) {
                 const p0 = tentPts[si], p1 = tentPts[si+1];
                 ctx.strokeStyle = `rgba(85,0,165,${0.90 * ext})`;
-                ctx.lineWidth = Math.max(1, 70 * p0.w);
+                ctx.lineWidth = Math.max(1, 70 * p0.w * rageSizeMult);
                 ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
             }
             // Layer 2: bright outer skin
@@ -8159,7 +8275,7 @@ function _drawEgregorEffects() {
             for (let si = 0; si < tentPts.length - 1; si++) {
                 const p0 = tentPts[si], p1 = tentPts[si+1];
                 ctx.strokeStyle = `rgba(155,25,255,${0.72 * ext})`;
-                ctx.lineWidth = Math.max(0.5, 46 * p0.w);
+                ctx.lineWidth = Math.max(0.5, 46 * p0.w * rageSizeMult);
                 ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
             }
             // Layer 3: highlight stripe (follows local tangent)
@@ -8167,13 +8283,23 @@ function _drawEgregorEffects() {
             for (let si = 0; si < tentPts.length - 1; si++) {
                 const p0 = tentPts[si], p1 = tentPts[si+1];
                 const sdx = p1.x-p0.x, sdy = p1.y-p0.y, sL = Math.hypot(sdx,sdy)||1;
-                const hpX = -sdy/sL, hpY = sdx/sL, ho = 5*p0.w;
+                const hpX = -sdy/sL, hpY = sdx/sL, ho = 5 * p0.w * rageSizeMult;
                 ctx.strokeStyle = `rgba(225,135,255,${0.42 * p0.w * ext})`;
-                ctx.lineWidth = Math.max(0.5, 19 * p0.w);
+                ctx.lineWidth = Math.max(0.5, 19 * p0.w * rageSizeMult);
                 ctx.beginPath();
                 ctx.moveTo(p0.x+hpX*ho, p0.y+hpY*ho); ctx.lineTo(p1.x+hpX*ho, p1.y+hpY*ho);
                 ctx.stroke();
             }
+
+            // Layer 4: thin spine
+            if (!_mobPerf) { ctx.shadowColor = '#cc44ff'; ctx.shadowBlur = 12; }
+            for (let si = 0; si < tentPts.length - 1; si++) {
+                const p0 = tentPts[si], p1 = tentPts[si+1];
+                ctx.strokeStyle = `rgba(225,115,255,${0.42 * p0.w * ext})`;
+                ctx.lineWidth = Math.max(0.5, 7 * p0.w);
+                ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
 
             // Suckers (MED+)
             if (_gfxLevel < 2) {
@@ -8187,24 +8313,353 @@ function _drawEgregorEffects() {
                 }
             }
 
+            // DIMENSIONAL RIFT — không gian bị xé toạc (rage 1+, MED+)
+            // Layer cuối: đè lên xúc tu; rift fades independently (rST/rE) after sweep
+            if (!_mobPerf && rageStacks >= 1 && rST > 0.04 && rE > 0.01) {
+                ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                const RN = 60;
+                const inPts = [], outPts = [];
+                for (let ci2 = 0; ci2 <= RN; ci2++) {
+                    const frac = ci2 / RN;
+                    if (frac > rST + 0.012) break;
+                    const ang2    = arcStart + frac * arcSpan;
+                    const baseR2  = R * rE * 0.88;
+                    const tipDist = Math.max(0, rST - frac);
+                    const open    = Math.pow(Math.min(1, tipDist * 6), 0.55) * rE;
+                    const halfW   = (13 + rageStacks * 5) * open;
+                    const jI = Math.sin(ci2*3.718+0.618)*(3+rageStacks)
+                             + Math.sin(ci2*7.391+1.234)*(1.2+rageStacks*0.4)
+                             + Math.sin(ci2*1.618+2.718)*(0.8+rageStacks*0.2);
+                    const jO = Math.sin(ci2*2.618+1.400)*(3+rageStacks)
+                             + Math.sin(ci2*5.236+0.900)*(1.2+rageStacks*0.4)
+                             + Math.sin(ci2*0.927+3.141)*(0.8+rageStacks*0.2);
+                    const aJ = Math.sin(ci2*4.317+2.100)*0.018;
+                    inPts.push({ x:cx+Math.cos(ang2+aJ)*(baseR2-halfW+jI), y:cy+Math.sin(ang2+aJ)*(baseR2-halfW+jI) });
+                    outPts.push({ x:cx+Math.cos(ang2-aJ)*(baseR2+halfW+jO), y:cy+Math.sin(ang2-aJ)*(baseR2+halfW+jO) });
+                }
+
+                if (inPts.length >= 2) {
+                    const rN = inPts.length;
+                    const riftW  = 13 + rageStacks * 5;
+                    const midAng = arcStart + rST * arcSpan * 0.42;
+                    const mX = cx + Math.cos(midAng) * R * rE * 0.88;
+                    const mY = cy + Math.sin(midAng) * R * rE * 0.88;
+
+                    // Interior — clip to rift polygon, reveal other dimension
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(inPts[0].x, inPts[0].y);
+                    for (let i=1;i<rN;i++) ctx.lineTo(inPts[i].x,inPts[i].y);
+                    for (let i=rN-1;i>=0;i--) ctx.lineTo(outPts[i].x,outPts[i].y);
+                    ctx.closePath(); ctx.clip();
+
+                    ctx.fillStyle = '#01000c';
+                    ctx.fillRect(cx-R*2.2, cy-R*2.2, R*4.4, R*4.4);
+
+                    const gG2 = ctx.createRadialGradient(mX,mY,0, mX,mY,riftW*5.5);
+                    gG2.addColorStop(0,    'rgba(255,242,215,0.65)');
+                    gG2.addColorStop(0.08, 'rgba(215,155,255,0.55)');
+                    gG2.addColorStop(0.22, 'rgba(105,32,210,0.42)');
+                    gG2.addColorStop(0.48, 'rgba(28,6,85,0.24)');
+                    gG2.addColorStop(1,    'rgba(1,0,12,0)');
+                    ctx.fillStyle=gG2; ctx.fillRect(cx-R*2.2,cy-R*2.2,R*4.4,R*4.4);
+
+                    // ── Interior detail tiers ───────────────────────────────────
+                    // HIGH (0): 9 nebulae + 3 spiral arms + full stars + all faults + cosmic
+                    // MED  (1): 4 nebulae + no arms      + 20 stars   + 1 fault    + no cosmic
+                    // LOW  (2): galaxy core only (already drawn above)
+                    if (_gfxLevel < 2) {
+                        ctx.globalCompositeOperation = 'lighter';
+                        const NEB_ALL = [
+                            [0.10,riftW*2.0, 42,  0,152,0.24],[0.26,riftW*2.5,122,  0,218,0.26],
+                            [0.42,riftW*1.8,  0, 82,192,0.22],[0.58,riftW*2.2, 82,  0,182,0.24],
+                            [0.74,riftW*1.6,172, 52,248,0.18],[0.36,riftW*3.5, 16,  0, 72,0.18],
+                            [0.50,riftW*2.8,230,110,  0,0.10],[0.20,riftW*1.5,255,180,100,0.07],
+                            [0.65,riftW*2.0,  0,160,200,0.12],
+                        ];
+                        // MED: only first 4 nebulae (cheapest, most visible)
+                        const nebCount = _gfxLevel === 0 ? NEB_ALL.length : 4;
+                        for (let ni=0;ni<nebCount;ni++) {
+                            const [nF,nR2,r2,g2,b2,a2] = NEB_ALL[ni];
+                            if (nF > rST) continue;
+                            const nA = arcStart + nF*arcSpan;
+                            const nx2 = cx+Math.cos(nA)*R*rE*0.88, ny2 = cy+Math.sin(nA)*R*rE*0.88;
+                            const nG = ctx.createRadialGradient(nx2,ny2,0,nx2,ny2,nR2);
+                            nG.addColorStop(0,`rgba(${r2},${g2},${b2},${a2})`);
+                            nG.addColorStop(1,'rgba(0,0,0,0)');
+                            ctx.fillStyle=nG; ctx.fillRect(cx-R*2.2,cy-R*2.2,R*4.4,R*4.4);
+                        }
+
+                        // Spiral arms: HIGH only (36 gradient creates/frame)
+                        if (_gfxLevel === 0) {
+                            const swirlA = now * 0.00016;
+                            for (let arm=0;arm<3;arm++) {
+                                const aBase = swirlA + arm*(Math.PI*2/3);
+                                for (let seg=0;seg<12;seg++) {
+                                    const sF=seg/12, sA=aBase+sF*Math.PI*0.85;
+                                    const sRad=riftW*(0.15+sF*1.8);
+                                    const al=(0.08-sF*0.065)*rE; if(al<0.003) continue;
+                                    const sG=ctx.createRadialGradient(mX+Math.cos(sA)*sRad,mY+Math.sin(sA)*sRad,0,mX+Math.cos(sA)*sRad,mY+Math.sin(sA)*sRad,sRad*0.6);
+                                    sG.addColorStop(0,`rgba(145,88,255,${al})`);
+                                    sG.addColorStop(1,'rgba(0,0,0,0)');
+                                    ctx.fillStyle=sG; ctx.fillRect(cx-R*2.2,cy-R*2.2,R*4.4,R*4.4);
+                                }
+                            }
+                        }
+                        ctx.globalCompositeOperation = 'source-over';
+
+                        // Stars: HIGH = 44+stacks*9, MED = 20 fixed
+                        const STAR_N = _gfxLevel === 0 ? 44 + rageStacks*9 : 20;
+                        for (let si2=0;si2<STAR_N;si2++) {
+                            const sFrac=(si2*0.6180339)%1;
+                            if(sFrac>rST) continue;
+                            const sAng=arcStart+sFrac*arcSpan;
+                            const sOff=Math.sin(si2*2.618+0.5)*riftW*0.80;
+                            const sx2=cx+Math.cos(sAng+Math.sin(si2*1.414)*0.022)*(R*rE*0.88+sOff);
+                            const sy2=cy+Math.sin(sAng+Math.sin(si2*1.414)*0.022)*(R*rE*0.88+sOff);
+                            const ssz=si2%13===0?2.9:si2%7===0?2.0:si2%3===0?1.25:0.65;
+                            const tw=0.55+0.40*Math.sin(now*0.0018+si2*1.618);
+                            const sc2=si2%5===0?[165,202,255]:si2%7===0?[255,229,185]
+                                     :si2%11===0?[202,145,255]:si2%17===0?[172,255,222]
+                                     :si2%19===0?[255,200,180]:[255,255,255];
+                            ctx.fillStyle=`rgba(${sc2[0]},${sc2[1]},${sc2[2]},${tw*(ssz>1?1:0.85)})`;
+                            ctx.beginPath(); ctx.arc(sx2,sy2,ssz,0,Math.PI*2); ctx.fill();
+                            // Cross-spikes: HIGH only
+                            if (_gfxLevel === 0 && ssz>=2.0) {
+                                ctx.globalAlpha=tw*0.42;
+                                ctx.strokeStyle=`rgba(${sc2[0]},${sc2[1]},${sc2[2]},1)`; ctx.lineWidth=0.55;
+                                const spk=ssz*3.5;
+                                ctx.beginPath(); ctx.moveTo(sx2-spk,sy2); ctx.lineTo(sx2+spk,sy2); ctx.stroke();
+                                ctx.beginPath(); ctx.moveTo(sx2,sy2-spk); ctx.lineTo(sx2,sy2+spk); ctx.stroke();
+                                ctx.globalAlpha=1;
+                            }
+                        }
+
+                        // Fault lines: HIGH = 2+stacks, MED = 1
+                        ctx.globalCompositeOperation = 'lighter';
+                        const FL_N = _gfxLevel === 0 ? 2+rageStacks : 1;
+                        for (let fi=0;fi<FL_N;fi++) {
+                            const fSt=fi/(FL_N+1), fEd=Math.min(rST,fSt+0.58);
+                            if(fSt>rST) continue;
+                            const fPts=[];
+                            for(let s=0;s<=12;s++){
+                                const f=fSt+(s/12)*(fEd-fSt), a3=arcStart+f*arcSpan;
+                                const off2=Math.sin(fi*3.618+s*1.414)*riftW*0.40;
+                                fPts.push({x:cx+Math.cos(a3)*(R*rE*0.88+off2), y:cy+Math.sin(a3)*(R*rE*0.88+off2)});
+                            }
+                            const fC=['rgba(218,198,255,','rgba(142,218,255,','rgba(255,198,218,','rgba(198,255,218,'][fi%4];
+                            ctx.strokeStyle=fC+(0.22*rE)+')';
+                            ctx.shadowColor=['#aa77ff','#55bbff','#ff88aa','#77ffaa'][fi%4];
+                            ctx.shadowBlur=6; ctx.lineWidth=0.85+fi*0.28;
+                            ctx.beginPath(); ctx.moveTo(fPts[0].x,fPts[0].y);
+                            for(let s=1;s<fPts.length;s++) ctx.lineTo(fPts[s].x,fPts[s].y); ctx.stroke();
+                        }
+                        ctx.globalCompositeOperation='source-over'; ctx.shadowBlur=0;
+
+                        // Cosmic object: HIGH only (rage 2+)
+                        if (_gfxLevel === 0 && rageStacks>=2 && rST>0.30) {
+                            const anF=0.27, anA=arcStart+anF*arcSpan;
+                            const anX=cx+Math.cos(anA)*R*rE*0.88, anY=cy+Math.sin(anA)*R*rE*0.88;
+                            const anR=4+rageStacks*1.6;
+                            const anG=ctx.createRadialGradient(anX,anY,0,anX,anY,anR*3.0);
+                            anG.addColorStop(0,   rageStacks>=4?'rgba(218,248,255,0.97)':'rgba(255,238,208,0.93)');
+                            anG.addColorStop(0.28,rageStacks>=4?'rgba(88,172,255,0.74)':'rgba(202,102,255,0.68)');
+                            anG.addColorStop(0.65,'rgba(22,4,62,0.40)');
+                            anG.addColorStop(1,   'rgba(0,0,20,0)');
+                            ctx.fillStyle=anG; ctx.beginPath(); ctx.arc(anX,anY,anR*3,0,Math.PI*2); ctx.fill();
+                            ctx.fillStyle=rageStacks>=4?'rgba(238,252,255,1)':'rgba(255,244,228,1)';
+                            ctx.beginPath(); ctx.arc(anX,anY,anR*0.40,0,Math.PI*2); ctx.fill();
+                            if (rageStacks>=4) {
+                                ctx.strokeStyle='rgba(180,230,255,0.45)'; ctx.lineWidth=0.8;
+                                ctx.beginPath(); ctx.ellipse(anX,anY,anR*1.8,anR*0.7,anA+Math.PI/4,0,Math.PI*2); ctx.stroke();
+                            }
+                        }
+                    } // end interior (_gfxLevel < 2)
+
+                    ctx.restore(); // end clip
+
+                    // ── Edges ───────────────────────────────────────────────────
+                    // HIGH: outer haze + main glow + white razor (3 layers)
+                    // MED:  outer haze + main glow              (2 layers)
+                    // LOW:  main glow only                      (1 layer)
+                    const eGlow=rageStacks>=4?'#ddd8ff':rageStacks>=2?'#cc77ff':'#aa44cc';
+                    const eRGB =rageStacks>=4?'228,248,255':rageStacks>=2?'232,172,255':'212,132,255';
+                    // Outer haze (HIGH + MED)
+                    if (_gfxLevel < 2) {
+                        ctx.shadowColor=eGlow; ctx.shadowBlur=22+rageStacks*9;
+                        ctx.strokeStyle=`rgba(175,75,255,${0.10*rE})`; ctx.lineWidth=12+rageStacks*3;
+                        ctx.beginPath(); ctx.moveTo(inPts[0].x,inPts[0].y);
+                        for(let i=1;i<rN;i++) ctx.lineTo(inPts[i].x,inPts[i].y); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(outPts[0].x,outPts[0].y);
+                        for(let i=1;i<rN;i++) ctx.lineTo(outPts[i].x,outPts[i].y); ctx.stroke();
+                    }
+                    // Main glow edge (all tiers)
+                    ctx.shadowColor=eGlow; ctx.shadowBlur=12+rageStacks*5;
+                    ctx.strokeStyle=`rgba(${eRGB},${0.88*rE})`; ctx.lineWidth=2.2+rageStacks*0.48;
+                    ctx.beginPath(); ctx.moveTo(inPts[0].x,inPts[0].y);
+                    for(let i=1;i<rN;i++) ctx.lineTo(inPts[i].x,inPts[i].y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(outPts[0].x,outPts[0].y);
+                    for(let i=1;i<rN;i++) ctx.lineTo(outPts[i].x,outPts[i].y); ctx.stroke();
+                    // White razor (HIGH only)
+                    if (_gfxLevel === 0) {
+                        ctx.shadowColor='#ffffff'; ctx.shadowBlur=9;
+                        ctx.strokeStyle=`rgba(255,255,255,${0.70*rE})`; ctx.lineWidth=0.9;
+                        ctx.beginPath(); ctx.moveTo(inPts[0].x,inPts[0].y);
+                        for(let i=1;i<rN;i++) ctx.lineTo(inPts[i].x,inPts[i].y); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(outPts[0].x,outPts[0].y);
+                        for(let i=1;i<rN;i++) ctx.lineTo(outPts[i].x,outPts[i].y); ctx.stroke();
+                    }
+                    ctx.shadowBlur=0;
+
+                    // ── Edge sparks + fringe + tip flash ────────────────────────
+                    // HIGH: 12+stacks*4 sparks + fringe + tip flash
+                    // MED:  8 sparks only (no fringe, no tip)
+                    // LOW:  none
+                    if (_gfxLevel < 2) {
+                        const SPK_N = _gfxLevel === 0 ? 12+rageStacks*4 : 8;
+                        for(let spi=0;spi<SPK_N;spi++){
+                            const spF=(spi*0.6180339)%1; if(spF>rST-0.01) continue;
+                            const ePts=spi%2===0?inPts:outPts;
+                            const spI=Math.min(rN-1,Math.floor(spF*rN)); if(!ePts[spI]) continue;
+                            const tw2=Math.max(0, 0.44+0.52*Math.sin(now*0.0025+spi*2.618));
+                            const spSz=Math.max(0, (0.85+(spi%3)*0.58)*tw2);
+                            const spC=spi%4===0?`rgba(255,255,255,${tw2})`:spi%4===1?`rgba(222,182,255,${tw2*0.9})`:
+                                      spi%4===2?`rgba(182,222,255,${tw2*0.85})`:`rgba(255,212,238,${tw2*0.75})`;
+                            ctx.shadowColor='#ffffff'; ctx.shadowBlur=8; ctx.fillStyle=spC;
+                            ctx.beginPath(); ctx.arc(ePts[spI].x,ePts[spI].y,spSz,0,Math.PI*2); ctx.fill();
+                        }
+                        ctx.shadowBlur=0;
+
+                        // Fringe + tip flash: HIGH only
+                        if (_gfxLevel === 0) {
+                            const FRG_N=8+rageStacks*2;
+                            for(let fri=0;fri<FRG_N;fri++){
+                                const frF=(fri*0.6180339)%1; if(frF>rST-0.02) continue;
+                                const frAng=arcStart+frF*arcSpan;
+                                const ePts=fri%2===0?inPts:outPts;
+                                const frI=Math.min(rN-1,Math.floor(frF*rN)); if(!ePts[frI]) continue;
+                                const ep=ePts[frI];
+                                const frDir=frAng+(fri%2===0?Math.PI:0);
+                                const frLen=(3+Math.abs(Math.sin(fri*2.618))*(4+rageStacks))*rE;
+                                const kink=frDir+Math.sin(fri*3.14)*0.44;
+                                ctx.strokeStyle=`rgba(${eRGB},${0.28*rE})`; ctx.lineWidth=0.65;
+                                ctx.beginPath(); ctx.moveTo(ep.x,ep.y);
+                                ctx.lineTo(ep.x+Math.cos(kink)*frLen*0.5, ep.y+Math.sin(kink)*frLen*0.5);
+                                ctx.lineTo(ep.x+Math.cos(frDir+Math.sin(fri)*0.26)*frLen, ep.y+Math.sin(frDir+Math.sin(fri)*0.26)*frLen);
+                                ctx.stroke();
+                            }
+                            if(rST>0.04 && rST<0.97 && rN>=2){
+                                const tI=inPts[rN-1], tO=outPts[rN-1];
+                                const tMX=(tI.x+tO.x)/2, tMY=(tI.y+tO.y)/2;
+                                const tPulse=0.72+0.28*Math.sin(now*0.009);
+                                ctx.shadowColor='#ffffff'; ctx.shadowBlur=24;
+                                ctx.globalAlpha=tPulse*rE*0.90;
+                                const tG=ctx.createRadialGradient(tMX,tMY,0,tMX,tMY,10+rageStacks*2.8);
+                                tG.addColorStop(0,'rgba(255,255,255,1)'); tG.addColorStop(0.2,'rgba(215,190,255,0.82)');
+                                tG.addColorStop(0.6,'rgba(120,55,215,0.35)'); tG.addColorStop(1,'rgba(80,20,180,0)');
+                                ctx.fillStyle=tG; ctx.beginPath(); ctx.arc(tMX,tMY,10+rageStacks*2.8,0,Math.PI*2); ctx.fill();
+                                ctx.globalAlpha=tPulse*rE*0.65; ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=0.7;
+                                for(let ts=0;ts<5;ts++){
+                                    const tA=(ts/5)*Math.PI*2+now*0.004;
+                                    const tLen=6+rageStacks*1.5+Math.sin(now*0.01+ts)*2;
+                                    ctx.beginPath(); ctx.moveTo(tMX,tMY); ctx.lineTo(tMX+Math.cos(tA)*tLen,tMY+Math.sin(tA)*tLen); ctx.stroke();
+                                }
+                                ctx.globalAlpha=1;
+                            }
+                        } // end HIGH sparks/fringe/tip
+                    } // end MED+LOW edge sparks
+                }
+                ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+            }
+
             // Impact flash when tip sweeps through target (at midpoint of sweep)
             const impactSt = EXTEND + SWEEP * 0.5;
             const impA = Math.max(0, 1 - Math.abs(st - impactSt) / 115);
             if (impA > 0.04) {
-                if (!_mobPerf) { ctx.shadowColor = '#ff44ff'; ctx.shadowBlur = 45; }
+                const impR = 110 + rageStacks * 20; // larger at rage
+                if (!_mobPerf) {
+                    ctx.shadowColor = rageStacks >= 3 ? '#aaffff' : '#ff44ff';
+                    ctx.shadowBlur  = 45 + rageStacks * 8;
+                }
                 ctx.globalAlpha = impA * 0.92;
-                const impG = ctx.createRadialGradient(tx2, ty2, 0, tx2, ty2, 110);
-                impG.addColorStop(0,   'rgba(255,210,255,1.0)');
-                impG.addColorStop(0.2, 'rgba(230,80,255,0.90)');
+                const c1 = rageStacks >= 4 ? 'rgba(210,255,255,1.0)'
+                         : rageStacks >= 2 ? 'rgba(210,160,255,1.0)'
+                         :                  'rgba(255,210,255,1.0)';
+                const c2 = rageStacks >= 4 ? 'rgba(100,220,255,0.90)'
+                         : rageStacks >= 2 ? 'rgba(170,60,255,0.90)'
+                         :                  'rgba(230,80,255,0.90)';
+                const impG = ctx.createRadialGradient(tx2, ty2, 0, tx2, ty2, impR);
+                impG.addColorStop(0,   c1);
+                impG.addColorStop(0.2, c2);
                 impG.addColorStop(0.6, 'rgba(110,0,230,0.45)');
                 impG.addColorStop(1,   'rgba(55,0,180,0)');
                 ctx.fillStyle = impG;
-                ctx.beginPath(); ctx.arc(tx2, ty2, 110, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(tx2, ty2, impR, 0, Math.PI * 2); ctx.fill();
+                // Outer void ring (rage 2+)
+                if (!_mobPerf && rageStacks >= 2) {
+                    ctx.globalAlpha = impA * 0.55;
+                    ctx.strokeStyle = rageStacks >= 4 ? 'rgba(180,255,255,0.85)' : 'rgba(165,80,255,0.85)';
+                    ctx.lineWidth   = 1.5 + rageStacks * 0.5;
+                    ctx.beginPath(); ctx.arc(tx2, ty2, impR * 1.35, 0, Math.PI * 2); ctx.stroke();
+                }
                 ctx.shadowBlur = 0; ctx.globalAlpha = 1;
             }
 
             ctx.globalAlpha = 1; ctx.restore();
             } // end ext > 0.01
+        }
+
+        // DIMENSION BREAK — lingering rift zone fades over 1s after the slash
+        if (enemy._dimBreakZone) {
+            const dbz = enemy._dimBreakZone;
+            const dbAlpha = Math.max(0, (dbz.expireAt - now) / 1000);
+            if (dbAlpha > 0) {
+                ctx.save();
+                ctx.lineCap = 'round';
+                const dbEnd = dbz.arcStart + Math.PI;
+
+                // Wide haze (all quality levels)
+                ctx.globalAlpha = dbAlpha * 0.30;
+                ctx.strokeStyle = 'rgba(110,0,190,1)';
+                ctx.lineWidth = 32;
+                if (!_mobPerf) { ctx.shadowColor = '#6600cc'; ctx.shadowBlur = 20; }
+                ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
+
+                // Sharp edge (MED + HIGH)
+                if (_gfxLevel < 2) {
+                    ctx.globalAlpha = dbAlpha * 0.80;
+                    ctx.strokeStyle = 'rgba(195,90,255,1)';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = _mobPerf ? 0 : 12;
+                    ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
+                    // Bright inner thread
+                    ctx.globalAlpha = dbAlpha * 0.40;
+                    ctx.strokeStyle = 'rgba(255,215,255,1)';
+                    ctx.lineWidth = 1.0;
+                    ctx.shadowBlur = 0;
+                    ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
+                }
+
+                // Crack sparks along the arc (HIGH only)
+                if (!_mobPerf && _gfxLevel === 0) {
+                    const spN = 5 + Math.round(dbAlpha * 7);
+                    ctx.shadowColor = '#cc88ff'; ctx.shadowBlur = 8;
+                    for (let _si = 0; _si < spN; _si++) {
+                        const spA = dbz.arcStart + (_si / spN) * Math.PI + Math.sin(now * 0.003 + _si * 1.9) * 0.09;
+                        const spR = dbz.arcR + Math.sin(now * 0.005 + _si * 2.3) * 9;
+                        ctx.globalAlpha = dbAlpha * (0.45 + 0.45 * Math.abs(Math.sin(now * 0.007 + _si)));
+                        ctx.fillStyle = _si % 2 === 0 ? 'rgba(215,170,255,1)' : 'rgba(150,50,255,1)';
+                        ctx.beginPath(); ctx.arc(
+                            dbz.cx + Math.cos(spA) * spR,
+                            dbz.cy + Math.sin(spA) * spR,
+                            Math.max(0.1, 1.4 + Math.abs(Math.sin(now * 0.004 + _si)) * 2), 0, Math.PI * 2
+                        ); ctx.fill();
+                    }
+                }
+
+                ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+                ctx.restore();
+            }
         }
     }
 }

@@ -111,9 +111,9 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 |---|---|---|
 | 1–4 | +30% Max HP → **389 HP total**, +10% bullet speed | Cyan |
 | 5–11 | +20% fire rate, +10% damage, +10% Damage Reduction | Magenta |
+| 12 | Every shot becomes a Special Shot | Gold |
 
 All Sentinels have **5% base Damage Reduction** at all times (stacks with all other DR sources).
-| 12 | Every shot becomes a Special Shot | Gold |
 
 **Sentinel Parry** — While Glory for Justice is active, every hit a Sentinel receives has a **20% chance** to be completely negated (the damage is fully ignored). On a successful parry:
 
@@ -332,17 +332,18 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 ### Thaelis (Abnormal)
 
-**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 3 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
+**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
 
-HP: **500–1,100**.
+HP: **600–2,000**.
 
-Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or 7% EP to a Sentinel.
+Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or **12% EP** to a Sentinel.
 
 **Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
 
-- For every **1% of Max HP lost**, Thaelis gains **+1.75% Damage Reduction** on its body. Capped at **90% total DR** from this source.
-- For every **1% of Max HP lost**, Thaelis's projectile speed and normal attack fire rate each increase by **+0.1%**. Capped at **+20%**.
-- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it gains a shield worth **10% of its Max HP**.
+- For every **1% of Max HP lost**, Thaelis gains **+2.5% Damage Reduction** on its body. Capped at **95% total DR** from this source.
+- For every **0.5% of Max HP lost**, Thaelis's projectile speed increases by **+3.5%**. Capped at **+25%**.
+- No single hit can exceed **max(35%, 90% − 5% × HP% lost) × MaxHP** damage (scales down as HP is chipped away).
+- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Tenacity Barrier** worth **(30% MaxHP + 15% HP lost + 100) × 1.25**. This barrier is **completely separate from EP** — it must be fully destroyed before any damage (normal or piercing) reaches Thaelis. Displayed as a pulsing gold ring. Exception: the **Spirit Laser** bypasses the barrier.
 
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
@@ -425,21 +426,21 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 **Available after:** 35s | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
 
-HP: **1,400–3,000**. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
+HP: **1,600–3,500**. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
-**Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **75% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: **60% chance** the hit is fully deflected (zero damage); **40% chance** it is absorbed by one tentacle at **50% of original damage** with a flat **20% base DR** applied (net: 40% of the original hit). Tentacles cannot gain additional DR from any source. Egregor's body can only be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit, n = tentacles lost) or **piercing attacks** (tentacle takes 40% of hit, body takes **30% of original damage**, capped at **30% MaxHP**; no body damage if body HP is already 0). Body has a **5% passive dodge chance** on any hit. Egregor cannot coexist with Veilshroud on the field.
+**Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). Egregor's body can only be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit, n = tentacles lost) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **30% MaxHP**). Body has a **5% passive dodge chance** on any hit. Egregor cannot coexist with Veilshroud on the field.
 
-**Passive: Mind Link** — Each time a non-Egregor enemy dies within **600px**, Egregor gains a **Rage Stack** (max 5 active at once, each lasting 8 seconds). A pulsing red dashed ring marks the 600px range. Per stack gained: **+12% attack speed**, **+15% movement speed**, **+10% Max HP**, and **Heal 10% of current MaxHP**. Gaining a Rage Stack immediately triggers a Psychic Tempest cast (if not already casting).
+**Passive: Mind Link** — Each time a non-Egregor enemy dies within **600px**, Egregor gains a **Rage Stack** (max 5 active at once, each lasting 8 seconds). A pulsing red dashed ring marks the 600px range. Per stack gained: **+18% movement speed**, **+15% Max HP**, **Heal 15% of current MaxHP**, all alive tentacles are **healed 15% of their max HP** and gain **+3% DR** (stacks additively, max +15% at 5 stacks). Gaining a Rage Stack immediately triggers a Psychic Tempest cast (if not already casting).
 
-**Skill: Psychic Tempest** (CD 4s, reduced by rage) — Selects up to **3 random targets** from the player and active Sentinels. Target positions are **locked at the moment of cast** — the bolts do not track movement. After a **1.2-second telegraph** (shrinking impact ring + converging sparks + warning thread from Egregor), all selected targets are struck simultaneously by psychic lightning from Egregor's original position. The strike hits within **100px radius**: costs **1 player life** or deals **20% of Sentinel MaxHP** per hit. If Egregor dies during the telegraph phase, the bolts still fire.
+**Skill: Psychic Tempest** (CD 4s, 15% faster with any rage) — Selects up to **3 random targets** from the player and active Sentinels. Target positions are **locked at the moment of cast** — the bolts do not track movement. After a **1.2-second telegraph** (shrinking impact ring + converging sparks + warning thread from Egregor), all selected targets are struck simultaneously by psychic lightning from Egregor's original position. The strike hits within **100px radius**: costs **1 player life** or deals **20% of Sentinel MaxHP** per hit. If Egregor dies during the telegraph phase, the bolts still fire.
 
-**Skill: Null Slash** (CD 3.5s between strikes) — Egregor locks onto the player and begins a windup of **1–3 seconds** (base 3s no rage / 2.5s with any rage, reduced by 0.25s per stack, minimum 1s). During the windup Egregor continues moving forward, tracks the player live, and gains **+30% DR**. At release, the target position is locked and a giant tentacle arc sweeps a **180° semicircle** toward that point. Anything inside the arc is hit: **Player** — no life lost, movement slowed **50% for 1.5s** (visible purple ring + falling particles; Yog-Sothoth dodges — still no life loss). **Sentinels** — **15% MaxHP true damage** (1 hit) / **20% MaxHP** (2 hits) / **28% MaxHP** (3+ hits), rage bonus up to +25%.
+**Skill: Null Slash** (CD 3.5s between strikes) — Egregor locks onto the player and begins a windup of **1–3 seconds** (base 3s no rage / 2.5s with any rage, reduced by 0.25s per stack, minimum 1s). During the windup Egregor continues moving forward, tracks the player live, and gains **+35% DR**. At release, the target position is locked and a giant tentacle arc sweeps a **180° semicircle** toward that point. Anything inside the arc is hit: **Player** — no life lost, movement slowed **50% for 1.5s** (visible purple ring + falling particles; Yog-Sothoth dodges — still no life loss). **Sentinels** — **15% MaxHP true damage** (1 hit) / **20% MaxHP** (2 hits) / **28% MaxHP** (3+ hits), rage bonus **+6% per stack** up to **+30%**. After the sweep, a **Dimension Break** zone (glowing purple arc) lingers on the slash path for **1 second** — moving through it slows the player an additional **20%**.
 
 ---
 
 ### Dargruel (Dominator)
 
-**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.8 u/s
+**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.8 u/s
 
 HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 
@@ -542,10 +543,10 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 |---|---|---|---|---|---|---|
 | Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.6 u/s | — |
 | Veilshroud | Abnormal | 25s | 12% → 25% | 2 | 2.0 u/s | — |
-| Thaelis | Abnormal | 30s | 12% → 25% | 3 | ~1.4 u/s | — |
+| Thaelis | Abnormal | 30s | 12% → 25% | 2 | ~1.4 u/s | — |
 | Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s | — |
-| Egregor | Elite | 35s | 3% → 12% | 1 | 1.5 u/s | — |
-| Dargruel | Dominator | 30s | 4% → 13% | 2 | ~1.8 u/s | — |
+| Egregor | Elite | 35s | 3.5% → 12% | 1 | 1.5 u/s | — |
+| Dargruel | Dominator | 30s | 4% → 13% | 1 | ~1.8 u/s | — |
 | Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.5 u/s | 6s after kill |
 
 Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum.

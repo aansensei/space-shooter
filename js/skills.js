@@ -840,7 +840,7 @@ function updateSpiritFinale(spirit, deltaTime) {
                     if (enemy.type === 'veilshroud_echo') return; // untargetable
                     if (enemy.inCoronation) return;
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
-                    dealDamage(enemy, { damage: 10, percentDamage: 0.40 });
+                    dealDamage(enemy, { damage: 10, percentDamage: 0.40, isSpiritLaser: true });
                 });
             }
             if (spirit.finaleChargeTime <= 0) spirit.finaleState = 'firing';

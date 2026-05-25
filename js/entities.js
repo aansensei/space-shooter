@@ -223,7 +223,7 @@ function spawnEnemy() {
     const canSpawnLeviathan = leviathanCount < 1 && totalElite < 6 && levCooldownOk;
     const canSpawnVeilshroud = veilshroudCount < 2 && totalElite < 6 && egregorCount === 0;
     const canSpawnEgregor = egregorCount < 1 && totalElite < 6 && veilshroudCount === 0 && egrCooldownOk;
-    const egregorRate = (elapsedSec >= 0) ? 1 : 0; // TEMP: normally (elapsedSec >= 35) ? (0.03 + t * 0.09) : 0
+    const egregorRate = (elapsedSec >= 35) ? (0.035 + t * 0.085) : 0;
 
     // Veilshroud: unlock sau 25s, tỉ lệ spawn bằng Thaelis
     const veilshroudRate = (elapsedSec >= 25) ? (0.12 + t * 0.13) : 0;
@@ -276,14 +276,15 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(1100, 500 + hpFromTime * 18);
+    let hp = Math.min(2000, 600 + hpFromTime * 40);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
         hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'thaelis', shootTimer: 1000, reincarnated: false,
-        _tenacityShield70: false, _tenacityShield40: false, _tenacityShield10: false
+        _tenacityBarrier: 0, _tenacityBarrierMax: 0,
+        _tenacityBarrier70: false, _tenacityBarrier40: false, _tenacityBarrier10: false
     });
 }
 
@@ -820,6 +821,17 @@ function findClosestSentinelOrPlayer(x, y) {
     return closest;
 }
 
+// Helper: add shield to an enemy — khi Thaelis đang có barrier, mọi khiên đều dồn vào barrier thay thế
+function _addEnemyShield(enemy, amount) {
+    if (!amount || amount <= 0) return;
+    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0) {
+        enemy._tenacityBarrier += amount;
+        enemy._tenacityBarrierMax = Math.max(enemy._tenacityBarrierMax || 0, enemy._tenacityBarrier);
+        return;
+    }
+    enemy.shield = (enemy.shield || 0) + amount;
+}
+
 function triggerDemonGift(boss) {
     demonGiftEffect.active = true;
     demonGiftEffect.endTime = performance.now() + 4000;
@@ -843,10 +855,10 @@ function triggerDemonGift(boss) {
             if (enemy.soulReaver) shieldGain *= 0.75;
             if (veilNormal) shieldGain *= 1.25; // Alteration: +25% shield
             if (veilPhantom) shieldGain *= 0.75; // Phantom: -25% shield
-            enemy.shield = (enemy.shield || 0) + shieldGain;
+            _addEnemyShield(enemy, shieldGain);
         } else if (veilNormal) {
             // Alteration: nhận thêm khiên bằng lượng hồi phục
-            enemy.shield = (enemy.shield || 0) + healAmount;
+            _addEnemyShield(enemy, healAmount);
         }
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
 
@@ -962,7 +974,9 @@ function dealDamage(enemy, source) {
         if (!_allTentDead) {
             // Helper: deal damage to the first alive tentacle
             const _applyTentacleDmg = () => {
-                const _tenDmg = Math.ceil(totalDamage * 0.50 * 0.80); // 40% of original
+                // Mind Link rage: +3% tentacle DR per stack, max +15%
+                const _rageTentDR = Math.min(0.15, (enemy._rageStacks || 0) * 0.03);
+                const _tenDmg = Math.ceil(totalDamage * 0.35 * 0.75 * (1 - _rageTentDR)); // ~26% base, less with rage
                 if (!enemy._tentacleHps) return;
                 const _ti = enemy._tentacleHps.findIndex(hp => hp > 0);
                 if (_ti === -1) return;
@@ -981,8 +995,9 @@ function dealDamage(enemy, source) {
             };
 
             if (!source.isPiercing) {
-                // Normal: 60% deflect, 40% → tentacle; body never reached while tentacles alive
-                if (Math.random() < 0.60) return;
+                // Normal: deflect chance scales with alive tentacles (up to 60%)
+                const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
+                if (Math.random() < (_aliveTents / 10) * 0.60) return;
                 _applyTentacleDmg();
                 return;
             }
@@ -1003,9 +1018,9 @@ function dealDamage(enemy, source) {
     }
 
     let combinedDR = 0;
-    // Egregor: Null Slash charging — +30% DR vs true damage too
+    // Egregor: Null Slash charging — +35% DR vs true damage too
     if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging') {
-        combinedDR += 0.30;
+        combinedDR += 0.35;
     }
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
         combinedDR += (enemy.demonGiftStacks === 2) ? 0.30 : 0.18;
@@ -1017,10 +1032,10 @@ function dealDamage(enemy, source) {
         combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
     }
 
-    // Tenacity: +1.75% DR per 1% HP lost, cap 90%
+    // Tenacity: +2.5% DR per 1% HP lost, cap 95%
     if (enemy.type === 'thaelis') {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
-        combinedDR += Math.min(0.90, hpLostPct * 0.0175);
+        combinedDR += Math.min(0.95, hpLostPct * 0.025);
     }
 
     if (enemy.type === 'aegis_core') {
@@ -1053,9 +1068,9 @@ function dealDamage(enemy, source) {
         combinedDR += 0.60; // Inevitable: 60% base DR
     }
 
-    // Egregor Null Slash charging: +30% DR on body hits
+    // Egregor Null Slash charging: +35% DR on body hits
     if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging') {
-        combinedDR += 0.30;
+        combinedDR += 0.35;
     }
     if (enemy.type === 'embryo') {
         combinedDR += 0.90;
@@ -1191,6 +1206,13 @@ function dealDamage(enemy, source) {
         }
     }
 
+    // Tenacity Bulwark (Thaelis): per-hit cap = max(35%, 90% - 5% per 1% HP lost) × maxHp
+    if (enemy.type === 'thaelis') {
+        const _hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
+        const _tCap = Math.max(0.35, 0.90 - _hpLostPct * 0.05);
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _tCap));
+    }
+
     // Collective Mind (Egregor): body per-hit cap for true damage
     // Cap = max(25%, 90% - 10% per lost tentacle) of body MaxHP
     if (enemy.type === 'egregor') {
@@ -1201,6 +1223,23 @@ function dealDamage(enemy, source) {
 
     // Egregor: 5% body dodge on all true-damage hits
     if (enemy.type === 'egregor' && Math.random() < 0.05) return;
+
+    // Tenacity Barrier (Thaelis): lớp khiên riêng, chặn MỌI đòn (kể cả true/piercing)
+    // Ngoại lệ: isSpiritLaser (tia laze đại tinh linh) xuyên qua bình thường
+    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0 && !source.isSpiritLaser) {
+        const _absorbed = Math.min(totalDamage, enemy._tenacityBarrier);
+        enemy._tenacityBarrier -= _absorbed;
+        enemy._tenacityBarrier = Math.max(0, enemy._tenacityBarrier);
+        if (enemy._tenacityBarrier <= 0) {
+            enemy._tenacityBarrier = 0;
+            // Barrier break VFX
+            addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#ffdd00');
+            createParticles(enemy.x, enemy.y, 40, '#ffe066', 4, 14);
+            createParticles(enemy.x, enemy.y, 20, '#ffffff', 3, 10);
+        }
+        totalDamage -= _absorbed;
+        if (totalDamage <= 0) { enemy.hp = Math.max(0, enemy.hp); return; }
+    }
 
     // Apply damage: true damage and true-damage-window both bypass shield
     if (source.isTrueDamage || inTrueDmgWindow) {
@@ -1299,14 +1338,24 @@ function dealDamage(enemy, source) {
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { triggerDemonGift(enemy); enemy.demonGift1Triggered = true; }
     }
 
-    // Tenacity — mỗi khi mất 30% HP, nhận 1 lớp khiên 10% MaxHP
+    // Tenacity — mỗi khi mất 30% HP, nhận lớp khiên riêng (30% MaxHP + 15% HP đã mất + 100) × 1.25
     if (enemy.type === 'thaelis') {
         const oldPct = oldHP / enemy.maxHp;
         const newPct = enemy.hp / enemy.maxHp;
-        const shieldGrant = enemy.maxHp * 0.10;
-        if (oldPct > 0.70 && newPct <= 0.70 && !enemy._tenacityShield70) { enemy.shield = (enemy.shield || 0) + shieldGrant; enemy._tenacityShield70 = true; createParticles(enemy.x, enemy.y, 10, '#ffe066', 2, 6); }
-        if (oldPct > 0.40 && newPct <= 0.40 && !enemy._tenacityShield40) { enemy.shield = (enemy.shield || 0) + shieldGrant; enemy._tenacityShield40 = true; createParticles(enemy.x, enemy.y, 10, '#ffe066', 2, 6); }
-        if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityShield10) { enemy.shield = (enemy.shield || 0) + shieldGrant; enemy._tenacityShield10 = true; createParticles(enemy.x, enemy.y, 10, '#ffe066', 2, 6); }
+        const _hpLost = enemy.maxHp - enemy.hp;
+        const shieldGrant = Math.ceil((enemy.maxHp * 0.30 + _hpLost * 0.15 + 100) * 1.25);
+        const _grantBarrier = () => {
+            // Lớp khiên hoàn toàn tách biệt với EP — _tenacityBarrier
+            enemy._tenacityBarrier = (enemy._tenacityBarrier || 0) + shieldGrant;
+            enemy._tenacityBarrierMax = (enemy._tenacityBarrierMax || 0) + shieldGrant;
+            // Enhanced visuals
+            addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#ffe066');
+            createParticles(enemy.x, enemy.y, 35, '#ffe066', 3, 12);
+            createParticles(enemy.x, enemy.y, 18, '#ffffff', 2, 8);
+        };
+        if (oldPct > 0.70 && newPct <= 0.70 && !enemy._tenacityBarrier70) { _grantBarrier(); enemy._tenacityBarrier70 = true; }
+        if (oldPct > 0.40 && newPct <= 0.40 && !enemy._tenacityBarrier40) { _grantBarrier(); enemy._tenacityBarrier40 = true; }
+        if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityBarrier10) { _grantBarrier(); enemy._tenacityBarrier10 = true; }
     }
 }
 // LEVIATHAN — Dominator Class
@@ -1703,7 +1752,7 @@ function updateApostleCoronation(enemy, deltaTime) {
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.min(3000, 1400 + hpFromTime * 45);
+    const hp = Math.min(3500, 1600 + hpFromTime * 54);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size,
         y: -size,
@@ -1731,6 +1780,7 @@ function spawnEgregor() {
         _nullSlashTargetY: 0,
         _nullSlashDmgDealt: false,
         _nullSlashTentPts: null,
+        _dimBreakZone: null,
         // Collective Mind tentacles
         _tentacleHps: null,   // initialized in updateEgregor on first tick
         _tentaclesLost: 0,
@@ -1753,7 +1803,7 @@ function updateEgregor(enemy, deltaTime) {
 
     // Collective Mind — init tentacle HP pools on first tick
     if (!enemy._tentacleHps) {
-        const tentHP = Math.ceil(enemy.maxHp * 0.75);
+        const tentHP = Math.ceil(enemy.maxHp * 0.78);
         enemy._tentacleHps = Array(10).fill(tentHP);
         enemy._tentaclesLost = 0;
     }
@@ -1764,12 +1814,11 @@ function updateEgregor(enemy, deltaTime) {
     enemy._rageEndTimes = (enemy._rageEndTimes || []).filter(t => t > now);
     enemy._rageStacks = enemy._rageEndTimes.length;
 
-    // Speed/attack bonuses from rage
-    const _speedMult = 1 + enemy._rageStacks * 0.15;   // +15% move spd per stack
-    const _atkMult  = 1 + enemy._rageStacks * 0.12;    // +12% atk spd per stack → reduces tempest CD
-    // Rage active: all skills/effects 15% faster (except Null Slash — handled separately)
+    // Speed bonus from rage (+18% move speed per stack)
+    const _speedMult = 1 + enemy._rageStacks * 0.18;
+    // Rage active: Tempest 15% faster (flat bonus only)
     const _rageOn = (enemy._rageStacks > 0);
-    const _tempestCD = (4000 * (_rageOn ? 0.85 : 1.0)) / _atkMult;
+    const _tempestCD = 4000 * (_rageOn ? 0.85 : 1.0);
 
     // Movement: descend to ~22% down screen, then gentle hover (flag prevents re-entry jitter)
     const targetY = canvas.height * 0.22;
@@ -1963,7 +2012,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             const sx = enemy._nullSlashTargetX, sy = enemy._nullSlashTargetY;
             const _ex = enemy.x, _ey = enemy.y;
             const _nsAng = enemy._nullSlashAngle;
-            const _arcR = Math.hypot(sx - _ex, sy - _ey);
+            const _arcR = Math.hypot(sx - _ex, sy - _ey) + (enemy._rageStacks || 0) * 5;
             // Hit: inside the 180° sweep sector, within arcR+100px of Egregor
             const _inSlash = (tx, ty) => {
                 if (Math.hypot(tx - _ex, ty - _ey) > _arcR + 100) return false;
@@ -1993,7 +2042,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             if (hc > 0) {
                 const pct = hc === 1 ? 0.15 : hc === 2 ? 0.20 : 0.28;
                 // Rage bonus: +5% per stack, max +25%
-                const _nsRageMult = 1 + Math.min(5, enemy._rageStacks || 0) * 0.05;
+                const _nsRageMult = 1 + Math.min(0.30, Math.min(5, enemy._rageStacks || 0) * 0.06);
                 for (const s of hitSents) {
                     dealDamage(s, { damage: Math.ceil(s.maxHp * pct * _nsRageMult), isTrueDamage: true });
                     addExplosion(s.x, s.y, 65, '#7700dd');
@@ -2011,6 +2060,17 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             enemy._nullSlashPhase = 'ready';
             enemy._nullSlashCooldownEnd = now + 3500; // 3.5s CD
             enemy._nullSlashTentPts = null;
+            // Spawn Dimension Break: lingering hazard zone along the slash arc for 1s
+            const _dbArcR = Math.hypot(enemy._nullSlashTargetX - enemy.x, enemy._nullSlashTargetY - enemy.y)
+                          + (enemy._rageStacks || 0) * 5;
+            enemy._dimBreakZone = {
+                cx: enemy.x, cy: enemy.y,
+                arcR: _dbArcR,
+                angle: enemy._nullSlashAngle,
+                arcStart: enemy._nullSlashAngle - Math.PI / 2,
+                expireAt: now + 1000,
+                spawnAt: now
+            };
         }
     }
 }
