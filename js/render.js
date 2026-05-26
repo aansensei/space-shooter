@@ -50,6 +50,126 @@ window._applyGfxLevel = _applyGfxLevel;
 
 // END MOBILE FLAGS
 
+// ── Glow sprite cache: pre-rendered radial gradient drawn with drawImage (GPU path, no CPU blur) ──
+const _glowSpriteCache = {};
+function _getGlowSprite(color, radius) {
+    const r = Math.ceil(radius);
+    const key = color + '_' + r;
+    if (_glowSpriteCache[key]) return _glowSpriteCache[key];
+    const dim = r * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = dim;
+    const cx = c.getContext('2d');
+    const g = cx.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0, color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = g;
+    cx.fillRect(0, 0, dim, dim);
+    _glowSpriteCache[key] = c;
+    return c;
+}
+
+// ── Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality) ──
+const _bulletSpriteCache = {};
+function _getBulletSprite(type, size, gfxLvl) {
+    const sz = Math.max(1, Math.round(size));
+    const key = type + '_' + sz + '_' + gfxLvl;
+    if (_bulletSpriteCache[key]) return _bulletSpriteCache[key];
+    const highQ = gfxLvl < 1;
+    const pad = Math.ceil(sz * 1.6);
+    const dim = sz * 2 + pad * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = dim;
+    const cx = c.getContext('2d');
+    const ctr = dim / 2;
+    let grad;
+    switch (type) {
+        case 'sentinel_special': {
+            if (highQ) {
+                cx.fillStyle = 'rgba(255,210,0,0.18)';
+                cx.beginPath();
+                cx.moveTo(ctr, ctr - sz * 0.75); cx.lineTo(ctr + sz * 0.5, ctr);
+                cx.lineTo(ctr, ctr + sz * 0.75); cx.lineTo(ctr - sz * 0.5, ctr);
+                cx.closePath(); cx.fill();
+            }
+            grad = cx.createRadialGradient(ctr, ctr - sz * 0.2, 0, ctr, ctr, sz * 0.5);
+            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#ffe066');
+            grad.addColorStop(0.7, '#e6a800'); grad.addColorStop(1, '#7a5000');
+            cx.fillStyle = grad;
+            cx.beginPath();
+            cx.moveTo(ctr, ctr - sz / 2); cx.lineTo(ctr + sz / 3, ctr);
+            cx.lineTo(ctr, ctr + sz / 2); cx.lineTo(ctr - sz / 3, ctr);
+            cx.closePath(); cx.fill();
+            cx.fillStyle = 'rgba(255,255,220,0.75)';
+            cx.beginPath();
+            cx.moveTo(ctr, ctr - sz / 2); cx.lineTo(ctr + sz * 0.12, ctr - sz * 0.1);
+            cx.lineTo(ctr, ctr - sz * 0.05); cx.closePath(); cx.fill();
+            break;
+        }
+        case 'player_charged': {
+            if (highQ) { cx.fillStyle = 'rgba(100,180,255,0.2)'; cx.beginPath(); cx.arc(ctr, ctr, sz * 1.45, 0, Math.PI * 2); cx.fill(); }
+            grad = cx.createRadialGradient(ctr - sz * 0.2, ctr - sz * 0.2, 0, ctr, ctr, sz);
+            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.35, '#88ccff');
+            grad.addColorStop(0.7, '#2277dd'); grad.addColorStop(1, 'rgba(0,60,180,0.5)');
+            cx.fillStyle = grad; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
+            cx.fillStyle = 'rgba(255,255,255,0.6)';
+            cx.beginPath(); cx.ellipse(ctr - sz * 0.25, ctr - sz * 0.25, sz * 0.22, sz * 0.13, -0.8, 0, Math.PI * 2); cx.fill();
+            break;
+        }
+        case 'sentinel_auto': case 'sentinel_death': {
+            if (highQ) { cx.fillStyle = 'rgba(0,200,220,0.15)'; cx.beginPath(); cx.arc(ctr, ctr, sz * 1.4, 0, Math.PI * 2); cx.fill(); }
+            grad = cx.createRadialGradient(ctr - sz * 0.2, ctr - sz * 0.2, 0, ctr, ctr, sz);
+            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#44ffee');
+            grad.addColorStop(0.7, '#00aaaa'); grad.addColorStop(1, 'rgba(0,60,80,0.5)');
+            cx.fillStyle = grad; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
+            cx.fillStyle = 'rgba(200,255,255,0.55)';
+            cx.beginPath(); cx.ellipse(ctr - sz * 0.2, ctr - sz * 0.2, sz * 0.2, sz * 0.12, -0.8, 0, Math.PI * 2); cx.fill();
+            break;
+        }
+        default: { // player_auto and any unknown type
+            if (highQ) { cx.fillStyle = 'rgba(160,80,255,0.15)'; cx.beginPath(); cx.arc(ctr, ctr, sz * 1.4, 0, Math.PI * 2); cx.fill(); }
+            grad = cx.createRadialGradient(ctr - sz * 0.2, ctr - sz * 0.2, 0, ctr, ctr, sz);
+            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#cc88ff');
+            grad.addColorStop(0.7, '#7700cc'); grad.addColorStop(1, 'rgba(40,0,80,0.5)');
+            cx.fillStyle = grad; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
+            cx.fillStyle = 'rgba(240,200,255,0.55)';
+            cx.beginPath(); cx.ellipse(ctr - sz * 0.2, ctr - sz * 0.2, sz * 0.22, sz * 0.13, -0.8, 0, Math.PI * 2); cx.fill();
+            break;
+        }
+    }
+    _bulletSpriteCache[key] = c;
+    return c;
+}
+
+// ── Spirit bullet sprite cache (full quality, drawn with lighter blendMode) ──
+const _spiritSpriteCache = {};
+function _getSpiritSprite(isPhoto, size) {
+    const sz = Math.max(1, Math.round(size));
+    const key = (isPhoto ? 'ph' : 'sp') + '_' + sz;
+    if (_spiritSpriteCache[key]) return _spiritSpriteCache[key];
+    const pad = Math.ceil(sz * 1.6);
+    const dim = sz * 2 + pad * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = dim;
+    const cx = c.getContext('2d');
+    const ctr = dim / 2;
+    cx.fillStyle = isPhoto ? 'rgba(0,180,60,0.15)' : 'rgba(255,80,200,0.15)';
+    cx.beginPath(); cx.arc(ctr, ctr, sz * 1.4, 0, Math.PI * 2); cx.fill();
+    const sg = cx.createRadialGradient(ctr - sz * 0.2, ctr - sz * 0.2, 0, ctr, ctr, sz);
+    if (isPhoto) {
+        sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#80ff90');
+        sg.addColorStop(0.7, '#00aa30'); sg.addColorStop(1, 'rgba(0,40,10,0.5)');
+    } else {
+        sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#ff88dd');
+        sg.addColorStop(0.7, '#cc00aa'); sg.addColorStop(1, 'rgba(80,0,60,0.5)');
+    }
+    cx.fillStyle = sg; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = isPhoto ? 'rgba(200,255,210,0.55)' : 'rgba(255,220,240,0.55)';
+    cx.beginPath(); cx.ellipse(ctr - sz * 0.2, ctr - sz * 0.2, sz * 0.2, sz * 0.12, -0.8, 0, Math.PI * 2); cx.fill();
+    _spiritSpriteCache[key] = c;
+    return c;
+}
+
 function drawSpaceBackground(deltaTime) {
     // Mobile: cache background, redraw every 3 frames
     if (_mobPerf) {
@@ -895,8 +1015,12 @@ function draw(deltaTime) {
 
         // Draw non-bullet enemies first (background layer)
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') drawEnemy(e); });
-        bullets.forEach(drawBullet);
-        spiritBullets.forEach(drawSpiritBullet);
+        if (window._usePixi && window._pixiDrawBullets) {
+            window._pixiDrawBullets(bullets, spiritBullets);
+        } else {
+            bullets.forEach(drawBullet);
+            spiritBullets.forEach(drawSpiritBullet);
+        }
         spirits.forEach(drawSpirit);
         photoBrangs.forEach(drawPhotoBrang);
         if (primevalSummonEffect) drawPrimevalSummonEffect(primevalSummonEffect);
@@ -918,8 +1042,10 @@ function draw(deltaTime) {
         {
             const _specials = [];
             const _batches = new Map();
+            const _pixiP = window._usePixi && window._pixiDrawParticles;
             for (const p of particles) {
                 if (p.isSummonRing || p.isLaserLine || p.isSkillGAura) { _specials.push(p); continue; }
+                if (_pixiP) continue; // normal particles routed to Pixi
                 // Round alpha to 0.05 steps — imperceptible diff, enables color+alpha batching
                 const _a = Math.round((p.lifetime / p.maxLifetime) * 20) / 20;
                 const _k = p.color + '|' + _a;
@@ -928,18 +1054,22 @@ function draw(deltaTime) {
                 _b.ps.push(p);
             }
             _specials.forEach(drawParticle);
-            ctx.save();
-            if (!_mobPerf) ctx.shadowBlur = 5;
-            for (const [, _b] of _batches) {
-                ctx.globalAlpha = _b.alpha;
-                if (!_mobPerf) ctx.shadowColor = _b.color;
-                ctx.fillStyle = _b.color;
-                ctx.beginPath();
-                for (const p of _b.ps) { ctx.moveTo(p.x + p.size, p.y); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); }
-                ctx.fill();
+            if (_pixiP) {
+                window._pixiDrawParticles(particles);
+            } else {
+                ctx.save();
+                if (!_mobPerf) ctx.shadowBlur = 5;
+                for (const [, _b] of _batches) {
+                    ctx.globalAlpha = _b.alpha;
+                    if (!_mobPerf) ctx.shadowColor = _b.color;
+                    ctx.fillStyle = _b.color;
+                    ctx.beginPath();
+                    for (const p of _b.ps) { ctx.moveTo(p.x + p.size, p.y); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); }
+                    ctx.fill();
+                }
+                ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+                ctx.restore();
             }
-            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-            ctx.restore();
         }
         chainLightningEffects.forEach(drawChainLightning);
         if (skillFState !== 'ready') drawSkillF();
@@ -1075,6 +1205,7 @@ function draw(deltaTime) {
         const _pts = Math.floor((_pt % 60000) / 1000);
         ctx.fillText("Time  ·  " + _ptm + ":" + (_pts < 10 ? "0" : "") + _pts, _cx, _cy + 40);
     }
+    if (window._usePixi && window._pixiRender) window._pixiRender();
     ctx.restore();
 }
 
@@ -2136,95 +2267,8 @@ function drawBullet(b) {
         }
         ctx.globalAlpha = 1;
     }
-    switch (b.type) {
-        case 'sentinel_special': {
-            // ALLY – golden diamond, exact original shape (top/bot = size/2, sides = size/3)
-            // outer soft halo — FULL quality only
-            if (_gfxLevel < 1) {
-                ctx.fillStyle = 'rgba(255,210,0,0.18)';
-                ctx.beginPath();
-                ctx.moveTo(b.x, b.y - b.size * 0.75);
-                ctx.lineTo(b.x + b.size * 0.5, b.y);
-                ctx.lineTo(b.x, b.y + b.size * 0.75);
-                ctx.lineTo(b.x - b.size * 0.5, b.y);
-                ctx.closePath(); ctx.fill();
-            }
-            // main gradient diamond
-            const dg = ctx.createRadialGradient(b.x, b.y - b.size * 0.2, 0, b.x, b.y, b.size * 0.5);
-            dg.addColorStop(0, '#ffffff');
-            dg.addColorStop(0.3, '#ffe066');
-            dg.addColorStop(0.7, '#e6a800');
-            dg.addColorStop(1, '#7a5000');
-            ctx.fillStyle = dg;
-            ctx.beginPath();
-            ctx.moveTo(b.x, b.y - b.size / 2);
-            ctx.lineTo(b.x + b.size / 3, b.y);
-            ctx.lineTo(b.x, b.y + b.size / 2);
-            ctx.lineTo(b.x - b.size / 3, b.y);
-            ctx.closePath(); ctx.fill();
-            // tiny facet highlight
-            ctx.fillStyle = 'rgba(255,255,220,0.75)';
-            ctx.beginPath();
-            ctx.moveTo(b.x, b.y - b.size / 2);
-            ctx.lineTo(b.x + b.size * 0.12, b.y - b.size * 0.1);
-            ctx.lineTo(b.x, b.y - b.size * 0.05);
-            ctx.closePath(); ctx.fill();
-            break;
-        }
-        case 'player_charged': {
-            // ALLY – bright blue-white charged orb
-            // outer glow ring — FULL quality only
-            if (_gfxLevel < 1) {
-                ctx.fillStyle = 'rgba(100,180,255,0.2)';
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.45, 0, Math.PI * 2); ctx.fill();
-            }
-            const cg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-            cg.addColorStop(0, '#ffffff');
-            cg.addColorStop(0.35, '#88ccff');
-            cg.addColorStop(0.7, '#2277dd');
-            cg.addColorStop(1, 'rgba(0,60,180,0.5)');
-            ctx.fillStyle = cg;
-            ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
-            // glint
-            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.25, b.y - b.size * 0.25, b.size * 0.22, b.size * 0.13, -0.8, 0, Math.PI * 2); ctx.fill();
-            break;
-        }
-        case 'sentinel_auto': case 'sentinel_death': {
-            // ALLY – cyan-teal sentinel shot
-            if (_gfxLevel < 1) {
-                ctx.fillStyle = 'rgba(0,200,220,0.15)';
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
-            }
-            const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-            sg.addColorStop(0, '#ffffff');
-            sg.addColorStop(0.3, '#44ffee');
-            sg.addColorStop(0.7, '#00aaaa');
-            sg.addColorStop(1, 'rgba(0,60,80,0.5)');
-            ctx.fillStyle = sg;
-            ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'rgba(200,255,255,0.55)';
-            ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.2, b.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
-            break;
-        }
-        case 'player_auto': default: {
-            // ALLY – violet-purple player auto shot
-            if (_gfxLevel < 1) {
-                ctx.fillStyle = 'rgba(160,80,255,0.15)';
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
-            }
-            const pg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-            pg.addColorStop(0, '#ffffff');
-            pg.addColorStop(0.3, '#cc88ff');
-            pg.addColorStop(0.7, '#7700cc');
-            pg.addColorStop(1, 'rgba(40,0,80,0.5)');
-            ctx.fillStyle = pg;
-            ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'rgba(240,200,255,0.55)';
-            ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.22, b.size * 0.13, -0.8, 0, Math.PI * 2); ctx.fill();
-            break;
-        }
-    }
+    const _bs = _getBulletSprite(b.type || 'player_auto', b.size, _gfxLevel);
+    ctx.drawImage(_bs, b.x - _bs.width / 2, b.y - _bs.height / 2);
     ctx.restore();
 }
 
@@ -2256,30 +2300,11 @@ function drawSpiritBullet(b) {
         // Center dot
         ctx.fillStyle = '#ffffff';
         ctx.beginPath(); ctx.arc(x, y, s * 0.28, 0, Math.PI * 2); ctx.fill();
-    } else if (b.isPhoto) {
-        // Full quality — Phōtokrystos bullets — dark green
-        ctx.globalCompositeOperation = 'lighter'; // additive: bullets look like light sources
-        ctx.fillStyle = 'rgba(0,180,60,0.15)';
-        ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
-        const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-        sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#80ff90');
-        sg.addColorStop(0.7, '#00aa30'); sg.addColorStop(1, 'rgba(0,40,10,0.5)');
-        ctx.fillStyle = sg;
-        ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(200,255,210,0.55)';
-        ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.2, b.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
     } else {
-        // Full quality — Normal spirit bullets — magenta
-        ctx.globalCompositeOperation = 'lighter'; // additive: glow like real light
-        ctx.fillStyle = 'rgba(255,80,200,0.15)';
-        ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.4, 0, Math.PI * 2); ctx.fill();
-        const sg = ctx.createRadialGradient(b.x - b.size * 0.2, b.y - b.size * 0.2, 0, b.x, b.y, b.size);
-        sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.3, '#ff88dd');
-        sg.addColorStop(0.7, '#cc00aa'); sg.addColorStop(1, 'rgba(80,0,60,0.5)');
-        ctx.fillStyle = sg;
-        ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,220,240,0.55)';
-        ctx.beginPath(); ctx.ellipse(b.x - b.size * 0.2, b.y - b.size * 0.2, b.size * 0.2, b.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
+        // Full quality — pre-rendered sprite with additive blending
+        ctx.globalCompositeOperation = 'lighter';
+        const _ss = _getSpiritSprite(b.isPhoto, b.size);
+        ctx.drawImage(_ss, b.x - _ss.width / 2, b.y - _ss.height / 2);
     }
     ctx.restore();
 }
@@ -4906,9 +4931,12 @@ function drawParticle(p) {
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (1 - prog) * p.maxRadius, 0, Math.PI * 2); ctx.stroke();
     } else {
         ctx.globalAlpha = p.lifetime / p.maxLifetime;
-        // glow scaled by quality tier
-        if (!_mobPerf) ctx.shadowColor = p.color;
-        if (!_mobPerf) ctx.shadowBlur = _gfxLevel < 1 ? 14 : _gfxLevel < 2 ? 8 : 5;
+        if (!_mobPerf) {
+            const _glowR = _gfxLevel < 1 ? 14 : _gfxLevel < 2 ? 8 : 5;
+            const _gr = Math.ceil(p.size + _glowR);
+            const _gs = _getGlowSprite(p.color, _gr);
+            ctx.drawImage(_gs, p.x - _gr, p.y - _gr);
+        }
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
     }
