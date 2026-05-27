@@ -44,15 +44,25 @@ function playerTakesHit(attacker) {
             addExplosion(player.x, player.y, 80, 'gold');
             createParticles(player.x, player.y, 20, 'yellow', 2, 6);
 
-            // Orb Retaliation: curse the attacker if it's a targetable enemy
-            if (attacker && typeof attacker === 'object' && attacker.hp > 0
-                && !attacker.type.startsWith('enemy_bullet')
-                && attacker.type !== 'abyssal_chain'
-                && attacker.type !== 'veilshroud_echo'
-                && !attacker.inCoronation) {
-                attacker.soulReaver = true;
-                attacker._orbRetaliationSlowEnd = performance.now() + 3000;
-                createParticles(attacker.x, attacker.y, 12, '#d800ff', 2, 5);
+            // Orb Retaliation: curse the host of the attacker if targetable
+            // abyssal_chain and veilshroud_echo never propagate curse, even to host
+            // enemy_bullet traces to ownerRef (the enemy that fired it)
+            let _curseTarget = attacker;
+            if (attacker) {
+                if (attacker.type === 'abyssal_chain' || attacker.type === 'veilshroud_echo') {
+                    _curseTarget = null;
+                } else if (attacker.type && attacker.type.startsWith('enemy_bullet')) {
+                    _curseTarget = attacker.ownerRef || null;
+                }
+            }
+            if (_curseTarget && _curseTarget.hp > 0
+                && !(_curseTarget.type && _curseTarget.type.startsWith('enemy_bullet'))
+                && _curseTarget.type !== 'abyssal_chain'
+                && _curseTarget.type !== 'veilshroud_echo'
+                && !_curseTarget.inCoronation) {
+                _curseTarget.soulReaver = true;
+                _curseTarget._orbRetaliationSlowEnd = performance.now() + 3000;
+                createParticles(_curseTarget.x, _curseTarget.y, 12, '#d800ff', 2, 5);
             }
 
             if (skillAOrbs.length === 0) skillAActive = false;
@@ -798,7 +808,7 @@ function update(rawDeltaTime) {
                         let angle = baseAngle + (j - 2.5) * 0.28;
                         enemies.push({
                             x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 3.73, vy: Math.sin(angle) * 3.73,
-                            damage: 1, size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0
+                            damage: 1, size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0, ownerRef: enemy.ownerRef || null
                         });
                     }
                 }
@@ -855,11 +865,11 @@ function update(rawDeltaTime) {
                             const thaelisSpd = 3.36 * (1 + thaelisBonusPct);
                             // Fires 2 large projectiles per second with slight spread
                             for (const _spr of [-0.15, 0.15]) {
-                                enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle + _spr) * thaelisSpd, vy: Math.sin(angle + _spr) * thaelisSpd, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600 });
+                                enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle + _spr) * thaelisSpd, vy: Math.sin(angle + _spr) * thaelisSpd, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600, ownerRef: enemy });
                             }
                         } else {
                             const bulletHp = Math.ceil(10 + Math.random() * 30);
-                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: 2, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0 });
+                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: 2, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                         }
                     }
                 }
@@ -919,7 +929,7 @@ function update(rawDeltaTime) {
                         const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                         if (target) {
                             const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0 });
+                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                         }
                     }
                 }
@@ -961,7 +971,7 @@ function update(rawDeltaTime) {
                                 vy: Math.sin(angle) * (player.speed / 3),
                                 damage: 2, size: 10,
                                 hp: bulletHp, maxHp: bulletHp,
-                                type: 'enemy_bullet', shield: 0
+                                type: 'enemy_bullet', shield: 0, ownerRef: enemy
                             });
                         }
                     }
@@ -1023,7 +1033,7 @@ function update(rawDeltaTime) {
                 const tgt = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                 if (tgt) {
                     const ang = Math.atan2(tgt.y - enemy.y, tgt.x - enemy.x);
-                    enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(ang) * (player.speed / 3), vy: Math.sin(ang) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0 });
+                    enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(ang) * (player.speed / 3), vy: Math.sin(ang) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                 }
             }
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
