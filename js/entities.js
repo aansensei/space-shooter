@@ -540,7 +540,7 @@ function _veilshroudFireVolley(enemy) {
             vx: Math.cos(a) * 4.8, vy: Math.sin(a) * 4.8,
             damage: 2, size: 9,
             hp: bulletHp, maxHp: bulletHp,
-            type: 'enemy_bullet', shield: 0
+            type: 'enemy_bullet', shield: 0, ownerRef: enemy
         });
     }
 }
@@ -565,7 +565,7 @@ function updateVeilshroudEcho(enemy, deltaTime) {
                         vx: Math.cos(a) * 4.8, vy: Math.sin(a) * 4.8,
                         damage: 2, size: 9,
                         hp: bulletHp, maxHp: bulletHp,
-                        type: 'enemy_bullet', shield: 0
+                        type: 'enemy_bullet', shield: 0, ownerRef: enemy
                     });
                 }
             }
@@ -1518,7 +1518,7 @@ function updateLeviathan(enemy, deltaTime) {
                         x: enemy.x, y: enemy.y,
                         vx: Math.cos(a) * 5.5, vy: Math.sin(a) * 5.5,
                         hp: bulletHp, maxHp: bulletHp, size: 10,
-                        type: 'enemy_bullet', isSplit: false
+                        type: 'enemy_bullet', isSplit: false, ownerRef: enemy
                     });
                 }
             }
