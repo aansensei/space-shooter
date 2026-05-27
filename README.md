@@ -1,3 +1,5 @@
+![Pisces: Space Journey](images/pisces_banner.png)
+
 # Pisces: Space Journey
 
 **Author:** An Nguyen
