@@ -1,4 +1,4 @@
-﻿const canvas = document.getElementById("gameCanvas");
+const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -25,7 +25,7 @@ let playerAbsoluteShield = false;
 
 let bossShockwaves = [];
 let aegisLasers = [];
-let marchosiasBlades = []; // Global array — blades tồn tại độc lập, không bị ngắt
+let marchosiasBlades = []; // Global array, blades tồn tại độc lập, không bị ngắt
 
 // Accurate Parry (Yog-Sothoth)
 let accurateParryActive = false;
@@ -50,6 +50,7 @@ const skillACooldown = 6000, maxSkillAOrbs = 80;
 let skillASensorRadius = 0;
 let scatteredProjectiles = [];
 let skillADefensiveCharges = 0;
+let dimensionalRifts = []; // Dimensional Rift zones spawned on Skill A hit
 
 // Skill S
 let spirits = [];

@@ -15,6 +15,7 @@ Load order enforced by index.html:
 4. skills.js
 5. input.js
 6. main.js
+7. pixi-renderer.js
 
 This sequence is mandatory. Every module after config.js references globals that
 config.js declares at parse time, so any deviation causes reference errors on
@@ -210,6 +211,22 @@ rebalanceSkillAOrbs distributes untargeted orbs into concentric orbit layers.
 Each layer holds up to 20 orbs evenly spaced by angle. Radius starts at 60px
 and increments by 35px per additional layer.
 
+**Dimensional Rift (on hit):** When a targeting orb hits an enemy and actually
+deals damage (not blocked by iron body / absolute shield / evade), spawnDimensionalRift
+creates a 50px radius zone lasting 3000ms. Enemies inside are slowed 35%,
+receive Soul Reaver + Soul Devourer DoT (57 + 7% maxHp per 350ms, direct HP,
+skip embryo), and take +25% incoming damage. Enemy bullets within 2.5× the
+radius are pulled toward the center; bullets reaching the inner core (radius ×
+0.45) are destroyed. The DoT has a 20% chance per tick to chain-lightning up
+to 8 nearby enemies within 150px (independent of Glory for Justice).
+
+**Orb Retaliation (on sacrifice):** When a defensive golden orb is consumed to
+absorb a player hit, the attacker (excluding enemy_bullet, abyssal_chain,
+veilshroud_echo, and inCoronation enemies) immediately receives Soul Reaver +
+Soul Devourer DoT (57 + 7% maxHp per 350ms, direct HP, skip embryo) and a 25%
+movement slow for 3 seconds (enemy._orbRetaliationSlowEnd). The slow stacks
+multiplicatively with Dimensional Rift slow.
+
 ### Skill S (Remembrance Spirit and Photokrystos)
 
 activateSkillS checks whether a spirit object already exists in the spirits
@@ -324,12 +341,13 @@ if (skillShiftActive) {
 ### Hit Priority Arbitration
 
 ```js
-function playerTakesHit() {
+function playerTakesHit(attacker) {
     if (skillShiftActive) { _triggerAccurateParry(); return; }
 
     if (skillAActive && skillADefensiveCharges > 0 && skillAOrbs.length > 0) {
         skillADefensiveCharges--;
         // consume one orb object from skillAOrbs
+        // if attacker is a targetable enemy: apply Soul Reaver + Soul Devourer DoT + 3s 25% slow
         return;
     }
 
@@ -345,8 +363,9 @@ function playerTakesHit() {
 
 The chain resolves in priority order: Iron Body via skillShiftActive absorbs
 the hit and triggers Accurate Parry. Orb Sacrifice consumes one defensive
-charge. Final Defense Player Shield absorbs one hit and starts a 25000ms regen
-timer. Last Stand triggers once per game at the final life, granting Absolute
+charge and curses the attacker (if targetable). Final Defense Player Shield
+absorbs one hit and starts a 25000ms regen timer. Last Stand triggers once
+per game at the final life, granting Absolute
 Shield to the player and all active sentinels. Only after all layers are
 exhausted does loseLife() decrement the lives counter.
 
@@ -379,7 +398,151 @@ enemies.length exceeds 4, when any enemy of Elite class or above is present, or
 when skillGActive is true. All allied damage multiplication by 1.55 and fire
 rate multiplication by 1.4 apply while this flag reads true.
 
-## Inter-module Communication
+## pixi-renderer.js
+
+**Role:** WebGL compositing overlay built on PixiJS v8. This module runs
+entirely outside the Canvas 2D pipeline and renders high-frequency visual
+effects that are prohibitively expensive when drawn with shadowBlur on a 2D
+context. It attaches a transparent PixiJS canvas directly after gameCanvas in
+the DOM and drives it through a separate render call at the end of each frame.
+
+### Initialization and Feature Flag
+
+The module is wrapped in an async IIFE that calls app.init and awaits its
+resolution before proceeding. Initialization is non-blocking from the
+perspective of main.js because pixi-renderer.js is loaded last and sets three
+global hooks only after the PixiJS application is fully ready:
+
+```js
+window._pixiDrawBullets    = function(bullets, spiritBullets) { ... }
+window._pixiDrawParticles  = function(particles) { ... }
+window._pixiRender         = function() { ... }
+```
+
+render.js calls these hooks each frame when window._usePixi is true. If PixiJS
+fails to load, all three hooks remain null and render.js falls back to its own
+Canvas 2D implementations without any behavioral change.
+
+The feature flag window._usePixi is defined through Object.defineProperty to
+intercept the set operation. When set to true the PixiJS canvas becomes visible
+and a shadowBlur soft-cap is installed on the main ctx instance:
+
+```js
+Object.defineProperty(ctx, 'shadowBlur', {
+    get()  { return _ng.call(this); },
+    set(v) { _ns.call(this, v > 0 ? Math.min(v, 8) : 0); },
+    configurable: true,
+});
+```
+
+This caps every ctx.shadowBlur write to 8px across the entire codebase without
+modifying any individual draw call. A 20px blur becomes 8px and a 60px blur
+becomes 8px. The cost reduction scales with the square of the original radius,
+yielding a 56x reduction for the largest effects.
+
+### Layer Stack
+
+Seven PIXI.Container objects form the compositing stack. Containers are added
+to app.stage in back-to-front order so that later containers render on top:
+
+1. riftLayer: Dimensional Rift zones. Placed at the lowest Pixi layer so rift
+   visuals appear just above the game canvas background and beneath all gameplay
+   elements
+2. nebulaLayer: Nebula atmosphere clouds drifting behind gameplay
+3. trailLayer: Bullet trail ghost sprites
+4. particleLayer: Explosion and hit particles
+5. bulletLayer: Player bullets and enemy bullets redirected from Canvas 2D
+6. spiritLayer: Spirit homing bullets with distinct texture
+7. flashLayer: Hit flash feedback bursts on top of everything
+
+### Sprite Pool
+
+All layers use a shared sprite pool to avoid per-frame object allocation. The
+pool is a plain array. Sprites are acquired with _acq() (pops from pool or
+constructs a new PIXI.Sprite) and released with _rel() (pushes back). Layer
+clears call removeChildren and return every removed sprite to the pool before
+the next frame populates the layer.
+
+### Texture Cache
+
+Canvas 2D helper functions exported by render.js (_getBulletSprite,
+_getSpiritSprite, _getGlowSprite) produce HTMLCanvasElement objects on demand.
+The texture cache wraps each canvas in a PIXI.Texture.from call keyed by a
+string combining type, rounded size, and graphics level. Repeated calls with
+identical parameters return the cached texture without re-uploading to the GPU.
+
+### Phase 3A: Nebula Atmosphere
+
+Three nebula cloud sprites use a screen blend mode so they brighten the dark
+space background without washing out bright gameplay elements. Each cloud holds
+a velocity vector and wraps around the viewport edges when it drifts off screen.
+The radial gradient texture for each cloud is generated once at initialization
+time and reused every frame.
+
+### Phase 3B: Bullet Trails
+
+Before bulletLayer clears each frame, _spawnTrails records the current position
+of every bullet as a trail entry with an initial alpha of 0.38. Each entry
+decays by a factor of 0.50 per frame (_TRAIL_DECAY). Entries whose alpha falls
+below 0.018 are removed. The trail cap (_TRAIL_CAP = 200) limits the maximum
+number of simultaneous trail entries to prevent unbounded growth during heavy
+bullet fire.
+
+### Phase 3C: Hit Flash
+
+The _checkHits function maintains a Map from enemy object references to their
+last observed HP value. Each frame it compares current HP against the stored
+value. When HP decreases, a flash entry is pushed at the enemy position with an
+initial alpha of 0.88. Flash entries decay at a rate of 0.48 per frame and are
+removed below 0.02. The Map is cleared when gameState leaves the playing state
+to prevent stale references from accumulating across sessions.
+
+### Phase 3D: Dimensional Rift Zones
+
+Rift containers are created on demand through window._pixiSpawnRift and
+destroyed through window._pixiDestroyRift. Both hooks are called by
+spawnDimensionalRift and updateDimensionalRifts in skills.js. The _riftContainers
+Map stores the association between rift game objects and their PIXI.Container
+instances.
+
+Each container holds four child layers in fixed order:
+
+1. Core graphic: three concentric filled circles in deep violet tones creating
+   the void core effect
+2. Ring graphic: two stroked circles plus 12 radial spike lines forming the
+   energy ring
+3. Cracks graphic: redrawn every frame with 4-segment jittered lines radiating
+   from the center
+4. Particle layer: a PIXI.Container accumulating floating antimatter particles
+
+The animation loop inside _drawRifts runs every render call and advances the
+following state per container:
+
+```
+container._riftAge += 0.05   // drives all periodic functions
+core scale  = 1 + sin(age * 2.5) * 0.05
+ring rotation -= 0.025 per frame
+```
+
+Crack rendering selects a glitch mode with 18% probability each frame. In
+normal mode cracks draw as 0xd800ff lines at 1.5px width. In glitch mode cracks
+draw as 0xffffff lines at 3.0px width with random angle and length variation.
+Sub-branches in 0x00f5ff appear only during glitch frames on cracks that carry
+the hasSubBranch flag. Particle color alternates between 0x00e5ff and 0xff007f
+with 45% spawn probability per frame and a 0.018 per-frame alpha decay rate.
+
+The container alpha scales linearly from 1.0 to 0.0 over the final 500ms of
+the rift lifetime to produce a smooth fade-out.
+
+### Canvas 2D Fallback
+
+When window._usePixi is false, render.js calls _drawDimensionalRiftsCtx() which
+draws a simplified rift representation using the main ctx. The fallback renders
+a radial gradient void core and a rotating purple stroke ring with crack lines
+drawn as straight segments from center to edge. No particles or per-frame crack
+jitter are applied in the fallback path.
+
+
 
 All six modules share a single flat global namespace. config.js declares every
 shared variable. All other modules read and write those variables directly by

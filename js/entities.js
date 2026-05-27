@@ -1,4 +1,4 @@
-﻿// Returns true if the hit was absorbed by the arcShield
+// Returns true if the hit was absorbed by the arcShield
 function checkMarchosiasArcShield(enemy, source, bx, by) {
     if (enemy.type !== 'marchosias' || !enemy.arcShield || enemy.arcShield.hp <= 0) return false;
     const bulletAngle = Math.atan2(by - enemy.y, bx - enemy.x);
@@ -8,11 +8,12 @@ function checkMarchosiasArcShield(enemy, source, bx, by) {
     while (diff < -Math.PI) diff += Math.PI * 2;
     if (Math.abs(diff) >= Math.PI / 4) return false; // outside 90° arc
 
-    // Damage khiên — 50% DR, KHÔNG damage Mar
+    // Damage khiên, 60% DR, tối đa 35% HP khiên hiện tại, KHÔNG damage Mar
     const effectiveHp = enemy.arcShield.maxHp;
     let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
-    if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.55);
-    dmg = Math.ceil(dmg * 0.50);
+    if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.70);
+    dmg = Math.ceil(dmg * 0.40);
+    dmg = Math.min(dmg, Math.ceil(enemy.arcShield.hp * 0.35));
     const shieldWasAlive = enemy.arcShield.hp > 0;
     enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
 
@@ -31,7 +32,7 @@ function checkMarchosiasArcShield(enemy, source, bx, by) {
     return true; // đạn bị hấp thụ, KHÔNG damage Mar
 }
 
-// Kích hoạt Sword — không giới hạn số lần, có thể chạy song song nhiều windup
+// Kích hoạt Sword, không giới hạn số lần, có thể chạy song song nhiều windup
 // Cooldown 0.75s giữa các lần trigger để tránh spam
 function _tryTriggerMarchosiasCounter(enemy) {
     const now = performance.now();
@@ -52,7 +53,7 @@ function _tryTriggerMarchosiasCounter(enemy) {
     });
 }
 
-// Khi HP Mar <= 1% — bắn tất cả Sword đang pending trong queue ngay lập tức
+// Khi HP Mar <= 1%, bắn tất cả Sword đang pending trong queue ngay lập tức
 function _fireMarchosiasDeathSwords(enemy) {
     if (!enemy.marchosiasWindups || enemy.marchosiasWindups.length === 0) return;
     // Fire all queued windups instantly, spread slightly
@@ -142,7 +143,7 @@ function handleEnemyKill(enemy) {
 }
 
 function fireAutoShot() {
-    const fireRateMultiplier = gloryForJusticeActive ? 1.40 : 1;
+    const fireRateMultiplier = gloryForJusticeActive ? 1.50 : 1;
     if (performance.now() - lastAutoFire < autoFireInterval / fireRateMultiplier) return;
     lastAutoFire = performance.now();
 
@@ -376,7 +377,7 @@ function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
     const size = baseSize * 5; // ~100–150px, bằng Thaelis
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.min(1600, 800 + hpFromTime * 35);
+    const hp = Math.min(2500, 1000 + hpFromTime * 50);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2,
         y: -size,
@@ -415,7 +416,7 @@ function updateVeilshroud(enemy, deltaTime) {
 
     // Va chạm người chơi
     if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
-        playerTakesHit();
+        playerTakesHit(enemy);
     }
 
     // Phantom check (chỉ khi không pending lightning)
@@ -488,7 +489,7 @@ function _veilshroudStrike(enemy) {
     enemy._lastLightningY = ty;
     enemy._lastLightningTime = performance.now();
 
-    // Tạo object sét — lưu targets bị trúng để render hiệu ứng riêng
+    // Tạo object sét, lưu targets bị trúng để render hiệu ứng riêng
     if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
     const _lt = {
         x: tx, y: ty,
@@ -548,7 +549,7 @@ function _veilshroudFireVolley(enemy) {
 function updateVeilshroudEcho(enemy, deltaTime) {
     enemy.echoTimer += deltaTime;
 
-    // 0–3s: bắn đạn nhanh hơn (222ms — −10% fire rate so với 200ms gốc)
+    // 0–3s: bắn đạn nhanh hơn (222ms, −10% fire rate so với 200ms gốc)
     if (enemy.echoTimer < 3000) {
         enemy.echoShootTimer += deltaTime;
         if (enemy.echoShootTimer >= (enemy.echoShootInterval || 222)) {
@@ -657,7 +658,7 @@ function spawnSentinel(x, y, forceNormal = false) {
     createParticles(x, y, 30, '#00FFFF', 2, 8);
 
     if (sentinels.length >= MAX_SENTINELS) {
-        // BUG I fix: silent eviction — no explosion when at capacity
+        // BUG I fix: silent eviction, no explosion when at capacity
         sentinels.sort((a, b) => a.hp - b.hp);
         sentinels.splice(0, 1);
     }
@@ -729,7 +730,7 @@ function updateSentinels(deltaTime) {
     }
 
     if (gloryForJusticeActive) {
-        sentinelFireRate /= 1.40;
+        sentinelFireRate /= 1.50;
     }
 
     for (let i = 0; i < sentinels.length; i++) {
@@ -821,7 +822,7 @@ function findClosestSentinelOrPlayer(x, y) {
     return closest;
 }
 
-// Helper: add shield to an enemy — khi Thaelis đang có barrier, mọi khiên đều dồn vào barrier thay thế
+// Helper: add shield to an enemy, khi Thaelis đang có barrier, mọi khiên đều dồn vào barrier thay thế
 function _addEnemyShield(enemy, amount) {
     if (!amount || amount <= 0) return;
     if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0) {
@@ -838,7 +839,7 @@ function triggerDemonGift(boss) {
 
     enemies.forEach(enemy => {
         if (enemy === boss) return;
-        if (enemy.hp <= 0 || enemy._markedForDeath) return; // đã chết — không heal
+        if (enemy.hp <= 0 || enemy._markedForDeath) return; // đã chết, không heal
         if (enemy.type === 'leviathan' && enemy._deathLaserSpawned) return;
         if (enemy.type === 'veilshroud_echo') return; // echo không nhận buff
         const healBase = boss.maxHp * 0.15;
@@ -884,7 +885,7 @@ function dealDamage(enemy, source) {
     if (enemy.marchosiasParasiteShield && enemy.marchosiasParasiteShield > 0) {
         const effectiveHpForParasite = (enemy.maxHp || enemy.hp) + (enemy.marchosiasParasiteShield || 0);
         let parasiteDmg = Math.ceil((source.damage || 0) + (effectiveHpForParasite * (source.percentDamage || 0)));
-        if (gloryForJusticeActive) parasiteDmg = Math.ceil(parasiteDmg * 1.55);
+        if (gloryForJusticeActive) parasiteDmg = Math.ceil(parasiteDmg * 1.70);
         parasiteDmg = Math.max(0, parasiteDmg);
 
         if (parasiteDmg <= 0) {
@@ -900,11 +901,11 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Coronation: apostle undergoing transformation — immortal, cannot take damage
+    // Coronation: apostle undergoing transformation, immortal, cannot take damage
     if (enemy.type === 'normal' && enemy.inCoronation) return;
 
     if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
-        // Shield blocks ALL damage — chỉ đếm hit (max 200)
+        // Shield blocks ALL damage, chỉ đếm hit (max 200)
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
         }
@@ -934,6 +935,13 @@ function dealDamage(enemy, source) {
         }
     }
 
+    // Per-tier evade (base stat): Normal 1%, Abnormal 2%, Elite 5–7% (scales over 3.5 min), Dominator 10%
+    {
+        const _eliteEvade = Math.min(0.07, 0.05 + (gameElapsedTime / 1000 / 210) * 0.02);
+        const _evade = ({ 'normal': 0.01, 'veilshroud': 0.02, 'thaelis': 0.02, 'aegis_core': _eliteEvade, 'marchosias': _eliteEvade, 'egregor': _eliteEvade, 'boss': 0.10, 'leviathan': 0.10 })[enemy.type] || 0;
+        if (_evade > 0 && Math.random() < _evade) return;
+    }
+
     if (source.applySoulReaver) {
         enemy.soulReaver = true;
     }
@@ -952,7 +960,7 @@ function dealDamage(enemy, source) {
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
     if (gloryForJusticeActive) {
-        totalDamage = Math.ceil(totalDamage * 1.55);
+        totalDamage = Math.ceil(totalDamage * 1.70);
     }
 
     // Accurate Parry buff: +25% tất cả damage đầu ra trong 4s
@@ -965,10 +973,15 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.16));
     }
 
+    // Dimensional Rift zone: +25% incoming damage
+    if (enemy._inDimensionalRift) {
+        totalDamage = Math.ceil(totalDamage * 1.25);
+    }
+
     // True damage window: 4 stacks đủ → 2 giây tiếp theo bypass shield hoàn toàn
     const inTrueDmgWindow = enemy.vulnTrueDmgEnd && performance.now() < enemy.vulnTrueDmgEnd;
 
-    // Egregor — Collective Mind (tentacle shield bypassed when all tentacles are dead)
+    // Egregor, Collective Mind (tentacle shield bypassed when all tentacles are dead)
     if (enemy.type === 'egregor' && !source.isTrueDamage) {
         const _allTentDead = !enemy._tentacleHps || enemy._tentacleHps.every(hp => hp <= 0);
         if (!_allTentDead) {
@@ -1018,9 +1031,9 @@ function dealDamage(enemy, source) {
     }
 
     let combinedDR = 0;
-    // Egregor: Null Slash charging — +35% DR vs true damage too
-    if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging') {
-        combinedDR += 0.35;
+    if (enemy.type === 'egregor') {
+        combinedDR += 0.40; // base body DR
+        if (enemy._nullSlashPhase === 'charging') combinedDR += 0.35; // +35% extra when charging
     }
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
         combinedDR += (enemy.demonGiftStacks === 2) ? 0.30 : 0.18;
@@ -1039,7 +1052,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'aegis_core') {
-        combinedDR += 0.25;
+        combinedDR += 0.55;
     }
 
     if (enemy.shield > 0 && enemy.aegisShieldReceived) {
@@ -1047,7 +1060,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'marchosias') {
-        combinedDR += 0.25;
+        combinedDR += 0.45;
     }
 
     if (enemy.type === 'marchosias_minion' && enemy.DR) {
@@ -1055,16 +1068,12 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'boss') {
-        // Inevitable dodge for Dargruel: 9%
-        if (Math.random() < 0.09) return;
         // Maître suprême: 40% base + 2.5% per sentinel, capped at 50%
         const maitreDR = Math.min(0.50, 0.40 + sentinels.length * 0.025);
         combinedDR += maitreDR;
     }
 
     if (enemy.type === 'leviathan') {
-        // Inevitable: 9% dodge
-        if (Math.random() < 0.09) return;
         combinedDR += 0.60; // Inevitable: 60% base DR
     }
 
@@ -1077,7 +1086,7 @@ function dealDamage(enemy, source) {
     }
 
     // Veilshroud: 99% DR trong phantom, 15% base DR bình thường
-    // Alteration — mỗi đòn trúng có 40% né + kích hoạt phantom ngay lập tức
+    // Alteration, mỗi đòn trúng có 40% né + kích hoạt phantom ngay lập tức
     if (enemy.type === 'veilshroud') {
         if (!enemy.inPhantom && !enemy.lightningPending && Math.random() < 0.40) {
             enemy.inPhantom = true;
@@ -1086,7 +1095,7 @@ function dealDamage(enemy, source) {
             createParticles(enemy.x, enemy.y, 12, '#00e5cc', 2, 7);
             return; // đòn bị né hoàn toàn
         }
-        combinedDR += enemy.inPhantom ? 0.99 : 0.35;
+        combinedDR += enemy.inPhantom ? 0.99 : 0.40;
     }
 
     // veilshroud_echo: hoàn toàn bất tử
@@ -1100,12 +1109,12 @@ function dealDamage(enemy, source) {
 
     let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
 
-    // Iron Body (Bất tử tuyệt đối) — bypass all damage
+    // Iron Body (Bất tử tuyệt đối), bypass all damage
     if (isSentinel && enemy.ironBody && performance.now() < enemy.ironBodyEnd) {
         return; // hoàn toàn miễn sát thương
     }
 
-    // Coronation Iron Body perk — 1-hit block on spawned enemy
+    // Coronation Iron Body perk, 1-hit block on spawned enemy
     if (!isSentinel && enemy.ironBodyHits > 0) {
         enemy.ironBodyHits--;
         createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
@@ -1121,11 +1130,11 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Vanguard Network (Liên kết Vanguard) — 5+ sentinels
+    // Vanguard Network (Liên kết Vanguard), 5+ sentinels
     if (isSentinel && sentinels.length >= 5 && (source.damage > 0 || source.percentDamage > 0)) {
         const effHp = (enemy.maxHp || enemy.hp) + (enemy.shield || 0);
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
-        if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.55);
+        if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.70);
         if (accurateParryActive && performance.now() < accurateParryEndTime) rawDmg = Math.ceil(rawDmg * 1.25);
         if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.16));
         rawDmg = Math.max(0, rawDmg);
@@ -1133,7 +1142,7 @@ function dealDamage(enemy, source) {
         const _vIsTrueDmg = source.isTrueDamage || inTrueDmgWindow;
         if (!_vIsTrueDmg) {
             let _vDR = 0.05; // base sentinel DR
-            if (gloryForJusticeActive) _vDR += 0.10;
+            if (gloryForJusticeActive) _vDR += 0.15;
             if (sentinels.length >= 5 && sentinels.length < 12) _vDR += 0.10;
             if (enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) _vDR += 0.10;
             rawDmg = Math.ceil(rawDmg * (1 - _vDR));
@@ -1145,7 +1154,7 @@ function dealDamage(enemy, source) {
 
     if (isSentinel) combinedDR += 0.05; // base sentinel DR
     if (isSentinel && gloryForJusticeActive) {
-        combinedDR += 0.20; // Glory for Justice sentinel DR
+        combinedDR += 0.30; // Glory for Justice sentinel DR
     }
     // Tier 2 Herd Mentality: +10% DR thêm khi có 5-11 sentinels
     if (isSentinel && sentinels.length >= 5 && sentinels.length < 12) {
@@ -1157,7 +1166,7 @@ function dealDamage(enemy, source) {
     }
 
     combinedDR = Math.min(0.99, combinedDR);
-    // True damage skips DR; normal damage applies DR
+    // True damage skips DR, normal damage applies DR
     if (!source.isTrueDamage) {
         totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
         totalDamage = Math.max(0, totalDamage);
@@ -1221,8 +1230,10 @@ function dealDamage(enemy, source) {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
 
-    // Egregor: 5% body dodge on all true-damage hits
-    if (enemy.type === 'egregor' && Math.random() < 0.05) return;
+    // Reincarnation, embryo per-hit damage cap: 10% of EP
+    if (enemy.type === 'embryo') {
+        totalDamage = Math.min(totalDamage, Math.ceil((enemy.maxHp + (enemy.shield || 0)) * 0.10));
+    }
 
     // Tenacity Barrier (Thaelis): lớp khiên riêng, chặn MỌI đòn (kể cả true/piercing)
     // Ngoại lệ: isSpiritLaser (tia laze đại tinh linh) xuyên qua bình thường
@@ -1301,17 +1312,16 @@ function dealDamage(enemy, source) {
     }
 
     const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
-    const isBossOrMiniBossPresent = enemies.some(e => e.type === 'boss' || e.type === 'thaelis');
 
-    if (isChainable && isBossOrMiniBossPresent && currentTime > chainLightningCooldownEnd) {
+    if (isChainable && currentTime > chainLightningCooldownEnd) {
         chainLightningCooldownEnd = currentTime + 150;
-        const chainDamage = totalDamage * 0.30;
+        const chainDamage = totalDamage * 0.50;
         let chainedCount = 0;
         for (const otherEnemy of enemies) {
-            if (chainedCount >= 6) break;
+            if (chainedCount >= 8) break;
             if (otherEnemy.type === 'veilshroud_echo' || otherEnemy.inCoronation) continue; // untargetable
             if (otherEnemy !== enemy && !otherEnemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
-                let debuff = Math.random() < 0.55;
+                let debuff = Math.random() < 0.60;
                 dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff });
                 chainLightningEffects.push({
                     x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250
@@ -1338,18 +1348,16 @@ function dealDamage(enemy, source) {
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { triggerDemonGift(enemy); enemy.demonGift1Triggered = true; }
     }
 
-    // Tenacity — mỗi khi mất 30% HP, nhận lớp khiên riêng (30% MaxHP + 15% HP đã mất + 100) × 1.25
+    // Tenacity, mỗi khi mất 30% HP, nhận lớp khiên riêng (30% MaxHP + 15% HP đã mất + 100) × 1.25
     if (enemy.type === 'thaelis') {
         const oldPct = oldHP / enemy.maxHp;
         const newPct = enemy.hp / enemy.maxHp;
         const _hpLost = enemy.maxHp - enemy.hp;
-        const shieldGrant = Math.ceil((enemy.maxHp * 0.30 + _hpLost * 0.15 + 100) * 1.25);
+        const shieldGrant = Math.ceil((enemy.maxHp * 0.30 + _hpLost * 0.20 + 250) * 1.34);
         const _grantBarrier = () => {
-            // Lớp khiên hoàn toàn tách biệt với EP — _tenacityBarrier
+            // Lớp khiên hoàn toàn tách biệt với EP, _tenacityBarrier
             enemy._tenacityBarrier = (enemy._tenacityBarrier || 0) + shieldGrant;
             enemy._tenacityBarrierMax = (enemy._tenacityBarrierMax || 0) + shieldGrant;
-            // Enhanced visuals
-            addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#ffe066');
             createParticles(enemy.x, enemy.y, 35, '#ffe066', 3, 12);
             createParticles(enemy.x, enemy.y, 18, '#ffffff', 2, 8);
         };
@@ -1358,7 +1366,7 @@ function dealDamage(enemy, source) {
         if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityBarrier10) { _grantBarrier(); enemy._tenacityBarrier10 = true; }
     }
 }
-// LEVIATHAN — Dominator Class
+// LEVIATHAN, Dominator Class
 
 function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
@@ -1475,7 +1483,7 @@ function updateLeviathan(enemy, deltaTime) {
         if (enemy.afoShieldActive) return;
     }
 
-    // PHASE 3: POST-SHIELD — PERSEVERANCE + ATTACK
+    // PHASE 3: POST-SHIELD, PERSEVERANCE + ATTACK
 
     // Perseverance cycle
     if (enemy.perseveranceCharging) {
@@ -1518,7 +1526,7 @@ function updateLeviathan(enemy, deltaTime) {
     }
 }
 
-// Spawn Perseverance beam — quét 360° toàn bản đồ
+// Spawn Perseverance beam, quét 360° toàn bản đồ
 function _spawnPerseveranceBeam(enemy, now) {
     if (!window._levPersBeams) window._levPersBeams = [];
     window._levPersBeams.push({
@@ -1636,11 +1644,11 @@ function _triggerVanguardFuse() {
     }
     const weakest = sentinels[weakestIdx];
 
-    // Phát nổ — bung đạn như chết thường
+    // Phát nổ, bung đạn như chết thường
     destroySentinel(weakest);
     sentinels.splice(weakestIdx, 1);
 
-    // Iron Body 1.25s cho tất cả sentinel còn lại — hoàn toàn bất khả xâm phạm
+    // Iron Body 1.25s cho tất cả sentinel còn lại, hoàn toàn bất khả xâm phạm
     sentinels.forEach(s => {
         s.ironBody = true;
         s.ironBodyEnd = now + 1250;
@@ -1656,8 +1664,8 @@ function _triggerVanguardFuse() {
     window._vanguardState.recentDamage = [];
 }
 
-// CORONATION (Đăng Cơ) — Apostle transformation passive
-// Max 3 per 5-second window; 0.67%/s above midscreen, 1%/s below
+// CORONATION (Đăng Cơ), Apostle transformation passive
+// Max 3 per 5-second window, 0.67%/s above midscreen, 1%/s below
 // Death bonus: mỗi apostle chết +0.67% base chance (reset khi có 1 đứa trigger)
 if (!window._coronationHistory) window._coronationHistory = [];
 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
@@ -1699,7 +1707,7 @@ function _spawnCoronationResult(enemy) {
 }
 
 function updateApostleCoronation(enemy, deltaTime) {
-    if (enemy._coronationConsumed) return; // already transformed — awaiting removal, no re-entry
+    if (enemy._coronationConsumed) return; // already transformed, awaiting removal, no re-entry
     if (!enemy.inCoronation) {
         // Check per-second tick
         if (!enemy.coronationCheckTimer) enemy.coronationCheckTimer = 0;
@@ -1719,7 +1727,7 @@ function updateApostleCoronation(enemy, deltaTime) {
         const chance = baseChance + (window._coronationDeathBonus || 0);
         if (Math.random() >= chance) return;
 
-        // Trigger Coronation — reset death bonus
+        // Trigger Coronation, reset death bonus
         window._coronationDeathBonus = 0;
         window._coronationHistory.push(now);
         enemy.inCoronation = true;
@@ -1748,7 +1756,7 @@ function updateApostleCoronation(enemy, deltaTime) {
     }
 }
 
-// EGREGOR — Plump Parasite (Elite)
+// EGREGOR, Plump Parasite (Elite)
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
@@ -1760,13 +1768,13 @@ function spawnEgregor() {
         hp, maxHp: hp, _baseMaxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'egregor',
-        // Mind Link — rage stacks
+        // Mind Link, rage stacks
         _rageStacks: 0,
         _rageEndTimes: [],
         // Psychic Tempest
         _tempestPhase: 'ready',
         _tempestTargets: [],
-        _tempestCooldownEnd: performance.now() + 8000, // 8s initial delay — prevent firing during descent
+        _tempestCooldownEnd: performance.now() + 8000, // 8s initial delay, prevent firing during descent
         _tempestPending: false,
         _tempestOriginX: 0, _tempestOriginY: 0,
         // Null Slash
@@ -1801,7 +1809,7 @@ function updateEgregor(enemy, deltaTime) {
     const now = performance.now();
     const dt = deltaTime / 16.67;
 
-    // Collective Mind — init tentacle HP pools on first tick
+    // Collective Mind, init tentacle HP pools on first tick
     if (!enemy._tentacleHps) {
         const tentHP = Math.ceil(enemy.maxHp * 0.78);
         enemy._tentacleHps = Array(10).fill(tentHP);
@@ -1832,7 +1840,7 @@ function updateEgregor(enemy, deltaTime) {
             // Advance while charging
             enemy.y = Math.min(canvas.height * 0.70, enemy.y + enemy.speed * _speedMult * 0.9 * dt);
         } else if (enemy._nullSlashPhase === 'striking') {
-            // Hold position during strike animation — no Y change
+            // Hold position during strike animation, no Y change
         } else {
             // Ready (between strikes): slow drift forward so Egregor doesn't stand still
             enemy.y = Math.min(canvas.height * 0.70, enemy.y + enemy.speed * _speedMult * 0.25 * dt);
@@ -1844,10 +1852,10 @@ function updateEgregor(enemy, deltaTime) {
     _updateEgregorTempest(enemy, deltaTime, now, _tempestCD);
     _updateEgregorNullSlash(enemy, deltaTime, now);
 
-    // Player body collision — 1.5s cooldown prevents per-frame life drain
+    // Player body collision, 1.5s cooldown prevents per-frame life drain
     if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
         if (now >= (enemy._bodyHitCooldownEnd || 0)) {
-            playerTakesHit();
+            playerTakesHit(enemy);
             enemy._bodyHitCooldownEnd = now + 1500;
         }
     }
@@ -1900,9 +1908,9 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                 t._outerBolt = _egregorGenBolt(ox, oy, t.tx, t.ty, 12, 48);
                 t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
                 t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
-                // Damage (radius 100px) — player and each sentinel hit at most once per cast
+                // Damage (radius 100px), player and each sentinel hit at most once per cast
                 if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-                    playerTakesHit(); _playerHit = true;
+                    playerTakesHit(enemy); _playerHit = true;
                 }
                 for (const s of sentinels) {
                     if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
@@ -1956,7 +1964,7 @@ function _forceFireEgregorTempest(enemy) {
         t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
         t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
         if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-            playerTakesHit(); _playerHit = true;
+            playerTakesHit(enemy); _playerHit = true;
         }
         for (const s of sentinels) {
             if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
@@ -1982,7 +1990,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
     }
 
     if (enemy._nullSlashPhase === 'charging') {
-        // Track player continuously during windup — lock angle+target only at the moment of release
+        // Track player continuously during windup, lock angle+target only at the moment of release
         enemy._nullSlashAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
         enemy._nullSlashTargetX = player.x;
         enemy._nullSlashTargetY = player.y;
@@ -1994,7 +2002,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             enemy._nullSlashDmgDealt = false;
             // Lock hover Y reference so strike/ready phases don't snap
             enemy._hoverY = Math.min(canvas.height * 0.55, enemy.y);
-            // angle+target already current — resume hoverBaseX to prevent X jump
+            // angle+target already current, resume hoverBaseX to prevent X jump
             const _ht2 = enemy._hoverTime;
             const _dX = Math.sin(_ht2/1600 + enemy._hoverPhase + 1.4) * (canvas.width * 0.11)
                       + Math.cos(_ht2/920  + enemy._hoverPhase + 0.8) * (canvas.width * 0.05);
@@ -2006,7 +2014,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
     if (enemy._nullSlashPhase === 'striking') {
         enemy._nullSlashStrikeTimer += deltaTime;
 
-        // Damage check at 460ms — arc tip crosses target at sweep midpoint
+        // Damage check at 460ms, arc tip crosses target at sweep midpoint
         if (!enemy._nullSlashDmgDealt && enemy._nullSlashStrikeTimer >= 460) {
             enemy._nullSlashDmgDealt = true;
             const sx = enemy._nullSlashTargetX, sy = enemy._nullSlashTargetY;
@@ -2025,7 +2033,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             // Player hit
             if (_inSlash(player.x, player.y)) {
                 if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
-                    _triggerAccurateParry(); // Yog-Sothoth dodge — no life, no slow
+                    _triggerAccurateParry(); // Yog-Sothoth dodge, no life, no slow
                 } else {
                     // Slow 50% for 1.5s, NO life loss
                     player._nullSlashSlowed = true;
@@ -2036,7 +2044,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 }
             }
 
-            // Sentinel hits — all sentinels inside the arc sector
+            // Sentinel hits, all sentinels inside the arc sector
             const hitSents = sentinels.filter(s => _inSlash(s.x, s.y));
             const hc = hitSents.length;
             if (hc > 0) {

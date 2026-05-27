@@ -1,4 +1,4 @@
-﻿function loseLife() {
+function loseLife() {
     if (playerAbsoluteShield) {
         playerAbsoluteShield = false;
         addExplosion(player.x, player.y, 150, 'gold');
@@ -21,7 +21,7 @@
     window._hitVignetteStart = performance.now(); // trigger red border flash
 }
 
-function playerTakesHit() {
+function playerTakesHit(attacker) {
     // ƯU TIÊN 0: Yog-Sothoth - Miễn mọi sát thương trong Lãnh địa Thời Gian
     if (skillShiftActive) {
         // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
@@ -43,6 +43,17 @@ function playerTakesHit() {
             addExplosion(orb.x, orb.y, 40, 'yellow');
             addExplosion(player.x, player.y, 80, 'gold');
             createParticles(player.x, player.y, 20, 'yellow', 2, 6);
+
+            // Orb Retaliation: curse the attacker if it's a targetable enemy
+            if (attacker && typeof attacker === 'object' && attacker.hp > 0
+                && !attacker.type.startsWith('enemy_bullet')
+                && attacker.type !== 'abyssal_chain'
+                && attacker.type !== 'veilshroud_echo'
+                && !attacker.inCoronation) {
+                attacker.soulReaver = true;
+                attacker._orbRetaliationSlowEnd = performance.now() + 3000;
+                createParticles(attacker.x, attacker.y, 12, '#d800ff', 2, 5);
+            }
 
             if (skillAOrbs.length === 0) skillAActive = false;
             else {
@@ -120,7 +131,7 @@ function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
 
-    // Mobile: pin player.y to boundaryY every frame — triệt để fix position
+    // Mobile: pin player.y to boundaryY every frame, triệt để fix position
     if (typeof _platform !== 'undefined' && _platform === 'mobile') {
         player.y = boundaryY - 18;
     }
@@ -160,8 +171,9 @@ function update(rawDeltaTime) {
     }
 
     // recalc every frame bc enemies spawn and die constantly
-    gloryForJusticeActive =(enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
-        enemies.some(e => e.type === 'boss' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias');
+    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
+        (typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) ||
+        enemies.some(e => e.type === 'boss' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan');
 
     // Accurate Parry expiry
     if (accurateParryActive && performance.now() >= accurateParryEndTime) {
@@ -435,7 +447,7 @@ function update(rawDeltaTime) {
                 if (ally.type === 'veilshroud_echo') return;
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
-                    let finalHeal = ally.soulReaver ? healAmt * 0.75 : healAmt;
+                    let finalHeal = ally.soulReaver ? healAmt * 0.60 : healAmt;
                     if (ally.levEnvy) finalHeal *= 1.25; // Envy: +25% heal
                     if (ally.hp <= 0) return; // cannot heal at 0 HP
                     const veilNormal = ally.type === 'veilshroud' && !ally.inPhantom;
@@ -454,13 +466,13 @@ function update(rawDeltaTime) {
                     }
 
                     if (!ally.aegisShieldReceived) {
-                        let finalShield = ally.soulReaver ? shieldAmt * 0.75 : shieldAmt;
+                        let finalShield = ally.soulReaver ? shieldAmt * 0.60 : shieldAmt;
                         if (veilNormal) finalShield *= 1.25; // Alteration: +25% shield
                         _addEnemyShield(ally, finalShield);
                         ally.aegisShieldReceived = true;
                     }
-                    // 8% MaxHP tick shield per second — always applies
-                    const tsAmt = ally.soulReaver ? tickShieldAmt * 0.75 : tickShieldAmt;
+                    // 8% MaxHP tick shield per second, always applies
+                    const tsAmt = ally.soulReaver ? tickShieldAmt * 0.60 : tickShieldAmt;
                     const finalTs = veilNormal ? tsAmt * 1.25 : tsAmt; // Alteration: +25% shield
                     _addEnemyShield(ally, finalTs);
                 }
@@ -506,7 +518,7 @@ function update(rawDeltaTime) {
                         enemy.hp = 0;
                     }
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
-                    // Leviathan immune to CC while shield active — no slow, still takes dot
+                    // Leviathan immune to CC while shield active, no slow, still takes dot
                     teslaSpeedMultiplier = 1.0;
                 } else {
                     teslaSpeedMultiplier = 0.30;
@@ -556,7 +568,7 @@ function update(rawDeltaTime) {
             }
 
             if (enemy.type === 'abyssal_chain') {
-                // Chain consumed — no kill, no life loss, no explosion
+                // Chain consumed, no kill, no life loss, no explosion
                 enemies.splice(i, 1); continue;
             }
 
@@ -572,7 +584,7 @@ function update(rawDeltaTime) {
                 });
             }
 
-            // VEILSHROUD: Void Echo — để lại bóng ma khi chết
+            // VEILSHROUD: Void Echo, để lại bóng ma khi chết
             if (enemy.type === 'veilshroud' && !enemy._echoSpawned) {
                 enemy._echoSpawned = true;
                 enemies.push({
@@ -640,7 +652,7 @@ function update(rawDeltaTime) {
                 window._coronationDeathBonus += enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
             }
 
-            // Egregor — Mind Link: rage stack on nearby death → immediate Tempest
+            // Egregor, Mind Link: rage stack on nearby death → immediate Tempest
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'egregor') {
                 const _dNow = performance.now();
                 for (const _eg of enemies) {
@@ -682,7 +694,7 @@ function update(rawDeltaTime) {
             enemy.x += enemy.vx * dt;
             enemy.y += enemy.vy * dt;
 
-            // Triangle molecule particles — spawn + update
+            // Triangle molecule particles, spawn + update
             if (!enemy.molParticles) enemy.molParticles = [];
             // Spawn new triangle every ~80ms
             if (!enemy._lastMolSpawn || currentTime - enemy._lastMolSpawn > 80) {
@@ -712,7 +724,7 @@ function update(rawDeltaTime) {
                 if (mp.life <= 0) { enemy.molParticles.splice(mi, 1); }
             }
 
-            // Hit player — silence/root (no life loss), can hit simultaneously with sentinel
+            // Hit player, silence/root (no life loss), can hit simultaneously with sentinel
             if (!enemy._hitPlayer && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
                 enemy._hitPlayer = true;
                 player._silenced = true;
@@ -720,10 +732,10 @@ function update(rawDeltaTime) {
                 player._rooted = true;
                 _setShake(6, 250);
                 try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
-                // Chain is NOT consumed by hitting player — can still hit sentinel
+                // Chain is NOT consumed by hitting player, can still hit sentinel
             }
 
-            // Hit sentinel — true damage 15% maxHP, goes through Vanguard, respects Iron Body
+            // Hit sentinel, true damage 15% maxHP, goes through Vanguard, respects Iron Body
             if (enemy.hp > 0) {
                 for (const s of sentinels) {
                     if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
@@ -749,9 +761,9 @@ function update(rawDeltaTime) {
             // Also consume chain if hit player but no sentinel nearby
             if (enemy._hitPlayer && enemy.hp > 0) { enemy.hp = 0; }
 
-            // Off-screen — bay hết màn hình mới dừng
+            // Off-screen, bay hết màn hình mới dừng
             if (enemy.x < -200 || enemy.x > canvas.width + 200 || enemy.y < -200 || enemy.y > canvas.height + 200) {
-                enemies.splice(i, 1); // O(1) vì loop đi ngược — không cần indexOf
+                enemies.splice(i, 1); // O(1) vì loop đi ngược, không cần indexOf
             }
 
         } else if (enemy.type.startsWith('enemy_bullet')) {
@@ -759,14 +771,14 @@ function update(rawDeltaTime) {
             enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
 
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
-                playerTakesHit();
+                playerTakesHit(enemy);
                 enemy.hp = 0;
             }
 
             for (const sentinel of sentinels) {
                 if (enemy.hp > 0 && Math.hypot(enemy.x - sentinel.x, enemy.y - sentinel.y) < enemy.size + sentinel.size) {
                     if (enemy.type === 'enemy_bullet_small') {
-                        dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.12, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
+                        dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
                         dealDamage(sentinel, { damage: enemy.hp, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     }
@@ -782,11 +794,11 @@ function update(rawDeltaTime) {
                     enemy.isSplit = true;
                     const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                     let baseAngle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) : Math.PI / 2;
-                    for (let j = -1; j <= 1; j++) {
-                        let angle = baseAngle + j * 0.4;
+                    for (let j = 0; j < 6; j++) {
+                        let angle = baseAngle + (j - 2.5) * 0.28;
                         enemies.push({
                             x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 3.73, vy: Math.sin(angle) * 3.73,
-                            damage: 2, size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0
+                            damage: 1, size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0
                         });
                     }
                 }
@@ -807,10 +819,12 @@ function update(rawDeltaTime) {
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             const _coronaSlow = (enemy.type === 'normal' && enemy.inCoronation) ? 0.55 : 1.0;
-            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow;
+            const _riftSlowMul = enemy._riftSlow ? 0.65 : 1.0;
+            const _orbSlowMul = (enemy._orbRetaliationSlowEnd || 0) > currentTime ? 0.75 : 1.0;
+            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul;
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
-                playerTakesHit();
+                playerTakesHit(enemy);
                 if (enemy.type === 'boss' || enemy.type === 'thaelis') {
                 } else {
                     enemy.hp = 0;
@@ -839,7 +853,10 @@ function update(rawDeltaTime) {
                             // Tenacity: +3.5% bullet speed per 0.5% HP lost, cap +25%
                             const thaelisBonusPct = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
                             const thaelisSpd = 3.36 * (1 + thaelisBonusPct);
-                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * thaelisSpd, vy: Math.sin(angle) * thaelisSpd, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600 });
+                            // Fires 2 large projectiles per second with slight spread
+                            for (const _spr of [-0.15, 0.15]) {
+                                enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle + _spr) * thaelisSpd, vy: Math.sin(angle + _spr) * thaelisSpd, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600 });
+                            }
                         } else {
                             const bulletHp = Math.ceil(10 + Math.random() * 30);
                             enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: 2, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0 });
@@ -847,7 +864,7 @@ function update(rawDeltaTime) {
                     }
                 }
 
-                // Hắc Ám Xiềng Xích (Abyssal Chains) — Dargruel only
+                // Hắc Ám Xiềng Xích (Abyssal Chains), Dargruel only
                 if (enemy.type === 'boss') {
                     if (!enemy.chainTimer && enemy.chainTimer !== 0) enemy.chainTimer = 0; // fire immediately on spawn
                     enemy.chainTimer -= deltaTime;
@@ -891,7 +908,7 @@ function update(rawDeltaTime) {
             }
 
             if (enemy.type === 'normal') {
-                // Coronation passive — runs every frame, handles its own 1s tick
+                // Coronation passive, runs every frame, handles its own 1s tick
                 updateApostleCoronation(enemy, deltaTime);
 
                 // Frozen during coronation animation
@@ -916,7 +933,7 @@ function update(rawDeltaTime) {
                     _fireMarchosiasDeathSwords(enemy);
                 }
 
-                // Khiên hướng về phía player — tâm cung luôn track player
+                // Khiên hướng về phía player, tâm cung luôn track player
                 // Cung 90° (±45°) đặt ở hướng từ Marchosias → player
                 if (enemy.arcShield) {
                     const targetAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
@@ -950,7 +967,7 @@ function update(rawDeltaTime) {
                     }
                 }
 
-                // Counter windups — xử lý nhiều đòn song song, không giới hạn
+                // Counter windups, xử lý nhiều đòn song song, không giới hạn
                 if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
                 for (let wi = enemy.marchosiasWindups.length - 1; wi >= 0; wi--) {
                     const windup = enemy.marchosiasWindups[wi];
@@ -969,7 +986,7 @@ function update(rawDeltaTime) {
                             _fireTime: performance.now(), // launch aura
                             hitEnemies: [], hitPlayer: false,
                         });
-                        // Ghost đã được push khi windup bắt đầu — chỉ cần xoá windup
+                        // Ghost đã được push khi windup bắt đầu, chỉ cần xoá windup
                         enemy.marchosiasWindups.splice(wi, 1);
                     }
                 }
@@ -996,7 +1013,10 @@ function update(rawDeltaTime) {
         } else if (enemy.type === 'marchosias_minion') {
             const mmdx = player.x - enemy.x, mmdy = player.y - enemy.y;
             const mmd = Math.hypot(mmdx, mmdy);
-            if (mmd > 0) { enemy.x += (mmdx / mmd) * enemy.speed * dt; enemy.y += (mmdy / mmd) * enemy.speed * dt; }
+            const _mmRiftSlow = enemy._riftSlow ? 0.65 : 1.0;
+            const _mmOrbSlow = (enemy._orbRetaliationSlowEnd || 0) > currentTime ? 0.75 : 1.0;
+            const _mmSlowMul = _mmRiftSlow * _mmOrbSlow;
+            if (mmd > 0) { enemy.x += (mmdx / mmd) * enemy.speed * dt * _mmSlowMul; enemy.y += (mmdy / mmd) * enemy.speed * dt * _mmSlowMul; }
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 1000;
@@ -1007,7 +1027,7 @@ function update(rawDeltaTime) {
                 }
             }
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
-                playerTakesHit(); enemy.hp = 0;
+                playerTakesHit(enemy); enemy.hp = 0;
             }
         }
 
@@ -1068,7 +1088,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            // Egregor — Mind Link: rage stack on nearby death → immediate Tempest
+            // Egregor, Mind Link: rage stack on nearby death → immediate Tempest
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'egregor') {
                 const _dNow = performance.now();
                 for (const _eg of enemies) {
@@ -1138,7 +1158,7 @@ function update(rawDeltaTime) {
 
     // Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới
     if (skillShiftActive) {
-        // Abyssal Chains survive YOG — piercing, cannot be cleared by any means
+        // Abyssal Chains survive YOG, piercing, cannot be cleared by any means
         enemies = enemies.filter(e => e.type === 'abyssal_chain' || !e.type.startsWith('enemy_bullet'));
     }
 
@@ -1195,11 +1215,12 @@ function update(rawDeltaTime) {
                     while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
                     if (Math.abs(angleDiff) < Math.PI / 4) {
-                        // Trúng khiên — 50% DR, KHÔNG damage Mar
+                        // Trúng khiên, 60% DR, max 35% shield HP, KHÔNG damage Mar
                         const effectiveHp = enemy.arcShield.maxHp;
                         let dmg = Math.ceil(b.damage + (effectiveHp * (b.percentDamage || 0)));
-                        if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.55);
-                        dmg = Math.ceil(dmg * 0.50);
+                        if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.70);
+                        dmg = Math.ceil(dmg * 0.40);
+                        dmg = Math.min(dmg, Math.ceil(enemy.arcShield.hp * 0.35));
                         const shieldWasAlive = enemy.arcShield.hp > 0;
                         enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
 
@@ -1249,7 +1270,7 @@ function update(rawDeltaTime) {
         // Base blessing DR: +15%, +5% more if Leviathan on field
         s._blessingDR = _photoActive ? (0.15 + (_levOnField ? 0.05 : 0)) : 0;
         s._blessingDmg = _photoActive ? 0.15 : 0;
-        // Keep _blessingShield in sync — can't exceed actual shield
+        // Keep _blessingShield in sync, can't exceed actual shield
         if (s._blessingShield && s._blessingShield > (s.shield || 0)) {
             s._blessingShield = s.shield || 0;
         }
@@ -1329,7 +1350,7 @@ function update(rawDeltaTime) {
     });
 
     // GfJ shield pulse: fires immediately on activation, then every 10s
-    // Shield = 18% HP đã mất + 4% Max HP — non-stacking, replaces previous pulse
+    // Shield = 18% HP đã mất + 4% Max HP, non-stacking, replaces previous pulse
     if (!window._gfjShieldTimer) window._gfjShieldTimer = 0;
     if (!window._gfjWasActive) window._gfjWasActive = false;
     if (gloryForJusticeActive) {
@@ -1354,6 +1375,7 @@ function update(rawDeltaTime) {
 
     updateSoulReaverDoT(deltaTime);
     updateSkillA(deltaTime);
+    updateDimensionalRifts(deltaTime);
     updateScatteredProjectiles(deltaTime);
     updateSpirits(deltaTime);
     updateBladeArcProjectiles(deltaTime);
@@ -1403,7 +1425,7 @@ function update(rawDeltaTime) {
             beam.hitPlayer = false;
         }
 
-        // Hit sentinels — route qua Vanguard Network nếu active, else direct true damage
+        // Hit sentinels, route qua Vanguard Network nếu active, else direct true damage
         if (!beam.hitSentinels) beam.hitSentinels = new Map();
         const nowMs2 = performance.now();
         if (!beam.id) beam.id = 'pers_' + nowMs2;
@@ -1478,14 +1500,14 @@ function update(rawDeltaTime) {
                 return (proj / dist) >= Math.cos(halfDeg * Math.PI / 180);
             };
 
-            // Hit player (pixel distance OK — player is large target)
+            // Hit player (pixel distance OK, player is large target)
             const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
             if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
                 laser.hitPlayer = true;
                 playerTakesHit();
             }
 
-            // Hit sentinels — true damage: (hits/2) × (1%→3%), cap 50%
+            // Hit sentinels, true damage: (hits/2) × (1%→3%), cap 50%
             if (!laser.hitSentinels) laser.hitSentinels = new Set();
             if (!laser.id) laser.id = 'lastrites_' + laser.angle.toFixed(4);
             const hits = laser.levHits || 1;
@@ -1547,7 +1569,7 @@ function update(rawDeltaTime) {
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }
             }
-            // Damage ticks: player — visual hit only, no life loss
+            // Damage ticks: player, visual hit only, no life loss
             if (!ez.hitPlayerThisTick && Math.hypot(player.x - ez.x, player.y - ez.y) < ez.radius) {
                 ez.hitPlayerThisTick = true;
                 createParticles(player.x, player.y, 8, '#cc44ff', 2, 6);
@@ -1579,7 +1601,7 @@ function gameLoop(timeStamp) {
 
     // Luôn vẽ (để màn hình không đóng băng), chỉ update khi không pause
     if (!gamePaused && !loading) {
-        update(Math.min(deltaTime, 50)); // cap 50ms — tránh physics jump khi tab quay lại
+        update(Math.min(deltaTime, 50)); // cap 50ms, tránh physics jump khi tab quay lại
     }
     draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50));
 
@@ -1652,7 +1674,7 @@ function startGame() {
     hideStartButton();
     hideMainMenuButton();
     lastTimeStamp = performance.now();
-    // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file — không cần khởi động lại
+    // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file, không cần khởi động lại
 }
 
 // Khởi động game loop một lần duy nhất khi trang loadaa
