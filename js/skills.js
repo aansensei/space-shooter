@@ -1,4 +1,4 @@
-﻿function updateDefensiveOrbs() {
+function updateDefensiveOrbs() {
     let currentDefensive = skillAOrbs.filter(o => o.isDefensive).length;
     let targetDefensive = Math.min(skillADefensiveCharges, skillAOrbs.length);
     let needed = targetDefensive - currentDefensive;
@@ -110,11 +110,15 @@ function updateSkillA(deltaTime) {
                 lifetime: 200, maxLifetime: 200, size: 4, color: orb.isDefensive ? 'rgba(255, 255, 0, 0.7)' : 'rgba(0, 255, 255, 0.7)'
             });
             if (dist < orb.target.size / 2 + orb.size) {
+                // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
+                const _preTotal = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0);
                 dealDamage(orb.target, { damage: 100, percentDamage: 0.24 });
+                const _didDmg = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0) < _preTotal;
                 orb.target.isTargetedByA = false;
 
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 4, percentDamage: 0.02 });
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
+                if (_didDmg) spawnDimensionalRift(orb.x, orb.y);
                 skillAOrbs.splice(i, 1);
 
                 updateDefensiveOrbs();
@@ -127,6 +131,131 @@ function updateSkillA(deltaTime) {
         }
     }
     if (skillAOrbs.length === 0) skillAActive = false;
+}
+
+// Dimensional Rift (Skill A buff)
+
+function spawnDimensionalRift(x, y) {
+    const radius = 50;
+    const numCracks = 6 + Math.floor(Math.random() * 5);
+    const cracksInfo = [];
+    for (let i = 0; i < numCracks; i++) {
+        cracksInfo.push({
+            baseAngle: (i / numCracks) * Math.PI * 2 + (Math.random() * 0.4),
+            maxLength: radius * (1.1 + Math.random() * 0.5),
+            hasSubBranch: Math.random() > 0.4,
+        });
+    }
+    const rift = {
+        x, y, radius, timer: 3000, maxTimer: 3000,
+        cracksInfo, _chainCooldown: 0,
+        _age: 0, _ringRot: 0, _particles: [],
+    };
+    dimensionalRifts.push(rift);
+}
+
+function updateDimensionalRifts(deltaTime) {
+    const dt = deltaTime / 16.67;
+
+    // Reset per-enemy rift flags before re-evaluating this frame
+    for (const e of enemies) {
+        e._inDimensionalRift = false;
+        e._riftSlow = false;
+    }
+
+    for (let ri = dimensionalRifts.length - 1; ri >= 0; ri--) {
+        const rift = dimensionalRifts[ri];
+        rift.timer -= deltaTime;
+        if (rift._chainCooldown > 0) rift._chainCooldown -= deltaTime;
+
+        if (rift.timer <= 0) {
+            dimensionalRifts.splice(ri, 1);
+            continue;
+        }
+
+        // Animation state, drives ctx rendering each frame
+        rift._age     += dt * 0.05;
+        rift._ringRot -= 0.025 * dt;
+
+        // Particle spawn (45% chance per frame, matches Pixi reference)
+        if (Math.random() < 0.45) {
+            const pA = Math.random() * Math.PI * 2;
+            const pD = Math.random() * rift.radius * 1.1;
+            rift._particles.push({
+                x: rift.x + Math.cos(pA) * pD, y: rift.y + Math.sin(pA) * pD,
+                vx: (Math.random() - 0.5) * 0.4, vy: -0.4 - Math.random() * 1.2,
+                life: 1.0, isCyan: Math.random() > 0.5,
+            });
+        }
+        for (let j = rift._particles.length - 1; j >= 0; j--) {
+            const p = rift._particles[j];
+            p.x += p.vx; p.y += p.vy; p.life -= 0.018;
+            if (p.life <= 0) rift._particles.splice(j, 1);
+        }
+
+        for (const enemy of enemies) {
+            const inRange = Math.hypot(enemy.x - rift.x, enemy.y - rift.y) <= rift.radius;
+
+            // Bullet absorption (enemy_bullet* only)
+            if (enemy.type.startsWith('enemy_bullet')) {
+                const bd = Math.hypot(enemy.x - rift.x, enemy.y - rift.y);
+                if (bd <= rift.radius * 2.5 && bd > 0) {
+                    // Pull force toward center
+                    const pullStr = 0.35 * dt * (1 - bd / (rift.radius * 2.5));
+                    enemy.vx += ((rift.x - enemy.x) / bd) * pullStr;
+                    enemy.vy += ((rift.y - enemy.y) / bd) * pullStr;
+                    // Absorbed when inside core
+                    if (bd < rift.radius * 0.45) enemy.hp = 0;
+                }
+                continue;
+            }
+
+            if (!inRange) continue;
+            if (enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo') continue;
+            if (enemy.type === 'embryo') continue; // CC-immune + special DR rules, fully exempt from all rift effects
+            if (enemy.hp <= 0 || enemy.inCoronation) continue;
+
+            // Mark for damage bonus & slow
+            enemy._inDimensionalRift = true;
+            enemy._riftSlow = true;
+
+            // Apply Soul Reaver debuff
+            enemy.soulReaver = true;
+
+            // Soul Devourer DoT, direct HP subtraction, bypasses DR
+            if (!enemy._riftDotTimer) enemy._riftDotTimer = 0;
+            enemy._riftDotTimer -= deltaTime;
+            if (enemy._riftDotTimer <= 0) {
+                enemy._riftDotTimer = 350;
+                const dotDmg = Math.ceil(57 + (enemy.maxHp || enemy.hp) * 0.07);
+                enemy.hp -= dotDmg;
+                enemy.hp = Math.max(0, enemy.hp);
+                if (enemy.hp <= 0) enemy._markedForDeath = true;
+                createParticles(
+                    enemy.x + (Math.random() - 0.5) * (enemy.size || 20),
+                    enemy.y + (Math.random() - 0.5) * (enemy.size || 20),
+                    3, '#d800ff', 1, 3
+                );
+
+                // 20% chain lightning chance per DoT tick
+                if (Math.random() < 0.20 && rift._chainCooldown <= 0) {
+                    rift._chainCooldown = 150;
+                    const chainDmg = dotDmg * 0.50;
+                    let chainCount = 0;
+                    for (const other of enemies) {
+                        if (chainCount >= 8) break;
+                        if (other === enemy || other.type.startsWith('enemy_bullet')) continue;
+                        if (other.type === 'veilshroud_echo' || other.type === 'embryo' || other.inCoronation) continue;
+                        if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < 150) {
+                            dealDamage(other, { damage: chainDmg, isChainLightning: true, applySoulReaver: Math.random() < 0.60 });
+                            chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: other.x, y2: other.y, lifetime: 250, maxLifetime: 250 });
+                            chainCount++;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 function spawnScatteredProjectiles(x, y, count, damageProps) {
@@ -157,7 +286,7 @@ function updateScatteredProjectiles(deltaTime) {
         }
 
         for (let enemy of enemies) {
-            if (enemy.type === 'abyssal_chain') continue;   // piercing — immune
+            if (enemy.type === 'abyssal_chain') continue;   // piercing, immune
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (enemy.inCoronation) continue;               // untargetable during coronation
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
@@ -246,7 +375,7 @@ function updateSpirits(deltaTime) {
         if (performance.now() - spirit.spawnTime >= spirit.duration) {
             spirit.isFinishing = true; spirit.finaleState = 'moving';
             spirit.finaleTargetPos = { x: canvas.width / 2, y: canvas.height / 2 };
-            // Reset energy — spirit entered finale without Primeval Creation
+            // Reset energy, spirit entered finale without Primeval Creation
             primevalEnergy = 0;
             continue;
         }
@@ -257,7 +386,7 @@ function updateSpirits(deltaTime) {
 
         spirit.shootTimer -= deltaTime;
         let spiritFireRate = 54.2;
-        if (gloryForJusticeActive) spiritFireRate /= 1.40;
+        if (gloryForJusticeActive) spiritFireRate /= 1.50;
 
         if (spirit.shootTimer <= 0) {
             spirit.shootTimer = spiritFireRate;
@@ -363,7 +492,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                 const along = ex * bDx + ey * bDy;
                 const perp  = Math.abs(ex * bDy - ey * bDx);
                 if (along > 0 && perp < DNT_BEAM_HALF + (e.size || 20)) {
-                    // Instant kill — bypass all shields/protections
+                    // Instant kill, bypass all shields/protections
                     e.shield = 0;
                     e.hp = 0;
                     if (e.type === 'leviathan' && !e._deathLaserSpawned) {
@@ -388,7 +517,7 @@ function updatePhotokrystos(spirit, deltaTime) {
 
     // Duration: only start counting from first bullet
     if (!spirit._combatStartTime) {
-        // waiting for first shot — don't count duration yet
+        // waiting for first shot, don't count duration yet
         // BTM check below uses _combatAge
     }
     const _combatAge = spirit._combatStartTime ? (now - spirit._combatStartTime) : 0;
@@ -400,7 +529,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         spirit._btmTimer = 0;
         spirit._btmTickTimer = 0;
         spirit._btmLightnings = []; // lightning bolt visuals for render
-        // Thu hồi tức thì tất cả boomerang — xóa khỏi màn hình ngay lập tức
+        // Thu hồi tức thì tất cả boomerang, xóa khỏi màn hình ngay lập tức
         photoBrangs.length = 0;
     }
 
@@ -411,7 +540,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         if (spirit._btmPhase === 'warming') {
             // Fly smoothly to screen center
             const targetX = canvas.width / 2;
-            const targetY = canvas.height * 0.35; // slightly above center — dramatic position
+            const targetY = canvas.height * 0.35; // slightly above center, dramatic position
             const flySpeed = Math.min(1, spirit._btmTimer / BTM_WARM); // 0→1 over warm period
             spirit.x += (targetX - spirit.x) * 0.08;
             spirit.y += (targetY - spirit.y) * 0.08;
@@ -423,7 +552,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             spirit._btmTickTimer += deltaTime;
             if (spirit._btmTickTimer >= 100) {
                 spirit._btmTickTimer = 0;
-                const dmgMult = gloryForJusticeActive ? 1.55 : 1;
+                const dmgMult = gloryForJusticeActive ? 1.70 : 1;
                 spirit._btmLightnings = []; // reset each tick
                 // Hit ALL enemies on screen
                 for (const e of enemies) {
@@ -471,11 +600,11 @@ function updatePhotokrystos(spirit, deltaTime) {
             if (spirit._btmTimer >= BTM_REL) {
                 spirit._done = true;
                 primevalEnergy = 0;
-                // CD was already started at summon time — do NOT reset it here
+                // CD was already started at summon time, do NOT reset it here
                 // Just unlock: spirits array will be empty → button unlocks naturally
             }
         }
-        return; // BTM active — don't do normal movement/attacks
+        return; // BTM active, don't do normal movement/attacks
     }
 
     // DNT aiming/firing: spirit freezes, no normal attacks
@@ -490,7 +619,7 @@ function updatePhotokrystos(spirit, deltaTime) {
     // Attack: 3 homing bullets per volley at 42ms
     spirit.shootTimer -= deltaTime;
     let photoFireRate = 42; // fire rate
-    if (gloryForJusticeActive) photoFireRate /= 1.40;
+    if (gloryForJusticeActive) photoFireRate /= 1.50;
     if (spirit.shootTimer <= 0) {
         spirit.shootTimer = photoFireRate;
         const targets = [];
@@ -506,7 +635,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         if (targets.length > 0) {
             // Duration starts from first shot
             if (!spirit._combatStartTime) spirit._combatStartTime = now;
-            const dmgMult = gloryForJusticeActive ? 1.55 : 1;
+            const dmgMult = gloryForJusticeActive ? 1.70 : 1;
             // -20% dmg penalty for 3s after DNT laser
             const dntMult = (spirit._dntPenaltyUntil && now < spirit._dntPenaltyUntil) ? 0.8 : 1;
             const speedMult = (gloryForJusticeActive ? 1.30 : 1) * 1.3;
@@ -583,7 +712,7 @@ function spawnPhotoBrangs(fromX, fromY, count) {
 
 function updatePhotoBrangs(deltaTime) {
     const dt = deltaTime / 16.67;
-    const BRANG_R = 48; // visual radius — any overlap = hit
+    const BRANG_R = 48; // visual radius, any overlap = hit
     const _photo = spirits.find(s => s.isPhotokrystos); // dùng isPhotokrystos, không phải type
 
     for (let i = photoBrangs.length - 1; i >= 0; i--) {
@@ -643,13 +772,13 @@ function updatePhotoBrangs(deltaTime) {
             b.vy += (dy / d * spd - b.vy) * 0.18;
 
             // Hit: any overlap between boomerang and enemy
-            const hitDist = (tgt.size / 2) + BRANG_R; // generous — any edge contact
+            const hitDist = (tgt.size / 2) + BRANG_R; // generous, any edge contact
             if (d < hitDist) {
                 const lastHit = b._hitCooldowns.get(tgt) || 0;
                 if (now_b - lastHit >= 200) { // can re-hit same enemy after 200ms
                     b._hitCooldowns.set(tgt, now_b);
                     const brangSrc = {
-                        damage: b.damage * (gloryForJusticeActive ? 1.55 : 1),
+                        damage: b.damage * (gloryForJusticeActive ? 1.70 : 1),
                         percentDamage: b.percentDamage,
                         applyVuln: true, vulnChance: 0.15,
                         isTrueDamage: true
@@ -888,7 +1017,7 @@ function updateSkillD(deltaTime) {
 
         const pullSpeed = 6;
         for (let enemy of enemies) {
-            if (enemy.type === 'abyssal_chain') continue; // piercing — immune to black hole
+            if (enemy.type === 'abyssal_chain') continue; // piercing, immune to black hole
             if (enemy.type === 'veilshroud_echo') continue; // echo miễn CC
             if (enemy.inCoronation) continue; // untargetable during coronation
             if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
@@ -941,7 +1070,7 @@ function updateSkillF(deltaTime) {
 
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;
-            if (enemy.type === 'abyssal_chain') continue; // piercing — immune to skill F
+            if (enemy.type === 'abyssal_chain') continue; // piercing, immune to skill F
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (enemy.inCoronation) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
@@ -951,7 +1080,7 @@ function updateSkillF(deltaTime) {
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
                 } else {
-                    // Instant kill — bypass tất cả damage calc, clear quái ngay lập tức
+                    // Instant kill, bypass tất cả damage calc, clear quái ngay lập tức
                     enemy.shield = 0;
                     enemy.hp = 0;
                     // Leviathan: skill F bypasses dealDamage → trigger last rites manually
@@ -1307,22 +1436,22 @@ function cancelSkillShift() {
         });
     }
 }
-// Marchosias Blade — global array, không bị ngắt bởi bất kỳ nguồn nào
+// Marchosias Blade, global array, không bị ngắt bởi bất kỳ nguồn nào
 function updateMarchosiasBlades(deltaTime) {
     const dt = deltaTime / 16.67;
     for (let i = marchosiasBlades.length - 1; i >= 0; i--) {
         const blade = marchosiasBlades[i];
 
-        // Nếu đang trong warning phase — đếm ngược delay
+        // Nếu đang trong warning phase, đếm ngược delay
         if (!blade.active) {
             blade.delay -= deltaTime;
             if (blade.delay <= 0) {
-                blade.active = true; // kích hoạt — bắt đầu bay
+                blade.active = true; // kích hoạt, bắt đầu bay
             }
             continue; // chưa active → không di chuyển, không hit
         }
 
-        // Active — di chuyển bình thường
+        // Active, di chuyển bình thường
         blade.x += blade.vx * dt;
         blade.y += blade.vy * dt;
 
@@ -1331,7 +1460,7 @@ function updateMarchosiasBlades(deltaTime) {
             blade.hitPlayer = true;
             playerTakesHit();
         }
-        // Hit sentinel — damage scales down with number of sentinels already hit
+        // Hit sentinel, damage scales down with number of sentinels already hit
         for (const s of sentinels) {
             if (!blade.hitEnemies.includes(s) && Math.hypot(blade.x - s.x, blade.y - s.y) < blade.radius + s.size) {
                 // 1st sentinel hit: 30%, 2nd: 28%, 3rd+: 24%
@@ -1357,13 +1486,13 @@ function updateSoulReaverDoT(deltaTime) {
     const now = performance.now();
     for (const enemy of enemies) {
         if (!enemy.soulReaver) continue;
+        if (enemy.type === 'embryo') continue; // CC-immune, bypass all status DoTs
         if (!enemy.soulReaverDotTimer) enemy.soulReaverDotTimer = 0;
         enemy.soulReaverDotTimer -= deltaTime;
         if (enemy.soulReaverDotTimer <= 0) {
-            enemy.soulReaverDotTimer = 500; // 0.5 giây
-            // Sát thương chuẩn bỏ qua khiên — áp thẳng vào HP
-            const _srGlory = (typeof gloryForJusticeActive !== 'undefined' && gloryForJusticeActive) ? 1.55 : 1;
-            const dotDmg = Math.ceil((10 + (enemy.maxHp || enemy.hp) * 0.05) * _srGlory);
+            enemy.soulReaverDotTimer = 350; // 0.35 giây
+            // Sát thương chuẩn bỏ qua khiên, áp thẳng vào HP
+            const dotDmg = Math.ceil(57 + (enemy.maxHp || enemy.hp) * 0.07);
             enemy.hp -= dotDmg;
             enemy.hp = Math.max(0, enemy.hp);
             if (enemy.hp <= 0) enemy._markedForDeath = true;

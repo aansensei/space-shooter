@@ -311,7 +311,7 @@
     </style>
 
     <script>
-        // ── BẢO VỆ CODE ──────────────────────────────────────────
+        // BẢO VỆ CODE
         (function () {
             document.addEventListener('contextmenu', e => e.preventDefault());
             document.addEventListener('selectstart', e => e.preventDefault());
@@ -641,7 +641,7 @@
             </style>
 
             <script>
-                // ── Settings state (applied values) ──────────────────
+                // Settings state (applied values)
                 window._smartQuality      = true;
                 window._screenShakeEnabled = true;
                 window._masterVolume      = 1.0;
@@ -682,7 +682,7 @@
                     if (e.target === this) closeSettings();
                 });
 
-                // ── UI-only handlers (no apply yet) ──────────────────
+                // UI-only handlers (no apply yet)
 
                 // Smart Quality toggle → only update row lock visually
                 function onSmartQualityChange(enabled) {
@@ -718,7 +718,7 @@
                     document.getElementById('shake-off').classList.toggle('stg-onoff-active', !enabled);
                 }
 
-                // ── APPLY: read UI state, apply everything ────────────
+                // APPLY: read UI state, apply everything
                 function applySettings() {
                     // Smart Quality
                     const sqOn = document.getElementById('sq-check').checked;
@@ -761,7 +761,7 @@
     </div>
 
     <script>
-        // ── AUDIO SYSTEM ──────────────────────────────────────────
+        // AUDIO SYSTEM
         const sndTitle = document.getElementById('snd-title');
         const sndHyperjump = document.getElementById('snd-hyperjump');
         const sndIngame = document.getElementById('snd-ingame');
@@ -788,7 +788,7 @@
             _activeTrack = null;
         }
 
-        // Mute toggle — tắt/bật ngay lập tức
+        // Mute toggle, tắt/bật ngay lập tức
         document.getElementById('mute-btn').addEventListener('click', () => {
             _muted = !_muted;
             document.getElementById('ico-on').style.display = _muted ? 'none' : 'block';
@@ -810,7 +810,7 @@
     </script>
 
     <script>
-        // ── STAR FIELD + HYPERJUMP (GIỮ NGUYÊN CODE GỐC) ────────
+        // STAR FIELD + HYPERJUMP (GIỮ NGUYÊN CODE GỐC)
         (() => {
             const starCanvas = document.getElementById('star-canvas');
             const ctx = starCanvas.getContext('2d');
@@ -944,7 +944,7 @@
             const realStartBtn = document.getElementById('startBtn');
             const whiteFlash = document.getElementById('white-flash');
 
-            // ── Return to main menu from in-game ──────────────────────
+            // Return to main menu from in-game
             window._returnToMainMenu = function () {
                 // Restore overlay & lock screen
                 easterEggOverlay.style.display = 'block';
@@ -1019,7 +1019,7 @@
             let frameTimes = [];
             const MAX_LINES = 50;
 
-            // ── Toggle F3 ──────────────────────────────────────────
+            // Toggle F3
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'F3') {
                     e.preventDefault();
@@ -1028,7 +1028,7 @@
                 }
             });
 
-            // ── FPS + Auto Quality Tier ────────────────────────────
+            // FPS + Auto Quality Tier
             // Tier: 0=FULL(>25) 1=MED(≤25) 2=LOW(≤15)
             // Shadow chỉ tắt ở tier 2 (fps ≤ 15)
             const _TIER_NAMES   = ['FULL', 'MED', 'LOW'];
@@ -1075,7 +1075,7 @@
                 const avg = sum / frameTimes.length;
                 const fps = avg > 0 ? Math.round(1000 / avg) : 0;
 
-                // ── 1-second FPS average for tier decisions ────────
+                // 1-second FPS average for tier decisions
                 // Push raw dt (không dùng rolling-avg fps để tránh lag khi FPS vừa drop)
                 if (dt > 0 && dt < 500) _fps1sArr.push(dt);
                 if (now - _lastTierCheck >= 1000 && _fps1sArr.length > 0 && window._smartQuality !== false && !window._shiftActive) {
@@ -1114,7 +1114,7 @@
             }
             requestAnimationFrame(tick);
 
-            // ── Console interceptor ────────────────────────────────
+            // Console interceptor
             function addLine(cls, msg) {
                 const lines = consoleEl.querySelectorAll('.dbg-line');
                 if (lines.length >= MAX_LINES) lines[0].remove();
@@ -1266,12 +1266,12 @@
                 document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
             };
 
-            // ── MOBILE CONTROLS INIT ──────────────────────────────────
+            // MOBILE CONTROLS INIT
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
 
                 // Canvas inflate: logical size = screen * 1.282
-                // CSS size = screen (browser composites at CSS size — GPU safe)
+                // CSS size = screen (browser composites at CSS size, GPU safe)
                 // Result: game world fits full screen, objects appear 78% smaller
                 const physW = window.innerWidth;
                 const physH = window.innerHeight;
@@ -1300,7 +1300,7 @@
 
             function _buildMobileHTML() {
                 // Wrappers for hold-based buttons (YOG, CHARGE, arrows)
-                // Use ontouchstart/end directly — modern mobile handles multi-touch fine
+                // Use ontouchstart/end directly, modern mobile handles multi-touch fine
                 return `
                 <div class="mb mb-sk" id="mb-yog" style="bottom:180px;left:26px;"
                     ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')"
@@ -1352,8 +1352,8 @@
             `;
             }
 
-            // ── HOLD BUTTON ACTIONS ───────────────────────────────────
-            // Micro haptic — 15ms, barely perceptible
+            // HOLD BUTTON ACTIONS
+            // Micro haptic, 15ms, barely perceptible
             window._hap = function () { try { navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
 
             window._mbDown = function (id) {
@@ -1394,14 +1394,14 @@
                 } catch (e) { }
             };
 
-            // ── COOLDOWN RING PAINTER ────────────────────────────────
+            // COOLDOWN RING PAINTER
             const CIRC = 2 * Math.PI * 26; // r=26 on 58×58 canvas
             function _paintRing(cvId, frac, color) {
                 const cv = document.getElementById(cvId);
                 if (!cv) return;
                 const ctx = cv.getContext('2d');
                 ctx.clearRect(0, 0, 58, 58);
-                if (frac >= 1) return; // ready — no ring needed
+                if (frac >= 1) return; // ready, no ring needed
                 // background arc
                 ctx.strokeStyle = 'rgba(255,255,255,0.08)';
                 ctx.lineWidth = 4; ctx.lineCap = 'round';
@@ -1475,7 +1475,7 @@
                         const fr = _ready(lastSkillF, skillFCooldown);
                         _paintRing('mb-f-cv', fr, '#ff6666');
                         document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
-                        // G — charge based 0-100
+                        // G, charge based 0-100
                         const gc = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
                         const gr = (typeof skillGActive !== 'undefined' && skillGActive) ? 1 : gc / 100;
                         _paintRing('mb-g-cv', gr, '#00ffcc');
@@ -1489,14 +1489,14 @@
                         _paintRing('mb-ch-cv', cr, '#00e5ff');
                         document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
 
-                        // ── Silence X overlay on all skill buttons ────────────
+                        // Silence X overlay on all skill buttons
                         const silenced = typeof player !== 'undefined' && player._silenced;
                         const skillBtnIds = ['mb-yog', 'mb-a', 'mb-s', 'mb-d', 'mb-f', 'mb-g', 'mb-ch'];
                         skillBtnIds.forEach(id => {
                             const cv = document.getElementById(id + '-cv');
                             if (!cv) return;
                             if (silenced) {
-                                // Draw X on the cooldown canvas — no DOM injection, no position change
+                                // Draw X on the cooldown canvas, no DOM injection, no position change
                                 const c2 = cv.getContext('2d');
                                 const w = cv.width, h = cv.height;
                                 c2.save();
@@ -1515,7 +1515,7 @@
                 requestAnimationFrame(loop);
             }
 
-            // ── MULTI-TOUCH: handled via direct ontouchstart on each button ──
+            // MULTI-TOUCH: handled via direct ontouchstart on each button
         })();
 
     </script>

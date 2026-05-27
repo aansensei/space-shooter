@@ -1,4 +1,4 @@
-// js/pixi-renderer.js — Pixi.js v8 WebGL renderer
+// js/pixi-renderer.js, Pixi.js v8 WebGL renderer
 //
 // Phase 0: Transparent overlay canvas, feature flag
 // Phase 1: bullets, spirit bullets, particles → WebGL sprites (additive blend)
@@ -19,7 +19,7 @@ window._pixiRender       = null;
     if (!gameCanvas) { console.warn('[Pixi] #gameCanvas not found'); return; }
     if (typeof PIXI === 'undefined') { console.warn('[Pixi] PIXI not loaded'); return; }
 
-    // ── Application ───────────────────────────────────────────────────
+    // Application
     const app = new PIXI.Application();
     await app.init({
         width:           gameCanvas.width  || window.innerWidth,
@@ -40,7 +40,8 @@ window._pixiRender       = null;
     });
     gameCanvas.after(pc);
 
-    // ── Stage layers (back → front) ───────────────────────────────────
+    // Stage layers (back → front)
+    // rift is rendered on ctx (before enemies), not in Pixi, see render.js _drawDimensionalRiftsCtx
     const nebulaLayer  = new PIXI.Container(); // distant nebula atmosphere
     const trailLayer   = new PIXI.Container(); // bullet trails
     const particleLayer= new PIXI.Container(); // particles
@@ -54,7 +55,7 @@ window._pixiRender       = null;
     app.stage.addChild(spiritLayer);
     app.stage.addChild(flashLayer);
 
-    // ── Texture cache ─────────────────────────────────────────────────
+    // Texture cache
     const _texCache = {};
     function _canvasTex(canvas2d, key) {
         if (_texCache[key]) return _texCache[key];
@@ -74,7 +75,7 @@ window._pixiRender       = null;
         return _canvasTex(_getGlowSprite(color, r), 'g_' + color + '_' + r);
     }
 
-    // ── Sprite pool ───────────────────────────────────────────────────
+    // Sprite pool
     const _pool = [];
     function _acq() { return _pool.pop() || new PIXI.Sprite(); }
     function _rel(s) { _pool.push(s); }
@@ -84,9 +85,9 @@ window._pixiRender       = null;
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // PHASE 3A — Nebula atmosphere
+    // PHASE 3A, Nebula atmosphere
     // Custom radial-gradient textures (opacity baked in) drift slowly.
-    // 'screen' blend brightens dark backgrounds proportionally — visible
+    // 'screen' blend brightens dark backgrounds proportionally, visible
     // on the dark space canvas without covering gameplay.
     // ══════════════════════════════════════════════════════════════════
     const W = () => app.renderer.width, H = () => app.renderer.height;
@@ -148,7 +149,7 @@ window._pixiRender       = null;
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // PHASE 3B — Bullet trails
+    // PHASE 3B, Bullet trails
     // Each frame a trail entry is recorded at the bullet's current
     // position.  The entry persists and fades over ~6 frames, so as the
     // bullet advances it leaves a glowing streak behind it.
@@ -182,8 +183,8 @@ window._pixiRender       = null;
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // PHASE 3C — Hit flash
-    // Track enemy HP each frame; when HP drops, spawn a brief white
+    // PHASE 3C, Hit flash
+    // Track enemy HP each frame, when HP drops, spawn a brief white
     // flash at the enemy's position.  Uses object-reference keying so
     // it works regardless of enemy position or type.
     // ══════════════════════════════════════════════════════════════════
@@ -224,7 +225,173 @@ window._pixiRender       = null;
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // PHASE 1 — Bullets / spirits / particles
+    // PHASE 3D, Dimensional Rift zones (Skill A)
+    // Extracted exactly from dimensional_rift_pixi-v2.html:
+    //   void core circles, rotating energy ring w/ 12 spikes, animated
+    //   cracks with 18% glitch chance, floating antimatter particles.
+    // ══════════════════════════════════════════════════════════════════
+    const _riftContainers = new Map(); // rift object → PIXI.Container
+
+    function _pixiCreateRiftContainer(rift) {
+        const container = new PIXI.Container();
+        container.x = rift.x;
+        container.y = rift.y;
+        const radius = rift.radius;
+        container._riftAge        = 0;
+        container._riftParticles  = [];
+        container._riftCracksInfo = rift.cracksInfo;
+        container._riftRadius     = radius;
+
+        // Void core, three concentric fills (outermost → innermost)
+        const coreGraphic = new PIXI.Graphics();
+        coreGraphic.circle(0, 0, radius * 1.25).fill({ color: 0x240046, alpha: 0.30 });
+        coreGraphic.circle(0, 0, radius * 1.05).fill({ color: 0x3c096c, alpha: 0.50 });
+        coreGraphic.circle(0, 0, radius * 0.75).fill({ color: 0x020105, alpha: 1.00 });
+        container.addChild(coreGraphic);
+        container._riftCore = coreGraphic;
+
+        // Energy ring, two stroke circles + 12 spike lines
+        const ringGraphic = new PIXI.Graphics();
+        ringGraphic.circle(0, 0, radius * 0.95).stroke({ color: 0x00f5ff, width: 1.5, alpha: 0.4 });
+        ringGraphic.circle(0, 0, radius * 0.85).stroke({ color: 0x9d4edd, width: 2.5, alpha: 0.7 });
+        const spikes = 12;
+        for (let i = 0; i < spikes; i++) {
+            const angle  = (i / spikes) * Math.PI * 2;
+            const innerR = radius * 0.78;
+            const outerR = radius * (1.0 + (i % 3 === 0 ? 0.08 : 0.04)); // slight variety
+            ringGraphic
+                .moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR)
+                .lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR)
+                .stroke({ color: 0xe0aaff, width: 2, alpha: 0.6 });
+        }
+        container.addChild(ringGraphic);
+        container._riftRing = ringGraphic;
+
+        // Cracks graphic, redrawn every frame
+        const cracksGraphic = new PIXI.Graphics();
+        container.addChild(cracksGraphic);
+        container._riftCracks = cracksGraphic;
+
+        // Particle layer
+        const particleContainer = new PIXI.Container();
+        container.addChild(particleContainer);
+        container._riftParticleLayer = particleContainer;
+
+        return container;
+    }
+
+    function _drawRifts() {
+        if (typeof dimensionalRifts === 'undefined') return;
+
+        // Remove containers for expired rifts
+        for (const [rift, container] of _riftContainers) {
+            if (!dimensionalRifts.includes(rift)) {
+                riftLayer.removeChild(container);
+                _riftContainers.delete(rift);
+            }
+        }
+
+        for (const rift of dimensionalRifts) {
+            const container = _riftContainers.get(rift);
+            if (!container) continue;
+
+            // age drives all periodic animations (matches HTML: age += delta*0.05, delta≈1)
+            container._riftAge += 0.05;
+
+            // Fade out during last ~16.7% of lifetime (500ms of 3000ms)
+            const lifeRatio = rift.timer / rift.maxTimer;
+            container.alpha = lifeRatio < 0.167 ? lifeRatio / 0.167 : 1;
+
+            // Core scale pulse: 1 + sin(age*2.5)*0.05
+            const pulse = 1 + Math.sin(container._riftAge * 2.5) * 0.05;
+            container._riftCore.scale.set(pulse);
+
+            // Ring rotation
+            container._riftRing.rotation -= 0.025;
+
+            // Cracks (redrawn each frame)
+            const g = container._riftCracks;
+            g.clear();
+            const triggerGlitch = Math.random() < 0.18;
+            for (const crack of container._riftCracksInfo) {
+                const currentAngle = crack.baseAngle + (triggerGlitch ? (Math.random() - 0.5) * 0.2 : 0);
+                const currentLen   = crack.maxLength  * (triggerGlitch ? (0.85 + Math.random() * 0.3) : 1);
+                const segments = 4;
+                let lastX = 0, lastY = 0;
+                g.moveTo(0, 0);
+                for (let s = 1; s <= segments; s++) {
+                    const ratio   = s / segments;
+                    const targetX = Math.cos(currentAngle) * currentLen * ratio;
+                    const targetY = Math.sin(currentAngle) * currentLen * ratio;
+                    // perpendicular jitter on all but the final segment
+                    const jitterRange = s < segments ? (container._riftRadius * 0.22) : 0;
+                    const offset  = (Math.random() - 0.5) * jitterRange;
+                    const perpX   = -Math.sin(currentAngle) * offset;
+                    const perpY   =  Math.cos(currentAngle) * offset;
+                    lastX = targetX + perpX;
+                    lastY = targetY + perpY;
+                    g.lineTo(lastX, lastY);
+                }
+                const strokeColor = triggerGlitch ? 0xffffff : 0xd800ff;
+                const strokeWidth = triggerGlitch ? 3.0 : 1.5;
+                g.stroke({ color: strokeColor, width: strokeWidth, alpha: 0.85 });
+
+                // Sub-branch in cyan, only when glitching
+                if (crack.hasSubBranch && triggerGlitch) {
+                    const branchAngle = currentAngle + (Math.random() > 0.5 ? 0.5 : -0.5);
+                    g.moveTo(lastX * 0.5, lastY * 0.5)
+                     .lineTo(lastX * 0.5 + Math.cos(branchAngle) * 20,
+                             lastY * 0.5 + Math.sin(branchAngle) * 20)
+                     .stroke({ color: 0x00f5ff, width: 1.2, alpha: 0.7 });
+                }
+            }
+
+            // Antimatter particles
+            if (Math.random() < 0.45) {
+                const p = new PIXI.Graphics();
+                const col = Math.random() > 0.5 ? 0x00e5ff : 0xff007f;
+                p.circle(0, 0, 1.2 + Math.random() * 1.8).fill({ color: col, alpha: 1 });
+                const pAngle = Math.random() * Math.PI * 2;
+                const pDist  = Math.random() * container._riftRadius * 1.1;
+                p.x    = Math.cos(pAngle) * pDist;
+                p.y    = Math.sin(pAngle) * pDist;
+                p.vx   = (Math.random() - 0.5) * 0.4;
+                p.vy   = -0.4 - Math.random() * 1.2; // float upward
+                p.life = 1.0;
+                container._riftParticleLayer.addChild(p);
+                container._riftParticles.push(p);
+            }
+            for (let j = container._riftParticles.length - 1; j >= 0; j--) {
+                const p = container._riftParticles[j];
+                p.x   += p.vx;
+                p.y   += p.vy;
+                p.life -= 0.018; // matches HTML fade rate
+                p.alpha = p.life;
+                if (p.life <= 0) {
+                    container._riftParticleLayer.removeChild(p);
+                    p.destroy();
+                    container._riftParticles.splice(j, 1);
+                }
+            }
+        }
+    }
+
+    window._pixiSpawnRift = function(rift) {
+        const container = _pixiCreateRiftContainer(rift);
+        riftLayer.addChild(container);
+        _riftContainers.set(rift, container);
+    };
+
+    window._pixiDestroyRift = function(rift) {
+        const container = _riftContainers.get(rift);
+        if (container) {
+            riftLayer.removeChild(container);
+            _riftContainers.delete(rift);
+        }
+    };
+
+    // ══════════════════════════════════════════════════════════════════
+    // PHASE 1, Bullets / spirits / particles
     // ══════════════════════════════════════════════════════════════════
     window._pixiDrawBullets = function(bullets, spiritBullets) {
         _spawnTrails(bullets); // record trail positions before layer clear
@@ -269,14 +436,15 @@ window._pixiRender       = null;
         }
     };
 
-    // ── Main render tick ──────────────────────────────────────────────
+    // Main render tick
     window._pixiRender = function() {
         const playing = typeof gameState !== 'undefined' && gameState === 'playing';
 
-        _drawNebulae(); // always — nebulae drift on start/gameover screens too
+        _drawNebulae(); // always, nebulae drift on start/gameover screens too
         _checkHits();
         _drawTrails();
         _drawFlashes();
+        // rift rendered on ctx before enemies, not here
 
         if (!playing) {
             // Clear stale game-layer content so it doesn't bleed onto UI screens
@@ -290,19 +458,19 @@ window._pixiRender       = null;
         app.renderer.render(app.stage);
     };
 
-    // ── Resize ────────────────────────────────────────────────────────
+    // Resize
     new ResizeObserver(() => {
         const w = gameCanvas.width || window.innerWidth;
         const h = gameCanvas.height || window.innerHeight;
         if (app.renderer.width !== w || app.renderer.height !== h) app.renderer.resize(w, h);
     }).observe(gameCanvas);
 
-    // ── Feature flag ──────────────────────────────────────────────────
+    // Feature flag
     // shadowBlur strategy: soft-cap at 8px via native-setter delegation.
     //
     // Why 8px, NOT _mobPerf=true:
     //  - _mobPerf skips entire visual blocks (armor shards, RGB glitch on
-    //    veilshroud; gills highlight on egregor) — breaks animations.
+    //    veilshroud, gills highlight on egregor), breaks animations.
     //  - Blur cost scales ~O(r²): 20px→8px = 6x cheaper, 60px→8px = 56x cheaper.
     //  - Common entities use shadowBlur 8-14px → capped to 8 → tight glow, fast.
     //  - Skills/laser use 38-60px → capped to 8 → still glows, way cheaper.

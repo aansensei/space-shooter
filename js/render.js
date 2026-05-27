@@ -1,4 +1,4 @@
-﻿// render.js  Enhanced Graphics v2  (hitbox-safe, 60fps)
+// render.js  Enhanced Graphics v2  (hitbox-safe, 60fps)
 // RULE: hitbox = original size/shape. Only VISUAL layers added.
 
 let bgStars = [];
@@ -16,12 +16,12 @@ let _nebulaCanvas  = null; // cached nebula layer (HIGH only)
 let _bgDirty = true;    // redraw background this frame?
 let _bgCacheFrame = 0;  // frame counter for cache refresh
 
-// Intercept ctx.shadowBlur on mobile — return to 0 for most calls
+// Intercept ctx.shadowBlur on mobile, return to 0 for most calls
 // Wrapped lazily after canvas is set up (see initMobilePerf)
 function _initMobilePerf() {
     _mobPerf = true;
     _bgDirty = true;
-    // Triệt tiêu hoàn toàn shadow tại setter level — zero GPU cost
+    // Triệt tiêu hoàn toàn shadow tại setter level, zero GPU cost
     try {
         // intercepts every shadowBlur setter globally so no if(_mobPerf) guards needed anywhere in draw code
         Object.defineProperty(ctx, 'shadowBlur',  { get: () => 0, set: () => {}, configurable: true });
@@ -50,7 +50,7 @@ window._applyGfxLevel = _applyGfxLevel;
 
 // END MOBILE FLAGS
 
-// ── Glow sprite cache: pre-rendered radial gradient drawn with drawImage (GPU path, no CPU blur) ──
+// Glow sprite cache: pre-rendered radial gradient drawn with drawImage (GPU path, no CPU blur)
 const _glowSpriteCache = {};
 function _getGlowSprite(color, radius) {
     const r = Math.ceil(radius);
@@ -69,7 +69,7 @@ function _getGlowSprite(color, radius) {
     return c;
 }
 
-// ── Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality) ──
+// Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality)
 const _bulletSpriteCache = {};
 function _getBulletSprite(type, size, gfxLvl) {
     const sz = Math.max(1, Math.round(size));
@@ -141,7 +141,7 @@ function _getBulletSprite(type, size, gfxLvl) {
     return c;
 }
 
-// ── Spirit bullet sprite cache (full quality, drawn with lighter blendMode) ──
+// Spirit bullet sprite cache (full quality, drawn with lighter blendMode)
 const _spiritSpriteCache = {};
 function _getSpiritSprite(isPhoto, size) {
     const sz = Math.max(1, Math.round(size));
@@ -448,15 +448,15 @@ function draw(deltaTime) {
         let currentDomainRadius = maxRadius * easeExpand;
         const domainFull = expandT >= 1;
         const cx = player.x, cy = player.y;
-        // chargeRatio: 0→1 over skillShiftMaxCharge (3s) — used for energy buildup visuals
+        // chargeRatio: 0→1 over skillShiftMaxCharge (3s), used for energy buildup visuals
         const chargeRatio = Math.min(elapsed / skillShiftMaxCharge, 1);
 
         ctx.save();
 
-        // PHASE A — PRE-EXPANSION: CURSED ENERGY CHARGING VORTEX
+        // PHASE A, PRE-EXPANSION: CURSED ENERGY CHARGING VORTEX
         // Visible the entire time but peaks before domain opens
 
-        // A1. DARK AURA GROUND PULSE — circular shockwave rings emanating outward
+        // A1. DARK AURA GROUND PULSE, circular shockwave rings emanating outward
         {
             const ringCount = 4;
             for (let i = 0; i < ringCount; i++) {
@@ -469,7 +469,7 @@ function draw(deltaTime) {
             }
         }
 
-        // A2. SPIRAL ENERGY STREAMS — 6 cursed-energy tendrils spiraling INTO player
+        // A2. SPIRAL ENERGY STREAMS, 6 cursed-energy tendrils spiraling INTO player
         {
             const spiralCount = 6;
             for (let i = 0; i < spiralCount; i++) {
@@ -504,7 +504,7 @@ function draw(deltaTime) {
             }
         }
 
-        // A3. PARTICLE VORTEX — dozens of cursed sparks sucked inward
+        // A3. PARTICLE VORTEX, dozens of cursed sparks sucked inward
         {
             const pCount = Math.floor(18 + chargeRatio * 30);
             for (let i = 0; i < pCount; i++) {
@@ -529,7 +529,7 @@ function draw(deltaTime) {
             }
         }
 
-        // A4. EYE OF THE STORM — concentric charged rings tight around player
+        // A4. EYE OF THE STORM, concentric charged rings tight around player
         {
             const ringCount = 3;
             for (let i = 0; i < ringCount; i++) {
@@ -555,9 +555,9 @@ function draw(deltaTime) {
             }
         }
 
-        // PHASE B — DOMAIN VOID FILL + HEX FLOOR
+        // PHASE B, DOMAIN VOID FILL + HEX FLOOR
 
-        // B1. HEX FLOOR — slowly scrolling to feel alive
+        // B1. HEX FLOOR, slowly scrolling to feel alive
         if (domainFull) {
             const hexR = 38;
             const hexW = hexR * Math.sqrt(3);
@@ -603,7 +603,7 @@ function draw(deltaTime) {
             ctx.globalAlpha = 1;
         }
 
-        // B1b. PERSIAN TILE OVERLAY — hoa văn Ba Tư cuộn theo domain
+        // B1b. PERSIAN TILE OVERLAY, hoa văn Ba Tư cuộn theo domain
         if (domainFull) {
             const tileT = Math.min((elapsed - 700) / 600, 1);
             const tSize = 52; // tile size
@@ -648,7 +648,7 @@ function draw(deltaTime) {
         ctx.fillStyle = domGrad;
         ctx.fill();
 
-        // B2b. PURPLE TINT OVERLAY — flat screen-wide purple wash inside domain
+        // B2b. PURPLE TINT OVERLAY, flat screen-wide purple wash inside domain
         ctx.save();
         ctx.beginPath();
         ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2);
@@ -657,11 +657,11 @@ function draw(deltaTime) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        // PHASE C — BOUNDARY, CRACKS, RAYS, RUNES (full domain)
+        // PHASE C, BOUNDARY, CRACKS, RAYS, RUNES (full domain)
 
         // C1. BOUNDARY RING
         if (!domainFull) {
-            // --- expanding shockwave wall ---
+            // expanding shockwave wall
             ctx.lineWidth = 16;
             ctx.strokeStyle = 'rgba(160,0,255,0.95)';
             if (!_mobPerf) ctx.shadowColor = '#df00ff'; if (!_mobPerf) ctx.shadowBlur = 50;
@@ -690,7 +690,7 @@ function draw(deltaTime) {
                 ctx.beginPath(); ctx.arc(cx, cy, innerR, 0, Math.PI * 2); ctx.stroke();
             }
         } else {
-            // --- stable domain wall: two counter-rotating segmented rings ---
+            // stable domain wall: two counter-rotating segmented rings
             const wallPulse = 0.6 + 0.4 * Math.sin(now / 280);
             // outer slow ring
             ctx.save();
@@ -816,7 +816,7 @@ function draw(deltaTime) {
             });
         }
 
-        // C5. LIGHTNING VEINS — random lightning that re-draws each frame inside domain
+        // C5. LIGHTNING VEINS, random lightning that re-draws each frame inside domain
         if (domainFull) {
             const veinAlpha = Math.min((elapsed - 600) / 600, 1) * 0.7;
             const veinCount = 5;
@@ -847,7 +847,7 @@ function draw(deltaTime) {
             }
         }
 
-        // C5b. PERSIAN TILE PATTERN — Ottoman-style geometric overlay inside domain
+        // C5b. PERSIAN TILE PATTERN, Ottoman-style geometric overlay inside domain
         if (domainFull) {
             const tileAlpha = Math.min((elapsed - 600) / 800, 1) * 0.18;
             if (tileAlpha > 0) {
@@ -859,7 +859,7 @@ function draw(deltaTime) {
                 const scrollY2 = (now / 18000 * tileSize) % tileSize;
 
                 ctx.save();
-                ctx.clip(); // clip to domain circle (already set by void fill above? no — re-clip)
+                ctx.clip(); // clip to domain circle (already set by void fill above? no, re-clip)
                 ctx.beginPath(); ctx.arc(cx, cy, currentDomainRadius * 0.96, 0, Math.PI * 2);
                 ctx.clip();
                 ctx.translate(-scrollX2, -scrollY2);
@@ -926,7 +926,7 @@ function draw(deltaTime) {
             }
         }
 
-        // C6. DOMAIN TITLE TEXT — fades in briefly
+        // C6. DOMAIN TITLE TEXT, fades in briefly
         {
             const textT = Math.min(elapsed / 200, 1) * Math.max(0, 1 - (elapsed - 200) / 1500);
             if (textT > 0.02) {
@@ -960,7 +960,7 @@ function draw(deltaTime) {
             }
         }
 
-        // C7. CORE BURST at player — grows and pulses
+        // C7. CORE BURST at player, grows and pulses
         {
             const coreSize = 22 + 10 * Math.sin(now / 160);
             const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreSize * 2.2);
@@ -1004,6 +1004,7 @@ function draw(deltaTime) {
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
         marchosiasBlades.forEach(_drawMarchoBlade);
         scatteredProjectiles.forEach(drawScatteredProjectile);
+        _drawDimensionalRiftsCtx(); // always on ctx, drawn before enemies so rift appears behind them
 
         teslaCoils.forEach(drawTeslaCoil);
         energyOrbs.forEach(drawEnergyOrb);
@@ -1046,7 +1047,7 @@ function draw(deltaTime) {
             for (const p of particles) {
                 if (p.isSummonRing || p.isLaserLine || p.isSkillGAura) { _specials.push(p); continue; }
                 if (_pixiP) continue; // normal particles routed to Pixi
-                // Round alpha to 0.05 steps — imperceptible diff, enables color+alpha batching
+                // Round alpha to 0.05 steps, imperceptible diff, enables color+alpha batching
                 const _a = Math.round((p.lifetime / p.maxLifetime) * 20) / 20;
                 const _k = p.color + '|' + _a;
                 let _b = _batches.get(_k);
@@ -1135,7 +1136,7 @@ function draw(deltaTime) {
         }
 
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
-        // HUD — smaller on mobile
+        // HUD, smaller on mobile
         const hudFont = _isMobile ? '13px Arial' : '20px Arial';
         const hudTimer = _isMobile ? 'bold 15px monospace' : 'bold 22px monospace';
         const hudLine = _isMobile ? 20 : 26; // line spacing
@@ -1174,7 +1175,7 @@ function draw(deltaTime) {
         _rvg.addColorStop(1, "rgba(0,0,0,0.97)");
         ctx.fillStyle = _rvg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Ornamental divider — two lines with a rotated square diamond
+        // Ornamental divider, two lines with a rotated square diamond
         const _deco = (y) => {
             const lw = 290;
             ctx.strokeStyle = "rgba(178,122,26,0.58)";
@@ -1209,7 +1210,7 @@ function draw(deltaTime) {
     ctx.restore();
 }
 
-// Start Screen — Pisces Constellation
+// Start Screen, Pisces Constellation
 function _drawStartScreen() {
     const now = performance.now();
     const cx = canvas.width / 2;
@@ -1221,7 +1222,7 @@ function _drawStartScreen() {
     const offX = cx;
     const offY = cy - scale * 0.05;
 
-    // Stars: [x, y, magnitude] — normalized coords centered on constellation
+    // Stars: [x, y, magnitude], normalized coords centered on constellation
     const piscesStars = [
         // Western fish (top-left loop)
         [-0.55, 0.10, 2.8], // η Psc
@@ -1252,7 +1253,7 @@ function _drawStartScreen() {
         [10, 11], [11, 12], [12, 13], [13, 14], [14, 15], [15, 16], [16, 10] // eastern fish loop
     ];
 
-    // Draw constellation lines — sáng rõ hơn
+    // Draw constellation lines, sáng rõ hơn
     ctx.save();
     lines.forEach(([a, b]) => {
         const ax = offX + piscesStars[a][0] * scale;
@@ -1272,14 +1273,14 @@ function _drawStartScreen() {
     ctx.shadowBlur = 0;
     ctx.restore();
 
-    // Draw constellation stars — rực rỡ, nhấp nháy như ánh sáng cuối đường
+    // Draw constellation stars, rực rỡ, nhấp nháy như ánh sáng cuối đường
     piscesStars.forEach(([sx, sy, mag], idx) => {
         const px = offX + sx * scale;
         const py = offY + sy * scale;
 
         // Nhấp nháy: dim xuống rồi sáng lại, mỗi sao lệch pha
         const t = now / 1000 + idx * 0.73;
-        // "Ánh sáng cuối con đường" — gần như tắt hẳn rồi bùng sáng lại
+        // "Ánh sáng cuối con đường", gần như tắt hẳn rồi bùng sáng lại
         const raw = Math.sin(t) * Math.sin(t * 0.7) * Math.sin(t * 1.3);
         const twinkle = 0.35 + 0.65 * (raw * 0.5 + 0.5);
 
@@ -1310,7 +1311,7 @@ function _drawStartScreen() {
             ctx.beginPath(); ctx.arc(px, py, haloR, 0, Math.PI * 2); ctx.fill();
         }
 
-        // Core star — sáng rõ
+        // Core star, sáng rõ
         ctx.globalAlpha = twinkle * Math.min(1, baseAlpha * 1.3);
         const cG = ctx.createRadialGradient(px, py, 0, px, py, r * 1.6);
         cG.addColorStop(0, '#ffffff');
@@ -1367,7 +1368,7 @@ function _drawLeviathanEffects() {
     const now = performance.now();
     const len = Math.hypot(canvas.width, canvas.height) * 1.5;
 
-    // Perseverance charge warning (full circle spin — báo hiệu quét 360°)
+    // Perseverance charge warning (full circle spin, báo hiệu quét 360°)
     enemies.forEach(e => {
         if (e.type !== 'leviathan') return;
         if (!e.perseveranceCharging) return;
@@ -1378,7 +1379,7 @@ function _drawLeviathanEffects() {
         ctx.save();
         ctx.translate(e.x, e.y);
 
-        // Full circle warning pulse — expanding ring
+        // Full circle warning pulse, expanding ring
         ctx.globalAlpha = prog * 0.25;
         ctx.strokeStyle = glowColor;
         ctx.lineWidth = 3 + prog * 8;
@@ -1411,7 +1412,7 @@ function _drawLeviathanEffects() {
             const sweepAngle = beam.sweepCurrent !== undefined ? beam.sweepCurrent
                 : (beam.sweepOrigin + (beam.progress || 0) * Math.PI * 2);
 
-            // Luôn đỏ — cả lúc announce lẫn post-shield
+            // Luôn đỏ, cả lúc announce lẫn post-shield
             const laserGlow = '#ff0000';
             const laserCore = 'rgba(255,30,0,0.95)';
             const laserOuter = 'rgba(255,0,0,0.2)';
@@ -1441,7 +1442,7 @@ function _drawLeviathanEffects() {
         });
     }
 
-    // Death lasers — with wing rotation animation
+    // Death lasers, with wing rotation animation
     if (!window._levDeathLasers) return;
     window._levDeathLasers.forEach(laser => {
         const elapsed = laser.elapsed || 0;
@@ -1655,6 +1656,115 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
     ctx.restore();
 }
 
+// Dimensional Rift, full animated ctx render (always active, drawn before enemies)
+function _drawDimensionalRiftsCtx() {
+    if (!dimensionalRifts || !dimensionalRifts.length) return;
+    ctx.save();
+    for (const rift of dimensionalRifts) {
+        const lifeRatio = rift.timer / rift.maxTimer;
+        const alpha = lifeRatio < 0.167 ? lifeRatio / 0.167 : 1;
+        const r = rift.radius;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Void core
+        const grad = ctx.createRadialGradient(rift.x, rift.y, 0, rift.x, rift.y, r * 1.25);
+        grad.addColorStop(0,    'rgba(2,1,5,1)');
+        grad.addColorStop(0.60, 'rgba(60,9,108,0.5)');
+        grad.addColorStop(1,    'rgba(36,0,70,0.3)');
+        ctx.beginPath();
+        ctx.arc(rift.x, rift.y, r * 1.25, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // pulsing inner black circle
+        const pulse = 1 + Math.sin((rift._age || 0) * 2.5) * 0.05;
+        ctx.beginPath();
+        ctx.arc(rift.x, rift.y, r * 0.75 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(2,1,5,1)';
+        ctx.fill();
+
+        // Energy ring (rotates)
+        ctx.save();
+        ctx.translate(rift.x, rift.y);
+        ctx.rotate(rift._ringRot || 0);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.95, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,245,255,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(157,78,221,0.7)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        for (let i = 0; i < 12; i++) {
+            const ang   = (i / 12) * Math.PI * 2;
+            const inner = r * 0.78;
+            const outer = r * (1.0 + (i % 3 === 0 ? 0.08 : 0.04));
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(ang) * inner, Math.sin(ang) * inner);
+            ctx.lineTo(Math.cos(ang) * outer, Math.sin(ang) * outer);
+            ctx.strokeStyle = 'rgba(224,170,255,0.6)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // Cracks (redrawn each frame with 18% glitch chance)
+        const triggerGlitch = Math.random() < 0.18;
+        ctx.save();
+        ctx.translate(rift.x, rift.y);
+        for (const crack of rift.cracksInfo) {
+            const cAngle = crack.baseAngle + (triggerGlitch ? (Math.random() - 0.5) * 0.2 : 0);
+            const cLen   = crack.maxLength  * (triggerGlitch ? (0.85 + Math.random() * 0.3) : 1);
+            let lastX = 0, lastY = 0;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (let s = 1; s <= 4; s++) {
+                const ratio   = s / 4;
+                const tx      = Math.cos(cAngle) * cLen * ratio;
+                const ty      = Math.sin(cAngle) * cLen * ratio;
+                const jitter  = s < 4 ? (r * 0.22) : 0;
+                const offset  = (Math.random() - 0.5) * jitter;
+                lastX = tx + (-Math.sin(cAngle) * offset);
+                lastY = ty + ( Math.cos(cAngle) * offset);
+                ctx.lineTo(lastX, lastY);
+            }
+            ctx.strokeStyle = triggerGlitch ? 'rgba(255,255,255,0.85)' : 'rgba(216,0,255,0.85)';
+            ctx.lineWidth   = triggerGlitch ? 3.0 : 1.5;
+            ctx.stroke();
+
+            if (crack.hasSubBranch && triggerGlitch) {
+                const bAngle = cAngle + (Math.random() > 0.5 ? 0.5 : -0.5);
+                ctx.beginPath();
+                ctx.moveTo(lastX * 0.5, lastY * 0.5);
+                ctx.lineTo(lastX * 0.5 + Math.cos(bAngle) * 20, lastY * 0.5 + Math.sin(bAngle) * 20);
+                ctx.strokeStyle = 'rgba(0,245,255,0.7)';
+                ctx.lineWidth   = 1.2;
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+
+        // Particles
+        for (const p of (rift._particles || [])) {
+            ctx.globalAlpha = alpha * Math.max(0, p.life);
+            ctx.fillStyle   = p.isCyan ? '#00e5ff' : '#ff007f';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 1.2 + Math.random() * 1.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
 // Boss shockwaves (Maou Haki)
 function drawBossShockwaves() {
     const now = performance.now();
@@ -1709,7 +1819,7 @@ function drawBossShockwaves() {
         ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.fill();
         ctx.globalAlpha = 1;
 
-        // 2. Lightweight Persian arcs (8 rotating arcs — NO grid loop)
+        // 2. Lightweight Persian arcs (8 rotating arcs, NO grid loop)
         const numArcs = 8;
         const rot = now / 1200;
         ctx.save();
@@ -1995,7 +2105,7 @@ function _drawVanguardThreads() {
     if (!_mobPerf) ctx.shadowColor = color;
     if (!_mobPerf) ctx.shadowBlur = 6;
 
-    // Connect each sentinel to its 2 nearest neighbours (not all pairs — too dense)
+    // Connect each sentinel to its 2 nearest neighbours (not all pairs, too dense)
     for (let i = 0; i < n; i++) {
         const a = sentinels[i];
         // Find 2 closest
@@ -2031,7 +2141,7 @@ function drawSentinel(sentinel) {
     if (ironActive) {
         const flicker = Math.sin(now / 40) > 0; // fast blink ~12Hz
         if (!flicker) {
-            // Skip drawing this frame — creates the flicker effect
+            // Skip drawing this frame, creates the flicker effect
             // Still draw a bright white outline so position is visible
             ctx.save();
             ctx.translate(x, y);
@@ -2208,7 +2318,7 @@ function drawSentinel(sentinel) {
         ctx.restore();
     }
 
-    // Blessing of the Primordial — green outer ring + shield glow
+    // Blessing of the Primordial, green outer ring + shield glow
     if (sentinel._blessingDR && sentinel._blessingDR > 0) {
         ctx.save();
         const bPulse = 0.55 + 0.45 * Math.sin(now / 700);
@@ -2254,7 +2364,7 @@ function drawSentinel(sentinel) {
 // Bullets (no shadowBlur – use gradient layers for depth)
 function drawBullet(b) {
     ctx.save();
-    // Smoke wisps (HIGH only) — faint white puffs, barely visible
+    // Smoke wisps (HIGH only), faint white puffs, barely visible
     if (_gfxLevel < 1) {
         const _now2 = performance.now();
         for (let t = 1; t <= 2; t++) {
@@ -2301,7 +2411,7 @@ function drawSpiritBullet(b) {
         ctx.fillStyle = '#ffffff';
         ctx.beginPath(); ctx.arc(x, y, s * 0.28, 0, Math.PI * 2); ctx.fill();
     } else {
-        // Full quality — pre-rendered sprite with additive blending
+        // Full quality, pre-rendered sprite with additive blending
         ctx.globalCompositeOperation = 'lighter';
         const _ss = _getSpiritSprite(b.isPhoto, b.size);
         ctx.drawImage(_ss, b.x - _ss.width / 2, b.y - _ss.height / 2);
@@ -2601,7 +2711,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.shadowBlur = 0;
     }
 
-    // Hitbox dot — neon cyan chấm sáng tại tâm
+    // Hitbox dot, neon cyan chấm sáng tại tâm
     if (alpha === 1) {
         const hdPulse = 0.7 + 0.3 * Math.sin(now / 400);
         ctx.fillStyle = `rgba(0,255,255,${0.12 * hdPulse})`;
@@ -2612,7 +2722,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.beginPath(); ctx.arc(0, 0, 0.8, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Silence lock icon — tím đè lên tàu khi bị câm lặng
+    // Silence lock icon, tím đè lên tàu khi bị câm lặng
     if (alpha === 1 && typeof player !== 'undefined' && player._silenced) {
         const lNow = performance.now();
         const lPulse = 0.7 + 0.3 * Math.sin(lNow / 80);
@@ -2631,7 +2741,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.arc(0, -5, 10, Math.PI, 0);
         ctx.stroke();
 
-        // Lock body — manual rounded rect (no roundRect for iOS compat)
+        // Lock body, manual rounded rect (no roundRect for iOS compat)
         const lx = -12, ly = -5, lw = 24, lh = 20, lr = 4;
         ctx.beginPath();
         ctx.moveTo(lx + lr, ly);
@@ -2666,7 +2776,7 @@ function drawPlayer(alpha = 1, xOffset = 0) {
         ctx.restore();
     }
 
-    // Null Slash slow — purple ring + falling particles
+    // Null Slash slow, purple ring + falling particles
     if (alpha === 1 && typeof player !== 'undefined' && player._nullSlashSlowed) {
         const nsNow = performance.now();
         const nsRemaining = Math.max(0, (player._nullSlashSlowEnd - nsNow) / 1000);
@@ -2975,7 +3085,7 @@ function drawEnemy(enemy) {
             ctx.restore();
         }
 
-        // Triangle molecule particles — stored per-chain, drawn here
+        // Triangle molecule particles, stored per-chain, drawn here
         if (enemy.molParticles && enemy.molParticles.length > 0) {
             for (const mp of enemy.molParticles) {
                 const alpha = Math.min(1, mp.life / mp.maxLife) * 0.9;
@@ -3290,7 +3400,7 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // MARCHOSIAS ghost zones — 1 code path duy nhất (freeze khi windup, shrink sau khi bắn)
+    // MARCHOSIAS ghost zones, 1 code path duy nhất (freeze khi windup, shrink sau khi bắn)
     if (enemy.type === 'marchosias' && enemy._ghostWindups && enemy._ghostWindups.length > 0) {
         const halfW = 36;
         for (const gw of enemy._ghostWindups) {
@@ -3303,7 +3413,7 @@ function drawEnemy(enemy) {
             const oy = frozen ? enemy.y : gw.originY;
             const angle4 = Math.atan2(gw.targetY - oy, gw.targetX - ox);
             const len4 = Math.hypot(gw.targetX - ox, gw.targetY - oy) + 80;
-            // Khi frozen: full corridor; sau khi bắn: shrink từ phía Mar ra target
+            // Khi frozen: full corridor, sau khi bắn: shrink từ phía Mar ra target
             const visStart = frozen ? 0 : (1 - alpha) * len4;
             const visLen = len4 - visStart;
             if (visLen <= 0) continue;
@@ -3403,7 +3513,7 @@ function _drawBossOrThaelis(enemy) {
         }
         ctx.restore();
 
-        // Tenacity Barrier ring — lớp khiên riêng, hiển thị bên ngoài Thaelis
+        // Tenacity Barrier ring, lớp khiên riêng, hiển thị bên ngoài Thaelis
         if ((enemy._tenacityBarrier || 0) > 0) {
             const _bMax = enemy._tenacityBarrierMax || enemy._tenacityBarrier;
             const _bFrac = enemy._tenacityBarrier / _bMax;
@@ -3458,7 +3568,7 @@ function _drawBossOrThaelis(enemy) {
     ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
-    // 2. Maître Suprême shield ring — scales with sentinel count
+    // 2. Maître Suprême shield ring, scales with sentinel count
     const activeSentinels = typeof sentinels !== 'undefined' ? sentinels.length : 0;
     if (activeSentinels > 0) {
         const drLevel = Math.min(activeSentinels, 18);
@@ -3624,7 +3734,7 @@ function _drawEnemyBullet(enemy) {
     const isLarge = enemy.type === 'enemy_bullet_large';
     const isSmall = enemy.type === 'enemy_bullet_small';
 
-    // LOW (tier 2+): flat circle only — no gradient, no glow, no blink
+    // LOW (tier 2+): flat circle only, no gradient, no glow, no blink
     if (_mobPerf) {
         ctx.fillStyle = isLarge ? '#dd4400' : '#cc0000';
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
@@ -3655,7 +3765,7 @@ function _drawEnemyBullet(enemy) {
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // outer faint corona — FULL quality only
+    // outer faint corona, FULL quality only
     if (_gfxLevel < 1) {
         ctx.fillStyle = isLarge ? 'rgba(255,100,20,0.22)' : 'rgba(220,0,0,0.2)';
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 1.5, 0, Math.PI * 2); ctx.fill();
@@ -3679,7 +3789,7 @@ function _drawEnemyBullet(enemy) {
         ctx.fillStyle = ig;
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 0.42, 0, Math.PI * 2); ctx.fill();
     }
-    // glint — FULL quality only
+    // glint, FULL quality only
     if (_gfxLevel < 1) {
         ctx.fillStyle = 'rgba(255,255,200,0.4)';
         ctx.beginPath(); ctx.ellipse(enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, enemy.size * 0.2, enemy.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
@@ -3734,7 +3844,7 @@ function _drawMarchosias(enemy) {
     }
     ctx.restore();
 
-    // Core gem — green glowing orb
+    // Core gem, green glowing orb
     const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.32);
     coreGrad.addColorStop(0, '#ffffff');
     coreGrad.addColorStop(0.4, '#00ff88');
@@ -3998,7 +4108,7 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.shadowBlur = 0;
     }
 
-    // Sword queue counter — Roman numerals below Mar
+    // Sword queue counter, Roman numerals below Mar
     const queueCount = (enemy.marchosiasWindups || []).length;
     if (queueCount > 0) {
         const romans = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -4023,7 +4133,7 @@ function _drawMarchosiasMinion(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    // Triangular body (from ref image — image 4 small triangle robots)
+    // Triangular body (from ref image, image 4 small triangle robots)
     const pulse = 0.8 + 0.2 * Math.sin(now / 200);
     ctx.fillStyle = '#0d1f17';
     ctx.strokeStyle = `rgba(0,200,80,${pulse})`;
@@ -4058,7 +4168,7 @@ function _drawMarchosiasMinion(enemy) {
     ctx.restore();
 }
 
-// Leviathan — Dominator Class
+// Leviathan, Dominator Class
 function _drawLeviathan(enemy) {
     const now = performance.now();
     const cx = enemy.x, cy = enemy.y;
@@ -4269,7 +4379,7 @@ function _drawMarchoBlade(blade) {
         ctx.rotate(angle);
         ctx.globalAlpha = 0.9;
 
-        // Fill nền cam — giống windup corridor
+        // Fill nền cam, giống windup corridor
         ctx.fillStyle = 'rgba(255,140,0,0.45)';
         ctx.fillRect(0, -halfW, warnLen, halfW * 2);
 
@@ -4639,12 +4749,12 @@ function drawChargeEffect() {
     }
     const color = `rgba(${r},${g},${b},0.85)`;
 
-    // screen shake — chỉ giật nhẹ lúc title flash, không giật liên tục
+    // screen shake, chỉ giật nhẹ lúc title flash, không giật liên tục
     if (chargeDuration < 250) {
         _setShake(5, 80);
     }
 
-    // TINH VƯƠNG TITLE — flash ở đầu charge
+    // TINH VƯƠNG TITLE, flash ở đầu charge
     {
         const titleDur = 1400;
         const textT = chargeDuration < titleDur
@@ -4678,7 +4788,7 @@ function drawChargeEffect() {
     ctx.save();
     ctx.translate(player.x, player.y);
 
-    // ENERGY VORTEX — xoáy vào player khi đang tụ
+    // ENERGY VORTEX, xoáy vào player khi đang tụ
     const spiralCount = 5;
     for (let i = 0; i < spiralCount; i++) {
         const spinDir = i % 2 === 0 ? 1 : -1;
@@ -4820,7 +4930,7 @@ function drawLaser() {
         }
     });
 
-    // EXECUTION TITLE — chỉ hiện 1 giây đầu rồi tắt
+    // EXECUTION TITLE, chỉ hiện 1 giây đầu rồi tắt
     {
         const laserElapsed = now - laserStartTime;
         const fadeIn = Math.min(laserElapsed / 150, 1);
@@ -4862,7 +4972,7 @@ function drawExplosion(exp) {
     ctx.globalAlpha = 1 - p;
 
     if (_mobPerf || _gfxLevel >= 2) {
-        // Tier 2/3 or mobile: flat circle, no gradient — fast path
+        // Tier 2/3 or mobile: flat circle, no gradient, fast path
         ctx.fillStyle = exp.color;
         ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
     } else {
@@ -5011,7 +5121,7 @@ function drawSkillA() {
         const r = orb.size * pulse;
         const playerSilenced = typeof player !== 'undefined' && player._silenced;
 
-        // Red orbit ring when silenced — draw before orb body
+        // Red orbit ring when silenced, draw before orb body
         if (!orb.target && playerSilenced) {
             ctx.save();
             const orbitR = orb.radius || 60;
@@ -5101,7 +5211,7 @@ function _drawNormalSpirit(spirit) {
 
     ctx.save();
 
-    // TITLE + HEXAGRAM — hiện trên đầu player, chỉ lần đầu
+    // TITLE + HEXAGRAM, hiện trên đầu player, chỉ lần đầu
     // Chỉ render cho spirit đầu tiên trong mảng để tránh vẽ đè nhiều lần
     if (spirits.length > 0 && spirit === spirits[spirits.length - 1]) {
         const elapsed = now - lastSkillS;
@@ -5112,7 +5222,7 @@ function _drawNormalSpirit(spirit) {
 
             ctx.save();
 
-            // HEXAGRAM bao quanh player — cùng fade với textT
+            // HEXAGRAM bao quanh player, cùng fade với textT
             {
                 const hexR = 55 + 5 * Math.sin(now / 400);
                 const rot1 = now / 2200, rot2 = -now / 1800;
@@ -5265,7 +5375,7 @@ function drawSpirit(spirit) {
     _drawNormalSpirit(spirit);
 }
 
-// PHOTOKRYSTOS — Silk Tail (DNT firing)
+// PHOTOKRYSTOS, Silk Tail (DNT firing)
 function _drawPhotoSilkTail(sx, sy, behindAngle, now, progress) {
     const alpha = Math.min(1, progress * 2.5);
     if (alpha < 0.01) return;
@@ -5465,7 +5575,7 @@ function drawPhotokrystos(spirit) {
         ctx.restore();
     }
 
-    // Danger? Not Today! — laser beam
+    // Danger? Not Today!, laser beam
     if (spirit._dntState === 'aiming' || spirit._dntState === 'firing') {
         const angle  = spirit._dntAngle;
         const bDx    = Math.cos(angle), bDy = Math.sin(angle);
@@ -5521,7 +5631,7 @@ function drawPhotokrystos(spirit) {
             if (!_mobPerf) { ctx.shadowColor = '#80ffb0'; ctx.shadowBlur = 14; }
             ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(endX, endY); ctx.stroke();
 
-            // Core beam — bright white-green, thin
+            // Core beam, bright white-green, thin
             ctx.lineWidth = 5.5 * pulse;
             ctx.strokeStyle = `rgba(240,255,245,${0.95})`;
             ctx.globalAlpha = 1;
@@ -5824,7 +5934,7 @@ function drawPrimevalSummonEffect(eff) {
     ctx.restore();
 }
 
-// PHOTOBRANG RENDER — 4-blade shuriken
+// PHOTOBRANG RENDER, 4-blade shuriken
 function drawPhotoBrang(b) {
     const now = performance.now();
     ctx.save();
@@ -6074,7 +6184,7 @@ function drawSkillDCharging() {
 
     ctx.save();
 
-    // 1. GRAVITY RINGS — co lại vào tâm
+    // 1. GRAVITY RINGS, co lại vào tâm
     for (let ring = 0; ring < 4; ring++) {
         const phase = ((now / (900 - p * 300) + ring / 4) % 1);
         const ringR = 20 + phase * (60 + p * 120);
@@ -6084,7 +6194,7 @@ function drawSkillDCharging() {
         ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // 2. MATTER STREAMS — phân tử xoáy vào từ xung quanh
+    // 2. MATTER STREAMS, phân tử xoáy vào từ xung quanh
     const streamCount = 8;
     for (let i = 0; i < streamCount; i++) {
         const spinDir = i % 2 === 0 ? 1 : -1;
@@ -6126,7 +6236,7 @@ function drawSkillDCharging() {
     ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // 4. TITLE — hiện NGAY khi ấn, mờ dần khi gần đầy
+    // 4. TITLE, hiện NGAY khi ấn, mờ dần khi gần đầy
     {
         const textT = Math.min(p / 0.15, 1) * Math.max(0, 1 - (p - 0.7) / 0.3);
         if (textT > 0.02) {
@@ -6176,7 +6286,7 @@ function drawBlackHole() {
         ctx.beginPath(); ctx.arc(0, 0, blackHole.size * 2.0, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Accretion disk — BEHIND pass (far half, before BH body)
+    // Accretion disk, BEHIND pass (far half, before BH body)
     // HIGH: animated sin oscillation   MED: static 5-layer   LOW: static 2-layer
     if (_gfxLevel < 3) {
         const _t   = now / 1000;
@@ -6245,7 +6355,7 @@ function drawBlackHole() {
     ctx.fillStyle = grad;
     ctx.beginPath();
     if (_gfxLevel < 1) {
-        // 5 sin waves — incommensurable frequencies → never repeats exactly
+        // 5 sin waves, incommensurable frequencies → never repeats exactly
         const _ehT = now / 1000;
         const _seg = 64;
         for (let i = 0; i <= _seg; i++) {
@@ -6283,7 +6393,7 @@ function drawBlackHole() {
         ctx.shadowBlur = 0;
     }
 
-    // Accretion disk — FRONT pass (near half, drawn over BH body)
+    // Accretion disk, FRONT pass (near half, drawn over BH body)
     // HIGH: animated   MED: static 5-layer   LOW: static 2-layer
     if (_gfxLevel < 3) {
         const _t   = now / 1000;
@@ -6331,7 +6441,7 @@ function drawSkillF() {
     if (skillFState === "charging") {
         const p = Math.min((now - skillFChargeStart) / 1500, 1);
 
-        // --- half-plane glow (charging side preview) ---
+        // half-plane glow (charging side preview)
         ctx.save();
         ctx.translate(player.x, player.y);
         for (let i = 3; i >= 1; i--) {
@@ -6351,7 +6461,7 @@ function drawSkillF() {
         }
         ctx.restore();
 
-        // --- TARGET LOCK on every enemy ---
+        // TARGET LOCK on every enemy
         ctx.save();
         enemies.forEach(enemy => {
             const er = (enemy.size || 20) + 5;
@@ -6455,7 +6565,7 @@ function drawSkillF() {
         const sp = (now - skillFSweepStart) / skillFSweepDuration;
         const currentAngle = -Math.PI + Math.PI * sp;
 
-        // --- MATRIX RAIN inside the swept area ---
+        // MATRIX RAIN inside the swept area
         ctx.save();
         // clip to the already-swept cone sector
         ctx.beginPath();
@@ -6500,7 +6610,7 @@ function drawSkillF() {
             }
         }
 
-        // --- SWEEP BLADE ---
+        // SWEEP BLADE
         ctx.save();
         ctx.translate(player.x, player.y);
         ctx.rotate(currentAngle);
@@ -6539,7 +6649,7 @@ function drawSkillF() {
 
         ctx.restore();
 
-        // --- MATRIX SCAN LINES on swept area overlay ---
+        // MATRIX SCAN LINES on swept area overlay
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
@@ -6552,7 +6662,7 @@ function drawSkillF() {
         ctx.fillRect(0, scanLine - canvas.height * 0.5, canvas.width, 2);
         ctx.restore();
 
-        // --- HEX GRID overlay in swept area ---
+        // HEX GRID overlay in swept area
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
@@ -7067,7 +7177,7 @@ function _drawVeilshroud(enemy) {
     const r = enemy.size / 2; // hitbox radius
 
     // Lerp màu: Normal = Deep Violet, Phantom = Ghostly Cyan
-    // inPhantom: fade in (0→1) via phantomTimer; after phantom: fade out (1→0) via phantomFadeTimer
+    // inPhantom: fade in (0→1) via phantomTimer, after phantom: fade out (1→0) via phantomFadeTimer
     const t = enemy.inPhantom
         ? Math.min(1, enemy.phantomTimer / 400)
         : Math.min(1, Math.max(0, (enemy.phantomFadeTimer || 0) / 400));
@@ -7221,7 +7331,7 @@ function _drawVeilshroud(enemy) {
         ctx.restore();
     }
 
-    // Vòng đỏ lưu lại sau khi sét đánh — fade từ 1.0 xuống 0 trong 1.5s (khớp với countdown end)
+    // Vòng đỏ lưu lại sau khi sét đánh, fade từ 1.0 xuống 0 trong 1.5s (khớp với countdown end)
     if (enemy._lastLightningTime) {
         const elapsed = performance.now() - enemy._lastLightningTime;
         const fadeDur = 1500;
@@ -7240,7 +7350,7 @@ function _drawVeilshroud(enemy) {
         }
     }
 
-    // Lightning countdown telegraph — cùng style với post-strike ring để transition liền mạch
+    // Lightning countdown telegraph, cùng style với post-strike ring để transition liền mạch
     if (enemy.lightningPending) {
         const prog = Math.min(1, enemy.lightningCountdown / enemy.lightningCountdownDuration);
         const tx = enemy.lightningTargetX, ty = enemy.lightningTargetY;
@@ -7256,7 +7366,7 @@ function _drawVeilshroud(enemy) {
             ctx.beginPath(); ctx.arc(tx, ty, circR, 0, Math.PI * 2); ctx.fill();
         }
 
-        // Vòng tròn nét đứt — giống post-strike (cùng màu, lineWidth, dash)
+        // Vòng tròn nét đứt, giống post-strike (cùng màu, lineWidth, dash)
         ctx.globalAlpha = 0.35 + prog * 0.65; // 0.35 lúc đầu → 1.0 lúc sắp đánh
         ctx.strokeStyle = '#ff2233';
         ctx.lineWidth = 2;
@@ -7582,12 +7692,12 @@ function _strokeBoltPath(ctx, pts) {
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.stroke();
 }
-// Helper: vẽ tia sét zigzag (re-random mỗi frame — dùng cho non-cached)
+// Helper: vẽ tia sét zigzag (re-random mỗi frame, dùng cho non-cached)
 function _drawLightningBolt(ctx, x1, y1, x2, y2, detail, jitter) {
     _strokeBoltPath(ctx, _genBoltPoints(x1, y1, x2, y2, detail, jitter));
 }
 
-//  EGREGOR — Elite enemy render
+//  EGREGOR, Elite enemy render
 function _drawEgregor(enemy) {
     const now = performance.now();
     const sc = (enemy.size / 2) / 110; // BASE_SIZE=110 in L2D
@@ -7609,7 +7719,7 @@ function _drawEgregor(enemy) {
     ctx.fillStyle = auraG;
     ctx.beginPath(); ctx.arc(0, 0, auraRad, 0, Math.PI * 2); ctx.fill();
 
-    // 1. TENTACLES — 10 × 16 segments, chain simulation
+    // 1. TENTACLES, 10 × 16 segments, chain simulation
     const NUM_TENT = 10, NUM_SEG = 16;
     if (!enemy._tentacles) {
         enemy._tentacles = [];
@@ -7652,7 +7762,7 @@ function _drawEgregor(enemy) {
             ctx.strokeStyle = tentacleC;
             ctx.stroke();
         }
-        // Suckers: perpendicular offset (L2D: size=7, offset=16, taper same) — MED+
+        // Suckers: perpendicular offset (L2D: size=7, offset=16, taper same), MED+
         if (_gfxLevel < 2) {
             for (let i = 2; i < pts.length - 2; i++) {
                 const p = pts[i];
@@ -7704,7 +7814,7 @@ function _drawEgregor(enemy) {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // 3. GILLS — 5 layers per side (MED+, quadratic bezier)
+    // 3. GILLS, 5 layers per side (MED+, quadratic bezier)
     if (_gfxLevel < 2) {
         const breathP = (Math.sin(now / 500) + 1) / 2;
         // Inner gill glow (L2D: center at y=25)
@@ -7745,7 +7855,7 @@ function _drawEgregor(enemy) {
         }
     }
 
-    // 4. FOUR EYES — L2D polar coords {a, d, s}
+    // 4. FOUR EYES, L2D polar coords {a, d, s}
     const eyeDefs = [
         { a: -Math.PI / 3,           d: 30, s: 20 }, // large upper-right
         { a: -Math.PI * 2 / 3,       d: 30, s: 20 }, // large upper-left
@@ -7793,7 +7903,7 @@ function _drawEgregor(enemy) {
         ctx.fillStyle = isRage ? '#ffcccc' : '#f0f8ff';
         ctx.fillRect(-er, -er, er * 2, er * 2);
 
-        // Blood vessels — HIGH only
+        // Blood vessels, HIGH only
         if (_gfxLevel < 1) {
             ctx.strokeStyle = isRage ? '#cc0000' : '#ff9999';
             ctx.lineWidth = 0.8;
@@ -7817,7 +7927,7 @@ function _drawEgregor(enemy) {
         ctx.fillStyle = irisG;
         ctx.beginPath(); ctx.arc(pupilX, pupilY, irisR, 0, Math.PI * 2); ctx.fill();
 
-        // Iris radial fiber lines — HIGH only
+        // Iris radial fiber lines, HIGH only
         if (_gfxLevel < 1) {
             ctx.strokeStyle = 'rgba(0,0,0,0.4)';
             ctx.lineWidth = 0.5;
@@ -7905,7 +8015,7 @@ function _drawEgregorEffects() {
                 const tx = t.tx, ty = t.ty;
                 ctx.save();
 
-                // Shrinking impact ring (90px → 20px) — purple psychic
+                // Shrinking impact ring (90px → 20px), purple psychic
                 const ringR = 20 + (1 - progress) * 70;
                 ctx.strokeStyle = `rgba(180,60,255,${0.5 + 0.3 * Math.sin(now / 80)})`;
                 ctx.lineWidth = 2.5;
@@ -7966,7 +8076,7 @@ function _drawEgregorEffects() {
             }
         }
 
-        // TEMPEST STRIKE (psychic purple bolts — more detail than Veilshroud)
+        // TEMPEST STRIKE (psychic purple bolts, more detail than Veilshroud)
         if (enemy._tempestPhase === 'striking') {
             for (const t of enemy._tempestTargets) {
                 if (!t.struck || t.strikeLife <= 0 || !t._mainBolt) continue;
@@ -8086,7 +8196,7 @@ function _drawEgregorEffects() {
             }
         }
 
-        // NULL SLASH — CHARGING (semicircle telegraph + charge glow)
+        // NULL SLASH, CHARGING (semicircle telegraph + charge glow)
         if (enemy._nullSlashPhase === 'charging') {
             const progress = Math.min(1, (enemy._nullSlashWindupTimer || 0) / (enemy._nullSlashWindupDur || 3000));
             const rageStacks = enemy._rageStacks || 0;
@@ -8193,7 +8303,7 @@ function _drawEgregorEffects() {
             ctx.restore();
         }
 
-        // NULL SLASH — STRIKING (arc slash — tentacle sweeps 180° through target)
+        // NULL SLASH, STRIKING (arc slash, tentacle sweeps 180° through target)
         if (enemy._nullSlashPhase === 'striking') {
             const st  = enemy._nullSlashStrikeTimer || 0;
             const tx2 = enemy._nullSlashTargetX, ty2 = enemy._nullSlashTargetY;
@@ -8225,7 +8335,7 @@ function _drawEgregorEffects() {
             if (ext > 0.01) {
             const tipAngle = arcStart + sweepT * arcSpan;
 
-            // Rift timing — stays open (sweepT=1) and fades quickly, independent of tentacle retract
+            // Rift timing, stays open (sweepT=1) and fades quickly, independent of tentacle retract
             const RIFT_FADE = 185;
             let rST, rE;
             if (st < EXTEND + SWEEP) { rST = sweepT; rE = ext; }
@@ -8268,7 +8378,7 @@ function _drawEgregorEffects() {
                 ctx.shadowBlur = 0;
             }
 
-            // Aura — glowing void halo around tentacle (rage 1+)
+            // Aura, glowing void halo around tentacle (rage 1+)
             if (!_mobPerf && rageStacks >= 1) {
                 ctx.shadowColor = rageStacks >= 3 ? '#bb77ff' : '#8800cc';
                 ctx.shadowBlur  = 28 + rageStacks * 12;
@@ -8341,8 +8451,8 @@ function _drawEgregorEffects() {
                 }
             }
 
-            // DIMENSIONAL RIFT — không gian bị xé toạc (rage 1+, MED+)
-            // Layer cuối: đè lên xúc tu; rift fades independently (rST/rE) after sweep
+            // DIMENSIONAL RIFT, không gian bị xé toạc (rage 1+, MED+)
+            // Layer cuối: đè lên xúc tu, rift fades independently (rST/rE) after sweep
             if (!_mobPerf && rageStacks >= 1 && rST > 0.04 && rE > 0.01) {
                 ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
                 const RN = 60;
@@ -8373,7 +8483,7 @@ function _drawEgregorEffects() {
                     const mX = cx + Math.cos(midAng) * R * rE * 0.88;
                     const mY = cy + Math.sin(midAng) * R * rE * 0.88;
 
-                    // Interior — clip to rift polygon, reveal other dimension
+                    // Interior, clip to rift polygon, reveal other dimension
                     ctx.save();
                     ctx.beginPath();
                     ctx.moveTo(inPts[0].x, inPts[0].y);
@@ -8392,7 +8502,7 @@ function _drawEgregorEffects() {
                     gG2.addColorStop(1,    'rgba(1,0,12,0)');
                     ctx.fillStyle=gG2; ctx.fillRect(cx-R*2.2,cy-R*2.2,R*4.4,R*4.4);
 
-                    // ── Interior detail tiers ───────────────────────────────────
+                    // Interior detail tiers
                     // HIGH (0): 9 nebulae + 3 spiral arms + full stars + all faults + cosmic
                     // MED  (1): 4 nebulae + no arms      + 20 stars   + 1 fault    + no cosmic
                     // LOW  (2): galaxy core only (already drawn above)
@@ -8506,7 +8616,7 @@ function _drawEgregorEffects() {
 
                     ctx.restore(); // end clip
 
-                    // ── Edges ───────────────────────────────────────────────────
+                    // Edges
                     // HIGH: outer haze + main glow + white razor (3 layers)
                     // MED:  outer haze + main glow              (2 layers)
                     // LOW:  main glow only                      (1 layer)
@@ -8539,7 +8649,7 @@ function _drawEgregorEffects() {
                     }
                     ctx.shadowBlur=0;
 
-                    // ── Edge sparks + fringe + tip flash ────────────────────────
+                    // Edge sparks + fringe + tip flash
                     // HIGH: 12+stacks*4 sparks + fringe + tip flash
                     // MED:  8 sparks only (no fringe, no tip)
                     // LOW:  none
@@ -8637,7 +8747,7 @@ function _drawEgregorEffects() {
             } // end ext > 0.01
         }
 
-        // DIMENSION BREAK — lingering rift zone fades over 1s after the slash
+        // DIMENSION BREAK, lingering rift zone fades over 1s after the slash
         if (enemy._dimBreakZone) {
             const dbz = enemy._dimBreakZone;
             const dbAlpha = Math.max(0, (dbz.expireAt - now) / 1000);

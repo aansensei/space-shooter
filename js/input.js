@@ -1,4 +1,4 @@
-﻿// Global UI helpers — called from main.js
+// Global UI helpers, called from main.js
 function showStartButton(text) {
     const btn = document.getElementById("startBtn");
     if (!btn) return;
@@ -8,7 +8,7 @@ function showStartButton(text) {
     btn.style.transform = _isGO ? "translateX(-50%)" : "translate(-50%, -50%)";
     if (_isGO) { btn.classList.add("ds-mode"); } else { btn.classList.remove("ds-mode"); }
     btn.style.display = "block";
-    // On mobile, #mc (z-index:300) covers the screen — lift button above it
+    // On mobile, #mc (z-index:300) covers the screen, lift button above it
     btn.style.zIndex = "400";
     btn.style.position = "fixed";
     btn.style.left = "50%";
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startGame();
     }, { passive: false });
 
-    // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded — expose ra window để main.js gọi được
+    // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded, expose ra window để main.js gọi được
     window.showPauseScreen = function showPauseScreen() {
         pauseOverlay.style.display = "flex";
         resumeBtn.style.display = "block";
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (progress < 1) {
                 requestAnimationFrame(animateLoading);
             } else {
-                // Loading xong — ẩn overlay, reset clock, game loop tự chạy tiếp
+                // Loading xong, ẩn overlay, reset clock, game loop tự chạy tiếp
                 pauseOverlay.style.display = "none";
                 gamePaused = false;
                 lastTimeStamp = performance.now(); // reset or pause duration becomes a giant deltaTime spike next frame

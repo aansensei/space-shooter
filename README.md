@@ -42,11 +42,20 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 **True damage** bypasses all Shields entirely and is applied directly to HP, ignoring shield absorption completely.
 
+**Evade** is a base stat shared by all enemy tiers that gives a flat percentage chance to completely negate any incoming hit (dodge, no damage dealt). It applies before all other damage resolution.
+
+| Class | Evade |
+|---|---|
+| Normal | 1% |
+| Abnormal | 2% |
+| Elite | 5% → 7% (scales over the first 3.5 minutes) |
+| Dominator | 10% |
+
 **Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Black Hole, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
 **CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Black Hole pull, Tesla Coil slow, Energy Link drag. CC Immunity does not block damage.
 
-When **Glory for Justice** is active, all friendly damage is multiplied by **1.55×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
+When **Glory for Justice** is active, all friendly damage is multiplied by **1.70×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
 
 ---
 
@@ -78,18 +87,19 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 Activates automatically when **any of the following** is true:
 
 - More than 4 enemies are on screen
-- Any elite enemy is present (Thaelis, Aegis Core, Marchosias, or Dargruel)
+- Any **Abnormal or higher** enemy is present (Veilshroud, Thaelis, Aegis Core, Marchosias, Egregor, Dargruel, or Leviathan)
 - Skill G is active
+- **Phōtokrystos** (Đại Tinh Linh Khởi Nguyên) is active
 
 **While active:**
 
-- All friendly damage ×**1.55** (player, sentinels, chain lightning, tesla DoT)
-- Player and Sentinel fire rate ×1.4
+- All friendly damage ×**1.70** (player, sentinels, chain lightning, tesla DoT)
+- Player and Sentinel fire rate ×**1.5**
 - Spirit bullets (Skill S) move **30%** faster
-- Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to 6 nearby enemies for **30%** of the triggering hit's damage
-- Chain Lightning hits have a **55% chance** to apply **Soul Reaver** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **25%**
-- **Soul Devourer (Cắn nuốt linh hồn):** Every 0.5 seconds, enemies with Soul Reaver take **10 base + 5% EP** as true damage (bypasses all shields)
-- All active Sentinels gain **+20% Damage Reduction**
+- Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to **8** nearby enemies for **50%** of the triggering hit's damage
+- Chain Lightning hits have a **60% chance** to apply **Soul Reaver** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **40%**
+- **Soul Devourer (Cắn nuốt linh hồn):** Every **0.35 seconds**, enemies with Soul Reaver take **57 base + 7% EP** as true damage (bypasses all shields)
+- All active Sentinels gain **+30% Damage Reduction**
 
 ---
 
@@ -208,7 +218,16 @@ While active, press **← or →** to teleport. The teleport range increases the
 
 Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **100 base + 24% EP** on impact, then shatters into **16 scattered projectiles** (4 base + 2% EP each) that fly outward in all directions.
 
-**Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage (acts as an Absolute Shield for that single hit).
+**Dimensional Rift** — When a targeting orb hits an enemy and actually deals damage (not blocked by Iron Body, Absolute Shield, or Evade), a **50 px spatial rift zone** tears open at the impact point and lasts **3 seconds**. Enemies inside the zone:
+- **−35% movement speed**
+- Immediately receive **Soul Reaver + Soul Devourer DoT** (57 base + 7% EP every 0.35s, true damage — skips Embryo)
+- Take **+25% incoming damage** from all sources
+- Enemy bullets (`enemy_bullet*`) within **2.5× the radius** are pulled toward the center; any bullet reaching the inner core (radius × 0.45) is destroyed
+- The DoT has a **20% chance per tick** to trigger a Chain Lightning arc to up to **8** nearby enemies within 150 px (independent of Glory for Justice)
+
+**Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage (acts as an Absolute Shield for that single hit). When an orb is sacrificed, the attacker (excluding untargetable types: `enemy_bullet`, Abyssal Chain, Veilshroud Echo, and enemies in Coronation) is immediately cursed:
+- Receives **Soul Reaver + Soul Devourer DoT** (57 base + 7% EP every 0.35s, true damage)
+- **−25% movement speed** for **3 seconds**
 
 ---
 
@@ -236,7 +255,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Duration:** 40s (from first shot) | **Cooldown:** 12s (starts at summon, unlocks after BTM ends) | **Size:** +20% vs normal Spirit
 
-**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **60 base + 4.25% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
+**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **60 base + 4.25% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.70 and Vulnerability (15% chance).
 
 **Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **200 base + 16% EP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
 
@@ -309,7 +328,7 @@ Spawns continuously from the start. HP starts between **9–12** and scales up o
 
 **Available after:** 25s | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
 
-HP: **800–1,600**. Innate **35% Damage Reduction**.
+HP: **1,000–2,500**. Innate **40% Damage Reduction**.
 
 A shifting entity that phases in and out of reality to avoid damage and punish careless positioning.
 
@@ -336,19 +355,19 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 HP: **600–2,000**.
 
-Fires a large projectile every second. After 0.6 seconds of flight it splits into 3 smaller homing bullets. Small bullets deal 1 life of damage to the player, or **12% EP** to a Sentinel.
+Fires **2 large projectiles** every second. After 0.6 seconds of flight each splits into **6 smaller homing bullets**. Small bullets deal 1 life of damage to the player, or **15% EP** to a Sentinel.
 
 **Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
 
 - For every **1% of Max HP lost**, Thaelis gains **+2.5% Damage Reduction** on its body. Capped at **95% total DR** from this source.
 - For every **0.5% of Max HP lost**, Thaelis's projectile speed increases by **+3.5%**. Capped at **+25%**.
 - No single hit can exceed **max(35%, 90% − 5% × HP% lost) × MaxHP** damage (scales down as HP is chipped away).
-- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Tenacity Barrier** worth **(30% MaxHP + 15% HP lost + 100) × 1.25**. This barrier is **completely separate from EP** — it must be fully destroyed before any damage (normal or piercing) reaches Thaelis. Displayed as a pulsing gold ring. Exception: the **Spirit Laser** bypasses the barrier.
+- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Tenacity Barrier** worth **(30% MaxHP + 20% HP lost + 250) × 1.34**. This barrier is **completely separate from EP** — it must be fully destroyed before any damage (normal or piercing) reaches Thaelis. Displayed as a pulsing gold ring. Exception: the **Spirit Laser** bypasses the barrier.
 
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
 - Each Embryo has 33% of Thaelis's Max HP + 50–100 bonus HP.
-- Embryos have **90% Damage Reduction** and **CC Immunity** (immune to Black Hole pull and Tesla slow). They CAN receive shields and heals from Aegis Core or Demon Gift.
+- Embryos have **90% Damage Reduction** and **CC Immunity** (immune to Black Hole pull and Tesla slow). They CAN receive shields and heals from Aegis Core or Demon Gift. **No single hit can exceed 10% of the Embryo's current EP.**
 - After 3 seconds, any surviving Embryo hatches into a new Normal Enemy (Embryo's HP + 60 base HP).
 
 ---
@@ -357,9 +376,7 @@ Fires a large projectile every second. After 0.6 seconds of flight it splits int
 
 **Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.8 u/s
 
-HP: **1,500–2,600**. Innate **+10% Damage Reduction**.
-
-Permanent **25% Damage Reduction** at all times.
+HP: **1,500–2,600**. Permanent **55% Damage Reduction** at all times.
 
 **Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 6 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 6th hit the shield breaks and Aegis Core takes damage normally.
 
@@ -379,7 +396,7 @@ Permanent **25% Damage Reduction** at all times.
 
 **Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **1,600–3,100**. Permanent **25% Damage Reduction** on its body at all times.
+HP: **1,600–3,100**. Permanent **45% Damage Reduction** on its body at all times.
 
 **Sword & Shield**
 
@@ -387,7 +404,7 @@ Marchosias carries a rotating **Arc Shield** — a glowing 90-degree arc that co
 
 *Shield properties:*
 
-- **50% Damage Reduction** on all incoming damage to the shield.
+- **60% Damage Reduction** on all incoming damage to the shield. No single hit can exceed **35% of the shield's current HP**.
 - **Completely buff-immune:** the shield cannot receive heals, DR boosts, Aegis shields, or any other beneficial effect.
 
 *Sword trigger conditions:*
@@ -426,9 +443,9 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 **Available after:** 35s | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
 
-HP: **1,600–3,500**. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
+HP: **1,600–3,500**. Permanent **40% Damage Reduction** on its body at all times. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
-**Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). Egregor's body can only be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit, n = tentacles lost) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **30% MaxHP**). Body has a **5% passive dodge chance** on any hit. Egregor cannot coexist with Veilshroud on the field.
+**Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). Egregor's body can only be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit, n = tentacles lost) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **30% MaxHP**). Egregor cannot coexist with Veilshroud on the field.
 
 **Passive: Mind Link** — Each time a non-Egregor enemy dies within **600px**, Egregor gains a **Rage Stack** (max 5 active at once, each lasting 8 seconds). A pulsing red dashed ring marks the 600px range. Per stack gained: **+18% movement speed**, **+15% Max HP**, **Heal 15% of current MaxHP**, all alive tentacles are **healed 15% of their max HP** and gain **+3% DR** (stacks additively, max +15% at 5 stacks). Gaining a Rage Stack immediately triggers a Psychic Tempest cast (if not already casting).
 
@@ -449,9 +466,8 @@ HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 - Heals all other enemies for **15% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 21% efficiency. Cannot heal enemies at 0 HP.
 - All units gain **+18% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+30%**).
 
-**Passive: Inevitable** — Dargruel's innate evasion and damage mitigation:
+**Passive: Inevitable** — Dargruel's innate damage mitigation:
 
-- **9% chance** to completely dodge any incoming hit.
 - When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **12% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
@@ -482,7 +498,6 @@ HP: **6,682–11,693**. A massive armored entity with 9 segmented wing-plates su
 **Passive: Inevitable** — Leviathan's core resilience mechanics:
 
 - **60% base Damage Reduction** at all times (active once the All for One shield breaks).
-- **9% chance** to completely dodge any incoming hit.
 - When any single hit would exceed **30% of Leviathan's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
