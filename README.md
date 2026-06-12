@@ -44,14 +44,14 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 **True damage** bypasses all Shields entirely and is applied directly to HP, ignoring shield absorption completely.
 
-**Evade** is a base stat shared by all enemy tiers that gives a flat percentage chance to completely negate any incoming hit (dodge, no damage dealt). It applies before all other damage resolution.
+**Evade** is a base stat shared by all enemy tiers that gives a percentage chance to completely negate any incoming hit (dodge, no damage dealt). It scales linearly from a minimum to a maximum over the first **3 minutes** of game time, then stays at maximum. When an evade procs, a light-blue flash appears on the enemy. Evade applies before all other damage resolution.
 
-| Class | Evade |
+| Class | Evade (t=0 → t=3 min) |
 |---|---|
-| Normal | 1% |
-| Abnormal | 2% |
-| Elite | 5% → 7% (scales over the first 3.5 minutes) |
-| Dominator | 10% |
+| Normal | 1% → 2% |
+| Abnormal | 3% → 5% |
+| Elite | 5% → 10% |
+| Dominator | 10% → 15% |
 
 **Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Black Hole, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
@@ -240,7 +240,7 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
 - **Spirit Bullet:** 60 base + 0.55% EP, homing, +10% flight speed bonus.
-- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 110 base + 8% EP.
+- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 170 base + 4.8% EP + 3% of target's missing HP.
 - **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% EP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% EP, bounce off walls).
 
 ---
@@ -259,7 +259,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **100 base + 1.4% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
 
-**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **350 base + 7% EP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
+**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **400 base + 5.8% EP + 5% of target's missing HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
 
 **Passive: Danger? Not Today!** — Triggers when any enemy comes within **170px of the player** or within **170px of the bottom boundary**. Phōtokrystos halts all attacks and aims for **100ms**, continuously re-locking onto the nearest threatening enemy each frame. It then unleashes a **2-second primeval laser beam** that sweeps **±20°** around the locked angle — the beam extends to the screen edge and **instantly destroys every enemy it touches**, bypassing all shields, Iron Body, and invulnerability. Allies are unaffected. Each enemy killed by the beam produces a burst effect. After firing, Phōtokrystos suffers **−20% damage output for 3 seconds** from primeval energy exhaustion. The **10-second cooldown begins after the beam ends**.
 
