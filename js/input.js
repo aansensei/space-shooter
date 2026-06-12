@@ -102,6 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener("keydown", (e) => {
+        if (e.code === "Escape" && gameState === "playing" && !gamePaused) {
+            gamePaused = true;
+            window.showPauseScreen();
+            e.preventDefault();
+            return;
+        }
+
         if (gameState !== "playing") return;
 
         // Skill Shift: Yog-Sothoth

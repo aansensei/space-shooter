@@ -112,11 +112,11 @@ function updateSkillA(deltaTime) {
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
                 const _preTotal = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0);
-                dealDamage(orb.target, { damage: 100, percentDamage: 0.24 });
+                dealDamage(orb.target, { damage: 110, percentDamage: 0.18 });
                 const _didDmg = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0) < _preTotal;
                 orb.target.isTargetedByA = false;
 
-                spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 4, percentDamage: 0.02 });
+                spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 5, percentDamage: 0.015 });
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
                 if (_didDmg) spawnDimensionalRift(orb.x, orb.y);
                 skillAOrbs.splice(i, 1);
@@ -215,9 +215,9 @@ function updateDimensionalRifts(deltaTime) {
             if (enemy.type === 'embryo') continue; // CC-immune + special DR rules, fully exempt from all rift effects
             if (enemy.hp <= 0 || enemy.inCoronation) continue;
 
-            // Mark for damage bonus & slow
+            // Mark for damage bonus & slow (egregor/dargruel/leviathan immune to slow)
             enemy._inDimensionalRift = true;
-            enemy._riftSlow = true;
+            if (enemy.type !== 'egregor' && enemy.type !== 'boss' && enemy.type !== 'leviathan') enemy._riftSlow = true;
 
             // Apply Soul Reaver debuff
             enemy.soulReaver = true;
@@ -227,7 +227,7 @@ function updateDimensionalRifts(deltaTime) {
             enemy._riftDotTimer -= deltaTime;
             if (enemy._riftDotTimer <= 0) {
                 enemy._riftDotTimer = 350;
-                const dotDmg = Math.ceil(57 + (enemy.maxHp || enemy.hp) * 0.07);
+                const dotDmg = Math.ceil(60 + (enemy.maxHp || enemy.hp) * 0.055);
                 enemy.hp -= dotDmg;
                 enemy.hp = Math.max(0, enemy.hp);
                 if (enemy.hp <= 0) enemy._markedForDeath = true;
@@ -330,7 +330,7 @@ function activateSkillS() {
         spirits.push({
             x: player.x, y: player.y, shootTimer: 0,
             shotsFiredSinceBarrage: 0, duration: 35000,
-            spawnTime: currentTime, isFinishing: false, finaleState: null,
+            spawnGameTime: gameElapsedTime, isFinishing: false, finaleState: null,
             isPhotokrystos: false, volleyCount: 0,
         });
     }
@@ -372,7 +372,7 @@ function updateSpirits(deltaTime) {
         // Block transformation if summon effect hasn't finished
         if (spirit._summoningUp) continue;
 
-        if (performance.now() - spirit.spawnTime >= spirit.duration) {
+        if (gameElapsedTime - spirit.spawnGameTime >= spirit.duration) {
             spirit.isFinishing = true; spirit.finaleState = 'moving';
             spirit.finaleTargetPos = { x: canvas.width / 2, y: canvas.height / 2 };
             // Reset energy, spirit entered finale without Primeval Creation
@@ -395,7 +395,7 @@ function updateSpirits(deltaTime) {
                 const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 30, percentDamage: 0.015,
+                    damage: 60, percentDamage: 0.0055,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
                     isSpirit: true,
                 });
@@ -412,15 +412,15 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 100, percentDamage: 0.10, hitEnemies: [], isSpirit: true, isPiercing: true });
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 110, percentDamage: 0.08, hitEnemies: [], isSpirit: true, isPiercing: true });
         }
     }
 }
 
 // PHŌTOKRYSTOS UPDATE
 function updatePhotokrystos(spirit, deltaTime) {
-    const now = performance.now();
-    const age = now - spirit.spawnTime;
+    const now = gameElapsedTime;
+    const age = now - spirit.spawnGameTime;
     const BTM_START = 37000; // Back to Motherland at 37s
     const DURATION = 40000;  // total 40s
 
@@ -552,7 +552,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             spirit._btmTickTimer += deltaTime;
             if (spirit._btmTickTimer >= 100) {
                 spirit._btmTickTimer = 0;
-                const dmgMult = gloryForJusticeActive ? 1.70 : 1;
+                const dmgMult = gloryForJusticeActive ? 1.55 : 1;
                 spirit._btmLightnings = []; // reset each tick
                 // Hit ALL enemies on screen
                 for (const e of enemies) {
@@ -563,7 +563,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                         continue;
                     }
                     dealDamage(e, {
-                        damage: 15 * dmgMult, percentDamage: 0.45,
+                        damage: 20 * dmgMult, percentDamage: 0.35,
                         applyVuln: true, vulnChance: 0.15, isTrueDamage: true
                     });
                     // Record lightning bolt for render
@@ -635,7 +635,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         if (targets.length > 0) {
             // Duration starts from first shot
             if (!spirit._combatStartTime) spirit._combatStartTime = now;
-            const dmgMult = gloryForJusticeActive ? 1.70 : 1;
+            const dmgMult = gloryForJusticeActive ? 1.55 : 1;
             // -20% dmg penalty for 3s after DNT laser
             const dntMult = (spirit._dntPenaltyUntil && now < spirit._dntPenaltyUntil) ? 0.8 : 1;
             const speedMult = (gloryForJusticeActive ? 1.30 : 1) * 1.3;
@@ -643,7 +643,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             for (let bi = 0; bi < 3; bi++) {
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 60 * dmgMult * dntMult, percentDamage: 0.0425 * dntMult,
+                    damage: 100 * dmgMult * dntMult, percentDamage: 0.014 * dntMult,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
                     applyVuln: true, vulnChance: 0.15,
@@ -704,7 +704,7 @@ function spawnPhotoBrangs(fromX, fromY, count) {
             targetIdx: 0,
             hitEnemies: [],
             rotation: Math.random() * Math.PI * 2,
-            damage: 200, percentDamage: 0.16,
+            damage: 350, percentDamage: 0.07,
             lifetime: 9000,
         });
     }
@@ -778,7 +778,7 @@ function updatePhotoBrangs(deltaTime) {
                 if (now_b - lastHit >= 200) { // can re-hit same enemy after 200ms
                     b._hitCooldowns.set(tgt, now_b);
                     const brangSrc = {
-                        damage: b.damage * (gloryForJusticeActive ? 1.70 : 1),
+                        damage: b.damage * (gloryForJusticeActive ? 1.55 : 1),
                         percentDamage: b.percentDamage,
                         applyVuln: true, vulnChance: 0.15,
                         isTrueDamage: true
@@ -845,7 +845,7 @@ function updatePrimevalSummonEffect(deltaTime) {
         if (spirit && !spirit.isFinishing) {
             spirit.isPhotokrystos = true;
             spirit._summoningUp = false;
-            spirit.spawnTime = performance.now(); // reset 40s timer
+            spirit.spawnGameTime = gameElapsedTime; // reset 40s timer
             spirit.duration = 40000;
             spirit.shotsFiredSinceBarrage = 0;
             spirit.volleyCount = 0;
@@ -1022,7 +1022,8 @@ function updateSkillD(deltaTime) {
             if (enemy.inCoronation) continue; // untargetable during coronation
             if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive)) {
+            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'boss';
+            if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive) && !_bhCCImmune) {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
                     enemy.y += (dy / d) * pullSpeed * dt;
@@ -1034,6 +1035,8 @@ function updateSkillD(deltaTime) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
+                } else if (_bhCCImmune) {
+                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true });
                 } else {
                     dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
                 }
@@ -1111,7 +1114,7 @@ function activateSkillG() {
 
     skillGActive = true;
     skillGCharge = 0;
-    skillGEndTime = performance.now() + 30000;
+    skillGEndTime = gameElapsedTime + 30000;
     skillGBorderOpacity = 0.01;
 
     particles.push({
@@ -1125,7 +1128,7 @@ function activateSkillG() {
 
 function endSkillG() {
     skillGActive = false;
-    const explosionProps = { damage: 8, percentDamage: 0.08 };
+    const explosionProps = { damage: 10, percentDamage: 0.06 };
     const explosionRadius = ENERGY_ORB_SIZE * 5;
 
     energyOrbs.forEach(orb => {
@@ -1158,7 +1161,7 @@ function spawnEnergyOrb(x, y) {
     const newOrb = {
         x, y,
         size: ENERGY_ORB_SIZE,
-        spawnTime: performance.now(),
+        spawnTime: gameElapsedTime,
         lifetime: 5000,
         linkedTo: null,
         id: Math.random(),
@@ -1187,15 +1190,15 @@ function tryLinkOrbs(newOrb) {
 
     if (closestUnlinkedOrb) {
         const linkId = Math.random();
-        const linkTime = performance.now();
+        const linkTime = gameElapsedTime;
         const dotMap = new Map();
         newOrb.linkedTo = { orb: closestUnlinkedOrb, id: linkId, linkTime: linkTime, dotTargets: dotMap };
         closestUnlinkedOrb.linkedTo = { orb: newOrb, id: linkId, linkTime: linkTime, dotTargets: dotMap };
 
         newOrb.lifetime = 5000;
-        newOrb.spawnTime = performance.now();
+        newOrb.spawnTime = gameElapsedTime;
         closestUnlinkedOrb.lifetime = 5000;
-        closestUnlinkedOrb.spawnTime = performance.now();
+        closestUnlinkedOrb.spawnTime = gameElapsedTime;
     }
 }
 
@@ -1256,7 +1259,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 
                         linksProcessed.add(orb.linkedTo.id);
                     } else if (!energyOrbs.includes(orb2)) {
-                        const explosionProps = { damage: 8, percentDamage: 0.08 };
+                        const explosionProps = { damage: 10, percentDamage: 0.06 };
                         const explosionRadius = orb.size * 5;
                         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                         enemies.forEach(enemy => {
@@ -1269,7 +1272,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     }
                 }
             } else {
-                const explosionProps = { damage: 8, percentDamage: 0.08 };
+                const explosionProps = { damage: 10, percentDamage: 0.06 };
                 const explosionRadius = orb.size * 5;
                 addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                 enemies.forEach(enemy => {
@@ -1288,7 +1291,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
             if (!energyOrbs.includes(orb2)) {
                 if (orb.linkedTo.dotTargets) orb.linkedTo.dotTargets.clear();
                 orb.linkedTo = null;
-                orb.spawnTime = performance.now();
+                orb.spawnTime = gameElapsedTime;
                 orb.lifetime = 5000;
                 continue;
             }
@@ -1315,7 +1318,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         dotMap.set(enemy, currentTime);
                     }
                     if (currentTime - dotMap.get(enemy) >= 125) {
-                        dealDamage(enemy, { damage: 40, percentDamage: 0.015, isTeslaDot: true });
+                        dealDamage(enemy, { damage: 45, percentDamage: 0.012, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                     }
                 } else {
@@ -1364,7 +1367,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
         });
 
         if (coil.hp <= 0) {
-            const explosionProps = { damage: 10, percentDamage: 0.15 };
+            const explosionProps = { damage: 10, percentDamage: 0.12 };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
@@ -1492,7 +1495,7 @@ function updateSoulReaverDoT(deltaTime) {
         if (enemy.soulReaverDotTimer <= 0) {
             enemy.soulReaverDotTimer = 350; // 0.35 giây
             // Sát thương chuẩn bỏ qua khiên, áp thẳng vào HP
-            const dotDmg = Math.ceil(57 + (enemy.maxHp || enemy.hp) * 0.07);
+            const dotDmg = Math.ceil(60 + (enemy.maxHp || enemy.hp) * 0.055);
             enemy.hp -= dotDmg;
             enemy.hp = Math.max(0, enemy.hp);
             if (enemy.hp <= 0) enemy._markedForDeath = true;

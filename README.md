@@ -55,15 +55,15 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 **Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Black Hole, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
-**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Black Hole pull, Tesla Coil slow, Energy Link drag. CC Immunity does not block damage.
+**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Black Hole pull, Tesla Coil slow, Dimensional Rift slow, Orb Sacrifice slow. CC Immunity does not block damage. **Egregor** and **Dargruel** have permanent CC Immunity.
 
-When **Glory for Justice** is active, all friendly damage is multiplied by **1.70×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
+When **Glory for Justice** is active, all friendly damage is multiplied by **1.55×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
 
 ---
 
 ## Player Stats & Attacks
 
-**Auto-Fire** — Fires 5 bullets in a 45-degree spread every **135ms** (+20% vs base). Each bullet deals **30 base + 2% of target's Max HP**. Bullet speed increased +20%. Each bullet independently rolls a **25% chance** to apply Vulnerability (Trọng Thương).
+**Auto-Fire** — Fires 5 bullets in a 45-degree spread every **135ms** (+20% vs base). Each bullet deals **55 base + 0.9% of target's Max HP**. Bullet speed increased +20%. Each bullet independently rolls a **25% chance** to apply Vulnerability (Trọng Thương).
 
 **Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10×**, capping at **7% of target's Max HP** at full charge.
 
@@ -95,12 +95,12 @@ Activates automatically when **any of the following** is true:
 
 **While active:**
 
-- All friendly damage ×**1.70** (player, sentinels, chain lightning, tesla DoT)
+- All friendly damage ×**1.55** (player, sentinels, chain lightning, tesla DoT)
 - Player and Sentinel fire rate ×**1.5**
 - Spirit bullets (Skill S) move **30%** faster
 - Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to **8** nearby enemies for **50%** of the triggering hit's damage
 - Chain Lightning hits have a **60% chance** to apply **Soul Reaver** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **40%**
-- **Soul Devourer (Cắn nuốt linh hồn):** Every **0.35 seconds**, enemies with Soul Reaver take **57 base + 7% EP** as true damage (bypasses all shields)
+- **Soul Devourer (Cắn nuốt linh hồn):** Every **0.35 seconds**, enemies with Soul Reaver take **60 base + 5.5% EP** as true damage (bypasses all shields)
 - All active Sentinels gain **+30% Damage Reduction**
 
 ---
@@ -218,17 +218,17 @@ While active, press **← or →** to teleport. The teleport range increases the
 
 **Cooldown:** 6s
 
-Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **100 base + 24% EP** on impact, then shatters into **16 scattered projectiles** (4 base + 2% EP each) that fly outward in all directions.
+Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **110 base + 18% EP** on impact, then shatters into **16 scattered projectiles** (5 base + 1.5% EP each) that fly outward in all directions.
 
 **Dimensional Rift** — When a targeting orb hits an enemy and actually deals damage (not blocked by Iron Body, Absolute Shield, or Evade), a **50 px spatial rift zone** tears open at the impact point and lasts **3 seconds**. Enemies inside the zone:
 - **−35% movement speed**
-- Immediately receive **Soul Reaver + Soul Devourer DoT** (57 base + 7% EP every 0.35s, true damage — skips Embryo)
+- Immediately receive **Soul Reaver + Soul Devourer DoT** (60 base + 5.5% EP every 0.35s, true damage — skips Embryo)
 - Take **+25% incoming damage** from all sources
 - Enemy bullets (`enemy_bullet*`) within **2.5× the radius** are pulled toward the center; any bullet reaching the inner core (radius × 0.45) is destroyed
 - The DoT has a **20% chance per tick** to trigger a Chain Lightning arc to up to **8** nearby enemies within 150 px (independent of Glory for Justice)
 
 **Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage (acts as an Absolute Shield for that single hit). When an orb is sacrificed, the attacker (excluding untargetable types: `enemy_bullet`, Abyssal Chain, Veilshroud Echo, and enemies in Coronation) is immediately cursed:
-- Receives **Soul Reaver + Soul Devourer DoT** (57 base + 7% EP every 0.35s, true damage)
+- Receives **Soul Reaver + Soul Devourer DoT** (60 base + 5.5% EP every 0.35s, true damage)
 - **−25% movement speed** for **3 seconds**
 
 ---
@@ -239,8 +239,8 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
-- **Spirit Bullet:** 30 base + 1.5% EP, homing, +10% flight speed bonus.
-- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 100 base + 10% EP.
+- **Spirit Bullet:** 60 base + 0.55% EP, homing, +10% flight speed bonus.
+- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 110 base + 8% EP.
 - **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% EP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% EP, bounce off walls).
 
 ---
@@ -257,15 +257,15 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Duration:** 40s (from first shot) | **Cooldown:** 12s (starts at summon, unlocks after BTM ends) | **Size:** +20% vs normal Spirit
 
-**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **60 base + 4.25% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.70 and Vulnerability (15% chance).
+**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **100 base + 1.4% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
 
-**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **200 base + 16% EP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
+**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **350 base + 7% EP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
 
 **Passive: Danger? Not Today!** — Triggers when any enemy comes within **170px of the player** or within **170px of the bottom boundary**. Phōtokrystos halts all attacks and aims for **100ms**, continuously re-locking onto the nearest threatening enemy each frame. It then unleashes a **2-second primeval laser beam** that sweeps **±20°** around the locked angle — the beam extends to the screen edge and **instantly destroys every enemy it touches**, bypassing all shields, Iron Body, and invulnerability. Allies are unaffected. Each enemy killed by the beam produces a burst effect. After firing, Phōtokrystos suffers **−20% damage output for 3 seconds** from primeval energy exhaustion. The **10-second cooldown begins after the beam ends**.
 
 **Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels gain **+15% Damage Reduction**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+3 HP per second**, and every **5 seconds** each Sentinel receives a flat **+50 HP shield**.
 
-**Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **15 base + 45% EP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% EP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
+**Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **20 base + 35% EP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% EP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
 
 ---
 
@@ -276,6 +276,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 After a 2-second charge, spawns a Black Hole that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
 - Embryos have **CC Immunity** — immune to the gravitational pull but still die at the center.
+- **Egregor** and **Dargruel** are CC Immune — the Black Hole cannot pull them. If they are at the center, they take **30% of their Max HP as true damage** instead of instant kill.
 - The Black Hole slowly floats upward and disappears off-screen.
 
 ---
@@ -294,11 +295,11 @@ Charges up, then sweeps a massive plasma beam across the entire screen. Every en
 
 Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locations throughout the duration.
 
-**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **30 base + 2% EP** damage every 125ms.
+**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **10 base + 6% EP** damage every 125ms.
 
-**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **100 base + 6% EP** every 50ms.
+**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **45 base + 1.2% EP** every 50ms.
 
-**Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **10 base + 15% EP** in a large area.
+**Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **10 base + 12% EP** in a large area.
 
 ---
 
@@ -310,7 +311,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ### Apostles (Normal)
 
-Spawns continuously from the start. HP starts between **9–12** and scales up over time (capped at **96 HP**). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
+Spawns continuously from the start. HP starts between **22–42** and scales up over time (capped at **330 HP**). Fires 1 bullet per second — the bullet's HP equals the enemy's HP at the moment of firing.
 
 **Score on kill:** HP × 6 points
 
@@ -321,7 +322,7 @@ Spawns continuously from the start. HP starts between **9–12** and scales up o
 - **Death bonus**: Each Apostle that dies normally adds **+0.67%** (above midline) or **+1%** (below) to all remaining Apostles' base chance — cumulative. Resets to 0 when a Coronation triggers.
 - **Global limit**: At most **3 Coronations** can trigger within any 5-second window.
 - When triggered, the Apostle undergoes a ≈2.2s animation. During this time: it is **slowed 45%**, **immortal** (immune to all damage), and **untargetable** (cannot be selected by Sentinels, Skill A, or any player mechanic).
-- After the animation ends, the Apostle is consumed and replaced by a random higher-tier enemy (**Marchosias**, **Veilshroud**, **Thaelis**, or **Dargruel**) at its position. The spawned enemy starts with full HP and a **1-hit Iron Body** (blocks exactly one hit from any source).
+- After the animation ends, the Apostle is consumed and replaced by a higher-tier enemy — always **Marchosias**, **Thaelis**, or **Dargruel**; can also be **Veilshroud**, **Egregor**, or **Leviathan** if their respective caps allow. No wave restriction applies. The spawned enemy starts with full HP and a **1-hit Iron Body** (blocks exactly one hit from any source).
 - Coronation transformations do not grant kill score.
 
 ---
@@ -330,11 +331,11 @@ Spawns continuously from the start. HP starts between **9–12** and scales up o
 
 **Available after:** 25s | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
 
-HP: **1,000–2,500**. Innate **40% Damage Reduction**.
+HP: **1,200–3,000**. Innate **40% Damage Reduction**.
 
 A shifting entity that phases in and out of reality to avoid damage and punish careless positioning.
 
-**Passive — Void Echo** — On death, leaves an **untargetable, immortal ghost** at the death position:
+**Passive — Void Echo** — On death, leaves an **untargetable, immortal ghost** at the death position. When Veilshroud enters this ghost form, the wave system counts it as dead — the wave can progress without waiting for the ghost to detonate.
 
 - Fires double-rate bullets for **3 seconds** (200ms interval).
 - Charges up visually from seconds 3–5.
@@ -355,7 +356,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 **Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
 
-HP: **600–2,000**.
+HP: **720–2,400**.
 
 Fires **2 large projectiles** every second. After 0.6 seconds of flight each splits into **6 smaller homing bullets**. Small bullets deal 1 life of damage to the player, or **15% EP** to a Sentinel.
 
@@ -378,9 +379,9 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 **Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.8 u/s
 
-HP: **1,500–2,600**. Permanent **55% Damage Reduction** at all times.
+HP: **1,800–3,120**. Permanent **55% Damage Reduction** at all times.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 6 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 6th hit the shield breaks and Aegis Core takes damage normally.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 6th hit the shield breaks and Aegis Core takes damage normally.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
@@ -398,7 +399,7 @@ HP: **1,500–2,600**. Permanent **55% Damage Reduction** at all times.
 
 **Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **1,600–3,100**. Permanent **45% Damage Reduction** on its body at all times.
+HP: **1,920–3,720**. Permanent **45% Damage Reduction** on its body at all times.
 
 **Sword & Shield**
 
@@ -433,7 +434,7 @@ Every second, fires **2 bullets** simultaneously at the nearest player or Sentin
 
 At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **15–25%** of Marchosias's Max HP at random, then boosted by a further **+30%**. Each minion has **75% innate Damage Reduction**.
 
-Each minion scans within **1.5× its own radius** for a valid host:
+Each minion scans within **140px** for a valid host (excluding other Marchosias):
 
 **Host found → Parasite Mode:** Attaches as a **Parasite Shield** — absorbs damage before all other shields, including Aegis shields. Completely buff-immune: no heals, no regeneration, no DR bonuses can affect it. A green rotating ring marks infected hosts.
 
@@ -445,7 +446,7 @@ Each minion scans within **1.5× its own radius** for a valid host:
 
 **Available after:** 35s | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
 
-HP: **1,600–3,500**. Permanent **40% Damage Reduction** on its body at all times. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
+HP: **1,920–4,200**. Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
 **Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). Egregor's body can only be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit, n = tentacles lost) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **30% MaxHP**). Egregor cannot coexist with Veilshroud on the field.
 
@@ -461,7 +462,7 @@ HP: **1,600–3,500**. Permanent **40% Damage Reduction** on its body at all tim
 
 **Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.8 u/s
 
-HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
+HP: **3,600–12,095**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
 
 **Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
 
@@ -495,7 +496,7 @@ HP: **3,000–10,079**. DR is fully dynamic — see Passive below.
 
 **Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
-HP: **6,682–11,693**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
+HP: **8,018–14,032**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 
 **Passive: Inevitable** — Leviathan's core resilience mechanics:
 
@@ -504,7 +505,7 @@ HP: **6,682–11,693**. A massive armored entity with 9 segmented wing-plates su
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
 
-When Leviathan appears, every enemy on screen instantly receives the **Envy** mark — visible as a red pulsing ring. Envy is permanent and cannot be removed:
+When Leviathan appears, every enemy on screen instantly receives the **Envy** mark — visible as a red pulsing ring. Envy is re-applied every **2.5 seconds** to catch enemies that spawn after Leviathan. Envy is permanent on each target and cannot be removed:
 
 - **+25% Damage Reduction** (stacks with all other DR, hard-capped at 99%).
 - **+25% effectiveness from all healing sources**.
@@ -512,7 +513,9 @@ When Leviathan appears, every enemy on screen instantly receives the **Envy** ma
 
 **Passive: All for One**
 
-Leviathan spawns with a secret **kill quota Y** (6–9). Until that many enemies are killed, Leviathan is encased in an **Iron Body shield** — every damage source deals absolutely zero damage. Not reduced — zero. The shield is displayed as a glowing sphere; the wing-plates fold inward while it is active.
+Leviathan spawns with a secret **kill quota Y** (10–20). Until that many enemies are killed, Leviathan is encased in an **Iron Body shield** — every damage source deals absolutely zero damage. Not reduced — zero. The shield is displayed as a glowing sphere; the wing-plates fold inward while it is active.
+
+When Leviathan spawns (including via Coronation), the game immediately checks if enough killable enemies exist to satisfy the quota. If not, it spawns the missing number of Apostles at once, so the shield can always be broken.
 
 Every attack that lands on the shield counts as a **hit** (capped at 250). Displayed as `X/Y kills` and `N/250 hits` below Leviathan. While shielded, Leviathan has **CC Immunity** — immune to Black Hole pull and Tesla slow.
 
@@ -542,7 +545,7 @@ Leviathan's only active attack. It fires automatically after the **All for One**
 
 ## Enemy Class System
 
-Enemies are divided into five tiers of power. All enemies of class **Abnormal and above** share a combined cap of **6 on screen at once**, in addition to their individual caps.
+Enemies are divided into five tiers of power.
 
 | Class | Examples |
 |---|---|
@@ -552,21 +555,36 @@ Enemies are divided into five tiers of power. All enemies of class **Abnormal an
 | **Dominator** | Dargruel, Leviathan |
 | **Administrator** | Kanade of the Endless Nights |
 
+**Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Aegis Core 2 · Egregor 1 · Dargruel 2 · Leviathan 1. A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
+
 ---
 
-## Spawn Summary
+## Spawn System
 
-| Enemy | Class | Unlocks | Spawn Rate | Cap | Speed | Respawn Cooldown |
-|---|---|---|---|---|---|---|
-| Marchosias | Elite | 20s | 5% → 13% | 2 | ~1.6 u/s | — |
-| Veilshroud | Abnormal | 25s | 12% → 25% | 2 | 2.0 u/s | — |
-| Thaelis | Abnormal | 30s | 12% → 25% | 2 | ~1.4 u/s | — |
-| Aegis Core | Elite | 30s | 6% → 14% | 2 | ~1.8 u/s | — |
-| Egregor | Elite | 35s | 3.5% → 12% | 1 | 1.5 u/s | — |
-| Dargruel | Dominator | 30s | 4% → 13% | 1 | ~1.8 u/s | — |
-| Leviathan | Dominator | 36s | 2% → 6% | 1 | ~1.5 u/s | 6s after kill |
+Enemies spawn in **waves**. Each wave defines an exact count per tier — all queued enemies are guaranteed to spawn within a **15-second spawning window**.
 
-Spawn rates ramp up over roughly the first 3.5 minutes of play, then hold at their maximum.
+**Wave flow:**
+
+- **Spawning phase (15s):** Apostles mix singles (62%) and bursts of 2–4 (38%). Higher-tier enemies are spaced proportionally across the 15s window. The HUD shows a pulsing `◉ X enemies` indicator while active.
+- **Clear condition:** If all enemies are dead while the queue is empty, the wave ends after **3 seconds** ("WAVE CLEARED"). If enemies are still alive 12 seconds after the queue empties, the wave force-ends after a 1-second delay.
+- **Rest phase (4s):** A countdown announces the next wave number before it begins.
+
+**Wave templates (repeats from wave 9 onward):**
+
+| Wave | Apostles | Abnormals | Elites | Dominators |
+|---|---|---|---|---|
+| 1 | 32 | — | — | — |
+| 2 | 38 | 6 | 4 | — |
+| 3 | 40 | 7 | 6 | 2 |
+| 4 | 44 | 8 | 7 | 3 |
+| 5 | 48 | 9 | 8 | 4 |
+| 6 | 52 | 11 | 9 | 5 |
+| 7 | 56 | 12 | 10 | 6 |
+| 8 | 60 | 13 | 11 | 7 |
+| 9 | 64 | 14 | 12 | 8 |
+| 10+ | +5/wave | +1/wave | +1/wave | +1/wave |
+
+Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marchosias, Veilshroud), **Elites** (Thaelis, Aegis Core, Egregor), **Dominators** (Dargruel, Leviathan). Individual on-screen caps apply; there is no combined cap.
 
 ---
 

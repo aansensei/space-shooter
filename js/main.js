@@ -59,6 +59,7 @@ function playerTakesHit(attacker) {
                 && !(_curseTarget.type && _curseTarget.type.startsWith('enemy_bullet'))
                 && _curseTarget.type !== 'abyssal_chain'
                 && _curseTarget.type !== 'veilshroud_echo'
+                && _curseTarget.type !== 'leviathan'
                 && !_curseTarget.inCoronation) {
                 _curseTarget.soulReaver = true;
                 _curseTarget._orbRetaliationSlowEnd = performance.now() + 3000;
@@ -174,7 +175,6 @@ function update(rawDeltaTime) {
         lastSkillS += delay;
         lastSkillD += delay;
         lastSkillF += delay;
-        if (skillGActive) skillGEndTime += delay;
         finalDefense.playerCooldownEnd += delay;
         finalDefense.boundaryCooldownEnd += delay;
         lastEnemySpawn += delay;
@@ -288,7 +288,7 @@ function update(rawDeltaTime) {
     });
     aegisLasers = aegisLasers.filter(l => !l.fired || l.duration > 0);
 
-    if (skillGActive && currentTime > skillGEndTime) {
+    if (skillGActive && gameElapsedTime > skillGEndTime) {
         endSkillG();
     }
     if (skillGActive) {
@@ -529,6 +529,9 @@ function update(rawDeltaTime) {
                     }
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     // Leviathan immune to CC while shield active, no slow, still takes dot
+                    teslaSpeedMultiplier = 1.0;
+                } else if (enemy.type === 'egregor' || enemy.type === 'boss') {
+                    // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
                 } else {
                     teslaSpeedMultiplier = 0.30;
@@ -829,8 +832,9 @@ function update(rawDeltaTime) {
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             const _coronaSlow = (enemy.type === 'normal' && enemy.inCoronation) ? 0.55 : 1.0;
-            const _riftSlowMul = enemy._riftSlow ? 0.65 : 1.0;
-            const _orbSlowMul = (enemy._orbRetaliationSlowEnd || 0) > currentTime ? 0.75 : 1.0;
+            const _ccImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan';
+            const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
+            const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul;
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
@@ -1172,17 +1176,7 @@ function update(rawDeltaTime) {
         enemies = enemies.filter(e => e.type === 'abyssal_chain' || !e.type.startsWith('enemy_bullet'));
     }
 
-    const elapsedTime = currentTime - gameStartTime;
-    let currentSpawnInterval = Math.max(initialSpawnInterval - spawnDecreaseRate * (elapsedTime / 1000), minSpawnInterval);
-    if (currentTime - lastEnemySpawn > currentSpawnInterval) {
-        // Màn hình nhỏ (mobile/portrait): giới hạn 8 enemy thực tế cùng lúc
-        const _mobileEnemyCap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 10 : Infinity;
-        const _activeEnemies = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length;
-        if (_activeEnemies < _mobileEnemyCap) {
-            spawnEnemy();
-        }
-        lastEnemySpawn = currentTime;
-    }
+    _updateWaveSystem(deltaTime, currentTime);
 
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
@@ -1330,7 +1324,7 @@ function update(rawDeltaTime) {
         window._sentinelHpMilestone = 1;
         sentinels.forEach(s => {
             const old = s.maxHp;
-            s.maxHp = Math.ceil(old * 1.02);
+            s.maxHp = Math.ceil(old * 1.03);
             s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
         });
     }
@@ -1338,7 +1332,7 @@ function update(rawDeltaTime) {
         window._sentinelHpMilestone = 2;
         sentinels.forEach(s => {
             const old = s.maxHp;
-            s.maxHp = Math.ceil(old * 1.03);
+            s.maxHp = Math.ceil(old * 1.05);
             s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
         });
     }
@@ -1346,7 +1340,7 @@ function update(rawDeltaTime) {
         window._sentinelHpMilestone = 3;
         sentinels.forEach(s => {
             const old = s.maxHp;
-            s.maxHp = Math.ceil(old * 1.05);
+            s.maxHp = Math.ceil(old * 1.07);
             s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
         });
     }
@@ -1393,7 +1387,7 @@ function update(rawDeltaTime) {
     updatePhotoBrangs(deltaTime);
     updateSkillD(deltaTime);
     updateSkillF(deltaTime);
-    updateEnergyOrbs(deltaTime, currentTime);
+    updateEnergyOrbs(deltaTime, gameElapsedTime);
     updateTeslaCoils(deltaTime, currentTime);
     updateMarchosiasBlades(deltaTime);
 
@@ -1589,6 +1583,164 @@ function update(rawDeltaTime) {
     });
 }
 
+const WAVE_SPAWN_DURATION = 15000;
+const WAVE_REST_DURATION = 4000;
+const WAVE_TEMPLATES = [
+    { normals: 32, abnormals: 0,  elites: 0,  dominators: 0 },
+    { normals: 38, abnormals: 6,  elites: 4,  dominators: 0 },
+    { normals: 40, abnormals: 7,  elites: 6,  dominators: 2 },
+    { normals: 44, abnormals: 8,  elites: 7,  dominators: 3 },
+    { normals: 48, abnormals: 9,  elites: 8,  dominators: 4 },
+    { normals: 52, abnormals: 11, elites: 9,  dominators: 5 },
+    { normals: 56, abnormals: 12, elites: 10, dominators: 6 },
+    { normals: 60, abnormals: 13, elites: 11, dominators: 7 },
+    { normals: 64, abnormals: 14, elites: 12, dominators: 8 },
+];
+
+function _getWaveTemplate(waveNum) {
+    if (waveNum <= WAVE_TEMPLATES.length) return WAVE_TEMPLATES[waveNum - 1];
+    const extra = waveNum - WAVE_TEMPLATES.length;
+    const last = WAVE_TEMPLATES[WAVE_TEMPLATES.length - 1];
+    return {
+        normals:    last.normals    + extra * 5,
+        abnormals:  last.abnormals  + extra,
+        elites:     last.elites     + extra,
+        dominators: last.dominators + extra,
+    };
+}
+
+function _buildWaveQueue(waveNum) {
+    const tmpl = _getWaveTemplate(waveNum);
+    const T = WAVE_SPAWN_DURATION;
+    const queue = [];
+
+    // Normals: trickle mix throughout the full window
+    let remaining = tmpl.normals;
+    const events = [];
+    while (remaining > 0) {
+        const isBurst = remaining >= 3 && Math.random() < 0.38;
+        const count = isBurst ? Math.min(remaining, 2 + Math.floor(Math.random() * 3)) : 1;
+        events.push(count);
+        remaining -= count;
+    }
+    const normalGap = T / (events.length + 1);
+    events.forEach((count, idx) => {
+        const baseAt = Math.round(normalGap * (idx + 1));
+        for (let j = 0; j < count; j++)
+            queue.push({ tier: 'normal', at: baseAt + j * 100 });
+    });
+
+    // Abnormals: 15%-72% of T, pair if 4+
+    const abnPair = tmpl.abnormals >= 4;
+    const abnGroups = abnPair ? Math.ceil(tmpl.abnormals / 2) : tmpl.abnormals;
+    const abnStart = T * 0.15, abnEnd = T * 0.72;
+    const abnSpan = abnGroups > 1 ? (abnEnd - abnStart) / (abnGroups - 1) : 0;
+    for (let i = 0; i < tmpl.abnormals; i++) {
+        const groupIdx = abnPair ? Math.floor(i / 2) : i;
+        const pairOff = abnPair && (i % 2 === 1) ? 500 : 0;
+        queue.push({ tier: 'abnormal', at: Math.round(abnStart + groupIdx * abnSpan + pairOff) });
+    }
+
+    // Elites: 20%-82% of T, min 2500ms gap so skills don't stack
+    const ELITE_MIN_GAP = 2500;
+    const eStart = T * 0.20, eEnd = T * 0.82;
+    const eSpan = tmpl.elites > 1 ? (eEnd - eStart) / (tmpl.elites - 1) : 0;
+    let eAt = 0;
+    for (let i = 0; i < tmpl.elites; i++) {
+        const natural = Math.round(eStart + i * eSpan);
+        eAt = i === 0 ? natural : Math.max(natural, eAt + ELITE_MIN_GAP);
+        queue.push({ tier: 'elite', at: eAt });
+    }
+
+    // Dominators: 35%-90% of T, min 3500ms gap
+    const DOM_MIN_GAP = 3500;
+    const dStart = T * 0.35, dEnd = T * 0.90;
+    const dSpan = tmpl.dominators > 1 ? (dEnd - dStart) / (tmpl.dominators - 1) : 0;
+    let dAt = 0;
+    for (let i = 0; i < tmpl.dominators; i++) {
+        const natural = Math.round(dStart + i * dSpan);
+        dAt = i === 0 ? natural : Math.max(natural, dAt + DOM_MIN_GAP);
+        queue.push({ tier: 'dominator', at: dAt });
+    }
+
+    return queue.sort((a, b) => a.at - b.at);
+}
+
+function _spawnWaveTier(tier) {
+    const _now = performance.now();
+    if (tier === 'abnormal') {
+        const pool = [];
+        if (enemies.filter(e => e.type === 'marchosias').length < 2) pool.push('marchosias');
+        const vc = enemies.filter(e => e.type === 'veilshroud').length;
+        const ec = enemies.filter(e => e.type === 'egregor').length;
+        if (vc < 2 && ec === 0) pool.push('veilshroud');
+        if (!pool.length) { spawnNormalEnemy(); return; }
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pick === 'marchosias') spawnMarchosias(); else spawnVeilshroud();
+    } else if (tier === 'elite') {
+        const pool = [];
+        if (enemies.filter(e => e.type === 'thaelis').length < 3) pool.push('thaelis');
+        if (enemies.filter(e => e.type === 'aegis_core').length < 2) pool.push('aegis_core');
+        const ec = enemies.filter(e => e.type === 'egregor').length;
+        const vc = enemies.filter(e => e.type === 'veilshroud').length;
+        const egrOk = !window._lastEgregorKillTime || (_now - window._lastEgregorKillTime) >= 6000;
+        if (ec < 1 && vc === 0 && egrOk) pool.push('egregor');
+        if (!pool.length) { spawnNormalEnemy(); return; }
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pick === 'thaelis') spawnThaelis();
+        else if (pick === 'aegis_core') spawnAegisCore();
+        else spawnEgregor();
+    } else if (tier === 'dominator') {
+        const pool = [];
+        if (enemies.filter(e => e.type === 'boss').length < 2) pool.push('boss');
+        const levOk = !window._lastLeviathanKillTime || (_now - window._lastLeviathanKillTime) >= 8000;
+        if (enemies.filter(e => e.type === 'leviathan').length < 1 && levOk) pool.push('leviathan');
+        if (!pool.length) { spawnNormalEnemy(); return; }
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        if (pick === 'boss') spawnDargruel();
+        else { spawnLeviathan(); _ensureLeviathanQuota(enemies[enemies.length - 1]); }
+    }
+}
+
+function _updateWaveSystem(deltaTime, now) {
+    if (_wavePhase === 'rest') {
+        _waveRestTimer = Math.max(0, _waveRestTimer - deltaTime);
+        if (_waveRestTimer <= 0) {
+            _waveNumber++;
+            _waveQueue = _buildWaveQueue(_waveNumber);
+            _waveQueueTimer = 0;
+            _wavePhase = 'spawning';
+            _waveAnnouncedAt = now;
+        }
+        return;
+    }
+    _waveQueueTimer += deltaTime;
+    const _cap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 10 : Infinity;
+    while (_waveQueue.length > 0 && _waveQueue[0].at <= _waveQueueTimer) {
+        const entry = _waveQueue.shift();
+        const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
+        if (active < _cap) {
+            if (entry.tier === 'normal') spawnNormalEnemy();
+            else _spawnWaveTier(entry.tier);
+        }
+    }
+    if (_waveQueue.length === 0) {
+        const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
+        if (_alive === 0) {
+            _wavePhase = 'rest';
+            _waveRestTimer = 3000;
+            _waveForceEndTimer = 0;
+        } else {
+            _waveForceEndTimer += deltaTime;
+            if (_waveForceEndTimer >= 12000) {
+                _wavePhase = 'rest';
+                _waveRestTimer = 1000;
+                _waveForceEndTimer = 0;
+            }
+        }
+    }
+}
+
 function gameLoop(timeStamp) {
     if (!lastTimeStamp) lastTimeStamp = timeStamp;
     let deltaTime = timeStamp - lastTimeStamp;
@@ -1654,6 +1806,8 @@ function startGame() {
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;
+    _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0;
+    _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
     window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     window._blessingRegenTimer = 0;
     accurateParryActive = false;

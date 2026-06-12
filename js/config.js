@@ -107,9 +107,18 @@ const laserCooldownDuration = 9000;
 const laserTickInterval = 155;
 let laserCooldownEnd = 0;
 
-// Spawn enemy
+// Spawn enemy (legacy timer kept for Yog-Sothoth offset)
 let lastEnemySpawn = 0;
 const initialSpawnInterval = 1494, spawnDecreaseRate = 50, minSpawnInterval = 370;
+
+// Wave System
+let _waveNumber = 0;
+let _wavePhase = 'rest'; // 'spawning' | 'rest'
+let _waveRestTimer = 0;
+let _waveQueue = [];
+let _waveQueueTimer = 0;
+let _waveAnnouncedAt = 0;
+let _waveForceEndTimer = 0;
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
 let boundaryY = canvas.height - 10;
