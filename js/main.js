@@ -60,7 +60,8 @@ function playerTakesHit(attacker) {
                 && _curseTarget.type !== 'abyssal_chain'
                 && _curseTarget.type !== 'veilshroud_echo'
                 && _curseTarget.type !== 'leviathan'
-                && !_curseTarget.inCoronation) {
+                && !_curseTarget.inCoronation
+                && !(_curseTarget.type === 'marchosias' && _curseTarget.arcShield && _curseTarget.arcShield.hp > 0)) {
                 _curseTarget.soulReaver = true;
                 _curseTarget._orbRetaliationSlowEnd = performance.now() + 3000;
                 createParticles(_curseTarget.x, _curseTarget.y, 12, '#d800ff', 2, 5);
@@ -533,6 +534,9 @@ function update(rawDeltaTime) {
                 } else if (enemy.type === 'egregor' || enemy.type === 'boss') {
                     // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
+                } else if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
+                    // CC immune while Arc Shield active, no slow
+                    teslaSpeedMultiplier = 1.0;
                 } else {
                     teslaSpeedMultiplier = 0.30;
                     if (enemy.type === 'boss' || enemy.type === 'thaelis' || enemy.type === 'aegis_core') {
@@ -832,7 +836,8 @@ function update(rawDeltaTime) {
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             const _coronaSlow = (enemy.type === 'normal' && enemy.inCoronation) ? 0.55 : 1.0;
-            const _ccImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan';
+            const _ccImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan'
+                || (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0);
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
             const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul;
