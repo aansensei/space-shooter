@@ -435,7 +435,7 @@
 <li><span style="color:#FFD700">Gold ×12:</span> Every shot = Special Shot.</li>
 <li><b>5% base DR</b> at all times.</li>
 <li><b>Sentinel Parry</b> (Glory active): 20% negate → <span class="hg">Accurate Parry</span> 4s + <span class="hg">+10% DR</span> 4s.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — Max HP grows: <span class="hg">+2% at 1 min · +3% at 2 min · +5% at 3 min</span>. While Glory for Justice active: every <span class="hi">10s</span> each Sentinel gains shield = <span class="hg">18% HP đã mất + 4% Max HP</span> (non-stacking, replaces previous pulse). Fires immediately on activation.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — Max HP grows: <span class="hg">+2% at 1 min · +3% at 2 min · +5% at 3 min</span>. While Glory for Justice active: every <span class="hi">10s</span> each Sentinel gains shield = <span class="hg">18% HP lost + 4% Max HP</span> (non-stacking, replaces previous pulse). Fires immediately on activation.</li>
 <li>On death: <span class="dmg">10 scattered projectiles</span>.</li></ul></div>
 <div class="card"><h2 style="color:var(--red)">VULNERABILITY</h2><div class="sub">DEBUFF — STACKS ×4 • 3s DURATION</div>
 <div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas></div>
@@ -492,7 +492,7 @@
 <div id="sSpiritPane2" style="display:none;">
   <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas></div>
   <ul>
-  <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Đại Tinh Linh Khởi Nguyên</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
+  <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Grand Primordial Spirit</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Blessing of the Primordial</b>: Sentinels +15% DR, ally dmg +15%, +3 HP/s regen, +50 shield/5s per sentinel.</li>
   <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> <b>3 homing bullets</b> @ <b>43ms</b>: each <span class="dmg">100+1.4% EP</span>, all track targets. Destroys enemy bullets. Apply Vuln (15%).</li>
   <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">350+7% EP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Max <b>10</b> on screen; oldest recalled when cap hit (pending queue: 5). After 2 bounces or lifetime expiry, boomerang <b>flies back</b> to spirit (60% faster). BTM recalls all. Destroys bullets.</li>
@@ -507,7 +507,7 @@
 <ul><li>Pulls all enemies + bullets. Center = <span class="hr">999,999,999 dmg</span> instant kill.</li>
 <li><b>Egregor</b> and <b>Dargruel</b> are CC Immune — cannot be pulled. If at center, take <span class="hr">30% MaxHP true damage</span> instead.</li></ul></div>
 
-<div class="card"><h2 style="color:var(--red)"><span class="key">F</span> ANNIHILATION SWEEP</h2><div class="sub">THIÊN Ý TRẢM <span class="cd">CD 7s</span> <span class="cd">1.5s CHARGE + 1s SWEEP</span></div>
+<div class="card"><h2 style="color:var(--red)"><span class="key">F</span> ANNIHILATION SWEEP</h2><div class="sub">HEAVEN'S WILL SLASH <span class="cd">CD 7s</span> <span class="cd">1.5s CHARGE + 1s SWEEP</span></div>
 <div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas></div>
 <ul><li><b>Charge:</b> half-plane cyan glow, TARGET LOCK crosshairs on all enemies, dashed lines from player.</li>
 <li><b>Sweep:</b> rotating blade from left→right. <span class="hr">999,999,999 dmg</span> instant kill.</li>
@@ -639,7 +639,7 @@
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Against EP (Shield + Max HP = Existence Point). Hits shield first.</p></div>
 <div class="card"><h2 style="color:var(--red)">TRUE DAMAGE</h2><p>Bypasses all Shields. Directly to HP.</p></div>
 <div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Complete immunity to <b>all damage</b> — %, true, Black Hole, Skill F. Absolute.</p></div>
-<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed by any crowd control — Black Hole pull, Tesla slow, Dimensional Rift slow, Orb slow. Does NOT block damage. <b>Egregor</b> and <b>Dargruel</b> have permanent CC Immunity.</p></div>
+<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed by any crowd control — Black Hole pull, Tesla slow, Dimensional Rift slow, Orb slow. Does NOT block damage. <b>Egregor</b>, <b>Dargruel</b>, and <b>Leviathan</b> have permanent CC Immunity.</p></div>
 <div class="card"><h2 style="color:#cc55ff">ROOT & SILENCE</h2>
 <p>Inflicted by Dargruel's <b>Abyssal Chains</b>. Lasts <span class="hr">1 second</span>, re-applies on each hit even if already active.</p>
 <ul><li><b>Root:</b> Cannot move at all.</li>
@@ -3140,7 +3140,7 @@
                 c.fillStyle = `rgba(255,255,255,${textA * 0.9})`; c.font = 'bold 11px Orbitron, sans-serif'; c.textAlign = 'center';
                 c.fillText('EXECUTION', shipX, h * 0.25);
                 c.fillStyle = `rgba(255,220,100,${textA * 0.7})`; c.font = 'italic 8px monospace';
-                c.fillText('— Khai Triển —', shipX, h * 0.25 + 14);
+                c.fillText('— Deploy —', shipX, h * 0.25 + 14);
                 c.textAlign = 'left';
               }
             }
@@ -3250,7 +3250,7 @@
                 c.fillStyle = `rgba(255,255,255,${tA * 0.8})`; c.font = 'bold 12px Orbitron, sans-serif'; c.textAlign = 'center';
                 c.fillText('ANNIHILATION', shipX + 30, h * 0.2);
                 c.fillStyle = `rgba(170,255,255,${tA * 0.7})`; c.font = 'italic 8px monospace';
-                c.fillText('— Thiên Ý Trảm —', shipX + 30, h * 0.2 + 14);
+                c.fillText("— Heaven's Will —", shipX + 30, h * 0.2 + 14);
                 c.textAlign = 'left';
               }
             }
@@ -3423,7 +3423,7 @@
           // Kanji text
           c.textAlign = 'center'; c.globalAlpha = summonP * 0.9;
           c.font = `bold ${Math.floor(w * 0.06)}px serif`; c.fillStyle = '#ffffff';
-          c.fillText('開天立地', sx, sy - R - 12);
+          c.fillText('GENESIS RITE', sx, sy - R - 12);
           c.font = `bold ${Math.floor(w * 0.025)}px sans-serif`; c.fillStyle = '#a7ffc5';
           c.fillText('PRIMEVAL CREATION', sx, sy - R + 2);
           c.globalAlpha = 1; c.textAlign = 'left';
