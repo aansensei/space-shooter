@@ -1807,7 +1807,9 @@ function spawnEgregor() {
         _nullSlashTargetY: 0,
         _nullSlashDmgDealt: false,
         _nullSlashTentPts: null,
-        _dimBreakZone: null,
+        _nullSlashOriginX: 0,
+        _nullSlashOriginY: 0,
+        _dimBreakZoneSpawned: false,
         // Collective Mind tentacles
         _tentacleHps: null,   // initialized in updateEgregor on first tick
         _tentaclesLost: 0,
@@ -1998,6 +2000,9 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             enemy._nullSlashPhase = 'striking';
             enemy._nullSlashStrikeTimer = 0;
             enemy._nullSlashDmgDealt = false;
+            enemy._nullSlashOriginX = enemy.x;
+            enemy._nullSlashOriginY = enemy.y;
+            enemy._dimBreakZoneSpawned = false;
         }
         return;
     }
@@ -2054,22 +2059,28 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             }
         }
 
+        // Spawn Dimension Break zone at start of retract (720ms) — independent world object
+        if (!enemy._dimBreakZoneSpawned && enemy._nullSlashStrikeTimer >= 720) {
+            enemy._dimBreakZoneSpawned = true;
+            const ox = enemy._nullSlashOriginX, oy = enemy._nullSlashOriginY;
+            const _dbArcR = Math.hypot(enemy._nullSlashTargetX - ox, enemy._nullSlashTargetY - oy)
+                          + (enemy._rageStacks || 0) * 5;
+            if (!window._dimBreakZones) window._dimBreakZones = [];
+            window._dimBreakZones.push({
+                cx: ox, cy: oy,
+                arcR: _dbArcR,
+                angle: enemy._nullSlashAngle,
+                arcStart: enemy._nullSlashAngle - Math.PI / 2,
+                spawnAt: now,
+                expireAt: now + 1000
+            });
+        }
+
         // Strike animation: 950ms (EXTEND 200 + SWEEP 520 + RETRACT 230)
         if (enemy._nullSlashStrikeTimer >= 950) {
             enemy._nullSlashPhase = 'ready';
             enemy._nullSlashCooldownEnd = now + 3500; // 3.5s CD
             enemy._nullSlashTentPts = null;
-            // Spawn Dimension Break: lingering hazard zone along the slash arc for 1s
-            const _dbArcR = Math.hypot(enemy._nullSlashTargetX - enemy.x, enemy._nullSlashTargetY - enemy.y)
-                          + (enemy._rageStacks || 0) * 5;
-            enemy._dimBreakZone = {
-                cx: enemy.x, cy: enemy.y,
-                arcR: _dbArcR,
-                angle: enemy._nullSlashAngle,
-                arcStart: enemy._nullSlashAngle - Math.PI / 2,
-                expireAt: now + 1000,
-                spawnAt: now
-            };
         }
     }
 }

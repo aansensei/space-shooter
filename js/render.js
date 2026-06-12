@@ -1013,6 +1013,7 @@ function draw(deltaTime) {
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash
+        _drawDimBreakZones();   // Lingering Dimension Break arcs (world-space, independent of Egregor)
 
         // Draw non-bullet enemies first (background layer)
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') drawEnemy(e); });
@@ -1914,6 +1915,57 @@ function _drawDimensionalRiftsCtx() {
         ctx.restore();
     }
     ctx.restore();
+}
+
+// Dimension Break zones: lingering arcs left by Egregor's Null Slash
+function _drawDimBreakZones() {
+    if (!window._dimBreakZones || window._dimBreakZones.length === 0) return;
+    const now = performance.now();
+    for (const dbz of window._dimBreakZones) {
+        const dbAlpha = Math.max(0, (dbz.expireAt - now) / 1000);
+        if (dbAlpha <= 0) continue;
+        ctx.save();
+        ctx.lineCap = 'round';
+        const dbEnd = dbz.arcStart + Math.PI;
+
+        ctx.globalAlpha = dbAlpha * 0.30;
+        ctx.strokeStyle = 'rgba(110,0,190,1)';
+        ctx.lineWidth = 32;
+        if (!_mobPerf) { ctx.shadowColor = '#6600cc'; ctx.shadowBlur = 20; }
+        ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
+
+        if (_gfxLevel < 2) {
+            ctx.globalAlpha = dbAlpha * 0.80;
+            ctx.strokeStyle = 'rgba(195,90,255,1)';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = _mobPerf ? 0 : 12;
+            ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
+            ctx.globalAlpha = dbAlpha * 0.40;
+            ctx.strokeStyle = 'rgba(255,215,255,1)';
+            ctx.lineWidth = 1.0;
+            ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
+        }
+
+        if (!_mobPerf && _gfxLevel === 0) {
+            const spN = 5 + Math.round(dbAlpha * 7);
+            ctx.shadowColor = '#cc88ff'; ctx.shadowBlur = 8;
+            for (let _si = 0; _si < spN; _si++) {
+                const spA = dbz.arcStart + (_si / spN) * Math.PI + Math.sin(now * 0.003 + _si * 1.9) * 0.09;
+                const spR = dbz.arcR + Math.sin(now * 0.005 + _si * 2.3) * 9;
+                ctx.globalAlpha = dbAlpha * (0.45 + 0.45 * Math.abs(Math.sin(now * 0.007 + _si)));
+                ctx.fillStyle = _si % 2 === 0 ? 'rgba(215,170,255,1)' : 'rgba(150,50,255,1)';
+                ctx.beginPath(); ctx.arc(
+                    dbz.cx + Math.cos(spA) * spR,
+                    dbz.cy + Math.sin(spA) * spR,
+                    Math.max(0.1, 1.4 + Math.abs(Math.sin(now * 0.004 + _si)) * 2), 0, Math.PI * 2
+                ); ctx.fill();
+            }
+        }
+
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        ctx.restore();
+    }
 }
 
 // Boss shockwaves (Maou Haki)
@@ -8471,7 +8523,8 @@ function _drawEgregorEffects() {
         if (enemy._nullSlashPhase === 'striking') {
             const st  = enemy._nullSlashStrikeTimer || 0;
             const tx2 = enemy._nullSlashTargetX, ty2 = enemy._nullSlashTargetY;
-            const cx  = enemy.x, cy = enemy.y;
+            const cx  = enemy._nullSlashOriginX !== undefined ? enemy._nullSlashOriginX : enemy.x;
+            const cy  = enemy._nullSlashOriginY !== undefined ? enemy._nullSlashOriginY : enemy.y;
 
             // Timing: shoot-out → arc sweep → retract (~950ms)
             const EXTEND = 200, SWEEP = 520, RETRACT = 230;
@@ -8911,57 +8964,5 @@ function _drawEgregorEffects() {
             } // end ext > 0.01
         }
 
-        // DIMENSION BREAK, lingering rift zone fades over 1s after the slash
-        if (enemy._dimBreakZone) {
-            const dbz = enemy._dimBreakZone;
-            const dbAlpha = Math.max(0, (dbz.expireAt - now) / 1000);
-            if (dbAlpha > 0) {
-                ctx.save();
-                ctx.lineCap = 'round';
-                const dbEnd = dbz.arcStart + Math.PI;
-
-                // Wide haze (all quality levels)
-                ctx.globalAlpha = dbAlpha * 0.30;
-                ctx.strokeStyle = 'rgba(110,0,190,1)';
-                ctx.lineWidth = 32;
-                if (!_mobPerf) { ctx.shadowColor = '#6600cc'; ctx.shadowBlur = 20; }
-                ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
-
-                // Sharp edge (MED + HIGH)
-                if (_gfxLevel < 2) {
-                    ctx.globalAlpha = dbAlpha * 0.80;
-                    ctx.strokeStyle = 'rgba(195,90,255,1)';
-                    ctx.lineWidth = 3;
-                    ctx.shadowBlur = _mobPerf ? 0 : 12;
-                    ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
-                    // Bright inner thread
-                    ctx.globalAlpha = dbAlpha * 0.40;
-                    ctx.strokeStyle = 'rgba(255,215,255,1)';
-                    ctx.lineWidth = 1.0;
-                    ctx.shadowBlur = 0;
-                    ctx.beginPath(); ctx.arc(dbz.cx, dbz.cy, dbz.arcR, dbz.arcStart, dbEnd); ctx.stroke();
-                }
-
-                // Crack sparks along the arc (HIGH only)
-                if (!_mobPerf && _gfxLevel === 0) {
-                    const spN = 5 + Math.round(dbAlpha * 7);
-                    ctx.shadowColor = '#cc88ff'; ctx.shadowBlur = 8;
-                    for (let _si = 0; _si < spN; _si++) {
-                        const spA = dbz.arcStart + (_si / spN) * Math.PI + Math.sin(now * 0.003 + _si * 1.9) * 0.09;
-                        const spR = dbz.arcR + Math.sin(now * 0.005 + _si * 2.3) * 9;
-                        ctx.globalAlpha = dbAlpha * (0.45 + 0.45 * Math.abs(Math.sin(now * 0.007 + _si)));
-                        ctx.fillStyle = _si % 2 === 0 ? 'rgba(215,170,255,1)' : 'rgba(150,50,255,1)';
-                        ctx.beginPath(); ctx.arc(
-                            dbz.cx + Math.cos(spA) * spR,
-                            dbz.cy + Math.sin(spA) * spR,
-                            Math.max(0.1, 1.4 + Math.abs(Math.sin(now * 0.004 + _si)) * 2), 0, Math.PI * 2
-                        ); ctx.fill();
-                    }
-                }
-
-                ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-                ctx.restore();
-            }
-        }
     }
 }
