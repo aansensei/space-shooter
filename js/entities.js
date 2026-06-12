@@ -936,11 +936,23 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Per-tier evade (base stat): Normal 1%, Abnormal 2%, Elite 5–7% (scales over 3.5 min), Dominator 10%
+    // Evade scales from min to max over 3 minutes: lesser 1–2%, abnormal 3–5%, elite 5–10%, dominator 10–15%
     {
-        const _eliteEvade = Math.min(0.07, 0.05 + (gameElapsedTime / 1000 / 210) * 0.02);
-        const _evade = ({ 'normal': 0.01, 'veilshroud': 0.02, 'thaelis': 0.02, 'aegis_core': _eliteEvade, 'marchosias': _eliteEvade, 'egregor': _eliteEvade, 'boss': 0.10, 'leviathan': 0.10 })[enemy.type] || 0;
-        if (_evade > 0 && Math.random() < _evade) return;
+        const _t = Math.min(1, gameElapsedTime / 180000);
+        const _evadeLesser   = 0.01 + _t * 0.01;
+        const _evadeAbnormal = 0.03 + _t * 0.02;
+        const _evadeElite    = 0.05 + _t * 0.05;
+        const _evadeDom      = 0.10 + _t * 0.05;
+        const _evade = ({
+            'normal': _evadeLesser,
+            'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal,
+            'aegis_core': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
+            'boss': _evadeDom, 'leviathan': _evadeDom
+        })[enemy.type] || 0;
+        if (_evade > 0 && Math.random() < _evade) {
+            addExplosion(enemy.x, enemy.y, enemy.size * 0.55, '#aaddff');
+            return;
+        }
     }
 
     if (source.applySoulReaver) {

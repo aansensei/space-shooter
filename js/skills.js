@@ -413,7 +413,7 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 110, percentDamage: 0.08, hitEnemies: [], isSpirit: true, isPiercing: true });
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 170, percentDamage: 0.048, hitEnemies: [], isSpirit: true, isPiercing: true });
         }
     }
 }
@@ -705,7 +705,7 @@ function spawnPhotoBrangs(fromX, fromY, count) {
             targetIdx: 0,
             hitEnemies: [],
             rotation: Math.random() * Math.PI * 2,
-            damage: 350, percentDamage: 0.07,
+            damage: 400, percentDamage: 0.058,
             lifetime: 9000,
         });
     }
@@ -779,7 +779,7 @@ function updatePhotoBrangs(deltaTime) {
                 if (now_b - lastHit >= 200) { // can re-hit same enemy after 200ms
                     b._hitCooldowns.set(tgt, now_b);
                     const brangSrc = {
-                        damage: b.damage * (gloryForJusticeActive ? 1.55 : 1),
+                        damage: Math.ceil((b.damage + (tgt.maxHp - tgt.hp) * 0.05) * (gloryForJusticeActive ? 1.55 : 1)),
                         percentDamage: b.percentDamage,
                         applyVuln: true, vulnChance: 0.15,
                         isTrueDamage: true
@@ -888,7 +888,10 @@ function updateBladeArcProjectiles(deltaTime) {
             const enemyRadius = enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 if (checkMarchosiasArcShield(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
-                dealDamage(enemy, arc);
+                const _arcSrc = (arc.isSpirit && arc.isPiercing)
+                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage }
+                    : arc;
+                dealDamage(enemy, _arcSrc);
                 // Primeval Creation: blade arc from spirit = +2%
                 if (arc.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
                     enemy._spiritKillCounted = true;
