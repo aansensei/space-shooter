@@ -215,9 +215,10 @@ function updateDimensionalRifts(deltaTime) {
             if (enemy.type === 'embryo') continue; // CC-immune + special DR rules, fully exempt from all rift effects
             if (enemy.hp <= 0 || enemy.inCoronation) continue;
 
-            // Mark for damage bonus & slow (egregor/dargruel/leviathan immune to slow)
+            // Mark for damage bonus & slow (egregor/dargruel/leviathan immune to slow; marchosias immune while Arc Shield active)
             enemy._inDimensionalRift = true;
-            if (enemy.type !== 'egregor' && enemy.type !== 'boss' && enemy.type !== 'leviathan') enemy._riftSlow = true;
+            if (enemy.type !== 'egregor' && enemy.type !== 'boss' && enemy.type !== 'leviathan'
+                && !(enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0)) enemy._riftSlow = true;
 
             // Apply Soul Reaver debuff
             enemy.soulReaver = true;
@@ -1022,7 +1023,8 @@ function updateSkillD(deltaTime) {
             if (enemy.inCoronation) continue; // untargetable during coronation
             if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'boss';
+            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'boss'
+                || (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0);
             if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive) && !_bhCCImmune) {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
