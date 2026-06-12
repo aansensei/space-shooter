@@ -323,17 +323,17 @@ function update(rawDeltaTime) {
 
     // Dimension Break zone: 20% slow when player stands on the lingering rift arc
     let _dimBreakMult = 1.0;
-    for (const _dbE of enemies) {
-        if (_dbE.type !== 'egregor' || !_dbE._dimBreakZone) continue;
-        const dbz = _dbE._dimBreakZone;
-        if (currentTime >= dbz.expireAt) { _dbE._dimBreakZone = null; continue; }
-        const _dbDx = player.x - dbz.cx, _dbDy = player.y - dbz.cy;
-        const _dbDist = Math.hypot(_dbDx, _dbDy);
-        if (Math.abs(_dbDist - dbz.arcR) < 45) {
-            let _dbAng = Math.atan2(_dbDy, _dbDx) - dbz.angle;
-            while (_dbAng >  Math.PI) _dbAng -= 2 * Math.PI;
-            while (_dbAng < -Math.PI) _dbAng += 2 * Math.PI;
-            if (Math.abs(_dbAng) <= Math.PI / 2 + 0.15) { _dimBreakMult = 0.80; }
+    if (window._dimBreakZones) {
+        window._dimBreakZones = window._dimBreakZones.filter(dbz => currentTime < dbz.expireAt);
+        for (const dbz of window._dimBreakZones) {
+            const _dbDx = player.x - dbz.cx, _dbDy = player.y - dbz.cy;
+            const _dbDist = Math.hypot(_dbDx, _dbDy);
+            if (Math.abs(_dbDist - dbz.arcR) < 45) {
+                let _dbAng = Math.atan2(_dbDy, _dbDx) - dbz.angle;
+                while (_dbAng >  Math.PI) _dbAng -= 2 * Math.PI;
+                while (_dbAng < -Math.PI) _dbAng += 2 * Math.PI;
+                if (Math.abs(_dbAng) <= Math.PI / 2 + 0.15) { _dimBreakMult = 0.80; }
+            }
         }
     }
 
@@ -1803,6 +1803,7 @@ function startGame() {
     marchosiasBlades = [];
     window._levDeathLasers = [];
     window._levPersBeams = [];
+    window._dimBreakZones = [];
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;
