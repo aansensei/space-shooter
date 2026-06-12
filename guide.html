@@ -443,8 +443,8 @@
 <li>At 4 stacks: <span class="hr">true damage</span> for 2s (bypasses shields).</li></ul></div>
 <div class="card"><h2 style="color:var(--green)">GLORY FOR JUSTICE</h2><div class="sub">ACTIVATES: 4+ ENEMIES / ABNORMAL+ / SKILL G / PHŌTOKRYSTOS</div>
 <div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas></div>
-<ul><li>All friendly dmg <span class="hgr">×1.70</span>, fire rate <span class="hgr">×1.5</span>.</li>
-<li><b>Chain Lightning</b> (150ms CD): arcs <b>8</b> enemies at <b>50%</b> dmg. <b>60%</b> → <span class="hr">Soul Reaver</span> (−<b>40%</b> heal/shield, DoT every <b>0.35s</b>: <b>57 base + 7% EP</b> true dmg).</li>
+<ul><li>All friendly dmg <span class="hgr">×1.55</span>, fire rate <span class="hgr">×1.5</span>.</li>
+<li><b>Chain Lightning</b> (150ms CD): arcs <b>8</b> enemies at <b>50%</b> dmg. <b>60%</b> → <span class="hr">Soul Reaver</span> (−<b>40%</b> heal/shield, DoT every <b>0.35s</b>: <b>60 base + 5.5% EP</b> true dmg).</li>
 <li>Sentinels: <b>+30% DR</b>, Parry active.</li></ul></div>
 <div class="card"><h2 style="color:var(--gold)">FINAL DEFENSE & LAST STAND</h2><div class="sub">AUTO SAFETY NETS</div>
 <div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas></div>
@@ -471,10 +471,10 @@
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THUNDER ORBS</h2><div class="sub">CELESTIAL THUNDERBURST <span class="cd">CD 6s</span></div>
 <div class="ab"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas></div>
-<ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">11 + 28% EP</span>.</li>
-<li>Impact → <span class="dmg">16 scattered shards</span> (4 + 2% EP each).</li>
-<li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits. When an orb is <b>sacrificed</b>, the attacker (if targetable) receives <span class="hr">Soul Reaver + Soul Devourer DoT</span> (57 + 7% EP per 0.35s) and is <span class="hr">slowed 25%</span> for <span class="cd">3s</span>.</li>
-<li><b>Dimensional Rift</b> (on hit that deals damage): 50px zone, <span class="cd">3s</span>. Enemies inside: <span class="hr">−35% speed</span>, <span class="hr">Soul Reaver + DoT</span> (57 + 7% EP per 0.35s), <span class="hr">+25% dmg taken</span>. Enemy bullets are pulled in and destroyed at core. <span class="dmg">20%</span> chance per DoT tick to chain-lightning 8 targets.</li></ul></div>
+<ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">110 + 18% EP</span>.</li>
+<li>Impact → <span class="dmg">16 scattered shards</span> (5 + 1.5% EP each).</li>
+<li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits. When an orb is <b>sacrificed</b>, the attacker (if targetable) receives <span class="hr">Soul Reaver + Soul Devourer DoT</span> (60 + 5.5% EP per 0.35s) and is <span class="hr">slowed 25%</span> for <span class="cd">3s</span>.</li>
+<li><b>Dimensional Rift</b> (on hit that deals damage): 50px zone, <span class="cd">3s</span>. Enemies inside: <span class="hr">−35% speed</span>, <span class="hr">Soul Reaver + DoT</span> (60 + 5.5% EP per 0.35s), <span class="hr">+25% dmg taken</span>. Enemy bullets are pulled in and destroyed at core. <span class="dmg">20%</span> chance per DoT tick to chain-lightning 8 targets.</li></ul></div>
 
 <div class="card"><h2 style="color:#ff44aa"><span class="key">S</span> REMEMBRANCE SPIRIT</h2>
 <div class="sub"><span class="cd">CD 12s</span> <span class="cd">35s</span></div>
@@ -484,8 +484,8 @@
 </div>
 <div id="sSpiritPane1">
   <div class="ab"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas></div>
-  <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">5 + 4% EP</span>).</li>
-  <li>Every 5th shot: <b>Blade Arc</b> (<span class="dmg">10 + 16% EP</span>). Destroys enemy bullets.</li>
+  <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
+  <li>Every 5th shot: <b>Blade Arc</b> (<span class="dmg">110 + 8% EP</span>). Destroys enemy bullets.</li>
   <li><b>Finale @35s:</b> lasers + 8 bouncing plasma balls.</li>
   <li><b>Primeval Creation:</b> Spirit kills charge a mana bar (+2% per kill). At 100%, press S again to transform.</li></ul>
 </div>
@@ -494,17 +494,18 @@
   <ul>
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Đại Tinh Linh Khởi Nguyên</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Blessing of the Primordial</b>: Sentinels +15% DR, ally dmg +15%, +3 HP/s regen, +50 shield/5s per sentinel.</li>
-  <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> <b>3 homing bullets</b> @ <b>43ms</b>: each <span class="dmg">10+10% EP</span>, all track targets. Destroys enemy bullets. Apply Vuln (15%).</li>
-  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">15+24% EP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Max <b>10</b> on screen; oldest recalled when cap hit (pending queue: 5). After 2 bounces or lifetime expiry, boomerang <b>flies back</b> to spirit (60% faster). BTM recalls all. Destroys bullets.</li>
+  <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> <b>3 homing bullets</b> @ <b>43ms</b>: each <span class="dmg">100+1.4% EP</span>, all track targets. Destroys enemy bullets. Apply Vuln (15%).</li>
+  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">350+7% EP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Max <b>10</b> on screen; oldest recalled when cap hit (pending queue: 5). After 2 bounces or lifetime expiry, boomerang <b>flies back</b> to spirit (60% faster). BTM recalls all. Destroys bullets.</li>
   <li><span style="color:var(--cyan);font-size:10px">PASSIVE</span> <b>Danger? Not Today!</b> — enemy within <b>170px of player</b> or <b>170px of boundary</b> → spirit aims 100ms (re-locks each frame) then fires a <b>2s primeval laser</b> sweeping <b>±20°</b> (instant kills all in path, bypasses all shields). <b>-20% dmg 3s</b> after. CD starts after beam ends. (10s CD)</li>
-  <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: full-screen lightning barrier 3.5s (<span class="dmg">15+45% EP True Dmg/100ms</span>, clears bullets) → shockwave (<span class="dmg">10+99% EP</span>, pierces ALL shields + Iron Body). CD: 12s from summon.</li>
+  <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: full-screen lightning barrier 3.5s (<span class="dmg">20+35% EP True Dmg/100ms</span>, clears bullets) → shockwave (<span class="dmg">10+99% EP</span>, pierces ALL shields + Iron Body). CD: 12s from summon.</li>
   </ul>
 </div>
 </div>
 
 <div class="card"><h2 style="color:#9333ea"><span class="key">D</span> BLACK HOLE</h2><div class="sub"><span class="cd">CD 12s</span> <span class="cd">2s CHARGE</span></div>
 <div class="ab"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas></div>
-<ul><li>Pulls all enemies + bullets. Center = <span class="hr">999,999,999 dmg</span> instant kill.</li></ul></div>
+<ul><li>Pulls all enemies + bullets. Center = <span class="hr">999,999,999 dmg</span> instant kill.</li>
+<li><b>Egregor</b> and <b>Dargruel</b> are CC Immune — cannot be pulled. If at center, take <span class="hr">30% MaxHP true damage</span> instead.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--red)"><span class="key">F</span> ANNIHILATION SWEEP</h2><div class="sub">THIÊN Ý TRẢM <span class="cd">CD 7s</span> <span class="cd">1.5s CHARGE + 1s SWEEP</span></div>
 <div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas></div>
@@ -514,65 +515,64 @@
 
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> TESLA MATRIX</h2><div class="sub"><span class="cd">CHARGE VIA KILLS</span> <span class="cd">30s</span></div>
 <div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas></div>
-<ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">6+4% EP</span>/125ms).</li>
-<li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">10+13% EP</span>/50ms.</li>
-<li>Detonation: <span class="dmg">10+15% EP</span> area.</li></ul></div>`,
+<ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">10+6% EP</span>/125ms).</li>
+<li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">45+1.2% EP</span>/50ms.</li>
+<li>Detonation: <span class="dmg">10+12% EP</span> area.</li></ul></div>`,
 
       enemies: `
 <div class="card"><h2 class="dsname">ENEMY CLASSES</h2><table class="controls-table">
-<tr><th>Class</th><th>Examples</th><th>Info</th></tr>
-<tr><td style="color:#aaaaaa">Lesser</td><td>Apostles</td><td>HP 9–96, scales</td></tr>
-<tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud</td><td rowspan="4">Combined cap: 6</td></tr>
-<tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis, Egregor</td></tr>
-<tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td></tr>
-<tr><td style="color:#ff2244">Administrator</td><td>Kanade</td></tr>
-</table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus.</p></div>
+<tr><th>Class</th><th>Examples</th><th>On-screen cap</th></tr>
+<tr><td style="color:#aaaaaa">Lesser</td><td>Apostles</td><td>HP 22–330, scales</td></tr>
+<tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud</td><td>3 / 2</td></tr>
+<tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis, Egregor</td><td>2 / 2 / 1</td></tr>
+<tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td><td>2 / 1</td></tr>
+<tr><td style="color:#ff2244">Administrator</td><td>Kanade</td><td>—</td></tr>
+</table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus. Cap = max simultaneously on screen. No combined cap across tiers.</p></div>
 
-<div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLES <span class="dsclass" style="font-size:9px;color:#aaaaaa">LESSER</span></h2><div class="sub">HP 9–96 • FIRES 1 BULLET/SEC • Evade 1% • Speed ~1.2 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLES <span class="dsclass" style="font-size:9px;color:#aaaaaa">LESSER</span></h2><div class="sub">HP 22–330 • FIRES 1 BULLET/SEC • Evade 1% • Speed ~1.2 u/s</div>
 <div class="ab" style="height:140px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 1 bullet per second. Bullet HP = enemy's HP at moment of firing.</li>
 <li>HP scales from 9–96 over time. Eye color shifts orange → red at low HP.</li>
-<li><span style="color:#ffd700;font-size:10px">PASSIVE</span> <b>Coronation</b> — While on screen, each Apostle rolls every second: base <span class="hi">0.67%</span> chance above midscreen, <span class="hi">1%</span> below. Each Apostle death adds <span class="hi">+0.67%</span> (above) or <span class="hi">+1%</span> (below) cumulative — resets on trigger. Max <span class="hi">3</span> triggers per 5s globally. During the <span class="hi">~2.2s</span> animation the Apostle is <b>frozen</b> (<span class="hr">45% slower</span>), <b>immortal</b>, and <b>untargetable</b>. On completion it is consumed and replaced by a random higher-tier enemy (Marchosias, Veilshroud, Thaelis, or Dargruel) at full HP with a <span class="hg">1-hit Iron Body</span>. No kill score.</li>
+<li><span style="color:#ffd700;font-size:10px">PASSIVE</span> <b>Coronation</b> — While on screen, each Apostle rolls every second: base <span class="hi">0.67%</span> chance above midscreen, <span class="hi">1%</span> below. Each Apostle death adds <span class="hi">+0.67%</span> (above) or <span class="hi">+1%</span> (below) cumulative — resets on trigger. Max <span class="hi">3</span> triggers per 5s globally. During the <span class="hi">~2.2s</span> animation the Apostle is <b>frozen</b> (<span class="hr">45% slower</span>), <b>immortal</b>, and <b>untargetable</b>. On completion it is consumed and replaced by a higher-tier enemy — always Marchosias, Thaelis, or Dargruel; can also be Veilshroud, Egregor, or Leviathan if their caps allow. No wave restriction applies. The spawned enemy starts at full HP with a <span class="hg">1-hit Iron Body</span>. No kill score.</li>
 </ul></div>
 
 
-<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">30s • HP 600–2,000 • Evade 2% • CAP 2 • Speed 1.4 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">30s • HP 720–2,400 • Evade 2% • CAP 2 • Speed 1.4 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvThaelis" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Reincarnation</b> — at 0 HP splits into 3 Embryos (90% DR, CC immune, hatch @3s → new enemy).</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Reincarnation</b> — at 0 HP splits into 3 Embryos (90% DR, CC immune, hatch @3s → new enemy). <span class="dmg">No single hit can exceed 10% of an Embryo's EP.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires <b>2 large projectiles</b> every 1s. Each splits into <span class="hr">6 homing bullets</span> after 0.6s of flight. Bullets deal 1 life (player) or <span class="hr">15% EP</span> (Sentinel).</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Tenacity</b> — per 1% HP lost: <span class="dmg">+2.5% DR</span> (cap <span class="dmg">95%</span>). Per 0.5% HP lost: <span class="hi">+3.5% bullet speed</span> (cap <span class="hi">+25%</span>). Per-hit damage capped at <span class="dmg">max(35%, 90%−5%×HP%lost) × MaxHP</span>. Every time Thaelis loses <span class="dmg">30% HP</span>, generates a <b>Tenacity Barrier</b> worth <span class="hg">(30% MaxHP + 20% HP lost + 250) ×1.34</span> — <b>completely separate from EP</b>, shown as a pulsing gold ring. Must be fully destroyed before any damage (normal or piercing) reaches Thaelis. Exception: <span class="hi">Spirit Laser bypasses</span>.</li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">25s • HP 1,000–2,500 • CAP 2 • Speed 2.0 u/s • Base DR 40% • Evade 2%</div>
+<div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">25s • HP 1,200–3,000 • CAP 2 • Speed 2.0 u/s • Base DR 40% • Evade 2%</div>
 <div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">2% EP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">2% EP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC. <span style="color:var(--dim)">The wave system counts Veilshroud as dead the moment it enters ghost form.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a 2-bullet volley every 500ms at nearest target. Disabled during Phantom / countdown.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). While in Phantom: <span class="dmg">no single hit can exceed 25% MaxHP</span> (absolute cap); healing &amp; shields received are reduced by <span class="dmg">25%</span>. On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random Sentinel/Player with a <span class="hr">red targeting circle</span>. After 1.5s countdown, a <span class="hr">red lightning bolt</span> strikes. Player hit = <span class="hr">1 life lost</span> (protections apply). Sentinels in 100px = <span class="dmg">15% EP</span> damage. In normal state: incoming healing also grants equal shield; incoming shield is boosted by <span class="hi">+25%</span> (no effect in Phantom).</li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 1,200–2,500 • Permanent DR 55% • Evade 5–7% • Speed 1.8 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 1,800–3,120 • Permanent DR 55% • Evade 5–7% • Speed 1.8 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — First <span class="hg">5 hits</span> are completely nullified (Iron Body, white flash each). Breaks after 5th hit.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — First <span class="hg">20 hits</span> are completely nullified (Iron Body, white flash each). Breaks after 20th hit.</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Support Aura</b> — heals allies <span class="hgr">3% MaxHP/s</span>. Grants <span class="hg">40% MaxHP shield</span> once + <span class="hg">5% MaxHP tick shield/s</span> (stacks). Active shield → +15% DR. Speeds up all enemies inside.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Does not fire bullets directly.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lumen Nova</b> — every 5s: marks player + 3 Sentinels, fires lasers after 1s warning.</li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">20s • HP 1,392–3,062 • Body DR 45% • Evade 5–7% • Speed ~1.6 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">20s • HP 1,920–3,720 • Body DR 45% • Evade 5–7% • Speed ~1.6 u/s</div>
 <div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Arc Shield</b> — 90° rotating shield, <span class="dmg">60% DR</span>, no single hit &gt; <span class="dmg">35% shield HP</span>, buff-immune. Independent HP pool = Marchosias MaxHP.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Assimilation</b> — death → 3 Minion Robots (15–25% MaxHP <span class="hg">+30%</span>, <span class="dmg">75% DR</span>). Attach as Parasite Shields or hunt the player.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Assimilation</b> — death → 3 Minion Robots (15–25% MaxHP <span class="hg">+30%</span>, <span class="dmg">89% DR</span>, <span class="hi">speed ×1.89</span>). Attach as Parasite Shields or hunt the player.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 2 bullets every 1s at nearest target. Bullet HP = ⌈1.25% current HP⌉.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — 20% chance per shield hit; queues a sword. At 1% HP all queued swords fire. <span class="hr">Indestructible.</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">35s • HP 1,600–3,500 • Body DR 40% • Evade 5–7% • CAP 1 • Speed 1.5 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">35s • HP 1,920–4,200 • Body DR 40% • Evade 5–7% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
 <div class="ab" style="height:140px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind</b> — <span class="hi">10 tentacles</span>, each with independent HP equal to <span class="hi">78% of Egregor's MaxHP</span>. Non-true-damage: deflect chance <span class="hi">scales with alive tentacles</span> (alive÷10 × 60%, down to 0 when all dead); on non-deflect, hit absorbed by a tentacle at ~<span class="dmg">26% of original damage</span> (35% × 75% DR). Body only reachable by <span class="dmg">true damage</span> (capped at <span class="hi">max(25%, 90−10n)%</span> MaxHP) or <span class="dmg">piercing attacks</span> (tentacle takes ~26% dmg, body takes <span class="hi">30%</span> of original, capped <span class="hi">30% MaxHP</span>). Cannot coexist with Veilshroud. Body also has <span class="hg">5% chance to dodge any hit</span>.</li>
@@ -581,7 +581,7 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3.5s</span> — <span class="hi">Windup 1–3s</span> (base 3s / 2.5s with any rage, reduced 0.25s per stack, min 1s). Egregor tracks the player live during windup and gains <span class="hg">+35% DR</span>. At release, target position locks and a <span class="hi">180° arc</span> sweeps toward it — any sentinel or player inside the arc is hit. <b>Player</b>: no life lost, <span class="hr">−50% movement 1.5s</span> (purple slow ring + falling particles; Yog-Sothoth can dodge). <b>Sentinel</b>: <span class="hr">15% MaxHP (1 hit) / 20% (2) / 28% (3+)</span>, true damage, rage bonus <span class="hg">+6% per stack</span> (max <span class="hg">+30%</span>). After the slash, leaves a <b>Dimension Break</b> zone (glowing purple arc) that lingers for <span class="hi">1s</span> — player walking through it is <span class="hr">slowed 20%</span>.</li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">30s • HP 2,520–8,399 • Evade 10% • CAP 1 • Speed ~1.8 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">30s • HP 3,600–12,095 • Evade 10% • CAP 1 • Speed ~1.8 u/s • CC Immune</div>
 <div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 12% MaxHP</span> (2s CD).</li>
@@ -592,12 +592,12 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Maou Haki</b> @50% HP: screen-wide shockwave, destroys all friendly projectiles. Sentinels −<span class="hr">35% EP</span>.</li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">36s • HP 6,682–11,693 • Evade 10% • CAP 1 • Speed ~1.5 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">36s • HP 8,018–14,032 • Evade 10% • CAP 1 • Speed ~1.5 u/s</div>
 <div class="ab" style="height:130px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="dmg">60% base DR</span> (after AFO shield breaks). Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 10% MaxHP</span> (2s CD).</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Iron Body shield until kill quota (6–9). Wings folded. CC immune.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Iron Body shield until kill quota (10–20). Wings folded. CC immune.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received. Re-applied every 2.5s to catch enemies spawned after Leviathan.</li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Every 0.75s fires 3 bullets at nearest target. Bullet HP = 2% Leviathan MaxHP.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — red warning + full 360° sweeping laser. Fires when AFO shield breaks. Sentinel: <span class="hr">5% EP/tick</span>, cap <span class="hr">50% EP</span>.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Last Rites</b> @HP 1 — 9 wing-plates lock onto targets, all fire simultaneously. Sentinel: <span class="hr">flat 3% EP per hit</span>, cap <span class="hr">55% EP</span>. Lasers persist after death.</li>
@@ -614,13 +614,32 @@
 </ul></div>`,
 
       rules: `
+<div class="card"><h2 style="color:var(--cyan)">WAVE SYSTEM</h2><div class="sub">15s SPAWN WINDOW · 4s REST · INFINITE SCALING</div>
+<ul>
+<li><b>Spawning (15s):</b> all enemies guaranteed within window. Apostles mix singles + bursts 2–4. Higher tiers spaced proportionally.</li>
+<li><b>Clear:</b> queue empty + all dead → <span class="hgr">WAVE CLEARED</span> (3s). Queue empty + alive linger → force-end after 12s.</li>
+<li><b>Rest (4s):</b> countdown to next wave.</li>
+</ul>
+<table class="controls-table" style="margin-top:4px">
+<tr><th>Wave</th><th>Apostles</th><th>Abnorm.</th><th>Elite</th><th>Dom.</th></tr>
+<tr><td>1</td><td>32</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>2</td><td>38</td><td>6</td><td>4</td><td>—</td></tr>
+<tr><td>3</td><td>40</td><td>7</td><td>6</td><td>2</td></tr>
+<tr><td>4</td><td>44</td><td>8</td><td>7</td><td>3</td></tr>
+<tr><td>5</td><td>48</td><td>9</td><td>8</td><td>4</td></tr>
+<tr><td>6</td><td>52</td><td>11</td><td>9</td><td>5</td></tr>
+<tr><td>7</td><td>56</td><td>12</td><td>10</td><td>6</td></tr>
+<tr><td>8</td><td>60</td><td>13</td><td>11</td><td>7</td></tr>
+<tr><td>9</td><td>64</td><td>14</td><td>12</td><td>8</td></tr>
+<tr><td style="color:var(--dim)">10+</td><td style="color:var(--dim)">+5/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td></tr>
+</table></div>
 <div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% negated. Stacks additively, capped <span class="hi">99%</span>.</p></div>
 <div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>HP buffer before body. Stackable. Destroying shield ≠ reduce Max HP.</p></div>
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. All percentage-based enemy damage to Sentinels scales off EP. Max HP alone = body HP without shield.</p></div>
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Against EP (Shield + Max HP = Existence Point). Hits shield first.</p></div>
 <div class="card"><h2 style="color:var(--red)">TRUE DAMAGE</h2><p>Bypasses all Shields. Directly to HP.</p></div>
 <div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Complete immunity to <b>all damage</b> — %, true, Black Hole, Skill F. Absolute.</p></div>
-<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed. Does NOT block damage.</p></div>
+<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed by any crowd control — Black Hole pull, Tesla slow, Dimensional Rift slow, Orb slow. Does NOT block damage. <b>Egregor</b> and <b>Dargruel</b> have permanent CC Immunity.</p></div>
 <div class="card"><h2 style="color:#cc55ff">ROOT & SILENCE</h2>
 <p>Inflicted by Dargruel's <b>Abyssal Chains</b>. Lasts <span class="hr">1 second</span>, re-applies on each hit even if already active.</p>
 <ul><li><b>Root:</b> Cannot move at all.</li>
@@ -628,7 +647,7 @@
 <li>Skill A orbs return to orbit (stop targeting).</li>
 <li>A <span class="hp">purple lock icon</span> appears on the ship and a <span class="hr">red X</span> overlays all skill buttons.</li></ul></div>
 <div class="card"><h2 style="color:var(--green)">MULTIPLIERS</h2><ul>
-<li><span class="hgr">Glory:</span> ×1.70 | <span class="hg">Parry:</span> ×1.25 | Combined: <span class="dmg">×2.125</span></li></ul></div>`
+<li><span class="hgr">Glory:</span> ×1.55 | <span class="hg">Parry:</span> ×1.25 | Combined: <span class="dmg">×1.9375</span></li></ul></div>`
     };
 
     // ── Render tab content ──
@@ -790,7 +809,7 @@
             c.fillStyle = 'rgba(0,229,255,0.5)'; c.font = '8px Share Tech Mono, monospace';
             c.fillText('Auto-fire: 5 bullets / 170ms', w * 0.55, h * 0.55);
             c.fillText('45° fan spread', w * 0.55, h * 0.55 + 14);
-            c.fillText('Each: 6 base + 4% EP', w * 0.55, h * 0.55 + 28);
+            c.fillText('Each: 55 base + 0.9% EP', w * 0.55, h * 0.55 + 28);
             c.fillText('28% chance Vulnerability', w * 0.55, h * 0.55 + 42);
 
             activeAnimations.push(requestAnimationFrame(() => drawShipAnim(performance.now())));
@@ -1001,7 +1020,7 @@
             c.textAlign = 'center';
             c.fillStyle = '#22c55e'; c.font = 'bold 11px Orbitron, sans-serif';
             c.globalAlpha = 0.7 + 0.3 * Math.sin(t / 900);
-            c.fillText('×1.70 ALL FRIENDLY DAMAGE', w / 2, h * 0.78);
+            c.fillText('×1.55 ALL FRIENDLY DAMAGE', w / 2, h * 0.78);
             c.globalAlpha = 0.55; c.fillStyle = '#22c55e'; c.font = '8px Share Tech Mono, monospace';
             c.fillText('CHAIN LIGHTNING → SOUL REAVER → ×1.5 fire rate', w / 2, h * 0.78 + 14);
             c.globalAlpha = 1; c.textAlign = 'left';

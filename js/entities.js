@@ -156,7 +156,7 @@ function fireAutoShot() {
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 30, percentDamage: 0.02, size: 6.5, type: 'player_auto',
+            damage: 55, percentDamage: 0.009, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28  // 28% khả năng gây Trọng Thương
         });
     }
@@ -261,7 +261,7 @@ function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
     // Base HP tăng thêm 12%
-    let hp = Math.ceil(3000 + Math.random() * 7079); // range: 3000–10079 (floor 3000, ceil 8399×1.2)
+    let hp = Math.ceil(3600 + Math.random() * 8495); // +20% from base: 3600–12095
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
@@ -277,7 +277,7 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(2000, 600 + hpFromTime * 40);
+    let hp = Math.min(2400, 720 + hpFromTime * 48);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -293,7 +293,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(2600, 1500 + hpFromTime * 40);
+    let hp = Math.min(3120, 1800 + hpFromTime * 48);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
@@ -308,7 +308,7 @@ function spawnMarchosias() {
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9 * 1.067; // ~1.6 u/s
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(3100, 1600 + hpFromTime * 42);
+    let hp = Math.min(3720, 1920 + hpFromTime * 50);
 
     const shieldHp = hp;
 
@@ -334,10 +334,11 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
     const inheritPct = 0.15 + Math.random() * 0.10;
     const hp = Math.ceil(parentMaxHp * inheritPct * 1.30); // +30% HP
 
-    const paraRange = size * 1.5;
+    const paraRange = 140;
     const host = enemies.find(e =>
         e !== null &&
         e.type !== 'marchosias_minion' &&
+        e.type !== 'marchosias' &&
         !e.type.startsWith('enemy_bullet') &&
         Math.hypot(e.x - parentX, e.y - parentY) < paraRange
     );
@@ -351,11 +352,11 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
         enemies.push({
             x: parentX + (Math.random() - 0.5) * 40,
             y: parentY + (Math.random() - 0.5) * 40,
-            size, speed: baseSpeed * 1.35,
+            size, speed: baseSpeed * 1.89,
             hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
             type: 'marchosias_minion',
-            DR: 0.75, // 75% innate DR
+            DR: 0.89, // 89% innate DR
             shootTimer: 1000,
         });
     }
@@ -364,7 +365,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 function spawnNormalEnemy() {
     const size = 20 + Math.random() * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 15000);
-    let hp = Math.min(200, (Math.floor(Math.random() * 10) + 10 + hpFromTime * 2));
+    let hp = Math.min(330, (Math.floor(Math.random() * 20) + 22 + hpFromTime * 5));
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
@@ -377,7 +378,7 @@ function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
     const size = baseSize * 5; // ~100–150px, bằng Thaelis
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.min(2500, 1000 + hpFromTime * 50);
+    const hp = Math.min(3000, 1200 + hpFromTime * 60);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2,
         y: -size,
@@ -690,9 +691,9 @@ function spawnSentinel(x, y, forceNormal = false) {
     if (_gaiaMilestone > 0) {
         const _ns = sentinels[sentinels.length - 1];
         let _gaiaMult = 1;
-        if (_gaiaMilestone >= 1) _gaiaMult *= 1.02;
-        if (_gaiaMilestone >= 2) _gaiaMult *= 1.03;
-        if (_gaiaMilestone >= 3) _gaiaMult *= 1.05;
+        if (_gaiaMilestone >= 1) _gaiaMult *= 1.03;
+        if (_gaiaMilestone >= 2) _gaiaMult *= 1.05;
+        if (_gaiaMilestone >= 3) _gaiaMult *= 1.07;
         _ns.maxHp = Math.ceil(_ns.maxHp * _gaiaMult);
         _ns.hp = _ns.maxHp;
     }
@@ -920,7 +921,7 @@ function dealDamage(enemy, source) {
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.aegisCustosHits = (enemy.aegisCustosHits || 0) + 1;
             addExplosion(enemy.x, enemy.y, enemy.size * 1.2, 'white');
-            if (enemy.aegisCustosHits >= 6) {
+            if (enemy.aegisCustosHits >= 20) {
                 enemy.aegisInvulnerable = false;
             }
             return;
@@ -1372,11 +1373,11 @@ function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
     const size = baseSize * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(11693, 6682 + hpFromTime * 42); // +20% on both limits
+    let hp = Math.min(14032, 8018 + hpFromTime * 50);
     hp = Math.ceil(hp * 1.05);
 
     // Y = random 6-9 kills để trigger announcement Perseverance → vỡ khiên
-    const killQuota = 6 + Math.floor(Math.random() * 4); // 6,7,8,9
+    const killQuota = 10 + Math.floor(Math.random() * 11); // 10–20
 
     const lev = {
         x: Math.random() * (canvas.width - size * 2) + size,
@@ -1421,6 +1422,19 @@ function spawnLeviathan() {
     _applyLeviathanEnvy(lev);
 }
 
+function _ensureLeviathanQuota(lev) {
+    const killable = enemies.filter(e =>
+        e !== lev &&
+        e.type !== 'leviathan' &&
+        !e.type.startsWith('enemy_bullet') &&
+        e.type !== 'abyssal_chain' &&
+        e.type !== 'veilshroud_echo' &&
+        !e.inCoronation
+    ).length;
+    const needed = lev.afoKillQuota - killable;
+    for (let i = 0; i < needed; i++) spawnNormalEnemy();
+}
+
 function _applyLeviathanEnvy(lev) {
     enemies.forEach(e => {
         if (e === lev) return;
@@ -1440,6 +1454,13 @@ function updateLeviathan(enemy, deltaTime) {
     // MOVE DOWN
     enemy.y += enemy.speed * (deltaTime / 16.67);
     if (enemy.y > canvas.height + enemy.size) { enemy.hp = 0; return; }
+
+    // Re-apply Envy to enemies that spawned after this Leviathan
+    enemy._levEnvyRecheckTimer = (enemy._levEnvyRecheckTimer || 0) + deltaTime;
+    if (enemy._levEnvyRecheckTimer >= 2500) {
+        enemy._levEnvyRecheckTimer = 0;
+        _applyLeviathanEnvy(enemy);
+    }
 
     // PHASE 2: ALL FOR ONE SHIELD
     if (enemy.afoShieldActive) {
@@ -1677,14 +1698,10 @@ function _getCoronationTransformType() {
     const _egrCount  = enemies.filter(e => e.type === 'egregor').length;
     const _levCdOk   = !window._lastLeviathanKillTime || (_cn - window._lastLeviathanKillTime) >= 8000;
     const _egrCdOk   = !window._lastEgregorKillTime   || (_cn - window._lastEgregorKillTime)   >= 6000;
-    // Mirror the same caps/exclusions as canSpawnXxx in spawnEnemy()
-    const _levOk  = _levCdOk  && _levCount  < 1;
-    const _veilOk = _veilCount < 2 && _egrCount  === 0;
-    const _egrOk  = _egrCdOk  && _egrCount  < 1 && _veilCount === 0;
     const pool = ['marchosias', 'thaelis', 'boss'];
-    if (_veilOk) pool.push('veilshroud');
-    if (_levOk)  pool.push('leviathan');
-    if (_egrOk)  pool.push('egregor');
+    if (_veilCount < 2 && _egrCount === 0) pool.push('veilshroud');
+    if (_levCdOk && _levCount < 1) pool.push('leviathan');
+    if (_egrCdOk && _egrCount < 1 && _veilCount === 0) pool.push('egregor');
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -1704,6 +1721,8 @@ function _spawnCoronationResult(enemy) {
         spawned.y = enemy.y;
         spawned.ironBodyHits = 1; // Coronation perk: blocks exactly 1 hit
     }
+    // If Coronation produced a Leviathan, ensure enough killable enemies exist for its AFO quota
+    if (type === 'leviathan' && spawned) _ensureLeviathanQuota(spawned);
 }
 
 function updateApostleCoronation(enemy, deltaTime) {
@@ -1760,11 +1779,11 @@ function updateApostleCoronation(enemy, deltaTime) {
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.min(3500, 1600 + hpFromTime * 54);
+    const hp = Math.min(4200, 1920 + hpFromTime * 65);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size,
         y: -size,
-        size, speed: 1.5,
+        size, speed: 0.8,
         hp, maxHp: hp, _baseMaxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'egregor',
@@ -1774,12 +1793,12 @@ function spawnEgregor() {
         // Psychic Tempest
         _tempestPhase: 'ready',
         _tempestTargets: [],
-        _tempestCooldownEnd: performance.now() + 8000, // 8s initial delay, prevent firing during descent
+        _tempestCooldownEnd: performance.now() + 8000,
         _tempestPending: false,
         _tempestOriginX: 0, _tempestOriginY: 0,
         // Null Slash
         _nullSlashPhase: 'ready',
-        _nullSlashCooldownEnd: 0, // fire immediately on reaching hover position
+        _nullSlashCooldownEnd: performance.now() + 3000,
         _nullSlashWindupTimer: 0,
         _nullSlashWindupDur: 3000,
         _nullSlashStrikeTimer: 0,
@@ -1792,16 +1811,10 @@ function spawnEgregor() {
         // Collective Mind tentacles
         _tentacleHps: null,   // initialized in updateEgregor on first tick
         _tentaclesLost: 0,
-        // Movement
-        _hovering: false,
-        _hoverTime: 0,
-        _hoverBaseX: 0,
-        _hoverY: canvas.height * 0.22,
         // Visual
         _tentacles: null,
         _eyeBlinkTimers: [0, 0, 0, 0],
         _eyeNextBlinks: [2000, 2800, 1500, 3500],
-        _hoverPhase: Math.random() * Math.PI * 2,
     });
 }
 
@@ -1828,24 +1841,9 @@ function updateEgregor(enemy, deltaTime) {
     const _rageOn = (enemy._rageStacks > 0);
     const _tempestCD = 4000 * (_rageOn ? 0.85 : 1.0);
 
-    // Movement: descend to ~22% down screen, then gentle hover (flag prevents re-entry jitter)
-    const targetY = canvas.height * 0.22;
-    if (!enemy._hovering) {
-        const _nsSlowMult = (enemy._nullSlashPhase === 'charging') ? 0.9 : 1.0;
-        enemy.y += enemy.speed * _speedMult * _nsSlowMult * dt;
-        if (enemy.y >= targetY) { enemy._hovering = true; enemy.y = targetY; enemy._hoverBaseX = enemy.x; }
-    } else {
-        enemy._hoverTime += deltaTime;
-        if (enemy._nullSlashPhase === 'charging') {
-            // Advance while charging
-            enemy.y = Math.min(canvas.height * 0.70, enemy.y + enemy.speed * _speedMult * 0.9 * dt);
-        } else if (enemy._nullSlashPhase === 'striking') {
-            // Hold position during strike animation, no Y change
-        } else {
-            // Ready (between strikes): slow drift forward so Egregor doesn't stand still
-            enemy.y = Math.min(canvas.height * 0.70, enemy.y + enemy.speed * _speedMult * 0.25 * dt);
-        }
-    }
+    // Always advance — slow slightly during NullSlash windup
+    const _nsMoveMult = (enemy._nullSlashPhase === 'charging') ? 0.85 : 1.0;
+    enemy.y += enemy.speed * _speedMult * _nsMoveMult * dt;
     if (enemy.x < enemy.size) enemy.x = enemy.size;
     if (enemy.x > canvas.width - enemy.size) enemy.x = canvas.width - enemy.size;
 
@@ -2000,13 +1998,6 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             enemy._nullSlashPhase = 'striking';
             enemy._nullSlashStrikeTimer = 0;
             enemy._nullSlashDmgDealt = false;
-            // Lock hover Y reference so strike/ready phases don't snap
-            enemy._hoverY = Math.min(canvas.height * 0.55, enemy.y);
-            // angle+target already current, resume hoverBaseX to prevent X jump
-            const _ht2 = enemy._hoverTime;
-            const _dX = Math.sin(_ht2/1600 + enemy._hoverPhase + 1.4) * (canvas.width * 0.11)
-                      + Math.cos(_ht2/920  + enemy._hoverPhase + 0.8) * (canvas.width * 0.05);
-            enemy._hoverBaseX = enemy.x - _dX;
         }
         return;
     }

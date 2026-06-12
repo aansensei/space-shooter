@@ -1136,35 +1136,185 @@ function draw(deltaTime) {
         }
 
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
-        // HUD, smaller on mobile
-        const hudFont = _isMobile ? '13px Arial' : '20px Arial';
-        const hudTimer = _isMobile ? 'bold 15px monospace' : 'bold 22px monospace';
-        const hudLine = _isMobile ? 20 : 26; // line spacing
-        const hudStartY = _isMobile ? 18 : 28;
-        ctx.textAlign = "right";
+
+        // Wave announcement banner (center screen)
+        const _wa = _waveAnnouncedAt || 0;
+        const _wcx = canvas.width / 2, _wcy = canvas.height * 0.38;
+        if (_wa > 0) {
+            const _wAge = performance.now() - _wa;
+            if (_wAge < 2800) {
+                const _wAlpha = _wAge < 200 ? _wAge / 200 : (_wAge < 2100 ? 1 : Math.max(0, 1 - (_wAge - 2100) / 700));
+                const _bW = 272, _bH = 116, _bX = _wcx - _bW / 2, _bY = _wcy - _bH / 2;
+                ctx.save();
+                ctx.textAlign = 'center';
+
+                // Background
+                ctx.globalAlpha = _wAlpha * 0.62;
+                const _bg = ctx.createLinearGradient(_bX, _bY, _bX, _bY + _bH);
+                _bg.addColorStop(0, '#060e1e');
+                _bg.addColorStop(1, '#02070f');
+                ctx.fillStyle = _bg;
+                if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(_bX, _bY, _bW, _bH, 7); ctx.fill(); }
+                else ctx.fillRect(_bX, _bY, _bW, _bH);
+
+                // Border
+                ctx.globalAlpha = _wAlpha * 0.8;
+                ctx.strokeStyle = '#1b3e82'; ctx.lineWidth = 1;
+                if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(_bX, _bY, _bW, _bH, 7); ctx.stroke(); }
+                else ctx.strokeRect(_bX, _bY, _bW, _bH);
+
+                ctx.globalAlpha = _wAlpha;
+
+                // "W A V E" label with flanking lines
+                const _lblY = _bY + 30;
+                ctx.strokeStyle = '#1a3870'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(_bX + 14, _lblY); ctx.lineTo(_wcx - 44, _lblY); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(_wcx + 44, _lblY); ctx.lineTo(_bX + _bW - 14, _lblY); ctx.stroke();
+                ctx.font = 'bold 11px monospace';
+                ctx.fillStyle = '#3a5e9a';
+                ctx.fillText('W  A  V  E', _wcx, _lblY + 1);
+
+                // Wave number
+                ctx.shadowBlur = 28; ctx.shadowColor = '#1840cc';
+                ctx.font = 'bold 62px Arial';
+                ctx.fillStyle = '#cce2ff';
+                ctx.fillText(String(_waveNumber), _wcx, _wcy + 34);
+                ctx.shadowBlur = 0;
+
+                // Bottom label
+                ctx.font = '10px monospace';
+                ctx.fillStyle = '#253c62';
+                ctx.fillText('—  I N C O M I N G  —', _wcx, _bY + _bH - 11);
+
+                ctx.restore();
+            }
+        }
+        // Rest-phase countdown banner
+        if (_wavePhase === 'rest' && _waveRestTimer > 0) {
+            const _restSec = Math.ceil(_waveRestTimer / 1000);
+            const _isClear = _waveRestTimer <= 3100;
+            const _age = (_isClear ? 3000 : (typeof WAVE_REST_DURATION !== 'undefined' ? WAVE_REST_DURATION : 5000)) - _waveRestTimer;
+            const _alpha = _age < 300 ? _age / 300 : 0.72;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.globalAlpha = _alpha * 0.38;
+            ctx.fillStyle = _isClear ? '#020f06' : '#020a18';
+            ctx.fillRect(_wcx - 110, _wcy - 26, 220, 44);
+            ctx.globalAlpha = _alpha * 0.5;
+            ctx.strokeStyle = _isClear ? '#224433' : '#334466'; ctx.lineWidth = 1;
+            ctx.strokeRect(_wcx - 110, _wcy - 26, 220, 44);
+            ctx.globalAlpha = _alpha;
+            ctx.font = '11px monospace';
+            ctx.fillStyle = _isClear ? '#336644' : '#445566';
+            ctx.fillText(_isClear ? 'WAVE CLEARED  —  NEXT IN' : 'NEXT WAVE IN', _wcx, _wcy - 6);
+            ctx.font = 'bold 20px monospace';
+            ctx.fillStyle = _isClear ? '#55cc88' : '#88aacc';
+            ctx.shadowBlur = 8; ctx.shadowColor = _isClear ? '#22aa55' : '#2244aa';
+            ctx.fillText(`${_restSec}s`, _wcx, _wcy + 16);
+            ctx.restore();
+        }
+
+        // HUD panel (top right)
+        ctx.save();
+        const _hMob = _isMobile;
+        const _hW = _hMob ? 148 : 192;
+        const _hX = canvas.width - _hW - 12;
+        const _hY = 10;
+        const _hPad = 12;
+        const _rH = _hMob ? 22 : 26;
+        const _hH = _hMob ? 158 : 198;
+
+        // Panel background
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = '#050c1a';
+        ctx.beginPath();
+        ctx.moveTo(_hX + 8, _hY);
+        ctx.lineTo(_hX + _hW - 8, _hY); ctx.arc(_hX + _hW - 8, _hY + 8, 8, -Math.PI/2, 0);
+        ctx.lineTo(_hX + _hW, _hY + _hH - 8); ctx.arc(_hX + _hW - 8, _hY + _hH - 8, 8, 0, Math.PI/2);
+        ctx.lineTo(_hX + 8, _hY + _hH); ctx.arc(_hX + 8, _hY + _hH - 8, 8, Math.PI/2, Math.PI);
+        ctx.lineTo(_hX, _hY + 8); ctx.arc(_hX + 8, _hY + 8, 8, Math.PI, 3*Math.PI/2);
+        ctx.closePath(); ctx.fill();
+
+        ctx.globalAlpha = 0.20;
+        ctx.strokeStyle = '#1a3a7a'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(_hX + 8, _hY);
+        ctx.lineTo(_hX + _hW - 8, _hY); ctx.arc(_hX + _hW - 8, _hY + 8, 8, -Math.PI/2, 0);
+        ctx.lineTo(_hX + _hW, _hY + _hH - 8); ctx.arc(_hX + _hW - 8, _hY + _hH - 8, 8, 0, Math.PI/2);
+        ctx.lineTo(_hX + 8, _hY + _hH); ctx.arc(_hX + 8, _hY + _hH - 8, 8, Math.PI/2, Math.PI);
+        ctx.lineTo(_hX, _hY + 8); ctx.arc(_hX + 8, _hY + 8, 8, Math.PI, 3*Math.PI/2);
+        ctx.closePath(); ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        ctx.textAlign = 'right';
+        let _ry = _hY + 10;
 
         // Timer
-        const elapsedSec = Math.floor(gameElapsedTime / 1000);
-        const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
-        const ss = String(elapsedSec % 60).padStart(2, '0');
-        ctx.fillStyle = '#aaddff'; ctx.font = hudTimer;
-        ctx.fillText(`⏱ ${mm}:${ss}`, canvas.width - 20, hudStartY);
+        const _elSec = Math.floor(gameElapsedTime / 1000);
+        const _tmm = String(Math.floor(_elSec / 60)).padStart(2, '0');
+        const _tss = String(_elSec % 60).padStart(2, '0');
+        ctx.font = _hMob ? 'bold 13px monospace' : 'bold 18px monospace';
+        ctx.fillStyle = '#7ab8f5';
+        ctx.fillText(`⏱ ${_tmm}:${_tss}`, _hX + _hW - _hPad, _ry + (_hMob ? 13 : 17));
+        _ry += _rH + 2;
 
-        ctx.font = hudFont;
-        ctx.fillStyle = 'white';
-        ctx.fillText("Score: " + score, canvas.width - 20, hudStartY + hudLine);
-        // Lives: red + blink when < 5
-        if (lives < 5) {
-            const _t = performance.now();
-            const blink = 0.7 + 0.3 * Math.abs(Math.sin(_t / 380));
-            ctx.fillStyle = `rgb(255,${Math.round(40 * blink)},${Math.round(40 * blink)})`;
+        // Divider
+        ctx.globalAlpha = 0.30; ctx.strokeStyle = '#2a4a8a'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(_hX + 10, _ry); ctx.lineTo(_hX + _hW - 10, _ry); ctx.stroke();
+        ctx.globalAlpha = 1; _ry += 7;
+
+        // Wave number
+        ctx.font = _hMob ? 'bold 14px Arial' : 'bold 18px Arial';
+        ctx.shadowBlur = 7; ctx.shadowColor = '#3366cc';
+        ctx.fillStyle = '#b8d0ff';
+        ctx.fillText(`WAVE  ${_waveNumber}`, _hX + _hW - _hPad, _ry + (_hMob ? 13 : 17));
+        ctx.shadowBlur = 0;
+        _ry += _rH + 2;
+
+        // Enemy count
+        const _aliveCount = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
+        ctx.font = _hMob ? '11px monospace' : '13px monospace';
+        if (_wavePhase === 'rest') {
+            const _restSec = Math.ceil(_waveRestTimer / 1000);
+            ctx.fillStyle = '#667788';
+            ctx.fillText(`↻ ${_restSec}s  ·  ${_aliveCount} alive`, _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13));
         } else {
-            ctx.fillStyle = 'white';
+            const _total = _aliveCount + _waveQueue.length;
+            const _pulseCnt = 0.7 + 0.3 * Math.abs(Math.sin(performance.now() / 600));
+            ctx.fillStyle = _total > 0 ? `rgba(255,160,80,${_pulseCnt})` : '#446644';
+            ctx.fillText(_total > 0 ? `◉ ${_total} enemies` : '◉ clearing...', _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13));
         }
-        ctx.fillText("Lives: " + lives, canvas.width - 20, hudStartY + hudLine * 2);
-        ctx.fillStyle = 'white';
-        ctx.fillText("Sentinels: " + sentinels.length, canvas.width - 20, hudStartY + hudLine * 3);
-        ctx.fillText("Tesla Coils: " + teslaCoils.length, canvas.width - 20, hudStartY + hudLine * 4);
+        _ry += (_hMob ? 16 : 20);
+
+        // Divider
+        ctx.globalAlpha = 0.30; ctx.strokeStyle = '#2a4a8a'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(_hX + 10, _ry); ctx.lineTo(_hX + _hW - 10, _ry); ctx.stroke();
+        ctx.globalAlpha = 1; _ry += 7;
+
+        // Stats
+        ctx.font = _hMob ? '12px Arial' : '16px Arial';
+        const _fH = _hMob ? 12 : 16;
+
+        ctx.fillStyle = '#cccccc';
+        ctx.fillText(`◆  ${score.toLocaleString()}`, _hX + _hW - _hPad, _ry + _fH);
+        _ry += _rH;
+
+        if (lives < 5) {
+            const _bt = performance.now();
+            const _blink = 0.7 + 0.3 * Math.abs(Math.sin(_bt / 380));
+            ctx.fillStyle = `rgb(255,${Math.round(40 * _blink)},${Math.round(40 * _blink)})`;
+        } else { ctx.fillStyle = '#cccccc'; }
+        ctx.fillText(`♥  ${lives}`, _hX + _hW - _hPad, _ry + _fH);
+        _ry += _rH;
+
+        ctx.fillStyle = '#88ccff';
+        ctx.fillText(`⊕  ${sentinels.length}`, _hX + _hW - _hPad, _ry + _fH);
+        _ry += _rH;
+
+        ctx.fillStyle = '#ffdd55';
+        ctx.fillText(`⚡  ${teslaCoils.length}`, _hX + _hW - _hPad, _ry + _fH);
+
+        ctx.restore();
     } else if (gameState === "start") {
         _drawStartScreen();
     } else if (gameState === "gameover") {
@@ -1200,11 +1350,12 @@ function draw(deltaTime) {
         // Stats
         ctx.font = "400 20px 'Cinzel', serif";
         ctx.fillStyle = "rgba(215,185,122,0.88)";
-        ctx.fillText("Total Score  ·  " + score.toLocaleString(), _cx, _cy + 12);
+        ctx.fillText("Wave  ·  " + (typeof _waveNumber !== 'undefined' ? _waveNumber : 1), _cx, _cy + 12);
+        ctx.fillText("Total Score  ·  " + score.toLocaleString(), _cx, _cy + 40);
         const _pt = typeof _gameOverPlayTime !== 'undefined' ? _gameOverPlayTime : 0;
         const _ptm = Math.floor(_pt / 60000);
         const _pts = Math.floor((_pt % 60000) / 1000);
-        ctx.fillText("Time  ·  " + _ptm + ":" + (_pts < 10 ? "0" : "") + _pts, _cx, _cy + 40);
+        ctx.fillText("Time  ·  " + _ptm + ":" + (_pts < 10 ? "0" : "") + _pts, _cx, _cy + 68);
     }
     if (window._usePixi && window._pixiRender) window._pixiRender();
     ctx.restore();
@@ -2425,6 +2576,19 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(player.x + xOffset, player.y);
+
+    // Pulsing visibility beacon — makes ship easy to spot during gameplay
+    const _pulseA = 0.45 + 0.55 * Math.abs(Math.sin(now / 520));
+    ctx.shadowBlur = 14 + 10 * _pulseA;
+    ctx.shadowColor = '#00d4ff';
+    ctx.strokeStyle = `rgba(0, 210, 255, ${0.35 + 0.55 * _pulseA})`;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(26, 16);
+    ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-26, 16);
+    ctx.lineTo(-28, 10); ctx.closePath();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
 
     // engine exhaust plume (gradient fill, no blur)
     const exG = ctx.createRadialGradient(0, 30, 0, 0, 38, 22);
@@ -5206,8 +5370,8 @@ function drawScatteredProjectile(p) {
 function _drawNormalSpirit(spirit) {
     if (!spirit) return;
     const now = performance.now();
-    const timeRemaining = spirit.duration - (now - spirit.spawnTime);
-    const age = now - spirit.spawnTime;
+    const timeRemaining = spirit.duration - (gameElapsedTime - spirit.spawnGameTime);
+    const age = gameElapsedTime - spirit.spawnGameTime;
 
     ctx.save();
 
@@ -5453,7 +5617,7 @@ function drawPhotokrystos(spirit) {
 
     // 8-star summoning announcement (same as normal spirit title)
     if (spirits.length > 0 && spirit === spirits[spirits.length - 1]) {
-        const elapsed = now - spirit.spawnTime;
+        const elapsed = gameElapsedTime - spirit.spawnGameTime;
         const textT = elapsed < 1500 ? Math.min(elapsed / 150, 1) * Math.max(0, 1 - (elapsed - 150) / 1250) : 0;
         if (textT > 0.02) {
             ctx.save();
@@ -5813,7 +5977,7 @@ function drawPhotokrystos(spirit) {
 
     // Duration bar
     if (!spirit._btmStarted) {
-        const _cAge = spirit._combatStartTime ? (now - spirit._combatStartTime) : 0;
+        const _cAge = spirit._combatStartTime ? (gameElapsedTime - spirit._combatStartTime) : 0;
         const timeRemaining = Math.max(0, spirit.duration - _cAge);
         const bw = 50, bh = 5;
         const bx = sx - bw / 2, by = sy - size * 1.8 - 20;
@@ -6787,7 +6951,7 @@ function drawEnergyOrb(orb) {
     const pulse = Math.sin(now / 200 + orb.id) * 2.5;
     let radius = Math.max(0.1, orb.size + pulse);
     if (orb.isMerging) {
-        const mp = (now - orb.mergeStartTime) / 500;
+        const mp = (gameElapsedTime - orb.mergeStartTime) / 500;
         radius = Math.max(0, (orb.size + pulse) * (1 - mp));
     }
 
@@ -7151,7 +7315,7 @@ function drawSkillButtons() {
     const _now_s = performance.now();
     if (_photo) {
         // Phōtokrystos active: show 40s duration countdown (locked until BTM ends)
-        const _combatAge = _photo._combatStartTime ? (_now_s - _photo._combatStartTime) : 0;
+        const _combatAge = _photo._combatStartTime ? (gameElapsedTime - _photo._combatStartTime) : 0;
         const _photoRemain = Math.max(0, 40000 - _combatAge);
         drawSkillButton(positions.S.x, positions.S.y, 'S', '#00cc66',
             40000, _now_s - (40000 - _photoRemain), true, -1, r);
