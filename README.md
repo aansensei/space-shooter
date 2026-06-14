@@ -379,13 +379,13 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 **Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.8 u/s
 
-HP: **1,800–3,120**. Permanent **55% Damage Reduction** at all times.
+HP: **2,160–3,744**. Permanent **55% Damage Reduction** at all times.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 6th hit the shield breaks and Aegis Core takes damage normally.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 20th hit the shield breaks and Aegis Core takes damage normally. **While Custos is active, Aegis Core is CC Immune** — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for **4% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Heals all ally units inside for **6% of Aegis Core's Max HP per second** (Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
 - Grants every allied unit inside an **8% of Aegis Core's Max HP shield every second** (passive tick — stacks on top of the one-time 40% shield; units with any remaining shield also benefit from the +15% DR bonus).
 - Grants a **shield** equal to **40% of Aegis Core's Max HP** to all allies inside (once per ally). Shielded units gain **+15% Damage Reduction** while the shield has any HP remaining.
 - If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
@@ -401,20 +401,25 @@ HP: **1,800–3,120**. Permanent **55% Damage Reduction** at all times.
 
 HP: **1,920–3,720**. Permanent **45% Damage Reduction** on its body at all times.
 
-**Sword & Shield**
+**Sword & Barrier**
 
-Marchosias carries a rotating **Arc Shield** — a glowing 90-degree arc that continuously tracks and faces the player. The shield and Marchosias's body HP are **completely independent pools**, each equal to Marchosias's Max HP at spawn.
+Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that continuously tracks and faces the player. The barrier and Marchosias's body HP are **completely independent pools**, each equal to Marchosias's Max HP at spawn.
 
-*Shield properties:*
+*Barrier properties:*
 
-- **60% Damage Reduction** on all incoming damage to the shield. No single hit can exceed **35% of the shield's current HP**.
-- **Completely buff-immune:** the shield cannot receive heals, DR boosts, Aegis shields, or any other beneficial effect.
+- **60% Damage Reduction** on all incoming damage to the barrier. No single hit can exceed **35% of the barrier's current HP**.
+- **Completely buff-immune:** the barrier cannot receive heals, DR boosts, Aegis shields, or any other beneficial effect.
+- While the arc barrier is alive, Marchosias and the barrier gain **+10% evade** (applies to both body hits and barrier hits).
+- **Piercing attacks** (Spirit Arc Blade, Boomerang, Overload Laser) that connect with the barrier first: body damage is reduced **−30%**, the barrier takes **+15% extra damage**, and the attack continues through. All other attacks are fully absorbed by the barrier.
+- **Lifesteal per hit:** each hit on the barrier heals the barrier for **5% of damage dealt** (max 1000 HP); Marchosias's body heals for **10% of damage dealt** (max 1000 HP, overflow → **50% converted to shield** on Marchosias's body).
+- **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains a **1-hit Iron Body** and heals **30% Max HP** (overflow → 50% shield). The barrier revives **5 seconds** later at full HP.
+- **Tracking speed** scales from ×1.0 at match start up to **×1.67 at 3 minutes** of play.
 
 *Sword trigger conditions:*
 
-- Every shield hit has a **20% independent chance** to queue a Sword.
-- If the shield is fully destroyed, a Sword is queued immediately.
-- When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (spread slightly apart). The count is displayed as Roman numerals below Marchosias at all times.
+- Every barrier hit or **evaded hit** has a **25% independent chance** to queue a Sword.
+- If the barrier is fully destroyed, a Sword is queued immediately.
+- When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (spread slightly apart). The count is displayed as Roman numerals below Marchosias at all times (dim dot when none are queued).
 
 There is no hard limit on total Swords per fight. Each Marchosias has its own independent **0.65-second cooldown** between triggers. Multiple queued Swords count down their 1-second windups in parallel and fire independently. **Swords cannot be interrupted** — even if Marchosias dies mid-windup, all pending Swords still fire from the death position.
 
@@ -432,13 +437,13 @@ Every second, fires **2 bullets** simultaneously at the nearest player or Sentin
 
 **Assimilation — Death Passive**
 
-At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **15–25%** of Marchosias's Max HP at random, then boosted by a further **+30%**. Each minion has **75% innate Damage Reduction**.
+At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **25–35%** of Marchosias's Max HP at random, then boosted by a further **+30%**. Each minion has **75% innate Damage Reduction**, and no single hit can exceed **50% of its max EP**.
 
-Each minion scans within **140px** for a valid host (excluding other Marchosias):
+Each minion scans within **170px** for a valid host (excluding other Marchosias):
 
 **Host found → Parasite Mode:** Attaches as a **Parasite Shield** — absorbs damage before all other shields, including Aegis shields. Completely buff-immune: no heals, no regeneration, no DR bonuses can affect it. A green rotating ring marks infected hosts.
 
-**No host nearby → Hunt Mode:** Charges the player at **+35% speed**, firing bullets and dealing contact damage.
+**No host nearby → Hunt Mode:** Charges the player at **+55% speed**, firing bullets and dealing contact damage. During hunt mode the minion rescans every 500ms — if a valid host enters range, it attaches immediately. Minions flash a glowing ring to signal their presence in the bullet chaos.
 
 ---
 

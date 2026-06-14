@@ -391,6 +391,22 @@
     }
     .tog-btn:hover { color: var(--cyan); border-color: rgba(0,200,255,0.4) }
     .tog-btn.shortened { color: #ffcc44; border-color: rgba(255,200,0,0.4); background: rgba(255,180,0,0.06) }
+
+    .ul-entry { position:relative; padding:14px 16px 14px 20px; margin-bottom:10px; background:rgba(255,255,255,0.025); border-radius:8px; border:1px solid rgba(255,255,255,0.06); border-left:3px solid var(--ul-accent,rgba(0,200,255,0.4)); }
+    .ul-entry:last-child { margin-bottom:0; }
+    .ul-head { display:flex; align-items:baseline; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
+    .ul-ver { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:1.5px; color:var(--ul-accent,var(--cyan)); line-height:1.2; }
+    .ul-badge { font-family:'Share Tech Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:rgba(255,255,255,0.06); color:var(--dim); letter-spacing:1px; white-space:nowrap; }
+    .ul-date { font-size:10px; color:var(--dim); margin-bottom:8px; font-family:'Share Tech Mono',monospace; }
+    .ul-summary { font-size:11px; color:#aabbcc; line-height:1.5; margin-bottom:0; }
+    .ul-tag { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.5px; padding:1px 5px; border-radius:3px; margin-right:3px; vertical-align:middle; }
+    .tag-feat { background:rgba(0,200,100,0.12); color:#4ade80; border:1px solid rgba(0,200,100,0.25); }
+    .tag-fix { background:rgba(255,80,80,0.1); color:#f87171; border:1px solid rgba(255,80,80,0.2); }
+    .tag-balance { background:rgba(255,200,0,0.1); color:#fbbf24; border:1px solid rgba(255,200,0,0.2); }
+    .tag-nerf { background:rgba(255,120,40,0.1); color:#fb923c; border:1px solid rgba(255,120,40,0.2); }
+    .tag-perf { background:rgba(100,120,255,0.12); color:#a5b4fc; border:1px solid rgba(100,120,255,0.25); }
+    .ul-entry ul { margin:6px 0 0 0; padding-left:14px; }
+    .ul-entry li { font-size:11.5px; margin-bottom:4px; color:#c8d5e8; line-height:1.45; list-style:none; padding-left:2px; }
   </style>
 </head>
 
@@ -410,6 +426,7 @@
         <button class="tab-btn" data-tab="skills">Skills</button>
         <button class="tab-btn" data-tab="enemies">Enemies</button>
         <button class="tab-btn" data-tab="rules">Combat</button>
+        <button class="tab-btn" data-tab="updatelog">Update Log</button>
         <button class="tog-btn" id="togDetail">Detailed</button>
       </div>
       <div class="guide-body" id="guideBody"></div>
@@ -459,7 +476,7 @@
 <li><span style="color:#FFD700">Gold ×12:</span> Every shot = Special Shot.</li>
 <li><b>5% base DR</b> at all times.</li>
 <li><b>Sentinel Parry</b> (Glory active): 20% negate → <span class="hg">Accurate Parry</span> 4s + <span class="hg">+10% DR</span> 4s.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — Max HP grows: <span class="hg">+2% at 1 min · +3% at 2 min · +5% at 3 min</span>. While Glory for Justice active: every <span class="hi">10s</span> each Sentinel gains shield = <span class="hg">18% HP lost + 4% Max HP</span> (non-stacking, replaces previous pulse). Fires immediately on activation.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — <span class="det-full">Max HP grows: <span class="hg">+2% at 1 min · +3% at 2 min · +5% at 3 min</span>. While Glory for Justice active: every <span class="hi">10s</span> each Sentinel gains shield = <span class="hg">18% HP lost + 4% Max HP</span> (non-stacking, replaces previous pulse). Fires immediately on activation.</span><span class="det-short">Max HP scales up over match time. During Glory: periodic shield pulses based on HP lost.</span></li>
 <li>On death: <span class="dmg">10 scattered projectiles</span>.</li></ul></div>
 <div class="card"><h2 style="color:var(--red)">VULNERABILITY</h2><div class="sub">DEBUFF — STACKS ×4 • 3s DURATION</div>
 <div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas></div>
@@ -468,7 +485,7 @@
 <div class="card"><h2 style="color:var(--green)">GLORY FOR JUSTICE</h2><div class="sub">ACTIVATES: 4+ ENEMIES / ABNORMAL+ / SKILL G / PHŌTOKRYSTOS</div>
 <div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas></div>
 <ul><li>All friendly dmg <span class="hgr">×1.55</span>, fire rate <span class="hgr">×1.5</span>.</li>
-<li><b>Chain Lightning</b> (150ms CD): arcs <b>8</b> enemies at <b>50%</b> dmg. <b>60%</b> → <span class="hr">Soul Reaver</span> (−<b>40%</b> heal/shield, DoT every <b>0.35s</b>: <b>60 base + 5.5% EP</b> true dmg).</li>
+<li><span class="det-full"><b>Chain Lightning</b> (150ms CD): arcs <b>8</b> enemies at <b>50%</b> dmg. <b>60%</b> → <span class="hr">Soul Reaver</span> (−<b>40%</b> heal/shield, DoT every <b>0.35s</b>: <b>60 base + 5.5% EP</b> true dmg).</span><span class="det-short"><b>Chain Lightning</b>: arcs 8 enemies. 60% chance to apply Soul Reaver (reduces healing + DoT).</span></li>
 <li>Sentinels: <b>+30% DR</b>, Parry active.</li></ul></div>
 <div class="card"><h2 style="color:var(--gold)">FINAL DEFENSE & LAST STAND</h2><div class="sub">AUTO SAFETY NETS</div>
 <div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas></div>
@@ -489,7 +506,7 @@
 <div class="card"><h2 style="color:var(--purple)"><span class="key">Shift</span> YOG-SOTHOTH DOMAIN</h2><div class="sub">SPACE-TIME MANIPULATION <span class="cd">CD 1.1s–9s</span> <span class="cd">MAX 8s</span></div>
 <div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas></div>
 <ul><li>Hold Shift: world at <span class="hp">15% speed</span>. You gain <b>Iron Body</b>.</li>
-<li><b>Cooldown scales with hold time</b> (no teleport): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">If ←/→ teleport used → always full 9s.</span></li>
+<li><span class="det-full"><b>Cooldown scales with hold time</b> (no teleport): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">If ←/→ teleport used → always full 9s.</span></span><span class="det-short"><b>Cooldown</b> scales with hold time (1.1s–9s). Teleport always triggers full 9s CD.</span></li>
 <li>All enemy bullets <span class="hr">destroyed</span>. <span class="key">←→</span> teleport.</li>
 <li><span class="hg">Accurate Parry:</span> hit during domain → +25% dmg 4s, Sentinel <b>Iron Body 1.25s</b>.</li></ul></div>
 
@@ -498,7 +515,7 @@
 <ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">110 + 18% EP</span>.</li>
 <li>Impact → <span class="dmg">16 scattered shards</span> (5 + 1.5% EP each).</li>
 <li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits. When an orb is <b>sacrificed</b>, the attacker (if targetable) receives <span class="hr">Soul Reaver + Soul Devourer DoT</span> (60 + 5.5% EP per 0.35s) and is <span class="hr">slowed 25%</span> for <span class="cd">3s</span>.</li>
-<li><b>Dimensional Rift</b> (on hit that deals damage): 50px zone, <span class="cd">3s</span>. Enemies inside: <span class="hr">−35% speed</span>, <span class="hr">Soul Reaver + DoT</span> (60 + 5.5% EP per 0.35s), <span class="hr">+25% dmg taken</span>. Enemy bullets are pulled in and destroyed at core. <span class="dmg">20%</span> chance per DoT tick to chain-lightning 8 targets.</li></ul></div>
+<li><span class="det-full"><b>Dimensional Rift</b> (on hit that deals damage): 50px zone, <span class="cd">3s</span>. Enemies inside: <span class="hr">−35% speed</span>, <span class="hr">Soul Reaver + DoT</span> (60 + 5.5% EP per 0.35s), <span class="hr">+25% dmg taken</span>. Enemy bullets are pulled in and destroyed at core. <span class="dmg">20%</span> chance per DoT tick to chain-lightning 8 targets.</span><span class="det-short"><b>Dimensional Rift</b>: 3s slow zone on hit — slows, applies DoT, increases dmg taken, pulls and destroys nearby bullets.</span></li></ul></div>
 
 <div class="card"><h2 style="color:#ff44aa"><span class="key">S</span> REMEMBRANCE SPIRIT</h2>
 <div class="sub"><span class="cd">CD 12s</span> <span class="cd">35s</span></div>
@@ -509,7 +526,7 @@
 <div id="sSpiritPane1">
   <div class="ab"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas></div>
   <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
-  <li>Every 5th shot: <b>Blade Arc</b> (<span class="dmg">170 + 4.8% EP + 3% missing HP</span>). Destroys enemy bullets.</li>
+  <li><span class="det-full">Every 5th shot: <b>Blade Arc</b> (<span class="dmg">170 + 4.8% EP + 3% missing HP</span>). Destroys enemy bullets.</span><span class="det-short">Every 5th shot fires a <b>Blade Arc</b> that destroys bullets.</span></li>
   <li><b>Finale @35s:</b> lasers + 8 bouncing plasma balls.</li>
   <li><b>Primeval Creation:</b> Spirit kills charge a mana bar (+2% per kill). At 100%, press S again to transform.</li></ul>
 </div>
@@ -519,9 +536,9 @@
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Grand Primordial Spirit</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Blessing of the Primordial</b>: Sentinels +15% DR, ally dmg +15%, +3 HP/s regen, +50 shield/5s per sentinel.</li>
   <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> <b>3 homing bullets</b> @ <b>43ms</b>: each <span class="dmg">100+1.4% EP</span>, all track targets. Destroys enemy bullets. Apply Vuln (15%).</li>
-  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">400+5.8% EP+5% missing HP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Max <b>10</b> on screen; oldest recalled when cap hit (pending queue: 5). After 2 bounces or lifetime expiry, boomerang <b>flies back</b> to spirit (60% faster). BTM recalls all. Destroys bullets.</li>
-  <li><span style="color:var(--cyan);font-size:10px">PASSIVE</span> <b>Danger? Not Today!</b> — enemy within <b>170px of player</b> or <b>170px of boundary</b> → spirit aims 100ms (re-locks each frame) then fires a <b>2s primeval laser</b> sweeping <b>±20°</b> (instant kills all in path, bypasses all shields). <b>-20% dmg 3s</b> after. CD starts after beam ends. (10s CD)</li>
-  <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: full-screen lightning barrier 3.5s (<span class="dmg">20+35% EP True Dmg/100ms</span>, clears bullets) → shockwave (<span class="dmg">10+99% EP</span>, pierces ALL shields + Iron Body). CD: 12s from summon.</li>
+  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> — <span class="det-full">every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">400+5.8% EP+5% missing HP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Max <b>10</b> on screen; oldest recalled when cap hit (pending queue: 5). After 2 bounces or lifetime expiry, boomerang <b>flies back</b> to spirit (60% faster). BTM recalls all. Destroys bullets.</span><span class="det-short">Every 6 volleys: 2 piercing boomerangs chain all enemies (true dmg, scales with missing HP). Recalls after 2 bounces.</span></li>
+  <li><span style="color:var(--cyan);font-size:10px">PASSIVE</span> <b>Danger? Not Today!</b> — <span class="det-full">enemy within <b>170px of player</b> or <b>170px of boundary</b> → spirit aims 100ms (re-locks each frame) then fires a <b>2s primeval laser</b> sweeping <b>±20°</b> (instant kills all in path, bypasses all shields). <b>-20% dmg 3s</b> after. CD starts after beam ends. (10s CD)</span><span class="det-short">Auto-fires an instant-kill laser when an enemy gets too close to the player or screen edge. (10s CD)</span></li>
+  <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: <span class="det-full">full-screen lightning barrier 3.5s (<span class="dmg">20+35% EP True Dmg/100ms</span>, clears bullets) → shockwave (<span class="dmg">10+99% EP</span>, pierces ALL shields + Iron Body). CD: 12s from summon.</span><span class="det-short">Full-screen lightning barrier then a shockwave that pierces all shields and Iron Body.</span></li>
   </ul>
 </div>
 </div>
@@ -573,16 +590,16 @@
 <div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">25s • HP 1,200–3,000 • CAP 2 • Speed 2.0 u/s • Base DR 40% • Evade 3→5%</div>
 <div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">2% EP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC. <span style="color:var(--dim)">The wave system counts Veilshroud as dead the moment it enters ghost form.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — <span class="det-full">Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">2% EP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC. <span style="color:var(--dim)">The wave system counts Veilshroud as dead the moment it enters ghost form.</span></span><span class="det-short">Leaves an untargetable ghost that fires for 3s, then explodes in a 300px radius for 2% EP/tick over 2s.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a 2-bullet volley every 500ms at nearest target. Disabled during Phantom / countdown.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — <span class="det-full">Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). While in Phantom: <span class="dmg">no single hit can exceed 25% MaxHP</span> (absolute cap); healing &amp; shields received are reduced by <span class="dmg">25%</span>. On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random target; after 1.5s a <span class="hr">red lightning bolt</span> strikes. Player: <span class="hr">1 life</span>. Sentinels in 100px: <span class="dmg">15% EP</span>. In normal state: incoming healing also grants equal shield; incoming shield boosted <span class="hi">+25%</span>.</span><span class="det-short">Randomly enters an untargetable Phantom state (99% DR) that blocks damage; on exit fires a red lightning bolt — Player: 1 life. Sentinels in 100px: 15% EP.</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 1,800–3,120 • Permanent DR 55% • Evade 5→10% • Speed 1.8 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">30s • HP 2,160–3,744 • Permanent DR 55% • Evade 5→10% • Speed 1.8 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — First <span class="hg">20 hits</span> are completely nullified (Iron Body, white flash each). Breaks after 20th hit.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Support Aura</b> — heals allies <span class="hgr">3% MaxHP/s</span>. Grants <span class="hg">40% MaxHP shield</span> once + <span class="hg">5% MaxHP tick shield/s</span> (stacks). Active shield → +15% DR. Speeds up all enemies inside.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — <span class="det-full">First <span class="hg">20 hits</span> are completely nullified (Iron Body, white flash each). Breaks after 20th hit. <span class="hg">CC Immune while Custos is active</span> — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow.</span><span class="det-short">First 20 hits nullified (Iron Body). CC Immune while active.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Support Aura</b> — <span class="det-full">heals allies <span class="hgr">6% MaxHP/s</span>. Grants <span class="hg">40% MaxHP shield</span> once + <span class="hg">5% MaxHP tick shield/s</span> (stacks). Active shield → +15% DR. Speeds up all enemies inside.</span><span class="det-short">Heals allies 6% MaxHP/s, grants stacking shields (+15% DR while shielded).</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Does not fire bullets directly.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lumen Nova</b> — every 5s: marks player + 3 Sentinels, fires lasers after 1s warning. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">20% EP</span> per laser.</li>
 </ul></div>
@@ -590,10 +607,10 @@
 <div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">20s • HP 1,920–3,720 • Body DR 45% • Evade 5→10% • Speed ~1.6 u/s</div>
 <div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Arc Shield</b> — 90° rotating shield, <span class="dmg">60% DR</span>, no single hit &gt; <span class="dmg">35% shield HP</span>, buff-immune. Independent HP pool = Marchosias MaxHP. <span class="hg">CC Immune while shield is alive</span> — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Assimilation</b> — death → 3 Minion Robots (15–25% MaxHP <span class="hg">+30%</span>, <span class="dmg">89% DR</span>, <span class="hi">speed ×1.89</span>). Attach as Parasite Shields or hunt the player.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Arc Barrier</b> — <span class="det-full">90° rotating barrier, <span class="dmg">60% DR</span>, no single hit &gt; <span class="dmg">35% barrier HP</span>, buff-immune. Independent HP pool = Marchosias MaxHP. <span class="hg">CC Immune while barrier is alive</span> — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow. While active, Marchosias and the barrier gain an additional <span class="hg">+10% evade</span> (evade applies to both body hits and barrier hits). Piercing attacks (Spirit Arc Blade, Boomerang, Overload Laser) that hit the barrier: body damage <span class="hg">−30%</span>, barrier takes <span class="dmg">+15% extra damage</span>, attack continues through. Each hit on the barrier: barrier self-heals <span class="hgr">5% of damage dealt</span> (max 1000 HP), Marchosias body heals <span class="hgr">10% of damage dealt</span> (max 1000 HP, overflow → <span class="hg">50% converted to shield</span>). When the barrier is destroyed: Marchosias gains <span class="hg">1-hit Iron Body</span> and heals <span class="hgr">30% MaxHP</span> (overflow → <span class="hg">50% shield</span>); barrier revives after <span class="hi">5s</span>. Tracking speed scales up to <span class="hi">×1.67</span> at 3 minutes of play. Roman numerals displayed below at all times (dim · when no swords queued).</span><span class="det-short">90° rotating CC-immune barrier with +10% evade. Each hit: barrier and body self-heal (capped 1000 HP). On break: Iron Body + 30% HP heal + 5s revival. Piercing attacks deal reduced body damage but pass through.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Assimilation</b> — <span class="det-full">death → 3 Minion Robots (25–35% MaxHP <span class="hg">+30%</span>, <span class="dmg">75% DR</span>, no single hit &gt; <span class="dmg">50% EP</span>, <span class="hi">speed ×2.10</span>). Scan within <span class="hi">170px</span> to attach as Parasite Shields or hunt the player. Minions flash a glowing ring to signal their presence.</span><span class="det-short">On death spawns 3 fast minions (75% DR) that attach to enemies as shields or hunt the player.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 2 bullets every 1s at nearest target. Bullet HP = ⌈1.25% current HP⌉.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — <span class="hi">10% chance</span> per shield hit (guaranteed on shield break); queues a sword (0.65s cooldown between triggers). At <span class="hi">1% HP</span> all queued swords fire simultaneously. <span class="hr">Indestructible.</span> Sentinel: <span class="hr">27% EP</span> (1st hit) / <span class="hr">23%</span> (2nd) / <span class="hr">21%</span> (3rd+). Player: <span class="hr">1 life</span>.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — <span class="det-full"><span class="hi">25% chance</span> per barrier hit or per evaded hit (guaranteed on barrier break); queues a sword (0.65s cooldown between triggers). At <span class="hi">1% HP</span> all queued swords fire simultaneously. <span class="hr">Indestructible.</span> Sentinel: <span class="hr">27% EP</span> (1st hit) / <span class="hr">23%</span> (2nd) / <span class="hr">21%</span> (3rd+). Player: <span class="hr">1 life</span>.</span><span class="det-short">25% chance per barrier/evaded hit to queue an indestructible sword. Sentinel: 27/23/21% EP. Player: 1 life.</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">35s • HP 1,920–4,200 • Body DR 40% • Evade 5→10% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
@@ -601,8 +618,8 @@
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind</b> — <span class="det-full"><span class="hi">10 tentacles</span>, each with independent HP equal to <span class="hi">78% of Egregor's MaxHP</span>. Non-true-damage: deflect chance <span class="hi">scales with alive tentacles</span> (alive÷10 × 60%, down to 0 when all dead); on non-deflect, hit absorbed by a tentacle at ~<span class="dmg">26% of original damage</span> (35% × 75% DR). Body only reachable by <span class="dmg">true damage</span> (capped at <span class="hi">max(25%, 90−10n)%</span> MaxHP) or <span class="dmg">piercing attacks</span> (tentacle takes ~26% dmg, body takes <span class="hi">30%</span> of original, capped <span class="hi">30% MaxHP</span>). Cannot coexist with Veilshroud. Body also has <span class="hg">5% chance to dodge any hit</span>.</span><span class="det-short">10 tentacles intercept all non-true damage — only true damage or piercing hits reach Egregor's body directly.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Mind Link</b> — <span class="det-full">Each non-Egregor enemy death within <span class="hi">600px</span> (red dashed ring) grants a <span class="hg">Rage Stack</span> (max 5, 8s each). Per stack: <span class="hg">+18% movement speed</span>, <span class="hg">+15% Max HP</span>, <span class="hg">Heal 15% MaxHP</span>, <span class="hg">tentacles heal 15% HP</span> and gain <span class="hg">+3% DR</span> (max +15% at 5 stacks). Each new stack immediately triggers a Psychic Tempest cast.</span><span class="det-short">Each nearby enemy death gives a Rage Stack (max 5): boosts speed and HP, heals Egregor and tentacles, and immediately triggers Psychic Tempest.</span></li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">CD 4s</span> — Selects up to <span class="hi">3</span> random targets (player + sentinels). After a <span class="hi">1.2s</span> telegraph (shrinking ring + converging sparks), simultaneous psychic lightning strikes in <span class="hi">100px</span> radius. Target positions <span class="hi">locked at cast</span> — bolts do not track. Fires even if Egregor dies mid-cast. Player: <span class="hr">costs 1 life</span>. Sentinel: <span class="hr">20% MaxHP damage</span>. CD 15% faster with any rage stack.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3.5s</span> — <span class="hi">Windup 1–3s</span> (base 3s / 2.5s with any rage, reduced 0.25s per stack, min 1s). Egregor tracks the player live during windup and gains <span class="hg">+35% DR</span>. At release, target position locks and a <span class="hi">180° arc</span> sweeps toward it — any sentinel or player inside the arc is hit. <b>Player</b>: no life lost, <span class="hr">−50% movement 1.5s</span> (purple slow ring + falling particles; Yog-Sothoth can dodge). <b>Sentinel</b>: <span class="hr">15% MaxHP (1 hit) / 20% (2) / 28% (3+)</span>, true damage, rage bonus <span class="hg">+6% per stack</span> (max <span class="hg">+30%</span>). After the slash, leaves a <b>Dimension Break</b> zone (glowing purple arc) that lingers for <span class="hi">1s</span> — player walking through it is <span class="hr">slowed 20%</span>.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">CD 4s</span> — <span class="det-full">Selects up to <span class="hi">3</span> random targets (player + sentinels). After a <span class="hi">1.2s</span> telegraph (shrinking ring + converging sparks), simultaneous psychic lightning strikes in <span class="hi">100px</span> radius. Target positions <span class="hi">locked at cast</span> — bolts do not track. Fires even if Egregor dies mid-cast. Player: <span class="hr">costs 1 life</span>. Sentinel: <span class="hr">20% MaxHP damage</span>. CD 15% faster with any rage stack.</span><span class="det-short">Strikes 3 random targets with psychic lightning after 1.2s warning. Player: 1 life. Sentinel: 20% MaxHP.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3.5s</span> — <span class="det-full"><span class="hi">Windup 1–3s</span> (base 3s / 2.5s with any rage, reduced 0.25s per stack, min 1s). Egregor tracks the player live during windup and gains <span class="hg">+35% DR</span>. At release, target position locks and a <span class="hi">180° arc</span> sweeps toward it — any sentinel or player inside the arc is hit. <b>Player</b>: no life lost, <span class="hr">−50% movement 1.5s</span> (purple slow ring + falling particles; Yog-Sothoth can dodge). <b>Sentinel</b>: <span class="hr">15% MaxHP (1 hit) / 20% (2) / 28% (3+)</span>, true damage, rage bonus <span class="hg">+6% per stack</span> (max <span class="hg">+30%</span>). After the slash, leaves a <b>Dimension Break</b> zone (glowing purple arc) that lingers for <span class="hi">1s</span> — player walking through it is <span class="hr">slowed 20%</span>.</span><span class="det-short">180° arc slash after 1–3s windup; slows player 50% for 1.5s, deals 15–28% true dmg to sentinels, leaves a 1s slow zone.</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">30s • HP 3,600–12,095 • Evade 10→15% • CAP 1 • Speed ~1.8 u/s • CC Immune</div>
@@ -619,12 +636,12 @@
 <div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">36s • HP 8,018–14,032 • Evade 10→15% • CAP 1 • Speed ~1.5 u/s</div>
 <div class="ab" style="height:130px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="dmg">60% base DR</span> (after AFO shield breaks). Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 10% MaxHP</span> (2s CD).</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="det-full"><span class="dmg">60% base DR</span> (after AFO shield breaks). Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 10% MaxHP</span> (2s CD).</span><span class="det-short">60% DR; any single hit exceeding 30% MaxHP triggers a 2.5s damage cap window.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Iron Body shield until kill quota (10–20). Wings folded. CC immune.</li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — <span class="det-full">all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received. Re-applied every 2.5s to catch enemies spawned after Leviathan.</span><span class="det-short">Grants all enemies +25% DR and +25% healing received while Leviathan is alive.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Every 0.75s fires 3 bullets at nearest target. Bullet HP = 2% Leviathan MaxHP.</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — red warning + full 360° sweeping laser. Fires when AFO shield breaks. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">5% × AFO shield hits</span> EP/tick, cap <span class="hr">50% EP</span> (caps at 10 shield hits).</li>
-<li><span style="color:var(--cyan);font-size:10px">SKILL</span> @HP 1 <b>Last Rites</b> — 9 wing-plates lock onto targets, all fire simultaneously. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">3% × (AFO shield hits ÷ 2)</span> EP per laser, cap <span class="hr">55% EP</span> (caps at 37 shield hits). Lasers persist after death.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — <span class="det-full">red warning + full 360° sweeping laser. Fires when AFO shield breaks. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">5% × AFO shield hits</span> EP/tick, cap <span class="hr">50% EP</span> (caps at 10 shield hits).</span><span class="det-short">360° sweeping laser when AFO breaks. Player: 1 life. Sentinel: up to 50% EP.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> @HP 1 <b>Last Rites</b> — <span class="det-full">9 wing-plates lock onto targets, all fire simultaneously. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">3% × (AFO shield hits ÷ 2)</span> EP per laser, cap <span class="hr">55% EP</span> (caps at 37 shield hits). Lasers persist after death.</span><span class="det-short">9 simultaneous lasers at HP 1 that persist after death. Player: 1 life. Sentinel: up to 55% EP.</span></li>
 </ul></div>
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">ADMINISTRATOR</span></h2>
@@ -671,7 +688,330 @@
 <li>Skill A orbs return to orbit (stop targeting).</li>
 <li>A <span class="hp">purple lock icon</span> appears on the ship and a <span class="hr">red X</span> overlays all skill buttons.</li></ul></div>
 <div class="card"><h2 style="color:var(--green)">MULTIPLIERS</h2><ul>
-<li><span class="hgr">Glory:</span> ×1.55 | <span class="hg">Parry:</span> ×1.25 | Combined: <span class="dmg">×1.9375</span></li></ul></div>`
+<li><span class="hgr">Glory:</span> ×1.55 | <span class="hg">Parry:</span> ×1.25 | Combined: <span class="dmg">×1.9375</span></li></ul></div>`,
+
+      updatelog: `
+<div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
+
+<div class="ul-entry" style="--ul-accent:#ff44aa">
+<div class="ul-head"><span class="ul-ver">v4.6 — ARC BARRIER OVERHAUL</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-date">2026 · Arc Shield renamed + reworked, Aegis Core buff, minion rework, blink animations</div>
+<p class="det-short ul-summary">Marchosias Arc Barrier fully reworked with lifesteal, break revival, piercing resist, and +10% evade. Aegis Core HP +20% and CC immune while Custos active. Assimilation minions significantly buffed.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Arc Shield → Arc Barrier</b> rename across all code and docs.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Arc Barrier: +10% evade while active (body &amp; barrier). Lifesteal per hit: barrier heals 5%, Mar body heals 10% of damage (max 1000 HP each). On break: 1-hit Iron Body + 30% MaxHP heal (overflow → 50% shield) + revives after 5s. Tracking speed scales to ×1.67 at 3 min.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Piercing attacks (Spirit Arc Blade, Boomerang, Overload Laser) hitting barrier: body dmg −30%, barrier takes +15% extra, attack passes through.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Swords:</b> trigger 20% → 25% per barrier/evaded hit. Evaded body hits now also trigger swords.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Assimilation minions:</b> HP inherit 15–25% → 25–35%. DR 89% → 75%. Scan range 140px → 170px. Hunt speed ×1.89 → ×2.10. Added 50% EP single-hit cap. Hunt-mode rescans every 500ms for nearby host.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP 1,800–3,120 → 2,160–3,744 (+20%). Support Aura heal 4% → 6% MaxHP/s. Custos Aeternus now grants full CC Immunity while 20-hit Iron Body is active.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Minion blink ring animation + player ship strobe outline for bullet hell visibility.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v4.5 — EVADE SCALING &amp; SPIRIT DAMAGE</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026 · time-scaled evade, evade visual, boomerang &amp; spirit slash HP-lost scaling</div>
+<p class="det-short ul-summary">Enemy evade rates now scale over match time. Boomerang and Spirit slash gain bonus damage based on target's missing HP. Marchosias CC immune fix.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">BUFF</span> Enemy evade rates scale over match time — harder to hit the longer the game runs.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Visual evade flash effect when an enemy successfully dodges.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> Boomerang and Spirit normal slash deal extra damage scaling with target's missing HP.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Marchosias was not CC immune while Arc Shield was active — fixed.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v4.4 — GAME CLOCK &amp; LEVIATHAN CC</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026 · game clock unification, pause fix, Leviathan CC immunity, balance changes</div>
+<p class="det-short ul-summary">All timers now pause correctly. Leviathan gained permanent CC Immunity. General balance pass.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-fix">FIX</span> Unified all in-game timers to a single game clock — time-dependent effects (DoTs, cooldowns, buffs) now pause correctly when the game pauses.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Leviathan</b> gained permanent CC Immunity — immune to Black Hole pull, Tesla slow, Rift slow, and Orb slow.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Various balance adjustments across enemies and player skills.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v4.3 — RENDER OPTIMIZATION</span><span class="ul-badge">PERF · FIX</span></div>
+<div class="ul-date">2026 · PixiJS migration, Skill A buff, orb fix, code cleanup</div>
+<p class="det-short ul-summary">Rendering migrated to PixiJS — major performance improvement. Skill A (Thunder Orbs) buffed. Orb Sacrifice curse retaliation fixed.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-perf">PERF</span> Migrated rendering pipeline to PixiJS — significantly reduced lag on high enemy counts.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Skill A (Thunder Orbs):</b> damage improved, Dimensional Rift behavior enhanced, chain-lightning range/count adjusted.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Orb Sacrifice retaliation now correctly traces the original enemy that fired a bullet (fixed ownerRef).</li>
+<li><span class="ul-tag tag-fix">FIX</span> Multiple rendering and animation bug fixes.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v4.2 — DARK SOULS UI &amp; EGREGOR POLISH</span><span class="ul-badge">FEAT · FIX</span></div>
+<div class="ul-date">2026 · Dark Souls game over, boomerang recall, DNT buff, Egregor hitbox &amp; Dimension Break fix</div>
+<p class="det-short ul-summary">Dark Souls-style death screen, proper boomerang recall system, Egregor hitbox fix, and Dimension Break zone added to Null Slash.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> Dark Souls-inspired game over screen with death message and replay prompt.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Boomerang now recalls to the spirit after 2 bounces or lifetime expiry (60% faster on return). BTM finale recalls all instantly.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> DNT detection range 100px → 170px from player; target re-locks every frame during the aim delay.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Dimension Break zone</b> added: Egregor's Null Slash leaves a glowing purple arc on the field for 1s that slows the player 20% on contact.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Null Slash arc hitbox corrected. Egregor movement and slow VFX tuned. Dimension Break zone now uses independent world-space arc (no longer attached to Egregor position).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Guide: Detailed / Shortened toggle added.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v4.1 — EGREGOR ADDED</span><span class="ul-badge">NEW ENEMY</span></div>
+<div class="ul-date">2026 · new elite enemy with tentacles, rage system, and two skills</div>
+<p class="det-short ul-summary">Egregor (Elite) added: 10 tentacles block damage, rage stacks from nearby deaths, Psychic Tempest + Null Slash.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor (Elite)</b> added: HP 1,920–4,200, 40% body DR, CC immune, cap 1.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Collective Mind:</b> 10 tentacles (78% MaxHP each) intercept all non-true, non-piercing hits. Deflect chance scales with alive tentacles (up to 60%). Body only reachable by true damage or piercing.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Mind Link:</b> each nearby enemy death grants a Rage Stack (max 5, 8s). Per stack: +18% speed, +15% MaxHP, 15% heal, tentacles heal + gain +3% DR. Each stack triggers Psychic Tempest immediately.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Psychic Tempest</b> (4s CD): strikes 3 random targets with lightning after 1.2s warning.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Null Slash</b> (3.5s CD): 180° arc after 1–3s windup (+35% DR during windup). Slows player 50% for 1.5s. Deals 15–28% true damage to sentinels. Cannot coexist with Veilshroud.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v4.0 — MEGA REBALANCE</span><span class="ul-badge">MAJOR</span></div>
+<div class="ul-date">2026 · 4.0 balancing and many updates; 4.0.5 balancing</div>
+<p class="det-short ul-summary">Full system rebalance: wave structure, Coronation, all enemy stats, Vulnerability rework, Sentinel improvements, Glory triggers expanded.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Wave System:</b> structured wave table with Apostle/Abnormal/Elite/Dominator counts per wave, Coronation mechanic (Apostle transforms into higher-tier enemy with Iron Body on spawn).</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Custos Aeternus:</b> 6-hit Iron Body → 20-hit Iron Body.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP 1,500–2,600 → 1,800–3,120. DR 10% → 55% permanent. Support Aura structured (40% MaxHP shield, tick shield, +15% DR for shielded). Lumen Nova: marks 3 Sentinels, 5s CD.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Marchosias:</b> body DR 20–25% → 45%. Arc Shield DR 50% → 60%. No single hit &gt; 35% shield HP. Sword damage 32%/28%/26% EP → 27%/23%/21% EP. Shield hp = body hp.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel:</b> base DR 25–30% → 40%. DR per Sentinel 2% → 2.5% (cap 50%). Abyssal Chains 3 chains every 2s → 4 chains every 1.5s.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Leviathan:</b> HP 3,000–6,000 → 8,018–14,032. Base DR after AFO breaks 15% → 60%. All for One kill quota 6 → 10–20. Herd Leader changed to Envy (all enemies +25% DR and +25% healing).</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Thaelis:</b> HP 300–680 → 720–2,400. Reincarnation splits into 3 Embryos (90% DR, CC immune). Tenacity now scales DR by HP lost (up to 95%) and generates Tenacity Barrier every 30% HP lost.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Vulnerability:</b> reworked — 4 stacks (was 3) → +16% dmg taken/stack (cap +64%), shield shred 24% → 26%, auto-fire 25% → 28% chance, others 15% same.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Glory for Justice:</b> now triggers on any Abnormal+ enemy (not just Elites). Damage ×1.4 → ×1.55 confirmed. Chain Lightning arcs 6 enemies → 8 enemies at 50% dmg. Soul Reaver 55% → 60% chance.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Sentinels:</b> Gaia Protection added (max HP grows over time). Tier system finalized (Cyan 1–4, Magenta 5–11, Gold ×12). Vanguard Network refined.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#ffd700">
+<div class="ul-head"><span class="ul-ver">v3.91 — HOT FIX &amp; SCALE</span><span class="ul-badge">FIX · BUFF</span></div>
+<div class="ul-date">2026 · v 3.91 - Hot fix and buff scale</div>
+<p class="det-short ul-summary">Emergency balance pass: Aegis Core, Marchosias, and Dargruel all received HP/stat increases.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP increased (scaling bump), support aura tuned.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Marchosias:</b> HP and Arc Shield HP scaling increased. Body DR raised.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel:</b> HP scaling raised significantly (1,255–5,023 → 2,520–8,399).</li>
+<li><span class="ul-tag tag-fix">FIX</span> Multiple stat and animation bug fixes from v3.9.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#ffd700">
+<div class="ul-head"><span class="ul-ver">v3.9 — GREAT SPIRIT UPDATE</span><span class="ul-badge">NEW SYSTEM</span></div>
+<div class="ul-date">2026 · ver 3.9 - Great Spirit update</div>
+<p class="det-short ul-summary">Phōtokrystos transformation added to Remembrance Spirit — with Boomerang, DNT laser, and Back to Motherland finale.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Primeval Creation:</b> spirit kills charge a mana bar (+2%/kill). At 100%, press S to transform into Phōtokrystos. Meter resets if spirit enters Finale first.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Phōtokrystos:</b> 40s form (from first shot), 3 homing bullets @ 43ms, 100+1.4% EP each. All attacks destroy enemy bullets. Blessing of the Primordial: Sentinels +15% DR, ally dmg +15%, +3 HP/s regen, +50 shield/5s per sentinel.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Boomerang:</b> every 6 volleys, 2 boomerangs chain all enemies (400+5.8% EP+5% missing HP true dmg, re-hits every 200ms). Max 10 on screen.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Danger? Not Today!:</b> enemy within 170px of player or boundary → spirit fires a 2s instant-kill laser sweeping ±20°. Bypasses all shields. 10s CD.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Back to Motherland @37s:</b> full-screen lightning barrier 3.5s (20+35% EP true dmg/100ms) → shockwave (10+99% EP, pierces ALL shields and Iron Body).</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#ffd700">
+<div class="ul-head"><span class="ul-ver">v3.7 — DARGRUEL OVERHAUL</span><span class="ul-badge">BUFF · BALANCE</span></div>
+<div class="ul-date">2026 · V 3.7 - Buff Dargruel, massive buff for Dargruel &amp; Mar, Buff Aegis</div>
+<p class="det-short ul-summary">Dargruel, Marchosias, and Aegis Core all received major HP and stat increases. Dargruel's Maître Suprême reworked.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel:</b> HP 1,400–5,600 → 2,520–8,399. Maître Suprême: 15% base DR → 25% base DR. DR per Sentinel capped at 36%.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Marchosias:</b> HP and Arc Shield scaling significantly raised.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP scaling increased, Support Aura range and heal strengthened.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> General enemy stat bump to keep pace with late-game player power.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#ffd700">
+<div class="ul-head"><span class="ul-ver">v3.4 — VANGUARD NETWORK</span><span class="ul-badge">NEW SYSTEM</span></div>
+<div class="ul-date">2026 · V3.4 - add vanguard network</div>
+<p class="det-short ul-summary">Sentinel Vanguard Network added: damage sharing, AoE dampening, and Fuse Protocol (sacrifice weakest sentinel for Iron Body).</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Vanguard Network</b> activates at 5+ Sentinels (Magenta glow). Damage to any Sentinel is split equally among all N Sentinels as true damage.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>AoE Dampening:</b> same damage source hitting multiple Sentinels: 1st–2nd at 100%, 3rd at 50%, 4th+ at 15%. Resets after 200ms inactivity.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Fuse Protocol:</b> if total network damage in 0.5s exceeds 26% of combined MaxHP, the weakest Sentinel is sacrificed and all remaining gain Iron Body for 0.75s.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel Abyssal Chains:</b> 3 chains every 2s → 4 chains every 1.5s, higher speed.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#ffd700">
+<div class="ul-head"><span class="ul-ver">v3.2 — LEVIATHAN</span><span class="ul-badge">NEW ENEMY</span></div>
+<div class="ul-date">2026 · V 3.2 - Leviathan</div>
+<p class="det-short ul-summary">Leviathan (Dominator) added — Iron Body while enemies are alive (All for One), Envy buffs, Perseverance laser, Last Rites wing barrage.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Leviathan (Dominator)</b> added: HP 3,000–6,000, 15% body DR (after AFO breaks), cap 1.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>All for One:</b> Leviathan is surrounded by unbreakable Iron Body while 6 marked Envy enemies are alive. Each Envy enemy gains +36% MaxHP, +36% DR, and an 18% Leviathan-HP shield.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Perseverance:</b> 360° sweeping laser fires when AFO shield breaks. Player: 1 life. Sentinel: 5% × AFO shield hits EP/tick.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Last Rites @HP 1:</b> 9 wing-plates lock and fire simultaneously, persist after death.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Sentinel spawn: each kill now has 30% chance to count as 2 kills (extra spawn chance).</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#ffd700">
+<div class="ul-head"><span class="ul-ver">v3.0 — WORLD ALTER</span><span class="ul-badge">OVERHAUL</span></div>
+<div class="ul-date">2026 · v 3.0: World Alter</div>
+<p class="det-short ul-summary">Major balance overhaul: Vulnerability buffed to +25% per stack (cap +75%), Accurate Parry detailed, wave system restructured.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Vulnerability:</b> +10% dmg/stack → +25% dmg/stack (max 3 stacks = +75% total dmg taken). Shield shred 5% → 24% current shield.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Accurate Parry:</b> hit during Yog-Sothoth domain → counter-buff 4s. Buff persists even after domain ends.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Enemy spawn rates tuned with proportional time scaling for all tiers.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Thaelis Tenacity Barrier</b> introduced: generates a gold barrier worth (30% MaxHP + 20% HP lost + 250) ×1.34 every 30% HP lost. Blocks all non-spirit-laser damage.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#3b82f6">
+<div class="ul-head"><span class="ul-ver">v2.8 — COMBAT OVERHAUL</span><span class="ul-badge">MAJOR BALANCE</span></div>
+<div class="ul-date">2026 · V2.8 Absolute balance</div>
+<p class="det-short ul-summary">Overload Laser hold reduced to 3s. Vulnerability fully rebalanced. Soul Devourer DoT added. Sentinel tiers and Parry ×1.25 introduced.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Overload Laser:</b> hold time to trigger 5s → 3s (easier to activate).</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Vulnerability rework:</b> auto-fire 10% → 28% chance, others 5% → 15%. Shield shred 5% → 26% current shield. Stacks 3 (was variable), each +10% dmg taken.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Soul Devourer DoT:</b> enemies with Soul Reaver take true DoT every 0.35s (60 base + 5.5% EP).</li>
+<li><span class="ul-tag tag-balance">BUFF</span> <b>Accurate Parry:</b> ×1.25 damage multiplier (stacks with Glory ×1.55 → combined ×1.9375).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Sentinel tier system: Cyan (1–4) +30% HP, Magenta (5–11) +20% fire rate +10% dmg +10% DR, Gold (12) every shot = Special Shot.</li>
+<li><span class="ul-tag tag-balance">BUFF</span> Player hitbox reduced to a small cyan dot — only the exact center collides.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Auto-pause on tab switch; pulsing white outline on enemy bullets for visibility.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#3b82f6">
+<div class="ul-head"><span class="ul-ver">v2.6 — VULNERABILITY SYSTEM</span><span class="ul-badge">NEW MECHANIC</span></div>
+<div class="ul-date">2026 · V2.6 - add Vulnerability, Buff Vulnerability</div>
+<p class="det-short ul-summary">Vulnerability debuff system introduced: stacking damage amplification and shield shred on all friendly hits.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Vulnerability</b> introduced: stacking debuff applied by all friendly attacks. Each stack: +10% dmg taken + 5% shield shred. Stacks up to 3 times, 3s duration (refreshed on new stack).</li>
+<li><span class="ul-tag tag-balance">BUFF</span> Vulnerability immediately buffed: application chance increased and shield shred raised.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Soul Reaver debuff also added: reduces healing/shielding received. Applied by Chain Lightning (50% chance).</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#3b82f6">
+<div class="ul-head"><span class="ul-ver">v2.5 — MARCHOSIAS &amp; RENAME</span><span class="ul-badge">NEW ENEMY</span></div>
+<div class="ul-date">2026 · V2.5 - New Elite; game renamed Pisces: Space Journey</div>
+<p class="det-short ul-summary">Marchosias (Elite) added with rotating Arc Shield and sword system. Game renamed to "Pisces: Space Journey." Lives standardized to 12.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Marchosias (Elite)</b> added: HP 1,000–2,200, 20% body DR. Arc Shield: 50% DR, independent HP pool = body HP, tracks player.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Swords:</b> 20% chance per shield hit (guaranteed on break). Orange warning beam + arc projectile that deals 32%/28%/26% Sentinel EP (1st/2nd/3rd+).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Assimilation:</b> death spawns 3 Minion Robots (15–25% MaxHP +30%, parasite or hunt).</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Game renamed from "Space Shooter (Thần Binh Thiên Hà)" to <b>Pisces: Space Journey</b>.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Lives standardized to 12. Glory for Justice damage multiplier set to ×1.55.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#3b82f6">
+<div class="ul-head"><span class="ul-ver">v2.2 — GRAPHIC OVERHAUL</span><span class="ul-badge">VISUAL</span></div>
+<div class="ul-date">2026 · V 2.2 - Graphic upgrade, logic upgrade</div>
+<p class="det-short ul-summary">Major visual overhaul — new ship design, improved enemy visuals, upgraded animations, and overall polish pass.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> Completely redesigned player ship appearance.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Upgraded enemy visual designs (Thaelis, Aegis Core, Dargruel all redesigned).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Enhanced animations for all skills and explosions.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Logic fixes accompanying the graphic update.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#3b82f6">
+<div class="ul-head"><span class="ul-ver">v2.0 — YOG-SOTHOTH DOMAIN</span><span class="ul-badge">NEW SKILL</span></div>
+<div class="ul-date">2026 · V 2.0 - Implement Time-Space Manipulation</div>
+<p class="det-short ul-summary">Yog-Sothoth Domain (Shift) added — time slow + Iron Body + teleport. Defense hierarchy established.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Yog-Sothoth Domain (Shift):</b> slows world to 15% speed for up to 8s. Player gains Iron Body during domain. All enemy bullets destroyed on activation.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Teleportation:</b> while holding Shift, press ← → to instantly teleport to the projected shadow location (up to half-screen width).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Accurate Parry:</b> taking a hit during domain triggers a counter-buff (+25% dmg, Sentinel Iron Body 1.25s).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Defense hierarchy established: <i>Domain → Orb Sacrifice → Player Shield → Last Stand → Lose a life.</i></li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Cooldown scales with hold duration: &lt;2s → 1.1s · 2–5s → 4.4s · ≥7s → 9s · teleport always → 9s.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v1.6 — THAELIS &amp; DARGRUEL</span><span class="ul-badge">NEW ENEMIES</span></div>
+<div class="ul-date">2026-03-15 · V1.6 - Thaelis, Dargruel</div>
+<p class="det-short ul-summary">Two new enemies: Thaelis (Abnormal, splits into Embryos on death) and Dargruel (first Dominator with Demon Gift and Abyssal Chains).</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Thaelis (Abnormal):</b> HP 300–680. Fires homing split projectiles. On death: splits into 3 Embryos (90% DR, CC immune, hatch @3s → new enemy).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Dargruel (Dominator):</b> HP 1,255–5,023. 15% base DR. Maître Suprême: +2% DR/Sentinel, +5% atk speed/Sentinel.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Demon Gift:</b> at 70%/40%/10%/1% HP, heals all enemies 15% Dargruel MaxHP and grants +20% DR for 4s.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Maou Haki @50% HP:</b> screen-wide shockwave destroys all friendly projectiles. Sentinels −20% MaxHP.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Abyssal Chains:</b> 3 piercing chains every 2s → Root &amp; Silence 1s (player) or 15% EP true dmg (Sentinel).</li>
+<li><span class="ul-tag tag-balance">BUFF</span> Chain Lightning buffed: arcs up to 6 enemies (was 3), Soul Reaver added (50% chance: −20% healing).</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v1.5 — SENTINEL BUFF</span><span class="ul-badge">BUFF</span></div>
+<div class="ul-date">2026-03-14 · buff sentinel v1.5</div>
+<p class="det-short ul-summary">Sentinels significantly buffed: higher HP, better fire rate, Special Shot vampiric effect, special shot system added.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">BUFF</span> Sentinel base HP 150 → 260+. Fire interval reduced (faster).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Special Shot:</b> every 4th shot is a homing Special Shot that heals the Sentinel 2–3 HP on hit.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Fortified Sentinel:</b> 36% chance on spawn to gain +50% MaxHP.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Sentinel spawn trigger adjusted: 1 per 3 kills (was 5 kills).</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v1.4 — LAST STAND SYSTEM</span><span class="ul-badge">NEW MECHANIC</span></div>
+<div class="ul-date">2026-03-14 · Last stand update 1.4</div>
+<p class="det-short ul-summary">Last Stand and Final Defense (Player Shield + Boundary Shield) added as automatic safety nets.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Final Defense — Player Shield:</b> absorbs 1 hit, regenerates after 25s.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Final Defense — Boundary Shield:</b> absorbs 1 enemy crossing the bottom boundary, 25s regen.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Last Stand:</b> on the last life, a fatal hit is absorbed. Player and all Sentinels gain an Absolute Shield. Triggers once per run.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Orb Sacrifice:</b> Yellow Orbs can absorb a fatal hit, applying Soul Reaver + DoT + 25% slow to the attacker.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v1.3 — AEGIS CORE</span><span class="ul-badge">NEW ENEMY</span></div>
+<div class="ul-date">2026-03-14 · Add Aegis Core Enemy</div>
+<p class="det-short ul-summary">Aegis Core (Elite) added: Iron Body (6 hits), Support Aura healing field, and Lumen Nova laser skill.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Aegis Core (Elite)</b> added: HP 400–750, 10% DR.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Custos Aeternus:</b> first 6 hits nullified (Iron Body, white flash each). Breaks after 6th hit.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Support Aura:</b> heals allies inside the field each second. Grants shields to allies.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Lumen Nova:</b> every 5s marks player + Sentinels and fires lasers after 1s warning.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v1.2 — COMBAT TUNING</span><span class="ul-badge">BALANCE</span></div>
+<div class="ul-date">2026-03-13 · balance 1.2; V1.2 balance</div>
+<p class="det-short ul-summary">Charged shot max time reduced to 1s. Additional stat adjustments across enemies and player.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">NERF</span> Charged shot max charge time 1300ms → 1000ms.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Further enemy HP scaling and spawn rate tuning.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Semantic bug fixes.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v1.1 — FIRST BALANCE</span><span class="ul-badge">BALANCE</span></div>
+<div class="ul-date">2026-03-13 · Balancing 1.1</div>
+<p class="det-short ul-summary">First major balance pass: lives reduced from 15 to 10, Chain Lightning added to Glory, damage values tuned.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-balance">NERF</span> Starting lives 15 → 10.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Chain Lightning</b> added to Glory for Justice: arcs up to 3 enemies at 5.5–11% of triggering hit's dmg (250ms CD).</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Glory now also triggers when a Boss (Dargruel) is present.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> Player and enemy damage values tuned across the board.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v1.0 — INITIAL RELEASE</span><span class="ul-badge">LAUNCH</span></div>
+<div class="ul-date">2026-03 · Code game Space Shooter chia file — first playable version</div>
+<p class="det-short ul-summary">First playable version — auto-fire ship, normal enemies, Thunder Orbs, Black Hole, Annihilation Sweep, Tesla Matrix, Remembrance Spirit, and Sentinels.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> Player ship: 5-bullet auto-fire (45° spread, 170ms), charged shot (up to 10×, cap 12% MaxHP), Overload Laser (hold 5s, 12s beam).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Sentinels:</b> spawn every 5 kills, max 15. Fire homing bullets, heal on special shot.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Glory for Justice:</b> activates on 4+ enemies or Skill G. ×1.4 dmg and fire rate for all friendly units.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Skills A (Thunder Orbs), S (Remembrance Spirit), D (Black Hole), F (Annihilation Sweep), G (Tesla Matrix) all present.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Normal enemies only: HP 1–60, scales over time. 1 bullet/sec at current HP.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> 15 starting lives. +1 life per 500,000 points.</li>
+</ul>
+</div>`
     };
 
     // ── Render tab content ──
@@ -1165,7 +1505,7 @@
           const TOT=N_DUR+C_DUR+X_DUR;
           const XNAMES=['MARCHOSIAS','VEILSHROUD','THAELIS','DARGRUEL'];
           const XCOLS=['#00cc66','#8c14ff','#ffd700','#9900ff'];
-          const XSUBS=['Elite · Arc Shield','Abnormal · Alteration','Abnormal · Tenacity','Boss · Maître Suprême'];
+          const XSUBS=['Elite · Arc Barrier','Abnormal · Alteration','Abnormal · Tenacity','Boss · Maître Suprême'];
           let nc=-1, nxi=0;
 
           function normJagBolt(x1,y1,x2,y2,segs,jit){

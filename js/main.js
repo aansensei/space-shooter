@@ -61,7 +61,8 @@ function playerTakesHit(attacker) {
                 && _curseTarget.type !== 'veilshroud_echo'
                 && _curseTarget.type !== 'leviathan'
                 && !_curseTarget.inCoronation
-                && !(_curseTarget.type === 'marchosias' && _curseTarget.arcShield && _curseTarget.arcShield.hp > 0)) {
+                && !(_curseTarget.type === 'marchosias' && _curseTarget.arcBarrier && _curseTarget.arcBarrier.hp > 0)
+                && !(_curseTarget.type === 'aegis_core' && _curseTarget.aegisInvulnerable)) {
                 _curseTarget.soulReaver = true;
                 _curseTarget._orbRetaliationSlowEnd = performance.now() + 3000;
                 createParticles(_curseTarget.x, _curseTarget.y, 12, '#d800ff', 2, 5);
@@ -389,9 +390,12 @@ function update(rawDeltaTime) {
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
-                            // Laser chạm khiên Mar → tính 1 hit, không damage Mar
-                            if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
-                                if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                            // Laser vs Mar arc barrier: piercing — 30% body DR, barrier takes +15%, sword 25%
+                            if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                                const _lSrc = { damage: 100, percentDamage: 0.16, isPiercing: true, _barrierPiercing: true };
+                                checkMarchosiasArcBarrier(enemy, _lSrc, enemy.x, enemy.y);
+                                dealDamage(enemy, _lSrc);
+                                break;
                             } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                 // Laser hit Leviathan shield → count hits, no body damage
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
@@ -439,7 +443,7 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.04 * (deltaTime / 1000); // 4% per second
+            let healAmt = enemy.maxHp * 0.06 * (deltaTime / 1000); // 6% per second
             let shieldAmt = enemy.maxHp * 0.40;
             let tickShieldAmt = enemy.maxHp * 0.08 * (deltaTime / 1000); // 8% MaxHP shield/s
             let auraRadius = canvas.width / 2;
@@ -534,8 +538,9 @@ function update(rawDeltaTime) {
                 } else if (enemy.type === 'egregor' || enemy.type === 'boss') {
                     // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
-                } else if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
-                    // CC immune while Arc Shield active, no slow
+                } else if ((enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)) {
+                    // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
                 } else {
                     teslaSpeedMultiplier = 0.30;
@@ -837,7 +842,8 @@ function update(rawDeltaTime) {
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             const _coronaSlow = (enemy.type === 'normal' && enemy.inCoronation) ? 0.55 : 1.0;
             const _ccImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan'
-                || (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0);
+                || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+                || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
             const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
             enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul;
@@ -952,15 +958,22 @@ function update(rawDeltaTime) {
                     _fireMarchosiasDeathSwords(enemy);
                 }
 
-                // Khiên hướng về phía player, tâm cung luôn track player
-                // Cung 90° (±45°) đặt ở hướng từ Marchosias → player
-                if (enemy.arcShield) {
-                    const targetAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-                    // Xoay mượt về hướng player
-                    let diff = targetAngle - enemy.arcShield.angle;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    enemy.arcShield.angle += diff * 0.08 * dt;
+                // Arc barrier tracks player; tracking speed scales 0.08→0.133 over 3 minutes
+                if (enemy.arcBarrier) {
+                    if (enemy._arcBarrierReviveAt && gameElapsedTime >= enemy._arcBarrierReviveAt) {
+                        enemy._arcBarrierReviveAt = null;
+                        enemy.arcBarrier = { hp: enemy.maxHp, maxHp: enemy.maxHp, angle: enemy.arcBarrier.angle, hitCount: 0 };
+                        addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#00ff88');
+                        createParticles(enemy.x, enemy.y, 25, '#00ff88', 2, 6);
+                    }
+                    if (enemy.arcBarrier.hp > 0) {
+                        const targetAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                        let diff = targetAngle - enemy.arcBarrier.angle;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        const _trackSpeed = 0.08 + 0.053 * Math.min(1, gameElapsedTime / 180000);
+                        enemy.arcBarrier.angle += diff * _trackSpeed * dt;
+                    }
                 }
 
                 // Tấn công bình thường: 2 đạn/giây, target vị trí player hoặc sentinel gần nhất
@@ -1030,6 +1043,23 @@ function update(rawDeltaTime) {
 
             // MARCHOSIAS MINION (handled in separate else-if below)
         } else if (enemy.type === 'marchosias_minion') {
+            // Periodically scan for a valid host to attach to as parasite
+            enemy._hostScanTimer = (enemy._hostScanTimer || 0) - deltaTime;
+            if (enemy._hostScanTimer <= 0) {
+                enemy._hostScanTimer = 500;
+                const _nearHost = enemies.find(e =>
+                    e !== enemy && e.hp > 0 && !e._markedForDeath &&
+                    e.type !== 'marchosias_minion' && e.type !== 'marchosias' &&
+                    !e.type.startsWith('enemy_bullet') &&
+                    Math.hypot(e.x - enemy.x, e.y - enemy.y) < 170
+                );
+                if (_nearHost) {
+                    _nearHost.marchosiasParasiteShield = (_nearHost.marchosiasParasiteShield || 0) + enemy.hp;
+                    createParticles(_nearHost.x, _nearHost.y, 12, '#00ff88', 2, 5);
+                    enemy.hp = 0;
+                    continue;
+                }
+            }
             const mmdx = player.x - enemy.x, mmdy = player.y - enemy.y;
             const mmd = Math.hypot(mmdx, mmdy);
             const _mmRiftSlow = enemy._riftSlow ? 0.65 : 1.0;
@@ -1215,33 +1245,9 @@ function update(rawDeltaTime) {
                     break;
                 }
 
-                // MARCHOSIAS ARC SHIELD CHECK
-                if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
-                    const bulletAngle = Math.atan2(b.y - enemy.y, b.x - enemy.x);
-                    const shieldAngle = enemy.arcShield.angle;
-                    let angleDiff = bulletAngle - shieldAngle;
-                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-
-                    if (Math.abs(angleDiff) < Math.PI / 4) {
-                        // Trúng khiên, 60% DR, max 35% shield HP, KHÔNG damage Mar
-                        const effectiveHp = enemy.arcShield.maxHp;
-                        let dmg = Math.ceil(b.damage + (effectiveHp * (b.percentDamage || 0)));
-                        if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.70);
-                        dmg = Math.ceil(dmg * 0.40);
-                        dmg = Math.min(dmg, Math.ceil(enemy.arcShield.hp * 0.35));
-                        const shieldWasAlive = enemy.arcShield.hp > 0;
-                        enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
-
-                        // Mỗi đòn trúng khiên: 10% chance counter
-                        if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
-                        // Khiên vừa vỡ → counter ngay
-                        if (shieldWasAlive && enemy.arcShield.hp <= 0) {
-                            addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
-                            _tryTriggerMarchosiasCounter(enemy);
-                        }
-
-                        createParticles(b.x, b.y, 3, '#aaffaa', 1, 4);
+                // MARCHOSIAS ARC BARRIER CHECK (all new mechanics handled in checkMarchosiasArcBarrier)
+                if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                    if (checkMarchosiasArcBarrier(enemy, b, b.x, b.y)) {
                         bullets.splice(i, 1);
                         break;
                     }

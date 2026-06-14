@@ -2629,17 +2629,24 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.globalAlpha = alpha;
     ctx.translate(player.x + xOffset, player.y);
 
-    // Pulsing visibility beacon — makes ship easy to spot during gameplay
+    // Pulsing visibility beacon — ship outline strobes to stay visible in bullet hell
     const _pulseA = 0.45 + 0.55 * Math.abs(Math.sin(now / 520));
-    ctx.shadowBlur = 14 + 10 * _pulseA;
+    const _blinkPhase = Math.abs(Math.sin(now / 380));
+    ctx.shadowBlur = 18 + 14 * _pulseA;
     ctx.shadowColor = '#00d4ff';
-    ctx.strokeStyle = `rgba(0, 210, 255, ${0.35 + 0.55 * _pulseA})`;
-    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = `rgba(0, 210, 255, ${0.45 + 0.55 * _blinkPhase})`;
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
     ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(26, 16);
     ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-26, 16);
     ctx.lineTo(-28, 10); ctx.closePath();
     ctx.stroke();
+    // Second outline pass at peak blink for extra pop
+    if (_blinkPhase > 0.75) {
+        ctx.strokeStyle = `rgba(180, 240, 255, ${(_blinkPhase - 0.75) * 1.8})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+    }
     ctx.shadowBlur = 0;
 
     // engine exhaust plume (gradient fill, no blur)
@@ -4099,12 +4106,25 @@ function _drawMarchosias(enemy) {
 
     ctx.restore();
 
-    // ARC SHIELD (¼ circle arc, rotates around Marchosias)
-    if (enemy.arcShield && enemy.arcShield.hp > 0) {
+    // ARC BARRIER revive countdown ring
+    if (enemy._arcBarrierReviveAt && (!enemy.arcBarrier || enemy.arcBarrier.hp <= 0)) {
+        const _reviveRemain = Math.max(0, enemy._arcBarrierReviveAt - gameElapsedTime);
+        const _reviveProg = 1 - _reviveRemain / 5000;
+        ctx.save();
+        ctx.strokeStyle = `rgba(0,255,136,${0.15 + 0.1 * Math.sin(now / 200)})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, r + 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * _reviveProg);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // ARC BARRIER (¼ circle arc, rotates around Marchosias)
+    if (enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
         const shieldR = r + 16;
-        const sa = enemy.arcShield.angle - Math.PI / 4;
-        const ea = enemy.arcShield.angle + Math.PI / 4;
-        const shieldPct = enemy.arcShield.hp / enemy.arcShield.maxHp;
+        const sa = enemy.arcBarrier.angle - Math.PI / 4;
+        const ea = enemy.arcBarrier.angle + Math.PI / 4;
+        const shieldPct = enemy.arcBarrier.hp / enemy.arcBarrier.maxHp;
 
         ctx.save();
         // Outer glow
@@ -4148,7 +4168,7 @@ function _drawMarchosias(enemy) {
         ctx.fillStyle = '#00ff88'; ctx.fillRect(bx, by, bw * shieldPct, bh);
         ctx.strokeStyle = '#00cc66'; ctx.lineWidth = 0.8; ctx.strokeRect(bx, by, bw, bh);
         ctx.fillStyle = '#00ff88'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('SHIELD', enemy.x, by - 2);
+        ctx.fillText('BARRIER', enemy.x, by - 2);
 
         ctx.restore();
     }
@@ -4324,15 +4344,19 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.shadowBlur = 0;
     }
 
-    // Sword queue counter, Roman numerals below Mar
-    const queueCount = (enemy.marchosiasWindups || []).length;
-    if (queueCount > 0) {
-        const romans = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+    // Sword queue counter, Roman numerals below Mar — always visible
+    {
+        const queueCount = (enemy.marchosiasWindups || []).length;
+        const romans = ['·', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
         const roman = romans[Math.min(queueCount, romans.length - 1)];
         const yOff = R + 22;
         ctx.save();
-        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; }
-        ctx.fillStyle = '#00ff88';
+        if (queueCount > 0) {
+            if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; }
+            ctx.fillStyle = '#00ff88';
+        } else {
+            ctx.fillStyle = 'rgba(0,255,136,0.35)';
+        }
         ctx.font = `bold ${Math.max(11, Math.floor(R * 0.28))}px serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -4349,10 +4373,20 @@ function _drawMarchosiasMinion(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
+    // Blink ring to signal presence (strobe)
+    const _blinkA = 0.55 + 0.45 * Math.abs(Math.sin(now / 220));
+    if (_blinkA > 0.85) {
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(0,255,136,${(_blinkA - 0.85) * 3.5})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
     // Triangular body (from ref image, image 4 small triangle robots)
     const pulse = 0.8 + 0.2 * Math.sin(now / 200);
     ctx.fillStyle = '#0d1f17';
-    ctx.strokeStyle = `rgba(0,200,80,${pulse})`;
+    ctx.strokeStyle = `rgba(0,200,80,${pulse * _blinkA})`;
     ctx.lineWidth = 1.8;
     if (!_mobPerf) ctx.shadowColor = '#00ff88'; if (!_mobPerf) ctx.shadowBlur = 10;
     ctx.beginPath();
