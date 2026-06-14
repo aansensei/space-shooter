@@ -502,7 +502,14 @@
 <ul>
 <li><b>Player Shield:</b> absorbs 1 hit <span class="cd">25s regen</span>. <b>Boundary Shield:</b> absorbs 1 crossing enemy <span class="cd">25s</span>.</li>
 <li><b>Last Stand:</b> last life fatal hit → survive + <span class="hg">Absolute Shield</span> on you + Sentinels. <span class="hg">Once only.</span></li>
-<li>Priority: <span class="hp">Domain</span> → <span class="hi">Orb Sacrifice</span> → Player Shield → Last Stand → Lose life.</li></ul></div>`,
+<li>Priority: <span class="hp">Domain</span> → <span class="hi">Orb Sacrifice</span> → Player Shield → Last Stand → Lose life.</li></ul></div>
+<div class="card"><h2 style="color:#ffaaaa">YUUKI — WILL TO FIGHT</h2><div class="sub">PASSIVE • WAVE 8+ • EVERY 2 WAVES • STACKS TO +150%</div>
+<ul>
+<li>Starting at <span class="hi">Wave 8</span>, every <span class="hi">2 waves</span> (Wave 8, 10, 12, …): all allied units deal <span class="hg">+15% more damage</span>.</li>
+<li>Stacks additively until total bonus reaches <span class="hg">+150%</span> (capped at Wave 26+), then stays fixed.</li>
+<li>Applies to all friendly damage sources: auto-fire, skills, spirits, sentinels, chain lightning, tesla DoT.</li>
+<li>Displayed in the HUD as <span class="hg">⚔ Yuuki +X%</span> once active.</li>
+</ul></div>`,
 
       skills: `
 <div class="card"><h2 style="color:#ff8800"><span class="key">Space</span> CHARGED SHOT & OVERLOAD LASER</h2>
@@ -716,6 +723,10 @@
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Abyssal Chains:</b> interval 1.5s → 2.1s. Speed −10%.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Marchosias Arc Barrier break:</b> DR +10% → +20% (removed on revive). NEW: gains shield = <span class="hg">15% MaxHP + 15% HP lost</span> on break.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Thaelis:</b> HP floor 720 → 1,000 (max stays 2,400).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Yuuki — Will to Fight:</b> new player passive. From Wave 8, every 2 waves: <span class="hg">+15% damage</span> to all allied units, stacking to <span class="hg">+150% cap</span>. Shown in HUD as ⚔ Yuuki +X%.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Abyssal Chains:</b> now truly indestructible — added hard immunity in <code>dealDamage</code> so no damage source can reduce chain HP.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Mar minions:</b> initial spawn host scan now also excludes <code>veilshroud_echo</code> and <code>abyssal_chain</code> as valid hosts.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Leviathan:</b> now CC-immune to Overload Laser pull (was missing from laser pull exclusion list).</li>
 </ul>
 </div>
 

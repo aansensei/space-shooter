@@ -119,6 +119,7 @@ let _waveQueue = [];
 let _waveQueueTimer = 0;
 let _waveAnnouncedAt = 0;
 let _waveForceEndTimer = 0;
+let _yuukiBonus = 0;
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
 let boundaryY = canvas.height - 10;

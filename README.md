@@ -188,6 +188,17 @@ Sentinels with Iron Body active are individually immune in all damage paths (dea
 
 ---
 
+### Yuuki — Will to Fight
+
+A passive that builds momentum as the run progresses, rewarding survival deep into the game.
+
+- **Trigger:** Starting at **Wave 8**, and every **2 waves** thereafter (Wave 8, 10, 12, …), all allied units permanently gain **+15% damage output**.
+- **Cap:** Stacks additively until the total bonus reaches **+150%** (10 triggers, reached at Wave 26), after which it stays fixed.
+- **Scope:** Applies to all player and sentinel damage — auto-fire, charged shot, skills, spirits, chain lightning, tesla DoT, and all other sources processed through `dealDamage`.
+- **Display:** Once active, shown in the HUD as **⚔ Yuuki +X%**.
+
+---
+
 ## Active Skills
 
 ### Shift — Yog-Sothoth: Cursed Domain Expansion
