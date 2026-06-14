@@ -112,11 +112,11 @@ function updateSkillA(deltaTime) {
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
                 const _preTotal = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0);
-                dealDamage(orb.target, { damage: 110, percentDamage: 0.18 });
+                dealDamage(orb.target, { damage: 140, percentDamage: 0.22 });
                 const _didDmg = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0) < _preTotal;
                 orb.target.isTargetedByA = false;
 
-                spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 5, percentDamage: 0.015 });
+                spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 8, percentDamage: 0.020 });
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
                 if (_didDmg) spawnDimensionalRift(orb.x, orb.y);
                 skillAOrbs.splice(i, 1);
@@ -397,7 +397,7 @@ function updateSpirits(deltaTime) {
                 const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 60, percentDamage: 0.0055,
+                    damage: 75, percentDamage: 0.007,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
                     isSpirit: true,
                 });
@@ -414,7 +414,7 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 170, percentDamage: 0.048, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
         }
     }
 }
@@ -645,7 +645,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             for (let bi = 0; bi < 3; bi++) {
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 100 * dmgMult * dntMult, percentDamage: 0.014 * dntMult,
+                    damage: 125 * dmgMult * dntMult, percentDamage: 0.017 * dntMult,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
                     applyVuln: true, vulnChance: 0.15,
@@ -706,7 +706,7 @@ function spawnPhotoBrangs(fromX, fromY, count) {
             targetIdx: 0,
             hitEnemies: [],
             rotation: Math.random() * Math.PI * 2,
-            damage: 400, percentDamage: 0.058,
+            damage: 500, percentDamage: 0.070,
             lifetime: 9000,
         });
     }
@@ -1135,7 +1135,7 @@ function activateSkillG() {
 
 function endSkillG() {
     skillGActive = false;
-    const explosionProps = { damage: 10, percentDamage: 0.06 };
+    const explosionProps = { damage: 20, percentDamage: 0.09 };
     const explosionRadius = ENERGY_ORB_SIZE * 5;
 
     energyOrbs.forEach(orb => {
@@ -1325,7 +1325,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         dotMap.set(enemy, currentTime);
                     }
                     if (currentTime - dotMap.get(enemy) >= 125) {
-                        dealDamage(enemy, { damage: 45, percentDamage: 0.012, isTeslaDot: true });
+                        dealDamage(enemy, { damage: 58, percentDamage: 0.015, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                     }
                 } else {
@@ -1374,7 +1374,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
         });
 
         if (coil.hp <= 0) {
-            const explosionProps = { damage: 10, percentDamage: 0.12 };
+            const explosionProps = { damage: 20, percentDamage: 0.15 };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
