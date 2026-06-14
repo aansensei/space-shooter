@@ -437,7 +437,7 @@ function update(rawDeltaTime) {
                     speed: (1 + Math.random() * 2) * 0.8,
                     hp: enemy.originalHpAtHatch + 60, maxHp: enemy.originalHpAtHatch + 60,
                     isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-                    type: 'normal', shootTimer: 1000
+                    type: 'apostle', shootTimer: 1000
                 });
             }
         }
@@ -669,7 +669,7 @@ function update(rawDeltaTime) {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
             // Apostle chết bình thường → cộng bonus coronation theo vị trí
-            if (enemy.type === 'normal' && !enemy.inCoronation && !enemy._coronationConsumed) {
+            if (enemy.type === 'apostle' && !enemy.inCoronation && !enemy._coronationConsumed) {
                 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
                 window._coronationDeathBonus += enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
             }
@@ -840,7 +840,7 @@ function update(rawDeltaTime) {
             updateVeilshroudEcho(enemy, deltaTime);
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
-            const _coronaSlow = (enemy.type === 'normal' && enemy.inCoronation) ? 0.55 : 1.0;
+            const _coronaSlow = (enemy.type === 'apostle' && enemy.inCoronation) ? 0.55 : 1.0;
             const _ccImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan'
                 || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                 || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
@@ -932,7 +932,7 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (enemy.type === 'normal') {
+            if (enemy.type === 'apostle') {
                 // Coronation passive, runs every frame, handles its own 1s tick
                 updateApostleCoronation(enemy, deltaTime);
 
@@ -963,7 +963,7 @@ function update(rawDeltaTime) {
                     if (enemy._arcBarrierReviveAt && gameElapsedTime >= enemy._arcBarrierReviveAt) {
                         enemy._arcBarrierReviveAt = null;
                         enemy.arcBarrier = { hp: enemy.maxHp, maxHp: enemy.maxHp, angle: enemy.arcBarrier.angle, hitCount: 0 };
-                        enemy.DR = Math.max(0.20, (enemy.DR || 0.20) - 0.10);
+                        enemy.DR = Math.max(0.45, (enemy.DR || 0.45) - 0.10);
                         enemy._barrierSwordsThisCycle = 0;
                         addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#00ff88');
                         createParticles(enemy.x, enemy.y, 25, '#00ff88', 2, 6);
@@ -1174,7 +1174,7 @@ function update(rawDeltaTime) {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
             // Apostle chết bình thường → cộng bonus coronation theo vị trí
-            if (enemy.type === 'normal' && !enemy.inCoronation && !enemy._coronationConsumed) {
+            if (enemy.type === 'apostle' && !enemy.inCoronation && !enemy._coronationConsumed) {
                 if (window._coronationDeathBonus === undefined) window._coronationDeathBonus = 0;
                 window._coronationDeathBonus += enemy.y < canvas.height / 2 ? 0.0067 : 0.01;
             }
@@ -1641,7 +1641,7 @@ function _buildWaveQueue(waveNum) {
     events.forEach((count, idx) => {
         const baseAt = Math.round(normalGap * (idx + 1));
         for (let j = 0; j < count; j++)
-            queue.push({ tier: 'normal', at: baseAt + j * 100 });
+            queue.push({ tier: 'apostle', at: baseAt + j * 100 });
     });
 
     // Abnormals: 15%-72% of T, pair if 4+
@@ -1688,7 +1688,7 @@ function _spawnWaveTier(tier) {
         const vc = enemies.filter(e => e.type === 'veilshroud').length;
         const ec = enemies.filter(e => e.type === 'egregor').length;
         if (vc < 2 && ec === 0) pool.push('veilshroud');
-        if (!pool.length) { spawnNormalEnemy(); return; }
+        if (!pool.length) { spawnApostle(); return; }
         const pick = pool[Math.floor(Math.random() * pool.length)];
         if (pick === 'marchosias') spawnMarchosias(); else spawnVeilshroud();
     } else if (tier === 'elite') {
@@ -1699,7 +1699,7 @@ function _spawnWaveTier(tier) {
         const vc = enemies.filter(e => e.type === 'veilshroud').length;
         const egrOk = !window._lastEgregorKillTime || (_now - window._lastEgregorKillTime) >= 6000;
         if (ec < 1 && vc === 0 && egrOk) pool.push('egregor');
-        if (!pool.length) { spawnNormalEnemy(); return; }
+        if (!pool.length) { spawnApostle(); return; }
         const pick = pool[Math.floor(Math.random() * pool.length)];
         if (pick === 'thaelis') spawnThaelis();
         else if (pick === 'aegis_core') spawnAegisCore();
@@ -1709,7 +1709,7 @@ function _spawnWaveTier(tier) {
         if (enemies.filter(e => e.type === 'boss').length < 2) pool.push('boss');
         const levOk = !window._lastLeviathanKillTime || (_now - window._lastLeviathanKillTime) >= 8000;
         if (enemies.filter(e => e.type === 'leviathan').length < 1 && levOk) pool.push('leviathan');
-        if (!pool.length) { spawnNormalEnemy(); return; }
+        if (!pool.length) { spawnApostle(); return; }
         const pick = pool[Math.floor(Math.random() * pool.length)];
         if (pick === 'boss') spawnDargruel();
         else { spawnLeviathan(); _ensureLeviathanQuota(enemies[enemies.length - 1]); }
@@ -1734,7 +1734,7 @@ function _updateWaveSystem(deltaTime, now) {
         const entry = _waveQueue.shift();
         const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
         if (active < _cap) {
-            if (entry.tier === 'normal') spawnNormalEnemy();
+            if (entry.tier === 'apostle') spawnApostle();
             else _spawnWaveTier(entry.tier);
         }
     }

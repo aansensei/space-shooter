@@ -554,7 +554,7 @@ Enemies are divided into five tiers of power.
 
 | Class | Examples |
 |---|---|
-| **Normal** | Standard enemy |
+| **Normal** | Apostles |
 | **Abnormal** | Thaelis, Veilshroud |
 | **Elite** | Marchosias, Heavenly Aegis Core, Egregor |
 | **Dominator** | Dargruel, Leviathan |

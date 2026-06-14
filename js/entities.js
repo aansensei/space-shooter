@@ -89,7 +89,7 @@ function _triggerArcBarrierBreak(enemy) {
     } else {
         enemy.hp = newHp;
     }
-    enemy.DR = Math.min(0.99, (enemy.DR || 0.20) + 0.10);
+    enemy.DR = Math.min(0.99, (enemy.DR || 0.45) + 0.10);
     const _reviveDelay = _fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
     enemy._arcBarrierReviveDuration = _reviveDelay;
     enemy._arcBarrierReviveAt = gameElapsedTime + _reviveDelay;
@@ -248,7 +248,7 @@ function spawnEnemy() {
     const totalElite = dargruelCount + thaelisCount + aegisCount + marchosiasCount + leviathanCount + veilshroudCount + egregorCount;
 
     if (elapsedSec < 20) {
-        spawnNormalEnemy();
+        spawnApostle();
         return;
     }
 
@@ -258,7 +258,7 @@ function spawnEnemy() {
         if (marchosiasCountEarly < 1 && Math.random() < 0.04 + tEarly * 0.04) {
             spawnMarchosias(); return;
         }
-        spawnNormalEnemy();
+        spawnApostle();
         return;
     }
 
@@ -316,7 +316,7 @@ function spawnEnemy() {
         spawnEgregor(); return;
     }
 
-    spawnNormalEnemy();
+    spawnApostle();
 }
 
 function spawnDargruel() {
@@ -380,7 +380,7 @@ function spawnMarchosias() {
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'marchosias',
         shootTimer: 1000,
-        DR: 0.20,
+        DR: 0.45,
         arcBarrier: {
             hp: shieldHp,
             maxHp: shieldHp,
@@ -425,7 +425,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
     }
 }
 
-function spawnNormalEnemy() {
+function spawnApostle() {
     const size = 20 + Math.random() * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 15000);
     let hp = Math.min(330, (Math.floor(Math.random() * 20) + 22 + hpFromTime * 5));
@@ -433,7 +433,7 @@ function spawnNormalEnemy() {
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-        type: 'normal', shootTimer: 1000
+        type: 'apostle', shootTimer: 1000
     });
 }
 
@@ -967,7 +967,7 @@ function dealDamage(enemy, source) {
     }
 
     // Coronation: apostle undergoing transformation, immortal, cannot take damage
-    if (enemy.type === 'normal' && enemy.inCoronation) return;
+    if (enemy.type === 'apostle' && enemy.inCoronation) return;
 
     if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
         // Shield blocks ALL damage, chỉ đếm hit (max 200)
@@ -1008,7 +1008,7 @@ function dealDamage(enemy, source) {
         const _evadeElite    = 0.05 + _t * 0.05;
         const _evadeDom      = 0.10 + _t * 0.05;
         let _evade = ({
-            'normal': _evadeLesser,
+            'apostle': _evadeLesser,
             'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal,
             'aegis_core': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
             'boss': _evadeDom, 'leviathan': _evadeDom
@@ -1517,7 +1517,7 @@ function _ensureLeviathanQuota(lev) {
         !e.inCoronation
     ).length;
     const needed = lev.afoKillQuota - killable;
-    for (let i = 0; i < needed; i++) spawnNormalEnemy();
+    for (let i = 0; i < needed; i++) spawnApostle();
 }
 
 function _applyLeviathanEnvy(lev) {
