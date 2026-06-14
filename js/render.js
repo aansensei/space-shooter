@@ -7449,96 +7449,219 @@ function drawSkillButtons() {
     const now = performance.now();
     const skillAReady = (now - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
 
-    // Layout: 3 hàng × 2 cột
-    const r = 20;
-    const gap = 7;
-    const step = r * 2 + gap;
-    const marginL = 16, marginB = 16;
+    // Panel constants
+    const pW = 106;    // pill width
+    const pH = 17;     // pill height
+    const pRad = pH / 2;
+    const rowGap = 4;
+    const padX = 7, padY = 7;
+    const marginL = 12, marginB = 14;
 
-    // Cột
-    const col1X = marginL + r;
-    const col2X = col1X + step;
+    // 8 rows: SH, A, S, D, F, G, divider, SPACE
+    const divH = 1;
+    const divGap = 4;
+    const panelH = padY * 2 + 6 * pH + 5 * rowGap + divGap * 2 + divH + pH;
+    const panelW = padX * 2 + pW;
 
-    // Hàng (từ dưới lên)
-    const row3Y = canvas.height - marginB - r;       // hàng 3 (dưới cùng)
-    const row2Y = row3Y - step;                       // hàng 2
-    const row1Y = row2Y - step;                       // hàng 1 (trên cùng)
+    const panelX = marginL;
+    const panelY = canvas.height - marginB - panelH;
+    const pillX = panelX + padX;
 
-    // Vị trí:
-    //  [SH]  [A]
-    //  [S]   [D]
-    //  [F]   [G]
-    const positions = {
-        SH: { x: col1X, y: row1Y },
-        A: { x: col2X, y: row1Y },
-        S: { x: col1X, y: row2Y },
-        D: { x: col2X, y: row2Y },
-        F: { x: col1X, y: row3Y },
-        G: { x: col2X, y: row3Y },
-    };
-
-    // Nền panel mờ
+    // Panel background
     ctx.save();
-    const padX = 8, padY = 8;
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillStyle = 'rgba(6,10,18,0.78)';
     ctx.beginPath();
-    ctx.roundRect(col1X - r - padX, row1Y - r - padY, step + padX * 2, step * 2 + r * 2 + padY * 2, 10);
+    ctx.roundRect(panelX, panelY, panelW, panelH, 9);
     ctx.fill();
-    ctx.restore();
-
-    // Shift
-    ctx.save();
-    const { x: shiftX, y: shiftY } = positions.SH;
-    let shiftRemaining = Math.max(0, (skillShiftCooldown - (now - lastSkillShift)) / 1000);
-    let shiftReady = shiftRemaining <= 0 && !skillShiftActive;
-
-    ctx.beginPath(); ctx.arc(shiftX, shiftY, r, 0, Math.PI * 2);
-    ctx.fillStyle = shiftReady ? '#8A2BE2' : '#333'; ctx.fill();
-    ctx.strokeStyle = shiftReady ? 'white' : '#666'; ctx.lineWidth = 2; ctx.stroke();
-
-    if (shiftRemaining > 0) {
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.beginPath(); ctx.moveTo(shiftX, shiftY);
-        ctx.arc(shiftX, shiftY, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * (1 - shiftRemaining * 1000 / skillShiftCooldown));
-        ctx.closePath(); ctx.fill();
-    }
-    ctx.fillStyle = 'white'; ctx.font = 'bold 9px Arial';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    if (skillShiftActive) {
-        ctx.fillRect(shiftX - 3, shiftY - 4, 2, 8);
-        ctx.fillRect(shiftX + 1, shiftY - 4, 2, 8);
-    } else {
-        ctx.fillText('SH', shiftX, shiftY);
-        if (shiftRemaining > 0) ctx.fillText(Math.ceil(shiftRemaining), shiftX, shiftY + r + 6);
+    if (!_mobPerf) {
+        ctx.strokeStyle = 'rgba(80,130,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
     ctx.restore();
 
-    // A, S, D, F, G
-    drawSkillButton(positions.A.x, positions.A.y, 'A', 'blue', skillACooldown, lastSkillA, !skillAReady, -1, r);
-    // Skill S button logic
+    // Helper: draw one compact pill row
+    function _pill(rowY, keyLabel, color, opts) {
+        // opts: { cd, lastAct, active, charge, activeLabel }
+        const { cd = -1, lastAct = 0, active = false, charge = -1, activeLabel = 'ACTIVE' } = opts;
+        let isReady = false, remaining = 0;
+        if (charge !== -1) {
+            isReady = charge >= 100;
+        } else if (cd >= 0) {
+            remaining = Math.max(0, (cd - (now - lastAct)) / 1000);
+            isReady = remaining <= 0 && !active;
+        }
+
+        ctx.save();
+
+        // Background pill
+        ctx.beginPath();
+        ctx.roundRect(pillX, rowY, pW, pH, pRad);
+        const bgAlpha = (active && !isReady) ? (0.55 + 0.18 * Math.sin(now / 220)) : 1;
+        ctx.fillStyle = isReady ? color : (active ? color : '#0d1220');
+        ctx.globalAlpha = bgAlpha;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Progress fill (CD remaining or charge)
+        if (!isReady && !active) {
+            if (charge !== -1 && charge > 0) {
+                // charge bar: left→right fill
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(pillX, rowY, Math.max(pRad * 2, pW * (charge / 100)), pH, pRad);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.65;
+                ctx.fill();
+                ctx.restore();
+            } else if (cd > 0 && remaining > 0) {
+                // CD: left portion shows elapsed (dark), right shows remaining
+                const elapsed = 1 - remaining * 1000 / cd;
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(pillX, rowY, Math.max(pRad * 2, pW * elapsed), pH, pRad);
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.22;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Border
+        ctx.beginPath();
+        ctx.roundRect(pillX, rowY, pW, pH, pRad);
+        ctx.strokeStyle = isReady
+            ? 'rgba(255,255,255,0.55)'
+            : (active ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.10)');
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Ready glow pulse
+        if (isReady && !_mobPerf) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 7 + 3 * Math.sin(now / 350);
+            ctx.beginPath();
+            ctx.roundRect(pillX, rowY, pW, pH, pRad);
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.shadowBlur = 0;
+
+        // Key label (left)
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.font = `bold 9px "Segoe UI",Arial`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(keyLabel, pillX + 5, rowY + pH / 2);
+
+        // Divider dot
+        ctx.fillStyle = 'rgba(255,255,255,0.20)';
+        ctx.fillRect(pillX + 24, rowY + 4, 1, pH - 8);
+
+        // State text (right)
+        ctx.font = `bold 8px "Segoe UI",Arial`;
+        ctx.textAlign = 'right';
+        ctx.fillStyle = isReady
+            ? 'rgba(255,255,255,0.95)'
+            : (active ? 'rgba(255,255,255,0.85)' : 'rgba(200,210,230,0.7)');
+        if (isReady) {
+            ctx.fillText('READY', pillX + pW - 5, rowY + pH / 2);
+        } else if (active) {
+            ctx.fillText(activeLabel, pillX + pW - 5, rowY + pH / 2);
+        } else if (charge !== -1) {
+            ctx.fillText(Math.floor(charge) + '%', pillX + pW - 5, rowY + pH / 2);
+        } else if (remaining > 0) {
+            ctx.fillText(remaining.toFixed(1) + 's', pillX + pW - 5, rowY + pH / 2);
+        }
+
+        // Silence overlay
+        if (typeof player !== 'undefined' && player._silenced) {
+            ctx.strokeStyle = 'rgba(255,30,30,0.85)';
+            ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+            const cx = pillX + pW / 2, cy = rowY + pH / 2, d = 4;
+            ctx.beginPath(); ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + d, cy - d); ctx.lineTo(cx - d, cy + d); ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    // Compute row Y positions (top-down inside panel)
+    function rowY(idx) { return panelY + padY + idx * (pH + rowGap); }
+
+    // SH — Skill Shift
+    const _shiftRem = Math.max(0, (skillShiftCooldown - (now - lastSkillShift)) / 1000);
+    _pill(rowY(0), skillShiftActive ? '⏸ SH' : 'SH', '#7C3AED', {
+        cd: skillShiftCooldown, lastAct: lastSkillShift,
+        active: skillShiftActive, activeLabel: 'SHIFT',
+    });
+
+    // A — Orbs
+    _pill(rowY(1), 'A', '#2563EB', {
+        cd: skillACooldown, lastAct: lastSkillA, active: !skillAReady,
+    });
+
+    // S — Spirit / Primeval Energy
     const _photo = spirits.find(s2 => s2.isPhotokrystos && !s2._done);
     const _normalSpirit = spirits.find(s2 => !s2.isPhotokrystos && !s2.isFinishing);
     const _anySpiritAlive = spirits.length > 0;
-    const _now_s = performance.now();
     if (_photo) {
-        // Phōtokrystos active: show 40s duration countdown (locked until BTM ends)
         const _combatAge = _photo._combatStartTime ? (gameElapsedTime - _photo._combatStartTime) : 0;
         const _photoRemain = Math.max(0, 40000 - _combatAge);
-        drawSkillButton(positions.S.x, positions.S.y, 'S', '#00cc66',
-            40000, _now_s - (40000 - _photoRemain), true, -1, r);
+        _pill(rowY(2), 'S', '#059669', {
+            cd: 40000, lastAct: now - (40000 - _photoRemain), active: true, activeLabel: 'BTM ' + (_photoRemain / 1000).toFixed(0) + 's',
+        });
     } else if (_normalSpirit) {
-        // Normal spirit alive: show mana meter
-        const _sColor = primevalEnergy >= 100 ? '#00ff88' : '#22cc66';
-        drawSkillButton(positions.S.x, positions.S.y, 'S', _sColor,
-            skillSCooldown, lastSkillS, false, primevalEnergy >= 100 ? 100 : primevalEnergy, r);
+        const _sReady = primevalEnergy >= 100;
+        _pill(rowY(2), 'S', _sReady ? '#00ff88' : '#16a34a', {
+            charge: Math.min(100, primevalEnergy), active: false,
+        });
     } else {
-        // No spirit: show regular 12s CD
-        drawSkillButton(positions.S.x, positions.S.y, 'S', 'green',
-            skillSCooldown, lastSkillS, _anySpiritAlive, -1, r);
+        _pill(rowY(2), 'S', '#16a34a', {
+            cd: skillSCooldown, lastAct: lastSkillS, active: _anySpiritAlive,
+        });
     }
-    drawSkillButton(positions.D.x, positions.D.y, 'D', '#4B0082', skillDCooldown, lastSkillD, skillDCharging || blackHole, -1, r);
-    drawSkillButton(positions.F.x, positions.F.y, 'F', 'red', skillFCooldown, lastSkillF, skillFState !== 'ready', -1, r);
-    drawSkillButton(positions.G.x, positions.G.y, 'G', '#00BCD4', -1, 0, skillGActive, skillGCharge, r);
+
+    // D — Black Hole
+    _pill(rowY(3), 'D', '#6B21A8', {
+        cd: skillDCooldown, lastAct: lastSkillD, active: !!(skillDCharging || blackHole), activeLabel: 'B-HOLE',
+    });
+
+    // F — Skill F
+    _pill(rowY(4), 'F', '#B91C1C', {
+        cd: skillFCooldown, lastAct: lastSkillF, active: skillFState !== 'ready', activeLabel: 'ACTIVE',
+    });
+
+    // G — Tesla / Energy Orb
+    _pill(rowY(5), 'G', '#0891B2', { charge: skillGCharge, active: skillGActive, activeLabel: 'TESLA' });
+
+    // Divider before SPACE
+    const divY = panelY + padY + 6 * (pH + rowGap) - rowGap + divGap;
+    ctx.save();
+    ctx.fillStyle = 'rgba(80,130,255,0.18)';
+    ctx.fillRect(pillX + 2, divY, pW - 4, divH);
+    ctx.restore();
+
+    // SPACE — Overload Laser
+    const _spaceY = divY + divH + divGap;
+    let _spaceOpts;
+    if (laserActive) {
+        const _laserRem = Math.max(0, laserDuration - (now - laserStartTime));
+        _spaceOpts = { active: true, activeLabel: '⚡ ' + (_laserRem / 1000).toFixed(1) + 's' };
+    } else if (charging) {
+        const _chargeRatio = Math.min(100, (now - chargeStartTime) / overloadChargeTime * 100);
+        _spaceOpts = { charge: _chargeRatio, active: false };
+    } else {
+        const _spcRem = Math.max(0, (laserCooldownEnd - now) / 1000);
+        const _spcReady = _spcRem <= 0;
+        _spaceOpts = _spcReady
+            ? { cd: laserCooldownDuration, lastAct: now - laserCooldownDuration, active: false }
+            : { cd: laserCooldownDuration, lastAct: now - (laserCooldownDuration - _spcRem * 1000), active: false };
+    }
+    _pill(_spaceY, '⎵ SPC', '#1D4ED8', _spaceOpts);
 }
 
 //  VEILSHROUD RENDER
