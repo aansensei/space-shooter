@@ -218,7 +218,8 @@ function updateDimensionalRifts(deltaTime) {
             // Mark for damage bonus & slow (egregor/dargruel/leviathan immune to slow; marchosias immune while Arc Shield active)
             enemy._inDimensionalRift = true;
             if (enemy.type !== 'egregor' && enemy.type !== 'boss' && enemy.type !== 'leviathan'
-                && !(enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0)) enemy._riftSlow = true;
+                && !(enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+                && !(enemy.type === 'aegis_core' && enemy.aegisInvulnerable)) enemy._riftSlow = true;
 
             // Apply Soul Reaver debuff
             enemy.soulReaver = true;
@@ -295,11 +296,11 @@ function updateScatteredProjectiles(deltaTime) {
                 if (proj.isBouncingBall) {
                     if (!proj.hitEnemies) proj.hitEnemies = [];
                     if (proj.hitEnemies.includes(enemy)) continue;
-                    if (checkMarchosiasArcShield(enemy, proj, proj.x, proj.y)) { proj.hitEnemies.push(enemy); continue; }
+                    if (checkMarchosiasArcBarrier(enemy, proj, proj.x, proj.y)) { proj.hitEnemies.push(enemy); continue; }
                     dealDamage(enemy, proj);
                     proj.hitEnemies.push(enemy);
                 } else {
-                    if (checkMarchosiasArcShield(enemy, proj, proj.x, proj.y)) { proj.lifetime = 0; break; }
+                    if (checkMarchosiasArcBarrier(enemy, proj, proj.x, proj.y)) { proj.lifetime = 0; break; }
                     dealDamage(enemy, proj);
                     proj.lifetime = 0;
                     break;
@@ -413,7 +414,7 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 170, percentDamage: 0.048, hitEnemies: [], isSpirit: true, isPiercing: true });
+            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 170, percentDamage: 0.048, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
         }
     }
 }
@@ -782,9 +783,9 @@ function updatePhotoBrangs(deltaTime) {
                         damage: Math.ceil((b.damage + (tgt.maxHp - tgt.hp) * 0.05) * (gloryForJusticeActive ? 1.55 : 1)),
                         percentDamage: b.percentDamage,
                         applyVuln: true, vulnChance: 0.15,
-                        isTrueDamage: true
+                        isTrueDamage: true, _barrierPiercing: true
                     };
-                    if (!checkMarchosiasArcShield(tgt, brangSrc, b.x, b.y)) {
+                    if (!checkMarchosiasArcBarrier(tgt, brangSrc, b.x, b.y)) {
                         dealDamage(tgt, brangSrc);
                         if (tgt.hp <= 0 && !tgt._spiritKillCounted) {
                             tgt._spiritKillCounted = true;
@@ -887,7 +888,7 @@ function updateBladeArcProjectiles(deltaTime) {
             if (arc.hitEnemies.includes(enemy)) continue;
             const enemyRadius = enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
-                if (checkMarchosiasArcShield(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
+                if (checkMarchosiasArcBarrier(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
                 const _arcSrc = (arc.isSpirit && arc.isPiercing)
                     ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage }
                     : arc;
@@ -933,7 +934,7 @@ function updateSpiritBullets(deltaTime) {
             }
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
-                if (checkMarchosiasArcShield(enemy, b, b.x, b.y)) {
+                if (checkMarchosiasArcBarrier(enemy, b, b.x, b.y)) {
                     b.lifetime = 0; break;
                 }
                 dealDamage(enemy, b);
@@ -1027,7 +1028,8 @@ function updateSkillD(deltaTime) {
             if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
             const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'boss'
-                || (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0);
+                || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+                || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
             if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive) && !_bhCCImmune) {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
@@ -1035,9 +1037,9 @@ function updateSkillD(deltaTime) {
                 }
             }
             if (d < blackHole.size / 2) {
-                // Blackhole chạm khiên Mar → tính 1 hit liên tục, không insta-kill Mar qua khiên
-                if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
-                    if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
+                // Blackhole chạm arc barrier Mar: sword 25%, barrier takes impact, Mar not insta-killed
+                if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                    if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                 } else if (_bhCCImmune) {
@@ -1083,7 +1085,7 @@ function updateSkillF(deltaTime) {
             if (enemy.inCoronation) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
-                if (enemy.type === 'marchosias' && enemy.arcShield && enemy.arcShield.hp > 0) {
+                if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);

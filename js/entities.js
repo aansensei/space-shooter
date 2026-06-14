@@ -1,35 +1,79 @@
-// Returns true if the hit was absorbed by the arcShield
-function checkMarchosiasArcShield(enemy, source, bx, by) {
-    if (enemy.type !== 'marchosias' || !enemy.arcShield || enemy.arcShield.hp <= 0) return false;
+// Returns true if the hit was fully absorbed by the arcBarrier (false = passes through)
+function checkMarchosiasArcBarrier(enemy, source, bx, by) {
+    if (enemy.type !== 'marchosias' || !enemy.arcBarrier || enemy.arcBarrier.hp <= 0) return false;
     const bulletAngle = Math.atan2(by - enemy.y, bx - enemy.x);
-    let diff = bulletAngle - enemy.arcShield.angle;
-    // while not if bc diff can overshoot multiple rotations, clamps to [-PI, PI]
+    let diff = bulletAngle - enemy.arcBarrier.angle;
     while (diff > Math.PI) diff -= Math.PI * 2;
     while (diff < -Math.PI) diff += Math.PI * 2;
     if (Math.abs(diff) >= Math.PI / 4) return false; // outside 90° arc
 
-    // Damage khiên, 60% DR, tối đa 35% HP khiên hiện tại, KHÔNG damage Mar
-    const effectiveHp = enemy.arcShield.maxHp;
+    // Arc barrier has +10% evade (stacks on top of Mar's body evade)
+    if (Math.random() < 0.10) {
+        _tryTriggerMarchosiasCounter(enemy);
+        addExplosion(enemy.x, enemy.y, enemy.size * 0.45, '#aaddff');
+        return true;
+    }
+
+    // Compute base damage to barrier (60% DR, cap 35% barrier HP)
+    const effectiveHp = enemy.arcBarrier.maxHp;
     let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
     if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.70);
     dmg = Math.ceil(dmg * 0.40);
-    dmg = Math.min(dmg, Math.ceil(enemy.arcShield.hp * 0.35));
-    const shieldWasAlive = enemy.arcShield.hp > 0;
-    enemy.arcShield.hp = Math.max(0, enemy.arcShield.hp - dmg);
 
-    // Mỗi đòn trúng khiên: 10% chance kích hoạt Sword
-    if (Math.random() < 0.10) {
-        _tryTriggerMarchosiasCounter(enemy);
+    // Piercing attacks (spirit arc, boomerang, overload laser) partially penetrate:
+    // barrier takes +15% extra, body damage reduced 30%, hit not fully absorbed
+    if (source._barrierPiercing) {
+        dmg = Math.ceil(dmg * 1.15);
+        dmg = Math.min(dmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
+        const barrierHeal = Math.min(1000, Math.ceil(dmg * 0.05));
+        const barrierWasAlive = enemy.arcBarrier.hp > 0;
+        enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - dmg + barrierHeal);
+        _applyArcBarrierBodyHeal(enemy, dmg);
+        if (barrierWasAlive && enemy.arcBarrier.hp <= 0) _triggerArcBarrierBreak(enemy);
+        if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
+        // Reduce damage that reaches body by 30%
+        source.damage = Math.ceil((source.damage || 0) * 0.70);
+        if (source.percentDamage) source.percentDamage = source.percentDamage * 0.70;
+        createParticles(bx, by, 3, '#aaffaa', 1, 4);
+        return false; // passes through at reduced damage
     }
 
-    // Khiên vừa vỡ → kích hoạt luôn
-    if (shieldWasAlive && enemy.arcShield.hp <= 0) {
-        addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
-        _tryTriggerMarchosiasCounter(enemy);
-    }
-
+    // Normal attack: fully absorbed by barrier
+    dmg = Math.min(dmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
+    const barrierHeal = Math.min(1000, Math.ceil(dmg * 0.05));
+    const barrierWasAlive = enemy.arcBarrier.hp > 0;
+    enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - dmg + barrierHeal);
+    _applyArcBarrierBodyHeal(enemy, dmg);
+    if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
+    if (barrierWasAlive && enemy.arcBarrier.hp <= 0) _triggerArcBarrierBreak(enemy);
     createParticles(bx, by, 3, '#aaffaa', 1, 4);
-    return true; // đạn bị hấp thụ, KHÔNG damage Mar
+    return true;
+}
+
+function _applyArcBarrierBodyHeal(enemy, dmg) {
+    const healAmt = Math.min(1000, Math.ceil(dmg * 0.10));
+    const newHp = enemy.hp + healAmt;
+    if (newHp > enemy.maxHp) {
+        enemy.hp = enemy.maxHp;
+        enemy.shield = (enemy.shield || 0) + Math.ceil((newHp - enemy.maxHp) * 0.50);
+    } else {
+        enemy.hp = newHp;
+    }
+}
+
+function _triggerArcBarrierBreak(enemy) {
+    addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
+    _tryTriggerMarchosiasCounter(enemy);
+    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 1;
+    const healAmt = Math.ceil(enemy.maxHp * 0.30);
+    const newHp = enemy.hp + healAmt;
+    if (newHp > enemy.maxHp) {
+        enemy.hp = enemy.maxHp;
+        enemy.shield = (enemy.shield || 0) + Math.ceil((newHp - enemy.maxHp) * 0.50);
+    } else {
+        enemy.hp = newHp;
+    }
+    enemy._arcBarrierReviveAt = gameElapsedTime + 5000;
 }
 
 // Kích hoạt Sword, không giới hạn số lần, có thể chạy song song nhiều windup
@@ -293,7 +337,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(3120, 1800 + hpFromTime * 48);
+    let hp = Math.min(3744, 2160 + hpFromTime * 58);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
@@ -319,22 +363,22 @@ function spawnMarchosias() {
         type: 'marchosias',
         shootTimer: 1000,
         DR: 0.20,
-        arcShield: {
+        arcBarrier: {
             hp: shieldHp,
             maxHp: shieldHp,
             angle: 0,
-            rotSpeed: 0.018,
             hitCount: 0,
         },
+        _arcBarrierReviveAt: null,
     });
 }
 
 function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
     const size = 20 + Math.random() * 10;
-    const inheritPct = 0.15 + Math.random() * 0.10;
+    const inheritPct = 0.25 + Math.random() * 0.10;
     const hp = Math.ceil(parentMaxHp * inheritPct * 1.30); // +30% HP
 
-    const paraRange = 140;
+    const paraRange = 170;
     const host = enemies.find(e =>
         e !== null &&
         e.type !== 'marchosias_minion' &&
@@ -352,11 +396,11 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
         enemies.push({
             x: parentX + (Math.random() - 0.5) * 40,
             y: parentY + (Math.random() - 0.5) * 40,
-            size, speed: baseSpeed * 1.89,
+            size, speed: baseSpeed * 2.10,
             hp, maxHp: hp,
             isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
             type: 'marchosias_minion',
-            DR: 0.89, // 89% innate DR
+            DR: 0.75, // 75% innate DR
             shootTimer: 1000,
         });
     }
@@ -943,14 +987,18 @@ function dealDamage(enemy, source) {
         const _evadeAbnormal = 0.03 + _t * 0.02;
         const _evadeElite    = 0.05 + _t * 0.05;
         const _evadeDom      = 0.10 + _t * 0.05;
-        const _evade = ({
+        let _evade = ({
             'normal': _evadeLesser,
             'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal,
             'aegis_core': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
             'boss': _evadeDom, 'leviathan': _evadeDom
         })[enemy.type] || 0;
+        // Marchosias: +10% extra body evade while arc barrier is alive
+        if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) _evade += 0.10;
         if (_evade > 0 && Math.random() < _evade) {
             addExplosion(enemy.x, enemy.y, enemy.size * 0.55, '#aaddff');
+            // Evaded body hits on Marchosias can still trigger sword
+            if (enemy.type === 'marchosias') _tryTriggerMarchosiasCounter(enemy);
             return;
         }
     }
@@ -1246,6 +1294,11 @@ function dealDamage(enemy, source) {
     // Reincarnation, embryo per-hit damage cap: 10% of EP
     if (enemy.type === 'embryo') {
         totalDamage = Math.min(totalDamage, Math.ceil((enemy.maxHp + (enemy.shield || 0)) * 0.10));
+    }
+
+    // Marchosias minion: per-hit cap 50% of max EP
+    if (enemy.type === 'marchosias_minion') {
+        totalDamage = Math.min(totalDamage, Math.ceil((enemy.maxHp + (enemy.shield || 0)) * 0.50));
     }
 
     // Tenacity Barrier (Thaelis): lớp khiên riêng, chặn MỌI đòn (kể cả true/piercing)
