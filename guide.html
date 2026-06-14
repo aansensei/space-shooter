@@ -486,7 +486,7 @@
 <li><span style="color:#FFD700">Gold ×12:</span> Every shot = Special Shot.</li>
 <li><b>5% base DR</b> at all times.</li>
 <li><b>Sentinel Parry</b> (Glory active): 20% negate → <span class="hg">Accurate Parry</span> 4s + <span class="hg">+10% DR</span> 4s.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — <span class="det-full">Max HP grows: <span class="hg">+2% at 1 min · +3% at 2 min · +5% at 3 min</span>. While Glory for Justice active: every <span class="hi">10s</span> each Sentinel gains shield = <span class="hg">18% HP lost + 4% Max HP</span> (non-stacking, replaces previous pulse). Fires immediately on activation.</span><span class="det-short">Max HP scales up over match time. During Glory: periodic shield pulses based on HP lost.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — <span class="det-full">Max HP grows by wave: <span class="hg">+5% at Wave 2 · +10% at Wave 6 · +15% at Wave 10</span>; then <span class="hg">+3%/wave</span> until <span class="hg">+60% total cap</span>. While Glory for Justice active: every <span class="hi">8s</span> (<span class="hi">5s</span> after Wave 10) each Sentinel gains shield = <span class="hg">20% HP lost + 10% Max HP</span> (non-stacking, replaces previous pulse). Fires immediately on activation.</span><span class="det-short">Max HP grows per wave milestone (cap +60%). During Glory: shield pulses every 8s (5s after Wave 10) = 20% HP lost + 10% Max HP.</span></li>
 <li>On death: <span class="dmg">10 scattered projectiles</span>.</li></ul></div>
 <div class="card"><h2 style="color:var(--red)">VULNERABILITY</h2><div class="sub">DEBUFF — STACKS ×4 • 3s DURATION</div>
 <div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas></div>
@@ -727,6 +727,8 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Abyssal Chains:</b> now truly indestructible — added hard immunity in <code>dealDamage</code> so no damage source can reduce chain HP.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Mar minions:</b> initial spawn host scan now also excludes <code>veilshroud_echo</code> and <code>abyssal_chain</code> as valid hosts.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Leviathan:</b> now CC-immune to Overload Laser pull (was missing from laser pull exclusion list).</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Gaia Protection — HP:</b> scaling changed from time-based → wave-based. <span class="hg">+5% at Wave 2 · +10% at Wave 6 · +15% at Wave 10</span>, then <span class="hg">+3%/wave</span> until <span class="hg">+60% total cap</span>.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Gaia Protection — GfJ Shield:</b> pulse interval <span class="hg">10s → 8s</span> (5s after Wave 10). Shield formula <span class="hg">18% HP lost + 4% MaxHP → 20% HP lost + 10% MaxHP</span>.</li>
 </ul>
 </div>
 

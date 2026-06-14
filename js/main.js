@@ -1344,32 +1344,42 @@ function update(rawDeltaTime) {
         window._blessingShieldTimer = 0;
         window._blessingLevShieldGiven = false;
     }
-    // Sentinel MaxHP time scaling (one-shot milestones)
+    // Gaia Protection: wave-based sentinel Max HP scaling, cap +60%
     if (!window._sentinelHpMilestone) window._sentinelHpMilestone = 0;
-    const _elapsedMin = gameElapsedTime / 60000;
-    if (_elapsedMin >= 1 && window._sentinelHpMilestone < 1) {
+    if (!window._gaiaHpBonusPct) window._gaiaHpBonusPct = 0;
+    if (!window._gaiaHpCumMult) window._gaiaHpCumMult = 1;
+    if (!window._gaiaLastWaveApplied) window._gaiaLastWaveApplied = 0;
+    const _applyGaia = (pct) => {
+        if (window._gaiaHpBonusPct >= 60) return;
+        const add = Math.min(pct, 60 - window._gaiaHpBonusPct);
+        const factor = 1 + add / 100;
+        window._gaiaHpBonusPct += add;
+        window._gaiaHpCumMult *= factor;
+        sentinels.forEach(s => {
+            const old = s.maxHp;
+            s.maxHp = Math.ceil(old * factor);
+            s.hp = Math.min(s.maxHp, Math.ceil(s.hp * (s.maxHp / old)));
+        });
+    };
+    if (_waveNumber >= 2 && window._sentinelHpMilestone < 1) {
         window._sentinelHpMilestone = 1;
-        sentinels.forEach(s => {
-            const old = s.maxHp;
-            s.maxHp = Math.ceil(old * 1.03);
-            s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
-        });
+        _applyGaia(5);
     }
-    if (_elapsedMin >= 2 && window._sentinelHpMilestone < 2) {
+    if (_waveNumber >= 6 && window._sentinelHpMilestone < 2) {
         window._sentinelHpMilestone = 2;
-        sentinels.forEach(s => {
-            const old = s.maxHp;
-            s.maxHp = Math.ceil(old * 1.05);
-            s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
-        });
+        _applyGaia(10);
     }
-    if (_elapsedMin >= 3 && window._sentinelHpMilestone < 3) {
+    if (_waveNumber >= 10 && window._sentinelHpMilestone < 3) {
         window._sentinelHpMilestone = 3;
-        sentinels.forEach(s => {
-            const old = s.maxHp;
-            s.maxHp = Math.ceil(old * 1.07);
-            s.hp = Math.min(s.maxHp, s.hp * (s.maxHp / old));
-        });
+        window._gaiaLastWaveApplied = 10;
+        _applyGaia(15);
+    }
+    if (_waveNumber > 10 && window._gaiaHpBonusPct < 60) {
+        if (window._gaiaLastWaveApplied < 10) window._gaiaLastWaveApplied = 10;
+        while (window._gaiaLastWaveApplied < _waveNumber && window._gaiaHpBonusPct < 60) {
+            window._gaiaLastWaveApplied++;
+            _applyGaia(3);
+        }
     }
 
     // GfJ shield cleanup: remove immediately if sentinel heals to full HP
@@ -1380,19 +1390,20 @@ function update(rawDeltaTime) {
         }
     });
 
-    // GfJ shield pulse: fires immediately on activation, then every 10s
-    // Shield = 18% HP đã mất + 4% Max HP, non-stacking, replaces previous pulse
+    // GfJ shield pulse: fires immediately on activation, then every 8s (5s after wave 10)
+    // Shield = 20% HP lost + 10% Max HP, non-stacking, replaces previous pulse
     if (!window._gfjShieldTimer) window._gfjShieldTimer = 0;
     if (!window._gfjWasActive) window._gfjWasActive = false;
     if (gloryForJusticeActive) {
         const _gfjJustActivated = !window._gfjWasActive;
         window._gfjWasActive = true;
         if (!_gfjJustActivated) window._gfjShieldTimer += deltaTime;
-        if (_gfjJustActivated || window._gfjShieldTimer >= 10000) {
+        const _gfjInterval = _waveNumber >= 10 ? 5000 : 8000;
+        if (_gfjJustActivated || window._gfjShieldTimer >= _gfjInterval) {
             window._gfjShieldTimer = 0;
             sentinels.forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
-                const newGfj = Math.floor(lostHp * 0.18 + (s.maxHp || 100) * 0.04);
+                const newGfj = Math.floor(lostHp * 0.20 + (s.maxHp || 100) * 0.10);
                 // Remove old GfJ portion first (prevents stacking)
                 s.shield = Math.max(0, (s.shield || 0) - (s._gfjShield || 0));
                 s._gfjShield = newGfj; // 0 if no HP lost
@@ -1826,6 +1837,9 @@ function startGame() {
     primevalEnergy = 0; _spiritCooldownOverrideUntil = 0;
     window._blessingShieldTimer = 0;
     window._sentinelHpMilestone = 0;
+    window._gaiaHpBonusPct = 0;
+    window._gaiaHpCumMult = 1;
+    window._gaiaLastWaveApplied = 0;
     window._gfjShieldTimer = 0;
     window._gfjWasActive = false;
     bossShockwaves = [];

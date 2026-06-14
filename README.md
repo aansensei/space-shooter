@@ -163,7 +163,7 @@ Iron Body from the Fuse Protocol protects against all damage sources including P
 
 Sentinels with Iron Body active are individually immune in all damage paths (dealDamage, Perseverance, Last Rites). Tesla DoT and Chain Lightning are excluded from AoE Dampening tracking — they do not consume hit counts.
 
-**Gaia Protection** — Sentinel Max HP grows passively over time: **+2%** at 1 min · **+3%** at 2 min · **+5%** at 3 min (cumulative +10% at 3 min). Current HP scales proportionally. While **Glory for Justice** is active, every **10 seconds** each Sentinel gains shield equal to **18% of lost HP + 4% Max HP** — non-stacking (each pulse replaces the previous GfJ shield portion). Fires immediately upon GfJ activation.
+**Gaia Protection** — Sentinel Max HP grows by wave milestone: **+5%** at Wave 2 · **+10%** at Wave 6 · **+15%** at Wave 10; then **+3% per wave** afterwards until the total bonus reaches **+60% cap**. Current HP scales proportionally with each increase. While **Glory for Justice** is active, every **8 seconds** (reduced to **5 seconds** after Wave 10) each Sentinel gains shield equal to **20% of lost HP + 10% Max HP** — non-stacking (each pulse replaces the previous GfJ shield portion). Fires immediately upon GfJ activation.
 
 **On death** — explodes into 10 scattered projectiles (2 base + 2% target Max HP, speed 8) and causes a brief screen shake.
 

@@ -755,15 +755,11 @@ function spawnSentinel(x, y, forceNormal = false) {
         isFortified
     });
 
-    // BUG H fix: catch-up Gaia Protection milestones for late-spawned sentinels
-    const _gaiaMilestone = window._sentinelHpMilestone || 0;
-    if (_gaiaMilestone > 0) {
+    // Gaia Protection catch-up for late-spawned sentinels
+    const _gaiaHpCumMult = window._gaiaHpCumMult || 1;
+    if (_gaiaHpCumMult > 1) {
         const _ns = sentinels[sentinels.length - 1];
-        let _gaiaMult = 1;
-        if (_gaiaMilestone >= 1) _gaiaMult *= 1.03;
-        if (_gaiaMilestone >= 2) _gaiaMult *= 1.05;
-        if (_gaiaMilestone >= 3) _gaiaMult *= 1.07;
-        _ns.maxHp = Math.ceil(_ns.maxHp * _gaiaMult);
+        _ns.maxHp = Math.ceil(_ns.maxHp * _gaiaHpCumMult);
         _ns.hp = _ns.maxHp;
     }
 }
