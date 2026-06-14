@@ -240,7 +240,7 @@ function fireChargedBullet(multiplier) {
 function spawnEnemy() {
     const elapsedSec = gameElapsedTime / 1000; // Dùng game time (bị slow bởi Yog-Sothoth)
 
-    const dargruelCount = enemies.filter(e => e.type === 'boss').length;
+    const dargruelCount = enemies.filter(e => e.type === 'dargruel').length;
     const thaelisCount = enemies.filter(e => e.type === 'thaelis').length;
     const aegisCount = enemies.filter(e => e.type === 'aegis_core').length;
     const marchosiasCount = enemies.filter(e => e.type === 'marchosias').length;
@@ -329,7 +329,7 @@ function spawnDargruel() {
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.765, hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-        type: 'boss', shootTimer: (autoFireInterval * 2) * 0.75,
+        type: 'dargruel', shootTimer: (autoFireInterval * 2) * 0.75,
         chainTimer: 0,
         demonGift90Triggered: false, demonGift70Triggered: false, demonGift50Triggered: false,
         demonGift30Triggered: false, demonGift1Triggered: false,
@@ -1013,12 +1013,12 @@ function dealDamage(enemy, source) {
             'apostle': _evadeLesser,
             'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal,
             'aegis_core': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
-            'boss': _evadeDom, 'leviathan': _evadeDom
+            'dargruel': _evadeDom, 'leviathan': _evadeDom
         })[enemy.type] || 0;
         // Marchosias: +10% extra body evade while arc barrier is alive
         if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) _evade += 0.10;
         // Dargruel Demon Gift: +2% per stack for 2.5s, up to 4 stacks; reset when expired
-        if (enemy.type === 'boss') {
+        if (enemy.type === 'dargruel') {
             if (enemy._demonEvadeExpiry && performance.now() >= enemy._demonEvadeExpiry) {
                 enemy._demonEvadeStacks = 0;
                 enemy._demonEvadeExpiry = 0;
@@ -1134,7 +1134,7 @@ function dealDamage(enemy, source) {
         combinedDR += (enemy.demonGiftStacks === 2) ? 0.36 : 0.20;
     }
 
-    if (enemy.type === 'boss' && enemy.hp < enemy.maxHp * 0.6) {
+    if (enemy.type === 'dargruel' && enemy.hp < enemy.maxHp * 0.6) {
         const hpPercent = (enemy.hp / enemy.maxHp) * 100;
         const percentPointsLost = 60 - hpPercent;
         combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
@@ -1162,7 +1162,7 @@ function dealDamage(enemy, source) {
         combinedDR += enemy.DR;
     }
 
-    if (enemy.type === 'boss') {
+    if (enemy.type === 'dargruel') {
         // Maître suprême: 50% base + 2.5% per sentinel, capped at 60%
         const maitreDR = Math.min(0.60, 0.50 + sentinels.length * 0.025);
         combinedDR += maitreDR;
@@ -1293,7 +1293,7 @@ function dealDamage(enemy, source) {
     }
 
     // Inevitable (Dargruel): if hit > 30% maxHP, cap at 11% for 3s (2s cooldown)
-    if (enemy.type === 'boss') {
+    if (enemy.type === 'dargruel') {
         const now_ms = currentTime;
         if (enemy._maitreProtActive && now_ms >= (enemy._maitreProtEnd || 0)) {
             enemy._maitreProtActive = false;
@@ -1449,7 +1449,7 @@ function dealDamage(enemy, source) {
         applyVulnerability(enemy);
     }
 
-    if (enemy.type === 'boss') {
+    if (enemy.type === 'dargruel') {
         const oldPercent = oldHP / enemy.maxHp;
         const newPercent = enemy.hp / enemy.maxHp;
         const _demonTrigger = () => {
@@ -1824,7 +1824,7 @@ function _getCoronationTransformType() {
     const _egrCount  = enemies.filter(e => e.type === 'egregor').length;
     const _levCdOk   = !window._lastLeviathanKillTime || (_cn - window._lastLeviathanKillTime) >= 8000;
     const _egrCdOk   = !window._lastEgregorKillTime   || (_cn - window._lastEgregorKillTime)   >= 6000;
-    const pool = ['marchosias', 'thaelis', 'boss'];
+    const pool = ['marchosias', 'thaelis', 'dargruel'];
     if (_veilCount < 2 && _egrCount === 0) pool.push('veilshroud');
     if (_levCdOk && _levCount < 1) pool.push('leviathan');
     if (_egrCdOk && _egrCount < 1 && _veilCount === 0) pool.push('egregor');
