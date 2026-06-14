@@ -361,7 +361,7 @@ function spawnAegisCore() {
     let hp = Math.min(3744, 2160 + hpFromTime * 58);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
-        speed: (1 + Math.random() * 2) * 0.4, hp: hp, maxHp: hp,
+        speed: (1 + Math.random() * 2) * 0.367, hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'aegis_core', shootTimer: 0,
         aegisInvulnerable: true, aegisCustosHits: 0, aegisShieldReceived: false
@@ -989,6 +989,7 @@ function dealDamage(enemy, source) {
             addExplosion(enemy.x, enemy.y, enemy.size * 1.2, 'white');
             if (enemy.aegisCustosHits >= 20) {
                 enemy.aegisInvulnerable = false;
+                enemy._custosExpired = true;
             }
             return;
         }
@@ -1076,21 +1077,24 @@ function dealDamage(enemy, source) {
     // True damage window: 4 stacks đủ → 2 giây tiếp theo bypass shield hoàn toàn
     const inTrueDmgWindow = enemy.vulnTrueDmgEnd && performance.now() < enemy.vulnTrueDmgEnd;
 
-    // Egregor, Collective Mind (tentacle shield bypassed when all tentacles are dead)
+    // Egregor, Collective Mind
     if (enemy.type === 'egregor' && !source.isTrueDamage) {
         const _allTentDead = !enemy._tentacleHps || enemy._tentacleHps.every(hp => hp <= 0);
         if (!_allTentDead) {
-            // Helper: deal damage to the first alive tentacle
             const _applyTentacleDmg = () => {
-                // Mind Link rage: +3% tentacle DR per stack, max +15%
-                const _rageTentDR = Math.min(0.15, (enemy._rageStacks || 0) * 0.03);
-                const _tenDmg = Math.ceil(totalDamage * 0.35 * 0.75 * (1 - _rageTentDR)); // ~26% base, less with rage
+                // Mind Link rage: +5% tentacle DR per stack, max +25%
+                const _rageTentDR = Math.min(0.25, (enemy._rageStacks || 0) * 0.05);
+                const _tenDmg = Math.ceil(totalDamage * 0.35 * 0.75 * (1 - _rageTentDR));
                 if (!enemy._tentacleHps) return;
                 const _ti = enemy._tentacleHps.findIndex(hp => hp > 0);
                 if (_ti === -1) return;
+                const _tentMaxHp = Math.ceil(enemy.maxHp * 0.78);
                 const _wasAlive = enemy._tentacleHps[_ti] > 0;
                 enemy._tentacleHps[_ti] = Math.max(0, enemy._tentacleHps[_ti] - _tenDmg);
                 if (_wasAlive && enemy._tentacleHps[_ti] <= 0) {
+                    enemy._tentaclesLost = (enemy._tentaclesLost || 0) + 1;
+                    enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(enemy.maxHp * 0.06));
+                    enemy.maxHp += Math.ceil(_tentMaxHp * 0.20);
                     const _sc = (enemy.size / 2) / 110;
                     const _tiAngle = (_ti / 10) * Math.PI * 2;
                     const _tipDist = (44 + 150 + (_ti % 5) * 16) * _sc;
@@ -1103,17 +1107,24 @@ function dealDamage(enemy, source) {
             };
 
             if (!source.isPiercing) {
-                // Normal: deflect chance scales with alive tentacles (up to 60%)
                 const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
                 if (Math.random() < (_aliveTents / 10) * 0.60) return;
                 _applyTentacleDmg();
+                // ≥1 tentacle lost: normal hits bleed through to body
+                if ((enemy._tentaclesLost || 0) >= 1) {
+                    const _lost = enemy._tentaclesLost;
+                    const _capPct = Math.max(0.20, 0.70 - 0.10 * _lost);
+                    const _bodyDR = 0.40 + Math.min(0.20, _lost * 0.05);
+                    const _bleedDmg = Math.ceil(Math.min(totalDamage, enemy.maxHp * _capPct) * (1 - _bodyDR));
+                    enemy.hp = Math.max(0, enemy.hp - _bleedDmg);
+                }
                 return;
             }
 
-            // Piercing: graze tentacle at 40% dmg, THEN body takes 30% (capped 30% MaxHP)
+            // Piercing: graze tentacle, then body takes 30% (capped 30% MaxHP)
             _applyTentacleDmg();
             if (enemy.hp <= 0) return;
-            if (Math.random() < 0.05) return; // 5% body dodge
+            if (Math.random() < 0.05) return;
             let _pierceDmg = Math.min(
                 Math.ceil(totalDamage * 0.30),
                 Math.ceil(enemy.maxHp * 0.30)
@@ -1122,13 +1133,19 @@ function dealDamage(enemy, source) {
             enemy.hp = Math.max(0, enemy.hp - _pierceDmg);
             return;
         }
-        // All tentacles dead → fall through to normal damage below
+        // All tentacles dead: apply per-hit normal damage cap
+        if (!source.isPiercing) {
+            const _lost = enemy._tentaclesLost || 0;
+            const _capPct = Math.max(0.20, 0.70 - 0.10 * _lost);
+            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
+        }
     }
 
     let combinedDR = 0;
     if (enemy.type === 'egregor') {
-        combinedDR += 0.40; // base body DR
-        if (enemy._nullSlashPhase === 'charging') combinedDR += 0.35; // +35% extra when charging
+        combinedDR += 0.40;
+        if (enemy._nullSlashPhase === 'charging') combinedDR += 0.35;
+        combinedDR += Math.min(0.20, (enemy._tentaclesLost || 0) * 0.05); // +5% DR per tentacle lost, max 20%
     }
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
         combinedDR += (enemy.demonGiftStacks === 2) ? 0.36 : 0.20;
