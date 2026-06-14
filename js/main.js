@@ -1052,6 +1052,7 @@ function update(rawDeltaTime) {
                 const _nearHost = enemies.find(e =>
                     e !== enemy && e.hp > 0 && !e._markedForDeath &&
                     e.type !== 'marchosias_minion' && e.type !== 'marchosias' &&
+                    e.type !== 'veilshroud_echo' &&
                     !e.type.startsWith('enemy_bullet') &&
                     Math.hypot(e.x - enemy.x, e.y - enemy.y) < 170
                 );
