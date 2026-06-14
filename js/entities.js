@@ -1353,7 +1353,9 @@ function dealDamage(enemy, source) {
     }
 
     // Gaia Barrier (Sentinel): 99% absorbed by barrier, 1% through to body
+    // True damage mitigation: if barrier active, true damage reduced 20% before absorption
     if (isSentinel && (enemy._gaiaBarrier || 0) > 0) {
+        if (source.isTrueDamage || inTrueDmgWindow) totalDamage = Math.ceil(totalDamage * 0.80);
         const _gAbsorb = Math.min(Math.ceil(totalDamage * 0.99), enemy._gaiaBarrier);
         enemy._gaiaBarrier = Math.max(0, enemy._gaiaBarrier - _gAbsorb);
         if (enemy._gaiaBarrier <= 0) {
@@ -1736,8 +1738,9 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
         const isTarget = targetSentinel !== null && s === targetSentinel;
         let totalDmg = dmgPerSentinel + (isTarget ? targetExtra : 0);
 
-        // Gaia Barrier: 99% absorbed, 1% passes through
+        // Gaia Barrier: 99% absorbed, 1% passes through; true damage reduced 20% first
         if ((s._gaiaBarrier || 0) > 0) {
+            if (isTrueDamage) totalDmg = Math.ceil(totalDmg * 0.80);
             const _gAbsorb = Math.min(Math.ceil(totalDmg * 0.99), s._gaiaBarrier);
             s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
             if (s._gaiaBarrier <= 0) {

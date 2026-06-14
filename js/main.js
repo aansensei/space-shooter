@@ -777,6 +777,7 @@ function update(rawDeltaTime) {
                             } else {
                                 let _chainDmg = rawDmgChain;
                                 if ((s._gaiaBarrier || 0) > 0) {
+                                    _chainDmg = Math.ceil(_chainDmg * 0.80); // true dmg mitigation
                                     const _gAbsorb = Math.min(Math.ceil(_chainDmg * 0.99), s._gaiaBarrier);
                                     s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
                                     if (s._gaiaBarrier <= 0) { addExplosion(s.x, s.y, s.size * 1.2, '#00ff88'); createParticles(s.x, s.y, 14, '#00ff88', 2, 7); }
@@ -1402,7 +1403,7 @@ function update(rawDeltaTime) {
             window._gfjShieldTimer = 0;
             sentinels.forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
-                const newBarrier = Math.floor(lostHp * 0.20 + (s.maxHp || 100) * 0.10);
+                const newBarrier = Math.floor(lostHp * 0.25 + (s.maxHp || 100) * 0.15);
                 s._gaiaBarrier = newBarrier;
                 s._gaiaBarrierMax = newBarrier;
             });
