@@ -1027,10 +1027,10 @@ function updateSkillD(deltaTime) {
             if (enemy.inCoronation) continue; // untargetable during coronation
             if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'boss'
+            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan'
                 || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                 || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
-            if (enemy.type !== 'embryo' && !(enemy.type === 'leviathan' && enemy.afoShieldActive) && !_bhCCImmune) {
+            if (enemy.type !== 'embryo' && !_bhCCImmune) {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
                     enemy.y += (dy / d) * pullSpeed * dt;

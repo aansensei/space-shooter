@@ -65,7 +65,7 @@ function _triggerArcBarrierBreak(enemy) {
     addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
     _tryTriggerMarchosiasCounter(enemy);
     enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 1;
-    const healAmt = Math.ceil(enemy.maxHp * 0.30);
+    const healAmt = Math.ceil(enemy.maxHp * 0.40);
     const newHp = enemy.hp + healAmt;
     if (newHp > enemy.maxHp) {
         enemy.hp = enemy.maxHp;
@@ -73,18 +73,20 @@ function _triggerArcBarrierBreak(enemy) {
     } else {
         enemy.hp = newHp;
     }
-    enemy._arcBarrierReviveAt = gameElapsedTime + 5000;
+    enemy.DR = Math.min(0.99, (enemy.DR || 0.20) + 0.10);
+    const _reviveDelay = Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
+    enemy._arcBarrierReviveAt = gameElapsedTime + _reviveDelay;
 }
 
-// Kích hoạt Sword, không giới hạn số lần, có thể chạy song song nhiều windup
-// Cooldown 0.75s giữa các lần trigger để tránh spam
+// Kích hoạt Sword — tối đa 4 lần mỗi barrier cycle, cooldown 650ms giữa các lần
 function _tryTriggerMarchosiasCounter(enemy) {
     const now = performance.now();
-    if (enemy.hp <= 0 || enemy._markedForDeath) return; // already dead
-    if (!enemy.marchosiasWindups) enemy.marchosiasWindups = []; // lazy init, not set at spawn
-    // Cooldown 0.75s kể từ lần trigger gần nhất
+    if (enemy.hp <= 0 || enemy._markedForDeath) return;
+    if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];
     if (enemy.lastSwordTriggerTime && now - enemy.lastSwordTriggerTime < 650) return;
+    if ((enemy._barrierSwordsThisCycle || 0) >= 4) return;
     enemy.lastSwordTriggerTime = now;
+    enemy._barrierSwordsThisCycle = (enemy._barrierSwordsThisCycle || 0) + 1;
     const _wTx = player.x, _wTy = player.y;
     enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } }); // push not assign, multiple windups run in parallel and survive entity death
     // Ngay khi windup bắt đầu: push ghost để dùng hiệu ứng mới xuyên suốt
@@ -370,6 +372,7 @@ function spawnMarchosias() {
             hitCount: 0,
         },
         _arcBarrierReviveAt: null,
+        _barrierSwordsThisCycle: 0,
     });
 }
 
