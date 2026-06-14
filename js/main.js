@@ -392,7 +392,7 @@ function update(rawDeltaTime) {
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                             // Laser vs Mar arc barrier: piercing — 30% body DR, barrier takes +15%, sword 25%
                             if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                                const _lSrc = { damage: 100, percentDamage: 0.16, isPiercing: true, _barrierPiercing: true };
+                                const _lSrc = { damage: 130, percentDamage: 0.19, isPiercing: true, _barrierPiercing: true };
                                 checkMarchosiasArcBarrier(enemy, _lSrc, enemy.x, enemy.y);
                                 dealDamage(enemy, _lSrc);
                                 break;
@@ -400,7 +400,7 @@ function update(rawDeltaTime) {
                                 // Laser hit Leviathan shield → count hits, no body damage
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
-                                dealDamage(enemy, { damage: 100, percentDamage: 0.16, isPiercing: true });
+                                dealDamage(enemy, { damage: 130, percentDamage: 0.19, isPiercing: true });
                             }
                             break;
                         }
@@ -977,6 +977,10 @@ function update(rawDeltaTime) {
                 // Trigger Sword khi HP còn <= 1% lần đầu tiên
                 if (!enemy.swordLastStandTriggered && enemy.hp <= enemy.maxHp * 0.01) {
                     enemy.swordLastStandTriggered = true;
+                    if ((enemy._barrierSwordsThisCycle || 0) >= 4 && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                        enemy.arcBarrier.hp = 0;
+                        _triggerArcBarrierBreak(enemy);
+                    }
                     _fireMarchosiasDeathSwords(enemy);
                 }
 

@@ -7449,40 +7449,40 @@ function drawSkillButtons() {
     const now = performance.now();
     const skillAReady = (now - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
 
-    // Panel constants
-    const pW = 106;    // pill width
-    const pH = 17;     // pill height
-    const pRad = pH / 2;
-    const rowGap = 4;
-    const padX = 7, padY = 7;
-    const marginL = 12, marginB = 14;
-
-    // 8 rows: SH, A, S, D, F, G, divider, SPACE
-    const divH = 1;
-    const divGap = 4;
+    const pW = 108, pH = 18;
+    const rowGap = 3, padX = 6, padY = 6, marginL = 12, marginB = 14;
+    const divH = 1, divGap = 4;
     const panelH = padY * 2 + 6 * pH + 5 * rowGap + divGap * 2 + divH + pH;
     const panelW = padX * 2 + pW;
-
-    const panelX = marginL;
-    const panelY = canvas.height - marginB - panelH;
+    const panelX = marginL, panelY = canvas.height - marginB - panelH;
     const pillX = panelX + padX;
 
-    // Panel background
-    ctx.save();
-    ctx.fillStyle = 'rgba(6,10,18,0.78)';
-    ctx.beginPath();
-    ctx.roundRect(panelX, panelY, panelW, panelH, 9);
-    ctx.fill();
-    if (!_mobPerf) {
-        ctx.strokeStyle = 'rgba(80,130,255,0.18)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+    function _hexRgb(hex) {
+        const n = parseInt(hex.replace('#', ''), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
     }
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,6,18,0.50)';
+    ctx.beginPath(); ctx.roundRect(panelX, panelY, panelW, panelH, 6); ctx.fill();
     ctx.restore();
 
-    // Helper: draw one compact pill row
-    function _pill(rowY, keyLabel, color, opts) {
-        // opts: { cd, lastAct, active, charge, activeLabel }
+    if (!_mobPerf) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(60,120,255,0.55)';
+        ctx.lineWidth = 1.5; ctx.lineCap = 'square';
+        const arm = 7, ins = 2;
+        const br = (x1, y1, x2, y2, x3, y3) => { ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3); ctx.stroke(); };
+        br(panelX+ins+arm, panelY+ins, panelX+ins, panelY+ins, panelX+ins, panelY+ins+arm);
+        br(panelX+panelW-ins-arm, panelY+ins, panelX+panelW-ins, panelY+ins, panelX+panelW-ins, panelY+ins+arm);
+        br(panelX+ins+arm, panelY+panelH-ins, panelX+ins, panelY+panelH-ins, panelX+ins, panelY+panelH-ins-arm);
+        br(panelX+panelW-ins-arm, panelY+panelH-ins, panelX+panelW-ins, panelY+panelH-ins, panelX+panelW-ins, panelY+panelH-ins-arm);
+        ctx.restore();
+    }
+
+    function rowY(idx) { return panelY + padY + idx * (pH + rowGap); }
+
+    function _pill(py, keyLabel, color, opts) {
         const { cd = -1, lastAct = 0, active = false, charge = -1, activeLabel = 'ACTIVE' } = opts;
         let isReady = false, remaining = 0;
         if (charge !== -1) {
@@ -7491,161 +7491,128 @@ function drawSkillButtons() {
             remaining = Math.max(0, (cd - (now - lastAct)) / 1000);
             isReady = remaining <= 0 && !active;
         }
-
+        const [cr, cg, cb] = _hexRgb(color);
         ctx.save();
 
-        // Background pill
-        ctx.beginPath();
-        ctx.roundRect(pillX, rowY, pW, pH, pRad);
-        const bgAlpha = (active && !isReady) ? (0.55 + 0.18 * Math.sin(now / 220)) : 1;
-        ctx.fillStyle = isReady ? color : (active ? color : '#0d1220');
-        ctx.globalAlpha = bgAlpha;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        // Progress fill (CD remaining or charge)
-        if (!isReady && !active) {
-            if (charge !== -1 && charge > 0) {
-                // charge bar: left→right fill
-                ctx.save();
-                ctx.beginPath();
-                ctx.roundRect(pillX, rowY, Math.max(pRad * 2, pW * (charge / 100)), pH, pRad);
-                ctx.fillStyle = color;
-                ctx.globalAlpha = 0.65;
-                ctx.fill();
-                ctx.restore();
-            } else if (cd > 0 && remaining > 0) {
-                // CD: left portion shows elapsed (dark), right shows remaining
-                const elapsed = 1 - remaining * 1000 / cd;
-                ctx.save();
-                ctx.beginPath();
-                ctx.roundRect(pillX, rowY, Math.max(pRad * 2, pW * elapsed), pH, pRad);
-                ctx.fillStyle = color;
-                ctx.globalAlpha = 0.22;
-                ctx.fill();
-                ctx.restore();
-            }
+        if (active) {
+            const pulse = 0.5 + 0.5 * Math.sin(now / 280);
+            ctx.fillStyle = `rgba(${cr},${cg},${cb},${(0.07 + 0.04 * pulse).toFixed(3)})`;
+            ctx.fillRect(pillX, py, pW, pH);
         }
 
-        // Border
-        ctx.beginPath();
-        ctx.roundRect(pillX, rowY, pW, pH, pRad);
-        ctx.strokeStyle = isReady
-            ? 'rgba(255,255,255,0.55)'
-            : (active ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.10)');
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Ready glow pulse
-        if (isReady && !_mobPerf) {
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 7 + 3 * Math.sin(now / 350);
-            ctx.beginPath();
-            ctx.roundRect(pillX, rowY, pW, pH, pRad);
-            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
-
-        ctx.shadowBlur = 0;
-
-        // Key label (left)
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-        ctx.font = `bold 9px "Segoe UI",Arial`;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(keyLabel, pillX + 5, rowY + pH / 2);
-
-        // Divider dot
-        ctx.fillStyle = 'rgba(255,255,255,0.20)';
-        ctx.fillRect(pillX + 24, rowY + 4, 1, pH - 8);
-
-        // State text (right)
-        ctx.font = `bold 8px "Segoe UI",Arial`;
-        ctx.textAlign = 'right';
-        ctx.fillStyle = isReady
-            ? 'rgba(255,255,255,0.95)'
-            : (active ? 'rgba(255,255,255,0.85)' : 'rgba(200,210,230,0.7)');
+        ctx.fillStyle = color;
         if (isReady) {
-            ctx.fillText('READY', pillX + pW - 5, rowY + pH / 2);
+            ctx.globalAlpha = 0.7 + 0.3 * Math.sin(now / 600);
+            if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 8; }
         } else if (active) {
-            ctx.fillText(activeLabel, pillX + pW - 5, rowY + pH / 2);
-        } else if (charge !== -1) {
-            ctx.fillText(Math.floor(charge) + '%', pillX + pW - 5, rowY + pH / 2);
-        } else if (remaining > 0) {
-            ctx.fillText(remaining.toFixed(1) + 's', pillX + pW - 5, rowY + pH / 2);
+            ctx.globalAlpha = 0.6 + 0.4 * Math.sin(now / 280);
+            if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 5; }
+        } else {
+            ctx.globalAlpha = 0.28;
+        }
+        ctx.fillRect(pillX, py, 3, pH);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+        let progFrac = 0;
+        if (!isReady && cd >= 0 && !active) {
+            progFrac = Math.min(1, (cd - remaining * 1000) / cd);
+        } else if (charge !== -1 && !isReady) {
+            progFrac = Math.min(1, charge / 100);
+        }
+        if (isReady) {
+            ctx.fillStyle = color; ctx.globalAlpha = 0.50;
+            if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 4; }
+            ctx.fillRect(pillX + 3, py + pH - 2, pW - 3, 2);
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        } else if (progFrac > 0) {
+            ctx.fillStyle = color; ctx.globalAlpha = 0.45;
+            ctx.fillRect(pillX + 3, py + pH - 2, (pW - 3) * progFrac, 2);
+            ctx.globalAlpha = 1;
         }
 
-        // Silence overlay
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},0.25)`;
+        ctx.fillRect(pillX + 22, py + 4, 1, pH - 8);
+
+        ctx.font = `bold 8px "Courier New", Consolas, monospace`;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = color;
+        ctx.globalAlpha = isReady ? 1.0 : (active ? 0.85 : 0.55);
+        if (isReady && !_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 4; }
+        ctx.fillText(keyLabel, pillX + 5, py + pH / 2);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+        ctx.font = `8px "Courier New", Consolas, monospace`;
+        ctx.textAlign = 'right';
+        let stateText = '';
+        if (isReady) stateText = 'READY';
+        else if (active) stateText = activeLabel;
+        else if (charge !== -1) stateText = Math.floor(charge) + '%';
+        else if (remaining > 0) stateText = remaining.toFixed(1) + 's';
+        if (stateText) {
+            ctx.globalAlpha = isReady ? 1.0 : (active ? 0.90 : 0.60);
+            const dr = Math.min(255, cr + 70), dg = Math.min(255, cg + 70), db = Math.min(255, cb + 70);
+            ctx.fillStyle = (isReady || active) ? '#fff' : `rgba(${dr},${dg},${db},0.75)`;
+            if ((isReady || active) && !_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 6; }
+            ctx.fillText(stateText, pillX + pW - 5, py + pH / 2);
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        }
+
         if (typeof player !== 'undefined' && player._silenced) {
             ctx.strokeStyle = 'rgba(255,30,30,0.85)';
             ctx.lineWidth = 1.5; ctx.lineCap = 'round';
-            const cx = pillX + pW / 2, cy = rowY + pH / 2, d = 4;
-            ctx.beginPath(); ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(cx + d, cy - d); ctx.lineTo(cx - d, cy + d); ctx.stroke();
+            const cx = pillX + pW / 2, cy = py + pH / 2, d = 4;
+            ctx.beginPath(); ctx.moveTo(cx-d,cy-d); ctx.lineTo(cx+d,cy+d); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx+d,cy-d); ctx.lineTo(cx-d,cy+d); ctx.stroke();
         }
 
         ctx.restore();
     }
 
-    // Compute row Y positions (top-down inside panel)
-    function rowY(idx) { return panelY + padY + idx * (pH + rowGap); }
-
-    // SH — Skill Shift
-    const _shiftRem = Math.max(0, (skillShiftCooldown - (now - lastSkillShift)) / 1000);
-    _pill(rowY(0), skillShiftActive ? '⏸ SH' : 'SH', '#7C3AED', {
+    _pill(rowY(0), skillShiftActive ? '⏸ SH' : 'SH', '#A855F7', {
         cd: skillShiftCooldown, lastAct: lastSkillShift,
         active: skillShiftActive, activeLabel: 'SHIFT',
     });
 
-    // A — Orbs
-    _pill(rowY(1), 'A', '#2563EB', {
+    _pill(rowY(1), 'A', '#3B82F6', {
         cd: skillACooldown, lastAct: lastSkillA, active: !skillAReady,
     });
 
-    // S — Spirit / Primeval Energy
     const _photo = spirits.find(s2 => s2.isPhotokrystos && !s2._done);
     const _normalSpirit = spirits.find(s2 => !s2.isPhotokrystos && !s2.isFinishing);
     const _anySpiritAlive = spirits.length > 0;
     if (_photo) {
         const _combatAge = _photo._combatStartTime ? (gameElapsedTime - _photo._combatStartTime) : 0;
         const _photoRemain = Math.max(0, 40000 - _combatAge);
-        _pill(rowY(2), 'S', '#059669', {
+        _pill(rowY(2), 'S', '#10B981', {
             cd: 40000, lastAct: now - (40000 - _photoRemain), active: true, activeLabel: 'BTM ' + (_photoRemain / 1000).toFixed(0) + 's',
         });
     } else if (_normalSpirit) {
         const _sReady = primevalEnergy >= 100;
-        _pill(rowY(2), 'S', _sReady ? '#00ff88' : '#16a34a', {
+        _pill(rowY(2), 'S', _sReady ? '#00ff88' : '#22C55E', {
             charge: Math.min(100, primevalEnergy), active: false,
         });
     } else {
-        _pill(rowY(2), 'S', '#16a34a', {
+        _pill(rowY(2), 'S', '#22C55E', {
             cd: skillSCooldown, lastAct: lastSkillS, active: _anySpiritAlive,
         });
     }
 
-    // D — Black Hole
-    _pill(rowY(3), 'D', '#6B21A8', {
+    _pill(rowY(3), 'D', '#9333EA', {
         cd: skillDCooldown, lastAct: lastSkillD, active: !!(skillDCharging || blackHole), activeLabel: 'B-HOLE',
     });
 
-    // F — Skill F
-    _pill(rowY(4), 'F', '#B91C1C', {
+    _pill(rowY(4), 'F', '#EF4444', {
         cd: skillFCooldown, lastAct: lastSkillF, active: skillFState !== 'ready', activeLabel: 'ACTIVE',
     });
 
-    // G — Tesla / Energy Orb
-    _pill(rowY(5), 'G', '#0891B2', { charge: skillGCharge, active: skillGActive, activeLabel: 'TESLA' });
+    _pill(rowY(5), 'G', '#22D3EE', { charge: skillGCharge, active: skillGActive, activeLabel: 'TESLA' });
 
-    // Divider before SPACE
     const divY = panelY + padY + 6 * (pH + rowGap) - rowGap + divGap;
     ctx.save();
-    ctx.fillStyle = 'rgba(80,130,255,0.18)';
-    ctx.fillRect(pillX + 2, divY, pW - 4, divH);
+    ctx.fillStyle = 'rgba(60,120,255,0.18)';
+    ctx.fillRect(pillX + 4, divY, pW - 8, divH);
     ctx.restore();
 
-    // SPACE — Overload Laser
     const _spaceY = divY + divH + divGap;
     let _spaceOpts;
     if (laserActive) {
@@ -7661,7 +7628,7 @@ function drawSkillButtons() {
             ? { cd: laserCooldownDuration, lastAct: now - laserCooldownDuration, active: false }
             : { cd: laserCooldownDuration, lastAct: now - (laserCooldownDuration - _spcRem * 1000), active: false };
     }
-    _pill(_spaceY, '⎵ SPC', '#1D4ED8', _spaceOpts);
+    _pill(_spaceY, '⎵ SPC', '#3B82F6', _spaceOpts);
 }
 
 //  VEILSHROUD RENDER
