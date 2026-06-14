@@ -443,7 +443,8 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.06 * (deltaTime / 1000); // 6% per second
+            let healAmt = enemy.maxHp * 0.06 * (deltaTime / 1000);
+            if (enemy._custosExpired) healAmt *= 1.20;
             let shieldAmt = enemy.maxHp * 0.40;
             let tickShieldAmt = enemy.maxHp * 0.08 * (deltaTime / 1000); // 8% MaxHP shield/s
             let auraRadius = canvas.width / 2;

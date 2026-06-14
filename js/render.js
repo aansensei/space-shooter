@@ -8332,15 +8332,28 @@ function _drawEgregor(enemy) {
         ctx.stroke();
     }
 
-    // 5. RAGE STACK PIPS
+    // 5. RAGE STACK STARS
     if ((enemy._rageStacks || 0) > 0) {
         if (!_mobPerf) { ctx.shadowColor = '#ff3333'; ctx.shadowBlur = 14; }
+        ctx.fillStyle = 'rgba(255,60,60,0.9)';
         for (let s = 0; s < enemy._rageStacks; s++) {
             const a = (s / 5) * Math.PI * 2 - Math.PI / 2;
-            ctx.fillStyle = 'rgba(255,60,60,0.9)';
+            const sx = Math.cos(a) * BASE * 1.25;
+            const sy = Math.sin(a) * BASE * 1.25;
+            const r = 6 * sc;
+            ctx.save();
+            ctx.translate(sx, sy);
             ctx.beginPath();
-            ctx.arc(Math.cos(a) * BASE * 1.25, Math.sin(a) * BASE * 1.25, 5 * sc, 0, Math.PI * 2);
+            for (let p = 0; p < 5; p++) {
+                const outerA = (p / 5) * Math.PI * 2 - Math.PI / 2;
+                const innerA = outerA + Math.PI / 5;
+                if (p === 0) ctx.moveTo(Math.cos(outerA) * r, Math.sin(outerA) * r);
+                else ctx.lineTo(Math.cos(outerA) * r, Math.sin(outerA) * r);
+                ctx.lineTo(Math.cos(innerA) * r * 0.4, Math.sin(innerA) * r * 0.4);
+            }
+            ctx.closePath();
             ctx.fill();
+            ctx.restore();
         }
         ctx.shadowBlur = 0;
     }
