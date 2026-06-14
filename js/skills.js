@@ -217,7 +217,7 @@ function updateDimensionalRifts(deltaTime) {
 
             // Mark for damage bonus & slow (egregor/dargruel/leviathan immune to slow; marchosias immune while Arc Shield active)
             enemy._inDimensionalRift = true;
-            if (enemy.type !== 'egregor' && enemy.type !== 'boss' && enemy.type !== 'leviathan'
+            if (enemy.type !== 'egregor' && enemy.type !== 'dargruel' && enemy.type !== 'leviathan'
                 && !(enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                 && !(enemy.type === 'aegis_core' && enemy.aegisInvulnerable)) enemy._riftSlow = true;
 
@@ -1027,7 +1027,7 @@ function updateSkillD(deltaTime) {
             if (enemy.inCoronation) continue; // untargetable during coronation
             if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan'
+            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                 || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                 || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
             if (enemy.type !== 'embryo' && !_bhCCImmune) {
@@ -1316,7 +1316,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         enemy.y -= (enemy.speed * dt * 0.08);
                     }
 
-                    if (enemy.type === 'boss' || enemy.type === 'thaelis') {
+                    if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
                         enemy.shootTimer += deltaTime * 0.30;
                     }
 

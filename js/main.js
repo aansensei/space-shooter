@@ -185,7 +185,7 @@ function update(rawDeltaTime) {
     // recalc every frame bc enemies spawn and die constantly
     gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
         (typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) ||
-        enemies.some(e => e.type === 'boss' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan');
+        enemies.some(e => e.type === 'dargruel' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan');
 
     // Accurate Parry expiry
     if (accurateParryActive && performance.now() >= accurateParryEndTime) {
@@ -535,7 +535,7 @@ function update(rawDeltaTime) {
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     // Leviathan immune to CC while shield active, no slow, still takes dot
                     teslaSpeedMultiplier = 1.0;
-                } else if (enemy.type === 'egregor' || enemy.type === 'boss') {
+                } else if (enemy.type === 'egregor' || enemy.type === 'dargruel') {
                     // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
                 } else if ((enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
@@ -544,7 +544,7 @@ function update(rawDeltaTime) {
                     teslaSpeedMultiplier = 1.0;
                 } else {
                     teslaSpeedMultiplier = 0.30;
-                    if (enemy.type === 'boss' || enemy.type === 'thaelis' || enemy.type === 'aegis_core') {
+                    if (enemy.type === 'dargruel' || enemy.type === 'thaelis' || enemy.type === 'aegis_core') {
                         teslaAttackSpeedMultiplier = 2.0;
                     }
                 }
@@ -854,7 +854,7 @@ function update(rawDeltaTime) {
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             const _coronaSlow = (enemy.type === 'apostle' && enemy.inCoronation) ? 0.55 : 1.0;
-            const _ccImmune = enemy.type === 'egregor' || enemy.type === 'boss' || enemy.type === 'leviathan'
+            const _ccImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                 || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                 || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
@@ -863,20 +863,20 @@ function update(rawDeltaTime) {
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
-                if (enemy.type === 'boss' || enemy.type === 'thaelis') {
+                if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
                 } else {
                     enemy.hp = 0;
                 }
             }
 
-            if (enemy.type === 'boss' || enemy.type === 'thaelis') {
+            if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
                 const thaelisTenacityBonus = (enemy.type === 'thaelis') ? Math.min(0.20, (1 - enemy.hp / enemy.maxHp) * 0.001 * 100) : 0;
                 let currentShootTimer = (enemy.type === 'thaelis') ? 1000 / (1 + thaelisTenacityBonus) : (autoFireInterval * 2) * 0.75;
                 if (gloryForJusticeActive) currentShootTimer *= 1.25;
                 currentShootTimer *= teslaAttackSpeedMultiplier;
 
                 // Maître suprême: normal attack +5% speed per sentinel, max +20%
-                if (enemy.type === 'boss') {
+                if (enemy.type === 'dargruel') {
                     const speedBonus = Math.min(0.20, sentinels.length * 0.05);
                     currentShootTimer *= (1 - speedBonus);
                 }
@@ -903,7 +903,7 @@ function update(rawDeltaTime) {
                 }
 
                 // Hắc Ám Xiềng Xích (Abyssal Chains), Dargruel only
-                if (enemy.type === 'boss') {
+                if (enemy.type === 'dargruel') {
                     if (!enemy.chainTimer && enemy.chainTimer !== 0) enemy.chainTimer = 0; // fire immediately on spawn
                     enemy.chainTimer -= deltaTime;
                     if (enemy.chainTimer <= 0) {
@@ -1742,12 +1742,12 @@ function _spawnWaveTier(tier) {
         else spawnEgregor();
     } else if (tier === 'dominator') {
         const pool = [];
-        if (enemies.filter(e => e.type === 'boss').length < 2) pool.push('boss');
+        if (enemies.filter(e => e.type === 'dargruel').length < 2) pool.push('dargruel');
         const levOk = !window._lastLeviathanKillTime || (_now - window._lastLeviathanKillTime) >= 8000;
         if (enemies.filter(e => e.type === 'leviathan').length < 1 && levOk) pool.push('leviathan');
         if (!pool.length) { spawnApostle(); return; }
         const pick = pool[Math.floor(Math.random() * pool.length)];
-        if (pick === 'boss') spawnDargruel();
+        if (pick === 'dargruel') spawnDargruel();
         else { spawnLeviathan(); _ensureLeviathanQuota(enemies[enemies.length - 1]); }
     }
 }

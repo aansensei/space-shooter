@@ -3660,7 +3660,7 @@ function drawEnemy(enemy) {
 
     if (enemy.type === 'aegis_core') {
         drawAegisCore(enemy);
-    } else if (enemy.type === 'boss' || enemy.type === 'thaelis') {
+    } else if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
         _drawBossOrThaelis(enemy);
     } else if (enemy.type === 'embryo') {
         _drawEmbryo(enemy);
@@ -3785,7 +3785,7 @@ function drawEnemy(enemy) {
 
 function _drawBossOrThaelis(enemy) {
     const now = performance.now();
-    const isBoss = enemy.type === 'boss';
+    const isBoss = enemy.type === 'dargruel';
 
     // Thaelis keeps old render
     if (!isBoss) {
