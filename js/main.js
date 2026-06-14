@@ -473,23 +473,24 @@ function update(rawDeltaTime) {
                         const overheal = newHp - ally.maxHp;
                         ally.hp = ally.maxHp;
                         let overshield = overheal * 0.5;
-                        if (veilNormal) overshield *= 1.25; // Alteration: +25% shield
+                        if (veilNormal) overshield *= 1.35; // Alteration: +35% shield
                         _addEnemyShield(ally, overshield);
                     } else {
                         ally.hp = Math.max(0, newHp);
                         // Alteration: nhận thêm khiên bằng lượng hồi phục
                         if (veilNormal) _addEnemyShield(ally, finalHeal);
                     }
+                    if (veilNormal && finalHeal > 0) ally._veilHealDRExpiry = performance.now() + 3000;
 
                     if (!ally.aegisShieldReceived) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.60 : shieldAmt;
-                        if (veilNormal) finalShield *= 1.25; // Alteration: +25% shield
+                        if (veilNormal) finalShield *= 1.35; // Alteration: +35% shield
                         _addEnemyShield(ally, finalShield);
                         ally.aegisShieldReceived = true;
                     }
                     // 8% MaxHP tick shield per second, always applies
                     const tsAmt = ally.soulReaver ? tickShieldAmt * 0.60 : tickShieldAmt;
-                    const finalTs = veilNormal ? tsAmt * 1.25 : tsAmt; // Alteration: +25% shield
+                    const finalTs = veilNormal ? tsAmt * 1.35 : tsAmt; // Alteration: +35% shield
                     _addEnemyShield(ally, finalTs);
                 }
             });
