@@ -733,7 +733,7 @@ function update(rawDeltaTime) {
                     size: 3 + Math.random() * 3,
                     angle: Math.random() * Math.PI * 2,
                     spin: (Math.random() - 0.5) * 0.12,
-                    col: Math.random() < 0.5 ? '#cc44ff' : '#8800cc'
+                    col: enemy.isDarkened ? (Math.random() < 0.5 ? '#880000' : '#330000') : (Math.random() < 0.5 ? '#cc44ff' : '#8800cc')
                 });
             }
             // Update existing particles
@@ -746,35 +746,40 @@ function update(rawDeltaTime) {
                 if (mp.life <= 0) { enemy.molParticles.splice(mi, 1); }
             }
 
-            // Hit player, silence/root (no life loss), can hit simultaneously with sentinel
+            // Hit player
             if (!enemy._hitPlayer && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
                 enemy._hitPlayer = true;
-                player._silenced = true;
-                player._silenceEnd = currentTime + 1000;
-                player._rooted = true;
-                _setShake(6, 250);
-                try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
+                if (enemy.isDarkened) {
+                    // Darkened chain: costs 1 life, no root/silence
+                    playerTakesHit(enemy);
+                } else {
+                    // Normal chain: root & silence, no life loss
+                    player._silenced = true;
+                    player._silenceEnd = currentTime + 1000;
+                    player._rooted = true;
+                    _setShake(6, 250);
+                    try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
+                }
                 // Chain is NOT consumed by hitting player, can still hit sentinel
             }
 
-            // Hit sentinel, true damage 15% maxHP, goes through Vanguard, respects Iron Body
+            // Hit sentinel
             if (enemy.hp > 0) {
                 for (const s of sentinels) {
                     if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
                         if (s.ironBody && currentTime < s.ironBodyEnd) {
                             // Iron Body: absorb but still consume chain
                         } else {
-                            const rawDmgChain = Math.ceil((s.maxHp + (s.shield || 0)) * 0.15);
+                            const _chainEpPct = enemy.isDarkened ? 0.20 : 0.15;
+                            const rawDmgChain = Math.ceil((s.maxHp + (s.shield || 0)) * _chainEpPct);
                             if (sentinels.length >= 5) {
-                                // True damage: bypass shields & DR through vanguard
                                 _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s);
                             } else {
-                                // True damage: bypass shields and DR directly
                                 s.hp = Math.max(0, s.hp - rawDmgChain);
                                 if (s.hp <= 0) s._markedForDeath = true;
                             }
                         }
-                        addExplosion(enemy.x, enemy.y, 30, '#660033');
+                        addExplosion(enemy.x, enemy.y, 30, enemy.isDarkened ? '#880011' : '#660033');
                         enemy.hp = 0; // consume chain
                         break;
                     }
@@ -894,13 +899,17 @@ function update(rawDeltaTime) {
                     if (!enemy.chainTimer && enemy.chainTimer !== 0) enemy.chainTimer = 0; // fire immediately on spawn
                     enemy.chainTimer -= deltaTime;
                     if (enemy.chainTimer <= 0) {
-                        enemy.chainTimer = 1500;
+                        enemy.chainTimer = 2100;
                         const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                         const spread = 0.28;
                         const angles4 = [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5];
-                        for (const k of angles4) {
-                            const a = baseAngle + k;
-                            const chainSpeed = 10.75; // 9.35 * 1.15 (+15%)
+                        const chainSpeed = 10.75 * 0.9;
+                        const darkenTriggered = Math.random() < (enemy._chainDarkenChance || 0.18);
+                        if (darkenTriggered) enemy._chainDarkenChance = 0.18;
+                        else enemy._chainDarkenChance = Math.min(1, (enemy._chainDarkenChance || 0.18) + 0.02);
+                        const darkenIdx = darkenTriggered ? Math.floor(Math.random() * 4) : -1;
+                        for (let ki = 0; ki < angles4.length; ki++) {
+                            const a = baseAngle + angles4[ki];
                             enemies.push({
                                 x: enemy.x, y: enemy.y,
                                 vx: Math.cos(a) * chainSpeed,
@@ -910,7 +919,8 @@ function update(rawDeltaTime) {
                                 shield: 0, damage: 0,
                                 originX: enemy.x, originY: enemy.y,
                                 ownerRef: enemy,
-                                piercing: true
+                                piercing: true,
+                                isDarkened: ki === darkenIdx
                             });
                         }
                     }
@@ -919,10 +929,12 @@ function update(rawDeltaTime) {
                         enemy._chainDeath = true;
                         const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                         const spread = 0.28;
+                        const _burstSpeed = 10.75 * 0.9;
                         [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5].forEach(k => {
                             enemies.push({
                                 x: enemy.x, y: enemy.y,
-                                vx: Math.cos(baseAngle + k) * 10.75, vy: Math.sin(baseAngle + k) * 10.75,
+                                vx: Math.cos(baseAngle + k) * _burstSpeed,
+                                vy: Math.sin(baseAngle + k) * _burstSpeed,
                                 size: 16, hp: 9999, maxHp: 9999,
                                 type: 'abyssal_chain', shield: 0, damage: 0,
                                 originX: enemy.x, originY: enemy.y, ownerRef: enemy, piercing: true
@@ -963,7 +975,7 @@ function update(rawDeltaTime) {
                     if (enemy._arcBarrierReviveAt && gameElapsedTime >= enemy._arcBarrierReviveAt) {
                         enemy._arcBarrierReviveAt = null;
                         enemy.arcBarrier = { hp: enemy.maxHp, maxHp: enemy.maxHp, angle: enemy.arcBarrier.angle, hitCount: 0 };
-                        enemy.DR = Math.max(0.45, (enemy.DR || 0.45) - 0.10);
+                        enemy.DR = Math.max(0.45, (enemy.DR || 0.45) - 0.20);
                         enemy._barrierSwordsThisCycle = 0;
                         addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#00ff88');
                         createParticles(enemy.x, enemy.y, 25, '#00ff88', 2, 6);

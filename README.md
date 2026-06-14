@@ -329,7 +329,7 @@ Spawns continuously from the start. HP starts between **22–42** and scales up 
 
 ### Veilshroud (Abnormal)
 
-**Available after:** 25s | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
+**Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
 
 HP: **1,200–3,000**. Innate **40% Damage Reduction**.
 
@@ -354,9 +354,9 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 ### Thaelis (Abnormal)
 
-**Available after:** 30s | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
+**Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
 
-HP: **720–2,400**.
+HP: **1,000–2,400**.
 
 Fires **2 large projectiles** every second. After 0.6 seconds of flight each splits into **6 smaller homing bullets**. Small bullets deal 1 life of damage to the player, or **15% EP** to a Sentinel.
 
@@ -377,7 +377,7 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 ### Heavenly Aegis Core (Elite)
 
-**Available after:** 30s | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.8 u/s
+**Available after:** Wave 2 | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.8 u/s
 
 HP: **2,160–3,744**. Permanent **55% Damage Reduction** at all times.
 
@@ -397,7 +397,7 @@ HP: **2,160–3,744**. Permanent **55% Damage Reduction** at all times.
 
 ### Marchosias (Elite)
 
-**Available after:** 20s | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
+**Available after:** Wave 2 | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
 HP: **1,920–3,720**. Permanent **45% Damage Reduction** on its body at all times.
 
@@ -412,7 +412,7 @@ Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that c
 - While the arc barrier is alive, Marchosias and the barrier gain **+10% evade** (applies to both body hits and barrier hits).
 - **Piercing attacks** (Spirit Arc Blade, Boomerang, Overload Laser) that connect with the barrier first: body damage is reduced **−30%**, the barrier takes **+15% extra damage**, and the attack continues through. All other attacks are fully absorbed by the barrier.
 - **Lifesteal per hit:** each hit on the barrier heals the barrier for **5% of damage dealt** (max 1000 HP); Marchosias's body heals for **10% of damage dealt** (max 1000 HP, overflow → **50% converted to shield** on Marchosias's body).
-- **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains a **2-hit Iron Body**, gains **+10% DR**, and heals **40% Max HP** (overflow → 50% shield). The **+10% DR is removed** when the barrier revives. Revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed **3-second** revive; otherwise **4–5 seconds** (5s at start, scaling to 4s at 3 min).
+- **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains a **5-hit Iron Body**, gains **+20% DR**, heals **40% Max HP** (overflow → 50% shield), and gains a **shield equal to 15% Max HP + 15% of HP lost**. The **+20% DR is removed** when the barrier revives. Revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed **3-second** revive; otherwise **4–5 seconds** (5s at start, scaling to 4s at 3 min).
 - **Tracking speed** scales from ×1.0 at match start up to **×1.67 at 3 minutes** of play.
 
 *Sword trigger conditions:*
@@ -449,7 +449,7 @@ Each minion scans within **170px** for a valid host (excluding other Marchosias)
 
 ### Egregor (Elite)
 
-**Available after:** 35s | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
+**Available after:** Wave 2 | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
 
 HP: **1,920–4,200**. Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
@@ -465,29 +465,32 @@ HP: **1,920–4,200**. Permanent **40% Damage Reduction** on its body at all tim
 
 ### Dargruel (Dominator)
 
-**Available after:** 30s | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.8 u/s
+**Available after:** Wave 3 | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **3,600–12,095**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
+HP: **5,000–14,000**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
 
-**Demon Gift** — Triggers when HP crosses **70%, 40%, 10%, and 1%**:
+**Demon Gift** — Triggers when HP crosses **90%, 70%, 50%, 30%, and 1%**:
 
-- Heals all other enemies for **15% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 21% efficiency. Cannot heal enemies at 0 HP.
-- All units gain **+18% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+30%**).
+- Heals all other enemies for **24% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 30% efficiency. Cannot heal enemies at 0 HP.
+- All units gain **+20% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+36%**).
+- Dargruel gains **+2% evade for 2.5 seconds** (stackable up to 4 times; the 2.5s timer resets each trigger).
+- Dargruel gains **+2 Iron Body hits**.
 
 **Passive: Inevitable** — Dargruel's innate damage mitigation:
 
-- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **12% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
+- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **3-second protection window**: all damage is capped at **11% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
 
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
 
-- **40% base DR** at all times.
-- **+2.5% DR per active Sentinel** on screen. Capped at **50% total DR**.
+- **50% base DR** at all times.
+- **+2.5% DR per active Sentinel** on screen. Capped at **60% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 
-**Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **1.5 seconds**, fires **4 dark chains** (+15% speed) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
+**Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **2.1 seconds**, fires **4 dark chains** (−10% speed vs prior) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
-- **Hit player** → **Root & Silence for 1 second** (no life loss). The chain is **not consumed** by the player hit — it continues and can also hit a Sentinel simultaneously.: cannot move, cannot use any skill (including Shift), auto-fire stops, Skill A orbs return to orbit. A purple lock icon appears on the ship and a red X overlays all skill icons. Re-applies silence even if already silenced.
-- **Hit Sentinel** → **true damage equal to 15% of that Sentinel's EP**, chain consumed on contact. A single chain can trigger both effects at once.
+- **Normal chain — Hit player** → **Root & Silence for 1 second** (no life loss). The chain is **not consumed** by the player hit — it continues and can also hit a Sentinel simultaneously. Re-applies silence even if already silenced.
+- **Normal chain — Hit Sentinel** → **true damage equal to 15% of that Sentinel's EP**, chain consumed on contact.
+- **Darkened chain** — each volley has an **18% base chance** for one random chain to be darkened (black-red visuals). Chance increases **+2% per clean volley** without a darkened chain, resetting to 18% when one fires. Darkened chain — **Hit player**: costs **1 life** (no root/silence). **Hit Sentinel**: **20% EP true damage**.
 - **On death at HP = 1**: immediately fires one extra volley of 4 chains.
 
 **Maou Haki** — Triggers once at **50% HP**:
@@ -499,7 +502,7 @@ HP: **3,600–12,095**. DR is fully dynamic — see Passive below. **Permanent C
 
 ### Leviathan (Dominator)
 
-**Available after:** 36s | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
+**Available after:** Wave 3 | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
 HP: **8,018–14,032**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 

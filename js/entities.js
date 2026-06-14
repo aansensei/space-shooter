@@ -89,7 +89,9 @@ function _triggerArcBarrierBreak(enemy) {
     } else {
         enemy.hp = newHp;
     }
-    enemy.DR = Math.min(0.99, (enemy.DR || 0.45) + 0.10);
+    const _breakShield = Math.ceil(enemy.maxHp * 0.15 + (enemy.maxHp - enemy.hp) * 0.15);
+    _addEnemyShield(enemy, _breakShield);
+    enemy.DR = Math.min(0.99, (enemy.DR || 0.45) + 0.20);
     const _reviveDelay = _fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
     enemy._arcBarrierReviveDuration = _reviveDelay;
     enemy._arcBarrierReviveAt = gameElapsedTime + _reviveDelay;
@@ -322,16 +324,17 @@ function spawnEnemy() {
 function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
-    // Base HP tăng thêm 12%
-    let hp = Math.ceil(3600 + Math.random() * 8495); // +20% from base: 3600–12095
+    let hp = Math.ceil(5000 + Math.random() * 9000); // 5000–14000
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
-        speed: (1 + Math.random() * 2) * 0.8 * 0.85, hp: hp, maxHp: hp,
+        speed: (1 + Math.random() * 2) * 0.8 * 0.765, hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'boss', shootTimer: (autoFireInterval * 2) * 0.75,
-        chainTimer: 0, // fire first volley immediately on spawn
-        demonGift70Triggered: false, demonGift50Triggered: false,
-        demonGift40Triggered: false, demonGift10Triggered: false, demonGift1Triggered: false
+        chainTimer: 0,
+        demonGift90Triggered: false, demonGift70Triggered: false, demonGift50Triggered: false,
+        demonGift30Triggered: false, demonGift1Triggered: false,
+        _demonEvadeStacks: 0, _demonEvadeExpiry: 0,
+        _chainDarkenChance: 0.18
     });
 }
 
@@ -339,7 +342,7 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(2400, 720 + hpFromTime * 48);
+    let hp = Math.min(2400, 1000 + hpFromTime * 48);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -907,7 +910,7 @@ function triggerDemonGift(boss) {
         if (enemy.hp <= 0 || enemy._markedForDeath) return; // đã chết, không heal
         if (enemy.type === 'leviathan' && enemy._deathLaserSpawned) return;
         if (enemy.type === 'veilshroud_echo') return; // echo không nhận buff
-        const healBase = boss.maxHp * 0.15;
+        const healBase = boss.maxHp * 0.24;
         const healMultiplier = enemy.levEnvy ? 1.25 : 1.0; // Envy: +25% heal
         let healAmount = (enemy.soulReaver ? healBase * 0.75 : healBase) * healMultiplier;
         const veilNormal = enemy.type === 'veilshroud' && !enemy.inPhantom;
@@ -917,7 +920,7 @@ function triggerDemonGift(boss) {
 
         if (potentialHp > enemy.maxHp) {
             const overheal = potentialHp - enemy.maxHp;
-            let shieldGain = Math.ceil(overheal * 0.21);
+            let shieldGain = Math.ceil(overheal * 0.30);
             if (enemy.soulReaver) shieldGain *= 0.75;
             if (veilNormal) shieldGain *= 1.25; // Alteration: +25% shield
             if (veilPhantom) shieldGain *= 0.75; // Phantom: -25% shield
@@ -1015,6 +1018,14 @@ function dealDamage(enemy, source) {
         })[enemy.type] || 0;
         // Marchosias: +10% extra body evade while arc barrier is alive
         if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) _evade += 0.10;
+        // Dargruel Demon Gift: +2% per stack for 2.5s, up to 4 stacks; reset when expired
+        if (enemy.type === 'boss') {
+            if (enemy._demonEvadeExpiry && performance.now() >= enemy._demonEvadeExpiry) {
+                enemy._demonEvadeStacks = 0;
+                enemy._demonEvadeExpiry = 0;
+            }
+            _evade += (enemy._demonEvadeStacks || 0) * 0.02;
+        }
         if (_evade > 0 && Math.random() < _evade) {
             addExplosion(enemy.x, enemy.y, enemy.size * 0.55, '#aaddff');
             // Evaded body hits on Marchosias can still trigger sword
@@ -1117,7 +1128,7 @@ function dealDamage(enemy, source) {
         if (enemy._nullSlashPhase === 'charging') combinedDR += 0.35; // +35% extra when charging
     }
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
-        combinedDR += (enemy.demonGiftStacks === 2) ? 0.30 : 0.18;
+        combinedDR += (enemy.demonGiftStacks === 2) ? 0.36 : 0.20;
     }
 
     if (enemy.type === 'boss' && enemy.hp < enemy.maxHp * 0.6) {
@@ -1149,8 +1160,8 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'boss') {
-        // Maître suprême: 40% base + 2.5% per sentinel, capped at 50%
-        const maitreDR = Math.min(0.50, 0.40 + sentinels.length * 0.025);
+        // Maître suprême: 50% base + 2.5% per sentinel, capped at 60%
+        const maitreDR = Math.min(0.60, 0.50 + sentinels.length * 0.025);
         combinedDR += maitreDR;
     }
 
@@ -1278,7 +1289,7 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Maître Suprême (Dargruel): if hit > 30% maxHP, cap at 10% for 2.5s (2s cooldown)
+    // Inevitable (Dargruel): if hit > 30% maxHP, cap at 11% for 3s (2s cooldown)
     if (enemy.type === 'boss') {
         const now_ms = currentTime;
         if (enemy._maitreProtActive && now_ms >= (enemy._maitreProtEnd || 0)) {
@@ -1287,12 +1298,12 @@ function dealDamage(enemy, source) {
         if (totalDamage > enemy.maxHp * 0.30) {
             if (!enemy._maitreProtActive && now_ms >= (enemy._maitreProtCooldownEnd || 0)) {
                 enemy._maitreProtActive = true;
-                enemy._maitreProtEnd = now_ms + 2500;
-                enemy._maitreProtCooldownEnd = now_ms + 4500;
+                enemy._maitreProtEnd = now_ms + 3000;
+                enemy._maitreProtCooldownEnd = now_ms + 5000;
             }
         }
         if (enemy._maitreProtActive) {
-            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.12));
+            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.11));
         }
     }
 
@@ -1427,11 +1438,17 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'boss') {
         const oldPercent = oldHP / enemy.maxHp;
         const newPercent = enemy.hp / enemy.maxHp;
-        if (oldPercent > 0.7 && newPercent <= 0.7 && !enemy.demonGift70Triggered) { triggerDemonGift(enemy); enemy.demonGift70Triggered = true; }
-        if (oldPercent > 0.5 && newPercent <= 0.5 && !enemy.demonGift50Triggered) { spawnBossShockwave(enemy.x, enemy.y); enemy.demonGift50Triggered = true; }
-        if (oldPercent > 0.4 && newPercent <= 0.4 && !enemy.demonGift40Triggered) { triggerDemonGift(enemy); enemy.demonGift40Triggered = true; }
-        if (oldPercent > 0.1 && newPercent <= 0.1 && !enemy.demonGift10Triggered) { triggerDemonGift(enemy); enemy.demonGift10Triggered = true; }
-        if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { triggerDemonGift(enemy); enemy.demonGift1Triggered = true; }
+        const _demonTrigger = () => {
+            triggerDemonGift(enemy);
+            enemy._demonEvadeStacks = Math.min(4, (enemy._demonEvadeStacks || 0) + 1);
+            enemy._demonEvadeExpiry = performance.now() + 2500;
+            enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 2;
+        };
+        if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y); enemy.demonGift90Triggered = true; }
+        if (oldPercent > 0.70 && newPercent <= 0.70 && !enemy.demonGift70Triggered) { _demonTrigger(); enemy.demonGift70Triggered = true; }
+        if (oldPercent > 0.50 && newPercent <= 0.50 && !enemy.demonGift50Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y); enemy.demonGift50Triggered = true; }
+        if (oldPercent > 0.30 && newPercent <= 0.30 && !enemy.demonGift30Triggered) { _demonTrigger(); enemy.demonGift30Triggered = true; }
+        if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { _demonTrigger(); enemy.demonGift1Triggered = true; }
     }
 
     // Tenacity, mỗi khi mất 30% HP, nhận lớp khiên riêng (30% MaxHP + 15% HP đã mất + 100) × 1.25
