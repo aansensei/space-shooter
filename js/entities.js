@@ -91,6 +91,7 @@ function _triggerArcBarrierBreak(enemy) {
     }
     enemy.DR = Math.min(0.99, (enemy.DR || 0.20) + 0.10);
     const _reviveDelay = _fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
+    enemy._arcBarrierReviveDuration = _reviveDelay;
     enemy._arcBarrierReviveAt = gameElapsedTime + _reviveDelay;
 }
 
