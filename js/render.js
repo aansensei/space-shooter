@@ -7449,8 +7449,8 @@ function drawSkillButtons() {
     const now = performance.now();
     const skillAReady = (now - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
 
-    const pW = 108, pH = 18;
-    const rowGap = 3, padX = 6, padY = 6, marginL = 12, marginB = 14;
+    const pW = 124, pH = 22;
+    const rowGap = 4, padX = 6, padY = 6, marginL = 4, marginB = 14;
     const divH = 1, divGap = 4;
     const panelH = padY * 2 + 6 * pH + 5 * rowGap + divGap * 2 + divH + pH;
     const panelW = padX * 2 + pW;
@@ -7492,9 +7492,14 @@ function drawSkillButtons() {
             isReady = remaining <= 0 && !active;
         }
         const [cr, cg, cb] = _hexRgb(color);
+        const blink = isReady ? (0.5 + 0.5 * Math.sin(now / 200)) : 0;
         ctx.save();
 
-        if (active) {
+        if (isReady) {
+            ctx.fillStyle = color;
+            ctx.globalAlpha = blink * 0.22;
+            ctx.fillRect(pillX, py, pW, pH);
+        } else if (active) {
             const pulse = 0.5 + 0.5 * Math.sin(now / 280);
             ctx.fillStyle = `rgba(${cr},${cg},${cb},${(0.07 + 0.04 * pulse).toFixed(3)})`;
             ctx.fillRect(pillX, py, pW, pH);
@@ -7502,8 +7507,8 @@ function drawSkillButtons() {
 
         ctx.fillStyle = color;
         if (isReady) {
-            ctx.globalAlpha = 0.7 + 0.3 * Math.sin(now / 600);
-            if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 8; }
+            ctx.globalAlpha = 0.35 + 0.65 * blink;
+            if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 4 + 8 * blink; }
         } else if (active) {
             ctx.globalAlpha = 0.6 + 0.4 * Math.sin(now / 280);
             if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 5; }
@@ -7520,8 +7525,8 @@ function drawSkillButtons() {
             progFrac = Math.min(1, charge / 100);
         }
         if (isReady) {
-            ctx.fillStyle = color; ctx.globalAlpha = 0.50;
-            if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 4; }
+            ctx.fillStyle = color; ctx.globalAlpha = 0.35 + 0.45 * blink;
+            if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 4 * blink; }
             ctx.fillRect(pillX + 3, py + pH - 2, pW - 3, 2);
             ctx.shadowBlur = 0; ctx.globalAlpha = 1;
         } else if (progFrac > 0) {
@@ -7531,17 +7536,17 @@ function drawSkillButtons() {
         }
 
         ctx.fillStyle = `rgba(${cr},${cg},${cb},0.25)`;
-        ctx.fillRect(pillX + 22, py + 4, 1, pH - 8);
+        ctx.fillRect(pillX + 40, py + 4, 1, pH - 8);
 
-        ctx.font = `bold 8px "Courier New", Consolas, monospace`;
+        ctx.font = `bold 9px "Courier New", Consolas, monospace`;
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.fillStyle = color;
-        ctx.globalAlpha = isReady ? 1.0 : (active ? 0.85 : 0.55);
-        if (isReady && !_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 4; }
+        ctx.globalAlpha = isReady ? (0.5 + 0.5 * blink) : (active ? 0.85 : 0.55);
+        if (isReady && !_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 4 * blink; }
         ctx.fillText(keyLabel, pillX + 5, py + pH / 2);
         ctx.shadowBlur = 0; ctx.globalAlpha = 1;
 
-        ctx.font = `8px "Courier New", Consolas, monospace`;
+        ctx.font = `9px "Courier New", Consolas, monospace`;
         ctx.textAlign = 'right';
         let stateText = '';
         if (isReady) stateText = 'READY';
@@ -7549,10 +7554,15 @@ function drawSkillButtons() {
         else if (charge !== -1) stateText = Math.floor(charge) + '%';
         else if (remaining > 0) stateText = remaining.toFixed(1) + 's';
         if (stateText) {
-            ctx.globalAlpha = isReady ? 1.0 : (active ? 0.90 : 0.60);
             const dr = Math.min(255, cr + 70), dg = Math.min(255, cg + 70), db = Math.min(255, cb + 70);
             ctx.fillStyle = (isReady || active) ? '#fff' : `rgba(${dr},${dg},${db},0.75)`;
-            if ((isReady || active) && !_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 6; }
+            if (isReady) {
+                ctx.globalAlpha = 0.5 + 0.5 * blink;
+                if (!_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 8 * blink; }
+            } else {
+                ctx.globalAlpha = active ? 0.90 : 0.60;
+                if (active && !_mobPerf) { ctx.shadowColor = color; ctx.shadowBlur = 6; }
+            }
             ctx.fillText(stateText, pillX + pW - 5, py + pH / 2);
             ctx.shadowBlur = 0; ctx.globalAlpha = 1;
         }
