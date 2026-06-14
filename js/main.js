@@ -410,7 +410,7 @@ function update(rawDeltaTime) {
 
             const pullRadius = 200, pullStrength = 0.05;
             enemies.forEach(enemy => {
-                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo' || enemy.type === 'abyssal_chain') return;
+                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo' || enemy.type === 'abyssal_chain' || enemy.type === 'leviathan') return;
                 if (enemy.type === 'veilshroud_echo') return; // untargetable
                 if (enemy.inCoronation) return; // untargetable during coronation
 
@@ -1065,6 +1065,7 @@ function update(rawDeltaTime) {
                     e !== enemy && e.hp > 0 && !e._markedForDeath &&
                     e.type !== 'marchosias_minion' && e.type !== 'marchosias' &&
                     e.type !== 'veilshroud_echo' &&
+                    e.type !== 'abyssal_chain' &&
                     !e.type.startsWith('enemy_bullet') &&
                     Math.hypot(e.x - enemy.x, e.y - enemy.y) < 170
                 );
@@ -1733,6 +1734,9 @@ function _updateWaveSystem(deltaTime, now) {
         _waveRestTimer = Math.max(0, _waveRestTimer - deltaTime);
         if (_waveRestTimer <= 0) {
             _waveNumber++;
+            if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
+                _yuukiBonus = Math.min(1.50, _yuukiBonus + 0.15);
+            }
             _waveQueue = _buildWaveQueue(_waveNumber);
             _waveQueueTimer = 0;
             _wavePhase = 'spawning';
@@ -1833,7 +1837,7 @@ function startGame() {
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;
-    _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0;
+    _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0; _yuukiBonus = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
     window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     window._blessingRegenTimer = 0;

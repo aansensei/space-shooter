@@ -1223,7 +1223,8 @@ function draw(deltaTime) {
         const _hY = 10;
         const _hPad = 12;
         const _rH = _hMob ? 22 : 26;
-        const _hH = _hMob ? 158 : 198;
+        const _yuukiRow = _yuukiBonus > 0 ? _rH : 0;
+        const _hH = (_hMob ? 158 : 198) + _yuukiRow;
 
         // Panel background
         ctx.globalAlpha = 0.28;
@@ -1314,6 +1315,12 @@ function draw(deltaTime) {
 
         ctx.fillStyle = '#ffdd55';
         ctx.fillText(`⚡  ${teslaCoils.length}`, _hX + _hW - _hPad, _ry + _fH);
+
+        if (_yuukiRow > 0) {
+            _ry += _rH;
+            ctx.fillStyle = '#ffaaaa';
+            ctx.fillText(`⚔ Yuuki +${Math.round(_yuukiBonus * 100)}%`, _hX + _hW - _hPad, _ry + _fH);
+        }
 
         ctx.restore();
     } else if (gameState === "start") {

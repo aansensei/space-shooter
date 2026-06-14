@@ -405,6 +405,8 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
         e !== null &&
         e.type !== 'marchosias_minion' &&
         e.type !== 'marchosias' &&
+        e.type !== 'veilshroud_echo' &&
+        e.type !== 'abyssal_chain' &&
         !e.type.startsWith('enemy_bullet') &&
         Math.hypot(e.x - parentX, e.y - parentY) < paraRange
     );
@@ -950,6 +952,7 @@ function spawnBossShockwave(x, y) {
 }
 
 function dealDamage(enemy, source) {
+    if (enemy.type === 'abyssal_chain') return;
     if (enemy.marchosiasParasiteShield && enemy.marchosiasParasiteShield > 0) {
         const effectiveHpForParasite = (enemy.maxHp || enemy.hp) + (enemy.marchosiasParasiteShield || 0);
         let parasiteDmg = Math.ceil((source.damage || 0) + (effectiveHpForParasite * (source.percentDamage || 0)));
@@ -1058,6 +1061,10 @@ function dealDamage(enemy, source) {
     // Accurate Parry buff: +25% tất cả damage đầu ra trong 4s
     if (accurateParryActive && performance.now() < accurateParryEndTime) {
         totalDamage = Math.ceil(totalDamage * 1.25);
+    }
+
+    if (_yuukiBonus > 0) {
+        totalDamage = Math.ceil(totalDamage * (1 + _yuukiBonus));
     }
 
     // Trọng Thương: +16% mỗi stack (max 4 stacks = +64%)
