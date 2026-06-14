@@ -1247,7 +1247,7 @@ function dealDamage(enemy, source) {
         return;
     }
 
-    if (isSentinel) combinedDR += 0.05; // base sentinel DR
+    if (isSentinel) combinedDR += 0.08; // base sentinel DR
     if (isSentinel && gloryForJusticeActive) {
         combinedDR += 0.30; // Glory for Justice sentinel DR
     }
@@ -1352,6 +1352,17 @@ function dealDamage(enemy, source) {
         if (totalDamage <= 0) { enemy.hp = Math.max(0, enemy.hp); return; }
     }
 
+    // Gaia Barrier (Sentinel): 99% absorbed by barrier, 1% through to body
+    if (isSentinel && (enemy._gaiaBarrier || 0) > 0) {
+        const _gAbsorb = Math.min(Math.ceil(totalDamage * 0.99), enemy._gaiaBarrier);
+        enemy._gaiaBarrier = Math.max(0, enemy._gaiaBarrier - _gAbsorb);
+        if (enemy._gaiaBarrier <= 0) {
+            addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
+            createParticles(enemy.x, enemy.y, 14, '#00ff88', 2, 7);
+        }
+        totalDamage = Math.max(1, Math.ceil(totalDamage * 0.01));
+    }
+
     // Apply damage: true damage and true-damage-window both bypass shield
     if (source.isTrueDamage || inTrueDmgWindow) {
         enemy.hp -= totalDamage;
@@ -1359,8 +1370,6 @@ function dealDamage(enemy, source) {
         const damageToShield = Math.min(enemy.shield, totalDamage);
         enemy.shield -= damageToShield;
         enemy.shield = Math.max(0, enemy.shield);
-        // Keep _gfjShield in sync with actual remaining shield
-        if (isSentinel) enemy._gfjShield = Math.min(enemy._gfjShield || 0, enemy.shield);
         totalDamage -= damageToShield;
         enemy.hp -= totalDamage;
     }
@@ -1725,15 +1734,24 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
     sentinels.forEach(s => {
         if (s.ironBody && now < s.ironBodyEnd) return;
         const isTarget = targetSentinel !== null && s === targetSentinel;
-        const totalDmg = dmgPerSentinel + (isTarget ? targetExtra : 0);
+        let totalDmg = dmgPerSentinel + (isTarget ? targetExtra : 0);
+
+        // Gaia Barrier: 99% absorbed, 1% passes through
+        if ((s._gaiaBarrier || 0) > 0) {
+            const _gAbsorb = Math.min(Math.ceil(totalDmg * 0.99), s._gaiaBarrier);
+            s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
+            if (s._gaiaBarrier <= 0) {
+                addExplosion(s.x, s.y, s.size * 1.2, '#00ff88');
+                createParticles(s.x, s.y, 14, '#00ff88', 2, 7);
+            }
+            totalDmg = Math.max(1, Math.ceil(totalDmg * 0.01));
+        }
+
         if (isTrueDamage) {
-            // True damage bypasses shield
             s.hp = Math.max(0, s.hp - totalDmg);
         } else {
-            // Shield absorbs first, remainder hits HP
             const shieldAbsorb = Math.min(s.shield || 0, totalDmg);
             s.shield = Math.max(0, (s.shield || 0) - shieldAbsorb);
-            s._gfjShield = Math.min(s._gfjShield || 0, s.shield); // sync
             const remainingDmg = totalDmg - shieldAbsorb;
             s.hp = Math.max(0, s.hp - remainingDmg);
         }
@@ -2149,7 +2167,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             const hitSents = sentinels.filter(s => _inSlash(s.x, s.y));
             const hc = hitSents.length;
             if (hc > 0) {
-                const pct = hc === 1 ? 0.15 : hc === 2 ? 0.20 : 0.28;
+                const pct = hc === 1 ? 0.20 : hc === 2 ? 0.30 : 0.40;
                 // Rage bonus: +5% per stack, max +25%
                 const _nsRageMult = 1 + Math.min(0.30, Math.min(5, enemy._rageStacks || 0) * 0.06);
                 for (const s of hitSents) {

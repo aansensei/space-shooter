@@ -2435,6 +2435,30 @@ function drawSentinel(sentinel) {
     ctx.lineTo(size * 0.5, size * 0.3);
     ctx.stroke();
 
+    // Gaia Barrier crescent (top half-disc, static upward, not rotating with gun)
+    if ((sentinel._gaiaBarrier || 0) > 0) {
+        const _gbPct = sentinel._gaiaBarrier / (sentinel._gaiaBarrierMax || 1);
+        const _gbR = size * 1.65;
+        const _gbPulse = 0.75 + 0.25 * Math.sin(now / 380);
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10 * _gbPct; }
+        const _gbGrad = ctx.createRadialGradient(0, 0, size * 0.6, 0, 0, _gbR);
+        _gbGrad.addColorStop(0, `rgba(0,255,136,${0.04 * _gbPct})`);
+        _gbGrad.addColorStop(0.65, `rgba(0,200,100,${0.15 * _gbPct})`);
+        _gbGrad.addColorStop(0.9, `rgba(0,255,136,${0.42 * _gbPct * _gbPulse})`);
+        _gbGrad.addColorStop(1, `rgba(0,100,60,0)`);
+        ctx.fillStyle = _gbGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, _gbR, Math.PI, 2 * Math.PI);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = `rgba(0,255,136,${0.9 * _gbPct * _gbPulse})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, _gbR, Math.PI, 2 * Math.PI);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
     // gun arm
     ctx.rotate(angle);
     const gunW = size * 0.8, gunH = size * 0.75;
@@ -2466,17 +2490,14 @@ function drawSentinel(sentinel) {
 
     // Shield bar (above HP bar)
     const shieldVal = sentinel.shield || 0;
+    let shBarY = barY - 5;
     if (shieldVal > 0) {
         const shBarH = 3;
-        const shBarY = barY - shBarH - 2;
-        const shPct = Math.min(1, shieldVal / maxHp);
+        shBarY = barY - shBarH - 2;
         ctx.fillStyle = '#111'; ctx.fillRect(barX - 1, shBarY - 1, barW + 2, shBarH + 2);
         ctx.fillStyle = '#1a2a1a'; ctx.fillRect(barX, shBarY, barW, shBarH);
-        // Color: gold for GfJ portion, teal for blessing, white for other sources
-        // BUG F fix: clamp each segment so total never exceeds actual shieldVal
-        const gfjAmt = Math.min(sentinel._gfjShield || 0, shieldVal);
-        const blessAmt = Math.min(sentinel._blessingShield || 0, shieldVal - gfjAmt);
-        const otherAmt = Math.max(0, shieldVal - gfjAmt - blessAmt);
+        const blessAmt = Math.min(sentinel._blessingShield || 0, shieldVal);
+        const otherAmt = Math.max(0, shieldVal - blessAmt);
         let drawn = 0;
         if (otherAmt > 0) {
             const w = Math.min(barW, barW * (otherAmt / maxHp));
@@ -2484,23 +2505,32 @@ function drawSentinel(sentinel) {
         }
         if (blessAmt > 0) {
             const w = Math.min(barW - drawn, barW * (blessAmt / maxHp));
-            ctx.fillStyle = '#00ff88'; ctx.fillRect(barX + drawn, shBarY, w, shBarH); drawn += w;
-        }
-        if (gfjAmt > 0) {
-            const w = Math.min(barW - drawn, barW * (gfjAmt / maxHp));
-            ctx.fillStyle = '#ffe066'; ctx.fillRect(barX + drawn, shBarY, w, shBarH);
+            ctx.fillStyle = '#00ff88'; ctx.fillRect(barX + drawn, shBarY, w, shBarH);
         }
         ctx.strokeStyle = '#555'; ctx.lineWidth = 0.6;
         ctx.strokeRect(barX, shBarY, barW, shBarH);
+    }
+
+    // Gaia Barrier bar (above shield/HP bar)
+    const _gbAmt = sentinel._gaiaBarrier || 0;
+    if (_gbAmt > 0) {
+        const _gbBarH = 3;
+        const _gbBase = shBarY - _gbBarH - 2;
+        const _gbPct = Math.min(1, _gbAmt / (sentinel._gaiaBarrierMax || Math.max(1, _gbAmt)));
+        ctx.fillStyle = '#111'; ctx.fillRect(barX - 1, _gbBase - 1, barW + 2, _gbBarH + 2);
+        ctx.fillStyle = '#003322'; ctx.fillRect(barX, _gbBase, barW, _gbBarH);
+        ctx.fillStyle = '#00ff88'; ctx.fillRect(barX, _gbBase, barW * _gbPct, _gbBarH);
+        ctx.strokeStyle = '#00cc66'; ctx.lineWidth = 0.6;
+        ctx.strokeRect(barX, _gbBase, barW, _gbBarH);
     }
 
     // glory triangle
     if (gloryForJusticeActive) {
         ctx.fillStyle = 'lime';
         ctx.beginPath();
-        ctx.moveTo(x - 5, y - size - 26);
-        ctx.lineTo(x + 5, y - size - 26);
-        ctx.lineTo(x, y - size - 36);
+        ctx.moveTo(x - 5, y - size - 30);
+        ctx.lineTo(x + 5, y - size - 30);
+        ctx.lineTo(x, y - size - 40);
         ctx.closePath(); ctx.fill();
         ctx.shadowBlur = 0;
     }
@@ -2556,12 +2586,12 @@ function drawSentinel(sentinel) {
         ctx.restore();
     }
 
-    // GfJ shield glow ring
-    if (sentinel._gfjShield && sentinel._gfjShield > 0) {
+    // Gaia Barrier outer ring (dashed green, visible when barrier active)
+    if ((sentinel._gaiaBarrier || 0) > 0) {
         ctx.save();
-        const gPulse = 0.6 + 0.4 * Math.sin(now / 400);
-        if (!_mobPerf) { ctx.shadowColor = '#ffe066'; ctx.shadowBlur = 10; }
-        ctx.strokeStyle = `rgba(255,224,102,${0.75 * gPulse})`;
+        const _gbRingPulse = 0.6 + 0.4 * Math.sin(now / 400);
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; }
+        ctx.strokeStyle = `rgba(0,255,136,${0.75 * _gbRingPulse})`;
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 3]);
         ctx.lineDashOffset = (now / 60) % 8;
