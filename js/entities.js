@@ -80,7 +80,7 @@ function _triggerArcBarrierBreak(enemy) {
         addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
     }
     _tryTriggerMarchosiasCounter(enemy);
-    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 2;
+    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 5;
     const healAmt = Math.ceil(enemy.maxHp * 0.40);
     const newHp = enemy.hp + healAmt;
     if (newHp > enemy.maxHp) {
