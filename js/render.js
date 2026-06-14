@@ -3291,8 +3291,9 @@ function drawEnemy(enemy) {
     if (enemy.type === 'abyssal_chain') {
         const now0 = performance.now();
         const pulse = 0.6 + 0.4 * Math.sin(now0 / 60);
+        const dark = !!enemy.isDarkened;
 
-        // Trailing purple sparks
+        // Trailing sparks
         const trailCount = _mobPerf ? 3 : 6;
         for (let t = 1; t <= trailCount; t++) {
             const tf = t / trailCount;
@@ -3300,15 +3301,33 @@ function drawEnemy(enemy) {
             const ty = enemy.y - enemy.vy * tf * 0.5;
             ctx.save();
             ctx.globalAlpha = (1 - tf) * 0.75;
-            if (!_mobPerf) { ctx.shadowColor = '#dd00ff'; ctx.shadowBlur = 14; }
-            ctx.fillStyle = tf < 0.4 ? '#ff88ff' : '#9900cc';
+            if (!_mobPerf) { ctx.shadowColor = dark ? '#ff0000' : '#dd00ff'; ctx.shadowBlur = 14; }
+            ctx.fillStyle = dark ? (tf < 0.4 ? '#ff4444' : '#550000') : (tf < 0.4 ? '#ff88ff' : '#9900cc');
             ctx.beginPath();
             ctx.arc(tx, ty, Math.max(1, enemy.size * (1 - tf * 0.6) * 0.38), 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
 
-        // Triangle molecule particles, stored per-chain, drawn here
+        // Darkened chain: red smoke aura
+        if (dark && !_mobPerf) {
+            const smokeCount = 4;
+            for (let si = 0; si < smokeCount; si++) {
+                const sAng = now0 / 300 + si * Math.PI * 0.5;
+                const sr = enemy.size * (0.9 + 0.4 * Math.sin(now0 / 200 + si));
+                ctx.save();
+                ctx.globalAlpha = 0.16 + 0.09 * Math.abs(Math.sin(now0 / 150 + si));
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#3a0000';
+                ctx.beginPath();
+                ctx.arc(enemy.x + Math.cos(sAng) * sr, enemy.y + Math.sin(sAng) * sr, enemy.size * 0.52, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Triangle molecule particles
         if (enemy.molParticles && enemy.molParticles.length > 0) {
             for (const mp of enemy.molParticles) {
                 const alpha = Math.min(1, mp.life / mp.maxLife) * 0.9;
@@ -3319,13 +3338,29 @@ function drawEnemy(enemy) {
                 ctx.rotate(mp.angle);
                 if (!_mobPerf) { ctx.shadowColor = mp.col; ctx.shadowBlur = 8; }
                 ctx.fillStyle = mp.col;
-                // Equilateral triangle
                 const s = mp.size;
                 ctx.beginPath();
                 ctx.moveTo(0, -s);
                 ctx.lineTo(s * 0.866, s * 0.5);
                 ctx.lineTo(-s * 0.866, s * 0.5);
                 ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Darkened chain: chaos energy particles
+        if (dark) {
+            const chaosCount = _mobPerf ? 2 : 5;
+            for (let ci = 0; ci < chaosCount; ci++) {
+                const cAng = now0 / 80 + ci * 1.257;
+                const cr = enemy.size * (0.5 + 0.8 * ((ci * 0.37) % 1));
+                ctx.save();
+                ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(now0 / 60 + ci));
+                if (!_mobPerf) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 6; }
+                ctx.fillStyle = ci % 2 === 0 ? '#cc0000' : '#1a0000';
+                ctx.beginPath();
+                ctx.arc(enemy.x + Math.cos(cAng) * cr, enemy.y + Math.sin(cAng) * cr, 2 + ci * 0.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
@@ -3339,8 +3374,8 @@ function drawEnemy(enemy) {
         const dist = Math.hypot(dx, dy);
         if (dist > 1) {
             const segs = Math.max(3, Math.floor(dist / 24));
-            if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 12; }
-            ctx.strokeStyle = `rgba(180,0,255,${0.6 + pulse * 0.2})`;
+            if (!_mobPerf) { ctx.shadowColor = dark ? '#aa0000' : '#cc00ff'; ctx.shadowBlur = 12; }
+            ctx.strokeStyle = dark ? `rgba(160,0,0,${0.7 + pulse * 0.2})` : `rgba(180,0,255,${0.6 + pulse * 0.2})`;
             ctx.lineWidth = 3;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
@@ -3360,32 +3395,53 @@ function drawEnemy(enemy) {
         ctx.translate(enemy.x, enemy.y);
         const angle = Math.atan2(enemy.vy, enemy.vx);
         ctx.rotate(angle);
-        // Outer glow halo
-        if (!_mobPerf) { ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 32; }
-        ctx.fillStyle = `rgba(180,0,255,${0.22 + pulse * 0.1})`;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, enemy.size * 2.3, enemy.size * 1.05, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Main body
-        if (!_mobPerf) ctx.shadowBlur = 24;
-        ctx.fillStyle = `rgba(110,0,210,${0.94 + pulse * 0.06})`;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, enemy.size * 1.75, enemy.size * 0.78, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = `rgba(240,120,255,${0.92 + pulse * 0.08})`;
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-        // Dark gem core
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#07001a';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, enemy.size * 0.55, enemy.size * 0.36, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Gem glint
-        ctx.fillStyle = `rgba(245,170,255,${0.5 + pulse * 0.5})`;
-        ctx.beginPath();
-        ctx.ellipse(-enemy.size * 0.22, -enemy.size * 0.14, enemy.size * 0.2, enemy.size * 0.11, -0.5, 0, Math.PI * 2);
-        ctx.fill();
+        if (dark) {
+            if (!_mobPerf) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 32; }
+            ctx.fillStyle = `rgba(120,0,0,${0.22 + pulse * 0.1})`;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, enemy.size * 2.3, enemy.size * 1.05, 0, 0, Math.PI * 2);
+            ctx.fill();
+            if (!_mobPerf) ctx.shadowBlur = 24;
+            ctx.fillStyle = `rgba(75,0,0,${0.94 + pulse * 0.06})`;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, enemy.size * 1.75, enemy.size * 0.78, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = `rgba(220,0,30,${0.92 + pulse * 0.08})`;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0d0000';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, enemy.size * 0.55, enemy.size * 0.36, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = `rgba(255,80,80,${0.5 + pulse * 0.5})`;
+            ctx.beginPath();
+            ctx.ellipse(-enemy.size * 0.22, -enemy.size * 0.14, enemy.size * 0.2, enemy.size * 0.11, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            if (!_mobPerf) { ctx.shadowColor = '#ff00ff'; ctx.shadowBlur = 32; }
+            ctx.fillStyle = `rgba(180,0,255,${0.22 + pulse * 0.1})`;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, enemy.size * 2.3, enemy.size * 1.05, 0, 0, Math.PI * 2);
+            ctx.fill();
+            if (!_mobPerf) ctx.shadowBlur = 24;
+            ctx.fillStyle = `rgba(110,0,210,${0.94 + pulse * 0.06})`;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, enemy.size * 1.75, enemy.size * 0.78, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = `rgba(240,120,255,${0.92 + pulse * 0.08})`;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#07001a';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, enemy.size * 0.55, enemy.size * 0.36, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = `rgba(245,170,255,${0.5 + pulse * 0.5})`;
+            ctx.beginPath();
+            ctx.ellipse(-enemy.size * 0.22, -enemy.size * 0.14, enemy.size * 0.2, enemy.size * 0.11, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
         return;
     }
