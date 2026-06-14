@@ -775,7 +775,14 @@ function update(rawDeltaTime) {
                             if (sentinels.length >= 5) {
                                 _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s);
                             } else {
-                                s.hp = Math.max(0, s.hp - rawDmgChain);
+                                let _chainDmg = rawDmgChain;
+                                if ((s._gaiaBarrier || 0) > 0) {
+                                    const _gAbsorb = Math.min(Math.ceil(_chainDmg * 0.99), s._gaiaBarrier);
+                                    s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
+                                    if (s._gaiaBarrier <= 0) { addExplosion(s.x, s.y, s.size * 1.2, '#00ff88'); createParticles(s.x, s.y, 14, '#00ff88', 2, 7); }
+                                    _chainDmg = Math.max(1, Math.ceil(_chainDmg * 0.01));
+                                }
+                                s.hp = Math.max(0, s.hp - _chainDmg);
                                 if (s.hp <= 0) s._markedForDeath = true;
                             }
                         }
@@ -1382,16 +1389,8 @@ function update(rawDeltaTime) {
         }
     }
 
-    // GfJ shield cleanup: remove immediately if sentinel heals to full HP
-    sentinels.forEach(s => {
-        if ((s._gfjShield || 0) > 0 && s.hp >= (s.maxHp || 100) - 1) {
-            s.shield = Math.max(0, (s.shield || 0) - s._gfjShield);
-            s._gfjShield = 0;
-        }
-    });
-
-    // GfJ shield pulse: fires immediately on activation, then every 8s (5s after wave 10)
-    // Shield = 20% HP lost + 10% Max HP, non-stacking, replaces previous pulse
+    // Gaia Barrier pulse (GfJ): fires immediately on activation, then every 8s (5s after wave 10)
+    // Barrier = 20% HP lost + 10% Max HP, non-stacking, replaces previous pulse; NOT part of shield/EP
     if (!window._gfjShieldTimer) window._gfjShieldTimer = 0;
     if (!window._gfjWasActive) window._gfjWasActive = false;
     if (gloryForJusticeActive) {
@@ -1403,11 +1402,9 @@ function update(rawDeltaTime) {
             window._gfjShieldTimer = 0;
             sentinels.forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
-                const newGfj = Math.floor(lostHp * 0.20 + (s.maxHp || 100) * 0.10);
-                // Remove old GfJ portion first (prevents stacking)
-                s.shield = Math.max(0, (s.shield || 0) - (s._gfjShield || 0));
-                s._gfjShield = newGfj; // 0 if no HP lost
-                s.shield = (s.shield || 0) + newGfj;
+                const newBarrier = Math.floor(lostHp * 0.20 + (s.maxHp || 100) * 0.10);
+                s._gaiaBarrier = newBarrier;
+                s._gaiaBarrierMax = newBarrier;
             });
         }
     } else {
@@ -1487,7 +1484,14 @@ function update(rawDeltaTime) {
                     } else {
                         // Trực tiếp (< 5 sentinels)
                         if (!(s.ironBody && nowMs2 < s.ironBodyEnd)) {
-                            s.hp = Math.max(0, s.hp - dmg);
+                            let _levDmg = dmg;
+                            if ((s._gaiaBarrier || 0) > 0) {
+                                const _gAbsorb = Math.min(Math.ceil(_levDmg * 0.99), s._gaiaBarrier);
+                                s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
+                                if (s._gaiaBarrier <= 0) { addExplosion(s.x, s.y, s.size * 1.2, '#00ff88'); createParticles(s.x, s.y, 14, '#00ff88', 2, 7); }
+                                _levDmg = Math.max(1, Math.ceil(_levDmg * 0.01));
+                            }
+                            s.hp = Math.max(0, s.hp - _levDmg);
                             if (s.hp <= 0) s._markedForDeath = true;
                         }
                     }
@@ -1564,7 +1568,14 @@ function update(rawDeltaTime) {
                         _applyVanguardDamage(dmg, laser.id, false, s);
                     } else {
                         if (!(s.ironBody && performance.now() < s.ironBodyEnd)) {
-                            s.hp = Math.max(0, s.hp - dmg);
+                            let _levBeamDmg = dmg;
+                            if ((s._gaiaBarrier || 0) > 0) {
+                                const _gAbsorb = Math.min(Math.ceil(_levBeamDmg * 0.99), s._gaiaBarrier);
+                                s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
+                                if (s._gaiaBarrier <= 0) { addExplosion(s.x, s.y, s.size * 1.2, '#00ff88'); createParticles(s.x, s.y, 14, '#00ff88', 2, 7); }
+                                _levBeamDmg = Math.max(1, Math.ceil(_levBeamDmg * 0.01));
+                            }
+                            s.hp = Math.max(0, s.hp - _levBeamDmg);
                             if (s.hp <= 0) s._markedForDeath = true;
                         }
                     }
