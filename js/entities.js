@@ -471,6 +471,8 @@ function spawnVeilshroud() {
         // Normal attack (−20% speed → interval × 1.25)
         shootTimer: 0,
         shootInterval: 500,
+        // Energy Accumulation: tracks damage absorbed during Phantom
+        _phantomAbsorb: 0,
     });
 }
 
@@ -496,6 +498,7 @@ function updateVeilshroud(enemy, deltaTime) {
             if (Math.random() < 0.40) {
                 enemy.inPhantom = true;
                 enemy.phantomTimer = 0;
+                enemy._phantomAbsorb = 0;
             }
         }
     }
@@ -506,7 +509,12 @@ function updateVeilshroud(enemy, deltaTime) {
         if (enemy.phantomTimer >= enemy.phantomDuration) {
             enemy.inPhantom = false;
             enemy.phantomTimer = 0;
-            enemy.phantomFadeTimer = 400; // start fade-out back to violet
+            enemy.phantomFadeTimer = 400;
+            // Energy Accumulation: convert absorbed damage into shield
+            const _eaAbsorbed = enemy._phantomAbsorb || 0;
+            const _eaShield = Math.min(1200, Math.ceil((0.35 * _eaAbsorbed + 200) * 1.15));
+            _addEnemyShield(enemy, _eaShield);
+            enemy._phantomAbsorb = 0;
             _veilshroudBeginLightning(enemy);
         }
     }
@@ -587,7 +595,7 @@ function _veilshroudStrike(enemy) {
     for (const s of sentinels) {
         if (Math.hypot(s.x - tx, s.y - ty) < 100) {
             _lt.hitSentinelPositions.push({ x: s.x, y: s.y });
-            const dmg = Math.ceil((s.maxHp + (s.shield || 0)) * 0.15);
+            const dmg = Math.ceil((s.maxHp + (s.shield || 0)) * 0.18);
             dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx });
             addExplosion(s.x, s.y, 60, '#ff1133');
             createParticles(s.x, s.y, 22, '#ffffff', 3, 10);
@@ -920,7 +928,7 @@ function triggerDemonGift(boss) {
             const overheal = potentialHp - enemy.maxHp;
             let shieldGain = Math.ceil(overheal * 0.30);
             if (enemy.soulReaver) shieldGain *= 0.75;
-            if (veilNormal) shieldGain *= 1.25; // Alteration: +25% shield
+            if (veilNormal) shieldGain *= 1.35; // Alteration: +35% shield
             if (veilPhantom) shieldGain *= 0.75; // Phantom: -25% shield
             _addEnemyShield(enemy, shieldGain);
         } else if (veilNormal) {
@@ -928,6 +936,7 @@ function triggerDemonGift(boss) {
             _addEnemyShield(enemy, healAmount);
         }
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
+        if (veilNormal) enemy._veilHealDRExpiry = performance.now() + 3000;
 
         enemy.demonGiftStacks = (enemy.demonGiftStacks || 0) + 1;
         if (enemy.demonGiftStacks > 2) enemy.demonGiftStacks = 2;
@@ -1197,15 +1206,19 @@ function dealDamage(enemy, source) {
         combinedDR += 0.90;
     }
 
-    // Veilshroud: 99% DR trong phantom, 15% base DR bình thường
+    // Veilshroud: 99% DR trong phantom, 40% base DR bình thường
     // Alteration, mỗi đòn trúng có 40% né + kích hoạt phantom ngay lập tức
     if (enemy.type === 'veilshroud') {
         if (!enemy.inPhantom && !enemy.lightningPending && Math.random() < 0.40) {
             enemy.inPhantom = true;
             enemy.phantomTimer = 0;
             enemy.phantomCheckTimer = 0;
+            enemy._phantomAbsorb = 0;
             createParticles(enemy.x, enemy.y, 12, '#00e5cc', 2, 7);
             return; // đòn bị né hoàn toàn
+        }
+        if (enemy._veilHealDRExpiry && currentTime < enemy._veilHealDRExpiry) {
+            combinedDR += 0.20; // Alteration heal DR buff: +20% for 3s after receiving heal
         }
         combinedDR += enemy.inPhantom ? 0.99 : 0.40;
     }
@@ -1278,6 +1291,7 @@ function dealDamage(enemy, source) {
     }
 
     combinedDR = Math.min(0.99, combinedDR);
+    const _veilPreDr = (enemy.type === 'veilshroud' && enemy.inPhantom) ? totalDamage : 0;
     // True damage skips DR, normal damage applies DR
     if (!source.isTrueDamage) {
         totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
@@ -1289,6 +1303,8 @@ function dealDamage(enemy, source) {
     // Veilshroud Phantom: damage capped at 25% maxHP per hit
     if (enemy.type === 'veilshroud' && enemy.inPhantom) {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.25));
+        // Energy Accumulation: record absorbed damage
+        enemy._phantomAbsorb = (enemy._phantomAbsorb || 0) + Math.max(0, _veilPreDr - totalDamage);
     }
 
     // Inevitable (Leviathan): if hit > 30% maxHP, cap at 7% for 2.5s (2s cooldown)
