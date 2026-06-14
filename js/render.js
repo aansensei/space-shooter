@@ -4109,7 +4109,7 @@ function _drawMarchosias(enemy) {
     // ARC BARRIER revive countdown ring
     if (enemy._arcBarrierReviveAt && (!enemy.arcBarrier || enemy.arcBarrier.hp <= 0)) {
         const _reviveRemain = Math.max(0, enemy._arcBarrierReviveAt - gameElapsedTime);
-        const _reviveProg = 1 - _reviveRemain / 5000;
+        const _reviveProg = 1 - _reviveRemain / (enemy._arcBarrierReviveDuration || 5000);
         ctx.save();
         ctx.strokeStyle = `rgba(0,255,136,${0.15 + 0.1 * Math.sin(now / 200)})`;
         ctx.lineWidth = 3;
