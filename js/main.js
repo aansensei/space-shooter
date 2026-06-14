@@ -963,6 +963,8 @@ function update(rawDeltaTime) {
                     if (enemy._arcBarrierReviveAt && gameElapsedTime >= enemy._arcBarrierReviveAt) {
                         enemy._arcBarrierReviveAt = null;
                         enemy.arcBarrier = { hp: enemy.maxHp, maxHp: enemy.maxHp, angle: enemy.arcBarrier.angle, hitCount: 0 };
+                        enemy.DR = Math.max(0.20, (enemy.DR || 0.20) - 0.10);
+                        enemy._barrierSwordsThisCycle = 0;
                         addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#00ff88');
                         createParticles(enemy.x, enemy.y, 25, '#00ff88', 2, 6);
                     }
@@ -1739,7 +1741,7 @@ function _updateWaveSystem(deltaTime, now) {
         const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
         if (_alive === 0) {
             _wavePhase = 'rest';
-            _waveRestTimer = 3000;
+            _waveRestTimer = 5000;
             _waveForceEndTimer = 0;
         } else {
             _waveForceEndTimer += deltaTime;
