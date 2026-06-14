@@ -1046,7 +1046,7 @@ function draw(deltaTime) {
             const _batches = new Map();
             const _pixiP = window._usePixi && window._pixiDrawParticles;
             for (const p of particles) {
-                if (p.isSummonRing || p.isLaserLine || p.isSkillGAura) { _specials.push(p); continue; }
+                if (p.isSummonRing || p.isLaserLine || p.isSkillGAura || p.isBarrierBreakRing) { _specials.push(p); continue; }
                 if (_pixiP) continue; // normal particles routed to Pixi
                 // Round alpha to 0.05 steps, imperceptible diff, enables color+alpha batching
                 const _a = Math.round((p.lifetime / p.maxLifetime) * 20) / 20;
@@ -4344,7 +4344,7 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.shadowBlur = 0;
     }
 
-    // Sword queue counter, Roman numerals below Mar — always visible
+    // Sword queue counter (green) + cycle counter (gold) — always visible while barrier alive
     {
         const queueCount = (enemy.marchosiasWindups || []).length;
         const romans = ['·', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -4362,6 +4362,27 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.textBaseline = 'middle';
         ctx.fillText(roman, 0, yOff);
         ctx.restore();
+    }
+    // Cycle sword counter (I–IV) in gold — visible only while barrier is alive
+    if (enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+        const cycleCount = enemy._barrierSwordsThisCycle || 0;
+        if (cycleCount > 0) {
+            const cycleRomans = ['I', 'II', 'III', 'IV'];
+            const cycleRoman = cycleRomans[Math.min(cycleCount - 1, 3)];
+            const atFull = cycleCount >= 4;
+            ctx.save();
+            if (atFull) {
+                if (!_mobPerf) { ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 12; }
+                ctx.fillStyle = '#ffaa00';
+            } else {
+                ctx.fillStyle = `rgba(255,170,0,${0.3 + cycleCount * 0.15})`;
+            }
+            ctx.font = `bold ${Math.max(9, Math.floor(R * 0.22))}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(cycleRoman, 0, R + 36);
+            ctx.restore();
+        }
     }
 
     ctx.restore();
@@ -5274,7 +5295,14 @@ function drawExplosion(exp) {
 // Particles
 function drawParticle(p) {
     ctx.save();
-    if (p.isSummonRing) {
+    if (p.isBarrierBreakRing) {
+        const prog = p.lifetime / p.maxLifetime;
+        ctx.strokeStyle = `rgba(0,255,136,${prog * 0.85})`;
+        ctx.lineWidth = Math.max(0.5, 3.5 * prog);
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14; }
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (1 - prog) * 90, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+    } else if (p.isSummonRing) {
         let prog = p.lifetime / p.maxLifetime;
         ctx.strokeStyle = `rgba(0,255,255,${prog})`;
         ctx.lineWidth = 3; if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 8;

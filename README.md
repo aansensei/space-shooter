@@ -412,7 +412,7 @@ Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that c
 - While the arc barrier is alive, Marchosias and the barrier gain **+10% evade** (applies to both body hits and barrier hits).
 - **Piercing attacks** (Spirit Arc Blade, Boomerang, Overload Laser) that connect with the barrier first: body damage is reduced **−30%**, the barrier takes **+15% extra damage**, and the attack continues through. All other attacks are fully absorbed by the barrier.
 - **Lifesteal per hit:** each hit on the barrier heals the barrier for **5% of damage dealt** (max 1000 HP); Marchosias's body heals for **10% of damage dealt** (max 1000 HP, overflow → **50% converted to shield** on Marchosias's body).
-- **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains a **1-hit Iron Body**, gains **+10% DR**, and heals **40% Max HP** (overflow → 50% shield). The barrier revives after **4–5 seconds** (5s at match start, scaling down to 4s at 3 minutes). The **+10% DR is removed** when the barrier revives.
+- **Barrier break:** when the barrier's HP reaches 0, Marchosias immediately gains a **2-hit Iron Body**, gains **+10% DR**, and heals **40% Max HP** (overflow → 50% shield). The **+10% DR is removed** when the barrier revives. Revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed **3-second** revive; otherwise **4–5 seconds** (5s at start, scaling to 4s at 3 min).
 - **Tracking speed** scales from ×1.0 at match start up to **×1.67 at 3 minutes** of play.
 
 *Sword trigger conditions:*
@@ -421,7 +421,7 @@ Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that c
 - If the barrier is fully destroyed, a Sword is queued immediately.
 - When Marchosias's body HP drops to **1%**, all queued Swords fire simultaneously (spread slightly apart). The count is displayed as Roman numerals below Marchosias at all times (dim dot when none are queued).
 
-Each Marchosias can trigger a **maximum of 4 Swords per barrier cycle** — the counter resets each time the barrier revives. After 4 Swords are queued in a cycle, no more can be triggered until the barrier breaks and revives again. Each Marchosias has its own independent **0.65-second cooldown** between triggers. Multiple queued Swords count down their 1-second windups in parallel and fire independently. **Swords cannot be interrupted** — even if Marchosias dies mid-windup, all pending Swords still fire from the death position.
+Each Marchosias can trigger a **maximum of 4 Swords per barrier cycle** — the counter resets each time the barrier revives. Two Roman numeral counters are displayed below Marchosias at all times: **green** shows the active sword queue, **gold (I→IV)** shows how many cycle swords have been used — glows bright gold at IV to signal that the next barrier break will use the 3-second revive. Each Marchosias has its own independent **0.65-second cooldown** between triggers. Multiple queued Swords count down their 1-second windups in parallel and fire independently. **Swords cannot be interrupted** — even if Marchosias dies mid-windup, all pending Swords still fire from the death position.
 
 *Sword sequence:*
 
