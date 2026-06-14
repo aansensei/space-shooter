@@ -400,11 +400,21 @@
     .ul-date { font-size:10px; color:var(--dim); margin-bottom:8px; font-family:'Share Tech Mono',monospace; }
     .ul-summary { font-size:11px; color:#aabbcc; line-height:1.5; margin-bottom:0; }
     .ul-tag { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.5px; padding:1px 5px; border-radius:3px; margin-right:3px; vertical-align:middle; }
-    .tag-feat { background:rgba(0,200,100,0.12); color:#4ade80; border:1px solid rgba(0,200,100,0.25); }
-    .tag-fix { background:rgba(255,80,80,0.1); color:#f87171; border:1px solid rgba(255,80,80,0.2); }
-    .tag-balance { background:rgba(255,200,0,0.1); color:#fbbf24; border:1px solid rgba(255,200,0,0.2); }
-    .tag-nerf { background:rgba(255,120,40,0.1); color:#fb923c; border:1px solid rgba(255,120,40,0.2); }
-    .tag-perf { background:rgba(100,120,255,0.12); color:#a5b4fc; border:1px solid rgba(100,120,255,0.25); }
+    .tag-feat { background:rgba(0,220,255,0.1); color:#22d3ee; border:1px solid rgba(0,220,255,0.22); }
+    .tag-fix { background:rgba(255,60,60,0.1); color:#f87171; border:1px solid rgba(255,60,60,0.22); }
+    .tag-buff { background:rgba(0,220,120,0.1); color:#4ade80; border:1px solid rgba(0,220,120,0.22); }
+    .tag-nerf { background:rgba(255,110,30,0.1); color:#fb923c; border:1px solid rgba(255,110,30,0.22); }
+    .tag-balance { background:rgba(56,189,248,0.1); color:#38bdf8; border:1px solid rgba(56,189,248,0.22); }
+    .tag-perf { background:rgba(192,132,252,0.1); color:#c084fc; border:1px solid rgba(192,132,252,0.22); }
+    .ul-badge.b-new { color:#fbbf24; border-color:rgba(251,191,36,0.3); background:rgba(251,191,36,0.08); }
+    .ul-badge.b-feat { color:#22d3ee; border-color:rgba(0,220,255,0.3); background:rgba(0,220,255,0.07); }
+    .ul-badge.b-fix { color:#f87171; border-color:rgba(255,80,80,0.3); background:rgba(255,80,80,0.07); }
+    .ul-badge.b-buff { color:#4ade80; border-color:rgba(0,220,120,0.3); background:rgba(0,220,120,0.07); }
+    .ul-badge.b-balance { color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.07); }
+    .ul-badge.b-major { color:#a855f7; border-color:rgba(168,85,247,0.3); background:rgba(168,85,247,0.08); }
+    .ul-badge.b-perf { color:#c084fc; border-color:rgba(192,132,252,0.3); background:rgba(192,132,252,0.08); }
+    .ul-badge.b-beta { color:#888aaa; border-color:rgba(150,150,180,0.25); background:rgba(150,150,180,0.06); }
+    .tag-global { background:rgba(244,114,182,0.1); color:#f472b6; border:1px solid rgba(244,114,182,0.22); }
     .ul-entry ul { margin:6px 0 0 0; padding-left:14px; }
     .ul-entry li { font-size:11.5px; margin-bottom:4px; color:#c8d5e8; line-height:1.45; list-style:none; padding-left:2px; }
   </style>
@@ -701,9 +711,9 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Arc Shield → Arc Barrier</b> rename across all code and docs.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Arc Barrier: +10% evade while active (body &amp; barrier). Lifesteal per hit: barrier heals 5%, Mar body heals 10% of damage (max 1000 HP each). On break: 1-hit Iron Body + 30% MaxHP heal (overflow → 50% shield) + revives after 5s. Tracking speed scales to ×1.67 at 3 min.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Piercing attacks (Spirit Arc Blade, Boomerang, Overload Laser) hitting barrier: body dmg −30%, barrier takes +15% extra, attack passes through.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Swords:</b> trigger 20% → 25% per barrier/evaded hit. Evaded body hits now also trigger swords.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Assimilation minions:</b> HP inherit 15–25% → 25–35%. DR 89% → 75%. Scan range 140px → 170px. Hunt speed ×1.89 → ×2.10. Added 50% EP single-hit cap. Hunt-mode rescans every 500ms for nearby host.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP 1,800–3,120 → 2,160–3,744 (+20%). Support Aura heal 4% → 6% MaxHP/s. Custos Aeternus now grants full CC Immunity while 20-hit Iron Body is active.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Swords:</b> trigger 20% → 25% per barrier/evaded hit. Evaded body hits now also trigger swords.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Assimilation minions:</b> HP inherit 15–25% → 25–35%. DR 89% → 75%. Scan range 140px → 170px. Hunt speed ×1.89 → ×2.10. Added 50% EP single-hit cap. Hunt-mode rescans every 500ms for nearby host.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Aegis Core:</b> HP 1,800–3,120 → 2,160–3,744 (+20%). Support Aura heal 4% → 6% MaxHP/s. Custos Aeternus now grants full CC Immunity while 20-hit Iron Body is active.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Minion blink ring animation + player ship strobe outline for bullet hell visibility.</li>
 </ul>
 </div>
@@ -713,9 +723,9 @@
 <div class="ul-date">2026 · time-scaled evade, evade visual, boomerang &amp; spirit slash HP-lost scaling</div>
 <p class="det-short ul-summary">Enemy evade rates now scale over match time. Boomerang and Spirit slash gain bonus damage based on target's missing HP. Marchosias CC immune fix.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">BUFF</span> Enemy evade rates scale over match time — harder to hit the longer the game runs.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Enemy evade rates scale over match time — harder to hit the longer the game runs.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Visual evade flash effect when an enemy successfully dodges.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> Boomerang and Spirit normal slash deal extra damage scaling with target's missing HP.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Boomerang and Spirit normal slash deal extra damage scaling with target's missing HP.</li>
 <li><span class="ul-tag tag-fix">FIX</span> Marchosias was not CC immune while Arc Shield was active — fixed.</li>
 </ul>
 </div>
@@ -726,7 +736,7 @@
 <p class="det-short ul-summary">All timers now pause correctly. Leviathan gained permanent CC Immunity. General balance pass.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-fix">FIX</span> Unified all in-game timers to a single game clock — time-dependent effects (DoTs, cooldowns, buffs) now pause correctly when the game pauses.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Leviathan</b> gained permanent CC Immunity — immune to Black Hole pull, Tesla slow, Rift slow, and Orb slow.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leviathan</b> gained permanent CC Immunity — immune to Black Hole pull, Tesla slow, Rift slow, and Orb slow.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Various balance adjustments across enemies and player skills.</li>
 </ul>
 </div>
@@ -737,7 +747,7 @@
 <p class="det-short ul-summary">Rendering migrated to PixiJS — major performance improvement. Skill A (Thunder Orbs) buffed. Orb Sacrifice curse retaliation fixed.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-perf">PERF</span> Migrated rendering pipeline to PixiJS — significantly reduced lag on high enemy counts.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Skill A (Thunder Orbs):</b> damage improved, Dimensional Rift behavior enhanced, chain-lightning range/count adjusted.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Skill A (Thunder Orbs):</b> damage improved, Dimensional Rift behavior enhanced, chain-lightning range/count adjusted.</li>
 <li><span class="ul-tag tag-fix">FIX</span> Orb Sacrifice retaliation now correctly traces the original enemy that fired a bullet (fixed ownerRef).</li>
 <li><span class="ul-tag tag-fix">FIX</span> Multiple rendering and animation bug fixes.</li>
 </ul>
@@ -750,7 +760,7 @@
 <ul class="det-full">
 <li><span class="ul-tag tag-feat">FEAT</span> Dark Souls-inspired game over screen with death message and replay prompt.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Boomerang now recalls to the spirit after 2 bounces or lifetime expiry (60% faster on return). BTM finale recalls all instantly.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> DNT detection range 100px → 170px from player; target re-locks every frame during the aim delay.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> DNT detection range 100px → 170px from player; target re-locks every frame during the aim delay.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Dimension Break zone</b> added: Egregor's Null Slash leaves a glowing purple arc on the field for 1s that slows the player 20% on contact.</li>
 <li><span class="ul-tag tag-fix">FIX</span> Null Slash arc hitbox corrected. Egregor movement and slow VFX tuned. Dimension Break zone now uses independent world-space arc (no longer attached to Egregor position).</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Guide: Detailed / Shortened toggle added.</li>
@@ -776,14 +786,14 @@
 <p class="det-short ul-summary">Full system rebalance: wave structure, Coronation, all enemy stats, Vulnerability rework, Sentinel improvements, Glory triggers expanded.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Wave System:</b> structured wave table with Apostle/Abnormal/Elite/Dominator counts per wave, Coronation mechanic (Apostle transforms into higher-tier enemy with Iron Body on spawn).</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Custos Aeternus:</b> 6-hit Iron Body → 20-hit Iron Body.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP 1,500–2,600 → 1,800–3,120. DR 10% → 55% permanent. Support Aura structured (40% MaxHP shield, tick shield, +15% DR for shielded). Lumen Nova: marks 3 Sentinels, 5s CD.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Marchosias:</b> body DR 20–25% → 45%. Arc Shield DR 50% → 60%. No single hit &gt; 35% shield HP. Sword damage 32%/28%/26% EP → 27%/23%/21% EP. Shield hp = body hp.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel:</b> base DR 25–30% → 40%. DR per Sentinel 2% → 2.5% (cap 50%). Abyssal Chains 3 chains every 2s → 4 chains every 1.5s.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Leviathan:</b> HP 3,000–6,000 → 8,018–14,032. Base DR after AFO breaks 15% → 60%. All for One kill quota 6 → 10–20. Herd Leader changed to Envy (all enemies +25% DR and +25% healing).</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Thaelis:</b> HP 300–680 → 720–2,400. Reincarnation splits into 3 Embryos (90% DR, CC immune). Tenacity now scales DR by HP lost (up to 95%) and generates Tenacity Barrier every 30% HP lost.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Custos Aeternus:</b> 6-hit Iron Body → 20-hit Iron Body.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Aegis Core:</b> HP 1,500–2,600 → 1,800–3,120. DR 10% → 55% permanent. Support Aura structured (40% MaxHP shield, tick shield, +15% DR for shielded). Lumen Nova: marks 3 Sentinels, 5s CD.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Marchosias:</b> body DR 20–25% → 45%. Arc Shield DR 50% → 60%. No single hit &gt; 35% shield HP. Sword damage 32%/28%/26% EP → 27%/23%/21% EP. Shield hp = body hp.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Dargruel:</b> base DR 25–30% → 40%. DR per Sentinel 2% → 2.5% (cap 50%). Abyssal Chains 3 chains every 2s → 4 chains every 1.5s.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leviathan:</b> HP 3,000–6,000 → 8,018–14,032. Base DR after AFO breaks 15% → 60%. All for One kill quota 6 → 10–20. Herd Leader changed to Envy (all enemies +25% DR and +25% healing).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Thaelis:</b> HP 300–680 → 720–2,400. Reincarnation splits into 3 Embryos (90% DR, CC immune). Tenacity now scales DR by HP lost (up to 95%) and generates Tenacity Barrier every 30% HP lost.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Vulnerability:</b> reworked — 4 stacks (was 3) → +16% dmg taken/stack (cap +64%), shield shred 24% → 26%, auto-fire 25% → 28% chance, others 15% same.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Glory for Justice:</b> now triggers on any Abnormal+ enemy (not just Elites). Damage ×1.4 → ×1.55 confirmed. Chain Lightning arcs 6 enemies → 8 enemies at 50% dmg. Soul Reaver 55% → 60% chance.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Glory for Justice:</b> now triggers on any Abnormal+ enemy (not just Elites). Damage ×1.4 → ×1.55 confirmed. Chain Lightning arcs 6 enemies → 8 enemies at 50% dmg. Soul Reaver 55% → 60% chance.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Sentinels:</b> Gaia Protection added (max HP grows over time). Tier system finalized (Cyan 1–4, Magenta 5–11, Gold ×12). Vanguard Network refined.</li>
 </ul>
 </div>
@@ -793,9 +803,9 @@
 <div class="ul-date">2026 · v 3.91 - Hot fix and buff scale</div>
 <p class="det-short ul-summary">Emergency balance pass: Aegis Core, Marchosias, and Dargruel all received HP/stat increases.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP increased (scaling bump), support aura tuned.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Marchosias:</b> HP and Arc Shield HP scaling increased. Body DR raised.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel:</b> HP scaling raised significantly (1,255–5,023 → 2,520–8,399).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Aegis Core:</b> HP increased (scaling bump), support aura tuned.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Marchosias:</b> HP and Arc Shield HP scaling increased. Body DR raised.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Dargruel:</b> HP scaling raised significantly (1,255–5,023 → 2,520–8,399).</li>
 <li><span class="ul-tag tag-fix">FIX</span> Multiple stat and animation bug fixes from v3.9.</li>
 </ul>
 </div>
@@ -818,10 +828,11 @@
 <div class="ul-date">2026 · V 3.7 - Buff Dargruel, massive buff for Dargruel &amp; Mar, Buff Aegis</div>
 <p class="det-short ul-summary">Dargruel, Marchosias, and Aegis Core all received major HP and stat increases. Dargruel's Maître Suprême reworked.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel:</b> HP 1,400–5,600 → 2,520–8,399. Maître Suprême: 15% base DR → 25% base DR. DR per Sentinel capped at 36%.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Marchosias:</b> HP and Arc Shield scaling significantly raised.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Aegis Core:</b> HP scaling increased, Support Aura range and heal strengthened.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Dargruel:</b> HP 1,400–5,600 → 2,520–8,399. Maître Suprême: 15% base DR → 25% base DR. DR per Sentinel capped at 36%.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Marchosias:</b> HP and Arc Shield scaling significantly raised.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Aegis Core:</b> HP scaling increased, Support Aura range and heal strengthened.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> General enemy stat bump to keep pace with late-game player power.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Fixed bug with Leviathan's Last Rites skill triggering incorrectly or failing to execute under certain conditions.</li>
 </ul>
 </div>
 
@@ -833,7 +844,9 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Vanguard Network</b> activates at 5+ Sentinels (Magenta glow). Damage to any Sentinel is split equally among all N Sentinels as true damage.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>AoE Dampening:</b> same damage source hitting multiple Sentinels: 1st–2nd at 100%, 3rd at 50%, 4th+ at 15%. Resets after 200ms inactivity.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Fuse Protocol:</b> if total network damage in 0.5s exceeds 26% of combined MaxHP, the weakest Sentinel is sacrificed and all remaining gain Iron Body for 0.75s.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Dargruel Abyssal Chains:</b> 3 chains every 2s → 4 chains every 1.5s, higher speed.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Dargruel Abyssal Chains:</b> 3 chains every 2s → 4 chains every 1.5s, higher speed.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Fixed invincibility bug where certain conditions caused enemies to become permanently immune to damage.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Fixed movement bug causing erratic or frozen enemy pathing under specific conditions.</li>
 </ul>
 </div>
 
@@ -855,8 +868,8 @@
 <div class="ul-date">2026 · v 3.0: World Alter</div>
 <p class="det-short ul-summary">Major balance overhaul: Vulnerability buffed to +25% per stack (cap +75%), Accurate Parry detailed, wave system restructured.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Vulnerability:</b> +10% dmg/stack → +25% dmg/stack (max 3 stacks = +75% total dmg taken). Shield shred 5% → 24% current shield.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Accurate Parry:</b> hit during Yog-Sothoth domain → counter-buff 4s. Buff persists even after domain ends.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Vulnerability:</b> +10% dmg/stack → +25% dmg/stack (max 3 stacks = +75% total dmg taken). Shield shred 5% → 24% current shield.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Accurate Parry:</b> hit during Yog-Sothoth domain → counter-buff 4s. Buff persists even after domain ends.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Enemy spawn rates tuned with proportional time scaling for all tiers.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Thaelis Tenacity Barrier</b> introduced: generates a gold barrier worth (30% MaxHP + 20% HP lost + 250) ×1.34 every 30% HP lost. Blocks all non-spirit-laser damage.</li>
 </ul>
@@ -867,12 +880,12 @@
 <div class="ul-date">2026 · V2.8 Absolute balance</div>
 <p class="det-short ul-summary">Overload Laser hold reduced to 3s. Vulnerability fully rebalanced. Soul Devourer DoT added. Sentinel tiers and Parry ×1.25 introduced.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Overload Laser:</b> hold time to trigger 5s → 3s (easier to activate).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Overload Laser:</b> hold time to trigger 5s → 3s (easier to activate).</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Vulnerability rework:</b> auto-fire 10% → 28% chance, others 5% → 15%. Shield shred 5% → 26% current shield. Stacks 3 (was variable), each +10% dmg taken.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Soul Devourer DoT:</b> enemies with Soul Reaver take true DoT every 0.35s (60 base + 5.5% EP).</li>
-<li><span class="ul-tag tag-balance">BUFF</span> <b>Accurate Parry:</b> ×1.25 damage multiplier (stacks with Glory ×1.55 → combined ×1.9375).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Accurate Parry:</b> ×1.25 damage multiplier (stacks with Glory ×1.55 → combined ×1.9375).</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Sentinel tier system: Cyan (1–4) +30% HP, Magenta (5–11) +20% fire rate +10% dmg +10% DR, Gold (12) every shot = Special Shot.</li>
-<li><span class="ul-tag tag-balance">BUFF</span> Player hitbox reduced to a small cyan dot — only the exact center collides.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Player hitbox reduced to a small cyan dot — only the exact center collides.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Auto-pause on tab switch; pulsing white outline on enemy bullets for visibility.</li>
 </ul>
 </div>
@@ -883,7 +896,7 @@
 <p class="det-short ul-summary">Vulnerability debuff system introduced: stacking damage amplification and shield shred on all friendly hits.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Vulnerability</b> introduced: stacking debuff applied by all friendly attacks. Each stack: +10% dmg taken + 5% shield shred. Stacks up to 3 times, 3s duration (refreshed on new stack).</li>
-<li><span class="ul-tag tag-balance">BUFF</span> Vulnerability immediately buffed: application chance increased and shield shred raised.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Vulnerability immediately buffed: application chance increased and shield shred raised.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Soul Reaver debuff also added: reduces healing/shielding received. Applied by Chain Lightning (50% chance).</li>
 </ul>
 </div>
@@ -896,7 +909,7 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Marchosias (Elite)</b> added: HP 1,000–2,200, 20% body DR. Arc Shield: 50% DR, independent HP pool = body HP, tracks player.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Swords:</b> 20% chance per shield hit (guaranteed on break). Orange warning beam + arc projectile that deals 32%/28%/26% Sentinel EP (1st/2nd/3rd+).</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Assimilation:</b> death spawns 3 Minion Robots (15–25% MaxHP +30%, parasite or hunt).</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> Game renamed from "Space Shooter (Thần Binh Thiên Hà)" to <b>Pisces: Space Journey</b>.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> Game renamed from "Space Shooter (Thần Binh Thiên Hà)" to <b>Pisces: Space Journey</b>.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Lives standardized to 12. Glory for Justice damage multiplier set to ×1.55.</li>
 </ul>
 </div>
@@ -936,7 +949,7 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Demon Gift:</b> at 70%/40%/10%/1% HP, heals all enemies 15% Dargruel MaxHP and grants +20% DR for 4s.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Maou Haki @50% HP:</b> screen-wide shockwave destroys all friendly projectiles. Sentinels −20% MaxHP.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Abyssal Chains:</b> 3 piercing chains every 2s → Root &amp; Silence 1s (player) or 15% EP true dmg (Sentinel).</li>
-<li><span class="ul-tag tag-balance">BUFF</span> Chain Lightning buffed: arcs up to 6 enemies (was 3), Soul Reaver added (50% chance: −20% healing).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Chain Lightning buffed: arcs up to 6 enemies (was 3), Soul Reaver added (50% chance: −20% healing).</li>
 </ul>
 </div>
 
@@ -945,7 +958,7 @@
 <div class="ul-date">2026-03-14 · buff sentinel v1.5</div>
 <p class="det-short ul-summary">Sentinels significantly buffed: higher HP, better fire rate, Special Shot vampiric effect, special shot system added.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">BUFF</span> Sentinel base HP 150 → 260+. Fire interval reduced (faster).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Sentinel base HP 150 → 260+. Fire interval reduced (faster).</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Special Shot:</b> every 4th shot is a homing Special Shot that heals the Sentinel 2–3 HP on hit.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Fortified Sentinel:</b> 36% chance on spawn to gain +50% MaxHP.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Sentinel spawn trigger adjusted: 1 per 3 kills (was 5 kills).</li>
@@ -981,7 +994,7 @@
 <div class="ul-date">2026-03-13 · balance 1.2; V1.2 balance</div>
 <p class="det-short ul-summary">Charged shot max time reduced to 1s. Additional stat adjustments across enemies and player.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">NERF</span> Charged shot max charge time 1300ms → 1000ms.</li>
+<li><span class="ul-tag tag-nerf">NERF</span> Charged shot max charge time 1300ms → 1000ms.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Further enemy HP scaling and spawn rate tuning.</li>
 <li><span class="ul-tag tag-fix">FIX</span> Semantic bug fixes.</li>
 </ul>
@@ -992,7 +1005,7 @@
 <div class="ul-date">2026-03-13 · Balancing 1.1</div>
 <p class="det-short ul-summary">First major balance pass: lives reduced from 15 to 10, Chain Lightning added to Glory, damage values tuned.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-balance">NERF</span> Starting lives 15 → 10.</li>
+<li><span class="ul-tag tag-nerf">NERF</span> Starting lives 15 → 10.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Chain Lightning</b> added to Glory for Justice: arcs up to 3 enemies at 5.5–11% of triggering hit's dmg (250ms CD).</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Glory now also triggers when a Boss (Dargruel) is present.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> Player and enemy damage values tuned across the board.</li>
@@ -1011,6 +1024,21 @@
 <li><span class="ul-tag tag-feat">FEAT</span> Normal enemies only: HP 1–60, scales over time. 1 bullet/sec at current HP.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> 15 starting lives. +1 life per 500,000 points.</li>
 </ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#666688">
+<div class="ul-head"><span class="ul-ver">v0.5.0 BETA — PRE-RELEASE DEVELOPMENT</span><span class="ul-badge">BETA</span></div>
+<div class="ul-date">October 2024 · Local development only — no GitHub pushes, no version control</div>
+<p class="det-short ul-summary">First playable prototype, local-only with no version control. Enemies called Normal Enemy / Mini Boss / Boss. Skills A, S, F in primitive form. Pure research and testing — the foundation everything else is built on.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> First playable prototype developed locally. No version control, no GitHub pushes.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Enemy naming at this stage: <b>Normal Enemy</b> (standard units), <b>Mini Boss</b> (later properly named Thaelis), <b>Boss</b> (later properly named Dargruel). No tier system yet.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Skill A (Thunder Orbs) in primitive form: basic homing orbs, simpler damage logic, no arc timing.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Skill S (Remembrance Spirit) in primitive form: single orbiting spirit, basic homing bullets only — no Blade Arc, no Phōtokrystos concept yet.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Skill F (Annihilation Sweep) in primitive form: basic screen-clearing slash, no telegraph animation.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Core auto-fire ship, lives system, and bullet-based damage established in this phase.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Research phase: percentage-based damage scaling tested, wave mechanics drafted, game feel experiments. No Sentinels, no Glory for Justice, no Vulnerability system.</li>
+</ul>
 </div>`
     };
 
@@ -1018,7 +1046,22 @@
     function showTab(name) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
       G.innerHTML = '<div class="tab-content active">' + TABS[name] + '</div>';
-      requestAnimationFrame(() => { attachScrollReveal(); requestAnimationFrame(() => initCanvases(name)); });
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.ul-badge').forEach(b => {
+          const t = b.textContent;
+          if (/NEW|LAUNCH|VISUAL/.test(t)) b.classList.add('b-new');
+          else if (/MAJOR|OVERHAUL/.test(t)) b.classList.add('b-major');
+          else if (/PERF/.test(t)) b.classList.add('b-perf');
+          else if (/BUFF/.test(t) && !/FIX/.test(t)) b.classList.add('b-buff');
+          else if (/BUFF/.test(t) && /FIX/.test(t)) b.classList.add('b-fix');
+          else if (/FIX|PATCH/.test(t)) b.classList.add('b-fix');
+          else if (/BALANCE/.test(t)) b.classList.add('b-balance');
+          else if (/CURRENT/.test(t)) b.classList.add('b-feat');
+          else if (/BETA/.test(t)) b.classList.add('b-beta');
+        });
+        attachScrollReveal();
+        requestAnimationFrame(() => initCanvases(name));
+      });
     }
 
     // ── Scroll-reveal via IntersectionObserver ──
