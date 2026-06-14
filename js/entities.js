@@ -62,9 +62,25 @@ function _applyArcBarrierBodyHeal(enemy, dmg) {
 }
 
 function _triggerArcBarrierBreak(enemy) {
-    addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
+    const _fullCycle = (enemy._barrierSwordsThisCycle || 0) >= 4;
+    if (_fullCycle) {
+        addExplosion(enemy.x, enemy.y, enemy.size * 1.4, '#00ff88');
+        addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#aaffd8');
+        createParticles(enemy.x, enemy.y, 28, '#00ff88', 3, 12);
+        createParticles(enemy.x, enemy.y, 10, '#ffffff', 2, 6);
+        for (let i = 0; i < 3; i++) {
+            const r = _acquireParticle();
+            r.isBarrierBreakRing = true;
+            r.x = enemy.x; r.y = enemy.y;
+            r.lifetime = 580 - i * 90; r.maxLifetime = r.lifetime;
+            r.radius = i * 20;
+            particles.push(r);
+        }
+    } else {
+        addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
+    }
     _tryTriggerMarchosiasCounter(enemy);
-    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 1;
+    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 2;
     const healAmt = Math.ceil(enemy.maxHp * 0.40);
     const newHp = enemy.hp + healAmt;
     if (newHp > enemy.maxHp) {
@@ -74,7 +90,7 @@ function _triggerArcBarrierBreak(enemy) {
         enemy.hp = newHp;
     }
     enemy.DR = Math.min(0.99, (enemy.DR || 0.20) + 0.10);
-    const _reviveDelay = Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
+    const _reviveDelay = _fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
     enemy._arcBarrierReviveAt = gameElapsedTime + _reviveDelay;
 }
 
@@ -88,13 +104,12 @@ function _tryTriggerMarchosiasCounter(enemy) {
     enemy.lastSwordTriggerTime = now;
     enemy._barrierSwordsThisCycle = (enemy._barrierSwordsThisCycle || 0) + 1;
     const _wTx = player.x, _wTy = player.y;
-    enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } }); // push not assign, multiple windups run in parallel and survive entity death
-    // Ngay khi windup bắt đầu: push ghost để dùng hiệu ứng mới xuyên suốt
+    enemy.marchosiasWindups.push({ timer: 1000, target: { x: _wTx, y: _wTy } });
     if (!enemy._ghostWindups) enemy._ghostWindups = [];
     enemy._ghostWindups.push({
         targetX: _wTx, targetY: _wTy,
         originX: enemy.x, originY: enemy.y,
-        freezeTimer: 1000, // giữ nguyên full corridor trong lúc windup
+        freezeTimer: 1000,
         fadeTimer: 1200, maxFade: 1200,
     });
 }
@@ -665,6 +680,7 @@ const _particlePool = [];
 function _acquireParticle() {
     const p = _particlePool.length > 0 ? _particlePool.pop() : {};
     p.isSummonRing = false; p.isLaserLine = false; p.isSkillGAura = false; p._isTriangle = false;
+    p.isBarrierBreakRing = false;
     p.vx = 0; p.vy = 0;
     return p;
 }
