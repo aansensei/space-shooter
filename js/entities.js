@@ -1232,12 +1232,9 @@ function dealDamage(enemy, source) {
                 const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
                 if (Math.random() < (_aliveTents / 10) * 0.60) return;
                 _applyTentacleDmg();
-                // ≥1 tentacle lost: normal hits bleed through to body
+                // ≥1 tentacle lost: normal hits bleed through — 50% DR, hard cap 30% MaxHP
                 if ((enemy._tentaclesLost || 0) >= 1) {
-                    const _lost = enemy._tentaclesLost;
-                    const _capPct = Math.max(0.20, 0.70 - 0.10 * _lost);
-                    const _bodyDR = 0.40 + Math.min(0.20, _lost * 0.05);
-                    const _bleedDmg = Math.ceil(Math.min(totalDamage, enemy.maxHp * _capPct) * (1 - _bodyDR));
+                    const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.50, enemy.maxHp * 0.30));
                     enemy.hp = Math.max(0, enemy.hp - _bleedDmg);
                 }
                 return;
@@ -1255,11 +1252,11 @@ function dealDamage(enemy, source) {
             enemy.hp = Math.max(0, enemy.hp - _pierceDmg);
             return;
         }
-        // All tentacles dead: apply per-hit normal damage cap
+        // All tentacles dead: normal attacks — 50% DR, hard cap 30% MaxHP, applied directly
         if (!source.isPiercing) {
-            const _lost = enemy._tentaclesLost || 0;
-            const _capPct = Math.max(0.20, 0.70 - 0.10 * _lost);
-            totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
+            const _bodyDmg = Math.min(Math.ceil(totalDamage * 0.50), Math.ceil(enemy.maxHp * 0.30));
+            enemy.hp = Math.max(0, enemy.hp - _bodyDmg);
+            return;
         }
     }
 
