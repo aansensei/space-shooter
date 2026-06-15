@@ -41,14 +41,15 @@ window._pixiRender       = null;
     gameCanvas.after(pc);
 
     // Stage layers (back → front)
-    // rift is rendered on ctx (before enemies), not in Pixi, see render.js _drawDimensionalRiftsCtx
     const nebulaLayer  = new PIXI.Container(); // distant nebula atmosphere
+    const riftLayer    = new PIXI.Container(); // dimensional rifts (via _pixiSpawnRift/_pixiDestroyRift)
     const trailLayer   = new PIXI.Container(); // bullet trails
     const particleLayer= new PIXI.Container(); // particles
     const bulletLayer  = new PIXI.Container(); // bullets
     const spiritLayer  = new PIXI.Container(); // spirit bullets
     const flashLayer   = new PIXI.Container(); // hit flashes
     app.stage.addChild(nebulaLayer);
+    app.stage.addChild(riftLayer);
     app.stage.addChild(trailLayer);
     app.stage.addChild(particleLayer);
     app.stage.addChild(bulletLayer);
