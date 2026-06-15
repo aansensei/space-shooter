@@ -58,6 +58,7 @@ window._pixiRender       = null;
     // Texture cache
     const _texCache = {};
     function _canvasTex(canvas2d, key) {
+        if (!canvas2d) return PIXI.Texture.EMPTY;
         if (_texCache[key]) return _texCache[key];
         return (_texCache[key] = PIXI.Texture.from(canvas2d));
     }
@@ -446,8 +447,8 @@ window._pixiRender       = null;
         _drawFlashes();
         // rift rendered on ctx before enemies, not here
 
-        if (!playing) {
-            // Clear stale game-layer content so it doesn't bleed onto UI screens
+        if (!playing || window._sigilPicker) {
+            // Clear stale game-layer content so it doesn't bleed onto UI screens or sigil picker
             _clearLayer(bulletLayer);
             _clearLayer(spiritLayer);
             _clearLayer(particleLayer);
