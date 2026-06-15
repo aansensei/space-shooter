@@ -1459,7 +1459,6 @@ function updateTeslaCoils(deltaTime, currentTime) {
                 }
             });
             if (_hasBuff('ky_su_dien')) {
-                lastSkillG = Math.min(performance.now(), lastSkillG - 3000);
                 skillGCharge = Math.min(100, skillGCharge + 10);
             }
             coil.dotTargets.clear();
