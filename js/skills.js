@@ -414,7 +414,18 @@ function updateSpirits(deltaTime) {
                 vx = (closest.x - spirit.x) / d * 15.84;
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
-            bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+            if (_hasBuff('song_luoi')) {
+                const baseDmg = 210 * 1.30, basePct = 0.058 * 1.30;
+                const speed = 15.84;
+                const baseAngle = Math.atan2(vy, vx);
+                const sideOff = 22;
+                const px = -Math.sin(baseAngle) * sideOff, py = Math.cos(baseAngle) * sideOff;
+                for (const side of [-1, 1]) {
+                    bladeArcProjectiles.push({ x: spirit.x + px * side, y: spirit.y + py * side, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                }
+            } else {
+                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+            }
         }
     }
 }
@@ -658,7 +669,12 @@ function updatePhotokrystos(spirit, deltaTime) {
     // Boomerang every 6 volleys
     if (spirit.volleyCount >= 6) {
         spirit.volleyCount = 0;
-        spawnPhotoBrangs(spirit.x, spirit.y, 2);
+        let brangCount = 2;
+        if (_hasBuff('song_luoi')) {
+            if (Math.random() < 0.30) brangCount++;
+            if (Math.random() < 0.30) brangCount++;
+        }
+        spawnPhotoBrangs(spirit.x, spirit.y, brangCount);
     }
 
 }
@@ -787,6 +803,19 @@ function updatePhotoBrangs(deltaTime) {
                     };
                     if (!checkMarchosiasArcBarrier(tgt, brangSrc, b.x, b.y)) {
                         dealDamage(tgt, brangSrc);
+                        if (_hasBuff('cuc_han') && Math.random() < 0.50) {
+                            tgt._slowEnd = Math.max(tgt._slowEnd || 0, now_b + 2000);
+                            tgt._slowFactor = Math.max(tgt._slowFactor || 1, 1 / 0.80);
+                            const _cucCCImmune = tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan'
+                                || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
+                                || (tgt.type === 'aegis_core' && tgt.aegisInvulnerable);
+                            if (!_cucCCImmune) {
+                                const _cdx = player.x - tgt.x, _cdy = player.y - tgt.y;
+                                const _cd = Math.hypot(_cdx, _cdy) || 1;
+                                tgt.x += (_cdx / _cd) * 38;
+                                tgt.y += (_cdy / _cd) * 38;
+                            }
+                        }
                         if (tgt.hp <= 0 && !tgt._spiritKillCounted) {
                             tgt._spiritKillCounted = true;
                             primevalEnergy = Math.min(100, primevalEnergy + 2);
@@ -889,10 +918,25 @@ function updateBladeArcProjectiles(deltaTime) {
             const enemyRadius = enemy.size / 2;
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 if (checkMarchosiasArcBarrier(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
+                const _arcBypass = _hasBuff('tu_huyet');
                 const _arcSrc = (arc.isSpirit && arc.isPiercing)
-                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage }
+                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage, _bypassIronBody: _arcBypass }
                     : arc;
+                if (_arcBypass) _arcSrc._bypassIronBody = true;
                 dealDamage(enemy, _arcSrc);
+                if (_hasBuff('cuc_han') && Math.random() < 0.50) {
+                    enemy._slowEnd = Math.max(enemy._slowEnd || 0, performance.now() + 2000);
+                    enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.80);
+                    const _cucArcCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+                        || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+                        || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+                    if (!_cucArcCCImmune) {
+                        const _adx = player.x - enemy.x, _ady = player.y - enemy.y;
+                        const _ad = Math.hypot(_adx, _ady) || 1;
+                        enemy.x += (_adx / _ad) * 38;
+                        enemy.y += (_ady / _ad) * 38;
+                    }
+                }
                 // Primeval Creation: blade arc from spirit = +2%
                 if (arc.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
                     enemy._spiritKillCounted = true;
@@ -1035,6 +1079,11 @@ function updateSkillD(deltaTime) {
                     enemy.x += (dx / d) * pullSpeed * dt;
                     enemy.y += (dy / d) * pullSpeed * dt;
                 }
+                if (_hasBuff('coi_mong') && !enemy._yogMark) {
+                    enemy._yogMark = true;
+                    enemy._yogMarkStart = performance.now();
+                    enemy._yogMarkAccum = 0;
+                }
             }
             if (d < blackHole.size / 2) {
                 // Blackhole chạm arc barrier Mar: sword 25%, barrier takes impact, Mar not insta-killed
@@ -1050,6 +1099,19 @@ function updateSkillD(deltaTime) {
             }
         }
         if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
+    }
+
+    if (_hasBuff('coi_mong')) {
+        const _markNow = performance.now();
+        for (const enemy of enemies) {
+            if (enemy._yogMark && _markNow - enemy._yogMarkStart >= 1500) {
+                const _expDmg = Math.ceil((enemy._yogMarkAccum || 0) * 0.30);
+                if (_expDmg > 0) dealDamage(enemy, { damage: _expDmg, isTrueDamage: true, _yogExplosion: true });
+                createParticles(enemy.x, enemy.y, 15, '#8b5cf6', 3, 8);
+                enemy._yogMark = false;
+                enemy._yogMarkAccum = 0;
+            }
+        }
     }
 }
 
@@ -1325,8 +1387,21 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         dotMap.set(enemy, currentTime);
                     }
                     if (currentTime - dotMap.get(enemy) >= 125) {
-                        dealDamage(enemy, { damage: 58, percentDamage: 0.015, isTeslaDot: true });
+                        const _teslaDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
+                        dealDamage(enemy, { damage: 58 * _teslaDmgMult, percentDamage: 0.015 * _teslaDmgMult, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
+                        if (_hasBuff('set_day_chuyen') && Math.random() < 0.40) {
+                            let _closest = null, _closestDist = Infinity;
+                            for (const _oe of enemies) {
+                                if (_oe === enemy || _oe.type.startsWith('enemy_bullet') || _oe.inCoronation) continue;
+                                const _d = Math.hypot(_oe.x - enemy.x, _oe.y - enemy.y);
+                                if (_d < 150 && _d < _closestDist) { _closest = _oe; _closestDist = _d; }
+                            }
+                            if (_closest) {
+                                dealDamage(_closest, { damage: 58 * _teslaDmgMult, percentDamage: 0.015 * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
+                                chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: _closest.x, y2: _closest.y, lifetime: 200, maxLifetime: 200 });
+                            }
+                        }
                     }
                 } else {
                     if (orb.linkedTo.dotTargets.has(enemy)) {
@@ -1374,7 +1449,8 @@ function updateTeslaCoils(deltaTime, currentTime) {
         });
 
         if (coil.hp <= 0) {
-            const explosionProps = { damage: 20, percentDamage: 0.15 };
+            const _coilDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
+            const explosionProps = { damage: 20 * _coilDmgMult, percentDamage: 0.15 * _coilDmgMult };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
@@ -1382,7 +1458,10 @@ function updateTeslaCoils(deltaTime, currentTime) {
                     dealDamage(enemy, explosionProps);
                 }
             });
-
+            if (_hasBuff('ky_su_dien')) {
+                lastSkillG = Math.min(performance.now(), lastSkillG - 3000);
+                skillGCharge = Math.min(100, skillGCharge + 10);
+            }
             coil.dotTargets.clear();
             teslaCoils.splice(i, 1);
         }

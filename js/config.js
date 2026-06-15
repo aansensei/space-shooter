@@ -122,4 +122,24 @@ let _waveForceEndTimer = 0;
 let _yuukiBonus = 0;
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
+
+// Sigil System state (reset in startGame)
+window._sigilPool = [];
+window._playerSigils = [];
+window._sigilPicker = null;
+window._sigilIronBodyStacks = 0;
+window._sigilIronBodyNextAt = 0;
+window._phanDonReady = false;
+window._coiMongEndTime = 0;
+window._thanMenhEndTime = 0;
+window._tuyetLanStacks = 0;
+window._tuyetLanLastKill = 0;
+window._bongDoiHitCount = 0;
+window._muiTenVangHitCount = 0;
+window._hoVeLastDeadMaxHp = 0;
+window._hoVeShieldAvailUntil = 0;
+window._hoVeShieldCooldownEnd = 0;
+window._sthBurning = new Map();
+window._laiKepPEAccum = 0;
+window._laiKepFireRateBonus = 0;
 let boundaryY = canvas.height - 10;

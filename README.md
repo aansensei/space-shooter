@@ -342,7 +342,7 @@ Spawns continuously from the start. HP starts between **22–42** and scales up 
 
 **Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 2.0 u/s
 
-HP: **1,200–3,000**. Innate **40% Damage Reduction**.
+HP: **1,320–3,300**. Innate **40% Damage Reduction**.
 
 A shifting entity that phases in and out of reality to avoid damage and punish careless positioning.
 
@@ -369,7 +369,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 **Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
 
-HP: **1,000–2,400**.
+HP: **1,100–2,640**.
 
 Fires **2 large projectiles** every second. After 0.6 seconds of flight each splits into **6 smaller homing bullets**. Small bullets deal 1 life of damage to the player, or **15% EP** to a Sentinel.
 
@@ -392,7 +392,7 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 **Available after:** Wave 2 | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.65 u/s
 
-HP: **2,160–3,744**. Permanent **55% Damage Reduction** at all times.
+HP: **2,376–4,118**. Permanent **55% Damage Reduction** at all times.
 
 **Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 20th hit the shield breaks and Aegis Core takes damage normally. **While Custos is active, Aegis Core is CC Immune** — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
 
@@ -412,7 +412,7 @@ HP: **2,160–3,744**. Permanent **55% Damage Reduction** at all times.
 
 **Available after:** Wave 2 | **Spawn rate:** 5% → 13% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **1,920–3,720**. Permanent **45% Damage Reduction** on its body at all times.
+HP: **2,112–4,092**. Permanent **45% Damage Reduction** on its body at all times.
 
 **Sword & Barrier**
 
@@ -464,7 +464,7 @@ Each minion scans within **170px** for a valid host (excluding other Marchosias)
 
 **Available after:** Wave 2 | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
 
-HP: **1,920–4,200**. Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
+HP: **2,112–4,620**. Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
 **Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). **When a tentacle dies:** Egregor's body **heals 6% MaxHP**, **MaxHP increases by 20% of that tentacle's HP**, and the body gains **+5% DR** (cumulative, max +20% at 4 losses). Once **≥1 tentacle is lost**, normal attacks also **bleed through to the body** after tentacle interception (capped at **max(20%, 70% − 10% × n)% MaxHP** per hit). Egregor's body can also be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **30% MaxHP**). Egregor cannot coexist with Veilshroud on the field.
 
@@ -480,7 +480,7 @@ HP: **1,920–4,200**. Permanent **40% Damage Reduction** on its body at all tim
 
 **Available after:** Wave 3 | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **5,000–14,000**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
+HP: **5,500–15,400**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
 
 **Demon Gift** — Triggers when HP crosses **90%, 70%, 50%, 30%, and 1%**:
 
@@ -517,7 +517,7 @@ HP: **5,000–14,000**. DR is fully dynamic — see Passive below. **Permanent C
 
 **Available after:** Wave 3 | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
-HP: **8,018–14,032**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
+HP: **8,820–15,435**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 
 **Passive: Inevitable** — Leviathan's core resilience mechanics:
 

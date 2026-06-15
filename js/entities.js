@@ -177,7 +177,7 @@ function handleEnemyKill(enemy) {
     // Blessing HP regen handled in main.js update loop
     if (score >= nextLifeMilestone) {
         lives++;
-        nextLifeMilestone += 500000;
+        nextLifeMilestone += _hasBuff('hoan_sinh') ? 250000 : 500000;
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }
     addExplosion(enemy.x, enemy.y, enemy.size);
@@ -204,10 +204,47 @@ function handleEnemyKill(enemy) {
     if (skillGActive) {
         spawnEnergyOrb(enemy.x, enemy.y);
     }
+
+    const _now = performance.now();
+
+    if (_hasBuff('tuyet_lan')) {
+        window._tuyetLanStacks = Math.min(120, (window._tuyetLanStacks || 0) + 1);
+        window._tuyetLanLastKill = _now;
+    }
+
+    if (_hasBuff('lai_kep')) {
+        const _peGain = 0.006;
+        const _prevAccum = window._laiKepPEAccum || 0;
+        window._laiKepPEAccum = _prevAccum + _peGain;
+        primevalEnergy = Math.min(100, primevalEnergy + _peGain * 100);
+        const _milestones = Math.floor(window._laiKepPEAccum * 20) - Math.floor(_prevAccum * 20);
+        if (_milestones > 0 && (window._laiKepFireRateBonus || 0) < 0.30) {
+            window._laiKepFireRateBonus = Math.min(0.30, (window._laiKepFireRateBonus || 0) + _milestones * 0.015);
+        }
+    }
+
+    if (_hasBuff('dong_chay_luan_hoi')) {
+        let _cdReduc = 0;
+        const _t = enemy.type;
+        if (_t === 'apostle') _cdReduc = 500;
+        else if (_t === 'thaelis' || _t === 'veilshroud' || _t === 'egregor' || _t === 'marchosias' || _t === 'aegis_core') _cdReduc = 1000;
+        else if (_t === 'dargruel' || _t === 'leviathan') _cdReduc = 1500;
+        if (_cdReduc > 0) {
+            lastSkillA     = Math.min(_now, lastSkillA     - _cdReduc);
+            lastSkillS     = Math.min(_now, lastSkillS     - _cdReduc);
+            lastSkillD     = Math.min(_now, lastSkillD     - _cdReduc);
+            lastSkillF     = Math.min(_now, lastSkillF     - _cdReduc);
+            laserCooldownEnd = Math.max(0, laserCooldownEnd - _cdReduc);
+        }
+    }
+
+    if (_hasBuff('su_tu_hong') && gloryForJusticeActive && window._sthBurning) {
+        window._sthBurning.delete(enemy);
+    }
 }
 
 function fireAutoShot() {
-    const fireRateMultiplier = gloryForJusticeActive ? 1.50 : 1;
+    const fireRateMultiplier = (gloryForJusticeActive ? 1.50 : 1) * (1 + (window._laiKepFireRateBonus || 0));
     if (performance.now() - lastAutoFire < autoFireInterval / fireRateMultiplier) return;
     lastAutoFire = performance.now();
 
@@ -215,13 +252,26 @@ function fireAutoShot() {
     const numBullets = 5, spreadAngle = Math.PI / 4;
     const startAngle = -spreadAngle / 2, angleStep = spreadAngle / (numBullets - 1);
     const baseAngle = -Math.PI / 2;
+    const _vanguard = _hasBuff('tien_phong');
+    const _dmgMult = _vanguard ? 1.20 : 1;
+
+    let _isCritVolley = false;
+    if (_hasBuff('mui_ten_vang')) {
+        window._muiTenVangVolleyCount = (window._muiTenVangVolleyCount || 0) + 1;
+        if (window._muiTenVangVolleyCount % 6 === 0) _isCritVolley = true;
+    }
+
     for (let i = 0; i < numBullets; i++) {
         const angle = baseAngle + startAngle + (i * angleStep);
+        const _pierce = _vanguard && Math.random() < 0.30;
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 55, percentDamage: 0.009, size: 6.5, type: 'player_auto',
-            applyVuln: true, vulnChance: 0.28  // 28% khả năng gây Trọng Thương
+            damage: 55 * _dmgMult, percentDamage: 0.009 * _dmgMult, size: 6.5, type: 'player_auto',
+            applyVuln: true, vulnChance: 0.28,
+            isPiercing: _pierce, hitEnemies: _pierce ? [] : undefined,
+            _bongDoiBullet: _hasBuff('bong_doi'),
+            _muiTenVangCrit: _isCritVolley,
         });
     }
 }
@@ -324,7 +374,7 @@ function spawnEnemy() {
 function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
-    let hp = Math.ceil(5000 + Math.random() * 9000); // 5000–14000
+    let hp = Math.ceil(5500 + Math.random() * 9900); // 5500–15400
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.765, hp: hp, maxHp: hp,
@@ -342,7 +392,7 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(2400, 1000 + hpFromTime * 48);
+    let hp = Math.min(2640, 1100 + hpFromTime * 53);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -358,7 +408,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(3744, 2160 + hpFromTime * 58);
+    let hp = Math.min(4118, 2376 + hpFromTime * 64);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.367, hp: hp, maxHp: hp,
@@ -373,7 +423,7 @@ function spawnMarchosias() {
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9 * 1.067; // ~1.6 u/s
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(3720, 1920 + hpFromTime * 50);
+    let hp = Math.min(4092, 2112 + hpFromTime * 55);
 
     const shieldHp = hp;
 
@@ -446,7 +496,7 @@ function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
     const size = baseSize * 5; // ~100–150px, bằng Thaelis
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.min(3000, 1200 + hpFromTime * 60);
+    const hp = Math.min(3300, 1320 + hpFromTime * 66);
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2,
         y: -size,
@@ -755,6 +805,7 @@ function spawnSentinel(x, y, forceNormal = false) {
         initialMaxHp = Math.ceil(initialMaxHp * 1.5);
     }
 
+    if (_hasBuff('ho_ve')) initialMaxHp = Math.ceil(initialMaxHp * 1.60);
     sentinels.push({
         x, y, hp: initialMaxHp, maxHp: initialMaxHp, angle: -Math.PI / 2, shootTimer: 0,
         target: null, size: 15, shotsFiredSinceSpecial: 0,
@@ -770,9 +821,24 @@ function spawnSentinel(x, y, forceNormal = false) {
         _ns.maxHp = Math.ceil(_ns.maxHp * _gaiaHpCumMult);
         _ns.hp = _ns.maxHp;
     }
+
+    // Guardian: apply predecessor shield to newly spawned sentinel
+    if (_hasBuff('ho_ve') && window._hoVeLastDeadMaxHp > 0 && performance.now() < (window._hoVeShieldAvailUntil || 0)) {
+        const _ns = sentinels[sentinels.length - 1];
+        _ns.shield = (_ns.shield || 0) + Math.ceil(window._hoVeLastDeadMaxHp * 0.20);
+        window._hoVeShieldAvailUntil = 0;
+    }
 }
 
 function destroySentinel(sentinel) {
+    if (_hasBuff('ho_ve')) {
+        const now = performance.now();
+        if (now >= (window._hoVeShieldCooldownEnd || 0)) {
+            window._hoVeLastDeadMaxHp = sentinel.maxHp;
+            window._hoVeShieldAvailUntil = now + 5000;
+            window._hoVeShieldCooldownEnd = now + 4000;
+        }
+    }
     addExplosion(sentinel.x, sentinel.y, 80, '#00FFFF');
     _setShake(5, 200);
     for (let i = 0; i < 10; i++) {
@@ -789,6 +855,18 @@ function updateSentinels(deltaTime) {
     let activeCount = sentinels.length;
     let sentinelFireRate = 62.5; // 75 / 1.2 (+20% fire rate)
     let damageMultiplier = 1.0;
+
+    if (_hasBuff('ho_ve')) damageMultiplier *= 1.25;
+    if (_hasBuff('lai_kep') && (window._laiKepFireRateBonus || 0) > 0) {
+        sentinelFireRate /= (1 + window._laiKepFireRateBonus);
+    }
+
+    if (_hasBuff('trieu_hoi')) {
+        const healPerMs = 10 / 1000;
+        for (const s of sentinels) {
+            s.hp = Math.min(s.maxHp, s.hp + healPerMs * deltaTime * 1.20);
+        }
+    }
 
     let isTier1 = activeCount < 5;
     let isTier2 = activeCount >= 5 && activeCount < 12;
@@ -859,8 +937,11 @@ function updateSentinels(deltaTime) {
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
                     vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
-                    damage: 30 * damageMultiplier * _bDmg2, percentDamage: 0.015 * damageMultiplier * _bDmg2, size: 7.8, type: 'sentinel_auto',
-                    _isSentinelBullet: true
+                    damage: 30 * damageMultiplier * _bDmg2 * (_hasBuff('tien_phong') ? 1.20 : 1),
+                    percentDamage: 0.015 * damageMultiplier * _bDmg2 * (_hasBuff('tien_phong') ? 1.20 : 1),
+                    size: 7.8, type: 'sentinel_auto',
+                    _isSentinelBullet: true,
+                    ...(_hasBuff('tien_phong') && Math.random() < 0.30 ? { isPiercing: true, hitEnemies: [] } : {}),
                 });
                 const _mz = _acquireParticle(); _mz.x = sentinel.x + Math.cos(angle) * (sentinel.size + 5); _mz.y = sentinel.y + Math.sin(angle) * (sentinel.size + 5); _mz.lifetime = 100; _mz.maxLifetime = 100; _mz.size = 5; _mz.color = 'orange'; particles.push(_mz);
             }
@@ -1073,6 +1154,38 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * (1 + _yuukiBonus));
     }
 
+    // Sigil: Avalanche — global damage multiplier (per kill stacks, max 60%)
+    if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
+        totalDamage = Math.ceil(totalDamage * (1 + Math.min(0.60, window._tuyetLanStacks * 0.005)));
+    }
+
+    // Sigil: Law of Scales — enemy HP% scaled damage bonus (+0% at full → +70% at 10%)
+    if (_hasBuff('luat_can_bang') && !isSentinel) {
+        const hpFrac = enemy.hp / (enemy.maxHp || enemy.hp);
+        if (hpFrac < 1) {
+            const bonus = Math.min(0.70, (1 - hpFrac) * (0.70 / 0.90));
+            totalDamage = Math.ceil(totalDamage * (1 + bonus));
+        }
+    }
+
+    // Sigil: Death Mark — enemies below 20% HP take +70% from all sources
+    if (_hasBuff('tu_huyet') && !isSentinel && enemy.hp / (enemy.maxHp || enemy.hp) < 0.20) {
+        totalDamage = Math.ceil(totalDamage * 1.70);
+    }
+
+    // Sigil: Divine Fate — +50% dmg during 5s freeze window at wave start
+    if (_hasBuff('than_menh') && window._thanMenhEndTime > 0 && performance.now() < window._thanMenhEndTime) {
+        totalDamage = Math.ceil(totalDamage * 1.50);
+    }
+
+    // Sigil: Riposte — consume on first non-auto skill damage after taking a hit
+    if (_hasBuff('phan_don') && window._phanDonReady && !isSentinel
+        && source.type !== 'player_auto' && source.type !== 'sentinel_auto'
+        && !source._isNocToiDot && !source.isTeslaDot) {
+        totalDamage = Math.ceil(totalDamage * 2.20);
+        window._phanDonReady = false;
+    }
+
     // Trọng Thương: +16% mỗi stack (max 4 stacks = +64%)
     if (enemy.vulnStacks && enemy.vulnStacks > 0) {
         totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.16));
@@ -1239,8 +1352,8 @@ function dealDamage(enemy, source) {
         return; // hoàn toàn miễn sát thương
     }
 
-    // Coronation Iron Body perk, 1-hit block on spawned enemy
-    if (!isSentinel && enemy.ironBodyHits > 0) {
+    // Coronation Iron Body perk, 1-hit block on spawned enemy (tu_huyet blade arc bypasses)
+    if (!isSentinel && enemy.ironBodyHits > 0 && !source._bypassIronBody) {
         enemy.ironBodyHits--;
         createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
         return; // 1 hit absorbed
@@ -1398,6 +1511,11 @@ function dealDamage(enemy, source) {
         totalDamage = Math.max(1, Math.ceil(totalDamage * 0.01));
     }
 
+    // Pisces Dream Realm: enemies marked by black hole accumulate damage
+    if (_hasBuff('coi_mong') && enemy._yogMark && !source._yogExplosion) {
+        enemy._yogMarkAccum = (enemy._yogMarkAccum || 0) + totalDamage;
+    }
+
     // Apply damage: true damage and true-damage-window both bypass shield
     if (source.isTrueDamage || inTrueDmgWindow) {
         enemy.hp -= totalDamage;
@@ -1522,7 +1640,7 @@ function spawnLeviathan() {
     const baseSize = 25 + Math.random() * 5;
     const size = baseSize * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(14032, 8018 + hpFromTime * 50);
+    let hp = Math.min(15435, 8820 + hpFromTime * 55);
     hp = Math.ceil(hp * 1.05);
 
     // Y = random 6-9 kills để trigger announcement Perseverance → vỡ khiên
@@ -1938,7 +2056,7 @@ function updateApostleCoronation(enemy, deltaTime) {
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.min(4200, 1920 + hpFromTime * 65);
+    const hp = Math.min(4620, 2112 + hpFromTime * 72);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size,
         y: -size,
