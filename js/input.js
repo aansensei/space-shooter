@@ -118,7 +118,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 skillShiftActive = true;
                 window._shiftActive = true;
                 skillShiftChargeStart = performance.now();
-                if (_hasBuff('coi_mong')) window._coiMongEndTime = performance.now() + 2000;
+                if (_hasBuff('coi_mong')) {
+                    window._coiMongEndTime = performance.now() + 2000;
+                    const _markT = performance.now();
+                    for (const _e of enemies) {
+                        if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
+                        if (!_e._yogMark) {
+                            _e._yogMark = true;
+                            _e._yogMarkStart = _markT;
+                            _e._yogMarkAccum = 0;
+                        }
+                    }
+                }
             }
             e.preventDefault();
         }

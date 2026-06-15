@@ -1104,8 +1104,8 @@ function updateSkillD(deltaTime) {
     if (_hasBuff('coi_mong')) {
         const _markNow = performance.now();
         for (const enemy of enemies) {
-            if (enemy._yogMark && _markNow - enemy._yogMarkStart >= 1500) {
-                const _expDmg = Math.ceil((enemy._yogMarkAccum || 0) * 0.30);
+            if (enemy._yogMark && _markNow - enemy._yogMarkStart >= 1650) {
+                const _expDmg = Math.ceil((enemy._yogMarkAccum || 0) * 0.40);
                 if (_expDmg > 0) dealDamage(enemy, { damage: _expDmg, isTrueDamage: true, _yogExplosion: true });
                 createParticles(enemy.x, enemy.y, 15, '#8b5cf6', 3, 8);
                 enemy._yogMark = false;
@@ -1390,7 +1390,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         const _teslaDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
                         dealDamage(enemy, { damage: 58 * _teslaDmgMult, percentDamage: 0.015 * _teslaDmgMult, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
-                        if (_hasBuff('set_day_chuyen') && Math.random() < 0.40) {
+                        if (_hasBuff('set_day_chuyen') && Math.random() < 0.50) {
                             let _closest = null, _closestDist = Infinity;
                             for (const _oe of enemies) {
                                 if (_oe === enemy || _oe.type.startsWith('enemy_bullet') || _oe.inCoronation) continue;

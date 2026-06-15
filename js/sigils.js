@@ -14,7 +14,7 @@ const SIGIL_DEFS = {
         name: 'Taurus', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'thanh_dong', name: 'Iron Fortress', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Every 10s gain 1 Iron Body layer (consumed first, max 2 stacks)' },
+              desc: 'Every 8s gain 1 Iron Body layer (consumed first, max 2 stacks). Shown as green hex rings on ship.' },
             { id: 'ho_ve', name: 'Guardian', type: 'DEF', typeC: '#3b82f6',
               desc: 'Sentinel +60% HP & +25% dmg; when sentinel dies, next sentinel spawned within 5s gains a shield worth 20% of predecessor MaxHP (CD 4s)' },
         ]
@@ -32,9 +32,9 @@ const SIGIL_DEFS = {
         name: 'Cancer', element: 'Water', color: '#7F77DD',
         buffs: [
             { id: 'giap_nguyet', name: 'Lunar Aegis', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Gaia Protection activates without Glory for Justice; shield absorption +20%' },
+              desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +35%; sentinels gain +10% evade' },
             { id: 'trieu_hoi', name: 'Tidal Flow', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Sentinel regenerates 10 HP/s; sentinel healing effectiveness +20%' },
+              desc: 'Sentinel regenerates 15 HP/s; sentinel healing effectiveness +30%' },
         ]
     },
     leo: {
@@ -70,7 +70,7 @@ const SIGIL_DEFS = {
             { id: 'hoan_sinh', name: 'Resurrection', type: 'HEAL', typeC: '#22c55e',
               desc: 'On pick: immediately gain +5 lives. Life bonus rate: +1 life per 250,000 pts (instead of 500,000)' },
             { id: 'tu_huyet', name: 'Death Mark', type: 'ATK', typeC: '#ef4444',
-              desc: 'Enemies below 20% HP take +70% damage from all sources. Skill F blade arc pierces Iron Body.' },
+              desc: 'Enemies below 20% HP take +70% damage from all sources. Skill F blade arc pierces Iron Body. Enemy at exactly ≤3% HP: instantly killed with a blood-flower burst.' },
         ]
     },
     sagittarius: {
@@ -86,7 +86,7 @@ const SIGIL_DEFS = {
         name: 'Capricorn', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'lai_kep', name: 'Compound Interest', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Each kill grants +0.6% PE; every 5% PE gained increases all ally fire rate by 1.5% (max +30%, preserved through BTM)' },
+              desc: 'Each kill grants +0.6% PE; every 5% PE gained increases all ally fire rate by 1.5% (max +30%, preserved through BTM). While the great spirit is alive, every ally attack deals +200 bonus damage.' },
             { id: 'tuyet_lan', name: 'Avalanche', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Each kill grants +0.5% global damage (resets after 5s without a kill, max +60%)' },
         ]
@@ -95,7 +95,7 @@ const SIGIL_DEFS = {
         name: 'Aquarius', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'set_day_chuyen', name: 'Chain Lightning', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Tesla DoT has a 40% chance to chain to the nearest enemy within 150px' },
+              desc: 'Tesla DoT has a 50% chance to chain to the nearest enemy within 150px' },
             { id: 'dien_tu_truong', name: 'Magnetic Field', type: 'DEF', typeC: '#3b82f6',
               desc: 'While Skill G is charging, enemies within 250px are slowed 30% and suffer 0.35% MaxHP DoT/s' },
         ]
@@ -104,7 +104,7 @@ const SIGIL_DEFS = {
         name: 'Pisces', element: 'Water', color: '#7F77DD',
         buffs: [
             { id: 'coi_mong', name: 'Dream Realm', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Each Shift activation negates all enemy damage for 2 seconds. Enemies pulled by black hole accumulate damage received; after 1.5s, explode for 30% of the total.' },
+              desc: 'Shift activation negates all enemy damage for 2s and marks all enemies on screen. After 1.65s, marked enemies burst for 40% of the damage they accumulated during the mark window.' },
             { id: 'dong_chay_luan_hoi', name: 'Cycle of Flow', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Kill apostle: −0.5s all skill CD; kill abnormal/elite: −1s; kill dominator: −1.5s' },
         ]
@@ -154,7 +154,7 @@ function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; }
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
-    if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 10000; }
+    if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 8000; }
     if (buffId === 'su_tu_hong')   { window._sthBurning = new Map(); }
     if (buffId === 'ho_ve')        { window._hoVeLastDeadMaxHp = 0; window._hoVeShieldAvailUntil = 0; window._hoVeShieldCooldownEnd = 0; }
     if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives += 5; }
