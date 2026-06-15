@@ -158,6 +158,29 @@ function applyVulnerability(enemy) {
     enemy.vulnEndTime = now + 3000;
 }
 
+function _spawnBloodFlower(x, y, size) {
+    const petalCount = 12;
+    const lifeMs = 700 + Math.random() * 200;
+    for (let i = 0; i < petalCount; i++) {
+        const angle = (i / petalCount) * Math.PI * 2;
+        const speed = 1.8 + Math.random() * 2.2;
+        const r = size * (0.35 + Math.random() * 0.4);
+        particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            lifetime: lifeMs + Math.random() * 150,
+            maxLifetime: lifeMs + 150,
+            size: r,
+            color: Math.random() < 0.6 ? '#cc0022' : '#ff2244',
+            _bloodPetal: true,
+            _angle: angle,
+        });
+    }
+    addExplosion(x, y, size * 1.4, '#cc0022');
+    createParticles(x, y, 18, '#ff1133', 2, 6);
+}
+
 function distToSegment(p, v, w) {
     const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
     if (l2 == 0) return Math.hypot(p.x - v.x, p.y - v.y);
@@ -862,9 +885,9 @@ function updateSentinels(deltaTime) {
     }
 
     if (_hasBuff('trieu_hoi')) {
-        const healPerMs = 10 / 1000;
+        const healPerMs = 15 / 1000;
         for (const s of sentinels) {
-            s.hp = Math.min(s.maxHp, s.hp + healPerMs * deltaTime * 1.20);
+            s.hp = Math.min(s.maxHp, s.hp + healPerMs * deltaTime * 1.30);
         }
     }
 
@@ -1158,6 +1181,12 @@ function dealDamage(enemy, source) {
     // Sigil: Avalanche — global damage multiplier (per kill stacks, max 60%)
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
         totalDamage = Math.ceil(totalDamage * (1 + Math.min(0.60, window._tuyetLanStacks * 0.005)));
+    }
+
+    // Sigil: Compound Interest — while Photokrystos (great spirit) is alive, +200 flat damage per hit
+    if (_hasBuff('lai_kep') && !isSentinel
+        && typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) {
+        totalDamage += 200;
     }
 
     // Sigil: Law of Scales — enemy HP% scaled damage bonus (+0% at full → +70% at 10%)
@@ -1524,6 +1553,15 @@ function dealDamage(enemy, source) {
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
+
+    // Sigil: Death Mark — enemy at ≤3% HP triggers instant blood-flower kill
+    if (_hasBuff('tu_huyet') && !isSentinel && enemy.hp > 0
+        && enemy.hp / (enemy.maxHp || enemy.hp) <= 0.03
+        && !enemy.inCoronation && enemy.type !== 'veilshroud_echo') {
+        enemy.hp = 0;
+        enemy._markedForDeath = true;
+        _spawnBloodFlower(enemy.x, enemy.y, enemy.size);
+    }
 
     // Leviathan: khi HP về 0 (hoặc đã ≤ 1), spawn death lasers ngay nếu chưa spawn
     if (enemy.type === 'leviathan' && enemy.hp <= 1 && !enemy._deathLaserSpawned) {

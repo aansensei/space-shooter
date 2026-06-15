@@ -1050,7 +1050,7 @@ function draw(deltaTime) {
             const _batches = new Map();
             const _pixiP = window._usePixi && window._pixiDrawParticles;
             for (const p of particles) {
-                if (p.isSummonRing || p.isLaserLine || p.isSkillGAura || p.isBarrierBreakRing) { _specials.push(p); continue; }
+                if (p.isSummonRing || p.isLaserLine || p.isSkillGAura || p.isBarrierBreakRing || p._bloodPetal) { _specials.push(p); continue; }
                 if (_pixiP) continue; // normal particles routed to Pixi
                 // Round alpha to 0.05 steps, imperceptible diff, enables color+alpha batching
                 const _a = Math.round((p.lifetime / p.maxLifetime) * 20) / 20;
@@ -3815,7 +3815,7 @@ function drawEnemy(enemy) {
     if (enemy._yogMark) {
         const _ymNow = performance.now();
         const _elapsed = _ymNow - enemy._yogMarkStart;
-        const _progress = Math.min(1, _elapsed / 1500);
+        const _progress = Math.min(1, _elapsed / 1650);
         const _ymPulse = 0.5 + 0.5 * Math.sin(_ymNow / 100);
         ctx.save();
         ctx.strokeStyle = `rgba(139,92,246,${(0.6 + 0.4 * _ymPulse) * (1 - _progress * 0.3)})`;
@@ -3823,6 +3823,28 @@ function drawEnemy(enemy) {
         if (!_mobPerf) { ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 14; }
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 9 + _progress * 6, 0, Math.PI * 2 * _progress);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Divine Fate (than_menh): stone overlay on frozen enemies
+    if (enemy._thanMenhFrozen && !enemy.type.startsWith('enemy_bullet')) {
+        const _sNow = performance.now();
+        const _sPulse = 0.65 + 0.15 * Math.sin(_sNow / 300);
+        const _sr = enemy.size / 2 + 3;
+        ctx.save();
+        ctx.globalAlpha = _sPulse * 0.72;
+        ctx.fillStyle = '#9e9e8a';
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, _sr, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = '#5a5a4a';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(enemy.x - _sr * 0.3, enemy.y - _sr * 0.55);
+        ctx.lineTo(enemy.x + _sr * 0.15, enemy.y + _sr * 0.1);
+        ctx.lineTo(enemy.x - _sr * 0.1, enemy.y + _sr * 0.5);
+        ctx.moveTo(enemy.x + _sr * 0.2, enemy.y - _sr * 0.4);
+        ctx.lineTo(enemy.x + _sr * 0.45, enemy.y + _sr * 0.35);
         ctx.stroke();
         ctx.restore();
     }
@@ -5515,6 +5537,16 @@ function drawParticle(p) {
         ctx.strokeStyle = `rgba(0,180,255,${prog})`;
         ctx.lineWidth = 10; if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (1 - prog) * p.maxRadius, 0, Math.PI * 2); ctx.stroke();
+    } else if (p._bloodPetal) {
+        const _bp = p.lifetime / p.maxLifetime;
+        ctx.globalAlpha = _bp * 0.92;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p._angle);
+        if (!_mobPerf) { ctx.shadowColor = '#cc0022'; ctx.shadowBlur = 8; }
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.ellipse(p.size * 0.5, 0, p.size * _bp, p.size * 0.38 * _bp, 0, 0, Math.PI * 2);
+        ctx.fill();
     } else {
         ctx.globalAlpha = p.lifetime / p.maxLifetime;
         if (!_mobPerf) {

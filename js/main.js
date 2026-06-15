@@ -823,7 +823,9 @@ function update(rawDeltaTime) {
             if (enemy.hp > 0) {
                 for (const s of sentinels) {
                     if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
-                        if (s.ironBody && currentTime < s.ironBodyEnd) {
+                        if (_hasBuff('giap_nguyet') && Math.random() < 0.10) {
+                            // Lunar Aegis: 10% sentinel evade — chain consumed, no damage
+                        } else if (s.ironBody && currentTime < s.ironBodyEnd) {
                             // Iron Body: absorb but still consume chain
                         } else {
                             const _chainEpPct = enemy.isDarkened ? 0.20 : 0.15;
@@ -868,7 +870,9 @@ function update(rawDeltaTime) {
 
             for (const sentinel of sentinels) {
                 if (enemy.hp > 0 && Math.hypot(enemy.x - sentinel.x, enemy.y - sentinel.y) < enemy.size + sentinel.size) {
-                    if (enemy.type === 'enemy_bullet_small') {
+                    if (_hasBuff('giap_nguyet') && Math.random() < 0.10) {
+                        // Lunar Aegis: 10% sentinel evade — bullet consumed, no damage
+                    } else if (enemy.type === 'enemy_bullet_small') {
                         dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
                         dealDamage(sentinel, { damage: enemy.hp, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
@@ -1535,7 +1539,7 @@ function update(rawDeltaTime) {
         const _gfjInterval = _waveNumber >= 10 ? 5000 : 8000;
         if (_gfjJustActivated || window._gfjShieldTimer >= _gfjInterval) {
             window._gfjShieldTimer = 0;
-            const _shieldBonus = _hasBuff('giap_nguyet') ? 1.20 : 1;
+            const _shieldBonus = _hasBuff('giap_nguyet') ? 1.35 : 1;
             sentinels.forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
                 const newBarrier = Math.floor((lostHp * 0.25 + (s.maxHp || 100) * 0.15) * _shieldBonus);
@@ -1891,9 +1895,9 @@ function _updateSigilPassives(now, deltaTime) {
     if (_hasBuff('thanh_dong')) {
         if (window._sigilIronBodyNextAt > 0 && now >= window._sigilIronBodyNextAt && window._sigilIronBodyStacks < 2) {
             window._sigilIronBodyStacks++;
-            window._sigilIronBodyNextAt = now + 10000;
+            window._sigilIronBodyNextAt = now + 8000;
         }
-        if (window._sigilIronBodyNextAt === 0) window._sigilIronBodyNextAt = now + 10000;
+        if (window._sigilIronBodyNextAt === 0) window._sigilIronBodyNextAt = now + 8000;
     }
 
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
