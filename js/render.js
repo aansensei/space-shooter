@@ -53,6 +53,7 @@ window._applyGfxLevel = _applyGfxLevel;
 // Glow sprite cache: pre-rendered radial gradient drawn with drawImage (GPU path, no CPU blur)
 const _glowSpriteCache = {};
 function _getGlowSprite(color, radius) {
+    if (!isFinite(radius) || radius <= 0) return null;
     const r = Math.ceil(radius);
     const key = color + '_' + r;
     if (_glowSpriteCache[key]) return _glowSpriteCache[key];
@@ -198,7 +199,7 @@ function _drawSpaceBgTo(c, deltaTime, W, H) {
 
     // Nebula layer: HIGH quality only, generated once and cached
     if (_gfxLevel < 1) {
-        if (!_nebulaCanvas || _nebulaCanvas.width !== W || _nebulaCanvas.height !== H) {
+        if (W > 0 && H > 0 && (!_nebulaCanvas || _nebulaCanvas.width !== W || _nebulaCanvas.height !== H)) {
             _nebulaCanvas = document.createElement('canvas');
             _nebulaCanvas.width = W; _nebulaCanvas.height = H;
             const nc = _nebulaCanvas.getContext('2d');
@@ -210,6 +211,7 @@ function _drawSpaceBgTo(c, deltaTime, W, H) {
                 { x: W * 0.80, y: H * 0.14, r: W * 0.26, col: [25, 50, 145, 0.11] },
             ];
             for (const b of blobs) {
+                if (b.r <= 0) continue;
                 const [r, g, bv, a] = b.col;
                 const ng = nc.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
                 ng.addColorStop(0, `rgba(${r},${g},${bv},${a})`);
@@ -416,7 +418,7 @@ function drawSkillShiftEffects() {
 // main draw
 function draw(deltaTime) {
     ctx.save();
-    if (screenShake.duration > 0 && _gfxLevel < 1 && window._screenShakeEnabled !== false && gameState !== 'gameover') {
+    if (screenShake.duration > 0 && _gfxLevel < 1 && window._screenShakeEnabled !== false && gameState !== 'gameover' && !window._sigilPicker) {
         const _sNow = performance.now();
         const _sFade = screenShake.duration / 500; // fade out khi gần hết
         // different freqs so x and y drift independently, same freq would feel like a diagonal slide
@@ -1033,8 +1035,10 @@ function draw(deltaTime) {
         if (laserActive) {
             playerClones.forEach(clone => drawPlayer(0.45, clone.xOffset));
             drawLaser();
+            if (window._mirrorLaserEntities) drawMirrorLaserEntities();
         }
         drawPlayer();
+        if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
         drawPlayerAura();
         drawFinalDefense();
 
@@ -1137,6 +1141,7 @@ function draw(deltaTime) {
         }
 
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
+        if (typeof drawSigilHUD === 'function') drawSigilHUD();
 
         // Wave announcement banner (center screen)
         const _wa = _waveAnnouncedAt || 0;
@@ -1367,6 +1372,7 @@ function draw(deltaTime) {
     }
     if (window._usePixi && window._pixiRender) window._pixiRender();
     ctx.restore();
+    if (window._sigilPicker && typeof drawSigilPicker === 'function') drawSigilPicker();
 }
 
 // Start Screen, Pisces Constellation
@@ -2266,10 +2272,11 @@ function drawFinalDefense() {
 // Player aura (kill charge)
 function drawPlayerAura() {
     const auraLevel = killCountForPassive % 5;
-    if (auraLevel === 0 && killCountForPassive > 0 && sentinels.length > 0) return;
+    if (auraLevel === 0) return;
     const maxRadius = player.width * 1.5;
     const progress = auraLevel / 5;
     const radius = maxRadius * progress;
+    if (radius <= 0) return;
     const opacity = 0.55 * progress;
 
     ctx.save();
@@ -2618,6 +2625,13 @@ function drawBullet(b) {
         ctx.globalAlpha = 1;
     }
     const _bs = _getBulletSprite(b.type || 'player_auto', b.size, _gfxLevel);
+    if (b._mirrorBullet) {
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14; }
+        ctx.filter = 'hue-rotate(-60deg)';
+    } else if (b._muiTenVangCrit) {
+        if (!_mobPerf) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 18; }
+        ctx.filter = 'hue-rotate(40deg) brightness(1.4)';
+    }
     ctx.drawImage(_bs, b.x - _bs.width / 2, b.y - _bs.height / 2);
     ctx.restore();
 }
@@ -3781,6 +3795,37 @@ function drawEnemy(enemy) {
     ctx.textAlign = "center";
     ctx.fillText(Math.ceil(enemy.hp), enemy.x, enemy.y + 5);
     ctx.restore();
+
+    // Death Mark (tu_huyet): red pulsing glow on enemies below 20% HP
+    if (typeof _hasBuff === 'function' && _hasBuff('tu_huyet') && !enemy.type.startsWith('enemy_bullet')
+        && enemy.hp > 0 && enemy.hp / (enemy.maxHp || enemy.hp) < 0.20) {
+        const _dmNow = performance.now();
+        const _dmPulse = 0.5 + 0.5 * Math.sin(_dmNow / 130);
+        ctx.save();
+        ctx.strokeStyle = `rgba(239,68,68,${0.75 + 0.25 * _dmPulse})`;
+        ctx.lineWidth = 2.5;
+        if (!_mobPerf) { ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 16; }
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Yog-Sothoth mark (coi_mong): purple spiral ring on marked enemies
+    if (enemy._yogMark) {
+        const _ymNow = performance.now();
+        const _elapsed = _ymNow - enemy._yogMarkStart;
+        const _progress = Math.min(1, _elapsed / 1500);
+        const _ymPulse = 0.5 + 0.5 * Math.sin(_ymNow / 100);
+        ctx.save();
+        ctx.strokeStyle = `rgba(139,92,246,${(0.6 + 0.4 * _ymPulse) * (1 - _progress * 0.3)})`;
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 14; }
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 9 + _progress * 6, 0, Math.PI * 2 * _progress);
+        ctx.stroke();
+        ctx.restore();
+    }
 }
 
 function _drawBossOrThaelis(enemy) {
@@ -5328,11 +5373,71 @@ function drawLaser() {
     }
 }
 
+function drawMirrorLaserEntities() {
+    const now = performance.now();
+    for (const ent of window._mirrorLaserEntities) {
+        const ex = ent.side === 'left' ? 0 : canvas.width;
+        const ey = ent.y;
+        const wobble = Math.sin(now / 32 + ey / 60) * 7;
+        const bw = 90 + wobble;
+
+        ctx.save();
+
+        // horizontal beam spanning full canvas width
+        const hGlow = ctx.createLinearGradient(0, ey - bw / 2, 0, ey + bw / 2);
+        hGlow.addColorStop(0, 'rgba(0,255,128,0)');
+        hGlow.addColorStop(0.5, 'rgba(0,220,160,0.18)');
+        hGlow.addColorStop(1, 'rgba(0,255,128,0)');
+        ctx.fillStyle = hGlow;
+        ctx.fillRect(0, ey - bw / 2 - 18, canvas.width, bw + 36);
+
+        const hBeam = ctx.createLinearGradient(0, ey - bw / 2, 0, ey + bw / 2);
+        hBeam.addColorStop(0, 'rgba(0,255,128,0)');
+        hBeam.addColorStop(0.12, 'rgba(0,200,120,0.55)');
+        hBeam.addColorStop(0.5, 'rgba(180,255,200,0.92)');
+        hBeam.addColorStop(0.88, 'rgba(0,200,120,0.55)');
+        hBeam.addColorStop(1, 'rgba(0,255,128,0)');
+        ctx.fillStyle = hBeam;
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 28; }
+        ctx.fillRect(0, ey - bw / 2, canvas.width, bw);
+
+        ctx.fillStyle = 'rgba(200,255,220,0.6)';
+        if (!_mobPerf) ctx.shadowBlur = 12;
+        ctx.fillRect(0, ey - 3, canvas.width, 6);
+
+        // entity orb
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 22; }
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath();
+        ctx.arc(ex, ey, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(200,255,220,0.9)';
+        ctx.beginPath();
+        ctx.arc(ex, ey, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        if (Math.random() < 0.35) {
+            const _mlp = _acquireParticle();
+            _mlp.x = Math.random() * canvas.width;
+            _mlp.y = ey + (Math.random() - 0.5) * bw;
+            _mlp.vx = (Math.random() - 0.5) * 4;
+            _mlp.vy = (Math.random() - 0.5) * 4;
+            _mlp.lifetime = 220; _mlp.maxLifetime = 220;
+            _mlp.size = Math.random() * 2.5 + 1;
+            _mlp.color = `rgba(0,${Math.floor(180 + Math.random() * 75)},${Math.floor(80 + Math.random() * 80)},0.8)`;
+            particles.push(_mlp);
+        }
+    }
+}
+
 // Explosion
 function drawExplosion(exp) {
     ctx.save();
     let p = 1 - exp.lifetime / exp.maxLifetime;
     let radius = exp.size * (1 + p * 1.2);
+    if (radius <= 0 || !isFinite(radius)) { ctx.restore(); return; }
     ctx.globalAlpha = 1 - p;
 
     if (_mobPerf || _gfxLevel >= 2) {
@@ -5416,7 +5521,7 @@ function drawParticle(p) {
             const _glowR = _gfxLevel < 1 ? 14 : _gfxLevel < 2 ? 8 : 5;
             const _gr = Math.ceil(p.size + _glowR);
             const _gs = _getGlowSprite(p.color, _gr);
-            ctx.drawImage(_gs, p.x - _gr, p.y - _gr);
+            if (_gs) ctx.drawImage(_gs, p.x - _gr, p.y - _gr);
         }
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
@@ -5547,7 +5652,7 @@ function drawScatteredProjectile(p) {
 
     if (p.isBouncingBall) {
         const pulse = Math.sin(performance.now() / 90) * 4;
-        const cs = Math.max(0.1, p.size + pulse);  // visual only
+        const cs = Math.max(1, p.size + pulse);
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, cs);
         grad.addColorStop(0, 'white');
         grad.addColorStop(0.35, '#ff4400');
@@ -5561,8 +5666,7 @@ function drawScatteredProjectile(p) {
         ctx.shadowBlur = 0;
         ctx.beginPath(); ctx.arc(p.x - cs * 0.3, p.y - cs * 0.3, cs * 0.22, 0, Math.PI * 2); ctx.fill();
     } else {
-        // scattered shard – circle same size, slight orange gradient
-        const sg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+        const sg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, Math.max(1, p.size));
         sg.addColorStop(0, 'white');
         sg.addColorStop(0.5, '#ff8800');
         sg.addColorStop(1, 'rgba(200,60,0,0.5)');
@@ -6641,6 +6745,7 @@ function drawSkillDCharging() {
 
 // Black hole
 function drawBlackHole() {
+    if (!blackHole || blackHole.size <= 0) return;
     const now = performance.now();
     ctx.save();
     const angle = blackHole.activeTime / 500;
@@ -7464,7 +7569,8 @@ function drawSkillButtons() {
 
     ctx.save();
     ctx.fillStyle = 'rgba(0,6,18,0.50)';
-    ctx.beginPath(); ctx.roundRect(panelX, panelY, panelW, panelH, 6); ctx.fill();
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(panelX, panelY, panelW, panelH, 6); ctx.fill(); }
+    else ctx.fillRect(panelX, panelY, panelW, panelH);
     ctx.restore();
 
     if (!_mobPerf) {
@@ -7583,8 +7689,11 @@ function drawSkillButtons() {
         active: skillShiftActive, activeLabel: 'SHIFT',
     });
 
+    const _aCdDone = now - lastSkillA >= skillACooldown;
     _pill(rowY(1), 'A', '#3B82F6', {
-        cd: skillACooldown, lastAct: lastSkillA, active: !skillAReady,
+        cd: skillACooldown, lastAct: lastSkillA,
+        active: _aCdDone && skillAOrbs.length >= maxSkillAOrbs,
+        activeLabel: 'MAX',
     });
 
     const _photo = spirits.find(s2 => s2.isPhotokrystos && !s2._done);
@@ -7607,15 +7716,29 @@ function drawSkillButtons() {
         });
     }
 
-    _pill(rowY(3), 'D', '#9333EA', {
-        cd: skillDCooldown, lastAct: lastSkillD, active: !!(skillDCharging || blackHole), activeLabel: 'B-HOLE',
-    });
+    {
+        let _dOpts;
+        if (skillDCharging) {
+            const _dc = Math.min(100, (now - skillDChargeStartTime) / skillDChargeTime * 100);
+            _dOpts = { charge: _dc, active: false };
+        } else {
+            const _dCdDone = now - lastSkillD >= skillDCooldown;
+            _dOpts = { cd: skillDCooldown, lastAct: lastSkillD, active: !_dCdDone && !!blackHole, activeLabel: 'B-HOLE' };
+        }
+        _pill(rowY(3), 'D', '#9333EA', _dOpts);
+    }
 
     _pill(rowY(4), 'F', '#EF4444', {
         cd: skillFCooldown, lastAct: lastSkillF, active: skillFState !== 'ready', activeLabel: 'ACTIVE',
     });
 
-    _pill(rowY(5), 'G', '#22D3EE', { charge: skillGCharge, active: skillGActive, activeLabel: 'TESLA' });
+    {
+        const _gRemSec = skillGActive ? Math.max(0, (skillGEndTime - gameElapsedTime) / 1000) : 0;
+        _pill(rowY(5), 'G', '#22D3EE', {
+            charge: skillGCharge, active: skillGActive,
+            activeLabel: _gRemSec > 0 ? 'TSL ' + _gRemSec.toFixed(0) + 's' : 'TESLA',
+        });
+    }
 
     const divY = panelY + padY + 6 * (pH + rowGap) - rowGap + divGap;
     ctx.save();

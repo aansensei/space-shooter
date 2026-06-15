@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 skillShiftActive = true;
                 window._shiftActive = true;
                 skillShiftChargeStart = performance.now();
+                if (_hasBuff('coi_mong')) window._coiMongEndTime = performance.now() + 2000;
             }
             e.preventDefault();
         }

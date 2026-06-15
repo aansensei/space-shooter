@@ -417,6 +417,31 @@
     .tag-global { background:rgba(244,114,182,0.1); color:#f472b6; border:1px solid rgba(244,114,182,0.22); }
     .ul-entry ul { margin:6px 0 0 0; padding-left:14px; }
     .ul-entry li { font-size:11.5px; margin-bottom:4px; color:#c8d5e8; line-height:1.45; list-style:none; padding-left:2px; }
+
+    .sigil-deck { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
+    @media (max-width:900px) { .sigil-deck { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:600px) { .sigil-deck { grid-template-columns:repeat(2,1fr); } }
+    .sfc { perspective:1000px; aspect-ratio:10/17; cursor:pointer; opacity:1!important; transform:none!important; }
+    .sfc-inner { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .55s cubic-bezier(.4,0,.2,1); }
+    .sfc.flipped .sfc-inner { transform:rotateY(180deg); }
+    .sfc-front, .sfc-back { position:absolute; width:100%; height:100%; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:12px; padding:14px 13px; box-sizing:border-box; background:linear-gradient(168deg,rgba(9,18,40,0.99) 0%,rgba(3,8,22,0.99) 100%); border:1.5px solid var(--sc,rgba(0,200,255,0.5)); box-shadow:0 0 24px var(--scl,rgba(0,0,0,0)),0 8px 20px rgba(0,0,0,0.6),inset 0 0 32px rgba(0,0,0,0.45),inset 0 1.5px 0 var(--sc,rgba(0,200,255,0.35)); display:flex; flex-direction:column; overflow:hidden; }
+    .sfc-back { transform:rotateY(180deg); }
+    .sfc-glyph-cv { display:block; width:78px; height:78px; margin:0 auto 6px; filter:drop-shadow(0 0 8px var(--sc,#00e5ff)); }
+    .sfc-glyph-sm-cv { display:block; width:48px; height:48px; margin:0 auto 10px; filter:drop-shadow(0 0 6px var(--sc,#00e5ff)); }
+    .sfc-name { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:3px; color:var(--sc,var(--cyan)); text-align:center; margin-bottom:3px; }
+    .sfc-el { font-size:10px; color:var(--dim); text-align:center; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px; }
+    .sfc-theme { font-family:'Share Tech Mono',monospace; font-size:9px; color:rgba(140,165,210,0.85); text-align:center; letter-spacing:2px; border-top:1px solid rgba(255,255,255,0.09); border-bottom:1px solid rgba(255,255,255,0.09); padding:5px 0; margin-bottom:9px; }
+    .sfc-buffs { flex:1; display:flex; flex-direction:column; gap:7px; }
+    .sfc-row { font-size:11px; line-height:1.44; color:#c8d8f0; }
+    .sfc-row b { color:#e0eeff; }
+    .sbd { color:rgba(165,190,228,0.88); font-size:10.5px; }
+    .sbt { display:inline-block; font-size:8px; font-weight:700; letter-spacing:0.5px; padding:2px 6px; border-radius:3px; margin-right:4px; vertical-align:middle; }
+    .sbt.atk { background:rgba(239,68,68,.16); color:#f87171; border:1px solid rgba(239,68,68,.32); }
+    .sbt.def { background:rgba(59,130,246,.16); color:#60a5fa; border:1px solid rgba(59,130,246,.32); }
+    .sbt.heal { background:rgba(34,197,94,.16); color:#4ade80; border:1px solid rgba(34,197,94,.32); }
+    .sbt.spec { background:rgba(245,158,11,.16); color:#fbbf24; border:1px solid rgba(245,158,11,.32); }
+    .sfc-hint { font-size:9px; color:rgba(90,120,175,0.5); text-align:center; letter-spacing:1.5px; margin-top:6px; text-transform:uppercase; }
+    .sfc-story { flex:1; font-family:'Cinzel',serif; font-size:11.5px; line-height:1.7; color:rgba(210,228,252,0.92); overflow:hidden; }
   </style>
 </head>
 
@@ -434,6 +459,7 @@
         <button class="tab-btn active" data-tab="basics">Basics</button>
         <button class="tab-btn" data-tab="passives">Passives</button>
         <button class="tab-btn" data-tab="skills">Skills</button>
+        <button class="tab-btn" data-tab="sigils">Sigils</button>
         <button class="tab-btn" data-tab="enemies">Enemies</button>
         <button class="tab-btn" data-tab="rules">Combat</button>
         <button class="tab-btn" data-tab="updatelog">Update Log</button>
@@ -577,6 +603,171 @@
 <li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">45+1.2% EP</span>/50ms.</li>
 <li>Detonation: <span class="dmg">10+12% EP</span> area.</li></ul></div>`,
 
+      sigils: `
+<div class="card visible"><h2 style="color:var(--gold)">ZODIAC SIGIL SYSTEM</h2><div class="sub">WAVE 5 · WAVE 10 — PICK 1 SIGIL · BOTH BLESSINGS GRANTED</div>
+<p>At the end of Waves 5 and 10, a sigil selection screen appears. 4 random sigils are offered — pick one and receive both its blessings permanently. Click any card to read its lore.</p>
+<p style="margin-top:6px;font-size:12px;color:var(--dim)">Elements: <span style="color:#EF9F27;font-weight:600">Fire</span> · <span style="color:#4D9B2A;font-weight:600">Earth</span> · <span style="color:#378ADD;font-weight:600">Air</span> · <span style="color:#7F77DD;font-weight:600">Water</span> &nbsp;|&nbsp; Types: <span style="color:#f87171;font-weight:600">ATK</span> · <span style="color:#60a5fa;font-weight:600">DEF</span> · <span style="color:#4ade80;font-weight:600">HEAL</span> · <span style="color:#fbbf24;font-weight:600">SPEC</span></p>
+</div>
+<div class="sigil-deck">
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">ARIES</div><div class="sfc-el">Fire</div><div class="sfc-theme">VANGUARD ASSAULT</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Vanguard</b> <span class="sbd">30% pierce chance on player and sentinel bullets. Auto dmg +20%.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Blood Frenzy</b> <span class="sbd">Piercing chain +30% dmg per chain. Each chain: 2.5% MaxHP true dmg (max 4).</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="aries"></canvas>
+<div class="sfc-story">Before the first star was lit there was only the Void, boundless and without name. Then the Ram opened his eyes within that darkness and his fury became the first fire. He charged, and where his horns struck the nothing, sparks flew outward in all directions — each one a sun. He did not choose to create. He only charged. And from that charge, all things began.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="taurus"></canvas><div class="sfc-name">TAURUS</div><div class="sfc-el">Earth</div><div class="sfc-theme">FORTRESS DEFENSE</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Iron Fortress</b> <span class="sbd">Every 10s gain 1 Iron Body layer (consumed first, max 2 stacks). Shown as blue hex rings on ship.</span></div>
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Guardian</b> <span class="sbd">Sentinel +60% HP and +25% dmg. On sentinel death: next spawn within 5s gains shield worth 20% predecessor MaxHP (4s CD).</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="taurus"></canvas>
+<div class="sfc-story">The sparks Aries had flung into the dark scattered and grew cold before they could become stars. Then the Bull came, slow and certain. He gathered each ember in his broad hands and pressed them together, patient as stone, breathing upon them through the long silence between ages. Beneath his hooves the first ground hardened. He did not hurry. He has never hurried. The earth endures because he endures.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="gemini"></canvas><div class="sfc-name">GEMINI</div><div class="sfc-el">Air</div><div class="sfc-theme">MIRROR TACTICS</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Shadow Twin</b> <span class="sbd">Every 6th bullet hit: mirror copy from opposite X side. 30% larger, +40% dmg, piercing, green.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Mirror Laser</b> <span class="sbd">Overload summons 2 entities (top left and bottom right) moving vertically, firing horizontal beams equal dmg.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="gemini"></canvas>
+<div class="sfc-story">When there was only the one earth and the one sky, the Twins looked upon it and were troubled. A world without division, they said, is a world that cannot think. They reached in with four hands and split it — light from shadow, matter from dream, self from other. The crack between opposites became the space where all living things would dwell. The Twins have been arguing about it ever since.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="cancer"></canvas><div class="sfc-name">CANCER</div><div class="sfc-el">Water</div><div class="sfc-theme">LUNAR TIDE</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Lunar Aegis</b> <span class="sbd">Gaia Protection activates without GFJ. Gaia Barrier absorption +20%.</span></div>
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Tidal Flow</b> <span class="sbd">Sentinels regenerate 10 HP/s. Sentinel healing effectiveness +20%.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="cancer"></canvas>
+<div class="sfc-story">Cancer saw the great crack the Twins had made and wept for all the things that now stood apart from one another. Her tears fell into the crack and filled it and became the first ocean. She did not intend to make the sea. She only grieved. But she cupped the water with her soft claws and breathed upon it and something stirred in the deep dark warmth. She has been protecting it ever since.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">LEO</div><div class="sfc-el">Fire</div><div class="sfc-theme">SOLAR FIRE</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Lion's Roar</b> <span class="sbd">While GFJ active: Burn 200+5% EP DoT per 500ms for 3s (resets on hit, stacks x3). Attacks emit fire.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Divine Fate</b> <span class="sbd">Wave start: 5s all enemies frozen (new spawns too). All dmg +50% during freeze.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="leo"></canvas>
+<div class="sfc-story">From the edge of Cancer's ocean rose the Lion. He shook the water from his mane and opened his mouth and roared so loudly that the sky cracked open above the world. Through that crack the sun fell in for the first time. All sleeping things stirred at once beneath that sudden light. The Lion did not make the sun. He only roared. But his roar was loud enough to let it through.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">VIRGO</div><div class="sfc-el">Earth</div><div class="sfc-theme">PRECISION STRIKE</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Golden Arrow</b> <span class="sbd">Every 6th auto volley: 3x dmg, Vulnerability, root and silence 1s. Bullets glow gold.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Circuit Engineer</b> <span class="sbd">Tesla DoT and Coil dmg +50%. Destroying a Coil: Skill G CD -3s and G charge gain +10%.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="virgo"></canvas>
+<div class="sfc-story">After Leo's light came Virgo, walking barefoot across the warm ash. Where the fires had burned she knelt and pressed seeds into the ground with her fingers, one by one, for ten thousand years. She did not know if anything would grow. She planted anyway. On the ten thousandth year the first green thing pushed through the black earth toward the light. She has not stopped planting since.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="libra"></canvas><div class="sfc-name">LIBRA</div><div class="sfc-el">Air</div><div class="sfc-theme">BALANCED RETALIATION</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Riposte</b> <span class="sbd">On each hit taken: next skill activation deals +120% dmg (1 proc per hit). Orange ring on ship when ready.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Law of Scales</b> <span class="sbd">Enemy damage bonus scales with missing HP: 0% at full HP to +70% at 10% HP.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="libra"></canvas>
+<div class="sfc-story">When Virgo's garden grew wild and choked itself, Libra descended. She carried two pans of burnished bronze and set them in the center of all creation and began to weigh. Life against death. Abundance against hunger. Growth against ruin. For each thing she trimmed she gave something back. The world did not thank her. Balance never is thanked. But it holds. It always holds.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">SCORPIO</div><div class="sfc-el">Water</div><div class="sfc-theme">DEATH'S MARK</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Resurrection</b> <span class="sbd">On pick: +5 lives immediately. Life bonus rate: +1 life per 250,000 pts.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Death Mark</b> <span class="sbd">Below 20% HP: all sources +70% dmg. Skill F blade arc pierces Iron Body.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="scorpio"></canvas>
+<div class="sfc-story">Scorpio descended into the darkness beneath the roots, beneath the rock, into the ancient Void that Aries had fled from at the beginning. It was still alive. Still hungry. Scorpio did not destroy it. Instead he drove his tail into the dark and held it open like a door. Through that door death entered the world for the first time — and in its entering, gave every living thing a reason to be alive.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="sagittarius"></canvas><div class="sfc-name">SAGITTARIUS</div><div class="sfc-el">Fire</div><div class="sfc-theme">SPIRIT BLADES</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Twin Blades</b> <span class="sbd">Spirit arc slash fires 2 converging blades +30% each. Each boomerang thrown has 30% chance to spawn an extra one.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Arctic Chill</b> <span class="sbd">Boomerang and arc slash: 50% chance to slow 20% for 2s and lightly pull toward player. CC immune: no pull.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="sagittarius"></canvas>
+<div class="sfc-story">Sagittarius stood at the furthest edge of the known world and looked out into the dark beyond the stars. He drew his bow and held it for three ages, perfectly still, until his aim was absolute. Then he loosed. The arrow flew past all the suns and all the dark between them and it has not landed yet. That arrow is the path all souls must walk. He called it fate. He has been smiling ever since.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="capricorn"></canvas><div class="sfc-name">CAPRICORN</div><div class="sfc-el">Earth</div><div class="sfc-theme">COMPOUND GROWTH</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Compound Interest</b> <span class="sbd">Kill: +0.6% PE. Every 5% PE gained: all ally fire rate +1.5% (max +30%, preserved through BTM).</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Avalanche</b> <span class="sbd">Kill: +0.5% global dmg. Resets after 5s without a kill. Max +60%.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="capricorn"></canvas>
+<div class="sfc-story">Capricorn saw that without measure, time was formless — an ocean that went everywhere and therefore nowhere. He climbed from the deep sea to the highest peak of the world, and there, with his hooves, he cut the first calendar into stone. Seasons. Ages. Endings. When he finished he looked down at all creation cycling beneath him and said: now you know where you are. Now you know when to stop.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="aquarius"></canvas><div class="sfc-name">AQUARIUS</div><div class="sfc-el">Air</div><div class="sfc-theme">ELECTRIC STORM</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Chain Lightning</b> <span class="sbd">Tesla DoT: 40% chance to arc to nearest enemy within 150px.</span></div>
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Magnetic Field</b> <span class="sbd">While Skill G is charging: enemies within 250px slowed 30% and suffer 0.35% MaxHP DoT/s.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="aquarius"></canvas>
+<div class="sfc-story">Aquarius descended from Capricorn's peak carrying a vessel of water that had never been touched by the sun. He poured it over the sleeping earth and where it flowed, something new grew: not plants, not creatures, but language. Names rose out of the water like foam. All twelve gods were named. All created things were named. Memory was born. And with memory, the world finally knew what it was.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">PISCES</div><div class="sfc-el">Water</div><div class="sfc-theme">FLOW AND EVASION</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Dream Realm</b> <span class="sbd">Shift: negate all dmg 2s. Black hole marks enemies. After 1.5s they burst for 30% of accumulated dmg.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cycle of Flow</b> <span class="sbd">Kill apostle: -0.5s all skill CD. Kill abnormal/elite: -1s. Kill dominator: -1.5s.</span></div>
+</div><div class="sfc-hint">click to read lore</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="pisces"></canvas>
+<div class="sfc-story">Last of all the Twins of the Deep swam through Aquarius's waters. Two fish bound tail to tail, circling in opposite directions — one toward the past, one toward what had not yet come. They dreamed together of everything that was and everything still to be. They dream still. The world is their dream. It will end only when they wake. And so the wise have always prayed: let the Fish keep dreaming.</div>
+<div class="sfc-hint">click to return</div>
+</div></div></div>
+
+</div>`,
+
       enemies: `
 <div class="card"><h2 class="dsname">ENEMY CLASSES</h2><table class="controls-table">
 <tr><th>Class</th><th>Examples</th><th>On-screen cap</th></tr>
@@ -596,7 +787,7 @@
 </ul></div>
 
 
-<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,000–2,400 • Evade 3→5% • CAP 2 • Speed 1.4 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,100–2,640 • Evade 3→5% • CAP 2 • Speed 1.4 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvThaelis" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Reincarnation</b> — at 0 HP splits into 3 Embryos (90% DR, CC immune, hatch @3s → new enemy). <span class="dmg">No single hit can exceed 10% of an Embryo's EP.</span></li>
@@ -604,7 +795,7 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Tenacity</b> — <span class="det-full">per 1% HP lost: <span class="dmg">+2.5% DR</span> (cap <span class="dmg">95%</span>). Per 0.5% HP lost: <span class="hi">+3.5% bullet speed</span> (cap <span class="hi">+25%</span>). Per-hit damage capped at <span class="dmg">max(35%, 90%−5%×HP%lost) × MaxHP</span>. Every time Thaelis loses <span class="dmg">30% HP</span>, generates a <b>Tenacity Barrier</b> worth <span class="hg">(30% MaxHP + 20% HP lost + 250) ×1.34</span> — <b>completely separate from EP</b>, shown as a pulsing gold ring. Must be fully destroyed before any damage (normal or piercing) reaches Thaelis. Exception: <span class="hi">Spirit Laser bypasses</span>.</span><span class="det-short">Gains DR and bullet speed as HP drops; generates a gold barrier every 30% HP lost that blocks all damage until destroyed. Spirit Laser bypasses it.</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,200–3,000 • CAP 2 • Speed 2.0 u/s • Base DR 40% • Evade 3→5%</div>
+<div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,320–3,300 • CAP 2 • Speed 2.0 u/s • Base DR 40% • Evade 3→5%</div>
 <div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — <span class="det-full">Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">2% EP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC. <span style="color:var(--dim)">The wave system counts Veilshroud as dead the moment it enters ghost form.</span></span><span class="det-short">Leaves an untargetable ghost that fires for 3s, then explodes in a 300px radius for 2% EP/tick over 2s.</span></li>
@@ -613,7 +804,7 @@
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Energy Accumulation</b> — <span class="det-full">While in <b>Phantom</b>, Veilshroud records all damage it absorbs. On Phantom exit, converts the accumulated absorption into a shield: <span class="hg">min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)</span>. The base 200 guarantees a minimum shield of <span class="hg">230</span> even if no damage was taken.</span><span class="det-short">Converts damage absorbed during Phantom into a shield on exit (base 230, cap 1200).</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,160–3,744 • Permanent DR 55% • Evade 5→10% • Speed 1.65 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,376–4,118 • Permanent DR 55% • Evade 5→10% • Speed 1.65 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — <span class="det-full">First <span class="hg">20 hits</span> are completely nullified (Iron Body, white flash each). Breaks after 20th hit. <span class="hg">CC Immune while Custos is active</span> — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, Support Aura gains <span class="hg">+20% heal efficiency</span>.</span><span class="det-short">First 20 hits nullified (Iron Body). CC Immune while active. After expiry: +20% Support Aura heal.</span></li>
@@ -622,7 +813,7 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lumen Nova</b> — every 5s: marks player + 3 Sentinels, fires lasers after 1s warning. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">20% EP</span> per laser.</li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 1,920–3,720 • Body DR 45% • Evade 5→10% • Speed ~1.6 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,112–4,092 • Body DR 45% • Evade 5→10% • Speed ~1.6 u/s</div>
 <div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Arc Barrier</b> — <span class="det-full">90° rotating barrier, <span class="dmg">60% DR</span>, no single hit &gt; <span class="dmg">35% barrier HP</span>, buff-immune. Independent HP pool = Marchosias MaxHP. <span class="hg">CC Immune while barrier is alive</span> — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow. While active, Marchosias and the barrier gain an additional <span class="hg">+10% evade</span> (evade applies to both body hits and barrier hits). Piercing attacks (Spirit Arc Blade, Boomerang, Overload Laser) that hit the barrier: body damage <span class="hg">−30%</span>, barrier takes <span class="dmg">+15% extra damage</span>, attack continues through. Each hit on the barrier: barrier self-heals <span class="hgr">5% of damage dealt</span> (max 1000 HP), Marchosias body heals <span class="hgr">10% of damage dealt</span> (max 1000 HP, overflow → <span class="hg">50% converted to shield</span>). When the barrier is destroyed: Marchosias gains <span class="hg">5-hit Iron Body</span>, gains <span class="hg">+20% DR</span>, heals <span class="hgr">40% MaxHP</span> (overflow → <span class="hg">50% shield</span>), and gains a <span class="hg">shield = 15% MaxHP + 15% HP lost</span>. <b>The +20% DR is removed when the barrier revives.</b> Break revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed <span class="hi">3s</span> revive; otherwise <span class="hi">4–5s</span> (scales to 4s at 3 min). Tracking speed scales up to <span class="hi">×1.67</span> at 3 minutes of play. Two Roman numeral counters below Mar: <span style="color:#00ff88">green</span> = active sword queue, <span style="color:#ffaa00">gold</span> (I→IV) = cycle swords used — glows bright gold at IV to signal 3s revive on next break.</span><span class="det-short">90° rotating CC-immune barrier with +10% evade. Each hit: barrier and body self-heal (capped 1000 HP). On break: 5-hit Iron Body + 20% DR + 40% HP heal + shield (15% MaxHP + 15% HP lost) (DR removed on revive). 4 swords used → 3s revive (burst animation); otherwise 4–5s.</span></li>
@@ -631,7 +822,7 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — <span class="det-full"><span class="hi">25% chance</span> per barrier hit or per evaded hit (guaranteed on barrier break); queues a sword (0.65s cooldown between triggers). <b>Max 4 swords per barrier cycle</b> — when the 4th sword is triggered, the barrier immediately <b>self-detonates</b> (3s revive, same break buffs). Resets when the barrier revives. At <span class="hi">1% HP</span> all queued swords fire simultaneously. <span class="hr">Indestructible.</span> Sentinel: <span class="hr">27% EP</span> (1st hit) / <span class="hr">23%</span> (2nd) / <span class="hr">21%</span> (3rd+). Player: <span class="hr">1 life</span>.</span><span class="det-short">25% chance per barrier/evaded hit to queue an indestructible sword; max 4 per cycle — 4th sword triggers barrier self-detonation (3s revive). Sentinel: 27/23/21% EP. Player: 1 life.</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 1,920–4,200 • Body DR 40% • Evade 5→10% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
+<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,112–4,620 • Body DR 40% • Evade 5→10% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
 <div class="ab" style="height:140px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind</b> — <span class="det-full"><span class="hi">10 tentacles</span>, each with independent HP equal to <span class="hi">78% of Egregor's MaxHP</span>. Non-true-damage: deflect chance <span class="hi">scales with alive tentacles</span> (alive÷10 × 60%, down to 0 when all dead); on non-deflect, hit absorbed by a tentacle at ~<span class="dmg">26% of original damage</span> (35% × 75% DR). <b>When a tentacle dies:</b> Egregor body <span class="hgr">heals 6% MaxHP</span>, body <span class="hg">MaxHP increases by 20% of that tentacle's HP</span>, body gains <span class="hg">+5% DR</span> (cumulative, max +20% at 4 losses). Once <span class="hi">≥1 tentacle is lost</span>, normal attacks also <span class="dmg">bleed through to the body</span> (after tentacle interception, capped at <span class="hi">max(20%, 70−10n)%</span> MaxHP per hit). Body reachable by <span class="dmg">true damage</span> (capped <span class="hi">max(25%, 90−10n)%</span> MaxHP) or <span class="dmg">piercing attacks</span> (tentacle takes ~26% dmg, body takes <span class="hi">30%</span> of original, capped <span class="hi">30% MaxHP</span>). Cannot coexist with Veilshroud. Body has <span class="hg">5% chance to dodge any hit</span>.</span><span class="det-short">10 tentacles intercept all hits. Each tentacle death heals body +6% MaxHP, boosts body MaxHP, and adds +5% DR (max +20%). Once ≥1 tentacle lost, normal hits also bleed through to body.</span></li>
@@ -640,7 +831,7 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Null Slash</b> <span class="cd">CD 3.5s</span> — <span class="det-full"><span class="hi">Windup 1–3s</span> (base 3s / 2.5s with any rage, reduced 0.25s per stack, min 1s). Egregor tracks the player live during windup and gains <span class="hg">+35% DR</span>. At release, target position locks and a <span class="hi">180° arc</span> sweeps toward it — any sentinel or player inside the arc is hit. <b>Player</b>: no life lost, <span class="hr">−50% movement 1.5s</span> (purple slow ring + falling particles; Yog-Sothoth can dodge). <b>Sentinel</b>: <span class="hr">20% MaxHP (1 hit) / 30% (2) / 40% (3+)</span>, true damage, rage bonus <span class="hg">+6% per stack</span> (max <span class="hg">+30%</span>). After the slash, leaves a <b>Dimension Break</b> zone (glowing purple arc) that lingers for <span class="hi">1s</span> — player walking through it is <span class="hr">slowed 20%</span>.</span><span class="det-short">180° arc slash after 1–3s windup; slows player 50% for 1.5s, deals 20–40% true dmg to sentinels, leaves a 1s slow zone.</span></li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">Wave 3 • HP 5,000–14,000 • Evade 10→15% • CAP 1 • Speed ~1.6 u/s • CC Immune</div>
+<div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">Wave 3 • HP 5,500–15,400 • Evade 10→15% • CAP 1 • Speed ~1.6 u/s • CC Immune</div>
 <div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — Hit &gt;30% MaxHP → <span class="dmg">3s window: damage capped at 11% MaxHP</span> (2s CD).</li>
@@ -651,7 +842,7 @@
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Maou Haki</b> @50% HP: screen-wide shockwave, destroys all friendly projectiles. Sentinels −<span class="hr">35% EP</span>.</li>
 </ul></div>
 
-<div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">Wave 3 • HP 8,018–14,032 • Evade 10→15% • CAP 1 • Speed ~1.5 u/s</div>
+<div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">Wave 3 • HP 8,820–15,435 • Evade 10→15% • CAP 1 • Speed ~1.5 u/s</div>
 <div class="ab" style="height:130px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="det-full"><span class="dmg">60% base DR</span> (after AFO shield breaks). Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 10% MaxHP</span> (2s CD).</span><span class="det-short">60% DR; any single hit exceeding 30% MaxHP triggers a 2.5s damage cap window.</span></li>
@@ -711,8 +902,41 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
-<div class="ul-entry" style="--ul-accent:#ff44aa">
-<div class="ul-head"><span class="ul-ver">v4.8 — DARGRUEL REVAMP</span><span class="ul-badge">CURRENT</span></div>
+<div class="ul-entry" style="--ul-accent:#ffd700">
+<div class="ul-head"><span class="ul-ver">v5.0 — ZODIAC SIGIL SYSTEM</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-date">2026 · 12 zodiac sigils, wave-gated selection, comprehensive passive rework, HUD expansion</div>
+<p class="det-short ul-summary">Zodiac Sigil System: 12 sigils (Wave 5 + Wave 10 picks, 2 buff choices each). Scorpio reworked — Resurrection replaces Dark Venom. Leo Lion's Roar adds 200 flat DoT. Permanent 2-slot Sigil HUD bottom right. Full passive/HUD migration from v4.8 (Yuuki, Gaia Barrier, Veilshroud, Egregor, Aegis, Sentinel DR).</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Zodiac Sigil System:</b> 12 zodiac sigils (Aries → Pisces), each with 2 buff options. At Wave 5 and Wave 10, 4 random sigils are offered — pick one and confirm a blessing. Game freezes during selection.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Sigil HUD:</b> permanent 2-slot panel at bottom right, always visible. Empty slots show WAVE 5 / WAVE 10 hints. Filled slots show zodiac glyph, element, and selected buff name.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Scorpio — Resurrection (NEW):</b> replaces Dark Venom. On pick: immediately <span class="hgr">+5 lives</span>. Life bonus rate changed to <span class="hgr">+1 life per 250,000 pts</span> (was 500,000).</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Lion's Roar:</b> Burn DoT updated to <span class="dmg">200 + 5% EP</span> per 500ms per stack (was 5% EP only). Allied attacks surrounded by fire.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Piercing bullets:</b> bullets with pierce flag now pass through enemies, tracking each hit via <code>hitEnemies</code> list (no longer consumed on first contact).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Blood Frenzy chains:</b> piercing hits track chain count; each subsequent hit gets +30% cumulative damage and 2.5% MaxHP true damage bonus (max 4 chains).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Riposte consume:</b> <code>_phanDonReady</code> now correctly consumed on the first non-auto skill damage hit, applying ×2.2 multiplier.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Compound Interest player fire rate:</b> <code>_laiKepFireRateBonus</code> now applies to the player's own auto-fire interval (was sentinel-only).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Arctic Chill boomerang slow:</b> boomerang hits now have 50% chance to apply 20% slow for 2s.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Root &amp; Silence enforcement:</b> enemies with <code>_rootEnd</code> stop moving; enemies with <code>_silencedEnd</code> cannot fire.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Skill HUD redesign:</b> compact pill layout 124×22px, left-edge aligned, SPACE row added, ready blink effect.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Yuuki — Will to Fight:</b> new player passive. From Wave 8, every 2 waves: <span class="hg">+15% damage</span> to all allied units, stacking to <span class="hg">+150% cap</span>. Shown in HUD as ⚔ Yuuki +X%.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Sentinel base DR:</b> <span class="hg">5% → 8%</span> at all times.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Egregor — Null Slash:</b> Sentinel damage <span class="hg">15% / 20% / 28% → 20% / 30% / 40% MaxHP</span> (1 / 2 / 3+ hits), true damage.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Gaia Protection — HP:</b> scaling changed from time-based → wave-based. <span class="hg">+5% at Wave 2 · +10% at Wave 6 · +15% at Wave 10</span>, then <span class="hg">+3%/wave</span> until <span class="hg">+60% total cap</span>.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Gaia Protection — Gaia Barrier:</b> pulse interval <span class="hg">10s → 8s</span> (5s after Wave 10). Absorbs <span class="hg">99%</span> of all incoming damage; additionally reduces <span class="hg">true damage 20%</span> while active. Displayed as a green crescent above the Sentinel.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Aegis Core speed:</b> <span class="hg">1.8 → 1.65 u/s</span>. Custos Aeternus: after Iron Body expires, Support Aura gains <span class="hg">+20% heal efficiency</span> for the encounter.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Egregor — Collective Mind rework:</b> each tentacle death heals body <span class="hgr">6% MaxHP</span>, increases body MaxHP by <span class="hg">20% tentacle HP</span>, grants <span class="hg">+5% DR</span> (max +20%). Normal attacks bleed through once tentacles are lost.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Egregor — Mind Link:</b> tentacle DR per Rage Stack <span class="hg">+3% → +5%</span> (max <span class="hg">+25%</span>). Rage stacks render as red stars.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Veilshroud — Energy Accumulation:</b> while in Phantom, absorbs all incoming damage. On exit, converts to shield: <span class="hg">min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)</span>.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Veilshroud — Void Strike:</b> Sentinel damage <span class="hg">15% → 18% EP</span>. <b>Alteration:</b> shield bonus <span class="hg">+25% → +35%</span>; healing in normal state grants <span class="hg">+20% DR 3s</span>.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Abyssal Chains:</b> truly indestructible — hard immunity added in <code>dealDamage</code>. Interval 1.5s → 2.1s. Speed −10%.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Leviathan:</b> CC-immune to Overload Laser pull. <b>Mar minions:</b> host scan excludes echo/chain types.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Enemy HP +10% (all except Apostles):</b> Thaelis 1,000–2,400 → 1,100–2,640 · Veilshroud 1,200–3,000 → 1,320–3,300 · Aegis 2,160–3,744 → 2,376–4,118 · Marchosias 1,920–3,720 → 2,112–4,092 · Egregor 1,920–4,200 → 2,112–4,620 · Dargruel 5,000–14,000 → 5,500–15,400 · Leviathan 8,018–14,032 → 8,820–15,435.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Sagittarius — Twin Blades:</b> arc blades now fire in parallel (side-by-side, 22px lateral offset) instead of converging ±0.3 rad.</li>
+</ul>
+</div>
+
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v4.8 — DARGRUEL REVAMP</span><span class="ul-badge">PATCH</span></div>
 <div class="ul-date">2026 · Dargruel HP/speed/thresholds rework, darkened chains, Mar +20% DR on break + shield</div>
 <p class="det-short ul-summary">Dargruel massively reworked: 5,000–14,000 HP, new Demon Gift thresholds (90/70/50/30/1%), evade stacking, per-trigger Iron Body, heal 24%, Maître Suprême 50% base, darkened chains. Marchosias break DR doubled to +20%, new break shield. Thaelis HP floor raised to 1,000.</p>
 <ul class="det-full">
@@ -720,25 +944,9 @@
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Demon Gift</b> thresholds 70/40/10/1% → 90/70/50/30/1% (5 triggers total). Per trigger: heal all enemies <span class="hgr">24% Dargruel MaxHP</span> (was 15%), overflow → <span class="hg">30% shield</span> (was 21%); Dargruel gains <span class="hg">+2% evade 2.5s</span> (stackable ×4, timer resets each); Dargruel gains <span class="hg">+2 Iron Body hits</span>. All-unit DR buff +18% → +20% (max +36% at 2 stacks).</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Maître Suprême:</b> base DR 40% → 50% (cap 60%).</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Inevitable:</b> window 2.5s → 3s, per-hit cap 12% → 11% MaxHP.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Darkened Chain:</b> 18% base chance per volley for one chain to be darkened (black-red visuals: dark rope, red smoke aura, chaos particles). Darkened chain — Player: costs <span class="hr">1 life</span> (no root/silence). Sentinel: <span class="hr">20% EP</span> (vs 15% normal). Chance resets to 18% on trigger; +2% per clean volley.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Abyssal Chains:</b> interval 1.5s → 2.1s. Speed −10%.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Darkened Chain:</b> 18% base chance per volley for one chain to be darkened (black-red visuals). Player: costs <span class="hr">1 life</span>. Sentinel: <span class="hr">20% EP</span>. Chance resets to 18% on trigger; +2% per clean volley.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Marchosias Arc Barrier break:</b> DR +10% → +20% (removed on revive). NEW: gains shield = <span class="hg">15% MaxHP + 15% HP lost</span> on break.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Thaelis:</b> HP floor 720 → 1,000 (max stays 2,400).</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Yuuki — Will to Fight:</b> new player passive. From Wave 8, every 2 waves: <span class="hg">+15% damage</span> to all allied units, stacking to <span class="hg">+150% cap</span>. Shown in HUD as ⚔ Yuuki +X%.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Abyssal Chains:</b> now truly indestructible — added hard immunity in <code>dealDamage</code> so no damage source can reduce chain HP.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Mar minions:</b> initial spawn host scan now also excludes <code>veilshroud_echo</code> and <code>abyssal_chain</code> as valid hosts.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Leviathan:</b> now CC-immune to Overload Laser pull (was missing from laser pull exclusion list).</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Sentinel base DR:</b> <span class="hg">5% → 8%</span> at all times.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Egregor — Null Slash:</b> Sentinel damage <span class="hg">15% / 20% / 28% → 20% / 30% / 40% MaxHP</span> (1 / 2 / 3+ hits), true damage.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Gaia Protection — HP:</b> scaling changed from time-based → wave-based. <span class="hg">+5% at Wave 2 · +10% at Wave 6 · +15% at Wave 10</span>, then <span class="hg">+3%/wave</span> until <span class="hg">+60% total cap</span>.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Gaia Protection — GfJ Shield → Gaia Barrier:</b> pulse interval <span class="hg">10s → 8s</span> (5s after Wave 10). Formula <span class="hg">25% HP lost + 15% MaxHP</span>. Converted from a regular shield to a <b>Barrier</b> — absorbs <span class="hg">99%</span> of all incoming damage; additionally reduces <span class="hg">true damage 20%</span> while active. Does not count as EP. Displayed as a green crescent above the Sentinel with a dedicated HP bar.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Aegis Core speed:</b> <span class="hg">1.8 → 1.65 u/s</span>.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Aegis Core — Custos Aeternus:</b> after Iron Body expires, Support Aura gains <span class="hg">+20% heal efficiency</span> for the rest of the encounter.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Egregor — Collective Mind rework:</b> each tentacle death now <span class="hgr">heals Egregor's body 6% MaxHP</span>, increases body <span class="hg">MaxHP by 20% of the tentacle's HP</span>, and grants body <span class="hg">+5% DR</span> (cumulative, max +20% at 4 losses). Once ≥1 tentacle is lost, normal attacks bleed through to the body (after tentacle interception, capped at <span class="hi">max(20%, 70−10n)%</span> MaxHP per hit, n = tentacles lost).</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Egregor — Mind Link:</b> tentacle DR per Rage Stack <span class="hg">+3% → +5%</span> (max <span class="hg">+15% → +25%</span> at 5 stacks). Rage stacks now render as red stars.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Veilshroud — Void Strike:</b> Sentinel damage <span class="hg">15% → 18% EP</span>.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Veilshroud — Alteration:</b> normal-state incoming shield bonus <span class="hg">+25% → +35%</span>. Receiving healing in normal state now grants <span class="hg">+20% DR for 3 seconds</span>.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Veilshroud — Energy Accumulation:</b> new passive. While in Phantom, accumulates all absorbed damage. On Phantom exit, converts it into a shield: <span class="hg">min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)</span> — minimum <span class="hg">230</span>, cap <span class="hg">1200</span>.</li>
 </ul>
 </div>
 
@@ -1118,6 +1326,7 @@
         attachScrollReveal();
         requestAnimationFrame(() => initCanvases(name));
       });
+      if (name === 'sigils') setTimeout(() => initCanvases('sigils'), 32);
     }
 
     // ── Scroll-reveal via IntersectionObserver ──
@@ -3815,6 +4024,113 @@
           }
           drawSkF(performance.now());
         }
+      }
+
+      // ── SIGIL TAB GLYPHS ──
+      if (tab === 'sigils') {
+        const _guideGlyph = function(c, cx, cy, r, id, color) {
+          c.strokeStyle = color; c.lineWidth = Math.max(1.5, r * 0.09);
+          c.lineCap = 'round'; c.lineJoin = 'round';
+          c.shadowColor = color; c.shadowBlur = 7;
+          switch (id) {
+            case 'aries':
+              c.beginPath(); c.moveTo(cx, cy + r * 0.45); c.lineTo(cx, cy + r * 0.02); c.stroke();
+              c.beginPath(); c.arc(cx - r * 0.42, cy + r * 0.08, r * 0.44, Math.PI * 0.05, Math.PI * 0.85, true); c.stroke();
+              c.beginPath(); c.arc(cx + r * 0.42, cy + r * 0.08, r * 0.44, Math.PI * 0.15, Math.PI * 0.95, false); c.stroke();
+              break;
+            case 'taurus':
+              c.beginPath(); c.arc(cx, cy + r * 0.18, r * 0.44, 0, Math.PI * 2); c.stroke();
+              c.beginPath(); c.arc(cx, cy - r * 0.24, r * 0.48, Math.PI * 0.08, Math.PI * 0.92, false); c.stroke();
+              break;
+            case 'gemini': {
+              const lx = cx - r * 0.28, rx = cx + r * 0.28, ty = cy - r * 0.5, by = cy + r * 0.5;
+              c.beginPath();
+              c.moveTo(cx - r * 0.55, ty); c.lineTo(cx + r * 0.55, ty);
+              c.moveTo(cx - r * 0.55, by); c.lineTo(cx + r * 0.55, by);
+              c.moveTo(lx, ty); c.lineTo(lx, by);
+              c.moveTo(rx, ty); c.lineTo(rx, by);
+              c.stroke(); break;
+            }
+            case 'cancer':
+              c.beginPath(); c.arc(cx + r * 0.18, cy - r * 0.18, r * 0.35, Math.PI * 0.2, Math.PI * 1.9, false); c.stroke();
+              c.beginPath(); c.arc(cx - r * 0.18, cy + r * 0.18, r * 0.35, Math.PI * 1.2, Math.PI * 2.9, false); c.stroke();
+              break;
+            case 'leo':
+              c.beginPath(); c.arc(cx - r * 0.15, cy - r * 0.1, r * 0.38, 0, Math.PI * 2); c.stroke();
+              c.beginPath(); c.moveTo(cx + r * 0.23, cy - r * 0.1); c.bezierCurveTo(cx + r * 0.75, cy - r * 0.08, cx + r * 0.78, cy - r * 0.62, cx + r * 0.38, cy - r * 0.6); c.stroke();
+              break;
+            case 'virgo': {
+              const bY = cy + r * 0.48, tY = cy - r * 0.48, lX = cx - r * 0.52;
+              c.beginPath();
+              c.moveTo(lX, bY); c.lineTo(lX, tY);
+              c.arc(lX + r * 0.26, tY, r * 0.26, Math.PI, 0, false);
+              c.arc(cx + r * 0.26, tY, r * 0.26, Math.PI, 0, false);
+              c.lineTo(cx + r * 0.52, cy + r * 0.22);
+              c.bezierCurveTo(cx + r * 0.52, cy + r * 0.55, cx + r * 0.18, cy + r * 0.55, cx + r * 0.18, cy + r * 0.22);
+              c.stroke(); break;
+            }
+            case 'libra': {
+              const baseY = cy + r * 0.48, midY = cy + r * 0.1;
+              c.beginPath(); c.moveTo(cx - r * 0.58, baseY); c.lineTo(cx + r * 0.58, baseY); c.moveTo(cx - r * 0.52, midY); c.lineTo(cx + r * 0.52, midY); c.stroke();
+              c.beginPath(); c.arc(cx, midY, r * 0.42, Math.PI, 0, false); c.stroke();
+              break;
+            }
+            case 'scorpio': {
+              const bY2 = cy + r * 0.38, tY2 = cy - r * 0.48, lX2 = cx - r * 0.52;
+              c.beginPath();
+              c.moveTo(lX2, bY2); c.lineTo(lX2, tY2);
+              c.arc(lX2 + r * 0.26, tY2, r * 0.26, Math.PI, 0, false);
+              c.arc(cx + r * 0.26, tY2, r * 0.26, Math.PI, 0, false);
+              c.lineTo(cx + r * 0.52, cy + r * 0.15);
+              c.bezierCurveTo(cx + r * 0.52, cy + r * 0.52, cx + r * 0.62, cy + r * 0.52, cx + r * 0.62, cy + r * 0.22);
+              c.stroke();
+              c.beginPath();
+              c.moveTo(cx + r * 0.62, cy + r * 0.22); c.lineTo(cx + r * 0.45, cy + r * 0.42);
+              c.moveTo(cx + r * 0.62, cy + r * 0.22); c.lineTo(cx + r * 0.78, cy + r * 0.42);
+              c.stroke(); break;
+            }
+            case 'sagittarius': {
+              const ax1 = cx - r * 0.52, ay1 = cy + r * 0.52, ax2 = cx + r * 0.52, ay2 = cy - r * 0.52;
+              c.beginPath();
+              c.moveTo(ax1, ay1); c.lineTo(ax2, ay2);
+              c.moveTo(ax2, ay2); c.lineTo(ax2 - r * 0.35, ay2);
+              c.moveTo(ax2, ay2); c.lineTo(ax2, ay2 + r * 0.35);
+              c.moveTo(cx - r * 0.28, cy + r * 0.28); c.lineTo(cx + r * 0.28, cy - r * 0.28);
+              c.stroke(); break;
+            }
+            case 'capricorn':
+              c.beginPath();
+              c.moveTo(cx - r * 0.5, cy - r * 0.45);
+              c.bezierCurveTo(cx - r * 0.5, cy + r * 0.28, cx, cy + r * 0.38, cx, cy - r * 0.02);
+              c.bezierCurveTo(cx, cy - r * 0.5, cx + r * 0.52, cy - r * 0.5, cx + r * 0.48, cy - r * 0.04);
+              c.bezierCurveTo(cx + r * 0.44, cy + r * 0.42, cx - r * 0.05, cy + r * 0.52, cx - r * 0.05, cy + r * 0.2);
+              c.stroke(); break;
+            case 'aquarius': {
+              const wY1 = cy - r * 0.22, wY2 = cy + r * 0.22, wA = r * 0.22, wL = r * 0.55;
+              c.beginPath();
+              c.moveTo(cx - wL, wY1); c.bezierCurveTo(cx - wL * 0.5, wY1 - wA, cx - wL * 0.5, wY1 - wA, cx, wY1); c.bezierCurveTo(cx + wL * 0.5, wY1 + wA, cx + wL * 0.5, wY1 + wA, cx + wL, wY1); c.stroke();
+              c.beginPath();
+              c.moveTo(cx - wL, wY2); c.bezierCurveTo(cx - wL * 0.5, wY2 - wA, cx - wL * 0.5, wY2 - wA, cx, wY2); c.bezierCurveTo(cx + wL * 0.5, wY2 + wA, cx + wL * 0.5, wY2 + wA, cx + wL, wY2); c.stroke();
+              break;
+            }
+            case 'pisces':
+              c.beginPath(); c.arc(cx - r * 0.14, cy, r * 0.42, Math.PI * 0.5, Math.PI * 1.5, true); c.stroke();
+              c.beginPath(); c.arc(cx + r * 0.14, cy, r * 0.42, Math.PI * 0.5, Math.PI * 1.5, false); c.stroke();
+              c.beginPath(); c.moveTo(cx - r * 0.55, cy); c.lineTo(cx + r * 0.55, cy); c.stroke();
+              break;
+          }
+        }
+        document.querySelectorAll('.sfc-glyph-cv, .sfc-glyph-sm-cv').forEach(cv => {
+          const isSmall = cv.classList.contains('sfc-glyph-sm-cv');
+          const sz = isSmall ? 48 : 78;
+          cv.width = Math.round(sz * dpr); cv.height = Math.round(sz * dpr);
+          const c = cv.getContext('2d');
+          c.scale(dpr, dpr);
+          const id = cv.dataset.sigil;
+          const sfcEl = cv.closest('.sfc');
+          const color = sfcEl ? getComputedStyle(sfcEl).getPropertyValue('--sc').trim() : '#00e5ff';
+          _guideGlyph(c, sz / 2, sz / 2, sz * 0.40, id, color);
+        });
       }
     }
   </script>

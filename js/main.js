@@ -22,6 +22,11 @@ function loseLife() {
 }
 
 function playerTakesHit(attacker) {
+    // Dream Realm: 20% chance to negate a hit while active
+    if (_hasBuff('coi_mong') && performance.now() < (window._coiMongEndTime || 0)) {
+        return;
+    }
+
     // ƯU TIÊN 0: Yog-Sothoth - Miễn mọi sát thương trong Lãnh địa Thời Gian
     if (skillShiftActive) {
         // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
@@ -75,6 +80,16 @@ function playerTakesHit(attacker) {
             }
             return;
         }
+    }
+
+    // Riposte: mark next skill for +120% damage on each hit taken
+    if (_hasBuff('phan_don')) window._phanDonReady = true;
+
+    // Iron Fortress: consume a stack before other shields
+    if (_hasBuff('thanh_dong') && window._sigilIronBodyStacks > 0) {
+        window._sigilIronBodyStacks--;
+        addExplosion(player.x, player.y, 40, '#3b82f6');
+        return;
     }
 
     // ƯU TIÊN 2: Khiên phòng hộ cuối cùng (Final Defense)
@@ -373,20 +388,35 @@ function update(rawDeltaTime) {
             if (i === 0) continue;
             playerClones.push({ xOffset: i * cloneSpacing });
         }
+        if (_hasBuff('guong_laze')) {
+            window._mirrorLaserEntities = [
+                { y: 0, vy: 4, side: 'left' },
+                { y: canvas.height, vy: -4, side: 'right' }
+            ];
+        }
     }
 
     if (laserActive) {
         if (currentTime - laserStartTime >= laserDuration) {
             laserActive = false; laserCooldownEnd = currentTime + laserCooldownDuration; playerClones = [];
+            window._mirrorLaserEntities = null;
         } else {
             const allLasers = [{ xOffset: 0 }, ...playerClones];
+
+            if (_hasBuff('guong_laze') && window._mirrorLaserEntities) {
+                for (const ent of window._mirrorLaserEntities) {
+                    ent.y += ent.vy * dt;
+                    if (ent.y <= 0) { ent.y = 0; ent.vy = Math.abs(ent.vy); }
+                    if (ent.y >= canvas.height) { ent.y = canvas.height; ent.vy = -Math.abs(ent.vy); }
+                }
+            }
 
             if (currentTime - lastLaserTick > laserTickInterval) {
                 lastLaserTick = currentTime;
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
-                    if (enemy.type === 'veilshroud_echo') return; // untargetable
-                    if (enemy.inCoronation) return; // untargetable during coronation
+                    if (enemy.type === 'veilshroud_echo') return;
+                    if (enemy.inCoronation) return;
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
@@ -397,7 +427,6 @@ function update(rawDeltaTime) {
                                 dealDamage(enemy, _lSrc);
                                 break;
                             } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
-                                // Laser hit Leviathan shield → count hits, no body damage
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
                                 dealDamage(enemy, { damage: 130, percentDamage: 0.19, isPiercing: true });
@@ -406,13 +435,38 @@ function update(rawDeltaTime) {
                         }
                     }
                 });
+
+                if (_hasBuff('guong_laze') && window._mirrorLaserEntities) {
+                    for (const ent of window._mirrorLaserEntities) {
+                        enemies.forEach(enemy => {
+                            if (enemy.type === 'abyssal_chain') return;
+                            if (enemy.type === 'veilshroud_echo') return;
+                            if (enemy.inCoronation) return;
+                            if (Math.abs(enemy.y - ent.y) < 50) {
+                                if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                                    const _mlSrc = { damage: 130, percentDamage: 0.19, isPiercing: true, _barrierPiercing: true };
+                                    checkMarchosiasArcBarrier(enemy, _mlSrc, enemy.x, enemy.y);
+                                    dealDamage(enemy, _mlSrc);
+                                } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                                    enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
+                                } else {
+                                    dealDamage(enemy, { damage: 130, percentDamage: 0.19, isPiercing: true });
+                                }
+                            }
+                        });
+                    }
+                }
             }
 
             const pullRadius = 200, pullStrength = 0.05;
             enemies.forEach(enemy => {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo' || enemy.type === 'abyssal_chain' || enemy.type === 'leviathan') return;
-                if (enemy.type === 'veilshroud_echo') return; // untargetable
-                if (enemy.inCoronation) return; // untargetable during coronation
+                if (enemy.type === 'veilshroud_echo') return;
+                if (enemy.inCoronation) return;
+                const _laserCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel'
+                    || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+                if (_laserCCImmune) return;
 
                 let closestLaserX = player.x + allLasers.reduce((prev, curr) =>
                     Math.abs(enemy.x - (player.x + curr.xOffset)) < Math.abs(enemy.x - (player.x + prev.xOffset)) ? curr : prev, { xOffset: 0 }).xOffset;
@@ -861,7 +915,11 @@ function update(rawDeltaTime) {
                 || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
             const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
-            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul;
+            const _thanMenhMul = (enemy._thanMenhFrozen && !_ccImmune) ? 0 : 1.0;
+            const _dtuSlowMul = (!_ccImmune && enemy._dtuSlow && currentTime < (enemy._dtuSlowEnd || 0)) ? 0.70 : 1.0;
+            const _cucHanMul = (!_ccImmune && enemy._slowEnd && currentTime < enemy._slowEnd) ? (1 / (enemy._slowFactor || 1)) : 1.0;
+            const _rootMul = (!_ccImmune && enemy._rootEnd && currentTime < enemy._rootEnd) ? 0 : 1.0;
+            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul;
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -884,7 +942,8 @@ function update(rawDeltaTime) {
                 }
 
                 enemy.shootTimer -= deltaTime;
-                if (enemy.shootTimer <= 0) {
+                const _silenced = !_ccImmune && enemy._silencedEnd && currentTime < enemy._silencedEnd;
+                if (enemy.shootTimer <= 0 && !_silenced) {
                     enemy.shootTimer = currentShootTimer;
                     const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                     if (target) {
@@ -961,7 +1020,8 @@ function update(rawDeltaTime) {
                 // Frozen during coronation animation
                 if (!enemy.inCoronation) {
                     enemy.shootTimer -= deltaTime;
-                    if (enemy.shootTimer <= 0) {
+                    const _apostleSilenced = !_ccImmune && enemy._silencedEnd && currentTime < enemy._silencedEnd;
+                    if (enemy.shootTimer <= 0 && !_apostleSilenced) {
                         enemy.shootTimer = 1000;
                         const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                         if (target) {
@@ -1242,6 +1302,7 @@ function update(rawDeltaTime) {
     }
 
     _updateWaveSystem(deltaTime, currentTime);
+    _updateSigilPassives(currentTime, deltaTime);
 
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
@@ -1289,15 +1350,81 @@ function update(rawDeltaTime) {
                     dealDamage(enemy, { damage: (b.damage >= maxMultiplier ? 0 : b.damage), percentDamage: (b.damage >= maxMultiplier ? 0.07 : 0) });
                     b.hitEnemies.push(enemy);
                 } else {
-                    dealDamage(enemy, b);
+                    if (b.isPiercing && b.hitEnemies) {
+                        if (b.hitEnemies.includes(enemy)) continue;
+                        b.hitEnemies.push(enemy);
+                    }
+
+                    let _dealSrc = b;
+                    if (b.isPiercing && _hasBuff('khat_chien') && (b._khatChienChain || 0) > 0) {
+                        const _chainMul = 1 + Math.min(4, b._khatChienChain) * 0.30;
+                        _dealSrc = { ...b, damage: Math.ceil(b.damage * _chainMul), percentDamage: (b.percentDamage || 0) * _chainMul };
+                    }
+                    dealDamage(enemy, _dealSrc);
+                    if (b.isPiercing && _hasBuff('khat_chien')) {
+                        if ((b._khatChienChain || 0) < 4) {
+                            dealDamage(enemy, { damage: 0, percentDamage: 0.025, isTrueDamage: true });
+                        }
+                        b._khatChienChain = (b._khatChienChain || 0) + 1;
+                    }
 
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
                         b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
 
-                    bullets.splice(i, 1);
-                    break;
+                    if ((b.type === 'player_auto' || b.type === 'sentinel_auto') && enemy.hp > 0) {
+                        const _hn = performance.now();
+
+                        if (_hasBuff('noc_toi') && !b._isNocToiDot) {
+                            enemy._nocToiStacks = Math.min(4, (enemy._nocToiStacks || 0) + 1);
+                            if (!enemy._nocToiStackExpiry) enemy._nocToiStackExpiry = [];
+                            enemy._nocToiStackExpiry.push(_hn + 3000);
+                        }
+
+                        if (_hasBuff('su_tu_hong')) {
+                            if (gloryForJusticeActive) {
+                                if (!window._sthBurning) window._sthBurning = new Map();
+                                const existing = window._sthBurning.get(enemy);
+                                if (existing) {
+                                    existing.stacks = Math.min(3, existing.stacks + 1);
+                                    existing.expiry = _hn + 3000;
+                                } else {
+                                    window._sthBurning.set(enemy, { stacks: 1, nextTick: _hn + 500, expiry: _hn + 3000 });
+                                }
+                            }
+                        }
+
+                        if (b.type === 'player_auto' && _hasBuff('bong_doi') && b._bongDoiBullet) {
+                            window._bongDoiHitCount = (window._bongDoiHitCount || 0) + 1;
+                            if (window._bongDoiHitCount % 6 === 0) {
+                                const mirrorX = canvas.width - b.x;
+                                bullets.push({
+                                    x: mirrorX, y: b.y,
+                                    vx: -b.vx, vy: b.vy,
+                                    damage: Math.ceil(b.damage * 1.4), percentDamage: (b.percentDamage || 0) * 1.4,
+                                    size: b.size * 1.3, type: 'player_auto',
+                                    applyVuln: b.applyVuln, vulnChance: b.vulnChance,
+                                    isPiercing: true, hitEnemies: [],
+                                    _mirrorBullet: true,
+                                });
+                            }
+                        }
+
+                        if (b._muiTenVangCrit && enemy.hp > 0) {
+                            dealDamage(enemy, { damage: b.damage * 2, percentDamage: (b.percentDamage || 0) * 2, isTrueDamage: true });
+                            enemy.vulnStacks = Math.min(4, (enemy.vulnStacks || 0) + 2);
+                            enemy.vulnEndTime = _hn + 5000;
+                            enemy._rootEnd = _hn + 1000;
+                            enemy._silencedEnd = _hn + 1000;
+                            createParticles(enemy.x, enemy.y, 20, '#ffd700', 3, 8);
+                        }
+                    }
+
+                    if (!b.isPiercing) {
+                        bullets.splice(i, 1);
+                        break;
+                    }
                 }
             }
         }
@@ -1400,16 +1527,18 @@ function update(rawDeltaTime) {
     // Barrier = 20% HP lost + 10% Max HP, non-stacking, replaces previous pulse; NOT part of shield/EP
     if (!window._gfjShieldTimer) window._gfjShieldTimer = 0;
     if (!window._gfjWasActive) window._gfjWasActive = false;
-    if (gloryForJusticeActive) {
+    const _gaiaActive = gloryForJusticeActive || _hasBuff('giap_nguyet');
+    if (_gaiaActive) {
         const _gfjJustActivated = !window._gfjWasActive;
         window._gfjWasActive = true;
         if (!_gfjJustActivated) window._gfjShieldTimer += deltaTime;
         const _gfjInterval = _waveNumber >= 10 ? 5000 : 8000;
         if (_gfjJustActivated || window._gfjShieldTimer >= _gfjInterval) {
             window._gfjShieldTimer = 0;
+            const _shieldBonus = _hasBuff('giap_nguyet') ? 1.20 : 1;
             sentinels.forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
-                const newBarrier = Math.floor(lostHp * 0.25 + (s.maxHp || 100) * 0.15);
+                const newBarrier = Math.floor((lostHp * 0.25 + (s.maxHp || 100) * 0.15) * _shieldBonus);
                 s._gaiaBarrier = newBarrier;
                 s._gaiaBarrierMax = newBarrier;
             });
@@ -1758,7 +1887,77 @@ function _spawnWaveTier(tier) {
     }
 }
 
+function _updateSigilPassives(now, deltaTime) {
+    if (_hasBuff('thanh_dong')) {
+        if (window._sigilIronBodyNextAt > 0 && now >= window._sigilIronBodyNextAt && window._sigilIronBodyStacks < 2) {
+            window._sigilIronBodyStacks++;
+            window._sigilIronBodyNextAt = now + 10000;
+        }
+        if (window._sigilIronBodyNextAt === 0) window._sigilIronBodyNextAt = now + 10000;
+    }
+
+    if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
+        if (now - window._tuyetLanLastKill > 5000) window._tuyetLanStacks = 0;
+    }
+
+    if (_hasBuff('than_menh') && window._thanMenhEndTime > 0 && now < window._thanMenhEndTime) {
+        for (const e of enemies) {
+            if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') {
+                e._thanMenhFrozen = true;
+            }
+        }
+    } else {
+        if (window._thanMenhEndTime > 0 && now >= window._thanMenhEndTime) {
+            for (const e of enemies) { e._thanMenhFrozen = false; }
+            window._thanMenhEndTime = 0;
+        }
+    }
+
+    if (_hasBuff('dien_tu_truong') && skillGActive) {
+        for (const e of enemies) {
+            if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') {
+                const dist = Math.hypot(e.x - player.x, e.y - player.y);
+                if (dist <= 250) {
+                    e._dtuSlow = true;
+                    e._dtuSlowEnd = now + 200;
+                    const dot = 0.0035 * (e.maxHp || e.hp) * (deltaTime / 1000);
+                    dealDamage(e, { damage: dot, percentDamage: 0, _isDtuDot: true });
+                }
+            }
+        }
+    }
+
+    if (_hasBuff('noc_toi')) {
+        for (const e of enemies) {
+            if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e._nocToiStacks > 0) {
+                const stackDot = 0.02 * (e.maxHp || e.hp) * e._nocToiStacks * (deltaTime / 1000);
+                dealDamage(e, { damage: stackDot, percentDamage: 0, _isNocToiDot: true });
+                const expireKey = '_nocToiStackExpiry';
+                if (!e[expireKey]) e[expireKey] = [];
+                e[expireKey] = e[expireKey].filter(t => {
+                    if (now >= t) { e._nocToiStacks = Math.max(0, (e._nocToiStacks || 1) - 1); return false; }
+                    return true;
+                });
+            }
+        }
+    }
+
+    if (_hasBuff('su_tu_hong') && gloryForJusticeActive && window._sthBurning) {
+        for (const [e, burnData] of window._sthBurning.entries()) {
+            if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
+            if (now >= burnData.nextTick) {
+                const stacks = Math.min(3, burnData.stacks || 1);
+                const dmg = (200 + 0.05 * (e.maxHp || e.hp)) * stacks;
+                dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
+                burnData.nextTick = now + 500;
+            }
+            if (now >= burnData.expiry) window._sthBurning.delete(e);
+        }
+    }
+}
+
 function _updateWaveSystem(deltaTime, now) {
+    if (_wavePhase === 'sigil_pick') return;
     if (_wavePhase === 'rest') {
         _waveRestTimer = Math.max(0, _waveRestTimer - deltaTime);
         if (_waveRestTimer <= 0) {
@@ -1770,6 +1969,7 @@ function _updateWaveSystem(deltaTime, now) {
             _waveQueueTimer = 0;
             _wavePhase = 'spawning';
             _waveAnnouncedAt = now;
+            if (_hasBuff('than_menh')) window._thanMenhEndTime = now + 5000;
         }
         return;
     }
@@ -1786,9 +1986,14 @@ function _updateWaveSystem(deltaTime, now) {
     if (_waveQueue.length === 0) {
         const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
         if (_alive === 0) {
-            _wavePhase = 'rest';
-            _waveRestTimer = 5000;
-            _waveForceEndTimer = 0;
+            if ((_waveNumber === 5 || _waveNumber === 10) && (window._playerSigils || []).length < 3 && (window._sigilPool || []).length > 0) {
+                _wavePhase = 'sigil_pick';
+                _triggerSigilPicker();
+            } else {
+                _wavePhase = 'rest';
+                _waveRestTimer = 5000;
+                _waveForceEndTimer = 0;
+            }
         } else {
             _waveForceEndTimer += deltaTime;
             if (_waveForceEndTimer >= 12000) {
@@ -1820,9 +2025,8 @@ function gameLoop(timeStamp) {
         showPauseScreen();
     }
 
-    // Luôn vẽ (để màn hình không đóng băng), chỉ update khi không pause
-    if (!gamePaused && !loading) {
-        update(Math.min(deltaTime, 50)); // cap 50ms, tránh physics jump khi tab quay lại
+    if (!gamePaused && !loading && !window._sigilPicker) {
+        update(Math.min(deltaTime, 50));
     }
     draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50));
 
@@ -1880,6 +2084,30 @@ function startGame() {
 
     hasTriggeredLastStand = false;
     playerAbsoluteShield = false;
+
+    window._sigilPool = [...(typeof SIGIL_ORDER !== 'undefined' ? SIGIL_ORDER : [])];
+    window._playerSigils = [];
+    window._sigilPicker = null;
+    if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0) {
+        _wavePhase = 'sigil_pick';
+        _triggerSigilPicker();
+    }
+    window._sigilIronBodyStacks = 0;
+    window._sigilIronBodyNextAt = 0;
+    window._phanDonReady = false;
+    window._coiMongEndTime = 0;
+    window._thanMenhEndTime = 0;
+    window._tuyetLanStacks = 0;
+    window._tuyetLanLastKill = 0;
+    window._bongDoiHitCount = 0;
+    window._muiTenVangHitCount = 0;
+    window._muiTenVangVolleyCount = 0;
+    window._hoVeLastDeadMaxHp = 0;
+    window._hoVeShieldAvailUntil = 0;
+    window._hoVeShieldCooldownEnd = 0;
+    window._sthBurning = new Map();
+    window._laiKepPEAccum = 0;
+    window._laiKepFireRateBonus = 0;
 
     skillGCharge = 0;
     skillGActive = false;
