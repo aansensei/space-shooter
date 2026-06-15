@@ -1137,6 +1137,7 @@ function dealDamage(enemy, source) {
 
     const oldHP = enemy.hp;
     enemy.shield = enemy.shield || 0;
+    const isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
     const enemyMaxHp = enemy.maxHp || enemy.hp;
     const effectiveHp = enemyMaxHp + enemy.shield;
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
@@ -1341,8 +1342,6 @@ function dealDamage(enemy, source) {
         combinedDR += 0.25;
         // Envy 1% MaxHP/s regen handled in main loop
     }
-
-    let isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
 
     // Iron Body (Bất tử tuyệt đối), bypass all damage
     if (isSentinel && enemy.ironBody && performance.now() < enemy.ironBodyEnd) {
