@@ -1226,6 +1226,11 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * 1.25);
     }
 
+    // Compound Interest: +200 flat damage while Photokrystos is alive
+    if (_hasBuff('lai_kep') && typeof spirits !== 'undefined') {
+        if (spirits.some(s => s.isPhotokrystos && !s._done)) totalDamage += 200;
+    }
+
     // True damage window: 4 stacks đủ → 2 giây tiếp theo bypass shield hoàn toàn
     const inTrueDmgWindow = enemy.vulnTrueDmgEnd && performance.now() < enemy.vulnTrueDmgEnd;
 
