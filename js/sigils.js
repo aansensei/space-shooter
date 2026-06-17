@@ -135,6 +135,10 @@ function _triggerSigilPicker() {
         flyParticles: [],
         flyDone: false,
     };
+    const ov = document.getElementById('sigil-pick-overlay');
+    if (ov) ov.style.display = 'block';
+    const mc = document.getElementById('mc');
+    if (mc) mc.style.pointerEvents = 'none';
 }
 
 function _completeSigilPicker(sigilId) {
@@ -147,6 +151,10 @@ function _completeSigilPicker(sigilId) {
     _wavePhase = 'rest';
     _waveRestTimer = 3000;
     _waveForceEndTimer = 0;
+    const ov = document.getElementById('sigil-pick-overlay');
+    if (ov) ov.style.display = 'none';
+    const mc = document.getElementById('mc');
+    if (mc) mc.style.pointerEvents = 'all';
 }
 
 function _onSigilApplied(sigilId, buffId) {
@@ -187,23 +195,42 @@ function drawSigilPicker() {
 }
 
 function _pickerLayout() {
+    const isMob = typeof _isMobile !== 'undefined' && _isMobile;
+    if (isMob) {
+        const margin = 12;
+        const panelPad = 16;
+        const gapX = 10, gapY = 10;
+        const cols = 2, rows = 2;
+        const panelW = canvas.width - margin * 2;
+        const cardW = Math.floor((panelW - panelPad * 2 - gapX) / 2);
+        const cardH = 220;
+        const titleH = 40;
+        const confirmH = 56;
+        const panelH = rows * cardH + (rows - 1) * gapY + panelPad * 2 + titleH + confirmH;
+        const panelX = (canvas.width - panelW) / 2;
+        const panelY = Math.max(10, (canvas.height - panelH) / 2 - 10);
+        return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob };
+    }
     const margin = 32;
     const available = canvas.width - margin * 2;
     const cardW = Math.min(210, Math.max(150, (available - 30) / 4));
     const cardH = 310;
     const gapX = (available - cardW * 4) / 3;
+    const gapY = 0;
+    const cols = 4, rows = 1;
     const panelPad = 24;
+    const titleH = 50;
     const panelW = available + panelPad * 2;
-    const panelH = cardH + panelPad * 2 + 50 + 56;
+    const panelH = cardH + panelPad * 2 + titleH + 56;
     const panelX = (canvas.width - panelW) / 2;
     const panelY = (canvas.height - panelH) / 2 - 20;
-    return { cardW, cardH, gapX, panelPad, panelW, panelH, panelX, panelY };
+    return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob: false };
 }
 
 function _drawPickerCards(p, slideEase) {
     const now = performance.now();
     const L = _pickerLayout();
-    const { cardW, cardH, gapX, panelPad, panelW, panelH, panelX, panelY } = L;
+    const { cardW, cardH, gapX, gapY, cols, panelPad, panelW, panelH, panelX, panelY, titleH, isMob } = L;
     const yOff = (1 - slideEase) * -300;
     const hasSelected = p.selectedSigil != null;
 
@@ -224,18 +251,22 @@ function _drawPickerCards(p, slideEase) {
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#c8dcff';
-    ctx.font = `bold 13px "Courier New", monospace`;
+    ctx.font = `bold ${isMob ? 11 : 13}px "Courier New", monospace`;
     const sigilCount = (window._playerSigils || []).length + 1;
-    ctx.fillText(`ZODIAC SIGIL  ${sigilCount} / 3  —  CHOOSE YOUR SEAL`, canvas.width / 2, panelY + yOff + 26);
+    const titleLabel = isMob ? `SIGIL ${sigilCount}/3 — CHOOSE YOUR SEAL` : `ZODIAC SIGIL  ${sigilCount} / 3  —  CHOOSE YOUR SEAL`;
+    ctx.fillText(titleLabel, canvas.width / 2, panelY + yOff + (isMob ? 26 : 26));
 
     const startX = panelX + panelPad;
+    const startY = panelY + yOff + panelPad + titleH;
     for (let i = 0; i < p.options.length; i++) {
         const sigilId = p.options[i];
         const def = SIGIL_DEFS[sigilId];
         if (!def) continue;
-        const cx = startX + i * (cardW + gapX) + cardW / 2;
-        const cy = panelY + yOff + panelPad + 50 + cardH / 2;
-        _drawSigilCard(cx, cy, cardW, cardH, sigilId, def, p.hoveredSigil === sigilId, p.selectedSigil === sigilId, now);
+        const col = isMob ? i % cols : i;
+        const row = isMob ? Math.floor(i / cols) : 0;
+        const cx = startX + col * (cardW + gapX) + cardW / 2;
+        const cy = startY + row * (cardH + gapY) + cardH / 2;
+        _drawSigilCard(cx, cy, cardW, cardH, sigilId, def, p.hoveredSigil === sigilId, p.selectedSigil === sigilId, now, isMob);
     }
 
     const btn = _sigilConfirmRect(L, yOff);
@@ -243,8 +274,8 @@ function _drawPickerCards(p, slideEase) {
     ctx.strokeStyle = 'rgba(60,90,160,0.30)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(panelX + 40, btn.y - 12);
-    ctx.lineTo(panelX + panelW - 40, btn.y - 12);
+    ctx.moveTo(panelX + 40, btn.y - 10);
+    ctx.lineTo(panelX + panelW - 40, btn.y - 10);
     ctx.stroke();
 
     ctx.globalAlpha = slideEase * (hasSelected ? 1.0 : 0.30);
@@ -263,7 +294,7 @@ function _drawPickerCards(p, slideEase) {
         ctx.fill();
     }
     ctx.fillStyle = hasSelected ? '#e8f0ff' : '#444860';
-    ctx.font = `bold 15px "Courier New", monospace`;
+    ctx.font = `bold ${isMob ? 13 : 15}px "Courier New", monospace`;
     ctx.textAlign = 'center';
     ctx.letterSpacing = '2px';
     ctx.fillText('CONFIRM', btn.x + btn.w / 2, btn.y + btn.h / 2 + 5);
@@ -275,11 +306,12 @@ function _drawPickerCards(p, slideEase) {
 function _sigilConfirmRect(L, yOff) {
     yOff = yOff || 0;
     L = L || _pickerLayout();
-    const w = 200, h = 42;
-    return { x: L.panelX + (L.panelW - w) / 2, y: L.panelY + yOff + L.panelH - h - 16, w, h };
+    const w = L.isMob ? Math.min(200, L.panelW - 32) : 200;
+    const h = 42;
+    return { x: L.panelX + (L.panelW - w) / 2, y: L.panelY + yOff + L.panelH - h - 14, w, h };
 }
 
-function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now) {
+function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, compact) {
     const x = cx - w / 2, y = cy - h / 2;
     const [r, g, b] = _hexRgb3(def.color);
 
@@ -304,7 +336,9 @@ function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now) 
         ctx.stroke();
     }
 
-    const symCx = cx, symCy = y + 54, symR = 34;
+    const symR = compact ? 20 : 34;
+    const symCy = compact ? y + 32 : y + 54;
+    const symCx = cx;
 
     ctx.fillStyle = `rgba(${r},${g},${b},${isSelected ? 0.20 : 0.10})`;
     ctx.beginPath(); ctx.arc(symCx, symCy, symR + 4, 0, Math.PI * 2); ctx.fill();
@@ -313,31 +347,33 @@ function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now) 
         const glow = 0.5 + 0.5 * Math.sin(now / 400);
         ctx.strokeStyle = `rgba(${r},${g},${b},${0.5 + 0.4 * glow})`;
         ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(symCx, symCy, symR + 8, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(symCx, symCy, symR + (compact ? 6 : 8), 0, Math.PI * 2); ctx.stroke();
     }
 
     _drawZodiacGlyph(sigilId, symCx, symCy, symR * 0.72, def.color);
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#f0f4ff';
-    ctx.font = `bold 13px "Courier New", monospace`;
-    ctx.fillText(def.name, cx, y + 116);
+    ctx.font = `bold ${compact ? 11 : 13}px "Courier New", monospace`;
+    ctx.fillText(def.name, cx, compact ? y + 62 : y + 116);
 
     ctx.fillStyle = `rgba(${r},${g},${b},1.0)`;
-    ctx.font = `10px "Courier New", monospace`;
-    ctx.fillText(def.element, cx, y + 131);
+    ctx.font = `${compact ? 9 : 10}px "Courier New", monospace`;
+    ctx.fillText(def.element, cx, compact ? y + 73 : y + 131);
 
     ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
     ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(x + 12, y + 141); ctx.lineTo(x + w - 12, y + 141); ctx.stroke();
+    const divY = compact ? y + 80 : y + 141;
+    ctx.beginPath(); ctx.moveTo(x + 12, divY); ctx.lineTo(x + w - 12, divY); ctx.stroke();
 
-    _drawMiniBuffRow(cx, y + 160, w - 20, def.buffs[0]);
-    _drawMiniBuffRow(cx, y + 228, w - 20, def.buffs[1]);
+    _drawMiniBuffRow(cx, compact ? y + 90 : y + 160, w - (compact ? 12 : 20), def.buffs[0], compact ? 1 : 2);
+    _drawMiniBuffRow(cx, compact ? y + 140 : y + 228, w - (compact ? 12 : 20), def.buffs[1], compact ? 1 : 2);
 
     ctx.restore();
 }
 
-function _drawMiniBuffRow(cx, topY, maxW, buff) {
+function _drawMiniBuffRow(cx, topY, maxW, buff, maxLines) {
+    maxLines = maxLines || 2;
     ctx.save();
     ctx.fillStyle = buff.typeC + 'aa';
     _drawRoundRect(cx - maxW / 2, topY, 38, 15, 3);
@@ -348,13 +384,13 @@ function _drawMiniBuffRow(cx, topY, maxW, buff) {
     ctx.fillText(buff.type, cx - maxW / 2 + 19, topY + 11);
 
     ctx.fillStyle = '#e8f0ff';
-    ctx.font = `bold 11px "Courier New", monospace`;
+    ctx.font = `bold ${maxLines === 1 ? 10 : 11}px "Courier New", monospace`;
     ctx.textAlign = 'left';
     ctx.fillText(buff.name, cx - maxW / 2 + 44, topY + 11);
 
     ctx.fillStyle = 'rgba(180,200,230,1.0)';
-    ctx.font = `10px sans-serif`;
-    _wrapText(buff.desc, cx - maxW / 2, topY + 24, maxW, 13, 2);
+    ctx.font = `${maxLines === 1 ? 9 : 10}px sans-serif`;
+    _wrapText(buff.desc, cx - maxW / 2, topY + 24, maxW, 12, maxLines);
     ctx.restore();
 }
 
@@ -714,56 +750,57 @@ function _hexRgb3(hex) {
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+function _pickerCardHitTest(ex, ey, L) {
+    const { cardW, cardH, gapX, gapY, cols, panelPad, panelX, panelY, titleH } = L;
+    const startX = panelX + panelPad;
+    const startY = panelY + panelPad + titleH;
+    for (let i = 0; i < 4; i++) {
+        const col = L.isMob ? i % cols : i;
+        const row = L.isMob ? Math.floor(i / cols) : 0;
+        const cx = startX + col * (cardW + gapX);
+        const cy = startY + row * (cardH + gapY);
+        if (ex >= cx && ex <= cx + cardW && ey >= cy && ey <= cy + cardH) return i;
+    }
+    return -1;
+}
+
 function _handleSigilPickerClick(ex, ey) {
     const p = window._sigilPicker;
-    if (!p) return;
+    if (!p || p.phase !== 'choosing_sigil') return;
 
-    if (p.phase === 'choosing_sigil') {
-        const L = _pickerLayout();
-        const { cardW, cardH, gapX, panelPad, panelX, panelY } = L;
-        const startX = panelX + panelPad;
-        for (let i = 0; i < p.options.length; i++) {
-            const cx = startX + i * (cardW + gapX);
-            const cy = panelY + panelPad + 50;
-            if (ex >= cx && ex <= cx + cardW && ey >= cy && ey <= cy + cardH) {
-                p.selectedSigil = p.options[i];
-                return;
-            }
-        }
+    const L = _pickerLayout();
+    const idx = _pickerCardHitTest(ex, ey, L);
+    if (idx >= 0 && idx < p.options.length) {
+        p.hoveredSigil = p.options[idx];
+        p.selectedSigil = p.options[idx];
+        return;
+    }
 
-        if (p.selectedSigil) {
-            const btn = _sigilConfirmRect(L, 0);
-            if (ex >= btn.x && ex <= btn.x + btn.w && ey >= btn.y && ey <= btn.y + btn.h) {
-                p.phase = 'fly_in';
-                p.flyStart = performance.now();
-                p.flyParticles = [];
-            }
+    if (p.selectedSigil) {
+        const btn = _sigilConfirmRect(L, 0);
+        if (ex >= btn.x && ex <= btn.x + btn.w && ey >= btn.y && ey <= btn.y + btn.h) {
+            p.phase = 'fly_in';
+            p.flyStart = performance.now();
+            p.flyParticles = [];
         }
     }
 }
 
 function _handleSigilPickerMouseMove(ex, ey) {
     const p = window._sigilPicker;
-    if (!p) return;
+    if (!p || p.phase !== 'choosing_sigil') return;
 
-    if (p.phase === 'choosing_sigil') {
-        const L = _pickerLayout();
-        const { cardW, cardH, gapX, panelPad, panelX, panelY } = L;
-        const startX = panelX + panelPad;
-        p.hoveredSigil = null;
-        p.hoveredConfirm = false;
-        for (let i = 0; i < p.options.length; i++) {
-            const cx = startX + i * (cardW + gapX);
-            const cy = panelY + panelPad + 50;
-            if (ex >= cx && ex <= cx + cardW && ey >= cy && ey <= cy + cardH) {
-                p.hoveredSigil = p.options[i];
-                return;
-            }
-        }
-        if (p.selectedSigil) {
-            const btn = _sigilConfirmRect(L, 0);
-            p.hoveredConfirm = ex >= btn.x && ex <= btn.x + btn.w && ey >= btn.y && ey <= btn.y + btn.h;
-        }
+    const L = _pickerLayout();
+    p.hoveredSigil = null;
+    p.hoveredConfirm = false;
+    const idx = _pickerCardHitTest(ex, ey, L);
+    if (idx >= 0 && idx < p.options.length) {
+        p.hoveredSigil = p.options[idx];
+        return;
+    }
+    if (p.selectedSigil) {
+        const btn = _sigilConfirmRect(L, 0);
+        p.hoveredConfirm = ex >= btn.x && ex <= btn.x + btn.w && ey >= btn.y && ey <= btn.y + btn.h;
     }
 }
 
@@ -829,19 +866,48 @@ function drawSigilShipUpgrades() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    function _canvasCoords(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        return [
+            (clientX - rect.left) * (canvas.width / rect.width),
+            (clientY - rect.top)  * (canvas.height / rect.height),
+        ];
+    }
+
     canvas.addEventListener('click', (e) => {
         if (!window._sigilPicker) return;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        _handleSigilPickerClick((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+        const [ex, ey] = _canvasCoords(e.clientX, e.clientY);
+        _handleSigilPickerClick(ex, ey);
     });
 
     canvas.addEventListener('mousemove', (e) => {
         if (!window._sigilPicker) return;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        _handleSigilPickerMouseMove((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+        const [ex, ey] = _canvasCoords(e.clientX, e.clientY);
+        _handleSigilPickerMouseMove(ex, ey);
     });
+
+    const ov = document.getElementById('sigil-pick-overlay');
+    if (ov) {
+        ov.addEventListener('touchend', (e) => {
+            if (!window._sigilPicker) return;
+            e.preventDefault();
+            const t = e.changedTouches[0];
+            const [ex, ey] = _canvasCoords(t.clientX, t.clientY);
+            _handleSigilPickerClick(ex, ey);
+            try { navigator.vibrate && navigator.vibrate(18); } catch (_) {}
+        }, { passive: false });
+
+        ov.addEventListener('touchmove', (e) => {
+            if (!window._sigilPicker) return;
+            e.preventDefault();
+            const t = e.touches[0];
+            const [ex, ey] = _canvasCoords(t.clientX, t.clientY);
+            _handleSigilPickerMouseMove(ex, ey);
+        }, { passive: false });
+
+        ov.addEventListener('touchstart', (e) => {
+            if (!window._sigilPicker) return;
+            e.preventDefault();
+        }, { passive: false });
+    }
 });
