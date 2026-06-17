@@ -1092,9 +1092,9 @@ function updateSkillD(deltaTime) {
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                 } else if (_bhCCImmune) {
-                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true });
+                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _bypassIronBody: _hasBuff('tu_huyet') });
                 } else {
-                    dealDamage(enemy, { damage: enemy.maxHp * 999999999 });
+                    dealDamage(enemy, { damage: enemy.maxHp * 999999999, _bypassIronBody: _hasBuff('tu_huyet') });
                 }
             }
         }
@@ -1152,7 +1152,13 @@ function updateSkillF(deltaTime) {
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
                 } else {
-                    // Instant kill, bypass tất cả damage calc, clear quái ngay lập tức
+                    // Coronation Iron Body absorbs 1 hit — bypassed only with Death Mark (tu_huyet)
+                    if (!_hasBuff('tu_huyet') && (enemy.ironBodyHits || 0) > 0) {
+                        enemy.ironBodyHits--;
+                        createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
+                        enemy.hitBySkillF = true;
+                        continue;
+                    }
                     enemy.shield = 0;
                     enemy.hp = 0;
                     // Leviathan: skill F bypasses dealDamage → trigger last rites manually
