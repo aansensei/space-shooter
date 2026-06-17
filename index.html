@@ -1142,14 +1142,14 @@
     </script>
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
-    <script src="js/config.js?v=20260616"></script>
-    <script src="js/sigils.js?v=20260616"></script>
-    <script src="js/entities.js?v=20260616"></script>
-    <script src="js/skills.js?v=20260616"></script>
-    <script src="js/render.js?v=20260616"></script>
-    <script src="js/pixi-renderer.js?v=20260616"></script>
-    <script src="js/input.js?v=20260616"></script>
-    <script src="js/main.js?v=20260616"></script>
+    <script src="js/config.js?v=20260617"></script>
+    <script src="js/sigils.js?v=20260617"></script>
+    <script src="js/entities.js?v=20260617"></script>
+    <script src="js/skills.js?v=20260617"></script>
+    <script src="js/render.js?v=20260617"></script>
+    <script src="js/pixi-renderer.js?v=20260617"></script>
+    <script src="js/input.js?v=20260617"></script>
+    <script src="js/main.js?v=20260617"></script>
 
     <!-- ══ MOBILE UI (injected after game scripts load) ══════════════ -->
     <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:all; z-index:300;"></div>
@@ -1294,6 +1294,9 @@
                 const physH = window.innerHeight;
                 const S = 1 / 0.78; // 1.282
                 const cv = document.getElementById('gameCanvas');
+                cv.style.position = 'fixed';
+                cv.style.top = '0';
+                cv.style.left = '0';
                 cv.style.width = physW + 'px';
                 cv.style.height = physH + 'px';
                 cv.width = Math.round(physW * S);
