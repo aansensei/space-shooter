@@ -1183,12 +1183,6 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * (1 + Math.min(0.60, window._tuyetLanStacks * 0.005)));
     }
 
-    // Sigil: Compound Interest — while Photokrystos (great spirit) is alive, +200 flat damage per hit
-    if (_hasBuff('lai_kep') && !isSentinel
-        && typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) {
-        totalDamage += 200;
-    }
-
     // Sigil: Law of Scales — enemy HP% scaled damage bonus (+0% at full → +70% at 10%)
     if (_hasBuff('luat_can_bang') && !isSentinel) {
         const hpFrac = enemy.hp / (enemy.maxHp || enemy.hp);
@@ -1224,11 +1218,6 @@ function dealDamage(enemy, source) {
     // Dimensional Rift zone: +25% incoming damage
     if (enemy._inDimensionalRift) {
         totalDamage = Math.ceil(totalDamage * 1.25);
-    }
-
-    // Compound Interest: +200 flat damage while Photokrystos is alive
-    if (_hasBuff('lai_kep') && typeof spirits !== 'undefined') {
-        if (spirits.some(s => s.isPhotokrystos && !s._done)) totalDamage += 200;
     }
 
     // True damage window: 4 stacks đủ → 2 giây tiếp theo bypass shield hoàn toàn
@@ -1558,6 +1547,13 @@ function dealDamage(enemy, source) {
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
+
+    // Compound Interest: +200 shield-piercing standard damage while Photokrystos alive
+    if (_hasBuff('lai_kep') && !isSentinel
+        && typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) {
+        enemy.hp = Math.max(0, enemy.hp - 200);
+        if (enemy.hp <= 0) enemy._markedForDeath = true;
+    }
 
     // Sigil: Death Mark — enemy at ≤3% HP triggers instant blood-flower kill
     if (_hasBuff('tu_huyet') && !isSentinel && enemy.hp > 0

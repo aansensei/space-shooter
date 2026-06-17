@@ -195,7 +195,7 @@ function drawSigilPicker() {
 }
 
 function _pickerLayout() {
-    const isMob = typeof _isMobile !== 'undefined' && _isMobile;
+    const isMob = typeof _platform !== 'undefined' && _platform === 'mobile';
     if (isMob) {
         const margin = 12;
         const panelPad = 16;
@@ -623,7 +623,7 @@ function drawSigilHUD() {
     const sigils = window._playerSigils || [];
     const now = performance.now();
 
-    const isMob = typeof _isMobile !== 'undefined' && _isMobile;
+    const isMob = typeof _platform !== 'undefined' && _platform === 'mobile';
     const hW = isMob ? 148 : 192;
     const hH = (isMob ? 158 : 198) + (_yuukiBonus > 0 ? (isMob ? 22 : 26) : 0);
 
