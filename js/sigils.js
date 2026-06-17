@@ -888,6 +888,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ov = document.getElementById('sigil-pick-overlay');
     if (ov) {
+        ov.addEventListener('click', (e) => {
+            if (!window._sigilPicker) return;
+            const [ex, ey] = _canvasCoords(e.clientX, e.clientY);
+            _handleSigilPickerClick(ex, ey);
+        });
+
+        ov.addEventListener('mousemove', (e) => {
+            if (!window._sigilPicker) return;
+            const [ex, ey] = _canvasCoords(e.clientX, e.clientY);
+            _handleSigilPickerMouseMove(ex, ey);
+        });
+
         ov.addEventListener('touchend', (e) => {
             if (!window._sigilPicker) return;
             e.preventDefault();
