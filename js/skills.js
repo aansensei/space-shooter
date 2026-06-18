@@ -420,9 +420,14 @@ function updateSpirits(deltaTime) {
                 const baseAngle = Math.atan2(vy, vx);
                 const sideOff = 22;
                 const px = -Math.sin(baseAngle) * sideOff, py = Math.cos(baseAngle) * sideOff;
-                for (const side of [-1, 1]) {
-                    bladeArcProjectiles.push({ x: spirit.x + px * side, y: spirit.y + py * side, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
-                }
+                // First blade: immediate
+                bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                // Second blade (extra): 10ms delay, +10% radius to bypass Iron Body on same frame
+                if (!window._pendingBlades) window._pendingBlades = [];
+                window._pendingBlades.push({
+                    spawnAt: performance.now() + 10,
+                    data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 137, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
+                });
             } else {
                 bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
             }
@@ -671,17 +676,17 @@ function updatePhotokrystos(spirit, deltaTime) {
         spirit.volleyCount = 0;
         let brangCount = 2;
         if (_hasBuff('song_luoi')) {
-            if (Math.random() < 0.30) brangCount++;
-            if (Math.random() < 0.30) brangCount++;
+            if (Math.random() < 0.35) brangCount++;
+            if (Math.random() < 0.35) brangCount++;
         }
-        spawnPhotoBrangs(spirit.x, spirit.y, brangCount);
+        spawnPhotoBrangs(spirit.x, spirit.y, brangCount, _hasBuff('song_luoi'));
     }
 
 }
 
 const MAX_PHOTO_BRANGS = 10;
 const MAX_BRANG_PENDING = 5;
-function spawnPhotoBrangs(fromX, fromY, count) {
+function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
     const _photo = spirits.find(s => s.isPhotokrystos);
     const validTargets = enemies.filter(e =>
         !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
@@ -709,12 +714,13 @@ function spawnPhotoBrangs(fromX, fromY, count) {
         }
     }
 
-    // Phóng ngay những cái đủ chỗ
+    // Phóng ngay những cái đủ chỗ (base=2, extras từ song_luoi có +10% radius)
     for (let b = 0; b < throwNow; b++) {
         const shuffled = [...validTargets].sort(() => Math.random() - 0.5);
         const first = shuffled[0];
         const dx = first.x - fromX, dy = first.y - fromY;
         const d = Math.hypot(dx, dy) || 1;
+        const _isExtra = songLuoiActive && b >= 2;
         photoBrangs.push({
             x: fromX, y: fromY,
             vx: (dx / d) * 17.5, vy: (dy / d) * 17.5,
@@ -724,13 +730,14 @@ function spawnPhotoBrangs(fromX, fromY, count) {
             rotation: Math.random() * Math.PI * 2,
             damage: 500, percentDamage: 0.070,
             lifetime: 9000,
+            _radius: _isExtra ? 53 : 48,
         });
     }
 }
 
 function updatePhotoBrangs(deltaTime) {
     const dt = deltaTime / 16.67;
-    const BRANG_R = 48; // visual radius, any overlap = hit
+    const BRANG_R_DEFAULT = 48; // base visual radius
     const _photo = spirits.find(s => s.isPhotokrystos); // dùng isPhotokrystos, không phải type
 
     for (let i = photoBrangs.length - 1; i >= 0; i--) {
@@ -790,6 +797,7 @@ function updatePhotoBrangs(deltaTime) {
             b.vy += (dy / d * spd - b.vy) * 0.18;
 
             // Hit: any overlap between boomerang and enemy
+            const BRANG_R = b._radius || BRANG_R_DEFAULT;
             const hitDist = (tgt.size / 2) + BRANG_R; // generous, any edge contact
             if (d < hitDist) {
                 const lastHit = b._hitCooldowns.get(tgt) || 0;
@@ -810,7 +818,7 @@ function updatePhotoBrangs(deltaTime) {
                                 || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
                                 || (tgt.type === 'aegis_core' && tgt.aegisInvulnerable);
                             if (!_cucCCImmune) {
-                                const _cdx = player.x - tgt.x, _cdy = player.y - tgt.y;
+                                const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
                                 const _cd = Math.hypot(_cdx, _cdy) || 1;
                                 tgt.x += (_cdx / _cd) * 38;
                                 tgt.y += (_cdy / _cd) * 38;
@@ -857,7 +865,7 @@ function updatePhotoBrangs(deltaTime) {
         for (let ei = enemies.length - 1; ei >= 0; ei--) {
             const eb = enemies[ei];
             if (!eb.type.startsWith('enemy_bullet') || eb.type === 'abyssal_chain') continue;
-            if (Math.hypot(eb.x - b.x, eb.y - b.y) < BRANG_R + eb.size) eb.hp = 0;
+            if (Math.hypot(eb.x - b.x, eb.y - b.y) < (b._radius || BRANG_R_DEFAULT) + eb.size) eb.hp = 0;
         }
     }
 }
@@ -895,6 +903,13 @@ function updatePrimevalSummonEffect(deltaTime) {
 
 function updateBladeArcProjectiles(deltaTime) {
     const dt = deltaTime / 16.67;
+    if (window._pendingBlades && window._pendingBlades.length > 0) {
+        const _now = performance.now();
+        window._pendingBlades = window._pendingBlades.filter(pb => {
+            if (_now >= pb.spawnAt) { bladeArcProjectiles.push(pb.data); return false; }
+            return true;
+        });
+    }
     for (let i = bladeArcProjectiles.length - 1; i >= 0; i--) {
         let arc = bladeArcProjectiles[i];
         arc.x += arc.vx * dt;
@@ -931,7 +946,7 @@ function updateBladeArcProjectiles(deltaTime) {
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                         || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
                     if (!_cucArcCCImmune) {
-                        const _adx = player.x - enemy.x, _ady = player.y - enemy.y;
+                        const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;
                         const _ad = Math.hypot(_adx, _ady) || 1;
                         enemy.x += (_adx / _ad) * 38;
                         enemy.y += (_ady / _ad) * 38;
@@ -1043,8 +1058,14 @@ function activateSkillD() {
     const currentTime = performance.now();
     if (typeof player !== 'undefined' && player._silenced) return;
     if (gameState !== "playing" || skillDCharging || blackHole || currentTime - lastSkillD < skillDCooldown) return;
-    skillDCharging = true;
-    skillDChargeStartTime = performance.now();
+    if (_hasBuff('set_day_chuyen')) {
+        // Aquarius: instant cast, skip charging
+        lastSkillD = currentTime;
+        blackHole = { x: player.x, y: player.y - player.height, size: 10, maxSize: 180, vy: -2, activeTime: 0 };
+    } else {
+        skillDCharging = true;
+        skillDChargeStartTime = performance.now();
+    }
 }
 
 function updateSkillD(deltaTime) {
@@ -1054,7 +1075,7 @@ function updateSkillD(deltaTime) {
             lastSkillD = performance.now();
             blackHole = {
                 x: player.x, y: player.y - player.height,
-                size: 10, maxSize: 120, vy: -2, activeTime: 0
+                size: 10, maxSize: _hasBuff('set_day_chuyen') ? 180 : 120, vy: -2, activeTime: 0
             };
         }
     }
@@ -1064,7 +1085,7 @@ function updateSkillD(deltaTime) {
         blackHole.activeTime += deltaTime;
         if (blackHole.size < blackHole.maxSize) blackHole.size += 1 * dt;
 
-        const pullSpeed = 6;
+        const pullSpeed = _hasBuff('set_day_chuyen') ? 8.1 : 6;
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing, immune to black hole
             if (enemy.type === 'veilshroud_echo') continue; // echo miễn CC

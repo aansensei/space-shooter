@@ -2629,10 +2629,20 @@ function drawBullet(b) {
         if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14; }
         ctx.filter = 'hue-rotate(-60deg)';
     } else if (b._muiTenVangCrit) {
-        if (!_mobPerf) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 18; }
-        ctx.filter = 'hue-rotate(40deg) brightness(1.4)';
+        const _gp = 0.55 + 0.45 * Math.sin(now / 220);
+        ctx.strokeStyle = `rgba(50,255,80,${_gp})`;
+        ctx.lineWidth = 2.5;
+        if (!_mobPerf) { ctx.shadowColor = '#22ff44'; ctx.shadowBlur = 16; }
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.size * 1.6, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.filter = 'hue-rotate(100deg) brightness(1.5) saturate(2)';
     }
-    ctx.drawImage(_bs, b.x - _bs.width / 2, b.y - _bs.height / 2);
+    if (b._muiTenVangCrit) {
+        const _sc = 1.1;
+        ctx.drawImage(_bs, b.x - _bs.width * _sc / 2, b.y - _bs.height * _sc / 2, _bs.width * _sc, _bs.height * _sc);
+    } else {
+        ctx.drawImage(_bs, b.x - _bs.width / 2, b.y - _bs.height / 2);
+    }
     ctx.restore();
 }
 
