@@ -1113,9 +1113,9 @@ function updateSkillD(deltaTime) {
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                 } else if (_bhCCImmune) {
-                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _bypassIronBody: _hasBuff('tu_huyet') });
+                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet') });
                 } else {
-                    dealDamage(enemy, { damage: enemy.maxHp * 999999999, _bypassIronBody: _hasBuff('tu_huyet') });
+                    dealDamage(enemy, { damage: enemy.maxHp * 999999999, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet') });
                 }
             }
         }

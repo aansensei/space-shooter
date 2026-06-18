@@ -1165,6 +1165,13 @@ function dealDamage(enemy, source) {
     const effectiveHp = enemyMaxHp + enemy.shield;
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
+    if (!isSentinel && !source._vanguardTag && !source._noBase60
+        && (source.damage > 0 || (source.percentDamage || 0) > 0)
+        && !source.isTeslaDot && !source._isNocToiDot
+        && !source._isDtuDot && !source._isSthDot && !source._yogExplosion) {
+        totalDamage += 60;
+    }
+
     if (gloryForJusticeActive) {
         totalDamage = Math.ceil(totalDamage * 1.70);
     }
@@ -1255,9 +1262,9 @@ function dealDamage(enemy, source) {
                 const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
                 if (Math.random() < (_aliveTents / 10) * 0.60) return;
                 _applyTentacleDmg();
-                // ≥1 tentacle lost: normal hits bleed through — 10% DR, hard cap 15% MaxHP
+                // ≥1 tentacle lost: normal hits bleed through — 85% DR, hard cap 15% MaxHP
                 if ((enemy._tentaclesLost || 0) >= 1) {
-                    const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.90, enemy.maxHp * 0.15));
+                    const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.15, enemy.maxHp * 0.15));
                     enemy.hp = Math.max(0, enemy.hp - _bleedDmg);
                 }
                 return;
