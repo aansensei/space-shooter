@@ -82,8 +82,11 @@ function playerTakesHit(attacker) {
         }
     }
 
-    // Riposte: mark next skill for +120% damage on each hit taken
-    if (_hasBuff('phan_don')) window._phanDonReady = true;
+    // Riposte: activate 2s buff window (2s cooldown)
+    if (_hasBuff('phan_don') && performance.now() >= (window._phanDonCooldownEnd || 0)) {
+        window._phanDonEndTime = performance.now() + 2000;
+        window._phanDonCooldownEnd = performance.now() + 2000;
+    }
 
     // Iron Fortress: consume a stack before other shields
     if (_hasBuff('thanh_dong') && window._sigilIronBodyStacks > 0) {
@@ -919,7 +922,7 @@ function update(rawDeltaTime) {
                 || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
             const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
-            const _thanMenhMul = (enemy._thanMenhFrozen && !_ccImmune) ? 0 : 1.0;
+            const _thanMenhMul = enemy._thanMenhFrozen ? 0 : 1.0;
             const _dtuSlowMul = (!_ccImmune && enemy._dtuSlow && currentTime < (enemy._dtuSlowEnd || 0)) ? 0.70 : 1.0;
             const _cucHanMul = (!_ccImmune && enemy._slowEnd && currentTime < enemy._slowEnd) ? (1 / (enemy._slowFactor || 1)) : 1.0;
             const _rootMul = (!_ccImmune && enemy._rootEnd && currentTime < enemy._rootEnd) ? 0 : 1.0;
@@ -1365,6 +1368,21 @@ function update(rawDeltaTime) {
                         _dealSrc = { ...b, damage: Math.ceil(b.damage * _chainMul), percentDamage: (b.percentDamage || 0) * _chainMul };
                     }
                     dealDamage(enemy, _dealSrc);
+
+                    // Shadow Twin: mirror bullet explodes on each hit, blast radius = bullet size
+                    if (b._mirrorBullet) {
+                        const _expR = b.size;
+                        addExplosion(b.x, b.y, _expR * 1.8, '#00ff88');
+                        createParticles(b.x, b.y, 6, '#00ff88', 1, 4);
+                        for (const _oe of enemies) {
+                            if (_oe.type.startsWith('enemy_bullet') || _oe.type === 'abyssal_chain' || _oe.inCoronation) continue;
+                            if (b.hitEnemies && b.hitEnemies.includes(_oe)) continue;
+                            if (Math.hypot(_oe.x - b.x, _oe.y - b.y) < _expR + _oe.size / 2) {
+                                dealDamage(_oe, { damage: b.damage, percentDamage: b.percentDamage || 0 });
+                            }
+                        }
+                    }
+
                     if (b.isPiercing && _hasBuff('khat_chien')) {
                         if ((b._khatChienChain || 0) < 4) {
                             dealDamage(enemy, { damage: 0, percentDamage: 0.025, isTrueDamage: true });
@@ -1407,7 +1425,7 @@ function update(rawDeltaTime) {
                                     x: mirrorX, y: b.y,
                                     vx: -b.vx, vy: b.vy,
                                     damage: Math.ceil(b.damage * 1.4), percentDamage: (b.percentDamage || 0) * 1.4,
-                                    size: b.size * 1.3, type: 'player_auto',
+                                    size: b.size * 1.56, type: 'player_auto',
                                     applyVuln: b.applyVuln, vulnChance: b.vulnChance,
                                     isPiercing: true, hitEnemies: [],
                                     _mirrorBullet: true,
@@ -1967,7 +1985,7 @@ function _updateWaveSystem(deltaTime, now) {
         if (_waveRestTimer <= 0) {
             _waveNumber++;
             if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
-                _yuukiBonus = Math.min(1.50, _yuukiBonus + 0.15);
+                _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.15);
             }
             _waveQueue = _buildWaveQueue(_waveNumber);
             _waveQueueTimer = 0;
@@ -2057,6 +2075,7 @@ function startGame() {
     lastSkillShift = -Infinity;
 
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
+    window._pendingBlades = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; blackHole = null;
     photoBrangs = []; primevalSummonEffect = null;
@@ -2099,6 +2118,8 @@ function startGame() {
     window._sigilIronBodyStacks = 0;
     window._sigilIronBodyNextAt = 0;
     window._phanDonReady = false;
+    window._phanDonEndTime = 0;
+    window._phanDonCooldownEnd = 0;
     window._coiMongEndTime = 0;
     window._thanMenhEndTime = 0;
     window._tuyetLanStacks = 0;

@@ -1202,12 +1202,11 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * 1.50);
     }
 
-    // Sigil: Riposte — consume on first non-auto skill damage after taking a hit
-    if (_hasBuff('phan_don') && window._phanDonReady && !isSentinel
+    // Sigil: Riposte — +200% dmg for 2s after being hit (2s cooldown between triggers)
+    if (_hasBuff('phan_don') && !isSentinel && performance.now() < (window._phanDonEndTime || 0)
         && source.type !== 'player_auto' && source.type !== 'sentinel_auto'
         && !source._isNocToiDot && !source.isTeslaDot) {
-        totalDamage = Math.ceil(totalDamage * 2.20);
-        window._phanDonReady = false;
+        totalDamage = Math.ceil(totalDamage * 3.0);
     }
 
     // Trọng Thương: +16% mỗi stack (max 4 stacks = +64%)
@@ -1256,9 +1255,9 @@ function dealDamage(enemy, source) {
                 const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
                 if (Math.random() < (_aliveTents / 10) * 0.60) return;
                 _applyTentacleDmg();
-                // ≥1 tentacle lost: normal hits bleed through — 50% DR, hard cap 30% MaxHP
+                // ≥1 tentacle lost: normal hits bleed through — 10% DR, hard cap 15% MaxHP
                 if ((enemy._tentaclesLost || 0) >= 1) {
-                    const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.50, enemy.maxHp * 0.30));
+                    const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.90, enemy.maxHp * 0.15));
                     enemy.hp = Math.max(0, enemy.hp - _bleedDmg);
                 }
                 return;

@@ -23,7 +23,7 @@ const SIGIL_DEFS = {
         name: 'Gemini', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'bong_doi', name: 'Shadow Twin', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 6th bullet hit spawns a mirror copy from the opposite X side: 30% larger, piercing, +40% damage, green' },
+              desc: 'Every 6th bullet hit: mirror copy from opposite X side. 56% larger, +40% dmg, piercing, green. Explodes on each hit — blast radius = bullet size.' },
             { id: 'guong_laze', name: 'Mirror Laser', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions, each firing a horizontal laser beam with equal damage' },
         ]
@@ -59,7 +59,7 @@ const SIGIL_DEFS = {
         name: 'Libra', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'phan_don', name: 'Riposte', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'On each hit taken, next skill activation deals +120% damage (1 proc per hit)' },
+              desc: 'On hit taken: all non-auto skills deal +200% dmg for 2s. Orange ring when active. 2s cooldown between triggers.' },
             { id: 'luat_can_bang', name: 'Law of Scales', type: 'ATK', typeC: '#ef4444',
               desc: 'The lower an enemy HP, the more damage it takes: +0% at full HP to +70% at 10% HP' },
         ]
@@ -77,9 +77,9 @@ const SIGIL_DEFS = {
         name: 'Sagittarius', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
-              desc: 'Spirit arc slash fires 2 converging blades (+30% each). Each boomerang thrown has 30% chance to launch an extra one.' },
+              desc: 'Arc slash fires 2 blades (+30% each); 2nd fires 10ms later. Each boomerang has 35% chance to spawn an extra one. Extra blades & boomerangs have +10% radius.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
-              desc: 'Boomerang and arc slash: 50% chance to slow targets 20% for 2s and lightly pull them toward the player. CC-immune enemies: no pull, still slowed.' },
+              desc: 'Boomerang and arc slash: 50% chance to slow 20% for 2s and pull toward the projectile. CC-immune: no pull, still slowed.' },
         ]
     },
     capricorn: {
@@ -95,7 +95,7 @@ const SIGIL_DEFS = {
         name: 'Aquarius', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'set_day_chuyen', name: 'Chain Lightning', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Tesla DoT has a 50% chance to chain to the nearest enemy within 150px' },
+              desc: 'Tesla DoT: 50% chain to nearest enemy within 150px. Skill D: +50% radius, +35% pull, instant cast (no charge).' },
             { id: 'dien_tu_truong', name: 'Magnetic Field', type: 'DEF', typeC: '#3b82f6',
               desc: 'While Skill G is charging, enemies within 250px are slowed 30% and suffer 0.35% MaxHP DoT/s' },
         ]
@@ -206,7 +206,8 @@ function _pickerLayout() {
         const cardH = 220;
         const titleH = 40;
         const confirmH = 56;
-        const panelH = rows * cardH + (rows - 1) * gapY + panelPad * 2 + titleH + confirmH;
+        const detailH = 88;
+        const panelH = rows * cardH + (rows - 1) * gapY + panelPad * 2 + titleH + confirmH + detailH + 6;
         const panelX = (canvas.width - panelW) / 2;
         const panelY = Math.max(10, (canvas.height - panelH) / 2 - 10);
         return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob };
@@ -221,10 +222,66 @@ function _pickerLayout() {
     const panelPad = 24;
     const titleH = 50;
     const panelW = available + panelPad * 2;
-    const panelH = cardH + panelPad * 2 + titleH + 56;
+    const panelH = cardH + panelPad * 2 + titleH + 56 + 100 + 6;
     const panelX = (canvas.width - panelW) / 2;
     const panelY = (canvas.height - panelH) / 2 - 20;
     return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob: false };
+}
+
+function _drawDetailPanel(def, x, y, w, alpha) {
+    const [r, g, b] = _hexRgb3(def.color);
+    const lineH = 13, pad = 10, badgeW = 38;
+    const maxW = w - pad * 2;
+
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.97;
+    ctx.fillStyle = `rgba(4,10,28,0.95)`;
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.65)`;
+    ctx.lineWidth = 1.2;
+
+    // Measure height dynamically
+    ctx.font = `9px sans-serif`;
+    const _measH = (desc) => {
+        const words = desc.split(' ');
+        let line = '', lines = 0;
+        for (const wd of words) {
+            const test = line ? line + ' ' + wd : wd;
+            if (ctx.measureText(test).width > maxW - badgeW - 8 && line) { lines++; line = wd; } else { line = test; }
+        }
+        if (line) lines++;
+        return lines;
+    };
+    const b1lines = Math.max(1, _measH(def.buffs[0].desc));
+    const b2lines = Math.max(1, _measH(def.buffs[1].desc));
+    const rowH1 = 14 + b1lines * lineH;
+    const rowH2 = 14 + b2lines * lineH;
+    const panH = pad + rowH1 + 6 + rowH2 + pad;
+
+    _drawRoundRect(x, y, w, panH, 6);
+    ctx.fill();
+    _drawRoundRect(x, y, w, panH, 6);
+    ctx.stroke();
+
+    const drawBuff = (buff, ty) => {
+        ctx.fillStyle = buff.typeC + 'bb';
+        _drawRoundRect(x + pad, ty, badgeW, 14, 3);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold 8px "Courier New", monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(buff.type, x + pad + badgeW / 2, ty + 10);
+        ctx.fillStyle = '#e8f4ff';
+        ctx.font = `bold 10px "Courier New", monospace`;
+        ctx.textAlign = 'left';
+        ctx.fillText(buff.name, x + pad + badgeW + 6, ty + 10);
+        ctx.fillStyle = 'rgba(180,210,240,0.95)';
+        ctx.font = `9px sans-serif`;
+        _wrapText(buff.desc, x + pad, ty + 22, maxW, lineH, 6);
+    };
+
+    drawBuff(def.buffs[0], y + pad);
+    drawBuff(def.buffs[1], y + pad + rowH1 + 6);
+    ctx.restore();
 }
 
 function _drawPickerCards(p, slideEase) {
@@ -267,6 +324,16 @@ function _drawPickerCards(p, slideEase) {
         const cx = startX + col * (cardW + gapX) + cardW / 2;
         const cy = startY + row * (cardH + gapY) + cardH / 2;
         _drawSigilCard(cx, cy, cardW, cardH, sigilId, def, p.hoveredSigil === sigilId, p.selectedSigil === sigilId, now, isMob);
+    }
+
+    // Detail panel: shown for hovered card (PC) or selected card (mobile)
+    const _detailId = isMob ? p.selectedSigil : p.hoveredSigil;
+    if (_detailId) {
+        const _dd = SIGIL_DEFS[_detailId];
+        if (_dd) {
+            const cardsBottom = startY + (isMob ? rows : 1) * (cardH + gapY);
+            _drawDetailPanel(_dd, panelX + panelPad, cardsBottom + 6, panelW - panelPad * 2, slideEase);
+        }
     }
 
     const btn = _sigilConfirmRect(L, yOff);
@@ -836,8 +903,8 @@ function drawSigilShipUpgrades() {
         ctx.restore();
     }
 
-    // Riposte (phan_don): orange ring when buff is ready to proc
-    if (_hasBuff('phan_don') && window._phanDonReady) {
+    // Riposte (phan_don): orange ring during 2s buff window
+    if (_hasBuff('phan_don') && now < (window._phanDonEndTime || 0)) {
         const pulse = 0.65 + 0.35 * Math.sin(now / 180);
         ctx.save();
         ctx.strokeStyle = `rgba(251,146,60,${pulse})`;
