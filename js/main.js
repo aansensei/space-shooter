@@ -1378,14 +1378,14 @@ function update(rawDeltaTime) {
                             if (_oe.type.startsWith('enemy_bullet') || _oe.type === 'abyssal_chain' || _oe.inCoronation) continue;
                             if (b.hitEnemies && b.hitEnemies.includes(_oe)) continue;
                             if (Math.hypot(_oe.x - b.x, _oe.y - b.y) < _expR + _oe.size / 2) {
-                                dealDamage(_oe, { damage: b.damage, percentDamage: b.percentDamage || 0 });
+                                dealDamage(_oe, { damage: b.damage, percentDamage: b.percentDamage || 0, _noBase60: true });
                             }
                         }
                     }
 
                     if (b.isPiercing && _hasBuff('khat_chien')) {
                         if ((b._khatChienChain || 0) < 4) {
-                            dealDamage(enemy, { damage: 0, percentDamage: 0.025, isTrueDamage: true });
+                            dealDamage(enemy, { damage: 0, percentDamage: 0.025, isTrueDamage: true, _noBase60: true });
                         }
                         b._khatChienChain = (b._khatChienChain || 0) + 1;
                     }
@@ -1434,7 +1434,7 @@ function update(rawDeltaTime) {
                         }
 
                         if (b._muiTenVangCrit && enemy.hp > 0) {
-                            dealDamage(enemy, { damage: b.damage * 2, percentDamage: (b.percentDamage || 0) * 2, isTrueDamage: true });
+                            dealDamage(enemy, { damage: b.damage * 2, percentDamage: (b.percentDamage || 0) * 2, isTrueDamage: true, _noBase60: true });
                             enemy.vulnStacks = Math.min(4, (enemy.vulnStacks || 0) + 2);
                             enemy.vulnEndTime = _hn + 5000;
                             enemy._rootEnd = _hn + 1000;
@@ -1985,7 +1985,7 @@ function _updateWaveSystem(deltaTime, now) {
         if (_waveRestTimer <= 0) {
             _waveNumber++;
             if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
-                _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.15);
+                _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.20);
             }
             _waveQueue = _buildWaveQueue(_waveNumber);
             _waveQueueTimer = 0;
