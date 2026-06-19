@@ -1262,8 +1262,8 @@ function dealDamage(enemy, source) {
                 const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
                 if (Math.random() < (_aliveTents / 10) * 0.60) return;
                 _applyTentacleDmg();
-                // ≥1 tentacle lost: normal hits bleed through — 88% DR, hard cap 12% MaxHP
-                if ((enemy._tentaclesLost || 0) >= 1) {
+                // ≥4 tentacles lost: normal hits bleed through — 88% DR, hard cap 12% MaxHP
+                if ((enemy._tentaclesLost || 0) >= 4) {
                     const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.12, enemy.maxHp * 0.12));
                     enemy.hp = Math.max(0, enemy.hp - _bleedDmg);
                 }
