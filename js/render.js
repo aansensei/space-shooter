@@ -172,6 +172,11 @@ function _getSpiritSprite(isPhoto, size) {
 }
 
 function drawSpaceBackground(deltaTime) {
+    // PIXI background (background.js) is active: just clear so it shows through
+    if (window._bgReady) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
     // Mobile: cache background, redraw every 3 frames
     if (_mobPerf) {
         _bgCacheFrame++;

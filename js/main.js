@@ -1343,8 +1343,8 @@ function update(rawDeltaTime) {
                     break;
                 }
 
-                // MARCHOSIAS ARC BARRIER CHECK (all new mechanics handled in checkMarchosiasArcBarrier)
-                if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                // MARCHOSIAS ARC BARRIER CHECK — true damage bypasses barrier
+                if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0 && !b.isTrueDamage) {
                     if (checkMarchosiasArcBarrier(enemy, b, b.x, b.y)) {
                         bullets.splice(i, 1);
                         break;
