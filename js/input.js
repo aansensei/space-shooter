@@ -69,8 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseOverlay.style.display = "flex";
         resumeBtn.style.display = "block";
         progressContainer.style.display = "none";
-        pauseTitle.innerText = "SYSTEM PAUSED";
+        pauseTitle.innerText = "SYSTEM TERMINATED";
         pauseSubtitle.style.display = "block";
+        const _pgb = document.getElementById("pause-guide-btns");
+        if (_pgb) _pgb.style.display = "flex";
+        window._bgPaused = true;
     }
 
     resumeBtn.addEventListener("click", () => {
@@ -79,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseTitle.innerText = "REBOOTING SYSTEMS...";
         progressContainer.style.display = "block";
         progressBar.style.width = "0%";
+        const _pgb = document.getElementById("pause-guide-btns");
+        if (_pgb) _pgb.style.display = "none";
 
         const loadingDuration = 2000;
         const startTime = performance.now();
@@ -94,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Loading xong, ẩn overlay, reset clock, game loop tự chạy tiếp
                 pauseOverlay.style.display = "none";
                 gamePaused = false;
+                window._bgPaused = false;
                 lastTimeStamp = performance.now(); // reset or pause duration becomes a giant deltaTime spike next frame
             }
         }
@@ -109,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (gameState !== "playing") return;
+        if (gameState !== "playing" || gamePaused) return;
 
         // Skill Shift: Yog-Sothoth
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {

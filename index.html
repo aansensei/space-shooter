@@ -378,8 +378,30 @@
 
     <canvas id="gameCanvas"></canvas>
     <div id="pause-overlay">
-        <h2 id="pause-title">SYSTEM PAUSED</h2>
+        <h2 id="pause-title">SYSTEM TERMINATED</h2>
         <p id="pause-subtitle">Press RESUME to continue</p>
+        <div id="pause-guide-btns" style="display:flex; gap:16px; margin-top:8px; margin-bottom:24px;">
+            <button onclick="openGuide()" style="
+                padding:10px 24px;
+                font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700;
+                letter-spacing:2px; text-transform:uppercase;
+                color:#00e5ff; background:rgba(0,20,40,0.7);
+                border:1.5px solid rgba(0,229,255,0.4); border-radius:30px;
+                cursor:pointer; backdrop-filter:blur(8px);
+                box-shadow:0 0 20px rgba(0,229,255,0.15);
+                transition:all 0.25s;
+            ">⬡ Guide</button>
+            <button onclick="openSettings()" style="
+                padding:10px 24px;
+                font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700;
+                letter-spacing:2px; text-transform:uppercase;
+                color:#00e5ff; background:rgba(0,20,40,0.7);
+                border:1.5px solid rgba(0,229,255,0.4); border-radius:30px;
+                cursor:pointer; backdrop-filter:blur(8px);
+                box-shadow:0 0 20px rgba(0,229,255,0.15);
+                transition:all 0.25s;
+            ">⚙ Settings</button>
+        </div>
         <button id="resume-btn">RESUME</button>
         <div id="resume-progress-container">
             <div id="resume-progress-bar"></div>
@@ -470,6 +492,7 @@
                 function openGuide() {
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
+                    if (window._inGame && ov.parentElement !== document.body) document.body.appendChild(ov);
                     ov.style.display = 'flex';
                     if (!fr.getAttribute('data-loaded')) {
                         fr.src = 'guide.html';
@@ -506,9 +529,14 @@
                         transition:all 0.2s;
                     ">✕</button>
 
-                    <h2 style="margin:0 0 20px; text-align:center; color:#00e5ff;
+                    <h2 style="margin:0 0 6px; text-align:center; color:#00e5ff;
                         font-size:14px; letter-spacing:4px; text-transform:uppercase;
                         text-shadow:0 0 12px rgba(0,229,255,0.5);">⚙ Settings</h2>
+                    <p style="margin:0 0 18px; text-align:center; color:rgba(0,229,255,0.45);
+                        font-size:10px; letter-spacing:2px;">Press <kbd style="
+                            background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.35);
+                            border-radius:4px; padding:1px 5px; font-family:monospace;
+                            color:#00e5ff; font-size:10px;">ESC</kbd> to pause / resume game</p>
 
                     <!-- ── GRAPHICS ──────────────────────────── -->
                     <div class="stg-section-label">Graphics</div>
@@ -552,15 +580,31 @@
 
                     <div class="stg-divider"></div>
 
+                    <!-- ── BACKGROUND ────────────────────────── -->
+                    <div class="stg-section-label">Background</div>
+
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Brightness</span>
+                        <input type="range" id="bg-bright-slider" min="1" max="100" value="100"
+                            oninput="onBgBrightnessChange(this.value)"
+                            style="flex:1; accent-color:#00e5ff; cursor:pointer;">
+                        <span id="bg-bright-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
+                    </div>
+
+                    <div class="stg-divider"></div>
+
                     <!-- ── GAMEPLAY ───────────────────────────── -->
                     <div class="stg-section-label">Gameplay</div>
 
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;">Screen Shake</span>
                         <div style="display:flex; gap:6px;">
-                            <button class="stg-onoff-btn stg-onoff-active" id="shake-on"  onclick="onShakeChange(true)">ON</button>
-                            <button class="stg-onoff-btn"                  id="shake-off" onclick="onShakeChange(false)">OFF</button>
+                            <button class="stg-onoff-btn"                  id="shake-on"  onclick="onShakeChange(true)">ON</button>
+                            <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)">OFF</button>
                         </div>
+                    </div>
+                    <div style="font-size:10px; color:rgba(255,180,50,0.55); margin-bottom:4px; line-height:1.5;">
+                        ⚠ Turning on screen shake may cause unexpected lag on some devices.
                     </div>
 
                     <div class="stg-divider"></div>
@@ -643,7 +687,7 @@
             <script>
                 // Settings state (applied values)
                 window._smartQuality      = true;
-                window._screenShakeEnabled = true;
+                window._screenShakeEnabled = false;
                 window._masterVolume      = 1.0;
 
                 // Store dataset on buttons for easy read-back
@@ -652,6 +696,8 @@
                 document.getElementById('q-high').dataset.level = 0;
 
                 function openSettings() {
+                    const ov2 = document.getElementById('settingsOverlay');
+                    if (window._inGame && ov2.parentElement !== document.body) document.body.appendChild(ov2);
                     // Sync UI to currently-applied state (discard any unsaved changes)
                     const sq = window._smartQuality !== false;
                     document.getElementById('sq-check').checked = sq;
@@ -672,6 +718,11 @@
 
                     // Screen shake
                     onShakeChange(window._screenShakeEnabled !== false);
+
+                    // Background brightness
+                    const bgPct = Math.round((window._bgBrightness || 1.0) * 100);
+                    document.getElementById('bg-bright-slider').value = bgPct;
+                    document.getElementById('bg-bright-label').textContent = bgPct + '%';
 
                     document.getElementById('settingsOverlay').style.display = 'flex';
                 }
@@ -710,6 +761,12 @@
                 // Volume slider → only update label
                 function onVolumeChange(val) {
                     document.getElementById('vol-label').textContent = val + '%';
+                }
+
+                // Background brightness slider → apply immediately + update label
+                function onBgBrightnessChange(val) {
+                    document.getElementById('bg-bright-label').textContent = val + '%';
+                    if (window._bgSetBrightness) window._bgSetBrightness(parseInt(val) / 100);
                 }
 
                 // Screen shake → only update button highlight
@@ -1142,14 +1199,15 @@
     </script>
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
-    <script src="js/config.js?v=20260619b"></script>
-    <script src="js/sigils.js?v=20260619b"></script>
-    <script src="js/entities.js?v=20260619b"></script>
-    <script src="js/skills.js?v=20260619b"></script>
-    <script src="js/render.js?v=20260619b"></script>
-    <script src="js/pixi-renderer.js?v=20260619b"></script>
-    <script src="js/input.js?v=20260619b"></script>
-    <script src="js/main.js?v=20260619b"></script>
+    <script src="js/background.js?v=20260619c"></script>
+    <script src="js/config.js?v=20260619c"></script>
+    <script src="js/sigils.js?v=20260619c"></script>
+    <script src="js/entities.js?v=20260619c"></script>
+    <script src="js/skills.js?v=20260619c"></script>
+    <script src="js/render.js?v=20260619c"></script>
+    <script src="js/pixi-renderer.js?v=20260619c"></script>
+    <script src="js/input.js?v=20260619c"></script>
+    <script src="js/main.js?v=20260619c"></script>
 
     <!-- ══ MOBILE UI (injected after game scripts load) ══════════════ -->
     <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:all; z-index:300;"></div>

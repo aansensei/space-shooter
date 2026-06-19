@@ -1262,9 +1262,9 @@ function dealDamage(enemy, source) {
                 const _aliveTents = enemy._tentacleHps.filter(hp => hp > 0).length;
                 if (Math.random() < (_aliveTents / 10) * 0.60) return;
                 _applyTentacleDmg();
-                // ≥1 tentacle lost: normal hits bleed through — 85% DR, hard cap 15% MaxHP
+                // ≥1 tentacle lost: normal hits bleed through — 88% DR, hard cap 12% MaxHP
                 if ((enemy._tentaclesLost || 0) >= 1) {
-                    const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.15, enemy.maxHp * 0.15));
+                    const _bleedDmg = Math.ceil(Math.min(totalDamage * 0.12, enemy.maxHp * 0.12));
                     enemy.hp = Math.max(0, enemy.hp - _bleedDmg);
                 }
                 return;
@@ -1490,7 +1490,8 @@ function dealDamage(enemy, source) {
 
     // Collective Mind (Egregor): body per-hit cap for true damage
     // Cap = max(25%, 90% - 10% per lost tentacle) of body MaxHP
-    if (enemy.type === 'egregor') {
+    // Boon and Bane backlash bypasses this cap (has its own 40% MaxHP cap)
+    if (enemy.type === 'egregor' && !source._boonBaneBacklash) {
         const _lost = enemy._tentaclesLost || 0;
         const _capPct = Math.max(0.25, 0.90 - 0.10 * _lost);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
@@ -1506,9 +1507,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.min(totalDamage, Math.ceil((enemy.maxHp + (enemy.shield || 0)) * 0.50));
     }
 
-    // Tenacity Barrier (Thaelis): lớp khiên riêng, chặn MỌI đòn (kể cả true/piercing)
-    // Ngoại lệ: isSpiritLaser (tia laze đại tinh linh) xuyên qua bình thường
-    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0 && !source.isSpiritLaser) {
+    // Tenacity Barrier (Thaelis): lớp khiên riêng, chặn MỌI đòn (kể cả piercing)
+    // Ngoại lệ: isSpiritLaser và true damage xuyên qua
+    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0 && !source.isSpiritLaser && !source.isTrueDamage && !inTrueDmgWindow) {
         const _absorbed = Math.min(totalDamage, enemy._tenacityBarrier);
         enemy._tenacityBarrier -= _absorbed;
         enemy._tenacityBarrier = Math.max(0, enemy._tenacityBarrier);
@@ -1524,9 +1525,8 @@ function dealDamage(enemy, source) {
     }
 
     // Gaia Barrier (Sentinel): 99% absorbed by barrier, 1% through to body
-    // True damage mitigation: if barrier active, true damage reduced 20% before absorption
-    if (isSentinel && (enemy._gaiaBarrier || 0) > 0) {
-        if (source.isTrueDamage || inTrueDmgWindow) totalDamage = Math.ceil(totalDamage * 0.80);
+    // True damage bypasses the barrier entirely
+    if (isSentinel && (enemy._gaiaBarrier || 0) > 0 && !source.isTrueDamage && !inTrueDmgWindow) {
         const _gAbsorb = Math.min(Math.ceil(totalDamage * 0.99), enemy._gaiaBarrier);
         enemy._gaiaBarrier = Math.max(0, enemy._gaiaBarrier - _gAbsorb);
         if (enemy._gaiaBarrier <= 0) {
@@ -1539,6 +1539,20 @@ function dealDamage(enemy, source) {
     // Pisces Dream Realm: enemies marked by black hole accumulate damage
     if (_hasBuff('coi_mong') && enemy._yogMark && !source._yogExplosion) {
         enemy._yogMarkAccum = (enemy._yogMarkAccum || 0) + totalDamage;
+    }
+
+    // Boon and Bane (Egregor passive): during Null Slash charge, each body hit grants barrier
+    // Barrier absorbs non-true hits; true damage pierces through
+    if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging' && !source._boonBaneBacklash && totalDamage > 0) {
+        const _bbGain = Math.ceil(totalDamage * 0.75);
+        enemy._boonBaneBarrier      = (enemy._boonBaneBarrier      || 0) + _bbGain;
+        enemy._boonBaneBarrierTotal = (enemy._boonBaneBarrierTotal || 0) + _bbGain;
+        if (!source.isTrueDamage && !inTrueDmgWindow) {
+            const _bbAbsorb = Math.min(totalDamage, enemy._boonBaneBarrier);
+            enemy._boonBaneBarrier = Math.max(0, enemy._boonBaneBarrier - _bbAbsorb);
+            totalDamage -= _bbAbsorb;
+            if (totalDamage <= 0) return;
+        }
     }
 
     // Apply damage: true damage and true-damage-window both bypass shield
@@ -2396,6 +2410,18 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
 
         // Strike animation: 950ms (EXTEND 200 + SWEEP 520 + RETRACT 230)
         if (enemy._nullSlashStrikeTimer >= 950) {
+            // Boon and Bane backlash: 50% of total accumulated barrier, cap 40% MaxHP, bypasses all
+            if ((enemy._boonBaneBarrierTotal || 0) > 0) {
+                const _backDmg = Math.min(
+                    Math.ceil(enemy._boonBaneBarrierTotal * 0.50),
+                    Math.ceil(enemy.maxHp * 0.40)
+                );
+                dealDamage(enemy, { damage: _backDmg, isTrueDamage: true, _boonBaneBacklash: true, _noBase60: true });
+                addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#cc00cc');
+                createParticles(enemy.x, enemy.y, 22, '#880088', 3, 9);
+                enemy._boonBaneBarrier = 0;
+                enemy._boonBaneBarrierTotal = 0;
+            }
             enemy._nullSlashPhase = 'ready';
             enemy._nullSlashCooldownEnd = now + 3500; // 3.5s CD
             enemy._nullSlashTentPts = null;
