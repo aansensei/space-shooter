@@ -2783,22 +2783,44 @@
             for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75); c.lineTo(Math.cos(a + Math.PI) * r * 0.75, Math.sin(a + Math.PI) * r * 0.75); c.stroke(); }
             c.restore();
 
-            // 5. Abyss Eye core
+            // 5. Eye of Ra (scans slowly in preview)
             c.save(); c.translate(cx2, cy2);
-            const coreR = r * 0.35, corePulse = 0.85 + 0.15 * Math.sin(t / 150);
-            const cg2 = c.createRadialGradient(0, 0, 0, 0, 0, coreR * corePulse);
-            cg2.addColorStop(0, '#fff'); cg2.addColorStop(0.3, '#df88ff'); cg2.addColorStop(0.7, '#4B0082'); cg2.addColorStop(1, 'transparent');
-            c.fillStyle = cg2; c.beginPath(); c.arc(0, 0, coreR * corePulse, 0, Math.PI * 2); c.fill();
+            const coreR = r * 0.42;
+            const _ew = coreR * 1.9, _eh = coreR * 0.82;
+            const _scanAng = t / 3000;
+            const _pD = coreR * 0.28;
+            const _pX = Math.cos(_scanAng) * _pD, _pY = Math.sin(_scanAng) * _pD;
 
-            // 5.5 Four triangles
-            c.rotate(t / 2500);
-            const triD = coreR + 8, triPulse = 0.6 + 0.4 * Math.sin(t / 100);
-            c.fillStyle = `rgba(223,136,255,${triPulse})`;
-            for (let i = 0; i < 4; i++) {
-              c.save(); c.rotate((i * Math.PI) / 2); c.translate(triD, 0);
-              c.beginPath(); c.moveTo(14, 0); c.lineTo(0, -6); c.lineTo(0, 6); c.closePath(); c.fill();
-              c.restore();
-            }
+            c.save();
+            c.beginPath();
+            c.moveTo(-_ew,0); c.bezierCurveTo(-_ew*.5,-_eh,_ew*.5,-_eh,_ew,0);
+            c.bezierCurveTo(_ew*.5,_eh,-_ew*.5,_eh,-_ew,0); c.closePath();
+            c.shadowColor = '#cc44ff'; c.shadowBlur = 18;
+            c.fillStyle = '#f4eef8'; c.fill();
+            c.shadowBlur = 0; c.clip();
+
+            const _iG = c.createRadialGradient(_pX,_pY,0,_pX,_pY,coreR*.55);
+            _iG.addColorStop(0,'#c055ff'); _iG.addColorStop(.45,'#7700cc'); _iG.addColorStop(1,'#250040');
+            c.fillStyle = _iG; c.beginPath(); c.arc(_pX,_pY,coreR*.55,0,Math.PI*2); c.fill();
+            c.fillStyle = '#04000e'; c.beginPath(); c.arc(_pX,_pY,coreR*.22,0,Math.PI*2); c.fill();
+            c.fillStyle = 'rgba(255,255,255,0.7)'; c.beginPath(); c.arc(_pX-coreR*.08,_pY-coreR*.08,coreR*.08,0,Math.PI*2); c.fill();
+            c.restore();
+
+            c.shadowColor = '#aa00ff'; c.shadowBlur = 14;
+            c.strokeStyle = '#180028'; c.lineWidth = 2.5;
+            c.beginPath(); c.moveTo(-_ew,0); c.bezierCurveTo(-_ew*.5,-_eh,_ew*.5,-_eh,_ew,0);
+            c.bezierCurveTo(_ew*.5,_eh,-_ew*.5,_eh,-_ew,0); c.closePath(); c.stroke();
+            c.shadowBlur = 0;
+
+            c.strokeStyle = '#180028'; c.lineWidth = 2;
+            c.beginPath(); c.moveTo(-_ew,0); c.bezierCurveTo(-_ew*1.1,_eh*.5,-_ew*1.3,_eh*1.1,-_ew*1.05,_eh*1.5); c.stroke();
+            c.beginPath(); c.moveTo(_ew,0); c.bezierCurveTo(_ew*1.15,-_eh*.4,_ew*1.4,-_eh*.85,_ew*1.22,-_eh*1.3); c.stroke();
+
+            const _eG = 0.3+0.25*Math.sin(t/220);
+            c.shadowColor = '#9900ff'; c.shadowBlur = 16;
+            c.strokeStyle = `rgba(170,0,255,${_eG})`; c.lineWidth = 1.5;
+            c.beginPath(); c.ellipse(0,0,_ew*1.22,_eh*1.55,0,0,Math.PI*2); c.stroke();
+            c.shadowBlur = 0;
             c.restore();
 
             // 6. Chain nodes
