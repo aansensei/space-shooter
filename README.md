@@ -482,18 +482,18 @@ HP: **2,112–4,620**. Permanent **40% Damage Reduction** on its body at all tim
 
 **Available after:** Wave 3 | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **5,500–15,400**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
+HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
 
 **Demon Gift** — Triggers when HP crosses **90%, 70%, 50%, 30%, and 1%**:
 
-- Heals all other enemies for **24% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 30% efficiency. Cannot heal enemies at 0 HP.
-- All units gain **+20% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+36%**).
-- Dargruel gains **+2% evade for 2.5 seconds** (stackable up to 4 times; the 2.5s timer resets each trigger).
-- Dargruel gains **+2 Iron Body hits**.
+- Heals all other enemies for **28% of Dargruel's Max HP**. Enemies with Soul Reaver receive only 75% of this heal. Overflow converts to a shield at 30% efficiency. Cannot heal enemies at 0 HP. Affected enemies emit a **purple flame aura** for 4 seconds.
+- All units gain **+20% Damage Reduction for 4 seconds**, stacking up to 2 times (max **+40%**).
+- Dargruel gains **+3 Iron Body hits** per trigger.
 
 **Passive: Inevitable** — Dargruel's innate damage mitigation:
 
-- When any single hit would exceed **30% of Dargruel's Max HP** (after DR), activates a **3-second protection window**: all damage is capped at **11% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
+- When any single hit would exceed **25% of Dargruel's Max HP** (after DR), activates a **3.5-second protection window**: all damage is capped at **11% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
+- For every **6% of Max HP lost**, Dargruel gains **+5% evasion** (capped at **+30%** from this mechanic).
 
 **Passive: Maître Suprême** — Dargruel's Damage Reduction scales dynamically with Sentinels:
 
@@ -510,8 +510,8 @@ HP: **5,500–15,400**. DR is fully dynamic — see Passive below. **Permanent C
 
 **Maou Haki** — Triggers once at **50% HP**:
 
-- Fires a screen-wide purple shockwave that instantly destroys all player and ally projectiles.
-- Any Sentinel hit loses **35% of its EP**.
+- Fires a screen-wide purple shockwave that instantly destroys all player and ally projectiles. The anti-bullet zone lingers for **0.5 seconds** after the sweep completes.
+- Any Sentinel hit loses **38% of its EP**.
 
 ---
 

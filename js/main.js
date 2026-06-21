@@ -271,14 +271,17 @@ function update(rawDeltaTime) {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.35, _vanguardTag: wave._id });
+                    dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.38, _vanguardTag: wave._id });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
             }
         });
 
-        if (wave.radius >= wave.maxRadius) wave.active = false;
+        if (wave.radius >= wave.maxRadius) {
+            if (!wave._lingerUntil) wave._lingerUntil = performance.now() + 500;
+            if (performance.now() >= wave._lingerUntil) wave.active = false;
+        }
     });
     bossShockwaves = bossShockwaves.filter(w => w.active);
 
@@ -984,6 +987,13 @@ function update(rawDeltaTime) {
                             enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: 2, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                         }
                     }
+                }
+
+                // Purple aura VFX for enemies affected by Demon Gift DR buff
+                if (enemy._demonGiftAuraEnd && performance.now() < enemy._demonGiftAuraEnd && Math.random() < 0.25) {
+                    const _ax = enemy.x + (Math.random() - 0.5) * (enemy.size || 40) * 0.8;
+                    const _ay = enemy.y + (Math.random() - 0.5) * (enemy.size || 40) * 0.8;
+                    createParticles(_ax, _ay, 1, '#aa00ff', 1, 4);
                 }
 
                 // Hắc Ám Xiềng Xích (Abyssal Chains), Dargruel only
