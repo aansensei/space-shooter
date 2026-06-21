@@ -555,25 +555,6 @@ function update(rawDeltaTime) {
                 }
             });
 
-            // Post-Custos: one discrete tick per second — add full layer of shield/barrier
-            if (enemy._custosExpired) {
-                if (!enemy._custosTickTimer) enemy._custosTickTimer = 0;
-                enemy._custosTickTimer += deltaTime;
-                if (enemy._custosTickTimer >= 1000) {
-                    enemy._custosTickTimer -= 1000;
-                    const _alliesInAura = enemies.filter(a =>
-                        a !== enemy && a.hp > 0 && !a._markedForDeath &&
-                        !a.type.startsWith('enemy_bullet') && a.type !== 'veilshroud_echo' &&
-                        Math.hypot(a.x - enemy.x, a.y - enemy.y) <= auraRadius
-                    ).length;
-                    if (_alliesInAura === 0) {
-                        _addEnemyShield(enemy, enemy.maxHp * 0.10);
-                    } else {
-                        const _bPct = _alliesInAura >= 4 ? 0.35 : _alliesInAura >= 3 ? 0.30 : _alliesInAura >= 2 ? 0.25 : 0.15;
-                        enemy._aegisBarrier = (enemy._aegisBarrier || 0) + enemy.maxHp * _bPct;
-                    }
-                }
-            }
 
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
