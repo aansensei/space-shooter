@@ -743,12 +743,12 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
-                            // +15% MaxHP and heal 15% MaxHP
+                            // +15% MaxHP and heal 22% MaxHP
                             _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
-                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.15));
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.22));
                             // Heal alive tentacles 15% of their max HP
                             if (_eg._tentacleHps) {
-                                const _tMax = Math.ceil(_eg.maxHp * 0.78);
+                                const _tMax = Math.ceil(_eg.maxHp * 0.80);
                                 for (let _ti = 0; _ti < _eg._tentacleHps.length; _ti++) {
                                     if (_eg._tentacleHps[_ti] > 0)
                                         _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.15));
@@ -1244,12 +1244,12 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
-                            // +15% MaxHP and heal 15% MaxHP
+                            // +15% MaxHP and heal 22% MaxHP
                             _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
-                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.15));
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.22));
                             // Heal alive tentacles 15% of their max HP
                             if (_eg._tentacleHps) {
-                                const _tMax = Math.ceil(_eg.maxHp * 0.78);
+                                const _tMax = Math.ceil(_eg.maxHp * 0.80);
                                 for (let _ti = 0; _ti < _eg._tentacleHps.length; _ti++) {
                                     if (_eg._tentacleHps[_ti] > 0)
                                         _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.15));

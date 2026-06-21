@@ -1240,7 +1240,7 @@ function dealDamage(enemy, source) {
                 if (!enemy._tentacleHps) return;
                 const _ti = enemy._tentacleHps.findIndex(hp => hp > 0);
                 if (_ti === -1) return;
-                const _tentMaxHp = Math.ceil(enemy.maxHp * 0.78);
+                const _tentMaxHp = Math.ceil(enemy.maxHp * 0.80);
                 const _wasAlive = enemy._tentacleHps[_ti] > 0;
                 enemy._tentacleHps[_ti] = Math.max(0, enemy._tentacleHps[_ti] - _tenDmg);
                 if (_wasAlive && enemy._tentacleHps[_ti] <= 0) {
@@ -1293,7 +1293,7 @@ function dealDamage(enemy, source) {
     let combinedDR = 0;
     if (enemy.type === 'egregor') {
         combinedDR += 0.40;
-        if (enemy._nullSlashPhase === 'charging') combinedDR += 0.35;
+        if (enemy._nullSlashPhase === 'charging') combinedDR += 0.40;
         combinedDR += Math.min(0.20, (enemy._tentaclesLost || 0) * 0.05); // +5% DR per tentacle lost, max 20%
     }
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
@@ -1338,9 +1338,9 @@ function dealDamage(enemy, source) {
         combinedDR += 0.60; // Inevitable: 60% base DR
     }
 
-    // Egregor Null Slash charging: +35% DR on body hits
+    // Egregor Null Slash charging: +40% DR on body hits
     if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging') {
-        combinedDR += 0.35;
+        combinedDR += 0.40;
     }
     if (enemy.type === 'embryo') {
         combinedDR += 0.90;
@@ -2111,7 +2111,7 @@ function updateApostleCoronation(enemy, deltaTime) {
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.min(4620, 2112 + hpFromTime * 72);
+    const hp = Math.min(4750, 2200 + hpFromTime * 72);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size,
         y: -size,
@@ -2158,7 +2158,7 @@ function updateEgregor(enemy, deltaTime) {
 
     // Collective Mind, init tentacle HP pools on first tick
     if (!enemy._tentacleHps) {
-        const tentHP = Math.ceil(enemy.maxHp * 0.78);
+        const tentHP = Math.ceil(enemy.maxHp * 0.80);
         enemy._tentacleHps = Array(10).fill(tentHP);
         enemy._tentaclesLost = 0;
     }
@@ -2175,8 +2175,8 @@ function updateEgregor(enemy, deltaTime) {
     const _rageOn = (enemy._rageStacks > 0);
     const _tempestCD = 4000 * (_rageOn ? 0.85 : 1.0);
 
-    // Always advance — slow slightly during NullSlash windup
-    const _nsMoveMult = (enemy._nullSlashPhase === 'charging') ? 0.85 : 1.0;
+    // Move at 10% speed during NullSlash windup, full speed otherwise
+    const _nsMoveMult = (enemy._nullSlashPhase === 'charging') ? 0.10 : 1.0;
     enemy.y += enemy.speed * _speedMult * _nsMoveMult * dt;
     if (enemy.x < enemy.size) enemy.x = enemy.size;
     if (enemy.x > canvas.width - enemy.size) enemy.x = canvas.width - enemy.size;
@@ -2313,9 +2313,11 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
         if (now >= (enemy._nullSlashCooldownEnd || 0)) {
             enemy._nullSlashPhase = 'charging';
             enemy._nullSlashWindupTimer = 0;
-            // Windup: base 3s (no rage) / 2.5s (rage active), −0.25s per stack, min 1s
+            // Windup: base 3s (no rage) / 2.5s (rage active), −0.35s per stack, min 1s
             const _nsBase = ((enemy._rageStacks || 0) > 0) ? 2500 : 3000;
-            enemy._nullSlashWindupDur = Math.max(1000, _nsBase - (enemy._rageStacks || 0) * 250);
+            enemy._nullSlashWindupDur = Math.max(1000, _nsBase - (enemy._rageStacks || 0) * 350);
+            enemy._boonBaneBarrier = 250;
+            enemy._boonBaneBarrierTotal = 0;
             enemy._nullSlashTentPts = null;
         }
         return;
@@ -2376,7 +2378,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             const hitSents = sentinels.filter(s => _inSlash(s.x, s.y));
             const hc = hitSents.length;
             if (hc > 0) {
-                const pct = hc === 1 ? 0.20 : hc === 2 ? 0.30 : 0.40;
+                const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
                 // Rage bonus: +5% per stack, max +25%
                 const _nsRageMult = 1 + Math.min(0.30, Math.min(5, enemy._rageStacks || 0) * 0.06);
                 for (const s of hitSents) {
