@@ -4019,18 +4019,94 @@ function _drawBossOrThaelis(enemy) {
     }
     ctx.restore();
 
-    // 5. Abyss Eye core
+    // 5. Cosmic Eye — galaxy vortex that drifts toward the player
     const coreR = r * 0.35;
-    const corePulse = 0.85 + 0.15 * Math.sin(now / 150);
-    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR * corePulse);
-    coreGrad.addColorStop(0, '#ffffff');
-    coreGrad.addColorStop(0.3, '#df88ff');
-    coreGrad.addColorStop(0.7, '#4B0082');
-    coreGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = coreGrad;
-    if (!_mobPerf) { ctx.shadowColor = '#df88ff'; ctx.shadowBlur = 15; }
-    ctx.beginPath(); ctx.arc(0, 0, coreR * corePulse, 0, Math.PI * 2); ctx.fill();
+    const _screenAngle = (typeof player !== 'undefined' && player)
+        ? Math.atan2(player.y - enemy.y, player.x - enemy.x) : 0;
+    const _localAngle = _screenAngle - rot;
+    const _dX = Math.cos(_localAngle) * coreR * 0.17;
+    const _dY = Math.sin(_localAngle) * coreR * 0.17;
+    const _galaxyRot = now / 2000;
+    const _framePulse = 0.75 + 0.25 * Math.sin(now / 280);
+
+    if (!_mobPerf) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 22; }
+    const _aG = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR * 1.6);
+    _aG.addColorStop(0, 'rgba(120,30,200,0.5)');
+    _aG.addColorStop(1, 'rgba(60,0,100,0)');
+    ctx.fillStyle = _aG;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 1.6, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
+
+    // Clip to circle; fill deep space background
+    ctx.save();
+    ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2);
+    const _bgG = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR);
+    _bgG.addColorStop(0, '#1e0040');
+    _bgG.addColorStop(0.5, '#0d0022');
+    _bgG.addColorStop(1, '#04000c');
+    ctx.fillStyle = _bgG; ctx.fill(); ctx.clip();
+
+    // Galaxy spiral arms
+    ctx.save();
+    ctx.translate(_dX, _dY); ctx.rotate(_galaxyRot);
+    for (let _arm = 0; _arm < 3; _arm++) {
+        ctx.save(); ctx.rotate((_arm / 3) * Math.PI * 2);
+        for (let _seg = 1; _seg <= 8; _seg++) {
+            ctx.strokeStyle = `rgba(210,140,255,${Math.max(0, 0.52 - _seg * 0.055)})`;
+            ctx.lineWidth = Math.max(0.5, coreR * 0.08 - _seg * 0.5);
+            const _sA = _seg * 0.22;
+            ctx.beginPath(); ctx.arc(0, 0, coreR * _seg * 0.1, _sA, _sA + 0.5); ctx.stroke();
+        }
+        ctx.restore();
+    }
+    if (!_mobPerf) {
+        for (let _s = 0; _s < 16; _s++) {
+            const _sAng = (_s / 16) * Math.PI * 2 + _galaxyRot * 0.3;
+            const _sR = coreR * (0.1 + (_s % 5) * 0.15);
+            ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.7 * Math.abs(Math.sin(now / 380 + _s * 1.7))})`;
+            ctx.beginPath();
+            ctx.arc(Math.cos(_sAng) * _sR, Math.sin(_sAng) * _sR, 0.6 + (_s % 3) * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    ctx.restore();
+
+    // Pupil — soft glow halo then hard bright center
+    if (!_mobPerf) { ctx.shadowColor = '#cc88ff'; ctx.shadowBlur = 14; }
+    const _coreG = ctx.createRadialGradient(_dX, _dY, 0, _dX, _dY, coreR * 0.38);
+    _coreG.addColorStop(0, 'rgba(255,255,255,1)');
+    _coreG.addColorStop(0.3, 'rgba(200,120,255,0.8)');
+    _coreG.addColorStop(0.7, 'rgba(100,0,200,0.35)');
+    _coreG.addColorStop(1, 'rgba(60,0,140,0)');
+    ctx.fillStyle = _coreG;
+    ctx.beginPath(); ctx.arc(_dX, _dY, coreR * 0.38, 0, Math.PI * 2); ctx.fill();
+    // Hard white dot
+    if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 18; }
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(_dX, _dY, coreR * 0.10, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore(); // end clip
+
+    // Ornate frame rings
+    if (!_mobPerf) { ctx.shadowColor = '#bb55ff'; ctx.shadowBlur = 10; }
+    ctx.strokeStyle = `rgba(185,95,255,${_framePulse})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = `rgba(140,55,220,${_framePulse * 0.6})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, coreR * 0.87, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Cardinal tick marks on frame
+    for (let _i = 0; _i < 8; _i++) {
+        const _a = (_i / 8) * Math.PI * 2, _card = _i % 2 === 0;
+        ctx.strokeStyle = `rgba(200,110,255,${_framePulse * (_card ? 0.9 : 0.45)})`;
+        ctx.lineWidth = _card ? 2 : 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(_a) * coreR * (_card ? 0.9 : 0.93), Math.sin(_a) * coreR * (_card ? 0.9 : 0.93));
+        ctx.lineTo(Math.cos(_a) * coreR * (_card ? 1.1 : 1.05), Math.sin(_a) * coreR * (_card ? 1.1 : 1.05));
+        ctx.stroke();
+    }
 
     // 5.5 Four directional triangles
     ctx.save();

@@ -2783,12 +2783,58 @@
             for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75); c.lineTo(Math.cos(a + Math.PI) * r * 0.75, Math.sin(a + Math.PI) * r * 0.75); c.stroke(); }
             c.restore();
 
-            // 5. Abyss Eye core
+            // 5. Cosmic Eye — galaxy vortex, pupil slowly orbits
             c.save(); c.translate(cx2, cy2);
-            const coreR = r * 0.35, corePulse = 0.85 + 0.15 * Math.sin(t / 150);
-            const cg2 = c.createRadialGradient(0, 0, 0, 0, 0, coreR * corePulse);
-            cg2.addColorStop(0, '#fff'); cg2.addColorStop(0.3, '#df88ff'); cg2.addColorStop(0.7, '#4B0082'); cg2.addColorStop(1, 'transparent');
-            c.fillStyle = cg2; c.beginPath(); c.arc(0, 0, coreR * corePulse, 0, Math.PI * 2); c.fill();
+            const coreR = r * 0.35;
+            const _dX = Math.cos(t / 1800) * coreR * 0.15, _dY = Math.sin(t / 1800) * coreR * 0.15;
+            const _galaxyRot = t / 2000;
+            const _fP = 0.75 + 0.25 * Math.sin(t / 280);
+
+            c.shadowColor = '#9900ff'; c.shadowBlur = 22;
+            const _aG = c.createRadialGradient(0,0,0,0,0,coreR*1.6);
+            _aG.addColorStop(0,'rgba(120,30,200,0.5)'); _aG.addColorStop(1,'rgba(60,0,100,0)');
+            c.fillStyle = _aG; c.beginPath(); c.arc(0,0,coreR*1.6,0,Math.PI*2); c.fill(); c.shadowBlur = 0;
+
+            c.save();
+            c.beginPath(); c.arc(0,0,coreR,0,Math.PI*2);
+            const _bG = c.createRadialGradient(0,0,0,0,0,coreR);
+            _bG.addColorStop(0,'#1e0040'); _bG.addColorStop(.5,'#0d0022'); _bG.addColorStop(1,'#04000c');
+            c.fillStyle = _bG; c.fill(); c.clip();
+
+            c.save(); c.translate(_dX,_dY); c.rotate(_galaxyRot);
+            for (let _a=0; _a<3; _a++) {
+              c.save(); c.rotate((_a/3)*Math.PI*2);
+              for (let _s=1; _s<=8; _s++) {
+                c.strokeStyle=`rgba(210,140,255,${Math.max(0,0.52-_s*0.055)})`; c.lineWidth=Math.max(0.5,coreR*.08-_s*.5);
+                const _sA=_s*.22; c.beginPath(); c.arc(0,0,coreR*_s*.1,_sA,_sA+.5); c.stroke();
+              }
+              c.restore();
+            }
+            for (let _s=0; _s<16; _s++) {
+              const _sAng=(_s/16)*Math.PI*2+_galaxyRot*.3, _sR=coreR*(.1+(_s%5)*.15);
+              c.fillStyle=`rgba(255,255,255,${0.3+0.7*Math.abs(Math.sin(t/380+_s*1.7))})`;
+              c.beginPath(); c.arc(Math.cos(_sAng)*_sR,Math.sin(_sAng)*_sR,0.6+(_s%3)*.5,0,Math.PI*2); c.fill();
+            }
+            c.restore();
+
+            c.shadowColor='#cc88ff'; c.shadowBlur=14;
+            const _cG=c.createRadialGradient(_dX,_dY,0,_dX,_dY,coreR*.38);
+            _cG.addColorStop(0,'rgba(255,255,255,1)'); _cG.addColorStop(.3,'rgba(200,120,255,0.8)');
+            _cG.addColorStop(.7,'rgba(100,0,200,0.35)'); _cG.addColorStop(1,'rgba(60,0,140,0)');
+            c.fillStyle=_cG; c.beginPath(); c.arc(_dX,_dY,coreR*.38,0,Math.PI*2); c.fill();
+            c.shadowColor='#ffffff'; c.shadowBlur=18;
+            c.fillStyle='#ffffff'; c.beginPath(); c.arc(_dX,_dY,coreR*.10,0,Math.PI*2); c.fill(); c.shadowBlur=0;
+            c.restore();
+
+            c.shadowColor='#bb55ff'; c.shadowBlur=10;
+            c.strokeStyle=`rgba(185,95,255,${_fP})`; c.lineWidth=2.5; c.beginPath(); c.arc(0,0,coreR,0,Math.PI*2); c.stroke();
+            c.strokeStyle=`rgba(140,55,220,${_fP*.6})`; c.lineWidth=1; c.beginPath(); c.arc(0,0,coreR*.87,0,Math.PI*2); c.stroke(); c.shadowBlur=0;
+            for (let _i=0;_i<8;_i++) {
+              const _ang=(_i/8)*Math.PI*2, _cd=_i%2===0;
+              c.strokeStyle=`rgba(200,110,255,${_fP*(_cd?.9:.45)})`; c.lineWidth=_cd?2:1;
+              c.beginPath(); c.moveTo(Math.cos(_ang)*coreR*(_cd?.9:.93),Math.sin(_ang)*coreR*(_cd?.9:.93));
+              c.lineTo(Math.cos(_ang)*coreR*(_cd?1.1:1.05),Math.sin(_ang)*coreR*(_cd?1.1:1.05)); c.stroke();
+            }
 
             // 5.5 Four triangles
             c.rotate(t / 2500);
