@@ -1104,6 +1104,21 @@ function dealDamage(enemy, source) {
             if (enemy.aegisCustosHits >= 20) {
                 enemy.aegisInvulnerable = false;
                 enemy._custosExpired = true;
+                // One-time defensive grant based on allies in support aura when Custos breaks
+                {
+                    const _aR = canvas.width / 2;
+                    const _inAura = enemies.filter(a =>
+                        a !== enemy && a.hp > 0 && !a._markedForDeath &&
+                        !a.type.startsWith('enemy_bullet') && a.type !== 'veilshroud_echo' &&
+                        Math.hypot(a.x - enemy.x, a.y - enemy.y) <= _aR
+                    ).length;
+                    if (_inAura === 0) {
+                        _addEnemyShield(enemy, enemy.maxHp * 0.10);
+                    } else {
+                        const _bPct = _inAura >= 4 ? 0.35 : _inAura >= 3 ? 0.30 : _inAura >= 2 ? 0.25 : 0.15;
+                        enemy._aegisBarrier = (enemy._aegisBarrier || 0) + enemy.maxHp * _bPct;
+                    }
+                }
             }
             return;
         }
