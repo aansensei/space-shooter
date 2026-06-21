@@ -1555,6 +1555,14 @@ function dealDamage(enemy, source) {
         }
     }
 
+    // Aegis Core post-Custos barrier: absorbs non-true hits, true damage pierces
+    if (enemy.type === 'aegis_core' && (enemy._aegisBarrier || 0) > 0 && !source.isTrueDamage && !inTrueDmgWindow) {
+        const _absorb = Math.min(totalDamage, enemy._aegisBarrier);
+        enemy._aegisBarrier = Math.max(0, enemy._aegisBarrier - _absorb);
+        totalDamage -= _absorb;
+        if (totalDamage <= 0) return;
+    }
+
     // Apply damage: true damage and true-damage-window both bypass shield
     if (source.isTrueDamage || inTrueDmgWindow) {
         enemy.hp -= totalDamage;
