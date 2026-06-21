@@ -4019,83 +4019,39 @@ function _drawBossOrThaelis(enemy) {
     }
     ctx.restore();
 
-    // 5. Eye of Ra — tracks the player
-    const coreR = r * 0.42;
-    const _ew = coreR * 1.9, _eh = coreR * 0.82;
+    // 5. Abyss Eye core
+    const coreR = r * 0.35;
+    const corePulse = 0.85 + 0.15 * Math.sin(now / 150);
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR * corePulse);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.3, '#df88ff');
+    coreGrad.addColorStop(0.7, '#4B0082');
+    coreGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = coreGrad;
+    if (!_mobPerf) { ctx.shadowColor = '#df88ff'; ctx.shadowBlur = 15; }
+    ctx.beginPath(); ctx.arc(0, 0, coreR * corePulse, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // 5.5 Four directional triangles
     ctx.save();
-    ctx.rotate(-rot); // cancel body spin so eye stays screen-aligned
-    const _rawEyeAngle = (typeof player !== 'undefined' && player)
-        ? Math.atan2(player.y - enemy.y, player.x - enemy.x) : -Math.PI / 2;
-    const _pDist = coreR * 0.28;
-    const _pX = Math.cos(_rawEyeAngle) * _pDist, _pY = Math.sin(_rawEyeAngle) * _pDist;
-
-    // Sclera + clip to almond shape
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(-_ew, 0);
-    ctx.bezierCurveTo(-_ew * 0.5, -_eh, _ew * 0.5, -_eh, _ew, 0);
-    ctx.bezierCurveTo(_ew * 0.5, _eh, -_ew * 0.5, _eh, -_ew, 0);
-    ctx.closePath();
-    if (!_mobPerf) { ctx.shadowColor = '#cc44ff'; ctx.shadowBlur = 20; }
-    ctx.fillStyle = '#f4eef8';
-    ctx.fill();
+    ctx.rotate(now / 2500);
+    const triDist = coreR + 8, triSize = 14, triWidth = 12;
+    const triPulse = 0.6 + 0.4 * Math.sin(now / 100);
+    ctx.fillStyle = `rgba(223,136,255,${triPulse})`;
+    if (!_mobPerf) { ctx.shadowColor = '#df88ff'; ctx.shadowBlur = 10; }
+    for (let i = 0; i < 4; i++) {
+        ctx.save();
+        ctx.rotate((i * Math.PI) / 2);
+        ctx.translate(triDist, 0);
+        ctx.beginPath();
+        ctx.moveTo(triSize, 0);
+        ctx.lineTo(0, -triWidth / 2);
+        ctx.lineTo(0, triWidth / 2);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+    }
     ctx.shadowBlur = 0;
-    ctx.clip();
-
-    // Iris
-    const _irisG = ctx.createRadialGradient(_pX, _pY, 0, _pX, _pY, coreR * 0.55);
-    _irisG.addColorStop(0, '#c055ff');
-    _irisG.addColorStop(0.45, '#7700cc');
-    _irisG.addColorStop(1, '#250040');
-    ctx.fillStyle = _irisG;
-    ctx.beginPath(); ctx.arc(_pX, _pY, coreR * 0.55, 0, Math.PI * 2); ctx.fill();
-
-    // Pupil
-    ctx.fillStyle = '#04000e';
-    ctx.beginPath(); ctx.arc(_pX, _pY, coreR * 0.22, 0, Math.PI * 2); ctx.fill();
-
-    // Pupil highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.beginPath(); ctx.arc(_pX - coreR * 0.08, _pY - coreR * 0.08, coreR * 0.08, 0, Math.PI * 2); ctx.fill();
-    ctx.restore(); // end clip
-
-    // Eye outline
-    if (!_mobPerf) { ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 14; }
-    ctx.strokeStyle = '#180028';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(-_ew, 0);
-    ctx.bezierCurveTo(-_ew * 0.5, -_eh, _ew * 0.5, -_eh, _ew, 0);
-    ctx.bezierCurveTo(_ew * 0.5, _eh, -_ew * 0.5, _eh, -_ew, 0);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Kohl decorations (Eye of Ra style)
-    ctx.strokeStyle = '#180028';
-    ctx.lineWidth = 2;
-    // Inner corner: downward teardrop line
-    ctx.beginPath();
-    ctx.moveTo(-_ew, 0);
-    ctx.bezierCurveTo(-_ew * 1.1, _eh * 0.5, -_ew * 1.3, _eh * 1.1, -_ew * 1.05, _eh * 1.5);
-    ctx.stroke();
-    // Outer corner: upward wing then hook
-    ctx.beginPath();
-    ctx.moveTo(_ew, 0);
-    ctx.bezierCurveTo(_ew * 1.15, -_eh * 0.4, _ew * 1.4, -_eh * 0.85, _ew * 1.22, -_eh * 1.3);
-    ctx.stroke();
-
-    // Pulsing aura ring
-    const _eyeGlow = 0.3 + 0.25 * Math.sin(now / 220);
-    if (!_mobPerf) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 16; }
-    ctx.strokeStyle = `rgba(170,0,255,${_eyeGlow})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, _ew * 1.22, _eh * 1.55, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    ctx.restore(); // end un-rotate
+    ctx.restore();
 
     // 6. Chain nodes (4 ports)
     for (let i = 0; i < 4; i++) {
