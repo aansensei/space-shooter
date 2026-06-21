@@ -500,16 +500,16 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'aegis_core') {
-            let healAmt = enemy.maxHp * 0.06 * (deltaTime / 1000);
-            if (enemy._custosExpired) healAmt *= 1.20;
-            let shieldAmt = enemy.maxHp * 0.40;
+            let healAmt = enemy.maxHp * 0.08 * (deltaTime / 1000);
+            if (enemy._custosExpired) healAmt *= 1.35;
+            let shieldAmt = enemy.maxHp * 0.48;
             let tickShieldAmt = enemy.maxHp * 0.08 * (deltaTime / 1000); // 8% MaxHP shield/s
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
                 if (ally === enemy) {
-                    // Aegis tự heal 50% hiệu quả (không heal khi đang chết)
-                    if (!ally._markedForDeath && enemy.hp > 0) enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.5);
+                    // Aegis tự heal 55% hiệu quả (không heal khi đang chết)
+                    if (!ally._markedForDeath && enemy.hp > 0) enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.55);
                     return;
                 }
                 // Không heal/shield kẻ địch đã chết hoặc đang chết
