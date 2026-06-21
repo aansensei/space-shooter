@@ -431,7 +431,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.min(4118, 2376 + hpFromTime * 64);
+    let hp = Math.min(4500, 2500 + hpFromTime * 64);
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.367, hp: hp, maxHp: hp,
@@ -1317,7 +1317,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.shield > 0 && enemy.aegisShieldReceived) {
-        combinedDR += 0.15;
+        combinedDR += 0.18;
     }
 
     if (enemy.type === 'marchosias') {
