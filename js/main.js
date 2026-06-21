@@ -552,6 +552,22 @@ function update(rawDeltaTime) {
                 }
             });
 
+            // Post-Custos: Aegis gains shield or barrier per second based on allies in aura
+            if (enemy._custosExpired) {
+                const _alliesInAura = enemies.filter(a =>
+                    a !== enemy && a.hp > 0 && !a._markedForDeath &&
+                    !a.type.startsWith('enemy_bullet') && a.type !== 'veilshroud_echo' &&
+                    Math.hypot(a.x - enemy.x, a.y - enemy.y) <= auraRadius
+                ).length;
+                const _dt = deltaTime / 1000;
+                if (_alliesInAura === 0) {
+                    _addEnemyShield(enemy, enemy.maxHp * 0.10 * _dt);
+                } else {
+                    const _bPct = _alliesInAura >= 4 ? 0.35 : _alliesInAura >= 3 ? 0.30 : _alliesInAura >= 2 ? 0.25 : 0.15;
+                    enemy._aegisBarrier = (enemy._aegisBarrier || 0) + enemy.maxHp * _bPct * _dt;
+                }
+            }
+
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 5000;
