@@ -885,9 +885,8 @@ function updateSentinels(deltaTime) {
     }
 
     if (_hasBuff('trieu_hoi')) {
-        const healPerMs = 15 / 1000;
         for (const s of sentinels) {
-            s.hp = Math.min(s.maxHp, s.hp + healPerMs * deltaTime * 1.30);
+            s.hp = Math.min(s.maxHp, s.hp + (s.maxHp * 0.03 / 1000) * deltaTime * 1.30);
         }
     }
 
@@ -1443,9 +1442,10 @@ function dealDamage(enemy, source) {
 
     combinedDR = Math.min(0.99, combinedDR);
     const _veilPreDr = (enemy.type === 'veilshroud' && enemy.inPhantom) ? totalDamage : 0;
-    // True damage skips DR, normal damage applies DR
+    // True damage skips DR; Lion's Roar Burn uses 50% of DR; normal damage uses full DR
     if (!source.isTrueDamage) {
-        totalDamage = Math.ceil(totalDamage * (1 - combinedDR));
+        const _drMul = source._isSthDot ? combinedDR * 0.5 : combinedDR;
+        totalDamage = Math.ceil(totalDamage * (1 - _drMul));
         totalDamage = Math.max(0, totalDamage);
     }
 

@@ -816,12 +816,17 @@ function update(rawDeltaTime) {
                     // Darkened chain: costs 1 life, no root/silence
                     playerTakesHit(enemy);
                 } else {
-                    // Normal chain: root & silence, no life loss
-                    player._silenced = true;
-                    player._silenceEnd = currentTime + 1000;
-                    player._rooted = true;
-                    _setShake(6, 250);
-                    try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
+                    // Normal chain: root & silence — Iron Fortress absorbs 1 stack
+                    if (_hasBuff('thanh_dong') && window._sigilIronBodyStacks > 0) {
+                        window._sigilIronBodyStacks--;
+                        addExplosion(player.x, player.y, 40, '#3b82f6');
+                    } else {
+                        player._silenced = true;
+                        player._silenceEnd = currentTime + 1000;
+                        player._rooted = true;
+                        _setShake(6, 250);
+                        try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
+                    }
                 }
                 // Chain is NOT consumed by hitting player, can still hit sentinel
             }
@@ -1924,9 +1929,9 @@ function _updateSigilPassives(now, deltaTime) {
     if (_hasBuff('thanh_dong')) {
         if (window._sigilIronBodyNextAt > 0 && now >= window._sigilIronBodyNextAt && window._sigilIronBodyStacks < 2) {
             window._sigilIronBodyStacks++;
-            window._sigilIronBodyNextAt = now + 8000;
+            window._sigilIronBodyNextAt = now + 5000;
         }
-        if (window._sigilIronBodyNextAt === 0) window._sigilIronBodyNextAt = now + 8000;
+        if (window._sigilIronBodyNextAt === 0) window._sigilIronBodyNextAt = now + 5000;
     }
 
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
@@ -1946,14 +1951,14 @@ function _updateSigilPassives(now, deltaTime) {
         }
     }
 
-    if (_hasBuff('dien_tu_truong') && skillGActive) {
+    if (_hasBuff('dien_tu_truong') && (skillGActive || skillGCharge >= 100)) {
         for (const e of enemies) {
             if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') {
                 const dist = Math.hypot(e.x - player.x, e.y - player.y);
-                if (dist <= 250) {
+                if (dist <= 300) {
                     e._dtuSlow = true;
                     e._dtuSlowEnd = now + 200;
-                    const dot = 0.0035 * (e.maxHp || e.hp) * (deltaTime / 1000);
+                    const dot = 0.008 * (e.maxHp || e.hp) * (deltaTime / 1000);
                     dealDamage(e, { damage: dot, percentDamage: 0, _isDtuDot: true });
                 }
             }
