@@ -1154,9 +1154,22 @@ function updateSkillF(deltaTime) {
         skillFSweepStart = currentTime;
         if (_hasBuff('song_luoi')) {
             const _fbDmg = 210 * 1.30, _fbPct = 0.058 * 1.30;
+            const _fbTargets = enemies.filter(e =>
+                !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' &&
+                e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
+            );
+            let _fbAngle = -Math.PI / 2; // default: straight up
+            if (_fbTargets.length > 0) {
+                const _nearest = _fbTargets.reduce((a, b) =>
+                    Math.hypot(a.x - player.x, a.y - player.y) <= Math.hypot(b.x - player.x, b.y - player.y) ? a : b
+                );
+                _fbAngle = Math.atan2(_nearest.y - player.y, _nearest.x - player.x);
+            }
+            const _fbSpd = 15.84, _sideOff = 22;
+            const _fpx = -Math.sin(_fbAngle) * _sideOff, _fpy = Math.cos(_fbAngle) * _sideOff;
             if (!window._pendingBlades) window._pendingBlades = [];
-            bladeArcProjectiles.push({ x: player.x, y: player.y, vx: -15.84, vy: 0, radius: 125, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true });
-            window._pendingBlades.push({ spawnAt: currentTime + 10, data: { x: player.x, y: player.y, vx: 15.84, vy: 0, radius: 137, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true } });
+            bladeArcProjectiles.push({ x: player.x - _fpx, y: player.y - _fpy, vx: Math.cos(_fbAngle) * _fbSpd, vy: Math.sin(_fbAngle) * _fbSpd, radius: 125, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true });
+            window._pendingBlades.push({ spawnAt: currentTime + 10, data: { x: player.x + _fpx, y: player.y + _fpy, vx: Math.cos(_fbAngle) * _fbSpd, vy: Math.sin(_fbAngle) * _fbSpd, radius: 137, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true } });
         }
     }
     if (skillFState === "sweeping") {
