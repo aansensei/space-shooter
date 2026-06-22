@@ -1152,6 +1152,12 @@ function updateSkillF(deltaTime) {
     if (skillFState === "charging" && currentTime - skillFChargeStart >= 1500) {
         skillFState = "sweeping";
         skillFSweepStart = currentTime;
+        if (_hasBuff('song_luoi')) {
+            const _fbDmg = 210 * 1.30, _fbPct = 0.058 * 1.30;
+            if (!window._pendingBlades) window._pendingBlades = [];
+            bladeArcProjectiles.push({ x: player.x, y: player.y, vx: -15.84, vy: 0, radius: 125, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true });
+            window._pendingBlades.push({ spawnAt: currentTime + 10, data: { x: player.x, y: player.y, vx: 15.84, vy: 0, radius: 137, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true } });
+        }
     }
     if (skillFState === "sweeping") {
         let sweepProgress = (currentTime - skillFSweepStart) / skillFSweepDuration;

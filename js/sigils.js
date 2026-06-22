@@ -14,7 +14,7 @@ const SIGIL_DEFS = {
         name: 'Taurus', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'thanh_dong', name: 'Iron Fortress', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Every 8s gain 1 Iron Body layer (consumed first, max 2 stacks). Shown as green hex rings on ship.' },
+              desc: 'Every 5s gain 1 Iron Body layer (max 2 stacks): absorbs 1 player hit or 1 normal chain root/silence. Shown as green hex rings on ship.' },
             { id: 'ho_ve', name: 'Guardian', type: 'DEF', typeC: '#3b82f6',
               desc: 'Sentinel +60% HP & +25% dmg; when sentinel dies, next sentinel spawned within 5s gains a shield worth 20% of predecessor MaxHP (CD 4s)' },
         ]
@@ -34,14 +34,14 @@ const SIGIL_DEFS = {
             { id: 'giap_nguyet', name: 'Lunar Aegis', type: 'DEF', typeC: '#3b82f6',
               desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +35%; sentinels gain +10% evade' },
             { id: 'trieu_hoi', name: 'Tidal Flow', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Sentinel regenerates 15 HP/s; sentinel healing effectiveness +30%' },
+              desc: 'Sentinel regenerates 3% MaxHP/s (scales with tier); sentinel healing effectiveness +30%' },
         ]
     },
     leo: {
         name: 'Leo', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'su_tu_hong', name: "Lion's Roar", type: 'ATK', typeC: '#ef4444',
-              desc: 'While GFJ active, attacks inflict Burn: 200 + 5% EP DoT per 500ms for 3s (resets on new hit, stacks x3). Allied attacks surrounded by fire.' },
+              desc: 'While GFJ active, attacks inflict Burn: 200 + 5% EP DoT per 500ms for 3s (resets on new hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire.' },
             { id: 'than_menh', name: 'Divine Fate', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Wave start: 5s freeze — all enemies stop moving (new spawns also frozen) + all damage +50%' },
         ]
@@ -77,7 +77,7 @@ const SIGIL_DEFS = {
         name: 'Sagittarius', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
-              desc: 'Arc slash fires 2 blades (+30% each); 2nd fires 10ms later. Each boomerang has 35% chance to spawn an extra one. Extra blades & boomerangs have +10% radius.' },
+              desc: 'Spirit arc slash fires 2 blades (+30% each); 2nd fires 10ms later. Each boomerang has 35% chance for an extra. Skill F sweep fires 2 blade arcs from player. Extra blades have +10% radius.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
               desc: 'Boomerang and arc slash: 50% chance to slow 20% for 2s and pull toward the projectile. CC-immune: no pull, still slowed.' },
         ]
@@ -97,7 +97,7 @@ const SIGIL_DEFS = {
             { id: 'set_day_chuyen', name: 'Chain Lightning', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Tesla DoT: 50% chain to nearest enemy within 150px. Skill D: +50% radius, +35% pull, instant cast (no charge).' },
             { id: 'dien_tu_truong', name: 'Magnetic Field', type: 'DEF', typeC: '#3b82f6',
-              desc: 'While Skill G is charging, enemies within 250px are slowed 30% and suffer 0.35% MaxHP DoT/s' },
+              desc: 'While Skill G is active or fully charged, enemies within 300px are slowed 30% and suffer 0.8% MaxHP DoT/s' },
         ]
     },
     pisces: {
