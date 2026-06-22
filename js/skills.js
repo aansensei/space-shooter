@@ -1184,7 +1184,7 @@ function updateSkillF(deltaTime) {
                     enemy.hp = 0;
                     // Leviathan: skill F bypasses dealDamage → trigger last rites manually
                     if (enemy.type === 'leviathan' && !enemy._deathLaserSpawned) {
-                        dealDamage(enemy, { damage: 0, percentDamage: 0 });
+                        dealDamage(enemy, { damage: 0, percentDamage: 0, _bypassIronBody: true });
                     }
                 }
                 enemy.hitBySkillF = true;
