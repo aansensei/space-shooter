@@ -34,7 +34,7 @@ const SIGIL_DEFS = {
             { id: 'giap_nguyet', name: 'Lunar Aegis', type: 'DEF', typeC: '#3b82f6',
               desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +35%; sentinels gain +10% evade' },
             { id: 'trieu_hoi', name: 'Tidal Flow', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Sentinel regenerates 3% MaxHP/s (scales with tier); sentinel healing effectiveness +30%' },
+              desc: 'Sentinel regenerates 3% MaxHP/s (scales with tier); healing effectiveness +30%. Each sentinel gains 1 Iron Body layer; 8s CD starts only after it is consumed.' },
         ]
     },
     leo: {

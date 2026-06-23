@@ -885,8 +885,12 @@ function updateSentinels(deltaTime) {
     }
 
     if (_hasBuff('trieu_hoi')) {
+        const _tNow = performance.now();
         for (const s of sentinels) {
             s.hp = Math.min(s.maxHp, s.hp + (s.maxHp * 0.03 / 1000) * deltaTime * 1.30);
+            if (!s._trieuIronBody && _tNow >= (s._trieuIronBodyCooldownEnd || 0)) {
+                s._trieuIronBody = true;
+            }
         }
     }
 
@@ -1387,6 +1391,14 @@ function dealDamage(enemy, source) {
     // Iron Body (Bất tử tuyệt đối), bypass all damage
     if (isSentinel && enemy.ironBody && performance.now() < enemy.ironBodyEnd) {
         return; // hoàn toàn miễn sát thương
+    }
+
+    // Tidal Flow: 1-hit iron body layer per sentinel, cooldown starts after consumed
+    if (isSentinel && enemy._trieuIronBody && _hasBuff('trieu_hoi')) {
+        enemy._trieuIronBody = false;
+        enemy._trieuIronBodyCooldownEnd = performance.now() + 8000;
+        createParticles(enemy.x, enemy.y, 4, '#22c55e', 2, 5);
+        return;
     }
 
     // Coronation Iron Body perk, 1-hit block on spawned enemy (tu_huyet blade arc bypasses)
