@@ -839,6 +839,9 @@ function update(rawDeltaTime) {
                             // Lunar Aegis: 10% sentinel evade — chain consumed, no damage
                         } else if (s.ironBody && currentTime < s.ironBodyEnd) {
                             // Iron Body: absorb but still consume chain
+                        } else if (_hasBuff('trieu_hoi') && s._trieuIronBody) {
+                            s._trieuIronBody = false;
+                            s._trieuIronBodyCooldownEnd = currentTime + 8000;
                         } else {
                             const _chainEpPct = enemy.isDarkened ? 0.20 : 0.15;
                             const rawDmgChain = Math.ceil((s.maxHp + (s.shield || 0)) * _chainEpPct);
