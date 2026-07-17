@@ -317,7 +317,7 @@ function _drawDetailPanel(def, x, y, w, alpha) {
 function _drawPickerCards(p, slideEase) {
     const now = performance.now();
     const L = _pickerLayout();
-    const { cardW, cardH, gapX, gapY, cols, panelPad, panelW, panelH, panelX, panelY, titleH, isMob } = L;
+    const { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob } = L;
     const yOff = (1 - slideEase) * -300;
     const hasSelected = p.selectedSigil != null;
 

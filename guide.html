@@ -918,20 +918,30 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
+<div class="ul-entry" style="--ul-accent:#f87171">
+<div class="ul-head"><span class="ul-ver">v5.2 — MOBILE STABILITY FIXES</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026 · Sigil picker crash fix, mobile sigil picker &amp; Settings panel layout fixes</div>
+<p class="det-short ul-summary">Fixed a crash on Mobile mode that hit every time a sigil was selected — it blocked the Confirm button from ever appearing and could stall a run at every Wave 5 / Wave 10 pick. Also fixes the mobile sigil picker's layout and stacking, and the Settings panel overflowing on short viewports.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker crash:</b> selecting a sigil in Mobile mode threw a script error every frame, which silently prevented the Confirm button from ever being drawn — stalling progress at every sigil pick. This was the likely cause of the repeated "System Terminated" freezes reported on phones.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker layout:</b> card sizing now scales responsively so the Confirm button always has room on short landscape viewports.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker stacking:</b> no longer renders behind the in-game mobile skill buttons.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Settings panel on mobile:</b> now scrolls instead of overflowing off-screen on short viewports.</li>
+</ul>
+</div>
+
 <div class="ul-entry" style="--ul-accent:#06b6d4">
-<div class="ul-head"><span class="ul-ver">v5.1 — AUDIO OVERHAUL & MOBILE FIXES</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
-<div class="ul-date">2026 · Full skill SFX pass, Game Over &amp; New Wave cues, baked-in mix volumes, mobile sigil picker &amp; Settings fixes</div>
-<p class="det-short ul-summary">Every skill now has dedicated sound cues — Thunder Orbs, Tesla Coil, Phōtokrystos boomerang/laser, Remembrance Spirit. Skill F and Black Hole sounds now cut off exactly when their effect ends instead of ringing out. New Game Over sting (BGM stops on death) and New Wave announcement cue. Volume balance moved into the audio files themselves — sliders default to 100%. Mobile sigil picker layout and Settings panel scaling fixes.</p>
+<div class="ul-head"><span class="ul-ver">v5.1 — BGM & SFX OVERHAUL</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026 · Full skill SFX pass, new BGM tracks, Game Over &amp; New Wave cues, baked-in mix volumes</div>
+<p class="det-short ul-summary">Every skill now has dedicated sound cues — Thunder Orbs, Tesla Coil, Phōtokrystos boomerang/laser, Remembrance Spirit. Skill F and Black Hole sounds now cut off exactly when their effect ends instead of ringing out. New Game Over sting (BGM stops on death), New Wave announcement cue, and additional BGM tracks in the random rotation. Volume balance moved into the audio files themselves — sliders default to 100%.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Full skill SFX pass:</b> dedicated sound cues added for Skill A (orb spawn, target lock, impact), Skill G Tesla Coil formation, Phōtokrystos (boomerang throw/hit, Danger Not Today laser), and Remembrance Spirit (autofire, blade-arc slash).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>BGM library expanded:</b> additional in-game tracks added to the random rotation — see the Music Archive tab for the full listing.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Game Over sting:</b> a dedicated jingle plays the instant lives reach 0, and the background music stops immediately rather than continuing to play under the Game Over screen.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>New Wave cue:</b> a dedicated sound plays the moment a new wave is announced.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Baked-in mix volumes:</b> per-sound balance now lives in the audio files themselves instead of in-code multipliers. BGM / SFX / Global sliders in Settings now default to <span class="hg">100%</span> and read as the true intended volume.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Skill F sound cutoff:</b> the charge hum and slash cue now stop exactly when the charge window and sweep animation end, instead of ringing out past the effect.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Black Hole sound cutoff:</b> the ambience now stops the instant the Black Hole drifts off-screen instead of playing to completion.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker layout:</b> card sizing now scales responsively so the Confirm button always has room on short landscape viewports.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker stacking:</b> no longer renders behind the in-game mobile skill buttons.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Settings panel on mobile:</b> now scrolls instead of overflowing off-screen on short viewports.</li>
 </ul>
 </div>
 
