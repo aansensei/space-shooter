@@ -14,7 +14,6 @@
         autoshot:      0.35,   // fires every 135ms; raised for audibility over the mix
         charging:      0.75,   // sustained hum while holding Space, needs to feel present
         laser:         0.50,   // long overload beam, keep from dominating the mix
-        'charged-fire':0.65,   // one-shot burst on Space-release <3s
         'enemy-hit':   0.22,   // very frequent
         'enemy-death': 0.42,   // frequent bursts, tamed so waves don't feel harsh
         'shield-hit':  0.55,
@@ -219,31 +218,11 @@
         _makePool('overlay',      'audio/sfx/overlay.wav',     2);
         _makePool('skill-ready',    'audio/sfx/skill-ready.mp3',    3);
         _makePool('skill-unlocked', 'audio/sfx/skill-unlocked.mp3', 2);
-        // Reuse laser.mp3 as a one-shot burst for charged-shot release. The
-        // sound cuts off at CHARGED_FIRE_MS to feel like a discrete "boom"
-        // rather than the full 12s sustain the laser loop uses.
-        _makePool('charged-fire', 'audio/sfx/laser.mp3',       3);
 
         state.ambientEl  = _mkLoop('audio/ingame.mp3');
         state.engineEl   = _mkLoop('audio/sfx/engine.wav');
         state.laserEl    = _mkLoop('audio/sfx/laser.mp3');
         state.chargingEl = _mkLoop('audio/sfx/charging.mp3');
-    }
-    const CHARGED_FIRE_MS = 700;
-
-    function playChargedShot() {
-        const pool = state.pool['charged-fire'];
-        if (!pool) return;
-        const g = sfxGain('charged-fire');
-        if (g <= 0) return;
-        const a = pool[state.poolIdx['charged-fire']];
-        state.poolIdx['charged-fire'] = (state.poolIdx['charged-fire'] + 1) % pool.length;
-        try {
-            a.volume = g;
-            a.currentTime = 0;
-            a.play().catch(() => {});
-            setTimeout(() => { try { a.pause(); } catch (_) {} }, CHARGED_FIRE_MS);
-        } catch (_) {}
     }
     function _mkLoop(src) {
         const a = new Audio(src);
@@ -263,7 +242,6 @@
 
         // SFX
         playSfx,
-        playChargedShot,
         startAmbient, stopAmbient,
         startEngine,  stopEngine,
         startCharging, stopCharging,
