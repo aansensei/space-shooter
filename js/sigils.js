@@ -847,6 +847,7 @@ function _handleSigilPickerClick(ex, ey) {
     if (idx >= 0 && idx < p.options.length) {
         p.hoveredSigil = p.options[idx];
         p.selectedSigil = p.options[idx];
+        if (window.AudioMgr) window.AudioMgr.playSfx('click');
         return;
     }
 
@@ -856,6 +857,7 @@ function _handleSigilPickerClick(ex, ey) {
             p.phase = 'fly_in';
             p.flyStart = performance.now();
             p.flyParticles = [];
+            if (window.AudioMgr) window.AudioMgr.playSfx('click');
         }
     }
 }
@@ -865,16 +867,23 @@ function _handleSigilPickerMouseMove(ex, ey) {
     if (!p || p.phase !== 'choosing_sigil') return;
 
     const L = _pickerLayout();
+    const prevSigil = p.hoveredSigil;
+    const prevConfirm = p.hoveredConfirm;
     p.hoveredSigil = null;
     p.hoveredConfirm = false;
     const idx = _pickerCardHitTest(ex, ey, L);
     if (idx >= 0 && idx < p.options.length) {
         p.hoveredSigil = p.options[idx];
-        return;
-    }
-    if (p.selectedSigil) {
+    } else if (p.selectedSigil) {
         const btn = _sigilConfirmRect(L, 0);
         p.hoveredConfirm = ex >= btn.x && ex <= btn.x + btn.w && ey >= btn.y && ey <= btn.y + btn.h;
+    }
+    // Fire hover sfx only when the hovered target changes (card→different
+    // card, none→card, none→confirm, etc.). Prevents per-mousemove spam.
+    const sigilChanged   = p.hoveredSigil   && p.hoveredSigil   !== prevSigil;
+    const confirmEntered = p.hoveredConfirm && !prevConfirm;
+    if ((sigilChanged || confirmEntered) && window.AudioMgr) {
+        window.AudioMgr.playSfx('hover');
     }
 }
 

@@ -1248,11 +1248,26 @@
             // in-game mobile skill buttons (class starts with "mb"): those
             // fire far too often and already carry their own gameplay sfx
             // via the actions they trigger.
+            function _isGameplayBtn(b) {
+                return b.classList && (b.classList.contains('mb') || b.classList.contains('mb-sk') || b.classList.contains('mb-ar'));
+            }
             document.addEventListener('click', function (e) {
                 const b = e.target.closest('button');
-                if (!b) return;
-                if (b.classList && (b.classList.contains('mb') || b.classList.contains('mb-sk') || b.classList.contains('mb-ar'))) return;
+                if (!b || _isGameplayBtn(b)) return;
                 window.AudioMgr.playSfx('click');
+            }, true);
+            // Hover sfx: one tick per button-enter. Uses mouseover + last-hover
+            // tracking so re-entering the same element while still inside it
+            // doesn't retrigger.
+            let _lastHoverBtn = null;
+            document.addEventListener('mouseover', function (e) {
+                const b = e.target.closest('button');
+                if (!b || _isGameplayBtn(b) || b === _lastHoverBtn) return;
+                _lastHoverBtn = b;
+                window.AudioMgr.playSfx('hover');
+            }, true);
+            document.addEventListener('mouseout', function (e) {
+                if (e.target === _lastHoverBtn) _lastHoverBtn = null;
             }, true);
 
             // Overlay open/close sfx: wrap openGuide/openSettings/closeGuide/closeSettings
