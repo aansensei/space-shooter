@@ -23,6 +23,8 @@
         overlay:       0.55,
         engine:        0.20,   // ambient loop, subtle
         ambient:       0.35,   // ingame.mp3 space background
+        'skill-ready':    0.55, // any skill cooldown just finished
+        'skill-unlocked': 0.70, // charge-based skill (Primeval / Tesla) hit 100
     };
 
     // 12 in-game BGM tracks + the menu-only track ("Pisces" = soundtrack1.mp3).
@@ -213,6 +215,8 @@
         _makePool('life-lost',    'audio/sfx/life-lost.mp3',   2);
         _makePool('click',        'audio/sfx/click.mp3',       3);
         _makePool('overlay',      'audio/sfx/overlay.wav',     2);
+        _makePool('skill-ready',    'audio/sfx/skill-ready.mp3',    3);
+        _makePool('skill-unlocked', 'audio/sfx/skill-unlocked.mp3', 2);
         // Reuse laser.mp3 as a one-shot burst for charged-shot release. The
         // sound cuts off at CHARGED_FIRE_MS to feel like a discrete "boom"
         // rather than the full 12s sustain the laser loop uses.
