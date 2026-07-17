@@ -1062,6 +1062,7 @@ function activateSkillD() {
         // Aquarius: instant cast, skip charging
         lastSkillD = currentTime;
         blackHole = { x: player.x, y: player.y - player.height, size: 10, maxSize: 180, vy: -2, activeTime: 0 };
+        if (window.AudioMgr) window.AudioMgr.playSfx('blackhole');
     } else {
         skillDCharging = true;
         skillDChargeStartTime = performance.now();
@@ -1077,6 +1078,7 @@ function updateSkillD(deltaTime) {
                 x: player.x, y: player.y - player.height,
                 size: 10, maxSize: _hasBuff('set_day_chuyen') ? 180 : 120, vy: -2, activeTime: 0
             };
+            if (window.AudioMgr) window.AudioMgr.playSfx('blackhole');
         }
     }
     if (blackHole) {
@@ -1534,6 +1536,7 @@ function executeShiftTeleport(direction) {
     addExplosion(player.x, player.y, 60, 'purple');
     createParticles(player.x, player.y, 30, 'magenta', 3, 10);
     _setShake(10, 200);
+    if (window.AudioMgr) window.AudioMgr.playSfx('shift-teleport');
 
     // Teleport used → 9s cooldown
     window._shiftTeleportUsed = true;

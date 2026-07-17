@@ -74,6 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const _pgb = document.getElementById("pause-guide-btns");
         if (_pgb) _pgb.style.display = "flex";
         window._bgPaused = true;
+        // Freeze the full mix (bgm + engine/ambient/laser/charging loops)
+        // while the pause overlay is up; resumed after the reboot animation
+        // completes. Overlay/click/hover sfx stay live so pause-screen UI
+        // still gives audible feedback.
+        if (window.AudioMgr) window.AudioMgr.pauseAll();
     }
 
     resumeBtn.addEventListener("click", () => {
@@ -101,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gamePaused = false;
                 window._bgPaused = false;
                 lastTimeStamp = performance.now(); // reset or pause duration becomes a giant deltaTime spike next frame
+                if (window.AudioMgr) window.AudioMgr.resumeAll();
             }
         }
 
@@ -124,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 skillShiftActive = true;
                 window._shiftActive = true;
                 skillShiftChargeStart = performance.now();
+                if (window.AudioMgr) window.AudioMgr.playSfx('shift-hold');
                 if (_hasBuff('coi_mong')) {
                     window._coiMongEndTime = performance.now() + 2000;
                     const _markT = performance.now();
@@ -184,7 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // PC-only resize path. Mobile uses its own handler (index.html, near
+    // _initMobileControls) because the canvas is deliberately oversized
+    // there (1.282x inflate) — this 1:1 resize would clobber that and
+    // desync the skill-button overlay from the canvas whenever Safari's
+    // toolbar shows/hides in landscape.
     window.addEventListener("resize", function () {
+        if (typeof window._platform !== 'undefined' && window._platform === 'mobile') return;
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         player.y = canvas.height - 60;
         skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;

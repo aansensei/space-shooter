@@ -1450,53 +1450,87 @@
                 _startCooldownLoop();
             };
 
+            // iOS Safari fires resize when the address/toolbar auto-hides or
+            // reappears in landscape — the viewport height changes without a
+            // real orientation change. Re-running the mobile init keeps the
+            // inflated canvas and the skill-button overlay in sync with it;
+            // without this the canvas keeps its stale (pre-toolbar-hide)
+            // pixel size while the buttons stay pinned to the old viewport,
+            // so the two visibly drift apart / overlap. Debounced because
+            // iOS fires several resize events in quick succession during the
+            // toolbar's hide/show animation. PC is untouched — input.js
+            // already skips its own resize handler when _platform is mobile.
+            let _mobResizeTimer = null;
+            window.addEventListener('resize', () => {
+                if (_plat !== 'mobile' || !window._inGame) return;
+                clearTimeout(_mobResizeTimer);
+                _mobResizeTimer = setTimeout(() => window._initMobileControls(), 150);
+            });
+            window.addEventListener('orientationchange', () => {
+                if (_plat !== 'mobile' || !window._inGame) return;
+                clearTimeout(_mobResizeTimer);
+                _mobResizeTimer = setTimeout(() => window._initMobileControls(), 250);
+            });
+
             function _buildMobileHTML() {
                 // Wrappers for hold-based buttons (YOG, CHARGE, arrows)
                 // Use ontouchstart/end directly, modern mobile handles multi-touch fine
+                //
+                // Positions add env(safe-area-inset-*) on top of the base pixel
+                // offsets. In landscape on notched/Dynamic-Island phones the
+                // cutout sits on the left or right edge (whichever side is
+                // "up" after rotation), so left- and right-pinned buttons both
+                // need the offset — the unused side's env() resolves to 0px
+                // and is a no-op there.
+                const L1 = 'calc(26px + env(safe-area-inset-left, 0px))';
+                const L2 = 'calc(94px + env(safe-area-inset-left, 0px))';
+                const R1 = 'calc(90px + env(safe-area-inset-right, 0px))';
+                const R2 = 'calc(10px + env(safe-area-inset-right, 0px))';
+                const B  = 'env(safe-area-inset-bottom, 0px)';
                 return `
-                <div class="mb mb-sk" id="mb-yog" style="bottom:180px;left:26px;"
+                <div class="mb mb-sk" id="mb-yog" style="bottom:calc(180px + ${B});left:${L1};"
                     ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')"
                     onmousedown="_mbDown('mb-yog')" onmouseup="_mbUp('mb-yog')">
                     <canvas width="58" height="58" id="mb-yog-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#ffcc00;font-size:11px;font-weight:800;">YOG</span>
                 </div>
-                <button class="mb mb-sk" id="mb-a" style="bottom:180px;left:94px;"
+                <button class="mb mb-sk" id="mb-a" style="bottom:calc(180px + ${B});left:${L2};"
                     ontouchstart="event.preventDefault();_hap();activateSkillA()" onmousedown="activateSkillA()">
                     <canvas width="58" height="58" id="mb-a-cv"></canvas>
                     <span style="position:relative;z-index:2;">A</span>
                 </div>
-                <button class="mb mb-sk" id="mb-s" style="bottom:112px;left:26px;"
+                <button class="mb mb-sk" id="mb-s" style="bottom:calc(112px + ${B});left:${L1};"
                     ontouchstart="event.preventDefault();_hap();activateSkillS()" onmousedown="activateSkillS()">
                     <canvas width="58" height="58" id="mb-s-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#00e5ff;">S</span>
                 </div>
-                <button class="mb mb-sk" id="mb-d" style="bottom:112px;left:94px;"
+                <button class="mb mb-sk" id="mb-d" style="bottom:calc(112px + ${B});left:${L2};"
                     ontouchstart="event.preventDefault();_hap();activateSkillD()" onmousedown="activateSkillD()">
                     <canvas width="58" height="58" id="mb-d-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#bb88ff;">D</span>
                 </div>
-                <button class="mb mb-sk" id="mb-f" style="bottom:44px;left:26px;"
+                <button class="mb mb-sk" id="mb-f" style="bottom:calc(44px + ${B});left:${L1};"
                     ontouchstart="event.preventDefault();_hap();activateSkillF()" onmousedown="activateSkillF()">
                     <canvas width="58" height="58" id="mb-f-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#ff6666;">F</span>
                 </div>
-                <button class="mb mb-sk" id="mb-g" style="bottom:44px;left:94px;"
+                <button class="mb mb-sk" id="mb-g" style="bottom:calc(44px + ${B});left:${L2};"
                     ontouchstart="event.preventDefault();_hap();activateSkillG()" onmousedown="activateSkillG()">
                     <canvas width="58" height="58" id="mb-g-cv"></canvas>
                     <span id="mb-g-lbl" style="position:relative;z-index:2;color:#00ffcc;">G</span>
                 </div>
-                <div class="mb mb-sk" id="mb-ch" style="bottom:256px;left:26px;"
+                <div class="mb mb-sk" id="mb-ch" style="bottom:calc(256px + ${B});left:${L1};"
                     ontouchstart="event.preventDefault();_mbDown('mb-ch')" ontouchend="_mbUp('mb-ch')"
                     onmousedown="_mbDown('mb-ch')" onmouseup="_mbUp('mb-ch')">
                     <canvas width="58" height="58" id="mb-ch-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#00e5ff;font-size:9px;font-weight:800;">CHARGE</span>
                 </div>
-                <button class="mb mb-ar" style="position:fixed;bottom:28px;right:90px;"
+                <button class="mb mb-ar" style="position:fixed;bottom:calc(28px + ${B});right:${R1};"
                     ontouchstart="event.preventDefault();_mbDown('mb-left')" ontouchend="_mbUp('mb-left')"
                     onmousedown="_mbDown('mb-left')" onmouseup="_mbUp('mb-left')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
-                <button class="mb mb-ar" style="position:fixed;bottom:28px;right:10px;"
+                <button class="mb mb-ar" style="position:fixed;bottom:calc(28px + ${B});right:${R2};"
                     ontouchstart="event.preventDefault();_mbDown('mb-right')" ontouchend="_mbUp('mb-right')"
                     onmousedown="_mbDown('mb-right')" onmouseup="_mbUp('mb-right')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>

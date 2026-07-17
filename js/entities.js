@@ -192,7 +192,7 @@ function distToSegment(p, v, w) {
 }
 
 function handleEnemyKill(enemy) {
-    if (window.AudioMgr) window.AudioMgr.playSfx('enemy-death');
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-death', enemy.x, enemy.y);
     score = Math.ceil(score + enemy.maxHp * 6);
     // Primeval Creation: +1.25% energy per kill from non-spirit sources
     if (!enemy._spiritKillCounted) {
@@ -839,6 +839,7 @@ function spawnSentinel(x, y, forceNormal = false) {
         synergyTier: currentTier,
         isFortified
     });
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('sentinel-spawn', x, y);
 
     // Gaia Protection catch-up for late-spawned sentinels
     const _gaiaHpCumMult = window._gaiaHpCumMult || 1;
@@ -867,6 +868,7 @@ function destroySentinel(sentinel) {
     }
     addExplosion(sentinel.x, sentinel.y, 80, '#00FFFF');
     _setShake(5, 200);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('sentinel-explode', sentinel.x, sentinel.y);
     for (let i = 0; i < 10; i++) {
         const angle = (Math.PI * 2 / 10) * i;
         bullets.push({
@@ -1603,7 +1605,7 @@ function dealDamage(enemy, source) {
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
-    else if (window.AudioMgr) window.AudioMgr.playSfx('enemy-hit');
+    else if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
 
     // Compound Interest: +200 shield-piercing standard damage while Photokrystos alive
     if (_hasBuff('lai_kep') && !isSentinel
@@ -2120,6 +2122,7 @@ function updateApostleCoronation(enemy, deltaTime) {
         enemy.coronationTimer = 0;
         enemy.coronationDuration = 2200;
         createParticles(enemy.x, enemy.y, 20, '#ffd700', 3, 8);
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('coronation', enemy.x, enemy.y);
     } else {
         enemy.coronationTimer += deltaTime;
         // Spawn golden lightning particles during animation
