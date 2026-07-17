@@ -886,7 +886,10 @@
             this.style.opacity = '0';
             const self = this;
             setTimeout(() => { self.style.display = 'none'; }, 600);
-            if (window.AudioMgr) window.AudioMgr.playMenuBgm();
+            if (window.AudioMgr) {
+                window.AudioMgr.unlockContext(); // Web Audio graph needs a user gesture to start
+                window.AudioMgr.playMenuBgm();
+            }
         }, { once: true });
     </script>
 

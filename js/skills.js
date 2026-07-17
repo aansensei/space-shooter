@@ -1548,6 +1548,7 @@ function cancelSkillShift() {
         const holdDuration = (performance.now() - skillShiftChargeStart) / 1000; // seconds
         skillShiftActive = false;
         window._shiftActive = false;
+        if (window.AudioMgr) window.AudioMgr.exitTimeDomain();
 
         // If teleport (←/→) was used during domain → 9s CD (same as held ≥7s)
         const teleportUsed = !!window._shiftTeleportUsed;
