@@ -94,7 +94,7 @@ canvas {
 
 /* --- GIAO DIỆN PAUSE & RESUME --- */
 #pause-overlay {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -107,7 +107,10 @@ canvas {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 100;
+    /* Sits above sigil-pick-overlay (9999999) so tab-away auto-pause during
+       sigil pick still shows a clickable resume screen. Mute button is bumped
+       higher (see index.html) so it stays accessible while paused. */
+    z-index: 99999998;
 }
 
 #pause-title {

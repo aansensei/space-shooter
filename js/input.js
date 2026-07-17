@@ -151,7 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.code === "ArrowRight") keys.right = true;
         }
 
-        if (e.code === "Space" && !charging && !laserActive && !skillShiftActive) { charging = true; chargeStartTime = performance.now(); e.preventDefault(); }
+        if (e.code === "Space" && !charging && !laserActive && !skillShiftActive) {
+            charging = true; chargeStartTime = performance.now();
+            if (window.AudioMgr) window.AudioMgr.startCharging();
+            e.preventDefault();
+        }
         if (e.code === "KeyA") { activateSkillA(); e.preventDefault(); }
         if (e.code === "KeyS") { activateSkillS(); e.preventDefault(); }
         if (e.code === "KeyD") { activateSkillD(); e.preventDefault(); }
@@ -174,7 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 let multiplier = 1 + ((Math.min(chargeDuration, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
                 fireChargedBullet(Math.min(multiplier, maxMultiplier));
             }
-            charging = false; e.preventDefault();
+            charging = false;
+            if (window.AudioMgr) window.AudioMgr.stopCharging();
+            e.preventDefault();
         }
     });
 
