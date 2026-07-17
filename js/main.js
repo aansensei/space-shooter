@@ -165,9 +165,41 @@ function _triggerSentinelParry(parrySentinel) {
     });
 }
 
+// Detects the false→true transition per skill cooldown / charge meter and
+// fires a single sfx chime. Trackers are seeded in startGame() so the
+// initial ready state doesn't chime on frame 1.
+function _updateSkillReadySfx(now) {
+    if (!window.AudioMgr) return;
+    const r = window._sfxReady;
+    if (!r) return;
+    const check = (key, isReady) => {
+        if (isReady && !r[key]) window.AudioMgr.playSfx('skill-ready');
+        r[key] = isReady;
+    };
+    // Charged skills use activation timestamp + fixed cooldown constants.
+    // Shift uses the tiered cooldown selected in cancelSkillShift.
+    check('A',     now - lastSkillA     >= skillACooldown);
+    check('S',     now - lastSkillS     >= skillSCooldown);
+    check('D',     now - lastSkillD     >= skillDCooldown);
+    check('F',     now - lastSkillF     >= skillFCooldown);
+    check('Shift', now - lastSkillShift >= skillShiftCooldown);
+    check('Laser', now >= laserCooldownEnd);
+
+    const u = window._sfxUnlocked;
+    if (u) {
+        const primevalFull = (typeof primevalEnergy !== 'undefined') && primevalEnergy >= 100;
+        const teslaFull    = (typeof skillGCharge    !== 'undefined') && skillGCharge    >= 100;
+        if (primevalFull && !u.primeval) window.AudioMgr.playSfx('skill-unlocked');
+        if (teslaFull    && !u.tesla)    window.AudioMgr.playSfx('skill-unlocked');
+        u.primeval = primevalFull;
+        u.tesla    = teslaFull;
+    }
+}
+
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
+    _updateSkillReadySfx(currentTime);
 
     // Mobile: pin player.y to boundaryY every frame, triệt để fix position
     if (typeof _platform !== 'undefined' && _platform === 'mobile') {
@@ -2178,6 +2210,10 @@ function startGame() {
     gameElapsedTime = 0;
     laserActive = false; laserCooldownEnd = 0; charging = false; gamePaused = false;
     lastSkillA = -Infinity; lastSkillS = -Infinity; lastSkillD = -Infinity; lastSkillF = -Infinity;
+    // Skill-ready SFX trackers: start "true" so the initial ready state
+    // doesn't fire a chime on frame 1. Detect false→true transitions per key.
+    window._sfxReady = { A: true, S: true, D: true, F: true, Shift: true, Laser: true };
+    window._sfxUnlocked = { primeval: false, tesla: false };
     skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
     hideStartButton();
     hideMainMenuButton();
