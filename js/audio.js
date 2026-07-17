@@ -127,6 +127,7 @@
         { id: 'owari-waltz',            title: 'Owari no Waltz',                 src: 'audio/bgm/owari-no-waltz.mp3' },
         { id: 'peach-blossoms-duel',    title: 'Duel Beneath the Peach Blossoms', src: 'audio/bgm/duel-beneath-the-peach-blossoms.mp3' },
         { id: 'dance-with-me',          title: 'Will You Dance With Me?',        src: 'audio/bgm/will-you-dance-with-me.mp3' },
+        { id: 'kyoushinron',            title: 'Kyoushinron',                   src: 'audio/bgm/kyoushinron.mp3' },
     ];
 
     const state = {
