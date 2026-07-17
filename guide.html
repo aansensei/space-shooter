@@ -463,6 +463,7 @@
         <button class="tab-btn" data-tab="enemies">Enemies</button>
         <button class="tab-btn" data-tab="rules">Combat</button>
         <button class="tab-btn" data-tab="updatelog">Update Log</button>
+        <button class="tab-btn" data-tab="music">Music Archive</button>
         <button class="tog-btn" id="togDetail">Detailed</button>
       </div>
       <div class="guide-body" id="guideBody"></div>
@@ -1319,10 +1320,169 @@
 </div>`
     };
 
+    // Music archive — list must match audio/bgm/ filenames on disk.
+    const MUSIC_TRACKS = [
+      { title: 'Pisces',                         sub: 'Menu Theme',   src: 'audio/soundtrack1.mp3' },
+      { title: 'Ascension of the Void Shrine',   sub: 'In-Game BGM',  src: 'audio/bgm/ascension-of-the-void-shrine.mp3' },
+      { title: 'A Dorian Autumn Fair',           sub: 'In-Game BGM',  src: 'audio/bgm/a-dorian-autumn-fair.mp3' },
+      { title: 'A Love That Never Ends',         sub: 'In-Game BGM',  src: 'audio/bgm/a-love-that-never-ends.mp3' },
+      { title: 'Anata',                          sub: 'In-Game BGM',  src: 'audio/bgm/anata.mp3' },
+      { title: 'Echoes of a Silent Prayer',      sub: 'In-Game BGM',  src: 'audio/bgm/echoes-of-a-silent-prayer.mp3' },
+      { title: 'Endless Rainfall',               sub: 'In-Game BGM',  src: 'audio/bgm/endless-rainfall.mp3' },
+      { title: 'Requiem for a Persian Spring',   sub: 'In-Game BGM',  src: 'audio/bgm/requiem-for-a-persian-spring.mp3' },
+      { title: 'Requiem of Falling Stars',       sub: 'In-Game BGM',  src: 'audio/bgm/requiem-of-falling-stars.mp3' },
+      { title: 'Sorrow of a Thousand Blades',    sub: 'In-Game BGM',  src: 'audio/bgm/sorrow-of-a-thousand-blades.mp3' },
+      { title: "Suwako's Theme – Native Faith",  sub: 'Reference',    src: 'audio/bgm/suwakos-theme-native-faith.mp3' },
+      { title: "The Last Cicada's Song",         sub: 'In-Game BGM',  src: 'audio/bgm/the-last-cicadas-song.mp3' },
+      { title: 'Where Summer Fades to Silence',  sub: 'In-Game BGM',  src: 'audio/bgm/where-summer-fades-to-silence.mp3' },
+    ];
+
+    // guide.html sits in the project root next to index.html, so plain
+    // 'audio/...' paths resolve correctly both inside the iframe embed and
+    // when the file is opened standalone.
+
+    function _renderMusicArchive() {
+      return `
+<div class="card">
+<h2 style="color:var(--cyan)">MUSIC ARCHIVE</h2>
+<div class="sub">Where the currents of sound gather, time itself blossoms in melody, and the silence between stars begins to sing.</div>
+<p style="opacity:0.75; font-size:12px; margin-top:6px;">The menu theme "Pisces" plays only on the title screen. All other tracks are randomly chosen once you confirm your first sigil each run.</p>
+<div id="music-list" style="display:flex; flex-direction:column; gap:10px; margin-top:14px;"></div>
+<div style="margin-top:18px; padding:12px 14px; background:rgba(0,20,40,0.4); border:1px dashed rgba(0,229,255,0.25); border-radius:8px; font-size:11px; line-height:1.6; color:rgba(200,220,240,0.75);">
+  <b style="color:#00e5ff; letter-spacing:1px;">CREDITS</b><br>
+  "Suwako's Theme – Native Faith" — original composition by <b>ZUN</b> (Team Shanghai Alice), from <i>Touhou 10: Mountain of Faith</i>. Arrangement uploaded by <b>PineappleDisciple</b>.<br>
+  <span style="opacity:0.75;">Included here purely as a personal favorite for reference. No commercial use — all rights remain with the original composer and arranger.</span>
+</div>
+</div>`;
+    }
+
+    // Reused by tab switch, close-guide (from parent), and per-track button.
+    // Sends a resume signal to the parent AudioMgr when nothing is playing.
+    let _currentPreviewEl = null;
+    let _currentPreviewBtn = null;
+    function _stopPreview(resumeParent) {
+      if (_currentPreviewEl) {
+        try { _currentPreviewEl.pause(); _currentPreviewEl.currentTime = 0; } catch (_) {}
+      }
+      if (_currentPreviewBtn) _currentPreviewBtn.textContent = '▶';
+      _currentPreviewEl = null;
+      _currentPreviewBtn = null;
+      window._musicArchivePreview = null;
+      if (resumeParent !== false && window.parent && window.parent.AudioMgr) {
+        try { window.parent.AudioMgr.resumeBgm(); } catch (_) {}
+      }
+    }
+    // Parent (index.html) calls this on closeGuide so BGM resumes cleanly.
+    window._stopMusicPreview = _stopPreview;
+
+    function _fmtTime(sec) {
+      if (!isFinite(sec) || sec < 0) sec = 0;
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return m + ':' + (s < 10 ? '0' + s : s);
+    }
+
+    function _mountMusicArchive() {
+      const list = document.getElementById('music-list');
+      if (!list) return;
+      MUSIC_TRACKS.forEach(t => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; flex-direction:column; gap:8px; padding:10px 14px; background:rgba(0,20,40,0.55); border:1px solid rgba(0,229,255,0.18); border-radius:8px;';
+
+        const topRow = document.createElement('div');
+        topRow.style.cssText = 'display:flex; align-items:center; gap:12px;';
+
+        const btn = document.createElement('button');
+        btn.textContent = '▶';
+        btn.style.cssText = 'width:36px; height:36px; border-radius:50%; background:rgba(0,229,255,0.14); border:1px solid rgba(0,229,255,0.4); color:#00e5ff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;';
+
+        const info = document.createElement('div');
+        info.style.cssText = 'flex:1; min-width:0;';
+        info.innerHTML = '<div style="color:#e0f4ff; font-size:13px; font-weight:600;">' + t.title + '</div>' +
+                         '<div style="color:rgba(0,229,255,0.5); font-size:10px; letter-spacing:1px; text-transform:uppercase;">' + t.sub + '</div>';
+
+        const timeLbl = document.createElement('div');
+        timeLbl.style.cssText = 'color:rgba(0,229,255,0.6); font-size:10px; font-family:monospace; min-width:78px; text-align:right;';
+        timeLbl.textContent = '0:00 / 0:00';
+
+        topRow.appendChild(btn);
+        topRow.appendChild(info);
+        topRow.appendChild(timeLbl);
+
+        // Seek bar: click / drag anywhere on the track to jump to that time.
+        const seekWrap = document.createElement('div');
+        seekWrap.style.cssText = 'position:relative; height:6px; background:rgba(0,229,255,0.10); border-radius:3px; cursor:pointer; overflow:hidden;';
+        const seekFill = document.createElement('div');
+        seekFill.style.cssText = 'position:absolute; top:0; left:0; bottom:0; width:0%; background:linear-gradient(90deg,#0ea5e9,#00ffff); box-shadow:0 0 6px rgba(0,229,255,0.5);';
+        seekWrap.appendChild(seekFill);
+
+        const audio = new Audio(t.src);
+        audio.preload = 'none';
+        audio.volume = 0.7;
+
+        let dragging = false;
+        function seekFromEvent(ev) {
+          if (!audio.duration || !isFinite(audio.duration)) return;
+          const rect = seekWrap.getBoundingClientRect();
+          const x = (ev.touches ? ev.touches[0].clientX : ev.clientX) - rect.left;
+          const pct = Math.max(0, Math.min(1, x / rect.width));
+          audio.currentTime = pct * audio.duration;
+          seekFill.style.width = (pct * 100) + '%';
+        }
+        seekWrap.addEventListener('mousedown', (e) => { dragging = true; seekFromEvent(e); });
+        document.addEventListener('mousemove', (e) => { if (dragging) seekFromEvent(e); });
+        document.addEventListener('mouseup', () => { dragging = false; });
+        seekWrap.addEventListener('touchstart', (e) => { dragging = true; seekFromEvent(e); }, { passive: true });
+        seekWrap.addEventListener('touchmove', (e) => { if (dragging) seekFromEvent(e); }, { passive: true });
+        seekWrap.addEventListener('touchend', () => { dragging = false; });
+
+        audio.addEventListener('timeupdate', () => {
+          if (audio.duration && isFinite(audio.duration)) {
+            seekFill.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
+            timeLbl.textContent = _fmtTime(audio.currentTime) + ' / ' + _fmtTime(audio.duration);
+          }
+        });
+        audio.addEventListener('loadedmetadata', () => {
+          timeLbl.textContent = '0:00 / ' + _fmtTime(audio.duration);
+        });
+        audio.addEventListener('ended', () => { btn.textContent = '▶'; _stopPreview(true); });
+
+        btn.addEventListener('click', () => {
+          if (window.parent && window.parent.AudioMgr) {
+            try { window.parent.AudioMgr.playSfx('click'); } catch (_) {}
+          }
+          // Toggling the currently-playing track = stop + resume parent BGM.
+          if (_currentPreviewEl === audio && !audio.paused) {
+            audio.pause();
+            btn.textContent = '▶';
+            _stopPreview(true);
+            return;
+          }
+          // Starting a new preview: stop any other, duck the main BGM, then play.
+          _stopPreview(false);
+          if (window.parent && window.parent.AudioMgr) {
+            try { window.parent.AudioMgr.pauseBgm(); } catch (_) {}
+          }
+          audio.play().catch(() => {});
+          btn.textContent = '⏸';
+          _currentPreviewEl = audio;
+          _currentPreviewBtn = btn;
+          window._musicArchivePreview = audio;
+        });
+
+        row.appendChild(topRow);
+        row.appendChild(seekWrap);
+        list.appendChild(row);
+      });
+    }
+
     // ── Render tab content ──
     function showTab(name) {
+      // Leaving the music tab: stop preview + resume parent BGM
+      if (typeof _stopPreview === 'function') _stopPreview(true);
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-      G.innerHTML = '<div class="tab-content active">' + TABS[name] + '</div>';
+      const html = (name === 'music') ? _renderMusicArchive() : TABS[name];
+      G.innerHTML = '<div class="tab-content active">' + html + '</div>';
       requestAnimationFrame(() => {
         document.querySelectorAll('.ul-badge').forEach(b => {
           const t = b.textContent;
@@ -1337,6 +1497,7 @@
           else if (/BETA/.test(t)) b.classList.add('b-beta');
         });
         attachScrollReveal();
+        if (name === 'music') _mountMusicArchive();
         requestAnimationFrame(() => initCanvases(name));
       });
       if (name === 'sigils') setTimeout(() => initCanvases('sigils'), 32);
@@ -1356,10 +1517,22 @@
     }
 
     showTab('basics');
-    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => { showTab(b.dataset.tab); G.scrollTop = 0; }));
+    // Every tab button + the Detailed toggle plays the parent's click SFX so
+    // the iframe boundary doesn't silence the UI feedback.
+    function _playParentClickSfx() {
+      if (window.parent && window.parent.AudioMgr) {
+        try { window.parent.AudioMgr.playSfx('click'); } catch (_) {}
+      }
+    }
+    document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
+      _playParentClickSfx();
+      showTab(b.dataset.tab);
+      G.scrollTop = 0;
+    }));
 
     const _togBtn = document.getElementById('togDetail');
     _togBtn.addEventListener('click', () => {
+      _playParentClickSfx();
       const isShort = G.classList.toggle('shortened');
       _togBtn.textContent = isShort ? 'Shortened' : 'Detailed';
       _togBtn.classList.toggle('shortened', isShort);

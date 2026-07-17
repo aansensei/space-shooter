@@ -192,6 +192,7 @@ function distToSegment(p, v, w) {
 }
 
 function handleEnemyKill(enemy) {
+    if (window.AudioMgr) window.AudioMgr.playSfx('enemy-death');
     score = Math.ceil(score + enemy.maxHp * 6);
     // Primeval Creation: +1.25% energy per kill from non-spirit sources
     if (!enemy._spiritKillCounted) {
@@ -270,6 +271,7 @@ function fireAutoShot() {
     const fireRateMultiplier = (gloryForJusticeActive ? 1.50 : 1) * (1 + (window._laiKepFireRateBonus || 0));
     if (performance.now() - lastAutoFire < autoFireInterval / fireRateMultiplier) return;
     lastAutoFire = performance.now();
+    if (window.AudioMgr) window.AudioMgr.playSfx('autoshot');
 
     const speedMultiplier = gloryForJusticeActive ? 1.25 : 1;
     const numBullets = 5, spreadAngle = Math.PI / 4;
@@ -300,6 +302,7 @@ function fireAutoShot() {
 }
 
 function fireChargedBullet(multiplier) {
+    if (window.AudioMgr) window.AudioMgr.playChargedShot();
     const baseSize = 5;
     bullets.push({
         x: player.x, y: player.y - player.height / 2,
@@ -1600,6 +1603,7 @@ function dealDamage(enemy, source) {
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
+    else if (window.AudioMgr) window.AudioMgr.playSfx('enemy-hit');
 
     // Compound Interest: +200 shield-piercing standard damage while Photokrystos alive
     if (_hasBuff('lai_kep') && !isSentinel

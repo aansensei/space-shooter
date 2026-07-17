@@ -55,7 +55,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=20260717a">
 
     <style>
         body {
@@ -226,7 +226,8 @@
             position: fixed;
             top: 16px;
             left: 16px;
-            z-index: 9999999;
+            /* Kept above the pause overlay so mute is reachable while paused */
+            z-index: 99999999;
             width: 44px;
             height: 44px;
             border-radius: 50%;
@@ -500,6 +501,14 @@
                     }
                 }
                 function closeGuide() {
+                    // Stop any music-archive preview inside the iframe so the
+                    // main BGM resumes cleanly.
+                    const _fr = document.getElementById('guideFrame');
+                    if (_fr && _fr.contentWindow && typeof _fr.contentWindow._stopMusicPreview === 'function') {
+                        try { _fr.contentWindow._stopMusicPreview(true); } catch (_) {}
+                    } else if (window.AudioMgr) {
+                        window.AudioMgr.resumeBgm();
+                    }
                     document.getElementById('guideOverlay').style.display = 'none';
                 }
                 document.getElementById('guideOverlay').addEventListener('click', function (e) {
@@ -570,12 +579,26 @@
                     <!-- ── AUDIO ─────────────────────────────── -->
                     <div class="stg-section-label">Audio</div>
 
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Volume</span>
-                        <input type="range" id="vol-slider" min="0" max="100" value="100"
-                            oninput="onVolumeChange(this.value)"
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">BGM</span>
+                        <input type="range" id="vol-bgm-slider" min="0" max="100" value="70"
+                            oninput="onAudioSlider('bgm', this.value)"
                             style="flex:1; accent-color:#00e5ff; cursor:pointer;">
-                        <span id="vol-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
+                        <span id="vol-bgm-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">70%</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">SFX</span>
+                        <input type="range" id="vol-sfx-slider" min="0" max="100" value="70"
+                            oninput="onAudioSlider('sfx', this.value)"
+                            style="flex:1; accent-color:#00e5ff; cursor:pointer;">
+                        <span id="vol-sfx-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">70%</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Global</span>
+                        <input type="range" id="vol-global-slider" min="0" max="100" value="100"
+                            oninput="onAudioSlider('global', this.value)"
+                            style="flex:1; accent-color:#00e5ff; cursor:pointer;">
+                        <span id="vol-global-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
 
                     <div class="stg-divider"></div>
@@ -710,11 +733,16 @@
                     const qBtn = document.getElementById(qMap[lvl] || 'q-high');
                     if (qBtn) qBtn.classList.add('stg-q-active');
 
-                    // Volume
-                    const vol = typeof window._masterVolume !== 'undefined' ? window._masterVolume : 1.0;
-                    const slider = document.getElementById('vol-slider');
-                    slider.value = Math.round(vol * 100);
-                    document.getElementById('vol-label').textContent = slider.value + '%';
+                    // Audio: sync 3 sliders from AudioMgr persisted volumes
+                    if (window.AudioMgr) {
+                        ['bgm','sfx','global'].forEach(cat => {
+                            const v = Math.round(window.AudioMgr.getVolume(cat) * 100);
+                            const s = document.getElementById('vol-' + cat + '-slider');
+                            const l = document.getElementById('vol-' + cat + '-label');
+                            if (s) s.value = v;
+                            if (l) l.textContent = v + '%';
+                        });
+                    }
 
                     // Screen shake
                     onShakeChange(window._screenShakeEnabled !== false);
@@ -758,9 +786,10 @@
                     if (btn) btn.classList.add('stg-q-active');
                 }
 
-                // Volume slider → only update label
-                function onVolumeChange(val) {
-                    document.getElementById('vol-label').textContent = val + '%';
+                // Audio sliders → apply immediately + update label
+                function onAudioSlider(cat, val) {
+                    document.getElementById('vol-' + cat + '-label').textContent = val + '%';
+                    if (window.AudioMgr) window.AudioMgr.setVolume(cat, parseInt(val) / 100);
                 }
 
                 // Background brightness slider → apply immediately + update label
@@ -789,12 +818,7 @@
                         }
                     }
 
-                    // Volume
-                    const v = parseInt(document.getElementById('vol-slider').value) / 100;
-                    window._masterVolume = v;
-                    if (typeof sndTitle     !== 'undefined') sndTitle.volume     = 0.50 * v;
-                    if (typeof sndHyperjump !== 'undefined') sndHyperjump.volume = 0.80 * v;
-                    if (typeof sndIngame    !== 'undefined') sndIngame.volume    = 0.50 * v;
+                    // Audio: 3-slider volumes are applied live via onAudioSlider
 
                     // Screen shake
                     window._screenShakeEnabled = document.getElementById('shake-on').classList.contains('stg-onoff-active');
@@ -845,24 +869,24 @@
             _activeTrack = null;
         }
 
-        // Mute toggle, tắt/bật ngay lập tức
+        // Mute toggle routes through AudioMgr; the legacy hyperjump SFX element
+        // still needs a direct pause since it isn't managed by AudioMgr.
         document.getElementById('mute-btn').addEventListener('click', () => {
             _muted = !_muted;
             document.getElementById('ico-on').style.display = _muted ? 'none' : 'block';
             document.getElementById('ico-off').style.display = _muted ? 'block' : 'none';
-            if (_muted) {
-                [sndTitle, sndHyperjump, sndIngame].forEach(t => t.pause());
-            } else if (_activeTrack) {
-                _activeTrack.play().catch(() => { });
-            }
+            if (window.AudioMgr) window.AudioMgr.setMuted(_muted);
+            if (_muted) { try { sndHyperjump.pause(); } catch (_) {} }
         });
 
-        // Click-to-start: user interaction đầu tiên → play title soundtrack
+        // Click-to-start: first user gesture unlocks audio. AudioMgr owns BGM
+        // now; the legacy sndTitle element stays available only for backwards
+        // compat with any code that still touches it directly.
         document.getElementById('click-to-start').addEventListener('click', function () {
             this.style.opacity = '0';
             const self = this;
             setTimeout(() => { self.style.display = 'none'; }, 600);
-            audioPlay(sndTitle); // play ngay trong click event → browser cho phép
+            if (window.AudioMgr) window.AudioMgr.playMenuBgm();
         }, { once: true });
     </script>
 
@@ -1018,11 +1042,13 @@
                 speed = 0.8;
                 isSimulationRunning = true;
                 drawStars();
-                // Audio: back to title BGM
-                if (typeof sndIngame !== 'undefined') { sndIngame.pause(); sndIngame.currentTime = 0; }
-                if (typeof audioPlay === 'function' && typeof sndTitle !== 'undefined') {
-                    sndTitle.volume = 0.5;
-                    audioPlay(sndTitle);
+                // Audio: back to title BGM, drop ambient + engine loops
+                if (window.AudioMgr) {
+                    window.AudioMgr.stopAmbient();
+                    window.AudioMgr.stopEngine();
+                    window.AudioMgr.stopLaser();
+                    window.AudioMgr.stopCharging();
+                    window.AudioMgr.playMenuBgm();
                 }
                 window._inGame = false;
             };
@@ -1037,8 +1063,7 @@
                 isWarping = true;
                 warpStartTime = Date.now();
 
-                // Audio: soundtrack1 tiếp tục ở 50%, hyperjump sound chồng lên
-                sndTitle.volume = 0.25; // giảm 50% so với bình thường (0.50 → 0.25)
+                // AudioMgr owns menu BGM already; only fire the one-shot warp SFX
                 sndHyperjump.play().catch(() => { });
 
                 setTimeout(() => { progressBar.style.width = '100%'; }, 50);
@@ -1053,8 +1078,12 @@
                     if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
                     if (typeof _initMobileControls === 'function') _initMobileControls();
 
-                    // Audio: ingame BGM
-                    audioPlay(sndIngame);
+                    // Ambient (space) + engine now; in-game BGM waits for sigil confirm
+                    if (window.AudioMgr) {
+                        window.AudioMgr.stopBgm();
+                        window.AudioMgr.startAmbient();
+                        window.AudioMgr.startEngine();
+                    }
 
                     setTimeout(() => {
                         whiteFlash.style.transition = 'opacity 1.5s ease-out';
@@ -1199,15 +1228,45 @@
     </script>
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
-    <script src="js/background.js?v=20260619c"></script>
-    <script src="js/config.js?v=20260619c"></script>
-    <script src="js/sigils.js?v=20260619c"></script>
-    <script src="js/entities.js?v=20260619c"></script>
-    <script src="js/skills.js?v=20260619c"></script>
-    <script src="js/render.js?v=20260619c"></script>
-    <script src="js/pixi-renderer.js?v=20260619c"></script>
-    <script src="js/input.js?v=20260619c"></script>
-    <script src="js/main.js?v=20260619c"></script>
+    <script src="js/audio.js?v=20260717a"></script>
+    <script src="js/background.js?v=20260717a"></script>
+    <script src="js/config.js?v=20260717a"></script>
+    <script src="js/sigils.js?v=20260717a"></script>
+    <script src="js/entities.js?v=20260717a"></script>
+    <script src="js/skills.js?v=20260717a"></script>
+    <script src="js/render.js?v=20260717a"></script>
+    <script src="js/pixi-renderer.js?v=20260717a"></script>
+    <script src="js/input.js?v=20260717a"></script>
+    <script src="js/main.js?v=20260717a"></script>
+
+    <!-- ══ UI SFX WIRING ═════════════════════════════════════════════ -->
+    <script>
+        (function () {
+            if (!window.AudioMgr) return;
+
+            // Every real <button> in the app plays the click sfx. Ignore
+            // in-game mobile skill buttons (class starts with "mb"): those
+            // fire far too often and already carry their own gameplay sfx
+            // via the actions they trigger.
+            document.addEventListener('click', function (e) {
+                const b = e.target.closest('button');
+                if (!b) return;
+                if (b.classList && (b.classList.contains('mb') || b.classList.contains('mb-sk') || b.classList.contains('mb-ar'))) return;
+                window.AudioMgr.playSfx('click');
+            }, true);
+
+            // Overlay open/close sfx: wrap openGuide/openSettings/closeGuide/closeSettings
+            ['openGuide','openSettings','closeGuide','closeSettings'].forEach(fn => {
+                const orig = window[fn];
+                if (typeof orig === 'function') {
+                    window[fn] = function () {
+                        window.AudioMgr.playSfx('overlay');
+                        return orig.apply(this, arguments);
+                    };
+                }
+            });
+        })();
+    </script>
 
     <!-- ══ MOBILE UI (injected after game scripts load) ══════════════ -->
     <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:all; z-index:300;"></div>

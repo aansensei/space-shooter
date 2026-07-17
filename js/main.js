@@ -3,6 +3,7 @@ function loseLife() {
         playerAbsoluteShield = false;
         addExplosion(player.x, player.y, 150, 'gold');
         _setShake(15, 400);
+        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
         return;
     }
 
@@ -14,11 +15,13 @@ function loseLife() {
         _setShake(25, 800);
         createParticles(player.x, player.y, 150, 'gold', 4, 12);
         addExplosion(player.x, player.y, 250, 'gold');
+        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
         return;
     }
 
     lives--;
     window._hitVignetteStart = performance.now(); // trigger red border flash
+    if (window.AudioMgr) window.AudioMgr.playSfx('life-lost');
 }
 
 function playerTakesHit(attacker) {
@@ -31,12 +34,14 @@ function playerTakesHit(attacker) {
     if (skillShiftActive) {
         // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
         _triggerAccurateParry();
+        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
         return;
     }
 
     // ƯU TIÊN 1: Hy sinh Lôi Quang Cầu VÀNG (Chiêu A)
     if (skillAActive && skillADefensiveCharges > 0 && skillAOrbs.length > 0) {
         skillADefensiveCharges--;
+        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
 
         let orbIndex = skillAOrbs.findIndex(orb => orb.isDefensive && !orb.target);
         if (orbIndex === -1) orbIndex = skillAOrbs.findIndex(orb => orb.isDefensive);
@@ -92,6 +97,7 @@ function playerTakesHit(attacker) {
     if (_hasBuff('thanh_dong') && window._sigilIronBodyStacks > 0) {
         window._sigilIronBodyStacks--;
         addExplosion(player.x, player.y, 40, '#3b82f6');
+        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
         return;
     }
 
@@ -100,6 +106,7 @@ function playerTakesHit(attacker) {
         finalDefense.playerShield = false;
         finalDefense.playerCooldownEnd = performance.now() + 25000;
         addExplosion(player.x, player.y, 50, 'cyan');
+        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
         return;
     }
 
@@ -400,12 +407,14 @@ function update(rawDeltaTime) {
                 { y: canvas.height, vy: -4, side: 'right' }
             ];
         }
+        if (window.AudioMgr) { window.AudioMgr.stopCharging(); window.AudioMgr.startLaser(); }
     }
 
     if (laserActive) {
         if (currentTime - laserStartTime >= laserDuration) {
             laserActive = false; laserCooldownEnd = currentTime + laserCooldownDuration; playerClones = [];
             window._mirrorLaserEntities = null;
+            if (window.AudioMgr) window.AudioMgr.stopLaser();
         } else {
             const allLasers = [{ xOffset: 0 }, ...playerClones];
 

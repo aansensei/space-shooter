@@ -155,6 +155,13 @@ function _completeSigilPicker(sigilId) {
     if (ov) ov.style.display = 'none';
     const mc = document.getElementById('mc');
     if (mc) mc.style.pointerEvents = 'all';
+    // First sigil confirm swaps menu → random in-game BGM. Wave 5/10 re-picks
+    // keep whatever in-game track is already playing.
+    if (window.AudioMgr) {
+        const cur = window.AudioMgr.currentBgmId();
+        const curTrack = window.AudioMgr.list().find(t => t.id === cur);
+        if (!curTrack || curTrack.menuOnly) window.AudioMgr.playRandomInGameBgm();
+    }
 }
 
 function _onSigilApplied(sigilId, buffId) {
