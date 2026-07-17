@@ -918,8 +918,25 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
+<div class="ul-entry" style="--ul-accent:#06b6d4">
+<div class="ul-head"><span class="ul-ver">v5.1 — AUDIO OVERHAUL & MOBILE FIXES</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026 · Full skill SFX pass, Game Over &amp; New Wave cues, baked-in mix volumes, mobile sigil picker &amp; Settings fixes</div>
+<p class="det-short ul-summary">Every skill now has dedicated sound cues — Thunder Orbs, Tesla Coil, Phōtokrystos boomerang/laser, Remembrance Spirit. Skill F and Black Hole sounds now cut off exactly when their effect ends instead of ringing out. New Game Over sting (BGM stops on death) and New Wave announcement cue. Volume balance moved into the audio files themselves — sliders default to 100%. Mobile sigil picker layout and Settings panel scaling fixes.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Full skill SFX pass:</b> dedicated sound cues added for Skill A (orb spawn, target lock, impact), Skill G Tesla Coil formation, Phōtokrystos (boomerang throw/hit, Danger Not Today laser), and Remembrance Spirit (autofire, blade-arc slash).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Game Over sting:</b> a dedicated jingle plays the instant lives reach 0, and the background music stops immediately rather than continuing to play under the Game Over screen.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>New Wave cue:</b> a dedicated sound plays the moment a new wave is announced.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Baked-in mix volumes:</b> per-sound balance now lives in the audio files themselves instead of in-code multipliers. BGM / SFX / Global sliders in Settings now default to <span class="hg">100%</span> and read as the true intended volume.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Skill F sound cutoff:</b> the charge hum and slash cue now stop exactly when the charge window and sweep animation end, instead of ringing out past the effect.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Black Hole sound cutoff:</b> the ambience now stops the instant the Black Hole drifts off-screen instead of playing to completion.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker layout:</b> card sizing now scales responsively so the Confirm button always has room on short landscape viewports.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker stacking:</b> no longer renders behind the in-game mobile skill buttons.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Settings panel on mobile:</b> now scrolls instead of overflowing off-screen on short viewports.</li>
+</ul>
+</div>
+
 <div class="ul-entry" style="--ul-accent:#ffd700">
-<div class="ul-head"><span class="ul-ver">v5.0 — VISUAL OVERHAUL & ZODIAC SIGILS</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-head"><span class="ul-ver">v5.0 — VISUAL OVERHAUL & ZODIAC SIGILS</span><span class="ul-badge b-major">MAJOR</span></div>
 <div class="ul-date">2026 · WebGL parallax space background, Zodiac Sigil System, Sigil HUD, sigil mechanic reworks</div>
 <p class="det-short ul-summary">Full visual overhaul: WebGL space background with parallax asteroid field and brightness control. Zodiac Sigil System: 12 sigils (Wave 5 + Wave 10 picks, 2 buff choices each). Scorpio reworked — Resurrection replaces Dark Venom. Leo Lion's Roar adds 200 flat DoT. Permanent 2-slot Sigil HUD bottom right.</p>
 <ul class="det-full">
@@ -1335,7 +1352,7 @@
 
     // Music archive — list must match audio/bgm/ filenames on disk.
     const MUSIC_TRACKS = [
-      { title: 'Pisces',                         sub: 'Menu Theme',   src: 'audio/soundtrack1.mp3' },
+      { title: 'Pisces',                         sub: 'Menu Theme',   src: 'audio/bgm/pisces.mp3' },
       { title: 'Ascension of the Void Shrine',   sub: 'In-Game BGM',  src: 'audio/bgm/ascension-of-the-void-shrine.mp3' },
       { title: 'A Dorian Autumn Fair',           sub: 'In-Game BGM',  src: 'audio/bgm/a-dorian-autumn-fair.mp3' },
       { title: 'A Love That Never Ends',         sub: 'In-Game BGM',  src: 'audio/bgm/a-love-that-never-ends.mp3' },

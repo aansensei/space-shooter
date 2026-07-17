@@ -137,8 +137,13 @@ function _triggerSigilPicker() {
     };
     const ov = document.getElementById('sigil-pick-overlay');
     if (ov) ov.style.display = 'block';
+    // Mobile skill buttons (#mc) sit in their own DOM layer above the canvas
+    // (fixed z-index), independent of when the canvas draws the sigil picker
+    // on top of them — pointer-events alone doesn't stop them rendering over
+    // the cards. Hiding outright is correct anyway: skills aren't usable
+    // before the run has even started.
     const mc = document.getElementById('mc');
-    if (mc) mc.style.pointerEvents = 'none';
+    if (mc) { mc.style.pointerEvents = 'none'; mc.style.display = 'none'; }
     if (window.AudioMgr) window.AudioMgr.playSfx('sigil-open');
 }
 
@@ -155,7 +160,10 @@ function _completeSigilPicker(sigilId) {
     const ov = document.getElementById('sigil-pick-overlay');
     if (ov) ov.style.display = 'none';
     const mc = document.getElementById('mc');
-    if (mc) mc.style.pointerEvents = 'all';
+    if (mc) {
+        mc.style.pointerEvents = 'all';
+        if (typeof _platform !== 'undefined' && _platform === 'mobile') mc.style.display = 'block';
+    }
     // First sigil confirm swaps menu → random in-game BGM. Wave 5/10 re-picks
     // keep whatever in-game track is already playing.
     if (window.AudioMgr) {
@@ -205,20 +213,34 @@ function drawSigilPicker() {
 function _pickerLayout() {
     const isMob = typeof _platform !== 'undefined' && _platform === 'mobile';
     if (isMob) {
-        const margin = 12;
-        const panelPad = 16;
-        const gapX = 10, gapY = 10;
+        const margin = 10;
+        const panelPad = 12;
+        const gapX = 8, gapY = 8;
         const cols = 2, rows = 2;
         const panelW = canvas.width - margin * 2;
         const cardW = Math.floor((panelW - panelPad * 2 - gapX) / 2);
-        const cardH = 220;
-        const titleH = 40;
-        const confirmH = 56;
-        const detailH = 88;
+
+        // Ideal (tablet-sized) budget. Short landscape phones can't fit this,
+        // so scale cardH/detailH down until the panel fits canvas.height —
+        // titleH/confirmH/padding stay fixed (already small, and confirmH
+        // must stay tappable).
+        const titleH = 26, confirmH = 44;
+        let cardH = 160, detailH = 76;
+        const availH = canvas.height - margin * 2;
+        const neededH = rows * cardH + (rows - 1) * gapY + panelPad * 2 + titleH + confirmH + detailH + 6;
+        if (neededH > availH) {
+            const fixedH = panelPad * 2 + titleH + confirmH + (rows - 1) * gapY + 6;
+            const flexAvail = Math.max(150, availH - fixedH);
+            const flexNeeded = rows * cardH + detailH;
+            const scale = flexAvail / flexNeeded;
+            cardH = Math.max(58, Math.floor(cardH * scale));
+            detailH = Math.max(0, Math.floor(detailH * scale));
+        }
+
         const panelH = rows * cardH + (rows - 1) * gapY + panelPad * 2 + titleH + confirmH + detailH + 6;
         const panelX = (canvas.width - panelW) / 2;
-        const panelY = Math.max(10, (canvas.height - panelH) / 2 - 10);
-        return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob };
+        const panelY = Math.max(6, (canvas.height - panelH) / 2);
+        return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob, confirmH };
     }
     const margin = 32;
     const available = canvas.width - margin * 2;

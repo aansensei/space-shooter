@@ -1065,3 +1065,4 @@ function _drawEgregorEffects() {
         }
 
     }
+}

@@ -25,6 +25,7 @@ function activateSkillA() {
         lastSkillA = currentTime;
         skillAActive = true;
         skillADefensiveCharges = 3;
+        if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-activate');
 
         const orbsToAdd = Math.min(20, maxSkillAOrbs - skillAOrbs.length);
         for (let i = 0; i < orbsToAdd; i++) {
@@ -75,6 +76,7 @@ function updateSkillA(deltaTime) {
             availableOrb.target = availableEnemy;
             availableOrb.speed = 10;
             availableEnemy.isTargetedByA = true;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-lock', availableOrb.x, availableOrb.y);
 
             if (availableOrb.isDefensive) {
                 availableOrb.isDefensive = false;
@@ -118,6 +120,7 @@ function updateSkillA(deltaTime) {
 
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 8, percentDamage: 0.020 });
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
                 if (_didDmg) spawnDimensionalRift(orb.x, orb.y);
                 skillAOrbs.splice(i, 1);
 
@@ -401,6 +404,7 @@ function updateSpirits(deltaTime) {
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
                     isSpirit: true,
                 });
+                if (window.AudioMgr) window.AudioMgr.playSfx('spirit-autofire');
                 spirit.shotsFiredSinceBarrage++;
             }
         }
@@ -428,8 +432,10 @@ function updateSpirits(deltaTime) {
                     spawnAt: performance.now() + 10,
                     data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 137, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
                 });
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             } else {
                 bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             }
         }
     }
@@ -490,6 +496,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                 spirit._dntState = 'firing';
                 spirit._dntTimer = 0;
                 spirit._dntBaseAngle = spirit._dntAngle; // freeze base for sweep
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-dnt-laser', spirit.x, spirit.y);
             }
 
         } else if (spirit._dntState === 'firing') {
@@ -732,6 +739,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
             lifetime: 9000,
             _radius: _isExtra ? 53 : 48,
         });
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-throw', fromX, fromY);
     }
 }
 
@@ -803,6 +811,7 @@ function updatePhotoBrangs(deltaTime) {
                 const lastHit = b._hitCooldowns.get(tgt) || 0;
                 if (now_b - lastHit >= 200) { // can re-hit same enemy after 200ms
                     b._hitCooldowns.set(tgt, now_b);
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-hit', b.x, b.y);
                     const brangSrc = {
                         damage: Math.ceil((b.damage + (tgt.maxHp - tgt.hp) * 0.05) * (gloryForJusticeActive ? 1.55 : 1)),
                         percentDamage: b.percentDamage,
@@ -1062,10 +1071,11 @@ function activateSkillD() {
         // Aquarius: instant cast, skip charging
         lastSkillD = currentTime;
         blackHole = { x: player.x, y: player.y - player.height, size: 10, maxSize: 180, vy: -2, activeTime: 0 };
-        if (window.AudioMgr) window.AudioMgr.playSfx('blackhole');
+        if (window.AudioMgr) window.AudioMgr.startBlackhole();
     } else {
         skillDCharging = true;
         skillDChargeStartTime = performance.now();
+        if (window.AudioMgr) window.AudioMgr.startSkillDCharge();
     }
 }
 
@@ -1078,7 +1088,7 @@ function updateSkillD(deltaTime) {
                 x: player.x, y: player.y - player.height,
                 size: 10, maxSize: _hasBuff('set_day_chuyen') ? 180 : 120, vy: -2, activeTime: 0
             };
-            if (window.AudioMgr) window.AudioMgr.playSfx('blackhole');
+            if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.startBlackhole(); }
         }
     }
     if (blackHole) {
@@ -1121,7 +1131,10 @@ function updateSkillD(deltaTime) {
                 }
             }
         }
-        if (blackHole.y + blackHole.maxSize < 0) blackHole = null;
+        if (blackHole.y + blackHole.maxSize < 0) {
+            blackHole = null;
+            if (window.AudioMgr) window.AudioMgr.stopBlackhole();
+        }
     }
 
     if (_hasBuff('coi_mong')) {
@@ -1146,6 +1159,7 @@ function activateSkillF() {
         skillFState = "charging";
         skillFChargeStart = currentTime;
         enemies.forEach(e => e.hitBySkillF = false);
+        if (window.AudioMgr) window.AudioMgr.startSkillFCharge();
     }
 }
 
@@ -1154,6 +1168,7 @@ function updateSkillF(deltaTime) {
     if (skillFState === "charging" && currentTime - skillFChargeStart >= 1500) {
         skillFState = "sweeping";
         skillFSweepStart = currentTime;
+        if (window.AudioMgr) { window.AudioMgr.stopSkillFCharge(); window.AudioMgr.startSkillFFire(); }
         if (_hasBuff('song_luoi')) {
             const _fbDmg = 210 * 1.30, _fbPct = 0.058 * 1.30;
             const _fbTargets = enemies.filter(e =>
@@ -1178,6 +1193,7 @@ function updateSkillF(deltaTime) {
         let sweepProgress = (currentTime - skillFSweepStart) / skillFSweepDuration;
         if (sweepProgress >= 1) {
             skillFState = "ready";
+            if (window.AudioMgr) window.AudioMgr.stopSkillFFire();
             return;
         }
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
@@ -1469,6 +1485,7 @@ function spawnTeslaCoil(midX, midY) {
     if (teslaCoils.length >= 4) return;
 
     addExplosion(midX, midY, 100, 'electric_blue');
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('tesla-coil-form', midX, midY);
 
     teslaCoils.push({
         x: midX, y: midY,
