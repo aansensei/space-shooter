@@ -1359,7 +1359,12 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1);
             }
         }
-        if (lives <= 0) { gameState = "gameover"; _gameOverPlayTime = performance.now() - gameStartTime; showStartButton("Play Again"); showMainMenuButton(); }
+        if (lives <= 0) {
+            gameState = "gameover";
+            _gameOverPlayTime = performance.now() - gameStartTime;
+            showStartButton("Play Again"); showMainMenuButton();
+            if (window.AudioMgr) { window.AudioMgr.stopBgm(); window.AudioMgr.playSfx('gameover'); }
+        }
     }
 
     // Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới
@@ -2051,6 +2056,7 @@ function _updateWaveSystem(deltaTime, now) {
             _waveQueueTimer = 0;
             _wavePhase = 'spawning';
             _waveAnnouncedAt = now;
+            if (window.AudioMgr) window.AudioMgr.playSfx('new-wave');
             if (_hasBuff('than_menh')) window._thanMenhEndTime = now + 5000;
         }
         return;
@@ -2163,6 +2169,7 @@ function startGame() {
     accurateParryActive = false;
     accurateParryEndTime = 0;
     skillAActive = false; skillDCharging = false; skillFState = "ready";
+    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopBlackhole(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); }
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 
     hasTriggeredLastStand = false;

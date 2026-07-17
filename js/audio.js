@@ -69,31 +69,26 @@
         _duckFilter.frequency.setTargetAtTime(NORMAL_FREQ, now, 0.25);
     }
 
-    // Per-clip base gain. High-frequency sounds are attenuated so they don't
-    // pile up and clip the mix. Values 0..1, multiplied by sfx * global.
+    // Per-clip base gain. Balance lives in the audio files themselves (gain
+    // baked in with ffmpeg's volume filter) so the in-game sliders read as
+    // "true 100%" at their default — this map is a 1.0 passthrough, kept as
+    // a hook for future per-clip tweaks rather than a real attenuation table.
+    // Values 0..1, multiplied by sfx * global.
     const SFX_BASE = {
-        autoshot:      0.35,   // fires every 135ms; raised for audibility over the mix
-        charging:      0.75,   // sustained hum while holding Space, needs to feel present
-        laser:         0.50,   // long overload beam, keep from dominating the mix
-        'enemy-hit':   0.22,   // very frequent
-        'enemy-death': 0.42,   // frequent bursts, tamed so waves don't feel harsh
-        'shield-hit':  0.55,
-        'life-lost':   0.85,
-        click:         0.50,
-        hover:         0.30,   // tiny tick on button/card hover, keep discreet
-        overlay:       0.55,
-        engine:        0.20,   // ambient loop, subtle
-        ambient:       0.35,   // ingame.mp3 space background
-        'skill-ready':    0.68, // raised so the cooldown-done cue actually registers
-        'skill-unlocked': 0.70, // charge-based skill (Primeval / Tesla) hit 100
-        'sigil-open':      0.45,
-        'sigil-confirm':   0.55,
-        'sentinel-spawn':  0.62,   // raised for audibility
-        'sentinel-explode':0.68,   // raised for audibility
-        'shift-hold':      0.90,   // bypasses the time-domain duck — must read as the loudest thing on screen
-        'shift-teleport':  0.55,
-        coronation:        0.35, // source clip runs hot, dialed back to balance
-        blackhole:         0.50,
+        autoshot: 1.0, charging: 1.0, 'skill-d-charge': 1.0, laser: 1.0,
+        'enemy-hit': 1.0, 'enemy-death': 1.0, 'shield-hit': 1.0, 'life-lost': 1.0,
+        click: 1.0, hover: 1.0, overlay: 1.0, engine: 1.0, ambient: 1.0,
+        'skill-ready': 1.0, 'skill-unlocked': 1.0,
+        'sigil-open': 1.0, 'sigil-confirm': 1.0,
+        'sentinel-spawn': 1.0, 'sentinel-explode': 1.0,
+        'shift-hold': 1.0, 'shift-teleport': 1.0,
+        coronation: 1.0, blackhole: 1.0,
+        'spirit-autofire': 1.0, 'tesla-coil-form': 1.0,
+        'skill-a-activate': 1.0, 'skill-a-orb-hit': 1.0, 'skill-a-orb-lock': 1.0,
+        'skill-f-fire': 1.0, 'skill-f-charge': 1.0,
+        'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
+        'spirit-arc-slash': 1.0,
+        gameover: 1.0, 'new-wave': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -114,7 +109,7 @@
     // 12 in-game BGM tracks + the menu-only track ("Pisces" = soundtrack1.mp3).
     // Menu track is excluded from the in-game random pool.
     const BGM_LIST = [
-        { id: 'pisces',                 title: 'Pisces (Menu Theme)',            src: 'audio/soundtrack1.mp3',                          menuOnly: true },
+        { id: 'pisces',                 title: 'Pisces (Menu Theme)',            src: 'audio/bgm/pisces.mp3',                           menuOnly: true },
         { id: 'ascension',              title: 'Ascension of the Void Shrine',   src: 'audio/bgm/ascension-of-the-void-shrine.mp3' },
         { id: 'dorian-autumn',          title: 'A Dorian Autumn Fair',           src: 'audio/bgm/a-dorian-autumn-fair.mp3' },
         { id: 'love-never-ends',        title: 'A Love That Never Ends',         src: 'audio/bgm/a-love-that-never-ends.mp3' },
@@ -133,14 +128,18 @@
     ];
 
     const state = {
-        vol: { bgm: 0.7, sfx: 0.7, global: 1.0 },
+        vol: { bgm: 1.0, sfx: 1.0, global: 1.0 },
         muted: false,
         currentBgmId: null,
         bgmEl: null,
         ambientEl: null,     // ingame.mp3 space background (grouped under SFX)
         engineEl: null,      // engine loop
         laserEl: null,       // sustained laser loop
-        chargingEl: null,    // charging hum loop
+        chargingEl: null,    // charging hum loop (Space-hold overload laser, 3s)
+        skillDChargeEl: null, // black hole charge hum (Skill D, 2s — distinct clip)
+        skillFChargeEl: null, // Skill F charge-up cue, cut short at natural pace (not looped)
+        skillFFireEl: null,   // Skill F slash cue, cut short when the sweep animation ends (not looped)
+        blackholeEl: null,    // black hole ambience, cut short when the hole leaves the screen (not looped)
         pool: {},            // sfx key → Audio pool (rotated for rapid re-fires)
         poolIdx: {},
     };
@@ -244,8 +243,12 @@
             engine:   !!(state.engineEl   && !state.engineEl.paused),
             laser:    !!(state.laserEl    && !state.laserEl.paused),
             charging: !!(state.chargingEl && !state.chargingEl.paused),
+            skillDCharge: !!(state.skillDChargeEl && !state.skillDChargeEl.paused),
+            skillFCharge: !!(state.skillFChargeEl && !state.skillFChargeEl.paused),
+            skillFFire: !!(state.skillFFireEl && !state.skillFFireEl.paused),
+            blackhole: !!(state.blackholeEl && !state.blackholeEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -257,6 +260,10 @@
         if (s.engine   && state.engineEl)   try { state.engineEl.play().catch(() => {}); } catch (_) {}
         if (s.laser    && state.laserEl)    try { state.laserEl.play().catch(() => {}); } catch (_) {}
         if (s.charging && state.chargingEl) try { state.chargingEl.play().catch(() => {}); } catch (_) {}
+        if (s.skillDCharge && state.skillDChargeEl) try { state.skillDChargeEl.play().catch(() => {}); } catch (_) {}
+        if (s.skillFCharge && state.skillFChargeEl) try { state.skillFChargeEl.play().catch(() => {}); } catch (_) {}
+        if (s.skillFFire && state.skillFFireEl) try { state.skillFFireEl.play().catch(() => {}); } catch (_) {}
+        if (s.blackhole && state.blackholeEl) try { state.blackholeEl.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -304,6 +311,10 @@
         if (state.engineEl)  state.engineEl.volume  = sfxGain('engine');
         if (state.laserEl)   state.laserEl.volume   = sfxGain('laser');
         if (state.chargingEl) state.chargingEl.volume = sfxGain('charging');
+        if (state.skillDChargeEl) state.skillDChargeEl.volume = sfxGain('skill-d-charge');
+        if (state.skillFChargeEl) state.skillFChargeEl.volume = sfxGain('skill-f-charge');
+        if (state.skillFFireEl) state.skillFFireEl.volume = sfxGain('skill-f-fire');
+        if (state.blackholeEl) state.blackholeEl.volume = sfxGain('blackhole');
     }
 
     function setVolume(cat, v) {
@@ -336,6 +347,14 @@
     function stopEngine()   { stopLoop('engineEl'); }
     function startCharging(){ startLoop('chargingEl', 'charging'); }
     function stopCharging() { stopLoop('chargingEl'); }
+    function startSkillDCharge(){ startLoop('skillDChargeEl', 'skill-d-charge'); }
+    function stopSkillDCharge() { stopLoop('skillDChargeEl'); }
+    function startSkillFCharge(){ startLoop('skillFChargeEl', 'skill-f-charge'); }
+    function stopSkillFCharge() { stopLoop('skillFChargeEl'); }
+    function startSkillFFire()  { startLoop('skillFFireEl', 'skill-f-fire'); }
+    function stopSkillFFire()   { stopLoop('skillFFireEl'); }
+    function startBlackhole()   { startLoop('blackholeEl', 'blackhole'); }
+    function stopBlackhole()    { stopLoop('blackholeEl'); }
     function startLaser()   { startLoop('laserEl', 'laser'); }
     function stopLaser()    { stopLoop('laserEl'); }
 
@@ -358,16 +377,40 @@
         _makePool('shift-hold',       'audio/sfx/shift-hold.mp3',       2, true);
         _makePool('shift-teleport',   'audio/sfx/shift-teleport.mp3',   2);
         _makePool('coronation',       'audio/sfx/coronation.mp3',       2);
-        _makePool('blackhole',        'audio/sfx/blackhole.mp3',        2);
+        _makePool('spirit-autofire',  'audio/sfx/spirit-autofire.mp3',  5); // fires ~42ms cadence, needs deep pool
+        _makePool('tesla-coil-form',  'audio/sfx/tesla-coil-form.mp3',  2);
+        _makePool('skill-a-activate', 'audio/sfx/skill-a-activate.mp3', 2);
+        _makePool('skill-a-orb-hit',  'audio/sfx/skill-a-orb-hit.mp3',  4);
+        _makePool('skill-a-orb-lock', 'audio/sfx/skill-a-orb-lock.mp3', 4);
+        _makePool('photokrystos-dnt-laser',       'audio/sfx/photokrystos-dnt-laser.mp3',       2);
+        _makePool('photokrystos-boomerang-throw', 'audio/sfx/photokrystos-boomerang-throw.mp3', 3);
+        _makePool('photokrystos-boomerang-hit',   'audio/sfx/photokrystos-boomerang-hit.mp3',   3);
+        _makePool('spirit-arc-slash', 'audio/sfx/spirit-arc-slash.mp3', 3);
+        _makePool('gameover',  'audio/sfx/gameover.mp3',  1);
+        _makePool('new-wave',  'audio/sfx/new-wave.mp3',  2);
 
-        state.ambientEl  = _mkLoop('audio/ingame.mp3');
+        state.ambientEl  = _mkLoop('audio/sfx/ingame.mp3');
         state.engineEl   = _mkLoop('audio/sfx/engine.wav');
         state.laserEl    = _mkLoop('audio/sfx/laser.mp3');
         state.chargingEl = _mkLoop('audio/sfx/charging.mp3');
+        state.skillDChargeEl = _mkLoop('audio/sfx/skill-d-charge.mp3');
+        // Not looped: play once at natural pace, cut short by stopLoop() when
+        // the game event they track (charge window / on-screen lifetime /
+        // sweep animation) ends rather than being pre-trimmed/time-stretched
+        // to a fixed duration.
+        state.skillFChargeEl = _mkOnce('audio/sfx/skill-f-charge.mp3');
+        state.skillFFireEl   = _mkOnce('audio/sfx/skill-f-fire.mp3');
+        state.blackholeEl    = _mkOnce('audio/sfx/blackhole.mp3');
     }
     function _mkLoop(src) {
         const a = new Audio(src);
         a.loop = true;
+        a.preload = 'auto';
+        _routeToGraph(a, false);
+        return a;
+    }
+    function _mkOnce(src) {
+        const a = new Audio(src);
         a.preload = 'auto';
         _routeToGraph(a, false);
         return a;
@@ -388,6 +431,10 @@
         startAmbient, stopAmbient,
         startEngine,  stopEngine,
         startCharging, stopCharging,
+        startSkillDCharge, stopSkillDCharge,
+        startSkillFCharge, stopSkillFCharge,
+        startSkillFFire, stopSkillFFire,
+        startBlackhole, stopBlackhole,
         startLaser,   stopLaser,
 
         // Volumes / mute

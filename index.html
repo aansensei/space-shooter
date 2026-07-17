@@ -345,9 +345,9 @@
 
 <body>
     <!-- Audio -->
-    <audio id="snd-title" src="audio/soundtrack1.mp3" loop preload="auto"></audio>
-    <audio id="snd-hyperjump" src="audio/hyperjump.mp3" preload="auto"></audio>
-    <audio id="snd-ingame" src="audio/ingame.mp3" loop preload="auto"></audio>
+    <audio id="snd-title" src="audio/bgm/pisces.mp3" loop preload="auto"></audio>
+    <audio id="snd-hyperjump" src="audio/sfx/hyperjump.mp3" preload="auto"></audio>
+    <audio id="snd-ingame" src="audio/sfx/ingame.mp3" loop preload="auto"></audio>
 
     <!-- Mute button -->
     <button id="mute-btn" title="Bật/Tắt âm thanh">
@@ -522,6 +522,7 @@
                 justify-content:center; align-items:center;">
                 <div id="settings-panel" style="
                     position:relative; width:min(90vw,400px);
+                    max-height:90vh; max-height:90dvh; overflow-y:auto;
                     background:rgba(0,12,28,0.95);
                     border:1.5px solid rgba(0,229,255,0.25);
                     border-radius:18px; padding:28px 28px 24px;
@@ -581,17 +582,17 @@
 
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">BGM</span>
-                        <input type="range" id="vol-bgm-slider" min="0" max="100" value="70"
+                        <input type="range" id="vol-bgm-slider" min="0" max="100" value="100"
                             oninput="onAudioSlider('bgm', this.value)"
                             style="flex:1; accent-color:#00e5ff; cursor:pointer;">
-                        <span id="vol-bgm-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">70%</span>
+                        <span id="vol-bgm-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">SFX</span>
-                        <input type="range" id="vol-sfx-slider" min="0" max="100" value="70"
+                        <input type="range" id="vol-sfx-slider" min="0" max="100" value="100"
                             oninput="onAudioSlider('sfx', this.value)"
                             style="flex:1; accent-color:#00e5ff; cursor:pointer;">
-                        <span id="vol-sfx-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">70%</span>
+                        <span id="vol-sfx-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Global</span>
@@ -1231,20 +1232,31 @@
     </script>
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
-    <script src="js/audio.js?v=20260717a"></script>
+    <script src="js/audio.js?v=20260717c"></script>
     <script src="js/background.js?v=20260717a"></script>
     <script src="js/config.js?v=20260717a"></script>
     <script src="js/sigils.js?v=20260717a"></script>
     <script src="js/entities.js?v=20260717a"></script>
-    <script src="js/skills.js?v=20260717a"></script>
-    <!-- Split js/render/*.js caused a blank-menu regression (2026-07) — reverted
-         to the monolithic file until the split is debugged and re-verified.
-         Split files are still on disk under js/render/, untouched, for the
-         debugging pass. -->
-    <script src="js/render.js?v=20260717a"></script>
+    <script src="js/skills.js?v=20260717c"></script>
+    <script src="js/render/core.js?v=20260717e"></script>
+    <script src="js/render/fx.js?v=20260717e"></script>
+    <script src="js/render/player.js?v=20260717e"></script>
+    <script src="js/render/enemy-common.js?v=20260717e"></script>
+    <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
+    <script src="js/render/enemy-boss-thaelis.js?v=20260717e"></script>
+    <script src="js/render/enemy-marchosias.js?v=20260717e"></script>
+    <script src="js/render/enemy-leviathan.js?v=20260717e"></script>
+    <script src="js/render/enemy-veilshroud.js?v=20260717e"></script>
+    <script src="js/render/enemy-egregor.js?v=20260717e"></script>
+    <script src="js/render/skill-s-spirit.js?v=20260717e"></script>
+    <script src="js/render/skill-a.js?v=20260717e"></script>
+    <script src="js/render/skill-d.js?v=20260717e"></script>
+    <script src="js/render/skill-f.js?v=20260717e"></script>
+    <script src="js/render/skill-g.js?v=20260717e"></script>
+    <script src="js/render/skill-buttons.js?v=20260717e"></script>
     <script src="js/pixi-renderer.js?v=20260717a"></script>
     <script src="js/input.js?v=20260717a"></script>
-    <script src="js/main.js?v=20260717a"></script>
+    <script src="js/main.js?v=20260717c"></script>
 
     <!-- ══ UI SFX WIRING ═════════════════════════════════════════════ -->
     <script>
@@ -1452,7 +1464,12 @@
                 // Mobile graphics = PC: không gọi _initMobilePerf()
 
                 const mc = document.getElementById('mc');
-                mc.style.display = 'block';
+                // startGame() (called just before this on the initial hyperjump
+                // flow) may have already opened the wave-1 sigil picker, which
+                // hides #mc so it doesn't render on top of the picker cards.
+                // Rebuilding the mobile button HTML is still needed, but must
+                // not force it back to visible while that picker is up.
+                mc.style.display = window._sigilPicker ? 'none' : 'block';
                 mc.innerHTML = _buildMobileHTML();
                 _startCooldownLoop();
             };
