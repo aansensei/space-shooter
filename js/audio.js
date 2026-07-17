@@ -12,8 +12,8 @@
     // pile up and clip the mix. Values 0..1, multiplied by sfx * global.
     const SFX_BASE = {
         autoshot:      0.18,   // fires every 135ms, keep quiet
-        charging:      0.55,
-        laser:         0.75,   // long beam, needs to sit clearly above the mix
+        charging:      0.75,   // sustained hum while holding Space, needs to feel present
+        laser:         0.50,   // long overload beam, keep from dominating the mix
         'charged-fire':0.65,   // one-shot burst on Space-release <3s
         'enemy-hit':   0.22,   // very frequent
         'enemy-death': 0.55,
