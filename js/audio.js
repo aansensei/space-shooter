@@ -8,6 +8,67 @@
 (function () {
     const STORAGE_KEY = 'audioVols';
 
+    // Web Audio graph: everything except the Yog-Sothoth activation cue
+    // ("shift-hold") routes through a shared duck-gain -> lowpass-filter
+    // chain. Yog-Sothoth Domain drives that chain to simulate the rest of
+    // the mix being smothered by the time-space distortion — muffled and
+    // quiet — while its own activation sound bypasses the chain entirely so
+    // it reads as the loudest, clearest thing in the mix. Falls back to
+    // silent no-ops if the browser has no Web Audio support.
+    const _AC = window.AudioContext || window.webkitAudioContext;
+    const actx = _AC ? new _AC() : null;
+    let _duckGain = null, _duckFilter = null;
+    const NORMAL_FREQ = 20000; // effectively unfiltered
+    const DOMAIN_FREQ = 450;   // muffled "far away in a vacuum" lowpass cutoff
+    const DOMAIN_GAIN = 0.32;  // everything else ducks to this while the domain is active
+    if (actx) {
+        _duckGain = actx.createGain();
+        _duckFilter = actx.createBiquadFilter();
+        _duckFilter.type = 'lowpass';
+        _duckFilter.frequency.value = NORMAL_FREQ;
+        _duckGain.gain.value = 1;
+        _duckGain.connect(_duckFilter);
+        _duckFilter.connect(actx.destination);
+    }
+
+    // Wraps an <audio> element into the Web Audio graph. bypass=true skips
+    // the duck/filter chain (routes straight to destination) for sounds that
+    // must stay loud and clear no matter what — currently just shift-hold.
+    // Connecting an element to createMediaElementSource silences its normal
+    // direct output, so every managed element must go through here once.
+    function _routeToGraph(el, bypass) {
+        if (!actx) return;
+        try {
+            const src = actx.createMediaElementSource(el);
+            src.connect(bypass ? actx.destination : _duckGain);
+        } catch (_) {} // already routed, or codec/CORS edge case — sound still plays, just unfiltered
+    }
+
+    function unlockContext() {
+        if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+    }
+
+    let _domainActive = false;
+    function enterTimeDomain() {
+        _domainActive = true;
+        if (!actx) return;
+        const now = actx.currentTime;
+        _duckGain.gain.cancelScheduledValues(now);
+        _duckGain.gain.setTargetAtTime(DOMAIN_GAIN, now, 0.12);
+        _duckFilter.frequency.cancelScheduledValues(now);
+        _duckFilter.frequency.setTargetAtTime(DOMAIN_FREQ, now, 0.12);
+    }
+    function exitTimeDomain() {
+        if (!_domainActive) return;
+        _domainActive = false;
+        if (!actx) return;
+        const now = actx.currentTime;
+        _duckGain.gain.cancelScheduledValues(now);
+        _duckGain.gain.setTargetAtTime(1, now, 0.25);
+        _duckFilter.frequency.cancelScheduledValues(now);
+        _duckFilter.frequency.setTargetAtTime(NORMAL_FREQ, now, 0.25);
+    }
+
     // Per-clip base gain. High-frequency sounds are attenuated so they don't
     // pile up and clip the mix. Values 0..1, multiplied by sfx * global.
     const SFX_BASE = {
@@ -27,9 +88,9 @@
         'skill-unlocked': 0.70, // charge-based skill (Primeval / Tesla) hit 100
         'sigil-open':      0.45,
         'sigil-confirm':   0.55,
-        'sentinel-spawn':  0.45,
-        'sentinel-explode':0.50,
-        'shift-hold':      0.55,
+        'sentinel-spawn':  0.62,   // raised for audibility
+        'sentinel-explode':0.68,   // raised for audibility
+        'shift-hold':      0.90,   // bypasses the time-domain duck — must read as the loudest thing on screen
         'shift-teleport':  0.55,
         coronation:        0.35, // source clip runs hot, dialed back to balance
         blackhole:         0.50,
@@ -103,11 +164,13 @@
     function sfxGain(k) { return state.muted ? 0 : (SFX_BASE[k] || 0.5) * state.vol.sfx * state.vol.global; }
 
     // Preload one-shot pool. Size 4 covers overlap for autoshot at 135ms cadence.
-    function _makePool(key, src, size = 3) {
+    // bypass routes straight past the duck/filter chain (see shift-hold).
+    function _makePool(key, src, size = 3, bypass = false) {
         const arr = [];
         for (let i = 0; i < size; i++) {
             const a = new Audio(src);
             a.preload = 'auto';
+            _routeToGraph(a, bypass);
             arr.push(a);
         }
         state.pool[key] = arr;
@@ -228,6 +291,7 @@
         const el = new Audio(track.src);
         el.loop = true;
         el.volume = bgmGain();
+        _routeToGraph(el, false);
         state.bgmEl = el;
         state.currentBgmId = track.id;
         try { el.play().catch(() => {}); } catch (_) {}
@@ -291,7 +355,7 @@
         _makePool('sigil-confirm',    'audio/sfx/sigil-confirm.mp3',    2);
         _makePool('sentinel-spawn',   'audio/sfx/sentinel-spawn.mp3',   3);
         _makePool('sentinel-explode', 'audio/sfx/sentinel-explode.mp3', 3);
-        _makePool('shift-hold',       'audio/sfx/shift-hold.mp3',       2);
+        _makePool('shift-hold',       'audio/sfx/shift-hold.mp3',       2, true);
         _makePool('shift-teleport',   'audio/sfx/shift-teleport.mp3',   2);
         _makePool('coronation',       'audio/sfx/coronation.mp3',       2);
         _makePool('blackhole',        'audio/sfx/blackhole.mp3',        2);
@@ -305,6 +369,7 @@
         const a = new Audio(src);
         a.loop = true;
         a.preload = 'auto';
+        _routeToGraph(a, false);
         return a;
     }
 
@@ -329,5 +394,9 @@
         setVolume, getVolume,
         setMuted, isMuted: () => state.muted,
         refreshVolumes,
+
+        // Yog-Sothoth time-domain effect + Web Audio unlock
+        enterTimeDomain, exitTimeDomain,
+        unlockContext,
     };
 })();

@@ -130,7 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 skillShiftActive = true;
                 window._shiftActive = true;
                 skillShiftChargeStart = performance.now();
-                if (window.AudioMgr) window.AudioMgr.playSfx('shift-hold');
+                if (window.AudioMgr) {
+                    window.AudioMgr.enterTimeDomain();
+                    window.AudioMgr.playSfx('shift-hold');
+                }
                 if (_hasBuff('coi_mong')) {
                     window._coiMongEndTime = performance.now() + 2000;
                     const _markT = performance.now();
