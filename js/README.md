@@ -2,20 +2,24 @@
 
 ## Overview
 
-The js folder contains six modules that together form the complete game engine
+The js folder contains the modules that together form the complete game engine
 for Pisces Space Journey. All modules communicate through a shared global
 namespace declared in config.js. There is no import or export syntax and no
 bundler. Each file is a plain script loaded by index.html in a fixed sequence.
 
-Load order enforced by index.html:
+Load order enforced by index.html (check index.html directly if this list
+ever looks stale — it is hand-maintained, not generated):
 
-1. config.js
-2. entities.js
-3. render.js
-4. skills.js
-5. input.js
-6. main.js
-7. pixi-renderer.js
+1. audio.js — AudioManager (BGM/SFX/mute), no dependency on config.js globals
+2. background.js
+3. config.js
+4. sigils.js
+5. entities.js
+6. skills.js
+7. render.js **or** js/render/*.js (16 files) — see below, only one of the two is active at a time
+8. pixi-renderer.js
+9. input.js
+10. main.js
 
 This sequence is mandatory. Every module after config.js references globals that
 config.js declares at parse time, so any deviation causes reference errors on
@@ -111,12 +115,25 @@ on each enemy tracks a stack count capped at 4 and a 3000ms refresh timer. When
 all 4 stacks are present, a trueDamageWindow flag is set on the enemy for 2000ms.
 During this window all player-sourced hits bypass shield absorption entirely.
 
-## render.js
+## render.js / js/render/
 
-**Role:** Complete Canvas 2D rendering pipeline. This file draws every visible
-element on screen each frame. It reads shared globals but never writes to them.
+**Role:** Complete Canvas 2D rendering pipeline. Draws every visible element
+on screen each frame. Reads shared globals but never writes to them.
 
-### Mobile Performance Path
+**This is now split into 16 files under `js/render/`** (core.js, fx.js,
+player.js, one file per enemy type, one file per skill). The original
+`js/render.js` is kept on disk untouched as a rollback safety net — only one
+of the two (`render.js` or `js/render/*.js`) is wired into `index.html` at
+any given time; check index.html's script tags to see which. **See
+[js/render/README.md](render/README.md) for the full file map, load order,
+why the split exists, and a documented incident + debugging checklist for
+this exact area** — read that before making changes here if something in
+rendering breaks after an edit.
+
+The technical subsections below describe mechanisms that live inside this
+pipeline; each notes which specific `js/render/*.js` file it's in.
+
+### Mobile Performance Path (`js/render/core.js`)
 
 ```js
 function _initMobilePerf() {
@@ -132,7 +149,7 @@ anywhere in the codebase silently returns zero on mobile. No conditional checks
 are required inside individual draw functions because the suppression operates
 at the engine level.
 
-### Adaptive Quality System
+### Adaptive Quality System (`js/render/core.js`)
 
 Four quality levels are indexed by two constant arrays:
 
@@ -145,7 +162,7 @@ Level 0 is full quality. Level 3 is minimum. The active level sets
 window._particleScale and caps the particle array length each frame. Frame time
 measurements drive level promotion and demotion automatically.
 
-### Background Caching
+### Background Caching (`js/render/core.js`)
 
 On mobile, static background layers are pre-rendered to an offscreen canvas
 element and composited each frame with a single ctx.drawImage call:
@@ -162,7 +179,7 @@ ctx.drawImage(_bgOffscreen, 0, 0);
 The cache invalidates on resize or quality level change. On desktop, the
 background draws directly to ctx each frame without caching.
 
-### Screen Shake
+### Screen Shake (`js/render/core.js`)
 
 ```js
 ctx.translate(
@@ -175,13 +192,13 @@ Two independent sinusoidal offsets on the x and y axes produce an irregular
 shake pattern. _sFade is a linear decay ratio (screenShake.duration / 500) that
 reduces amplitude as the remaining duration approaches zero.
 
-### Neon Bloom
+### Neon Bloom (technique used throughout `js/render/`, not centralized in one file)
 
 Bloom is achieved by drawing each shape multiple times at increasing shadowBlur
 radii and then drawing the fully opaque shape on top. This is a pure Canvas 2D
 technique that requires no WebGL or CSS filter.
 
-### Chain Lightning
+### Chain Lightning (`js/render/fx.js`, called from `js/render/core.js`'s draw loop)
 
 Arc segments between targets use Math.sin displaced midpoints. Each segment
 redraws every frame with an alpha value derived from the effect age, producing
@@ -544,12 +561,13 @@ jitter are applied in the fallback path.
 
 
 
-All six modules share a single flat global namespace. config.js declares every
+All modules share a single flat global namespace. config.js declares every
 shared variable. All other modules read and write those variables directly by
 name with no accessor or wrapper layer.
 
-render.js reads game state each frame and writes nothing back. entities.js owns
-damage resolution and entity lifecycle mutations. skills.js owns skill activation
+The render pipeline (render.js, or the js/render/*.js split — see above) reads
+game state each frame and writes nothing back. entities.js owns damage
+resolution and entity lifecycle mutations. skills.js owns skill activation
 and cooldown timestamp updates. input.js owns event routing and UI element
 transitions. main.js orchestrates the game loop and calls into all other modules
 each frame.
