@@ -470,7 +470,7 @@
             </div>
 
             <!-- Guide iframe overlay -->
-            <div id="guideOverlay" style="display:none; position:fixed; inset:0; z-index:500;
+            <div id="guideOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
                 background:rgba(0,3,10,0.92); backdrop-filter:blur(14px);
                 justify-content:center; align-items:center;">
                 <div
@@ -501,14 +501,14 @@
                     }
                 }
                 function closeGuide() {
-                    // Stop any music-archive preview inside the iframe so the
-                    // main BGM resumes cleanly.
+                    // Stop any music-archive preview inside the iframe first.
+                    // Always call resumeBgm as a safety net in case the iframe
+                    // is mid-load or the preview handler is unavailable.
                     const _fr = document.getElementById('guideFrame');
                     if (_fr && _fr.contentWindow && typeof _fr.contentWindow._stopMusicPreview === 'function') {
-                        try { _fr.contentWindow._stopMusicPreview(true); } catch (_) {}
-                    } else if (window.AudioMgr) {
-                        window.AudioMgr.resumeBgm();
+                        try { _fr.contentWindow._stopMusicPreview(false); } catch (_) {}
                     }
+                    if (window.AudioMgr) window.AudioMgr.resumeBgm();
                     document.getElementById('guideOverlay').style.display = 'none';
                 }
                 document.getElementById('guideOverlay').addEventListener('click', function (e) {
@@ -517,7 +517,7 @@
             </script>
 
             <!-- ══ SETTINGS OVERLAY ══════════════════════════════════ -->
-            <div id="settingsOverlay" style="display:none; position:fixed; inset:0; z-index:500;
+            <div id="settingsOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
                 background:rgba(0,3,10,0.45); backdrop-filter:blur(6px);
                 justify-content:center; align-items:center;">
                 <div id="settings-panel" style="

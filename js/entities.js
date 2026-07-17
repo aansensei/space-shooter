@@ -302,7 +302,7 @@ function fireAutoShot() {
 }
 
 function fireChargedBullet(multiplier) {
-    if (window.AudioMgr) window.AudioMgr.playChargedShot();
+    // No dedicated charged-shot sfx yet — stays silent until a file lands
     const baseSize = 5;
     bullets.push({
         x: player.x, y: player.y - player.height / 2,
