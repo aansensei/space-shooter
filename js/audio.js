@@ -23,9 +23,32 @@
         overlay:       0.55,
         engine:        0.20,   // ambient loop, subtle
         ambient:       0.35,   // ingame.mp3 space background
-        'skill-ready':    0.55, // any skill cooldown just finished
+        'skill-ready':    0.68, // raised so the cooldown-done cue actually registers
         'skill-unlocked': 0.70, // charge-based skill (Primeval / Tesla) hit 100
+        'sigil-open':      0.45,
+        'sigil-confirm':   0.55,
+        'sentinel-spawn':  0.45,
+        'sentinel-explode':0.50,
+        'shift-hold':      0.55,
+        'shift-teleport':  0.55,
+        coronation:        0.35, // source clip runs hot, dialed back to balance
+        blackhole:         0.50,
     };
+
+    // Positional sfx fall off with distance from the player ship. maxRangeFrac
+    // is the fraction of the screen diagonal at which a sound is nearly
+    // inaudible; minGain is the floor so distant events stay a faint cue
+    // rather than disappearing entirely.
+    const POS_MAX_RANGE_FRAC = 0.55;
+    const POS_MIN_GAIN = 0.12;
+    function _distanceGain(x, y) {
+        if (typeof player === 'undefined' || typeof canvas === 'undefined') return 1;
+        const dist = Math.hypot(x - player.x, y - player.y);
+        const maxRange = Math.hypot(canvas.width, canvas.height) * POS_MAX_RANGE_FRAC;
+        if (maxRange <= 0) return 1;
+        const t = Math.min(1, dist / maxRange);
+        return 1 - t * (1 - POS_MIN_GAIN);
+    }
 
     // 12 in-game BGM tracks + the menu-only track ("Pisces" = soundtrack1.mp3).
     // Menu track is excluded from the in-game random pool.
@@ -43,6 +66,9 @@
         { id: 'native-faith',           title: "Suwako's Theme – Native Faith",  src: 'audio/bgm/suwakos-theme-native-faith.mp3' },
         { id: 'last-cicada',            title: "The Last Cicada's Song",         src: 'audio/bgm/the-last-cicadas-song.mp3' },
         { id: 'summer-fades',           title: 'Where Summer Fades to Silence',  src: 'audio/bgm/where-summer-fades-to-silence.mp3' },
+        { id: 'hold-my-hand',           title: 'Please Hold My Hand',            src: 'audio/bgm/please-hold-my-hand.mp3' },
+        { id: 'unfair-world',           title: 'Where the Unfair World Keeps Its Secrets', src: 'audio/bgm/where-the-unfair-world-keeps-its-secrets.mp3' },
+        { id: 'owari-waltz',            title: 'Owari no Waltz',                 src: 'audio/bgm/owari-no-waltz.mp3' },
     ];
 
     const state = {
@@ -102,6 +128,23 @@
         } catch (_) {}
     }
 
+    // Positional variant: scales the base gain by distance from the player
+    // ship (x, y in world/canvas coordinates), so explosions and events near
+    // the player read louder than ones happening far up the screen.
+    function playSfxAt(key, x, y) {
+        const pool = state.pool[key];
+        if (!pool) return;
+        const g = sfxGain(key) * _distanceGain(x, y);
+        if (g <= 0.005) return;
+        const a = pool[state.poolIdx[key]];
+        state.poolIdx[key] = (state.poolIdx[key] + 1) % pool.length;
+        try {
+            a.volume = g;
+            a.currentTime = 0;
+            a.play().catch(() => {});
+        } catch (_) {}
+    }
+
     // Loop controls for sustained sfx (charging, laser). Idempotent.
     function startLoop(refKey, key) {
         const el = state[refKey];
@@ -125,6 +168,32 @@
     function resumeBgm() {
         if (state.muted) return;
         if (state.bgmEl && state.bgmEl.paused) { try { state.bgmEl.play().catch(() => {}); } catch (_) {} }
+    }
+
+    // Full-mix pause: freezes bgm + every sustained loop and records what was
+    // running so resumeAll only unpauses those. Used when the SYSTEM TERMINATED
+    // overlay shows so the game goes silent while paused.
+    let _pauseSnapshot = null;
+    function pauseAll() {
+        _pauseSnapshot = {
+            bgm:      !!(state.bgmEl      && !state.bgmEl.paused),
+            ambient:  !!(state.ambientEl  && !state.ambientEl.paused),
+            engine:   !!(state.engineEl   && !state.engineEl.paused),
+            laser:    !!(state.laserEl    && !state.laserEl.paused),
+            charging: !!(state.chargingEl && !state.chargingEl.paused),
+        };
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl]
+            .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
+    }
+    function resumeAll() {
+        if (!_pauseSnapshot || state.muted) { _pauseSnapshot = null; return; }
+        const s = _pauseSnapshot;
+        _pauseSnapshot = null;
+        if (s.bgm      && state.bgmEl)      try { state.bgmEl.play().catch(() => {}); } catch (_) {}
+        if (s.ambient  && state.ambientEl)  try { state.ambientEl.play().catch(() => {}); } catch (_) {}
+        if (s.engine   && state.engineEl)   try { state.engineEl.play().catch(() => {}); } catch (_) {}
+        if (s.laser    && state.laserEl)    try { state.laserEl.play().catch(() => {}); } catch (_) {}
+        if (s.charging && state.chargingEl) try { state.chargingEl.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -218,6 +287,14 @@
         _makePool('overlay',      'audio/sfx/overlay.wav',     2);
         _makePool('skill-ready',    'audio/sfx/skill-ready.mp3',    3);
         _makePool('skill-unlocked', 'audio/sfx/skill-unlocked.mp3', 2);
+        _makePool('sigil-open',       'audio/sfx/sigil-open.mp3',       2);
+        _makePool('sigil-confirm',    'audio/sfx/sigil-confirm.mp3',    2);
+        _makePool('sentinel-spawn',   'audio/sfx/sentinel-spawn.mp3',   3);
+        _makePool('sentinel-explode', 'audio/sfx/sentinel-explode.mp3', 3);
+        _makePool('shift-hold',       'audio/sfx/shift-hold.mp3',       2);
+        _makePool('shift-teleport',   'audio/sfx/shift-teleport.mp3',   2);
+        _makePool('coronation',       'audio/sfx/coronation.mp3',       2);
+        _makePool('blackhole',        'audio/sfx/blackhole.mp3',        2);
 
         state.ambientEl  = _mkLoop('audio/ingame.mp3');
         state.engineEl   = _mkLoop('audio/sfx/engine.wav');
@@ -237,11 +314,12 @@
         // BGM
         playMenuBgm, playRandomInGameBgm, playBgmById, stopBgm,
         pauseBgm, resumeBgm,
+        pauseAll, resumeAll,
         list: () => BGM_LIST.slice(),
         currentBgmId: () => state.currentBgmId,
 
         // SFX
-        playSfx,
+        playSfx, playSfxAt,
         startAmbient, stopAmbient,
         startEngine,  stopEngine,
         startCharging, stopCharging,

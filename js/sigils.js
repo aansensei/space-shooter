@@ -139,6 +139,7 @@ function _triggerSigilPicker() {
     if (ov) ov.style.display = 'block';
     const mc = document.getElementById('mc');
     if (mc) mc.style.pointerEvents = 'none';
+    if (window.AudioMgr) window.AudioMgr.playSfx('sigil-open');
 }
 
 function _completeSigilPicker(sigilId) {
@@ -857,7 +858,7 @@ function _handleSigilPickerClick(ex, ey) {
             p.phase = 'fly_in';
             p.flyStart = performance.now();
             p.flyParticles = [];
-            if (window.AudioMgr) window.AudioMgr.playSfx('click');
+            if (window.AudioMgr) window.AudioMgr.playSfx('sigil-confirm');
         }
     }
 }
