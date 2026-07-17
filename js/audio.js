@@ -11,12 +11,12 @@
     // Per-clip base gain. High-frequency sounds are attenuated so they don't
     // pile up and clip the mix. Values 0..1, multiplied by sfx * global.
     const SFX_BASE = {
-        autoshot:      0.18,   // fires every 135ms, keep quiet
+        autoshot:      0.35,   // fires every 135ms; raised for audibility over the mix
         charging:      0.75,   // sustained hum while holding Space, needs to feel present
         laser:         0.50,   // long overload beam, keep from dominating the mix
         'charged-fire':0.65,   // one-shot burst on Space-release <3s
         'enemy-hit':   0.22,   // very frequent
-        'enemy-death': 0.55,
+        'enemy-death': 0.42,   // frequent bursts, tamed so waves don't feel harsh
         'shield-hit':  0.55,
         'life-lost':   0.85,
         click:         0.50,
