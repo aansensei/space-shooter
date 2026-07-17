@@ -20,6 +20,7 @@
         'shield-hit':  0.55,
         'life-lost':   0.85,
         click:         0.50,
+        hover:         0.30,   // tiny tick on button/card hover, keep discreet
         overlay:       0.55,
         engine:        0.20,   // ambient loop, subtle
         ambient:       0.35,   // ingame.mp3 space background
@@ -214,6 +215,7 @@
         _makePool('shield-hit',   'audio/sfx/shield-hit.wav',  3);
         _makePool('life-lost',    'audio/sfx/life-lost.mp3',   2);
         _makePool('click',        'audio/sfx/click.mp3',       3);
+        _makePool('hover',        'audio/sfx/hover.mp3',       4);
         _makePool('overlay',      'audio/sfx/overlay.wav',     2);
         _makePool('skill-ready',    'audio/sfx/skill-ready.mp3',    3);
         _makePool('skill-unlocked', 'audio/sfx/skill-unlocked.mp3', 2);
