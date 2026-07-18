@@ -120,9 +120,13 @@ function _triggerAccurateParry() {
 
     if (window.AudioMgr) window.AudioMgr.playSfx('yog-parry');
 
-    // Visual feedback
-    addExplosion(player.x, player.y, 80, '#ffdd00');
-    createParticles(player.x, player.y, 30, '#ffdd00', 3, 10);
+    // Visual feedback — "Temporal Fracture": a dedicated Yog-Sothoth-themed
+    // burst (violet/white rings + clock spokes) instead of the flat gold
+    // explosion shared with Sentinel Parry, so the Domain's own dodge reads
+    // distinctly from a normal deflect.
+    if (!window._parryBursts) window._parryBursts = [];
+    window._parryBursts.push({ x: player.x, y: player.y, spawnAt: now, duration: 500 });
+    createParticles(player.x, player.y, 18, '#c080ff', 3, 9);
     _setShake(8, 200);
 
     // Tất cả sentinel nhận Iron Body 1.25s
@@ -410,6 +414,13 @@ function update(rawDeltaTime) {
     const _nullSlashSpeedMult = (player._nullSlashSlowed) ? 0.50 : 1.0;
 
     // Dimension Break zone: 20% slow when player stands on the lingering rift arc
+    if (window._egregorDeathBursts) {
+        window._egregorDeathBursts = window._egregorDeathBursts.filter(b => currentTime - b.spawnAt < b.duration);
+    }
+    if (window._parryBursts) {
+        window._parryBursts = window._parryBursts.filter(pb => currentTime - pb.spawnAt < pb.duration);
+    }
+
     let _dimBreakMult = 1.0;
     if (window._dimBreakZones) {
         window._dimBreakZones = window._dimBreakZones.filter(dbz => currentTime < dbz.expireAt);
@@ -2186,6 +2197,8 @@ function startGame() {
     window._levDeathLasers = [];
     window._levPersBeams = [];
     window._dimBreakZones = [];
+    window._egregorDeathBursts = [];
+    window._parryBursts = [];
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;

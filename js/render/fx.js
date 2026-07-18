@@ -245,6 +245,134 @@ function _drawDimensionalRiftsCtx() {
     ctx.restore();
 }
 
+// Egregor death: "Collective Collapse" — a dedicated, larger burst distinct
+// from the generic enemy explosion, themed to match Null Slash's violet
+// palette. A shrinking dark-void core (the hive-mind collapsing inward)
+// followed by a large double shockwave ring and jagged "tentacle snap"
+// crack lines radiating outward.
+function _drawEgregorDeathBursts() {
+    if (!window._egregorDeathBursts || window._egregorDeathBursts.length === 0) return;
+    const now = performance.now();
+    for (const b of window._egregorDeathBursts) {
+        const t = (now - b.spawnAt) / b.duration;
+        if (t >= 1) continue;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+
+        if (t < 0.22) {
+            // Implosion: the body collapses into a dark void core
+            const it = t / 0.22;
+            const r = Math.max(1, b.size * (0.9 - it * 0.7));
+            const vg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+            vg.addColorStop(0, 'rgba(10,0,20,0.9)');
+            vg.addColorStop(0.6, 'rgba(90,0,160,0.7)');
+            vg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = vg;
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+        } else {
+            // Eruption: white-hot violet core expanding + twin shockwave rings
+            const et = (t - 0.22) / 0.78;
+            const fade = 1 - et;
+            const r = b.size * 0.3 + et * b.size * 2.2;
+
+            const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, r));
+            cg.addColorStop(0, `rgba(255,255,255,${fade * 0.9})`);
+            cg.addColorStop(0.25, `rgba(190,80,255,${fade * 0.75})`);
+            cg.addColorStop(0.6, `rgba(90,0,160,${fade * 0.45})`);
+            cg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = cg;
+            ctx.beginPath(); ctx.arc(0, 0, Math.max(1, r), 0, Math.PI * 2); ctx.fill();
+
+            ctx.strokeStyle = `rgba(220,180,255,${fade * 0.85})`;
+            ctx.lineWidth = 5;
+            if (!_mobPerf) { ctx.shadowColor = '#aa44ff'; ctx.shadowBlur = 20; }
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+
+            const r2 = Math.max(0, r - b.size * 0.5);
+            ctx.strokeStyle = `rgba(140,50,220,${fade * 0.5})`;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(0, 0, r2, 0, Math.PI * 2); ctx.stroke();
+
+            // Jagged tentacle-snap cracks
+            if (_gfxLevel < 2) {
+                const crackCount = _gfxLevel < 1 ? 10 : 6;
+                ctx.strokeStyle = `rgba(230,200,255,${fade * 0.6})`;
+                ctx.lineWidth = 2;
+                for (let i = 0; i < crackCount; i++) {
+                    const a = (i / crackCount) * Math.PI * 2 + i * 0.7;
+                    const midA = a + Math.sin(i * 5.7) * 0.15;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * r * 0.4, Math.sin(a) * r * 0.4);
+                    ctx.lineTo(Math.cos(midA) * r * 0.7, Math.sin(midA) * r * 0.7);
+                    ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        ctx.restore();
+    }
+}
+
+// Yog-Sothoth Accurate Parry burst: "Temporal Fracture" — a dedicated
+// violet/white ring-and-spoke flash distinct from the flat gold explosion
+// shared with Sentinel Parry, themed to match the Domain's cursed-energy
+// palette so the dodge itself reads as Yog-Sothoth's own effect.
+function _drawParryBursts() {
+    if (!window._parryBursts || window._parryBursts.length === 0) return;
+    const now = performance.now();
+    for (const pb of window._parryBursts) {
+        const t = (now - pb.spawnAt) / pb.duration;
+        if (t >= 1) continue;
+        const fade = 1 - t;
+        ctx.save();
+        ctx.translate(pb.x, pb.y);
+
+        if (t < 0.35) {
+            const flashA = 1 - t / 0.35;
+            const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
+            fg.addColorStop(0, `rgba(255,255,255,${flashA * 0.95})`);
+            fg.addColorStop(0.35, `rgba(200,120,255,${flashA * 0.6})`);
+            fg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fg;
+            ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // Twin expanding rings, offset timing for a "time-stutter" look
+        [0, 0.12].forEach((delay, i) => {
+            const rt = Math.max(0, t - delay) / (1 - delay);
+            if (rt <= 0 || rt >= 1) return;
+            const r = rt * 130;
+            const ringA = (1 - rt) * (i === 0 ? 0.85 : 0.55);
+            ctx.strokeStyle = i === 0 ? `rgba(220,180,255,${ringA})` : `rgba(150,60,255,${ringA})`;
+            ctx.lineWidth = i === 0 ? 3 : 5;
+            if (!_mobPerf) { ctx.shadowColor = '#a020f0'; ctx.shadowBlur = 14; }
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+        });
+        ctx.shadowBlur = 0;
+
+        // Clock spokes, counter-rotating tick marks
+        if (_gfxLevel < 2) {
+            const spokeCount = _gfxLevel < 1 ? 8 : 6;
+            const spokeLen = 26 * fade;
+            const spin = t * Math.PI * 1.4;
+            for (let i = 0; i < spokeCount; i++) {
+                const a = (i / spokeCount) * Math.PI * 2 + spin;
+                const r0 = 34;
+                ctx.strokeStyle = `rgba(230,200,255,${fade * 0.7})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+                ctx.lineTo(Math.cos(a) * (r0 + spokeLen), Math.sin(a) * (r0 + spokeLen));
+                ctx.stroke();
+            }
+        }
+
+        ctx.restore();
+    }
+}
+
 // Dimension Break zones: lingering arcs left by Egregor's Null Slash
 function _drawDimBreakZones() {
     if (!window._dimBreakZones || window._dimBreakZones.length === 0) return;

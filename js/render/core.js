@@ -903,6 +903,7 @@ function draw(deltaTime) {
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash
         _drawDimBreakZones();   // Lingering Dimension Break arcs (world-space, independent of Egregor)
+        _drawEgregorDeathBursts(); // Dedicated Egregor death explosion, independent of Egregor's own lifetime
 
         // Draw non-bullet enemies first (background layer)
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') drawEnemy(e); });
@@ -927,6 +928,7 @@ function draw(deltaTime) {
         drawPlayer();
         if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
         drawPlayerAura();
+        _drawParryBursts(); // Yog-Sothoth Accurate Parry "Temporal Fracture" burst
         drawFinalDefense();
 
         if (charging && !laserActive) drawChargeEffect();
