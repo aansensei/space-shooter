@@ -1,12 +1,51 @@
 // render/skill-f.js — extracted from render.js (Annihilation Sweep).
 
+// Inward-pulling charge particles: persist across frames (module scope,
+// not local to drawSkillF) since they travel over multiple draw calls.
+// Cleared whenever charging isn't active so a cancelled/completed charge
+// never leaves stragglers for the next activation.
+let _skillFChargeParticles = [];
+
 function drawSkillF() {
     const now = performance.now();
     const radius = Math.max(canvas.width, canvas.height);
+    const _gfx = window._gfxLevel || 0;
+
+    if (skillFState !== "charging" && _skillFChargeParticles.length) {
+        _skillFChargeParticles.length = 0;
+    }
 
     // CHARGING phase
     if (skillFState === "charging") {
         const p = Math.min((now - skillFChargeStart) / 1500, 1);
+
+        // Inward-pulling energy particles: spawn at the screen edge and
+        // accelerate toward the player as charge builds, selling "gathering
+        // power" more directly than the background glow alone.
+        {
+            const maxParticles = _gfx < 1 ? 60 : _gfx < 2 ? 25 : 0;
+            const spawnRate    = _gfx < 1 ? 3  : _gfx < 2 ? 1  : 0;
+            if (spawnRate > 0 && _skillFChargeParticles.length < maxParticles) {
+                for (let i = 0; i < spawnRate; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const dist = Math.max(canvas.width, canvas.height) * (0.5 + Math.random() * 0.4);
+                    _skillFChargeParticles.push({ angle: a, dist });
+                }
+            }
+            const pullSpeed = 3 + p * 14;
+            ctx.save();
+            for (let i = _skillFChargeParticles.length - 1; i >= 0; i--) {
+                const pt = _skillFChargeParticles[i];
+                pt.dist -= pullSpeed;
+                if (pt.dist < 10) { _skillFChargeParticles.splice(i, 1); continue; }
+                const px = player.x + Math.cos(pt.angle) * pt.dist;
+                const py = player.y + Math.sin(pt.angle) * pt.dist;
+                const alpha = Math.min(1, pt.dist / 120) * 0.85;
+                ctx.fillStyle = `rgba(120,255,255,${alpha})`;
+                ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+        }
 
         // half-plane glow (charging side preview)
         ctx.save();
@@ -141,8 +180,8 @@ function drawSkillF() {
         ctx.closePath();
         ctx.clip();
 
-        // matrix digital rain columns
-        const colW = 18;
+        // matrix digital rain columns — column width (density) scales by tier
+        const colW = _gfx < 1 ? 18 : _gfx < 2 ? 26 : 36;
         const cols = Math.ceil(canvas.width / colW) + 1;
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
@@ -162,14 +201,16 @@ function drawSkillF() {
         }
         ctx.restore();
 
-        // Afterimage ghost blades (HIGH only)
-        if (_gfxLevel < 1) {
-            for (let trail = 1; trail <= 3; trail++) {
+        // Afterimage ghost blades — trail count scales by tier instead of a
+        // binary HIGH-only on/off, so MEDIUM still gets a lighter version.
+        {
+            const ghostCount = _gfx < 1 ? 5 : _gfx < 2 ? 2 : 0;
+            for (let trail = 1; trail <= ghostCount; trail++) {
                 const ghostAngle = currentAngle - trail * 0.10;
                 ctx.save();
                 ctx.translate(player.x, player.y);
                 ctx.rotate(ghostAngle);
-                ctx.globalAlpha = 0.22 - trail * 0.06;
+                ctx.globalAlpha = Math.max(0.03, 0.24 - trail * 0.045);
                 ctx.fillStyle = 'rgba(0,255,255,0.9)';
                 ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -28); ctx.lineTo(radius, 28);
                 ctx.closePath(); ctx.fill();
@@ -177,28 +218,53 @@ function drawSkillF() {
             }
         }
 
-        // SWEEP BLADE
+        // SWEEP BLADE — curved katana silhouette (was a straight triangle
+        // cone) with a thicker white-hot core for a heavier, more forceful
+        // slash, plus a brief impact flash at the moment of the swing
+        // (no screen shake — just a fast-fading radial burst at the origin).
         ctx.save();
         ctx.translate(player.x, player.y);
+
+        if (sp < 0.15) {
+            const flashA = (1 - sp / 0.15) * 0.55;
+            const flashR = 50 + sp * 260;
+            const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, flashR);
+            fg.addColorStop(0, `rgba(255,255,255,${flashA})`);
+            fg.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = fg;
+            ctx.beginPath(); ctx.arc(0, 0, flashR, 0, Math.PI * 2); ctx.fill();
+        }
+
         ctx.rotate(currentAngle);
 
-        // wide outer glow cone
-        ctx.fillStyle = 'rgba(0,255,255,0.12)';
-        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 40;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -60); ctx.lineTo(radius, 60);
-        ctx.closePath(); ctx.fill();
+        const bow = 30; // curve bulge of the blade edge, katana-style
+        function _bladePath(halfW, bowAmt) {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(radius * 0.55, -halfW - bowAmt, radius, -halfW);
+            ctx.lineTo(radius, halfW);
+            ctx.quadraticCurveTo(radius * 0.55, halfW + bowAmt, 0, 0);
+            ctx.closePath();
+        }
 
-        // bright solid blade
-        ctx.fillStyle = 'white';
-        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 50;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -12); ctx.lineTo(radius, 12);
-        ctx.closePath(); ctx.fill();
+        // wide outer glow cone
+        _bladePath(62, bow * 1.3);
+        ctx.fillStyle = 'rgba(0,255,255,0.14)';
+        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 40;
+        ctx.fill();
 
         // cyan flanks
-        ctx.fillStyle = 'rgba(0,255,255,0.65)';
-        if (!_mobPerf) ctx.shadowBlur = 25;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -42); ctx.lineTo(radius, 42);
-        ctx.closePath(); ctx.fill();
+        _bladePath(42, bow);
+        ctx.fillStyle = 'rgba(0,255,255,0.68)';
+        if (!_mobPerf) ctx.shadowBlur = 28;
+        ctx.fill();
+
+        // bright white-hot core — thicker than the old straight blade (12→18)
+        _bladePath(18, bow * 0.6);
+        ctx.fillStyle = 'white';
+        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 55;
+        ctx.fill();
+        ctx.shadowBlur = 0;
 
         // jitter streak
         ctx.strokeStyle = 'rgba(255,255,255,0.85)';
@@ -229,14 +295,19 @@ function drawSkillF() {
         ctx.fillRect(0, scanLine - canvas.height * 0.5, canvas.width, 2);
         ctx.restore();
 
-        // HEX GRID overlay in swept area
+        // HEX GRID overlay in swept area — this nested per-cell loop over
+        // the whole screen used to run unconditionally at every tier, a
+        // fixed cost this game's other systems don't carry. Now skipped
+        // entirely at LOW (matches how ghost trails/particles degrade) and
+        // drawn at a coarser cell size on MEDIUM instead of full density.
+        if (_gfx < 2) {
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
         ctx.arc(player.x, player.y, radius, -Math.PI, currentAngle);
         ctx.closePath();
         ctx.clip();
-        const hR = 28;
+        const hR = _gfx < 1 ? 28 : 44;
         const hW = hR * Math.sqrt(3), hH = hR * 2;
         ctx.strokeStyle = 'rgba(0,200,100,0.12)';
         ctx.lineWidth = 0.8;
@@ -256,6 +327,7 @@ function drawSkillF() {
             }
         }
         ctx.restore();
+        }
     }
 }
 
