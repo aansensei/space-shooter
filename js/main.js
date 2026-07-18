@@ -302,7 +302,7 @@ function update(rawDeltaTime) {
                         e.aegisInvulnerable = false;
                         e.marchosiasParasiteShield = 0;
                         e.afoShieldActive = false; // AFO shield also bypassed
-                        if (e.hp <= 0) e._markedForDeath = true;
+                        if (e.hp <= 0) { e._markedForDeath = true; e._btmKilled = true; }
                         // Leviathan: Phōtokrystos BTM wave bypasses dealDamage → trigger last rites
                         if (e.type === 'leviathan' && e.hp <= 0 && !e._deathLaserSpawned) {
                             dealDamage(e, { damage: 0, percentDamage: 0 });

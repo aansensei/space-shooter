@@ -353,6 +353,11 @@ function activatePrimevalCreation(spirit) {
     };
     // Brief invuln on spirit during summon
     spirit._summoningUp = true;
+    if (window.AudioMgr) {
+        window.AudioMgr.playSfxAt('photokrystos-summon-converge', spirit.x, spirit.y);
+        // Holy overlay wraps the entire summon sequence (converge + flash)
+        window.AudioMgr.playSfxAt('photokrystos-summon-holy', spirit.x, spirit.y);
+    }
 }
 
 function updateSpirits(deltaTime) {
@@ -574,6 +579,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         if (spirit._btmPhase === 'warming' && spirit._btmTimer >= BTM_WARM) {
             spirit._btmPhase = 'firing';
             spirit._btmTimer = 0;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-btm-firing', spirit.x, spirit.y);
         } else if (spirit._btmPhase === 'firing') {
             spirit._btmTickTimer += deltaTime;
             if (spirit._btmTickTimer >= 100) {
@@ -592,6 +598,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                         damage: 20 * dmgMult, percentDamage: 0.35,
                         applyVuln: true, vulnChance: 0.15, isTrueDamage: true
                     });
+                    if (e.hp <= 0) e._btmKilled = true;
                     // Record lightning bolt for render
                     spirit._btmLightnings.push({ x: e.x, y: e.y });
                 }
@@ -622,6 +629,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                     }
                 }
                 _setShake(30, 800);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-btm-shockwave', spirit.x, spirit.y);
             }
             if (spirit._btmTimer >= BTM_REL) {
                 spirit._done = true;
@@ -889,6 +897,7 @@ function updatePrimevalSummonEffect(deltaTime) {
     if (eff.phase === 'converge' && eff.timer >= 1800) {
         eff.phase = 'flash';
         eff.timer = 0;
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-summon-flash', eff.x, eff.y);
     } else if (eff.phase === 'flash' && eff.timer >= 400) {
         // Transform the spirit
         const spirit = eff.targetSpirit;

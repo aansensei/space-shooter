@@ -192,7 +192,13 @@ function distToSegment(p, v, w) {
 }
 
 function handleEnemyKill(enemy) {
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-death', enemy.x, enemy.y);
+    if (window.AudioMgr) {
+        window.AudioMgr.playSfxAt('enemy-death', enemy.x, enemy.y);
+        // Layered on top of the generic death sfx for enemies killed by
+        // Phōtokrystos's Back to Motherland (lightning ticks or the final
+        // shockwave) — covers both kill sources in one dedicated cue.
+        if (enemy._btmKilled) window.AudioMgr.playSfxAt('photokrystos-btm-kill', enemy.x, enemy.y);
+    }
     score = Math.ceil(score + enemy.maxHp * 6);
     // Primeval Creation: +1.25% energy per kill from non-spirit sources
     if (!enemy._spiritKillCounted) {
@@ -1696,6 +1702,7 @@ function dealDamage(enemy, source) {
                 chainLightningEffects.push({
                     x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250
                 });
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('chain-lightning', enemy.x, enemy.y);
                 chainedCount++;
             }
         }
@@ -2292,6 +2299,7 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
             // Muzzle burst from gill area
             addExplosion(ox, oy, 65, '#8800cc');
             createParticles(ox, oy, 22, '#cc44ff', 4, 10);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('egregor-tempest-strike', ox, oy);
             let _playerHit = false;
             const _hitSentinels = new Set();
             for (const t of enemy._tempestTargets) {
@@ -2347,6 +2355,7 @@ function _forceFireEgregorTempest(enemy) {
     const ox = enemy._tempestOriginX, oy = enemy._tempestOriginY;
     addExplosion(ox, oy, 65, '#8800cc');
     createParticles(ox, oy, 22, '#cc44ff', 4, 10);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('egregor-tempest-strike', ox, oy);
     let _playerHit = false;
     const _hitSentinels = new Set();
     for (const t of enemy._tempestTargets) {
