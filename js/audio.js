@@ -102,7 +102,10 @@
         'charged-shot': 1.0, 'wave-clear': 1.0,
         'dimensional-rift': 1.0, 'dimension-break': 1.0,
         'egregor-nullslash-windup': 1.0, 'egregor-nullslash-slash': 1.0, 'egregor-nullslash-hit': 1.0,
-        'egregor-crawl': 1.0, 'egregor-death-roar': 1.0,
+        'egregor-crawl': 1.0, 'egregor-death-roar': 1.0, 'egregor-tempest-strike': 1.0,
+        'chain-lightning': 1.0,
+        'photokrystos-summon-converge': 1.0, 'photokrystos-summon-flash': 1.0, 'photokrystos-summon-holy': 1.0,
+        'photokrystos-btm-firing': 1.0, 'photokrystos-btm-shockwave': 1.0, 'photokrystos-btm-kill': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -400,11 +403,13 @@
     function startLaser()   { startLoop('laserEl', 'laser'); }
     function stopLaser()    { stopLoop('laserEl'); }
 
-    // Egregor crawl: two alternating one-shots, cross-started so the texture
-    // never has a silent gap at the loop point ("khi 1 lần sắp hết thì cho 1
-    // lượt khác chồng lên"). startEgregorCrawl is idempotent — safe to call
-    // every frame while an Egregor is alive. tickEgregorCrawl must be polled
-    // each frame to detect when the playing element is nearing its end.
+    // Egregor crawl: two alternating one-shots. The next clip starts once the
+    // playing one has run 3/4 of its length, and that outgoing clip fades out
+    // across its final quarter — a proper crossfade rather than a hard cut at
+    // the very end. startEgregorCrawl is idempotent — safe to call every
+    // frame while an Egregor is alive. tickEgregorCrawl must be polled each
+    // frame to drive both the handoff trigger and the fade-out volume.
+    const CRAWL_HANDOFF_AT = 0.75; // fraction of duration where the next clip starts
     function startEgregorCrawl() {
         if (_crawlActive) return;
         _crawlActive = true;
@@ -424,11 +429,18 @@
         const nextEl = _crawlCur === 'A' ? state.crawlElB : state.crawlElA;
         if (!curEl || !nextEl) return;
         const g = sfxGain('egregor-crawl');
-        curEl.volume = g; nextEl.volume = g;
-        if (curEl.duration && !isNaN(curEl.duration) && (curEl.duration - curEl.currentTime) <= 0.28 && nextEl.paused) {
+        if (curEl.duration && !isNaN(curEl.duration) && curEl.currentTime >= curEl.duration * CRAWL_HANDOFF_AT && nextEl.paused) {
             try { nextEl.currentTime = 0; nextEl.play().catch(() => {}); } catch (_) {}
             _crawlCur = (_crawlCur === 'A') ? 'B' : 'A';
         }
+        // Fade any element past the handoff point down to silence by its end,
+        // so the outgoing clip tapers out under the incoming one.
+        [state.crawlElA, state.crawlElB].forEach(el => {
+            if (!el || el.paused || !el.duration || isNaN(el.duration)) return;
+            const t = el.currentTime / el.duration;
+            const fade = t >= CRAWL_HANDOFF_AT ? Math.max(0, 1 - (t - CRAWL_HANDOFF_AT) / (1 - CRAWL_HANDOFF_AT)) : 1;
+            el.volume = g * fade;
+        });
     }
 
     // Low-HP heartbeat: loops while lives < 5, and ducks/muffles the rest
@@ -477,6 +489,14 @@
         _makePool('egregor-nullslash-slash', 'audio/sfx/egregor-nullslash-slash.mp3', 2);
         _makePool('egregor-nullslash-hit',   'audio/sfx/egregor-nullslash-hit.mp3',   2);
         _makePool('egregor-death-roar',      'audio/sfx/egregor-death-roar.mp3',      1);
+        _makePool('egregor-tempest-strike',  'audio/sfx/egregor-tempest-strike.mp3',  2);
+        _makePool('chain-lightning',         'audio/sfx/chain-lightning.mp3',         4);
+        _makePool('photokrystos-summon-converge', 'audio/sfx/photokrystos-summon-converge.mp3', 1);
+        _makePool('photokrystos-summon-flash',    'audio/sfx/photokrystos-summon-flash.mp3',    1);
+        _makePool('photokrystos-summon-holy',     'audio/sfx/photokrystos-summon-holy.mp3',     1);
+        _makePool('photokrystos-btm-firing',      'audio/sfx/photokrystos-btm-firing.mp3',      1);
+        _makePool('photokrystos-btm-shockwave',   'audio/sfx/photokrystos-btm-shockwave.mp3',   1);
+        _makePool('photokrystos-btm-kill',        'audio/sfx/photokrystos-btm-kill.mp3',        6);
 
         state.ambientEl  = _mkLoop('audio/sfx/ingame.mp3');
         state.engineEl   = _mkLoop('audio/sfx/engine.wav');
@@ -495,6 +515,22 @@
         state.nullSlashWindupEl = _mkOnce('audio/sfx/egregor-nullslash-windup.mp3');
         state.crawlElA = _mkOnce('audio/sfx/egregor-crawl.mp3');
         state.crawlElB = _mkOnce('audio/sfx/egregor-crawl.mp3');
+        // Fallback for when rAF is throttled (tab backgrounded) and
+        // tickEgregorCrawl's polling window gets skipped entirely — the
+        // native 'ended' event always fires regardless of rAF throttling,
+        // so this guarantees the crawl handoff never leaves a silent gap.
+        state.crawlElA.addEventListener('ended', () => {
+            if (_crawlActive && state.crawlElB.paused) {
+                try { state.crawlElB.currentTime = 0; state.crawlElB.play().catch(() => {}); } catch (_) {}
+                _crawlCur = 'B';
+            }
+        });
+        state.crawlElB.addEventListener('ended', () => {
+            if (_crawlActive && state.crawlElA.paused) {
+                try { state.crawlElA.currentTime = 0; state.crawlElA.play().catch(() => {}); } catch (_) {}
+                _crawlCur = 'A';
+            }
+        });
     }
     function _mkLoop(src) {
         const a = new Audio(src);
