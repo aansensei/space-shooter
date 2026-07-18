@@ -80,15 +80,15 @@
     };
     const MOBILE_CFG = {
         gSpeed:        0.25,
-        galaxyCount:   2,
-        nebulaCount:   4,
-        starsFar:      100,
-        starsMid:      35,
-        starsNear:     12,
-        dustCount:     20,
-        asteroidsFar:  3,
-        asteroidsMid:  2,
-        asteroidsNear: 1,
+        galaxyCount:   1,
+        nebulaCount:   2,
+        starsFar:      35,
+        starsMid:      15,
+        starsNear:     6,
+        dustCount:     8,
+        asteroidsFar:  2,
+        asteroidsMid:  1,
+        asteroidsNear: 0,
     };
     const _isTouchDevice = (navigator.maxTouchPoints > 0) ||
         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
@@ -658,8 +658,15 @@
     }).observe(document.documentElement);
 
     // ─── ANIMATION LOOP ──────────────────────────────────────────────────
+    // On mobile this background is a fixed cost the gameplay perf tiers
+    // never touch, so on top of the reduced sprite counts above, update+
+    // render only run every other frame (~half the CPU work of moving
+    // sprites, and half the GPU work of this context's render() calls).
+    // Motion at half-rate is barely perceptible for slow parallax drift.
+    let _tickSkip = false;
     function tick() {
-        if (!window._bgPaused) {
+        const throttle = window._platform === 'mobile';
+        if (!window._bgPaused && !(throttle && (_tickSkip = !_tickSkip))) {
             for (const g of galaxies)  g.update();
             for (const n of nebulas)   n.update();
             for (const s of stars)     s.update();
