@@ -583,22 +583,25 @@
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">BGM</span>
                         <input type="range" id="vol-bgm-slider" min="0" max="100" value="100"
+                            class="stg-slider"
                             oninput="onAudioSlider('bgm', this.value)"
-                            style="flex:1; accent-color:#00e5ff; cursor:pointer;">
+                            style="--pct:100%;">
                         <span id="vol-bgm-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">SFX</span>
                         <input type="range" id="vol-sfx-slider" min="0" max="100" value="100"
+                            class="stg-slider"
                             oninput="onAudioSlider('sfx', this.value)"
-                            style="flex:1; accent-color:#00e5ff; cursor:pointer;">
+                            style="--pct:100%;">
                         <span id="vol-sfx-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Global</span>
                         <input type="range" id="vol-global-slider" min="0" max="100" value="100"
+                            class="stg-slider"
                             oninput="onAudioSlider('global', this.value)"
-                            style="flex:1; accent-color:#00e5ff; cursor:pointer;">
+                            style="--pct:100%;">
                         <span id="vol-global-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
 
@@ -610,8 +613,9 @@
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
                         <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Brightness</span>
                         <input type="range" id="bg-bright-slider" min="1" max="100" value="100"
+                            class="stg-slider"
                             oninput="onBgBrightnessChange(this.value)"
-                            style="flex:1; accent-color:#00e5ff; cursor:pointer;">
+                            style="--pct:100%;">
                         <span id="bg-bright-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
 
@@ -706,6 +710,37 @@
                     color:#fff; background:rgba(0,229,255,0.2);
                     border-color:#00e5ff; box-shadow:0 0 8px rgba(0,229,255,0.25);
                 }
+                /* Volume/brightness sliders */
+                .stg-slider {
+                    -webkit-appearance:none; appearance:none;
+                    flex:1; height:6px; border-radius:4px; cursor:pointer;
+                    background:linear-gradient(to right,
+                        #00e5ff 0%, #00e5ff var(--pct,100%),
+                        rgba(0,30,50,0.7) var(--pct,100%), rgba(0,30,50,0.7) 100%);
+                    border:1px solid rgba(0,229,255,0.25);
+                    outline:none;
+                }
+                .stg-slider::-webkit-slider-thumb {
+                    -webkit-appearance:none;
+                    width:16px; height:16px; border-radius:50%;
+                    background:#00e5ff; border:2px solid #04121c;
+                    box-shadow:0 0 6px rgba(0,229,255,0.9), 0 0 12px rgba(0,229,255,0.45);
+                    cursor:pointer; transition:transform 0.12s;
+                }
+                .stg-slider::-webkit-slider-thumb:hover { transform:scale(1.15); }
+                .stg-slider::-moz-range-thumb {
+                    width:14px; height:14px; border-radius:50%;
+                    background:#00e5ff; border:2px solid #04121c;
+                    box-shadow:0 0 6px rgba(0,229,255,0.9), 0 0 12px rgba(0,229,255,0.45);
+                    cursor:pointer; transition:transform 0.12s;
+                }
+                .stg-slider::-moz-range-thumb:hover { transform:scale(1.15); }
+                .stg-slider::-moz-range-track {
+                    height:6px; border-radius:4px; background:rgba(0,30,50,0.7);
+                }
+                .stg-slider::-moz-range-progress {
+                    height:6px; border-radius:4px; background:#00e5ff;
+                }
             </style>
 
             <script>
@@ -740,7 +775,7 @@
                             const v = Math.round(window.AudioMgr.getVolume(cat) * 100);
                             const s = document.getElementById('vol-' + cat + '-slider');
                             const l = document.getElementById('vol-' + cat + '-label');
-                            if (s) s.value = v;
+                            if (s) { s.value = v; s.style.setProperty('--pct', v + '%'); }
                             if (l) l.textContent = v + '%';
                         });
                     }
@@ -750,7 +785,9 @@
 
                     // Background brightness
                     const bgPct = Math.round((window._bgBrightness || 1.0) * 100);
-                    document.getElementById('bg-bright-slider').value = bgPct;
+                    const bgSlider = document.getElementById('bg-bright-slider');
+                    bgSlider.value = bgPct;
+                    bgSlider.style.setProperty('--pct', bgPct + '%');
                     document.getElementById('bg-bright-label').textContent = bgPct + '%';
 
                     document.getElementById('settingsOverlay').style.display = 'flex';
@@ -790,12 +827,14 @@
                 // Audio sliders → apply immediately + update label
                 function onAudioSlider(cat, val) {
                     document.getElementById('vol-' + cat + '-label').textContent = val + '%';
+                    document.getElementById('vol-' + cat + '-slider').style.setProperty('--pct', val + '%');
                     if (window.AudioMgr) window.AudioMgr.setVolume(cat, parseInt(val) / 100);
                 }
 
                 // Background brightness slider → apply immediately + update label
                 function onBgBrightnessChange(val) {
                     document.getElementById('bg-bright-label').textContent = val + '%';
+                    document.getElementById('bg-bright-slider').style.setProperty('--pct', val + '%');
                     if (window._bgSetBrightness) window._bgSetBrightness(parseInt(val) / 100);
                 }
 
@@ -1119,14 +1158,18 @@
             });
 
             // FPS + Auto Quality Tier
-            // Tier: 0=FULL(>25) 1=MED(≤25) 2=LOW(≤15)
-            // Shadow chỉ tắt ở tier 2 (fps ≤ 15)
-            const _TIER_NAMES   = ['FULL', 'MED', 'LOW'];
-            const _TIER_COLORS  = ['#4eff9a', '#ffc84a', '#ff5a3a'];
+            // Tier: 0=FULL(>25) 1=MED(≤25) 2=LOW(≤15) 3=MIN(≤8)
+            // Shadow chỉ tắt ở tier 2+ (fps ≤ 15). Tier 3 was previously
+            // unreachable by Smart Quality — render/core.js's particle
+            // scale/cap arrays support 4 levels but this auto watchdog only
+            // ever targeted 0-2, so severe lag (single-digit fps) got stuck
+            // at tier 2 with nowhere further to fall back to.
+            const _TIER_NAMES   = ['FULL', 'MED', 'LOW', 'MIN'];
+            const _TIER_COLORS  = ['#4eff9a', '#ffc84a', '#ff5a3a', '#ff2a2a'];
             // FPS threshold để downgrade TO tier N
-            const _TIER_DOWN_AT = [Infinity, 25, 15];
+            const _TIER_DOWN_AT = [Infinity, 25, 15, 8];
             // FPS threshold để upgrade FROM tier N (với buffer)
-            const _TIER_UP_AT   = [Infinity, 30, 20];
+            const _TIER_UP_AT   = [Infinity, 30, 20, 12];
 
             let _autoTier = 0;
             let _upgChecks = 0;       // upgrade cần 2 checks liên tiếp
@@ -1139,6 +1182,7 @@
                 return '#ff5a3a';
             }
             function _targetTier(fps) {
+                if (fps <= 8) return 3;
                 if (fps <= 15) return 2;
                 if (fps <= 25) return 1;
                 return 0;
@@ -1461,7 +1505,12 @@
                     skillASensorRadius = Math.min(cv.width, cv.height) * 0.9;
 
                 cv.style.pointerEvents = 'none';
-                // Mobile graphics = PC: không gọi _initMobilePerf()
+                // Shut off shadowBlur (Neon Bloom) immediately on entering
+                // Mobile mode instead of waiting for the reactive FPS
+                // watchdog to notice sustained lag and downgrade to Tier 2 —
+                // that reactive path cost a few seconds of severe lag before
+                // self-correcting, visible as soon as Wave 0 on real devices.
+                if (typeof _initMobilePerf === 'function') _initMobilePerf();
 
                 const mc = document.getElementById('mc');
                 // startGame() (called just before this on the initial hyperjump
