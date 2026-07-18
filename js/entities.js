@@ -204,10 +204,17 @@ function handleEnemyKill(enemy) {
         nextLifeMilestone += _hasBuff('hoan_sinh') ? 250000 : 500000;
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }
-    addExplosion(enemy.x, enemy.y, enemy.size);
+    // Egregor gets its own dedicated death burst below instead of the
+    // generic explosion, so the signature monster's death reads distinctly.
+    if (enemy.type !== 'egregor') addExplosion(enemy.x, enemy.y, enemy.size);
     if (enemy.type === 'leviathan') window._lastLeviathanKillTime = performance.now();
     if (enemy.type === 'egregor') {
         window._lastEgregorKillTime = performance.now();
+        if (!window._egregorDeathBursts) window._egregorDeathBursts = [];
+        window._egregorDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: performance.now(), duration: 900 });
+        createParticles(enemy.x, enemy.y, 40, '#aa44ff', 3, 11);
+        createParticles(enemy.x, enemy.y, 20, '#ffffff', 2, 7);
+        _setShake(16, 420);
         if (window.AudioMgr) {
             window.AudioMgr.playSfxAt('egregor-death-roar', enemy.x, enemy.y);
             window.AudioMgr.stopNullSlashWindup();
