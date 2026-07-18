@@ -51,8 +51,22 @@
     const rndInt = (a, b)  => Math.floor(Math.random() * (b - a + 1) + a);
     const rndOf  = arr     => arr[Math.floor(Math.random() * arr.length)];
 
-    // Config — matches premium_space_shooter_background_ver1.html counts/speeds
-    const CFG = {
+    // This background runs its own independent PIXI render loop, entirely
+    // outside the game's _gfxLevel/Smart-Quality tier system — so unlike
+    // every other visual system in the game, sprite count here was never
+    // scaled down for mobile. At full desktop density (671 sprites/frame,
+    // updated + drawn unconditionally every frame) this was a fixed,
+    // always-on cost that swamped weaker/mobile GPUs regardless of gfx tier.
+    //
+    // PC density is never touched by any of this — DESKTOP_CFG below is
+    // exactly the original always-on numbers. Only the mobile path changes.
+    //
+    // Density starts from a touch-capability guess (this IIFE creates
+    // sprites within milliseconds of page load, before the player has seen
+    // the menu let alone clicked PC/Mobile) and then gets rebuilt for real
+    // once the player makes an explicit choice — see window._bgSetDensity,
+    // called from selectPlatform() in index.html.
+    const DESKTOP_CFG = {
         gSpeed:        0.25,
         galaxyCount:   4,
         nebulaCount:   10,
@@ -64,6 +78,21 @@
         asteroidsMid:  6,
         asteroidsNear: 3,
     };
+    const MOBILE_CFG = {
+        gSpeed:        0.25,
+        galaxyCount:   2,
+        nebulaCount:   4,
+        starsFar:      100,
+        starsMid:      35,
+        starsNear:     12,
+        dustCount:     20,
+        asteroidsFar:  3,
+        asteroidsMid:  2,
+        asteroidsNear: 1,
+    };
+    const _isTouchDevice = (navigator.maxTouchPoints > 0) ||
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    let CFG = _isTouchDevice ? MOBILE_CFG : DESKTOP_CFG;
 
     // ─── LAYERS (back → front) ────────────────────────────────────────────
     const bgLayer           = new PIXI.Container();
@@ -192,7 +221,7 @@
         }
     }
 
-    const galaxies = Array.from({ length: CFG.galaxyCount }, () => new GalaxyObj());
+    let galaxies = Array.from({ length: CFG.galaxyCount }, () => new GalaxyObj());
 
     // ─── NEBULA CLOUDS ───────────────────────────────────────────────────
     const NPALETTES = [
@@ -253,7 +282,7 @@
         }
     }
 
-    const nebulas = Array.from({ length: CFG.nebulaCount }, () => new NebulaObj());
+    let nebulas = Array.from({ length: CFG.nebulaCount }, () => new NebulaObj());
 
     // ─── STARS ───────────────────────────────────────────────────────────
     const STAR_HUES = [
@@ -342,7 +371,7 @@
         }
     }
 
-    const stars = [
+    let stars = [
         ...Array.from({ length: CFG.starsFar   }, () => new StarObj('far')),
         ...Array.from({ length: CFG.starsMid   }, () => new StarObj('mid')),
         ...Array.from({ length: CFG.starsNear  }, () => new StarObj('near')),
@@ -386,7 +415,7 @@
         }
     }
 
-    const dusts = Array.from({ length: CFG.dustCount }, () => new DustObj());
+    let dusts = Array.from({ length: CFG.dustCount }, () => new DustObj());
 
     // ─── ASTEROIDS ───────────────────────────────────────────────────────
     const AST_PALETTES = [
@@ -567,11 +596,51 @@
         }
     }
 
-    const asteroids = [
+    let asteroids = [
         ...Array.from({ length: CFG.asteroidsFar   }, () => new AsteroidObj('far')),
         ...Array.from({ length: CFG.asteroidsMid   }, () => new AsteroidObj('mid')),
         ...Array.from({ length: CFG.asteroidsNear  }, () => new AsteroidObj('near')),
     ];
+
+    // ─── DENSITY REBUILD (explicit PC/Mobile selection) ────────────────────
+    // Called from selectPlatform() in index.html once the player actually
+    // makes a choice, so the initial touch-detection guess above gets
+    // corrected to match their real selection — PC always rebuilds back to
+    // the untouched DESKTOP_CFG numbers, never a reduced count.
+    window._bgSetDensity = function (platform) {
+        const next = platform === 'mobile' ? MOBILE_CFG : DESKTOP_CFG;
+        if (next === CFG) return; // already matches, nothing to rebuild
+        CFG = next;
+
+        galaxyLayer.removeChildren();
+        for (const g of galaxies) g.tex.destroy(true);
+        nebulaLayer.removeChildren();
+        for (const n of nebulas) n.tex.destroy(true);
+        asteroidFarLayer.removeChildren();
+        asteroidMidLayer.removeChildren();
+        asteroidNearLayer.removeChildren();
+        for (const a of asteroids) a.sprite.texture.destroy(true);
+        // Stars/dust use a shared pooled texture (_starTexPool/_dustTex) —
+        // only detach the sprites, never destroy the shared texture.
+        starFarLayer.removeChildren();
+        starMidLayer.removeChildren();
+        starNearLayer.removeChildren();
+        dustLayer.removeChildren();
+
+        galaxies  = Array.from({ length: CFG.galaxyCount }, () => new GalaxyObj());
+        nebulas   = Array.from({ length: CFG.nebulaCount }, () => new NebulaObj());
+        stars     = [
+            ...Array.from({ length: CFG.starsFar  }, () => new StarObj('far')),
+            ...Array.from({ length: CFG.starsMid  }, () => new StarObj('mid')),
+            ...Array.from({ length: CFG.starsNear }, () => new StarObj('near')),
+        ];
+        dusts     = Array.from({ length: CFG.dustCount }, () => new DustObj());
+        asteroids = [
+            ...Array.from({ length: CFG.asteroidsFar  }, () => new AsteroidObj('far')),
+            ...Array.from({ length: CFG.asteroidsMid  }, () => new AsteroidObj('mid')),
+            ...Array.from({ length: CFG.asteroidsNear }, () => new AsteroidObj('near')),
+        ];
+    };
 
     // ─── RESIZE ──────────────────────────────────────────────────────────
     new ResizeObserver(() => {
