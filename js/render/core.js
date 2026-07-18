@@ -1025,6 +1025,71 @@ function draw(deltaTime) {
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.restore();
             }
+
+            // Low-HP "RPG blood border": a harder-edged frame hugging the
+            // screen edges (distinct from the soft radial pulse above,
+            // which reads more like ambient bruising than a border) plus a
+            // faint slow-rotating "choáng" haze — a cheap, overlay-only
+            // dazed effect since this code runs after the frame is already
+            // drawn and can't displace anything already on screen.
+            if (window._lowHpActive) {
+                const bt = _now / 900;
+                const borderA = 0.16 + 0.10 * Math.abs(Math.sin(_now / 500));
+                ctx.save();
+                const edgeDepth = Math.min(canvas.width, canvas.height) * 0.16;
+                // top
+                let g = ctx.createLinearGradient(0, 0, 0, edgeDepth);
+                g.addColorStop(0, `rgba(120,0,0,${borderA})`); g.addColorStop(1, 'rgba(120,0,0,0)');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, edgeDepth);
+                // bottom
+                g = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - edgeDepth);
+                g.addColorStop(0, `rgba(120,0,0,${borderA})`); g.addColorStop(1, 'rgba(120,0,0,0)');
+                ctx.fillStyle = g; ctx.fillRect(0, canvas.height - edgeDepth, canvas.width, edgeDepth);
+                // left
+                g = ctx.createLinearGradient(0, 0, edgeDepth, 0);
+                g.addColorStop(0, `rgba(120,0,0,${borderA})`); g.addColorStop(1, 'rgba(120,0,0,0)');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, edgeDepth, canvas.height);
+                // right
+                g = ctx.createLinearGradient(canvas.width, 0, canvas.width - edgeDepth, 0);
+                g.addColorStop(0, `rgba(120,0,0,${borderA})`); g.addColorStop(1, 'rgba(120,0,0,0)');
+                ctx.fillStyle = g; ctx.fillRect(canvas.width - edgeDepth, 0, edgeDepth, canvas.height);
+                ctx.restore();
+
+                // dazed haze — a few slow-rotating faint arcs around the
+                // screen center, cheap (no per-pixel work) but reads as
+                // disoriented swirling at the edge of vision
+                if (_gfxLevel < 2) {
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    const arcCount = _gfxLevel < 1 ? 3 : 2;
+                    for (let i = 0; i < arcCount; i++) {
+                        const rot = bt * (i % 2 === 0 ? 1 : -1) * 0.6 + i * 2.1;
+                        ctx.rotate(rot - (i === 0 ? 0 : 0)); // cumulative is fine, purely decorative
+                        ctx.strokeStyle = `rgba(180,0,0,${0.08 + 0.05 * Math.sin(_now / 400 + i)})`;
+                        ctx.lineWidth = 30;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, outerR * 0.75, 0, Math.PI * 0.6);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+            }
+
+            // Maou Haki oppressive darkening: dims the whole screen while
+            // Dargruel's shockwave is expanding, on top of the shockwave's
+            // own denser/darker fill (see drawBossShockwaves in fx.js) —
+            // makes the effect feel like it's dominating the whole arena,
+            // not just a localized ring.
+            if (typeof bossShockwaves !== 'undefined') {
+                const _maouActive = bossShockwaves.some(w => w.active && !w._isBTMWave);
+                if (_maouActive) {
+                    const darkPulse = 0.16 + 0.06 * Math.sin(_now / 260);
+                    ctx.save();
+                    ctx.fillStyle = `rgba(20,0,35,${darkPulse})`;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                }
+            }
         }
 
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();

@@ -10,17 +10,15 @@
 
     // Web Audio graph: everything except the Yog-Sothoth activation cue
     // ("shift-hold") routes through a shared duck-gain -> lowpass-filter
-    // chain. Yog-Sothoth Domain drives that chain to simulate the rest of
-    // the mix being smothered by the time-space distortion — muffled and
-    // quiet — while its own activation sound bypasses the chain entirely so
-    // it reads as the loudest, clearest thing in the mix. Falls back to
-    // silent no-ops if the browser has no Web Audio support.
+    // chain. Yog-Sothoth Domain and low-HP dazed state both drive this
+    // chain to simulate the rest of the mix being smothered — muffled and
+    // quiet — while each state's own signature cue (shift-hold / heartbeat)
+    // bypasses the chain entirely so it reads as the loudest, clearest
+    // thing in the mix. Falls back to silent no-ops with no Web Audio.
     const _AC = window.AudioContext || window.webkitAudioContext;
     const actx = _AC ? new _AC() : null;
     let _duckGain = null, _duckFilter = null;
     const NORMAL_FREQ = 20000; // effectively unfiltered
-    const DOMAIN_FREQ = 450;   // muffled "far away in a vacuum" lowpass cutoff
-    const DOMAIN_GAIN = 0.32;  // everything else ducks to this while the domain is active
     if (actx) {
         _duckGain = actx.createGain();
         _duckFilter = actx.createBiquadFilter();
@@ -48,26 +46,37 @@
         if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
     }
 
-    let _domainActive = false;
-    function enterTimeDomain() {
-        _domainActive = true;
+    // Multiple independent states can want to duck the mix at once (e.g.
+    // dropping to low HP while Yog-Sothoth is already active). Each has its
+    // own gain/filter target; whichever active duck is most intense (lowest
+    // gain) wins. low-hp is deliberately muffled further than Yog-Sothoth —
+    // "choáng" from taking near-fatal damage reads as more disorienting
+    // than the domain's own time-distortion hum.
+    const DUCK_LEVELS = {
+        yogsothoth: { gain: 0.32, freq: 450 },
+        lowhp:      { gain: 0.16, freq: 260 },
+    };
+    const _activeDucks = new Set();
+    function _applyDuckState() {
         if (!actx) return;
+        let target = { gain: 1, freq: NORMAL_FREQ };
+        for (const key of _activeDucks) {
+            const d = DUCK_LEVELS[key];
+            if (d && d.gain < target.gain) target = d;
+        }
         const now = actx.currentTime;
         _duckGain.gain.cancelScheduledValues(now);
-        _duckGain.gain.setTargetAtTime(DOMAIN_GAIN, now, 0.12);
+        _duckGain.gain.setTargetAtTime(target.gain, now, 0.15);
         _duckFilter.frequency.cancelScheduledValues(now);
-        _duckFilter.frequency.setTargetAtTime(DOMAIN_FREQ, now, 0.12);
+        _duckFilter.frequency.setTargetAtTime(target.freq, now, 0.15);
     }
-    function exitTimeDomain() {
-        if (!_domainActive) return;
-        _domainActive = false;
-        if (!actx) return;
-        const now = actx.currentTime;
-        _duckGain.gain.cancelScheduledValues(now);
-        _duckGain.gain.setTargetAtTime(1, now, 0.25);
-        _duckFilter.frequency.cancelScheduledValues(now);
-        _duckFilter.frequency.setTargetAtTime(NORMAL_FREQ, now, 0.25);
-    }
+    function enterDuck(key) { _activeDucks.add(key); _applyDuckState(); }
+    function exitDuck(key)  { _activeDucks.delete(key); _applyDuckState(); }
+
+    function enterTimeDomain() { enterDuck('yogsothoth'); }
+    function exitTimeDomain()  { exitDuck('yogsothoth'); }
+    function enterLowHpDuck()  { enterDuck('lowhp'); }
+    function exitLowHpDuck()   { exitDuck('lowhp'); }
 
     // Per-clip base gain. Balance lives in the audio files themselves (gain
     // baked in with ffmpeg's volume filter) so the in-game sliders read as
@@ -89,6 +98,11 @@
         'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
         'spirit-arc-slash': 1.0,
         gameover: 1.0, 'new-wave': 1.0,
+        'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,
+        'charged-shot': 1.0, 'wave-clear': 1.0,
+        'dimensional-rift': 1.0, 'dimension-break': 1.0,
+        'egregor-nullslash-windup': 1.0, 'egregor-nullslash-slash': 1.0, 'egregor-nullslash-hit': 1.0,
+        'egregor-crawl': 1.0, 'egregor-death-roar': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -143,9 +157,15 @@
         skillFChargeEl: null, // Skill F charge-up cue, cut short at natural pace (not looped)
         skillFFireEl: null,   // Skill F slash cue, cut short when the sweep animation ends (not looped)
         blackholeEl: null,    // black hole ambience, cut short when the hole leaves the screen (not looped)
+        maouHakiEl: null,     // Dargruel Maou Haki shockwave cue, cut short when the wave finishes expanding (not looped)
+        lowHpEl: null,        // low-HP heartbeat loop (lives < 5), looped while the state holds
+        nullSlashWindupEl: null, // Egregor Null Slash windup drone, cut short exactly when the strike phase begins (variable 1-3s duration)
+        crawlElA: null, crawlElB: null, // Egregor crawl texture: two alternating one-shots, overlapped so the loop point never reads as silence
         pool: {},            // sfx key → Audio pool (rotated for rapid re-fires)
         poolIdx: {},
     };
+    let _crawlActive = false;
+    let _crawlCur = null; // 'A' or 'B' — which element we're currently watching for near-end
 
     // Load persisted volumes.
     try {
@@ -250,8 +270,13 @@
             skillFCharge: !!(state.skillFChargeEl && !state.skillFChargeEl.paused),
             skillFFire: !!(state.skillFFireEl && !state.skillFFireEl.paused),
             blackhole: !!(state.blackholeEl && !state.blackholeEl.paused),
+            maouHaki: !!(state.maouHakiEl && !state.maouHakiEl.paused),
+            lowHp: !!(state.lowHpEl && !state.lowHpEl.paused),
+            nullSlashWindup: !!(state.nullSlashWindupEl && !state.nullSlashWindupEl.paused),
+            crawlA: !!(state.crawlElA && !state.crawlElA.paused),
+            crawlB: !!(state.crawlElB && !state.crawlElB.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlElA, state.crawlElB]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -267,6 +292,11 @@
         if (s.skillFCharge && state.skillFChargeEl) try { state.skillFChargeEl.play().catch(() => {}); } catch (_) {}
         if (s.skillFFire && state.skillFFireEl) try { state.skillFFireEl.play().catch(() => {}); } catch (_) {}
         if (s.blackhole && state.blackholeEl) try { state.blackholeEl.play().catch(() => {}); } catch (_) {}
+        if (s.maouHaki && state.maouHakiEl) try { state.maouHakiEl.play().catch(() => {}); } catch (_) {}
+        if (s.lowHp && state.lowHpEl) try { state.lowHpEl.play().catch(() => {}); } catch (_) {}
+        if (s.nullSlashWindup && state.nullSlashWindupEl) try { state.nullSlashWindupEl.play().catch(() => {}); } catch (_) {}
+        if (s.crawlA && state.crawlElA) try { state.crawlElA.play().catch(() => {}); } catch (_) {}
+        if (s.crawlB && state.crawlElB) try { state.crawlElB.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -318,6 +348,11 @@
         if (state.skillFChargeEl) state.skillFChargeEl.volume = sfxGain('skill-f-charge');
         if (state.skillFFireEl) state.skillFFireEl.volume = sfxGain('skill-f-fire');
         if (state.blackholeEl) state.blackholeEl.volume = sfxGain('blackhole');
+        if (state.maouHakiEl) state.maouHakiEl.volume = sfxGain('maou-haki');
+        if (state.lowHpEl) state.lowHpEl.volume = sfxGain('low-hp');
+        if (state.nullSlashWindupEl) state.nullSlashWindupEl.volume = sfxGain('egregor-nullslash-windup');
+        if (state.crawlElA) state.crawlElA.volume = sfxGain('egregor-crawl');
+        if (state.crawlElB) state.crawlElB.volume = sfxGain('egregor-crawl');
     }
 
     function setVolume(cat, v) {
@@ -358,8 +393,51 @@
     function stopSkillFFire()   { stopLoop('skillFFireEl'); }
     function startBlackhole()   { startLoop('blackholeEl', 'blackhole'); }
     function stopBlackhole()    { stopLoop('blackholeEl'); }
+    function startMaouHaki()    { startLoop('maouHakiEl', 'maou-haki'); }
+    function stopMaouHaki()     { stopLoop('maouHakiEl'); }
+    function startNullSlashWindup() { startLoop('nullSlashWindupEl', 'egregor-nullslash-windup'); }
+    function stopNullSlashWindup()  { stopLoop('nullSlashWindupEl'); }
     function startLaser()   { startLoop('laserEl', 'laser'); }
     function stopLaser()    { stopLoop('laserEl'); }
+
+    // Egregor crawl: two alternating one-shots, cross-started so the texture
+    // never has a silent gap at the loop point ("khi 1 lần sắp hết thì cho 1
+    // lượt khác chồng lên"). startEgregorCrawl is idempotent — safe to call
+    // every frame while an Egregor is alive. tickEgregorCrawl must be polled
+    // each frame to detect when the playing element is nearing its end.
+    function startEgregorCrawl() {
+        if (_crawlActive) return;
+        _crawlActive = true;
+        _crawlCur = 'A';
+        const el = state.crawlElA;
+        if (!el) return;
+        try { el.volume = sfxGain('egregor-crawl'); el.currentTime = 0; el.play().catch(() => {}); } catch (_) {}
+    }
+    function stopEgregorCrawl() {
+        _crawlActive = false;
+        _crawlCur = null;
+        [state.crawlElA, state.crawlElB].forEach(el => { if (el) { try { el.pause(); el.currentTime = 0; } catch (_) {} } });
+    }
+    function tickEgregorCrawl() {
+        if (!_crawlActive) return;
+        const curEl  = _crawlCur === 'A' ? state.crawlElA : state.crawlElB;
+        const nextEl = _crawlCur === 'A' ? state.crawlElB : state.crawlElA;
+        if (!curEl || !nextEl) return;
+        const g = sfxGain('egregor-crawl');
+        curEl.volume = g; nextEl.volume = g;
+        if (curEl.duration && !isNaN(curEl.duration) && (curEl.duration - curEl.currentTime) <= 0.28 && nextEl.paused) {
+            try { nextEl.currentTime = 0; nextEl.play().catch(() => {}); } catch (_) {}
+            _crawlCur = (_crawlCur === 'A') ? 'B' : 'A';
+        }
+    }
+
+    // Low-HP heartbeat: loops while lives < 5, and ducks/muffles the rest
+    // of the mix (heavier than Yog-Sothoth's own duck) for the "choáng"
+    // dazed feel. startLoop/stopLoop already handle the element itself;
+    // the duck is a separate call since it affects the whole mix, not just
+    // this one element.
+    function startLowHp() { startLoop('lowHpEl', 'low-hp'); enterDuck('lowhp'); }
+    function stopLowHp()  { stopLoop('lowHpEl'); exitDuck('lowhp'); }
 
     // Boot: create pooled one-shots and singleton loops.
     function _boot() {
@@ -391,12 +469,21 @@
         _makePool('spirit-arc-slash', 'audio/sfx/spirit-arc-slash.mp3', 3);
         _makePool('gameover',  'audio/sfx/gameover.mp3',  1);
         _makePool('new-wave',  'audio/sfx/new-wave.mp3',  2);
+        _makePool('yog-parry', 'audio/sfx/yog-parry.mp3', 2);
+        _makePool('charged-shot', 'audio/sfx/charged-shot.mp3', 2);
+        _makePool('wave-clear',   'audio/sfx/wave-clear.mp3',   1);
+        _makePool('dimensional-rift', 'audio/sfx/dimensional-rift.mp3', 2);
+        _makePool('dimension-break',  'audio/sfx/dimension-break.mp3',  2);
+        _makePool('egregor-nullslash-slash', 'audio/sfx/egregor-nullslash-slash.mp3', 2);
+        _makePool('egregor-nullslash-hit',   'audio/sfx/egregor-nullslash-hit.mp3',   2);
+        _makePool('egregor-death-roar',      'audio/sfx/egregor-death-roar.mp3',      1);
 
         state.ambientEl  = _mkLoop('audio/sfx/ingame.mp3');
         state.engineEl   = _mkLoop('audio/sfx/engine.wav');
         state.laserEl    = _mkLoop('audio/sfx/laser.mp3');
         state.chargingEl = _mkLoop('audio/sfx/charging.mp3');
         state.skillDChargeEl = _mkLoop('audio/sfx/skill-d-charge.mp3');
+        state.lowHpEl    = _mkLoop('audio/sfx/low-hp.mp3'); // heartbeat, loops while lives < 5
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
@@ -404,6 +491,10 @@
         state.skillFChargeEl = _mkOnce('audio/sfx/skill-f-charge.mp3');
         state.skillFFireEl   = _mkOnce('audio/sfx/skill-f-fire.mp3');
         state.blackholeEl    = _mkOnce('audio/sfx/blackhole.mp3');
+        state.maouHakiEl     = _mkOnce('audio/sfx/maou-haki.mp3');
+        state.nullSlashWindupEl = _mkOnce('audio/sfx/egregor-nullslash-windup.mp3');
+        state.crawlElA = _mkOnce('audio/sfx/egregor-crawl.mp3');
+        state.crawlElB = _mkOnce('audio/sfx/egregor-crawl.mp3');
     }
     function _mkLoop(src) {
         const a = new Audio(src);
@@ -438,6 +529,10 @@
         startSkillFCharge, stopSkillFCharge,
         startSkillFFire, stopSkillFFire,
         startBlackhole, stopBlackhole,
+        startMaouHaki, stopMaouHaki,
+        startLowHp, stopLowHp,
+        startNullSlashWindup, stopNullSlashWindup,
+        startEgregorCrawl, stopEgregorCrawl, tickEgregorCrawl,
         startLaser,   stopLaser,
 
         // Volumes / mute

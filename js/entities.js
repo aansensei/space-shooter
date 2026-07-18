@@ -206,7 +206,13 @@ function handleEnemyKill(enemy) {
     }
     addExplosion(enemy.x, enemy.y, enemy.size);
     if (enemy.type === 'leviathan') window._lastLeviathanKillTime = performance.now();
-    if (enemy.type === 'egregor')   window._lastEgregorKillTime   = performance.now();
+    if (enemy.type === 'egregor') {
+        window._lastEgregorKillTime = performance.now();
+        if (window.AudioMgr) {
+            window.AudioMgr.playSfxAt('egregor-death-roar', enemy.x, enemy.y);
+            window.AudioMgr.stopNullSlashWindup();
+        }
+    }
 
     // Leviathan AFO: mỗi kill tăng counter cho tất cả Leviathan đang có khiên
     enemies.forEach(lev => {
@@ -302,7 +308,7 @@ function fireAutoShot() {
 }
 
 function fireChargedBullet(multiplier) {
-    // No dedicated charged-shot sfx yet — stays silent until a file lands
+    if (window.AudioMgr) window.AudioMgr.playSfx('charged-shot');
     const baseSize = 5;
     bullets.push({
         x: player.x, y: player.y - player.height / 2,
@@ -1067,6 +1073,7 @@ function spawnBossShockwave(x, y) {
         active: true
     });
     _setShake(20, 600);
+    if (window.AudioMgr) window.AudioMgr.startMaouHaki();
 }
 
 function dealDamage(enemy, source) {
@@ -2194,6 +2201,14 @@ function updateEgregor(enemy, deltaTime) {
     const now = performance.now();
     const dt = deltaTime / 16.67;
 
+    // Signature-monster crawl texture: two alternating one-shots cross-started
+    // by AudioMgr so the loop never has a silent gap. startEgregorCrawl is a
+    // no-op once already running; stopped from main.js when no Egregor remains.
+    if (window.AudioMgr) {
+        window.AudioMgr.startEgregorCrawl();
+        window.AudioMgr.tickEgregorCrawl();
+    }
+
     // Collective Mind, init tentacle HP pools on first tick
     if (!enemy._tentacleHps) {
         const tentHP = Math.ceil(enemy.maxHp * 0.80);
@@ -2357,6 +2372,10 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             enemy._boonBaneBarrier = 250;
             enemy._boonBaneBarrierTotal = 0;
             enemy._nullSlashTentPts = null;
+            // Windup drone plays at natural pace and is cut short below the
+            // instant the strike begins, so its length always tracks the
+            // actual (rage-shortened) windup rather than a fixed duration.
+            if (window.AudioMgr) window.AudioMgr.startNullSlashWindup();
         }
         return;
     }
@@ -2375,6 +2394,10 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             enemy._nullSlashOriginX = enemy.x;
             enemy._nullSlashOriginY = enemy.y;
             enemy._dimBreakZoneSpawned = false;
+            if (window.AudioMgr) {
+                window.AudioMgr.stopNullSlashWindup();
+                window.AudioMgr.playSfxAt('egregor-nullslash-slash', enemy.x, enemy.y);
+            }
         }
         return;
     }
@@ -2398,6 +2421,8 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 return Math.abs(dA) <= Math.PI / 2;
             };
 
+            let _nsHitLanded = false;
+
             // Player hit
             if (_inSlash(player.x, player.y)) {
                 if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
@@ -2409,6 +2434,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                     addExplosion(player.x, player.y, 90, '#6600cc');
                     createParticles(player.x, player.y, 25, '#aa44ff', 3, 10);
                     _setShake(12, 350);
+                    _nsHitLanded = true;
                 }
             }
 
@@ -2428,7 +2454,10 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 createParticles(sx, sy, 35, '#9933ff', 5, 14);
                 createParticles(sx, sy, 15, '#ffffff', 4, 10);
                 _setShake(14, 400);
+                _nsHitLanded = true;
             }
+
+            if (_nsHitLanded && window.AudioMgr) window.AudioMgr.playSfxAt('egregor-nullslash-hit', sx, sy);
         }
 
         // Spawn Dimension Break zone at start of retract (720ms) — independent world object
@@ -2446,6 +2475,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 spawnAt: now,
                 expireAt: now + 1000
             });
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('dimension-break', ox, oy);
         }
 
         // Strike animation: 950ms (EXTEND 200 + SWEEP 520 + RETRACT 230)
