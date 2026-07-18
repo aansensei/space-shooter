@@ -34,7 +34,6 @@ function playerTakesHit(attacker) {
     if (skillShiftActive) {
         // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
         _triggerAccurateParry();
-        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
         return;
     }
 
@@ -118,6 +117,8 @@ function _triggerAccurateParry() {
     const now = performance.now();
     accurateParryActive = true;
     accurateParryEndTime = now + 4000;
+
+    if (window.AudioMgr) window.AudioMgr.playSfx('yog-parry');
 
     // Visual feedback
     addExplosion(player.x, player.y, 80, '#ffdd00');
@@ -249,6 +250,28 @@ function update(rawDeltaTime) {
         accurateParryActive = false;
     }
 
+    // Low-HP heartbeat: lives can change from several places (loseLife,
+    // Scorpio sigil +5, score-milestone +1), so rather than hooking every
+    // call site this just watches for the lives<5 threshold crossing each
+    // frame — same threshold the HUD's blinking heart / red vignette pulse
+    // already use.
+    const _lowHpNow = gameState === "playing" && lives > 0 && lives < 5;
+    if (_lowHpNow !== window._lowHpActive) {
+        window._lowHpActive = _lowHpNow;
+        if (window.AudioMgr) {
+            if (_lowHpNow) window.AudioMgr.startLowHp();
+            else window.AudioMgr.stopLowHp();
+        }
+    }
+
+    // Egregor crawl texture is started per-frame from updateEgregor while one
+    // is alive; this just catches the falling edge (death/despawn) to stop it.
+    const _egregorPresent = enemies.some(e => e.type === 'egregor');
+    if (_egregorPresent !== window._egregorCrawlActive) {
+        window._egregorCrawlActive = _egregorPresent;
+        if (!_egregorPresent && window.AudioMgr) window.AudioMgr.stopEgregorCrawl();
+    }
+
     bossShockwaves.forEach(wave => {
         if (!wave.active) return;
         wave.radius += wave.speed * dt;
@@ -319,7 +342,10 @@ function update(rawDeltaTime) {
 
         if (wave.radius >= wave.maxRadius) {
             if (!wave._lingerUntil) wave._lingerUntil = performance.now() + 500;
-            if (performance.now() >= wave._lingerUntil) wave.active = false;
+            if (performance.now() >= wave._lingerUntil) {
+                wave.active = false;
+                if (window.AudioMgr) window.AudioMgr.stopMaouHaki();
+            }
         }
     });
     bossShockwaves = bossShockwaves.filter(w => w.active);
@@ -2081,6 +2107,7 @@ function _updateWaveSystem(deltaTime, now) {
                 _wavePhase = 'rest';
                 _waveRestTimer = 5000;
                 _waveForceEndTimer = 0;
+                if (window.AudioMgr) window.AudioMgr.playSfx('wave-clear');
             }
         } else {
             _waveForceEndTimer += deltaTime;
@@ -2169,7 +2196,9 @@ function startGame() {
     accurateParryActive = false;
     accurateParryEndTime = 0;
     skillAActive = false; skillDCharging = false; skillFState = "ready";
-    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopBlackhole(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); }
+    window._lowHpActive = false;
+    window._egregorCrawlActive = false;
+    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopBlackhole(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); }
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 
     hasTriggeredLastStand = false;

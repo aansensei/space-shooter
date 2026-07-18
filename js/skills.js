@@ -139,6 +139,7 @@ function updateSkillA(deltaTime) {
 // Dimensional Rift (Skill A buff)
 
 function spawnDimensionalRift(x, y) {
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('dimensional-rift', x, y);
     const radius = 50;
     const numCracks = 6 + Math.floor(Math.random() * 5);
     const cracksInfo = [];
@@ -675,6 +676,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                 });
             }
             spirit.volleyCount = (spirit.volleyCount || 0) + 1;
+            if (window.AudioMgr) window.AudioMgr.playSfx('spirit-autofire');
         }
     }
 

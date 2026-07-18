@@ -529,9 +529,15 @@
                     box-shadow:0 0 40px rgba(0,100,200,0.2);
                     font-family:'Courier New',monospace;
                 ">
-                    <!-- Close button -->
+                    <!-- Close button. Was position:absolute with negative
+                         top/right (hanging off the panel corner as a
+                         "badge") but the panel has overflow-y:auto for
+                         mobile scrolling, which per the CSS spec forces the
+                         other axis to clip too — so the negative offsets
+                         got cut off, leaving only a sliver visible. Kept
+                         fully inside the panel bounds instead. -->
                     <button onclick="closeSettings()" style="
-                        position:absolute; top:-14px; right:-14px; z-index:10;
+                        position:absolute; top:10px; right:10px; z-index:10;
                         width:34px; height:34px; background:rgba(255,60,60,0.15);
                         border:1px solid rgba(255,60,60,0.4); border-radius:8px;
                         color:#ff6666; font-size:18px; cursor:pointer;
@@ -1276,15 +1282,15 @@
     </script>
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
-    <script src="js/audio.js?v=20260717e"></script>
+    <script src="js/audio.js?v=20260718a"></script>
     <script src="js/background.js?v=20260717d"></script>
     <script src="js/config.js?v=20260717a"></script>
     <script src="js/sigils.js?v=20260717b"></script>
-    <script src="js/entities.js?v=20260717a"></script>
-    <script src="js/skills.js?v=20260717c"></script>
-    <script src="js/render/core.js?v=20260717e"></script>
-    <script src="js/render/fx.js?v=20260717e"></script>
-    <script src="js/render/player.js?v=20260717f"></script>
+    <script src="js/entities.js?v=20260718a"></script>
+    <script src="js/skills.js?v=20260718a"></script>
+    <script src="js/render/core.js?v=20260717g"></script>
+    <script src="js/render/fx.js?v=20260717f"></script>
+    <script src="js/render/player.js?v=20260717h"></script>
     <script src="js/render/enemy-common.js?v=20260717e"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
     <script src="js/render/enemy-boss-thaelis.js?v=20260717e"></script>
@@ -1300,7 +1306,7 @@
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
     <script src="js/pixi-renderer.js?v=20260717a"></script>
     <script src="js/input.js?v=20260717a"></script>
-    <script src="js/main.js?v=20260717c"></script>
+    <script src="js/main.js?v=20260718a"></script>
 
     <!-- ══ UI SFX WIRING ═════════════════════════════════════════════ -->
     <script>
@@ -1499,6 +1505,20 @@
                 cv.style.height = physH + 'px';
                 cv.width = Math.round(physW * S);
                 cv.height = Math.round(physH * S);
+
+                // pixi-renderer.js's WebGL canvas (bullets/particles/trails)
+                // is sized once at boot from gameCanvas.width/height, before
+                // this inflate ever runs. Its own ResizeObserver watches
+                // gameCanvas's CSS layout box, not this internal buffer
+                // resize, so it never fires here and the two canvases drift
+                // out of scale — bullets render offset from the ships/enemies
+                // drawn on gameCanvas. Force it back in sync explicitly.
+                if (window._pixiApp && window._pixiApp.renderer) {
+                    window._pixiApp.renderer.resize(cv.width, cv.height);
+                }
+                if (window._bgPixiApp && window._bgPixiApp.renderer) {
+                    window._bgPixiApp.renderer.resize(physW, physH);
+                }
 
                 // Update game globals to use new logical size
                 boundaryY = cv.height - 10;

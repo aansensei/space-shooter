@@ -344,11 +344,23 @@ function drawBossShockwaves() {
 
         ctx.save();
         ctx.translate(wave.x, wave.y);
+        // Slow heavy pulse for the oppressive fill/ring, separate from the
+        // faster "blink" used for sparkle/accent flicker below — a slow
+        // pulse reads as heavy and dominant, a fast one reads as sparkly.
+        const heavyPulse = 0.75 + 0.25 * Math.sin(now / 260);
         const blink = 0.7 + 0.3 * Math.sin(now / 40);
-        ctx.globalAlpha = fade * 0.20 * blink;
-        ctx.fillStyle = 'rgba(100,0,200,1)';
-        ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.fill();
+
+        // Dense void core: near-black at the very center darkening to
+        // violet toward the edge, instead of one flat translucent violet
+        // wash — reads as a crushing pressure zone rather than a light
+        // decorative glow.
+        const core = ctx.createRadialGradient(0, 0, 0, 0, 0, wave.radius);
+        core.addColorStop(0,   `rgba(10,0,20,${fade * 0.55 * heavyPulse})`);
+        core.addColorStop(0.6, `rgba(70,0,140,${fade * 0.42 * heavyPulse})`);
+        core.addColorStop(1,   `rgba(140,0,220,${fade * 0.30 * heavyPulse})`);
         ctx.globalAlpha = 1;
+        ctx.fillStyle = core;
+        ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.fill();
 
         // 2. Lightweight Persian arcs (8 rotating arcs, NO grid loop)
         const numArcs = 8;
@@ -386,11 +398,17 @@ function drawBossShockwaves() {
         ctx.setLineDash([]);
         ctx.restore();
 
-        // 3. Outer halo
-        ctx.globalAlpha = fade * 0.28 * blink;
-        ctx.strokeStyle = 'rgba(180,0,255,1)';
-        ctx.lineWidth = 28;
+        // 3. Outer halo — thicker and darker than before (28px soft violet
+        // → 44px with a near-black outer band) so the boundary reads as a
+        // heavy pressure wall instead of a thin glowing ring.
+        ctx.globalAlpha = fade * 0.34 * heavyPulse;
+        ctx.strokeStyle = 'rgba(150,0,220,1)';
+        ctx.lineWidth = 44;
         ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = fade * 0.5 * heavyPulse;
+        ctx.strokeStyle = 'rgba(20,0,40,1)';
+        ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.arc(0, 0, wave.radius + 20, 0, Math.PI * 2); ctx.stroke();
         ctx.globalAlpha = 1;
 
         // 4. Flying sparks on outer ring
@@ -418,11 +436,11 @@ function drawBossShockwaves() {
         }
         ctx.shadowBlur = 0;
 
-        // 5. Main ring
+        // 5. Main ring — thicker (7px → 12px) for more visual weight
         ctx.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * blink) * fade})`;
-        ctx.lineWidth = 7;
+        ctx.lineWidth = 12;
         if (!_mobPerf) ctx.shadowColor = '#CC00FF';
-        if (!_mobPerf) ctx.shadowBlur = 20 + 12 * blink;
+        if (!_mobPerf) ctx.shadowBlur = 24 + 14 * blink;
         ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
 

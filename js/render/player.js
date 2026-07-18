@@ -767,11 +767,36 @@ function drawPlayer(alpha = 1, xOffset = 0) {
 let _laserChargeStars = [];
 let _laserChargeStarsSpawnedAt = 0;
 
-function _drawSparkleStar(x, y, size, color, glowColor) {
+// Pre-baked white glow sprite, reused via drawImage for every star instead
+// of a per-star ctx.shadowBlur fill. shadowBlur cost scales with blur
+// radius² per call and is one of the most expensive Canvas2D ops on mobile
+// — baking it once into a bitmap and blitting it is nearly free by
+// comparison, however many stars are on screen at once.
+let _starGlowSprite = null;
+function _getStarGlowSprite() {
+    if (_starGlowSprite) return _starGlowSprite;
+    const d = 48;
+    const c = document.createElement('canvas');
+    c.width = c.height = d;
+    const cx = c.getContext('2d');
+    const g = cx.createRadialGradient(d / 2, d / 2, 0, d / 2, d / 2, d / 2);
+    g.addColorStop(0,   'rgba(255,255,255,0.9)');
+    g.addColorStop(0.4, 'rgba(255,255,255,0.35)');
+    g.addColorStop(1,   'rgba(255,255,255,0)');
+    cx.fillStyle = g;
+    cx.beginPath(); cx.arc(d / 2, d / 2, d / 2, 0, Math.PI * 2); cx.fill();
+    _starGlowSprite = c;
+    return c;
+}
+
+function _drawSparkleStar(x, y, size, color, alpha) {
     ctx.save();
     ctx.translate(x, y);
+    ctx.globalAlpha = alpha;
+    const glow = _getStarGlowSprite();
+    const gd = size * 7;
+    ctx.drawImage(glow, -gd / 2, -gd / 2, gd, gd);
     ctx.fillStyle = color;
-    if (!_mobPerf && glowColor) { ctx.shadowColor = glowColor; ctx.shadowBlur = size * 3; }
     ctx.beginPath();
     ctx.moveTo(0, -size * 2.2);
     ctx.quadraticCurveTo(size * 0.4, -size * 0.4, size * 2.2, 0);
@@ -780,7 +805,6 @@ function _drawSparkleStar(x, y, size, color, glowColor) {
     ctx.quadraticCurveTo(-size * 0.4, -size * 0.4, 0, -size * 2.2);
     ctx.closePath();
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.restore();
 }
 
@@ -791,23 +815,59 @@ function drawChargeEffect() {
     let radius = player.width / 2 + chargeRatio * player.width * 2;
     const _gfx = window._gfxLevel || 0;
 
-    // Spawn stars fresh exactly once per charge activation.
+    // Spawn stars fresh exactly once per charge activation. Counts are
+    // higher than before — switching to a pre-baked glow sprite (see
+    // _getStarGlowSprite) instead of per-star ctx.shadowBlur removed the
+    // single most expensive part of drawing each star, so more of them can
+    // be on screen for the same cost as fewer used to be.
     if (_laserChargeStarsSpawnedAt !== chargeStartTime) {
         _laserChargeStarsSpawnedAt = chargeStartTime;
         _laserChargeStars.length = 0;
-        const starCount = _gfx < 1 ? 14 : _gfx < 2 ? 8 : 4;
+        const starCount = _gfx < 1 ? 26 : _gfx < 2 ? 14 : 6;
         for (let i = 0; i < starCount; i++) {
             _laserChargeStars.push({
                 angle: Math.random() * Math.PI * 2,
-                dist: 140 + Math.random() * 220,
+                dist: 140 + Math.random() * 260,
                 delay: Math.random() * 500,
                 hue: Math.random() * 360,
                 isSovereign: i === 0,
+                px: 0, py: 0, hasPrev: false, // previous position, for the trail streak
             });
         }
     }
+
+    // Constellation lines: connect each star to its single nearest
+    // neighbor only (one stroke per star, not one per pair) so the cluster
+    // reads as a loose star-chart instead of a plain scatter. The nearest-
+    // neighbor search itself is a cheap all-pairs distance comparison —
+    // negligible at these star counts (≤26) since it's plain arithmetic,
+    // not draw calls; the draw cost stays at one line per star either way.
+    const drawLines = _gfx < 2 && _laserChargeStars.length > 1;
+    if (drawLines) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(160,220,255,0.12)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < _laserChargeStars.length; i++) {
+            const a = _laserChargeStars[i];
+            let best = -1, bestD = Infinity;
+            for (let j = 0; j < _laserChargeStars.length; j++) {
+                if (i === j) continue;
+                const b = _laserChargeStars[j];
+                const dd = (a.angle - b.angle) * (a.angle - b.angle) * 10000 + (a.dist - b.dist) * (a.dist - b.dist);
+                if (dd < bestD) { bestD = dd; best = j; }
+            }
+            if (best < 0) continue;
+            const b = _laserChargeStars[best];
+            const ax = player.x + Math.cos(a.angle) * a.dist, ay = player.y + Math.sin(a.angle) * a.dist;
+            const bx = player.x + Math.cos(b.angle) * b.dist, by = player.y + Math.sin(b.angle) * b.dist;
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     // Update + draw the gathering stars, pulling in once each one's delay
-    // has passed (the "delay 1 chút rồi mới bị hút lại" beat).
+    // has passed (the "delay 1 chút rồi mới bị hút lại" beat), each
+    // trailing a short fading streak from its previous frame's position.
     for (let i = _laserChargeStars.length - 1; i >= 0; i--) {
         const st = _laserChargeStars[i];
         if (chargeDuration > st.delay) {
@@ -817,14 +877,57 @@ function drawChargeEffect() {
         const sx = player.x + Math.cos(st.angle) * st.dist;
         const sy = player.y + Math.sin(st.angle) * st.dist;
         const twinkle = 0.55 + 0.45 * Math.sin(now / 140 + i * 1.7);
+
+        if (st.hasPrev) {
+            ctx.save();
+            ctx.strokeStyle = st.isSovereign ? 'rgba(255,255,255,0.35)' : `hsla(${st.hue},75%,72%,0.25)`;
+            ctx.lineWidth = st.isSovereign ? 2 : 1;
+            ctx.beginPath(); ctx.moveTo(st.px, st.py); ctx.lineTo(sx, sy); ctx.stroke();
+            ctx.restore();
+        }
+        st.px = sx; st.py = sy; st.hasPrev = true;
+
         if (st.isSovereign) {
             const hue = (now / 5) % 360;
-            const col = `hsla(${hue},100%,65%,${twinkle})`;
-            _drawSparkleStar(sx, sy, 6.5, col, col);
+            _drawSparkleStar(sx, sy, 6.5, `hsl(${hue},100%,65%)`, twinkle);
         } else {
-            const col = `hsla(${st.hue},75%,72%,${twinkle * 0.8})`;
-            _drawSparkleStar(sx, sy, 3, col, col);
+            _drawSparkleStar(sx, sy, 3, `hsl(${st.hue},75%,72%)`, twinkle * 0.8);
         }
+
+        // Lightning arcs from the closest few gathering stars straight to
+        // the player — cheap (reuses the existing jagged-bolt helpers from
+        // fx.js) but reads as raw power arcing in, which the smooth star
+        // motion alone didn't sell.
+        if (_gfx < 2 && st.dist < 200 && Math.random() < 0.12 * chargeRatio) {
+            ctx.save();
+            ctx.globalAlpha = 0.5 + Math.random() * 0.3;
+            ctx.strokeStyle = st.isSovereign ? 'rgba(255,255,255,0.9)' : `hsla(${st.hue},90%,80%,0.8)`;
+            ctx.lineWidth = st.isSovereign ? 2 : 1;
+            if (typeof _genBoltPoints === 'function' && typeof _strokeBoltPath === 'function') {
+                _strokeBoltPath(ctx, _genBoltPoints(sx, sy, player.x, player.y, 5, 14));
+            } else {
+                ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(player.x, player.y); ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
+
+    // Energy column preview — a thin vertical beam builds up at the
+    // player's position as charge nears completion, foreshadowing the
+    // laser about to fire instead of the charge and the shot feeling like
+    // two disconnected effects.
+    if (chargeRatio > 0.5) {
+        const colT = (chargeRatio - 0.5) / 0.5;
+        ctx.save();
+        const colW = 6 + colT * 26;
+        const colGrad = ctx.createLinearGradient(player.x - colW / 2, 0, player.x + colW / 2, 0);
+        colGrad.addColorStop(0, 'rgba(0,255,255,0)');
+        colGrad.addColorStop(0.5, `rgba(255,255,255,${colT * 0.5})`);
+        colGrad.addColorStop(1, 'rgba(0,255,255,0)');
+        ctx.fillStyle = colGrad;
+        if (!_mobPerf) { ctx.shadowColor = 'cyan'; ctx.shadowBlur = 20 * colT; }
+        ctx.fillRect(player.x - colW / 2, 0, colW, player.y);
+        ctx.restore();
     }
 
     let r = 0, g = 255, b = 255;
@@ -1022,13 +1125,17 @@ function drawLaser() {
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // main beam
+        // main beam — gradient alpha jitters a little every frame instead of
+        // holding one static value, so the cross-section doesn't read as a
+        // fixed, painted-on gloss highlight (the biggest source of the
+        // "plastic tube" look).
         _laserBeamPath(cx, cw, 0, player.y, 8, wavePhase);
+        const _flicker = 0.85 + Math.random() * 0.15;
         let grad = ctx.createLinearGradient(cx - cw / 2, 0, cx + cw / 2, 0);
         grad.addColorStop(0, "rgba(0,255,255,0)");
-        grad.addColorStop(0.1, "rgba(0,220,255,0.55)");
-        grad.addColorStop(0.5, "rgba(255,255,255,0.95)");
-        grad.addColorStop(0.9, "rgba(0,220,255,0.55)");
+        grad.addColorStop(0.1, `rgba(0,220,255,${0.55 * _flicker})`);
+        grad.addColorStop(0.5, `rgba(255,255,255,${0.95 * _flicker})`);
+        grad.addColorStop(0.9, `rgba(0,220,255,${0.55 * _flicker})`);
         grad.addColorStop(1, "rgba(0,255,255,0)");
         ctx.fillStyle = grad;
         if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 35;
@@ -1036,11 +1143,37 @@ function drawLaser() {
         ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(180,255,255,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
 
-        // bright core streak
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        if (!_mobPerf) ctx.shadowBlur = 15;
-        ctx.fillRect(laserX - 4, 0, 8, player.y);
-        ctx.shadowBlur = 0;
+        // core streak — jitters in width/position/alpha every frame instead
+        // of sitting as one static straight bar (previously the single
+        // biggest "specular highlight on a plastic rod" cue). Reads as
+        // unstable plasma instead of a solid painted line.
+        {
+            const jx = laserX + (Math.random() - 0.5) * 6;
+            const jw = 5 + Math.random() * 6;
+            ctx.fillStyle = `rgba(255,255,255,${0.45 + Math.random() * 0.3})`;
+            if (!_mobPerf) ctx.shadowBlur = 15;
+            ctx.fillRect(jx - jw / 2, 0, jw, player.y);
+            ctx.shadowBlur = 0;
+        }
+
+        // crackle lines — a few short jagged streaks flickering across the
+        // beam width at random heights and lifetimes, breaking up the
+        // smooth tube silhouette with visible energy instability.
+        if (_gfx < 2) {
+            const crackleCount = _gfx < 1 ? 3 : 1;
+            ctx.strokeStyle = 'rgba(220,255,255,0.55)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < crackleCount; i++) {
+                if (Math.random() < 0.35) continue; // flicker: not every frame
+                const cy2 = Math.random() * player.y;
+                const half = cw / 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - half + Math.random() * 4, cy2);
+                ctx.lineTo(cx + (Math.random() - 0.5) * cw * 0.6, cy2 + (Math.random() - 0.5) * 14);
+                ctx.lineTo(cx + half - Math.random() * 4, cy2 + (Math.random() - 0.5) * 10);
+                ctx.stroke();
+            }
+        }
 
         // traveling energy pulses — bright bands flowing from the player up
         // the beam, synced to the actual damage-tick cadence (laserTickInterval)
