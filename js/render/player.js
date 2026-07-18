@@ -758,11 +758,74 @@ function drawPlayer(alpha = 1, xOffset = 0) {
     ctx.restore();
 }
 
+// Star orbs for the Overload Laser charge-up: gathering stars that drift
+// in, then get pulled toward the player as the charge builds. One orb per
+// activation is the "Tinh Vương" rainbow star (cycles through all 7 hues)
+// — the rest are single-hue. Respawned once per charge activation, keyed
+// off chargeStartTime so a fresh charge never inherits stragglers from a
+// previous (possibly cancelled) one.
+let _laserChargeStars = [];
+let _laserChargeStarsSpawnedAt = 0;
+
+function _drawSparkleStar(x, y, size, color, glowColor) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = color;
+    if (!_mobPerf && glowColor) { ctx.shadowColor = glowColor; ctx.shadowBlur = size * 3; }
+    ctx.beginPath();
+    ctx.moveTo(0, -size * 2.2);
+    ctx.quadraticCurveTo(size * 0.4, -size * 0.4, size * 2.2, 0);
+    ctx.quadraticCurveTo(size * 0.4, size * 0.4, 0, size * 2.2);
+    ctx.quadraticCurveTo(-size * 0.4, size * 0.4, -size * 2.2, 0);
+    ctx.quadraticCurveTo(-size * 0.4, -size * 0.4, 0, -size * 2.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
 function drawChargeEffect() {
     const now = performance.now();
     let chargeDuration = now - chargeStartTime;
     let chargeRatio = Math.min(chargeDuration / overloadChargeTime, 1);
     let radius = player.width / 2 + chargeRatio * player.width * 2;
+    const _gfx = window._gfxLevel || 0;
+
+    // Spawn stars fresh exactly once per charge activation.
+    if (_laserChargeStarsSpawnedAt !== chargeStartTime) {
+        _laserChargeStarsSpawnedAt = chargeStartTime;
+        _laserChargeStars.length = 0;
+        const starCount = _gfx < 1 ? 14 : _gfx < 2 ? 8 : 4;
+        for (let i = 0; i < starCount; i++) {
+            _laserChargeStars.push({
+                angle: Math.random() * Math.PI * 2,
+                dist: 140 + Math.random() * 220,
+                delay: Math.random() * 500,
+                hue: Math.random() * 360,
+                isSovereign: i === 0,
+            });
+        }
+    }
+    // Update + draw the gathering stars, pulling in once each one's delay
+    // has passed (the "delay 1 chút rồi mới bị hút lại" beat).
+    for (let i = _laserChargeStars.length - 1; i >= 0; i--) {
+        const st = _laserChargeStars[i];
+        if (chargeDuration > st.delay) {
+            st.dist -= 2 + chargeRatio * 7;
+        }
+        if (st.dist < 6) { _laserChargeStars.splice(i, 1); continue; }
+        const sx = player.x + Math.cos(st.angle) * st.dist;
+        const sy = player.y + Math.sin(st.angle) * st.dist;
+        const twinkle = 0.55 + 0.45 * Math.sin(now / 140 + i * 1.7);
+        if (st.isSovereign) {
+            const hue = (now / 5) % 360;
+            const col = `hsla(${hue},100%,65%,${twinkle})`;
+            _drawSparkleStar(sx, sy, 6.5, col, col);
+        } else {
+            const col = `hsla(${st.hue},75%,72%,${twinkle * 0.8})`;
+            _drawSparkleStar(sx, sy, 3, col, col);
+        }
+    }
 
     let r = 0, g = 255, b = 255;
     if (chargeDuration > maxChargeTime) {
@@ -903,10 +966,35 @@ function drawChargeMeter() {
     ctx.strokeRect(barX, barY, barWidth, barHeight);
 }
 
+// Wavy-edged beam path (flame-like organic silhouette instead of a plain
+// rectangle) — same left/right offset function reused at several widths to
+// build the layered beam below.
+function _laserBeamPath(cx, cw, topY, botY, waveAmp, phase) {
+    const segs = 18;
+    const freq = 0.012;
+    ctx.beginPath();
+    for (let s = 0; s <= segs; s++) {
+        const t = s / segs;
+        const y = topY + (botY - topY) * t;
+        const wob = Math.sin(y * freq + phase) * waveAmp;
+        const x = cx - cw / 2 + wob;
+        s === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    for (let s = segs; s >= 0; s--) {
+        const t = s / segs;
+        const y = topY + (botY - topY) * t;
+        const wob = Math.sin(y * freq + phase + 1.7) * waveAmp;
+        const x = cx + cw / 2 + wob;
+        ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+}
+
 // Overload laser
 function drawLaser() {
     const now = performance.now();
     const laserBeamWidth = 100;
+    const _gfx = window._gfxLevel || 0;
     const allLasers = [{ xOffset: 0 }, ...playerClones];
     allLasers.forEach(clone => {
         const laserX = player.x + clone.xOffset;
@@ -914,18 +1002,29 @@ function drawLaser() {
 
         const wobble = Math.sin(now / 28 + clone.xOffset / 50) * 9;
         const cw = laserBeamWidth + wobble;
-        const cx = laserX - cw / 2;
+        const cx = laserX;
+        const wavePhase = now / 220 + clone.xOffset;
 
-        // outer glow
-        const glow = ctx.createLinearGradient(cx, 0, cx + cw, 0);
+        // outer glow — wide, soft, wavy
+        _laserBeamPath(cx, cw + 40, 0, player.y, 14, wavePhase);
+        const glow = ctx.createLinearGradient(cx - cw / 2, 0, cx + cw / 2, 0);
         glow.addColorStop(0, "rgba(0,255,255,0)");
         glow.addColorStop(0.5, "rgba(0,200,255,0.2)");
         glow.addColorStop(1, "rgba(0,255,255,0)");
         ctx.fillStyle = glow;
-        ctx.fillRect(cx - 20, 0, cw + 40, player.y);
+        ctx.fill();
+
+        // violet mid layer — extra ring so the beam has a visible step in
+        // tone instead of one smooth gradient (same trick used on Skill F).
+        _laserBeamPath(cx, cw * 0.8, 0, player.y, 11, wavePhase + 0.6);
+        ctx.fillStyle = 'rgba(130,90,255,0.28)';
+        if (!_mobPerf) { ctx.shadowColor = '#8a5aff'; ctx.shadowBlur = 20; }
+        ctx.fill();
+        ctx.shadowBlur = 0;
 
         // main beam
-        let grad = ctx.createLinearGradient(cx, 0, cx + cw, 0);
+        _laserBeamPath(cx, cw, 0, player.y, 8, wavePhase);
+        let grad = ctx.createLinearGradient(cx - cw / 2, 0, cx + cw / 2, 0);
         grad.addColorStop(0, "rgba(0,255,255,0)");
         grad.addColorStop(0.1, "rgba(0,220,255,0.55)");
         grad.addColorStop(0.5, "rgba(255,255,255,0.95)");
@@ -933,12 +1032,31 @@ function drawLaser() {
         grad.addColorStop(1, "rgba(0,255,255,0)");
         ctx.fillStyle = grad;
         if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 35;
-        ctx.fillRect(cx, 0, cw, player.y);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(180,255,255,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
 
         // bright core streak
         ctx.fillStyle = 'rgba(255,255,255,0.6)';
         if (!_mobPerf) ctx.shadowBlur = 15;
         ctx.fillRect(laserX - 4, 0, 8, player.y);
+        ctx.shadowBlur = 0;
+
+        // traveling energy pulses — bright bands flowing from the player up
+        // the beam, synced to the actual damage-tick cadence (laserTickInterval)
+        // so each visible pulse lines up with one real damage tick.
+        {
+            const pulseCount = _gfx < 1 ? 3 : _gfx < 2 ? 2 : 1;
+            for (let i = 0; i < pulseCount; i++) {
+                const cyclePos = (((now - laserStartTime) + i * laserTickInterval / pulseCount) % laserTickInterval) / laserTickInterval;
+                const py = player.y * (1 - cyclePos);
+                const pulseA = Math.sin(cyclePos * Math.PI) * 0.5;
+                ctx.fillStyle = `rgba(255,255,255,${pulseA})`;
+                if (!_mobPerf) { ctx.shadowColor = 'white'; ctx.shadowBlur = 18; }
+                ctx.fillRect(cx - cw / 2 - 6, py - 6, cw + 12, 12);
+                ctx.shadowBlur = 0;
+            }
+        }
 
         ctx.restore();
 
@@ -953,6 +1071,31 @@ function drawLaser() {
             particles.push(_lp);
         }
     });
+
+    // PULL VISUALIZATION — faint curved streaks drawn from nearby enemies
+    // toward the beam, making the laser's existing enemy-pull mechanic
+    // actually visible instead of an invisible gameplay-only force.
+    if (_gfx < 2 && typeof enemies !== 'undefined') {
+        const pullRange = 260;
+        ctx.save();
+        for (const enemy of enemies) {
+            const dx = player.x - enemy.x;
+            if (Math.abs(dx) > pullRange) continue;
+            const dy = enemy.y - Math.min(enemy.y, player.y);
+            const dist = Math.hypot(dx, dy);
+            if (dist > pullRange || dist < 4) continue;
+            const midX = enemy.x + dx * 0.5 + Math.sin(now / 160 + enemy.x) * 12;
+            const midY = enemy.y + dy * 0.5;
+            const a = (1 - dist / pullRange) * 0.35;
+            ctx.strokeStyle = `rgba(120,220,255,${a})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(enemy.x, enemy.y);
+            ctx.quadraticCurveTo(midX, midY, player.x, enemy.y);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
 
     // EXECUTION TITLE, chỉ hiện 1 giây đầu rồi tắt
     {
