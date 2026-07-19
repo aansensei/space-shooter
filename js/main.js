@@ -1016,7 +1016,10 @@ function update(rawDeltaTime) {
             const _dtuSlowMul = (!_ccImmune && enemy._dtuSlow && currentTime < (enemy._dtuSlowEnd || 0)) ? 0.70 : 1.0;
             const _cucHanMul = (!_ccImmune && enemy._slowEnd && currentTime < enemy._slowEnd) ? (1 / (enemy._slowFactor || 1)) : 1.0;
             const _rootMul = (!_ccImmune && enemy._rootEnd && currentTime < enemy._rootEnd) ? 0 : 1.0;
-            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul;
+            // Vine Bind (Phōtokrystos DNT): vines take 1s to grow in, then a
+            // flat 2s 50% slow follows — no effect during the growth window.
+            const _vineSlowMul = (!_ccImmune && enemy._vineStart && currentTime >= enemy._vineStart + 1000 && currentTime < enemy._vineStart + 3000) ? 0.50 : 1.0;
+            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul;
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -2211,7 +2214,7 @@ function startGame() {
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     window._lowHpActive = false;
     window._egregorCrawlActive = false;
-    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopBlackhole(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); }
+    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopBlackhole(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); }
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 
     hasTriggeredLastStand = false;

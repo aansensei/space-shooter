@@ -106,6 +106,7 @@
         'chain-lightning': 1.0,
         'photokrystos-summon-converge': 1.0, 'photokrystos-summon-flash': 1.0, 'photokrystos-summon-holy': 1.0,
         'photokrystos-btm-firing': 1.0, 'photokrystos-btm-shockwave': 1.0, 'photokrystos-btm-kill': 1.0,
+        'photokrystos-btm-warming': 1.0, 'photokrystos-idle': 1.0, 'photokrystos-vine-bind': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -169,6 +170,8 @@
     };
     let _crawlActive = false;
     let _crawlCur = null; // 'A' or 'B' — which element we're currently watching for near-end
+    let _pkIdleActive = false;
+    let _pkIdleCur = null; // 'A' or 'B' — same crossfade scheme as the Egregor crawl
 
     // Load persisted volumes.
     try {
@@ -278,8 +281,10 @@
             nullSlashWindup: !!(state.nullSlashWindupEl && !state.nullSlashWindupEl.paused),
             crawlA: !!(state.crawlElA && !state.crawlElA.paused),
             crawlB: !!(state.crawlElB && !state.crawlElB.paused),
+            photokrystosIdleA: !!(state.photokrystosIdleElA && !state.photokrystosIdleElA.paused),
+            photokrystosIdleB: !!(state.photokrystosIdleElB && !state.photokrystosIdleElB.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlElA, state.crawlElB]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlElA, state.crawlElB, state.photokrystosIdleElA, state.photokrystosIdleElB]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -300,6 +305,8 @@
         if (s.nullSlashWindup && state.nullSlashWindupEl) try { state.nullSlashWindupEl.play().catch(() => {}); } catch (_) {}
         if (s.crawlA && state.crawlElA) try { state.crawlElA.play().catch(() => {}); } catch (_) {}
         if (s.crawlB && state.crawlElB) try { state.crawlElB.play().catch(() => {}); } catch (_) {}
+        if (s.photokrystosIdleA && state.photokrystosIdleElA) try { state.photokrystosIdleElA.play().catch(() => {}); } catch (_) {}
+        if (s.photokrystosIdleB && state.photokrystosIdleElB) try { state.photokrystosIdleElB.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -356,6 +363,8 @@
         if (state.nullSlashWindupEl) state.nullSlashWindupEl.volume = sfxGain('egregor-nullslash-windup');
         if (state.crawlElA) state.crawlElA.volume = sfxGain('egregor-crawl');
         if (state.crawlElB) state.crawlElB.volume = sfxGain('egregor-crawl');
+        if (state.photokrystosIdleElA) state.photokrystosIdleElA.volume = sfxGain('photokrystos-idle');
+        if (state.photokrystosIdleElB) state.photokrystosIdleElB.volume = sfxGain('photokrystos-idle');
     }
 
     function setVolume(cat, v) {
@@ -443,6 +452,43 @@
         });
     }
 
+    // Phōtokrystos idle: same two-clip crossfade scheme as the Egregor crawl
+    // — this is its continuous flight/movement sound, not a background
+    // ambience, so it needs to read as one unbroken loop rather than a
+    // single clip with an audible seam. startPhotokrystosIdle is idempotent;
+    // tickPhotokrystosIdle must be polled every frame while it's active.
+    const PK_IDLE_HANDOFF_AT = 0.75;
+    function startPhotokrystosIdle() {
+        if (_pkIdleActive) return;
+        _pkIdleActive = true;
+        _pkIdleCur = 'A';
+        const el = state.photokrystosIdleElA;
+        if (!el) return;
+        try { el.volume = sfxGain('photokrystos-idle'); el.currentTime = 0; el.play().catch(() => {}); } catch (_) {}
+    }
+    function stopPhotokrystosIdle() {
+        _pkIdleActive = false;
+        _pkIdleCur = null;
+        [state.photokrystosIdleElA, state.photokrystosIdleElB].forEach(el => { if (el) { try { el.pause(); el.currentTime = 0; } catch (_) {} } });
+    }
+    function tickPhotokrystosIdle() {
+        if (!_pkIdleActive) return;
+        const curEl  = _pkIdleCur === 'A' ? state.photokrystosIdleElA : state.photokrystosIdleElB;
+        const nextEl = _pkIdleCur === 'A' ? state.photokrystosIdleElB : state.photokrystosIdleElA;
+        if (!curEl || !nextEl) return;
+        const g = sfxGain('photokrystos-idle');
+        if (curEl.duration && !isNaN(curEl.duration) && curEl.currentTime >= curEl.duration * PK_IDLE_HANDOFF_AT && nextEl.paused) {
+            try { nextEl.currentTime = 0; nextEl.play().catch(() => {}); } catch (_) {}
+            _pkIdleCur = (_pkIdleCur === 'A') ? 'B' : 'A';
+        }
+        [state.photokrystosIdleElA, state.photokrystosIdleElB].forEach(el => {
+            if (!el || el.paused || !el.duration || isNaN(el.duration)) return;
+            const t = el.currentTime / el.duration;
+            const fade = t >= PK_IDLE_HANDOFF_AT ? Math.max(0, 1 - (t - PK_IDLE_HANDOFF_AT) / (1 - PK_IDLE_HANDOFF_AT)) : 1;
+            el.volume = g * fade;
+        });
+    }
+
     // Low-HP heartbeat: loops while lives < 5, and ducks/muffles the rest
     // of the mix (heavier than Yog-Sothoth's own duck) for the "choáng"
     // dazed feel. startLoop/stopLoop already handle the element itself;
@@ -497,6 +543,8 @@
         _makePool('photokrystos-btm-firing',      'audio/sfx/photokrystos-btm-firing.mp3',      1);
         _makePool('photokrystos-btm-shockwave',   'audio/sfx/photokrystos-btm-shockwave.mp3',   1);
         _makePool('photokrystos-btm-kill',        'audio/sfx/photokrystos-btm-kill.mp3',        6);
+        _makePool('photokrystos-btm-warming',     'audio/sfx/photokrystos-btm-warming.mp3',     1);
+        _makePool('photokrystos-vine-bind',       'audio/sfx/photokrystos-vine-bind.mp3',       3);
 
         state.ambientEl  = _mkLoop('audio/sfx/ingame.mp3');
         state.engineEl   = _mkLoop('audio/sfx/engine.wav');
@@ -504,6 +552,24 @@
         state.chargingEl = _mkLoop('audio/sfx/charging.mp3');
         state.skillDChargeEl = _mkLoop('audio/sfx/skill-d-charge.mp3');
         state.lowHpEl    = _mkLoop('audio/sfx/low-hp.mp3'); // heartbeat, loops while lives < 5
+        // Two alternating clips (crossfade scheme, see startPhotokrystosIdle)
+        // instead of a single loop=true element — this is Phōtokrystos's
+        // continuous flight/movement sound, so a plain loop seam would read
+        // as an audible stutter every 18s.
+        state.photokrystosIdleElA = _mkOnce('audio/sfx/photokrystos-idle.mp3');
+        state.photokrystosIdleElB = _mkOnce('audio/sfx/photokrystos-idle.mp3');
+        state.photokrystosIdleElA.addEventListener('ended', () => {
+            if (_pkIdleActive && state.photokrystosIdleElB.paused) {
+                try { state.photokrystosIdleElB.currentTime = 0; state.photokrystosIdleElB.play().catch(() => {}); } catch (_) {}
+                _pkIdleCur = 'B';
+            }
+        });
+        state.photokrystosIdleElB.addEventListener('ended', () => {
+            if (_pkIdleActive && state.photokrystosIdleElA.paused) {
+                try { state.photokrystosIdleElA.currentTime = 0; state.photokrystosIdleElA.play().catch(() => {}); } catch (_) {}
+                _pkIdleCur = 'A';
+            }
+        });
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
@@ -569,6 +635,7 @@
         startLowHp, stopLowHp,
         startNullSlashWindup, stopNullSlashWindup,
         startEgregorCrawl, stopEgregorCrawl, tickEgregorCrawl,
+        startPhotokrystosIdle, stopPhotokrystosIdle, tickPhotokrystosIdle,
         startLaser,   stopLaser,
 
         // Volumes / mute

@@ -449,6 +449,7 @@ function updateSpirits(deltaTime) {
 
 // PHŌTOKRYSTOS UPDATE
 function updatePhotokrystos(spirit, deltaTime) {
+    if (window.AudioMgr) window.AudioMgr.tickPhotokrystosIdle();
     const now = gameElapsedTime;
     const age = now - spirit.spawnGameTime;
     const BTM_START = 37000; // Back to Motherland at 37s
@@ -477,6 +478,29 @@ function updatePhotokrystos(spirit, deltaTime) {
                 spirit._dntState = 'aiming';
                 spirit._dntTimer = 0;
                 spirit._dntAngle = Math.atan2(trigger.y - spirit.y, trigger.x - spirit.x);
+
+                // Vine Bind: alongside the laser lock-on, Phōtokrystos roots
+                // the enemy nearest the bottom boundary and the enemy
+                // nearest the player (may be the same enemy) — vines grow
+                // in over 1s, then a 2s 50% slow + green aura follows.
+                let _vbNearBound = null, _vbNearBoundDist = Infinity;
+                let _vbNearPlayer = null, _vbNearPlayerDist = Infinity;
+                for (const e of enemies) {
+                    if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'veilshroud_echo' || e.inCoronation) continue;
+                    if (e.hp <= 0) continue;
+                    const _dBound = Math.abs(boundY - e.y);
+                    if (_dBound < _vbNearBoundDist) { _vbNearBoundDist = _dBound; _vbNearBound = e; }
+                    const _dPlayer = Math.hypot(e.x - player.x, e.y - player.y);
+                    if (_dPlayer < _vbNearPlayerDist) { _vbNearPlayerDist = _dPlayer; _vbNearPlayer = e; }
+                }
+                const _vbTargets = new Set();
+                if (_vbNearBound) _vbTargets.add(_vbNearBound);
+                if (_vbNearPlayer) _vbTargets.add(_vbNearPlayer);
+                if (_vbTargets.size > 0) {
+                    const _vbNow = performance.now();
+                    for (const ve of _vbTargets) ve._vineStart = _vbNow;
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-vine-bind', spirit.x, spirit.y);
+                }
             }
         }
     }
@@ -562,6 +586,10 @@ function updatePhotokrystos(spirit, deltaTime) {
         spirit._btmLightnings = []; // lightning bolt visuals for render
         // Thu hồi tức thì tất cả boomerang, xóa khỏi màn hình ngay lập tức
         photoBrangs.length = 0;
+        if (window.AudioMgr) {
+            window.AudioMgr.playSfxAt('photokrystos-btm-warming', spirit.x, spirit.y);
+            window.AudioMgr.stopPhotokrystosIdle();
+        }
     }
 
     if (spirit._btmStarted) {
@@ -910,6 +938,7 @@ function updatePrimevalSummonEffect(deltaTime) {
             spirit.volleyCount = 0;
             spirit._btmStarted = false;
             spirit._done = false;
+            if (window.AudioMgr) window.AudioMgr.startPhotokrystosIdle();
         }
         primevalSummonEffect = null;
     }
