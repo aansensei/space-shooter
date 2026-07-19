@@ -373,6 +373,72 @@ function _drawParryBursts() {
     }
 }
 
+// Vine Bind (Phōtokrystos DNT companion effect): vines grow from nothing to
+// wrap the rooted enemy's base over the first 1s, then a pulsing green aura
+// marks the 2s 50% slow that follows — both fade out together at the end.
+function _drawVineBinds() {
+    const now = performance.now();
+    for (const enemy of enemies) {
+        if (!enemy._vineStart) continue;
+        const elapsed = now - enemy._vineStart;
+        if (elapsed < 0 || elapsed >= 3000) continue;
+        const growProg = Math.min(1, elapsed / 1000);
+        const slowActive = elapsed >= 1000;
+        const fadeOut = elapsed >= 2750 ? Math.max(0, 1 - (elapsed - 2750) / 250) : 1;
+
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        const baseR = (enemy.size || 30) / 2;
+
+        const vineCount = 6;
+        ctx.lineCap = 'round';
+        if (!_mobPerf) { ctx.shadowColor = '#2a6a1a'; ctx.shadowBlur = 6; }
+        for (let i = 0; i < vineCount; i++) {
+            const a = (i / vineCount) * Math.PI * 2 + i * 0.7;
+            const len = (baseR * 1.6) * growProg;
+            const wob = Math.sin(now / 300 + i * 2) * 4 * growProg;
+            const midR = baseR * 0.5 + len * 0.5;
+            const midA = a + 0.6 * growProg;
+            const tipR = baseR * 0.3 + len;
+            const tipA = a + 1.1 * growProg;
+            ctx.strokeStyle = `rgba(60,140,40,${0.85 * fadeOut})`;
+            ctx.lineWidth = 3.2;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * baseR * 0.4, Math.sin(a) * baseR * 0.4 + baseR * 0.6);
+            ctx.quadraticCurveTo(
+                Math.cos(midA) * midR + wob, Math.sin(midA) * midR * 0.6 + baseR * 0.3,
+                Math.cos(tipA) * tipR, Math.sin(tipA) * tipR * 0.55
+            );
+            ctx.stroke();
+            if (growProg > 0.5 && _gfxLevel < 2) {
+                ctx.fillStyle = `rgba(90,200,60,${0.7 * fadeOut})`;
+                const lx = Math.cos(midA) * midR, ly = Math.sin(midA) * midR * 0.6 + baseR * 0.3;
+                ctx.save(); ctx.translate(lx, ly); ctx.rotate(midA);
+                ctx.beginPath(); ctx.ellipse(0, 0, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+        }
+        ctx.shadowBlur = 0;
+
+        if (slowActive) {
+            const pulse = 0.6 + 0.4 * Math.sin(now / 200);
+            const auraR = baseR * 1.3;
+            const g = ctx.createRadialGradient(0, 0, baseR * 0.3, 0, 0, auraR);
+            g.addColorStop(0, `rgba(60,220,80,${0.05 * pulse * fadeOut})`);
+            g.addColorStop(0.7, `rgba(40,200,70,${0.22 * pulse * fadeOut})`);
+            g.addColorStop(1, 'rgba(20,150,50,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `rgba(80,255,120,${0.5 * fadeOut})`;
+            ctx.lineWidth = 1.5;
+            if (!_mobPerf) { ctx.shadowColor = '#40ff80'; ctx.shadowBlur = 8; }
+            ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        ctx.restore();
+    }
+}
+
 // Dimension Break zones: lingering arcs left by Egregor's Null Slash
 function _drawDimBreakZones() {
     if (!window._dimBreakZones || window._dimBreakZones.length === 0) return;

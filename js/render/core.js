@@ -907,6 +907,7 @@ function draw(deltaTime) {
 
         // Draw non-bullet enemies first (background layer)
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') drawEnemy(e); });
+        _drawVineBinds(); // Phōtokrystos DNT Vine Bind — growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
             window._pixiDrawBullets(bullets, spiritBullets);
         } else {
