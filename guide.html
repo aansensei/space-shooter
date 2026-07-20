@@ -392,6 +392,28 @@
     .tog-btn:hover { color: var(--cyan); border-color: rgba(0,200,255,0.4) }
     .tog-btn.shortened { color: #ffcc44; border-color: rgba(255,200,0,0.4); background: rgba(255,180,0,0.06) }
 
+    /* Preview-widget play buttons — real-game-accurate canvas demos, click to play once */
+    .ab { position: relative; }
+    .play-btn {
+      position: absolute; bottom: 6px; right: 6px;
+      padding: 4px 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #aaffcc;
+      background: rgba(0,20,10,0.72);
+      border: 1px solid rgba(0,255,136,0.4);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all .15s;
+      z-index: 2;
+    }
+    .play-btn:hover { color: #fff; border-color: #00ff88; background: rgba(0,40,20,0.85); }
+    .play-btn[data-running="true"]:not([data-paused="true"]) { color: #ffcc66; border-color: rgba(255,204,102,0.5); background: rgba(40,26,0,0.72); }
+    .play-btn[data-paused="true"] { color: #66ccff; border-color: rgba(102,204,255,0.5); background: rgba(0,26,40,0.72); }
+
     .ul-entry { position:relative; padding:14px 16px 14px 20px; margin-bottom:10px; background:rgba(255,255,255,0.025); border-radius:8px; border:1px solid rgba(255,255,255,0.06); border-left:3px solid var(--ul-accent,rgba(0,200,255,0.4)); }
     .ul-entry:last-child { margin-bottom:0; }
     .ul-head { display:flex; align-items:baseline; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
@@ -471,6 +493,176 @@
   </div>
 
   <script>
+    // ═══════════════════════════════════════════════════════════════
+    // PREVIEW HARNESS — mock game state so the REAL js/render/*.js draw
+    // functions (loaded below via <script src>) can run against small
+    // per-widget canvases, instead of guide.html hand-drawing its own
+    // approximations. Mirrors js/config.js's globals as `let` (not
+    // `const`) so canvas/ctx/etc. can be swapped per widget — config.js
+    // itself is NOT included: it does `const canvas =
+    // document.getElementById("gameCanvas")` at top level, which needs
+    // a real #gameCanvas and can't be reassigned.
+    //
+    // NOTE: _gfxLevel and _mobPerf are NOT declared here — core.js (see
+    // script includes below) already declares them (`let _gfxLevel = 0`,
+    // `let _mobPerf = false`), and every classic <script> on this page
+    // shares one global lexical scope, so redeclaring either here would
+    // be a fatal SyntaxError (see js/render/README.md's debugging
+    // checklist, point 3). Their core.js defaults (HIGH quality, not
+    // mobile) are exactly what these widgets want anyway.
+    // ═══════════════════════════════════════════════════════════════
+    let canvas = null, ctx = null;
+    let gameElapsedTime = 0;
+    let player = { x: 0, y: 0, width: 40, height: 40, speed: 8.6, hitRadius: 5.75 };
+    let playerClones = [];
+    let bullets = [], enemies = [], explosions = [], particles = [], chainLightningEffects = [];
+    let demonGiftEffect = { active: false, endTime: 0 };
+    let gloryForJusticeActive = false;
+    let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
+    let hasTriggeredLastStand = false;
+    let playerAbsoluteShield = false;
+    let bossShockwaves = [];
+    let aegisLasers = [];
+    let marchosiasBlades = [];
+    let accurateParryActive = false;
+    let sentinels = [];
+    let killCountForPassive = 0;
+    let skillShiftActive = false;
+    let skillShiftChargeStart = 0;
+    const skillShiftMaxCharge = 3000;
+    let skillAOrbs = [], skillAActive = false;
+    let lastSkillA = -Infinity, skillASensorRadius = 0;
+    let scatteredProjectiles = [];
+    let dimensionalRifts = [];
+    let spirits = [];
+    let lastSkillS = -Infinity;
+    let primevalEnergy = 0;
+    let photoBrangs = [];
+    let primevalSummonEffect = null;
+    let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [];
+    let skillDCharging = false, skillDChargeStartTime = 0;
+    const skillDChargeTime = 2000;
+    let blackHole = null;
+    let skillFState = "ready", skillFChargeStart = 0, skillFSweepStart = 0;
+    const skillFSweepDuration = 1000;
+    let screenShake = { intensity: 0, duration: 0 };
+    function _setShake(intensity, duration) {
+      if (intensity >= screenShake.intensity || screenShake.duration <= 0) screenShake = { intensity, duration };
+    }
+    let skillGCharge = 0, skillGActive = false, skillGEndTime = 0, skillGBorderOpacity = 0;
+    let energyOrbs = [];
+    let teslaCoils = [];
+    const ENERGY_ORB_SIZE = 15, TESLA_COIL_SIZE = 20, TESLA_AURA_RADIUS = TESLA_COIL_SIZE * 10;
+    let charging = false, chargeStartTime = 0;
+    const maxChargeTime = 1000, maxMultiplier = 10, overloadChargeTime = 3000;
+    let laserActive = false, laserStartTime = 0;
+    const laserTickInterval = 155;
+    let accurateParryEndTime = 0;
+    let gameState = 'playing';
+    let boundaryY = 0;
+
+    window._dimBreakZones = [];
+    window._egregorDeathBursts = [];
+    window._parryBursts = [];
+    window._levDeathLasers = [];
+    window._levPersBeams = [];
+    window._veilshroudPendingStrikes = [];
+    window._lowHpActive = false;
+
+    // Ported verbatim from js/main.js (not <script src>'d — main.js bootstraps
+    // the full game loop/input, unsafe to include wholesale). Self-contained:
+    // only touches state already mocked above.
+    // Ported verbatim from js/entities.js — tiny, self-contained jittered-line
+    // generator used by the real Egregor Tempest bolt drawing.
+    function _egregorGenBolt(x1, y1, x2, y2, detail, jitter) {
+      const pts = [{ x: x1, y: y1 }];
+      const dx = x2 - x1, dy = y2 - y1;
+      for (let i = 1; i < detail; i++) {
+        const t = i / detail;
+        const s = Math.sin(t * Math.PI);
+        pts.push({ x: x1 + dx * t + (Math.random() - 0.5) * jitter * 2 * s, y: y1 + dy * t + (Math.random() - 0.5) * jitter * 2 * s });
+      }
+      pts.push({ x: x2, y: y2 });
+      return pts;
+    }
+
+    function _triggerAccurateParry() {
+      const now = performance.now();
+      accurateParryActive = true;
+      accurateParryEndTime = now + 4000;
+      if (window.AudioMgr) window.AudioMgr.playSfx('yog-parry');
+      if (!window._parryBursts) window._parryBursts = [];
+      window._parryBursts.push({ x: player.x, y: player.y, spawnAt: now, duration: 500 });
+      createParticles(player.x, player.y, 18, '#c080ff', 3, 9);
+      _setShake(8, 200);
+      sentinels.forEach(s => { s.ironBody = true; s.ironBodyEnd = now + 1250; });
+    }
+
+    // Particle helpers, ported verbatim from js/entities.js (small,
+    // self-contained — not worth pulling in the rest of entities.js,
+    // which is deeply coupled to the full game's enemies/dealDamage/etc.)
+    const _particlePool = [];
+    function _acquireParticle() {
+      const p = _particlePool.length > 0 ? _particlePool.pop() : {};
+      p.isSummonRing = false; p.isLaserLine = false; p.isSkillGAura = false; p._isTriangle = false;
+      p.isBarrierBreakRing = false;
+      p.vx = 0; p.vy = 0;
+      return p;
+    }
+    function _releaseParticle(p) {
+      if (_particlePool.length < 600) _particlePool.push(p);
+    }
+    function createParticles(x, y, count, color, minSpeed, maxSpeed) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * (maxSpeed - minSpeed) + minSpeed;
+        const lt = 300 + Math.random() * 200;
+        const p = _acquireParticle();
+        p.x = x; p.y = y;
+        p.vx = Math.cos(angle) * speed; p.vy = Math.sin(angle) * speed;
+        p.lifetime = lt; p.maxLifetime = lt;
+        p.size = 1 + Math.random() * 2; p.color = color;
+        particles.push(p);
+      }
+    }
+    function addExplosion(x, y, size, color = 'orange') {
+      let finalColor = color === 'electric_blue' ? '#00FFFF' : color;
+      explosions.push({ x, y, size, lifetime: 500, maxLifetime: 500, color: finalColor });
+      createParticles(x, y, 8, finalColor, 1, 5);
+    }
+    // Minimal physics tick for particles/explosions — the real game's
+    // main.js update loop does this; these widgets only need the basic
+    // motion+lifetime decay, not the full particle-type-specific logic.
+    function _tickParticlesAndExplosions(dt) {
+      const dtN = dt / 16.67;
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        if (!p.isSummonRing && !p.isLaserLine && !p.isSkillGAura && !p.isBarrierBreakRing) {
+          p.x += (p.vx || 0) * dtN; p.y += (p.vy || 0) * dtN;
+        }
+        p.lifetime -= dt;
+        if (p.lifetime <= 0) { _releaseParticle(p); particles.splice(i, 1); }
+      }
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        explosions[i].lifetime -= dt;
+        if (explosions[i].lifetime <= 0) explosions.splice(i, 1);
+      }
+    }
+  </script>
+  <script src="js/render/core.js"></script>
+  <script src="js/render/fx.js"></script>
+  <script src="js/render/player.js"></script>
+  <script src="js/render/enemy-common.js"></script>
+  <script src="js/render/enemy-boss-thaelis.js"></script>
+  <script src="js/render/enemy-egregor.js"></script>
+  <script src="js/render/skill-s-spirit.js"></script>
+  <script src="js/render/skill-a.js"></script>
+  <script src="js/render/skill-d.js"></script>
+  <script src="js/render/skill-f.js"></script>
+  <script src="js/render/skill-g.js"></script>
+  <script src="js/audio.js"></script>
+
+  <script>
     // All guide content is built via JS to keep HTML size manageable
     const G = document.getElementById('guideBody');
 
@@ -479,8 +671,8 @@
 <div class="card">
 <h2 style="color:var(--cyan)">YOUR SHIP</h2>
 <div class="sub">PISCES-CLASS INTERCEPTOR</div>
-<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas></div>
-<p>Your ship auto-fires <span class="hp">5 purple bullets</span> in a 45° spread every 170ms. The tiny <span class="hi">cyan dot</span> is your true hitbox — only contact with that dot costs a life.</p>
+<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShip" onclick="playWidget('ship', this)">▶ Play</button></div>
+<p>Your ship auto-fires <span class="hp">5 purple bullets</span> in a 45° spread every 135ms. The tiny <span class="hi">cyan dot</span> is your true hitbox — only contact with that dot costs a life.</p>
 </div>
 <div class="card">
 <h2 style="color:var(--cyan)">CONTROLS</h2>
@@ -518,7 +710,7 @@
 <div class="card">
 <h2 style="color:var(--cyan)">SENTINELS</h2>
 <div class="sub">PASSIVE — SPAWNS EVERY 3 KILLS • MAX 12</div>
-<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySentinel" onclick="playWidget('sentinel', this)">▶ Play</button></div>
 <ul>
 <li>Spawns every <span class="hi">3 kills</span>. 36% chance <b>Fortified</b> (+50% Max HP).</li>
 <li>Every 4th shot = <span class="hg">Special Shot</span>: homing, heals 2 HP on hit.</li>
@@ -530,16 +722,16 @@
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — <span class="det-full">Max HP grows by wave: <span class="hg">+5% at Wave 2 · +10% at Wave 6 · +15% at Wave 10</span>; then <span class="hg">+3%/wave</span> until <span class="hg">+60% total cap</span>. While Glory for Justice active: every <span class="hi">8s</span> (<span class="hi">5s</span> after Wave 10) each Sentinel generates a <span class="hg">Gaia Barrier</span> = <span class="hg">25% HP lost + 15% Max HP</span> (non-stacking, replaces previous). Fires immediately on activation. The Barrier absorbs <span class="hg">99%</span> of all incoming damage; <span class="hi">1%</span> passes through. <b>True damage</b> is additionally reduced <span class="hg">20%</span> while the Barrier is active. <b>Does not count as EP.</b> Displayed as a green crescent above the Sentinel.</span><span class="det-short">Max HP grows per wave milestone (cap +60%). During Glory: Gaia Barrier pulses every 8s (5s after Wave 10) = 25% HP lost + 15% Max HP. Absorbs 99% damage + 20% true dmg reduction, not counted as EP.</span></li>
 <li>On death: <span class="dmg">10 scattered projectiles</span>.</li></ul></div>
 <div class="card"><h2 style="color:var(--red)">VULNERABILITY</h2><div class="sub">DEBUFF — STACKS ×4 • 3s DURATION</div>
-<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas></div>
+<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayVuln" onclick="playWidget('vuln', this)">▶ Play</button></div>
 <ul><li>Auto-fire <span class="dmg">28%</span> chance, others <span class="dmg">15%</span>. Each stack: <span class="hr">+16% dmg taken</span>, shreds <span class="dmg">26% Shield</span>.</li>
 <li>At 4 stacks: <span class="hr">true damage</span> for 2s (bypasses shields).</li></ul></div>
 <div class="card"><h2 style="color:var(--green)">GLORY FOR JUSTICE</h2><div class="sub">ACTIVATES: 4+ ENEMIES / ABNORMAL+ / SKILL G / PHŌTOKRYSTOS</div>
-<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas></div>
+<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayGlory" onclick="playWidget('glory', this)">▶ Play</button></div>
 <ul><li>All friendly dmg <span class="hgr">×1.55</span>, fire rate <span class="hgr">×1.5</span>.</li>
 <li><span class="det-full"><b>Chain Lightning</b> (150ms CD): arcs <b>8</b> enemies at <b>50%</b> dmg. <b>60%</b> → <span class="hr">Soul Reaver</span> (−<b>40%</b> heal/shield, DoT every <b>0.35s</b>: <b>60 base + 5.5% EP</b> true dmg).</span><span class="det-short"><b>Chain Lightning</b>: arcs 8 enemies. 60% chance to apply Soul Reaver (reduces healing + DoT).</span></li>
 <li>Sentinels: <b>+30% DR</b>, Parry active.</li></ul></div>
 <div class="card"><h2 style="color:var(--gold)">FINAL DEFENSE & LAST STAND</h2><div class="sub">AUTO SAFETY NETS</div>
-<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayFinal" onclick="playWidget('final', this)">▶ Play</button></div>
 <ul>
 <li><b>Player Shield:</b> absorbs 1 hit <span class="cd">25s regen</span>. <b>Boundary Shield:</b> absorbs 1 crossing enemy <span class="cd">25s</span>.</li>
 <li><b>Last Stand:</b> last life fatal hit → survive + <span class="hg">Absolute Shield</span> on you + Sentinels. <span class="hg">Once only.</span></li>
@@ -555,21 +747,21 @@
       skills: `
 <div class="card"><h2 style="color:#ff8800"><span class="key">Space</span> CHARGED SHOT & OVERLOAD LASER</h2>
 <div class="sub">HOLD SPACE TO CHARGE • 3s = OVERLOAD <span class="cd">LASER CD 9s</span></div>
-<div class="ab" style="height:170px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:230px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayLaser" onclick="playWidget('laser', this)">▶ Play</button></div>
 <ul><li><b>Charged Shot:</b> hold up to 1s → release. Damage scales up to <span class="dmg">10× (12% EP)</span>.</li>
 <li><b>Overload Laser:</b> hold 3s without releasing → continuous beam for <span class="hi">12 seconds</span>.</li>
 <li>Laser deals <span class="dmg">10 + 26% EP</span> per tick every 175ms. Pulls nearby enemies toward beam.</li>
 <li>While active, <span class="hi">4 clone afterimages</span> appear (2 each side, 5 ships total) firing parallel beams.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--purple)"><span class="key">Shift</span> YOG-SOTHOTH DOMAIN</h2><div class="sub">SPACE-TIME MANIPULATION <span class="cd">CD 1.1s–9s</span> <span class="cd">MAX 8s</span></div>
-<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShift" onclick="playWidget('shift', this)">▶ Play</button></div>
 <ul><li>Hold Shift: world at <span class="hp">15% speed</span>. You gain <b>Iron Body</b>.</li>
 <li><span class="det-full"><b>Cooldown scales with hold time</b> (no teleport): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">If ←/→ teleport used → always full 9s.</span></span><span class="det-short"><b>Cooldown</b> scales with hold time (1.1s–9s). Teleport always triggers full 9s CD.</span></li>
 <li>All enemy bullets <span class="hr">destroyed</span>. <span class="key">←→</span> teleport.</li>
 <li><span class="hg">Accurate Parry:</span> hit during domain → +25% dmg 4s, Sentinel <b>Iron Body 1.25s</b>.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THUNDER ORBS</h2><div class="sub">CELESTIAL THUNDERBURST <span class="cd">CD 6s</span></div>
-<div class="ab"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)">▶ Play</button></div>
 <ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">110 + 18% EP</span>.</li>
 <li>Impact → <span class="dmg">16 scattered shards</span> (5 + 1.5% EP each).</li>
 <li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits. When an orb is <b>sacrificed</b>, the attacker (if targetable) receives <span class="hr">Soul Reaver + Soul Devourer DoT</span> (60 + 5.5% EP per 0.35s) and is <span class="hr">slowed 25%</span> for <span class="cd">3s</span>.</li>
@@ -582,14 +774,14 @@
   <button onclick="showSpiritTab(2)" id="sTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(0,80,40,0.2);border:1.5px solid rgba(0,255,136,0.4);border-radius:6px;color:#00cc66;">② Phōtokrystos</button>
 </div>
 <div id="sSpiritPane1">
-  <div class="ab"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas></div>
+  <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
   <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
   <li><span class="det-full">Every 5th shot: <b>Blade Arc</b> (<span class="dmg">170 + 4.8% EP + 3% missing HP</span>). Destroys enemy bullets.</span><span class="det-short">Every 5th shot fires a <b>Blade Arc</b> that destroys bullets.</span></li>
   <li><b>Finale @35s:</b> lasers + 8 bouncing plasma balls.</li>
   <li><b>Primeval Creation:</b> Spirit kills charge a mana bar (+2% per kill). At 100%, press S again to transform.</li></ul>
 </div>
 <div id="sSpiritPane2" style="display:none;">
-  <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas></div>
+  <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayPhoto" onclick="playPhotokrystosWidget(this)">▶ Play</button></div>
   <ul>
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Grand Primordial Spirit</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Blessing of the Primordial</b>: Sentinels +15% DR, ally dmg +15%, +3 HP/s regen, +50 shield/5s per sentinel.</li>
@@ -603,18 +795,18 @@
 </div>
 
 <div class="card"><h2 style="color:#9333ea"><span class="key">D</span> BLACK HOLE</h2><div class="sub"><span class="cd">CD 12s</span> <span class="cd">2s CHARGE</span></div>
-<div class="ab"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)">▶ Play</button></div>
 <ul><li>Pulls all enemies + bullets. Center = <span class="hr">999,999,999 dmg</span> instant kill.</li>
 <li><b>Egregor</b> and <b>Dargruel</b> are CC Immune — cannot be pulled. If at center, take <span class="hr">30% MaxHP true damage</span> instead.</li></ul></div>
 
 <div class="card"><h2 style="color:var(--red)"><span class="key">F</span> ANNIHILATION SWEEP</h2><div class="sub">HEAVEN'S WILL SLASH <span class="cd">CD 7s</span> <span class="cd">1.5s CHARGE + 1s SWEEP</span></div>
-<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)">▶ Play</button></div>
 <ul><li><b>Charge:</b> half-plane cyan glow, TARGET LOCK crosshairs on all enemies, dashed lines from player.</li>
 <li><b>Sweep:</b> rotating blade from left→right. <span class="hr">999,999,999 dmg</span> instant kill.</li>
 <li>Swept area fills with <span class="hgr">matrix digital rain</span> + hex grid overlay.</li></ul></div>
 
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> TESLA MATRIX</h2><div class="sub"><span class="cd">CHARGE VIA KILLS</span> <span class="cd">30s</span></div>
-<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas></div>
+<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
 <ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">10+6% EP</span>/125ms).</li>
 <li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">45+1.2% EP</span>/50ms.</li>
 <li>Detonation: <span class="dmg">10+12% EP</span> area.</li></ul></div>`,
@@ -839,7 +1031,7 @@
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,200–4,750 • Body DR 40% • Evade 5→10% • CAP 1 • Speed 1.5 u/s • CC Immune</div>
-<div class="ab" style="height:140px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas></div>
+<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)">▶ Play</button></div>
 <ul>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Collective Mind</b> — <span class="det-full"><span class="hi">10 tentacles</span>, each with independent HP equal to <span class="hi">80% of Egregor's MaxHP</span>. Non-true-damage: deflect chance <span class="hi">scales with alive tentacles</span> (alive÷10 × 60%, down to 0 when all dead); on non-deflect, hit absorbed by a tentacle at ~<span class="dmg">26% of original damage</span> (35% × 75% DR). <b>When a tentacle dies:</b> Egregor body <span class="hgr">heals 6% MaxHP</span>, body <span class="hg">MaxHP increases by 20% of that tentacle's HP</span>, body gains <span class="hg">+5% DR</span> (cumulative, max +20% at 4 losses). Once <span class="hi">≥4 tentacles are lost</span>, normal attacks (and all non-piercing, non-true sources) also <span class="dmg">bleed through to the body</span> at <span class="hi">12% of their damage</span>, hard-capped at <span class="hi">12% MaxHP</span> per hit. Body reachable by <span class="dmg">true damage</span> (capped <span class="hi">max(25%, 90−10n)%</span> MaxHP) or <span class="dmg">piercing attacks</span> (tentacle takes ~26% dmg, body takes <span class="hi">30%</span> of original, capped <span class="hi">30% MaxHP</span>). Cannot coexist with Veilshroud. Body has <span class="hg">5% chance to dodge any hit</span>.</span><span class="det-short">10 tentacles intercept all hits. Each tentacle death heals body +6% MaxHP, boosts body MaxHP, and adds +5% DR (max +20%). Once ≥4 tentacles lost, normal hits bleed through at 12% damage, cap 12% MaxHP.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Mind Link</b> — <span class="det-full">Each non-Egregor enemy death within <span class="hi">600px</span> (red dashed ring) grants a <span class="hg">Rage Stack</span> (max 5, 8s each). Per stack: <span class="hg">+18% movement speed</span>, <span class="hg">+15% Max HP</span>, <span class="hg">Heal 22% MaxHP</span>, <span class="hg">tentacles heal 15% HP</span> and gain <span class="hg">+5% DR</span> (max +25% at 5 stacks). Each new stack immediately triggers a Psychic Tempest cast.</span><span class="det-short">Each nearby enemy death gives a Rage Stack (max 5): boosts speed and HP, heals Egregor and tentacles, and immediately triggers Psychic Tempest.</span></li>
@@ -1386,6 +1578,7 @@
       { title: 'A Love That Never Ends',         sub: 'In-Game BGM',  src: 'audio/bgm/a-love-that-never-ends.mp3' },
       { title: 'Anata',                          sub: 'In-Game BGM',  src: 'audio/bgm/anata.mp3' },
       { title: 'Ascension of the Void Shrine',   sub: 'In-Game BGM',  src: 'audio/bgm/ascension-of-the-void-shrine.mp3' },
+      { title: 'Bartholomew Fair',               sub: 'In-Game BGM',  src: 'audio/bgm/bartholomew-fair.mp3' },
       { title: 'Duel Beneath the Peach Blossoms', sub: 'In-Game BGM', src: 'audio/bgm/duel-beneath-the-peach-blossoms.mp3' },
       { title: 'Echoes of a Silent Prayer',      sub: 'In-Game BGM',  src: 'audio/bgm/echoes-of-a-silent-prayer.mp3' },
       { title: 'Endless Rainfall',               sub: 'In-Game BGM',  src: 'audio/bgm/endless-rainfall.mp3' },
@@ -1395,6 +1588,7 @@
       { title: 'Please Hold My Hand',            sub: 'In-Game BGM',  src: 'audio/bgm/please-hold-my-hand.mp3' },
       { title: 'Requiem for a Persian Spring',   sub: 'In-Game BGM',  src: 'audio/bgm/requiem-for-a-persian-spring.mp3' },
       { title: 'Requiem of Falling Stars',       sub: 'In-Game BGM',  src: 'audio/bgm/requiem-of-falling-stars.mp3' },
+      { title: 'Resurrection',                   sub: 'In-Game BGM',  src: 'audio/bgm/resurrection.mp3' },
       { title: 'Sorrow of a Thousand Blades',    sub: 'In-Game BGM',  src: 'audio/bgm/sorrow-of-a-thousand-blades.mp3' },
       { title: "Suwako's Theme – Native Faith",  sub: 'Reference',    src: 'audio/bgm/suwakos-theme-native-faith.mp3' },
       { title: "The Last Cicada's Song",         sub: 'In-Game BGM',  src: 'audio/bgm/the-last-cicadas-song.mp3' },
@@ -1614,9 +1808,58 @@
 
     // ══════════ CANVAS ANIMATIONS (accurate to render.js) ══════════
     let activeAnimations = [];
+    // Registry of one-shot "play" sequences for the real-game-accurate
+    // preview widgets. Each entry is a zero-arg function that (re)starts
+    // that widget's playback; registered fresh every time initCanvases(tab)
+    // runs so stale closures over a previous tab's canvas never fire.
+    let _widgetPlayers = {};
+    // A widget button has three states, tracked on the button element itself
+    // (dataset.running/dataset.paused) so no extra name-keyed bookkeeping is
+    // needed: idle ("▶ Play", not running) → running ("⏸ Pause") → paused
+    // ("▶ Resume"). Clicking while running/paused toggles pause instead of
+    // restarting; each widget's own tick() checks dataset.paused and freezes
+    // (see _widgetPauseGuard below) rather than this dispatcher owning time.
+    function playWidget(name, btn) {
+      if (window.AudioMgr) window.AudioMgr.unlockContext();
+      if (btn && btn.dataset.running === 'true') {
+        const nowPaused = btn.dataset.paused !== 'true';
+        btn.dataset.paused = nowPaused ? 'true' : 'false';
+        btn.textContent = nowPaused ? '▶ Resume' : '⏸ Pause';
+        return;
+      }
+      const fn = _widgetPlayers[name];
+      if (fn) fn();
+    }
+    // Called once per frame at the very top of every widget's tick(), right
+    // after computing the real nowT. Freezes lastT so the very next frame
+    // after resuming reads a normal small dt instead of the whole paused
+    // span, and — for widgets whose real render functions read a
+    // performance.now()-anchored field directly (Shift/D/F/Laser) — shifts
+    // that anchor forward by the same amount so their internal progress
+    // stays frozen too, not just the local `elapsed` variable.
+    function _widgetPauseGuard(btn, nowT, anchorFields) {
+      if (!btn || btn.dataset.paused !== 'true') return false;
+      if (btn.dataset._pauseAnchorAt) {
+        const shift = nowT - Number(btn.dataset._pauseAnchorAt);
+        if (anchorFields) for (const f of anchorFields) if (typeof f.get() === 'number') f.set(f.get() + shift);
+      }
+      btn.dataset._pauseAnchorAt = String(nowT);
+      return true;
+    }
+    function _miniStars(c, w, h, t, count) {
+      c.fillStyle = 'rgba(255,255,255,.5)';
+      for (let i = 0; i < count; i++) {
+        const sx = (i * 97.3) % w, sy = (i * 53.7 + t * 0.01 * (i % 3 + 1)) % h;
+        c.globalAlpha = 0.15 + 0.15 * Math.sin(t / 500 + i);
+        c.beginPath(); c.arc(sx, sy, 0.6, 0, Math.PI * 2); c.fill();
+      }
+      c.globalAlpha = 1;
+    }
+
     function initCanvases(tab) {
       activeAnimations.forEach(id => cancelAnimationFrame(id));
       activeAnimations = [];
+      _widgetPlayers = {};
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -1630,428 +1873,390 @@
         return { c, w: r.width, h: r.height };
       }
 
-      // ── PLAYER SHIP ──
+      // ── PLAYER SHIP — real drawPlayer()/drawBullet(), real autoshot volley timing ──
       if (tab === 'basics') {
         const s = setup('cvShip');
         if (s) {
           const { c, w, h } = s;
-          function drawShipAnim(t) {
-            c.clearRect(0, 0, w, h);
-            // Stars
-            for (let i = 0; i < 40; i++) {
-              const sx = (i * 97.3 + t * 0.01 * (i % 3 + 1)) % w;
-              const sy = (i * 53.7) % h;
-              c.fillStyle = i % 4 === 0 ? '#00e5ff' : '#fff';
-              c.globalAlpha = 0.1 + 0.1 * Math.sin(t / 500 + i);
-              c.beginPath(); c.arc(sx, sy, 0.6, 0, Math.PI * 2); c.fill();
-            }
-            c.globalAlpha = 1;
+          const cx = w * 0.5, cy = h * 0.72;
 
-            const cx = w * 0.33, cy = h * 0.52;
-            c.save(); c.translate(cx, cy);
-            // Exhaust
-            const fh = 12 + Math.sin(t / 60) * 6;
-            const eg = c.createRadialGradient(0, 30, 0, 0, 36, 14);
-            eg.addColorStop(0, 'rgba(0,180,255,0.3)'); eg.addColorStop(1, 'transparent');
-            c.fillStyle = eg; c.fillRect(-14, 24, 28, 24);
-            // Flames
-            c.fillStyle = '#00b4ff'; c.globalAlpha = 0.6;
-            c.beginPath(); c.moveTo(-8, 27); c.lineTo(-4, 27); c.lineTo(-6, 27 + fh); c.closePath(); c.fill();
-            c.beginPath(); c.moveTo(4, 27); c.lineTo(8, 27); c.lineTo(6, 27 + fh); c.closePath(); c.fill();
-            c.globalAlpha = 1;
-            // Hull
-            c.fillStyle = '#0a1428';
-            c.beginPath(); c.moveTo(0, 0); c.lineTo(24, 12); c.lineTo(24, 20); c.lineTo(10, 16); c.lineTo(-10, 16); c.lineTo(-24, 20); c.lineTo(-24, 12); c.closePath(); c.fill();
-            // Wings
-            const wg = c.createLinearGradient(0, -10, 0, 20);
-            wg.addColorStop(0, '#1e3a5f'); wg.addColorStop(0.5, '#162d4a'); wg.addColorStop(1, '#0d1f33');
-            c.fillStyle = wg;
-            c.beginPath(); c.moveTo(0, -10); c.lineTo(28, 10); c.lineTo(26, 16); c.lineTo(8, 12); c.lineTo(-8, 12); c.lineTo(-26, 16); c.lineTo(-28, 10); c.closePath(); c.fill();
-            c.strokeStyle = '#38bdf8'; c.lineWidth = 1;
-            c.beginPath(); c.moveTo(0, -10); c.lineTo(28, 10); c.lineTo(26, 16); c.lineTo(8, 12); c.lineTo(-8, 12); c.lineTo(-26, 16); c.lineTo(-28, 10); c.closePath(); c.stroke();
-            c.fillStyle = '#0ea5e9'; c.fillRect(22, 14, 5, 3); c.fillRect(-27, 14, 5, 3);
-            // Fuselage
-            const bg = c.createLinearGradient(-12, -26, 12, 22);
-            bg.addColorStop(0, '#dde8f0'); bg.addColorStop(0.3, '#b0c8dc'); bg.addColorStop(0.7, '#7a9ab8'); bg.addColorStop(1, '#4a6a88');
-            c.fillStyle = bg;
-            c.beginPath(); c.moveTo(0, -26); c.lineTo(8, -8); c.lineTo(12, 18); c.lineTo(6, 22); c.lineTo(-6, 22); c.lineTo(-12, 18); c.lineTo(-8, -8); c.closePath(); c.fill();
-            c.strokeStyle = '#0284c7'; c.lineWidth = 1;
-            c.beginPath(); c.moveTo(0, -26); c.lineTo(8, -8); c.lineTo(12, 18); c.lineTo(6, 22); c.lineTo(-6, 22); c.lineTo(-12, 18); c.lineTo(-8, -8); c.closePath(); c.stroke();
-            // Ribs
-            c.strokeStyle = 'rgba(2,132,199,0.4)'; c.lineWidth = 0.7;
-            [[-5, -12, 5, -12], [-7, -2, 7, -2], [-9, 8, 9, 8]].forEach(l => { c.beginPath(); c.moveTo(l[0], l[1]); c.lineTo(l[2], l[3]); c.stroke(); });
-            // Cockpit
-            c.fillStyle = '#0369a1';
-            c.beginPath(); c.moveTo(0, -13); c.lineTo(8, 4); c.lineTo(8, 14); c.lineTo(-8, 14); c.lineTo(-8, 4); c.closePath(); c.fill();
-            const gg = c.createLinearGradient(-7, -13, 7, 14);
-            gg.addColorStop(0, '#67e8f9'); gg.addColorStop(0.4, '#0ea5e9'); gg.addColorStop(1, '#0c4a6e');
-            c.fillStyle = gg;
-            c.beginPath(); c.moveTo(0, -12); c.lineTo(7, 4); c.lineTo(7, 13); c.lineTo(-7, 13); c.lineTo(-7, 4); c.closePath(); c.fill();
-            c.fillStyle = 'rgba(255,255,255,0.45)';
-            c.beginPath(); c.moveTo(-5, -10); c.lineTo(-3, -10); c.lineTo(-5, 10); c.lineTo(-6, 10); c.closePath(); c.fill();
-            // Nose
-            c.fillStyle = '#e2e8f0';
-            c.beginPath(); c.moveTo(0, -26); c.lineTo(3, -16); c.lineTo(-3, -16); c.closePath(); c.fill();
-            // Thrusters
-            c.fillStyle = '#1e293b'; c.fillRect(-9, 21, 6, 6); c.fillRect(3, 21, 6, 6);
-            // Hitbox
-            const hr = 3 + Math.sin(t / 300) * 0.8;
-            c.fillStyle = '#00e5ff'; c.beginPath(); c.arc(0, 0, hr, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = 'rgba(0,229,255,0.25)'; c.lineWidth = 0.5;
-            c.beginPath(); c.arc(0, 0, hr + 4 + Math.sin(t / 500) * 2, 0, Math.PI * 2); c.stroke();
-            c.restore();
-            // Auto-fire: 5 bullets SIMULTANEOUSLY in 45° fan spread
-            // Wave repeats: all 5 appear at same distance, fly out together
-            const spreadAngle = Math.PI / 4; // 45°
-            const baseAngle = -Math.PI / 2;  // straight up
-            const numB = 5;
-            const wavePeriod = 800; // ms between volleys
-            const bulletSpeed = 0.12; // distance per ms
-            // Multiple volleys visible at once
-            for (let v = 0; v < 3; v++) {
-              const waveAge = ((t + v * wavePeriod / 3) % wavePeriod); // ms since this volley fired
-              const dist = waveAge * bulletSpeed;
-              const alpha = Math.max(0, 1 - dist / (h * 0.6));
-              if (alpha <= 0) continue;
-              c.globalAlpha = alpha;
-              for (let i = 0; i < numB; i++) {
-                const angle = baseAngle + (-spreadAngle / 2) + (i * spreadAngle / (numB - 1));
-                const bx = cx + Math.cos(angle) * dist;
-                const by = cy + Math.sin(angle) * dist;
-                const br = 3;
-                // Outer glow
-                c.fillStyle = 'rgba(160,80,255,0.15)';
-                c.beginPath(); c.arc(bx, by, br * 1.4, 0, Math.PI * 2); c.fill();
-                // Main body gradient (matching drawBullet player_auto)
-                const pg = c.createRadialGradient(bx - br * 0.2, by - br * 0.2, 0, bx, by, br);
-                pg.addColorStop(0, '#ffffff'); pg.addColorStop(0.3, '#cc88ff');
-                pg.addColorStop(0.7, '#7700cc'); pg.addColorStop(1, 'rgba(40,0,80,0.5)');
-                c.fillStyle = pg;
-                c.beginPath(); c.arc(bx, by, br, 0, Math.PI * 2); c.fill();
-                // Glint
-                c.fillStyle = 'rgba(240,200,255,0.45)';
-                c.beginPath(); c.ellipse(bx - br * 0.2, by - br * 0.2, br * 0.22, br * 0.13, -0.8, 0, Math.PI * 2); c.fill();
+          function drawIdle(t) {
+            c.clearRect(0, 0, w, h);
+            _miniStars(c, w, h, t, 30);
+            ctx = c; canvas = { width: w, height: h };
+            player.x = cx; player.y = cy; player.width = 36; player.height = 36;
+            drawPlayer();
+          }
+          drawIdle(performance.now());
+
+          _widgetPlayers.ship = function () {
+            const btn = document.getElementById('btnPlayShip');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            bullets.length = 0;
+            // 3 short volleys with a visible rest between each, instead of one
+            // unbroken 2s+ stream — real 135ms cadence stays intact within a
+            // volley, the rest is between volleys so each burst reads clearly.
+            const burstWindows = [[0, 420], [1000, 1420], [2000, 2420]];
+            let lastFire = -999, elapsed = 0;
+            if (window.AudioMgr) window.AudioMgr.startEngine();
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const dt = 16.67;
+              elapsed += dt;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+              _miniStars(c, w, h, performance.now(), 30);
+
+              const inBurst = burstWindows.some(([s, e]) => elapsed >= s && elapsed < e);
+              // Real autoFireInterval (135ms) + real 5-bullet 45° volley (js/entities.js fireAutoShot)
+              if (inBurst && elapsed - lastFire >= 135) {
+                lastFire = elapsed;
+                const numBullets = 5, spreadAngle = Math.PI / 4, baseAngle = -Math.PI / 2;
+                const startAngle = -spreadAngle / 2, angleStep = spreadAngle / (numBullets - 1);
+                for (let i = 0; i < numBullets; i++) {
+                  const angle = baseAngle + startAngle + i * angleStep;
+                  bullets.push({ x: player.x, y: player.y - player.height / 2, vx: Math.cos(angle) * 13.44, vy: Math.sin(angle) * 13.44, size: 6.5, type: 'player_auto' });
+                }
+                if (window.AudioMgr) window.AudioMgr.playSfx('autoshot');
+              }
+              for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx; b.y += b.vy;
+                if (b.y < -20 || b.x < -20 || b.x > w + 20) bullets.splice(i, 1);
+              }
+
+              drawPlayer();
+              bullets.forEach(drawBullet);
+
+              if (elapsed < 3200) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                if (window.AudioMgr) window.AudioMgr.stopEngine();
+                bullets.length = 0;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle(performance.now());
               }
             }
-            c.globalAlpha = 1;
-            // Labels
-            c.fillStyle = '#00e5ff'; c.font = '9px Share Tech Mono, monospace';
-            c.fillText('← HITBOX (cyan dot)', cx + 28, cy + 2);
-            c.fillStyle = 'rgba(0,229,255,0.5)'; c.font = '8px Share Tech Mono, monospace';
-            c.fillText('Auto-fire: 5 bullets / 170ms', w * 0.55, h * 0.55);
-            c.fillText('45° fan spread', w * 0.55, h * 0.55 + 14);
-            c.fillText('Each: 55 base + 0.9% EP', w * 0.55, h * 0.55 + 28);
-            c.fillText('28% chance Vulnerability', w * 0.55, h * 0.55 + 42);
-
-            activeAnimations.push(requestAnimationFrame(() => drawShipAnim(performance.now())));
-          }
-          drawShipAnim(performance.now());
+            tick();
+          };
         }
       }
 
-      // ── SENTINELS ──
+      // ── SENTINELS — real drawSentinel() (real tier colors), spawn burst, autofire, death ──
       if (tab === 'passives') {
         const s = setup('cvSentinels');
         if (s) {
           const { c, w, h } = s;
-          function drawSents(t) {
+          const sx = w * 0.3, sy = h * 0.5;
+          let demoSentinel = null;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            const tiers = [
-              { x: w * 0.18, color: '#00FFFF', label: 'CYAN 1-4', sub: '+30% HP, +10% spd', speed: 5000 },
-              { x: w * 0.48, color: '#FF00FF', label: 'MAGENTA 5-11', sub: 'Vanguard Network', speed: 4000 },
-              { x: w * 0.78, color: '#FFD700', label: 'GOLD ×12', sub: 'All = Special Shot', speed: 3000 }
-            ];
-            tiers.forEach(tier => {
-              const cy2 = h * 0.45, r = 14;
-              // Orbit ring
-              c.save(); c.translate(tier.x, cy2); c.rotate(t / tier.speed);
-              c.strokeStyle = tier.color + '88'; c.lineWidth = 0.8; c.setLineDash([5, 7]);
-              c.beginPath(); c.arc(0, 0, r + 6, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-              c.restore();
-              // Body
-              const bg = c.createRadialGradient(tier.x, cy2, 0, tier.x, cy2, r);
-              bg.addColorStop(0, '#fff'); bg.addColorStop(0.35, '#ccc'); bg.addColorStop(0.75, '#888'); bg.addColorStop(1, '#444');
-              c.fillStyle = bg; c.beginPath(); c.arc(tier.x, cy2, r, 0, Math.PI * 2); c.fill();
-              c.strokeStyle = tier.color; c.lineWidth = 1.5; c.beginPath(); c.arc(tier.x, cy2, r, 0, Math.PI * 2); c.stroke();
-              // Core
-              const cg = c.createRadialGradient(tier.x, cy2, 0, tier.x, cy2, 5);
-              cg.addColorStop(0, '#fff'); cg.addColorStop(0.5, tier.color); cg.addColorStop(1, tier.color + '44');
-              c.fillStyle = cg; c.beginPath(); c.arc(tier.x, cy2, 5, 0, Math.PI * 2); c.fill();
-              // Panel lines
-              c.strokeStyle = tier.color + '66'; c.lineWidth = 0.8;
-              c.beginPath(); c.moveTo(tier.x - 6, cy2 - 3.5); c.lineTo(tier.x - 6, cy2 + 3.5); c.stroke();
-              c.beginPath(); c.moveTo(tier.x + 6, cy2 - 3.5); c.lineTo(tier.x + 6, cy2 + 3.5); c.stroke();
-              // Gun arm
-              c.save(); c.translate(tier.x, cy2); c.rotate(t / (tier.speed * 0.8));
-              c.fillStyle = '#3a3a3a'; c.fillRect(7, -3.5, 9, 7);
-              c.fillStyle = '#666'; c.fillRect(7, -3.5, 2.7, 7);
-              c.strokeStyle = '#888'; c.lineWidth = 0.5; c.strokeRect(7, -3.5, 9, 7);
-              c.fillStyle = tier.color; c.fillRect(14, -1.5, 3, 3);
-              c.restore();
-              // Labels
-              c.fillStyle = tier.color; c.font = 'bold 8px Share Tech Mono, monospace'; c.textAlign = 'center';
-              c.fillText(tier.label, tier.x, cy2 + r + 16);
-              c.fillStyle = tier.color + '88'; c.font = '7px Share Tech Mono, monospace';
-              c.fillText(tier.sub, tier.x, cy2 + r + 26);
-              c.textAlign = 'left';
-            });
-            // Vanguard thread
-            c.strokeStyle = '#FF00FF44'; c.lineWidth = 0.6; c.setLineDash([3, 4]);
-            c.globalAlpha = 0.3 + 0.3 * Math.sin(t / 800);
-            c.beginPath(); c.moveTo(w * 0.18, h * 0.45); c.lineTo(w * 0.48, h * 0.45); c.lineTo(w * 0.78, h * 0.45); c.stroke();
-            c.setLineDash([]); c.globalAlpha = 1;
-            activeAnimations.push(requestAnimationFrame(() => drawSents(performance.now())));
+            demoSentinel = { x: sx, y: sy, size: 15, angle: -Math.PI / 2, hp: 389, maxHp: 389, shield: 0 };
+            sentinels = [demoSentinel];
+            drawSentinel(demoSentinel);
           }
-          drawSents(performance.now());
+          drawIdle();
+
+          _widgetPlayers.sentinel = function () {
+            const btn = document.getElementById('btnPlaySentinel');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            particles.length = 0; explosions.length = 0; bullets.length = 0;
+            sentinels = [];
+            const fakeTarget = { x: w * 0.78, y: h * 0.32 };
+            // Distinct phases with a visible rest between each — spawn, then a
+            // pause to admire it, then firing, a pause at each tier color
+            // change so it registers, then a pause before death.
+            const FIRE_START = 700, TIER2_AT = 2500, TIER2_FREEZE_END = 2900,
+                  TIER3_AT = 4200, TIER3_FREEZE_END = 4600, DEATH_AT = 5800, END_AT = 6600;
+            let elapsed = 0, lastFire = -999, spawned = false;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const dt = 16.67;
+              elapsed += dt;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              if (!spawned) {
+                spawned = true;
+                // Real spawnSentinel() burst (js/entities.js): 3 summon rings + 30 cyan particles
+                for (let i = 0; i < 3; i++) {
+                  const r = _acquireParticle();
+                  r.isSummonRing = true; r.x = sx; r.y = sy;
+                  r.lifetime = 500; r.maxLifetime = 500; r.radius = i * 20;
+                  particles.push(r);
+                }
+                createParticles(sx, sy, 30, '#00FFFF', 2, 8);
+                if (window.AudioMgr) window.AudioMgr.playSfx('sentinel-spawn');
+                demoSentinel = { x: sx, y: sy, size: 15, angle: -Math.PI / 2, hp: 389, maxHp: 389, shield: 0 };
+                sentinels = [demoSentinel];
+                lastFire = FIRE_START - 500;
+              }
+
+              // Real tier thresholds from spawnSentinel: count>=12 gold, >=5 magenta, else cyan.
+              // Demo pads the shared `sentinels` array so drawSentinel's own tier read is genuine, not a re-implementation.
+              if (elapsed > TIER3_AT) sentinels = new Array(12).fill(demoSentinel);
+              else if (elapsed > TIER2_AT) sentinels = new Array(5).fill(demoSentinel);
+              else sentinels = [demoSentinel];
+
+              const inTierFreeze = (elapsed >= TIER2_AT && elapsed < TIER2_FREEZE_END) || (elapsed >= TIER3_AT && elapsed < TIER3_FREEZE_END);
+              if (demoSentinel && elapsed >= FIRE_START && elapsed < DEATH_AT && !inTierFreeze) {
+                demoSentinel.angle = Math.atan2(fakeTarget.y - demoSentinel.y, fakeTarget.x - demoSentinel.x);
+                if (elapsed - lastFire >= 500) {
+                  lastFire = elapsed;
+                  bullets.push({ x: demoSentinel.x, y: demoSentinel.y, vx: Math.cos(demoSentinel.angle) * 10, vy: Math.sin(demoSentinel.angle) * 10, size: 6, type: 'sentinel_auto' });
+                  if (window.AudioMgr) window.AudioMgr.playSfx('autoshot');
+                }
+              }
+              for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx; b.y += b.vy;
+                if (Math.hypot(b.x - fakeTarget.x, b.y - fakeTarget.y) < 16 || b.x < -10 || b.x > w + 10 || b.y < -10 || b.y > h + 10) bullets.splice(i, 1);
+              }
+              _tickParticlesAndExplosions(dt);
+
+              if (elapsed >= DEATH_AT && demoSentinel) {
+                addExplosion(demoSentinel.x, demoSentinel.y, demoSentinel.size * 2, '#00FFFF');
+                if (window.AudioMgr) window.AudioMgr.playSfx('sentinel-explode');
+                demoSentinel = null; sentinels = [];
+              }
+
+              if (demoSentinel) drawSentinel(demoSentinel);
+              bullets.forEach(drawBullet);
+              particles.forEach(drawParticle);
+              explosions.forEach(drawExplosion);
+
+              if (elapsed < END_AT) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                bullets.length = 0; particles.length = 0; explosions.length = 0;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
-        // ── VULNERABILITY ──
+        // ── VULNERABILITY — real applyVulnerability() stacking + real _drawVulnerabilityIcon (via drawEnemy) ──
         const sv = setup('cvVuln');
         if (sv) {
           const { c, w, h } = sv;
-          function drawVuln(t) {
+          const ex = w * 0.35, ey = h * 0.5, px = w * 0.06;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            const ex = w * 0.3, ey = h * 0.45;
-            // Enemy
-            const eg = c.createRadialGradient(ex - 4, ey - 4, 0, ex, ey, 18);
-            eg.addColorStop(0, '#fff'); eg.addColorStop(0.28, 'hsl(35,100%,58%)'); eg.addColorStop(0.72, 'hsl(35,90%,20%)'); eg.addColorStop(1, 'rgba(30,0,0,0.85)');
-            c.fillStyle = eg; c.beginPath(); c.arc(ex, ey, 18, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = 'rgba(255,60,20,0.7)'; c.lineWidth = 0.8; c.beginPath(); c.arc(ex, ey, 18, 0, Math.PI * 2); c.stroke();
-            // Broken heart icon above enemy (matches render.js exactly) + stack number bottom-right
-            const stackCount = Math.min(4, Math.floor(((t % 4000) / 4000) * 5));
-            if (stackCount > 0) {
-              c.save();
-              c.translate(ex, ey - 34);
-              const R2 = 10;
-              const pulse = 0.7 + 0.3 * Math.sin(t / 200);
-
-              // Outer ring
-              c.strokeStyle = `rgba(255,26,64,${pulse})`; c.lineWidth = 1.5;
-              c.beginPath(); c.arc(0, 0, R2, 0, Math.PI * 2); c.stroke();
-              // LED dots
-              c.fillStyle = `rgba(255,26,64,${pulse})`;
-              c.beginPath(); c.arc(0, -R2 + 2, 2, 0, Math.PI * 2); c.fill();
-              c.beginPath(); c.arc(0, R2 - 2, 2, 0, Math.PI * 2); c.fill();
-
-              // Broken heart — two halves offset
-              function drawHalf(left) {
-                c.save();
-                c.beginPath();
-                if (left) c.rect(-R2, -R2, R2 * 0.9, R2 * 2);
-                else c.rect(-R2 * 0.1, -R2, R2 * 1.1, R2 * 2);
-                c.clip();
-                c.translate(left ? -1.5 : 1.5, left ? -1 : 1);
-                const s = 0.45;
-                c.beginPath();
-                c.moveTo(0, 2 * s); c.bezierCurveTo(-8 * s, -2 * s, -10 * s, -8 * s, 0, -8 * s);
-                c.bezierCurveTo(10 * s, -8 * s, 8 * s, -2 * s, 0, 2 * s);
-                c.bezierCurveTo(-4 * s, 5 * s, -8 * s, 7 * s, 0, 11 * s);
-                c.bezierCurveTo(8 * s, 7 * s, 4 * s, 5 * s, 0, 2 * s); c.closePath();
-                const hg = c.createRadialGradient(-1, -2, 0, 0, 0, 9 * s);
-                hg.addColorStop(0, '#3a2a2e'); hg.addColorStop(0.5, '#2a1c20'); hg.addColorStop(1, '#150a0c');
-                c.fillStyle = hg; c.fill();
-                // Crack line
-                c.strokeStyle = left ? '#ff1a40' : 'rgba(255,100,80,0.6)';
-                c.lineWidth = left ? 1.5 : 0.8;
-                c.beginPath(); c.moveTo(0, -9 * s); c.lineTo(0, 11 * s); c.stroke();
-                c.restore();
-              }
-              drawHalf(true); drawHalf(false);
-
-              // X neon slash
-              const xp = 0.7 + 0.3 * Math.sin(t / 120);
-              c.save(); c.rotate(-Math.PI / 4); c.strokeStyle = '#ff1a40'; c.lineWidth = 2 * xp; c.lineCap = 'round';
-              c.beginPath(); c.moveTo(-R2 * 0.8, 0); c.lineTo(R2 * 0.8, 0); c.stroke(); c.restore();
-              c.save(); c.rotate(Math.PI / 4); c.strokeStyle = '#ff1a40'; c.lineWidth = 1.5 * xp;
-              c.beginPath(); c.moveTo(-R2 * 0.6, 0); c.lineTo(R2 * 0.6, 0); c.stroke(); c.restore();
-
-              // Stack number — bottom right of icon
-              c.fillStyle = '#ff1a40';
-              c.font = `bold 9px Orbitron, sans-serif`; c.textAlign = 'left';
-              c.fillText(stackCount, R2 * 0.5, R2 + 2);
-
-              c.restore();
-            }
-            // Shield bar
-            const sw = 45, phase = (t / 4000) % 1;
-            c.fillStyle = '#224488'; c.fillRect(ex - sw / 2, ey + 24, sw, 5);
-            c.fillStyle = '#3366aa'; c.fillRect(ex - sw / 2, ey + 24, sw * (1 - phase * 0.7), 5);
-            c.strokeStyle = '#4488cc'; c.lineWidth = 0.5; c.strokeRect(ex - sw / 2, ey + 24, sw, 5);
-            c.fillStyle = '#4488cc88'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('SHIELD SHRED', ex, ey + 42);
-            // Info
-            c.textAlign = 'left'; c.fillStyle = '#ff6666'; c.font = 'bold 13px Orbitron, sans-serif';
-            c.globalAlpha = 0.6 + 0.4 * Math.sin(t / 700);
-            c.fillText('+64% DMG', w * 0.58, h * 0.35);
-            c.globalAlpha = 1;
-            c.fillStyle = '#ff444488'; c.font = '8px Share Tech Mono, monospace';
-            c.fillText('at 4 stacks', w * 0.58, h * 0.35 + 14);
-            c.fillStyle = '#ff2200'; c.fillText('MAX → TRUE DMG 2s', w * 0.58, h * 0.35 + 30);
-            c.fillStyle = '#ff884488'; c.fillText('Auto 28% | Others 15%', w * 0.58, h * 0.35 + 46);
-            c.textAlign = 'left';
-            activeAnimations.push(requestAnimationFrame(() => drawVuln(performance.now())));
+            player.x = px; player.y = ey; player.width = 22; player.height = 22;
+            drawPlayer();
+            drawEnemy({ x: ex, y: ey, size: 22, hp: 200, maxHp: 200, type: 'apostle', shield: 0, vulnStacks: 0 });
           }
-          drawVuln(performance.now());
+          drawIdle();
+
+          _widgetPlayers.vuln = function () {
+            const btn = document.getElementById('btnPlayVuln');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            particles.length = 0; bullets.length = 0;
+            player.x = px; player.y = ey; player.width = 22; player.height = 22;
+            const fakeEnemy = { x: ex, y: ey, size: 22, hp: 200, maxHp: 200, type: 'apostle', shield: 120, vulnStacks: 0, vulnEndTime: 0 };
+            // 700ms between shots (up from 500ms) so each stack registers before the next hit
+            let elapsed = 0, lastShot = -999, shots = 0;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const dt = 16.67;
+              elapsed += dt;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              if (shots < 5 && elapsed - lastShot >= 700) {
+                lastShot = elapsed; shots++;
+                bullets.push({ x: px, y: ey, vx: 9, vy: 0, size: 6.5, type: 'player_auto' });
+                if (window.AudioMgr) window.AudioMgr.playSfx('autoshot');
+              }
+              for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx;
+                if (Math.hypot(b.x - fakeEnemy.x, b.y - fakeEnemy.y) < fakeEnemy.size) {
+                  bullets.splice(i, 1);
+                  // Real applyVulnerability() (js/entities.js): shield -26% per stack (cap 4), 3s refresh each hit
+                  const stacks = fakeEnemy.vulnStacks || 0;
+                  if (stacks < 4) {
+                    fakeEnemy.shield = Math.max(0, Math.floor(fakeEnemy.shield * 0.74));
+                    fakeEnemy.vulnStacks = stacks + 1;
+                  }
+                  fakeEnemy.vulnEndTime = performance.now() + 3000;
+                  createParticles(fakeEnemy.x, fakeEnemy.y, 6, '#ff4444', 1, 3);
+                } else if (b.x > w + 10) bullets.splice(i, 1);
+              }
+              _tickParticlesAndExplosions(dt);
+
+              player.x = px; player.y = ey;
+              drawPlayer();
+              drawEnemy(fakeEnemy);
+              bullets.forEach(drawBullet);
+              particles.forEach(drawParticle);
+
+              if (elapsed < 5200) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                bullets.length = 0; particles.length = 0;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
-        // ── GLORY ──
+        // ── GLORY / CHAIN LIGHTNING — real 150px-radius chain propagation + real drawChainLightning() ──
         const sg = setup('cvGlory');
         if (sg) {
           const { c, w, h } = sg;
-          function drawGlory(t) {
+          const fakeEnemies = [
+            { x: w * 0.12, y: h * 0.4, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.30, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.5, y: h * 0.42, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.7, y: h * 0.28, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.88, y: h * 0.44, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+          ];
+          const px = w * 0.5, py = h * 0.9;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            // Dark bg
-            c.fillStyle = 'rgba(0,5,15,0.6)'; c.fillRect(0, 0, w, h);
-
-            const enemies = [{ x: w * 0.08, y: h * 0.38 }, { x: w * 0.25, y: h * 0.25 }, { x: w * 0.44, y: h * 0.42 }, { x: w * 0.63, y: h * 0.28 }, { x: w * 0.8, y: h * 0.45 }, { x: w * 0.95, y: h * 0.35 }];
-
-            // Jagged chain lightning helper
-            function jagged(ax, ay, bx, by, segs, jitter, col, alpha, lw) {
-              const pts = [{ x: ax, y: ay }];
-              for (let s = 1; s < segs; s++) { const frac = s / segs; const jx = (Math.random() - 0.5) * jitter; const jy = (Math.random() - 0.5) * jitter; pts.push({ x: ax + (bx - ax) * frac + jx, y: ay + (by - ay) * frac + jy }); }
-              pts.push({ x: bx, y: by });
-              // Outer glow pass
-              c.globalAlpha = alpha * 0.3; c.strokeStyle = col; c.lineWidth = lw * 3;
-              c.beginPath(); pts.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y)); c.stroke();
-              // Core pass
-              c.globalAlpha = alpha; c.lineWidth = lw;
-              c.beginPath(); pts.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y)); c.stroke();
-              c.globalAlpha = 1;
-            }
-
-            // Chain arc: flash every ~300ms per link
-            const linkPhase = (t % 1800) / 1800;
-            for (let i = 0; i < enemies.length - 1; i++) {
-              const flash = ((t / 300 + i * 0.4) % 1) < 0.55;
-              if (flash) {
-                const a = enemies[i], b = enemies[i + 1];
-                jagged(a.x, a.y, b.x, b.y, 8, 14, '#00e5ff', 0.9, 1.5);
-              }
-            }
-
-            // Enemy circles
-            enemies.forEach((e, i) => {
-              const soulReaver = i === 2 || i === 4;
-              const pulse = 0.7 + 0.3 * Math.sin(t / 300 + i);
-              // Glow ring
-              if (soulReaver) { c.strokeStyle = `rgba(255,69,0,${0.5 * pulse})`; c.lineWidth = 2; c.beginPath(); c.arc(e.x, e.y, 14, 0, Math.PI * 2); c.stroke(); }
-              c.fillStyle = '#220808'; c.beginPath(); c.arc(e.x, e.y, 9, 0, Math.PI * 2); c.fill();
-              c.strokeStyle = soulReaver ? '#ff4500' : '#555'; c.lineWidth = 1; c.stroke();
-              // Soul Reaver X
-              if (soulReaver) {
-                c.save(); c.translate(e.x, e.y - 13); c.globalAlpha = pulse;
-                c.strokeStyle = '#ff4500'; c.lineWidth = 1.5;
-                c.beginPath(); c.moveTo(-4, -4); c.lineTo(4, 4); c.stroke();
-                c.beginPath(); c.moveTo(4, -4); c.lineTo(-4, 4); c.stroke();
-                c.restore();
-              }
-            });
-
-            // Labels
-            c.textAlign = 'center';
-            c.fillStyle = '#22c55e'; c.font = 'bold 11px Orbitron, sans-serif';
-            c.globalAlpha = 0.7 + 0.3 * Math.sin(t / 900);
-            c.fillText('×1.55 ALL FRIENDLY DAMAGE', w / 2, h * 0.78);
-            c.globalAlpha = 0.55; c.fillStyle = '#22c55e'; c.font = '8px Share Tech Mono, monospace';
-            c.fillText('CHAIN LIGHTNING → SOUL REAVER → ×1.5 fire rate', w / 2, h * 0.78 + 14);
-            c.globalAlpha = 1; c.textAlign = 'left';
-            activeAnimations.push(requestAnimationFrame(() => drawGlory(performance.now())));
+            player.x = px; player.y = py; player.width = 26; player.height = 26;
+            fakeEnemies.forEach(drawEnemy);
+            drawPlayer();
           }
-          drawGlory(performance.now());
+          drawIdle();
+
+          _widgetPlayers.glory = function () {
+            const btn = document.getElementById('btnPlayGlory');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            particles.length = 0; bullets.length = 0; chainLightningEffects.length = 0;
+            fakeEnemies.forEach(e => { e._chained = false; });
+            gloryForJusticeActive = true;
+            player.x = px; player.y = py; player.width = 26; player.height = 26;
+            let elapsed = 0, fired = false;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const dt = 16.67;
+              elapsed += dt;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              if (!fired && elapsed > 400) {
+                fired = true;
+                const dx = fakeEnemies[0].x - px, dy = fakeEnemies[0].y - py, d = Math.hypot(dx, dy);
+                bullets.push({ x: px, y: py, vx: (dx / d) * 10, vy: (dy / d) * 10, size: 6.5, type: 'player_auto', _target: fakeEnemies[0] });
+                if (window.AudioMgr) window.AudioMgr.playSfx('autoshot');
+              }
+              for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx; b.y += b.vy;
+                if (b._target && Math.hypot(b.x - b._target.x, b.y - b._target.y) < 18) {
+                  bullets.splice(i, 1);
+                  // Real Glory-for-Justice chain (js/entities.js dealDamage isChainable branch): 150px radius, up to 8 links, propagates link-to-link
+                  let chainedCount = 0;
+                  const chainFrom = (src) => {
+                    for (const other of fakeEnemies) {
+                      if (chainedCount >= 8) break;
+                      if (other === src || other._chained) continue;
+                      if (Math.hypot(src.x - other.x, src.y - other.y) < 150) {
+                        other._chained = true;
+                        chainLightningEffects.push({ x1: src.x, y1: src.y, x2: other.x, y2: other.y, lifetime: 250, maxLifetime: 250 });
+                        chainedCount++;
+                        if (window.AudioMgr) window.AudioMgr.playSfx('chain-lightning');
+                        chainFrom(other);
+                      }
+                    }
+                  };
+                  b._target._chained = true;
+                  createParticles(b._target.x, b._target.y, 8, '#00e5ff', 2, 5);
+                  chainFrom(b._target);
+                } else if (b.y < -20 || b.x < -20 || b.x > w + 20) bullets.splice(i, 1);
+              }
+              for (let i = chainLightningEffects.length - 1; i >= 0; i--) {
+                chainLightningEffects[i].lifetime -= dt;
+                if (chainLightningEffects[i].lifetime <= 0) chainLightningEffects.splice(i, 1);
+              }
+              _tickParticlesAndExplosions(dt);
+
+              fakeEnemies.forEach(drawEnemy);
+              bullets.forEach(drawBullet);
+              chainLightningEffects.forEach(drawChainLightning);
+              particles.forEach(drawParticle);
+              player.x = px; player.y = py;
+              drawPlayer();
+
+              if (elapsed < 2600) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                bullets.length = 0; chainLightningEffects.length = 0; particles.length = 0;
+                fakeEnemies.forEach(e => { e._chained = false; });
+                gloryForJusticeActive = false;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
       }
 
-
-      // ── FINAL DEFENSE ──
+      // ── FINAL DEFENSE — real drawFinalDefense(), driven by real finalDefense/playerAbsoluteShield fields ──
       if (tab === 'passives') {
         const sfd = setup('cvFinal');
         if (sfd) {
           const { c, w, h } = sfd;
-          function drawFinal(t) {
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            c.fillStyle = 'rgba(0,5,15,0.5)'; c.fillRect(0, 0, w, h);
-
-            // 10s cycle: phase 0-0.3 normal, 0.3-0.5 hit absorbed, 0.5-0.7 regen, 0.7-0.85 last stand, 0.85-1 absolute shield
-            const cycle = 10000, phase = (t % cycle) / cycle;
-            const shipX = w * 0.5, shipY = h * 0.65;
-
-            // Boundary line
-            const bY = h * 0.82;
-            c.strokeStyle = 'rgba(0,255,255,0.3)'; c.lineWidth = 1.5; c.setLineDash([8, 8]);
-            c.beginPath(); c.moveTo(0, bY); c.lineTo(w, bY); c.stroke(); c.setLineDash([]);
-            c.fillStyle = 'rgba(0,255,255,0.4)'; c.font = '7px Share Tech Mono,monospace';
-            c.fillText('BOUNDARY', 6, bY - 4);
-
-            // Enemy approaching
-            const eMarchX = phase < 0.5 ? w * 0.85 - phase * w * 1.0 : (phase < 0.55 ? w * 0.35 : -50);
-            if (phase < 0.55) {
-              c.fillStyle = '#330808'; c.beginPath(); c.arc(eMarchX, bY + 10, 8, 0, Math.PI * 2); c.fill();
-              c.strokeStyle = '#ff4400'; c.lineWidth = 1; c.stroke();
-            }
-
-            // Boundary shield hit flash
-            if (phase >= 0.3 && phase < 0.5) {
-              const fl = (phase - 0.3) / 0.2;
-              const flashA = fl < 0.5 ? fl * 2 : 2 - fl * 2;
-              c.strokeStyle = `rgba(0,255,255,${flashA * 0.9})`; c.lineWidth = 3 + flashA * 4;
-              c.beginPath(); c.moveTo(0, bY); c.lineTo(w, bY); c.stroke();
-              c.fillStyle = `rgba(0,255,255,${flashA * 0.15})`; c.fillRect(0, bY - 20, w, 20);
-              if (flashA > 0.3) { c.fillStyle = `rgba(0,255,255,${flashA})`; c.font = 'bold 9px Orbitron,sans-serif'; c.textAlign = 'center'; c.fillText('BOUNDARY SHIELD', w / 2, bY - 6); c.textAlign = 'left'; }
-            }
-
-            // Player shield - cyan ring
-            const shieldActive = phase < 0.3 || phase > 0.6;
-            if (shieldActive) {
-              const pulse = 0.6 + 0.4 * Math.sin(t / 350);
-              c.strokeStyle = `rgba(0,229,255,${0.6 * pulse})`; c.lineWidth = 2;
-              c.beginPath(); c.arc(shipX, shipY, 26, 0, Math.PI * 2); c.stroke();
-              // rotating dash
-              c.save(); c.translate(shipX, shipY); c.rotate(t / 1200);
-              c.setLineDash([8, 16]); c.strokeStyle = `rgba(0,229,255,${0.3 * pulse})`; c.lineWidth = 1;
-              c.beginPath(); c.arc(0, 0, 30, 0, Math.PI * 2); c.stroke();
-              c.setLineDash([]); c.restore();
-            }
-
-            // Last Stand activation
-            if (phase >= 0.7 && phase < 0.85) {
-              const lsP = (phase - 0.7) / 0.15;
-              const lsPulse = 0.5 + 0.5 * Math.sin(t / 120);
-              c.fillStyle = `rgba(255,215,0,${lsP * 0.12})`; c.fillRect(0, 0, w, h);
-              c.strokeStyle = `rgba(255,215,0,${lsPulse * 0.9})`; c.lineWidth = 3 + lsPulse * 2;
-              c.beginPath(); c.arc(shipX, shipY, 28 + lsPulse * 4, 0, Math.PI * 2); c.stroke();
-              c.fillStyle = `rgba(255,215,0,${lsP})`; c.font = 'bold 10px Orbitron,sans-serif'; c.textAlign = 'center';
-              c.fillText('LAST STAND', w / 2, shipY - 40); c.textAlign = 'left';
-            }
-
-            // Absolute shield - gold ring
-            if (phase >= 0.85) {
-              const asP = (phase - 0.85) / 0.15;
-              const pulse = 0.7 + 0.3 * Math.sin(t / 200);
-              c.strokeStyle = `rgba(255,215,0,${0.8 * pulse})`; c.lineWidth = 3;
-              c.beginPath(); c.arc(shipX, shipY, 32, 0, Math.PI * 2); c.stroke();
-              c.save(); c.translate(shipX, shipY); c.rotate(-t / 800);
-              c.setLineDash([5, 5]); c.strokeStyle = `rgba(255,215,0,${0.4 * pulse})`; c.lineWidth = 1.5;
-              c.beginPath(); c.arc(0, 0, 38, 0, Math.PI * 2); c.stroke();
-              c.setLineDash([]); c.restore();
-              c.fillStyle = `rgba(255,215,0,${asP * 0.8})`; c.font = 'bold 9px Orbitron,sans-serif'; c.textAlign = 'center';
-              c.fillText('ABSOLUTE SHIELD', w / 2, shipY - 44); c.textAlign = 'left';
-            }
-
-            // Ship
-            c.save(); c.translate(shipX, shipY);
-            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -16); c.lineTo(10, 0); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 0); c.closePath(); c.fill();
-            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.8; c.stroke();
-            c.restore();
-
-            // Label
-            const lbl = phase < 0.3 ? 'SHIELDS ACTIVE' : phase < 0.5 ? 'BOUNDARY HIT' : phase < 0.7 ? 'REGEN...' : phase < 0.85 ? 'LAST STAND!' : 'ABSOLUTE SHIELD';
-            const lblCol = phase >= 0.7 ? '#ffd700' : '#00e5ff';
-            c.fillStyle = lblCol; c.font = '7px Share Tech Mono,monospace'; c.textAlign = 'right';
-            c.fillText(lbl, w - 8, h - 6); c.textAlign = 'left';
-
-            activeAnimations.push(requestAnimationFrame(() => drawFinal(performance.now())));
+            player.x = w * 0.5; player.y = h * 0.6; player.width = 20;
+            boundaryY = h * 0.85;
+            finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
+            playerAbsoluteShield = false;
+            drawFinalDefense();
           }
-          drawFinal(performance.now());
+          drawIdle();
+
+          _widgetPlayers.final = function () {
+            const btn = document.getElementById('btnPlayFinal');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            player.x = w * 0.5; player.y = h * 0.6; player.width = 20;
+            boundaryY = h * 0.85;
+            finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
+            playerAbsoluteShield = false;
+            let elapsed = 0, stage = 0;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const dt = 16.67;
+              elapsed += dt;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              // Real js/main.js: consuming either shield sets a 25s cooldown before it regenerates —
+              // timeline compressed here so all 3 safety nets are visible within one short demo.
+              if (stage === 0 && elapsed > 600) { finalDefense.boundaryShield = false; stage = 1; }
+              if (stage === 1 && elapsed > 1600) { finalDefense.playerShield = false; stage = 2; }
+              if (stage === 2 && elapsed > 2600) { playerAbsoluteShield = true; stage = 3; }
+
+              drawFinalDefense();
+              c.save(); c.strokeStyle = 'rgba(0,255,255,0.25)'; c.setLineDash([6, 6]);
+              c.beginPath(); c.moveTo(0, boundaryY); c.lineTo(w, boundaryY); c.stroke(); c.setLineDash([]); c.restore();
+
+              if (elapsed < 3600) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
       }
 
@@ -2827,8 +3032,12 @@
               speedMult: 0.8 + (i % 3) * 0.3,
             });
           }
-          // Calm 0-4s → rage 4-9s cycle
+          // Calm 0-4s → rage 4-9s cycle — this idle loop is left exactly as-is
+          // and keeps running by default; playWidget('egregor') below takes
+          // over the canvas for one real-effects run, then hands back here.
+          let egPlaying = false;
           function drawEg(t) {
+            if (egPlaying) { activeAnimations.push(requestAnimationFrame(() => drawEg(performance.now()))); return; }
             c.clearRect(0, 0, w, h);
             c.fillStyle = 'rgba(2,2,10,0.92)'; c.fillRect(0, 0, w, h);
             const cp = (t % 9000) / 9000;
@@ -2969,6 +3178,177 @@
             activeAnimations.push(requestAnimationFrame(() => drawEg(performance.now())));
           }
           drawEg(performance.now());
+
+          // ── PLAY: real _drawEgregor()/_drawEgregorEffects()/_drawEgregorDeathBursts()
+          // (js/render/enemy-egregor.js + fx.js), hand-driven through the real
+          // phase fields from js/entities.js's spawnEgregor()/updateEgregor() —
+          // appear → 5 rage stacks → Null Slash → Psychic Tempest → death + roar.
+          _widgetPlayers.egregor = function () {
+            const btn = document.getElementById('btnPlayEgregor');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            egPlaying = true;
+            particles.length = 0; explosions.length = 0;
+            window._egregorDeathBursts = [];
+
+            const ex = w * 0.5, ey = h * 0.36;
+            const enemy = {
+              x: ex, y: ey, size: 160, speed: 0.8, hp: 4750, maxHp: 4750,
+              type: 'egregor',
+              _rageStacks: 0, _rageEndTimes: [],
+              _tempestPhase: 'ready', _tempestTargets: [], _tempestOriginX: ex, _tempestOriginY: ey,
+              _nullSlashPhase: 'ready', _nullSlashWindupTimer: 0, _nullSlashWindupDur: 3000,
+              _nullSlashAngle: 0, _nullSlashTargetX: 0, _nullSlashTargetY: 0,
+              _tentacleHps: Array(10).fill(3800), _tentaclesLost: 0,
+              _tentacles: null, _eyeBlinkTimers: [0, 0, 0, 0], _eyeNextBlinks: [2000, 2800, 1500, 3500],
+            };
+            enemies.length = 0;
+            enemies.push(enemy);
+            sentinels = [{ x: w * 0.72, y: h * 0.86 }];
+            player.x = w * 0.28; player.y = h * 0.86;
+            // The real Null Slash charge telegraph sizes itself off canvas.width
+            // alone (js/render/enemy-egregor.js:519, `canvas.width * 0.5`), which
+            // assumes a full desktop game canvas — in this much shorter, wider
+            // preview box that literal value balloons far past the visible area.
+            // canvas.width/height are a plain mock object here (not the real DOM
+            // element), so reporting a shorter "world width" keeps that one real
+            // formula proportionate to this canvas without touching the source;
+            // nothing else in the Egregor draw path reads canvas.width/height.
+            const egFakeCanvasW = h * 1.7;
+
+            if (window.AudioMgr) window.AudioMgr.startEgregorCrawl();
+
+            let nsHitDone = false, nullSlashStarted = false;
+            let tempestStruckDone = false, tempestStarted = false;
+            let deathDone = false;
+            // elapsed (and every phase timer below) is an ACCUMULATION of a
+            // per-frame delta clamped to 50ms, not a raw `now - anchor`
+            // difference. Raw differences can leap straight past several
+            // phase thresholds in one frame after any real-world stall (tab
+            // backgrounded, a slow paint, this tool's own hiccups) — that
+            // leap was firing Null Slash, Tempest, and the rage jump all in
+            // the same tick, which is exactly the "multiple moves back to
+            // back with no gap" bug. Clamping means a stall just pauses the
+            // sequence and it resumes at normal speed, never skips ahead.
+            let elapsed = 0;
+            let lastT = performance.now();
+            function tick() {
+              const nowT = performance.now();
+              const dt = Math.min(nowT - lastT, 50); lastT = nowT;
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              elapsed += dt;
+              ctx = c; canvas = { width: egFakeCanvasW, height: h };
+              c.clearRect(0, 0, w, h);
+              c.fillStyle = 'rgba(2,2,10,0.92)'; c.fillRect(0, 0, w, h);
+              if (window.AudioMgr) window.AudioMgr.tickEgregorCrawl();
+
+              // Phase transitions (real field names/values from js/entities.js),
+              // each with a real rest gap before the next move starts so every
+              // beat reads clearly instead of chaining straight into the next.
+              if (elapsed >= 900 && enemy._rageStacks < 5 && !deathDone) {
+                enemy._rageStacks = 5;
+              }
+              if (elapsed >= 1700 && !nullSlashStarted) {
+                nullSlashStarted = true;
+                enemy._nullSlashPhase = 'charging';
+                enemy._nullSlashWindupTimer = 0;
+                enemy._nullSlashWindupDur = Math.max(1000, 2500 - enemy._rageStacks * 350);
+                if (window.AudioMgr) window.AudioMgr.startNullSlashWindup();
+              }
+              if (enemy._nullSlashPhase === 'charging') {
+                enemy._nullSlashAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                enemy._nullSlashTargetX = player.x; enemy._nullSlashTargetY = player.y;
+                enemy._nullSlashWindupTimer += dt;
+                if (enemy._nullSlashWindupTimer >= enemy._nullSlashWindupDur) {
+                  enemy._nullSlashPhase = 'striking';
+                  enemy._nullSlashStrikeTimer = 0;
+                  enemy._nullSlashOriginX = enemy.x;
+                  enemy._nullSlashOriginY = enemy.y;
+                  if (window.AudioMgr) { window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.playSfx('egregor-nullslash-slash'); }
+                }
+              }
+              if (enemy._nullSlashPhase === 'striking') {
+                enemy._nullSlashStrikeTimer += dt;
+                const st = enemy._nullSlashStrikeTimer;
+                if (!nsHitDone && st >= 460) {
+                  nsHitDone = true;
+                  createParticles(enemy._nullSlashTargetX, enemy._nullSlashTargetY, 20, '#aa44ff', 3, 9);
+                  addExplosion(enemy._nullSlashTargetX, enemy._nullSlashTargetY, 90, '#6600cc');
+                  if (window.AudioMgr) window.AudioMgr.playSfx('egregor-nullslash-hit');
+                }
+                if (st >= 950) {
+                  enemy._nullSlashPhase = 'ready';
+                }
+              }
+              if (elapsed >= 4450 && !tempestStarted) {
+                tempestStarted = true;
+                enemy._tempestPhase = 'telegraphing';
+                enemy._tempestOriginX = enemy.x; enemy._tempestOriginY = enemy.y + 25 * (enemy.size / 2 / 110);
+                enemy._tempestTargets = [
+                  { tx: player.x, ty: player.y, countdown: 1200, strikeLife: 0, struck: false },
+                  { tx: sentinels[0].x, ty: sentinels[0].y, countdown: 1200, strikeLife: 0, struck: false },
+                ];
+              }
+              if (enemy._tempestPhase === 'telegraphing') {
+                let allDone = true;
+                for (const tg of enemy._tempestTargets) {
+                  tg.countdown -= dt;
+                  if (tg.countdown > 0) allDone = false;
+                }
+                if (allDone && !tempestStruckDone) {
+                  tempestStruckDone = true;
+                  const ox = enemy._tempestOriginX, oy = enemy._tempestOriginY;
+                  addExplosion(ox, oy, 65, '#8800cc');
+                  createParticles(ox, oy, 22, '#cc44ff', 4, 10);
+                  if (window.AudioMgr) window.AudioMgr.playSfx('egregor-tempest-strike');
+                  for (const tg of enemy._tempestTargets) {
+                    tg.struck = true; tg.strikeLife = 700;
+                    tg._mainBolt = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 16, 32);
+                    tg._outerBolt = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 12, 48);
+                    tg._thinBolt = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 8, 18);
+                    tg._branchA = _egregorGenBolt(ox, oy, tg.tx, tg.ty, 10, 38);
+                  }
+                  enemy._tempestPhase = 'striking';
+                }
+              }
+              if (enemy._tempestPhase === 'striking') {
+                let anyAlive = false;
+                for (const tg of enemy._tempestTargets) {
+                  if (tg.struck && tg.strikeLife > 0) { tg.strikeLife -= dt; if (tg.strikeLife > 0) anyAlive = true; }
+                }
+                if (!anyAlive) { enemy._tempestPhase = 'ready'; enemy._tempestTargets = []; }
+              }
+              if (elapsed >= 7150 && !deathDone) {
+                deathDone = true;
+                window._egregorDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: nowT, duration: 900 });
+                createParticles(enemy.x, enemy.y, 40, '#aa44ff', 3, 11);
+                createParticles(enemy.x, enemy.y, 20, '#ffffff', 2, 7);
+                if (window.AudioMgr) { window.AudioMgr.playSfx('egregor-death-roar'); window.AudioMgr.stopEgregorCrawl(); }
+                enemies.length = 0;
+              }
+              _tickParticlesAndExplosions(dt);
+
+              if (!deathDone) {
+                if (elapsed < 400) { c.save(); c.globalAlpha = elapsed / 400; }
+                _drawEgregor(enemy);
+                _drawEgregorEffects();
+                if (elapsed < 400) c.restore();
+              }
+              _drawEgregorDeathBursts();
+              particles.forEach(drawParticle);
+              explosions.forEach(drawExplosion);
+
+              if (elapsed < 8250) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                window._egregorDeathBursts = []; particles.length = 0; explosions.length = 0;
+                sentinels = []; enemies.length = 0;
+                egPlaying = false;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawEg(performance.now());
+              }
+            }
+            tick();
+          };
         }
 
         // Dargruel
@@ -3511,816 +3891,561 @@
         }
       }
 
-      // ── SKILL TAB CANVASES ── (abbreviated for key ones)
+      // ── SKILL TAB CANVASES — real drawXxx() from js/render/*.js, click-to-play ──
       if (tab === 'skills') {
-        // Yog-Sothoth
+        // ── YOG-SOTHOTH DOMAIN — real drawYogSothothDomain() (purple layer, title,
+        // hex floor, runes) + real drawSkillShiftEffects() (teleport portals) +
+        // real _triggerAccurateParry()/_drawParryBursts() for the parry demo ──
         const ss = setup('cvShift');
         if (ss) {
           const { c, w, h } = ss;
-          function drawShift(t) {
+          const cx = w * 0.5, cy = h * 0.58;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            c.fillStyle = 'rgba(2,0,10,0.8)'; c.fillRect(0, 0, w, h);
-            const cx2 = w / 2, cy2 = h * 0.52;
-
-            // Domain expand/hold cycle (4s expand, 4s full, 2s close)
-            const cycle = 10000, cp = (t % cycle) / cycle;
-            const domR = cp < 0.4 ? 80 * (cp / 0.4) : cp < 0.8 ? 80 : 80 * (1 - (cp - 0.8) / 0.2);
-
-            // Space-time distortion: concentric ripple rings
-            for (let i = 0; i < 4; i++) {
-              const rp = ((t / 1800 + i * 0.25) % 1);
-              const rR = 8 + rp * domR;
-              if (rR > domR) continue;
-              c.strokeStyle = `rgba(160,0,255,${0.4 * (1 - rp)})`;
-              c.lineWidth = 1.5 * (1 - rp);
-              c.beginPath(); c.arc(cx2, cy2, rR, 0, Math.PI * 2); c.stroke();
-            }
-
-            // Domain fill (dark purple sphere)
-            if (domR > 5) {
-              const dg = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, domR);
-              dg.addColorStop(0, 'rgba(25,0,55,0.85)'); dg.addColorStop(0.6, 'rgba(20,0,45,0.65)'); dg.addColorStop(1, 'rgba(0,0,0,0)');
-              c.fillStyle = dg; c.beginPath(); c.arc(cx2, cy2, domR, 0, Math.PI * 2); c.fill();
-            }
-
-            // Hex grid inside domain — phase shifted
-            if (domR > 30) {
-              c.save();
-              c.beginPath(); c.arc(cx2, cy2, domR * 0.95, 0, Math.PI * 2); c.clip();
-              c.strokeStyle = '#6600cc'; c.lineWidth = 0.4; c.globalAlpha = 0.2;
-              const hs = 12, offset = (t / 80) % (hs * 1.73);
-              for (let row = -4; row < 5; row++) for (let col = -5; col < 6; col++) {
-                const hx = cx2 + col * hs * 1.73 + (row % 2) * hs * 0.87 + offset, hy = cy2 + row * hs * 1.5;
-                c.beginPath();
-                for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2 - Math.PI / 6; i === 0 ? c.moveTo(hx + Math.cos(a) * hs * 0.55, hy + Math.sin(a) * hs * 0.55) : c.lineTo(hx + Math.cos(a) * hs * 0.55, hy + Math.sin(a) * hs * 0.55); }
-                c.closePath(); c.stroke();
-              }
-              c.globalAlpha = 1; c.restore();
-            }
-
-            // Slow-time effect: floating "0.15×" numbers drifting upward
-            for (let i = 0; i < 5; i++) {
-              const drift = ((t / 2000 + i * 0.2) % 1);
-              const nx = cx2 + (i - 2) * 18, ny = cy2 + 30 - drift * 80;
-              if (Math.hypot(nx - cx2, ny - cy2) > domR * 0.85) continue;
-              c.globalAlpha = (1 - drift) * 0.5;
-              c.fillStyle = '#aa44ff'; c.font = '6px Share Tech Mono, monospace'; c.textAlign = 'center';
-              c.fillText('×0.15', nx, ny);
-            }
-            c.globalAlpha = 1;
-
-            // Outer domain edge — bright ring
-            if (domR > 5) {
-              c.strokeStyle = `rgba(180,0,255,${0.7 + 0.3 * Math.sin(t / 400)})`; c.lineWidth = 2;
-              c.beginPath(); c.arc(cx2, cy2, domR, 0, Math.PI * 2); c.stroke();
-              // Dashed outer
-              c.save(); c.translate(cx2, cy2); c.rotate(t / 3000);
-              c.setLineDash([8, 14]); c.strokeStyle = 'rgba(200,80,255,0.3)'; c.lineWidth = 1.2;
-              c.beginPath(); c.arc(0, 0, domR + 6, 0, Math.PI * 2); c.stroke();
-              c.setLineDash([]); c.restore();
-            }
-
-            // Spiral energy arms
-            c.save(); c.translate(cx2, cy2); c.rotate(t / 1200);
-            for (let arm = 0; arm < 4; arm++) {
-              const aBase = (arm / 4) * Math.PI * 2;
-              c.beginPath();
-              for (let s = 0; s <= 20; s++) {
-                const st = s / 20, r2 = st * domR * 0.85, a2 = aBase + st * 1.8;
-                s === 0 ? c.moveTo(Math.cos(a2) * r2, Math.sin(a2) * r2) : c.lineTo(Math.cos(a2) * r2, Math.sin(a2) * r2);
-              }
-              c.strokeStyle = `rgba(200,0,255,${0.15 + 0.1 * Math.sin(t / 500 + arm)})`;
-              c.lineWidth = 0.8; c.stroke();
-            }
-            c.restore();
-
-            // Player ship + Iron Body aura
-            c.save(); c.translate(cx2, cy2);
-            const ibPulse = 0.5 + 0.5 * Math.sin(t / 300);
-            c.strokeStyle = `rgba(180,80,255,${0.6 * ibPulse})`; c.lineWidth = 2.5;
-            c.beginPath(); c.arc(0, 0, 20, 0, Math.PI * 2); c.stroke();
-            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.fill();
-            c.strokeStyle = '#cc88ff'; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.stroke();
-            c.restore();
-
-            // Teleport portals (left + right)
-            const portalDist = Math.min(domR * 0.75, 65);
-            [[cx2 - portalDist, cy2, -1], [cx2 + portalDist, cy2, 1]].forEach(([px, py, dir]) => {
-              const pp = 0.6 + 0.4 * Math.sin(t / 500 + dir);
-              c.save(); c.translate(px, py); c.rotate(dir * t / 1500);
-              c.strokeStyle = `rgba(200,80,255,${0.7 * pp})`; c.lineWidth = 2;
-              c.beginPath(); c.arc(0, 0, 11, 0, Math.PI * 2); c.stroke();
-              c.setLineDash([3, 5]); c.strokeStyle = `rgba(150,0,255,${0.4 * pp})`; c.lineWidth = 0.8;
-              c.beginPath(); c.arc(0, 0, 16, 0, Math.PI * 2); c.stroke();
-              c.setLineDash([]); c.restore();
-              // Ghost ship
-              c.globalAlpha = 0.28;
-              c.fillStyle = '#1a2a45';
-              c.beginPath(); c.moveTo(px, py - 9); c.lineTo(px + 7, py + 1); c.lineTo(px + 5, py + 4); c.lineTo(px - 5, py + 4); c.lineTo(px - 7, py + 1); c.closePath(); c.fill();
-              c.strokeStyle = '#aa55ff'; c.lineWidth = 0.6;
-              c.beginPath(); c.moveTo(px, py - 9); c.lineTo(px + 7, py + 1); c.lineTo(px + 5, py + 4); c.lineTo(px - 5, py + 4); c.lineTo(px - 7, py + 1); c.closePath(); c.stroke();
-              c.globalAlpha = 1;
-            });
-
-            // Connector beam
-            c.strokeStyle = 'rgba(180,0,255,0.25)'; c.lineWidth = 1; c.setLineDash([5, 9]); c.lineDashOffset = -(t / 50);
-            c.beginPath(); c.moveTo(cx2 - portalDist, cy2); c.lineTo(cx2 + portalDist, cy2); c.stroke();
-            c.setLineDash([]); c.lineDashOffset = 0;
-
-            // Label
-            c.fillStyle = '#bb88ff'; c.font = '8px Share Tech Mono, monospace'; c.textAlign = 'center';
-            c.fillText('IRON BODY • BULLETS DESTROYED • 15% TIME • ←→ TELEPORT', cx2, h - 8);
-            c.textAlign = 'left';
-            activeAnimations.push(requestAnimationFrame(() => drawShift(performance.now())));
+            _miniStars(c, w, h, performance.now(), 25);
+            player.x = cx; player.y = cy; player.width = 34; player.height = 34;
+            skillShiftActive = false;
+            drawPlayer();
           }
-          drawShift(performance.now());
+          drawIdle();
+
+          _widgetPlayers.shift = function () {
+            const btn = document.getElementById('btnPlayShift');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            player.x = cx; player.y = cy; player.width = 34; player.height = 34;
+            sentinels = [];
+            window._parryBursts = [];
+            skillShiftActive = true;
+            skillShiftChargeStart = performance.now();
+            if (window.AudioMgr) window.AudioMgr.playSfx('shift-hold');
+            // elapsed tracks real wall-clock time (matching skillShiftChargeStart,
+            // which drawYogSothothDomain()/drawSkillShiftEffects() also read via
+            // performance.now() internally) instead of a fixed dt accumulator —
+            // a simulated clock drifts from those functions' own real-time-based
+            // progress whenever a frame is skipped/throttled, which made the
+            // domain look like it rushed straight to its end state.
+            let parried = false, teleportPlayed = false;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT, [{ get: () => skillShiftChargeStart, set: v => skillShiftChargeStart = v }])) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const elapsed = nowT - skillShiftChargeStart;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+              _miniStars(c, w, h, performance.now(), 25);
+
+              drawYogSothothDomain();
+
+              // Accurate Parry: an enemy bullet reaches the player mid-domain —
+              // real playerTakesHit() routes this straight into
+              // _triggerAccurateParry(), which plays 'yog-parry' synchronously
+              // the instant it fires, not after the domain closes.
+              if (!parried && elapsed > 1200) {
+                parried = true;
+                _triggerAccurateParry();
+              }
+              _drawParryBursts();
+
+              drawSkillShiftEffects();
+              drawPlayer();
+
+              if (elapsed < 3000) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else if (elapsed < 3400) {
+                // Teleport release
+                if (!teleportPlayed) { teleportPlayed = true; if (window.AudioMgr) window.AudioMgr.playSfx('shift-teleport'); }
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                skillShiftActive = false;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
-        // Skill A
+        // ── THUNDER ORBS (Skill A) — real drawSkillA() + real drawEnemy() apostle target ──
         const ska = setup('cvSkillA');
         if (ska) {
           const { c, w, h } = ska;
-          function drawSkA(t) {
+          const cx = w * 0.32, cy = h * 0.74;
+          const target = { x: cx + 140, y: cy - 90, size: 12, hp: 200, maxHp: 200, type: 'apostle', shield: 0 };
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            c.fillStyle = 'rgba(0,3,15,0.7)'; c.fillRect(0, 0, w, h);
-            const cx2 = w * 0.32, cy2 = h * 0.52;
-
-            // Binary sensor ring — rotating text characters
-            const sensorR = 60;
-            c.save(); c.translate(cx2, cy2); c.rotate(t / 5000);
-            const charCnt = 28;
-            c.font = '5px Share Tech Mono, monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
-            for (let i = 0; i < charCnt; i++) {
-              const a = (i / charCnt) * Math.PI * 2;
-              const ch = ((Math.floor(t / 200) + i) % 2).toString();
-              c.globalAlpha = 0.2 + 0.1 * Math.sin(t / 400 + i);
-              c.fillStyle = '#00e5ff';
-              c.save(); c.rotate(a); c.fillText(ch, 0, -sensorR); c.restore();
-            }
-            c.globalAlpha = 1; c.textBaseline = 'alphabetic'; c.restore();
-
-            // Orbiting orbs — 3 layers
-            const orbDef = [
-              { count: 5, r: 38, speed: 2800, start: 0 },
-              { count: 6, r: 54, speed: -4200, start: 0.15 },
-              { count: 4, r: 70, speed: 6000, start: 0.3 },
-            ];
-            let orbIdx = 0;
-            orbDef.forEach(({ count, r, speed, start }) => {
-              for (let i = 0; i < count; i++) {
-                const a = t / speed + (i / count) * Math.PI * 2 + start * Math.PI * 2;
-                const ox = cx2 + Math.cos(a) * r, oy = cy2 + Math.sin(a) * r;
-                const isYellow = orbIdx < 3;
-                const pulse = 1 + 0.2 * Math.sin(t / 200 + orbIdx);
-                const or = (isYellow ? 5.5 : 4.5) * pulse;
-                // Glow halo
-                c.fillStyle = isYellow ? 'rgba(255,200,0,0.18)' : 'rgba(0,200,255,0.14)';
-                c.beginPath(); c.arc(ox, oy, or * 2, 0, Math.PI * 2); c.fill();
-                // Orb body
-                const og = c.createRadialGradient(ox, oy, 0, ox, oy, or);
-                og.addColorStop(0, '#fff');
-                og.addColorStop(0.35, isYellow ? '#ffee00' : '#00ffff');
-                og.addColorStop(1, isYellow ? 'rgba(200,80,0,0.4)' : 'rgba(0,80,200,0.4)');
-                c.fillStyle = og; c.beginPath(); c.arc(ox, oy, or, 0, Math.PI * 2); c.fill();
-                // Trail line back to ship
-                if (r < 55) {
-                  c.globalAlpha = 0.06;
-                  c.strokeStyle = isYellow ? '#ffee00' : '#00e5ff'; c.lineWidth = 0.5;
-                  c.beginPath(); c.moveTo(cx2, cy2); c.lineTo(ox, oy); c.stroke();
-                  c.globalAlpha = 1;
-                }
-                orbIdx++;
-              }
-            });
-
-            // Homing orb firing + impact explosion
-            const ft = (t / 2200) % 1;
-            const enemy = { x: w * 0.82, y: h * 0.28 };
-            if (ft < 0.55) {
-              // Orb flying toward enemy
-              const ox2 = cx2 + (enemy.x - cx2) * (ft / 0.55);
-              const oy2 = cy2 + (enemy.y - cy2) * (ft / 0.55) - Math.sin(ft / 0.55 * Math.PI) * 15;
-              // Tail
-              for (let tr = 1; tr <= 4; tr++) {
-                const tf2 = Math.max(0, ft - tr * 0.025);
-                const tx2 = cx2 + (enemy.x - cx2) * (tf2 / 0.55);
-                const ty2 = cy2 + (enemy.y - cy2) * (tf2 / 0.55) - Math.sin(tf2 / 0.55 * Math.PI) * 15;
-                c.globalAlpha = (1 - tr / 4) * 0.4;
-                c.fillStyle = '#00ffff'; c.beginPath(); c.arc(tx2, ty2, 3 - tr * 0.5, 0, Math.PI * 2); c.fill();
-              }
-              c.globalAlpha = 1;
-              const fg = c.createRadialGradient(ox2, oy2, 0, ox2, oy2, 5);
-              fg.addColorStop(0, '#fff'); fg.addColorStop(0.4, '#00ffff'); fg.addColorStop(1, 'rgba(0,80,200,0.3)');
-              c.fillStyle = fg; c.beginPath(); c.arc(ox2, oy2, 5, 0, Math.PI * 2); c.fill();
-            } else if (ft < 0.85) {
-              // Impact: cyan burst + 16 scattered shards
-              const imp = (ft - 0.55) / 0.3;
-              for (let i = 0; i < 16; i++) {
-                const sa = (i / 16) * Math.PI * 2;
-                const sd = imp * 28;
-                c.globalAlpha = Math.max(0, 1 - imp * 1.1);
-                const sc = i % 2 === 0 ? '#00ffff' : '#00aaff';
-                c.fillStyle = sc; c.beginPath(); c.arc(enemy.x + Math.cos(sa) * sd, enemy.y + Math.sin(sa) * sd, 2.5 - imp * 1.5, 0, Math.PI * 2); c.fill();
-              }
-              // Central flash
-              c.globalAlpha = Math.max(0, 0.8 - imp * 1.2);
-              c.fillStyle = '#fff'; c.beginPath(); c.arc(enemy.x, enemy.y, 8 + imp * 4, 0, Math.PI * 2); c.fill();
-              c.globalAlpha = 1;
-            }
-
-            // Enemy
-            c.fillStyle = '#330808'; c.beginPath(); c.arc(enemy.x, enemy.y, 10, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = '#661111'; c.lineWidth = 0.8; c.stroke();
-
-            // Ship
-            c.save(); c.translate(cx2, cy2);
-            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.fill();
-            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(0, -12); c.lineTo(10, 2); c.lineTo(8, 6); c.lineTo(-8, 6); c.lineTo(-10, 2); c.closePath(); c.stroke();
-            c.restore();
-
-            // Labels
-            c.fillStyle = '#FFD70088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'left';
-            c.fillText('YELLOW = SACRIFICE SHIELD', w * 0.58, h * 0.65);
-            c.fillText('20 orbs/cast (80 max)', w * 0.58, h * 0.65 + 12);
-            c.fillText('Impact → 16 scattered shards', w * 0.58, h * 0.65 + 24);
-            activeAnimations.push(requestAnimationFrame(() => drawSkA(performance.now())));
+            player.x = cx; player.y = cy;
+            skillAOrbs = []; skillASensorRadius = 0;
+            drawPlayer();
           }
-          drawSkA(performance.now());
+          drawIdle();
+
+          _widgetPlayers.skillA = function () {
+            const btn = document.getElementById('btnPlaySkillA');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            particles.length = 0; explosions.length = 0;
+            player.x = cx; player.y = cy;
+            lastSkillA = performance.now();
+            skillASensorRadius = 0;
+            // Real activateSkillA() (js/skills.js): 20 orbs, size 8, 3 flagged
+            // defensive (yellow), single ring at radius 60 (rebalanceSkillAOrbs
+            // with <=20 orbs uses one layer), evenly spaced by angle.
+            skillAOrbs = [];
+            for (let i = 0; i < 20; i++) {
+              skillAOrbs.push({ x: cx, y: cy, size: 8, isDefensive: i < 3, radius: 60, angle: (Math.PI * 2 / 20) * i, target: null });
+            }
+            if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-activate');
+            // elapsed/dt track real wall-clock time (matching lastSkillA, which
+            // drawSkillA()'s own title-flash reads via performance.now()) —
+            // a simulated clock drifts from that real-time fade whenever a
+            // frame is skipped/throttled.
+            let homer = null, homerFired = false, hitDone = false, lastT = performance.now();
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT, [{ get: () => lastSkillA, set: v => lastSkillA = v }])) { lastT = nowT; activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const elapsed = nowT - lastSkillA;
+              const dt = nowT - lastT; lastT = nowT;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              // Real value (js/input.js, js/main.js): min(canvas.width,canvas.height)*0.9,
+              // set instantly on activation — large enough to actually reach the
+              // demo target, showing the lock-on trigger radius for real.
+              skillASensorRadius = Math.min(w, h) * 0.9;
+              // Real updateSkillA() orbit: angle += 0.02*dt60 / (floor(radius/60)+1)
+              const dt60 = dt / 16.67;
+              const rotationSpeed = 0.02 * dt60 / (Math.floor(60 / 60) + 1);
+              for (const orb of skillAOrbs) {
+                if (orb === homer) continue;
+                orb.angle += rotationSpeed;
+                orb.x = cx + Math.cos(orb.angle) * orb.radius;
+                orb.y = cy + Math.sin(orb.angle) * orb.radius;
+              }
+
+              if (!homerFired && elapsed > 700) {
+                homerFired = true;
+                homer = skillAOrbs.find(o => !o.isDefensive);
+                if (homer) {
+                  homer.target = target;
+                  if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-orb-lock');
+                }
+              }
+              if (homer && !hitDone) {
+                const dx = target.x - homer.x, dy = target.y - homer.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 8) {
+                  homer.x += (dx / dist) * 9;
+                  homer.y += (dy / dist) * 9;
+                } else {
+                  hitDone = true;
+                  skillAOrbs.splice(skillAOrbs.indexOf(homer), 1);
+                  createParticles(target.x, target.y, 16, '#00ffff', 2, 6);
+                  addExplosion(target.x, target.y, 14, '#00ffff');
+                  if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-orb-hit');
+                }
+              }
+              _tickParticlesAndExplosions(dt);
+
+              player.x = cx; player.y = cy;
+              drawPlayer();
+              drawSkillA();
+              drawEnemy(target);
+              particles.forEach(drawParticle);
+              explosions.forEach(drawExplosion);
+
+              if (elapsed < 3200) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                skillAOrbs = []; particles.length = 0; explosions.length = 0;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
-        // Spirit
+        // ── REMEMBRANCE SPIRIT (Skill S, normal) — real drawSpirit()/drawSpiritBullet()/drawBladeArcProjectile() ──
         const sks = setup('cvSkillS');
         if (sks) {
           const { c, w, h } = sks;
-          // Store blade arcs that fly out from spirit
-          let bladeArcs = [];
-          let lastBladeTime = 0;
-          function drawSkS(t) {
+          const cx = w * 0.32, cy = h * 0.74;
+          const target = { x: w * 0.82, y: h * 0.32, size: 12, hp: 200, maxHp: 200, type: 'apostle', shield: 0 };
+          let demoSpirit = null;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            const cx2 = w * 0.35, cy2 = h * 0.5;
-            // Ship
-            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(cx2, cy2 - 10); c.lineTo(cx2 + 8, cy2 + 2); c.lineTo(cx2 + 6, cy2 + 5); c.lineTo(cx2 - 6, cy2 + 5); c.lineTo(cx2 - 8, cy2 + 2); c.closePath(); c.fill();
-            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(cx2, cy2 - 10); c.lineTo(cx2 + 8, cy2 + 2); c.lineTo(cx2 + 6, cy2 + 5); c.lineTo(cx2 - 6, cy2 + 5); c.lineTo(cx2 - 8, cy2 + 2); c.closePath(); c.stroke();
-            // Spirit orbiting
-            const sa = t / 3500;
-            const spx = cx2 + Math.cos(sa) * 45, spy = cy2 + Math.sin(sa) * 30;
-            // Corona
-            c.strokeStyle = 'rgba(255,0,255,0.3)'; c.lineWidth = 1.5; c.beginPath(); c.arc(spx, spy, 14, 0, Math.PI * 2); c.stroke();
-            // Petals orbiting
-            for (let i = 0; i < 5; i++) {
-              const pa = t / 800 + (i / 5) * Math.PI * 2;
-              c.fillStyle = 'rgba(255,100,255,0.35)'; c.beginPath(); c.arc(spx + Math.cos(pa) * 11, spy + Math.sin(pa) * 11, 2.5, 0, Math.PI * 2); c.fill();
-            }
-            // Body gradient
-            const sg = c.createRadialGradient(spx, spy, 0, spx, spy, 9);
-            sg.addColorStop(0, '#fff'); sg.addColorStop(0.35, '#ff88ff'); sg.addColorStop(0.7, 'magenta'); sg.addColorStop(1, 'purple');
-            c.fillStyle = sg; c.beginPath(); c.arc(spx, spy, 9, 0, Math.PI * 2); c.fill();
-            c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.ellipse(spx - 2, spy - 2, 2.5, 1.5, -Math.PI / 4, 0, Math.PI * 2); c.fill();
-            // Spirit bullets firing upward
-            for (let i = 0; i < 3; i++) {
-              const bt = ((t / 4 + i * 170) % 600) / 600;
-              c.fillStyle = '#ff44aa'; c.globalAlpha = 1 - bt;
-              const bAngle = -Math.PI / 2 + (i - 1) * 0.3;
-              c.beginPath(); c.arc(spx + Math.cos(bAngle) * bt * 55, spy + Math.sin(bAngle) * bt * 55, 2, 0, Math.PI * 2); c.fill();
-            }
-            c.globalAlpha = 1;
-
-            // ── BLADE ARC: spirit charges up then slashes, arc flies out ──
-            const bladeCycle = 2500; // ms per blade cycle
-            const bladePhase = (t % bladeCycle) / bladeCycle; // 0→1
-
-            // Phase 0.0-0.3: charge glow on spirit
-            if (bladePhase < 0.3) {
-              const chg = bladePhase / 0.3;
-              c.strokeStyle = `rgba(136,255,0,${chg * 0.6})`; c.lineWidth = 2 + chg * 2;
-              c.beginPath(); c.arc(spx, spy, 12 + chg * 6, 0, Math.PI * 2); c.stroke();
-              // Charging particles swirl in
-              for (let i = 0; i < 5; i++) {
-                const pa = t / 200 + (i / 5) * Math.PI * 2;
-                const pd = (1 - chg) * 25 + 5;
-                c.fillStyle = `rgba(136,255,0,${chg * 0.7})`;
-                c.beginPath(); c.arc(spx + Math.cos(pa) * pd, spy + Math.sin(pa) * pd, 1.5, 0, Math.PI * 2); c.fill();
-              }
-            }
-            // Phase 0.3-0.35: slash flash on spirit
-            if (bladePhase >= 0.3 && bladePhase < 0.35) {
-              c.fillStyle = 'rgba(200,255,100,0.4)';
-              c.beginPath(); c.arc(spx, spy, 20, 0, Math.PI * 2); c.fill();
-            }
-            // Phase 0.35-0.85: blade arc flies outward from spirit toward top-right
-            if (bladePhase >= 0.3 && bladePhase < 0.85) {
-              const flyT = (bladePhase - 0.3) / 0.55; // 0→1
-              const flyAngle = -Math.PI * 0.35; // fly direction (upper-right)
-              const flyDist = flyT * w * 0.45;
-              const arcX = spx + Math.cos(flyAngle) * flyDist;
-              const arcY = spy + Math.sin(flyAngle) * flyDist;
-              const arcAngle = flyAngle; // arc faces direction of travel
-              const arcSa = arcAngle - Math.PI / 2;
-              const arcEa = arcAngle + Math.PI / 2;
-              const arcR = 22 + flyT * 10;
-              const arcFade = flyT < 0.2 ? flyT / 0.2 : (flyT > 0.7 ? (1 - flyT) / 0.3 : 1);
-
-              // Outer wide glow
-              c.strokeStyle = `rgba(120,255,0,${arcFade * 0.15})`; c.lineWidth = 22;
-              c.beginPath(); c.arc(arcX, arcY, arcR, arcSa, arcEa); c.stroke();
-              // Main green arc (matching drawBladeArcProjectile)
-              c.strokeStyle = `rgba(136,255,0,${arcFade * 0.8})`; c.lineWidth = 4;
-              c.beginPath(); c.arc(arcX, arcY, arcR, arcSa, arcEa); c.stroke();
-              // Bright inner edge
-              c.strokeStyle = `rgba(200,255,150,${arcFade * 0.6})`; c.lineWidth = 1.5;
-              c.beginPath(); c.arc(arcX, arcY, arcR - 3, arcSa, arcEa); c.stroke();
-              // Energy slash marks
-              c.strokeStyle = `rgba(180,255,100,${arcFade * 0.5})`; c.lineWidth = 1;
-              for (let i = 0; i < 3; i++) {
-                const slA = arcSa + (arcEa - arcSa) * ((i + 1) / 4);
-                c.beginPath();
-                c.moveTo(arcX + Math.cos(slA) * (arcR - 8), arcY + Math.sin(slA) * (arcR - 8));
-                c.lineTo(arcX + Math.cos(slA) * (arcR + 8), arcY + Math.sin(slA) * (arcR + 8));
-                c.stroke();
-              }
-              // Trail particles
-              for (let i = 0; i < 4; i++) {
-                const tp = Math.max(0, flyT - i * 0.06);
-                const tx = spx + Math.cos(flyAngle) * (tp * w * 0.45);
-                const ty = spy + Math.sin(flyAngle) * (tp * w * 0.45);
-                c.fillStyle = `rgba(136,255,0,${arcFade * (0.4 - i * 0.1)})`;
-                c.beginPath(); c.arc(tx, ty, 2 - i * 0.3, 0, Math.PI * 2); c.fill();
-              }
-            }
-            // Labels
-            c.fillStyle = '#88ff0088'; c.font = '7px Share Tech Mono, monospace'; c.textAlign = 'center';
-            if (bladePhase >= 0.3 && bladePhase < 0.8) c.fillText('BLADE ARC 16% EP', w * 0.6, h * 0.15);
-            c.textAlign = 'left';
-            // Finale label
-            c.fillStyle = '#ff44aa55'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('Finale @35s: lasers + 8 bouncing balls', w * 0.55, h * 0.85);
-            activeAnimations.push(requestAnimationFrame(() => drawSkS(performance.now())));
+            player.x = cx; player.y = cy;
+            demoSpirit = { x: cx + 40, y: cy, isPhotokrystos: false, isFinishing: false, duration: 35000, spawnGameTime: 0 };
+            spirits = [demoSpirit];
+            drawPlayer();
+            drawSpirit(demoSpirit);
           }
-          drawSkS(performance.now());
+          drawIdle();
+
+          _widgetPlayers.skillS = function () {
+            const btn = document.getElementById('btnPlaySkillS');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            spiritBullets.length = 0; bladeArcProjectiles.length = 0; particles.length = 0; explosions.length = 0;
+            player.x = cx; player.y = cy;
+            gameElapsedTime = 0;
+            demoSpirit = { x: cx + 40, y: cy, isPhotokrystos: false, isFinishing: false, duration: 35000, spawnGameTime: 0 };
+            spirits = [demoSpirit];
+            lastSkillS = performance.now();
+            if (window.AudioMgr) window.AudioMgr.playSfx('spirit-autofire');
+            // elapsed/dt track real wall-clock time (matching lastSkillS, which
+            // drawSpirit()'s own title-flash reads via performance.now()).
+            let lastShot = -999, shotCount = 0, arcFired = false, lastT = performance.now();
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT, [{ get: () => lastSkillS, set: v => lastSkillS = v }])) { lastT = nowT; activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const elapsed = nowT - lastSkillS;
+              const dt = nowT - lastT; lastT = nowT;
+              gameElapsedTime += dt;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              // Orbit motion (real orbit math lives in js/skills.js updateSpirits, not the render layer)
+              const sa = performance.now() / 1800;
+              demoSpirit.x = cx + Math.cos(sa) * 42;
+              demoSpirit.y = cy + Math.sin(sa) * 26;
+
+              if (elapsed < 3200 && elapsed - lastShot >= 200) {
+                lastShot = elapsed; shotCount++;
+                const dx = target.x - demoSpirit.x, dy = target.y - demoSpirit.y, d = Math.hypot(dx, dy);
+                spiritBullets.push({ x: demoSpirit.x, y: demoSpirit.y, vx: (dx / d) * 6, vy: (dy / d) * 6, size: 3.5, isPhoto: false });
+                if (window.AudioMgr) window.AudioMgr.playSfx('spirit-autofire');
+                if (shotCount % 5 === 0 && !arcFired) {
+                  arcFired = true;
+                  const angle = Math.atan2(dy, dx);
+                  bladeArcProjectiles.push({ x: demoSpirit.x, y: demoSpirit.y, radius: 125, vx: Math.cos(angle) * 7, vy: Math.sin(angle) * 7 });
+                  if (window.AudioMgr) window.AudioMgr.playSfx('spirit-arc-slash');
+                }
+              }
+              for (let i = spiritBullets.length - 1; i >= 0; i--) {
+                const b = spiritBullets[i];
+                b.x += b.vx; b.y += b.vy;
+                if (Math.hypot(b.x - target.x, b.y - target.y) < target.size) {
+                  spiritBullets.splice(i, 1);
+                  createParticles(target.x, target.y, 4, '#ff55cc', 1, 3);
+                } else if (b.x < -10 || b.x > w + 10 || b.y < -10 || b.y > h + 10) spiritBullets.splice(i, 1);
+              }
+              // Real bladeArcProjectiles are isPiercing (js/skills.js) — pass
+              // straight through the target instead of stopping on first hit.
+              for (let i = bladeArcProjectiles.length - 1; i >= 0; i--) {
+                const arc = bladeArcProjectiles[i];
+                arc.x += arc.vx; arc.y += arc.vy;
+                if (!arc._hit && Math.hypot(arc.x - target.x, arc.y - target.y) < target.size + arc.radius * 0.5) {
+                  arc._hit = true;
+                  createParticles(target.x, target.y, 10, '#88ff00', 2, 5);
+                  addExplosion(target.x, target.y, 12, '#88ff00');
+                }
+                if (arc.x < -60 || arc.x > w + 60 || arc.y < -60 || arc.y > h + 60) bladeArcProjectiles.splice(i, 1);
+              }
+              _tickParticlesAndExplosions(dt);
+
+              drawPlayer();
+              drawEnemy(target);
+              drawSpirit(demoSpirit);
+              spiritBullets.forEach(drawSpiritBullet);
+              bladeArcProjectiles.forEach(drawBladeArcProjectile);
+              particles.forEach(drawParticle);
+              explosions.forEach(drawExplosion);
+
+              if (elapsed < 4000) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                spiritBullets.length = 0; bladeArcProjectiles.length = 0; particles.length = 0; explosions.length = 0;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
         // --- Remaining skill canvases ---
 
-        // Black Hole
+        // ── COSMIC BLACK HOLE (Skill D) — real drawSkillDCharging() + drawBlackHole() ──
         const skd = setup('cvSkillD');
         if (skd) {
           const { c, w, h } = skd;
-          function drawSkD(t) {
+          const cx = w * 0.5, cy = h * 0.72;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            const cx2 = w / 2, cy2 = h * 0.48;
-            // ── Accretion disk (tilted, multi-layer, far half then near half) ──
-            const BH = 20; // event horizon radius
-            const diskTilt = 0.22 + Math.sin(t / 5500) * 0.05;
-            const diskLayers = [
-              { rx: BH * 1.78, lw: 18, r: 60,  g: 0,   b: 110, a: 0.22 },
-              { rx: BH * 1.52, lw: 12, r: 130, g: 0,   b: 200, a: 0.32 },
-              { rx: BH * 1.28, lw:  8, r: 190, g: 40,  b: 255, a: 0.50 },
-              { rx: BH * 1.09, lw:  5, r: 230, g: 120, b: 255, a: 0.68 },
-              { rx: BH * 0.95, lw:  2, r: 255, g: 220, b: 255, a: 0.88 },
-            ];
-            const ry = BH * 0.32;
-            // Far half (below event horizon)
-            c.save(); c.translate(cx2, cy2); c.rotate(diskTilt);
-            c.beginPath(); c.rect(-BH * 3, 0, BH * 6, BH * 3); c.clip();
-            for (const d of diskLayers) {
-              c.strokeStyle = `rgba(${d.r},${d.g},${d.b},${d.a})`;
-              c.lineWidth = d.lw;
-              c.beginPath(); c.ellipse(0, 0, d.rx, ry * (d.rx / (BH * 1.78)), 0, 0, Math.PI * 2); c.stroke();
-            }
-            c.restore();
-            // Gravitational lens glow
-            const lensG = c.createRadialGradient(cx2, cy2, BH * 0.85, cx2, cy2, BH * 2.0);
-            lensG.addColorStop(0, 'rgba(200,80,255,0.22)'); lensG.addColorStop(0.5, 'rgba(100,0,180,0.08)'); lensG.addColorStop(1, 'rgba(0,0,0,0)');
-            c.fillStyle = lensG; c.beginPath(); c.arc(cx2, cy2, BH * 2.0, 0, Math.PI * 2); c.fill();
-            // Pull ring
-            const pr = BH * 2.6 + Math.sin(t / 1500) * 4;
-            c.strokeStyle = 'rgba(107,33,168,0.27)'; c.lineWidth = 0.7; c.setLineDash([3, 6]);
-            c.beginPath(); c.arc(cx2, cy2, pr, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-            // Event horizon body
-            const ehG = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, BH);
-            ehG.addColorStop(0, '#000'); ehG.addColorStop(0.55, '#000'); ehG.addColorStop(0.8, '#080010'); ehG.addColorStop(1, 'rgba(0,0,0,0)');
-            c.fillStyle = ehG; c.beginPath(); c.arc(cx2, cy2, BH, 0, Math.PI * 2); c.fill();
-            // Distortion rings
-            for (let i = 3; i >= 1; i--) { c.strokeStyle = `rgba(180,0,255,${0.06 * i})`; c.lineWidth = 7; c.beginPath(); c.arc(cx2, cy2, BH * (0.9 + i * 0.18), 0, Math.PI * 2); c.stroke(); }
-            // Near half (above event horizon)
-            c.save(); c.translate(cx2, cy2); c.rotate(diskTilt);
-            c.beginPath(); c.rect(-BH * 3, -BH * 3, BH * 6, BH * 3); c.clip();
-            for (const d of diskLayers) {
-              c.strokeStyle = `rgba(${d.r},${d.g},${d.b},${Math.min(0.97, d.a * 1.15)})`;
-              c.lineWidth = d.lw;
-              c.beginPath(); c.ellipse(0, 0, d.rx, ry * (d.rx / (BH * 1.78)), 0, 0, Math.PI * 2); c.stroke();
-            }
-            c.restore();
-            // Singularity core pulse
-            c.fillStyle = `rgba(168,85,247,${0.5 + 0.5 * Math.sin(t / 400)})`; c.beginPath(); c.arc(cx2, cy2, 3, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = `rgba(168,85,247,${0.3 + 0.4 * Math.sin(t / 600)})`; c.lineWidth = 2; c.beginPath(); c.arc(cx2, cy2, BH + 2, 0, Math.PI * 2); c.stroke();
-            // Enemies pulled
-            const e1t = (t / 4000) % 1;
-            c.fillStyle = '#330808';
-            c.beginPath(); c.arc(w * 0.1 + e1t * (cx2 - w * 0.1 - 25), cy2 - 15 + e1t * 10, 7, 0, Math.PI * 2); c.fill();
-            c.beginPath(); c.arc(w * 0.9 - e1t * (w * 0.9 - cx2 - 25), cy2 + 20 - e1t * 15, 7, 0, Math.PI * 2); c.fill();
-            c.fillStyle = '#a855f788'; c.font = '8px Share Tech Mono, monospace'; c.textAlign = 'center';
-            c.fillText('CENTER = 999,999,999 DMG — INSTANT KILL', cx2, h - 8);
-            c.textAlign = 'left';
-            activeAnimations.push(requestAnimationFrame(() => drawSkD(performance.now())));
+            player.x = cx; player.y = cy;
+            skillDCharging = false; blackHole = null;
+            drawPlayer();
           }
-          drawSkD(performance.now());
+          drawIdle();
+
+          _widgetPlayers.skillD = function () {
+            const btn = document.getElementById('btnPlaySkillD');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            particles.length = 0; explosions.length = 0;
+            player.x = cx; player.y = cy;
+            skillDCharging = true;
+            skillDChargeStartTime = performance.now();
+            if (window.AudioMgr) window.AudioMgr.startSkillDCharge();
+            const prey = { x: w * 0.14, y: cy - 20, size: 8, hp: 100, maxHp: 100, type: 'apostle', shield: 0, alive: true };
+            // elapsed/dt track real wall-clock time (matching skillDChargeStartTime,
+            // which drawSkillDCharging()'s own progress reads via performance.now()).
+            let holeSpawned = false, killed = false, lastT = performance.now();
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT, [{ get: () => skillDChargeStartTime, set: v => skillDChargeStartTime = v }])) { lastT = nowT; activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const elapsed = nowT - skillDChargeStartTime;
+              const dt = nowT - lastT; lastT = nowT;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              if (elapsed < 2000) {
+                drawSkillDCharging();
+                drawPlayer();
+              } else {
+                // Real maxSize is 180 (js/skills.js) — the hole appears centered
+                // on screen and the player is hidden while it's active, matching
+                // how it dwarfs the ship in the real game.
+                if (!holeSpawned) {
+                  holeSpawned = true;
+                  skillDCharging = false;
+                  if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.playSfx('blackhole'); window.AudioMgr.startBlackhole(); }
+                  blackHole = { x: w * 0.5, y: h * 0.5, size: 0, activeTime: 0 };
+                }
+                const bhElapsed = elapsed - 2000;
+                const maxSize = 95;
+                blackHole.size = bhElapsed < 500 ? maxSize * (bhElapsed / 500) : bhElapsed > 1900 ? Math.max(0, maxSize * (1 - (bhElapsed - 1900) / 400)) : maxSize;
+                blackHole.activeTime = bhElapsed;
+                if (prey.alive) {
+                  const dx = blackHole.x - prey.x, dy = blackHole.y - prey.y, d = Math.hypot(dx, dy);
+                  if (d > 6) { prey.x += (dx / d) * 3.2; prey.y += (dy / d) * 3.2; }
+                  else if (!killed) {
+                    killed = true; prey.alive = false;
+                    createParticles(prey.x, prey.y, 14, '#a855f7', 2, 6);
+                  }
+                }
+                drawBlackHole();
+                if (prey.alive) drawEnemy(prey);
+              }
+              _tickParticlesAndExplosions(dt);
+              particles.forEach(drawParticle);
+
+              if (elapsed < 4400) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                if (window.AudioMgr) window.AudioMgr.stopBlackhole();
+                blackHole = null; particles.length = 0;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
-        // Tesla Matrix
+        // ── TESLA MATRIX (Skill G) — real drawEnergyOrb() converge + real drawTeslaCoil() ──
         const skg = setup('cvSkillG');
         if (skg) {
           const { c, w, h } = skg;
-          function drawSkG(t) {
+          const cx = w * 0.5, cy = h * 0.48;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            // Orb pair + link
-            const o1x = w * 0.15, o2x = w * 0.35, oy = h * 0.4;
-            [[o1x, oy], [o2x, oy]].forEach(([ox, oy2]) => {
-              const or = 7 + Math.sin(t / 800 + ox) * 1.5;
-              const og = c.createRadialGradient(ox, oy2, 0, ox, oy2, or);
-              og.addColorStop(0, '#fff'); og.addColorStop(0.5, '#00e5ff'); og.addColorStop(1, '#006688');
-              c.fillStyle = og; c.beginPath(); c.arc(ox, oy2, or, 0, Math.PI * 2); c.fill();
-              c.strokeStyle = '#00e5ff'; c.lineWidth = 1; c.stroke();
-            });
-            c.strokeStyle = '#00e5ff'; c.lineWidth = 2; c.setLineDash([4, 4]); c.lineDashOffset = -(t / 60);
-            c.globalAlpha = 0.6; c.beginPath(); c.moveTo(o1x + 8, oy); c.lineTo(o2x - 8, oy); c.stroke();
-            c.setLineDash([]); c.lineDashOffset = 0; c.globalAlpha = 1;
-            c.fillStyle = '#00e5ff88'; c.font = '6px Share Tech Mono, monospace'; c.textAlign = 'center';
-            c.fillText('ENERGY LINK', (o1x + o2x) / 2, oy - 12);
-            // Arrow
-            c.fillStyle = '#00e5ff55'; c.font = '16px Rajdhani, sans-serif';
-            c.fillText('→', w * 0.42, oy + 4);
-            c.fillStyle = '#00e5ff44'; c.font = '6px Share Tech Mono, monospace';
-            c.fillText('merge @5s', w * 0.42, oy + 16);
-            // Tesla Coil
-            const tcx = w * 0.65, tcy = h * 0.45;
-            c.strokeStyle = `rgba(0,229,255,${0.2 + 0.2 * Math.sin(t / 800)})`; c.lineWidth = 0.5; c.setLineDash([3, 5]);
-            c.beginPath(); c.arc(tcx, tcy, 40, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-            const tr = 12 + Math.sin(t / 600) * 2;
-            const tg = c.createRadialGradient(tcx, tcy, 0, tcx, tcy, tr);
-            tg.addColorStop(0, '#fff'); tg.addColorStop(0.5, '#00e5ff'); tg.addColorStop(1, '#006688');
-            c.fillStyle = tg; c.beginPath(); c.arc(tcx, tcy, tr, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = '#00e5ff'; c.lineWidth = 1.5; c.stroke();
-            // Discharges
-            const sparks = [[28, -20], [-22, 25], [32, 12]];
-            sparks.forEach(([dx, dy], i) => {
-              c.globalAlpha = Math.max(0, Math.sin(t / 200 + i * 2));
-              c.strokeStyle = '#00ffff'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(tcx, tcy); c.lineTo(tcx + dx, tcy + dy); c.stroke();
-            });
-            c.globalAlpha = 1;
-            c.fillStyle = '#00e5ff'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('TESLA COIL', tcx, tcy + tr + 12);
-            c.fillStyle = '#00e5ff88'; c.font = '6px Share Tech Mono, monospace';
-            c.fillText('13% EP/50ms', tcx, tcy + tr + 21);
-            c.fillStyle = '#06b6d488'; c.font = '8px Share Tech Mono, monospace';
-            c.fillText('ORBS → LINK → COILS (×4) → DETONATE 15% EP', w / 2, h - 8);
-            c.textAlign = 'left';
-            activeAnimations.push(requestAnimationFrame(() => drawSkG(performance.now())));
+            player.x = cx; player.y = cy;
+            energyOrbs = []; teslaCoils = [];
+            drawPlayer();
           }
-          drawSkG(performance.now());
+          drawIdle();
+
+          _widgetPlayers.skillG = function () {
+            const btn = document.getElementById('btnPlaySkillG');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            particles.length = 0; explosions.length = 0;
+            energyOrbs = [
+              { id: 1, x: w * 0.18, y: h * 0.3, size: ENERGY_ORB_SIZE, isMerging: false, mergeStartTime: 0, linkedTo: null },
+              { id: 2, x: w * 0.82, y: h * 0.66, size: ENERGY_ORB_SIZE, isMerging: false, mergeStartTime: 0, linkedTo: null },
+            ];
+            teslaCoils = [];
+            const target = { x: w * 0.5, y: h * 0.86, size: 12, hp: 200, maxHp: 200, type: 'apostle', shield: 0 };
+            let elapsed = 0, merged = false;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const dt = 16.67;
+              elapsed += dt;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              if (!merged) {
+                const p = Math.min(1, elapsed / 1500);
+                const [o1, o2] = energyOrbs;
+                o1.x = w * 0.18 + (cx - w * 0.18) * p; o1.y = h * 0.3 + (cy - h * 0.3) * p;
+                o2.x = w * 0.82 + (cx - w * 0.82) * p; o2.y = h * 0.66 + (cy - h * 0.66) * p;
+                if (p >= 1) {
+                  merged = true;
+                  o1.isMerging = o2.isMerging = true;
+                  o1.mergeStartTime = o2.mergeStartTime = gameElapsedTime;
+                  teslaCoils = [{ x: cx, y: cy, size: TESLA_COIL_SIZE, auraRadius: TESLA_AURA_RADIUS }];
+                  if (window.AudioMgr) window.AudioMgr.playSfx('tesla-coil-form');
+                }
+              } else {
+                gameElapsedTime += dt;
+                energyOrbs = energyOrbs.filter(o => (gameElapsedTime - o.mergeStartTime) < 500);
+                if (teslaCoils.length && elapsed - 1500 > 200 && Math.floor((elapsed - 1500) / 250) % 2 === 0) {
+                  createParticles((cx + target.x) / 2, (cy + target.y) / 2, 1, '#00e5ff', 1, 2);
+                }
+              }
+              _tickParticlesAndExplosions(dt);
+
+              drawEnemy(target);
+              if (merged && teslaCoils.length) {
+                const coil = teslaCoils[0];
+                c.save(); c.globalAlpha = 0.7 + 0.3 * Math.sin(performance.now() / 150);
+                c.strokeStyle = '#00ffff'; c.lineWidth = 1.5;
+                c.beginPath(); c.moveTo(coil.x, coil.y); c.lineTo(target.x, target.y); c.stroke();
+                c.restore();
+              }
+              energyOrbs.forEach(drawEnergyOrb);
+              teslaCoils.forEach(drawTeslaCoil);
+              particles.forEach(drawParticle);
+
+              if (elapsed < 4000) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                energyOrbs = []; teslaCoils = []; particles.length = 0;
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
-        // ── OVERLOAD LASER ──
+        // ── OVERLOAD LASER — real drawChargeEffect() + real drawLaser() ──
         const slz = setup('cvLaser');
         if (slz) {
           const { c, w, h } = slz;
-          function drawLaz(t) {
+          const shipX = w * 0.5, shipY = h * 0.82;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            const shipX = w * 0.5, shipY = h * 0.82;
-
-            // Stars
-            for (let i = 0; i < 20; i++) {
-              c.fillStyle = i % 3 === 0 ? '#00e5ff' : '#fff';
-              c.globalAlpha = 0.08 + 0.06 * Math.sin(t / 500 + i);
-              c.beginPath(); c.arc((i * 97.3) % w, (i * 53.7) % h, 0.5, 0, Math.PI * 2); c.fill();
-            }
-            c.globalAlpha = 1;
-
-            // ── CHARGE vs LASER cycle (4s charge buildup → 5s laser active → 1s gap) ──
-            const cycle = 10000;
-            const phase = (t % cycle) / cycle;
-            const isCharging = phase < 0.4;
-            const isLasering = phase >= 0.4 && phase < 0.9;
-
-            if (isCharging) {
-              // Charge phase: energy vortex spiraling into ship
-              const chg = phase / 0.4; // 0→1
-              // Vortex spirals
-              for (let i = 0; i < 4; i++) {
-                const spinDir = i % 2 === 0 ? 1 : -1;
-                const spinOff = t / (500 + i * 80) * spinDir;
-                const len = 40 + chg * 80;
-                c.beginPath();
-                for (let s = 14; s >= 0; s--) {
-                  const st = s / 14;
-                  const dist = st * len;
-                  const a = (i / 4) * Math.PI * 2 + spinOff + st * 2.2 * spinDir;
-                  const px = shipX + Math.cos(a) * dist;
-                  const py = shipY + Math.sin(a) * dist;
-                  s === 14 ? c.moveTo(px, py) : c.lineTo(px, py);
-                }
-                // Color shifts from cyan to red as charge builds
-                const rV = Math.floor(255 * Math.max(0, chg - 0.33) * 1.5);
-                const gV = Math.floor(255 * (1 - chg * 0.78));
-                c.strokeStyle = `rgba(${rV},${gV},255,${(0.2 + chg * 0.4) * (0.5 + 0.5 * Math.sin(t / 180 + i))})`;
-                c.lineWidth = 0.8 + chg;
-                c.stroke();
-              }
-              // Expanding rings
-              for (let rg = 0; rg < 3; rg++) {
-                const rPhase = ((t / (500 - chg * 200) + rg / 3) % 1);
-                const ringR = 10 + rPhase * (20 + chg * 50);
-                c.strokeStyle = `rgba(0,${Math.floor(255 * (1 - chg * 0.7))},255,${(1 - rPhase) * 0.3 * chg})`;
-                c.lineWidth = 1.5 * (1 - rPhase);
-                c.beginPath(); c.arc(shipX, shipY, ringR, 0, Math.PI * 2); c.stroke();
-              }
-              // Charge meter bar
-              const barW = 50, barH = 6;
-              const barX = shipX - barW / 2, barY = shipY + 22;
-              c.fillStyle = '#222'; c.fillRect(barX, barY, barW, barH);
-              const grad = c.createLinearGradient(barX, barY, barX + barW, barY);
-              grad.addColorStop(0, 'cyan'); grad.addColorStop(0.7, 'lime'); grad.addColorStop(1, 'red');
-              c.fillStyle = grad; c.fillRect(barX, barY, barW * chg, barH);
-              c.strokeStyle = '#fff'; c.lineWidth = 0.8; c.strokeRect(barX, barY, barW, barH);
-              // Text
-              if (chg > 0.6) {
-                c.fillStyle = `rgba(255,100,50,${(chg - 0.6) * 2.5})`; c.font = 'bold 10px Orbitron, sans-serif'; c.textAlign = 'center';
-                c.fillText('OVERLOAD', shipX, shipY - 35);
-                c.textAlign = 'left';
-              }
-            }
-
-            if (isLasering) {
-              // Laser active: wide cyan-white beam shooting upward
-              const laserT = (phase - 0.4) / 0.5;
-              const wobble = Math.sin(t / 28) * 8;
-              const beamW = 50 + wobble;
-              const bx = shipX - beamW / 2;
-
-              // Outer glow
-              const glow = c.createLinearGradient(bx - 15, 0, bx + beamW + 15, 0);
-              glow.addColorStop(0, 'rgba(0,255,255,0)'); glow.addColorStop(0.5, 'rgba(0,200,255,0.15)'); glow.addColorStop(1, 'rgba(0,255,255,0)');
-              c.fillStyle = glow; c.fillRect(bx - 15, 0, beamW + 30, shipY);
-
-              // Main beam gradient
-              const grad = c.createLinearGradient(bx, 0, bx + beamW, 0);
-              grad.addColorStop(0, 'rgba(0,255,255,0)'); grad.addColorStop(0.1, 'rgba(0,220,255,0.45)');
-              grad.addColorStop(0.5, 'rgba(255,255,255,0.85)'); grad.addColorStop(0.9, 'rgba(0,220,255,0.45)');
-              grad.addColorStop(1, 'rgba(0,255,255,0)');
-              c.fillStyle = grad; c.fillRect(bx, 0, beamW, shipY);
-
-              // Bright core line
-              c.fillStyle = 'rgba(255,255,255,0.55)';
-              c.fillRect(shipX - 3, 0, 6, shipY);
-
-              // Particles rising along beam
-              for (let i = 0; i < 8; i++) {
-                const py = ((t / 6 + i * 100) % (shipY * 1.2));
-                const px = shipX + (Math.random() - 0.5) * beamW * 0.6;
-                c.fillStyle = `rgba(${150 + Math.floor(Math.random() * 105)},255,255,0.6)`;
-                c.beginPath(); c.arc(px, shipY - py, 1 + Math.random() * 2.5, 0, Math.PI * 2); c.fill();
-              }
-
-              // Clone afterimages — same beam shape as main, 4 clones + 1 main = 5 total
-              const cloneOffsets = [-70, -35, 35, 70];
-              cloneOffsets.forEach((off, ci) => {
-                const cx2 = shipX + off;
-                const cAlpha = ci === 1 || ci === 2 ? 0.55 : 0.35;
-                const cWobble = Math.sin(t / 28 + ci * 0.8) * 6;
-                const cBeamW = (40 + cWobble) * (ci === 1 || ci === 2 ? 0.8 : 0.6);
-                const cbx = cx2 - cBeamW / 2;
-                // Outer glow same shape
-                const cGlowG = c.createLinearGradient(cbx - 8, 0, cbx + cBeamW + 8, 0);
-                cGlowG.addColorStop(0, 'rgba(0,255,255,0)'); cGlowG.addColorStop(0.5, `rgba(0,200,255,${0.1 * cAlpha})`); cGlowG.addColorStop(1, 'rgba(0,255,255,0)');
-                c.globalAlpha = cAlpha; c.fillStyle = cGlowG; c.fillRect(cbx - 8, 0, cBeamW + 16, shipY);
-                // Main beam gradient same as center
-                const cBG = c.createLinearGradient(cbx, 0, cbx + cBeamW, 0);
-                cBG.addColorStop(0, 'rgba(0,255,255,0)'); cBG.addColorStop(0.1, `rgba(0,220,255,${0.4 * cAlpha})`);
-                cBG.addColorStop(0.5, `rgba(255,255,255,${0.7 * cAlpha})`); cBG.addColorStop(0.9, `rgba(0,220,255,${0.4 * cAlpha})`);
-                cBG.addColorStop(1, 'rgba(0,255,255,0)');
-                c.fillStyle = cBG; c.fillRect(cbx, 0, cBeamW, shipY);
-                // Bright core
-                c.fillStyle = `rgba(255,255,255,${0.4 * cAlpha})`; c.fillRect(cx2 - 2, 0, 4, shipY);
-                c.globalAlpha = 1;
-                // Ghost ship
-                c.globalAlpha = cAlpha * 0.7;
-                c.fillStyle = '#1a2a45';
-                c.beginPath(); c.moveTo(cx2, shipY - 12); c.lineTo(cx2 + 8, shipY); c.lineTo(cx2 + 6, shipY + 4); c.lineTo(cx2 - 6, shipY + 4); c.lineTo(cx2 - 8, shipY); c.closePath(); c.fill();
-                c.strokeStyle = '#38bdf8'; c.lineWidth = 0.6;
-                c.beginPath(); c.moveTo(cx2, shipY - 12); c.lineTo(cx2 + 8, shipY); c.lineTo(cx2 + 6, shipY + 4); c.lineTo(cx2 - 6, shipY + 4); c.lineTo(cx2 - 8, shipY); c.closePath(); c.stroke();
-                c.globalAlpha = 1;
-              });
-
-              // Title flash at start
-              if (laserT < 0.2) {
-                const textA = (0.2 - laserT) * 5;
-                c.fillStyle = `rgba(255,255,255,${textA * 0.9})`; c.font = 'bold 11px Orbitron, sans-serif'; c.textAlign = 'center';
-                c.fillText('EXECUTION', shipX, h * 0.25);
-                c.fillStyle = `rgba(255,220,100,${textA * 0.7})`; c.font = 'italic 8px monospace';
-                c.fillText('— Deploy —', shipX, h * 0.25 + 14);
-                c.textAlign = 'left';
-              }
-            }
-
-            // Ship body (always drawn)
-            c.save(); c.translate(shipX, shipY);
-            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -14); c.lineTo(10, -2); c.lineTo(8, 4); c.lineTo(-8, 4); c.lineTo(-10, -2); c.closePath(); c.fill();
-            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(0, -14); c.lineTo(10, -2); c.lineTo(8, 4); c.lineTo(-8, 4); c.lineTo(-10, -2); c.closePath(); c.stroke();
-            c.restore();
-
-            // Right side info
-            c.fillStyle = '#00e5ff'; c.font = 'bold 9px Orbitron, sans-serif';
-            c.fillText('OVERLOAD LASER', w * 0.55, h * 0.2);
-            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('Hold Space 3s → 12s beam', w * 0.55, h * 0.2 + 14);
-            c.fillText('10 + 26% EP / 175ms tick', w * 0.55, h * 0.2 + 27);
-            c.fillText('Pulls enemies toward beam', w * 0.55, h * 0.2 + 40);
-            c.fillText('5 ships fire parallel beams', w * 0.55, h * 0.2 + 53);
-            c.fillStyle = '#ff8800'; c.font = 'bold 9px Orbitron, sans-serif';
-            c.fillText('CHARGED SHOT', w * 0.55, h * 0.6);
-            c.fillStyle = '#8899bb'; c.font = '7px Share Tech Mono, monospace';
-            c.fillText('Tap+hold Space (up to 1s)', w * 0.55, h * 0.6 + 14);
-            c.fillText('Damage scales to 10× (12% EP)', w * 0.55, h * 0.6 + 27);
-
-            activeAnimations.push(requestAnimationFrame(() => drawLaz(performance.now())));
+            _miniStars(c, w, h, performance.now(), 20);
+            player.x = shipX; player.y = shipY; player.width = 30; player.height = 30;
+            playerClones = [];
+            charging = false; laserActive = false;
+            drawPlayer();
           }
-          drawLaz(performance.now());
+          drawIdle();
+
+          _widgetPlayers.laser = function () {
+            const btn = document.getElementById('btnPlayLaser');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            player.x = shipX; player.y = shipY; player.width = 30; player.height = 30;
+            playerClones = [{ xOffset: -180 }, { xOffset: -90 }, { xOffset: 90 }, { xOffset: 180 }];
+            charging = true;
+            chargeStartTime = performance.now();
+            if (window.AudioMgr) window.AudioMgr.startCharging();
+            // elapsed tracks real wall-clock time (matching chargeStartTime,
+            // which drawChargeEffect()/drawLaser() read via performance.now()).
+            let laserStarted = false;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT, [
+                { get: () => chargeStartTime, set: v => chargeStartTime = v },
+                { get: () => laserStartTime, set: v => laserStartTime = v },
+              ])) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const elapsed = nowT - chargeStartTime;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+              _miniStars(c, w, h, performance.now(), 20);
+
+              if (elapsed < overloadChargeTime) {
+                drawChargeEffect();
+                playerClones = [];
+                drawPlayer();
+              } else {
+                if (!laserStarted) {
+                  laserStarted = true;
+                  charging = false;
+                  if (window.AudioMgr) { window.AudioMgr.stopCharging(); window.AudioMgr.startLaser(); }
+                  laserActive = true;
+                  laserStartTime = performance.now();
+                  playerClones = [{ xOffset: -180 }, { xOffset: -90 }, { xOffset: 90 }, { xOffset: 180 }];
+                }
+                drawLaser();
+                playerClones.forEach(cl => { player.x = shipX + cl.xOffset; drawPlayer(); });
+                player.x = shipX;
+                drawPlayer();
+              }
+
+              if (elapsed < overloadChargeTime + 2000) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                if (window.AudioMgr) window.AudioMgr.stopLaser();
+                laserActive = false; playerClones = [];
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
 
-        // ── ANNIHILATION SWEEP (Skill F) ──
+        // ── ANNIHILATION SWEEP (Skill F) — real drawSkillF() charge + sweep ──
         const skf = setup('cvSkillF');
         if (skf) {
           const { c, w, h } = skf;
-          function drawSkF(t) {
+          const shipX = w * 0.5, shipY = h * 0.5;
+          function drawIdle() {
+            ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
-            const shipX = w * 0.15, shipY = h * 0.85;
-            const radius = Math.max(w, h) * 1.2;
-
-            // Full animation cycle: 1.5s charge → 1.5s sweep → 1s pause
-            const cycle = 4000;
-            const phase = (t % cycle) / cycle;
-            const isCharging = phase < 0.375;
-            const isSweeping = phase >= 0.375 && phase < 0.75;
-
-            if (isCharging) {
-              const p = phase / 0.375; // 0→1
-              c.save(); c.translate(shipX, shipY);
-              // Half-plane glow (charging upward)
-              c.fillStyle = `rgba(0,255,255,${0.04 + p * 0.1})`;
-              c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 120, -Math.PI, 0); c.closePath(); c.fill();
-              // Expanding rings
-              for (let i = 2; i >= 1; i--) {
-                c.fillStyle = `rgba(0,255,255,${(0.03 + p * 0.06) / i})`;
-                c.beginPath(); c.arc(0, 0, 20 * i * p, 0, Math.PI * 2); c.fill();
-              }
-              // Radiating lines
-              for (let i = 0; i < 8; i++) {
-                const a = (i / 8) * Math.PI - Math.PI / 2;
-                c.strokeStyle = `rgba(100,255,255,${p * 0.4})`; c.lineWidth = 1;
-                c.beginPath(); c.moveTo(0, 0);
-                c.lineTo(Math.cos(a) * 100 * p, Math.sin(a) * 100 * p); c.stroke();
-              }
-              c.restore();
-
-              // Target locks on "enemies"
-              const fakeEnemies = [[w * 0.4, h * 0.3], [w * 0.65, h * 0.25], [w * 0.8, h * 0.45]];
-              fakeEnemies.forEach(([ex, ey]) => {
-                const er = 12;
-                const pulse = 0.55 + 0.45 * Math.sin(t / 100 + ex * 0.08);
-                const lockIn = Math.min(p * 2, 1);
-                c.globalAlpha = lockIn;
-                // Scan fill
-                c.fillStyle = `rgba(0,255,200,${0.06 * pulse})`;
-                c.beginPath(); c.arc(ex, ey, er * 1.4, 0, Math.PI * 2); c.fill();
-                // Rotating dashed ring
-                c.save(); c.translate(ex, ey); c.rotate(-t / 350);
-                c.strokeStyle = `rgba(0,220,255,${0.6 * pulse})`; c.lineWidth = 1.2; c.setLineDash([5, 5]);
-                c.beginPath(); c.arc(0, 0, er + 6, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); c.restore();
-                // Inner ring
-                c.strokeStyle = 'rgba(0,255,220,0.8)'; c.lineWidth = 1.5;
-                c.beginPath(); c.arc(ex, ey, er, 0, Math.PI * 2); c.stroke();
-                // Corner brackets
-                [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
-                  const bx2 = ex + dx * (er + 3), by2 = ey + dy * (er + 3);
-                  c.strokeStyle = `rgba(100,255,240,${0.8 * pulse})`; c.lineWidth = 1.5;
-                  c.beginPath(); c.moveTo(bx2, by2 - dy * 5); c.lineTo(bx2, by2); c.lineTo(bx2 - dx * 5, by2); c.stroke();
-                });
-                // TARGET text
-                if (p > 0.6) {
-                  c.fillStyle = `rgba(0,255,220,${(p - 0.6) * 2.5 * pulse})`;
-                  c.font = 'bold 7px monospace'; c.textAlign = 'center';
-                  c.fillText('TARGET', ex, ey - er - 6); c.textAlign = 'left';
-                }
-                // Dashed line from ship
-                if (p > 0.4) {
-                  c.strokeStyle = `rgba(0,200,255,${(p - 0.4) * 0.6 * pulse})`; c.lineWidth = 0.6;
-                  c.setLineDash([5, 8]); c.beginPath(); c.moveTo(shipX, shipY); c.lineTo(ex, ey); c.stroke(); c.setLineDash([]);
-                }
-                c.globalAlpha = 1;
-                // Enemy body
-                c.fillStyle = '#330808'; c.beginPath(); c.arc(ex, ey, 8, 0, Math.PI * 2); c.fill();
-              });
-
-              // Title flash
-              if (p > 0.2 && p < 0.8) {
-                const tA = p < 0.5 ? (p - 0.2) * 3.33 : (0.8 - p) * 3.33;
-                c.fillStyle = `rgba(255,255,255,${tA * 0.8})`; c.font = 'bold 12px Orbitron, sans-serif'; c.textAlign = 'center';
-                c.fillText('ANNIHILATION', shipX + 30, h * 0.2);
-                c.fillStyle = `rgba(170,255,255,${tA * 0.7})`; c.font = 'italic 8px monospace';
-                c.fillText("— Heaven's Will —", shipX + 30, h * 0.2 + 14);
-                c.textAlign = 'left';
-              }
-            }
-
-            if (isSweeping) {
-              const sp = (phase - 0.375) / 0.375; // 0→1
-              const currentAngle = -Math.PI + Math.PI * sp;
-
-              // Matrix rain in swept area
-              c.save();
-              c.beginPath(); c.moveTo(shipX, shipY);
-              c.arc(shipX, shipY, radius, -Math.PI, currentAngle); c.closePath(); c.clip();
-              // Matrix columns
-              const colW = 14;
-              const cols = Math.ceil(w / colW) + 1;
-              c.font = '9px monospace'; c.textAlign = 'center';
-              for (let col = 0; col < cols; col++) {
-                const cx2 = col * colW;
-                for (let d = 0; d < 3; d++) {
-                  const charT = ((t / (110 + col * 5) + d * 0.3 + col * 0.1) % 1);
-                  const cy2 = charT * h;
-                  const ch = String.fromCharCode(0x30A0 + ((Math.floor(t / 90) + col * 3 + d * 7) % 96));
-                  c.fillStyle = d === 0 ? `rgba(200,255,220,${0.7})` : `rgba(0,220,80,${0.35 + 0.2 * Math.sin(charT * Math.PI)})`;
-                  c.fillText(ch, cx2, cy2);
-                }
-              }
-              // Hex grid overlay
-              c.strokeStyle = 'rgba(0,200,100,0.1)'; c.lineWidth = 0.6;
-              const hR = 22;
-              const hW = hR * Math.sqrt(3);
-              for (let row = -1; row < Math.ceil(h / (hR * 1.5)) + 1; row++) {
-                for (let col2 = -1; col2 < Math.ceil(w / hW) + 1; col2++) {
-                  const hx = col2 * hW + (row % 2 === 0 ? 0 : hW * 0.5);
-                  const hy = row * hR * 1.5;
-                  c.beginPath();
-                  for (let i = 0; i < 6; i++) {
-                    const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-                    i === 0 ? c.moveTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR) : c.lineTo(hx + Math.cos(a) * hR, hy + Math.sin(a) * hR);
-                  } c.closePath(); c.stroke();
-                }
-              }
-              // Scan line
-              c.fillStyle = 'rgba(0,255,120,0.06)'; c.fillRect(0, (t / 3) % h, w, 3);
-              c.restore();
-
-              // Sweep blade
-              c.save(); c.translate(shipX, shipY); c.rotate(currentAngle);
-              // Wide glow cone
-              c.fillStyle = 'rgba(0,255,255,0.1)';
-              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, -40); c.lineTo(radius, 40); c.closePath(); c.fill();
-              // Cyan flanks
-              c.fillStyle = 'rgba(0,255,255,0.5)';
-              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, -25); c.lineTo(radius, 25); c.closePath(); c.fill();
-              // White core blade
-              c.fillStyle = 'white';
-              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, -7); c.lineTo(radius, 7); c.closePath(); c.fill();
-              // Jitter streak
-              c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = 1;
-              c.beginPath(); c.moveTo(0, 0); c.lineTo(radius, (Math.sin(t / 20)) * 10); c.stroke();
-              // Sparks on blade edge
-              for (let i = 0; i < 5; i++) {
-                const dist = 30 + Math.random() * (w - 50);
-                const off = (Math.random() - 0.5) * 18;
-                c.fillStyle = `rgba(180,255,255,${0.4 + Math.random() * 0.5})`;
-                c.beginPath(); c.arc(dist, off, 1 + Math.random() * 1.5, 0, Math.PI * 2); c.fill();
-              }
-              c.restore();
-
-              // Enemies destroyed on contact
-              const fakeEnemies2 = [[w * 0.4, h * 0.3], [w * 0.65, h * 0.25], [w * 0.8, h * 0.45]];
-              fakeEnemies2.forEach(([ex, ey]) => {
-                const enemyAngle = Math.atan2(ey - shipY, ex - shipX);
-                if (enemyAngle < currentAngle) {
-                  // Already swept — show explosion remnant
-                  const fade = Math.max(0, 1 - (currentAngle - enemyAngle) * 2);
-                  c.globalAlpha = fade;
-                  c.fillStyle = '#00ffaa'; c.beginPath(); c.arc(ex, ey, 12 * (1 + (1 - fade) * 0.8), 0, Math.PI * 2); c.fill();
-                  c.globalAlpha = 1;
-                } else {
-                  c.fillStyle = '#330808'; c.beginPath(); c.arc(ex, ey, 8, 0, Math.PI * 2); c.fill();
-                }
-              });
-            }
-
-            // Ship (always visible)
-            c.save(); c.translate(shipX, shipY);
-            c.fillStyle = '#1a2a45'; c.beginPath(); c.moveTo(0, -12); c.lineTo(9, 0); c.lineTo(7, 4); c.lineTo(-7, 4); c.lineTo(-9, 0); c.closePath(); c.fill();
-            c.strokeStyle = '#38bdf8'; c.lineWidth = 0.7; c.beginPath(); c.moveTo(0, -12); c.lineTo(9, 0); c.lineTo(7, 4); c.lineTo(-7, 4); c.lineTo(-9, 0); c.closePath(); c.stroke();
-            c.restore();
-
-            activeAnimations.push(requestAnimationFrame(() => drawSkF(performance.now())));
+            player.x = shipX; player.y = shipY; player.width = 28; player.height = 28;
+            skillFState = 'ready';
+            drawPlayer();
           }
-          drawSkF(performance.now());
+          drawIdle();
+
+          _widgetPlayers.skillF = function () {
+            const btn = document.getElementById('btnPlaySkillF');
+            btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+            player.x = shipX; player.y = shipY; player.width = 28; player.height = 28;
+            skillFState = 'charging';
+            skillFChargeStart = performance.now();
+            if (window.AudioMgr) window.AudioMgr.startSkillFCharge();
+            // elapsed tracks real wall-clock time (matching skillFChargeStart/
+            // skillFSweepStart, which drawSkillF() reads via performance.now()).
+            let sweeping = false;
+            function tick() {
+              const nowT = performance.now();
+              if (_widgetPauseGuard(btn, nowT, [
+                { get: () => skillFChargeStart, set: v => skillFChargeStart = v },
+                { get: () => skillFSweepStart, set: v => skillFSweepStart = v },
+              ])) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+              const elapsed = nowT - skillFChargeStart;
+              ctx = c; canvas = { width: w, height: h };
+              c.clearRect(0, 0, w, h);
+
+              if (!sweeping && elapsed >= 1500) {
+                sweeping = true;
+                skillFState = 'sweeping';
+                skillFSweepStart = performance.now();
+                if (window.AudioMgr) { window.AudioMgr.stopSkillFCharge(); window.AudioMgr.startSkillFFire(); }
+              }
+              drawSkillF();
+              drawPlayer();
+
+              if (elapsed < 1500 + skillFSweepDuration) {
+                activeAnimations.push(requestAnimationFrame(tick));
+              } else {
+                if (window.AudioMgr) window.AudioMgr.stopSkillFFire();
+                skillFState = 'ready';
+                btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+                drawIdle();
+              }
+            }
+            tick();
+          };
         }
       }
 
@@ -4442,6 +4567,11 @@
       if (n === 2) initPhotokrystosCanvas();
     }
 
+    // ── PHŌTOKRYSTOS — real drawSpirit()/drawPrimevalSummonEffect()/drawPhotoBrang()/
+    // drawBossShockwaves()/_drawVineBinds() from js/render/skill-s-spirit.js + fx.js.
+    // Phase sequence ported from the verified test-photokrystos.html driver, adapted
+    // to a single click-to-play run instead of an auto-looping demo.
+    let _pkCanvas = null;
     function initPhotokrystosCanvas() {
       const el = document.getElementById('cvPhotokrystos');
       if (!el || el._inited) return;
@@ -4451,182 +4581,245 @@
       el.width = rect.width * dpr; el.height = rect.height * dpr;
       const c = el.getContext('2d');
       c.scale(dpr, dpr);
-      const w = rect.width, h = rect.height;
+      _pkCanvas = { c, w: rect.width, h: rect.height };
+      drawPhotoIdle();
+    }
 
-      function drawPC(t) {
+    function drawPhotoIdle() {
+      if (!_pkCanvas) return;
+      const { c, w, h } = _pkCanvas;
+      ctx = c; canvas = { width: w, height: h };
+      c.clearRect(0, 0, w, h);
+      c.fillStyle = 'rgba(0,5,10,0.7)'; c.fillRect(0, 0, w, h);
+      player.x = w * 0.28; player.y = h * 0.55;
+      drawPlayer();
+    }
+
+    const PK_PHASES = [
+      { id: 'summon-converge', dur: 1800 },
+      { id: 'summon-flash',    dur: 400 },
+      { id: 'idle',            dur: 1400 },
+      { id: 'dnt-aim',         dur: 100 },
+      { id: 'dnt-fire',        dur: 2000 },
+      { id: 'idle2',           dur: 800 },
+      { id: 'boomerang',       dur: 1700 },
+      { id: 'idle3',           dur: 800 },
+      { id: 'btm-warm',        dur: 1200 },
+      { id: 'btm-fire',        dur: 3500 },
+      { id: 'btm-release',     dur: 1400 },
+    ];
+
+    function playPhotokrystosWidget(btnEl) {
+      if (window.AudioMgr) window.AudioMgr.unlockContext();
+      if (!_pkCanvas) return;
+      const btn = btnEl || document.getElementById('btnPlayPhoto');
+      if (btn.dataset.running === 'true') {
+        const nowPaused = btn.dataset.paused !== 'true';
+        btn.dataset.paused = nowPaused ? 'true' : 'false';
+        btn.textContent = nowPaused ? '▶ Resume' : '⏸ Pause';
+        return;
+      }
+      btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
+      const { c, w, h } = _pkCanvas;
+
+      enemies.length = 0; photoBrangs.length = 0; bossShockwaves.length = 0;
+      enemies.push(
+        { x: w * 0.18, y: h * 0.7, size: 18, hp: 100, maxHp: 100, type: 'apostle', shield: 0, alive: true },
+        { x: w * 0.8, y: h * 0.66, size: 18, hp: 100, maxHp: 100, type: 'apostle', shield: 0, alive: true },
+        { x: w * 0.28, y: h * 0.28, size: 18, hp: 100, maxHp: 100, type: 'apostle', shield: 0, alive: true },
+        { x: w * 0.82, y: h * 0.24, size: 18, hp: 100, maxHp: 100, type: 'apostle', shield: 0, alive: true }
+      );
+
+      player.x = w * 0.5; player.y = h * 0.88;
+      let playerAngle = 0;
+      let summonEff = { x: player.x, y: player.y - 90, timer: 0, phase: 'converge' };
+      let spirit = null;
+      let dntTarget = null, dntKilled = false, brangHitDone = false;
+      let phaseIdx = 0, phaseTimer = 0;
+
+      const killFakeEnemy = (e) => {
+        if (!e || !e.alive) return;
+        e.alive = false; e._deathT = 500;
+        if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-btm-kill');
+      };
+
+      if (window.AudioMgr) { window.AudioMgr.playSfx('photokrystos-summon-converge'); window.AudioMgr.playSfx('photokrystos-summon-holy'); }
+
+      // dt is measured from real elapsed time between frames (not a fixed
+      // 16.67 guess) so phaseTimer/gameElapsedTime always match the real
+      // performance.now() clock that drawSpirit()'s title-flash (lastSkillS)
+      // reads internally — a fixed-dt accumulator drifts from that whenever
+      // a frame is skipped/throttled.
+      let lastT = performance.now();
+      function tick() {
+        const nowT = performance.now();
+        const dt = nowT - lastT; lastT = nowT;
+        if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
+        gameElapsedTime += dt;
+        phaseTimer += dt;
+        if (window.AudioMgr) window.AudioMgr.tickPhotokrystosIdle();
+
+        ctx = c; canvas = { width: w, height: h };
         c.clearRect(0, 0, w, h);
         c.fillStyle = 'rgba(0,5,10,0.7)'; c.fillRect(0, 0, w, h);
+        _miniStars(c, w, h, performance.now(), 40);
 
-        // 12s cycle: 0-2s summoning, 2-12s combat
-        const cycle = 12000, cp = (t % cycle) / cycle;
-        const isSummoning = cp < 0.17; // 0-2s
-        const summonP = isSummoning ? cp / 0.17 : 1; // 0→1 during summon
-        const combatP = isSummoning ? 0 : (cp - 0.17) / 0.83;
+        playerAngle += dt * 0.0005;
+        player.x = w * 0.5 + Math.cos(playerAngle) * 60;
+        player.y = h * 0.88 + Math.sin(playerAngle) * 10;
 
-        const sx = w * 0.28, sy = h * 0.52, size = 17;
-        const tw = t / 1000;
-        const enemy = { x: w * 0.78, y: h * 0.3 };
-        const enemy2 = { x: w * 0.85, y: h * 0.65 };
+        for (const e of enemies) { if (!e.alive && e._deathT > 0) e._deathT -= dt; }
 
-        // ── SUMMONING CIRCLE (first 2s) ──
-        if (isSummoning) {
-          const R = 36 + 6 * (1 - summonP);
-          c.save(); c.translate(sx, sy); c.rotate(summonP * Math.PI * 0.5);
-          // 8-pointed star (two overlapping squares rotated 45°)
-          for (let star = 0; star < 2; star++) {
-            c.save(); c.rotate(star * Math.PI / 4);
-            c.strokeStyle = `rgba(0,255,136,${0.8 * summonP})`; c.lineWidth = 1.8;
-            c.beginPath();
-            for (let i = 0; i < 8; i++) {
-              const a = (i / 8) * Math.PI * 2;
-              const r2 = i % 2 === 0 ? R : R * 0.42;
-              i === 0 ? c.moveTo(Math.cos(a) * r2, Math.sin(a) * r2) : c.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+        if (phaseTimer >= PK_PHASES[phaseIdx].dur) {
+          phaseTimer = 0;
+          phaseIdx++;
+          if (phaseIdx >= PK_PHASES.length) { finish(); return; }
+          const next = PK_PHASES[phaseIdx].id;
+
+          if (next === 'summon-flash') {
+            summonEff.phase = 'flash'; summonEff.timer = 0;
+            if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-summon-flash');
+          }
+          if (next === 'idle') {
+            summonEff = null;
+            spirit = {
+              x: player.x, y: player.y - 90, isPhotokrystos: true, duration: 40000,
+              spawnGameTime: gameElapsedTime, _combatStartTime: gameElapsedTime,
+              _dntState: null, _dntTimer: 0, _dntAngle: 0, _dntSpiritRot: 0,
+              _btmStarted: false, _btmPhase: null, _btmTimer: 0, _btmLightnings: [],
+            };
+            spirits = [spirit];
+            lastSkillS = performance.now();
+            if (window.AudioMgr) window.AudioMgr.startPhotokrystosIdle();
+          }
+          if (next === 'dnt-aim') {
+            let best = null, bestDist = Infinity;
+            for (const e of enemies) { if (!e.alive) continue; const d = Math.hypot(e.x - spirit.x, e.y - spirit.y); if (d < bestDist) { bestDist = d; best = e; } }
+            dntTarget = best; dntKilled = false;
+            spirit._dntState = 'aiming'; spirit._dntTimer = 0;
+            if (dntTarget) spirit._dntAngle = Math.atan2(dntTarget.y - spirit.y, dntTarget.x - spirit.x);
+            // Vine Bind companion trigger (mirrors skills.js): root nearest-boundary + nearest-player enemy
+            let vbBound = null, vbBoundD = Infinity, vbPlayer = null, vbPlayerD = Infinity;
+            for (const e of enemies) {
+              if (!e.alive) continue;
+              const dB = Math.abs(h - e.y); if (dB < vbBoundD) { vbBoundD = dB; vbBound = e; }
+              const dP = Math.hypot(e.x - player.x, e.y - player.y); if (dP < vbPlayerD) { vbPlayerD = dP; vbPlayer = e; }
             }
-            c.closePath(); c.stroke();
-            // Inner dashed ring
-            c.strokeStyle = `rgba(167,255,197,${0.4 * summonP})`; c.lineWidth = 0.8; c.setLineDash([4, 4]);
-            c.beginPath(); c.arc(0, 0, R * 0.68, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-            c.restore();
-          }
-          // Outer ring with 8 dots
-          c.strokeStyle = `rgba(45,255,115,${0.6 * summonP})`; c.lineWidth = 1.2; c.setLineDash([6, 6]);
-          c.beginPath(); c.arc(0, 0, R + 12, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-          for (let i = 0; i < 8; i++) {
-            const a = (i / 8) * Math.PI * 2;
-            c.fillStyle = `rgba(255,255,255,${0.9 * summonP})`;
-            c.beginPath(); c.arc(Math.cos(a) * (R + 12), Math.sin(a) * (R + 12), 2.5, 0, Math.PI * 2); c.fill();
-          }
-          // Energy convergence lines
-          for (let i = 0; i < 8; i++) {
-            const a = (i / 8) * Math.PI * 2;
-            const dist = (R + 40) * (1 - summonP * 0.8);
-            c.strokeStyle = `rgba(45,255,115,${0.3 * summonP})`; c.lineWidth = 0.8;
-            c.beginPath(); c.moveTo(Math.cos(a) * dist, Math.sin(a) * dist); c.lineTo(0, 0); c.stroke();
-          }
-          c.restore();
-          // Kanji text
-          c.textAlign = 'center'; c.globalAlpha = summonP * 0.9;
-          c.font = `bold ${Math.floor(w * 0.06)}px serif`; c.fillStyle = '#ffffff';
-          c.fillText('GENESIS RITE', sx, sy - R - 12);
-          c.font = `bold ${Math.floor(w * 0.025)}px sans-serif`; c.fillStyle = '#a7ffc5';
-          c.fillText('PRIMEVAL CREATION', sx, sy - R + 2);
-          c.globalAlpha = 1; c.textAlign = 'left';
-        }
-
-        // ── BIRD (hidden during summon, fade in after) ──
-        const birdAlpha = isSummoning ? summonP * 0.3 : 1;
-        if (birdAlpha > 0.05) {
-          c.globalAlpha = birdAlpha;
-          const wingFlap = Math.cos(tw * (Math.PI * 2 / 4));
-          const wingScale = 0.55 + 0.45 * Math.abs(wingFlap);
-          const bodyF = Math.sin(tw * (Math.PI * 2 / 4)) * 2;
-
-          // Tail
-          c.save(); c.translate(sx, sy);
-          const tg = c.createLinearGradient(0, 0, 0, size * 3);
-          tg.addColorStop(0, 'rgba(112,255,170,0.8)'); tg.addColorStop(0.6, 'rgba(25,204,90,0.4)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
-          c.fillStyle = tg;
-          c.beginPath(); c.moveTo(0, size * 0.8); c.bezierCurveTo(size * 0.3, size * 2, size * 0.4, size * 2.6, 0, size * 3); c.bezierCurveTo(-size * 0.4, size * 2.6, -size * 0.3, size * 2, 0, size * 0.8); c.closePath(); c.fill();
-          c.restore();
-
-          // Wings
-          for (const side of [-1, 1]) {
-            c.save(); c.translate(sx, sy); c.scale(side * wingScale, 1);
-            const wg = c.createLinearGradient(-size * 1.8, 0, 0, 0);
-            wg.addColorStop(0, `rgba(230,255,240,${0.85 * wingScale})`); wg.addColorStop(0.4, `rgba(77,255,145,${0.65 * wingScale})`); wg.addColorStop(1, 'rgba(0,102,42,0.1)');
-            c.fillStyle = wg;
-            c.beginPath(); c.moveTo(-size * 0.2, -size * 0.3); c.bezierCurveTo(-size * 1.3, -size * 0.8, -size * 2, -size * 0.3, -size * 2, size * 0.6); c.bezierCurveTo(-size * 1.1, size * 0.8, -size * 0.4, size * 0.5, -size * 0.1, size * 0.2); c.closePath(); c.fill();
-            c.strokeStyle = `rgba(167,255,197,${0.6 * wingScale})`; c.lineWidth = 1.8;
-            c.beginPath(); c.moveTo(-size * 0.2, -size * 0.3); c.bezierCurveTo(-size * 1, -size * 0.5, -size * 1.5, size * 0.1, -size * 1.8, size * 0.5); c.stroke();
-            c.restore();
-          }
-
-          // Crystal body
-          c.save(); c.translate(sx, sy + bodyF);
-          const cg = c.createRadialGradient(0, 0, 0, 0, 0, size);
-          cg.addColorStop(0, 'rgba(255,255,255,1)'); cg.addColorStop(0.3, 'rgba(167,255,197,0.9)'); cg.addColorStop(0.7, 'rgba(45,255,115,0.4)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
-          c.fillStyle = cg; c.beginPath(); c.arc(0, 0, size, 0, Math.PI * 2); c.fill();
-          const bg = c.createRadialGradient(-size * 0.2, -size * 0.3, 0, 0, 0, size * 0.88);
-          bg.addColorStop(0, '#ccffe0'); bg.addColorStop(0.5, '#4dff91'); bg.addColorStop(1, 'rgba(0,40,16,0.2)');
-          c.fillStyle = bg;
-          const pts = [[0, -size * 0.88], [size * 0.33, -size * 0.44], [size * 0.33, size * 0.44], [0, size * 0.88], [-size * 0.33, size * 0.44], [-size * 0.33, -size * 0.44]];
-          pts.forEach((p, i) => i === 0 ? c.moveTo(p[0], p[1]) : c.lineTo(p[0], p[1])); c.closePath(); c.fill();
-          c.fillStyle = '#ffffff';
-          c.beginPath(); c.moveTo(0, -size * 1.08); c.lineTo(size * 0.2, -size * 0.88); c.lineTo(0, -size * 0.7); c.lineTo(-size * 0.2, -size * 0.88); c.closePath(); c.fill();
-          c.restore();
-          c.globalAlpha = 1;
-        }
-
-        // ── COMBAT DEMO (after summon) ──
-        if (!isSummoning) {
-          // Enemy targets
-          [enemy, enemy2].forEach(e => {
-            c.fillStyle = '#220808'; c.beginPath(); c.arc(e.x, e.y, 9, 0, Math.PI * 2); c.fill();
-            c.strokeStyle = '#661111'; c.lineWidth = 1; c.stroke();
-          });
-
-          // Normal attack bullets (3 per volley)
-          const shotCycle = 1200, shotP = (t % shotCycle) / shotCycle;
-          if (shotP < 0.5) {
-            const bf = shotP / 0.5;
-            // Homing bullet (cyan, tracks enemy)
-            const hx = sx + (enemy.x - sx) * bf, hy = sy + (enemy.y - sy) * bf;
-            const hg = c.createRadialGradient(hx, hy, 0, hx, hy, 6);
-            hg.addColorStop(0, '#fff'); hg.addColorStop(0.4, '#00ffff'); hg.addColorStop(1, 'rgba(0,80,200,0.3)');
-            c.fillStyle = hg; c.beginPath(); c.arc(hx, hy, 6, 0, Math.PI * 2); c.fill();
-            // 2 directional bullets (spread)
-            for (const spr of [-0.22, 0.22]) {
-              const a = Math.atan2(enemy.y - sy, enemy.x - sx) + spr;
-              const dx2 = sx + Math.cos(a) * (enemy.x - sx) * bf * 1.1, dy2 = sy + Math.sin(a) * (enemy.y - sy) * bf * 1.1;
-              c.fillStyle = 'rgba(100,255,180,0.85)'; c.beginPath(); c.arc(dx2, dy2, 4, 0, Math.PI * 2); c.fill();
+            const vbTargets = new Set([vbBound, vbPlayer].filter(Boolean));
+            if (vbTargets.size) {
+              const vbNow = performance.now();
+              for (const ve of vbTargets) ve._vineStart = vbNow;
+              if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-vine-bind');
             }
           }
+          if (next === 'dnt-fire') {
+            spirit._dntState = 'firing'; spirit._dntTimer = 0; spirit._dntBaseAngle = spirit._dntAngle;
+            if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-dnt-laser');
+          }
+          if (next === 'idle2') { spirit._dntState = null; spirit._dntTimer = 0; }
+          if (next === 'boomerang') {
+            photoBrangs.length = 0;
+            photoBrangs.push(
+              { x: spirit.x, y: spirit.y, rotation: 0, t: 0, dur: 1700, dirA: -0.6 },
+              { x: spirit.x, y: spirit.y, rotation: 0, t: 0, dur: 1700, dirA: 0.6 }
+            );
+            brangHitDone = false;
+            if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-boomerang-throw');
+          }
+          if (next === 'idle3') { photoBrangs.length = 0; }
+          if (next === 'btm-warm') {
+            spirit._btmStarted = true; spirit._btmPhase = 'warming'; spirit._btmTimer = 0;
+            if (window.AudioMgr) { window.AudioMgr.playSfx('photokrystos-btm-warming'); window.AudioMgr.stopPhotokrystosIdle(); }
+          }
+          if (next === 'btm-fire') {
+            spirit._btmPhase = 'firing'; spirit._btmTimer = 0; spirit._btmTickTimer = 0;
+            if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-btm-firing');
+          }
+          if (next === 'btm-release') {
+            spirit._btmPhase = 'releasing'; spirit._btmTimer = 0;
+            bossShockwaves.push({ x: spirit.x, y: spirit.y, radius: 0, maxRadius: Math.hypot(w, h) * 0.85, speed: 22, _isBTMWave: true });
+            if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-btm-shockwave');
+            for (const e of enemies) if (e.alive) killFakeEnemy(e);
+          }
+        }
 
-          // 2 Boomerangs every 6 volleys — demo every 4s
-          const brangCycle = 4000, brangP = (t % brangCycle) / brangCycle;
-          if (brangP > 0.5 && brangP < 0.9) {
-            const bp = (brangP - 0.5) / 0.4;
-            // Boomerang 1: sx → enemy → enemy2
-            const b1x = bp < 0.5 ? sx + (enemy.x - sx) * (bp * 2) : enemy.x + (enemy2.x - enemy.x) * ((bp - 0.5) * 2);
-            const b1y = bp < 0.5 ? sy + (enemy.y - sy) * (bp * 2) : enemy.y + (enemy2.y - enemy.y) * ((bp - 0.5) * 2);
-            // Boomerang 2: slightly offset start, different target order
-            const b2x = bp < 0.5 ? sx + 5 + (enemy2.x - sx - 5) * (bp * 2) : enemy2.x + (enemy.x - enemy2.x) * ((bp - 0.5) * 2);
-            const b2y = bp < 0.5 ? sy - 5 + (enemy2.y - sy + 5) * (bp * 2) : enemy2.y + (enemy.y - enemy2.y) * ((bp - 0.5) * 2);
-            for (const [bx, by] of [[b1x, b1y], [b2x, b2y]]) {
-              c.save(); c.translate(bx, by); c.rotate(t / 180);
-              c.strokeStyle = 'rgba(167,255,197,0.9)'; c.lineWidth = 3;
-              c.beginPath(); c.arc(0, 0, 14, -Math.PI / 2, Math.PI / 2); c.stroke();
-              c.strokeStyle = 'rgba(255,255,230,0.5)'; c.lineWidth = 1;
-              c.beginPath(); c.arc(0, 0, 12, -Math.PI / 2, Math.PI / 2); c.stroke();
-              // Sparkles
-              for (let i = 0; i < 4; i++) {
-                const a = -Math.PI / 2 + (Math.PI / 3) * i;
-                c.fillStyle = `rgba(167,255,197,${0.5 + 0.5 * Math.sin(t / 100 + i)})`;
-                c.beginPath(); c.arc(Math.cos(a) * 14, Math.sin(a) * 14, 1.5, 0, Math.PI * 2); c.fill();
-              }
-              c.restore();
+        const pid = PK_PHASES[phaseIdx].id;
+        if (pid === 'summon-converge' || pid === 'summon-flash') summonEff.timer += dt;
+        if (pid === 'dnt-aim') {
+          spirit._dntTimer += dt;
+          if (dntTarget && dntTarget.alive) spirit._dntAngle = Math.atan2(dntTarget.y - spirit.y, dntTarget.x - spirit.x);
+        }
+        if (pid === 'dnt-fire') {
+          spirit._dntTimer += dt;
+          const sweepProg = Math.min(1, spirit._dntTimer / 2000);
+          spirit._dntAngle = spirit._dntBaseAngle + (sweepProg - 0.5) * 2 * 0.35;
+          if (!dntKilled && spirit._dntTimer > 1600 && dntTarget && dntTarget.alive) { dntKilled = true; killFakeEnemy(dntTarget); }
+        }
+        if (pid === 'boomerang') {
+          for (const b of photoBrangs) {
+            b.t += dt;
+            const p = Math.min(1, b.t / b.dur);
+            const outP = p < 0.5 ? p * 2 : (1 - p) * 2;
+            const dist = 190 * outP;
+            const a = -Math.PI / 2 + b.dirA + Math.sin(p * Math.PI) * 0.9;
+            b.x = spirit.x + Math.cos(a) * dist;
+            b.y = spirit.y + Math.sin(a) * dist - 40 * Math.sin(p * Math.PI);
+            b.rotation += 0.35 * (dt / 16.67);
+            if (!brangHitDone && p > 0.48 && p < 0.55) {
+              brangHitDone = true;
+              if (window.AudioMgr) window.AudioMgr.playSfx('photokrystos-boomerang-hit');
+              const t2 = enemies.find(e => e.alive);
+              if (t2) killFakeEnemy(t2);
             }
           }
         }
-
-        // Labels
-        c.textAlign = 'left'; c.font = 'bold 7px Orbitron, sans-serif';
-        c.fillStyle = isSummoning ? '#00ff88' : '#00cc66';
-        c.fillText(isSummoning ? 'SUMMONING CIRCLE' : 'PHŌTOKRYSTOS', w * 0.5, h * 0.1);
-        if (!isSummoning) {
-          c.fillStyle = '#8899bb'; c.font = '6.5px Share Tech Mono, monospace';
-          c.fillText('3 bullets/volley @ 52ms', w * 0.5, h * 0.1 + 12);
-          c.fillStyle = '#00cc66'; c.font = 'bold 7px Orbitron, sans-serif';
-          c.fillText('2 boomerangs / 6 volleys', w * 0.5, h * 0.1 + 26);
-          c.fillStyle = '#8899bb'; c.font = '6.5px Share Tech Mono, monospace';
-          c.fillText('Back to Motherland @37s', w * 0.5, h * 0.1 + 39);
-          c.fillText('Danger? Not Today! (auto)', w * 0.5, h * 0.1 + 52);
+        if (pid === 'btm-warm') {
+          spirit._btmTimer += dt;
+          spirit.x += (w / 2 - spirit.x) * 0.08;
+          spirit.y += (h * 0.35 - spirit.y) * 0.08;
+        }
+        if (pid === 'btm-fire') {
+          spirit._btmTimer += dt; spirit._btmTickTimer += dt;
+          if (spirit._btmTickTimer >= 100) {
+            spirit._btmTickTimer = 0;
+            spirit._btmLightnings = enemies.filter(e => e.alive).map(e => ({ x: e.x, y: e.y }));
+          }
+          if (spirit._btmTimer > 1500 && spirit._btmTimer < 1600) { const t2 = enemies.find(e => e.alive); if (t2) killFakeEnemy(t2); }
+        }
+        if (pid === 'btm-release') {
+          spirit._btmTimer += dt;
+          for (const w2 of bossShockwaves) w2.radius += w2.speed * (dt / 16.67);
         }
 
-        activeAnimations.push(requestAnimationFrame(() => drawPC(performance.now())));
+        // Draw order: fake enemies → vine binds → summon fx → spirit → boomerangs → shockwaves → player
+        for (const e of enemies) {
+          if (e.alive) { drawEnemy(e); }
+          else if (e._deathT > 0) {
+            const ft = e._deathT / 500;
+            c.save(); c.globalAlpha = ft; c.fillStyle = '#ffffff';
+            c.beginPath(); c.arc(e.x, e.y, e.size / 2 + (1 - ft) * 20, 0, Math.PI * 2); c.fill(); c.restore();
+          }
+        }
+        _drawVineBinds();
+        if (summonEff) drawPrimevalSummonEffect(summonEff);
+        if (spirit) drawSpirit(spirit);
+        photoBrangs.forEach(drawPhotoBrang);
+        drawBossShockwaves();
+        drawPlayer();
+
+        activeAnimations.push(requestAnimationFrame(tick));
       }
-      drawPC(performance.now());
+
+      function finish() {
+        if (window.AudioMgr) window.AudioMgr.stopPhotokrystosIdle();
+        spirits = []; enemies.length = 0; photoBrangs.length = 0; bossShockwaves.length = 0;
+        btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
+        drawPhotoIdle();
+      }
+
+      tick();
     }
+
   </script>
 
 </body>

@@ -124,7 +124,7 @@
         return 1 - t * (1 - POS_MIN_GAIN);
     }
 
-    // 12 in-game BGM tracks + the menu-only track ("Pisces" = soundtrack1.mp3).
+    // 21 in-game BGM tracks + the menu-only track ("Pisces" = soundtrack1.mp3).
     // Menu track is excluded from the in-game random pool.
     const BGM_LIST = [
         { id: 'pisces',                 title: 'Pisces (Menu Theme)',            src: 'audio/bgm/pisces.mp3',                           menuOnly: true },
@@ -146,6 +146,10 @@
         { id: 'peach-blossoms-duel',    title: 'Duel Beneath the Peach Blossoms', src: 'audio/bgm/duel-beneath-the-peach-blossoms.mp3' },
         { id: 'dance-with-me',          title: 'Will You Dance With Me?',        src: 'audio/bgm/will-you-dance-with-me.mp3' },
         { id: 'kyoushinron',            title: 'Kyoushinron',                   src: 'audio/bgm/kyoushinron.mp3' },
+        { id: 'bartholomew-fair',       title: 'Bartholomew Fair',              src: 'audio/bgm/bartholomew-fair.mp3' },
+        { id: 'resurrection',           title: 'Resurrection',                  src: 'audio/bgm/resurrection.mp3' },
+        { id: 'blue-sky',               title: 'Blue Sky',                      src: 'audio/bgm/blue-sky.mp3' },
+        { id: 'sousei-no-hi',           title: 'Sousei no Hi',                  src: 'audio/bgm/sousei-no-hi.mp3' },
     ];
 
     const state = {
