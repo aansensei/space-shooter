@@ -655,9 +655,27 @@
     };
 
     // ─── RESIZE ──────────────────────────────────────────────────────────
+    // iOS Safari fires resize with only innerHeight changing by ~50-100px
+    // when its address bar auto-hides/reappears on scroll — not a real
+    // device resize or rotation (which always changes width too). Resizing
+    // a WebGL canvas is a known WebKit-specific memory leak, and this
+    // ResizeObserver can otherwise fire many times over a long play session
+    // from that chrome toggling alone. Skip the resize for that pattern on
+    // mobile; the canvas already tracks the new viewport via 100vw/100vh
+    // CSS, so skipping just leaves the background very slightly stretched
+    // for a moment instead of leaking — no visible gap. Desktop is
+    // untouched (no such leak there, and a height-only window drag should
+    // still resize normally).
+    let _lastBgResizeW = W(), _lastBgResizeH = H();
     new ResizeObserver(() => {
         const w = window.innerWidth, h = window.innerHeight;
         if (app.renderer.width === w && app.renderer.height === h) return;
+        if (window._platform === 'mobile') {
+            const widthChanged = w !== _lastBgResizeW;
+            const heightDelta = Math.abs(h - _lastBgResizeH);
+            if (!widthChanged && heightDelta < 120) return;
+        }
+        _lastBgResizeW = w; _lastBgResizeH = h;
         app.renderer.resize(w, h);
 
         bgSprite.destroy();
@@ -678,7 +696,7 @@
     let _tickSkip = false;
     function tick() {
         const throttle = window._platform === 'mobile';
-        if (!window._bgPaused && !(throttle && (_tickSkip = !_tickSkip))) {
+        if (!window._bgPaused && !window._bgPausedByVisibility && !(throttle && (_tickSkip = !_tickSkip))) {
             for (const g of galaxies)  g.update();
             for (const n of nebulas)   n.update();
             for (const s of stars)     s.update();
@@ -689,6 +707,21 @@
         requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+
+    // This is the one render loop in the game that runs on its own
+    // requestAnimationFrame independent of the main gameLoop (which already
+    // stops doing work while backgrounded/paused) — without this, tick()
+    // keeps calling app.renderer.render() at whatever throttled rate the
+    // browser still grants a hidden tab, burning battery/CPU for a layer
+    // nobody can see, and on iOS Safari specifically increases the odds of
+    // a backgrounded WebGL context being lost by the time the tab returns.
+    // A separate flag (not window._bgPaused, which the pause-screen overlay
+    // in js/input.js already owns) so this can never fight that existing
+    // toggle — tick() below requires both to be false.
+    window._bgPausedByVisibility = document.hidden;
+    document.addEventListener('visibilitychange', () => {
+        window._bgPausedByVisibility = document.hidden;
+    });
 
     window._bgReady = true;
 
