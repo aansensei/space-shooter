@@ -201,6 +201,44 @@ function _updateSkillReadySfx(now) {
     }
 }
 
+// Spatial grid for the bullet<->enemy collision broad-phase in update()
+// below. `enemies` holds both real enemies AND enemy bullets (anything
+// with type.startsWith('enemy_bullet')), so in dense waves the old
+// for-each-bullet -> for-each-enemy nested loop was O(bullets * enemies)
+// every frame — the classic bullet-hell bottleneck, worst on mobile.
+// Rebuilt fresh every frame (enemies move every frame, so a persistent
+// structure would need per-frame maintenance anyway); each bullet then
+// only checks entities in its own + 8 neighboring cells instead of the
+// whole array. Cell size must be >= the largest possible (enemy radius +
+// bullet size) pair or a 3x3 neighborhood could miss a real collision —
+// Dargruel's spawn size can reach 300 (radius 150), so 220 leaves a
+// comfortable margin over any bullet size in the game.
+const _COLLISION_CELL = 220;
+function _buildEnemyGrid() {
+    const grid = new Map();
+    for (const enemy of enemies) {
+        const key = Math.floor(enemy.x / _COLLISION_CELL) + ',' + Math.floor(enemy.y / _COLLISION_CELL);
+        let bucket = grid.get(key);
+        if (!bucket) { bucket = []; grid.set(key, bucket); }
+        bucket.push(enemy);
+    }
+    return grid;
+}
+// Writes candidates into `out` (caller-owned scratch array, reused across
+// bullets so this doesn't allocate a new array per bullet per frame).
+function _queryEnemyGrid(grid, x, y, out) {
+    out.length = 0;
+    const cx = Math.floor(x / _COLLISION_CELL);
+    const cy = Math.floor(y / _COLLISION_CELL);
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            const bucket = grid.get((cx + dx) + ',' + (cy + dy));
+            if (bucket) for (const e of bucket) out.push(e);
+        }
+    }
+    return out;
+}
+
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
@@ -1416,6 +1454,8 @@ function update(rawDeltaTime) {
     if (!window._debugSessionActive) _updateWaveSystem(deltaTime, currentTime);
     _updateSigilPassives(currentTime, deltaTime);
 
+    const _enemyGrid = _buildEnemyGrid();
+    const _gridCandidates = [];
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (b.type === 'sentinel_special') {
@@ -1431,7 +1471,8 @@ function update(rawDeltaTime) {
 
         if (b.y < -b.size || b.x < -b.size || b.x > canvas.width + b.size) { bullets.splice(i, 1); continue; }
 
-        for (let enemy of enemies) {
+        _queryEnemyGrid(_enemyGrid, b.x, b.y, _gridCandidates);
+        for (let enemy of _gridCandidates) {
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
 
@@ -1479,7 +1520,11 @@ function update(rawDeltaTime) {
                         const _expR = b.size;
                         addExplosion(b.x, b.y, _expR * 1.8, '#00ff88');
                         createParticles(b.x, b.y, 6, '#00ff88', 1, 4);
-                        for (const _oe of enemies) {
+                        // _expR (= bullet size) is always well inside one grid
+                        // cell, so the candidates already gathered for this
+                        // bullet's own hit-check cover the same area — reuse
+                        // instead of a second full scan of `enemies`.
+                        for (const _oe of _gridCandidates) {
                             if (_oe.type.startsWith('enemy_bullet') || _oe.type === 'abyssal_chain' || _oe.inCoronation) continue;
                             if (b.hitEnemies && b.hitEnemies.includes(_oe)) continue;
                             if (Math.hypot(_oe.x - b.x, _oe.y - b.y) < _expR + _oe.size / 2) {
