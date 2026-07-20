@@ -459,7 +459,7 @@ function update(rawDeltaTime) {
     }
 
     // Block auto-fire while silenced
-    if (!player._silenced) fireAutoShot();
+    if (!player._silenced && !window._debugAutoshotOff) fireAutoShot();
 
     if (charging && !laserActive && currentTime - chargeStartTime >= overloadChargeTime && currentTime >= laserCooldownEnd) {
         laserActive = true; laserStartTime = currentTime; charging = false;
@@ -1413,7 +1413,7 @@ function update(rawDeltaTime) {
         enemies = enemies.filter(e => e.type === 'abyssal_chain' || !e.type.startsWith('enemy_bullet'));
     }
 
-    _updateWaveSystem(deltaTime, currentTime);
+    if (!window._debugSessionActive) _updateWaveSystem(deltaTime, currentTime);
     _updateSigilPassives(currentTime, deltaTime);
 
     for (let i = bullets.length - 1; i >= 0; i--) {
@@ -2154,10 +2154,11 @@ function gameLoop(timeStamp) {
         showPauseScreen();
     }
 
+    const _debugSpeed = (typeof window._debugGameSpeed === 'number' && window._debugGameSpeed > 0) ? window._debugGameSpeed : 1;
     if (!gamePaused && !loading && !window._sigilPicker) {
-        update(Math.min(deltaTime, 50));
+        update(Math.min(deltaTime, 50) * _debugSpeed);
     }
-    draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50));
+    draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50) * _debugSpeed);
 
     // Export object count cho quality tier system
     window._objectCount = (enemies ? enemies.length : 0)

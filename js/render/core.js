@@ -303,32 +303,7 @@ function _makeFallingStar(W, H, initial) {
     };
 }
 
-function draw(deltaTime) {
-    ctx.save();
-    if (screenShake.duration > 0 && _gfxLevel < 1 && window._screenShakeEnabled !== false && gameState !== 'gameover' && !window._sigilPicker) {
-        const _sNow = performance.now();
-        const _sFade = screenShake.duration / 500; // fade out khi gần hết
-        // different freqs so x and y drift independently, same freq would feel like a diagonal slide
-        ctx.translate(
-            Math.sin(_sNow * 0.025) * screenShake.intensity * _sFade * 0.38,
-            Math.cos(_sNow * 0.019) * screenShake.intensity * _sFade * 0.38
-        );
-    }
-
-    const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
-    const _MOB_SCALE = 0.78;
-
-    // Particle cap (tier-aware)
-    {
-        const _pCap = _GFX_PARTICLE_CAP[_gfxLevel] || 350;
-        if (particles.length > _pCap) particles.splice(0, particles.length - _pCap);
-    }
-
-    // Background full canvas
-    drawSpaceBackground(deltaTime);
-
-    // Yog-Sothoth Domain Expansion (JJK signature)
-    if (gameState === "playing" && skillShiftActive) {
+function drawYogSothothDomain() {
         const now = performance.now();
         let elapsed = now - skillShiftChargeStart;
         let maxRadius = Math.hypot(canvas.width, canvas.height);
@@ -877,7 +852,33 @@ function draw(deltaTime) {
         }
 
         ctx.restore();
+}
+
+function draw(deltaTime) {
+    ctx.save();
+    if (screenShake.duration > 0 && _gfxLevel < 1 && window._screenShakeEnabled !== false && gameState !== 'gameover' && !window._sigilPicker) {
+        const _sNow = performance.now();
+        const _sFade = screenShake.duration / 500; // fade out khi gần hết
+        // different freqs so x and y drift independently, same freq would feel like a diagonal slide
+        ctx.translate(
+            Math.sin(_sNow * 0.025) * screenShake.intensity * _sFade * 0.38,
+            Math.cos(_sNow * 0.019) * screenShake.intensity * _sFade * 0.38
+        );
     }
+
+    const _isMobile = typeof _platform !== 'undefined' && _platform === 'mobile';
+    const _MOB_SCALE = 0.78;
+
+    // Particle cap (tier-aware)
+    {
+        const _pCap = _GFX_PARTICLE_CAP[_gfxLevel] || 350;
+        if (particles.length > _pCap) particles.splice(0, particles.length - _pCap);
+    }
+
+    // Background full canvas
+    drawSpaceBackground(deltaTime);
+
+    if (gameState === "playing" && skillShiftActive) drawYogSothothDomain();
 
     if (demonGiftEffect.active && performance.now() < demonGiftEffect.endTime) {
         drawDemonGiftAura();

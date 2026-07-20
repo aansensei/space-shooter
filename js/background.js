@@ -43,6 +43,18 @@
     gameCanvas.style.left     = '0';
     gameCanvas.style.zIndex   = '1'; // above bgCanvas(0), below pixiCanvas(pixi-renderer sets 1→ we match)
 
+    // WebGL context loss (GPU driver reset, long tab suspend/resume, etc.)
+    // leaves this canvas permanently blank with no automatic recovery from
+    // PixiJS — drawSpaceBackground() in render/core.js only skips its own
+    // 2D star field while window._bgReady is true, so an unhandled loss was
+    // a silent black screen for the rest of the session. Fall back to that
+    // 2D star field instead.
+    pc.addEventListener('webglcontextlost', (ev) => {
+        ev.preventDefault();
+        window._bgReady = false;
+        console.warn('[Background] WebGL context lost — falling back to 2D star field.');
+    });
+
     const W = () => app.renderer.width;
     const H = () => app.renderer.height;
 

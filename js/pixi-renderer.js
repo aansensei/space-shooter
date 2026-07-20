@@ -40,6 +40,15 @@ window._pixiRender       = null;
     });
     gameCanvas.after(pc);
 
+    // Same WebGL context-loss risk as background.js's canvas — fall back to
+    // the plain Canvas2D bullet/particle/nebula paths instead of losing this
+    // layer silently for the rest of the session.
+    pc.addEventListener('webglcontextlost', (ev) => {
+        ev.preventDefault();
+        window._usePixi = false;
+        console.warn('[Pixi] WebGL context lost — falling back to Canvas2D bullets/particles.');
+    });
+
     // Stage layers (back → front)
     const nebulaLayer  = new PIXI.Container(); // distant nebula atmosphere
     const riftLayer    = new PIXI.Container(); // dimensional rifts (via _pixiSpawnRift/_pixiDestroyRift)
