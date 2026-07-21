@@ -1275,7 +1275,7 @@
                     // instrumentation for that investigation specifically,
                     // PC just wants a plain FPS readout.
                     let counts = '';
-                    if (_plat === 'mobile') {
+                    if (window._platform === 'mobile') {
                         const _eC = typeof enemies !== 'undefined' ? enemies.length : '-';
                         const _bC = typeof bullets !== 'undefined' ? bullets.length : '-';
                         const _pC = typeof particles !== 'undefined' ? particles.length : '-';
