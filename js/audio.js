@@ -34,12 +34,21 @@
     // must stay loud and clear no matter what — currently just shift-hold.
     // Connecting an element to createMediaElementSource silences its normal
     // direct output, so every managed element must go through here once.
+    //
+    // DISABLED: routing ~40 sfx pools (100+ pooled <audio> elements) through
+    // one shared MediaElementAudioSourceNode -> Gain -> BiquadFilter graph
+    // is the confirmed cause of a severe FPS collapse on at least one real
+    // iOS Safari device/version (muting audio — which pauses/silences these
+    // elements — fully restored normal FPS; unmuting reproduced 0-1fps
+    // every time). WebAudio's audio graph is supposed to render off the
+    // main thread in every modern engine, but this device's Safari isn't
+    // doing that cleanly for this many chained MediaElementAudioSourceNodes.
+    // Elements now play through their own native, unconnected <audio>
+    // output instead — this loses the Yog-Sothoth/low-HP "muffle" ducking
+    // effect (nothing is connected to _duckGain/_duckFilter to drive
+    // anymore) but that's a minor polish detail against a game-breaking bug.
     function _routeToGraph(el, bypass) {
-        if (!actx) return;
-        try {
-            const src = actx.createMediaElementSource(el);
-            src.connect(bypass ? actx.destination : _duckGain);
-        } catch (_) {} // already routed, or codec/CORS edge case — sound still plays, just unfiltered
+        return;
     }
 
     function unlockContext() {
