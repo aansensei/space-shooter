@@ -678,7 +678,7 @@
     let _tickSkip = false;
     function tick() {
         const throttle = window._platform === 'mobile';
-        if (!window._bgPaused && !window._bgPausedByVisibility && !(throttle && (_tickSkip = !_tickSkip))) {
+        if (!window._bgPaused && !(throttle && (_tickSkip = !_tickSkip))) {
             for (const g of galaxies)  g.update();
             for (const n of nebulas)   n.update();
             for (const s of stars)     s.update();
@@ -689,21 +689,6 @@
         requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-
-    // This is the one render loop in the game that runs on its own
-    // requestAnimationFrame independent of the main gameLoop (which already
-    // stops doing work while backgrounded/paused) — without this, tick()
-    // keeps calling app.renderer.render() at whatever throttled rate the
-    // browser still grants a hidden tab, burning battery/CPU for a layer
-    // nobody can see, and on iOS Safari specifically increases the odds of
-    // a backgrounded WebGL context being lost by the time the tab returns.
-    // A separate flag (not window._bgPaused, which the pause-screen overlay
-    // in js/input.js already owns) so this can never fight that existing
-    // toggle — tick() below requires both to be false.
-    window._bgPausedByVisibility = document.hidden;
-    document.addEventListener('visibilitychange', () => {
-        window._bgPausedByVisibility = document.hidden;
-    });
 
     window._bgReady = true;
 
