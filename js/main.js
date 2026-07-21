@@ -526,6 +526,7 @@ function update(rawDeltaTime) {
 
     // Block auto-fire while silenced
     if (!player._silenced && !window._debugAutoshotOff) fireAutoShot();
+    _profChk.push(performance.now()); // pre-section (up to & including fireAutoShot)
 
     if (charging && !laserActive && currentTime - chargeStartTime >= overloadChargeTime && currentTime >= laserCooldownEnd) {
         laserActive = true; laserStartTime = currentTime; charging = false;
@@ -627,6 +628,7 @@ function update(rawDeltaTime) {
             });
         }
     }
+    _profChk.push(performance.now()); // laser section (charge-trigger + active tick + pull)
 
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
@@ -1763,19 +1765,31 @@ function update(rawDeltaTime) {
     }
 
     _profChk.push(performance.now()); // end of sentinels+blessing+gaia section
-    updateSoulReaverDoT(deltaTime);
-    updateSkillA(deltaTime);
-    updateDimensionalRifts(deltaTime);
-    updateScatteredProjectiles(deltaTime);
-    updateSpirits(deltaTime);
-    updateBladeArcProjectiles(deltaTime);
-    updateSpiritBullets(deltaTime);
-    updatePhotoBrangs(deltaTime);
-    updateSkillD(deltaTime);
-    updateSkillF(deltaTime);
-    updateEnergyOrbs(deltaTime, gameElapsedTime);
-    updateTeslaCoils(deltaTime, currentTime);
-    updateMarchosiasBlades(deltaTime);
+    // Split further — the coarser "skillA-D-F+spirits+etc" bucket was the
+    // dominant cost in 2 of 3 on-device samples (100-125ms), pin down
+    // exactly which of these 13 calls it actually is.
+    const _profChk2 = [performance.now()];
+    updateSoulReaverDoT(deltaTime); _profChk2.push(performance.now());
+    updateSkillA(deltaTime); _profChk2.push(performance.now());
+    updateDimensionalRifts(deltaTime); _profChk2.push(performance.now());
+    updateScatteredProjectiles(deltaTime); _profChk2.push(performance.now());
+    updateSpirits(deltaTime); _profChk2.push(performance.now());
+    updateBladeArcProjectiles(deltaTime); _profChk2.push(performance.now());
+    updateSpiritBullets(deltaTime); _profChk2.push(performance.now());
+    updatePhotoBrangs(deltaTime); _profChk2.push(performance.now());
+    updateSkillD(deltaTime); _profChk2.push(performance.now());
+    updateSkillF(deltaTime); _profChk2.push(performance.now());
+    updateEnergyOrbs(deltaTime, gameElapsedTime); _profChk2.push(performance.now());
+    updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
+    updateMarchosiasBlades(deltaTime); _profChk2.push(performance.now());
+    if (_profChk2[_profChk2.length - 1] - _profChk2[0] > 60) {
+        const _labels2 = ['soulReaverDoT', 'skillA', 'dimRifts', 'scatteredProj', 'spirits', 'bladeArc', 'spiritBullets', 'photoBrangs', 'skillD', 'skillF', 'energyOrbs', 'teslaCoils', 'marchosiasBlades'];
+        const _parts2 = [];
+        for (let _i2 = 1; _i2 < _profChk2.length; _i2++) {
+            _parts2.push(_labels2[_i2 - 1] + ' ' + (_profChk2[_i2] - _profChk2[_i2 - 1]).toFixed(0) + 'ms');
+        }
+        console.warn('[PROF3] skills-batch ' + (_profChk2[_profChk2.length - 1] - _profChk2[0]).toFixed(0) + 'ms — ' + _parts2.join(', '));
+    }
 
     // Update Leviathan handled inside enemies for loop above
 
@@ -1986,7 +2000,7 @@ function update(rawDeltaTime) {
     _profChk.push(performance.now()); // end of leviathan beams/veilshroud fx tail
     const _profTotal = _profChk[_profChk.length - 1] - _profChk[0];
     if (_profTotal > 80) {
-        const _labels = ['pre+laser+enemiesLoop', 'wave+sigil+bulletsLoop', 'sentinels+blessing+gaia', 'skillA-D-F+spirits+etc', 'levBeams+veilshroudFx'];
+        const _labels = ['pre+autoshot', 'laserSection', 'enemiesLoop', 'wave+sigil+bulletsLoop', 'sentinels+blessing+gaia', 'skillA-D-F+spirits+etc', 'levBeams+veilshroudFx'];
         const _parts = [];
         for (let _i = 1; _i < _profChk.length; _i++) {
             _parts.push(_labels[_i - 1] + ' ' + (_profChk[_i] - _profChk[_i - 1]).toFixed(0) + 'ms');
