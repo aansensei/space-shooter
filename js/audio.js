@@ -343,11 +343,19 @@
         if (state.bgmEl && state.currentBgmId === track.id && !state.bgmEl.paused) return;
         if (state.bgmEl) { try { state.bgmEl.pause(); } catch (_) {} }
         const el = new Audio(track.src);
-        el.loop = true;
+        // Menu has only one track (loops itself forever). In-game tracks
+        // shouldn't loop the same song all match — advance to a new random
+        // in-game track instead once this one finishes.
+        el.loop = !!track.menuOnly;
         el.volume = bgmGain();
         _routeToGraph(el, false);
         state.bgmEl = el;
         state.currentBgmId = track.id;
+        if (!el.loop) {
+            el.addEventListener('ended', () => {
+                if (state.bgmEl === el) playRandomInGameBgm();
+            });
+        }
         try { el.play().catch(() => {}); } catch (_) {}
     }
 
