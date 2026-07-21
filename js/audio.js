@@ -51,6 +51,79 @@
         return;
     }
 
+    // Disabling the Web Audio graph above didn't fix it either — on-device
+    // frame-timing (main.js's [PROF] log) proved the stall happens BETWEEN
+    // requestAnimationFrame callbacks, not inside any of this game's own JS,
+    // and it tracks exactly with bgm/ambient/engine actively playing as
+    // plain <audio> elements. Those three continuous background loops now
+    // play through a real AudioBufferSourceNode instead — decoded once (per
+    // distinct file) into an in-memory buffer and played back entirely on
+    // the Web Audio rendering thread, with none of the ongoing decode/
+    // buffering bookkeeping a looping HTMLMediaElement has to do. This is
+    // the standard fix for this class of issue: HTMLMediaElement playback
+    // is fine for short one-shot sfx (left alone below) but is known to be
+    // the less efficient path for long-running loops specifically.
+    const _bufferCache = {};
+    function _decodeBuffer(src) {
+        if (!actx) return Promise.resolve(null);
+        if (_bufferCache[src]) return _bufferCache[src];
+        const p = fetch(src)
+            .then(r => r.arrayBuffer())
+            .then(ab => actx.decodeAudioData(ab))
+            .catch(e => { console.warn('[Audio] buffer decode failed for ' + src, e); return null; });
+        _bufferCache[src] = p;
+        return p;
+    }
+
+    // Minimal HTMLAudioElement-shaped wrapper (paused/volume/play/pause/
+    // currentTime) so existing call sites (startLoop/stopLoop, pauseAll/
+    // resumeAll, refreshVolumes, setMuted) work unmodified against it.
+    // AudioBufferSourceNode can only be started once ever, so play()
+    // creates a fresh node from the cached decoded buffer each time.
+    // loop param supports BGM's non-looping in-game tracks (advance to a
+    // new random track via setOnEnded's callback) vs the always-looping
+    // menu track / ambient / engine.
+    function _makeBufferLoop() {
+        const gainNode = actx ? actx.createGain() : null;
+        if (gainNode) gainNode.connect(actx.destination);
+        let source = null;
+        let bufferPromise = null;
+        let playing = false;
+        let shouldLoop = true;
+        let onEndedCb = null;
+        return {
+            get paused() { return !playing; },
+            get volume() { return gainNode ? gainNode.gain.value : 1; },
+            set volume(v) { if (gainNode) gainNode.gain.value = v; },
+            set currentTime(_v) { /* no-op: a fresh play() always starts the buffer at 0 */ },
+            setSrc(src, loop = true) { bufferPromise = _decodeBuffer(src); shouldLoop = loop; },
+            setOnEnded(cb) { onEndedCb = cb; },
+            play() {
+                if (!actx || !bufferPromise) return Promise.resolve();
+                playing = true;
+                const myBufferPromise = bufferPromise; // guard a stale decode from a since-superseded setSrc()
+                return bufferPromise.then(buf => {
+                    if (!playing || !buf || bufferPromise !== myBufferPromise) return;
+                    source = actx.createBufferSource();
+                    source.buffer = buf;
+                    source.loop = shouldLoop;
+                    source.connect(gainNode);
+                    if (!shouldLoop) {
+                        source.onended = () => { if (playing) { playing = false; if (onEndedCb) onEndedCb(); } };
+                    }
+                    source.start(0);
+                });
+            },
+            pause() {
+                playing = false;
+                // Manually stopping a source also fires onended per spec —
+                // clear it first so pausing/switching never misfires the
+                // "track finished, advance to a new one" callback.
+                if (source) { try { source.onended = null; source.stop(); } catch (_) {} source = null; }
+            },
+        };
+    }
+
     function unlockContext() {
         if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
     }
@@ -349,23 +422,20 @@
     }
 
     function _switchBgm(track) {
-        if (state.bgmEl && state.currentBgmId === track.id && !state.bgmEl.paused) return;
-        if (state.bgmEl) { try { state.bgmEl.pause(); } catch (_) {} }
-        const el = new Audio(track.src);
+        if (state.currentBgmId === track.id && !state.bgmEl.paused) return;
+        state.bgmEl.pause();
         // Menu has only one track (loops itself forever). In-game tracks
         // shouldn't loop the same song all match — advance to a new random
         // in-game track instead once this one finishes.
-        el.loop = !!track.menuOnly;
-        el.volume = bgmGain();
-        _routeToGraph(el, false);
-        state.bgmEl = el;
+        state.bgmEl.setSrc(track.src, !!track.menuOnly);
+        state.bgmEl.volume = bgmGain();
         state.currentBgmId = track.id;
-        if (!el.loop) {
-            el.addEventListener('ended', () => {
-                if (state.bgmEl === el) playRandomInGameBgm();
+        if (!track.menuOnly) {
+            state.bgmEl.setOnEnded(() => {
+                if (state.currentBgmId === track.id) playRandomInGameBgm();
             });
         }
-        try { el.play().catch(() => {}); } catch (_) {}
+        state.bgmEl.play().catch(() => {});
     }
 
     // Apply current volumes to all live audio elements.
@@ -520,6 +590,7 @@
 
     // Boot: create pooled one-shots and singleton loops.
     function _boot() {
+        state.bgmEl = _makeBufferLoop(); // src set per-track in _switchBgm
         _makePool('autoshot',     'audio/sfx/autoshot.mp3',    4);
         _makePool('enemy-hit',    'audio/sfx/enemy-hit.wav',   6);
         _makePool('enemy-death',  'audio/sfx/enemy-death.mp3', 3);
@@ -567,8 +638,10 @@
         _makePool('photokrystos-btm-warming',     'audio/sfx/photokrystos-btm-warming.mp3',     1);
         _makePool('photokrystos-vine-bind',       'audio/sfx/photokrystos-vine-bind.mp3',       3);
 
-        state.ambientEl  = _mkLoop('audio/sfx/ingame.mp3');
-        state.engineEl   = _mkLoop('audio/sfx/engine.wav');
+        state.ambientEl  = _makeBufferLoop();
+        state.ambientEl.setSrc('audio/sfx/ingame.mp3');
+        state.engineEl   = _makeBufferLoop();
+        state.engineEl.setSrc('audio/sfx/engine.wav');
         state.laserEl    = _mkLoop('audio/sfx/laser.mp3');
         state.chargingEl = _mkLoop('audio/sfx/charging.mp3');
         state.skillDChargeEl = _mkLoop('audio/sfx/skill-d-charge.mp3');
