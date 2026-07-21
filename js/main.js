@@ -2220,10 +2220,26 @@ function gameLoop(timeStamp) {
     }
 
     const _debugSpeed = (typeof window._debugGameSpeed === 'number' && window._debugGameSpeed > 0) ? window._debugGameSpeed : 1;
+    // Coarse profiling for the still-unexplained mobile Safari FPS collapse
+    // (object counts, WebGL, and Safari-environment causes have all been
+    // ruled out) — logs via console.warn, which the F3 debug panel already
+    // captures and displays on-screen, so this is visible on the phone
+    // itself with no Mac/Web Inspector needed. Only logs when a frame is
+    // actually slow, so it's silent during normal play.
+    const _profOn = typeof _platform !== 'undefined' && _platform === 'mobile';
+    const _t0 = _profOn ? performance.now() : 0;
     if (!gamePaused && !loading && !window._sigilPicker) {
         update(Math.min(deltaTime, 50) * _debugSpeed);
     }
+    const _t1 = _profOn ? performance.now() : 0;
     draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50) * _debugSpeed);
+    if (_profOn) {
+        const _t2 = performance.now();
+        const _upd = _t1 - _t0, _drw = _t2 - _t1, _tot = _t2 - _t0;
+        if (_tot > 100) {
+            console.warn('[PROF] frame ' + _tot.toFixed(0) + 'ms — update ' + _upd.toFixed(0) + 'ms, draw ' + _drw.toFixed(0) + 'ms');
+        }
+    }
 
     // Export object count cho quality tier system
     window._objectCount = (enemies ? enemies.length : 0)
