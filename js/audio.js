@@ -83,6 +83,17 @@
     // loop param supports BGM's non-looping in-game tracks (advance to a
     // new random track via setOnEnded's callback) vs the always-looping
     // menu track / ambient / engine.
+    //
+    // A cold decode (a multi-MB BGM file that hasn't been prefetched yet)
+    // can take a couple of seconds — long enough to be an audible startup
+    // delay if the player clicks "anywhere to start" before it resolves.
+    // play() covers that gap with a plain streaming <audio> "bridge" that
+    // starts immediately; once the real buffer decode resolves, playback
+    // swaps to the AudioBufferSourceNode at the matching position and the
+    // bridge element is torn down. The bridge only ever lives for that
+    // short decode window, never for the sustained duration of a track, so
+    // it doesn't reintroduce the long-lived-<audio>-loop stall this whole
+    // rewrite exists to avoid.
     function _makeBufferLoop() {
         const gainNode = actx ? actx.createGain() : null;
         if (gainNode) gainNode.connect(actx.destination);
@@ -91,31 +102,59 @@
         let playing = false;
         let shouldLoop = true;
         let onEndedCb = null;
+        let bridgeSrc = null;
+        let bridgeEl = null;
+        let curVolume = 1;
+
+        function _swapToBuffer(buf, myBufferPromise) {
+            if (!playing || bufferPromise !== myBufferPromise) return; // superseded by a later setSrc/pause
+            const fromBridge = bridgeEl ? bridgeEl.currentTime : 0;
+            if (bridgeEl) { try { bridgeEl.pause(); } catch (_) {} bridgeEl = null; }
+            source = actx.createBufferSource();
+            source.buffer = buf;
+            source.loop = shouldLoop;
+            source.connect(gainNode);
+            if (!shouldLoop) {
+                source.onended = () => { if (playing) { playing = false; if (onEndedCb) onEndedCb(); } };
+            }
+            const offset = shouldLoop ? (fromBridge % buf.duration) : Math.min(fromBridge, Math.max(0, buf.duration - 0.05));
+            source.start(0, offset);
+        }
+
         return {
             get paused() { return !playing; },
-            get volume() { return gainNode ? gainNode.gain.value : 1; },
-            set volume(v) { if (gainNode) gainNode.gain.value = v; },
-            set currentTime(_v) { /* no-op: a fresh play() always starts the buffer at 0 */ },
-            setSrc(src, loop = true) { bufferPromise = _decodeBuffer(src); shouldLoop = loop; },
+            get volume() { return curVolume; },
+            set volume(v) {
+                curVolume = v;
+                if (gainNode) gainNode.gain.value = v;
+                if (bridgeEl) bridgeEl.volume = v;
+            },
+            set currentTime(_v) { /* no-op: a fresh play() always starts at 0 */ },
+            setSrc(src, loop = true) { bridgeSrc = src; bufferPromise = _decodeBuffer(src); shouldLoop = loop; },
             setOnEnded(cb) { onEndedCb = cb; },
             play() {
                 if (!actx || !bufferPromise) return Promise.resolve();
                 playing = true;
                 const myBufferPromise = bufferPromise; // guard a stale decode from a since-superseded setSrc()
-                return bufferPromise.then(buf => {
-                    if (!playing || !buf || bufferPromise !== myBufferPromise) return;
-                    source = actx.createBufferSource();
-                    source.buffer = buf;
-                    source.loop = shouldLoop;
-                    source.connect(gainNode);
-                    if (!shouldLoop) {
-                        source.onended = () => { if (playing) { playing = false; if (onEndedCb) onEndedCb(); } };
-                    }
-                    source.start(0);
+                bridgeEl = new Audio(bridgeSrc);
+                bridgeEl.loop = shouldLoop;
+                bridgeEl.volume = curVolume;
+                bridgeEl.preload = 'auto';
+                if (!shouldLoop) {
+                    bridgeEl.addEventListener('ended', () => {
+                        if (playing && bridgeEl) { playing = false; if (onEndedCb) onEndedCb(); }
+                    });
+                }
+                const playPromise = bridgeEl.play().catch(() => {});
+                myBufferPromise.then(buf => {
+                    if (!buf) return; // decode failed — keep playing the bridge indefinitely
+                    _swapToBuffer(buf, myBufferPromise);
                 });
+                return playPromise;
             },
             pause() {
                 playing = false;
+                if (bridgeEl) { try { bridgeEl.pause(); } catch (_) {} bridgeEl = null; }
                 // Manually stopping a source also fires onended per spec —
                 // clear it first so pausing/switching never misfires the
                 // "track finished, advance to a new one" callback.
@@ -591,6 +630,12 @@
     // Boot: create pooled one-shots and singleton loops.
     function _boot() {
         state.bgmEl = _makeBufferLoop(); // src set per-track in _switchBgm
+        // Kick off the menu track's decode immediately on page load instead
+        // of waiting for the "click anywhere to start" gesture — decoding a
+        // multi-MB mp3 takes real time, and _decodeBuffer's cache means the
+        // later playMenuBgm() call just picks up the already-resolved buffer.
+        const _menuTrack = BGM_LIST.find(t => t.menuOnly);
+        if (_menuTrack) _decodeBuffer(_menuTrack.src);
         _makePool('autoshot',     'audio/sfx/autoshot.mp3',    4);
         _makePool('enemy-hit',    'audio/sfx/enemy-hit.wav',   6);
         _makePool('enemy-death',  'audio/sfx/enemy-death.mp3', 3);
