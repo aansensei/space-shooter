@@ -214,15 +214,33 @@ function _updateSkillReadySfx(now) {
 // Dargruel's spawn size can reach 300 (radius 150), so 220 leaves a
 // comfortable margin over any bullet size in the game.
 const _COLLISION_CELL = 220;
+// Reused every frame instead of allocated fresh — on-device profiling
+// (F3 panel's [PROF] readout) showed update() alone costing 100+ms even
+// with a near-empty scene (2 enemies, 37 bullets), pointing at GC
+// pressure from per-frame garbage rather than algorithmic cost. A fresh
+// Map + a fresh array per occupied cell, discarded every single frame
+// forever regardless of scene complexity, was exactly that kind of
+// always-on allocation source.
+const _enemyGridMap = new Map();
+const _enemyGridBucketPool = [];
+// Also reused every frame (was a fresh `[]` per update() call before).
+const _gridCandidates = [];
 function _buildEnemyGrid() {
-    const grid = new Map();
+    _enemyGridMap.clear();
+    let _bucketsUsed = 0;
     for (const enemy of enemies) {
         const key = Math.floor(enemy.x / _COLLISION_CELL) + ',' + Math.floor(enemy.y / _COLLISION_CELL);
-        let bucket = grid.get(key);
-        if (!bucket) { bucket = []; grid.set(key, bucket); }
+        let bucket = _enemyGridMap.get(key);
+        if (!bucket) {
+            bucket = _enemyGridBucketPool[_bucketsUsed];
+            if (!bucket) { bucket = []; _enemyGridBucketPool[_bucketsUsed] = bucket; }
+            bucket.length = 0;
+            _bucketsUsed++;
+            _enemyGridMap.set(key, bucket);
+        }
         bucket.push(enemy);
     }
-    return grid;
+    return _enemyGridMap;
 }
 // Writes candidates into `out` (caller-owned scratch array, reused across
 // bullets so this doesn't allocate a new array per bullet per frame).
@@ -1467,7 +1485,7 @@ function update(rawDeltaTime) {
     if (bullets.length > _BULLET_CAP) bullets.splice(0, bullets.length - _BULLET_CAP);
 
     const _enemyGrid = _buildEnemyGrid();
-    const _gridCandidates = [];
+    _gridCandidates.length = 0;
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (b.type === 'sentinel_special') {
