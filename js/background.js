@@ -655,27 +655,9 @@
     };
 
     // ─── RESIZE ──────────────────────────────────────────────────────────
-    // iOS Safari fires resize with only innerHeight changing by ~50-100px
-    // when its address bar auto-hides/reappears on scroll — not a real
-    // device resize or rotation (which always changes width too). Resizing
-    // a WebGL canvas is a known WebKit-specific memory leak, and this
-    // ResizeObserver can otherwise fire many times over a long play session
-    // from that chrome toggling alone. Skip the resize for that pattern on
-    // mobile; the canvas already tracks the new viewport via 100vw/100vh
-    // CSS, so skipping just leaves the background very slightly stretched
-    // for a moment instead of leaking — no visible gap. Desktop is
-    // untouched (no such leak there, and a height-only window drag should
-    // still resize normally).
-    let _lastBgResizeW = W(), _lastBgResizeH = H();
     new ResizeObserver(() => {
         const w = window.innerWidth, h = window.innerHeight;
         if (app.renderer.width === w && app.renderer.height === h) return;
-        if (window._platform === 'mobile') {
-            const widthChanged = w !== _lastBgResizeW;
-            const heightDelta = Math.abs(h - _lastBgResizeH);
-            if (!widthChanged && heightDelta < 120) return;
-        }
-        _lastBgResizeW = w; _lastBgResizeH = h;
         app.renderer.resize(w, h);
 
         bgSprite.destroy();

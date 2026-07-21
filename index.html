@@ -1287,7 +1287,7 @@
     <script src="js/config.js?v=20260717a"></script>
     <script src="js/sigils.js?v=20260717b"></script>
     <script src="js/entities.js?v=20260718e"></script>
-    <script src="js/skills.js?v=20260719b"></script>
+    <script src="js/skills.js?v=20260720a"></script>
     <script src="js/render/core.js?v=20260720a"></script>
     <script src="js/render/fx.js?v=20260719a"></script>
     <script src="js/render/player.js?v=20260717h"></script>
@@ -1307,7 +1307,16 @@
     <script src="js/pixi-renderer.js?v=20260720a"></script>
     <script src="js/input.js?v=20260717a"></script>
     <script src="js/main.js?v=20260720a"></script>
-    <script src="js/debug-console.js?v=20260720a"></script>
+    <script>
+        // Debug/cheat console is a local-dev-only tool (spawn/kill any
+        // enemy, force skills, edit HP, etc.) — never fetch/load it on the
+        // real deployed site, only when actually running locally.
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
+            const _dbgScript = document.createElement('script');
+            _dbgScript.src = 'js/debug-console.js?v=20260720a';
+            document.head.appendChild(_dbgScript);
+        }
+    </script>
 
     <!-- ══ UI SFX WIRING ═════════════════════════════════════════════ -->
     <script>
@@ -1489,7 +1498,6 @@
             };
 
             // MOBILE CONTROLS INIT
-            let _lastMobileBgResizeW = 0, _lastMobileBgResizeH = 0;
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
 
@@ -1518,20 +1526,7 @@
                 if (window._pixiApp && window._pixiApp.renderer) {
                     window._pixiApp.renderer.resize(cv.width, cv.height);
                 }
-                // Same URL-bar-toggle guard as background.js's own resize
-                // handler (which this call would otherwise bypass): iOS
-                // Safari fires resize with only innerHeight changing by
-                // ~50-100px when its address bar auto-hides/reappears —
-                // resizing a WebGL canvas on iOS Safari leaks memory, and
-                // this runs on every debounced resize/orientationchange
-                // while in-game. gameCanvas itself (cv, above) still tracks
-                // the real viewport exactly via explicit px, so this only
-                // skips the background layer's own resize, not the game.
-                const _bgWidthChanged = physW !== _lastMobileBgResizeW;
-                const _bgHeightDelta = Math.abs(physH - _lastMobileBgResizeH);
-                if (window._bgPixiApp && window._bgPixiApp.renderer &&
-                    (_lastMobileBgResizeW === 0 || _bgWidthChanged || _bgHeightDelta >= 120)) {
-                    _lastMobileBgResizeW = physW; _lastMobileBgResizeH = physH;
+                if (window._bgPixiApp && window._bgPixiApp.renderer) {
                     window._bgPixiApp.renderer.resize(physW, physH);
                 }
 
@@ -1693,28 +1688,10 @@
 
             // COOLDOWN RING PAINTER
             const CIRC = 2 * Math.PI * 26; // r=26 on 58×58 canvas
-            // Every call used to do getElementById + getContext('2d') fresh,
-            // every frame, for up to 7 buttons — this loop runs unconditionally
-            // whenever on mobile, so that's 7 DOM lookups/frame just for
-            // rings, plus 7 more from the silence-overlay pass below. Cache
-            // the 2D contexts once and skip the redraw entirely when the
-            // value hasn't actually changed since the last frame (rings only
-            // move over multi-second cooldowns, not every 16ms).
-            const _cdCtxCache = {};
-            const _lastRingFrac = {};
-            function _cdCtx(cvId) {
-                let c = _cdCtxCache[cvId];
-                if (c === undefined) {
-                    const cv = document.getElementById(cvId);
-                    c = _cdCtxCache[cvId] = cv ? cv.getContext('2d') : null;
-                }
-                return c;
-            }
-            function _paintRing(cvId, frac, color, force) {
-                if (!force && _lastRingFrac[cvId] === frac) return;
-                _lastRingFrac[cvId] = frac;
-                const ctx = _cdCtx(cvId);
-                if (!ctx) return;
+            function _paintRing(cvId, frac, color) {
+                const cv = document.getElementById(cvId);
+                if (!cv) return;
+                const ctx = cv.getContext('2d');
                 ctx.clearRect(0, 0, 58, 58);
                 if (frac >= 1) return; // ready, no ring needed
                 // background arc
@@ -1731,40 +1708,28 @@
             function _ready(last, cd) { return Math.min(1, (performance.now() - last) / cd); }
             function _readyEnd(end, cd) { if (!end || end <= 0) return 1; return Math.min(1, Math.max(0, (performance.now() - (end - cd)) / cd)); }
 
-            let _lastSilenced = false;
             function _startCooldownLoop() {
                 function loop() {
                     if (_plat !== 'mobile') return;
                     try {
                         const now = performance.now();
-                        // Read once up front (used both to gate the X overlay
-                        // below and to force one clean ring redraw on the
-                        // silenced->not-silenced edge, since _paintRing's
-                        // dirty-check would otherwise leave a stale X mark
-                        // sitting on a ring whose frac value didn't happen to
-                        // change on that exact frame).
-                        const silenced = typeof player !== 'undefined' && player._silenced;
-                        const _justUnsilenced = _lastSilenced && !silenced;
-                        _lastSilenced = silenced;
                         // YOG
                         const yr = _ready(lastSkillShift, skillShiftCooldown);
-                        _paintRing('mb-yog-cv', yr, '#ffcc00', _justUnsilenced);
+                        _paintRing('mb-yog-cv', yr, '#ffcc00');
                         document.getElementById('mb-yog')?.classList.toggle('cd', yr < 1);
                         // A
                         const ar = _ready(lastSkillA, skillACooldown);
-                        _paintRing('mb-a-cv', ar, '#8888ff', _justUnsilenced);
+                        _paintRing('mb-a-cv', ar, '#8888ff');
                         document.getElementById('mb-a')?.classList.toggle('cd', ar < 1);
                         // S
                         // S: show mana if spirit alive, else cooldown
                         const _hasSpirit2 = typeof spirits !== 'undefined' && spirits.some(s2 => !s2.isFinishing);
                         const _pEnergy = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
                         if (_hasSpirit2 || _pEnergy > 0) {
-                            // Draw mana bar on canvas — animates every frame
-                            // (pulsing glow while full), so always redrawn,
-                            // just via the cached context instead of a fresh
-                            // getElementById+getContext lookup each frame.
-                            const _sc = _cdCtx('mb-s-cv');
-                            if (_sc) {
+                            // Draw mana bar on canvas
+                            const _sCv = document.getElementById('mb-s-cv');
+                            if (_sCv) {
+                                const _sc = _sCv.getContext('2d');
                                 _sc.clearRect(0, 0, 58, 58);
                                 // Background circle
                                 _sc.strokeStyle = 'rgba(0,255,136,0.25)';
@@ -1791,21 +1756,21 @@
                             const _oCd = (typeof _spiritCooldownOverrideUntil !== 'undefined' && _spiritCooldownOverrideUntil > now)
                                 ? (_spiritCooldownOverrideUntil - now + skillSCooldown) : skillSCooldown;
                             const sr = _ready(lastSkillS, _oCd);
-                            _paintRing('mb-s-cv', sr, '#00e5ff', _justUnsilenced);
+                            _paintRing('mb-s-cv', sr, '#00e5ff');
                             document.getElementById('mb-s')?.classList.toggle('cd', sr < 1);
                         }
                         // D
                         const dr = _ready(lastSkillD, skillDCooldown);
-                        _paintRing('mb-d-cv', dr, '#bb88ff', _justUnsilenced);
+                        _paintRing('mb-d-cv', dr, '#bb88ff');
                         document.getElementById('mb-d')?.classList.toggle('cd', dr < 1);
                         // F
                         const fr = _ready(lastSkillF, skillFCooldown);
-                        _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced);
+                        _paintRing('mb-f-cv', fr, '#ff6666');
                         document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
                         // G, charge based 0-100
                         const gc = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
                         const gr = (typeof skillGActive !== 'undefined' && skillGActive) ? 1 : gc / 100;
-                        _paintRing('mb-g-cv', gr, '#00ffcc', _justUnsilenced);
+                        _paintRing('mb-g-cv', gr, '#00ffcc');
                         const gEl = document.getElementById('mb-g');
                         if (gEl) {
                             gEl.classList.toggle('cd', gr < 1);
@@ -1813,22 +1778,19 @@
                         }
                         // CHARGE / laser
                         const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
-                        _paintRing('mb-ch-cv', cr, '#00e5ff', _justUnsilenced);
+                        _paintRing('mb-ch-cv', cr, '#00e5ff');
                         document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
 
-                        // Silence X overlay on all skill buttons — only
-                        // relevant while actually silenced (a rare debuff
-                        // state); _paintRing's forced redraw above on the
-                        // silenced->not-silenced edge already clears any
-                        // stale X the moment it turns off, so there's
-                        // nothing to do here in the common not-silenced case.
-                        if (silenced) {
-                            const skillBtnIds = ['mb-yog', 'mb-a', 'mb-s', 'mb-d', 'mb-f', 'mb-g', 'mb-ch'];
-                            skillBtnIds.forEach(id => {
-                                const c2 = _cdCtx(id + '-cv');
-                                if (!c2) return;
+                        // Silence X overlay on all skill buttons
+                        const silenced = typeof player !== 'undefined' && player._silenced;
+                        const skillBtnIds = ['mb-yog', 'mb-a', 'mb-s', 'mb-d', 'mb-f', 'mb-g', 'mb-ch'];
+                        skillBtnIds.forEach(id => {
+                            const cv = document.getElementById(id + '-cv');
+                            if (!cv) return;
+                            if (silenced) {
                                 // Draw X on the cooldown canvas, no DOM injection, no position change
-                                const w = c2.canvas.width, h = c2.canvas.height;
+                                const c2 = cv.getContext('2d');
+                                const w = cv.width, h = cv.height;
                                 c2.save();
                                 c2.strokeStyle = 'rgba(255,30,30,0.9)';
                                 c2.lineWidth = 6;
@@ -1837,8 +1799,8 @@
                                 c2.beginPath(); c2.moveTo(m, m); c2.lineTo(w - m, h - m); c2.stroke();
                                 c2.beginPath(); c2.moveTo(w - m, m); c2.lineTo(m, h - m); c2.stroke();
                                 c2.restore();
-                            });
-                        }
+                            }
+                        });
                     } catch (e) { }
                     requestAnimationFrame(loop);
                 }

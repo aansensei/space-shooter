@@ -1247,7 +1247,7 @@ function updateSkillF(deltaTime) {
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
-                } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                } else if (enemy.type === 'leviathan' && enemy.afoShieldActive && !_hasBuff('tu_huyet')) {
                     enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
                 } else {
                     // Coronation Iron Body absorbs 1 hit — bypassed only with Death Mark (tu_huyet)
