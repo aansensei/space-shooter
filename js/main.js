@@ -260,6 +260,16 @@ function _queryEnemyGrid(grid, x, y, out) {
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
+    // Fine-grained section timing for the still-unexplained slowdown (now
+    // confirmed present in PC mode on the same iPhone too, not mobile-
+    // specific) — cheap (a few performance.now() reads), always collected,
+    // only logged via console.warn (which the F3 panel already surfaces
+    // on-screen) when this frame's update() is actually slow. Pinpoints
+    // which section — the audit of update()'s own body plus dealDamage/
+    // createParticles/fireAutoShot found nothing that scales with the
+    // current tiny enemy/bullet counts, so the cost must be hiding in one
+    // of these calls specifically.
+    const _profChk = [performance.now()];
     _updateSkillReadySfx(currentTime);
 
     // Mobile: pin player.y to boundaryY every frame, triệt để fix position
@@ -1463,6 +1473,7 @@ function update(rawDeltaTime) {
         }
     }
 
+    _profChk.push(performance.now()); // end of enemies loop
     // Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới
     if (skillShiftActive) {
         // Abyssal Chains survive YOG, piercing, cannot be cleared by any means
@@ -1632,6 +1643,7 @@ function update(rawDeltaTime) {
         }
     }
 
+    _profChk.push(performance.now()); // end of wave-system/sigil-passives/bullets-collision
     particles = particles.filter(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.lifetime -= deltaTime; if (p.lifetime > 0) return true; _releaseParticle(p); return false; });
     explosions = explosions.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
     chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
@@ -1750,6 +1762,7 @@ function update(rawDeltaTime) {
         window._gfjShieldTimer = 0;
     }
 
+    _profChk.push(performance.now()); // end of sentinels+blessing+gaia section
     updateSoulReaverDoT(deltaTime);
     updateSkillA(deltaTime);
     updateDimensionalRifts(deltaTime);
@@ -1766,6 +1779,7 @@ function update(rawDeltaTime) {
 
     // Update Leviathan handled inside enemies for loop above
 
+    _profChk.push(performance.now()); // end of updateSkillA/D/F/spirits/etc. batch
     // Leviathan Perseverance beams (independent objects)
     if (!window._levPersBeams) window._levPersBeams = [];
     window._levPersBeams = window._levPersBeams.filter(beam => {
@@ -1968,6 +1982,17 @@ function update(rawDeltaTime) {
         }
         return ez.life > 0;
     });
+
+    _profChk.push(performance.now()); // end of leviathan beams/veilshroud fx tail
+    const _profTotal = _profChk[_profChk.length - 1] - _profChk[0];
+    if (_profTotal > 80) {
+        const _labels = ['pre+laser+enemiesLoop', 'wave+sigil+bulletsLoop', 'sentinels+blessing+gaia', 'skillA-D-F+spirits+etc', 'levBeams+veilshroudFx'];
+        const _parts = [];
+        for (let _i = 1; _i < _profChk.length; _i++) {
+            _parts.push(_labels[_i - 1] + ' ' + (_profChk[_i] - _profChk[_i - 1]).toFixed(0) + 'ms');
+        }
+        console.warn('[PROF2] update ' + _profTotal.toFixed(0) + 'ms — ' + _parts.join(', '));
+    }
 }
 
 const WAVE_SPAWN_DURATION = 15000;
@@ -2238,13 +2263,14 @@ function gameLoop(timeStamp) {
     }
 
     const _debugSpeed = (typeof window._debugGameSpeed === 'number' && window._debugGameSpeed > 0) ? window._debugGameSpeed : 1;
-    // Coarse profiling for the still-unexplained mobile Safari FPS collapse
-    // (object counts, WebGL, and Safari-environment causes have all been
-    // ruled out) — logs via console.warn, which the F3 debug panel already
-    // captures and displays on-screen, so this is visible on the phone
-    // itself with no Mac/Web Inspector needed. Only logs when a frame is
-    // actually slow, so it's silent during normal play.
-    const _profOn = typeof _platform !== 'undefined' && _platform === 'mobile';
+    // Coarse profiling for the still-unexplained Safari FPS collapse on
+    // this iPhone — confirmed present in BOTH the in-game PC and Mobile
+    // platform modes, so no longer gated to _platform==='mobile'. Logs via
+    // console.warn, which the F3 debug panel already captures and displays
+    // on-screen, so this is visible on the phone itself with no Mac/Web
+    // Inspector needed. Only logs when a frame is actually slow, so it's
+    // silent during normal play.
+    const _profOn = true;
     const _t0 = _profOn ? performance.now() : 0;
     if (!gamePaused && !loading && !window._sigilPicker) {
         update(Math.min(deltaTime, 50) * _debugSpeed);
