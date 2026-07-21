@@ -2294,8 +2294,17 @@ function gameLoop(timeStamp) {
     if (_profOn) {
         const _t2 = performance.now();
         const _upd = _t1 - _t0, _drw = _t2 - _t1, _tot = _t2 - _t0;
-        if (_tot > 100) {
-            console.warn('[PROF] frame ' + _tot.toFixed(0) + 'ms — update ' + _upd.toFixed(0) + 'ms, draw ' + _drw.toFixed(0) + 'ms');
+        // Disabling the Web Audio graph didn't fix the reported collapse,
+        // and no [PROF]/[PROF2]/[PROF3] line showed up even while FPS sat
+        // at 1 — meaning the slow part isn't inside update()/draw() at
+        // all (this measured window). `deltaTime` above is the RAW gap
+        // since the previous rAF callback actually ran, measured before
+        // any of my code executes — if that's huge while _tot (this
+        // callback's own JS time) stays small, the stall is happening
+        // BETWEEN frames (browser/OS/audio-decode scheduling), not in any
+        // game code this file can see or fix by optimizing further.
+        if (_tot > 100 || deltaTime > 200) {
+            console.warn('[PROF] rawGap ' + deltaTime.toFixed(0) + 'ms, thisCallback ' + _tot.toFixed(0) + 'ms (update ' + _upd.toFixed(0) + 'ms, draw ' + _drw.toFixed(0) + 'ms)');
         }
     }
 
