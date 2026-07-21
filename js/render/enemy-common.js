@@ -778,6 +778,22 @@ function _drawVulnerabilityIcon(enemy) {
     ctx.arc(0, 0, R + 3.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * remaining);
     ctx.stroke();
 
+    // Roman numeral stack count — bottom-right corner of the ring
+    if (stacks > 0) {
+        const _romans = ['I', 'II', 'III', 'IV'];
+        const _rx = R * 0.72, _ry = R * 0.82;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(_rx, _ry, 5.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(8,0,2,0.9)'; ctx.fill();
+        ctx.font = 'bold 7px serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = stacks === 4 ? '#ff6680' : '#ff3355';
+        if (!_mobPerf) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
+        ctx.fillText(_romans[stacks - 1], _rx, _ry);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
     // Stack dots dưới icon
     for (let s = 0; s < 3; s++) {
         const filled = s < stacks;
