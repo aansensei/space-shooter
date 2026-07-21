@@ -1168,6 +1168,19 @@
                     panel.classList.toggle('visible', visible);
                 }
             });
+            // No physical F3 key on mobile — tapping the FPS chip itself
+            // (already visible during gameplay) opens the same panel, so
+            // the [PROF] console.warn lines from main.js's frame-timing
+            // instrumentation are readable on-device, no Mac/Web Inspector
+            // needed.
+            if (fpsEl) {
+                fpsEl.style.pointerEvents = 'auto';
+                fpsEl.style.cursor = 'pointer';
+                fpsEl.addEventListener('click', function () {
+                    visible = !visible;
+                    panel.classList.toggle('visible', visible);
+                });
+            }
 
             // FPS + Auto Quality Tier
             // Tier: 0=FULL(>25) 1=MED(≤25) 2=LOW(≤15) 3=MIN(≤8)
@@ -1333,7 +1346,7 @@
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
     <script src="js/pixi-renderer.js?v=20260720b"></script>
     <script src="js/input.js?v=20260717a"></script>
-    <script src="js/main.js?v=20260720c"></script>
+    <script src="js/main.js?v=20260721a"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
