@@ -2149,7 +2149,15 @@ function gameLoop(timeStamp) {
     lastTimeStamp = timeStamp;
 
     // deltaTime quá lớn → tab bị ẩn hoặc máy lag → pause và reset clock
-    if (deltaTime > 500 && gameState === "playing" && !gamePaused) {
+    // Only pause for a genuinely backgrounded tab (document.hidden was true
+    // during the gap) — a long frame while the tab was visible the whole
+    // time (e.g. Safari's known first-time WebGL texture/shader upload
+    // stall, ~30x slower per API call than Chrome, right as wave 1's first
+    // burst of new bullet/particle textures gets created) used to hard-pause
+    // into a stuck "SYSTEM TERMINATED" screen the player had to notice and
+    // manually resume from. Let the deltaTime clamp below absorb a one-time
+    // foreground stall instead; only a real backgrounding still pauses.
+    if (deltaTime > 500 && gameState === "playing" && !gamePaused && document.hidden) {
         gamePaused = true;
         showPauseScreen();
     }

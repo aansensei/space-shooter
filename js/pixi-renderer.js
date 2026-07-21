@@ -95,6 +95,58 @@ window._pixiRender       = null;
         for (const c of rem) { if (c instanceof PIXI.Sprite) _rel(c); }
     }
 
+    // Pre-warm this context's texture upload + shader-compile cost before
+    // it's needed for real. Safari's WebGL implementation costs roughly
+    // 30x more per JS->WebGL API call than Chrome's ANGLE path and stalls
+    // synchronously the first time a given texture/shader combo is drawn.
+    // This app's bullet/particle/spirit textures are created lazily on
+    // first use (_canvasTex cache), so the instant wave 1's spawn burst
+    // needs many brand-new textures at once, that one-time Safari cost can
+    // land entirely on a single frame — easily enough to trip main.js's
+    // >500ms stall watchdog right after picking a sigil. Rendering a
+    // representative set of textures off-screen here (called during the
+    // loading screen, see index.html) pays that cost while a stall is
+    // invisible instead of during the first real combat frame.
+    window._pixiWarmup = function () {
+        const gfx = window._gfxLevel || 0;
+        const warm = [];
+        const bulletSpecs = [['player_auto', 8], ['player_charged', 14]];
+        const glowSpecs = [
+            ['#ffffff', 10], ['#ff3355', 14], ['#00ff88', 14], ['#ffd700', 10],
+            ['lime', 12], ['#aa44ff', 16], ['#00e5cc', 10],
+        ];
+        for (const [type, size] of bulletSpecs) {
+            const s = _acq();
+            s.texture = _getBulletTex(type, size, gfx);
+            s.anchor.set(0.5);
+            s.position.set(-9999, -9999);
+            s.blendMode = 'add';
+            bulletLayer.addChild(s);
+            warm.push(s);
+        }
+        for (const [color, size] of glowSpecs) {
+            const s = _acq();
+            s.texture = _getGlowTex(color, size, gfx);
+            s.anchor.set(0.5);
+            s.position.set(-9999, -9999);
+            s.blendMode = 'add';
+            particleLayer.addChild(s);
+            warm.push(s);
+        }
+        for (const isPhoto of [false, true]) {
+            const s = _acq();
+            s.texture = _getSpiritTex(isPhoto, 20);
+            s.anchor.set(0.5);
+            s.position.set(-9999, -9999);
+            s.blendMode = 'add';
+            spiritLayer.addChild(s);
+            warm.push(s);
+        }
+        app.renderer.render(app.stage);
+        app.renderer.render(app.stage);
+        for (const s of warm) { s.parent.removeChild(s); _rel(s); }
+    };
+
     // ══════════════════════════════════════════════════════════════════
     // PHASE 3A, Nebula atmosphere
     // Custom radial-gradient textures (opacity baked in) drift slowly.
