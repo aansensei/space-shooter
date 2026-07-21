@@ -1254,7 +1254,16 @@
                     const badge = lvl > 0
                         ? ' <span style="color:' + _TIER_COLORS[lvl] + ';font-size:9px">⚡' + _TIER_NAMES[lvl] + '</span>'
                         : '';
-                    fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>' + badge;
+                    // Temporary object-count readout while chasing the
+                    // mobile FPS collapse — cheap (just .length reads) and
+                    // tells us at a glance whether it's bullets, enemies,
+                    // or particles ballooning, without needing the local-
+                    // only debug console.
+                    const _eC = typeof enemies !== 'undefined' ? enemies.length : '-';
+                    const _bC = typeof bullets !== 'undefined' ? bullets.length : '-';
+                    const _pC = typeof particles !== 'undefined' ? particles.length : '-';
+                    const counts = ' <span style="font-size:9px;opacity:0.7">e' + _eC + ' b' + _bC + ' p' + _pC + '</span>';
+                    fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>' + badge + counts;
                 }
                 requestAnimationFrame(tick);
             }
