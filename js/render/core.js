@@ -938,8 +938,12 @@ function draw(deltaTime) {
         // Batch particle draw
         {
             const _specials = [];
-            const _batches = new Map();
             const _pixiP = window._usePixi && window._pixiDrawParticles;
+            // _batches is only ever read below in the !_pixiP branch — when
+            // Pixi is handling normal particles, building it was pure wasted
+            // per-frame Map allocation + get/set work (every particle, every
+            // frame) for a result nothing consumes.
+            const _batches = _pixiP ? null : new Map();
             for (const p of particles) {
                 if (p.isSummonRing || p.isLaserLine || p.isSkillGAura || p.isBarrierBreakRing || p._bloodPetal) { _specials.push(p); continue; }
                 if (_pixiP) continue; // normal particles routed to Pixi
