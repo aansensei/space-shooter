@@ -4,6 +4,21 @@
 //   sfx    – gameplay effects + the space "ingame.mp3" ambient loop
 //   global – multiplied into both above (master)
 // Persisted to localStorage as JSON under key 'audioVols'.
+//
+// Every sound in the game — one-shot sfx, sustained loops, and BGM — plays
+// through decoded AudioBufferSourceNodes on the Web Audio rendering thread.
+// This replaces an earlier design where each sound was a pooled/looping
+// <audio> element: on at least one real iOS Safari device/version, actively
+// playing HTMLMediaElements (looped background tracks, and separately the
+// high-frequency one-shot sfx pools like autoshot/spirit-autofire) caused a
+// severe main-thread stall between requestAnimationFrame callbacks — proven
+// via on-device frame-timing logs, and confirmed by muting audio (which
+// pauses/silences those elements) fully restoring normal FPS. Routing the
+// continuous loops through Web Audio graph nodes alone didn't fix it either;
+// only removing HTMLMediaElement playback from the sustained gameplay loop
+// entirely did. The only remaining <audio> elements are short-lived
+// "bridge" instances used to start BGM instantly while its buffer decodes
+// (see _makeBufferLoop) — never a persistent, long-running element.
 
 (function () {
     const STORAGE_KEY = 'audioVols';
@@ -12,12 +27,13 @@
     // ("shift-hold") routes through a shared duck-gain -> lowpass-filter
     // chain. Yog-Sothoth Domain and low-HP dazed state both drive this
     // chain to simulate the rest of the mix being smothered — muffled and
-    // quiet — while each state's own signature cue (shift-hold / heartbeat)
-    // bypasses the chain entirely so it reads as the loudest, clearest
-    // thing in the mix. Falls back to silent no-ops with no Web Audio.
+    // quiet — while each state's own signature cue (shift-hold) bypasses
+    // the chain entirely via _bypassGain so it reads as the loudest,
+    // clearest thing in the mix. Falls back to silent no-ops with no Web
+    // Audio.
     const _AC = window.AudioContext || window.webkitAudioContext;
     const actx = _AC ? new _AC() : null;
-    let _duckGain = null, _duckFilter = null;
+    let _duckGain = null, _duckFilter = null, _bypassGain = null;
     const NORMAL_FREQ = 20000; // effectively unfiltered
     if (actx) {
         _duckGain = actx.createGain();
@@ -27,42 +43,18 @@
         _duckGain.gain.value = 1;
         _duckGain.connect(_duckFilter);
         _duckFilter.connect(actx.destination);
+
+        _bypassGain = actx.createGain();
+        _bypassGain.gain.value = 1;
+        _bypassGain.connect(actx.destination);
     }
 
-    // Wraps an <audio> element into the Web Audio graph. bypass=true skips
-    // the duck/filter chain (routes straight to destination) for sounds that
-    // must stay loud and clear no matter what — currently just shift-hold.
-    // Connecting an element to createMediaElementSource silences its normal
-    // direct output, so every managed element must go through here once.
-    //
-    // DISABLED: routing ~40 sfx pools (100+ pooled <audio> elements) through
-    // one shared MediaElementAudioSourceNode -> Gain -> BiquadFilter graph
-    // is the confirmed cause of a severe FPS collapse on at least one real
-    // iOS Safari device/version (muting audio — which pauses/silences these
-    // elements — fully restored normal FPS; unmuting reproduced 0-1fps
-    // every time). WebAudio's audio graph is supposed to render off the
-    // main thread in every modern engine, but this device's Safari isn't
-    // doing that cleanly for this many chained MediaElementAudioSourceNodes.
-    // Elements now play through their own native, unconnected <audio>
-    // output instead — this loses the Yog-Sothoth/low-HP "muffle" ducking
-    // effect (nothing is connected to _duckGain/_duckFilter to drive
-    // anymore) but that's a minor polish detail against a game-breaking bug.
-    function _routeToGraph(el, bypass) {
-        return;
-    }
-
-    // Disabling the Web Audio graph above didn't fix it either — on-device
-    // frame-timing (main.js's [PROF] log) proved the stall happens BETWEEN
-    // requestAnimationFrame callbacks, not inside any of this game's own JS,
-    // and it tracks exactly with bgm/ambient/engine actively playing as
-    // plain <audio> elements. Those three continuous background loops now
-    // play through a real AudioBufferSourceNode instead — decoded once (per
-    // distinct file) into an in-memory buffer and played back entirely on
-    // the Web Audio rendering thread, with none of the ongoing decode/
-    // buffering bookkeeping a looping HTMLMediaElement has to do. This is
-    // the standard fix for this class of issue: HTMLMediaElement playback
-    // is fine for short one-shot sfx (left alone below) but is known to be
-    // the less efficient path for long-running loops specifically.
+    // Decode-once, cache-forever buffer store. Every sound (sfx and BGM
+    // alike) is fetched and decoded exactly once per distinct file; all
+    // playback afterward just spins up a fresh AudioBufferSourceNode
+    // against the cached AudioBuffer, which is cheap and fully supports
+    // overlapping concurrent instances of the same clip (autoshot firing
+    // faster than one copy can finish, etc.) with no pooling required.
     const _bufferCache = {};
     function _decodeBuffer(src) {
         if (!actx) return Promise.resolve(null);
@@ -75,14 +67,33 @@
         return p;
     }
 
+    // Fire-and-forget one-shot playback (sfx pools, positional sfx). Skips
+    // silently if the buffer hasn't decoded yet — sfx are prefetched at
+    // boot, so in practice this only matters for a sound triggered in the
+    // first instant after page load, and a single missed cue there is a
+    // fair trade against ever blocking on decode mid-gameplay.
+    function _playVoice(src, gainValue, bypass) {
+        if (!actx || gainValue <= 0) return;
+        _decodeBuffer(src).then(buf => {
+            if (!buf) return;
+            const g = actx.createGain();
+            g.gain.value = gainValue;
+            g.connect(bypass ? _bypassGain : _duckGain);
+            const node = actx.createBufferSource();
+            node.buffer = buf;
+            node.connect(g);
+            node.start(0);
+        });
+    }
+
     // Minimal HTMLAudioElement-shaped wrapper (paused/volume/play/pause/
     // currentTime) so existing call sites (startLoop/stopLoop, pauseAll/
     // resumeAll, refreshVolumes, setMuted) work unmodified against it.
     // AudioBufferSourceNode can only be started once ever, so play()
     // creates a fresh node from the cached decoded buffer each time.
     // loop param supports BGM's non-looping in-game tracks (advance to a
-    // new random track via setOnEnded's callback) vs the always-looping
-    // menu track / ambient / engine.
+    // new random track via setOnEnded's callback) vs always-looping sounds
+    // (menu track / ambient / engine / laser / charging / heartbeat / ...).
     //
     // A cold decode (a multi-MB BGM file that hasn't been prefetched yet)
     // can take a couple of seconds — long enough to be an audible startup
@@ -96,7 +107,7 @@
     // rewrite exists to avoid.
     function _makeBufferLoop() {
         const gainNode = actx ? actx.createGain() : null;
-        if (gainNode) gainNode.connect(actx.destination);
+        if (gainNode) gainNode.connect(_duckGain);
         let source = null;
         let bufferPromise = null;
         let playing = false;
@@ -129,6 +140,7 @@
                 if (gainNode) gainNode.gain.value = v;
                 if (bridgeEl) bridgeEl.volume = v;
             },
+            get duration() { return source && source.buffer ? source.buffer.duration : NaN; },
             set currentTime(_v) { /* no-op: a fresh play() always starts at 0 */ },
             setSrc(src, loop = true) { bridgeSrc = src; bufferPromise = _decodeBuffer(src); shouldLoop = loop; },
             setOnEnded(cb) { onEndedCb = cb; },
@@ -289,14 +301,10 @@
         maouHakiEl: null,     // Dargruel Maou Haki shockwave cue, cut short when the wave finishes expanding (not looped)
         lowHpEl: null,        // low-HP heartbeat loop (lives < 5), looped while the state holds
         nullSlashWindupEl: null, // Egregor Null Slash windup drone, cut short exactly when the strike phase begins (variable 1-3s duration)
-        crawlElA: null, crawlElB: null, // Egregor crawl texture: two alternating one-shots, overlapped so the loop point never reads as silence
-        pool: {},            // sfx key → Audio pool (rotated for rapid re-fires)
-        poolIdx: {},
+        crawlEl: null,        // Egregor crawl texture, a native gapless AudioBufferSourceNode loop
+        photokrystosIdleEl: null, // Phōtokrystos flight/movement texture, same native gapless loop
+        pool: {},            // sfx key → { src, bypass }
     };
-    let _crawlActive = false;
-    let _crawlCur = null; // 'A' or 'B' — which element we're currently watching for near-end
-    let _pkIdleActive = false;
-    let _pkIdleCur = null; // 'A' or 'B' — same crossfade scheme as the Egregor crawl
 
     // Load persisted volumes.
     try {
@@ -316,52 +324,37 @@
     function bgmGain()  { return state.muted ? 0 : state.vol.bgm    * state.vol.global; }
     function sfxGain(k) { return state.muted ? 0 : (SFX_BASE[k] || 0.5) * state.vol.sfx * state.vol.global; }
 
-    // Preload one-shot pool. Size 4 covers overlap for autoshot at 135ms cadence.
+    // Prefetch/decode a one-shot sfx clip. size is a historical pool-depth
+    // hint from the pre-Web-Audio pooled-<audio> design — playback no longer
+    // pools discrete elements (a fresh AudioBufferSourceNode per play()
+    // supports unlimited overlapping instances natively) so it's unused now,
+    // kept only so the many call sites below don't need touching.
     // bypass routes straight past the duck/filter chain (see shift-hold).
     function _makePool(key, src, size = 3, bypass = false) {
-        const arr = [];
-        for (let i = 0; i < size; i++) {
-            const a = new Audio(src);
-            a.preload = 'auto';
-            _routeToGraph(a, bypass);
-            arr.push(a);
-        }
-        state.pool[key] = arr;
-        state.poolIdx[key] = 0;
+        _decodeBuffer(src);
+        state.pool[key] = { src, bypass };
     }
 
     function playSfx(key) {
-        const pool = state.pool[key];
-        if (!pool) return;
+        const p = state.pool[key];
+        if (!p) return;
         const g = sfxGain(key);
         if (g <= 0) return;
-        const a = pool[state.poolIdx[key]];
-        state.poolIdx[key] = (state.poolIdx[key] + 1) % pool.length;
-        try {
-            a.volume = g;
-            a.currentTime = 0;
-            a.play().catch(() => {});
-        } catch (_) {}
+        _playVoice(p.src, g, p.bypass);
     }
 
     // Positional variant: scales the base gain by distance from the player
     // ship (x, y in world/canvas coordinates), so explosions and events near
     // the player read louder than ones happening far up the screen.
     function playSfxAt(key, x, y) {
-        const pool = state.pool[key];
-        if (!pool) return;
+        const p = state.pool[key];
+        if (!p) return;
         const g = sfxGain(key) * _distanceGain(x, y);
         if (g <= 0.005) return;
-        const a = pool[state.poolIdx[key]];
-        state.poolIdx[key] = (state.poolIdx[key] + 1) % pool.length;
-        try {
-            a.volume = g;
-            a.currentTime = 0;
-            a.play().catch(() => {});
-        } catch (_) {}
+        _playVoice(p.src, g, p.bypass);
     }
 
-    // Loop controls for sustained sfx (charging, laser). Idempotent.
+    // Loop controls for sustained sfx (charging, laser, crawl, idle, ...). Idempotent.
     function startLoop(refKey, key) {
         const el = state[refKey];
         if (!el) return;
@@ -404,12 +397,10 @@
             maouHaki: !!(state.maouHakiEl && !state.maouHakiEl.paused),
             lowHp: !!(state.lowHpEl && !state.lowHpEl.paused),
             nullSlashWindup: !!(state.nullSlashWindupEl && !state.nullSlashWindupEl.paused),
-            crawlA: !!(state.crawlElA && !state.crawlElA.paused),
-            crawlB: !!(state.crawlElB && !state.crawlElB.paused),
-            photokrystosIdleA: !!(state.photokrystosIdleElA && !state.photokrystosIdleElA.paused),
-            photokrystosIdleB: !!(state.photokrystosIdleElB && !state.photokrystosIdleElB.paused),
+            crawl: !!(state.crawlEl && !state.crawlEl.paused),
+            photokrystosIdle: !!(state.photokrystosIdleEl && !state.photokrystosIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlElA, state.crawlElB, state.photokrystosIdleElA, state.photokrystosIdleElB]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -428,10 +419,8 @@
         if (s.maouHaki && state.maouHakiEl) try { state.maouHakiEl.play().catch(() => {}); } catch (_) {}
         if (s.lowHp && state.lowHpEl) try { state.lowHpEl.play().catch(() => {}); } catch (_) {}
         if (s.nullSlashWindup && state.nullSlashWindupEl) try { state.nullSlashWindupEl.play().catch(() => {}); } catch (_) {}
-        if (s.crawlA && state.crawlElA) try { state.crawlElA.play().catch(() => {}); } catch (_) {}
-        if (s.crawlB && state.crawlElB) try { state.crawlElB.play().catch(() => {}); } catch (_) {}
-        if (s.photokrystosIdleA && state.photokrystosIdleElA) try { state.photokrystosIdleElA.play().catch(() => {}); } catch (_) {}
-        if (s.photokrystosIdleB && state.photokrystosIdleElB) try { state.photokrystosIdleElB.play().catch(() => {}); } catch (_) {}
+        if (s.crawl && state.crawlEl) try { state.crawlEl.play().catch(() => {}); } catch (_) {}
+        if (s.photokrystosIdle && state.photokrystosIdleEl) try { state.photokrystosIdleEl.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -491,10 +480,8 @@
         if (state.maouHakiEl) state.maouHakiEl.volume = sfxGain('maou-haki');
         if (state.lowHpEl) state.lowHpEl.volume = sfxGain('low-hp');
         if (state.nullSlashWindupEl) state.nullSlashWindupEl.volume = sfxGain('egregor-nullslash-windup');
-        if (state.crawlElA) state.crawlElA.volume = sfxGain('egregor-crawl');
-        if (state.crawlElB) state.crawlElB.volume = sfxGain('egregor-crawl');
-        if (state.photokrystosIdleElA) state.photokrystosIdleElA.volume = sfxGain('photokrystos-idle');
-        if (state.photokrystosIdleElB) state.photokrystosIdleElB.volume = sfxGain('photokrystos-idle');
+        if (state.crawlEl) state.crawlEl.volume = sfxGain('egregor-crawl');
+        if (state.photokrystosIdleEl) state.photokrystosIdleEl.volume = sfxGain('photokrystos-idle');
     }
 
     function setVolume(cat, v) {
@@ -542,82 +529,18 @@
     function startLaser()   { startLoop('laserEl', 'laser'); }
     function stopLaser()    { stopLoop('laserEl'); }
 
-    // Egregor crawl: two alternating one-shots. The next clip starts once the
-    // playing one has run 3/4 of its length, and that outgoing clip fades out
-    // across its final quarter — a proper crossfade rather than a hard cut at
-    // the very end. startEgregorCrawl is idempotent — safe to call every
-    // frame while an Egregor is alive. tickEgregorCrawl must be polled each
-    // frame to drive both the handoff trigger and the fade-out volume.
-    const CRAWL_HANDOFF_AT = 0.75; // fraction of duration where the next clip starts
-    function startEgregorCrawl() {
-        if (_crawlActive) return;
-        _crawlActive = true;
-        _crawlCur = 'A';
-        const el = state.crawlElA;
-        if (!el) return;
-        try { el.volume = sfxGain('egregor-crawl'); el.currentTime = 0; el.play().catch(() => {}); } catch (_) {}
-    }
-    function stopEgregorCrawl() {
-        _crawlActive = false;
-        _crawlCur = null;
-        [state.crawlElA, state.crawlElB].forEach(el => { if (el) { try { el.pause(); el.currentTime = 0; } catch (_) {} } });
-    }
-    function tickEgregorCrawl() {
-        if (!_crawlActive) return;
-        const curEl  = _crawlCur === 'A' ? state.crawlElA : state.crawlElB;
-        const nextEl = _crawlCur === 'A' ? state.crawlElB : state.crawlElA;
-        if (!curEl || !nextEl) return;
-        const g = sfxGain('egregor-crawl');
-        if (curEl.duration && !isNaN(curEl.duration) && curEl.currentTime >= curEl.duration * CRAWL_HANDOFF_AT && nextEl.paused) {
-            try { nextEl.currentTime = 0; nextEl.play().catch(() => {}); } catch (_) {}
-            _crawlCur = (_crawlCur === 'A') ? 'B' : 'A';
-        }
-        // Fade any element past the handoff point down to silence by its end,
-        // so the outgoing clip tapers out under the incoming one.
-        [state.crawlElA, state.crawlElB].forEach(el => {
-            if (!el || el.paused || !el.duration || isNaN(el.duration)) return;
-            const t = el.currentTime / el.duration;
-            const fade = t >= CRAWL_HANDOFF_AT ? Math.max(0, 1 - (t - CRAWL_HANDOFF_AT) / (1 - CRAWL_HANDOFF_AT)) : 1;
-            el.volume = g * fade;
-        });
-    }
-
-    // Phōtokrystos idle: same two-clip crossfade scheme as the Egregor crawl
-    // — this is its continuous flight/movement sound, not a background
-    // ambience, so it needs to read as one unbroken loop rather than a
-    // single clip with an audible seam. startPhotokrystosIdle is idempotent;
-    // tickPhotokrystosIdle must be polled every frame while it's active.
-    const PK_IDLE_HANDOFF_AT = 0.75;
-    function startPhotokrystosIdle() {
-        if (_pkIdleActive) return;
-        _pkIdleActive = true;
-        _pkIdleCur = 'A';
-        const el = state.photokrystosIdleElA;
-        if (!el) return;
-        try { el.volume = sfxGain('photokrystos-idle'); el.currentTime = 0; el.play().catch(() => {}); } catch (_) {}
-    }
-    function stopPhotokrystosIdle() {
-        _pkIdleActive = false;
-        _pkIdleCur = null;
-        [state.photokrystosIdleElA, state.photokrystosIdleElB].forEach(el => { if (el) { try { el.pause(); el.currentTime = 0; } catch (_) {} } });
-    }
-    function tickPhotokrystosIdle() {
-        if (!_pkIdleActive) return;
-        const curEl  = _pkIdleCur === 'A' ? state.photokrystosIdleElA : state.photokrystosIdleElB;
-        const nextEl = _pkIdleCur === 'A' ? state.photokrystosIdleElB : state.photokrystosIdleElA;
-        if (!curEl || !nextEl) return;
-        const g = sfxGain('photokrystos-idle');
-        if (curEl.duration && !isNaN(curEl.duration) && curEl.currentTime >= curEl.duration * PK_IDLE_HANDOFF_AT && nextEl.paused) {
-            try { nextEl.currentTime = 0; nextEl.play().catch(() => {}); } catch (_) {}
-            _pkIdleCur = (_pkIdleCur === 'A') ? 'B' : 'A';
-        }
-        [state.photokrystosIdleElA, state.photokrystosIdleElB].forEach(el => {
-            if (!el || el.paused || !el.duration || isNaN(el.duration)) return;
-            const t = el.currentTime / el.duration;
-            const fade = t >= PK_IDLE_HANDOFF_AT ? Math.max(0, 1 - (t - PK_IDLE_HANDOFF_AT) / (1 - PK_IDLE_HANDOFF_AT)) : 1;
-            el.volume = g * fade;
-        });
-    }
+    // Egregor crawl / Phōtokrystos idle: continuous background textures.
+    // AudioBufferSourceNode.loop is sample-accurate and gapless, so unlike
+    // the old HTMLAudioElement version (which needed two alternating clips
+    // crossfaded across their final quarter to hide the loop-point seam),
+    // a single looping buffer node just works — tick* are kept as no-op
+    // stubs since main.js/skills.js/entities.js still poll them every frame.
+    function startEgregorCrawl() { startLoop('crawlEl', 'egregor-crawl'); }
+    function stopEgregorCrawl()  { stopLoop('crawlEl'); }
+    function tickEgregorCrawl()  {}
+    function startPhotokrystosIdle() { startLoop('photokrystosIdleEl', 'photokrystos-idle'); }
+    function stopPhotokrystosIdle()  { stopLoop('photokrystosIdleEl'); }
+    function tickPhotokrystosIdle()  {}
 
     // Low-HP heartbeat: loops while lives < 5, and ducks/muffles the rest
     // of the mix (heavier than Yog-Sothoth's own duck) for the "choáng"
@@ -627,7 +550,7 @@
     function startLowHp() { startLoop('lowHpEl', 'low-hp'); enterDuck('lowhp'); }
     function stopLowHp()  { stopLoop('lowHpEl'); exitDuck('lowhp'); }
 
-    // Boot: create pooled one-shots and singleton loops.
+    // Boot: prefetch/decode one-shot sfx and set up singleton loops.
     function _boot() {
         state.bgmEl = _makeBufferLoop(); // src set per-track in _switchBgm
         // Kick off the menu track's decode immediately on page load instead
@@ -687,68 +610,32 @@
         state.ambientEl.setSrc('audio/sfx/ingame.mp3');
         state.engineEl   = _makeBufferLoop();
         state.engineEl.setSrc('audio/sfx/engine.wav');
-        state.laserEl    = _mkLoop('audio/sfx/laser.mp3');
-        state.chargingEl = _mkLoop('audio/sfx/charging.mp3');
-        state.skillDChargeEl = _mkLoop('audio/sfx/skill-d-charge.mp3');
-        state.lowHpEl    = _mkLoop('audio/sfx/low-hp.mp3'); // heartbeat, loops while lives < 5
-        // Two alternating clips (crossfade scheme, see startPhotokrystosIdle)
-        // instead of a single loop=true element — this is Phōtokrystos's
-        // continuous flight/movement sound, so a plain loop seam would read
-        // as an audible stutter every 18s.
-        state.photokrystosIdleElA = _mkOnce('audio/sfx/photokrystos-idle.mp3');
-        state.photokrystosIdleElB = _mkOnce('audio/sfx/photokrystos-idle.mp3');
-        state.photokrystosIdleElA.addEventListener('ended', () => {
-            if (_pkIdleActive && state.photokrystosIdleElB.paused) {
-                try { state.photokrystosIdleElB.currentTime = 0; state.photokrystosIdleElB.play().catch(() => {}); } catch (_) {}
-                _pkIdleCur = 'B';
-            }
-        });
-        state.photokrystosIdleElB.addEventListener('ended', () => {
-            if (_pkIdleActive && state.photokrystosIdleElA.paused) {
-                try { state.photokrystosIdleElA.currentTime = 0; state.photokrystosIdleElA.play().catch(() => {}); } catch (_) {}
-                _pkIdleCur = 'A';
-            }
-        });
+        state.laserEl    = _makeBufferLoop();
+        state.laserEl.setSrc('audio/sfx/laser.mp3');
+        state.chargingEl = _makeBufferLoop();
+        state.chargingEl.setSrc('audio/sfx/charging.mp3');
+        state.skillDChargeEl = _makeBufferLoop();
+        state.skillDChargeEl.setSrc('audio/sfx/skill-d-charge.mp3');
+        state.lowHpEl = _makeBufferLoop(); // heartbeat, loops while lives < 5
+        state.lowHpEl.setSrc('audio/sfx/low-hp.mp3');
+        state.photokrystosIdleEl = _makeBufferLoop();
+        state.photokrystosIdleEl.setSrc('audio/sfx/photokrystos-idle.mp3');
+        state.crawlEl = _makeBufferLoop();
+        state.crawlEl.setSrc('audio/sfx/egregor-crawl.mp3');
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
         // to a fixed duration.
-        state.skillFChargeEl = _mkOnce('audio/sfx/skill-f-charge.mp3');
-        state.skillFFireEl   = _mkOnce('audio/sfx/skill-f-fire.mp3');
-        state.blackholeEl    = _mkOnce('audio/sfx/blackhole.mp3');
-        state.maouHakiEl     = _mkOnce('audio/sfx/maou-haki.mp3');
-        state.nullSlashWindupEl = _mkOnce('audio/sfx/egregor-nullslash-windup.mp3');
-        state.crawlElA = _mkOnce('audio/sfx/egregor-crawl.mp3');
-        state.crawlElB = _mkOnce('audio/sfx/egregor-crawl.mp3');
-        // Fallback for when rAF is throttled (tab backgrounded) and
-        // tickEgregorCrawl's polling window gets skipped entirely — the
-        // native 'ended' event always fires regardless of rAF throttling,
-        // so this guarantees the crawl handoff never leaves a silent gap.
-        state.crawlElA.addEventListener('ended', () => {
-            if (_crawlActive && state.crawlElB.paused) {
-                try { state.crawlElB.currentTime = 0; state.crawlElB.play().catch(() => {}); } catch (_) {}
-                _crawlCur = 'B';
-            }
-        });
-        state.crawlElB.addEventListener('ended', () => {
-            if (_crawlActive && state.crawlElA.paused) {
-                try { state.crawlElA.currentTime = 0; state.crawlElA.play().catch(() => {}); } catch (_) {}
-                _crawlCur = 'A';
-            }
-        });
-    }
-    function _mkLoop(src) {
-        const a = new Audio(src);
-        a.loop = true;
-        a.preload = 'auto';
-        _routeToGraph(a, false);
-        return a;
-    }
-    function _mkOnce(src) {
-        const a = new Audio(src);
-        a.preload = 'auto';
-        _routeToGraph(a, false);
-        return a;
+        state.skillFChargeEl = _makeBufferLoop();
+        state.skillFChargeEl.setSrc('audio/sfx/skill-f-charge.mp3', false);
+        state.skillFFireEl = _makeBufferLoop();
+        state.skillFFireEl.setSrc('audio/sfx/skill-f-fire.mp3', false);
+        state.blackholeEl = _makeBufferLoop();
+        state.blackholeEl.setSrc('audio/sfx/blackhole.mp3', false);
+        state.maouHakiEl = _makeBufferLoop();
+        state.maouHakiEl.setSrc('audio/sfx/maou-haki.mp3', false);
+        state.nullSlashWindupEl = _makeBufferLoop();
+        state.nullSlashWindupEl.setSrc('audio/sfx/egregor-nullslash-windup.mp3', false);
     }
 
     _boot();
