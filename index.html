@@ -1182,15 +1182,15 @@
                     panel.classList.toggle('visible', visible);
                 }
             });
-            // No physical F3 key on mobile — tapping the FPS chip itself
-            // (already visible during gameplay) opens the same panel, so
-            // the [PROF] console.warn lines from main.js's frame-timing
-            // instrumentation are readable on-device, no Mac/Web Inspector
-            // needed.
+            // Tap-to-open is desktop-only now — on mobile the FPS chip sits
+            // close enough to gameplay controls that an accidental tap
+            // could pop the panel open mid-match, and the mobile debug
+            // instrumentation it was built for is no longer needed.
             if (fpsEl) {
                 fpsEl.style.pointerEvents = 'auto';
                 fpsEl.style.cursor = 'pointer';
                 fpsEl.addEventListener('click', function () {
+                    if (window._platform === 'mobile') return;
                     visible = !visible;
                     panel.classList.toggle('visible', visible);
                 });
@@ -1204,7 +1204,6 @@
             // ever targeted 0-2, so severe lag (single-digit fps) got stuck
             // at tier 2 with nowhere further to fall back to.
             const _TIER_NAMES   = ['FULL', 'MED', 'LOW', 'MIN'];
-            const _TIER_COLORS  = ['#4eff9a', '#ffc84a', '#ff5a3a', '#ff2a2a'];
             // FPS threshold để downgrade TO tier N
             const _TIER_DOWN_AT = [Infinity, 25, 15, 8];
             // FPS threshold để upgrade FROM tier N (với buffer)
@@ -1274,35 +1273,10 @@
                     }
                 }
 
-                // FPS chip: chỉ hiện khi đang trong game
+                // FPS chip: chỉ hiện khi đang trong game — plain "FPS: N" readout only.
                 if (window._inGame) {
                     fpsEl.style.display = 'block';
-                    const lvl = (typeof window._gfxLevel !== 'undefined') ? window._gfxLevel : 0;
-                    const badge = lvl > 0
-                        ? ' <span style="color:' + _TIER_COLORS[lvl] + ';font-size:9px">⚡' + _TIER_NAMES[lvl] + '</span>'
-                        : '';
-                    // Temporary object-count readout while chasing the
-                    // mobile FPS collapse — cheap (just .length reads) and
-                    // tells us at a glance whether it's bullets, enemies,
-                    // or particles ballooning, without needing the local-
-                    // only debug console. Mobile-only: this is debug
-                    // instrumentation for that investigation specifically,
-                    // PC just wants a plain FPS readout.
-                    let counts = '';
-                    if (window._platform === 'mobile') {
-                        const _eC = typeof enemies !== 'undefined' ? enemies.length : '-';
-                        const _bC = typeof bullets !== 'undefined' ? bullets.length : '-';
-                        const _pC = typeof particles !== 'undefined' ? particles.length : '-';
-                        // sentinels is a SEPARATE array from enemies (js/entities.js
-                        // spawnSentinel) — never included in the counts above until
-                        // now, a real blind spot given how many are typically on
-                        // screen (capped at MAX_SENTINELS=12, but each has its own
-                        // per-frame targeting/aura/draw work).
-                        const _sC = typeof sentinels !== 'undefined' ? sentinels.length : '-';
-                        const _px = window._usePixi ? 'ON' : 'OFF';
-                        counts = ' <span style="font-size:9px;opacity:0.7">e' + _eC + ' b' + _bC + ' p' + _pC + ' s' + _sC + ' gl:' + _px + ' bld21c</span>';
-                    }
-                    fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>' + badge + counts;
+                    fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>';
                 }
                 requestAnimationFrame(tick);
             }
