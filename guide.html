@@ -1113,8 +1113,8 @@
 
 <div class="ul-entry" style="--ul-accent:#f87171">
 <div class="ul-head"><span class="ul-ver">v5.2 — MOBILE STABILITY &amp; FX/AUDIO OVERHAUL</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
-<div class="ul-date">2026 · Sigil picker crash + mobile layout fixes, mobile perf Tier 3, Skill F/Overload Laser FX pass, Maou Haki/Low-HP visuals, Egregor signature audio pass</div>
-<p class="det-short ul-summary">Fixed a crash on Mobile mode that blocked the sigil Confirm button, plus mobile perf (Smart Quality Tier 3, background sprite density, a pixi-canvas resize desync causing misaligned bullets) and Settings panel fixes. Skill F and Overload Laser both got a full visual pass; Maou Haki and low-HP states got new visuals. Egregor — the game's signature monster — now has a dedicated, elaborate audio treatment: windup, slash, hit, a continuous crawl texture, and a death roar, alongside new Charged Shot, Dimensional Rift, Dimension Break, and Wave Cleared cues.</p>
+<div class="ul-date">2026 · Sigil picker crash + mobile layout fixes, mobile perf Tier 3, Skill F/Overload Laser FX pass, Maou Haki/Low-HP visuals, Egregor signature audio pass, full audio engine rewrite (iOS Safari 1fps fix), mobile WebGL restored</div>
+<p class="det-short ul-summary">Fixed a crash on Mobile mode that blocked the sigil Confirm button, plus mobile perf (Smart Quality Tier 3, background sprite density, a pixi-canvas resize desync causing misaligned bullets) and Settings panel fixes. Skill F and Overload Laser both got a full visual pass; Maou Haki and low-HP states got new visuals. Egregor — the game's signature monster — now has a dedicated, elaborate audio treatment: windup, slash, hit, a continuous crawl texture, and a death roar, alongside new Charged Shot, Dimensional Rift, Dimension Break, and Wave Cleared cues. Root-cause fix for severe iOS Safari lag (1 fps mid-game): all audio — every BGM loop, ambient/engine drone, and every one-shot SFX pool — was rewritten from <code>&lt;audio&gt;</code> elements to <code>AudioBufferSourceNode</code>, eliminating the main-thread stall that <code>&lt;audio&gt;</code> scheduling caused between rAF callbacks on real devices. Mobile WebGL parallax background restored (previously disabled as a workaround). Yog-Sothoth Domain audio fixed on mobile, heartbeat + muffled mix no longer persist after returning to the main menu.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker crash:</b> selecting a sigil in Mobile mode threw a script error every frame, which silently prevented the Confirm button from ever being drawn — stalling progress at every sigil pick. This was the likely cause of the repeated "System Terminated" freezes reported on phones.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Mobile Sigil Picker layout:</b> card sizing now scales responsively so the Confirm button always has room on short landscape viewports.</li>
@@ -1139,6 +1139,12 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Egregor signature audio pass:</b> the game's cover-art monster gets a dedicated, elaborate treatment — Null Slash windup drone cut short exactly when the strike begins (tracking the real rage-shortened duration rather than a fixed length), a slash whoosh at the strike, an impact cue only when the sweep actually connects, a continuous crawl texture (two clips cross-started so the loop never gaps), and a dedicated death roar layered over the generic death sfx.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>New one-shot cues:</b> Charged Shot release, Dimensional Rift (Skill A) spawn, Dimension Break (Null Slash) zone spawn, and Wave Cleared (distinct from the New Wave announcement).</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Wave Cleared cue:</b> gain boosted +4dB.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>iOS Safari severe lag (1 fps root cause):</b> continuous <code>&lt;audio&gt;</code> element playback — especially high-frequency pools firing every 42–135 ms — triggers a main-thread scheduling stall between <code>requestAnimationFrame</code> callbacks on real iOS devices. Diagnosed via on-device <code>rawGap</code> metrics showing 678–1194 ms gaps between frames while <code>thisCallback</code> itself was only 0–22 ms. Muting audio completely restored 60 fps, confirming the cause. Every audio path — BGM, ambient, engine drone, and all ~40 one-shot SFX pools — was fully rewritten to <code>AudioBufferSourceNode</code>, moving all playback off the main thread onto the Web Audio rendering thread.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>BGM startup delay eliminated:</b> if the player taps "anywhere to start" before the audio buffer finishes decoding, a streaming <code>&lt;audio&gt;</code> bridge starts the BGM instantly, then seamlessly swaps to the decoded <code>AudioBufferSourceNode</code> at the exact playback position — zero audible gap and zero startup delay regardless of network speed.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Mobile WebGL parallax background restored:</b> the WebGL/Pixi background was previously disabled on mobile as a performance workaround. With the real 1 fps cause resolved, it is now fully re-enabled — mobile gets the same animated space background as PC.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Yog-Sothoth Domain audio missing on mobile:</b> tapping the YOG button on mobile did not trigger <code>enterTimeDomain()</code> or the shift-hold SFX. Now in sync with the PC keyboard handler.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Heartbeat + muffled audio persisting after Game Over:</b> returning to the main menu no longer leaves the low-HP heartbeat loop running or the mix permanently ducked — <code>stopLowHp()</code> and <code>exitTimeDomain()</code> are now called during the return-to-menu cleanup.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>FPS debug chip simplified:</b> the overlay chip now shows a plain "FPS: N" readout only, without counts, tier badges, or the tap-to-expand panel on mobile (which conflicted with touch gameplay).</li>
 </ul>
 </div>
 
@@ -2117,11 +2123,14 @@
         if (sg) {
           const { c, w, h } = sg;
           const fakeEnemies = [
-            { x: w * 0.12, y: h * 0.4, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.30, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.5, y: h * 0.42, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.7, y: h * 0.28, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.88, y: h * 0.44, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.10, y: h * 0.38, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.22, y: h * 0.24, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.34, y: h * 0.40, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.46, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.58, y: h * 0.42, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.68, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.79, y: h * 0.40, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.90, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
           ];
           const px = w * 0.5, py = h * 0.9;
           function drawIdle() {
@@ -2168,7 +2177,7 @@
                       if (other === src || other._chained) continue;
                       if (Math.hypot(src.x - other.x, src.y - other.y) < 150) {
                         other._chained = true;
-                        chainLightningEffects.push({ x1: src.x, y1: src.y, x2: other.x, y2: other.y, lifetime: 250, maxLifetime: 250 });
+                        chainLightningEffects.push({ x1: src.x, y1: src.y, x2: other.x, y2: other.y, lifetime: 600, maxLifetime: 600 });
                         chainedCount++;
                         if (window.AudioMgr) window.AudioMgr.playSfx('chain-lightning');
                         chainFrom(other);
