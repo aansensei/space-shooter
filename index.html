@@ -1258,11 +1258,23 @@
                     // mobile FPS collapse — cheap (just .length reads) and
                     // tells us at a glance whether it's bullets, enemies,
                     // or particles ballooning, without needing the local-
-                    // only debug console.
+                    // only debug console. Also a build tag + live _usePixi
+                    // state, since every fix so far has shown zero visible
+                    // change — need to rule out a stale cached index.html
+                    // (this whole readout lives in an inline <script>, not
+                    // a separately cache-busted file) before trusting the
+                    // "still lags" report as testing the current code.
                     const _eC = typeof enemies !== 'undefined' ? enemies.length : '-';
                     const _bC = typeof bullets !== 'undefined' ? bullets.length : '-';
                     const _pC = typeof particles !== 'undefined' ? particles.length : '-';
-                    const counts = ' <span style="font-size:9px;opacity:0.7">e' + _eC + ' b' + _bC + ' p' + _pC + '</span>';
+                    // sentinels is a SEPARATE array from enemies (js/entities.js
+                    // spawnSentinel) — never included in the counts above until
+                    // now, a real blind spot given how many are typically on
+                    // screen (capped at MAX_SENTINELS=12, but each has its own
+                    // per-frame targeting/aura/draw work).
+                    const _sC = typeof sentinels !== 'undefined' ? sentinels.length : '-';
+                    const _px = window._usePixi ? 'ON' : 'OFF';
+                    const counts = ' <span style="font-size:9px;opacity:0.7">e' + _eC + ' b' + _bC + ' p' + _pC + ' s' + _sC + ' gl:' + _px + ' bld21c</span>';
                     fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>' + badge + counts;
                 }
                 requestAnimationFrame(tick);
