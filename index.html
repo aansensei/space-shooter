@@ -1115,6 +1115,12 @@
                 // AudioMgr owns menu BGM already; only fire the one-shot warp SFX
                 sndHyperjump.play().catch(() => { });
 
+                // Pay the one-time Safari WebGL texture/shader-compile cost
+                // now, during this 3.5s loading animation, instead of on
+                // the first real combat frame (see js/pixi-renderer.js's
+                // window._pixiWarmup for why this exists).
+                if (typeof window._pixiWarmup === 'function') window._pixiWarmup();
+
                 setTimeout(() => { progressBar.style.width = '100%'; }, 50);
                 setTimeout(() => {
                     whiteFlash.style.transition = 'opacity 1s ease-in';
@@ -1304,9 +1310,9 @@
     <script src="js/render/skill-f.js?v=20260717i"></script>
     <script src="js/render/skill-g.js?v=20260717e"></script>
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
-    <script src="js/pixi-renderer.js?v=20260720a"></script>
+    <script src="js/pixi-renderer.js?v=20260720b"></script>
     <script src="js/input.js?v=20260717a"></script>
-    <script src="js/main.js?v=20260720a"></script>
+    <script src="js/main.js?v=20260720b"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
