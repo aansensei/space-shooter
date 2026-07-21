@@ -678,7 +678,7 @@
     let _tickSkip = false;
     function tick() {
         const throttle = window._platform === 'mobile';
-        if (!window._bgPaused && !(throttle && (_tickSkip = !_tickSkip))) {
+        if (!window._bgPaused && !window._bgDisabledForMobile && !(throttle && (_tickSkip = !_tickSkip))) {
             for (const g of galaxies)  g.update();
             for (const n of nebulas)   n.update();
             for (const s of stars)     s.update();

@@ -1298,7 +1298,7 @@
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
     <script src="js/audio.js?v=20260719b"></script>
-    <script src="js/background.js?v=20260720a"></script>
+    <script src="js/background.js?v=20260721a"></script>
     <script src="js/config.js?v=20260717a"></script>
     <script src="js/sigils.js?v=20260717b"></script>
     <script src="js/entities.js?v=20260718e"></script>
@@ -1515,6 +1515,32 @@
             // MOBILE CONTROLS INIT
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
+
+                // EXPERIMENT: force the game entirely off WebGL/Pixi and
+                // onto its existing plain-Canvas2D fallback paths on
+                // mobile. Safari's WebGL implementation costs roughly 30x
+                // more per JS->WebGL API call than Chrome's ANGLE, and
+                // PixiJS issues many such calls every frame just for basic
+                // per-frame setup (clear, bind, blend state) — a cost that
+                // exists even for a near-empty scene and that no amount of
+                // reducing enemy/bullet/particle counts or optimizing
+                // individual draw calls can touch. Two separate PixiJS
+                // WebGL contexts (this one for bullets/particles, plus
+                // background.js's own) doubles that fixed tax. If this is
+                // really the cause, disabling both entirely should recover
+                // FPS immediately; if it isn't, this rules that out too.
+                // _usePixi has its own setter (pixi-renderer.js) that also
+                // hides its canvas; _bgReady=false makes drawSpaceBackground()
+                // fall back to its own Canvas2D star field; _bgDisabledForMobile
+                // (a dedicated flag, not window._bgPaused — that one is
+                // already owned by the real pause-screen overlay in
+                // js/input.js and gets toggled false on resume, which would
+                // silently re-enable this mid-session) stops background.js's
+                // independent render loop from still rendering into a
+                // canvas nothing reads anymore.
+                window._usePixi = false;
+                window._bgReady = false;
+                window._bgDisabledForMobile = true;
 
                 // Canvas inflate: logical size = screen * 1.282
                 // CSS size = screen (browser composites at CSS size, GPU safe)
