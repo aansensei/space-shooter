@@ -116,10 +116,13 @@
         let bridgeSrc = null;
         let bridgeEl = null;
         let curVolume = 1;
+        let _savedPos = 0;
+        let _srcStartCtx = 0;
+        let _srcOffset = 0;
 
         function _swapToBuffer(buf, myBufferPromise) {
-            if (!playing || bufferPromise !== myBufferPromise) return; // superseded by a later setSrc/pause
-            const fromBridge = bridgeEl ? bridgeEl.currentTime : 0;
+            if (!playing || bufferPromise !== myBufferPromise) return;
+            const fromBridge = bridgeEl ? bridgeEl.currentTime : _savedPos;
             if (bridgeEl) { try { bridgeEl.pause(); } catch (_) {} bridgeEl = null; }
             source = actx.createBufferSource();
             source.buffer = buf;
@@ -129,6 +132,8 @@
                 source.onended = () => { if (playing) { playing = false; if (onEndedCb) onEndedCb(); } };
             }
             const offset = shouldLoop ? (fromBridge % buf.duration) : Math.min(fromBridge, Math.max(0, buf.duration - 0.05));
+            _srcStartCtx = actx.currentTime;
+            _srcOffset = offset;
             source.start(0, offset);
         }
 
@@ -141,17 +146,20 @@
                 if (bridgeEl) bridgeEl.volume = v;
             },
             get duration() { return source && source.buffer ? source.buffer.duration : NaN; },
-            set currentTime(_v) { /* no-op: a fresh play() always starts at 0 */ },
-            setSrc(src, loop = true) { bridgeSrc = src; bufferPromise = _decodeBuffer(src); shouldLoop = loop; },
+            setSrc(src, loop = true) {
+                bridgeSrc = src; bufferPromise = _decodeBuffer(src); shouldLoop = loop;
+                _savedPos = 0;
+            },
             setOnEnded(cb) { onEndedCb = cb; },
             play() {
                 if (!actx || !bufferPromise) return Promise.resolve();
                 playing = true;
-                const myBufferPromise = bufferPromise; // guard a stale decode from a since-superseded setSrc()
+                const myBufferPromise = bufferPromise;
                 bridgeEl = new Audio(bridgeSrc);
                 bridgeEl.loop = shouldLoop;
                 bridgeEl.volume = curVolume;
                 bridgeEl.preload = 'auto';
+                if (_savedPos > 0) { try { bridgeEl.currentTime = _savedPos; } catch (_) {} }
                 if (!shouldLoop) {
                     bridgeEl.addEventListener('ended', () => {
                         if (playing && bridgeEl) { playing = false; if (onEndedCb) onEndedCb(); }
@@ -159,13 +167,22 @@
                 }
                 const playPromise = bridgeEl.play().catch(() => {});
                 myBufferPromise.then(buf => {
-                    if (!buf) return; // decode failed — keep playing the bridge indefinitely
+                    if (!buf) return;
                     _swapToBuffer(buf, myBufferPromise);
                 });
                 return playPromise;
             },
             pause() {
                 playing = false;
+                if (source && actx && source.buffer) {
+                    const elapsed = actx.currentTime - _srcStartCtx;
+                    const dur = source.buffer.duration;
+                    _savedPos = shouldLoop
+                        ? ((_srcOffset + elapsed) % dur)
+                        : Math.min(_srcOffset + elapsed, dur);
+                } else if (bridgeEl) {
+                    _savedPos = bridgeEl.currentTime;
+                }
                 if (bridgeEl) { try { bridgeEl.pause(); } catch (_) {} bridgeEl = null; }
                 // Manually stopping a source also fires onended per spec —
                 // clear it first so pausing/switching never misfires the

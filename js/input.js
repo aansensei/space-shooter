@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressBar = document.getElementById("resume-progress-bar");
     const pauseTitle = document.getElementById("pause-title");
     const pauseSubtitle = document.getElementById("pause-subtitle");
+    const pauseMainBtns = document.getElementById("pause-main-btns");
 
     startBtn.addEventListener("click", () => {
         startGame();
@@ -67,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded, expose ra window để main.js gọi được
     window.showPauseScreen = function showPauseScreen() {
         pauseOverlay.style.display = "flex";
-        resumeBtn.style.display = "block";
+        if (pauseMainBtns) pauseMainBtns.style.display = "flex";
         progressContainer.style.display = "none";
         pauseTitle.innerText = "SYSTEM TERMINATED";
         pauseSubtitle.style.display = "block";
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     resumeBtn.addEventListener("click", () => {
-        resumeBtn.style.display = "none";
+        if (pauseMainBtns) pauseMainBtns.style.display = "none";
         pauseSubtitle.style.display = "none";
         pauseTitle.innerText = "REBOOTING SYSTEMS...";
         progressContainer.style.display = "block";
@@ -112,6 +113,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         requestAnimationFrame(animateLoading);
     });
+
+    const pauseMenuBtn = document.getElementById("main-menu-btn");
+    if (pauseMenuBtn) {
+        const _goMenuFromPause = () => {
+            gameState = "start";
+            screenShake.duration = 0;
+            if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
+        };
+        pauseMenuBtn.addEventListener('click', _goMenuFromPause);
+        pauseMenuBtn.addEventListener('touchstart', (e) => { e.preventDefault(); _goMenuFromPause(); }, { passive: false });
+    }
 
     document.addEventListener("keydown", (e) => {
         if (e.code === "Escape" && gameState === "playing" && !gamePaused) {

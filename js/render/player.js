@@ -1013,13 +1013,14 @@ function drawChargeEffect() {
     // OUTER BLOOM
     ctx.strokeStyle = `rgba(${r},${g},${b},0.25)`;
     ctx.lineWidth = 10 + 8 * chargeRatio;
-    if (!_mobPerf) ctx.shadowColor = color; if (!_mobPerf) ctx.shadowBlur = 25;
+    if (!_mobPerf || _gfxLevel === 0) ctx.shadowColor = color;
+    if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 25;
     ctx.beginPath(); ctx.arc(0, 0, radius * 1.15, 0, Math.PI * 2); ctx.stroke();
 
     // MAIN RING
     ctx.strokeStyle = color;
     ctx.lineWidth = 2 + 4 * chargeRatio;
-    if (!_mobPerf) ctx.shadowBlur = 15;
+    if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 15;
     ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
 
     // ROTATING TICK MARKS
@@ -1121,7 +1122,7 @@ function drawLaser() {
         // tone instead of one smooth gradient (same trick used on Skill F).
         _laserBeamPath(cx, cw * 0.8, 0, player.y, 11, wavePhase + 0.6);
         ctx.fillStyle = 'rgba(130,90,255,0.28)';
-        if (!_mobPerf) { ctx.shadowColor = '#8a5aff'; ctx.shadowBlur = 20; }
+        if (!_mobPerf || _gfxLevel === 0) { ctx.shadowColor = '#8a5aff'; ctx.shadowBlur = 20; }
         ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -1138,7 +1139,8 @@ function drawLaser() {
         grad.addColorStop(0.9, `rgba(0,220,255,${0.55 * _flicker})`);
         grad.addColorStop(1, "rgba(0,255,255,0)");
         ctx.fillStyle = grad;
-        if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 35;
+        if (!_mobPerf || _gfxLevel === 0) ctx.shadowColor = 'cyan';
+        if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 35;
         ctx.fill();
         ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(180,255,255,0.5)'; ctx.lineWidth = 1.2; ctx.stroke();
@@ -1151,7 +1153,7 @@ function drawLaser() {
             const jx = laserX + (Math.random() - 0.5) * 6;
             const jw = 5 + Math.random() * 6;
             ctx.fillStyle = `rgba(255,255,255,${0.45 + Math.random() * 0.3})`;
-            if (!_mobPerf) ctx.shadowBlur = 15;
+            if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 15;
             ctx.fillRect(jx - jw / 2, 0, jw, player.y);
             ctx.shadowBlur = 0;
         }
@@ -1245,19 +1247,21 @@ function drawLaser() {
             ctx.globalAlpha = textT * 0.35;
             ctx.font = 'bold 115px serif';
             ctx.fillStyle = '#ff6600';
-            if (!_mobPerf) ctx.shadowColor = '#ffaa00'; if (!_mobPerf) ctx.shadowBlur = 50;
+            if (!_mobPerf || _gfxLevel === 0) ctx.shadowColor = '#ffaa00';
+            if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 50;
             ctx.fillText('開炸斬決', player.x, player.y - 80);
 
             ctx.globalAlpha = textT * 0.98;
             ctx.font = 'bold 36px "Arial Black", sans-serif';
             ctx.fillStyle = '#ffffff';
-            if (!_mobPerf) ctx.shadowColor = '#ffcc00'; if (!_mobPerf) ctx.shadowBlur = 35;
+            if (!_mobPerf || _gfxLevel === 0) ctx.shadowColor = '#ffcc00';
+            if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 35;
             ctx.fillText('EXECUTION', player.x, player.y - 124);
 
             ctx.globalAlpha = textT * 0.98;
             ctx.font = 'italic 14px monospace';
             ctx.fillStyle = '#ffdd88';
-            if (!_mobPerf) ctx.shadowBlur = 12;
+            if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 12;
             ctx.fillText('— Khai Triển —', player.x, player.y - 100);
             ctx.restore();
         }
