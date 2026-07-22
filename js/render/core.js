@@ -911,6 +911,9 @@ function draw(deltaTime) {
         // Vanguard Network threads (5+ sentinels)
         if (sentinels.length >= 5) _drawVanguardThreads();
         if (skillAActive) drawSkillA();
+        drawSolArrows();
+        drawShadowTwin();
+        drawShadowOrbs();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
         marchosiasBlades.forEach(_drawMarchoBlade);
         scatteredProjectiles.forEach(drawScatteredProjectile);

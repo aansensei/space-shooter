@@ -3,6 +3,20 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
+// Fisher-Yates shuffle. `arr.sort(() => Math.random() - 0.5)` looks random
+// but is measurably biased (V8's TimSort makes fewer comparisons than a true
+// shuffle needs, so items tend to stay closer to their original position) —
+// this was the reason certain sigils were showing up far less often in the
+// picker than others. Always use this instead of a random sort comparator.
+function _shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
 const btnMarginLeft = 20, btnMarginBottom = 20, btnRadius = 25, btnGap = 12;
 let gameState = "start", lives = 12, score = 0, gameStartTime = 0;
 let gameElapsedTime = 0; // Thời gian game thực tế (bị slow bởi Yog-Sothoth)
@@ -129,14 +143,10 @@ window._playerSigils = [];
 window._sigilPicker = null;
 window._sigilIronBodyStacks = 0;
 window._sigilIronBodyNextAt = 0;
-window._phanDonReady = false;
-window._phanDonEndTime = 0;
-window._phanDonCooldownEnd = 0;
 window._coiMongEndTime = 0;
 window._thanMenhEndTime = 0;
 window._tuyetLanStacks = 0;
 window._tuyetLanLastKill = 0;
-window._bongDoiHitCount = 0;
 window._muiTenVangHitCount = 0;
 window._hoVeLastDeadMaxHp = 0;
 window._hoVeShieldAvailUntil = 0;
@@ -144,4 +154,8 @@ window._hoVeShieldCooldownEnd = 0;
 window._sthBurning = new Map();
 window._laiKepPEAccum = 0;
 window._laiKepFireRateBonus = 0;
+window._solArrows = [];
+window._bongDoiNextFire = 0;
+window._shadowTwinGhosts = [];
+window._shadowOrbs = [];
 let boundaryY = canvas.height - 10;

@@ -314,7 +314,6 @@ function fireAutoShot() {
             damage: 55 * _dmgMult, percentDamage: 0.009 * _dmgMult, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28,
             isPiercing: _pierce, hitEnemies: _pierce ? [] : undefined,
-            _bongDoiBullet: _hasBuff('bong_doi'),
             _muiTenVangCrit: _isCritVolley,
         });
     }
@@ -1231,30 +1230,19 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * (1 + Math.min(0.60, window._tuyetLanStacks * 0.005)));
     }
 
-    // Sigil: Law of Scales — enemy HP% scaled damage bonus (+0% at full → +70% at 10%)
-    if (_hasBuff('luat_can_bang') && !isSentinel) {
-        const hpFrac = enemy.hp / (enemy.maxHp || enemy.hp);
-        if (hpFrac < 1) {
-            const bonus = Math.min(0.70, (1 - hpFrac) * (0.70 / 0.90));
-            totalDamage = Math.ceil(totalDamage * (1 + bonus));
+    // Sigil: Death Mark — linear 0%→70% from 100%→21% HP; flat +80% at ≤20%
+    if (_hasBuff('tu_huyet') && !isSentinel) {
+        const _tuFrac = enemy.hp / (enemy.maxHp || enemy.hp);
+        if (_tuFrac <= 0.20) {
+            totalDamage = Math.ceil(totalDamage * 1.80);
+        } else {
+            totalDamage = Math.ceil(totalDamage * (1 + (1 - _tuFrac) / 0.79 * 0.70));
         }
-    }
-
-    // Sigil: Death Mark — enemies below 20% HP take +70% from all sources
-    if (_hasBuff('tu_huyet') && !isSentinel && enemy.hp / (enemy.maxHp || enemy.hp) < 0.20) {
-        totalDamage = Math.ceil(totalDamage * 1.70);
     }
 
     // Sigil: Divine Fate — +50% dmg during 5s freeze window at wave start
     if (_hasBuff('than_menh') && window._thanMenhEndTime > 0 && performance.now() < window._thanMenhEndTime) {
         totalDamage = Math.ceil(totalDamage * 1.50);
-    }
-
-    // Sigil: Riposte — +200% dmg for 2s after being hit (2s cooldown between triggers)
-    if (_hasBuff('phan_don') && !isSentinel && performance.now() < (window._phanDonEndTime || 0)
-        && source.type !== 'player_auto' && source.type !== 'sentinel_auto'
-        && !source._isNocToiDot && !source.isTeslaDot) {
-        totalDamage = Math.ceil(totalDamage * 3.0);
     }
 
     // Trọng Thương: +16% mỗi stack (max 4 stacks = +64%)
@@ -1635,13 +1623,21 @@ function dealDamage(enemy, source) {
         if (enemy.hp <= 0) enemy._markedForDeath = true;
     }
 
-    // Sigil: Death Mark — enemy at ≤3% HP triggers instant blood-flower kill
+    // Sigil: Death Mark — enemy at ≤5% HP triggers lightning instakill
     if (_hasBuff('tu_huyet') && !isSentinel && enemy.hp > 0
-        && enemy.hp / (enemy.maxHp || enemy.hp) <= 0.03
+        && enemy.hp / (enemy.maxHp || enemy.hp) <= 0.05
         && !enemy.inCoronation && enemy.type !== 'veilshroud_echo') {
         enemy.hp = 0;
         enemy._markedForDeath = true;
         _spawnBloodFlower(enemy.x, enemy.y, enemy.size);
+        // Lightning bolt visual: vertical streak particles from above
+        const lx = enemy.x, ly = enemy.y;
+        for (let _li = 0; _li < 18; _li++) {
+            const segY = ly - enemy.size * 3 - _li * 14;
+            createParticles(lx + (Math.random() - 0.5) * 8, segY, 1, '#aaddff', 1, 3);
+        }
+        createParticles(lx, ly, 16, '#ffffff', 3, 8);
+        createParticles(lx, ly, 10, '#88ccff', 2, 6);
     }
 
     // Leviathan: khi HP về 0 (hoặc đã ≤ 1), spawn death lasers ngay nếu chưa spawn
@@ -2264,7 +2260,7 @@ function updateEgregor(enemy, deltaTime) {
 function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
     if (enemy._tempestPhase === 'ready') {
         if (now >= (enemy._tempestCooldownEnd || 0)) {
-            const pool = [...[player], ...sentinels].sort(() => Math.random() - 0.5);
+            const pool = _shuffleArray([player, ...sentinels]);
             const count = Math.min(3, pool.length);
             enemy._tempestTargets = [];
             for (let i = 0; i < count; i++) {

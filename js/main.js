@@ -86,12 +86,6 @@ function playerTakesHit(attacker) {
         }
     }
 
-    // Riposte: activate 2s buff window (2s cooldown)
-    if (_hasBuff('phan_don') && performance.now() >= (window._phanDonCooldownEnd || 0)) {
-        window._phanDonEndTime = performance.now() + 2000;
-        window._phanDonCooldownEnd = performance.now() + 2000;
-    }
-
     // Iron Fortress: consume a stack before other shields
     if (_hasBuff('thanh_dong') && window._sigilIronBodyStacks > 0) {
         window._sigilIronBodyStacks--;
@@ -546,8 +540,8 @@ function update(rawDeltaTime) {
         }
         if (_hasBuff('guong_laze')) {
             window._mirrorLaserEntities = [
-                { y: 0, vy: 4, side: 'left' },
-                { y: canvas.height, vy: -4, side: 'right' }
+                { y: 0, vy: 5, side: 'left' },
+                { y: canvas.height, vy: -5, side: 'right' }
             ];
         }
         if (window.AudioMgr) { window.AudioMgr.stopCharging(); window.AudioMgr.startLaser(); }
@@ -571,6 +565,10 @@ function update(rawDeltaTime) {
 
             if (currentTime - lastLaserTick > laserTickInterval) {
                 lastLaserTick = currentTime;
+                // Mirror Laser: original beam +30% dmg; mirror entity beams inherit 75% of that
+                const _mlBuffed = _hasBuff('guong_laze');
+                const _laserDmg = 130 * (_mlBuffed ? 1.30 : 1);
+                const _laserPct = 0.19 * (_mlBuffed ? 1.30 : 1);
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return;
@@ -580,21 +578,22 @@ function update(rawDeltaTime) {
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                             // Laser vs Mar arc barrier: piercing — 30% body DR, barrier takes +15%, sword 25%
                             if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                                const _lSrc = { damage: 130, percentDamage: 0.19, isPiercing: true, _barrierPiercing: true };
+                                const _lSrc = { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _barrierPiercing: true };
                                 checkMarchosiasArcBarrier(enemy, _lSrc, enemy.x, enemy.y);
                                 dealDamage(enemy, _lSrc);
                                 break;
                             } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
-                                dealDamage(enemy, { damage: 130, percentDamage: 0.19, isPiercing: true });
+                                dealDamage(enemy, { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true });
                             }
                             break;
                         }
                     }
                 });
 
-                if (_hasBuff('guong_laze') && window._mirrorLaserEntities) {
+                if (_mlBuffed && window._mirrorLaserEntities) {
+                    const _mlMirrorDmg = _laserDmg * 0.75, _mlMirrorPct = _laserPct * 0.75;
                     for (const ent of window._mirrorLaserEntities) {
                         enemies.forEach(enemy => {
                             if (enemy.type === 'abyssal_chain') return;
@@ -602,13 +601,13 @@ function update(rawDeltaTime) {
                             if (enemy.inCoronation) return;
                             if (Math.abs(enemy.y - ent.y) < 50) {
                                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                                    const _mlSrc = { damage: 130, percentDamage: 0.19, isPiercing: true, _barrierPiercing: true };
+                                    const _mlSrc = { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true, _barrierPiercing: true };
                                     checkMarchosiasArcBarrier(enemy, _mlSrc, enemy.x, enemy.y);
                                     dealDamage(enemy, _mlSrc);
                                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                                 } else {
-                                    dealDamage(enemy, { damage: 130, percentDamage: 0.19, isPiercing: true });
+                                    dealDamage(enemy, { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true });
                                 }
                             }
                         });
@@ -722,7 +721,7 @@ function update(rawDeltaTime) {
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 5000;
                 createAegisTelegraph(enemy.x, enemy.y, player);
-                let availableSents = [...sentinels].sort(() => 0.5 - Math.random()).slice(0, 3);
+                let availableSents = _shuffleArray(sentinels).slice(0, 3);
                 availableSents.forEach(s => createAegisTelegraph(enemy.x, enemy.y, s));
             }
         }
@@ -1574,24 +1573,6 @@ function update(rawDeltaTime) {
                     }
                     dealDamage(enemy, _dealSrc);
 
-                    // Shadow Twin: mirror bullet explodes on each hit, blast radius = bullet size
-                    if (b._mirrorBullet) {
-                        const _expR = b.size;
-                        addExplosion(b.x, b.y, _expR * 1.8, '#00ff88');
-                        createParticles(b.x, b.y, 6, '#00ff88', 1, 4);
-                        // _expR (= bullet size) is always well inside one grid
-                        // cell, so the candidates already gathered for this
-                        // bullet's own hit-check cover the same area — reuse
-                        // instead of a second full scan of `enemies`.
-                        for (const _oe of _gridCandidates) {
-                            if (_oe.type.startsWith('enemy_bullet') || _oe.type === 'abyssal_chain' || _oe.inCoronation) continue;
-                            if (b.hitEnemies && b.hitEnemies.includes(_oe)) continue;
-                            if (Math.hypot(_oe.x - b.x, _oe.y - b.y) < _expR + _oe.size / 2) {
-                                dealDamage(_oe, { damage: b.damage, percentDamage: b.percentDamage || 0, _noBase60: true });
-                            }
-                        }
-                    }
-
                     if (b.isPiercing && _hasBuff('khat_chien')) {
                         if ((b._khatChienChain || 0) < 4) {
                             dealDamage(enemy, { damage: 0, percentDamage: 0.025, isTrueDamage: true, _noBase60: true });
@@ -1623,22 +1604,6 @@ function update(rawDeltaTime) {
                                 } else {
                                     window._sthBurning.set(enemy, { stacks: 1, nextTick: _hn + 500, expiry: _hn + 3000 });
                                 }
-                            }
-                        }
-
-                        if (b.type === 'player_auto' && _hasBuff('bong_doi') && b._bongDoiBullet) {
-                            window._bongDoiHitCount = (window._bongDoiHitCount || 0) + 1;
-                            if (window._bongDoiHitCount % 6 === 0) {
-                                const mirrorX = canvas.width - b.x;
-                                bullets.push({
-                                    x: mirrorX, y: b.y,
-                                    vx: -b.vx, vy: b.vy,
-                                    damage: Math.ceil(b.damage * 1.4), percentDamage: (b.percentDamage || 0) * 1.4,
-                                    size: b.size * 1.56, type: 'player_auto',
-                                    applyVuln: b.applyVuln, vulnChance: b.vulnChance,
-                                    isPiercing: true, hitEnemies: [],
-                                    _mirrorBullet: true,
-                                });
                             }
                         }
 
@@ -1787,6 +1752,9 @@ function update(rawDeltaTime) {
     const _profChk2 = [performance.now()];
     updateSoulReaverDoT(deltaTime); _profChk2.push(performance.now());
     updateSkillA(deltaTime); _profChk2.push(performance.now());
+    updateSolArrows(deltaTime); _profChk2.push(performance.now());
+    updateShadowTwin(deltaTime); _profChk2.push(performance.now());
+    updateShadowOrbs(deltaTime); _profChk2.push(performance.now());
     updateDimensionalRifts(deltaTime); _profChk2.push(performance.now());
     updateScatteredProjectiles(deltaTime); _profChk2.push(performance.now());
     updateSpirits(deltaTime); _profChk2.push(performance.now());
@@ -1799,7 +1767,7 @@ function update(rawDeltaTime) {
     updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
     updateMarchosiasBlades(deltaTime); _profChk2.push(performance.now());
     if (_profChk2[_profChk2.length - 1] - _profChk2[0] > 60) {
-        const _labels2 = ['soulReaverDoT', 'skillA', 'dimRifts', 'scatteredProj', 'spirits', 'bladeArc', 'spiritBullets', 'photoBrangs', 'skillD', 'skillF', 'energyOrbs', 'teslaCoils', 'marchosiasBlades'];
+        const _labels2 = ['soulReaverDoT', 'skillA', 'solArrows', 'shadowTwin', 'shadowOrbs', 'dimRifts', 'scatteredProj', 'spirits', 'bladeArc', 'spiritBullets', 'photoBrangs', 'skillD', 'skillF', 'energyOrbs', 'teslaCoils', 'marchosiasBlades'];
         const _parts2 = [];
         for (let _i2 = 1; _i2 < _profChk2.length; _i2++) {
             _parts2.push(_labels2[_i2 - 1] + ' ' + (_profChk2[_i2] - _profChk2[_i2 - 1]).toFixed(0) + 'ms');
@@ -2340,6 +2308,10 @@ function startGame() {
     bullets = []; enemies = []; explosions = []; particles = [];
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
+    window._solArrows = [];
+    window._bongDoiNextFire = 0;
+    window._shadowTwinGhosts = [];
+    window._shadowOrbs = [];
 
     // Reset Skill Shift
     skillShiftActive = false;
@@ -2388,20 +2360,16 @@ function startGame() {
     window._sigilPool = [...(typeof SIGIL_ORDER !== 'undefined' ? SIGIL_ORDER : [])];
     window._playerSigils = [];
     window._sigilPicker = null;
-    if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0) {
+    if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0 && !window._debugSkipSigilPick) {
         _wavePhase = 'sigil_pick';
         _triggerSigilPicker();
     }
     window._sigilIronBodyStacks = 0;
     window._sigilIronBodyNextAt = 0;
-    window._phanDonReady = false;
-    window._phanDonEndTime = 0;
-    window._phanDonCooldownEnd = 0;
     window._coiMongEndTime = 0;
     window._thanMenhEndTime = 0;
     window._tuyetLanStacks = 0;
     window._tuyetLanLastKill = 0;
-    window._bongDoiHitCount = 0;
     window._muiTenVangHitCount = 0;
     window._muiTenVangVolleyCount = 0;
     window._hoVeLastDeadMaxHp = 0;
