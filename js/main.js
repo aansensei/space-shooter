@@ -2319,6 +2319,8 @@ function startGame() {
     window._bongDoiCooldownEnd = 0;
     window._shadowTwinGhosts = [];
     window._shadowOrbs = [];
+    window._shadowTwinVolleysPending = 0;
+    window._shadowTwinNextVolleyAt = 0;
 
     // Reset Skill Shift
     skillShiftActive = false;

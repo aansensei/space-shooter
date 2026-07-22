@@ -23,7 +23,7 @@ const SIGIL_DEFS = {
         name: 'Gemini', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'bong_doi', name: 'Shadow Twin', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 10th hit landed by any allied source (Sentinels excluded) charges for 0.5s, then a phantom twin ship appears at the middle of a random screen edge (left/right) and fires 3 piercing plasma orbs (2 small, 1 large) at random enemies, flying all the way across the screen. Small orb: 100 + 5% PE dmg. Large orb: 250 + 13% PE dmg. Each hit applies 2 Vulnerability stacks and Soul Reaver. 1s cooldown before it can trigger again.' },
+              desc: 'Every 10th hit landed by any allied source (Sentinels excluded) charges for 0.5s, then a phantom twin ship appears at the middle of a random screen edge (left/right) and fires 3 volleys of piercing plasma orbs at random enemies, flying all the way across the screen. Each volley is 1 large orb flanked by 2 small orbs. Small orb: 75 + 3% EP dmg. Large orb: 175 + 8% EP dmg. Each hit applies 2 Vulnerability stacks and Soul Reaver. 1s cooldown before it can trigger again.' },
             { id: 'guong_laze', name: 'Mirror Laser', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions (+25% speed), each firing a horizontal laser beam at 75% of the original beam damage. The original beam itself is buffed +30%.' },
         ]
@@ -58,8 +58,8 @@ const SIGIL_DEFS = {
     libra: {
         name: 'Libra', element: 'Air', color: '#378ADD',
         buffs: [
-            { id: 'mui_ten_apollo', name: "Sol Judgment", type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Each Skill A activation marks the highest-HP enemy and fires a Sol Arrow after 0.5s windup. Arrow pierces all enemies (300 base dmg each), explodes on the marked target (400 base + 20% PE). All hit enemies take 2 Vulnerability stacks. Each 1% DR on the marked target grants +2% arrow damage (max +100%).' },
+            { id: 'mui_ten_apollo', name: "Blood Arrow", type: 'SPEC', typeC: '#f59e0b',
+              desc: 'Each Skill A cast fires 3 arrows after a 0.5s windup: 1 big arrow marks the highest-EP enemy, the other 2 mark random enemies (biased toward denser clusters). Each arrow pierces all enemies (300 base dmg) and explodes on its marked target (400 base + 20% PE, up to +100% more from the target\'s DR). All hit enemies take 2 Vulnerability stacks. The 2 small arrows deal 40% less damage but fly 20% faster than the big one, which is also 15% bigger.' },
             { id: 'xuyen_pha', name: 'Astral Pierce', type: 'ATK', typeC: '#ef4444',
               desc: 'Skill A orbs pierce through their target on impact and continue flying to the screen edge, dealing hit damage to every enemy they cross.' },
         ]
@@ -77,7 +77,7 @@ const SIGIL_DEFS = {
         name: 'Sagittarius', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
-              desc: 'Spirit arc slash fires 2 blades (+45% each); 2nd fires 15ms later. Each boomerang has 35% chance for 2 extra. Skill F sweep fires 2 blade arcs from player. Extra blades have +10% radius.' },
+              desc: 'Spirit arc slash fires 2 blades (+60% each); 2nd fires 15ms later. Each boomerang has 40% chance for 2 extra. Skill F sweep fires 2 blade arcs from player. Extra blades have +10% radius.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
               desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune: no pull (25% chance to pull anyway), still slowed.' },
         ]

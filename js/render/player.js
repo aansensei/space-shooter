@@ -1373,7 +1373,7 @@ function drawShadowOrbs() {
     if (!window._shadowOrbs || window._shadowOrbs.length === 0) return;
     const now = performance.now();
     for (const orb of window._shadowOrbs) {
-        const r = orb.isLarge ? 13 : 8;
+        const r = orb.isLarge ? 16.25 : 10;
         const pulse = 1 + 0.15 * Math.sin(now / 90 + orb.x * 0.05);
         const rr = r * pulse;
 
