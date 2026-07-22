@@ -24,11 +24,31 @@ let _bgCacheFrame = 0;  // frame counter for cache refresh
 function _initMobilePerf() {
     _mobPerf = true;
     _bgDirty = true;
-    // Triệt tiêu hoàn toàn shadow tại setter level, zero GPU cost
     try {
-        // intercepts every shadowBlur setter globally so no if(_mobPerf) guards needed anywhere in draw code
-        Object.defineProperty(ctx, 'shadowBlur',  { get: () => 0, set: () => {}, configurable: true });
-        Object.defineProperty(ctx, 'shadowColor', { get: () => 'transparent', set: () => {}, configurable: true });
+        const proto = Object.getPrototypeOf(ctx);
+        const nativeSB = Object.getOwnPropertyDescriptor(proto, 'shadowBlur');
+        const nativeSC = Object.getOwnPropertyDescriptor(proto, 'shadowColor');
+        let _sbVal = 0, _scVal = 'transparent';
+        // HIGH (level 0): soft-cap at 8px — same strategy as pixi-renderer's canvas.
+        // MED/LOW/MIN (level 1+): zero-out for GPU savings.
+        Object.defineProperty(ctx, 'shadowBlur', {
+            get: () => _gfxLevel === 0 ? _sbVal : 0,
+            set: (v) => {
+                if (_gfxLevel !== 0) return;
+                _sbVal = Math.min(v, 8);
+                nativeSB?.set?.call(ctx, _sbVal);
+            },
+            configurable: true
+        });
+        Object.defineProperty(ctx, 'shadowColor', {
+            get: () => _gfxLevel === 0 ? _scVal : 'transparent',
+            set: (v) => {
+                if (_gfxLevel !== 0) return;
+                _scVal = v;
+                nativeSC?.set?.call(ctx, v);
+            },
+            configurable: true
+        });
     } catch(e) {}
 }
 // Auto quality tiers (0=FULL 1=MED 2=LOW 3=MIN)
