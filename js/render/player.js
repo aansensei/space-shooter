@@ -240,10 +240,7 @@ function drawBullet(b) {
         ctx.globalAlpha = 1;
     }
     const _bs = _getBulletSprite(b.type || 'player_auto', b.size, _gfxLevel);
-    if (b._mirrorBullet) {
-        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14; }
-        ctx.filter = 'hue-rotate(-60deg)';
-    } else if (b._muiTenVangCrit) {
+    if (b._muiTenVangCrit) {
         const _gp = 0.55 + 0.45 * Math.sin(now / 220);
         ctx.strokeStyle = `rgba(50,255,80,${_gp})`;
         ctx.lineWidth = 2.5;
@@ -1324,6 +1321,109 @@ function drawMirrorLaserEntities() {
             _mlp.color = `rgba(0,${Math.floor(180 + Math.random() * 75)},${Math.floor(80 + Math.random() * 80)},0.8)`;
             particles.push(_mlp);
         }
+    }
+}
+
+// Shadow Twin (Gemini buff 1): phantom ship apparition + piercing plasma orbs
+function drawShadowTwin() {
+    if (!window._shadowTwinGhosts) return;
+    const now = performance.now();
+    for (const g of window._shadowTwinGhosts) {
+        const age = now - g.spawnTime;
+        const t = age / g.life;
+        let alpha;
+        if (t < 0.2) alpha = t / 0.2;
+        else if (t > 0.7) alpha = Math.max(0, 1 - (t - 0.7) / 0.3);
+        else alpha = 1;
+        alpha *= 0.85;
+        if (alpha <= 0) continue;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(g.x, g.y);
+        if (g.side === 'right') ctx.scale(-1, 1);
+        if (!_mobPerf) { ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 20; }
+
+        const hg = ctx.createLinearGradient(-28, 0, 28, 0);
+        hg.addColorStop(0, 'rgba(30,10,50,0.5)');
+        hg.addColorStop(0.5, 'rgba(90,45,140,0.65)');
+        hg.addColorStop(1, 'rgba(30,10,50,0.5)');
+        ctx.fillStyle = hg;
+        ctx.beginPath();
+        ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(26, 16);
+        ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-26, 16);
+        ctx.lineTo(-28, 10); ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(180,140,255,0.9)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
+        cg.addColorStop(0, 'rgba(210,170,255,0.85)');
+        cg.addColorStop(1, 'rgba(150,80,255,0)');
+        ctx.fillStyle = cg;
+        ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+
+        ctx.restore();
+    }
+}
+
+function drawShadowOrbs() {
+    if (!window._shadowOrbs || window._shadowOrbs.length === 0) return;
+    const now = performance.now();
+    for (const orb of window._shadowOrbs) {
+        const r = orb.isLarge ? 13 : 8;
+        const pulse = 1 + 0.15 * Math.sin(now / 90 + orb.x * 0.05);
+        const rr = r * pulse;
+
+        ctx.save();
+        ctx.translate(orb.x, orb.y);
+        if (!_mobPerf) { ctx.shadowColor = '#2196f3'; ctx.shadowBlur = orb.isLarge ? 26 : 18; }
+
+        // trailing motion streak
+        const trailAngle = Math.atan2(-orb.vy, -orb.vx);
+        const tg = ctx.createLinearGradient(0, 0, Math.cos(trailAngle) * rr * 3, Math.sin(trailAngle) * rr * 3);
+        tg.addColorStop(0, 'rgba(80,180,255,0.5)');
+        tg.addColorStop(1, 'rgba(80,180,255,0)');
+        ctx.strokeStyle = tg;
+        ctx.lineWidth = rr * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(trailAngle) * rr * 3, Math.sin(trailAngle) * rr * 3);
+        ctx.stroke();
+
+        // outer plasma halo
+        ctx.fillStyle = orb.isLarge ? 'rgba(30,140,255,0.30)' : 'rgba(30,140,255,0.22)';
+        ctx.beginPath(); ctx.arc(0, 0, rr * 1.8, 0, Math.PI * 2); ctx.fill();
+
+        // churning plasma tendrils
+        const tendrilCount = orb.isLarge ? 6 : 4;
+        ctx.strokeStyle = 'rgba(140,220,255,0.55)';
+        ctx.lineWidth = 1.4;
+        for (let ti = 0; ti < tendrilCount; ti++) {
+            const ta = now / 160 + ti * (Math.PI * 2 / tendrilCount);
+            const tr1 = rr * 0.6, tr2 = rr * 1.3;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(ta) * tr1, Math.sin(ta) * tr1);
+            ctx.lineTo(Math.cos(ta + 0.6) * tr2, Math.sin(ta + 0.6) * tr2);
+            ctx.stroke();
+        }
+
+        // plasma sphere body
+        const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, rr);
+        bg.addColorStop(0, '#ffffff');
+        bg.addColorStop(0.35, '#7fd3ff');
+        bg.addColorStop(0.7, '#2196f3');
+        bg.addColorStop(1, 'rgba(20,90,200,0.6)');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
+
+        // hot white core
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.arc(0, 0, rr * 0.35, 0, Math.PI * 2); ctx.fill();
+
+        ctx.restore();
     }
 }
 

@@ -23,9 +23,9 @@ const SIGIL_DEFS = {
         name: 'Gemini', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'bong_doi', name: 'Shadow Twin', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 6th bullet hit: mirror copy from opposite X side. 56% larger, +40% dmg, piercing, green. Explodes on each hit — blast radius = bullet size.' },
+              desc: 'Every 0.5s, a phantom twin ship appears at the middle of a random screen edge (left/right) and fires 3 piercing plasma orbs (2 small, 1 large) at random enemies, flying all the way across the screen. Small orb: 100 + 5% PE dmg. Large orb: 250 + 13% PE dmg. Each hit applies 2 Vulnerability stacks and Soul Reaver.' },
             { id: 'guong_laze', name: 'Mirror Laser', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions, each firing a horizontal laser beam with equal damage' },
+              desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions (+25% speed), each firing a horizontal laser beam at 75% of the original beam damage. The original beam itself is buffed +30%.' },
         ]
     },
     cancer: {
@@ -58,10 +58,10 @@ const SIGIL_DEFS = {
     libra: {
         name: 'Libra', element: 'Air', color: '#378ADD',
         buffs: [
-            { id: 'phan_don', name: 'Riposte', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'On hit taken: all non-auto skills deal +200% dmg for 2s. Orange ring when active. 2s cooldown between triggers.' },
-            { id: 'luat_can_bang', name: 'Law of Scales', type: 'ATK', typeC: '#ef4444',
-              desc: 'The lower an enemy HP, the more damage it takes: +0% at full HP to +70% at 10% HP' },
+            { id: 'mui_ten_apollo', name: "Sol Judgment", type: 'SPEC', typeC: '#f59e0b',
+              desc: 'Each Skill A activation marks the highest-HP enemy and fires a Sol Arrow after 0.5s windup. Arrow pierces all enemies (300 base dmg each), explodes on the marked target (400 base + 20% PE). All hit enemies take 2 Vulnerability stacks. Each 1% DR on the marked target grants +2% arrow damage (max +100%).' },
+            { id: 'xuyen_pha', name: 'Astral Pierce', type: 'ATK', typeC: '#ef4444',
+              desc: 'Skill A orbs pierce through their target on impact and continue flying to the screen edge, dealing hit damage to every enemy they cross.' },
         ]
     },
     scorpio: {
@@ -70,16 +70,16 @@ const SIGIL_DEFS = {
             { id: 'hoan_sinh', name: 'Resurrection', type: 'HEAL', typeC: '#22c55e',
               desc: 'On pick: immediately gain +5 lives. Life bonus rate: +1 life per 250,000 pts (instead of 500,000)' },
             { id: 'tu_huyet', name: 'Death Mark', type: 'ATK', typeC: '#ef4444',
-              desc: 'Enemies below 20% HP take +70% damage from all sources. Skill F blade arc pierces Iron Body. Enemy at exactly ≤3% HP: instantly killed with a blood-flower burst.' },
+              desc: 'HP 100%→21%: +0%→+70% damage linearly. HP ≤20%: +80% damage from all sources. HP ≤5%: lightning instakill. Skill F blade arc pierces Iron Body. Enemies below 50% HP show a cyan warning ring.' },
         ]
     },
     sagittarius: {
         name: 'Sagittarius', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
-              desc: 'Spirit arc slash fires 2 blades (+30% each); 2nd fires 10ms later. Each boomerang has 35% chance for an extra. Skill F sweep fires 2 blade arcs from player. Extra blades have +10% radius.' },
+              desc: 'Spirit arc slash fires 2 blades (+45% each); 2nd fires 15ms later. Each boomerang has 35% chance for 2 extra. Skill F sweep fires 2 blade arcs from player. Extra blades have +10% radius.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
-              desc: 'Boomerang and arc slash: 50% chance to slow 20% for 2s and pull toward the projectile. CC-immune: no pull, still slowed.' },
+              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune: no pull (25% chance to pull anyway), still slowed.' },
         ]
     },
     capricorn: {
@@ -123,7 +123,7 @@ function _hasBuff(id)  {
 }
 
 function _triggerSigilPicker() {
-    const shuffled = [...(window._sigilPool || [])].sort(() => Math.random() - 0.5);
+    const shuffled = _shuffleArray(window._sigilPool || []);
     const options = shuffled.slice(0, Math.min(4, shuffled.length));
     window._sigilPicker = {
         phase: 'slide_in',
@@ -175,7 +175,7 @@ function _completeSigilPicker(sigilId) {
 
 function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'tuyet_lan')    { window._tuyetLanStacks = 0; window._tuyetLanLastKill = 0; }
-    if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; }
+    if (buffId === 'bong_doi')     { window._bongDoiNextFire = performance.now() + 500; }
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
     if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 8000; }
@@ -942,19 +942,6 @@ function drawSigilShipUpgrades() {
         ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
         ctx.fillText('×' + ironStacks, player.x + 26, player.y - 34);
-        ctx.restore();
-    }
-
-    // Riposte (phan_don): orange ring during 2s buff window
-    if (_hasBuff('phan_don') && now < (window._phanDonEndTime || 0)) {
-        const pulse = 0.65 + 0.35 * Math.sin(now / 180);
-        ctx.save();
-        ctx.strokeStyle = `rgba(251,146,60,${pulse})`;
-        ctx.lineWidth = 2;
-        if (!_mobPerf) { ctx.shadowColor = '#fb923c'; ctx.shadowBlur = 16; }
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, 33, 0, Math.PI * 2);
-        ctx.stroke();
         ctx.restore();
     }
 

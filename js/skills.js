@@ -4,8 +4,7 @@ function updateDefensiveOrbs() {
     let needed = targetDefensive - currentDefensive;
 
     if (needed > 0) {
-        let nonDefensiveOrbs = skillAOrbs.filter(o => !o.isDefensive);
-        nonDefensiveOrbs.sort(() => 0.5 - Math.random());
+        let nonDefensiveOrbs = _shuffleArray(skillAOrbs.filter(o => !o.isDefensive));
         for (let i = 0; i < needed && i < nonDefensiveOrbs.length; i++) {
             nonDefensiveOrbs[i].isDefensive = true;
         }
@@ -20,12 +19,18 @@ function updateDefensiveOrbs() {
 function activateSkillA() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState === "playing" && currentTime - lastSkillA >= skillACooldown) {
-        if (skillAOrbs.length >= maxSkillAOrbs) return;
-        lastSkillA = currentTime;
+    if (gameState !== "playing" || currentTime - lastSkillA < skillACooldown) return;
+
+    const canSpawnOrbs = skillAOrbs.length < maxSkillAOrbs;
+    const hasSolJudgment = _hasBuff('mui_ten_apollo');
+    if (!canSpawnOrbs && !hasSolJudgment) return; // nothing would happen — don't consume the cooldown
+
+    lastSkillA = currentTime;
+    if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-activate');
+
+    if (canSpawnOrbs) {
         skillAActive = true;
         skillADefensiveCharges = 3;
-        if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-activate');
 
         const orbsToAdd = Math.min(20, maxSkillAOrbs - skillAOrbs.length);
         for (let i = 0; i < orbsToAdd; i++) {
@@ -39,6 +44,7 @@ function activateSkillA() {
         updateDefensiveOrbs();
         rebalanceSkillAOrbs();
     }
+    if (hasSolJudgment) _queueSolArrow();
 }
 
 function rebalanceSkillAOrbs() {
@@ -69,8 +75,8 @@ function updateSkillA(deltaTime) {
     let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= skillASensorRadius);
 
     if (availableEnemy) {
-        let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive);
-        if (!availableOrb) availableOrb = skillAOrbs.find(orb => !orb.target);
+        let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive && !orb._pierced);
+        if (!availableOrb) availableOrb = skillAOrbs.find(orb => !orb.target && !orb._pierced);
 
         if (availableOrb) {
             availableOrb.target = availableEnemy;
@@ -94,6 +100,29 @@ function updateSkillA(deltaTime) {
             orb.target.isTargetedByA = false;
             orb.target = null;
             orb.speed = 0;
+        }
+        if (orb._pierced) {
+            orb.x += orb._pvx * dt;
+            orb.y += orb._pvy * dt;
+            particles.push({ x: orb.x, y: orb.y, vx: -orb._pvx * 0.1, vy: -orb._pvy * 0.1, lifetime: 200, maxLifetime: 200, size: 4, color: 'rgba(0, 200, 255, 0.7)' });
+            if (orb.x < -100 || orb.x > canvas.width + 100 || orb.y < -100 || orb.y > canvas.height + 100) {
+                skillAOrbs.splice(i, 1);
+                updateDefensiveOrbs();
+                rebalanceSkillAOrbs();
+                continue;
+            }
+            for (const _pe of enemies) {
+                if (_pe.type.startsWith('enemy_bullet') || _pe.type === 'abyssal_chain' || _pe.type === 'veilshroud_echo' || _pe.inCoronation || _pe.hp <= 0) continue;
+                if (orb._pierceHits.has(_pe)) continue;
+                if (Math.hypot(_pe.x - orb.x, _pe.y - orb.y) < _pe.size / 2 + orb.size) {
+                    orb._pierceHits.add(_pe);
+                    dealDamage(_pe, { damage: 140, percentDamage: 0.22 });
+                    spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 8, percentDamage: 0.020 });
+                    addExplosion(orb.x, orb.y, 20, 'cyan');
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
+                }
+            }
+            continue;
         }
         if (orb.target) {
             if (!enemies.includes(orb.target) || orb.target.hp <= 0) {
@@ -122,8 +151,15 @@ function updateSkillA(deltaTime) {
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
                 if (_didDmg) spawnDimensionalRift(orb.x, orb.y);
-                skillAOrbs.splice(i, 1);
-
+                if (_hasBuff('xuyen_pha')) {
+                    orb._pierced = true;
+                    orb._pvx = (dx / dist) * orb.speed;
+                    orb._pvy = (dy / dist) * orb.speed;
+                    orb._pierceHits = new Set([orb.target]);
+                    orb.target = null;
+                } else {
+                    skillAOrbs.splice(i, 1);
+                }
                 updateDefensiveOrbs();
                 rebalanceSkillAOrbs();
             }
@@ -425,17 +461,17 @@ function updateSpirits(deltaTime) {
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
             if (_hasBuff('song_luoi')) {
-                const baseDmg = 210 * 1.30, basePct = 0.058 * 1.30;
+                const baseDmg = 210 * 1.45, basePct = 0.058 * 1.45;
                 const speed = 15.84;
                 const baseAngle = Math.atan2(vy, vx);
                 const sideOff = 22;
                 const px = -Math.sin(baseAngle) * sideOff, py = Math.cos(baseAngle) * sideOff;
                 // First blade: immediate
                 bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
-                // Second blade (extra): 10ms delay, +10% radius to bypass Iron Body on same frame
+                // Second blade (extra): 15ms delay, +10% radius to bypass Iron Body on same frame
                 if (!window._pendingBlades) window._pendingBlades = [];
                 window._pendingBlades.push({
-                    spawnAt: performance.now() + 10,
+                    spawnAt: performance.now() + 15,
                     data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 137, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
                 });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
@@ -721,8 +757,8 @@ function updatePhotokrystos(spirit, deltaTime) {
         spirit.volleyCount = 0;
         let brangCount = 2;
         if (_hasBuff('song_luoi')) {
-            if (Math.random() < 0.35) brangCount++;
-            if (Math.random() < 0.35) brangCount++;
+            if (Math.random() < 0.35) brangCount += 2;
+            if (Math.random() < 0.35) brangCount += 2;
         }
         spawnPhotoBrangs(spirit.x, spirit.y, brangCount, _hasBuff('song_luoi'));
     }
@@ -761,7 +797,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
 
     // Phóng ngay những cái đủ chỗ (base=2, extras từ song_luoi có +10% radius)
     for (let b = 0; b < throwNow; b++) {
-        const shuffled = [...validTargets].sort(() => Math.random() - 0.5);
+        const shuffled = _shuffleArray(validTargets);
         const first = shuffled[0];
         const dx = first.x - fromX, dy = first.y - fromY;
         const d = Math.hypot(dx, dy) || 1;
@@ -858,13 +894,18 @@ function updatePhotoBrangs(deltaTime) {
                     };
                     if (!checkMarchosiasArcBarrier(tgt, brangSrc, b.x, b.y)) {
                         dealDamage(tgt, brangSrc);
-                        if (_hasBuff('cuc_han') && Math.random() < 0.50) {
+                        if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                             tgt._slowEnd = Math.max(tgt._slowEnd || 0, now_b + 2000);
-                            tgt._slowFactor = Math.max(tgt._slowFactor || 1, 1 / 0.80);
+                            tgt._slowFactor = Math.max(tgt._slowFactor || 1, 1 / 0.70);
                             const _cucCCImmune = tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan'
                                 || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
                                 || (tgt.type === 'aegis_core' && tgt.aegisInvulnerable);
                             if (!_cucCCImmune) {
+                                const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
+                                const _cd = Math.hypot(_cdx, _cdy) || 1;
+                                tgt.x += (_cdx / _cd) * 38;
+                                tgt.y += (_cdy / _cd) * 38;
+                            } else if (Math.random() < 0.25) {
                                 const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
                                 const _cd = Math.hypot(_cdx, _cdy) || 1;
                                 tgt.x += (_cdx / _cd) * 38;
@@ -894,7 +935,7 @@ function updatePhotoBrangs(deltaTime) {
                     e.hp > 0 && !e._markedForDeath
                 );
                 if (newValid.length > 0) {
-                    b.targets = [...newValid].sort(() => Math.random() - 0.5);
+                    b.targets = _shuffleArray(newValid);
                     b.targetIdx = 0;
                     b._bounces = 0;
                 } else {
@@ -988,13 +1029,18 @@ function updateBladeArcProjectiles(deltaTime) {
                     : arc;
                 if (_arcBypass) _arcSrc._bypassIronBody = true;
                 dealDamage(enemy, _arcSrc);
-                if (_hasBuff('cuc_han') && Math.random() < 0.50) {
+                if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                     enemy._slowEnd = Math.max(enemy._slowEnd || 0, performance.now() + 2000);
-                    enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.80);
+                    enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
                     const _cucArcCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                         || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
                     if (!_cucArcCCImmune) {
+                        const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;
+                        const _ad = Math.hypot(_adx, _ady) || 1;
+                        enemy.x += (_adx / _ad) * 38;
+                        enemy.y += (_ady / _ad) * 38;
+                    } else if (Math.random() < 0.25) {
                         const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;
                         const _ad = Math.hypot(_adx, _ady) || 1;
                         enemy.x += (_adx / _ad) * 38;
@@ -1210,7 +1256,7 @@ function updateSkillF(deltaTime) {
         skillFSweepStart = currentTime;
         if (window.AudioMgr) { window.AudioMgr.stopSkillFCharge(); window.AudioMgr.startSkillFFire(); }
         if (_hasBuff('song_luoi')) {
-            const _fbDmg = 210 * 1.30, _fbPct = 0.058 * 1.30;
+            const _fbDmg = 210 * 1.45, _fbPct = 0.058 * 1.45;
             const _fbTargets = enemies.filter(e =>
                 !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' &&
                 e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
@@ -1226,7 +1272,7 @@ function updateSkillF(deltaTime) {
             const _fpx = -Math.sin(_fbAngle) * _sideOff, _fpy = Math.cos(_fbAngle) * _sideOff;
             if (!window._pendingBlades) window._pendingBlades = [];
             bladeArcProjectiles.push({ x: player.x - _fpx, y: player.y - _fpy, vx: Math.cos(_fbAngle) * _fbSpd, vy: Math.sin(_fbAngle) * _fbSpd, radius: 125, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true });
-            window._pendingBlades.push({ spawnAt: currentTime + 10, data: { x: player.x + _fpx, y: player.y + _fpy, vx: Math.cos(_fbAngle) * _fbSpd, vy: Math.sin(_fbAngle) * _fbSpd, radius: 137, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true } });
+            window._pendingBlades.push({ spawnAt: currentTime + 15, data: { x: player.x + _fpx, y: player.y + _fpy, vx: Math.cos(_fbAngle) * _fbSpd, vy: Math.sin(_fbAngle) * _fbSpd, radius: 137, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true } });
         }
     }
     if (skillFState === "sweeping") {
@@ -1697,6 +1743,207 @@ function updateSoulReaverDoT(deltaTime) {
                 enemy.y + (Math.random() - 0.5) * (enemy.size || 20),
                 3, '#FF4500', 1, 3
             );
+        }
+    }
+}
+
+// Sol Judgment (Libra buff 1): Sol Arrow queue/windup/flight
+
+function _estimateSolArrowDR(enemy) {
+    let dr = 0;
+    if (enemy.type === 'egregor') {
+        dr += 0.40;
+        if (enemy._nullSlashPhase === 'charging') dr += 0.40;
+        dr += Math.min(0.20, (enemy._tentaclesLost || 0) * 0.05);
+    }
+    if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
+        dr += (enemy.demonGiftStacks === 2) ? 0.40 : 0.20;
+    }
+    if (enemy.type === 'dargruel') {
+        dr += Math.min(0.60, 0.50 + sentinels.length * 0.025);
+        if (enemy.hp < enemy.maxHp * 0.6) {
+            const hpPercent = (enemy.hp / enemy.maxHp) * 100;
+            dr += Math.min(0.72, ((60 - hpPercent) * 1.5 / 100));
+        }
+    }
+    if (enemy.type === 'thaelis') {
+        const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
+        dr += Math.min(0.95, hpLostPct * 0.025);
+    }
+    if (enemy.type === 'aegis_core') dr += 0.55;
+    if (enemy.shield > 0 && enemy.aegisShieldReceived) dr += 0.18;
+    if (enemy.type === 'marchosias') dr += 0.45;
+    if (enemy.type === 'marchosias_minion' && enemy.DR) dr += enemy.DR;
+    if (enemy.type === 'leviathan') dr += 0.60;
+    if (enemy.type === 'embryo') dr += 0.90;
+    if (enemy.type === 'veilshroud') {
+        if (enemy._veilHealDRExpiry && performance.now() < enemy._veilHealDRExpiry) dr += 0.20;
+        dr += enemy.inPhantom ? 0.99 : 0.40;
+    }
+    if (enemy.levEnvy) dr += 0.25;
+    if (sentinels.includes(enemy)) {
+        dr += 0.08;
+        if (gloryForJusticeActive) dr += 0.30;
+        if (sentinels.length >= 5 && sentinels.length < 12) dr += 0.10;
+        if (enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) dr += 0.10;
+    }
+    return Math.min(0.99, dr);
+}
+
+function _pickSolArrowTarget() {
+    const validTargets = enemies.filter(e =>
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
+    );
+    if (validTargets.length === 0) return null;
+    return validTargets.reduce((a, b) =>
+        (a.hp + (a.shield || 0)) >= (b.hp + (b.shield || 0)) ? a : b
+    );
+}
+
+function _queueSolArrow() {
+    if (!window._solArrows) window._solArrows = [];
+    const marked = _pickSolArrowTarget();
+    if (!marked) {
+        // No enemy on screen yet — bank the shot, it fires the instant one appears
+        window._solArrows.push({ state: 'pending' });
+        return;
+    }
+    window._solArrows.push({
+        state: 'windup', windupStart: performance.now(), windupDuration: 500,
+        target: marked, x: player.x, y: player.y, vx: 0, vy: 0,
+        hitEnemies: new Set(),
+    });
+}
+
+function updateSolArrows(deltaTime) {
+    if (!window._solArrows || window._solArrows.length === 0) return;
+    const dt = deltaTime / 16.67;
+    const now = performance.now();
+    for (let i = window._solArrows.length - 1; i >= 0; i--) {
+        const arrow = window._solArrows[i];
+        if (arrow.state === 'pending') {
+            const marked = _pickSolArrowTarget();
+            if (marked) {
+                arrow.state = 'windup';
+                arrow.windupStart = now;
+                arrow.windupDuration = 500;
+                arrow.target = marked;
+                arrow.x = player.x; arrow.y = player.y; arrow.vx = 0; arrow.vy = 0;
+                arrow.hitEnemies = new Set();
+            }
+            continue;
+        }
+        if (arrow.state === 'windup') {
+            arrow.x = player.x;
+            arrow.y = player.y;
+            if (now - arrow.windupStart >= arrow.windupDuration) {
+                if (!enemies.includes(arrow.target) || arrow.target.hp <= 0) {
+                    window._solArrows.splice(i, 1);
+                    continue;
+                }
+                const dx = arrow.target.x - player.x, dy = arrow.target.y - player.y;
+                const d = Math.hypot(dx, dy) || 1;
+                arrow.vx = (dx / d) * 31.68;
+                arrow.vy = (dy / d) * 31.68;
+                arrow.state = 'flying';
+            }
+            continue;
+        }
+        if (arrow.state === 'flying') {
+            arrow.x += arrow.vx * dt;
+            arrow.y += arrow.vy * dt;
+            for (const enemy of enemies) {
+                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0) continue;
+                if (arrow.hitEnemies.has(enemy)) continue;
+                if (Math.hypot(enemy.x - arrow.x, enemy.y - arrow.y) < enemy.size / 2 + 8) {
+                    arrow.hitEnemies.add(enemy);
+                    if (enemy === arrow.target) {
+                        const estDR = _estimateSolArrowDR(enemy);
+                        const drBonus = Math.min(1.0, Math.floor(estDR * 100) * 0.02);
+                        const explosionDmg = (400 + primevalEnergy * 0.20) * (1 + drBonus);
+                        dealDamage(enemy, { damage: explosionDmg, isTrueDamage: true });
+                        applyVulnerability(enemy); applyVulnerability(enemy);
+                        addExplosion(arrow.x, arrow.y, 60, '#f59e0b');
+                        if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', arrow.x, arrow.y);
+                        window._solArrows.splice(i, 1);
+                        break;
+                    } else {
+                        dealDamage(enemy, { damage: 300 });
+                        applyVulnerability(enemy); applyVulnerability(enemy);
+                        createParticles(arrow.x, arrow.y, 8, '#f59e0b', 2, 5);
+                    }
+                }
+            }
+            if (arrow.state === 'flying' && (arrow.x < -50 || arrow.x > canvas.width + 50 || arrow.y < -50 || arrow.y > canvas.height + 50)) {
+                window._solArrows.splice(i, 1);
+            }
+        }
+    }
+}
+
+// Shadow Twin (Gemini buff 1): phantom ship fires 3 piercing plasma orbs every 0.5s
+function updateShadowTwin(deltaTime) {
+    if (!_hasBuff('bong_doi')) return;
+    const now = performance.now();
+    if (window._shadowTwinGhosts) {
+        window._shadowTwinGhosts = window._shadowTwinGhosts.filter(g => now - g.spawnTime < g.life);
+    }
+    if (now < (window._bongDoiNextFire || 0)) return;
+    window._bongDoiNextFire = now + 500;
+
+    const validTargets = enemies.filter(e =>
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
+    );
+    if (validTargets.length === 0) return;
+
+    const side = Math.random() < 0.5 ? 'left' : 'right';
+    const spawnX = side === 'left' ? 0 : canvas.width;
+    const spawnY = canvas.height / 2;
+
+    if (!window._shadowTwinGhosts) window._shadowTwinGhosts = [];
+    window._shadowTwinGhosts.push({ x: spawnX, y: spawnY, side, spawnTime: now, life: 700 });
+
+    if (!window._shadowOrbs) window._shadowOrbs = [];
+    const shuffled = _shuffleArray(validTargets);
+    const orbSpeed = 20;
+    for (let oi = 0; oi < 3; oi++) {
+        const tgt = shuffled[oi % shuffled.length];
+        const dx = tgt.x - spawnX, dy = tgt.y - spawnY;
+        const d = Math.hypot(dx, dy) || 1;
+        window._shadowOrbs.push({
+            x: spawnX, y: spawnY,
+            vx: (dx / d) * orbSpeed, vy: (dy / d) * orbSpeed,
+            isLarge: oi === 2,
+            hitEnemies: new Set(),
+        });
+    }
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-lock', spawnX, spawnY);
+}
+
+function updateShadowOrbs(deltaTime) {
+    if (!window._shadowOrbs || window._shadowOrbs.length === 0) return;
+    const dt = deltaTime / 16.67;
+    for (let i = window._shadowOrbs.length - 1; i >= 0; i--) {
+        const orb = window._shadowOrbs[i];
+        orb.x += orb.vx * dt;
+        orb.y += orb.vy * dt;
+        for (const enemy of enemies) {
+            if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0) continue;
+            if (orb.hitEnemies.has(enemy)) continue;
+            if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < enemy.size / 2 + (orb.isLarge ? 12 : 8)) {
+                orb.hitEnemies.add(enemy);
+                if (orb.isLarge) {
+                    dealDamage(enemy, { damage: 250, percentDamage: 0.13, applySoulReaver: true });
+                } else {
+                    dealDamage(enemy, { damage: 100, percentDamage: 0.05, applySoulReaver: true });
+                }
+                applyVulnerability(enemy); applyVulnerability(enemy);
+                createParticles(orb.x, orb.y, orb.isLarge ? 10 : 6, '#4fc3ff', 2, 6);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
+            }
+        }
+        if (orb.x < -60 || orb.x > canvas.width + 60 || orb.y < -60 || orb.y > canvas.height + 60) {
+            window._shadowOrbs.splice(i, 1);
         }
     }
 }

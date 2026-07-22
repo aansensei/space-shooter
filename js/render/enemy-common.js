@@ -845,6 +845,21 @@ function drawEnemy(enemy) {
     ctx.fillText(Math.ceil(enemy.hp), enemy.x, enemy.y + 5);
     ctx.restore();
 
+    // Death Mark (tu_huyet): cyan warning ring on enemies below 50% HP (down to the 20% threshold)
+    if (typeof _hasBuff === 'function' && _hasBuff('tu_huyet') && !enemy.type.startsWith('enemy_bullet')
+        && enemy.hp > 0 && enemy.hp / (enemy.maxHp || enemy.hp) < 0.50 && enemy.hp / (enemy.maxHp || enemy.hp) >= 0.20) {
+        const _cdmNow = performance.now();
+        const _cdmPulse = 0.5 + 0.5 * Math.sin(_cdmNow / 160);
+        ctx.save();
+        ctx.strokeStyle = `rgba(34,211,238,${0.55 + 0.25 * _cdmPulse})`;
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 12; }
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     // Death Mark (tu_huyet): red pulsing glow on enemies below 20% HP
     if (typeof _hasBuff === 'function' && _hasBuff('tu_huyet') && !enemy.type.startsWith('enemy_bullet')
         && enemy.hp > 0 && enemy.hp / (enemy.maxHp || enemy.hp) < 0.20) {
