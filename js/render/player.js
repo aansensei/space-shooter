@@ -1379,13 +1379,13 @@ function drawShadowOrbs() {
 
         ctx.save();
         ctx.translate(orb.x, orb.y);
-        if (!_mobPerf) { ctx.shadowColor = '#2196f3'; ctx.shadowBlur = orb.isLarge ? 26 : 18; }
+        if (!_mobPerf) { ctx.shadowColor = '#d6148f'; ctx.shadowBlur = orb.isLarge ? 26 : 18; }
 
         // trailing motion streak
         const trailAngle = Math.atan2(-orb.vy, -orb.vx);
         const tg = ctx.createLinearGradient(0, 0, Math.cos(trailAngle) * rr * 3, Math.sin(trailAngle) * rr * 3);
-        tg.addColorStop(0, 'rgba(80,180,255,0.5)');
-        tg.addColorStop(1, 'rgba(80,180,255,0)');
+        tg.addColorStop(0, 'rgba(220,40,140,0.5)');
+        tg.addColorStop(1, 'rgba(220,40,140,0)');
         ctx.strokeStyle = tg;
         ctx.lineWidth = rr * 0.9;
         ctx.beginPath();
@@ -1394,12 +1394,12 @@ function drawShadowOrbs() {
         ctx.stroke();
 
         // outer plasma halo
-        ctx.fillStyle = orb.isLarge ? 'rgba(30,140,255,0.30)' : 'rgba(30,140,255,0.22)';
+        ctx.fillStyle = orb.isLarge ? 'rgba(180,10,110,0.30)' : 'rgba(180,10,110,0.22)';
         ctx.beginPath(); ctx.arc(0, 0, rr * 1.8, 0, Math.PI * 2); ctx.fill();
 
         // churning plasma tendrils
         const tendrilCount = orb.isLarge ? 6 : 4;
-        ctx.strokeStyle = 'rgba(140,220,255,0.55)';
+        ctx.strokeStyle = 'rgba(255,120,190,0.55)';
         ctx.lineWidth = 1.4;
         for (let ti = 0; ti < tendrilCount; ti++) {
             const ta = now / 160 + ti * (Math.PI * 2 / tendrilCount);
@@ -1413,9 +1413,9 @@ function drawShadowOrbs() {
         // plasma sphere body
         const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, rr);
         bg.addColorStop(0, '#ffffff');
-        bg.addColorStop(0.35, '#7fd3ff');
-        bg.addColorStop(0.7, '#2196f3');
-        bg.addColorStop(1, 'rgba(20,90,200,0.6)');
+        bg.addColorStop(0.35, '#ff9fd0');
+        bg.addColorStop(0.7, '#d6148f');
+        bg.addColorStop(1, 'rgba(110,0,75,0.6)');
         ctx.fillStyle = bg;
         ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.fill();
 

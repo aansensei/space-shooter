@@ -1712,6 +1712,16 @@ function dealDamage(enemy, source) {
         applyVulnerability(enemy);
     }
 
+    // Sigil: Shadow Twin trigger — every 10th hit from any player-ally source (sentinels excluded)
+    if (_hasBuff('bong_doi') && !isSentinel && source.type !== 'sentinel_auto' && source.type !== 'sentinel_special') {
+        window._bongDoiHitCount = (window._bongDoiHitCount || 0) + 1;
+        if (window._bongDoiHitCount % 10 === 0 && !window._bongDoiCharging
+            && currentTime >= (window._bongDoiCooldownEnd || 0)) {
+            window._bongDoiCharging = true;
+            window._bongDoiChargeStart = currentTime;
+        }
+    }
+
     if (enemy.type === 'dargruel') {
         const oldPercent = oldHP / enemy.maxHp;
         const newPercent = enemy.hp / enemy.maxHp;

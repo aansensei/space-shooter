@@ -390,7 +390,9 @@ function update(rawDeltaTime) {
                 spiritBullets.splice(i, 1);
             }
         }
-        // photoBrangs are immune to Maou Haki (like bladeArcProjectiles)
+        // photoBrangs are immune to Maou Haki (like bladeArcProjectiles).
+        // Sol Arrow (window._solArrows) and Shadow Twin orbs (window._shadowOrbs) live in
+        // their own arrays and are never touched by this loop — also immune.
 
         if (!wave._id) wave._id = 'shockwave_' + performance.now().toFixed(0);
         sentinels.forEach(sentinel => {
@@ -1802,7 +1804,9 @@ function update(rawDeltaTime) {
             return Math.abs(diff) < (halfDeg * Math.PI / 180);
         };
 
-        // Destroy player bullets in beam path
+        // Destroy player bullets in beam path.
+        // Sol Arrow and Shadow Twin orbs live in their own arrays and are never
+        // touched here — immune to the Perseverance sweep, same as Maou Haki.
         bullets = bullets.filter(b => !angHit(b.x, b.y, 14));
         spiritBullets = spiritBullets.filter(b => !angHit(b.x, b.y, 14));
         skillAOrbs = skillAOrbs.filter(b => !angHit(b.x, b.y, 14));
@@ -2309,7 +2313,10 @@ function startGame() {
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
     window._solArrows = [];
-    window._bongDoiNextFire = 0;
+    window._bongDoiHitCount = 0;
+    window._bongDoiCharging = false;
+    window._bongDoiChargeStart = 0;
+    window._bongDoiCooldownEnd = 0;
     window._shadowTwinGhosts = [];
     window._shadowOrbs = [];
 
