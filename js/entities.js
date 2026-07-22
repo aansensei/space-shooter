@@ -1477,6 +1477,7 @@ function dealDamage(enemy, source) {
         combinedDR += 0.10;
     }
 
+    if (enemy._debugDR) combinedDR += enemy._debugDR;
     combinedDR = Math.min(0.99, combinedDR);
     const _veilPreDr = (enemy.type === 'veilshroud' && enemy.inPhantom) ? totalDamage : 0;
     // True damage skips DR; Lion's Roar Burn uses 50% of DR; normal damage uses full DR

@@ -35,7 +35,7 @@ function _initMobilePerf() {
             get: () => _gfxLevel === 0 ? _sbVal : 0,
             set: (v) => {
                 if (_gfxLevel !== 0) return;
-                _sbVal = Math.min(v, 8);
+                _sbVal = Math.min(v, 14);
                 nativeSB?.set?.call(ctx, _sbVal);
             },
             configurable: true

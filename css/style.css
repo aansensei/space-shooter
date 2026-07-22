@@ -149,6 +149,36 @@ canvas {
     transform: scale(1.05);
 }
 
+#pause-main-btns {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+}
+
+#main-menu-btn {
+    padding: 15px 32px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    background: transparent;
+    color: rgba(0, 255, 255, 0.6);
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 5px;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.08);
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#main-menu-btn:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.55);
+    box-shadow: 0 0 18px rgba(0, 255, 255, 0.25);
+    color: #00ffff;
+    transform: scale(1.03);
+}
+
 /* Thanh Loading */
 #resume-progress-container {
     width: 400px;
