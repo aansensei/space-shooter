@@ -1813,6 +1813,7 @@ function _queueSolArrow() {
         target: marked, x: player.x, y: player.y, vx: 0, vy: 0,
         hitEnemies: new Set(),
     });
+    if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-orb-lock');
 }
 
 function updateSolArrows(deltaTime) {
@@ -1830,6 +1831,7 @@ function updateSolArrows(deltaTime) {
                 arrow.target = marked;
                 arrow.x = player.x; arrow.y = player.y; arrow.vx = 0; arrow.vy = 0;
                 arrow.hitEnemies = new Set();
+                if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-orb-lock');
             }
             continue;
         }
@@ -1846,6 +1848,7 @@ function updateSolArrows(deltaTime) {
                 arrow.vx = (dx / d) * 31.68;
                 arrow.vy = (dy / d) * 31.68;
                 arrow.state = 'flying';
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('charged-shot', player.x, player.y);
             }
             continue;
         }
@@ -1864,7 +1867,7 @@ function updateSolArrows(deltaTime) {
                         dealDamage(enemy, { damage: explosionDmg, isTrueDamage: true });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         addExplosion(arrow.x, arrow.y, 60, '#f59e0b');
-                        if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', arrow.x, arrow.y);
+                        if (window.AudioMgr) window.AudioMgr.playSfxAt('dimensional-rift', arrow.x, arrow.y);
                         window._solArrows.splice(i, 1);
                         break;
                     } else {
@@ -1919,7 +1922,7 @@ function updateShadowTwin(deltaTime) {
             hitEnemies: new Set(),
         });
     }
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-lock', spawnX, spawnY);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('coronation', spawnX, spawnY);
 }
 
 function updateShadowOrbs(deltaTime) {
