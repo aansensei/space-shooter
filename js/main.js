@@ -524,6 +524,13 @@ function update(rawDeltaTime) {
         });
     }
 
+    if (window._debugNoCooldown) {
+        lastSkillA = -Infinity; lastSkillS = -Infinity;
+        lastSkillD = -Infinity; lastSkillF = -Infinity;
+        lastSkillShift = -Infinity; laserCooldownEnd = 0;
+        if (typeof skillGCharge !== 'undefined') skillGCharge = 100;
+    }
+
     // Block auto-fire while silenced
     if (!player._silenced && !window._debugAutoshotOff) fireAutoShot();
     _profChk.push(performance.now()); // pre-section (up to & including fireAutoShot)
@@ -632,6 +639,15 @@ function update(rawDeltaTime) {
 
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
+
+        if (enemy.type === 'debug_dummy') {
+            if (enemy.hp <= 0) { enemy.hp = enemy.maxHp; enemy._state = 'idle'; enemy._stateTime = 0; }
+            if ((enemy._isImmune || enemy._ironActive) && enemy._lastHpBeforeFrame !== undefined && enemy.hp < enemy._lastHpBeforeFrame) {
+                enemy.hp = enemy._lastHpBeforeFrame;
+            }
+            enemy._lastHpBeforeFrame = enemy.hp;
+            continue;
+        }
 
         if (enemy.type === 'embryo') {
             enemy.hatchTimer -= deltaTime;
@@ -2226,7 +2242,7 @@ function _updateWaveSystem(deltaTime, now) {
         }
     }
     if (_waveQueue.length === 0) {
-        const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
+        const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'debug_dummy').length;
         if (_alive === 0) {
             if ((_waveNumber === 5 || _waveNumber === 10) && (window._playerSigils || []).length < 3 && (window._sigilPool || []).length > 0) {
                 _wavePhase = 'sigil_pick';

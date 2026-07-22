@@ -4,7 +4,389 @@
 // (normal enemy, enemy bullets, embryo, vulnerability icon, coronation fx).
 // Depends on core.js + fx.js (_drawLightningBolt used by _drawCoronationEffect).
 
+function _drawDebugDummy(e, now) {
+    const x = e.x, y = e.y, R = e.size;
+    if (!e._particles) e._particles = [];
+    if (e._stateTime === undefined) e._stateTime = now;
+    if (!e._state) e._state = 'idle';
+
+    const elapsed = now - e._stateTime;
+
+    // Auto-detect HP decrease → trigger hit animation
+    if (e._lastHp !== undefined && e.hp < e._lastHp && e._state !== 'invincible' && e._state !== 'death') {
+        e._state = e._ironActive ? 'iron' : 'hit';
+        e._stateTime = now;
+    }
+    e._lastHp = e.hp;
+
+    // State durations (ms)
+    const DUR = { hit: 500, dot: 1600, heal: 1100, shield: 700, iron: 500, truedmg: 750, pierce: 950, death: 2200 };
+    if (DUR[e._state] && elapsed >= DUR[e._state]) {
+        e._state = 'idle';
+    }
+
+    const hpPct = e.maxHp > 0 ? Math.max(0, Math.min(1, e.hp / e.maxHp)) : 0;
+    const hpColor = hpPct > 0.5 ? '#00ff88' : hpPct > 0.25 ? '#ffcc00' : '#ff4444';
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // === IRON BODY PASSIVE RING ===
+    if (e._ironActive) {
+        ctx.save();
+        ctx.rotate(now / 350);
+        ctx.strokeStyle = 'rgba(255,204,0,0.7)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 7]);
+        if (!_mobPerf) { ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 14; }
+        ctx.beginPath();
+        ctx.arc(0, 0, R + 20, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+
+    // === IMMUNITY RING ===
+    if (e._isImmune) {
+        const ph = (now / 300) % 1;
+        ctx.save();
+        ctx.strokeStyle = `rgba(80,200,255,${0.4 + 0.3 * Math.sin(now / 200)})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.lineDashOffset = -ph * 12;
+        ctx.beginPath();
+        ctx.arc(0, 0, R + 25, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+
+    // === INVINCIBLE STATE AURA ===
+    if (e._state === 'invincible') {
+        const hue = (now / 4) % 360;
+        ctx.save();
+        ctx.strokeStyle = `hsla(${hue}, 100%, 65%, ${0.75 + 0.25 * Math.sin(now / 90)})`;
+        ctx.lineWidth = 4;
+        if (!_mobPerf) { ctx.shadowColor = `hsl(${hue}, 100%, 60%)`; ctx.shadowBlur = 22; }
+        ctx.beginPath();
+        ctx.arc(0, 0, R + 12, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // === HP ARC RING ===
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.beginPath();
+    ctx.arc(0, 0, R + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2, false);
+    ctx.stroke();
+    if (hpPct > 0.001) {
+        if (!_mobPerf) { ctx.shadowColor = hpColor; ctx.shadowBlur = 9; }
+        ctx.strokeStyle = hpColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, R + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * hpPct, false);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+
+    // === SHAKE TRANSFORM (hit state) ===
+    const shakeAmt = (e._state === 'hit' || e._state === 'iron') && elapsed < 300 ?
+        (1 - elapsed / 300) * 9 * (Math.random() - 0.5) : 0;
+    ctx.save();
+    ctx.translate(shakeAmt, shakeAmt * 0.4);
+
+    // === HEXAGONAL BODY ===
+    ctx.save();
+    const hexR = R * 0.88;
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2 - Math.PI / 6;
+        const hx = Math.cos(a) * hexR, hy = Math.sin(a) * hexR;
+        k === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy);
+    }
+    ctx.closePath();
+
+    let fillCol = 'rgba(10,20,40,0.88)';
+    if (e._state === 'hit') fillCol = 'rgba(55,8,5,0.90)';
+    if (e._state === 'dot') fillCol = `rgba(30,5,45,${0.88 + 0.07 * Math.sin(now / 120)})`;
+    if (e._state === 'heal') fillCol = 'rgba(5,35,20,0.90)';
+    if (e._state === 'truedmg') fillCol = `rgba(240,240,255,${0.85 + 0.12 * Math.sin(now / 40)})`;
+    if (e._state === 'death') fillCol = 'rgba(40,15,5,0.80)';
+    ctx.fillStyle = fillCol;
+    ctx.fill();
+
+    let borderCol = 'rgba(0,200,255,0.70)';
+    if (e._state === 'hit') borderCol = '#ff5500';
+    if (e._state === 'dot') borderCol = '#cc00ff';
+    if (e._state === 'heal') borderCol = '#00ff88';
+    if (e._state === 'shield') borderCol = '#0096ff';
+    if (e._state === 'iron') borderCol = '#ffcc00';
+    if (e._state === 'truedmg') borderCol = '#ffffff';
+    if (e._state === 'pierce') borderCol = '#ff2200';
+    if (e._state === 'invincible') borderCol = `hsl(${(now / 5) % 360}, 100%, 65%)`;
+    if (e._state === 'death') borderCol = '#ff6600';
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 2.2;
+    if (!_mobPerf) { ctx.shadowColor = borderCol; ctx.shadowBlur = 14; }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Circuit lines
+    if (!_mobPerf) {
+        ctx.strokeStyle = 'rgba(0,200,255,0.14)';
+        ctx.lineWidth = 0.9;
+        for (let k = 0; k < 3; k++) {
+            const a = (k / 3) * Math.PI;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * hexR * 0.38, Math.sin(a) * hexR * 0.38);
+            ctx.lineTo(Math.cos(a) * hexR * 0.86, Math.sin(a) * hexR * 0.86);
+            ctx.stroke();
+        }
+    }
+
+    // Crosshair
+    ctx.strokeStyle = 'rgba(0,220,255,0.25)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-hexR * 0.62, 0); ctx.lineTo(hexR * 0.62, 0);
+    ctx.moveTo(0, -hexR * 0.62); ctx.lineTo(0, hexR * 0.62);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.46, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore(); // end hex body
+
+    // === ENERGY CORE ===
+    const corePulse = 0.82 + 0.18 * Math.sin(now / 180);
+    let coreCol = '#00e5ff';
+    if (e._state === 'hit') coreCol = '#ff4400';
+    if (e._state === 'dot') coreCol = '#cc00ff';
+    if (e._state === 'heal') coreCol = '#00ff88';
+    if (e._state === 'shield') coreCol = '#0096ff';
+    if (e._state === 'iron') coreCol = '#ffcc00';
+    if (e._state === 'truedmg') coreCol = '#ffffff';
+    if (e._state === 'pierce') coreCol = '#ff2200';
+    if (e._state === 'death') coreCol = '#ff8800';
+    if (e._state === 'invincible') coreCol = `hsl(${(now / 4) % 360}, 100%, 68%)`;
+
+    if (!_mobPerf) { ctx.shadowColor = coreCol; ctx.shadowBlur = 22; }
+    ctx.fillStyle = coreCol;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.30 * corePulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // === STATE EFFECTS ===
+
+    // HIT: shockwave ring
+    if ((e._state === 'hit') && elapsed < 500) {
+        const p = elapsed / 500;
+        ctx.save();
+        ctx.globalAlpha = (1 - p) * 0.85;
+        if (!_mobPerf) { ctx.shadowColor = '#ff5500'; ctx.shadowBlur = 18; }
+        ctx.strokeStyle = '#ff6622';
+        ctx.lineWidth = 4 * (1 - p);
+        ctx.beginPath();
+        ctx.arc(0, 0, R * (1 + p * 2.2), 0, Math.PI * 2);
+        ctx.stroke();
+        if (!_mobPerf) {
+            ctx.lineWidth = 2 * (1 - p);
+            ctx.globalAlpha = (1 - p) * 0.4;
+            ctx.beginPath();
+            ctx.arc(0, 0, R * (1 + p * 3.5), 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    // IRON HIT: gold sparks + DEFLECT
+    if (e._state === 'iron' && elapsed < 500) {
+        const p = elapsed / 500;
+        ctx.save();
+        ctx.globalAlpha = 1 - p;
+        if (!_mobPerf) { ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 14; }
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 3 * (1 - p);
+        ctx.beginPath();
+        ctx.arc(0, 0, R + 22 + p * 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        for (let k = 0; k < (elapsed < 100 ? 6 : 0); k++) {
+            const sa = Math.random() * Math.PI * 2;
+            const sl = R + Math.random() * R;
+            ctx.strokeStyle = Math.random() < 0.5 ? '#ffd700' : '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(sa) * R, Math.sin(sa) * R);
+            ctx.lineTo(Math.cos(sa) * sl, Math.sin(sa) * sl);
+            ctx.stroke();
+        }
+        ctx.fillStyle = `rgba(255,210,0,${1-p})`;
+        ctx.font = `bold ${Math.max(9, Math.round(R * 0.38))}px "Courier New"`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('DEFLECT', 0, -R * 1.7);
+        ctx.restore();
+    }
+
+    // DOT: rising purple bubbles
+    if (e._state === 'dot') {
+        ctx.save();
+        const fade = Math.max(0, 1 - elapsed / 1600);
+        ctx.globalAlpha = fade * 0.28 * Math.abs(Math.sin(now / 180));
+        ctx.fillStyle = '#aa00ff';
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        for (let k = 0; k < 5; k++) {
+            const bx = Math.sin(now / 100 + k * 1.25) * R * 0.55;
+            const by = -((elapsed * 0.042) % (R * 2.5)) - k * R * 0.22;
+            ctx.globalAlpha = Math.max(0, 1 - elapsed / 1600) * 0.85;
+            ctx.fillStyle = k % 2 === 0 ? 'rgba(170,0,255,0.75)' : 'rgba(100,0,200,0.65)';
+            ctx.beginPath();
+            ctx.arc(bx, by, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // HEAL: contracting ring + plus signs
+    if (e._state === 'heal' && elapsed < 1100) {
+        const p = elapsed / 1100;
+        ctx.save();
+        if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 16; }
+        ctx.strokeStyle = `rgba(0,255,136,${(1 - p) * 0.85})`;
+        ctx.lineWidth = 3.5 * (1 - p * 0.6);
+        ctx.beginPath();
+        ctx.arc(0, 0, R * 2.8 * (1 - p) + R * 0.25, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = `rgba(0,255,136,${(1 - p) * 0.9})`;
+        ctx.font = `bold ${Math.max(10, Math.round(R * 0.46))}px "Courier New"`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let k = 0; k < 3; k++) {
+            ctx.fillText('+', (k - 1) * R * 0.52, -p * R * 2 - k * R * 0.28);
+        }
+        ctx.restore();
+    }
+
+    // SHIELD BLOCK: blue ring + text
+    if (e._state === 'shield' && elapsed < 700) {
+        const p = elapsed / 700;
+        ctx.save();
+        ctx.globalAlpha = 1 - p;
+        if (!_mobPerf) { ctx.shadowColor = '#0096ff'; ctx.shadowBlur = 22; }
+        ctx.strokeStyle = `rgba(0,150,255,${1 - p})`;
+        ctx.lineWidth = 5 * (1 - p * 0.4);
+        ctx.beginPath();
+        ctx.arc(0, 0, R + 14 + p * 8, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(0,180,255,${(1 - p) * 0.22})`;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = `rgba(0,200,255,${1 - p})`;
+        ctx.font = `bold ${Math.max(9, Math.round(R * 0.42))}px "Courier New"`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('BLOCK', 0, -R * 1.7);
+        ctx.restore();
+    }
+
+    // TRUE DAMAGE: white diagonal slash + text
+    if (e._state === 'truedmg' && elapsed < 750) {
+        const p = elapsed / 750;
+        ctx.save();
+        ctx.globalAlpha = 1 - p;
+        if (!_mobPerf) { ctx.shadowColor = 'cyan'; ctx.shadowBlur = 22; }
+        ctx.strokeStyle = `rgba(255,255,255,${1 - p})`;
+        ctx.lineWidth = 6 * (1 - p);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-R * 1.6, -R * 1.6);
+        ctx.lineTo(R * 1.6, R * 1.6);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = `rgba(255,60,60,${1 - p})`;
+        ctx.font = `bold ${Math.max(9, Math.round(R * 0.42))}px "Courier New"`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('TRUE DMG', 0, -R * 1.75);
+        ctx.restore();
+    }
+
+    // PIERCE: laser beam + glowing wound
+    if (e._state === 'pierce' && elapsed < 950) {
+        const p = elapsed / 950;
+        ctx.save();
+        if (elapsed < 220) {
+            ctx.globalAlpha = Math.max(0, 1 - elapsed / 220) * 0.9;
+            if (!_mobPerf) { ctx.shadowColor = 'red'; ctx.shadowBlur = 14; }
+            ctx.fillStyle = 'rgba(255,20,0,0.85)';
+            ctx.fillRect(-canvas.width, -3.5, canvas.width * 2, 7);
+        }
+        ctx.globalAlpha = 1 - p * 0.7;
+        if (!_mobPerf) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 14; }
+        ctx.fillStyle = `rgba(255,60,0,${0.9 - p * 0.5})`;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, Math.max(2, 11 - p * 4), Math.max(1, 7 - p * 2), 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // DEATH: triple shockwave
+    if (e._state === 'death' && elapsed < 2200) {
+        const waveColors = ['#ff4400', '#ff8800', '#ffcc44'];
+        for (let w = 0; w < 3; w++) {
+            const delay = w * 320;
+            if (elapsed < delay) continue;
+            const wp = Math.min(1, (elapsed - delay) / 1100);
+            ctx.save();
+            ctx.globalAlpha = (1 - wp) * 0.75;
+            if (!_mobPerf) { ctx.shadowColor = waveColors[w]; ctx.shadowBlur = 16; }
+            ctx.strokeStyle = waveColors[w];
+            ctx.lineWidth = 6 * (1 - wp);
+            ctx.beginPath();
+            ctx.arc(0, 0, R * (0.6 + wp * 3.5), 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+        // Flash at start
+        if (elapsed < 80) {
+            ctx.save();
+            ctx.globalAlpha = (1 - elapsed / 80) * 0.7;
+            ctx.fillStyle = '#ff8800';
+            ctx.beginPath();
+            ctx.arc(0, 0, R * 1.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    ctx.restore(); // end shake
+
+    // === LABEL + HP ===
+    const labelY = R + 20;
+    ctx.fillStyle = 'rgba(180,220,255,0.65)';
+    ctx.font = `bold ${Math.max(10, Math.round(R * 0.32))}px "Courier New"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('DUMMY', 0, labelY);
+    ctx.fillStyle = hpColor;
+    ctx.font = `${Math.max(9, Math.round(R * 0.26))}px "Courier New"`;
+    ctx.fillText(Math.max(0, Math.round(e.hp)) + ' / ' + Math.round(e.maxHp), 0, labelY + 13);
+
+    ctx.restore();
+}
+
 function drawEnemy(enemy) {
+    if (enemy.type === 'debug_dummy') { _drawDebugDummy(enemy, performance.now()); return; }
     // Abyssal Chain render
     if (enemy.type === 'abyssal_chain') {
         const now0 = performance.now();

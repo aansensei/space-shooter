@@ -463,6 +463,9 @@ function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, 
     const divY = compact ? y + 80 : y + 141;
     ctx.beginPath(); ctx.moveTo(x + 12, divY); ctx.lineTo(x + w - 12, divY); ctx.stroke();
 
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
     _drawMiniBuffRow(cx, compact ? y + 90 : y + 160, w - (compact ? 12 : 20), def.buffs[0], compact ? 1 : 2);
     _drawMiniBuffRow(cx, compact ? y + 140 : y + 228, w - (compact ? 12 : 20), def.buffs[1], compact ? 1 : 2);
 

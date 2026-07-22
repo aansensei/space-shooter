@@ -24,6 +24,7 @@
         antialias:       false,
         autoStart:       false,
         preference:      'webgl',
+        roundPixels:     true,
     });
     window._bgPixiApp = app;
 
@@ -657,6 +658,7 @@
     // ─── RESIZE ──────────────────────────────────────────────────────────
     new ResizeObserver(() => {
         const w = window.innerWidth, h = window.innerHeight;
+        if (!w || !h) return;
         if (app.renderer.width === w && app.renderer.height === h) return;
         app.renderer.resize(w, h);
 
