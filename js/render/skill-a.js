@@ -115,7 +115,7 @@ function drawSkillA() {
     });
 }
 
-// Sol Judgment (Libra buff 1): Sol Arrow windup + flight visuals
+// Blood Arrow (Libra buff 1): Sol Arrow windup + flight visuals
 function drawSolArrows() {
     if (!window._solArrows || window._solArrows.length === 0) return;
     const now = performance.now();
@@ -154,6 +154,7 @@ function drawSolArrows() {
             ctx.translate(arrow.x, arrow.y);
             ctx.rotate(angle);
             ctx.translate(0, wob);
+            if (arrow.isPrimary) ctx.scale(1.15, 1.15); // big marker arrow, +15% size
 
             if (!_mobPerf) { ctx.shadowColor = '#e0248f'; ctx.shadowBlur = 46; }
 

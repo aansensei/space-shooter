@@ -161,4 +161,6 @@ window._bongDoiChargeStart = 0;
 window._bongDoiCooldownEnd = 0;
 window._shadowTwinGhosts = [];
 window._shadowOrbs = [];
+window._shadowTwinVolleysPending = 0;
+window._shadowTwinNextVolleyAt = 0;
 let boundaryY = canvas.height - 10;
