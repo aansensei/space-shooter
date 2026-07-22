@@ -128,9 +128,9 @@ function drawSolArrows() {
             ctx.translate(player.x, player.y);
             ctx.rotate(now / 300);
             ctx.globalAlpha = 0.35 + 0.5 * t;
-            ctx.strokeStyle = `rgba(245,158,11,${0.6 + 0.4 * pulse})`;
+            ctx.strokeStyle = `rgba(210,20,110,${0.6 + 0.4 * pulse})`;
             ctx.lineWidth = 2;
-            if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 18; }
+            if (!_mobPerf) { ctx.shadowColor = '#d6148f'; ctx.shadowBlur = 18; }
             const ringR = 14 + t * 10;
             ctx.beginPath();
             ctx.arc(0, 0, ringR, 0, Math.PI * 2);
@@ -149,120 +149,120 @@ function drawSolArrows() {
 
         if (arrow.state === 'flying') {
             const angle = Math.atan2(arrow.vy, arrow.vx);
-            const wob = Math.sin(now / 60 + arrow.x * 0.04) * 2.5;
+            const wob = Math.sin(now / 60 + arrow.x * 0.04) * 3.3;
             ctx.save();
             ctx.translate(arrow.x, arrow.y);
             ctx.rotate(angle);
             ctx.translate(0, wob);
 
-            if (!_mobPerf) { ctx.shadowColor = '#ffaa2e'; ctx.shadowBlur = 40; }
+            if (!_mobPerf) { ctx.shadowColor = '#e0248f'; ctx.shadowBlur = 46; }
 
-            // soft outer bloom halo — makes the whole arrow read as "on fire" at a glance
+            // soft outer bloom halo — magenta/crimson glow
             const bloomPulse = 0.75 + 0.25 * Math.sin(now / 65);
-            const bloomG = ctx.createRadialGradient(-10, 0, 0, -10, 0, 55);
-            bloomG.addColorStop(0, `rgba(255,150,30,${0.32 * bloomPulse})`);
-            bloomG.addColorStop(0.6, `rgba(255,90,0,${0.14 * bloomPulse})`);
-            bloomG.addColorStop(1, 'rgba(255,60,0,0)');
+            const bloomG = ctx.createRadialGradient(-14, 0, 0, -14, 0, 74);
+            bloomG.addColorStop(0, `rgba(230,20,110,${0.34 * bloomPulse})`);
+            bloomG.addColorStop(0.6, `rgba(130,0,90,${0.15 * bloomPulse})`);
+            bloomG.addColorStop(1, 'rgba(90,0,70,0)');
             ctx.fillStyle = bloomG;
-            ctx.beginPath(); ctx.arc(-10, 0, 55, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-14, 0, 74, 0, Math.PI * 2); ctx.fill();
 
             // Turbulent flame tail: layered flowing curves, animated flicker
-            const flick1 = Math.sin(now / 70) * 6;
-            const flick2 = Math.sin(now / 55 + 1.4) * 5;
-            const flick3 = Math.sin(now / 90 + 2.7) * 7;
+            const flick1 = Math.sin(now / 70) * 8;
+            const flick2 = Math.sin(now / 55 + 1.4) * 6.5;
+            const flick3 = Math.sin(now / 90 + 2.7) * 9.5;
 
-            // outer dark-red/orange envelope
-            ctx.fillStyle = 'rgba(220,50,0,0.42)';
+            // outer deep crimson-purple envelope
+            ctx.fillStyle = 'rgba(120,0,60,0.45)';
             ctx.beginPath();
-            ctx.moveTo(14, 0);
-            ctx.bezierCurveTo(-10, 16 + flick1, -55, 22 + flick3, -95, 4 + flick2);
-            ctx.bezierCurveTo(-70, 0, -55, -3, -35, 0);
-            ctx.bezierCurveTo(-55, -3, -70, 0, -95, -4 - flick2);
-            ctx.bezierCurveTo(-55, -22 - flick3, -10, -16 - flick1, 14, 0);
+            ctx.moveTo(19, 0);
+            ctx.bezierCurveTo(-13, 22 + flick1, -74, 30 + flick3, -128, 5 + flick2);
+            ctx.bezierCurveTo(-94, 0, -74, -4, -47, 0);
+            ctx.bezierCurveTo(-74, -4, -94, 0, -128, -5 - flick2);
+            ctx.bezierCurveTo(-74, -30 - flick3, -13, -22 - flick1, 19, 0);
             ctx.closePath();
             ctx.fill();
 
-            // middle vivid orange flame
-            ctx.fillStyle = 'rgba(255,130,0,0.85)';
+            // middle vivid magenta-red flame
+            ctx.fillStyle = 'rgba(210,15,95,0.87)';
             ctx.beginPath();
-            ctx.moveTo(12, 0);
-            ctx.bezierCurveTo(-8, 11 + flick2 * 0.8, -38, 14 + flick1 * 0.8, -68, 3 + flick3 * 0.6);
-            ctx.bezierCurveTo(-48, 0, -30, -2, -18, 0);
-            ctx.bezierCurveTo(-30, -2, -48, 0, -68, -3 - flick3 * 0.6);
-            ctx.bezierCurveTo(-38, -14 - flick1 * 0.8, -8, -11 - flick2 * 0.8, 12, 0);
+            ctx.moveTo(16, 0);
+            ctx.bezierCurveTo(-11, 15 + flick2 * 0.8, -51, 19 + flick1 * 0.8, -92, 4 + flick3 * 0.6);
+            ctx.bezierCurveTo(-65, 0, -40, -2.5, -24, 0);
+            ctx.bezierCurveTo(-40, -2.5, -65, 0, -92, -4 - flick3 * 0.6);
+            ctx.bezierCurveTo(-51, -19 - flick1 * 0.8, -11, -15 - flick2 * 0.8, 16, 0);
             ctx.closePath();
             ctx.fill();
 
-            // inner gold-yellow flame
-            ctx.fillStyle = 'rgba(255,210,60,0.85)';
+            // inner hot pink-violet flame
+            ctx.fillStyle = 'rgba(255,90,180,0.87)';
             ctx.beginPath();
-            ctx.moveTo(10, 0);
-            ctx.bezierCurveTo(-6, 6 + flick1 * 0.5, -22, 7 + flick2 * 0.5, -42, 2);
-            ctx.bezierCurveTo(-28, 0, -16, -1.5, -10, 0);
-            ctx.bezierCurveTo(-16, -1.5, -28, 0, -42, -2);
-            ctx.bezierCurveTo(-22, -7 - flick2 * 0.5, -6, -6 - flick1 * 0.5, 10, 0);
+            ctx.moveTo(13, 0);
+            ctx.bezierCurveTo(-8, 8 + flick1 * 0.5, -30, 9.5 + flick2 * 0.5, -57, 2.5);
+            ctx.bezierCurveTo(-38, 0, -22, -2, -13, 0);
+            ctx.bezierCurveTo(-22, -2, -38, 0, -57, -2.5);
+            ctx.bezierCurveTo(-30, -9.5 - flick2 * 0.5, -8, -8 - flick1 * 0.5, 13, 0);
             ctx.closePath();
             ctx.fill();
 
             // flickering flame licks rising off the shaft, like a torch
             const lickCount = 5;
             for (let li = 0; li < lickCount; li++) {
-                const lx = -60 + li * 15 + Math.sin(now / 80 + li) * 3;
+                const lx = -81 + li * 20 + Math.sin(now / 80 + li) * 4;
                 const lickPhase = now / 60 + li * 1.7;
-                const lickH = 7 + 4 * Math.abs(Math.sin(lickPhase));
-                const lickLean = Math.sin(lickPhase * 0.6) * 3;
-                ctx.fillStyle = `rgba(255,${160 + li * 10},40,${0.55 - li * 0.03})`;
+                const lickH = 9.5 + 5.5 * Math.abs(Math.sin(lickPhase));
+                const lickLean = Math.sin(lickPhase * 0.6) * 4;
+                ctx.fillStyle = `rgba(255,${50 + li * 12},${140 + li * 8},${0.55 - li * 0.03})`;
                 ctx.beginPath();
-                ctx.moveTo(lx - 3, 1.5);
-                ctx.quadraticCurveTo(lx + lickLean, -lickH, lx + 1, -1.5);
+                ctx.moveTo(lx - 4, 2);
+                ctx.quadraticCurveTo(lx + lickLean, -lickH, lx + 1.3, -2);
                 ctx.closePath();
                 ctx.fill();
                 ctx.beginPath();
-                ctx.moveTo(lx - 3, -1.5);
-                ctx.quadraticCurveTo(lx + lickLean, lickH, lx + 1, 1.5);
+                ctx.moveTo(lx - 4, -2);
+                ctx.quadraticCurveTo(lx + lickLean, lickH, lx + 1.3, 2);
                 ctx.closePath();
                 ctx.fill();
             }
 
             // shaft + sharp arrowhead
-            if (!_mobPerf) ctx.shadowBlur = 26;
-            ctx.fillStyle = '#ffe9b0';
+            if (!_mobPerf) ctx.shadowBlur = 30;
+            ctx.fillStyle = '#ffd6ec';
             ctx.beginPath();
-            ctx.moveTo(-2, 2.5);
-            ctx.lineTo(18, 2);
-            ctx.lineTo(18, -2);
-            ctx.lineTo(-2, -2.5);
+            ctx.moveTo(-2.7, 3.4);
+            ctx.lineTo(24, 2.7);
+            ctx.lineTo(24, -2.7);
+            ctx.lineTo(-2.7, -3.4);
             ctx.closePath();
             ctx.fill();
 
-            ctx.fillStyle = '#fff8e6';
+            ctx.fillStyle = '#fff0f8';
             ctx.beginPath();
-            ctx.moveTo(46, 0);
-            ctx.lineTo(16, 12);
-            ctx.lineTo(24, 0);
-            ctx.lineTo(16, -12);
+            ctx.moveTo(62, 0);
+            ctx.lineTo(21.6, 16.2);
+            ctx.lineTo(32.4, 0);
+            ctx.lineTo(21.6, -16.2);
             ctx.closePath();
             ctx.fill();
 
             // embers trailing off the tail
             for (let ei = 0; ei < 5; ei++) {
                 const ep = (now / 3 + ei * 130) % 650;
-                const ex = 10 - ep;
-                const ey = Math.sin(now / 40 + ei * 2.1) * (4 + ep * 0.05);
+                const ex = 13 - ep * 1.35;
+                const ey = Math.sin(now / 40 + ei * 2.1) * (5.4 + ep * 0.07);
                 const efade = Math.max(0, 1 - ep / 650);
                 if (efade <= 0) continue;
-                ctx.fillStyle = `rgba(255,${170 + Math.floor(60 * efade)},${60 * efade},${efade * 0.8})`;
+                ctx.fillStyle = `rgba(255,${70 + Math.floor(60 * efade)},${170 * efade + 50},${efade * 0.8})`;
                 ctx.beginPath();
-                ctx.arc(ex, ey, 1.6 * efade + 0.5, 0, Math.PI * 2);
+                ctx.arc(ex, ey, 2.2 * efade + 0.7, 0, Math.PI * 2);
                 ctx.fill();
             }
 
             // white-hot tip glow
             const tipPulse = 0.7 + 0.3 * Math.sin(now / 50);
-            ctx.fillStyle = `rgba(255,255,255,${tipPulse})`;
-            if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 34; }
+            ctx.fillStyle = `rgba(255,240,250,${tipPulse})`;
+            if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 38; }
             ctx.beginPath();
-            ctx.arc(40, 0, 4.5, 0, Math.PI * 2);
+            ctx.arc(54, 0, 6, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.restore();

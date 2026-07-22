@@ -23,7 +23,7 @@ const SIGIL_DEFS = {
         name: 'Gemini', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'bong_doi', name: 'Shadow Twin', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 0.5s, a phantom twin ship appears at the middle of a random screen edge (left/right) and fires 3 piercing plasma orbs (2 small, 1 large) at random enemies, flying all the way across the screen. Small orb: 100 + 5% PE dmg. Large orb: 250 + 13% PE dmg. Each hit applies 2 Vulnerability stacks and Soul Reaver.' },
+              desc: 'Every 10th hit landed by any allied source (Sentinels excluded) charges for 0.5s, then a phantom twin ship appears at the middle of a random screen edge (left/right) and fires 3 piercing plasma orbs (2 small, 1 large) at random enemies, flying all the way across the screen. Small orb: 100 + 5% PE dmg. Large orb: 250 + 13% PE dmg. Each hit applies 2 Vulnerability stacks and Soul Reaver. 1s cooldown before it can trigger again.' },
             { id: 'guong_laze', name: 'Mirror Laser', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions (+25% speed), each firing a horizontal laser beam at 75% of the original beam damage. The original beam itself is buffed +30%.' },
         ]
@@ -175,7 +175,7 @@ function _completeSigilPicker(sigilId) {
 
 function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'tuyet_lan')    { window._tuyetLanStacks = 0; window._tuyetLanLastKill = 0; }
-    if (buffId === 'bong_doi')     { window._bongDoiNextFire = performance.now() + 500; }
+    if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; window._bongDoiCharging = false; window._bongDoiCooldownEnd = 0; }
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
     if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 8000; }

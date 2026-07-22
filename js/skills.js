@@ -1888,8 +1888,10 @@ function updateShadowTwin(deltaTime) {
     if (window._shadowTwinGhosts) {
         window._shadowTwinGhosts = window._shadowTwinGhosts.filter(g => now - g.spawnTime < g.life);
     }
-    if (now < (window._bongDoiNextFire || 0)) return;
-    window._bongDoiNextFire = now + 500;
+    if (!window._bongDoiCharging) return;
+    if (now - window._bongDoiChargeStart < 500) return; // 0.5s charge after the 6th auto-bullet hit
+    window._bongDoiCharging = false;
+    window._bongDoiCooldownEnd = now + 1000; // 1s delay before it can trigger again
 
     const validTargets = enemies.filter(e =>
         !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
