@@ -914,6 +914,8 @@ function draw(deltaTime) {
         drawSolArrows();
         drawShadowTwin();
         drawShadowOrbs();
+        drawMirrorLaserColumns();
+        drawGoldenArrowSweep();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
         marchosiasBlades.forEach(_drawMarchoBlade);
         scatteredProjectiles.forEach(drawScatteredProjectile);

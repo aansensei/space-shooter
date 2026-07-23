@@ -69,7 +69,7 @@ When **Glory for Justice** is active, all friendly damage is multiplied by **1.5
 
 **Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10×**, capping at **7% of target's Max HP** at full charge.
 
-**Overload Laser** — Hold Space for a full **3 seconds** without releasing. Fires a continuous beam for **12 seconds** (9s cooldown after). Deals **100 base + 16% of target's Max HP** per tick every 155ms. Also pulls nearby enemies toward the beam.
+**Overload Laser** — Hold Space for a full **3 seconds** without releasing. Fires a continuous beam for **12 seconds** (9s cooldown after). Deals **350 base + 23% of target's Max HP** per tick every 155ms. Also pulls nearby enemies toward the beam.
 
 ---
 
@@ -320,7 +320,7 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ## Enemies
 
-*All enemies have a hidden +5% HP bonus applied to their base stats.*
+*All enemies have a hidden +15% HP bonus applied to their base stats.*
 
 ---
 

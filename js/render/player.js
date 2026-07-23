@@ -296,11 +296,11 @@ function drawSpiritBullet(b) {
 }
 
 // Player ship
-function drawPlayer(alpha = 1, xOffset = 0) {
+function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     const now = performance.now();
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(player.x + xOffset, player.y);
+    if (pos) { ctx.translate(pos.x, pos.y); } else { ctx.translate(player.x + xOffset, player.y); }
 
     // Pulsing visibility beacon — ship outline strobes to stay visible in bullet hell
     const _pulseA = 0.45 + 0.55 * Math.abs(Math.sin(now / 520));
@@ -1324,6 +1324,145 @@ function drawMirrorLaserEntities() {
     }
 }
 
+// Mirror Laser bonus proc column (Gemini buff 2): green-purple gradient,
+// vertical, no pull, piercing.
+function drawMirrorLaserColumns() {
+    if (!window._mirrorLaserColumns || window._mirrorLaserColumns.length === 0) return;
+    const now = performance.now();
+    for (const col of window._mirrorLaserColumns) {
+        const lx = player.x;
+        const baseW = 90;
+        const topY = 0, botY = player.y;
+        const segCount = 14;
+
+        // Precompute a wavering centerline + width per segment so the beam
+        // reads as a living plasma column instead of a static rectangle.
+        const segX = [], segW = [];
+        for (let i = 0; i <= segCount; i++) {
+            const t = i / segCount;
+            const y = topY + (botY - topY) * t;
+            const wob = Math.sin(now / 90 + t * 9) * 10 + Math.sin(now / 150 + t * 4) * 6;
+            segX.push(lx + wob);
+            segW.push(baseW * (0.75 + 0.25 * Math.sin(now / 130 + t * 6)));
+        }
+
+        ctx.save();
+
+        // outer soft glow following the wavering centerline
+        ctx.beginPath();
+        for (let i = 0; i <= segCount; i++) {
+            const y = topY + (botY - topY) * (i / segCount);
+            const x = segX[i] - segW[i] / 2 - 16;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        for (let i = segCount; i >= 0; i--) {
+            const y = topY + (botY - topY) * (i / segCount);
+            ctx.lineTo(segX[i] + segW[i] / 2 + 16, y);
+        }
+        ctx.closePath();
+        const glow = ctx.createLinearGradient(lx - baseW, 0, lx + baseW, 0);
+        glow.addColorStop(0, 'rgba(80,255,120,0)');
+        glow.addColorStop(0.5, `rgba(160,80,255,${0.20 + 0.08 * Math.sin(now / 100)})`);
+        glow.addColorStop(1, 'rgba(80,255,120,0)');
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // main plasma body, color-cycling green->purple along its length
+        ctx.beginPath();
+        for (let i = 0; i <= segCount; i++) {
+            const y = topY + (botY - topY) * (i / segCount);
+            const x = segX[i] - segW[i] / 2;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        for (let i = segCount; i >= 0; i--) {
+            const y = topY + (botY - topY) * (i / segCount);
+            ctx.lineTo(segX[i] + segW[i] / 2, y);
+        }
+        ctx.closePath();
+        const beam = ctx.createLinearGradient(lx - baseW / 2, 0, lx + baseW / 2, 0);
+        beam.addColorStop(0, 'rgba(60,255,140,0)');
+        beam.addColorStop(0.15, 'rgba(80,220,120,0.60)');
+        beam.addColorStop(0.5, 'rgba(210,180,255,0.95)');
+        beam.addColorStop(0.85, 'rgba(160,80,220,0.60)');
+        beam.addColorStop(1, 'rgba(80,60,200,0)');
+        ctx.fillStyle = beam;
+        if (!_mobPerf) { ctx.shadowColor = '#8a4dff'; ctx.shadowBlur = 30; }
+        ctx.fill();
+
+        // white-hot flickering core line, following the same wavering path
+        ctx.beginPath();
+        for (let i = 0; i <= segCount; i++) {
+            const y = topY + (botY - topY) * (i / segCount);
+            const jitter = Math.sin(now / 40 + i * 1.3) * 2;
+            const x = segX[i] + jitter - 3;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        for (let i = segCount; i >= 0; i--) {
+            const y = topY + (botY - topY) * (i / segCount);
+            const jitter = Math.sin(now / 40 + i * 1.3) * 2;
+            ctx.lineTo(segX[i] + jitter + 3, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = `rgba(230,255,235,${0.55 + 0.35 * Math.sin(now / 55)})`;
+        if (!_mobPerf) ctx.shadowBlur = 16;
+        ctx.fill();
+
+        // crackling lightning-arc branches shooting off the beam
+        ctx.strokeStyle = 'rgba(200,255,210,0.7)';
+        ctx.lineWidth = 1.4;
+        if (!_mobPerf) { ctx.shadowColor = '#aef7c0'; ctx.shadowBlur = 8; }
+        for (let b = 0; b < 3; b++) {
+            const bt = ((now / 260 + b * 0.37) % 1);
+            const bi = Math.floor(bt * segCount);
+            const by = topY + (botY - topY) * bt;
+            const bx = segX[bi] || lx;
+            const dir = b % 2 === 0 ? 1 : -1;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            let cx = bx, cy = by;
+            for (let seg = 0; seg < 3; seg++) {
+                cx += dir * (14 + Math.random() * 10);
+                cy += (Math.random() - 0.5) * 14;
+                ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+        }
+
+        // rotating energy ring at the emission point (player position)
+        ctx.save();
+        ctx.translate(lx, botY);
+        ctx.rotate(now / 260);
+        ctx.strokeStyle = 'rgba(210,180,255,0.8)';
+        ctx.lineWidth = 2.5;
+        if (!_mobPerf) { ctx.shadowColor = '#8a4dff'; ctx.shadowBlur = 14; }
+        ctx.beginPath();
+        ctx.arc(0, 0, 26, 0, Math.PI * 1.5);
+        ctx.stroke();
+        ctx.restore();
+        const ringPulse = 0.5 + 0.5 * Math.sin(now / 90);
+        ctx.fillStyle = `rgba(180,255,200,${0.5 * ringPulse})`;
+        ctx.beginPath();
+        ctx.arc(lx, botY, 10 + 3 * ringPulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        if (Math.random() < 0.5) {
+            const _p = _acquireParticle();
+            const sparkT = Math.random();
+            const sparkI = Math.floor(sparkT * segCount);
+            _p.x = (segX[sparkI] || lx) + (Math.random() - 0.5) * baseW;
+            _p.y = botY * sparkT;
+            _p.vx = (Math.random() - 0.5) * 4;
+            _p.vy = (Math.random() - 0.5) * 4;
+            _p.lifetime = 220; _p.maxLifetime = 220;
+            _p.size = Math.random() * 2.5 + 1;
+            _p.color = Math.random() < 0.5 ? 'rgba(80,255,140,0.8)' : 'rgba(170,90,255,0.8)';
+            particles.push(_p);
+        }
+    }
+}
+
 // Shadow Twin (Gemini buff 1): phantom ship apparition + piercing plasma orbs
 function drawShadowTwin() {
     if (!window._shadowTwinGhosts) return;
@@ -1338,34 +1477,196 @@ function drawShadowTwin() {
         alpha *= 0.85;
         if (alpha <= 0) continue;
 
+        // Same ship model as the player, mirrored around its own center and
+        // hue-shifted purple via canvas filter — a real phantom twin, not a
+        // simplified silhouette.
         ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.translate(g.x, g.y);
-        if (g.side === 'right') ctx.scale(-1, 1);
-        if (!_mobPerf) { ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 20; }
-
-        const hg = ctx.createLinearGradient(-28, 0, 28, 0);
-        hg.addColorStop(0, 'rgba(30,10,50,0.5)');
-        hg.addColorStop(0.5, 'rgba(90,45,140,0.65)');
-        hg.addColorStop(1, 'rgba(30,10,50,0.5)');
-        ctx.fillStyle = hg;
-        ctx.beginPath();
-        ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(26, 16);
-        ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-26, 16);
-        ctx.lineTo(-28, 10); ctx.closePath();
-        ctx.fill();
-
-        ctx.strokeStyle = 'rgba(180,140,255,0.9)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, 16);
-        cg.addColorStop(0, 'rgba(210,170,255,0.85)');
-        cg.addColorStop(1, 'rgba(150,80,255,0)');
-        ctx.fillStyle = cg;
-        ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
-
+        if (g.side === 'right') { ctx.translate(g.x, 0); ctx.scale(-1, 1); ctx.translate(-g.x, 0); }
+        ctx.filter = 'hue-rotate(95deg) saturate(1.6) brightness(0.9)';
+        drawPlayer(alpha, 0, { x: g.x, y: g.y });
         ctx.restore();
+    }
+}
+
+// Golden Arrow (Virgo buff 1): vine-wrapped wooden fist sweeping across the screen
+function drawGoldenArrowSweep() {
+    const sw = window._goldenArrowSweep;
+    if (!sw) return;
+    const now = performance.now();
+    const progress = (now - sw.startTime) / sw.duration;
+    if (progress >= 1) return;
+    const angle = -Math.PI + Math.PI * progress;
+    const range = canvas.width * 0.6;
+
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(angle);
+
+    // wide arc trail visualizing the strike range
+    const trailGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, range);
+    trailGrad.addColorStop(0, 'rgba(120,200,60,0.30)');
+    trailGrad.addColorStop(0.7, 'rgba(120,200,60,0.12)');
+    trailGrad.addColorStop(1, 'rgba(120,200,60,0)');
+    ctx.fillStyle = trailGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, range, -0.22, 0.05);
+    ctx.closePath();
+    ctx.fill();
+
+    const handDist = Math.min(range * 0.55, 260);
+    ctx.translate(handDist, 0);
+    // Fist points in its direction of travel: knuckles lead, wrist trails.
+    // Building the shape with the fist "punching" along +x, then rotating
+    // the whole hand 90° so the knuckle row faces the swing direction.
+    ctx.rotate(Math.PI / 2);
+    ctx.scale(1.7, 1.7);
+    if (!_mobPerf) { ctx.shadowColor = '#c9a227'; ctx.shadowBlur = 20; }
+
+    // --- thumb, drawn first so the main fist overlaps its base ---
+    const thumbGrad = ctx.createLinearGradient(-30, 10, -10, 32);
+    thumbGrad.addColorStop(0, '#6b4425');
+    thumbGrad.addColorStop(1, '#3f2814');
+    ctx.fillStyle = thumbGrad;
+    ctx.beginPath();
+    ctx.moveTo(-28, 8);
+    ctx.quadraticCurveTo(-34, 18, -26, 30);
+    ctx.quadraticCurveTo(-16, 36, -8, 28);
+    ctx.quadraticCurveTo(-14, 16, -14, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(35,20,8,0.9)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    // --- main fist: knuckle row (4 bumps) + palm + wrist ---
+    const knuckleX = [-27, -9, 9, 27];
+    const knuckleTop = [-38, -44, -42, -34];
+    const woodGrad = ctx.createLinearGradient(-36, -44, 36, 38);
+    woodGrad.addColorStop(0, '#6e4526');
+    woodGrad.addColorStop(0.45, '#8a6134');
+    woodGrad.addColorStop(1, '#472c16');
+    ctx.fillStyle = woodGrad;
+    ctx.beginPath();
+    ctx.moveTo(-36, -18);
+    ctx.quadraticCurveTo(knuckleX[0] - 8, knuckleTop[0] + 6, knuckleX[0], knuckleTop[0]);
+    ctx.quadraticCurveTo((knuckleX[0] + knuckleX[1]) / 2, knuckleTop[0] - 4, knuckleX[1], knuckleTop[1]);
+    ctx.quadraticCurveTo((knuckleX[1] + knuckleX[2]) / 2, knuckleTop[1] - 4, knuckleX[2], knuckleTop[2]);
+    ctx.quadraticCurveTo((knuckleX[2] + knuckleX[3]) / 2, knuckleTop[2] - 4, knuckleX[3], knuckleTop[3]);
+    ctx.quadraticCurveTo(knuckleX[3] + 9, knuckleTop[3] + 8, 37, -12);
+    ctx.quadraticCurveTo(46, 8, 34, 26);
+    ctx.quadraticCurveTo(14, 40, -10, 38);
+    ctx.quadraticCurveTo(-30, 36, -38, 18);
+    ctx.quadraticCurveTo(-42, 0, -36, -18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(35,20,8,0.9)';
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+
+    // finger-crease grooves between each knuckle
+    ctx.strokeStyle = 'rgba(35,20,8,0.55)';
+    ctx.lineWidth = 1.6;
+    for (let i = 0; i < knuckleX.length - 1; i++) {
+        const mx = (knuckleX[i] + knuckleX[i + 1]) / 2;
+        ctx.beginPath();
+        ctx.moveTo(mx, Math.min(knuckleTop[i], knuckleTop[i + 1]) + 2);
+        ctx.quadraticCurveTo(mx + 1, 4, mx - 2, 30);
+        ctx.stroke();
+    }
+
+    // bark grain rings + knot
+    ctx.strokeStyle = 'rgba(255,210,150,0.18)';
+    ctx.lineWidth = 1;
+    for (let g = 0; g < 3; g++) {
+        ctx.beginPath();
+        ctx.ellipse(-2 + g * 3, 4 + g * 4, 30 - g * 7, 20 - g * 5, 0.15, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(30,18,8,0.5)';
+    ctx.beginPath();
+    ctx.ellipse(10, 14, 5, 3.5, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // knuckle top-light highlights
+    ctx.fillStyle = 'rgba(255,225,160,0.30)';
+    for (let k = 0; k < knuckleX.length; k++) {
+        ctx.beginPath();
+        ctx.arc(knuckleX[k], knuckleTop[k] + 8, 6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // --- vines wrapping around the fist: segmented rope-like cords ---
+    const vinePaths = [
+        { rx: 40, ry: 30, rot: -0.35, start: 0.15, end: 1.55 },
+        { rx: 34, ry: 26, rot: 0.55, start: 0.9, end: 2.5 },
+    ];
+    for (let vi = 0; vi < vinePaths.length; vi++) {
+        const vp = vinePaths[vi];
+        const sway = Math.sin(now / 260 + vi * 2) * 0.08;
+        ctx.strokeStyle = vi === 0 ? '#2f6b22' : '#3f8a2c';
+        ctx.lineWidth = 4.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.ellipse(-2, 2, vp.rx, vp.ry, vp.rot + sway, vp.start, vp.end);
+        ctx.stroke();
+        // rope-twist ticks along the vine
+        ctx.strokeStyle = 'rgba(20,50,10,0.6)';
+        ctx.lineWidth = 1.3;
+        const segs = 7;
+        for (let s = 0; s <= segs; s++) {
+            const t = vp.start + (vp.end - vp.start) * (s / segs);
+            const ex = -2 + Math.cos(t) * vp.rx, ey = 2 + Math.sin(t) * vp.ry;
+            const nx = -Math.sin(t) * 4, ny = Math.cos(t) * 4;
+            ctx.beginPath();
+            ctx.moveTo(ex - nx, ey - ny);
+            ctx.lineTo(ex + nx, ey + ny);
+            ctx.stroke();
+        }
+    }
+
+    // proper pointed leaves (not blobs) clustered along the vines
+    const leafAngles = [0.3, 0.75, 1.2, 1.9, 2.3, 2.8];
+    for (let l = 0; l < leafAngles.length; l++) {
+        const swayA = leafAngles[l] + Math.sin(now / 220 + l * 1.7) * 0.06;
+        const lx = -2 + Math.cos(swayA) * 36, ly = 2 + Math.sin(swayA) * 27;
+        ctx.save();
+        ctx.translate(lx, ly);
+        ctx.rotate(swayA + Math.PI / 2 + Math.sin(now / 300 + l) * 0.15);
+        const leafGrad = ctx.createLinearGradient(0, -9, 0, 9);
+        leafGrad.addColorStop(0, '#7ccb4a');
+        leafGrad.addColorStop(1, '#2f7a1e');
+        ctx.fillStyle = leafGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, -9);
+        ctx.quadraticCurveTo(6, -3, 0, 9);
+        ctx.quadraticCurveTo(-6, -3, 0, -9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(20,50,10,0.6)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(0, -8); ctx.lineTo(0, 8);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // golden impact glow pulsing at the leading knuckle edge
+    const pulse = 0.5 + 0.5 * Math.sin(now / 60);
+    const impactGlow = ctx.createRadialGradient(28, -20, 0, 28, -20, 26);
+    impactGlow.addColorStop(0, `rgba(255,220,110,${0.55 * pulse})`);
+    impactGlow.addColorStop(1, 'rgba(255,220,110,0)');
+    ctx.fillStyle = impactGlow;
+    ctx.beginPath();
+    ctx.arc(28, -20, 26, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // trailing splinter/leaf particles
+    if (Math.random() < 0.6) {
+        const px = player.x + Math.cos(angle) * handDist, py = player.y + Math.sin(angle) * handDist;
+        createParticles(px, py, 2, Math.random() < 0.5 ? '#8a5a2e' : '#5fae3a', 1, 4);
     }
 }
 

@@ -5,7 +5,7 @@ const SIGIL_DEFS = {
         name: 'Aries', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'tien_phong', name: 'Vanguard', type: 'ATK', typeC: '#ef4444',
-              desc: '30% chance for player & sentinel bullets to pierce enemies, +20% damage' },
+              desc: '40% chance for player & sentinel bullets to pierce enemies, +50% damage' },
             { id: 'khat_chien', name: 'Blood Frenzy', type: 'ATK', typeC: '#ef4444',
               desc: 'Chain hits +30% dmg; each chain adds 2.5% enemy EP as true damage (max 4 chains)' },
         ]
@@ -14,9 +14,9 @@ const SIGIL_DEFS = {
         name: 'Taurus', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'thanh_dong', name: 'Iron Fortress', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Every 5s gain 1 Iron Body layer (max 2 stacks): absorbs 1 player hit or 1 normal chain root/silence. Shown as green hex rings on ship.' },
+              desc: 'Every 5s gain 1 Iron Body layer (max 3 stacks): absorbs 1 player hit or 1 normal chain root/silence. Shown as green hex rings on ship.' },
             { id: 'ho_ve', name: 'Guardian', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Sentinel +60% HP & +25% dmg; when sentinel dies, next sentinel spawned within 5s gains a shield worth 20% of predecessor MaxHP (CD 4s)' },
+              desc: 'Sentinel +65% HP & +30% dmg. Sentinel normal shots no longer cost 1 HP recoil. When a sentinel dies, the remaining sentinels heal 10% of its EP and gain a shield worth 20% of its EP (CD 3.5s).' },
         ]
     },
     gemini: {
@@ -25,14 +25,14 @@ const SIGIL_DEFS = {
             { id: 'bong_doi', name: 'Shadow Twin', type: 'ATK', typeC: '#ef4444',
               desc: 'Every 10th hit landed by any allied source (Sentinels excluded) charges for 0.5s, then a phantom twin ship appears at the middle of a random screen edge (left/right) and fires 3 volleys of piercing plasma orbs at random enemies, flying all the way across the screen. Each volley is 1 large orb flanked by 2 small orbs. Small orb: 75 + 3% EP dmg. Large orb: 175 + 8% EP dmg. Each hit applies 2 Vulnerability stacks and Soul Reaver. 1s cooldown before it can trigger again.' },
             { id: 'guong_laze', name: 'Mirror Laser', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions (+25% speed), each firing a horizontal laser beam at 75% of the original beam damage. The original beam itself is buffed +30%.' },
+              desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions (+25% speed), each firing a horizontal laser beam at 75% of the original beam damage. The original beam itself is buffed +30%. Additionally, every skill cast or auto-fire shot has a 5% chance (+0.3% per miss, resets on trigger) to fire a piercing green-purple laser column dealing 350 + 18% EP every 125ms for 3s — no enemy pull, stacks with Overload Laser (CD 4s).' },
         ]
     },
     cancer: {
         name: 'Cancer', element: 'Water', color: '#7F77DD',
         buffs: [
             { id: 'giap_nguyet', name: 'Lunar Aegis', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +35%; sentinels gain +10% evade' },
+              desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +40%; sentinels gain +20% evade' },
             { id: 'trieu_hoi', name: 'Tidal Flow', type: 'HEAL', typeC: '#22c55e',
               desc: 'Sentinel regenerates 3% MaxHP/s (scales with tier); healing effectiveness +30%. Each sentinel gains 1 Iron Body layer; 8s CD starts only after it is consumed.' },
         ]
@@ -41,18 +41,18 @@ const SIGIL_DEFS = {
         name: 'Leo', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'su_tu_hong', name: "Lion's Roar", type: 'ATK', typeC: '#ef4444',
-              desc: 'While GFJ active, attacks inflict Burn: 200 + 5% EP DoT per 500ms for 3s (resets on new hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire.' },
+              desc: 'While GFJ active, attacks inflict Burn: 200 + 5% EP DoT per 500ms for 3s (resets on new hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire. Every hit also deals bonus damage equal to 2% of the target\'s own missing HP.' },
             { id: 'than_menh', name: 'Divine Fate', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Wave start: 5s freeze — all enemies stop moving (new spawns also frozen) + all damage +50%' },
+              desc: 'Wave start: 5s freeze — all enemies stop moving (new spawns also frozen) + all damage +100%' },
         ]
     },
     virgo: {
         name: 'Virgo', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'mui_ten_vang', name: 'Golden Arrow', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 12 bullet hits trigger a Critical Strike: 3x damage, Vulnerability, root + silence 1s' },
+              desc: 'Every 6th auto volley triggers a Critical Strike: 4x damage, Vulnerability, root + silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped wooden fist sweeps across the screen (60% of screen width), dealing 1000 + 10% EP + 15% of each target\'s missing HP.' },
             { id: 'ky_su_dien', name: 'Circuit Engineer', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Tesla DoT & Coil +50% dmg; destroying a Coil reduces Skill G CD by 3s and increases G energy gain by 10%' },
+              desc: 'Tesla DoT & Coil +50% dmg; destroying a Coil reduces Skill G CD by 3s and increases G energy gain by 10%. Enemies carrying any debuff (slow, DoT, Vulnerability, Soul Reaver, etc.) take +50% damage from all sources.' },
         ]
     },
     libra: {
@@ -61,7 +61,7 @@ const SIGIL_DEFS = {
             { id: 'mui_ten_apollo', name: "Blood Arrow", type: 'SPEC', typeC: '#f59e0b',
               desc: 'Each Skill A cast fires 3 arrows after a 0.5s windup: 1 big arrow marks the highest-EP enemy, the other 2 mark random enemies (biased toward denser clusters). Each arrow pierces all enemies (300 base dmg) and explodes on its marked target (400 base + 20% PE, up to +100% more from the target\'s DR). All hit enemies take 2 Vulnerability stacks. The 2 small arrows deal 40% less damage but fly 20% faster than the big one, which is also 15% bigger.' },
             { id: 'xuyen_pha', name: 'Astral Pierce', type: 'ATK', typeC: '#ef4444',
-              desc: 'Skill A orbs pierce through their target on impact and continue flying to the screen edge, dealing hit damage to every enemy they cross.' },
+              desc: 'Skill A orbs pierce through their target on impact and continue flying to the screen edge, dealing hit damage to every enemy they cross. Orb size +30%.' },
         ]
     },
     scorpio: {
@@ -77,36 +77,36 @@ const SIGIL_DEFS = {
         name: 'Sagittarius', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
-              desc: 'Spirit arc slash fires 2 blades (+60% each); 2nd fires 15ms later. Each boomerang has 40% chance for 2 extra. Skill F sweep fires 2 blade arcs from player. Extra blades have +10% radius.' },
+              desc: 'Spirit arc slash fires 2 blades (+60% each, 2nd fires 15ms later), plus a 25% chance for a 3rd blade. Each boomerang has 40% chance for 2 extra. Skill F sweep now throws 2 boomerangs from the player instead of blade arcs. Extra blades have +20% radius. Every auto-fire shot has a 15% chance to fire an arc blade (300 + 7% EP), same as the spirit\'s.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
-              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune: no pull (25% chance to pull anyway), still slowed.' },
+              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune: no pull (25% chance to pull anyway), still slowed. Remembrance Spirit and Phōtokrystos fire rate +30%.' },
         ]
     },
     capricorn: {
         name: 'Capricorn', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'lai_kep', name: 'Compound Interest', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Each kill grants +0.6% PE; every 5% PE gained increases all ally fire rate by 1.5% (max +30%, preserved through BTM). While the great spirit is alive, every ally attack deals +200 bonus damage.' },
+              desc: 'Each kill grants +0.8% PE; every 5% PE gained increases all ally fire rate by 1.5% (max +40%, preserved through BTM). While the great spirit is alive, every ally attack deals +200 bonus true damage.' },
             { id: 'tuyet_lan', name: 'Avalanche', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Each kill grants +0.5% global damage (resets after 5s without a kill, max +60%)' },
+              desc: 'Each kill grants +0.5% global damage (resets after 6s without a kill, max +70%)' },
         ]
     },
     aquarius: {
         name: 'Aquarius', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'set_day_chuyen', name: 'Chain Lightning', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Tesla DoT: 50% chain to nearest enemy within 150px. Skill D: +50% radius, +35% pull, instant cast (no charge).' },
+              desc: 'Tesla DoT: 50% chain to nearest enemy within 150px. Skill G charge rate +35%. While Skill G is active, every energy orb that expires without pairing into a Tesla coil grants a stacking +15% ally dmg buff (max 6 stacks, 5s each), and is siphoned into an extra Skill A orb if Skill A has room.' },
             { id: 'dien_tu_truong', name: 'Magnetic Field', type: 'DEF', typeC: '#3b82f6',
-              desc: 'While Skill G is active or fully charged, enemies within 300px are slowed 30% and suffer 0.8% MaxHP DoT/s' },
+              desc: 'While Skill G is active or fully charged, enemies within 300px are slowed 30% and suffer 3.5% MaxHP DoT/s' },
         ]
     },
     pisces: {
         name: 'Pisces', element: 'Water', color: '#7F77DD',
         buffs: [
             { id: 'coi_mong', name: 'Dream Realm', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Shift activation negates all enemy damage for 2s and marks all enemies on screen. After 1.65s, marked enemies burst for 40% of the damage they accumulated during the mark window.' },
+              desc: 'Shift activation negates all enemy damage for 3s and marks all enemies on screen (each instantly takes 1 Vulnerability stack). After 1.65s, marked enemies burst for 60% of the damage they accumulated during the mark window plus 35% of their missing HP.' },
             { id: 'dong_chay_luan_hoi', name: 'Cycle of Flow', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Kill apostle: −0.5s all skill CD; kill abnormal/elite: −1s; kill dominator: −1.5s' },
+              desc: 'Kill apostle: −1s all skill CD; kill abnormal/elite: −1.5s; kill dominator: −2s; kill Egregor: −3s. Charge rate for Phōtokrystos and Skill G +50%. Skill D and Skill F fire instantly, skipping their charge phase entirely (Shift unaffected).' },
         ]
     },
 };
@@ -180,7 +180,7 @@ function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
     if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 8000; }
     if (buffId === 'su_tu_hong')   { window._sthBurning = new Map(); }
-    if (buffId === 'ho_ve')        { window._hoVeLastDeadMaxHp = 0; window._hoVeShieldAvailUntil = 0; window._hoVeShieldCooldownEnd = 0; }
+    if (buffId === 'ho_ve')        { window._hoVeShieldCooldownEnd = 0; }
     if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives += 5; }
 }
 
@@ -397,6 +397,46 @@ function _drawPickerCards(p, slideEase) {
     ctx.fillText('CONFIRM', btn.x + btn.w / 2, btn.y + btn.h / 2 + 5);
     ctx.letterSpacing = '0px';
 
+    // Reroll button — shared pool of 2 uses across all 3 sigil picks in a game
+    const rerollsLeft = window._sigilRerollsLeft || 0;
+    const canReroll = rerollsLeft > 0;
+    const rbtn = _sigilRerollRect(L, yOff);
+    const rPulse = 0.55 + 0.45 * Math.sin(now / 400);
+    ctx.globalAlpha = slideEase * (canReroll ? 1.0 : 0.30);
+    ctx.fillStyle = canReroll ? `rgba(180,140,60,${p.hoveredReroll ? 0.32 : 0.16})` : 'rgba(40,50,80,0.18)';
+    _drawRoundRect(rbtn.x, rbtn.y, rbtn.w, rbtn.h, 8);
+    ctx.fill();
+    ctx.strokeStyle = canReroll ? `rgba(230,180,80,${p.hoveredReroll ? 1.0 : 0.55 + 0.2 * rPulse})` : 'rgba(60,80,120,0.40)';
+    ctx.lineWidth = canReroll && p.hoveredReroll ? 2.5 : 1.5;
+    _drawRoundRect(rbtn.x, rbtn.y, rbtn.w, rbtn.h, 8);
+    ctx.stroke();
+    if (canReroll && p.hoveredReroll) {
+        ctx.fillStyle = 'rgba(230,180,80,0.08)';
+        _drawRoundRect(rbtn.x, rbtn.y, rbtn.w, rbtn.h, 8);
+        ctx.fill();
+    }
+    ctx.fillStyle = canReroll ? '#ffe9b0' : '#444860';
+    ctx.font = `bold ${isMob ? 9 : 12}px "Courier New", monospace`;
+    ctx.letterSpacing = isMob ? '0px' : '1px';
+    const rLabel = isMob ? `↻ ${rerollsLeft}` : `↻ REROLL (${rerollsLeft})`;
+    ctx.fillText(rLabel, rbtn.x + rbtn.w / 2, rbtn.y + rbtn.h / 2 + 4);
+    ctx.letterSpacing = '0px';
+
+    // Reroll flash: brief white overlay across the cards on a successful reroll
+    if (p.rerollFlash) {
+        const flashT = (now - p.rerollFlash) / 300;
+        if (flashT < 1) {
+            const cardsW = cols * cardW + (cols - 1) * gapX;
+            const cardsH = rows * cardH + (rows - 1) * gapY;
+            ctx.globalAlpha = slideEase * (1 - flashT) * 0.5;
+            ctx.fillStyle = '#ffffff';
+            _drawRoundRect(startX, startY, cardsW, cardsH, 8);
+            ctx.fill();
+        } else {
+            p.rerollFlash = null;
+        }
+    }
+
     ctx.restore();
 }
 
@@ -406,6 +446,16 @@ function _sigilConfirmRect(L, yOff) {
     const w = L.isMob ? Math.min(200, L.panelW - 32) : 200;
     const h = 42;
     return { x: L.panelX + (L.panelW - w) / 2, y: L.panelY + yOff + L.panelH - h - 14, w, h };
+}
+
+function _sigilRerollRect(L, yOff) {
+    yOff = yOff || 0;
+    L = L || _pickerLayout();
+    const confirmBtn = _sigilConfirmRect(L, yOff);
+    const w = L.isMob ? 64 : 130;
+    const h = 42;
+    const gap = L.isMob ? 6 : 14;
+    return { x: confirmBtn.x + confirmBtn.w + gap, y: confirmBtn.y, w, h };
 }
 
 function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, compact) {
@@ -877,6 +927,19 @@ function _handleSigilPickerClick(ex, ey) {
         return;
     }
 
+    if ((window._sigilRerollsLeft || 0) > 0) {
+        const rbtn = _sigilRerollRect(L, 0);
+        if (ex >= rbtn.x && ex <= rbtn.x + rbtn.w && ey >= rbtn.y && ey <= rbtn.y + rbtn.h) {
+            window._sigilRerollsLeft--;
+            p.options = _shuffleArray(window._sigilPool || []).slice(0, Math.min(4, (window._sigilPool || []).length));
+            p.selectedSigil = null;
+            p.hoveredSigil = null;
+            p.rerollFlash = performance.now();
+            if (window.AudioMgr) window.AudioMgr.playSfx('sigil-confirm');
+            return;
+        }
+    }
+
     if (p.selectedSigil) {
         const btn = _sigilConfirmRect(L, 0);
         if (ex >= btn.x && ex <= btn.x + btn.w && ey >= btn.y && ey <= btn.y + btn.h) {
@@ -895,8 +958,10 @@ function _handleSigilPickerMouseMove(ex, ey) {
     const L = _pickerLayout();
     const prevSigil = p.hoveredSigil;
     const prevConfirm = p.hoveredConfirm;
+    const prevReroll = p.hoveredReroll;
     p.hoveredSigil = null;
     p.hoveredConfirm = false;
+    p.hoveredReroll = false;
     const idx = _pickerCardHitTest(ex, ey, L);
     if (idx >= 0 && idx < p.options.length) {
         p.hoveredSigil = p.options[idx];
@@ -904,11 +969,16 @@ function _handleSigilPickerMouseMove(ex, ey) {
         const btn = _sigilConfirmRect(L, 0);
         p.hoveredConfirm = ex >= btn.x && ex <= btn.x + btn.w && ey >= btn.y && ey <= btn.y + btn.h;
     }
+    if (!p.hoveredSigil && !p.hoveredConfirm && (window._sigilRerollsLeft || 0) > 0) {
+        const rbtn = _sigilRerollRect(L, 0);
+        p.hoveredReroll = ex >= rbtn.x && ex <= rbtn.x + rbtn.w && ey >= rbtn.y && ey <= rbtn.y + rbtn.h;
+    }
     // Fire hover sfx only when the hovered target changes (card→different
     // card, none→card, none→confirm, etc.). Prevents per-mousemove spam.
     const sigilChanged   = p.hoveredSigil   && p.hoveredSigil   !== prevSigil;
     const confirmEntered = p.hoveredConfirm && !prevConfirm;
-    if ((sigilChanged || confirmEntered) && window.AudioMgr) {
+    const rerollEntered  = p.hoveredReroll  && !prevReroll;
+    if ((sigilChanged || confirmEntered || rerollEntered) && window.AudioMgr) {
         window.AudioMgr.playSfx('hover');
     }
 }
