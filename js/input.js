@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.AudioMgr.playSfx('shift-hold');
                 }
                 if (_hasBuff('coi_mong')) {
-                    window._coiMongEndTime = performance.now() + 2000;
+                    window._coiMongEndTime = performance.now() + 3000;
                     const _markT = performance.now();
                     for (const _e of enemies) {
                         if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             _e._yogMark = true;
                             _e._yogMarkStart = _markT;
                             _e._yogMarkAccum = 0;
+                            applyVulnerability(_e);
                         }
                     }
                 }

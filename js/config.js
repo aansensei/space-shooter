@@ -139,6 +139,7 @@ let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
 
 // Sigil System state (reset in startGame)
 window._sigilPool = [];
+window._sigilRerollsLeft = 2;
 window._playerSigils = [];
 window._sigilPicker = null;
 window._sigilIronBodyStacks = 0;
@@ -148,8 +149,6 @@ window._thanMenhEndTime = 0;
 window._tuyetLanStacks = 0;
 window._tuyetLanLastKill = 0;
 window._muiTenVangHitCount = 0;
-window._hoVeLastDeadMaxHp = 0;
-window._hoVeShieldAvailUntil = 0;
 window._hoVeShieldCooldownEnd = 0;
 window._sthBurning = new Map();
 window._laiKepPEAccum = 0;
@@ -163,4 +162,10 @@ window._shadowTwinGhosts = [];
 window._shadowOrbs = [];
 window._shadowTwinVolleysPending = 0;
 window._shadowTwinNextVolleyAt = 0;
+window._mirrorLaserColumns = [];
+window._mlProcChance = 0.05;
+window._mlProcCooldownEnd = 0;
+window._sdcDmgStacks = [];
+window._goldenArrowNextSweepAt = 0;
+window._goldenArrowSweep = null;
 let boundaryY = canvas.height - 10;

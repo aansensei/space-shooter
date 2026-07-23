@@ -569,8 +569,8 @@ function update(rawDeltaTime) {
                 lastLaserTick = currentTime;
                 // Mirror Laser: original beam +30% dmg; mirror entity beams inherit 75% of that
                 const _mlBuffed = _hasBuff('guong_laze');
-                const _laserDmg = 130 * (_mlBuffed ? 1.30 : 1);
-                const _laserPct = 0.19 * (_mlBuffed ? 1.30 : 1);
+                const _laserDmg = 350 * (_mlBuffed ? 1.30 : 1);
+                const _laserPct = 0.23 * (_mlBuffed ? 1.30 : 1);
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return;
@@ -998,8 +998,8 @@ function update(rawDeltaTime) {
             if (enemy.hp > 0) {
                 for (const s of sentinels) {
                     if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
-                        if (_hasBuff('giap_nguyet') && Math.random() < 0.10) {
-                            // Lunar Aegis: 10% sentinel evade — chain consumed, no damage
+                        if (_hasBuff('giap_nguyet') && Math.random() < 0.20) {
+                            // Lunar Aegis: 20% sentinel evade — chain consumed, no damage
                         } else if (s.ironBody && currentTime < s.ironBodyEnd) {
                             // Iron Body: absorb but still consume chain
                         } else if (_hasBuff('trieu_hoi') && s._trieuIronBody) {
@@ -1048,8 +1048,8 @@ function update(rawDeltaTime) {
 
             for (const sentinel of sentinels) {
                 if (enemy.hp > 0 && Math.hypot(enemy.x - sentinel.x, enemy.y - sentinel.y) < enemy.size + sentinel.size) {
-                    if (_hasBuff('giap_nguyet') && Math.random() < 0.10) {
-                        // Lunar Aegis: 10% sentinel evade — bullet consumed, no damage
+                    if (_hasBuff('giap_nguyet') && Math.random() < 0.20) {
+                        // Lunar Aegis: 20% sentinel evade — bullet consumed, no damage
                     } else if (enemy.type === 'enemy_bullet_small') {
                         dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
@@ -1610,7 +1610,7 @@ function update(rawDeltaTime) {
                         }
 
                         if (b._muiTenVangCrit && enemy.hp > 0) {
-                            dealDamage(enemy, { damage: b.damage * 2, percentDamage: (b.percentDamage || 0) * 2, isTrueDamage: true, _noBase60: true });
+                            dealDamage(enemy, { damage: b.damage * 3, percentDamage: (b.percentDamage || 0) * 3, isTrueDamage: true, _noBase60: true });
                             enemy.vulnStacks = Math.min(4, (enemy.vulnStacks || 0) + 2);
                             enemy.vulnEndTime = _hn + 5000;
                             enemy._rootEnd = _hn + 1000;
@@ -1734,7 +1734,7 @@ function update(rawDeltaTime) {
         const _gfjInterval = _waveNumber >= 10 ? 5000 : 8000;
         if (_gfjJustActivated || window._gfjShieldTimer >= _gfjInterval) {
             window._gfjShieldTimer = 0;
-            const _shieldBonus = _hasBuff('giap_nguyet') ? 1.35 : 1;
+            const _shieldBonus = _hasBuff('giap_nguyet') ? 1.40 : 1;
             sentinels.forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
                 const newBarrier = Math.floor((lostHp * 0.25 + (s.maxHp || 100) * 0.15) * _shieldBonus);
@@ -1757,6 +1757,8 @@ function update(rawDeltaTime) {
     updateSolArrows(deltaTime); _profChk2.push(performance.now());
     updateShadowTwin(deltaTime); _profChk2.push(performance.now());
     updateShadowOrbs(deltaTime); _profChk2.push(performance.now());
+    updateMirrorLaserColumns(deltaTime); _profChk2.push(performance.now());
+    updateGoldenArrowSweep(deltaTime); _profChk2.push(performance.now());
     updateDimensionalRifts(deltaTime); _profChk2.push(performance.now());
     updateScatteredProjectiles(deltaTime); _profChk2.push(performance.now());
     updateSpirits(deltaTime); _profChk2.push(performance.now());
@@ -2118,7 +2120,7 @@ function _spawnWaveTier(tier) {
 
 function _updateSigilPassives(now, deltaTime) {
     if (_hasBuff('thanh_dong')) {
-        if (window._sigilIronBodyNextAt > 0 && now >= window._sigilIronBodyNextAt && window._sigilIronBodyStacks < 2) {
+        if (window._sigilIronBodyNextAt > 0 && now >= window._sigilIronBodyNextAt && window._sigilIronBodyStacks < 3) {
             window._sigilIronBodyStacks++;
             window._sigilIronBodyNextAt = now + 5000;
         }
@@ -2126,7 +2128,7 @@ function _updateSigilPassives(now, deltaTime) {
     }
 
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
-        if (now - window._tuyetLanLastKill > 5000) window._tuyetLanStacks = 0;
+        if (now - window._tuyetLanLastKill > 6000) window._tuyetLanStacks = 0;
     }
 
     if (_hasBuff('than_menh') && window._thanMenhEndTime > 0 && now < window._thanMenhEndTime) {
@@ -2149,7 +2151,7 @@ function _updateSigilPassives(now, deltaTime) {
                 if (dist <= 300) {
                     e._dtuSlow = true;
                     e._dtuSlowEnd = now + 200;
-                    const dot = 0.008 * (e.maxHp || e.hp) * (deltaTime / 1000);
+                    const dot = 0.035 * (e.maxHp || e.hp) * (deltaTime / 1000);
                     dealDamage(e, { damage: dot, percentDamage: 0, _isDtuDot: true });
                 }
             }
@@ -2321,6 +2323,12 @@ function startGame() {
     window._shadowOrbs = [];
     window._shadowTwinVolleysPending = 0;
     window._shadowTwinNextVolleyAt = 0;
+    window._mirrorLaserColumns = [];
+    window._mlProcChance = 0.05;
+    window._mlProcCooldownEnd = 0;
+    window._sdcDmgStacks = [];
+    window._goldenArrowNextSweepAt = 0;
+    window._goldenArrowSweep = null;
 
     // Reset Skill Shift
     skillShiftActive = false;
@@ -2369,6 +2377,7 @@ function startGame() {
     window._sigilPool = [...(typeof SIGIL_ORDER !== 'undefined' ? SIGIL_ORDER : [])];
     window._playerSigils = [];
     window._sigilPicker = null;
+    window._sigilRerollsLeft = 2;
     if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0 && !window._debugSkipSigilPick) {
         _wavePhase = 'sigil_pick';
         _triggerSigilPicker();
@@ -2381,8 +2390,6 @@ function startGame() {
     window._tuyetLanLastKill = 0;
     window._muiTenVangHitCount = 0;
     window._muiTenVangVolleyCount = 0;
-    window._hoVeLastDeadMaxHp = 0;
-    window._hoVeShieldAvailUntil = 0;
     window._hoVeShieldCooldownEnd = 0;
     window._sthBurning = new Map();
     window._laiKepPEAccum = 0;

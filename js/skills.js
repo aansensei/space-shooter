@@ -27,16 +27,18 @@ function activateSkillA() {
 
     lastSkillA = currentTime;
     if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-activate');
+    _checkMirrorLaserProc();
 
     if (canSpawnOrbs) {
         skillAActive = true;
         skillADefensiveCharges = 3;
 
         const orbsToAdd = Math.min(20, maxSkillAOrbs - skillAOrbs.length);
+        const _orbSize = _hasBuff('xuyen_pha') ? 8 * 1.30 : 8; // Astral Pierce: +30% orb size
         for (let i = 0; i < orbsToAdd; i++) {
             skillAOrbs.push({
                 angle: 0, radius: 0, target: null,
-                x: player.x, y: player.y, speed: 0, size: 8,
+                x: player.x, y: player.y, speed: 0, size: _orbSize,
                 isDefensive: false
             });
         }
@@ -368,6 +370,7 @@ function activateSkillS() {
     // Normal summon: standard 12s CD only
     if (currentTime - lastSkillS >= skillSCooldown) {
         lastSkillS = currentTime;
+        _checkMirrorLaserProc();
         primevalEnergy = 0; // Energy only accumulates from this new spirit
         spirits.push({
             x: player.x, y: player.y, shootTimer: 0,
@@ -434,6 +437,7 @@ function updateSpirits(deltaTime) {
         spirit.shootTimer -= deltaTime;
         let spiritFireRate = 54.2;
         if (gloryForJusticeActive) spiritFireRate /= 1.50;
+        if (_hasBuff('cuc_han')) spiritFireRate /= 1.30; // Arctic Chill: +30% fire rate
 
         if (spirit.shootTimer <= 0) {
             spirit.shootTimer = spiritFireRate;
@@ -468,12 +472,19 @@ function updateSpirits(deltaTime) {
                 const px = -Math.sin(baseAngle) * sideOff, py = Math.cos(baseAngle) * sideOff;
                 // First blade: immediate
                 bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
-                // Second blade (extra): 15ms delay, +10% radius to bypass Iron Body on same frame
+                // Second blade (extra): 15ms delay, +20% radius to bypass Iron Body on same frame
                 if (!window._pendingBlades) window._pendingBlades = [];
                 window._pendingBlades.push({
                     spawnAt: performance.now() + 15,
-                    data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 137, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
+                    data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
                 });
+                // Third blade: 25% chance, fires straight down the middle 30ms later
+                if (Math.random() < 0.25) {
+                    window._pendingBlades.push({
+                        spawnAt: performance.now() + 30,
+                        data: { x: spirit.x, y: spirit.y, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
+                    });
+                }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             } else {
                 bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
@@ -718,6 +729,7 @@ function updatePhotokrystos(spirit, deltaTime) {
     spirit.shootTimer -= deltaTime;
     let photoFireRate = 42; // fire rate
     if (gloryForJusticeActive) photoFireRate /= 1.50;
+    if (_hasBuff('cuc_han')) photoFireRate /= 1.30; // Arctic Chill: +30% fire rate
     if (spirit.shootTimer <= 0) {
         spirit.shootTimer = photoFireRate;
         const targets = [];
@@ -914,7 +926,7 @@ function updatePhotoBrangs(deltaTime) {
                         }
                         if (tgt.hp <= 0 && !tgt._spiritKillCounted) {
                             tgt._spiritKillCounted = true;
-                            primevalEnergy = Math.min(100, primevalEnergy + 2);
+                            primevalEnergy = Math.min(100, primevalEnergy + 2 * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1));
                         }
                     }
                     // Bounce to next target after hit
@@ -1050,7 +1062,7 @@ function updateBladeArcProjectiles(deltaTime) {
                 // Primeval Creation: blade arc from spirit = +2%
                 if (arc.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
                     enemy._spiritKillCounted = true;
-                    primevalEnergy = Math.min(100, primevalEnergy + 2);
+                    primevalEnergy = Math.min(100, primevalEnergy + 2 * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1));
                 }
                 arc.hitEnemies.push(enemy);
             }
@@ -1095,7 +1107,7 @@ function updateSpiritBullets(deltaTime) {
                 // Primeval Creation: +2% from spirit kills (handleEnemyKill gives +1.25% to others)
                 if (b.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
                     enemy._spiritKillCounted = true;
-                    primevalEnergy = Math.min(100, primevalEnergy + 2);
+                    primevalEnergy = Math.min(100, primevalEnergy + 2 * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1));
                 }
                 b.lifetime = 0;
                 createParticles(b.x, b.y, 5, b.isPhoto ? 'lime' : 'lime', 1, 3);
@@ -1153,16 +1165,17 @@ function activateSkillD() {
     const currentTime = performance.now();
     if (typeof player !== 'undefined' && player._silenced) return;
     if (gameState !== "playing" || skillDCharging || blackHole || currentTime - lastSkillD < skillDCooldown) return;
-    if (_hasBuff('set_day_chuyen')) {
-        // Aquarius: instant cast, skip charging
+    _checkMirrorLaserProc();
+    if (_hasBuff('dong_chay_luan_hoi')) {
+        // Cycle of Flow: skip the charge phase entirely
         lastSkillD = currentTime;
-        blackHole = { x: player.x, y: player.y - player.height, size: 10, maxSize: 180, vy: -2, activeTime: 0 };
+        blackHole = { x: player.x, y: player.y - player.height, size: 10, maxSize: 120, vy: -2, activeTime: 0 };
         if (window.AudioMgr) window.AudioMgr.startBlackhole();
-    } else {
-        skillDCharging = true;
-        skillDChargeStartTime = performance.now();
-        if (window.AudioMgr) window.AudioMgr.startSkillDCharge();
+        return;
     }
+    skillDCharging = true;
+    skillDChargeStartTime = performance.now();
+    if (window.AudioMgr) window.AudioMgr.startSkillDCharge();
 }
 
 function updateSkillD(deltaTime) {
@@ -1172,7 +1185,7 @@ function updateSkillD(deltaTime) {
             lastSkillD = performance.now();
             blackHole = {
                 x: player.x, y: player.y - player.height,
-                size: 10, maxSize: _hasBuff('set_day_chuyen') ? 180 : 120, vy: -2, activeTime: 0
+                size: 10, maxSize: 120, vy: -2, activeTime: 0
             };
             if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.startBlackhole(); }
         }
@@ -1183,7 +1196,7 @@ function updateSkillD(deltaTime) {
         blackHole.activeTime += deltaTime;
         if (blackHole.size < blackHole.maxSize) blackHole.size += 1 * dt;
 
-        const pullSpeed = _hasBuff('set_day_chuyen') ? 8.1 : 6;
+        const pullSpeed = 6;
         for (let enemy of enemies) {
             if (enemy.type === 'abyssal_chain') continue; // piercing, immune to black hole
             if (enemy.type === 'veilshroud_echo') continue; // echo miễn CC
@@ -1202,6 +1215,7 @@ function updateSkillD(deltaTime) {
                     enemy._yogMark = true;
                     enemy._yogMarkStart = performance.now();
                     enemy._yogMarkAccum = 0;
+                    applyVulnerability(enemy);
                 }
             }
             if (d < blackHole.size / 2) {
@@ -1227,7 +1241,7 @@ function updateSkillD(deltaTime) {
         const _markNow = performance.now();
         for (const enemy of enemies) {
             if (enemy._yogMark && _markNow - enemy._yogMarkStart >= 1650) {
-                const _expDmg = Math.ceil((enemy._yogMarkAccum || 0) * 0.40);
+                const _expDmg = Math.ceil((enemy._yogMarkAccum || 0) * 0.60 + (enemy.maxHp - enemy.hp) * 0.35);
                 if (_expDmg > 0) dealDamage(enemy, { damage: _expDmg, isTrueDamage: true, _yogExplosion: true });
                 createParticles(enemy.x, enemy.y, 15, '#8b5cf6', 3, 8);
                 enemy._yogMark = false;
@@ -1242,10 +1256,19 @@ function activateSkillF() {
     if (typeof player !== "undefined" && player._silenced) return; // Silence
     if (gameState === "playing" && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
         lastSkillF = currentTime;
-        skillFState = "charging";
-        skillFChargeStart = currentTime;
         enemies.forEach(e => e.hitBySkillF = false);
-        if (window.AudioMgr) window.AudioMgr.startSkillFCharge();
+        _checkMirrorLaserProc();
+        if (_hasBuff('dong_chay_luan_hoi')) {
+            // Cycle of Flow: skip the charge phase entirely
+            skillFState = "sweeping";
+            skillFSweepStart = currentTime;
+            if (window.AudioMgr) window.AudioMgr.startSkillFFire();
+            if (_hasBuff('song_luoi')) spawnPhotoBrangs(player.x, player.y, 2, true);
+        } else {
+            skillFState = "charging";
+            skillFChargeStart = currentTime;
+            if (window.AudioMgr) window.AudioMgr.startSkillFCharge();
+        }
     }
 }
 
@@ -1256,23 +1279,8 @@ function updateSkillF(deltaTime) {
         skillFSweepStart = currentTime;
         if (window.AudioMgr) { window.AudioMgr.stopSkillFCharge(); window.AudioMgr.startSkillFFire(); }
         if (_hasBuff('song_luoi')) {
-            const _fbDmg = 210 * 1.60, _fbPct = 0.058 * 1.60;
-            const _fbTargets = enemies.filter(e =>
-                !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' &&
-                e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
-            );
-            let _fbAngle = -Math.PI / 2; // default: straight up
-            if (_fbTargets.length > 0) {
-                const _nearest = _fbTargets.reduce((a, b) =>
-                    Math.hypot(a.x - player.x, a.y - player.y) <= Math.hypot(b.x - player.x, b.y - player.y) ? a : b
-                );
-                _fbAngle = Math.atan2(_nearest.y - player.y, _nearest.x - player.x);
-            }
-            const _fbSpd = 15.84, _sideOff = 22;
-            const _fpx = -Math.sin(_fbAngle) * _sideOff, _fpy = Math.cos(_fbAngle) * _sideOff;
-            if (!window._pendingBlades) window._pendingBlades = [];
-            bladeArcProjectiles.push({ x: player.x - _fpx, y: player.y - _fpy, vx: Math.cos(_fbAngle) * _fbSpd, vy: Math.sin(_fbAngle) * _fbSpd, radius: 125, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true });
-            window._pendingBlades.push({ spawnAt: currentTime + 15, data: { x: player.x + _fpx, y: player.y + _fpy, vx: Math.cos(_fbAngle) * _fbSpd, vy: Math.sin(_fbAngle) * _fbSpd, radius: 137, damage: _fbDmg, percentDamage: _fbPct, hitEnemies: [], isPiercing: true, _barrierPiercing: true } });
+            // Twin Blades: Skill F sweep now throws 2 boomerangs from the player instead of blade arcs
+            spawnPhotoBrangs(player.x, player.y, 2, true);
         }
     }
     if (skillFState === "sweeping") {
@@ -1335,6 +1343,7 @@ function activateSkillG() {
     skillGCharge = 0;
     skillGEndTime = gameElapsedTime + 30000;
     skillGBorderOpacity = 0.01;
+    _checkMirrorLaserProc();
 
     particles.push({
         isSkillGAura: true,
@@ -1491,16 +1500,31 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     }
                 }
             } else {
-                const explosionProps = { damage: 10, percentDamage: 0.06 };
-                const explosionRadius = orb.size * 5;
-                addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
-                enemies.forEach(enemy => {
-                    let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
-                    if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
-                        dealDamage(enemy, explosionProps);
-                    }
-                });
-                orbsToDestroy.add(orb);
+                // Sigil: Chain Lightning — an energy orb that never paired into a
+                // Tesla coil grants a stacking dmg buff, and (if Skill A has room)
+                // gets siphoned into an extra Skill A orb instead of exploding.
+                if (_hasBuff('set_day_chuyen') && skillGActive) {
+                    if (!window._sdcDmgStacks) window._sdcDmgStacks = [];
+                    window._sdcDmgStacks = window._sdcDmgStacks.filter(t => t > currentTime);
+                    if (window._sdcDmgStacks.length < 6) window._sdcDmgStacks.push(currentTime + 5000);
+                }
+                if (_hasBuff('set_day_chuyen') && skillAOrbs.length < maxSkillAOrbs) {
+                    const _orbSize = _hasBuff('xuyen_pha') ? 8 * 1.30 : 8;
+                    skillAOrbs.push({ angle: 0, radius: 0, target: null, x: orb.x, y: orb.y, speed: 0, size: _orbSize, isDefensive: false });
+                    createParticles(orb.x, orb.y, 10, '#00e5ff', 2, 5);
+                    orbsToDestroy.add(orb);
+                } else {
+                    const explosionProps = { damage: 10, percentDamage: 0.06 };
+                    const explosionRadius = orb.size * 5;
+                    addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
+                    enemies.forEach(enemy => {
+                        let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
+                        if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
+                            dealDamage(enemy, explosionProps);
+                        }
+                    });
+                    orbsToDestroy.add(orb);
+                }
             }
             continue;
         }
@@ -2013,6 +2037,98 @@ function updateShadowOrbs(deltaTime) {
         }
         if (orb.x < -60 || orb.x > canvas.width + 60 || orb.y < -60 || orb.y > canvas.height + 60) {
             window._shadowOrbs.splice(i, 1);
+        }
+    }
+}
+
+// Golden Arrow (Virgo buff 1) — bonus attack: while 5+ enemies are on screen,
+// every 4s a vine-wrapped wooden hand sweeps across the screen.
+function _validGoldenArrowTargets() {
+    return enemies.filter(e =>
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
+    );
+}
+
+function updateGoldenArrowSweep(deltaTime) {
+    if (!_hasBuff('mui_ten_vang')) return;
+    const now = performance.now();
+
+    if (window._goldenArrowSweep) {
+        const sw = window._goldenArrowSweep;
+        const progress = (now - sw.startTime) / sw.duration;
+        if (progress >= 1) {
+            window._goldenArrowSweep = null;
+            return;
+        }
+        const currentAngle = -Math.PI + Math.PI * progress;
+        const range = canvas.width * 0.6;
+        for (const enemy of _validGoldenArrowTargets()) {
+            if (sw.hitEnemies.has(enemy)) continue;
+            const angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
+            const dist = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+            if (dist < range && angle < currentAngle && angle > currentAngle - 0.2) {
+                sw.hitEnemies.add(enemy);
+                const missingHpBonus = Math.ceil((enemy.maxHp - enemy.hp) * 0.15);
+                dealDamage(enemy, { damage: 1000 + missingHpBonus, percentDamage: 0.10 });
+                createParticles(enemy.x, enemy.y, 14, '#c9a227', 3, 8);
+                createParticles(enemy.x, enemy.y, 8, '#5fae3a', 2, 6);
+            }
+        }
+        return;
+    }
+
+    if (now < (window._goldenArrowNextSweepAt || 0)) return;
+    if (_validGoldenArrowTargets().length < 5) return;
+
+    window._goldenArrowNextSweepAt = now + 4000;
+    window._goldenArrowSweep = { startTime: now, duration: 1000, hitEnemies: new Set() };
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('egregor-nullslash-slash', player.x, player.y);
+}
+
+// Mirror Laser (Gemini buff 2) — bonus proc: every skill cast / auto-fire shot
+// has a chance to fire a piercing, non-homing laser column. Chance starts at
+// 5%, gains +0.3% pity per miss, resets to 5% on a successful trigger. 4s CD
+// after the laser ends before it can roll again.
+function _checkMirrorLaserProc() {
+    if (!_hasBuff('guong_laze')) return;
+    const now = performance.now();
+    if (now < (window._mlProcCooldownEnd || 0)) return;
+    if (Math.random() < (window._mlProcChance || 0.05)) {
+        window._mlProcChance = 0.05;
+        window._mlProcCooldownEnd = now + 3000 + 4000;
+        if (!window._mirrorLaserColumns) window._mirrorLaserColumns = [];
+        window._mirrorLaserColumns.push({ startTime: now, duration: 3000, lastTick: 0 });
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-activate', player.x, player.y);
+    } else {
+        window._mlProcChance = Math.min(1, (window._mlProcChance || 0.05) + 0.003);
+    }
+}
+
+function updateMirrorLaserColumns(deltaTime) {
+    if (!window._mirrorLaserColumns || window._mirrorLaserColumns.length === 0) return;
+    const now = performance.now();
+    for (let i = window._mirrorLaserColumns.length - 1; i >= 0; i--) {
+        const col = window._mirrorLaserColumns[i];
+        if (now - col.startTime >= col.duration) { window._mirrorLaserColumns.splice(i, 1); continue; }
+        if (now - col.lastTick >= 125) {
+            col.lastTick = now;
+            const laserX = player.x;
+            enemies.forEach(enemy => {
+                if (enemy.type === 'abyssal_chain') return;
+                if (enemy.type === 'veilshroud_echo') return;
+                if (enemy.inCoronation) return;
+                if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
+                    if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
+                        const _src = { damage: 350, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true };
+                        checkMarchosiasArcBarrier(enemy, _src, enemy.x, enemy.y);
+                        dealDamage(enemy, _src);
+                    } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
+                        enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
+                    } else {
+                        dealDamage(enemy, { damage: 350, percentDamage: 0.18, isPiercing: true });
+                    }
+                }
+            });
         }
     }
 }

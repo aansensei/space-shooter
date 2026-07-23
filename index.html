@@ -2,9 +2,9 @@
 <!--
   index.html
 
-  Main entry point and game shell. All 6 JS modules load at the bottom in a
+  Main entry point and game shell. All JS modules load at the bottom in a
   fixed order bc they all share global state from config.js. Order is:
-  config.js, entities.js, render.js, skills.js, input.js, main.js.
+  config.js, entities.js, render/*.js, skills.js, input.js, main.js.
   That order is strict bc each module references globals the previous one set up.
 
   Title screen UI and the easter egg overlay live here. The star warp animation
@@ -1319,13 +1319,13 @@
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
     <script src="js/audio.js?v=20260722h"></script>
     <script src="js/background.js?v=20260722b"></script>
-    <script src="js/config.js?v=20260722e"></script>
-    <script src="js/sigils.js?v=20260722h"></script>
-    <script src="js/entities.js?v=20260722k"></script>
-    <script src="js/skills.js?v=20260722i"></script>
+    <script src="js/config.js?v=20260724a"></script>
+    <script src="js/sigils.js?v=20260724a"></script>
+    <script src="js/entities.js?v=20260724a"></script>
+    <script src="js/skills.js?v=20260724a"></script>
     <script src="js/render/core.js?v=20260722h"></script>
     <script src="js/render/fx.js?v=20260719a"></script>
-    <script src="js/render/player.js?v=20260722j"></script>
+    <script src="js/render/player.js?v=20260724a"></script>
     <script src="js/render/enemy-common.js?v=20260722c"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
     <script src="js/render/enemy-boss-thaelis.js?v=20260717e"></script>
@@ -1340,8 +1340,8 @@
     <script src="js/render/skill-g.js?v=20260717e"></script>
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
     <script src="js/pixi-renderer.js?v=20260720b"></script>
-    <script src="js/input.js?v=20260722g"></script>
-    <script src="js/main.js?v=20260722j"></script>
+    <script src="js/input.js?v=20260724a"></script>
+    <script src="js/main.js?v=20260724a"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
@@ -1524,11 +1524,11 @@
     <script>
         (function () {
             let _plat = 'pc';
-            window._platform = 'pc'; // exposed for render.js
+            window._platform = 'pc'; // exposed for the render/*.js modules
 
             window.selectPlatform = function (p) {
                 _plat = p;
-                window._platform = p; // keep render.js in sync
+                window._platform = p; // keep the render/*.js modules in sync
                 document.getElementById('btn-pc').classList.toggle('pf-active', p === 'pc');
                 document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
                 // Correct background.js's initial touch-detection guess (made
