@@ -1,22 +1,21 @@
-Copyright (c) 2024 Cao Thien An Nguyen. All Rights Reserved.
+MIT License
 
-This software and all associated files, assets, and documentation (the "Work")
-are the exclusive intellectual property of Cao Thien An Nguyen.
+Copyright (c) 2024 Cao Thien An Nguyen
 
-No part of the Work may be reproduced, distributed, transmitted, modified,
-adapted, publicly displayed, publicly performed, sublicensed, or otherwise
-used in any form or by any means — electronic, mechanical, photocopying,
-recording, or otherwise — without the prior written permission of the
-copyright holder.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Unauthorized use, copying, modification, distribution, or disclosure of
-this Work, in whole or in part, is strictly prohibited and may result in
-severe civil and criminal penalties.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-For licensing inquiries, contact the copyright holder directly.
-
-THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY
-ARISING FROM, OUT OF, OR IN CONNECTION WITH THE WORK.
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
