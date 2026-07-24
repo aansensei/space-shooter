@@ -175,8 +175,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (e.code === "Space" && !charging && !laserActive && !skillShiftActive) {
-            charging = true; chargeStartTime = performance.now();
-            if (window.AudioMgr) window.AudioMgr.startCharging();
+            const _now = performance.now();
+            if (_hasBuff('dong_chay_luan_hoi')) {
+                // Cycle of Flow: skip the charge phase entirely
+                if (_now >= laserCooldownEnd) _activateOverloadLaser(_now);
+            } else {
+                charging = true; chargeStartTime = _now;
+                if (window.AudioMgr) window.AudioMgr.startCharging();
+            }
             e.preventDefault();
         }
         if (e.code === "KeyA") { activateSkillA(); e.preventDefault(); }

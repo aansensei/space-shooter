@@ -251,6 +251,25 @@ function _queryEnemyGrid(grid, x, y, out) {
     return out;
 }
 
+function _activateOverloadLaser(currentTime) {
+    charging = false;
+    laserActive = true; laserStartTime = currentTime;
+    lastLaserTick = 0;
+    playerClones = [];
+    const cloneSpacing = 150;
+    for (let i = -2; i <= 2; i++) {
+        if (i === 0) continue;
+        playerClones.push({ xOffset: i * cloneSpacing });
+    }
+    if (_hasBuff('guong_laze')) {
+        window._mirrorLaserEntities = [
+            { y: 0, vy: 5, side: 'left' },
+            { y: canvas.height, vy: -5, side: 'right' }
+        ];
+    }
+    if (window.AudioMgr) { window.AudioMgr.stopCharging(); window.AudioMgr.startLaser(); }
+}
+
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
@@ -532,21 +551,7 @@ function update(rawDeltaTime) {
     _profChk.push(performance.now()); // pre-section (up to & including fireAutoShot)
 
     if (charging && !laserActive && currentTime - chargeStartTime >= overloadChargeTime && currentTime >= laserCooldownEnd) {
-        laserActive = true; laserStartTime = currentTime; charging = false;
-        lastLaserTick = 0;
-        playerClones = [];
-        const cloneSpacing = 150;
-        for (let i = -2; i <= 2; i++) {
-            if (i === 0) continue;
-            playerClones.push({ xOffset: i * cloneSpacing });
-        }
-        if (_hasBuff('guong_laze')) {
-            window._mirrorLaserEntities = [
-                { y: 0, vy: 5, side: 'left' },
-                { y: canvas.height, vy: -5, side: 'right' }
-            ];
-        }
-        if (window.AudioMgr) { window.AudioMgr.stopCharging(); window.AudioMgr.startLaser(); }
+        _activateOverloadLaser(currentTime);
     }
 
     if (laserActive) {
