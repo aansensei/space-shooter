@@ -106,7 +106,7 @@ const SIGIL_DEFS = {
             { id: 'coi_mong', name: 'Dream Realm', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Shift activation negates all enemy damage for 3s and marks all enemies on screen (each instantly takes 1 Vulnerability stack). After 1.65s, marked enemies burst for 60% of the damage they accumulated during the mark window plus 35% of their missing HP.' },
             { id: 'dong_chay_luan_hoi', name: 'Cycle of Flow', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Kill apostle: −1s all skill CD; kill abnormal/elite: −1.5s; kill dominator: −2s; kill Egregor: −3s. Charge rate for Phōtokrystos and Skill G +50%. Skill D and Skill F fire instantly, skipping their charge phase entirely (Shift unaffected).' },
+              desc: 'Kill apostle: −1s all skill CD; kill abnormal/elite: −1.5s; kill dominator: −2s; kill Egregor: −3s. Charge rate for Phōtokrystos and Skill G +50%. Skill D, Skill F and Overload Laser fire instantly, skipping their charge phase entirely (Shift unaffected).' },
         ]
     },
 };
