@@ -1574,15 +1574,15 @@ function update(rawDeltaTime) {
                     }
 
                     let _dealSrc = b;
-                    if (b.isPiercing && _hasBuff('khat_chien') && (b._khatChienChain || 0) > 0) {
+                    if (b.isPiercing && _hasBuff('tien_phong') && (b._khatChienChain || 0) > 0) {
                         const _chainMul = 1 + Math.min(4, b._khatChienChain) * 0.30;
                         _dealSrc = { ...b, damage: Math.ceil(b.damage * _chainMul), percentDamage: (b.percentDamage || 0) * _chainMul };
                     }
                     dealDamage(enemy, _dealSrc);
 
-                    if (b.isPiercing && _hasBuff('khat_chien')) {
+                    if (b.isPiercing && _hasBuff('tien_phong')) {
                         if ((b._khatChienChain || 0) < 4) {
-                            dealDamage(enemy, { damage: 0, percentDamage: 0.025, isTrueDamage: true, _noBase60: true });
+                            dealDamage(enemy, { damage: 0, percentDamage: 0.03, isTrueDamage: true, _noBase60: true });
                         }
                         b._khatChienChain = (b._khatChienChain || 0) + 1;
                     }
@@ -1762,6 +1762,7 @@ function update(rawDeltaTime) {
     updateSolArrows(deltaTime); _profChk2.push(performance.now());
     updateShadowTwin(deltaTime); _profChk2.push(performance.now());
     updateShadowOrbs(deltaTime); _profChk2.push(performance.now());
+    updateOnslaughtOrbs(deltaTime); _profChk2.push(performance.now());
     updateMirrorLaserColumns(deltaTime); _profChk2.push(performance.now());
     updateGoldenArrowSweep(deltaTime); _profChk2.push(performance.now());
     updateDimensionalRifts(deltaTime); _profChk2.push(performance.now());
@@ -2334,6 +2335,9 @@ function startGame() {
     window._sdcDmgStacks = [];
     window._goldenArrowNextSweepAt = 0;
     window._goldenArrowSweep = null;
+    window._onslaughtLastEnemy = null;
+    window._onslaughtCooldownEnd = 0;
+    window._onslaughtOrbs = [];
 
     // Reset Skill Shift
     skillShiftActive = false;

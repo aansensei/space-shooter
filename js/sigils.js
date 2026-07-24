@@ -5,9 +5,9 @@ const SIGIL_DEFS = {
         name: 'Aries', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'tien_phong', name: 'Vanguard', type: 'ATK', typeC: '#ef4444',
-              desc: '40% chance for player & sentinel bullets to pierce enemies, +50% damage' },
-            { id: 'khat_chien', name: 'Blood Frenzy', type: 'ATK', typeC: '#ef4444',
-              desc: 'Chain hits +30% dmg; each chain adds 2.5% enemy EP as true damage (max 4 chains)' },
+              desc: '50% chance for player & sentinel bullets to pierce enemies, +50% damage. Each pierce-chain hit: +30% dmg per chain, plus 3% of the enemy\'s Max HP as true damage (max 4 chains).' },
+            { id: 'khat_chien', name: 'Onslaught', type: 'ATK', typeC: '#ef4444',
+              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can fire a fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit\'s damage + 0.75% of the target\'s missing HP (300ms CD).' },
         ]
     },
     taurus: {
@@ -49,7 +49,7 @@ const SIGIL_DEFS = {
     virgo: {
         name: 'Virgo', element: 'Earth', color: '#4D9B2A',
         buffs: [
-            { id: 'mui_ten_vang', name: 'Golden Arrow', type: 'ATK', typeC: '#ef4444',
+            { id: 'mui_ten_vang', name: 'Forest Guardian', type: 'ATK', typeC: '#ef4444',
               desc: 'Every 6th auto volley triggers a Critical Strike: 4x damage, Vulnerability, root + silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped wooden fist sweeps across the screen (60% of screen width), dealing 1000 + 10% EP + 15% of each target\'s missing HP.' },
             { id: 'ky_su_dien', name: 'Circuit Engineer', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Tesla DoT & Coil +50% dmg; destroying a Coil reduces Skill G CD by 3s and increases G energy gain by 10%. Enemies carrying any debuff (slow, DoT, Vulnerability, Soul Reaver, etc.) take +50% damage from all sources.' },
@@ -176,6 +176,7 @@ function _completeSigilPicker(sigilId) {
 function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'tuyet_lan')    { window._tuyetLanStacks = 0; window._tuyetLanLastKill = 0; }
     if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; window._bongDoiCharging = false; window._bongDoiCooldownEnd = 0; }
+    if (buffId === 'khat_chien')   { window._onslaughtLastEnemy = null; window._onslaughtCooldownEnd = 0; window._onslaughtOrbs = []; }
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
     if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 8000; }

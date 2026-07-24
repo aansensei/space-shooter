@@ -168,4 +168,7 @@ window._mlProcCooldownEnd = 0;
 window._sdcDmgStacks = [];
 window._goldenArrowNextSweepAt = 0;
 window._goldenArrowSweep = null;
+window._onslaughtLastEnemy = null;
+window._onslaughtCooldownEnd = 0;
+window._onslaughtOrbs = [];
 let boundaryY = canvas.height - 10;

@@ -822,8 +822,8 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">ARIES</div><div class="sfc-el">Fire</div><div class="sfc-theme">VANGUARD ASSAULT</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Vanguard</b> <span class="sbd">40% pierce chance on player and sentinel bullets. Auto dmg +50%.</span></div>
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Blood Frenzy</b> <span class="sbd">Piercing chain +30% dmg per chain. Each chain: 2.5% MaxHP true dmg (max 4).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Vanguard</b> <span class="sbd">50% pierce chance on player and sentinel bullets. Auto dmg +50%. Piercing chain +30% dmg per chain, plus 3% MaxHP true dmg per chain (max 4).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Onslaught</b> <span class="sbd">Any landed ally hit (except Skill D/F) can fire a fireball at whichever enemy the previous hit struck: 100 + 15% of that hit's dmg + 0.75% of the target's missing HP (300ms CD).</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
 <canvas class="sfc-glyph-sm-cv" data-sigil="aries"></canvas>
@@ -887,7 +887,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">VIRGO</div><div class="sfc-el">Earth</div><div class="sfc-theme">PRECISION STRIKE</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Golden Arrow</b> <span class="sbd">Every 6th auto volley: 4x dmg, Vulnerability, root and silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped wooden fist sweeps across the screen (60% of screen width), dealing 1000+10% EP+15% of each target's missing HP.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Forest Guardian</b> <span class="sbd">Every 6th auto volley: 4x dmg, Vulnerability, root and silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across the screen (60% of screen width), dealing 1000+10% EP+15% of each target's missing HP.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Circuit Engineer</b> <span class="sbd">Tesla DoT and Coil dmg +50%. Destroying a Coil: Skill G CD -3s and G charge gain +10%. Enemies carrying any debuff (slow, DoT, Vulnerability, Soul Reaver, etc.) take +50% dmg from all sources.</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
@@ -1111,18 +1111,29 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
+<div class="ul-entry" style="--ul-accent:#ef4444">
+<div class="ul-head"><span class="ul-ver">v5.6 — ARIES REWORK</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026-07-24 · Vanguard absorbs Blood Frenzy's chain mechanic, new Onslaught fireball-relay ability</div>
+<p class="det-short ul-summary">Blood Frenzy's chain true-damage mechanic only ever worked on the 40-50% of bullets Vanguard made piercing in the first place, so it's been folded directly into Vanguard itself — freeing up Aries's second slot for a brand-new ability, Onslaught: every landed hit from any ally (except Skill D and Skill F) can fling a fireball at whichever enemy the previous hit struck.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Vanguard:</b> pierce chance 40% → 50%; absorbs Blood Frenzy's old chain mechanic (+30% dmg per pierce-chain hit, plus true damage per chain 2.5% → 3% of the enemy's Max HP, max 4 chains).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Blood Frenzy renamed Onslaught (NEW ability):</b> any landed hit from an allied source (Skill D and Skill F excluded) can fire a homing fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit's damage + 0.75% of the target's missing HP, gated by a 300ms cooldown. New fireball visual with an ember trail and licking flame tongues.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Onslaught targeting fallback:</b> apostles are weak enough (22-330 HP) to often die in a single hit, so the "previous target" was frequently already dead by the next trigger and the fireball silently never fired. It now falls back to firing at the current target instead of skipping, so the ability stays visible against weak waves too.</li>
+</ul>
+</div>
+
 <div class="ul-entry" style="--ul-accent:#c9a227">
-<div class="ul-head"><span class="ul-ver">v5.5 — LEO &amp; VIRGO REWORK</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
-<div class="ul-date">2026-07-24 · Leo and Virgo balance pass, new Golden Arrow vine-fist sweep, Mirror Laser visual overhaul</div>
-<p class="det-short ul-summary">Leo's Lion's Roar now scales with the target's own missing HP, and Divine Fate's freeze-window damage bonus doubled. Virgo's Golden Arrow gained a brand-new bonus attack — a vine-wrapped wooden fist that sweeps the screen every 4s once 5+ enemies are up — and Circuit Engineer now punishes any debuffed enemy with +50% damage taken. Also fixed a long-standing description drift where Golden Arrow's crit trigger was documented as "every 12 hits, 3x dmg" when the actual code had always been "every 6 volleys" — corrected to match, and bumped to 4x while at it. Rebuilt both the wooden-fist and Mirror Laser column visuals with much more detail.</p>
+<div class="ul-head"><span class="ul-ver">v5.5 — LEO &amp; VIRGO REWORK</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026-07-24 · Leo and Virgo balance pass, new Forest Guardian vine-log sweep, Mirror Laser visual overhaul</div>
+<p class="det-short ul-summary">Leo's Lion's Roar now scales with the target's own missing HP, and Divine Fate's freeze-window damage bonus doubled. Virgo's Golden Arrow was renamed Forest Guardian and gained a brand-new bonus attack — a vine-wrapped log that sweeps the screen every 4s once 5+ enemies are up — and Circuit Engineer now punishes any debuffed enemy with +50% damage taken. Also fixed a long-standing description drift where the sigil's crit trigger was documented as "every 12 hits, 3x dmg" when the actual code had always been "every 6 volleys" — corrected to match, and bumped to 4x while at it. Rebuilt both the vine-log and Mirror Laser column visuals with much more detail.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Lion's Roar:</b> every hit against an enemy now also deals bonus damage equal to 2% of that enemy's own missing HP, on top of the existing GFJ-gated Burn DoT.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Divine Fate:</b> freeze-window damage bonus +50% → +100%.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Golden Arrow (NEW bonus attack):</b> while 5+ enemies are on screen, every 4s a vine-wrapped wooden fist sweeps across 60% of the screen width, dealing 1000 + 10% EP + 15% of each target's missing HP. Full new animation: a real fist silhouette (4-knuckle row + thumb) with wood grain, bark rings, wrapping vine cords, and pointed leaf clusters.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Golden Arrow renamed Forest Guardian (NEW bonus attack):</b> while 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across 60% of the screen width, dealing 1000 + 10% EP + 15% of each target's missing HP. The log itself is now drawn at true scale — its swing visually spans the full 60% width instead of a small hand-held prop — densely wrapped in vine strands and leaf clusters running end to end, with a cut cross-section and snapped branch stub at the striking tip.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Circuit Engineer:</b> enemies carrying any recognized debuff (Vulnerability, Soul Reaver, slow, DoT, Dimensional Rift, Yog mark) now take +50% damage from all sources.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Cycle of Flow:</b> the charge-skip now also covers Overload Laser — a single Space press instantly fires the laser (no more holding to charge), same as Skill D and F.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Gemini — Mirror Laser column visual overhaul:</b> the bonus laser column is now a wavering, color-cycling plasma body with a flickering white-hot core, crackling side-arc branches, and a rotating energy ring at the emission point — replacing the original static rectangle beam.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Virgo — Golden Arrow description drift:</b> the crit trigger had quietly been "every 6th auto volley" in code for a long time while the sigil card still read "every 12 bullet hits, 3x dmg" — corrected to match reality (and bumped to 4x in the same pass).</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Virgo — Forest Guardian description drift:</b> the crit trigger had quietly been "every 6th auto volley" in code for a long time while the sigil card still read "every 12 bullet hits, 3x dmg" — corrected to match reality (and bumped to 4x in the same pass).</li>
 </ul>
 </div>
 

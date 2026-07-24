@@ -325,7 +325,7 @@ function fireAutoShot() {
 
     for (let i = 0; i < numBullets; i++) {
         const angle = baseAngle + startAngle + (i * angleStep);
-        const _pierce = _vanguard && Math.random() < 0.40;
+        const _pierce = _vanguard && Math.random() < 0.50;
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
@@ -1023,7 +1023,7 @@ function updateSentinels(deltaTime) {
                     percentDamage: 0.015 * damageMultiplier * _bDmg2 * (_hasBuff('tien_phong') ? 1.50 : 1),
                     size: 7.8, type: 'sentinel_auto',
                     _isSentinelBullet: true,
-                    ...(_hasBuff('tien_phong') && Math.random() < 0.40 ? { isPiercing: true, hitEnemies: [] } : {}),
+                    ...(_hasBuff('tien_phong') && Math.random() < 0.50 ? { isPiercing: true, hitEnemies: [] } : {}),
                 });
                 const _mz = _acquireParticle(); _mz.x = sentinel.x + Math.cos(angle) * (sentinel.size + 5); _mz.y = sentinel.y + Math.sin(angle) * (sentinel.size + 5); _mz.lifetime = 100; _mz.maxLifetime = 100; _mz.size = 5; _mz.color = 'orange'; particles.push(_mz);
             }
@@ -1667,6 +1667,33 @@ function dealDamage(enemy, source) {
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
     else if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
+
+    // Onslaught (khat_chien): every landed ally hit (except Skill F/D, and not
+    // the fireball's own impact) can fire a fireball at whichever enemy the
+    // PREVIOUS qualifying hit struck. The 300ms CD only throttles firing —
+    // the "last hit" tracking always updates so the target stays current.
+    // Fodder enemies often die in 1 hit, so the "previous" target is
+    // frequently already dead by the next trigger — fall back to the
+    // CURRENT target (if it's still alive) instead of silently skipping,
+    // so the ability doesn't go quiet against weak waves.
+    if (_hasBuff('khat_chien') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isOnslaughtOrb && totalDamage > 0) {
+        const _onNow = performance.now();
+        if (_onNow >= (window._onslaughtCooldownEnd || 0)) {
+            const _prevOnslaughtTarget = window._onslaughtLastEnemy;
+            let _onslaughtFireTarget = null;
+            if (_prevOnslaughtTarget && _prevOnslaughtTarget.hp > 0 && !_prevOnslaughtTarget._markedForDeath && enemies.includes(_prevOnslaughtTarget)) {
+                _onslaughtFireTarget = _prevOnslaughtTarget;
+            } else if (enemy.hp > 0 && !enemy._markedForDeath) {
+                _onslaughtFireTarget = enemy;
+            }
+            if (_onslaughtFireTarget) {
+                window._onslaughtOrbs = window._onslaughtOrbs || [];
+                window._onslaughtOrbs.push({ x: player.x, y: player.y, target: _onslaughtFireTarget, baseDmg: 100 + Math.ceil(totalDamage * 0.15) });
+            }
+            window._onslaughtCooldownEnd = _onNow + 300;
+        }
+        window._onslaughtLastEnemy = enemy;
+    }
 
     // Compound Interest: +200 true damage (bypasses shield and DR, like isTrueDamage
     // elsewhere in this function) while Photokrystos is alive

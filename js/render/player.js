@@ -1489,6 +1489,262 @@ function drawShadowTwin() {
 }
 
 // Golden Arrow (Virgo buff 1): vine-wrapped wooden fist sweeping across the screen
+// Forest Guardian log: colors, curve/vine/leaf helpers ported near-verbatim
+// from the reference art's canvas code (thin gripped end at local origin,
+// thick knotty strike end ~760 units out along +x, ox/oy baked into every
+// coordinate exactly like the source so the point lists can stay unchanged).
+const _FG_COLORS = {
+    woodDark: '#3A2618', woodBase: '#5C3A21', woodLight: '#7C5535', woodHighlight: '#9A7049',
+    woodEndBase: '#6B4A31', woodEndRings: '#3A2618',
+    vineDark: '#1E3F15', vineBase: '#366020', vineLight: '#548731',
+    leafBase: '#427A26', leafLight: '#65B23A',
+    outline: '#0F0905',
+};
+
+function _fgDrawCurve(ctx, points, color, lineWidth) {
+    if (points.length < 4) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0], points[1]);
+    for (let i = 2; i < points.length; i += 6) {
+        if (i + 5 < points.length) {
+            ctx.bezierCurveTo(points[i], points[i + 1], points[i + 2], points[i + 3], points[i + 4], points[i + 5]);
+        }
+    }
+    if (lineWidth > 0) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    }
+}
+
+function _drawFGLog(ctx) {
+    ctx.save();
+    const ox = -350, oy = -20;
+
+    ctx.beginPath();
+    ctx.moveTo(-350 - ox, -30 - oy);
+    ctx.lineTo(-300 - ox, -40 - oy);
+    ctx.lineTo(-100 - ox, -60 - oy);
+    ctx.lineTo(100 - ox, -80 - oy);
+    ctx.lineTo(250 - ox, -100 - oy);
+    ctx.lineTo(350 - ox, -90 - oy);
+    ctx.lineTo(400 - ox, -50 - oy);
+    ctx.lineTo(410 - ox, 0 - oy);
+    ctx.lineTo(380 - ox, 80 - oy);
+    ctx.lineTo(330 - ox, 110 - oy);
+    ctx.lineTo(200 - ox, 90 - oy);
+    ctx.lineTo(50 - ox, 70 - oy);
+    ctx.lineTo(-150 - ox, 40 - oy);
+    ctx.lineTo(-300 - ox, 10 - oy);
+    ctx.lineTo(-350 - ox, -10 - oy);
+    ctx.closePath();
+    ctx.fillStyle = _FG_COLORS.woodBase;
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = _FG_COLORS.outline;
+    ctx.stroke();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = _FG_COLORS.woodDark;
+    _fgDrawCurve(ctx, [-320 - ox, 0 - oy, -200 - ox, 10 - oy, -50 - ox, 20 - oy, 150 - ox, 30 - oy], _FG_COLORS.woodDark, 4);
+    _fgDrawCurve(ctx, [-150 - ox, -30 - oy, 0 - ox, -40 - oy, 150 - ox, -50 - oy, 300 - ox, -60 - oy], _FG_COLORS.woodDark, 3);
+    _fgDrawCurve(ctx, [50 - ox, 50 - oy, 150 - ox, 60 - oy, 250 - ox, 65 - oy, 320 - ox, 70 - oy], _FG_COLORS.woodDark, 3);
+
+    ctx.strokeStyle = _FG_COLORS.woodLight;
+    ctx.lineWidth = 2;
+    _fgDrawCurve(ctx, [-250 - ox, -15 - oy, -150 - ox, -20 - oy, -50 - ox, -15 - oy, 50 - ox, -25 - oy], _FG_COLORS.woodLight, 2);
+    _fgDrawCurve(ctx, [-100 - ox, 25 - oy, 0 - ox, 30 - oy, 100 - ox, 25 - oy, 200 - ox, 40 - oy], _FG_COLORS.woodLight, 2);
+    _fgDrawCurve(ctx, [100 - ox, -20 - oy, 200 - ox, -30 - oy, 280 - ox, -25 - oy, 330 - ox, -40 - oy], _FG_COLORS.woodLight, 2);
+
+    // extra fine grain streaks for added density
+    ctx.strokeStyle = _FG_COLORS.woodHighlight;
+    _fgDrawCurve(ctx, [-300 - ox, -20 - oy, -180 - ox, -25 - oy, -20 - ox, -32 - oy, 120 - ox, -42 - oy], _FG_COLORS.woodHighlight, 1.2);
+    _fgDrawCurve(ctx, [-200 - ox, 35 - oy, -60 - ox, 45 - oy, 80 - ox, 48 - oy, 220 - ox, 55 - oy], _FG_COLORS.woodHighlight, 1.2);
+
+    // cut end-face (mặt cắt) at the far/thick end
+    ctx.beginPath();
+    ctx.moveTo(350 - ox, -90 - oy);
+    ctx.bezierCurveTo(420 - ox, -90 - oy, 440 - ox, 20 - oy, 380 - ox, 80 - oy);
+    ctx.bezierCurveTo(360 - ox, 100 - oy, 310 - ox, 100 - oy, 330 - ox, 110 - oy);
+    ctx.fillStyle = _FG_COLORS.woodEndBase;
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = _FG_COLORS.outline;
+    ctx.stroke();
+
+    ctx.strokeStyle = _FG_COLORS.woodEndRings;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(380 - ox, 0 - oy, 10, 20, -0.2, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(378 - ox, 2 - oy, 20, 35, -0.2, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(375 - ox, 4 - oy, 30, 50, -0.2, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(372 - ox, 6 - oy, 40, 65, -0.2, 0, Math.PI * 2); ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(380 - ox, 0 - oy); ctx.lineTo(360 - ox, 50 - oy);
+    ctx.moveTo(380 - ox, 0 - oy); ctx.lineTo(410 - ox, -20 - oy);
+    ctx.moveTo(380 - ox, 0 - oy); ctx.lineTo(350 - ox, -40 - oy);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = _FG_COLORS.woodDark;
+    ctx.stroke();
+
+    // snapped branch stub
+    ctx.beginPath();
+    ctx.moveTo(280 - ox, -90 - oy);
+    ctx.lineTo(310 - ox, -150 - oy);
+    ctx.lineTo(340 - ox, -140 - oy);
+    ctx.lineTo(330 - ox, -90 - oy);
+    ctx.fillStyle = _FG_COLORS.woodBase;
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = _FG_COLORS.outline;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(325 - ox, -145 - oy, 8, 15, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = _FG_COLORS.woodEndBase;
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function _drawFGVineSection(ctx, points, thickness) {
+    ctx.save();
+    const ox = -350, oy = -20;
+    const shifted = points.map((p, i) => i % 2 === 0 ? p - ox : p - oy);
+    _fgDrawCurve(ctx, shifted, _FG_COLORS.outline, thickness + 4);
+    _fgDrawCurve(ctx, shifted, _FG_COLORS.vineBase, thickness);
+    _fgDrawCurve(ctx, shifted, _FG_COLORS.vineLight, thickness - 2);
+    ctx.restore();
+}
+
+function _drawFGLeaf(ctx, x, y, angle, scale) {
+    ctx.save();
+    const ox = -350, oy = -20;
+    ctx.translate(x - ox, y - oy);
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(15, -10, 30, 0);
+    ctx.quadraticCurveTo(15, 10, 0, 0);
+    ctx.fillStyle = _FG_COLORS.leafBase;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = _FG_COLORS.outline;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(25, 0);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = _FG_COLORS.vineDark;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(5, -3);
+    ctx.quadraticCurveTo(15, -8, 20, -2);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = _FG_COLORS.leafLight;
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function _drawFGTendril(ctx, x, y, seed) {
+    ctx.save();
+    const ox = -350, oy = -20;
+    ctx.translate(x - ox, y - oy);
+    ctx.rotate(seed * 1.3);
+    ctx.strokeStyle = _FG_COLORS.vineLight;
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(6, -4, 10, -12, 4, -16);
+    ctx.bezierCurveTo(-2, -20, -8, -14, -4, -8);
+    ctx.bezierCurveTo(-1, -4, 4, -6, 3, -11);
+    ctx.stroke();
+    ctx.restore();
+}
+
+function _drawFGVines(ctx) {
+    // vines wrapped near the thick strike end
+    _drawFGVineSection(ctx, [300, 100, 250, 120, 200, 50, 220, -100], 8);
+    _drawFGVineSection(ctx, [220, -100, 250, -130, 350, -80, 360, 50], 10);
+    _drawFGVineSection(ctx, [360, 50, 370, 100, 280, 110, 250, 50], 9);
+    // vines crossing the middle of the shaft
+    _drawFGVineSection(ctx, [100, 80, 50, 100, 0, 0, -50, -50], 7);
+    _drawFGVineSection(ctx, [-50, -50, -80, -80, 50, -80, 120, -20], 8);
+    _drawFGVineSection(ctx, [120, -20, 180, 20, 150, 90, 80, 80], 9);
+    // vines winding down the gripped end
+    _drawFGVineSection(ctx, [-300, 10, -250, -30, -200, 20, -100, 0], 6);
+    _drawFGVineSection(ctx, [-100, 0, -50, -40, 50, 20, 100, -20], 7);
+    _drawFGVineSection(ctx, [100, -20, 150, 10, 250, -30, 300, 20], 8);
+    // hanging tendrils
+    _drawFGVineSection(ctx, [300, 100, 280, 140, 320, 160, 290, 180], 3);
+    _drawFGVineSection(ctx, [100, 80, 90, 120, 110, 140, 95, 150], 3);
+    _drawFGVineSection(ctx, [-150, 30, -160, 60, -140, 70, -155, 90], 2);
+    _drawFGVineSection(ctx, [350, -80, 380, -120, 360, -150, 400, -160], 3);
+    // extra density pass — additional strands threading the remaining gaps
+    _drawFGVineSection(ctx, [-250, -10, -180, 25, -60, 5, 40, -40], 5);
+    _drawFGVineSection(ctx, [40, -40, 90, -60, 200, -10, 260, -60], 6);
+    _drawFGVineSection(ctx, [-320, -25, -260, 5, -180, -20, -80, -10], 4);
+    _drawFGVineSection(ctx, [180, 60, 130, 40, 60, 60, 0, 40], 5);
+    _drawFGVineSection(ctx, [0, 40, -60, 20, -140, 45, -220, 25], 4);
+    _drawFGVineSection(ctx, [230, -70, 280, -40, 310, 10, 340, 60], 6);
+    _drawFGVineSection(ctx, [200, -100, 240, -125, 300, -110, 330, -75], 5);
+    _drawFGVineSection(ctx, [-330, 0, -340, 30, -320, 55, -335, 75], 2);
+    // curled tendril flourishes
+    const tendrils = [[340, 130], [90, 160], [-170, 100], [370, -170], [-330, -40], [250, -140], [30, -95]];
+    for (let ti = 0; ti < tendrils.length; ti++) _drawFGTendril(ctx, tendrils[ti][0], tendrils[ti][1], ti);
+
+    // leaf clusters (verbatim reference placements)
+    _drawFGLeaf(ctx, 350, 100, Math.PI / 4, 1.2);
+    _drawFGLeaf(ctx, 330, 110, Math.PI / 2, 1.5);
+    _drawFGLeaf(ctx, 310, 115, 3 * Math.PI / 4, 1.3);
+    _drawFGLeaf(ctx, 370, 70, 0, 1.1);
+    _drawFGLeaf(ctx, 380, 40, -Math.PI / 6, 1.4);
+    _drawFGLeaf(ctx, 400, 80, Math.PI / 8, 1);
+    _drawFGLeaf(ctx, 200, -100, -Math.PI / 2, 1.2);
+    _drawFGLeaf(ctx, 230, -110, -3 * Math.PI / 4, 1);
+    _drawFGLeaf(ctx, 150, 85, Math.PI / 2, 1.3);
+    _drawFGLeaf(ctx, 120, 75, 3 * Math.PI / 4, 1);
+    _drawFGLeaf(ctx, 50, -80, -Math.PI / 3, 1.2);
+    _drawFGLeaf(ctx, 20, -70, -Math.PI / 2, 1);
+    _drawFGLeaf(ctx, -50, -50, Math.PI + 0.5, 0.9);
+    _drawFGLeaf(ctx, -150, -40, -Math.PI / 2, 1.1);
+    _drawFGLeaf(ctx, -200, 20, Math.PI / 2, 1);
+    _drawFGLeaf(ctx, -300, -20, -Math.PI / 4, 0.8);
+    _drawFGLeaf(ctx, -320, 5, Math.PI / 3, 0.9);
+    _drawFGLeaf(ctx, 300, -140, -Math.PI / 2, 1);
+    _drawFGLeaf(ctx, 340, -130, 0, 1.2);
+    // extra density pass — filling leaves along the gaps between clusters
+    _drawFGLeaf(ctx, 260, 60, Math.PI / 3, 1.1);
+    _drawFGLeaf(ctx, 180, -40, -Math.PI / 4, 1);
+    _drawFGLeaf(ctx, 90, -30, Math.PI / 2, 0.9);
+    _drawFGLeaf(ctx, -20, 10, -Math.PI / 3, 1);
+    _drawFGLeaf(ctx, -90, -10, Math.PI / 6, 0.85);
+    _drawFGLeaf(ctx, -250, -5, -Math.PI / 2, 0.8);
+    _drawFGLeaf(ctx, 260, -90, Math.PI / 5, 1.1);
+    _drawFGLeaf(ctx, 320, -30, -Math.PI / 6, 1);
+    _drawFGLeaf(ctx, 60, 40, Math.PI, 0.9);
+    _drawFGLeaf(ctx, -180, 35, Math.PI / 4, 0.85);
+    _drawFGLeaf(ctx, 380, 0, Math.PI / 2, 1);
+    _drawFGLeaf(ctx, 210, 30, -Math.PI / 2, 1);
+    _drawFGLeaf(ctx, -60, -70, 0.6, 0.9);
+    _drawFGLeaf(ctx, 150, -60, -0.8, 1);
+    _drawFGLeaf(ctx, -280, -50, 1.1, 0.8);
+}
+
+// Reference art's log spans ~760 local units from the gripped pivot to the
+// cut end-face — scaling that to `range` makes the drawn log's tip land
+// exactly where the sweep's hitbox reaches, so a "60% of screen width"
+// attack actually LOOKS like it spans 60% of the screen.
+const _FG_REF_LENGTH = 760;
+
 function drawGoldenArrowSweep() {
     const sw = window._goldenArrowSweep;
     if (!sw) return;
@@ -1502,7 +1758,7 @@ function drawGoldenArrowSweep() {
     ctx.translate(player.x, player.y);
     ctx.rotate(angle);
 
-    // wide arc trail visualizing the strike range
+    // wide arc trail visualizing the strike range, behind the log itself
     const trailGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, range);
     trailGrad.addColorStop(0, 'rgba(120,200,60,0.30)');
     trailGrad.addColorStop(0.7, 'rgba(120,200,60,0.12)');
@@ -1514,158 +1770,29 @@ function drawGoldenArrowSweep() {
     ctx.closePath();
     ctx.fill();
 
-    const handDist = Math.min(range * 0.55, 260);
-    ctx.translate(handDist, 0);
-    // Fist points in its direction of travel: knuckles lead, wrist trails.
-    // Building the shape with the fist "punching" along +x, then rotating
-    // the whole hand 90° so the knuckle row faces the swing direction.
-    ctx.rotate(Math.PI / 2);
-    ctx.scale(1.7, 1.7);
-    if (!_mobPerf) { ctx.shadowColor = '#c9a227'; ctx.shadowBlur = 20; }
+    const logScale = range / _FG_REF_LENGTH;
+    ctx.scale(logScale, logScale);
+    if (!_mobPerf) { ctx.shadowColor = 'rgba(20,10,4,0.6)'; ctx.shadowBlur = 14 / logScale; }
 
-    // --- thumb, drawn first so the main fist overlaps its base ---
-    const thumbGrad = ctx.createLinearGradient(-30, 10, -10, 32);
-    thumbGrad.addColorStop(0, '#6b4425');
-    thumbGrad.addColorStop(1, '#3f2814');
-    ctx.fillStyle = thumbGrad;
-    ctx.beginPath();
-    ctx.moveTo(-28, 8);
-    ctx.quadraticCurveTo(-34, 18, -26, 30);
-    ctx.quadraticCurveTo(-16, 36, -8, 28);
-    ctx.quadraticCurveTo(-14, 16, -14, 6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(35,20,8,0.9)';
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
+    _drawFGLog(ctx);
+    _drawFGVines(ctx);
 
-    // --- main fist: knuckle row (4 bumps) + palm + wrist ---
-    const knuckleX = [-27, -9, 9, 27];
-    const knuckleTop = [-38, -44, -42, -34];
-    const woodGrad = ctx.createLinearGradient(-36, -44, 36, 38);
-    woodGrad.addColorStop(0, '#6e4526');
-    woodGrad.addColorStop(0.45, '#8a6134');
-    woodGrad.addColorStop(1, '#472c16');
-    ctx.fillStyle = woodGrad;
-    ctx.beginPath();
-    ctx.moveTo(-36, -18);
-    ctx.quadraticCurveTo(knuckleX[0] - 8, knuckleTop[0] + 6, knuckleX[0], knuckleTop[0]);
-    ctx.quadraticCurveTo((knuckleX[0] + knuckleX[1]) / 2, knuckleTop[0] - 4, knuckleX[1], knuckleTop[1]);
-    ctx.quadraticCurveTo((knuckleX[1] + knuckleX[2]) / 2, knuckleTop[1] - 4, knuckleX[2], knuckleTop[2]);
-    ctx.quadraticCurveTo((knuckleX[2] + knuckleX[3]) / 2, knuckleTop[2] - 4, knuckleX[3], knuckleTop[3]);
-    ctx.quadraticCurveTo(knuckleX[3] + 9, knuckleTop[3] + 8, 37, -12);
-    ctx.quadraticCurveTo(46, 8, 34, 26);
-    ctx.quadraticCurveTo(14, 40, -10, 38);
-    ctx.quadraticCurveTo(-30, 36, -38, 18);
-    ctx.quadraticCurveTo(-42, 0, -36, -18);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(35,20,8,0.9)';
-    ctx.lineWidth = 2.2;
-    ctx.stroke();
-
-    // finger-crease grooves between each knuckle
-    ctx.strokeStyle = 'rgba(35,20,8,0.55)';
-    ctx.lineWidth = 1.6;
-    for (let i = 0; i < knuckleX.length - 1; i++) {
-        const mx = (knuckleX[i] + knuckleX[i + 1]) / 2;
-        ctx.beginPath();
-        ctx.moveTo(mx, Math.min(knuckleTop[i], knuckleTop[i + 1]) + 2);
-        ctx.quadraticCurveTo(mx + 1, 4, mx - 2, 30);
-        ctx.stroke();
-    }
-
-    // bark grain rings + knot
-    ctx.strokeStyle = 'rgba(255,210,150,0.18)';
-    ctx.lineWidth = 1;
-    for (let g = 0; g < 3; g++) {
-        ctx.beginPath();
-        ctx.ellipse(-2 + g * 3, 4 + g * 4, 30 - g * 7, 20 - g * 5, 0.15, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-    ctx.fillStyle = 'rgba(30,18,8,0.5)';
-    ctx.beginPath();
-    ctx.ellipse(10, 14, 5, 3.5, 0.3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // knuckle top-light highlights
-    ctx.fillStyle = 'rgba(255,225,160,0.30)';
-    for (let k = 0; k < knuckleX.length; k++) {
-        ctx.beginPath();
-        ctx.arc(knuckleX[k], knuckleTop[k] + 8, 6, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    // --- vines wrapping around the fist: segmented rope-like cords ---
-    const vinePaths = [
-        { rx: 40, ry: 30, rot: -0.35, start: 0.15, end: 1.55 },
-        { rx: 34, ry: 26, rot: 0.55, start: 0.9, end: 2.5 },
-    ];
-    for (let vi = 0; vi < vinePaths.length; vi++) {
-        const vp = vinePaths[vi];
-        const sway = Math.sin(now / 260 + vi * 2) * 0.08;
-        ctx.strokeStyle = vi === 0 ? '#2f6b22' : '#3f8a2c';
-        ctx.lineWidth = 4.5;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.ellipse(-2, 2, vp.rx, vp.ry, vp.rot + sway, vp.start, vp.end);
-        ctx.stroke();
-        // rope-twist ticks along the vine
-        ctx.strokeStyle = 'rgba(20,50,10,0.6)';
-        ctx.lineWidth = 1.3;
-        const segs = 7;
-        for (let s = 0; s <= segs; s++) {
-            const t = vp.start + (vp.end - vp.start) * (s / segs);
-            const ex = -2 + Math.cos(t) * vp.rx, ey = 2 + Math.sin(t) * vp.ry;
-            const nx = -Math.sin(t) * 4, ny = Math.cos(t) * 4;
-            ctx.beginPath();
-            ctx.moveTo(ex - nx, ey - ny);
-            ctx.lineTo(ex + nx, ey + ny);
-            ctx.stroke();
-        }
-    }
-
-    // proper pointed leaves (not blobs) clustered along the vines
-    const leafAngles = [0.3, 0.75, 1.2, 1.9, 2.3, 2.8];
-    for (let l = 0; l < leafAngles.length; l++) {
-        const swayA = leafAngles[l] + Math.sin(now / 220 + l * 1.7) * 0.06;
-        const lx = -2 + Math.cos(swayA) * 36, ly = 2 + Math.sin(swayA) * 27;
-        ctx.save();
-        ctx.translate(lx, ly);
-        ctx.rotate(swayA + Math.PI / 2 + Math.sin(now / 300 + l) * 0.15);
-        const leafGrad = ctx.createLinearGradient(0, -9, 0, 9);
-        leafGrad.addColorStop(0, '#7ccb4a');
-        leafGrad.addColorStop(1, '#2f7a1e');
-        ctx.fillStyle = leafGrad;
-        ctx.beginPath();
-        ctx.moveTo(0, -9);
-        ctx.quadraticCurveTo(6, -3, 0, 9);
-        ctx.quadraticCurveTo(-6, -3, 0, -9);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(20,50,10,0.6)';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(0, -8); ctx.lineTo(0, 8);
-        ctx.stroke();
-        ctx.restore();
-    }
-
-    // golden impact glow pulsing at the leading knuckle edge
+    // impact glow pulsing at the leading (strike) tip
     const pulse = 0.5 + 0.5 * Math.sin(now / 60);
-    const impactGlow = ctx.createRadialGradient(28, -20, 0, 28, -20, 26);
-    impactGlow.addColorStop(0, `rgba(255,220,110,${0.55 * pulse})`);
-    impactGlow.addColorStop(1, 'rgba(255,220,110,0)');
+    const tipX = 410 - (-350), tipY = 0 - (-20);
+    const impactGlow = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, 46);
+    impactGlow.addColorStop(0, `rgba(200,255,140,${0.5 * pulse})`);
+    impactGlow.addColorStop(1, 'rgba(200,255,140,0)');
     ctx.fillStyle = impactGlow;
     ctx.beginPath();
-    ctx.arc(28, -20, 26, 0, Math.PI * 2);
+    ctx.arc(tipX, tipY, 46, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
 
-    // trailing splinter/leaf particles
+    // trailing splinter/leaf particles at the striking tip
     if (Math.random() < 0.6) {
-        const px = player.x + Math.cos(angle) * handDist, py = player.y + Math.sin(angle) * handDist;
+        const px = player.x + Math.cos(angle) * range, py = player.y + Math.sin(angle) * range;
         createParticles(px, py, 2, Math.random() < 0.5 ? '#8a5a2e' : '#5fae3a', 1, 4);
     }
 }
@@ -1725,6 +1852,66 @@ function drawShadowOrbs() {
         ctx.beginPath(); ctx.arc(0, 0, rr * 0.35, 0, Math.PI * 2); ctx.fill();
 
         ctx.restore();
+    }
+}
+
+function drawOnslaughtOrbs() {
+    if (!window._onslaughtOrbs || window._onslaughtOrbs.length === 0) return;
+    const now = performance.now();
+    for (const orb of window._onslaughtOrbs) {
+        const r = 11 * (1 + 0.12 * Math.sin(now / 70 + orb.x * 0.05));
+        const t = orb.target;
+        const travelAngle = t ? Math.atan2(t.y - orb.y, t.x - orb.x) : 0;
+
+        ctx.save();
+        ctx.translate(orb.x, orb.y);
+        if (!_mobPerf) { ctx.shadowColor = '#ff5a1a'; ctx.shadowBlur = 20; }
+
+        // trailing ember streak behind the direction of travel
+        const tailAngle = travelAngle + Math.PI;
+        const tg = ctx.createLinearGradient(0, 0, Math.cos(tailAngle) * r * 3.2, Math.sin(tailAngle) * r * 3.2);
+        tg.addColorStop(0, 'rgba(255,140,30,0.55)');
+        tg.addColorStop(1, 'rgba(255,80,0,0)');
+        ctx.strokeStyle = tg;
+        ctx.lineWidth = r * 0.85;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(tailAngle) * r * 3.2, Math.sin(tailAngle) * r * 3.2);
+        ctx.stroke();
+
+        // outer heat haze
+        ctx.fillStyle = 'rgba(255,90,10,0.28)';
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2); ctx.fill();
+
+        // licking flame tongues
+        ctx.strokeStyle = 'rgba(255,180,60,0.6)';
+        ctx.lineWidth = 1.4;
+        for (let fi = 0; fi < 5; fi++) {
+            const fa = now / 130 + fi * (Math.PI * 2 / 5);
+            const fr1 = r * 0.55, fr2 = r * 1.25;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(fa) * fr1, Math.sin(fa) * fr1);
+            ctx.lineTo(Math.cos(fa + 0.5) * fr2, Math.sin(fa + 0.5) * fr2);
+            ctx.stroke();
+        }
+
+        // fireball body
+        const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        bg.addColorStop(0, '#ffffff');
+        bg.addColorStop(0.3, '#ffe08a');
+        bg.addColorStop(0.6, '#ff8c1a');
+        bg.addColorStop(1, 'rgba(160,30,0,0.7)');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
+        // white-hot core
+        ctx.fillStyle = 'rgba(255,255,240,0.9)';
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2); ctx.fill();
+
+        ctx.restore();
+
+        // sparse ember particles
+        if (Math.random() < 0.4) createParticles(orb.x, orb.y, 1, '#ff8c1a', 1, 3);
     }
 }
 
