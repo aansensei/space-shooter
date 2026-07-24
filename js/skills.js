@@ -1225,9 +1225,9 @@ function updateSkillD(deltaTime) {
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                 } else if (_bhCCImmune) {
-                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet') });
+                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
                 } else {
-                    dealDamage(enemy, { damage: enemy.maxHp * 999999999, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet') });
+                    dealDamage(enemy, { damage: enemy.maxHp * 999999999, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
                 }
             }
         }
@@ -1315,7 +1315,7 @@ function updateSkillF(deltaTime) {
                     enemy.hp = 0;
                     // Leviathan: skill F bypasses dealDamage → trigger last rites manually
                     if (enemy.type === 'leviathan' && !enemy._deathLaserSpawned) {
-                        dealDamage(enemy, { damage: 0, percentDamage: 0, _bypassIronBody: true });
+                        dealDamage(enemy, { damage: 0, percentDamage: 0, _bypassIronBody: true, _isSkillF: true });
                     }
                 }
                 enemy.hitBySkillF = true;
@@ -2041,8 +2041,35 @@ function updateShadowOrbs(deltaTime) {
     }
 }
 
-// Golden Arrow (Virgo buff 1) — bonus attack: while 5+ enemies are on screen,
-// every 4s a vine-wrapped wooden hand sweeps across the screen.
+// Onslaught (Aries buff 2) — homing fireball fired at whichever enemy the
+// previous landed hit struck; see the dealDamage() hook in entities.js.
+function updateOnslaughtOrbs(deltaTime) {
+    if (!window._onslaughtOrbs || window._onslaughtOrbs.length === 0) return;
+    const dt = deltaTime / 16.67;
+    for (let i = window._onslaughtOrbs.length - 1; i >= 0; i--) {
+        const orb = window._onslaughtOrbs[i];
+        const t = orb.target;
+        if (!t || t.hp <= 0 || t._markedForDeath || !enemies.includes(t)) {
+            window._onslaughtOrbs.splice(i, 1);
+            continue;
+        }
+        const dx = t.x - orb.x, dy = t.y - orb.y, d = Math.hypot(dx, dy);
+        if (d < t.size / 2 + 8) {
+            const missingHpBonus = Math.ceil((t.maxHp - t.hp) * 0.0075);
+            dealDamage(t, { damage: orb.baseDmg + missingHpBonus, _isOnslaughtOrb: true });
+            createParticles(orb.x, orb.y, 8, '#ff6a2e', 2, 6);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
+            window._onslaughtOrbs.splice(i, 1);
+            continue;
+        }
+        const speed = 16;
+        orb.x += (dx / d) * speed * dt;
+        orb.y += (dy / d) * speed * dt;
+    }
+}
+
+// Forest Guardian (Virgo buff 1) — bonus attack: while 5+ enemies are on screen,
+// every 4s a vine-wrapped log sweeps across the screen.
 function _validGoldenArrowTargets() {
     return enemies.filter(e =>
         !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
