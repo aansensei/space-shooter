@@ -2198,9 +2198,11 @@ function _buildWaveQueue(waveNum) {
     }
 
     // Goliath (Digiform): chỉ xuất hiện ở các wave bội số của 5 (5, 10, 15...),
-    // 1 lần mỗi wave đó, giữa khung spawn.
+    // ĐÚNG 1 LẦN mỗi wave đó, spawn NGAY khi wave vừa bắt đầu — không phải
+    // giữa/cuối khung 15s spawn, và không liên quan gì tới 15s đó (đó là
+    // khung spawn chung của cả wave, không phải "cooldown" riêng của Goliath).
     if (waveNum % 5 === 0) {
-        queue.push({ tier: 'goliath', at: Math.round(T * 0.5) });
+        queue.push({ tier: 'goliath', at: 0 });
     }
 
     return queue.sort((a, b) => a.at - b.at);
