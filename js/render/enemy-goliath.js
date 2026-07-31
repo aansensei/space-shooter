@@ -95,11 +95,9 @@ const GOLIATH_LIMB_JOINT = {
     right: { x: 150, y: -30 },
 };
 
-// ----------------------------------------------------
 // Khối pha lê nhiều facet (dùng chung Alpha/True Form/mảnh vỡ) — mỗi facet =
 // tam giác (core -> p1 -> p2), tô gradient sáng/tối theo góc so với nguồn
 // sáng giả lập để có chiều sâu thay vì hình phẳng 1 màu.
-// ----------------------------------------------------
 function _drawGoliathFacetedCrystal(outline, core, lightAngle, colorDark, colorLight, outlineColor) {
     for (let i = 0; i < outline.length; i++) {
         const p1 = outline[i], p2 = outline[(i + 1) % outline.length];
@@ -811,7 +809,6 @@ function _drawGoliathMeteorProjectiles() {
     });
 }
 
-// ----------------------------------------------------
 // JOKER — hiệu ứng cho ĐÚNG 3 kỹ năng ứng với 3 bảo thạch enemy đã hấp thụ
 // (enemy._jokerState[name] chỉ tồn tại khi có bảo thạch đó — xem
 // _goliathEnterTrueForm/entities.js). Gọi BÊN TRONG khối scale(trueScale)
@@ -1104,9 +1101,7 @@ function _drawGoliathJokerEffects(enemy, now) {
     }
 }
 
-// ----------------------------------------------------
 // DISPATCHER CHÍNH
-// ----------------------------------------------------
 // Bảo thạch bay từ vị trí enemy vừa chết vào cụm khe/mắt của Alpha, theo
 // đường cong bezier — y hệt drawGems() trong test-goliath.html. Vẽ ở toạ độ
 // TUYỆT ĐỐI màn hình (enemy chết ở đâu đó khác hẳn vị trí Goliath).

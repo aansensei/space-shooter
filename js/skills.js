@@ -1224,10 +1224,24 @@ function updateSkillD(deltaTime) {
                     if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
-                } else if (_bhCCImmune) {
-                    dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
                 } else {
-                    dealDamage(enemy, { damage: enemy.maxHp * 999999999, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
+                    // Tick 1 lần mỗi 400ms thay vì mỗi FRAME — vòng lặp này chạy
+                    // mỗi frame nên nếu gọi dealDamage thẳng, 1 lần chạm hố đen
+                    // = hàng chục lần "hit" chỉ trong dưới nửa giây. Với enemy
+                    // thường không sao (999999999 dmg chết ngay tick đầu), nhưng
+                    // với _bhCCImmune (Goliath, Egregor, Dargruel, Leviathan
+                    // không khiên...) 30% MaxHP true damage MỖI TICK từng đó lần
+                    // sẽ xoá sổ chỉ trong 1 lần chạm — đúng bug Warding Palm bị
+                    // "quẹt 1 cái chết luôn" dù mới per-hit không còn trần cộng dồn.
+                    const _bhNow = performance.now();
+                    if (!enemy._bhNextTick || _bhNow >= enemy._bhNextTick) {
+                        enemy._bhNextTick = _bhNow + 400;
+                        if (_bhCCImmune) {
+                            dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
+                        } else {
+                            dealDamage(enemy, { damage: enemy.maxHp * 999999999, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
+                        }
+                    }
                 }
             }
         }
