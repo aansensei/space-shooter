@@ -603,11 +603,13 @@ On completion, True Form's Max HP is set to `max(50000, min(damagePull, 200000) 
 - **70% base Damage Reduction** at all times.
 - **Permanent CC Immunity** and **2% Max HP regeneration per second**.
 - When any single hit would exceed **10% of Max HP** (after DR), activates a **2-second protection window**: all further damage during the window is capped at **5% of Max HP per hit** (1.5-second cooldown after the window ends).
-- Only **piercing**, **true damage**, and **DoT** hits land at full value against Goliath. Every other hit — regular %HP/%EP damage, including the player's and sentinels' basic auto-fire — is hard-capped at **0.4% of Max HP per hit**, still subject to DR. This does not affect Skill F, Skill D, or the Phōtokrystos finale laser, which have their own Warding Palm rule below.
+- Only **piercing**, **true damage**, and **DoT** hits land at full value against Goliath. Every other hit — regular %HP/%EP damage, including the player's and sentinels' basic auto-fire — is hard-capped at **1.6% of Max HP per hit** (still subject to DR), **+0.5% per stack** of any un-immune bad effect currently on Goliath — Vulnerability stacks, Soul Reaver, any active slow (including Electromagnetic Field), Venom stacks, Yog-Sothoth's mark, standing inside a Dimensional Rift, Leo's Burn stacks, or standing in a Tesla Coil's aura — e.g. 2 stacks of Vulnerability raises the cap to 1.6% + 1% = 2.6%. Since Goliath is otherwise CC-immune, this is effectively the only way sigils can meaningfully punish it beyond raw damage. This does not affect Skill F, Skill D, or the Phōtokrystos finale laser, which have their own Warding Palm rule below.
 
 **Passive: Fracture Step**
 
-Teleports away whenever a threat (player ship or a player bullet) closes within **100px**, or automatically every **2 seconds** regardless (3-second cooldown on the teleport action itself). Each teleport grants **+1 layer of Iron Body**, absorbing the next **3 hits** completely. The teleport itself is a deliberately slow, telegraphed transition — not an instant blink: a magic-circle portal closes over the old position (~400ms), then opens at the new position (~400ms), with the body fading out and back in to match.
+Teleports away whenever a threat (player ship or a player bullet) closes within **100px**, or automatically every **2 seconds** regardless (2-second cooldown on the teleport action itself). Each teleport grants **+1 layer of Iron Body**, absorbing the next **3 hits** completely. The teleport itself is a deliberately slow, telegraphed transition — not an instant blink: a magic-circle portal closes over the old position (~400ms), then opens at the new position (~400ms), with the body fading out and back in to match.
+
+For **1 second** after arriving, Goliath gains **+20% damage dealt**, **+10% flight speed**, and **+15% effectiveness on all heal/shield it receives** (stacks with Thaelis's own +35%, if copied).
 
 **Passive: Absolute Verdict**
 

@@ -153,6 +153,28 @@ function _hasAnyDebuff(enemy) {
     return false;
 }
 
+// Đếm TỔNG số tầng hiệu ứng xấu (mọi sigil/skill nào áp được lên Goliath,
+// dù CC-immune không chặn nổi) đang dính trên enemy — dùng cho trần damage
+// động của Inevitable. Cùng danh sách nguồn với _hasAnyDebuff ở trên, chỉ
+// khác là ĐẾM tầng thay vì chỉ true/false, + thêm Tesla Coil aura riêng.
+function _goliathDebuffStackCount(enemy) {
+    const now = performance.now();
+    let n = enemy.vulnStacks || 0;
+    if (enemy.soulReaver) n += 1;
+    if (enemy._slowEnd && now < enemy._slowEnd) n += 1;
+    if (enemy._dtuSlow) n += 1;
+    n += enemy._nocToiStacks || 0;
+    if (enemy._yogMark) n += 1;
+    if (enemy._inDimensionalRift) n += 1;
+    if (window._sthBurning && window._sthBurning.has(enemy)) n += window._sthBurning.get(enemy).stacks || 1;
+    if (typeof teslaCoils !== 'undefined') {
+        for (const _coil of teslaCoils) {
+            if (Math.hypot(enemy.x - _coil.x, enemy.y - _coil.y) < _coil.auraRadius + enemy.size / 2) { n += 1; break; }
+        }
+    }
+    return n;
+}
+
 // VULNERABILITY (Trọng Thương)
 function applyVulnerability(enemy) {
     const now = performance.now();
@@ -1623,13 +1645,16 @@ function dealDamage(enemy, source) {
     // Inevitable (Goliath, True Form): CHỈ sát thương xuyên (isPiercing),
     // CHUẨN (true damage), và DOT mới được đánh full — sát thương BÌNH
     // THƯỜNG (%HP/%EP, ăn shield trước — gồm cả đạn auto-fire cơ bản) bị
-    // giới hạn cứng 0.4% MaxHP/đòn (tính SAU khi đã trừ DR ở trên). Không
-    // áp dụng cho Skill F/D/tia Photokrystos finale — 3 nguồn đó đã return
-    // sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
+    // giới hạn cứng 1.6% MaxHP/đòn (tính SAU khi đã trừ DR ở trên), +0.5%
+    // trần cho MỖI tầng hiệu ứng xấu không miễn nhiễm đang dính (bất kỳ sigil
+    // nào áp được lên Goliath — vd 2 tầng Vulnerability = 1.6%+1%=2.6%).
+    // Không áp dụng cho Skill F/D/tia Photokrystos finale — 3 nguồn đó đã
+    // return sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
         && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot) {
-        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.004));
+        const _capPct = 0.016 + _goliathDebuffStackCount(enemy) * 0.005;
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
 
     // Veilshroud Phantom: damage capped at 25% maxHP per hit
@@ -1790,7 +1815,7 @@ function dealDamage(enemy, source) {
     // Threshold Ward: mỗi 1 HP sát thương THẬT (đã trừ thẳng vào HP, không
     // tính phần bị khiên hấp thụ) cấp lại 0.25 HP giá trị khiên.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hpDamageDealt > 0) {
-        enemy.shield = (enemy.shield || 0) + _goliathThaelisBoost(enemy, _hpDamageDealt * 0.25);
+        enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, _hpDamageDealt * 0.25);
     }
 
     // Inevitable emergency trigger: the instant Leviathan first crosses 50%
@@ -2496,12 +2521,23 @@ function _goliathTrackResourceGain(enemy, amount) {
     if (g && g.phase === 'alpha') g.damagePull += amount;
 }
 
-// Joker Thaelis (Tenacity, NEW): +35% hiệu quả MỌI heal/shield mà Goliath tự
-// nhận (cộng dồn với các hệ số khác, không thay thế) — dùng ở mọi nơi
-// Goliath tự cấp heal/shield cho chính mình (Inevitable regen, Threshold
-// Ward, hồi lúc bắt đầu vận skill, và chính Tenacity bên dưới).
-function _goliathThaelisBoost(enemy, amount) {
-    return (enemy._jokerState && enemy._jokerState['Thaelis']) ? amount * 1.35 : amount;
+// Tổng hợp mọi hệ số +hiệu quả heal/shield Goliath tự nhận, cộng dồn với
+// nhau (không cái nào thay thế cái nào): Joker Thaelis (Tenacity, +35%,
+// thường trực nếu có bảo thạch) + Fracture Step hậu-dịch-chuyển (+15%, chỉ
+// 1s sau mỗi lần dịch chuyển). Dùng ở mọi nơi Goliath tự cấp heal/shield cho
+// chính mình (Inevitable regen, Threshold Ward, hồi lúc bắt đầu vận skill...).
+function _goliathHealBoost(enemy, amount) {
+    let mult = 1;
+    if (enemy._jokerState && enemy._jokerState['Thaelis']) mult += 0.35;
+    if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) mult += 0.15;
+    return amount * mult;
+}
+
+// Fracture Step hậu-dịch-chuyển (NEW): +20% MỌI sát thương Goliath tự gây
+// ra (Joker copies, Absolute Verdict, Corrupted Meteor...) trong 1s sau khi
+// vừa dịch chuyển xong.
+function _goliathDmgBoost(enemy, amount) {
+    return (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? amount * 1.20 : amount;
 }
 
 // Joker Marchosias (Sword & Barrier, full port): proc kích hoạt Sword khi
@@ -2671,9 +2707,11 @@ function updateGoliath(enemy, deltaTime) {
         // cấm Fracture Step (dịch chuyển) + hồi 15% MaxHP 1 LẦN DUY NHẤT lúc
         // vừa bắt đầu vận (bắt cạnh lên false->true, không phải mỗi frame).
         const isCasting = _goliathIsCasting(enemy);
-        enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1);
+        // Fracture Step hậu-dịch-chuyển (NEW): +10% tốc độ bay trong 1s.
+        const _fractureSpdMult = (enemy._fractureBuffEnd && now < enemy._fractureBuffEnd) ? 1.10 : 1;
+        enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1) * _fractureSpdMult;
         if (isCasting && !enemy._wasCasting) {
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathThaelisBoost(enemy, enemy.maxHp * 0.15));
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.15));
         }
         enemy._wasCasting = isCasting;
 
@@ -2715,7 +2753,7 @@ function updateGoliath(enemy, deltaTime) {
                 }
                 if (threatNear || !enemy._lastFractureAt || now - enemy._lastFractureAt >= 2000) {
                     enemy._lastFractureAt = now;
-                    enemy._fractureStepCooldownEnd = now + 3000;
+                    enemy._fractureStepCooldownEnd = now + 2000;
                     enemy._fractureTeleportPhase = 'closing';
                     enemy._fractureTeleportStart = now;
                     enemy._fractureFromX = enemy.x; enemy._fractureFromY = enemy.y;
@@ -2730,6 +2768,9 @@ function updateGoliath(enemy, deltaTime) {
                 enemy.x = enemy._fractureToX; enemy.y = enemy._fractureToY;
                 enemy._restX = enemy.x; enemy._restY = enemy.y;
                 enemy._fractureIronBodyHits = Math.min(3, enemy._fractureIronBodyHits + 3);
+                // Hậu-dịch-chuyển (NEW, 1s): +20% sát thương Goliath gây ra,
+                // +10% tốc độ bay, +15% hiệu quả heal/khiên (cộng dồn Tenacity).
+                enemy._fractureBuffEnd = now + 1000;
                 enemy._fractureTeleportPhase = 'opening';
                 enemy._fractureTeleportStart = now;
                 addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#fff8e1');
@@ -2825,7 +2866,7 @@ function updateGoliath(enemy, deltaTime) {
         [75, 50, 25].forEach(mile => {
             if (!enemy._thresholdMilestonesHit[mile] && hpPct * 100 <= mile) {
                 enemy._thresholdMilestonesHit[mile] = true;
-                enemy._thresholdShieldPool += _goliathThaelisBoost(enemy, enemy.maxHp * 0.20);
+                enemy._thresholdShieldPool += _goliathHealBoost(enemy, enemy.maxHp * 0.20);
             }
         });
         // Khiên tích luỹ vượt mốc 25/50/75/100% MaxHp → hồi máu tương ứng
@@ -2841,14 +2882,14 @@ function updateGoliath(enemy, deltaTime) {
         if (enemy._jokerState['Thaelis']) {
             while (enemy._thaelisLastMilestone - hpPct * 100 >= 5) {
                 enemy._thaelisLastMilestone -= 5;
-                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathThaelisBoost(enemy, enemy.maxHp * 0.025));
-                enemy.shield = (enemy.shield || 0) + _goliathThaelisBoost(enemy, enemy.maxHp * 0.01);
+                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.025));
+                enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, enemy.maxHp * 0.01);
                 createParticles(enemy.x, enemy.y, 12, '#ffe066', 2, 7);
             }
         }
 
         // Inevitable: hồi máu 2%/s, ăn +35% Tenacity nếu có
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathThaelisBoost(enemy, enemy.maxHp * 0.02 * (deltaTime / 1000)));
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.02 * (deltaTime / 1000)));
 
         if (enemy._inevitableWindowEnd && now >= enemy._inevitableWindowEnd && !enemy._inevitableCooldownEnd) {
             enemy._inevitableCooldownEnd = now + 1500;
@@ -3011,7 +3052,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) playerTakesHit();
                     } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
-                        dealDamage(t.ref, { damage: enemy.maxHp * 0.05, isTrueDamage: true });
+                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true });
                     }
                     addExplosion(t.x, t.y, 60, '#ff9a2e');
                 });
@@ -3054,7 +3095,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 if (t.isPlayer) {
                     if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) playerTakesHit();
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
-                    dealDamage(t.ref, { damage: enemy.maxHp * 0.25, isTrueDamage: true });
+                    dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true });
                 }
                 addExplosion(t.x, t.y, 60, '#fff8e1');
             });
@@ -3146,7 +3187,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 if (hc > 0) {
                     const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
                     for (const sn of hitSents) {
-                        dealDamage(sn, { damage: Math.ceil(sn.maxHp * pct), isTrueDamage: true });
+                        dealDamage(sn, { damage: _goliathDmgBoost(enemy, Math.ceil(sn.maxHp * pct)), isTrueDamage: true });
                         addExplosion(sn.x, sn.y, 65, '#7700dd');
                         createParticles(sn.x, sn.y, 18, '#cc44ff', 3, 7);
                     }
@@ -3225,7 +3266,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     const ep = sen.maxHp + (sen.shield || 0);
                     const ownerHits = 150;
                     const dmg = Math.min(Math.ceil(ep * 0.50), Math.ceil(ep * 0.05 * ownerHits));
-                    dealDamage(sen, { damage: dmg, isTrueDamage: true });
+                    dealDamage(sen, { damage: _goliathDmgBoost(enemy, dmg), isTrueDamage: true });
                 }
             }
             if (s.sweepTimer >= 1800) {
