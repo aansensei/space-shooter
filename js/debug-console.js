@@ -14,7 +14,6 @@
 // menu) so you can adjust values without enemies/timers moving under you.
 
 window._debugAutoshotOff = false;
-window._debugNoCooldown = false;
 window._debugGameSpeed = 1;
 window._debugClickSpawnType = '';
 
@@ -59,10 +58,6 @@ window._debugClickSpawnType = '';
         <input type="checkbox" id="dbgAutoshotToggle" onchange="window._debugAutoshotOff = !this.checked;">
         Autoshot enabled
       </label>
-      <label class="dbg-row" style="cursor:pointer;">
-        <input type="checkbox" id="dbgCooldownToggle" onchange="window._debugNoCooldown = !this.checked;">
-        Hồi chiêu
-      </label>
       <div class="dbg-row">
         <button class="dbg-btn danger" onclick="debugExitSession()">Exit Debug Mode → Main Menu</button>
       </div>
@@ -97,25 +92,23 @@ window._debugClickSpawnType = '';
 
     <div class="dbg-section">
       <div class="dbg-h">SPAWN ENEMY / SENTINEL</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Stats below apply to the next spawn (blank = that type's default). Hover a button to see that type's HP/size range.</div>
+      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Stats below apply to the next spawn (blank = that type's default). Type-specific stats (barriers, tentacles, etc.) stay editable per-enemy in Active Enemies below.</div>
       <div class="dbg-row">
-        <input type="number" id="dbgSpawnHp" placeholder="HP" class="dbg-enemy-hp" style="width:70px;">
-        <input type="number" id="dbgSpawnSize" placeholder="Size" class="dbg-enemy-hp" style="width:70px;">
+        <input type="number" id="dbgSpawnHp" placeholder="HP" class="dbg-enemy-hp" style="width:60px;">
+        <input type="number" id="dbgSpawnSize" placeholder="Size" class="dbg-enemy-hp" style="width:60px;">
         <input type="number" id="dbgSpawnSpeed" placeholder="Speed" step="0.1" class="dbg-enemy-hp" style="width:60px;">
       </div>
       <div class="dbg-row" style="flex-wrap:wrap;">
-        <button class="dbg-btn" onclick="debugSpawn('spawnApostle')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="22–330" data-size="20–30">Apostle</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1100–2640" data-size="100–150">Thaelis</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnAegisCore')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2500–4500" data-size="52–66">Aegis Core</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnMarchosias')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2112–4092" data-size="100–150">Marchosias</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnDargruel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="6200–16000" data-size="200–300">Dargruel</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnVeilshroud')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1320–3300" data-size="100–150">Veilshroud</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnLeviathan')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="8820–15435" data-size="250–300">Leviathan</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnEgregor')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2200–4750" data-size="160">Egregor</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnGoliath')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1 (Alpha, invuln)" data-size="380/460">Goliath (WIP)</button>
-        <button class="dbg-btn" onclick="debugSpawnSentinel()" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="100–800" data-size="18–28">Sentinel</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnApostle')">Apostle</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')">Thaelis</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnAegisCore')">Aegis Core</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnMarchosias')">Marchosias</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnDargruel')">Dargruel</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnVeilshroud')">Veilshroud</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnLeviathan')">Leviathan</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnEgregor')">Egregor</button>
+        <button class="dbg-btn" onclick="debugSpawnSentinel()">Sentinel</button>
       </div>
-      <div id="dbgSpawnHint" style="font-size:10px; min-height:14px; color:#7fd8ff; margin-bottom:2px;"></div>
       <div class="dbg-row" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
         <select id="dbgClickSpawnType" class="dbg-enemy-hp" style="width:160px;" onchange="window._debugClickSpawnType = this.value;">
           <option value="">Click-to-spawn: off</option>
@@ -127,7 +120,6 @@ window._debugClickSpawnType = '';
           <option value="spawnVeilshroud">Veilshroud</option>
           <option value="spawnLeviathan">Leviathan</option>
           <option value="spawnEgregor">Egregor</option>
-          <option value="spawnGoliath">Goliath (WIP)</option>
           <option value="spawnSentinel">Sentinel</option>
         </select>
       </div>
@@ -142,32 +134,6 @@ window._debugClickSpawnType = '';
     <div class="dbg-section">
       <div class="dbg-h">ACTIVE SENTINELS</div>
       <div id="dbgSentinelList" style="display:flex; flex-direction:column; gap:8px;"></div>
-    </div>
-
-    <div class="dbg-section">
-      <div class="dbg-h">COMBAT DUMMY</div>
-      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Stationary hex-drone. Takes real damage from all skills and abilities. Auto-respawns when killed.</div>
-      <div class="dbg-row" style="flex-wrap:wrap;">
-        <input type="number" id="dbgDummyHp" class="dbg-enemy-hp" style="width:80px;" value="5000000" placeholder="HP">
-        <input type="number" id="dbgDummySize" class="dbg-enemy-hp" style="width:70px;" value="40" placeholder="Size">
-        <input type="number" id="dbgDummyDR" class="dbg-enemy-hp" style="width:60px;" value="0" min="0" max="99" placeholder="DR %">
-        <button class="dbg-btn" onclick="debugSpawnDummy()">Spawn</button>
-        <button class="dbg-btn danger" onclick="debugRemoveDummy()">Remove</button>
-      </div>
-      <div class="dbg-row" style="flex-wrap:wrap; gap:10px;">
-        <label style="cursor:pointer; display:flex; gap:4px; align-items:center; font-size:11px;">
-          <input type="checkbox" id="dbgDummyIron" onchange="debugSetDummyIron(this.checked)"> Iron Body (blocks damage)
-        </label>
-        <label style="cursor:pointer; display:flex; gap:4px; align-items:center; font-size:11px;">
-          <input type="checkbox" id="dbgDummyImmune" onchange="debugSetDummyImmune(this.checked)"> Full Immune
-        </label>
-      </div>
-      <div class="dbg-row" style="align-items:center; gap:6px;">
-        <span style="font-size:11px; opacity:0.7;">DR live:</span>
-        <input type="number" id="dbgDummyDRLive" class="dbg-enemy-hp" style="width:58px;" min="0" max="99" placeholder="0" oninput="debugSetDummyDR(this.value)">
-        <span style="font-size:10px; opacity:0.5;">% (0=none | 40=Egregor/Veil | 45=Marchosias | 50-60=Dargruel | 55=Aegis | 60=Leviathan | 90=Embryo | Thaelis 0→95%)</span>
-      </div>
-      <div id="dbgDummyStatus" style="opacity:0.55; font-size:10px; min-height:14px;"></div>
     </div>
   </div>
 </div>
@@ -242,7 +208,6 @@ window._debugClickSpawnType = '';
     // that gates the wave-spawner call in main.js's update() loop.
     window.debugStartSession = function () {
         window._debugSessionActive = true;
-        window._debugAutoshotOff = true;
         if (typeof startGame === 'function') startGame();
         window._sigilPicker = null;
         const ov = document.getElementById('sigil-pick-overlay');
@@ -256,15 +221,12 @@ window._debugClickSpawnType = '';
         document.getElementById('debugConsoleOverlay').style.display = 'flex';
         const cb = document.getElementById('dbgAutoshotToggle');
         if (cb) cb.checked = !window._debugAutoshotOff;
-        const cdCb = document.getElementById('dbgCooldownToggle');
-        if (cdCb) cdCb.checked = !window._debugNoCooldown;
         panelOpen = true;
         refreshEnemyList();
         refreshSentinelList();
-        refreshDummyStatus();
         updateSessionStatus();
         if (refreshTimer) clearInterval(refreshTimer);
-        refreshTimer = setInterval(() => { refreshEnemyList(); refreshSentinelList(); refreshDummyStatus(); updateSessionStatus(); }, 500);
+        refreshTimer = setInterval(() => { refreshEnemyList(); refreshSentinelList(); updateSessionStatus(); }, 500);
     };
 
     window.closeDebugConsole = function () {
@@ -282,7 +244,6 @@ window._debugClickSpawnType = '';
     window.debugExitSession = function () {
         window._debugSessionActive = false;
         window._debugAutoshotOff = false;
-        window._debugNoCooldown = false;
         window._debugGameSpeed = 1;
         window._debugClickSpawnType = '';
         const sel = document.getElementById('dbgClickSpawnType');
@@ -296,10 +257,6 @@ window._debugClickSpawnType = '';
     document.addEventListener('keydown', (e) => {
         if (e.code === 'Backquote') {
             e.preventDefault();
-            // Debug console touched at least once this page load — skip the
-            // sigil-pick overlay on any future startGame() (debug sandbox OR
-            // a real "Initiate Hyperjump" click) for a hands-off dev flow.
-            window._debugSkipSigilPick = true;
             if (!window._debugSessionActive) window.debugStartSession();
             if (panelOpen) window.closeDebugConsole(); else window.openDebugConsole();
             return;
@@ -473,94 +430,6 @@ window._debugClickSpawnType = '';
 
     window.debugSpawnSentinel = function () { window.debugSpawn('spawnSentinel'); };
 
-    window._dbgHint = function (btn) {
-        const el = document.getElementById('dbgSpawnHint');
-        if (!el) return;
-        if (!btn) { el.textContent = ''; return; }
-        const hp = btn.dataset.hp, size = btn.dataset.size;
-        el.textContent = btn.textContent.trim() + ': HP ' + hp + ', size ' + size;
-    };
-
-    // ── Combat Dummy ─────────────────────────────────────────────────
-    function _getDummy() {
-        if (typeof enemies === 'undefined') return null;
-        return enemies.find(e => e.type === 'debug_dummy') || null;
-    }
-
-    window.debugSpawnDummy = function () {
-        const hpEl = document.getElementById('dbgDummyHp');
-        const sizeEl = document.getElementById('dbgDummySize');
-        const drEl = document.getElementById('dbgDummyDR');
-        const hp = Math.max(1, Number(hpEl && hpEl.value || 5000000));
-        const size = Math.max(10, Number(sizeEl && sizeEl.value || 40));
-        const dr = Math.min(0.99, Math.max(0, Number(drEl && drEl.value || 0) / 100));
-        window.debugRemoveDummy();
-        if (typeof enemies === 'undefined' || typeof canvas === 'undefined') return;
-        const _cx = canvas.width > 0 ? canvas.width / 2 : window.innerWidth / 2;
-        const _cy = canvas.height > 0 ? canvas.height * 0.4 : window.innerHeight * 0.4;
-        enemies.push({
-            type: 'debug_dummy',
-            x: _cx, y: _cy,
-            hp, maxHp: hp, size,
-            speed: 0, vx: 0, vy: 0,
-            shield: 0, vulnStacks: 0,
-            isTargetedByA: false, hitBySkillF: false, laserHit: false,
-            _state: 'idle', _stateTime: performance.now(),
-            _ironActive: false, _isImmune: false,
-            _debugDR: dr,
-            _particles: [],
-        });
-        refreshDummyStatus();
-    };
-
-    window.debugSetDummyDR = function (val) {
-        const d = _getDummy();
-        if (!d) return;
-        d._debugDR = Math.min(0.99, Math.max(0, Number(val) / 100));
-    };
-
-    window.debugRemoveDummy = function () {
-        if (typeof enemies === 'undefined') return;
-        for (let i = enemies.length - 1; i >= 0; i--) {
-            if (enemies[i].type === 'debug_dummy') enemies.splice(i, 1);
-        }
-        refreshDummyStatus();
-    };
-
-    window.debugSetDummyIron = function (on) {
-        const d = _getDummy();
-        if (d) d._ironActive = !!on;
-    };
-
-    window.debugSetDummyImmune = function (on) {
-        const d = _getDummy();
-        if (d) d._isImmune = !!on;
-    };
-
-    window.debugDummyState = function (state) {
-        const d = _getDummy();
-        if (!d) return;
-        d._state = state;
-        d._stateTime = performance.now();
-        if (state === 'death') { d.hp = d.maxHp; } // let respawn anim play
-        refreshDummyStatus();
-    };
-
-    function refreshDummyStatus() {
-        const el = document.getElementById('dbgDummyStatus');
-        if (!el) return;
-        const d = _getDummy();
-        if (!d) { el.textContent = 'No dummy on screen.'; return; }
-        const _drPct = d._debugDR ? Math.round(d._debugDR * 100) : 0;
-        el.textContent = `Active — ${Math.max(0, Math.round(d.hp))}/${Math.round(d.maxHp)} HP · DR ${_drPct}% · ${d._state}${d._ironActive ? ' · iron' : ''}${d._isImmune ? ' · immune' : ''}`;
-        const ironCb = document.getElementById('dbgDummyIron');
-        if (ironCb) ironCb.checked = !!d._ironActive;
-        const immuneCb = document.getElementById('dbgDummyImmune');
-        if (immuneCb) immuneCb.checked = !!d._isImmune;
-        const drLive = document.getElementById('dbgDummyDRLive');
-        if (drLive && document.activeElement !== drLive) drLive.value = _drPct || '';
-    }
-
     // ── Core passives (not sigils) ──────────────────────────────────
     window.debugForceAccurateParry = function () {
         if (typeof accurateParryActive === 'undefined') return;
@@ -612,19 +481,6 @@ window._debugClickSpawnType = '';
         if (which === 'laser') e.shootTimer = 0;
         if (which === 'perseverance') e.perseveranceCooldown = 0;
         if (which === 'void' && typeof _veilshroudBeginLightning === 'function') _veilshroudBeginLightning(e);
-        if (which === 'goliath_transform' && e.type === 'goliath' && e.phase === 'alpha') {
-            // Bỏ qua yêu cầu 3 bảo thạch thật để test nhanh Transform + True Form
-            e.slots.forEach((s, i) => { if (!s.filled) { s.filled = true; s.gem = GOLIATH_GEM_COLORS[i]; } });
-            e.damagePull = Math.max(e.damagePull, 50000);
-            if (typeof _goliathBeginTransform === 'function') _goliathBeginTransform(e);
-        }
-        if (which === 'goliath_trueform' && e.type === 'goliath') {
-            e.slots.forEach((s, i) => { if (!s.filled) { s.filled = true; s.gem = GOLIATH_GEM_COLORS[i]; } });
-            e.damagePull = Math.max(e.damagePull, 50000);
-            if (typeof _goliathEnterTrueForm === 'function') _goliathEnterTrueForm(e);
-        }
-        if (which === 'goliath_fracture' && e.type === 'goliath') e._fractureStepCooldownEnd = 0;
-        if (which === 'goliath_verdict' && e.type === 'goliath') { e._verdictPhase = 'ready'; e._verdictCooldownEnd = 0; }
     };
 
     function enemyDefenseNote(e) {
@@ -643,13 +499,10 @@ window._debugClickSpawnType = '';
         if (e.type === 'aegis_core') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button>`;
         if (e.type === 'leviathan') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'perseverance')">Perseverance</button>`;
         if (e.type === 'veilshroud') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'void')">Void Strike</button>`;
-        if (e.type === 'goliath' && e.phase === 'alpha') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_transform')">Force Transform</button>`;
-        if (e.type === 'goliath' && e.phase === 'transforming') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_trueform')">Skip to True Form</button>`;
-        if (e.type === 'goliath' && e.phase === 'true_form') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_fracture')">Fracture Step</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_verdict')">Absolute Verdict</button>`;
         return '';
     }
 
-    const BOSS_TYPES = ['apostle', 'thaelis', 'aegis_core', 'marchosias', 'dargruel', 'veilshroud', 'leviathan', 'egregor', 'goliath'];
+    const BOSS_TYPES = ['apostle', 'thaelis', 'aegis_core', 'marchosias', 'dargruel', 'veilshroud', 'leviathan', 'egregor'];
 
     function refreshEnemyList() {
         const el = document.getElementById('dbgEnemyList');
