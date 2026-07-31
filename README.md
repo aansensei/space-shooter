@@ -580,7 +580,7 @@ Leviathan's only active attack. It fires automatically after the **All for One**
 
 ### Goliath (Digiform)
 
-**Availability:** debug-spawn only — not yet wired into the normal wave-spawn rotation. A testbed boss for the future Administrator class. | **Cap:** 1 on screen | **Speed:** 0 (does not move under normal physics; positions itself)
+**Availability:** every wave that's a multiple of 5 (5, 10, 15, 20...), once per such wave. A testbed boss for the future Administrator class. | **Cap:** 1 on screen | **Speed:** 0 (does not move under normal physics; positions itself)
 
 Goliath exists in three phases: **Alpha** (a dormant, invulnerable seed that feeds on the rest of the wave), **Transition** (a 4-stage transform sequence), and **True Form** (the actual boss fight).
 
@@ -651,7 +651,7 @@ Enemies are divided into six tiers of power.
 | **Digiform** (testbed) | Goliath |
 | **Administrator** | Kanade of the Endless Nights |
 
-**Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Aegis Core 2 · Egregor 1 · Dargruel 2 · Leviathan 1 · Goliath 1 (debug-spawn only). A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
+**Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Aegis Core 2 · Egregor 1 · Dargruel 2 · Leviathan 1 · Goliath 1 (spawns once on every wave 5/10/15/20...). A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
 
 ---
 
@@ -667,20 +667,20 @@ Enemies spawn in **waves**. Each wave defines an exact count per tier — all qu
 
 **Wave templates (repeats from wave 9 onward):**
 
-| Wave | Apostles | Abnormals | Elites | Dominators |
-|---|---|---|---|---|
-| 1 | 32 | — | — | — |
-| 2 | 38 | 6 | 4 | — |
-| 3 | 40 | 7 | 6 | 2 |
-| 4 | 44 | 8 | 7 | 3 |
-| 5 | 48 | 9 | 8 | 4 |
-| 6 | 52 | 11 | 9 | 5 |
-| 7 | 56 | 12 | 10 | 6 |
-| 8 | 60 | 13 | 11 | 7 |
-| 9 | 64 | 14 | 12 | 8 |
-| 10+ | +5/wave | +1/wave | +1/wave | +1/wave |
+| Wave | Apostles | Abnormals | Elites | Dominators | Goliath |
+|---|---|---|---|---|---|
+| 1 | 32 | — | — | — | — |
+| 2 | 38 | 6 | 4 | — | — |
+| 3 | 40 | 7 | 6 | 2 | — |
+| 4 | 44 | 8 | 7 | 3 | — |
+| 5 | 48 | 9 | 8 | 4 | 1 |
+| 6 | 52 | 11 | 9 | 5 | — |
+| 7 | 56 | 12 | 10 | 6 | — |
+| 8 | 60 | 13 | 11 | 7 | — |
+| 9 | 64 | 14 | 12 | 8 | — |
+| 10+ | +5/wave | +1/wave | +1/wave | +1/wave | 1 every 5th wave |
 
-Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marchosias, Veilshroud), **Elites** (Thaelis, Aegis Core, Egregor), **Dominators** (Dargruel, Leviathan). Individual on-screen caps apply; there is no combined cap.
+Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marchosias, Veilshroud), **Elites** (Thaelis, Aegis Core, Egregor), **Dominators** (Dargruel, Leviathan). Individual on-screen caps apply; there is no combined cap. **Goliath** (Digiform) spawns exactly once, outside every other tier, on any wave number divisible by 5.
 
 ---
 

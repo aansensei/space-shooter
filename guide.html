@@ -984,9 +984,9 @@
 <tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud</td><td>3 / 2</td></tr>
 <tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis, Egregor</td><td>2 / 2 / 1</td></tr>
 <tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td><td>2 / 1</td></tr>
-<tr><td style="color:#eab308">Digiform</td><td>Goliath</td><td>1, debug-spawn only</td></tr>
+<tr><td style="color:#eab308">Digiform</td><td>Goliath</td><td>1, every wave 5/10/15/20...</td></tr>
 <tr><td style="color:#ff2244">Administrator</td><td>Kanade</td><td>—</td></tr>
-</table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus. Cap = max simultaneously on screen. No combined cap across tiers. Goliath is a testbed boss for the future Administrator class — not yet wired into the normal wave-spawn rotation.</p></div>
+</table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus. Cap = max simultaneously on screen. No combined cap across tiers. Goliath is a testbed boss for the future Administrator class — it spawns once on every wave number divisible by 5, outside the normal apostle/abnormal/elite/dominator rotation.</p></div>
 
 <div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLES <span class="dsclass" style="font-size:9px;color:#aaaaaa">LESSER</span></h2><div class="sub">HP 22–330 • FIRES 1 BULLET/SEC • Evade 1→2% • Speed ~1.2 u/s</div>
 <div class="ab" style="height:140px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div>
@@ -1113,18 +1113,18 @@
 <li><b>Rest (5s):</b> countdown to next wave.</li>
 </ul>
 <table class="controls-table" style="margin-top:4px">
-<tr><th>Wave</th><th>Apostles</th><th>Abnorm.</th><th>Elite</th><th>Dom.</th></tr>
-<tr><td>1</td><td>32</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td>2</td><td>38</td><td>6</td><td>4</td><td>—</td></tr>
-<tr><td>3</td><td>40</td><td>7</td><td>6</td><td>2</td></tr>
-<tr><td>4</td><td>44</td><td>8</td><td>7</td><td>3</td></tr>
-<tr><td>5</td><td>48</td><td>9</td><td>8</td><td>4</td></tr>
-<tr><td>6</td><td>52</td><td>11</td><td>9</td><td>5</td></tr>
-<tr><td>7</td><td>56</td><td>12</td><td>10</td><td>6</td></tr>
-<tr><td>8</td><td>60</td><td>13</td><td>11</td><td>7</td></tr>
-<tr><td>9</td><td>64</td><td>14</td><td>12</td><td>8</td></tr>
-<tr><td style="color:var(--dim)">10+</td><td style="color:var(--dim)">+5/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td></tr>
-</table></div>
+<tr><th>Wave</th><th>Apostles</th><th>Abnorm.</th><th>Elite</th><th>Dom.</th><th style="color:#eab308">Gol.</th></tr>
+<tr><td>1</td><td>32</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>2</td><td>38</td><td>6</td><td>4</td><td>—</td><td>—</td></tr>
+<tr><td>3</td><td>40</td><td>7</td><td>6</td><td>2</td><td>—</td></tr>
+<tr><td>4</td><td>44</td><td>8</td><td>7</td><td>3</td><td>—</td></tr>
+<tr><td>5</td><td>48</td><td>9</td><td>8</td><td>4</td><td style="color:#f59e0b">1</td></tr>
+<tr><td>6</td><td>52</td><td>11</td><td>9</td><td>5</td><td>—</td></tr>
+<tr><td>7</td><td>56</td><td>12</td><td>10</td><td>6</td><td>—</td></tr>
+<tr><td>8</td><td>60</td><td>13</td><td>11</td><td>7</td><td>—</td></tr>
+<tr><td>9</td><td>64</td><td>14</td><td>12</td><td>8</td><td>—</td></tr>
+<tr><td style="color:var(--dim)">10+</td><td style="color:var(--dim)">+5/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">1 / 5w</td></tr>
+</table><p style="color:var(--dim);font-size:11px;margin-top:6px">Goliath spawns once, outside every other tier, on any wave number divisible by 5 (5, 10, 15, 20...).</p></div>
 <div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% negated. Stacks additively, capped <span class="hi">99%</span>.</p></div>
 <div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>HP buffer before body. Stackable. Destroying shield ≠ reduce Max HP.</p></div>
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. All percentage-based enemy damage to Sentinels scales off EP. Max HP alone = body HP without shield.</p></div>
