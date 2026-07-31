@@ -153,8 +153,8 @@ function _hasAnyDebuff(enemy) {
     return false;
 }
 
-// Đếm TỔNG số tầng hiệu ứng xấu (mọi sigil/skill nào áp được lên Goliath,
-// dù CC-immune không chặn nổi) đang dính trên enemy — dùng cho trần damage
+// Đếm TỔNG số tầng debuff (mọi sigil/skill nào áp được lên Goliath, dù
+// CC-immune không chặn nổi) đang dính trên enemy — dùng cho trần damage
 // động của Inevitable. Cùng danh sách nguồn với _hasAnyDebuff ở trên, chỉ
 // khác là ĐẾM tầng thay vì chỉ true/false, + thêm Tesla Coil aura riêng.
 function _goliathDebuffStackCount(enemy) {
@@ -1153,6 +1153,13 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'goliath' && enemy.phase !== 'true_form') return;
 
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
+        // Inevitable (NEW): Iron Body tuyệt đối 1.5s ngay sau khi biến hình
+        // xong — bất khả xâm phạm hoàn toàn, không ngoại lệ nào xuyên nổi
+        // (kể cả true damage/xuyên), giống hệt luật Alpha/Transforming.
+        if (enemy._transformIronBodyEnd && performance.now() < enemy._transformIronBodyEnd) {
+            createParticles(enemy.x, enemy.y, 6, '#f59e0b', 2, 7);
+            return;
+        }
         // Fracture Step: lớp Iron Body vừa nhận lúc dịch chuyển, hấp thụ trọn
         // từng đòn (giống Coronation ironBodyHits đã có sẵn trong codebase)
         if (enemy._fractureIronBodyHits > 0 && (source.damage > 0 || source.percentDamage > 0)) {
@@ -1646,14 +1653,14 @@ function dealDamage(enemy, source) {
     // CHUẨN (true damage), và DOT mới được đánh full — sát thương BÌNH
     // THƯỜNG (%HP/%EP, ăn shield trước — gồm cả đạn auto-fire cơ bản) bị
     // giới hạn cứng 1.6% MaxHP/đòn (tính SAU khi đã trừ DR ở trên), +0.5%
-    // trần cho MỖI tầng hiệu ứng xấu không miễn nhiễm đang dính (bất kỳ sigil
-    // nào áp được lên Goliath — vd 2 tầng Vulnerability = 1.6%+1%=2.6%).
+    // trần cho MỖI tầng debuff đang dính (bất kỳ sigil nào áp được lên
+    // Goliath — vd 2 tầng Vulnerability = 1.6%+1%=2.6%), trần tối đa 3%.
     // Không áp dụng cho Skill F/D/tia Photokrystos finale — 3 nguồn đó đã
     // return sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
         && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot) {
-        const _capPct = 0.016 + _goliathDebuffStackCount(enemy) * 0.005;
+        const _capPct = Math.min(0.03, 0.016 + _goliathDebuffStackCount(enemy) * 0.005);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
 
@@ -2960,6 +2967,10 @@ function _goliathEnterTrueForm(enemy) {
     const maxHp = Math.max(50000, Math.round(pulledCapped * (1 + 0.15 * enemy.gemPoints)));
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
+
+    // Inevitable (NEW): Iron Body tuyệt đối 1.5s ngay sau khi biến hình xong
+    // thành công — bảo vệ đúng khoảnh khắc vừa lộ diện, còn chưa kịp làm gì.
+    enemy._transformIronBodyEnd = performance.now() + 1500;
 
     // QUAN TRỌNG: chuyển cảnh mượt lúc biến hình vừa xong — công thức weave
     // dùng sin(t + weaveSeed) với weaveSeed NGẪU NHIÊN từ lúc spawn, nên nếu
