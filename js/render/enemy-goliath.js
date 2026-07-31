@@ -972,76 +972,238 @@ function _drawGoliathJokerEffects(enemy, now) {
     }
 
     if (js['Marchosias']) {
-        // Đổi màu ĐỎ + dày/mạnh hơn hẳn khiên thật của chính Marchosias (thêm
-        // 1 lớp glow ngoài dày, lõi sáng, viền trong sáng rực).
+        // Barrier omnidirectional (không phải cung 90° hướng mặt như bản gốc
+        // — Goliath không có toạ độ va chạm để tính hướng đòn tới) — 1 vòng
+        // khiên ĐỎ đầy đủ 360°, gradient theo % HP còn lại của barrier
+        // (barrierHp/barrierMaxHp), biến mất khi barrier đã vỡ (barrierDown).
         const s = js['Marchosias'];
-        const shieldR = 260, sa = s.barrierAngle - Math.PI / 4, ea = s.barrierAngle + Math.PI / 4;
-        ctx.strokeStyle = 'rgba(220,0,0,0.55)'; ctx.lineWidth = 28;
-        if (!_mobPerf) { ctx.shadowColor = '#ff1414'; ctx.shadowBlur = 30; }
-        ctx.beginPath(); ctx.arc(0, 0, shieldR, sa, ea); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,60,60,0.9)'; ctx.lineWidth = 11;
-        if (!_mobPerf) { ctx.shadowColor = '#ff5050'; ctx.shadowBlur = 18; }
-        ctx.beginPath(); ctx.arc(0, 0, shieldR, sa, ea); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,225,225,0.95)'; ctx.lineWidth = 3; ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(0, 0, shieldR - 7, sa, ea); ctx.stroke();
-
-        // Hành lang cảnh báo trước khi phóng Sword — ĐÚNG halfW=36 như
-        // _drawMarchoBlade thật (không nới rộng thêm, để kích thước cảnh báo
-        // khớp đúng skill gốc), phát ra từ MẮT (s.originX/Y) chứ không phải
-        // tâm thân.
-        if (s.telegraphing) {
-            const halfW = 36, warnLen = 900;
-            const ox = s.originX - enemy.x, oy = s.originY - enemy.y;
-            ctx.save(); ctx.translate(ox, oy); ctx.rotate(s.aimAngle);
-            ctx.fillStyle = 'rgba(255,140,0,0.45)';
-            ctx.fillRect(0, -halfW, warnLen, halfW * 2);
-            ctx.strokeStyle = 'rgba(255,220,120,0.6)'; ctx.lineWidth = 1;
-            ctx.setLineDash([14, 8]);
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(warnLen, 0); ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.strokeStyle = 'rgba(255,210,0,0.92)'; ctx.lineWidth = 2.5;
-            ctx.setLineDash([10, 6]);
-            ctx.beginPath();
-            ctx.moveTo(0, -halfW); ctx.lineTo(warnLen, -halfW);
-            ctx.moveTo(0, halfW); ctx.lineTo(warnLen, halfW);
-            ctx.stroke(); ctx.setLineDash([]);
-            ctx.restore();
+        if (!s.barrierDown) {
+            const pct = Math.max(0, s.barrierHp / s.barrierMaxHp);
+            const shieldR = 260;
+            const pulse = 0.85 + Math.sin(now / 260) * 0.15;
+            const rg = ctx.createRadialGradient(0, 0, shieldR - 30, 0, 0, shieldR + 10);
+            rg.addColorStop(0, 'rgba(120,0,0,0)');
+            rg.addColorStop(0.6, `rgba(200,0,0,${0.20 * pct * pulse})`);
+            rg.addColorStop(1, `rgba(255,40,40,${0.35 * pct * pulse})`);
+            ctx.beginPath(); ctx.arc(0, 0, shieldR + 10, 0, Math.PI * 2);
+            ctx.fillStyle = rg; ctx.fill();
+            ctx.strokeStyle = `rgba(255,50,50,${0.55 + 0.35 * pct})`; ctx.lineWidth = 4 + pct * 6;
+            if (!_mobPerf) { ctx.shadowColor = '#ff1414'; ctx.shadowBlur = 20 * pulse; }
+            ctx.beginPath(); ctx.arc(0, 0, shieldR, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,190,190,0.85)'; ctx.lineWidth = 2; ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(0, 0, shieldR - 5, 0, Math.PI * 2); ctx.stroke();
         }
+
+        // Hàng đợi Sword đang vận (windups[], mỗi cái 1000ms) — vạch cảnh báo
+        // mảnh phát ra từ mắt hướng về đích, mờ dần khi gần bắn.
+        s.windups.forEach(w => {
+            const p = Math.min(1, w.timer / w.dur);
+            const _eye = _goliathEyeWorldPos(enemy);
+            const ex = _eye.x - enemy.x, ey = _eye.y - enemy.y;
+            const ang = Math.atan2(w.targetY - _eye.y, w.targetX - _eye.x);
+            const len = 700;
+            ctx.save(); ctx.translate(ex, ey); ctx.rotate(ang);
+            ctx.strokeStyle = `rgba(255,80,0,${0.25 + p * 0.5})`; ctx.lineWidth = 2 + p * 2;
+            ctx.setLineDash([12, 8]);
+            if (!_mobPerf) { ctx.shadowColor = '#ff5000'; ctx.shadowBlur = 8; }
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+            ctx.setLineDash([]); ctx.shadowBlur = 0;
+            ctx.restore();
+        });
     }
 
     if (js['Egregor']) {
-        // Đúng Psychic Tempest thật: chốt vị trí cố định trước (không quét
-        // cung xoay), báo trước bằng vòng tròn cảnh báo tại TỪNG mục tiêu, rồi
-        // giáng tia sét vào đúng các vị trí đã chốt đó.
+        // Null Slash (không phải Psychic Tempest) — port TRỰC TIẾP từ hiệu
+        // ứng thật của Egregor (_drawEgregorEffects trong enemy-egregor.js),
+        // chỉ đổi tông màu tím/void sang cam plasma (Goliath không có xúc
+        // tu tối, không có rage stacks) + bỏ phần Dimensional Rift vũ trụ
+        // bên trong (đã vẽ riêng bởi window._dimBreakZones/_drawDimBreakZones
+        // dùng chung với Egregor thật, không cần lặp lại ở đây).
         const s = js['Egregor'];
-        if ((s.phase === 'telegraphing' || s.phase === 'striking') && s.targets && s.targets.length) {
-            s.targets.forEach(t => {
-                const lx = t.tx - enemy.x, ly = t.ty - enemy.y;
-                if (s.phase === 'telegraphing') {
-                    const pulse = 0.6 + 0.4 * Math.sin(now / 90);
-                    // To hơn (100 -> 130) theo yêu cầu vùng cảnh báo rõ ràng hơn
-                    ctx.beginPath(); ctx.arc(lx, ly, 130, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(200,68,255,${0.5 + 0.4 * pulse})`; ctx.lineWidth = 3;
-                    ctx.setLineDash([12, 9]);
-                    if (!_mobPerf) { ctx.shadowColor = '#cc44ff'; ctx.shadowBlur = 12; }
-                    ctx.stroke(); ctx.shadowBlur = 0; ctx.setLineDash([]);
-                    ctx.beginPath(); ctx.arc(lx, ly, 6, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(220,120,255,0.9)'; ctx.fill();
-                } else if (s.strikeEnd) {
-                    const fade = Math.max(0, (s.strikeEnd - now) / 700);
-                    const ox = s.originX - enemy.x, oy = s.originY - enemy.y;
-                    const bolt = _goliathGenerateVein(ox, oy, lx, ly, 6, 22);
-                    ctx.beginPath();
-                    bolt.forEach((b, i) => i === 0 ? ctx.moveTo(b.x, b.y) : ctx.lineTo(b.x, b.y));
-                    ctx.strokeStyle = `rgba(230,180,255,${fade})`; ctx.lineWidth = 2.5;
-                    if (!_mobPerf) { ctx.shadowColor = '#8800cc'; ctx.shadowBlur = 16; }
+        const cx = 0, cy = 0; // đã ở toạ độ cục bộ quanh tâm Goliath
+
+        if (s.phase === 'charging') {
+            const progress = Math.min(1, (s.windupTimer || 0) / 3000);
+            const R = 500;
+            const ang = s.angle || (Math.PI / 2);
+            const arcStart = ang - Math.PI / 2, arcEnd = ang + Math.PI / 2;
+            const curR = R * (0.3 + 0.7 * progress);
+            ctx.save();
+            if (!_mobPerf) {
+                const sfg = ctx.createRadialGradient(cx, cy, 0, cx, cy, curR);
+                sfg.addColorStop(0, `rgba(180,60,0,${0.08 * progress})`);
+                sfg.addColorStop(0.7, `rgba(220,100,0,${0.06 * progress})`);
+                sfg.addColorStop(1, 'rgba(150,50,0,0)');
+                ctx.fillStyle = sfg;
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, curR, arcStart, arcEnd); ctx.closePath(); ctx.fill();
+            }
+            const pulseAlpha = 0.6 + 0.35 * Math.sin(now / 60);
+            if (!_mobPerf) { ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 20 + progress * 15; }
+            ctx.strokeStyle = `rgba(255,150,50,${pulseAlpha * progress})`; ctx.lineWidth = 3 + progress * 4;
+            ctx.beginPath(); ctx.arc(cx, cy, curR, arcStart, arcEnd); ctx.stroke();
+            const p1x = cx + Math.cos(arcStart) * curR, p1y = cy + Math.sin(arcStart) * curR;
+            const p2x = cx + Math.cos(arcEnd) * curR, p2y = cy + Math.sin(arcEnd) * curR;
+            ctx.strokeStyle = `rgba(255,180,100,${0.5 * progress})`; ctx.lineWidth = 2;
+            ctx.setLineDash([10, 7]); ctx.lineDashOffset = -(now / 60) % 17;
+            ctx.beginPath(); ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y); ctx.stroke();
+            ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.shadowBlur = 0;
+            // Tia plasma cam rạn nứt trong cung — luôn dùng mốc rage TỐI ĐA (5
+            // stack, cho đẹp) vì Goliath không có rage stack thật.
+            if (!_mobPerf && progress > 0.20) {
+                const rcCount = 15;
+                ctx.save();
+                ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 10;
+                ctx.lineWidth = 1.8;
+                for (let rc = 0; rc < rcCount; rc++) {
+                    const rcBaseAng = arcStart + (rc / rcCount) * Math.PI;
+                    const rcDist = curR * (0.15 + 0.55 * Math.abs(Math.sin(rc * 2.618)));
+                    let bx = cx + Math.cos(rcBaseAng) * rcDist, by = cy + Math.sin(rcBaseAng) * rcDist;
+                    const rcAlpha = progress * (0.4 + 0.35 * Math.sin(now / 90 + rc * 1.3));
+                    ctx.strokeStyle = `rgba(255,180,60,${rcAlpha})`;
+                    ctx.beginPath(); ctx.moveTo(bx, by);
+                    for (let seg = 0; seg < 4; seg++) {
+                        const sAng = rcBaseAng + Math.sin(rc * 4.37 + seg * 2.09) * 0.7;
+                        const sLen = curR * (0.06 - seg * 0.01);
+                        bx += Math.cos(sAng) * sLen; by += Math.sin(sAng) * sLen;
+                        ctx.lineTo(bx, by);
+                    }
                     ctx.stroke();
-                    ctx.strokeStyle = `rgba(136,0,204,${fade * 0.6})`; ctx.lineWidth = 6; ctx.stroke();
-                    ctx.shadowBlur = 0;
-                    ctx.beginPath(); ctx.arc(lx, ly, 130 * fade + 25 * (1 - fade), 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(200,68,255,${fade * 0.7})`; ctx.lineWidth = 3; ctx.stroke();
                 }
-            });
+                ctx.shadowBlur = 0; ctx.restore();
+            }
+            if (!_mobPerf && progress > 0.15) {
+                for (let cp = 0; cp < 8; cp++) {
+                    const cpAngle = arcStart + (cp / 8) * Math.PI + (now / 500);
+                    const cpDist = curR * (0.3 + 0.7 * ((now / 300 + cp * 0.7) % 1));
+                    const cpX = cx + Math.cos(cpAngle) * cpDist, cpY = cy + Math.sin(cpAngle) * cpDist;
+                    ctx.globalAlpha = progress * 0.7;
+                    ctx.fillStyle = '#ffb347';
+                    ctx.beginPath(); ctx.arc(cpX, cpY, 3 + progress * 2, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            if (progress > 0.85) {
+                ctx.globalAlpha = ((progress - 0.85) / 0.15) * 0.25;
+                ctx.fillStyle = 'rgba(220,100,0,1)';
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, curR, arcStart, arcEnd); ctx.closePath(); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        } else if (s.phase === 'striking') {
+            const st = s.strikeTimer || 0;
+            const tx2 = s.targetX, ty2 = s.targetY;
+            const nsAng = s.angle || Math.atan2(ty2 - enemy.y, tx2 - enemy.x);
+            // Luôn dùng mốc rage TỐI ĐA (5 stack) cho đẹp — Goliath không có
+            // rage stack thật, +25% radius/độ dày như Egregor rage=5.
+            const rageSizeMult = 1.25;
+            const R = Math.hypot(tx2 - enemy.x, ty2 - enemy.y) + 25;
+            const EXTEND = 200, SWEEP = 520, RETRACT = 230;
+            const arcStart = nsAng - Math.PI / 2, arcSpan = Math.PI;
+
+            let ext, sweepT;
+            if (st < EXTEND) { ext = 1 - Math.pow(1 - st / EXTEND, 2.8); sweepT = 0; }
+            else if (st < EXTEND + SWEEP) {
+                const p = (st - EXTEND) / SWEEP;
+                ext = 1.0; sweepT = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+            } else {
+                const r = (st - EXTEND - SWEEP) / RETRACT;
+                ext = Math.pow(1 - r, 2.2); sweepT = 1.0;
+            }
+
+            if (ext > 0.01) {
+                const steps = 38;
+                const tentPts = [];
+                for (let i = 0; i <= steps; i++) {
+                    const tRaw = i / steps;
+                    const laggedST = sweepT * Math.pow(tRaw, 0.5);
+                    const ptAngle = arcStart + laggedST * arcSpan;
+                    const radius = tRaw * R * ext;
+                    const radX = Math.cos(ptAngle), radY = Math.sin(ptAngle);
+                    const amp = Math.pow(tRaw, 1.6) * 72 * ext;
+                    const ph = tRaw * Math.PI * 3.4 - sweepT * Math.PI * 4.8;
+                    const wOff = Math.sin(ph) * amp + Math.sin(tRaw * Math.PI * 6.2 - sweepT * Math.PI * 8) * Math.pow(tRaw, 2.2) * 22 * ext;
+                    tentPts.push({ x: cx + radius * radX + radX * wOff, y: cy + radius * radY + radY * wOff, w: 1 - tRaw });
+                }
+
+                ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+                if (!_mobPerf && sweepT > 0.06 && sweepT < 0.96 && ext > 0.55) {
+                    const tipAngle = arcStart + sweepT * arcSpan;
+                    for (let tr = 5; tr >= 1; tr--) {
+                        const trST = Math.max(0, sweepT - tr * 0.10);
+                        const trA = arcStart + trST * arcSpan;
+                        ctx.shadowColor = '#cc6600'; ctx.shadowBlur = 16;
+                        ctx.strokeStyle = `rgba(200,90,0,${(6 - tr) * 0.022 * ext})`;
+                        ctx.lineWidth = (6 - tr) * 4 * ext;
+                        ctx.beginPath(); ctx.arc(cx, cy, R * ext * 0.90, trA, tipAngle); ctx.stroke();
+                    }
+                    ctx.shadowBlur = 0;
+                }
+
+                // Hào quang plasma bùng phát quanh xúc tu — luôn hiện (mốc rage=5)
+                if (!_mobPerf) {
+                    ctx.shadowColor = '#ffb347'; ctx.shadowBlur = 88;
+                    const auraA = Math.min(0.32, 0.235 * ext);
+                    for (let si = 0; si < tentPts.length - 1; si++) {
+                        const p0 = tentPts[si], p1 = tentPts[si + 1];
+                        ctx.strokeStyle = `rgba(255,140,0,${auraA * p0.w})`;
+                        ctx.lineWidth = Math.max(8, 125 * p0.w * rageSizeMult);
+                        ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                    }
+                    ctx.shadowBlur = 0;
+                }
+
+                // Layer 0: lõi tối
+                if (!_mobPerf) { ctx.shadowColor = '#3a1200'; ctx.shadowBlur = 45; }
+                for (let si = 0; si < tentPts.length - 1; si++) {
+                    const p0 = tentPts[si], p1 = tentPts[si + 1];
+                    ctx.strokeStyle = 'rgba(40,15,0,0.97)'; ctx.lineWidth = Math.max(2, 92 * p0.w * rageSizeMult);
+                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                }
+                // Layer 1: thân cam đậm
+                if (!_mobPerf) { ctx.shadowColor = '#b34700'; ctx.shadowBlur = 28; }
+                for (let si = 0; si < tentPts.length - 1; si++) {
+                    const p0 = tentPts[si], p1 = tentPts[si + 1];
+                    ctx.strokeStyle = `rgba(180,60,0,${0.90 * ext})`; ctx.lineWidth = Math.max(1, 70 * p0.w * rageSizeMult);
+                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                }
+                // Layer 2: da ngoài cam sáng
+                if (!_mobPerf) { ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 16; }
+                for (let si = 0; si < tentPts.length - 1; si++) {
+                    const p0 = tentPts[si], p1 = tentPts[si + 1];
+                    ctx.strokeStyle = `rgba(255,140,20,${0.72 * ext})`; ctx.lineWidth = Math.max(0.5, 46 * p0.w * rageSizeMult);
+                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                }
+                // Layer 3: vệt sáng bám tiếp tuyến
+                ctx.shadowBlur = 0;
+                for (let si = 0; si < tentPts.length - 1; si++) {
+                    const p0 = tentPts[si], p1 = tentPts[si + 1];
+                    const sdx = p1.x - p0.x, sdy = p1.y - p0.y, sL = Math.hypot(sdx, sdy) || 1;
+                    const hpX = -sdy / sL, hpY = sdx / sL, ho = 5 * p0.w;
+                    ctx.strokeStyle = `rgba(255,210,140,${0.42 * p0.w * ext})`; ctx.lineWidth = Math.max(0.5, 19 * p0.w);
+                    ctx.beginPath(); ctx.moveTo(p0.x + hpX * ho, p0.y + hpY * ho); ctx.lineTo(p1.x + hpX * ho, p1.y + hpY * ho); ctx.stroke();
+                }
+                // Layer 4: sống lưng mảnh
+                if (!_mobPerf) { ctx.shadowColor = '#ffb347'; ctx.shadowBlur = 12; }
+                for (let si = 0; si < tentPts.length - 1; si++) {
+                    const p0 = tentPts[si], p1 = tentPts[si + 1];
+                    ctx.strokeStyle = `rgba(255,190,80,${0.42 * p0.w * ext})`; ctx.lineWidth = Math.max(0.5, 7 * p0.w);
+                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+
+                // Giác hút
+                if (!_mobPerf) {
+                    for (let si = 2; si < tentPts.length - 2; si += 2) {
+                        const p = tentPts[si];
+                        const sr = Math.max(3, 15 * p.w);
+                        ctx.fillStyle = `rgba(60,20,0,${0.88 * ext})`;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, sr, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = `rgba(255,140,40,${0.55 * ext})`;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, sr * 0.42, 0, Math.PI * 2); ctx.fill();
+                    }
+                }
+                ctx.restore();
+            }
         }
     }
 
@@ -1272,8 +1434,6 @@ function _drawGoliath(enemy) {
     const now = performance.now();
     const lightAngle = -Math.PI / 3;
     const breath = (Math.sin(now / 400) + 1) / 2;
-
-    _drawGoliathFlyingGems(enemy, now);
 
     // Reset phòng thủ — nếu 1 draw call trước đó (enemy khác, hoặc chính
     // Goliath ở pha trước) lỡ để sót globalAlpha thấp không được restore về
@@ -1624,6 +1784,11 @@ function _drawGoliath(enemy) {
 
     ctx.restore(); // đóng translate(idleBobX, idleBobY)
     ctx.restore();
+
+    // Bảo thạch đang bay vào khe/mắt — vẽ SAU thân (không phải trước như cũ)
+    // để bảo thạch luôn nằm ở layer TRÊN thân, trông như đang thực sự "đính"
+    // lên người Alpha thay vì bị thân đè mất lúc vừa bay tới.
+    _drawGoliathFlyingGems(enemy, now);
 
     // HP bar (True Form only — Alpha/Transforming are invulnerable, no bar needed)
     if (enemy.phase === 'true_form') {
