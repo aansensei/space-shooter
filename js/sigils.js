@@ -79,7 +79,7 @@ const SIGIL_DEFS = {
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
               desc: 'Spirit arc slash fires 2 blades (+60% each, 2nd fires 15ms later), plus a 25% chance for a 3rd blade. Each boomerang has 40% chance for 2 extra. Skill F sweep now throws 2 boomerangs from the player instead of blade arcs. Extra blades have +20% radius. Every auto-fire shot has a 15% chance to fire an arc blade (300 + 7% EP), same as the spirit\'s.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
-              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune: no pull (25% chance to pull anyway), still slowed. Remembrance Spirit and Phōtokrystos fire rate +30%.' },
+              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune: no pull (25% chance to pull anyway, except Goliath — never), still slowed. Remembrance Spirit and Phōtokrystos fire rate +30%.' },
         ]
     },
     capricorn: {

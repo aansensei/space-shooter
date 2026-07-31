@@ -456,9 +456,10 @@ function _drawGoliathLimbs(enemy, growth) {
     const now = performance.now();
     const t = now / 1000;
     const swayL = Math.sin(t * 1.1) * 4, swayR = Math.sin(t * 1.1 + Math.PI) * 4;
-    // Tay lơ lửng lên xuống nhẹ nhàng như đang cử động lúc bay — lệch pha
-    // nhau + lệch pha với sway ngang để không trông như 1 khối cứng đung đưa.
-    const bobL = Math.sin(t * 0.85 + 0.6) * 10, bobR = Math.sin(t * 0.85 + 2.4) * 10;
+    // Tay lơ lửng lên xuống nhẹ nhàng như đang cử động lúc bay — CÙNG PHA
+    // với nhau (2 tay lên/xuống cùng lúc), chỉ lệch pha với sway ngang để
+    // không trông như 1 khối cứng đung đưa.
+    const bobL = Math.sin(t * 0.85 + 0.6) * 10, bobR = Math.sin(t * 0.85 + 0.6) * 10;
 
     // Bob áp cho CẢ vai lẫn bàn tay — nguyên cánh tay (từ bàn tay tới vai)
     // trôi lên xuống cùng nhau như 1 khối, không chỉ mỗi bàn tay lắc lư ở đầu.
