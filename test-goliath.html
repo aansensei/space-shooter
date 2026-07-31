@@ -1,0 +1,2353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goliath Boss Animation Prototype</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #fff;
+            font-family: sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 95vh;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            z-index: 10;
+        }
+        .btn-group {
+            background: rgba(255,255,255,0.1);
+            padding: 5px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 260px;
+        }
+        .btn-group-title {
+            font-size: 12px;
+            color: #aaa;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 2px;
+        }
+        button {
+            background: #222;
+            color: #ddd;
+            border: 1px solid #444;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: all 0.2s;
+            text-align: left;
+            font-size: 13px;
+        }
+        button:hover { background: #444; color: #fff; }
+        canvas {
+            background: #000;
+            border: 1px solid #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- GIAO DIỆN TEST (Test Harness) -->
+<div id="ui">
+    <div class="btn-group">
+        <div class="btn-group-title">Goliath Alpha</div>
+        <button onclick="triggerAppear()">1. Appear (Trồi lên)</button>
+        <button onclick="absorbGem(0)">2. Absorb Veilshroud Gem (Cyan)</button>
+        <button onclick="absorbGem(1)">2. Absorb Thaelis Gem (Purple)</button>
+        <button onclick="absorbGem(2)">2. Absorb Aegis Core Gem (Gold)</button>
+        <button onclick="absorbGem(3)">2. Absorb Marchosias Gem (Green)</button>
+        <button onclick="absorbGem(4)">2. Absorb Egregor Gem (Teal)</button>
+        <button onclick="absorbGem(5)">2. Absorb Dargruel Gem (Crimson)</button>
+        <button onclick="absorbGem(6)">2. Absorb Leviathan Gem (Void)</button>
+        <button onclick="triggerTransform()">3. Force Transform (4s sequence)</button>
+    </div>
+
+    <div class="btn-group">
+        <div class="btn-group-title">Goliath True Form Passives/Skills</div>
+        <button onclick="triggerInevitable()">Toggle Inevitable (Red Glow)</button>
+        <button onclick="triggerFractureStep()">Fracture Step (Teleport)</button>
+        <button onclick="triggerAbsoluteVerdict()">Absolute Verdict (Orb)</button>
+        <button onclick="triggerWardingPalm(true)">Warding Palm (Đỡ thành công)</button>
+        <button onclick="triggerWardingPalm(false)">Warding Palm (Đỡ hụt)</button>
+        <button onclick="triggerThresholdWard()">Threshold Ward (+Shield Mốc)</button>
+        <button onclick="triggerThresholdHeal()">Threshold Ward (Shield Hồi Máu)</button>
+    </div>
+
+    <div class="btn-group">
+        <div class="btn-group-title">Joker Skills</div>
+        <button onclick="triggerJoker(1)">1. Veilshroud (Phantom)</button>
+        <button onclick="triggerJoker(2)">2. Thaelis (Tenacity)</button>
+        <button onclick="triggerJoker(3)">3. Aegis Core (Lumen Nova)</button>
+        <button onclick="triggerJoker(4)">4. Marchosias (Sword & Barrier)</button>
+        <button onclick="triggerJoker(5)">5. Egregor (Null Slash)</button>
+        <button onclick="triggerJoker(6)">6. Dargruel (Maou Haki)</button>
+        <button onclick="triggerJoker(7)">7. Leviathan (Perseverance)</button>
+        <button onclick="clearJoker()">Clear Joker</button>
+    </div>
+</div>
+
+<canvas id="gameCanvas" width="1200" height="800"></canvas>
+
+<script>
+/**
+ * GOLIATH ANIMATION PROTOTYPE — v2
+ * 1 file HTML/canvas độc lập, không phụ thuộc game thật.
+ * Kỹ thuật vẽ (gradient theo facet, glow nhiều lớp, core+halo) tham khảo trực tiếp
+ * từ js/render/enemy-leviathan.js, enemy-boss-thaelis.js, enemy-marchosias.js,
+ * enemy-egregor.js, enemy-aegis-core.js của game thật — không phải hình phẳng 1 màu.
+ * Mỗi khối rõ chức năng, chú thích để dễ cắt rời sau này.
+ */
+
+// CẤU HÌNH & KHỞI TẠO CANVAS
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let lastTime = performance.now();
+let time = 0;
+
+// Chuột đóng vai trò "người chơi" trong prototype này — con mắt giữa 3 bảo
+// thạch sẽ luôn nhìn theo vị trí này (giống eye-tracking của Leviathan thật).
+const mouse = { x: 600, y: 400 };
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mouse.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+
+// Bảng 7 màu bảo thạch (đúng thứ tự Joker) — dùng object {dark,mid,light} để tô gradient
+const GEM_COLORS = [
+    { name: 'Veilshroud',  dark: '#0b3b3a', mid: '#2dd4bf', light: '#e6fffb' },
+    { name: 'Thaelis',     dark: '#2d004d', mid: '#8b5cf6', light: '#e9ddff' },
+    { name: 'Aegis Core',  dark: '#7a5a00', mid: '#fbbf24', light: '#fff8e1' },
+    { name: 'Marchosias',  dark: '#003322', mid: '#10b981', light: '#ccffe9' },
+    { name: 'Egregor',     dark: '#003344', mid: '#14b8a6', light: '#c9fff5' },
+    { name: 'Dargruel',    dark: '#3a0000', mid: '#991b1b', light: '#ffcccc' },
+    { name: 'Leviathan',   dark: '#1a0033', mid: '#00e5ff', light: '#eafaff' },
+];
+
+// TIỆN ÍCH MÀU (hex <-> rgb, nội suy) — dùng cho gradient theo facet
+function hexToRgb(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function lerpColor(hexA, hexB, t) {
+    const a = hexToRgb(hexA), b = hexToRgb(hexB);
+    const r = Math.round(a[0] + (b[0] - a[0]) * t);
+    const g = Math.round(a[1] + (b[1] - a[1]) * t);
+    const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+    return `rgb(${r},${g},${bl})`;
+}
+
+// STARFIELD NỀN (sinh 1 lần lúc load)
+const STARS = [];
+(function initStars() {
+    for (let i = 0; i < 220; i++) {
+        STARS.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 1.4 + 0.3,
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.5 + Math.random() * 1.5,
+        });
+    }
+})();
+function drawStarfield(t) {
+    const bgGrad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width*0.75);
+    bgGrad.addColorStop(0, '#0a0a14');
+    bgGrad.addColorStop(1, '#000000');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const s of STARS) {
+        const tw = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
+        ctx.globalAlpha = 0.25 + tw * 0.6;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+}
+
+// SINH ĐƯỜNG NỨT (vein) NGẪU NHIÊN 1 LẦN — dày, nhiều đoạn, giống vết nứt lava thật
+function generateVein(x1, y1, x2, y2, segments, jitter) {
+    const pts = [];
+    for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        let x = x1 + (x2 - x1) * t;
+        let y = y1 + (y2 - y1) * t;
+        if (i > 0 && i < segments) {
+            x += (Math.random() - 0.5) * jitter;
+            y += (Math.random() - 0.5) * jitter;
+        }
+        pts.push({ x, y });
+    }
+    return pts;
+}
+
+// HÌNH HỌC: OUTLINE BẤT ĐỐI XỨNG (khớp ảnh minh hoạ splash art)
+// core = điểm gốc để chia facet (không phải tâm hình học, lệch tâm cho giống pha lê thật)
+const ALPHA_OUTLINE = [
+    { x: -15, y: -175 }, { x: 30, y: -195 }, { x: 68, y: -155 }, { x: 100, y: -165 },
+    { x: 128, y: -105 }, { x: 108, y: -45 }, { x: 92, y: 15 }, { x: 58, y: 68 },
+    { x: 30, y: 128 }, { x: 4, y: 178 }, { x: -26, y: 122 }, { x: -58, y: 62 },
+    { x: -96, y: 12 }, { x: -112, y: -58 }, { x: -70, y: -118 }, { x: -40, y: -155 },
+];
+const ALPHA_CORE = { x: 6, y: -55 };
+const ALPHA_VEINS = [
+    generateVein(ALPHA_CORE.x, ALPHA_CORE.y, -20, -170, 5, 14),
+    generateVein(ALPHA_CORE.x, ALPHA_CORE.y, 100, -140, 5, 14),
+    generateVein(ALPHA_CORE.x, ALPHA_CORE.y, 118, 0, 5, 14),
+    generateVein(ALPHA_CORE.x, ALPHA_CORE.y, 40, 150, 6, 16),
+    generateVein(ALPHA_CORE.x, ALPHA_CORE.y, -80, 90, 5, 14),
+    generateVein(ALPHA_CORE.x, ALPHA_CORE.y, -100, -30, 5, 14),
+    generateVein(ALPHA_CORE.x, ALPHA_CORE.y, -50, -150, 4, 12),
+];
+
+// 3 khe bảo thạch (vị trí neo trên mặt Alpha / True Form) — hình thoi facet, không phải tam giác phẳng
+// Dang rộng hơn bản cũ để cụm "3 bảo thạch + mắt" đọc rõ như 1 huy hiệu/mặt nạ
+// lớn ở giữa ngực, không phải 3 hình nhỏ rời rạc.
+const SLOT_ANCHORS = [
+    { x: 10, y: -108 },
+    { x: -46, y: -14 },
+    { x: 58, y: -10 },
+];
+// Con mắt luôn nằm đúng giữa tam giác tạo bởi 3 khe bảo thạch (trọng tâm 3 điểm trên)
+// — CHỈ hiện ra sau khi biến hình xong (True Form), Alpha không có mắt.
+const EYE_POS = {
+    x: (SLOT_ANCHORS[0].x + SLOT_ANCHORS[1].x + SLOT_ANCHORS[2].x) / 3,
+    y: (SLOT_ANCHORS[0].y + SLOT_ANCHORS[1].y + SLOT_ANCHORS[2].y) / 3,
+};
+// Vị trí khớp nối 2 chi (tương đối tâm thân) — dùng chung bởi drawLimbs() (vẽ
+// chi) VÀ triggerTransform() (nhắm thiên thạch tới đây để "xây" chi), để 2 nơi
+// không lệch nhau. Vai to hơn nên đưa ra xa hơn.
+const LIMB_JOINT = {
+    left: { x: -200, y: -65 },
+    right: { x: 200, y: -65 },
+};
+
+// True Form: thân to hình thang gồ ghề kiểu quái vật đá (theo phác thảo user vẽ —
+// rộng ở trên, hẹp ở dưới).
+// Tự định nghĩa riêng vì 2 pha giờ khác hẳn về hình khối: 
+// Alpha = mảnh vỡ góc cạnh, True Form = thân khối đá lớn.
+const TRUE_FORM_OUTLINE = (() => {
+    const pts = [], n = 20, rx = 210, ry = 230;
+    for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        let currentRx = rx;
+        // Rộng ở trên, hẹp ở dưới
+        if (Math.sin(a) > 0) {
+            currentRx = rx - Math.sin(a) * 70;
+        } else {
+            currentRx = rx + Math.abs(Math.sin(a)) * 30;
+        }
+        let currentRy = ry;
+        if (Math.sin(a) < -0.5) currentRy = ry * 0.9; // Bẹt phía trên đỉnh đầu
+        
+        const wobble = 1 + Math.sin(a * 4 + 1) * 0.08 + Math.sin(a * 9) * 0.04;
+        pts.push({ x: Math.cos(a) * currentRx * wobble, y: Math.sin(a) * currentRy * wobble - 15 });
+    }
+    return pts;
+})();
+const TRUE_FORM_CORE = { x: 0, y: -35 };
+const TRUE_FORM_VEINS = [
+    generateVein(TRUE_FORM_CORE.x, TRUE_FORM_CORE.y, -30, -260, 6, 18),
+    generateVein(TRUE_FORM_CORE.x, TRUE_FORM_CORE.y, 150, -210, 6, 18),
+    generateVein(TRUE_FORM_CORE.x, TRUE_FORM_CORE.y, 175, 10, 6, 18),
+    generateVein(TRUE_FORM_CORE.x, TRUE_FORM_CORE.y, 60, 230, 7, 20),
+    generateVein(TRUE_FORM_CORE.x, TRUE_FORM_CORE.y, -120, 140, 6, 18),
+    generateVein(TRUE_FORM_CORE.x, TRUE_FORM_CORE.y, -150, -40, 6, 18),
+    generateVein(TRUE_FORM_CORE.x, TRUE_FORM_CORE.y, -70, -220, 5, 16),
+];
+// Mảnh vỡ trôi nổi quanh True Form (mỗi mảnh tự có outline+core riêng, facet riêng)
+const TRUE_FORM_FRAGMENTS = [
+    { ox: 200, oy: -160, outline: [{x:0,y:-30},{x:26,y:-8},{x:16,y:26},{x:-20,y:18},{x:-24,y:-14}], core: {x:0,y:0}, spin: 0.3 },
+    { ox: -230, oy: -130, outline: [{x:0,y:-24},{x:22,y:-4},{x:10,y:24},{x:-24,y:10}], core: {x:-2,y:2}, spin: -0.22 },
+    { ox: -250, oy: 130, outline: [{x:0,y:-26},{x:20,y:-6},{x:24,y:20},{x:-6,y:28},{x:-26,y:4}], core: {x:0,y:4}, spin: 0.18 },
+    { ox: 220, oy: 170, outline: [{x:0,y:-22},{x:24,y:0},{x:8,y:24},{x:-20,y:8}], core: {x:0,y:0}, spin: -0.28 },
+];
+
+// VẼ 1 KHỐI PHA LÊ NHIỀU FACET (dùng chung Alpha/True Form/mảnh vỡ)
+// mỗi facet = tam giác (core -> p1 -> p2), tô gradient sáng/tối theo góc so với
+// nguồn sáng giả lập -> tạo cảm giác pha lê có chiều sâu thay vì hình phẳng 1 màu
+function drawFacetedCrystal(outline, core, lightAngle, colorDark, colorLight, outlineColor) {
+    for (let i = 0; i < outline.length; i++) {
+        const p1 = outline[i];
+        const p2 = outline[(i + 1) % outline.length];
+        const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
+        let diff = Math.atan2(midY - core.y, midX - core.x) - lightAngle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const lightness = (Math.cos(diff) + 1) / 2; // 0..1
+        ctx.beginPath();
+        ctx.moveTo(core.x, core.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.closePath();
+        ctx.fillStyle = lerpColor(colorDark, colorLight, lightness * 0.85);
+        ctx.fill();
+        ctx.strokeStyle = outlineColor || 'rgba(0,0,0,0.7)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+    }
+    // rim sáng viền ngoài, cạnh hướng về nguồn sáng sẽ sáng rõ hơn
+    for (let i = 0; i < outline.length; i++) {
+        const p1 = outline[i];
+        const p2 = outline[(i + 1) % outline.length];
+        const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
+        let diff = Math.atan2(midY - core.y, midX - core.x) - lightAngle;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const lightness = (Math.cos(diff) + 1) / 2;
+        if (lightness > 0.6) {
+            ctx.strokeStyle = `rgba(255,255,255,${(lightness - 0.6) * 1.6})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        }
+    }
+}
+
+function drawVeins(veins, intensity) {
+    for (const vein of veins) {
+        ctx.beginPath();
+        ctx.moveTo(vein[0].x, vein[0].y);
+        for (let j = 1; j < vein.length; j++) ctx.lineTo(vein[j].x, vein[j].y);
+        // lớp nền tối (khe nứt)
+        ctx.strokeStyle = 'rgba(20,8,0,0.9)';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.stroke();
+        // lõi sáng hổ phách
+        ctx.strokeStyle = `rgba(255,158,11,${0.75 * intensity + 0.25})`;
+        ctx.lineWidth = 1.4 + intensity * 2.2;
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 8 + intensity * 22;
+        ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+}
+
+// Bảo thạch hình thoi facet nhiều mặt cắt (dùng chung: gem bay + khe cắm) —
+// to hơn, có sparkle xoay và các đường facet chia mặt như đá quý cắt thật,
+// không chỉ 1 đường giữa đơn giản.
+function drawGemDiamond(x, y, size, gem, glowMul) {
+    ctx.save();
+    ctx.translate(x, y);
+    const g = ctx.createRadialGradient(-size * 0.2, -size * 0.3, 0, 0, 0, size * 1.5);
+    g.addColorStop(0, gem.light);
+    g.addColorStop(0.45, gem.mid);
+    g.addColorStop(1, gem.dark);
+    ctx.shadowColor = gem.mid;
+    ctx.shadowBlur = (16 + Math.sin(time * 5) * 5) * (glowMul || 1);
+    ctx.beginPath();
+    ctx.moveTo(0, -size); ctx.lineTo(size * 0.72, 0); ctx.lineTo(0, size); ctx.lineTo(-size * 0.72, 0);
+    ctx.closePath();
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    // facet cắt: đường giữa dọc + 4 đường chéo tới các cạnh, giống đá quý cắt thật
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(0, -size); ctx.lineTo(0, size);
+    ctx.moveTo(0, -size * 0.35); ctx.lineTo(size * 0.72, 0);
+    ctx.moveTo(0, -size * 0.35); ctx.lineTo(-size * 0.72, 0);
+    ctx.moveTo(0, size * 0.35); ctx.lineTo(size * 0.72, 0);
+    ctx.moveTo(0, size * 0.35); ctx.lineTo(-size * 0.72, 0);
+    ctx.stroke();
+    // sparkle nhỏ xoay quanh, ánh lên như đá quý bắt sáng
+    const sparkleA = time * 1.6;
+    const sx = Math.cos(sparkleA) * size * 0.32, sy = Math.sin(sparkleA) * size * 0.32 * 0.6 - size * 0.25;
+    ctx.globalAlpha = 0.6 + Math.sin(time * 6) * 0.4;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(sx, sy, size * 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+}
+
+// Con mắt sống theo dõi chuột (= "người chơi" trong prototype) — CHỈ xuất hiện
+// sau khi biến hình xong. To, chi tiết: khung bezel kim loại nứt vân hổ phách,
+// tròng mắt hình tia mặt trời (sunburst) thay vì trơn 1 màu, đồng tử dạng khe
+// dọc kiểu mắt bò sát/ngoài hành tinh cho dữ hơn, quầng sáng ambient bao quanh.
+function drawEye(x, y, r, originX, originY) {
+    const eyeAngle = Math.atan2(mouse.y - originY, mouse.x - originX);
+    // "Thở" nhẹ (halo phồng/xẹp chậm) + chớp mắt định kỳ kiểu Live2D — mắt
+    // đứng yên hoàn toàn trước đây trông chết, không sống động.
+    const breathe = 1 + Math.sin(time * 1.2) * 0.05;
+    const blinkCycle = 4.2, blinkDur = 0.16;
+    const bt = time % blinkCycle;
+    const blinkScale = bt < blinkDur ? Math.max(0.04, 1 - Math.sin((bt / blinkDur) * Math.PI)) : 1;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // quầng sáng ambient phía sau
+    const haloG = ctx.createRadialGradient(0, 0, r * 0.6, 0, 0, r * 2.2 * breathe);
+    haloG.addColorStop(0, 'rgba(245,158,11,0.35)');
+    haloG.addColorStop(1, 'rgba(245,158,11,0)');
+    ctx.beginPath(); ctx.arc(0, 0, r * 2.2 * breathe, 0, Math.PI * 2); ctx.fillStyle = haloG; ctx.fill();
+
+    // bezel kim loại (khung ngoài)
+    ctx.beginPath(); ctx.arc(0, 0, r * 1.18, 0, Math.PI * 2);
+    const bezelG = ctx.createRadialGradient(0, 0, r * 0.9, 0, 0, r * 1.18);
+    bezelG.addColorStop(0, '#1a1a1a'); bezelG.addColorStop(1, '#050505');
+    ctx.fillStyle = bezelG; ctx.fill();
+    ctx.strokeStyle = 'rgba(245,158,11,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+    // vân nứt nhỏ trên bezel
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.95, Math.sin(a) * r * 0.95);
+        ctx.lineTo(Math.cos(a) * r * 1.18, Math.sin(a) * r * 1.18);
+        ctx.strokeStyle = 'rgba(245,158,11,0.4)'; ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    // Phần "nhãn cầu" (hốc mắt + tròng + đồng tử) co theo trục dọc khi chớp —
+    // chỉ phần này nheo lại, khung bezel ngoài đứng yên như mí mắt kim loại.
+    ctx.save();
+    ctx.scale(1, blinkScale);
+
+    // hốc mắt (nền tối)
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#0d0d10'; ctx.fill();
+
+    // tròng mắt (sunburst iris) lệch theo hướng nhìn
+    const eOff = r * 0.28;
+    const ex = Math.cos(eyeAngle) * eOff, ey = Math.sin(eyeAngle) * eOff;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(ex, ey, r * 0.68, 0, Math.PI * 2); ctx.clip();
+    ctx.beginPath(); ctx.arc(ex, ey, r * 0.68, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8e8ff'; ctx.fill();
+    for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex + Math.cos(a) * r * 0.68, ey + Math.sin(a) * r * 0.68);
+        ctx.strokeStyle = i % 2 === 0 ? '#f59e0b' : '#d97706';
+        ctx.lineWidth = r * 0.09;
+        ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(ex, ey, r * 0.7, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+
+    // đồng tử dạng khe dọc (ngoài hành tinh), luôn xoay theo hướng nhìn
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.rotate(eyeAngle + Math.PI / 2);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.09, r * 0.34, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.restore();
+    ctx.restore(); // đóng scale(1, blinkScale)
+
+    // viền phát sáng ngoài cùng (đứng yên, không chớp)
+    ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 14;
+    ctx.strokeStyle = 'rgba(245,158,11,0.85)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
+// TRẠNG THÁI (STATE) CỦA GOLIATH
+const state = {
+    phase: 'PRE_ALPHA', // 'PRE_ALPHA', 'ALPHA', 'TRANSFORMING', 'TRUE_FORM'
+    x: 600,
+    y: -300,
+    targetY: 300,
+
+    appearTimer: 0,
+    transformTimer: 0,
+    flashAlpha: 0,
+    screenShake: 0,
+
+    // 3 Khe Bảo Thạch (Data Slots) — index = vị trí SLOT_ANCHORS
+    slots: [
+        { filled: false, gem: null, pulsePhase: 0 },
+        { filled: false, gem: null, pulsePhase: 2 },
+        { filled: false, gem: null, pulsePhase: 4 },
+    ],
+
+    inevitable: false,
+    fractureStep: { active: false, t: 0, startX: 0, startY: 0, destX: 0, destY: 0, hexTimer: 0 },
+    absoluteVerdict: { active: false, t: 0, maxT: 3, fired: false },
+    wardingPalm: { active: false, t: 0, success: false },
+    thresholdWard: { active: false, shields: 0, healTimer: 0 },
+    joker: { id: null, t: 0, meta: {} },
+
+    gems: [],
+    projectiles: [],
+    particles: [],
+
+    // Sinh 1 lần khi Transform bắt đầu: mảnh vỡ bay ra rồi bay ngược lại lắp ráp
+    transformShards: [],
+    limbPopFired: false,
+    armFused: { left: 0, right: 0 },
+};
+
+// CÁC HÀM XỬ LÝ SỰ KIỆN (TRIGGERS)
+function triggerAppear() {
+    state.phase = 'ALPHA';
+    state.x = canvas.width / 2;
+    state.y = -300;
+    state.targetY = 300;
+    state.appearTimer = 1.5;
+    state.slots.forEach(s => { s.filled = false; s.gem = null; });
+    state.projectiles = [];
+    state.particles = [];
+}
+
+// 3 khe PHẢI luôn khác màu nhau — không cho trùng với khe đã lấp hoặc viên đang bay tới
+function _usedGemNames() {
+    return new Set([
+        ...state.slots.filter(s => s.filled).map(s => s.gem.name),
+        ...state.gems.map(g => g.gem.name),
+    ]);
+}
+
+function absorbGem(colorIndex) {
+    if (state.phase !== 'ALPHA') return;
+    if (_usedGemNames().has(GEM_COLORS[colorIndex].name)) return; // trùng màu, bỏ qua
+    let emptySlotIdx = state.slots.findIndex(s => !s.filled);
+    if (emptySlotIdx === -1) return;
+    state.gems.push({
+        gem: GEM_COLORS[colorIndex],
+        targetSlot: emptySlotIdx,
+        x: Math.random() * canvas.width,
+        y: canvas.height + 50,
+        t: 0,
+        dur: 1.2,
+    });
+}
+
+function triggerTransform() {
+    if (state.phase !== 'ALPHA') return;
+    state.phase = 'TRANSFORMING';
+    state.transformTimer = 4;
+    // Auto-fill khe còn trống (nếu Force Transform trước khi đủ 3 khe) — chọn không lặp lại
+    const usedNames = _usedGemNames();
+    const available = GEM_COLORS.filter(g => !usedNames.has(g.name));
+    state.slots.forEach(s => {
+        if (!s.filled && available.length > 0) {
+            const idx = Math.floor(Math.random() * available.length);
+            s.filled = true; s.gem = available.splice(idx, 1)[0];
+        }
+    });
+
+    // Sinh THIÊN THẠCH bay từ ngoài màn hình vào (pha Summon). Đa số hội tụ về
+    // THÂN trước (đến sớm), số còn lại lệch hướng bay tới 2 VỊ TRÍ KHỚP CHI
+    // (đến muộn hơn) — 2 tay cũng được "xây" từ thiên thạch giống thân, không
+    // phải tự nhiên hiện ra, đúng tinh thần "thân xong tới tay" trong biến hình.
+    state.meteors = [];
+    function spawnMeteorEdge() {
+        const edge = Math.floor(Math.random() * 4);
+        if (edge === 0) return { x: Math.random() * canvas.width, y: -80 };
+        if (edge === 1) return { x: canvas.width + 80, y: Math.random() * canvas.height };
+        if (edge === 2) return { x: Math.random() * canvas.width, y: canvas.height + 80 };
+        return { x: -80, y: Math.random() * canvas.height };
+    }
+    const BODY_COUNT = 5;
+    for (let i = 0; i < BODY_COUNT; i++) {
+        const from = spawnMeteorEdge();
+        state.meteors.push({
+            fromX: from.x, fromY: from.y, target: 'body',
+            toX: state.x + (Math.random() - 0.5) * 60, toY: state.y + (Math.random() - 0.5) * 60,
+            arriveAt: 0.1 + (i / BODY_COUNT) * 0.55, // đến sớm, dồn xong thân trước
+            size: 16 + Math.random() * 16,
+            rot: Math.random() * Math.PI * 2,
+            spin: (Math.random() - 0.5) * 6,
+            arrived: false,
+        });
+    }
+    const LIMB_COUNT = 3;
+    ['left', 'right'].forEach(side => {
+        const joint = LIMB_JOINT[side];
+        for (let i = 0; i < LIMB_COUNT; i++) {
+            const from = spawnMeteorEdge();
+            state.meteors.push({
+                fromX: from.x, fromY: from.y, target: side,
+                toX: state.x + joint.x + (Math.random() - 0.5) * 24,
+                toY: state.y + joint.y + (Math.random() - 0.5) * 24,
+                arriveAt: 0.6 + (i / LIMB_COUNT) * 0.4, // đến muộn hơn thân, sau khi thân đã hình thành phần lớn
+                size: 12 + Math.random() * 10,
+                rot: Math.random() * Math.PI * 2,
+                spin: (Math.random() - 0.5) * 6,
+                arrived: false,
+            });
+        }
+    });
+    // Số mảnh đã "hợp nhất" — tăng dần mỗi lần 1 thiên thạch va chạm, quyết định
+    // bán kính khối đá nóng chảy đang phình to ở pha Fusion (thân + riêng 2 tay).
+    state.fusedCount = 0;
+    state.armFused = { left: 0, right: 0 };
+    state.limbPopFired = false;
+}
+
+function triggerInevitable() { state.inevitable = !state.inevitable; }
+
+function triggerFractureStep() {
+    if (state.phase !== 'TRUE_FORM') return;
+    state.fractureStep = {
+        active: true, t: 1.5,
+        startX: state.x, startY: state.y,
+        destX: 200 + Math.random() * (canvas.width - 400),
+        destY: 200 + Math.random() * (canvas.height - 400),
+        hexTimer: 0,
+    };
+    // hút năng lượng vào tâm ngay lúc kích hoạt — báo trước 1 nhịp trước khi biến mất
+    spawnImplosion(state.x, state.y, '#f59e0b', 26);
+}
+
+function triggerAbsoluteVerdict() {
+    if (state.phase !== 'TRUE_FORM') return;
+    state.absoluteVerdict = { active: true, t: 3, maxT: 3, fired: false };
+}
+
+function triggerWardingPalm(success) {
+    if (state.phase !== 'TRUE_FORM') return;
+    state.wardingPalm = { active: true, t: 1.5, success };
+    if (success) {
+        spawnExplosion(state.x + 90, state.y + 20, '#f59e0b', 22);
+        state.screenShake = Math.max(state.screenShake, 0.4);
+    } else {
+        spawnExplosion(state.x + 90, state.y + 20, '#ff3b3b', 30);
+        state.screenShake = Math.max(state.screenShake, 1.1);
+        state.flashAlpha = Math.max(state.flashAlpha, 0.25);
+    }
+}
+
+function triggerThresholdWard() {
+    state.thresholdWard.active = true;
+    state.thresholdWard.shields = Math.min(4, state.thresholdWard.shields + 1);
+    const angle = -Math.PI / 2 + (state.thresholdWard.shields - 1) * (Math.PI * 2 / 4);
+    spawnExplosion(state.x + Math.cos(angle) * 225, state.y + Math.sin(angle) * 225, '#f59e0b', 14);
+}
+
+function triggerThresholdHeal() {
+    if (state.thresholdWard.shields > 0) {
+        state.thresholdWard.healTimer = 1.0;
+        state.thresholdWard.shields--;
+        spawnImplosion(state.x, state.y, '#d1fae5', 24);
+    }
+}
+
+function triggerJoker(id) {
+    if (state.phase !== 'TRUE_FORM') return;
+    state.joker.id = id;
+    state.joker.meta = {};
+    // Veilshroud: 4 điểm mục tiêu chớp sét cố định ngay từ lúc kích hoạt, để
+    // phần vẽ (báo trước) và phần update (thật sự đánh) dùng chung toạ độ,
+    // thay vì bắn vào vị trí ngẫu nhiên mới không hề được báo trước.
+    if (id === 1) {
+        state.joker.meta.targets = Array.from({ length: 4 }, () => ({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+        }));
+    }
+    const durations = { 1: 3.0, 2: 999, 3: 1.5, 4: 5.0, 5: 2.5, 6: 1.0, 7: 2.5 };
+    state.joker.t = durations[id] || 3.0;
+}
+function clearJoker() { state.joker.id = null; state.joker.t = 0; }
+
+// HỆ THỐNG PARTICLES / PROJECTILES
+function spawnExplosion(x, y, color, count) {
+    for (let i = 0; i < (count || 30); i++) {
+        state.particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 400, vy: (Math.random() - 0.5) * 400,
+            life: 0.5 + Math.random() * 0.5, maxLife: 1.0,
+            color, size: Math.random() * 4 + 2,
+        });
+    }
+}
+function spawnTrailParticle(x, y, color) {
+    state.particles.push({
+        x: x + (Math.random() - 0.5) * 50, y: y + (Math.random() - 0.5) * 50,
+        vx: 0, vy: -50, life: 1.0 + Math.random(), maxLife: 2.0,
+        color: color || '#f59e0b', size: Math.random() * 3 + 1,
+    });
+}
+function spawnShockwave(x, y, color, speed, width) {
+    state.projectiles.push({ type: 'SHOCKWAVE', x, y, radius: 10, speed, color, width, life: 2.0 });
+}
+// Hạt bay NGƯỢC VÀO tâm (x,y) thay vì toé ra ngoài — dùng cho tell "hút năng
+// lượng trước khi dịch chuyển" (Fracture Step) hoặc bất kỳ hiệu ứng co rút nào
+function spawnImplosion(x, y, color, count) {
+    for (let i = 0; i < (count || 20); i++) {
+        const a = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 60;
+        state.particles.push({
+            x: x + Math.cos(a) * dist, y: y + Math.sin(a) * dist,
+            vx: -Math.cos(a) * dist * 2.2, vy: -Math.sin(a) * dist * 2.2,
+            life: 0.35 + Math.random() * 0.15, maxLife: 0.5,
+            color, size: Math.random() * 3 + 1.5,
+        });
+    }
+}
+
+// HÀM UPDATE CHÍNH (LOGIC)
+function update(dt) {
+    time += dt;
+
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.life -= dt;
+        if (p.life <= 0) state.particles.splice(i, 1);
+        else { p.x += p.vx * dt; p.y += p.vy * dt; }
+    }
+
+    for (let i = state.projectiles.length - 1; i >= 0; i--) {
+        const p = state.projectiles[i];
+        p.life -= dt;
+        if (p.type === 'SHOCKWAVE') { p.radius += p.speed * dt; if (p.life <= 0) state.projectiles.splice(i, 1); }
+        else if (p.type === 'ORB') { p.x += p.vx * dt; p.y += p.vy * dt; spawnTrailParticle(p.x, p.y, p.color); if (p.life <= 0) state.projectiles.splice(i, 1); }
+        else if (p.type === 'SWORD') { p.y += p.vy * dt; if (p.life <= 0) state.projectiles.splice(i, 1); }
+    }
+
+    for (let i = state.gems.length - 1; i >= 0; i--) {
+        const gem = state.gems[i];
+        gem.t += dt / gem.dur;
+        if (gem.t >= 1.0) {
+            const slot = state.slots[gem.targetSlot];
+            slot.filled = true; slot.gem = gem.gem;
+            spawnExplosion(state.x + SLOT_ANCHORS[gem.targetSlot].x, state.y + SLOT_ANCHORS[gem.targetSlot].y, gem.gem.mid);
+            state.flashAlpha = 0.35;
+            // Dư chấn rung nhẹ khi bảo thạch vừa va vào thân (đón lực nhẹ,
+            // không phải screen shake) — đồng bộ bản game thật.
+            state.gemImpactShakeEnd = time + 0.26;
+            state.gems.splice(i, 1);
+            if (state.phase === 'ALPHA' && state.slots.every(s => s.filled)) setTimeout(triggerTransform, 400);
+        }
+    }
+
+    if (state.phase === 'ALPHA') {
+        if (state.appearTimer > 0) {
+            state.appearTimer -= dt;
+            let p = Math.max(0, 1 - (state.appearTimer / 1.5));
+            const easeOut = 1 - Math.pow(1 - p, 3);
+            state.y = -300 + (state.targetY - (-300)) * easeOut;
+        }
+    } else if (state.phase === 'TRANSFORMING') {
+        state.transformTimer -= dt;
+        const t = 4 - state.transformTimer; // 0..4, elapsed
+        const SUMMON_DUR = 2.2, FUSION_END = 2.9, CRYSTALLIZE_END = 3.7;
+
+        // PHA SUMMON: kiểm tra từng thiên thạch xem đã tới lúc va chạm chưa
+        if (t < SUMMON_DUR) {
+            state.meteors.forEach(m => {
+                const arriveTime = m.arriveAt * SUMMON_DUR;
+                if (!m.arrived && t >= arriveTime) {
+                    m.arrived = true;
+                    if (m.target === 'body') {
+                        state.fusedCount++;
+                        spawnExplosion(m.toX, m.toY, '#ff6a00', 18);
+                        state.screenShake = Math.max(state.screenShake, 0.5);
+                    } else {
+                        // thiên thạch xây vai/tay — ĐỔI về cùng màu cam với thân
+                        // (trước đây tím, lạc tông, nhìn như đốm sao lạ không rõ
+                        // do đâu ra vì vai giờ nằm khá xa mép thân Alpha)
+                        state.armFused[m.target]++;
+                        spawnExplosion(m.toX, m.toY, '#ff6a00', 12);
+                        state.screenShake = Math.max(state.screenShake, 0.3);
+                    }
+                }
+            });
+        }
+        // Mốc bùng nổ chính: cuối Fusion (khối nóng chảy hợp nhất xong) và cuối
+        // Crystallize (kết tinh xong, chuẩn bị Settle)
+        if (t > FUSION_END && t - dt <= FUSION_END) { state.flashAlpha = 1.0; state.screenShake = 1.6; spawnExplosion(state.x, state.y, '#ffffff', 55); }
+        if (t > CRYSTALLIZE_END && t - dt <= CRYSTALLIZE_END) { state.flashAlpha = 0.7; state.screenShake = 0.8; spawnExplosion(state.x, state.y, '#f59e0b', 35); }
+
+        if (state.transformTimer <= 0) { state.phase = 'TRUE_FORM'; state.flashAlpha = Math.max(state.flashAlpha, 0.15); }
+    } else if (state.phase === 'TRUE_FORM') {
+        if (!state.fractureStep.active) {
+            state.x = canvas.width / 2 + Math.sin(time * Math.PI * 2 / 4) * 60;
+            state.y = 300 + Math.sin(time * Math.PI * 2 / 2.4) * 34;
+            if (Math.random() < 0.12) spawnTrailParticle(state.x, state.y + 60, '#f59e0b');
+        }
+
+        if (state.fractureStep.active) {
+            state.fractureStep.t -= dt;
+            const ft = state.fractureStep.t;
+            if (ft <= 0.75 && ft > 0) {
+                state.x = state.fractureStep.destX; state.y = state.fractureStep.destY;
+                if (ft + dt > 0.75) { spawnExplosion(state.x, state.y, '#f59e0b'); state.fractureStep.hexTimer = 2.0; }
+            } else if (ft <= 0) { state.fractureStep.active = false; }
+        }
+        if (state.fractureStep.hexTimer > 0) state.fractureStep.hexTimer -= dt;
+
+        if (state.absoluteVerdict.active) {
+            state.absoluteVerdict.t -= dt;
+            if (state.absoluteVerdict.t <= 0 && !state.absoluteVerdict.fired) {
+                state.absoluteVerdict.fired = true;
+                state.flashAlpha = 0.8;
+                // Bắn từ đỉnh đầu giữa 2 tay (khoảng x, y - 265)
+                state.projectiles.push({ type: 'ORB', x: state.x, y: state.y - 265, vx: 0, vy: 700, color: '#1a0a2e', life: 5.0 });
+                setTimeout(() => { state.absoluteVerdict.active = false; }, 500);
+            }
+        }
+
+        if (state.wardingPalm.active) { state.wardingPalm.t -= dt; if (state.wardingPalm.t <= 0) state.wardingPalm.active = false; }
+        if (state.thresholdWard.healTimer > 0) state.thresholdWard.healTimer -= dt;
+
+        if (state.joker.id !== null) {
+            state.joker.t -= dt;
+            const jt = state.joker.t;
+            if (state.joker.id === 1 && jt <= 0 && !state.joker.meta.struck) {
+                state.joker.meta.struck = true;
+                // đánh đúng 4 điểm đã báo trước từ triggerJoker(), không phải toạ độ mới
+                (state.joker.meta.targets || []).forEach(pt => spawnExplosion(pt.x, pt.y, GEM_COLORS[0].mid, 24));
+                setTimeout(clearJoker, 500);
+            }
+            // Thaelis (Tenacity) KHÔNG bắn đạn — enemy-boss-thaelis.js xác nhận
+            // đây là passive thuần (chỉ vòng khiên + cung tiêu hao), không có
+            // đòn tấn công nào cả. Bản trước bắn "đạn sao tím" hư cấu không hề
+            // có trong game gốc — bỏ hẳn.
+            if (state.joker.id === 4 && Math.random() < 0.05) {
+                state.projectiles.push({ type: 'SWORD', x: state.x + (Math.random() - 0.5) * 200, y: state.y + 50, vy: 700, life: 2.0 });
+            }
+            if (state.joker.id === 5 && jt <= 0 && !state.joker.meta.swept) {
+                state.joker.meta.swept = true; 
+                // Null Slash: Quẹt hình quạt theo hướng đã tụ lực
+                const angle = state.joker.meta.angle || Math.PI/2;
+                state.projectiles.push({ type: 'SLASH', x: state.x, y: state.y, angle: angle, color: GEM_COLORS[4].mid, life: 0.3 });
+                setTimeout(clearJoker, 400);
+            }
+            if (state.joker.id === 6 && jt <= 0 && !state.joker.meta.waved) {
+                // Màu thật của sóng xung kích Maou Haki (fx.js drawBossShockwaves)
+                // là TÍM (#8A2BE2/#CC00FF), không phải đỏ máu như bảng màu gem
+                // Dargruel dùng cho UI — sửa lại đúng màu hiệu ứng gốc.
+                state.joker.meta.waved = true; spawnShockwave(state.x, state.y, '#8A2BE2', 1000, 50); setTimeout(clearJoker, 500);
+            }
+            if (state.joker.id === 7 && jt <= 0) clearJoker();
+            if (state.joker.id === 3 && jt <= 0) clearJoker();
+        }
+    }
+
+    if (state.flashAlpha > 0) state.flashAlpha -= dt * 3.5;
+    if (state.screenShake > 0) state.screenShake -= dt * 3.2;
+}
+
+// CÁC HÀM VẼ (RENDERING)
+function draw(ctx) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawStarfield(time);
+
+    ctx.save();
+    if (state.screenShake > 0) {
+        ctx.translate((Math.random() - 0.5) * 22 * state.screenShake, (Math.random() - 0.5) * 22 * state.screenShake);
+    }
+
+    drawParticles(ctx);
+
+    const breath = (Math.sin(time * Math.PI * 2 / 2.5) + 1) / 2;
+    const lightAngle = -Math.PI / 3; // nguồn sáng cố định từ trên-phải
+
+    if (state.phase === 'ALPHA') {
+        const bobY = Math.sin(time * Math.PI * 2 / 3) * 5;
+        // Dư chấn rung nhẹ khi bảo thạch vừa va vào thân — đồng bộ bản game thật
+        let shakeX = 0, shakeY = 0;
+        if (state.gemImpactShakeEnd && time < state.gemImpactShakeEnd) {
+            const shakeP = (state.gemImpactShakeEnd - time) / 0.26;
+            const shakeMag = 4 * shakeP;
+            shakeX = (Math.random() - 0.5) * shakeMag;
+            shakeY = (Math.random() - 0.5) * shakeMag;
+        }
+        ctx.save();
+        ctx.translate(state.x + shakeX, state.y + bobY + shakeY);
+        drawFacetedCrystal(ALPHA_OUTLINE, ALPHA_CORE, lightAngle, '#0a0a0a', '#3a3a42', 'rgba(0,0,0,0.7)');
+        drawVeins(ALPHA_VEINS, 0.35 + breath * 0.35);
+        drawSlots();
+        ctx.restore();
+    } else if (state.phase === 'TRANSFORMING') {
+        drawTransformSequence(lightAngle);
+    } else if (state.phase === 'TRUE_FORM') {
+        drawTrueForm(lightAngle, breath);
+    }
+
+    drawGems(ctx);
+    drawProjectiles(ctx);
+    ctx.restore();
+
+    if (state.flashAlpha > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${state.flashAlpha})`;
+        ctx.fillRect(-100, -100, canvas.width + 200, canvas.height + 200);
+    }
+    // Đối chiếu js/render/core.js: trong lúc sóng xung kích Maou Haki còn hoạt
+    // động, TOÀN MÀN HÌNH bị phủ tối tím nhẹ (không chỉ riêng vòng sóng) — chi
+    // tiết này bị thiếu hoàn toàn ở bản trước.
+    if (state.projectiles.some(p => p.type === 'SHOCKWAVE')) {
+        ctx.fillStyle = `rgba(20,0,35,${0.16 + 0.06 * Math.sin(time * 3.8)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+// 3 KHE BẢO THẠCH (dùng chung Alpha/True Form) — hình thoi facet
+function drawSlots(originX, originY, showEye) {
+    // Đường mạch nối 3 khe với tâm (điểm mắt) — biến cụm 3 bảo thạch rời rạc
+    // thành 1 huy hiệu/mặt nạ liền khối, giống bo mạch thật chứ không phải 3
+    // hình nổi lơ lửng độc lập.
+    ctx.save();
+    ctx.strokeStyle = 'rgba(245,158,11,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    SLOT_ANCHORS.forEach(a => { ctx.moveTo(EYE_POS.x, EYE_POS.y); ctx.lineTo(a.x, a.y); });
+    ctx.stroke();
+    ctx.restore();
+
+    state.slots.forEach((slot, i) => {
+        const anchor = SLOT_ANCHORS[i];
+        if (slot.filled) {
+            drawGemDiamond(anchor.x, anchor.y, 20, slot.gem, 1);
+        } else {
+            ctx.save();
+            ctx.translate(anchor.x, anchor.y);
+            const pulse = 0.25 + Math.sin(time * 3 + slot.pulsePhase) * 0.2;
+            ctx.beginPath();
+            ctx.moveTo(0, -20); ctx.lineTo(14, 0); ctx.lineTo(0, 20); ctx.lineTo(-14, 0);
+            ctx.closePath();
+            ctx.fillStyle = '#000';
+            ctx.fill();
+            ctx.strokeStyle = `rgba(255,255,255,${pulse})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+        }
+    });
+
+    // Con mắt CHỈ hiện ra sau khi biến hình (True Form) — gọi tường minh từ
+    // nơi cần, không tự động vẽ ở đây để Alpha không có mắt.
+    if (showEye) drawEye(EYE_POS.x, EYE_POS.y, 34, originX ?? state.x, originY ?? state.y);
+}
+
+// THỬ NGHIỆM: thân True Form ghép từ nhiều tảng thiên thạch cùng chất liệu,
+// giữ lại bởi vết nứt ma thuật (drawVeins vẽ đè lên sau) — golem golem bước
+// ra từ cổ mộ thay vì 1 khối pha lê trơn nhẵn. Toạ độ theo hệ TRUE_FORM_OUTLINE
+// (rx~210, ry~230, tâm lệch -15).
+const GOLEM_BODY_BOULDERS = [
+    { x: 0, y: -170, r: 85, seed: 3 },
+    { x: -100, y: -115, r: 100, seed: 17 }, // nâng cao hơn (y -80 -> -115), đỡ bị lớp nhựa cam của vai che khuất
+    { x: 100, y: -110, r: 104, seed: 29 },  // tương tự bên phải
+    { x: -115, y: 60, r: 95, seed: 41 },
+    { x: 115, y: 65, r: 97, seed: 53 },
+    { x: 0, y: 10, r: 120, seed: 65 },
+    { x: -50, y: 165, r: 82, seed: 77 },
+    { x: 52, y: 170, r: 80, seed: 89 },
+];
+// Cặp tảng đá kề nhau — vẽ vết nứt ma thuật cam PHÁT SÁNG dọc theo đường nối
+// tâm (nằm đúng vùng 2 tảng chồng lên nhau) để đọc rõ "được ma thuật giữ lại
+// với nhau", không chỉ đơn thuần xếp cạnh nhau.
+const GOLEM_SEAMS = [
+    [0, 1], [0, 2], [1, 3], [2, 4], [1, 5], [2, 5], [3, 5], [4, 5], [3, 6], [4, 7], [5, 6], [5, 7],
+];
+// Khối đá đa giác NHIỀU MẶT (facet), tô sáng/tối theo góc so với nguồn sáng
+// giả lập — giống kỹ thuật drawFacetedCrystal — để "tạo khối" rõ ràng hơn hẳn
+// kiểu chấm lõm cũ (nhìn phẳng, chỉ như vết bẩn tròn).
+function drawGolemBoulderChunk(cx, cy, r, seed, lightAngle) {
+    const la = lightAngle !== undefined ? lightAngle : -Math.PI / 3;
+    ctx.save();
+    ctx.translate(cx, cy);
+    const sides = 7;
+    const outline = [];
+    for (let i = 0; i < sides; i++) {
+        const a = (i / sides) * Math.PI * 2 + seed * 0.3;
+        const rr = r * (0.8 + 0.24 * Math.sin(a * 2.3 + seed) + 0.1 * Math.sin(a * 4.1 + seed * 1.9));
+        outline.push({ x: Math.cos(a) * rr, y: Math.sin(a) * rr });
+    }
+    for (let i = 0; i < outline.length; i++) {
+        const p1 = outline[i], p2 = outline[(i + 1) % outline.length];
+        const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
+        let diff = Math.atan2(midY, midX) - la;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const lightness = (Math.cos(diff) + 1) / 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.closePath();
+        const shade = 0.14 + lightness * 0.36;
+        ctx.fillStyle = `rgb(${Math.round(10 + shade * 90)},${Math.round(10 + shade * 90)},${Math.round(14 + shade * 100)})`;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.3; ctx.stroke();
+        if (lightness > 0.62) {
+            ctx.strokeStyle = `rgba(255,255,255,${(lightness - 0.62) * 1.3})`;
+            ctx.lineWidth = 1.4;
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        }
+    }
+    ctx.restore();
+}
+function drawGolemBodyBoulders(lightAngle) {
+    GOLEM_BODY_BOULDERS.forEach(b => drawGolemBoulderChunk(b.x, b.y, b.r, b.seed, lightAngle));
+    GOLEM_SEAMS.forEach(([ia, ib], si) => {
+        const a = GOLEM_BODY_BOULDERS[ia], b = GOLEM_BODY_BOULDERS[ib];
+        const flick = 0.6 + 0.4 * Math.sin(time * 2.2 + si * 1.4);
+        const seam = generateVein(a.x, a.y, b.x, b.y, 5, 14);
+        ctx.beginPath();
+        seam.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.strokeStyle = 'rgba(20,8,0,0.9)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+        ctx.strokeStyle = `rgba(255,158,11,${0.55 + 0.35 * flick})`; ctx.lineWidth = 1.8 + flick * 1.6;
+        ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 8 + flick * 14;
+        ctx.stroke(); ctx.shadowBlur = 0;
+    });
+}
+
+// HALO PHÍA SAU — hình thoi RẤT LỚN, 4 đỉnh là 4 quả cầu đá, 4 cạnh nối là
+// chuỗi đá nhỏ xen plasma cam (giống kiểu dây tether ở cánh tay), giữa halo
+// là 1 vòng ma thuật xoay chậm. Vẽ TRƯỚC thân (nằm phía sau).
+const GOLIATH_HALO_R = 400;
+function drawGoliathHalo() {
+    const verts = [
+        { x: 0, y: -GOLIATH_HALO_R }, { x: GOLIATH_HALO_R, y: 0 },
+        { x: 0, y: GOLIATH_HALO_R }, { x: -GOLIATH_HALO_R, y: 0 },
+    ];
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+
+    // Vòng ma thuật ở giữa halo — xoay chậm, 2 lớp
+    ctx.save(); ctx.rotate(time * 0.12);
+    for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        ctx.beginPath(); ctx.arc(0, 0, GOLIATH_HALO_R * 0.42, a, a + 0.34);
+        ctx.strokeStyle = 'rgba(245,158,11,0.55)'; ctx.lineWidth = 4;
+        ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 14;
+        ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+    ctx.save(); ctx.rotate(-time * 0.08);
+    ctx.beginPath(); ctx.arc(0, 0, GOLIATH_HALO_R * 0.3, 0, Math.PI * 2);
+    ctx.setLineDash([16, 12]); ctx.strokeStyle = 'rgba(255,210,140,0.5)'; ctx.lineWidth = 2.5;
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+
+    // 4 cạnh nối 4 đỉnh — xen kẽ đá nhỏ + plasma cam
+    for (let e = 0; e < 4; e++) {
+        const p1 = verts[e], p2 = verts[(e + 1) % 4];
+        const segs = 6;
+        ctx.beginPath();
+        for (let s = 0; s <= segs; s++) {
+            const t = s / segs;
+            const jx = (Math.random() - 0.5) * 14, jy = (Math.random() - 0.5) * 14;
+            const px = p1.x + (p2.x - p1.x) * t + (s > 0 && s < segs ? jx : 0);
+            const py = p1.y + (p2.y - p1.y) * t + (s > 0 && s < segs ? jy : 0);
+            if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = 'rgba(255,158,11,0.55)'; ctx.lineWidth = 6;
+        ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 16;
+        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,220,160,0.8)'; ctx.lineWidth = 2;
+        ctx.stroke();
+        for (let s = 1; s < segs; s++) {
+            const t = s / segs;
+            const cx2 = p1.x + (p2.x - p1.x) * t, cy2 = p1.y + (p2.y - p1.y) * t;
+            drawGolemBoulderChunk(cx2, cy2, 22 + (s % 2) * 6, e * 17 + s * 5);
+        }
+    }
+
+    // 4 đỉnh — quả cầu đá lớn
+    verts.forEach((v, i) => {
+        const pulse = 0.5 + 0.5 * Math.sin(time * 1.5 + i * 1.7);
+        ctx.beginPath(); ctx.arc(v.x, v.y, 58, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,158,11,${0.35 + 0.25 * pulse})`; ctx.lineWidth = 3;
+        ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 18; ctx.stroke(); ctx.shadowBlur = 0;
+        drawGolemBoulderChunk(v.x, v.y, 50, i * 31 + 7);
+    });
+
+    ctx.restore();
+}
+
+// TRUE FORM: lõi to + mảnh vỡ trôi nổi + 2 chi năng lượng
+function drawTrueForm(lightAngle, breath) {
+    let alpha = 1.0, scale = 1.0, drawX = state.x, drawY = state.y, rot = 0;
+
+    if (state.joker.id === 1 && state.joker.t > 0) alpha = 0.4 + Math.sin(time * 10) * 0.1;
+
+    if (state.fractureStep.active) {
+        const ft = state.fractureStep.t;
+        if (ft > 0.75) {
+            scale = (ft - 0.75) / 0.75; drawX = state.fractureStep.startX; drawY = state.fractureStep.startY;
+            // bóng mờ lưu lại ở vị trí cũ trong lúc co rút — cảm giác "để lại
+            // dư ảnh" trước khi dịch chuyển, thay vì biến mất trơn không dấu vết
+            ctx.save();
+            ctx.translate(state.fractureStep.startX, state.fractureStep.startY);
+            ctx.globalAlpha = scale * 0.35;
+            ctx.beginPath();
+            TRUE_FORM_OUTLINE.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+            ctx.closePath();
+            ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+            ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 12; ctx.stroke(); ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+        else { scale = 1 - (ft / 0.75); drawX = state.x; drawY = state.y; }
+    }
+
+    ctx.save();
+    ctx.translate(drawX, drawY);
+    ctx.scale(scale, scale);
+    ctx.rotate(rot);
+    ctx.globalAlpha = alpha;
+
+    drawPassiveAuras();
+
+    // Halo hình thoi rất lớn phía sau lưng — vẽ TRƯỚC TIÊN nên luôn nằm sau
+    // toàn bộ thân/tay.
+    drawGoliathHalo();
+
+    // mảnh vỡ trôi nổi phía sau lõi
+    TRUE_FORM_FRAGMENTS.forEach((frag, fi) => {
+        ctx.save();
+        const driftX = frag.ox + Math.sin(time * 0.6 + fi) * 10;
+        const driftY = frag.oy + Math.cos(time * 0.5 + fi * 1.3) * 10;
+        ctx.translate(driftX, driftY);
+        ctx.rotate(time * frag.spin);
+        drawFacetedCrystal(frag.outline, frag.core, lightAngle, '#080808', '#2c2c33', 'rgba(0,0,0,0.7)');
+        ctx.restore();
+    });
+
+    // lõi chính — pha lê phát sáng bên dưới, hé lộ qua khe nứt giữa các tảng đá
+    drawFacetedCrystal(TRUE_FORM_OUTLINE, TRUE_FORM_CORE, lightAngle, '#0a0a0a', '#40404a', 'rgba(0,0,0,0.75)');
+    // THỬ NGHIỆM: thân ghép từ nhiều tảng thiên thạch cùng chất liệu, giữ lại
+    // bởi vết nứt ma thuật — "golem bước ra từ cổ mộ" thay vì 1 khối trơn.
+    // Vẽ CHỒNG lên lõi pha lê, để lõi hé sáng qua khe hở giữa các tảng đá.
+    drawGolemBodyBoulders(lightAngle);
+    drawVeins(TRUE_FORM_VEINS, 0.55 + breath * 0.35);
+    // 2 chi vẽ SAU thân — trước đây vẽ trước nên bị thân đè lên, chỉ thấy mỗi
+    // đầu móng vuốt/xoáy thò ra ngoài viền; giờ luôn nổi rõ ở trước
+    drawLimbs(breath);
+    drawSlots(drawX, drawY, true);
+    drawJokerEffects();
+    ctx.restore();
+}
+
+// 2 CHI NĂNG LƯỢNG — trái: xoáy tối (Absolute Verdict), phải: càng pha lê
+// (Warding Palm). `growth` (0..1, mặc định 1) cho phép chi "mọc ra" dần từ
+// khớp nối với thân trong lúc biến hình, thay vì xuất hiện đột ngột.
+function drawLimbs(breath, growth) {
+    const g = growth === undefined ? 1 : growth;
+    const easedG = 1 - Math.pow(1 - Math.max(0, Math.min(1, g)), 3);
+    const swayL = Math.sin(time * 1.1) * 4, swayR = Math.sin(time * 1.1 + Math.PI) * 4;
+    // Đồng bộ bản game thật: tay lơ lửng lên xuống nhẹ nhàng như đang cử động
+    // lúc bay — lệch pha nhau + lệch pha với sway ngang, áp cho CẢ vai lẫn
+    // bàn tay (nguyên cánh tay trôi lên xuống cùng nhau, không chỉ mỗi tay).
+    const bobL = Math.sin(time * 0.85 + 0.6) * 10, bobR = Math.sin(time * 0.85 + 2.4) * 10;
+
+    // --- KHỚP NỐI (joint) nơi 2 chi gắn vào thân — vòng năng lượng nhỏ nối
+    // liền chi với lõi, cho cảm giác chi thuộc về cơ thể chứ không lơ lửng rời
+    function drawJoint(jx, jy, color) {
+        ctx.save(); ctx.translate(jx, jy);
+        ctx.beginPath(); ctx.arc(0, 0, 12 * easedG, 0, Math.PI * 2);
+        const jg = ctx.createRadialGradient(0, 0, 0, 0, 0, 12 * easedG);
+        jg.addColorStop(0, '#fff'); jg.addColorStop(0.5, color); jg.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = jg; ctx.shadowColor = color; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // --- THÂN CÁNH TAY = đá thiên thạch ghép lại, giống hệt chất liệu thân +
+    // thiên thạch bay tới lúc biến hình (không phải năng lượng trừu tượng) —
+    // cong võng xuống (bezier bậc 2, `sag` = độ võng) như tay dài đung đưa
+    // 2 bên trong ảnh phác thảo, không phải 1 que thẳng cứng. Trả về điểm
+    // cuối (đầu mút) để đặt nắm đá tại đúng đó.
+    function bezierPt(x0, y0, cx, cy, x1, y1, t) {
+        const mt = 1 - t;
+        return { x: mt * mt * x0 + 2 * mt * t * cx + t * t * x1, y: mt * mt * y0 + 2 * mt * t * cy + t * t * y1 };
+    }
+    // Khối đá gồ ghề kiểu golem — 1 tảng lồi lõm nhiều mấu (không phải elip
+    // trơn), có vệt rêu/khe tối, KHÔNG phát sáng (đá thật không tự sáng) —
+    // seed quyết định hình lồi lõm để không "sôi" đổi hình mỗi khung hình.
+    function drawBoulderChunk(cx, cy, r, seed) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        const rg = ctx.createRadialGradient(-r * 0.25, -r * 0.3, 0, 0, 0, r * 1.15);
+        // Cùng tông màu xám lạnh của cơ thể
+        rg.addColorStop(0, '#555560'); rg.addColorStop(0.5, '#2c2c36'); rg.addColorStop(1, '#0a0a0a');
+        const pts = 10;
+        ctx.beginPath();
+        for (let i = 0; i <= pts; i++) {
+            const a = (i / pts) * Math.PI * 2;
+            const rr = r * (0.85 + 0.16 * Math.sin(a * 3.1 + seed) + 0.08 * Math.sin(a * 5.3 + seed * 1.7));
+            const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = rg; ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 2; ctx.stroke();
+        for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2 + seed;
+            ctx.save(); ctx.rotate(a);
+            ctx.beginPath(); ctx.ellipse(r * 0.4, 0, r * 0.22, r * 0.12, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+            ctx.restore();
+        }
+        ctx.restore();
+    }
+    // --- VAI = 1 tảng đá LỚN riêng, đứng yên ngay bên hông thân
+    function drawShoulderBoulder(jx, jy, alpha, seed) {
+        if (alpha <= 0.02) return;
+        // Đồng bộ bản game thật: to hơn (85 -> 108) + bọc ngoài lớp ma thuật
+        // cam dính dính kiểu slime, để thấy rõ kết nối phép thuật giữa vai và
+        // cánh tay thay vì đá tĩnh trơ.
+        const R = 108;
+        ctx.save(); ctx.globalAlpha = alpha;
+
+        ctx.save(); ctx.translate(jx, jy);
+        const goo = ctx.createRadialGradient(-R * 0.2, -R * 0.25, 0, 0, 0, R * 1.3);
+        goo.addColorStop(0, 'rgba(255,190,80,0.55)');
+        goo.addColorStop(0.6, 'rgba(255,120,20,0.35)');
+        goo.addColorStop(1, 'rgba(255,90,0,0)');
+        const pts = 12;
+        ctx.beginPath();
+        for (let i = 0; i <= pts; i++) {
+            const a = (i / pts) * Math.PI * 2;
+            const rr = R * 1.18 * (0.9 + 0.14 * Math.sin(a * 4 + seed) + 0.1 * Math.sin(a * 2.3 + seed * 1.3));
+            const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = goo; ctx.fill();
+        ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 22;
+        ctx.strokeStyle = 'rgba(255,150,40,0.5)'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.shadowBlur = 0;
+        for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2 + seed;
+            const drip = 10 + 8 * (0.5 + 0.5 * Math.sin(time / 0.6 + seed + i));
+            const dropX = Math.cos(a) * R * 1.08, dropY = Math.sin(a) * R * 1.08;
+            ctx.beginPath();
+            ctx.ellipse(dropX, dropY + drip * 0.5, 5, drip * 0.6, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,140,30,0.4)';
+            ctx.fill();
+        }
+        ctx.restore();
+
+        drawBoulderChunk(jx, jy, R, seed);
+
+        ctx.save(); ctx.translate(jx, jy);
+        const vein = generateVein(0, 0, Math.cos(seed) * R * 0.7, Math.sin(seed) * R * 0.7, 4, R * 0.45);
+        ctx.beginPath();
+        vein.forEach((v, i) => i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y));
+        ctx.strokeStyle = 'rgba(255,170,50,0.85)'; ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 10;
+        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.restore();
+
+        ctx.restore();
+    }
+    // --- CÁNH TAY = chuỗi các cục đá nhỏ rời rạc treo xuống từ vai
+    // đúng như trong ảnh phác thảo user vẽ. Có kết nối năng lượng giữa các cục.
+    function drawRockArmSegments(fromX, fromY, toX, toY, alpha, bowX) {
+        if (alpha <= 0.02) return;
+        const midX = (fromX + toX) / 2, midY = (fromY + toY) / 2;
+        const cx = midX + (bowX || 0), cy = midY;
+        const numRocks = 5; // Dùng 5 cục lớn để tay trông lực hơn
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // --- Năng lượng kết nối (Tether lõi) ---
+        ctx.beginPath();
+        const steps = 15;
+        for (let i = 0; i <= steps; i++) {
+            const pt = bezierPt(fromX, fromY, cx, cy, toX, toY, i / steps);
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else {
+                // Thêm jitter ngẫu nhiên để giống tia điện năng lượng kết nối
+                const jitterX = (Math.random() - 0.5) * 16;
+                const jitterY = (Math.random() - 0.5) * 16;
+                ctx.lineTo(pt.x + jitterX, pt.y + jitterY);
+            }
+        }
+        ctx.strokeStyle = 'rgba(255, 158, 11, 0.85)';
+        ctx.lineWidth = 6;
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 15;
+        ctx.stroke();
+        
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+            const pt = bezierPt(fromX, fromY, cx, cy, toX, toY, i / steps);
+            const jitterX = (Math.random() - 0.5) * 24;
+            const jitterY = (Math.random() - 0.5) * 24;
+            if (i === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x + jitterX, pt.y + jitterY);
+        }
+        ctx.strokeStyle = 'rgba(255, 200, 50, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // --- Cục đá cấu thành tay ---
+        for (let i = 1; i <= numRocks; i++) {
+            const t = i / (numRocks + 1); 
+            const pt = bezierPt(fromX, fromY, cx, cy, toX, toY, t);
+            // Kích thước to (lực), giảm dần từ vai (55) xuống tay (30)
+            const r = 55 - t * 25 + Math.sin(i * 1.5) * 8; 
+            drawBoulderChunk(pt.x, pt.y, r, fromX + i * 10);
+        }
+        ctx.restore();
+    }
+    // --- BÀN TAY = tảng đá (drawBoulderChunk) cùng chất liệu/tông màu với
+    // thân + cánh tay — TRƯỚC ĐÂY là móng vuốt năng lượng phát sáng hoàn
+    // toàn (glow claw), lệch tông hẳn so với cánh tay đá xám vừa được sửa,
+    // đúng ý user "2 bàn tay nhìn lạc quẻ, phải cùng bản màu với cơ thể".
+    // Vẫn giữ 1 phụ kiện nhận diện nhỏ (xoáy tím bên trái / mấu tinh thể
+    // vàng bên phải) để không mất bản sắc Absolute Verdict / Warding Palm.
+    function drawEnergyFist(fx, fy, alpha, accent, scaleMul) {
+        if (alpha <= 0.02) return;
+        // Đồng bộ bản game thật: to hơn (48 thay 42), rõ khớp đốt tay (4 mấu
+        // tròn quanh mép trên) + vòng phù văn phép thuật quanh cổ tay.
+        const R = (48 * alpha + 10) * (scaleMul || 1);
+        const accentColor = accent === 'spiral' ? '#9d00ff' : '#fbbf24';
+        const accentLight = accent === 'spiral' ? '#c084fc' : '#fde68a';
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(fx, fy);
+
+        ctx.save(); ctx.rotate(fx / 1000);
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            ctx.beginPath(); ctx.arc(0, 0, R * 1.35, a, a + 0.3);
+            ctx.strokeStyle = accentColor; ctx.globalAlpha = alpha * 0.55;
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = accentColor; ctx.shadowBlur = 10;
+            ctx.stroke(); ctx.shadowBlur = 0;
+        }
+        ctx.restore();
+        ctx.globalAlpha = alpha;
+
+        drawBoulderChunk(0, 0, R, fx + fy + 91);
+
+        for (let i = 0; i < 4; i++) {
+            const a = -Math.PI * 0.75 + i * (Math.PI * 0.5 / 3);
+            const kx = Math.cos(a) * R * 0.82, ky = Math.sin(a) * R * 0.82;
+            drawBoulderChunk(kx, ky, R * 0.32, fx + i * 7 + 13);
+        }
+
+        if (accent === 'spiral') {
+            ctx.beginPath();
+            for (let i = 0; i <= 40; i++) {
+                const t = i / 40, a = t * Math.PI * 4, rr = t * R * 0.62;
+                const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.strokeStyle = 'rgba(196,132,252,0.9)'; ctx.lineWidth = 2.5;
+            ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 12;
+            ctx.stroke(); ctx.shadowBlur = 0;
+        } else {
+            for (let i = 0; i < 3; i++) {
+                const a = -0.6 + i * 0.6;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * R * 0.75, Math.sin(a) * R * 0.75);
+                ctx.lineTo(Math.cos(a) * R * 1.35, Math.sin(a) * R * 1.35);
+                ctx.lineTo(Math.cos(a + 0.18) * R * 0.8, Math.sin(a + 0.18) * R * 0.8);
+                ctx.closePath();
+                const spikeGrad = ctx.createLinearGradient(0, 0, Math.cos(a) * R * 1.35, Math.sin(a) * R * 1.35);
+                spikeGrad.addColorStop(0, '#7a5a00'); spikeGrad.addColorStop(1, accentLight);
+                ctx.fillStyle = spikeGrad;
+                ctx.shadowColor = accentColor; ctx.shadowBlur = 10;
+                ctx.fill(); ctx.shadowBlur = 0;
+            }
+        }
+        ctx.restore();
+    }
+
+    // Tính toán mục tiêu di chuyển của 2 tay để làm hiệu ứng "nhúc nhích"
+    const jointLX = LIMB_JOINT.left.x, jointLY = LIMB_JOINT.left.y + bobL;
+    const jointRX = LIMB_JOINT.right.x, jointRY = LIMB_JOINT.right.y + bobR;
+
+    let lX = jointLX - 20 * easedG + swayL * 0.3, lY = jointLY + (300) * easedG;
+    let rX = jointRX + 20 * easedG + swayR * 0.3, rY = jointRY + (300) * easedG;
+
+    // Absolute Verdict: đồng bộ bản game thật — 2 tay CHẤP LẠI NGAY MẮT để tụ
+    // quả cầu (không phải giơ cao riêng lẻ như trước).
+    if (state.absoluteVerdict.active) {
+        const p = Math.sin((state.absoluteVerdict.t / state.absoluteVerdict.maxT) * Math.PI);
+        lX = lX + (EYE_POS.x - lX) * p; lY = lY + (EYE_POS.y - lY) * p;
+        rX = rX + (EYE_POS.x - rX) * p; rY = rY + (EYE_POS.y - rY) * p;
+    }
+
+    // Warding Palm: CẢ 2 TAY cùng chụm vào giữa ngực để hợp thành 1 khiên
+    // chung — trước đây chỉ tay phải đưa ra, tay trái đứng yên, nhìn không
+    // giống "đỡ bằng khiên" mà giống 1 tay làm việc lẻ.
+    const clapX = 0, clapY = -30;
+    if (state.wardingPalm.active) {
+        const p = Math.sin((state.wardingPalm.t / 1.5) * Math.PI);
+        lX = lX + (clapX - lX) * p; lY = lY + (clapY - lY) * p;
+        rX = rX + (clapX - rX) * p; rY = rY + (clapY - rY) * p;
+    }
+
+    // Egregor Null Slash: tay PHẢI thu về (tụ lực) rồi VUNG thành 1 cú quật
+    // lớn về phía mục tiêu — trước đây kỹ năng này không hề động đến tay,
+    // chỉ có 1 hình quạt trừu tượng hiện ra giữa không trung.
+    let handScaleR = 1, handScaleL = 1;
+    if (state.joker.id === 5) {
+        const targetAngle = Math.atan2(mouse.y - state.y, mouse.x - state.x);
+        const jt5 = state.joker.t;
+        if (jt5 > 0) {
+            // tụ lực: tay phải thu về gần vai, phình to dần
+            const chargeP = 1 - jt5 / 2.5;
+            const windX = jointRX - Math.cos(targetAngle) * 40, windY = jointRY - Math.sin(targetAngle) * 40;
+            rX = rX + (windX - rX) * chargeP; rY = rY + (windY - rY) * chargeP;
+            handScaleR = 1 + chargeP * 1.6;
+        } else {
+            // vung quật: quét nhanh qua 1 cung rộng hướng vào mục tiêu trong ~0.4s
+            const swingP = Math.min(1, -jt5 / 0.4);
+            const swingAngle = targetAngle + (0.9 - swingP * 1.8);
+            const reach = 230;
+            rX = Math.cos(swingAngle) * reach; rY = Math.sin(swingAngle) * reach;
+            handScaleR = 2.6 - swingP * 1.2;
+        }
+    }
+
+    // Joker Skills khác: nhúc nhích tay chung chung
+    if (state.joker.id !== null && state.joker.id !== 5 && state.joker.t > 0) {
+        const jt = state.joker.t;
+        let p = 0;
+        if (state.joker.id === 2) p = (Math.sin(time * 3) + 1) / 2; // Liên tục
+        else p = Math.sin(Math.min(1, jt) * Math.PI); // Giơ lên rồi hạ xuống
+
+        lX -= p * 60; lY -= p * 120;
+        rX += p * 60; rY -= p * 120;
+    }
+
+    // --- CHI TRÁI ---
+    ctx.save();
+    drawShoulderBoulder(jointLX, jointLY, easedG, 11);
+    ctx.globalAlpha = easedG;
+    if (state.absoluteVerdict.active) {
+        const p = 1 - (state.absoluteVerdict.t / state.absoluteVerdict.maxT);
+        // Đồng bộ bản game thật: quả cầu tụ lực NGAY TẠI MẮT (2 tay chấp lại
+        // quanh đó) thay vì 1 điểm cố định (0,-265) tách rời khỏi tay.
+        const vX = EYE_POS.x, vY = EYE_POS.y;
+        const radius = 25 + p * 85;
+        const orbGrad = ctx.createRadialGradient(vX, vY, 0, vX, vY, radius);
+        orbGrad.addColorStop(0, '#ffffff');
+        orbGrad.addColorStop(0.2, '#c084fc');
+        orbGrad.addColorStop(0.6, '#4c1d95');
+        orbGrad.addColorStop(1, 'rgba(10,0,20,0)');
+
+        ctx.beginPath(); ctx.arc(vX, vY, radius, 0, Math.PI * 2);
+        ctx.fillStyle = orbGrad;
+        ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 40 * p + 20;
+        ctx.fill();
+
+        // Tâm đen của quả cầu không gian
+        ctx.beginPath(); ctx.arc(vX, vY, radius * 0.7, 0, Math.PI * 2);
+        ctx.fillStyle = '#050015'; ctx.fill();
+
+        ctx.shadowBlur = 0;
+        // Tia chớp bao quanh mãnh liệt hơn
+        for (let k = 0; k < 6; k++) {
+            const flick = Math.sin(time * 30 + k * 4);
+            if (flick < 0) continue;
+            const a = Math.random() * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(vX + Math.cos(a) * radius * 0.5, vY + Math.sin(a) * radius * 0.5);
+            ctx.lineTo(vX + Math.cos(a) * radius * 1.3 + (Math.random() - 0.5) * 20, vY + Math.sin(a) * radius * 1.3 + (Math.random() - 0.5) * 20);
+            ctx.strokeStyle = `rgba(196,132,252,${0.6 + p * 0.4})`; ctx.lineWidth = 2 + p * 2;
+            ctx.stroke();
+        }
+        // Khóa mục tiêu: tia ngắm mảnh dần hiện rõ về phía người chơi (chuột
+        // đóng vai trò đứng thay), báo trước quả cầu sẽ lao tới đâu
+        const lmx = mouse.x - state.x, lmy = mouse.y - state.y;
+        ctx.save();
+        ctx.setLineDash([10, 8]);
+        ctx.lineDashOffset = -time * 60;
+        ctx.beginPath(); ctx.moveTo(vX, vY); ctx.lineTo(lmx, lmy);
+        ctx.strokeStyle = `rgba(255,80,80,${0.15 + p * 0.55})`; ctx.lineWidth = 1.5 + p * 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        const reticle = 18 + Math.sin(time * 8) * 3;
+        ctx.save(); ctx.translate(lmx, lmy); ctx.rotate(time * 2);
+        ctx.beginPath(); ctx.arc(0, 0, reticle, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,60,60,${0.3 + p * 0.6})`; ctx.lineWidth = 2; ctx.stroke();
+        for (let k = 0; k < 4; k++) {
+            const ang = k * Math.PI / 2;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(ang) * (reticle + 4), Math.sin(ang) * (reticle + 4));
+            ctx.lineTo(Math.cos(ang) * (reticle + 12), Math.sin(ang) * (reticle + 12));
+            ctx.strokeStyle = `rgba(255,60,60,${0.3 + p * 0.6})`; ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+    drawRockArmSegments(jointLX, jointLY, lX, lY, easedG, -45);
+    // Bàn tay tạo hoàn toàn bằng năng lượng
+    ctx.save();
+    ctx.translate(lX, lY);
+    ctx.rotate(time * -0.6);
+    drawEnergyFist(0, 0, easedG, 'spiral');
+    ctx.restore(); // đóng ctx.save() của phần drawEnergyFist
+    ctx.restore(); // đóng ctx.save() mở đầu khối CHI TRÁI
+
+    // --- CHI PHẢI ---
+    ctx.save();
+    drawShoulderBoulder(jointRX, jointRY, easedG, 47);
+    ctx.globalAlpha = easedG;
+    // Warding palm lightning effect on right arm
+    if (state.wardingPalm.active) {
+        ctx.beginPath();
+        ctx.moveTo(rX, rY);
+        ctx.lineTo(rX * 0.5 + (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30);
+        ctx.lineTo((Math.random() - 0.5) * 20, -50 + (Math.random() - 0.5) * 20);
+        ctx.strokeStyle = 'rgba(245,158,11,0.8)'; ctx.lineWidth = 2.5;
+        ctx.stroke();
+    }
+
+    drawRockArmSegments(jointRX, jointRY, rX, rY, easedG, 45);
+
+    if (state.wardingPalm.active) {
+        const p = state.wardingPalm.t / 1.5;
+        if (state.wardingPalm.success) {
+            const shieldSize = 85 * (1 - Math.abs(p - 0.5) * 0.4);
+            drawHexagon(rX, rY, shieldSize);
+            const sg = ctx.createRadialGradient(rX, rY, 0, rX, rY, shieldSize);
+            sg.addColorStop(0, 'rgba(255,255,255,0.35)');
+            sg.addColorStop(1, 'rgba(245,158,11,0.15)');
+            ctx.fillStyle = sg; ctx.fill();
+            ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 4;
+            ctx.shadowColor = '#fff'; ctx.shadowBlur = 22;
+            ctx.stroke(); ctx.shadowBlur = 0;
+            // sóng chặn lan ra từ điểm va chạm + tia sáng chạy dọc viền khiên
+            const shock = (1 - p) * 130;
+            ctx.beginPath(); ctx.arc(rX, rY, shock, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255,255,255,${p * 0.5})`; ctx.lineWidth = 3; ctx.stroke();
+            for (let k = 0; k < 6; k++) {
+                const ang = k * Math.PI / 3 + time * 2;
+                ctx.beginPath();
+                ctx.arc(rX + Math.cos(ang) * shieldSize, rY + Math.sin(ang) * shieldSize, 2.2, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff8e1'; ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0;
+            }
+        } else {
+            // Đỡ hụt: nứt vỡ lóe đỏ chạy trên thân + sóng xung kích từ điểm va
+            // chạm, thay cho khối đỏ phẳng che kín trước đây
+            const flick = 0.4 + Math.sin(time * 40) * 0.3;
+            for (let k = 0; k < 5; k++) {
+                const crack = generateVein(rX, rY, rX + (Math.random() - 0.5) * 300, rY + (Math.random() - 0.5) * 300, 4, 20);
+                ctx.beginPath();
+                crack.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+                ctx.strokeStyle = `rgba(255,60,60,${p * flick})`; ctx.lineWidth = 1.6;
+                ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0;
+            }
+            const shock = (1 - p) * 140;
+            ctx.beginPath(); ctx.arc(rX, rY, shock, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255,40,40,${p * 0.7})`; ctx.lineWidth = 5; ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 260, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,0,0,${0.12 * p})`; ctx.fill();
+        }
+    } else {
+        // Bàn tay phải cũng làm từ năng lượng — phình to khi tụ lực/vung Null Slash
+        drawEnergyFist(rX, rY, easedG, 'spikes', handScaleR);
+    }
+    ctx.restore();
+}
+
+function drawHexagon(x, y, size) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const angle = i * Math.PI / 3;
+        const px = x + size * Math.cos(angle), py = y + size * Math.sin(angle);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+}
+
+// Inevitable — không vẽ 1 quầng sáng trơn nữa mà là "trường giới hạn sát
+// thương" nhiều lớp: quầng nhiệt nền + lưới lục giác bọc ngoài + các vệt HUD
+// cảnh báo xoay quanh viền + tia lửa lách tách ngẫu nhiên bắn ra từ lõi
+function drawInevitableAura() {
+    const pulse = 0.85 + Math.sin(time * 2.2) * 0.15;
+    ctx.beginPath(); ctx.arc(0, 0, 220, 0, Math.PI * 2);
+    const g = ctx.createRadialGradient(0, 0, 130, 0, 0, 220);
+    g.addColorStop(0, 'rgba(255,69,0,0)'); g.addColorStop(1, `rgba(255,69,0,${0.24 * pulse})`);
+    ctx.fillStyle = g; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 26 * pulse; ctx.fill(); ctx.shadowBlur = 0;
+
+    ctx.save();
+    ctx.rotate(time * 0.15);
+    for (let i = 0; i < 6; i++) {
+        const a1 = (i / 6) * Math.PI * 2, a2 = ((i + 1) / 6) * Math.PI * 2, r = 235;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a1) * r, Math.sin(a1) * r);
+        ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r);
+        ctx.strokeStyle = `rgba(255,90,40,${0.35 + Math.sin(time * 3 + i) * 0.15})`;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.rotate(-time * 0.6);
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath(); ctx.arc(0, 0, 248, a, a + 0.18);
+        ctx.strokeStyle = 'rgba(255,140,60,0.8)'; ctx.lineWidth = 3.5;
+        ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 10; ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    if (Math.random() < 0.06) {
+        const a = Math.random() * Math.PI * 2;
+        const vein = generateVein(0, 0, Math.cos(a) * 210, Math.sin(a) * 210, 4, 18);
+        ctx.beginPath();
+        vein.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.strokeStyle = 'rgba(255,180,120,0.8)'; ctx.lineWidth = 1.4;
+        ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+    }
+}
+
+// PASSIVE AURAS (Inevitable, Thaelis, Threshold Ward, Fracture Step Iron Body)
+function drawPassiveAuras() {
+    if (state.inevitable) drawInevitableAura();
+
+    if (state.joker.id === 2) {
+        ctx.beginPath(); ctx.arc(0, 0, 240 + Math.sin(time * 5) * 10, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(139,92,246,0.55)'; ctx.lineWidth = 5; ctx.stroke();
+    }
+
+    // Fracture Step: bung 3 vòng lục giác lồng nhau xoay ngược chiều nhau +
+    // tia sáng ở 6 đỉnh vòng ngoài cùng, mờ dần theo hexTimer
+    if (state.fractureStep.hexTimer > 0) {
+        const a = state.fractureStep.hexTimer / 2.0;
+        ctx.save(); ctx.globalAlpha = a;
+        ctx.save(); ctx.rotate(time * 1.4);
+        drawHexagon(0, 0, 250); ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3;
+        ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 14; ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.restore();
+        ctx.save(); ctx.rotate(-time * 1.9);
+        drawHexagon(0, 0, 280); ctx.strokeStyle = 'rgba(245,158,11,0.55)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.restore();
+        ctx.save(); ctx.rotate(time * 0.8);
+        drawHexagon(0, 0, 310); ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.4; ctx.stroke();
+        for (let i = 0; i < 6; i++) {
+            const ang = i * Math.PI / 3;
+            ctx.beginPath(); ctx.arc(Math.cos(ang) * 310, Math.sin(ang) * 310, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff8e1'; ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 10; ctx.fill(); ctx.shadowBlur = 0;
+        }
+        ctx.restore();
+        ctx.restore();
+    }
+
+    // Threshold Ward: mỗi tầng khiên = 1 phiến lục giác rời rạc quay chậm quanh
+    // thân (thay vì 1 vòng tròn mờ đặc), rõ số tầng đang có bằng mắt thường
+    if (state.thresholdWard.active && state.thresholdWard.shields > 0) {
+        const n = state.thresholdWard.shields;
+        ctx.beginPath(); ctx.arc(0, 0, 225, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(245,158,11,${0.05 * n})`; ctx.fill();
+        for (let i = 0; i < n; i++) {
+            const ang = time * 0.3 + i * (Math.PI * 2 / 4);
+            const px = Math.cos(ang) * 230, py = Math.sin(ang) * 230;
+            ctx.save(); ctx.translate(px, py); ctx.rotate(ang + Math.PI / 2);
+            drawHexagon(0, 0, 22);
+            const pg = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
+            pg.addColorStop(0, 'rgba(255,255,255,0.5)'); pg.addColorStop(1, 'rgba(245,158,11,0.35)');
+            ctx.fillStyle = pg; ctx.fill();
+            ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2;
+            ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+
+    // Threshold Ward hồi máu: vòng sáng kép giãn ra từ tâm (trắng ngoài, hổ
+    // phách trong) — hạt hội tụ vào tâm được spawnImplosion() lo lúc kích hoạt
+    if (state.thresholdWard.healTimer > 0) {
+        const p = state.thresholdWard.healTimer, grown = 1 - p;
+        ctx.beginPath(); ctx.arc(0, 0, 40 + grown * 200, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${p * 0.9})`; ctx.lineWidth = 8 * p;
+        ctx.shadowColor = '#fff8e1'; ctx.shadowBlur = 16; ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(0, 0, 20 + grown * 170, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(245,158,11,${p * 0.7})`; ctx.lineWidth = 4; ctx.stroke();
+    }
+}
+
+// Khối đá nóng chảy tạm thời (pha Fusion) — nhiều thiên thạch dồn vào Alpha,
+// phồng to dần, sủi bọt magma, chưa có hình dạng sắc nét cuối cùng
+const MOLTEN_BLOB_PTS = (() => {
+    const pts = []; const n = 16;
+    for (let i = 0; i < n; i++) pts.push({ a: (i / n) * Math.PI * 2, r: 0.7 + Math.random() * 0.55 });
+    return pts;
+})();
+function drawMoltenBlob(radius, intensity) {
+    if (radius <= 0) return;
+    ctx.beginPath();
+    MOLTEN_BLOB_PTS.forEach((p, i) => {
+        const rr = radius * p.r;
+        const x = Math.cos(p.a + time * 0.12) * rr, y = Math.sin(p.a + time * 0.12) * rr * 0.9;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+    g.addColorStop(0, `rgba(255,140,30,${0.92 * intensity})`);
+    g.addColorStop(0.55, `rgba(130,40,10,${0.85 * intensity})`);
+    g.addColorStop(1, `rgba(25,10,5,${0.65 * intensity})`);
+    ctx.fillStyle = g;
+    ctx.shadowColor = '#ff6a00'; ctx.shadowBlur = 32 * intensity;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Bọt magma sủi trên bề mặt
+    for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * Math.PI * 2 + time * 0.5;
+        const rr = radius * (0.25 + 0.45 * Math.abs(Math.sin(time * 2.2 + i)));
+        const bx = Math.cos(a) * rr, by = Math.sin(a) * rr * 0.9;
+        const bubR = Math.max(2, 5 + Math.sin(time * 3.3 + i) * 4);
+        ctx.beginPath(); ctx.arc(bx, by, bubR, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,210,90,${0.55 * intensity})`;
+        ctx.fill();
+    }
+}
+
+// Thiên thạch bay từ mép màn hình vào, đuôi lửa phía sau, tự xoay khi bay
+function drawMeteors(t, summonDur) {
+    state.meteors.forEach(m => {
+        if (m.arrived) return;
+        const arriveTime = m.arriveAt * summonDur;
+        const startTime = Math.max(0, arriveTime - 0.9); // mỗi viên bay mất ~0.9s trước khi tới
+        const p = Math.min(1, Math.max(0, (t - startTime) / (arriveTime - startTime || 1)));
+        const x = m.fromX + (m.toX - m.fromX) * p;
+        const y = m.fromY + (m.toY - m.fromY) * p;
+        const dirX = m.toX - m.fromX, dirY = m.toY - m.fromY;
+        const dirLen = Math.hypot(dirX, dirY) || 1;
+        // đuôi lửa
+        ctx.save();
+        const tailGrad = ctx.createLinearGradient(x, y, x - (dirX / dirLen) * 70, y - (dirY / dirLen) * 70);
+        tailGrad.addColorStop(0, 'rgba(255,180,60,0.8)');
+        tailGrad.addColorStop(1, 'rgba(255,80,0,0)');
+        ctx.strokeStyle = tailGrad; ctx.lineWidth = m.size * 0.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - (dirX / dirLen) * 70, y - (dirY / dirLen) * 70); ctx.stroke();
+        // thân đá
+        ctx.translate(x, y); ctx.rotate(m.rot + time * m.spin);
+        const rockGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, m.size);
+        rockGrad.addColorStop(0, '#555560'); rockGrad.addColorStop(0.6, '#2c2c36'); rockGrad.addColorStop(1, '#0a0a0a');
+        ctx.beginPath();
+        ctx.moveTo(0, -m.size); ctx.lineTo(m.size * 0.8, -m.size * 0.2); ctx.lineTo(m.size * 0.5, m.size);
+        ctx.lineTo(-m.size * 0.6, m.size * 0.7); ctx.lineTo(-m.size * 0.8, -m.size * 0.3);
+        ctx.closePath();
+        ctx.fillStyle = rockGrad; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,140,30,0.8)'; ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#ff6a00'; ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.restore();
+    });
+}
+
+// TRANSFORM SEQUENCE (4s, 4 pha) — Summon (triệu hồi thiên thạch) -> Fusion
+// (hợp nhất thành khối đá nóng chảy) -> Crystallize (kết tinh thành hình sắc
+// nét) -> Settle
+function drawTransformSequence(lightAngle) {
+    const t = 4 - state.transformTimer; // 0..4 elapsed
+    const SUMMON_DUR = 2.2, FUSION_END = 2.9, CRYSTALLIZE_END = 3.7;
+    // Thiên thạch THÂN và thiên thạch CHI được đếm riêng — mẫu số phải khớp
+    // với đúng nhóm của nó, không lấy tổng tất cả (thân+2 chi), nếu không
+    // fusedRatio của thân sẽ không bao giờ đạt 1.
+    const bodyTotal = state.meteors.filter(m => m.target === 'body').length || 1;
+    const fusedRatio = Math.min(1, state.fusedCount / bodyTotal);
+    const armTotal = { left: state.meteors.filter(m => m.target === 'left').length || 1, right: state.meteors.filter(m => m.target === 'right').length || 1 };
+    const armRatio = { left: Math.min(1, state.armFused.left / armTotal.left), right: Math.min(1, state.armFused.right / armTotal.right) };
+
+    ctx.save();
+    ctx.translate(state.x, state.y);
+
+    if (t < SUMMON_DUR) {
+        // PHA SUMMON: Alpha vẫn đứng đó phát sáng dồn dập, thiên thạch từ mọi
+        // hướng bay tới, mỗi lần va chạm khối nóng chảy quanh nó phồng to hơn.
+        // 2 CHI cũng được xây từ thiên thạch riêng, tụ thành 2 khối nóng chảy
+        // NHỎ HƠN ở đúng vị trí khớp nối, đến muộn hơn khối thân (xem
+        // triggerTransform: arriveAt thân 0.1-0.65, chi 0.6-1.0).
+        drawFacetedCrystal(ALPHA_OUTLINE, ALPHA_CORE, lightAngle, '#0a0a0a', '#3a3a42', 'rgba(0,0,0,0.7)');
+        drawVeins(ALPHA_VEINS, 0.35 + fusedRatio * 0.5);
+        drawSlots();
+        drawMoltenBlob(60 + fusedRatio * 170, 0.35 + fusedRatio * 0.65);
+        ['left', 'right'].forEach(side => {
+            const ratio = armRatio[side];
+            if (ratio <= 0) return;
+            const j = LIMB_JOINT[side];
+            ctx.save();
+            ctx.translate(j.x, j.y);
+            drawMoltenBlob(14 + ratio * 34, 0.4 + ratio * 0.6);
+            ctx.restore();
+        });
+        ctx.restore(); // thoát translate(state.x,state.y) để vẽ thiên thạch ở toạ độ màn hình thật
+        drawMeteors(t, SUMMON_DUR);
+        return;
+    }
+
+    if (t < FUSION_END) {
+        // PHA FUSION: toàn bộ thiên thạch đã dồn hết vào — khối nóng chảy đạt
+        // kích thước gần bằng True Form, sủi bọt dữ dội, rung mạnh dần
+        const p = (t - SUMMON_DUR) / (FUSION_END - SUMMON_DUR);
+        const shakeAmt = p * 8;
+        ctx.translate((Math.random() - 0.5) * shakeAmt, (Math.random() - 0.5) * shakeAmt);
+        drawMoltenBlob(230 + p * 40, 0.9 + Math.sin(time * 8) * 0.1);
+        drawVeins(ALPHA_VEINS.map(v => v.map(pt => ({ x: pt.x * 1.6, y: pt.y * 1.6 }))), 1.0);
+    } else if (t < CRYSTALLIZE_END) {
+        // PHA CRYSTALLIZE: khối nóng chảy nguội đi và kết tinh sắc nét thành
+        // True Form thật — crossfade blob -> pha lê, 3 bảo thạch bật sáng lần lượt
+        const p = (t - FUSION_END) / (CRYSTALLIZE_END - FUSION_END);
+        const ease = 1 - Math.pow(1 - p, 2);
+        drawMoltenBlob(270 * (1 - ease), 1 - ease);
+        if (ease > 0.15) {
+            ctx.save(); ctx.globalAlpha = (ease - 0.15) / 0.85 * 0.6;
+            drawGoliathHalo();
+            ctx.restore();
+        }
+        ctx.save();
+        ctx.globalAlpha = ease;
+        const scale = 0.7 + ease * 0.3;
+        ctx.scale(scale, scale);
+        drawFacetedCrystal(TRUE_FORM_OUTLINE, TRUE_FORM_CORE, lightAngle, '#0a0a0a', '#40404a', 'rgba(0,0,0,0.75)');
+        drawGolemBodyBoulders(lightAngle);
+        drawVeins(TRUE_FORM_VEINS, 0.6 + Math.sin(time * 6) * 0.3);
+        ctx.restore();
+        state.slots.forEach((slot, i) => {
+            const igniteAt = 0.4 + i * 0.16;
+            if (p > igniteAt) drawGemDiamond(SLOT_ANCHORS[i].x * scale, SLOT_ANCHORS[i].y * scale, 15 * scale, slot.gem, 1.6);
+        });
+        if (p > 0.7) drawEye(EYE_POS.x * scale, EYE_POS.y * scale, 24 * scale, state.x, state.y);
+    } else {
+        // PHA SETTLE: 2 chi năng lượng vươn ra từ thân (giống "thân xong tới
+        // tay" trong biến hình anime) rồi sóng xung kích cuối lan toả, ổn định
+        const p = (t - CRYSTALLIZE_END) / (4 - CRYSTALLIZE_END);
+        const limbPop = Math.min(1, p / 0.6); // chi mọc ra nhanh trong 60% đầu pha Settle
+        drawGoliathHalo();
+        drawFacetedCrystal(TRUE_FORM_OUTLINE, TRUE_FORM_CORE, lightAngle, '#0a0a0a', '#40404a', 'rgba(0,0,0,0.75)');
+        drawGolemBodyBoulders(lightAngle);
+        drawVeins(TRUE_FORM_VEINS, 0.7);
+        drawLimbs(0.5, limbPop);
+        drawSlots(state.x, state.y, true);
+        // nổ 1 lần duy nhất đúng lúc chi vừa mọc xong (không lặp lại mỗi khung
+        // hình — trước đây spawnExplosion bị gọi liên tục suốt pha mọc chi)
+        if (limbPop >= 1 && !state.limbPopFired) {
+            state.limbPopFired = true;
+            spawnExplosion(state.x - 170, state.y + 30, '#a855f7', 16);
+            spawnExplosion(state.x + 170, state.y + 30, '#9d00ff', 16);
+        }
+        ctx.beginPath(); ctx.arc(0, 0, p * 500, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${1 - p})`; ctx.lineWidth = 6 * (1 - p); ctx.stroke();
+    }
+    ctx.restore();
+}
+
+// JOKER SKILLS HIỆU ỨNG — 7 bản sao kỹ năng, mỗi bản màu/hình đúng theo bảo
+// thạch nguồn (xem GEM_COLORS) và đúng nhịp cơ chế thật (xem design doc):
+// Veilshroud Alteration, Thaelis Tenacity, Aegis Core Lumen Nova, Marchosias
+// Sword&Barrier, Egregor Null Slash, Dargruel Maou Haki, Leviathan Perseverance.
+function drawJokerEffects() {
+    const jid = state.joker.id, jt = state.joker.t;
+    if (jid === null) return;
+
+    if (jid === 1) {
+        // Veilshroud - Alteration: toàn thân chuyển "Phantom" (99% DR)
+        // Hiệu ứng Void Ribbons, Armillary rings, và Singularity core
+        const exitP = Math.max(0, 1 - jt / 1.0);
+        
+        // 1. AURA HƯ KHÔNG
+        const auraPulse = Math.sin(time * 3) * 12;
+        const auraR = 140 + auraPulse;
+        const auraG = ctx.createRadialGradient(0, 0, auraR * 0.5, 0, 0, auraR);
+        auraG.addColorStop(0, `rgba(0, 230, 200, 0.25)`);
+        auraG.addColorStop(1, 'transparent');
+        ctx.fillStyle = auraG;
+        ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.fill();
+
+        // 2. VOID RIBBONS — giảm từ 5 xuống 3 dải, cùng 1 chiều xoay (trước
+        // xoay ngược chiều xen kẽ + uốn sóng riêng từng dải tạo cảm giác rối
+        // mắt như "vụ nổ hình khối" hơn là 1 bóng ma, đúng phản ứng user thấy
+        // khó hiểu). Mờ hơn để đọc như lớp phủ hư ảnh, không phải khối đặc.
+        ctx.save(); ctx.globalAlpha = 0.75;
+        for (let i = 0; i < 3; i++) {
+            ctx.save();
+            ctx.rotate((i / 3) * Math.PI * 2 + time * 0.25);
+            const ribLen = 150 + Math.sin(time * 2 + i) * 15;
+            const ribWidth = 20;
+            const wave = Math.sin(time * 3 + i) * 20;
+            const ribG = ctx.createLinearGradient(0, 0, 0, -ribLen);
+            ribG.addColorStop(0, `rgba(0, 230, 200, 0.4)`);
+            ribG.addColorStop(0.7, `rgba(0, 115, 100, 0.1)`);
+            ribG.addColorStop(1, 'transparent');
+            ctx.fillStyle = ribG;
+            ctx.beginPath();
+            ctx.moveTo(-ribWidth / 2, 0);
+            ctx.quadraticCurveTo(wave - ribWidth, -ribLen * 0.5, 0, -ribLen);
+            ctx.quadraticCurveTo(wave + ribWidth, -ribLen * 0.5, ribWidth / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = `rgba(255,255,255,0.12)`;
+            ctx.lineWidth = 1; ctx.stroke();
+            ctx.restore();
+        }
+
+        // 3. ARMILLARY RINGS
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = `rgba(0, 230, 200, 0.55)`;
+        ctx.beginPath(); ctx.ellipse(0, 0, 70, 25, time, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = `rgba(255,255,255,0.4)`;
+        ctx.setLineDash([9, 13]);
+        ctx.beginPath(); ctx.ellipse(0, 0, 85, 30, -time * 1.2 + Math.PI / 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // 4. SINGULARITY CORE
+        const coreR = 30;
+        const accR = coreR * 1.5 + Math.sin(time * 10) * 2.5;
+        const accGrad = ctx.createRadialGradient(0, 0, coreR * 0.7, 0, 0, accR);
+        accGrad.addColorStop(0, '#ffffff');
+        accGrad.addColorStop(0.4, '#00e6c8');
+        accGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = accGrad;
+        ctx.beginPath(); ctx.arc(0, 0, accR, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2); ctx.fill();
+
+        // 5. BÁO TRƯỚC SÉT — enemy-veilshroud.js: sét là 1 tia ZIGZAG RƠI TỪ
+        // TRÊN TRỜI XUỐNG (_genBoltPoints(lt.x, 0, lt.x, lt.y,...) — gốc tại
+        // y=0, tức mép trên màn hình), KHÔNG PHẢI toả ra từ vị trí Goliath
+        // như bản trước (đường nối 0,0→target là hoàn toàn sai hướng).
+        (state.joker.meta.targets || []).forEach(pt => {
+            const lx = pt.x - state.x, ly = pt.y - state.y;
+            const skyY = -state.y; // mép trên màn hình, quy về toạ độ cục bộ
+            ctx.save();
+            ctx.setLineDash([8, 5]);
+            ctx.beginPath(); ctx.moveTo(lx, skyY); ctx.lineTo(lx, ly);
+            ctx.strokeStyle = `rgba(255,34,51,${0.3 + exitP * 0.7})`; ctx.lineWidth = 2;
+            ctx.stroke(); ctx.setLineDash([]);
+            ctx.beginPath(); ctx.arc(lx, ly, 25 + Math.sin(time * 6) * 5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,34,51,${0.1 + exitP * 0.2})`; ctx.fill();
+            ctx.strokeStyle = `rgba(255,34,51,${0.4 + exitP * 0.6})`; ctx.lineWidth = 2; ctx.stroke();
+            // đúng lúc giáng sét (jt vừa <=0, struck=true): tia chớp zigzag
+            // thật rơi từ trời xuống, chớp nháy ngẫu nhiên mỗi khung hình
+            if (state.joker.meta.struck && jt > -0.35) {
+                const bolt = generateVein(lx, skyY, lx, ly, 7, 22);
+                ctx.beginPath();
+                bolt.forEach((b, i) => i === 0 ? ctx.moveTo(b.x, b.y) : ctx.lineTo(b.x, b.y));
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+                ctx.shadowColor = '#ff2233'; ctx.shadowBlur = 22; ctx.stroke();
+                ctx.strokeStyle = 'rgba(255,30,50,0.65)'; ctx.lineWidth = 7; ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+        });
+    }
+
+    if (jid === 2) {
+        // Thaelis - Tenacity: trần sát thương vĩnh viễn, hiệu ứng Tenacity Barrier.
+        // Đối chiếu enemy-boss-thaelis.js: vòng vàng r+16, pulse ±3px, 6 tia lửa
+        // xoay quanh viền, VÀ 1 cung tối "đã tiêu hao" kiểu pac-man từ -PI/2 —
+        // chi tiết cung tiêu hao này bị thiếu ở bản trước, giờ thêm lại (vì Joker
+        // chỉ toggle bật/tắt, không có % thật để theo dõi nên cho dao động chậm
+        // minh hoạ thay vì đứng yên 0%).
+        const _bR = 220 + 4 * Math.sin(time * 10);
+        const _bPulse = 0.70 + 0.30 * Math.sin(time * 12);
+        const _depleted = 0.5 + 0.4 * Math.sin(time * 0.35); // 10%-90% minh hoạ
+        ctx.save();
+        ctx.shadowColor = '#ffee33'; ctx.shadowBlur = 20 + 8 * Math.sin(time * 7);
+        ctx.strokeStyle = `rgba(255,230,40,${_bPulse * 0.9})`;
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(0, 0, _bR, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // cung tối = phần khiên đã tiêu hao (giống pac-man ăn dần trong file gốc)
+        ctx.strokeStyle = 'rgba(80,40,0,0.65)'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(0, 0, _bR, -Math.PI / 2 + _depleted * Math.PI * 2, -Math.PI / 2 + Math.PI * 2); ctx.stroke();
+
+        ctx.strokeStyle = `rgba(255,255,160,${_bPulse * 0.45})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(0, 0, _bR - 6, 0, Math.PI * 2); ctx.stroke();
+
+        ctx.fillStyle = `rgba(255,240,80,${_bPulse * 0.85})`;
+        for (let _i = 0; _i < 6; _i++) {
+            const _sA = (time * 1.5) + _i * Math.PI / 3;
+            ctx.beginPath();
+            ctx.arc(Math.cos(_sA) * _bR, Math.sin(_sA) * _bR, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    if (jid === 3 && jt > 0) {
+        // Aegis Core: Lumen Nova
+        const auraRadius = 250;
+        
+        // 1. AURA ZONE BACKGROUND (Red tint)
+        const zoneGrad = ctx.createRadialGradient(0, 0, 80, 0, 0, auraRadius);
+        zoneGrad.addColorStop(0, 'rgba(255,0,0,0.02)');
+        zoneGrad.addColorStop(0.7, 'rgba(200,0,0,0.04)');
+        zoneGrad.addColorStop(1, 'rgba(220,0,0,0.16)');
+        ctx.fillStyle = zoneGrad;
+        ctx.beginPath(); ctx.arc(0, 0, auraRadius, 0, Math.PI * 2); ctx.fill();
+
+        // 2. Rotating gold dashed inner ring
+        ctx.save();
+        ctx.rotate(time * 0.2);
+        ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([15, 12, 4, 12]);
+        ctx.beginPath(); ctx.arc(0, 0, auraRadius - 6, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // 3. Mechanical bracket locks on aura edge
+        ctx.save();
+        ctx.rotate(-time * 0.12);
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 4;
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, auraRadius, i * Math.PI / 2 - 0.08, i * Math.PI / 2 + 0.08);
+            ctx.stroke();
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(Math.cos(i * Math.PI / 2) * (auraRadius - 14),
+                Math.sin(i * Math.PI / 2) * (auraRadius - 14), 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // 4. Tia laser đánh chặn — đối chiếu fx.js drawAegisLasers(): tia bắn
+        // thật là ĐỎ (rgba(255,30,30) ngoài / rgba(255,80,80) lõi / trắng
+        // giữa), KHÔNG PHẢI VÀNG như bản trước — vàng chỉ là màu trang trí
+        // trên thân (vòng dashed + bracket lock), không phải màu tia bắn.
+        ctx.save(); ctx.rotate(time * 0.4);
+        for (let i = 0; i < 4; i++) {
+            ctx.rotate(Math.PI / 2);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 1500);
+            if (jt > 0.5) {
+                // báo trước: dải mờ đỏ + đường ngắm nét đứt đỏ
+                ctx.setLineDash([]);
+                ctx.strokeStyle = 'rgba(255,0,0,0.12)'; ctx.lineWidth = 22; ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 1500);
+                ctx.setLineDash([12, 12]); ctx.strokeStyle = 'rgba(255,100,100,0.9)'; ctx.lineWidth = 1.5;
+                ctx.shadowColor = 'red'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+                ctx.setLineDash([]);
+                ctx.beginPath(); ctx.arc(0, 260, 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,80,80,0.9)'; ctx.fill();
+            } else {
+                // bắn thật: 3 lớp outer glow / core / center trắng
+                ctx.setLineDash([]);
+                ctx.strokeStyle = 'rgba(255,30,30,0.6)'; ctx.lineWidth = 50; ctx.shadowColor = 'red'; ctx.shadowBlur = 40; ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 1500);
+                ctx.strokeStyle = 'rgba(255,80,80,1)'; ctx.lineWidth = 30; ctx.shadowBlur = 20; ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 1500);
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 10; ctx.shadowBlur = 0; ctx.stroke();
+            }
+        }
+        ctx.shadowBlur = 0; ctx.restore();
+    }
+
+    if (jid === 4 && jt > 0) {
+        // Marchosias: Sword & Barrier
+        const shieldR = 210;
+        
+        // 1. Rotating gear-teeth ring
+        ctx.save();
+        ctx.rotate(time * 0.4);
+        ctx.strokeStyle = 'rgba(0,180,80,0.6)'; ctx.lineWidth = 2.5;
+        for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * shieldR * 0.78, Math.sin(a) * shieldR * 0.78);
+            ctx.lineTo(Math.cos(a) * shieldR * 0.88, Math.sin(a) * shieldR * 0.88);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // 2. Arc Barrier (Vòng bảo vệ dạng cung 1/4 hình tròn)
+        const sa = Math.PI / 2 - Math.PI / 4;
+        const ea = Math.PI / 2 + Math.PI / 4;
+
+        ctx.save();
+        // Outer glow
+        ctx.strokeStyle = `rgba(0,255,136,0.6)`;
+        ctx.lineWidth = 14;
+        ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(0, 0, shieldR, sa, ea); ctx.stroke();
+        
+        // Main arc bright
+        ctx.strokeStyle = `rgba(160,255,200,0.95)`;
+        ctx.lineWidth = 5;
+        ctx.shadowColor = 'white'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(0, 0, shieldR, sa, ea); ctx.stroke();
+        
+        // Inner bright edge
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+        ctx.lineWidth = 1.5; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(0, 0, shieldR - 4, sa, ea); ctx.stroke();
+        
+        // Sparkling particles at arc tips
+        for (let tip = 0; tip < 2; tip++) {
+            const tipA = tip === 0 ? sa : ea;
+            const tx2 = Math.cos(tipA) * shieldR;
+            const ty2 = Math.sin(tipA) * shieldR;
+            for (let s = 0; s < 2; s++) {
+                const sA = tipA + (s - 0.5) * 0.5 + Math.sin(time * 11 + s) * 0.2;
+                const sLen = 5 + 3 * Math.abs(Math.sin(time * 12 + s));
+                ctx.strokeStyle = `rgba(180,255,180,${0.6 + 0.4 * Math.sin(time * 14 + s)})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(tx2, ty2);
+                ctx.lineTo(tx2 + Math.cos(sA) * sLen, ty2 + Math.sin(sA) * sLen);
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+        
+        const total = 5.0, p = 1 - jt / total;
+        if (p > 0.85) {
+            const bp = (p - 0.85) / 0.15;
+            ctx.beginPath(); ctx.arc(0, 0, 260 * bp, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0,255,150,${1 - bp})`; ctx.lineWidth = 6 * (1 - bp); ctx.stroke();
+        }
+    }
+
+    if (jid === 5 && jt > 0) {
+        // Egregor: Null Slash — đối chiếu enemy-egregor.js: telegraph là 1 BÁN
+        // NGUYỆT (180°) chứ không phải quạt hẹp ~72° như bản trước, và cú quét
+        // thật cũng là 1 vòng cung 180°, không phải 360° toàn màn hình.
+        const p = 1 - (jt / 2.5); // 0 -> 1
+        const targetAngle = Math.atan2(mouse.y - state.y, mouse.x - state.x);
+
+        ctx.save();
+        ctx.rotate(targetAngle);
+
+        const radius = 600;
+        const spread = Math.PI; // bán nguyệt đúng như file gốc (arcStart=ang-PI/2, arcEnd=ang+PI/2)
+        
+        // Quạt cảnh báo
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, -spread/2, spread/2);
+        ctx.closePath();
+        
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        grad.addColorStop(0, `rgba(20,184,166,${0.05 * p})`);
+        grad.addColorStop(1, `rgba(20,184,166,${0.35 * p})`);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        
+        // Viền cảnh báo
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, -spread/2, spread/2);
+        ctx.closePath();
+        ctx.strokeStyle = `rgba(20,184,166,${0.3 + p * 0.7})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Hạt năng lượng bị hút vào tâm để tụ lực
+        for (let i = 0; i < 8; i++) {
+            const a = -spread/2 + (i/7) * spread;
+            const dist = radius * (1 - ((time * 1.5 + i/8) % 1));
+            ctx.beginPath(); ctx.arc(Math.cos(a)*dist, Math.sin(a)*dist, 2.5, 0, Math.PI*2);
+            ctx.fillStyle = '#c9fff5'; ctx.fill();
+        }
+        
+        // Lưu góc ngắm vào meta để bắn trúng hướng
+        state.joker.meta.angle = targetAngle;
+        
+        ctx.restore();
+    }
+
+    if (jid === 6 && jt > 0) {
+        // Dargruel: Maou Haki — 1s tụ lực máu đỏ thẫm rồi bung sóng xung kích
+        // toàn màn hình (đã bắn qua spawnShockwave ở update()); vòng chậm 30%
+        // trong bán kính 150px quanh thân hiện luôn để thấy vùng ảnh hưởng.
+        const p = 1 - jt / 1.0;
+        const pulse = 0.5 + Math.sin(time * 20) * 0.5;
+        ctx.beginPath(); ctx.arc(0, 0, 150, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(153,27,27,${0.35 + pulse * 0.25})`; ctx.lineWidth = 3;
+        ctx.setLineDash([10, 6]); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(0, 0, 40 + p * 220 * 0.3, 0, Math.PI * 2);
+        const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, 40 + p * 66);
+        rg.addColorStop(0, `rgba(255,60,60,${0.5 * p})`); rg.addColorStop(1, 'rgba(153,27,27,0)');
+        ctx.fillStyle = rg; ctx.fill();
+    }
+
+    if (jid === 7 && jt > 0) {
+        // Leviathan: vòng cảnh báo đỏ nhấp nháy rồi tia quét 360 cyan-tím dày,
+        // 2 lớp (viền tím ngoài + lõi cyan) đúng tông void của Leviathan thật
+        if (jt > 1.5) {
+            const warnPulse = 0.5 + Math.sin(time * 10) * 0.5;
+            ctx.beginPath(); ctx.arc(0, 0, 320, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255,0,0,${0.35 + warnPulse * 0.35})`; ctx.lineWidth = 2.5 + warnPulse * 2; ctx.stroke();
+            // enemy-leviathan.js: 4 vòng "event-horizon" đếm ngược xoay ngược
+            // chiều nhau ở các bán kính khác nhau — bản trước chỉ có 1 vòng
+            // cảnh báo đơn, thiếu hẳn lớp collapse-nhiều-vòng đặc trưng của
+            // Perseverance thật.
+            const ringSpecs = [
+                { r: 200, speed: 2.2, color: 'rgba(255,255,255,0.5)' },
+                { r: 150, speed: -1.6, color: 'rgba(255,255,255,0.35)' },
+                { r: 110, speed: 3.0, color: 'rgba(255,60,0,0.45)' },
+                { r: 75, speed: -2.6, color: 'rgba(157,0,255,0.5)' },
+            ];
+            ringSpecs.forEach(rs => {
+                ctx.save(); ctx.rotate(time * rs.speed);
+                ctx.setLineDash([10, 8]);
+                ctx.beginPath(); ctx.arc(0, 0, rs.r, 0, Math.PI * 2);
+                ctx.strokeStyle = rs.color; ctx.lineWidth = 2; ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+            });
+        } else {
+            // Tia quét phải BẮN RA TỪ MẮT, không phải từ tâm thân — dịch gốc
+            // toạ độ sang EYE_POS trước khi vẽ tia.
+            const angle = (1.5 - jt) * Math.PI * 2 * 2;
+            ctx.save();
+            ctx.translate(EYE_POS.x, EYE_POS.y);
+            ctx.rotate(angle);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 1500);
+            ctx.strokeStyle = 'rgba(157,0,255,0.5)'; ctx.lineWidth = 20; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 1500);
+            ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 11; ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 22; ctx.stroke();
+            ctx.shadowBlur = 0; ctx.restore();
+        }
+    }
+}
+
+// VẼ ENTITIES PHỤ (GEMS BAY, PROJECTILES, PARTICLES)
+function drawGems(ctx) {
+    state.gems.forEach(gem => {
+        const slot = SLOT_ANCHORS[gem.targetSlot];
+        const sx = gem.x, sy = gem.y;
+        const ex = state.x + slot.x, ey = state.y + slot.y;
+        const cx_cp = sx + (ex - sx) * 0.5 + 200, cy_cp = sy + (ey - sy) * 0.5;
+        const tq = gem.t;
+        const px = (1 - tq) * (1 - tq) * sx + 2 * (1 - tq) * tq * cx_cp + tq * tq * ex;
+        const py = (1 - tq) * (1 - tq) * sy + 2 * (1 - tq) * tq * cy_cp + tq * tq * ey;
+        ctx.save(); ctx.translate(px, py); ctx.rotate(time * 4);
+        drawGemDiamond(0, 0, 11, gem.gem, 1);
+        ctx.restore();
+        spawnTrailParticle(px, py, gem.gem.mid);
+    });
+}
+
+function drawProjectiles(ctx) {
+    state.projectiles.forEach(p => {
+        if (p.type === 'SHOCKWAVE') {
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = p.color; ctx.lineWidth = p.width * (p.life / 2.0); ctx.stroke();
+        } else if (p.type === 'ORB') {
+            // quả cầu Absolute Verdict phóng to hơn hẳn (trước 42 lõi/62 méo
+            // không gian — quá nhỏ so với 1 đòn "bất khả ngăn cản")
+            ctx.save();
+            ctx.beginPath(); ctx.arc(p.x, p.y, 105, 0, Math.PI * 2);
+            const rg = ctx.createRadialGradient(p.x, p.y, 70, p.x, p.y, 105);
+            rg.addColorStop(0, 'rgba(157,0,255,0.18)'); rg.addColorStop(1, 'rgba(157,0,255,0)');
+            ctx.fillStyle = rg; ctx.fill();
+            ctx.restore();
+            // mảnh vỡ đá xoay quanh quỹ đạo quả cầu
+            for (let k = 0; k < 4; k++) {
+                const ang = time * 4 + k * (Math.PI / 2);
+                const sx = p.x + Math.cos(ang) * 88, sy = p.y + Math.sin(ang) * 88;
+                ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang * 2);
+                ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(8, 5); ctx.lineTo(-8, 5); ctx.closePath();
+                ctx.fillStyle = '#c084fc'; ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0;
+                ctx.restore();
+            }
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 70);
+            g.addColorStop(0, '#4c1d95'); g.addColorStop(0.6, '#1a0a2e'); g.addColorStop(1, 'rgba(10,0,20,0)');
+            ctx.beginPath(); ctx.arc(p.x, p.y, 70, 0, Math.PI * 2);
+            ctx.fillStyle = g; ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 20; ctx.fill();
+            ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 5; ctx.stroke(); ctx.shadowBlur = 0;
+            // tia điện lóe quanh viền, giống lúc còn ở trên chi channel
+            for (let k = 0; k < 2; k++) {
+                if (Math.sin(time * 25 + k * 3) < 0.3) continue;
+                const a1 = Math.random() * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(a1) * 30, p.y + Math.sin(a1) * 30);
+                ctx.lineTo(p.x + Math.cos(a1) * 48 + (Math.random() - 0.5) * 10, p.y + Math.sin(a1) * 48 + (Math.random() - 0.5) * 10);
+                ctx.strokeStyle = 'rgba(245,158,11,0.7)'; ctx.lineWidth = 1.4; ctx.stroke();
+            }
+        } else if (p.type === 'SWORD') {
+            // Đối chiếu enemy-marchosias.js _drawMarchoBlade(): lưỡi kiếm THẬT
+            // là 1 CUNG 180° 3 lớp (glow ngoài/lõi cam/viền sáng), KHÔNG PHẢI
+            // 1 lưỡi kim cương thẳng như bản trước — sửa lại đúng hình cung.
+            const angle = Math.atan2(p.vy || 1, 0);
+            const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2, radius = 30;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,80,0,0.35)'; ctx.lineWidth = 18;
+            ctx.shadowColor = 'rgba(255,120,0,0.6)'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(p.x, p.y, radius, sa, ea); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,140,30,0.95)'; ctx.lineWidth = 5;
+            ctx.shadowColor = 'white'; ctx.shadowBlur = 14;
+            ctx.beginPath(); ctx.arc(p.x, p.y, radius, sa, ea); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,230,180,0.7)'; ctx.lineWidth = 2; ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(p.x, p.y, radius - 3, sa, ea); ctx.stroke();
+            for (let k = 0; k < 3; k++) {
+                const slashA = sa + (ea - sa) * ((k + 1) / 4);
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(slashA) * (radius - 10), p.y + Math.sin(slashA) * (radius - 10));
+                ctx.lineTo(p.x + Math.cos(slashA) * (radius + 10), p.y + Math.sin(slashA) * (radius + 10));
+                ctx.strokeStyle = `rgba(255,200,100,${0.5 + 0.4 * Math.sin(time * 16)})`; ctx.lineWidth = 1; ctx.stroke();
+            }
+            ctx.restore();
+        } else if (p.type === 'SLASH') {
+            // Null Slash - Nhát chém hình cung văng ra cực nhanh
+            const progress = 1 - (p.life / 0.3); // 0 -> 1
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            
+            const slashRadius = 150 + progress * 600; 
+            const slashSpread = Math.PI / 2.5;
+            
+            // Lưỡi kiếm năng lượng
+            ctx.beginPath();
+            ctx.arc(0, 0, slashRadius, -slashSpread/2, slashSpread/2);
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 60 * Math.max(0, 1 - progress); 
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 30;
+            ctx.stroke();
+            
+            // Lõi trắng sắc lẹm
+            ctx.beginPath();
+            ctx.arc(0, 0, slashRadius, -slashSpread/2, slashSpread/2);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 15 * Math.max(0, 1 - progress);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+    });
+}
+
+function drawParticles(ctx) {
+    state.particles.forEach(p => {
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color; ctx.fill();
+    });
+    ctx.globalAlpha = 1.0;
+}
+
+// KHỞI CHẠY GAME LOOP
+function loop(timestamp) {
+    let dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    if (dt > 0.1) dt = 0.1;
+    update(dt);
+    draw(ctx);
+    requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
