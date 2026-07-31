@@ -541,6 +541,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 
     if (host) {
         host.marchosiasParasiteShield = (host.marchosiasParasiteShield || 0) + hp;
+        _goliathTrackResourceGain(host, hp);
         createParticles(host.x, host.y, 20, '#00ff88', 2, 6);
         addExplosion(host.x, host.y, host.size * 0.8, '#00ff88');
     } else {
@@ -1062,6 +1063,7 @@ function findClosestSentinelOrPlayer(x, y) {
 // Helper: add shield to an enemy, khi Thaelis đang có barrier, mọi khiên đều dồn vào barrier thay thế
 function _addEnemyShield(enemy, amount) {
     if (!amount || amount <= 0) return;
+    _goliathTrackResourceGain(enemy, amount);
     if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0) {
         enemy._tenacityBarrier += amount;
         enemy._tenacityBarrierMax = Math.max(enemy._tenacityBarrierMax || 0, enemy._tenacityBarrier);
@@ -1144,11 +1146,19 @@ function dealDamage(enemy, source) {
         if (source._isSkillF || source._isSkillD || source.isSpiritLaser) {
             const _blocked = Math.random() < 0.30;
             enemy._wardingPalmFlash = { end: performance.now() + 500, success: _blocked };
-            const dmg = enemy.maxHp * (_blocked ? 0.15 : 0.40);
+            const dmg = enemy.maxHp * (_blocked ? 0.15 : 0.35);
             if (_blocked) createParticles(enemy.x, enemy.y, 14, '#c084fc', 3, 9);
             enemy.hp = Math.max(0, enemy.hp - dmg);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
             return;
+        }
+        // Joker Marchosias: Arc Barrier hấp thụ đòn TRƯỚC KHI chạm thân (nếu
+        // đang sống) — 'evaded'/'absorbed' thì return luôn (0 dame vào thân),
+        // 'passthrough' (đòn xuyên) thì source.damage/percentDamage đã bị trừ
+        // 30% ngay trong hàm, tiếp tục chảy xuống pipeline chung bên dưới.
+        if (enemy._jokerState['Marchosias']) {
+            const _barrierResult = _goliathMarchosiasBarrier(enemy, source);
+            if (_barrierResult === 'evaded' || _barrierResult === 'absorbed') return;
         }
     }
 
@@ -1223,7 +1233,9 @@ function dealDamage(enemy, source) {
                         _addEnemyShield(enemy, enemy.maxHp * 0.10);
                     } else {
                         const _bPct = _inAura >= 4 ? 0.35 : _inAura >= 3 ? 0.30 : _inAura >= 2 ? 0.25 : 0.15;
-                        enemy._aegisBarrier = (enemy._aegisBarrier || 0) + enemy.maxHp * _bPct;
+                        const _aegisGain = enemy.maxHp * _bPct;
+                        enemy._aegisBarrier = (enemy._aegisBarrier || 0) + _aegisGain;
+                        _goliathTrackResourceGain(enemy, _aegisGain);
                     }
                 }
             }
@@ -1373,7 +1385,9 @@ function dealDamage(enemy, source) {
                 enemy._tentacleHps[_ti] = Math.max(0, enemy._tentacleHps[_ti] - _tenDmg);
                 if (_wasAlive && enemy._tentacleHps[_ti] <= 0) {
                     enemy._tentaclesLost = (enemy._tentaclesLost || 0) + 1;
+                    const _hpBefore = enemy.hp;
                     enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(enemy.maxHp * 0.06));
+                    _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
                     enemy.maxHp += Math.ceil(_tentMaxHp * 0.20);
                     const _sc = (enemy.size / 2) / 110;
                     const _tiAngle = (_ti / 10) * Math.PI * 2;
@@ -1475,11 +1489,11 @@ function dealDamage(enemy, source) {
             const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
             combinedDR += Math.max(0.20, 0.60 - hpLostPct * 0.006); // Tenacity: trần dao động 20-60%
         }
-        if (js['Marchosias']) {
-            combinedDR += 0.60; // Sword & Barrier: 60% DR arc thường trực
+        if (js['Marchosias'] && js['Marchosias'].barrierDown) {
+            combinedDR += 0.20; // Barrier vừa vỡ: +20% DR tạm, mất khi barrier hồi sinh
         }
-        if (js['Egregor'] && (js['Egregor'].phase === 'telegraphing' || js['Egregor'].phase === 'striking')) {
-            combinedDR += 0.40; // Psychic Tempest đang telegraph/đánh: +40% DR
+        if (js['Egregor'] && (js['Egregor'].phase === 'charging' || js['Egregor'].phase === 'striking')) {
+            combinedDR += 0.40; // Null Slash đang vận/đánh: +40% DR
         }
         // Hạn chế mới: đang vận bất kỳ skill nào (của chính Goliath hay Joker
         // copy) thì +10% DR, bù lại cho việc bị chậm 35% + cấm dịch chuyển.
@@ -1606,6 +1620,18 @@ function dealDamage(enemy, source) {
 
     // Damage caps apply regardless of true damage
 
+    // Inevitable (Goliath, True Form): CHỈ sát thương xuyên (isPiercing),
+    // CHUẨN (true damage), và DOT mới được đánh full — sát thương BÌNH
+    // THƯỜNG (%HP/%EP, ăn shield trước — gồm cả đạn auto-fire cơ bản) bị
+    // giới hạn cứng 0.4% MaxHP/đòn (tính SAU khi đã trừ DR ở trên). Không
+    // áp dụng cho Skill F/D/tia Photokrystos finale — 3 nguồn đó đã return
+    // sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form'
+        && !source.isTrueDamage && !source.isPiercing
+        && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot) {
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.004));
+    }
+
     // Veilshroud Phantom: damage capped at 25% maxHP per hit
     if (enemy.type === 'veilshroud' && enemy.inPhantom) {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.25));
@@ -1731,32 +1757,41 @@ function dealDamage(enemy, source) {
         if (totalDamage <= 0) return;
     }
 
-    // Goliath Inevitable damage window: hit > 20% MaxHP (post-DR) opens a
-    // 2.5s window capping every hit at 5% MaxHP; 2s CD after window ends
+    // Goliath Inevitable damage window: hit > 10% MaxHP (post-DR) opens a
+    // 2s window capping every hit at 5% MaxHP; 1.5s CD after window ends
     // (CD cleared in updateGoliath). True damage bypasses this cap entirely.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && !source.isTrueDamage && !inTrueDmgWindow) {
         const _gNow = performance.now();
         if (enemy._inevitableWindowEnd && _gNow < enemy._inevitableWindowEnd) {
             totalDamage = Math.min(totalDamage, enemy.maxHp * 0.05);
-        } else if (totalDamage > enemy.maxHp * 0.20 && !(enemy._inevitableCooldownEnd && _gNow < enemy._inevitableCooldownEnd)) {
-            enemy._inevitableWindowEnd = _gNow + 2500;
+        } else if (totalDamage > enemy.maxHp * 0.10 && !(enemy._inevitableCooldownEnd && _gNow < enemy._inevitableCooldownEnd)) {
+            enemy._inevitableWindowEnd = _gNow + 2000;
             totalDamage = Math.min(totalDamage, enemy.maxHp * 0.05);
         }
     }
 
     // Apply damage: true damage and true-damage-window both bypass shield
+    let _hpDamageDealt = 0;
     if (source.isTrueDamage || inTrueDmgWindow) {
+        _hpDamageDealt = totalDamage;
         enemy.hp -= totalDamage;
     } else {
         const damageToShield = Math.min(enemy.shield, totalDamage);
         enemy.shield -= damageToShield;
         enemy.shield = Math.max(0, enemy.shield);
         totalDamage -= damageToShield;
+        _hpDamageDealt = totalDamage;
         enemy.hp -= totalDamage;
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
     else if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
+
+    // Threshold Ward: mỗi 1 HP sát thương THẬT (đã trừ thẳng vào HP, không
+    // tính phần bị khiên hấp thụ) cấp lại 0.25 HP giá trị khiên.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hpDamageDealt > 0) {
+        enemy.shield = (enemy.shield || 0) + _goliathThaelisBoost(enemy, _hpDamageDealt * 0.25);
+    }
 
     // Inevitable emergency trigger: the instant Leviathan first crosses 50%
     // HP, immediately activate the protection window regardless of this
@@ -2055,6 +2090,7 @@ function updateLeviathan(enemy, deltaTime) {
             const _levLayerVal = Math.min(enemy.maxHp * 0.15, enemy.maxHp * 0.005 * _onScreenEnemies);
             if (_levLayerVal > 0) {
                 enemy.shield = (enemy.shield || 0) + _levLayerVal;
+                _goliathTrackResourceGain(enemy, _levLayerVal);
                 enemy._levBarrierLayers = (enemy._levBarrierLayers || 0) + 1;
                 createParticles(enemy.x, enemy.y, 6, '#00e5ff', 2, 6);
             }
@@ -2401,6 +2437,8 @@ function spawnGoliath() {
         // Threshold Ward: mốc HP đã kích hoạt + kho khiên tích luỹ
         _thresholdMilestonesHit: { 75: false, 50: false, 25: false },
         _thresholdShieldPool: 0,
+        // Joker Thaelis (Tenacity, NEW): mốc HP 5% gần nhất đã phát thưởng
+        _thaelisLastMilestone: 100,
         _meteors: [],
         _fusedCount: 0,
         _armFused: { left: 0, right: 0 },
@@ -2446,6 +2484,112 @@ function _goliathCircuitLink(g) {
         e._goliathLinkedTo = g;
         g._linkedLedger.set(e, 0);
     });
+}
+
+// Circuit Link cũng hút HEAL/KHIÊN — enemy đang bị liên kết (Alpha) mà tự
+// hồi HP hoặc tự có thêm khiên thì phần đó cộng thẳng vào damagePull ngay
+// lập tức (không cần đợi enemy đó chết như với damage, vì đây là tài nguyên
+// DƯƠNG — hút được lúc nào là cộng lúc đó).
+function _goliathTrackResourceGain(enemy, amount) {
+    if (!(amount > 0)) return;
+    const g = enemy._goliathLinkedTo;
+    if (g && g.phase === 'alpha') g.damagePull += amount;
+}
+
+// Joker Thaelis (Tenacity, NEW): +35% hiệu quả MỌI heal/shield mà Goliath tự
+// nhận (cộng dồn với các hệ số khác, không thay thế) — dùng ở mọi nơi
+// Goliath tự cấp heal/shield cho chính mình (Inevitable regen, Threshold
+// Ward, hồi lúc bắt đầu vận skill, và chính Tenacity bên dưới).
+function _goliathThaelisBoost(enemy, amount) {
+    return (enemy._jokerState && enemy._jokerState['Thaelis']) ? amount * 1.35 : amount;
+}
+
+// Joker Marchosias (Sword & Barrier, full port): proc kích hoạt Sword khi
+// barrier bị đánh trúng — hàng đợi tối đa 4 quả/chu kỳ, cooldown 650ms giữa
+// các lần trigger, mỗi quả windup 1000ms trước khi bắn thật (giống hệt
+// _tryTriggerMarchosiasCounter thật, chỉ khác chỗ lưu trạng thái).
+function _goliathTryTriggerSword(enemy) {
+    const s = enemy._jokerState['Marchosias'];
+    if (!s || s.barrierDown) return;
+    const now = performance.now();
+    if (s.lastSwordTriggerAt && now - s.lastSwordTriggerAt < 650) return;
+    if ((s.swordsThisCycle || 0) >= 10) return;
+    s.lastSwordTriggerAt = now;
+    s.swordsThisCycle = (s.swordsThisCycle || 0) + 1;
+    s.windups.push({ timer: 0, dur: 1000, targetX: player.x, targetY: player.y });
+    // ĐÚNG bản gốc: chạm mốc sword thứ 10 (max/chu kỳ) thì barrier TỰ NỔ
+    // ngay lập tức, không cần đợi hết HP.
+    if (s.swordsThisCycle >= 10) _goliathMarchosiasBarrierBreak(enemy, s);
+}
+
+// Joker Marchosias: barrier riêng 8000 HP CỐ ĐỊNH (không scale theo maxHp
+// Goliath), 60% DR (dmg vào barrier = raw × 0.40), cap 35% HP HIỆN TẠI của
+// barrier/đòn, đòn xuyên (isPiercing) chỉ hấp thụ 1 phần rồi tiếp tục qua
+// thân với -30% dmg, true damage bỏ qua barrier hoàn toàn. LƯU Ý: không có
+// toạ độ điểm va chạm ở hầu hết nguồn damage gọi tới dealDamage() nên
+// KHÔNG port được phần "chỉ chặn trong cung 90° hướng mặt" của bản gốc —
+// barrier của Goliath hấp thụ TOÀN HƯỚNG (omnidirectional), đổi lại vẫn giữ
+// nguyên né 10%, lifesteal, sword-proc, và break/revive.
+// Trả về: 'evaded' | 'absorbed' | 'passthrough' | null (không có barrier/bỏ qua)
+function _goliathMarchosiasBarrier(enemy, source) {
+    const s = enemy._jokerState['Marchosias'];
+    if (!s || s.barrierDown || source.isTrueDamage) return null;
+    if (Math.random() < 0.10) {
+        _goliathTryTriggerSword(enemy);
+        addExplosion(enemy.x, enemy.y, enemy.size * 0.35, '#aaddff');
+        return 'evaded';
+    }
+    let dmg = Math.ceil((source.damage || 0) + (s.barrierMaxHp * (source.percentDamage || 0)));
+    dmg = Math.ceil(dmg * 0.40);
+    if (source.isPiercing) {
+        dmg = Math.ceil(dmg * 1.15);
+        dmg = Math.min(dmg, Math.ceil(s.barrierHp * 0.35));
+        const barrierHeal = Math.min(2000, Math.ceil(dmg * 0.05));
+        const wasAlive = s.barrierHp > 0;
+        s.barrierHp = Math.max(0, s.barrierHp - dmg + barrierHeal);
+        _goliathMarchosiasBodyHeal(enemy, dmg);
+        _goliathTryTriggerSword(enemy);
+        if (wasAlive && s.barrierHp <= 0) _goliathMarchosiasBarrierBreak(enemy, s);
+        source.damage = Math.ceil((source.damage || 0) * 0.70);
+        if (source.percentDamage) source.percentDamage *= 0.70;
+        return 'passthrough';
+    }
+    dmg = Math.min(dmg, Math.ceil(s.barrierHp * 0.35));
+    const barrierHeal = Math.min(2000, Math.ceil(dmg * 0.05));
+    const wasAlive = s.barrierHp > 0;
+    s.barrierHp = Math.max(0, s.barrierHp - dmg + barrierHeal);
+    _goliathMarchosiasBodyHeal(enemy, dmg);
+    _goliathTryTriggerSword(enemy);
+    if (wasAlive && s.barrierHp <= 0) _goliathMarchosiasBarrierBreak(enemy, s);
+    return 'absorbed';
+}
+function _goliathMarchosiasBodyHeal(enemy, dmg) {
+    const healAmt = Math.min(2000, Math.ceil(dmg * 0.10));
+    const newHp = enemy.hp + healAmt;
+    if (newHp > enemy.maxHp) {
+        enemy.hp = enemy.maxHp;
+        _addEnemyShield(enemy, Math.ceil((newHp - enemy.maxHp) * 0.50));
+    } else {
+        enemy.hp = newHp;
+    }
+}
+function _goliathMarchosiasBarrierBreak(enemy, s) {
+    addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#ff3344');
+    createParticles(enemy.x, enemy.y, 24, '#ff3344', 3, 10);
+    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 5;
+    const healAmt = Math.ceil(enemy.maxHp * 0.40);
+    const newHp = enemy.hp + healAmt;
+    if (newHp > enemy.maxHp) {
+        enemy.hp = enemy.maxHp;
+        _addEnemyShield(enemy, Math.ceil((newHp - enemy.maxHp) * 0.50));
+    } else {
+        enemy.hp = newHp;
+    }
+    _addEnemyShield(enemy, Math.ceil(enemy.maxHp * 0.15 + (enemy.maxHp - enemy.hp) * 0.15));
+    s.barrierDown = true;
+    const fullCycle = (s.swordsThisCycle || 0) >= 10;
+    const reviveDelay = fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
+    s.reviveAt = performance.now() + reviveDelay;
 }
 
 function updateGoliath(enemy, deltaTime) {
@@ -2529,7 +2673,7 @@ function updateGoliath(enemy, deltaTime) {
         const isCasting = _goliathIsCasting(enemy);
         enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1);
         if (isCasting && !enemy._wasCasting) {
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.15);
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathThaelisBoost(enemy, enemy.maxHp * 0.15));
         }
         enemy._wasCasting = isCasting;
 
@@ -2676,12 +2820,12 @@ function updateGoliath(enemy, deltaTime) {
 
         _goliathUpdateJoker(enemy, deltaTime, now);
 
-        // Threshold Ward: mốc HP 75/50/25% mỗi mốc cho +15% MaxHP khiên 1 lần
+        // Threshold Ward: mốc HP 75/50/25% mỗi mốc cho +20% MaxHP khiên 1 lần
         const hpPct = enemy.hp / enemy.maxHp;
         [75, 50, 25].forEach(mile => {
             if (!enemy._thresholdMilestonesHit[mile] && hpPct * 100 <= mile) {
                 enemy._thresholdMilestonesHit[mile] = true;
-                enemy._thresholdShieldPool += enemy.maxHp * 0.15;
+                enemy._thresholdShieldPool += _goliathThaelisBoost(enemy, enemy.maxHp * 0.20);
             }
         });
         // Khiên tích luỹ vượt mốc 25/50/75/100% MaxHp → hồi máu tương ứng
@@ -2691,13 +2835,23 @@ function updateGoliath(enemy, deltaTime) {
             }
         });
 
-        // Inevitable: hồi máu 2%/s + hồi hiệu quả 35% từ heal/shield khác
-        // (phần "+35%" áp dụng ở nơi heal/shield được cấp cho enemy, chưa
-        // nối — chỉ hồi máu chủ động ở đây)
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.02 * (deltaTime / 1000));
+        // Joker Thaelis (Tenacity, NEW): mỗi 5% MaxHP mất (mốc mới, chưa từng
+        // phát) hồi 2.5% MaxHP + cấp 1% MaxHP khiên — cả 2 đều ăn +35% của
+        // chính Tenacity (cộng dồn, không tự loại trừ chính nó).
+        if (enemy._jokerState['Thaelis']) {
+            while (enemy._thaelisLastMilestone - hpPct * 100 >= 5) {
+                enemy._thaelisLastMilestone -= 5;
+                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathThaelisBoost(enemy, enemy.maxHp * 0.025));
+                enemy.shield = (enemy.shield || 0) + _goliathThaelisBoost(enemy, enemy.maxHp * 0.01);
+                createParticles(enemy.x, enemy.y, 12, '#ffe066', 2, 7);
+            }
+        }
+
+        // Inevitable: hồi máu 2%/s, ăn +35% Tenacity nếu có
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathThaelisBoost(enemy, enemy.maxHp * 0.02 * (deltaTime / 1000)));
 
         if (enemy._inevitableWindowEnd && now >= enemy._inevitableWindowEnd && !enemy._inevitableCooldownEnd) {
-            enemy._inevitableCooldownEnd = now + 2000;
+            enemy._inevitableCooldownEnd = now + 1500;
             enemy._inevitableWindowEnd = 0;
         }
         if (enemy._inevitableCooldownEnd && now >= enemy._inevitableCooldownEnd) {
@@ -2786,8 +2940,12 @@ function _goliathEnterTrueForm(enemy) {
         if (name === 'Veilshroud') enemy._jokerState[name] = { phase: 'ready', cooldownEnd: 0, phantomEnd: 0, targets: [], lightningPending: false, lightningCountdown: 0 };
         else if (name === 'Thaelis') enemy._jokerState[name] = { active: true }; // passive dai dẳng, không cooldown
         else if (name === 'Aegis Core') enemy._jokerState[name] = { nextFireAt: performance.now() + 4000, originX: 0, originY: 0 };
-        else if (name === 'Marchosias') enemy._jokerState[name] = { barrierAngle: 0, nextSwordAt: performance.now() + 1500, telegraphing: false, originX: 0, originY: 0 };
-        else if (name === 'Egregor') enemy._jokerState[name] = { phase: 'ready', cooldownEnd: 0, targets: [], telegraphTimer: 0, originX: 0, originY: 0 };
+        else if (name === 'Marchosias') enemy._jokerState[name] = {
+            barrierAngle: 0, barrierHp: 8000, barrierMaxHp: 8000,
+            barrierDown: false, reviveAt: 0,
+            swordsThisCycle: 0, lastSwordTriggerAt: 0, windups: [],
+        };
+        else if (name === 'Egregor') enemy._jokerState[name] = { phase: 'ready', cooldownEnd: 0, windupTimer: 0, angle: 0, targetX: 0, targetY: 0, strikeTimer: 0, dmgDealt: false, originX: 0, originY: 0 };
         else if (name === 'Dargruel') enemy._jokerState[name] = { nextFireAt: performance.now() }; // bắn ngay lần đầu
         else if (name === 'Leviathan') enemy._jokerState[name] = { phase: 'ready', cooldownEnd: 0, warnTimer: 0, sweepTimer: 0, sweepOrigin: 0 };
     });
@@ -2812,8 +2970,7 @@ function _goliathIsCasting(enemy) {
     if (enemy._meteorPhase === 'charging') return true;
     const js = enemy._jokerState;
     if (js['Aegis Core'] && (js['Aegis Core'].telegraphing || js['Aegis Core'].firing)) return true;
-    if (js['Marchosias'] && js['Marchosias'].telegraphing) return true;
-    if (js['Egregor'] && (js['Egregor'].phase === 'telegraphing' || js['Egregor'].phase === 'striking')) return true;
+    if (js['Egregor'] && (js['Egregor'].phase === 'charging' || js['Egregor'].phase === 'striking')) return true;
     if (js['Veilshroud']) {
         const s = js['Veilshroud'];
         const now = performance.now();
@@ -2909,66 +3066,107 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
     if (js['Marchosias']) {
         const s = js['Marchosias'];
         s.barrierAngle = (s.barrierAngle + deltaTime * 0.0008) % (Math.PI * 2);
-        // Thêm hành lang cảnh báo trước khi phóng Sword (đúng windup thật của
-        // Marchosias — _drawMarchoBlade warning phase), và Sword to bằng
-        // đúng kích thước sword thật (radius 88, tốc độ 13.2px/frame~60fps).
-        if (!s.telegraphing && now >= s.nextSwordAt) {
-            s.telegraphing = true;
-            s.telegraphEnd = now + 500;
-            // Chốt điểm phát ngay lúc mark, LẤY TỪ MẮT (không phải tâm thân)
-            // — Goliath vẫn di chuyển suốt lúc báo trước 500ms, Sword phải
-            // bay ra từ ĐÚNG điểm hành lang cảnh báo đã vẽ.
-            const _eye = _goliathEyeWorldPos(enemy);
-            s.originX = _eye.x; s.originY = _eye.y;
-            s.aimAngle = Math.atan2(player.y - s.originY, player.x - s.originX);
-        } else if (s.telegraphing && now >= s.telegraphEnd) {
-            s.telegraphing = false;
-            s.nextSwordAt = now + 1500;
-            const ang = s.aimAngle;
-            window._goliathSwords = window._goliathSwords || [];
-            window._goliathSwords.push({
-                x: s.originX, y: s.originY, vx: Math.cos(ang) * 792, vy: Math.sin(ang) * 792,
-                radius: 88, dmg: enemy.maxHp * 0.08, life: 2000,
-                originX: s.originX, originY: s.originY, _fireTime: now,
-            });
+
+        // Barrier hồi sinh sau reviveAt: full HP trở lại, reset chu kỳ sword.
+        if (s.barrierDown && now >= (s.reviveAt || 0)) {
+            s.barrierDown = false;
+            s.barrierHp = s.barrierMaxHp;
+            s.swordsThisCycle = 0;
+            addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#ff3344');
+        }
+
+        // Xử lý hàng đợi Sword (proc khi barrier bị đánh, xem
+        // _goliathTryTriggerSword/_goliathMarchosiasBarrier) — mỗi windup bắn
+        // thật sau đúng 1000ms, LẤY TỪ MẮT tại đúng thời điểm bắn (không phải
+        // lúc mark) vì Goliath vẫn di chuyển suốt lúc chờ.
+        for (let i = s.windups.length - 1; i >= 0; i--) {
+            const w = s.windups[i];
+            w.timer += deltaTime;
+            if (w.timer >= w.dur) {
+                s.windups.splice(i, 1);
+                const _eye = _goliathEyeWorldPos(enemy);
+                const ang = Math.atan2(w.targetY - _eye.y, w.targetX - _eye.x);
+                window._goliathSwords = window._goliathSwords || [];
+                window._goliathSwords.push({
+                    x: _eye.x, y: _eye.y, vx: Math.cos(ang) * 792, vy: Math.sin(ang) * 792,
+                    radius: 88, life: 2000,
+                    originX: _eye.x, originY: _eye.y, _fireTime: now,
+                });
+            }
         }
     }
 
     if (js['Egregor']) {
-        // Đúng cơ chế Psychic Tempest thật (_updateEgregorTempest): KHÔNG phải
-        // quét cung 180° — chốt tối đa 3 mục tiêu (người chơi + Sentinel) tại
-        // vị trí hiện tại, báo trước 1200ms, rồi giáng tia sét vào ĐÚNG các vị
-        // trí đã chốt đó (bán kính 100, không track theo mục tiêu di chuyển).
+        // Null Slash (KHÔNG phải Psychic Tempest — đã lấy lộn) — vận 3s dí
+        // theo người chơi, chốt góc + đích lúc phóng, mốc 460ms quét cung
+        // 180°: người chơi bị chậm 50% trong 1.5s (KHÔNG mất mạng, có thể né
+        // qua Yog-Sothoth Domain), Sentinel trong cung ăn true damage theo số
+        // lượng bị trúng (30/35/40% MaxHP). Mốc 720ms mở thêm 1 vùng Dimension
+        // Break (world object dùng chung với Egregor thật, tự vẽ/tự hết hạn).
+        // KHÔNG port Boon & Bane — đó là cơ chế tự trừng phạt riêng của
+        // Egregor lúc bị đánh trong lúc vận, không hợp vai trò boss.
         const s = js['Egregor'];
         if (s.phase === 'ready' && now >= (s.cooldownEnd || 0)) {
-            const pool = [player, ...sentinels].sort(() => Math.random() - 0.5);
-            const count = Math.min(3, pool.length);
-            s.targets = pool.slice(0, count).map(t => ({ ref: t, tx: t.x, ty: t.y, isPlayer: t === player }));
-            if (s.targets.length > 0) {
-                s.phase = 'telegraphing'; s.telegraphTimer = 0;
-                const _eye = _goliathEyeWorldPos(enemy);
-                s.originX = _eye.x; s.originY = _eye.y;
-            }
-        } else if (s.phase === 'telegraphing') {
-            s.telegraphTimer += deltaTime;
-            if (s.telegraphTimer >= 1200) {
-                s.phase = 'striking'; s.strikeEnd = now + 700;
-                const ox = s.originX, oy = s.originY;
-                addExplosion(ox, oy, 65, '#8800cc');
-                createParticles(ox, oy, 22, '#cc44ff', 4, 10);
-                let hitPlayer = false;
-                s.targets.forEach(t => {
-                    // Bán kính to hơn thật (100 -> 130) theo yêu cầu vùng cảnh
-                    // báo to rõ ràng hơn — khớp đúng bán kính vẽ ở render.
-                    if (t.isPlayer) {
-                        if (!hitPlayer && Math.hypot(player.x - t.tx, player.y - t.ty) < 130) { playerTakesHit(); hitPlayer = true; }
-                    } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.tx, t.ref.y - t.ty) < 130) {
-                        dealDamage(t.ref, { damage: enemy.maxHp * 0.05, isTrueDamage: true });
-                    }
-                });
+            s.phase = 'charging'; s.windupTimer = 0;
+        } else if (s.phase === 'charging') {
+            s.angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+            s.targetX = player.x; s.targetY = player.y;
+            s.windupTimer += deltaTime;
+            if (s.windupTimer >= 3000) {
+                s.phase = 'striking'; s.strikeTimer = 0; s.dmgDealt = false;
+                s.originX = enemy.x; s.originY = enemy.y;
+                s._dimBreakSpawned = false;
             }
         } else if (s.phase === 'striking') {
-            if (now >= s.strikeEnd) { s.phase = 'ready'; s.cooldownEnd = now + 4000; }
+            s.strikeTimer += deltaTime;
+            if (!s.dmgDealt && s.strikeTimer >= 460) {
+                s.dmgDealt = true;
+                const _ex = enemy.x, _ey = enemy.y;
+                const _arcR = Math.hypot(s.targetX - _ex, s.targetY - _ey);
+                const _inSlash = (tx, ty) => {
+                    if (Math.hypot(tx - _ex, ty - _ey) > _arcR + 100) return false;
+                    let dA = Math.atan2(ty - _ey, tx - _ex) - s.angle;
+                    while (dA > Math.PI) dA -= Math.PI * 2;
+                    while (dA < -Math.PI) dA += Math.PI * 2;
+                    return Math.abs(dA) <= Math.PI / 2;
+                };
+                if (_inSlash(player.x, player.y)) {
+                    if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
+                        _triggerAccurateParry();
+                    } else {
+                        player._nullSlashSlowed = true;
+                        player._nullSlashSlowEnd = now + 1500;
+                        addExplosion(player.x, player.y, 90, '#6600cc');
+                        createParticles(player.x, player.y, 25, '#aa44ff', 3, 10);
+                        _setShake(12, 350);
+                    }
+                }
+                const hitSents = sentinels.filter(sn => _inSlash(sn.x, sn.y));
+                const hc = hitSents.length;
+                if (hc > 0) {
+                    const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
+                    for (const sn of hitSents) {
+                        dealDamage(sn, { damage: Math.ceil(sn.maxHp * pct), isTrueDamage: true });
+                        addExplosion(sn.x, sn.y, 65, '#7700dd');
+                        createParticles(sn.x, sn.y, 18, '#cc44ff', 3, 7);
+                    }
+                    addExplosion(s.targetX, s.targetY, 140, '#5500bb');
+                    createParticles(s.targetX, s.targetY, 35, '#9933ff', 5, 14);
+                    _setShake(14, 400);
+                }
+            }
+            if (!s._dimBreakSpawned && s.strikeTimer >= 720) {
+                s._dimBreakSpawned = true;
+                const _dbArcR = Math.hypot(s.targetX - s.originX, s.targetY - s.originY);
+                if (!window._dimBreakZones) window._dimBreakZones = [];
+                window._dimBreakZones.push({
+                    cx: s.originX, cy: s.originY, arcR: _dbArcR, angle: s.angle,
+                    arcStart: s.angle - Math.PI / 2, spawnAt: now, expireAt: now + 1000,
+                });
+            }
+            if (s.strikeTimer >= 950) {
+                s.phase = 'ready'; s.cooldownEnd = now + 3500;
+            }
         }
     }
 
@@ -2997,6 +3195,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 s.phase = 'sweeping'; s.sweepTimer = 0;
                 s.sweepOrigin = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                 s._hitPlayer = false;
+                s._hitSentinels = new Set();
             }
         } else if (s.phase === 'sweeping') {
             s.sweepTimer += deltaTime;
@@ -3010,6 +3209,23 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
                     s._hitPlayer = true; playerTakesHit();
+                }
+            }
+            // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —
+            // Goliath không có afoHitCount thật nên LẤY CỐ ĐỊNH 150 (vượt xa
+            // ngưỡng 10 hit làm bão hoà công thức thật), tức luôn chạm trần
+            // 50% EP mỗi lần quét trúng — đúng như Leviathan thật lúc AFO đã
+            // vỡ từ lâu. Mỗi Sentinel chỉ trúng 1 lần/vòng quét.
+            for (const sen of sentinels) {
+                if (s._hitSentinels.has(sen)) continue;
+                const sAngle = Math.atan2(sen.y - enemy.y, sen.x - enemy.x);
+                let d2 = Math.abs(((curAngle - sAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
+                if (d2 < 0.15 && Math.hypot(sen.x - enemy.x, sen.y - enemy.y) < 900) {
+                    s._hitSentinels.add(sen);
+                    const ep = sen.maxHp + (sen.shield || 0);
+                    const ownerHits = 150;
+                    const dmg = Math.min(Math.ceil(ep * 0.50), Math.ceil(ep * 0.05 * ownerHits));
+                    dealDamage(sen, { damage: dmg, isTrueDamage: true });
                 }
             }
             if (s.sweepTimer >= 1800) {

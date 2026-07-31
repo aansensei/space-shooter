@@ -839,12 +839,15 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // HP text
+    // HP text — Goliath Alpha/Transforming: hp luôn = 1 (bất khả xâm phạm,
+    // số này vô nghĩa với người chơi), hiện damagePull (đang hút được bao
+    // nhiêu sát thương) thay vào đó cho có ý nghĩa hơn.
     ctx.save();
     ctx.fillStyle = "white"; ctx.font = "14px Arial";
     if (enemy.type === 'enemy_bullet_small') ctx.font = "10px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(Math.ceil(enemy.hp), enemy.x, enemy.y + 5);
+    const _hpTextVal = (enemy.type === 'goliath' && enemy.phase !== 'true_form') ? Math.ceil(enemy.damagePull || 0) : Math.ceil(enemy.hp);
+    ctx.fillText(_hpTextVal, enemy.x, enemy.y + 5);
     ctx.restore();
 
     // Death Mark (tu_huyet): cyan warning ring on enemies below 50% HP (down to the 20% threshold)

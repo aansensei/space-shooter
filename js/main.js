@@ -680,7 +680,11 @@ function update(rawDeltaTime) {
             enemies.forEach(ally => {
                 if (ally === enemy) {
                     // Aegis tự heal 55% hiệu quả (không heal khi đang chết)
-                    if (!ally._markedForDeath && enemy.hp > 0) enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.55);
+                    if (!ally._markedForDeath && enemy.hp > 0) {
+                        const _hpBefore = enemy.hp;
+                        enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.55);
+                        _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
+                    }
                     return;
                 }
                 // Không heal/shield kẻ địch đã chết hoặc đang chết
@@ -699,11 +703,13 @@ function update(rawDeltaTime) {
                     if (newHp > ally.maxHp) {
                         // Overheal: 50% of excess → shield
                         const overheal = newHp - ally.maxHp;
+                        _goliathTrackResourceGain(ally, ally.maxHp - ally.hp);
                         ally.hp = ally.maxHp;
                         let overshield = overheal * 0.5;
                         if (veilNormal) overshield *= 1.35; // Alteration: +35% shield
                         _addEnemyShield(ally, overshield);
                     } else {
+                        _goliathTrackResourceGain(ally, finalHeal);
                         ally.hp = Math.max(0, newHp);
                         // Alteration: nhận thêm khiên bằng lượng hồi phục
                         if (veilNormal) _addEnemyShield(ally, finalHeal);
@@ -1279,6 +1285,7 @@ function update(rawDeltaTime) {
                 if (enemy.arcBarrier) {
                     if (enemy._arcBarrierReviveAt && gameElapsedTime >= enemy._arcBarrierReviveAt) {
                         enemy._arcBarrierReviveAt = null;
+                        _goliathTrackResourceGain(enemy, enemy.maxHp - (enemy.arcBarrier.hp || 0));
                         enemy.arcBarrier = { hp: enemy.maxHp, maxHp: enemy.maxHp, angle: enemy.arcBarrier.angle, hitCount: 0 };
                         enemy.DR = Math.max(0.45, (enemy.DR || 0.45) - 0.20);
                         enemy._barrierSwordsThisCycle = 0;
@@ -1376,6 +1383,7 @@ function update(rawDeltaTime) {
                 );
                 if (_nearHost) {
                     _nearHost.marchosiasParasiteShield = (_nearHost.marchosiasParasiteShield || 0) + enemy.hp;
+                    _goliathTrackResourceGain(_nearHost, enemy.hp);
                     createParticles(_nearHost.x, _nearHost.y, 12, '#00ff88', 2, 5);
                     enemy.hp = 0;
                     continue;
@@ -1404,7 +1412,9 @@ function update(rawDeltaTime) {
         // Envy 1% MaxHP/s regen (applied to all envy-marked non-bullet enemies)
         if (enemy.levEnvy && enemy.hp > 0 && !enemy._markedForDeath &&
             !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
+            const _hpBefore = enemy.hp;
             enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.01 * (deltaTime / 1000));
+            _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
         }
 
         if (enemy.hp <= 0) {
@@ -1866,6 +1876,19 @@ function update(rawDeltaTime) {
                 playerTakesHit();
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 return false;
+            }
+            // Sentinel: ĐÚNG công thức thật (updateMarchosiasBlades) — 27%/
+            // 23%/21% EP giảm dần theo thứ tự Sentinel bị trúng, xuyên qua
+            // (không biến mất) như đúng bản gốc, chỉ trừ đúng 1 lần/Sentinel.
+            if (!sw.hitEnemies) sw.hitEnemies = [];
+            for (const s of sentinels) {
+                if (!sw.hitEnemies.includes(s) && Math.hypot(sw.x - s.x, sw.y - s.y) < (sw.radius || 88) + s.size) {
+                    const hitsAlready = sw.hitEnemies.length;
+                    const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
+                    dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct });
+                    sw.hitEnemies.push(s);
+                    addExplosion(s.x, s.y, 20, '#ff6600');
+                }
             }
             return true;
         });
