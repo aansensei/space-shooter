@@ -2339,7 +2339,6 @@ function _spawnCoronationResult(enemy) {
     if (type === 'leviathan' && spawned) _ensureLeviathanQuota(spawned);
 }
 
-// ============================================================
 // GOLIATH — Digiform prototype boss, tầng giữa Dominator và
 // Administrator (class tương lai). Spec đầy đủ: xem design doc đã duyệt.
 // PHẦN NÀY (đợt code đầu): Alpha phase, Circuit Link, Corrupted Genesis,
@@ -2348,7 +2347,6 @@ function _spawnCoronationResult(enemy) {
 // thật, Warding Palm block, Threshold Ward shield-mốc, hệ Joker 7 kỹ năng
 // copy — field trạng thái đã khai báo sẵn bên dưới nhưng chưa có logic kích
 // hoạt thật, để tránh code nửa vời gây lỗi khi test.
-// ============================================================
 function spawnGoliath() {
     const alphaSize = 125; // ngang Thaelis (100-150), không phải khối khổng lồ
     const g = {
