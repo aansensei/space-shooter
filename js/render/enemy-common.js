@@ -733,6 +733,8 @@ function drawEnemy(enemy) {
         _drawMarchosiasMinion(enemy);
     } else if (enemy.type === 'leviathan') {
         _drawLeviathan(enemy);
+    } else if (enemy.type === 'goliath') {
+        _drawGoliath(enemy);
     } else if (enemy.type === 'veilshroud') {
         _drawVeilshroud(enemy);
     } else if (enemy.type === 'veilshroud_echo') {

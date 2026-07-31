@@ -1203,7 +1203,7 @@ function updateSkillD(deltaTime) {
             if (enemy.inCoronation) continue; // untargetable during coronation
             if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
             let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath'
                 || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                 || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
             if (enemy.type !== 'embryo' && !_bhCCImmune) {
@@ -1303,6 +1303,13 @@ function updateSkillF(deltaTime) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive && !_hasBuff('tu_huyet')) {
                     enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
+                } else if (enemy.type === 'goliath') {
+                    // Goliath: KHÔNG được set enemy.hp=0 trực tiếp như enemy
+                    // thường — bỏ qua hẳn bất khả xâm phạm Alpha, Iron Body
+                    // Fracture Step, VÀ tỉ lệ đỡ Warding Palm (Skill F) đã cài
+                    // trong dealDamage. Phải đi qua dealDamage để mọi rule đó
+                    // thực sự áp dụng.
+                    dealDamage(enemy, { damage: 0, percentDamage: 0, _isSkillF: true });
                 } else {
                     // Coronation Iron Body absorbs 1 hit — bypassed only with Death Mark (tu_huyet)
                     if (!_hasBuff('tu_huyet') && (enemy.ironBodyHits || 0) > 0) {

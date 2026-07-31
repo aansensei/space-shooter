@@ -624,7 +624,7 @@ function update(rawDeltaTime) {
 
             const pullRadius = 200, pullStrength = 0.05;
             enemies.forEach(enemy => {
-                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo' || enemy.type === 'abyssal_chain' || enemy.type === 'leviathan') return;
+                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'embryo' || enemy.type === 'abyssal_chain' || enemy.type === 'leviathan' || enemy.type === 'goliath') return;
                 if (enemy.type === 'veilshroud_echo') return;
                 if (enemy.inCoronation) return;
                 const _laserCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel'
@@ -806,6 +806,37 @@ function update(rawDeltaTime) {
         if (enemy.hp <= 0) {
             // LEVIATHAN: death laser đã được spawn trong dealDamage khi HP→0
             // Không cần spawn thêm ở đây nữa
+
+            // GOLIATH Circuit Link / Corrupted Genesis: enemy này vừa chết
+            // trong lúc còn bị Goliath (Alpha) liên kết — chốt sổ Damage Pull
+            // và rơi 1 viên bảo thạch đúng màu nguồn gốc nếu là quái elite/boss.
+            if (enemy._goliathLinkedTo) {
+                const g = enemy._goliathLinkedTo;
+                if (g.phase === 'alpha' || g.phase === 'transforming') {
+                    if (enemy._goliathLethalWasUncapped) {
+                        g.damagePull += 50000;
+                    } else {
+                        const ledgerDmg = g._linkedLedger.get(enemy) || 0;
+                        g.damagePull += Math.ceil(0.75 * ledgerDmg) * 10;
+                    }
+                    g._linkedLedger.delete(enemy);
+                    const _goliathBossTypes = {
+                        veilshroud: 0, thaelis: 1, aegis_core: 2, marchosias: 3,
+                        egregor: 4, dargruel: 5, leviathan: 6,
+                    };
+                    if (_goliathBossTypes.hasOwnProperty(enemy.type) && (g._pendingGems || []).length + (g._flyingGems || []).length < 12) {
+                        // Viên bảo thạch RỚT RA ở vị trí enemy vừa chết rồi BAY
+                        // vào khe (giống test-goliath.html) — không dí thẳng
+                        // vào _pendingGems ngay như trước (thiếu hẳn hiệu ứng).
+                        const idx = _goliathBossTypes[enemy.type];
+                        g._flyingGems = g._flyingGems || [];
+                        g._flyingGems.push({ x: enemy.x, y: enemy.y, gem: GOLIATH_GEM_COLORS[idx], t: 0, dur: 1.3 });
+                        g.gemPoints = (g.gemPoints || 0) + 1;
+                        addExplosion(enemy.x, enemy.y, 50, GOLIATH_GEM_COLORS[idx].mid);
+                        createParticles(enemy.x, enemy.y, 14, GOLIATH_GEM_COLORS[idx].mid, 3, 8);
+                    }
+                }
+            }
 
             if (enemy.type === 'thaelis' && !enemy.reincarnated) {
                 enemy.reincarnated = true;
@@ -1088,6 +1119,9 @@ function update(rawDeltaTime) {
         } else if (enemy.type === 'leviathan') {
             // Leviathan update handled by updateLeviathan()
             updateLeviathan(enemy, deltaTime);
+
+        } else if (enemy.type === 'goliath') {
+            updateGoliath(enemy, deltaTime);
 
         } else if (enemy.type === 'veilshroud') {
             updateVeilshroud(enemy, deltaTime);
@@ -1624,7 +1658,12 @@ function update(rawDeltaTime) {
                         }
                     }
 
-                    if (!b.isPiercing) {
+                    // Leviathan bullets can pop even piercing player/sentinel
+                    // shots on contact — regular enemies' bullets don't have
+                    // this, a piercing shot normally passes straight through.
+                    const _leviathanBulletPop = enemy.type === 'enemy_bullet' && enemy.ownerRef && enemy.ownerRef.type === 'leviathan'
+                        && (b.type === 'player_auto' || b.type === 'sentinel_auto');
+                    if (!b.isPiercing || _leviathanBulletPop) {
                         bullets.splice(i, 1);
                         break;
                     }
@@ -1788,6 +1827,79 @@ function update(rawDeltaTime) {
     // Update Leviathan handled inside enemies for loop above
 
     _profChk.push(performance.now()); // end of updateSkillA/D/F/spirits/etc. batch
+    // Goliath Absolute Verdict orb (independent object) — xuyên phá, không
+    // thể bị chặn/deflect/CC (không check gì ngoài va chạm trực tiếp),
+    // 35% MaxHP true damage vào Sentinel, -5 mạng người chơi.
+    if (window._goliathOrbs && window._goliathOrbs.length) {
+        window._goliathOrbs = window._goliathOrbs.filter(orb => {
+            orb.life -= deltaTime;
+            orb.x += orb.vx * (deltaTime / 1000);
+            orb.y += orb.vy * (deltaTime / 1000);
+            if (orb.life <= 0 || orb.x < -100 || orb.x > canvas.width + 100 || orb.y < -100 || orb.y > canvas.height + 100) return false;
+            if (!orb._hitPlayer && Math.hypot(orb.x - player.x, orb.y - player.y) < 90 + (player.hitRadius || 15)) {
+                orb._hitPlayer = true;
+                // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
+                // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
+                for (let li = 0; li < 5; li++) playerTakesHit();
+                addExplosion(orb.x, orb.y, 80, '#9d00ff');
+                return false;
+            }
+            for (const s of sentinels) {
+                if (s.hp > 0 && Math.hypot(orb.x - s.x, orb.y - s.y) < 90 + (s.size || 20) / 2) {
+                    dealDamage(s, { damage: orb.dmg, isTrueDamage: true });
+                    addExplosion(orb.x, orb.y, 80, '#9d00ff');
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    // Goliath Joker (Marchosias copy) sword projectiles (independent objects)
+    if (window._goliathSwords && window._goliathSwords.length) {
+        window._goliathSwords = window._goliathSwords.filter(sw => {
+            sw.life -= deltaTime;
+            sw.x += sw.vx * (deltaTime / 1000);
+            sw.y += sw.vy * (deltaTime / 1000);
+            if (sw.life <= 0 || sw.x < -50 || sw.x > canvas.width + 50 || sw.y < -50 || sw.y > canvas.height + 50) return false;
+            if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
+                playerTakesHit();
+                addExplosion(sw.x, sw.y, 50, '#ff8c1a');
+                return false;
+            }
+            return true;
+        });
+    }
+
+    // Goliath Corrupted Meteor (independent objects) — trúng người chơi trừ
+    // 1 mạng qua playerTakesHit() (tôn trọng mọi lớp bảo vệ), trúng Sentinel
+    // thì nổ gây sát thương lan 25% EP true damage cho các Sentinel gần đó.
+    if (window._goliathMeteors && window._goliathMeteors.length) {
+        window._goliathMeteors = window._goliathMeteors.filter(m => {
+            m.life -= deltaTime;
+            m.x += m.vx * (deltaTime / 1000);
+            m.y += m.vy * (deltaTime / 1000);
+            if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
+            if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
+                playerTakesHit();
+                addExplosion(m.x, m.y, 70, '#f59e0b');
+                return false;
+            }
+            for (const s of sentinels) {
+                if (s.hp > 0 && Math.hypot(m.x - s.x, m.y - s.y) < 46 + (s.size || 20) / 2) {
+                    addExplosion(m.x, m.y, 90, '#f59e0b');
+                    sentinels.forEach(s2 => {
+                        if (s2.hp > 0 && Math.hypot(m.x - s2.x, m.y - s2.y) < 140) {
+                            dealDamage(s2, { percentDamage: 0.25, isTrueDamage: true });
+                        }
+                    });
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
     // Leviathan Perseverance beams (independent objects)
     if (!window._levPersBeams) window._levPersBeams = [];
     window._levPersBeams = window._levPersBeams.filter(beam => {

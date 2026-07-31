@@ -95,9 +95,13 @@ objects each inheriting a portion of Thaelis max HP plus a fixed bonus.
 Embryo objects have damagereduction set to 0.90 and ccImmune set to true
 directly on the object.
 
-**Leviathan All for One:** The entity holds a kill quota of 6 to 9. All incoming
+**Leviathan All for One:** The entity holds a kill quota of 10 to 20. All incoming
 damage evaluates to zero at the top of the resolution chain until the quota is
 met. After quota fulfillment a Perseverance sweep fires as the combat opener.
+
+**Leviathan Bulwark Barrier:** every 1s, while its shield hasn't reached the
+2-layer cap, it gains a layer worth 0.5% Max HP per on-screen enemy (each
+layer capped at 15% Max HP). Resets once the shield fully depletes.
 
 ### Vanguard Network and Fuse Protocol
 

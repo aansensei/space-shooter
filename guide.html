@@ -653,6 +653,7 @@
   <script src="js/render/fx.js"></script>
   <script src="js/render/player.js"></script>
   <script src="js/render/enemy-common.js"></script>
+  <script src="js/render/enemy-goliath.js"></script>
   <script src="js/render/enemy-boss-thaelis.js"></script>
   <script src="js/render/enemy-egregor.js"></script>
   <script src="js/render/skill-s-spirit.js"></script>
@@ -983,8 +984,9 @@
 <tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud</td><td>3 / 2</td></tr>
 <tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis, Egregor</td><td>2 / 2 / 1</td></tr>
 <tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td><td>2 / 1</td></tr>
+<tr><td style="color:#eab308">Digiform</td><td>Goliath</td><td>1, debug-spawn only</td></tr>
 <tr><td style="color:#ff2244">Administrator</td><td>Kanade</td><td>—</td></tr>
-</table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus. Cap = max simultaneously on screen. No combined cap across tiers.</p></div>
+</table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus. Cap = max simultaneously on screen. No combined cap across tiers. Goliath is a testbed boss for the future Administrator class — not yet wired into the normal wave-spawn rotation.</p></div>
 
 <div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLES <span class="dsclass" style="font-size:9px;color:#aaaaaa">LESSER</span></h2><div class="sub">HP 22–330 • FIRES 1 BULLET/SEC • Evade 1→2% • Speed ~1.2 u/s</div>
 <div class="ab" style="height:140px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div>
@@ -1054,13 +1056,44 @@
 <div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">DOMINATOR</span></h2><div class="sub">Wave 3 • HP 8,820–15,435 • Evade 10→15% • CAP 1 • Speed ~1.5 u/s</div>
 <div class="ab" style="height:130px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="det-full"><span class="dmg">60% base DR</span> (after AFO shield breaks). Hit &gt;30% MaxHP → <span class="dmg">2.5s window: damage capped at 10% MaxHP</span> (2s CD).</span><span class="det-short">60% DR; any single hit exceeding 30% MaxHP triggers a 2.5s damage cap window.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="det-full"><span class="dmg">60% base DR</span> (after AFO shield breaks). Hit &gt;20% MaxHP → <span class="dmg">3s window: damage capped at 10% MaxHP</span> (2s CD after the window ends). Also force-triggers the instant Leviathan's HP first crosses <span class="hg">50%</span>, regardless of hit size or cooldown. Its own bullets destroy player auto bullets, sentinel bullets, and both spirits' bullets on contact — even ones that would normally pierce through.</span><span class="det-short">60% DR; a &gt;20% MaxHP hit or crossing 50% HP triggers a 3s damage cap window. Its bullets pop player/sentinel/spirit bullets on contact.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Bulwark Barrier</b> — <span class="det-full">every 1s, gains a shield layer worth <span class="hg">0.5% MaxHP × enemies on screen</span> (each layer capped at <span class="hg">15% MaxHP</span>), up to 2 layers stacked. Resets once the shield fully depletes so it builds back up from scratch. Also grants a one-time <span class="hg">50% MaxHP</span> barrier plus <span class="hg">90% DR for 1s</span> the instant the All for One shield breaks.</span><span class="det-short">Every 1s gains a shield layer scaling with on-screen enemy count, up to 2 layers (~30% MaxHP). Also grants a 50% MaxHP barrier + 90% DR for 1s right as the AFO shield breaks.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Iron Body shield until kill quota (10–20). Wings folded. CC immune.</li>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — <span class="det-full">all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received. Re-applied every 2.5s to catch enemies spawned after Leviathan.</span><span class="det-short">Grants all enemies +25% DR and +25% healing received while Leviathan is alive.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Herd Leader</b> — <span class="det-full">all enemies gain <span class="hr">Envy</span>: +25% DR, +25% healing received, +1% Max HP regen/s. Re-applied every 2.5s to catch enemies spawned after Leviathan.</span><span class="det-short">Grants all enemies +25% DR, +25% healing received, and +1% Max HP regen/s while Leviathan is alive.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Every 0.75s fires 3 bullets at nearest target. Bullet HP = 2% Leviathan MaxHP.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — <span class="det-full">red warning + full 360° sweeping laser. Fires when AFO shield breaks. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">5% × AFO shield hits</span> EP/tick, cap <span class="hr">50% EP</span> (caps at 10 shield hits).</span><span class="det-short">360° sweeping laser when AFO breaks. Player: 1 life. Sentinel: up to 50% EP.</span></li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> @HP 1 <b>Last Rites</b> — <span class="det-full">9 wing-plates lock onto targets, all fire simultaneously. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">3% × (AFO shield hits ÷ 2)</span> EP per laser, cap <span class="hr">55% EP</span> (caps at 37 shield hits). Lasers persist after death.</span><span class="det-short">9 simultaneous lasers at HP 1 that persist after death. Player: 1 life. Sentinel: up to 55% EP.</span></li>
 </ul></div>
+<div class="card" style="border-color:rgba(245,158,11,0.3)">
+<h2 class="dsname" style="color:#f59e0b">GOLIATH <span class="dsclass" style="font-size:9px;color:#eab308">DIGIFORM</span></h2>
+<div style="display:flex;gap:6px;margin-bottom:8px;">
+  <button onclick="showGoliathTab(1)" id="gTabBtn1" style="flex:1;padding:5px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(245,158,11,0.25);border:1.5px solid #f59e0b;border-radius:6px;color:#f59e0b;">① Alpha</button>
+  <button onclick="showGoliathTab(2)" id="gTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(80,50,0,0.2);border:1.5px solid rgba(245,158,11,0.4);border-radius:6px;color:#c9891f;">② True Form</button>
+</div>
+<div id="gGoliathPane1">
+<div class="ab" style="height:190px"><canvas id="cvGoliathAlpha" style="width:100%;height:100%"></canvas></div>
+<div class="sub" style="margin-top:6px">HP 1 · Evade 0% · Untargetable · Invulnerable</div>
+<ul>
+<li><span style="color:#ffd700;font-size:10px">PHASE</span> <b>Alpha</b> — <span class="det-full">spawns near the top of the screen at <span class="hg">1 HP</span>, absolutely invulnerable and untargetable — no exception applies during this phase. <span class="hi">Circuit Link</span> connects it to every current enemy: up to <span class="hg">80% of that enemy's own Max HP</span> per hit is redirected into Goliath's Damage Pull ledger instead of killing them outright. <span class="hi">Corrupted Genesis</span> — when a linked Abnormal-tier-or-higher enemy dies, a colored gem flies into one of its 3 sockets; filling all 3 with distinct gems begins Transition.</span><span class="det-short">Invulnerable orb that links to the wave, redirecting up to 80% of enemies' own Max HP into its Damage Pull. Absorbs 3 gems from linked deaths to transform.</span></li>
+<li><span style="color:#ffd700;font-size:10px">PASSIVE</span> <b>Feeding Ground</b> — the instant Goliath spawns, <span class="hr">ceil(1/3)</span> of the wave's current enemies are consumed outright, and every survivor gains <span class="hg">+15% Max HP</span>.</li>
+<li><span style="color:#ffd700;font-size:10px">PHASE</span> <b>Transition</b> — <span class="det-full">a ~4s, 4-stage transform sequence once all 3 sockets are filled: meteors converge and fuse into a molten mass (Summon), the mass swells and bubbles (Fusion), it cools and crystallizes into the True Form body as the 3 gems ignite in sequence (Crystallize), then both arms extend and settle with a final shockwave (Settle). Still invulnerable and untargetable throughout.</span><span class="det-short">4-stage, ~4s transform into True Form once all 3 gem sockets are filled. Still invulnerable throughout.</span></li>
+</ul>
+</div>
+<div id="gGoliathPane2" style="display:none">
+<div class="ab" style="height:190px"><canvas id="cvGoliathTrue" style="width:100%;height:100%"></canvas></div>
+<div class="sub" style="margin-top:6px">HP 50,000+ (scales with Damage Pull) · CAP 1 · Speed ~90 px/s (sine-wave drift, not fixed-velocity)</div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Inevitable</b> — <span class="det-full"><span class="dmg">70% base DR</span>, permanent CC immunity, <span class="hg">2% Max HP/s</span> regen. A hit exceeding <span class="hg">20% Max HP</span> opens a 2.5s window capping further damage at <span class="hr">5% Max HP</span> per hit (2s CD after).</span><span class="det-short">70% DR, permanent CC immunity, 2%/s regen. Big hits (&gt;20% MaxHP) trigger a 2.5s 5%-cap window.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Fracture Step</b> — <span class="det-full">teleports when a threat closes within <span class="hi">100px</span> (or every 2s regardless, 3s CD on the teleport itself), gaining a <span class="hg">3-hit Iron Body</span> layer each time. The teleport is a slow 2-stage magic-circle portal (close at the old spot over 400ms, reopen at the new one over 400ms) rather than an instant blink.</span><span class="det-short">Teleports away from threats or every 2s, granting a 3-hit Iron Body layer. Slow 2-stage portal, not instant.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Warding Palm</b> — <span class="det-full">incoming hits from <span class="hi">Skill F</span>, <span class="hi">Skill D</span>, or the <span class="hi">Photokrystos finale laser</span> have a <span class="hg">30% chance</span> to be partially deflected, taking only <span class="hg">15% of Max HP</span>; the other 70% of the time the origin power overwhelms the palm and the hit lands for the full <span class="hr">40% of Max HP</span> — every hit, no lifetime cap. This rule (like all of Goliath's own rules) overrides any sigil that would otherwise pierce it.</span><span class="det-short">30% chance to deflect Skill F/D/Photokrystos laser hits down to 15% Max HP; otherwise 40% Max HP, per hit.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Threshold Ward</b> — crossing the 75/50/25% HP milestones each grants a <span class="hg">+15% Max HP</span> shield pool; healing back across a milestone restores HP up to that threshold.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Casting restriction</b> — <span class="det-full">while channeling any skill (its own or a Joker copy's), Goliath is <span class="hr">35% slower</span>, cannot Fracture Step, gains <span class="hg">+10% DR</span> for the duration, and heals <span class="hg">15% Max HP</span> once the instant the cast begins.</span><span class="det-short">Casting any skill: 35% slower, no Fracture Step, +10% DR, one-time 15% MaxHP heal at cast start.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Absolute Verdict</b> — <span class="det-full">3s channel (both arms clasp at the eye) tracking the player's position until <span class="hi">0.5s before launch</span>, then locks. Fires a piercing orb: <span class="hr">35% Max HP true damage</span> to a Sentinel, or <span class="hr">-5 lives</span> to the player.</span><span class="det-short">3s channel, tracks player until 0.5s before firing then locks. Orb: 35% MaxHP true damage to Sentinel or -5 lives.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Corrupted Meteor</b> — <span class="det-full">CD <span class="hi">5s</span>. Raises a hand and pulls a random living Apostle into a compressed meteor core over <span class="hi">0.8s</span>, then throws it at the player. Hitting the player costs <span class="hr">1 life</span>; hitting a Sentinel explodes for <span class="hr">25% of that Sentinel's own Max HP</span> as splash damage to nearby Sentinels.</span><span class="det-short">CD 5s. Pulls a random Apostle into a meteor core, throws it at the player. Player: -1 life. Sentinel: 25% EP splash.</span></li>
+<li><span style="background:linear-gradient(90deg,#2dd4bf,#818cf8,#d946ef);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:10px;font-weight:700;letter-spacing:0.5px">UNIQUE SKILL</span> <b>Joker</b> — <span class="det-full">True Form gains working copies of exactly the <span class="hi">3 abilities</span> tied to its absorbed gems (out of 7 possible: Veilshroud's Phantom + lightning, Thaelis's Tenacity, Aegis Core's Lumen Nova, Marchosias's Sword &amp; Barrier, Egregor's Psychic Tempest, Dargruel's Maou Haki, Leviathan's Perseverance), each re-telegraphed to match that skill's real timing, size, and warning zone.</span><span class="det-short">Copies exactly the 3 abilities tied to its absorbed gems, each matching the real source skill's timing/size/telegraph.</span></li>
+</ul>
+</div>
+</div>
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">ADMINISTRATOR</span></h2>
 <div class="sub" style="color:#ff2244aa">— UNDEFINED —</div>
@@ -1098,7 +1131,7 @@
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Against EP (Shield + Max HP = Existence Point). Hits shield first.</p></div>
 <div class="card"><h2 style="color:var(--red)">TRUE DAMAGE</h2><p>Bypasses all Shields. Directly to HP.</p></div>
 <div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Complete immunity to <b>all damage</b> — %, true, Black Hole, Skill F. Absolute.</p></div>
-<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed by any crowd control — Black Hole pull, Tesla slow, Dimensional Rift slow, Orb slow. Does NOT block damage. <b>Egregor</b>, <b>Dargruel</b>, and <b>Leviathan</b> have permanent CC Immunity.</p></div>
+<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed by any crowd control — Black Hole pull, Tesla slow, Dimensional Rift slow, Orb slow. Does NOT block damage. <b>Egregor</b>, <b>Dargruel</b>, <b>Leviathan</b>, and <b>Goliath</b> (True Form, via Inevitable) have permanent CC Immunity.</p></div>
 <div class="card"><h2 style="color:#cc55ff">ROOT & SILENCE</h2>
 <p>Inflicted by Dargruel's <b>Abyssal Chains</b>. Lasts <span class="hr">1 second</span>, re-applies on each hit even if already active.</p>
 <ul><li><b>Root:</b> Cannot move at all.</li>
@@ -1111,37 +1144,46 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
-<div class="ul-entry" style="--ul-accent:#ef4444">
-<div class="ul-head"><span class="ul-ver">v5.6 — ARIES REWORK</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
-<div class="ul-date">2026-07-24 · Vanguard absorbs Blood Frenzy's chain mechanic, new Onslaught fireball-relay ability</div>
-<p class="det-short ul-summary">Blood Frenzy's chain true-damage mechanic only ever worked on the 40-50% of bullets Vanguard made piercing in the first place, so it's been folded directly into Vanguard itself — freeing up Aries's second slot for a brand-new ability, Onslaught: every landed hit from any ally (except Skill D and Skill F) can fling a fireball at whichever enemy the previous hit struck.</p>
+<div class="ul-entry" style="--ul-accent:#f59e0b">
+<div class="ul-head"><span class="ul-ver">v5.4 — GOLIATH &amp; LEVIATHAN BUFF</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-date">2026-07-30 · New Digiform-tier boss testbed for the future Administrator class, plus Leviathan's Inevitable/Bulwark Barrier buffs and a Perseverance/Last Rites visual overhaul</div>
+<p class="det-short ul-summary">Goliath is a new boss built around absorbing power from the rest of the wave. It spawns as an untargetable, invulnerable Alpha orb that links to every other enemy on screen and pulls a share of the damage they take; when three colored gem sockets fill from the deaths of linked Abnormal-tier+ enemies, it fuses into its True Form — a golem-like body wielding whichever three abilities it absorbed, on top of its own kit (Inevitable, Fracture Step, Absolute Verdict, Warding Palm, Threshold Ward). Also in this patch: Leviathan's Inevitable protection triggers more easily and lasts longer, a new Bulwark Barrier passive grants a stacking shield, and Perseverance/Last Rites both got a full visual rework.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Vanguard:</b> pierce chance 40% → 50%; absorbs Blood Frenzy's old chain mechanic (+30% dmg per pierce-chain hit, plus true damage per chain 2.5% → 3% of the enemy's Max HP, max 4 chains).</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Blood Frenzy renamed Onslaught (NEW ability):</b> any landed hit from an allied source (Skill D and Skill F excluded) can fire a homing fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit's damage + 0.75% of the target's missing HP, gated by a 300ms cooldown. New fireball visual with an ember trail and licking flame tongues.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Onslaught targeting fallback:</b> apostles are weak enough (22-330 HP) to often die in a single hit, so the "previous target" was frequently already dead by the next trigger and the fireball silently never fired. It now falls back to firing at the current target instead of skipping, so the ability stays visible against weak waves too.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leviathan — Inevitable:</b> protection trigger threshold 30% → 20% of Max HP per hit, window duration 2.5s → 3s (still a 2s cooldown after it ends).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Alpha phase:</b> spawns near the top of the screen, 1 HP, absolute invulnerability, fully untargetable. Circuit Link connects it to every current enemy — up to 80% of an enemy's own Max HP per hit is redirected into Goliath's Damage Pull ledger instead of killing them outright.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Corrupted Genesis:</b> when a linked Abnormal-tier-or-higher enemy dies, a colored gem drops and flies into one of Alpha's 3 sockets (a slight shockwave shake plays on impact). Filling all 3 with distinct gems triggers Transition.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Alpha passive — Feeding Ground:</b> the instant Goliath spawns, ceil(1/3) of the current wave's enemies are consumed outright, and every survivor gains +15% Max HP.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Transition:</b> a 4-stage transform sequence — meteors converge and fuse into a molten mass, then crystallize into the True Form body, then both arms pop out and settle.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>True Form — Inevitable:</b> 70% base damage reduction, permanent CC immunity, 2%/s regen, plus a 2.5s 5%-max-hit cap window whenever a single hit exceeds 20% Max HP.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>True Form — Fracture Step:</b> teleports when a threat closes within 100px (or every 2s regardless), gaining a 3-hit damage-absorbing Iron Body layer each time. The teleport itself is a slow two-stage magic-circle portal (close at the old spot, reopen at the new one) rather than an instant blink.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>True Form — Absolute Verdict:</b> a 3s channel (both arms clasp at the eye) fires a piercing orb that tracks the player's position only up until 0.5s before launch, then locks — dealing 35% Max HP true damage to a Sentinel or costing the player 5 lives.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>True Form — Warding Palm:</b> incoming hits from Skill F, Skill D, or the Photokrystos finale laser have a 30% chance to be deflected down to just 15% of Goliath's Max HP; the origin power behind these hits is simply too strong to fully block, so the other 70% of the time it lands for a full 40% of Max HP — every hit, no lifetime cap. This rule (like every other Goliath rule) overrides any sigil that would otherwise pierce it.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>True Form — Threshold Ward:</b> crossing the 75/50/25% HP milestones each grants a +15% Max HP shield pool; the pool healing back across a milestone restores HP up to that threshold.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>True Form — Corrupted Meteor (NEW, CD 5s):</b> Goliath raises a hand and pulls a random living Apostle into a compressed meteor core over 0.8s, then hurls it at the player. Hitting the player costs 1 life; hitting a Sentinel explodes for 25% of that Sentinel's own Max HP as splash damage to nearby Sentinels.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Joker system:</b> True Form gains working copies of exactly the 3 abilities tied to its absorbed gems (out of 7 possible: Veilshroud's Phantom + lightning, Thaelis's Tenacity, Aegis Core's Lumen Nova, Marchosias's Sword &amp; Barrier, Egregor's Psychic Tempest, Dargruel's Maou Haki, Leviathan's Perseverance) — each rebalanced and re-telegraphed against the real source skill's own timing, size, and warning zones rather than a rough approximation.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Casting restriction (NEW):</b> while channeling any skill (its own or a Joker copy's), Goliath slows 35%, cannot Fracture Step, gains +10% DR for the duration, and heals 15% Max HP once at the moment the cast begins.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Movement:</b> True Form drifts slowly across most of the screen (biased toward the upper area, away from the bottom) instead of holding a fixed spot, and always renders above the Sigil HUD so it's never obscured while flying near the top edge.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Leviathan — Inevitable (NEW):</b> Leviathan's own bullets destroy player auto bullets, sentinel bullets, and both spirits' bullets on contact — including ones that would normally pierce straight through.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Leviathan — Bulwark Barrier (NEW passive):</b> every 1s, gains a shield layer worth 0.5% Max HP × enemies currently on screen (each layer capped at 15% Max HP), up to 2 layers stacked (~30% Max HP total). Resets once the shield fully depletes.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Leviathan — All for One (NEW grace):</b> the instant the Iron Body shield breaks, Leviathan gets a one-time 50% Max HP barrier plus 90% DR for 1s.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Leviathan — Inevitable (NEW emergency trigger):</b> the instant Leviathan's HP first crosses 50%, the protection window activates immediately regardless of hit size or cooldown.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Leviathan — Perseverance visual overhaul:</b> the charge telegraph is now a collapsing black-hole well — counter-rotating event-horizon rings, particles spiraling into the core, and a layered void/red/white core glow. The sweeping beam itself gained a void-purple outer haze, a breathing red danger layer, crackling energy branches, and a rotating energy collar at the origin.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Leviathan — Last Rites visual overhaul:</b> each wing now shows a power-surge band traveling toward the tip as it charges plus tip sparks once nearly ready, and the warning line layers void-purple under red-orange. The active beams match Perseverance's new layered look and add a one-time shockwave ring at the origin the instant all 9 fire.</li>
+<li><span class="ul-tag tag-fix">FIX</span> A rendering scale bug had every True Form overlay effect (Joker telegraphs, Inevitable aura, Fracture Step flash, Threshold Ward, Warding Palm) drawn inside the body's cosmetic scale transform, silently shrinking them and misplacing anything anchored to a far-off point (laser lines, falling lightning). All overlay effects now draw in true 1:1 world coordinates.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Several Joker copies (Aegis Core's laser, Veilshroud's lightning) applied damage unconditionally to their locked targets instead of re-checking the target's actual position at the moment of impact — dodging out of the telegraphed zone did nothing. Both now match their real source skill's own hit-check exactly.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Skill F's sweep never routed its actual kill through the shared damage function for non-special-cased enemies (it just zeroed HP directly), so it silently bypassed Goliath's invulnerability, Fracture Step's absorb layer, and the Warding Palm cap. It now goes through the shared damage path like every other enemy's special case already did.</li>
+<li><span class="ul-tag tag-fix">FIX</span> Two sigil effects (Death Mark's ≤5%-HP instakill, Compound Interest's shield/DR-bypassing flat damage) ignored Goliath's own defensive rules entirely. Both now exclude Goliath, matching Alpha's invulnerability check.</li>
 </ul>
 </div>
 
-<div class="ul-entry" style="--ul-accent:#c9a227">
-<div class="ul-head"><span class="ul-ver">v5.5 — LEO &amp; VIRGO REWORK</span><span class="ul-badge">PATCH</span></div>
-<div class="ul-date">2026-07-24 · Leo and Virgo balance pass, new Forest Guardian vine-log sweep, Mirror Laser visual overhaul</div>
-<p class="det-short ul-summary">Leo's Lion's Roar now scales with the target's own missing HP, and Divine Fate's freeze-window damage bonus doubled. Virgo's Golden Arrow was renamed Forest Guardian and gained a brand-new bonus attack — a vine-wrapped log that sweeps the screen every 4s once 5+ enemies are up — and Circuit Engineer now punishes any debuffed enemy with +50% damage taken. Also fixed a long-standing description drift where the sigil's crit trigger was documented as "every 12 hits, 3x dmg" when the actual code had always been "every 6 volleys" — corrected to match, and bumped to 4x while at it. Rebuilt both the vine-log and Mirror Laser column visuals with much more detail.</p>
+<div class="ul-entry" style="--ul-accent:#a78bfa">
+<div class="ul-head"><span class="ul-ver">v5.3 — SIGIL REWORK, BALANCE PASS &amp; ZODIAC REWORKS</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026-07-22 to 2026-07-24 · Libra/Gemini sigil reworks, full 12-sigil balance pass + reroll system, Leo/Virgo rework, Aries rework</div>
+<p class="det-short ul-summary">A four-part sigil overhaul, newest first in the list below but chronologically: Libra and Gemini first got new signature abilities (Blood Arrow, Astral Pierce, Shadow Twin) plus a fix for a severe Skill A targeting bug. Then a full 12-sigil balance pass added a reroll system (2 shared rerolls across a run's 3 picks) and a flat +15% HP buff to every enemy. Leo and Virgo followed — Virgo's Golden Arrow became Forest Guardian with a new vine-log sweep, Leo's Lion's Roar gained missing-HP scaling. Finally, Aries's Blood Frenzy was folded into Vanguard itself, freeing a slot for the new Onslaught fireball-relay ability.</p>
 <ul class="det-full">
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Lion's Roar:</b> every hit against an enemy now also deals bonus damage equal to 2% of that enemy's own missing HP, on top of the existing GFJ-gated Burn DoT.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Divine Fate:</b> freeze-window damage bonus +50% → +100%.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Golden Arrow renamed Forest Guardian (NEW bonus attack):</b> while 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across 60% of the screen width, dealing 1000 + 10% EP + 15% of each target's missing HP. The log itself is now drawn at true scale — its swing visually spans the full 60% width instead of a small hand-held prop — densely wrapped in vine strands and leaf clusters running end to end, with a cut cross-section and snapped branch stub at the striking tip.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Circuit Engineer:</b> enemies carrying any recognized debuff (Vulnerability, Soul Reaver, slow, DoT, Dimensional Rift, Yog mark) now take +50% damage from all sources.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Cycle of Flow:</b> the charge-skip now also covers Overload Laser — a single Space press instantly fires the laser (no more holding to charge), same as Skill D and F.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Gemini — Mirror Laser column visual overhaul:</b> the bonus laser column is now a wavering, color-cycling plasma body with a flickering white-hot core, crackling side-arc branches, and a rotating energy ring at the emission point — replacing the original static rectangle beam.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Virgo — Forest Guardian description drift:</b> the crit trigger had quietly been "every 6th auto volley" in code for a long time while the sigil card still read "every 12 bullet hits, 3x dmg" — corrected to match reality (and bumped to 4x in the same pass).</li>
-</ul>
-</div>
-
-<div class="ul-entry" style="--ul-accent:#38bdf8">
-<div class="ul-head"><span class="ul-ver">v5.4 — SIGIL BALANCE PASS &amp; REROLL</span><span class="ul-badge">PATCH</span></div>
-<div class="ul-date">2026-07-24 · Full 12-sigil balance pass, sigil reroll system, +15% global enemy HP, Overload Laser damage rework</div>
-<p class="det-short ul-summary">Sweeping balance pass across every sigil, a new reroll system (2 shared rerolls across all 3 picks in a run), a straight +15% HP buff to every enemy type, and a reworked Overload Laser base damage. Aquarius's Chain Lightning replaced its old Skill D bonus with a Skill G synergy: unpaired energy orbs grant a stacking damage buff and can be siphoned into extra Skill A orbs. Pisces's Cycle of Flow now skips the charge phase on Skill D/F entirely. Sagittarius's Twin Blades gained a 3rd-blade chance and a new auto-fire arc-blade proc.</p>
-<ul class="det-full">
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Libra — Blood Arrow (NEW, replaces Riposte):</b> every Skill A cast fires 3 plasma arrows after a 0.5s windup — 1 big arrow marking the highest-EP enemy, plus 2 smaller arrows marking random enemies biased toward denser clusters. Each pierces every enemy it passes for 300 dmg, then explodes on its own marked target for 400 + 20% PE (up to +100% more based on the target's DR), applying 2 Vulnerability stacks to everything it touches. The 2 small arrows deal 40% less damage but fly 20% faster; the big one is 15% bigger. Bigger, brighter purple-red/magenta flame visual with flickering flame licks (was a small orange sprite). Banks the shot if no enemy is on screen yet, firing the instant one appears. Immune to Maou Haki and the Perseverance sweep, same as photoBrangs and blade arcs.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Libra — Astral Pierce (NEW):</b> replaces Law of Scales. Skill A orbs now punch straight through their target on impact instead of disappearing, continuing to the screen edge and damaging every other enemy they cross.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Gemini — Shadow Twin reworked:</b> the trigger is now every 10th hit landed by any allied source (Sentinels excluded), not just auto-fire. It charges for 0.5s, then a phantom twin ship flickers into existence at a random screen edge — inset so it's actually visible — and fires 3 volleys 200ms apart at random enemies clear across the screen, each volley 1 large orb flanked by 2 small orbs, in a red-purple plasma color, sized +25% up from the first pass. Small orb: 75 + 3% EP. Large orb: 175 + 8% EP. Every hit applies 2 Vulnerability stacks and Soul Reaver. 1s cooldown before it can trigger again. Immune to Maou Haki and the Perseverance sweep, same as Sol Arrow.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Sigil Reroll (NEW):</b> the sigil picker now has a reroll button next to Confirm. Every run gets exactly 2 reroll uses shared across all 3 picks (waves 1, 5, 10) — spend both on the first pick and the later ones get none.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Aries — Vanguard:</b> pierce chance 30% → 40%, auto-fire damage bonus +20% → +50%.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Taurus — Iron Fortress:</b> max stacks 2 → 3.</li>
@@ -1157,26 +1199,25 @@
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Aquarius — Magnetic Field:</b> DoT 0.8% → 3.5% Max HP/s.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Dream Realm:</b> negate-damage window 2s → 3s, marked enemies now take an instant Vulnerability stack, and the delayed burst is now 60% of accumulated damage (was 40%) plus 35% of the target's missing HP.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Cycle of Flow reworked:</b> CD reduction per kill tier increased across the board (apostle -1s, abnormal/elite -1.5s, dominator -2s), plus a new -3s on an Egregor kill specifically. Phōtokrystos and Skill G charge rate +50%. Skill D and Skill F now skip their charge phase entirely and fire instantly (Shift is unaffected).</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Overload Laser:</b> tick damage reworked from 130 + 19% EP to 350 + 23% EP.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>All enemies:</b> +15% HP across the board, from Apostles through the Dominator tier.</li>
-<li><span class="ul-tag tag-fix">FIX</span> <b>Update log / guide text:</b> the Overload Laser description had drifted out of sync with the real in-game tick damage and interval for a while — corrected in both the Skills tab and README.</li>
-</ul>
-</div>
-
-<div class="ul-entry" style="--ul-accent:#a78bfa">
-<div class="ul-head"><span class="ul-ver">v5.3 — SIGIL REWORK</span><span class="ul-badge">PATCH</span></div>
-<div class="ul-date">2026-07-22 · Libra and Gemini sigil reworks, Scorpio/Sagittarius retuning, Skill A targeting fix</div>
-<p class="det-short ul-summary">Libra's sigil replaced entirely: Blood Arrow fires 3 homing plasma arrows off every Skill A cast, Astral Pierce makes Skill A orbs punch through their target instead of stopping. Gemini's Shadow Twin reworked from a bullet-mirror into a phantom twin ship that barrages random enemies with staggered volleys of piercing plasma orbs. Scorpio's Death Mark and Sagittarius's Arctic Chill/Twin Blades got numbers retuned. Fixed a severe bug where Skill A could stop targeting enemies entirely once Astral Pierce was active.</p>
-<ul class="det-full">
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Libra — Blood Arrow (NEW, replaces Riposte):</b> every Skill A cast fires 3 plasma arrows after a 0.5s windup — 1 big arrow marking the highest-EP enemy, plus 2 smaller arrows marking random enemies biased toward denser clusters. Each pierces every enemy it passes for 300 dmg, then explodes on its own marked target for 400 + 20% PE (up to +100% more based on the target's DR), applying 2 Vulnerability stacks to everything it touches. The 2 small arrows deal 40% less damage but fly 20% faster; the big one is 15% bigger. Bigger, brighter purple-red/magenta flame visual with flickering flame licks (was a small orange sprite). Banks the shot if no enemy is on screen yet, firing the instant one appears. Immune to Maou Haki and the Perseverance sweep, same as photoBrangs and blade arcs.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Libra — Astral Pierce (NEW):</b> replaces Law of Scales. Skill A orbs now punch straight through their target on impact instead of disappearing, continuing to the screen edge and damaging every other enemy they cross.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Gemini — Shadow Twin reworked:</b> the trigger is now every 10th hit landed by any allied source (Sentinels excluded), not just auto-fire. It charges for 0.5s, then a phantom twin ship flickers into existence at a random screen edge — inset so it's actually visible — and fires 3 volleys 200ms apart at random enemies clear across the screen, each volley 1 large orb flanked by 2 small orbs, in a red-purple plasma color, sized +25% up from the first pass. Small orb: 75 + 3% EP. Large orb: 175 + 8% EP. Every hit applies 2 Vulnerability stacks and Soul Reaver. 1s cooldown before it can trigger again. Immune to Maou Haki and the Perseverance sweep, same as Sol Arrow.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Lion's Roar:</b> every hit against an enemy now also deals bonus damage equal to 2% of that enemy's own missing HP, on top of the existing GFJ-gated Burn DoT.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Divine Fate:</b> freeze-window damage bonus +50% → +100%.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Golden Arrow renamed Forest Guardian (NEW bonus attack):</b> while 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across 60% of the screen width, dealing 1000 + 10% EP + 15% of each target's missing HP. The log itself is now drawn at true scale — its swing visually spans the full 60% width instead of a small hand-held prop — densely wrapped in vine strands and leaf clusters running end to end, with a cut cross-section and snapped branch stub at the striking tip.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Circuit Engineer:</b> enemies carrying any recognized debuff (Vulnerability, Soul Reaver, slow, DoT, Dimensional Rift, Yog mark) now take +50% damage from all sources.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Cycle of Flow:</b> the charge-skip now also covers Overload Laser — a single Space press instantly fires the laser (no more holding to charge), same as Skill D and F.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Vanguard:</b> pierce chance 40% → 50%; absorbs Blood Frenzy's old chain mechanic (+30% dmg per pierce-chain hit, plus true damage per chain 2.5% → 3% of the enemy's Max HP, max 4 chains).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Gemini — Mirror Laser column visual overhaul:</b> the bonus laser column is now a wavering, color-cycling plasma body with a flickering white-hot core, crackling side-arc branches, and a rotating energy ring at the emission point — replacing the original static rectangle beam.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Blood Frenzy renamed Onslaught (NEW ability):</b> any landed hit from an allied source (Skill D and Skill F excluded) can fire a homing fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit's damage + 0.75% of the target's missing HP, gated by a 300ms cooldown. New fireball visual with an ember trail and licking flame tongues.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Gemini — Mirror Laser:</b> the 2 mirror beam entities move 25% faster; their beams now deal 75% of the original beam's damage instead of matching it, while the original Overload beam itself is buffed +30%.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Scorpio — Death Mark:</b> the damage bonus is now a linear ramp — +0% at full HP up to +70% at 21% HP — then a flat +80% at 20% HP and below (was a flat +70% below 20%). Instakill threshold raised 3% → 5% HP, now with a lightning-strike visual.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Sagittarius — Arctic Chill:</b> slow proc chance 50% → 75%, slow strength 20% → 30%. CC-immune enemies (Egregor, Dargruel, Leviathan, barrier-shielded Marchosias, invulnerable Aegis Core) now have a 25% chance to still be pulled in (previously never).</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Sagittarius — Twin Blades:</b> per-blade damage +45% → +60%. Boomerang bonus proc chance 35% → 40%.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Overload Laser:</b> tick damage reworked from 130 + 19% EP to 350 + 23% EP.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>All enemies:</b> +15% HP across the board, from Apostles through the Dominator tier.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Skill A could stop targeting entirely with Astral Pierce active:</b> a pierced orb could be handed a fresh target by the sensor while it was still flying off in its old direction, permanently leaving that enemy flagged as "targeted" with nothing ever actually approaching it. Over a long run this could silently lock out every enemy on screen, making Skill A appear completely dead.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Blood Arrow could silently fail to fire:</b> whenever Skill A's 80-orb pool was already full, the whole activation was aborted — including the arrow — even though the cooldown was ready. The arrow now always fires on a ready press regardless of orb saturation.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Update log / guide text:</b> the Overload Laser description had drifted out of sync with the real in-game tick damage and interval for a while — corrected in both the Skills tab and README.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Virgo — Forest Guardian description drift:</b> the crit trigger had quietly been "every 6th auto volley" in code for a long time while the sigil card still read "every 12 bullet hits, 3x dmg" — corrected to match reality (and bumped to 4x in the same pass).</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Onslaught targeting fallback:</b> apostles are weak enough (22-330 HP) to often die in a single hit, so the "previous target" was frequently already dead by the next trigger and the fireball silently never fired. It now falls back to firing at the current target instead of skipping, so the ability stays visible against weak waves too.</li>
 </ul>
 </div>
 
@@ -3883,6 +3924,89 @@
           drawLev(performance.now());
         }
 
+        // ── GOLIATH — Alpha + True Form, using the REAL _drawGoliath() via
+        // drawEnemy() (js/render/enemy-goliath.js, included above) instead of
+        // a hand-approximated look, so the preview matches the actual in-game
+        // appearance exactly. Both auto-loop continuously, no Play/Pause
+        // button (matching cvLeviat/cvDargruel style, not the click-to-play
+        // combat-sequence widgets). True Form's canvas is set up LAZILY the
+        // first time its tab is actually shown (see initGoliathTrueCanvas
+        // below) — its pane starts display:none, and measuring a hidden
+        // element's getBoundingClientRect() at page-load gives 0×0, which is
+        // exactly why it rendered blank before.
+        const sga = setup('cvGoliathAlpha');
+        if (sga) {
+          const { c, w, h } = sga;
+          const alphaEnemy = {
+            type: 'goliath', phase: 'alpha',
+            x: w * 0.5, y: h * 0.5, size: Math.min(w, h) * 0.62,
+            hp: 1, maxHp: 1,
+            slots: [
+              { filled: true, gem: GOLIATH_GEM_COLORS[0] },
+              { filled: true, gem: GOLIATH_GEM_COLORS[3] },
+              { filled: false, gem: null },
+            ],
+            _flyingGems: [], _jokerState: {},
+          };
+          function drawAlpha(t) {
+            ctx = c; canvas = { width: w, height: h };
+            c.clearRect(0, 0, w, h);
+            _miniStars(c, w, h, t, 20);
+            drawEnemy(alphaEnemy);
+            activeAnimations.push(requestAnimationFrame(() => drawAlpha(performance.now())));
+          }
+          drawAlpha(performance.now());
+        }
+
+        window._initGoliathTrueCanvas = function () {
+          const el = document.getElementById('cvGoliathTrue');
+          if (!el || el._inited) return;
+          el._inited = true;
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const rect = el.getBoundingClientRect();
+          el.width = rect.width * dpr; el.height = rect.height * dpr;
+          const c = el.getContext('2d');
+          c.scale(dpr, dpr);
+          const w = rect.width, h = rect.height;
+          const cx = w * 0.5, cy = h * 0.55;
+          // size PHẢI khớp CHÍNH XÁC enemy.size thật trong game (260, không
+          // suy ra theo kích thước canvas nhỏ) — Inevitable aura/halo vẽ ở
+          // bán kính TUYỆT ĐỐI ngoài scale(trueScale), nên nếu size ở đây
+          // khác 260 thì tỉ lệ vòng/halo so với thân sẽ lệch hẳn so với
+          // trong game thật (đúng lỗi đã thấy: vòng trông to hơn hẳn).
+          const trueEnemy = {
+            type: 'goliath', phase: 'true_form',
+            x: cx, y: cy, size: 260,
+            hp: 42000, maxHp: 50000,
+            slots: [
+              { filled: true, gem: GOLIATH_GEM_COLORS[0] },
+              { filled: true, gem: GOLIATH_GEM_COLORS[3] },
+              { filled: true, gem: GOLIATH_GEM_COLORS[5] },
+            ],
+            _jokerState: {},
+            _thresholdMilestonesHit: { 75: false, 50: false, 25: false },
+            _thresholdShieldPool: 0,
+          };
+          // Zoom cả khung nhìn ra để vừa canvas preview nhỏ, KHÔNG đụng vào
+          // size — giữ đúng tỉ lệ vòng Inevitable/halo/thân như trong game.
+          const viewScale = Math.min(w, h) / 480;
+          const seed = Math.random() * 1000;
+          function drawTrue(t) {
+            ctx = c; canvas = { width: w, height: h };
+            c.clearRect(0, 0, w, h);
+            _miniStars(c, w, h, t, 20);
+            const tt = t / 1000 + seed;
+            trueEnemy.x = cx + Math.sin(tt * Math.PI * 2 / 9) * w * 0.28;
+            trueEnemy.y = cy + Math.sin(tt * Math.PI * 2 / 6.5 + 1.2) * h * 0.10;
+            ctx.save();
+            ctx.translate(cx, cy); ctx.scale(viewScale, viewScale); ctx.translate(-cx, -cy);
+            drawEnemy(trueEnemy);
+            ctx.restore();
+            activeAnimations.push(requestAnimationFrame(() => drawTrue(performance.now())));
+          }
+          drawTrue(performance.now());
+        };
+
         // ── KANADE — Administrator ──
         const sk = setup('cvKanade');
         if (sk) {
@@ -4645,6 +4769,13 @@
       document.getElementById('sTabBtn1').style.background = n === 1 ? 'rgba(255,68,170,0.4)' : 'rgba(255,68,170,0.1)';
       document.getElementById('sTabBtn2').style.background = n === 2 ? 'rgba(0,200,100,0.3)' : 'rgba(0,80,40,0.2)';
       if (n === 2) initPhotokrystosCanvas();
+    }
+    function showGoliathTab(n) {
+      document.getElementById('gGoliathPane1').style.display = n === 1 ? 'block' : 'none';
+      document.getElementById('gGoliathPane2').style.display = n === 2 ? 'block' : 'none';
+      document.getElementById('gTabBtn1').style.background = n === 1 ? 'rgba(245,158,11,0.4)' : 'rgba(245,158,11,0.1)';
+      document.getElementById('gTabBtn2').style.background = n === 2 ? 'rgba(120,75,0,0.35)' : 'rgba(80,50,0,0.2)';
+      if (n === 2 && window._initGoliathTrueCanvas) window._initGoliathTrueCanvas();
     }
 
     // ── PHŌTOKRYSTOS — real drawSpirit()/drawPrimevalSummonEffect()/drawPhotoBrang()/

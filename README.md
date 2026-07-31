@@ -57,7 +57,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 **Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Black Hole, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
-**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Black Hole pull, Tesla Coil slow, Dimensional Rift slow, Orb Sacrifice slow. CC Immunity does not block damage. **Egregor** and **Dargruel** have permanent CC Immunity.
+**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Black Hole pull, Tesla Coil slow, Dimensional Rift slow, Orb Sacrifice slow. CC Immunity does not block damage. **Egregor** and **Dargruel** have permanent CC Immunity. **Goliath** (True Form, via Inevitable) also has permanent CC Immunity.
 
 When **Glory for Justice** is active, all friendly damage is multiplied by **1.55×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
 
@@ -521,14 +521,22 @@ HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent C
 
 ### Leviathan (Dominator)
 
-**Available after:** Wave 3 | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 6s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
+**Available after:** Wave 3 | **Spawn rate:** 2% → 6% | **Cap:** 1 on screen | **Respawn cooldown:** 8s after kill | **Score on kill:** HP × 6 points | **Speed:** ~1.5 u/s
 
 HP: **8,820–15,435**. A massive armored entity with 9 segmented wing-plates surrounding a black-hole core with a living eye that tracks the player at all times.
 
 **Passive: Inevitable** — Leviathan's core resilience mechanics:
 
 - **60% base Damage Reduction** at all times (active once the All for One shield breaks).
-- When any single hit would exceed **30% of Leviathan's Max HP** (after DR), activates a **2.5-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** before it can activate again.
+- When any single hit would exceed **20% of Leviathan's Max HP** (after DR), activates a **3-second protection window**: all damage is capped at **10% of Max HP per hit**. The protection has a **2-second cooldown** after the window ends before it can activate again.
+- The instant Leviathan's HP first crosses **50%**, this protection window activates immediately and unconditionally — regardless of the triggering hit's size or the normal cooldown. This can only happen once per Leviathan.
+- Leviathan's own bullets destroy **player auto bullets**, **Sentinel bullets**, and **both Remembrance Spirit and Phōtokrystos bullets** on contact — even ones that would normally pierce straight through. No other friendly projectile types are affected.
+
+**Passive: Bulwark Barrier**
+
+Every **1 second**, if its shield has not yet reached the cap, Leviathan gains a shield layer worth **0.5% of Max HP × the number of enemies currently on screen** (each layer individually capped at **15% of Max HP**), up to **2 layers stacked** (~30% of Max HP total). Once the shield is fully depleted, the layer count resets and it builds back up from scratch.
+
+The instant the **All for One** shield breaks, Leviathan additionally gains a one-time barrier worth **50% of Max HP** and **90% Damage Reduction for 1 second** — a grace period covering the vulnerable transition out of Iron Body.
 
 **Passive: Herd Leader (Thủ Lĩnh Bầy Đàn)**
 
@@ -550,10 +558,10 @@ When the quota is reached, Leviathan charges a **Perseverance sweep** (red warni
 
 **Passive: Last Rites**
 
-When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns. All 9 lasers then fire simultaneously, reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
+When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns — a power-surge band now travels along each wing toward the tip as it charges, with crackling sparks once nearly ready. All 9 lasers then fire simultaneously (layered void-purple/red/white-hot beams with a shockwave ring at the origin), reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
-- Hitting a Sentinel deals **true damage**: **flat 3% of that Sentinel's EP per hit** (e.g. 10 stacks = 30%, 20 stacks = 60%), capped at **55% of EP**.
+- Hitting a Sentinel deals **true damage**: **3% of that Sentinel's EP × (AFO shield hits ÷ 2) per laser**, capped at **55% of EP** (the cap is reached at 37 shield hits).
 
 **Normal Attack**
 
@@ -565,14 +573,74 @@ Leviathan's only active attack. It fires automatically after the **All for One**
 
 1. A full red warning ring appears around Leviathan for **1 second**.
 2. A **360° laser** sweeps the entire screen, starting from a fixed angle and completing a full rotation. The sweep lasts approximately **1.5 seconds**.
-3. The laser deals true damage to everything it crosses: hitting the player costs **1 life** (subject to normal protection layers); hitting a Sentinel deals **flat 5% of that Sentinel's EP per tick**, capped at **50% of EP**.
+3. The laser deals true damage to everything it crosses: hitting the player costs **1 life** (subject to normal protection layers); hitting a Sentinel deals **5% of that Sentinel's EP × AFO shield hits per tick**, capped at **50% of EP** (the cap is reached at 10 shield hits).
 4. The sweep cannot be blocked, deflected, or avoided by Yog-Sothoth Domain.
+
+---
+
+### Goliath (Digiform)
+
+**Availability:** debug-spawn only — not yet wired into the normal wave-spawn rotation. A testbed boss for the future Administrator class. | **Cap:** 1 on screen | **Speed:** 0 (does not move under normal physics; positions itself)
+
+Goliath exists in three phases: **Alpha** (a dormant, invulnerable seed that feeds on the rest of the wave), **Transition** (a 4-stage transform sequence), and **True Form** (the actual boss fight).
+
+**Phase: Alpha**
+
+Spawns near the top of the screen at **1 HP**, absolutely invulnerable and fully untargetable — no exception of any kind applies during this phase.
+
+- **Circuit Link:** the instant it spawns (and continuously afterward, to catch anything spawned later), Goliath links to every other enemy currently on screen. Any hit that would land on a linked enemy is capped at **80% of that enemy's own Max HP**, with the difference redirected into Goliath's **Damage Pull** ledger instead of being lost — this is what determines True Form's eventual Max HP.
+- **Corrupted Genesis:** when a linked Abnormal-tier-or-higher enemy dies, a colored gem (matching one of 7 possible enemy types) drops at the death location and flies in a curved arc into one of Alpha's 3 open sockets — landing triggers a slight shockwave shake on Alpha's body. Filling all 3 sockets with 3 *distinct* gem colors begins Transition.
+- **Feeding Ground (passive):** the instant Goliath spawns, `ceil(current enemy count / 3)` of the wave's current enemies are consumed outright (with a death-burst effect), and every enemy that survives the culling gains **+15% Max HP**.
+
+**Transition**
+
+A 4-stage, ~4-second transform sequence: meteors converge on Alpha from all directions and fuse into a molten mass (Summon), the mass swells and bubbles as everything melds together (Fusion), it cools and crystallizes into the True Form body with the 3 absorbed gems igniting in sequence (Crystallize), then both arms extend and settle into place with a final shockwave ring (Settle). Goliath remains invulnerable and untargetable throughout.
+
+On completion, True Form's Max HP is set to `max(50000, min(damagePull, 200000) × (1 + 0.15 × gemPoints))`.
+
+**Passive: Inevitable**
+
+- **70% base Damage Reduction** at all times.
+- **Permanent CC Immunity** and **2% Max HP regeneration per second**.
+- When any single hit would exceed **20% of Max HP** (after DR), activates a **2.5-second protection window**: all further damage during the window is capped at **5% of Max HP per hit** (2-second cooldown after the window ends).
+
+**Passive: Fracture Step**
+
+Teleports away whenever a threat (player ship or a player bullet) closes within **100px**, or automatically every **2 seconds** regardless (3-second cooldown on the teleport action itself). Each teleport grants **+1 layer of Iron Body**, absorbing the next **3 hits** completely. The teleport itself is a deliberately slow, telegraphed transition — not an instant blink: a magic-circle portal closes over the old position (~400ms), then opens at the new position (~400ms), with the body fading out and back in to match.
+
+**Passive: Absolute Verdict**
+
+A self-cast channeled attack, not a reaction. Every time it comes off cooldown: both arms clasp together at Goliath's eye for a **3-second channel**, tracking the player's live position — but only until **0.5 seconds before it fires**, at which point the aim locks and no longer follows. On completion, a piercing orb launches from the eye along the locked direction: **35% of Max HP as true damage** to a Sentinel it hits, or **-5 lives** to the player. 8-second cooldown after firing.
+
+**Skill: Corrupted Meteor**
+
+CD **5s**. Goliath raises a hand and pulls a random living Apostle into a compressed meteor core over **0.8 seconds**, then throws it toward the player. Hitting the player costs **1 life**; hitting a Sentinel explodes for **25% of that Sentinel's own Max HP** as splash damage to nearby Sentinels.
+
+**Passive: Warding Palm**
+
+Incoming hits specifically from **Skill F**, **Skill D** (Black Hole), or the **Phōtokrystos finale laser** are simply too powerful to ever be fully negated. Each hit has a **30% chance** to be deflected, taking only **15% of Max HP**; the other **70% of the time** it lands for the full **40% of Max HP**. This is per hit, with no lifetime cap. This rule, like every other Goliath-specific rule, takes priority over any sigil that would otherwise bypass Iron Body or trigger an unconditional instakill (e.g. Death Mark's ≤5%-HP lightning instakill, or its Skill F Iron-Body-piercing effect) — Goliath cannot die to those regardless of sigil.
+
+**Passive: Threshold Ward**
+
+Crossing each of the **75%, 50%, and 25%** HP milestones (once each, downward only) grants a **+15% Max HP** shield pool. If healing later pushes HP back up across a milestone that already granted its pool, HP is restored up to that milestone's percentage.
+
+**Passive: Casting Restriction**
+
+While channeling any skill — its own Absolute Verdict, or any Joker-copied ability below — Goliath is **35% slower**, cannot use Fracture Step, gains **+10% Damage Reduction** for the duration, and heals **15% of Max HP once**, at the exact moment the cast begins.
+
+**Skill: Joker System**
+
+True Form gains working, independently-cooldown copies of exactly the **3 abilities** tied to the 3 gems it absorbed during Alpha (out of 7 possible): Veilshroud's Phantom + lightning strike, Thaelis's Tenacity, Aegis Core's Lumen Nova, Marchosias's Sword & Barrier, Egregor's Psychic Tempest, Dargruel's Maou Haki, or Leviathan's Perseverance. Each copy is rebalanced and re-telegraphed to match its real source skill's own timing, size, and warning-zone shape — not a rough approximation.
+
+**Movement**
+
+True Form drifts slowly and continuously across most of the screen (biased toward the upper area, staying away from the bottom edge) rather than holding a fixed position — it only ever holds still during Fracture Step's portal transition or while Veilshroud's Phantom (if copied) is active. It always renders above the Sigil HUD so it is never visually obscured while flying near the top of the screen.
 
 ---
 
 ## Enemy Class System
 
-Enemies are divided into five tiers of power.
+Enemies are divided into six tiers of power.
 
 | Class | Examples |
 |---|---|
@@ -580,9 +648,10 @@ Enemies are divided into five tiers of power.
 | **Abnormal** | Thaelis, Veilshroud |
 | **Elite** | Marchosias, Heavenly Aegis Core, Egregor |
 | **Dominator** | Dargruel, Leviathan |
+| **Digiform** (testbed) | Goliath |
 | **Administrator** | Kanade of the Endless Nights |
 
-**Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Aegis Core 2 · Egregor 1 · Dargruel 2 · Leviathan 1. A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
+**Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Aegis Core 2 · Egregor 1 · Dargruel 2 · Leviathan 1 · Goliath 1 (debug-spawn only). A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
 
 ---
 
