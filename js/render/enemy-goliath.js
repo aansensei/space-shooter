@@ -5,13 +5,13 @@
 // to real enemy objects (enemy.x/enemy.y/enemy.size) and performance.now().
 
 const GOLIATH_GEM_COLORS = [
-    { name: 'Veilshroud',  dark: '#0b3b3a', mid: '#2dd4bf', light: '#e6fffb' },
-    { name: 'Thaelis',     dark: '#2d004d', mid: '#8b5cf6', light: '#e9ddff' },
-    { name: 'Aegis Core',  dark: '#7a5a00', mid: '#fbbf24', light: '#fff8e1' },
-    { name: 'Marchosias',  dark: '#003322', mid: '#10b981', light: '#ccffe9' },
-    { name: 'Egregor',     dark: '#003344', mid: '#14b8a6', light: '#c9fff5' },
-    { name: 'Dargruel',    dark: '#3a0000', mid: '#991b1b', light: '#ffcccc' },
-    { name: 'Leviathan',   dark: '#1a0033', mid: '#00e5ff', light: '#eafaff' },
+    { name: 'Veilshroud', dark: '#0b3b3a', mid: '#2dd4bf', light: '#e6fffb' },
+    { name: 'Thaelis', dark: '#2d004d', mid: '#8b5cf6', light: '#e9ddff' },
+    { name: 'Aegis Core', dark: '#7a5a00', mid: '#fbbf24', light: '#fff8e1' },
+    { name: 'Marchosias', dark: '#003322', mid: '#10b981', light: '#ccffe9' },
+    { name: 'Egregor', dark: '#003344', mid: '#14b8a6', light: '#c9fff5' },
+    { name: 'Dargruel', dark: '#3a0000', mid: '#991b1b', light: '#ffcccc' },
+    { name: 'Leviathan', dark: '#1a0033', mid: '#00e5ff', light: '#eafaff' },
 ];
 
 function _goliathHexToRgb(hex) {
