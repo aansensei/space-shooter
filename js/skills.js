@@ -118,7 +118,9 @@ function updateSkillA(deltaTime) {
                 if (orb._pierceHits.has(_pe)) continue;
                 if (Math.hypot(_pe.x - orb.x, _pe.y - orb.y) < _pe.size / 2 + orb.size) {
                     orb._pierceHits.add(_pe);
-                    dealDamage(_pe, { damage: 140, percentDamage: 0.22 });
+                    dealDamage(_pe, { damage: 150, percentDamage: 0.22 });
+                    // Sát thương CHUẨN (true damage) thêm: 80 base + 5% HP đã mất của mục tiêu
+                    if (_pe.hp > 0) dealDamage(_pe, { damage: 80 + Math.ceil((_pe.maxHp - _pe.hp) * 0.05), isTrueDamage: true });
                     spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 8, percentDamage: 0.020 });
                     addExplosion(orb.x, orb.y, 20, 'cyan');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
@@ -145,7 +147,9 @@ function updateSkillA(deltaTime) {
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
                 const _preTotal = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0);
-                dealDamage(orb.target, { damage: 140, percentDamage: 0.22 });
+                dealDamage(orb.target, { damage: 150, percentDamage: 0.22 });
+                // Sát thương CHUẨN (true damage) thêm: 80 base + 5% HP đã mất của mục tiêu
+                if (orb.target.hp > 0) dealDamage(orb.target, { damage: 80 + Math.ceil((orb.target.maxHp - orb.target.hp) * 0.05), isTrueDamage: true });
                 const _didDmg = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0) < _preTotal;
                 orb.target.isTargetedByA = false;
 
@@ -1041,7 +1045,7 @@ function updateBladeArcProjectiles(deltaTime) {
                 if (checkMarchosiasArcBarrier(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
                 const _arcBypass = _hasBuff('tu_huyet');
                 const _arcSrc = (arc.isSpirit && arc.isPiercing)
-                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage, _bypassIronBody: _arcBypass }
+                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage, isPiercing: true, _bypassIronBody: _arcBypass }
                     : arc;
                 if (_arcBypass) _arcSrc._bypassIronBody = true;
                 dealDamage(enemy, _arcSrc);
