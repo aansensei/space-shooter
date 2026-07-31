@@ -2197,6 +2197,12 @@ function _buildWaveQueue(waveNum) {
         queue.push({ tier: 'dominator', at: dAt });
     }
 
+    // Goliath (Digiform): chỉ xuất hiện ở các wave bội số của 5 (5, 10, 15...),
+    // 1 lần mỗi wave đó, giữa khung spawn.
+    if (waveNum % 5 === 0) {
+        queue.push({ tier: 'goliath', at: Math.round(T * 0.5) });
+    }
+
     return queue.sort((a, b) => a.at - b.at);
 }
 
@@ -2233,6 +2239,8 @@ function _spawnWaveTier(tier) {
         const pick = pool[Math.floor(Math.random() * pool.length)];
         if (pick === 'dargruel') spawnDargruel();
         else { spawnLeviathan(); _ensureLeviathanQuota(enemies[enemies.length - 1]); }
+    } else if (tier === 'goliath') {
+        if (enemies.filter(e => e.type === 'goliath').length < 1) spawnGoliath();
     }
 }
 
