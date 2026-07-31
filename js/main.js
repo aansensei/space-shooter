@@ -1846,7 +1846,7 @@ function update(rawDeltaTime) {
             orb.x += orb.vx * (deltaTime / 1000);
             orb.y += orb.vy * (deltaTime / 1000);
             if (orb.life <= 0 || orb.x < -100 || orb.x > canvas.width + 100 || orb.y < -100 || orb.y > canvas.height + 100) return false;
-            if (!orb._hitPlayer && Math.hypot(orb.x - player.x, orb.y - player.y) < 90 + (player.hitRadius || 15)) {
+            if (!orb._hitPlayer && Math.hypot(orb.x - player.x, orb.y - player.y) < 108 + (player.hitRadius || 15)) {
                 orb._hitPlayer = true;
                 // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
@@ -1855,7 +1855,7 @@ function update(rawDeltaTime) {
                 return false;
             }
             for (const s of sentinels) {
-                if (s.hp > 0 && Math.hypot(orb.x - s.x, orb.y - s.y) < 90 + (s.size || 20) / 2) {
+                if (s.hp > 0 && Math.hypot(orb.x - s.x, orb.y - s.y) < 108 + (s.size || 20) / 2) {
                     dealDamage(s, { damage: orb.dmg, isTrueDamage: true });
                     addExplosion(orb.x, orb.y, 80, '#9d00ff');
                     return false;

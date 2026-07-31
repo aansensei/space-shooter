@@ -618,7 +618,7 @@ A self-cast channeled attack, not a reaction. Every time it comes off cooldown: 
 
 **Skill: Corrupted Meteor**
 
-CD **5s**. Goliath raises a hand and pulls a random living Apostle into a compressed meteor core over **0.8 seconds**, then throws it toward the player. Hitting the player costs **1 life**; hitting a Sentinel explodes for **25% of that Sentinel's own Max HP** as splash damage to nearby Sentinels.
+CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at once (fewer if fewer are available) into a compressed meteor core over **0.8 seconds**, consuming each one as fuel, then throws one meteor per Apostle consumed — up to 3 — at the player in a tight fan spread. If no Apostle is available to pull, it still throws exactly **1** "empty" meteor (never a no-op). Hitting the player costs **1 life** per meteor; hitting a Sentinel explodes for **25% of that Sentinel's own Max HP** as splash damage to nearby Sentinels.
 
 **Passive: Warding Palm**
 
@@ -647,6 +647,10 @@ True Form gains working, independently-cooldown copies of exactly the **3 abilit
 **Movement**
 
 True Form drifts slowly and continuously across most of the screen (biased toward the upper area, staying away from the bottom edge) rather than holding a fixed position — it only ever holds still during Fracture Step's portal transition or while Veilshroud's Phantom (if copied) is active. It always renders above the Sigil HUD so it is never visually obscured while flying near the top of the screen.
+
+**Death**
+
+Once Max HP is depleted, Goliath is untargetable for the remainder of a scripted ~4.2-second death sequence instead of dying instantly: the eye explodes, then its 3 absorbed gems explode one after another; the body then slowly disintegrates into rock rubble that falls away piece by piece, and the last of the rubble turns to dust and blows off in the wind before it is finally removed and scored.
 
 ---
 

@@ -1152,6 +1152,9 @@ function dealDamage(enemy, source) {
     // viễn) — không có ngoại lệ nào được xuyên thủng trong pha này.
     if (enemy.type === 'goliath' && enemy.phase !== 'true_form') return;
 
+    // GOLIATH đang chạy chuỗi hiệu ứng nổ chết: bỏ qua mọi damage tới thêm.
+    if (enemy.type === 'goliath' && enemy._deathPhase) return;
+
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
         // Inevitable (NEW): Iron Body tuyệt đối 1.5s ngay sau khi biến hình
         // xong — bất khả xâm phạm hoàn toàn, không ngoại lệ nào xuyên nổi
@@ -2465,7 +2468,7 @@ function spawnGoliath() {
         _meteorPhase: 'ready', // 'ready' | 'charging'
         _meteorChargeTimer: 0,
         _meteorCooldownEnd: 0,
-        _meteorTargetApostle: null,
+        _meteorTargets: [],
         // Threshold Ward: mốc HP đã kích hoạt + kho khiên tích luỹ
         _thresholdMilestonesHit: { 75: false, 50: false, 25: false },
         _thresholdShieldPool: 0,
@@ -2637,6 +2640,25 @@ function _goliathMarchosiasBarrierBreak(enemy, s) {
 
 function updateGoliath(enemy, deltaTime) {
     const now = performance.now();
+
+    // Hiệu ứng nổ chết (True Form): mắt + 3 bảo thạch phát nổ lần lượt, rồi
+    // thân từ từ tan rã thành đá vụn, cuối cùng bốc hơi bụi theo gió. Giữ
+    // enemy.hp = 1 suốt sequence để main.js KHÔNG splice/kill ngay — chỉ khi
+    // sequence xong mới thật sự cho hp về 0 để đường xử lý chết chung (score,
+    // handleEnemyKill...) chạy đúng 1 lần.
+    if (enemy._deathPhase) {
+        _goliathUpdateDeathSequence(enemy, deltaTime, now);
+        return;
+    }
+    if (enemy.phase === 'true_form' && enemy.hp <= 0) {
+        enemy._deathPhase = 'core';
+        enemy._deathPhaseTimer = 0;
+        enemy._deathGemsExploded = 0;
+        enemy.hp = 1;
+        _goliathUpdateDeathSequence(enemy, deltaTime, now);
+        return;
+    }
+
     if (enemy.phase === 'alpha') {
         // Circuit Link KHÔNG được chỉ chụp 1 lần lúc spawn — enemy sinh ra
         // SAU Goliath (trường hợp bình thường: bấm nút debug Goliath rồi mới
@@ -2732,9 +2754,10 @@ function updateGoliath(enemy, deltaTime) {
             const ampX = canvas.width * 0.28, ampY = canvas.height * 0.10;
             const centerX = enemy._restX != null ? enemy._restX : canvas.width / 2;
             const centerY = Math.min(enemy._restY, canvas.height * 0.30);
-            // Giảm 35% tốc độ bay (chu kỳ dài hơn 1/0.65 lần — 9 -> 13.85, 6.5 -> 10)
-            const targetX = centerX + Math.sin(t * Math.PI * 2 / 13.85) * ampX;
-            const targetY = centerY + Math.sin(t * Math.PI * 2 / 10 + 1.2) * ampY;
+            // Giảm thêm ~30% tốc độ bay (bay hơi nhanh, theo yêu cầu): chu kỳ
+            // dài hơn nữa — 13.85 -> 18, 10 -> 13.
+            const targetX = centerX + Math.sin(t * Math.PI * 2 / 18) * ampX;
+            const targetY = centerY + Math.sin(t * Math.PI * 2 / 13 + 1.2) * ampY;
             // Blend mượt ~1.2s vào công thức weave thay vì áp dụng ngay — tránh
             // vị trí NHẢY đột ngột (ăn theo weaveSeed ngẫu nhiên) ngay lúc vừa
             // vào True Form hoặc vừa dịch chuyển xong (2 chỗ set _weaveEnterAt).
@@ -2826,43 +2849,48 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
-        // Corrupted Meteor: hút 1 Apostle bất kỳ, nén thành lõi thiên thạch
-        // trong tay (phải, cùng bên với fist 'spikes'), quăng về phía người
-        // chơi đang đứng lúc bắt đầu quăng. CD 5s, không tự tính là "vận
-        // skill" chậm 35% cho gọn (đã có CD ngắn riêng), nhưng vẫn khoá
-        // Fracture Step qua _goliathIsCasting như mọi skill khác.
+        // Corrupted Meteor: hút tối đa 3 Apostle khác nhau, nén mỗi con thành
+        // 1 lõi thiên thạch riêng, quăng cả 3 (toả nhẹ) về phía người chơi
+        // đang đứng lúc bắt đầu quăng. Nếu không còn Apostle nào để hút, vẫn
+        // quăng 1 thiên thạch "trơn" (không tiêu thụ gì) — skill không bao
+        // giờ bị bỏ lỡ hoàn toàn. CD 4s, không tự tính là "vận skill" chậm
+        // 35% cho gọn (đã có CD ngắn riêng), nhưng vẫn khoá Fracture Step
+        // qua _goliathIsCasting như mọi skill khác.
         if (enemy._meteorPhase === 'ready' && now >= enemy._meteorCooldownEnd) {
             const apostles = enemies.filter(e => e !== enemy && e.type === 'apostle' && e.hp > 0);
-            if (apostles.length > 0) {
-                enemy._meteorTargetApostle = apostles[Math.floor(Math.random() * apostles.length)];
-                enemy._meteorPhase = 'charging';
-                enemy._meteorChargeTimer = 0;
-            }
+            apostles.sort(() => Math.random() - 0.5);
+            enemy._meteorTargets = apostles.slice(0, 3);
+            enemy._meteorPhase = 'charging';
+            enemy._meteorChargeTimer = 0;
         } else if (enemy._meteorPhase === 'charging') {
             enemy._meteorChargeTimer += deltaTime;
-            const apostleGone = !enemy._meteorTargetApostle || enemy._meteorTargetApostle.hp <= 0;
-            if (enemy._meteorChargeTimer >= 800 || apostleGone) {
-                if (!apostleGone) {
-                    // Tiêu thụ Apostle — biến hẳn thành thiên thạch, không rớt
-                    // điểm/gem như chết thường (Corrupted Genesis xử lý riêng
-                    // ở death-hook main.js dựa vào _goliathLinkedTo, con này
-                    // bị xoá thẳng nên không kích hoạt đường đó).
-                    const ax = enemy._meteorTargetApostle.x, ay = enemy._meteorTargetApostle.y;
-                    enemy._meteorTargetApostle.hp = 0;
-                    enemy._meteorTargetApostle._markedForDeath = true;
-                    enemy._meteorTargetApostle._noDrop = true;
-                    addExplosion(ax, ay, 40, '#f59e0b');
-                    const _eye = _goliathEyeWorldPos(enemy);
-                    const ang = Math.atan2(player.y - _eye.y, player.x - _eye.x);
-                    window._goliathMeteors = window._goliathMeteors || [];
+            enemy._meteorTargets = (enemy._meteorTargets || []).filter(a => a && a.hp > 0);
+            if (enemy._meteorChargeTimer >= 800) {
+                const targets = enemy._meteorTargets;
+                const throwCount = targets.length > 0 ? targets.length : 1;
+                const _eye = _goliathEyeWorldPos(enemy);
+                const baseAng = Math.atan2(player.y - _eye.y, player.x - _eye.x);
+                window._goliathMeteors = window._goliathMeteors || [];
+                for (let i = 0; i < throwCount; i++) {
+                    const src = targets[i];
+                    if (src) {
+                        // Tiêu thụ Apostle — biến hẳn thành thiên thạch, không rớt
+                        // điểm/gem như chết thường (Corrupted Genesis xử lý riêng
+                        // ở death-hook main.js dựa vào _goliathLinkedTo, con này
+                        // bị xoá thẳng nên không kích hoạt đường đó).
+                        addExplosion(src.x, src.y, 40, '#f59e0b');
+                        src.hp = 0; src._markedForDeath = true; src._noDrop = true;
+                    }
+                    const spread = throwCount > 1 ? (i - (throwCount - 1) / 2) * 0.18 : 0;
+                    const ang = baseAng + spread;
                     window._goliathMeteors.push({
                         x: _eye.x, y: _eye.y, vx: Math.cos(ang) * 400, vy: Math.sin(ang) * 400,
                         owner: enemy, life: 4000, _fireTime: now,
                     });
                 }
                 enemy._meteorPhase = 'ready';
-                enemy._meteorCooldownEnd = now + 5000;
-                enemy._meteorTargetApostle = null;
+                enemy._meteorCooldownEnd = now + 4000;
+                enemy._meteorTargets = [];
             }
         }
 
@@ -3012,6 +3040,60 @@ function _goliathEnterTrueForm(enemy) {
 function _goliathEyeWorldPos(enemy) {
     const trueScale = enemy.size / 460;
     return { x: enemy.x + GOLIATH_EYE_POS.x * trueScale, y: enemy.y + GOLIATH_EYE_POS.y * trueScale };
+}
+function _goliathSlotWorldPos(enemy, idx) {
+    const trueScale = enemy.size / 460;
+    const a = GOLIATH_SLOT_ANCHORS[idx];
+    return { x: enemy.x + a.x * trueScale, y: enemy.y + a.y * trueScale };
+}
+
+// Hiệu ứng nổ chết: mắt nổ ngay lập tức, rồi 3 bảo thạch nổ LẦN LƯỢT cách
+// nhau 350ms, sau đó thân từ từ tan rã (crumble) rồi bốc hơi thành bụi
+// (dust) — xem _goliathUpdateDeathSequence gọi hàm này mỗi frame.
+const GOLIATH_DEATH_CORE_DUR = 1400, GOLIATH_DEATH_CRUMBLE_DUR = 1800, GOLIATH_DEATH_DUST_DUR = 1000;
+function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
+    enemy._deathPhaseTimer = (enemy._deathPhaseTimer || 0) + deltaTime;
+    const t = enemy._deathPhaseTimer;
+
+    if (enemy._deathPhase === 'core') {
+        if (!enemy._deathEyeExploded) {
+            enemy._deathEyeExploded = true;
+            const eye = _goliathEyeWorldPos(enemy);
+            addExplosion(eye.x, eye.y, enemy.size * 0.5, '#ff4500');
+            createParticles(eye.x, eye.y, 30, '#ffb84d', 3, 10);
+            _setShake(18, 500);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
+        }
+        const gemStagger = 350;
+        const gemIdx = Math.min(3, Math.floor(t / gemStagger));
+        if (gemIdx > (enemy._deathGemsExploded || 0)) {
+            for (let i = (enemy._deathGemsExploded || 0); i < gemIdx; i++) {
+                const gp = _goliathSlotWorldPos(enemy, i);
+                const slot = enemy.slots[i];
+                const gemColor = (slot && slot.gem) ? slot.gem.mid : '#f59e0b';
+                addExplosion(gp.x, gp.y, enemy.size * 0.35, gemColor);
+                createParticles(gp.x, gp.y, 20, gemColor, 3, 9);
+                _setShake(10, 300);
+            }
+            enemy._deathGemsExploded = gemIdx;
+        }
+        if (t >= GOLIATH_DEATH_CORE_DUR) {
+            enemy._deathPhase = 'crumble';
+            enemy._deathPhaseTimer = 0;
+            addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#ff8c1a');
+            _setShake(22, 500);
+        }
+    } else if (enemy._deathPhase === 'crumble') {
+        if (t >= GOLIATH_DEATH_CRUMBLE_DUR) {
+            enemy._deathPhase = 'dust';
+            enemy._deathPhaseTimer = 0;
+        }
+    } else if (enemy._deathPhase === 'dust') {
+        if (t >= GOLIATH_DEATH_DUST_DUR) {
+            enemy.hp = 0;
+            enemy._markedForDeath = true;
+        }
+    }
 }
 
 // Đang "vận" 1 kỹ năng bất kỳ (của chính Goliath hoặc bất kỳ bản copy Joker
