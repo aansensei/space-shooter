@@ -254,7 +254,7 @@ Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets 
 
 - **Spirit Bullet:** 60 base + 0.55% EP, homing, +10% flight speed bonus.
 - **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 170 base + 4.8% EP + 3% of target's missing HP.
-- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% EP per tick), then explodes into 8 massive bouncing plasma balls (10 base + 25% EP, bounce off walls).
+- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% EP per tick, true damage), then explodes into 8 massive bouncing plasma balls (10 base + 25% EP, bounce off walls, true damage).
 
 ---
 
