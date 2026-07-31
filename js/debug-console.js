@@ -581,6 +581,15 @@ window._debugClickSpawnType = '';
         const e = enemies[idx];
         if (!input || !e) return;
         const v = Math.max(0, Math.floor(Number(input.value) || 0));
+        if (e.type === 'goliath' && e.phase !== 'true_form') {
+            // Alpha/Transforming: HP luôn khoá ở 1 (bất khả xâm phạm) — ô này
+            // thật ra chỉnh Damage Pull, thứ thật sự quyết định Max HP lúc vào
+            // True Form. Không tự áp trần 50k ở đây — công thức thật
+            // (max(50000, min(pull,200000) * (1+0.15*gemPoints)), xem nơi tính
+            // Max HP lúc _goliathEnterTrueForm) đã tự lo phần đó.
+            e.damagePull = v;
+            return;
+        }
         e.hp = v;
         if (v > e.maxHp) e.maxHp = v;
     }
@@ -588,7 +597,28 @@ window._debugClickSpawnType = '';
 
     window.debugKillEnemy = function (idx) {
         const e = enemies[idx];
-        if (!e || typeof dealDamage !== 'function') return;
+        if (!e) return;
+        if (e.type === 'goliath') {
+            if (e.phase === 'true_form') {
+                // Debug kill cần chắc chắn giết được ngay — bỏ qua thẳng mọi
+                // lớp phòng thủ của Goliath (Iron Body biến hình, Iron Body
+                // Fracture Step, Arc Barrier) thay vì đi qua dealDamage như
+                // bình thường, vì các lớp đó có thể hấp thụ trọn 1 đòn bất kể
+                // sát thương lớn cỡ nào. updateGoliath sẽ tự bắt hp<=0 ở True
+                // Form và chạy chuỗi hiệu ứng chết thật ở frame kế tiếp.
+                e._transformIronBodyEnd = 0;
+                e._fractureIronBodyHits = 0;
+                if (e.arcBarrier) e.arcBarrier.hp = 0;
+                e.hp = 0;
+            } else {
+                // Alpha/Transforming không có state "chết" thật (chỉ biến
+                // hình) — debug xoá thẳng khỏi màn thay vì giả vờ giết.
+                enemies.splice(idx, 1);
+            }
+            refreshEnemyList();
+            return;
+        }
+        if (typeof dealDamage !== 'function') return;
         dealDamage(e, { damage: (e.hp || 0) + (e.shield || 0) + 999999, isTrueDamage: true });
     };
 
@@ -656,20 +686,27 @@ window._debugClickSpawnType = '';
         if (!el || typeof enemies === 'undefined') return;
         const rows = enemies.map((e, i) => ({ e, i })).filter(x => BOSS_TYPES.includes(x.e.type));
         if (rows.length === 0) { el.innerHTML = '<div style="opacity:0.5;">No tracked enemies on screen.</div>'; return; }
-        el.innerHTML = rows.map(({ e, i }) => `
+        el.innerHTML = rows.map(({ e, i }) => {
+            // Goliath Alpha/Transforming: HP luôn khoá ở 1 (bất khả xâm phạm),
+            // giá trị thật đáng chỉnh là Damage Pull (quyết định Max HP lúc vào
+            // True Form) — đổi hẳn ô nhập + nhãn sang Damage Pull cho 2 pha này.
+            const isGoliathPre = e.type === 'goliath' && e.phase !== 'true_form';
+            const inputVal = isGoliathPre ? Math.round(e.damagePull || 0) : Math.round(e.hp);
+            return `
       <div class="dbg-enemy-row">
         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <b>${e.type}</b>
-          <span style="opacity:0.6;">${Math.round(e.hp)} / ${Math.round(e.maxHp)} HP</span>
+          <b>${e.type}${isGoliathPre ? ' (' + e.phase + ')' : ''}</b>
+          <span style="opacity:0.6;">${isGoliathPre ? 'Damage Pull ' + Math.round(e.damagePull || 0) : Math.round(e.hp) + ' / ' + Math.round(e.maxHp) + ' HP'}</span>
         </div>
         <div class="dbg-row">
-          <input type="number" class="dbg-enemy-hp" id="dbgHp_${i}" value="${Math.round(e.hp)}">
-          <button class="dbg-btn" onclick="debugSetHp(${i})">Apply</button>
+          <input type="number" class="dbg-enemy-hp" id="dbgHp_${i}" value="${inputVal}" placeholder="${isGoliathPre ? 'Damage Pull' : 'HP'}">
+          <button class="dbg-btn" onclick="debugSetHp(${i})">Apply ${isGoliathPre ? 'Pull' : 'HP'}</button>
           <button class="dbg-btn danger" onclick="debugKillEnemy(${i})">Kill</button>
           <button class="dbg-btn" onclick="debugApplyVuln(${i})" title="Vulnerability stacks: ${e.vulnStacks || 0}/4">+Vuln (${e.vulnStacks || 0}/4)</button>
         </div>
         <div class="dbg-row" style="flex-wrap:wrap;">${enemySkillButtons(e)}${enemyDefenseNote(e)}</div>
-      </div>`).join('');
+      </div>`;
+        }).join('');
     }
 
     // ── Sentinels ────────────────────────────────────────────────────
