@@ -912,7 +912,11 @@ function updatePhotoBrangs(deltaTime) {
                             const _cucCCImmune = tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan'
                                 || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
                                 || (tgt.type === 'aegis_core' && tgt.aegisInvulnerable);
-                            if (!_cucCCImmune) {
+                            // Goliath: CC immune TUYỆT ĐỐI, luật riêng luôn đè mọi sigil —
+                            // không có ngoại lệ "25% kéo được dù miễn" như các CC-immune khác.
+                            if (tgt.type === 'goliath') {
+                                // không kéo
+                            } else if (!_cucCCImmune) {
                                 const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
                                 const _cd = Math.hypot(_cdx, _cdy) || 1;
                                 tgt.x += (_cdx / _cd) * 38;
@@ -1047,7 +1051,10 @@ function updateBladeArcProjectiles(deltaTime) {
                     const _cucArcCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                         || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
-                    if (!_cucArcCCImmune) {
+                    // Goliath: CC immune TUYỆT ĐỐI, không có ngoại lệ "25% kéo được".
+                    if (enemy.type === 'goliath') {
+                        // không kéo
+                    } else if (!_cucArcCCImmune) {
                         const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;
                         const _ad = Math.hypot(_adx, _ady) || 1;
                         enemy.x += (_adx / _ad) * 38;
