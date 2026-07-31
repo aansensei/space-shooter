@@ -2378,6 +2378,12 @@ function _updateWaveSystem(deltaTime, now) {
                 _waveForceEndTimer = 0;
                 if (window.AudioMgr) window.AudioMgr.playSfx('wave-clear');
             }
+        } else if (_waveNumber % 5 === 0) {
+            // Wave có Goliath: KHÔNG BAO GIỜ force-end — bắt buộc giết hết
+            // (kể cả Goliath, dù máu rất trâu) mới qua wave. Force-end 12s
+            // trước đây từng cho qua wave 5/10 dù Goliath còn sống, làm mất
+            // luôn lượt chọn sigil cuối wave (chỉ trigger khi _alive === 0).
+            _waveForceEndTimer = 0;
         } else {
             _waveForceEndTimer += deltaTime;
             if (_waveForceEndTimer >= 12000) {
