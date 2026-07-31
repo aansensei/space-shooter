@@ -600,10 +600,11 @@ On completion, True Form's Max HP is set to `max(50000, min(damagePull, 200000) 
 
 **Passive: Inevitable**
 
+- **1.5-second absolute Iron Body** immediately upon successfully transforming into True Form — no exceptions, not even piercing or true damage.
 - **70% base Damage Reduction** at all times.
 - **Permanent CC Immunity** and **2% Max HP regeneration per second**.
 - When any single hit would exceed **10% of Max HP** (after DR), activates a **2-second protection window**: all further damage during the window is capped at **5% of Max HP per hit** (1.5-second cooldown after the window ends).
-- Only **piercing**, **true damage**, and **DoT** hits land at full value against Goliath. Every other hit — regular %HP/%EP damage, including the player's and sentinels' basic auto-fire — is hard-capped at **1.6% of Max HP per hit** (still subject to DR), **+0.5% per stack** of any un-immune bad effect currently on Goliath — Vulnerability stacks, Soul Reaver, any active slow (including Electromagnetic Field), Venom stacks, Yog-Sothoth's mark, standing inside a Dimensional Rift, Leo's Burn stacks, or standing in a Tesla Coil's aura — e.g. 2 stacks of Vulnerability raises the cap to 1.6% + 1% = 2.6%. Since Goliath is otherwise CC-immune, this is effectively the only way sigils can meaningfully punish it beyond raw damage. This does not affect Skill F, Skill D, or the Phōtokrystos finale laser, which have their own Warding Palm rule below.
+- Only **piercing**, **true damage**, and **DoT** hits land at full value against Goliath. Every other hit — regular %HP/%EP damage, including the player's and sentinels' basic auto-fire — is hard-capped at **1.6% of Max HP per hit** (still subject to DR), **+0.5% per stack** of any debuff currently on Goliath — Vulnerability stacks, Soul Reaver, any active slow (including Electromagnetic Field), Venom stacks, Yog-Sothoth's mark, standing inside a Dimensional Rift, Leo's Burn stacks, or standing in a Tesla Coil's aura — capped at **3% of Max HP total**. E.g. 2 stacks of Vulnerability raises the cap to 1.6% + 1% = 2.6%. Since Goliath is otherwise CC-immune, this is effectively the only way sigils can meaningfully punish it beyond raw damage. This does not affect Skill F, Skill D, or the Phōtokrystos finale laser, which have their own Warding Palm rule below.
 
 **Passive: Fracture Step**
 
