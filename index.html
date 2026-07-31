@@ -1330,16 +1330,17 @@
     <script src="js/background.js?v=20260722b"></script>
     <script src="js/config.js?v=20260724c"></script>
     <script src="js/sigils.js?v=20260724c"></script>
-    <script src="js/entities.js?v=20260724d"></script>
-    <script src="js/skills.js?v=20260724c"></script>
-    <script src="js/render/core.js?v=20260724c"></script>
+    <script src="js/entities.js?v=20260731b"></script>
+    <script src="js/skills.js?v=20260731a"></script>
+    <script src="js/render/core.js?v=20260731a"></script>
     <script src="js/render/fx.js?v=20260719a"></script>
     <script src="js/render/player.js?v=20260724c"></script>
     <script src="js/render/enemy-common.js?v=20260722c"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
     <script src="js/render/enemy-boss-thaelis.js?v=20260717e"></script>
     <script src="js/render/enemy-marchosias.js?v=20260717e"></script>
-    <script src="js/render/enemy-leviathan.js?v=20260717e"></script>
+    <script src="js/render/enemy-leviathan.js?v=20260724b"></script>
+    <script src="js/render/enemy-goliath.js?v=20260731c"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260717e"></script>
     <script src="js/render/enemy-egregor.js?v=20260717e"></script>
     <script src="js/render/skill-s-spirit.js?v=20260717e"></script>
@@ -1350,14 +1351,14 @@
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
     <script src="js/pixi-renderer.js?v=20260720b"></script>
     <script src="js/input.js?v=20260724b"></script>
-    <script src="js/main.js?v=20260724c"></script>
+    <script src="js/main.js?v=20260731b"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20260722e';
+            _dbgScript.src = 'js/debug-console.js?v=20260730a';
             document.head.appendChild(_dbgScript);
         }
     </script>

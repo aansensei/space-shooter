@@ -927,13 +927,18 @@ function draw(deltaTime) {
 
         drawAegisLasers();
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
+        _drawGoliathOrbs(); // Absolute Verdict orb (independent object)
+        _drawGoliathSwords(); // Joker Marchosias-copy sword projectiles (independent objects)
+        _drawGoliathMeteorProjectiles(); // Corrupted Meteor thrown projectile (independent objects)
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash
         _drawDimBreakZones();   // Lingering Dimension Break arcs (world-space, independent of Egregor)
         _drawEgregorDeathBursts(); // Dedicated Egregor death explosion, independent of Egregor's own lifetime
 
-        // Draw non-bullet enemies first (background layer)
-        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') drawEnemy(e); });
+        // Draw non-bullet enemies first (background layer) — Goliath vẽ RIÊNG
+        // sau cùng (sau cả Sigil HUD) vì Goliath giờ hay lượn gần viền trên
+        // màn hình, dễ bị icon Sigil HUD đè lên nếu vẽ chung ở đây.
+        enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath') drawEnemy(e); });
         _drawVineBinds(); // Phōtokrystos DNT Vine Bind — growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
             window._pixiDrawBullets(bullets, spiritBullets);
@@ -1128,6 +1133,9 @@ function draw(deltaTime) {
 
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
         if (typeof drawSigilHUD === 'function') drawSigilHUD();
+
+        // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
+        enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
 
         // Wave announcement banner (center screen)
         const _wa = _waveAnnouncedAt || 0;
