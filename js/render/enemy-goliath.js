@@ -1311,7 +1311,14 @@ function _drawGoliath(enemy) {
         // (bug cũ: đã lỡ lấy 4000-transformTimer làm "t" — ngược hoàn toàn).
         const t = enemy.transformTimer / 1000; // 0..4 giây đã trôi qua
         const SUMMON_DUR = 2.2, FUSION_END = 2.9, CRYSTALLIZE_END = 3.7;
-        const trueScale = enemy.size / 460;
+        // QUAN TRỌNG: dùng thẳng size THẬT của True Form (260, xem
+        // _goliathEnterTrueForm) chứ KHÔNG phải enemy.size — enemy.size vẫn
+        // còn là alphaSize (125) suốt cả pha transforming, chỉ đổi thành 260
+        // ĐÚNG lúc chuyển sang true_form. Nếu tính trueScale từ enemy.size ở
+        // đây, Crystallize/Settle sẽ lớn dần tới ~0.272 rồi NHẢY thẳng lên
+        // ~0.565 ngay khung hình đầu tiên của true_form — đúng hiện tượng
+        // "giật/phồng to đột ngột lúc chuyển cảnh cuối biến hình".
+        const trueScale = 260 / 460;
         const alphaScale = enemy.size / 380 * 1.5; // Alpha-lúc-biến-hình to hơn 1 chút so với Alpha đứng yên, để khớp cỡ True Form sắp thành hình
 
         const bodyTotal = enemy._meteors.filter(m => m.target === 'body').length || 1;
