@@ -231,7 +231,7 @@ While active, press **← or →** to teleport. The teleport range increases the
 
 **Cooldown:** 6s
 
-Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **110 base + 18% EP** on impact, then shatters into **16 scattered projectiles** (5 base + 1.5% EP each) that fly outward in all directions.
+Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **150 base + 18% EP** on impact, plus an additional **80 base + 5% of the target's missing HP** as true damage, then shatters into **16 scattered projectiles** (5 base + 1.5% EP each) that fly outward in all directions.
 
 **Dimensional Rift** — When a targeting orb hits an enemy and actually deals damage (not blocked by Iron Body, Absolute Shield, or Evade), a **50 px spatial rift zone** tears open at the impact point and lasts **3 seconds**. Enemies inside the zone:
 - **−35% movement speed**
