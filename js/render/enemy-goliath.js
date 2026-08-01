@@ -1661,6 +1661,10 @@ function _drawGoliath(enemy) {
             const prog = Math.min(1, (now - enemy._fractureTeleportStart) / 400);
             ctx.globalAlpha = enemy._fractureTeleportPhase === 'closing' ? Math.max(0, 1 - prog) : prog;
         }
+        // Unbroken Will (NEW): thân nhấp nháy suốt cửa sổ buff 6s hậu-cứu-mạng.
+        if (enemy._unbrokenWillBuffEnd && now < enemy._unbrokenWillBuffEnd) {
+            ctx.globalAlpha *= 0.6 + 0.4 * Math.sin(now / 90);
+        }
         // Lơ lửng nhẹ CHO CẢ THÂN, thuần hình ảnh (không đụng enemy.x/y thật)
         // — để ngay cả lúc weave đứng yên hẳn (Phantom, đang đóng/mở cổng
         // Fracture Step) thân vẫn không trông "đứng hình" cứng đờ.
