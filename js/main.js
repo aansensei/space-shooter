@@ -429,11 +429,15 @@ function update(rawDeltaTime) {
             if (!wave._lingerUntil) wave._lingerUntil = performance.now() + 500;
             if (performance.now() >= wave._lingerUntil) {
                 wave.active = false;
-                if (window.AudioMgr) window.AudioMgr.stopMaouHaki();
             }
         }
     });
     bossShockwaves = bossShockwaves.filter(w => w.active);
+    // Maou Haki dùng chung 1 audio element cho MỌI nguồn (Dargruel thật +
+    // Joker copy của Goliath) — chỉ dừng khi KHÔNG còn sóng xung nào đang
+    // chạy, tránh trường hợp 2 sóng chồng nhau mà sóng xong trước lỡ tắt
+    // tiếng của sóng còn lại vẫn đang lan ra.
+    if (bossShockwaves.length === 0 && window.AudioMgr) window.AudioMgr.stopMaouHaki();
 
     aegisLasers.forEach(laser => {
         if (!laser.fired) {

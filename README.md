@@ -596,21 +596,26 @@ Spawns near the top of the screen at **1 HP**, absolutely invulnerable and fully
 
 A 4-stage, ~4-second transform sequence: meteors converge on Alpha from all directions and fuse into a molten mass (Summon), the mass swells and bubbles as everything melds together (Fusion), it cools and crystallizes into the True Form body with the 3 absorbed gems igniting in sequence (Crystallize), then both arms extend and settle into place with a final shockwave ring (Settle). Goliath remains invulnerable and untargetable throughout.
 
-On completion, True Form's Max HP is set to `max(50000, min(damagePull, 200000) × (1 + 0.15 × gemPoints))`.
+On completion, True Form's Max HP is set to `(50000 + min(damagePull, 200000)) × (1 + 0.15 × gemPoints)`.
 
 **Passive: Inevitable**
 
-- **1.5-second absolute Iron Body** immediately upon successfully transforming into True Form — no exceptions, not even piercing or true damage.
+- **2-second absolute Iron Body** immediately upon successfully transforming into True Form — no exceptions, not even piercing or true damage.
 - **70% base Damage Reduction** at all times.
-- **Permanent CC Immunity** and **2% Max HP regeneration per second**.
+- **Permanent CC Immunity** and **2.2% Max HP regeneration per second**.
 - When any single hit would exceed **10% of Max HP** (after DR), activates a **2-second protection window**: all further damage during the window is capped at **5% of Max HP per hit** (1.5-second cooldown after the window ends).
-- Only **piercing**, **true damage**, and **DoT** hits land at full value against Goliath. Every other hit — regular %HP/%EP damage, including the player's and sentinels' basic auto-fire — is hard-capped at **1.6% of Max HP per hit** (still subject to DR), **+0.5% per stack** of any debuff currently on Goliath — Vulnerability stacks, Soul Reaver, any active slow (including Electromagnetic Field), Venom stacks, Yog-Sothoth's mark, standing inside a Dimensional Rift, Leo's Burn stacks, or standing in a Tesla Coil's aura — capped at **3% of Max HP total**. E.g. 2 stacks of Vulnerability raises the cap to 1.6% + 1% = 2.6%. Since Goliath is otherwise CC-immune, this is effectively the only way sigils can meaningfully punish it beyond raw damage. This does not affect Skill F, Skill D, or the Phōtokrystos finale laser, which have their own Warding Palm rule below.
+- Only **piercing**, **true damage**, and **DoT** hits land at full value against Goliath. Every other hit — regular %HP/%EP damage, including the player's and sentinels' basic auto-fire — is hard-capped at **1.5% of Max HP per hit** (still subject to DR), **+0.5% per stack** of any debuff currently on Goliath — Vulnerability stacks, Soul Reaver, any active slow (including Electromagnetic Field), Venom stacks, Yog-Sothoth's mark, standing inside a Dimensional Rift, Leo's Burn stacks, or standing in a Tesla Coil's aura — capped at **3% of Max HP total**. E.g. 2 stacks of Vulnerability raises the cap to 1.5% + 1% = 2.5%. Since Goliath is otherwise CC-immune, this is effectively the only way sigils can meaningfully punish it beyond raw damage. This does not affect Skill F, Skill D, or the Phōtokrystos finale laser, which have their own Warding Palm rule below.
+- **Shield Burst:** tracks *all* damage received (every type, including piercing/true damage/DoT) within any rolling 1-second window. The instant that total exceeds **12% of Max HP**, Goliath gains a new **Barrier** — a separate absorb pool from Shield, sized at **50% of the damage accumulated in that window** — and instantly converts its entire current Shield into Barrier too, healing **75% of the converted Shield amount** as HP. Unlike Shield, Barrier does **not** count toward the `Max HP + Shield` total that %EP-scaled hits use to size themselves, so moving points from Shield to Barrier shrinks how hard those hits land. 0.5-second cooldown between triggers; the damage window resets the instant it fires.
 
 **Passive: Fracture Step**
 
 Teleports away whenever a threat (player ship or a player bullet) closes within **100px**, or automatically every **2 seconds** regardless (2-second cooldown on the teleport action itself). Each teleport grants **+1 layer of Iron Body**, absorbing the next **3 hits** completely. The teleport itself is a deliberately slow, telegraphed transition — not an instant blink: a magic-circle portal closes over the old position (~400ms), then opens at the new position (~400ms), with the body fading out and back in to match.
 
 For **1 second** after arriving, Goliath gains **+20% damage dealt**, **+10% flight speed**, and **+15% effectiveness on all heal/shield it receives** (stacks with Thaelis's own +35%, if copied).
+
+**Passive: Unbroken Will**
+
+Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **2 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions) and immediately gains a Barrier layer worth **20% of Max HP**. For the following **6 seconds**, starting at the same moment as the 2-second invulnerability (not after it): **+40% effectiveness on all heal/shield it receives** (stacks with everything else), **+20% Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell.
 
 **Passive: Absolute Verdict**
 

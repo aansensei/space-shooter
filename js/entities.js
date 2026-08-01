@@ -869,6 +869,12 @@ function createParticles(x, y, count, color, minSpeed, maxSpeed) {
 }
 
 function addExplosion(x, y, size, color = 'orange') {
+    // fx.js's createRadialGradient throws (and freezes the whole render loop,
+    // since nothing here is wrapped in try/catch) if any of x/y/size is
+    // non-finite — a bad caller upstream (NaN position/size on some enemy)
+    // must never be able to take down the entire game from this one shared
+    // choke point every explosion effect passes through.
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(size)) return;
     let finalColor = color;
     if (color === 'electric_blue') {
         finalColor = '#00FFFF';
@@ -1663,7 +1669,7 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
         && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot) {
-        const _capPct = Math.min(0.03, 0.016 + _goliathDebuffStackCount(enemy) * 0.005);
+        const _capPct = Math.min(0.03, 0.015 + _goliathDebuffStackCount(enemy) * 0.005);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
 
@@ -1805,18 +1811,33 @@ function dealDamage(enemy, source) {
         }
     }
 
+    // Bùng nổ khiên (Inevitable, NEW): dồn TOÀN BỘ sát thương nhận trong 1
+    // giây (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn
+    // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
+    const _hitSizeForBurst = totalDamage;
+
     // Apply damage: true damage and true-damage-window both bypass shield
+    // (và barrier bên dưới — cùng quy tắc như Joker Marchosias's Arc Barrier).
     let _hpDamageDealt = 0;
     if (source.isTrueDamage || inTrueDmgWindow) {
-        _hpDamageDealt = totalDamage;
-        enemy.hp -= totalDamage;
+        if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
+            _hpDamageDealt = totalDamage;
+            enemy.hp -= totalDamage;
+        }
     } else {
+        if (enemy.type === 'goliath' && enemy.barrier > 0) {
+            const damageToBarrier = Math.min(enemy.barrier, totalDamage);
+            enemy.barrier -= damageToBarrier;
+            totalDamage -= damageToBarrier;
+        }
         const damageToShield = Math.min(enemy.shield, totalDamage);
         enemy.shield -= damageToShield;
         enemy.shield = Math.max(0, enemy.shield);
         totalDamage -= damageToShield;
-        _hpDamageDealt = totalDamage;
-        enemy.hp -= totalDamage;
+        if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
+            _hpDamageDealt = totalDamage;
+            enemy.hp -= totalDamage;
+        }
     }
     enemy.hp = Math.max(0, enemy.hp);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
@@ -1826,6 +1847,33 @@ function dealDamage(enemy, source) {
     // tính phần bị khiên hấp thụ) cấp lại 0.25 HP giá trị khiên.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hpDamageDealt > 0) {
         enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, _hpDamageDealt * 0.25);
+    }
+
+    // Inevitable — bùng nổ khiên (NEW): dồn sát thương MỌI loại nhận được
+    // trong 1 giây trôi (rolling window) — vượt quá 12% MaxHP thì cấp 1
+    // khoản barrier mới = 50% tổng sát thương đã dồn trong window đó, ĐỒNG
+    // THỜI rút sạch shield hiện có sang barrier (barrier KHÔNG tính vào EP =
+    // maxHp+shield như shield thường — giảm luôn độ lớn các đòn %EP tiếp
+    // theo ăn vào), và hồi HP = 75% ĐÚNG PHẦN shield vừa rút đó. 0.5s
+    // cooldown giữa các lần kích hoạt, window reset ngay khi vừa kích hoạt.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hitSizeForBurst > 0) {
+        const _gNow3 = performance.now();
+        if (!enemy._burstWindowStart || _gNow3 - enemy._burstWindowStart >= 1000) {
+            enemy._burstWindowStart = _gNow3;
+            enemy._burstWindowDmg = 0;
+        }
+        enemy._burstWindowDmg = (enemy._burstWindowDmg || 0) + _hitSizeForBurst;
+        if (enemy._burstWindowDmg > enemy.maxHp * 0.12 && !(enemy._burstCooldownEnd && _gNow3 < enemy._burstCooldownEnd)) {
+            enemy._burstCooldownEnd = _gNow3 + 500;
+            enemy.barrier = (enemy.barrier || 0) + Math.ceil(enemy._burstWindowDmg * 0.50);
+            const _convertedShield = enemy.shield || 0;
+            enemy.barrier += _convertedShield;
+            enemy.shield = 0;
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(_convertedShield * 0.75));
+            enemy._burstWindowDmg = 0;
+            enemy._burstWindowStart = _gNow3;
+            createParticles(enemy.x, enemy.y, 16, '#38bdf8', 3, 9);
+        }
     }
 
     // Inevitable emergency trigger: the instant Leviathan first crosses 50%
@@ -2540,6 +2588,7 @@ function _goliathHealBoost(enemy, amount) {
     let mult = 1;
     if (enemy._jokerState && enemy._jokerState['Thaelis']) mult += 0.35;
     if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) mult += 0.15;
+    if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) mult += 0.40;
     return amount * mult;
 }
 
@@ -2548,6 +2597,33 @@ function _goliathHealBoost(enemy, amount) {
 // vừa dịch chuyển xong.
 function _goliathDmgBoost(enemy, amount) {
     return (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? amount * 1.20 : amount;
+}
+
+// Unbroken Will (NEW, 1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì
+// thay vào đó — bất tử 2s (tái dùng đúng cổng Iron Body tuyệt đối của
+// _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
+// +1 lớp barrier = 20% MaxHP, và trong 6s kế tiếp (bắt đầu CÙNG lúc với 2s
+// bất tử, không nối tiếp): +40% hiệu quả hồi HP/khiên (cộng dồn qua
+// _goliathHealBoost), +20% MaxHP (kèm HP hiện tại cộng thẳng phần đó, tự
+// rút lại khi hết hạn — xem updateGoliath), +15% tốc độ bay. Trả về true
+// nếu đã kích hoạt (đòn này KHÔNG trừ HP thật) để nơi gọi bỏ qua việc trừ HP.
+function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
+    if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') return false;
+    if (enemy._unbrokenWillUsed) return false;
+    if (!(incomingHpDamage > 0) || enemy.hp - incomingHpDamage > 0) return false;
+    enemy._unbrokenWillUsed = true;
+    const now = performance.now();
+    enemy._transformIronBodyEnd = Math.max(enemy._transformIronBodyEnd || 0, now + 2000);
+    enemy.barrier = (enemy.barrier || 0) + Math.ceil(enemy.maxHp * 0.20);
+    enemy._unbrokenWillBuffEnd = now + 6000;
+    const _maxHpBonus = Math.ceil(enemy.maxHp * 0.20);
+    enemy._unbrokenWillMaxHpBonus = _maxHpBonus;
+    enemy.maxHp += _maxHpBonus;
+    enemy.hp += _maxHpBonus;
+    addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#38bdf8');
+    createParticles(enemy.x, enemy.y, 40, '#7dd3fc', 3, 11);
+    _setShake(16, 400);
+    return true;
 }
 
 // Joker Marchosias (Sword & Barrier, full port): proc kích hoạt Sword khi
@@ -2738,7 +2814,17 @@ function updateGoliath(enemy, deltaTime) {
         const isCasting = _goliathIsCasting(enemy);
         // Fracture Step hậu-dịch-chuyển (NEW): +10% tốc độ bay trong 1s.
         const _fractureSpdMult = (enemy._fractureBuffEnd && now < enemy._fractureBuffEnd) ? 1.10 : 1;
-        enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1) * _fractureSpdMult;
+        // Unbroken Will (NEW): +15% tốc độ bay trong cửa sổ 6s sau khi cứu mạng.
+        const _unbrokenSpdMult = (enemy._unbrokenWillBuffEnd && now < enemy._unbrokenWillBuffEnd) ? 1.15 : 1;
+        enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1) * _fractureSpdMult * _unbrokenSpdMult;
+
+        // Unbroken Will (NEW): hết cửa sổ 6s thì rút lại đúng phần +20% MaxHP
+        // đã cấp tạm thời (chỉ 1 lần duy nhất trong đời Goliath này).
+        if (enemy._unbrokenWillMaxHpBonus && now >= enemy._unbrokenWillBuffEnd) {
+            enemy.maxHp -= enemy._unbrokenWillMaxHpBonus;
+            enemy.hp = Math.min(enemy.hp, enemy.maxHp);
+            enemy._unbrokenWillMaxHpBonus = 0;
+        }
         if (isCasting && !enemy._wasCasting) {
             enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.15));
         }
@@ -2924,7 +3010,7 @@ function updateGoliath(enemy, deltaTime) {
         }
 
         // Inevitable: hồi máu 2%/s, ăn +35% Tenacity nếu có
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.02 * (deltaTime / 1000)));
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.022 * (deltaTime / 1000)));
 
         if (enemy._inevitableWindowEnd && now >= enemy._inevitableWindowEnd && !enemy._inevitableCooldownEnd) {
             enemy._inevitableCooldownEnd = now + 1500;
@@ -2992,13 +3078,13 @@ function _goliathEnterTrueForm(enemy) {
     enemy.inCoronation = false; // giờ mới có thể bị nhắm mục tiêu
     enemy.size = 260; // giảm ~7% so với 280 theo yêu cầu
     const pulledCapped = Math.min(200000, enemy.damagePull);
-    const maxHp = Math.max(50000, Math.round(pulledCapped * (1 + 0.15 * enemy.gemPoints)));
+    const maxHp = Math.round((50000 + pulledCapped) * (1 + 0.15 * enemy.gemPoints));
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
 
     // Inevitable (NEW): Iron Body tuyệt đối 1.5s ngay sau khi biến hình xong
     // thành công — bảo vệ đúng khoảnh khắc vừa lộ diện, còn chưa kịp làm gì.
-    enemy._transformIronBodyEnd = performance.now() + 1500;
+    enemy._transformIronBodyEnd = performance.now() + 2000;
 
     // QUAN TRỌNG: chuyển cảnh mượt lúc biến hình vừa xong — công thức weave
     // dùng sin(t + weaveSeed) với weaveSeed NGẪU NHIÊN từ lúc spawn, nên nếu
