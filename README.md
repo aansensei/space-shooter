@@ -653,10 +653,6 @@ True Form gains working, independently-cooldown copies of exactly the **3 abilit
 
 True Form drifts slowly and continuously across most of the screen (biased toward the upper area, staying away from the bottom edge) rather than holding a fixed position — it only ever holds still during Fracture Step's portal transition or while Veilshroud's Phantom (if copied) is active. It always renders above the Sigil HUD so it is never visually obscured while flying near the top of the screen.
 
-**Death**
-
-Once Max HP is depleted, Goliath is untargetable for the remainder of a scripted ~4.2-second death sequence instead of dying instantly: the eye explodes, then its 3 absorbed gems explode one after another; the body then slowly disintegrates into rock rubble that falls away piece by piece, and the last of the rubble turns to dust and blows off in the wind before it is finally removed and scored.
-
 ---
 
 ## Enemy Class System
