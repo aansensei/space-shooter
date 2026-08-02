@@ -53,7 +53,7 @@ window._debugClickSpawnType = '';
       <div class="dbg-h">PLAYER</div>
       <div class="dbg-row">
         <button class="dbg-btn" onclick="debugResetPlayer()">Reset Player</button>
-        <button class="dbg-btn" onclick="debugRestartRun()">Restart Debug Match</button>
+        <button class="dbg-btn" onclick="debugRestartRun()">Start/Restart Debug Sandbox</button>
       </div>
       <label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgAutoshotToggle" onchange="window._debugAutoshotOff = !this.checked;">
@@ -132,6 +132,11 @@ window._debugClickSpawnType = '';
         </select>
       </div>
       <div style="opacity:0.55; font-size:10px;">When a type is picked above, click anywhere on the game screen to spawn it there (uses the HP/Size/Speed overrides too). Pick "off" to stop. Works with the panel open or closed.</div>
+      <div class="dbg-row" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
+        <input type="number" id="dbgWaveNum" class="dbg-enemy-hp" style="width:70px;" min="1" value="5" placeholder="Wave #">
+        <button class="dbg-btn" onclick="debugSpawnWaveComposition()">Spawn Wave's Full Roster</button>
+      </div>
+      <div style="opacity:0.55; font-size:10px;">Spawns the EXACT enemy composition that wave number would normally spawn (same counts/tiers as the real wave system, all at once instead of trickled over 15s) — Apostles, Abnormals, Elites, Dominators, and Goliath if the wave is a multiple of 5. Ignores current on-screen caps the same way the real spawner does (falls back to an Apostle if a tier's pool is full).</div>
     </div>
 
     <div class="dbg-section">
@@ -198,11 +203,15 @@ window._debugClickSpawnType = '';
     function updateSessionStatus() {
         const el = document.getElementById('dbgSessionStatus');
         if (el) {
-            if (!window._debugSessionActive) {
-                el.textContent = 'No debug match running — press ` again or click below to start one.';
+            const playing = typeof gameState !== 'undefined' && gameState === 'playing';
+            if (!playing) {
+                el.textContent = 'Not in a match — click "Initiate Hyperjump" for a normal run, or "Start Debug Sandbox" below for an empty hands-off one.';
                 el.style.color = '#ffcc66';
+            } else if (window._debugSessionActive) {
+                el.textContent = (gamePaused ? '⏸ PAUSED — ' : '▶ Running — ') + 'debug sandbox (auto-spawn off, sigil picker skipped).';
+                el.style.color = gamePaused ? '#ffcc66' : '#7fffb0';
             } else {
-                el.textContent = (gamePaused ? '⏸ PAUSED — ' : '▶ Running — ') + 'auto-spawn off, sigil picker skipped.';
+                el.textContent = (gamePaused ? '⏸ PAUSED — ' : '▶ Running — ') + 'normal match.';
                 el.style.color = gamePaused ? '#ffcc66' : '#7fffb0';
             }
         }
@@ -243,10 +252,22 @@ window._debugClickSpawnType = '';
     window.debugStartSession = function () {
         window._debugSessionActive = true;
         window._debugAutoshotOff = true;
+        // Chỉ skip sigil picker khi CHỦ ĐỘNG bấm nút bắt đầu sandbox này —
+        // không set ở nơi mở panel nữa, để 1 lượt Initiate Hyperjump bình
+        // thường (mở panel trước, rồi bấm nút thật ngoài menu) vẫn đi qua
+        // đúng luồng chọn sigil như 1 trận chơi thật.
+        window._debugSkipSigilPick = true;
         if (typeof startGame === 'function') startGame();
         window._sigilPicker = null;
         const ov = document.getElementById('sigil-pick-overlay');
         if (ov) ov.style.display = 'none';
+        // Nếu gọi từ màn hình START (chưa bấm "Initiate Hyperjump"), overlay
+        // easter-egg vẫn còn che kín toàn màn hình — bình thường chỉ được ẩn
+        // ở CUỐI chuỗi hiệu ứng 3.5s của nút hyperjump thật (index.html),
+        // startGame() tự nó không đụng tới. Ẩn thẳng luôn ở đây để thấy được
+        // cả game lẫn panel debug thay vì bị đè khuất phía sau.
+        const eggOv = document.getElementById('easter-egg-overlay');
+        if (eggOv) eggOv.style.display = 'none';
         if (typeof _wavePhase !== 'undefined') _wavePhase = 'rest';
         updateSessionStatus();
     };
@@ -293,15 +314,29 @@ window._debugClickSpawnType = '';
         window.closeDebugConsole();
     };
 
+    // Dùng chung cho cả phím ` lẫn nút bấm chuột dự phòng (một số bộ gõ
+    // tiếng Việt/layout bàn phím có thể nuốt mất phím ` trước khi tới trang).
+    // CHỈ mở/đóng panel — không tự start game gì cả. Panel mở được ngay từ
+    // màn hình START (chưa Initiate Hyperjump), lẫn cả trong 1 trận thật đã
+    // đang chạy; bấm "Initiate Hyperjump" ngoài menu như thường để vào game
+    // thật (đủ sigil picker), hoặc dùng nút sandbox trong panel nếu muốn 1
+    // trận rỗng, hands-off riêng.
+    window._debugToggleConsole = function () {
+        if (panelOpen) window.closeDebugConsole(); else window.openDebugConsole();
+    };
+
     document.addEventListener('keydown', (e) => {
-        if (e.code === 'Backquote') {
+        // e.code === 'Backquote' là VỊ TRÍ vật lý cố định (đúng ô cạnh phím
+        // "1" trên bàn phím US) — nếu bàn phím thật không có phím đúng chỗ
+        // đó (layout khác chuẩn US), code sẽ khác dù gõ ra đúng ký tự `.
+        // Thêm e.key === '`' làm dự phòng theo ký tự thực tế đã gõ ra.
+        if (e.code === 'Backquote' || e.key === '`') {
             e.preventDefault();
-            // Debug console touched at least once this page load — skip the
-            // sigil-pick overlay on any future startGame() (debug sandbox OR
-            // a real "Initiate Hyperjump" click) for a hands-off dev flow.
-            window._debugSkipSigilPick = true;
-            if (!window._debugSessionActive) window.debugStartSession();
-            if (panelOpen) window.closeDebugConsole(); else window.openDebugConsole();
+            // Giữ phím lâu hơn 1 chút -> OS/browser tự bắn lại nhiều keydown
+            // liên tiếp (key repeat) -> mỗi lần lại toggle 1 lần -> panel
+            // mở/đóng/mở/đóng nhấp nháy liên tục. Bỏ qua các sự kiện lặp lại.
+            if (e.repeat) return;
+            window._debugToggleConsole();
             return;
         }
         if (e.code === 'KeyP' && window._debugSessionActive && typeof gameState !== 'undefined' && gameState === 'playing') {
@@ -316,7 +351,7 @@ window._debugClickSpawnType = '';
     // clicks that land on the panel itself so its own buttons still work.
     document.addEventListener('click', (e) => {
         const fnName = window._debugClickSpawnType;
-        if (!fnName || !window._debugSessionActive) return;
+        if (!fnName || typeof gameState === 'undefined' || gameState !== 'playing') return;
         if (e.target.closest && e.target.closest('#debug-console-panel')) return;
         const gc = document.getElementById('gameCanvas');
         if (!gc) return;
@@ -472,6 +507,23 @@ window._debugClickSpawnType = '';
     };
 
     window.debugSpawnSentinel = function () { window.debugSpawn('spawnSentinel'); };
+
+    // Tái dùng đúng logic wave thật (js/main.js: _getWaveTemplate +
+    // _spawnWaveTier) thay vì tự suy ra số lượng riêng — spawn NGAY LẬP TỨC
+    // toàn bộ thành phần của 1 wave bất kỳ (kể cả Goliath nếu chia hết 5),
+    // thay vì rải đều trong 15s như wave thật.
+    window.debugSpawnWaveComposition = function () {
+        if (typeof _getWaveTemplate !== 'function' || typeof _spawnWaveTier !== 'function' || typeof spawnApostle !== 'function') return;
+        const input = document.getElementById('dbgWaveNum');
+        const waveNum = Math.max(1, Math.floor(Number(input && input.value) || 1));
+        const tmpl = _getWaveTemplate(waveNum);
+        for (let i = 0; i < tmpl.normals; i++) spawnApostle();
+        for (let i = 0; i < tmpl.abnormals; i++) _spawnWaveTier('abnormal');
+        for (let i = 0; i < tmpl.elites; i++) _spawnWaveTier('elite');
+        for (let i = 0; i < tmpl.dominators; i++) _spawnWaveTier('dominator');
+        if (waveNum % 5 === 0) _spawnWaveTier('goliath');
+        refreshEnemyList();
+    };
 
     window._dbgHint = function (btn) {
         const el = document.getElementById('dbgSpawnHint');
