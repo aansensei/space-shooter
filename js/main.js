@@ -813,7 +813,16 @@ function update(rawDeltaTime) {
             }
         }
 
-        if (enemy.hp <= 0) {
+        // GOLIATH True Form: KHÔNG xử lý chết ở đây — updateGoliath() (chạy
+        // sau, xa hơn trong vòng lặp này) cần bắt hp<=0 trước để ghim
+        // enemy.hp = 1 và chạy chuỗi hiệu ứng chết theo pha (mắt/bảo thạch
+        // nổ -> thân tan rã -> hoá bụi). Nếu để nhánh generic bên dưới xử lý
+        // trước, nó splice enemy ngay lập tức — Goliath biến mất trắng trơn,
+        // không có hiệu ứng gì, vì updateGoliath() không bao giờ còn được
+        // gọi nữa để bắt kịp. Khối check hp<=0 THỨ HAI (xa hơn nữa trong
+        // vòng lặp, sau updateGoliath) vẫn xử lý chết thật bình thường khi
+        // chuỗi hiệu ứng đã chạy xong và tự đưa hp về 0 thật.
+        if (enemy.hp <= 0 && enemy.type !== 'goliath') {
             // LEVIATHAN: death laser đã được spawn trong dealDamage khi HP→0
             // Không cần spawn thêm ở đây nữa
 
