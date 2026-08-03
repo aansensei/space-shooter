@@ -1758,18 +1758,41 @@ function _drawGoliath(enemy) {
         }
 
         // Unbroken Will (NEW): sau khi đã kích hoạt 1 lần, 1 vòng hào quang
-        // xanh mờ thở nhẹ toả quanh thân VĨNH VIỄN cho tới lúc chết — để
+        // cam mờ thở nhẹ toả quanh thân VĨNH VIỄN cho tới lúc chết — để
         // người chơi luôn biết "mạng cứu" đã dùng rồi, khác hẳn cửa sổ buff
         // 6s (chỉ có thân nhấp nháy, đã hết từ lâu trong 1 trận dài).
         if (enemy._unbrokenWillUsed) {
             const _uwPulse = 0.5 + Math.sin(now / 900) * 0.5;
             ctx.save();
             ctx.beginPath(); ctx.arc(0, 0, 245, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(56,189,248,${0.18 + 0.12 * _uwPulse})`;
+            ctx.strokeStyle = `rgba(249,115,22,${0.18 + 0.12 * _uwPulse})`;
             ctx.lineWidth = 3;
-            if (!_mobPerf) { ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 12 + _uwPulse * 8; }
+            if (!_mobPerf) { ctx.shadowColor = '#f97316'; ctx.shadowBlur = 12 + _uwPulse * 8; }
             ctx.stroke();
             ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        // Unbroken Will (NEW): animation "tung chiêu" ngay lúc giải phóng sóng
+        // — 1 vòng năng lượng bùng nhanh (500ms) từ tâm thân toả ra, kèm thân
+        // bừng sáng hẳn lên trong khoảnh khắc đó, để rõ ràng đây là 1 hành
+        // động chủ động chứ không phải sóng tự nhiên xuất hiện.
+        if (enemy._unbrokenReleaseAnimEnd && now < enemy._unbrokenReleaseAnimEnd) {
+            const _relP = 1 - (enemy._unbrokenReleaseAnimEnd - now) / 500;
+            ctx.save();
+            ctx.globalAlpha = 1 - _relP;
+            ctx.beginPath(); ctx.arc(0, 0, 40 + _relP * 260, 0, Math.PI * 2);
+            ctx.strokeStyle = '#fff1e0'; ctx.lineWidth = 5 * (1 - _relP) + 1;
+            if (!_mobPerf) { ctx.shadowColor = '#f97316'; ctx.shadowBlur = 30; }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+            // Body flash — brief bright rim glow layered over the whole silhouette.
+            ctx.save();
+            ctx.globalAlpha = (1 - _relP) * 0.5;
+            ctx.beginPath(); ctx.arc(0, 0, 230, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,237,213,1)';
+            ctx.fill();
             ctx.restore();
         }
 

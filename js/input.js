@@ -91,23 +91,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const _pgb = document.getElementById("pause-guide-btns");
         if (_pgb) _pgb.style.display = "none";
 
-        const loadingDuration = 2000;
+        // No real async work happens on resume (audio resume is instant,
+        // there's no state to reload) — this is a fixed-duration transition
+        // beat only, same nature as the Initiate Hyperjump bar.
+        if (window.AudioMgr) window.AudioMgr.resumeAll();
+
+        const DURATION_MS = 500;
         const startTime = performance.now();
 
         function animateLoading(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / loadingDuration, 1);
+            const progress = Math.min(1, (currentTime - startTime) / DURATION_MS);
             progressBar.style.width = (progress * 100) + "%";
 
             if (progress < 1) {
                 requestAnimationFrame(animateLoading);
             } else {
-                // Loading xong, ẩn overlay, reset clock, game loop tự chạy tiếp
+                // Done: hide overlay, reset clock, game loop resumes on its own.
                 pauseOverlay.style.display = "none";
                 gamePaused = false;
                 window._bgPaused = false;
                 lastTimeStamp = performance.now(); // reset or pause duration becomes a giant deltaTime spike next frame
-                if (window.AudioMgr) window.AudioMgr.resumeAll();
             }
         }
 

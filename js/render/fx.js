@@ -536,6 +536,72 @@ function drawBossShockwaves() {
             return;
         }
 
+        // Unbroken Will release wave: orange "unbroken ember" expanding ring —
+        // richer/more layered than the BTM ring above (radial gradient core,
+        // 2 counter-rotating rings, radiating crack lines, varied ornament
+        // shards) since this marks a boss passive milestone, not a hazard.
+        if (wave._isUnbrokenWave) {
+            ctx.save(); ctx.translate(wave.x, wave.y);
+            const pulse3 = 0.75 + 0.25 * Math.sin(now / 220);
+            // Dense core fill: near-white center fading to deep ember orange at the edge.
+            const core3 = ctx.createRadialGradient(0, 0, 0, 0, 0, wave.radius);
+            core3.addColorStop(0,   `rgba(255,244,224,${fade * 0.30 * pulse3})`);
+            core3.addColorStop(0.55,`rgba(249,115,22,${fade * 0.22 * pulse3})`);
+            core3.addColorStop(1,   `rgba(124,45,18,${fade * 0.14 * pulse3})`);
+            ctx.fillStyle = core3;
+            ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.fill();
+
+            // Outer glow ring
+            if (!_mobPerf) { ctx.shadowColor = '#f97316'; ctx.shadowBlur = 26; }
+            ctx.globalAlpha = fade * 0.95;
+            ctx.strokeStyle = 'rgba(249,115,22,0.95)'; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
+            // Bright ember-lit inner edge
+            if (!_mobPerf) ctx.shadowBlur = 12;
+            ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(0, 0, Math.max(0, wave.radius - 9), 0, Math.PI * 2); ctx.stroke();
+            // Trailing outer glow arc
+            ctx.strokeStyle = `rgba(253,186,116,${fade * 0.35})`; ctx.lineWidth = 16;
+            ctx.beginPath(); ctx.arc(0, 0, wave.radius + 13, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Secondary thin ring, counter-rotating dashed — extra layer of
+            // detail distinguishing this from the simpler BTM ring.
+            ctx.save(); ctx.rotate(-now / 900);
+            ctx.setLineDash([14, 10]);
+            ctx.strokeStyle = `rgba(255,237,213,${fade * 0.5})`; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, Math.max(0, wave.radius * 0.9), 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            if (!_mobPerf) {
+                // Radiating hairline "fracture" cracks — thematically ties to
+                // "Unbroken" (light escaping through cracks) rather than a
+                // plain dot ornament ring.
+                ctx.strokeStyle = `rgba(255,241,224,${fade * 0.55})`;
+                ctx.lineWidth = 1.4;
+                ctx.shadowColor = '#fdba74'; ctx.shadowBlur = 6;
+                for (let ci = 0; ci < 10; ci++) {
+                    const ca = (ci / 10) * Math.PI * 2 + now / 2600;
+                    const r0 = wave.radius * 0.7, r1 = wave.radius * (1 + 0.06 * Math.sin(now / 130 + ci));
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(ca) * r0, Math.sin(ca) * r0);
+                    ctx.lineTo(Math.cos(ca) * r1, Math.sin(ca) * r1);
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+                // Alternating small/large shard dots along the main ring.
+                for (let di = 0; di < 14; di++) {
+                    const da = (di / 14) * Math.PI * 2 + now / 1700;
+                    const rr = di % 2 === 0 ? 4 : 2.2;
+                    ctx.fillStyle = `rgba(255,255,255,${fade * (0.5 + 0.4 * Math.sin(now / 110 + di))})`;
+                    ctx.beginPath(); ctx.arc(Math.cos(da) * wave.radius, Math.sin(da) * wave.radius, rr, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1; ctx.restore();
+            return;
+        }
+
         ctx.save();
         ctx.translate(wave.x, wave.y);
         // Slow heavy pulse for the oppressive fill/ring, separate from the

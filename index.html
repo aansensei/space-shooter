@@ -614,6 +614,17 @@
                         <span id="vol-global-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
 
+                    <div style="margin-bottom:18px;">
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; display:block; margin-bottom:8px;">In-Game Music</span>
+                        <div id="music-select-wrap" style="position:relative;">
+                            <button type="button" id="music-select-btn" class="stg-music-btn" onclick="toggleMusicDropdown()">
+                                <span id="music-select-label">Random</span>
+                                <span class="stg-music-chevron">▾</span>
+                            </button>
+                            <div id="music-dropdown" class="stg-music-dropdown" style="display:none;"></div>
+                        </div>
+                    </div>
+
                     <div class="stg-divider"></div>
 
                     <!-- ── BACKGROUND ────────────────────────── -->
@@ -737,6 +748,53 @@
                     cursor:pointer; transition:transform 0.12s;
                 }
                 .stg-slider::-webkit-slider-thumb:hover { transform:scale(1.15); }
+                /* In-Game Music multi-select dropdown */
+                .stg-music-btn {
+                    width:100%; display:flex; justify-content:space-between; align-items:center;
+                    padding:9px 12px; border-radius:8px;
+                    font-family:'Courier New',monospace; font-size:12px;
+                    color:#e0f4ff; background:rgba(0,20,40,0.7);
+                    border:1.5px solid rgba(0,229,255,0.3); cursor:pointer;
+                    transition:all 0.2s;
+                }
+                .stg-music-btn:hover { border-color:#00e5ff; background:rgba(0,229,255,0.1); }
+                .stg-music-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; margin-right:8px; }
+                .stg-music-chevron { color:rgba(0,229,255,0.6); font-size:10px; transition:transform 0.2s; flex-shrink:0; }
+                .stg-music-btn.stg-music-open .stg-music-chevron { transform:rotate(180deg); }
+                .stg-music-dropdown {
+                    position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:20;
+                    max-height:200px; overflow-y:auto;
+                    background:rgba(2,10,22,0.98); border:1.5px solid rgba(0,229,255,0.35);
+                    border-radius:10px; padding:6px;
+                    box-shadow:0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,229,255,0.15);
+                }
+                .stg-music-row {
+                    display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:6px;
+                    cursor:pointer; font-size:11px; color:rgba(224,244,255,0.75);
+                    transition:background 0.15s, color 0.15s;
+                }
+                .stg-music-row:hover { background:rgba(0,229,255,0.08); color:#e0f4ff; }
+                .stg-music-row-active { color:#fff; background:rgba(0,229,255,0.14); }
+                .stg-music-check {
+                    width:16px; height:16px; border-radius:4px; flex-shrink:0;
+                    border:1.5px solid rgba(0,229,255,0.4); display:flex; align-items:center; justify-content:center;
+                    font-size:10px; line-height:1; color:#04121c; background:rgba(0,20,40,0.6);
+                }
+                .stg-music-row-active .stg-music-check { background:#00e5ff; border-color:#00e5ff; }
+                /* Themed scrollbars — the settings panel itself and the music dropdown */
+                #settings-panel, .stg-music-dropdown {
+                    scrollbar-width:thin; scrollbar-color:rgba(0,229,255,0.4) rgba(0,20,40,0.3);
+                }
+                #settings-panel::-webkit-scrollbar, .stg-music-dropdown::-webkit-scrollbar { width:6px; }
+                #settings-panel::-webkit-scrollbar-track, .stg-music-dropdown::-webkit-scrollbar-track {
+                    background:rgba(0,20,40,0.3); border-radius:3px;
+                }
+                #settings-panel::-webkit-scrollbar-thumb, .stg-music-dropdown::-webkit-scrollbar-thumb {
+                    background:rgba(0,229,255,0.4); border-radius:3px;
+                }
+                #settings-panel::-webkit-scrollbar-thumb:hover, .stg-music-dropdown::-webkit-scrollbar-thumb:hover {
+                    background:rgba(0,229,255,0.65);
+                }
                 .stg-slider::-moz-range-thumb {
                     width:14px; height:14px; border-radius:50%;
                     background:#00e5ff; border:2px solid #04121c;
@@ -799,13 +857,83 @@
                     bgSlider.style.setProperty('--pct', bgPct + '%');
                     document.getElementById('bg-bright-label').textContent = bgPct + '%';
 
+                    // In-Game Music: rebuild the dropdown + summary label from
+                    // AudioMgr's persisted selection every time Settings opens.
+                    if (typeof _buildMusicDropdown === 'function') _buildMusicDropdown();
+
                     document.getElementById('settingsOverlay').style.display = 'flex';
                 }
                 function closeSettings() {
                     document.getElementById('settingsOverlay').style.display = 'none';
+                    const dd = document.getElementById('music-dropdown');
+                    const btn = document.getElementById('music-select-btn');
+                    if (dd) dd.style.display = 'none';
+                    if (btn) btn.classList.remove('stg-music-open');
                 }
                 document.getElementById('settingsOverlay').addEventListener('click', function(e) {
                     if (e.target === this) closeSettings();
+                });
+
+                // In-Game Music multi-select dropdown — applies immediately
+                // (same pattern as the volume sliders), no "Apply" needed.
+                function toggleMusicDropdown() {
+                    const dd = document.getElementById('music-dropdown');
+                    const btn = document.getElementById('music-select-btn');
+                    const open = dd.style.display !== 'none';
+                    dd.style.display = open ? 'none' : 'block';
+                    btn.classList.toggle('stg-music-open', !open);
+                }
+                function _updateMusicSelectLabel() {
+                    const lbl = document.getElementById('music-select-label');
+                    if (!lbl || !window.AudioMgr) return;
+                    const sel = window.AudioMgr.getSelectedBgmIds();
+                    if (sel.length === 0) { lbl.textContent = 'Random'; return; }
+                    if (sel.length === 1) {
+                        const t = window.AudioMgr.list().find(x => x.id === sel[0]);
+                        lbl.textContent = t ? t.title : '1 track selected';
+                        return;
+                    }
+                    lbl.textContent = sel.length + ' tracks selected';
+                }
+                function _buildMusicDropdown() {
+                    const dd = document.getElementById('music-dropdown');
+                    if (!dd || !window.AudioMgr) return;
+                    const tracks = window.AudioMgr.list().filter(t => !t.menuOnly);
+                    dd.innerHTML = tracks.map(t => {
+                        const active = window.AudioMgr.isBgmSelected(t.id);
+                        return '<div class="stg-music-row' + (active ? ' stg-music-row-active' : '') + '" data-track-id="' + t.id + '" onclick="onMusicTrackClick(\'' + t.id + '\', this)">'
+                            + '<span class="stg-music-check">' + (active ? '✓' : '') + '</span>'
+                            + '<span style="flex:1;">' + t.title + '</span>'
+                            + '</div>';
+                    }).join('');
+                    _updateMusicSelectLabel();
+                }
+                // Toggle just the ONE clicked row in place — never rebuild the
+                // whole list here. Rebuilding (dd.innerHTML = ...) would detach
+                // the very row element the click bubbled from, so the
+                // "close on outside click" listener below sees a detached
+                // e.target, wave.contains(e.target) reads false, and it wrongly
+                // closes the dropdown after every single track pick — exactly
+                // the bug that made multi-select unusable.
+                function onMusicTrackClick(id, rowEl) {
+                    if (!window.AudioMgr) return;
+                    const nowOn = window.AudioMgr.toggleBgmSelection(id);
+                    if (rowEl) {
+                        rowEl.classList.toggle('stg-music-row-active', nowOn);
+                        const check = rowEl.querySelector('.stg-music-check');
+                        if (check) check.textContent = nowOn ? '✓' : '';
+                    }
+                    _updateMusicSelectLabel();
+                }
+                // Close the dropdown on any click outside it (but not the toggle button itself).
+                document.addEventListener('click', function (e) {
+                    const wrap = document.getElementById('music-select-wrap');
+                    if (wrap && !wrap.contains(e.target)) {
+                        const dd = document.getElementById('music-dropdown');
+                        const btn = document.getElementById('music-select-btn');
+                        if (dd) dd.style.display = 'none';
+                        if (btn) btn.classList.remove('stg-music-open');
+                    }
                 });
 
                 // UI-only handlers (no apply yet)
@@ -1326,21 +1454,21 @@
     </script>
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
-    <script src="js/audio.js?v=20260722h"></script>
+    <script src="js/audio.js?v=20260722j"></script>
     <script src="js/background.js?v=20260722b"></script>
     <script src="js/config.js?v=20260724c"></script>
     <script src="js/sigils.js?v=20260731a"></script>
-    <script src="js/entities.js?v=20260731p"></script>
+    <script src="js/entities.js?v=20260803a"></script>
     <script src="js/skills.js?v=20260731g"></script>
     <script src="js/render/core.js?v=20260731a"></script>
-    <script src="js/render/fx.js?v=20260719a"></script>
+    <script src="js/render/fx.js?v=20260803a"></script>
     <script src="js/render/player.js?v=20260724c"></script>
     <script src="js/render/enemy-common.js?v=20260722d"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
     <script src="js/render/enemy-boss-thaelis.js?v=20260717e"></script>
     <script src="js/render/enemy-marchosias.js?v=20260717e"></script>
     <script src="js/render/enemy-leviathan.js?v=20260724b"></script>
-    <script src="js/render/enemy-goliath.js?v=20260731m"></script>
+    <script src="js/render/enemy-goliath.js?v=20260803a"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260717e"></script>
     <script src="js/render/enemy-egregor.js?v=20260717e"></script>
     <script src="js/render/skill-s-spirit.js?v=20260717e"></script>
@@ -1350,8 +1478,8 @@
     <script src="js/render/skill-g.js?v=20260717e"></script>
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
     <script src="js/pixi-renderer.js?v=20260720b"></script>
-    <script src="js/input.js?v=20260724b"></script>
-    <script src="js/main.js?v=20260731n"></script>
+    <script src="js/input.js?v=20260724c"></script>
+    <script src="js/main.js?v=20260803a"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the

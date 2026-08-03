@@ -392,6 +392,16 @@ function update(rawDeltaTime) {
                 // chạy sequence sẽ trừ thẳng hp xuống 0 (thay vì giữ 1),
                 // phá vỡ hiệu ứng đang chạy dở.
                 if (e.type === 'goliath' && e._deathPhase) continue;
+                // Unbroken Will: "no exception can pierce it" — unlike the
+                // post-transform Iron Body window (which BTM is specifically
+                // built to punch through), this invuln shares the same
+                // _transformIronBodyEnd field but must actually hold even
+                // against BTM's bypass-everything hit, or the passive can
+                // never fulfill "first killing hit is negated".
+                if (e.type === 'goliath' && e._unbrokenWillInvulnEnd && performance.now() < e._unbrokenWillInvulnEnd) {
+                    createParticles(e.x, e.y, 6, '#f59e0b', 2, 7);
+                    continue;
+                }
                 const d = Math.hypot(e.x - wave.x, e.y - wave.y);
                 if (d < wave.radius + 20) {
                     wave._hitEnemies.add(e);
@@ -424,6 +434,31 @@ function update(rawDeltaTime) {
                         }
                         createParticles(e.x, e.y, 6, '#00ffaa', 1, 4);
                     }
+                }
+            }
+            if (wave.radius >= wave.maxRadius) wave.active = false;
+            return;
+        }
+
+        // Unbroken Will release wave (NEW): cơ chế y hệt Maou Haki (cùng tốc
+        // độ/maxRadius, quét sạch đạn của người chơi + tinh linh trong bán
+        // kính) nhưng KHÔNG gây sát thương/trừ mạng cho bất kỳ ai — chỉ đơn
+        // thuần "giải phóng" 1 đợt sóng sau khi hết bất tử, không phải 1 đòn
+        // tấn công thật.
+        if (wave._isUnbrokenWave) {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
+                if (d < wave.radius + 20) {
+                    createParticles(bullets[i].x, bullets[i].y, 3, '#fb923c', 1, 3);
+                    bullets.splice(i, 1);
+                }
+            }
+            for (let i = spiritBullets.length - 1; i >= 0; i--) {
+                if (spiritBullets[i].isPhoto) continue;
+                const d = Math.hypot(spiritBullets[i].x - wave.x, spiritBullets[i].y - wave.y);
+                if (d < wave.radius + 20) {
+                    createParticles(spiritBullets[i].x, spiritBullets[i].y, 3, '#fb923c', 1, 3);
+                    spiritBullets.splice(i, 1);
                 }
             }
             if (wave.radius >= wave.maxRadius) wave.active = false;
