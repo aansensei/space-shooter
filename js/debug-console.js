@@ -78,6 +78,7 @@ window._debugClickSpawnType = '';
         <button class="dbg-btn" onclick="debugForceSkill('G')">G</button>
         <button class="dbg-btn" onclick="debugForceSkill('Shift')">Shift</button>
         <button class="dbg-btn" onclick="debugForceSkill('Laser')">Laser</button>
+        <button class="dbg-btn" onclick="debugForceSkill('Photokrystos')">Photokrystos</button>
       </div>
       <div class="dbg-row">
         <button class="dbg-btn" onclick="if (typeof cancelSkillShift === 'function') cancelSkillShift();">Cancel Shift</button>
@@ -339,7 +340,7 @@ window._debugClickSpawnType = '';
             window._debugToggleConsole();
             return;
         }
-        if (e.code === 'KeyP' && window._debugSessionActive && typeof gameState !== 'undefined' && gameState === 'playing') {
+        if (e.code === 'KeyP' && typeof gameState !== 'undefined' && gameState === 'playing') {
             e.preventDefault();
             window.debugTogglePause();
         }
@@ -388,6 +389,20 @@ window._debugClickSpawnType = '';
                 lastSkillS = -Infinity;
                 spirits.length = 0; // activateSkillS blocks while a spirit is already alive
                 if (typeof activateSkillS === 'function') activateSkillS();
+                break;
+            case 'Photokrystos':
+                // Đảm bảo có 1 tinh linh THƯỜNG trước (activatePrimevalCreation
+                // cần 1 con làm nguồn để biến đổi), rồi mới ép primevalEnergy
+                // đầy và gọi lại activateSkillS() thật — không tự viết lại
+                // logic biến đổi, chỉ mồi đúng 2 điều kiện nó tự check.
+                if (typeof activateSkillS === 'function') {
+                    if (!(typeof spirits !== 'undefined' && spirits.some(sp => !sp.isFinishing && !sp.isPhotokrystos))) {
+                        lastSkillS = -Infinity;
+                        activateSkillS();
+                    }
+                    if (typeof primevalEnergy !== 'undefined') primevalEnergy = 100;
+                    activateSkillS();
+                }
                 break;
             case 'D':
                 lastSkillD = -Infinity;

@@ -1358,6 +1358,14 @@ function dealDamage(enemy, source) {
     const effectiveHp = enemyMaxHp + enemy.shield;
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
+    // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
+    // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 35% khi
+    // đánh Goliath True Form — áp dụng SỚM, trước DR/Inevitable cap/true-dmg
+    // bypass, để đè lên cả 2 loại sát thương thường lẫn true damage (boomerang).
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && (source.isPhoto || source._isPhotoSourced)) {
+        totalDamage = Math.ceil(totalDamage * 0.60);
+    }
+
     if (!isSentinel && !source._vanguardTag && !source._noBase60
         && (source.damage > 0 || (source.percentDamage || 0) > 0)
         && !source.isTeslaDot && !source._isNocToiDot
@@ -1839,6 +1847,14 @@ function dealDamage(enemy, source) {
     // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
     const _hitSizeForBurst = totalDamage;
 
+    // Buff Phōtokrystos (NEW): đánh 1 kẻ địch >50,000 MaxHP (thực tế chỉ có
+    // Goliath True Form đạt mức này) — mỗi 1% MaxHP của nó gây được thành sát
+    // thương thì nạp thêm 1.5% năng lượng triệu hồi Phōtokrystos.
+    if (enemy.maxHp > 50000 && typeof primevalEnergy !== 'undefined' && _hitSizeForBurst > 0) {
+        const _pePctDealt = (_hitSizeForBurst / enemy.maxHp) * 100;
+        primevalEnergy = Math.min(100, primevalEnergy + _pePctDealt * 1.5);
+    }
+
     // Vết chém (NEW): riêng cho Goliath, khi bị arc blade/boomerang trúng
     // thật (đã qua evade/Iron Body/Warding Palm ở trên) — vẽ 1 đường chém
     // sáng ngang thân, khác hẳn hiệu ứng nổ tròn generic. Xem enemy-goliath.js.
@@ -1870,6 +1886,19 @@ function dealDamage(enemy, source) {
         }
     }
     enemy.hp = Math.max(0, enemy.hp);
+    // GOLIATH True Form: bắt + ghim hp=1 NGAY TẠI ĐÂY, ĐỒNG BỘ trong chính
+    // dealDamage — không đợi tới frame sau để updateGoliath() bắt kịp nữa.
+    // Bất kỳ đoạn code nào gọi dealDamage() rồi tự ý splice/kill luôn enemy
+    // ngay sau đó trong CÙNG lần gọi (không đợi qua vòng lặp main.js) đều sẽ
+    // thấy hp đã về 1 trước khi kịp làm gì — loại hẳn khoảng hở thời gian mà
+    // trước đây khiến Goliath có thể "biến mất" không chạy hiệu ứng chết.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy.hp <= 0 && !enemy._deathPhase) {
+        enemy._deathPhase = 'core';
+        enemy._deathPhaseTimer = 0;
+        enemy._deathGemsExploded = 0;
+        enemy.hp = 1;
+        enemy._markedForDeath = false;
+    }
     if (enemy.hp <= 0) enemy._markedForDeath = true;
     else if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
 

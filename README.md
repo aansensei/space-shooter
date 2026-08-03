@@ -263,6 +263,8 @@ Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets 
 
 Every time the Spirit (or its attacks) kills an enemy, it charges a **mana meter** displayed on the Skill S button: **+2% per spirit kill**, **+1.25% per kill from any other source**. At **100%**, press S again to transform the Spirit into **Phōtokrystos**. Cannot activate if the Spirit has already entered its Finale. The meter resets if the Spirit enters Finale without transformation.
 
+Against any single enemy with **over 50,000 Max HP** (in practice, only Goliath True Form reaches this), the meter also charges from raw damage dealt: **+1.5% per 1% of that enemy's Max HP dealt as damage**, on top of the normal kill-based charging above.
+
 ---
 
 ### Phōtokrystos — Đại Tinh Linh Khởi Nguyên
@@ -629,6 +631,8 @@ CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at
 **Passive: Warding Palm**
 
 Incoming hits specifically from **Skill F**, **Skill D** (Black Hole), or the **Phōtokrystos finale laser** are simply too powerful to ever be fully negated. Each hit has a **30% chance** to be deflected, taking only **15% of Max HP**; the other **70% of the time** it lands for the full **40% of Max HP**. This is per hit, with no lifetime cap. This rule, like every other Goliath-specific rule, takes priority over any sigil that would otherwise bypass Iron Body or trigger an unconditional instakill (e.g. Death Mark's ≤5%-HP lightning instakill, or its Skill F Iron-Body-piercing effect) — Goliath cannot die to those regardless of sigil.
+
+Separately, **all damage from Phōtokrystos itself** (its homing bullets and its boomerang) is reduced **40%** against Goliath — applied before Damage Reduction and before Inevitable's per-hit cap, so it reduces both the capped normal-type hits and the uncapped true-damage boomerang alike.
 
 **Passive: Threshold Ward**
 

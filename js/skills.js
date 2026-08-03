@@ -908,7 +908,11 @@ function updatePhotoBrangs(deltaTime) {
                         applyVuln: true, vulnChance: 0.15,
                         isTrueDamage: true, _barrierPiercing: true,
                         // Đánh dấu cho hiệu ứng "vết chém" riêng của Goliath (xem dealDamage)
-                        _isSlashVfx: true
+                        _isSlashVfx: true,
+                        // Boomerang CHỈ tồn tại ở dạng Photokrystos (spawnPhotoBrangs,
+                        // gọi từ updatePhotokrystos) — đánh dấu cho Goliath's Warding
+                        // Palm giảm riêng sát thương từ Photokrystos.
+                        _isPhotoSourced: true
                     };
                     if (!checkMarchosiasArcBarrier(tgt, brangSrc, b.x, b.y)) {
                         dealDamage(tgt, brangSrc);
