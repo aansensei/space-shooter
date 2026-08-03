@@ -906,7 +906,9 @@ function updatePhotoBrangs(deltaTime) {
                         damage: Math.ceil((b.damage + (tgt.maxHp - tgt.hp) * 0.05) * (gloryForJusticeActive ? 1.55 : 1)),
                         percentDamage: b.percentDamage,
                         applyVuln: true, vulnChance: 0.15,
-                        isTrueDamage: true, _barrierPiercing: true
+                        isTrueDamage: true, _barrierPiercing: true,
+                        // Đánh dấu cho hiệu ứng "vết chém" riêng của Goliath (xem dealDamage)
+                        _isSlashVfx: true
                     };
                     if (!checkMarchosiasArcBarrier(tgt, brangSrc, b.x, b.y)) {
                         dealDamage(tgt, brangSrc);
@@ -1048,6 +1050,8 @@ function updateBladeArcProjectiles(deltaTime) {
                     ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage, isPiercing: true, _bypassIronBody: _arcBypass }
                     : arc;
                 if (_arcBypass) _arcSrc._bypassIronBody = true;
+                // Đánh dấu cho hiệu ứng "vết chém" riêng của Goliath (xem dealDamage)
+                _arcSrc._isSlashVfx = true;
                 dealDamage(enemy, _arcSrc);
                 if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                     enemy._slowEnd = Math.max(enemy._slowEnd || 0, performance.now() + 2000);

@@ -54,6 +54,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 | Abnormal | 3% → 5% |
 | Elite | 5% → 10% |
 | Dominator | 10% → 15% |
+| Digiform (Goliath) | 35% → 25% over 15s post-transform, +5% (3s, non-stacking) per HP milestone crossed — see its own Evasion passive below, not this generic system |
 
 **Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Black Hole, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
@@ -589,7 +590,7 @@ Goliath exists in three phases: **Alpha** (a dormant, invulnerable seed that fee
 Spawns near the top of the screen at **1 HP**, absolutely invulnerable and fully untargetable — no exception of any kind applies during this phase.
 
 - **Circuit Link:** the instant it spawns (and continuously afterward, to catch anything spawned later), Goliath links to every other enemy currently on screen. Any hit that would land on a linked enemy is capped at **80% of that enemy's own Max HP**, with the difference redirected into Goliath's **Damage Pull** ledger instead of being lost — this is what determines True Form's eventual Max HP.
-- **Corrupted Genesis:** when a linked Abnormal-tier-or-higher enemy dies, a colored gem (matching one of 7 possible enemy types) drops at the death location and flies in a curved arc into one of Alpha's 3 open sockets — landing triggers a slight shockwave shake on Alpha's body. Filling all 3 sockets with 3 *distinct* gem colors begins Transition.
+- **Corrupted Genesis:** when a linked Abnormal-tier-or-higher enemy dies, a colored gem (matching one of 7 possible enemy types) drops at the death location and flies in a curved arc into one of Alpha's 3 open sockets — landing triggers a slight shockwave shake on Alpha's body. Filling all 3 sockets with 3 *distinct* gem colors begins Transition. Any gem that arrives too late for an open socket (a duplicate color, or one still in flight the instant the 3rd distinct socket fills) isn't wasted: once True Form finishes forming, it's redirected to the nearest living enemy as a one-time shield worth 20% of that enemy's own Max HP.
 - **Feeding Ground (passive):** the instant Goliath spawns, `ceil(current enemy count / 3)` of the wave's current enemies are consumed outright (with a death-burst effect), and every enemy that survives the culling gains **+15% Max HP**.
 
 **Transition**
@@ -623,7 +624,7 @@ A self-cast channeled attack, not a reaction. Every time it comes off cooldown: 
 
 **Skill: Corrupted Meteor**
 
-CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at once (fewer if fewer are available) into a compressed meteor core over **0.8 seconds**, consuming each one as fuel, then throws one meteor per Apostle consumed — up to 3 — at the player in a tight fan spread. If no Apostle is available to pull, it still throws exactly **1** "empty" meteor (never a no-op). Hitting the player costs **1 life** per meteor; hitting a Sentinel explodes for **25% of that Sentinel's own Max HP** as splash damage to nearby Sentinels.
+CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at once (fewer if fewer are available) into a compressed meteor core over **0.8 seconds**, consuming each one as fuel, then throws **more meteors than Apostles consumed**: 1 Apostle → 3 meteors, 2 → 4, 3 → 5 (the maximum), all in a fan spread — any extra meteors beyond the Apostles actually consumed are "empty" (no fuel, same as the zero-Apostle case). If no Apostle is available to pull, it still throws exactly **1** empty meteor (never a no-op). Hitting the player costs **1 life** per meteor; hitting a Sentinel explodes for **25% of that Sentinel's own Max HP** as splash damage to nearby Sentinels.
 
 **Passive: Warding Palm**
 
@@ -631,7 +632,9 @@ Incoming hits specifically from **Skill F**, **Skill D** (Black Hole), or the **
 
 **Passive: Threshold Ward**
 
-Crossing each of the **75%, 50%, and 25%** HP milestones (once each, downward only) grants a **+15% Max HP** shield pool. If healing later pushes HP back up across a milestone that already granted its pool, HP is restored up to that milestone's percentage.
+Starts True Form at **35% evade**, decaying linearly down to **25%** over the first **15 seconds**, then holding at 25% for the rest of the fight — evade applies against everything except Skill F, Skill D, and the Phōtokrystos finale laser, which bypass it entirely via Warding Palm's own return path above.
+
+On top of the base evade, crossing each of the **75%, 50%, and 25%** HP milestones (downward) does two things at once: a **one-time** (never re-triggers) **+15% Max HP** shield pool — healing later back up across a milestone that already paid out restores HP up to that milestone's percentage — and a **+5% evade bump for 3 seconds** that, unlike the shield, can retrigger any number of times over the fight (healing back above a milestone and dropping through it again re-fires it), though it never stacks past a single +5% layer no matter how many milestones are crossed at once.
 
 **Passive: Casting Restriction**
 

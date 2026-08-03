@@ -245,7 +245,11 @@ function _drawGoliathSlots(enemy, originX, originY, showEye, now) {
 
     enemy.slots.forEach((slot, i) => {
         const anchor = GOLIATH_SLOT_ANCHORS[i];
-        if (slot.filled) {
+        // Chết (NEW): bảo thạch đã nổ trong chuỗi hiệu ứng chết thì KHÔNG vẽ
+        // lại nữa (coi như khe rỗng) — trước đây vẫn cứ vẽ bình thường dù đã
+        // "nổ", trông như chưa hề mất.
+        const _gemGone = i < (enemy._deathGemsExploded || 0);
+        if (slot.filled && !_gemGone) {
             _drawGoliathGemDiamond(anchor.x, anchor.y, 20, slot.gem, 1, now);
         } else {
             ctx.save();
@@ -1447,60 +1451,40 @@ function _drawGoliathHalo(now) {
     ctx.restore();
 }
 
-// Hiệu ứng chết True Form (crumble + dust): 8 tảng đá thân
-// (GOLIATH_GOLEM_BOULDERS) tách rời rơi xuống + mờ dần lần lượt, rồi tàn dư
-// hoá thành bụi cuốn theo gió rồi tan biến hẳn. enemy._deathPhase/_deathPhaseTimer
-// do updateGoliath (entities.js) điều khiển timing — hàm này chỉ lo phần vẽ,
-// gọi ở toạ độ đã translate(enemy.x, enemy.y) (0,0 = tâm thân).
+// Hiệu ứng chết True Form (crumble): 8 tảng đá thân (GOLIATH_GOLEM_BOULDERS)
+// tách rời rơi xuống + mờ dần lần lượt — kết thúc thẳng ngay khi rụng hết,
+// không còn pha hoá bụi. enemy._deathPhase/_deathPhaseTimer do updateGoliath
+// (entities.js) điều khiển timing — hàm này chỉ lo phần vẽ, gọi ở toạ độ đã
+// translate(enemy.x, enemy.y) (0,0 = tâm thân).
 function _drawGoliathDeathCrumble(enemy, now, trueScale) {
     const t = enemy._deathPhaseTimer || 0;
-    if (enemy._deathPhase === 'crumble') {
-        const fallDur = 700;
-        const staggerSpan = Math.max(1, GOLIATH_DEATH_CRUMBLE_DUR - fallDur);
-        ctx.save();
-        ctx.scale(trueScale, trueScale);
-        GOLIATH_GOLEM_BOULDERS.forEach((b, i) => {
-            const startDelay = (i / GOLIATH_GOLEM_BOULDERS.length) * staggerSpan;
-            const p = Math.max(0, Math.min(1, (t - startDelay) / fallDur));
-            if (p >= 1) return; // đã rơi hết khỏi khung hình
-            if (p <= 0) {
-                _drawGoliathGolemChunk(b.x, b.y, b.r, b.seed, -Math.PI / 3);
-                return;
-            }
-            const ease = p * p;
-            const dropY = ease * 260;
-            const driftX = b.x * 0.25 * p;
-            const rot = p * (b.seed % 2 === 0 ? 1 : -1) * 1.6;
-            ctx.save();
-            ctx.globalAlpha = 1 - p;
-            ctx.translate(b.x + driftX, b.y + dropY);
-            ctx.rotate(rot);
-            _drawGoliathGolemChunk(0, 0, b.r * (1 - p * 0.3), b.seed, -Math.PI / 3);
-            ctx.restore();
-            if (Math.random() < 0.3) {
-                createParticles(enemy.x + (b.x + driftX) * trueScale, enemy.y + (b.y + dropY) * trueScale, 1, '#8a7050', 2, 4);
-            }
-        });
-        ctx.restore();
-    } else { // dust
-        const p = Math.min(1, t / GOLIATH_DEATH_DUST_DUR);
-        const alpha = 1 - p;
-        if (alpha <= 0) return;
-        ctx.save();
-        for (let i = 0; i < 26; i++) {
-            const seed = i * 53.7;
-            const ang = seed % 6.283;
-            const dist = 40 + (seed % 220) + p * 260;
-            const px = Math.cos(ang) * dist + p * 140;
-            const py = Math.sin(ang) * dist * 0.6 - p * 60;
-            const r = 3 + (seed % 5);
-            ctx.beginPath();
-            ctx.arc(px, py, r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(150,120,90,${alpha * 0.5})`;
-            ctx.fill();
+    const fallDur = 700;
+    const staggerSpan = Math.max(1, GOLIATH_DEATH_CRUMBLE_DUR - fallDur);
+    ctx.save();
+    ctx.scale(trueScale, trueScale);
+    GOLIATH_GOLEM_BOULDERS.forEach((b, i) => {
+        const startDelay = (i / GOLIATH_GOLEM_BOULDERS.length) * staggerSpan;
+        const p = Math.max(0, Math.min(1, (t - startDelay) / fallDur));
+        if (p >= 1) return; // đã rơi hết khỏi khung hình
+        if (p <= 0) {
+            _drawGoliathGolemChunk(b.x, b.y, b.r, b.seed, -Math.PI / 3);
+            return;
         }
+        const ease = p * p;
+        const dropY = ease * 260;
+        const driftX = b.x * 0.25 * p;
+        const rot = p * (b.seed % 2 === 0 ? 1 : -1) * 1.6;
+        ctx.save();
+        ctx.globalAlpha = 1 - p;
+        ctx.translate(b.x + driftX, b.y + dropY);
+        ctx.rotate(rot);
+        _drawGoliathGolemChunk(0, 0, b.r * (1 - p * 0.3), b.seed, -Math.PI / 3);
         ctx.restore();
-    }
+        if (Math.random() < 0.3) {
+            createParticles(enemy.x + (b.x + driftX) * trueScale, enemy.y + (b.y + dropY) * trueScale, 1, '#8a7050', 2, 4);
+        }
+    });
+    ctx.restore();
 }
 
 function _drawGoliath(enemy) {
@@ -1646,11 +1630,12 @@ function _drawGoliath(enemy) {
         // thước khai báo bất kể enemy.size là bao nhiêu.
         const trueScale = enemy.size / 460;
 
-        // Chết (crumble/dust): thân KHÔNG vẽ bình thường nữa — đá vụn tách rời
-        // rơi/mờ dần rồi hoá bụi cuốn gió. Pha 'core' (mắt+bảo thạch nổ) vẫn
-        // để thân vẽ bình thường bên dưới, vụ nổ đã có addExplosion/createParticles
-        // (world-space, ở entities.js) lo phần hiệu ứng nên không cần thêm gì ở đây.
-        if (enemy._deathPhase === 'crumble' || enemy._deathPhase === 'dust') {
+        // Chết (crumble): thân KHÔNG vẽ bình thường nữa — đá vụn tách rời
+        // rơi/mờ dần, kết thúc thẳng khi rụng hết. Pha 'core' (bảo thạch nổ +
+        // mắt tắt sáng) vẫn để thân vẽ bình thường bên dưới, vụ nổ đã có
+        // addExplosion/createParticles (world-space, ở entities.js) lo phần
+        // hiệu ứng nên không cần thêm gì ở đây.
+        if (enemy._deathPhase === 'crumble') {
             _drawGoliathDeathCrumble(enemy, now, trueScale);
             ctx.restore();
             return;
@@ -1664,6 +1649,13 @@ function _drawGoliath(enemy) {
         // Unbroken Will (NEW): thân nhấp nháy suốt cửa sổ buff 6s hậu-cứu-mạng.
         if (enemy._unbrokenWillBuffEnd && now < enemy._unbrokenWillBuffEnd) {
             ctx.globalAlpha *= 0.6 + 0.4 * Math.sin(now / 90);
+        }
+        // Evasion (NEW): né đòn — thân "chớp/phase" cực nhanh 400ms, khác hẳn
+        // nhấp nháy chậm của Unbroken Will, để rõ đây là 1 khoảnh khắc né chứ
+        // không phải trạng thái kéo dài. Vòng lục giác tím giãn ra vẽ riêng ở
+        // lớp 1:1 world-space bên dưới (gần Threshold Ward).
+        if (enemy._evadeFlashEnd && now < enemy._evadeFlashEnd) {
+            ctx.globalAlpha *= 0.35 + 0.65 * Math.sin(now / 35);
         }
         // Lơ lửng nhẹ CHO CẢ THÂN, thuần hình ảnh (không đụng enemy.x/y thật)
         // — để ngay cả lúc weave đứng yên hẳn (Phantom, đang đóng/mở cổng
@@ -1699,6 +1691,22 @@ function _drawGoliath(enemy) {
         ctx.globalAlpha = 1; // reset fade Fracture Step — lớp hiệu ứng bên dưới luôn hiện rõ
 
         _drawGoliathJokerEffects(enemy, now);
+
+        // Chết (core, NEW): mắt tắt sáng ngay sau khi cả 3 bảo thạch nổ xong
+        // — phủ 1 vòng tối lên đúng vị trí mắt (vừa vẽ sáng bình thường ở
+        // trên) để "dập tắt" nó, kèm chút khói xám toả nhẹ thay vì phát sáng.
+        if (enemy._deathEyeDark) {
+            const eyeLX = GOLIATH_EYE_POS.x * trueScale, eyeLY = GOLIATH_EYE_POS.y * trueScale;
+            ctx.save();
+            ctx.beginPath(); ctx.arc(eyeLX, eyeLY, 24, 0, Math.PI * 2);
+            ctx.fillStyle = '#0a0805'; ctx.fill();
+            ctx.strokeStyle = 'rgba(70,60,50,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+            const _dimT = Math.min(1, (now - (enemy._deathEyeDarkAt || now)) / 600);
+            ctx.globalAlpha = 0.5 * (1 - _dimT);
+            ctx.beginPath(); ctx.arc(eyeLX, eyeLY, 24 + _dimT * 16, 0, Math.PI * 2);
+            ctx.strokeStyle = '#443322'; ctx.lineWidth = 3; ctx.stroke();
+            ctx.restore();
+        }
 
         // Absolute Verdict: vùng cảnh báo runway-light — 2 đường đỏ song song
         // 2 bên (như đèn viền đường băng), phát ra từ MẮT. Chỉ TRACK người
@@ -1807,6 +1815,47 @@ function _drawGoliath(enemy) {
             }
         }
 
+        // Evasion (NEW): vòng lục giác tím giãn nhanh + mờ dần đúng lúc né
+        // đòn — hiệu ứng tức thời (400ms), tách biệt hẳn khỏi vòng hào quang
+        // ổn định của Threshold Ward phía trên dù cùng 1 passive.
+        if (enemy._evadeFlashEnd && now < enemy._evadeFlashEnd) {
+            const _efP = 1 - (enemy._evadeFlashEnd - now) / 400;
+            ctx.save();
+            ctx.globalAlpha = 1 - _efP;
+            _drawGoliathHexagon(0, 0, 60 + _efP * 140);
+            ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 4 * (1 - _efP) + 1;
+            if (!_mobPerf) { ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 20; }
+            ctx.stroke(); ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        // Vết chém (NEW): riêng cho Goliath khi bị arc blade/boomerang chém
+        // trúng — 1 vệt sáng chính + 2 vệt phụ mảnh song song (kiểu móng
+        // vuốt), mờ nhanh trong 350ms, khác hẳn hiệu ứng nổ tròn generic.
+        if (enemy._slashVfx && now < enemy._slashVfx.end) {
+            const _svP = 1 - (enemy._slashVfx.end - now) / 350;
+            const _svLen = enemy.size * 0.95;
+            const _svAng = enemy._slashVfx.angle;
+            const _svDx = Math.cos(_svAng) * _svLen / 2, _svDy = Math.sin(_svAng) * _svLen / 2;
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - _svP * 1.3);
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#fff5eb';
+            ctx.lineWidth = 6 * (1 - _svP * 0.6);
+            if (!_mobPerf) { ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 24; }
+            ctx.beginPath(); ctx.moveTo(-_svDx, -_svDy); ctx.lineTo(_svDx, _svDy); ctx.stroke();
+            ctx.shadowBlur = 0;
+            const _svPerpX = -Math.sin(_svAng) * 10, _svPerpY = Math.cos(_svAng) * 10;
+            ctx.strokeStyle = 'rgba(255,183,3,0.7)'; ctx.lineWidth = 2.5;
+            [-1, 1].forEach(side => {
+                ctx.beginPath();
+                ctx.moveTo(-_svDx * 0.8 + _svPerpX * side, -_svDy * 0.8 + _svPerpY * side);
+                ctx.lineTo(_svDx * 0.8 + _svPerpX * side, _svDy * 0.8 + _svPerpY * side);
+                ctx.stroke();
+            });
+            ctx.restore();
+        }
+
         // Warding Palm: đỡ thành công = khiên lục giác THẬT LỚN (to hơn gấp
         // bội so với bản cũ chỉ là 1 vòng tròn mảnh), đỡ hụt = nứt vỡ đỏ +
         // sóng xung kích, KHÔNG dùng chung 1 kiểu vòng tròn cho cả 2 nữa.
@@ -1878,8 +1927,10 @@ function _drawGoliath(enemy) {
     // lên người Alpha thay vì bị thân đè mất lúc vừa bay tới.
     _drawGoliathFlyingGems(enemy, now);
 
-    // HP bar (True Form only — Alpha/Transforming are invulnerable, no bar needed)
-    if (enemy.phase === 'true_form') {
+    // HP bar (True Form only — Alpha/Transforming are invulnerable, no bar
+    // needed). Ẩn hẳn ngay từ lúc chuỗi hiệu ứng chết bắt đầu (enemy.hp bị
+    // ghim = 1 suốt sequence, hiện thanh gần-cạn trông sai/gây hiểu lầm).
+    if (enemy.phase === 'true_form' && !enemy._deathPhase) {
         const bw = enemy.size * 0.9, bh = 6;
         const bx = enemy.x - bw / 2, by = enemy.y - enemy.size / 2 - 16;
         ctx.fillStyle = '#1a1a1a'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
