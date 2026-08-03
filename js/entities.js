@@ -2659,9 +2659,9 @@ function _goliathDmgBoost(enemy, amount) {
 }
 
 // Unbroken Will (NEW, 1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì
-// thay vào đó — bất tử 2s (tái dùng đúng cổng Iron Body tuyệt đối của
+// thay vào đó — bất tử 3.5s (tái dùng đúng cổng Iron Body tuyệt đối của
 // _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
-// +1 lớp barrier = 20% MaxHP, và trong 6s kế tiếp (bắt đầu CÙNG lúc với 2s
+// +1 lớp barrier = 20% MaxHP, và trong 6s kế tiếp (bắt đầu CÙNG lúc với 3.5s
 // bất tử, không nối tiếp): +40% hiệu quả hồi HP/khiên (cộng dồn qua
 // _goliathHealBoost), +20% MaxHP (kèm HP hiện tại cộng thẳng phần đó, tự
 // rút lại khi hết hạn — xem updateGoliath), +15% tốc độ bay. Trả về true
@@ -2672,17 +2672,46 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     if (!(incomingHpDamage > 0) || enemy.hp - incomingHpDamage > 0) return false;
     enemy._unbrokenWillUsed = true;
     const now = performance.now();
-    enemy._transformIronBodyEnd = Math.max(enemy._transformIronBodyEnd || 0, now + 2000);
+    enemy._transformIronBodyEnd = Math.max(enemy._transformIronBodyEnd || 0, now + 3500);
+    // Riêng theo dõi mốc HẾT bất tử của CHÍNH Unbroken Will (không dùng
+    // chung _transformIronBodyEnd — field đó có thể bị mốc invuln biến hình
+    // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
+    enemy._unbrokenWillInvulnEnd = now + 3500;
     enemy.barrier = (enemy.barrier || 0) + Math.ceil(enemy.maxHp * 0.20);
     enemy._unbrokenWillBuffEnd = now + 6000;
     const _maxHpBonus = Math.ceil(enemy.maxHp * 0.20);
     enemy._unbrokenWillMaxHpBonus = _maxHpBonus;
     enemy.maxHp += _maxHpBonus;
     enemy.hp += _maxHpBonus;
-    addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#38bdf8');
-    createParticles(enemy.x, enemy.y, 40, '#7dd3fc', 3, 11);
+    addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#f97316');
+    createParticles(enemy.x, enemy.y, 40, '#fdba74', 3, 11);
     _setShake(16, 400);
     return true;
+}
+
+// Unbroken Will — sóng giải phóng (NEW): bắn ngay khi 3.5s bất tử vừa hết,
+// đúng 1 lần duy nhất (đi kèm passive, không có cooldown riêng vì chỉ có thể
+// kích hoạt 1 lần/con). Không tự push thẳng vào spawnBossShockwave() (hàm đó
+// gắn cứng SFX/AudioMgr.startMaouHaki — không hợp ngữ nghĩa ở đây, đây không
+// phải 1 đòn tấn công) mà tự dựng wave object cùng thông số tốc độ/maxRadius
+// để khớp đúng "duration bằng Maou Haki" — xem xử lý wave._isUnbrokenWave ở
+// main.js (quét sạch đạn, không gây dame/trừ mạng).
+function _goliathReleaseUnbrokenWave(enemy, now) {
+    bossShockwaves.push({
+        x: enemy.x, y: enemy.y,
+        radius: 0,
+        maxRadius: Math.hypot(canvas.width, canvas.height),
+        speed: 12,
+        hitSentinels: new Set(),
+        active: true,
+        _isUnbrokenWave: true,
+    });
+    // Animation "tung chiêu": cờ hint cho render vẽ tư thế giải phóng năng
+    // lượng (2 tay/thân bung ra) trong 500ms trước khi sóng thật bắt đầu đọc rõ.
+    enemy._unbrokenReleaseAnimEnd = now + 500;
+    addExplosion(enemy.x, enemy.y, enemy.size * 1.3, '#f97316');
+    createParticles(enemy.x, enemy.y, 50, '#fb923c', 4, 12);
+    _setShake(24, 500);
 }
 
 // Joker Marchosias (Sword & Barrier, full port): proc kích hoạt Sword khi
@@ -3063,6 +3092,13 @@ function updateGoliath(enemy, deltaTime) {
             }
         });
         enemy._lastHpPctForEvade = hpPct;
+        // Unbroken Will (NEW): ngay khi 3.5s bất tử vừa hết, giải phóng 1 đợt
+        // sóng quét sạch đạn người chơi trong tầm — cơ chế y hệt Maou Haki
+        // (cùng tốc độ/maxRadius) nhưng KHÔNG gây sát thương/trừ mạng gì cả.
+        if (enemy._unbrokenWillInvulnEnd && now >= enemy._unbrokenWillInvulnEnd && !enemy._unbrokenWillWaveFired) {
+            enemy._unbrokenWillWaveFired = true;
+            _goliathReleaseUnbrokenWave(enemy, now);
+        }
         // Khiên tích luỹ vượt mốc 25/50/75/100% MaxHp → hồi máu tương ứng
         [1.0, 0.75, 0.5, 0.25].forEach(frac => {
             if (enemy._thresholdShieldPool >= enemy.maxHp * frac && enemy.hp < enemy.maxHp * frac) {

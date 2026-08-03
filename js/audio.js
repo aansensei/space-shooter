@@ -22,6 +22,7 @@
 
 (function () {
     const STORAGE_KEY = 'audioVols';
+    const STORAGE_KEY_BGM_SEL = 'audioBgmSelection';
 
     // Web Audio graph: everything except the Yog-Sothoth activation cue
     // ("shift-hold") routes through a shared duck-gain -> lowpass-filter
@@ -321,6 +322,10 @@
         crawlEl: null,        // Egregor crawl texture, a native gapless AudioBufferSourceNode loop
         photokrystosIdleEl: null, // Phōtokrystos flight/movement texture, same native gapless loop
         pool: {},            // sfx key → { src, bypass }
+        // In-game BGM rotation pool the player picked in Settings (track ids,
+        // excludes the menu-only "pisces" track — that one never plays in a
+        // match). Empty = random from the FULL in-game pool (default).
+        selectedBgmIds: [],
     };
 
     // Load persisted volumes.
@@ -331,6 +336,16 @@
             if (typeof j.bgm    === 'number') state.vol.bgm    = j.bgm;
             if (typeof j.sfx    === 'number') state.vol.sfx    = j.sfx;
             if (typeof j.global === 'number') state.vol.global = j.global;
+        }
+    } catch (_) {}
+
+    // Load persisted BGM rotation selection (separate key — kept independent
+    // of the volumes blob so neither format has to know about the other).
+    try {
+        const rawSel = localStorage.getItem(STORAGE_KEY_BGM_SEL);
+        if (rawSel) {
+            const arr = JSON.parse(rawSel);
+            if (Array.isArray(arr)) state.selectedBgmIds = arr.filter(id => BGM_LIST.some(t => t.id === id && !t.menuOnly));
         }
     } catch (_) {}
 
@@ -441,11 +456,34 @@
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
-    // currently-playing track if a previous one existed).
+    // currently-playing track if a previous one existed). Restricted to the
+    // player's Settings selection when non-empty; falls back to the full
+    // in-game pool the instant the selection is emptied out.
     function _pickInGameBgm() {
-        const pool = BGM_LIST.filter(t => !t.menuOnly && t.id !== state.currentBgmId);
-        if (pool.length === 0) return BGM_LIST.find(t => !t.menuOnly);
+        const base = state.selectedBgmIds.length > 0
+            ? BGM_LIST.filter(t => !t.menuOnly && state.selectedBgmIds.includes(t.id))
+            : BGM_LIST.filter(t => !t.menuOnly);
+        const pool = base.filter(t => t.id !== state.currentBgmId);
+        if (pool.length === 0) return base[0] || BGM_LIST.find(t => !t.menuOnly);
         return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function persistBgmSelection() {
+        try { localStorage.setItem(STORAGE_KEY_BGM_SEL, JSON.stringify(state.selectedBgmIds)); } catch (_) {}
+    }
+    function getSelectedBgmIds() { return state.selectedBgmIds.slice(); }
+    function isBgmSelected(id) { return state.selectedBgmIds.includes(id); }
+    // Toggle a track in/out of the rotation pool. Returns the new selected-on
+    // state (true = now in the pool) so the UI can update without a re-query.
+    function toggleBgmSelection(id) {
+        const track = BGM_LIST.find(t => t.id === id && !t.menuOnly);
+        if (!track) return false;
+        const idx = state.selectedBgmIds.indexOf(id);
+        let nowOn;
+        if (idx === -1) { state.selectedBgmIds.push(id); nowOn = true; }
+        else { state.selectedBgmIds.splice(idx, 1); nowOn = false; }
+        persistBgmSelection();
+        return nowOn;
     }
 
     function playBgmById(id) {
@@ -664,6 +702,7 @@
         pauseAll, resumeAll,
         list: () => BGM_LIST.slice(),
         currentBgmId: () => state.currentBgmId,
+        getSelectedBgmIds, isBgmSelected, toggleBgmSelection,
 
         // SFX
         playSfx, playSfxAt,
