@@ -1757,6 +1757,22 @@ function _drawGoliath(enemy) {
             ctx.strokeStyle = `rgba(255,255,255,${0.5 * pulse})`; ctx.lineWidth = 4; ctx.stroke();
         }
 
+        // Unbroken Will (NEW): sau khi đã kích hoạt 1 lần, 1 vòng hào quang
+        // xanh mờ thở nhẹ toả quanh thân VĨNH VIỄN cho tới lúc chết — để
+        // người chơi luôn biết "mạng cứu" đã dùng rồi, khác hẳn cửa sổ buff
+        // 6s (chỉ có thân nhấp nháy, đã hết từ lâu trong 1 trận dài).
+        if (enemy._unbrokenWillUsed) {
+            const _uwPulse = 0.5 + Math.sin(now / 900) * 0.5;
+            ctx.save();
+            ctx.beginPath(); ctx.arc(0, 0, 245, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(56,189,248,${0.18 + 0.12 * _uwPulse})`;
+            ctx.lineWidth = 3;
+            if (!_mobPerf) { ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 12 + _uwPulse * 8; }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
         // Fracture Step: vòng pháp trận ĐÓNG LẠI tại điểm cũ rồi MỞ RA tại
         // điểm mới — chậm rõ ràng (400ms/pha) thay vì dịch chuyển tức thời +
         // loé sáng ngay. (0,0) luôn khớp đúng vị trí thật của pha hiện tại vì

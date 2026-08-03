@@ -273,6 +273,25 @@ function _activateOverloadLaser(currentTime) {
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
+
+    // GOLIATH True Form — lưới an toàn tổng quát (NEW): quét TRƯỚC MỌI xử lý
+    // khác trong frame (kể cả bossShockwaves/BTM) để bắt hp<=0 và ghim ngay
+    // — phòng bất kỳ đường bypass dealDamage() nào khác chưa lần ra hết. Nếu
+    // sequence đã đang chạy (core/crumble) mà hp lỡ bị 1 chỗ nào đó kéo
+    // xuống 0 sớm, ghim lại về 1 luôn (trừ phi enemy._btmKilled — cờ đó
+    // nghĩa là BTM CỐ Ý kết liễu, không phải lỗi kéo hp xuống ngoài ý muốn).
+    for (let _gi = 0; _gi < enemies.length; _gi++) {
+        const _g = enemies[_gi];
+        if (_g.type !== 'goliath' || _g.phase !== 'true_form') continue;
+        if (!_g._deathPhase && _g.hp <= 0) {
+            _g._deathPhase = 'core';
+            _g._deathPhaseTimer = 0;
+            _g._deathGemsExploded = 0;
+            _g.hp = 1;
+        } else if ((_g._deathPhase === 'core' || _g._deathPhase === 'crumble') && _g.hp <= 0) {
+            _g.hp = 1;
+        }
+    }
     // Fine-grained section timing for the still-unexplained slowdown (now
     // confirmed present in PC mode on the same iPhone too, not mobile-
     // specific) — cheap (a few performance.now() reads), always collected,
@@ -366,6 +385,13 @@ function update(rawDeltaTime) {
                 if (wave._hitEnemies.has(e)) continue;
                 if (e.type === 'veilshroud_echo') continue; // untargetable
                 if (e.inCoronation) continue;              // untargetable during coronation
+                // GOLIATH đang chạy chuỗi hiệu ứng chết (hp đã bị ghim = 1) —
+                // BTM né hẳn dealDamage() nên không tự biết luật này, phải tự
+                // chặn ở đây, y hệt guard `if (enemy._deathPhase) return;`
+                // trong dealDamage. Không thì sóng quét qua giữa lúc đang
+                // chạy sequence sẽ trừ thẳng hp xuống 0 (thay vì giữ 1),
+                // phá vỡ hiệu ứng đang chạy dở.
+                if (e.type === 'goliath' && e._deathPhase) continue;
                 const d = Math.hypot(e.x - wave.x, e.y - wave.y);
                 if (d < wave.radius + 20) {
                     wave._hitEnemies.add(e);
@@ -381,7 +407,17 @@ function update(rawDeltaTime) {
                         e.aegisInvulnerable = false;
                         e.marchosiasParasiteShield = 0;
                         e.afoShieldActive = false; // AFO shield also bypassed
-                        if (e.hp <= 0) { e._markedForDeath = true; e._btmKilled = true; }
+                        // GOLIATH True Form: BTM cố tình xuyên thủng MỌI thứ bằng
+                        // cách chỉnh thẳng e.hp ở đây, hoàn toàn KHÔNG đi qua
+                        // dealDamage() — nên phải tự ghim death-phase ngay tại
+                        // chỗ này luôn, không thì chuỗi hiệu ứng chết (sống
+                        // trong dealDamage) sẽ không bao giờ được kích hoạt.
+                        if (e.hp <= 0 && e.type === 'goliath' && e.phase === 'true_form' && !e._deathPhase) {
+                            e._deathPhase = 'core';
+                            e._deathPhaseTimer = 0;
+                            e._deathGemsExploded = 0;
+                            e.hp = 1;
+                        } else if (e.hp <= 0) { e._markedForDeath = true; e._btmKilled = true; }
                         // Leviathan: Phōtokrystos BTM wave bypasses dealDamage → trigger last rites
                         if (e.type === 'leviathan' && e.hp <= 0 && !e._deathLaserSpawned) {
                             dealDamage(e, { damage: 0, percentDamage: 0 });
@@ -649,6 +685,18 @@ function update(rawDeltaTime) {
 
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
+
+        // GOLIATH True Form: bắt hp<=0 NGAY ĐẦU vòng lặp, trước MỌI xử lý
+        // khác trong frame này — không để bất kỳ đoạn code nào (kể cả những
+        // chỗ chưa lường trước) có cơ hội chen ngang xử lý "chết" theo kiểu
+        // chung trước khi chuỗi hiệu ứng chết theo pha kịp ghim hp=1. Đây là
+        // lớp phòng thủ kép cùng với updateGoliath()'s own check bên dưới.
+        if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy.hp <= 0 && !enemy._deathPhase) {
+            enemy._deathPhase = 'core';
+            enemy._deathPhaseTimer = 0;
+            enemy._deathGemsExploded = 0;
+            enemy.hp = 1;
+        }
 
         if (enemy.type === 'debug_dummy') {
             if (enemy.hp <= 0) { enemy.hp = enemy.maxHp; enemy._state = 'idle'; enemy._stateTime = 0; }
