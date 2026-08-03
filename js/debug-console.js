@@ -2,9 +2,10 @@
 // config.js/sigils.js/entities.js/skills.js/main.js) so every function and
 // global below is a real, already-safe-to-call piece of the actual game —
 // this file adds a panel UI around them, it does not reimplement any game
-// logic itself. The only edit made to an existing file for this feature is
-// the `!window._debugAutoshotOff` guard added at the real fireAutoShot()
-// call site in main.js.
+// logic itself. The only edits made to existing files for this feature are
+// a handful of `window._debug*` guard clauses dropped into main.js at real
+// call sites (fireAutoShot, playerTakesHit, loseLife) — see each guard's
+// own comment there for why that specific spot was chosen.
 //
 // Toggle: press ` (Backquote) — the first press starts a dedicated debug
 // match (skips the start-of-run sigil picker, disables the wave auto-spawner
@@ -15,6 +16,7 @@
 
 window._debugAutoshotOff = false;
 window._debugNoCooldown = false;
+window._debugPlayerInvuln = false;
 window._debugGameSpeed = 1;
 window._debugClickSpawnType = '';
 
@@ -62,6 +64,10 @@ window._debugClickSpawnType = '';
       <label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgCooldownToggle" onchange="window._debugNoCooldown = !this.checked;">
         Hồi chiêu
+      </label>
+      <label class="dbg-row" style="cursor:pointer;">
+        <input type="checkbox" id="dbgInvulnToggle" onchange="window._debugPlayerInvuln = this.checked;">
+        Player Invulnerable
       </label>
       <div class="dbg-row">
         <button class="dbg-btn danger" onclick="debugExitSession()">Exit Debug Mode → Main Menu</button>
@@ -722,6 +728,23 @@ window._debugClickSpawnType = '';
         }
         if (which === 'goliath_fracture' && e.type === 'goliath') e._fractureStepCooldownEnd = 0;
         if (which === 'goliath_verdict' && e.type === 'goliath') { e._verdictPhase = 'ready'; e._verdictCooldownEnd = 0; }
+        if (which === 'goliath_unbroken' && e.type === 'goliath' && typeof _goliathTryUnbrokenWill === 'function') {
+            _goliathTryUnbrokenWill(e, e.hp + 1); // fake a lethal hit to force the proc
+        }
+        if (which === 'goliath_unbroken_wave' && e.type === 'goliath' && typeof _goliathReleaseUnbrokenWave === 'function') {
+            e._unbrokenWillWaveFired = true; // skip the natural 3.5s wait, fire it right now
+            _goliathReleaseUnbrokenWave(e, performance.now());
+        }
+        if (which === 'goliath_btm_test' && e.type === 'goliath') {
+            // Simulate a Photokrystos BTM hit directly on this Goliath — the
+            // exact bypass path that used to punch through Unbroken Will's
+            // invuln — so this button click-tests that fix live.
+            bossShockwaves.push({
+                x: e.x, y: e.y, radius: 5, maxRadius: 100000, speed: 0,
+                hitSentinels: new Set(), _hitEnemies: new Set(), active: true,
+                _isBTMWave: true, _damage: 10, _percentDamage: 0.99,
+            });
+        }
     };
 
     function enemyDefenseNote(e) {
@@ -742,7 +765,13 @@ window._debugClickSpawnType = '';
         if (e.type === 'veilshroud') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'void')">Void Strike</button>`;
         if (e.type === 'goliath' && e.phase === 'alpha') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_transform')">Force Transform</button>`;
         if (e.type === 'goliath' && e.phase === 'transforming') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_trueform')">Skip to True Form</button>`;
-        if (e.type === 'goliath' && e.phase === 'true_form') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_fracture')">Fracture Step</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_verdict')">Absolute Verdict</button>`;
+        if (e.type === 'goliath' && e.phase === 'true_form') {
+            let btns = `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_fracture')">Fracture Step</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_verdict')">Absolute Verdict</button>`;
+            if (!e._unbrokenWillUsed) btns += `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_unbroken')">Unbroken Will</button>`;
+            else if (!e._unbrokenWillWaveFired) btns += `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_unbroken_wave')">Fire Release Wave Now</button>`;
+            btns += `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_btm_test')">Test BTM Hit</button>`;
+            return btns;
+        }
         return '';
     }
 

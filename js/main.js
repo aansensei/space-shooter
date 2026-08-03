@@ -1,4 +1,9 @@
 function loseLife() {
+    // Debug invuln guard here too (not just playerTakesHit()): an enemy
+    // reaching the bottom boundary calls loseLife() directly, bypassing
+    // playerTakesHit() entirely.
+    if (window._debugPlayerInvuln) return;
+
     if (playerAbsoluteShield) {
         playerAbsoluteShield = false;
         addExplosion(player.x, player.y, 150, 'gold');
@@ -25,6 +30,8 @@ function loseLife() {
 }
 
 function playerTakesHit(attacker) {
+    if (window._debugPlayerInvuln) return;
+
     // Dream Realm: 20% chance to negate a hit while active
     if (_hasBuff('coi_mong') && performance.now() < (window._coiMongEndTime || 0)) {
         return;
