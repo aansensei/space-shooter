@@ -1309,8 +1309,31 @@ function dealDamage(enemy, source) {
             const _hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
             _evade += Math.min(0.30, Math.floor(_hpLostPct / 6) * 0.05);
         }
+        // Goliath (NEW): riêng, không dùng bảng tier chung ở trên (giữ 0 nếu
+        // chưa vào True Form). 35% ngay lúc vừa biến hình xong, decay tuyến
+        // tính về 25% trong 15s rồi giữ nguyên 25%. Cộng thêm +5% (không cộng
+        // dồn dù trigger nhiều mốc cùng lúc — chỉ 1 lớp +5% duy nhất, refresh
+        // lại 3s) mỗi lần HP tụt xuyên qua 75/50/25% — có thể lặp lại vô hạn
+        // lần nếu hồi lên rồi tụt lại đúng mốc đó, khác hẳn khiên Threshold
+        // Ward (chỉ phát 1 lần/mốc trong cả trận). Không áp dụng cho Skill F/
+        // D/tia Photokrystos — 3 nguồn đó đã return sớm qua Warding Palm,
+        // không bao giờ chạy tới khối evade này.
+        if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
+            const _gDecayT = Math.min(1, (performance.now() - (enemy._trueFormEnteredAt || performance.now())) / 15000);
+            _evade = 0.35 - _gDecayT * 0.10;
+            if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.05;
+        }
         if (_evade > 0 && Math.random() < _evade) {
-            addExplosion(enemy.x, enemy.y, enemy.size * 0.55, '#aaddff');
+            if (enemy.type === 'goliath') {
+                // Riêng cho Goliath: vòng lục giác tím giãn ra + thân nhấp
+                // nháy nhanh (xem _drawGoliathEvadeFlash, enemy-goliath.js) —
+                // khác hẳn flash xanh nhạt generic, để "phase né đòn" rõ ràng
+                // dễ nhận ra hơn thay vì lẫn với flash chung của mọi enemy.
+                enemy._evadeFlashEnd = performance.now() + 400;
+                createParticles(enemy.x, enemy.y, 16, '#c084fc', 3, 8);
+            } else {
+                addExplosion(enemy.x, enemy.y, enemy.size * 0.55, '#aaddff');
+            }
             // Evaded body hits on Marchosias can still trigger sword
             if (enemy.type === 'marchosias') _tryTriggerMarchosiasCounter(enemy);
             return;
@@ -1815,6 +1838,13 @@ function dealDamage(enemy, source) {
     // giây (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn
     // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
     const _hitSizeForBurst = totalDamage;
+
+    // Vết chém (NEW): riêng cho Goliath, khi bị arc blade/boomerang trúng
+    // thật (đã qua evade/Iron Body/Warding Palm ở trên) — vẽ 1 đường chém
+    // sáng ngang thân, khác hẳn hiệu ứng nổ tròn generic. Xem enemy-goliath.js.
+    if (enemy.type === 'goliath' && source._isSlashVfx) {
+        enemy._slashVfx = { end: performance.now() + 350, angle: Math.random() * Math.PI * 2 };
+    }
 
     // Apply damage: true damage and true-damage-window both bypass shield
     // (và barrier bên dưới — cùng quy tắc như Joker Marchosias's Arc Barrier).
@@ -2953,7 +2983,10 @@ function updateGoliath(enemy, deltaTime) {
             enemy._meteorTargets = (enemy._meteorTargets || []).filter(a => a && a.hp > 0);
             if (enemy._meteorChargeTimer >= 800) {
                 const targets = enemy._meteorTargets;
-                const throwCount = targets.length > 0 ? targets.length : 1;
+                // Số thiên thạch KHÔNG bằng số Apostle hút được nữa: 1 con ->
+                // 3 thiên thạch, 2 con -> 4, 3 con -> 5 (tối đa 5). 0 con vẫn
+                // quăng đúng 1 thiên thạch "trơn" như cũ.
+                const throwCount = targets.length > 0 ? Math.min(5, targets.length + 2) : 1;
                 const _eye = _goliathEyeWorldPos(enemy);
                 const baseAng = Math.atan2(player.y - _eye.y, player.x - _eye.x);
                 window._goliathMeteors = window._goliathMeteors || [];
@@ -2990,6 +3023,17 @@ function updateGoliath(enemy, deltaTime) {
                 enemy._thresholdShieldPool += _goliathHealBoost(enemy, enemy.maxHp * 0.20);
             }
         });
+        // Evade (NEW): +5% 3s mỗi lần HP tụt XUYÊN QUA 75/50/25% — dùng HP
+        // KHUNG HÌNH TRƯỚC (không phải cờ latch như trên) nên lặp lại được vô
+        // hạn lần nếu hồi lên rồi tụt lại đúng mốc. Không cộng dồn: chỉ set
+        // lại đúng 1 mốc hết hạn, dù 1 đòn lớn tụt xuyên luôn cả 3 mốc cùng lúc.
+        if (enemy._lastHpPctForEvade === undefined) enemy._lastHpPctForEvade = hpPct;
+        [75, 50, 25].forEach(mile => {
+            if (enemy._lastHpPctForEvade * 100 > mile && hpPct * 100 <= mile) {
+                enemy._evadeThresholdBuffEnd = now + 3000;
+            }
+        });
+        enemy._lastHpPctForEvade = hpPct;
         // Khiên tích luỹ vượt mốc 25/50/75/100% MaxHp → hồi máu tương ứng
         [1.0, 0.75, 0.5, 0.25].forEach(frac => {
             if (enemy._thresholdShieldPool >= enemy.maxHp * frac && enemy.hp < enemy.maxHp * frac) {
@@ -3086,6 +3130,10 @@ function _goliathEnterTrueForm(enemy) {
     // thành công — bảo vệ đúng khoảnh khắc vừa lộ diện, còn chưa kịp làm gì.
     enemy._transformIronBodyEnd = performance.now() + 2000;
 
+    // Evade (NEW): mốc thời gian bắt đầu decay từ 35% -> 25% trong 15s kể từ
+    // đúng lúc biến hình xong — xem khối tính evade trong dealDamage.
+    enemy._trueFormEnteredAt = performance.now();
+
     // QUAN TRỌNG: chuyển cảnh mượt lúc biến hình vừa xong — công thức weave
     // dùng sin(t + weaveSeed) với weaveSeed NGẪU NHIÊN từ lúc spawn, nên nếu
     // dùng thẳng công thức ngay từ frame đầu tiên của True Form, vị trí sẽ
@@ -3115,6 +3163,28 @@ function _goliathEnterTrueForm(enemy) {
         else if (name === 'Dargruel') enemy._jokerState[name] = { nextFireAt: performance.now() }; // bắn ngay lần đầu
         else if (name === 'Leviathan') enemy._jokerState[name] = { phase: 'ready', cooldownEnd: 0, warnTimer: 0, sweepTimer: 0, sweepOrigin: 0 };
     });
+
+    // Bảo thạch dư (NEW): _pendingGems chỉ được nhét vào khe khi có ĐỦ 3
+    // viên chờ sẵn VÀ còn khe trống có màu khác — nếu gem bay tới đúng lúc cả
+    // 3 khe (khác màu) vừa lấp xong, hoặc trùng màu 1 khe đã có, nó kẹt lại
+    // trong _pendingGems vĩnh viễn (Alpha đã kết thúc, không còn vòng lặp
+    // nào xử lý tiếp). Tới lúc True Form đã hình thành, gom hết số dư đó lại
+    // — thay vì bỏ phí — chuyển thẳng thành 1 lớp khiên 1 lần = 20% MaxHP
+    // cho kẻ địch còn sống gần Goliath nhất.
+    const _leftoverGemCount = (enemy._pendingGems || []).length + (enemy._flyingGems || []).length;
+    if (_leftoverGemCount > 0) {
+        const _nearby = enemies.filter(e => e !== enemy && e.hp > 0 && !e._markedForDeath
+            && e.type !== 'goliath' && !(e.type && e.type.startsWith('enemy_bullet')));
+        _nearby.sort((a, b) => Math.hypot(a.x - enemy.x, a.y - enemy.y) - Math.hypot(b.x - enemy.x, b.y - enemy.y));
+        const _target = _nearby[0];
+        if (_target) {
+            _addEnemyShield(_target, _target.maxHp * 0.20);
+            addExplosion(_target.x, _target.y, _target.size * 0.8, '#f59e0b');
+            createParticles(_target.x, _target.y, 20, '#f59e0b', 3, 8);
+        }
+        enemy._pendingGems = [];
+        enemy._flyingGems = [];
+    }
 }
 
 // Joker: chạy đúng 3 kỹ năng ứng với 3 bảo thạch đã hấp thụ, mỗi kỹ năng
@@ -3133,23 +3203,17 @@ function _goliathSlotWorldPos(enemy, idx) {
     return { x: enemy.x + a.x * trueScale, y: enemy.y + a.y * trueScale };
 }
 
-// Hiệu ứng nổ chết: mắt nổ ngay lập tức, rồi 3 bảo thạch nổ LẦN LƯỢT cách
-// nhau 350ms, sau đó thân từ từ tan rã (crumble) rồi bốc hơi thành bụi
-// (dust) — xem _goliathUpdateDeathSequence gọi hàm này mỗi frame.
-const GOLIATH_DEATH_CORE_DUR = 1400, GOLIATH_DEATH_CRUMBLE_DUR = 1800, GOLIATH_DEATH_DUST_DUR = 1000;
+// Hiệu ứng nổ chết: 3 bảo thạch nổ LẦN LƯỢT cách nhau 350ms, mắt tắt sáng,
+// rồi thân từ từ tan rã (crumble) — kết thúc thẳng ngay khi đá rụng hết, xem
+// _goliathUpdateDeathSequence gọi hàm này mỗi frame.
+const GOLIATH_DEATH_CORE_DUR = 1400, GOLIATH_DEATH_CRUMBLE_DUR = 1800;
 function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
     enemy._deathPhaseTimer = (enemy._deathPhaseTimer || 0) + deltaTime;
     const t = enemy._deathPhaseTimer;
 
     if (enemy._deathPhase === 'core') {
-        if (!enemy._deathEyeExploded) {
-            enemy._deathEyeExploded = true;
-            const eye = _goliathEyeWorldPos(enemy);
-            addExplosion(eye.x, eye.y, enemy.size * 0.5, '#ff4500');
-            createParticles(eye.x, eye.y, 30, '#ffb84d', 3, 10);
-            _setShake(18, 500);
-            if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
-        }
+        // Trình tự (theo yêu cầu): 3 bảo thạch nổ lần lượt trước -> mắt tắt
+        // sáng (không nổ, chỉ tối dần) -> chuyển crumble kèm 1 vụ nổ lớn.
         const gemStagger = 350;
         const gemIdx = Math.min(3, Math.floor(t / gemStagger));
         if (gemIdx > (enemy._deathGemsExploded || 0)) {
@@ -3160,22 +3224,33 @@ function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
                 addExplosion(gp.x, gp.y, enemy.size * 0.35, gemColor);
                 createParticles(gp.x, gp.y, 20, gemColor, 3, 9);
                 _setShake(10, 300);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', gp.x, gp.y);
             }
             enemy._deathGemsExploded = gemIdx;
+        }
+        // Mắt tắt sáng NGAY khi bảo thạch cuối cùng vừa nổ xong — cờ này chỉ
+        // để render (_drawGoliath) biết mà vẽ mắt tối dần, không tự vẽ gì ở
+        // đây (logic-only file).
+        if (gemIdx >= 3 && !enemy._deathEyeDark) {
+            enemy._deathEyeDark = true;
+            enemy._deathEyeDarkAt = now;
+        }
+        // Tro/lửa RẢI RÁC liên tục suốt cả pha core (không chỉ đúng khoảnh
+        // khắc bảo thạch nổ) — để pha này trông "đang sụp đổ dần" thay vì
+        // đứng yên rồi im bặt giữa các lần nổ.
+        if (!enemy._deathEmberNext || now >= enemy._deathEmberNext) {
+            enemy._deathEmberNext = now + 90 + Math.random() * 60;
+            const _emberAt = gemIdx < 3 ? _goliathSlotWorldPos(enemy, Math.min(2, gemIdx)) : _goliathEyeWorldPos(enemy);
+            createParticles(_emberAt.x, _emberAt.y, 4, gemIdx < 3 ? '#f59e0b' : '#665544', 1, 4);
         }
         if (t >= GOLIATH_DEATH_CORE_DUR) {
             enemy._deathPhase = 'crumble';
             enemy._deathPhaseTimer = 0;
-            addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#ff8c1a');
-            _setShake(22, 500);
         }
     } else if (enemy._deathPhase === 'crumble') {
+        // Kết thúc thẳng ngay khi đá rụng hết — không còn pha "hoá bụi" +
+        // vụ nổ lớn cuối cùng nữa theo yêu cầu.
         if (t >= GOLIATH_DEATH_CRUMBLE_DUR) {
-            enemy._deathPhase = 'dust';
-            enemy._deathPhaseTimer = 0;
-        }
-    } else if (enemy._deathPhase === 'dust') {
-        if (t >= GOLIATH_DEATH_DUST_DUR) {
             enemy.hp = 0;
             enemy._markedForDeath = true;
         }
