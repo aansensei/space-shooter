@@ -1455,7 +1455,7 @@
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
     <script src="js/audio.js?v=20260722j"></script>
-    <script src="js/background.js?v=20260722b"></script>
+    <script src="js/background.js?v=20260803b"></script>
     <script src="js/config.js?v=20260724c"></script>
     <script src="js/sigils.js?v=20260731a"></script>
     <script src="js/entities.js?v=20260803a"></script>
@@ -1703,8 +1703,13 @@
                 if (window._pixiApp && window._pixiApp.renderer) {
                     window._pixiApp.renderer.resize(cv.width, cv.height);
                 }
-                if (window._bgPixiApp && window._bgPixiApp.renderer) {
-                    window._bgPixiApp.renderer.resize(physW, physH);
+                // Full rebuild (renderer + bgSprite + brightnessGfx), not a
+                // raw renderer.resize() — that alone left bgSprite at its
+                // old (pre-rotation) size, so the background only covered
+                // part of the new, wider landscape canvas. See _bgResize's
+                // own comment in background.js for why this matters.
+                if (typeof window._bgResize === 'function') {
+                    window._bgResize(physW, physH);
                 }
 
                 // Update game globals to use new logical size

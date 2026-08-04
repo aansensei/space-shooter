@@ -91,17 +91,22 @@
         asteroidsMid:  6,
         asteroidsNear: 3,
     };
+    // Moderate bump over the original always-safe numbers (still far below
+    // DESKTOP_CFG) — the real cause of the old sustained mobile FPS collapse
+    // was traced to the audio graph (fixed via buffer-based BGM/ambient/
+    // engine loops), not this background's sprite count, so there's room
+    // to look less sparse than before without reviving that regression.
     const MOBILE_CFG = {
         gSpeed:        0.25,
-        galaxyCount:   1,
-        nebulaCount:   2,
-        starsFar:      35,
-        starsMid:      15,
-        starsNear:     6,
-        dustCount:     8,
-        asteroidsFar:  2,
-        asteroidsMid:  1,
-        asteroidsNear: 0,
+        galaxyCount:   2,
+        nebulaCount:   4,
+        starsFar:      90,
+        starsMid:      40,
+        starsNear:     15,
+        dustCount:     20,
+        asteroidsFar:  4,
+        asteroidsMid:  3,
+        asteroidsNear: 1,
     };
     const _isTouchDevice = (navigator.maxTouchPoints > 0) ||
         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
@@ -656,8 +661,17 @@
     };
 
     // ─── RESIZE ──────────────────────────────────────────────────────────
-    new ResizeObserver(() => {
-        const w = window.innerWidth, h = window.innerHeight;
+    // Full resize: resizes the renderer AND rebuilds bgSprite/brightnessGfx
+    // to the new dimensions (renderer.resize() alone leaves the old, now
+    // wrong-sized sprites in place). Exposed on window so index.html's
+    // mobile orientation-change path (_initMobileControls in index.html)
+    // can call the SAME complete routine instead of poking
+    // renderer.resize() directly — doing that bypassed this rebuild and,
+    // worse, left app.renderer.width/height already matching the new size
+    // by the time this observer's own callback ran, so its guard below
+    // skipped the rebuild entirely and the background stayed half-blank
+    // after every mobile rotation.
+    function _doBgResize(w, h) {
         if (!w || !h) return;
         if (app.renderer.width === w && app.renderer.height === h) return;
         app.renderer.resize(w, h);
@@ -669,6 +683,11 @@
 
         _rebuildBrightnessGfx();
         brightnessGfx.alpha = 1.0 - window._bgBrightness;
+    }
+    window._bgResize = _doBgResize;
+
+    new ResizeObserver(() => {
+        _doBgResize(window.innerWidth, window.innerHeight);
     }).observe(document.documentElement);
 
     // ─── ANIMATION LOOP ──────────────────────────────────────────────────
