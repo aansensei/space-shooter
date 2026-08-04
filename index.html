@@ -34,6 +34,19 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pisces: Space Journey</title>
+    <!-- TEMP DEBUG — remove once the mobile Guide-reload bug is diagnosed.
+         eruda gives an on-device console (errors, network, logs) without
+         needing a Mac + Web Inspector. Tap the floating circle to open it.
+         Panel height capped via CSS below so it doesn't eat the whole
+         screen and still leaves room to tap around behind it. -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+    <style>
+        /* eruda's exact class name has varied across versions — cover the
+           likely candidates so the height cap actually lands. */
+        .eruda-dev-tools, div.eruda-container .eruda-dev-tools,
+        [class*="eruda-dev-tools"] { max-height: 45vh !important; }
+    </style>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="apple-touch-icon" href="images/logo.png">
     <link rel="manifest" href="manifest.json">
