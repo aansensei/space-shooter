@@ -41,6 +41,53 @@
          screen and still leaves room to tap around behind it. -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
+    <script>
+        // TEMP DEBUG — persists console output across a reload/crash into
+        // localStorage, since eruda's own console is wiped the instant the
+        // page reloads (which is exactly the moment we need to see). On
+        // load, prints whatever was captured right before THIS load
+        // happened, prefixed so it's unmistakable, then starts a fresh
+        // buffer for the current session.
+        (function () {
+            var KEY = '__pisces_crash_log';
+            var MAX = 300;
+            var buf = [];
+            try {
+                var prev = localStorage.getItem(KEY);
+                if (prev) {
+                    var lines = JSON.parse(prev);
+                    console.warn('=== LOG FROM RIGHT BEFORE THE LAST RELOAD (' + lines.length + ' lines) ===');
+                    lines.forEach(function (l) { console.warn('[PREV] ' + l); });
+                    console.warn('=== END OF PREVIOUS-SESSION LOG ===');
+                }
+            } catch (e) {}
+            try { localStorage.removeItem(KEY); } catch (e) {}
+
+            function persist(level, args) {
+                try {
+                    var text = Array.prototype.map.call(args, function (a) {
+                        try { return typeof a === 'string' ? a : JSON.stringify(a); } catch (e) { return String(a); }
+                    }).join(' ');
+                    buf.push(new Date().toISOString().slice(11, 23) + ' [' + level + '] ' + text);
+                    if (buf.length > MAX) buf.shift();
+                    localStorage.setItem(KEY, JSON.stringify(buf));
+                } catch (e) {}
+            }
+            ['log', 'warn', 'error'].forEach(function (level) {
+                var orig = console[level];
+                console[level] = function () {
+                    persist(level, arguments);
+                    return orig.apply(console, arguments);
+                };
+            });
+            window.addEventListener('error', function (e) {
+                persist('error', ['Uncaught: ' + e.message + ' @ ' + e.filename + ':' + e.lineno]);
+            });
+            window.addEventListener('unhandledrejection', function (e) {
+                persist('error', ['Unhandled rejection: ' + (e.reason && e.reason.message || e.reason)]);
+            });
+        })();
+    </script>
     <style>
         /* eruda's exact class name has varied across versions — cover the
            likely candidates so the height cap actually lands. */
