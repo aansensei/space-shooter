@@ -1829,16 +1829,51 @@
         // instead of continuing to run the old version from memory.
         if ('serviceWorker' in navigator) {
             let _swRefreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
+            let _swUpdatePending = false;
+            const _doSwReload = () => {
                 if (_swRefreshing) return;
                 _swRefreshing = true;
                 location.reload();
+            };
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                // Reloading unconditionally here force-kicks the player back
+                // to the main menu mid-run the instant a new SW takes over —
+                // defer it until they're not actually in a game.
+                if (typeof gameState !== 'undefined' && gameState === 'playing') {
+                    _swUpdatePending = true;
+                    return;
+                }
+                _doSwReload();
             });
+            // If an update landed while mid-game, apply it as soon as the
+            // player leaves that state (game over, paused, back to menu) —
+            // checked on the same cadence as the visibility poll below.
+            setInterval(() => {
+                if (_swUpdatePending && !(typeof gameState !== 'undefined' && gameState === 'playing')) {
+                    _doSwReload();
+                }
+            }, 5000);
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then((reg) => {
-                    reg.update().catch(() => {});
+                    // reg.update() re-fetches sw.js (and, via its install
+                    // handler, every CORE_FILES entry) from the network each
+                    // time it's called. Checking on every single
+                    // visibilitychange — which fires constantly on mobile
+                    // (app switches, notifications, lock/unlock) — hammered
+                    // the host with repeated full-shell re-fetches and
+                    // tripped its rate limiting. Throttle to at most once
+                    // every 10 minutes.
+                    let _lastUpdateCheck = 0;
+                    const MIN_CHECK_INTERVAL = 10 * 60 * 1000;
+                    const _checkForUpdate = () => {
+                        const now = Date.now();
+                        if (now - _lastUpdateCheck < MIN_CHECK_INTERVAL) return;
+                        _lastUpdateCheck = now;
+                        reg.update().catch(() => {});
+                    };
+                    _checkForUpdate();
                     document.addEventListener('visibilitychange', () => {
-                        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+                        if (document.visibilityState === 'visible') _checkForUpdate();
                     });
                 }).catch(() => {});
             });
