@@ -1866,6 +1866,12 @@
                     let _lastUpdateCheck = 0;
                     const MIN_CHECK_INTERVAL = 10 * 60 * 1000;
                     const _checkForUpdate = () => {
+                        // Don't even ask for an update while mid-game — no
+                        // point risking a controllerchange (and the deferred
+                        // reload it schedules) firing in the middle of a run
+                        // when it can just as well wait until the player is
+                        // back at the menu or the game is over.
+                        if (typeof gameState !== 'undefined' && gameState === 'playing') return;
                         const now = Date.now();
                         if (now - _lastUpdateCheck < MIN_CHECK_INTERVAL) return;
                         _lastUpdateCheck = now;
