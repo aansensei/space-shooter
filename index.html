@@ -36,6 +36,14 @@
     <title>Pisces: Space Journey</title>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="apple-touch-icon" href="images/logo.png">
+    <link rel="manifest" href="manifest.json">
+    <!-- iOS ignores manifest.json for "Add to Home Screen" — these are the
+         actual tags Safari reads for standalone (no browser chrome) launch. -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pisces">
+    <meta name="theme-color" content="#00121c">
 
     <!-- Open Graph / Social Preview -->
     <meta property="og:title" content="Pisces: Space Journey" />
@@ -657,6 +665,24 @@
 
                     <div class="stg-divider"></div>
 
+                    <!-- ── OFFLINE PLAY ───────────────────────── -->
+                    <div class="stg-section-label">Offline Play</div>
+                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;">
+                        Download in advance to play without internet.
+                    </div>
+                    <div style="color:#a0cce0; font-size:11px; letter-spacing:1px; margin-bottom:8px;">Download offline resources</div>
+                    <div style="display:flex; gap:8px; margin-bottom:8px;">
+                        <select id="offline-pkg-select" class="stg-select" onchange="refreshOfflineUI()">
+                            <option value="basic">Basic (~33MB)</option>
+                            <option value="full">Full (~196MB)</option>
+                        </select>
+                        <button class="stg-btn-sm" id="offline-download-btn" onclick="downloadOfflinePackage()">Download</button>
+                    </div>
+                    <div class="stg-offline-bar-track"><div class="stg-offline-bar-fill" id="offline-fill"></div></div>
+                    <div id="offline-status-text" style="font-size:10px; color:rgba(0,229,255,0.5); margin-top:5px; margin-bottom:12px;"></div>
+
+                    <div class="stg-divider"></div>
+
                     <button onclick="applySettings()" style="
                         width:100%; padding:10px 0; border-radius:10px;
                         font-family:'Courier New',monospace; font-size:12px;
@@ -729,6 +755,33 @@
                 .stg-onoff-active {
                     color:#fff; background:rgba(0,229,255,0.2);
                     border-color:#00e5ff; box-shadow:0 0 8px rgba(0,229,255,0.25);
+                }
+                /* Offline Play */
+                .stg-select {
+                    flex:1; min-width:0; padding:7px 10px; border-radius:8px;
+                    font-family:'Courier New',monospace; font-size:11px;
+                    color:#e0f4ff; background:rgba(0,20,40,0.7);
+                    border:1.5px solid rgba(0,229,255,0.3); cursor:pointer;
+                }
+                .stg-offline-bar-track {
+                    height:4px; border-radius:3px; background:rgba(0,30,50,0.7);
+                    border:1px solid rgba(0,229,255,0.2); overflow:hidden;
+                }
+                .stg-offline-bar-fill {
+                    height:100%; width:0%; background:#00e5ff;
+                    box-shadow:0 0 6px rgba(0,229,255,0.5); transition:width 0.2s;
+                }
+                .stg-btn-sm {
+                    padding:7px 14px; border-radius:8px; flex-shrink:0;
+                    font-family:'Courier New',monospace; font-size:11px;
+                    font-weight:700; letter-spacing:1px; text-transform:uppercase;
+                    color:#00e5ff; background:rgba(0,20,40,0.7);
+                    border:1.5px solid rgba(0,229,255,0.35); cursor:pointer;
+                    transition:all 0.2s;
+                }
+                .stg-btn-sm:hover { background:rgba(0,229,255,0.15); }
+                .stg-btn-sm:disabled {
+                    opacity:0.5; cursor:default; background:rgba(0,229,255,0.08);
                 }
                 /* Volume/brightness sliders */
                 .stg-slider {
@@ -861,7 +914,51 @@
                     // AudioMgr's persisted selection every time Settings opens.
                     if (typeof _buildMusicDropdown === 'function') _buildMusicDropdown();
 
+                    refreshOfflineUI();
+
                     document.getElementById('settingsOverlay').style.display = 'flex';
+                }
+
+                // Offline Play: reflects whichever package is currently
+                // selected in the dropdown — re-run on dropdown change and
+                // every Settings open so it stays accurate as the player
+                // downloads things across sessions.
+                async function refreshOfflineUI() {
+                    if (!window.OfflineMgr) return;
+                    const sel = document.getElementById('offline-pkg-select');
+                    const fill = document.getElementById('offline-fill');
+                    const btn = document.getElementById('offline-download-btn');
+                    const statusText = document.getElementById('offline-status-text');
+                    if (!sel || !fill || !btn) return;
+                    try {
+                        const st = await window.OfflineMgr.getStatus(sel.value);
+                        if (!st.supported) { btn.disabled = true; btn.textContent = 'N/A'; return; }
+                        const pct = st.total > 0 ? Math.round((st.cached / st.total) * 100) : 0;
+                        fill.style.width = pct + '%';
+                        if (pct >= 100) { btn.textContent = 'Downloaded'; btn.disabled = true; }
+                        else { btn.textContent = 'Download'; btn.disabled = false; }
+                        if (statusText) statusText.textContent = st.cached + '/' + st.total + ' files (' + pct + '%)';
+                    } catch (_) {}
+                }
+
+                async function downloadOfflinePackage() {
+                    if (!window.OfflineMgr) return;
+                    const sel = document.getElementById('offline-pkg-select');
+                    const btn = document.getElementById('offline-download-btn');
+                    const fill = document.getElementById('offline-fill');
+                    if (!sel || !btn || !fill) return;
+                    sel.disabled = true;
+                    btn.disabled = true;
+                    btn.textContent = '0%';
+                    try {
+                        await window.OfflineMgr.download(sel.value, (done, total) => {
+                            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                            fill.style.width = pct + '%';
+                            btn.textContent = pct + '%';
+                        });
+                    } catch (_) {}
+                    sel.disabled = false;
+                    refreshOfflineUI();
                 }
                 function closeSettings() {
                     document.getElementById('settingsOverlay').style.display = 'none';
@@ -1455,6 +1552,7 @@
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
     <script src="js/audio.js?v=20260722j"></script>
+    <script src="js/offline.js?v=20260804b"></script>
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260724c"></script>
     <script src="js/sigils.js?v=20260731a"></script>
@@ -1488,6 +1586,19 @@
             const _dbgScript = document.createElement('script');
             _dbgScript.src = 'js/debug-console.js?v=20260803b';
             document.head.appendChild(_dbgScript);
+        }
+    </script>
+
+    <script>
+        // Offline play: registers sw.js, which serves cached files when the
+        // network is unavailable. The Settings panel's "Offline Play"
+        // section (js/offline.js) drives explicit package downloads on top
+        // of this — registering here just makes the worker exist so those
+        // downloads have a cache to write into.
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            });
         }
     </script>
 

@@ -1,0 +1,143 @@
+// js/offline.js — drives the "Offline Play" download UI in Settings.
+// The actual cache-first serving happens in sw.js; this file only decides
+// WHAT to download and reports progress/status back to the Settings panel.
+//
+// Two packages, matching the Settings UI: BASIC (app shell + all SFX,
+// enough to play with full mechanics/feedback) and FULL (BASIC + every BGM
+// track, so music works offline too). Picking FULL when BASIC is already
+// cached only fetches the BGM delta — every download here is filtered to
+// "not already in cache" first, nothing gets re-fetched.
+
+(function () {
+    // Mirrors sw.js's CORE_FILES exactly — kept as a separate literal
+    // (not fetched from sw.js) since a page script can't import a worker
+    // script's module scope.
+    const CORE_FILES = [
+        'index.html',
+        'manifest.json',
+        'css/style.css',
+        'images/gameplay.png',
+        'images/logo.png',
+        'images/pisces_banner.png',
+        'js/audio.js',
+        'js/background.js',
+        'js/config.js',
+        'js/entities.js',
+        'js/input.js',
+        'js/main.js',
+        'js/pixi-renderer.js',
+        'js/sigils.js',
+        'js/skills.js',
+        'js/render/core.js',
+        'js/render/enemy-aegis-core.js',
+        'js/render/enemy-boss-thaelis.js',
+        'js/render/enemy-common.js',
+        'js/render/enemy-egregor.js',
+        'js/render/enemy-goliath.js',
+        'js/render/enemy-leviathan.js',
+        'js/render/enemy-marchosias.js',
+        'js/render/enemy-veilshroud.js',
+        'js/render/fx.js',
+        'js/render/player.js',
+        'js/render/skill-a.js',
+        'js/render/skill-buttons.js',
+        'js/render/skill-d.js',
+        'js/render/skill-f.js',
+        'js/render/skill-g.js',
+        'js/render/skill-s-spirit.js',
+    ];
+
+    // Kept as a static list (not scraped from audio.js's _makePool calls at
+    // runtime) since those calls are scattered across one big init function
+    // with no single exported array — mirror this list by hand if new SFX
+    // files are ever added to audio/sfx/.
+    const SFX_FILES = [
+        'audio/sfx/autoshot.mp3', 'audio/sfx/blackhole.mp3', 'audio/sfx/chain-lightning.mp3',
+        'audio/sfx/charged-shot.mp3', 'audio/sfx/charging.mp3', 'audio/sfx/click.mp3',
+        'audio/sfx/coronation.mp3', 'audio/sfx/dimension-break.mp3', 'audio/sfx/dimensional-rift.mp3',
+        'audio/sfx/egregor-crawl.mp3', 'audio/sfx/egregor-death-roar.mp3', 'audio/sfx/egregor-nullslash-hit.mp3',
+        'audio/sfx/egregor-nullslash-slash.mp3', 'audio/sfx/egregor-nullslash-windup.mp3', 'audio/sfx/egregor-tempest-strike.mp3',
+        'audio/sfx/enemy-death.mp3', 'audio/sfx/enemy-hit.wav', 'audio/sfx/engine.wav',
+        'audio/sfx/gameover.mp3', 'audio/sfx/hover.mp3', 'audio/sfx/hyperjump.mp3',
+        'audio/sfx/ingame.mp3', 'audio/sfx/laser.mp3', 'audio/sfx/life-lost.mp3',
+        'audio/sfx/low-hp.mp3', 'audio/sfx/maou-haki.mp3', 'audio/sfx/new-wave.mp3',
+        'audio/sfx/overlay.wav', 'audio/sfx/photokrystos-boomerang-hit.mp3', 'audio/sfx/photokrystos-boomerang-throw.mp3',
+        'audio/sfx/photokrystos-btm-firing.mp3', 'audio/sfx/photokrystos-btm-kill.mp3', 'audio/sfx/photokrystos-btm-shockwave.mp3',
+        'audio/sfx/photokrystos-btm-warming.mp3', 'audio/sfx/photokrystos-dnt-laser.mp3', 'audio/sfx/photokrystos-idle.mp3',
+        'audio/sfx/photokrystos-summon-converge.mp3', 'audio/sfx/photokrystos-summon-flash.mp3', 'audio/sfx/photokrystos-summon-holy.mp3',
+        'audio/sfx/photokrystos-vine-bind.mp3', 'audio/sfx/sentinel-explode.mp3', 'audio/sfx/sentinel-spawn.mp3',
+        'audio/sfx/shield-hit.wav', 'audio/sfx/shift-hold.mp3', 'audio/sfx/shift-teleport.mp3',
+        'audio/sfx/sigil-confirm.mp3', 'audio/sfx/sigil-open.mp3', 'audio/sfx/skill-a-activate.mp3',
+        'audio/sfx/skill-a-orb-hit.mp3', 'audio/sfx/skill-a-orb-lock.mp3', 'audio/sfx/skill-d-charge.mp3',
+        'audio/sfx/skill-f-charge.mp3', 'audio/sfx/skill-f-fire.mp3', 'audio/sfx/skill-ready.mp3',
+        'audio/sfx/skill-unlocked.mp3', 'audio/sfx/spirit-arc-slash.mp3', 'audio/sfx/spirit-autofire.mp3',
+        'audio/sfx/tesla-coil-form.mp3', 'audio/sfx/wave-clear.mp3', 'audio/sfx/yog-parry.mp3',
+    ];
+
+    function bgmFiles() {
+        // Prefer the live list from AudioMgr (single source of truth) —
+        // falls back to a hand-kept mirror only if audio.js hasn't loaded
+        // yet for some reason.
+        if (window.AudioMgr && typeof window.AudioMgr.list === 'function') {
+            return window.AudioMgr.list().map((t) => t.src);
+        }
+        return [];
+    }
+
+    const PACKAGES = {
+        basic: { label: 'Basic', sizeLabel: '~33MB', files: () => [...CORE_FILES, ...SFX_FILES] },
+        full:  { label: 'Full', sizeLabel: '~196MB (includes all music)', files: () => [...CORE_FILES, ...SFX_FILES, ...bgmFiles()] },
+    };
+
+    // Must match sw.js's CACHE_NAME (CACHE_NAME = 'pisces-cache-' + CACHE_VERSION)
+    // — bump both together if sw.js's version ever changes.
+    const CACHE_NAME = 'pisces-cache-v1';
+
+    async function getStatus(which) {
+        if (!('caches' in window)) return { supported: false, cached: 0, total: 0 };
+        const files = PACKAGES[which].files();
+        const cache = await caches.open(CACHE_NAME);
+        let cached = 0;
+        for (const url of files) {
+            if (await cache.match(url)) cached++;
+        }
+        return { supported: true, cached, total: files.length };
+    }
+
+    async function download(which, onProgress) {
+        const files = PACKAGES[which].files();
+        const cache = await caches.open(CACHE_NAME);
+        const missing = [];
+        for (const url of files) {
+            if (!(await cache.match(url))) missing.push(url);
+        }
+        let done = files.length - missing.length;
+        onProgress(done, files.length);
+        if (missing.length === 0) return { ok: true, failed: 0 };
+
+        let failed = 0;
+        // Small concurrency window instead of one giant Promise.all — keeps
+        // a runaway number of parallel connections from choking a weak/
+        // metered mobile connection while still being faster than serial.
+        const CONCURRENCY = 4;
+        let idx = 0;
+        async function worker() {
+            while (idx < missing.length) {
+                const url = missing[idx++];
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) await cache.put(url, res);
+                    else failed++;
+                } catch (_) {
+                    failed++;
+                }
+                done++;
+                onProgress(done, files.length);
+            }
+        }
+        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, missing.length) }, worker));
+        return { ok: failed === 0, failed };
+    }
+
+    window.OfflineMgr = { getStatus, download, PACKAGES };
+})();
