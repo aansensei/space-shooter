@@ -514,13 +514,29 @@
                 function openGuide() {
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
-                    if (window._inGame && ov.parentElement !== document.body) document.body.appendChild(ov);
+                    // Moving a DOM node that contains an iframe reloads that
+                    // iframe, even if its src never actually changes — this
+                    // reparent used to happen right here, on the first
+                    // Guide click, which meant that click looked exactly
+                    // like "opening Guide reloads it" whenever the iframe
+                    // already had guide.html loaded. See _moveGuideOverlayForGame
+                    // (called at game start, before fr.src is ever set) for
+                    // where this now actually happens.
                     ov.style.display = 'flex';
                     if (!fr.getAttribute('data-loaded')) {
                         fr.src = 'guide.html';
                         fr.setAttribute('data-loaded', '1');
                     }
                 }
+                // Reparents guideOverlay to <body> (so its z-index actually
+                // wins against whatever stacking context wraps the in-game
+                // UI) while guideFrame's src is still empty — reparenting an
+                // empty iframe has no visible reload, unlike doing this
+                // after guide.html has already been loaded into it.
+                window._moveGuideOverlayForGame = function () {
+                    const ov = document.getElementById('guideOverlay');
+                    if (ov && ov.parentElement !== document.body) document.body.appendChild(ov);
+                };
                 function closeGuide() {
                     // Stop any music-archive preview inside the iframe first.
                     // Always call resumeBgm as a safety net in case the iframe
@@ -1605,6 +1621,7 @@
                     easterEggOverlay.style.display = 'none';
                     if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
                     if (typeof _initMobileControls === 'function') _initMobileControls();
+                    if (typeof window._moveGuideOverlayForGame === 'function') window._moveGuideOverlayForGame();
 
                     // Ambient (space) + engine now; in-game BGM waits for sigil confirm
                     if (window.AudioMgr) {
