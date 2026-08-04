@@ -25,7 +25,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pisces: Space Journey — General Guide</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&family=Sora:wght@300;400;500;600;700&display=swap');
+
+    /* Rajdhani/Orbitron/Cinzel/Share Tech Mono render Vietnamese combining
+       diacritics with visible glyph-shaping artifacts (not a missing-glyph
+       case, so a plain font-family fallback never kicks in) — force every
+       element to a font known to shape Vietnamese correctly while VI is active.
+       Sora: a sleek geometric sans with full Vietnamese coverage, closer in
+       spirit to Orbitron/Rajdhani than a heavier grotesk like Be Vietnam Pro. */
+    body.lang-vi, body.lang-vi * {
+      font-family: 'Sora', sans-serif !important;
+    }
+    /* Vietnamese sigil buff/theme text runs noticeably longer than the
+       English original — the flip-cards are aspect-ratio-locked (not
+       content-sized), so without this the extra text bleeds past the card
+       into whatever sits below it. Give VI cards more room and trim the
+       type scale slightly instead of reflowing the whole grid. */
+    /* aspect-ratio locks card height to its (grid-derived) width regardless
+       of content, so longer VI text either clips or bleeds into the card
+       below — no amount of shrinking text reliably wins that fight. Instead,
+       let the front face size itself in normal flow (only it stays static;
+       the back face still overlays it absolutely for the flip animation),
+       so the card is exactly as tall as its own translated text needs. */
+    body.lang-vi .sfc { aspect-ratio: unset; }
+    body.lang-vi .sfc-inner { height: auto; }
+    body.lang-vi .sfc-front { position: relative; height: auto; min-height: 280px; }
+    body.lang-vi .sfc-back { position: absolute; inset: 0; height: 100%; }
+    body.lang-vi .sfc-row { font-size: 10px; line-height: 1.36; }
+    body.lang-vi .sbd { font-size: 9.5px; }
+    body.lang-vi .sfc-theme { font-size: 8px; letter-spacing: 1.2px; }
+    body.lang-vi .sfc-name { font-size: 11px; letter-spacing: 2px; }
 
     :root {
       --bg: #03030f;
@@ -52,7 +81,7 @@
     body {
       background: var(--bg);
       color: var(--txt);
-      font-family: 'Rajdhani', sans-serif;
+      font-family: 'Rajdhani', 'Be Vietnam Pro', sans-serif;
       overflow: hidden;
       height: 100vh;
       display: flex;
@@ -91,7 +120,7 @@
     }
 
     .guide-header h1 {
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Orbitron', 'Be Vietnam Pro', sans-serif;
       font-size: 18px;
       font-weight: 900;
       letter-spacing: 3px;
@@ -101,7 +130,7 @@
     }
 
     .guide-header .sub {
-      font-family: 'Share Tech Mono', monospace;
+      font-family: 'Share Tech Mono', 'Be Vietnam Pro', monospace;
       font-size: 10px;
       color: var(--dim);
       margin-top: 1px
@@ -127,7 +156,7 @@
 
     .tab-btn {
       padding: 9px 14px;
-      font-family: 'Rajdhani', sans-serif;
+      font-family: 'Rajdhani', 'Be Vietnam Pro', sans-serif;
       font-size: 12px;
       font-weight: 600;
       letter-spacing: 1px;
@@ -206,7 +235,7 @@
     }
 
     .card h2 {
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Orbitron', 'Be Vietnam Pro', sans-serif;
       font-size: 14px;
       font-weight: 700;
       letter-spacing: 2px;
@@ -214,7 +243,7 @@
     }
 
     .card .sub {
-      font-family: 'Share Tech Mono', monospace;
+      font-family: 'Share Tech Mono', 'Be Vietnam Pro', monospace;
       font-size: 10px;
       color: var(--dim);
       margin-bottom: 10px
@@ -278,7 +307,7 @@
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 4px;
-      font-family: 'Share Tech Mono', monospace;
+      font-family: 'Share Tech Mono', 'Be Vietnam Pro', monospace;
       font-size: 11px;
       color: #fff;
       vertical-align: middle
@@ -290,7 +319,7 @@
       background: rgba(255, 100, 0, 0.12);
       border: 1px solid rgba(255, 100, 0, 0.3);
       border-radius: 4px;
-      font-family: 'Share Tech Mono', monospace;
+      font-family: 'Share Tech Mono', 'Be Vietnam Pro', monospace;
       font-size: 10px;
       color: #ff8844;
       margin-left: 4px
@@ -326,7 +355,7 @@
     }
 
     .controls-table th {
-      font-family: 'Orbitron', sans-serif;
+      font-family: 'Orbitron', 'Be Vietnam Pro', sans-serif;
       font-size: 9px;
       letter-spacing: 2px;
       text-transform: uppercase;
@@ -346,12 +375,12 @@
     }
 
     .dsname {
-      font-family: 'Cinzel', 'Palatino Linotype', serif;
+      font-family: 'Cinzel', 'Be Vietnam Pro', 'Palatino Linotype', serif;
       letter-spacing: 2px;
     }
 
     .dsclass {
-      font-family: 'Cinzel', serif;
+      font-family: 'Cinzel', 'Be Vietnam Pro', serif;
       font-size: 9px;
       letter-spacing: 3px;
       opacity: 0.75;
@@ -375,7 +404,7 @@
     .tog-btn {
       margin-left: auto;
       padding: 6px 12px;
-      font-family: 'Rajdhani', sans-serif;
+      font-family: 'Rajdhani', 'Be Vietnam Pro', sans-serif;
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 1px;
@@ -397,7 +426,7 @@
     .play-btn {
       position: absolute; bottom: 6px; right: 6px;
       padding: 4px 10px;
-      font-family: 'Rajdhani', sans-serif;
+      font-family: 'Rajdhani', 'Be Vietnam Pro', sans-serif;
       font-size: 10px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -417,9 +446,9 @@
     .ul-entry { position:relative; padding:14px 16px 14px 20px; margin-bottom:10px; background:rgba(255,255,255,0.025); border-radius:8px; border:1px solid rgba(255,255,255,0.06); border-left:3px solid var(--ul-accent,rgba(0,200,255,0.4)); }
     .ul-entry:last-child { margin-bottom:0; }
     .ul-head { display:flex; align-items:baseline; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
-    .ul-ver { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:1.5px; color:var(--ul-accent,var(--cyan)); line-height:1.2; }
-    .ul-badge { font-family:'Share Tech Mono',monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:rgba(255,255,255,0.06); color:var(--dim); letter-spacing:1px; white-space:nowrap; }
-    .ul-date { font-size:10px; color:var(--dim); margin-bottom:8px; font-family:'Share Tech Mono',monospace; }
+    .ul-ver { font-family:'Orbitron', 'Be Vietnam Pro', sans-serif; font-size:12px; font-weight:700; letter-spacing:1.5px; color:var(--ul-accent,var(--cyan)); line-height:1.2; }
+    .ul-badge { font-family:'Share Tech Mono', 'Be Vietnam Pro', monospace; font-size:9px; padding:2px 7px; border-radius:3px; background:rgba(255,255,255,0.06); color:var(--dim); letter-spacing:1px; white-space:nowrap; }
+    .ul-date { font-size:10px; color:var(--dim); margin-bottom:8px; font-family:'Share Tech Mono', 'Be Vietnam Pro', monospace; }
     .ul-summary { font-size:11px; color:#aabbcc; line-height:1.5; margin-bottom:0; }
     .ul-tag { display:inline-block; font-size:9px; font-weight:700; letter-spacing:0.5px; padding:1px 5px; border-radius:3px; margin-right:3px; vertical-align:middle; }
     .tag-feat { background:rgba(0,220,255,0.1); color:#22d3ee; border:1px solid rgba(0,220,255,0.22); }
@@ -450,9 +479,9 @@
     .sfc-back { transform:rotateY(180deg); }
     .sfc-glyph-cv { display:block; width:78px; height:78px; margin:0 auto 6px; filter:drop-shadow(0 0 8px var(--sc,#00e5ff)); }
     .sfc-glyph-sm-cv { display:block; width:48px; height:48px; margin:0 auto 10px; filter:drop-shadow(0 0 6px var(--sc,#00e5ff)); }
-    .sfc-name { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; letter-spacing:3px; color:var(--sc,var(--cyan)); text-align:center; margin-bottom:3px; }
+    .sfc-name { font-family:'Orbitron', 'Be Vietnam Pro', sans-serif; font-size:12px; font-weight:700; letter-spacing:3px; color:var(--sc,var(--cyan)); text-align:center; margin-bottom:3px; }
     .sfc-el { font-size:10px; color:var(--dim); text-align:center; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px; }
-    .sfc-theme { font-family:'Share Tech Mono',monospace; font-size:9px; color:rgba(140,165,210,0.85); text-align:center; letter-spacing:2px; border-top:1px solid rgba(255,255,255,0.09); border-bottom:1px solid rgba(255,255,255,0.09); padding:5px 0; margin-bottom:9px; }
+    .sfc-theme { font-family:'Share Tech Mono', 'Be Vietnam Pro', monospace; font-size:9px; color:rgba(140,165,210,0.85); text-align:center; letter-spacing:2px; border-top:1px solid rgba(255,255,255,0.09); border-bottom:1px solid rgba(255,255,255,0.09); padding:5px 0; margin-bottom:9px; }
     .sfc-buffs { flex:1; display:flex; flex-direction:column; gap:7px; }
     .sfc-row { font-size:11px; line-height:1.44; color:#c8d8f0; }
     .sfc-row b { color:#e0eeff; }
@@ -463,7 +492,7 @@
     .sbt.heal { background:rgba(34,197,94,.16); color:#4ade80; border:1px solid rgba(34,197,94,.32); }
     .sbt.spec { background:rgba(245,158,11,.16); color:#fbbf24; border:1px solid rgba(245,158,11,.32); }
     .sfc-hint { font-size:9px; color:rgba(90,120,175,0.5); text-align:center; letter-spacing:1.5px; margin-top:6px; text-transform:uppercase; }
-    .sfc-story { flex:1; font-family:'Cinzel',serif; font-size:11.5px; line-height:1.7; color:rgba(210,228,252,0.92); overflow:hidden; }
+    .sfc-story { flex:1; font-family:'Cinzel', 'Be Vietnam Pro', serif; font-size:11.5px; line-height:1.7; color:rgba(210,228,252,0.92); overflow:hidden; }
   </style>
 </head>
 
@@ -667,7 +696,11 @@
     // All guide content is built via JS to keep HTML size manageable
     const G = document.getElementById('guideBody');
 
-    const TABS = {
+    // Language switcher: TABS_EN is the original, canonical content (never
+    // edited for translation — it's what TABS_VI falls back to for any tab
+    // not yet translated, e.g. updatelog stays English-only on purpose).
+    // TABS_VI is defined further down, right after this object closes.
+    const TABS_EN = {
       basics: `
 <div class="card">
 <h2 style="color:var(--cyan)">YOUR SHIP</h2>
@@ -771,8 +804,8 @@
 <div class="card"><h2 style="color:#ff44aa"><span class="key">S</span> REMEMBRANCE SPIRIT</h2>
 <div class="sub"><span class="cd">CD 12s</span> <span class="cd">35s</span></div>
 <div style="display:flex;gap:6px;margin-bottom:8px;">
-  <button onclick="showSpiritTab(1)" id="sTabBtn1" style="flex:1;padding:5px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(255,68,170,0.25);border:1.5px solid #ff44aa;border-radius:6px;color:#ff44aa;">① Normal Spirit</button>
-  <button onclick="showSpiritTab(2)" id="sTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(0,80,40,0.2);border:1.5px solid rgba(0,255,136,0.4);border-radius:6px;color:#00cc66;">② Phōtokrystos</button>
+  <button onclick="showSpiritTab(1)" id="sTabBtn1" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(255,68,170,0.25);border:1.5px solid #ff44aa;border-radius:6px;color:#ff44aa;">① Normal Spirit</button>
+  <button onclick="showSpiritTab(2)" id="sTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(0,80,40,0.2);border:1.5px solid rgba(0,255,136,0.4);border-radius:6px;color:#00cc66;">② Phōtokrystos</button>
 </div>
 <div id="sSpiritPane1">
   <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
@@ -1067,8 +1100,8 @@
 <div class="card" style="border-color:rgba(245,158,11,0.3)">
 <h2 class="dsname" style="color:#f59e0b">GOLIATH <span class="dsclass" style="font-size:9px;color:#eab308">DIGIFORM</span></h2>
 <div style="display:flex;gap:6px;margin-bottom:8px;">
-  <button onclick="showGoliathTab(1)" id="gTabBtn1" style="flex:1;padding:5px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(245,158,11,0.25);border:1.5px solid #f59e0b;border-radius:6px;color:#f59e0b;">① Alpha</button>
-  <button onclick="showGoliathTab(2)" id="gTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(80,50,0,0.2);border:1.5px solid rgba(245,158,11,0.4);border-radius:6px;color:#c9891f;">② True Form</button>
+  <button onclick="showGoliathTab(1)" id="gTabBtn1" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(245,158,11,0.25);border:1.5px solid #f59e0b;border-radius:6px;color:#f59e0b;">① Alpha</button>
+  <button onclick="showGoliathTab(2)" id="gTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(80,50,0,0.2);border:1.5px solid rgba(245,158,11,0.4);border-radius:6px;color:#c9891f;">② True Form</button>
 </div>
 <div id="gGoliathPane1">
 <div class="ab" style="height:190px"><canvas id="cvGoliathAlpha" style="width:100%;height:100%"></canvas></div>
@@ -1152,8 +1185,22 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
+<div class="ul-entry" style="--ul-accent:#22c55e">
+<div class="ul-head"><span class="ul-ver">v5.5 — VIETNAMESE LANGUAGE SUPPORT</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-date">2026-08-04 · Full English/Vietnamese language switcher for the Settings panel, the Guide, and the in-game sigil picker</div>
+<p class="det-short ul-summary">Added a Language dropdown in Settings (English / Tiếng Việt), persisted per-device via localStorage and defaulting to English. Switching language re-translates the Settings panel, the in-game sigil picker (card names, elements, buff text, and the picker's own title/Confirm/Reroll UI), and every Guide tab except Enemies-heavy edge cases and the dev changelog. Vietnamese resources ship inside the existing offline Basic package — no separate download needed. Also fixed a real-device rendering bug where Vietnamese diacritics broke on the Guide's stylized display fonts, and redesigned the Settings Language/Offline dropdowns to match the existing In-Game Music dropdown's styling.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Language switcher:</b> new Settings dropdown (English / Tiếng Việt), saved to <code>localStorage</code> and applied on load. English remains the canonical/default language.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Sigil localization:</b> sigil names, elements, and buff name/description text render in Vietnamese in both the in-game picker and the Guide's Sigils tab, without touching the underlying English data used by game logic (element-based effect checks, buff IDs, etc. are untouched).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Guide translation:</b> Basics, Passives, Skills, Sigils, and Rules tabs fully translated; Music Archive translated; Enemies tab translated. Update Log stays English (dev changelog).</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Vietnamese font rendering:</b> Orbitron/Rajdhani/Cinzel/Share Tech Mono render several Vietnamese combining diacritics with visible glyph artifacts. The Guide now forces a Vietnamese-safe font (Sora) whenever the language is set to Vietnamese.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Sigil card overflow:</b> Vietnamese sigil card text is longer than the English original; cards were aspect-ratio-locked and either clipped or bled into the row below. Cards now size to their own translated content instead.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings dropdown redesign:</b> Language and Offline Package selectors now use the same custom button + dropdown-list styling as the existing In-Game Music selector, instead of a plain native <code>&lt;select&gt;</code>.</li>
+</ul>
+</div>
+
 <div class="ul-entry" style="--ul-accent:#f59e0b">
-<div class="ul-head"><span class="ul-ver">v5.4 — GOLIATH &amp; LEVIATHAN BUFF</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-head"><span class="ul-ver">v5.4 — GOLIATH &amp; LEVIATHAN BUFF</span><span class="ul-badge b-major">MAJOR</span></div>
 <div class="ul-date">2026-07-30 · New Digiform-tier boss testbed for the future Administrator class, plus Leviathan's Inevitable/Bulwark Barrier buffs and a Perseverance/Last Rites visual overhaul</div>
 <p class="det-short ul-summary">Goliath is a new boss built around absorbing power from the rest of the wave. It spawns as an untargetable, invulnerable Alpha orb that links to every other enemy on screen and pulls a share of the damage they take; when three colored gem sockets fill from the deaths of linked Abnormal-tier+ enemies, it fuses into its True Form — a golem-like body wielding whichever three abilities it absorbed, on top of its own kit (Inevitable, Fracture Step, Absolute Verdict, Warding Palm, Threshold Ward). Also in this patch: Leviathan's Inevitable protection triggers more easily and lasts longer, a new Bulwark Barrier passive grants a stacking shield, and Perseverance/Last Rites both got a full visual rework.</p>
 <ul class="det-full">
@@ -1696,6 +1743,495 @@
 </div>`
     };
 
+    // Vietnamese translations — same card/canvas/button scaffolding as
+    // TABS_EN (functional bits like ids/onclicks are byte-identical), body
+    // text translated. updatelog intentionally omitted (dev changelog,
+    // stays English via the TABS_EN fallback in _tabHtml below). Enemies
+    // omitted for now too — huge/dense, coming in a follow-up pass; falls
+    // back to English until then.
+    const TABS_VI = {
+      skills: `
+<div class="card"><h2 style="color:#ff8800"><span class="key">Space</span> BẮN TỤ LỰC & LASER QUÁ TẢI</h2>
+<div class="sub">GIỮ SPACE ĐỂ SẠC • 3s = QUÁ TẢI, <span class="cd">HỒI CHIÊU LASER 9s</span></div>
+<div class="ab" style="height:230px"><canvas id="cvLaser" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayLaser" onclick="playWidget('laser', this)">▶ Play</button></div>
+<ul><li><b>Bắn Sạc:</b> giữ tối đa 1s → thả ra. Sát thương tăng dần tới <span class="dmg">10× (12% EP)</span>.</li>
+<li><b>Laser Quá Tải:</b> giữ 3s không thả → chùm tia liên tục trong <span class="hi">12 giây</span>.</li>
+<li>Laser gây <span class="dmg">350 + 23% EP</span> mỗi tick, mỗi 155ms. Hút kẻ địch gần đó về phía chùm tia.</li>
+<li>Khi kích hoạt, <span class="hi">4 ảnh phân thân</span> xuất hiện (2 mỗi bên, tổng 5 tàu) bắn các chùm tia song song.</li></ul></div>
+
+<div class="card"><h2 style="color:var(--purple)"><span class="key">Shift</span> LÃNH ĐỊA YOG-SOTHOTH</h2><div class="sub">THAO TÚNG KHÔNG-THỜI GIAN <span class="cd">HỒI CHIÊU 1.1s–9s</span> <span class="cd">TỐI ĐA 8s</span></div>
+<div class="ab" style="height:160px"><canvas id="cvShift" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShift" onclick="playWidget('shift', this)">▶ Play</button></div>
+<ul><li>Giữ Shift: thế giới chạy ở <span class="hp">15% tốc độ</span>. Bạn nhận <b>Iron Body</b>.</li>
+<li><span class="det-full"><b>Hồi chiêu tỉ lệ theo thời gian giữ</b> (không dịch chuyển): &lt;2s → <span class="hgr">1.1s</span> · 2–5s → <span class="hg">4.4s</span> · 5–7s → 9.9s · ≥7s → <span class="hr">9s</span>. <span class="hr">Nếu dùng dịch chuyển ←/→ → luôn luôn full 9s.</span></span><span class="det-short"><b>Hồi chiêu</b> tỉ lệ theo thời gian giữ (1.1s–9s). Dịch chuyển luôn kích hoạt hồi chiêu full 9s.</span></li>
+<li>Toàn bộ đạn kẻ địch bị <span class="hr">phá hủy</span>. <span class="key">←→</span> để dịch chuyển.</li>
+<li><span class="hg">Đỡ Đòn Chuẩn Xác:</span> trúng đòn trong lúc lãnh địa → +25% sát thương 4s, Vệ Binh nhận <b>Iron Body 1.25s</b>.</li></ul></div>
+
+<div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THIÊN LÔI CẦU</h2><div class="sub">THIÊN LÔI CẦU <span class="cd">HỒI CHIÊU 6s</span></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)">▶ Play</button></div>
+<ul><li>Triệu hồi <span class="hi">20 thiên lôi cầu</span> (tối đa 80). Mỗi cầu: <span class="dmg">150 + 18% EP</span>, cộng thêm <span class="hr">80 + 5% HP còn thiếu của mục tiêu</span> dưới dạng sát thương chuẩn.</li>
+<li>Va chạm → <span class="dmg">16 mảnh vỡ</span> bắn tung tóe (mỗi mảnh 5 + 1.5% EP).</li>
+<li><span class="hg">Cầu Vàng:</span> 3 cầu hấp thụ đòn đánh tới. Khi 1 cầu bị <b>hy sinh</b>, kẻ tấn công (nếu nhắm được) nhận <span class="hr">Đoạt Hồn + sát thương theo thời gian Soul Devourer</span> (60 + 5.5% EP mỗi 0.35s) và bị <span class="hr">chậm 25%</span> trong <span class="cd">3s</span>.</li>
+<li><span class="det-full"><b>Nứt Vỡ Thứ Nguyên</b> (khi đòn đánh gây sát thương): vùng 50px, <span class="cd">3s</span>. Kẻ địch bên trong: <span class="hr">−35% tốc độ</span>, <span class="hr">Đoạt Hồn + sát thương theo thời gian</span> (60 + 5.5% EP mỗi 0.35s), <span class="hr">+25% sát thương nhận vào</span>. Đạn kẻ địch bị hút vào và phá hủy tại tâm. <span class="dmg">20%</span> cơ hội mỗi tick sát thương theo thời gian để sét lan sang 8 mục tiêu.</span><span class="det-short"><b>Nứt Vỡ Thứ Nguyên</b>: vùng làm chậm 3s khi trúng đòn — làm chậm, gây sát thương theo thời gian, tăng sát thương nhận vào, hút và phá hủy đạn gần đó.</span></li></ul></div>
+
+<div class="card"><h2 style="color:#ff44aa"><span class="key">S</span> TINH LINH HỒI ỨC</h2>
+<div class="sub"><span class="cd">HỒI CHIÊU 12s</span> <span class="cd">35s</span></div>
+<div style="display:flex;gap:6px;margin-bottom:8px;">
+  <button onclick="showSpiritTab(1)" id="sTabBtn1" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(255,68,170,0.25);border:1.5px solid #ff44aa;border-radius:6px;color:#ff44aa;">① Tinh Linh Thường</button>
+  <button onclick="showSpiritTab(2)" id="sTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(0,80,40,0.2);border:1.5px solid rgba(0,255,136,0.4);border-radius:6px;color:#00cc66;">② Phōtokrystos</button>
+</div>
+<div id="sSpiritPane1">
+  <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
+  <ul><li>Tinh Linh bay quanh bắn đạn định hướng mỗi <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
+  <li><span class="det-full">Mỗi phát bắn thứ 5: <b>Arc Blade</b> (<span class="dmg">170 + 4.8% EP + 3% HP còn thiếu</span>). Phá hủy đạn kẻ địch.</span><span class="det-short">Mỗi phát bắn thứ 5 bắn ra 1 đòn <b>Arc Blade</b> phá hủy đạn.</span></li>
+  <li><b>Chiêu cuối @35s:</b> laser + 8 quả cầu plasma nảy (cả hai đều là sát thương chuẩn).</li>
+  <li><b>Khai Thiên Lập Địa:</b> hạ gục bằng Tinh Linh tích thanh năng lượng (+2% mỗi lần hạ gục). Ở 100%, bấm S lần nữa để biến hình.</li></ul>
+</div>
+<div id="sSpiritPane2" style="display:none;">
+  <div class="ab" style="height:160px;border-color:rgba(0,255,136,0.2)"><canvas id="cvPhotokrystos" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayPhoto" onclick="playPhotokrystosWidget(this)">▶ Play</button></div>
+  <ul>
+  <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Đại Tinh Linh Khởi Nguyên</b> — kéo dài <span class="hg">40s</span>. Thời lượng reset. Hồi chiêu = 40s sau đó.</li>
+  <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Ân Sủng Khởi Nguyên</b>: Vệ Binh +15% DR, sát thương phe ta +15%, hồi +3 HP/s, +50 shield/5s mỗi Vệ Binh.</li>
+  <li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> <b>3 đạn định hướng</b> @ <b>43ms</b>: mỗi đạn <span class="dmg">100+1.4% EP</span>, đều bám mục tiêu. Phá hủy đạn kẻ địch. Gây Trọng Thương (15%).</li>
+  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> — <span class="det-full">mỗi 6 đợt bắn: 2 boomerang lan qua mọi kẻ địch (<span class="dmg">400+5.8% EP+5% HP còn thiếu sát thương chuẩn</span>). Chạm là gây sát thương (đánh lại/200ms). Xếp hàng chờ nếu không có kẻ địch. Tối đa <b>10</b> trên màn hình; cái cũ nhất bị thu hồi khi đạt trần (hàng chờ: 5). Sau 2 lần nảy hoặc hết thời gian tồn tại, boomerang <b>bay ngược về</b> linh hồn (nhanh hơn 60%). BTM thu hồi tất cả. Phá hủy đạn.</span><span class="det-short">Mỗi 6 đợt bắn: 2 boomerang xuyên phá lan qua mọi kẻ địch (sát thương chuẩn, tăng theo HP còn thiếu). Thu hồi sau 2 lần nảy.</span></li>
+  <li><span style="color:var(--cyan);font-size:10px">PASSIVE</span> <b>Danger? Not Today!</b> — <span class="det-full">kẻ địch trong bán kính <b>170px quanh người chơi</b> hoặc <b>170px quanh ranh giới</b> → linh hồn ngắm 100ms (khóa lại mỗi khung hình) rồi bắn 1 tia <b>laser Khởi Nguyên 2s</b> quét <b>±20°</b> (giết ngay lập tức mọi thứ trên đường đi, xuyên mọi shield). <b>-20% sát thương trong 3s</b> sau đó. Hồi chiêu bắt đầu sau khi tia kết thúc. (hồi chiêu 10s)</span><span class="det-short">Tự động bắn 1 tia laser giết ngay lập tức khi kẻ địch tới quá gần người chơi hoặc mép màn hình. (hồi chiêu 10s)</span></li>
+  <li><span style="color:#4ade80;font-size:10px">COMPANION</span> <b>Vine Bind</b> — <span class="det-full">bắn ra cùng lúc khóa mục tiêu của Danger? Not Today!: dây leo Khởi Nguyên trồi lên từ hư không trói kẻ địch gần ranh giới nhất <b>và</b> kẻ địch gần người chơi nhất (cùng 1 kẻ địch nếu thỏa cả hai điều kiện). Dây leo mất <b>1s</b> để mọc lên, sau đó 1 vầng hào quang xanh lá đánh dấu <b>làm chậm 50% trong 2s</b> — hào quang và hiệu ứng chậm kết thúc cùng lúc. Kẻ địch miễn nhiễm khống chế không bị ảnh hưởng.</span><span class="det-short">Trói kẻ địch gần ranh giới nhất và kẻ địch gần người chơi nhất bằng dây leo, làm chậm chúng 50% trong 2s.</span></li>
+  <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: <span class="det-full">hàng rào sét toàn màn hình 3.5s (<span class="dmg">20+35% EP sát thương chuẩn/100ms</span>, quét sạch đạn) → sóng xung kích (<span class="dmg">10+99% EP</span>, xuyên qua MỌI shield + Iron Body). Hồi chiêu: 12s từ lúc triệu hồi.</span><span class="det-short">Hàng rào sét toàn màn hình rồi tới sóng xung kích xuyên qua mọi shield và Iron Body.</span></li>
+  </ul>
+</div>
+</div>
+
+<div class="card"><h2 style="color:#9333ea"><span class="key">D</span> HỐ ĐEN</h2><div class="sub"><span class="cd">HỒI CHIÊU 12s</span> <span class="cd">SẠC 2s</span></div>
+<div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)">▶ Play</button></div>
+<ul><li>Hút mọi kẻ địch + đạn. Tâm hố = <span class="hr">999,999,999 sát thương</span> giết ngay lập tức.</li>
+<li><b>Egregor</b> và <b>Dargruel</b> miễn nhiễm khống chế — không thể bị hút. Nếu ở tâm hố, thay vào đó chịu <span class="hr">30% MaxHP sát thương chuẩn</span>.</li></ul></div>
+
+<div class="card"><h2 style="color:var(--red)"><span class="key">F</span> THIÊN Ý TRẢM</h2><div class="sub">THIÊN Ý TRẢM <span class="cd">HỒI CHIÊU 7s</span> <span class="cd">SẠC 1.5s + QUÉT 1s</span></div>
+<div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)">▶ Play</button></div>
+<ul><li><b>Sạc:</b> nửa màn hình phát sáng cyan, tâm ngắm KHÓA MỤC TIÊU lên mọi kẻ địch, đường nét đứt từ người chơi.</li>
+<li><b>Quét:</b> lưỡi kiếm xoay từ trái→phải. <span class="hr">999,999,999 sát thương</span> giết ngay lập tức.</li>
+<li>Vùng bị quét tràn ngập <span class="hgr">mưa dữ liệu ma trận</span> + lớp phủ lưới lục giác.</li></ul></div>
+
+<div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> MA TRẬN TESLA</h2><div class="sub"><span class="cd">NẠP QUA HẠ GỤC</span> <span class="cd">30s</span></div>
+<div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
+<ul><li>Sinh ra Cầu Năng Lượng → ghép thành Liên Kết (chậm 8% + <span class="dmg">10+6% EP</span>/125ms).</li>
+<li>Liên Kết hợp nhất @5s → <b>Cuộn Tesla</b> (tối đa 4): <span class="dmg">45+1.2% EP</span>/50ms.</li>
+<li>Kích nổ: <span class="dmg">10+12% EP</span> diện rộng.</li></ul></div>`,
+
+      rules: `
+<div class="card"><h2 style="color:var(--cyan)">HỆ THỐNG WAVE</h2><div class="sub">15s PHÁP TRẬN SPAWN · NGHỈ 4s · TĂNG VÔ HẠN</div>
+<ul>
+<li><b>Spawn (15s):</b> mọi kẻ địch đảm bảo xuất hiện trong pháp trận này. Apostle trộn giữa spawn đơn + đợt 2–4. Các bậc cao hơn được dàn đều theo tỷ lệ.</li>
+<li><b>Hoàn thành:</b> hàng đợi rỗng + tất cả đã bị kết liễu → <span class="hgr">WAVE CLEARED</span> (3s). Hàng đợi rỗng + vẫn còn sống sót → tự kết thúc sau 12s.</li>
+<li><b>Nghỉ (5s):</b> đếm ngược tới wave tiếp theo.</li>
+</ul>
+<table class="controls-table" style="margin-top:4px">
+<tr><th>Wave</th><th>Les</th><th>Abnm</th><th>Elite</th><th>Dom.</th><th style="color:#eab308">Gol.</th></tr>
+<tr><td>1</td><td>32</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>2</td><td>38</td><td>6</td><td>4</td><td>—</td><td>—</td></tr>
+<tr><td>3</td><td>40</td><td>7</td><td>6</td><td>2</td><td>—</td></tr>
+<tr><td>4</td><td>44</td><td>8</td><td>7</td><td>3</td><td>—</td></tr>
+<tr><td>5</td><td>48</td><td>9</td><td>8</td><td>4</td><td style="color:#f59e0b">1</td></tr>
+<tr><td>6</td><td>52</td><td>11</td><td>9</td><td>5</td><td>—</td></tr>
+<tr><td>7</td><td>56</td><td>12</td><td>10</td><td>6</td><td>—</td></tr>
+<tr><td>8</td><td>60</td><td>13</td><td>11</td><td>7</td><td>—</td></tr>
+<tr><td>9</td><td>64</td><td>14</td><td>12</td><td>8</td><td>—</td></tr>
+<tr><td style="color:var(--dim)">10+</td><td style="color:var(--dim)">+5/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">1 / 5w</td></tr>
+</table><p style="color:var(--dim);font-size:11px;margin-top:6px">Goliath xuất hiện 1 lần, nằm ngoài mọi bậc khác, vào bất kỳ số wave nào chia hết cho 5 (5, 10, 15, 20...).</p></div>
+<div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% vô hiệu hóa. Cộng dồn theo tổng, trần <span class="hi">99%</span>.</p></div>
+<div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>Lớp đệm HP trước thân. Cộng dồn được. Phá hủy shield ≠ giảm Max HP.</p></div>
+<div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. Mọi sát thương theo % từ kẻ địch vào Vệ Binh đều tính theo EP. Riêng Max HP = HP thân không tính shield.</p></div>
+<div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Tính trên EP (Shield + Max HP = Existence Point). Đánh vào shield trước.</p></div>
+<div class="card"><h2 style="color:var(--red)">TRUE DAMAGE (SÁT THƯƠNG CHUẨN)</h2><p>Xuyên qua mọi Shield. Đánh thẳng vào HP.</p></div>
+<div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Miễn nhiễm hoàn toàn <b>mọi sát thương</b> — %, sát thương chuẩn, Black Hole, Skill F. Tuyệt đối.</p></div>
+<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY (MIỄN NHIỄM KHỐNG CHẾ)</h2><p>Không thể bị hút/làm chậm bởi bất kỳ hiệu ứng khống chế nào — hút Black Hole, chậm Tesla, chậm Dimensional Rift, chậm Orb. KHÔNG chặn sát thương. <b>Egregor</b>, <b>Dargruel</b>, <b>Leviathan</b>, và <b>Goliath</b> (True Form, qua Inevitable) miễn nhiễm khống chế vĩnh viễn.</p></div>
+<div class="card"><h2 style="color:#cc55ff">ROOT & SILENCE</h2>
+<p>Gây ra bởi <b>Abyssal Chains</b> của Dargruel. Kéo dài <span class="hr">1 giây</span>, áp dụng lại mỗi lần trúng đòn dù đang còn hiệu lực.</p>
+<ul><li><b>Root (Trói):</b> Không thể di chuyển.</li>
+<li><b>Silence (Câm Lặng):</b> Không thể dùng <b>bất kỳ skill nào</b> — Shift, A, S, D, F, G đều bị khóa. Bắn tự động <span class="hr">ngừng hoàn toàn</span>.</li>
+<li>Cầu Skill A quay về quỹ đạo (ngừng nhắm mục tiêu).</li>
+<li>1 <span class="hp">biểu tượng khóa màu tím</span> xuất hiện trên tàu và 1 <span class="hr">dấu X đỏ</span> phủ lên mọi nút skill.</li></ul></div>
+<div class="card"><h2 style="color:var(--green)">MULTIPLIERS</h2><ul>
+<li><span class="hgr">Glory:</span> ×1.55 | <span class="hg">Parry:</span> ×1.25 | Kết hợp: <span class="dmg">×1.9375</span></li></ul></div>`,
+
+      sigils: `
+<div class="card visible"><h2 style="color:var(--gold)">HỆ THỐNG SIGIL CUNG HOÀNG ĐẠO</h2><div class="sub">WAVE 5 · WAVE 10 — CHỌN 1 SIGIL · NHẬN CẢ HAI PHÚC LÀNH</div>
+<p>Cuối các Wave 1, 5, và 10, màn hình chọn sigil sẽ xuất hiện. 4 sigil ngẫu nhiên được đưa ra — chọn 1 và nhận vĩnh viễn cả hai phúc lành của nó. Click vào bất kỳ thẻ nào để đọc truyền thuyết.</p>
+<p style="margin-top:6px;font-size:12px;color:var(--dim)">Nguyên tố: <span style="color:#EF9F27;font-weight:600">Hỏa</span> · <span style="color:#4D9B2A;font-weight:600">Thổ</span> · <span style="color:#378ADD;font-weight:600">Phong</span> · <span style="color:#7F77DD;font-weight:600">Thủy</span> &nbsp;|&nbsp; Loại: <span style="color:#f87171;font-weight:600">ATK</span> · <span style="color:#60a5fa;font-weight:600">DEF</span> · <span style="color:#4ade80;font-weight:600">HEAL</span> · <span style="color:#fbbf24;font-weight:600">SPEC</span></p>
+</div>
+<div class="sigil-deck">
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">BẠCH DƯƠNG</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">CÔNG KÍCH TIÊN PHONG</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Tiên Phong</b> <span class="sbd">50% cơ hội đạn của người chơi & Vệ Binh xuyên qua kẻ địch, +50% sát thương. Mỗi lần xuyên chuỗi: +30% sát thương mỗi chuỗi, cộng thêm 3% Max HP của kẻ địch dưới dạng sát thương thật (tối đa 4 chuỗi).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Khát Chiến</b> <span class="sbd">Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP còn thiếu của mục tiêu (hồi chiêu 300ms).</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="aries"></canvas>
+<div class="sfc-story">Trước khi vì sao đầu tiên được thắp lên, chỉ có Hư Không, vô biên và vô danh. Rồi Dương Cưu mở mắt giữa bóng tối ấy, và cơn thịnh nộ của nó hóa thành ngọn lửa đầu tiên. Nó lao tới, và nơi cặp sừng đâm vào hư vô, những tia lửa bắn ra khắp mọi hướng — mỗi tia là một mặt trời. Nó không chọn để sáng tạo. Nó chỉ lao tới. Và từ cú lao ấy, vạn vật bắt đầu.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="taurus"></canvas><div class="sfc-name">KIM NGƯU</div><div class="sfc-el">Thổ</div><div class="sfc-theme">THÀNH LŨY PHÒNG THỦ</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Vương Cung Thành Trì</b> <span class="sbd">Mỗi 5s nhận 1 lớp Iron Body (tối đa 3 lớp): hấp thụ 1 đòn đánh vào người chơi hoặc 1 lần trói/câm lặng thường. Hiển thị dưới dạng vòng lục giác xanh lá quanh tàu.</span></div>
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Hộ Vệ</b> <span class="sbd">Vệ Binh +65% HP & +30% sát thương. Đạn thường của Vệ Binh không còn tốn 1 HP giật lùi. Khi 1 Vệ Binh bị kết liễu, các Vệ Binh còn lại hồi 10% EP của nó và nhận khiên trị giá 20% EP của nó (hồi chiêu 3.5s).</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="taurus"></canvas>
+<div class="sfc-story">Những tia lửa mà Dương Cưu ném vào bóng tối tản ra và nguội lạnh trước khi kịp hóa thành sao. Rồi Kim Ngưu tới, chậm rãi và chắc chắn. Nó gom từng tàn lửa bằng đôi tay rộng lớn và ép chúng lại với nhau, kiên nhẫn như đá, thổi hơi ấm lên chúng suốt khoảng lặng dài giữa các thời đại. Dưới móng guốc nó, mặt đất đầu tiên cứng lại. Nó không vội vàng. Nó chưa bao giờ vội vàng. Đất đai trường tồn vì nó trường tồn.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="gemini"></canvas><div class="sfc-name">SONG TỬ</div><div class="sfc-el">Phong</div><div class="sfc-theme">CHIẾN THUẬT GƯƠNG</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Ảnh Song</b> <span class="sbd">Mỗi đòn đánh trúng thứ 10 từ bất kỳ nguồn phe ta nào (trừ Vệ Binh) tích 0.5s, sau đó 1 tàu bóng ma xuất hiện giữa cạnh màn hình ngẫu nhiên (trái/phải) và bắn 3 đợt cầu plasma xuyên phá vào kẻ địch ngẫu nhiên, bay xuyên suốt màn hình. Mỗi đợt gồm 1 cầu lớn kèm 2 cầu nhỏ. Cầu nhỏ: 75 + 3% EP sát thương. Cầu lớn: 175 + 8% EP sát thương. Mỗi lần trúng gây 2 lớp Trọng Thương và Đoạt Hồn. Hồi chiêu 1s trước khi kích hoạt lại.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Gương Quang Tuyến</b> <span class="sbd">Overload Laser sinh ra 2 thực thể gương (trên-trái & dưới-phải) di chuyển dọc theo hướng ngược nhau (+25% tốc độ), mỗi cái bắn 1 tia laser ngang bằng 75% sát thương tia gốc. Tia gốc được buff +30%. Ngoài ra, mỗi lần dùng skill hoặc bắn tự động có 5% cơ hội (+0.3% mỗi lần trượt, reset khi kích hoạt) bắn ra 1 cột laser xanh-tím xuyên phá gây 350 + 18% EP mỗi 125ms trong 3s — không hút địch, cộng dồn với Overload Laser (hồi chiêu 4s).</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="gemini"></canvas>
+<div class="sfc-story">Khi chỉ có một mặt đất và một bầu trời, cặp Song Tử nhìn vào đó và bối rối. Một thế giới không phân chia, họ nói, là một thế giới không thể suy nghĩ. Họ vươn bốn bàn tay vào và tách nó ra — ánh sáng khỏi bóng tối, vật chất khỏi giấc mơ, bản thân khỏi kẻ khác. Vết nứt giữa những điều đối lập trở thành không gian nơi vạn vật sẽ cư ngụ. Cặp Song Tử vẫn tranh cãi về chuyện đó cho tới tận bây giờ.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="cancer"></canvas><div class="sfc-name">CỰ GIẢI</div><div class="sfc-el">Thủy</div><div class="sfc-theme">THỦY TRIỀU NGUYỆT</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Nguyệt Giáp</b> <span class="sbd">Gaia Protection kích hoạt mà không cần Glory for Justice; khả năng hấp thụ của Gaia Barrier +40%; Vệ Binh nhận +20% né tránh.</span></div>
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Triều Lưu</b> <span class="sbd">Vệ Binh hồi 3% Max HP/s (tăng theo cấp bậc); hiệu quả hồi máu +30%. Mỗi Vệ Binh nhận 1 lớp Iron Body; hồi chiêu 8s chỉ bắt đầu sau khi lớp đó bị tiêu hao.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="cancer"></canvas>
+<div class="sfc-story">Cự Giải nhìn thấy vết nứt lớn mà cặp Song Tử tạo ra và khóc thương cho mọi thứ giờ đây đã tách biệt khỏi nhau. Nước mắt nàng rơi vào vết nứt, lấp đầy nó, và trở thành đại dương đầu tiên. Nàng không có ý định tạo ra biển cả. Nàng chỉ đau buồn. Nhưng nàng khum đôi càng mềm mại đỡ lấy làn nước và thở lên nó, và có gì đó khẽ động trong hơi ấm tối sâu thẳm. Nàng đã bảo vệ nó kể từ đó.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">SƯ TỬ</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">HỎA DƯƠNG</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Sư Tử Hống</b> <span class="sbd">Trong lúc Glory for Justice kích hoạt: đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP còn thiếu của mục tiêu.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Thần Mệnh</b> <span class="sbd">Đầu mỗi wave: đóng băng 5s — mọi kẻ địch ngừng di chuyển (kể cả địch mới xuất hiện) + toàn bộ sát thương +100%.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="leo"></canvas>
+<div class="sfc-story">Từ rìa đại dương của Cự Giải, Sư Tử trỗi dậy. Nó hất nước khỏi bờm và há miệng gầm lên vang dội đến mức bầu trời nứt toác phía trên thế giới. Xuyên qua vết nứt đó, mặt trời rơi xuống lần đầu tiên. Mọi vật đang ngủ say đồng loạt cựa mình dưới ánh sáng đột ngột ấy. Sư Tử không tạo ra mặt trời. Nó chỉ gầm lên. Nhưng tiếng gầm ấy đủ vang để mở đường cho ánh sáng lọt qua.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">XỬ NỮ</div><div class="sfc-el">Thổ</div><div class="sfc-theme">CHUẨN KÍCH</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Hộ Lâm</b> <span class="sbd">Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x4, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 1000 + 10% EP + 15% HP còn thiếu của mỗi mục tiêu.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Kỹ Sư Mạch</b> <span class="sbd">Sát thương theo thời gian Tesla & Cuộn Tesla +50%; phá hủy 1 Cuộn Tesla giảm 3s hồi chiêu Skill G và tăng 10% tốc độ nạp năng lượng G. Kẻ địch mang bất kỳ hiệu ứng bất lợi nào (chậm, sát thương theo thời gian, Trọng Thương, Đoạt Hồn,...) nhận +50% sát thương từ mọi nguồn.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="virgo"></canvas>
+<div class="sfc-story">Sau ánh sáng của Sư Tử, Xử Nữ tới, chân trần bước qua lớp tro còn ấm. Nơi lửa từng thiêu đốt, nàng quỳ xuống và ấn từng hạt giống vào lòng đất bằng những ngón tay, từng hạt một, suốt mười ngàn năm. Nàng không biết liệu có gì sẽ mọc lên không. Nàng vẫn cứ gieo trồng. Tới năm thứ mười ngàn, mầm xanh đầu tiên trồi lên xuyên qua lớp đất đen hướng về phía ánh sáng. Nàng chưa từng ngừng gieo trồng kể từ đó.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="libra"></canvas><div class="sfc-name">THIÊN BÌNH</div><div class="sfc-el">Phong</div><div class="sfc-theme">HUYẾT SẮC PHÁN QUYẾT</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Huyết Tiễn</b> <span class="sbd">Mỗi lần dùng Skill A bắn 3 mũi tên sau 0.5s chuẩn bị: 1 mũi tên lớn đánh dấu kẻ địch có EP cao nhất, 2 mũi còn lại đánh dấu kẻ địch ngẫu nhiên (ưu tiên khu vực đông địch). Mỗi mũi tên xuyên qua mọi kẻ địch (300 sát thương gốc) và nổ trên mục tiêu bị đánh dấu (400 gốc + 20% EP, tăng thêm tối đa +100% từ giáp của mục tiêu). Mọi kẻ địch trúng đòn nhận 2 lớp Trọng Thương. 2 mũi tên nhỏ gây ít hơn 40% sát thương nhưng bay nhanh hơn 20% so với mũi lớn, vốn cũng to hơn 15%.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Tinh Xuyên</b> <span class="sbd">Cầu năng lượng Skill A xuyên qua mục tiêu khi va chạm và tiếp tục bay tới mép màn hình, gây sát thương cho mọi kẻ địch nó đi qua. Kích thước cầu +30%.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="libra"></canvas>
+<div class="sfc-story">Khi khu vườn của Xử Nữ mọc hoang dại và tự bóp nghẹt chính mình, Thiên Bình giáng xuống. Nàng mang theo hai đĩa cân bằng đồng sáng bóng, đặt chúng giữa trung tâm vạn vật sáng tạo, và bắt đầu cân đo. Sự sống đối nghịch cái chết. Sung túc đối nghịch đói khát. Tăng trưởng đối nghịch hủy diệt. Với mỗi thứ nàng cắt tỉa, nàng trả lại điều gì đó. Thế giới không cảm ơn nàng. Sự cân bằng chưa bao giờ được cảm ơn. Nhưng nó vẫn giữ vững. Nó luôn giữ vững.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">BỌ CẠP</div><div class="sfc-el">Thủy</div><div class="sfc-theme">TỬ THẦN CHI ẤN</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Hoàn Sinh</b> <span class="sbd">Khi chọn: nhận ngay +5 mạng. Tỉ lệ thưởng mạng: +1 mạng mỗi 250,000 điểm (thay vì 500,000).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Tử Ấn</b> <span class="sbd">HP 100%→21%: sát thương tăng tuyến tính +0%→+70%. HP ≤20%: +80% sát thương từ mọi nguồn. HP ≤5%: sét đánh kết liễu ngay lập tức. Vòng cung lưỡi kiếm Skill F xuyên qua Iron Body. Kẻ địch dưới 50% HP hiện vòng cảnh báo màu xanh cyan.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="scorpio"></canvas>
+<div class="sfc-story">Bọ Cạp giáng xuống bóng tối bên dưới rễ cây, bên dưới đá tảng, vào tận Hư Không cổ xưa mà Dương Cưu từng chạy trốn khỏi lúc khởi thủy. Nó vẫn còn sống. Vẫn còn đói khát. Bọ Cạp không hủy diệt nó. Thay vào đó, nó cắm chiếc đuôi vào bóng tối và giữ cho nó mở ra như một cánh cửa. Xuyên qua cánh cửa đó, cái chết bước vào thế giới lần đầu tiên — và trong sự xuất hiện ấy, ban cho mọi sinh vật một lý do để sống.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="sagittarius"></canvas><div class="sfc-name">NHÂN MÃ</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">LƯỠI KIẾM LINH HỒN</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Song Lưỡi</b> <span class="sbd">Đòn chém cung của Tinh Linh bắn 2 lưỡi kiếm (+60% mỗi lưỡi, lưỡi thứ 2 bắn trễ 15ms), cộng thêm 25% cơ hội có lưỡi thứ 3. Mỗi boomerang có 40% cơ hội thêm 2 boomerang phụ. Skill F giờ ném 2 boomerang từ người chơi thay vì chém cung. Lưỡi kiếm phụ có +20% bán kính. Mỗi phát bắn tự động có 15% cơ hội bắn ra 1 lưỡi kiếm cung (300 + 7% EP), giống của Tinh Linh.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Cực Hàn</b> <span class="sbd">Boomerang và chém cung: 75% cơ hội làm chậm 30% trong 2s và hút về phía đạn. Kẻ địch miễn nhiễm khống chế: không bị hút (vẫn có 25% cơ hội bị hút, trừ Goliath — không bao giờ), nhưng vẫn bị chậm. Tốc độ bắn của Tinh Linh Hoài Niệm và Phōtokrystos +30%.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="sagittarius"></canvas>
+<div class="sfc-story">Nhân Mã đứng ở rìa xa nhất của thế giới đã biết và nhìn ra bóng tối phía sau những vì sao. Nó giương cung và giữ nguyên suốt ba thời đại, tuyệt đối bất động, cho tới khi đường ngắm hoàn hảo tuyệt đối. Rồi nó buông tay. Mũi tên bay qua mọi mặt trời và mọi khoảng tối giữa chúng, và tới nay vẫn chưa hạ cánh. Mũi tên đó chính là con đường mọi linh hồn phải bước qua. Nó gọi đó là định mệnh. Nó đã mỉm cười kể từ đó.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="capricorn"></canvas><div class="sfc-name">MA KẾT</div><div class="sfc-el">Thổ</div><div class="sfc-theme">TĂNG TRƯỞNG KÉP</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt heal">HEAL</span><b>Lãi Kép</b> <span class="sbd">Mỗi lần hạ gục nhận +0.8% EP; mỗi 5% EP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, mỗi đòn đánh của phe ta gây thêm +200 sát thương thật.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Tuyết Lăn</b> <span class="sbd">Mỗi lần hạ gục nhận +0.5% sát thương toàn cục (reset sau 6s không hạ gục, tối đa +70%).</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="capricorn"></canvas>
+<div class="sfc-story">Ma Kết nhận ra rằng nếu không có thước đo, thời gian sẽ vô hình — một đại dương trải khắp mọi nơi và vì thế chẳng ở đâu cả. Nó leo từ đáy biển sâu lên đỉnh núi cao nhất thế giới, và tại đó, bằng móng guốc, nó khắc cuốn lịch đầu tiên vào đá. Các mùa. Các thời đại. Những hồi kết. Khi hoàn thành, nó nhìn xuống toàn bộ tạo vật đang xoay vòng bên dưới và nói: giờ ngươi đã biết mình đang ở đâu. Giờ ngươi đã biết khi nào nên dừng lại.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="aquarius"></canvas><div class="sfc-name">BẢO BÌNH</div><div class="sfc-el">Phong</div><div class="sfc-theme">LÔI BÃO</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Liên Hoàn Lôi</b> <span class="sbd">Sát thương theo thời gian Tesla: 50% cơ hội lan sang kẻ địch gần nhất trong bán kính 150px. Tốc độ nạp Skill G +35%. Trong lúc Skill G kích hoạt, mỗi cầu năng lượng hết hạn mà chưa ghép thành Cuộn Tesla sẽ cho +15% sát thương phe ta (cộng dồn, tối đa 6 lớp, mỗi lớp 5s), và được hút thành 1 cầu Skill A phụ nếu Skill A còn chỗ.</span></div>
+<div class="sfc-row"><span class="sbt def">DEF</span><b>Điện Từ Trường</b> <span class="sbd">Trong lúc Skill G kích hoạt hoặc nạp đầy, kẻ địch trong bán kính 300px bị chậm 30% và chịu sát thương theo thời gian 3.5% Max HP/s.</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="aquarius"></canvas>
+<div class="sfc-story">Bảo Bình xuống khỏi đỉnh núi của Ma Kết mang theo một bình nước chưa từng chạm ánh mặt trời. Nó đổ nước lên mặt đất đang say ngủ, và nơi nước chảy qua, có thứ gì đó mới mọc lên: không phải cây cối, không phải sinh vật, mà là ngôn ngữ. Những cái tên trồi lên khỏi mặt nước như bọt sóng. Cả mười hai vị thần được đặt tên. Mọi tạo vật được đặt tên. Ký ức ra đời. Và cùng với ký ức, thế giới cuối cùng cũng biết mình là gì.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+<div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
+<div class="sfc-inner"><div class="sfc-front">
+<canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">SONG NGƯ</div><div class="sfc-el">Thủy</div><div class="sfc-theme">DÒNG CHẢY VÀ NÉ TRÁNH</div>
+<div class="sfc-buffs">
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cõi Mộng</b> <span class="sbd">Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP còn thiếu của chúng.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Dòng Chảy Luân Hồi</b> <span class="sbd">Hạ Apostle: −1s hồi chiêu mọi skill; hạ Abnormal/Elite: −1.5s; hạ Dominator: −2s; hạ Egregor: −3s. Tốc độ nạp Phōtokrystos và Skill G +50%. Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).</span></div>
+</div><div class="sfc-hint">click để đọc truyền thuyết</div>
+</div><div class="sfc-back">
+<canvas class="sfc-glyph-sm-cv" data-sigil="pisces"></canvas>
+<div class="sfc-story">Cuối cùng, cặp Song Ngư của vực sâu bơi qua vùng nước của Bảo Bình. Hai con cá buộc đuôi vào nhau, bơi vòng theo hai hướng ngược nhau — một hướng về quá khứ, một hướng về những gì chưa tới. Chúng cùng nhau mơ về tất cả những gì đã từng và tất cả những gì còn chưa xảy ra. Chúng vẫn còn đang mơ. Thế giới chính là giấc mơ của chúng. Nó sẽ chỉ kết thúc khi chúng tỉnh giấc. Và vì thế, những bậc hiền triết luôn cầu nguyện: hãy để cặp Cá tiếp tục mơ.</div>
+<div class="sfc-hint">click để quay lại</div>
+</div></div></div>
+
+</div>`,
+
+      enemies: `
+<div class="card"><h2 class="dsname">CẤP ĐỘ KẺ ĐỊCH</h2><table class="controls-table">
+<tr><th>Cấp</th><th>Ví dụ</th><th>CAP trên màn hình</th></tr>
+<tr><td style="color:#aaaaaa">Hạ Cấp</td><td>Apostle</td><td>HP 22–330, tăng dần</td></tr>
+<tr><td style="color:#22cc55">Thượng Cấp</td><td>Thaelis, Veilshroud</td><td>3 / 2</td></tr>
+<tr><td style="color:#ff8844">Tinh Anh</td><td>Marchosias, Aegis, Egregor</td><td>2 / 2 / 1</td></tr>
+<tr><td style="color:#cc55ff">Ma Thần</td><td>Dargruel, Leviathan</td><td>2 / 1</td></tr>
+<tr><td style="color:#eab308">Digiform</td><td>Goliath</td><td>1, mỗi wave 5/10/15/20...</td></tr>
+<tr><td style="color:#ff2244">Quản Trị Viên</td><td>Kanade</td><td>—</td></tr>
+</table><p style="color:var(--dim);font-size:11px;margin-top:6px">Mọi kẻ địch có +5% HP ẩn. CAP = số lượng tối đa cùng lúc trên màn hình. Không có CAP tổng hợp giữa các cấp. Goliath là boss thử nghiệm cho lớp Quản Trị Viên trong tương lai — nó xuất hiện 1 lần vào mỗi số wave chia hết cho 5, nằm ngoài vòng quay bình thường của Apostle/Thượng Cấp/Tinh Anh/Ma Thần.</p></div>
+
+<div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLE <span class="dsclass" style="font-size:9px;color:#aaaaaa">HẠ CẤP</span></h2><div class="sub">HP 22–330 • BẮN 1 ĐẠN/GIÂY • Né 1→2% • Tốc độ ~1.2 u/s</div>
+<div class="ab" style="height:140px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn 1 đạn mỗi giây. HP đạn = HP kẻ địch tại thời điểm bắn.</li>
+<li>HP tăng dần từ 9–96 theo thời gian. Màu mắt chuyển từ cam → đỏ khi HP thấp.</li>
+<li><span style="color:#ffd700;font-size:10px">PASSIVE</span> <b>Đăng Quang</b> — <span class="det-full">Trong lúc còn trên màn hình, mỗi Apostle gacha mỗi giây: cơ hội gốc <span class="hi">0.67%</span> nếu ở nửa trên màn hình, <span class="hi">1%</span> nếu ở nửa dưới. Mỗi lần 1 Apostle chết cộng thêm <span class="hi">+0.67%</span> (nửa trên) hoặc <span class="hi">+1%</span> (nửa dưới) tích lũy — reset khi kích hoạt. Tối đa <span class="hi">3</span> lần kích hoạt mỗi 5s trên toàn cục. Trong suốt hoạt cảnh <span class="hi">~2.2s</span>, Apostle bị <b>đóng băng</b> (<span class="hr">chậm 45%</span>), <b>bất tử</b>, và <b>không bị chọn làm mục tiêu</b>. Khi hoàn thành, nó bị tiêu thụ và thay thế bằng 1 kẻ địch cấp cao hơn — luôn là Marchosias, Thaelis, hoặc Dargruel; cũng có thể là Veilshroud, Egregor, hoặc Leviathan nếu CAP của chúng cho phép. Không giới hạn theo wave. Kẻ địch được sinh ra bắt đầu với HP đầy cùng <span class="hg">1 lớp Iron Body chịu được 1 đòn</span>. Không tính điểm hạ gục.</span><span class="det-short">Có thể biến 1 Apostle thành kẻ địch cấp cao hơn — đóng băng và bất tử trong ~2.2s lúc biến hình.</span></li>
+</ul></div>
+
+
+<div class="card"><h2 class="dsname" style="color:#22cc55">THAELIS <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">Wave 2 • HP 1,100–2,640 • Né 3→5% • CAP 2 • Tốc độ 1.4 u/s</div>
+<div class="ab" style="height:110px"><canvas id="cvThaelis" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tái Sinh</b> — khi HP về 0, tách thành 3 Phôi (90% DR, miễn nhiễm khống chế, nở @3s → kẻ địch mới). <span class="dmg">Không đòn đánh đơn lẻ nào được vượt quá 10% EP của 1 Phôi.</span></li>
+<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn <b>2 đạn lớn</b> mỗi 1s. Mỗi đạn tách thành <span class="hr">6 đạn định hướng</span> sau 0.6s bay. Đạn gây 1 mạng (người chơi) hoặc <span class="hr">15% EP</span> (Vệ Binh).</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Kiên Cường</b> — <span class="det-full">mỗi 1% HP mất: <span class="dmg">+2.5% DR</span> (CAP <span class="dmg">95%</span>). Mỗi 0.5% HP mất: <span class="hi">+3.5% tốc độ đạn</span> (CAP <span class="hi">+25%</span>). Sát thương mỗi đòn bị giới hạn ở <span class="dmg">max(35%, 90%−5%×%HP đã mất) × MaxHP</span>. Mỗi lần Thaelis mất <span class="dmg">30% HP</span>, tạo ra 1 <b>Kết Giới Kiên Cường</b> trị giá <span class="hg">(30% MaxHP + 20% HP đã mất + 250) ×1.34</span> — <b>hoàn toàn tách biệt khỏi EP</b>, hiển thị dưới dạng vòng vàng nhấp nháy. Phải bị phá hủy hoàn toàn trước khi bất kỳ sát thương nào (thường hoặc xuyên) chạm tới Thaelis. Ngoại lệ: <span class="hi">Spirit Laser xuyên qua được</span>.</span><span class="det-short">Nhận DR và tốc độ đạn khi HP giảm; tạo ra Kết Giới vàng mỗi khi mất 30% HP, chặn mọi sát thương cho tới khi bị phá hủy. Spirit Laser xuyên qua được.</span></li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">Wave 2 • HP 1,320–3,300 • CAP 2 • Tốc độ 2.0 u/s • DR nền 40% • Né 3→5%</div>
+<div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Vọng Hư Không</b> — <span class="det-full">Để lại 1 <b>bóng ma không bị chọn làm mục tiêu</b> tại vị trí chết. Bắn trong 3s (gấp đôi tốc độ), sau đó tích lũy năng lượng. Tại giây thứ 5: <span class="hr">nổ</span> trong <span class="hr">bán kính 300px</span> — <span class="dmg">2% EP/tick</span> trong 2s (4 tick). Miễn nhiễm mọi sát thương &amp; khống chế. <span style="color:var(--dim)">Hệ thống wave tính Veilshroud là đã chết ngay khi nó vào dạng bóng ma.</span></span><span class="det-short">Để lại 1 bóng ma không bị chọn làm mục tiêu bắn trong 3s, sau đó nổ trong bán kính 300px gây 2% EP/tick trong 2s.</span></li>
+<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn 1 đợt 2 đạn mỗi 500ms vào mục tiêu gần nhất. Vô hiệu hóa trong lúc Phantom / đếm ngược.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL: Biến Đổi</span> <b>Dịch Chuyển Pha &amp; Đòn Đánh Hư Không</b> — <span class="det-full">Mỗi 0.45s: <span class="hi">40% cơ hội</span> vào trạng thái <b>Phantom</b> (1.5s, <span class="dmg">99% DR</span>, ngừng di chuyển &amp; tấn công). Trong lúc Phantom: <span class="dmg">không đòn đánh đơn lẻ nào được vượt quá 25% MaxHP</span> (CAP tuyệt đối); hồi máu &amp; khiên nhận vào bị giảm <span class="dmg">25%</span>. Khi trúng đòn: thêm <span class="hi">40% cơ hội</span> né ngay lập tức và kích hoạt Phantom. Khi thoát Phantom: đánh dấu 1 mục tiêu ngẫu nhiên; sau 1.5s 1 <span class="hr">tia sét đỏ</span> giáng xuống. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh trong 100px: <span class="dmg">18% EP</span>. Ở trạng thái bình thường: hồi máu nhận vào cũng cấp khiên tương đương; khiên nhận vào tăng <span class="hi">+35%</span>. Nhận hồi máu ở trạng thái bình thường cấp <span class="hg">+20% DR trong 3 giây</span>.</span><span class="det-short">Ngẫu nhiên vào trạng thái Phantom không bị chọn làm mục tiêu (99% DR) chặn sát thương; khi thoát bắn 1 tia sét đỏ — Người chơi: 1 mạng. Vệ Binh trong 100px: 18% EP. Hồi máu ở trạng thái bình thường → +20% DR (3s).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tích Lũy Năng Lượng</b> — <span class="det-full">Trong lúc Phantom, Veilshroud ghi nhận mọi sát thương nó hấp thụ. Khi thoát Phantom, chuyển lượng hấp thụ tích lũy thành khiên: <span class="hg">min(1200, ⌈(35% × lượng hấp thụ + 200) × 1.15⌉)</span>. Con số gốc 200 đảm bảo khiên tối thiểu <span class="hg">230</span> dù không nhận sát thương nào.</span><span class="det-short">Chuyển sát thương hấp thụ được trong lúc Phantom thành khiên khi thoát ra (gốc 230, CAP 1200).</span></li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,500–4,500 • DR vĩnh viễn 55% • Né 5→10% • Tốc độ 1.65 u/s</div>
+<div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — <span class="det-full"><span class="hg">20 đòn đánh đầu tiên</span> bị vô hiệu hóa hoàn toàn (Iron Body, lóe trắng mỗi lần). Vỡ sau đòn thứ 20. <span class="hg">Miễn nhiễm khống chế trong lúc Custos còn hiệu lực</span> — miễn nhiễm hút Black Hole, chậm Tesla, chậm Dimensional Rift, và chậm Orb. Sau khi Iron Body hết hạn, Support Aura nhận <span class="hg">+35% hiệu quả hồi máu</span>. Khi Custos vỡ, Aegis Core nhận <span class="hg">1 lớp phòng thủ 1 lần</span> dựa trên số đồng minh trong vầng hào quang tại thời điểm đó: <span class="hg">0 đồng minh → +10% MaxHP Shield</span> · <span class="hg">1 đồng minh → +15% MaxHP Barrier</span> · <span class="hg">2 đồng minh → +25% MaxHP Barrier</span> · <span class="hg">3 đồng minh → +30% MaxHP Barrier</span> · <span class="hg">4+ đồng minh → +35% MaxHP Barrier</span>. Barrier hấp thụ mọi đòn không phải sát thương chuẩn trước khi tới HP; sát thương chuẩn xuyên qua nó. Shield được hấp thụ sau barrier và cấp +18% DR trong lúc còn tồn tại.</span><span class="det-short">20 đòn đầu bị vô hiệu hóa (Iron Body). Miễn nhiễm khống chế trong lúc còn hiệu lực. Sau khi hết hạn: +35% hồi máu Support Aura + khi vỡ Aegis nhận shield/barrier 1 lần (0 đồng minh → 10% MaxHP Shield; 1–4+ đồng minh → 15–35% MaxHP Barrier).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Pháp Trận Hỗ Trợ</b> — <span class="det-full">hồi máu đồng minh <span class="hgr">8% MaxHP/s</span> (×1.35 sau khi Custos hết hạn; bản thân Aegis ở hiệu quả 55%). Cấp <span class="hg">khiên 48% MaxHP</span> 1 lần cho mỗi đồng minh + <span class="hg">khiên tick 8% MaxHP/s</span> (cộng dồn). Có khiên hoạt động → <span class="hg">+18% DR</span>. Hồi dư → 50% chuyển thành khiên. Tăng tốc mọi kẻ địch bên trong 5%.</span><span class="det-short">Hồi máu đồng minh 8% MaxHP/s (×1.35 sau khi Custos hết hạn), khiên 1 lần 48% + khiên tick 8%/s, +18% DR trong lúc có khiên.</span></li>
+<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Không bắn đạn trực tiếp.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lumen Nova</b> — mỗi 5s: đánh dấu người chơi + 3 Vệ Binh, bắn laser sau 1s cảnh báo. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh: <span class="hr">20% EP</span> mỗi laser.</li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,112–4,092 • DR thân 45% • Né 5→10% • Tốc độ ~1.6 u/s</div>
+<div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Kết Giới Vòng Cung</b> — <span class="det-full">Kết giới xoay 90°, <span class="dmg">60% DR</span>, không đòn đánh đơn lẻ nào &gt; <span class="dmg">35% HP Kết giới</span>, miễn nhiễm buff. Bể HP độc lập = MaxHP của Marchosias. <span class="hg">Miễn nhiễm khống chế trong lúc Kết giới còn sống</span> — miễn nhiễm hút Black Hole, chậm Tesla, chậm Dimensional Rift, và chậm Orb. Trong lúc hoạt động, Marchosias và Kết giới nhận thêm <span class="hg">+10% né</span> (né áp dụng cho cả đòn đánh vào thân lẫn Kết giới). Đòn xuyên (Spirit Arc Blade, Boomerang, Overload Laser) trúng Kết giới: sát thương vào thân <span class="hg">−30%</span>, Kết giới nhận thêm <span class="dmg">+15% sát thương</span>, đòn đánh tiếp tục xuyên qua. Mỗi lần trúng Kết giới: Kết giới tự hồi <span class="hgr">5% sát thương gây ra</span> (tối đa 1000 HP), thân Marchosias hồi <span class="hgr">10% sát thương gây ra</span> (tối đa 1000 HP, dư ra → <span class="hg">50% chuyển thành khiên</span>). Khi Kết giới bị phá hủy: Marchosias nhận <span class="hg">Iron Body chịu 5 đòn</span>, nhận <span class="hg">+20% DR</span>, hồi <span class="hgr">40% MaxHP</span> (dư ra → <span class="hg">50% khiên</span>), và nhận khiên = <span class="hg">15% MaxHP + 15% HP đã mất</span>. <b>+20% DR bị gỡ bỏ khi Kết giới hồi sinh.</b> Thời gian hồi sinh sau khi vỡ phụ thuộc vào chu kỳ kiếm: nếu cả 4 kiếm đã được dùng trước khi Kết giới vỡ → hoạt cảnh nổ tung, hồi sinh cố định <span class="hi">3s</span>; nếu không thì <span class="hi">4–5s</span> (giảm dần về 4s sau 3 phút). Tốc độ bám mục tiêu tăng dần tới <span class="hi">×1.67</span> sau 3 phút chơi. 2 bộ đếm số La Mã bên dưới Marchosias: <span style="color:#00ff88">xanh lá</span> = hàng đợi kiếm đang hoạt động, <span style="color:#ffaa00">vàng</span> (I→IV) = số kiếm đã dùng trong chu kỳ — sáng rực vàng ở IV để báo hiệu hồi sinh 3s ở lần vỡ tiếp theo.</span><span class="det-short">Kết giới xoay 90° miễn nhiễm khống chế với +10% né. Mỗi lần trúng: Kết giới và thân tự hồi (CAP 1000 HP). Khi vỡ: Iron Body 5 đòn + 20% DR + hồi 40% HP + khiên (15% MaxHP + 15% HP đã mất) (DR bị gỡ khi hồi sinh). Dùng đủ 4 kiếm → hồi sinh 3s (hoạt cảnh nổ); nếu không thì 4–5s.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Đồng Hóa</b> — <span class="det-full">chết → 3 <b>Robot Tay Sai</b> (25–35% MaxHP <span class="hg">+30%</span>, <span class="dmg">75% DR</span>, không đòn đánh đơn lẻ nào &gt; <span class="dmg">50% EP</span>, <span class="hi">tốc độ ×2.10</span>). Quét trong bán kính <span class="hi">170px</span> để bám vào làm <b>Khiên Ký Sinh</b> hoặc săn đuổi người chơi. Tay sai lóe sáng 1 vòng tròn để báo hiệu sự hiện diện.</span><span class="det-short">Khi chết sinh ra 3 tay sai nhanh (75% DR) bám vào kẻ địch làm khiên hoặc săn đuổi người chơi.</span></li>
+<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn 2 đạn mỗi 1s vào mục tiêu gần nhất. HP đạn = ⌈1.25% HP hiện tại⌉.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Kiếm</b> — <span class="det-full"><span class="hi">25% cơ hội</span> mỗi khi Kết giới trúng đòn hoặc mỗi khi né được đòn (chắc chắn khi Kết giới vỡ); xếp hàng 1 kiếm (hồi chiêu 0.65s giữa các lần kích hoạt). <b>Tối đa 4 kiếm mỗi chu kỳ Kết giới</b> — khi kiếm thứ 4 kích hoạt, Kết giới <b>tự kích nổ ngay lập tức</b> (hồi sinh 3s, cùng buff như khi vỡ). Reset khi Kết giới hồi sinh. Ở <span class="hi">1% HP</span>, mọi kiếm đang xếp hàng bắn ra cùng lúc. <span class="hr">Bất khả phá hủy.</span> Vệ Binh: <span class="hr">27% EP</span> (đòn 1) / <span class="hr">23%</span> (đòn 2) / <span class="hr">21%</span> (đòn 3+). Người chơi: <span class="hr">1 mạng</span>.</span><span class="det-short">25% cơ hội mỗi khi Kết giới trúng đòn/né đòn để xếp hàng 1 kiếm bất khả phá hủy; tối đa 4 mỗi chu kỳ — kiếm thứ 4 kích hoạt tự kích nổ Kết giới (hồi sinh 3s). Vệ Binh: 27/23/21% EP. Người chơi: 1 mạng.</span></li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#ff8844">EGREGOR <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,200–4,750 • DR thân 40% • Né 5→10% • CAP 1 • Tốc độ 1.5 u/s • Miễn nhiễm khống chế</div>
+<div class="ab" style="height:270px"><canvas id="cvEgregor" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayEgregor" onclick="playWidget('egregor', this)">▶ Play</button></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tâm Trí Tập Thể</b> — <span class="det-full"><span class="hi">10 xúc tu</span>, mỗi cái có bể HP độc lập bằng <span class="hi">80% MaxHP</span> của Egregor. Không phải sát thương chuẩn: <span class="hi">cơ hội bật lại tăng theo số xúc tu còn sống</span> (còn sống÷10 × 60%, về 0 khi chết hết); nếu không bật lại, đòn đánh bị 1 xúc tu hấp thụ ở mức ~<span class="dmg">26% sát thương gốc</span> (35% × 75% DR). <b>Khi 1 xúc tu chết:</b> thân Egregor <span class="hgr">hồi 6% MaxHP</span>, <span class="hg">MaxHP thân tăng thêm 20% HP của xúc tu đó</span>, thân nhận <span class="hg">+5% DR</span> (tích lũy, tối đa +20% khi mất 4 xúc tu). Khi mất <span class="hi">≥4 xúc tu</span>, đòn đánh thường (và mọi nguồn không xuyên, không phải chuẩn) cũng <span class="dmg">rò rỉ vào thân</span> ở mức <span class="hi">12% sát thương của chúng</span>, CAP cứng <span class="hi">12% MaxHP</span> mỗi đòn. Thân có thể bị đánh trúng qua <span class="dmg">sát thương chuẩn</span> (CAP <span class="hi">max(25%, 90−10n)%</span> MaxHP) hoặc <span class="dmg">đòn xuyên</span> (xúc tu nhận ~26% sát thương, thân nhận <span class="hi">30%</span> sát thương gốc, CAP <span class="hi">30% MaxHP</span>). Không thể cùng tồn tại với Veilshroud. Thân có <span class="hg">5% cơ hội né bất kỳ đòn nào</span>.</span><span class="det-short">10 xúc tu chặn mọi đòn đánh. Mỗi lần xúc tu chết hồi thân +6% MaxHP, tăng MaxHP thân, và cộng +5% DR (max +20%). Khi mất ≥4 xúc tu, đòn thường rò rỉ vào thân ở mức 12% sát thương, CAP 12% MaxHP.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Liên Kết Tâm Trí</b> — <span class="det-full">Mỗi lần 1 kẻ địch không phải Egregor chết trong <span class="hi">bán kính 600px</span> (vòng nét đứt đỏ) cấp 1 <span class="hg">Lớp Cuồng Nộ</span> (tối đa 5, mỗi lớp 8s). Mỗi lớp: <span class="hg">+18% tốc độ di chuyển</span>, <span class="hg">+15% Max HP</span>, <span class="hg">hồi 22% MaxHP</span>, xúc tu <span class="hg">hồi 15% HP</span> và nhận <span class="hg">+5% DR</span> (tối đa +25% ở 5 lớp). Mỗi lớp mới kích hoạt ngay 1 lần thi triển Psychic Tempest.</span><span class="det-short">Mỗi lần kẻ địch gần đó chết cho 1 Lớp Cuồng Nộ (tối đa 5): tăng tốc độ và HP, hồi máu Egregor và xúc tu, và kích hoạt ngay Psychic Tempest.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Họa Phúc Song Hành</b> — <span class="det-full">Khi Egregor vào giai đoạn chuẩn bị Hư Không Trảm, nó nhận ngay <span class="hg">1 Barrier gốc 250</span>. Suốt giai đoạn chuẩn bị, mỗi đòn đánh vào thân Egregor nhận được cấp thêm <span class="hg">1 Barrier bằng 75% sát thương đó</span>. Barrier này tích lũy và hấp thụ các đòn đánh vào thân tiếp theo (không phải sát thương chuẩn). <span class="dmg">Sát thương chuẩn xuyên qua Barrier.</span> <b>Ngay khi Hư Không Trảm được tung ra</b>, Egregor <span class="hr">tự gây cho mình sát thương chuẩn bằng 50% tổng Barrier tích lũy</span> từ các đòn trong giai đoạn chuẩn bị đó, bỏ qua DR và CAP mỗi đòn của chính nó, CAP cứng <span class="hr">40% MaxHP</span>. Barrier và bộ đếm tích lũy reset mỗi chu kỳ Hư Không Trảm.</span><span class="det-short">Trong lúc sạc Hư Không Trảm: mỗi đòn đánh vào thân cấp cho Egregor 1 barrier (75% sát thương đó) hấp thụ đòn tương lai. Khi tung chiêu: tự gây 50% tổng barrier tích lũy dưới dạng sát thương chuẩn, CAP 40% MaxHP.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Psychic Tempest</b> <span class="cd">HỒI CHIÊU 4s</span> — <span class="det-full">Chọn tối đa <span class="hi">3</span> mục tiêu ngẫu nhiên (người chơi + Vệ Binh). Sau <span class="hi">1.2s</span> báo hiệu (vòng tròn thu nhỏ + tia lửa hội tụ), sét tâm linh giáng xuống đồng loạt trong bán kính <span class="hi">100px</span>. Vị trí mục tiêu <span class="hi">bị khóa lúc tung chiêu</span> — tia sét không bám theo. Vẫn bắn dù Egregor chết giữa chừng. Người chơi: <span class="hr">tốn 1 mạng</span>. Vệ Binh: <span class="hr">20% sát thương MaxHP</span>. Hồi chiêu nhanh hơn 15% nếu có bất kỳ lớp cuồng nộ nào.</span><span class="det-short">Đánh 3 mục tiêu ngẫu nhiên bằng sét tâm linh sau 1.2s cảnh báo. Người chơi: 1 mạng. Vệ Binh: 20% MaxHP.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Hư Không Trảm</b> <span class="cd">HỒI CHIÊU 3.5s</span> — <span class="det-full"><span class="hi">Chuẩn bị 1–3s</span> (gốc 3s / 2.5s nếu có bất kỳ cuồng nộ nào, giảm 0.35s mỗi lớp, tối thiểu 1s). Egregor di chuyển ở <span class="hi">10% tốc độ</span> và bám theo người chơi liên tục trong lúc chuẩn bị, nhận <span class="hg">+40% DR</span>. Di chuyển trở lại bình thường sau nhát chém. <b>Họa Phúc Song Hành</b> hoạt động trong giai đoạn này (xem passive ở trên). Khi tung chiêu, vị trí mục tiêu bị khóa và 1 <span class="hi">cung 180°</span> quét về phía đó — bất kỳ Vệ Binh hay người chơi nào trong cung đều bị trúng, và <b>phản đòn Họa Phúc Song Hành kích hoạt đồng thời</b>. <b>Người chơi</b>: không mất mạng, <span class="hr">−50% tốc độ di chuyển trong 1.5s</span> (vòng chậm màu tím + hạt rơi; Yog-Sothoth có thể né). <b>Vệ Binh</b>: <span class="hr">30% MaxHP (đòn 1) / 35% (đòn 2) / 40% (đòn 3+)</span>, sát thương chuẩn, bonus cuồng nộ <span class="hg">+6% mỗi lớp</span> (tối đa <span class="hg">+30%</span>). Sau nhát chém, để lại 1 vùng <b>Dimension Break</b> (cung tím phát sáng) tồn tại trong <span class="hi">1s</span> — người chơi đi qua bị <span class="hr">chậm 20%</span>.</span><span class="det-short">Nhát chém cung 180° sau 1–3s chuẩn bị; làm chậm người chơi 50% trong 1.5s, gây 30–40% sát thương chuẩn vào Vệ Binh, để lại vùng chậm 1s. Phản đòn Họa Phúc Song Hành kích hoạt khi tung chiêu.</span></li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#cc55ff">DARGRUEL <span class="dsclass" style="font-size:10px;color:#cc55ff">MA THẦN</span></h2><div class="sub">Wave 3 • HP 6,200–16,000 • Né 10→15% • CAP 1 • Tốc độ ~1.6 u/s • Miễn nhiễm khống chế</div>
+<div class="ab" style="height:130px"><canvas id="cvDargruel" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Bá Vương</b> — Trúng đòn &gt;25% MaxHP → <span class="dmg">pháp trận 3.5s: sát thương bị giới hạn ở 11% MaxHP</span> (hồi chiêu 2s). Ngoài ra, mỗi khi mất <span class="hi">6% MaxHP</span>, Dargruel nhận <span class="hg">+5% né</span> (CAP <span class="hg">+30%</span> từ cơ chế này).</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Maître Suprême</b> — <span class="dmg">50% DR nền</span>. <span class="dmg">+2.5% DR/Vệ Binh</span> (CAP <span class="dmg">60%</span>). <span class="hi">+5% tốc độ đánh/Vệ Binh</span> (CAP <span class="hi">+20%</span>).</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Món Quà Quỷ Dữ</b> @90/70/50/30/1% HP: hồi cho mọi kẻ địch <span class="dmg">28% MaxHP của Dargruel</span> (dư ra → <span class="hg">30% khiên</span>). Kẻ địch được ảnh hưởng phát ra <span style="color:#aa00ff">hào quang lửa tím</span> trong 4s. Mọi đơn vị +20% DR trong 4s (tối đa <span class="dmg">+40%</span> ở 2 lớp). Dargruel nhận <span class="hg">+3 đòn Iron Body</span> mỗi lần kích hoạt.</li>
+<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn 1 đạn mỗi ~255ms vào người chơi hoặc Vệ Binh gần nhất.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Abyssal Chains</b> — 4 ma xích mỗi 2.1s → thường: <span class="hr">Trói &amp; Câm Lặng 1s</span> (người chơi), <span class="hr">15% EP sát thương chuẩn</span> (Vệ Binh). <b>Hắc Xích</b> (18% cơ hội gốc/đợt, +2% mỗi đợt sạch không trúng): Người chơi <span class="hr">1 mạng</span>, Vệ Binh <span class="hr">20% EP</span>. Bất khả phá hủy.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Maou Haki</b> @50% HP: sóng xung kích toàn màn hình, phá hủy mọi đạn phe ta (vùng cấm đạn tồn tại thêm <span class="hi">0.5s</span> sau khi quét). Vệ Binh −<span class="hr">38% EP</span>.</li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#cc55ff">LEVIATHAN <span class="dsclass" style="font-size:10px;color:#cc55ff">MA THẦN</span></h2><div class="sub">Wave 3 • HP 8,820–15,435 • Né 10→15% • CAP 1 • Tốc độ ~1.5 u/s</div>
+<div class="ab" style="height:130px"><canvas id="cvLeviat" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Bá Vương</b> — <span class="det-full"><span class="dmg">60% DR Base</span> (sau khi khiên AFO vỡ). Trúng đòn &gt;20% MaxHP → <span class="dmg">pháp trận 3s: sát thương bị giới hạn ở 10% MaxHP</span> (hồi chiêu 2s sau khi pháp trận kết thúc). Cũng tự kích hoạt ngay khoảnh khắc HP của Leviathan lần đầu xuống dưới <span class="hg">50%</span>, bất kể kích thước đòn đánh hay hồi chiêu. Đạn của chính nó phá hủy đạn tự động của người chơi, đạn Vệ Binh, và đạn của cả 2 linh hồn khi chạm — kể cả những viên đạn thường xuyên qua được.</span><span class="det-short">60% DR; đòn đánh >20% MaxHP hoặc HP xuống dưới 50% kích hoạt pháp trận giới hạn sát thương 3s. Đạn của nó phá đạn người chơi/Vệ Binh/linh hồn khi chạm.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Kết Giới Thành Lũy</b> — <span class="det-full">mỗi 1s, nhận 1 lớp khiên trị giá <span class="hg">0.5% MaxHP × số kẻ địch trên màn hình</span> (mỗi lớp CAP <span class="hg">15% MaxHP</span>), tối đa 2 lớp cộng dồn. Reset khi khiên cạn kiệt hoàn toàn để xây dựng lại từ đầu. Cũng cấp 1 lần <span class="hg">barrier 50% MaxHP</span> cộng <span class="hg">90% DR trong 1s</span> ngay khoảnh khắc khiên All for One vỡ.</span><span class="det-short">Mỗi 1s nhận 1 lớp khiên tăng theo số kẻ địch trên màn hình, tối đa 2 lớp (~30% MaxHP). Cũng cấp barrier 50% MaxHP + 90% DR trong 1s ngay khi khiên AFO vỡ.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>All for One</b> — Khiên Iron Body cho tới khi đủ chỉ tiêu hạ gục (10–20). Cánh gập lại. Miễn nhiễm khống chế.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Thủ Lĩnh Bầy Đàn</b> — <span class="det-full">mọi kẻ địch nhận <span class="hr">Đố Kỵ</span>: +25% DR, +25% hồi máu nhận vào, +1% hồi Max HP/s. Áp dụng lại mỗi 2.5s để bắt kịp những kẻ địch sinh ra sau Leviathan.</span><span class="det-short">Cấp cho mọi kẻ địch +25% DR, +25% hồi máu nhận vào, và +1% hồi Max HP/s trong lúc Leviathan còn sống.</span></li>
+<li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Mỗi 0.75s bắn 3 đạn vào mục tiêu gần nhất. HP đạn = 2% MaxHP của Leviathan.</li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Perseverance</b> — <span class="det-full">cảnh báo đỏ + laser quét toàn bộ 360°. Bắn khi khiên AFO vỡ. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh: <span class="hr">5% × số đòn khiên AFO đã nhận</span> EP/tick, CAP <span class="hr">50% EP</span> (đạt CAP ở 10 đòn khiên).</span><span class="det-short">Laser quét 360° khi AFO vỡ. Người chơi: 1 mạng. Vệ Binh: tối đa 50% EP.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> @HP 1 <b>Last Rites</b> — <span class="det-full">9 trụ cánh khóa mục tiêu, tất cả bắn đồng loạt. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh: <span class="hr">3% × (số đòn khiên AFO ÷ 2)</span> EP mỗi laser, CAP <span class="hr">55% EP</span> (đạt CAP ở 37 đòn khiên). Laser vẫn tồn tại sau khi chết.</span><span class="det-short">9 laser đồng loạt ở HP 1 vẫn tồn tại sau khi chết. Người chơi: 1 mạng. Vệ Binh: tối đa 55% EP.</span></li>
+</ul></div>
+<div class="card" style="border-color:rgba(245,158,11,0.3)">
+<h2 class="dsname" style="color:#f59e0b">GOLIATH <span class="dsclass" style="font-size:9px;color:#eab308">DIGIFORM</span></h2>
+<div style="display:flex;gap:6px;margin-bottom:8px;">
+  <button onclick="showGoliathTab(1)" id="gTabBtn1" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(245,158,11,0.25);border:1.5px solid #f59e0b;border-radius:6px;color:#f59e0b;">① Alpha</button>
+  <button onclick="showGoliathTab(2)" id="gTabBtn2" style="flex:1;padding:5px;font-family:'Rajdhani', 'Be Vietnam Pro', sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;background:rgba(80,50,0,0.2);border:1.5px solid rgba(245,158,11,0.4);border-radius:6px;color:#c9891f;">② Chân Thân</button>
+</div>
+<div id="gGoliathPane1">
+<div class="ab" style="height:190px"><canvas id="cvGoliathAlpha" style="width:100%;height:100%"></canvas></div>
+<div class="sub" style="margin-top:6px">HP 1 · Né 0% · không bị chọn làm mục tiêu · Vô Địch</div>
+<ul>
+<li><span style="color:#ffd700;font-size:10px">PHASE</span> <b>Alpha</b> — <span class="det-full">xuất hiện gần đỉnh màn hình với <span class="hg">1 HP</span>, Vô Địch tuyệt đối và không bị chọn làm mục tiêu — không có ngoại lệ nào áp dụng trong giai đoạn này. <span class="hi">Circuit Link</span> kết nối nó với mọi kẻ địch hiện tại: tối đa <span class="hg">80% Max HP của chính kẻ địch đó</span> mỗi đòn bị chuyển hướng vào sổ Damage Pull của Goliath thay vì giết chúng ngay. <span class="hi">Corrupted Genesis</span> — khi 1 kẻ địch cấp Thượng Cấp trở lên đã liên kết chết, 1 viên đá màu bay vào 1 trong 3 khe của nó; lấp đầy cả 3 khe bằng đá khác màu nhau sẽ bắt đầu Transition.</span><span class="det-short">Quả cầu Vô Địch liên kết với cả wave, chuyển hướng tối đa 80% Max HP của kẻ địch vào Damage Pull của nó. Hấp thụ 3 viên đá từ những cái chết đã liên kết để biến hình.</span></li>
+<li><span style="color:#ffd700;font-size:10px">PASSIVE</span> <b>Bãi Săn Mồi</b> — ngay khoảnh khắc Goliath xuất hiện, <span class="hr">ceil(1/3)</span> số kẻ địch hiện tại của wave bị tiêu thụ ngay lập tức, và mọi kẻ sống sót nhận <span class="hg">+15% Max HP</span>.</li>
+<li><span style="color:#ffd700;font-size:10px">PHASE</span> <b>Transition</b> — <span class="det-full">chuỗi biến hình ~4s, 4 giai đoạn khi cả 3 khe đã được lấp đầy: thiên thạch hội tụ và hợp nhất thành khối nóng chảy (Summon), khối này phồng lên và sủi bọt (Fusion), nó nguội đi và kết tinh thành thân Chân Thân khi 3 viên đá lần lượt bùng cháy (Crystallize), rồi cả 2 cánh tay vươn ra và ổn định cùng 1 sóng xung kích cuối (Settle). Vẫn Vô Địch và không bị chọn làm mục tiêu suốt quá trình.</span><span class="det-short">Biến hình 4 giai đoạn, ~4s thành Chân Thân khi cả 3 khe đá đã được lấp đầy. Vẫn Vô Địch suốt quá trình.</span></li>
+</ul>
+</div>
+<div id="gGoliathPane2" style="display:none">
+<div class="ab" style="height:190px"><canvas id="cvGoliathTrue" style="width:100%;height:100%"></canvas></div>
+<div class="sub" style="margin-top:6px">HP 50,000+ (tăng theo Damage Pull) · Né 35%→25% (+5% mỗi mốc HP) · CAP 1 · Tốc độ ~90 px/s (trôi dạt hình sin, không phải vận tốc cố định)</div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Bá Vương</b> — <span class="det-full"><span class="hr">2s Iron Body tuyệt đối</span> ngay khi biến hình thành công thành Chân Thân (không ngoại lệ, kể cả sát thương xuyên/chuẩn), <span class="dmg">70% DR nền</span>, miễn nhiễm khống chế vĩnh viễn, <span class="hg">hồi 2.2% Max HP/s</span>. 1 đòn đánh vượt quá <span class="hg">10% Max HP</span> mở ra pháp trận 2s giới hạn sát thương tiếp theo ở <span class="hr">5% Max HP</span> mỗi đòn (hồi chiêu 1.5s sau đó). Chỉ có <span class="hi">đòn xuyên</span>, <span class="hi">sát thương chuẩn</span>, và <span class="hi">sát thương theo thời gian</span> mới đánh trúng Goliath ở giá trị đầy đủ — mọi đòn khác (sát thương %HP/%EP thông thường, kể cả bắn tự động cơ bản) bị <span class="hr">CAP cứng ở 1.5% Max HP</span> mỗi đòn, <span class="hg">+0.5% mỗi lớp debuff</span> hiện có trên Goliath (trọng thương, Đoạt Hồn, hiệu ứng chậm đang hoạt động, lớp Bỏng của Venom/Leo, dấu Yog-Sothoth, Dimensional Rift, hào quang Cuộn Tesla), CAP tổng <span class="hr">3% Max HP</span>, vẫn chịu ảnh hưởng của DR. <b>Shield Burst:</b> theo dõi TOÀN BỘ sát thương nhận vào (mọi loại) trong bất kỳ pháp trận trượt 1s nào — vượt quá <span class="hr">12% Max HP</span> cấp 1 <span class="hi">Barrier</span> mới (bể riêng biệt với Shield, không tính vào tổng Max HP+Shield mà đòn %EP dựa vào) trị giá 50% sát thương của pháp trận đó, cũng chuyển 100% Shield hiện tại thành Barrier, và hồi 75% lượng Shield đã chuyển dưới dạng HP. Hồi chiêu 0.5s giữa các lần kích hoạt.</span><span class="det-short">2s Iron Body khi vào Chân Thân. 70% DR, miễn nhiễm khống chế vĩnh viễn, hồi 2.2%/s. Đòn lớn (>10% MaxHP) kích hoạt pháp trận 2s giới hạn 5%. Chỉ xuyên/chuẩn/DoT đánh trúng đầy đủ — mọi thứ khác CAP 1.5% Max HP/đòn, +0.5% mỗi lớp debuff (tối đa 3%). Shield Burst: nhận >12% MaxHP trong 1s cấp Barrier (50% sát thương đó) + chuyển Shield thành Barrier + hồi 75% lượng đó (hồi chiêu 0.5s).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Bước Vỡ Vụn</b> — <span class="det-full">dịch chuyển khi có mối đe dọa tới gần trong <span class="hi">100px</span> (hoặc mỗi 2s bất kể thế nào, hồi chiêu 2s cho chính lần dịch chuyển), nhận <span class="hg">1 lớp Iron Body chịu 3 đòn</span> mỗi lần. Dịch chuyển là 1 cổng dịch chuyển pháp trận chậm 2 giai đoạn (đóng lại tại chỗ cũ trong 400ms, mở ra tại chỗ mới trong 400ms) chứ không phải nháy tức thời. Trong 1s sau khi tới nơi, nhận <span class="hg">+20% sát thương gây ra</span>, <span class="hg">+10% tốc độ bay</span>, và <span class="hg">+15% hiệu quả hồi máu/khiên</span> (cộng dồn với +35% riêng của Thaelis).</span><span class="det-short">Dịch chuyển tránh xa mối đe dọa hoặc mỗi 2s (hồi chiêu 2s), cấp 1 lớp Iron Body chịu 3 đòn. Cổng dịch chuyển chậm 2 giai đoạn. 1s sau dịch chuyển: +20% sát thương, +10% tốc độ, +15% hiệu quả hồi máu/khiên.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Ý Chí Bất Khuất</b> — <span class="det-full">kích hoạt đúng <span class="hi">1 lần duy nhất</span> mỗi con Goliath: đòn đánh đầu tiên có thể kết liễu Chân Thân sẽ bị vô hiệu hóa hoàn toàn thay vào đó. Trở nên Vô Địch hoàn toàn trong <span class="hr">3.5s</span> (cùng luật Iron Body tuyệt đối như pháp trận sau biến hình) và nhận ngay 1 <span class="hi">Barrier</span> trị giá <span class="hg">20% Max HP</span>. Trong <span class="hi">6s</span> tiếp theo, bắt đầu cùng lúc với 3.5s Vô Địch: <span class="hg">+40% hiệu quả hồi máu/khiên</span> (cộng dồn với mọi thứ khác), <span class="hg">+20% Max HP</span> (HP chuẩn sử dụng được, tự động hoàn tác khi pháp trận kết thúc), và <span class="hg">+15% tốc độ bay</span> — thân nhấp nháy rõ rệt suốt thời gian đó. Ngay khoảnh khắc 3.5s Vô Địch kết thúc, Goliath giải phóng 1 <span class="hi">sóng xung kích màu cam</span> giống hệt cơ chế Maou Haki (cùng tốc độ/bán kính, quét sạch mọi đạn của người chơi trên màn hình) — nhưng sóng này <span class="hi">không gây sát thương và không tốn mạng</span> của bất kỳ ai, báo hiệu bằng 1 tia lóe tung chiêu ngắn.</span><span class="det-short">1 lần duy nhất mỗi con Goliath: 1 đòn chí mạng bị vô hiệu hóa thay vào đó — Vô Địch hoàn toàn 3.5s + Barrier 20% MaxHP, sau đó 6s (bắt đầu cùng lúc với Vô Địch) gồm +40% hiệu quả hồi máu/khiên, +20% MaxHP, +15% tốc độ, thân nhấp nháy. Khi hết Vô Địch sẽ giải phóng 1 sóng xung kích cam kiểu Maou Haki (quét sạch đạn, không sát thương/mạng).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Chưởng Hộ Vệ</b> — <span class="det-full">đòn đánh tới từ Skill F, Skill D, hoặc tia laser tối thượng Photokrystos có <span class="hg">30% cơ hội</span> bị đỡ 1 phần, chỉ nhận <span class="hg">15% Max HP</span>; 70% thời gian còn lại sức mạnh nguồn gốc áp đảo bàn tay đỡ và đòn đánh trúng đầy đủ <span class="hr">40% Max HP</span> — mỗi đòn, không có CAP trọn đời. Luật này (như mọi luật riêng của Goliath) đè lên bất kỳ sigil nào lẽ ra có thể xuyên qua nó. Riêng biệt, TOÀN BỘ sát thương từ chính Photokrystos (đạn định hướng + boomerang) bị giảm <span class="hg">40%</span> — áp dụng trước CAP DR/Bá Vương, ảnh hưởng cả đòn thường có CAP lẫn boomerang sát thương chuẩn không CAP.</span><span class="det-short">30% cơ hội đỡ đòn Skill F/D/laser Photokrystos xuống còn 15% Max HP; nếu không thì 40% Max HP, mỗi đòn. Mọi sát thương Photokrystos khác (đạn/boomerang) -40%.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Bảo Hộ Ngưỡng</b> — <span class="det-full">bắt đầu Chân Thân với <span class="hg">35% né</span>, giảm dần tuyến tính về <span class="hg">25%</span> trong <span class="hi">15s</span> đầu, sau đó giữ nguyên ở đó cho tới hết trận (áp dụng cho mọi thứ trừ Skill F/D/laser chiêu cuối Photokrystos, vốn xuyên qua nhờ Chưởng Hộ Vệ). Mỗi lần vượt xuống dưới các mốc HP 75/50/25% làm 2 việc cùng lúc: <span class="hi">1 lần</span> bể khiên <span class="hg">+15% Max HP</span> (hồi máu vượt qua 1 mốc đã trả rồi sẽ khôi phục HP tới mốc đó), và <span class="hg">1 lần tăng +5% né trong 3s</span> mà — khác với khiên — có thể kích hoạt lại bất kỳ số lần nào (HP hồi lên trên 1 mốc rồi tụt xuống lại sẽ kích hoạt lại), dù nó không bao giờ cộng dồn quá 1 lớp +5% duy nhất dù có vượt qua bao nhiêu mốc cùng lúc.</span><span class="det-short">35% né khi vào Chân Thân, giảm về 25% trong 15s (không áp dụng với Skill F/D/laser Photokrystos). Mỗi mốc HP 75/50/25%: 1 lần khiên +15% MaxHP, cộng thêm 1 lần tăng né +5% trong 3s có thể lặp lại (không cộng dồn).</span></li><li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Giới Hạn Thi Triển</b> — <span class="det-full">trong lúc thi triển bất kỳ skill nào (của chính nó hoặc bản sao Joker), Goliath <span class="hr">làm chậm 35%</span>, không thể Bước Vỡ Vụn, nhận <span class="hg">+10% DR</span> suốt thời gian đó, và hồi <span class="hg">15% Max HP</span> 1 lần ngay khoảnh khắc bắt đầu thi triển.</span><span class="det-short">Thi triển bất kỳ skill nào: làm chậm 35%, không thể Bước Vỡ Vụn, +10% DR, hồi 15% MaxHP 1 lần lúc bắt đầu.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Phán Quyết Tối Thượng</b> — <span class="det-full">thi triển 3s theo dõi vị trí người chơi cho tới <span class="hi">0.5s trước khi phóng</span>, sau đó khóa lại. Bắn 1 quả cầu xuyên: <span class="hr">35% Max HP sát thương chuẩn</span> vào Vệ Binh, hoặc <span class="hr">-5 mạng</span> vào người chơi.</span><span class="det-short">Thi triển 3s, theo dõi người chơi tới 0.5s trước khi bắn rồi khóa lại. Quả cầu: 35% MaxHP sát thương chuẩn vào Vệ Binh hoặc -5 mạng.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Thiên Thạch Hủ Bại</b> — <span class="det-full">Hồi chiêu <span class="hi">4s</span>. Giơ 1 tay lên và hút tối đa <span class="hi">3</span> Apostle còn sống ngẫu nhiên cùng lúc (ít hơn nếu không đủ) vào 1 lõi thiên thạch nén trong <span class="hi">0.8s</span>, tiêu thụ mỗi con làm nhiên liệu, rồi ném ra NHIỀU thiên thạch hơn số Apostle đã tiêu thụ: <span class="hi">1 Apostle → 3 thiên thạch, 2 → 4, 3 → 5</span> (tối đa), tất cả theo hình quạt — bất kỳ thiên thạch nào vượt quá số Apostle thực sự bị tiêu thụ đều rỗng (không nhiên liệu). Nếu không có Apostle nào sẵn có, vẫn ném đúng <span class="hi">1</span> thiên thạch rỗng. Trúng người chơi tốn <span class="hr">1 mạng</span> mỗi thiên thạch; trúng Vệ Binh nổ ra <span class="hr">25% Max HP của chính Vệ Binh đó</span> dưới dạng sát thương lan sang các Vệ Binh gần đó.</span><span class="det-short">Hồi chiêu 4s. Hút tối đa 3 Apostle; ném 3/4/5 thiên thạch cho 1/2/3 Apostle bị tiêu thụ (thừa ra thì rỗng), hoặc 1 thiên thạch rỗng nếu không có Apostle nào. Người chơi: -1 mạng/thiên thạch. Vệ Binh: sát thương lan 25% EP.</span></li>
+<li><span style="background:linear-gradient(90deg,#2dd4bf,#818cf8,#d946ef);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:10px;font-weight:700;letter-spacing:0.5px">UNIQUE SKILL</span> <b>Joker</b> — <span class="det-full">Chân Thân nhận bản sao hoạt động được của đúng <span class="hi">3 kỹ năng</span> gắn với các viên đá nó đã hấp thụ (trong số 7 khả năng):
+<br>• <b>Veilshroud</b> — Phantom (3s, +99% DR) rồi 1 tia sét khóa mục tiêu giáng xuống (trúng người chơi, Vệ Binh 5% MaxHP sát thương chuẩn).
+<br>• <b>Thaelis</b> — +20-60% DR tăng theo HP đã mất, +35% hiệu quả cho mọi hồi máu/khiên của bản thân (cộng dồn với mọi thứ), và mỗi 5% MaxHP mất đi hồi 2.5% MaxHP + cấp khiên 1% MaxHP.
+<br>• <b>Aegis Core</b> — mỗi 4s, 1 tia laser đường thẳng khóa sẵn đánh trúng người chơi hoặc Vệ Binh (25% MaxHP sát thương chuẩn).
+<br>• <b>Marchosias</b> — chuyển thể đầy đủ cơ chế Kiếm &amp; Kết Giới: 1 barrier riêng biệt <span class="hi">8000 HP</span> (60% DR, CAP 35% HP hiện tại/đòn, 10% né, đòn xuyên xuyên 1 phần, sát thương chuẩn xuyên qua) kích hoạt 1 đòn Kiếm khi trúng (25%/10% cơ hội, tối đa 10/chu kỳ — đạt 10 sẽ tự kích nổ barrier). Kiếm xuyên qua: người chơi 1 mạng, Vệ Binh 27%/23%/21% EP theo thứ tự đòn. Barrier vỡ cấp Iron Body + hồi máu + khiên + DR tạm thời. Toàn hướng (không giới hạn cung) vì Goliath không có dữ liệu vị trí đòn đánh để kiểm tra.
+<br>• <b>Egregor</b> — Hư Không Trảm (không phải Psychic Tempest): chuẩn bị 3s, rồi 1 nhát quét 180° làm chậm người chơi 50% trong 1.5s và gây Vệ Binh sát thương chuẩn (30/35/40% MaxHP theo số đòn) cộng 1 vùng Dimension Break. Hiển thị dưới dạng cánh tay xúc tu plasma cam, không phải xúc tu tối của chính Egregor.
+<br>• <b>Dargruel</b> — mỗi 8s, 1 sóng xung kích quét sạch đạn người chơi và làm chậm người chơi 30%.
+<br>• <b>Leviathan</b> — laser quét 360°; Vệ Binh bị dính luôn nhận CAP công thức 50% EP (tương đương cố định 150 lớp).
+</span><span class="det-short">Sao chép đúng 3 kỹ năng gắn với các viên đá đã hấp thụ, mỗi kỹ năng được cân bằng lại/báo hiệu lại so với kỹ năng gốc chuẩn.</span></li>
+</ul>
+</div>
+</div>
+<div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
+<h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">QUẢN TRỊ VIÊN</span></h2>
+<div class="sub" style="color:#ff2244aa">— CHƯA XÁC ĐỊNH —</div>
+<div class="ab" style="height:160px"><canvas id="cvKanade" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li>1 Quản Trị Viên tồn tại vượt ngoài thực tại, cai quản nó như 1 <span class="hr">hệ thống</span> — không sống bên trong nó.</li>
+<li>Tạo ra <span class="hg">Endless Nights Protocol</span> (Giao Thức Đêm Vô Tận): nhân bản vũ trụ vô hạn, ngăn chặn mọi sự kết thúc.</li>
+<li>Kiểm soát tuyệt đối nhân quả — có thể nhân bản, ghi đè, và định nghĩa thực tại.</li>
+<li>Người giám sát xa cách bị thúc đẩy bởi nỗi sợ những kết thúc không thể đảo ngược. Bị đe dọa bởi các <span class="hi">Irregular</span> (Kẻ Bất Thường) nằm ngoài quyền hạn của cô.</li>
+</ul></div>`,
+
+      basics: `
+<div class="card">
+<h2 style="color:var(--cyan)">PHI THUYỀN CỦA BẠN</h2>
+<div class="sub">TIÊM KÍCH ĐÁNH CHẶN LỚP PISCES</div>
+<div class="ab" style="height:170px"><canvas id="cvShip" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayShip" onclick="playWidget('ship', this)">▶ Play</button></div>
+<p>Phi thuyền của bạn tự động bắn <span class="hp">5 viên đạn tím</span> theo hình quạt 45° mỗi 135ms. Chấm nhỏ <span class="hi">màu cyan</span> chính là hitbox chuẩn — chỉ khi chạm vào chấm đó mới mất mạng.</p>
+</div>
+<div class="card">
+<h2 style="color:var(--cyan)">ĐIỀU KHIỂN</h2>
+<table class="controls-table">
+<tr><th>Phím</th><th>Hành động</th></tr>
+<tr><td><span class="key">ESC</span></td><td>Tạm dừng / Tiếp tục game</td></tr>
+<tr><td><span class="key">← →</span></td><td>Di chuyển trái / phải</td></tr>
+<tr><td><span class="key">Space</span> giữ</td><td>Bắn Sạc (tối đa sát thương x10) — thả ra để bắn</td></tr>
+<tr><td><span class="key">Space</span> giữ 3s</td><td>Laser Quá Tải — chùm tia liên tục 12s</td></tr>
+<tr><td><span class="key">Shift</span></td><td>Lãnh Địa Yog-Sothoth (chậm thời gian + Iron Body)</td></tr>
+<tr><td><span class="key">A</span></td><td>Cầu Sấm Sét — 20 cầu năng lượng định hướng</td></tr>
+<tr><td><span class="key">S</span></td><td>Tinh Linh Hoài Niệm — triệu hồi linh hồn đồng minh</td></tr>
+<tr><td><span class="key">D</span></td><td>Hố Đen Vũ Trụ — hút vào điểm kỳ dị</td></tr>
+<tr><td><span class="key">F</span></td><td>Càn Quét Hủy Diệt — chùm tia toàn màn hình</td></tr>
+<tr><td><span class="key">G</span></td><td>Kết Giới Sinh Mệnh / Ma Trận Tesla</td></tr>
+</table></div>
+<div class="card"><h2 style="color:var(--gold)">MẠNG & ĐIỂM SỐ</h2><ul>
+<li>Bắt đầu với <span class="hg">12 mạng</span>. Nhận <span class="hgr">+1 mạng</span> mỗi <span class="dmg">500,000 điểm</span>.</li>
+<li>Điểm = Max HP kẻ địch × 6.</li><li>Game tự động tạm dừng khi chuyển tab.</li></ul></div>
+<div class="card">
+<h2 style="color:var(--gold)">GIỚI THIỆU</h2>
+<div class="sub">CÂU CHUYỆN ĐẰNG SAU PISCES</div>
+<p>Sâu trong một góc vũ trụ đang lụi tàn, một chiếc <span class="hi">tàu đánh chặn lớp Pisces</span> đơn độc trôi dạt giữa thủy triều vô tận. Những vì sao phía trước đã im bặt — bị nuốt chửng bởi các thực thể từ hư không, không tuân theo chòm sao nào, không trật tự, không khoan nhượng. Mười hai <span class="hg">Sigil Hoàng Đạo</span> cổ xưa, nằm rải rác trong đống tàn tích của những hạm đội bị lãng quên, là tuyến phòng thủ cuối cùng mà một phi công đơn độc còn có thể cầu viện. Mỗi Wave sống sót là một nhịp tim giành lại được từ bóng tối.</p>
+<div style="height:1px;background:rgba(0,229,255,0.15);margin:16px 0;"></div>
+<p><b>Pisces: Space Journey</b> là một dự án độc lập, phi thương mại, được xây dựng và duy trì bởi một sinh viên đại học trong thời gian rảnh.</p>
+<ul>
+<li>Đây là một dự án học tập cá nhân — <span class="hi">không bán, không kiếm tiền, và không liên kết với bất kỳ studio hay nhà phát hành nào.</span></li>
+<li>Mọi tham chiếu phong cách tới nhạc, game, hoặc media hiện có (đã ghi công ở nơi sử dụng, xem Music Archive) chỉ nhằm mục đích <span class="hg">giáo dục và truyền cảm hứng</span> — không bao giờ nhằm nhận quyền sở hữu.</li>
+<li>Cam kết tôn trọng hoàn toàn quyền của các tác giả gốc. Nếu có bất cứ điều gì ở đây vô tình vượt quá giới hạn, hãy liên hệ và nó sẽ được sửa ngay lập tức.</li>
+</ul>
+<p style="margin-top:10px;">Phát hiện ra lỗi, góp ý, liên hệ, hay solo Project Sekai? <span class="key">GitHub: @aansensei</span></p>
+</div>`,
+
+      passives: `
+<div class="card">
+<h2 style="color:var(--cyan)">VỆ BINH</h2>
+<div class="sub">PASSIVE — XUẤT HIỆN MỖI 3 LẦN HẠ GỤC • TỐI ĐA 12</div>
+<div class="ab" style="height:160px"><canvas id="cvSentinels" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySentinel" onclick="playWidget('sentinel', this)">▶ Play</button></div>
+<ul>
+<li>Xuất hiện mỗi <span class="hi">3 lần hạ gục</span>. 36% cơ hội <b>Củng Cố</b> (+50% Max HP).</li>
+<li>Mỗi phát bắn thứ 4 = <span class="hg">Phát Bắn Đặc Biệt</span>: định hướng mục tiêu, hồi 2 HP khi trúng.</li>
+<li><span style="color:#00FFFF">Cyan 1-4:</span> +30% HP, +10% tốc độ đạn.</li>
+<li><span style="color:#FF00FF">Magenta 5-11:</span> +20% tốc độ bắn, +10% sát thương, +10% DR. <b>Mạng Lưới Tiên Phong</b>.</li>
+<li><span style="color:#FFD700">Gold ×12:</span> Mỗi phát bắn = Phát Bắn Đặc Biệt.</li>
+<li><b>8% DR nền</b> tại mọi thời điểm.</li>
+<li><b>Đỡ Đòn Vệ Binh</b> (Glory kích hoạt): 20% vô hiệu hóa → <span class="hg">Đỡ Đòn Chuẩn Xác</span> 4s + <span class="hg">+10% DR</span> 4s.</li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Gaia Protection</b> — <span class="det-full">Max HP tăng theo Wave: <span class="hg">+5% ở Wave 2 · +10% ở Wave 6 · +15% ở Wave 10</span>; sau đó <span class="hg">+3%/wave</span> cho tới khi đạt <span class="hg">trần tổng +60%</span>. Trong lúc Glory for Justice kích hoạt: mỗi <span class="hi">8s</span> (<span class="hi">5s</span> sau Wave 10) mỗi Vệ Binh tạo ra 1 <span class="hg">Gaia Barrier</span> = <span class="hg">25% HP đã mất + 15% Max HP</span> (không cộng dồn, thay thế lớp cũ). Kích hoạt ngay khi tạo ra. Barrier hấp thụ <span class="hg">99%</span> mọi sát thương đến; <span class="hi">1%</span> xuyên qua. <b>Sát thương chuẩn</b> còn bị giảm thêm <span class="hg">20%</span> trong lúc Barrier còn hiệu lực. <b>Không tính vào EP.</b> Hiển thị dưới dạng trăng lưỡi liềm xanh lá phía trên Vệ Binh.</span><span class="det-short">Max HP tăng theo từng mốc Wave (trần +60%). Trong lúc Glory: Gaia Barrier tái tạo mỗi 8s (5s sau Wave 10) = 25% HP đã mất + 15% Max HP. Hấp thụ 99% sát thương + giảm 20% sát thương chuẩn, không tính vào EP.</span></li>
+<li>Khi chết: <span class="dmg">10 đạn 10 hướng</span>.</li></ul></div>
+<div class="card"><h2 style="color:var(--red)">TRỌNG THƯƠNG</h2><div class="sub">DEBUFF — CỘNG DỒN ×4 • THỜI GIAN 3s</div>
+<div class="ab"><canvas id="cvVuln" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayVuln" onclick="playWidget('vuln', this)">▶ Play</button></div>
+<ul><li>Bắn tự động <span class="dmg">28%</span> cơ hội, nguồn khác <span class="dmg">15%</span>. Mỗi lớp: <span class="hr">+16% sát thương nhận vào</span>, xé <span class="dmg">26% Shield</span>.</li>
+<li>Ở 4 lớp: <span class="hr">sát thương chuẩn</span> trong 2s (xuyên qua shield).</li></ul></div>
+<div class="card"><h2 style="color:var(--green)">GLORY FOR JUSTICE</h2><div class="sub">KÍCH HOẠT: 4+ KẺ ĐỊCH / ABNORMAL TRỞ LÊN / SKILL G / PHŌTOKRYSTOS</div>
+<div class="ab"><canvas id="cvGlory" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayGlory" onclick="playWidget('glory', this)">▶ Play</button></div>
+<ul><li>Toàn bộ sát thương phe ta <span class="hgr">×1.55</span>, tốc độ bắn <span class="hgr">×1.5</span>.</li>
+<li><span class="det-full"><b>Sét Dây Chuyền</b> (hồi chiêu 150ms): lan sang <b>8</b> kẻ địch với <b>50%</b> sát thương. <b>60%</b> → <span class="hr">Đoạt Hồn</span> (−<b>40%</b> hồi máu/khiên, sát thương theo thời gian mỗi <b>0.35s</b>: <b>60 gốc + 5.5% EP</b> sát thương chuẩn).</span><span class="det-short"><b>Sét Dây Chuyền</b>: lan sang 8 kẻ địch. 60% cơ hội gây Đoạt Hồn (giảm hồi máu + sát thương theo thời gian).</span></li>
+<li>Vệ Binh: <b>+30% DR</b>, Đỡ Đòn kích hoạt.</li></ul></div>
+<div class="card"><h2 style="color:var(--gold)">PHÒNG THỦ TỐI THƯỢNG</h2><div class="sub">LƯỚI AN TOÀN TỰ ĐỘNG</div>
+<div class="ab" style="height:140px"><canvas id="cvFinal" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlayFinal" onclick="playWidget('final', this)">▶ Play</button></div>
+<ul>
+<li><b>Khiên Người Chơi:</b> hấp thụ 1 đòn <span class="cd">hồi 25s</span>. <b>Khiên Ranh Giới:</b> hấp thụ 1 kẻ địch vượt biên <span class="cd">25s</span>.</li>
+<li><b>Trận Chiến Cuối:</b> đòn chí mạng ở mạng cuối → sống sót + <span class="hg">Khiên Tuyệt Đối</span> cho bạn + Vệ Binh. <span class="hg">Chỉ 1 lần duy nhất.</span></li>
+<li>Thứ tự ưu tiên: <span class="hp">Lãnh Địa</span> → <span class="hi">Hy Sinh Cầu Năng Lượng</span> → Khiên Người Chơi → Trận Chiến Cuối → Mất mạng.</li></ul></div>
+<div class="card"><h2 style="color:#ffaaaa">YUUKI — DŨNG KHÍ</h2><div class="sub">PASSIVE • TỪ WAVE 8 • MỖI 2 WAVE • CỘNG DỒN TỚI +300%</div>
+<ul>
+<li>Bắt đầu từ <span class="hi">Wave 8</span>, mỗi <span class="hi">2 wave</span> (Wave 8, 10, 12, …): toàn bộ đơn vị phe ta gây thêm <span class="hg">+20% sát thương</span>.</li>
+<li>Cộng dồn tới khi tổng bonus đạt <span class="hg">+300%</span> (đạt trần từ Wave 36 trở đi), sau đó giữ nguyên.</li>
+<li>Áp dụng cho mọi nguồn sát thương phe ta: bắn tự động, skill, linh hồn, Vệ Binh, sét dây chuyền, sát thương theo thời gian Tesla.</li>
+<li>Hiển thị trên HUD dưới dạng <span class="hg">⚔ Yuuki +X%</span> khi kích hoạt.</li>
+</ul></div>`,
+    };
+
     // Music archive — list must match audio/bgm/ filenames on disk.
     const MUSIC_TRACKS = [
       { title: 'A Dorian Autumn Fair',           sub: 'In-Game BGM',  src: 'audio/bgm/a-dorian-autumn-fair.mp3' },
@@ -1728,6 +2264,21 @@
     // when the file is opened standalone.
 
     function _renderMusicArchive() {
+      const lang = (window.parent && window.parent._lang) || 'en';
+      if (lang === 'vi') {
+        return `
+<div class="card">
+<h2 style="color:var(--cyan)">LƯU TRỮ NHẠC</h2>
+<div class="sub">Nơi hàng vạn dòng chảy thanh âm hội tụ, thời gian giao thoa thành giai điệu, và các vì sao ngân lên khúc khải hoàn.</div>
+<p style="opacity:0.75; font-size:12px; margin-top:6px;">Nhạc nền menu "Pisces" chỉ phát ở màn hình tiêu đề. Mọi bản nhạc khác được chọn ngẫu nhiên sau khi bạn xác nhận sigil đầu tiên mỗi lượt chơi.</p>
+<div id="music-list" style="display:flex; flex-direction:column; gap:10px; margin-top:14px;"></div>
+<div style="margin-top:18px; padding:12px 14px; background:rgba(0,20,40,0.4); border:1px dashed rgba(0,229,255,0.25); border-radius:8px; font-size:11px; line-height:1.6; color:rgba(200,220,240,0.75);">
+  <b style="color:#00e5ff; letter-spacing:1px;">CREDITS</b><br>
+  "Suwako's Theme – Native Faith" — sáng tác gốc bởi <b>ZUN</b> (Team Shanghai Alice), trích từ <i>Touhou 10: Mountain of Faith</i>. Bản phối được đăng tải bởi <b>PineappleDisciple</b>.<br>
+  <span style="opacity:0.75;">Được đưa vào đây thuần túy vì đây là bản nhạc yêu thích cá nhân, chỉ mang tính tham khảo. Không sử dụng cho mục đích thương mại — mọi bản quyền vẫn thuộc về nhà soạn nhạc và người phối khí gốc.</span>
+</div>
+</div>`;
+      }
       return `
 <div class="card">
 <h2 style="color:var(--cyan)">MUSIC ARCHIVE</h2>
@@ -1863,11 +2414,19 @@
     }
 
     // ── Render tab content ──
+    function _tabHtml(name) {
+      const lang = (window.parent && window.parent._lang) || 'en';
+      document.body.classList.toggle('lang-vi', lang === 'vi');
+      if (lang === 'vi' && TABS_VI[name]) return TABS_VI[name];
+      return TABS_EN[name];
+    }
+
     function showTab(name) {
       // Leaving the music tab: stop preview + resume parent BGM
       if (typeof _stopPreview === 'function') _stopPreview(true);
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-      const html = (name === 'music') ? _renderMusicArchive() : TABS[name];
+      document.body.classList.toggle('lang-vi', ((window.parent && window.parent._lang) || 'en') === 'vi');
+      const html = (name === 'music') ? _renderMusicArchive() : _tabHtml(name);
       G.innerHTML = '<div class="tab-content active">' + html + '</div>';
       requestAnimationFrame(() => {
         document.querySelectorAll('.ul-badge').forEach(b => {
@@ -1888,6 +2447,16 @@
       });
       if (name === 'sigils') setTimeout(() => initCanvases('sigils'), 32);
     }
+
+    // Called by index.html (parent frame) via window.parent._refreshGuideLanguage
+    // whenever the user switches language, so the currently-open tab re-renders
+    // in the new language without needing a full iframe reload.
+    try {
+      window.parent._refreshGuideLanguage = function () {
+        const activeBtn = document.querySelector('.tab-btn.active');
+        showTab(activeBtn ? activeBtn.dataset.tab : 'basics');
+      };
+    } catch (_) {}
 
     // ── Scroll-reveal via IntersectionObserver ──
     function attachScrollReveal() {

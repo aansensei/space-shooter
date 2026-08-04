@@ -114,6 +114,86 @@ const SIGIL_DEFS = {
 const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
                      'libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
 
+// Vietnamese display text for the sigil picker (name/element/buff name/buff
+// desc only) — SIGIL_DEFS above stays English and is what all game LOGIC
+// reads (ids, _hasBuff/_hasSigil, element comparisons in
+// drawSigilShipUpgrades, etc.). Only _drawPickerCards' rendering path below
+// swaps to this via _localizedSigil(); every other reader of SIGIL_DEFS is
+// untouched, so a 'Fire'/'Air' element check elsewhere never sees a
+// Vietnamese string.
+const SIGIL_I18N_VI = {
+    aries: { name: 'Bạch Dương', element: 'Hỏa', buffs: {
+        tien_phong: { name: 'Tiên Phong', desc: "50% cơ hội đạn của người chơi & Vệ Binh xuyên qua kẻ địch, +50% sát thương. Mỗi lần xuyên chuỗi: +30% sát thương mỗi chuỗi, cộng thêm 3% Max HP của kẻ địch dưới dạng sát thương thật (tối đa 4 chuỗi)." },
+        khat_chien: { name: 'Khát Chiến', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP còn thiếu của mục tiêu (hồi chiêu 300ms).' },
+    }},
+    taurus: { name: 'Kim Ngưu', element: 'Thổ', buffs: {
+        thanh_dong: { name: 'Vương Cung Thành Trì', desc: 'Mỗi 5s nhận 1 lớp Iron Body (tối đa 3 lớp): hấp thụ 1 đòn đánh vào người chơi hoặc 1 lần trói/câm lặng thường. Hiển thị dưới dạng vòng lục giác xanh lá quanh tàu.' },
+        ho_ve: { name: 'Hộ Vệ', desc: 'Vệ Binh +65% HP & +30% sát thương. Đạn thường của Vệ Binh không còn tốn 1 HP giật lùi. Khi 1 Vệ Binh bị kết liễu, các Vệ Binh còn lại hồi 10% EP của nó và nhận khiên trị giá 20% EP của nó (hồi chiêu 3.5s).' },
+    }},
+    gemini: { name: 'Song Tử', element: 'Phong', buffs: {
+        bong_doi: { name: 'Ảnh Song', desc: 'Mỗi đòn đánh trúng thứ 10 từ bất kỳ nguồn phe ta nào (trừ Vệ Binh) tích 0.5s, sau đó 1 tàu bóng ma xuất hiện giữa cạnh màn hình ngẫu nhiên (trái/phải) và bắn 3 đợt cầu plasma xuyên phá vào kẻ địch ngẫu nhiên, bay xuyên suốt màn hình. Mỗi đợt gồm 1 cầu lớn kèm 2 cầu nhỏ. Cầu nhỏ: 75 + 3% EP sát thương. Cầu lớn: 175 + 8% EP sát thương. Mỗi lần trúng gây 2 lớp Trọng Thương và Soul Reaver. Hồi chiêu 1s trước khi kích hoạt lại.' },
+        guong_laze: { name: 'Gương Quang Tuyến', desc: 'Overload Laser sinh ra 2 thực thể gương (trên-trái & dưới-phải) di chuyển dọc theo hướng ngược nhau (+25% tốc độ), mỗi cái bắn 1 tia laser ngang bằng 75% sát thương tia gốc. Tia gốc được buff +30%. Ngoài ra, mỗi lần dùng skill hoặc bắn tự động có 5% cơ hội (+0.3% mỗi lần trượt, reset khi kích hoạt) bắn ra 1 cột laser xanh-tím xuyên phá gây 350 + 18% EP mỗi 125ms trong 3s — không hút địch, cộng dồn với Overload Laser (hồi chiêu 4s).' },
+    }},
+    cancer: { name: 'Cự Giải', element: 'Thủy', buffs: {
+        giap_nguyet: { name: 'Nguyệt Giáp', desc: 'Gaia Protection kích hoạt mà không cần Glory for Justice; khả năng hấp thụ của Gaia Barrier +40%; Vệ Binh nhận +20% né tránh' },
+        trieu_hoi: { name: 'Triều Lưu', desc: 'Vệ Binh hồi 3% Max HP/s (tăng theo cấp bậc); hiệu quả hồi máu +30%. Mỗi Vệ Binh nhận 1 lớp Iron Body; hồi chiêu 8s chỉ bắt đầu sau khi lớp đó bị tiêu hao.' },
+    }},
+    leo: { name: 'Sư Tử', element: 'Hỏa', buffs: {
+        su_tu_hong: { name: 'Sư Tử Hống', desc: 'Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP còn thiếu của mục tiêu.' },
+        than_menh: { name: 'Thần Mệnh', desc: 'Đầu mỗi wave: đóng băng 5s — mọi kẻ địch ngừng di chuyển (kể cả địch mới xuất hiện) + toàn bộ sát thương +100%' },
+    }},
+    virgo: { name: 'Xử Nữ', element: 'Thổ', buffs: {
+        mui_ten_vang: { name: 'Hộ Lâm', desc: 'Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x4, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 1000 + 10% EP + 15% HP còn thiếu của mỗi mục tiêu.' },
+        ky_su_dien: { name: 'Kỹ Sư Mạch', desc: 'Sát thương theo thời gian Tesla & Cuộn Tesla +50%; phá hủy 1 Cuộn Tesla giảm 3s hồi chiêu Skill G và tăng 10% tốc độ nạp năng lượng G. Kẻ địch mang bất kỳ hiệu ứng bất lợi nào (chậm, sát thương theo thời gian, Trọng Thương, Soul Reaver,...) nhận +50% sát thương từ mọi nguồn.' },
+    }},
+    libra: { name: 'Thiên Bình', element: 'Phong', buffs: {
+        mui_ten_apollo: { name: 'Huyết Tiễn', desc: 'Mỗi lần dùng Skill A bắn 3 mũi tên sau 0.5s chuẩn bị: 1 mũi tên lớn đánh dấu kẻ địch có EP cao nhất, 2 mũi còn lại đánh dấu kẻ địch ngẫu nhiên (ưu tiên khu vực đông địch). Mỗi mũi tên xuyên qua mọi kẻ địch (300 sát thương gốc) và nổ trên mục tiêu bị đánh dấu (400 gốc + 20% EP, tăng thêm tối đa +100% từ giáp của mục tiêu). Mọi kẻ địch trúng đòn nhận 2 lớp Trọng Thương. 2 mũi tên nhỏ gây ít hơn 40% sát thương nhưng bay nhanh hơn 20% so với mũi lớn, vốn cũng to hơn 15%.' },
+        xuyen_pha: { name: 'Tinh Xuyên', desc: 'Cầu năng lượng Skill A xuyên qua mục tiêu khi va chạm và tiếp tục bay tới mép màn hình, gây sát thương cho mọi kẻ địch nó đi qua. Kích thước cầu +30%.' },
+    }},
+    scorpio: { name: 'Bọ Cạp', element: 'Thủy', buffs: {
+        hoan_sinh: { name: 'Hoàn Sinh', desc: 'Khi chọn: nhận ngay +5 mạng. Tỉ lệ thưởng mạng: +1 mạng mỗi 250,000 điểm (thay vì 500,000)' },
+        tu_huyet: { name: 'Tử Ấn', desc: 'HP 100%→21%: sát thương tăng tuyến tính +0%→+70%. HP ≤20%: +80% sát thương từ mọi nguồn. HP ≤5%: sét đánh kết liễu ngay lập tức. Vòng cung lưỡi kiếm Skill F xuyên qua Iron Body. Kẻ địch dưới 50% HP hiện vòng cảnh báo màu xanh cyan.' },
+    }},
+    sagittarius: { name: 'Nhân Mã', element: 'Hỏa', buffs: {
+        song_luoi: { name: 'Song Lưỡi', desc: 'Đòn chém cung của Tinh Linh bắn 2 lưỡi kiếm (+60% mỗi lưỡi, lưỡi thứ 2 bắn trễ 15ms), cộng thêm 25% cơ hội có lưỡi thứ 3. Mỗi boomerang có 40% cơ hội thêm 2 boomerang phụ. Skill F giờ ném 2 boomerang từ người chơi thay vì chém cung. Lưỡi kiếm phụ có +20% bán kính. Mỗi phát bắn tự động có 15% cơ hội bắn ra 1 lưỡi kiếm cung (300 + 7% EP), giống của Tinh Linh.' },
+        cuc_han: { name: 'Cực Hàn', desc: 'Boomerang và chém cung: 75% cơ hội làm chậm 30% trong 2s và hút về phía đạn. Kẻ địch miễn nhiễm khống chế: không bị hút (vẫn có 25% cơ hội bị hút, trừ Goliath — không bao giờ), nhưng vẫn bị chậm. Tốc độ bắn của Tinh Linh Hoài Niệm và Phōtokrystos +30%.' },
+    }},
+    capricorn: { name: 'Ma Kết', element: 'Thổ', buffs: {
+        lai_kep: { name: 'Lãi Kép', desc: 'Mỗi lần hạ gục nhận +0.8% EP; mỗi 5% EP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, mỗi đòn đánh của phe ta gây thêm +200 sát thương thật.' },
+        tuyet_lan: { name: 'Tuyết Lăn', desc: 'Mỗi lần hạ gục nhận +0.5% sát thương toàn cục (reset sau 6s không hạ gục, tối đa +70%)' },
+    }},
+    aquarius: { name: 'Bảo Bình', element: 'Phong', buffs: {
+        set_day_chuyen: { name: 'Liên Hoàn Lôi', desc: 'Sát thương theo thời gian Tesla: 50% cơ hội lan sang kẻ địch gần nhất trong bán kính 150px. Tốc độ nạp Skill G +35%. Trong lúc Skill G kích hoạt, mỗi cầu năng lượng hết hạn mà chưa ghép thành Cuộn Tesla sẽ cho +15% sát thương phe ta (cộng dồn, tối đa 6 lớp, mỗi lớp 5s), và được hút thành 1 cầu Skill A phụ nếu Skill A còn chỗ.' },
+        dien_tu_truong: { name: 'Điện Từ Trường', desc: 'Trong lúc Skill G kích hoạt hoặc nạp đầy, kẻ địch trong bán kính 300px bị chậm 30% và chịu sát thương theo thời gian 3.5% Max HP/s' },
+    }},
+    pisces: { name: 'Song Ngư', element: 'Thủy', buffs: {
+        coi_mong: { name: 'Cõi Mộng', desc: 'Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP còn thiếu của chúng.' },
+        dong_chay_luan_hoi: { name: 'Dòng Chảy Luân Hồi', desc: 'Hạ Apostle: −1s hồi chiêu mọi skill; hạ Abnormal/Elite: −1.5s; hạ Dominator: −2s; hạ Egregor: −3s. Tốc độ nạp Phōtokrystos và Skill G +50%. Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).' },
+    }},
+};
+
+// Returns a display-only copy of SIGIL_DEFS[sigilId] with name/element/buff
+// name+desc swapped to Vietnamese when window._lang === 'vi' — used ONLY by
+// the sigil-picker rendering path (_drawPickerCards and what it calls).
+// SIGIL_DEFS itself is never mutated, so every other reader (game logic,
+// drawSigilHUD, drawSigilShipUpgrades' element === 'Fire' checks, etc.)
+// keeps seeing the real English data untouched.
+function _localizedSigil(sigilId) {
+    const def = SIGIL_DEFS[sigilId];
+    if (!def) return def;
+    if (window._lang !== 'vi' || !SIGIL_I18N_VI[sigilId]) return def;
+    const vi = SIGIL_I18N_VI[sigilId];
+    return {
+        ...def,
+        name: vi.name,
+        element: vi.element,
+        buffs: def.buffs.map(b => {
+            const viBuff = vi.buffs[b.id];
+            return viBuff ? { ...b, name: viBuff.name, desc: viBuff.desc } : b;
+        }),
+    };
+}
+
 function _hasSigil(id) { return (window._playerSigils || []).some(s => s.sigilId === id); }
 function _hasBuff(id)  {
     return (window._playerSigils || []).some(s => {
@@ -341,14 +421,17 @@ function _drawPickerCards(p, slideEase) {
     ctx.fillStyle = '#c8dcff';
     ctx.font = `bold ${isMob ? 11 : 13}px "Courier New", monospace`;
     const sigilCount = (window._playerSigils || []).length + 1;
-    const titleLabel = isMob ? `SIGIL ${sigilCount}/3 — CHOOSE YOUR SEAL` : `ZODIAC SIGIL  ${sigilCount} / 3  —  CHOOSE YOUR SEAL`;
+    const _tt = (typeof window._t === 'function') ? window._t : (k => k);
+    const titleLabel = isMob
+        ? `${_tt('sigilPicker.title')} ${sigilCount}/3 — ${_tt('sigilPicker.chooseSeal')}`
+        : `${_tt('sigilPicker.title')}  ${sigilCount} / 3  —  ${_tt('sigilPicker.chooseSeal')}`;
     ctx.fillText(titleLabel, canvas.width / 2, panelY + yOff + (isMob ? 26 : 26));
 
     const startX = panelX + panelPad;
     const startY = panelY + yOff + panelPad + titleH;
     for (let i = 0; i < p.options.length; i++) {
         const sigilId = p.options[i];
-        const def = SIGIL_DEFS[sigilId];
+        const def = _localizedSigil(sigilId);
         if (!def) continue;
         const col = isMob ? i % cols : i;
         const row = isMob ? Math.floor(i / cols) : 0;
@@ -360,7 +443,7 @@ function _drawPickerCards(p, slideEase) {
     // Detail panel: shown for hovered card (PC) or selected card (mobile)
     const _detailId = isMob ? p.selectedSigil : p.hoveredSigil;
     if (_detailId) {
-        const _dd = SIGIL_DEFS[_detailId];
+        const _dd = _localizedSigil(_detailId);
         if (_dd) {
             const cardsBottom = startY + (isMob ? rows : 1) * (cardH + gapY);
             _drawDetailPanel(_dd, panelX + panelPad, cardsBottom + 6, panelW - panelPad * 2, slideEase);
@@ -395,7 +478,7 @@ function _drawPickerCards(p, slideEase) {
     ctx.font = `bold ${isMob ? 13 : 15}px "Courier New", monospace`;
     ctx.textAlign = 'center';
     ctx.letterSpacing = '2px';
-    ctx.fillText('CONFIRM', btn.x + btn.w / 2, btn.y + btn.h / 2 + 5);
+    ctx.fillText(_tt('sigilPicker.confirm'), btn.x + btn.w / 2, btn.y + btn.h / 2 + 5);
     ctx.letterSpacing = '0px';
 
     // Reroll button — shared pool of 2 uses across all 3 sigil picks in a game
@@ -419,7 +502,7 @@ function _drawPickerCards(p, slideEase) {
     ctx.fillStyle = canReroll ? '#ffe9b0' : '#444860';
     ctx.font = `bold ${isMob ? 9 : 12}px "Courier New", monospace`;
     ctx.letterSpacing = isMob ? '0px' : '1px';
-    const rLabel = isMob ? `↻ ${rerollsLeft}` : `↻ REROLL (${rerollsLeft})`;
+    const rLabel = isMob ? `↻ ${rerollsLeft}` : `↻ ${_tt('sigilPicker.reroll')} (${rerollsLeft})`;
     ctx.fillText(rLabel, rbtn.x + rbtn.w / 2, rbtn.y + rbtn.h / 2 + 4);
     ctx.letterSpacing = '0px';
 
