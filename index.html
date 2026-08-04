@@ -572,6 +572,7 @@
             </div>
             <script>
                 function openGuide() {
+                    console.warn('[MARK] openGuide() called, guide already loaded=' + document.getElementById('guideFrame').getAttribute('data-loaded'));
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
                     ov.style.display = 'flex';
@@ -581,6 +582,7 @@
                     // here instead, on click, is what used to make opening
                     // Guide mid-game look/behave like a reload.
                     if (!fr.getAttribute('data-loaded')) {
+                        console.warn('[MARK] openGuide() fallback-loading guide.html now (preload had not landed yet)');
                         fr.src = 'guide.html';
                         fr.setAttribute('data-loaded', '1');
                     }
@@ -602,6 +604,7 @@
                 // the rest of the run removes that trigger entirely instead
                 // of just reducing it.
                 window._prepareGuideForGame = function () {
+                    console.warn('[MARK] _prepareGuideForGame() firing (deferred preload)');
                     const ov = document.getElementById('guideOverlay');
                     if (ov && ov.parentElement !== document.body) document.body.appendChild(ov);
                     const fr = document.getElementById('guideFrame');
@@ -611,6 +614,7 @@
                     }
                 };
                 function closeGuide() {
+                    console.warn('[MARK] closeGuide() called');
                     // Stop any music-archive preview inside the iframe first.
                     // Always call resumeBgm as a safety net in case the iframe
                     // is mid-load or the preview handler is unavailable.
@@ -1668,6 +1672,7 @@
             };
 
             document.getElementById('start-hyperjump-btn').addEventListener('click', () => {
+                console.warn('[MARK] hyperjump start clicked');
                 lockScreen.style.display = 'none';
                 const _gb = document.getElementById('guideBtn'); if (_gb) _gb.style.display = 'none';
                 const _sb = document.getElementById('settingsBtn'); if (_sb) _sb.style.display = 'none';
@@ -1692,6 +1697,7 @@
                     whiteFlash.style.opacity = '1';
                 }, 2500);
                 setTimeout(() => {
+                    console.warn('[MARK] hyperjump 3.5s stage: _inGame=true, audio startup begins');
                     window._inGame = true;
                     isSimulationRunning = false;
                     easterEggOverlay.style.display = 'none';
