@@ -34,11 +34,6 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pisces: Space Journey</title>
-    <!-- TEMP DEBUG — remove once the mobile Guide-reload bug is diagnosed.
-         eruda gives an on-device console (errors, network, logs) without
-         needing a Mac + Web Inspector. Tap the floating circle to open it. -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="apple-touch-icon" href="images/logo.png">
     <link rel="manifest" href="manifest.json">
@@ -295,13 +290,13 @@
         /* --- DEBUG CONSOLE (F3 toggle) --- */
         #debug-panel {
             position: fixed;
-            top: 96px;
+            top: 40px;
             left: 16px;
             z-index: 9999997;
-            width: 230px;
+            width: 170px;
             display: none;
             font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 11px;
+            font-size: 9px;
             pointer-events: none;
         }
         #debug-panel.visible { display: block; }
@@ -309,8 +304,8 @@
             background: rgba(0,0,0,0.85);
             border: 1px solid rgba(255,80,40,0.30);
             border-radius: 6px;
-            padding: 5px 8px;
-            height: 160px;
+            padding: 4px 6px;
+            height: 80px;
             overflow-y: auto;
             pointer-events: auto;
             scrollbar-width: thin;
