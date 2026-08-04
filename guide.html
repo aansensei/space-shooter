@@ -1193,9 +1193,10 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Language switcher:</b> new Settings dropdown (English / Tiếng Việt), saved to <code>localStorage</code> and applied on load. English remains the canonical/default language.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Sigil localization:</b> sigil names, elements, and buff name/description text render in Vietnamese in both the in-game picker and the Guide's Sigils tab, without touching the underlying English data used by game logic (element-based effect checks, buff IDs, etc. are untouched).</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Guide translation:</b> Basics, Passives, Skills, Sigils, and Rules tabs fully translated; Music Archive translated; Enemies tab translated. Update Log stays English (dev changelog).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings dropdown redesign:</b> Language and Offline Package selectors now use the same custom button + dropdown-list styling as the existing In-Game Music selector, instead of a plain native <code>&lt;select&gt;</code>.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Vietnamese font rendering:</b> Orbitron/Rajdhani/Cinzel/Share Tech Mono render several Vietnamese combining diacritics with visible glyph artifacts. The Guide now forces a Vietnamese-safe font (Sora) whenever the language is set to Vietnamese.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Sigil card overflow:</b> Vietnamese sigil card text is longer than the English original; cards were aspect-ratio-locked and either clipped or bled into the row below. Cards now size to their own translated content instead.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Settings dropdown redesign:</b> Language and Offline Package selectors now use the same custom button + dropdown-list styling as the existing In-Game Music selector, instead of a plain native <code>&lt;select&gt;</code>.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Offline update wiping cache while offline:</b> installing a new Service Worker version while offline silently failed to re-fetch every app-shell file, and the old (working) cache was then deleted unconditionally on activate — leaving offline play broken until back online. The old cache is now kept as a fallback until the new one is confirmed populated.</li>
 </ul>
 </div>
 
