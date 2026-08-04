@@ -514,28 +514,41 @@
                 function openGuide() {
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
-                    // Moving a DOM node that contains an iframe reloads that
-                    // iframe, even if its src never actually changes — this
-                    // reparent used to happen right here, on the first
-                    // Guide click, which meant that click looked exactly
-                    // like "opening Guide reloads it" whenever the iframe
-                    // already had guide.html loaded. See _moveGuideOverlayForGame
-                    // (called at game start, before fr.src is ever set) for
-                    // where this now actually happens.
                     ov.style.display = 'flex';
+                    // Fallback only — _prepareGuideForGame() (called at game
+                    // start) should already have loaded this by the time the
+                    // player can even click the Guide button. Doing the load
+                    // here instead, on click, is what used to make opening
+                    // Guide mid-game look/behave like a reload.
                     if (!fr.getAttribute('data-loaded')) {
                         fr.src = 'guide.html';
                         fr.setAttribute('data-loaded', '1');
                     }
                 }
-                // Reparents guideOverlay to <body> (so its z-index actually
-                // wins against whatever stacking context wraps the in-game
-                // UI) while guideFrame's src is still empty — reparenting an
-                // empty iframe has no visible reload, unlike doing this
-                // after guide.html has already been loaded into it.
-                window._moveGuideOverlayForGame = function () {
+                // Called once at game start: reparents guideOverlay to
+                // <body> (so its z-index actually wins against whatever
+                // stacking context wraps the in-game UI) AND loads
+                // guide.html into the iframe — both while nothing is
+                // visible yet, so neither the reparent (which reloads any
+                // iframe content it carries) nor the load itself is ever
+                // seen or felt by the player. From then on, opening Guide
+                // is just toggling display — no navigation happens at that
+                // moment at all, which is the actual fix for it looking
+                // like "opening Guide reloads it": on iOS Safari a mobile
+                // WKWebView can drop/reload under memory pressure when a
+                // modal opens, and navigating an iframe exactly then made
+                // that far more likely to be triggered by opening Guide
+                // specifically. Loading once, up front, and never again for
+                // the rest of the run removes that trigger entirely instead
+                // of just reducing it.
+                window._prepareGuideForGame = function () {
                     const ov = document.getElementById('guideOverlay');
                     if (ov && ov.parentElement !== document.body) document.body.appendChild(ov);
+                    const fr = document.getElementById('guideFrame');
+                    if (fr && !fr.getAttribute('data-loaded')) {
+                        fr.src = 'guide.html';
+                        fr.setAttribute('data-loaded', '1');
+                    }
                 };
                 function closeGuide() {
                     // Stop any music-archive preview inside the iframe first.
@@ -547,18 +560,9 @@
                     }
                     if (window.AudioMgr) window.AudioMgr.resumeBgm();
                     document.getElementById('guideOverlay').style.display = 'none';
-                    // Keeping guide.html's iframe permanently resident (its
-                    // own DOM, canvases, and fonts) on top of the already
-                    // WebGL/Pixi-heavy main game is exactly the kind of
-                    // memory pressure that gets a mobile Safari webview
-                    // killed and silently reloaded from under the player —
-                    // release it while mid-game; from the main menu there's
-                    // no game context competing for memory, so leave it
-                    // cached there for an instant reopen.
-                    if (window._inGame && _fr) {
-                        _fr.src = '';
-                        _fr.removeAttribute('data-loaded');
-                    }
+                    // Deliberately NOT unloading guideFrame here — it's meant
+                    // to stay loaded for the entire run once preloaded at
+                    // game start, so nothing ever has to navigate it again.
                 }
                 document.getElementById('guideOverlay').addEventListener('click', function (e) {
                     if (e.target === this) closeGuide();
@@ -1633,7 +1637,7 @@
                     easterEggOverlay.style.display = 'none';
                     if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
                     if (typeof _initMobileControls === 'function') _initMobileControls();
-                    if (typeof window._moveGuideOverlayForGame === 'function') window._moveGuideOverlayForGame();
+                    if (typeof window._prepareGuideForGame === 'function') window._prepareGuideForGame();
 
                     // Ambient (space) + engine now; in-game BGM waits for sigil confirm
                     if (window.AudioMgr) {
