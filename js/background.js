@@ -91,22 +91,22 @@
         asteroidsMid:  6,
         asteroidsNear: 3,
     };
-    // Moderate bump over the original always-safe numbers (still far below
-    // DESKTOP_CFG) — the real cause of the old sustained mobile FPS collapse
-    // was traced to the audio graph (fixed via buffer-based BGM/ambient/
-    // engine loops), not this background's sprite count, so there's room
-    // to look less sparse than before without reviving that regression.
+    // ~90% of DESKTOP_CFG's counts — the real cause of the old sustained
+    // mobile FPS collapse was traced to the audio graph (fixed via
+    // buffer-based BGM/ambient/engine loops), not this background's sprite
+    // count, and the every-other-frame throttle in the animation loop below
+    // still applies on top of this as an extra safety margin.
     const MOBILE_CFG = {
         gSpeed:        0.25,
-        galaxyCount:   2,
-        nebulaCount:   4,
-        starsFar:      90,
-        starsMid:      40,
-        starsNear:     15,
-        dustCount:     20,
-        asteroidsFar:  4,
-        asteroidsMid:  3,
-        asteroidsNear: 1,
+        galaxyCount:   4,
+        nebulaCount:   9,
+        starsFar:      360,
+        starsMid:      108,
+        starsNear:     36,
+        dustCount:     72,
+        asteroidsFar:  7,
+        asteroidsMid:  5,
+        asteroidsNear: 3,
     };
     const _isTouchDevice = (navigator.maxTouchPoints > 0) ||
         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
