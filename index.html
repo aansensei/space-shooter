@@ -571,48 +571,24 @@
                 </div>
             </div>
             <script>
+                // REVERTED (see the [MARK]-log postmortem near the
+                // hyperjump setTimeout chain): preloading guide.html ahead
+                // of time — whether immediately or deferred — reliably
+                // crashed the standalone-PWA webview a few seconds into
+                // every run, worse than the original click-time bug. Back
+                // to lazy: reparent + load only happen on the player's
+                // first actual Guide click.
                 function openGuide() {
                     console.warn('[MARK] openGuide() called, guide already loaded=' + document.getElementById('guideFrame').getAttribute('data-loaded'));
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
+                    if (window._inGame && ov.parentElement !== document.body) document.body.appendChild(ov);
                     ov.style.display = 'flex';
-                    // Fallback only — _prepareGuideForGame() (called at game
-                    // start) should already have loaded this by the time the
-                    // player can even click the Guide button. Doing the load
-                    // here instead, on click, is what used to make opening
-                    // Guide mid-game look/behave like a reload.
                     if (!fr.getAttribute('data-loaded')) {
-                        console.warn('[MARK] openGuide() fallback-loading guide.html now (preload had not landed yet)');
                         fr.src = 'guide.html';
                         fr.setAttribute('data-loaded', '1');
                     }
                 }
-                // Called once at game start: reparents guideOverlay to
-                // <body> (so its z-index actually wins against whatever
-                // stacking context wraps the in-game UI) AND loads
-                // guide.html into the iframe — both while nothing is
-                // visible yet, so neither the reparent (which reloads any
-                // iframe content it carries) nor the load itself is ever
-                // seen or felt by the player. From then on, opening Guide
-                // is just toggling display — no navigation happens at that
-                // moment at all, which is the actual fix for it looking
-                // like "opening Guide reloads it": on iOS Safari a mobile
-                // WKWebView can drop/reload under memory pressure when a
-                // modal opens, and navigating an iframe exactly then made
-                // that far more likely to be triggered by opening Guide
-                // specifically. Loading once, up front, and never again for
-                // the rest of the run removes that trigger entirely instead
-                // of just reducing it.
-                window._prepareGuideForGame = function () {
-                    console.warn('[MARK] _prepareGuideForGame() firing (deferred preload)');
-                    const ov = document.getElementById('guideOverlay');
-                    if (ov && ov.parentElement !== document.body) document.body.appendChild(ov);
-                    const fr = document.getElementById('guideFrame');
-                    if (fr && !fr.getAttribute('data-loaded')) {
-                        fr.src = 'guide.html';
-                        fr.setAttribute('data-loaded', '1');
-                    }
-                };
                 function closeGuide() {
                     console.warn('[MARK] closeGuide() called');
                     // Stop any music-archive preview inside the iframe first.
@@ -624,9 +600,10 @@
                     }
                     if (window.AudioMgr) window.AudioMgr.resumeBgm();
                     document.getElementById('guideOverlay').style.display = 'none';
-                    // Deliberately NOT unloading guideFrame here — it's meant
-                    // to stay loaded for the entire run once preloaded at
-                    // game start, so nothing ever has to navigate it again.
+                    // Deliberately NOT unloading guideFrame here — once
+                    // loaded (openGuide()'s data-loaded guard), it stays
+                    // loaded for the rest of the run so reopening Guide
+                    // never re-navigates the iframe.
                 }
                 document.getElementById('guideOverlay').addEventListener('click', function (e) {
                     if (e.target === this) closeGuide();
@@ -1711,24 +1688,17 @@
                         window.AudioMgr.startEngine();
                     }
 
-                    // Loading guide.html (a whole separate ~5000-line
-                    // document: fonts, canvases, its own JS) right here
-                    // used to fire in the same instant as startAmbient()/
-                    // startEngine() below — both compete for the network
-                    // and main thread at once on a mobile CPU, and on
-                    // real iOS devices this was confirmed (via the F3
-                    // panel's rawGap readout + on-device console) to
-                    // actually fail the ambient/engine audio buffer
-                    // decodes outright ("[Audio] buffer decode failed"),
-                    // not just delay them — moving Guide's load here
-                    // instead of on first click just relocated that
-                    // contention to happen on every single run, whether
-                    // or not the player ever opens Guide. Give audio
-                    // startup a clear head start before Guide even begins
-                    // fetching.
-                    setTimeout(() => {
-                        if (typeof window._prepareGuideForGame === 'function') window._prepareGuideForGame();
-                    }, 5000);
+                    // REVERTED: preloading guide.html here (immediately, or
+                    // deferred 5s — both were tried) reliably crashed the
+                    // standalone-PWA webview a few seconds into EVERY run,
+                    // confirmed via the persisted on-device console log
+                    // (the crash landed right after _prepareGuideForGame()
+                    // fired, regardless of delay). That made things worse
+                    // than the original bug: 100% of runs crashed instead
+                    // of only the ones where the player actually opened
+                    // Guide. Back to loading guide.html lazily, only on the
+                    // player's first actual Guide click (see openGuide()) —
+                    // still not a full fix, but no longer breaks every run.
 
                     setTimeout(() => {
                         whiteFlash.style.transition = 'opacity 1.5s ease-out';
