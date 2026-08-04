@@ -4,7 +4,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -62,11 +62,24 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((names) =>
-            Promise.all(
-                names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
-            )
-        ).then(() => self.clients.claim())
+        // If install ran while offline, cache.add() for every CORE_FILES
+        // entry silently failed (caught above) and CACHE_NAME is empty or
+        // partial. Deleting the old cache unconditionally in that case would
+        // wipe the last working offline copy with nothing to replace it —
+        // exactly the "reverts to a broken state while offline" bug. Only
+        // clean up old caches once the new one actually has the app shell;
+        // otherwise leave old caches in place as a fallback (the fetch
+        // handler's global caches.match() already checks across all caches,
+        // so they keep serving requests until a future online update
+        // finishes populating CACHE_NAME).
+        caches.open(CACHE_NAME).then((cache) => cache.match('index.html')).then((hasShell) => {
+            if (!hasShell) return;
+            return caches.keys().then((names) =>
+                Promise.all(
+                    names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
+                )
+            );
+        }).then(() => self.clients.claim())
     );
 });
 
