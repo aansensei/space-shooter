@@ -2139,6 +2139,7 @@
                 // not force it back to visible while that picker is up.
                 mc.style.display = window._sigilPicker ? 'none' : 'block';
                 mc.innerHTML = _buildMobileHTML();
+                if (typeof window._resetCooldownRingCache === 'function') window._resetCooldownRingCache();
                 _startCooldownLoop();
             };
 
@@ -2300,8 +2301,19 @@
             // count — confirmed via the FPS chip's live counts showing a
             // near-empty scene (e0 b54 p2) still pinned at 1fps on iPhone,
             // which rules out object-count-driven causes for that case.
-            const _cdCtxCache = {};
-            const _lastRingFrac = {};
+            let _cdCtxCache = {};
+            let _lastRingFrac = {};
+            // _initMobileControls() rebuilds #mc's innerHTML (new canvas
+            // elements, same ids) on every resize/orientation event on iOS.
+            // Without clearing these, the cache keeps pointing at the old,
+            // now-detached canvases forever after the first resize — every
+            // ring paint after that silently draws onto orphaned elements
+            // nobody can see, which reads exactly like "the cooldown rings
+            // just stopped appearing."
+            window._resetCooldownRingCache = function () {
+                _cdCtxCache = {};
+                _lastRingFrac = {};
+            };
             function _cdCtx(cvId) {
                 let c = _cdCtxCache[cvId];
                 if (c === undefined) {
@@ -2332,9 +2344,21 @@
             function _readyEnd(end, cd) { if (!end || end <= 0) return 1; return Math.min(1, Math.max(0, (performance.now() - (end - cd)) / cd)); }
 
             let _lastSilenced = false;
+            let _cooldownLoopRunning = false;
             function _startCooldownLoop() {
+                // _initMobileControls() (which calls this) re-runs on every
+                // resize/orientation event on iOS — without this guard each
+                // call spawned its own independent, never-ending rAF chain
+                // stacked on top of the previous ones.
+                if (_cooldownLoopRunning) return;
+                _cooldownLoopRunning = true;
                 function loop() {
-                    if (_plat !== 'mobile') return;
+                    // Returning here without scheduling the next frame kills
+                    // this rAF chain permanently the moment _plat reads
+                    // non-mobile for even a single frame — it never resumes
+                    // even after switching back to mobile, since nothing
+                    // else re-queues it. Skip the work, not the chain.
+                    if (_plat !== 'mobile') { requestAnimationFrame(loop); return; }
                     try {
                         const now = performance.now();
                         // Read once up front (used both to gate the X overlay
