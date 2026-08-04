@@ -387,8 +387,8 @@
 
     <canvas id="gameCanvas"></canvas>
     <div id="pause-overlay">
-        <h2 id="pause-title">SYSTEM TERMINATED</h2>
-        <p id="pause-subtitle">Press RESUME to continue</p>
+        <h2 id="pause-title" data-i18n="pause.title">SYSTEM TERMINATED</h2>
+        <p id="pause-subtitle" data-i18n="pause.subtitle">Press RESUME to continue</p>
         <div id="pause-guide-btns" style="display:flex; gap:16px; margin-top:8px; margin-bottom:24px;">
             <button onclick="openGuide()" style="
                 padding:10px 24px;
@@ -558,15 +558,33 @@
 
                     <h2 style="margin:0 0 6px; text-align:center; color:#00e5ff;
                         font-size:14px; letter-spacing:4px; text-transform:uppercase;
-                        text-shadow:0 0 12px rgba(0,229,255,0.5);">⚙ Settings</h2>
+                        text-shadow:0 0 12px rgba(0,229,255,0.5);" data-i18n="settings.title">⚙ Settings</h2>
                     <p style="margin:0 0 18px; text-align:center; color:rgba(0,229,255,0.45);
-                        font-size:10px; letter-spacing:2px;">Press <kbd style="
+                        font-size:10px; letter-spacing:2px;"><span data-i18n="settings.subtitlePre">Press</span> <kbd style="
                             background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.35);
                             border-radius:4px; padding:1px 5px; font-family:monospace;
-                            color:#00e5ff; font-size:10px;">ESC</kbd> to pause / resume game</p>
+                            color:#00e5ff; font-size:10px;">ESC</kbd> <span data-i18n="settings.subtitlePost">to pause / resume game</span></p>
+
+                    <!-- ── LANGUAGE ──────────────────────────── -->
+                    <select id="lang-select" style="display:none;">
+                        <option value="en">English</option>
+                        <option value="vi">Tiếng Việt</option>
+                    </select>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px;">
+                        <span class="stg-section-label" style="margin-bottom:0;" data-i18n="language.section">Language</span>
+                        <div id="lang-select-wrap" style="position:relative; width:150px;">
+                            <button type="button" id="lang-select-btn" class="stg-music-btn" onclick="toggleLangDropdown()">
+                                <span id="lang-select-label" class="stg-music-label">English</span>
+                                <span class="stg-music-chevron">▾</span>
+                            </button>
+                            <div id="lang-dropdown" class="stg-music-dropdown" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="stg-divider"></div>
 
                     <!-- ── GRAPHICS ──────────────────────────── -->
-                    <div class="stg-section-label">Graphics</div>
+                    <div class="stg-section-label" data-i18n="graphics.section">Graphics</div>
 
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
                         <label class="stg-toggle-row" style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
@@ -575,30 +593,30 @@
                                 <div class="stg-toggle-track"></div>
                                 <div class="stg-toggle-thumb"></div>
                             </div>
-                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;">Smart Quality</span>
+                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;" data-i18n="graphics.smartQuality">Smart Quality</span>
                         </label>
                     </div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;">
+                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;" data-i18n="graphics.smartQualityDesc">
                         Auto-adjusts graphics to maintain smooth performance.
                     </div>
 
                     <!-- Quality buttons -->
                     <div id="quality-row" style="display:flex; gap:8px; margin-bottom:6px; opacity:0.35; pointer-events:none;">
-                        <button class="stg-q-btn" id="q-low"    onclick="onQualitySelect(3)">LOW</button>
-                        <button class="stg-q-btn" id="q-med"    onclick="onQualitySelect(1)">MEDIUM</button>
-                        <button class="stg-q-btn" id="q-high"   onclick="onQualitySelect(0)">HIGH</button>
+                        <button class="stg-q-btn" id="q-low"    onclick="onQualitySelect(3)" data-i18n="graphics.low">LOW</button>
+                        <button class="stg-q-btn" id="q-med"    onclick="onQualitySelect(1)" data-i18n="graphics.medium">MEDIUM</button>
+                        <button class="stg-q-btn" id="q-high"   onclick="onQualitySelect(0)" data-i18n="graphics.high">HIGH</button>
                     </div>
-                    <div id="quality-note" style="font-size:10px; color:rgba(255,200,74,0.5); margin-bottom:18px; padding-left:2px; line-height:1.5; display:block;">
+                    <div id="quality-note" style="font-size:10px; color:rgba(255,200,74,0.5); margin-bottom:18px; padding-left:2px; line-height:1.5; display:block;" data-i18n="graphics.qualityNote">
                         To choose a specific quality, please turn off Smart Quality.
                     </div>
 
                     <div class="stg-divider"></div>
 
                     <!-- ── AUDIO ─────────────────────────────── -->
-                    <div class="stg-section-label">Audio</div>
+                    <div class="stg-section-label" data-i18n="audio.section">Audio</div>
 
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">BGM</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="audio.bgm">BGM</span>
                         <input type="range" id="vol-bgm-slider" min="0" max="100" value="100"
                             class="stg-slider"
                             oninput="onAudioSlider('bgm', this.value)"
@@ -606,7 +624,7 @@
                         <span id="vol-bgm-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">SFX</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="audio.sfx">SFX</span>
                         <input type="range" id="vol-sfx-slider" min="0" max="100" value="100"
                             class="stg-slider"
                             oninput="onAudioSlider('sfx', this.value)"
@@ -614,7 +632,7 @@
                         <span id="vol-sfx-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Global</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="audio.global">Global</span>
                         <input type="range" id="vol-global-slider" min="0" max="100" value="100"
                             class="stg-slider"
                             oninput="onAudioSlider('global', this.value)"
@@ -623,7 +641,7 @@
                     </div>
 
                     <div style="margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; display:block; margin-bottom:8px;">In-Game Music</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; display:block; margin-bottom:8px;" data-i18n="audio.inGameMusic">In-Game Music</span>
                         <div id="music-select-wrap" style="position:relative;">
                             <button type="button" id="music-select-btn" class="stg-music-btn" onclick="toggleMusicDropdown()">
                                 <span id="music-select-label">Random</span>
@@ -636,10 +654,10 @@
                     <div class="stg-divider"></div>
 
                     <!-- ── BACKGROUND ────────────────────────── -->
-                    <div class="stg-section-label">Background</div>
+                    <div class="stg-section-label" data-i18n="background.section">Background</div>
 
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;">Brightness</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="background.brightness">Brightness</span>
                         <input type="range" id="bg-bright-slider" min="1" max="100" value="100"
                             class="stg-slider"
                             oninput="onBgBrightnessChange(this.value)"
@@ -650,33 +668,40 @@
                     <div class="stg-divider"></div>
 
                     <!-- ── GAMEPLAY ───────────────────────────── -->
-                    <div class="stg-section-label">Gameplay</div>
+                    <div class="stg-section-label" data-i18n="gameplay.section">Gameplay</div>
 
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;">Screen Shake</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;" data-i18n="gameplay.screenShake">Screen Shake</span>
                         <div style="display:flex; gap:6px;">
-                            <button class="stg-onoff-btn"                  id="shake-on"  onclick="onShakeChange(true)">ON</button>
-                            <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)">OFF</button>
+                            <button class="stg-onoff-btn"                  id="shake-on"  onclick="onShakeChange(true)" data-i18n="gameplay.on">ON</button>
+                            <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)" data-i18n="gameplay.off">OFF</button>
                         </div>
                     </div>
-                    <div style="font-size:10px; color:rgba(255,180,50,0.55); margin-bottom:4px; line-height:1.5;">
+                    <div style="font-size:10px; color:rgba(255,180,50,0.55); margin-bottom:4px; line-height:1.5;" data-i18n="gameplay.screenShakeWarn">
                         ⚠ Turning on screen shake may cause unexpected lag on some devices.
                     </div>
 
                     <div class="stg-divider"></div>
 
                     <!-- ── OFFLINE PLAY ───────────────────────── -->
-                    <div class="stg-section-label">Offline Play</div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;">
+                    <div class="stg-section-label" data-i18n="offline.section">Offline Play</div>
+                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;" data-i18n="offline.desc">
                         Download in advance to play without internet.
                     </div>
-                    <div style="color:#a0cce0; font-size:11px; letter-spacing:1px; margin-bottom:8px;">Download offline resources</div>
+                    <div style="color:#a0cce0; font-size:11px; letter-spacing:1px; margin-bottom:8px;" data-i18n="offline.downloadLabel">Download offline resources</div>
+                    <select id="offline-pkg-select" style="display:none;">
+                        <option value="basic" data-i18n="offline.pkgBasic">Basic (~33MB)</option>
+                        <option value="full" data-i18n="offline.pkgFull">Full (~196MB)</option>
+                    </select>
                     <div style="display:flex; gap:8px; margin-bottom:8px;">
-                        <select id="offline-pkg-select" class="stg-select" onchange="refreshOfflineUI()">
-                            <option value="basic">Basic (~33MB)</option>
-                            <option value="full">Full (~196MB)</option>
-                        </select>
-                        <button class="stg-btn-sm" id="offline-download-btn" onclick="downloadOfflinePackage()">Download</button>
+                        <div id="offline-pkg-select-wrap" style="position:relative; flex:1;">
+                            <button type="button" id="offline-pkg-select-btn" class="stg-music-btn" onclick="toggleOfflinePkgDropdown()">
+                                <span id="offline-pkg-select-label" class="stg-music-label">Basic (~33MB)</span>
+                                <span class="stg-music-chevron">▾</span>
+                            </button>
+                            <div id="offline-pkg-dropdown" class="stg-music-dropdown" style="display:none;"></div>
+                        </div>
+                        <button class="stg-btn-sm" id="offline-download-btn" onclick="downloadOfflinePackage()" data-i18n="offline.downloadBtn">Download</button>
                     </div>
                     <div class="stg-offline-bar-track"><div class="stg-offline-bar-fill" id="offline-fill"></div></div>
                     <div id="offline-status-text" style="font-size:10px; color:rgba(0,229,255,0.5); margin-top:5px; margin-bottom:12px;"></div>
@@ -692,7 +717,8 @@
                         box-shadow:0 0 15px rgba(0,229,255,0.2);
                         transition:all 0.2s;
                     " onmouseover="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.45),rgba(0,100,200,0.45))'"
-                       onmouseout="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25))'">
+                       onmouseout="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25))'"
+                       data-i18n="settings.apply">
                         Apply
                     </button>
                 </div>
@@ -762,6 +788,9 @@
                     font-family:'Courier New',monospace; font-size:11px;
                     color:#e0f4ff; background:rgba(0,20,40,0.7);
                     border:1.5px solid rgba(0,229,255,0.3); cursor:pointer;
+                }
+                .stg-select option {
+                    background:#04121c; color:#e0f4ff;
                 }
                 .stg-offline-bar-track {
                     height:4px; border-radius:3px; background:rgba(0,30,50,0.7);
@@ -874,6 +903,108 @@
                 document.getElementById('q-med').dataset.level  = 1;
                 document.getElementById('q-high').dataset.level = 0;
 
+                // Language switcher: swaps displayed text only (Settings UI,
+                // guide.html, sigil names/descriptions) — never touches game
+                // mechanics, numbers, or in-match visual effects. English is
+                // the canonical/default language; Vietnamese is an overlay
+                // dictionary applied on top via data-i18n attributes.
+                const I18N = {
+                    en: {
+                        'settings.title': '⚙ Settings',
+                        'settings.subtitlePre': 'Press',
+                        'settings.subtitlePost': 'to pause / resume game',
+                        'graphics.section': 'Graphics',
+                        'graphics.smartQuality': 'Smart Quality',
+                        'graphics.smartQualityDesc': 'Auto-adjusts graphics to maintain smooth performance.',
+                        'graphics.low': 'LOW', 'graphics.medium': 'MEDIUM', 'graphics.high': 'HIGH',
+                        'graphics.qualityNote': 'To choose a specific quality, please turn off Smart Quality.',
+                        'audio.section': 'Audio', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Global',
+                        'audio.inGameMusic': 'In-Game Music', 'audio.random': 'Random',
+                        'background.section': 'Background', 'background.brightness': 'Brightness',
+                        'gameplay.section': 'Gameplay', 'gameplay.screenShake': 'Screen Shake',
+                        'gameplay.on': 'ON', 'gameplay.off': 'OFF',
+                        'gameplay.screenShakeWarn': '⚠ Turning on screen shake may cause unexpected lag on some devices.',
+                        'offline.section': 'Offline Play', 'offline.desc': 'Download in advance to play without internet.',
+                        'offline.downloadLabel': 'Download offline resources',
+                        'offline.pkgBasic': 'Basic (~33MB)', 'offline.pkgFull': 'Full (~196MB)',
+                        'offline.downloadBtn': 'Download', 'offline.downloadedBtn': 'Downloaded',
+                        'offline.statusFormat': '{cached}/{total} files ({pct}%)',
+                        'settings.apply': 'Apply',
+                        'language.section': 'Language',
+                        'sigilPicker.title': 'ZODIAC SIGIL',
+                        'sigilPicker.chooseSeal': 'CHOOSE YOUR SEAL',
+                        'sigilPicker.confirm': 'CONFIRM',
+                        'sigilPicker.reroll': 'REROLL',
+                        'pause.title': 'SYSTEM TERMINATED',
+                        'pause.subtitle': 'Press RESUME to continue',
+                    },
+                    vi: {
+                        'settings.title': '⚙ Cài Đặt',
+                        'settings.subtitlePre': 'Nhấn',
+                        'settings.subtitlePost': 'để tạm dừng / tiếp tục game',
+                        'graphics.section': 'Đồ Họa',
+                        'graphics.smartQuality': 'Tự Động Điều Chỉnh',
+                        'graphics.smartQualityDesc': 'Tự động điều chỉnh đồ họa để giữ hiệu năng mượt mà.',
+                        'graphics.low': 'THẤP', 'graphics.medium': 'TRUNG BÌNH', 'graphics.high': 'CAO',
+                        'graphics.qualityNote': 'Để chọn mức đồ họa cụ thể, vui lòng tắt Tự Động Điều Chỉnh.',
+                        'audio.section': 'Âm Thanh', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Tổng',
+                        'audio.inGameMusic': 'Nhạc Trong Game', 'audio.random': 'Ngẫu Nhiên',
+                        'background.section': 'Hình Nền', 'background.brightness': 'Độ Sáng',
+                        'gameplay.section': 'Lối Chơi', 'gameplay.screenShake': 'Rung Màn Hình',
+                        'gameplay.on': 'BẬT', 'gameplay.off': 'TẮT',
+                        'gameplay.screenShakeWarn': '⚠ Bật rung màn hình có thể gây giật lag trên một số thiết bị.',
+                        'offline.section': 'Chơi Offline', 'offline.desc': 'Tải trước để chơi được khi không có mạng.',
+                        'offline.downloadLabel': 'Tải tài nguyên offline',
+                        'offline.pkgBasic': 'Cơ Bản (~33MB)', 'offline.pkgFull': 'Đầy Đủ (~196MB)',
+                        'offline.downloadBtn': 'Tải Xuống', 'offline.downloadedBtn': 'Đã Tải',
+                        'offline.statusFormat': '{cached}/{total} tệp ({pct}%)',
+                        'settings.apply': 'Áp Dụng',
+                        'language.section': 'Ngôn Ngữ',
+                        'sigilPicker.title': 'SIGIL CUNG HOÀNG ĐẠO',
+                        'sigilPicker.chooseSeal': 'CHỌN ẤN CỦA BẠN',
+                        'sigilPicker.confirm': 'XÁC NHẬN',
+                        'sigilPicker.reroll': 'ĐỔI LẠI',
+                        'pause.title': 'HỆ THỐNG ĐÃ TẠM DỪNG',
+                        'pause.subtitle': 'Ấn RESUME để tiếp tục',
+                    },
+                };
+                function _t(key) {
+                    const dict = I18N[window._lang] || I18N.en;
+                    return (key in dict) ? dict[key] : (I18N.en[key] || key);
+                }
+                window._t = _t;
+
+                window._lang = 'en';
+                try {
+                    const savedLang = localStorage.getItem('pisces_lang');
+                    if (savedLang === 'vi' || savedLang === 'en') window._lang = savedLang;
+                } catch (_) {}
+
+                function applyLanguage() {
+                    document.querySelectorAll('[data-i18n]').forEach(el => {
+                        el.textContent = _t(el.dataset.i18n);
+                    });
+                    const langSel = document.getElementById('lang-select');
+                    if (langSel) langSel.value = window._lang;
+                    // Dynamic labels not covered by static data-i18n nodes:
+                    if (typeof _updateMusicSelectLabel === 'function') _updateMusicSelectLabel();
+                    if (typeof _updateLangSelectLabel === 'function') _updateLangSelectLabel();
+                    if (typeof _updateOfflinePkgSelectLabel === 'function') _updateOfflinePkgSelectLabel();
+                    if (typeof refreshOfflineUI === 'function') refreshOfflineUI();
+                    // Re-render guide.html content if the guide panel is open.
+                    if (typeof window._refreshGuideLanguage === 'function') window._refreshGuideLanguage();
+                }
+                window.applyLanguage = applyLanguage;
+
+                function onLanguageChange(lang) {
+                    window._lang = lang;
+                    try { localStorage.setItem('pisces_lang', lang); } catch (_) {}
+                    applyLanguage();
+                }
+                window.onLanguageChange = onLanguageChange;
+
+                document.addEventListener('DOMContentLoaded', applyLanguage);
+
                 function openSettings() {
                     const ov2 = document.getElementById('settingsOverlay');
                     if (window._inGame && ov2.parentElement !== document.body) document.body.appendChild(ov2);
@@ -930,6 +1061,7 @@
                     const btn = document.getElementById('offline-download-btn');
                     const statusText = document.getElementById('offline-status-text');
                     if (!sel || !fill || !btn) return;
+                    if (typeof _updateOfflinePkgSelectLabel === 'function') _updateOfflinePkgSelectLabel();
                     try {
                         const st = await window.OfflineMgr.getStatus(sel.value);
                         if (!st.supported) { btn.disabled = true; btn.textContent = 'N/A'; return; }
@@ -1022,14 +1154,99 @@
                     }
                     _updateMusicSelectLabel();
                 }
+                // Language dropdown — single-select, same visual pattern as
+                // the In-Game Music dropdown (button + floating row list).
+                function toggleLangDropdown() {
+                    const dd = document.getElementById('lang-dropdown');
+                    const btn = document.getElementById('lang-select-btn');
+                    if (!dd || !btn) return;
+                    const open = dd.style.display !== 'none';
+                    if (open) { dd.style.display = 'none'; btn.classList.remove('stg-music-open'); return; }
+                    _buildLangDropdown();
+                    dd.style.display = 'block';
+                    btn.classList.add('stg-music-open');
+                }
+                function _buildLangDropdown() {
+                    const dd = document.getElementById('lang-dropdown');
+                    if (!dd) return;
+                    const opts = [['en', 'English'], ['vi', 'Tiếng Việt']];
+                    dd.innerHTML = opts.map(([val, label]) => {
+                        const active = window._lang === val;
+                        return '<div class="stg-music-row' + (active ? ' stg-music-row-active' : '') + '" onclick="onLangOptionClick(\'' + val + '\')">'
+                            + '<span class="stg-music-check">' + (active ? '✓' : '') + '</span>'
+                            + '<span style="flex:1;">' + label + '</span>'
+                            + '</div>';
+                    }).join('');
+                }
+                function onLangOptionClick(val) {
+                    const sel = document.getElementById('lang-select');
+                    if (sel) sel.value = val;
+                    onLanguageChange(val);
+                    const dd = document.getElementById('lang-dropdown');
+                    const btn = document.getElementById('lang-select-btn');
+                    if (dd) dd.style.display = 'none';
+                    if (btn) btn.classList.remove('stg-music-open');
+                }
+                function _updateLangSelectLabel() {
+                    const lbl = document.getElementById('lang-select-label');
+                    if (!lbl) return;
+                    lbl.textContent = window._lang === 'vi' ? 'Tiếng Việt' : 'English';
+                }
+
+                // Offline package dropdown — single-select, same pattern, driving
+                // the hidden #offline-pkg-select so all existing OfflineMgr logic
+                // (which reads sel.value) keeps working unchanged.
+                function toggleOfflinePkgDropdown() {
+                    const dd = document.getElementById('offline-pkg-dropdown');
+                    const btn = document.getElementById('offline-pkg-select-btn');
+                    if (!dd || !btn) return;
+                    const open = dd.style.display !== 'none';
+                    if (open) { dd.style.display = 'none'; btn.classList.remove('stg-music-open'); return; }
+                    _buildOfflinePkgDropdown();
+                    dd.style.display = 'block';
+                    btn.classList.add('stg-music-open');
+                }
+                function _buildOfflinePkgDropdown() {
+                    const dd = document.getElementById('offline-pkg-dropdown');
+                    const sel = document.getElementById('offline-pkg-select');
+                    if (!dd || !sel) return;
+                    const opts = [['basic', _t('offline.pkgBasic')], ['full', _t('offline.pkgFull')]];
+                    dd.innerHTML = opts.map(([val, label]) => {
+                        const active = sel.value === val;
+                        return '<div class="stg-music-row' + (active ? ' stg-music-row-active' : '') + '" onclick="onOfflinePkgOptionClick(\'' + val + '\')">'
+                            + '<span class="stg-music-check">' + (active ? '✓' : '') + '</span>'
+                            + '<span style="flex:1;">' + label + '</span>'
+                            + '</div>';
+                    }).join('');
+                }
+                function onOfflinePkgOptionClick(val) {
+                    const sel = document.getElementById('offline-pkg-select');
+                    if (sel) sel.value = val;
+                    const dd = document.getElementById('offline-pkg-dropdown');
+                    const btn = document.getElementById('offline-pkg-select-btn');
+                    if (dd) dd.style.display = 'none';
+                    if (btn) btn.classList.remove('stg-music-open');
+                    _updateOfflinePkgSelectLabel();
+                    refreshOfflineUI();
+                }
+                function _updateOfflinePkgSelectLabel() {
+                    const lbl = document.getElementById('offline-pkg-select-label');
+                    const sel = document.getElementById('offline-pkg-select');
+                    if (!lbl || !sel) return;
+                    lbl.textContent = sel.value === 'full' ? _t('offline.pkgFull') : _t('offline.pkgBasic');
+                }
+
                 // Close the dropdown on any click outside it (but not the toggle button itself).
                 document.addEventListener('click', function (e) {
-                    const wrap = document.getElementById('music-select-wrap');
-                    if (wrap && !wrap.contains(e.target)) {
-                        const dd = document.getElementById('music-dropdown');
-                        const btn = document.getElementById('music-select-btn');
-                        if (dd) dd.style.display = 'none';
-                        if (btn) btn.classList.remove('stg-music-open');
+                    const wraps = ['music-select-wrap', 'lang-select-wrap', 'offline-pkg-select-wrap'];
+                    for (const id of wraps) {
+                        const w = document.getElementById(id);
+                        if (w && !w.contains(e.target)) {
+                            const dd = w.querySelector('.stg-music-dropdown');
+                            const btn = w.querySelector('.stg-music-btn');
+                            if (dd) dd.style.display = 'none';
+                            if (btn) btn.classList.remove('stg-music-open');
+                        }
                     }
                 });
 
@@ -1555,7 +1772,7 @@
     <script src="js/offline.js?v=20260804c"></script>
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260724c"></script>
-    <script src="js/sigils.js?v=20260731a"></script>
+    <script src="js/sigils.js?v=20260804a"></script>
     <script src="js/entities.js?v=20260803a"></script>
     <script src="js/skills.js?v=20260731g"></script>
     <script src="js/render/core.js?v=20260731a"></script>
