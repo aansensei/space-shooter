@@ -1679,15 +1679,20 @@
                     panel.classList.toggle('visible', visible);
                 }
             });
-            // Tap-to-open is desktop-only now — on mobile the FPS chip sits
-            // close enough to gameplay controls that an accidental tap
-            // could pop the panel open mid-match, and the mobile debug
-            // instrumentation it was built for is no longer needed.
+            // TEMP: re-enabled on mobile too, to help diagnose the Guide
+            // reload bug on-device (rawGap/[PROF] readout) without needing
+            // a Mac + Web Inspector. Re-add the `if (_platform==='mobile')
+            // return;` guard once that's done — accidental taps near
+            // gameplay controls are still a real risk otherwise.
             if (fpsEl) {
                 fpsEl.style.pointerEvents = 'auto';
                 fpsEl.style.cursor = 'pointer';
                 fpsEl.addEventListener('click', function () {
-                    if (window._platform === 'mobile') return;
+                    visible = !visible;
+                    panel.classList.toggle('visible', visible);
+                });
+                fpsEl.addEventListener('touchstart', function (e) {
+                    e.preventDefault();
                     visible = !visible;
                     panel.classList.toggle('visible', visible);
                 });
