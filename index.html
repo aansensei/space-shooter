@@ -334,19 +334,29 @@
                 if (ctrl && shift && e.key === 'C') { e.preventDefault(); return; }
                 if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); return; }
             });
-            // Lưu baseline khi load (bao gồm cả zoom level của browser)
-            // → chỉ reload khi diff TĂNG THÊM quá 160 so với ban đầu (= DevTools mở)
-            const _baseWDiff = window.outerWidth - window.innerWidth;
-            const _baseHDiff = window.outerHeight - window.innerHeight;
-            const threshold = 160;
-            setInterval(() => {
-                const wExtra = (window.outerWidth - window.innerWidth) - _baseWDiff;
-                const hExtra = (window.outerHeight - window.innerHeight) - _baseHDiff;
-                if (wExtra > threshold || hExtra > threshold) {
-                    document.body.innerHTML = '';
-                    window.location.reload();
-                }
-            }, 1000);
+            // DevTools via F12/outerWidth divergence is a desktop-only
+            // concept — touch devices have no keyboard shortcut to open it,
+            // and on mobile (especially standalone "Add to Home Screen" PWA
+            // mode) outerWidth/innerWidth drift constantly for legitimate
+            // reasons (toolbar auto-hide, rotation, on-screen keyboard),
+            // which was firing this false-positive and reloading players
+            // out of active runs. Skip the whole check on touch devices.
+            const _isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+            if (!_isTouchDevice) {
+                // Lưu baseline khi load (bao gồm cả zoom level của browser)
+                // → chỉ reload khi diff TĂNG THÊM quá 160 so với ban đầu (= DevTools mở)
+                const _baseWDiff = window.outerWidth - window.innerWidth;
+                const _baseHDiff = window.outerHeight - window.innerHeight;
+                const threshold = 160;
+                setInterval(() => {
+                    const wExtra = (window.outerWidth - window.innerWidth) - _baseWDiff;
+                    const hExtra = (window.outerHeight - window.innerHeight) - _baseHDiff;
+                    if (wExtra > threshold || hExtra > threshold) {
+                        document.body.innerHTML = '';
+                        window.location.reload();
+                    }
+                }, 1000);
+            }
         })();
     </script>
 </head>
