@@ -1650,7 +1650,6 @@
                     easterEggOverlay.style.display = 'none';
                     if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
                     if (typeof _initMobileControls === 'function') _initMobileControls();
-                    if (typeof window._prepareGuideForGame === 'function') window._prepareGuideForGame();
 
                     // Ambient (space) + engine now; in-game BGM waits for sigil confirm
                     if (window.AudioMgr) {
@@ -1658,6 +1657,25 @@
                         window.AudioMgr.startAmbient();
                         window.AudioMgr.startEngine();
                     }
+
+                    // Loading guide.html (a whole separate ~5000-line
+                    // document: fonts, canvases, its own JS) right here
+                    // used to fire in the same instant as startAmbient()/
+                    // startEngine() below — both compete for the network
+                    // and main thread at once on a mobile CPU, and on
+                    // real iOS devices this was confirmed (via the F3
+                    // panel's rawGap readout + on-device console) to
+                    // actually fail the ambient/engine audio buffer
+                    // decodes outright ("[Audio] buffer decode failed"),
+                    // not just delay them — moving Guide's load here
+                    // instead of on first click just relocated that
+                    // contention to happen on every single run, whether
+                    // or not the player ever opens Guide. Give audio
+                    // startup a clear head start before Guide even begins
+                    // fetching.
+                    setTimeout(() => {
+                        if (typeof window._prepareGuideForGame === 'function') window._prepareGuideForGame();
+                    }, 5000);
 
                     setTimeout(() => {
                         whiteFlash.style.transition = 'opacity 1.5s ease-out';
