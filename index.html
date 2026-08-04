@@ -547,6 +547,18 @@
                     }
                     if (window.AudioMgr) window.AudioMgr.resumeBgm();
                     document.getElementById('guideOverlay').style.display = 'none';
+                    // Keeping guide.html's iframe permanently resident (its
+                    // own DOM, canvases, and fonts) on top of the already
+                    // WebGL/Pixi-heavy main game is exactly the kind of
+                    // memory pressure that gets a mobile Safari webview
+                    // killed and silently reloaded from under the player —
+                    // release it while mid-game; from the main menu there's
+                    // no game context competing for memory, so leave it
+                    // cached there for an instant reopen.
+                    if (window._inGame && _fr) {
+                        _fr.src = '';
+                        _fr.removeAttribute('data-loaded');
+                    }
                 }
                 document.getElementById('guideOverlay').addEventListener('click', function (e) {
                     if (e.target === this) closeGuide();
