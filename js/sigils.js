@@ -858,15 +858,18 @@ function drawSigilHUD() {
     const now = performance.now();
 
     const isMob = typeof _platform !== 'undefined' && _platform === 'mobile';
-    const hW = isMob ? 148 : 192;
-    const hH = (isMob ? 158 : 198) + (_yuukiBonus > 0 ? (isMob ? 22 : 26) : 0);
 
     const R = 20;
     const slotGap = 8;
     const panelW = R * 2 + 16;
     const panelH = 3 * (R * 2) + 2 * slotGap + 20;
     const panelX = canvas.width - panelW - 12;
-    const panelY = 10 + hH + 6;
+    // Anchor below the real stats HUD panel (js/render/core.js), which
+    // publishes its own actual bottom edge — avoids the two files keeping
+    // separate copies of the same height formula that could drift apart.
+    const hH = (isMob ? 158 : 198) + (_yuukiBonus > 0 ? (isMob ? 22 : 26) : 0);
+    const statsHudBottom = typeof window._statsHudBottom === 'number' ? window._statsHudBottom : (10 + hH);
+    const panelY = statsHudBottom + 6;
 
     ctx.save();
 

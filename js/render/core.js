@@ -1224,6 +1224,10 @@ function draw(deltaTime) {
         const _rH = _hMob ? 22 : 26;
         const _yuukiRow = _yuukiBonus > 0 ? _rH : 0;
         const _hH = (_hMob ? 158 : 198) + _yuukiRow;
+        // Sigil HUD (sigils.js) anchors itself below this panel and used to
+        // keep its own hardcoded copy of this height formula, which could
+        // silently drift out of sync — read this instead of duplicating it.
+        window._statsHudBottom = _hY + _hH;
 
         // Panel background
         ctx.globalAlpha = 0.28;
