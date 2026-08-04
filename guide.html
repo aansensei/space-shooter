@@ -24,8 +24,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pisces: Space Journey — General Guide</title>
+  <script>
+    // Loading all 5 font families (12 separate font files across weights)
+    // regardless of language doubles this page's network weight for no
+    // benefit — VI mode overrides every element to Sora anyway (see the
+    // body.lang-vi rule below), so Orbitron/Rajdhani/Cinzel/Share Tech Mono
+    // are dead weight for VI users, and Sora is dead weight for EN users.
+    // Only request the family set the current language actually uses.
+    (function () {
+      var lang;
+      try { lang = (window.parent && window.parent._lang) || 'en'; } catch (e) { lang = 'en'; }
+      var href = lang === 'vi'
+        ? 'https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap'
+        : 'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&display=swap';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      document.head.appendChild(link);
+    })();
+  </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Cinzel:wght@400;700;900&family=Sora:wght@300;400;500;600;700&display=swap');
 
     /* Rajdhani/Orbitron/Cinzel/Share Tech Mono render Vietnamese combining
        diacritics with visible glyph-shaping artifacts (not a missing-glyph
