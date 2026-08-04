@@ -660,6 +660,27 @@
         ];
     };
 
+    // Re-spread every existing object across the CURRENT W()/H() without
+    // recreating textures/sprites (cheap — just repositions). Needed because
+    // _bgSetDensity('mobile') on the start menu runs against whatever
+    // portrait dimensions the page loaded with (this app boots and picks a
+    // density before the player has even rotated their phone), positioning
+    // every star/dust/asteroid with reset(true)'s rnd(0, H()) against that
+    // tall, narrow H(). By the time the player rotates to landscape and
+    // starts the match, _bgResize() corrects the renderer size + bgSprite,
+    // but the objects themselves keep their stale portrait-H() positions —
+    // most of which now land below the much-shorter landscape canvas and
+    // never render, leaving only the top sliver of the original spread
+    // visible ("all the particles bunched at the top edge"). Called from
+    // index.html's _initMobileControls() right after _bgResize().
+    window._bgRelayout = function () {
+        for (const g of galaxies)  g.reset(true);
+        for (const n of nebulas)   n.reset(true);
+        for (const s of stars)     s.reset(true);
+        for (const d of dusts)     d.reset(true);
+        for (const a of asteroids) a.reset(true);
+    };
+
     // ─── RESIZE ──────────────────────────────────────────────────────────
     // Full resize: resizes the renderer AND rebuilds bgSprite/brightnessGfx
     // to the new dimensions (renderer.resize() alone leaves the old, now

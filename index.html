@@ -1455,7 +1455,7 @@
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
     <script src="js/audio.js?v=20260722j"></script>
-    <script src="js/background.js?v=20260803c"></script>
+    <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260724c"></script>
     <script src="js/sigils.js?v=20260731a"></script>
     <script src="js/entities.js?v=20260803a"></script>
@@ -1710,6 +1710,15 @@
                 // own comment in background.js for why this matters.
                 if (typeof window._bgResize === 'function') {
                     window._bgResize(physW, physH);
+                }
+                // Re-spread every star/nebula/dust/asteroid across the now-
+                // correct landscape W()/H() — they were originally placed
+                // against the portrait dimensions the page loaded with (see
+                // _bgRelayout's own comment in background.js), so without
+                // this most of them sit below the visible landscape canvas
+                // and only a sliver near the top edge is ever on-screen.
+                if (typeof window._bgRelayout === 'function') {
+                    window._bgRelayout();
                 }
 
                 // Update game globals to use new logical size
