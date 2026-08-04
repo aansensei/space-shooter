@@ -1552,7 +1552,7 @@
 
     <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
     <script src="js/audio.js?v=20260722j"></script>
-    <script src="js/offline.js?v=20260804b"></script>
+    <script src="js/offline.js?v=20260804c"></script>
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260724c"></script>
     <script src="js/sigils.js?v=20260731a"></script>
@@ -1595,9 +1595,35 @@
         // section (js/offline.js) drives explicit package downloads on top
         // of this — registering here just makes the worker exist so those
         // downloads have a cache to write into.
+        //
+        // Update handling: sw.js's own install handler calls skipWaiting()
+        // and activate calls clients.claim(), so a new SW version takes
+        // over as soon as the browser notices one exists — but the browser
+        // still has to actually GO CHECK. A normal Safari tab does this on
+        // every navigation; an "Add to Home Screen" standalone app on iOS
+        // is known to be far less reliable about it (can sit "resident" in
+        // the background for a long time without ever re-checking), which
+        // is why re-adding to the home screen was the only way to see
+        // updates before this. Calling reg.update() explicitly on load and
+        // every time the app comes back to the foreground forces the check
+        // instead of waiting on Safari's own heuristic timing, and
+        // reloading once a new SW actually takes control (controllerchange)
+        // makes sure the already-loaded page picks up the new index.html/JS
+        // instead of continuing to run the old version from memory.
         if ('serviceWorker' in navigator) {
+            let _swRefreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (_swRefreshing) return;
+                _swRefreshing = true;
+                location.reload();
+            });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(() => {});
+                navigator.serviceWorker.register('sw.js').then((reg) => {
+                    reg.update().catch(() => {});
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') reg.update().catch(() => {});
+                    });
+                }).catch(() => {});
             });
         }
     </script>

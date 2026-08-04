@@ -14,6 +14,7 @@
     // script's module scope.
     const CORE_FILES = [
         'index.html',
+        'guide.html',
         'manifest.json',
         'css/style.css',
         'images/gameplay.png',
@@ -91,7 +92,7 @@
 
     // Must match sw.js's CACHE_NAME (CACHE_NAME = 'pisces-cache-' + CACHE_VERSION)
     // — bump both together if sw.js's version ever changes.
-    const CACHE_NAME = 'pisces-cache-v1';
+    const CACHE_NAME = 'pisces-cache-v2';
 
     async function getStatus(which) {
         if (!('caches' in window)) return { supported: false, cached: 0, total: 0 };
