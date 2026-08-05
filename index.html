@@ -34,66 +34,6 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pisces: Space Journey</title>
-    <!-- TEMP DEBUG — remove once the mobile Guide-reload bug is diagnosed.
-         eruda gives an on-device console (errors, network, logs) without
-         needing a Mac + Web Inspector. Tap the floating circle to open it.
-         Panel height capped via CSS below so it doesn't eat the whole
-         screen and still leaves room to tap around behind it. -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
-    <script>
-        // TEMP DEBUG — persists console output across a reload/crash into
-        // localStorage, since eruda's own console is wiped the instant the
-        // page reloads (which is exactly the moment we need to see). On
-        // load, prints whatever was captured right before THIS load
-        // happened, prefixed so it's unmistakable, then starts a fresh
-        // buffer for the current session.
-        (function () {
-            var KEY = '__pisces_crash_log';
-            var MAX = 300;
-            var buf = [];
-            try {
-                var prev = localStorage.getItem(KEY);
-                if (prev) {
-                    var lines = JSON.parse(prev);
-                    console.warn('=== LOG FROM RIGHT BEFORE THE LAST RELOAD (' + lines.length + ' lines) ===');
-                    lines.forEach(function (l) { console.warn('[PREV] ' + l); });
-                    console.warn('=== END OF PREVIOUS-SESSION LOG ===');
-                }
-            } catch (e) {}
-            try { localStorage.removeItem(KEY); } catch (e) {}
-
-            function persist(level, args) {
-                try {
-                    var text = Array.prototype.map.call(args, function (a) {
-                        try { return typeof a === 'string' ? a : JSON.stringify(a); } catch (e) { return String(a); }
-                    }).join(' ');
-                    buf.push(new Date().toISOString().slice(11, 23) + ' [' + level + '] ' + text);
-                    if (buf.length > MAX) buf.shift();
-                    localStorage.setItem(KEY, JSON.stringify(buf));
-                } catch (e) {}
-            }
-            ['log', 'warn', 'error'].forEach(function (level) {
-                var orig = console[level];
-                console[level] = function () {
-                    persist(level, arguments);
-                    return orig.apply(console, arguments);
-                };
-            });
-            window.addEventListener('error', function (e) {
-                persist('error', ['Uncaught: ' + e.message + ' @ ' + e.filename + ':' + e.lineno]);
-            });
-            window.addEventListener('unhandledrejection', function (e) {
-                persist('error', ['Unhandled rejection: ' + (e.reason && e.reason.message || e.reason)]);
-            });
-        })();
-    </script>
-    <style>
-        /* eruda's exact class name has varied across versions — cover the
-           likely candidates so the height cap actually lands. */
-        .eruda-dev-tools, div.eruda-container .eruda-dev-tools,
-        [class*="eruda-dev-tools"] { max-height: 45vh !important; }
-    </style>
     <link rel="icon" type="image/png" href="images/logo.png">
     <link rel="apple-touch-icon" href="images/logo.png">
     <link rel="manifest" href="manifest.json">
@@ -350,10 +290,10 @@
         /* --- DEBUG CONSOLE (F3 toggle) --- */
         #debug-panel {
             position: fixed;
-            top: 40px;
+            top: 96px;
             left: 16px;
             z-index: 9999997;
-            width: 170px;
+            width: 230px;
             display: none;
             font-family: 'Consolas', 'Courier New', monospace;
             font-size: 9px;
@@ -365,7 +305,7 @@
             border: 1px solid rgba(255,80,40,0.30);
             border-radius: 6px;
             padding: 4px 6px;
-            height: 80px;
+            height: 160px;
             overflow-y: auto;
             pointer-events: auto;
             scrollbar-width: thin;
@@ -571,15 +511,13 @@
                 </div>
             </div>
             <script>
-                // REVERTED (see the [MARK]-log postmortem near the
-                // hyperjump setTimeout chain): preloading guide.html ahead
-                // of time — whether immediately or deferred — reliably
-                // crashed the standalone-PWA webview a few seconds into
-                // every run, worse than the original click-time bug. Back
-                // to lazy: reparent + load only happen on the player's
-                // first actual Guide click.
+                // REVERTED: preloading guide.html ahead of time — whether
+                // immediately or deferred — reliably crashed the
+                // standalone-PWA webview a few seconds into every run,
+                // worse than the original click-time bug. Back to lazy:
+                // reparent + load only happen on the player's first
+                // actual Guide click.
                 function openGuide() {
-                    console.warn('[MARK] openGuide() called, guide already loaded=' + document.getElementById('guideFrame').getAttribute('data-loaded'));
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
                     if (window._inGame && ov.parentElement !== document.body) document.body.appendChild(ov);
@@ -590,7 +528,6 @@
                     }
                 }
                 function closeGuide() {
-                    console.warn('[MARK] closeGuide() called');
                     // Stop any music-archive preview inside the iframe first.
                     // Always call resumeBgm as a safety net in case the iframe
                     // is mid-load or the preview handler is unavailable.
@@ -600,10 +537,15 @@
                     }
                     if (window.AudioMgr) window.AudioMgr.resumeBgm();
                     document.getElementById('guideOverlay').style.display = 'none';
-                    // Deliberately NOT unloading guideFrame here — once
-                    // loaded (openGuide()'s data-loaded guard), it stays
-                    // loaded for the rest of the run so reopening Guide
-                    // never re-navigates the iframe.
+                    // guide.html loads its own full audio engine (js/audio.js,
+                    // a second AudioContext + decode cache) plus 11
+                    // js/render/*.js modules just to run its demo widgets.
+                    // Left loaded, all of that sits in memory for the rest
+                    // of the run even though nothing is using it. Unload the
+                    // iframe on close instead — openGuide()'s data-loaded
+                    // guard means the next open just pays a fresh load.
+                    _fr.removeAttribute('data-loaded');
+                    _fr.src = 'about:blank';
                 }
                 document.getElementById('guideOverlay').addEventListener('click', function (e) {
                     if (e.target === this) closeGuide();
@@ -1649,7 +1591,6 @@
             };
 
             document.getElementById('start-hyperjump-btn').addEventListener('click', () => {
-                console.warn('[MARK] hyperjump start clicked');
                 lockScreen.style.display = 'none';
                 const _gb = document.getElementById('guideBtn'); if (_gb) _gb.style.display = 'none';
                 const _sb = document.getElementById('settingsBtn'); if (_sb) _sb.style.display = 'none';
@@ -1674,7 +1615,6 @@
                     whiteFlash.style.opacity = '1';
                 }, 2500);
                 setTimeout(() => {
-                    console.warn('[MARK] hyperjump 3.5s stage: _inGame=true, audio startup begins');
                     window._inGame = true;
                     isSimulationRunning = false;
                     easterEggOverlay.style.display = 'none';
@@ -1728,20 +1668,11 @@
                     panel.classList.toggle('visible', visible);
                 }
             });
-            // TEMP: re-enabled on mobile too, to help diagnose the Guide
-            // reload bug on-device (rawGap/[PROF] readout) without needing
-            // a Mac + Web Inspector. Re-add the `if (_platform==='mobile')
-            // return;` guard once that's done — accidental taps near
-            // gameplay controls are still a real risk otherwise.
             if (fpsEl) {
                 fpsEl.style.pointerEvents = 'auto';
                 fpsEl.style.cursor = 'pointer';
                 fpsEl.addEventListener('click', function () {
-                    visible = !visible;
-                    panel.classList.toggle('visible', visible);
-                });
-                fpsEl.addEventListener('touchstart', function (e) {
-                    e.preventDefault();
+                    if (window._platform === 'mobile') return;
                     visible = !visible;
                     panel.classList.toggle('visible', visible);
                 });
