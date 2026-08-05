@@ -519,6 +519,20 @@
             });
         }
         state.bgmEl.play().catch(() => {});
+        _evictStaleBgmBuffers(track.src);
+    }
+
+    // Decoded BGM buffers (raw PCM) run far larger in memory than the mp3
+    // on disk, and _bufferCache never expires on its own — over a long
+    // session of random in-game tracks this grows unbounded. Only the
+    // track that's actually playing (plus the menu theme, reused on every
+    // return to the title screen) needs to stay decoded; every other
+    // in-game track's buffer is dropped so it re-decodes next time it's
+    // picked instead of sitting in memory unused.
+    function _evictStaleBgmBuffers(keepSrc) {
+        BGM_LIST.forEach(t => {
+            if (!t.menuOnly && t.src !== keepSrc) delete _bufferCache[t.src];
+        });
     }
 
     // Apply current volumes to all live audio elements.
