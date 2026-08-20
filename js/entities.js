@@ -3186,8 +3186,8 @@ function _goliathEnterTrueForm(enemy) {
     enemy.phase = 'true_form';
     enemy.inCoronation = false; // giờ mới có thể bị nhắm mục tiêu
     enemy.size = 260; // giảm ~7% so với 280 theo yêu cầu
-    const pulledCapped = Math.min(200000, enemy.damagePull);
-    const maxHp = Math.round((50000 + pulledCapped) * (1 + 0.15 * enemy.gemPoints));
+    const pulledCapped = Math.min(247500, enemy.damagePull);
+    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.20 * enemy.gemPoints));
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
 

@@ -273,7 +273,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Duration:** 40s (from first shot) | **Cooldown:** 12s (starts at summon, unlocks after BTM ends) | **Size:** +20% vs normal Spirit
 
-**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **100 base + 1.4% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
+**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **125 base + 1.7% EP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
 
 **Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **400 base + 5.8% EP + 5% of target's missing HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
 
@@ -281,7 +281,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Companion Effect: Vine Bind** — The instant Danger? Not Today! locks on, Phōtokrystos also calls on the primeval forest: vines erupt from nothing to bind the enemy nearest the bottom boundary **and** the enemy nearest the player (the same enemy if it qualifies for both). Vines take **1 second** to fully grow in, then a **green aura** appears and the bound enemy(s) are slowed **50% for 2 seconds** — aura and slow end together. CC-immune enemies (Egregor, Dargruel, Leviathan, barrier-shielded Marchosias, invulnerable Aegis Core) are unaffected.
 
-**Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels gain **+15% Damage Reduction**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+3 HP per second**, and every **5 seconds** each Sentinel receives a flat **+50 HP shield**.
+**Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels' shot recoil HP cost is reduced by **15%**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+1.75% Max HP every 0.75s**, and every **3 seconds** each Sentinel individually receives a flat **+50 HP shield** (capped at 50).
 
 **Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **20 base + 35% EP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% EP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
 
@@ -599,7 +599,7 @@ Spawns near the top of the screen at **1 HP**, absolutely invulnerable and fully
 
 A 4-stage, ~4-second transform sequence: meteors converge on Alpha from all directions and fuse into a molten mass (Summon), the mass swells and bubbles as everything melds together (Fusion), it cools and crystallizes into the True Form body with the 3 absorbed gems igniting in sequence (Crystallize), then both arms extend and settle into place with a final shockwave ring (Settle). Goliath remains invulnerable and untargetable throughout.
 
-On completion, True Form's Max HP is set to `(50000 + min(damagePull, 200000)) × (1 + 0.15 × gemPoints)`.
+On completion, True Form's Max HP is set to `(65000 + min(damagePull, 247500)) × (1 + 0.20 × gemPoints)`.
 
 **Passive: Inevitable**
 

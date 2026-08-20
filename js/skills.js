@@ -675,7 +675,8 @@ function updatePhotokrystos(spirit, deltaTime) {
                     }
                     dealDamage(e, {
                         damage: 20 * dmgMult, percentDamage: 0.35,
-                        applyVuln: true, vulnChance: 0.15, isTrueDamage: true
+                        applyVuln: true, vulnChance: 0.15, isTrueDamage: true,
+                        isPhoto: true
                     });
                     if (e.hp <= 0) e._btmKilled = true;
                     // Record lightning bolt for render
