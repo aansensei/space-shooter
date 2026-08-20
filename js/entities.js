@@ -351,7 +351,7 @@ function fireAutoShot() {
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 55 * _dmgMult, percentDamage: 0.009 * _dmgMult, size: 6.5, type: 'player_auto',
+            damage: 75 * _dmgMult, percentDamage: 0.009 * _dmgMult, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28,
             isPiercing: _pierce, hitEnemies: _pierce ? [] : undefined,
             _muiTenVangCrit: _isCritVolley,
@@ -1371,7 +1371,7 @@ function dealDamage(enemy, source) {
         && !source.isTeslaDot && !source._isNocToiDot
         && !source._isDtuDot && !source._isSthDot && !source._yogExplosion) {
         totalDamage += 60;
-        // Sigil: Lion's Roar — every hit also deals 2% of the enemy's own missing HP as bonus dmg
+        // Sigil: Lion's Roar — every hit also deals 2% of the enemy's own lost HP as bonus dmg
         if (_hasBuff('su_tu_hong')) {
             totalDamage += Math.ceil((enemy.maxHp - enemy.hp) * 0.02);
         }
