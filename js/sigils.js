@@ -7,7 +7,7 @@ const SIGIL_DEFS = {
             { id: 'tien_phong', name: 'Vanguard', type: 'ATK', typeC: '#ef4444',
               desc: '50% chance for player & sentinel bullets to pierce enemies, +50% damage. Each pierce-chain hit: +30% dmg per chain, plus 3% of the enemy\'s Max HP as true damage (max 4 chains).' },
             { id: 'khat_chien', name: 'Onslaught', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can fire a fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit\'s damage + 0.75% of the target\'s missing HP (300ms CD).' },
+              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can fire a fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit\'s damage + 0.75% of the target\'s lost HP (300ms CD).' },
         ]
     },
     taurus: {
@@ -41,7 +41,7 @@ const SIGIL_DEFS = {
         name: 'Leo', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'su_tu_hong', name: "Lion's Roar", type: 'ATK', typeC: '#ef4444',
-              desc: 'While GFJ active, attacks inflict Burn: 200 + 5% EP DoT per 500ms for 3s (resets on new hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire. Every hit also deals bonus damage equal to 2% of the target\'s own missing HP.' },
+              desc: 'While GFJ active, attacks inflict Burn: 200 + 5% EP DoT per 500ms for 3s (resets on new hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire. Every hit also deals bonus damage equal to 2% of the target\'s own lost HP.' },
             { id: 'than_menh', name: 'Divine Fate', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Wave start: 5s freeze — all enemies stop moving (new spawns also frozen) + all damage +100%' },
         ]
@@ -50,7 +50,7 @@ const SIGIL_DEFS = {
         name: 'Virgo', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'mui_ten_vang', name: 'Forest Guardian', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 6th auto volley triggers a Critical Strike: 4x damage, Vulnerability, root + silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped wooden fist sweeps across the screen (60% of screen width), dealing 1000 + 10% EP + 15% of each target\'s missing HP.' },
+              desc: 'Every 6th auto volley triggers a Critical Strike: 4x damage, Vulnerability, root + silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped wooden fist sweeps across the screen (60% of screen width), dealing 1000 + 10% EP + 15% of each target\'s lost HP.' },
             { id: 'ky_su_dien', name: 'Circuit Engineer', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Tesla DoT & Coil +50% dmg; destroying a Coil reduces Skill G CD by 3s and increases G energy gain by 10%. Enemies carrying any debuff (slow, DoT, Vulnerability, Soul Reaver, etc.) take +50% damage from all sources.' },
         ]
@@ -104,7 +104,7 @@ const SIGIL_DEFS = {
         name: 'Pisces', element: 'Water', color: '#7F77DD',
         buffs: [
             { id: 'coi_mong', name: 'Dream Realm', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Shift activation negates all enemy damage for 3s and marks all enemies on screen (each instantly takes 1 Vulnerability stack). After 1.65s, marked enemies burst for 60% of the damage they accumulated during the mark window plus 35% of their missing HP.' },
+              desc: 'Shift activation negates all enemy damage for 3s and marks all enemies on screen (each instantly takes 1 Vulnerability stack). After 1.65s, marked enemies burst for 60% of the damage they accumulated during the mark window plus 35% of their lost HP.' },
             { id: 'dong_chay_luan_hoi', name: 'Cycle of Flow', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Kill apostle: −1s all skill CD; kill abnormal/elite: −1.5s; kill dominator: −2s; kill Egregor: −3s. Charge rate for Phōtokrystos and Skill G +50%. Skill D, Skill F and Overload Laser fire instantly, skipping their charge phase entirely (Shift unaffected).' },
         ]
@@ -124,7 +124,7 @@ const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
 const SIGIL_I18N_VI = {
     aries: { name: 'Bạch Dương', element: 'Hỏa', buffs: {
         tien_phong: { name: 'Tiên Phong', desc: "50% cơ hội đạn của người chơi & Vệ Binh xuyên qua kẻ địch, +50% sát thương. Mỗi lần xuyên chuỗi: +30% sát thương mỗi chuỗi, cộng thêm 3% Max HP của kẻ địch dưới dạng sát thương thật (tối đa 4 chuỗi)." },
-        khat_chien: { name: 'Khát Chiến', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP còn thiếu của mục tiêu (hồi chiêu 300ms).' },
+        khat_chien: { name: 'Khát Chiến', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP đã mất của mục tiêu (hồi chiêu 300ms).' },
     }},
     taurus: { name: 'Kim Ngưu', element: 'Thổ', buffs: {
         thanh_dong: { name: 'Vương Cung Thành Trì', desc: 'Mỗi 5s nhận 1 lớp Iron Body (tối đa 3 lớp): hấp thụ 1 đòn đánh vào người chơi hoặc 1 lần trói/câm lặng thường. Hiển thị dưới dạng vòng lục giác xanh lá quanh tàu.' },
@@ -139,11 +139,11 @@ const SIGIL_I18N_VI = {
         trieu_hoi: { name: 'Triều Lưu', desc: 'Vệ Binh hồi 3% Max HP/s (tăng theo cấp bậc); hiệu quả hồi máu +30%. Mỗi Vệ Binh nhận 1 lớp Iron Body; hồi chiêu 8s chỉ bắt đầu sau khi lớp đó bị tiêu hao.' },
     }},
     leo: { name: 'Sư Tử', element: 'Hỏa', buffs: {
-        su_tu_hong: { name: 'Sư Tử Hống', desc: 'Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP còn thiếu của mục tiêu.' },
+        su_tu_hong: { name: 'Sư Tử Hống', desc: 'Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP đã mất của mục tiêu.' },
         than_menh: { name: 'Thần Mệnh', desc: 'Đầu mỗi wave: đóng băng 5s — mọi kẻ địch ngừng di chuyển (kể cả địch mới xuất hiện) + toàn bộ sát thương +100%' },
     }},
     virgo: { name: 'Xử Nữ', element: 'Thổ', buffs: {
-        mui_ten_vang: { name: 'Hộ Lâm', desc: 'Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x4, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 1000 + 10% EP + 15% HP còn thiếu của mỗi mục tiêu.' },
+        mui_ten_vang: { name: 'Hộ Lâm', desc: 'Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x4, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 1000 + 10% EP + 15% HP đã mất của mỗi mục tiêu.' },
         ky_su_dien: { name: 'Kỹ Sư Mạch', desc: 'Sát thương theo thời gian Tesla & Cuộn Tesla +50%; phá hủy 1 Cuộn Tesla giảm 3s hồi chiêu Skill G và tăng 10% tốc độ nạp năng lượng G. Kẻ địch mang bất kỳ hiệu ứng bất lợi nào (chậm, sát thương theo thời gian, Trọng Thương, Soul Reaver,...) nhận +50% sát thương từ mọi nguồn.' },
     }},
     libra: { name: 'Thiên Bình', element: 'Phong', buffs: {
@@ -167,7 +167,7 @@ const SIGIL_I18N_VI = {
         dien_tu_truong: { name: 'Điện Từ Trường', desc: 'Trong lúc Skill G kích hoạt hoặc nạp đầy, kẻ địch trong bán kính 300px bị chậm 30% và chịu sát thương theo thời gian 3.5% Max HP/s' },
     }},
     pisces: { name: 'Song Ngư', element: 'Thủy', buffs: {
-        coi_mong: { name: 'Cõi Mộng', desc: 'Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP còn thiếu của chúng.' },
+        coi_mong: { name: 'Cõi Mộng', desc: 'Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP đã mất của chúng.' },
         dong_chay_luan_hoi: { name: 'Dòng Chảy Luân Hồi', desc: 'Hạ Apostle: −1s hồi chiêu mọi skill; hạ Abnormal/Elite: −1.5s; hạ Dominator: −2s; hạ Egregor: −3s. Tốc độ nạp Phōtokrystos và Skill G +50%. Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).' },
     }},
 };

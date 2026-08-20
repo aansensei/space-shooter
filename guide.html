@@ -814,7 +814,7 @@
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THUNDER ORBS</h2><div class="sub">CELESTIAL THUNDERBURST <span class="cd">CD 6s</span></div>
 <div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)">▶ Play</button></div>
-<ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">150 + 18% EP</span>, plus <span class="hr">80 + 5% of the target's missing HP</span> as true damage.</li>
+<ul><li>Summons <span class="hi">20 homing orbs</span> (max 80). Each: <span class="dmg">200 + 20% EP</span>, plus <span class="hr">100 + 15% of the target's lost HP</span> as true damage.</li>
 <li>Impact → <span class="dmg">16 scattered shards</span> (5 + 1.5% EP each).</li>
 <li><span class="hg">Yellow Orbs:</span> 3 absorb incoming hits. When an orb is <b>sacrificed</b>, the attacker (if targetable) receives <span class="hr">Soul Reaver + Soul Devourer DoT</span> (60 + 5.5% EP per 0.35s) and is <span class="hr">slowed 25%</span> for <span class="cd">3s</span>.</li>
 <li><span class="det-full"><b>Dimensional Rift</b> (on hit that deals damage): 50px zone, <span class="cd">3s</span>. Enemies inside: <span class="hr">−35% speed</span>, <span class="hr">Soul Reaver + DoT</span> (60 + 5.5% EP per 0.35s), <span class="hr">+25% dmg taken</span>. Enemy bullets are pulled in and destroyed at core. <span class="dmg">20%</span> chance per DoT tick to chain-lightning 8 targets.</span><span class="det-short"><b>Dimensional Rift</b>: 3s slow zone on hit — slows, applies DoT, increases dmg taken, pulls and destroys nearby bullets.</span></li></ul></div>
@@ -828,7 +828,7 @@
 <div id="sSpiritPane1">
   <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
   <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
-  <li><span class="det-full">Every 5th shot: <b>Blade Arc</b> (<span class="dmg">170 + 4.8% EP + 3% missing HP</span>). Destroys enemy bullets.</span><span class="det-short">Every 5th shot fires a <b>Blade Arc</b> that destroys bullets.</span></li>
+  <li><span class="det-full">Every 5th shot: <b>Blade Arc</b> (<span class="dmg">170 + 4.8% EP + 3% lost HP</span>). Destroys enemy bullets.</span><span class="det-short">Every 5th shot fires a <b>Blade Arc</b> that destroys bullets.</span></li>
   <li><b>Finale @35s:</b> lasers + 8 bouncing plasma balls (both true damage).</li>
   <li><b>Primeval Creation:</b> Spirit kills charge a mana bar (+2% per kill). At 100%, press S again to transform.</li></ul>
 </div>
@@ -838,7 +838,7 @@
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Grand Primordial Spirit</b> — lasts <span class="hg">40s</span>. Duration resets. CD = 40s after.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Blessing of the Primordial</b>: Sentinels -15% shot recoil HP cost, ally dmg +15%, +1.75% MaxHP regen/0.75s, +50 shield/3s per sentinel.</li>
   <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> <b>3 homing bullets</b> @ <b>42ms</b>: each <span class="dmg">125+1.7% EP</span>, all track targets. Destroys enemy bullets. Apply Vuln (15%).</li>
-  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> — <span class="det-full">every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">400+5.8% EP+5% missing HP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Max <b>10</b> on screen; oldest recalled when cap hit (pending queue: 5). After 2 bounces or lifetime expiry, boomerang <b>flies back</b> to spirit (60% faster). BTM recalls all. Destroys bullets.</span><span class="det-short">Every 6 volleys: 2 piercing boomerangs chain all enemies (true dmg, scales with missing HP). Recalls after 2 bounces.</span></li>
+  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> — <span class="det-full">every 6 volleys: 2 boomerangs chain all enemies (<span class="dmg">400+5.8% EP+5% lost HP True Dmg</span>). Any contact = damage (re-hit/200ms). Queued if no enemies. Max <b>10</b> on screen; oldest recalled when cap hit (pending queue: 5). After 2 bounces or lifetime expiry, boomerang <b>flies back</b> to spirit (60% faster). BTM recalls all. Destroys bullets.</span><span class="det-short">Every 6 volleys: 2 piercing boomerangs chain all enemies (true dmg, scales with lost HP). Recalls after 2 bounces.</span></li>
   <li><span style="color:var(--cyan);font-size:10px">PASSIVE</span> <b>Danger? Not Today!</b> — <span class="det-full">enemy within <b>170px of player</b> or <b>170px of boundary</b> → spirit aims 100ms (re-locks each frame) then fires a <b>2s primeval laser</b> sweeping <b>±20°</b> (instant kills all in path, bypasses all shields). <b>-20% dmg 3s</b> after. CD starts after beam ends. (10s CD)</span><span class="det-short">Auto-fires an instant-kill laser when an enemy gets too close to the player or screen edge. (10s CD)</span></li>
   <li><span style="color:#4ade80;font-size:10px">COMPANION</span> <b>Vine Bind</b> — <span class="det-full">fires alongside Danger? Not Today!'s lock-on: primeval vines erupt from nothing to bind the enemy nearest the boundary <b>and</b> the enemy nearest the player (same enemy if it qualifies for both). Vines take <b>1s</b> to grow in, then a green aura marks a <b>50% slow for 2s</b> — aura and slow end together. CC-immune enemies unaffected.</span><span class="det-short">Roots the enemy nearest the boundary and the enemy nearest the player with vines, slowing them 50% for 2s.</span></li>
   <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: <span class="det-full">full-screen lightning barrier 3.5s (<span class="dmg">20+35% EP True Dmg/100ms</span>, clears bullets) → shockwave (<span class="dmg">10+99% EP</span>, pierces ALL shields + Iron Body). CD: 12s from summon.</span><span class="det-short">Full-screen lightning barrier then a shockwave that pierces all shields and Iron Body.</span></li>
@@ -875,7 +875,7 @@
 <canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">ARIES</div><div class="sfc-el">Fire</div><div class="sfc-theme">VANGUARD ASSAULT</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Vanguard</b> <span class="sbd">50% pierce chance on player and sentinel bullets. Auto dmg +50%. Piercing chain +30% dmg per chain, plus 3% MaxHP true dmg per chain (max 4).</span></div>
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Onslaught</b> <span class="sbd">Any landed ally hit (except Skill D/F) can fire a fireball at whichever enemy the previous hit struck: 100 + 15% of that hit's dmg + 0.75% of the target's missing HP (300ms CD).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Onslaught</b> <span class="sbd">Any landed ally hit (except Skill D/F) can fire a fireball at whichever enemy the previous hit struck: 100 + 15% of that hit's dmg + 0.75% of the target's lost HP (300ms CD).</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
 <canvas class="sfc-glyph-sm-cv" data-sigil="aries"></canvas>
@@ -926,7 +926,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">LEO</div><div class="sfc-el">Fire</div><div class="sfc-theme">SOLAR FIRE</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Lion's Roar</b> <span class="sbd">While GFJ active: Burn 200+5% EP DoT per 500ms for 3s (resets on hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire. Every hit also deals bonus dmg equal to 2% of the target's own missing HP.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Lion's Roar</b> <span class="sbd">While GFJ active: Burn 200+5% EP DoT per 500ms for 3s (resets on hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire. Every hit also deals bonus dmg equal to 2% of the target's own lost HP.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Divine Fate</b> <span class="sbd">Wave start: 5s all enemies frozen and turned to stone (new spawns too). All dmg +100% during freeze.</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
@@ -939,7 +939,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">VIRGO</div><div class="sfc-el">Earth</div><div class="sfc-theme">PRECISION STRIKE</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Forest Guardian</b> <span class="sbd">Every 6th auto volley: 4x dmg, Vulnerability, root and silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across the screen (60% of screen width), dealing 1000+10% EP+15% of each target's missing HP.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Forest Guardian</b> <span class="sbd">Every 6th auto volley: 4x dmg, Vulnerability, root and silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across the screen (60% of screen width), dealing 1000+10% EP+15% of each target's lost HP.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Circuit Engineer</b> <span class="sbd">Tesla DoT and Coil dmg +50%. Destroying a Coil: Skill G CD -3s and G charge gain +10%. Enemies carrying any debuff (slow, DoT, Vulnerability, Soul Reaver, etc.) take +50% dmg from all sources.</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
@@ -1017,7 +1017,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">PISCES</div><div class="sfc-el">Water</div><div class="sfc-theme">FLOW AND EVASION</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Dream Realm</b> <span class="sbd">Shift: negate all dmg 3s and mark all enemies on screen (instant 1 Vulnerability stack each). After 1.65s, marked enemies burst for 60% of accumulated dmg plus 35% of missing HP.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Dream Realm</b> <span class="sbd">Shift: negate all dmg 3s and mark all enemies on screen (instant 1 Vulnerability stack each). After 1.65s, marked enemies burst for 60% of accumulated dmg plus 35% of lost HP.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cycle of Flow</b> <span class="sbd">Kill apostle: -1s all skill CD. Kill abnormal/elite: -1.5s. Kill dominator: -2s. Kill Egregor: -3s. Charge rate for Phōtokrystos and Skill G +50%. Skill D, Skill F and Overload Laser fire instantly, skipping their charge phase (Shift unaffected).</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
@@ -1271,16 +1271,16 @@
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Capricorn — Avalanche:</b> no-kill reset window 5s → 6s, max stack damage +60% → +70%.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Aquarius — Chain Lightning reworked:</b> the old Skill D instant-cast/radius/pull bonus is gone. Replaced with: Skill G charge rate +35%, and while Skill G is active, every energy orb that expires without pairing into a Tesla coil grants a stacking +15% ally damage buff (max 6 stacks, 5s each) and gets siphoned into an extra Skill A orb if there's room instead of just exploding.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Aquarius — Magnetic Field:</b> DoT 0.8% → 3.5% Max HP/s.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Dream Realm:</b> negate-damage window 2s → 3s, marked enemies now take an instant Vulnerability stack, and the delayed burst is now 60% of accumulated damage (was 40%) plus 35% of the target's missing HP.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Dream Realm:</b> negate-damage window 2s → 3s, marked enemies now take an instant Vulnerability stack, and the delayed burst is now 60% of accumulated damage (was 40%) plus 35% of the target's lost HP.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Cycle of Flow reworked:</b> CD reduction per kill tier increased across the board (apostle -1s, abnormal/elite -1.5s, dominator -2s), plus a new -3s on an Egregor kill specifically. Phōtokrystos and Skill G charge rate +50%. Skill D and Skill F now skip their charge phase entirely and fire instantly (Shift is unaffected).</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Lion's Roar:</b> every hit against an enemy now also deals bonus damage equal to 2% of that enemy's own missing HP, on top of the existing GFJ-gated Burn DoT.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Lion's Roar:</b> every hit against an enemy now also deals bonus damage equal to 2% of that enemy's own lost HP, on top of the existing GFJ-gated Burn DoT.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Leo — Divine Fate:</b> freeze-window damage bonus +50% → +100%.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Golden Arrow renamed Forest Guardian (NEW bonus attack):</b> while 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across 60% of the screen width, dealing 1000 + 10% EP + 15% of each target's missing HP. The log itself is now drawn at true scale — its swing visually spans the full 60% width instead of a small hand-held prop — densely wrapped in vine strands and leaf clusters running end to end, with a cut cross-section and snapped branch stub at the striking tip.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Golden Arrow renamed Forest Guardian (NEW bonus attack):</b> while 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across 60% of the screen width, dealing 1000 + 10% EP + 15% of each target's lost HP. The log itself is now drawn at true scale — its swing visually spans the full 60% width instead of a small hand-held prop — densely wrapped in vine strands and leaf clusters running end to end, with a cut cross-section and snapped branch stub at the striking tip.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Virgo — Circuit Engineer:</b> enemies carrying any recognized debuff (Vulnerability, Soul Reaver, slow, DoT, Dimensional Rift, Yog mark) now take +50% damage from all sources.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Pisces — Cycle of Flow:</b> the charge-skip now also covers Overload Laser — a single Space press instantly fires the laser (no more holding to charge), same as Skill D and F.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Vanguard:</b> pierce chance 40% → 50%; absorbs Blood Frenzy's old chain mechanic (+30% dmg per pierce-chain hit, plus true damage per chain 2.5% → 3% of the enemy's Max HP, max 4 chains).</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Gemini — Mirror Laser column visual overhaul:</b> the bonus laser column is now a wavering, color-cycling plasma body with a flickering white-hot core, crackling side-arc branches, and a rotating energy ring at the emission point — replacing the original static rectangle beam.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Blood Frenzy renamed Onslaught (NEW ability):</b> any landed hit from an allied source (Skill D and Skill F excluded) can fire a homing fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit's damage + 0.75% of the target's missing HP, gated by a 300ms cooldown. New fireball visual with an ember trail and licking flame tongues.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Blood Frenzy renamed Onslaught (NEW ability):</b> any landed hit from an allied source (Skill D and Skill F excluded) can fire a homing fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit's damage + 0.75% of the target's lost HP, gated by a 300ms cooldown. New fireball visual with an ember trail and licking flame tongues.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Gemini — Mirror Laser:</b> the 2 mirror beam entities move 25% faster; their beams now deal 75% of the original beam's damage instead of matching it, while the original Overload beam itself is buffed +30%.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Scorpio — Death Mark:</b> the damage bonus is now a linear ramp — +0% at full HP up to +70% at 21% HP — then a flat +80% at 20% HP and below (was a flat +70% below 20%). Instakill threshold raised 3% → 5% HP, now with a lightning-strike visual.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Sagittarius — Arctic Chill:</b> slow proc chance 50% → 75%, slow strength 20% → 30%. CC-immune enemies (Egregor, Dargruel, Leviathan, barrier-shielded Marchosias, invulnerable Aegis Core) now have a 25% chance to still be pulled in (previously never).</li>
@@ -1441,11 +1441,11 @@
 <div class="ul-entry" style="--ul-accent:#a855f7">
 <div class="ul-head"><span class="ul-ver">v4.5 — EVADE SCALING &amp; SPIRIT DAMAGE</span><span class="ul-badge">PATCH</span></div>
 <div class="ul-date">2026 · time-scaled evade, evade visual, boomerang &amp; spirit slash HP-lost scaling</div>
-<p class="det-short ul-summary">Enemy evade rates now scale over match time. Boomerang and Spirit slash gain bonus damage based on target's missing HP. Marchosias CC immune fix.</p>
+<p class="det-short ul-summary">Enemy evade rates now scale over match time. Boomerang and Spirit slash gain bonus damage based on target's lost HP. Marchosias CC immune fix.</p>
 <ul class="det-full">
 <li><span class="ul-tag tag-buff">BUFF</span> Enemy evade rates scale over match time — harder to hit the longer the game runs.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> Visual evade flash effect when an enemy successfully dodges.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> Boomerang and Spirit normal slash deal extra damage scaling with target's missing HP.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Boomerang and Spirit normal slash deal extra damage scaling with target's lost HP.</li>
 <li><span class="ul-tag tag-fix">FIX</span> Marchosias was not CC immune while Arc Shield was active — fixed.</li>
 </ul>
 </div>
@@ -1537,7 +1537,7 @@
 <ul class="det-full">
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Primeval Creation:</b> spirit kills charge a mana bar (+2%/kill). At 100%, press S to transform into Phōtokrystos. Meter resets if spirit enters Finale first.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Phōtokrystos:</b> 40s form (from first shot), 3 homing bullets @ 42ms, 125+1.7% EP each. All attacks destroy enemy bullets. Blessing of the Primordial: Sentinels -15% shot recoil HP cost, ally dmg +15%, +1.75% MaxHP regen/0.75s, +50 shield/3s per sentinel.</li>
-<li><span class="ul-tag tag-feat">FEAT</span> <b>Boomerang:</b> every 6 volleys, 2 boomerangs chain all enemies (400+5.8% EP+5% missing HP true dmg, re-hits every 200ms). Max 10 on screen.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Boomerang:</b> every 6 volleys, 2 boomerangs chain all enemies (400+5.8% EP+5% lost HP true dmg, re-hits every 200ms). Max 10 on screen.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Danger? Not Today!:</b> enemy within 170px of player or boundary → spirit fires a 2s instant-kill laser sweeping ±20°. Bypasses all shields. 10s CD.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Back to Motherland @37s:</b> full-screen lightning barrier 3.5s (20+35% EP true dmg/100ms) → shockwave (10+99% EP, pierces ALL shields and Iron Body).</li>
 </ul>
@@ -1787,7 +1787,7 @@
 
 <div class="card"><h2 style="color:var(--blue)"><span class="key">A</span> THIÊN LÔI CẦU</h2><div class="sub">THIÊN LÔI CẦU <span class="cd">HỒI CHIÊU 6s</span></div>
 <div class="ab" style="height:210px"><canvas id="cvSkillA" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillA" onclick="playWidget('skillA', this)">▶ Play</button></div>
-<ul><li>Triệu hồi <span class="hi">20 thiên lôi cầu</span> (tối đa 80). Mỗi cầu: <span class="dmg">150 + 18% EP</span>, cộng thêm <span class="hr">80 + 5% HP còn thiếu của mục tiêu</span> dưới dạng sát thương chuẩn.</li>
+<ul><li>Triệu hồi <span class="hi">20 thiên lôi cầu</span> (tối đa 80). Mỗi cầu: <span class="dmg">200 + 20% EP</span>, cộng thêm <span class="hr">100 + 15% HP đã mất của mục tiêu</span> dưới dạng sát thương chuẩn.</li>
 <li>Va chạm → <span class="dmg">16 mảnh vỡ</span> bắn tung tóe (mỗi mảnh 5 + 1.5% EP).</li>
 <li><span class="hg">Cầu Vàng:</span> 3 cầu hấp thụ đòn đánh tới. Khi 1 cầu bị <b>hy sinh</b>, kẻ tấn công (nếu nhắm được) nhận <span class="hr">Đoạt Hồn + sát thương theo thời gian Soul Devourer</span> (60 + 5.5% EP mỗi 0.35s) và bị <span class="hr">chậm 25%</span> trong <span class="cd">3s</span>.</li>
 <li><span class="det-full"><b>Nứt Vỡ Thứ Nguyên</b> (khi đòn đánh gây sát thương): vùng 50px, <span class="cd">3s</span>. Kẻ địch bên trong: <span class="hr">−35% tốc độ</span>, <span class="hr">Đoạt Hồn + sát thương theo thời gian</span> (60 + 5.5% EP mỗi 0.35s), <span class="hr">+25% sát thương nhận vào</span>. Đạn kẻ địch bị hút vào và phá hủy tại tâm. <span class="dmg">20%</span> cơ hội mỗi tick sát thương theo thời gian để sét lan sang 8 mục tiêu.</span><span class="det-short"><b>Nứt Vỡ Thứ Nguyên</b>: vùng làm chậm 3s khi trúng đòn — làm chậm, gây sát thương theo thời gian, tăng sát thương nhận vào, hút và phá hủy đạn gần đó.</span></li></ul></div>
@@ -1801,7 +1801,7 @@
 <div id="sSpiritPane1">
   <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
   <ul><li>Tinh Linh bay quanh bắn đạn định hướng mỗi <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
-  <li><span class="det-full">Mỗi phát bắn thứ 5: <b>Arc Blade</b> (<span class="dmg">170 + 4.8% EP + 3% HP còn thiếu</span>). Phá hủy đạn kẻ địch.</span><span class="det-short">Mỗi phát bắn thứ 5 bắn ra 1 đòn <b>Arc Blade</b> phá hủy đạn.</span></li>
+  <li><span class="det-full">Mỗi phát bắn thứ 5: <b>Arc Blade</b> (<span class="dmg">170 + 4.8% EP + 3% HP đã mất</span>). Phá hủy đạn kẻ địch.</span><span class="det-short">Mỗi phát bắn thứ 5 bắn ra 1 đòn <b>Arc Blade</b> phá hủy đạn.</span></li>
   <li><b>Chiêu cuối @35s:</b> laser + 8 quả cầu plasma nảy (cả hai đều là sát thương chuẩn).</li>
   <li><b>Khai Thiên Lập Địa:</b> hạ gục bằng Tinh Linh tích thanh năng lượng (+2% mỗi lần hạ gục). Ở 100%, bấm S lần nữa để biến hình.</li></ul>
 </div>
@@ -1811,7 +1811,7 @@
   <li><span style="color:#00cc66;font-size:10px">PHŌTOKRYSTOS</span> <b>Đại Tinh Linh Khởi Nguyên</b> — kéo dài <span class="hg">40s</span>. Thời lượng reset. Hồi chiêu = 40s sau đó.</li>
   <li><span style="color:#88ccff;font-size:10px">PASSIVE</span> <b>Ân Sủng Khởi Nguyên</b>: Vệ Binh giảm 15% chi phí HP hồi lực khi bắn, sát thương phe ta +15%, hồi +1.75% MaxHp/0.75s, +50 khiên/3s mỗi Vệ Binh.</li>
   <li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> <b>3 đạn định hướng</b> @ <b>42ms</b>: mỗi đạn <span class="dmg">125+1.7% EP</span>, đều bám mục tiêu. Phá hủy đạn kẻ địch. Gây Trọng Thương (15%).</li>
-  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> — <span class="det-full">mỗi 6 đợt bắn: 2 boomerang lan qua mọi kẻ địch (<span class="dmg">400+5.8% EP+5% HP còn thiếu sát thương chuẩn</span>). Chạm là gây sát thương (đánh lại/200ms). Xếp hàng chờ nếu không có kẻ địch. Tối đa <b>10</b> trên màn hình; cái cũ nhất bị thu hồi khi đạt trần (hàng chờ: 5). Sau 2 lần nảy hoặc hết thời gian tồn tại, boomerang <b>bay ngược về</b> linh hồn (nhanh hơn 60%). BTM thu hồi tất cả. Phá hủy đạn.</span><span class="det-short">Mỗi 6 đợt bắn: 2 boomerang xuyên phá lan qua mọi kẻ địch (sát thương chuẩn, tăng theo HP còn thiếu). Thu hồi sau 2 lần nảy.</span></li>
+  <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Boomerang</b> — <span class="det-full">mỗi 6 đợt bắn: 2 boomerang lan qua mọi kẻ địch (<span class="dmg">400+5.8% EP+5% HP đã mất sát thương chuẩn</span>). Chạm là gây sát thương (đánh lại/200ms). Xếp hàng chờ nếu không có kẻ địch. Tối đa <b>10</b> trên màn hình; cái cũ nhất bị thu hồi khi đạt trần (hàng chờ: 5). Sau 2 lần nảy hoặc hết thời gian tồn tại, boomerang <b>bay ngược về</b> linh hồn (nhanh hơn 60%). BTM thu hồi tất cả. Phá hủy đạn.</span><span class="det-short">Mỗi 6 đợt bắn: 2 boomerang xuyên phá lan qua mọi kẻ địch (sát thương chuẩn, tăng theo HP đã mất). Thu hồi sau 2 lần nảy.</span></li>
   <li><span style="color:var(--cyan);font-size:10px">PASSIVE</span> <b>Danger? Not Today!</b> — <span class="det-full">kẻ địch trong bán kính <b>170px quanh người chơi</b> hoặc <b>170px quanh ranh giới</b> → linh hồn ngắm 100ms (khóa lại mỗi khung hình) rồi bắn 1 tia <b>laser Khởi Nguyên 2s</b> quét <b>±20°</b> (giết ngay lập tức mọi thứ trên đường đi, xuyên mọi shield). <b>-20% sát thương trong 3s</b> sau đó. Hồi chiêu bắt đầu sau khi tia kết thúc. (hồi chiêu 10s)</span><span class="det-short">Tự động bắn 1 tia laser giết ngay lập tức khi kẻ địch tới quá gần người chơi hoặc mép màn hình. (hồi chiêu 10s)</span></li>
   <li><span style="color:#4ade80;font-size:10px">COMPANION</span> <b>Vine Bind</b> — <span class="det-full">bắn ra cùng lúc khóa mục tiêu của Danger? Not Today!: dây leo Khởi Nguyên trồi lên từ hư không trói kẻ địch gần ranh giới nhất <b>và</b> kẻ địch gần người chơi nhất (cùng 1 kẻ địch nếu thỏa cả hai điều kiện). Dây leo mất <b>1s</b> để mọc lên, sau đó 1 vầng hào quang xanh lá đánh dấu <b>làm chậm 50% trong 2s</b> — hào quang và hiệu ứng chậm kết thúc cùng lúc. Kẻ địch miễn nhiễm khống chế không bị ảnh hưởng.</span><span class="det-short">Trói kẻ địch gần ranh giới nhất và kẻ địch gần người chơi nhất bằng dây leo, làm chậm chúng 50% trong 2s.</span></li>
   <li><span style="color:var(--red);font-size:10px">FINALE @37s</span> <b>Back to Motherland</b>: <span class="det-full">hàng rào sét toàn màn hình 3.5s (<span class="dmg">20+35% EP sát thương chuẩn/100ms</span>, quét sạch đạn) → sóng xung kích (<span class="dmg">10+99% EP</span>, xuyên qua MỌI shield + Iron Body). Hồi chiêu: 12s từ lúc triệu hồi.</span><span class="det-short">Hàng rào sét toàn màn hình rồi tới sóng xung kích xuyên qua mọi shield và Iron Body.</span></li>
@@ -1884,7 +1884,7 @@
 <canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">BẠCH DƯƠNG</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">CÔNG KÍCH TIÊN PHONG</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Tiên Phong</b> <span class="sbd">50% cơ hội đạn của người chơi & Vệ Binh xuyên qua kẻ địch, +50% sát thương. Mỗi lần xuyên chuỗi: +30% sát thương mỗi chuỗi, cộng thêm 3% Max HP của kẻ địch dưới dạng sát thương thật (tối đa 4 chuỗi).</span></div>
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Khát Chiến</b> <span class="sbd">Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP còn thiếu của mục tiêu (hồi chiêu 300ms).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Khát Chiến</b> <span class="sbd">Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP đã mất của mục tiêu (hồi chiêu 300ms).</span></div>
 </div><div class="sfc-hint">click để đọc truyền thuyết</div>
 </div><div class="sfc-back">
 <canvas class="sfc-glyph-sm-cv" data-sigil="aries"></canvas>
@@ -1935,7 +1935,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">SƯ TỬ</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">HỎA DƯƠNG</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Sư Tử Hống</b> <span class="sbd">Trong lúc Glory for Justice kích hoạt: đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP còn thiếu của mục tiêu.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Sư Tử Hống</b> <span class="sbd">Trong lúc Glory for Justice kích hoạt: đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP đã mất của mục tiêu.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Thần Mệnh</b> <span class="sbd">Đầu mỗi wave: đóng băng 5s — mọi kẻ địch ngừng di chuyển (kể cả địch mới xuất hiện) + toàn bộ sát thương +100%.</span></div>
 </div><div class="sfc-hint">click để đọc truyền thuyết</div>
 </div><div class="sfc-back">
@@ -1948,7 +1948,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">XỬ NỮ</div><div class="sfc-el">Thổ</div><div class="sfc-theme">CHUẨN KÍCH</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Hộ Lâm</b> <span class="sbd">Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x4, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 1000 + 10% EP + 15% HP còn thiếu của mỗi mục tiêu.</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Hộ Lâm</b> <span class="sbd">Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x4, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 1000 + 10% EP + 15% HP đã mất của mỗi mục tiêu.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Kỹ Sư Mạch</b> <span class="sbd">Sát thương theo thời gian Tesla & Cuộn Tesla +50%; phá hủy 1 Cuộn Tesla giảm 3s hồi chiêu Skill G và tăng 10% tốc độ nạp năng lượng G. Kẻ địch mang bất kỳ hiệu ứng bất lợi nào (chậm, sát thương theo thời gian, Trọng Thương, Đoạt Hồn,...) nhận +50% sát thương từ mọi nguồn.</span></div>
 </div><div class="sfc-hint">click để đọc truyền thuyết</div>
 </div><div class="sfc-back">
@@ -2026,7 +2026,7 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">SONG NGƯ</div><div class="sfc-el">Thủy</div><div class="sfc-theme">DÒNG CHẢY VÀ NÉ TRÁNH</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cõi Mộng</b> <span class="sbd">Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP còn thiếu của chúng.</span></div>
+<div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cõi Mộng</b> <span class="sbd">Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP đã mất của chúng.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Dòng Chảy Luân Hồi</b> <span class="sbd">Hạ Apostle: −1s hồi chiêu mọi skill; hạ Abnormal/Elite: −1.5s; hạ Dominator: −2s; hạ Egregor: −3s. Tốc độ nạp Phōtokrystos và Skill G +50%. Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).</span></div>
 </div><div class="sfc-hint">click để đọc truyền thuyết</div>
 </div><div class="sfc-back">
