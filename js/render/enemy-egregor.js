@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/enemy-egregor.js — extracted from render.js (base body + Psychic
 // Tempest / Null Slash telegraph and strike effects). Runs to end of original file.
 

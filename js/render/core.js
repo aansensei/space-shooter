@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/core.js — extracted from render.js (lines 1-304, 424-1536).
 // Module state (quality flags, sprite caches), init helpers, background
 // rendering, the main draw() orchestrator, and the start screen.

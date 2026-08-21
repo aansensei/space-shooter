@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/skill-buttons.js — extracted from render.js (on-screen skill button UI).
 // drawSkillButton (singular) is confirmed dead code (no caller) — kept as-is,
 // not deleted, per repo convention of not removing unrelated dead code.

@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/enemy-aegis-core.js — extracted from render.js. Self-contained,
 // no cross-file calls besides core.js's _mobPerf.
 

@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/enemy-goliath.js — Goliath (Information Lifeform), Dominator-tier
 // prototype boss for the future Administrator class. Visuals ported directly
 // from the approved test-goliath.html prototype (faceted-crystal body, 3 gem

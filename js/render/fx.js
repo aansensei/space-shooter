@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/fx.js — extracted from render.js (shared visual effects: aegis lasers,
 // persian tile, dimensional rifts, dim-break zones, boss shockwaves, chain
 // lightning, demon-gift aura, vanguard threads, sentinel, polygon helper,

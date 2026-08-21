@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 function updateDefensiveOrbs() {
     let currentDefensive = skillAOrbs.filter(o => o.isDefensive).length;
     let targetDefensive = Math.min(skillADefensiveCharges, skillAOrbs.length);

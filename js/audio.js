@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // Central audio system. All in-game and menu sounds route through this file.
 // Volumes have three categories the settings panel exposes:
 //   bgm    – menu track + randomized in-game BGM

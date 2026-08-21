@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/enemy-boss-thaelis.js — extracted from render.js (Apostle/Thaelis boss
 // visuals). Calls drawPolygon() from fx.js.
 

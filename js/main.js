@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 function loseLife() {
     // Debug invuln guard here too (not just playerTakesHit()): an enemy
     // reaching the bottom boundary calls loseLife() directly, bypassing
