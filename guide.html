@@ -1046,6 +1046,14 @@
 <tr><td style="color:#ff2244">Administrator</td><td>Kanade</td><td>—</td></tr>
 </table><p style="color:var(--dim);font-size:11px;margin-top:6px">All enemies have hidden +5% HP bonus. Cap = max simultaneously on screen. No combined cap across tiers. Goliath is a testbed boss for the future Administrator class — it spawns once on every wave number divisible by 5, outside the normal apostle/abnormal/elite/dominator rotation.</p></div>
 
+<div class="card"><h2 class="dsname" style="color:#ff3344">WALPURGIS <span class="dsclass" style="font-size:9px;color:#ff3344">HUYẾT DẠ</span></h2>
+<div class="sub">Every 10 waves · Permanent, stacking, all enemies</div>
+<ul>
+<li>Every 10 waves, all enemies permanently gain 1 stack (wave 10 = 1, wave 20 = 2, unlimited). Enemies already on screen are rescaled immediately, not just future spawns.</li>
+<li>Each stack: <b>+10% Max HP</b>, <b>+5% Evade</b>, <b>+100 flat damage reduction</b> (a separate stat from percentage DR — subtracted after % DR, floored at 0, never blocks a kill outright), and <b>+5% effectiveness on all healing/shields received</b>.</li>
+<li>A red glow aura appears around every enemy once at least 1 stack is active, growing more intense per stack.</li>
+</ul></div>
+
 <div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLES <span class="dsclass" style="font-size:9px;color:#aaaaaa">LESSER</span></h2><div class="sub">HP 22–330 • FIRES 1 BULLET/SEC • Evade 1→2% • Speed ~1.2 u/s</div>
 <div class="ab" style="height:140px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div>
 <ul>
@@ -1210,8 +1218,18 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
+<div class="ul-entry" style="--ul-accent:#ef4444">
+<div class="ul-head"><span class="ul-ver">v5.7 — WALPURGIS &amp; SFX PASS</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-date">2026-08-22 · New endgame-scaling mechanic (Walpurgis), 5 new sound effects, and a generic hit sound for shield/barrier absorbs that had none</div>
+<p class="det-short ul-summary">Walpurgis (Huyết Dạ) is a new permanent, stacking buff that hits every enemy on the field once every 10 waves — Max HP, Evade, a new flat damage-reduction stat, and heal/shield effectiveness all scale up forever, visualized with a red glow aura that deepens per stack. Also added real sound to several abilities that were previously silent (Aegis Core's Lumen Nova, Goliath's Absolute Verdict, Leviathan's death lasers, Dargruel's chains, Skill D's Mark &amp; Annihilate beam), replaced the player's autoshot cue, and gave Goliath's Warding Palm and various shield/barrier absorbs an audio cue for the first time.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Walpurgis (Huyết Dạ):</b> every 10 waves, all enemies — including ones already on screen — permanently gain 1 stack. Each stack: <span class="hg">+10% Max HP</span>, <span class="hg">+5% Evade</span>, <span class="hg">+100 flat damage reduction</span> (a separate stat from percentage DR, applied after it, floored at 0), and <span class="hg">+5%</span> effectiveness on all healing/shields the enemy receives. A red aura marks every buffed enemy, growing more intense per stack.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>New sound effects:</b> Aegis Core's Lumen Nova / Goliath's Joker-copy of it / Leviathan's death lasers / Skill D's Mark &amp; Annihilate beam now share a laser-fire cue; Goliath's Absolute Verdict launch, Dargruel's chain launch, and the chain-root hit on the player each got their own new cue; the player's autoshot got a replacement cue. A new generic metal-hit sound now plays for several previously-silent moments: Goliath's Iron Body absorbs, Fracture Step, Warding Palm, Joker Marchosias's Arc Barrier, and an Absolute Shield breaking.</li>
+</ul>
+</div>
+
 <div class="ul-entry" style="--ul-accent:#a855f7">
-<div class="ul-head"><span class="ul-ver">v5.6 — DEATH STAR REWORK</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-head"><span class="ul-ver">v5.6 — DEATH STAR REWORK</span><span class="ul-badge b-major">MAJOR</span></div>
 <div class="ul-date">2026-08-21 · Skill D fully reworked from Cosmic Black Hole: Singularity into Death Star: Draconic Annihilation</div>
 <p class="det-short ul-summary">Skill D keeps its core pull-and-instakill (speed 6, center contact = instant kill / 30% MaxHP true damage for CC-Immune enemies) but is now a full rework in name, visuals, and kit. Two new mechanics layer on top: Mark & Annihilate, a repeating cycle that marks 3 targets (CC-Immune first) and fires a piercing true-damage beam through each, and Galactic Spaceships, allied drones spawned on every Death Star kill that home in on the current highest-HP enemy, fire true-damage bolts in flight, and crash for bonus damage plus a Vulnerability stack — spaceships can be shot down by enemy fire before they arrive. Cooldown 12s → 10s, refunded a further 0.25s per kill. Full visual rework: new charge sequence, mechanical-ring/debris-field body, and quality-tier scaling (FULL/MED/LOW/MIN) matching every other effect in the game.</p>
 <ul class="det-full">
@@ -2066,6 +2084,14 @@
 <tr><td style="color:#eab308">Digiform</td><td>Goliath</td><td>1, mỗi wave 5/10/15/20...</td></tr>
 <tr><td style="color:#ff2244">Quản Trị Viên</td><td>Kanade</td><td>—</td></tr>
 </table><p style="color:var(--dim);font-size:11px;margin-top:6px">Mọi kẻ địch có +5% HP ẩn. CAP = số lượng tối đa cùng lúc trên màn hình. Không có CAP tổng hợp giữa các cấp. Goliath là boss thử nghiệm cho lớp Quản Trị Viên trong tương lai — nó xuất hiện 1 lần vào mỗi số wave chia hết cho 5, nằm ngoài vòng quay bình thường của Apostle/Thượng Cấp/Tinh Anh/Ma Thần.</p></div>
+
+<div class="card"><h2 class="dsname" style="color:#ff3344">WALPURGIS <span class="dsclass" style="font-size:9px;color:#ff3344">HUYẾT DẠ</span></h2>
+<div class="sub">Mỗi 10 wave · Vĩnh viễn, cộng dồn, toàn bộ kẻ địch</div>
+<ul>
+<li>Mỗi 10 wave, toàn bộ kẻ địch nhận vĩnh viễn 1 tầng (wave 10 = 1 tầng, wave 20 = 2 tầng, không giới hạn). Kẻ địch đang có mặt trên màn hình được tính lại chỉ số ngay lập tức, không chỉ áp dụng cho kẻ địch spawn sau đó.</li>
+<li>Mỗi tầng: <b>+10% Max HP</b>, <b>+5% Né tránh</b>, <b>+100 giảm sát thương cố định</b> (chỉ số riêng biệt với DR theo %, trừ thẳng sau khi tính DR %, luôn về tối thiểu 0, không bao giờ chặn đứng đòn kết liễu), và <b>+5% hiệu quả hồi máu/khiên nhận được</b>.</li>
+<li>Một vầng hào quang đỏ hiện quanh mọi kẻ địch khi có từ 1 tầng trở lên, càng nhiều tầng càng đậm.</li>
+</ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#aaaaaa">APOSTLE <span class="dsclass" style="font-size:9px;color:#aaaaaa">HẠ CẤP</span></h2><div class="sub">HP 22–330 • BẮN 1 ĐẠN/GIÂY • Né 1→2% • Tốc độ ~1.2 u/s</div>
 <div class="ab" style="height:140px"><canvas id="cvNormal" style="width:100%;height:100%"></canvas></div>

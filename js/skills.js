@@ -1318,7 +1318,10 @@ function updateSkillD(deltaTime) {
         } else if (deathStar.laserAt >= 0 && deathStar.activeTime >= deathStar.laserAt) {
             // Same shake weight as Aegis Core's Lumen Nova (js/main.js) so the
             // volley reads with real impact instead of a flat visual-only beam.
-            if (deathStar.markedTargets.length > 0) _setShake(8, 200);
+            if (deathStar.markedTargets.length > 0) {
+                _setShake(8, 200);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', deathStar.x, deathStar.y);
+            }
             const reach = Math.hypot(canvas.width, canvas.height) * 1.5;
             for (const target of deathStar.markedTargets) {
                 if (!enemies.includes(target) || target.hp <= 0) continue;

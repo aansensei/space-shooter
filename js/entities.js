@@ -475,7 +475,7 @@ function spawnEnemy() {
 function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 10;
-    let hp = Math.ceil((6200 + Math.random() * 9800) * 1.15); // 6200–16000, +15% global HP buff
+    let hp = Math.ceil((6200 + Math.random() * 9800) * 1.15 * _walpurgisHpMult()); // 6200–16000, +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.765, hp: hp, maxHp: hp,
@@ -493,7 +493,7 @@ function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.ceil(Math.min(2640, 1100 + hpFromTime * 53) * 1.15); // +15% global HP buff
+    let hp = Math.ceil(Math.min(2640, 1100 + hpFromTime * 53) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -509,7 +509,7 @@ function spawnAegisCore() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.ceil(Math.min(4500, 2500 + hpFromTime * 64) * 1.15); // +15% global HP buff
+    let hp = Math.ceil(Math.min(4500, 2500 + hpFromTime * 64) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.367, hp: hp, maxHp: hp,
@@ -524,7 +524,7 @@ function spawnMarchosias() {
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9 * 1.067; // ~1.6 u/s
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.ceil(Math.min(4092, 2112 + hpFromTime * 55) * 1.15); // +15% global HP buff
+    let hp = Math.ceil(Math.min(4092, 2112 + hpFromTime * 55) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
 
     const shieldHp = hp;
 
@@ -585,7 +585,7 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 function spawnApostle() {
     const size = 20 + Math.random() * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 15000);
-    let hp = Math.ceil(Math.min(330, (Math.floor(Math.random() * 20) + 22 + hpFromTime * 5)) * 1.15); // +15% global HP buff
+    let hp = Math.ceil(Math.min(330, (Math.floor(Math.random() * 20) + 22 + hpFromTime * 5)) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8, hp: hp, maxHp: hp,
@@ -598,7 +598,7 @@ function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
     const size = baseSize * 5; // ~100–150px, bằng Thaelis
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.ceil(Math.min(3300, 1320 + hpFromTime * 66) * 1.15); // +15% global HP buff
+    const hp = Math.ceil(Math.min(3300, 1320 + hpFromTime * 66) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2,
         y: -size,
@@ -1092,6 +1092,7 @@ function findClosestSentinelOrPlayer(x, y) {
 // Helper: add shield to an enemy, khi Thaelis đang có barrier, mọi khiên đều dồn vào barrier thay thế
 function _addEnemyShield(enemy, amount) {
     if (!amount || amount <= 0) return;
+    amount *= _walpurgisHealShieldMult(); // Walpurgis (Huyết Dạ): +5% shield effectiveness per stack
     _goliathTrackResourceGain(enemy, amount);
     if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0) {
         enemy._tenacityBarrier += amount;
@@ -1116,6 +1117,7 @@ function triggerDemonGift(boss) {
         const veilNormal = enemy.type === 'veilshroud' && !enemy.inPhantom;
         const veilPhantom = enemy.type === 'veilshroud' && enemy.inPhantom;
         if (veilPhantom) healAmount *= 0.75; // Phantom: -25% heal & shield received
+        healAmount *= _walpurgisHealShieldMult(); // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
         const potentialHp = enemy.hp + healAmount;
 
         if (potentialHp > enemy.maxHp) {
@@ -1168,6 +1170,7 @@ function dealDamage(enemy, source) {
         // (kể cả true damage/xuyên), giống hệt luật Alpha/Transforming.
         if (enemy._transformIronBodyEnd && performance.now() < enemy._transformIronBodyEnd) {
             createParticles(enemy.x, enemy.y, 6, '#f59e0b', 2, 7);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
             return;
         }
         // Fracture Step: lớp Iron Body vừa nhận lúc dịch chuyển, hấp thụ trọn
@@ -1175,6 +1178,7 @@ function dealDamage(enemy, source) {
         if (enemy._fractureIronBodyHits > 0 && (source.damage > 0 || source.percentDamage > 0)) {
             enemy._fractureIronBodyHits--;
             createParticles(enemy.x, enemy.y, 6, '#f59e0b', 2, 7);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
             return;
         }
         // Warding Palm: đòn tới từ Skill F/D/tia Photokrystos — sức mạnh khởi
@@ -1189,6 +1193,7 @@ function dealDamage(enemy, source) {
             if (_blocked) createParticles(enemy.x, enemy.y, 14, '#c084fc', 3, 9);
             enemy.hp = Math.max(0, enemy.hp - dmg);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
             return;
         }
         // Joker Marchosias: Arc Barrier hấp thụ đòn TRƯỚC KHI chạm thân (nếu
@@ -1286,6 +1291,7 @@ function dealDamage(enemy, source) {
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.absoluteShield = false;
             addExplosion(enemy.x, enemy.y, enemy.size * 2, 'gold');
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
             return;
         }
     }
@@ -1324,6 +1330,9 @@ function dealDamage(enemy, source) {
             _evade = 0.35 - _gDecayT * 0.10;
             if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.05;
         }
+        // Walpurgis (Huyết Dạ): +5% evade per stack, applies on top of every
+        // enemy's own tier/type evade (including types with 0 base evade).
+        _evade += _walpurgisEvadeBonus();
         if (_evade > 0 && Math.random() < _evade) {
             if (enemy.type === 'goliath') {
                 // Riêng cho Goliath: vòng lục giác tím giãn ra + thân nhấp
@@ -1456,7 +1465,7 @@ function dealDamage(enemy, source) {
                 if (_wasAlive && enemy._tentacleHps[_ti] <= 0) {
                     enemy._tentaclesLost = (enemy._tentaclesLost || 0) + 1;
                     const _hpBefore = enemy.hp;
-                    enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(enemy.maxHp * 0.06));
+                    enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(enemy.maxHp * 0.06 * _walpurgisHealShieldMult()));
                     _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
                     enemy.maxHp += Math.ceil(_tentMaxHp * 0.20);
                     const _sc = (enemy.size / 2) / 110;
@@ -1685,6 +1694,11 @@ function dealDamage(enemy, source) {
     if (!source.isTrueDamage) {
         const _drMul = source._isSthDot ? combinedDR * 0.5 : combinedDR;
         totalDamage = Math.ceil(totalDamage * (1 - _drMul));
+        // Walpurgis (Huyết Dạ): flat "DR Base" armor, +100 per stack — a
+        // separate stat from the %-based DR above, subtracted straight off
+        // the remaining damage. Floored at 0 same as everywhere else, so it
+        // can only ever reduce a hit to a graze, never block a kill outright.
+        totalDamage -= _walpurgisFlatDR();
         totalDamage = Math.max(0, totalDamage);
     }
 
@@ -2045,6 +2059,7 @@ function dealDamage(enemy, source) {
             });
         });
         _setShake(12, 400);
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', lx, ly);
     }
 
     const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
@@ -2124,7 +2139,7 @@ function spawnLeviathan() {
     const size = baseSize * 10;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
     let hp = Math.min(15435, 8820 + hpFromTime * 55);
-    hp = Math.ceil(hp * 1.05 * 1.15); // +15% global HP buff (stacks with Leviathan's own +5%)
+    hp = Math.ceil(hp * 1.05 * 1.15 * _walpurgisHpMult()); // +15% global HP buff (stacks with Leviathan's own +5%)
 
     // Y = random 6-9 kills để trigger announcement Perseverance → vỡ khiên
     const killQuota = 10 + Math.floor(Math.random() * 11); // 10–20
@@ -2649,6 +2664,7 @@ function _goliathHealBoost(enemy, amount) {
     if (enemy._jokerState && enemy._jokerState['Thaelis']) mult += 0.35;
     if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) mult += 0.15;
     if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) mult += 0.40;
+    mult += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
     return amount * mult;
 }
 
@@ -2748,6 +2764,7 @@ function _goliathMarchosiasBarrier(enemy, source) {
     if (Math.random() < 0.10) {
         _goliathTryTriggerSword(enemy);
         addExplosion(enemy.x, enemy.y, enemy.size * 0.35, '#aaddff');
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
         return 'evaded';
     }
     let dmg = Math.ceil((source.damage || 0) + (s.barrierMaxHp * (source.percentDamage || 0)));
@@ -2772,6 +2789,7 @@ function _goliathMarchosiasBarrier(enemy, source) {
     _goliathMarchosiasBodyHeal(enemy, dmg);
     _goliathTryTriggerSword(enemy);
     if (wasAlive && s.barrierHp <= 0) _goliathMarchosiasBarrierBreak(enemy, s);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
     return 'absorbed';
 }
 function _goliathMarchosiasBodyHeal(enemy, dmg) {
@@ -3021,6 +3039,7 @@ function updateGoliath(enemy, deltaTime) {
                     x: _eye.x, y: _eye.y, vx: Math.cos(vAngle) * 420, vy: Math.sin(vAngle) * 420,
                     dmg: enemy.maxHp * 0.35, owner: enemy, life: 4000,
                 });
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-launch', _eye.x, _eye.y);
             }
         }
 
@@ -3188,7 +3207,7 @@ function _goliathEnterTrueForm(enemy) {
     enemy.inCoronation = false; // giờ mới có thể bị nhắm mục tiêu
     enemy.size = 260; // giảm ~7% so với 280 theo yêu cầu
     const pulledCapped = Math.min(247500, enemy.damagePull);
-    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.20 * enemy.gemPoints));
+    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.20 * enemy.gemPoints) * _walpurgisHpMult());
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
 
@@ -3651,7 +3670,7 @@ function updateApostleCoronation(enemy, deltaTime) {
 function spawnEgregor() {
     const size = 160;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    const hp = Math.ceil(Math.min(4750, 2200 + hpFromTime * 72) * 1.15); // +15% global HP buff
+    const hp = Math.ceil(Math.min(4750, 2200 + hpFromTime * 72) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size,
         y: -size,
