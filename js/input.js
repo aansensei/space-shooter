@@ -136,7 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (gameState !== "playing" || gamePaused) return;
+        // Same freeze as main.js's update() (skipped while the sigil picker
+        // is up) — without this, skill keys still fired activateSkillX()
+        // using real wall-clock time while everything else was frozen, so
+        // e.g. Skill D's charge could silently start (or even resolve
+        // instantly, if the picker sat open longer than the charge time)
+        // before the player ever saw the game resume.
+        if (gameState !== "playing" || gamePaused || window._sigilPicker) return;
 
         // Skill Shift: Yog-Sothoth
         if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
