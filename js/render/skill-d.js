@@ -118,22 +118,54 @@ function drawSkillDCharging() {
 // are drawn (HIGH tier) or only the first 40 (MED tier's _drawSkillDDebrisRing
 // subsampling) — not just the final full set.
 const _GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+// Each debris piece's polygon + gradient fill + stroke is baked once onto a
+// small offscreen canvas at generation time instead of rebuilding the path
+// and creating a fresh createLinearGradient for all 80 pieces every single
+// frame — that per-frame cost (up to 80 gradients + 80 path fills/strokes,
+// twice — once per near/far pass) was the actual source of the reported lag,
+// not just a style choice. Drawing is now a single cheap drawImage per piece.
+// The rim-light direction is fixed per-piece (baked in) rather than always
+// facing the Death Star center — a static "lit from one side" read instead
+// of a live-recomputed one, visually close enough to be worth the trade.
 function _genSkillDDebris(count) {
     const out = [];
     for (let i = 0; i < count; i++) {
         const distance = 130 + Math.random() * 150;
         const sides = 4 + Math.floor(Math.random() * 4);
         const pts = [];
+        let maxR = 0;
         for (let s = 0; s < sides; s++) {
             const a = (s / sides) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
             const r = 3 + Math.random() * 9;
             pts.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+            if (r > maxR) maxR = r;
         }
+        const dim = Math.ceil(maxR * 2) + 4;
+        const half = dim / 2;
+        const sc = document.createElement('canvas');
+        sc.width = dim; sc.height = dim;
+        const scx = sc.getContext('2d');
+        scx.translate(half, half);
+        scx.beginPath();
+        scx.moveTo(pts[0].x, pts[0].y);
+        for (let j = 1; j < pts.length; j++) scx.lineTo(pts[j].x, pts[j].y);
+        scx.closePath();
+        const grad = scx.createLinearGradient(-half, -half, half, half);
+        grad.addColorStop(0, '#00ffff');
+        grad.addColorStop(0.3, '#331166');
+        grad.addColorStop(1, '#0a0a10');
+        scx.fillStyle = grad;
+        scx.fill();
+        scx.strokeStyle = '#111';
+        scx.lineWidth = 1;
+        scx.stroke();
+
         out.push({
             angle: (i * _GOLDEN_ANGLE) % (Math.PI * 2),
             dist: distance,
             speed: (0.001 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : -1),
-            pts, tilt: Math.random() * Math.PI * 2,
+            tilt: Math.random() * Math.PI * 2,
+            sprite: sc, half,
         });
     }
     return out;
@@ -152,25 +184,7 @@ function _drawSkillDDebrisRing(debris, time, drawBehind, count) {
         ctx.save();
         ctx.translate(sx, yPos);
         ctx.rotate(d.tilt + time * d.speed * 2);
-
-        ctx.beginPath();
-        ctx.moveTo(d.pts[0].x, d.pts[0].y);
-        for (let j = 1; j < d.pts.length; j++) ctx.lineTo(d.pts[j].x, d.pts[j].y);
-        ctx.closePath();
-
-        if (_gfxLevel < 2) {
-            const gradient = ctx.createLinearGradient(-sx / 10, -yPos / 10, sx / 10, yPos / 10);
-            gradient.addColorStop(0, '#00ffff');
-            gradient.addColorStop(0.3, '#331166');
-            gradient.addColorStop(1, '#0a0a10');
-            ctx.fillStyle = gradient;
-        } else {
-            ctx.fillStyle = '#1a0a2a'; // flat fast-path at LOW/MIN
-        }
-        ctx.fill();
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        ctx.drawImage(d.sprite, -d.half, -d.half);
         ctx.restore();
     }
 }
@@ -202,20 +216,20 @@ function _drawSkillDMechanicalRing(outer, inner, rotation, fillColor, accentColo
     ctx.beginPath(); ctx.arc(0, 0, inner, 0, Math.PI * 2); ctx.stroke();
 
     // Glowing gem studs orbiting mid-band, same visual family as Goliath's
-    // ring bezels and the Sigil HUD's icon dots
-    for (let i = 0; i < segments; i++) {
-        const a = (i / segments) * Math.PI * 2;
-        ctx.save();
-        ctx.rotate(a);
-        const studR = (outer - inner) * 0.22;
-        const studGrad = ctx.createRadialGradient(mid, 0, 0, mid, 0, studR);
-        studGrad.addColorStop(0, '#ffffff');
-        studGrad.addColorStop(0.4, accentColor);
-        studGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = studGrad;
-        if (!_mobPerf) { ctx.shadowColor = accentColor; ctx.shadowBlur = 10; }
-        ctx.beginPath(); ctx.arc(mid, 0, studR, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
+    // ring bezels and the Sigil HUD's icon dots. One cached glow sprite
+    // (core.js's _getGlowSprite) reused via drawImage for every stud instead
+    // of a fresh createRadialGradient + shadowBlur toggle per stud per frame
+    // — with up to 20 studs across both rings that was a real perf cost.
+    const studR = (outer - inner) * 0.22;
+    const studSprite = _getGlowSprite(accentColor, studR);
+    if (studSprite) {
+        for (let i = 0; i < segments; i++) {
+            const a = (i / segments) * Math.PI * 2;
+            ctx.save();
+            ctx.rotate(a);
+            ctx.drawImage(studSprite, mid - studR, -studR);
+            ctx.restore();
+        }
     }
     ctx.restore();
 }
@@ -249,9 +263,14 @@ function drawDeathStar() {
     }
 
     // Orbiting energy motes — a particle halo at several radii/speeds, HIGH
-    // gets a dense field, MED a sparse one
+    // gets a dense field, MED a sparse one. Uses core.js's cached glow-sprite
+    // (drawImage of a pre-baked gradient) instead of a fresh
+    // createRadialGradient + shadowBlur toggle per mote per frame — with up
+    // to 26 of these every frame that was a real perf cost, not just visual.
     if (_gfxLevel < 2) {
         const moteCount = _gfxLevel < 1 ? 26 : 10;
+        const cyanSprite = _getGlowSprite('#00ffff', 5);
+        const violetSprite = _getGlowSprite('#aa00ff', 5);
         for (let i = 0; i < moteCount; i++) {
             const ring = i % 3;
             const radius = S * (1.9 + ring * 0.35);
@@ -259,11 +278,13 @@ function drawDeathStar() {
             const a = (i / moteCount) * Math.PI * 2 + now * speed;
             const mx = Math.cos(a) * radius, my = Math.sin(a) * radius * 0.94;
             const tw = 0.4 + 0.6 * Math.sin(now / 300 + i * 1.7);
-            ctx.fillStyle = i % 2 === 0 ? `rgba(0,255,255,${tw})` : `rgba(200,120,255,${tw})`;
-            if (!_mobPerf) { ctx.shadowColor = i % 2 === 0 ? '#00ffff' : '#aa00ff'; ctx.shadowBlur = 6; }
-            ctx.beginPath(); ctx.arc(mx, my, 1.6, 0, Math.PI * 2); ctx.fill();
+            const sprite = i % 2 === 0 ? cyanSprite : violetSprite;
+            if (sprite) {
+                ctx.globalAlpha = tw;
+                ctx.drawImage(sprite, mx - 5, my - 5);
+                ctx.globalAlpha = 1;
+            }
         }
-        ctx.shadowBlur = 0;
     }
 
     // Far debris (behind), count/pass tiered
@@ -303,23 +324,22 @@ function drawDeathStar() {
     }
 
     // Energy conduits — pulsing power lines feeding the inner ring into the
-    // core, MED/HIGH only, reinforcing that the core is being actively fed
+    // core, MED/HIGH only. A short solid-color dash at the pulse position
+    // (alpha falls off with distance from it) reads the same as the fade
+    // this used to build via a fresh 5-stop createLinearGradient per conduit
+    // per frame, without the per-frame gradient-object cost.
     if (_gfxLevel < 2) {
         const conduitCount = _gfxLevel < 1 ? 8 : 4;
+        const conduitLen = S * 0.15;
         for (let i = 0; i < conduitCount; i++) {
             const a = (i / conduitCount) * Math.PI * 2 + now * 0.0004;
             const pulse = (now / 500 + i / conduitCount) % 1;
             ctx.save();
             ctx.rotate(a);
-            const conduitGrad = ctx.createLinearGradient(S * 1.5, 0, S * 1.35, 0);
-            conduitGrad.addColorStop(0, 'rgba(0,255,255,0)');
-            conduitGrad.addColorStop(Math.max(0, pulse - 0.15), 'rgba(0,255,255,0)');
-            conduitGrad.addColorStop(pulse, 'rgba(180,240,255,0.9)');
-            conduitGrad.addColorStop(Math.min(1, pulse + 0.15), 'rgba(0,255,255,0)');
-            conduitGrad.addColorStop(1, 'rgba(0,255,255,0)');
-            ctx.strokeStyle = conduitGrad;
+            const px = S * 1.5 - pulse * conduitLen;
+            ctx.strokeStyle = 'rgba(180,240,255,0.9)';
             ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.moveTo(S * 1.5, 0); ctx.lineTo(S * 1.35, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(px + 6, 0); ctx.lineTo(px - 6, 0); ctx.stroke();
             ctx.restore();
         }
     }
