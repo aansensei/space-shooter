@@ -22,7 +22,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 | Shift Left / Right | Skill: Yog-Sothoth Domain |
 | A | Skill: Thunder Orbs |
 | S | Skill: Remembrance Spirit / Primeval Creation |
-| D | Skill: Cosmic Black Hole |
+| D | Skill: Death Star |
 | F | Skill: Annihilation Sweep |
 | G | Skill: Life Domain / Tesla Matrix |
 
@@ -56,9 +56,9 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 | Dominator | 10% → 15% |
 | Digiform (Goliath) | 35% → 25% over 15s post-transform, +5% (3s, non-stacking) per HP milestone crossed — see its own Evasion passive below, not this generic system |
 
-**Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Black Hole, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
+**Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Death Star, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
-**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Black Hole pull, Tesla Coil slow, Dimensional Rift slow, Orb Sacrifice slow. CC Immunity does not block damage. **Egregor** and **Dargruel** have permanent CC Immunity. **Goliath** (True Form, via Inevitable) also has permanent CC Immunity.
+**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Death Star pull, Tesla Coil slow, Dimensional Rift slow, Orb Sacrifice slow. CC Immunity does not block damage. **Egregor** and **Dargruel** have permanent CC Immunity. **Goliath** (True Form, via Inevitable) also has permanent CC Immunity.
 
 When **Glory for Justice** is active, all friendly damage is multiplied by **1.55×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
 
@@ -80,7 +80,7 @@ When **Glory for Justice** is active, all friendly damage is multiplied by **1.5
 
 A stacking debuff inflicted by all friendly attacks that progressively weakens enemies.
 
-- **Application Chance:** Player auto-fire bullets each have a **28% chance** per hit. All other allied sources — Sentinels, Spirits, Skill A orbs, Black Hole, Overload Laser, Chain Lightning, Tesla DoT, and all other damage sources — have a **15% chance**.
+- **Application Chance:** Player auto-fire bullets each have a **28% chance** per hit. All other allied sources — Sentinels, Spirits, Skill A orbs, Death Star, Overload Laser, Chain Lightning, Tesla DoT, and all other damage sources — have a **15% chance**.
 - **On Application — Shield Shred:** Instantly destroys **26% of the enemy's current Shield HP** (scales down as the shield depletes — it always shreds 26% of whatever shield HP remains at that moment).
 - **Damage Amplification:** Each stack increases all incoming damage to that enemy by **+16%**. At maximum stacks (4 stacks) the enemy takes **+64% more damage** from all sources.
 - **Stacking:** Caps at **4 stacks**. Applying a new stack fully **refreshes the 3-second duration**. All stacks are lost at once when the timer expires. When an enemy reaches all 4 stacks, every player-side attack against that target deals **true damage** (bypasses all shields) for **2 seconds**.
@@ -287,15 +287,19 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 ---
 
-### D — Cosmic Black Hole: Singularity
+### D — Death Star: Draconic Annihilation (Tinh Vương Long: Tử Long Tinh)
 
-**Cooldown:** 12s | **Charge:** 2s
+**Cooldown:** 10s | **Charge:** 2s
 
-After a 2-second charge, spawns a Black Hole that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
+After a 2-second charge, spawns a Death Star that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
 - Embryos have **CC Immunity** — immune to the gravitational pull but still die at the center.
-- **Egregor** and **Dargruel** are CC Immune — the Black Hole cannot pull them. If they are at the center, they take **30% of their Max HP as true damage** instead of instant kill.
-- The Black Hole slowly floats upward and disappears off-screen.
+- **Egregor** and **Dargruel** are CC Immune — the Death Star cannot pull them. If they are at the center, they take **30% of their Max HP as true damage** instead of instant kill.
+- The Death Star slowly floats upward and disappears off-screen.
+
+**Mark & Annihilate** — Every ~2 seconds while the Death Star is alive, it marks 3 targets (CC-Immune enemies first, since those can't be pulled to the center at all; otherwise the 3 highest-current-HP valid targets). After a 1.5s telegraph, it fires a **piercing true-damage beam** through each marked target and on to the screen edge — **100 base + 12% EP**, hitting every enemy the beam crosses, not just the marked one.
+
+**Galactic Spaceships** — Every enemy the Death Star kills (center instakill, a Mark & Annihilate beam, or an accumulated CC-Immune tick finally finishing one off) reduces Skill D's own cooldown by **0.25s** and spawns an allied spaceship. Each spaceship homes toward the current highest-HP enemy on screen, firing a **fixed 50 true damage** bolt every 300ms while in flight, then on contact deals **50 + 5% EP true damage** and applies **1 stack of Vulnerability**. Spaceships have **500 HP** and can be shot down by enemy fire before reaching their target.
 
 ---
 
@@ -390,7 +394,7 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 **Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
 
 - Each Embryo has 33% of Thaelis's Max HP + 50–100 bonus HP.
-- Embryos have **90% Damage Reduction** and **CC Immunity** (immune to Black Hole pull and Tesla slow). They CAN receive shields and heals from Aegis Core or Demon Gift. **No single hit can exceed 10% of the Embryo's current EP.**
+- Embryos have **90% Damage Reduction** and **CC Immunity** (immune to Death Star pull and Tesla slow). They CAN receive shields and heals from Aegis Core or Demon Gift. **No single hit can exceed 10% of the Embryo's current EP.**
 - After 3 seconds, any surviving Embryo hatches into a new Normal Enemy (Embryo's HP + 60 base HP).
 
 ---
@@ -401,7 +405,7 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 HP: **2,376–4,118**. Permanent **55% Damage Reduction** at all times.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Black Holes and Skill F — are completely nullified. Each hit triggers a white flash. After the 20th hit the shield breaks and Aegis Core takes damage normally. **While Custos is active, Aegis Core is CC Immune** — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash. After the 20th hit the shield breaks and Aegis Core takes damage normally. **While Custos is active, Aegis Core is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
@@ -471,7 +475,7 @@ Each minion scans within **170px** for a valid host (excluding other Marchosias)
 
 **Available after:** Wave 2 | **Spawn rate:** 3% → 12% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.5 u/s
 
-HP: **2,112–4,620**. Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
+HP: **2,112–4,620**. Permanent **40% Damage Reduction** on its body at all times. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Death Star pull. A massive psychic entity with 10 waving tentacles, an organic pulsing body, and 4 eyes that track the player at all times. Descends toward the player, then holds position in the upper screen while cycling between Null Slash and Psychic Tempest.
 
 **Passive: Collective Mind** — Egregor has **10 independent tentacles**, each with their own HP pool equal to **78% of Egregor's current MaxHP**. Every non-true-damage, non-piercing hit triggers a tentacle interception roll: the **deflect chance scales with alive tentacles** (alive/10 × 60% — 60% at full strength, declining as tentacles are destroyed); on a miss, the hit is absorbed by one tentacle at **35% × 75% DR** (net ~26% of the original hit). **When a tentacle dies:** Egregor's body **heals 6% MaxHP**, **MaxHP increases by 20% of that tentacle's HP**, and the body gains **+5% DR** (cumulative, max +20% at 4 losses). Once **≥1 tentacle is lost**, normal attacks (and all non-piercing, non-true sources) also **bleed through to the body** after tentacle interception at **15% of their damage**, hard-capped at **15% MaxHP** per hit. When all 10 tentacles are dead, normal attacks deal **50% damage, capped at 30% MaxHP**. Egregor's body can also be damaged by **true damage** (capped at **max(25%, 90% − 10% × n)% MaxHP** per hit) or **piercing attacks** (tentacle takes 26% of hit, body takes **30% of original damage**, capped at **30% MaxHP**). Egregor cannot coexist with Veilshroud on the field.
 
@@ -489,7 +493,7 @@ HP: **2,112–4,620**. Permanent **40% Damage Reduction** on its body at all tim
 
 **Available after:** Wave 3 | **Spawn rate:** 4% → 13% | **Cap:** 1 on screen | **Score on kill:** HP × 6 points | **Speed:** ~1.6 u/s
 
-HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Black Hole pull.
+HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent CC Immunity** — immune to all crowd control including Tesla slow, Dimensional Rift slow, Orb Sacrifice slow, and Death Star pull.
 
 **Demon Gift** — Triggers when HP crosses **90%, 70%, 50%, 30%, and 1%**:
 
@@ -508,7 +512,7 @@ HP: **6,200–16,000**. DR is fully dynamic — see Passive below. **Permanent C
 - **+2.5% DR per active Sentinel** on screen. Capped at **60% total DR**.
 - **+5% normal attack speed per active Sentinel**, capped at **+20%**.
 
-**Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **2.1 seconds**, fires **4 dark chains** (−10% speed vs prior) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Black Hole, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
+**Skill: Abyssal Chains (Xiềng xích hắc ám)** — Every **2.1 seconds**, fires **4 dark chains** (−10% speed vs prior) in a fan aimed at the player. Chains are **piercing** — immune to all player and ally attacks: bullets, Skill A orbs, Skill F sweep, Death Star, Yog-Sothoth Domain, spirit blade arcs, spirit finale, Overload Laser, and Tesla DoT. Chains cannot be targeted by Skill A or Sentinel AI.
 
 - **Normal chain — Hit player** → **Root & Silence for 1 second** (no life loss). The chain is **not consumed** by the player hit — it continues and can also hit a Sentinel simultaneously. Re-applies silence even if already silenced.
 - **Normal chain — Hit Sentinel** → **true damage equal to 15% of that Sentinel's EP**, chain consumed on contact.
@@ -555,13 +559,13 @@ Leviathan spawns with a secret **kill quota Y** (10–20). Until that many enemi
 
 When Leviathan spawns (including via Coronation), the game immediately checks if enough killable enemies exist to satisfy the quota. If not, it spawns the missing number of Apostles at once, so the shield can always be broken.
 
-Every attack that lands on the shield counts as a **hit** (capped at 250). Displayed as `X/Y kills` and `N/250 hits` below Leviathan. While shielded, Leviathan has **CC Immunity** — immune to Black Hole pull and Tesla slow.
+Every attack that lands on the shield counts as a **hit** (capped at 250). Displayed as `X/Y kills` and `N/250 hits` below Leviathan. While shielded, Leviathan has **CC Immunity** — immune to Death Star pull and Tesla slow.
 
 When the quota is reached, Leviathan charges a **Perseverance sweep** (red warning + full 360° laser), then the shield shatters and combat begins.
 
 **Passive: Last Rites**
 
-When Leviathan's HP reaches **1** — by any source, including Black Hole and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns — a power-surge band now travels along each wing toward the tip as it charges, with crackling sparks once nearly ready. All 9 lasers then fire simultaneously (layered void-purple/red/white-hot beams with a shockwave ring at the origin), reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
+When Leviathan's HP reaches **1** — by any source, including Death Star and Skill F — Last Rites triggers. Each of its 9 wing-plates rotates to aim at a specific target (sentinels and the player) over **1 second**, projecting a warning beam as it turns — a power-surge band now travels along each wing toward the tip as it charges, with crackling sparks once nearly ready. All 9 lasers then fire simultaneously (layered void-purple/red/white-hot beams with a shockwave ring at the origin), reaching the edge of the screen and remaining active for **0.9 seconds**. These lasers are independent objects that persist even after Leviathan is removed.
 
 - Hitting the player costs **1 life** (subject to normal protection layers).
 - Hitting a Sentinel deals **true damage**: **3% of that Sentinel's EP × (AFO shield hits ÷ 2) per laser**, capped at **55% of EP** (the cap is reached at 37 shield hits).
@@ -630,13 +634,13 @@ CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at
 
 **Passive: Warding Palm**
 
-Incoming hits specifically from **Skill F**, **Skill D** (Black Hole), or the **Phōtokrystos finale laser** are simply too powerful to ever be fully negated. Each hit has a **30% chance** to be deflected, taking only **15% of Max HP**; the other **70% of the time** it lands for the full **40% of Max HP**. This is per hit, with no lifetime cap. This rule, like every other Goliath-specific rule, takes priority over any sigil that would otherwise bypass Iron Body or trigger an unconditional instakill (e.g. Death Mark's ≤5%-HP lightning instakill, or its Skill F Iron-Body-piercing effect) — Goliath cannot die to those regardless of sigil.
+Incoming hits specifically from **Skill F**, **Skill D**'s center pull-kill (the Death Star's Mark & Annihilate beams and its spaceships' damage are unaffected — only the center-contact hit itself), or the **Phōtokrystos finale laser** are simply too powerful to ever be fully negated. Each hit has a **30% chance** to be deflected, taking only **15% of Max HP**; the other **70% of the time** it lands for **35% of Max HP**. This is per hit, with no lifetime cap. This rule, like every other Goliath-specific rule, takes priority over any sigil that would otherwise bypass Iron Body or trigger an unconditional instakill (e.g. Death Mark's ≤5%-HP lightning instakill, or its Skill F Iron-Body-piercing effect) — Goliath cannot die to those regardless of sigil.
 
 Separately, **all damage from Phōtokrystos itself** (its homing bullets and its boomerang) is reduced **40%** against Goliath — applied before Damage Reduction and before Inevitable's per-hit cap, so it reduces both the capped normal-type hits and the uncapped true-damage boomerang alike.
 
 **Passive: Threshold Ward**
 
-Starts True Form at **35% evade**, decaying linearly down to **25%** over the first **15 seconds**, then holding at 25% for the rest of the fight — evade applies against everything except Skill F, Skill D, and the Phōtokrystos finale laser, which bypass it entirely via Warding Palm's own return path above.
+Starts True Form at **35% evade**, decaying linearly down to **25%** over the first **15 seconds**, then holding at 25% for the rest of the fight — evade applies against everything except Skill F, Skill D's center pull-kill, and the Phōtokrystos finale laser, which bypass it entirely via Warding Palm's own return path above.
 
 On top of the base evade, crossing each of the **75%, 50%, and 25%** HP milestones (downward) does two things at once: a **one-time** (never re-triggers) **+15% Max HP** shield pool — healing later back up across a milestone that already paid out restores HP up to that milestone's percentage — and a **+5% evade bump for 3 seconds** that, unlike the shield, can retrigger any number of times over the fight (healing back above a milestone and dropping through it again re-fires it), though it never stacks past a single +5% layer no matter how many milestones are crossed at once.
 

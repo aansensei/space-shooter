@@ -589,8 +589,8 @@
     function stopSkillFCharge() { stopLoop('skillFChargeEl'); }
     function startSkillFFire()  { startLoop('skillFFireEl', 'skill-f-fire'); }
     function stopSkillFFire()   { stopLoop('skillFFireEl'); }
-    function startBlackhole()   { startLoop('blackholeEl', 'blackhole'); }
-    function stopBlackhole()    { stopLoop('blackholeEl'); }
+    function startDeathStar()   { startLoop('blackholeEl', 'blackhole'); }
+    function stopDeathStar()    { stopLoop('blackholeEl'); }
     function startMaouHaki()    { startLoop('maouHakiEl', 'maou-haki'); }
     function stopMaouHaki()     { stopLoop('maouHakiEl'); }
     function startNullSlashWindup() { startLoop('nullSlashWindupEl', 'egregor-nullslash-windup'); }
@@ -726,7 +726,7 @@
         startSkillDCharge, stopSkillDCharge,
         startSkillFCharge, stopSkillFCharge,
         startSkillFFire, stopSkillFFire,
-        startBlackhole, stopBlackhole,
+        startDeathStar, stopDeathStar,
         startMaouHaki, stopMaouHaki,
         startLowHp, stopLowHp,
         startNullSlashWindup, stopNullSlashWindup,

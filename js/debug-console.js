@@ -412,7 +412,7 @@ window._debugClickSpawnType = '';
                 break;
             case 'D':
                 lastSkillD = -Infinity;
-                skillDCharging = false; blackHole = null;
+                skillDCharging = false; deathStar = null;
                 if (typeof activateSkillD === 'function') activateSkillD();
                 break;
             case 'F':

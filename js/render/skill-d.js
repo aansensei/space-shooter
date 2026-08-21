@@ -1,4 +1,8 @@
-// render/skill-d.js — extracted from render.js (Cosmic Black Hole charge + hole).
+// render/skill-d.js — Death Star: Draconic Annihilation (Tinh Vương Long: Tử
+// Long Tinh). Charge VFX (drawSkillDCharging), the Death Star body itself
+// (drawDeathStar), the mark->laser beams (drawSkillDLasers) and spaceship
+// firing bolts (drawSkillDBolts) fired from js/skills.js's updateSkillD, and
+// the allied spaceship drone (drawSkillDSpaceships).
 
 function drawSkillDCharging() {
     const now = performance.now();
@@ -7,59 +11,70 @@ function drawSkillDCharging() {
 
     ctx.save();
 
-    // 1. GRAVITY RINGS, co lại vào tâm
-    for (let ring = 0; ring < 4; ring++) {
-        const phase = ((now / (900 - p * 300) + ring / 4) % 1);
-        const ringR = 20 + phase * (60 + p * 120);
-        const ringA = (1 - phase) * 0.5 * p;
-        ctx.strokeStyle = `rgba(120,0,200,${ringA})`;
-        ctx.lineWidth = 2.5 * (1 - phase);
+    // 1. GRAVITY WAVES, expanding rings pulsing outward from the forming core,
+    // alternating cyan/violet for a richer two-tone pulse than a single hue
+    const _ringCount = _gfxLevel < 1 ? 4 : _gfxLevel < 2 ? 3 : 2;
+    for (let ring = 0; ring < _ringCount; ring++) {
+        const phase = ((now / (900 - p * 300) + ring / _ringCount) % 1);
+        const ringR = 20 + (1 - phase) * 150 * p;
+        const ringA = phase * 0.75 * p;
+        ctx.strokeStyle = ring % 2 === 0 ? `rgba(0,255,255,${ringA})` : `rgba(160,0,255,${ringA})`;
+        ctx.lineWidth = 2.5 * (1 - phase * 0.5);
         ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // 2. MATTER STREAMS, phân tử xoáy vào từ xung quanh
-    const streamCount = 8;
+    // 2. ENERGY STREAMS, spiraling matter trails pulled inward toward the
+    // core (multi-segment curved paths, not flat lines — tier 0/1 get the
+    // full spiral, tier 2+ fall back to short straight streaks)
+    const streamCount = _gfxLevel < 1 ? 12 : _gfxLevel < 2 ? 8 : 4;
+    const _spiralSteps = _gfxLevel < 1 ? 16 : _gfxLevel < 2 ? 8 : 0;
     for (let i = 0; i < streamCount; i++) {
         const spinDir = i % 2 === 0 ? 1 : -1;
-        const baseAngle = (i / streamCount) * Math.PI * 2;
-        const spinOffset = now / (600 + i * 50) * spinDir;
-        const len = 60 + p * 160;
-
+        const baseAngle = (i / streamCount) * Math.PI * 2 + (now * 0.0015) * spinDir;
+        const len = 60 + (1 - p) * 160;
         ctx.beginPath();
-        const steps = 22;
-        for (let s = steps; s >= 0; s--) {
-            const t = s / steps;
-            const dist = t * len;
-            const angle = baseAngle + spinOffset + t * 2.5 * spinDir;
-            const px2 = cx + Math.cos(angle) * dist;
-            const py2 = cy + Math.sin(angle) * dist;
-            s === steps ? ctx.moveTo(px2, py2) : ctx.lineTo(px2, py2);
+        if (_spiralSteps > 0) {
+            for (let s = _spiralSteps; s >= 0; s--) {
+                const t = s / _spiralSteps;
+                const dist = 20 + t * len;
+                const angle = baseAngle + t * 2.2 * spinDir;
+                const sx = cx + Math.cos(angle) * dist, sy = cy + Math.sin(angle) * dist;
+                s === _spiralSteps ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+            }
+        } else {
+            const distOffset = len + 20;
+            ctx.moveTo(cx + Math.cos(baseAngle) * distOffset, cy + Math.sin(baseAngle) * distOffset);
+            ctx.lineTo(cx + Math.cos(baseAngle + 0.2) * (distOffset - 20), cy + Math.sin(baseAngle + 0.2) * (distOffset - 20));
         }
-        const sA = 0.2 + p * 0.6;
-        ctx.strokeStyle = i % 2 === 0
-            ? `rgba(160,0,255,${sA})`
-            : `rgba(80,0,180,${sA * 0.7})`;
-        ctx.lineWidth = 0.8 + p * 1.2;
+        ctx.strokeStyle = i % 2 === 0 ? `rgba(180,0,255,${0.25 + p * 0.65})` : `rgba(0,255,255,${0.25 + p * 0.65})`;
+        ctx.lineWidth = 0.8 + p * 1.6;
         ctx.stroke();
     }
 
-    // 3. DARK CORE hình thành
-    const coreR = 4 + p * 16;
-    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR * 2);
-    coreGrad.addColorStop(0, 'rgba(0,0,0,1)');
-    coreGrad.addColorStop(0.4, `rgba(40,0,80,${0.8 * p})`);
-    coreGrad.addColorStop(0.8, `rgba(100,0,180,${0.4 * p})`);
-    coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    // 3. CORE forming — smoother multi-stop falloff than a 4-stop gradient,
+    // plus a glowing rim stroke (tier 0-1 only)
+    const coreR = 5 + p * 25;
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+    coreGrad.addColorStop(0,    '#ffffff');
+    coreGrad.addColorStop(0.22, '#aef9ff');
+    coreGrad.addColorStop(0.45, '#00ffff');
+    coreGrad.addColorStop(0.72, '#8800ff');
+    coreGrad.addColorStop(0.92, '#380066');
+    coreGrad.addColorStop(1,    'rgba(0,0,0,0)');
     ctx.fillStyle = coreGrad;
-    ctx.beginPath(); ctx.arc(cx, cy, coreR * 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI * 2); ctx.fill();
 
-    ctx.strokeStyle = `rgba(180,80,255,0.8)`;
-    ctx.lineWidth = 1.5;
-    if (!_mobPerf) ctx.shadowColor = '#8800ff'; if (!_mobPerf) ctx.shadowBlur = 20;
-    ctx.beginPath(); ctx.arc(cx, cy, coreR, 0, Math.PI * 2); ctx.stroke();
-    ctx.shadowBlur = 0;
+    if (_gfxLevel < 2) {
+        ctx.strokeStyle = 'rgba(200,140,255,0.85)';
+        ctx.lineWidth = 1.5;
+        if (!_mobPerf) { ctx.shadowColor = '#8800ff'; ctx.shadowBlur = 18 * p; }
+        ctx.beginPath(); ctx.arc(cx, cy, coreR * 1.15, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
 
-    // 4. TITLE, hiện NGAY khi ấn, mờ dần khi gần đầy
+    // 4. TITLE — same 3-layer composition as the old Black Hole's charge
+    // text (large faded kanji behind, bold subtitle in front, small italic
+    // full name below), same purple palette, new Death Star wording.
     {
         const textT = Math.min(p / 0.15, 1) * Math.max(0, 1 - (p - 0.7) / 0.3);
         if (textT > 0.02) {
@@ -68,22 +83,22 @@ function drawSkillDCharging() {
             ctx.textBaseline = 'middle';
 
             ctx.globalAlpha = textT * 0.28;
-            ctx.font = 'bold 110px serif';
+            ctx.font = 'bold 100px serif';
             ctx.fillStyle = '#6600cc';
-            if (!_mobPerf) ctx.shadowColor = '#4400aa'; if (!_mobPerf) ctx.shadowBlur = 40;
-            ctx.fillText('虛空崩塌', cx, cy - 80);
+            if (!_mobPerf) { ctx.shadowColor = '#4400aa'; ctx.shadowBlur = 40; }
+            ctx.fillText('龍滅死星', cx, cy - 80);
 
             ctx.globalAlpha = textT * 0.92;
-            ctx.font = 'bold 30px "Arial Black", sans-serif';
+            ctx.font = 'bold 28px "Arial Black", sans-serif';
             ctx.fillStyle = '#cc88ff';
-            if (!_mobPerf) ctx.shadowColor = '#8800ff'; if (!_mobPerf) ctx.shadowBlur = 28;
-            ctx.fillText('SINGULARITY', cx, cy - 122);
+            if (!_mobPerf) { ctx.shadowColor = '#8800ff'; ctx.shadowBlur = 28; }
+            ctx.fillText('DRACONIC ANNIHILATION', cx, cy - 122);
 
             ctx.globalAlpha = textT * 0.92;
             ctx.font = 'italic 13px monospace';
             ctx.fillStyle = '#bb66ff';
             if (!_mobPerf) ctx.shadowBlur = 10;
-            ctx.fillText('— Hố Đen Triệu Hoán —', cx, cy - 98);
+            ctx.fillText(window._lang === 'vi' ? '— Tinh Vương Long: Tử Long Tinh —' : '— Death Star —', cx, cy - 98);
             ctx.restore();
         }
     }
@@ -91,169 +106,442 @@ function drawSkillDCharging() {
     ctx.restore();
 }
 
-// Black hole
-function drawBlackHole() {
-    if (!blackHole || blackHole.size <= 0) return;
-    const now = performance.now();
-    ctx.save();
-    const angle = blackHole.activeTime / 500;
-    ctx.translate(blackHole.x, blackHole.y);
-
-    // Gravitational lens glow (HIGH full, MED dim)
-    if (_gfxLevel < 2) {
-        const _lensA = _gfxLevel < 1 ? 1.0 : 0.40;
-        const lensG = ctx.createRadialGradient(0, 0, blackHole.size * 0.85, 0, 0, blackHole.size * 2.0);
-        lensG.addColorStop(0,   `rgba(200,80,255,${0.22 * _lensA})`);
-        lensG.addColorStop(0.5, `rgba(100,0,180,${0.08 * _lensA})`);
-        lensG.addColorStop(1,   'rgba(0,0,0,0)');
-        ctx.fillStyle = lensG;
-        ctx.beginPath(); ctx.arc(0, 0, blackHole.size * 2.0, 0, Math.PI * 2); ctx.fill();
-    }
-
-    // Accretion disk, BEHIND pass (far half, before BH body)
-    // HIGH: animated sin oscillation   MED: static 5-layer   LOW: static 2-layer
-    if (_gfxLevel < 3) {
-        const _t   = now / 1000;
-        const _anim = _gfxLevel < 1; // animated only on HIGH
-        const _s1  = _anim ? Math.sin(_t * 0.55)         * 0.14 : 0;
-        const _s2  = _anim ? Math.sin(_t * 0.82 + 1.4)   * 0.09 : 0;
-        const _s3  = _anim ? Math.sin(_t * 1.20 + 2.9)   * 0.07 : 0;
-        const _sw  = _anim ? Math.sin(_t * 0.33 + 0.8)   * 0.08 : 0; // width wave
-        const _diskTilt = _anim ? 0.22 + Math.sin(_t * 0.18) * 0.055 : 0.22;
-        const _BH  = blackHole.size;
-        const _ry  = _BH * 0.32;
-        const _layers = _gfxLevel < 2 ? [
-            { rx: _BH * 1.78, lw: 20 + _sw * 40, r:60,  g:0,   b:110, a: 0.18 + _s1 * 0.5 },
-            { rx: _BH * 1.52, lw: 13 + _sw * 20, r:130, g:0,   b:200, a: 0.30 + _s2 },
-            { rx: _BH * 1.28, lw:  9 + _sw * 14, r:190, g:40,  b:255, a: 0.48 + _s1 },
-            { rx: _BH * 1.09, lw:  5 + _sw *  8, r:230, g:120, b:255, a: 0.65 + _s3 },
-            { rx: _BH * 0.95, lw:  2.5,           r:255, g:220, b:255, a: 0.85 + _s2 },
-        ] : [
-            { rx: _BH * 1.55, lw: 11, r:110, g:0,  b:160, a: 0.22 },
-            { rx: _BH * 1.08, lw:  4, r:200, g:80, b:255, a: 0.38 },
-        ];
-        ctx.save();
-        ctx.rotate(_diskTilt);
-        ctx.beginPath(); ctx.rect(-_BH * 3, 0, _BH * 6, _BH * 3); ctx.clip(); // far half
-        for (const d of _layers) {
-            ctx.strokeStyle = `rgba(${d.r},${d.g},${d.b},${Math.min(0.97, Math.max(0.02, d.a))})`;
-            ctx.lineWidth = d.lw;
-            if (!_mobPerf) { ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = d.lw * 0.65; }
-            ctx.beginPath(); ctx.ellipse(0, 0, d.rx, _ry * (d.rx / (_BH * 1.78)), 0, 0, Math.PI * 2); ctx.stroke();
+// Debris field (the ring of asteroid rubble orbiting the Death Star) is
+// generated once per cast and cached on the deathStar object itself
+// (deathStar._debris) — same lazy-cache-on-the-entity idiom used elsewhere in
+// this render folder rather than regenerating every frame.
+function _genSkillDDebris(count) {
+    const out = [];
+    for (let i = 0; i < count; i++) {
+        const distance = 130 + Math.random() * 150;
+        const sides = 4 + Math.floor(Math.random() * 4);
+        const pts = [];
+        for (let s = 0; s < sides; s++) {
+            const a = (s / sides) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+            const r = 3 + Math.random() * 9;
+            pts.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
         }
-        ctx.shadowBlur = 0;
+        out.push({
+            angle: Math.random() * Math.PI * 2,
+            dist: distance,
+            speed: (0.001 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : -1),
+            pts, tilt: Math.random() * Math.PI * 2,
+        });
+    }
+    return out;
+}
+
+function _drawSkillDDebrisRing(debris, time, drawBehind, count) {
+    for (let i = 0; i < count; i++) {
+        const d = debris[i];
+        const currentAngle = d.angle + time * d.speed;
+        const sy = Math.sin(currentAngle);
+        if ((drawBehind && sy >= 0) || (!drawBehind && sy < 0)) continue;
+
+        const sx = Math.cos(currentAngle) * d.dist;
+        const yPos = sy * d.dist * 0.3;
+
+        ctx.save();
+        ctx.translate(sx, yPos);
+        ctx.rotate(d.tilt + time * d.speed * 2);
+
+        ctx.beginPath();
+        ctx.moveTo(d.pts[0].x, d.pts[0].y);
+        for (let j = 1; j < d.pts.length; j++) ctx.lineTo(d.pts[j].x, d.pts[j].y);
+        ctx.closePath();
+
+        if (_gfxLevel < 2) {
+            const gradient = ctx.createLinearGradient(-sx / 10, -yPos / 10, sx / 10, yPos / 10);
+            gradient.addColorStop(0, '#00ffff');
+            gradient.addColorStop(0.3, '#331166');
+            gradient.addColorStop(1, '#0a0a10');
+            ctx.fillStyle = gradient;
+        } else {
+            ctx.fillStyle = '#1a0a2a'; // flat fast-path at LOW/MIN
+        }
+        ctx.fill();
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1;
+        ctx.stroke();
         ctx.restore();
     }
+}
 
-    // Infalling matter particles (HIGH only)
-    if (_gfxLevel < 1) {
-        for (let i = 0; i < 6; i++) {
-            const phase = ((angle * 0.35 + i / 6) % 1 + 1) % 1; // 0→1 cycling
-            const dist  = blackHole.size * (2.4 - 1.5 * phase);
-            const pAngle = (i / 6) * Math.PI * 2 + phase * 3.5; // spirals inward
-            const px = Math.cos(pAngle) * dist;
-            const py = Math.sin(pAngle) * dist;
-            const pA  = Math.min(1, (1 - phase) * 2.0) * 0.75;
-            const pR  = Math.max(0.8, 2.5 * (1 - phase * 0.7));
-            ctx.fillStyle = `rgba(220,140,255,${pA})`;
-            ctx.beginPath(); ctx.arc(px, py, pR, 0, Math.PI * 2); ctx.fill();
-        }
-    }
+// Ring styling matches this game's established neon-construct language
+// (Goliath's gradient-bezel rings with orbiting glow studs, the Sigil HUD's
+// glowing dot icons) rather than the reference preview's flat-grey physical
+// machinery — a radial-gradient band + soft rim light + glowing gem studs
+// instead of flat fill + rectangular grooves/tabs.
+function _drawSkillDMechanicalRing(outer, inner, rotation, fillColor, accentColor, segments) {
+    ctx.save();
+    ctx.rotate(rotation);
 
-    // distortion ring (visual layer only)
-    for (let i = 3; i >= 1; i--) {
-        const ringR = blackHole.size * (0.9 + i * 0.18);
-        ctx.strokeStyle = `rgba(180,0,255,${0.08 * i})`;
-        ctx.lineWidth = 8;
-        ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
-    }
-
-    // Main body + event horizon (HIGH: wobbling boundary)
-    // Gradient radius slightly larger to cover wobble peaks
-    const _ehWobble = _gfxLevel < 1 ? 0.07 : 0;
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, blackHole.size * (1 + _ehWobble));
-    grad.addColorStop(0,    'black');
-    grad.addColorStop(0.36, '#1a0030');
-    grad.addColorStop(0.68, 'purple');
-    grad.addColorStop(1,    'rgba(80,0,80,0)');
-    ctx.fillStyle = grad;
+    const mid = (outer + inner) / 2;
+    const bandGrad = ctx.createRadialGradient(0, 0, inner, 0, 0, outer);
+    bandGrad.addColorStop(0,   fillColor);
+    bandGrad.addColorStop(0.5, accentColor + '22');
+    bandGrad.addColorStop(1,   fillColor);
+    ctx.fillStyle = bandGrad;
     ctx.beginPath();
-    if (_gfxLevel < 1) {
-        // 5 sin waves, incommensurable frequencies → never repeats exactly
-        const _ehT = now / 1000;
-        const _seg = 64;
-        for (let i = 0; i <= _seg; i++) {
-            const a = (i / _seg) * Math.PI * 2;
-            const w = 1
-                + Math.sin(a * 3 + _ehT * 1.10        ) * 0.028
-                + Math.sin(a * 5 + _ehT * 0.73 + 1.40 ) * 0.018
-                + Math.sin(a * 7 + _ehT * 1.47 + 2.80 ) * 0.013
-                + Math.sin(a * 2 + _ehT * 0.51 + 0.70 ) * 0.022
-                + Math.sin(a * 4 + _ehT * 1.83 + 3.50 ) * 0.011;
-            const r = blackHole.size * w;
-            i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
-                    : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath();
-    } else {
-        ctx.arc(0, 0, blackHole.size, 0, Math.PI * 2);
-    }
+    ctx.arc(0, 0, outer, 0, Math.PI * 2);
+    ctx.arc(0, 0, inner, 0, Math.PI * 2, true);
     ctx.fill();
 
-    // Photon sphere ring (HIGH: pulsing, MED: static, LOW: dim static)
-    if (_gfxLevel < 3) {
-        const _psT = now / 1000;
-        const _psP = _gfxLevel < 1 ? (0.70 + 0.30 * Math.sin(_psT * 1.4))
-                   : _gfxLevel < 2 ? 0.60
-                   :                 0.30;
-        const psG = ctx.createRadialGradient(0, 0, blackHole.size * 0.88, 0, 0, blackHole.size * 1.04);
-        psG.addColorStop(0,    'rgba(0,0,0,0)');
-        psG.addColorStop(0.35, `rgba(200,80,255,${0.45 * _psP})`);
-        psG.addColorStop(0.62, `rgba(255,220,255,${0.78 * _psP})`);
-        psG.addColorStop(1,    'rgba(140,0,200,0)');
-        ctx.fillStyle = psG;
-        if (!_mobPerf) { ctx.shadowColor = '#cc44ff'; ctx.shadowBlur = _gfxLevel < 1 ? 22 : _gfxLevel < 2 ? 12 : 6; }
-        ctx.beginPath(); ctx.arc(0, 0, blackHole.size * 1.04, 0, Math.PI * 2); ctx.fill();
+    // Soft rim light on both edges instead of a flat grey stroke
+    ctx.strokeStyle = accentColor + '55';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, outer, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, inner, 0, Math.PI * 2); ctx.stroke();
+
+    // Glowing gem studs orbiting mid-band, same visual family as Goliath's
+    // ring bezels and the Sigil HUD's icon dots
+    for (let i = 0; i < segments; i++) {
+        const a = (i / segments) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(a);
+        const studR = (outer - inner) * 0.22;
+        const studGrad = ctx.createRadialGradient(mid, 0, 0, mid, 0, studR);
+        studGrad.addColorStop(0, '#ffffff');
+        studGrad.addColorStop(0.4, accentColor);
+        studGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = studGrad;
+        if (!_mobPerf) { ctx.shadowColor = accentColor; ctx.shadowBlur = 10; }
+        ctx.beginPath(); ctx.arc(mid, 0, studR, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+function drawDeathStar() {
+    if (!deathStar || deathStar.size <= 0) return;
+    const now = performance.now();
+    if (!deathStar._debris) deathStar._debris = _genSkillDDebris(80);
+
+    // Old Black Hole's outermost visible radius was blackHole.size * 2.0 (the
+    // lens glow). This structure's outermost ring (the base disc) reaches
+    // S * 2.8, so scale the whole draw by 2.0/2.8 to match that same overall
+    // on-screen footprint at every growth stage instead of rendering larger.
+    const DS_SCALE = 2.0 / 2.8;
+    ctx.save();
+    ctx.translate(deathStar.x, deathStar.y);
+    ctx.scale(DS_SCALE, DS_SCALE);
+
+    const S = deathStar.size; // grows 10 -> 120, same as the old Black Hole's growth-in
+
+    // Outer aura halo — a slow-breathing glow surrounding the whole structure,
+    // MED/HIGH only, sits behind everything else
+    if (_gfxLevel < 2) {
+        const breathe = 0.5 + 0.5 * Math.sin(now / 1400);
+        const auraGrad = ctx.createRadialGradient(0, 0, S * 2.6, 0, 0, S * 4.2);
+        auraGrad.addColorStop(0, `rgba(150,0,255,${0.10 + breathe * 0.06})`);
+        auraGrad.addColorStop(0.6, `rgba(0,200,255,${0.04 + breathe * 0.03})`);
+        auraGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = auraGrad;
+        ctx.beginPath(); ctx.arc(0, 0, S * 4.2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Orbiting energy motes — a particle halo at several radii/speeds, HIGH
+    // gets a dense field, MED a sparse one
+    if (_gfxLevel < 2) {
+        const moteCount = _gfxLevel < 1 ? 26 : 10;
+        for (let i = 0; i < moteCount; i++) {
+            const ring = i % 3;
+            const radius = S * (1.9 + ring * 0.35);
+            const speed = (ring % 2 === 0 ? 1 : -1) * (0.00035 + ring * 0.0001);
+            const a = (i / moteCount) * Math.PI * 2 + now * speed;
+            const mx = Math.cos(a) * radius, my = Math.sin(a) * radius * 0.94;
+            const tw = 0.4 + 0.6 * Math.sin(now / 300 + i * 1.7);
+            ctx.fillStyle = i % 2 === 0 ? `rgba(0,255,255,${tw})` : `rgba(200,120,255,${tw})`;
+            if (!_mobPerf) { ctx.shadowColor = i % 2 === 0 ? '#00ffff' : '#aa00ff'; ctx.shadowBlur = 6; }
+            ctx.beginPath(); ctx.arc(mx, my, 1.6, 0, Math.PI * 2); ctx.fill();
+        }
         ctx.shadowBlur = 0;
     }
 
-    // Accretion disk, FRONT pass (near half, drawn over BH body)
-    // HIGH: animated   MED: static 5-layer   LOW: static 2-layer
-    if (_gfxLevel < 3) {
-        const _t   = now / 1000;
-        const _anim = _gfxLevel < 1;
-        const _s1  = _anim ? Math.sin(_t * 0.55)         * 0.14 : 0;
-        const _s2  = _anim ? Math.sin(_t * 0.82 + 1.4)   * 0.09 : 0;
-        const _s3  = _anim ? Math.sin(_t * 1.20 + 2.9)   * 0.07 : 0;
-        const _sw  = _anim ? Math.sin(_t * 0.33 + 0.8)   * 0.08 : 0;
-        const _diskTilt = _anim ? 0.22 + Math.sin(_t * 0.18) * 0.055 : 0.22;
-        const _BH  = blackHole.size;
-        const _ry  = _BH * 0.32;
-        // front pass slightly brighter (near side)
-        const _fLayers = _gfxLevel < 2 ? [
-            { rx: _BH * 1.78, lw: 16 + _sw * 35, r:65,  g:0,   b:120, a: 0.20 + _s1 * 0.5 },
-            { rx: _BH * 1.52, lw: 10 + _sw * 18, r:140, g:0,   b:210, a: 0.34 + _s2 },
-            { rx: _BH * 1.28, lw:  7 + _sw * 12, r:200, g:50,  b:255, a: 0.55 + _s1 },
-            { rx: _BH * 1.09, lw:  4 + _sw *  7, r:238, g:130, b:255, a: 0.72 + _s3 },
-            { rx: _BH * 0.95, lw:  2.5,           r:255, g:230, b:255, a: 0.90 + _s2 },
-        ] : [
-            { rx: _BH * 1.55, lw:  9, r:120, g:10,  b:170, a: 0.26 },
-            { rx: _BH * 1.08, lw:  3, r:210, g:90,  b:255, a: 0.42 },
-        ];
+    // Far debris (behind), count/pass tiered
+    const _debrisCount = _gfxLevel < 1 ? 80 : _gfxLevel < 2 ? 40 : 0;
+    if (_debrisCount > 0) {
+        ctx.globalAlpha = 0.6;
+        _drawSkillDDebrisRing(deathStar._debris, now, true, _debrisCount);
+        ctx.globalAlpha = 1.0;
+    }
+
+    // Base satellite disc
+    ctx.fillStyle = '#0a0a15';
+    ctx.strokeStyle = '#221144';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, 0, S * 2.5, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // Radar-style scanning sweep crossing the disc, HIGH only
+    if (_gfxLevel < 1) {
         ctx.save();
-        ctx.rotate(_diskTilt);
-        ctx.beginPath(); ctx.rect(-_BH * 3, -_BH * 3, _BH * 6, _BH * 3); ctx.clip(); // near half
-        for (const d of _fLayers) {
-            ctx.strokeStyle = `rgba(${d.r},${d.g},${d.b},${Math.min(0.97, Math.max(0.02, d.a))})`;
-            ctx.lineWidth = d.lw;
-            if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = d.lw * 0.75; }
-            ctx.beginPath(); ctx.ellipse(0, 0, d.rx, _ry * (d.rx / (_BH * 1.78)), 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.rotate(now * 0.0009);
+        const sweepGrad = ctx.createLinearGradient(0, 0, S * 2.5, 0);
+        sweepGrad.addColorStop(0, 'rgba(0,255,255,0.35)');
+        sweepGrad.addColorStop(1, 'rgba(0,255,255,0)');
+        ctx.strokeStyle = sweepGrad;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(S * 2.5, 0); ctx.stroke();
+        ctx.restore();
+    }
+
+    // Mechanical rings — animated only at tier 0, static angle otherwise
+    if (_gfxLevel < 3) {
+        const t1 = _gfxLevel < 1 ? now * 0.0005 : 0.6;
+        const t2 = _gfxLevel < 1 ? -now * 0.0003 : -0.4;
+        _drawSkillDMechanicalRing(S * 2.25, S * 1.9, t1, '#111122', '#00ffff', _gfxLevel < 2 ? 12 : 6);
+        if (_gfxLevel < 2) _drawSkillDMechanicalRing(S * 1.7, S * 1.35, t2, '#151525', '#8800ff', 8);
+    }
+
+    // Energy conduits — pulsing power lines feeding the inner ring into the
+    // core, MED/HIGH only, reinforcing that the core is being actively fed
+    if (_gfxLevel < 2) {
+        const conduitCount = _gfxLevel < 1 ? 8 : 4;
+        for (let i = 0; i < conduitCount; i++) {
+            const a = (i / conduitCount) * Math.PI * 2 + now * 0.0004;
+            const pulse = (now / 500 + i / conduitCount) % 1;
+            ctx.save();
+            ctx.rotate(a);
+            const conduitGrad = ctx.createLinearGradient(S * 1.5, 0, S * 1.35, 0);
+            conduitGrad.addColorStop(0, 'rgba(0,255,255,0)');
+            conduitGrad.addColorStop(Math.max(0, pulse - 0.15), 'rgba(0,255,255,0)');
+            conduitGrad.addColorStop(pulse, 'rgba(180,240,255,0.9)');
+            conduitGrad.addColorStop(Math.min(1, pulse + 0.15), 'rgba(0,255,255,0)');
+            conduitGrad.addColorStop(1, 'rgba(0,255,255,0)');
+            ctx.strokeStyle = conduitGrad;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(S * 1.5, 0); ctx.lineTo(S * 1.35, 0); ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    // Core — the focal point, kept at every tier, with a smoother multi-stop
+    // falloff (more stops than a plain 4-color blend, richer mid-tones)
+    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, S * 1.5);
+    coreGrad.addColorStop(0,    '#ffffff');
+    coreGrad.addColorStop(0.10, '#eefeff');
+    coreGrad.addColorStop(0.20, '#aef9ff');
+    coreGrad.addColorStop(0.32, '#00ffff');
+    coreGrad.addColorStop(0.45, '#22bfff');
+    coreGrad.addColorStop(0.58, '#7a00ee');
+    coreGrad.addColorStop(0.72, '#aa00ff');
+    coreGrad.addColorStop(0.85, '#5c0099');
+    coreGrad.addColorStop(0.94, '#220044');
+    coreGrad.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath(); ctx.arc(0, 0, S * 1.5, 0, Math.PI * 2); ctx.fill();
+
+    // Concentric turbulence rings inside the core, pulsing at slightly
+    // different phases for a "roiling plasma" read instead of a flat gradient
+    if (_gfxLevel < 2) {
+        const ringCount = _gfxLevel < 1 ? 6 : 3;
+        for (let i = 0; i < ringCount; i++) {
+            const rp = ((now / (700 + i * 90)) % 1);
+            ctx.strokeStyle = `rgba(180,240,255,${0.20 * (1 - rp)})`;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.arc(0, 0, S * 0.3 + rp * S * 0.9, 0, Math.PI * 2); ctx.stroke();
+        }
+    }
+
+    // In-core lightning arcs — HIGH gets real forking sub-branches off each
+    // main bolt, MED gets the plain jointed bolt, LOW+ none (matches fx.js's
+    // flat/no-decoration cutoff convention)
+    if (_gfxLevel < 2) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8; }
+        const arcCount = _gfxLevel < 1 ? 8 : 2;
+        const segCount = _gfxLevel < 1 ? 5 : 2;
+        for (let i = 0; i < arcCount; i++) {
+            ctx.save();
+            ctx.rotate(now * 0.002 + i);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            let d = 0, py = 0;
+            const branchPoints = [];
+            for (let s = 0; s < segCount; s++) {
+                d += 8 + Math.random() * 10;
+                py = (Math.random() - 0.5) * (10 + s * 8);
+                ctx.lineTo(d, py);
+                if (_gfxLevel < 1 && s > 0 && Math.random() < 0.5) branchPoints.push({ d, py });
+            }
+            ctx.stroke();
+            // Sub-forks off the main bolt, thinner + dimmer
+            if (branchPoints.length > 0) {
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(210,180,255,0.6)';
+                for (const bp of branchPoints) {
+                    const forkAngle = (Math.random() - 0.5) * 1.4;
+                    const forkLen = 6 + Math.random() * 10;
+                    ctx.beginPath();
+                    ctx.moveTo(bp.d, bp.py);
+                    ctx.lineTo(bp.d + Math.cos(forkAngle) * forkLen, bp.py + Math.sin(forkAngle) * forkLen);
+                    ctx.stroke();
+                }
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+            }
+            ctx.restore();
         }
         ctx.shadowBlur = 0;
-        ctx.restore();
+    }
+
+    // Near debris (front), same tier gating as the far pass. Reset to a
+    // fresh translate+scale (not just continuing the existing stack) since
+    // the mechanical-ring/lightning-arc draws above rotate the context
+    // internally — each already wraps its own save/restore, but resetting
+    // here is cheap insurance against any accumulated transform drift.
+    if (_debrisCount > 0) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.translate(deathStar.x, deathStar.y);
+        ctx.scale(DS_SCALE, DS_SCALE);
+        _drawSkillDDebrisRing(deathStar._debris, now, false, _debrisCount);
     }
 
     ctx.restore();
+}
+
+// Crosshair ring around each currently-marked target, telegraphing the
+// upcoming Mark & Annihilate beam — the mechanic has no other visual cue
+// without this, since js/skills.js only tracks the mark as a plain array.
+function drawSkillDMarks() {
+    if (!deathStar || !deathStar.markedTargets) return;
+    for (const e of deathStar.markedTargets) {
+        if (!e || e.hp <= 0) continue;
+        const r = e.size / 2 + 10;
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 10; }
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, -r - 5); ctx.lineTo(0, -r + 5);
+        ctx.moveTo(0, r - 5); ctx.lineTo(0, r + 5);
+        ctx.moveTo(-r - 5, 0); ctx.lineTo(-r + 5, 0);
+        ctx.moveTo(r - 5, 0); ctx.lineTo(r + 5, 0);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+function drawSkillDLasers() {
+    for (const l of window.skillDLasers) {
+        // Punch curve: near-full brightness for the first half of its life,
+        // then a fast falloff — reads as a sudden discharge, not a fade-in.
+        const punch = l.life > 0.5 ? 1 : l.life / 0.5;
+        const jitter = (Math.random() - 0.5) * 3 * punch;
+        const ang = Math.atan2(l.endY - l.startY, l.endX - l.startX);
+        const perpX = Math.cos(ang + Math.PI / 2), perpY = Math.sin(ang + Math.PI / 2);
+        const sx = l.startX + perpX * jitter, sy = l.startY + perpY * jitter;
+        const ex = l.endX + perpX * jitter, ey = l.endY + perpY * jitter;
+
+        ctx.save();
+        ctx.globalAlpha = l.life;
+
+        // Three-layer beam sized like Aegis Core's Lumen Nova (js/render/fx.js
+        // drawAegisLasers — outer/core/center ~50/30/10 lineWidth) rather than
+        // a thin line, so it reads with real weight instead of a laser pointer.
+        ctx.strokeStyle = '#aa00ff';
+        ctx.lineWidth = 46 * punch;
+        if (!_mobPerf) { ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 40; }
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+
+        ctx.strokeStyle = '#e0aaff';
+        ctx.lineWidth = 24 * punch;
+        if (!_mobPerf) ctx.shadowBlur = 22;
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 9 * punch;
+        if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 16; }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Muzzle flash burst at the origin, brightest in the first instant
+        if (punch > 0.4) {
+            const flashR = 26 * punch;
+            const flashGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, flashR);
+            flashGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+            flashGrad.addColorStop(0.35, 'rgba(0,255,255,0.6)');
+            flashGrad.addColorStop(1, 'rgba(170,0,255,0)');
+            ctx.fillStyle = flashGrad;
+            ctx.beginPath(); ctx.arc(sx, sy, flashR, 0, Math.PI * 2); ctx.fill();
+
+            // Impact flare at the endpoint
+            const impactGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, flashR * 0.8);
+            impactGrad.addColorStop(0, 'rgba(255,255,255,0.9)');
+            impactGrad.addColorStop(0.4, 'rgba(0,255,255,0.5)');
+            impactGrad.addColorStop(1, 'rgba(170,0,255,0)');
+            ctx.fillStyle = impactGrad;
+            ctx.beginPath(); ctx.arc(ex, ey, flashR * 0.8, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+    }
+}
+
+function drawSkillDBolts() {
+    for (const b of window.skillDBolts) {
+        ctx.save();
+        ctx.globalAlpha = b.life * 0.85;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5 * b.life;
+        if (!_mobPerf) { ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 8; }
+        ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+        ctx.restore();
+    }
+}
+
+function drawSkillDSpaceships() {
+    for (const ship of window.skillDSpaceships) {
+        ctx.save();
+        ctx.translate(ship.x, ship.y);
+        const angle = ship.target ? Math.atan2(ship.target.y - ship.y, ship.target.x - ship.x) : -Math.PI / 2;
+        ctx.rotate(angle);
+
+        const r = ship.size / 2;
+
+        // Engine glow trail
+        ctx.fillStyle = '#00ffff';
+        if (!_mobPerf) { ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 12; }
+        ctx.beginPath(); ctx.arc(-r * 0.75, 0, r * 0.22, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Hull — angular allied-drone silhouette (cyan/white core, dark plating,
+        // consistent with this game's Sentinel/Photōkrystos visual language)
+        ctx.beginPath();
+        ctx.moveTo(r, 0);
+        ctx.lineTo(r * 0.15, -r * 0.42);
+        ctx.lineTo(-r * 0.65, -r * 0.62);
+        ctx.lineTo(-r * 0.35, -r * 0.10);
+        ctx.lineTo(-r * 0.55, 0);
+        ctx.lineTo(-r * 0.35, r * 0.10);
+        ctx.lineTo(-r * 0.65, r * 0.62);
+        ctx.lineTo(r * 0.15, r * 0.42);
+        ctx.closePath();
+        ctx.fillStyle = '#141428';
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 1.5;
+        ctx.fill(); ctx.stroke();
+
+        // Cockpit glow core
+        const coreGrad = ctx.createRadialGradient(r * 0.2, 0, 0, r * 0.2, 0, r * 0.35);
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.5, '#00ffff');
+        coreGrad.addColorStop(1, 'rgba(0,255,255,0)');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath(); ctx.arc(r * 0.2, 0, r * 0.35, 0, Math.PI * 2); ctx.fill();
+
+        ctx.restore();
+
+        // HP bar, only while damaged — kept out of the rotated/translated
+        // transform above so it stays screen-aligned
+        if (ship.hp < ship.maxHp) {
+            ctx.fillStyle = 'rgba(255,68,68,0.9)';
+            ctx.fillRect(ship.x - r, ship.y - r - 8, r * 2 * (ship.hp / ship.maxHp), 3);
+        }
+    }
 }
 
 // Skill F – Annihilation Sweep

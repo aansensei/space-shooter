@@ -589,7 +589,13 @@
     let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [];
     let skillDCharging = false, skillDChargeStartTime = 0;
     const skillDChargeTime = 2000;
-    let blackHole = null;
+    let deathStar = null;
+    window.skillDLasers = []; window.skillDBolts = []; window.skillDSpaceships = [];
+    // drawSkillDCharging() (shared with the real game via js/render/skill-d.js)
+    // reads window._lang directly — this iframe never sets it otherwise, so
+    // its charge-title text would always show English regardless of the
+    // guide's own active language without this.
+    try { window._lang = (window.parent && window.parent._lang) || 'en'; } catch (e) { window._lang = 'en'; }
     let skillFState = "ready", skillFChargeStart = 0, skillFSweepStart = 0;
     const skillFSweepDuration = 1000;
     let screenShake = { intensity: 0, duration: 0 };
@@ -737,7 +743,7 @@
 <tr><td><span class="key">Shift</span></td><td>Yog-Sothoth Domain (time slow + Iron Body)</td></tr>
 <tr><td><span class="key">A</span></td><td>Thunder Orbs — 20 homing energy orbs</td></tr>
 <tr><td><span class="key">S</span></td><td>Remembrance Spirit — summon spirit ally</td></tr>
-<tr><td><span class="key">D</span></td><td>Cosmic Black Hole — singularity pull</td></tr>
+<tr><td><span class="key">D</span></td><td>Death Star — pull, mark & annihilate, spaceships</td></tr>
 <tr><td><span class="key">F</span></td><td>Annihilation Sweep — full screen beam</td></tr>
 <tr><td><span class="key">G</span></td><td>Life Domain / Tesla Matrix</td></tr>
 </table></div>
@@ -846,10 +852,12 @@
 </div>
 </div>
 
-<div class="card"><h2 style="color:#9333ea"><span class="key">D</span> BLACK HOLE</h2><div class="sub"><span class="cd">CD 12s</span> <span class="cd">2s CHARGE</span></div>
+<div class="card"><h2 style="color:#9333ea"><span class="key">D</span> DEATH STAR</h2><div class="sub" style="font-weight:400;font-size:11px;opacity:0.75">Draconic Annihilation</div><div class="sub"><span class="cd">CD 10s</span> <span class="cd">2s CHARGE</span></div>
 <div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)">▶ Play</button></div>
-<ul><li>Pulls all enemies + bullets. Center = <span class="hr">999,999,999 dmg</span> instant kill.</li>
-<li><b>Egregor</b> and <b>Dargruel</b> are CC Immune — cannot be pulled. If at center, take <span class="hr">30% MaxHP true damage</span> instead.</li></ul></div>
+<ul><li><span class="det-full">Pulls all enemies + bullets toward the center at speed 6. Center = <span class="hr">999,999,999 dmg</span> instant kill, even through Absolute Shields.</span><span class="det-short">Pulls all enemies + bullets. Center = <span class="hr">999,999,999 dmg</span> instant kill.</span></li>
+<li><span class="det-full"><b>Egregor</b> and <b>Dargruel</b> are CC Immune — cannot be pulled to center. If they end up at center anyway, they take <span class="hr">30% MaxHP true damage</span> instead of instant kill.</span><span class="det-short"><b>Egregor</b>/<b>Dargruel</b> can't be pulled — take <span class="hr">30% MaxHP true dmg</span> at center instead.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Mark & Annihilate</b> — <span class="det-full">every ~2s while the Death Star is alive, marks 3 targets (CC-Immune enemies first — those can't be pulled at all; otherwise the 3 highest-current-HP valid targets). After a 1.5s telegraph (cyan crosshair rings), fires a <span class="hi">piercing true-damage beam</span> through each marked target out to the screen edge — <span class="dmg">100+12% EP</span> per beam, hitting every enemy it crosses, not just the marked one.</span><span class="det-short">Every ~2s: marks 3 targets, then fires a <span class="hi">piercing true-dmg beam</span> (<span class="dmg">100+12% EP</span>) through each after a 1.5s telegraph.</span></li>
+<li><span style="color:#4ade80;font-size:10px">PASSIVE</span> <b>Galactic Spaceships</b> — <span class="det-full">every enemy the Death Star kills (center instakill, a Mark & Annihilate beam, or a CC-Immune enemy finally dying from accumulated ticks) refunds <span class="hg">-0.25s</span> off Skill D's own cooldown and spawns an allied spaceship. Each homes toward the current highest-HP enemy, firing a <span class="dmg">fixed 50 true damage</span> bolt every 300ms in flight, then on contact deals <span class="dmg">50+5% EP true damage</span> and applies <span class="hi">1 Vulnerability stack</span>. <span class="hi">500 HP</span> — can be shot down by enemy fire before reaching its target.</span><span class="det-short">Every kill: <span class="hg">-0.25s CD</span> + spawns a spaceship that homes on the highest-HP enemy, fires true-dmg bolts, then crashes for bonus dmg + Vulnerability. 500 HP, can be shot down.</span></li></ul></div>
 
 <div class="card"><h2 style="color:var(--red)"><span class="key">F</span> ANNIHILATION SWEEP</h2><div class="sub">HEAVEN'S WILL SLASH <span class="cd">CD 7s</span> <span class="cd">1.5s CHARGE + 1s SWEEP</span></div>
 <div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)">▶ Play</button></div>
@@ -1068,7 +1076,7 @@
 <div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,500–4,500 • Permanent DR 55% • Evade 5→10% • Speed 1.65 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — <span class="det-full">First <span class="hg">20 hits</span> are completely nullified (Iron Body, white flash each). Breaks after 20th hit. <span class="hg">CC Immune while Custos is active</span> — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, Support Aura gains <span class="hg">+35% heal efficiency</span>. When Custos breaks, Aegis Core receives a <span class="hg">one-time defensive layer</span> based on allies inside the aura at that moment: <span class="hg">0 allies → +10% MaxHP Shield</span> · <span class="hg">1 ally → +15% MaxHP Barrier</span> · <span class="hg">2 allies → +25% MaxHP Barrier</span> · <span class="hg">3 allies → +30% MaxHP Barrier</span> · <span class="hg">4+ allies → +35% MaxHP Barrier</span>. Barrier absorbs all non-true hits before HP; true damage pierces it. Shield is absorbed after barrier and grants +18% DR while any remains.</span><span class="det-short">First 20 hits nullified (Iron Body). CC Immune while active. After expiry: +35% Support Aura heal + on break Aegis gains one-time shield/barrier (0 allies → 10% MaxHP Shield; 1–4+ allies → 15–35% MaxHP Barrier).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — <span class="det-full">First <span class="hg">20 hits</span> are completely nullified (Iron Body, white flash each). Breaks after 20th hit. <span class="hg">CC Immune while Custos is active</span> — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, Support Aura gains <span class="hg">+35% heal efficiency</span>. When Custos breaks, Aegis Core receives a <span class="hg">one-time defensive layer</span> based on allies inside the aura at that moment: <span class="hg">0 allies → +10% MaxHP Shield</span> · <span class="hg">1 ally → +15% MaxHP Barrier</span> · <span class="hg">2 allies → +25% MaxHP Barrier</span> · <span class="hg">3 allies → +30% MaxHP Barrier</span> · <span class="hg">4+ allies → +35% MaxHP Barrier</span>. Barrier absorbs all non-true hits before HP; true damage pierces it. Shield is absorbed after barrier and grants +18% DR while any remains.</span><span class="det-short">First 20 hits nullified (Iron Body). CC Immune while active. After expiry: +35% Support Aura heal + on break Aegis gains one-time shield/barrier (0 allies → 10% MaxHP Shield; 1–4+ allies → 15–35% MaxHP Barrier).</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Support Aura</b> — <span class="det-full">heals allies <span class="hgr">8% MaxHP/s</span> (×1.35 after Custos expires; Aegis itself at 55% efficiency). Grants <span class="hg">48% MaxHP shield</span> once per ally + <span class="hg">8% MaxHP tick shield/s</span> (stacks). Active shield → <span class="hg">+18% DR</span>. Overheal → 50% shield. Speeds up all enemies inside 5%.</span><span class="det-short">Heals allies 8% MaxHP/s (×1.35 after Custos expires), 48% one-time shield + 8% tick shield/s, +18% DR while shielded.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Does not fire bullets directly.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lumen Nova</b> — every 5s: marks player + 3 Sentinels, fires lasers after 1s warning. Player: <span class="hr">1 life</span>. Sentinel: <span class="hr">20% EP</span> per laser.</li>
@@ -1077,7 +1085,7 @@
 <div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,112–4,092 • Body DR 45% • Evade 5→10% • Speed ~1.6 u/s</div>
 <div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Arc Barrier</b> — <span class="det-full">90° rotating barrier, <span class="dmg">60% DR</span>, no single hit &gt; <span class="dmg">35% barrier HP</span>, buff-immune. Independent HP pool = Marchosias MaxHP. <span class="hg">CC Immune while barrier is alive</span> — immune to Black Hole pull, Tesla slow, Dimensional Rift slow, and Orb slow. While active, Marchosias and the barrier gain an additional <span class="hg">+10% evade</span> (evade applies to both body hits and barrier hits). Piercing attacks (Spirit Arc Blade, Boomerang, Overload Laser) that hit the barrier: body damage <span class="hg">−30%</span>, barrier takes <span class="dmg">+15% extra damage</span>, attack continues through. Each hit on the barrier: barrier self-heals <span class="hgr">5% of damage dealt</span> (max 1000 HP), Marchosias body heals <span class="hgr">10% of damage dealt</span> (max 1000 HP, overflow → <span class="hg">50% converted to shield</span>). When the barrier is destroyed: Marchosias gains <span class="hg">5-hit Iron Body</span>, gains <span class="hg">+20% DR</span>, heals <span class="hgr">40% MaxHP</span> (overflow → <span class="hg">50% shield</span>), and gains a <span class="hg">shield = 15% MaxHP + 15% HP lost</span>. <b>The +20% DR is removed when the barrier revives.</b> Break revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed <span class="hi">3s</span> revive; otherwise <span class="hi">4–5s</span> (scales to 4s at 3 min). Tracking speed scales up to <span class="hi">×1.67</span> at 3 minutes of play. Two Roman numeral counters below Mar: <span style="color:#00ff88">green</span> = active sword queue, <span style="color:#ffaa00">gold</span> (I→IV) = cycle swords used — glows bright gold at IV to signal 3s revive on next break.</span><span class="det-short">90° rotating CC-immune barrier with +10% evade. Each hit: barrier and body self-heal (capped 1000 HP). On break: 5-hit Iron Body + 20% DR + 40% HP heal + shield (15% MaxHP + 15% HP lost) (DR removed on revive). 4 swords used → 3s revive (burst animation); otherwise 4–5s.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Arc Barrier</b> — <span class="det-full">90° rotating barrier, <span class="dmg">60% DR</span>, no single hit &gt; <span class="dmg">35% barrier HP</span>, buff-immune. Independent HP pool = Marchosias MaxHP. <span class="hg">CC Immune while barrier is alive</span> — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow. While active, Marchosias and the barrier gain an additional <span class="hg">+10% evade</span> (evade applies to both body hits and barrier hits). Piercing attacks (Spirit Arc Blade, Boomerang, Overload Laser) that hit the barrier: body damage <span class="hg">−30%</span>, barrier takes <span class="dmg">+15% extra damage</span>, attack continues through. Each hit on the barrier: barrier self-heals <span class="hgr">5% of damage dealt</span> (max 1000 HP), Marchosias body heals <span class="hgr">10% of damage dealt</span> (max 1000 HP, overflow → <span class="hg">50% converted to shield</span>). When the barrier is destroyed: Marchosias gains <span class="hg">5-hit Iron Body</span>, gains <span class="hg">+20% DR</span>, heals <span class="hgr">40% MaxHP</span> (overflow → <span class="hg">50% shield</span>), and gains a <span class="hg">shield = 15% MaxHP + 15% HP lost</span>. <b>The +20% DR is removed when the barrier revives.</b> Break revive time depends on sword cycle: if all 4 swords were used before the barrier breaks → burst explosion animation, fixed <span class="hi">3s</span> revive; otherwise <span class="hi">4–5s</span> (scales to 4s at 3 min). Tracking speed scales up to <span class="hi">×1.67</span> at 3 minutes of play. Two Roman numeral counters below Mar: <span style="color:#00ff88">green</span> = active sword queue, <span style="color:#ffaa00">gold</span> (I→IV) = cycle swords used — glows bright gold at IV to signal 3s revive on next break.</span><span class="det-short">90° rotating CC-immune barrier with +10% evade. Each hit: barrier and body self-heal (capped 1000 HP). On break: 5-hit Iron Body + 20% DR + 40% HP heal + shield (15% MaxHP + 15% HP lost) (DR removed on revive). 4 swords used → 3s revive (burst animation); otherwise 4–5s.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Assimilation</b> — <span class="det-full">death → 3 Minion Robots (25–35% MaxHP <span class="hg">+30%</span>, <span class="dmg">75% DR</span>, no single hit &gt; <span class="dmg">50% EP</span>, <span class="hi">speed ×2.10</span>). Scan within <span class="hi">170px</span> to attach as Parasite Shields or hunt the player. Minions flash a glowing ring to signal their presence.</span><span class="det-short">On death spawns 3 fast minions (75% DR) that attach to enemies as shields or hunt the player.</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires 2 bullets every 1s at nearest target. Bullet HP = ⌈1.25% current HP⌉.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Swords</b> — <span class="det-full"><span class="hi">25% chance</span> per barrier hit or per evaded hit (guaranteed on barrier break); queues a sword (0.65s cooldown between triggers). <b>Max 4 swords per barrier cycle</b> — when the 4th sword is triggered, the barrier immediately <b>self-detonates</b> (3s revive, same break buffs). Resets when the barrier revives. At <span class="hi">1% HP</span> all queued swords fire simultaneously. <span class="hr">Indestructible.</span> Sentinel: <span class="hr">27% EP</span> (1st hit) / <span class="hr">23%</span> (2nd) / <span class="hr">21%</span> (3rd+). Player: <span class="hr">1 life</span>.</span><span class="det-short">25% chance per barrier/evaded hit to queue an indestructible sword; max 4 per cycle — 4th sword triggers barrier self-detonation (3s revive). Sentinel: 27/23/21% EP. Player: 1 life.</span></li>
@@ -1189,8 +1197,8 @@
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. All percentage-based enemy damage to Sentinels scales off EP. Max HP alone = body HP without shield.</p></div>
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Against EP (Shield + Max HP = Existence Point). Hits shield first.</p></div>
 <div class="card"><h2 style="color:var(--red)">TRUE DAMAGE</h2><p>Bypasses all Shields. Directly to HP.</p></div>
-<div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Complete immunity to <b>all damage</b> — %, true, Black Hole, Skill F. Absolute.</p></div>
-<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed by any crowd control — Black Hole pull, Tesla slow, Dimensional Rift slow, Orb slow. Does NOT block damage. <b>Egregor</b>, <b>Dargruel</b>, <b>Leviathan</b>, and <b>Goliath</b> (True Form, via Inevitable) have permanent CC Immunity.</p></div>
+<div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Complete immunity to <b>all damage</b> — %, true, Death Star, Skill F. Absolute.</p></div>
+<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY</h2><p>Cannot be pulled/slowed by any crowd control — Death Star pull, Tesla slow, Dimensional Rift slow, Orb slow. Does NOT block damage. <b>Egregor</b>, <b>Dargruel</b>, <b>Leviathan</b>, and <b>Goliath</b> (True Form, via Inevitable) have permanent CC Immunity.</p></div>
 <div class="card"><h2 style="color:#cc55ff">ROOT & SILENCE</h2>
 <p>Inflicted by Dargruel's <b>Abyssal Chains</b>. Lasts <span class="hr">1 second</span>, re-applies on each hit even if already active.</p>
 <ul><li><b>Root:</b> Cannot move at all.</li>
@@ -1203,8 +1211,20 @@
       updatelog: `
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
 
+<div class="ul-entry" style="--ul-accent:#a855f7">
+<div class="ul-head"><span class="ul-ver">v5.6 — DEATH STAR REWORK</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-date">2026-08-21 · Skill D fully reworked from Cosmic Black Hole: Singularity into Death Star: Draconic Annihilation</div>
+<p class="det-short ul-summary">Skill D keeps its core pull-and-instakill (speed 6, center contact = instant kill / 30% MaxHP true damage for CC-Immune enemies) but is now a full rework in name, visuals, and kit. Two new mechanics layer on top: Mark & Annihilate, a repeating cycle that marks 3 targets (CC-Immune first) and fires a piercing true-damage beam through each, and Galactic Spaceships, allied drones spawned on every Death Star kill that home in on the current highest-HP enemy, fire true-damage bolts in flight, and crash for bonus damage plus a Vulnerability stack — spaceships can be shot down by enemy fire before they arrive. Cooldown 12s → 10s, refunded a further 0.25s per kill. Full visual rework: new charge sequence, mechanical-ring/debris-field body, and quality-tier scaling (FULL/MED/LOW/MIN) matching every other effect in the game.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Mark & Annihilate:</b> every ~2s while the Death Star is alive, marks 3 targets (CC-Immune enemies first — those can't be pulled to center at all; otherwise the 3 highest-current-HP valid targets) and, after a 1.5s telegraph, fires a piercing true-damage beam through each — <span class="dmg">100+12% EP</span>, hitting every enemy the beam crosses, not just the marked one.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Galactic Spaceships:</b> every Death Star kill (center instakill, a Mark & Annihilate beam, or a CC-Immune enemy finally dying from accumulated ticks) refunds <span class="hg">-0.25s</span> off Skill D's cooldown and spawns an allied spaceship. Homes toward the current highest-HP enemy, firing <span class="dmg">50 true dmg/300ms</span> in flight, then on contact deals <span class="dmg">50+5% EP true dmg</span> and applies 1 Vulnerability stack. 500 HP — can be shot down by enemy fire before reaching its target.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> Cooldown <span class="hg">12s → 10s</span>. Float-away speed 10% slower than before (unrelated to the cooldown change — visual pacing only).</li>
+<li><span class="ul-tag tag-feat">FEAT</span> Full visual rework: new charge-phase sequence, mechanical-ring + asteroid-debris body replacing the old event-horizon/accretion-disk look, and full FULL/MED/LOW/MIN quality-tier scaling.</li>
+</ul>
+</div>
+
 <div class="ul-entry" style="--ul-accent:#22c55e">
-<div class="ul-head"><span class="ul-ver">v5.5 — VIETNAMESE LANGUAGE SUPPORT</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-head"><span class="ul-ver">v5.5 — VIETNAMESE LANGUAGE SUPPORT</span><span class="ul-badge b-major">MAJOR</span></div>
 <div class="ul-date">2026-08-04 · Full English/Vietnamese language switcher for the Settings panel, the Guide, and the in-game sigil picker</div>
 <p class="det-short ul-summary">Added a Language dropdown in Settings (English / Tiếng Việt), persisted per-device via localStorage and defaulting to English. Switching language re-translates the Settings panel, the in-game sigil picker (card names, elements, buff text, and the picker's own title/Confirm/Reroll UI), and every Guide tab except Enemies-heavy edge cases and the dev changelog. Vietnamese resources ship inside the existing offline Basic package — no separate download needed. Also fixed a real-device rendering bug where Vietnamese diacritics broke on the Guide's stylized display fonts, and redesigned the Settings Language/Offline dropdowns to match the existing In-Game Music dropdown's styling.</p>
 <ul class="det-full">
@@ -1819,10 +1839,12 @@
 </div>
 </div>
 
-<div class="card"><h2 style="color:#9333ea"><span class="key">D</span> HỐ ĐEN</h2><div class="sub"><span class="cd">HỒI CHIÊU 12s</span> <span class="cd">SẠC 2s</span></div>
+<div class="card"><h2 style="color:#9333ea"><span class="key">D</span> TỬ LONG TINH</h2><div class="sub" style="font-weight:400;font-size:11px;opacity:0.75">Tinh Vương Long: Tử Long Tinh</div><div class="sub"><span class="cd">HỒI CHIÊU 10s</span> <span class="cd">SẠC 2s</span></div>
 <div class="ab" style="height:210px"><canvas id="cvSkillD" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillD" onclick="playWidget('skillD', this)">▶ Play</button></div>
-<ul><li>Hút mọi kẻ địch + đạn. Tâm hố = <span class="hr">999,999,999 sát thương</span> giết ngay lập tức.</li>
-<li><b>Egregor</b> và <b>Dargruel</b> miễn nhiễm khống chế — không thể bị hút. Nếu ở tâm hố, thay vào đó chịu <span class="hr">30% MaxHP sát thương chuẩn</span>.</li></ul></div>
+<ul><li><span class="det-full">Hút mọi kẻ địch + đạn về tâm với tốc độ 6. Tâm hố = <span class="hr">999,999,999 sát thương</span> giết ngay lập tức, xuyên cả Absolute Shield.</span><span class="det-short">Hút mọi kẻ địch + đạn. Tâm hố = <span class="hr">999,999,999 sát thương</span> giết ngay lập tức.</span></li>
+<li><span class="det-full"><b>Egregor</b> và <b>Dargruel</b> miễn nhiễm khống chế — không thể bị hút về tâm. Nếu vẫn ở tâm, chịu <span class="hr">30% MaxHP sát thương chuẩn</span> thay vì chết ngay.</span><span class="det-short"><b>Egregor</b>/<b>Dargruel</b> không bị hút — chịu <span class="hr">30% MaxHP sát thương chuẩn</span> ở tâm thay vào đó.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Đánh Dấu & Tiêu Diệt</b> — <span class="det-full">mỗi ~2s trong lúc Tử Long Tinh còn sống, đánh dấu 3 mục tiêu (ưu tiên kẻ địch miễn nhiễm khống chế — vì không hút được; nếu không có thì chọn 3 mục tiêu HP hiện tại cao nhất). Sau 1.5s báo hiệu (vòng crosshair xanh cyan), bắn <span class="hi">tia xuyên phá sát thương chuẩn</span> qua từng mục tiêu tới rìa màn hình — <span class="dmg">100+12% EP</span> mỗi tia, trúng mọi kẻ địch tia đi qua chứ không chỉ mục tiêu bị đánh dấu.</span><span class="det-short">Mỗi ~2s: đánh dấu 3 mục tiêu, sau 1.5s báo hiệu bắn <span class="hi">tia xuyên phá sát thương chuẩn</span> (<span class="dmg">100+12% EP</span>) qua từng mục tiêu.</span></li>
+<li><span style="color:#4ade80;font-size:10px">PASSIVE</span> <b>Phi Thuyền Thiên Hà</b> — <span class="det-full">mỗi kẻ địch bị Tử Long Tinh kết liễu (giết ngay ở tâm, tia Đánh Dấu & Tiêu Diệt, hoặc kẻ miễn nhiễm khống chế chết dần vì tích lũy sát thương) hoàn <span class="hg">-0.25s</span> hồi chiêu Skill D và triệu hồi 1 phi thuyền đồng minh. Mỗi phi thuyền bay tới kẻ địch HP hiện tại cao nhất, bắn <span class="dmg">50 sát thương chuẩn cố định</span> mỗi 300ms trong lúc bay, rồi khi đâm vào gây <span class="dmg">50+5% EP sát thương chuẩn</span> và áp <span class="hi">1 lớp Trọng Thương</span>. <span class="hi">500 HP</span> — có thể bị đạn địch bắn hạ trước khi tới nơi.</span><span class="det-short">Mỗi lần kết liễu: <span class="hg">-0.25s hồi chiêu</span> + triệu hồi phi thuyền bay tới địch HP cao nhất, bắn tia sát thương chuẩn rồi đâm vào gây thêm sát thương + Trọng Thương. 500 HP, có thể bị bắn hạ.</span></li></ul></div>
 
 <div class="card"><h2 style="color:var(--red)"><span class="key">F</span> THIÊN Ý TRẢM</h2><div class="sub">THIÊN Ý TRẢM <span class="cd">HỒI CHIÊU 7s</span> <span class="cd">SẠC 1.5s + QUÉT 1s</span></div>
 <div class="ab" style="height:160px"><canvas id="cvSkillF" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillF" onclick="playWidget('skillF', this)">▶ Play</button></div>
@@ -1861,8 +1883,8 @@
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. Mọi sát thương theo % từ kẻ địch vào Vệ Binh đều tính theo EP. Riêng Max HP = HP thân không tính shield.</p></div>
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Tính trên EP (Shield + Max HP = Existence Point). Đánh vào shield trước.</p></div>
 <div class="card"><h2 style="color:var(--red)">TRUE DAMAGE (SÁT THƯƠNG CHUẨN)</h2><p>Xuyên qua mọi Shield. Đánh thẳng vào HP.</p></div>
-<div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Miễn nhiễm hoàn toàn <b>mọi sát thương</b> — %, sát thương chuẩn, Black Hole, Skill F. Tuyệt đối.</p></div>
-<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY (MIỄN NHIỄM KHỐNG CHẾ)</h2><p>Không thể bị hút/làm chậm bởi bất kỳ hiệu ứng khống chế nào — hút Black Hole, chậm Tesla, chậm Dimensional Rift, chậm Orb. KHÔNG chặn sát thương. <b>Egregor</b>, <b>Dargruel</b>, <b>Leviathan</b>, và <b>Goliath</b> (True Form, qua Inevitable) miễn nhiễm khống chế vĩnh viễn.</p></div>
+<div class="card"><h2 style="color:var(--gold)">IRON BODY</h2><p>Miễn nhiễm hoàn toàn <b>mọi sát thương</b> — %, sát thương chuẩn, Death Star, Skill F. Tuyệt đối.</p></div>
+<div class="card"><h2 style="color:var(--purple)">CC IMMUNITY (MIỄN NHIỄM KHỐNG CHẾ)</h2><p>Không thể bị hút/làm chậm bởi bất kỳ hiệu ứng khống chế nào — hút Death Star, chậm Tesla, chậm Dimensional Rift, chậm Orb. KHÔNG chặn sát thương. <b>Egregor</b>, <b>Dargruel</b>, <b>Leviathan</b>, và <b>Goliath</b> (True Form, qua Inevitable) miễn nhiễm khống chế vĩnh viễn.</p></div>
 <div class="card"><h2 style="color:#cc55ff">ROOT & SILENCE</h2>
 <p>Gây ra bởi <b>Abyssal Chains</b> của Dargruel. Kéo dài <span class="hr">1 giây</span>, áp dụng lại mỗi lần trúng đòn dù đang còn hiệu lực.</p>
 <ul><li><b>Root (Trói):</b> Không thể di chuyển.</li>
@@ -2077,7 +2099,7 @@
 <div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,500–4,500 • DR vĩnh viễn 55% • Né 5→10% • Tốc độ 1.65 u/s</div>
 <div class="ab" style="height:110px"><canvas id="cvAegis" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — <span class="det-full"><span class="hg">20 đòn đánh đầu tiên</span> bị vô hiệu hóa hoàn toàn (Iron Body, lóe trắng mỗi lần). Vỡ sau đòn thứ 20. <span class="hg">Miễn nhiễm khống chế trong lúc Custos còn hiệu lực</span> — miễn nhiễm hút Black Hole, chậm Tesla, chậm Dimensional Rift, và chậm Orb. Sau khi Iron Body hết hạn, Support Aura nhận <span class="hg">+35% hiệu quả hồi máu</span>. Khi Custos vỡ, Aegis Core nhận <span class="hg">1 lớp phòng thủ 1 lần</span> dựa trên số đồng minh trong vầng hào quang tại thời điểm đó: <span class="hg">0 đồng minh → +10% MaxHP Shield</span> · <span class="hg">1 đồng minh → +15% MaxHP Barrier</span> · <span class="hg">2 đồng minh → +25% MaxHP Barrier</span> · <span class="hg">3 đồng minh → +30% MaxHP Barrier</span> · <span class="hg">4+ đồng minh → +35% MaxHP Barrier</span>. Barrier hấp thụ mọi đòn không phải sát thương chuẩn trước khi tới HP; sát thương chuẩn xuyên qua nó. Shield được hấp thụ sau barrier và cấp +18% DR trong lúc còn tồn tại.</span><span class="det-short">20 đòn đầu bị vô hiệu hóa (Iron Body). Miễn nhiễm khống chế trong lúc còn hiệu lực. Sau khi hết hạn: +35% hồi máu Support Aura + khi vỡ Aegis nhận shield/barrier 1 lần (0 đồng minh → 10% MaxHP Shield; 1–4+ đồng minh → 15–35% MaxHP Barrier).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Custos Aeternus</b> — <span class="det-full"><span class="hg">20 đòn đánh đầu tiên</span> bị vô hiệu hóa hoàn toàn (Iron Body, lóe trắng mỗi lần). Vỡ sau đòn thứ 20. <span class="hg">Miễn nhiễm khống chế trong lúc Custos còn hiệu lực</span> — miễn nhiễm hút Death Star, chậm Tesla, chậm Dimensional Rift, và chậm Orb. Sau khi Iron Body hết hạn, Support Aura nhận <span class="hg">+35% hiệu quả hồi máu</span>. Khi Custos vỡ, Aegis Core nhận <span class="hg">1 lớp phòng thủ 1 lần</span> dựa trên số đồng minh trong vầng hào quang tại thời điểm đó: <span class="hg">0 đồng minh → +10% MaxHP Shield</span> · <span class="hg">1 đồng minh → +15% MaxHP Barrier</span> · <span class="hg">2 đồng minh → +25% MaxHP Barrier</span> · <span class="hg">3 đồng minh → +30% MaxHP Barrier</span> · <span class="hg">4+ đồng minh → +35% MaxHP Barrier</span>. Barrier hấp thụ mọi đòn không phải sát thương chuẩn trước khi tới HP; sát thương chuẩn xuyên qua nó. Shield được hấp thụ sau barrier và cấp +18% DR trong lúc còn tồn tại.</span><span class="det-short">20 đòn đầu bị vô hiệu hóa (Iron Body). Miễn nhiễm khống chế trong lúc còn hiệu lực. Sau khi hết hạn: +35% hồi máu Support Aura + khi vỡ Aegis nhận shield/barrier 1 lần (0 đồng minh → 10% MaxHP Shield; 1–4+ đồng minh → 15–35% MaxHP Barrier).</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Pháp Trận Hỗ Trợ</b> — <span class="det-full">hồi máu đồng minh <span class="hgr">8% MaxHP/s</span> (×1.35 sau khi Custos hết hạn; bản thân Aegis ở hiệu quả 55%). Cấp <span class="hg">khiên 48% MaxHP</span> 1 lần cho mỗi đồng minh + <span class="hg">khiên tick 8% MaxHP/s</span> (cộng dồn). Có khiên hoạt động → <span class="hg">+18% DR</span>. Hồi dư → 50% chuyển thành khiên. Tăng tốc mọi kẻ địch bên trong 5%.</span><span class="det-short">Hồi máu đồng minh 8% MaxHP/s (×1.35 sau khi Custos hết hạn), khiên 1 lần 48% + khiên tick 8%/s, +18% DR trong lúc có khiên.</span></li>
 <li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Không bắn đạn trực tiếp.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Lumen Nova</b> — mỗi 5s: đánh dấu người chơi + 3 Vệ Binh, bắn laser sau 1s cảnh báo. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh: <span class="hr">20% EP</span> mỗi laser.</li>
@@ -2086,7 +2108,7 @@
 <div class="card"><h2 class="dsname" style="color:#ff8844">MARCHOSIAS <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,112–4,092 • DR thân 45% • Né 5→10% • Tốc độ ~1.6 u/s</div>
 <div class="ab" style="height:120px"><canvas id="cvMarcho" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Kết Giới Vòng Cung</b> — <span class="det-full">Kết giới xoay 90°, <span class="dmg">60% DR</span>, không đòn đánh đơn lẻ nào &gt; <span class="dmg">35% HP Kết giới</span>, miễn nhiễm buff. Bể HP độc lập = MaxHP của Marchosias. <span class="hg">Miễn nhiễm khống chế trong lúc Kết giới còn sống</span> — miễn nhiễm hút Black Hole, chậm Tesla, chậm Dimensional Rift, và chậm Orb. Trong lúc hoạt động, Marchosias và Kết giới nhận thêm <span class="hg">+10% né</span> (né áp dụng cho cả đòn đánh vào thân lẫn Kết giới). Đòn xuyên (Spirit Arc Blade, Boomerang, Overload Laser) trúng Kết giới: sát thương vào thân <span class="hg">−30%</span>, Kết giới nhận thêm <span class="dmg">+15% sát thương</span>, đòn đánh tiếp tục xuyên qua. Mỗi lần trúng Kết giới: Kết giới tự hồi <span class="hgr">5% sát thương gây ra</span> (tối đa 1000 HP), thân Marchosias hồi <span class="hgr">10% sát thương gây ra</span> (tối đa 1000 HP, dư ra → <span class="hg">50% chuyển thành khiên</span>). Khi Kết giới bị phá hủy: Marchosias nhận <span class="hg">Iron Body chịu 5 đòn</span>, nhận <span class="hg">+20% DR</span>, hồi <span class="hgr">40% MaxHP</span> (dư ra → <span class="hg">50% khiên</span>), và nhận khiên = <span class="hg">15% MaxHP + 15% HP đã mất</span>. <b>+20% DR bị gỡ bỏ khi Kết giới hồi sinh.</b> Thời gian hồi sinh sau khi vỡ phụ thuộc vào chu kỳ kiếm: nếu cả 4 kiếm đã được dùng trước khi Kết giới vỡ → hoạt cảnh nổ tung, hồi sinh cố định <span class="hi">3s</span>; nếu không thì <span class="hi">4–5s</span> (giảm dần về 4s sau 3 phút). Tốc độ bám mục tiêu tăng dần tới <span class="hi">×1.67</span> sau 3 phút chơi. 2 bộ đếm số La Mã bên dưới Marchosias: <span style="color:#00ff88">xanh lá</span> = hàng đợi kiếm đang hoạt động, <span style="color:#ffaa00">vàng</span> (I→IV) = số kiếm đã dùng trong chu kỳ — sáng rực vàng ở IV để báo hiệu hồi sinh 3s ở lần vỡ tiếp theo.</span><span class="det-short">Kết giới xoay 90° miễn nhiễm khống chế với +10% né. Mỗi lần trúng: Kết giới và thân tự hồi (CAP 1000 HP). Khi vỡ: Iron Body 5 đòn + 20% DR + hồi 40% HP + khiên (15% MaxHP + 15% HP đã mất) (DR bị gỡ khi hồi sinh). Dùng đủ 4 kiếm → hồi sinh 3s (hoạt cảnh nổ); nếu không thì 4–5s.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Kết Giới Vòng Cung</b> — <span class="det-full">Kết giới xoay 90°, <span class="dmg">60% DR</span>, không đòn đánh đơn lẻ nào &gt; <span class="dmg">35% HP Kết giới</span>, miễn nhiễm buff. Bể HP độc lập = MaxHP của Marchosias. <span class="hg">Miễn nhiễm khống chế trong lúc Kết giới còn sống</span> — miễn nhiễm hút Death Star, chậm Tesla, chậm Dimensional Rift, và chậm Orb. Trong lúc hoạt động, Marchosias và Kết giới nhận thêm <span class="hg">+10% né</span> (né áp dụng cho cả đòn đánh vào thân lẫn Kết giới). Đòn xuyên (Spirit Arc Blade, Boomerang, Overload Laser) trúng Kết giới: sát thương vào thân <span class="hg">−30%</span>, Kết giới nhận thêm <span class="dmg">+15% sát thương</span>, đòn đánh tiếp tục xuyên qua. Mỗi lần trúng Kết giới: Kết giới tự hồi <span class="hgr">5% sát thương gây ra</span> (tối đa 1000 HP), thân Marchosias hồi <span class="hgr">10% sát thương gây ra</span> (tối đa 1000 HP, dư ra → <span class="hg">50% chuyển thành khiên</span>). Khi Kết giới bị phá hủy: Marchosias nhận <span class="hg">Iron Body chịu 5 đòn</span>, nhận <span class="hg">+20% DR</span>, hồi <span class="hgr">40% MaxHP</span> (dư ra → <span class="hg">50% khiên</span>), và nhận khiên = <span class="hg">15% MaxHP + 15% HP đã mất</span>. <b>+20% DR bị gỡ bỏ khi Kết giới hồi sinh.</b> Thời gian hồi sinh sau khi vỡ phụ thuộc vào chu kỳ kiếm: nếu cả 4 kiếm đã được dùng trước khi Kết giới vỡ → hoạt cảnh nổ tung, hồi sinh cố định <span class="hi">3s</span>; nếu không thì <span class="hi">4–5s</span> (giảm dần về 4s sau 3 phút). Tốc độ bám mục tiêu tăng dần tới <span class="hi">×1.67</span> sau 3 phút chơi. 2 bộ đếm số La Mã bên dưới Marchosias: <span style="color:#00ff88">xanh lá</span> = hàng đợi kiếm đang hoạt động, <span style="color:#ffaa00">vàng</span> (I→IV) = số kiếm đã dùng trong chu kỳ — sáng rực vàng ở IV để báo hiệu hồi sinh 3s ở lần vỡ tiếp theo.</span><span class="det-short">Kết giới xoay 90° miễn nhiễm khống chế với +10% né. Mỗi lần trúng: Kết giới và thân tự hồi (CAP 1000 HP). Khi vỡ: Iron Body 5 đòn + 20% DR + hồi 40% HP + khiên (15% MaxHP + 15% HP đã mất) (DR bị gỡ khi hồi sinh). Dùng đủ 4 kiếm → hồi sinh 3s (hoạt cảnh nổ); nếu không thì 4–5s.</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Đồng Hóa</b> — <span class="det-full">chết → 3 <b>Robot Tay Sai</b> (25–35% MaxHP <span class="hg">+30%</span>, <span class="dmg">75% DR</span>, không đòn đánh đơn lẻ nào &gt; <span class="dmg">50% EP</span>, <span class="hi">tốc độ ×2.10</span>). Quét trong bán kính <span class="hi">170px</span> để bám vào làm <b>Khiên Ký Sinh</b> hoặc săn đuổi người chơi. Tay sai lóe sáng 1 vòng tròn để báo hiệu sự hiện diện.</span><span class="det-short">Khi chết sinh ra 3 tay sai nhanh (75% DR) bám vào kẻ địch làm khiên hoặc săn đuổi người chơi.</span></li>
 <li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn 2 đạn mỗi 1s vào mục tiêu gần nhất. HP đạn = ⌈1.25% HP hiện tại⌉.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Kiếm</b> — <span class="det-full"><span class="hi">25% cơ hội</span> mỗi khi Kết giới trúng đòn hoặc mỗi khi né được đòn (chắc chắn khi Kết giới vỡ); xếp hàng 1 kiếm (hồi chiêu 0.65s giữa các lần kích hoạt). <b>Tối đa 4 kiếm mỗi chu kỳ Kết giới</b> — khi kiếm thứ 4 kích hoạt, Kết giới <b>tự kích nổ ngay lập tức</b> (hồi sinh 3s, cùng buff như khi vỡ). Reset khi Kết giới hồi sinh. Ở <span class="hi">1% HP</span>, mọi kiếm đang xếp hàng bắn ra cùng lúc. <span class="hr">Bất khả phá hủy.</span> Vệ Binh: <span class="hr">27% EP</span> (đòn 1) / <span class="hr">23%</span> (đòn 2) / <span class="hr">21%</span> (đòn 3+). Người chơi: <span class="hr">1 mạng</span>.</span><span class="det-short">25% cơ hội mỗi khi Kết giới trúng đòn/né đòn để xếp hàng 1 kiếm bất khả phá hủy; tối đa 4 mỗi chu kỳ — kiếm thứ 4 kích hoạt tự kích nổ Kết giới (hồi sinh 3s). Vệ Binh: 27/23/21% EP. Người chơi: 1 mạng.</span></li>
@@ -2191,7 +2213,7 @@
 <tr><td><span class="key">Shift</span></td><td>Lãnh Địa Yog-Sothoth (chậm thời gian + Iron Body)</td></tr>
 <tr><td><span class="key">A</span></td><td>Cầu Sấm Sét — 20 cầu năng lượng định hướng</td></tr>
 <tr><td><span class="key">S</span></td><td>Tinh Linh Hoài Niệm — triệu hồi linh hồn đồng minh</td></tr>
-<tr><td><span class="key">D</span></td><td>Hố Đen Vũ Trụ — hút vào điểm kỳ dị</td></tr>
+<tr><td><span class="key">D</span></td><td>Tử Long Tinh — hút, đánh dấu & tiêu diệt, phi thuyền</td></tr>
 <tr><td><span class="key">F</span></td><td>Càn Quét Hủy Diệt — chùm tia toàn màn hình</td></tr>
 <tr><td><span class="key">G</span></td><td>Kết Giới Sinh Mệnh / Ma Trận Tesla</td></tr>
 </table></div>
@@ -4966,7 +4988,8 @@
 
         // --- Remaining skill canvases ---
 
-        // ── COSMIC BLACK HOLE (Skill D) — real drawSkillDCharging() + drawBlackHole() ──
+        // ── DEATH STAR (Skill D) — real drawSkillDCharging()/drawDeathStar()/
+        // drawSkillDMarks()/drawSkillDLasers()/drawSkillDSpaceships() ──
         const skd = setup('cvSkillD');
         if (skd) {
           const { c, w, h } = skd;
@@ -4975,7 +4998,7 @@
             ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
             player.x = cx; player.y = cy;
-            skillDCharging = false; blackHole = null;
+            skillDCharging = false; deathStar = null;
             drawPlayer();
           }
           drawIdle();
@@ -4984,6 +5007,7 @@
             const btn = document.getElementById('btnPlaySkillD');
             btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
             particles.length = 0; explosions.length = 0;
+            window.skillDLasers.length = 0; window.skillDBolts.length = 0; window.skillDSpaceships.length = 0;
             player.x = cx; player.y = cy;
             skillDCharging = true;
             skillDChargeStartTime = performance.now();
@@ -4991,7 +5015,7 @@
             const prey = { x: w * 0.14, y: cy - 20, size: 8, hp: 100, maxHp: 100, type: 'apostle', shield: 0, alive: true };
             // elapsed/dt track real wall-clock time (matching skillDChargeStartTime,
             // which drawSkillDCharging()'s own progress reads via performance.now()).
-            let holeSpawned = false, killed = false, lastT = performance.now();
+            let holeSpawned = false, marked = false, lasered = false, lastT = performance.now();
             function tick() {
               const nowT = performance.now();
               if (_widgetPauseGuard(btn, nowT, [{ get: () => skillDChargeStartTime, set: v => skillDChargeStartTime = v }])) { lastT = nowT; activeAnimations.push(requestAnimationFrame(tick)); return; }
@@ -5004,38 +5028,66 @@
                 drawSkillDCharging();
                 drawPlayer();
               } else {
-                // Real maxSize is 180 (js/skills.js) — the hole appears centered
+                // Real maxSize is 120 (js/skills.js) — the star appears centered
                 // on screen and the player is hidden while it's active, matching
                 // how it dwarfs the ship in the real game.
                 if (!holeSpawned) {
                   holeSpawned = true;
                   skillDCharging = false;
-                  if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.playSfx('blackhole'); window.AudioMgr.startBlackhole(); }
-                  blackHole = { x: w * 0.5, y: h * 0.5, size: 0, activeTime: 0 };
+                  if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.playSfx('blackhole'); window.AudioMgr.startDeathStar(); }
+                  deathStar = { x: w * 0.5, y: h * 0.5, size: 0, activeTime: 0, markedTargets: [] };
                 }
                 const bhElapsed = elapsed - 2000;
                 const maxSize = 95;
-                blackHole.size = bhElapsed < 500 ? maxSize * (bhElapsed / 500) : bhElapsed > 1900 ? Math.max(0, maxSize * (1 - (bhElapsed - 1900) / 400)) : maxSize;
-                blackHole.activeTime = bhElapsed;
-                if (prey.alive) {
-                  const dx = blackHole.x - prey.x, dy = blackHole.y - prey.y, d = Math.hypot(dx, dy);
-                  if (d > 6) { prey.x += (dx / d) * 3.2; prey.y += (dy / d) * 3.2; }
-                  else if (!killed) {
-                    killed = true; prey.alive = false;
-                    createParticles(prey.x, prey.y, 14, '#a855f7', 2, 6);
+                deathStar.size = bhElapsed < 500 ? maxSize * (bhElapsed / 500) : bhElapsed > 1900 ? Math.max(0, maxSize * (1 - (bhElapsed - 1900) / 400)) : maxSize;
+                deathStar.activeTime = bhElapsed;
+
+                // Mini mark -> laser -> spaceship beat, timed to fit inside the
+                // hole's hold window instead of letting the pull alone kill prey.
+                if (!marked && bhElapsed >= 300) {
+                  marked = true;
+                  deathStar.markedTargets = [prey];
+                } else if (marked && !lasered && bhElapsed >= 1200) {
+                  lasered = true;
+                  deathStar.markedTargets = [];
+                  if (prey.alive) {
+                    window.skillDLasers.push({ startX: deathStar.x, startY: deathStar.y, endX: prey.x + (prey.x - deathStar.x) * 2, endY: prey.y + (prey.y - deathStar.y) * 2, life: 1.0 });
+                    prey.alive = false;
+                    createParticles(prey.x, prey.y, 14, '#00ffff', 2, 6);
+                    // js/skills.js isn't loaded in this preview harness (see
+                    // its own comment near the top of this script block), so
+                    // spawnSkillDSpaceship()/updateSkillDSpaceships() aren't
+                    // available here — drive a self-contained stand-in with
+                    // the exact same shape drawSkillDSpaceships() expects.
+                    window.skillDSpaceships.push({ x: prey.x, y: prey.y, size: 25, hp: 500, maxHp: 500, target: null });
                   }
+                } else if (prey.alive) {
+                  const dx = deathStar.x - prey.x, dy = deathStar.y - prey.y, d = Math.hypot(dx, dy);
+                  if (d > 6) { prey.x += (dx / d) * 3.2; prey.y += (dy / d) * 3.2; }
                 }
-                drawBlackHole();
+
+                drawDeathStar();
+                drawSkillDMarks();
                 if (prey.alive) drawEnemy(prey);
+                for (let i = window.skillDSpaceships.length - 1; i >= 0; i--) {
+                  const ship = window.skillDSpaceships[i];
+                  ship.y -= 2.2 * (dt / 16.67);
+                  if (ship.y < -20) window.skillDSpaceships.splice(i, 1);
+                }
               }
+              drawSkillDLasers();
+              drawSkillDBolts();
+              drawSkillDSpaceships();
+              for (let i = window.skillDLasers.length - 1; i >= 0; i--) { window.skillDLasers[i].life -= 0.05; if (window.skillDLasers[i].life <= 0) window.skillDLasers.splice(i, 1); }
               _tickParticlesAndExplosions(dt);
               particles.forEach(drawParticle);
 
               if (elapsed < 4400) {
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
-                if (window.AudioMgr) window.AudioMgr.stopBlackhole();
-                blackHole = null; particles.length = 0;
+                if (window.AudioMgr) window.AudioMgr.stopDeathStar();
+                deathStar = null; particles.length = 0;
+                window.skillDLasers.length = 0; window.skillDBolts.length = 0; window.skillDSpaceships.length = 0;
                 btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
                 drawIdle();
               }

@@ -1185,13 +1185,13 @@ function updateSpiritFinale(spirit, deltaTime) {
 function activateSkillD() {
     const currentTime = performance.now();
     if (typeof player !== 'undefined' && player._silenced) return;
-    if (gameState !== "playing" || skillDCharging || blackHole || currentTime - lastSkillD < skillDCooldown) return;
+    if (gameState !== "playing" || skillDCharging || deathStar || currentTime - lastSkillD < skillDCooldown) return;
     _checkMirrorLaserProc();
     if (_hasBuff('dong_chay_luan_hoi')) {
         // Cycle of Flow: skip the charge phase entirely
         lastSkillD = currentTime;
-        blackHole = { x: player.x, y: player.y - player.height, size: 10, maxSize: 120, vy: -2, activeTime: 0 };
-        if (window.AudioMgr) window.AudioMgr.startBlackhole();
+        deathStar = { x: player.x, y: player.y - player.height, size: 10, maxSize: 120, vy: -1.8, activeTime: 0, nextMarkAt: 500, laserAt: -1, markedTargets: [] };
+        if (window.AudioMgr) window.AudioMgr.startDeathStar();
         return;
     }
     skillDCharging = true;
@@ -1199,34 +1199,63 @@ function activateSkillD() {
     if (window.AudioMgr) window.AudioMgr.startSkillDCharge();
 }
 
+// Same untargetable-during-Skill-D filters used by both the pull loop and the
+// mark step below — kept as one function so the two can never drift apart.
+function _skillDCanTarget(enemy) {
+    if (enemy.type === 'abyssal_chain') return false; // piercing, immune to Death Star
+    if (enemy.type === 'veilshroud_echo') return false; // echo miễn CC
+    if (enemy.inCoronation) return false; // untargetable during coronation
+    if (enemy.type === 'veilshroud' && enemy.inPhantom) return false; // frozen during phantom
+    return true;
+}
+function _skillDIsCCImmune(enemy) {
+    return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath'
+        || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+        || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+}
+// A Death Star kill (either the instant center kill, or a CC-immune enemy
+// finally dying from accumulated 30%-MaxHP ticks) refunds 0.25s off Skill D's
+// own cooldown and spawns 1 allied spaceship at the death position — mirrors
+// Cycle of Flow's own clamp-to-now floor (js/entities.js) so the cooldown can
+// never be pushed into the future.
+function _skillDOnKill(enemy) {
+    if (!enemy._markedForDeath) return;
+    lastSkillD = Math.min(performance.now(), lastSkillD - 250);
+    spawnSkillDSpaceship(enemy.x, enemy.y);
+}
+
 function updateSkillD(deltaTime) {
     if (skillDCharging) {
         if (performance.now() - skillDChargeStartTime >= skillDChargeTime) {
             skillDCharging = false;
             lastSkillD = performance.now();
-            blackHole = {
+            deathStar = {
                 x: player.x, y: player.y - player.height,
-                size: 10, maxSize: 120, vy: -2, activeTime: 0
+                size: 10, maxSize: 120, vy: -1.8, activeTime: 0,
+                nextMarkAt: 500, laserAt: -1, markedTargets: [],
             };
-            if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.startBlackhole(); }
+            if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.startDeathStar(); }
         }
     }
-    if (blackHole) {
+    if (deathStar) {
         let dt = deltaTime / 16.67;
-        blackHole.y += blackHole.vy * dt;
-        blackHole.activeTime += deltaTime;
-        if (blackHole.size < blackHole.maxSize) blackHole.size += 1 * dt;
+        deathStar.y += deathStar.vy * dt;
+        deathStar.activeTime += deltaTime;
+        if (deathStar.size < deathStar.maxSize) deathStar.size += 1 * dt;
 
         const pullSpeed = 6;
+        // Contact radius matches the Death Star's actual visible outer edge
+        // (the base disc, drawn at deathStar.size * 2.5 scaled down by
+        // DS_SCALE = 2.0/2.8 in js/render/skill-d.js — keep this in sync with
+        // that file if the visual footprint ever changes), plus the target's
+        // own radius so it's edge-to-edge like every other collision check in
+        // this game, not center-to-center — touching the Death Star kills,
+        // enemies don't need to be dragged all the way to its exact center.
+        const _dsContactMult = 2.5 * (2.0 / 2.8);
         for (let enemy of enemies) {
-            if (enemy.type === 'abyssal_chain') continue; // piercing, immune to black hole
-            if (enemy.type === 'veilshroud_echo') continue; // echo miễn CC
-            if (enemy.inCoronation) continue; // untargetable during coronation
-            if (enemy.type === 'veilshroud' && enemy.inPhantom) continue; // frozen during phantom
-            let dx = blackHole.x - enemy.x, dy = blackHole.y - enemy.y, d = Math.hypot(dx, dy);
-            const _bhCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath'
-                || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+            if (!_skillDCanTarget(enemy)) continue;
+            let dx = deathStar.x - enemy.x, dy = deathStar.y - enemy.y, d = Math.hypot(dx, dy);
+            const _bhCCImmune = _skillDIsCCImmune(enemy);
             if (enemy.type !== 'embryo' && !_bhCCImmune) {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
@@ -1239,21 +1268,24 @@ function updateSkillD(deltaTime) {
                     applyVulnerability(enemy);
                 }
             }
-            if (d < blackHole.size / 2) {
-                // Blackhole chạm arc barrier Mar: sword 25%, barrier takes impact, Mar not insta-killed
+            if (d < deathStar.size * _dsContactMult + (enemy.size || 0) / 2) {
+                // Death Star touches Marchosias's arc barrier: sword 25%, barrier takes impact, Mar not insta-killed
                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                     if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                 } else {
-                    // Tick 1 lần mỗi 400ms thay vì mỗi FRAME — vòng lặp này chạy
-                    // mỗi frame nên nếu gọi dealDamage thẳng, 1 lần chạm hố đen
-                    // = hàng chục lần "hit" chỉ trong dưới nửa giây. Với enemy
-                    // thường không sao (999999999 dmg chết ngay tick đầu), nhưng
-                    // với _bhCCImmune (Goliath, Egregor, Dargruel, Leviathan
-                    // không khiên...) 30% MaxHP true damage MỖI TICK từng đó lần
-                    // sẽ xoá sổ chỉ trong 1 lần chạm — đúng bug Warding Palm bị
-                    // "quẹt 1 cái chết luôn" dù mới per-hit không còn trần cộng dồn.
+                    // Tick once per 400ms instead of every FRAME — this loop
+                    // runs every frame, so calling dealDamage directly would
+                    // turn one touch of the Death Star into dozens of "hits"
+                    // in under half a second. Fine for normal enemies
+                    // (999999999 dmg kills on the first tick anyway), but for
+                    // _bhCCImmune (Goliath, Egregor, Dargruel, Leviathan
+                    // without its shield...) 30% MaxHP true damage on EVERY
+                    // one of those ticks would wipe them out in a single
+                    // touch — the exact bug where Warding Palm got "grazed
+                    // once and died anyway" even though per-hit no longer has
+                    // a cumulative cap.
                     const _bhNow = performance.now();
                     if (!enemy._bhNextTick || _bhNow >= enemy._bhNextTick) {
                         enemy._bhNextTick = _bhNow + 400;
@@ -1262,15 +1294,71 @@ function updateSkillD(deltaTime) {
                         } else {
                             dealDamage(enemy, { damage: enemy.maxHp * 999999999, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
                         }
+                        _skillDOnKill(enemy);
                     }
                 }
             }
         }
-        if (blackHole.y + blackHole.maxSize < 0) {
-            blackHole = null;
-            if (window.AudioMgr) window.AudioMgr.stopBlackhole();
+
+        // Repeating mark -> laser cycle: every ~2s (1.5s telegraph + 2s CD
+        // after firing) mark 3 targets (CC-immune ones first, since those
+        // can't be pulled to the instant-kill center at all — otherwise the
+        // 3 highest-current-HP valid targets), then fire a piercing true-
+        // damage beam through each one out to the screen edge. Deliberately
+        // NOT tagged _isSkillD — Warding Palm (js/entities.js) should only
+        // ever react to the center pull-kill hit above, not this.
+        if (deathStar.laserAt < 0 && deathStar.activeTime >= deathStar.nextMarkAt) {
+            const valid = enemies.filter(_skillDCanTarget);
+            let pool = valid.filter(_skillDIsCCImmune);
+            if (pool.length === 0) pool = valid.filter(e => e.type !== 'embryo');
+            pool.sort((a, b) => b.hp - a.hp);
+            deathStar.markedTargets = pool.slice(0, 3);
+            deathStar.laserAt = deathStar.activeTime + 1500;
+        } else if (deathStar.laserAt >= 0 && deathStar.activeTime >= deathStar.laserAt) {
+            // Same shake weight as Aegis Core's Lumen Nova (js/main.js) so the
+            // volley reads with real impact instead of a flat visual-only beam.
+            if (deathStar.markedTargets.length > 0) _setShake(8, 200);
+            const reach = Math.hypot(canvas.width, canvas.height) * 1.5;
+            for (const target of deathStar.markedTargets) {
+                if (!enemies.includes(target) || target.hp <= 0) continue;
+                const tdx = target.x - deathStar.x, tdy = target.y - deathStar.y;
+                const tdist = Math.hypot(tdx, tdy) || 1;
+                const ux = tdx / tdist, uy = tdy / tdist;
+                const endX = deathStar.x + ux * reach, endY = deathStar.y + uy * reach;
+                window.skillDLasers.push({ startX: deathStar.x, startY: deathStar.y, endX, endY, life: 1.0 });
+                for (const enemy of enemies) {
+                    if (!_skillDCanTarget(enemy) || enemy.hp <= 0) continue;
+                    if (distToSegment(enemy, { x: deathStar.x, y: deathStar.y }, { x: endX, y: endY }) < enemy.size / 2 + 6) {
+                        dealDamage(enemy, { damage: 100, percentDamage: 0.12, isTrueDamage: true, isPiercing: true });
+                        _skillDOnKill(enemy);
+                    }
+                }
+            }
+            deathStar.markedTargets = [];
+            deathStar.laserAt = -1;
+            deathStar.nextMarkAt = deathStar.activeTime + 2000;
+        }
+
+        if (deathStar.y + deathStar.maxSize < 0) {
+            deathStar.markedTargets.forEach(e => { if (e) e._skillDMarked = false; });
+            deathStar = null;
+            if (window.AudioMgr) window.AudioMgr.stopDeathStar();
         }
     }
+
+    // Beam visuals fade independently of the logic above (life ticks down
+    // every frame regardless of whether the Death Star that fired them is
+    // still alive, matching how other short-lived FX arrays in this file work).
+    for (let i = window.skillDLasers.length - 1; i >= 0; i--) {
+        window.skillDLasers[i].life -= 0.05;
+        if (window.skillDLasers[i].life <= 0) window.skillDLasers.splice(i, 1);
+    }
+    for (let i = window.skillDBolts.length - 1; i >= 0; i--) {
+        window.skillDBolts[i].life -= 0.15;
+        if (window.skillDBolts[i].life <= 0) window.skillDBolts.splice(i, 1);
+    }
+
+    updateSkillDSpaceships(deltaTime);
 
     if (_hasBuff('coi_mong')) {
         const _markNow = performance.now();
@@ -1283,6 +1371,66 @@ function updateSkillD(deltaTime) {
                 enemy._yogMarkAccum = 0;
             }
         }
+    }
+}
+
+function _skillDFindHighestHpTarget() {
+    let best = null, bestHp = -Infinity;
+    for (const enemy of enemies) {
+        if (enemy.type.startsWith('enemy_bullet')) continue;
+        if (enemy.type === 'abyssal_chain') continue;
+        if (enemy.type === 'veilshroud_echo') continue;
+        if (enemy.inCoronation) continue;
+        if (enemy.hp > bestHp) { best = enemy; bestHp = enemy.hp; }
+    }
+    return best;
+}
+
+function spawnSkillDSpaceship(x, y) {
+    // Same size/speed formula as spawnMarchosiasMinion (js/entities.js) —
+    // minion-scale, not bigger/faster.
+    window.skillDSpaceships.push({
+        x, y, size: 20 + Math.random() * 10, hp: 500, maxHp: 500,
+        speed: (1 + Math.random() * 2) * 0.8 * 2.10,
+        target: _skillDFindHighestHpTarget(), shootTimer: 300,
+    });
+}
+
+function updateSkillDSpaceships(deltaTime) {
+    const dt = deltaTime / 16.67;
+    for (let i = window.skillDSpaceships.length - 1; i >= 0; i--) {
+        const ship = window.skillDSpaceships[i];
+
+        if (!ship.target || !enemies.includes(ship.target) || ship.target.hp <= 0) {
+            // Target already dead — matches the reference behaviour of just
+            // drifting off rather than re-acquiring a new target.
+            ship.y -= ship.speed * dt;
+            if (ship.y < -100) { window.skillDSpaceships.splice(i, 1); continue; }
+        } else {
+            const dx = ship.target.x - ship.x, dy = ship.target.y - ship.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            ship.x += (dx / dist) * ship.speed * dt;
+            ship.y += (dy / dist) * ship.speed * dt;
+
+            ship.shootTimer -= deltaTime;
+            if (ship.shootTimer <= 0 && dist > ship.size / 2 + ship.target.size / 2) {
+                ship.shootTimer = 300;
+                window.skillDBolts.push({ x1: ship.x, y1: ship.y, x2: ship.target.x, y2: ship.target.y, life: 1.0 });
+                dealDamage(ship.target, { damage: 50, isTrueDamage: true });
+                _skillDOnKill(ship.target);
+            }
+
+            if (dist < ship.size / 2 + ship.target.size / 2) {
+                dealDamage(ship.target, { damage: 50, percentDamage: 0.05, isTrueDamage: true });
+                applyVulnerability(ship.target);
+                _skillDOnKill(ship.target);
+                addExplosion(ship.x, ship.y, ship.size * 0.8, '#00ffff');
+                window.skillDSpaceships.splice(i, 1);
+                continue;
+            }
+        }
+
+        if (ship.x < -100 || ship.x > canvas.width + 100) { window.skillDSpaceships.splice(i, 1); continue; }
     }
 }
 

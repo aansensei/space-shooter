@@ -1205,6 +1205,23 @@ function update(rawDeltaTime) {
                 }
             }
 
+            // Skill D spaceships can be shot down mid-flight, same collision
+            // shape as the sentinel check above (plain overlap, no dedicated
+            // AI targeting — see the plan's rationale for why).
+            if (enemy.hp > 0) {
+                for (const ship of window.skillDSpaceships) {
+                    if (Math.hypot(enemy.x - ship.x, enemy.y - ship.y) < enemy.size + ship.size / 2) {
+                        ship.hp -= (enemy.type === 'enemy_bullet_small') ? Math.ceil(ship.maxHp * 0.15) : enemy.hp;
+                        enemy.hp = 0;
+                        if (ship.hp <= 0) {
+                            addExplosion(ship.x, ship.y, ship.size * 0.8, '#ff4444');
+                            window.skillDSpaceships.splice(window.skillDSpaceships.indexOf(ship), 1);
+                        }
+                        break;
+                    }
+                }
+            }
+
             if (enemy.type === 'enemy_bullet_large') {
                 enemy.splitTimer -= deltaTime;
                 if (enemy.splitTimer <= 0) {
@@ -2601,7 +2618,8 @@ function startGame() {
     spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
     window._pendingBlades = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
-    spirits = []; blackHole = null;
+    spirits = []; deathStar = null;
+    window.skillDSpaceships = []; window.skillDLasers = []; window.skillDBolts = [];
     photoBrangs = []; primevalSummonEffect = null;
     primevalEnergy = 0; _spiritCooldownOverrideUntil = 0;
     window._blessingShieldTimer = 0;
@@ -2631,7 +2649,7 @@ function startGame() {
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     window._lowHpActive = false;
     window._egregorCrawlActive = false;
-    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopBlackhole(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); }
+    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopDeathStar(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); }
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 
     hasTriggeredLastStand = false;

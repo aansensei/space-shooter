@@ -80,8 +80,11 @@ let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [];
 // Skill D
 let skillDCharging = false, skillDChargeStartTime = 0;
 const skillDChargeTime = 2000;
-let blackHole = null, lastSkillD = -Infinity;
-const skillDCooldown = 12000;
+let deathStar = null, lastSkillD = -Infinity;
+const skillDCooldown = 10000;
+window.skillDSpaceships = []; // allied drones spawned on Death Star kills
+window.skillDLasers = []; // {startX,startY,endX,endY,life} — mark->laser cycle beams
+window.skillDBolts = []; // {x1,y1,x2,y2,life} — short-lived spaceship firing-bolt visuals
 
 // Skill F
 let lastSkillF = -Infinity;
