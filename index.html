@@ -1914,6 +1914,15 @@
                     // every 10 minutes.
                     let _lastUpdateCheck = 0;
                     const MIN_CHECK_INTERVAL = 10 * 60 * 1000;
+                    // Dev escape hatch: ?force=1 on the URL bypasses the
+                    // throttle AND wipes every cache before re-checking, so
+                    // testing a fresh deploy never needs the manual DevTools
+                    // console fix again. Opt-in only (nobody types this by
+                    // accident) — regular players never touch this path, and
+                    // the 10-minute throttle below (added after this game
+                    // once tripped the host's rate limiting from unthrottled
+                    // checks) stays exactly as strict for everyone else.
+                    const _forceUpdate = new URLSearchParams(location.search).get('force') === '1';
                     const _checkForUpdate = () => {
                         // Don't even ask for an update while mid-game — no
                         // point risking a controllerchange (and the deferred
@@ -1921,6 +1930,11 @@
                         // when it can just as well wait until the player is
                         // back at the menu or the game is over.
                         if (typeof gameState !== 'undefined' && gameState === 'playing') return;
+                        if (_forceUpdate) {
+                            if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+                            reg.update().catch(() => {});
+                            return;
+                        }
                         const now = Date.now();
                         if (now - _lastUpdateCheck < MIN_CHECK_INTERVAL) return;
                         _lastUpdateCheck = now;
