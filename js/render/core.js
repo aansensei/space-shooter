@@ -912,6 +912,7 @@ function draw(deltaTime) {
         if (sentinels.length >= 5) _drawVanguardThreads();
         if (skillAActive) drawSkillA();
         drawSolArrows();
+        drawSkillDSpaceships();
         drawShadowTwin();
         drawShadowOrbs();
         drawOnslaughtOrbs();
@@ -949,7 +950,9 @@ function draw(deltaTime) {
         spirits.forEach(drawSpirit);
         photoBrangs.forEach(drawPhotoBrang);
         if (primevalSummonEffect) drawPrimevalSummonEffect(primevalSummonEffect);
-        if (blackHole) drawBlackHole();
+        if (deathStar) { drawDeathStar(); drawSkillDMarks(); }
+        drawSkillDLasers();
+        drawSkillDBolts();
 
         drawBossShockwaves();
 

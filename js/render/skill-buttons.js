@@ -247,7 +247,7 @@ function drawSkillButtons() {
             _dOpts = { charge: _dc, active: false };
         } else {
             const _dCdDone = now - lastSkillD >= skillDCooldown;
-            _dOpts = { cd: skillDCooldown, lastAct: lastSkillD, active: !_dCdDone && !!blackHole, activeLabel: 'B-HOLE' };
+            _dOpts = { cd: skillDCooldown, lastAct: lastSkillD, active: !_dCdDone && !!deathStar, activeLabel: 'D-STAR' };
         }
         _pill(rowY(3), 'D', '#9333EA', _dOpts);
     }
