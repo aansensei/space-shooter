@@ -90,14 +90,23 @@
         full:  { label: 'Full', sizeLabel: '~196MB (includes all music)', files: () => [...CORE_FILES, ...SFX_FILES, ...bgmFiles()] },
     };
 
-    // Must match sw.js's CACHE_NAME (CACHE_NAME = 'pisces-cache-' + CACHE_VERSION)
-    // — bump both together if sw.js's version ever changes.
-    const CACHE_NAME = 'pisces-cache-v2';
+    // Was a hand-kept literal ('pisces-cache-v2') that had to be bumped by
+    // hand every time sw.js's CACHE_VERSION changed — it wasn't, repeatedly,
+    // so downloads were silently writing into an orphaned cache the SW's own
+    // fetch handler no longer reads from. Resolve the live name instead:
+    // sw.js's activate handler deletes every other pisces-cache-* entry once
+    // the current one is confirmed populated, so exactly one should exist in
+    // steady state. Falls back to a fresh 'pisces-cache-v1' bucket only if
+    // the SW hasn't cached anything yet (e.g. this runs before first install).
+    async function _resolveCacheName() {
+        const keys = await caches.keys();
+        return keys.find((k) => k.startsWith('pisces-cache-')) || 'pisces-cache-v1';
+    }
 
     async function getStatus(which) {
         if (!('caches' in window)) return { supported: false, cached: 0, total: 0 };
         const files = PACKAGES[which].files();
-        const cache = await caches.open(CACHE_NAME);
+        const cache = await caches.open(await _resolveCacheName());
         let cached = 0;
         for (const url of files) {
             if (await cache.match(url)) cached++;
@@ -107,7 +116,7 @@
 
     async function download(which, onProgress) {
         const files = PACKAGES[which].files();
-        const cache = await caches.open(CACHE_NAME);
+        const cache = await caches.open(await _resolveCacheName());
         const missing = [];
         for (const url of files) {
             if (!(await cache.match(url))) missing.push(url);
