@@ -1,10 +1,11 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // sw.js — Service Worker for offline play (see js/offline.js for the
 // Settings-panel download UI that drives explicit "download this package"
 // requests; this file only handles the SW lifecycle + serving).
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v16';
+const CACHE_VERSION = 'v17';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.

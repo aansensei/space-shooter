@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/pixi-renderer.js, Pixi.js v8 WebGL renderer
 //
 // Phase 0: Transparent overlay canvas, feature flag

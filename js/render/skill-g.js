@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/skill-g.js — extracted from render.js (Tesla Matrix barrier, energy
 // orb, tesla coil). drawTeslaCoil calls drawPolygon() from fx.js.
 

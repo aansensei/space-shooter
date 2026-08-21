@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/skill-d.js — Death Star: Draconic Annihilation (Tinh Vương Long: Tử
 // Long Tinh). Charge VFX (drawSkillDCharging), the Death Star body itself
 // (drawDeathStar), the mark->laser beams (drawSkillDLasers) and spaceship

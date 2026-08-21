@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // Returns true if the hit was fully absorbed by the arcBarrier (false = passes through)
 function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     if (enemy.type !== 'marchosias' || !enemy.arcBarrier || enemy.arcBarrier.hp <= 0) return false;

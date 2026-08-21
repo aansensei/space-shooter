@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/offline.js — drives the "Offline Play" download UI in Settings.
 // The actual cache-first serving happens in sw.js; this file only decides
 // WHAT to download and reports progress/status back to the Settings panel.

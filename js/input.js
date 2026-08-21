@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // Global UI helpers, called from main.js
 function showStartButton(text) {
     const btn = document.getElementById("startBtn");

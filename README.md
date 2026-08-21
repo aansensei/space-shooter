@@ -4,6 +4,8 @@
 
 **Author:** An Nguyen
 
+**License:** [MIT](LICENSE)
+
 **Play the game:** [https://aansensei.github.io/space-shooter/](https://aansensei.github.io/space-shooter/)
 
 A fast-paced arcade space shooter with deep combat mechanics, percentage-based damage scaling, and powerful screen-clearing abilities. Survive endless enemy waves, manage your cooldowns, and go for the highest score.

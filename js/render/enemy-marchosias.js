@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/enemy-marchosias.js — extracted from render.js (main body, minion,
 // death-sword blade). Three separate ranges in the original file, reassembled here.
 

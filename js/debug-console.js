@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/debug-console.js — in-game debug/cheat console. Loaded last (after
 // config.js/sigils.js/entities.js/skills.js/main.js) so every function and
 // global below is a real, already-safe-to-call piece of the actual game —

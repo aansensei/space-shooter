@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // Zodiac Sigil system — 12 sigils, pick 1 at wave 5 and 1 at wave 10
 
 const SIGIL_DEFS = {

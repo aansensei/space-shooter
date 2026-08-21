@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/skill-a.js — extracted from render.js (Thunder Orbs).
 
 function drawSkillA() {

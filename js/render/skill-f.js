@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/skill-f.js — extracted from render.js (Annihilation Sweep).
 
 // Inward-pulling charge particles: persist across frames (module scope,

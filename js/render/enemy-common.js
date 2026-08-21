@@ -1,3 +1,4 @@
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // render/enemy-common.js — extracted from render.js. drawEnemy() is the
 // type-dispatch entry point that main.js/draw() calls for every enemy; the
 // other functions here are generic pieces shared by multiple enemy types
