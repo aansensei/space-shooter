@@ -110,6 +110,14 @@ function drawSkillDCharging() {
 // generated once per cast and cached on the deathStar object itself
 // (deathStar._debris) — same lazy-cache-on-the-entity idiom used elsewhere in
 // this render folder rather than regenerating every frame.
+// Golden-angle placement (the sunflower-seed distribution trick) instead of
+// a plain Math.random() angle per item — a purely random angle can (and, per
+// AanSensei's report, did) clump visibly to one side with only ~40-80 points.
+// The golden angle's key property: ANY prefix of the sequence stays close to
+// evenly spread around the full circle, so this stays ring-shaped whether 80
+// are drawn (HIGH tier) or only the first 40 (MED tier's _drawSkillDDebrisRing
+// subsampling) — not just the final full set.
+const _GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 function _genSkillDDebris(count) {
     const out = [];
     for (let i = 0; i < count; i++) {
@@ -122,7 +130,7 @@ function _genSkillDDebris(count) {
             pts.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
         }
         out.push({
-            angle: Math.random() * Math.PI * 2,
+            angle: (i * _GOLDEN_ANGLE) % (Math.PI * 2),
             dist: distance,
             speed: (0.001 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : -1),
             pts, tilt: Math.random() * Math.PI * 2,
