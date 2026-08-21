@@ -1860,7 +1860,23 @@
         // reloading once a new SW actually takes control (controllerchange)
         // makes sure the already-loaded page picks up the new index.html/JS
         // instead of continuing to run the old version from memory.
-        if ('serviceWorker' in navigator) {
+        // Skip SW registration entirely on local dev hosts (Live Server,
+        // python -m http.server, file://) — every edit needing a manual
+        // cache-clear ritual to test was pure friction with no offline-play
+        // benefit locally. Real players on the deployed domain are unaffected.
+        const _isDevHost = ['localhost', '127.0.0.1', '::1', ''].includes(location.hostname);
+        // One-time cleanup: unregister + clear caches from any SW that was
+        // already registered on this dev host before this guard existed, so
+        // existing local testers don't have to run the manual console fix.
+        if ('serviceWorker' in navigator && _isDevHost) {
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs.forEach((r) => r.unregister());
+            }).catch(() => {});
+            if ('caches' in window) {
+                caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+            }
+        }
+        if ('serviceWorker' in navigator && !_isDevHost) {
             let _swRefreshing = false;
             let _swUpdatePending = false;
             const _doSwReload = () => {
