@@ -2304,6 +2304,12 @@
             window._hap = function () { try { navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
 
             window._mbDown = function (id) {
+                // Same freeze as main.js's update() (skipped while the sigil
+                // picker is up) and input.js's keydown gate — mobile's Shift/
+                // charge/movement buttons call straight into skillShiftActive/
+                // charging/keys.left/right with no game-loop involvement, so
+                // they needed their own explicit check for the same bug.
+                if (window._sigilPicker) return;
                 _hap();
                 const _heldEl = document.getElementById(id);
                 if (_heldEl) _heldEl.classList.add('held');

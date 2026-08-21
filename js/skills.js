@@ -19,7 +19,7 @@ function updateDefensiveOrbs() {
 function activateSkillA() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState !== "playing" || currentTime - lastSkillA < skillACooldown) return;
+    if (gameState !== "playing" || window._sigilPicker || currentTime - lastSkillA < skillACooldown) return;
 
     const canSpawnOrbs = skillAOrbs.length < maxSkillAOrbs;
     const hasSolJudgment = _hasBuff('mui_ten_apollo');
@@ -359,7 +359,7 @@ function updateScatteredProjectiles(deltaTime) {
 function activateSkillS() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return;
-    if (gameState !== "playing") return;
+    if (gameState !== "playing" || window._sigilPicker) return;
 
     // Primeval Creation: transform normal spirit → Phōtokrystos
     const normalSpirit = spirits.find(sp => !sp.isFinishing && !sp.isPhotokrystos);
@@ -1185,7 +1185,7 @@ function updateSpiritFinale(spirit, deltaTime) {
 function activateSkillD() {
     const currentTime = performance.now();
     if (typeof player !== 'undefined' && player._silenced) return;
-    if (gameState !== "playing" || skillDCharging || deathStar || currentTime - lastSkillD < skillDCooldown) return;
+    if (gameState !== "playing" || window._sigilPicker || skillDCharging || deathStar || currentTime - lastSkillD < skillDCooldown) return;
     _checkMirrorLaserProc();
     if (_hasBuff('dong_chay_luan_hoi')) {
         // Cycle of Flow: skip the charge phase entirely
@@ -1437,7 +1437,7 @@ function updateSkillDSpaceships(deltaTime) {
 function activateSkillF() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState === "playing" && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
+    if (gameState === "playing" && !window._sigilPicker && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
         lastSkillF = currentTime;
         enemies.forEach(e => e.hitBySkillF = false);
         _checkMirrorLaserProc();
@@ -1527,7 +1527,7 @@ function updateSkillF(deltaTime) {
 
 function activateSkillG() {
     if (typeof player !== 'undefined' && player._silenced) return;
-    if (gameState !== "playing" || skillGActive || skillGCharge < 100) return;
+    if (gameState !== "playing" || window._sigilPicker || skillGActive || skillGCharge < 100) return;
 
     skillGActive = true;
     skillGCharge = 0;
