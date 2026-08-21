@@ -3,6 +3,114 @@
 // Photokrystos: normal spirit, silk tail, primeval summon fx, boomerang,
 // blade-arc projectile). Self-contained, no cross-file calls besides core.js.
 
+// Normal spirit body sprites (halo rings, petal, crystal fragment), baked
+// once per distinct size — only 2 sizes ever occur (15 idle / 30 finishing)
+// — so the per-frame draw is pure drawImage/rotate calls with zero
+// shadowBlur or gradient creation. Mirrors the fix that solved Death Star's
+// frame-time regression: bake the blur once offscreen, reuse the bitmap.
+const _normalSpiritSpriteCache = {};
+function _getSpiritSprites(size) {
+    if (_normalSpiritSpriteCache[size]) return _normalSpiritSpriteCache[size];
+
+    const haloR = size * 2.4;
+    const outerRingDim = Math.ceil(haloR * 2.9);
+    const outerRingC = document.createElement('canvas');
+    outerRingC.width = outerRingC.height = outerRingDim;
+    const orctx = outerRingC.getContext('2d');
+    orctx.translate(outerRingDim / 2, outerRingDim / 2);
+    orctx.strokeStyle = 'rgba(255,130,255,0.95)';
+    orctx.lineWidth = 2.5;
+    orctx.setLineDash([size * 0.6, size * 0.2, size * 0.1, size * 0.3]);
+    orctx.shadowColor = '#ff00ff'; orctx.shadowBlur = 24;
+    orctx.beginPath(); orctx.arc(0, 0, haloR, 0, Math.PI * 2); orctx.stroke();
+    orctx.shadowBlur = 24;
+    orctx.beginPath(); orctx.arc(0, 0, haloR, 0, Math.PI * 2); orctx.stroke();
+
+    // Inner ring + its 3 orbiting nodes baked as one rigid unit — they
+    // rotate together in the reference, so one sprite covers both.
+    const innerR = haloR * 0.75;
+    const innerDim = Math.ceil(innerR * 2.9);
+    const innerC = document.createElement('canvas');
+    innerC.width = innerC.height = innerDim;
+    const ictx = innerC.getContext('2d');
+    ictx.translate(innerDim / 2, innerDim / 2);
+    ictx.strokeStyle = 'rgba(220,90,255,0.8)';
+    ictx.lineWidth = 1.5;
+    ictx.shadowColor = '#aa00ff'; ictx.shadowBlur = 18;
+    ictx.beginPath(); ictx.arc(0, 0, innerR, 0, Math.PI * 2); ictx.stroke();
+    for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2;
+        const nx = Math.cos(a) * innerR, ny = Math.sin(a) * innerR;
+        ictx.shadowColor = '#ffffff'; ictx.shadowBlur = 14;
+        ictx.fillStyle = '#ffffff';
+        ictx.beginPath(); ictx.arc(nx, ny, 3.5, 0, Math.PI * 2); ictx.fill();
+        ictx.shadowColor = '#ff00ff'; ictx.shadowBlur = 14;
+        ictx.fillStyle = 'rgba(255,0,255,0.95)';
+        ictx.beginPath(); ictx.arc(nx, ny, 6, 0, Math.PI * 2); ictx.fill();
+    }
+
+    const pSize = size * 0.35;
+    const petalDim = Math.ceil(pSize * 4.2);
+    const petalC = document.createElement('canvas');
+    petalC.width = petalC.height = petalDim;
+    const pctx = petalC.getContext('2d');
+    pctx.translate(petalDim / 2, petalDim / 2);
+    const pGrad = pctx.createLinearGradient(0, -pSize, 0, pSize);
+    pGrad.addColorStop(0, 'rgba(255,255,255,1)');
+    pGrad.addColorStop(0.4, 'rgba(255,80,255,0.95)');
+    pGrad.addColorStop(1, 'rgba(180,0,255,0)');
+    pctx.fillStyle = pGrad;
+    pctx.shadowColor = '#ff00ff'; pctx.shadowBlur = 20;
+    pctx.beginPath();
+    pctx.moveTo(0, -pSize);
+    pctx.bezierCurveTo(pSize * 0.65, -pSize * 0.2, pSize * 0.65, pSize * 0.8, 0, pSize * 1.3);
+    pctx.bezierCurveTo(-pSize * 0.65, pSize * 0.8, -pSize * 0.65, -pSize * 0.2, 0, -pSize);
+    pctx.fill();
+
+    const dSize = size * 0.28;
+    const fragDim = Math.ceil(dSize * 4.4);
+    const fragC = document.createElement('canvas');
+    fragC.width = fragC.height = fragDim;
+    const fctx = fragC.getContext('2d');
+    fctx.translate(fragDim / 2, fragDim / 2);
+    fctx.fillStyle = 'rgba(255,170,255,0.9)';
+    fctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    fctx.lineWidth = 1.2;
+    fctx.shadowColor = '#ff88ff'; fctx.shadowBlur = 15;
+    fctx.beginPath();
+    fctx.moveTo(0, -dSize); fctx.lineTo(dSize * 0.6, 0); fctx.lineTo(0, dSize); fctx.lineTo(-dSize * 0.6, 0);
+    fctx.closePath(); fctx.fill(); fctx.stroke();
+    fctx.shadowBlur = 0;
+    fctx.lineWidth = 0.8; fctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    fctx.beginPath(); fctx.moveTo(0, -dSize); fctx.lineTo(0, dSize); fctx.stroke();
+
+    const coreDim = Math.ceil(size * 3.4);
+    const coreC = document.createElement('canvas');
+    coreC.width = coreC.height = coreDim;
+    const cctx = coreC.getContext('2d');
+    cctx.translate(coreDim / 2, coreDim / 2);
+    const coreGrad = cctx.createRadialGradient(0, 0, 0, 0, 0, size);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.3, '#ffaaff');
+    coreGrad.addColorStop(0.65, '#cc44ff');
+    coreGrad.addColorStop(1, 'rgba(60,0,100,0)');
+    cctx.fillStyle = coreGrad;
+    cctx.shadowColor = '#ff33ff'; cctx.shadowBlur = 50;
+    cctx.beginPath(); cctx.arc(0, 0, size, 0, Math.PI * 2); cctx.fill();
+    cctx.shadowBlur = 50;
+    cctx.beginPath(); cctx.arc(0, 0, size, 0, Math.PI * 2); cctx.fill();
+
+    const sprites = {
+        outerRing: outerRingC, outerRingDim,
+        innerRing: innerC, innerDim,
+        petal: petalC, petalDim,
+        frag: fragC, fragDim,
+        core: coreC, coreDim,
+    };
+    _normalSpiritSpriteCache[size] = sprites;
+    return sprites;
+}
+
 function _drawNormalSpirit(spirit) {
     if (!spirit) return;
     const now = performance.now();
@@ -96,41 +204,88 @@ function _drawNormalSpirit(spirit) {
     }
 
     const size = spirit.isFinishing ? 30 : 15;
+    const sprites = _getSpiritSprites(size);
 
-    // outer corona ring
-    const coronaR = size * 1.8;
-    ctx.strokeStyle = 'rgba(255,0,255,0.3)';
-    ctx.lineWidth = 2;
-    if (!_mobPerf) ctx.shadowColor = 'magenta'; if (!_mobPerf) ctx.shadowBlur = 12;
-    ctx.beginPath(); ctx.arc(spirit.x, spirit.y, coronaR, 0, Math.PI * 2); ctx.stroke();
+    // Gentle float bob, visual only — duration bar below stays anchored to
+    // the spirit's real x/y so it doesn't wobble with the body.
+    const floatOffset = Math.sin(now / 500) * (size * 0.25);
+    const sx = spirit.x, sy = spirit.y + floatOffset;
 
-    // rotating trailing petals
-    const petalCount = 5;
+    ctx.save();
+    ctx.translate(sx, sy);
+
+    // Soft background glow behind the halo — 2 stacked passes (wide dim
+    // wash + tighter brighter core) read noticeably punchier than 1 flat pass.
+    const bgR = size * 5.2;
+    const bgGlow = _getGlowSprite('rgba(200,20,255,0.42)', bgR);
+    if (bgGlow) ctx.drawImage(bgGlow, -bgR, -bgR);
+    const bgR2 = size * 2.6;
+    const bgGlow2 = _getGlowSprite('rgba(255,120,255,0.35)', bgR2);
+    if (bgGlow2) ctx.drawImage(bgGlow2, -bgR2, -bgR2);
+
+    // Outer dashed halo ring — baked sprite, just rotate + drawImage
+    ctx.save();
+    ctx.rotate(now / 1200);
+    ctx.drawImage(sprites.outerRing, -sprites.outerRingDim / 2, -sprites.outerRingDim / 2);
+    ctx.restore();
+
+    // Inner ring + its 3 orbiting nodes, baked together since they rotate as one unit
+    ctx.save();
+    ctx.rotate(-now / 800);
+    ctx.drawImage(sprites.innerRing, -sprites.innerDim / 2, -sprites.innerDim / 2);
+    ctx.restore();
+
+    // Trailing petals, baked sprite positioned/rotated live
+    const petalCount = 6;
     for (let i = 0; i < petalCount; i++) {
-        const a = now / 800 + (i / petalCount) * Math.PI * 2;
-        const px = spirit.x + Math.cos(a) * (size * 1.1);
-        const py = spirit.y + Math.sin(a) * (size * 1.1);
-        ctx.fillStyle = 'rgba(255,100,255,0.35)';
-        ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(px, py, size * 0.22, 0, Math.PI * 2); ctx.fill();
+        const a = now / 1000 + (i / petalCount) * Math.PI * 2;
+        const px = Math.cos(a) * (size * 1.35);
+        const py = Math.sin(a) * (size * 0.65) + Math.sin(now / 400 + i) * (size / 6);
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(a + Math.PI / 2);
+        ctx.drawImage(sprites.petal, -sprites.petalDim / 2, -sprites.petalDim / 2);
+        ctx.restore();
     }
 
-    // main body
-    const grad = ctx.createRadialGradient(spirit.x, spirit.y, 0, spirit.x, spirit.y, size);
-    grad.addColorStop(0, 'white');
-    grad.addColorStop(0.35, '#ff88ff');
-    grad.addColorStop(0.7, 'magenta');
-    grad.addColorStop(1, 'purple');
-    ctx.fillStyle = grad;
-    if (!_mobPerf) ctx.shadowColor = 'magenta'; if (!_mobPerf) ctx.shadowBlur = 22;
-    ctx.beginPath(); ctx.arc(spirit.x, spirit.y, size, 0, Math.PI * 2); ctx.fill();
+    // Crystal fragments, baked sprite orbiting the body
+    const fragCount = 4;
+    for (let i = 0; i < fragCount; i++) {
+        const fPhase = now / 600 + i * 1.5;
+        const fDist = size * 1.05 + Math.sin(fPhase * 2.5) * (size * 0.15);
+        const fx = Math.cos(fPhase) * fDist;
+        const fy = Math.sin(fPhase) * fDist;
+        ctx.save();
+        ctx.translate(fx, fy);
+        ctx.rotate(now / 350 + i);
+        ctx.drawImage(sprites.frag, -sprites.fragDim / 2, -sprites.fragDim / 2);
+        ctx.restore();
+    }
 
-    // inner highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.shadowBlur = 0;
+    // Main core — baked glow sprite, live flicker star + highlight on top
+    ctx.drawImage(sprites.core, -sprites.coreDim / 2, -sprites.coreDim / 2);
+
+    ctx.save();
+    ctx.rotate(now / -1200);
+    const starAlpha = 0.6 + 0.3 * Math.sin(now / 150);
+    ctx.fillStyle = `rgba(255,255,255,${starAlpha})`;
     ctx.beginPath();
-    ctx.ellipse(spirit.x - size * 0.2, spirit.y - size * 0.2, size * 0.3, size * 0.18, -Math.PI / 4, 0, Math.PI * 2);
+    for (let i = 0; i < 4; i++) {
+        ctx.rotate(Math.PI / 2);
+        ctx.lineTo(0, -size * 1.1);
+        ctx.lineTo(size * 0.12, -size * 0.25);
+    }
+    ctx.closePath();
     ctx.fill();
+    ctx.restore();
+
+    // Inner highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.ellipse(-size * 0.15, -size * 0.15, size * 0.25, size * 0.12, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore(); // end translate(sx, sy)
 
     // duration bar
     const bw = 42, bh = 5;
