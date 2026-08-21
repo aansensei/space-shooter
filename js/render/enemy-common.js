@@ -386,6 +386,29 @@ function _drawDebugDummy(e, now) {
     ctx.restore();
 }
 
+// Walpurgis (Huyết Dạ) red curse aura — cached radial-gradient sprite per
+// (radius, stacks) pair via _getGlowSprite (same drawImage-reuse idiom the
+// Skill D debris/studs perf pass already established), so this stays cheap
+// even with many enemies buffed on screen at once in late waves.
+function _drawWalpurgisAura(enemy, stacks) {
+    const now = performance.now();
+    const pulse = 0.75 + 0.25 * Math.sin(now / 260 + enemy.x * 0.02);
+    const r = (enemy.size || 20) * (1.25 + Math.min(4, stacks) * 0.06);
+    const alpha = Math.min(0.85, 0.30 + stacks * 0.10) * pulse;
+    const sprite = _getGlowSprite(`rgba(255,20,20,${alpha.toFixed(2)})`, r);
+    if (!sprite) return;
+    ctx.drawImage(sprite, enemy.x - r, enemy.y - r, r * 2, r * 2);
+    // A thin solid ring on top reads clearly even at low alpha/small sizes.
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 0.5 + stacks * 0.1);
+    ctx.strokeStyle = `rgba(255,40,40,${0.6 + 0.1 * Math.min(3, stacks)})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, (enemy.size || 20) / 2 + 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+}
+
 function drawEnemy(enemy) {
     if (enemy.type === 'debug_dummy') { _drawDebugDummy(enemy, performance.now()); return; }
     // Abyssal Chain render
@@ -720,6 +743,15 @@ function drawEnemy(enemy) {
             ctx.shadowBlur = 0;
             ctx.restore();
         }
+    }
+
+    // Walpurgis (Huyết Dạ): every enemy carries a red glow aura once any
+    // stacks are active, growing a shade deeper/brighter per stack so the
+    // player can tell at a glance the buff is live. Skips bullets/echoes —
+    // the mechanic itself never touches those types either.
+    if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'veilshroud_echo') {
+        const _wpStacks = _walpurgisStacks();
+        if (_wpStacks > 0) _drawWalpurgisAura(enemy, _wpStacks);
     }
 
     if (enemy.type === 'aegis_core') {

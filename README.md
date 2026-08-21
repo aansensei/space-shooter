@@ -712,6 +712,17 @@ Enemies spawn in **waves**. Each wave defines an exact count per tier — all qu
 
 Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marchosias, Veilshroud), **Elites** (Thaelis, Aegis Core, Egregor), **Dominators** (Dargruel, Leviathan). Individual on-screen caps apply; there is no combined cap. **Goliath** (Digiform) spawns exactly once, outside every other tier, on any wave number divisible by 5.
 
+### Walpurgis (Huyết Dạ)
+
+Every **10 waves**, all enemies permanently gain **1 stack** of Walpurgis — the buff never expires or resets, and stacks are unlimited (wave 10 = 1 stack, wave 20 = 2 stacks, and so on). Each stack grants, to **every enemy on the field, including ones already spawned**:
+
+- **+10% Max HP**
+- **+5% Evade**
+- **+100 flat damage reduction** — a separate stat from the percentage-based DR above: it subtracts a flat amount from each hit *after* percentage DR is applied, floored at 0 (never blocks a killing blow outright, only shaves a fixed amount off each hit).
+- **+5% effectiveness on all healing and shields the enemy receives**
+
+Enemies already on screen when a new stack triggers are rescaled immediately, not just future spawns. A red glow aura appears around every enemy once at least 1 stack is active, growing more intense with each additional stack.
+
 ---
 
 ## Administrator Class

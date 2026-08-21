@@ -525,6 +525,7 @@ function update(rawDeltaTime) {
                 laser.fired = true;
                 laser.duration = 200;
                 _setShake(8, 200);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', laser.start.x, laser.start.y);
 
                 if (distToSegment(player, laser.start, laser.end) < player.hitRadius + 15) {
                     playerTakesHit();
@@ -1134,6 +1135,7 @@ function update(rawDeltaTime) {
                         player._silenceEnd = currentTime + 1000;
                         player._rooted = true;
                         _setShake(6, 250);
+                        if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-root', player.x, player.y);
                         try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
                     }
                 }
@@ -1327,6 +1329,7 @@ function update(rawDeltaTime) {
                     enemy.chainTimer -= deltaTime;
                     if (enemy.chainTimer <= 0) {
                         enemy.chainTimer = 2100;
+                        if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-launch', enemy.x, enemy.y);
                         const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                         const spread = 0.28;
                         const angles4 = [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5];
@@ -1354,6 +1357,7 @@ function update(rawDeltaTime) {
                     // hp=1 burst: fire immediately extra volley
                     if (enemy.hp <= 1 && !enemy._chainDeath) {
                         enemy._chainDeath = true;
+                        if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-launch', enemy.x, enemy.y);
                         const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                         const spread = 0.28;
                         const _burstSpeed = 10.75 * 0.9;
@@ -2468,6 +2472,25 @@ function _updateWaveSystem(deltaTime, now) {
             if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
                 _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.20);
             }
+            // Walpurgis (Huyết Dạ): a new stack crossed — rescale every enemy
+            // already on screen by the ratio between the old and new Max HP
+            // multiplier (same retroactive-rescale idiom Gaia already uses
+            // for sentinels above), not just enemies spawned from here on.
+            {
+                const _wpStacks = _walpurgisStacks();
+                const _wpPrevStacks = window._walpurgisAppliedStacks || 0;
+                if (_wpStacks > _wpPrevStacks) {
+                    const _wpRatio = (1 + 0.10 * _wpStacks) / (1 + 0.10 * _wpPrevStacks);
+                    window._walpurgisAppliedStacks = _wpStacks;
+                    enemies.forEach(e => {
+                        if (e.hp <= 0 || e._markedForDeath || !e.maxHp) return;
+                        if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'veilshroud_echo' || e.type === 'debug_dummy') return;
+                        const oldMax = e.maxHp;
+                        e.maxHp = Math.ceil(oldMax * _wpRatio);
+                        e.hp = Math.min(e.maxHp, Math.ceil(e.hp * _wpRatio));
+                    });
+                }
+            }
             _waveQueue = _buildWaveQueue(_waveNumber);
             _waveQueueTimer = 0;
             _wavePhase = 'spawning';
@@ -2642,6 +2665,7 @@ function startGame() {
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;
     _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0; _yuukiBonus = 0;
+    window._walpurgisAppliedStacks = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
     window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     window._blessingRegenTimer = 0;
