@@ -1914,6 +1914,7 @@ function dealDamage(enemy, source) {
         enemy._deathGemsExploded = 0;
         enemy.hp = 1;
         enemy._markedForDeath = false;
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y);
     }
     if (enemy.hp <= 0) enemy._markedForDeath = true;
     else if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
@@ -2349,6 +2350,7 @@ function updateLeviathan(enemy, deltaTime) {
 // Spawn Perseverance beam, quét 360° toàn bản đồ
 function _spawnPerseveranceBeam(enemy, now) {
     if (!window._levPersBeams) window._levPersBeams = [];
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('leviathan-perseverance', enemy.x, enemy.y);
     window._levPersBeams.push({
         ox: enemy.x, oy: enemy.y,
         sweepOrigin: -Math.PI,        // bắt đầu từ -180°
@@ -2608,6 +2610,7 @@ function spawnGoliath() {
         _jokerState: {},
     };
     enemies.push(g);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-spawn', g.x, g.y);
     _goliathCircuitLink(g);
 
     // Passive mới của Alpha: khi triệu hồi, ceil(1/3) số kẻ địch HIỆN CÓ
@@ -2989,6 +2992,7 @@ function updateGoliath(enemy, deltaTime) {
             if (now - enemy._fractureTeleportStart >= 400) {
                 addExplosion(enemy._fractureFromX, enemy._fractureFromY, enemy.size * 0.7, '#f59e0b');
                 createParticles(enemy._fractureFromX, enemy._fractureFromY, 18, '#f59e0b', 3, 9);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-fracture-step', enemy._fractureFromX, enemy._fractureFromY);
                 enemy.x = enemy._fractureToX; enemy.y = enemy._fractureToY;
                 enemy._restX = enemy.x; enemy._restY = enemy.y;
                 enemy._fractureIronBodyHits = Math.min(3, enemy._fractureIronBodyHits + 3);
@@ -3086,6 +3090,7 @@ function updateGoliath(enemy, deltaTime) {
                         owner: enemy, life: 4000, _fireTime: now,
                     });
                 }
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-corrupted-meteor', _eye.x, _eye.y);
                 enemy._meteorPhase = 'ready';
                 enemy._meteorCooldownEnd = now + 4000;
                 enemy._meteorTargets = [];
@@ -3198,6 +3203,7 @@ function _goliathBeginTransform(enemy) {
     enemy.phase = 'transforming';
     enemy.transformTimer = 0;
     _goliathSpawnMeteors(enemy);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-transform', enemy.x, enemy.y);
 }
 
 // Kích thước True Form ngang Leviathan (250-300), không phải khối khổng lồ
@@ -3211,6 +3217,7 @@ function _goliathEnterTrueForm(enemy) {
     const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.20 * enemy.gemPoints) * _walpurgisHpMult());
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
+    if (window.AudioMgr) window.AudioMgr.startGoliathIdle();
 
     // Inevitable (NEW): Iron Body tuyệt đối 1.5s ngay sau khi biến hình xong
     // thành công — bảo vệ đúng khoảnh khắc vừa lộ diện, còn chưa kịp làm gì.
@@ -3339,6 +3346,7 @@ function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
         if (t >= GOLIATH_DEATH_CRUMBLE_DUR) {
             enemy.hp = 0;
             enemy._markedForDeath = true;
+            if (window.AudioMgr) window.AudioMgr.stopGoliathIdle();
         }
     }
 }
@@ -3424,6 +3432,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             s.originX = _eye.x; s.originY = _eye.y;
         } else if (s.telegraphing && now >= s.telegraphEnd) {
             s.telegraphing = false; s.firing = true; s.fireEnd = now + 200;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', s.originX, s.originY);
             // Đúng thật (main.js aegisLasers: distToSegment check tại thời
             // điểm bắn) — chỉ trúng nếu người chơi/Sentinel CÒN Ở TRÊN đường
             // thẳng lúc bắn, không phải trúng vô điều kiện mọi mục tiêu đã
@@ -3474,6 +3483,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     radius: 88, life: 2000,
                     originX: _eye.x, originY: _eye.y, _fireTime: now,
                 });
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', _eye.x, _eye.y);
             }
         }
     }
@@ -3490,6 +3500,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
         const s = js['Egregor'];
         if (s.phase === 'ready' && now >= (s.cooldownEnd || 0)) {
             s.phase = 'charging'; s.windupTimer = 0;
+            if (window.AudioMgr) window.AudioMgr.startNullSlashWindup();
         } else if (s.phase === 'charging') {
             s.angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
             s.targetX = player.x; s.targetY = player.y;
@@ -3498,6 +3509,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 s.phase = 'striking'; s.strikeTimer = 0; s.dmgDealt = false;
                 s.originX = enemy.x; s.originY = enemy.y;
                 s._dimBreakSpawned = false;
+                if (window.AudioMgr) { window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.playSfxAt('egregor-nullslash-slash', enemy.x, enemy.y); }
             }
         } else if (s.phase === 'striking') {
             s.strikeTimer += deltaTime;
@@ -3512,7 +3524,9 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     while (dA < -Math.PI) dA += Math.PI * 2;
                     return Math.abs(dA) <= Math.PI / 2;
                 };
+                let _nsHitLanded = false;
                 if (_inSlash(player.x, player.y)) {
+                    _nsHitLanded = true;
                     if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
                         _triggerAccurateParry();
                     } else {
@@ -3526,6 +3540,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const hitSents = sentinels.filter(sn => _inSlash(sn.x, sn.y));
                 const hc = hitSents.length;
                 if (hc > 0) {
+                    _nsHitLanded = true;
                     const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
                     for (const sn of hitSents) {
                         dealDamage(sn, { damage: _goliathDmgBoost(enemy, Math.ceil(sn.maxHp * pct)), isTrueDamage: true });
@@ -3536,6 +3551,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     createParticles(s.targetX, s.targetY, 35, '#9933ff', 5, 14);
                     _setShake(14, 400);
                 }
+                if (_nsHitLanded && window.AudioMgr) window.AudioMgr.playSfxAt('egregor-nullslash-hit', s.targetX, s.targetY);
             }
             if (!s._dimBreakSpawned && s.strikeTimer >= 720) {
                 s._dimBreakSpawned = true;
@@ -3578,6 +3594,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 s.sweepOrigin = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                 s._hitPlayer = false;
                 s._hitSentinels = new Set();
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('leviathan-perseverance', enemy.x, enemy.y);
             }
         } else if (s.phase === 'sweeping') {
             s.sweepTimer += deltaTime;

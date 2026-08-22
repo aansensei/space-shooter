@@ -1921,6 +1921,7 @@ function updateMarchosiasBlades(deltaTime) {
         if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.hitRadius) {
             blade.hitPlayer = true;
             playerTakesHit();
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', blade.x, blade.y);
         }
         // Hit sentinel, damage scales down with number of sentinels already hit
         for (const s of sentinels) {
@@ -1931,6 +1932,7 @@ function updateMarchosiasBlades(deltaTime) {
                 dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
             }
         }
 
