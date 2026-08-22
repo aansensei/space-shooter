@@ -83,6 +83,12 @@ let skillDCharging = false, skillDChargeStartTime = 0;
 const skillDChargeTime = 2000;
 let deathStar = null, lastSkillD = -Infinity;
 const skillDCooldown = 10000;
+// Death Star's actual visible/contact radius = deathStar.size * this
+// multiplier (matches the base disc drawn at size*2.5 scaled by DS_SCALE =
+// 2.0/2.8 in js/render/skill-d.js) — shared between skills.js's own contact
+// check and entities.js's Galactic Spaceships proximity-spawn check so the
+// two can never drift apart.
+const SKILLD_CONTACT_MULT = 2.5 * (2.0 / 2.8);
 window.skillDSpaceships = []; // allied drones spawned on Death Star kills
 window.skillDLasers = []; // {startX,startY,endX,endY,life} — mark->laser cycle beams
 window.skillDBolts = []; // {x1,y1,x2,y2,life} — short-lived spaceship firing-bolt visuals

@@ -236,6 +236,17 @@ function handleEnemyKill(enemy) {
         // shockwave) — covers both kill sources in one dedicated cue.
         if (enemy._btmKilled) window.AudioMgr.playSfxAt('photokrystos-btm-kill', enemy.x, enemy.y);
     }
+    // Galactic Spaceships (Skill D passive): ANY enemy that dies within
+    // radius of an active Death Star spawns an allied spaceship, no matter
+    // what killed it — an ally, the player, or the Death Star itself. This
+    // is separate from _skillDOnKill's cooldown refund (js/skills.js), which
+    // only fires for the Death Star's own 3 kill sources.
+    if (deathStar) {
+        const _dsSpawnR = deathStar.size * SKILLD_CONTACT_MULT + 120;
+        if (Math.hypot(enemy.x - deathStar.x, enemy.y - deathStar.y) <= _dsSpawnR) {
+            spawnSkillDSpaceship(enemy.x, enemy.y);
+        }
+    }
     score = Math.ceil(score + enemy.maxHp * 6);
     // Primeval Creation: +1.25% energy per kill from non-spirit sources
     if (!enemy._spiritKillCounted) {
