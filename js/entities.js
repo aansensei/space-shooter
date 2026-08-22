@@ -3023,6 +3023,7 @@ function updateGoliath(enemy, deltaTime) {
             enemy._verdictPhase = 'channeling';
             enemy._verdictChannelTimer = 0;
             enemy._verdictLocked = false;
+            if (window.AudioMgr) window.AudioMgr.startGoliathVerdictCharge();
         } else if (enemy._verdictPhase === 'channeling') {
             enemy._verdictChannelTimer += deltaTime;
             // Chỉ TRACK vị trí người chơi tới trước lúc bắn 500ms — sau mốc đó
@@ -3035,6 +3036,7 @@ function updateGoliath(enemy, deltaTime) {
             if (enemy._verdictChannelTimer >= 3000) {
                 enemy._verdictPhase = 'ready';
                 enemy._verdictCooldownEnd = now + 8000;
+                if (window.AudioMgr) window.AudioMgr.stopGoliathVerdictCharge();
                 // Phóng ra từ MẮT (không phải tâm thân), theo đúng hướng đã
                 // khoá lúc 2500ms — không dùng vị trí tại đúng thời điểm bắn.
                 const _eye = _goliathEyeWorldPos(enemy);
