@@ -476,7 +476,7 @@ function updateSpirits(deltaTime) {
                 const sideOff = 22;
                 const px = -Math.sin(baseAngle) * sideOff, py = Math.cos(baseAngle) * sideOff;
                 // First blade: immediate
-                player._empowerFlashEnd = performance.now() + 220;
+                player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
                 bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 // Second blade (extra): 15ms delay, +20% radius to bypass Iron Body on same frame
                 if (!window._pendingBlades) window._pendingBlades = [];
@@ -493,7 +493,7 @@ function updateSpirits(deltaTime) {
                 }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             } else {
-                player._empowerFlashEnd = performance.now() + 220;
+                player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
                 bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             }
@@ -816,7 +816,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
     }
 
     // Phóng ngay những cái đủ chỗ (base=2, extras từ song_luoi có +10% radius)
-    if (throwNow > 0) player._empowerFlashEnd = performance.now() + 220;
+    if (throwNow > 0) { player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320; }
     for (let b = 0; b < throwNow; b++) {
         const shuffled = _shuffleArray(validTargets);
         const first = shuffled[0];

@@ -2809,7 +2809,7 @@
             c.clearRect(0, 0, w, h);
             player.x = px; player.y = ey; player.width = 22; player.height = 22;
             drawPlayer();
-            drawEnemy({ x: ex, y: ey, size: 22, hp: 200, maxHp: 200, type: 'apostle', shield: 0, vulnStacks: 0 });
+            drawEnemy({ x: ex, y: ey, size: 22, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 0, vulnStacks: 0 });
           }
           drawIdle();
 
@@ -2818,7 +2818,7 @@
             btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
             particles.length = 0; bullets.length = 0;
             player.x = px; player.y = ey; player.width = 22; player.height = 22;
-            const fakeEnemy = { x: ex, y: ey, size: 22, hp: 200, maxHp: 200, type: 'apostle', shield: 120, vulnStacks: 0, vulnEndTime: 0 };
+            const fakeEnemy = { x: ex, y: ey, size: 22, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 120, vulnStacks: 0, vulnEndTime: 0 };
             // 700ms between shots (up from 500ms) so each stack registers before the next hit
             let elapsed = 0, lastShot = -999, shots = 0;
             function tick() {
@@ -2874,14 +2874,14 @@
         if (sg) {
           const { c, w, h } = sg;
           const fakeEnemies = [
-            { x: w * 0.10, y: h * 0.38, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.22, y: h * 0.24, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.34, y: h * 0.40, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.46, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.58, y: h * 0.42, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.68, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.79, y: h * 0.40, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
-            { x: w * 0.90, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'apostle' },
+            { x: w * 0.10, y: h * 0.38, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
+            { x: w * 0.22, y: h * 0.24, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
+            { x: w * 0.34, y: h * 0.40, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
+            { x: w * 0.46, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
+            { x: w * 0.58, y: h * 0.42, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
+            { x: w * 0.68, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
+            { x: w * 0.79, y: h * 0.40, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
+            { x: w * 0.90, y: h * 0.26, size: 15, hp: 150, maxHp: 150, type: 'debug_dummy' },
           ];
           const px = w * 0.5, py = h * 0.9;
           function drawIdle() {
@@ -4815,7 +4815,7 @@
         if (ska) {
           const { c, w, h } = ska;
           const cx = w * 0.32, cy = h * 0.74;
-          const target = { x: cx + 140, y: cy - 90, size: 12, hp: 200, maxHp: 200, type: 'apostle', shield: 0 };
+          const target = { x: cx + 140, y: cy - 90, size: 12, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 0 };
           function drawIdle() {
             ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
@@ -4915,7 +4915,7 @@
         if (sks) {
           const { c, w, h } = sks;
           const cx = w * 0.32, cy = h * 0.74;
-          const target = { x: w * 0.82, y: h * 0.32, size: 12, hp: 200, maxHp: 200, type: 'apostle', shield: 0 };
+          const target = { x: w * 0.82, y: h * 0.32, size: 12, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 0 };
           let demoSpirit = null;
           function drawIdle() {
             ctx = c; canvas = { width: w, height: h };
@@ -5142,7 +5142,7 @@
               { id: 2, x: w * 0.82, y: h * 0.66, size: ENERGY_ORB_SIZE, isMerging: false, mergeStartTime: 0, linkedTo: null },
             ];
             teslaCoils = [];
-            const target = { x: w * 0.5, y: h * 0.86, size: 12, hp: 200, maxHp: 200, type: 'apostle', shield: 0 };
+            const target = { x: w * 0.5, y: h * 0.86, size: 12, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 0 };
             let elapsed = 0, merged = false;
             function tick() {
               const nowT = performance.now();

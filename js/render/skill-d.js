@@ -128,6 +128,15 @@ const _GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 // The rim-light direction is fixed per-piece (baked in) rather than always
 // facing the Death Star center — a static "lit from one side" read instead
 // of a live-recomputed one, visually close enough to be worth the trade.
+// Every piece orbits at this SAME shared angular speed (not per-piece
+// random) — `time` below is the raw performance.now() clock, not reset per
+// Death Star spawn, so with independent per-piece speeds each piece drifts
+// by a different huge multiple of its own rate and the golden-angle even
+// spacing gets scrambled almost immediately (looked like debris "missing"
+// on one side, clumped on the other). A single shared speed keeps every
+// piece's relative angle — and therefore the even spacing — fixed forever,
+// while the ring as a whole still visibly rotates.
+const _SKILLD_DEBRIS_SPEED = 0.0022;
 function _genSkillDDebris(count) {
     const out = [];
     for (let i = 0; i < count; i++) {
@@ -164,7 +173,7 @@ function _genSkillDDebris(count) {
         out.push({
             angle: (i * _GOLDEN_ANGLE) % (Math.PI * 2),
             dist: distance,
-            speed: (0.001 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : -1),
+            speed: _SKILLD_DEBRIS_SPEED,
             tilt: Math.random() * Math.PI * 2,
             sprite: sc, half,
         });
