@@ -438,6 +438,28 @@ function drawDeathStar() {
     }
 
     ctx.restore();
+
+    // Spawn-range indicator: dashed circle showing the exact radius within
+    // which ANY enemy death spawns a Galactic Spaceship (see handleEnemyKill
+    // in entities.js) — drawn in plain world space, not the scaled/rotated
+    // local frame above, since this radius is a world-space value. Formula
+    // must stay in sync with SKILLD_CONTACT_MULT (js/config.js) + 120.
+    // guide.html reuses this file without loading config.js, so
+    // SKILLD_CONTACT_MULT isn't guaranteed to exist there — fall back to the
+    // same literal value config.js defines it as.
+    const _dsContactMult = typeof SKILLD_CONTACT_MULT !== 'undefined' ? SKILLD_CONTACT_MULT : 2.5 * (2.0 / 2.8);
+    const spawnR = S * _dsContactMult + 120;
+    ctx.save();
+    ctx.translate(deathStar.x, deathStar.y);
+    ctx.setLineDash([10, 8]);
+    ctx.lineDashOffset = -now * 0.02;
+    ctx.strokeStyle = 'rgba(74,222,128,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, spawnR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
 }
 
 // Crosshair ring around each currently-marked target, telegraphing the

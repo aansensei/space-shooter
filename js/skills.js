@@ -1218,15 +1218,16 @@ function _skillDIsCCImmune(enemy) {
         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
         || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
 }
-// A Death Star kill (either the instant center kill, or a CC-immune enemy
-// finally dying from accumulated 30%-MaxHP ticks) refunds 0.25s off Skill D's
-// own cooldown and spawns 1 allied spaceship at the death position — mirrors
-// Cycle of Flow's own clamp-to-now floor (js/entities.js) so the cooldown can
-// never be pushed into the future.
+// A Death Star kill (center instakill, Mark & Annihilate beam, or a
+// CC-immune enemy finally dying from accumulated 30%-MaxHP ticks) refunds
+// 0.25s off Skill D's own cooldown — mirrors Cycle of Flow's own
+// clamp-to-now floor (js/entities.js) so the cooldown can never be pushed
+// into the future. Spawning a spaceship is a SEPARATE passive (any enemy
+// death within radius of the Death Star, regardless of what killed it — see
+// handleEnemyKill in js/entities.js), not tied to this refund.
 function _skillDOnKill(enemy) {
     if (!enemy._markedForDeath) return;
     lastSkillD = Math.min(performance.now(), lastSkillD - 250);
-    spawnSkillDSpaceship(enemy.x, enemy.y);
 }
 
 function updateSkillD(deltaTime) {
@@ -1250,13 +1251,13 @@ function updateSkillD(deltaTime) {
 
         const pullSpeed = 6;
         // Contact radius matches the Death Star's actual visible outer edge
-        // (the base disc, drawn at deathStar.size * 2.5 scaled down by
-        // DS_SCALE = 2.0/2.8 in js/render/skill-d.js — keep this in sync with
-        // that file if the visual footprint ever changes), plus the target's
-        // own radius so it's edge-to-edge like every other collision check in
-        // this game, not center-to-center — touching the Death Star kills,
-        // enemies don't need to be dragged all the way to its exact center.
-        const _dsContactMult = 2.5 * (2.0 / 2.8);
+        // (SKILLD_CONTACT_MULT, js/config.js — keep in sync with the base
+        // disc drawn at deathStar.size * 2.5 scaled by DS_SCALE = 2.0/2.8 in
+        // js/render/skill-d.js if the visual footprint ever changes), plus
+        // the target's own radius so it's edge-to-edge like every other
+        // collision check in this game, not center-to-center — touching the
+        // Death Star kills, enemies don't need to be dragged to its center.
+        const _dsContactMult = SKILLD_CONTACT_MULT;
         for (let enemy of enemies) {
             if (!_skillDCanTarget(enemy)) continue;
             let dx = deathStar.x - enemy.x, dy = deathStar.y - enemy.y, d = Math.hypot(dx, dy);
@@ -1398,9 +1399,9 @@ function spawnSkillDSpaceship(x, y) {
     // Same size/speed formula as spawnMarchosiasMinion (js/entities.js) —
     // minion-scale, not bigger/faster.
     window.skillDSpaceships.push({
-        x, y, size: 20 + Math.random() * 10, hp: 500, maxHp: 500,
+        x, y, size: 20 + Math.random() * 10, hp: 560, maxHp: 560,
         speed: (1 + Math.random() * 2) * 0.8 * 2.10,
-        target: _skillDFindHighestHpTarget(), shootTimer: 300,
+        target: _skillDFindHighestHpTarget(), shootTimer: 250,
     });
 }
 
@@ -1410,8 +1411,13 @@ function updateSkillDSpaceships(deltaTime) {
         const ship = window.skillDSpaceships[i];
 
         if (!ship.target || !enemies.includes(ship.target) || ship.target.hp <= 0) {
-            // Target already dead — matches the reference behaviour of just
-            // drifting off rather than re-acquiring a new target.
+            // Old target died — re-acquire the current highest-HP enemy
+            // instead of just drifting off, so the ship keeps hunting.
+            ship.target = _skillDFindHighestHpTarget();
+        }
+
+        if (!ship.target) {
+            // Nothing left to home on anywhere on screen — drift off.
             ship.y -= ship.speed * dt;
             if (ship.y < -100) { window.skillDSpaceships.splice(i, 1); continue; }
         } else {
@@ -1422,16 +1428,14 @@ function updateSkillDSpaceships(deltaTime) {
 
             ship.shootTimer -= deltaTime;
             if (ship.shootTimer <= 0 && dist > ship.size / 2 + ship.target.size / 2) {
-                ship.shootTimer = 300;
+                ship.shootTimer = 250;
                 window.skillDBolts.push({ x1: ship.x, y1: ship.y, x2: ship.target.x, y2: ship.target.y, life: 1.0 });
-                dealDamage(ship.target, { damage: 50, isTrueDamage: true });
-                _skillDOnKill(ship.target);
+                dealDamage(ship.target, { damage: 100, isTrueDamage: true });
             }
 
             if (dist < ship.size / 2 + ship.target.size / 2) {
-                dealDamage(ship.target, { damage: 50, percentDamage: 0.05, isTrueDamage: true });
+                dealDamage(ship.target, { damage: 100, percentDamage: 0.08, isTrueDamage: true });
                 applyVulnerability(ship.target);
-                _skillDOnKill(ship.target);
                 addExplosion(ship.x, ship.y, ship.size * 0.8, '#00ffff');
                 window.skillDSpaceships.splice(i, 1);
                 continue;
