@@ -261,7 +261,10 @@
         'photokrystos-btm-warming': 1.0, 'photokrystos-idle': 1.0, 'photokrystos-vine-bind': 1.0,
         'laser-fire': 1.0, 'goliath-verdict-launch': 1.0,
         'dargruel-chain-launch': 1.0, 'dargruel-chain-root': 1.0,
-        'metal-hit': 1.0, 'phantom-strike': 1.0,
+        'metal-hit': 1.0, 'phantom-strike': 1.0, 'goliath-transform': 1.0,
+        'goliath-idle': 1.0, 'goliath-fracture-step': 1.0, 'goliath-verdict-impact': 1.0,
+        'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
+        'goliath-corrupted-meteor': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -325,6 +328,7 @@
         nullSlashWindupEl: null, // Egregor Null Slash windup drone, cut short exactly when the strike phase begins (variable 1-3s duration)
         crawlEl: null,        // Egregor crawl texture, a native gapless AudioBufferSourceNode loop
         photokrystosIdleEl: null, // Phōtokrystos flight/movement texture, same native gapless loop
+        goliathIdleEl: null, // Goliath True Form ambient breathing/hum, same native gapless loop
         pool: {},            // sfx key → { src, bypass }
         // In-game BGM rotation pool the player picked in Settings (track ids,
         // excludes the menu-only "pisces" track — that one never plays in a
@@ -435,8 +439,9 @@
             nullSlashWindup: !!(state.nullSlashWindupEl && !state.nullSlashWindupEl.paused),
             crawl: !!(state.crawlEl && !state.crawlEl.paused),
             photokrystosIdle: !!(state.photokrystosIdleEl && !state.photokrystosIdleEl.paused),
+            goliathIdle: !!(state.goliathIdleEl && !state.goliathIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -614,6 +619,8 @@
     function startPhotokrystosIdle() { startLoop('photokrystosIdleEl', 'photokrystos-idle'); }
     function stopPhotokrystosIdle()  { stopLoop('photokrystosIdleEl'); }
     function tickPhotokrystosIdle()  {}
+    function startGoliathIdle() { startLoop('goliathIdleEl', 'goliath-idle'); }
+    function stopGoliathIdle()  { stopLoop('goliathIdleEl'); }
 
     // Low-HP heartbeat: loops while lives < 5, and ducks/muffles the rest
     // of the mix (heavier than Yog-Sothoth's own duck) for the "choáng"
@@ -684,6 +691,13 @@
         _makePool('dargruel-chain-root',    'audio/sfx/dargruel-chain-root.mp3',    2);
         _makePool('metal-hit',              'audio/sfx/metal-hit.mp3',              6);
         _makePool('phantom-strike',         'audio/sfx/phantom-strike.mp3',         2);
+        _makePool('goliath-transform',      'audio/sfx/goliath-transform.mp3',      1);
+        _makePool('goliath-fracture-step',  'audio/sfx/goliath-fracture-step.mp3',  2);
+        _makePool('goliath-verdict-impact', 'audio/sfx/goliath-verdict-impact.mp3', 2);
+        _makePool('leviathan-perseverance', 'audio/sfx/leviathan-perseverance.mp3', 2);
+        _makePool('goliath-death',          'audio/sfx/goliath-death.mp3',          1);
+        _makePool('goliath-spawn',          'audio/sfx/goliath-spawn.mp3',          1);
+        _makePool('goliath-corrupted-meteor', 'audio/sfx/goliath-corrupted-meteor.mp3', 2);
 
         state.ambientEl  = _makeBufferLoop();
         state.ambientEl.setSrc('audio/sfx/ingame.mp3');
@@ -701,6 +715,8 @@
         state.photokrystosIdleEl.setSrc('audio/sfx/photokrystos-idle.mp3');
         state.crawlEl = _makeBufferLoop();
         state.crawlEl.setSrc('audio/sfx/egregor-crawl.mp3');
+        state.goliathIdleEl = _makeBufferLoop();
+        state.goliathIdleEl.setSrc('audio/sfx/goliath-idle.mp3');
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
@@ -742,6 +758,7 @@
         startNullSlashWindup, stopNullSlashWindup,
         startEgregorCrawl, stopEgregorCrawl, tickEgregorCrawl,
         startPhotokrystosIdle, stopPhotokrystosIdle, tickPhotokrystosIdle,
+        startGoliathIdle, stopGoliathIdle,
         startLaser,   stopLaser,
 
         // Volumes / mute

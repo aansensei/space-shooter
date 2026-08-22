@@ -1469,6 +1469,7 @@ function update(rawDeltaTime) {
                             _fireTime: performance.now(), // launch aura
                             hitEnemies: [], hitPlayer: false,
                         });
+                        if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', enemy.x, enemy.y);
                         // Ghost đã được push khi windup bắt đầu, chỉ cần xoá windup
                         enemy.marchosiasWindups.splice(wi, 1);
                     }
@@ -1977,12 +1978,14 @@ function update(rawDeltaTime) {
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
                 for (let li = 0; li < 5; li++) playerTakesHit();
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
                 return false;
             }
             for (const s of sentinels) {
                 if (s.hp > 0 && Math.hypot(orb.x - s.x, orb.y - s.y) < 108 + (s.size || 20) / 2) {
                     dealDamage(s, { damage: orb.dmg, isTrueDamage: true });
                     addExplosion(orb.x, orb.y, 80, '#9d00ff');
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
                     return false;
                 }
             }
@@ -2000,6 +2003,7 @@ function update(rawDeltaTime) {
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
                 playerTakesHit();
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
             }
             // Sentinel: ĐÚNG công thức thật (updateMarchosiasBlades) — 27%/
@@ -2013,6 +2017,7 @@ function update(rawDeltaTime) {
                     dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct });
                     sw.hitEnemies.push(s);
                     addExplosion(s.x, s.y, 20, '#ff6600');
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
                 }
             }
             return true;
@@ -2031,11 +2036,13 @@ function update(rawDeltaTime) {
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
                 playerTakesHit();
                 addExplosion(m.x, m.y, 70, '#f59e0b');
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;
             }
             for (const s of sentinels) {
                 if (s.hp > 0 && Math.hypot(m.x - s.x, m.y - s.y) < 46 + (s.size || 20) / 2) {
                     addExplosion(m.x, m.y, 90, '#f59e0b');
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                     sentinels.forEach(s2 => {
                         if (s2.hp > 0 && Math.hypot(m.x - s2.x, m.y - s2.y) < 140) {
                             dealDamage(s2, { percentDamage: 0.25, isTrueDamage: true });
