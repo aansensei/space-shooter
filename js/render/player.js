@@ -303,6 +303,23 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     ctx.globalAlpha = alpha;
     if (pos) { ctx.translate(pos.x, pos.y); } else { ctx.translate(player.x + xOffset, player.y); }
 
+    // Empower flash — a quick bright pulse right as the Remembrance Spirit's
+    // Blade Arc or Phōtokrystos's boomerang launches, telegraphing "this is
+    // the player's own summon attacking" even though the projectile spawns
+    // from the spirit's orbit position, not the ship itself. Set by
+    // js/skills.js at each launch; reads here off a plain timestamp, no
+    // shadowBlur (cheap radial-gradient fill only).
+    if (player._empowerFlashEnd && now < player._empowerFlashEnd) {
+        const _flashLife = player._empowerFlashEnd - now;
+        const _flashT = Math.min(1, _flashLife / 220);
+        const _flashG = ctx.createRadialGradient(0, 0, 0, 0, 0, 46);
+        _flashG.addColorStop(0, `rgba(255,255,255,${0.85 * _flashT})`);
+        _flashG.addColorStop(0.4, `rgba(150,220,255,${0.5 * _flashT})`);
+        _flashG.addColorStop(1, 'rgba(150,220,255,0)');
+        ctx.fillStyle = _flashG;
+        ctx.beginPath(); ctx.arc(0, 0, 46, 0, Math.PI * 2); ctx.fill();
+    }
+
     // Pulsing visibility beacon — ship outline strobes to stay visible in bullet hell
     const _pulseA = 0.45 + 0.55 * Math.abs(Math.sin(now / 520));
     const _blinkPhase = Math.abs(Math.sin(now / 380));

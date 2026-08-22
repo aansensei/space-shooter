@@ -2503,6 +2503,13 @@
         requestAnimationFrame(() => initCanvases(name));
       });
       if (name === 'sigils') setTimeout(() => initCanvases('sigils'), 32);
+      // Skills tab has 5 heavy widget canvases (Thunder Orbs, Remembrance
+      // Spirit, Death Star, Annihilation Sweep, Tesla Matrix) — same
+      // double-rAF timing race as sigils: on a slow first layout pass the
+      // canvases can still read their pre-layout 300x150 default size when
+      // initCanvases() runs, leaving every widget blank/tiny until the next
+      // manual re-init. One extra delayed re-init papers over that race.
+      if (name === 'skills') setTimeout(() => initCanvases('skills'), 32);
     }
 
     // Called by index.html (parent frame) via window.parent._refreshGuideLanguage
