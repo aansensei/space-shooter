@@ -353,7 +353,7 @@ function update(rawDeltaTime) {
     // recalc every frame bc enemies spawn and die constantly
     gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
         (typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) ||
-        enemies.some(e => e.type === 'dargruel' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan');
+        enemies.some(e => e.type === 'dargruel' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan' || e.type === 'goliath');
 
     // Accurate Parry expiry
     if (accurateParryActive && performance.now() >= accurateParryEndTime) {
@@ -534,7 +534,7 @@ function update(rawDeltaTime) {
                 if (!laser._id) laser._id = 'aegis_laser_' + performance.now().toFixed(0);
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * 0.20, _vanguardTag: laser._id });
+                        dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * 0.20, _vanguardTag: laser._id, _noHitSfx: true });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -1983,7 +1983,7 @@ function update(rawDeltaTime) {
             }
             for (const s of sentinels) {
                 if (s.hp > 0 && Math.hypot(orb.x - s.x, orb.y - s.y) < 108 + (s.size || 20) / 2) {
-                    dealDamage(s, { damage: orb.dmg, isTrueDamage: true });
+                    dealDamage(s, { damage: orb.dmg, isTrueDamage: true, _noHitSfx: true });
                     addExplosion(orb.x, orb.y, 80, '#9d00ff');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
                     return false;
@@ -2014,7 +2014,7 @@ function update(rawDeltaTime) {
                 if (!sw.hitEnemies.includes(s) && Math.hypot(sw.x - s.x, sw.y - s.y) < (sw.radius || 88) + s.size) {
                     const hitsAlready = sw.hitEnemies.length;
                     const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
-                    dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct });
+                    dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct, _noHitSfx: true });
                     sw.hitEnemies.push(s);
                     addExplosion(s.x, s.y, 20, '#ff6600');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
@@ -2045,7 +2045,7 @@ function update(rawDeltaTime) {
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                     sentinels.forEach(s2 => {
                         if (s2.hp > 0 && Math.hypot(m.x - s2.x, m.y - s2.y) < 140) {
-                            dealDamage(s2, { percentDamage: 0.25, isTrueDamage: true });
+                            dealDamage(s2, { percentDamage: 0.25, isTrueDamage: true, _noHitSfx: true });
                         }
                     });
                     return false;
@@ -2163,6 +2163,10 @@ function update(rawDeltaTime) {
 
         // Only deal damage during active phase
         if (isActive) {
+            if (window._levDeathLaserSoundPending) {
+                window._levDeathLaserSoundPending = false;
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', laser.ox, laser.oy);
+            }
             const dx = Math.cos(laser.angle), dy = Math.sin(laser.angle);
 
             // Angular hit: reliable at any distance
@@ -2664,6 +2668,7 @@ function startGame() {
     aegisLasers = [];
     marchosiasBlades = [];
     window._levDeathLasers = [];
+    window._levDeathLaserSoundPending = false;
     window._levPersBeams = [];
     window._dimBreakZones = [];
     window._egregorDeathBursts = [];

@@ -64,7 +64,7 @@
         'audio/sfx/gameover.mp3', 'audio/sfx/goliath-corrupted-meteor.mp3', 'audio/sfx/goliath-death.mp3',
         'audio/sfx/goliath-fracture-step.mp3', 'audio/sfx/goliath-idle.mp3',
         'audio/sfx/goliath-spawn.mp3', 'audio/sfx/goliath-transform.mp3', 'audio/sfx/goliath-verdict-charge.mp3',
-        'audio/sfx/goliath-verdict-impact.mp3', 'audio/sfx/goliath-verdict-launch.mp3',
+        'audio/sfx/goliath-unbroken-wave.mp3', 'audio/sfx/goliath-verdict-impact.mp3', 'audio/sfx/goliath-verdict-launch.mp3',
         'audio/sfx/hover.mp3', 'audio/sfx/hyperjump.mp3',
         'audio/sfx/ingame.mp3', 'audio/sfx/laser.mp3', 'audio/sfx/laser-fire.mp3',
         'audio/sfx/leviathan-perseverance.mp3', 'audio/sfx/life-lost.mp3',

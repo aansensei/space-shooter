@@ -94,7 +94,7 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 Activates automatically when **any of the following** is true:
 
 - More than 4 enemies are on screen
-- Any **Abnormal or higher** enemy is present (Veilshroud, Thaelis, Aegis Core, Marchosias, Egregor, Dargruel, or Leviathan)
+- Any **Abnormal or higher** enemy is present (Veilshroud, Thaelis, Aegis Core, Marchosias, Egregor, Dargruel, Leviathan, or Goliath)
 - Skill G is active
 - **Phōtokrystos** (Đại Tinh Linh Khởi Nguyên) is active
 
