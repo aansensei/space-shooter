@@ -64,7 +64,7 @@
         'audio/sfx/gameover.mp3', 'audio/sfx/goliath-verdict-launch.mp3', 'audio/sfx/hover.mp3', 'audio/sfx/hyperjump.mp3',
         'audio/sfx/ingame.mp3', 'audio/sfx/laser.mp3', 'audio/sfx/laser-fire.mp3', 'audio/sfx/life-lost.mp3',
         'audio/sfx/low-hp.mp3', 'audio/sfx/maou-haki.mp3', 'audio/sfx/metal-hit.mp3', 'audio/sfx/new-wave.mp3',
-        'audio/sfx/overlay.wav', 'audio/sfx/photokrystos-boomerang-hit.mp3', 'audio/sfx/photokrystos-boomerang-throw.mp3',
+        'audio/sfx/overlay.wav', 'audio/sfx/phantom-strike.mp3', 'audio/sfx/photokrystos-boomerang-hit.mp3', 'audio/sfx/photokrystos-boomerang-throw.mp3',
         'audio/sfx/photokrystos-btm-firing.mp3', 'audio/sfx/photokrystos-btm-kill.mp3', 'audio/sfx/photokrystos-btm-shockwave.mp3',
         'audio/sfx/photokrystos-btm-warming.mp3', 'audio/sfx/photokrystos-dnt-laser.mp3', 'audio/sfx/photokrystos-idle.mp3',
         'audio/sfx/photokrystos-summon-converge.mp3', 'audio/sfx/photokrystos-summon-flash.mp3', 'audio/sfx/photokrystos-summon-holy.mp3',

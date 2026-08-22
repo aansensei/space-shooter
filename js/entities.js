@@ -731,6 +731,7 @@ function _veilshroudStrike(enemy) {
     window._veilshroudLightnings.push(_lt);
 
     _setShake(9, 350);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('phantom-strike', tx, ty);
 
     // Trúng người chơi
     if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
@@ -3380,6 +3381,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             if (s.lightningCountdown >= 1500) {
                 s.lightningPending = false;
                 s.lightningEnd = now + 400;
+                if (window.AudioMgr && s.targets.length > 0) window.AudioMgr.playSfxAt('phantom-strike', s.targets[0].x, s.targets[0].y);
                 // Đúng thật (_veilshroudStrike): sét đánh vào TOẠ ĐỘ đã chốt,
                 // nhưng chỉ thực sự gây damage nếu mục tiêu CÒN Ở ĐÓ lúc sét
                 // rơi (né ra khỏi vùng cảnh báo là tránh được) — trước đây gây
