@@ -293,15 +293,17 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Cooldown:** 10s | **Charge:** 2s
 
-After a 2-second charge, spawns a Death Star that pulls all enemies and enemy bullets toward its center at speed 6. Anything that touches the absolute center takes **999,999,999 damage** — instant kill, even through Absolute Shields.
+After a 2-second charge, spawns a Death Star that pulls all enemies and enemy bullets toward its center at speed 4.2. Anything that touches it takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
 - Embryos have **CC Immunity** — immune to the gravitational pull but still die at the center.
 - **Egregor** and **Dargruel** are CC Immune — the Death Star cannot pull them. If they are at the center, they take **30% of their Max HP as true damage** instead of instant kill.
 - The Death Star slowly floats upward and disappears off-screen.
 
-**Mark & Annihilate** — Every ~2 seconds while the Death Star is alive, it marks 3 targets (CC-Immune enemies first, since those can't be pulled to the center at all; otherwise the 3 highest-current-HP valid targets). After a 1.5s telegraph, it fires a **piercing true-damage beam** through each marked target and on to the screen edge — **100 base + 12% EP**, hitting every enemy the beam crosses, not just the marked one.
+**Mark & Annihilate** — Every ~2 seconds while the Death Star is alive, it marks 3 targets (CC-Immune enemies first, since those can't be pulled to the center at all; otherwise the 3 highest-current-HP valid targets). After a 1.5s telegraph, it fires a **piercing true-damage beam** through each marked target and on to the screen edge — **100 base + 15% EP**, hitting every enemy the beam crosses, not just the marked one.
 
-**Galactic Spaceships** — Every enemy the Death Star kills (center instakill, a Mark & Annihilate beam, or an accumulated CC-Immune tick finally finishing one off) reduces Skill D's own cooldown by **0.25s**. Separately, any enemy that dies for any reason — killed by an ally, the player, or the Death Star itself — while within **the Death Star's radius + 120px** spawns an allied spaceship. Each spaceship homes toward the current highest-HP enemy on screen, firing a **fixed 100 true damage** bolt every 250ms while in flight, then on contact deals **100 + 8% EP true damage** and applies **1 stack of Vulnerability**. Spaceships have **560 HP** and can be shot down by enemy fire before reaching their target.
+**Galactic Spaceships** — Every enemy the Death Star kills (center instakill, a Mark & Annihilate beam, or an accumulated CC-Immune tick finally finishing one off) reduces Skill D's own cooldown by **0.25s**. Separately, any enemy that dies for any reason — killed by an ally, the player, or the Death Star itself — while within **the Death Star's radius + 180px** spawns an allied spaceship (Tier 1, cyan). Each spaceship homes toward the current highest-HP enemy on screen, firing a **fixed 100 true damage** bolt every 250ms while in flight, then on contact deals **100 + 8% EP true damage** and applies **1 stack of Vulnerability**. Spaceships have **560 HP** and can be shot down by enemy fire before reaching their target.
+
+**Fusion** — Two same-tier spaceships within 50px of each other merge into one higher-tier ship at their midpoint. Two Tier 1s fuse into a **Tier 2 (purple)** with all stats ×1.5 (840 HP, 150 true dmg bolt, 150+12% EP on contact). Two Tier 2s fuse into a **Tier 3 (red)**, all Tier 2 stats ×2 (1,680 HP, 300 true dmg bolt, 300+24% EP on contact) — the maximum tier.
 
 ---
 

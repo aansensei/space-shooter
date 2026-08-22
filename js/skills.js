@@ -1249,7 +1249,7 @@ function updateSkillD(deltaTime) {
         deathStar.activeTime += deltaTime;
         if (deathStar.size < deathStar.maxSize) deathStar.size += 1 * dt;
 
-        const pullSpeed = 6;
+        const pullSpeed = 4.2; // -30% vs the original 6
         // Contact radius matches the Death Star's actual visible outer edge
         // (SKILLD_CONTACT_MULT, js/config.js — keep in sync with the base
         // disc drawn at deathStar.size * 2.5 scaled by DS_SCALE = 2.0/2.8 in
@@ -1338,7 +1338,7 @@ function updateSkillD(deltaTime) {
                 for (const enemy of enemies) {
                     if (!_skillDCanTarget(enemy) || enemy.hp <= 0) continue;
                     if (distToSegment(enemy, { x: deathStar.x, y: deathStar.y }, { x: endX, y: endY }) < enemy.size / 2 + 6) {
-                        dealDamage(enemy, { damage: 100, percentDamage: 0.12, isTrueDamage: true, isPiercing: true });
+                        dealDamage(enemy, { damage: 100, percentDamage: 0.15, isTrueDamage: true, isPiercing: true });
                         _skillDOnKill(enemy);
                     }
                 }
@@ -1395,20 +1395,71 @@ function _skillDFindHighestHpTarget() {
     return best;
 }
 
+// Fusion tiers: 2 same-tier ships within 50px merge into 1 higher tier
+// (max Tier 3). Multipliers are cumulative vs Tier 1's own base stats —
+// Tier 2 = Tier 1 stats x1.5, Tier 3 = Tier 2 stats x2 (= Tier 1 x3).
+const SKILLD_SHIP_TIER_MULT = [0, 1, 1.5, 3]; // index by tier (1..3), [0] unused
+const SKILLD_SHIP_TIER_COLOR = [null, '#00ffff', '#a855f7', '#ff2244']; // cyan / purple / red
+const SKILLD_SHIP_BASE_HP = 560, SKILLD_SHIP_BASE_BOLT_DMG = 100,
+      SKILLD_SHIP_BASE_CONTACT_DMG = 100, SKILLD_SHIP_BASE_CONTACT_PCT = 0.08;
+
 function spawnSkillDSpaceship(x, y) {
     // Same size/speed formula as spawnMarchosiasMinion (js/entities.js) —
     // minion-scale, not bigger/faster.
     window.skillDSpaceships.push({
-        x, y, size: 20 + Math.random() * 10, hp: 560, maxHp: 560,
+        x, y, size: 20 + Math.random() * 10,
+        tier: 1, hp: SKILLD_SHIP_BASE_HP, maxHp: SKILLD_SHIP_BASE_HP,
+        color: SKILLD_SHIP_TIER_COLOR[1],
         speed: (1 + Math.random() * 2) * 0.8 * 2.10,
         target: _skillDFindHighestHpTarget(), shootTimer: 250,
     });
 }
 
+// Runs once per frame before the main per-ship loop: any two same-tier
+// ships within 50px of each other merge into one higher-tier ship at their
+// midpoint. Builds the fused replacements separately and only mutates the
+// array once at the end, so a freshly-spawned Tier 2/3 ship this frame
+// isn't re-scanned as a fusion candidate in the same pass.
+function _updateSkillDShipFusion() {
+    const ships = window.skillDSpaceships;
+    const fused = new Set();
+    const newShips = [];
+    for (let i = 0; i < ships.length; i++) {
+        if (fused.has(i)) continue;
+        const a = ships[i];
+        if (a.tier >= 3) continue;
+        for (let j = i + 1; j < ships.length; j++) {
+            if (fused.has(j)) continue;
+            const b = ships[j];
+            if (b.tier !== a.tier) continue;
+            if (Math.hypot(a.x - b.x, a.y - b.y) > 50) continue;
+            const newTier = a.tier + 1;
+            const mult = SKILLD_SHIP_TIER_MULT[newTier];
+            const incMult = mult / SKILLD_SHIP_TIER_MULT[a.tier];
+            const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+            newShips.push({
+                x: mx, y: my, size: ((a.size + b.size) / 2) * incMult,
+                tier: newTier, hp: Math.round(SKILLD_SHIP_BASE_HP * mult), maxHp: Math.round(SKILLD_SHIP_BASE_HP * mult),
+                color: SKILLD_SHIP_TIER_COLOR[newTier],
+                speed: Math.max(a.speed, b.speed),
+                target: _skillDFindHighestHpTarget(), shootTimer: 250,
+            });
+            addExplosion(mx, my, ((a.size + b.size) / 2) * 1.2, SKILLD_SHIP_TIER_COLOR[newTier]);
+            fused.add(i); fused.add(j);
+            break;
+        }
+    }
+    if (fused.size > 0) {
+        window.skillDSpaceships = ships.filter((_, idx) => !fused.has(idx)).concat(newShips);
+    }
+}
+
 function updateSkillDSpaceships(deltaTime) {
+    _updateSkillDShipFusion();
     const dt = deltaTime / 16.67;
     for (let i = window.skillDSpaceships.length - 1; i >= 0; i--) {
         const ship = window.skillDSpaceships[i];
+        const mult = SKILLD_SHIP_TIER_MULT[ship.tier || 1];
 
         if (!ship.target || !enemies.includes(ship.target) || ship.target.hp <= 0) {
             // Old target died — re-acquire the current highest-HP enemy
@@ -1430,13 +1481,13 @@ function updateSkillDSpaceships(deltaTime) {
             if (ship.shootTimer <= 0 && dist > ship.size / 2 + ship.target.size / 2) {
                 ship.shootTimer = 250;
                 window.skillDBolts.push({ x1: ship.x, y1: ship.y, x2: ship.target.x, y2: ship.target.y, life: 1.0 });
-                dealDamage(ship.target, { damage: 100, isTrueDamage: true });
+                dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_BOLT_DMG * mult), isTrueDamage: true });
             }
 
             if (dist < ship.size / 2 + ship.target.size / 2) {
-                dealDamage(ship.target, { damage: 100, percentDamage: 0.08, isTrueDamage: true });
+                dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_CONTACT_DMG * mult), percentDamage: SKILLD_SHIP_BASE_CONTACT_PCT * mult, isTrueDamage: true });
                 applyVulnerability(ship.target);
-                addExplosion(ship.x, ship.y, ship.size * 0.8, '#00ffff');
+                addExplosion(ship.x, ship.y, ship.size * 0.8, ship.color || '#00ffff');
                 window.skillDSpaceships.splice(i, 1);
                 continue;
             }
