@@ -303,21 +303,55 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     ctx.globalAlpha = alpha;
     if (pos) { ctx.translate(pos.x, pos.y); } else { ctx.translate(player.x + xOffset, player.y); }
 
-    // Empower flash — a quick bright pulse right as the Remembrance Spirit's
-    // Blade Arc or Phōtokrystos's boomerang launches, telegraphing "this is
-    // the player's own summon attacking" even though the projectile spawns
-    // from the spirit's orbit position, not the ship itself. Set by
-    // js/skills.js at each launch; reads here off a plain timestamp, no
-    // shadowBlur (cheap radial-gradient fill only).
+    // Empower flash — plays right as the Remembrance Spirit's Blade Arc or
+    // Phōtokrystos's boomerang launches, telegraphing "this is the player's
+    // own summon attacking" even though the projectile spawns from the
+    // spirit's orbit position, not the ship itself. Set by js/skills.js at
+    // each launch (_empowerFlashStart/_empowerFlashEnd). Colored to match
+    // the Remembrance Spirit's own magenta/white palette (js/render/
+    // skill-s-spirit.js) instead of a generic white/blue hit-flash, so it
+    // reads as spirit power surging into the ship rather than damage taken.
+    // No shadowBlur — plain gradient fills + stroked rings/spokes only.
     if (player._empowerFlashEnd && now < player._empowerFlashEnd) {
-        const _flashLife = player._empowerFlashEnd - now;
-        const _flashT = Math.min(1, _flashLife / 220);
-        const _flashG = ctx.createRadialGradient(0, 0, 0, 0, 0, 46);
-        _flashG.addColorStop(0, `rgba(255,255,255,${0.85 * _flashT})`);
-        _flashG.addColorStop(0.4, `rgba(150,220,255,${0.5 * _flashT})`);
-        _flashG.addColorStop(1, 'rgba(150,220,255,0)');
-        ctx.fillStyle = _flashG;
-        ctx.beginPath(); ctx.arc(0, 0, 46, 0, Math.PI * 2); ctx.fill();
+        const _fStart = player._empowerFlashStart || (player._empowerFlashEnd - 320);
+        const _fDur = Math.max(1, player._empowerFlashEnd - _fStart);
+        const _fT = Math.min(1, (now - _fStart) / _fDur); // 0 -> 1 over the whole burst
+
+        // Outward shockwave ring — this is the "tỏa aura" (aura spreading
+        // out) read: starts tight around the hull and expands past it,
+        // fading as it grows.
+        const _ringR = 14 + _fT * 50;
+        const _ringA = Math.max(0, 1 - _fT) * 0.8;
+        ctx.strokeStyle = `rgba(255,90,255,${_ringA})`;
+        ctx.lineWidth = 2.5 * (1 - _fT * 0.6);
+        ctx.beginPath(); ctx.arc(0, 0, _ringR, 0, Math.PI * 2); ctx.stroke();
+
+        // 8 short spokes bursting outward, only visible in the first third —
+        // the actual "burst" punch, gone before the ring finishes expanding.
+        if (_fT < 0.4) {
+            const _spokeA = (1 - _fT / 0.4) * 0.9;
+            const _spokeLen = 10 + _fT * 30;
+            ctx.strokeStyle = `rgba(255,180,255,${_spokeA})`;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * 12, Math.sin(a) * 12);
+                ctx.lineTo(Math.cos(a) * (12 + _spokeLen), Math.sin(a) * (12 + _spokeLen));
+                ctx.stroke();
+            }
+        }
+
+        // Bright core flash — ease-out grow-in then fade, peaks around 25%.
+        const _coreGrow = Math.min(1, _fT / 0.25);
+        const _coreFade = _fT < 0.25 ? 1 : Math.max(0, 1 - (_fT - 0.25) / 0.75);
+        const _coreR = 12 + _coreGrow * 34;
+        const _coreG = ctx.createRadialGradient(0, 0, 0, 0, 0, _coreR);
+        _coreG.addColorStop(0, `rgba(255,255,255,${0.9 * _coreFade})`);
+        _coreG.addColorStop(0.35, `rgba(255,100,255,${0.65 * _coreFade})`);
+        _coreG.addColorStop(1, 'rgba(200,0,255,0)');
+        ctx.fillStyle = _coreG;
+        ctx.beginPath(); ctx.arc(0, 0, _coreR, 0, Math.PI * 2); ctx.fill();
     }
 
     // Pulsing visibility beacon — ship outline strobes to stay visible in bullet hell

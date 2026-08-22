@@ -1612,7 +1612,7 @@
                 warpStartTime = Date.now();
 
                 // AudioMgr owns menu BGM already; only fire the one-shot warp SFX
-                sndHyperjump.play().catch(() => { });
+                if (!_muted) sndHyperjump.play().catch(() => { });
 
                 // Pay the one-time Safari WebGL texture/shader-compile cost
                 // now, during this 3.5s loading animation, instead of on
@@ -1832,7 +1832,7 @@
     <script src="js/render/enemy-egregor.js?v=20260717e"></script>
     <script src="js/render/skill-s-spirit.js?v=20260822b"></script>
     <script src="js/render/skill-a.js?v=20260722e"></script>
-    <script src="js/render/skill-d.js?v=20260821a"></script>
+    <script src="js/render/skill-d.js?v=20260822a"></script>
     <script src="js/render/skill-f.js?v=20260717i"></script>
     <script src="js/render/skill-g.js?v=20260717e"></script>
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
