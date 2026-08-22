@@ -443,12 +443,12 @@ function drawDeathStar() {
     // which ANY enemy death spawns a Galactic Spaceship (see handleEnemyKill
     // in entities.js) — drawn in plain world space, not the scaled/rotated
     // local frame above, since this radius is a world-space value. Formula
-    // must stay in sync with SKILLD_CONTACT_MULT (js/config.js) + 120.
+    // must stay in sync with SKILLD_CONTACT_MULT (js/config.js) + 180.
     // guide.html reuses this file without loading config.js, so
     // SKILLD_CONTACT_MULT isn't guaranteed to exist there — fall back to the
     // same literal value config.js defines it as.
     const _dsContactMult = typeof SKILLD_CONTACT_MULT !== 'undefined' ? SKILLD_CONTACT_MULT : 2.5 * (2.0 / 2.8);
-    const spawnR = S * _dsContactMult + 120;
+    const spawnR = S * _dsContactMult + 180;
     ctx.save();
     ctx.translate(deathStar.x, deathStar.y);
     ctx.setLineDash([10, 8]);
@@ -561,15 +561,19 @@ function drawSkillDSpaceships() {
         ctx.rotate(angle);
 
         const r = ship.size / 2;
+        // Tier color (cyan T1 / purple T2 / red T3) — falls back to cyan for
+        // any pre-fusion-update ship object that predates the `color` field.
+        const shipColor = ship.color || '#00ffff';
 
         // Engine glow trail
-        ctx.fillStyle = '#00ffff';
-        if (!_mobPerf) { ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 12; }
+        ctx.fillStyle = shipColor;
+        if (!_mobPerf) { ctx.shadowColor = shipColor; ctx.shadowBlur = 12; }
         ctx.beginPath(); ctx.arc(-r * 0.75, 0, r * 0.22, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Hull — angular allied-drone silhouette (cyan/white core, dark plating,
-        // consistent with this game's Sentinel/Photōkrystos visual language)
+        // Hull — angular allied-drone silhouette (tier-colored/white core,
+        // dark plating, consistent with this game's Sentinel/Photōkrystos
+        // visual language)
         ctx.beginPath();
         ctx.moveTo(r, 0);
         ctx.lineTo(r * 0.15, -r * 0.42);
@@ -581,15 +585,15 @@ function drawSkillDSpaceships() {
         ctx.lineTo(r * 0.15, r * 0.42);
         ctx.closePath();
         ctx.fillStyle = '#141428';
-        ctx.strokeStyle = '#00ffff';
+        ctx.strokeStyle = shipColor;
         ctx.lineWidth = 1.5;
         ctx.fill(); ctx.stroke();
 
         // Cockpit glow core
         const coreGrad = ctx.createRadialGradient(r * 0.2, 0, 0, r * 0.2, 0, r * 0.35);
         coreGrad.addColorStop(0, '#ffffff');
-        coreGrad.addColorStop(0.5, '#00ffff');
-        coreGrad.addColorStop(1, 'rgba(0,255,255,0)');
+        coreGrad.addColorStop(0.5, shipColor);
+        coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = coreGrad;
         ctx.beginPath(); ctx.arc(r * 0.2, 0, r * 0.35, 0, Math.PI * 2); ctx.fill();
 

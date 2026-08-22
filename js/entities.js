@@ -242,7 +242,7 @@ function handleEnemyKill(enemy) {
     // is separate from _skillDOnKill's cooldown refund (js/skills.js), which
     // only fires for the Death Star's own 3 kill sources.
     if (deathStar) {
-        const _dsSpawnR = deathStar.size * SKILLD_CONTACT_MULT + 120;
+        const _dsSpawnR = deathStar.size * SKILLD_CONTACT_MULT + 180;
         if (Math.hypot(enemy.x - deathStar.x, enemy.y - deathStar.y) <= _dsSpawnR) {
             spawnSkillDSpaceship(enemy.x, enemy.y);
         }
