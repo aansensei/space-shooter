@@ -749,7 +749,12 @@ function drawEnemy(enemy) {
     // stacks are active, growing a shade deeper/brighter per stack so the
     // player can tell at a glance the buff is live. Skips bullets/echoes —
     // the mechanic itself never touches those types either.
-    if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'veilshroud_echo') {
+    // guide.html reuses this render file without loading js/config.js (no
+    // _waveNumber/_walpurgisStacks there at all), so drawEnemy() must not
+    // assume the function exists — every guide.html widget that calls
+    // drawEnemy() would otherwise throw here and silently abort everything
+    // queued to draw after it in that same tick.
+    if (typeof _walpurgisStacks === 'function' && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'veilshroud_echo') {
         const _wpStacks = _walpurgisStacks();
         if (_wpStacks > 0) _drawWalpurgisAura(enemy, _wpStacks);
     }
