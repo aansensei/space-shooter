@@ -261,7 +261,7 @@
         'photokrystos-btm-warming': 1.0, 'photokrystos-idle': 1.0, 'photokrystos-vine-bind': 1.0,
         'laser-fire': 1.0, 'goliath-verdict-launch': 1.0,
         'dargruel-chain-launch': 1.0, 'dargruel-chain-root': 1.0,
-        'metal-hit': 1.0,
+        'metal-hit': 1.0, 'phantom-strike': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -683,6 +683,7 @@
         _makePool('dargruel-chain-launch',  'audio/sfx/dargruel-chain-launch.mp3',  2);
         _makePool('dargruel-chain-root',    'audio/sfx/dargruel-chain-root.mp3',    2);
         _makePool('metal-hit',              'audio/sfx/metal-hit.mp3',              6);
+        _makePool('phantom-strike',         'audio/sfx/phantom-strike.mp3',         2);
 
         state.ambientEl  = _makeBufferLoop();
         state.ambientEl.setSrc('audio/sfx/ingame.mp3');
