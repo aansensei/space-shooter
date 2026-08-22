@@ -410,7 +410,16 @@ function _drawWalpurgisAura(enemy, stacks) {
 }
 
 function drawEnemy(enemy) {
-    if (enemy.type === 'debug_dummy') { _drawDebugDummy(enemy, performance.now()); return; }
+    if (enemy.type === 'debug_dummy') {
+        _drawDebugDummy(enemy, performance.now());
+        // The dummy's early return skips every generic overlay below (vuln
+        // icon, Walpurgis aura, ...) — re-check just the vuln icon here so
+        // debug_dummy targets in guide.html demos still show stacks.
+        if (enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime) {
+            _drawVulnerabilityIcon(enemy);
+        }
+        return;
+    }
     // Abyssal Chain render
     if (enemy.type === 'abyssal_chain') {
         const now0 = performance.now();
