@@ -261,7 +261,11 @@ function handleEnemyKill(enemy) {
         _setShake(16, 420);
         if (window.AudioMgr) {
             window.AudioMgr.playSfxAt('egregor-death-roar', enemy.x, enemy.y);
-            window.AudioMgr.stopNullSlashWindup();
+            // Chỉ dừng windup nếu CHÍNH con Egregor này đang vận — windup là 1
+            // audio element dùng chung, nếu dừng vô điều kiện sẽ cắt luôn
+            // windup của Goliath Joker-copy Egregor (hoặc 1 Egregor khác) đang
+            // vận cùng lúc ở nơi khác trên màn hình.
+            if (enemy._nullSlashPhase === 'charging') window.AudioMgr.stopNullSlashWindup();
         }
     }
 

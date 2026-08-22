@@ -237,7 +237,7 @@
     // Values 0..1, multiplied by sfx * global.
     const SFX_BASE = {
         autoshot: 1.0, charging: 1.0, 'skill-d-charge': 1.0, laser: 1.0,
-        'enemy-hit': 0.55, 'enemy-death': 1.0, 'shield-hit': 1.0, 'life-lost': 1.0,
+        'enemy-hit': 0.25, 'enemy-death': 1.0, 'shield-hit': 1.0, 'life-lost': 1.0,
         click: 1.0, hover: 1.0, overlay: 1.0, engine: 1.0, ambient: 1.0,
         'skill-ready': 1.0, 'skill-unlocked': 1.0,
         'sigil-open': 1.0, 'sigil-confirm': 1.0,
