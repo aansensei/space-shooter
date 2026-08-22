@@ -262,7 +262,7 @@
         'laser-fire': 1.0, 'goliath-verdict-launch': 1.0,
         'dargruel-chain-launch': 1.0, 'dargruel-chain-root': 1.0,
         'metal-hit': 1.0, 'phantom-strike': 1.0, 'goliath-transform': 1.0,
-        'goliath-idle': 1.0, 'goliath-fracture-step': 1.0, 'goliath-verdict-impact': 1.0,
+        'goliath-idle': 1.0, 'goliath-fracture-step': 1.0, 'goliath-verdict-impact': 1.0, 'goliath-verdict-charge': 1.0,
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0,
     };
@@ -326,6 +326,7 @@
         maouHakiEl: null,     // Dargruel Maou Haki shockwave cue, cut short when the wave finishes expanding (not looped)
         lowHpEl: null,        // low-HP heartbeat loop (lives < 5), looped while the state holds
         nullSlashWindupEl: null, // Egregor Null Slash windup drone, cut short exactly when the strike phase begins (variable 1-3s duration)
+        goliathVerdictChargeEl: null, // Goliath Absolute Verdict channel hum, cut short exactly when the 3s channel completes and the orb fires
         crawlEl: null,        // Egregor crawl texture, a native gapless AudioBufferSourceNode loop
         photokrystosIdleEl: null, // Phōtokrystos flight/movement texture, same native gapless loop
         goliathIdleEl: null, // Goliath True Form ambient breathing/hum, same native gapless loop
@@ -440,8 +441,9 @@
             crawl: !!(state.crawlEl && !state.crawlEl.paused),
             photokrystosIdle: !!(state.photokrystosIdleEl && !state.photokrystosIdleEl.paused),
             goliathIdle: !!(state.goliathIdleEl && !state.goliathIdleEl.paused),
+            goliathVerdictCharge: !!(state.goliathVerdictChargeEl && !state.goliathVerdictChargeEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -604,6 +606,8 @@
     function stopMaouHaki()     { stopLoop('maouHakiEl'); }
     function startNullSlashWindup() { startLoop('nullSlashWindupEl', 'egregor-nullslash-windup'); }
     function stopNullSlashWindup()  { stopLoop('nullSlashWindupEl'); }
+    function startGoliathVerdictCharge() { startLoop('goliathVerdictChargeEl', 'goliath-verdict-charge'); }
+    function stopGoliathVerdictCharge()  { stopLoop('goliathVerdictChargeEl'); }
     function startLaser()   { startLoop('laserEl', 'laser'); }
     function stopLaser()    { stopLoop('laserEl'); }
 
@@ -731,6 +735,8 @@
         state.maouHakiEl.setSrc('audio/sfx/maou-haki.mp3', false);
         state.nullSlashWindupEl = _makeBufferLoop();
         state.nullSlashWindupEl.setSrc('audio/sfx/egregor-nullslash-windup.mp3', false);
+        state.goliathVerdictChargeEl = _makeBufferLoop();
+        state.goliathVerdictChargeEl.setSrc('audio/sfx/goliath-verdict-charge.mp3', false);
     }
 
     _boot();
@@ -756,6 +762,7 @@
         startMaouHaki, stopMaouHaki,
         startLowHp, stopLowHp,
         startNullSlashWindup, stopNullSlashWindup,
+        startGoliathVerdictCharge, stopGoliathVerdictCharge,
         startEgregorCrawl, stopEgregorCrawl, tickEgregorCrawl,
         startPhotokrystosIdle, stopPhotokrystosIdle, tickPhotokrystosIdle,
         startGoliathIdle, stopGoliathIdle,

@@ -702,23 +702,82 @@ function _drawGoliathOrbs() {
             ctx.restore();
         }
 
-        for (let k = 0; k < 5; k++) {
-            const ang = now / 250 + k * (Math.PI * 2 / 5);
-            const sx = p.x + Math.cos(ang) * 125, sy = p.y + Math.sin(ang) * 125;
-            ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang * 2);
+        // 8 shards (up from 5), alternating sizes for a less uniform,
+        // denser-feeling debris ring.
+        for (let k = 0; k < 8; k++) {
+            const ang = now / 250 + k * (Math.PI * 2 / 8);
+            const orbitR = 125 + (k % 2 === 0 ? 0 : 14);
+            const sx = p.x + Math.cos(ang) * orbitR, sy = p.y + Math.sin(ang) * orbitR;
+            const shardScale = k % 3 === 0 ? 1.3 : 1;
+            ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang * 2); ctx.scale(shardScale, shardScale);
             ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(12, 7); ctx.lineTo(-12, 7); ctx.closePath();
             ctx.fillStyle = '#c084fc';
             if (!_mobPerf) { ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 8; }
             ctx.fill(); ctx.shadowBlur = 0;
             ctx.restore();
         }
+        // Richer multi-stop core gradient (was a flat 2-stop purple->dark falloff)
         const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 101);
-        g.addColorStop(0, '#4c1d95'); g.addColorStop(0.6, '#1a0a2e'); g.addColorStop(1, 'rgba(10,0,20,0)');
+        g.addColorStop(0, '#f3e8ff'); g.addColorStop(0.22, '#c084fc'); g.addColorStop(0.55, '#6d28d9');
+        g.addColorStop(0.85, '#1a0a2e'); g.addColorStop(1, 'rgba(10,0,20,0)');
         ctx.beginPath(); ctx.arc(p.x, p.y, 101, 0, Math.PI * 2);
         ctx.fillStyle = g;
         if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 26; }
         ctx.fill();
-        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6; ctx.stroke(); ctx.shadowBlur = 0;
+
+        // Branching containment lightning crackling across the core surface,
+        // matching Death Star's in-core arc technique (js/render/skill-d.js).
+        if (!_mobPerf) {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8;
+            for (let i = 0; i < 5; i++) {
+                ctx.save();
+                ctx.rotate(now * 0.0016 + i * 1.3);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                let d = 0, py = 0;
+                const branchPoints = [];
+                for (let s = 0; s < 4; s++) {
+                    d += 12 + Math.random() * 12;
+                    py = (Math.random() - 0.5) * (12 + s * 9);
+                    ctx.lineTo(d, py);
+                    if (s > 0 && Math.random() < 0.5) branchPoints.push({ d, py });
+                }
+                ctx.stroke();
+                if (branchPoints.length > 0) {
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(224,196,255,0.6)';
+                    for (const bp of branchPoints) {
+                        const forkAngle = (Math.random() - 0.5) * 1.4;
+                        const forkLen = 7 + Math.random() * 10;
+                        ctx.beginPath();
+                        ctx.moveTo(bp.d, bp.py);
+                        ctx.lineTo(bp.d + Math.cos(forkAngle) * forkLen, bp.py + Math.sin(forkAngle) * forkLen);
+                        ctx.stroke();
+                    }
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                }
+                ctx.restore();
+            }
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        // Bright inner hotspot for extra depth on top of the gradient falloff
+        ctx.save();
+        const hotspotG = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 30);
+        hotspotG.addColorStop(0, 'rgba(255,255,255,0.9)');
+        hotspotG.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
+        ctx.fillStyle = hotspotG; ctx.fill();
+        ctx.restore();
+
+        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 101, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
     });
 }
 
@@ -1746,6 +1805,36 @@ function _drawGoliath(enemy) {
                 });
             }
             ctx.restore();
+
+            // Dark matter converging: small dark motes spiraling inward
+            // toward the eye as the charge builds, visualizing "power being
+            // drawn into the core" — separate from the runway-lane warning
+            // above (unrotated, in world space).
+            if (!_mobPerf) {
+                const matterCount = 12;
+                for (let i = 0; i < matterCount; i++) {
+                    const seed = i * 137.5; // golden-angle-ish spread, avoids clumping
+                    const baseDist = 60 + (i % 4) * 45;
+                    const dist = baseDist * (1 - vp * 0.85); // shrinks inward as charge builds
+                    const ang = seed * (Math.PI / 180) + now / (600 + i * 30);
+                    const mx = eyeLX + Math.cos(ang) * dist;
+                    const my = eyeLY + Math.sin(ang) * dist;
+                    const moteAlpha = (0.3 + vp * 0.5) * (0.6 + 0.4 * Math.sin(now / 150 + i));
+                    ctx.save();
+                    ctx.shadowColor = '#2a0040'; ctx.shadowBlur = 6;
+                    ctx.fillStyle = `rgba(60,0,90,${moteAlpha})`;
+                    ctx.beginPath(); ctx.arc(mx, my, 2.5 + vp * 1.5, 0, Math.PI * 2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                    // Faint trailing streak behind the direction of travel (away from the eye)
+                    ctx.strokeStyle = `rgba(80,0,120,${moteAlpha * 0.5})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(mx, my);
+                    ctx.lineTo(eyeLX + (mx - eyeLX) * 1.4, eyeLY + (my - eyeLY) * 1.4);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
         }
 
         // Inevitable — trường DR 70% luôn hiện diện (không chỉ lúc cửa sổ
