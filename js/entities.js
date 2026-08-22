@@ -749,7 +749,7 @@ function _veilshroudStrike(enemy) {
         if (Math.hypot(s.x - tx, s.y - ty) < 100) {
             _lt.hitSentinelPositions.push({ x: s.x, y: s.y });
             const dmg = Math.ceil((s.maxHp + (s.shield || 0)) * 0.18);
-            dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx });
+            dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx, _noHitSfx: true });
             addExplosion(s.x, s.y, 60, '#ff1133');
             createParticles(s.x, s.y, 22, '#ffffff', 3, 10);
             createParticles(s.x, s.y, 14, '#ff3355', 2, 7);
@@ -1917,7 +1917,10 @@ function dealDamage(enemy, source) {
         if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y);
     }
     if (enemy.hp <= 0) enemy._markedForDeath = true;
-    else if (window.AudioMgr) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
+    // _noHitSfx: caller already plays its own dedicated hit sound for this
+    // exact hit (e.g. skill-a-orb-hit, phantom-strike) — the generic
+    // enemy-hit fallback would just stack on top of it.
+    else if (window.AudioMgr && !source._noHitSfx) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
 
     // Threshold Ward: mỗi 1 HP sát thương THẬT (đã trừ thẳng vào HP, không
     // tính phần bị khiên hấp thụ) cấp lại 0.25 HP giá trị khiên.
@@ -2061,7 +2064,10 @@ function dealDamage(enemy, source) {
             });
         });
         _setShake(12, 400);
-        if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', lx, ly);
+        // Tiếng laser-fire phải phát đúng lúc các tia THỰC SỰ bắn (elapsed
+        // >= warnTime, xem main.js), không phải ngay lúc này — lúc này các
+        // cánh mới bắt đầu xoay dò/tracking mục tiêu trong 1200ms warnTime.
+        window._levDeathLaserSoundPending = true;
     }
 
     const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
@@ -2075,7 +2081,7 @@ function dealDamage(enemy, source) {
             if (otherEnemy.type === 'veilshroud_echo' || otherEnemy.inCoronation) continue; // untargetable
             if (otherEnemy !== enemy && !otherEnemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
                 let debuff = Math.random() < 0.60;
-                dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff });
+                dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff, _noHitSfx: true });
                 chainLightningEffects.push({
                     x1: enemy.x, y1: enemy.y, x2: otherEnemy.x, y2: otherEnemy.y, lifetime: 250, maxLifetime: 250
                 });
@@ -2733,6 +2739,7 @@ function _goliathReleaseUnbrokenWave(enemy, now) {
     addExplosion(enemy.x, enemy.y, enemy.size * 1.3, '#f97316');
     createParticles(enemy.x, enemy.y, 50, '#fb923c', 4, 12);
     _setShake(24, 500);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-unbroken-wave', enemy.x, enemy.y);
 }
 
 // Joker Marchosias (Sword & Barrier, full port): proc kích hoạt Sword khi
@@ -3403,7 +3410,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) playerTakesHit();
                     } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
-                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true });
+                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true });
                     }
                     addExplosion(t.x, t.y, 60, '#ff9a2e');
                 });
@@ -3447,7 +3454,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 if (t.isPlayer) {
                     if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) playerTakesHit();
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
-                    dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true });
+                    dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true });
                 }
                 addExplosion(t.x, t.y, 60, '#fff8e1');
             });
@@ -3545,7 +3552,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     _nsHitLanded = true;
                     const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
                     for (const sn of hitSents) {
-                        dealDamage(sn, { damage: _goliathDmgBoost(enemy, Math.ceil(sn.maxHp * pct)), isTrueDamage: true });
+                        dealDamage(sn, { damage: _goliathDmgBoost(enemy, Math.ceil(sn.maxHp * pct)), isTrueDamage: true, _noHitSfx: true });
                         addExplosion(sn.x, sn.y, 65, '#7700dd');
                         createParticles(sn.x, sn.y, 18, '#cc44ff', 3, 7);
                     }
@@ -3835,7 +3842,7 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                 }
                 for (const s of sentinels) {
                     if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
-                        dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false });
+                        dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true });
                         _hitSentinels.add(s);
                     }
                 }
@@ -3890,7 +3897,7 @@ function _forceFireEgregorTempest(enemy) {
         }
         for (const s of sentinels) {
             if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
-                dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false });
+                dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true });
                 _hitSentinels.add(s);
             }
         }
@@ -3983,7 +3990,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 // Rage bonus: +5% per stack, max +25%
                 const _nsRageMult = 1 + Math.min(0.30, Math.min(5, enemy._rageStacks || 0) * 0.06);
                 for (const s of hitSents) {
-                    dealDamage(s, { damage: Math.ceil(s.maxHp * pct * _nsRageMult), isTrueDamage: true });
+                    dealDamage(s, { damage: Math.ceil(s.maxHp * pct * _nsRageMult), isTrueDamage: true, _noHitSfx: true });
                     addExplosion(s.x, s.y, 65, '#7700dd');
                     createParticles(s.x, s.y, 18, '#cc44ff', 3, 7);
                 }
