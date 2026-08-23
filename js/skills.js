@@ -442,7 +442,7 @@ function updateSpirits(deltaTime) {
 
         spirit.shootTimer -= deltaTime;
         let spiritFireRate = 54.2;
-        if (gloryForJusticeActive) spiritFireRate /= 1.50;
+        if (gloryForJusticeActive) spiritFireRate /= 1.20;
         if (_hasBuff('cuc_han')) spiritFireRate /= 1.30; // Arctic Chill: +30% fire rate
 
         if (spirit.shootTimer <= 0) {
@@ -737,7 +737,7 @@ function updatePhotokrystos(spirit, deltaTime) {
     // Attack: 3 homing bullets per volley at 42ms
     spirit.shootTimer -= deltaTime;
     let photoFireRate = 42; // fire rate
-    if (gloryForJusticeActive) photoFireRate /= 1.50;
+    if (gloryForJusticeActive) photoFireRate /= 1.20;
     if (_hasBuff('cuc_han')) photoFireRate /= 1.30; // Arctic Chill: +30% fire rate
     if (spirit.shootTimer <= 0) {
         spirit.shootTimer = photoFireRate;
@@ -1458,9 +1458,11 @@ function _updateSkillDShipFusion() {
 function updateSkillDSpaceships(deltaTime) {
     _updateSkillDShipFusion();
     const dt = deltaTime / 16.67;
+    const _gfjDmg = gloryForJusticeActive ? 1.55 : 1;
+    const _gfjFireRate = gloryForJusticeActive ? 1.2 : 1;
     for (let i = window.skillDSpaceships.length - 1; i >= 0; i--) {
         const ship = window.skillDSpaceships[i];
-        const mult = SKILLD_SHIP_TIER_MULT[ship.tier || 1];
+        const mult = SKILLD_SHIP_TIER_MULT[ship.tier || 1] * _gfjDmg;
 
         if (!ship.target || !enemies.includes(ship.target) || ship.target.hp <= 0) {
             // Old target died — re-acquire the current highest-HP enemy
@@ -1480,7 +1482,7 @@ function updateSkillDSpaceships(deltaTime) {
 
             ship.shootTimer -= deltaTime;
             if (ship.shootTimer <= 0 && dist > ship.size / 2 + ship.target.size / 2) {
-                ship.shootTimer = 250;
+                ship.shootTimer = 250 / _gfjFireRate;
                 window.skillDBolts.push({ x1: ship.x, y1: ship.y, x2: ship.target.x, y2: ship.target.y, life: 1.0 });
                 dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_BOLT_DMG * mult), isTrueDamage: true, _statSrc: 'Skill D: Galactic Spaceships' });
             }

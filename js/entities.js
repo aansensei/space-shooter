@@ -177,6 +177,10 @@ function _goliathDebuffStackCount(enemy) {
 }
 
 // VULNERABILITY (Trọng Thương)
+// true-dmg window length, shared with the decay calc in dealDamage and the
+// expiry burst in updateVulnerabilityWindows - keep all 3 in sync
+const VULN_TRUE_DMG_WINDOW_MS = 2500;
+
 function applyVulnerability(enemy) {
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
@@ -189,12 +193,28 @@ function applyVulnerability(enemy) {
         // full stack -> 2.5s true dmg window. goliath: 5s cd, starts counting
         // once the window ends (not at trigger) so it's a real dead gap
         if (enemy.vulnStacks === 4 && (enemy.type !== 'goliath' || now >= (enemy._vulnTrueDmgCooldownEnd || 0))) {
-            enemy.vulnTrueDmgEnd = now + 2500;
+            enemy.vulnTrueDmgEnd = now + VULN_TRUE_DMG_WINDOW_MS;
             if (enemy.type === 'goliath') enemy._vulnTrueDmgCooldownEnd = enemy.vulnTrueDmgEnd + 5000;
         }
     }
     // Reset lại thời gian 3 giây mỗi khi cộng dồn
     enemy.vulnEndTime = now + 3000;
+}
+
+// window ends -> 500 base true dmg burst + full stack reset (not just the
+// dmg-amp stacks, the true-dmg window itself gets a clean slate too), so
+// non-goliath enemies actually get a real gap before it can fire again
+// instead of just sitting pinned at 4 stacks under continuous fire
+function updateVulnerabilityWindows() {
+    const now = performance.now();
+    for (const enemy of enemies) {
+        if (enemy.vulnTrueDmgEnd && now >= enemy.vulnTrueDmgEnd) {
+            enemy.vulnTrueDmgEnd = 0;
+            enemy.vulnStacks = 0;
+            enemy.vulnEndTime = 0;
+            dealDamage(enemy, { damage: 500, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Vulnerability' });
+        }
+    }
 }
 
 function _spawnBloodFlower(x, y, size) {
@@ -344,7 +364,7 @@ function handleEnemyKill(enemy) {
 }
 
 function fireAutoShot() {
-    const fireRateMultiplier = (gloryForJusticeActive ? 1.50 : 1) * (1 + (window._laiKepFireRateBonus || 0));
+    const fireRateMultiplier = (gloryForJusticeActive ? 1.20 : 1) * (1 + (window._laiKepFireRateBonus || 0));
     if (performance.now() - lastAutoFire < autoFireInterval / fireRateMultiplier) return;
     lastAutoFire = performance.now();
     if (window.AudioMgr) window.AudioMgr.playSfx('autoshot');
@@ -1011,7 +1031,7 @@ function updateSentinels(deltaTime) {
     }
 
     if (gloryForJusticeActive) {
-        sentinelFireRate /= 1.50;
+        sentinelFireRate /= 1.20;
     }
 
     for (let i = 0; i < sentinels.length; i++) {
@@ -1466,7 +1486,7 @@ function dealDamage(enemy, source) {
     }
 
     // vuln 4 stacks -> 2.5s window. hit still eats shield/barrier as normal,
-    // just gets +35% incoming dmg tacked on as true dmg (see _vulnTrueBonus
+    // just gets +50% incoming dmg tacked on as true dmg (see _vulnTrueBonus
     // near the end). no longer a full convert-to-true-dmg like before
     const inTrueDmgWindow = enemy.vulnTrueDmgEnd && performance.now() < enemy.vulnTrueDmgEnd;
 
@@ -1907,8 +1927,9 @@ function dealDamage(enemy, source) {
 
     // Apply damage: true damage bypasses shield/barrier entirely (same rule
     // as Joker Marchosias's Arc Barrier). Vuln true-dmg window doesn't do
-    // that anymore — hit still eats shield/barrier, just gets a flat 35% of
-    // its damage tacked on separately as guaranteed true dmg.
+    // that anymore — hit still eats shield/barrier, just gets a % of its
+    // damage tacked on separately as guaranteed true dmg. that % decays
+    // 40% -> 20% linearly across the window instead of a flat rate.
     let _hpDamageDealt = 0;
     if (source.isTrueDamage) {
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
@@ -1916,7 +1937,13 @@ function dealDamage(enemy, source) {
             enemy.hp -= totalDamage;
         }
     } else {
-        const _vulnTrueBonus = inTrueDmgWindow ? Math.ceil(totalDamage * 0.35) : 0;
+        let _vulnTrueBonus = 0;
+        if (inTrueDmgWindow) {
+            const _vulnElapsed = VULN_TRUE_DMG_WINDOW_MS - (enemy.vulnTrueDmgEnd - performance.now());
+            const _vulnFrac = Math.min(1, Math.max(0, _vulnElapsed / VULN_TRUE_DMG_WINDOW_MS));
+            const _vulnPct = 0.40 - _vulnFrac * 0.20;
+            _vulnTrueBonus = Math.ceil(totalDamage * _vulnPct);
+        }
         if (enemy.type === 'goliath' && enemy.barrier > 0) {
             const damageToBarrier = Math.min(enemy.barrier, totalDamage);
             enemy.barrier -= damageToBarrier;

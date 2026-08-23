@@ -242,17 +242,10 @@
     function enterDuck(key) { _activeDucks.add(key); _applyDuckState(); }
     function exitDuck(key)  { _activeDucks.delete(key); _applyDuckState(); }
 
-    // bgm shares _duckGain with everything else, so ducking normally pulls
-    // the music down too - compensate its own pre-duck volume so it's the
-    // one thing that doesn't drop
-    function enterGoliathTransformDuck() {
-        enterDuck('goliathTransform');
-        if (state.bgmEl) state.bgmEl.volume = bgmGain() / _duckTarget().gain;
-    }
-    function exitGoliathTransformDuck() {
-        exitDuck('goliathTransform');
-        if (state.bgmEl) state.bgmEl.volume = bgmGain() / _duckTarget().gain;
-    }
+    // bgm shares _duckGain with everything else, so this naturally pulls
+    // the music down too - wanted now, was compensated out before
+    function enterGoliathTransformDuck() { enterDuck('goliathTransform'); }
+    function exitGoliathTransformDuck()  { exitDuck('goliathTransform'); }
 
     function enterTimeDomain() { enterDuck('yogsothoth'); }
     function exitTimeDomain()  { exitDuck('yogsothoth'); }
@@ -606,6 +599,23 @@
     function setMuted(m) {
         state.muted = !!m;
         refreshVolumes();
+        // refreshVolumes() only zeroes gain for sounds started AFTER this
+        // point - a one-shot already mid-playback (its own gain node was
+        // fixed at start time) keeps going since _duckGain/_bypassGain are
+        // the only path to actx.destination and neither was touched. Hard
+        // mute both here so nothing already in flight survives the toggle.
+        if (actx && _duckGain && _bypassGain) {
+            const now = actx.currentTime;
+            _duckGain.gain.cancelScheduledValues(now);
+            _bypassGain.gain.cancelScheduledValues(now);
+            if (state.muted) {
+                _duckGain.gain.setTargetAtTime(0, now, 0.05);
+                _bypassGain.gain.setTargetAtTime(0, now, 0.05);
+            } else {
+                _duckGain.gain.setTargetAtTime(_duckTarget().gain, now, 0.05);
+                _bypassGain.gain.setTargetAtTime(1, now, 0.05);
+            }
+        }
         if (state.muted) {
             [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl]
                 .forEach(e => { if (e) try { e.pause(); } catch (_) {} });

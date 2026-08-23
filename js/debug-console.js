@@ -781,6 +781,12 @@ window._debugClickSpawnType = '';
     function refreshEnemyList() {
         const el = document.getElementById('dbgEnemyList');
         if (!el || typeof enemies === 'undefined') return;
+        // skip the rebuild while typing into one of these inputs - the 500ms
+        // interval was nuking the field's focus/value mid-edit every tick,
+        // worst on goliath's damage-pull field since that number moves
+        // almost every tick so the input never got a chance to hold still
+        const _af = document.activeElement;
+        if (_af && _af.id && _af.id.startsWith('dbgHp_')) return;
         const rows = enemies.map((e, i) => ({ e, i })).filter(x => BOSS_TYPES.includes(x.e.type));
         if (rows.length === 0) { el.innerHTML = '<div style="opacity:0.5;">No tracked enemies on screen.</div>'; return; }
         el.innerHTML = rows.map(({ e, i }) => {
@@ -829,6 +835,8 @@ window._debugClickSpawnType = '';
     function refreshSentinelList() {
         const el = document.getElementById('dbgSentinelList');
         if (!el || typeof sentinels === 'undefined') return;
+        const _af = document.activeElement;
+        if (_af && _af.id && _af.id.startsWith('dbgSentHp_')) return;
         if (sentinels.length === 0) { el.innerHTML = '<div style="opacity:0.5;">No sentinels active.</div>'; return; }
         el.innerHTML = sentinels.map((s, i) => `
       <div class="dbg-enemy-row">

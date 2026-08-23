@@ -1959,6 +1959,7 @@ function update(rawDeltaTime) {
     // dominant cost in 2 of 3 on-device samples (100-125ms), pin down
     // exactly which of these 13 calls it actually is.
     const _profChk2 = [performance.now()];
+    updateVulnerabilityWindows(); _profChk2.push(performance.now());
     updateSoulReaverDoT(deltaTime); _profChk2.push(performance.now());
     updateSkillA(deltaTime); _profChk2.push(performance.now());
     updateSolArrows(deltaTime); _profChk2.push(performance.now());
@@ -1979,7 +1980,7 @@ function update(rawDeltaTime) {
     updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
     updateMarchosiasBlades(deltaTime); _profChk2.push(performance.now());
     if (_profChk2[_profChk2.length - 1] - _profChk2[0] > 60) {
-        const _labels2 = ['soulReaverDoT', 'skillA', 'solArrows', 'shadowTwin', 'shadowOrbs', 'dimRifts', 'scatteredProj', 'spirits', 'bladeArc', 'spiritBullets', 'photoBrangs', 'skillD', 'skillF', 'energyOrbs', 'teslaCoils', 'marchosiasBlades'];
+        const _labels2 = ['vulnWindows', 'soulReaverDoT', 'skillA', 'solArrows', 'shadowTwin', 'shadowOrbs', 'dimRifts', 'scatteredProj', 'spirits', 'bladeArc', 'spiritBullets', 'photoBrangs', 'skillD', 'skillF', 'energyOrbs', 'teslaCoils', 'marchosiasBlades'];
         const _parts2 = [];
         for (let _i2 = 1; _i2 < _profChk2.length; _i2++) {
             _parts2.push(_labels2[_i2 - 1] + ' ' + (_profChk2[_i2] - _profChk2[_i2 - 1]).toFixed(0) + 'ms');
