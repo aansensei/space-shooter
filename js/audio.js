@@ -217,15 +217,22 @@
     const DUCK_LEVELS = {
         yogsothoth: { gain: 0.32, freq: 450 },
         lowhp:      { gain: 0.16, freq: 260 },
+        // plain volume cut, no muffle filter - just wants the transform
+        // sfx (bypass-routed) to read clearly, not a disorienting effect
+        goliathTransform: { gain: 0.35, freq: NORMAL_FREQ },
     };
     const _activeDucks = new Set();
-    function _applyDuckState() {
-        if (!actx) return;
+    function _duckTarget() {
         let target = { gain: 1, freq: NORMAL_FREQ };
         for (const key of _activeDucks) {
             const d = DUCK_LEVELS[key];
             if (d && d.gain < target.gain) target = d;
         }
+        return target;
+    }
+    function _applyDuckState() {
+        if (!actx) return;
+        const target = _duckTarget();
         const now = actx.currentTime;
         _duckGain.gain.cancelScheduledValues(now);
         _duckGain.gain.setTargetAtTime(target.gain, now, 0.15);
@@ -234,6 +241,18 @@
     }
     function enterDuck(key) { _activeDucks.add(key); _applyDuckState(); }
     function exitDuck(key)  { _activeDucks.delete(key); _applyDuckState(); }
+
+    // bgm shares _duckGain with everything else, so ducking normally pulls
+    // the music down too - compensate its own pre-duck volume so it's the
+    // one thing that doesn't drop
+    function enterGoliathTransformDuck() {
+        enterDuck('goliathTransform');
+        if (state.bgmEl) state.bgmEl.volume = bgmGain() / _duckTarget().gain;
+    }
+    function exitGoliathTransformDuck() {
+        exitDuck('goliathTransform');
+        if (state.bgmEl) state.bgmEl.volume = bgmGain() / _duckTarget().gain;
+    }
 
     function enterTimeDomain() { enterDuck('yogsothoth'); }
     function exitTimeDomain()  { exitDuck('yogsothoth'); }
@@ -705,7 +724,7 @@
         _makePool('dargruel-chain-root',    'audio/sfx/dargruel-chain-root.mp3',    2);
         _makePool('metal-hit',              'audio/sfx/metal-hit.mp3',              6);
         _makePool('phantom-strike',         'audio/sfx/phantom-strike.mp3',         2);
-        _makePool('goliath-transform',      'audio/sfx/goliath-transform.mp3',      1);
+        _makePool('goliath-transform',      'audio/sfx/goliath-transform.mp3',      1, true); // bypass duck so it stays clear
         _makePool('goliath-fracture-step',  'audio/sfx/goliath-fracture-step.mp3',  2);
         _makePool('goliath-verdict-impact', 'audio/sfx/goliath-verdict-impact.mp3', 2);
         _makePool('leviathan-perseverance', 'audio/sfx/leviathan-perseverance.mp3', 2);
@@ -786,6 +805,7 @@
 
         // Yog-Sothoth time-domain effect + Web Audio unlock
         enterTimeDomain, exitTimeDomain,
+        enterGoliathTransformDuck, exitGoliathTransformDuck,
         unlockContext,
     };
 })();

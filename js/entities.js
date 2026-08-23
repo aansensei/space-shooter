@@ -186,12 +186,12 @@ function applyVulnerability(enemy) {
             enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.74));
         }
         enemy.vulnStacks = stacks + 1;
-        // full stack -> 2s true dmg window. goliath: 6s cd between windows,
+        // full stack -> 2s true dmg window. goliath: 5s cd between windows,
         // otherwise stacks cycle back to 4 too fast on a long fight and DR
         // stays off almost permanently
         if (enemy.vulnStacks === 4 && (enemy.type !== 'goliath' || now >= (enemy._vulnTrueDmgCooldownEnd || 0))) {
             enemy.vulnTrueDmgEnd = now + 2000;
-            if (enemy.type === 'goliath') enemy._vulnTrueDmgCooldownEnd = now + 6000;
+            if (enemy.type === 'goliath') enemy._vulnTrueDmgCooldownEnd = now + 5000;
         }
     }
     // Reset lại thời gian 3 giây mỗi khi cộng dồn
@@ -3241,7 +3241,7 @@ function _goliathBeginTransform(enemy) {
     enemy.phase = 'transforming';
     enemy.transformTimer = 0;
     _goliathSpawnMeteors(enemy);
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-transform', enemy.x, enemy.y);
+    if (window.AudioMgr) { window.AudioMgr.enterGoliathTransformDuck(); window.AudioMgr.playSfxAt('goliath-transform', enemy.x, enemy.y); }
 }
 
 // Kích thước True Form ngang Leviathan (250-300), không phải khối khổng lồ
@@ -3255,7 +3255,7 @@ function _goliathEnterTrueForm(enemy) {
     const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.20 * enemy.gemPoints) * _walpurgisHpMult());
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
-    if (window.AudioMgr) window.AudioMgr.startGoliathIdle();
+    if (window.AudioMgr) { window.AudioMgr.exitGoliathTransformDuck(); window.AudioMgr.startGoliathIdle(); }
 
     // Inevitable (NEW): Iron Body tuyệt đối 1.5s ngay sau khi biến hình xong
     // thành công — bảo vệ đúng khoảnh khắc vừa lộ diện, còn chưa kịp làm gì.
