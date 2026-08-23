@@ -2711,7 +2711,7 @@ function startGame() {
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     window._lowHpActive = false;
     window._egregorCrawlActive = false;
-    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopDeathStar(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); }
+    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopDeathStar(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); window.AudioMgr.exitGoliathTransformDuck(); }
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 
     hasTriggeredLastStand = false;
