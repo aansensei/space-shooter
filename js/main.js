@@ -1762,19 +1762,7 @@ function update(rawDeltaTime) {
                         b.hitEnemies.push(enemy);
                     }
 
-                    let _dealSrc = b;
-                    if (b.isPiercing && _hasBuff('tien_phong') && (b._khatChienChain || 0) > 0) {
-                        const _chainMul = 1 + Math.min(4, b._khatChienChain) * 0.30;
-                        _dealSrc = { ...b, damage: Math.ceil(b.damage * _chainMul), percentDamage: (b.percentDamage || 0) * _chainMul };
-                    }
-                    dealDamage(enemy, _dealSrc);
-
-                    if (b.isPiercing && _hasBuff('tien_phong')) {
-                        if ((b._khatChienChain || 0) < 4) {
-                            dealDamage(enemy, { damage: 0, percentDamage: 0.03, isTrueDamage: true, _noBase60: true });
-                        }
-                        b._khatChienChain = (b._khatChienChain || 0) + 1;
-                    }
+                    dealDamage(enemy, b);
 
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
                         b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
@@ -1965,7 +1953,8 @@ function update(rawDeltaTime) {
     updateSolArrows(deltaTime); _profChk2.push(performance.now());
     updateShadowTwin(deltaTime); _profChk2.push(performance.now());
     updateShadowOrbs(deltaTime); _profChk2.push(performance.now());
-    updateOnslaughtOrbs(deltaTime); _profChk2.push(performance.now());
+    updateGateOfBabylon(deltaTime); _profChk2.push(performance.now());
+    updateEnumaElish(deltaTime); _profChk2.push(performance.now());
     updateMirrorLaserColumns(deltaTime); _profChk2.push(performance.now());
     updateGoldenArrowSweep(deltaTime); _profChk2.push(performance.now());
     updateDimensionalRifts(deltaTime); _profChk2.push(performance.now());
@@ -2533,6 +2522,7 @@ function _updateWaveSystem(deltaTime, now) {
             }
             _waveQueue = _buildWaveQueue(_waveNumber);
             _waveQueueTimer = 0;
+            window._goliathWaveHpBuff = 1;
             _wavePhase = 'spawning';
             _waveAnnouncedAt = now;
             if (window.AudioMgr) window.AudioMgr.playSfx('new-wave');
@@ -2546,8 +2536,18 @@ function _updateWaveSystem(deltaTime, now) {
         const entry = _waveQueue.shift();
         const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
         if (active < _cap) {
+            const _preSpawnLen = enemies.length;
             if (entry.tier === 'apostle') spawnApostle();
             else _spawnWaveTier(entry.tier);
+            // Goliath's Alpha passive (entities.js spawnGoliath): +15% MaxHP
+            // to everything else spawned the rest of this wave, whatever tier.
+            if (window._goliathWaveHpBuff && window._goliathWaveHpBuff !== 1 && enemies.length > _preSpawnLen) {
+                const _ne = enemies[enemies.length - 1];
+                if (_ne.type !== 'goliath') {
+                    _ne.maxHp = Math.ceil(_ne.maxHp * window._goliathWaveHpBuff);
+                    _ne.hp = Math.ceil(_ne.hp * window._goliathWaveHpBuff);
+                }
+            }
         }
     }
     if (_waveQueue.length === 0) {
@@ -2671,9 +2671,8 @@ function startGame() {
     window._sdcDmgStacks = [];
     window._goldenArrowNextSweepAt = 0;
     window._goldenArrowSweep = null;
-    window._onslaughtLastEnemy = null;
-    window._onslaughtCooldownEnd = 0;
-    window._onslaughtOrbs = [];
+    window._gobSequences = []; window._gobCooldownEnd = 0;
+    window._eeSequences = []; window._eeHitCounter = 0;
 
     // Reset Skill Shift
     skillShiftActive = false;
@@ -2694,6 +2693,7 @@ function startGame() {
     window._gaiaLastWaveApplied = 0;
     window._gfjShieldTimer = 0;
     window._gfjWasActive = false;
+    window._goliathWaveHpBuff = 1;
     bossShockwaves = [];
     aegisLasers = [];
     marchosiasBlades = [];

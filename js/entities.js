@@ -375,8 +375,6 @@ function fireAutoShot() {
     const numBullets = 5, spreadAngle = Math.PI / 4;
     const startAngle = -spreadAngle / 2, angleStep = spreadAngle / (numBullets - 1);
     const baseAngle = -Math.PI / 2;
-    const _vanguard = _hasBuff('tien_phong');
-    const _dmgMult = _vanguard ? 1.50 : 1;
 
     let _isCritVolley = false;
     if (_hasBuff('mui_ten_vang')) {
@@ -386,13 +384,11 @@ function fireAutoShot() {
 
     for (let i = 0; i < numBullets; i++) {
         const angle = baseAngle + startAngle + (i * angleStep);
-        const _pierce = _vanguard && Math.random() < 0.50;
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 75 * _dmgMult, percentDamage: 0.009 * _dmgMult, size: 6.5, type: 'player_auto',
+            damage: 75, percentDamage: 0.009, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28,
-            isPiercing: _pierce, hitEnemies: _pierce ? [] : undefined,
             _muiTenVangCrit: _isCritVolley,
         });
     }
@@ -1088,11 +1084,10 @@ function updateSentinels(deltaTime) {
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
                     vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
-                    damage: 30 * damageMultiplier * _bDmg2 * (_hasBuff('tien_phong') ? 1.50 : 1),
-                    percentDamage: 0.015 * damageMultiplier * _bDmg2 * (_hasBuff('tien_phong') ? 1.50 : 1),
+                    damage: 30 * damageMultiplier * _bDmg2,
+                    percentDamage: 0.015 * damageMultiplier * _bDmg2,
                     size: 7.8, type: 'sentinel_auto',
                     _isSentinelBullet: true,
-                    ...(_hasBuff('tien_phong') && Math.random() < 0.50 ? { isPiercing: true, hitEnemies: [] } : {}),
                 });
                 const _mz = _acquireParticle(); _mz.x = sentinel.x + Math.cos(angle) * (sentinel.size + 5); _mz.y = sentinel.y + Math.sin(angle) * (sentinel.size + 5); _mz.lifetime = 100; _mz.maxLifetime = 100; _mz.size = 5; _mz.color = 'orange'; particles.push(_mz);
             }
@@ -2026,31 +2021,37 @@ function dealDamage(enemy, source) {
         createParticles(enemy.x, enemy.y, 20, '#9d00ff', 2, 7);
     }
 
-    // Onslaught (khat_chien): every landed ally hit (except Skill F/D, and not
-    // the fireball's own impact) can fire a fireball at whichever enemy the
-    // PREVIOUS qualifying hit struck. The 300ms CD only throttles firing —
-    // the "last hit" tracking always updates so the target stays current.
-    // Fodder enemies often die in 1 hit, so the "previous" target is
-    // frequently already dead by the next trigger — fall back to the
-    // CURRENT target (if it's still alive) instead of silently skipping,
-    // so the ability doesn't go quiet against weak waves.
-    if (_hasBuff('khat_chien') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isOnslaughtOrb && totalDamage > 0) {
-        const _onNow = performance.now();
-        if (_onNow >= (window._onslaughtCooldownEnd || 0)) {
-            const _prevOnslaughtTarget = window._onslaughtLastEnemy;
-            let _onslaughtFireTarget = null;
-            if (_prevOnslaughtTarget && _prevOnslaughtTarget.hp > 0 && !_prevOnslaughtTarget._markedForDeath && enemies.includes(_prevOnslaughtTarget)) {
-                _onslaughtFireTarget = _prevOnslaughtTarget;
-            } else if (enemy.hp > 0 && !enemy._markedForDeath) {
-                _onslaughtFireTarget = enemy;
-            }
-            if (_onslaughtFireTarget) {
-                window._onslaughtOrbs = window._onslaughtOrbs || [];
-                window._onslaughtOrbs.push({ x: player.x, y: player.y, target: _onslaughtFireTarget, baseDmg: 100 + Math.ceil(totalDamage * 0.15) });
-            }
-            window._onslaughtCooldownEnd = _onNow + 300;
+    // Gate of Babylon (cong_babylon): every landed ally hit (except Skill D/F,
+    // and not a blade's own impact) can open gates around the player and
+    // fire a fan of 14 piercing blades, 4.5s CD. Timeline/collision runs in
+    // updateGateOfBabylon (js/skills.js); this just spawns the sequence.
+    if (_hasBuff('cong_babylon') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isGobBlade && totalDamage > 0) {
+        const _gobNow = performance.now();
+        if (_gobNow >= (window._gobCooldownEnd || 0)) {
+            window._gobCooldownEnd = _gobNow + 4500;
+            window._gobSequences = window._gobSequences || [];
+            window._gobSequences.push(_createGobSequence(_gobNow));
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('gate-of-babylon', player.x, player.y);
         }
-        window._onslaughtLastEnemy = enemy;
+    }
+
+    // Enuma Elish: every 40th landed ally hit (except Skill D/F, and not the
+    // spear's own impact) summons a phantom double of the player at its
+    // current position that hurls a giant piercing spear toward whichever
+    // enemy is the current highest priority (Dominator/Digiform first, else
+    // highest HP), locked in at trigger time. Timeline/collision runs in
+    // updateEnumaElish (js/skills.js).
+    if (_hasBuff('enuma_elish') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isEeSpear && totalDamage > 0) {
+        window._eeHitCounter = (window._eeHitCounter || 0) + 1;
+        if (window._eeHitCounter >= 40) {
+            window._eeHitCounter = 0;
+            const _eeTarget = _eeFindPriorityTarget();
+            if (_eeTarget) {
+                window._eeSequences = window._eeSequences || [];
+                window._eeSequences.push(_createEeSequence(performance.now(), _eeTarget));
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('enuma-elish-charge', player.x, player.y);
+            }
+        }
     }
 
     // Compound Interest: +200 true damage (bypasses shield and DR, like isTrueDamage
@@ -2683,26 +2684,20 @@ function spawnGoliath() {
     if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-spawn', g.x, g.y);
     _goliathCircuitLink(g);
 
-    // Passive mới của Alpha: khi triệu hồi, ceil(1/3) số kẻ địch HIỆN CÓ
-    // trong wave (làm tròn lên) bị loại khỏi wave ngay lập tức, số còn lại
-    // được +15% MaxHP. Ví dụ: 23 kẻ địch -> 23/3=7.67 -> ceil 8 con bị loại,
-    // còn lại 15 con, cả 15 con đó được +15% MaxHP.
-    const _waveEnemies = enemies.filter(e => e !== g && e.type !== 'goliath' && !(e.type && e.type.startsWith('enemy_bullet')));
-    const _cullCount = Math.ceil(_waveEnemies.length / 3);
-    const _shuffledWave = _shuffleArray(_waveEnemies);
-    _shuffledWave.forEach((e, idx) => {
-        if (idx < _cullCount) {
-            e.hp = 0;
-            e._markedForDeath = true;
-            // Hiệu ứng "bị xoá sổ" bởi Goliath — nổ cam đậm + hạt văng, tách
-            // biệt với hiệu ứng chết thường của từng loại enemy.
-            addExplosion(e.x, e.y, e.size * 1.2 || 60, '#f59e0b');
-            createParticles(e.x, e.y, 20, '#f59e0b', 3, 9);
-        } else {
-            e.maxHp = Math.ceil(e.maxHp * 1.15);
-            e.hp = Math.ceil(e.hp * 1.15);
-        }
-    });
+    // Passive của Alpha: ceil(1/3) số kẻ địch còn lại trong wave này bị loại
+    // ngay lập tức, số còn lại được +15% MaxHP. Bug cũ: Goliath luôn spawn ở
+    // at:0 (đầu wave, xem _buildWaveQueue) nên lúc này gần như chưa có con
+    // nào thật sự tồn tại trên màn hình — cull theo `enemies` gần như luôn
+    // ra 0. Sửa: cull thẳng từ _waveQueue (những gì CÒN CHƯA spawn của wave
+    // này), và buff +15% được áp ở _updateWaveSystem's spawn dispatch (main.js)
+    // cho MỌI enemy spawn ra sau đây trong cùng wave, không phân biệt tier.
+    const _cullCount = Math.ceil(_waveQueue.length / 3);
+    for (let i = 0; i < _cullCount && _waveQueue.length > 0; i++) {
+        _waveQueue.splice(Math.floor(Math.random() * _waveQueue.length), 1);
+    }
+    window._goliathWaveHpBuff = 1.15;
+    addExplosion(g.x, g.y, g.size * 1.5, '#f59e0b');
+    createParticles(g.x, g.y, 30, '#f59e0b', 3, 10);
 }
 
 // Circuit Link (passive): liên kết tới TẤT CẢ enemy đang có trên màn hình

@@ -881,8 +881,8 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">ARIES</div><div class="sfc-el">Fire</div><div class="sfc-theme">VANGUARD ASSAULT</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Vanguard</b> <span class="sbd">50% pierce chance on player and sentinel bullets. Auto dmg +50%. Piercing chain +30% dmg per chain, plus 3% MaxHP true dmg per chain (max 4).</span></div>
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Onslaught</b> <span class="sbd">Any landed ally hit (except Skill D/F) can fire a fireball at whichever enemy the previous hit struck: 100 + 15% of that hit's dmg + 0.75% of the target's lost HP (300ms CD).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Gate of Babylon</b> <span class="sbd">Any landed ally hit (except Skill D/F) can open gates around the player and fire 14 blades in a fan, each piercing every enemy in its path: 40 + 3% EP true dmg per enemy hit (4.5s CD).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Enuma Elish</b> <span class="sbd">Every 40 landed ally hits summons a phantom double of the player that hurls a giant spear through the highest-priority enemy's direction, piercing the whole line — each one hit takes 14% of its own current HP as true dmg, capped at 12,000.</span></div>
 </div><div class="sfc-hint">click to read lore</div>
 </div><div class="sfc-back">
 <canvas class="sfc-glyph-sm-cv" data-sigil="aries"></canvas>
@@ -1244,8 +1244,8 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Mute button didn't stop sounds already in progress</b> — pressing it only silenced sounds started afterward; anything mid-playback (a long cue like Game Over, an explosion) kept playing out to the end. Muting now cuts every sound immediately, in flight or not.</li>
 <li><span class="ul-tag tag-fix">FIX</span> Background music now also ducks quieter during Goliath's transform cue, matching every other sound instead of being the one exception.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Pisces — Cycle of Flow</b> skipped Overload Laser's charge phase on keyboard, but the mobile charge button ignored the buff entirely and always required a hold-and-release. It now fires instantly on tap too, matching keyboard.</li>
-<li><span class="ul-tag tag-buff">BUFF</span> <b>Aries — Onslaught:</b> the fireball now also splashes 40% of its damage to other enemies within 70px of impact, instead of only ever hitting the one target — it was close to dead weight against a crowd before this.</li>
-<li><span class="ul-tag tag-fix">FIX</span> Five more previously-silent moments got sound: Goliath's death sequence now ends with its own cue instead of going quiet after the initial one 3+ seconds earlier; Leviathan's All for One shield breaking, Marchosias's Arc Barrier fully shattering (both the real one and Goliath's Joker copy of it), and an Apostle's Coronation completing into a full boss all reuse the metal-hit cue that already covers other shield/barrier breaks.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Aries reworked:</b> Vanguard and Onslaught replaced with two new abilities in a Gate-of-Babylon theme. <b>Gate of Babylon</b> — any landed ally hit can open gates around the player and fire 14 piercing blades in a fan, 40 + 3% EP true dmg per enemy hit (4.5s CD). <b>Enuma Elish</b> — every 40th landed hit summons a phantom double of the player that hurls a giant piercing spear through the highest-priority enemy's direction, 14% of each hit enemy's own current HP as true dmg (capped 12,000).</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Goliath's Feeding Ground passive</b> (cull ~1/3 of the wave, buff the rest +15% MaxHP) effectively never did anything — Goliath always spawns at the very start of the wave, before any of that wave's other enemies exist yet, so there was nothing on screen to cull. It now culls from the wave's remaining spawn queue instead, and the +15% MaxHP buff applies to everything spawned for the rest of that wave.</li><li><span class="ul-tag tag-fix">FIX</span> Five more previously-silent moments got sound: Goliath's death sequence now ends with its own cue instead of going quiet after the initial one 3+ seconds earlier; Leviathan's All for One shield breaking, Marchosias's Arc Barrier fully shattering (both the real one and Goliath's Joker copy of it), and an Apostle's Coronation completing into a full boss all reuse the metal-hit cue that already covers other shield/barrier breaks.</li>
 </ul>
 </div>
 
@@ -1936,8 +1936,8 @@
 <div class="sfc-inner"><div class="sfc-front">
 <canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">BẠCH DƯƠNG</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">CÔNG KÍCH TIÊN PHONG</div>
 <div class="sfc-buffs">
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Tiên Phong</b> <span class="sbd">50% cơ hội đạn của người chơi & Vệ Binh xuyên qua kẻ địch, +50% sát thương. Mỗi lần xuyên chuỗi: +30% sát thương mỗi chuỗi, cộng thêm 3% Max HP của kẻ địch dưới dạng sát thương thật (tối đa 4 chuỗi).</span></div>
-<div class="sfc-row"><span class="sbt atk">ATK</span><b>Khát Chiến</b> <span class="sbd">Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP đã mất của mục tiêu (hồi chiêu 300ms).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Cổng Babylon</b> <span class="sbd">Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể mở cổng quanh người chơi và phóng 14 lưỡi kiếm theo hình quạt, mỗi lưỡi xuyên qua mọi kẻ địch trên đường bay: 40 + 3% EP sát thương chuẩn mỗi kẻ địch bị xuyên (hồi chiêu 4.5s).</span></div>
+<div class="sfc-row"><span class="sbt atk">ATK</span><b>Enuma Elish</b> <span class="sbd">Cứ mỗi 40 đòn đánh trúng, triệu hồi 1 bản thể ma ảnh của người chơi phóng 1 lưỡi thương khổng lồ xuyên qua toàn bộ đường bay theo hướng kẻ địch ưu tiên cao nhất — mỗi kẻ bị xuyên nhận 14% HP hiện tại dưới dạng sát thương chuẩn, tối đa 12,000.</span></div>
 </div><div class="sfc-hint">click để đọc truyền thuyết</div>
 </div><div class="sfc-back">
 <canvas class="sfc-glyph-sm-cv" data-sigil="aries"></canvas>

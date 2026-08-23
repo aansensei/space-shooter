@@ -2334,40 +2334,145 @@ function updateShadowOrbs(deltaTime) {
 
 // Onslaught (Aries buff 2) — homing fireball fired at whichever enemy the
 // previous landed hit struck; see the dealDamage() hook in entities.js.
-function updateOnslaughtOrbs(deltaTime) {
-    if (!window._onslaughtOrbs || window._onslaughtOrbs.length === 0) return;
+// Aries: Gate of Babylon + Enuma Elish. Trigger sites are in entities.js's
+// dealDamage (proc conditions + sequence creation); everything below is the
+// per-frame timeline/collision, mirroring a Gilgamesh Gate-of-Babylon VFX
+// spec ported for this project. Both fire from the player's position at the
+// moment they trigger (snapshotted, not re-tracked as the player moves).
+
+function _createGobSequence(startTime) {
+    const fanAngle = Math.PI * 0.42, baseAngle = -Math.PI / 2;
+    const startA = baseAngle - fanAngle / 2;
+    const portals = [];
+    for (let i = 0; i < 7; i++) {
+        const pAngle = startA + i * (fanAngle / 6);
+        const dist = 60 + Math.abs(i - 3) * 15;
+        portals.push({
+            x: player.x + Math.cos(pAngle) * dist,
+            y: player.y + 20 + Math.sin(pAngle) * (dist * 0.6),
+            angle: pAngle, weaponType: Math.floor(Math.random() * 3),
+            scale: 0, alpha: 0, weaponOffset: 0,
+        });
+    }
+    return { startTime, phase: 0, baseAngle, fanAngle, portals, swords: [] };
+}
+
+const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_BASE = 40, GOB_SWORD_DMG_PCT = 0.03;
+
+function updateGateOfBabylon(deltaTime) {
+    if (!window._gobSequences || window._gobSequences.length === 0) return;
     const dt = deltaTime / 16.67;
-    for (let i = window._onslaughtOrbs.length - 1; i >= 0; i--) {
-        const orb = window._onslaughtOrbs[i];
-        const t = orb.target;
-        if (!t || t.hp <= 0 || t._markedForDeath || !enemies.includes(t)) {
-            window._onslaughtOrbs.splice(i, 1);
-            continue;
+    const now = performance.now();
+    for (let si = window._gobSequences.length - 1; si >= 0; si--) {
+        const seq = window._gobSequences[si];
+        const elapsed = now - seq.startTime;
+
+        if (elapsed < 100) {
+            const p = elapsed / 100;
+            seq.portals.forEach(pt => { pt.scale = p * 1.2; pt.alpha = p; });
+        } else if (elapsed < 250) {
+            seq.portals.forEach(pt => { pt.scale = 1.0; pt.alpha = 1.0; pt.weaponOffset = ((elapsed - 100) / 150) * 20; });
+        } else if (seq.phase === 0) {
+            seq.phase = 1;
+            _setShake(3, 150);
+            const startA = seq.baseAngle - seq.fanAngle / 2;
+            const stepA = seq.fanAngle / (GOB_SWORD_COUNT - 1);
+            for (let i = 0; i < GOB_SWORD_COUNT; i++) {
+                const angle = startA + i * stepA;
+                const pt = seq.portals[Math.min(seq.portals.length - 1, Math.floor(i / 2))];
+                seq.swords.push({
+                    x: pt.x, y: pt.y, angle,
+                    vx: Math.cos(angle) * GOB_SWORD_SPEED, vy: Math.sin(angle) * GOB_SWORD_SPEED,
+                    type: Math.floor(Math.random() * 3), alpha: 1.0, hitEnemies: new Set(),
+                });
+            }
         }
-        const dx = t.x - orb.x, dy = t.y - orb.y, d = Math.hypot(dx, dy);
-        if (d < t.size / 2 + 8) {
-            const missingHpBonus = Math.ceil((t.maxHp - t.hp) * 0.0075);
-            const _mainDmg = orb.baseDmg + missingHpBonus;
-            dealDamage(t, { damage: _mainDmg, _isOnslaughtOrb: true, _noHitSfx: true, _statSrc: 'Skill A: Onslaught' });
-            // small splash so it isn't dead weight against a crowd - other
-            // enemies near the impact take 40% of the same hit
-            const _splashDmg = Math.ceil(_mainDmg * 0.40);
-            for (const other of enemies) {
-                if (other === t) continue;
-                if (other.hp <= 0 || other._markedForDeath || other.inCoronation) continue;
-                if (other.type === 'abyssal_chain' || other.type === 'veilshroud_echo') continue;
-                if (Math.hypot(other.x - orb.x, other.y - orb.y) < 70 + (other.size || 0) / 2) {
-                    dealDamage(other, { damage: _splashDmg, _isOnslaughtOrb: true, _noHitSfx: true, _statSrc: 'Skill A: Onslaught' });
+
+        if (elapsed >= 250) {
+            seq.portals.forEach(pt => { pt.alpha = Math.max(0, pt.alpha - 0.05 * dt); pt.scale = Math.max(0, pt.scale - 0.05 * dt); });
+
+            let activeSwords = 0;
+            seq.swords.forEach(sw => {
+                if (sw.alpha <= 0) return;
+                activeSwords++;
+                sw.x += sw.vx * dt;
+                sw.y += sw.vy * dt;
+                for (const en of enemies) {
+                    if (sw.hitEnemies.has(en)) continue;
+                    if (!_skillDCanTarget(en) || en.hp <= 0 || en._markedForDeath) continue;
+                    const dx = sw.x - en.x, dy = sw.y - en.y, r = (en.size || 20) / 2;
+                    if (dx * dx + dy * dy < r * r) {
+                        sw.hitEnemies.add(en);
+                        dealDamage(en, { damage: GOB_SWORD_DMG_BASE, percentDamage: GOB_SWORD_DMG_PCT, isTrueDamage: true, _isGobBlade: true, _noHitSfx: true, _statSrc: 'Aries: Gate of Babylon' });
+                        if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', sw.x, sw.y);
+                    }
+                }
+                if (sw.x < -50 || sw.x > canvas.width + 50 || sw.y < -50 || sw.y > canvas.height + 50) {
+                    sw.alpha -= 0.1 * dt;
+                }
+            });
+
+            if (activeSwords === 0 && (!seq.portals[0] || seq.portals[0].alpha <= 0)) {
+                window._gobSequences.splice(si, 1);
+            }
+        }
+    }
+}
+
+function _eeFindPriorityTarget() {
+    const valid = enemies.filter(e => _skillDCanTarget(e) && e.hp > 0 && !e._markedForDeath);
+    if (valid.length === 0) return null;
+    const priority = valid.filter(e => e.type === 'dargruel' || e.type === 'leviathan' || e.type === 'goliath');
+    const pool = priority.length > 0 ? priority : valid;
+    pool.sort((a, b) => b.hp - a.hp);
+    return pool[0];
+}
+
+function _createEeSequence(startTime, target) {
+    const ox = player.x, oy = player.y;
+    return { startTime, phase: 0, x: ox, y: oy, angle: Math.atan2(target.y - oy, target.x - ox), beamWidth: 0, beamAlpha: 0, hitEnemies: new Set() };
+}
+
+const EE_DMG_PCT = 0.14, EE_DMG_CAP = 12000, EE_BEAM_HALF = 40;
+
+function updateEnumaElish(deltaTime) {
+    if (!window._eeSequences || window._eeSequences.length === 0) return;
+    const dt = deltaTime / 16.67;
+    const now = performance.now();
+    for (let si = window._eeSequences.length - 1; si >= 0; si--) {
+        const seq = window._eeSequences[si];
+        const elapsed = now - seq.startTime;
+
+        if (elapsed >= 600 && seq.phase === 0) {
+            seq.phase = 1;
+            _setShake(12, 300);
+            // release crack + the beam roar (reuses Leviathan Perseverance's
+            // laser cue rather than a new asset - same "sustained beam" sound)
+            if (window.AudioMgr) {
+                window.AudioMgr.playSfxAt('enuma-elish-release', seq.x, seq.y);
+                window.AudioMgr.playSfxAt('leviathan-perseverance', seq.x, seq.y);
+            }
+        }
+
+        if (elapsed >= 600 && elapsed < 1200) {
+            seq.beamAlpha = 1.0;
+            seq.beamWidth = EE_BEAM_HALF * 2;
+            const reach = Math.hypot(canvas.width, canvas.height) * 1.5;
+            const endX = seq.x + Math.cos(seq.angle) * reach, endY = seq.y + Math.sin(seq.angle) * reach;
+            for (const en of enemies) {
+                if (seq.hitEnemies.has(en)) continue;
+                if (!_skillDCanTarget(en) || en.hp <= 0 || en._markedForDeath) continue;
+                if (distToSegment(en, { x: seq.x, y: seq.y }, { x: endX, y: endY }) < EE_BEAM_HALF + (en.size || 20) / 2) {
+                    seq.hitEnemies.add(en);
+                    const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.hp * EE_DMG_PCT));
+                    dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
                 }
             }
-            createParticles(orb.x, orb.y, 8, '#ff6a2e', 2, 6);
-            if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
-            window._onslaughtOrbs.splice(i, 1);
-            continue;
+        } else if (elapsed >= 1200) {
+            seq.beamAlpha = Math.max(0, seq.beamAlpha - 0.05 * dt);
+            seq.beamWidth = Math.max(0, seq.beamWidth - 4 * dt);
+            if (seq.beamAlpha <= 0) window._eeSequences.splice(si, 1);
         }
-        const speed = 16;
-        orb.x += (dx / d) * speed * dt;
-        orb.y += (dy / d) * speed * dt;
     }
 }
 
