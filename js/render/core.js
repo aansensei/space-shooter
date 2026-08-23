@@ -916,7 +916,8 @@ function draw(deltaTime) {
         drawSkillDSpaceships();
         drawShadowTwin();
         drawShadowOrbs();
-        drawOnslaughtOrbs();
+        drawGateOfBabylon();
+        drawEnumaElish();
         drawMirrorLaserColumns();
         drawGoldenArrowSweep();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);

@@ -287,6 +287,7 @@
         'goliath-idle': 1.0, 'goliath-fracture-step': 1.0, 'goliath-verdict-impact': 1.0, 'goliath-verdict-charge': 1.0,
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
+        'gate-of-babylon': 1.0, 'enuma-elish-charge': 1.0, 'enuma-elish-release': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -742,6 +743,9 @@
         _makePool('goliath-spawn',          'audio/sfx/goliath-spawn.mp3',          1);
         _makePool('goliath-corrupted-meteor', 'audio/sfx/goliath-corrupted-meteor.mp3', 2);
         _makePool('goliath-unbroken-wave',  'audio/sfx/goliath-unbroken-wave.mp3',  1);
+        _makePool('gate-of-babylon',        'audio/sfx/gate-of-babylon.mp3',        2);
+        _makePool('enuma-elish-charge',     'audio/sfx/enuma-elish-charge.mp3',     1);
+        _makePool('enuma-elish-release',    'audio/sfx/enuma-elish-release.mp3',    1);
 
         state.ambientEl  = _makeBufferLoop();
         state.ambientEl.setSrc('audio/sfx/ingame.mp3');

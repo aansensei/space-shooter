@@ -5,10 +5,10 @@ const SIGIL_DEFS = {
     aries: {
         name: 'Aries', element: 'Fire', color: '#EF9F27',
         buffs: [
-            { id: 'tien_phong', name: 'Vanguard', type: 'ATK', typeC: '#ef4444',
-              desc: '50% chance for player & sentinel bullets to pierce enemies, +50% damage. Each pierce-chain hit: +30% dmg per chain, plus 3% of the enemy\'s Max HP as true damage (max 4 chains).' },
-            { id: 'khat_chien', name: 'Onslaught', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can fire a fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit\'s damage + 0.75% of the target\'s lost HP, plus 40% of that same hit as splash to other enemies within 70px (300ms CD).' },
+            { id: 'cong_babylon', name: 'Gate of Babylon', type: 'ATK', typeC: '#ef4444',
+              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can open gates around the player and fire 14 blades in a fan, each piercing through every enemy in its path and dealing 40 + 3% EP as true damage per enemy hit (4.5s CD).' },
+            { id: 'enuma_elish', name: 'Enuma Elish', type: 'ATK', typeC: '#ef4444',
+              desc: 'Every 40 landed hits from any allied source (except Skill D and Skill F) summons a phantom double of the player that hurls a massive spear straight through the highest-priority enemy\'s direction (Dominator/Digiform first, otherwise highest current HP), piercing every enemy in the line — each one hit takes 14% of its own current HP as true damage, capped at 12,000.' },
         ]
     },
     taurus: {
@@ -124,8 +124,8 @@ const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
 // Vietnamese string.
 const SIGIL_I18N_VI = {
     aries: { name: 'Bạch Dương', element: 'Hỏa', buffs: {
-        tien_phong: { name: 'Tiên Phong', desc: "50% cơ hội đạn của người chơi & Vệ Binh xuyên qua kẻ địch, +50% sát thương. Mỗi lần xuyên chuỗi: +30% sát thương mỗi chuỗi, cộng thêm 3% Max HP của kẻ địch dưới dạng sát thương thật (tối đa 4 chuỗi)." },
-        khat_chien: { name: 'Khát Chiến', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP đã mất của mục tiêu, cộng thêm 40% sát thương đó lan sang kẻ địch khác trong bán kính 70px (hồi chiêu 300ms).' },
+        cong_babylon: { name: 'Cổng Babylon', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể mở cổng quanh người chơi và phóng 14 lưỡi kiếm theo hình quạt, mỗi lưỡi xuyên qua mọi kẻ địch trên đường bay, gây 40 + 3% EP sát thương chuẩn cho mỗi kẻ địch bị xuyên (hồi chiêu 4.5s).' },
+        enuma_elish: { name: 'Enuma Elish', desc: 'Cứ mỗi 40 đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F), triệu hồi 1 bản thể ma ảnh của người chơi phóng 1 lưỡi thương khổng lồ thẳng theo hướng kẻ địch ưu tiên cao nhất (Dominator/Digiform trước, không thì HP hiện tại cao nhất), xuyên qua mọi kẻ địch trên đường bay — mỗi kẻ bị xuyên nhận 14% HP hiện tại của chính nó dưới dạng sát thương chuẩn, tối đa 12,000.' },
     }},
     taurus: { name: 'Kim Ngưu', element: 'Thổ', buffs: {
         thanh_dong: { name: 'Vương Cung Thành Trì', desc: 'Mỗi 5s nhận 1 lớp Iron Body (tối đa 3 lớp): hấp thụ 1 đòn đánh vào người chơi hoặc 1 lần trói/câm lặng thường. Hiển thị dưới dạng vòng lục giác xanh lá quanh tàu.' },
@@ -257,7 +257,8 @@ function _completeSigilPicker(sigilId) {
 function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'tuyet_lan')    { window._tuyetLanStacks = 0; window._tuyetLanLastKill = 0; }
     if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; window._bongDoiCharging = false; window._bongDoiCooldownEnd = 0; }
-    if (buffId === 'khat_chien')   { window._onslaughtLastEnemy = null; window._onslaughtCooldownEnd = 0; window._onslaughtOrbs = []; }
+    if (buffId === 'cong_babylon') { window._gobCooldownEnd = 0; window._gobSequences = []; }
+    if (buffId === 'enuma_elish')  { window._eeHitCounter = 0; window._eeSequences = []; }
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
     if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 8000; }

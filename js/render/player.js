@@ -1907,64 +1907,249 @@ function drawShadowOrbs() {
     }
 }
 
-function drawOnslaughtOrbs() {
-    if (!window._onslaughtOrbs || window._onslaughtOrbs.length === 0) return;
-    const now = performance.now();
-    for (const orb of window._onslaughtOrbs) {
-        const r = 11 * (1 + 0.12 * Math.sin(now / 70 + orb.x * 0.05));
-        const t = orb.target;
-        const travelAngle = t ? Math.atan2(t.y - orb.y, t.x - orb.x) : 0;
+// Aries — Gate of Babylon + Enuma Elish. Ported from a standalone VFX demo
+// (gilgamesh_vfx_demo.html) built to spec the timing/shapes before this was
+// wired into the real game; kept close to that source so the two don't
+// drift. HQ gate = !_mobPerf && _gfxLevel === 0 (FULL tier only), matching
+// this file's existing shadowBlur convention elsewhere.
+function _ariesHQ() { return !_mobPerf && _gfxLevel === 0; }
 
-        ctx.save();
-        ctx.translate(orb.x, orb.y);
-        if (!_mobPerf) { ctx.shadowColor = '#ff5a1a'; ctx.shadowBlur = 20; }
+function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = alpha;
 
-        // trailing ember streak behind the direction of travel
-        const tailAngle = travelAngle + Math.PI;
-        const tg = ctx.createLinearGradient(0, 0, Math.cos(tailAngle) * r * 3.2, Math.sin(tailAngle) * r * 3.2);
-        tg.addColorStop(0, 'rgba(255,140,30,0.55)');
-        tg.addColorStop(1, 'rgba(255,80,0,0)');
-        ctx.strokeStyle = tg;
-        ctx.lineWidth = r * 0.85;
+    if (type === 0) {
+        // Longsword
+        ctx.fillStyle = '#fef08a';
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(tailAngle) * r * 3.2, Math.sin(tailAngle) * r * 3.2);
-        ctx.stroke();
+        ctx.moveTo(0, -3); ctx.lineTo(25, -2); ctx.lineTo(35, 0);
+        ctx.lineTo(25, 2); ctx.lineTo(0, 3);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(2, -0.5, 20, 1);
+        ctx.fillStyle = '#d4af37';
+        ctx.beginPath();
+        ctx.moveTo(2, 0); ctx.lineTo(-2, -10); ctx.lineTo(-4, -10); ctx.lineTo(0, -2);
+        ctx.lineTo(0, 2); ctx.lineTo(-4, 10); ctx.lineTo(-2, 10); ctx.lineTo(2, 0);
+        ctx.fill();
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect(-12, -1.5, 12, 3);
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath(); ctx.arc(-13, 0, 3, 0, Math.PI * 2); ctx.fill();
+    } else if (type === 1) {
+        // Spear
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(-25, -1.5, 30, 3);
+        ctx.fillStyle = '#d4af37';
+        ctx.fillRect(5, -2.5, 4, 5);
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.moveTo(9, -4); ctx.lineTo(35, 0); ctx.lineTo(9, 4);
+        ctx.fill();
+        ctx.fillStyle = '#d4af37';
+        ctx.beginPath();
+        ctx.moveTo(9, -2); ctx.bezierCurveTo(5, -12, 15, -8, 20, -2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(9, 2); ctx.bezierCurveTo(5, 12, 15, 8, 20, 2); ctx.fill();
+    } else {
+        // Halberd
+        ctx.fillStyle = '#92400e';
+        ctx.fillRect(-25, -2, 35, 4);
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.moveTo(10, -2); ctx.lineTo(28, 0); ctx.lineTo(10, 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(4, -2); ctx.lineTo(8, -15);
+        ctx.bezierCurveTo(15, -15, 18, -8, 12, -2);
+        ctx.fill();
+        ctx.fillStyle = '#d4af37';
+        ctx.beginPath();
+        ctx.moveTo(4, 2); ctx.lineTo(6, 10); ctx.lineTo(10, 2); ctx.fill();
+    }
+    ctx.restore();
+}
 
-        // outer heat haze
-        ctx.fillStyle = 'rgba(255,90,10,0.28)';
-        ctx.beginPath(); ctx.arc(0, 0, r * 1.7, 0, Math.PI * 2); ctx.fill();
+function drawGateOfBabylon() {
+    if (!window._gobSequences || window._gobSequences.length === 0) return;
+    const hq = _ariesHQ();
+    const now = performance.now();
 
-        // licking flame tongues
-        ctx.strokeStyle = 'rgba(255,180,60,0.6)';
-        ctx.lineWidth = 1.4;
-        for (let fi = 0; fi < 5; fi++) {
-            const fa = now / 130 + fi * (Math.PI * 2 / 5);
-            const fr1 = r * 0.55, fr2 = r * 1.25;
+    for (const seq of window._gobSequences) {
+        seq.portals.forEach(pt => {
+            if (pt.alpha <= 0) return;
+            ctx.save();
+            ctx.translate(pt.x, pt.y);
+            ctx.scale(pt.scale, pt.scale);
+            ctx.globalAlpha = pt.alpha;
+
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                const radius = 10 + i * 8 + Math.sin(now * 0.01 + i) * 2;
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(251, 191, 36, ${1 - i * 0.2})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, 15);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.3, '#fbbf24');
+            grad.addColorStop(1, 'rgba(212, 175, 55, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+
+            if (seq.phase === 0) {
+                const wx = Math.cos(pt.angle) * pt.weaponOffset;
+                const wy = Math.sin(pt.angle) * pt.weaponOffset;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, 100, pt.angle - Math.PI / 2, pt.angle + Math.PI / 2);
+                ctx.clip();
+                _drawDivineWeapon(wx, wy, pt.angle, pt.weaponType, pt.alpha, 2.0);
+                ctx.restore();
+            }
+            ctx.restore();
+        });
+
+        seq.swords.forEach(sw => {
+            if (sw.alpha <= 0) return;
+            const tailX = sw.x - Math.cos(sw.angle) * 40;
+            const tailY = sw.y - Math.sin(sw.angle) * 40;
+
+            if (hq) { ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 12; } else { ctx.shadowBlur = 0; }
             ctx.beginPath();
-            ctx.moveTo(Math.cos(fa) * fr1, Math.sin(fa) * fr1);
-            ctx.lineTo(Math.cos(fa + 0.5) * fr2, Math.sin(fa + 0.5) * fr2);
+            ctx.moveTo(sw.x, sw.y);
+            ctx.lineTo(tailX, tailY);
+            ctx.strokeStyle = `rgba(251, 191, 36, ${sw.alpha * 0.8})`;
+            ctx.lineWidth = 3;
             ctx.stroke();
-        }
+            ctx.shadowBlur = 0;
 
-        // fireball body
-        const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-        bg.addColorStop(0, '#ffffff');
-        bg.addColorStop(0.3, '#ffe08a');
-        bg.addColorStop(0.6, '#ff8c1a');
-        bg.addColorStop(1, 'rgba(160,30,0,0.7)');
-        ctx.fillStyle = bg;
-        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+            _drawDivineWeapon(sw.x, sw.y, sw.angle, sw.type, sw.alpha, 2.0);
+        });
+    }
+    ctx.globalAlpha = 1.0;
+}
 
-        // white-hot core
-        ctx.fillStyle = 'rgba(255,255,240,0.9)';
-        ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2); ctx.fill();
+function drawEnumaElish() {
+    if (!window._eeSequences || window._eeSequences.length === 0) return;
+    const hq = _ariesHQ();
+    const now = performance.now();
 
+    for (const seq of window._eeSequences) {
+        const elapsed = now - seq.startTime;
+        const cosA = Math.cos(seq.angle), sinA = Math.sin(seq.angle);
+
+        // Phantom double of the player, planted at the trigger position
+        ctx.save();
+        ctx.translate(seq.x, seq.y);
+        ctx.rotate(seq.angle + Math.PI / 2);
+        if (hq) { ctx.shadowColor = '#dc2626'; ctx.shadowBlur = 18; }
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.55)';
+        ctx.strokeStyle = '#fca5a5';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -18); ctx.lineTo(12, 14); ctx.lineTo(0, 8); ctx.lineTo(-12, 14);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.shadowBlur = 0;
         ctx.restore();
 
-        // sparse ember particles
-        if (Math.random() < 0.4) createParticles(orb.x, orb.y, 1, '#ff8c1a', 1, 3);
+        if (elapsed < 600) {
+            // Telegraph line + rift vortex, along the locked firing angle
+            ctx.save();
+            ctx.translate(seq.x, seq.y);
+            ctx.rotate(seq.angle + Math.PI / 2);
+            ctx.beginPath();
+            ctx.setLineDash([10, 10]);
+            ctx.lineDashOffset = -elapsed * 0.1;
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -Math.hypot(canvas.width, canvas.height));
+            ctx.strokeStyle = 'rgba(220, 38, 38, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const vScale = Math.min(1.0, elapsed / 200) * 1.5;
+            ctx.save();
+            ctx.translate(0, -10);
+            ctx.scale(vScale, vScale * 0.5);
+            ctx.beginPath();
+            ctx.arc(0, 0, 60, 0, Math.PI * 2);
+            ctx.fillStyle = '#09090b';
+            ctx.fill();
+            ctx.rotate(elapsed * -0.02);
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, 45 + Math.sin(elapsed * 0.01 + i) * 5, i * (Math.PI * 2 / 3), i * (Math.PI * 2 / 3) + Math.PI);
+                ctx.strokeStyle = '#991b1b';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            if (elapsed > 200) {
+                const spearScale = Math.min(1.0, (elapsed - 200) / 200);
+                let thrustY = elapsed < 500 ? ((elapsed - 200) / 300) * 40 : 40 - (elapsed - 500) * 4;
+                ctx.save();
+                ctx.translate(0, -40 + thrustY);
+                ctx.scale(spearScale, spearScale);
+                ctx.fillStyle = '#18181b';
+                ctx.fillRect(-8, 0, 16, 150);
+                ctx.fillStyle = '#991b1b';
+                ctx.fillRect(-8, 20, 16, 5);
+                ctx.fillRect(-8, 50, 16, 5);
+                ctx.fillStyle = '#d4af37';
+                ctx.beginPath();
+                ctx.moveTo(-35, 10); ctx.lineTo(35, 10); ctx.lineTo(15, -15); ctx.lineTo(-15, -15);
+                ctx.fill();
+                ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.moveTo(-20, -15); ctx.lineTo(20, -15); ctx.lineTo(0, -140);
+                ctx.fill();
+                ctx.fillStyle = '#fca5a5';
+                ctx.beginPath();
+                ctx.moveTo(-5, -15); ctx.lineTo(5, -15); ctx.lineTo(0, -120);
+                ctx.fill();
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        if (seq.phase > 0 && seq.beamAlpha > 0) {
+            const bw = seq.beamWidth, bAlpha = seq.beamAlpha;
+            const reach = Math.hypot(canvas.width, canvas.height) * 1.5;
+            const endX = seq.x + cosA * reach, endY = seq.y + sinA * reach;
+            const perpX = -sinA, perpY = cosA;
+
+            ctx.save();
+            ctx.globalAlpha = bAlpha;
+            const coreGrad = ctx.createLinearGradient(
+                seq.x + perpX * bw / 2, seq.y + perpY * bw / 2,
+                seq.x - perpX * bw / 2, seq.y - perpY * bw / 2
+            );
+            coreGrad.addColorStop(0, 'rgba(220, 38, 38, 0)');
+            coreGrad.addColorStop(0.3, '#dc2626');
+            coreGrad.addColorStop(0.5, '#ffffff');
+            coreGrad.addColorStop(0.7, '#dc2626');
+            coreGrad.addColorStop(1, 'rgba(220, 38, 38, 0)');
+            ctx.strokeStyle = coreGrad;
+            ctx.lineWidth = bw;
+            ctx.lineCap = 'butt';
+            if (hq) { ctx.shadowColor = '#dc2626'; ctx.shadowBlur = 20; }
+            ctx.beginPath();
+            ctx.moveTo(seq.x, seq.y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
     }
+    ctx.globalAlpha = 1.0;
 }
 
 // Explosion
