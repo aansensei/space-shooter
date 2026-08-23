@@ -752,7 +752,7 @@ function _veilshroudStrike(enemy) {
     if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
         _lt.hitPlayer = true;
         _lt.playerHitPos = { x: player.x, y: player.y };
-        playerTakesHit();
+        playerTakesHit(enemy);
         addExplosion(player.x, player.y, 90, '#ff0033');
         createParticles(player.x, player.y, 35, '#ffffff', 4, 14);
         createParticles(player.x, player.y, 20, '#ff3355', 2, 8);
@@ -1380,6 +1380,7 @@ function dealDamage(enemy, source) {
     const oldHP = enemy.hp;
     enemy.shield = enemy.shield || 0;
     const isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
+    const isSpaceship = window.skillDSpaceships.includes(enemy);
     const enemyMaxHp = enemy.maxHp || enemy.hp;
     const effectiveHp = enemyMaxHp + enemy.shield;
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
@@ -1877,6 +1878,13 @@ function dealDamage(enemy, source) {
     // giây (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn
     // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
     const _hitSizeForBurst = totalDamage;
+    // Match Statistics: record the committed damage instance (pre-shield,
+    // matches _hitSizeForBurst above) under a best-effort source label.
+    _recordStat(
+        (isSentinel || isSpaceship) ? 'enemyDamage' : 'allyDamage',
+        _classifyDamageSource(source, !(isSentinel || isSpaceship)),
+        _hitSizeForBurst
+    );
 
     // Buff Phōtokrystos (NEW): đánh 1 kẻ địch >50,000 MaxHP (thực tế chỉ có
     // Goliath True Form đạt mức này) — mỗi 1% MaxHP của nó gây được thành sát
@@ -1938,7 +1946,10 @@ function dealDamage(enemy, source) {
     else if (window.AudioMgr && !source._noHitSfx) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
 
     // Threshold Ward: mỗi 1 HP sát thương THẬT (đã trừ thẳng vào HP, không
-    // tính phần bị khiên hấp thụ) cấp lại 0.25 HP giá trị khiên.
+    // tính phần bị khiên hấp thụ) cấp lại 0.25 HP giá trị khiên. KHÔNG trần
+    // — AanSensei xác nhận muốn giữ nguyên độ mạnh thật của Goliath dù khiên
+    // có thể phình rất lớn qua trận dài; chỉ giới hạn con số HIỂN THỊ trên
+    // boss bar (xem js/render/enemy-goliath.js), không đụng tới cơ chế thật.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hpDamageDealt > 0) {
         enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, _hpDamageDealt * 0.25);
     }
@@ -2439,6 +2450,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
     const targetExtra = Math.ceil(dampenedDmg * 0.6);
     const dmgPerSentinel = Math.ceil(sharedHalf / n); // phần chia đều cho mỗi con
 
+    let _vanguardStatTotal = 0;
     sentinels.forEach(s => {
         if (s.ironBody && now < s.ironBodyEnd) return;
         const isTarget = targetSentinel !== null && s === targetSentinel;
@@ -2456,6 +2468,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
             totalDmg = Math.max(1, Math.ceil(totalDmg * 0.01));
         }
 
+        _vanguardStatTotal += totalDmg;
         if (isTrueDamage) {
             s.hp = Math.max(0, s.hp - totalDmg);
         } else {
@@ -2466,6 +2479,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
         }
         if (s.hp <= 0) s._markedForDeath = true;
     });
+    _recordStat('enemyDamage', _classifyDamageSource({ _vanguardTag: sourceTag }, false), _vanguardStatTotal);
 
     // Track cho Fuse Protocol (26% threshold)
     // BUG J fix: use rawDmg (pre-dampening) for accurate threshold detection
@@ -3423,7 +3437,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                         // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v. —
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
-                        if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) playerTakesHit();
+                        if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) playerTakesHit(enemy);
                     } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
                         dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true });
                     }
@@ -3467,7 +3481,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const lineEnd = { x: s.originX + Math.cos(ang) * fullLen, y: s.originY + Math.sin(ang) * fullLen };
                 const lineStart = { x: s.originX, y: s.originY };
                 if (t.isPlayer) {
-                    if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) playerTakesHit();
+                    if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) playerTakesHit(enemy);
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
                     dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true });
                 }
@@ -3631,7 +3645,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const pAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
-                    s._hitPlayer = true; playerTakesHit();
+                    s._hitPlayer = true; playerTakesHit(enemy);
                 }
             }
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —

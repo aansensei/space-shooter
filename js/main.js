@@ -1,5 +1,5 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
-function loseLife() {
+function loseLife(cause) {
     // Debug invuln guard here too (not just playerTakesHit()): an enemy
     // reaching the bottom boundary calls loseLife() directly, bypassing
     // playerTakesHit() entirely.
@@ -26,6 +26,7 @@ function loseLife() {
     }
 
     lives--;
+    _recordStat('lifeLoss', cause || 'Unknown');
     window._hitVignetteStart = performance.now(); // trigger red border flash
     if (window.AudioMgr) window.AudioMgr.playSfx('life-lost');
 }
@@ -112,7 +113,7 @@ function playerTakesHit(attacker) {
     }
 
     // ƯU TIÊN 3: Last Stand -> Mất mạng
-    loseLife();
+    loseLife(_classifyAttacker(attacker));
 }
 
 function _triggerAccurateParry() {
@@ -420,6 +421,7 @@ function update(rawDeltaTime) {
                         const maxHp = e.maxHp || e.hp;
                         const rawDmg = Math.ceil((wave._damage || 10) + maxHp * (wave._percentDamage || 0.99));
                         e.hp = Math.max(0, e.hp - rawDmg);
+                        _recordStat('allyDamage', 'Skill S: Back to Motherland', rawDmg);
                         e.shield = 0;
                         e.absoluteShield = false;
                         e.aegisInvulnerable = false;
@@ -528,7 +530,7 @@ function update(rawDeltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', laser.start.x, laser.start.y);
 
                 if (distToSegment(player, laser.start, laser.end) < player.hitRadius + 15) {
-                    playerTakesHit();
+                    playerTakesHit({ type: 'aegis_core' });
                 }
 
                 if (!laser._id) laser._id = 'aegis_laser_' + performance.now().toFixed(0);
@@ -863,6 +865,7 @@ function update(rawDeltaTime) {
                     teslaSpeedMultiplier = 0.50;
                     if (distToCoil < coil.size / 2 + enemy.size) {
                         coil.hp -= enemy.hp;
+                        _recordStat('enemyDamage', 'Enemy Bullet', enemy.hp);
                         enemy.hp = 0;
                     }
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
@@ -1168,6 +1171,7 @@ function update(rawDeltaTime) {
                                     _chainDmg = Math.max(1, Math.ceil(_chainDmg * 0.01));
                                 }
                                 s.hp = Math.max(0, s.hp - _chainDmg);
+                                _recordStat('enemyDamage', 'Enemy Chain Lightning', _chainDmg);
                                 if (s.hp <= 0) s._markedForDeath = true;
                             }
                         }
@@ -1214,8 +1218,18 @@ function update(rawDeltaTime) {
             if (enemy.hp > 0) {
                 for (const ship of window.skillDSpaceships) {
                     if (Math.hypot(enemy.x - ship.x, enemy.y - ship.y) < enemy.size + ship.size / 2) {
-                        ship.hp -= (enemy.type === 'enemy_bullet_small') ? Math.ceil(ship.maxHp * 0.15) : enemy.hp;
                         enemy.hp = 0;
+                        // Lunar Aegis: same 20% evade allied units get vs enemy bullets
+                        if (_hasBuff('giap_nguyet') && Math.random() < 0.20) break;
+                        let _shipDmg = (enemy.type === 'enemy_bullet_small') ? Math.ceil(ship.maxHp * 0.15) : enemy.hp;
+                        if ((ship._gaiaBarrier || 0) > 0) {
+                            const _gAbsorb = Math.min(_shipDmg, ship._gaiaBarrier);
+                            ship._gaiaBarrier -= _gAbsorb;
+                            _shipDmg -= _gAbsorb;
+                            if (ship._gaiaBarrier <= 0) { addExplosion(ship.x, ship.y, ship.size * 1.2, '#00ff88'); }
+                        }
+                        ship.hp -= _shipDmg;
+                        _recordStat('enemyDamage', 'Enemy Bullet', _shipDmg);
                         if (ship.hp <= 0) {
                             addExplosion(ship.x, ship.y, ship.size * 0.8, '#ff4444');
                             window.skillDSpaceships.splice(window.skillDSpaceships.indexOf(ship), 1);
@@ -1652,7 +1666,7 @@ function update(rawDeltaTime) {
                     addExplosion(enemy.x, enemy.y, 100, 'cyan');
                     enemies.splice(i, 1);
                 } else {
-                    loseLife();
+                    loseLife(_classifyAttacker(enemy));
                     enemies.splice(i, 1);
                 }
             } else {
@@ -1662,8 +1676,14 @@ function update(rawDeltaTime) {
         if (lives <= 0) {
             gameState = "gameover";
             _gameOverPlayTime = performance.now() - gameStartTime;
-            showStartButton("Play Again"); showMainMenuButton();
-            if (window.AudioMgr) { window.AudioMgr.stopBgm(); window.AudioMgr.playSfx('gameover'); }
+            showStartButton("Play Again"); showMainMenuButton(); showMatchStatsButton();
+            // update() returns immediately once gameState !== "playing" (top
+            // of this function), so the low-hp falling-edge check at the top
+            // of this same function never gets another tick to notice lives
+            // hit 0 — without this, the loop + its whole-mix duck kept
+            // playing under the gameover sfx/music forever, clipping badly.
+            window._lowHpActive = false;
+            if (window.AudioMgr) { window.AudioMgr.stopLowHp(); window.AudioMgr.stopBgm(); window.AudioMgr.playSfx('gameover'); }
         }
     }
 
@@ -1814,10 +1834,14 @@ function update(rawDeltaTime) {
     chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
 
     updateSentinels(deltaTime);
-    // Blessing of the Primordial: passive while Phōtokrystos is active
+    // Blessing of the Primordial: passive while Phōtokrystos is active. Also
+    // applies to Skill D spaceships — they count as allied units for every
+    // ally-wide buff that isn't tied to sentinel-squad mechanics (Vanguard
+    // Network, Herd Mentality, recoil, etc. stay sentinel-only, see the plan).
     const _photoActive = typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done);
     const _levOnField = enemies.some(e => e.type === 'leviathan' && e.hp > 0);
-    sentinels.forEach(s => {
+    const _allyUnits = [...sentinels, ...window.skillDSpaceships];
+    _allyUnits.forEach(s => {
         // Base blessing DR: +15%, +5% more if Leviathan on field
         s._blessingDR = _photoActive ? (0.15 + (_levOnField ? 0.05 : 0)) : 0;
         s._blessingDmg = _photoActive ? 0.15 : 0;
@@ -1831,17 +1855,17 @@ function update(rawDeltaTime) {
         // Leviathan on field: instant +50 shield (ignores cap, fires once per lev presence)
         if (_levOnField && !window._blessingLevShieldGiven) {
             window._blessingLevShieldGiven = true;
-            sentinels.forEach(s => { s.shield = (s.shield || 0) + 50; });
+            _allyUnits.forEach(s => { s.shield = (s.shield || 0) + 50; });
         } else if (!_levOnField) {
             window._blessingLevShieldGiven = false;
         }
 
-        // +1.75% maxHp every 0.75s to all sentinels
+        // +1.75% maxHp every 0.75s to all allied units
         if (!window._blessingRegenTimer) window._blessingRegenTimer = 0;
         window._blessingRegenTimer += deltaTime;
         if (window._blessingRegenTimer >= 750) {
             window._blessingRegenTimer = 0;
-            sentinels.forEach(s => {
+            _allyUnits.forEach(s => {
                 const healAmt2 = (s.maxHp || 100) * 0.0175;
                 s.hp = Math.min(s.maxHp || 100, s.hp + healAmt2);
             });
@@ -1851,7 +1875,7 @@ function update(rawDeltaTime) {
         window._blessingShieldTimer += deltaTime;
         if (window._blessingShieldTimer >= 3000) {
             window._blessingShieldTimer = 0; window._blessingLevShieldGiven = false;
-            sentinels.forEach(s => {
+            _allyUnits.forEach(s => {
                 const current = s._blessingShield || 0;
                 const toAdd = Math.min(50 - current, 50);
                 if (toAdd > 0) {
@@ -1864,7 +1888,9 @@ function update(rawDeltaTime) {
         window._blessingShieldTimer = 0;
         window._blessingLevShieldGiven = false;
     }
-    // Gaia Protection: wave-based sentinel Max HP scaling, cap +60%
+    // Gaia Protection: wave-based Max HP scaling, cap +60% — sentinels AND
+    // spaceships both scale (a ship spawned mid-match catches up to the
+    // current cumulative multiplier at spawn time, see spawnSkillDSpaceship).
     if (!window._sentinelHpMilestone) window._sentinelHpMilestone = 0;
     if (!window._gaiaHpBonusPct) window._gaiaHpBonusPct = 0;
     if (!window._gaiaHpCumMult) window._gaiaHpCumMult = 1;
@@ -1875,7 +1901,7 @@ function update(rawDeltaTime) {
         const factor = 1 + add / 100;
         window._gaiaHpBonusPct += add;
         window._gaiaHpCumMult *= factor;
-        sentinels.forEach(s => {
+        [...sentinels, ...window.skillDSpaceships].forEach(s => {
             const old = s.maxHp;
             s.maxHp = Math.ceil(old * factor);
             s.hp = Math.min(s.maxHp, Math.ceil(s.hp * (s.maxHp / old)));
@@ -1915,7 +1941,7 @@ function update(rawDeltaTime) {
         if (_gfjJustActivated || window._gfjShieldTimer >= _gfjInterval) {
             window._gfjShieldTimer = 0;
             const _shieldBonus = _hasBuff('giap_nguyet') ? 1.40 : 1;
-            sentinels.forEach(s => {
+            [...sentinels, ...window.skillDSpaceships].forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
                 const newBarrier = Math.floor((lostHp * 0.25 + (s.maxHp || 100) * 0.15) * _shieldBonus);
                 s._gaiaBarrier = newBarrier;
@@ -1976,7 +2002,7 @@ function update(rawDeltaTime) {
                 orb._hitPlayer = true;
                 // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
-                for (let li = 0; li < 5; li++) playerTakesHit();
+                for (let li = 0; li < 5; li++) playerTakesHit({ type: 'goliath' });
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
                 return false;
@@ -2001,7 +2027,7 @@ function update(rawDeltaTime) {
             sw.y += sw.vy * (deltaTime / 1000);
             if (sw.life <= 0 || sw.x < -50 || sw.x > canvas.width + 50 || sw.y < -50 || sw.y > canvas.height + 50) return false;
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
-                playerTakesHit();
+                playerTakesHit({ type: 'goliath' });
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
@@ -2034,7 +2060,7 @@ function update(rawDeltaTime) {
             m.y += m.vy * (deltaTime / 1000);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
-                playerTakesHit();
+                playerTakesHit({ type: 'goliath' });
                 addExplosion(m.x, m.y, 70, '#f59e0b');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;
@@ -2088,7 +2114,7 @@ function update(rawDeltaTime) {
 
         // Hit player
         if (angHit(player.x, player.y, 18)) {
-            if (!beam.hitPlayer) { beam.hitPlayer = true; playerTakesHit(); }
+            if (!beam.hitPlayer) { beam.hitPlayer = true; playerTakesHit(beam.ownerRef || { type: 'leviathan' }); }
         } else {
             beam.hitPlayer = false;
         }
@@ -2121,6 +2147,7 @@ function update(rawDeltaTime) {
                                 _levDmg = Math.max(1, Math.ceil(_levDmg * 0.01));
                             }
                             s.hp = Math.max(0, s.hp - _levDmg);
+                            _recordStat('enemyDamage', 'Leviathan', _levDmg);
                             if (s.hp <= 0) s._markedForDeath = true;
                         }
                     }
@@ -2183,7 +2210,7 @@ function update(rawDeltaTime) {
             const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
             if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
                 laser.hitPlayer = true;
-                playerTakesHit();
+                playerTakesHit({ type: 'leviathan' });
             }
 
             // Hit sentinels, true damage: (hits/2) × (1%→3%), cap 50%
@@ -2622,6 +2649,7 @@ function gameLoop(timeStamp) {
 function startGame() {
     gameState = "playing"; lives = 12;
     score = 0;
+    window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
     nextLifeMilestone = 500000;
     bullets = []; enemies = []; explosions = []; particles = [];
     skillAOrbs = []; scatteredProjectiles = [];
@@ -2736,6 +2764,7 @@ function startGame() {
     skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
     hideStartButton();
     hideMainMenuButton();
+    hideMatchStatsButton();
     lastTimeStamp = performance.now();
     // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file, không cần khởi động lại
 }

@@ -26,6 +26,7 @@
         'js/config.js',
         'js/entities.js',
         'js/input.js',
+        'js/match-stats.js',
         'js/main.js',
         'js/pixi-renderer.js',
         'js/sigils.js',

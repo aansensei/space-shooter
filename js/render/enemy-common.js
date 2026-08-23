@@ -891,7 +891,9 @@ function drawEnemy(enemy) {
     // nhiêu sát thương) thay vào đó cho có ý nghĩa hơn. Đang chạy chuỗi hiệu
     // ứng chết thì ẩn hẳn số này (hp bị ghim = 1 suốt sequence, hiện "1" gây
     // hiểu lầm) — mất luôn ngay đầu sequence, trước cả các hiệu ứng khác.
-    if (!(enemy.type === 'goliath' && enemy._deathPhase)) {
+    // True Form also skips this generic number — it gets its own HP readout
+    // on the top-of-screen boss bar (_drawGoliathBossBar) instead.
+    if (!(enemy.type === 'goliath' && (enemy._deathPhase || enemy.phase === 'true_form'))) {
         ctx.save();
         ctx.fillStyle = "white"; ctx.font = "14px Arial";
         if (enemy.type === 'enemy_bullet_small') ctx.font = "10px Arial";

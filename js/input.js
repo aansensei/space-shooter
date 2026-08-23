@@ -5,7 +5,7 @@ function showStartButton(text) {
     if (!btn) return;
     btn.textContent = text;
     const _isGO = typeof gameState !== 'undefined' && gameState === "gameover";
-    btn.style.top = _isGO ? "calc(50% + 48px)" : "50%";
+    btn.style.top = _isGO ? "calc(50% + 143px)" : "50%";
     btn.style.transform = _isGO ? "translateX(-50%)" : "translate(-50%, -50%)";
     if (_isGO) { btn.classList.add("ds-mode"); } else { btn.classList.remove("ds-mode"); }
     btn.style.display = "block";
@@ -32,6 +32,17 @@ function hideMainMenuButton() {
     if (btn) btn.style.display = "none";
 }
 
+function showMatchStatsButton() {
+    const btn = document.getElementById("matchStatsBtn");
+    if (btn) btn.style.display = "block";
+}
+
+function hideMatchStatsButton() {
+    const btn = document.getElementById("matchStatsBtn");
+    if (btn) btn.style.display = "none";
+    if (typeof closeMatchStats === 'function') closeMatchStats();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById("startBtn");
     const mainMenuBtn = document.getElementById("mainMenuBtn");
@@ -41,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState = "start";
             hideStartButton();
             hideMainMenuButton();
+            hideMatchStatsButton();
             screenShake.duration = 0;
             if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
         };

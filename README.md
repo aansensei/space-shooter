@@ -293,7 +293,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Cooldown:** 10s | **Charge:** 2s
 
-After a 2-second charge, spawns a Death Star that pulls all enemies and enemy bullets toward its center at speed 4.2. Anything that touches it takes **999,999,999 damage** — instant kill, even through Absolute Shields.
+After a 2-second charge, spawns a Death Star that pulls all enemies and enemy bullets toward its center at speed 5.25. Anything that touches it takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
 - Embryos have **CC Immunity** — immune to the gravitational pull but still die at the center.
 - **Egregor** and **Dargruel** are CC Immune — the Death Star cannot pull them. If they are at the center, they take **30% of their Max HP as true damage** instead of instant kill.

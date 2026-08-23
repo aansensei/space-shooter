@@ -64,7 +64,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=20260722g">
+    <link rel="stylesheet" href="css/style.css?v=20260823c">
 
     <style>
         body {
@@ -443,6 +443,7 @@
 
     <button id="startBtn" style="display: none;">Start</button>
     <button id="mainMenuBtn" style="display: none;">Main Menu</button>
+    <button id="matchStatsBtn" data-i18n="matchStats.button" onclick="openMatchStats()">Match Stat</button>
 
     <div id="easter-egg-overlay">
         <canvas id="star-canvas"></canvas>
@@ -973,6 +974,11 @@
                         'sigilPicker.reroll': 'REROLL',
                         'pause.title': 'SYSTEM TERMINATED',
                         'pause.subtitle': 'Press RESUME to continue',
+                        'matchStats.button': 'Match Stat',
+                        'matchStats.title': '📊 Match Statistics',
+                        'matchStats.tabAlly': 'Ally Damage',
+                        'matchStats.tabEnemy': 'Enemy Damage',
+                        'matchStats.tabLives': 'Lives Lost',
                     },
                     vi: {
                         'settings.title': '⚙ Cài Đặt',
@@ -1002,6 +1008,11 @@
                         'sigilPicker.reroll': 'ĐỔI LẠI',
                         'pause.title': 'HỆ THỐNG ĐÃ TẠM DỪNG',
                         'pause.subtitle': 'Ấn RESUME để tiếp tục',
+                        'matchStats.button': 'Match Stat',
+                        'matchStats.title': '📊 Thống Kê Trận Đấu',
+                        'matchStats.tabAlly': 'ST Đồng Minh',
+                        'matchStats.tabEnemy': 'ST Kẻ Địch',
+                        'matchStats.tabLives': 'Mạng Đã Mất',
                     },
                 };
                 function _t(key) {
@@ -1561,6 +1572,17 @@
                 if (_po) _po.style.display = 'none';
                 gamePaused = false;
                 window._bgPaused = false;
+                // Bailing out mid-run via ESC -> Main Menu skips
+                // _completeSigilPicker() (js/sigils.js) if the sigil picker
+                // was open — that's the only place that normally hides this
+                // full-screen click-catcher (z-index 9999999), so it was
+                // left covering everything including the Hyperjump button
+                // on the title screen. Clear it here too.
+                window._sigilPicker = null;
+                const _sov = document.getElementById('sigil-pick-overlay');
+                if (_sov) _sov.style.display = 'none';
+                const _mc2 = document.getElementById('mc');
+                if (_mc2) _mc2.style.pointerEvents = 'all';
                 // Restore overlay & lock screen
                 easterEggOverlay.style.display = 'block';
                 lockScreen.style.display = 'flex';
@@ -1817,17 +1839,17 @@
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260823a"></script>
     <script src="js/sigils.js?v=20260804b"></script>
-    <script src="js/entities.js?v=20260823b"></script>
+    <script src="js/entities.js?v=20260823d"></script>
     <script src="js/skills.js?v=20260823b"></script>
-    <script src="js/render/core.js?v=20260804a"></script>
+    <script src="js/render/core.js?v=20260823a"></script>
     <script src="js/render/fx.js?v=20260803d"></script>
     <script src="js/render/player.js?v=20260724c"></script>
-    <script src="js/render/enemy-common.js?v=20260822d"></script>
+    <script src="js/render/enemy-common.js?v=20260823a"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
     <script src="js/render/enemy-boss-thaelis.js?v=20260717e"></script>
     <script src="js/render/enemy-marchosias.js?v=20260717e"></script>
     <script src="js/render/enemy-leviathan.js?v=20260724b"></script>
-    <script src="js/render/enemy-goliath.js?v=20260822a"></script>
+    <script src="js/render/enemy-goliath.js?v=20260823e"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260717e"></script>
     <script src="js/render/enemy-egregor.js?v=20260717e"></script>
     <script src="js/render/skill-s-spirit.js?v=20260822b"></script>
@@ -1837,8 +1859,9 @@
     <script src="js/render/skill-g.js?v=20260717e"></script>
     <script src="js/render/skill-buttons.js?v=20260717e"></script>
     <script src="js/pixi-renderer.js?v=20260720b"></script>
-    <script src="js/input.js?v=20260724c"></script>
-    <script src="js/main.js?v=20260803b"></script>
+    <script src="js/input.js?v=20260823b"></script>
+    <script src="js/match-stats.js?v=20260823a"></script>
+    <script src="js/main.js?v=20260823b"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
@@ -2003,6 +2026,57 @@
             });
         })();
     </script>
+
+    <!-- ══ MATCH STATISTICS (Game Over screen) ══════════════ -->
+    <div id="matchStatsOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
+        background:rgba(0,3,10,0.45); backdrop-filter:blur(6px);
+        justify-content:center; align-items:center;">
+        <div id="match-stats-panel" style="
+            position:relative; width:min(92vw,460px);
+            max-height:88vh; max-height:88dvh; overflow-y:auto;
+            background:rgba(0,12,28,0.95);
+            border:1.5px solid rgba(0,229,255,0.25);
+            border-radius:18px; padding:28px 24px 24px;
+            box-shadow:0 0 40px rgba(0,100,200,0.2);
+            font-family:'Courier New',monospace;
+        ">
+            <button onclick="closeMatchStats()" style="
+                position:absolute; top:10px; right:10px; z-index:10;
+                width:34px; height:34px; background:rgba(255,60,60,0.15);
+                border:1px solid rgba(255,60,60,0.4); border-radius:8px;
+                color:#ff6666; font-size:18px; cursor:pointer;
+                display:flex; align-items:center; justify-content:center;
+                transition:all 0.2s;
+            ">✕</button>
+
+            <h2 style="margin:0 0 18px; text-align:center; color:#00e5ff;
+                font-size:14px; letter-spacing:4px; text-transform:uppercase;
+                text-shadow:0 0 12px rgba(0,229,255,0.5);" data-i18n="matchStats.title">📊 Match Statistics</h2>
+
+            <div id="match-stats-tabs" style="display:flex; gap:6px; margin-bottom:16px;">
+                <button class="ms-tab-btn" data-tab="allyDamage" onclick="_renderMatchStatsTab('allyDamage')" style="
+                    flex:1; padding:8px 4px; background:rgba(0,229,255,0.08);
+                    border:1px solid rgba(0,229,255,0.3); border-radius:6px;
+                    color:#00e5ff; font-size:9px; letter-spacing:1px;
+                    text-transform:uppercase; cursor:pointer; font-family:inherit;
+                " data-i18n="matchStats.tabAlly">Ally Damage</button>
+                <button class="ms-tab-btn" data-tab="enemyDamage" onclick="_renderMatchStatsTab('enemyDamage')" style="
+                    flex:1; padding:8px 4px; background:rgba(0,229,255,0.08);
+                    border:1px solid rgba(0,229,255,0.3); border-radius:6px;
+                    color:#00e5ff; font-size:9px; letter-spacing:1px;
+                    text-transform:uppercase; cursor:pointer; font-family:inherit;
+                " data-i18n="matchStats.tabEnemy">Enemy Damage</button>
+                <button class="ms-tab-btn" data-tab="lifeLoss" onclick="_renderMatchStatsTab('lifeLoss')" style="
+                    flex:1; padding:8px 4px; background:rgba(0,229,255,0.08);
+                    border:1px solid rgba(0,229,255,0.3); border-radius:6px;
+                    color:#00e5ff; font-size:9px; letter-spacing:1px;
+                    text-transform:uppercase; cursor:pointer; font-family:inherit;
+                " data-i18n="matchStats.tabLives">Lives Lost</button>
+            </div>
+
+            <div id="match-stats-body" style="min-height:120px;"></div>
+        </div>
+    </div>
 
     <!-- ══ MOBILE UI (injected after game scripts load) ══════════════ -->
     <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:all; z-index:300;"></div>

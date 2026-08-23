@@ -2056,17 +2056,175 @@ function _drawGoliath(enemy) {
     // lên người Alpha thay vì bị thân đè mất lúc vừa bay tới.
     _drawGoliathFlyingGems(enemy, now);
 
-    // HP bar (True Form only — Alpha/Transforming are invulnerable, no bar
-    // needed). Ẩn hẳn ngay từ lúc chuỗi hiệu ứng chết bắt đầu (enemy.hp bị
-    // ghim = 1 suốt sequence, hiện thanh gần-cạn trông sai/gây hiểu lầm).
-    if (enemy.phase === 'true_form' && !enemy._deathPhase) {
-        const bw = enemy.size * 0.9, bh = 6;
-        const bx = enemy.x - bw / 2, by = enemy.y - enemy.size / 2 - 16;
-        ctx.fillStyle = '#1a1a1a'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-        ctx.fillStyle = '#222'; ctx.fillRect(bx, by, bw, bh);
-        const hpPct = enemy.hp / enemy.maxHp;
-        ctx.fillStyle = hpPct > 0.5 ? '#f59e0b' : hpPct > 0.25 ? '#ff8800' : '#ff3300';
-        ctx.fillRect(bx, by, bw * hpPct, bh);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.strokeRect(bx, by, bw, bh);
+    // True Form no longer gets an in-world HP bar above its head — replaced
+    // by the top-of-screen boss bar (_drawGoliathBossBar, called separately
+    // from core.js after this world-space pass) so it reads like a real
+    // boss encounter instead of a regular enemy's floating health strip.
+}
+
+// Dark-Souls-style boss bar, docked top-center of the screen — the ONLY HP
+// indicator shown for Goliath True Form (both the small in-world bar above
+// and the generic HP-number text in enemy-common.js's drawEnemy() are
+// suppressed for this phase). Kept deliberately compact (thin bar, small
+// text) so it doesn't eat into play space the way a full Dark Souls bar
+// would. Called once per frame from core.js, not part of the per-enemy
+// world-space draw pass above (this is screen-space, unaffected by camera/
+// enemy scale).
+function _drawGoliathBossBar(enemy) {
+    if (enemy.type !== 'goliath' || enemy.phase !== 'true_form' || enemy._deathPhase) return;
+    const now = performance.now();
+    const w = Math.min(560, canvas.width * 0.72);
+    const x = (canvas.width - w) / 2;
+    const titleY = 16;
+    const barY = titleY + 20;
+    const barH = 14;
+
+    // Unbroken Will's 3.5s invuln window: bar reads frosted white/ice
+    // instead of its normal red, telegraphing "damage won't matter right
+    // now" the same way the Iron Body ring already does on the body itself.
+    const _frozen = enemy._unbrokenWillInvulnEnd && now < enemy._unbrokenWillInvulnEnd;
+
+    // Elden Ring-style boss name: left-aligned above the bar's left edge,
+    // italic, warm parchment-gold rather than centered/red — reads as a
+    // name plate, not an alarm.
+    ctx.save();
+    ctx.textAlign = 'left';
+    // Playfair Display (already loaded for the title-screen logo, see
+    // index.html) — its high-contrast elegant serif reads much closer to
+    // Elden Ring's boss-name lettering than Cinzel's blocky Roman-inscription
+    // look, which suits "GAME OVER"'s impact but not a refined name plate.
+    ctx.font = "italic 700 17px 'Playfair Display', serif";
+    ctx.fillStyle = _frozen ? 'rgba(210,232,245,0.95)' : 'rgba(214,196,150,0.95)';
+    if (!_mobPerf) { ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1; }
+    ctx.fillText(window._lang === 'vi' ? 'Á Thần Khởi Nguyên' : 'Demigod of Genesis', x, titleY + 12);
+    ctx.restore();
+
+    const hpPct = enemy.maxHp > 0 ? Math.max(0, Math.min(1, enemy.hp / enemy.maxHp)) : 0;
+
+    // Heal catch-up ghost (classic "trailing bar" seen in other games): on a
+    // heal, the lighter ghost region jumps straight to the new (higher) HP,
+    // while the solid bar eases up to meet it instead of snapping instantly
+    // — makes healing read as a distinct event instead of a silent number
+    // change. Damage still snaps the solid bar immediately (no ghost lag),
+    // only heals get the catch-up treatment per AanSensei's ask.
+    //
+    // Unbroken Will (_frozen) is absolute Iron Body — dealDamage() already
+    // hard-blocks any hp change during this window with an early return
+    // before the damage math runs, so real HP genuinely cannot move while
+    // frozen. Pin the display (skip the catch-up ease entirely) and force
+    // the bar to read as full rather than whatever partial fraction Goliath
+    // actually had when the window procced — a partial bar here would
+    // misleadingly suggest it can still be worn down right now.
+    if (_frozen) {
+        enemy._bossBarDisplayHp = enemy.hp;
+    } else if (enemy._bossBarDisplayHp === undefined || enemy.hp < enemy._bossBarDisplayHp) {
+        enemy._bossBarDisplayHp = enemy.hp;
+    } else if (enemy.hp > enemy._bossBarDisplayHp) {
+        enemy._bossBarDisplayHp += (enemy.hp - enemy._bossBarDisplayHp) * 0.07;
+        if (enemy.hp - enemy._bossBarDisplayHp < enemy.maxHp * 0.002) enemy._bossBarDisplayHp = enemy.hp;
+    }
+    const _displayPct = _frozen ? 1.0 : (enemy.maxHp > 0 ? Math.max(0, Math.min(1, enemy._bossBarDisplayHp / enemy.maxHp)) : 0);
+    const _healing = !_frozen && _displayPct < hpPct - 0.0005;
+
+    // Elden Ring-style bar: flatter/darker uniform fill, thin dark frame
+    // instead of a glowing gold box, gently rounded caps.
+    const _rr = (rx, ry, rw, rh, rad) => {
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); }
+        else { ctx.beginPath(); ctx.rect(rx, ry, rw, rh); }
+    };
+    ctx.save();
+    ctx.fillStyle = 'rgba(8,8,8,0.88)';
+    _rr(x - 2, barY - 2, w + 4, barH + 4, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    ctx.lineWidth = 1;
+    _rr(x - 2, barY - 2, w + 4, barH + 4, 3); ctx.stroke();
+
+    // Ghost bar: ahead of the solid bar only while catching up from a heal
+    if (_healing) {
+        ctx.fillStyle = _frozen ? 'rgba(220,245,255,0.4)' : 'rgba(255,140,140,0.4)';
+        _rr(x, barY, w * hpPct, barH, 2); ctx.fill();
+    }
+
+    const grad = ctx.createLinearGradient(x, barY, x, barY + barH);
+    if (_frozen) { grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#bfe8ff'); if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 10; } }
+    else { grad.addColorStop(0, '#7a1010'); grad.addColorStop(0.5, '#8f1414'); grad.addColorStop(1, '#5a0a0a'); }
+    ctx.fillStyle = grad;
+    if (w * _displayPct > 0) { _rr(x, barY, w * _displayPct, barH, 2); ctx.fill(); }
+    ctx.shadowBlur = 0;
+
+    // Frost hatch texture over the filled portion while invuln
+    if (_frozen && w * _displayPct > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, barY, w * _displayPct, barH);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(150,220,255,0.55)';
+        ctx.lineWidth = 1;
+        for (let i = -barH; i < w; i += 6) {
+            ctx.beginPath();
+            ctx.moveTo(x + i, barY + barH);
+            ctx.lineTo(x + i + barH, barY);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    // No text at all while frozen — the full frosted bar already reads as
+    // "untouchable" on its own, no label needed.
+    if (!_frozen) {
+        ctx.textAlign = 'center';
+        ctx.font = '600 10px Arial';
+        ctx.fillStyle = '#ffe8e8';
+        ctx.fillText(Math.ceil(enemy.hp).toLocaleString() + ' / ' + Math.ceil(enemy.maxHp).toLocaleString(), x + w / 2, barY + barH - 3);
+    }
+    ctx.restore();
+
+    // Split row below the bar: left = debuffs currently on Goliath, right =
+    // shield + barrier. Kept small/plain (no glow) so it stays a quiet
+    // status readout, not a second focal point competing with the bar.
+    const rowY = barY + barH + 5;
+    const rowH = 13;
+
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.font = '700 9px Arial';
+    let lx = x;
+    if (enemy.vulnStacks > 0 && enemy.vulnEndTime && now < enemy.vulnEndTime) {
+        const chipW = 58;
+        ctx.fillStyle = 'rgba(239,68,68,0.16)';
+        ctx.fillRect(lx, rowY, chipW, rowH);
+        ctx.strokeStyle = 'rgba(239,68,68,0.5)';
+        ctx.strokeRect(lx, rowY, chipW, rowH);
+        ctx.fillStyle = '#ff9999';
+        ctx.fillText('VULN x' + enemy.vulnStacks, lx + 4, rowY + rowH - 3);
+        lx += chipW + 4;
+    }
+    if (enemy.soulReaver) {
+        const chipW = 52;
+        ctx.fillStyle = 'rgba(147,51,234,0.16)';
+        ctx.fillRect(lx, rowY, chipW, rowH);
+        ctx.strokeStyle = 'rgba(147,51,234,0.5)';
+        ctx.strokeRect(lx, rowY, chipW, rowH);
+        ctx.fillStyle = '#dcb8ff';
+        ctx.fillText('REAVER', lx + 4, rowY + rowH - 3);
+    }
+    ctx.restore();
+
+    const shieldVal = Math.ceil((enemy.shield || 0) + (enemy.barrier || 0));
+    if (shieldVal > 0) {
+        // Threshold Ward's shield regen has no real cap on purpose (nerfing
+        // it would weaken Goliath for real) — over a long fight it can
+        // genuinely reach 6-7 figures. Cap only what's PRINTED here so the
+        // number stays readable; the real value driving damage mitigation
+        // is untouched.
+        const _displayCap = Math.ceil(enemy.maxHp);
+        const _shieldOverflow = shieldVal > _displayCap;
+        const _shieldShown = Math.min(shieldVal, _displayCap);
+        ctx.save();
+        ctx.textAlign = 'right';
+        ctx.font = '700 9px Arial';
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillText((window._lang === 'vi' ? 'KHIÊN ' : 'SHIELD ') + _shieldShown.toLocaleString() + (_shieldOverflow ? '+' : ''), x + w, rowY + rowH - 3);
+        ctx.restore();
     }
 }
