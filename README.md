@@ -85,7 +85,7 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 - **Application Chance:** Player auto-fire bullets each have a **28% chance** per hit. All other allied sources — Sentinels, Spirits, Skill A orbs, Death Star, Overload Laser, Chain Lightning, Tesla DoT, and all other damage sources — have a **15% chance**.
 - **On Application — Shield Shred:** Instantly destroys **26% of the enemy's current Shield HP** (scales down as the shield depletes — it always shreds 26% of whatever shield HP remains at that moment).
 - **Damage Amplification:** Each stack increases all incoming damage to that enemy by **+16%**. At maximum stacks (4 stacks) the enemy takes **+64% more damage** from all sources.
-- **Stacking:** Caps at **4 stacks**. Applying a new stack fully **refreshes the 3-second duration**. All stacks are lost at once when the timer expires. When an enemy reaches all 4 stacks, every player-side attack against that target deals **true damage** (bypasses all shields) for **2 seconds**.
+- **Stacking:** Caps at **4 stacks**. Applying a new stack fully **refreshes the 3-second duration**. All stacks are lost at once when the timer expires. When an enemy reaches all 4 stacks, for the next **2.5 seconds** every player-side hit still eats Shield/Barriers normally but gains additional bonus true damage on top, **decaying linearly from +40% down to +20%** of the hit's damage over the window. When the window ends, the enemy takes **500 base true damage** and its stacks reset to 0 (a fresh climb back to 4 is required to trigger another window). Goliath specifically also has a **5-second cooldown** between windows, starting only once the current window ends (not overlapping it).
 
 ---
 
@@ -104,7 +104,7 @@ Activates automatically when **any of the following** is true:
 - Player and Sentinel fire rate ×**1.5**
 - Spirit bullets (Skill S) move **30%** faster
 - Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to **8** nearby enemies for **50%** of the triggering hit's damage
-- Chain Lightning hits have a **60% chance** to apply **Soul Reaver** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **40%**
+- Chain Lightning hits have a **60% chance** to apply **Soul Reaver** for **2 seconds** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **40%**
 - **Soul Devourer (Cắn nuốt linh hồn):** Every **0.35 seconds**, enemies with Soul Reaver take **60 base + 5.5% EP** as true damage (bypasses all shields)
 - All active Sentinels gain **+30% Damage Reduction**
 

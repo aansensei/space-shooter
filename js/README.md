@@ -116,8 +116,16 @@ ironBody set to true for 1250ms.
 Application rolls occur inside the damage resolution function. Each successful
 roll instantly destroys 26% of the target's current shield HP. The debuff object
 on each enemy tracks a stack count capped at 4 and a 3000ms refresh timer. When
-all 4 stacks are present, a trueDamageWindow flag is set on the enemy for 2000ms.
-During this window all player-sourced hits bypass shield absorption entirely.
+all 4 stacks are present, vulnTrueDmgEnd is set on the enemy for 2500ms. During
+this window hits still resolve against shield/barrier normally, then get an
+extra bonus applied straight to HP as true damage — an additive kicker, not a
+full bypass — that decays linearly from 40% to 20% of that hit's damage across
+the window. updateVulnerabilityWindows() runs every frame and, the instant
+vulnTrueDmgEnd passes, deals a flat 500 base true damage hit and resets
+vulnStacks/vulnEndTime/vulnTrueDmgEnd to 0. Goliath additionally tracks
+_vulnTrueDmgCooldownEnd, a 5000ms cooldown that starts counting from when the
+window ends (vulnTrueDmgEnd + 5000), gating the next window from opening until
+it passes — every other enemy type has no such cooldown.
 
 ## render.js / js/render/
 
@@ -235,17 +243,20 @@ and increments by 35px per additional layer.
 **Dimensional Rift (on hit):** When a targeting orb hits an enemy and actually
 deals damage (not blocked by iron body / absolute shield / evade), spawnDimensionalRift
 creates a 50px radius zone lasting 3000ms. Enemies inside are slowed 35%,
-receive Soul Reaver + Soul Devourer DoT (57 + 7% maxHp per 350ms, direct HP,
-skip embryo), and take +25% incoming damage. Enemy bullets within 2.5× the
+receive Soul Reaver (2s duration, refreshed every frame while inside the zone)
++ Soul Devourer DoT (60 + 5.5% maxHp per 350ms, direct HP, skip embryo, only
+ticks while Glory for Justice is active), and take +25% incoming damage.
+Enemy bullets within 2.5× the
 radius are pulled toward the center; bullets reaching the inner core (radius ×
 0.45) are destroyed. The DoT has a 20% chance per tick to chain-lightning up
 to 8 nearby enemies within 150px (independent of Glory for Justice).
 
 **Orb Retaliation (on sacrifice):** When a defensive golden orb is consumed to
 absorb a player hit, the attacker (excluding enemy_bullet, abyssal_chain,
-veilshroud_echo, and inCoronation enemies) immediately receives Soul Reaver +
-Soul Devourer DoT (57 + 7% maxHp per 350ms, direct HP, skip embryo) and a 25%
-movement slow for 3 seconds (enemy._orbRetaliationSlowEnd). The slow stacks
+veilshroud_echo, and inCoronation enemies) immediately receives Soul Reaver
+(2s duration) + Soul Devourer DoT (60 + 5.5% maxHp per 350ms, direct HP, skip
+embryo, only ticks while Glory for Justice is active) and a 25% movement slow
+for 3 seconds (enemy._orbRetaliationSlowEnd). The slow stacks
 multiplicatively with Dimensional Rift slow.
 
 ### Skill S (Remembrance Spirit and Photokrystos)
