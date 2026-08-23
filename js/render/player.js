@@ -2148,6 +2148,26 @@ function drawEnumaElish() {
             ctx.shadowBlur = 0;
             ctx.restore();
         }
+
+        // Smoke rings drifting outward along the beam - size the ellipse
+        // directly rather than via ctx.scale() so lineWidth doesn't shrink
+        // along with it (a scale transform scales stroke width too, which
+        // made these nearly invisible while still small)
+        if (seq.shockwaves && seq.shockwaves.length > 0) {
+            for (const sw of seq.shockwaves) {
+                const rx = seq.x + cosA * sw.dist, ry = seq.y + sinA * sw.dist;
+                const radiusX = (seq.beamWidth || 100) * sw.scale;
+                ctx.save();
+                ctx.translate(rx, ry);
+                ctx.rotate(seq.angle + Math.PI / 2);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, radiusX, radiusX * 0.2, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(252, 165, 165, ${sw.alpha})`;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
     }
     ctx.globalAlpha = 1.0;
 }

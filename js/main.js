@@ -1772,25 +1772,6 @@ function update(rawDeltaTime) {
                     if ((b.type === 'player_auto' || b.type === 'sentinel_auto') && enemy.hp > 0) {
                         const _hn = performance.now();
 
-                        if (_hasBuff('noc_toi') && !b._isNocToiDot) {
-                            enemy._nocToiStacks = Math.min(4, (enemy._nocToiStacks || 0) + 1);
-                            if (!enemy._nocToiStackExpiry) enemy._nocToiStackExpiry = [];
-                            enemy._nocToiStackExpiry.push(_hn + 3000);
-                        }
-
-                        if (_hasBuff('su_tu_hong')) {
-                            if (gloryForJusticeActive) {
-                                if (!window._sthBurning) window._sthBurning = new Map();
-                                const existing = window._sthBurning.get(enemy);
-                                if (existing) {
-                                    existing.stacks = Math.min(3, existing.stacks + 1);
-                                    existing.expiry = _hn + 3000;
-                                } else {
-                                    window._sthBurning.set(enemy, { stacks: 1, nextTick: _hn + 500, expiry: _hn + 3000 });
-                                }
-                            }
-                        }
-
                         if (b._muiTenVangCrit && enemy.hp > 0) {
                             dealDamage(enemy, { damage: b.damage * 3, percentDamage: (b.percentDamage || 0) * 3, isTrueDamage: true, _noBase60: true, type: b.type });
                             // +2 stacks via applyVulnerability (not a direct field set) so this
@@ -2463,20 +2444,6 @@ function _updateSigilPassives(now, deltaTime) {
         }
     }
 
-    if (_hasBuff('noc_toi')) {
-        for (const e of enemies) {
-            if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e._nocToiStacks > 0) {
-                const stackDot = 0.02 * (e.maxHp || e.hp) * e._nocToiStacks * (deltaTime / 1000);
-                dealDamage(e, { damage: stackDot, percentDamage: 0, _isNocToiDot: true });
-                const expireKey = '_nocToiStackExpiry';
-                if (!e[expireKey]) e[expireKey] = [];
-                e[expireKey] = e[expireKey].filter(t => {
-                    if (now >= t) { e._nocToiStacks = Math.max(0, (e._nocToiStacks || 1) - 1); return false; }
-                    return true;
-                });
-            }
-        }
-    }
 
     if (_hasBuff('su_tu_hong') && gloryForJusticeActive && window._sthBurning) {
         for (const [e, burnData] of window._sthBurning.entries()) {
