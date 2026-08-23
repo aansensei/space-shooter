@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Aries VFX — Real Code Test Harness</title>
+<style>
+    body { margin:0; padding:0; background:#050505; color:#ddd; font-family:sans-serif; overflow:hidden; display:flex; }
+    #ui { width:260px; padding:12px; background:#0a0a0a; border-right:1px solid #222; z-index:10; }
+    #ui h2 { font-size:13px; color:#aaa; text-transform:uppercase; margin:14px 0 6px; border-bottom:1px solid #222; padding-bottom:4px; }
+    #ui h2:first-child { margin-top:0; }
+    button { display:block; width:100%; background:#181818; color:#ddd; border:1px solid #333; padding:8px; margin-bottom:6px; cursor:pointer; border-radius:4px; font-size:12px; text-align:left; }
+    button:hover { background:#2a2a2a; }
+    label { display:flex; align-items:center; gap:6px; font-size:12px; margin-bottom:8px; }
+    #status { font-size:11px; color:#666; margin-top:10px; white-space:pre-line; }
+    #stage { position:relative; }
+    canvas { display:block; background:#000; }
+    #err { position:absolute; top:0; left:0; right:0; background:#400; color:#fbb; font:11px monospace; padding:6px; white-space:pre-wrap; max-height:140px; overflow:auto; display:none; }
+</style>
+</head>
+<body>
+<div id="ui">
+    <h2>Quality</h2>
+    <label><input type="checkbox" id="hq" checked> HQ (shadowBlur on, FULL tier)</label>
+
+    <h2>Gate of Babylon</h2>
+    <button onclick="fireGob()">Trigger (center target)</button>
+    <button onclick="fireGobCrowd()">Trigger (5-enemy crowd)</button>
+
+    <h2>Enuma Elish</h2>
+    <button onclick="fireEE()">Trigger (force 40th hit)</button>
+    <button onclick="fireEEAngled()">Trigger (angled target)</button>
+
+    <h2>Scene</h2>
+    <button onclick="resetScene()">Reset enemies/particles</button>
+
+    <div id="status"></div>
+</div>
+<div id="stage">
+    <div id="err"></div>
+    <canvas id="gameCanvas" width="600" height="800"></canvas>
+</div>
+
+<!-- Minimal stand-ins for the globals js/render/*.js and js/skills.js read.
+     Loaded BEFORE the real files so their top-level `let`/`const` bindings
+     are visible to them (classic scripts share one global lexical scope). -->
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let _mobPerf = false;
+    let _gfxLevel = 0;
+    window._gfxLevel = 0;
+
+    const player = { x: 300, y: 650 };
+    let enemies = [];
+    let particles = [];
+    let gloryForJusticeActive = true;
+    const performance_now = () => performance.now();
+
+    window.AudioMgr = { playSfxAt(){}, playSfx(){} };
+    function _setShake(){}
+    // Same shape as the real createParticles (js/entities.js) - just enough
+    // to drive the generic (non-special) branch of the real drawParticle.
+    function createParticles(x, y, count, color, minSpeed, maxSpeed) {
+        for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = minSpeed + Math.random() * (maxSpeed - minSpeed);
+            particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, size: 2 + Math.random() * 2, color, lifetime: 500, maxLifetime: 500 });
+        }
+    }
+    function _hasBuff(id){ return id === 'cong_babylon' || id === 'enuma_elish'; }
+    function _skillDCanTarget(e){ return e.hp > 0; }
+    // distToSegment: point-to-segment distance, same signature/contract the
+    // real game uses (js/main.js) — reimplemented here only because pulling
+    // in main.js wholesale would drag in the entire game bootstrap.
+    function distToSegment(p, a, b) {
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len2 = dx * dx + dy * dy;
+        let t = len2 > 0 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2 : 0;
+        t = Math.max(0, Math.min(1, t));
+        const cx = a.x + t * dx, cy = a.y + t * dy;
+        return Math.hypot(p.x - cx, p.y - cy);
+    }
+    // Minimal dealDamage stand-in: real one lives in js/entities.js and pulls
+    // in the entire damage pipeline (shields/DR/sigil hooks/Goliath rules).
+    // This just drops HP so hits are visible, and marks death - enough to
+    // exercise the VFX code paths faithfully without the whole game booted.
+    function dealDamage(enemy, source) {
+        const dmg = (source.damage || 0) + (source.percentDamage || 0) * (enemy.maxHp || enemy.hp);
+        enemy.hp = Math.max(0, enemy.hp - dmg);
+        if (enemy.hp <= 0) enemy._markedForDeath = true;
+    }
+
+    window.addEventListener('error', (e) => {
+        const box = document.getElementById('err');
+        box.style.display = 'block';
+        box.textContent += e.message + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')\n';
+    });
+</script>
+
+<!-- The real files. -->
+<script src="../js/render/fx.js"></script>
+<script src="../js/render/player.js"></script>
+<script>
+    // Just the 5 Aries functions, copied verbatim from js/skills.js so this
+    // harness doesn't need to load the whole 2500-line file (which assumes
+    // a fully booted game). If Gate of Babylon / Enuma Elish's mechanic ever
+    // changes in js/skills.js, re-copy these from there to keep this in sync
+    // — this is the ONE piece of this file that duplicates real-game code
+    // rather than loading it directly, and it's the mechanic (not the VFX,
+    // which loads for real above), so a drift here would misrepresent
+    // hit-timing but not the actual visuals.
+</script>
+<script src="aries-mechanic-extract.js"></script>
+
+<script>
+    document.getElementById('hq').addEventListener('change', (e) => {
+        _gfxLevel = e.target.checked ? 0 : 2;
+        window._gfxLevel = _gfxLevel;
+    });
+
+    function _mkEnemy(x, y, hp) {
+        return { type: 'thaelis', hp: hp || 5000, maxHp: hp || 5000, shield: 0, x, y, size: 40, _jokerState: {} };
+    }
+
+    function resetScene() {
+        enemies = [];
+        particles = [];
+        window._gobSequences = [];
+        window._eeSequences = [];
+        window._eeHitCounter = 0;
+        window._gobCooldownEnd = 0;
+        status('Scene reset.');
+    }
+
+    function status(s) { document.getElementById('status').textContent = s; }
+
+    function fireGob() {
+        window._gobCooldownEnd = 0;
+        enemies.push(_mkEnemy(player.x, player.y - 220));
+        dealDamageAndMaybeTriggerAries(enemies[enemies.length - 1], { damage: 50, type: 'player_auto' });
+        status('Gate of Babylon fired. Sequences: ' + (window._gobSequences || []).length);
+    }
+
+    function fireGobCrowd() {
+        window._gobCooldownEnd = 0;
+        for (let i = 0; i < 5; i++) {
+            enemies.push(_mkEnemy(player.x + (i - 2) * 70, player.y - 200 - Math.abs(i - 2) * 30));
+        }
+        dealDamageAndMaybeTriggerAries(enemies[0], { damage: 50, type: 'player_auto' });
+        status('Gate of Babylon fired into a crowd of 5.');
+    }
+
+    function fireEE() {
+        window._eeHitCounter = 39;
+        enemies.push(_mkEnemy(player.x, player.y - 250, 200000));
+        dealDamageAndMaybeTriggerAries(enemies[enemies.length - 1], { damage: 50, type: 'player_auto' });
+        status('Enuma Elish fired (forced 40th hit). Sequences: ' + (window._eeSequences || []).length);
+    }
+
+    function fireEEAngled() {
+        window._eeHitCounter = 39;
+        enemies.push(_mkEnemy(player.x + 180, player.y - 300, 200000));
+        dealDamageAndMaybeTriggerAries(enemies[enemies.length - 1], { damage: 50, type: 'player_auto' });
+        status('Enuma Elish fired at an off-center target to check beam aim.');
+    }
+
+    let _last = performance.now();
+    function loop(t) {
+        const dt = Math.min(50, t - _last);
+        _last = t;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        updateGateOfBabylon(dt);
+        updateEnumaElish(dt);
+
+        // enemies
+        enemies.forEach(e => {
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.size / 2, 0, Math.PI * 2);
+            ctx.fillStyle = e.hp > 0 ? '#7c2d12' : '#222';
+            ctx.fill();
+            ctx.strokeStyle = '#fca5a5';
+            ctx.stroke();
+        });
+        // player marker
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 14, 0, Math.PI * 2);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        drawGateOfBabylon();
+        drawEnumaElish();
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.lifetime -= dt;
+            if (p.lifetime <= 0) { particles.splice(i, 1); continue; }
+            if (p.vx !== undefined) { p.x += p.vx * (dt / 16.67); p.y += p.vy * (dt / 16.67); }
+            ctx.save();
+            drawParticle(p);
+            ctx.restore();
+        }
+
+        // Enuma Elish's release flashbang
+        if (window._eeScreenFlash > 0) {
+            ctx.save();
+            ctx.globalAlpha = window._eeScreenFlash;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+            window._eeScreenFlash = Math.max(0, window._eeScreenFlash - 0.05 * (dt / 16.67));
+        }
+
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>

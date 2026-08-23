@@ -318,7 +318,7 @@ function handleEnemyKill(enemy) {
     }
 
     if (skillGCharge < 100) {
-        const _gChargeGain = 0.5 * (_hasBuff('set_day_chuyen') ? 1.35 : 1) * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1); // Chain Lightning: +35%, Cycle of Flow: +50%
+        const _gChargeGain = 0.5 * (_hasBuff('set_day_chuyen') ? 1.35 : 1) * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1) * (_hasBuff('ky_su_dien') ? 1.10 : 1); // Chain Lightning: +35%, Cycle of Flow: +50%, Circuit Engineer: +10%
         skillGCharge = Math.min(100, skillGCharge + _gChargeGain);
     }
     if (skillGActive) {
@@ -2051,6 +2051,23 @@ function dealDamage(enemy, source) {
                 window._eeSequences.push(_createEeSequence(performance.now(), _eeTarget));
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('enuma-elish-charge', player.x, player.y);
             }
+        }
+    }
+
+    // Lion's Roar (su_tu_hong): while GfJ is active, ANY landed ally hit
+    // inflicts/refreshes Burn (used to be auto-fire-only, description never
+    // said that) - the actual DoT ticks are applied in updateSoulReaverDoT's
+    // neighbor at main.js (_sthBurning map), this just opens/refreshes an entry.
+    if (_hasBuff('su_tu_hong') && !isSentinel && gloryForJusticeActive && !source._isSthDot
+        && !source._isSkillF && !source._isSkillD && totalDamage > 0) {
+        const _sthNow = performance.now();
+        window._sthBurning = window._sthBurning || new Map();
+        const _sthExisting = window._sthBurning.get(enemy);
+        if (_sthExisting) {
+            _sthExisting.stacks = Math.min(3, _sthExisting.stacks + 1);
+            _sthExisting.expiry = _sthNow + 3000;
+        } else {
+            window._sthBurning.set(enemy, { stacks: 1, nextTick: _sthNow + 500, expiry: _sthNow + 3000 });
         }
     }
 

@@ -981,7 +981,7 @@ function draw(deltaTime) {
             // frame) for a result nothing consumes.
             const _batches = _pixiP ? null : new Map();
             for (const p of particles) {
-                if (p.isSummonRing || p.isLaserLine || p.isSkillGAura || p.isBarrierBreakRing || p._bloodPetal) { _specials.push(p); continue; }
+                if (p.isSummonRing || p.isLaserLine || p.isSkillGAura || p.isBarrierBreakRing || p._bloodPetal || p.isGobImpact || p.isEeSlash) { _specials.push(p); continue; }
                 if (_pixiP) continue; // normal particles routed to Pixi
                 // Round alpha to 0.05 steps, imperceptible diff, enables color+alpha batching
                 const _a = Math.round((p.lifetime / p.maxLifetime) * 20) / 20;

@@ -60,7 +60,7 @@ const SIGIL_DEFS = {
         name: 'Libra', element: 'Air', color: '#378ADD',
         buffs: [
             { id: 'mui_ten_apollo', name: "Blood Arrow", type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Each Skill A cast fires 3 arrows after a 0.5s windup: 1 big arrow marks the highest-EP enemy, the other 2 mark random enemies (biased toward denser clusters). Each arrow pierces all enemies (300 base dmg) and explodes on its marked target (400 base + 20% PE, up to +100% more from the target\'s DR). All hit enemies take 2 Vulnerability stacks. The 2 small arrows deal 40% less damage but fly 20% faster than the big one, which is also 15% bigger.' },
+              desc: 'Each Skill A cast fires 3 arrows after a 0.5s windup: 1 big arrow marks the highest-EP enemy, the other 2 mark random enemies (biased toward denser clusters). Each arrow pierces all enemies (300 base dmg) and explodes on its marked target (400 base + 20% EP, up to +100% more from the target\'s DR). All hit enemies take 2 Vulnerability stacks. The 2 small arrows deal 40% less damage but fly 20% faster than the big one, which is also 15% bigger.' },
             { id: 'xuyen_pha', name: 'Astral Pierce', type: 'ATK', typeC: '#ef4444',
               desc: 'Skill A orbs pierce through their target on impact and continue flying to the screen edge, dealing hit damage to every enemy they cross. Orb size +30%.' },
         ]

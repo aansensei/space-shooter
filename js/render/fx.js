@@ -1270,6 +1270,37 @@ function drawParticle(p) {
         ctx.strokeStyle = `rgba(0,255,255,${prog})`;
         ctx.lineWidth = 3; if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 8;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (1 - prog) * 50, 0, Math.PI * 2); ctx.stroke();
+    } else if (p.isGobImpact) {
+        // Gate of Babylon hit-flash: growing white/gold cross, ported from the demo
+        const prog = p.lifetime / p.maxLifetime;
+        const size = (1 - prog) * 40 + 10;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-size, -1, size * 2, 2);
+        ctx.fillRect(-1, -size / 2, 2, size);
+        if (!_mobPerf) { ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 10; }
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 2 * prog;
+        ctx.strokeRect(-size, -1, size * 2, 2);
+        ctx.strokeRect(-1, -size / 2, 2, size);
+        ctx.shadowBlur = 0;
+    } else if (p.isEeSlash) {
+        // Enuma Elish hit-flash: red/black rip-slash, ported from the demo
+        const prog = p.lifetime / p.maxLifetime;
+        const size = (1 - prog) * 60 + 20;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.beginPath();
+        ctx.moveTo(-size, 0); ctx.lineTo(0, size / 4); ctx.lineTo(size, 0); ctx.lineTo(0, -size / 4);
+        ctx.closePath();
+        ctx.fillStyle = '#18181b';
+        ctx.fill();
+        if (!_mobPerf) { ctx.shadowColor = '#dc2626'; ctx.shadowBlur = 15; }
+        ctx.strokeStyle = '#fca5a5';
+        ctx.lineWidth = 3 * prog;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
     } else if (p.isLaserLine) {
         ctx.globalAlpha = p.lifetime / p.maxLifetime;
         ctx.strokeStyle = p.color; ctx.lineWidth = 5;

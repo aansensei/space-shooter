@@ -816,7 +816,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
         }
     }
 
-    // Phóng ngay những cái đủ chỗ (base=2, extras từ song_luoi có +10% radius)
+    // Phóng ngay những cái đủ chỗ (base=2, extras từ song_luoi có +20% radius)
     if (throwNow > 0) { player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320; }
     for (let b = 0; b < throwNow; b++) {
         const shuffled = _shuffleArray(validTargets);
@@ -833,7 +833,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
             rotation: Math.random() * Math.PI * 2,
             damage: 500, percentDamage: 0.070,
             lifetime: 9000,
-            _radius: _isExtra ? 53 : 48,
+            _radius: _isExtra ? 58 : 48,
         });
         if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-throw', fromX, fromY);
     }
@@ -2219,8 +2219,11 @@ function updateSolArrows(deltaTime) {
                     if (enemy === arrow.target) {
                         const estDR = _estimateSolArrowDR(enemy);
                         const drBonus = Math.min(1.0, Math.floor(estDR * 100) * 0.02);
-                        const explosionDmg = (400 + primevalEnergy * 0.20) * (1 + drBonus) * dmgMult;
-                        dealDamage(enemy, { damage: explosionDmg, isTrueDamage: true, _statSrc: 'Sigil: Blood Arrow' });
+                        const _baMult = (1 + drBonus) * dmgMult;
+                        // was primevalEnergy*0.20 (the Photokrystos 0-100 meter, a different
+                        // "PE") - description always meant 20% of the TARGET's own effective
+                        // HP like every other sigil's "%EP", fixed to actually do that
+                        dealDamage(enemy, { damage: 400 * _baMult, percentDamage: 0.20 * _baMult, isTrueDamage: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         addExplosion(arrow.x, arrow.y, 60, '#f59e0b');
                         if (window.AudioMgr) window.AudioMgr.playSfxAt('dimensional-rift', arrow.x, arrow.y);
@@ -2332,8 +2335,6 @@ function updateShadowOrbs(deltaTime) {
     }
 }
 
-// Onslaught (Aries buff 2) — homing fireball fired at whichever enemy the
-// previous landed hit struck; see the dealDamage() hook in entities.js.
 // Aries: Gate of Babylon + Enuma Elish. Trigger sites are in entities.js's
 // dealDamage (proc conditions + sequence creation); everything below is the
 // per-frame timeline/collision, mirroring a Gilgamesh Gate-of-Babylon VFX
@@ -2405,6 +2406,8 @@ function updateGateOfBabylon(deltaTime) {
                         sw.hitEnemies.add(en);
                         dealDamage(en, { damage: GOB_SWORD_DMG_BASE, percentDamage: GOB_SWORD_DMG_PCT, isTrueDamage: true, _isGobBlade: true, _noHitSfx: true, _statSrc: 'Aries: Gate of Babylon' });
                         if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', sw.x, sw.y);
+                        particles.push({ isGobImpact: true, x: en.x, y: en.y, angle: sw.angle, lifetime: 200, maxLifetime: 200 });
+                        createParticles(sw.x, sw.y, 8, '#fef08a', 2, 6);
                     }
                 }
                 if (sw.x < -50 || sw.x > canvas.width + 50 || sw.y < -50 || sw.y > canvas.height + 50) {
@@ -2430,10 +2433,10 @@ function _eeFindPriorityTarget() {
 
 function _createEeSequence(startTime, target) {
     const ox = player.x, oy = player.y;
-    return { startTime, phase: 0, x: ox, y: oy, angle: Math.atan2(target.y - oy, target.x - ox), beamWidth: 0, beamAlpha: 0, hitEnemies: new Set() };
+    return { startTime, phase: 0, x: ox, y: oy, angle: Math.atan2(target.y - oy, target.x - ox), beamWidth: 0, beamAlpha: 0, hitEnemies: new Set(), shockwaves: [], _lastShockwaveAt: 0 };
 }
 
-const EE_DMG_PCT = 0.14, EE_DMG_CAP = 12000, EE_BEAM_HALF = 40;
+const EE_DMG_PCT = 0.14, EE_DMG_CAP = 12000, EE_BEAM_HALF = 50;
 
 function updateEnumaElish(deltaTime) {
     if (!window._eeSequences || window._eeSequences.length === 0) return;
@@ -2443,9 +2446,15 @@ function updateEnumaElish(deltaTime) {
         const seq = window._eeSequences[si];
         const elapsed = now - seq.startTime;
 
+        // Windup sparks around the phantom while it winds the spear back
+        if (elapsed >= 200 && elapsed < 600 && Math.random() > 0.5) {
+            createParticles(seq.x + (Math.random() - 0.5) * 120, seq.y - Math.random() * 150, 2, '#dc2626', 2, 5);
+        }
+
         if (elapsed >= 600 && seq.phase === 0) {
             seq.phase = 1;
             _setShake(12, 300);
+            window._eeScreenFlash = 0.8;
             // release crack + the beam roar (reuses Leviathan Perseverance's
             // laser cue rather than a new asset - same "sustained beam" sound)
             if (window.AudioMgr) {
@@ -2460,18 +2469,32 @@ function updateEnumaElish(deltaTime) {
             const reach = Math.hypot(canvas.width, canvas.height) * 1.5;
             const endX = seq.x + Math.cos(seq.angle) * reach, endY = seq.y + Math.sin(seq.angle) * reach;
             for (const en of enemies) {
-                if (seq.hitEnemies.has(en)) continue;
                 if (!_skillDCanTarget(en) || en.hp <= 0 || en._markedForDeath) continue;
-                if (distToSegment(en, { x: seq.x, y: seq.y }, { x: endX, y: endY }) < EE_BEAM_HALF + (en.size || 20) / 2) {
-                    seq.hitEnemies.add(en);
-                    const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.hp * EE_DMG_PCT));
-                    dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
-                }
+                if (distToSegment(en, { x: seq.x, y: seq.y }, { x: endX, y: endY }) >= EE_BEAM_HALF + (en.size || 20) / 2) continue;
+                // ambient sparks off anything currently caught in the beam
+                if (Math.random() > 0.7) createParticles(en.x, en.y, 5, '#fca5a5', 2, 5);
+                if (seq.hitEnemies.has(en)) continue;
+                seq.hitEnemies.add(en);
+                const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.hp * EE_DMG_PCT));
+                dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
+                particles.push({ isEeSlash: true, x: en.x, y: en.y, angle: seq.angle + (Math.random() - 0.5) * 0.5, lifetime: 400, maxLifetime: 400 });
+            }
+            // Ring-shaped shockwaves drifting outward along the beam - the
+            // "smoke rings" from the reference demo, spawned every ~50ms at a
+            // random distance down the beam's length
+            if (now - seq._lastShockwaveAt >= 50) {
+                seq._lastShockwaveAt = now;
+                seq.shockwaves.push({ dist: 100 + Math.random() * (reach - 100), scale: 0.1, alpha: 1.0 });
             }
         } else if (elapsed >= 1200) {
             seq.beamAlpha = Math.max(0, seq.beamAlpha - 0.05 * dt);
             seq.beamWidth = Math.max(0, seq.beamWidth - 4 * dt);
-            if (seq.beamAlpha <= 0) window._eeSequences.splice(si, 1);
+            if (seq.beamAlpha <= 0 && seq.shockwaves.length === 0) window._eeSequences.splice(si, 1);
+        }
+
+        if (seq.phase > 0) {
+            seq.shockwaves.forEach(sw => { sw.scale += 0.2 * dt; sw.alpha -= 0.05 * dt; });
+            seq.shockwaves = seq.shockwaves.filter(sw => sw.alpha > 0);
         }
     }
 }
