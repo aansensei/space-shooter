@@ -672,14 +672,14 @@ function update(rawDeltaTime) {
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                             // Laser vs Mar arc barrier: piercing — 30% body DR, barrier takes +15%, sword 25%
                             if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                                const _lSrc = { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _barrierPiercing: true };
+                                const _lSrc = { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser' };
                                 checkMarchosiasArcBarrier(enemy, _lSrc, enemy.x, enemy.y);
                                 dealDamage(enemy, _lSrc);
                                 break;
                             } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
-                                dealDamage(enemy, { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true });
+                                dealDamage(enemy, { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _statSrc: 'Overload Laser' });
                             }
                             break;
                         }
@@ -695,13 +695,13 @@ function update(rawDeltaTime) {
                             if (enemy.inCoronation) return;
                             if (Math.abs(enemy.y - ent.y) < 50) {
                                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                                    const _mlSrc = { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true, _barrierPiercing: true };
+                                    const _mlSrc = { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser: Mirror' };
                                     checkMarchosiasArcBarrier(enemy, _mlSrc, enemy.x, enemy.y);
                                     dealDamage(enemy, _mlSrc);
                                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                                 } else {
-                                    dealDamage(enemy, { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true });
+                                    dealDamage(enemy, { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true, _statSrc: 'Overload Laser: Mirror' });
                                 }
                             }
                         });
@@ -1792,7 +1792,7 @@ function update(rawDeltaTime) {
                         }
 
                         if (b._muiTenVangCrit && enemy.hp > 0) {
-                            dealDamage(enemy, { damage: b.damage * 3, percentDamage: (b.percentDamage || 0) * 3, isTrueDamage: true, _noBase60: true });
+                            dealDamage(enemy, { damage: b.damage * 3, percentDamage: (b.percentDamage || 0) * 3, isTrueDamage: true, _noBase60: true, type: b.type });
                             // +2 stacks via applyVulnerability (not a direct field set) so this
                             // respects goliath's true-dmg-window cooldown like every other source
                             applyVulnerability(enemy);

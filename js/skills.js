@@ -454,7 +454,7 @@ function updateSpirits(deltaTime) {
                     x: spirit.x, y: spirit.y,
                     damage: 75, percentDamage: 0.007,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
-                    isSpirit: true,
+                    isSpirit: true, _statSrc: 'Skill S: Remembrance Spirit',
                 });
                 if (window.AudioMgr) window.AudioMgr.playSfx('spirit-autofire');
                 spirit.shotsFiredSinceBarrage++;
@@ -606,7 +606,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                     e.shield = 0;
                     e.hp = 0;
                     if (e.type === 'leviathan' && !e._deathLaserSpawned) {
-                        dealDamage(e, { damage: 0, percentDamage: 0 });
+                        dealDamage(e, { damage: 0, percentDamage: 0, _statSrc: 'Skill S: Danger Not Today' });
                     }
                     addExplosion(e.x, e.y, (e.size || 20) * 0.9, '#00ffaa');
                     createParticles(e.x, e.y, 10, '#a0ffcc', 1.5, 4);
@@ -680,7 +680,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                     dealDamage(e, {
                         damage: 20 * dmgMult, percentDamage: 0.35,
                         applyVuln: true, vulnChance: 0.15, isTrueDamage: true,
-                        isPhoto: true
+                        isPhoto: true, _statSrc: 'Skill S: Back to Motherland'
                     });
                     if (e.hp <= 0) e._btmKilled = true;
                     // Record lightning bolt for render
@@ -765,7 +765,7 @@ function updatePhotokrystos(spirit, deltaTime) {
                     damage: 125 * dmgMult * dntMult, percentDamage: 0.017 * dntMult,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
-                    applyVuln: true, vulnChance: 0.15,
+                    applyVuln: true, vulnChance: 0.15, _statSrc: 'Skill S: Photokrystos',
                 });
             }
             spirit.volleyCount = (spirit.volleyCount || 0) + 1;
@@ -1180,7 +1180,7 @@ function updateSpiritFinale(spirit, deltaTime) {
                     x: spirit.x, y: spirit.y,
                     vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15,
                     damage: 10, percentDamage: 0.25, size: 56, lifetime: 4000, isBouncingBall: true,
-                    isTrueDamage: true,
+                    isTrueDamage: true, _statSrc: 'Skill S: Remembrance Spirit',
                 });
             }
             spirit.isFinishing = false;
@@ -1585,7 +1585,7 @@ function updateSkillF(deltaTime) {
                     // Fracture Step, VÀ tỉ lệ đỡ Warding Palm (Skill F) đã cài
                     // trong dealDamage. Phải đi qua dealDamage để mọi rule đó
                     // thực sự áp dụng.
-                    dealDamage(enemy, { damage: 0, percentDamage: 0, _isSkillF: true });
+                    dealDamage(enemy, { damage: 0, percentDamage: 0, _isSkillF: true, _statSrc: 'Skill F: Annihilation Sweep' });
                 } else {
                     // Coronation Iron Body absorbs 1 hit — bypassed only with Death Mark (tu_huyet)
                     if (!_hasBuff('tu_huyet') && (enemy.ironBodyHits || 0) > 0) {
@@ -1598,7 +1598,7 @@ function updateSkillF(deltaTime) {
                     enemy.hp = 0;
                     // Leviathan: skill F bypasses dealDamage → trigger last rites manually
                     if (enemy.type === 'leviathan' && !enemy._deathLaserSpawned) {
-                        dealDamage(enemy, { damage: 0, percentDamage: 0, _bypassIronBody: true, _isSkillF: true });
+                        dealDamage(enemy, { damage: 0, percentDamage: 0, _bypassIronBody: true, _isSkillF: true, _statSrc: 'Skill F: Annihilation Sweep' });
                     }
                 }
                 enemy.hitBySkillF = true;
@@ -2220,14 +2220,14 @@ function updateSolArrows(deltaTime) {
                         const estDR = _estimateSolArrowDR(enemy);
                         const drBonus = Math.min(1.0, Math.floor(estDR * 100) * 0.02);
                         const explosionDmg = (400 + primevalEnergy * 0.20) * (1 + drBonus) * dmgMult;
-                        dealDamage(enemy, { damage: explosionDmg, isTrueDamage: true });
+                        dealDamage(enemy, { damage: explosionDmg, isTrueDamage: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         addExplosion(arrow.x, arrow.y, 60, '#f59e0b');
                         if (window.AudioMgr) window.AudioMgr.playSfxAt('dimensional-rift', arrow.x, arrow.y);
                         window._solArrows.splice(i, 1);
                         break;
                     } else {
-                        dealDamage(enemy, { damage: 300 * dmgMult });
+                        dealDamage(enemy, { damage: 300 * dmgMult, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         createParticles(arrow.x, arrow.y, 8, '#f59e0b', 2, 5);
                     }
@@ -2504,7 +2504,7 @@ function updateGoldenArrowSweep(deltaTime) {
             if (dist < range && angle < currentAngle && angle > currentAngle - 0.2) {
                 sw.hitEnemies.add(enemy);
                 const missingHpBonus = Math.ceil((enemy.maxHp - enemy.hp) * 0.15);
-                dealDamage(enemy, { damage: 1000 + missingHpBonus, percentDamage: 0.10 });
+                dealDamage(enemy, { damage: 1000 + missingHpBonus, percentDamage: 0.10, _statSrc: 'Virgo: Forest Guardian' });
                 createParticles(enemy.x, enemy.y, 14, '#c9a227', 3, 8);
                 createParticles(enemy.x, enemy.y, 8, '#5fae3a', 2, 6);
             }
@@ -2554,13 +2554,13 @@ function updateMirrorLaserColumns(deltaTime) {
                 if (enemy.inCoronation) return;
                 if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                     if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                        const _src = { damage: 350, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true };
+                        const _src = { damage: 350, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
                         checkMarchosiasArcBarrier(enemy, _src, enemy.x, enemy.y);
                         dealDamage(enemy, _src);
                     } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                         enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     } else {
-                        dealDamage(enemy, { damage: 350, percentDamage: 0.18, isPiercing: true });
+                        dealDamage(enemy, { damage: 350, percentDamage: 0.18, isPiercing: true, _statSrc: 'Sigil: Mirror Laser' });
                     }
                 }
             });
