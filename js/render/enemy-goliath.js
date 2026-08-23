@@ -2056,20 +2056,13 @@ function _drawGoliath(enemy) {
     // lên người Alpha thay vì bị thân đè mất lúc vừa bay tới.
     _drawGoliathFlyingGems(enemy, now);
 
-    // True Form no longer gets an in-world HP bar above its head — replaced
-    // by the top-of-screen boss bar (_drawGoliathBossBar, called separately
-    // from core.js after this world-space pass) so it reads like a real
-    // boss encounter instead of a regular enemy's floating health strip.
+    // true form: no more in-world hp bar, moved to _drawGoliathBossBar
+    // (top-of-screen, called from core.js)
 }
 
-// Dark-Souls-style boss bar, docked top-center of the screen — the ONLY HP
-// indicator shown for Goliath True Form (both the small in-world bar above
-// and the generic HP-number text in enemy-common.js's drawEnemy() are
-// suppressed for this phase). Kept deliberately compact (thin bar, small
-// text) so it doesn't eat into play space the way a full Dark Souls bar
-// would. Called once per frame from core.js, not part of the per-enemy
-// world-space draw pass above (this is screen-space, unaffected by camera/
-// enemy scale).
+// goliath true form boss bar, top-center of screen. only hp indicator for
+// this phase (in-world bar + hp number in enemy-common.js both suppressed).
+// screen-space, called once/frame from core.js, not part of world draw above
 function _drawGoliathBossBar(enemy) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form' || enemy._deathPhase) return;
     const now = performance.now();
@@ -2079,20 +2072,14 @@ function _drawGoliathBossBar(enemy) {
     const barY = titleY + 20;
     const barH = 14;
 
-    // Unbroken Will's 3.5s invuln window: bar reads frosted white/ice
-    // instead of its normal red, telegraphing "damage won't matter right
-    // now" the same way the Iron Body ring already does on the body itself.
+    // unbroken will 3.5s invuln -> bar reads frosted white/ice instead of red
     const _frozen = enemy._unbrokenWillInvulnEnd && now < enemy._unbrokenWillInvulnEnd;
 
-    // Elden Ring-style boss name: left-aligned above the bar's left edge,
-    // italic, warm parchment-gold rather than centered/red — reads as a
-    // name plate, not an alarm.
+    // elden ring style name: left-aligned, italic, parchment-gold, not centered/red
     ctx.save();
     ctx.textAlign = 'left';
-    // Playfair Display (already loaded for the title-screen logo, see
-    // index.html) — its high-contrast elegant serif reads much closer to
-    // Elden Ring's boss-name lettering than Cinzel's blocky Roman-inscription
-    // look, which suits "GAME OVER"'s impact but not a refined name plate.
+    // Playfair Display, already loaded for the title logo - closer to
+    // Elden Ring lettering than Cinzel (too blocky for a name plate)
     ctx.font = "italic 700 17px 'Playfair Display', serif";
     ctx.fillStyle = _frozen ? 'rgba(210,232,245,0.95)' : 'rgba(214,196,150,0.95)';
     if (!_mobPerf) { ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1; }
@@ -2101,20 +2088,11 @@ function _drawGoliathBossBar(enemy) {
 
     const hpPct = enemy.maxHp > 0 ? Math.max(0, Math.min(1, enemy.hp / enemy.maxHp)) : 0;
 
-    // Heal catch-up ghost (classic "trailing bar" seen in other games): on a
-    // heal, the lighter ghost region jumps straight to the new (higher) HP,
-    // while the solid bar eases up to meet it instead of snapping instantly
-    // — makes healing read as a distinct event instead of a silent number
-    // change. Damage still snaps the solid bar immediately (no ghost lag),
-    // only heals get the catch-up treatment per AanSensei's ask.
-    //
-    // Unbroken Will (_frozen) is absolute Iron Body — dealDamage() already
-    // hard-blocks any hp change during this window with an early return
-    // before the damage math runs, so real HP genuinely cannot move while
-    // frozen. Pin the display (skip the catch-up ease entirely) and force
-    // the bar to read as full rather than whatever partial fraction Goliath
-    // actually had when the window procced — a partial bar here would
-    // misleadingly suggest it can still be worn down right now.
+    // heal catch-up ghost bar: ghost jumps to new hp instantly, solid bar
+    // eases up to meet it. damage still snaps instantly, no ghost lag there.
+    // frozen = absolute iron body, dealDamage() early-returns so hp truly
+    // can't move - pin display + force full bar instead of showing whatever
+    // partial % it happened to be at when the window procced
     if (_frozen) {
         enemy._bossBarDisplayHp = enemy.hp;
     } else if (enemy._bossBarDisplayHp === undefined || enemy.hp < enemy._bossBarDisplayHp) {
@@ -2126,8 +2104,7 @@ function _drawGoliathBossBar(enemy) {
     const _displayPct = _frozen ? 1.0 : (enemy.maxHp > 0 ? Math.max(0, Math.min(1, enemy._bossBarDisplayHp / enemy.maxHp)) : 0);
     const _healing = !_frozen && _displayPct < hpPct - 0.0005;
 
-    // Elden Ring-style bar: flatter/darker uniform fill, thin dark frame
-    // instead of a glowing gold box, gently rounded caps.
+    // elden ring style bar: flat dark fill, thin dark frame (not glowing gold), rounded caps
     const _rr = (rx, ry, rw, rh, rad) => {
         if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); }
         else { ctx.beginPath(); ctx.rect(rx, ry, rw, rh); }
@@ -2169,8 +2146,6 @@ function _drawGoliathBossBar(enemy) {
         ctx.restore();
     }
 
-    // No text at all while frozen — the full frosted bar already reads as
-    // "untouchable" on its own, no label needed.
     if (!_frozen) {
         ctx.textAlign = 'center';
         ctx.font = '600 10px Arial';
@@ -2179,9 +2154,7 @@ function _drawGoliathBossBar(enemy) {
     }
     ctx.restore();
 
-    // Split row below the bar: left = debuffs currently on Goliath, right =
-    // shield + barrier. Kept small/plain (no glow) so it stays a quiet
-    // status readout, not a second focal point competing with the bar.
+    // row below bar: left = debuffs on goliath, right = shield+barrier
     const rowY = barY + barH + 5;
     const rowH = 13;
 
@@ -2212,11 +2185,8 @@ function _drawGoliathBossBar(enemy) {
 
     const shieldVal = Math.ceil((enemy.shield || 0) + (enemy.barrier || 0));
     if (shieldVal > 0) {
-        // Threshold Ward's shield regen has no real cap on purpose (nerfing
-        // it would weaken Goliath for real) — over a long fight it can
-        // genuinely reach 6-7 figures. Cap only what's PRINTED here so the
-        // number stays readable; the real value driving damage mitigation
-        // is untouched.
+        // real value uncapped on purpose (see entities.js), can hit 6-7
+        // figures over a long fight - only cap what's printed here
         const _displayCap = Math.ceil(enemy.maxHp);
         const _shieldOverflow = shieldVal > _displayCap;
         const _shieldShown = Math.min(shieldVal, _displayCap);

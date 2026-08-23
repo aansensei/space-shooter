@@ -74,10 +74,13 @@
     // boot, so in practice this only matters for a sound triggered in the
     // first instant after page load, and a single missed cue there is a
     // fair trade against ever blocking on decode mid-gameplay.
+    // returns a cancel handle - most callers ignore it, but a long one-shot
+    // (gameover) needs to be killable if the player bails to menu mid-ring
     function _playVoice(src, gainValue, bypass) {
-        if (!actx || gainValue <= 0) return;
+        if (!actx || gainValue <= 0) return { cancel() {} };
+        let cancelled = false, liveNode = null;
         _decodeBuffer(src).then(buf => {
-            if (!buf) return;
+            if (!buf || cancelled) return;
             const g = actx.createGain();
             g.gain.value = gainValue;
             g.connect(bypass ? _bypassGain : _duckGain);
@@ -85,7 +88,14 @@
             node.buffer = buf;
             node.connect(g);
             node.start(0);
+            liveNode = node;
         });
+        return {
+            cancel() {
+                cancelled = true;
+                if (liveNode) { try { liveNode.stop(); } catch (_) {} }
+            }
+        };
     }
 
     // Minimal HTMLAudioElement-shaped wrapper (paused/volume/play/pause/
@@ -381,7 +391,7 @@
         if (!p) return;
         const g = sfxGain(key);
         if (g <= 0) return;
-        _playVoice(p.src, g, p.bypass);
+        return _playVoice(p.src, g, p.bypass);
     }
 
     // Positional variant: scales the base gain by distance from the player

@@ -2265,7 +2265,7 @@ function updateShadowTwin(deltaTime) {
     _fireShadowTwinVolley(); // volley 1 fires immediately
     window._shadowTwinVolleysPending = 2; // volleys 2 and 3 follow, 200ms apart
     window._shadowTwinNextVolleyAt = now + 200;
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('coronation', spawnX, spawnY);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('dimensional-rift', spawnX, spawnY);
 }
 
 function updateShadowOrbs(deltaTime) {

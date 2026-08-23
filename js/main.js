@@ -1677,13 +1677,11 @@ function update(rawDeltaTime) {
             gameState = "gameover";
             _gameOverPlayTime = performance.now() - gameStartTime;
             showStartButton("Play Again"); showMainMenuButton(); showMatchStatsButton();
-            // update() returns immediately once gameState !== "playing" (top
-            // of this function), so the low-hp falling-edge check at the top
-            // of this same function never gets another tick to notice lives
-            // hit 0 — without this, the loop + its whole-mix duck kept
-            // playing under the gameover sfx/music forever, clipping badly.
+            // update() bails early once gameState != "playing" so the
+            // low-hp check up top never runs again to notice lives=0 -
+            // loop+duck was stuck on forever under gameover sfx, clipped bad
             window._lowHpActive = false;
-            if (window.AudioMgr) { window.AudioMgr.stopLowHp(); window.AudioMgr.stopBgm(); window.AudioMgr.playSfx('gameover'); }
+            if (window.AudioMgr) { window.AudioMgr.stopLowHp(); window.AudioMgr.stopBgm(); window._gameoverVoice = window.AudioMgr.playSfx('gameover'); }
         }
     }
 
@@ -1834,10 +1832,9 @@ function update(rawDeltaTime) {
     chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
 
     updateSentinels(deltaTime);
-    // Blessing of the Primordial: passive while Phōtokrystos is active. Also
-    // applies to Skill D spaceships — they count as allied units for every
-    // ally-wide buff that isn't tied to sentinel-squad mechanics (Vanguard
-    // Network, Herd Mentality, recoil, etc. stay sentinel-only, see the plan).
+    // Blessing of the Primordial: passive while Phōtokrystos is active.
+    // now also spaceships - any ally-wide buff not tied to sentinel-squad
+    // stuff (Vanguard Network, Herd Mentality, recoil) applies to them too
     const _photoActive = typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done);
     const _levOnField = enemies.some(e => e.type === 'leviathan' && e.hp > 0);
     const _allyUnits = [...sentinels, ...window.skillDSpaceships];
@@ -1888,9 +1885,9 @@ function update(rawDeltaTime) {
         window._blessingShieldTimer = 0;
         window._blessingLevShieldGiven = false;
     }
-    // Gaia Protection: wave-based Max HP scaling, cap +60% — sentinels AND
-    // spaceships both scale (a ship spawned mid-match catches up to the
-    // current cumulative multiplier at spawn time, see spawnSkillDSpaceship).
+    // Gaia Protection: wave-based Max HP scaling, cap +60%. sentinels +
+    // spaceships both scale now (mid-match spawn catches up, see
+    // spawnSkillDSpaceship)
     if (!window._sentinelHpMilestone) window._sentinelHpMilestone = 0;
     if (!window._gaiaHpBonusPct) window._gaiaHpBonusPct = 0;
     if (!window._gaiaHpCumMult) window._gaiaHpCumMult = 1;

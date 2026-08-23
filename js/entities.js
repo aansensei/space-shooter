@@ -186,9 +186,12 @@ function applyVulnerability(enemy) {
             enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.74));
         }
         enemy.vulnStacks = stacks + 1;
-        // Full stack (4): kích hoạt 2s true damage window
-        if (enemy.vulnStacks === 4) {
+        // full stack -> 2s true dmg window. goliath: 6s cd between windows,
+        // otherwise stacks cycle back to 4 too fast on a long fight and DR
+        // stays off almost permanently
+        if (enemy.vulnStacks === 4 && (enemy.type !== 'goliath' || now >= (enemy._vulnTrueDmgCooldownEnd || 0))) {
             enemy.vulnTrueDmgEnd = now + 2000;
+            if (enemy.type === 'goliath') enemy._vulnTrueDmgCooldownEnd = now + 6000;
         }
     }
     // Reset lại thời gian 3 giây mỗi khi cộng dồn
@@ -1878,8 +1881,7 @@ function dealDamage(enemy, source) {
     // giây (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn
     // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
     const _hitSizeForBurst = totalDamage;
-    // Match Statistics: record the committed damage instance (pre-shield,
-    // matches _hitSizeForBurst above) under a best-effort source label.
+    // match stats: log this hit (pre-shield, same as _hitSizeForBurst)
     _recordStat(
         (isSentinel || isSpaceship) ? 'enemyDamage' : 'allyDamage',
         _classifyDamageSource(source, !(isSentinel || isSpaceship)),
@@ -1945,11 +1947,9 @@ function dealDamage(enemy, source) {
     // enemy-hit fallback would just stack on top of it.
     else if (window.AudioMgr && !source._noHitSfx) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
 
-    // Threshold Ward: mỗi 1 HP sát thương THẬT (đã trừ thẳng vào HP, không
-    // tính phần bị khiên hấp thụ) cấp lại 0.25 HP giá trị khiên. KHÔNG trần
-    // — AanSensei xác nhận muốn giữ nguyên độ mạnh thật của Goliath dù khiên
-    // có thể phình rất lớn qua trận dài; chỉ giới hạn con số HIỂN THỊ trên
-    // boss bar (xem js/render/enemy-goliath.js), không đụng tới cơ chế thật.
+    // Threshold Ward: every 1 real HP dmg taken (post-shield) regens 0.25
+    // shield. no cap on purpose, can balloon over a long fight — only cap
+    // the DISPLAY number in enemy-goliath.js's boss bar, not this
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hpDamageDealt > 0) {
         enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, _hpDamageDealt * 0.25);
     }

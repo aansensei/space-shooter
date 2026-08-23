@@ -886,13 +886,9 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // HP text — Goliath Alpha/Transforming: hp luôn = 1 (bất khả xâm phạm,
-    // số này vô nghĩa với người chơi), hiện damagePull (đang hút được bao
-    // nhiêu sát thương) thay vào đó cho có ý nghĩa hơn. Đang chạy chuỗi hiệu
-    // ứng chết thì ẩn hẳn số này (hp bị ghim = 1 suốt sequence, hiện "1" gây
-    // hiểu lầm) — mất luôn ngay đầu sequence, trước cả các hiệu ứng khác.
-    // True Form also skips this generic number — it gets its own HP readout
-    // on the top-of-screen boss bar (_drawGoliathBossBar) instead.
+    // hp text: goliath alpha/transforming is invuln so hp=1 always, show
+    // damagePull instead. hidden during death sequence (hp pinned=1, "1"
+    // is misleading) and during true_form (has its own boss bar readout)
     if (!(enemy.type === 'goliath' && (enemy._deathPhase || enemy.phase === 'true_form'))) {
         ctx.save();
         ctx.fillStyle = "white"; ctx.font = "14px Arial";

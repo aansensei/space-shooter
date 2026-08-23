@@ -1,13 +1,8 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
-// js/match-stats.js — Match Statistics panel (opened from the Game Over
-// screen). Pure UI: reads window._matchStats (populated during gameplay by
-// _recordStat() calls in js/config.js/entities.js/main.js) and renders it
-// as a sorted, tabbed list. Never mutates gameplay state.
+// js/match-stats.js — Match Statistics panel, opened from Game Over.
+// reads window._matchStats, pure UI, never touches gameplay state
 
-// Best-effort Vietnamese labels for the dynamic source strings _recordStat
-// gets called with elsewhere. Anything not listed here just falls back to
-// its English label — matches _classifyDamageSource's own "best effort,
-// never blocks gameplay" spirit.
+// vi labels for dynamic _recordStat source strings, falls back to english if missing
 const _MATCH_STATS_LABEL_VI = {
     'Skill D: Death Star': 'Chiêu D: Tử Long Tinh',
     'Skill D: Mark & Annihilate': 'Chiêu D: Đánh Dấu & Tiêu Diệt',
