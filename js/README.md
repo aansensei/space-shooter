@@ -283,13 +283,29 @@ The update loop in main.js advances the state machine: after 1500ms it
 transitions to "sweeping" for 1000ms and applies 999999999 damage to every
 enemy object intersecting the beam geometry.
 
-### Skill D (Cosmic Black Hole)
+### Skill D (Death Star: Draconic Annihilation)
 
-activateSkillD sets skillDCharging to true and records the activation timestamp.
-After 2000ms main.js spawns a blackHole object. Each frame the update loop
-pulls enemy positions toward blackHole.x and blackHole.y. Enemies within the
-center threshold radius receive 999999999 damage. Entities with the ccImmune
-flag are not displaced but are still destroyed on center contact.
+activateSkillD sets skillDCharging to true; after skillDChargeTime elapses
+updateSkillD (js/skills.js) spawns the deathStar object and pulls every
+targetable, non-CC-immune enemy toward it at a fixed speed. Center contact
+deals 999999999 damage (an instant kill) to normal enemies, or 30% MaxHP true
+damage per 400ms tick to CC-immune ones (dargruel/leviathan/goliath/egregor/
+marchosias-with-barrier/aegis-invulnerable). A separate Mark & Annihilate
+cycle runs every ~2s (1.5s telegraph), marking 3 targets and firing a
+piercing true-damage beam through each.
+
+Galactic Spaceships (window.skillDSpaceships) spawn from two independent
+triggers: any enemy death within radius of the Death Star (handleEnemyKill,
+js/entities.js), and — since 2026-08-23 — a Dominator+/Digiform escort check
+inside updateSkillD itself, which drops one spaceship the instant a
+dargruel/leviathan/goliath enters that same radius, then one more every
+1000ms for as long as one stays in range (state tracked on
+deathStar._domDetected/_domSpawnTimer, reset the moment none remain in
+range). Ships home on the current highest-HP enemy, fire true-damage bolts
+in flight, deal contact damage + apply Vulnerability on impact, fuse with a
+same-tier ship within 50px into a stronger tier, and receive the same
+ally-wide buffs Sentinels get (Blessing, Gaia Protection/Barrier, Lunar
+Aegis evade, Glory for Justice damage+fire rate) via updateSkillDSpaceships.
 
 ### Skill G (Tesla Matrix)
 

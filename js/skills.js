@@ -1307,6 +1307,33 @@ function updateSkillD(deltaTime) {
             }
         }
 
+        // Dominator+/Digiform escort: while a dargruel/leviathan/goliath is
+        // within the same spawn radius as the on-kill spaceship passive
+        // (js/entities.js handleEnemyKill), drop a spaceship every 1s -
+        // fires the instant one's first spotted, not waiting out the first
+        // full second. Resets the moment none are in range so re-entering
+        // fires immediately again too.
+        {
+            const _dsSpawnR = deathStar.size * SKILLD_CONTACT_MULT + 180;
+            const _domSpotted = enemies.some(e => (e.type === 'dargruel' || e.type === 'leviathan' || e.type === 'goliath')
+                && Math.hypot(e.x - deathStar.x, e.y - deathStar.y) <= _dsSpawnR);
+            if (_domSpotted) {
+                if (!deathStar._domDetected) {
+                    deathStar._domDetected = true;
+                    deathStar._domSpawnTimer = 1000;
+                    spawnSkillDSpaceship(deathStar.x, deathStar.y);
+                } else {
+                    deathStar._domSpawnTimer -= deltaTime;
+                    if (deathStar._domSpawnTimer <= 0) {
+                        deathStar._domSpawnTimer = 1000;
+                        spawnSkillDSpaceship(deathStar.x, deathStar.y);
+                    }
+                }
+            } else {
+                deathStar._domDetected = false;
+            }
+        }
+
         // Repeating mark -> laser cycle: every ~2s (1.5s telegraph + 2s CD
         // after firing) mark 3 targets (CC-immune ones first, since those
         // can't be pulled to the instant-kill center at all — otherwise the
@@ -2320,7 +2347,19 @@ function updateOnslaughtOrbs(deltaTime) {
         const dx = t.x - orb.x, dy = t.y - orb.y, d = Math.hypot(dx, dy);
         if (d < t.size / 2 + 8) {
             const missingHpBonus = Math.ceil((t.maxHp - t.hp) * 0.0075);
-            dealDamage(t, { damage: orb.baseDmg + missingHpBonus, _isOnslaughtOrb: true, _noHitSfx: true, _statSrc: 'Skill A: Onslaught' });
+            const _mainDmg = orb.baseDmg + missingHpBonus;
+            dealDamage(t, { damage: _mainDmg, _isOnslaughtOrb: true, _noHitSfx: true, _statSrc: 'Skill A: Onslaught' });
+            // small splash so it isn't dead weight against a crowd - other
+            // enemies near the impact take 40% of the same hit
+            const _splashDmg = Math.ceil(_mainDmg * 0.40);
+            for (const other of enemies) {
+                if (other === t) continue;
+                if (other.hp <= 0 || other._markedForDeath || other.inCoronation) continue;
+                if (other.type === 'abyssal_chain' || other.type === 'veilshroud_echo') continue;
+                if (Math.hypot(other.x - orb.x, other.y - orb.y) < 70 + (other.size || 0) / 2) {
+                    dealDamage(other, { damage: _splashDmg, _isOnslaughtOrb: true, _noHitSfx: true, _statSrc: 'Skill A: Onslaught' });
+                }
+            }
             createParticles(orb.x, orb.y, 8, '#ff6a2e', 2, 6);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
             window._onslaughtOrbs.splice(i, 1);

@@ -1838,9 +1838,9 @@
     <script src="js/offline.js?v=20260804c"></script>
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260823b"></script>
-    <script src="js/sigils.js?v=20260804b"></script>
-    <script src="js/entities.js?v=20260823l"></script>
-    <script src="js/skills.js?v=20260823g"></script>
+    <script src="js/sigils.js?v=20260823a"></script>
+    <script src="js/entities.js?v=20260823m"></script>
+    <script src="js/skills.js?v=20260823i"></script>
     <script src="js/render/core.js?v=20260823b"></script>
     <script src="js/render/fx.js?v=20260803d"></script>
     <script src="js/render/player.js?v=20260724c"></script>
@@ -2411,7 +2411,14 @@
                         }
                     } else if (id === 'mb-ch') {
                         if (!charging && !laserActive && !skillShiftActive) {
-                            charging = true; chargeStartTime = performance.now();
+                            const _now = performance.now();
+                            if (_hasBuff('dong_chay_luan_hoi')) {
+                                // Cycle of Flow: skip the charge phase entirely, same as the keyboard path
+                                if (_now >= laserCooldownEnd) _activateOverloadLaser(_now);
+                            } else {
+                                charging = true; chargeStartTime = _now;
+                                if (window.AudioMgr) window.AudioMgr.startCharging();
+                            }
                         }
                     } else if (id === 'mb-left') {
                         if (skillShiftActive) executeShiftTeleport('left');
