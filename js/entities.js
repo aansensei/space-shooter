@@ -186,12 +186,11 @@ function applyVulnerability(enemy) {
             enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.74));
         }
         enemy.vulnStacks = stacks + 1;
-        // full stack -> 2s true dmg window. goliath: 5s cd between windows,
-        // otherwise stacks cycle back to 4 too fast on a long fight and DR
-        // stays off almost permanently
+        // full stack -> 2.5s true dmg window. goliath: 5s cd, starts counting
+        // once the window ends (not at trigger) so it's a real dead gap
         if (enemy.vulnStacks === 4 && (enemy.type !== 'goliath' || now >= (enemy._vulnTrueDmgCooldownEnd || 0))) {
-            enemy.vulnTrueDmgEnd = now + 2000;
-            if (enemy.type === 'goliath') enemy._vulnTrueDmgCooldownEnd = now + 5000;
+            enemy.vulnTrueDmgEnd = now + 2500;
+            if (enemy.type === 'goliath') enemy._vulnTrueDmgCooldownEnd = enemy.vulnTrueDmgEnd + 5000;
         }
     }
     // Reset lại thời gian 3 giây mỗi khi cộng dồn
@@ -1371,6 +1370,7 @@ function dealDamage(enemy, source) {
 
     if (source.applySoulReaver) {
         enemy.soulReaver = true;
+        enemy.soulReaverEnd = performance.now() + 2000;
     }
 
     const currentTime = performance.now();
@@ -1465,7 +1465,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * 1.25);
     }
 
-    // True damage window: 4 stacks đủ → 2 giây tiếp theo bypass shield hoàn toàn
+    // vuln 4 stacks -> 2.5s window. hit still eats shield/barrier as normal,
+    // just gets +35% incoming dmg tacked on as true dmg (see _vulnTrueBonus
+    // near the end). no longer a full convert-to-true-dmg like before
     const inTrueDmgWindow = enemy.vulnTrueDmgEnd && performance.now() < enemy.vulnTrueDmgEnd;
 
     // Egregor, Collective Mind
@@ -1810,7 +1812,7 @@ function dealDamage(enemy, source) {
 
     // Tenacity Barrier (Thaelis): lớp khiên riêng, chặn MỌI đòn (kể cả piercing)
     // Ngoại lệ: isSpiritLaser và true damage xuyên qua
-    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0 && !source.isSpiritLaser && !source.isTrueDamage && !inTrueDmgWindow) {
+    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0 && !source.isSpiritLaser && !source.isTrueDamage) {
         const _absorbed = Math.min(totalDamage, enemy._tenacityBarrier);
         enemy._tenacityBarrier -= _absorbed;
         enemy._tenacityBarrier = Math.max(0, enemy._tenacityBarrier);
@@ -1827,7 +1829,7 @@ function dealDamage(enemy, source) {
 
     // Gaia Barrier (Sentinel): 99% absorbed by barrier, 1% through to body
     // True damage bypasses the barrier entirely
-    if (isSentinel && (enemy._gaiaBarrier || 0) > 0 && !source.isTrueDamage && !inTrueDmgWindow) {
+    if (isSentinel && (enemy._gaiaBarrier || 0) > 0 && !source.isTrueDamage) {
         const _gAbsorb = Math.min(Math.ceil(totalDamage * 0.99), enemy._gaiaBarrier);
         enemy._gaiaBarrier = Math.max(0, enemy._gaiaBarrier - _gAbsorb);
         if (enemy._gaiaBarrier <= 0) {
@@ -1848,7 +1850,7 @@ function dealDamage(enemy, source) {
         const _bbGain = Math.ceil(totalDamage * 0.75);
         enemy._boonBaneBarrier      = (enemy._boonBaneBarrier      || 0) + _bbGain;
         enemy._boonBaneBarrierTotal = (enemy._boonBaneBarrierTotal || 0) + _bbGain;
-        if (!source.isTrueDamage && !inTrueDmgWindow) {
+        if (!source.isTrueDamage) {
             const _bbAbsorb = Math.min(totalDamage, enemy._boonBaneBarrier);
             enemy._boonBaneBarrier = Math.max(0, enemy._boonBaneBarrier - _bbAbsorb);
             totalDamage -= _bbAbsorb;
@@ -1857,7 +1859,7 @@ function dealDamage(enemy, source) {
     }
 
     // Aegis Core post-Custos barrier: absorbs non-true hits, true damage pierces
-    if (enemy.type === 'aegis_core' && (enemy._aegisBarrier || 0) > 0 && !source.isTrueDamage && !inTrueDmgWindow) {
+    if (enemy.type === 'aegis_core' && (enemy._aegisBarrier || 0) > 0 && !source.isTrueDamage) {
         const _absorb = Math.min(totalDamage, enemy._aegisBarrier);
         enemy._aegisBarrier = Math.max(0, enemy._aegisBarrier - _absorb);
         totalDamage -= _absorb;
@@ -1867,7 +1869,7 @@ function dealDamage(enemy, source) {
     // Goliath Inevitable damage window: hit > 10% MaxHP (post-DR) opens a
     // 2s window capping every hit at 5% MaxHP; 1.5s CD after window ends
     // (CD cleared in updateGoliath). True damage bypasses this cap entirely.
-    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && !source.isTrueDamage && !inTrueDmgWindow) {
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && !source.isTrueDamage) {
         const _gNow = performance.now();
         if (enemy._inevitableWindowEnd && _gNow < enemy._inevitableWindowEnd) {
             totalDamage = Math.min(totalDamage, enemy.maxHp * 0.05);
@@ -1903,15 +1905,18 @@ function dealDamage(enemy, source) {
         enemy._slashVfx = { end: performance.now() + 350, angle: Math.random() * Math.PI * 2 };
     }
 
-    // Apply damage: true damage and true-damage-window both bypass shield
-    // (và barrier bên dưới — cùng quy tắc như Joker Marchosias's Arc Barrier).
+    // Apply damage: true damage bypasses shield/barrier entirely (same rule
+    // as Joker Marchosias's Arc Barrier). Vuln true-dmg window doesn't do
+    // that anymore — hit still eats shield/barrier, just gets a flat 35% of
+    // its damage tacked on separately as guaranteed true dmg.
     let _hpDamageDealt = 0;
-    if (source.isTrueDamage || inTrueDmgWindow) {
+    if (source.isTrueDamage) {
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;
         }
     } else {
+        const _vulnTrueBonus = inTrueDmgWindow ? Math.ceil(totalDamage * 0.35) : 0;
         if (enemy.type === 'goliath' && enemy.barrier > 0) {
             const damageToBarrier = Math.min(enemy.barrier, totalDamage);
             enemy.barrier -= damageToBarrier;
@@ -1921,6 +1926,7 @@ function dealDamage(enemy, source) {
         enemy.shield -= damageToShield;
         enemy.shield = Math.max(0, enemy.shield);
         totalDamage -= damageToShield;
+        totalDamage += _vulnTrueBonus;
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;

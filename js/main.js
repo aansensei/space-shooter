@@ -82,6 +82,7 @@ function playerTakesHit(attacker) {
                 && !(_curseTarget.type === 'marchosias' && _curseTarget.arcBarrier && _curseTarget.arcBarrier.hp > 0)
                 && !(_curseTarget.type === 'aegis_core' && _curseTarget.aegisInvulnerable)) {
                 _curseTarget.soulReaver = true;
+                _curseTarget.soulReaverEnd = performance.now() + 2000;
                 _curseTarget._orbRetaliationSlowEnd = performance.now() + 3000;
                 createParticles(_curseTarget.x, _curseTarget.y, 12, '#d800ff', 2, 5);
             }
@@ -1804,8 +1805,11 @@ function update(rawDeltaTime) {
 
                         if (b._muiTenVangCrit && enemy.hp > 0) {
                             dealDamage(enemy, { damage: b.damage * 3, percentDamage: (b.percentDamage || 0) * 3, isTrueDamage: true, _noBase60: true });
-                            enemy.vulnStacks = Math.min(4, (enemy.vulnStacks || 0) + 2);
-                            enemy.vulnEndTime = _hn + 5000;
+                            // +2 stacks via applyVulnerability (not a direct field set) so this
+                            // respects goliath's true-dmg-window cooldown like every other source
+                            applyVulnerability(enemy);
+                            applyVulnerability(enemy);
+                            enemy.vulnEndTime = Math.max(enemy.vulnEndTime || 0, _hn + 5000); // longer duration bonus, kept from before
                             enemy._rootEnd = _hn + 1000;
                             enemy._silencedEnd = _hn + 1000;
                             createParticles(enemy.x, enemy.y, 20, '#ffd700', 3, 8);

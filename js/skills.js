@@ -270,6 +270,7 @@ function updateDimensionalRifts(deltaTime) {
 
             // Apply Soul Reaver debuff
             enemy.soulReaver = true;
+            enemy.soulReaverEnd = performance.now() + 2000;
 
             // Soul Devourer DoT, direct HP subtraction, bypasses DR
             if (!enemy._riftDotTimer) enemy._riftDotTimer = 0;
@@ -2002,10 +2003,16 @@ function updateMarchosiasBlades(deltaTime) {
 // Soul Reaver DoT (Cắn nuốt linh hồn)
 // Kẻ địch có soulReaver bị trừ 10 base + 5% MaxHP mỗi 0.5 giây (bỏ qua khiên)
 function updateSoulReaverDoT(deltaTime) {
-    if (!gloryForJusticeActive) return; // chỉ active khi Glory for Justice bật
     const now = performance.now();
     for (const enemy of enemies) {
         if (!enemy.soulReaver) continue;
+        // expiry runs regardless of GfJ so the debuff (and its heal/shield
+        // reduction elsewhere) doesn't outlive its 2s duration on its own
+        if (enemy.soulReaverEnd && now > enemy.soulReaverEnd) {
+            enemy.soulReaver = false;
+            continue;
+        }
+        if (!gloryForJusticeActive) continue; // DoT tick itself only runs with GfJ on
         if (enemy.type === 'embryo') continue; // CC-immune, bypass all status DoTs
         if (!enemy.soulReaverDotTimer) enemy.soulReaverDotTimer = 0;
         enemy.soulReaverDotTimer -= deltaTime;
@@ -2281,9 +2288,9 @@ function updateShadowOrbs(deltaTime) {
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < enemy.size / 2 + (orb.isLarge ? 15 : 10)) {
                 orb.hitEnemies.add(enemy);
                 if (orb.isLarge) {
-                    dealDamage(enemy, { damage: 175, percentDamage: 0.08, applySoulReaver: true });
+                    dealDamage(enemy, { damage: 175, percentDamage: 0.08, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 } else {
-                    dealDamage(enemy, { damage: 75, percentDamage: 0.03, applySoulReaver: true });
+                    dealDamage(enemy, { damage: 75, percentDamage: 0.03, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 }
                 applyVulnerability(enemy); applyVulnerability(enemy);
                 createParticles(orb.x, orb.y, orb.isLarge ? 10 : 6, '#4fc3ff', 2, 6);
@@ -2311,7 +2318,7 @@ function updateOnslaughtOrbs(deltaTime) {
         const dx = t.x - orb.x, dy = t.y - orb.y, d = Math.hypot(dx, dy);
         if (d < t.size / 2 + 8) {
             const missingHpBonus = Math.ceil((t.maxHp - t.hp) * 0.0075);
-            dealDamage(t, { damage: orb.baseDmg + missingHpBonus, _isOnslaughtOrb: true });
+            dealDamage(t, { damage: orb.baseDmg + missingHpBonus, _isOnslaughtOrb: true, _noHitSfx: true, _statSrc: 'Skill A: Onslaught' });
             createParticles(orb.x, orb.y, 8, '#ff6a2e', 2, 6);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
             window._onslaughtOrbs.splice(i, 1);
