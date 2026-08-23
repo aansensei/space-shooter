@@ -119,9 +119,9 @@ function updateSkillA(deltaTime) {
                 if (orb._pierceHits.has(_pe)) continue;
                 if (Math.hypot(_pe.x - orb.x, _pe.y - orb.y) < _pe.size / 2 + orb.size) {
                     orb._pierceHits.add(_pe);
-                    dealDamage(_pe, { damage: 200, percentDamage: 0.20, _noHitSfx: true });
+                    dealDamage(_pe, { damage: 200, percentDamage: 0.20, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                     // Sát thương CHUẨN (true damage) thêm: 100 base + 15% HP đã mất của mục tiêu
-                    if (_pe.hp > 0) dealDamage(_pe, { damage: 100 + Math.ceil((_pe.maxHp - _pe.hp) * 0.15), isTrueDamage: true, _noHitSfx: true });
+                    if (_pe.hp > 0) dealDamage(_pe, { damage: 100 + Math.ceil((_pe.maxHp - _pe.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                     spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 8, percentDamage: 0.020 });
                     addExplosion(orb.x, orb.y, 20, 'cyan');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
@@ -148,9 +148,9 @@ function updateSkillA(deltaTime) {
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
                 const _preTotal = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0);
-                dealDamage(orb.target, { damage: 200, percentDamage: 0.20, _noHitSfx: true });
+                dealDamage(orb.target, { damage: 200, percentDamage: 0.20, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                 // Sát thương CHUẨN (true damage) thêm: 100 base + 15% HP đã mất của mục tiêu
-                if (orb.target.hp > 0) dealDamage(orb.target, { damage: 100 + Math.ceil((orb.target.maxHp - orb.target.hp) * 0.15), isTrueDamage: true, _noHitSfx: true });
+                if (orb.target.hp > 0) dealDamage(orb.target, { damage: 100 + Math.ceil((orb.target.maxHp - orb.target.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                 const _didDmg = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0) < _preTotal;
                 orb.target.isTargetedByA = false;
 
@@ -1249,7 +1249,7 @@ function updateSkillD(deltaTime) {
         deathStar.activeTime += deltaTime;
         if (deathStar.size < deathStar.maxSize) deathStar.size += 1 * dt;
 
-        const pullSpeed = 4.2; // -30% vs the original 6
+        const pullSpeed = 5.25; // 4.2 (-30% vs original 6) + a later +25% pass
         // Contact radius matches the Death Star's actual visible outer edge
         // (SKILLD_CONTACT_MULT, js/config.js — keep in sync with the base
         // disc drawn at deathStar.size * 2.5 scaled by DS_SCALE = 2.0/2.8 in
@@ -1481,11 +1481,11 @@ function updateSkillDSpaceships(deltaTime) {
             if (ship.shootTimer <= 0 && dist > ship.size / 2 + ship.target.size / 2) {
                 ship.shootTimer = 250;
                 window.skillDBolts.push({ x1: ship.x, y1: ship.y, x2: ship.target.x, y2: ship.target.y, life: 1.0 });
-                dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_BOLT_DMG * mult), isTrueDamage: true });
+                dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_BOLT_DMG * mult), isTrueDamage: true, _statSrc: 'Skill D: Galactic Spaceships' });
             }
 
             if (dist < ship.size / 2 + ship.target.size / 2) {
-                dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_CONTACT_DMG * mult), percentDamage: SKILLD_SHIP_BASE_CONTACT_PCT * mult, isTrueDamage: true });
+                dealDamage(ship.target, { damage: Math.round(SKILLD_SHIP_BASE_CONTACT_DMG * mult), percentDamage: SKILLD_SHIP_BASE_CONTACT_PCT * mult, isTrueDamage: true, _statSrc: 'Skill D: Galactic Spaceships' });
                 applyVulnerability(ship.target);
                 addExplosion(ship.x, ship.y, ship.size * 0.8, ship.color || '#00ffff');
                 window.skillDSpaceships.splice(i, 1);
@@ -1609,7 +1609,7 @@ function activateSkillG() {
 
 function endSkillG() {
     skillGActive = false;
-    const explosionProps = { damage: 20, percentDamage: 0.09 };
+    const explosionProps = { damage: 20, percentDamage: 0.09, _statSrc: 'Skill G: Tesla Coil' };
     const explosionRadius = ENERGY_ORB_SIZE * 5;
 
     energyOrbs.forEach(orb => {
@@ -1740,7 +1740,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 
                         linksProcessed.add(orb.linkedTo.id);
                     } else if (!energyOrbs.includes(orb2)) {
-                        const explosionProps = { damage: 10, percentDamage: 0.06 };
+                        const explosionProps = { damage: 10, percentDamage: 0.06, _statSrc: 'Skill G: Tesla Coil' };
                         const explosionRadius = orb.size * 5;
                         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                         enemies.forEach(enemy => {
@@ -1767,7 +1767,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     createParticles(orb.x, orb.y, 10, '#00e5ff', 2, 5);
                     orbsToDestroy.add(orb);
                 } else {
-                    const explosionProps = { damage: 10, percentDamage: 0.06 };
+                    const explosionProps = { damage: 10, percentDamage: 0.06, _statSrc: 'Skill G: Tesla Coil' };
                     const explosionRadius = orb.size * 5;
                     addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                     enemies.forEach(enemy => {
@@ -1878,7 +1878,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
 
         if (coil.hp <= 0) {
             const _coilDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
-            const explosionProps = { damage: 20 * _coilDmgMult, percentDamage: 0.15 * _coilDmgMult };
+            const explosionProps = { damage: 20 * _coilDmgMult, percentDamage: 0.15 * _coilDmgMult, _statSrc: 'Skill G: Tesla Coil' };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
@@ -1976,7 +1976,7 @@ function updateMarchosiasBlades(deltaTime) {
         // Hit player
         if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.hitRadius) {
             blade.hitPlayer = true;
-            playerTakesHit();
+            playerTakesHit({ type: 'marchosias' });
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', blade.x, blade.y);
         }
         // Hit sentinel, damage scales down with number of sentinels already hit

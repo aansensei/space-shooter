@@ -159,6 +159,84 @@ function _walpurgisHealShieldMult() { return 1 + 0.05 * _walpurgisStacks(); }
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
 
+// Match Statistics (reset in startGame): cumulative per-source totals shown
+// on the post-game stats screen. allyDamage/enemyDamage map a human-readable
+// source label -> cumulative damage dealt; lifeLoss maps a source label -> a
+// count of lives lost to it. amount defaults to 1 so lifeLoss call sites
+// (which count events, not damage) don't need to pass it explicitly.
+window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
+function _recordStat(category, label, amount) {
+    const bucket = window._matchStats[category];
+    const amt = amount === undefined ? 1 : amount;
+    if (!bucket || !amt) return;
+    bucket[label] = (bucket[label] || 0) + amt;
+}
+// Best-effort human-readable label for a dealDamage() source object, used
+// only for the Match Statistics screen — never gates gameplay. Checks the
+// most common existing ad-hoc flags already used elsewhere in the codebase
+// first; call sites with no distinguishing flag can set source._statSrc
+// directly. Anything still unrecognized falls into "Other" so each tab's
+// percentages still sum to 100%.
+const _BULLET_TYPE_LABELS = {
+    player_auto: 'Player Auto-Fire', player_charged: 'Player Charged Shot',
+    sentinel_auto: 'Sentinel Auto-Fire', sentinel_special: 'Sentinel Special Shot',
+};
+function _classifyDamageSource(source, isAllyDealt) {
+    if (!source) return 'Other';
+    if (source._statSrc) return source._statSrc;
+    if (source.type && _BULLET_TYPE_LABELS[source.type]) return _BULLET_TYPE_LABELS[source.type];
+    if (isAllyDealt) {
+        if (source._isSkillD) return 'Skill D: Death Star';
+        if (source.isChainLightning) return 'Chain Lightning';
+        if (source.isTeslaDot) return 'Skill G: Tesla Coil';
+        if (source.isSpiritLaser) return 'Skill S: Remembrance Spirit';
+        if (source._isOnslaughtOrb) return 'Skill A: Onslaught';
+        if (source._yogExplosion) return 'Yog-Sothoth Domain';
+        if (source._isDtuDot) return 'Dimensional Rift';
+        if (source._isNocToiDot) return 'Soul Devourer';
+        if (source._isSthDot) return 'Solar Flare';
+        if (source._boonBaneBacklash) return 'Boon & Bane';
+        if (source._isSlashVfx) return 'Blade Arc';
+        if (source.isPiercing && source.isTrueDamage) return 'Skill D: Mark & Annihilate';
+        return 'Other';
+    }
+    if (source._vanguardTag) {
+        const tag = source._vanguardTag;
+        if (tag.startsWith('bsm_') || tag.startsWith('blt_')) return 'Enemy Bullet';
+        if (tag.startsWith('chain_')) return 'Enemy Chain Lightning';
+        if (tag.startsWith('veil_')) return 'Veilshroud';
+        return 'Boss Attack';
+    }
+    return 'Other';
+}
+
+// Human-readable enemy type name, shared by _classifyAttacker below and
+// anywhere else a raw enemy.type needs a display label.
+const _ENEMY_TYPE_LABELS = {
+    goliath: 'Goliath', leviathan: 'Leviathan', egregor: 'Egregor', dargruel: 'Dargruel',
+    marchosias: 'Marchosias', veilshroud: 'Veilshroud', veilshroud_echo: 'Veilshroud',
+    aegis_core: 'Aegis Core', thaelis: 'Thaelis', apostle: 'Apostle', embryo: 'Embryo',
+    abyssal_chain: 'Abyssal Chain', normal: 'Normal Enemy',
+};
+function _enemyTypeLabel(type) {
+    if (_ENEMY_TYPE_LABELS[type]) return _ENEMY_TYPE_LABELS[type];
+    if (!type) return 'Unknown';
+    // Fallback for any enemy.type not in the map above — turn a raw
+    // snake_case identifier like "marchosias_minion" into "Marchosias
+    // Minion" instead of leaking the internal variable-style string as-is.
+    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+// Best-effort label for the Match Statistics "Lives Lost" tab — mirrors
+// _classifyDamageSource's tolerance for missing/generic data.
+function _classifyAttacker(attacker) {
+    if (!attacker) return 'Unknown';
+    if (attacker.type && attacker.type.startsWith('enemy_bullet')) {
+        return (attacker.ownerRef && attacker.ownerRef.type) ? _enemyTypeLabel(attacker.ownerRef.type) + ' Bullet' : 'Enemy Bullet';
+    }
+    if (attacker.type) return _enemyTypeLabel(attacker.type);
+    return 'Unknown';
+}
+
 // Sigil System state (reset in startGame)
 window._sigilPool = [];
 window._sigilRerollsLeft = 2;

@@ -66,7 +66,7 @@ canvas {
 
 #mainMenuBtn {
     position: fixed;
-    top: calc(50% + 113px);
+    top: calc(50% + 208px);
     left: 50%;
     transform: translateX(-50%);
     padding: 11px 46px;
@@ -87,6 +87,37 @@ canvas {
 }
 
 #mainMenuBtn:hover {
+    background: rgba(16, 5, 4, 0.93);
+    border-color: rgba(175, 118, 26, 0.68);
+    box-shadow: 0 0 22px rgba(118, 46, 8, 0.42), inset 0 0 10px rgba(0,0,0,0.36);
+    color: rgba(208, 176, 105, 0.95);
+}
+
+/* Same size as #mainMenuBtn, sits above Play Again/Main Menu. */
+#matchStatsBtn {
+    position: fixed;
+    top: calc(50% + 78px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 11px 46px;
+    font-size: 15px;
+    letter-spacing: 4px;
+    font-family: 'Cinzel', serif;
+    cursor: pointer;
+    z-index: 400;
+    background: rgba(5, 2, 2, 0.80);
+    color: rgba(172, 144, 82, 0.80);
+    border: 1px solid rgba(140, 92, 18, 0.44);
+    border-radius: 2px;
+    box-shadow: 0 0 12px rgba(75, 28, 5, 0.28), inset 0 0 10px rgba(0,0,0,0.52);
+    transition: all 0.3s ease;
+    pointer-events: all;
+    touch-action: manipulation;
+    min-width: 230px;
+    display: none;
+}
+
+#matchStatsBtn:hover {
     background: rgba(16, 5, 4, 0.93);
     border-color: rgba(175, 118, 26, 0.68);
     box-shadow: 0 0 22px rgba(118, 46, 8, 0.42), inset 0 0 10px rgba(0,0,0,0.36);

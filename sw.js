@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v40';
+const CACHE_VERSION = 'v48';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -25,6 +25,7 @@ const CORE_FILES = [
     'js/config.js',
     'js/entities.js',
     'js/input.js',
+    'js/match-stats.js',
     'js/main.js',
     'js/pixi-renderer.js',
     'js/sigils.js',
