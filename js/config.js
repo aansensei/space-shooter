@@ -159,11 +159,8 @@ function _walpurgisHealShieldMult() { return 1 + 0.05 * _walpurgisStacks(); }
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
 
-// Match Statistics (reset in startGame): cumulative per-source totals shown
-// on the post-game stats screen. allyDamage/enemyDamage map a human-readable
-// source label -> cumulative damage dealt; lifeLoss maps a source label -> a
-// count of lives lost to it. amount defaults to 1 so lifeLoss call sites
-// (which count events, not damage) don't need to pass it explicitly.
+// match stats, reset in startGame. label -> cumulative total (damage
+// maps) or count (lifeLoss). amount defaults to 1 for lifeLoss calls
 window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
 function _recordStat(category, label, amount) {
     const bucket = window._matchStats[category];
@@ -171,12 +168,8 @@ function _recordStat(category, label, amount) {
     if (!bucket || !amt) return;
     bucket[label] = (bucket[label] || 0) + amt;
 }
-// Best-effort human-readable label for a dealDamage() source object, used
-// only for the Match Statistics screen — never gates gameplay. Checks the
-// most common existing ad-hoc flags already used elsewhere in the codebase
-// first; call sites with no distinguishing flag can set source._statSrc
-// directly. Anything still unrecognized falls into "Other" so each tab's
-// percentages still sum to 100%.
+// label a dealDamage() source for stats only, doesn't touch gameplay.
+// checks existing flags first, falls back to source._statSrc, else "Other"
 const _BULLET_TYPE_LABELS = {
     player_auto: 'Player Auto-Fire', player_charged: 'Player Charged Shot',
     sentinel_auto: 'Sentinel Auto-Fire', sentinel_special: 'Sentinel Special Shot',
@@ -210,8 +203,7 @@ function _classifyDamageSource(source, isAllyDealt) {
     return 'Other';
 }
 
-// Human-readable enemy type name, shared by _classifyAttacker below and
-// anywhere else a raw enemy.type needs a display label.
+// enemy.type -> display name, used by _classifyAttacker + wherever else
 const _ENEMY_TYPE_LABELS = {
     goliath: 'Goliath', leviathan: 'Leviathan', egregor: 'Egregor', dargruel: 'Dargruel',
     marchosias: 'Marchosias', veilshroud: 'Veilshroud', veilshroud_echo: 'Veilshroud',
@@ -221,13 +213,10 @@ const _ENEMY_TYPE_LABELS = {
 function _enemyTypeLabel(type) {
     if (_ENEMY_TYPE_LABELS[type]) return _ENEMY_TYPE_LABELS[type];
     if (!type) return 'Unknown';
-    // Fallback for any enemy.type not in the map above — turn a raw
-    // snake_case identifier like "marchosias_minion" into "Marchosias
-    // Minion" instead of leaking the internal variable-style string as-is.
+    // not in map -> just titlecase the snake_case type instead of raw dump
     return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
-// Best-effort label for the Match Statistics "Lives Lost" tab — mirrors
-// _classifyDamageSource's tolerance for missing/generic data.
+// attacker -> label for the Lives Lost tab
 function _classifyAttacker(attacker) {
     if (!attacker) return 'Unknown';
     if (attacker.type && attacker.type.startsWith('enemy_bullet')) {

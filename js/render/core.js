@@ -1140,8 +1140,7 @@ function draw(deltaTime) {
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
-        // Screen-space boss bar (top-center) — separate pass so it always
-        // sits above everything else, unaffected by Goliath's own transform.
+        // screen-space, separate pass so it's unaffected by goliath's own transform
         if (typeof _drawGoliathBossBar === 'function') {
             enemies.forEach(e => { if (e.type === 'goliath') _drawGoliathBossBar(e); });
         }
