@@ -65,6 +65,7 @@ function _applyArcBarrierBodyHeal(enemy, dmg) {
 function _triggerArcBarrierBreak(enemy) {
     const _fullCycle = (enemy._barrierSwordsThisCycle || 0) >= 4;
     if (_fullCycle) {
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
         addExplosion(enemy.x, enemy.y, enemy.size * 1.4, '#00ff88');
         addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#aaffd8');
         createParticles(enemy.x, enemy.y, 28, '#00ff88', 3, 12);
@@ -2349,6 +2350,7 @@ function updateLeviathan(enemy, deltaTime) {
                 // pool, absorbed like normal — not another Iron Body).
                 enemy._afoBreakGraceEnd = now + 1000;
                 enemy.shield = (enemy.shield || 0) + enemy.maxHp * 0.50;
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
                 addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
                 for (let i = 0; i < 40; i++) {
                     const a = Math.random() * Math.PI * 2;
@@ -2876,6 +2878,7 @@ function _goliathMarchosiasBodyHeal(enemy, dmg) {
     }
 }
 function _goliathMarchosiasBarrierBreak(enemy, s) {
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
     addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#ff3344');
     createParticles(enemy.x, enemy.y, 24, '#ff3344', 3, 10);
     enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 5;
@@ -3417,7 +3420,7 @@ function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
         if (t >= GOLIATH_DEATH_CRUMBLE_DUR) {
             enemy.hp = 0;
             enemy._markedForDeath = true;
-            if (window.AudioMgr) window.AudioMgr.stopGoliathIdle();
+            if (window.AudioMgr) { window.AudioMgr.stopGoliathIdle(); window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y); }
         }
     }
 }
@@ -3747,6 +3750,7 @@ function updateApostleCoronation(enemy, deltaTime) {
             );
         }
         if (enemy.coronationTimer >= enemy.coronationDuration) {
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
             addExplosion(enemy.x, enemy.y, enemy.size * 3, '#ffd700');
             createParticles(enemy.x, enemy.y, 40, '#ffd700', 4, 14);
             _spawnCoronationResult(enemy);

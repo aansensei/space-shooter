@@ -8,7 +8,7 @@ const SIGIL_DEFS = {
             { id: 'tien_phong', name: 'Vanguard', type: 'ATK', typeC: '#ef4444',
               desc: '50% chance for player & sentinel bullets to pierce enemies, +50% damage. Each pierce-chain hit: +30% dmg per chain, plus 3% of the enemy\'s Max HP as true damage (max 4 chains).' },
             { id: 'khat_chien', name: 'Onslaught', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can fire a fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit\'s damage + 0.75% of the target\'s lost HP (300ms CD).' },
+              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can fire a fireball at whichever enemy the previous landed hit struck, dealing 100 + 15% of that hit\'s damage + 0.75% of the target\'s lost HP, plus 40% of that same hit as splash to other enemies within 70px (300ms CD).' },
         ]
     },
     taurus: {
@@ -125,7 +125,7 @@ const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
 const SIGIL_I18N_VI = {
     aries: { name: 'Bạch Dương', element: 'Hỏa', buffs: {
         tien_phong: { name: 'Tiên Phong', desc: "50% cơ hội đạn của người chơi & Vệ Binh xuyên qua kẻ địch, +50% sát thương. Mỗi lần xuyên chuỗi: +30% sát thương mỗi chuỗi, cộng thêm 3% Max HP của kẻ địch dưới dạng sát thương thật (tối đa 4 chuỗi)." },
-        khat_chien: { name: 'Khát Chiến', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP đã mất của mục tiêu (hồi chiêu 300ms).' },
+        khat_chien: { name: 'Khát Chiến', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể bắn 1 quả cầu lửa vào kẻ địch bị đòn trước đó đánh trúng, gây 100 + 15% sát thương của đòn đó + 0.75% HP đã mất của mục tiêu, cộng thêm 40% sát thương đó lan sang kẻ địch khác trong bán kính 70px (hồi chiêu 300ms).' },
     }},
     taurus: { name: 'Kim Ngưu', element: 'Thổ', buffs: {
         thanh_dong: { name: 'Vương Cung Thành Trì', desc: 'Mỗi 5s nhận 1 lớp Iron Body (tối đa 3 lớp): hấp thụ 1 đòn đánh vào người chơi hoặc 1 lần trói/câm lặng thường. Hiển thị dưới dạng vòng lục giác xanh lá quanh tàu.' },
