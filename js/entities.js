@@ -2022,12 +2022,12 @@ function dealDamage(enemy, source) {
 
     // Gate of Babylon (cong_babylon): every landed ally hit (except Skill D/F,
     // and not a blade's own impact) can open gates around the player and
-    // fire a fan of 14 piercing blades, 2.5s CD. Timeline/collision runs in
+    // fire a fan of 14 piercing blades, 1.5s CD. Timeline/collision runs in
     // updateGateOfBabylon (js/skills.js); this just spawns the sequence.
     if (_hasBuff('cong_babylon') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isGobBlade && !source._isYuushaParty && totalDamage > 0) {
         const _gobNow = performance.now();
         if (_gobNow >= (window._gobCooldownEnd || 0)) {
-            window._gobCooldownEnd = _gobNow + 2500;
+            window._gobCooldownEnd = _gobNow + 1500;
             window._gobSequences = window._gobSequences || [];
             window._gobSequences.push(_createGobSequence(_gobNow));
             if (window.AudioMgr) window.AudioMgr.playSfxAt('gate-of-babylon', player.x, player.y);
@@ -2038,7 +2038,7 @@ function dealDamage(enemy, source) {
     // spear's own impact) summons a phantom double of the player at its
     // current position that hurls a giant piercing spear toward whichever
     // enemy is the current highest priority (Dominator/Digiform first, else
-    // highest HP), locked in at trigger time, 0.5s CD. Timeline/collision
+    // highest HP), locked in at trigger time, 1s CD. Timeline/collision
     // runs in updateEnumaElish (js/skills.js).
     if (_hasBuff('enuma_elish') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isEeSpear && !source._isYuushaParty && totalDamage > 0) {
         window._eeHitCounter = (window._eeHitCounter || 0) + 1;
@@ -2047,7 +2047,7 @@ function dealDamage(enemy, source) {
             window._eeHitCounter = 0;
             const _eeTarget = _eeFindPriorityTarget();
             if (_eeTarget) {
-                window._eeCooldownEnd = _eeNow + 500;
+                window._eeCooldownEnd = _eeNow + 1000;
                 window._eeSequences = window._eeSequences || [];
                 window._eeSequences.push(_createEeSequence(_eeNow, _eeTarget));
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('enuma-elish-charge', player.x, player.y);

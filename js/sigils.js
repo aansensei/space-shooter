@@ -6,7 +6,7 @@ const SIGIL_DEFS = {
         name: 'Aries', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'cong_babylon', name: 'Gate of Babylon', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can open gates around the player and fire 14 blades in a fan, each piercing through every enemy in its path and dealing 50 + 4% EP as true damage per enemy hit (2.5s CD).' },
+              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can open gates around the player and fire 14 blades in a fan, each piercing through every enemy in its path and dealing 50 + 4% EP as true damage per enemy hit (1.5s CD).' },
             { id: 'enuma_elish', name: 'Enuma Elish', type: 'ATK', typeC: '#ef4444',
               desc: 'Every 30 landed hits from any allied source (except Skill D and Skill F) summons a phantom double of the player that hurls a massive spear straight through the highest-priority enemy\'s direction (Dominator/Digiform first, otherwise highest current HP), piercing every enemy in the line: each one hit takes 15% of its own Max HP as true damage, capped at 16,000 (0.5s CD).' },
         ]
