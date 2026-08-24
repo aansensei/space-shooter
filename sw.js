@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v86';
+const CACHE_VERSION = 'v87';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -91,13 +91,23 @@ self.addEventListener('activate', (event) => {
 // Settings download) fills in the cache over time too. Only same-origin GET
 // requests are intercepted; everything else (analytics, POSTs, etc.) passes
 // straight through untouched.
+//
+// ignoreSearch matters here: CORE_FILES/SFX_FILES (both this file's install
+// step and offline.js's explicit download) cache every JS file under its
+// bare path with no `?v=` query, but every real page request carries the
+// current cache-busting query string. Without ignoreSearch, those requests
+// never match the precached entry - the "Offline Package" download would
+// silently fail to cover the app once truly offline, cache-missing every
+// core script. CACHE_VERSION already forces a full cache wipe+reinstall on
+// every real content change, so matching regardless of query string here
+// doesn't risk serving stale content across a version bump.
 self.addEventListener('fetch', (event) => {
     const req = event.request;
     if (req.method !== 'GET') return;
     if (!req.url.startsWith(self.location.origin)) return;
 
     event.respondWith(
-        caches.match(req).then((cached) => {
+        caches.match(req, { ignoreSearch: true }).then((cached) => {
             if (cached) return cached;
             return fetch(req).then((res) => {
                 if (res && res.ok) {
