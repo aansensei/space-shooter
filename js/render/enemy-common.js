@@ -1407,11 +1407,20 @@ function _drawCoronationEffect(enemy) {
 // motion) is untouched and still fully live.
 const _apostleBodySprites = {};
 const _apostleRingSprites = {};
+// Baked oversized (real apostle radius is enemy.size directly, 20-30) so
+// every blit downscales instead of upscaling a low-res bitmap - upscaling a
+// too-small bake is what caused Thaelis/Veilshroud's jagged edges, fixed
+// the same way here before it could bite apostle too. OVERSAMPLE scales
+// every absolute (non-r-relative) pixel value baked below so the typical
+// real size still matches the original numbers after downscaling.
+const _APOSTLE_REF_R = 60;
+const _APOSTLE_TYPICAL_R = 25;
+const _APOSTLE_OVERSAMPLE = _APOSTLE_REF_R / _APOSTLE_TYPICAL_R;
 function _getApostleBodySprite(hueBucket, glowOn) {
     const key = hueBucket + '_' + (glowOn ? 1 : 0);
     let spr = _apostleBodySprites[key];
     if (spr) return spr;
-    const r = 40; // baked at a fixed reference radius, scaled at blit time
+    const r = _APOSTLE_REF_R;
     const pad = Math.ceil(r * 1.3);
     const size = pad * 2;
     const off = document.createElement('canvas');
@@ -1423,20 +1432,21 @@ function _getApostleBodySprite(hueBucket, glowOn) {
     const darkColor = `hsl(${hue},90%,25%)`;
     if (glowOn) {
         c.strokeStyle = `hsla(${hue},100%,65%,${0.45 * 0.75})`;
-        c.lineWidth = 2;
-        c.shadowColor = glowColor; c.shadowBlur = 14;
+        c.lineWidth = 2 * _APOSTLE_OVERSAMPLE;
+        c.shadowColor = glowColor; c.shadowBlur = 14 * _APOSTLE_OVERSAMPLE;
         c.beginPath();
+        const rimR = r + 3 * _APOSTLE_OVERSAMPLE;
         for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2;
-            i === 0 ? c.moveTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3))
-                    : c.lineTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3));
+            i === 0 ? c.moveTo(Math.cos(a) * rimR, Math.sin(a) * rimR)
+                    : c.lineTo(Math.cos(a) * rimR, Math.sin(a) * rimR);
         }
         c.closePath(); c.stroke();
         c.shadowBlur = 0;
     }
     c.fillStyle = '#181822';
     c.strokeStyle = '#3a3a4a';
-    c.lineWidth = 2.5;
+    c.lineWidth = 2.5 * _APOSTLE_OVERSAMPLE;
     c.beginPath();
     for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2;
@@ -1454,7 +1464,7 @@ function _getApostleBodySprite(hueBucket, glowOn) {
         c.lineTo(r * 1.1, r * 0.15);
         c.lineTo(r * 0.5, r * 0.25);
         c.closePath(); c.fill();
-        c.strokeStyle = darkColor; c.lineWidth = 2; c.stroke();
+        c.strokeStyle = darkColor; c.lineWidth = 2 * _APOSTLE_OVERSAMPLE; c.stroke();
         c.fillStyle = glowColor;
         c.fillRect(r * 0.85, -r * 0.05, r * 0.2, r * 0.1);
         c.restore();
@@ -1466,7 +1476,7 @@ function _getApostleBodySprite(hueBucket, glowOn) {
 function _getApostleRingSprite(hueBucket) {
     let spr = _apostleRingSprites[hueBucket];
     if (spr) return spr;
-    const r = 40;
+    const r = _APOSTLE_REF_R;
     const pad = Math.ceil(r * 0.8);
     const size = pad * 2;
     const off = document.createElement('canvas');
@@ -1479,7 +1489,7 @@ function _getApostleRingSprite(hueBucket) {
         const nextA = ((i + 1) / 6) * Math.PI * 2;
         const nx = Math.cos(nextA) * r * 0.72, ny = Math.sin(nextA) * r * 0.72;
         c.strokeStyle = `hsla(${hueBucket},100%,70%,0.30)`;
-        c.lineWidth = 1;
+        c.lineWidth = 1 * _APOSTLE_OVERSAMPLE;
         c.beginPath(); c.moveTo(lx, ly); c.lineTo(nx, ny); c.stroke();
     }
     spr = { canvas: off, pad, r };
