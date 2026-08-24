@@ -2,6 +2,111 @@
 // render/enemy-boss-thaelis.js — extracted from render.js (Apostle/Thaelis boss
 // visuals). Calls drawPolygon() from fx.js.
 
+// Static-bitmap cache for Thaelis's 2 counter-rotating polygons and its
+// center core - none of them ever change shape or color (unlike the
+// apostle, Thaelis has no HP-driven hue), only their rotation animates, so
+// each bakes once as a single global bitmap and gets ctx.rotate() applied
+// live at blit time. Halo, the 6 orbiting dots, and the low-HP glow stay
+// live (see _drawThaelisOrbitDots below for why the dots specifically
+// can't use this trick); the Tenacity Barrier ring stays live since it
+// tracks real per-instance shield state, not a time cycle.
+let _thaelisOuterPolySprite = null, _thaelisInnerPolySprite = null, _thaelisCoreSprite = null;
+// Baked oversized (real Thaelis radius maxes out around 75px - baseSize up
+// to 30, size = baseSize*5, r = size/2) so every blit downscales instead of
+// upscaling a low-res bitmap, which is what caused the jagged/blurry edges.
+// _THAELIS_OVERSAMPLE scales every ABSOLUTE (non-r-relative) pixel value
+// baked below - line widths, shadowBlur radii, dot sizes, small fixed
+// offsets - by the same ratio the reference radius was inflated by, so a
+// Thaelis at the typical real size (~62.5, the midpoint of 50-75) comes out
+// pixel-identical to the original un-cached numbers after downscaling.
+const _THAELIS_REF_R = 150;
+const _THAELIS_TYPICAL_R = 62.5;
+const _THAELIS_OVERSAMPLE = _THAELIS_REF_R / _THAELIS_TYPICAL_R;
+function _bakePolygonLocal(c, radius, sides, color1, color2) {
+    const grad = c.createRadialGradient(0, 0, radius * 0.15, 0, 0, radius);
+    grad.addColorStop(0, color1);
+    grad.addColorStop(1, color2);
+    c.fillStyle = grad;
+    c.strokeStyle = color1; c.lineWidth = 2 * _THAELIS_OVERSAMPLE; c.globalAlpha = 0.6;
+    c.beginPath();
+    for (let i = 0; i < sides; i++) {
+        const angle = (i / sides) * Math.PI * 2;
+        const px = radius * Math.cos(angle), py = radius * Math.sin(angle);
+        i === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+    }
+    c.closePath(); c.fill();
+    c.globalAlpha = 1;
+    c.stroke();
+}
+function _getThaelisOuterPolySprite() {
+    if (_thaelisOuterPolySprite) return _thaelisOuterPolySprite;
+    const pad = Math.ceil(_THAELIS_REF_R * 1.2);
+    const off = document.createElement('canvas');
+    off.width = off.height = pad * 2;
+    const c = off.getContext('2d');
+    c.translate(pad, pad);
+    _bakePolygonLocal(c, _THAELIS_REF_R, 8, '#FFD700', '#FFA500');
+    _thaelisOuterPolySprite = { canvas: off, pad, r: _THAELIS_REF_R };
+    return _thaelisOuterPolySprite;
+}
+function _getThaelisInnerPolySprite() {
+    if (_thaelisInnerPolySprite) return _thaelisInnerPolySprite;
+    const rr = _THAELIS_REF_R * 0.55;
+    const pad = Math.ceil(rr * 1.2);
+    const off = document.createElement('canvas');
+    off.width = off.height = pad * 2;
+    const c = off.getContext('2d');
+    c.translate(pad, pad);
+    _bakePolygonLocal(c, rr, 8, '#FFA500', '#FFD700');
+    _thaelisInnerPolySprite = { canvas: off, pad, r: _THAELIS_REF_R }; // scaled against the OUTER reference radius so both layers share one scale factor
+    return _thaelisInnerPolySprite;
+}
+function _getThaelisCoreSprite() {
+    if (_thaelisCoreSprite) return _thaelisCoreSprite;
+    const rr = _THAELIS_REF_R * 0.28;
+    const pad = Math.ceil(rr * 1.15);
+    const off = document.createElement('canvas');
+    off.width = off.height = pad * 2;
+    const c = off.getContext('2d');
+    c.translate(pad, pad);
+    const cg = c.createRadialGradient(0, 0, 0, 0, 0, rr);
+    cg.addColorStop(0, 'white'); cg.addColorStop(0.5, '#FFD700'); cg.addColorStop(1, '#FFA500');
+    c.fillStyle = cg;
+    c.shadowColor = '#FFD700'; c.shadowBlur = 15 * _THAELIS_OVERSAMPLE;
+    c.beginPath(); c.arc(0, 0, rr, 0, Math.PI * 2); c.fill();
+    _thaelisCoreSprite = { canvas: off, pad, r: _THAELIS_REF_R };
+    return _thaelisCoreSprite;
+}
+// Orbit dots sit at r+18 - a CONSTANT offset from the body radius, not a
+// multiple of it. A cached bitmap can only be scaled uniformly, so baking
+// this at a reference size and scaling it for every real Thaelis size (r
+// varies 50-75) drifts the dots away from where the low-HP glow ring (still
+// live, r+12..r+22) expects them to sit - the "dots should touch the glow
+// edge" relationship only survives at one calibration size. Left live,
+// exactly matching the original formula; 6 small circle fills were never
+// the expensive part of this draw anyway.
+function _drawThaelisOrbitDots(enemy, rotation) {
+    const r = enemy.size / 2;
+    const orbitR2 = r + 18;
+    if (!_mobPerf) { ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 10; }
+    ctx.fillStyle = '#FFD700';
+    for (let i = 0; i < 6; i++) {
+        const a = rotation + (i / 6) * Math.PI * 2;
+        ctx.beginPath(); ctx.arc(enemy.x + Math.cos(a) * orbitR2, enemy.y + Math.sin(a) * orbitR2, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+}
+function _blitThaelisSprite(spr, enemy, rotation, alpha) {
+    const s = (enemy.size / 2) / spr.r;
+    if (alpha !== undefined) { ctx.save(); ctx.globalAlpha = alpha; }
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    if (rotation) ctx.rotate(rotation);
+    ctx.drawImage(spr.canvas, -spr.pad * s, -spr.pad * s, spr.canvas.width * s, spr.canvas.height * s);
+    ctx.restore();
+    if (alpha !== undefined) ctx.restore();
+}
+
 function _drawBossOrThaelis(enemy) {
     const now = performance.now();
     const isBoss = enemy.type === 'dargruel';
@@ -11,7 +116,6 @@ function _drawBossOrThaelis(enemy) {
         const rotSpeed = 3000;
         const rotation = now / rotSpeed;
         const color1 = '#FFD700';
-        const color2 = '#FFA500';
         const r = enemy.size / 2;
 
         const haloAlpha = 0.15 + 0.1 * Math.abs(Math.sin(now / 400));
@@ -20,17 +124,9 @@ function _drawBossOrThaelis(enemy) {
         if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 10, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
-        drawPolygon(enemy.x, enemy.y, r, 8, rotation, color1, color2);
-        ctx.save(); ctx.globalAlpha = 0.55;
-        drawPolygon(enemy.x, enemy.y, r * 0.55, 8, -rotation * 1.3, color2, color1);
-        ctx.restore();
-        ctx.save();
-        const cg = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, r * 0.28);
-        cg.addColorStop(0, 'white'); cg.addColorStop(0.5, color1); cg.addColorStop(1, color2);
-        ctx.fillStyle = cg;
-        if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 15;
-        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r * 0.28, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
+        _blitThaelisSprite(_getThaelisOuterPolySprite(), enemy, rotation);
+        _blitThaelisSprite(_getThaelisInnerPolySprite(), enemy, -rotation * 1.3, 0.55);
+        _blitThaelisSprite(_getThaelisCoreSprite(), enemy, 0);
         const hpPct2 = enemy.hp / enemy.maxHp;
         if (hpPct2 < 0.6) {
             const pulse2 = Math.abs(Math.sin(now / 180)) * 10;
@@ -38,15 +134,7 @@ function _drawBossOrThaelis(enemy) {
             if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 25;
             ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r + 12 + pulse2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
         }
-        ctx.save();
-        const orbitR2 = r + 18;
-        if (!_mobPerf) ctx.shadowColor = color1; if (!_mobPerf) ctx.shadowBlur = 10;
-        ctx.fillStyle = color1;
-        for (let i = 0; i < 6; i++) {
-            const a = rotation * 1.5 + (i / 6) * Math.PI * 2;
-            ctx.beginPath(); ctx.arc(enemy.x + Math.cos(a) * orbitR2, enemy.y + Math.sin(a) * orbitR2, 2.5, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.restore();
+        _drawThaelisOrbitDots(enemy, rotation * 1.5);
 
         // Tenacity Barrier ring, lớp khiên riêng, hiển thị bên ngoài Thaelis
         if ((enemy._tenacityBarrier || 0) > 0) {

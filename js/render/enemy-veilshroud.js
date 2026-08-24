@@ -3,6 +3,16 @@
 // lightning-strike/echo-explosion effects). Calls _genBoltPoints/_strokeBoltPath
 // from fx.js.
 
+// Every piece of Veilshroud's body (ribbons, armillary rings, core, shards)
+// is left fully live/uncached below. The ribbons genuinely can't be cached
+// (shape deforms over time, not just rotation). The 2 armillary rings COULD
+// in principle use the same static-bitmap-plus-live-rotate trick as
+// apostle/thaelis, but a first attempt at it left the thin dashed ring
+// visibly degraded (reported twice in testing) and wasn't worth chasing
+// further - Veilshroud's ribbons are already the dominant cost and stay
+// live regardless, so caching just the 2 rings was a small win for the
+// risk. Left as plain original code for guaranteed pixel-for-pixel fidelity.
+
 function _drawVeilshroud(enemy) {
     const now = performance.now();
     const r = enemy.size / 2; // hitbox radius
@@ -71,12 +81,41 @@ function _drawVeilshroud(enemy) {
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.05, r * 0.38, now / 1000, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.strokeStyle = `rgba(255,255,255,${0.35 + t * 0.4})`;
+    // Bumped up from a bare 0.35 base alpha/no glow - too thin and faint to
+    // read against the rest of a busy real fight (particles, other enemies,
+    // bullets), even though it was always technically rendering.
+    ctx.strokeStyle = `rgba(255,255,255,${0.55 + t * 0.4})`;
+    ctx.lineWidth = 2.5;
+    if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 6; }
     ctx.setLineDash([9, 13]);
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.25, r * 0.48, -now / 800 + Math.PI / 4, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.shadowBlur = 0;
+
+    // 3b. PHANTOM RING (nét đứt cyan, chỉ xuất hiện khi đang Phantom): bán
+    // kính co giãn ra/vào theo dao động sin thay vì cố định, và tự xoay nhẹ
+    // rồi đảo chiều thay vì quay liên tục một hướng, ăn nhịp với kiểu rung
+    // giật chập chờn của cả thân.
+    if (enemy.inPhantom) {
+        const pulse = Math.sin(now / 260);
+        const ringR = r * 1.38 + pulse * r * 0.16;
+        const rock = Math.sin(now / 480) * 0.55;
+        ctx.save();
+        ctx.rotate(rock);
+        ctx.globalAlpha = 0.5 + 0.35 * Math.abs(pulse);
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 10; }
+        ctx.setLineDash([7, 10]);
+        ctx.beginPath();
+        ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
 
     // 4. FLOATING ARMOR SHARDS (skip on mobile)
     if (!_mobPerf) {
