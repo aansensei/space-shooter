@@ -1293,9 +1293,15 @@ function updateSkillD(deltaTime) {
                     // touch — the exact bug where Warding Palm got "grazed
                     // once and died anyway" even though per-hit no longer has
                     // a cumulative cap.
+                    // Goliath specifically gets a slower 500ms tick (2/s
+                    // instead of the usual 2.5/s) - every one of these still
+                    // has to pass through Warding Palm's own per-hit 15%/35%
+                    // MaxHP roll, so a tighter cap here keeps that from
+                    // firing more often than intended while touching.
                     const _bhNow = performance.now();
+                    const _bhTickInterval = enemy.type === 'goliath' ? 500 : 400;
                     if (!enemy._bhNextTick || _bhNow >= enemy._bhNextTick) {
-                        enemy._bhNextTick = _bhNow + 400;
+                        enemy._bhNextTick = _bhNow + _bhTickInterval;
                         if (_bhCCImmune) {
                             dealDamage(enemy, { damage: Math.ceil(enemy.maxHp * 0.30), isTrueDamage: true, _noBase60: true, _bypassIronBody: _hasBuff('tu_huyet'), _isSkillD: true });
                         } else {
