@@ -895,7 +895,7 @@ function update(rawDeltaTime) {
                 }
 
                 if (currentTime - coil.dotTargets.get(enemy) >= 125) {
-                    dealDamage(enemy, { damage: 100, percentDamage: 0.06, isTeslaDot: true });
+                    dealDamage(enemy, { damage: 130, percentDamage: 0.025, isTeslaDot: true });
                     coil.dotTargets.set(enemy, currentTime);
                 }
             }

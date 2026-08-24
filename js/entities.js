@@ -1722,6 +1722,9 @@ function dealDamage(enemy, source) {
         // the remaining damage. Floored at 0 same as everywhere else, so it
         // can only ever reduce a hit to a graze, never block a kill outright.
         totalDamage -= _walpurgisFlatDR();
+        // Inevitable (Leviathan): 350 flat armor on top of its 60% DR above,
+        // same subtract-after-percentage pattern as Walpurgis's flat DR.
+        if (enemy.type === 'leviathan') totalDamage -= 350;
         totalDamage = Math.max(0, totalDamage);
     }
 

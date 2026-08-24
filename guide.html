@@ -866,9 +866,9 @@
 
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> TESLA MATRIX</h2><div class="sub"><span class="cd">CHARGE VIA KILLS</span> <span class="cd">30s</span></div>
 <div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
-<ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">10+6% EP</span>/125ms).</li>
-<li>Links merge @5s → <b>Tesla Coils</b> (max 4): <span class="dmg">45+1.2% EP</span>/50ms.</li>
-<li>Detonation: <span class="dmg">10+12% EP</span> area.</li></ul></div>`,
+<ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">58+1.5% EP</span>/125ms).</li>
+<li>Links merge @5s → <b>Tesla Coils</b> (max 4): aura slows 70% and deals <span class="dmg">130+2.5% EP</span>/125ms to everything caught in it, for as long as Skill G stays active.</li>
+<li>Detonation (Skill G ends): <span class="dmg">20+9% EP</span> area on every remaining orb/coil.</li></ul></div>`,
 
       sigils: `
 <div class="card visible"><h2 style="color:var(--gold)">ZODIAC SIGIL SYSTEM</h2><div class="sub">WAVE 5 · WAVE 10 — PICK 1 SIGIL · BOTH BLESSINGS GRANTED</div>
@@ -1199,6 +1199,7 @@
 <li>A red glow aura appears around every enemy once at least 1 stack is active, growing more intense per stack.</li>
 </ul></div>
 <div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% negated. Stacks additively, capped <span class="hi">99%</span>.</p></div>
+<div class="card"><h2 style="color:#38bdf8">FLAT DR</h2><p>A flat number subtracted straight off a hit's damage, applied after % DR (not before). Separate stat, doesn't stack into the 99% DR cap. Floored at 0, so it can only ever reduce a hit to a graze, never block a kill outright. Used by Walpurgis (+100/stack) and Leviathan's Inevitable (+350).</p></div>
 <div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>HP buffer before body. Stackable. Destroying shield ≠ reduce Max HP.</p></div>
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. All percentage-based enemy damage to Sentinels scales off EP. Max HP alone = body HP without shield.</p></div>
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Against EP (Shield + Max HP = Existence Point). Hits shield first.</p></div>
@@ -1226,6 +1227,8 @@
 <li><span class="ul-tag tag-buff">BUFF</span> Pull speed <span class="hg">6 → 4.2</span> (-30%) → <span class="hg">5.25</span> (+25%) → <span class="hg">7</span>: settled on a real buff over the original 6 (+16.7%) after the drift-speed nerf above turned out to be the intended "slow it down" change all along.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> Galactic Spaceships now count as real allied units, not just their own standalone stat block: they benefit from Blessing of the Primordial (DR/dmg/regen/shield ticks), Gaia Protection's wave-based Max HP scaling, Gaia Barrier's periodic shield pulse, Lunar Aegis's 20% evade, and now Glory for Justice too (damage ×1.55, fire rate ×1.2), the same as Sentinels.</li>
 <li><span class="ul-tag tag-buff">BUFF</span> <b>Gemini's Shadow Twin:</b> large orb damage <span class="hg">175+8% EP → 180+8% EP</span>, cooldown before it can trigger again <span class="hg">1s → 0.5s</span>.</li>
+<li><span class="ul-tag tag-buff">BUFF</span> <b>Leviathan — Inevitable:</b> gains a new <span class="hg">350 flat damage reduction</span> stacked on top of its existing 60% DR (subtracted after the percentage cut, floored at 0, same pattern as Walpurgis's flat DR).</li>
+<li><span class="ul-tag tag-nerf">NERF</span> <b>Skill G: Tesla Matrix</b> — Tesla Coils' aura DoT (the actual ongoing DPS+slow source, not the one-time Link/Detonation hits): <span class="hg">100+6% EP → 130+2.5% EP</span> per 125ms. Flat damage goes up so coils stay relevant against low-EP trash, but the steep %EP scaling that made them trivialize high-EP targets over the full 30s duration is cut hard. Guide text for Links and Detonation also corrected to match the actual (previously undocumented) values.</li>
 <li><span class="ul-tag tag-nerf">NERF</span> <b>Glory for Justice:</b> fire rate bonus <span class="hg">×1.5 → ×1.2</span> for every source it applies to (player, Sentinels, Remembrance Spirit, Photokrystos). Damage ×1.55 is unchanged.</li>
 <li><span class="ul-tag tag-nerf">NERF</span> Player lives are now hard-capped at <span class="hg">15</span>: score milestones (+1/250k) and Scorpio's Resurrection (+5 on pick) can no longer push the count above it.</li>
 <li><span class="ul-tag tag-balance">BALANCE</span> <b>Vulnerability's 4-stack window</b> reworked: <b>2s → 2.5s</b> duration, and it no longer converts the whole hit to true damage (which made Shield worthless during the window); the hit still eats Shield/barriers normally, and gets a bonus true damage kicker instead, decaying <span class="hg">+40% → +20%</span> of the hit's damage linearly across the window. When the window expires it now deals <span class="hg">500 base true damage</span> and fully resets the enemy's stacks, instead of just quietly ending.</li>
@@ -1883,9 +1886,9 @@
 
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> MA TRẬN TESLA</h2><div class="sub"><span class="cd">NẠP QUA HẠ GỤC</span> <span class="cd">30s</span></div>
 <div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
-<ul><li>Sinh ra Cầu Năng Lượng → ghép thành Liên Kết (chậm 8% + <span class="dmg">10+6% EP</span>/125ms).</li>
-<li>Liên Kết hợp nhất @5s → <b>Cuộn Tesla</b> (tối đa 4): <span class="dmg">45+1.2% EP</span>/50ms.</li>
-<li>Kích nổ: <span class="dmg">10+12% EP</span> diện rộng.</li></ul></div>`,
+<ul><li>Sinh ra Cầu Năng Lượng → ghép thành Liên Kết (chậm 8% + <span class="dmg">58+1.5% EP</span>/125ms).</li>
+<li>Liên Kết hợp nhất @5s → <b>Cuộn Tesla</b> (tối đa 4): vùng hào quang làm chậm 70% và gây <span class="dmg">130+2.5% EP</span>/125ms cho mọi thứ trong đó, suốt thời gian Skill G còn hoạt động.</li>
+<li>Kích nổ (khi Skill G kết thúc): <span class="dmg">20+9% EP</span> diện rộng cho mọi cầu/cuộn còn lại.</li></ul></div>`,
 
       rules: `
 <div class="card"><h2 style="color:var(--cyan)">HỆ THỐNG WAVE</h2><div class="sub">15s PHÁP TRẬN SPAWN · NGHỈ 4s · TĂNG VÔ HẠN</div>
@@ -1915,6 +1918,7 @@
 <li>Một vầng hào quang đỏ hiện quanh mọi kẻ địch khi có từ 1 tầng trở lên, càng nhiều tầng càng đậm.</li>
 </ul></div>
 <div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% vô hiệu hóa. Cộng dồn theo tổng, trần <span class="hi">99%</span>.</p></div>
+<div class="card"><h2 style="color:#38bdf8">FLAT DR</h2><p>Một số cố định trừ thẳng vào sát thương của đòn đánh, tính sau khi đã trừ DR %. Chỉ số riêng biệt, không cộng vào trần 99% DR. Luôn về tối thiểu 0, chỉ có thể làm đòn đánh sượt qua chứ không bao giờ chặn đứng đòn kết liễu. Dùng bởi Walpurgis (+100/tầng) và Inevitable của Leviathan (+350).</p></div>
 <div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>Lớp đệm HP trước thân. Cộng dồn được. Phá hủy shield ≠ giảm Max HP.</p></div>
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. Mọi sát thương theo % từ kẻ địch vào Vệ Binh đều tính theo EP. Riêng Max HP = HP thân không tính shield.</p></div>
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Tính trên EP (Shield + Max HP = Existence Point). Đánh vào shield trước.</p></div>
