@@ -77,7 +77,7 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
 
 function drawSkillButtons() {
     const now = performance.now();
-    const skillAReady = (now - lastSkillA >= skillACooldown) && skillAOrbs.length < maxSkillAOrbs;
+    const skillAReady = (now - lastSkillA >= _skillACooldown()) && skillAOrbs.length < maxSkillAOrbs;
 
     const pW = 124, pH = 22;
     const rowGap = 4, padX = 6, padY = 6, marginL = 4, marginB = 14;
@@ -214,9 +214,9 @@ function drawSkillButtons() {
         active: skillShiftActive, activeLabel: 'SHIFT',
     });
 
-    const _aCdDone = now - lastSkillA >= skillACooldown;
+    const _aCdDone = now - lastSkillA >= _skillACooldown();
     _pill(rowY(1), 'A', '#3B82F6', {
-        cd: skillACooldown, lastAct: lastSkillA,
+        cd: _skillACooldown(), lastAct: lastSkillA,
         active: _aCdDone && skillAOrbs.length >= maxSkillAOrbs,
         activeLabel: 'MAX',
     });

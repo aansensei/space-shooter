@@ -188,7 +188,7 @@ function _updateSkillReadySfx(now) {
     };
     // Charged skills use activation timestamp + fixed cooldown constants.
     // Shift uses the tiered cooldown selected in cancelSkillShift.
-    check('A',     now - lastSkillA     >= skillACooldown);
+    check('A',     now - lastSkillA     >= _skillACooldown());
     check('S',     now - lastSkillS     >= skillSCooldown);
     check('D',     now - lastSkillD     >= skillDCooldown);
     check('F',     now - lastSkillF     >= skillFCooldown);
@@ -452,11 +452,12 @@ function update(rawDeltaTime) {
             return;
         }
 
-        // Unbroken Will release wave (NEW): cơ chế y hệt Maou Haki (cùng tốc
+        // Unbroken Will release wave: cơ chế y hệt Maou Haki (cùng tốc
         // độ/maxRadius, quét sạch đạn của người chơi + tinh linh trong bán
-        // kính) nhưng KHÔNG gây sát thương/trừ mạng cho bất kỳ ai — chỉ đơn
-        // thuần "giải phóng" 1 đợt sóng sau khi hết bất tử, không phải 1 đòn
-        // tấn công thật.
+        // kính), KHÔNG gây sát thương/trừ mạng người chơi — nhưng CÓ gây
+        // 50 + 20% MaxHp cho Sentinels (chịu DR/khiên bình thường như mọi
+        // đòn khác), đây là cái giá thật của việc cứu mạng, không phải hoàn
+        // toàn vô hại như trước.
         if (wave._isUnbrokenWave) {
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
@@ -473,6 +474,17 @@ function update(rawDeltaTime) {
                     spiritBullets.splice(i, 1);
                 }
             }
+            if (!wave._id) wave._id = 'unbrokenwave_' + performance.now().toFixed(0);
+            sentinels.forEach(sentinel => {
+                if (!wave.hitSentinels.has(sentinel)) {
+                    const d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
+                    if (d <= wave.radius) {
+                        dealDamage(sentinel, { damage: 50 + sentinel.maxHp * 0.20, _vanguardTag: wave._id });
+                        wave.hitSentinels.add(sentinel);
+                        addExplosion(sentinel.x, sentinel.y, 40, '#f97316');
+                    }
+                }
+            });
             if (wave.radius >= wave.maxRadius) wave.active = false;
             return;
         }
