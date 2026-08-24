@@ -278,7 +278,7 @@ function handleEnemyKill(enemy) {
     }
     // Blessing HP regen handled in main.js update loop
     if (score >= nextLifeMilestone) {
-        lives++;
+        lives = Math.min(15, lives + 1);
         nextLifeMilestone += _hasBuff('hoan_sinh') ? 250000 : 500000;
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }
@@ -771,7 +771,7 @@ function _veilshroudStrike(enemy) {
     if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
         _lt.hitPlayer = true;
         _lt.playerHitPos = { x: player.x, y: player.y };
-        playerTakesHit(enemy);
+        if (!_yuushaPierceRedirect(0.18, true)) playerTakesHit(enemy);
         addExplosion(player.x, player.y, 90, '#ff0033');
         createParticles(player.x, player.y, 35, '#ffffff', 4, 14);
         createParticles(player.x, player.y, 20, '#ff3355', 2, 8);
@@ -948,7 +948,6 @@ function spawnSentinel(x, y, forceNormal = false) {
         initialMaxHp = Math.ceil(initialMaxHp * 1.5);
     }
 
-    if (_hasBuff('ho_ve')) initialMaxHp = Math.ceil(initialMaxHp * 1.65);
     sentinels.push({
         x, y, hp: initialMaxHp, maxHp: initialMaxHp, angle: -Math.PI / 2, shootTimer: 0,
         target: null, size: 15, shotsFiredSinceSpecial: 0,
@@ -969,18 +968,6 @@ function spawnSentinel(x, y, forceNormal = false) {
 }
 
 function destroySentinel(sentinel) {
-    if (_hasBuff('ho_ve')) {
-        const now = performance.now();
-        if (now >= (window._hoVeShieldCooldownEnd || 0)) {
-            window._hoVeShieldCooldownEnd = now + 3500;
-            const deadEP = sentinel.maxHp + (sentinel.shield || 0);
-            for (const s of sentinels) {
-                if (s === sentinel || s.hp <= 0) continue;
-                s.hp = Math.min(s.maxHp, s.hp + deadEP * 0.10);
-                s.shield = (s.shield || 0) + Math.ceil(deadEP * 0.20);
-            }
-        }
-    }
     addExplosion(sentinel.x, sentinel.y, 80, '#00FFFF');
     _setShake(5, 200);
     if (window.AudioMgr) window.AudioMgr.playSfxAt('sentinel-explode', sentinel.x, sentinel.y);
@@ -999,7 +986,6 @@ function updateSentinels(deltaTime) {
     let sentinelFireRate = 62.5; // 75 / 1.2 (+20% fire rate)
     let damageMultiplier = 1.0;
 
-    if (_hasBuff('ho_ve')) damageMultiplier *= 1.30;
     if (_hasBuff('lai_kep') && (window._laiKepFireRateBonus || 0) > 0) {
         sentinelFireRate /= (1 + window._laiKepFireRateBonus);
     }
@@ -1059,8 +1045,7 @@ function updateSentinels(deltaTime) {
         if (sentinel.shootTimer <= 0 && sentinel.target) {
             sentinel.shootTimer = sentinelFireRate;
             const _bDR = sentinel._blessingDR || 0;
-            // Guardian (ho_ve): sentinels no longer pay the recoil cost at all
-            const _hpCost = _hasBuff('ho_ve') ? 0 : Math.max(0, 1 - _bDR); // Blessing: -15% cost
+            const _hpCost = Math.max(0, 1 - _bDR); // Blessing: -15% cost
             sentinel.hp = Math.max(0, sentinel.hp - _hpCost);
             const angle = sentinel.angle;
             const speedMultiplier = (gloryForJusticeActive ? 1.25 : 1) * herdSpeedBonus;
@@ -1956,6 +1941,10 @@ function dealDamage(enemy, source) {
         }
     }
     enemy.hp = Math.max(0, enemy.hp);
+    if (isSentinel && _hpDamageDealt > 0 && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
+        const _yuushaRefund = _yuushaTankAbsorbFromSentinelDamage(_hpDamageDealt);
+        if (_yuushaRefund > 0) enemy.hp = Math.min(enemy.maxHp, enemy.hp + _yuushaRefund);
+    }
     // GOLIATH True Form: bắt + ghim hp=1 NGAY TẠI ĐÂY, ĐỒNG BỘ trong chính
     // dealDamage — không đợi tới frame sau để updateGoliath() bắt kịp nữa.
     // Bất kỳ đoạn code nào gọi dealDamage() rồi tự ý splice/kill luôn enemy
@@ -2023,27 +2012,27 @@ function dealDamage(enemy, source) {
 
     // Gate of Babylon (cong_babylon): every landed ally hit (except Skill D/F,
     // and not a blade's own impact) can open gates around the player and
-    // fire a fan of 14 piercing blades, 4.5s CD. Timeline/collision runs in
+    // fire a fan of 14 piercing blades, 3.5s CD. Timeline/collision runs in
     // updateGateOfBabylon (js/skills.js); this just spawns the sequence.
-    if (_hasBuff('cong_babylon') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isGobBlade && totalDamage > 0) {
+    if (_hasBuff('cong_babylon') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isGobBlade && !source._isYuushaParty && totalDamage > 0) {
         const _gobNow = performance.now();
         if (_gobNow >= (window._gobCooldownEnd || 0)) {
-            window._gobCooldownEnd = _gobNow + 4500;
+            window._gobCooldownEnd = _gobNow + 3500;
             window._gobSequences = window._gobSequences || [];
             window._gobSequences.push(_createGobSequence(_gobNow));
             if (window.AudioMgr) window.AudioMgr.playSfxAt('gate-of-babylon', player.x, player.y);
         }
     }
 
-    // Enuma Elish: every 40th landed ally hit (except Skill D/F, and not the
+    // Enuma Elish: every 30th landed ally hit (except Skill D/F, and not the
     // spear's own impact) summons a phantom double of the player at its
     // current position that hurls a giant piercing spear toward whichever
     // enemy is the current highest priority (Dominator/Digiform first, else
     // highest HP), locked in at trigger time. Timeline/collision runs in
     // updateEnumaElish (js/skills.js).
-    if (_hasBuff('enuma_elish') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isEeSpear && totalDamage > 0) {
+    if (_hasBuff('enuma_elish') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isEeSpear && !source._isYuushaParty && totalDamage > 0) {
         window._eeHitCounter = (window._eeHitCounter || 0) + 1;
-        if (window._eeHitCounter >= 40) {
+        if (window._eeHitCounter >= 30) {
             window._eeHitCounter = 0;
             const _eeTarget = _eeFindPriorityTarget();
             if (_eeTarget) {
@@ -3485,7 +3474,9 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                         // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v. —
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
-                        if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) playerTakesHit(enemy);
+                        if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) {
+                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat')) playerTakesHit(enemy);
+                        }
                     } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
                         dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true });
                     }
@@ -3529,7 +3520,9 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const lineEnd = { x: s.originX + Math.cos(ang) * fullLen, y: s.originY + Math.sin(ang) * fullLen };
                 const lineStart = { x: s.originX, y: s.originY };
                 if (t.isPlayer) {
-                    if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) playerTakesHit(enemy);
+                    if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) {
+                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.25), 'flat')) playerTakesHit(enemy);
+                    }
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
                     dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true });
                 }
@@ -3693,7 +3686,8 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const pAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
-                    s._hitPlayer = true; playerTakesHit(enemy);
+                    s._hitPlayer = true;
+                    if (!_yuushaPierceRedirect(0.50, true)) playerTakesHit(enemy);
                 }
             }
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —
@@ -3916,7 +3910,8 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                 t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
                 // Damage (radius 100px), player and each sentinel hit at most once per cast
                 if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-                    playerTakesHit(enemy); _playerHit = true;
+                    if (!_yuushaPierceRedirect(0.20, false)) playerTakesHit(enemy);
+                    _playerHit = true;
                 }
                 for (const s of sentinels) {
                     if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
@@ -3971,7 +3966,8 @@ function _forceFireEgregorTempest(enemy) {
         t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
         t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
         if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-            playerTakesHit(enemy); _playerHit = true;
+            if (!_yuushaPierceRedirect(0.20, false)) playerTakesHit(enemy);
+            _playerHit = true;
         }
         for (const s of sentinels) {
             if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {

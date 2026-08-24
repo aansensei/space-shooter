@@ -6,18 +6,18 @@ const SIGIL_DEFS = {
         name: 'Aries', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'cong_babylon', name: 'Gate of Babylon', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can open gates around the player and fire 14 blades in a fan, each piercing through every enemy in its path and dealing 40 + 3% EP as true damage per enemy hit (4.5s CD).' },
+              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can open gates around the player and fire 14 blades in a fan, each piercing through every enemy in its path and dealing 50 + 4% EP as true damage per enemy hit (3.5s CD).' },
             { id: 'enuma_elish', name: 'Enuma Elish', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 40 landed hits from any allied source (except Skill D and Skill F) summons a phantom double of the player that hurls a massive spear straight through the highest-priority enemy\'s direction (Dominator/Digiform first, otherwise highest current HP), piercing every enemy in the line — each one hit takes 14% of its own current HP as true damage, capped at 12,000.' },
+              desc: 'Every 30 landed hits from any allied source (except Skill D and Skill F) summons a phantom double of the player that hurls a massive spear straight through the highest-priority enemy\'s direction (Dominator/Digiform first, otherwise highest current HP), piercing every enemy in the line — each one hit takes 14% of its own current HP as true damage, capped at 12,000.' },
         ]
     },
     taurus: {
         name: 'Taurus', element: 'Earth', color: '#4D9B2A',
         buffs: [
-            { id: 'thanh_dong', name: 'Iron Fortress', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Every 5s gain 1 Iron Body layer (max 3 stacks): absorbs 1 player hit or 1 normal chain root/silence. Shown as green hex rings on ship.' },
-            { id: 'ho_ve', name: 'Guardian', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Sentinel +65% HP & +30% dmg. Sentinel normal shots no longer cost 1 HP recoil. When a sentinel dies, the remaining sentinels heal 10% of its EP and gain a shield worth 20% of its EP (CD 3.5s).' },
+            { id: 'doi_hinh_chien', name: 'Yuusha Party', type: 'SPEC', typeC: '#f59e0b',
+              desc: 'Summon a squad of 4 Sentinels that follow in formation above the player, one of each role (Tank 300 HP, Support/Marksman/Mage 200 HP each). Each member has its own HP bar and role-specific weapon, respawns 5s after falling (same role), and shares every buff real Sentinels get (Blessing, Gaia Protection/Barrier, Lunar Aegis, Last Stand, Glory for Justice). Enemy bullets passing near the squad can strike a member — Tanks draw ~75% of it. Piercing enemy attacks that would cost the player a life instead strike every living squad member at once, each taking 1.5x that same attack\'s real-Sentinel damage (non-piercing hits are unaffected). Every 1s, if no real Sentinels remain, 2 are spawned back in (2s cooldown).' },
+            { id: 'hiep_luc', name: 'Squad Synergy', type: 'ATK', typeC: '#ef4444',
+              desc: 'Tank: absorb meter fills from squad damage and from damage it soaks (30%) off real Sentinels\' hits; at 100 fires a piercing SentinelBlade sweep (40 + 4% EP true dmg per enemy) and heals itself 20 HP. Support: heals the 2 lowest-HP% targets across both the squad and real Sentinels for 50 HP each (never the player). Marksman: auto-fires a piercing arrow every 0.3s (75 + 5% EP). Mage: orbiting crystal flies to the nearest enemy roughly every 1s and detonates an arcane AoE zone (3s, 50 + 4% EP/tick).' },
         ]
     },
     gemini: {
@@ -124,12 +124,12 @@ const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
 // Vietnamese string.
 const SIGIL_I18N_VI = {
     aries: { name: 'Bạch Dương', element: 'Hỏa', buffs: {
-        cong_babylon: { name: 'Cổng Babylon', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể mở cổng quanh người chơi và phóng 14 lưỡi kiếm theo hình quạt, mỗi lưỡi xuyên qua mọi kẻ địch trên đường bay, gây 40 + 3% EP sát thương chuẩn cho mỗi kẻ địch bị xuyên (hồi chiêu 4.5s).' },
-        enuma_elish: { name: 'Enuma Elish', desc: 'Cứ mỗi 40 đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F), triệu hồi 1 bản thể ma ảnh của người chơi phóng 1 lưỡi thương khổng lồ thẳng theo hướng kẻ địch ưu tiên cao nhất (Dominator/Digiform trước, không thì HP hiện tại cao nhất), xuyên qua mọi kẻ địch trên đường bay — mỗi kẻ bị xuyên nhận 14% HP hiện tại của chính nó dưới dạng sát thương chuẩn, tối đa 12,000.' },
+        cong_babylon: { name: 'Cổng Babylon', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể mở cổng quanh người chơi và phóng 14 lưỡi kiếm theo hình quạt, mỗi lưỡi xuyên qua mọi kẻ địch trên đường bay, gây 50 + 4% EP sát thương chuẩn cho mỗi kẻ địch bị xuyên (hồi chiêu 3.5s).' },
+        enuma_elish: { name: 'Enuma Elish', desc: 'Cứ mỗi 30 đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F), triệu hồi 1 bản thể ma ảnh của người chơi phóng 1 lưỡi thương khổng lồ thẳng theo hướng kẻ địch ưu tiên cao nhất (Dominator/Digiform trước, không thì HP hiện tại cao nhất), xuyên qua mọi kẻ địch trên đường bay — mỗi kẻ bị xuyên nhận 14% HP hiện tại của chính nó dưới dạng sát thương chuẩn, tối đa 12,000.' },
     }},
     taurus: { name: 'Kim Ngưu', element: 'Thổ', buffs: {
-        thanh_dong: { name: 'Vương Cung Thành Trì', desc: 'Mỗi 5s nhận 1 lớp Iron Body (tối đa 3 lớp): hấp thụ 1 đòn đánh vào người chơi hoặc 1 lần trói/câm lặng thường. Hiển thị dưới dạng vòng lục giác xanh lá quanh tàu.' },
-        ho_ve: { name: 'Hộ Vệ', desc: 'Vệ Binh +65% HP & +30% sát thương. Đạn thường của Vệ Binh không còn tốn 1 HP giật lùi. Khi 1 Vệ Binh bị kết liễu, các Vệ Binh còn lại hồi 10% EP của nó và nhận khiên trị giá 20% EP của nó (hồi chiêu 3.5s).' },
+        doi_hinh_chien: { name: 'Tổ Đội Dũng Giả', desc: 'Triệu hồi đội hình 4 Vệ Binh bám theo đội hình phía trên người chơi, đủ 4 vai trò (Tank 300 HP, Support/Marksman/Mage mỗi con 200 HP). Mỗi thành viên có thanh HP riêng, vũ khí theo vai trò, hồi sinh sau 5s nếu gục (giữ nguyên vai trò cũ), và nhận đủ mọi buff mà Vệ Binh thật có (Blessing, Gaia Protection/Barrier, Lunar Aegis, Last Stand, Glory for Justice). Đạn địch bay gần đội hình có thể trúng 1 thành viên — Tank hứng ~75% số đó. Đòn tấn công xuyên (piercing) của địch đáng lẽ khiến người chơi mất mạng sẽ đánh trúng CẢ 4 thành viên còn sống cùng lúc, mỗi đứa chịu 1.5 lần sát thương mà chính đòn đó gây lên Vệ Binh thật (đạn/đòn thường không xuyên thì không có cơ chế này). Mỗi 1s, nếu bản đồ không còn Vệ Binh thật nào thì tự động spawn lại 2 con (hồi chiêu 2s).' },
+        hiep_luc: { name: 'Hiệp Lực Tổ Đội', desc: 'Tank: thanh hấp thụ đầy từ sát thương đội hình và từ phần dame nó gánh hộ (30%) mỗi khi Vệ Binh thật ăn đòn; đầy 100 → phóng lưỡi chém xuyên SentinelBlade (40 + 4% EP sát thương chuẩn mỗi kẻ địch) kèm tự hồi 20 HP. Support: hồi máu cho 2 mục tiêu %HP thấp nhất trong CẢ đội hình lẫn Vệ Binh thật (không phải người chơi), mỗi người 50 HP. Marksman: tự động bắn mũi tên xuyên mỗi 0.3s (75 + 5% EP). Mage: ngọc vệ tinh bay đến kẻ địch gần nhất khoảng mỗi 1s và nổ vùng arcane AoE (3s, 50 + 4% EP/tick).' },
     }},
     gemini: { name: 'Song Tử', element: 'Phong', buffs: {
         bong_doi: { name: 'Ảnh Song', desc: 'Mỗi đòn đánh trúng thứ 10 từ bất kỳ nguồn phe ta nào (trừ Vệ Binh) tích 0.5s, sau đó 1 tàu bóng ma xuất hiện giữa cạnh màn hình ngẫu nhiên (trái/phải) và bắn 3 đợt cầu plasma xuyên phá vào kẻ địch ngẫu nhiên, bay xuyên suốt màn hình. Mỗi đợt gồm 1 cầu lớn kèm 2 cầu nhỏ. Cầu nhỏ: 75 + 3% EP sát thương. Cầu lớn: 175 + 8% EP sát thương. Mỗi lần trúng gây 2 lớp Trọng Thương và Soul Reaver. Hồi chiêu 1s trước khi kích hoạt lại.' },
@@ -261,10 +261,19 @@ function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'enuma_elish')  { window._eeHitCounter = 0; window._eeSequences = []; }
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
     if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
-    if (buffId === 'thanh_dong')   { window._sigilIronBodyStacks = 0; window._sigilIronBodyNextAt = performance.now() + 8000; }
+    if (buffId === 'doi_hinh_chien') {
+        window._yuushaSquad = [];
+        window._yuushaBlades = []; window._yuushaProjectiles = []; window._yuushaParticles = [];
+        window._yuushaDotZones = []; window._yuushaBurstRays = [];
+        window._yuushaFloatingTexts = [];
+        window._yuushaReplenishLastCheck = 0; window._yuushaReplenishCooldownEnd = 0;
+        if (typeof _spawnYuushaMember === 'function') {
+            ['Tank', 'Support', 'Marksman', 'Mage'].forEach(role => _spawnYuushaMember(role));
+        }
+    }
+    if (buffId === 'hiep_luc') { /* synergy — no separate state, keyed off doi_hinh_chien arrays */ }
     if (buffId === 'su_tu_hong')   { window._sthBurning = new Map(); }
-    if (buffId === 'ho_ve')        { window._hoVeShieldCooldownEnd = 0; }
-    if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives += 5; }
+    if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(15, lives + 5); }
 }
 
 function drawSigilPicker() {
@@ -931,43 +940,64 @@ function drawSigilHUD() {
 
 function drawSigilShipUpgrades() {
     const sigils = window._playerSigils || [];
-    if (sigils.length === 0) return;
     const now = performance.now();
 
-    ctx.save();
-    for (let si = 0; si < sigils.length; si++) {
-        const ps = sigils[si];
-        const def = SIGIL_DEFS[ps.sigilId];
-        if (!def) continue;
-        const [r, g, b] = _hexRgb3(def.color);
-        const pulse = 0.5 + 0.5 * Math.sin(now / 800 + si * Math.PI);
-        const xSide = si === 0 ? -1 : 1;
-        const runeX = player.x + xSide * 20;
-        const runeY = player.y + 14;
+    if (sigils.length > 0) {
+        ctx.save();
+        for (let si = 0; si < sigils.length; si++) {
+            const ps = sigils[si];
+            const def = SIGIL_DEFS[ps.sigilId];
+            if (!def) continue;
+            const [r, g, b] = _hexRgb3(def.color);
+            const pulse = 0.5 + 0.5 * Math.sin(now / 800 + si * Math.PI);
+            const xSide = si === 0 ? -1 : 1;
+            const runeX = player.x + xSide * 20;
+            const runeY = player.y + 14;
 
-        ctx.globalAlpha = 0.55 + 0.25 * pulse;
-        ctx.shadowColor = def.color;
-        ctx.shadowBlur = 4 + 4 * pulse;
-        _drawZodiacGlyph(ps.sigilId, runeX, runeY, 7, def.color);
+            ctx.globalAlpha = 0.55 + 0.25 * pulse;
+            ctx.shadowColor = def.color;
+            ctx.shadowBlur = 4 + 4 * pulse;
+            _drawZodiacGlyph(ps.sigilId, runeX, runeY, 7, def.color);
 
-        if (def.element === 'Fire') {
-            ctx.globalAlpha = 0.22 * pulse;
-            ctx.fillStyle = `rgba(${r},${g},${b},1)`;
-            ctx.beginPath();
-            ctx.arc(player.x + xSide * 6, player.y + 27, 4 + 3 * pulse, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (def.element === 'Air') {
-            ctx.globalAlpha = 0.18 * pulse;
-            ctx.strokeStyle = `rgba(${r},${g},${b},0.8)`;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(player.x - 28, player.y + 10);
-            ctx.lineTo(player.x + 28, player.y + 10);
-            ctx.stroke();
+            if (def.element === 'Fire') {
+                ctx.globalAlpha = 0.22 * pulse;
+                ctx.fillStyle = `rgba(${r},${g},${b},1)`;
+                ctx.beginPath();
+                ctx.arc(player.x + xSide * 6, player.y + 27, 4 + 3 * pulse, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (def.element === 'Air') {
+                ctx.globalAlpha = 0.18 * pulse;
+                ctx.strokeStyle = `rgba(${r},${g},${b},0.8)`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(player.x - 28, player.y + 10);
+                ctx.lineTo(player.x + 28, player.y + 10);
+                ctx.stroke();
+            }
         }
+        ctx.shadowBlur = 0;
+        ctx.restore();
     }
-    ctx.shadowBlur = 0;
-    ctx.restore();
+
+    // Yuusha Party (doi_hinh_chien) squad formation
+    if (typeof drawYuushaParty === 'function') {
+        try { drawYuushaParty(); } catch (err) { console.warn('drawYuushaParty failed:', err); }
+    }
+
+    // Dream Realm (coi_mong): cyan shield shimmer when negating damage
+    if (_hasBuff('coi_mong') && now < (window._coiMongEndTime || 0)) {
+        const fade = Math.min(1, (window._coiMongEndTime - now) / 350);
+        const pulse = 0.55 + 0.45 * Math.sin(now / 110);
+        ctx.save();
+        ctx.globalAlpha = fade;
+        ctx.strokeStyle = `rgba(34,211,238,${0.7 + 0.3 * pulse})`;
+        ctx.lineWidth = 3;
+        if (!_mobPerf) { ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 22; }
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
 }
 
 function _drawRoundRect(x, y, w, h, r) {
@@ -1069,54 +1099,6 @@ function _handleSigilPickerMouseMove(ex, ey) {
     const rerollEntered  = p.hoveredReroll  && !prevReroll;
     if ((sigilChanged || confirmEntered || rerollEntered) && window.AudioMgr) {
         window.AudioMgr.playSfx('hover');
-    }
-}
-
-function drawSigilShipUpgrades() {
-    const now = performance.now();
-
-    // Iron Fortress (thanh_dong): hexagonal armor rings for each active stack
-    const ironStacks = window._sigilIronBodyStacks || 0;
-    if (_hasBuff('thanh_dong') && ironStacks > 0) {
-        for (let s = 0; s < ironStacks; s++) {
-            const r = 36 + s * 13;
-            const pulse = 0.55 + 0.45 * Math.sin(now / 700 + s * Math.PI);
-            ctx.save();
-            ctx.strokeStyle = `rgba(59,130,246,${0.80 * pulse})`;
-            ctx.lineWidth = 2.5;
-            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 12; }
-            ctx.beginPath();
-            for (let v = 0; v < 6; v++) {
-                const a = Math.PI / 6 + v * Math.PI / 3;
-                const px = player.x + Math.cos(a) * r;
-                const py = player.y + Math.sin(a) * r;
-                if (v === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.restore();
-        }
-        ctx.save();
-        ctx.fillStyle = '#3b82f6';
-        ctx.font = 'bold 10px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('×' + ironStacks, player.x + 26, player.y - 34);
-        ctx.restore();
-    }
-
-    // Dream Realm (coi_mong): cyan shield shimmer when negating damage
-    if (_hasBuff('coi_mong') && now < (window._coiMongEndTime || 0)) {
-        const fade = Math.min(1, (window._coiMongEndTime - now) / 350);
-        const pulse = 0.55 + 0.45 * Math.sin(now / 110);
-        ctx.save();
-        ctx.globalAlpha = fade;
-        ctx.strokeStyle = `rgba(34,211,238,${0.7 + 0.3 * pulse})`;
-        ctx.lineWidth = 3;
-        if (!_mobPerf) { ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 22; }
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
     }
 }
 

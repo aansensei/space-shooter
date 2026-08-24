@@ -17,6 +17,7 @@ function loseLife(cause) {
         hasTriggeredLastStand = true;
         playerAbsoluteShield = true;
         sentinels.forEach(s => s.absoluteShield = true);
+        (window._yuushaSquad || []).forEach(s => s.absoluteShield = true);
 
         _setShake(25, 800);
         createParticles(player.x, player.y, 150, 'gold', 4, 12);
@@ -96,14 +97,6 @@ function playerTakesHit(attacker) {
         }
     }
 
-    // Iron Fortress: consume a stack before other shields
-    if (_hasBuff('thanh_dong') && window._sigilIronBodyStacks > 0) {
-        window._sigilIronBodyStacks--;
-        addExplosion(player.x, player.y, 40, '#3b82f6');
-        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
-        return;
-    }
-
     // ƯU TIÊN 2: Khiên phòng hộ cuối cùng (Final Defense)
     if (finalDefense.playerShield) {
         finalDefense.playerShield = false;
@@ -138,6 +131,10 @@ function _triggerAccurateParry() {
         s.ironBody = true;
         s.ironBodyEnd = now + 1250;
     });
+    (window._yuushaSquad || []).forEach(s => {
+        s.ironBody = true;
+        s.ironBodyEnd = now + 1250;
+    });
 }
 
 // Sentinel Parry buff
@@ -169,6 +166,10 @@ function _triggerSentinelParry(parrySentinel) {
 
     // All sentinels: DR buff 10% for 4s
     sentinels.forEach(s => {
+        s.sentinelParryBuff = true;
+        s.sentinelParryBuffEnd = now + 4000;
+    });
+    (window._yuushaSquad || []).forEach(s => {
         s.sentinelParryBuff = true;
         s.sentinelParryBuffEnd = now + 4000;
     });
@@ -531,7 +532,7 @@ function update(rawDeltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', laser.start.x, laser.start.y);
 
                 if (distToSegment(player, laser.start, laser.end) < player.hitRadius + 15) {
-                    playerTakesHit({ type: 'aegis_core' });
+                    if (!_yuushaPierceRedirect(0.20, true)) playerTakesHit({ type: 'aegis_core' });
                 }
 
                 if (!laser._id) laser._id = 'aegis_laser_' + performance.now().toFixed(0);
@@ -1130,18 +1131,13 @@ function update(rawDeltaTime) {
                     // Darkened chain: costs 1 life, no root/silence
                     playerTakesHit(enemy);
                 } else {
-                    // Normal chain: root & silence — Iron Fortress absorbs 1 stack
-                    if (_hasBuff('thanh_dong') && window._sigilIronBodyStacks > 0) {
-                        window._sigilIronBodyStacks--;
-                        addExplosion(player.x, player.y, 40, '#3b82f6');
-                    } else {
-                        player._silenced = true;
-                        player._silenceEnd = currentTime + 1000;
-                        player._rooted = true;
-                        _setShake(6, 250);
-                        if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-root', player.x, player.y);
-                        try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
-                    }
+                    // Normal chain: root & silence
+                    player._silenced = true;
+                    player._silenceEnd = currentTime + 1000;
+                    player._rooted = true;
+                    _setShake(6, 250);
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-root', player.x, player.y);
+                    try { navigator.vibrate && navigator.vibrate(30); } catch (e) { }
                 }
                 // Chain is NOT consumed by hitting player, can still hit sentinel
             }
@@ -1810,7 +1806,7 @@ function update(rawDeltaTime) {
     // stuff (Vanguard Network, Herd Mentality, recoil) applies to them too
     const _photoActive = typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done);
     const _levOnField = enemies.some(e => e.type === 'leviathan' && e.hp > 0);
-    const _allyUnits = [...sentinels, ...window.skillDSpaceships];
+    const _allyUnits = [...sentinels, ...window.skillDSpaceships, ...(window._yuushaSquad || []).filter(s => s.hp > 0)];
     _allyUnits.forEach(s => {
         // Base blessing DR: +15%, +5% more if Leviathan on field
         s._blessingDR = _photoActive ? (0.15 + (_levOnField ? 0.05 : 0)) : 0;
@@ -1871,7 +1867,7 @@ function update(rawDeltaTime) {
         const factor = 1 + add / 100;
         window._gaiaHpBonusPct += add;
         window._gaiaHpCumMult *= factor;
-        [...sentinels, ...window.skillDSpaceships].forEach(s => {
+        [...sentinels, ...window.skillDSpaceships, ...(window._yuushaSquad || [])].forEach(s => {
             const old = s.maxHp;
             s.maxHp = Math.ceil(old * factor);
             s.hp = Math.min(s.maxHp, Math.ceil(s.hp * (s.maxHp / old)));
@@ -1911,7 +1907,7 @@ function update(rawDeltaTime) {
         if (_gfjJustActivated || window._gfjShieldTimer >= _gfjInterval) {
             window._gfjShieldTimer = 0;
             const _shieldBonus = _hasBuff('giap_nguyet') ? 1.40 : 1;
-            [...sentinels, ...window.skillDSpaceships].forEach(s => {
+            [...sentinels, ...window.skillDSpaceships, ...(window._yuushaSquad || [])].forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
                 const newBarrier = Math.floor((lostHp * 0.25 + (s.maxHp || 100) * 0.15) * _shieldBonus);
                 s._gaiaBarrier = newBarrier;
@@ -1974,7 +1970,9 @@ function update(rawDeltaTime) {
                 orb._hitPlayer = true;
                 // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
-                for (let li = 0; li < 5; li++) playerTakesHit({ type: 'goliath' });
+                for (let li = 0; li < 5; li++) {
+                    if (!_yuushaPierceRedirect(orb.dmg, 'flat')) playerTakesHit({ type: 'goliath' });
+                }
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
                 return false;
@@ -1999,7 +1997,9 @@ function update(rawDeltaTime) {
             sw.y += sw.vy * (deltaTime / 1000);
             if (sw.life <= 0 || sw.x < -50 || sw.x > canvas.width + 50 || sw.y < -50 || sw.y > canvas.height + 50) return false;
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
-                playerTakesHit({ type: 'goliath' });
+                const _yHitsAlready = (sw.hitEnemies || []).length;
+                const _yPct = _yHitsAlready === 0 ? 0.27 : _yHitsAlready === 1 ? 0.23 : 0.21;
+                if (!_yuushaPierceRedirect(_yPct, true)) playerTakesHit({ type: 'goliath' });
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
@@ -2032,7 +2032,7 @@ function update(rawDeltaTime) {
             m.y += m.vy * (deltaTime / 1000);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
-                playerTakesHit({ type: 'goliath' });
+                if (!_yuushaPierceRedirect(0.25, true)) playerTakesHit({ type: 'goliath' });
                 addExplosion(m.x, m.y, 70, '#f59e0b');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;
@@ -2086,7 +2086,12 @@ function update(rawDeltaTime) {
 
         // Hit player
         if (angHit(player.x, player.y, 18)) {
-            if (!beam.hitPlayer) { beam.hitPlayer = true; playerTakesHit(beam.ownerRef || { type: 'leviathan' }); }
+            if (!beam.hitPlayer) {
+                beam.hitPlayer = true;
+                const _yOwnerHits = Math.min(250, beam.ownerRef ? (beam.ownerRef.afoHitCount || 0) : 0);
+                const _yPct = Math.min(0.50, 0.05 * _yOwnerHits);
+                if (!_yuushaPierceRedirect(_yPct, true)) playerTakesHit(beam.ownerRef || { type: 'leviathan' });
+            }
         } else {
             beam.hitPlayer = false;
         }
@@ -2182,7 +2187,9 @@ function update(rawDeltaTime) {
             const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
             if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
                 laser.hitPlayer = true;
-                playerTakesHit({ type: 'leviathan' });
+                const _yHalfHits = (laser.levHits || 1) / 2;
+                const _yPct = Math.min(0.55, 0.03 * _yHalfHits);
+                if (!_yuushaPierceRedirect(_yPct, true)) playerTakesHit({ type: 'leviathan' });
             }
 
             // Hit sentinels, true damage: (hits/2) × (1%→3%), cap 50%
@@ -2405,12 +2412,8 @@ function _spawnWaveTier(tier) {
 }
 
 function _updateSigilPassives(now, deltaTime) {
-    if (_hasBuff('thanh_dong')) {
-        if (window._sigilIronBodyNextAt > 0 && now >= window._sigilIronBodyNextAt && window._sigilIronBodyStacks < 3) {
-            window._sigilIronBodyStacks++;
-            window._sigilIronBodyNextAt = now + 5000;
-        }
-        if (window._sigilIronBodyNextAt === 0) window._sigilIronBodyNextAt = now + 5000;
+    if (_hasBuff('doi_hinh_chien') && typeof updateYuushaParty === 'function') {
+        updateYuushaParty(deltaTime);
     }
 
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
@@ -2697,15 +2700,17 @@ function startGame() {
         _wavePhase = 'sigil_pick';
         _triggerSigilPicker();
     }
-    window._sigilIronBodyStacks = 0;
-    window._sigilIronBodyNextAt = 0;
+    window._yuushaSquad = [];
+    window._yuushaBlades = []; window._yuushaProjectiles = []; window._yuushaParticles = [];
+    window._yuushaDotZones = []; window._yuushaBurstRays = [];
+    window._yuushaFloatingTexts = [];
+    window._yuushaReplenishLastCheck = 0; window._yuushaReplenishCooldownEnd = 0;
     window._coiMongEndTime = 0;
     window._thanMenhEndTime = 0;
     window._tuyetLanStacks = 0;
     window._tuyetLanLastKill = 0;
     window._muiTenVangHitCount = 0;
     window._muiTenVangVolleyCount = 0;
-    window._hoVeShieldCooldownEnd = 0;
     window._sthBurning = new Map();
     window._laiKepPEAccum = 0;
     window._laiKepFireRateBonus = 0;
