@@ -846,7 +846,7 @@ function updatePhotoBrangs(deltaTime) {
 
     for (let i = photoBrangs.length - 1; i >= 0; i--) {
         const b = photoBrangs[i];
-        b.rotation += 0.22 * dt;
+        b.rotation += 0.42 * dt;
 
         // Recall mode: bay về phía tinh linh (nhanh hơn 60%)
         if (b._recalling) {
@@ -908,6 +908,20 @@ function updatePhotoBrangs(deltaTime) {
                 if (now_b - lastHit >= 200) { // can re-hit same enemy after 200ms
                     b._hitCooldowns.set(tgt, now_b);
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-hit', b.x, b.y);
+                    // Cut mark: a quick radial spark burst plus 2 streak
+                    // particles fired straight along the boomerang's own
+                    // travel direction (both ways), reading as a slash
+                    // across the enemy rather than a plain generic hit.
+                    createParticles(tgt.x, tgt.y, 8, '#4ade80', 2, 6);
+                    const _slashAngle = Math.atan2(b.vy, b.vx);
+                    for (const _sgn of [1, -1]) {
+                        const _sp = _acquireParticle();
+                        _sp.x = tgt.x; _sp.y = tgt.y;
+                        _sp.vx = Math.cos(_slashAngle) * _sgn * 9; _sp.vy = Math.sin(_slashAngle) * _sgn * 9;
+                        _sp.lifetime = 160; _sp.maxLifetime = 160;
+                        _sp.size = 2.5; _sp.color = '#e6ffeb';
+                        particles.push(_sp);
+                    }
                     const brangSrc = {
                         damage: Math.ceil((b.damage + (tgt.maxHp - tgt.hp) * 0.05) * (gloryForJusticeActive ? 1.55 : 1)),
                         percentDamage: b.percentDamage,

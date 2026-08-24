@@ -890,72 +890,65 @@ function drawPrimevalSummonEffect(eff) {
 }
 
 // PHOTOBRANG RENDER, 4-blade shuriken
+// Boomerang sprite: generated reference render, chroma-keyed and trimmed
+// the same way as the Aries divine weapons. Baked oversized (see PROMPT.md
+// in the reference folder) so drawImage always scales it down to the real
+// gameplay radius (b._radius, 48-58px), never up, and stays crisp.
+const _photoBrangImg = new Image();
+_photoBrangImg.src = 'images/photokrystos-boomerang.png';
+
 function drawPhotoBrang(b) {
     const now = performance.now();
+    const R = b._radius || 48;
+
+    // Wind-tear streaks: aligned to the flight direction (not the spin), so
+    // they read as air being cut rather than spinning with the blade.
+    const travelAngle = Math.atan2(b.vy, b.vx);
+    const spd = Math.hypot(b.vx, b.vy);
+    if (!_mobPerf && spd > 2) {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(travelAngle + Math.PI); // streaks trail behind travel direction
+        const streakAlpha = Math.min(0.5, spd / 40);
+        for (let s = 0; s < 3; s++) {
+            const off = (s - 1) * 10;
+            const len = R * (1.3 + s * 0.35);
+            const grad = ctx.createLinearGradient(0, off, len, off);
+            grad.addColorStop(0, `rgba(220,255,235,${streakAlpha})`);
+            grad.addColorStop(1, 'rgba(220,255,235,0)');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 2.5 - s * 0.5;
+            ctx.beginPath(); ctx.moveTo(0, off); ctx.lineTo(len, off); ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.rotate(b.rotation);
 
-    const R = 48;
-
-    // Blade shape helper: single blade pointing in +Y, same size as original arc
-    function bladePath() {
-        ctx.beginPath();
-        ctx.moveTo(-4, 8);
-        ctx.lineTo(-16, 30);
-        ctx.lineTo(0, R);
-        ctx.lineTo(16, 30);
-        ctx.lineTo(4, 8);
-        ctx.closePath();
-    }
-
-    if (_mobPerf || _gfxLevel >= 2) {
-        // Fast path: no shadow, no glow halo
-        ctx.fillStyle = 'rgba(45,255,115,0.85)';
-        ctx.strokeStyle = 'rgba(200,255,220,0.8)'; ctx.lineWidth = 1;
-        for (let i = 0; i < 4; i++) {
-            ctx.save(); ctx.rotate(i * Math.PI / 2);
-            bladePath(); ctx.fill(); ctx.stroke();
-            ctx.restore();
+    if (_photoBrangImg.complete && _photoBrangImg.naturalWidth) {
+        // Breathing aura: a soft radial gradient halo behind the blade,
+        // not shadowBlur (cheaper, and reads as a real aura instead of a
+        // blurred edge). A bit bigger/brighter on the Song Lười extra
+        // throws so combo blades read as more charged, not just larger.
+        if (!_mobPerf) {
+            const pulse = 0.6 + 0.4 * Math.sin(now / 180);
+            const haloR = R * (1.7 + pulse * 0.5);
+            const halo = ctx.createRadialGradient(0, 0, R * 0.3, 0, 0, haloR);
+            halo.addColorStop(0, `rgba(120,255,180,${0.45 + pulse * 0.25})`);
+            halo.addColorStop(0.6, `rgba(45,255,115,${0.22 + pulse * 0.15})`);
+            halo.addColorStop(1, 'rgba(45,255,115,0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath(); ctx.arc(0, 0, haloR, 0, Math.PI * 2); ctx.fill();
         }
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.drawImage(_photoBrangImg, -R, -R, R * 2, R * 2);
     } else {
-        // Glow halo behind blades
-        ctx.shadowColor = '#a7ffc5'; ctx.shadowBlur = 22;
-        for (let i = 0; i < 4; i++) {
-            ctx.save(); ctx.rotate(i * Math.PI / 2);
-            ctx.fillStyle = 'rgba(45,255,115,0.18)';
-            ctx.beginPath();
-            ctx.moveTo(-8, 6); ctx.lineTo(-22, 30);
-            ctx.lineTo(0, R + 9);
-            ctx.lineTo(22, 30); ctx.lineTo(8, 6);
-            ctx.closePath(); ctx.fill();
-            ctx.restore();
-        }
-        // Main blades
-        for (let i = 0; i < 4; i++) {
-            ctx.save(); ctx.rotate(i * Math.PI / 2);
-            ctx.fillStyle = 'rgba(30,210,95,0.92)';
-            ctx.strokeStyle = 'rgba(167,255,197,0.95)'; ctx.lineWidth = 1.5;
-            ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 8;
-            bladePath(); ctx.fill(); ctx.stroke();
-            // Tip bright edge
-            ctx.shadowColor = 'white'; ctx.shadowBlur = 12;
-            ctx.strokeStyle = 'rgba(230,255,235,0.85)'; ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(-16, 30); ctx.lineTo(0, R); ctx.lineTo(16, 30);
-            ctx.stroke();
-            ctx.restore();
-        }
-        ctx.shadowBlur = 0;
-        // Center hub
-        ctx.shadowColor = 'white'; ctx.shadowBlur = 14;
-        ctx.fillStyle = 'rgba(167,255,197,0.95)';
-        ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
+        // Sprite not loaded yet (first instant after page load) - fall back
+        // to a plain glowing disc rather than skipping the draw entirely,
+        // so a boomerang never goes fully invisible mid-flight.
+        ctx.fillStyle = 'rgba(45,255,115,0.6)';
+        ctx.beginPath(); ctx.arc(0, 0, R * 0.6, 0, Math.PI * 2); ctx.fill();
     }
 
     ctx.restore();
