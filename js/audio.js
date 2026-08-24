@@ -220,6 +220,7 @@
         // plain volume cut, no muffle filter - just wants the transform
         // sfx (bypass-routed) to read clearly, not a disorienting effect
         goliathTransform: { gain: 0.35, freq: NORMAL_FREQ },
+        goliathSpawn: { gain: 0.35, freq: NORMAL_FREQ },
     };
     const _activeDucks = new Set();
     function _duckTarget() {
@@ -246,6 +247,11 @@
     // the music down too - wanted now, was compensated out before
     function enterGoliathTransformDuck() { enterDuck('goliathTransform'); }
     function exitGoliathTransformDuck()  { exitDuck('goliathTransform'); }
+    // Separate key from goliathTransform (not reused) so a short timed duck
+    // around the one-shot spawn cue can never prematurely cancel the much
+    // longer transform duck if the two ever overlapped.
+    function enterGoliathSpawnDuck() { enterDuck('goliathSpawn'); }
+    function exitGoliathSpawnDuck()  { exitDuck('goliathSpawn'); }
 
     function enterTimeDomain() { enterDuck('yogsothoth'); }
     function exitTimeDomain()  { exitDuck('yogsothoth'); }
@@ -385,7 +391,16 @@
     }
 
     function bgmGain()  { return state.muted ? 0 : state.vol.bgm    * state.vol.global; }
-    function sfxGain(k) { return state.muted ? 0 : (SFX_BASE[k] || 0.5) * state.vol.sfx * state.vol.global; }
+    // Goliath's spawn/transform cues stay at full volume no matter how low
+    // the player has the SFX slider set - they're one-time story beats, not
+    // ambient loops, and getting drowned out by a low SFX setting undercuts
+    // the moment. Mute and the global slider still apply.
+    const FORCE_FULL_SFX = new Set(['goliath-spawn', 'goliath-transform']);
+    function sfxGain(k) {
+        if (state.muted) return 0;
+        if (FORCE_FULL_SFX.has(k)) return state.vol.global;
+        return (SFX_BASE[k] || 0.5) * state.vol.sfx * state.vol.global;
+    }
 
     // Prefetch/decode a one-shot sfx clip. size is a historical pool-depth
     // hint from the pre-Web-Audio pooled-<audio> design — playback no longer
@@ -746,7 +761,7 @@
         _makePool('goliath-verdict-impact', 'audio/sfx/goliath-verdict-impact.mp3', 2);
         _makePool('leviathan-perseverance', 'audio/sfx/leviathan-perseverance.mp3', 2);
         _makePool('goliath-death',          'audio/sfx/goliath-death.mp3',          1);
-        _makePool('goliath-spawn',          'audio/sfx/goliath-spawn.mp3',          1);
+        _makePool('goliath-spawn',          'audio/sfx/goliath-spawn.mp3',          1, true); // bypass duck so it stays clear, matches goliath-transform
         _makePool('goliath-corrupted-meteor', 'audio/sfx/goliath-corrupted-meteor.mp3', 2);
         _makePool('goliath-unbroken-wave',  'audio/sfx/goliath-unbroken-wave.mp3',  1);
         _makePool('gate-of-babylon',        'audio/sfx/gate-of-babylon.mp3',        2);
@@ -826,6 +841,7 @@
         // Yog-Sothoth time-domain effect + Web Audio unlock
         enterTimeDomain, exitTimeDomain,
         enterGoliathTransformDuck, exitGoliathTransformDuck,
+        enterGoliathSpawnDuck, exitGoliathSpawnDuck,
         unlockContext,
     };
 })();

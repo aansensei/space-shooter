@@ -2699,7 +2699,13 @@ function spawnGoliath() {
         _jokerState: {},
     };
     enemies.push(g);
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-spawn', g.x, g.y);
+    if (window.AudioMgr) {
+        window.AudioMgr.enterGoliathSpawnDuck();
+        window.AudioMgr.playSfxAt('goliath-spawn', g.x, g.y);
+        // One-shot cue, no onended hook available - duck for its rough
+        // runtime instead of tracking real playback end.
+        setTimeout(() => { if (window.AudioMgr) window.AudioMgr.exitGoliathSpawnDuck(); }, 1800);
+    }
     _goliathCircuitLink(g);
 
     // Passive của Alpha: ceil(1/3) số kẻ địch còn lại trong wave này bị loại
