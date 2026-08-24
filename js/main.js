@@ -1683,7 +1683,29 @@ function update(rawDeltaTime) {
         _gameOverPlayTime = performance.now() - gameStartTime;
         showStartButton("Play Again"); showMainMenuButton(); showMatchStatsButton();
         window._lowHpActive = false;
-        if (window.AudioMgr) { window.AudioMgr.stopLowHp(); window.AudioMgr.stopBgm(); window._gameoverVoice = window.AudioMgr.playSfx('gameover'); }
+        // Death can land mid any sustained loop (engine, a skill charge,
+        // Maou Haki, Egregor's crawl, the low-hp heartbeat...) - drop every
+        // one of them here so only the gameover voice is left playing,
+        // instead of just the two that used to matter most.
+        if (window.AudioMgr) {
+            window.AudioMgr.stopAmbient();
+            window.AudioMgr.stopEngine();
+            window.AudioMgr.stopLaser();
+            window.AudioMgr.stopCharging();
+            window.AudioMgr.stopSkillDCharge();
+            window.AudioMgr.stopSkillFCharge();
+            window.AudioMgr.stopSkillFFire();
+            window.AudioMgr.stopDeathStar();
+            window.AudioMgr.stopMaouHaki();
+            window.AudioMgr.stopLowHp();
+            window.AudioMgr.stopNullSlashWindup();
+            window.AudioMgr.stopEgregorCrawl();
+            window.AudioMgr.stopPhotokrystosIdle();
+            window.AudioMgr.exitGoliathTransformDuck();
+            window.AudioMgr.exitTimeDomain();
+            window.AudioMgr.stopBgm();
+            window._gameoverVoice = window.AudioMgr.playSfx('gameover');
+        }
     }
 
     _profChk.push(performance.now()); // end of enemies loop
@@ -2691,6 +2713,11 @@ function startGame() {
     window._lowHpActive = false;
     window._egregorCrawlActive = false;
     if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopDeathStar(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); window.AudioMgr.exitGoliathTransformDuck(); }
+    // Play Again can fire right after death while the gameover voice is
+    // still ringing out - Main Menu already cancels it (index.html's
+    // _returnToMainMenu), Play Again skips that path entirely so it needs
+    // its own cancel here.
+    if (window._gameoverVoice) { window._gameoverVoice.cancel(); window._gameoverVoice = null; }
     finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 };
 
     hasTriggeredLastStand = false;

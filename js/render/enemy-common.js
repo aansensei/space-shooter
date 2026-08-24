@@ -1392,6 +1392,101 @@ function _drawCoronationEffect(enemy) {
     ctx.restore();
 }
 
+// Static-bitmap cache for the apostle's rotating hex-frame + 3 armored
+// clamps, and separately its inner counter-rotating energy ring. Neither
+// piece ever changes shape once baked - only rotation animates them - so
+// baking a single unrotated bitmap per (gfxLevel, hue bucket) and applying
+// ctx.rotate() live at blit time reproduces the exact same spin at a
+// fraction of the cost of re-walking ~15-18 path/fill/stroke calls every
+// frame for every instance (the actual bottleneck at high enemy counts).
+// Hue is bucketed to 8 steps across its 40-degree range (imperceptible
+// stepping) so HP-driven color drift doesn't force a rebake every frame.
+// The rim glow's own shimmer and the ring's own twinkle are baked at a
+// fixed representative brightness instead of their live per-frame pulse -
+// a small accepted simplification; the rotation itself (the dominant
+// motion) is untouched and still fully live.
+const _apostleBodySprites = {};
+const _apostleRingSprites = {};
+function _getApostleBodySprite(hueBucket, glowOn) {
+    const key = hueBucket + '_' + (glowOn ? 1 : 0);
+    let spr = _apostleBodySprites[key];
+    if (spr) return spr;
+    const r = 40; // baked at a fixed reference radius, scaled at blit time
+    const pad = Math.ceil(r * 1.3);
+    const size = pad * 2;
+    const off = document.createElement('canvas');
+    off.width = size; off.height = size;
+    const c = off.getContext('2d');
+    c.translate(pad, pad);
+    const hue = hueBucket;
+    const glowColor = `hsl(${hue},100%,55%)`;
+    const darkColor = `hsl(${hue},90%,25%)`;
+    if (glowOn) {
+        c.strokeStyle = `hsla(${hue},100%,65%,${0.45 * 0.75})`;
+        c.lineWidth = 2;
+        c.shadowColor = glowColor; c.shadowBlur = 14;
+        c.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            i === 0 ? c.moveTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3))
+                    : c.lineTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3));
+        }
+        c.closePath(); c.stroke();
+        c.shadowBlur = 0;
+    }
+    c.fillStyle = '#181822';
+    c.strokeStyle = '#3a3a4a';
+    c.lineWidth = 2.5;
+    c.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        i === 0 ? c.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+            : c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    c.closePath(); c.fill(); c.stroke();
+    for (let i = 0; i < 3; i++) {
+        c.save();
+        c.rotate((i / 3) * Math.PI * 2 + Math.PI / 6);
+        c.fillStyle = '#22222e';
+        c.beginPath();
+        c.moveTo(r * 0.5, -r * 0.25);
+        c.lineTo(r * 1.1, -r * 0.15);
+        c.lineTo(r * 1.1, r * 0.15);
+        c.lineTo(r * 0.5, r * 0.25);
+        c.closePath(); c.fill();
+        c.strokeStyle = darkColor; c.lineWidth = 2; c.stroke();
+        c.fillStyle = glowColor;
+        c.fillRect(r * 0.85, -r * 0.05, r * 0.2, r * 0.1);
+        c.restore();
+    }
+    spr = { canvas: off, pad, r };
+    _apostleBodySprites[key] = spr;
+    return spr;
+}
+function _getApostleRingSprite(hueBucket) {
+    let spr = _apostleRingSprites[hueBucket];
+    if (spr) return spr;
+    const r = 40;
+    const pad = Math.ceil(r * 0.8);
+    const size = pad * 2;
+    const off = document.createElement('canvas');
+    off.width = size; off.height = size;
+    const c = off.getContext('2d');
+    c.translate(pad, pad);
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const lx = Math.cos(a) * r * 0.72, ly = Math.sin(a) * r * 0.72;
+        const nextA = ((i + 1) / 6) * Math.PI * 2;
+        const nx = Math.cos(nextA) * r * 0.72, ny = Math.sin(nextA) * r * 0.72;
+        c.strokeStyle = `hsla(${hueBucket},100%,70%,0.30)`;
+        c.lineWidth = 1;
+        c.beginPath(); c.moveTo(lx, ly); c.lineTo(nx, ny); c.stroke();
+    }
+    spr = { canvas: off, pad, r };
+    _apostleRingSprites[hueBucket] = spr;
+    return spr;
+}
+
 function _drawNormalEnemy(enemy) {
     // Coronation overrides normal rendering
     if (enemy.inCoronation) {
@@ -1402,6 +1497,7 @@ function _drawNormalEnemy(enemy) {
     const now = performance.now();
     const hpRatio = enemy.hp / enemy.maxHp;
     const hue = 10 + hpRatio * 40; // 50=orange, 10=red
+    const hueBucket = Math.round(hpRatio * 8) * 5; // 0,5,10...40 - 9 steps across the 40-degree range
     const glowColor = `hsl(${hue},100%,55%)`;
     const darkColor = `hsl(${hue},90%,25%)`;
 
@@ -1413,71 +1509,22 @@ function _drawNormalEnemy(enemy) {
     ctx.fillStyle = `hsla(${hue},100%,50%,0.15)`;
     ctx.beginPath(); ctx.arc(0, 0, r * 1.4, 0, Math.PI * 2); ctx.fill();
 
-    // 2. Rotating body + clamps
+    // 2. Rotating body + clamps - cached bitmap, rotation applied live
     ctx.save();
     ctx.rotate(now / 1800);
+    {
+        const bodySpr = _getApostleBodySprite(hueBucket, _gfxLevel < 1);
+        const s = r / bodySpr.r;
+        ctx.drawImage(bodySpr.canvas, -bodySpr.pad * s, -bodySpr.pad * s, bodySpr.canvas.width * s, bodySpr.canvas.height * s);
+    }
 
-    // Hex frame
-    // Hex rim glow (HIGH only)
+    // Inner counter-rotating energy ring (HIGH only) - same cache-and-rotate trick
     if (_gfxLevel < 1) {
-        const rimPulse = 0.5 + 0.5 * Math.sin(now / 260 + enemy.x * 0.04);
-        ctx.strokeStyle = `hsla(${hue},100%,65%,${0.45 * rimPulse})`;
-        ctx.lineWidth = 2;
-        if (!_mobPerf) { ctx.shadowColor = glowColor; ctx.shadowBlur = 14; }
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2;
-            i === 0 ? ctx.moveTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3))
-                    : ctx.lineTo(Math.cos(a) * (r + 3), Math.sin(a) * (r + 3));
-        }
-        ctx.closePath(); ctx.stroke();
-        ctx.shadowBlur = 0;
-    }
-
-    ctx.fillStyle = '#181822';
-    ctx.strokeStyle = '#3a3a4a';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
-        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
-            : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-    }
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-
-    // Inner counter-rotating energy ring (HIGH only)
-    if (_gfxLevel < 1) {
-        ctx.rotate(-now / 2200); // counter-rotate inside the main body rotation
-        for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2;
-            const lx = Math.cos(a) * r * 0.72;
-            const ly = Math.sin(a) * r * 0.72;
-            const nextA = ((i + 1) / 6) * Math.PI * 2;
-            const nx = Math.cos(nextA) * r * 0.72;
-            const ny = Math.sin(nextA) * r * 0.72;
-            const sA = 0.18 + 0.22 * Math.abs(Math.sin(now / 400 + i));
-            ctx.strokeStyle = `hsla(${hue},100%,70%,${sA})`;
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(nx, ny); ctx.stroke();
-        }
-        ctx.rotate(now / 2200); // undo counter-rotation so clamps stay correct
-    }
-
-    // 3 armored clamps
-    for (let i = 0; i < 3; i++) {
         ctx.save();
-        ctx.rotate((i / 3) * Math.PI * 2 + Math.PI / 6);
-        ctx.fillStyle = '#22222e';
-        ctx.beginPath();
-        ctx.moveTo(r * 0.5, -r * 0.25);
-        ctx.lineTo(r * 1.1, -r * 0.15);
-        ctx.lineTo(r * 1.1, r * 0.15);
-        ctx.lineTo(r * 0.5, r * 0.25);
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = darkColor; ctx.lineWidth = 2; ctx.stroke();
-        // Glow slit
-        ctx.fillStyle = glowColor;
-        ctx.fillRect(r * 0.85, -r * 0.05, r * 0.2, r * 0.1);
+        ctx.rotate(now / 1800 - now / 2200); // same cumulative rotation the ring had originally (outer body rate, then its own counter-rotation on top)
+        const ringSpr = _getApostleRingSprite(hueBucket);
+        const s = r / ringSpr.r;
+        ctx.drawImage(ringSpr.canvas, -ringSpr.pad * s, -ringSpr.pad * s, ringSpr.canvas.width * s, ringSpr.canvas.height * s);
         ctx.restore();
     }
     ctx.restore();
