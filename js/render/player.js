@@ -1914,99 +1914,45 @@ function drawShadowOrbs() {
 // this file's existing shadowBlur convention elsewhere.
 function _ariesHQ() { return !_mobPerf && _gfxLevel === 0; }
 
+// Divine weapon art: generated reference renders, chroma-keyed and trimmed
+// via scripts/cutout_weapons.py. `pivot` is where along the image's width
+// the grip/guard sits (as a 0-1 fraction from the left edge) - that point
+// lands on the local origin so the weapon rotates around its grip like the
+// vector art it replaced, not around its visual center.
+const _ariesWeaponImgs = [new Image(), new Image(), new Image()];
+_ariesWeaponImgs[0].src = 'images/weapons/1-longsword.png';
+_ariesWeaponImgs[1].src = 'images/weapons/2-spear.png';
+_ariesWeaponImgs[2].src = 'images/weapons/3-halberd.png';
+const _ARIES_WEAPON_CFG = [
+    { img: 0, length: 50, pivot: 0.28 }, // Longsword
+    { img: 1, length: 56, pivot: 0.42 }, // Spear
+    { img: 2, length: 50, pivot: 0.45 }, // Halberd
+];
+
 function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
+    const cfg = _ARIES_WEAPON_CFG[type] || _ARIES_WEAPON_CFG[0];
+    const img = _ariesWeaponImgs[cfg.img];
+    if (!img.complete || !img.naturalWidth) return; // still loading, skip this frame
+
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
     ctx.scale(scale, scale);
     ctx.globalAlpha = alpha;
 
-    if (type === 0) {
-        // Longsword
-        ctx.fillStyle = '#fde047';
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(0, -3); ctx.lineTo(25, -2); ctx.lineTo(35, 0);
-        ctx.lineTo(25, 2); ctx.lineTo(0, 3);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        // Fuller (blood groove) - a darker centerline gives the blade a
-        // faceted, ground-metal look instead of a flat wedge.
-        ctx.strokeStyle = 'rgba(180, 83, 9, 0.6)';
-        ctx.lineWidth = 0.6;
-        ctx.beginPath(); ctx.moveTo(1, 0); ctx.lineTo(32, 0); ctx.stroke();
-        // Edge highlight - thin bright line along the top edge, catching light
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-        ctx.lineWidth = 0.7;
-        ctx.beginPath(); ctx.moveTo(2, -2); ctx.lineTo(30, -1); ctx.stroke();
-        ctx.fillStyle = '#d4af37';
-        ctx.beginPath();
-        ctx.moveTo(2, 0); ctx.lineTo(-2, -10); ctx.lineTo(-4, -10); ctx.lineTo(0, -2);
-        ctx.lineTo(0, 2); ctx.lineTo(-4, 10); ctx.lineTo(-2, 10); ctx.lineTo(2, 0);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 0.6; ctx.stroke();
-        ctx.fillStyle = '#b45309';
-        ctx.fillRect(-12, -1.5, 12, 3);
-        ctx.strokeStyle = '#451a03'; ctx.lineWidth = 0.5;
-        ctx.strokeRect(-12, -1.5, 12, 3);
-        const pommelGrad = ctx.createRadialGradient(-14, -1, 0.5, -13, 0, 3.5);
-        pommelGrad.addColorStop(0, '#fffbeb');
-        pommelGrad.addColorStop(1, '#d4af37');
-        ctx.fillStyle = pommelGrad;
-        ctx.beginPath(); ctx.arc(-13, 0, 3, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 0.5; ctx.stroke();
-    } else if (type === 1) {
-        // Spear
-        ctx.fillStyle = '#78350f';
-        ctx.fillRect(-25, -1.5, 30, 3);
-        ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.5;
-        ctx.strokeRect(-25, -1.5, 30, 3);
-        ctx.fillStyle = '#d4af37';
-        ctx.fillRect(5, -2.5, 4, 5);
-        ctx.fillStyle = '#fde047';
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(9, -4); ctx.lineTo(35, 0); ctx.lineTo(9, 4);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-        ctx.lineWidth = 0.6;
-        ctx.beginPath(); ctx.moveTo(11, -2); ctx.lineTo(30, -0.3); ctx.stroke();
-        ctx.fillStyle = '#d4af37';
-        ctx.beginPath();
-        ctx.moveTo(9, -2); ctx.bezierCurveTo(5, -12, 15, -8, 20, -2); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(9, 2); ctx.bezierCurveTo(5, 12, 15, 8, 20, 2); ctx.fill();
-    } else {
-        // Halberd
-        ctx.fillStyle = '#92400e';
-        ctx.fillRect(-25, -2, 35, 4);
-        ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.5;
-        ctx.strokeRect(-25, -2, 35, 4);
-        ctx.fillStyle = '#fde047';
-        ctx.strokeStyle = '#451a03';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(10, -2); ctx.lineTo(28, 0); ctx.lineTo(10, 2);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(4, -2); ctx.lineTo(8, -15);
-        ctx.bezierCurveTo(15, -15, 18, -8, 12, -2);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 0.6;
-        ctx.beginPath(); ctx.moveTo(11, -3); ctx.lineTo(24, -0.5); ctx.stroke();
-        ctx.fillStyle = '#d4af37';
-        ctx.beginPath();
-        ctx.moveTo(4, 2); ctx.lineTo(6, 10); ctx.lineTo(10, 2); ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 0.5; ctx.stroke();
+    const w = cfg.length;
+    const h = w * (img.naturalHeight / img.naturalWidth);
+
+    // Breathing golden aura behind the blade - the one bit of "animation"
+    // an otherwise-static sprite needs to not read as a flat pasted-in icon.
+    if (!_mobPerf) {
+        const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 260);
+        ctx.shadowColor = '#fbbf24';
+        ctx.shadowBlur = 8 + pulse * 6;
     }
+    ctx.drawImage(img, -w * cfg.pivot, -h / 2, w, h);
+    ctx.shadowBlur = 0;
+
     ctx.restore();
 }
 
