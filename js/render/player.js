@@ -1928,6 +1928,8 @@ const _ARIES_WEAPON_CFG = [
     { img: 1, length: 56, pivot: 0.42 }, // Spear
     { img: 2, length: 50, pivot: 0.45 }, // Halberd
 ];
+const _enumaSpearImg = new Image();
+_enumaSpearImg.src = 'images/weapons/5-enuma-spear.png';
 
 function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
     const cfg = _ARIES_WEAPON_CFG[type] || _ARIES_WEAPON_CFG[0];
@@ -2075,30 +2077,25 @@ function drawEnumaElish() {
             }
             ctx.restore();
 
-            if (elapsed > 200) {
+            if (elapsed > 200 && _enumaSpearImg.complete && _enumaSpearImg.naturalWidth) {
                 const spearScale = Math.min(1.0, (elapsed - 200) / 200);
                 let thrustY = elapsed < 500 ? ((elapsed - 200) / 300) * 40 : 40 - (elapsed - 500) * 4;
                 ctx.save();
                 ctx.translate(0, -40 + thrustY);
                 ctx.scale(spearScale, spearScale);
-                ctx.fillStyle = '#18181b';
-                ctx.fillRect(-8, 0, 16, 150);
-                ctx.fillStyle = '#991b1b';
-                ctx.fillRect(-8, 20, 16, 5);
-                ctx.fillRect(-8, 50, 16, 5);
-                ctx.fillStyle = '#d4af37';
-                ctx.beginPath();
-                ctx.moveTo(-35, 10); ctx.lineTo(35, 10); ctx.lineTo(15, -15); ctx.lineTo(-15, -15);
-                ctx.fill();
-                ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 2; ctx.stroke();
-                ctx.fillStyle = '#dc2626';
-                ctx.beginPath();
-                ctx.moveTo(-20, -15); ctx.lineTo(20, -15); ctx.lineTo(0, -140);
-                ctx.fill();
-                ctx.fillStyle = '#fca5a5';
-                ctx.beginPath();
-                ctx.moveTo(-5, -15); ctx.lineTo(5, -15); ctx.lineTo(0, -120);
-                ctx.fill();
+                // Image is drawn tip-to-hilt along +X; rotating -90deg here
+                // puts the tip forward along local -Y (toward the target),
+                // matching the telegraph line/beam this spear thrusts along.
+                ctx.rotate(-Math.PI / 2);
+                const len = 290;
+                const h = len * (_enumaSpearImg.naturalHeight / _enumaSpearImg.naturalWidth);
+                if (!_mobPerf) {
+                    const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 220);
+                    ctx.shadowColor = '#dc2626';
+                    ctx.shadowBlur = 10 + pulse * 10;
+                }
+                ctx.drawImage(_enumaSpearImg, -len / 2, -h / 2, len, h);
+                ctx.shadowBlur = 0;
                 ctx.restore();
             }
             ctx.restore();

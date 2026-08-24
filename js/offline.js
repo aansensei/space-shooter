@@ -24,6 +24,7 @@
         'images/weapons/1-longsword.png',
         'images/weapons/2-spear.png',
         'images/weapons/3-halberd.png',
+        'images/weapons/5-enuma-spear.png',
         'js/audio.js',
         'js/background.js',
         'js/config.js',
