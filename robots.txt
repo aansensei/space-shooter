@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://aansensei.github.io/space-shooter/sitemap.xml
+Sitemap: https://aansensei.dev/space-shooter/sitemap.xml
