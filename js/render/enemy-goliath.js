@@ -1511,6 +1511,34 @@ function _drawGoliathHalo(now) {
     ctx.restore();
 }
 
+// Unbroken Will — aura tỏa ra: chỉ vẽ trong đúng 6s cửa sổ buff hậu-cứu-mạng
+// (enemy._unbrokenWillBuffEnd), sau khi 4s bất tử đã kết thúc hẳn. 3 vòng
+// tròn giãn nở liên tục từ tâm ra ngoài rồi biến mất, lệch pha nhau, cộng
+// thêm 1 quầng sáng cam mềm cố định quanh thân — tách biệt hẳn với
+// _drawGoliathHalo (luôn hiện, không đổi theo trạng thái) để rõ ràng đây là
+// tín hiệu riêng cho trạng thái "được tăng sức" tạm thời.
+function _drawGoliathUnbrokenAura(enemy, now) {
+    if (!enemy._unbrokenWillBuffEnd || now >= enemy._unbrokenWillBuffEnd) return;
+    ctx.save();
+    const glow = ctx.createRadialGradient(0, 0, GOLIATH_HALO_R * 0.3, 0, 0, GOLIATH_HALO_R * 1.15);
+    glow.addColorStop(0, 'rgba(249,115,22,0.22)');
+    glow.addColorStop(1, 'rgba(249,115,22,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(0, 0, GOLIATH_HALO_R * 1.15, 0, Math.PI * 2); ctx.fill();
+
+    const ringPeriod = 900;
+    for (let i = 0; i < 3; i++) {
+        const phase = ((now + i * (ringPeriod / 3)) % ringPeriod) / ringPeriod;
+        const r = GOLIATH_HALO_R * 0.35 + phase * GOLIATH_HALO_R * 0.95;
+        const alpha = (1 - phase) * 0.6;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(253,186,116,${alpha})`; ctx.lineWidth = 3;
+        if (!_mobPerf) { ctx.shadowColor = '#fb923c'; ctx.shadowBlur = 16; }
+        ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+}
+
 // Hiệu ứng chết True Form (crumble): 8 tảng đá thân (GOLIATH_GOLEM_BOULDERS)
 // tách rời rơi xuống + mờ dần lần lượt — kết thúc thẳng ngay khi rụng hết,
 // không còn pha hoá bụi. enemy._deathPhase/_deathPhaseTimer do updateGoliath
@@ -1726,6 +1754,7 @@ function _drawGoliath(enemy) {
         ctx.save();
         ctx.scale(trueScale, trueScale);
         _drawGoliathHalo(now);
+        _drawGoliathUnbrokenAura(enemy, now);
         GOLIATH_TRUE_FORM_FRAGMENTS.forEach((frag, fi) => {
             ctx.save();
             const driftX = frag.ox + Math.sin(now / 1660 + fi) * 10, driftY = frag.oy + Math.cos(now / 2000 + fi * 1.3) * 10;

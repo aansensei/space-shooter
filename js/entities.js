@@ -2778,13 +2778,14 @@ function _goliathDmgBoost(enemy, amount) {
     return (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? amount * 1.20 : amount;
 }
 
-// Unbroken Will (NEW, 1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì
-// thay vào đó — bất tử 3.5s (tái dùng đúng cổng Iron Body tuyệt đối của
-// _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
-// +1 lớp barrier = 20% MaxHP, và trong 6s kế tiếp (bắt đầu CÙNG lúc với 3.5s
-// bất tử, không nối tiếp): +40% hiệu quả hồi HP/khiên (cộng dồn qua
-// _goliathHealBoost), +20% MaxHP (kèm HP hiện tại cộng thẳng phần đó, tự
-// rút lại khi hết hạn — xem updateGoliath), +15% tốc độ bay. Trả về true
+// Unbroken Will (1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì thay
+// vào đó — bất tử 4s (tái dùng đúng cổng Iron Body tuyệt đối của
+// _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage) và
+// +1 lớp barrier = 20% MaxHP ngay lập tức. Sau khi 4s bất tử đã hết hẳn (KHÔNG
+// chồng lấn), mở ra cửa sổ 6s tiếp theo: +40% hiệu quả hồi HP/khiên (cộng dồn
+// qua _goliathHealBoost), +20% MaxHP (kèm HP hiện tại cộng thẳng phần đó, tự
+// rút lại khi hết hạn — xem updateGoliath), +15% tốc độ bay — cửa sổ này được
+// mở đúng lúc bắn sóng giải phóng, xem entities.js updateGoliath. Trả về true
 // nếu đã kích hoạt (đòn này KHÔNG trừ HP thật) để nơi gọi bỏ qua việc trừ HP.
 function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') return false;
@@ -2792,30 +2793,26 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     if (!(incomingHpDamage > 0) || enemy.hp - incomingHpDamage > 0) return false;
     enemy._unbrokenWillUsed = true;
     const now = performance.now();
-    enemy._transformIronBodyEnd = Math.max(enemy._transformIronBodyEnd || 0, now + 3500);
+    enemy._transformIronBodyEnd = Math.max(enemy._transformIronBodyEnd || 0, now + 4000);
     // Riêng theo dõi mốc HẾT bất tử của CHÍNH Unbroken Will (không dùng
     // chung _transformIronBodyEnd — field đó có thể bị mốc invuln biến hình
     // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
-    enemy._unbrokenWillInvulnEnd = now + 3500;
+    enemy._unbrokenWillInvulnEnd = now + 4000;
     enemy.barrier = (enemy.barrier || 0) + Math.ceil(enemy.maxHp * 0.20);
-    enemy._unbrokenWillBuffEnd = now + 6000;
-    const _maxHpBonus = Math.ceil(enemy.maxHp * 0.20);
-    enemy._unbrokenWillMaxHpBonus = _maxHpBonus;
-    enemy.maxHp += _maxHpBonus;
-    enemy.hp += _maxHpBonus;
     addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#f97316');
     createParticles(enemy.x, enemy.y, 40, '#fdba74', 3, 11);
     _setShake(16, 400);
     return true;
 }
 
-// Unbroken Will — sóng giải phóng (NEW): bắn ngay khi 3.5s bất tử vừa hết,
-// đúng 1 lần duy nhất (đi kèm passive, không có cooldown riêng vì chỉ có thể
-// kích hoạt 1 lần/con). Không tự push thẳng vào spawnBossShockwave() (hàm đó
-// gắn cứng SFX/AudioMgr.startMaouHaki — không hợp ngữ nghĩa ở đây, đây không
-// phải 1 đòn tấn công) mà tự dựng wave object cùng thông số tốc độ/maxRadius
-// để khớp đúng "duration bằng Maou Haki" — xem xử lý wave._isUnbrokenWave ở
-// main.js (quét sạch đạn, không gây dame/trừ mạng).
+// Unbroken Will — sóng giải phóng: bắn ngay khi 4s bất tử vừa hết, đúng 1
+// lần duy nhất (đi kèm passive, không có cooldown riêng vì chỉ có thể kích
+// hoạt 1 lần/con). Không tự push thẳng vào spawnBossShockwave() (hàm đó gắn
+// cứng SFX/AudioMgr.startMaouHaki — không hợp ngữ nghĩa ở đây, đây không phải
+// 1 đòn tấn công vào người chơi) mà tự dựng wave object cùng thông số tốc
+// độ/maxRadius để khớp đúng "duration bằng Maou Haki" — xem xử lý
+// wave._isUnbrokenWave ở main.js (quét sạch đạn người chơi, không trừ mạng
+// ai, nhưng gây 50 + 20% MaxHp cho Sentinels).
 function _goliathReleaseUnbrokenWave(enemy, now) {
     bossShockwaves.push({
         x: enemy.x, y: enemy.y,
@@ -3236,11 +3233,21 @@ function updateGoliath(enemy, deltaTime) {
             }
         });
         enemy._lastHpPctForEvade = hpPct;
-        // Unbroken Will (NEW): ngay khi 3.5s bất tử vừa hết, giải phóng 1 đợt
-        // sóng quét sạch đạn người chơi trong tầm — cơ chế y hệt Maou Haki
-        // (cùng tốc độ/maxRadius) nhưng KHÔNG gây sát thương/trừ mạng gì cả.
+        // Unbroken Will: ngay khi 4s bất tử vừa hết, giải phóng 1 đợt sóng
+        // quét sạch đạn người chơi trong tầm — cơ chế y hệt Maou Haki (cùng
+        // tốc độ/maxRadius), không gây sát thương/trừ mạng người chơi, nhưng
+        // CÓ gây 50 + 20% MaxHp cho Sentinels (xem wave._isUnbrokenWave ở
+        // main.js). Cùng lúc này, mở cửa sổ buff 6s hậu-cứu-mạng (KHÔNG chồng
+        // lấn với 4s bất tử vừa qua) — +20% MaxHp cấp ngay tại đây, +40% hiệu
+        // quả hồi HP/khiên và +15% tốc độ bay đọc trực tiếp từ
+        // _unbrokenWillBuffEnd ở nơi khác.
         if (enemy._unbrokenWillInvulnEnd && now >= enemy._unbrokenWillInvulnEnd && !enemy._unbrokenWillWaveFired) {
             enemy._unbrokenWillWaveFired = true;
+            enemy._unbrokenWillBuffEnd = now + 6000;
+            const _maxHpBonus = Math.ceil(enemy.maxHp * 0.20);
+            enemy._unbrokenWillMaxHpBonus = _maxHpBonus;
+            enemy.maxHp += _maxHpBonus;
+            enemy.hp += _maxHpBonus;
             _goliathReleaseUnbrokenWave(enemy, now);
         }
         // Khiên tích luỹ vượt mốc 25/50/75/100% MaxHp → hồi máu tương ứng

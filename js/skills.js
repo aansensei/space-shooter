@@ -20,7 +20,7 @@ function updateDefensiveOrbs() {
 function activateSkillA() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState !== "playing" || window._sigilPicker || currentTime - lastSkillA < skillACooldown) return;
+    if (gameState !== "playing" || window._sigilPicker || currentTime - lastSkillA < _skillACooldown()) return;
 
     const canSpawnOrbs = skillAOrbs.length < maxSkillAOrbs;
     const hasSolJudgment = _hasBuff('mui_ten_apollo');
