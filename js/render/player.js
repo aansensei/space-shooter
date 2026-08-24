@@ -1923,32 +1923,58 @@ function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
 
     if (type === 0) {
         // Longsword
-        ctx.fillStyle = '#fef08a';
+        ctx.fillStyle = '#fde047';
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 0.8;
         ctx.beginPath();
         ctx.moveTo(0, -3); ctx.lineTo(25, -2); ctx.lineTo(35, 0);
         ctx.lineTo(25, 2); ctx.lineTo(0, 3);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(2, -0.5, 20, 1);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // Fuller (blood groove) - a darker centerline gives the blade a
+        // faceted, ground-metal look instead of a flat wedge.
+        ctx.strokeStyle = 'rgba(180, 83, 9, 0.6)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath(); ctx.moveTo(1, 0); ctx.lineTo(32, 0); ctx.stroke();
+        // Edge highlight - thin bright line along the top edge, catching light
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 0.7;
+        ctx.beginPath(); ctx.moveTo(2, -2); ctx.lineTo(30, -1); ctx.stroke();
         ctx.fillStyle = '#d4af37';
         ctx.beginPath();
         ctx.moveTo(2, 0); ctx.lineTo(-2, -10); ctx.lineTo(-4, -10); ctx.lineTo(0, -2);
         ctx.lineTo(0, 2); ctx.lineTo(-4, 10); ctx.lineTo(-2, 10); ctx.lineTo(2, 0);
+        ctx.closePath();
         ctx.fill();
+        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 0.6; ctx.stroke();
         ctx.fillStyle = '#b45309';
         ctx.fillRect(-12, -1.5, 12, 3);
-        ctx.fillStyle = '#fef08a';
+        ctx.strokeStyle = '#451a03'; ctx.lineWidth = 0.5;
+        ctx.strokeRect(-12, -1.5, 12, 3);
+        const pommelGrad = ctx.createRadialGradient(-14, -1, 0.5, -13, 0, 3.5);
+        pommelGrad.addColorStop(0, '#fffbeb');
+        pommelGrad.addColorStop(1, '#d4af37');
+        ctx.fillStyle = pommelGrad;
         ctx.beginPath(); ctx.arc(-13, 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 0.5; ctx.stroke();
     } else if (type === 1) {
         // Spear
         ctx.fillStyle = '#78350f';
         ctx.fillRect(-25, -1.5, 30, 3);
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.5;
+        ctx.strokeRect(-25, -1.5, 30, 3);
         ctx.fillStyle = '#d4af37';
         ctx.fillRect(5, -2.5, 4, 5);
-        ctx.fillStyle = '#fef08a';
+        ctx.fillStyle = '#fde047';
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 0.8;
         ctx.beginPath();
         ctx.moveTo(9, -4); ctx.lineTo(35, 0); ctx.lineTo(9, 4);
-        ctx.fill();
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath(); ctx.moveTo(11, -2); ctx.lineTo(30, -0.3); ctx.stroke();
         ctx.fillStyle = '#d4af37';
         ctx.beginPath();
         ctx.moveTo(9, -2); ctx.bezierCurveTo(5, -12, 15, -8, 20, -2); ctx.fill();
@@ -1958,16 +1984,28 @@ function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
         // Halberd
         ctx.fillStyle = '#92400e';
         ctx.fillRect(-25, -2, 35, 4);
-        ctx.fillStyle = '#fef08a';
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.5;
+        ctx.strokeRect(-25, -2, 35, 4);
+        ctx.fillStyle = '#fde047';
+        ctx.strokeStyle = '#451a03';
+        ctx.lineWidth = 0.8;
         ctx.beginPath();
-        ctx.moveTo(10, -2); ctx.lineTo(28, 0); ctx.lineTo(10, 2); ctx.fill();
+        ctx.moveTo(10, -2); ctx.lineTo(28, 0); ctx.lineTo(10, 2);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(4, -2); ctx.lineTo(8, -15);
         ctx.bezierCurveTo(15, -15, 18, -8, 12, -2);
-        ctx.fill();
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath(); ctx.moveTo(11, -3); ctx.lineTo(24, -0.5); ctx.stroke();
         ctx.fillStyle = '#d4af37';
         ctx.beginPath();
-        ctx.moveTo(4, 2); ctx.lineTo(6, 10); ctx.lineTo(10, 2); ctx.fill();
+        ctx.moveTo(4, 2); ctx.lineTo(6, 10); ctx.lineTo(10, 2); ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 0.5; ctx.stroke();
     }
     ctx.restore();
 }

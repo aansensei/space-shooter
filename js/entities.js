@@ -1725,6 +1725,9 @@ function dealDamage(enemy, source) {
         // Inevitable (Leviathan): 350 flat armor on top of its 60% DR above,
         // same subtract-after-percentage pattern as Walpurgis's flat DR.
         if (enemy.type === 'leviathan') totalDamage -= 350;
+        // Unified Front (Goliath True Form): flat armor recomputed every 1s
+        // off the current ally count (200 * (1 + 0.1*N)), same pattern.
+        if (enemy.type === 'goliath' && enemy.phase === 'true_form') totalDamage -= (enemy._unifiedFrontFlatDR || 0);
         totalDamage = Math.max(0, totalDamage);
     }
 
@@ -2317,8 +2320,8 @@ function updateLeviathan(enemy, deltaTime) {
     }
 
     // Bulwark Barrier (passive): every 1s, if the shield hasn't reached its
-    // cap of 2 layers, gain 1 more layer worth 0.5% MaxHP per on-screen
-    // enemy (each layer individually capped at 15% MaxHP). Resets once the
+    // cap of 2 layers, gain 1 more layer worth 1.2% MaxHP per on-screen
+    // enemy (each layer individually capped at 25% MaxHP). Resets once the
     // shield is fully depleted so it builds back up from scratch.
     enemy._levBarrierTimer = (enemy._levBarrierTimer || 0) + deltaTime;
     if (enemy._levBarrierTimer >= 1000) {
@@ -2329,7 +2332,7 @@ function updateLeviathan(enemy, deltaTime) {
                 e !== enemy && !e.type.startsWith('enemy_bullet') &&
                 e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation
             ).length;
-            const _levLayerVal = Math.min(enemy.maxHp * 0.15, enemy.maxHp * 0.005 * _onScreenEnemies);
+            const _levLayerVal = Math.min(enemy.maxHp * 0.25, enemy.maxHp * 0.012 * _onScreenEnemies);
             if (_levLayerVal > 0) {
                 enemy.shield = (enemy.shield || 0) + _levLayerVal;
                 _goliathTrackResourceGain(enemy, _levLayerVal);
@@ -2749,7 +2752,23 @@ function _goliathHealBoost(enemy, amount) {
     if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) mult += 0.15;
     if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) mult += 0.40;
     mult += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
+    mult += enemy._unifiedFrontHealPct || 0; // Unified Front: +2%/ally on the map, cap +35%
     return amount * mult;
+}
+
+// Unified Front (True Form passive): counts every living player-side unit
+// on the map right now - the player, real Sentinels, Yuusha Party members,
+// and the Remembrance Spirit - and scales 3 defensive stats off that count
+// (N). Refreshed every 1s to the CURRENT N rather than compounding tick
+// over tick. The shield top-up adds into the same shared enemy.shield pool
+// everything else uses (Threshold Ward, Corrupted Genesis...), so it stacks
+// with those normally - it just doesn't keep growing across its own ticks.
+function _goliathCountAllies() {
+    let n = 1; // the player is always on the map while a run is active
+    n += sentinels.length;
+    n += (window._yuushaSquad || []).filter(s => s.hp > 0).length;
+    n += spirits.length;
+    return n;
 }
 
 // Fracture Step hậu-dịch-chuyển (NEW): +20% MỌI sát thương Goliath tự gây
@@ -2994,6 +3013,21 @@ function updateGoliath(enemy, deltaTime) {
         }
         if (enemy.transformTimer >= 4000) _goliathEnterTrueForm(enemy);
     } else if (enemy.phase === 'true_form') {
+        // Unified Front: every 1s, recompute healing effectiveness + flat DR
+        // off the current ally count, and top up shield by 1% MaxHP per ally.
+        enemy._unifiedFrontTimer = (enemy._unifiedFrontTimer || 0) + deltaTime;
+        if (enemy._unifiedFrontTimer >= 1000) {
+            enemy._unifiedFrontTimer -= 1000;
+            const _uAllies = _goliathCountAllies();
+            enemy._unifiedFrontHealPct = Math.min(0.35, 0.02 * _uAllies);
+            enemy._unifiedFrontFlatDR = 200 * (1 + 0.1 * _uAllies);
+            if (_uAllies > 0) {
+                const _uShield = enemy.maxHp * 0.01 * _uAllies;
+                enemy.shield = (enemy.shield || 0) + _uShield;
+                _goliathTrackResourceGain(enemy, _uShield);
+            }
+        }
+
         // Lượn qua lượn lại kiểu boss Touhou — CHẬM, êm, uy nghiêm (không phải
         // rung giật nhiều tần số như trước). Tâm dao động bám theo vị trí đã
         // ổn định gần nhất (_restX/_restY, cập nhật khi Fracture Step dịch

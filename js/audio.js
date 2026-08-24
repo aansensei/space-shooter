@@ -539,7 +539,14 @@
     }
 
     function _switchBgm(track) {
-        if (state.currentBgmId === track.id && !state.bgmEl.paused) return;
+        // Same track already loaded, whether it's actively playing or just
+        // paused (e.g. the pause screen froze it via pauseAll()) - either
+        // way a real track switch isn't wanted, only resumeAll()/pauseAll()
+        // should touch play state while it's the current track. Used to
+        // only check "!paused", so re-requesting the same track while
+        // paused fell through to setSrc()+play(), which resets its saved
+        // position and restarted it from 0 instead of leaving it alone.
+        if (state.currentBgmId === track.id) return;
         state.bgmEl.pause();
         // Menu has only one track (loops itself forever). In-game tracks
         // shouldn't loop the same song all match — advance to a new random
