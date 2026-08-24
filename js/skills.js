@@ -1250,7 +1250,7 @@ function updateSkillD(deltaTime) {
         deathStar.activeTime += deltaTime;
         if (deathStar.size < deathStar.maxSize) deathStar.size += 1 * dt;
 
-        const pullSpeed = 5.25; // 4.2 (-30% vs original 6) + a later +25% pass
+        const pullSpeed = 7; // buffed from the original 6 (+16.7%)
         // Contact radius matches the Death Star's actual visible outer edge
         // (SKILLD_CONTACT_MULT, js/config.js — keep in sync with the base
         // disc drawn at deathStar.size * 2.5 scaled by DS_SCALE = 2.0/2.8 in
@@ -2006,7 +2006,9 @@ function updateMarchosiasBlades(deltaTime) {
         // Hit player
         if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.hitRadius) {
             blade.hitPlayer = true;
-            playerTakesHit({ type: 'marchosias' });
+            const _yHitsAlready = blade.hitEnemies.length;
+            const _yPct = _yHitsAlready === 0 ? 0.27 : _yHitsAlready === 1 ? 0.23 : 0.21;
+            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(_yPct, true)) playerTakesHit({ type: 'marchosias' });
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', blade.x, blade.y);
         }
         // Hit sentinel, damage scales down with number of sentinels already hit
@@ -2358,7 +2360,7 @@ function _createGobSequence(startTime) {
     return { startTime, phase: 0, baseAngle, fanAngle, portals, swords: [] };
 }
 
-const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_BASE = 40, GOB_SWORD_DMG_PCT = 0.03;
+const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_BASE = 50, GOB_SWORD_DMG_PCT = 0.04;
 
 function updateGateOfBabylon(deltaTime) {
     if (!window._gobSequences || window._gobSequences.length === 0) return;
