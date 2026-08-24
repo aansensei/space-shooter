@@ -900,18 +900,18 @@
                     font-size:10px; line-height:1; color:#04121c; background:rgba(0,20,40,0.6);
                 }
                 .stg-music-row-active .stg-music-check { background:#00e5ff; border-color:#00e5ff; }
-                /* Themed scrollbars — the settings panel itself and the music dropdown */
-                #settings-panel, .stg-music-dropdown {
+                /* Themed scrollbars — the settings panel, music dropdown, and match stats panel */
+                #settings-panel, .stg-music-dropdown, #match-stats-panel {
                     scrollbar-width:thin; scrollbar-color:rgba(0,229,255,0.4) rgba(0,20,40,0.3);
                 }
-                #settings-panel::-webkit-scrollbar, .stg-music-dropdown::-webkit-scrollbar { width:6px; }
-                #settings-panel::-webkit-scrollbar-track, .stg-music-dropdown::-webkit-scrollbar-track {
+                #settings-panel::-webkit-scrollbar, .stg-music-dropdown::-webkit-scrollbar, #match-stats-panel::-webkit-scrollbar { width:6px; }
+                #settings-panel::-webkit-scrollbar-track, .stg-music-dropdown::-webkit-scrollbar-track, #match-stats-panel::-webkit-scrollbar-track {
                     background:rgba(0,20,40,0.3); border-radius:3px;
                 }
-                #settings-panel::-webkit-scrollbar-thumb, .stg-music-dropdown::-webkit-scrollbar-thumb {
+                #settings-panel::-webkit-scrollbar-thumb, .stg-music-dropdown::-webkit-scrollbar-thumb, #match-stats-panel::-webkit-scrollbar-thumb {
                     background:rgba(0,229,255,0.4); border-radius:3px;
                 }
-                #settings-panel::-webkit-scrollbar-thumb:hover, .stg-music-dropdown::-webkit-scrollbar-thumb:hover {
+                #settings-panel::-webkit-scrollbar-thumb:hover, .stg-music-dropdown::-webkit-scrollbar-thumb:hover, #match-stats-panel::-webkit-scrollbar-thumb:hover {
                     background:rgba(0,229,255,0.65);
                 }
                 .stg-slider::-moz-range-thumb {
@@ -975,7 +975,7 @@
                         'pause.title': 'SYSTEM TERMINATED',
                         'pause.subtitle': 'Press RESUME to continue',
                         'matchStats.button': 'Match Stat',
-                        'matchStats.title': '📊 Match Statistics',
+                        'matchStats.title': 'Match Statistics',
                         'matchStats.tabAlly': 'Ally Damage',
                         'matchStats.tabEnemy': 'Enemy Damage',
                         'matchStats.tabLives': 'Lives Lost',
@@ -1009,7 +1009,7 @@
                         'pause.title': 'HỆ THỐNG ĐÃ TẠM DỪNG',
                         'pause.subtitle': 'Ấn RESUME để tiếp tục',
                         'matchStats.button': 'Match Stat',
-                        'matchStats.title': '📊 Thống Kê Trận Đấu',
+                        'matchStats.title': 'Thống Kê Trận Đấu',
                         'matchStats.tabAlly': 'ST Đồng Minh',
                         'matchStats.tabEnemy': 'ST Kẻ Địch',
                         'matchStats.tabLives': 'Mạng Đã Mất',
@@ -1840,7 +1840,7 @@
     <script src="js/config.js?v=20260824c"></script>
     <script src="js/sigils.js?v=20260824i"></script>
     <script src="js/yuusha-party.js?v=20260824j"></script>
-    <script src="js/entities.js?v=20260824f"></script>
+    <script src="js/entities.js?v=20260824g"></script>
     <script src="js/skills.js?v=20260823t"></script>
     <script src="js/render/core.js?v=20260823f"></script>
     <script src="js/render/fx.js?v=20260823a"></script>
@@ -1862,7 +1862,7 @@
     <script src="js/pixi-renderer.js?v=20260720b"></script>
     <script src="js/input.js?v=20260823b"></script>
     <script src="js/match-stats.js?v=20260823b"></script>
-    <script src="js/main.js?v=20260824f"></script>
+    <script src="js/main.js?v=20260824g"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
@@ -2052,7 +2052,7 @@
 
             <h2 style="margin:0 0 18px; text-align:center; color:#00e5ff;
                 font-size:14px; letter-spacing:4px; text-transform:uppercase;
-                text-shadow:0 0 12px rgba(0,229,255,0.5);" data-i18n="matchStats.title">📊 Match Statistics</h2>
+                text-shadow:0 0 12px rgba(0,229,255,0.5);" data-i18n="matchStats.title">Match Statistics</h2>
 
             <div id="match-stats-tabs" style="display:flex; gap:6px; margin-bottom:16px;">
                 <button class="ms-tab-btn" data-tab="allyDamage" onclick="_renderMatchStatsTab('allyDamage')" style="

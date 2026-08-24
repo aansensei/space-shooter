@@ -1884,11 +1884,15 @@ function dealDamage(enemy, source) {
     // giây (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn
     // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
     const _hitSizeForBurst = totalDamage;
-    // match stats: log this hit (pre-shield, same as _hitSizeForBurst)
+    // match stats: log the actual damage applied, capped at the enemy's
+    // current HP - instakill tricks (Death Star's damage: maxHp*999999999)
+    // use an intentionally absurd raw value to guarantee a kill through any
+    // mitigation, and logging that raw value would blow the leaderboard up
+    // to a meaningless number instead of real damage dealt.
     _recordStat(
         (isSentinel || isSpaceship) ? 'enemyDamage' : 'allyDamage',
         _classifyDamageSource(source, !(isSentinel || isSpaceship)),
-        _hitSizeForBurst
+        Math.min(_hitSizeForBurst, Math.max(0, enemy.hp))
     );
 
     // Buff Phōtokrystos (NEW): đánh 1 kẻ địch >50,000 MaxHP (thực tế chỉ có

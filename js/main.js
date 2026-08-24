@@ -1670,16 +1670,20 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1);
             }
         }
-        if (lives <= 0) {
-            gameState = "gameover";
-            _gameOverPlayTime = performance.now() - gameStartTime;
-            showStartButton("Play Again"); showMainMenuButton(); showMatchStatsButton();
-            // update() bails early once gameState != "playing" so the
-            // low-hp check up top never runs again to notice lives=0 -
-            // loop+duck was stuck on forever under gameover sfx, clipped bad
-            window._lowHpActive = false;
-            if (window.AudioMgr) { window.AudioMgr.stopLowHp(); window.AudioMgr.stopBgm(); window._gameoverVoice = window.AudioMgr.playSfx('gameover'); }
-        }
+    }
+
+    // Checked once per frame regardless of enemies.length: lives can hit 0
+    // from any loseLife() call site (playerTakesHit, boundary crossing,
+    // etc), including the exact frame enemies is empty - putting this check
+    // inside the enemies loop above meant it silently skipped that frame,
+    // delaying gameover and leaving the low-hp heartbeat looping under the
+    // gameover voice on a fast death.
+    if (lives <= 0 && gameState === "playing") {
+        gameState = "gameover";
+        _gameOverPlayTime = performance.now() - gameStartTime;
+        showStartButton("Play Again"); showMainMenuButton(); showMatchStatsButton();
+        window._lowHpActive = false;
+        if (window.AudioMgr) { window.AudioMgr.stopLowHp(); window.AudioMgr.stopBgm(); window._gameoverVoice = window.AudioMgr.playSfx('gameover'); }
     }
 
     _profChk.push(performance.now()); // end of enemies loop
