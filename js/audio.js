@@ -318,7 +318,6 @@
         { id: 'requiem-persian-spring', title: 'Requiem for a Persian Spring',   src: 'audio/bgm/requiem-for-a-persian-spring.mp3' },
         { id: 'requiem-falling-stars',  title: 'Requiem of Falling Stars',       src: 'audio/bgm/requiem-of-falling-stars.mp3' },
         { id: 'sorrow-thousand-blades', title: 'Sorrow of a Thousand Blades',    src: 'audio/bgm/sorrow-of-a-thousand-blades.mp3' },
-        { id: 'native-faith',           title: "Suwako's Theme – Native Faith",  src: 'audio/bgm/suwakos-theme-native-faith.mp3' },
         { id: 'last-cicada',            title: "The Last Cicada's Song",         src: 'audio/bgm/the-last-cicadas-song.mp3' },
         { id: 'summer-fades',           title: 'Where Summer Fades to Silence',  src: 'audio/bgm/where-summer-fades-to-silence.mp3' },
         { id: 'hold-my-hand',           title: 'Please Hold My Hand',            src: 'audio/bgm/please-hold-my-hand.mp3' },
