@@ -2286,7 +2286,7 @@ function updateShadowTwin(deltaTime) {
     if (!window._bongDoiCharging) return;
     if (now - window._bongDoiChargeStart < 500) return; // 0.5s charge after the 6th auto-bullet hit
     window._bongDoiCharging = false;
-    window._bongDoiCooldownEnd = now + 1000; // 1s delay before it can trigger again
+    window._bongDoiCooldownEnd = now + 500; // 0.5s delay before it can trigger again
 
     const validTargets = enemies.filter(e =>
         !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
@@ -2322,7 +2322,7 @@ function updateShadowOrbs(deltaTime) {
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < enemy.size / 2 + (orb.isLarge ? 15 : 10)) {
                 orb.hitEnemies.add(enemy);
                 if (orb.isLarge) {
-                    dealDamage(enemy, { damage: 175, percentDamage: 0.08, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
+                    dealDamage(enemy, { damage: 180, percentDamage: 0.08, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 } else {
                     dealDamage(enemy, { damage: 75, percentDamage: 0.03, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 }
@@ -2438,7 +2438,7 @@ function _createEeSequence(startTime, target) {
     return { startTime, phase: 0, x: ox, y: oy, angle: Math.atan2(target.y - oy, target.x - ox), beamWidth: 0, beamAlpha: 0, hitEnemies: new Set(), shockwaves: [], _lastShockwaveAt: 0 };
 }
 
-const EE_DMG_PCT = 0.14, EE_DMG_CAP = 12000, EE_BEAM_HALF = 50;
+const EE_DMG_PCT = 0.15, EE_DMG_CAP = 16000, EE_BEAM_HALF = 50;
 
 function updateEnumaElish(deltaTime) {
     if (!window._eeSequences || window._eeSequences.length === 0) return;
@@ -2477,7 +2477,7 @@ function updateEnumaElish(deltaTime) {
                 if (Math.random() > 0.7) createParticles(en.x, en.y, 5, '#fca5a5', 2, 5);
                 if (seq.hitEnemies.has(en)) continue;
                 seq.hitEnemies.add(en);
-                const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.hp * EE_DMG_PCT));
+                const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.maxHp * EE_DMG_PCT));
                 dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
                 particles.push({ isEeSlash: true, x: en.x, y: en.y, angle: seq.angle + (Math.random() - 0.5) * 0.5, lifetime: 400, maxLifetime: 400 });
             }

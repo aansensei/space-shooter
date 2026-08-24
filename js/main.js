@@ -2646,7 +2646,7 @@ function startGame() {
     window._goldenArrowNextSweepAt = 0;
     window._goldenArrowSweep = null;
     window._gobSequences = []; window._gobCooldownEnd = 0;
-    window._eeSequences = []; window._eeHitCounter = 0;
+    window._eeSequences = []; window._eeHitCounter = 0; window._eeCooldownEnd = 0;
 
     // Reset Skill Shift
     skillShiftActive = false;
