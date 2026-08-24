@@ -488,6 +488,8 @@
     .ul-entry ul { margin:6px 0 0 0; padding-left:14px; }
     .ul-entry li { font-size:11.5px; margin-bottom:4px; color:#c8d5e8; line-height:1.45; list-style:none; padding-left:2px; }
     .ul-spotlight { background:rgba(192,132,252,0.07); border:1px solid rgba(192,132,252,0.28); border-radius:6px; padding:8px 10px!important; box-shadow:0 0 14px rgba(192,132,252,0.1); }
+    .ul-hero { width:100%; border-radius:10px; overflow:hidden; margin-bottom:14px; border:1px solid rgba(255,255,255,0.08); }
+    .ul-hero img { width:100%; display:block; -webkit-user-drag:none; user-select:none; pointer-events:none; }
 
     .sigil-deck { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
     @media (max-width:900px) { .sigil-deck { grid-template-columns:repeat(3,1fr); } }
@@ -1217,7 +1219,8 @@
 <li><span class="hgr">Glory:</span> ×1.55 | <span class="hg">Parry:</span> ×1.25 | Combined: <span class="dmg">×1.9375</span></li></ul></div>`,
 
       updatelog: `
-<div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div></div>
+<div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div>
+<div class="ul-hero" oncontextmenu="return false"><img src="images/update-log-hero.png" draggable="false" alt="Pisces: Space Journey"></div></div>
 
 <div class="ul-entry" style="--ul-accent:#a855f7">
 <div class="ul-head"><span class="ul-ver">v5.6 — DEATH STAR REWORK</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
