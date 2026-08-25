@@ -3,6 +3,40 @@
 // Echo (post-death lingering hazard). Extracted from entities.js. Must load
 // after entities.js and before main.js.
 
+function spawnVeilshroud() {
+    const baseSize = 20 + Math.random() * 10;
+    const size = baseSize * 5; // ~100–150px, bằng Thaelis
+    const hpFromTime = Math.floor(gameElapsedTime / 10000);
+    const hp = Math.ceil(Math.min(3300, 1320 + hpFromTime * 66) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
+    enemies.push({
+        x: Math.random() * (canvas.width - size) + size / 2,
+        y: -size,
+        size,
+        speed: 2.0,
+        hp, maxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+        type: 'veilshroud',
+        // Phantom mechanic
+        inPhantom: false,
+        phantomTimer: 0,
+        phantomDuration: 1500,
+        phantomCheckTimer: 0,
+        phantomCheckInterval: 450,
+        // Lightning after phantom exit
+        lightningPending: false,
+        lightningCountdown: 0,
+        lightningCountdownDuration: 1500,
+        lightningTargetX: 0,
+        lightningTargetY: 0,
+        lightningTargetRef: null,
+        // Normal attack (−20% speed → interval × 1.25)
+        shootTimer: 0,
+        shootInterval: 500,
+        // Energy Accumulation: tracks damage absorbed during Phantom
+        _phantomAbsorb: 0,
+    });
+}
+
 // VEILSHROUD UPDATE
 function updateVeilshroud(enemy, deltaTime) {
     const dt = deltaTime / 16.67;
