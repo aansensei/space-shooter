@@ -303,6 +303,29 @@ function _drawLeviathanEffects() {
             // ring at the instant of firing.
             ctx.rotate(targetA);
             ctx.globalAlpha = activeFade;
+
+            // The wing itself stays visible at the beam's base while firing,
+            // now glowing white-hot instead of still charging, so the beam
+            // reads as coming FROM this wing instead of appearing out of
+            // nowhere at the core.
+            {
+                const _fWingLen = 135, _fWingW = 18, _fhw = _fWingW / 2;
+                const fwg = ctx.createLinearGradient(0, 0, _fWingLen, 0);
+                fwg.addColorStop(0, '#3a1030');
+                fwg.addColorStop(0.4, '#ff6622');
+                fwg.addColorStop(1, '#ffffff');
+                ctx.fillStyle = fwg;
+                if (!_mobPerf) { ctx.shadowColor = '#ffaa55'; ctx.shadowBlur = 24; }
+                ctx.beginPath();
+                ctx.moveTo(0, -_fhw * 0.4);
+                ctx.lineTo(0, _fhw * 0.4);
+                ctx.lineTo(_fWingLen, _fhw * 0.7);
+                ctx.lineTo(_fWingLen, -_fhw * 0.7);
+                ctx.closePath();
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
             if (!_mobPerf) { ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 65; }
             const outerGrad2 = ctx.createLinearGradient(0, -48, 0, 48);
             outerGrad2.addColorStop(0, 'rgba(120,0,200,0)');
@@ -352,6 +375,149 @@ function _drawLeviathanEffects() {
         }
         ctx.restore();
     });
+
+    // Death burst: fires once when the Leviathan is actually removed (see
+    // handleEnemyKill in entities.js) — a bright core flash, an expanding
+    // cyan/violet double shockwave, and its own 9 wing panels shattering
+    // outward and tumbling, so the death moment reads as this specific
+    // body coming apart instead of a generic explosion.
+    if (window._levDeathBursts) {
+        window._levDeathBursts.forEach(b => {
+            const age = now - b.spawnAt;
+            const t = Math.min(1, age / b.duration);
+            if (t >= 1) return;
+            const fade = 1 - t;
+
+            ctx.save();
+            ctx.translate(b.x, b.y);
+
+            if (t < 0.35) {
+                const flashT = t / 0.35;
+                const flashR = b.size * (0.4 + flashT * 0.8);
+                const flashGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, flashR);
+                flashGrad.addColorStop(0, `rgba(255,255,255,${(1 - flashT) * 0.95})`);
+                flashGrad.addColorStop(0.5, `rgba(180,220,255,${(1 - flashT) * 0.6})`);
+                flashGrad.addColorStop(1, 'rgba(0,229,255,0)');
+                ctx.fillStyle = flashGrad;
+                ctx.beginPath(); ctx.arc(0, 0, flashR, 0, Math.PI * 2); ctx.fill();
+            }
+
+            [
+                { c: '0,229,255', spd: 1.0, w0: 6 },
+                { c: '157,0,255', spd: 0.75, w0: 4 },
+            ].forEach(ring => {
+                const ringR = b.size * 0.3 + b.size * 1.8 * Math.min(1, t / ring.spd);
+                ctx.strokeStyle = `rgba(${ring.c},${fade * 0.8})`;
+                ctx.lineWidth = ring.w0 * fade;
+                ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+            });
+
+            const NUM_WINGS = 9;
+            for (let i = 0; i < NUM_WINGS; i++) {
+                const baseA = (Math.PI * 2 / NUM_WINGS) * i + (b._seed || 0);
+                const dist = b.size * 0.5 + t * b.size * 1.5;
+                const px = Math.cos(baseA) * dist, py = Math.sin(baseA) * dist;
+                const spin = baseA + t * (2 + (i % 3)) * Math.PI;
+                const shardLen = b.size * 0.22 * fade;
+                const shardW = b.size * 0.08 * fade;
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(spin);
+                const shardGrad = ctx.createLinearGradient(0, -shardLen, 0, 0);
+                shardGrad.addColorStop(0, `rgba(0,229,255,${fade})`);
+                shardGrad.addColorStop(1, `rgba(20,30,50,${fade})`);
+                ctx.fillStyle = shardGrad;
+                ctx.beginPath();
+                ctx.moveTo(-shardW * 0.4, -shardLen);
+                ctx.lineTo(shardW * 0.4, -shardLen);
+                ctx.lineTo(shardW * 0.5, 0);
+                ctx.lineTo(-shardW * 0.5, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            for (let p = 0; p < 14; p++) {
+                const pSeed = p * 0.63 + (b._seed || 0);
+                const pAngle = pSeed * Math.PI * 2;
+                const pDist = b.size * 0.3 + t * b.size * (1.2 + (p % 3) * 0.5);
+                ctx.fillStyle = p % 2 === 0 ? `rgba(255,255,255,${fade * 0.8})` : `rgba(0,229,255,${fade * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(Math.cos(pAngle) * pDist, Math.sin(pAngle) * pDist, 2 + (1 - t) * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        });
+    }
+
+    // Shield break: fires once when All-for-One shatters (see the "Sweep
+    // done → BREAK THE SHIELD" branch in entities.js) — a bright white
+    // flash + ring at the shield's own radius, its crystalline facet
+    // chords flying outward as tumbling shards, and the guardian eye nodes
+    // flaring bright then going dark, so the shield reads as physically
+    // shattering instead of just a generic explosion.
+    if (window._levShieldBreaks) {
+        window._levShieldBreaks.forEach(b => {
+            const age = now - b.spawnAt;
+            const t = Math.min(1, age / b.duration);
+            if (t >= 1) return;
+            const fade = 1 - t;
+            const sR = b.size * 0.5 * 1.55;
+
+            ctx.save();
+            ctx.translate(b.x, b.y);
+
+            if (t < 0.3) {
+                const flashT = t / 0.3;
+                const flashGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, sR * (0.6 + flashT * 0.6));
+                flashGrad.addColorStop(0, `rgba(255,255,255,${(1 - flashT) * 0.9})`);
+                flashGrad.addColorStop(0.6, `rgba(0,229,255,${(1 - flashT) * 0.5})`);
+                flashGrad.addColorStop(1, 'rgba(0,229,255,0)');
+                ctx.fillStyle = flashGrad;
+                ctx.beginPath(); ctx.arc(0, 0, sR * (0.6 + flashT * 0.6), 0, Math.PI * 2); ctx.fill();
+            }
+
+            const ringR = sR * (1 + t * 0.9);
+            ctx.strokeStyle = `rgba(0,229,255,${fade * 0.85})`;
+            ctx.lineWidth = 4 * fade;
+            ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+
+            // Facet shards: the same chord pattern the shield used, now
+            // flying outward and tumbling apart.
+            const _facets = 10;
+            for (let fi = 0; fi < _facets; fi++) {
+                const fa = (Math.PI * 2 / _facets) * fi + (b._seed || 0);
+                const dist = sR * 0.7 + t * sR * 1.3;
+                const shardX = Math.cos(fa) * dist, shardY = Math.sin(fa) * dist;
+                const spin = fa + t * (1.5 + (fi % 3)) * Math.PI;
+                ctx.save();
+                ctx.translate(shardX, shardY);
+                ctx.rotate(spin);
+                ctx.strokeStyle = `rgba(180,80,255,${fade * 0.8})`;
+                ctx.lineWidth = 2;
+                const shardLen = sR * 0.22 * fade;
+                ctx.beginPath();
+                ctx.moveTo(-shardLen, 0); ctx.lineTo(shardLen, shardLen * 0.4); ctx.stroke();
+                ctx.restore();
+            }
+
+            // Guardian eyes flaring bright then scattering outward
+            const _eyeCount = 8;
+            for (let gi = 0; gi < _eyeCount; gi++) {
+                const ga = (Math.PI * 2 / _eyeCount) * gi;
+                const dist = sR + t * sR * 0.8;
+                const gx = Math.cos(ga) * dist, gy = Math.sin(ga) * dist;
+                const gGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 5 * fade + 1);
+                gGrad.addColorStop(0, `rgba(255,255,255,${fade})`);
+                gGrad.addColorStop(1, 'rgba(0,229,255,0)');
+                ctx.fillStyle = gGrad;
+                ctx.beginPath(); ctx.arc(gx, gy, 5 * fade + 1, 0, Math.PI * 2); ctx.fill();
+            }
+
+            ctx.restore();
+        });
+    }
 }
 
 
@@ -369,8 +535,13 @@ function _drawLeviathan(enemy) {
     // Wing animation
     const cycleMs = 6000;
     const t6 = (now % cycleMs) / cycleMs;
+    // Sweeping: the 9 wings snap into a tight, fully-extended battle stance
+    // and spin much faster while a Perseverance beam is firing, selling
+    // "the whole body is channeling power into that beam" instead of
+    // idling through their normal slow breathing cycle underneath it.
+    const sweeping = !shieldActive && !dying && window._levPersBeams && window._levPersBeams.length > 0;
     let wingPhase;
-    if (shieldActive || dying) {
+    if (shieldActive || dying || sweeping) {
         wingPhase = shieldActive ? 0 : 1;
     } else {
         if (t6 < 0.25) wingPhase = 0;
@@ -380,18 +551,43 @@ function _drawLeviathan(enemy) {
         wingPhase = Math.max(0, Math.min(1, wingPhase));
     }
 
-    // Counter-clockwise slow rotation of the whole wing arrangement
-    const wingRotOffset = -(now / 9000) * Math.PI * 2;
+    // Counter-clockwise slow rotation of the whole wing arrangement — 5x
+    // faster while sweeping.
+    const wingRotOffset = -(now / (sweeping ? 1800 : 9000)) * Math.PI * 2;
+
+    // During the death-laser sequence each of the 9 real wing slots aims
+    // itself at its own target (same easing the beam/blade in
+    // _drawLeviathanEffects uses) instead of idling through the normal
+    // breathing cycle — this is still recognizably the body's own wings,
+    // just aiming and glowing hot instead of a disconnected shape floating
+    // separately at the wrong angle.
+    const hasDeathLasers = dying && window._levDeathLasers && window._levDeathLasers.length > 0;
 
     for (let i = 0; i < NUM_WINGS; i++) {
-        const baseAngle = (Math.PI * 2 / NUM_WINGS) * i + wingRotOffset;
+        let baseAngle;
+        let fireT = 0; // 0 = idle cyan, 1 = fully charged/firing hot orange-white
+        const laser = hasDeathLasers ? window._levDeathLasers[i] : null;
+        if (laser) {
+            const startA = laser.startAngle !== undefined ? laser.startAngle : laser.angle;
+            const targetA = laser.angle;
+            let diff = targetA - startA;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            const warnT = Math.min(1, (laser.elapsed || 0) / (laser.warnTime || 1200));
+            const ease = warnT < 0.5 ? 4 * warnT * warnT * warnT : 1 - Math.pow(-2 * warnT + 2, 3) / 2;
+            baseAngle = startA + diff * ease;
+            fireT = (laser.elapsed || 0) >= (laser.warnTime || 1200) ? 1 : warnT;
+        } else {
+            baseAngle = (Math.PI * 2 / NUM_WINGS) * i + wingRotOffset;
+        }
 
         // Bobbing: each wing oscillates slightly in/out at different phases
-        const bob = Math.sin(now / 700 + i * (Math.PI * 2 / NUM_WINGS)) * r * 0.06;
+        // (held still while aiming for a laser — a locked-on wing doesn't wobble)
+        const bob = laser ? 0 : Math.sin(now / 700 + i * (Math.PI * 2 / NUM_WINGS)) * r * 0.06;
 
         const closedDist = r * 0.45;
         const openDist = r * 0.95;
-        const wingDist = closedDist + (openDist - closedDist) * wingPhase + bob;
+        const wingDist = laser ? openDist : closedDist + (openDist - closedDist) * wingPhase + bob;
         const wingLen = r * 1.1;
         const wingW = r * 0.28;
         const hw = wingW / 2;
@@ -410,15 +606,19 @@ function _drawLeviathan(enemy) {
         ctx.lineTo(-hw, 0);         // bottom-left  (0%)
         ctx.closePath();
 
-        // Gradient giống HTML: #00e5ff top → dark steel bottom
+        // Gradient giống HTML: #00e5ff top → dark steel bottom. Blends
+        // toward hot orange-white as this specific wing charges/fires.
         const wg = ctx.createLinearGradient(0, -wingLen, 0, 0);
-        wg.addColorStop(0, '#00e5ff');
-        wg.addColorStop(0.15, '#2d3748');
+        const _tipColor = fireT > 0
+            ? `rgb(${Math.round(fireT * 255)},${Math.round(229 - fireT * 59)},${Math.round(255 - fireT * 170)})`
+            : '#00e5ff';
+        wg.addColorStop(0, _tipColor);
+        wg.addColorStop(0.15, fireT > 0.5 ? '#5a2a1a' : '#2d3748');
         wg.addColorStop(0.80, '#1a1c29');
         wg.addColorStop(1, '#0f172a');
         ctx.fillStyle = wg;
-        if (!_mobPerf) ctx.shadowColor = '#00e5ff';
-        if (!_mobPerf) ctx.shadowBlur = 8 + wingPhase * 6;
+        if (!_mobPerf) ctx.shadowColor = fireT > 0 ? '#ff8844' : '#00e5ff';
+        if (!_mobPerf) ctx.shadowBlur = 8 + wingPhase * 6 + fireT * 14;
         ctx.fill();
 
         // Inner panel (segment::before từ HTML)
@@ -432,6 +632,35 @@ function _drawLeviathan(enemy) {
         ctx.shadowBlur = 0;
         ctx.fill();
 
+        ctx.restore();
+    }
+
+    // Wind-tear: thin arcs of torn air along the rotation direction, just
+    // outside the wingtip radius — sells constant motion through space
+    // instead of a static floating body. Faster and brighter while
+    // sweeping, same idea as the wings channeling into the beam.
+    if (!_mobPerf && _gfxLevel <= 1) {
+        const tearR = r * (1.05 + (sweeping ? 0.12 : 0));
+        const tearCount = sweeping ? 6 : 4;
+        const tearAlpha = sweeping ? 0.55 : 0.28;
+        ctx.save();
+        ctx.rotate(wingRotOffset);
+        for (let ti = 0; ti < tearCount; ti++) {
+            const a0 = (Math.PI * 2 / tearCount) * ti;
+            const arcLen = 0.55 + Math.sin(now / 500 + ti * 1.7) * 0.15;
+            const tGrad = ctx.createLinearGradient(
+                Math.cos(a0) * tearR, Math.sin(a0) * tearR,
+                Math.cos(a0 + arcLen) * tearR, Math.sin(a0 + arcLen) * tearR
+            );
+            tGrad.addColorStop(0, 'rgba(0,229,255,0)');
+            tGrad.addColorStop(0.5, `rgba(180,240,255,${tearAlpha})`);
+            tGrad.addColorStop(1, 'rgba(0,229,255,0)');
+            ctx.strokeStyle = tGrad;
+            ctx.lineWidth = sweeping ? 2.5 : 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, tearR, a0, a0 + arcLen);
+            ctx.stroke();
+        }
         ctx.restore();
     }
 
@@ -491,22 +720,67 @@ function _drawLeviathan(enemy) {
     if (shieldActive) {
         const sR = r * 1.55;
         const spinA = (now / 15000) * Math.PI * 2;
-        const pulse = 0.85 + 0.15 * Math.sin(now / 1500);
+        // Breathing synced to the same rhythm as the core's own heartbeat
+        // (same period+phase as `beat` above) instead of its own separate
+        // cycle — the whole defense system pulses as one living thing.
+        const pulse = 0.85 + 0.15 * Math.abs(Math.sin(now / 500));
+
+        // How close this shield is to breaking (kills toward afoKillQuota
+        // is the real progress-to-break metric this shield already uses —
+        // reusing it for color instead of inventing a separate HP value).
+        const _quotaN = enemy.afoKillQuota || 1;
+        const _breakProg = Math.max(0, Math.min(1, (enemy.afoKillCount || 0) / _quotaN));
+        // cyan → yellow → red as it nears breaking, with a fast flicker
+        // once it's almost gone
+        const _cR = Math.round(_breakProg < 0.7 ? (_breakProg / 0.7) * 255 : 255);
+        const _cG = Math.round(_breakProg < 0.7 ? 229 - (_breakProg / 0.7) * 9 : 220 - ((_breakProg - 0.7) / 0.3) * 220);
+        const _cB = Math.round(255 - Math.min(1, _breakProg / 0.7) * 255);
+        const _flicker = _breakProg > 0.85 ? (0.6 + 0.4 * Math.max(0, Math.sin(now / 60))) : 1;
+        const _shieldRGB = `${_cR},${_cG},${_cB}`;
 
         // Radial fill
         const sg = ctx.createRadialGradient(0, 0, sR * 0.7, 0, 0, sR);
-        sg.addColorStop(0, `rgba(0,229,255,${0.05 * pulse})`);
-        sg.addColorStop(0.8, `rgba(0,229,255,${0.15 * pulse})`);
-        sg.addColorStop(1, `rgba(0,229,255,${0.4 * pulse})`);
+        sg.addColorStop(0, `rgba(${_shieldRGB},${0.05 * pulse * _flicker})`);
+        sg.addColorStop(0.8, `rgba(${_shieldRGB},${0.15 * pulse * _flicker})`);
+        sg.addColorStop(1, `rgba(${_shieldRGB},${0.4 * pulse * _flicker})`);
         ctx.fillStyle = sg;
         ctx.beginPath(); ctx.arc(0, 0, sR, 0, Math.PI * 2); ctx.fill();
+
+        // Hex-grid aura: a faint hexagon lattice tiling the band between
+        // the core and the ring, tinted with the same break-progress color.
+        {
+            ctx.save();
+            ctx.beginPath(); ctx.arc(0, 0, sR * 0.96, 0, Math.PI * 2); ctx.clip();
+            ctx.rotate(spinA * 0.15);
+            ctx.strokeStyle = `rgba(${_shieldRGB},${0.16 * pulse * _flicker})`;
+            ctx.lineWidth = 1;
+            const _hexR = sR * 0.16;
+            const _hexW = _hexR * 1.5, _hexH = _hexR * Math.sqrt(3);
+            const _hexSpan = sR * 1.1;
+            for (let hy = -_hexSpan; hy <= _hexSpan; hy += _hexH * 0.5) {
+                const _rowOdd = Math.round(hy / (_hexH * 0.5)) % 2 !== 0;
+                for (let hx = -_hexSpan; hx <= _hexSpan; hx += _hexW) {
+                    const cx2 = hx + (_rowOdd ? _hexW / 2 : 0);
+                    if (Math.hypot(cx2, hy) > sR * 0.99 || Math.hypot(cx2, hy) < coreR * 1.6) continue;
+                    ctx.beginPath();
+                    for (let hk = 0; hk < 6; hk++) {
+                        const ha = (Math.PI / 3) * hk + Math.PI / 6;
+                        const hpx = cx2 + Math.cos(ha) * _hexR, hpy = hy + Math.sin(ha) * _hexR;
+                        hk === 0 ? ctx.moveTo(hpx, hpy) : ctx.lineTo(hpx, hpy);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
 
         // Outer border spinning (spin-slow 15s)
         ctx.save();
         ctx.rotate(spinA);
-        ctx.strokeStyle = `rgba(0,229,255,${0.8 * pulse})`;
+        ctx.strokeStyle = `rgba(${_shieldRGB},${0.8 * pulse * _flicker})`;
         ctx.lineWidth = 3;
-        if (!_mobPerf) ctx.shadowColor = '#00e5ff'; if (!_mobPerf) ctx.shadowBlur = 20;
+        if (!_mobPerf) { ctx.shadowColor = `rgb(${_shieldRGB})`; ctx.shadowBlur = 20; }
         ctx.beginPath(); ctx.arc(0, 0, sR, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
 
@@ -520,6 +794,77 @@ function _drawLeviathan(enemy) {
         ctx.beginPath(); ctx.arc(0, 0, sR * 0.94, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
         ctx.restore();
+
+        // Crystalline facet panels: alternating cyan/violet wedge panels
+        // with bright bevel edges across the barrier's outer band, so it
+        // reads as an actual cut-crystal shell instead of a flat wash.
+        ctx.save();
+        ctx.rotate(spinA * 0.4);
+        const _facets = 14;
+        const _rIn = sR * 0.62, _rOut = sR * 0.99;
+        for (let fi = 0; fi < _facets; fi++) {
+            const fa = (Math.PI * 2 / _facets) * fi;
+            const fa2 = fa + (Math.PI * 2 / _facets);
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(fa) * _rIn, Math.sin(fa) * _rIn);
+            ctx.lineTo(Math.cos(fa) * _rOut, Math.sin(fa) * _rOut);
+            ctx.lineTo(Math.cos(fa2) * _rOut, Math.sin(fa2) * _rOut);
+            ctx.lineTo(Math.cos(fa2) * _rIn, Math.sin(fa2) * _rIn);
+            ctx.closePath();
+            ctx.fillStyle = fi % 2 === 0 ? `rgba(${_shieldRGB},${0.10 * pulse * _flicker})` : `rgba(180,80,255,${0.16 * pulse})`;
+            ctx.fill();
+            ctx.strokeStyle = `rgba(255,255,255,${0.22 * pulse})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // Guardian eyes: small watching nodes orbiting the ring, echoing
+        // the living-eye motif from the sweep beam's collar — a bright
+        // core with a thin outer ring, spinning opposite the outer border.
+        ctx.save();
+        ctx.rotate(-spinA * 0.6);
+        const _eyeCount = 8;
+        for (let gi = 0; gi < _eyeCount; gi++) {
+            const ga = (Math.PI * 2 / _eyeCount) * gi;
+            const gx = Math.cos(ga) * sR, gy = Math.sin(ga) * sR;
+            const gPulse = 0.6 + 0.4 * Math.sin(now / 700 + gi * 1.3);
+            const gGrad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 5);
+            gGrad.addColorStop(0, `rgba(255,255,255,${0.9 * pulse * gPulse})`);
+            gGrad.addColorStop(0.5, `rgba(${_shieldRGB},${0.6 * pulse * gPulse})`);
+            gGrad.addColorStop(1, `rgba(${_shieldRGB},0)`);
+            ctx.fillStyle = gGrad;
+            ctx.beginPath(); ctx.arc(gx, gy, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `rgba(255,255,255,${0.5 * pulse})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.arc(gx, gy, 2.2, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.restore();
+
+        // Impact ripples: a bright local flash + expanding ring right where
+        // a bullet just hit, instead of the shield sitting perfectly still
+        // while being shot (see the afoShieldActive branch in dealDamage,
+        // js/entities.js, which records these purely for this visual).
+        if (window._levShieldRipples) {
+            for (const rp of window._levShieldRipples) {
+                if (rp.owner !== enemy) continue;
+                const rpT = Math.min(1, (now - rp.spawnAt) / rp.duration);
+                const rpFade = 1 - rpT;
+                const rx = rp.x - cx, ry = rp.y - cy;
+                ctx.save();
+                ctx.translate(rx, ry);
+                const rpGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 4 + rpT * 22);
+                rpGrad.addColorStop(0, `rgba(255,255,255,${rpFade * 0.9})`);
+                rpGrad.addColorStop(0.6, `rgba(${_shieldRGB},${rpFade * 0.5})`);
+                rpGrad.addColorStop(1, `rgba(${_shieldRGB},0)`);
+                ctx.fillStyle = rpGrad;
+                ctx.beginPath(); ctx.arc(0, 0, 4 + rpT * 22, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = `rgba(255,255,255,${rpFade * 0.7})`;
+                ctx.lineWidth = 1.5 * rpFade;
+                ctx.beginPath(); ctx.arc(0, 0, 6 + rpT * 16, 0, Math.PI * 2); ctx.stroke();
+                ctx.restore();
+            }
+        }
 
         // Kill counter (bên dưới Leviathan)
         const quota = enemy.afoKillQuota || '?';

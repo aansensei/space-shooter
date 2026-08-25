@@ -282,10 +282,16 @@ function handleEnemyKill(enemy) {
         nextLifeMilestone += _hasBuff('hoan_sinh') ? 250000 : 500000;
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }
-    // Egregor gets its own dedicated death burst below instead of the
-    // generic explosion, so the signature monster's death reads distinctly.
-    if (enemy.type !== 'egregor') addExplosion(enemy.x, enemy.y, enemy.size);
-    if (enemy.type === 'leviathan') window._lastLeviathanKillTime = performance.now();
+    // Egregor and Leviathan get their own dedicated death bursts below
+    // instead of the generic explosion, so each signature monster's death
+    // reads distinctly.
+    if (enemy.type !== 'egregor' && enemy.type !== 'leviathan') addExplosion(enemy.x, enemy.y, enemy.size);
+    if (enemy.type === 'leviathan') {
+        window._lastLeviathanKillTime = performance.now();
+        if (!window._levDeathBursts) window._levDeathBursts = [];
+        window._levDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: performance.now(), duration: 1300, _seed: Math.random() * Math.PI * 2 });
+        _setShake(20, 550);
+    }
     if (enemy.type === 'egregor') {
         window._lastEgregorKillTime = performance.now();
         if (!window._egregorDeathBursts) window._egregorDeathBursts = [];
@@ -1270,6 +1276,15 @@ function dealDamage(enemy, source) {
         // Shield blocks ALL damage, chỉ đếm hit (max 200)
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.afoHitCount = Math.min(250, (enemy.afoHitCount || 0) + 1);
+            // Local flash at the actual impact point instead of the shield
+            // just sitting still while it's being shot — purely visual,
+            // doesn't change what the shield blocks or how it breaks.
+            if (!window._levShieldRipples) window._levShieldRipples = [];
+            if (window._levShieldRipples.length < 24) {
+                const _hx = source.x !== undefined ? source.x : enemy.x;
+                const _hy = source.y !== undefined ? source.y : enemy.y;
+                window._levShieldRipples.push({ owner: enemy, x: _hx, y: _hy, spawnAt: performance.now(), duration: 380 });
+            }
         }
         return;
     }
@@ -2105,6 +2120,7 @@ function dealDamage(enemy, source) {
     // Leviathan: khi HP về 0 (hoặc đã ≤ 1), spawn death lasers ngay nếu chưa spawn
     if (enemy.type === 'leviathan' && enemy.hp <= 1 && !enemy._deathLaserSpawned) {
         enemy._deathLaserSpawned = true;
+        enemy.dyingLaserPhase = true; // freezes the real 9 wings' own idle rotation so they don't fight the aiming animation drawn per-laser, and gates out further damage below
         enemy.hp = 0;
         if (!window._levDeathLasers) window._levDeathLasers = [];
         const hits = enemy.afoHitCount || 1;
@@ -2372,6 +2388,8 @@ function updateLeviathan(enemy, deltaTime) {
                 enemy.shield = (enemy.shield || 0) + enemy.maxHp * 0.50;
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
                 addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
+                if (!window._levShieldBreaks) window._levShieldBreaks = [];
+                window._levShieldBreaks.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: now, duration: 700, _seed: Math.random() * Math.PI * 2 });
                 for (let i = 0; i < 40; i++) {
                     const a = Math.random() * Math.PI * 2;
                     const _sp = _acquireParticle();
