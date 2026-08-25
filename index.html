@@ -5,7 +5,7 @@
 
   Main entry point and game shell. All JS modules load at the bottom in a
   fixed order bc they all share global state from config.js. Order is:
-  config.js, entities.js, render/*.js, skills.js, input.js, main.js.
+  config.js, entities/*.js, render/*.js, skills.js, input.js, main.js.
   That order is strict bc each module references globals the previous one set up.
 
   Title screen UI and the easter egg overlay live here. The star warp animation
@@ -1881,9 +1881,16 @@
     <script src="js/config.js?v=20260825c"></script>
     <script src="js/sigils.js?v=20260825c"></script>
     <script src="js/yuusha-party.js?v=20260825b"></script>
-    <script src="js/entities.js?v=20260825m"></script>
+    <script src="js/entities/core.js?v=20260826a"></script>
+    <script src="js/entities/sentinel.js?v=20260825a"></script>
+    <script src="js/entities/veilshroud.js?v=20260825b"></script>
+    <script src="js/entities/egregor.js?v=20260825a"></script>
+    <script src="js/entities/leviathan.js?v=20260825a"></script>
+    <script src="js/entities/marchosias.js?v=20260825a"></script>
+    <script src="js/entities/misc-enemies.js?v=20260825a"></script>
+    <script src="js/entities/goliath.js?v=20260825a"></script>
     <script src="js/skills.js?v=20260825b"></script>
-    <script src="js/render/core.js?v=20260825g"></script>
+    <script src="js/render/core.js?v=20260825h"></script>
     <script src="js/render/fx.js?v=20260825j"></script>
     <script src="js/render/player.js?v=20260825c"></script>
     <script src="js/render/enemy-common.js?v=20260825c"></script>

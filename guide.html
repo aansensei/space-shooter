@@ -798,12 +798,18 @@
 <li><b>Player Shield:</b> absorbs 1 hit <span class="cd">25s regen</span>. <b>Boundary Shield:</b> absorbs 1 crossing enemy <span class="cd">25s</span>.</li>
 <li><b>Last Stand:</b> last life fatal hit → survive + <span class="hg">Absolute Shield</span> on you + Sentinels. <span class="hg">Once only.</span></li>
 <li>Priority: <span class="hp">Domain</span> → <span class="hi">Orb Sacrifice</span> → Player Shield → Last Stand → Lose life.</li></ul></div>
-<div class="card"><h2 style="color:#ffaaaa">YUUKI — WILL TO FIGHT</h2><div class="sub">PASSIVE • WAVE 8+ • EVERY 2 WAVES • STACKS TO +300%</div>
+<div class="card"><h2 style="color:#ffaaaa">⚔ YUUKI — WILL TO FIGHT</h2><div class="sub">PASSIVE • WAVE 8+ • EVERY 2 WAVES • STACKS TO +300%</div>
 <ul>
 <li>Starting at <span class="hi">Wave 8</span>, every <span class="hi">2 waves</span> (Wave 8, 10, 12, …): all allied units deal <span class="hg">+20% more damage</span>.</li>
 <li>Stacks additively until total bonus reaches <span class="hg">+300%</span> (capped at Wave 36+), then stays fixed.</li>
 <li>Applies to all friendly damage sources: auto-fire, skills, spirits, sentinels, chain lightning, tesla DoT.</li>
 <li>Displayed in the HUD as <span class="hg">⚔ Yuuki +X%</span> once active.</li>
+</ul></div>
+<div class="card"><h2 style="color:#c86464"><img src="images/game/walpurgis-icon.png" alt="Walpurgis" style="height:0.9em;vertical-align:-0.1em;margin-right:5px;">WALPURGIS — HUYẾT DẠ</h2><div class="sub">GLOBAL CURSE • EVERY 5 WAVES • NO CAP</div>
+<ul>
+<li>Every <span class="hi">5 waves</span>, all enemies permanently gain 1 stack: <span class="hg">+10% Max HP</span>, <span class="hg">+5% evade</span>, <span class="hg">+25 flat DR</span> (subtracted after % DR, see the FLAT DR card), <span class="hg">+5% heal/shield effectiveness</span>.</li>
+<li>Stacks forever, no cap — the longer a run goes, the harder every enemy becomes to put down.</li>
+<li>Displayed in the HUD as <img src="images/game/walpurgis-icon.png" alt="Walpurgis" style="height:1em;vertical-align:-0.15em;"> <span class="hg">Walpurgis xN</span> once at least 1 stack is active.</li>
 </ul></div>`,
 
       skills: `
@@ -1194,15 +1200,15 @@
 <tr><td>9</td><td>64</td><td>14</td><td>12</td><td>8</td><td>—</td></tr>
 <tr><td style="color:var(--dim)">10+</td><td style="color:var(--dim)">+5/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">1 / 5w</td></tr>
 </table><p style="color:var(--dim);font-size:11px;margin-top:6px">Goliath spawns once, outside every other tier, on any wave number divisible by 5 (5, 10, 15, 20...).</p></div>
-<div class="card"><h2 class="dsname" style="color:#ff3344">WALPURGIS <span class="dsclass" style="font-size:9px;color:#ff3344">HUYẾT DẠ</span></h2>
-<div class="sub">Every 10 waves · Permanent, stacking, all enemies</div>
+<div class="card"><h2 class="dsname" style="color:#ff3344"><img src="images/game/walpurgis-icon.png" alt="Walpurgis" style="height:0.85em;vertical-align:-0.05em;margin-right:5px;">WALPURGIS <span class="dsclass" style="font-size:9px;color:#ff3344">HUYẾT DẠ</span></h2>
+<div class="sub">Every 5 waves · Permanent, stacking, all enemies</div>
 <ul>
-<li>Every 10 waves, all enemies permanently gain 1 stack (wave 10 = 1, wave 20 = 2, unlimited). Enemies already on screen are rescaled immediately, not just future spawns.</li>
-<li>Each stack: <b>+10% Max HP</b>, <b>+5% Evade</b>, <b>+100 flat damage reduction</b> (a separate stat from percentage DR — subtracted after % DR, floored at 0, never blocks a kill outright), and <b>+5% effectiveness on all healing/shields received</b>.</li>
+<li>Every 5 waves, all enemies permanently gain 1 stack (wave 5 = 1, wave 10 = 2, unlimited). Enemies already on screen are rescaled immediately, not just future spawns.</li>
+<li>Each stack: <b>+10% Max HP</b>, <b>+5% Evade</b>, <b>+25 flat damage reduction</b> (a separate stat from percentage DR — subtracted after % DR, floored at 0, never blocks a kill outright), and <b>+5% effectiveness on all healing/shields received</b>.</li>
 <li>A red glow aura appears around every enemy once at least 1 stack is active, growing more intense per stack.</li>
 </ul></div>
 <div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% negated. Stacks additively, capped <span class="hi">99%</span>.</p></div>
-<div class="card"><h2 style="color:#38bdf8">FLAT DR</h2><p>A flat number subtracted straight off a hit's damage, applied after % DR (not before). Separate stat, doesn't stack into the 99% DR cap. Floored at 0, so it can only ever reduce a hit to a graze, never block a kill outright. Used by Walpurgis (+100/stack) and Leviathan's Inevitable (+350).</p></div>
+<div class="card"><h2 style="color:#38bdf8">FLAT DR</h2><p>A flat number subtracted straight off a hit's damage, applied after % DR (not before). Separate stat, doesn't stack into the 99% DR cap. Floored at 0, so it can only ever reduce a hit to a graze, never block a kill outright. Used by Walpurgis (+25/stack) and Leviathan's Inevitable (+350).</p></div>
 <div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>HP buffer before body. Stackable. Destroying shield ≠ reduce Max HP.</p></div>
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. All percentage-based enemy damage to Sentinels scales off EP. Max HP alone = body HP without shield.</p></div>
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Against EP (Shield + Max HP = Existence Point). Hits shield first.</p></div>
@@ -1222,8 +1228,24 @@
 <div class="card"><h2 style="color:var(--cyan)">UPDATE LOG</h2><div class="sub">FULL VERSION HISTORY · NEWEST FIRST</div>
 <div class="ul-hero" oncontextmenu="return false"><img src="images/site/update-log-hero.png" draggable="false" alt="Pisces: Space Journey"></div></div>
 
+<div class="ul-entry" style="--ul-accent:#f59e0b">
+<div class="ul-head"><span class="ul-ver">v5.6.5 — CYCLE OF FLOW &amp; BOSS BAR POLISH</span><span class="ul-badge">CURRENT</span><span class="ul-badge">PATCH</span></div>
+<div class="ul-date">2026-08-25 to 2026-08-26 · Cycle of Flow gains a movement-based cooldown reducer, Walpurgis gets a HUD indicator, Goliath's boss bar gets 2 fixes and a new stack chip, guide corrections, and an internal entities.js reorganization</div>
+<p class="det-short ul-summary">Pisces' Cycle of Flow now also reduces skill cooldowns from raw movement, not just kills: every full screen-width crossed shaves 0.5s off every skill, with a matching pulse flash on the skill-button panel so the effect reads clearly on both PC and mobile. Walpurgis's stack count now shows directly in the HUD instead of only being visible through its enemy-side aura. Goliath's True Form boss bar picks up a Waning Might stack chip plus two reliability fixes (Unbroken Will's frosted state, Soul Reaver's chip color). The guide gets dedicated Walpurgis/Yuuki glossary cards with real icons in their titles and a correction to stale Walpurgis numbers. Under the hood, entities.js — the last large monolithic file left in the codebase — is now split into a js/entities/ folder matching js/render/'s existing per-enemy structure; purely internal, no gameplay impact.</p>
+<ul class="det-full">
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Pisces — Cycle of Flow:</b> every full screen-width of actual on-screen movement now also takes <span class="hg">-0.5s</span> off every skill's cooldown (Skill A/S/D/F/Shift and Overload Laser), on top of its existing kill-triggered reductions — works identically on keyboard and touch controls. A pulsing outline flash now plays across the whole skill-button panel whenever a reduction lands, visible on both PC and mobile.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Walpurgis HUD indicator:</b> current stack count now shows directly in the main HUD (icon + <span class="hg">Walpurgis xN</span>) once at least 1 stack is active, instead of only being inferable from the red aura on enemies.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Goliath boss bar:</b> new Waning Might stack chip alongside Vulnerability and Soul Reaver.</li>
+<li><span class="ul-tag tag-feat">FEAT</span> <b>Guide:</b> new Walpurgis and Yuuki glossary cards (EN+VI), each carrying a dedicated icon in the card title.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Goliath boss bar:</b> Unbroken Will's frosted/locked bar state now reliably covers the entire invulnerability window (previously intermittent).</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Goliath boss bar:</b> Soul Reaver's chip recolored to red, matching the bar's own debuff-color convention (was purple).</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Guide:</b> Walpurgis's Combat-tab reference card and the FLAT DR glossary card corrected from stale "every 10 waves / +100 flat DR" figures to the actual 5-wave / +25-per-stack values already used elsewhere in the guide.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>entities.js reorganized:</b> split into a dedicated js/entities/ folder (core.js plus one file per major enemy — Sentinel, Veilshroud, Egregor, Leviathan, Marchosias, Dargruel/Thaelis/Aegis Core/Apostle, Goliath), mirroring js/render/'s existing structure. Internal-only, no gameplay change.</li>
+</ul>
+</div>
+
 <div class="ul-entry" style="--ul-accent:#a855f7">
-<div class="ul-head"><span class="ul-ver">v5.6 — DEATH STAR REWORK</span><span class="ul-badge">CURRENT</span><span class="ul-badge b-major">MAJOR</span></div>
+<div class="ul-head"><span class="ul-ver">v5.6 — DEATH STAR REWORK</span><span class="ul-badge b-major">MAJOR</span></div>
 <div class="ul-date">2026-08-21 · Skill D fully reworked into Death Star: Draconic Annihilation — updated 2026-08-22 with a new endgame-scaling mechanic (Walpurgis), 5 new sound effects, and a Remembrance Spirit visual upgrade — updated 2026-08-24 with a sprite-cache performance pass on Apostle and Thaelis, a new Phantom-state ring for Veilshroud, documentation for Goliath's Unified Front, faster Aries cooldowns, a faster Libra Skill A cooldown, an Unbroken Will rework, a Warding Palm rate-limit fix, and forced-volume Goliath spawn/transform SFX</div>
 <p class="det-short ul-summary">Skill D keeps its core pull-and-instakill (speed 5.25, contact = instant kill / 30% MaxHP true damage for CC-Immune enemies) but is now a full rework in name, visuals, and kit. Two new mechanics layer on top: Mark & Annihilate, a repeating cycle that marks 3 targets (CC-Immune first) and fires a piercing true-damage beam through each, and Galactic Spaceships, allied drones spawned by any enemy death near the Death Star (not just its own kills) that home in on the current highest-HP enemy, fire true-damage bolts in flight, crash for bonus damage plus a Vulnerability stack, benefit from the same ally-wide buffs Sentinels get, and can fuse with a same-tier ship nearby into a stronger one — spaceships can be shot down by enemy fire before they arrive. Cooldown 12s → 10s, refunded a further 0.25s per Death Star kill. Full visual rework: new charge sequence, mechanical-ring/debris-field body, and quality-tier scaling (FULL/MED/LOW/MIN) matching every other effect in the game. This patch also adds Walpurgis (Huyết Dạ) — a new permanent, stacking buff that hits every enemy on the field once every 10 waves, scaling Max HP, Evade, a new flat damage-reduction stat, and heal/shield effectiveness up forever — real sound for several abilities that were previously silent, a brighter, cheaper-to-render Remembrance Spirit, a new post-game Match Statistics screen, and an Elden Ring-inspired "Demigod of Genesis" boss bar for Goliath True Form.</p>
 <ul class="det-full">
@@ -1922,15 +1944,15 @@
 <tr><td>9</td><td>64</td><td>14</td><td>12</td><td>8</td><td>—</td></tr>
 <tr><td style="color:var(--dim)">10+</td><td style="color:var(--dim)">+5/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">+1/w</td><td style="color:var(--dim)">1 / 5w</td></tr>
 </table><p style="color:var(--dim);font-size:11px;margin-top:6px">Goliath xuất hiện 1 lần, nằm ngoài mọi bậc khác, vào bất kỳ số wave nào chia hết cho 5 (5, 10, 15, 20...).</p></div>
-<div class="card"><h2 class="dsname" style="color:#ff3344">WALPURGIS <span class="dsclass" style="font-size:9px;color:#ff3344">HUYẾT DẠ</span></h2>
-<div class="sub">Mỗi 10 wave · Vĩnh viễn, cộng dồn, toàn bộ kẻ địch</div>
+<div class="card"><h2 class="dsname" style="color:#ff3344"><img src="images/game/walpurgis-icon.png" alt="Walpurgis" style="height:0.85em;vertical-align:-0.05em;margin-right:5px;">WALPURGIS <span class="dsclass" style="font-size:9px;color:#ff3344">HUYẾT DẠ</span></h2>
+<div class="sub">Mỗi 5 wave · Vĩnh viễn, cộng dồn, toàn bộ kẻ địch</div>
 <ul>
-<li>Mỗi 10 wave, toàn bộ kẻ địch nhận vĩnh viễn 1 tầng (wave 10 = 1 tầng, wave 20 = 2 tầng, không giới hạn). Kẻ địch đang có mặt trên màn hình được tính lại chỉ số ngay lập tức, không chỉ áp dụng cho kẻ địch spawn sau đó.</li>
-<li>Mỗi tầng: <b>+10% Max HP</b>, <b>+5% Né tránh</b>, <b>+100 giảm sát thương cố định</b> (chỉ số riêng biệt với DR theo %, trừ thẳng sau khi tính DR %, luôn về tối thiểu 0, không bao giờ chặn đứng đòn kết liễu), và <b>+5% hiệu quả hồi máu/khiên nhận được</b>.</li>
+<li>Mỗi 5 wave, toàn bộ kẻ địch nhận vĩnh viễn 1 tầng (wave 5 = 1 tầng, wave 10 = 2 tầng, không giới hạn). Kẻ địch đang có mặt trên màn hình được tính lại chỉ số ngay lập tức, không chỉ áp dụng cho kẻ địch spawn sau đó.</li>
+<li>Mỗi tầng: <b>+10% Max HP</b>, <b>+5% Né tránh</b>, <b>+25 giảm sát thương cố định</b> (chỉ số riêng biệt với DR theo %, trừ thẳng sau khi tính DR %, luôn về tối thiểu 0, không bao giờ chặn đứng đòn kết liễu), và <b>+5% hiệu quả hồi máu/khiên nhận được</b>.</li>
 <li>Một vầng hào quang đỏ hiện quanh mọi kẻ địch khi có từ 1 tầng trở lên, càng nhiều tầng càng đậm.</li>
 </ul></div>
 <div class="card"><h2 style="color:var(--cyan)">DR</h2><p>% vô hiệu hóa. Cộng dồn theo tổng, trần <span class="hi">99%</span>.</p></div>
-<div class="card"><h2 style="color:#38bdf8">FLAT DR</h2><p>Một số cố định trừ thẳng vào sát thương của đòn đánh, tính sau khi đã trừ DR %. Chỉ số riêng biệt, không cộng vào trần 99% DR. Luôn về tối thiểu 0, chỉ có thể làm đòn đánh sượt qua chứ không bao giờ chặn đứng đòn kết liễu. Dùng bởi Walpurgis (+100/tầng) và Inevitable của Leviathan (+350).</p></div>
+<div class="card"><h2 style="color:#38bdf8">FLAT DR</h2><p>Một số cố định trừ thẳng vào sát thương của đòn đánh, tính sau khi đã trừ DR %. Chỉ số riêng biệt, không cộng vào trần 99% DR. Luôn về tối thiểu 0, chỉ có thể làm đòn đánh sượt qua chứ không bao giờ chặn đứng đòn kết liễu. Dùng bởi Walpurgis (+25/tầng) và Inevitable của Leviathan (+350).</p></div>
 <div class="card"><h2 style="color:#4488cc">SHIELDS</h2><p>Lớp đệm HP trước thân. Cộng dồn được. Phá hủy shield ≠ giảm Max HP.</p></div>
 <div class="card"><h2 style="color:#cc88ff">EP <span style="font-size:10px;color:var(--dim)">(EXISTENCE POINT)</span></h2><p><b>EP = Shield + Max HP</b>. Mọi sát thương theo % từ kẻ địch vào Vệ Binh đều tính theo EP. Riêng Max HP = HP thân không tính shield.</p></div>
 <div class="card"><h2 style="color:#ff8844">% DAMAGE</h2><p>Tính trên EP (Shield + Max HP = Existence Point). Đánh vào shield trước.</p></div>
@@ -2316,12 +2338,18 @@
 <li><b>Khiên Người Chơi:</b> hấp thụ 1 đòn <span class="cd">hồi 25s</span>. <b>Khiên Ranh Giới:</b> hấp thụ 1 kẻ địch vượt biên <span class="cd">25s</span>.</li>
 <li><b>Trận Chiến Cuối:</b> đòn chí mạng ở mạng cuối → sống sót + <span class="hg">Khiên Tuyệt Đối</span> cho bạn + Vệ Binh. <span class="hg">Chỉ 1 lần duy nhất.</span></li>
 <li>Thứ tự ưu tiên: <span class="hp">Lãnh Địa</span> → <span class="hi">Hy Sinh Cầu Năng Lượng</span> → Khiên Người Chơi → Trận Chiến Cuối → Mất mạng.</li></ul></div>
-<div class="card"><h2 style="color:#ffaaaa">YUUKI — DŨNG KHÍ</h2><div class="sub">PASSIVE • TỪ WAVE 8 • MỖI 2 WAVE • CỘNG DỒN TỚI +300%</div>
+<div class="card"><h2 style="color:#ffaaaa">⚔ YUUKI — DŨNG KHÍ</h2><div class="sub">PASSIVE • TỪ WAVE 8 • MỖI 2 WAVE • CỘNG DỒN TỚI +300%</div>
 <ul>
 <li>Bắt đầu từ <span class="hi">Wave 8</span>, mỗi <span class="hi">2 wave</span> (Wave 8, 10, 12, …): toàn bộ đơn vị phe ta gây thêm <span class="hg">+20% sát thương</span>.</li>
 <li>Cộng dồn tới khi tổng bonus đạt <span class="hg">+300%</span> (đạt trần từ Wave 36 trở đi), sau đó giữ nguyên.</li>
 <li>Áp dụng cho mọi nguồn sát thương phe ta: bắn tự động, skill, linh hồn, Vệ Binh, sét dây chuyền, sát thương theo thời gian Tesla.</li>
 <li>Hiển thị trên HUD dưới dạng <span class="hg">⚔ Yuuki +X%</span> khi kích hoạt.</li>
+</ul></div>
+<div class="card"><h2 style="color:#c86464"><img src="images/game/walpurgis-icon.png" alt="Walpurgis" style="height:0.9em;vertical-align:-0.1em;margin-right:5px;">WALPURGIS — HUYẾT DẠ</h2><div class="sub">LỜI NGUYỀN TOÀN CỤC • MỖI 5 WAVE • KHÔNG TRẦN</div>
+<ul>
+<li>Cứ mỗi <span class="hi">5 wave</span>, tất cả kẻ địch vĩnh viễn nhận thêm 1 tầng: <span class="hg">+10% Max HP</span>, <span class="hg">+5% né đòn</span>, <span class="hg">+25 giáp phẳng</span> (trừ sau % DR, xem thẻ FLAT DR), <span class="hg">+5% hiệu quả hồi máu/khiên</span>.</li>
+<li>Cộng dồn vô hạn, không trần — trận càng kéo dài, kẻ địch càng khó hạ.</li>
+<li>Hiển thị trên HUD dưới dạng <img src="images/game/walpurgis-icon.png" alt="Walpurgis" style="height:1em;vertical-align:-0.15em;"> <span class="hg">Walpurgis xN</span> khi đã có ít nhất 1 tầng.</li>
 </ul></div>`,
     };
 
