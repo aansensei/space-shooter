@@ -1012,16 +1012,6 @@ function _drawEmbryo(enemy) {
     ctx.restore();
 }
 
-// Enemy bullet sprites: generated reference renders, chroma-keyed and
-// trimmed the same way as the other sprite-replaced assets this game uses.
-// The white rim ring, corona glow and glint are all baked into the images.
-const _bulletEnemySmallImg = new Image();
-_bulletEnemySmallImg.src = 'images/game/bullets/bullet-enemy-small.png';
-_bulletEnemySmallImg.decode().catch(() => {}); // force async decode now, not on first draw
-const _bulletEnemyLargeImg = new Image();
-_bulletEnemyLargeImg.src = 'images/game/bullets/bullet-enemy-large.png';
-_bulletEnemyLargeImg.decode().catch(() => {});
-
 function _drawEnemyBullet(enemy) {
     const now = performance.now();
     ctx.save();
@@ -1050,15 +1040,6 @@ function _drawEnemyBullet(enemy) {
         ctx.globalAlpha = 1;
     }
 
-    const _img = isLarge ? _bulletEnemyLargeImg : _bulletEnemySmallImg;
-    if (_img.complete && _img.naturalWidth) {
-        ctx.drawImage(_img, enemy.x - enemy.size, enemy.y - enemy.size, enemy.size * 2, enemy.size * 2);
-        ctx.restore();
-        return;
-    }
-
-    // Sprite not loaded yet: fall back to the old procedural draw rather
-    // than skipping the bullet entirely.
     const blink = _gfxLevel >= 2 ? 0.78 : (0.55 + 0.45 * Math.sin(now / 90));
     ctx.strokeStyle = `rgba(255,255,255,${blink})`;
     ctx.lineWidth = isLarge ? 2.5 : 1.8;

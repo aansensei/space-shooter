@@ -932,22 +932,22 @@ function _drawVanguardThreads() {
     if (!_mobPerf) ctx.shadowColor = color;
     if (!_mobPerf) ctx.shadowBlur = 6;
 
-    // Connect each sentinel to its 2 nearest neighbours (not all pairs, too dense)
+    // Connect each sentinel to its 2 nearest neighbours (not all pairs, too
+    // dense). Tracks the 2 closest by hand instead of mapping the whole
+    // array into distance objects + sorting every outer iteration — this
+    // runs every frame whenever 5+ sentinels are alive, no need to allocate
+    // n objects and a sorted array n times per frame just to pick 2.
     for (let i = 0; i < n; i++) {
         const a = sentinels[i];
-        // Find 2 closest
-        const dists = sentinels
-            .map((b, j) => ({ j, d: j === i ? Infinity : Math.hypot(a.x - b.x, a.y - b.y) }))
-            .sort((x, y) => x.d - y.d)
-            .slice(0, 2);
-        dists.forEach(({ j, d }) => {
-            if (j > i) { // draw each pair once
-                ctx.beginPath();
-                ctx.moveTo(a.x, a.y);
-                ctx.lineTo(sentinels[j].x, sentinels[j].y);
-                ctx.stroke();
-            }
-        });
+        let j1 = -1, d1 = Infinity, j2 = -1, d2 = Infinity;
+        for (let j = 0; j < n; j++) {
+            if (j === i) continue;
+            const d = Math.hypot(a.x - sentinels[j].x, a.y - sentinels[j].y);
+            if (d < d1) { j2 = j1; d2 = d1; j1 = j; d1 = d; }
+            else if (d < d2) { j2 = j; d2 = d; }
+        }
+        if (j1 > i) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(sentinels[j1].x, sentinels[j1].y); ctx.stroke(); }
+        if (j2 > i) { ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(sentinels[j2].x, sentinels[j2].y); ctx.stroke(); }
     }
 
     ctx.setLineDash([]);
@@ -1068,16 +1068,24 @@ function drawSentinel(sentinel) {
 
     // side fins: two small triangular metal fins flanking the body, static
     // like the panel lines (don't rotate with the gun arm) - pure detail,
-    // no animation
-    for (const side of [-1, 1]) {
+    // no animation. The gradient only depends on `size` (fixed per
+    // sentinel), so it's cached on the sentinel instead of rebuilt every
+    // frame for every sentinel on screen.
+    if (sentinel._finGradSize !== size) {
+        sentinel._finGradSize = size;
+        sentinel._finGrads = [-1, 1].map(side => {
+            const g = ctx.createLinearGradient(side * size * 0.75, 0, side * size * 1.35, 0);
+            g.addColorStop(0, '#4a4a4a');
+            g.addColorStop(1, '#1a1a1a');
+            return g;
+        });
+    }
+    [-1, 1].forEach((side, si) => {
         const fx0 = side * size * 0.75, fy0 = -size * 0.4;
         const fx1 = side * size * 1.35, fy1 = 0;
         const fx2 = side * size * 0.75, fy2 = size * 0.4;
         ctx.save();
-        const finGrad = ctx.createLinearGradient(fx0, 0, fx1, 0);
-        finGrad.addColorStop(0, '#4a4a4a');
-        finGrad.addColorStop(1, '#1a1a1a');
-        ctx.fillStyle = finGrad;
+        ctx.fillStyle = sentinel._finGrads[si];
         ctx.beginPath();
         ctx.moveTo(fx0, fy0);
         ctx.lineTo(fx1, fy1);
@@ -1088,7 +1096,7 @@ function drawSentinel(sentinel) {
         ctx.lineWidth = 0.8;
         ctx.stroke();
         ctx.restore();
-    }
+    });
 
     // Gaia Barrier crescent (top half-disc, static upward, not rotating with gun)
     if ((sentinel._gaiaBarrier || 0) > 0) {
@@ -1127,13 +1135,19 @@ function drawSentinel(sentinel) {
     const _recoilT = _fireDt < _recoilDur ? 1 - (_fireDt / _recoilDur) : 0;
     const gunX = size * 0.5 - _recoilT * gunW * 0.35;
 
-    // barrel: cylindrical metal shading instead of a flat block
-    const gunGrad = ctx.createLinearGradient(0, -gunH / 2, 0, gunH / 2);
-    gunGrad.addColorStop(0, '#232323');
-    gunGrad.addColorStop(0.35, '#6a6a6a');
-    gunGrad.addColorStop(0.55, '#3a3a3a');
-    gunGrad.addColorStop(1, '#161616');
-    ctx.fillStyle = gunGrad;
+    // barrel: cylindrical metal shading instead of a flat block. Only
+    // depends on gunH (fixed per sentinel size), so cached the same way as
+    // the fin gradients above instead of rebuilt every frame.
+    if (sentinel._gunGradSize !== size) {
+        sentinel._gunGradSize = size;
+        const g = ctx.createLinearGradient(0, -gunH / 2, 0, gunH / 2);
+        g.addColorStop(0, '#232323');
+        g.addColorStop(0.35, '#6a6a6a');
+        g.addColorStop(0.55, '#3a3a3a');
+        g.addColorStop(1, '#161616');
+        sentinel._gunGrad = g;
+    }
+    ctx.fillStyle = sentinel._gunGrad;
     ctx.fillRect(gunX, -gunH / 2, gunW, gunH);
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.lineWidth = 0.8;

@@ -3,6 +3,11 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
+// Default smoothing quality is browser-dependent and can look noticeably
+// pixelated/aliased when the large generated sprite art (weapons, bullets,
+// sentinel shell, etc.) gets scaled way down to its small in-game render
+// size — request the browser's best resampling filter explicitly.
+ctx.imageSmoothingQuality = "high";
 
 // Fisher-Yates shuffle. `arr.sort(() => Math.random() - 0.5)` looks random
 // but is measurably biased (V8's TimSort makes fewer comparisons than a true

@@ -81,16 +81,44 @@ window._pixiRender       = null;
         const sz = Math.max(1, Math.round(size));
         return _canvasTex(_getSpiritSprite(isPhoto, size), 's_' + (isPhoto ? 'ph' : 'sp') + '_' + sz);
     }
-    function _getGlowTex(color, size, gfxLvl) {
+    // Glow texture is generated once per COLOR at a fixed reference radius
+    // and scaled per-sprite via Pixi's width/height instead of baking the
+    // actual on-screen radius into the texture itself. Particle sizes vary
+    // continuously (createParticles' min/max ranges, quality tier, etc.),
+    // so keying the texture on the exact radius meant almost every new
+    // particle size was a cache miss — a fresh canvas render + a synchronous
+    // GPU texture upload (PIXI.Texture.from) the first time that exact
+    // size showed up, landing right on the frame something new spawned.
+    // Colors are a small, effectively-fixed set, so this collapses the
+    // cache-key space from color×size down to just color.
+    const _GLOW_REF_R = 20;
+    function _getGlowTex(color) {
+        return _canvasTex(_getGlowSprite(color, _GLOW_REF_R), 'g_' + color);
+    }
+    function _glowDisplayRadius(size, gfxLvl) {
         const glowR = gfxLvl < 1 ? 14 : gfxLvl < 2 ? 8 : 5;
-        const r = Math.ceil(size + glowR);
-        return _canvasTex(_getGlowSprite(color, r), 'g_' + color + '_' + r);
+        return size + glowR;
     }
 
     // Sprite pool
     const _pool = [];
     function _acq() { return _pool.pop() || new PIXI.Sprite(); }
     function _rel(s) { _pool.push(s); }
+    // Single shared sprite pool across bullets/spirits/particles/trails/
+    // flashes. PixiJS remembers an explicit width/height override on a
+    // sprite independently of its texture — reassigning `.texture` alone
+    // does NOT reset a previously-set explicit size back to the new
+    // texture's natural size (confirmed: scale.set(1,1) doesn't clear it
+    // either, only a fresh explicit width/height assignment does). A
+    // sprite recycled from one use into another (e.g. a big particle's
+    // glow, explicitly sized well past its texture, recycled into a
+    // bullet next frame) would otherwise keep rendering at that stale
+    // inflated size against its new, differently-sized texture. Always set
+    // texture through this helper so every consumer starts from that
+    // texture's own natural size; callers that want a different on-screen
+    // size (particles/trails/flashes) explicitly override width/height
+    // again right after, same as before.
+    function _setTex(s, tex) { s.texture = tex; s.width = tex.width; s.height = tex.height; }
     function _clearLayer(layer) {
         const rem = layer.removeChildren();
         for (const c of rem) { if (c instanceof PIXI.Sprite) _rel(c); }
@@ -118,16 +146,16 @@ window._pixiRender       = null;
         ];
         for (const [type, size] of bulletSpecs) {
             const s = _acq();
-            s.texture = _getBulletTex(type, size, gfx);
+            _setTex(s, _getBulletTex(type, size, gfx));
             s.anchor.set(0.5);
             s.position.set(-9999, -9999);
             s.blendMode = 'add';
             bulletLayer.addChild(s);
             warm.push(s);
         }
-        for (const [color, size] of glowSpecs) {
+        for (const [color] of glowSpecs) {
             const s = _acq();
-            s.texture = _getGlowTex(color, size, gfx);
+            _setTex(s, _getGlowTex(color));
             s.anchor.set(0.5);
             s.position.set(-9999, -9999);
             s.blendMode = 'add';
@@ -136,7 +164,7 @@ window._pixiRender       = null;
         }
         for (const isPhoto of [false, true]) {
             const s = _acq();
-            s.texture = _getSpiritTex(isPhoto, 20);
+            _setTex(s, _getSpiritTex(isPhoto, 20));
             s.anchor.set(0.5);
             s.position.set(-9999, -9999);
             s.blendMode = 'add';
@@ -203,7 +231,7 @@ window._pixiRender       = null;
             if (n.y > h + r) n.y = -r;
 
             const s = _acq();
-            s.texture   = tex;
+            _setTex(s, tex);
             s.anchor.set(0.5);
             s.position.set(n.x, n.y);
             s.alpha     = 1.0; // opacity baked into texture gradient
@@ -237,7 +265,9 @@ window._pixiRender       = null;
             t.alpha *= _TRAIL_DECAY;
             if (t.alpha < 0.018) { _trails.splice(i, 1); continue; }
             const s = _acq();
-            s.texture   = _getGlowTex('#aaccff', t.size, 1); // cool white-blue trail
+            _setTex(s, _getGlowTex('#aaccff')); // cool white-blue trail
+            const _tr = _glowDisplayRadius(t.size, 1) * 2;
+            s.width = s.height = _tr;
             s.anchor.set(0.5);
             s.position.set(t.x, t.y);
             s.alpha     = t.alpha;
@@ -279,7 +309,9 @@ window._pixiRender       = null;
             f.alpha *= _FLASH_DECAY;
             if (f.alpha < 0.02) { _flashes.splice(i, 1); continue; }
             const s = _acq();
-            s.texture   = _getGlowTex('#ffffff', f.r, 0);
+            _setTex(s, _getGlowTex('#ffffff'));
+            const _fr = _glowDisplayRadius(f.r, 0) * 2;
+            s.width = s.height = _fr;
             s.anchor.set(0.5);
             s.position.set(f.x, f.y);
             s.alpha     = f.alpha;
@@ -465,7 +497,7 @@ window._pixiRender       = null;
 
         for (const b of bullets) {
             const s = _acq();
-            s.texture   = _getBulletTex(b.type, b.size, gfx);
+            _setTex(s, _getBulletTex(b.type, b.size, gfx));
             s.anchor.set(0.5);
             s.position.set(b.x, b.y);
             s.alpha     = 1;
@@ -474,7 +506,7 @@ window._pixiRender       = null;
         }
         for (const b of spiritBullets) {
             const s = _acq();
-            s.texture   = _getSpiritTex(b.isPhoto, b.size);
+            _setTex(s, _getSpiritTex(b.isPhoto, b.size));
             s.anchor.set(0.5);
             s.position.set(b.x, b.y);
             s.alpha     = 1;
@@ -487,11 +519,20 @@ window._pixiRender       = null;
         _clearLayer(particleLayer);
         const gfx = window._gfxLevel || 0;
         for (const p of particles) {
-            if (p.isSummonRing || p.isLaserLine || p.isSkillGAura) continue;
+            // Must mirror core.js's canvas-path exclusion list exactly —
+            // these special types are custom-drawn elsewhere (drawParticle
+            // in fx.js) and have no .color field, so falling through here
+            // throws on addColorStop(undefined) every single frame they're
+            // alive (isGobImpact/isEeSlash were missing from this list,
+            // meaning every Gate of Babylon impact or Enuma Elish slash
+            // crashed the whole particle draw pass while it lasted).
+            if (p.isSummonRing || p.isLaserLine || p.isSkillGAura || p.isBarrierBreakRing || p._bloodPetal || p.isGobImpact || p.isEeSlash) continue;
             const alpha = p.lifetime / p.maxLifetime;
             if (alpha <= 0) continue;
             const s = _acq();
-            s.texture   = _getGlowTex(p.color, p.size, gfx);
+            _setTex(s, _getGlowTex(p.color));
+            const _pr = _glowDisplayRadius(p.size, gfx) * 2;
+            s.width = s.height = _pr;
             s.anchor.set(0.5);
             s.position.set(p.x, p.y);
             s.alpha     = alpha;
