@@ -748,6 +748,11 @@ function _drawLeviathan(enemy) {
 
         // Hex-grid aura: a faint hexagon lattice tiling the band between
         // the core and the ring, tinted with the same break-progress color.
+        // All ~40-60 cells share one path + a single stroke() call instead
+        // of one stroke() per cell — this runs every frame the shield is
+        // up, and per-cell stroke() calls were exactly the kind of
+        // per-frame canvas-call pileup that caused a real lag bug earlier
+        // (see the sprite-pool/particle-pool fixes elsewhere this session).
         {
             ctx.save();
             ctx.beginPath(); ctx.arc(0, 0, sR * 0.96, 0, Math.PI * 2); ctx.clip();
@@ -757,21 +762,21 @@ function _drawLeviathan(enemy) {
             const _hexR = sR * 0.16;
             const _hexW = _hexR * 1.5, _hexH = _hexR * Math.sqrt(3);
             const _hexSpan = sR * 1.1;
+            ctx.beginPath();
             for (let hy = -_hexSpan; hy <= _hexSpan; hy += _hexH * 0.5) {
                 const _rowOdd = Math.round(hy / (_hexH * 0.5)) % 2 !== 0;
                 for (let hx = -_hexSpan; hx <= _hexSpan; hx += _hexW) {
                     const cx2 = hx + (_rowOdd ? _hexW / 2 : 0);
                     if (Math.hypot(cx2, hy) > sR * 0.99 || Math.hypot(cx2, hy) < coreR * 1.6) continue;
-                    ctx.beginPath();
                     for (let hk = 0; hk < 6; hk++) {
                         const ha = (Math.PI / 3) * hk + Math.PI / 6;
                         const hpx = cx2 + Math.cos(ha) * _hexR, hpy = hy + Math.sin(ha) * _hexR;
                         hk === 0 ? ctx.moveTo(hpx, hpy) : ctx.lineTo(hpx, hpy);
                     }
                     ctx.closePath();
-                    ctx.stroke();
                 }
             }
+            ctx.stroke();
             ctx.restore();
         }
 
