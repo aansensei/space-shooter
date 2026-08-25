@@ -197,6 +197,7 @@ function _classifyDamageSource(source, isAllyDealt) {
         if (source.isPiercing && source.isTrueDamage) return 'Skill D: Mark & Annihilate';
         return 'Other';
     }
+    if (source._attackerType) return _enemyTypeLabel(source._attackerType);
     if (source._vanguardTag) {
         const tag = source._vanguardTag;
         if (tag.startsWith('bsm_') || tag.startsWith('blt_')) return 'Enemy Bullet';

@@ -1316,13 +1316,13 @@ function updateSkillD(deltaTime) {
                     // touch — the exact bug where Warding Palm got "grazed
                     // once and died anyway" even though per-hit no longer has
                     // a cumulative cap.
-                    // Goliath specifically gets a slower 500ms tick (2/s
+                    // Goliath specifically gets a slower 1000ms tick (1/s
                     // instead of the usual 2.5/s) - every one of these still
                     // has to pass through Warding Palm's own per-hit 15%/35%
                     // MaxHP roll, so a tighter cap here keeps that from
                     // firing more often than intended while touching.
                     const _bhNow = performance.now();
-                    const _bhTickInterval = enemy.type === 'goliath' ? 500 : 400;
+                    const _bhTickInterval = enemy.type === 'goliath' ? 1000 : 400;
                     if (!enemy._bhNextTick || _bhNow >= enemy._bhNextTick) {
                         enemy._bhNextTick = _bhNow + _bhTickInterval;
                         if (_bhCCImmune) {
@@ -2047,7 +2047,7 @@ function updateMarchosiasBlades(deltaTime) {
                 // 1st sentinel hit: 30%, 2nd: 28%, 3rd+: 24%
                 const hitsAlready = blade.hitEnemies.length;
                 const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
-                dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct, _noHitSfx: true });
+                dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct, _noHitSfx: true, _attackerType: 'marchosias' });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
