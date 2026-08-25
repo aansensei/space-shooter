@@ -2256,6 +2256,13 @@ function update(rawDeltaTime) {
 
     // Leviathan death lasers (independent objects)
     if (!window._levDeathLasers) window._levDeathLasers = [];
+    // handleEnemyKill() fires the instant hp hits 0 — the same frame this
+    // sequence spawns, well before the ~2.1s of wings-aiming-then-firing
+    // actually plays out — so the death burst can't be triggered from
+    // there without showing up before the lasers even fire. Instead, fire
+    // it here, the moment the last of this instance's own lasers finishes
+    // (matched by ownerRef, since multiple Leviathans could die at once).
+    const _levDeathLasersBefore = window._levDeathLasers;
     window._levDeathLasers = window._levDeathLasers.filter(laser => {
         laser.elapsed = (laser.elapsed || 0) + deltaTime;
         const warnTime = laser.warnTime || 1200;
@@ -2322,6 +2329,15 @@ function update(rawDeltaTime) {
         }
         return true;
     });
+    if (_levDeathLasersBefore.length) {
+        const _stillOwners = new Set(window._levDeathLasers.map(l => l.ownerRef).filter(Boolean));
+        const _finishedOwners = new Set(_levDeathLasersBefore.map(l => l.ownerRef).filter(o => o && !_stillOwners.has(o)));
+        _finishedOwners.forEach(owner => {
+            if (!window._levDeathBursts) window._levDeathBursts = [];
+            window._levDeathBursts.push({ x: owner.x, y: owner.y, size: owner.size, spawnAt: performance.now(), duration: 1300, _seed: Math.random() * Math.PI * 2 });
+            _setShake(20, 550);
+        });
+    }
 
     if (screenShake.duration > 0) screenShake.duration -= deltaTime;
 
