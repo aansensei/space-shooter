@@ -38,6 +38,7 @@
         'js/entities/veilshroud.js',
         'js/entities/egregor.js',
         'js/entities/leviathan.js',
+        'js/entities/marchosias.js',
         'js/input.js',
         'js/match-stats.js',
         'js/main.js',
