@@ -977,7 +977,10 @@ function draw(deltaTime) {
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath') drawEnemy(e); });
         _drawVineBinds(); // Phōtokrystos DNT Vine Bind — growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
+            const _pxbT0 = performance.now();
             window._pixiDrawBullets(bullets, spiritBullets);
+            const _pxbDt = performance.now() - _pxbT0;
+            if (_pxbDt > 15) console.warn('[PIXI] drawBullets took ' + _pxbDt.toFixed(0) + 'ms (bullets=' + bullets.length + ')');
         } else {
             bullets.forEach(drawBullet);
             spiritBullets.forEach(drawSpiritBullet);
@@ -1025,7 +1028,10 @@ function draw(deltaTime) {
             }
             _specials.forEach(drawParticle);
             if (_pixiP) {
+                const _pxpT0 = performance.now();
                 window._pixiDrawParticles(particles);
+                const _pxpDt = performance.now() - _pxpT0;
+                if (_pxpDt > 15) console.warn('[PIXI] drawParticles took ' + _pxpDt.toFixed(0) + 'ms (particles=' + particles.length + ')');
             } else {
                 ctx.save();
                 if (!_mobPerf) ctx.shadowBlur = 5;
@@ -1318,8 +1324,13 @@ function draw(deltaTime) {
         ctx.shadowBlur = 0;
         _ry += _rH + 2;
 
-        // Enemy count
-        const _aliveCount = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
+        // Enemy count (manual loop instead of .filter().length — this runs
+        // every frame in the HUD and enemies can hold 100+ entries in heavy
+        // combat, no need to allocate a filtered copy just to count)
+        let _aliveCount = 0;
+        for (const e of enemies) {
+            if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo') _aliveCount++;
+        }
         ctx.font = _hMob ? '11px monospace' : '13px monospace';
         if (_wavePhase === 'rest') {
             const _restSec = Math.ceil(_waveRestTimer / 1000);
@@ -1410,7 +1421,12 @@ function draw(deltaTime) {
         const _pts = Math.floor((_pt % 60000) / 1000);
         ctx.fillText("Time  ·  " + _ptm + ":" + (_pts < 10 ? "0" : "") + _pts, _cx, _cy + 68);
     }
-    if (window._usePixi && window._pixiRender) window._pixiRender();
+    if (window._usePixi && window._pixiRender) {
+        const _pxT0 = performance.now();
+        window._pixiRender();
+        const _pxDt = performance.now() - _pxT0;
+        if (_pxDt > 15) console.warn('[PIXI] render took ' + _pxDt.toFixed(0) + 'ms (bullets=' + bullets.length + ', particles=' + particles.length + ')');
+    }
     ctx.restore();
     if (window._sigilPicker && typeof drawSigilPicker === 'function') drawSigilPicker();
 }

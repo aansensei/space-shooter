@@ -1,4 +1,26 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+
+// Catches main-thread blocking tasks the [PROF] rawGap/thisCallback split
+// can't see: anything that runs between two rAF callbacks (GC pause, a
+// setInterval/setTimeout handler, layout/paint, browser-internal work)
+// shows up here regardless of which code triggered it, unlike the manual
+// performance.now() checkpoints in gameLoop()/update() which only measure
+// what's explicitly bracketed inside them.
+if (typeof PerformanceObserver !== 'undefined') {
+    try {
+        new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                if (entry.duration < 50) continue;
+                let attr = '';
+                if (entry.attribution && entry.attribution.length) {
+                    attr = entry.attribution.map(a => a.name + '@' + a.containerType).join(', ');
+                }
+                console.warn('[LONGTASK] ' + entry.duration.toFixed(0) + 'ms at t=' + entry.startTime.toFixed(0) + (attr ? ' (' + attr + ')' : ''));
+            }
+        }).observe({ entryTypes: ['longtask'] });
+    } catch (e) {}
+}
+
 function loseLife(cause) {
     // Debug invuln guard here too (not just playerTakesHit()): an enemy
     // reaching the bottom boundary calls loseLife() directly, bypassing
@@ -527,7 +549,7 @@ function update(rawDeltaTime) {
             }
         }
     });
-    bossShockwaves = bossShockwaves.filter(w => w.active);
+    if (bossShockwaves.length) bossShockwaves = bossShockwaves.filter(w => w.active);
     // Maou Haki dùng chung 1 audio element cho MỌI nguồn (Dargruel thật +
     // Joker copy của Goliath) — chỉ dừng khi KHÔNG còn sóng xung nào đang
     // chạy, tránh trường hợp 2 sóng chồng nhau mà sóng xong trước lỡ tắt
@@ -559,7 +581,7 @@ function update(rawDeltaTime) {
             laser.duration -= deltaTime; // Laze mờ đi cũng chậm lại
         }
     });
-    aegisLasers = aegisLasers.filter(l => !l.fired || l.duration > 0);
+    if (aegisLasers.length) aegisLasers = aegisLasers.filter(l => !l.fired || l.duration > 0);
 
     if (skillGActive && gameElapsedTime > skillGEndTime) {
         endSkillG();
@@ -595,15 +617,15 @@ function update(rawDeltaTime) {
     const _nullSlashSpeedMult = (player._nullSlashSlowed) ? 0.50 : 1.0;
 
     // Dimension Break zone: 20% slow when player stands on the lingering rift arc
-    if (window._egregorDeathBursts) {
+    if (window._egregorDeathBursts && window._egregorDeathBursts.length) {
         window._egregorDeathBursts = window._egregorDeathBursts.filter(b => currentTime - b.spawnAt < b.duration);
     }
-    if (window._parryBursts) {
+    if (window._parryBursts && window._parryBursts.length) {
         window._parryBursts = window._parryBursts.filter(pb => currentTime - pb.spawnAt < pb.duration);
     }
 
     let _dimBreakMult = 1.0;
-    if (window._dimBreakZones) {
+    if (window._dimBreakZones && window._dimBreakZones.length) {
         window._dimBreakZones = window._dimBreakZones.filter(dbz => currentTime < dbz.expireAt);
         for (const dbz of window._dimBreakZones) {
             const _dbDx = player.x - dbz.cx, _dbDy = player.y - dbz.cy;
@@ -1721,6 +1743,10 @@ function update(rawDeltaTime) {
     }
 
     _profChk.push(performance.now()); // end of enemies loop
+    // Splits the 'wave+sigil+bulletsLoop' bucket further — that bucket is
+    // the one consistently showing 100-200ms+ spikes in on-device [PROF2]
+    // logs, pin down exactly which piece inside it is the real cost.
+    const _profChk3 = [performance.now()];
     // Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới
     if (skillShiftActive) {
         // Abyssal Chains survive YOG, piercing, cannot be cleared by any means
@@ -1728,7 +1754,9 @@ function update(rawDeltaTime) {
     }
 
     if (!window._debugSessionActive) _updateWaveSystem(deltaTime, currentTime);
+    _profChk3.push(performance.now());
     _updateSigilPassives(currentTime, deltaTime);
+    _profChk3.push(performance.now());
 
     // Unlike `particles` (capped in render/core.js's draw() via
     // _GFX_PARTICLE_CAP), `bullets` had no size cap at all — if bullets
@@ -1741,8 +1769,10 @@ function update(rawDeltaTime) {
     // since new bullets are always pushed to the end) before it can.
     const _BULLET_CAP = 400;
     if (bullets.length > _BULLET_CAP) bullets.splice(0, bullets.length - _BULLET_CAP);
+    _profChk3.push(performance.now());
 
     const _enemyGrid = _buildEnemyGrid();
+    _profChk3.push(performance.now());
     _gridCandidates.length = 0;
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
@@ -1834,9 +1864,31 @@ function update(rawDeltaTime) {
     }
 
     _profChk.push(performance.now()); // end of wave-system/sigil-passives/bullets-collision
-    particles = particles.filter(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.lifetime -= deltaTime; if (p.lifetime > 0) return true; _releaseParticle(p); return false; });
-    explosions = explosions.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
-    chainLightningEffects = chainLightningEffects.filter(e => { e.lifetime -= deltaTime; return e.lifetime > 0 });
+    _profChk3.push(performance.now());
+    const _profChk3Total = _profChk3[_profChk3.length - 1] - _profChk3[0];
+    if (_profChk3Total > 30) {
+        const _labels3 = ['waveSystem', 'sigilPassives', 'bulletCapTrim', 'gridBuild', 'bulletsCollisionLoop'];
+        const _parts3 = [];
+        for (let i = 0; i < _labels3.length; i++) _parts3.push(_labels3[i] + ' ' + (_profChk3[i + 1] - _profChk3[i]).toFixed(0) + 'ms');
+        console.warn('[PROF3] wave+sigil+bulletsLoop ' + _profChk3Total.toFixed(0) + 'ms — ' + _parts3.join(', ') + ' (bullets=' + bullets.length + ', enemies=' + enemies.length + ')');
+    }
+    // Removes expired entries in place instead of `.filter()`ing into a
+    // brand new array every single frame — these 3 lists run unconditionally
+    // every frame regardless of what's happening in the run, so the extra
+    // array allocation was a steady source of GC pressure (particle objects
+    // themselves were already pooled via _releaseParticle, only the
+    // container array wasn't).
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt; p.y += p.vy * dt; p.lifetime -= deltaTime;
+        if (p.lifetime <= 0) { _releaseParticle(p); particles.splice(i, 1); }
+    }
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        if ((explosions[i].lifetime -= deltaTime) <= 0) explosions.splice(i, 1);
+    }
+    for (let i = chainLightningEffects.length - 1; i >= 0; i--) {
+        if ((chainLightningEffects[i].lifetime -= deltaTime) <= 0) chainLightningEffects.splice(i, 1);
+    }
 
     updateSentinels(deltaTime);
     // Blessing of the Primordial: passive while Phōtokrystos is active.
@@ -2093,7 +2145,7 @@ function update(rawDeltaTime) {
 
     // Leviathan Perseverance beams (independent objects)
     if (!window._levPersBeams) window._levPersBeams = [];
-    window._levPersBeams = window._levPersBeams.filter(beam => {
+    if (window._levPersBeams.length) window._levPersBeams = window._levPersBeams.filter(beam => {
         if (beam.done) return false;
         const now2 = performance.now();
         const elapsed = now2 - beam.sweepStart;
@@ -2266,14 +2318,14 @@ function update(rawDeltaTime) {
 
     // Veilshroud lightning effects (visual timer decay)
     if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
-    window._veilshroudLightnings = window._veilshroudLightnings.filter(lt => {
+    if (window._veilshroudLightnings.length) window._veilshroudLightnings = window._veilshroudLightnings.filter(lt => {
         lt.life -= deltaTime;
         return lt.life > 0;
     });
 
     // Veilshroud pending Void Strikes (persist after host death)
     if (!window._veilshroudPendingStrikes) window._veilshroudPendingStrikes = [];
-    window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
+    if (window._veilshroudPendingStrikes.length) window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
         ps.countdown += deltaTime;
         if (ps.countdown >= ps.duration) {
             _veilshroudStrike({ lightningTargetX: ps.targetX, lightningTargetY: ps.targetY });
@@ -2284,7 +2336,7 @@ function update(rawDeltaTime) {
 
     // Veilshroud echo explosion zones
     if (!window._veilshroudExplosions) window._veilshroudExplosions = [];
-    window._veilshroudExplosions = window._veilshroudExplosions.filter(ez => {
+    if (window._veilshroudExplosions.length) window._veilshroudExplosions = window._veilshroudExplosions.filter(ez => {
         ez.life -= deltaTime;
         ez.tickTimer += deltaTime;
         if (ez.tickTimer >= ez.tickInterval) {
@@ -2451,7 +2503,10 @@ function _spawnWaveTier(tier) {
 
 function _updateSigilPassives(now, deltaTime) {
     if (_hasBuff('doi_hinh_chien') && typeof updateYuushaParty === 'function') {
+        const _yuT0 = performance.now();
         updateYuushaParty(deltaTime);
+        const _yuDt = performance.now() - _yuT0;
+        if (_yuDt > 10) console.warn('[YUUSHA] updateYuushaParty took ' + _yuDt.toFixed(0) + 'ms (blades=' + (window._yuushaBlades || []).length + ', projs=' + (window._yuushaProjectiles || []).length + ', zones=' + (window._yuushaDotZones || []).length + ', particles=' + (window._yuushaParticles || []).length + ', enemies=' + (typeof enemies !== 'undefined' ? enemies.length : '?') + ')');
     }
 
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {

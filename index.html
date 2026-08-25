@@ -1716,6 +1716,8 @@
             let lastFrameTime = performance.now();
             let frameTimes = [];
             const MAX_LINES = 50;
+            let _dbgLineCount = 0;
+            let _dbgScrollPending = false;
 
             // Toggle F3
             document.addEventListener('keydown', function (e) {
@@ -1830,15 +1832,30 @@
             }
             requestAnimationFrame(tick);
 
-            // Console interceptor
+            // Console interceptor. This runs on EVERY console.warn()/error()
+            // call game-wide, whether or not the panel is even open, so it
+            // must stay cheap — no querySelectorAll and no synchronous
+            // scrollHeight read/write per call (both force a layout reflow);
+            // a tracked count avoids the DOM query, and the scroll-to-bottom
+            // is batched into a single rAF even if many lines land in the
+            // same frame (a burst of warns used to pay the reflow N times).
             function addLine(cls, msg) {
-                const lines = consoleEl.querySelectorAll('.dbg-line');
-                if (lines.length >= MAX_LINES) lines[0].remove();
                 const d = document.createElement('div');
                 d.className = 'dbg-line ' + cls;
                 d.textContent = msg;
                 consoleEl.appendChild(d);
-                consoleEl.scrollTop = consoleEl.scrollHeight;
+                _dbgLineCount++;
+                if (_dbgLineCount > MAX_LINES) {
+                    const first = consoleEl.querySelector('.dbg-line');
+                    if (first) { first.remove(); _dbgLineCount--; }
+                }
+                if (!_dbgScrollPending) {
+                    _dbgScrollPending = true;
+                    requestAnimationFrame(() => {
+                        _dbgScrollPending = false;
+                        consoleEl.scrollTop = consoleEl.scrollHeight;
+                    });
+                }
             }
 
             const _origError = console.error.bind(console);
@@ -1866,7 +1883,7 @@
     <script src="js/yuusha-party.js?v=20260824j"></script>
     <script src="js/entities.js?v=20260825a"></script>
     <script src="js/skills.js?v=20260824c"></script>
-    <script src="js/render/core.js?v=20260825c"></script>
+    <script src="js/render/core.js?v=20260825e"></script>
     <script src="js/render/fx.js?v=20260825h"></script>
     <script src="js/render/player.js?v=20260825a"></script>
     <script src="js/render/enemy-common.js?v=20260825b"></script>
@@ -1886,14 +1903,14 @@
     <script src="js/pixi-renderer.js?v=20260720b"></script>
     <script src="js/input.js?v=20260823b"></script>
     <script src="js/match-stats.js?v=20260823b"></script>
-    <script src="js/main.js?v=20260824k"></script>
+    <script src="js/main.js?v=20260825g"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20260823a';
+            _dbgScript.src = 'js/debug-console.js?v=20260825b';
             document.head.appendChild(_dbgScript);
         }
     </script>

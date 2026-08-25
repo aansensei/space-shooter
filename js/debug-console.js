@@ -20,6 +20,38 @@ window._debugNoCooldown = false;
 window._debugPlayerInvuln = false;
 window._debugGameSpeed = 1;
 window._debugClickSpawnType = '';
+window._debugAutoplay = false;
+
+// Autoplay: sweeps the ship left/right and spams every skill's own activate
+// function on a timer — each activate function already gates itself on its
+// own cooldown/resource/state (the same guard a real keypress hits), so
+// calling them repeatedly here is exactly as safe as a player mashing keys.
+// Meant for hands-off soak testing (e.g. watching [PROF]/[LONGTASK] output
+// over a long run) without needing to actually play.
+let _autoplayTimer = null;
+let _autoplayDir = 1;
+function _setDebugAutoplay(on) {
+    window._debugAutoplay = on;
+    if (on) {
+        if (_autoplayTimer) return;
+        _autoplayDir = 1;
+        _autoplayTimer = setInterval(() => {
+            if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
+            if (Math.random() < 0.15) _autoplayDir *= -1;
+            keys.left = _autoplayDir < 0;
+            keys.right = _autoplayDir > 0;
+            if (typeof activateSkillA === 'function') activateSkillA();
+            if (typeof activateSkillS === 'function') activateSkillS();
+            if (typeof activateSkillD === 'function') activateSkillD();
+            if (typeof activateSkillF === 'function') activateSkillF();
+            if (typeof activateSkillG === 'function') activateSkillG();
+        }, 200);
+    } else {
+        keys.left = false;
+        keys.right = false;
+        if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
+    }
+}
 
 (function () {
     const PANEL_HTML = `
@@ -69,6 +101,10 @@ window._debugClickSpawnType = '';
       <label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgInvulnToggle" onchange="window._debugPlayerInvuln = this.checked;">
         Player Invulnerable
+      </label>
+      <label class="dbg-row" style="cursor:pointer;">
+        <input type="checkbox" id="dbgAutoplayToggle" onchange="_setDebugAutoplay(this.checked);">
+        Autoplay (di chuyển + spam skill)
       </label>
       <div class="dbg-row">
         <button class="dbg-btn danger" onclick="debugExitSession()">Exit Debug Mode → Main Menu</button>
@@ -287,13 +323,20 @@ window._debugClickSpawnType = '';
         if (cb) cb.checked = !window._debugAutoshotOff;
         const cdCb = document.getElementById('dbgCooldownToggle');
         if (cdCb) cdCb.checked = !window._debugNoCooldown;
+        const apCb = document.getElementById('dbgAutoplayToggle');
+        if (apCb) apCb.checked = window._debugAutoplay;
         panelOpen = true;
         refreshEnemyList();
         refreshSentinelList();
         refreshDummyStatus();
         updateSessionStatus();
         if (refreshTimer) clearInterval(refreshTimer);
-        refreshTimer = setInterval(() => { refreshEnemyList(); refreshSentinelList(); refreshDummyStatus(); updateSessionStatus(); }, 500);
+        refreshTimer = setInterval(() => {
+            const _t0 = performance.now();
+            refreshEnemyList(); refreshSentinelList(); refreshDummyStatus(); updateSessionStatus();
+            const _dt = performance.now() - _t0;
+            if (_dt > 15) console.warn('[DBGPANEL] refresh took ' + _dt.toFixed(0) + 'ms');
+        }, 500);
     };
 
     window.closeDebugConsole = function () {
@@ -314,6 +357,9 @@ window._debugClickSpawnType = '';
         window._debugNoCooldown = false;
         window._debugGameSpeed = 1;
         window._debugClickSpawnType = '';
+        _setDebugAutoplay(false);
+        const autoplayCb = document.getElementById('dbgAutoplayToggle');
+        if (autoplayCb) autoplayCb.checked = false;
         const sel = document.getElementById('dbgClickSpawnType');
         if (sel) sel.value = '';
         if (typeof gamePaused !== 'undefined') gamePaused = false;
