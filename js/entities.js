@@ -1210,11 +1210,11 @@ function dealDamage(enemy, source) {
         }
         // Warding Palm: đòn tới từ Skill F/D/tia Photokrystos — sức mạnh khởi
         // nguyên của những đòn này quá mạnh nên KHÔNG BAO GIỜ bị chặn đứng
-        // hoàn toàn, kể cả khi đỡ thành công. 30% mỗi đòn đỡ được (chỉ ăn 15%
-        // MaxHP), 70% đỡ hụt (ăn 40% MaxHP) — tính PER HIT, không phải trần
+        // hoàn toàn, kể cả khi đỡ thành công. 35% mỗi đòn đỡ được (chỉ ăn 15%
+        // MaxHP), 65% đỡ hụt (ăn 35% MaxHP) — tính PER HIT, không phải trần
         // cộng dồn cho cả trận.
         if (source._isSkillF || source._isSkillD || source.isSpiritLaser) {
-            const _blocked = Math.random() < 0.30;
+            const _blocked = Math.random() < 0.35;
             enemy._wardingPalmFlash = { end: performance.now() + 500, success: _blocked };
             const dmg = enemy.maxHp * (_blocked ? 0.15 : 0.35);
             if (_blocked) createParticles(enemy.x, enemy.y, 14, '#c084fc', 3, 9);
@@ -1353,18 +1353,18 @@ function dealDamage(enemy, source) {
             _evade += Math.min(0.30, Math.floor(_hpLostPct / 6) * 0.05);
         }
         // Goliath (NEW): riêng, không dùng bảng tier chung ở trên (giữ 0 nếu
-        // chưa vào True Form). 35% ngay lúc vừa biến hình xong, decay tuyến
-        // tính về 25% trong 15s rồi giữ nguyên 25%. Cộng thêm +5% (không cộng
-        // dồn dù trigger nhiều mốc cùng lúc — chỉ 1 lớp +5% duy nhất, refresh
-        // lại 3s) mỗi lần HP tụt xuyên qua 75/50/25% — có thể lặp lại vô hạn
+        // chưa vào True Form). 40% ngay lúc vừa biến hình xong, decay tuyến
+        // tính về 25% trong 15s rồi giữ nguyên 25%. Cộng thêm +10% (không cộng
+        // dồn dù trigger nhiều mốc cùng lúc — chỉ 1 lớp +10% duy nhất, refresh
+        // lại 3.5s) mỗi lần HP tụt xuyên qua 75/50/25% — có thể lặp lại vô hạn
         // lần nếu hồi lên rồi tụt lại đúng mốc đó, khác hẳn khiên Threshold
         // Ward (chỉ phát 1 lần/mốc trong cả trận). Không áp dụng cho Skill F/
         // D/tia Photokrystos — 3 nguồn đó đã return sớm qua Warding Palm,
         // không bao giờ chạy tới khối evade này.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
             const _gDecayT = Math.min(1, (performance.now() - (enemy._trueFormEnteredAt || performance.now())) / 15000);
-            _evade = 0.35 - _gDecayT * 0.10;
-            if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.05;
+            _evade = 0.40 - _gDecayT * 0.15;
+            if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.10;
         }
         // Walpurgis (Huyết Dạ): +5% evade per stack, applies on top of every
         // enemy's own tier/type evade (including types with 0 base evade).
@@ -1407,11 +1407,11 @@ function dealDamage(enemy, source) {
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
     // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
-    // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 35% khi
+    // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 48% khi
     // đánh Goliath True Form — áp dụng SỚM, trước DR/Inevitable cap/true-dmg
     // bypass, để đè lên cả 2 loại sát thương thường lẫn true damage (boomerang).
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && (source.isPhoto || source._isPhotoSourced)) {
-        totalDamage = Math.ceil(totalDamage * 0.60);
+        totalDamage = Math.ceil(totalDamage * 0.52);
     }
 
     if (!isSentinel && !source._vanguardTag && !source._noBase60
@@ -1743,8 +1743,22 @@ function dealDamage(enemy, source) {
         // same subtract-after-percentage pattern as Walpurgis's flat DR.
         if (enemy.type === 'leviathan') totalDamage -= 350;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
-        // off the current ally count (200 * (1 + 0.1*N)), same pattern.
-        if (enemy.type === 'goliath' && enemy.phase === 'true_form') totalDamage -= (enemy._unifiedFrontFlatDR || 0);
+        // off the current ally count, same pattern. Base 200 (scaling
+        // 1+10%/ally) against normal hits, base 400 (scaling 1+15%/ally)
+        // against any %HP/EP/MaxHP-scaling hit (percentDamage > 0) — that's
+        // the damage class that ignores Goliath's raw HP pool, so it gets
+        // punished harder here.
+        if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
+            totalDamage -= source.percentDamage > 0
+                ? 400 * (enemy._unifiedFrontScalingDRMult || 1)
+                : 200 * (enemy._unifiedFrontDRMult || 1);
+        }
+        // Casting restriction (Goliath True Form): +400 flat DR while
+        // channeling any skill (its own or a Joker copy's), on top of the
+        // +10% DR already applied above — same subtract-after-% pattern.
+        if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _goliathIsCasting(enemy)) {
+            totalDamage -= 400;
+        }
         totalDamage = Math.max(0, totalDamage);
     }
 
@@ -1753,15 +1767,15 @@ function dealDamage(enemy, source) {
     // Inevitable (Goliath, True Form): CHỈ sát thương xuyên (isPiercing),
     // CHUẨN (true damage), và DOT mới được đánh full — sát thương BÌNH
     // THƯỜNG (%HP/%EP, ăn shield trước — gồm cả đạn auto-fire cơ bản) bị
-    // giới hạn cứng 1.6% MaxHP/đòn (tính SAU khi đã trừ DR ở trên), +0.5%
+    // giới hạn cứng 1.5% MaxHP/đòn (tính SAU khi đã trừ DR ở trên), +0.3%
     // trần cho MỖI tầng debuff đang dính (bất kỳ sigil nào áp được lên
-    // Goliath — vd 2 tầng Vulnerability = 1.6%+1%=2.6%), trần tối đa 3%.
+    // Goliath — vd 2 tầng Vulnerability = 1.5%+0.6%=2.1%), trần tối đa 3%.
     // Không áp dụng cho Skill F/D/tia Photokrystos finale — 3 nguồn đó đã
     // return sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
         && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot) {
-        const _capPct = Math.min(0.03, 0.015 + _goliathDebuffStackCount(enemy) * 0.005);
+        const _capPct = Math.min(0.03, 0.015 + _goliathDebuffStackCount(enemy) * 0.003);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
 
@@ -1890,23 +1904,53 @@ function dealDamage(enemy, source) {
         if (totalDamage <= 0) return;
     }
 
-    // Goliath Inevitable damage window: hit > 10% MaxHP (post-DR) opens a
-    // 2s window capping every hit at 5% MaxHP; 1.5s CD after window ends
+    // Goliath Inevitable damage window: hit > 8% MaxHP (post-DR) opens a
+    // 2s window capping every hit at 2.5% MaxHP; 0.5s CD after window ends
     // (CD cleared in updateGoliath). True damage bypasses this cap entirely.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && !source.isTrueDamage) {
         const _gNow = performance.now();
         if (enemy._inevitableWindowEnd && _gNow < enemy._inevitableWindowEnd) {
-            totalDamage = Math.min(totalDamage, enemy.maxHp * 0.05);
-        } else if (totalDamage > enemy.maxHp * 0.10 && !(enemy._inevitableCooldownEnd && _gNow < enemy._inevitableCooldownEnd)) {
+            totalDamage = Math.min(totalDamage, enemy.maxHp * 0.025);
+        } else if (totalDamage > enemy.maxHp * 0.08 && !(enemy._inevitableCooldownEnd && _gNow < enemy._inevitableCooldownEnd)) {
             enemy._inevitableWindowEnd = _gNow + 2000;
-            totalDamage = Math.min(totalDamage, enemy.maxHp * 0.05);
+            totalDamage = Math.min(totalDamage, enemy.maxHp * 0.025);
         }
+    }
+
+    // Goliath clutch armor: a single hit worth more than 30% of its CURRENT
+    // hp (not MaxHp, unlike Inevitable above) gets 8% MaxHp shaved off flat,
+    // floored so it never drops below that same 30% current-hp threshold —
+    // blunts an execute swing without ever making the hit harmless outright.
+    // No cooldown: the current-hp condition already only fires rarely, when
+    // Goliath is genuinely low and about to eat something huge.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && !source.isTrueDamage
+        && totalDamage > enemy.hp * 0.30) {
+        totalDamage = Math.max(totalDamage - enemy.maxHp * 0.08, enemy.hp * 0.30);
     }
 
     // Bùng nổ khiên (Inevitable, NEW): dồn TOÀN BỘ sát thương nhận trong 1
     // giây (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn
     // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
     const _hitSizeForBurst = totalDamage;
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hitSizeForBurst > 0) {
+        const _sbNow = performance.now();
+        enemy._shieldBurstWindow = (enemy._shieldBurstWindow || []).filter(hit => _sbNow - hit.t < 1000);
+        enemy._shieldBurstWindow.push({ t: _sbNow, amt: _hitSizeForBurst });
+        if (!(enemy._shieldBurstCooldownEnd && _sbNow < enemy._shieldBurstCooldownEnd)) {
+            const _sbWindowTotal = enemy._shieldBurstWindow.reduce((s, hit) => s + hit.amt, 0);
+            if (_sbWindowTotal > enemy.maxHp * 0.12) {
+                enemy._shieldBurstCooldownEnd = _sbNow + 500;
+                enemy._shieldBurstWindow = [];
+                const _sbConvertedShield = enemy.shield || 0;
+                enemy.barrier = (enemy.barrier || 0) + _sbWindowTotal * 0.50 + _sbConvertedShield;
+                enemy.shield = 0;
+                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, _sbConvertedShield * 0.80));
+                createParticles(enemy.x, enemy.y, 20, '#00e5ff', 3, 9);
+                addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#00e5ff');
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
+            }
+        }
+    }
     // match stats: log the actual damage applied, capped at the enemy's
     // current HP - instakill tricks (Death Star's damage: maxHp*999999999)
     // use an intentionally absurd raw value to guarantee a kill through any
@@ -1940,6 +1984,9 @@ function dealDamage(enemy, source) {
     // 40% -> 20% linearly across the window instead of a flat rate.
     let _hpDamageDealt = 0;
     if (source.isTrueDamage) {
+        if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
+            totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
+        }
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;
@@ -1962,16 +2009,15 @@ function dealDamage(enemy, source) {
         enemy.shield = Math.max(0, enemy.shield);
         totalDamage -= damageToShield;
         totalDamage += _vulnTrueBonus;
+        if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
+            totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
+        }
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;
         }
     }
     enemy.hp = Math.max(0, enemy.hp);
-    if (isSentinel && _hpDamageDealt > 0 && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
-        const _yuushaRefund = _yuushaTankAbsorbFromSentinelDamage(_hpDamageDealt);
-        if (_yuushaRefund > 0) enemy.hp = Math.min(enemy.maxHp, enemy.hp + _yuushaRefund);
-    }
     // GOLIATH True Form: bắt + ghim hp=1 NGAY TẠI ĐÂY, ĐỒNG BỘ trong chính
     // dealDamage — không đợi tới frame sau để updateGoliath() bắt kịp nữa.
     // Bất kỳ đoạn code nào gọi dealDamage() rồi tự ý splice/kill luôn enemy
@@ -2779,7 +2825,7 @@ function _goliathHealBoost(enemy, amount) {
     if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) mult += 0.15;
     if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) mult += 0.40;
     mult += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
-    mult += enemy._unifiedFrontHealPct || 0; // Unified Front: +2%/ally on the map, cap +35%
+    mult += enemy._unifiedFrontHealPct || 0; // Unified Front: +5%/ally on the map, cap +60%
     return amount * mult;
 }
 
@@ -2807,8 +2853,8 @@ function _goliathDmgBoost(enemy, amount) {
 
 // Unbroken Will (1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì thay
 // vào đó — bất tử 4s (tái dùng đúng cổng Iron Body tuyệt đối của
-// _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage) và
-// +1 lớp barrier = 20% MaxHP ngay lập tức. Sau khi 4s bất tử đã hết hẳn (KHÔNG
+// _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
+// hồi đầy HP, và +1 lớp barrier = 20% MaxHP ngay lập tức. Sau khi 4s bất tử đã hết hẳn (KHÔNG
 // chồng lấn), mở ra cửa sổ 6s tiếp theo: +40% hiệu quả hồi HP/khiên (cộng dồn
 // qua _goliathHealBoost), +20% MaxHP (kèm HP hiện tại cộng thẳng phần đó, tự
 // rút lại khi hết hạn — xem updateGoliath), +15% tốc độ bay — cửa sổ này được
@@ -2825,6 +2871,7 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     // chung _transformIronBodyEnd — field đó có thể bị mốc invuln biến hình
     // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
     enemy._unbrokenWillInvulnEnd = now + 4000;
+    enemy.hp = enemy.maxHp;
     enemy.barrier = (enemy.barrier || 0) + Math.ceil(enemy.maxHp * 0.20);
     addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#f97316');
     createParticles(enemy.x, enemy.y, 40, '#fdba74', 3, 11);
@@ -2839,7 +2886,7 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
 // 1 đòn tấn công vào người chơi) mà tự dựng wave object cùng thông số tốc
 // độ/maxRadius để khớp đúng "duration bằng Maou Haki" — xem xử lý
 // wave._isUnbrokenWave ở main.js (quét sạch đạn người chơi, không trừ mạng
-// ai, nhưng gây 50 + 20% MaxHp cho Sentinels).
+// ai, nhưng gây 100 + 20% MaxHp của Goliath dưới dạng true damage cho Sentinels).
 function _goliathReleaseUnbrokenWave(enemy, now) {
     bossShockwaves.push({
         x: enemy.x, y: enemy.y,
@@ -2849,6 +2896,7 @@ function _goliathReleaseUnbrokenWave(enemy, now) {
         hitSentinels: new Set(),
         active: true,
         _isUnbrokenWave: true,
+        _sourceMaxHp: enemy.maxHp,
     });
     // Animation "tung chiêu": cờ hint cho render vẽ tư thế giải phóng năng
     // lượng (2 tay/thân bung ra) trong 500ms trước khi sóng thật bắt đầu đọc rõ.
@@ -3038,15 +3086,16 @@ function updateGoliath(enemy, deltaTime) {
         if (enemy.transformTimer >= 4000) _goliathEnterTrueForm(enemy);
     } else if (enemy.phase === 'true_form') {
         // Unified Front: every 1s, recompute healing effectiveness + flat DR
-        // off the current ally count, and top up shield by 1% MaxHP per ally.
+        // off the current ally count, and top up shield by 5% MaxHP per ally.
         enemy._unifiedFrontTimer = (enemy._unifiedFrontTimer || 0) + deltaTime;
         if (enemy._unifiedFrontTimer >= 1000) {
             enemy._unifiedFrontTimer -= 1000;
             const _uAllies = _goliathCountAllies();
-            enemy._unifiedFrontHealPct = Math.min(0.35, 0.02 * _uAllies);
-            enemy._unifiedFrontFlatDR = 200 * (1 + 0.1 * _uAllies);
+            enemy._unifiedFrontHealPct = Math.min(0.60, 0.05 * _uAllies);
+            enemy._unifiedFrontDRMult = 1 + 0.1 * _uAllies;
+            enemy._unifiedFrontScalingDRMult = 1 + 0.15 * _uAllies;
             if (_uAllies > 0) {
-                const _uShield = enemy.maxHp * 0.01 * _uAllies;
+                const _uShield = enemy.maxHp * 0.05 * _uAllies;
                 enemy.shield = (enemy.shield || 0) + _uShield;
                 _goliathTrackResourceGain(enemy, _uShield);
             }
@@ -3249,14 +3298,14 @@ function updateGoliath(enemy, deltaTime) {
                 enemy._thresholdShieldPool += _goliathHealBoost(enemy, enemy.maxHp * 0.20);
             }
         });
-        // Evade (NEW): +5% 3s mỗi lần HP tụt XUYÊN QUA 75/50/25% — dùng HP
+        // Evade (NEW): +10% 3.5s mỗi lần HP tụt XUYÊN QUA 75/50/25% — dùng HP
         // KHUNG HÌNH TRƯỚC (không phải cờ latch như trên) nên lặp lại được vô
         // hạn lần nếu hồi lên rồi tụt lại đúng mốc. Không cộng dồn: chỉ set
         // lại đúng 1 mốc hết hạn, dù 1 đòn lớn tụt xuyên luôn cả 3 mốc cùng lúc.
         if (enemy._lastHpPctForEvade === undefined) enemy._lastHpPctForEvade = hpPct;
         [75, 50, 25].forEach(mile => {
             if (enemy._lastHpPctForEvade * 100 > mile && hpPct * 100 <= mile) {
-                enemy._evadeThresholdBuffEnd = now + 3000;
+                enemy._evadeThresholdBuffEnd = now + 3500;
             }
         });
         enemy._lastHpPctForEvade = hpPct;
@@ -3296,11 +3345,11 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
-        // Inevitable: hồi máu 2%/s, ăn +35% Tenacity nếu có
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.022 * (deltaTime / 1000)));
+        // Inevitable: hồi máu 3%/s, ăn +35% Tenacity nếu có
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.03 * (deltaTime / 1000)));
 
         if (enemy._inevitableWindowEnd && now >= enemy._inevitableWindowEnd && !enemy._inevitableCooldownEnd) {
-            enemy._inevitableCooldownEnd = now + 1500;
+            enemy._inevitableCooldownEnd = now + 500;
             enemy._inevitableWindowEnd = 0;
         }
         if (enemy._inevitableCooldownEnd && now >= enemy._inevitableCooldownEnd) {
@@ -3365,15 +3414,15 @@ function _goliathEnterTrueForm(enemy) {
     enemy.phase = 'true_form';
     enemy.inCoronation = false; // giờ mới có thể bị nhắm mục tiêu
     enemy.size = 260; // giảm ~7% so với 280 theo yêu cầu
-    const pulledCapped = Math.min(247500, enemy.damagePull);
-    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.20 * enemy.gemPoints) * _walpurgisHpMult());
+    const pulledCapped = Math.min(320000, enemy.damagePull);
+    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult());
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
     if (window.AudioMgr) { window.AudioMgr.exitGoliathTransformDuck(); window.AudioMgr.startGoliathIdle(); }
 
-    // Inevitable (NEW): Iron Body tuyệt đối 1.5s ngay sau khi biến hình xong
+    // Inevitable (NEW): Iron Body tuyệt đối 4s ngay sau khi biến hình xong
     // thành công — bảo vệ đúng khoảnh khắc vừa lộ diện, còn chưa kịp làm gì.
-    enemy._transformIronBodyEnd = performance.now() + 2000;
+    enemy._transformIronBodyEnd = performance.now() + 4000;
 
     // Evade (NEW): mốc thời gian bắt đầu decay từ 35% -> 25% trong 15s kể từ
     // đúng lúc biến hình xong — xem khối tính evade trong dealDamage.

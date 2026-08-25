@@ -477,9 +477,9 @@ function update(rawDeltaTime) {
         // Unbroken Will release wave: cơ chế y hệt Maou Haki (cùng tốc
         // độ/maxRadius, quét sạch đạn của người chơi + tinh linh trong bán
         // kính), KHÔNG gây sát thương/trừ mạng người chơi — nhưng CÓ gây
-        // 50 + 20% MaxHp cho Sentinels (chịu DR/khiên bình thường như mọi
-        // đòn khác), đây là cái giá thật của việc cứu mạng, không phải hoàn
-        // toàn vô hại như trước.
+        // 100 + 20% MaxHp của Goliath dưới dạng true damage cho Sentinels
+        // (chịu DR/khiên bình thường như mọi đòn khác), đây là cái giá thật
+        // của việc cứu mạng, không phải hoàn toàn vô hại như trước.
         if (wave._isUnbrokenWave) {
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
@@ -501,7 +501,7 @@ function update(rawDeltaTime) {
                 if (!wave.hitSentinels.has(sentinel)) {
                     const d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                     if (d <= wave.radius) {
-                        dealDamage(sentinel, { damage: 50 + sentinel.maxHp * 0.20, _vanguardTag: wave._id });
+                        dealDamage(sentinel, { damage: 100 + wave._sourceMaxHp * 0.20, isTrueDamage: true, _vanguardTag: wave._id });
                         wave.hitSentinels.add(sentinel);
                         addExplosion(sentinel.x, sentinel.y, 40, '#f97316');
                     }
