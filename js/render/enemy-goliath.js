@@ -2101,8 +2101,14 @@ function _drawGoliathBossBar(enemy) {
     const barY = titleY + 20;
     const barH = 14;
 
-    // unbroken will 3.5s invuln -> bar reads frosted white/ice instead of red
-    const _frozen = enemy._unbrokenWillInvulnEnd && now < enemy._unbrokenWillInvulnEnd;
+    // unbroken will 4s invuln -> bar reads frosted white/ice instead of red.
+    // Also true while the shared absolute-invuln gate (_transformIronBodyEnd)
+    // is still active post-Unbroken-Will — that field can end up extended
+    // past _unbrokenWillInvulnEnd (Math.max against a pre-existing longer
+    // window), so relying on _unbrokenWillInvulnEnd alone could let the bar
+    // drop back to red while Goliath is still genuinely untouchable.
+    const _frozen = (enemy._unbrokenWillInvulnEnd && now < enemy._unbrokenWillInvulnEnd)
+        || (enemy._unbrokenWillUsed && enemy._transformIronBodyEnd && now < enemy._transformIronBodyEnd);
 
     // elden ring style name: left-aligned, italic, parchment-gold, not centered/red
     ctx.save();
@@ -2203,12 +2209,22 @@ function _drawGoliathBossBar(enemy) {
     }
     if (enemy.soulReaver) {
         const chipW = 52;
-        ctx.fillStyle = 'rgba(147,51,234,0.16)';
+        ctx.fillStyle = 'rgba(239,68,68,0.16)';
         ctx.fillRect(lx, rowY, chipW, rowH);
-        ctx.strokeStyle = 'rgba(147,51,234,0.5)';
+        ctx.strokeStyle = 'rgba(239,68,68,0.5)';
         ctx.strokeRect(lx, rowY, chipW, rowH);
-        ctx.fillStyle = '#dcb8ff';
+        ctx.fillStyle = '#ff9999';
         ctx.fillText('REAVER', lx + 4, rowY + rowH - 3);
+        lx += chipW + 4;
+    }
+    if (typeof _goliathWaningStacks === 'function' && _goliathWaningStacks(enemy) > 0) {
+        const chipW = 56;
+        ctx.fillStyle = 'rgba(239,68,68,0.16)';
+        ctx.fillRect(lx, rowY, chipW, rowH);
+        ctx.strokeStyle = 'rgba(239,68,68,0.5)';
+        ctx.strokeRect(lx, rowY, chipW, rowH);
+        ctx.fillStyle = '#ff9999';
+        ctx.fillText('WANE x' + _goliathWaningStacks(enemy), lx + 4, rowY + rowH - 3);
     }
     ctx.restore();
 

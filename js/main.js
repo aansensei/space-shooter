@@ -648,8 +648,33 @@ function update(rawDeltaTime) {
         }
     }
 
+    const _xBeforeMove = player.x;
     if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
     if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
+
+    // Cycle of Flow (Pisces, dong_chay_luan_hoi): actual on-screen movement
+    // (not just holding a direction key against the boundary) accumulates —
+    // once it adds up to a full screen width, -0.5s off every skill
+    // cooldown. Tied to canvas.width rather than a flat pixel count so it
+    // takes the same amount of real dodging on any device/window size.
+    if (_hasBuff('dong_chay_luan_hoi')) {
+        window._cofMoveDist = (window._cofMoveDist || 0) + Math.abs(player.x - _xBeforeMove);
+        if (window._cofMoveDist >= canvas.width) {
+            window._cofMoveDist -= canvas.width;
+            const _cofNow = performance.now();
+            lastSkillA = Math.min(_cofNow, lastSkillA - 500);
+            lastSkillS = Math.min(_cofNow, lastSkillS - 500);
+            lastSkillD = Math.min(_cofNow, lastSkillD - 500);
+            lastSkillF = Math.min(_cofNow, lastSkillF - 500);
+            lastSkillShift = Math.min(_cofNow, lastSkillShift - 500);
+            // laserCooldownEnd is a "ready when now >= this" end-timestamp,
+            // not a "last used" one like the others above — subtracting
+            // then clamping to _cofNow would force it fully ready off a
+            // single screen-width of movement instead of shaving 0.5s.
+            laserCooldownEnd -= 500;
+            window._cofFlashEnd = _cofNow + 400;
+        }
+    }
 
     if (Math.random() < 0.6) {
         particles.push({
