@@ -2639,6 +2639,7 @@
         const nowPaused = btn.dataset.paused !== 'true';
         btn.dataset.paused = nowPaused ? 'true' : 'false';
         btn.textContent = nowPaused ? '▶ Resume' : '⏸ Pause';
+        if (window.AudioMgr) { if (nowPaused) window.AudioMgr.pauseAll(); else window.AudioMgr.resumeAll(); }
         return;
       }
       const fn = _widgetPlayers[name];
@@ -4882,7 +4883,7 @@
             ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
             player.x = cx; player.y = cy;
-            skillAOrbs = []; skillASensorRadius = 0;
+            skillAOrbs = []; skillASensorRadius = 0; dimensionalRifts.length = 0;
             drawPlayer();
           }
           drawIdle();
@@ -4890,7 +4891,7 @@
           _widgetPlayers.skillA = function () {
             const btn = document.getElementById('btnPlaySkillA');
             btn.dataset.running = 'true'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '⏸ Pause';
-            particles.length = 0; explosions.length = 0;
+            particles.length = 0; explosions.length = 0; dimensionalRifts.length = 0;
             player.x = cx; player.y = cy;
             target.hp = target.maxHp;
             lastSkillA = performance.now();
@@ -4952,21 +4953,59 @@
                   createParticles(target.x, target.y, 16, '#00ffff', 2, 6);
                   addExplosion(target.x, target.y, 14, '#00ffff');
                   if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-orb-hit');
+                  // Real spawnDimensionalRift() (js/skills.js): fires on every
+                  // hit that lands real damage, radius 50, 6-10 jagged cracks,
+                  // 3s lifetime.
+                  const _riftCrackCount = 6 + Math.floor(Math.random() * 5);
+                  const _riftCracksInfo = [];
+                  for (let ci = 0; ci < _riftCrackCount; ci++) {
+                    _riftCracksInfo.push({
+                      baseAngle: (ci / _riftCrackCount) * Math.PI * 2 + (Math.random() * 0.4),
+                      maxLength: 50 * (1.1 + Math.random() * 0.5),
+                      hasSubBranch: Math.random() > 0.4,
+                    });
+                  }
+                  dimensionalRifts.push({
+                    x: target.x, y: target.y, radius: 50, timer: 3000, maxTimer: 3000,
+                    cracksInfo: _riftCracksInfo, _chainCooldown: 0,
+                    _age: 0, _ringRot: 0, _particles: [],
+                  });
+                  if (window.AudioMgr) window.AudioMgr.playSfx('dimensional-rift');
                 }
               }
               _tickParticlesAndExplosions(dt);
+              // Real updateDimensionalRifts() (js/skills.js): countdown timer,
+              // ring rotation/age drift, ambient particle drift — enemy
+              // slow/DoT/bullet-pull are gameplay-only, not shown here.
+              for (let ri = dimensionalRifts.length - 1; ri >= 0; ri--) {
+                const rift = dimensionalRifts[ri];
+                rift.timer -= dt;
+                if (rift.timer <= 0) { dimensionalRifts.splice(ri, 1); continue; }
+                rift._age += dt60 * 0.05;
+                rift._ringRot -= 0.025 * dt60;
+                if (Math.random() < 0.45) {
+                  const pA = Math.random() * Math.PI * 2, pD = Math.random() * rift.radius * 1.1;
+                  rift._particles.push({ x: rift.x + Math.cos(pA) * pD, y: rift.y + Math.sin(pA) * pD, vx: (Math.random() - 0.5) * 0.4, vy: -0.4 - Math.random() * 1.2, life: 1.0, isCyan: Math.random() > 0.5 });
+                }
+                for (let pj = rift._particles.length - 1; pj >= 0; pj--) {
+                  const p = rift._particles[pj];
+                  p.x += p.vx; p.y += p.vy; p.life -= 0.018;
+                  if (p.life <= 0) rift._particles.splice(pj, 1);
+                }
+              }
 
               player.x = cx; player.y = cy;
               drawPlayer();
               drawSkillA();
+              _drawDimensionalRiftsCtx();
               drawEnemy(target);
               particles.forEach(drawParticle);
               explosions.forEach(drawExplosion);
 
-              if (elapsed < 3200) {
+              if (elapsed < 4300) {
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
-                skillAOrbs = []; particles.length = 0; explosions.length = 0;
+                skillAOrbs = []; particles.length = 0; explosions.length = 0; dimensionalRifts.length = 0;
                 btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
                 drawIdle();
               }
