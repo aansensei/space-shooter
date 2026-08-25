@@ -34,6 +34,7 @@
         'js/config.js',
         'js/entities.js',
         'js/entities/sentinel.js',
+        'js/entities/veilshroud.js',
         'js/input.js',
         'js/match-stats.js',
         'js/main.js',
