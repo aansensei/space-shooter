@@ -1168,14 +1168,15 @@ function triggerDemonGift(boss) {
     });
 }
 
-function spawnBossShockwave(x, y) {
+function spawnBossShockwave(x, y, ownerType) {
     bossShockwaves.push({
         x: x, y: y,
         radius: 0,
         maxRadius: Math.hypot(canvas.width, canvas.height),
         speed: 12,
         hitSentinels: new Set(),
-        active: true
+        active: true,
+        _ownerType: ownerType || null,
     });
     _setShake(20, 600);
     if (window.AudioMgr) window.AudioMgr.startMaouHaki();
@@ -1928,29 +1929,12 @@ function dealDamage(enemy, source) {
         totalDamage = Math.max(totalDamage - enemy.maxHp * 0.08, enemy.hp * 0.30);
     }
 
-    // Bùng nổ khiên (Inevitable, NEW): dồn TOÀN BỘ sát thương nhận trong 1
-    // giây (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn
-    // TRƯỚC khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây.
+    // Bùng nổ khiên (Inevitable): dồn TOÀN BỘ sát thương nhận trong 1 giây
+    // (mọi loại, kể cả piercing/true/DOT) — dùng đúng độ lớn của đòn TRƯỚC
+    // khi bị true-dmg/shield/barrier trừ, nên phải chụp lại ở đây. Trigger
+    // thật nằm dưới (sau khi hp đã trừ xong), xem khối "Inevitable — bùng
+    // nổ khiên" phía dưới.
     const _hitSizeForBurst = totalDamage;
-    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hitSizeForBurst > 0) {
-        const _sbNow = performance.now();
-        enemy._shieldBurstWindow = (enemy._shieldBurstWindow || []).filter(hit => _sbNow - hit.t < 1000);
-        enemy._shieldBurstWindow.push({ t: _sbNow, amt: _hitSizeForBurst });
-        if (!(enemy._shieldBurstCooldownEnd && _sbNow < enemy._shieldBurstCooldownEnd)) {
-            const _sbWindowTotal = enemy._shieldBurstWindow.reduce((s, hit) => s + hit.amt, 0);
-            if (_sbWindowTotal > enemy.maxHp * 0.12) {
-                enemy._shieldBurstCooldownEnd = _sbNow + 500;
-                enemy._shieldBurstWindow = [];
-                const _sbConvertedShield = enemy.shield || 0;
-                enemy.barrier = (enemy.barrier || 0) + _sbWindowTotal * 0.50 + _sbConvertedShield;
-                enemy.shield = 0;
-                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, _sbConvertedShield * 0.80));
-                createParticles(enemy.x, enemy.y, 20, '#00e5ff', 3, 9);
-                addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#00e5ff');
-                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
-            }
-        }
-    }
     // match stats: log the actual damage applied, capped at the enemy's
     // current HP - instakill tricks (Death Star's damage: maxHp*999999999)
     // use an intentionally absurd raw value to guarantee a kill through any
@@ -2017,7 +2001,13 @@ function dealDamage(enemy, source) {
             enemy.hp -= totalDamage;
         }
     }
-    enemy.hp = Math.max(0, enemy.hp);
+    // GOLIATH True Form, before Unbroken Will has fired: floor hp at 1
+    // instead of 0 — the actual kill only happens once a hit lands while
+    // already pinned here (see _goliathTryUnbrokenWill above), so the save
+    // can never be skipped by a hit that's simply too big to compute against
+    // the death-phase check below in the same call.
+    const _gFloor = (enemy.type === 'goliath' && enemy.phase === 'true_form' && !enemy._unbrokenWillUsed) ? 1 : 0;
+    enemy.hp = Math.max(_gFloor, enemy.hp);
     // GOLIATH True Form: bắt + ghim hp=1 NGAY TẠI ĐÂY, ĐỒNG BỘ trong chính
     // dealDamage — không đợi tới frame sau để updateGoliath() bắt kịp nữa.
     // Bất kỳ đoạn code nào gọi dealDamage() rồi tự ý splice/kill luôn enemy
@@ -2039,16 +2029,20 @@ function dealDamage(enemy, source) {
     else if (window.AudioMgr && !source._noHitSfx) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
 
     // Threshold Ward: every 1 real HP dmg taken (post-shield) regens 0.25
-    // shield. no cap on purpose, can balloon over a long fight — only cap
-    // the DISPLAY number in enemy-goliath.js's boss bar, not this
+    // shield. Total shield can still balloon over a long fight (no cap on
+    // the running total), but each individual hit's own contribution is
+    // capped at 10% MaxHP — an oversized true-damage spike (the kind that
+    // skips every other Goliath defense layer) would otherwise mint a
+    // shield way bigger than the hit that caused it, which Shield Burst
+    // below then converts straight into a huge HP heal-back.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hpDamageDealt > 0) {
-        enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, _hpDamageDealt * 0.25);
+        enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, Math.min(_hpDamageDealt, enemy.maxHp * 0.10) * 0.25);
     }
 
-    // Inevitable — bùng nổ khiên (NEW): dồn sát thương MỌI loại nhận được
-    // trong 1 giây trôi (rolling window) — vượt quá 12% MaxHP thì cấp 1
-    // khoản barrier mới = 50% tổng sát thương đã dồn trong window đó, ĐỒNG
-    // THỜI rút sạch shield hiện có sang barrier (barrier KHÔNG tính vào EP =
+    // Inevitable — bùng nổ khiên: dồn sát thương MỌI loại nhận được trong 1
+    // giây trôi (rolling window) — vượt quá 12% MaxHP thì cấp 1 khoản
+    // barrier mới = 50% tổng sát thương đã dồn trong window đó, ĐỒNG THỜI
+    // rút sạch shield hiện có sang barrier (barrier KHÔNG tính vào EP =
     // maxHp+shield như shield thường — giảm luôn độ lớn các đòn %EP tiếp
     // theo ăn vào), và hồi HP = 75% ĐÚNG PHẦN shield vừa rút đó. 0.5s
     // cooldown giữa các lần kích hoạt, window reset ngay khi vừa kích hoạt.
@@ -2259,9 +2253,9 @@ function dealDamage(enemy, source) {
             triggerDemonGift(enemy);
             enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 3;
         };
-        if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y); enemy.demonGift90Triggered = true; }
+        if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y, 'dargruel'); enemy.demonGift90Triggered = true; }
         if (oldPercent > 0.70 && newPercent <= 0.70 && !enemy.demonGift70Triggered) { _demonTrigger(); enemy.demonGift70Triggered = true; }
-        if (oldPercent > 0.50 && newPercent <= 0.50 && !enemy.demonGift50Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y); enemy.demonGift50Triggered = true; }
+        if (oldPercent > 0.50 && newPercent <= 0.50 && !enemy.demonGift50Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y, 'dargruel'); enemy.demonGift50Triggered = true; }
         if (oldPercent > 0.30 && newPercent <= 0.30 && !enemy.demonGift30Triggered) { _demonTrigger(); enemy.demonGift30Triggered = true; }
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { _demonTrigger(); enemy.demonGift1Triggered = true; }
     }
@@ -2863,7 +2857,13 @@ function _goliathDmgBoost(enemy, amount) {
 function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') return false;
     if (enemy._unbrokenWillUsed) return false;
-    if (!(incomingHpDamage > 0) || enemy.hp - incomingHpDamage > 0) return false;
+    // Fires reactively off the 1-HP floor below (not off this hit's own
+    // size) so it always catches the real final blow, no matter how many
+    // smaller unmitigated hits (true damage skips every other Goliath
+    // defense layer) chipped it down first — a single early oversized hit
+    // can no longer "waste" the save on something that wasn't actually
+    // the kill.
+    if (!(incomingHpDamage > 0) || enemy.hp > 1) return false;
     enemy._unbrokenWillUsed = true;
     const now = performance.now();
     enemy._transformIronBodyEnd = Math.max(enemy._transformIronBodyEnd || 0, now + 4000);
@@ -3167,14 +3167,34 @@ function updateGoliath(enemy, deltaTime) {
                 if (!threatNear && typeof bullets !== 'undefined') {
                     threatNear = bullets.some(b => Math.hypot(b.x - enemy.x, b.y - enemy.y) < 100);
                 }
+                // Death Star's contact kill is a real threat the passive weave
+                // drift doesn't otherwise avoid — react a bit before actual
+                // contact range (SKILLD_CONTACT_MULT's own threshold) so it
+                // reads as a dodge, not a reflex after already touching it.
+                let dsThreat = false;
+                if (typeof deathStar !== 'undefined' && deathStar) {
+                    const distToDs = Math.hypot(enemy.x - deathStar.x, enemy.y - deathStar.y);
+                    dsThreat = distToDs < deathStar.size * SKILLD_CONTACT_MULT * 1.6 + enemy.size / 2;
+                }
+                threatNear = threatNear || dsThreat;
                 if (threatNear || !enemy._lastFractureAt || now - enemy._lastFractureAt >= 2000) {
                     enemy._lastFractureAt = now;
                     enemy._fractureStepCooldownEnd = now + 2000;
                     enemy._fractureTeleportPhase = 'closing';
                     enemy._fractureTeleportStart = now;
                     enemy._fractureFromX = enemy.x; enemy._fractureFromY = enemy.y;
-                    enemy._fractureToX = 150 + Math.random() * (canvas.width - 300);
-                    enemy._fractureToY = canvas.height * 0.18 + Math.random() * (canvas.height * 0.35);
+                    if (dsThreat) {
+                        // Pick a destination biased to the far side of the
+                        // screen from the Death Star instead of a fully
+                        // random spot that could just as easily land it
+                        // right back in contact range.
+                        const _dsAwayX = deathStar.x < canvas.width / 2 ? canvas.width * 0.7 : canvas.width * 0.3;
+                        enemy._fractureToX = Math.max(150, Math.min(canvas.width - 150, _dsAwayX + (Math.random() - 0.5) * canvas.width * 0.3));
+                        enemy._fractureToY = canvas.height * 0.18 + Math.random() * (canvas.height * 0.35);
+                    } else {
+                        enemy._fractureToX = 150 + Math.random() * (canvas.width - 300);
+                        enemy._fractureToY = canvas.height * 0.18 + Math.random() * (canvas.height * 0.35);
+                    }
                 }
             }
         } else if (enemy._fractureTeleportPhase === 'closing') {
@@ -3604,7 +3624,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                             if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat')) playerTakesHit(enemy);
                         }
                     } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
-                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true });
+                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                     }
                     addExplosion(t.x, t.y, 60, '#ff9a2e');
                 });
@@ -3650,7 +3670,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.25), 'flat')) playerTakesHit(enemy);
                     }
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
-                    dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true });
+                    dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                 }
                 addExplosion(t.x, t.y, 60, '#fff8e1');
             });
@@ -3748,7 +3768,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     _nsHitLanded = true;
                     const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
                     for (const sn of hitSents) {
-                        dealDamage(sn, { damage: _goliathDmgBoost(enemy, Math.ceil(sn.maxHp * pct)), isTrueDamage: true, _noHitSfx: true });
+                        dealDamage(sn, { damage: _goliathDmgBoost(enemy, Math.ceil(sn.maxHp * pct)), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                         addExplosion(sn.x, sn.y, 65, '#7700dd');
                         createParticles(sn.x, sn.y, 18, '#cc44ff', 3, 7);
                     }
@@ -3780,7 +3800,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             // Dùng đúng cơ chế Maou Haki thật (spawnBossShockwave): tự động
             // quét sạch đạn người chơi trong bán kính lan ra + gây sát thương
             // Sentinel — trước đây thiếu hẳn phần dọn đạn.
-            spawnBossShockwave(enemy.x, enemy.y);
+            spawnBossShockwave(enemy.x, enemy.y, 'goliath');
             if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < canvas.width) {
                 player._goliathSlowEnd = now + 2000; player._goliathSlowFactor = 0.30;
             }
@@ -3830,7 +3850,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     const ep = sen.maxHp + (sen.shield || 0);
                     const ownerHits = 150;
                     const dmg = Math.min(Math.ceil(ep * 0.50), Math.ceil(ep * 0.05 * ownerHits));
-                    dealDamage(sen, { damage: _goliathDmgBoost(enemy, dmg), isTrueDamage: true });
+                    dealDamage(sen, { damage: _goliathDmgBoost(enemy, dmg), isTrueDamage: true, _attackerType: 'goliath' });
                 }
             }
             if (s.sweepTimer >= 1800) {
@@ -4041,7 +4061,7 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                 }
                 for (const s of sentinels) {
                     if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
-                        dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true });
+                        dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
                         _hitSentinels.add(s);
                     }
                 }
@@ -4097,7 +4117,7 @@ function _forceFireEgregorTempest(enemy) {
         }
         for (const s of sentinels) {
             if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
-                dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true });
+                dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
                 _hitSentinels.add(s);
             }
         }
@@ -4190,7 +4210,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 // Rage bonus: +5% per stack, max +25%
                 const _nsRageMult = 1 + Math.min(0.30, Math.min(5, enemy._rageStacks || 0) * 0.06);
                 for (const s of hitSents) {
-                    dealDamage(s, { damage: Math.ceil(s.maxHp * pct * _nsRageMult), isTrueDamage: true, _noHitSfx: true });
+                    dealDamage(s, { damage: Math.ceil(s.maxHp * pct * _nsRageMult), isTrueDamage: true, _noHitSfx: true, _attackerType: 'egregor' });
                     addExplosion(s.x, s.y, 65, '#7700dd');
                     createParticles(s.x, s.y, 18, '#cc44ff', 3, 7);
                 }

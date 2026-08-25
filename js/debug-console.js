@@ -124,6 +124,28 @@ function _setDebugAutoplay(on) {
     }
 }
 
+// Live Match Stat: opens the same overlay/tabs the Game Over screen uses
+// (match-stats.js is pure UI reading window._matchStats, no gameState gate),
+// then keeps re-rendering the currently open tab on an interval so numbers
+// update while still playing instead of staying a frozen snapshot. Self-stops
+// by watching the overlay's own display style, so it doesn't matter whether
+// the player closes it via the panel's own ✕ button or anything else.
+let _liveMatchStatsTimer = null;
+function _debugOpenLiveMatchStats() {
+    if (typeof openMatchStats !== 'function') return;
+    openMatchStats();
+    if (_liveMatchStatsTimer) return;
+    _liveMatchStatsTimer = setInterval(() => {
+        const overlay = document.getElementById('matchStatsOverlay');
+        if (!overlay || overlay.style.display === 'none') {
+            clearInterval(_liveMatchStatsTimer);
+            _liveMatchStatsTimer = null;
+            return;
+        }
+        _renderMatchStatsTab(window._msLastTab || 'allyDamage');
+    }, 500);
+}
+
 (function () {
     const PANEL_HTML = `
 <div id="debugConsoleOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
@@ -143,6 +165,9 @@ function _setDebugAutoplay(on) {
     <div class="dbg-row" style="margin-bottom:14px;">
       <button class="dbg-btn" id="dbgPauseBtn" onclick="debugTogglePause()" style="min-width:110px; font-weight:bold;">⏸ Pause Game</button>
       <span style="opacity:0.55; font-size:10px;">or press P</span>
+    </div>
+    <div class="dbg-row" style="margin-bottom:14px;">
+      <button class="dbg-btn" onclick="_debugOpenLiveMatchStats()">Match Stat (Live)</button>
     </div>
     <div class="dbg-section">
       <div class="dbg-h">GAME SPEED</div>

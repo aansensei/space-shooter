@@ -501,7 +501,7 @@ function update(rawDeltaTime) {
                 if (!wave.hitSentinels.has(sentinel)) {
                     const d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                     if (d <= wave.radius) {
-                        dealDamage(sentinel, { damage: 100 + wave._sourceMaxHp * 0.20, isTrueDamage: true, _vanguardTag: wave._id });
+                        dealDamage(sentinel, { damage: 100 + wave._sourceMaxHp * 0.20, isTrueDamage: true, _vanguardTag: wave._id, _attackerType: 'goliath' });
                         wave.hitSentinels.add(sentinel);
                         addExplosion(sentinel.x, sentinel.y, 40, '#f97316');
                     }
@@ -535,7 +535,7 @@ function update(rawDeltaTime) {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.38, _vanguardTag: wave._id });
+                    dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.38, _vanguardTag: wave._id, _attackerType: wave._ownerType });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -572,7 +572,7 @@ function update(rawDeltaTime) {
                 if (!laser._id) laser._id = 'aegis_laser_' + performance.now().toFixed(0);
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * 0.20, _vanguardTag: laser._id, _noHitSfx: true });
+                        dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * 0.20, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'aegis_core' });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -2078,7 +2078,7 @@ function update(rawDeltaTime) {
             }
             for (const s of sentinels) {
                 if (s.hp > 0 && Math.hypot(orb.x - s.x, orb.y - s.y) < 108 + (s.size || 20) / 2) {
-                    dealDamage(s, { damage: orb.dmg, isTrueDamage: true, _noHitSfx: true });
+                    dealDamage(s, { damage: orb.dmg, isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                     addExplosion(orb.x, orb.y, 80, '#9d00ff');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
                     return false;
@@ -2111,7 +2111,7 @@ function update(rawDeltaTime) {
                 if (!sw.hitEnemies.includes(s) && Math.hypot(sw.x - s.x, sw.y - s.y) < (sw.radius || 88) + s.size) {
                     const hitsAlready = sw.hitEnemies.length;
                     const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
-                    dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct, _noHitSfx: true });
+                    dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct, _noHitSfx: true, _attackerType: 'goliath' });
                     sw.hitEnemies.push(s);
                     addExplosion(s.x, s.y, 20, '#ff6600');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
@@ -2142,7 +2142,7 @@ function update(rawDeltaTime) {
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                     sentinels.forEach(s2 => {
                         if (s2.hp > 0 && Math.hypot(m.x - s2.x, m.y - s2.y) < 140) {
-                            dealDamage(s2, { percentDamage: 0.25, isTrueDamage: true, _noHitSfx: true });
+                            dealDamage(s2, { percentDamage: 0.25, isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                         }
                     });
                     return false;

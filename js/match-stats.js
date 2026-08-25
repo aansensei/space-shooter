@@ -55,6 +55,7 @@ const _MATCH_STATS_EMPTY_FALLBACK = {
 };
 
 function _renderMatchStatsTab(tabName) {
+    window._msLastTab = tabName;
     document.querySelectorAll('.ms-tab-btn').forEach(btn => {
         const active = btn.dataset.tab === tabName;
         btn.style.background = active ? 'rgba(0,229,255,0.22)' : 'rgba(0,229,255,0.08)';
