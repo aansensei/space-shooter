@@ -39,6 +39,7 @@
         'js/entities/egregor.js',
         'js/entities/leviathan.js',
         'js/entities/marchosias.js',
+        'js/entities/misc-enemies.js',
         'js/input.js',
         'js/match-stats.js',
         'js/main.js',
