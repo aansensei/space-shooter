@@ -22,21 +22,29 @@ window._debugGameSpeed = 1;
 window._debugClickSpawnType = '';
 window._debugAutoplay = false;
 
-// Autoplay: sweeps the ship left/right and spams every skill's own activate
-// function on a timer — each activate function already gates itself on its
-// own cooldown/resource/state (the same guard a real keypress hits), so
-// calling them repeatedly here is exactly as safe as a player mashing keys.
+// Autoplay: sweeps the ship left/right, spams every skill's own activate
+// function on a timer, and also drives the two hold-and-release keyboard
+// mechanics (Skill Shift and the charged Space shot) by replicating the
+// same state transitions their real keydown/keyup handlers make (input.js) —
+// each activate function/transition already gates itself on its own
+// cooldown/resource/state (the same guard a real keypress hits), so driving
+// them repeatedly here is exactly as safe as a player mashing keys.
 // Meant for hands-off soak testing (e.g. watching [PROF]/[LONGTASK] output
 // over a long run) without needing to actually play.
 let _autoplayTimer = null;
 let _autoplayDir = 1;
+let _autoplayShiftReleaseAt = 0;   // 0 = not currently holding Shift
+let _autoplayChargeReleaseAt = 0;  // 0 = not currently holding Space
 function _setDebugAutoplay(on) {
     window._debugAutoplay = on;
     if (on) {
         if (_autoplayTimer) return;
         _autoplayDir = 1;
+        _autoplayShiftReleaseAt = 0;
+        _autoplayChargeReleaseAt = 0;
         _autoplayTimer = setInterval(() => {
             if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
+            const now = performance.now();
             if (Math.random() < 0.15) _autoplayDir *= -1;
             keys.left = _autoplayDir < 0;
             keys.right = _autoplayDir > 0;
@@ -45,10 +53,73 @@ function _setDebugAutoplay(on) {
             if (typeof activateSkillD === 'function') activateSkillD();
             if (typeof activateSkillF === 'function') activateSkillF();
             if (typeof activateSkillG === 'function') activateSkillG();
+
+            // Skill Shift: open the domain (same keydown gate/effects as a
+            // real Shift press, including the Dream Realm mark-burst if that
+            // sigil is equipped), hold ~400ms, then release toward whichever
+            // side has the nearest threat so the teleport actually dodges
+            // something instead of firing blind.
+            if (_autoplayShiftReleaseAt === 0) {
+                if (!skillShiftActive && now - lastSkillShift >= skillShiftCooldown
+                    && !(typeof player !== 'undefined' && player._silenced)) {
+                    skillShiftActive = true;
+                    window._shiftActive = true;
+                    skillShiftChargeStart = now;
+                    if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }
+                    if (typeof _hasBuff === 'function' && _hasBuff('coi_mong')) {
+                        window._coiMongEndTime = now + 3000;
+                        for (const _e of enemies) {
+                            if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
+                            if (!_e._yogMark) {
+                                _e._yogMark = true; _e._yogMarkStart = now; _e._yogMarkAccum = 0;
+                                applyVulnerability(_e);
+                            }
+                        }
+                    }
+                    _autoplayShiftReleaseAt = now + 400;
+                }
+            } else if (now >= _autoplayShiftReleaseAt) {
+                _autoplayShiftReleaseAt = 0;
+                if (skillShiftActive) {
+                    const _threat = typeof findClosestEnemy === 'function' ? findClosestEnemy(player.x, player.y) : null;
+                    const dir = _threat && _threat.x > player.x ? 'left' : 'right';
+                    executeShiftTeleport(dir);
+                }
+            }
+
+            // Charged Space shot: hold to maxChargeTime for a max-multiplier
+            // charged bullet (Cycle of Flow's insta-fire path is left to the
+            // instant branch below, matching the real keydown's own check).
+            if (_autoplayChargeReleaseAt === 0) {
+                if (!charging && !laserActive && !skillShiftActive) {
+                    if (typeof _hasBuff === 'function' && _hasBuff('dong_chay_luan_hoi')) {
+                        if (now >= laserCooldownEnd && typeof _activateOverloadLaser === 'function') _activateOverloadLaser(now);
+                    } else {
+                        charging = true; chargeStartTime = now;
+                        if (window.AudioMgr) window.AudioMgr.startCharging();
+                        _autoplayChargeReleaseAt = now + maxChargeTime;
+                    }
+                }
+            } else if (now >= _autoplayChargeReleaseAt) {
+                _autoplayChargeReleaseAt = 0;
+                if (charging && !laserActive) {
+                    const chargeDuration = now - chargeStartTime;
+                    if (chargeDuration < overloadChargeTime) {
+                        const multiplier = 1 + ((Math.min(chargeDuration, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
+                        fireChargedBullet(Math.min(multiplier, maxMultiplier));
+                    }
+                    charging = false;
+                    if (window.AudioMgr) window.AudioMgr.stopCharging();
+                }
+            }
         }, 200);
     } else {
         keys.left = false;
         keys.right = false;
+        if (skillShiftActive) cancelSkillShift();
+        if (charging && !laserActive) { charging = false; if (window.AudioMgr) window.AudioMgr.stopCharging(); }
+        _autoplayShiftReleaseAt = 0;
+        _autoplayChargeReleaseAt = 0;
         if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
     }
 }

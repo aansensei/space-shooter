@@ -838,16 +838,18 @@ function _yuushaPierceRedirect(value, pctMode) {
     return true;
 }
 
-// A living Tank actually tanks part of the hit for a real Sentinel: 30% of
-// the damage a Sentinel just took (hooked from entities.js's dealDamage) is
-// refunded to it, and that same absorbed amount fills the Tank's meter.
-// Returns the HP amount to refund to the Sentinel (0 if no Tank is alive).
+// A living Tank actually tanks part of the hit for a real Sentinel: 15% of
+// an incoming hit (hooked from entities.js's dealDamage, called BEFORE the
+// hit is subtracted from hp so a lethal blow can actually be softened
+// instead of applying in full and getting partially refunded from a corpse)
+// is shaved off, and that same absorbed amount fills the Tank's meter.
+// Returns the HP amount to shave off the hit (0 if no Tank is alive).
 function _yuushaTankAbsorbFromSentinelDamage(amount) {
     if (!_hasBuff('doi_hinh_chien') || amount <= 0) return 0;
     const squad = window._yuushaSquad || [];
     const tank = squad.find(s => s.role === 'Tank' && s.hp > 0);
     if (!tank) return 0;
-    const absorbed = amount * 0.3;
+    const absorbed = amount * 0.15;
     _yuushaFillTankAbsorb(tank, Math.min(30, absorbed * 2.2));
     return absorbed;
 }
@@ -856,7 +858,7 @@ function _yuushaFillTankAbsorb(tank, amount) {
     tank.absorb = Math.min(100, (tank.absorb || 0) + amount);
     if (tank.absorb >= 100) {
         tank.absorb = 0;
-        tank.hp = Math.min(tank.maxHp, tank.hp + 20);
+        tank.hp = Math.min(tank.maxHp, tank.hp + 5);
         tank.triggerActive();
     }
 }
@@ -930,9 +932,9 @@ function _checkYuushaBulletCollisions(now) {
 }
 
 // Keeps the real point-defense Sentinel fleet from going fully extinct —
-// checks once a second, and if none are left on the map, spawns 2 back in.
+// checks once every 5s, and if none are left on the map, spawns 2 back in.
 function _checkYuushaSentinelReplenish(now) {
-    if (now - (window._yuushaReplenishLastCheck || 0) < 1000) return;
+    if (now - (window._yuushaReplenishLastCheck || 0) < 5000) return;
     window._yuushaReplenishLastCheck = now;
     if (now < (window._yuushaReplenishCooldownEnd || 0)) return;
     if (typeof sentinels === 'undefined' || sentinels.length > 0) return;
@@ -962,8 +964,8 @@ function _updateYuushaPartyInner(deltaTime) {
 
     for (const s of squad) {
         if (s.hp <= 0) {
-            // Respawn a fallen member 5s after it drops
-            if (s._deathTime && now - s._deathTime > 5000) {
+            // Respawn a fallen member 8s after it drops
+            if (s._deathTime && now - s._deathTime > 8000) {
                 s.hp = s.maxHp;
                 s.scale = 0;
                 s.spawnStart = now;

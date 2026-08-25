@@ -150,16 +150,16 @@ let _waveAnnouncedAt = 0;
 let _waveForceEndTimer = 0;
 let _yuukiBonus = 0;
 
-// Walpurgis (Huyết Dạ): every 10 waves, all enemies permanently gain +10% Max
-// HP, +5% evade, +100 flat damage reduction (a separate flat armor stat, not
+// Walpurgis (Huyết Dạ): every 5 waves, all enemies permanently gain +10% Max
+// HP, +5% evade, +25 flat damage reduction (a separate flat armor stat, not
 // the existing %-based DR — applied per hit before the enemy hp<=0 checks so
 // it never blocks a kill, just shaves a fixed amount off each hit), and +5%
 // effectiveness on heals/shields they receive. Stacks forever, derived
 // directly from _waveNumber so there's no separate counter to track/reset.
-function _walpurgisStacks() { return Math.floor(_waveNumber / 10); }
+function _walpurgisStacks() { return Math.floor(_waveNumber / 5); }
 function _walpurgisHpMult() { return 1 + 0.10 * _walpurgisStacks(); }
 function _walpurgisEvadeBonus() { return 0.05 * _walpurgisStacks(); }
-function _walpurgisFlatDR() { return 100 * _walpurgisStacks(); }
+function _walpurgisFlatDR() { return 25 * _walpurgisStacks(); }
 function _walpurgisHealShieldMult() { return 1 + 0.05 * _walpurgisStacks(); }
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
