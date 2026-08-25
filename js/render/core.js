@@ -99,8 +99,10 @@ function _getGlowSprite(color, radius) {
 // uses. Glow halo, glint and color are baked into the images themselves.
 const _bulletPlayerImg = new Image();
 _bulletPlayerImg.src = 'images/game/bullets/bullet-player.png';
+_bulletPlayerImg.decode().catch(() => {}); // force async decode now, not on first draw
 const _bulletSentinelImg = new Image();
 _bulletSentinelImg.src = 'images/game/bullets/bullet-sentinel.png';
+_bulletSentinelImg.decode().catch(() => {});
 
 // Bullet sprite cache: procedural bullet appearances (sentinel_special,
 // player_charged) are pre-rendered once per (type, size, quality) since

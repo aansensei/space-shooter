@@ -1017,8 +1017,10 @@ function _drawEmbryo(enemy) {
 // The white rim ring, corona glow and glint are all baked into the images.
 const _bulletEnemySmallImg = new Image();
 _bulletEnemySmallImg.src = 'images/game/bullets/bullet-enemy-small.png';
+_bulletEnemySmallImg.decode().catch(() => {}); // force async decode now, not on first draw
 const _bulletEnemyLargeImg = new Image();
 _bulletEnemyLargeImg.src = 'images/game/bullets/bullet-enemy-large.png';
+_bulletEnemyLargeImg.decode().catch(() => {});
 
 function _drawEnemyBullet(enemy) {
     const now = performance.now();

@@ -144,6 +144,12 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
 // distant galaxy) instead of a flat dark gradient disc.
 const _riftVoidImg = new Image();
 _riftVoidImg.src = 'images/game/rift-void.png';
+// Force async decode now instead of on first draw - this sprite is only
+// ever drawn once a rift actually spawns (a conditional Skill A proc that
+// might not happen until well into a run), so without this the browser
+// decodes the full PNG synchronously on that first draw call, causing a
+// one-time frame hitch right as the rift appears.
+_riftVoidImg.decode().catch(() => {});
 
 function _drawDimensionalRiftsCtx() {
     if (!dimensionalRifts || !dimensionalRifts.length) return;
@@ -954,6 +960,7 @@ function _drawVanguardThreads() {
 // stroke + core gem, set below) keeps working unchanged on top of it.
 const _sentinelShellImg = new Image();
 _sentinelShellImg.src = 'images/game/sentinel-shell.png';
+_sentinelShellImg.decode().catch(() => {}); // force async decode now, not on first draw
 
 function drawSentinel(sentinel) {
     const { x, y, size, angle, hp, maxHp } = sentinel;

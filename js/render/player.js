@@ -1923,6 +1923,7 @@ const _ariesWeaponImgs = [new Image(), new Image(), new Image()];
 _ariesWeaponImgs[0].src = 'images/game/weapons/1-longsword.png';
 _ariesWeaponImgs[1].src = 'images/game/weapons/2-spear.png';
 _ariesWeaponImgs[2].src = 'images/game/weapons/3-halberd.png';
+for (const img of _ariesWeaponImgs) img.decode().catch(() => {}); // force async decode now, not on first draw
 const _ARIES_WEAPON_CFG = [
     { img: 0, length: 50, pivot: 0.28 }, // Longsword
     { img: 1, length: 56, pivot: 0.42 }, // Spear
@@ -1930,6 +1931,7 @@ const _ARIES_WEAPON_CFG = [
 ];
 const _enumaSpearImg = new Image();
 _enumaSpearImg.src = 'images/game/weapons/5-enuma-spear.png';
+_enumaSpearImg.decode().catch(() => {});
 
 function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
     const cfg = _ARIES_WEAPON_CFG[type] || _ARIES_WEAPON_CFG[0];
