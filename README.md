@@ -1,4 +1,4 @@
-![Pisces: Space Journey](images/pisces_banner.png)
+![Pisces: Space Journey](images/site/pisces_banner.png)
 
 # Pisces: Space Journey
 
@@ -10,7 +10,7 @@
 
 A fast-paced arcade space shooter with deep combat mechanics, percentage-based damage scaling, and powerful screen-clearing abilities. Survive endless enemy waves, manage your cooldowns, and go for the highest score.
 
-![Gameplay](images/gameplay.png)
+![Gameplay](images/site/gameplay.png)
 
 ---
 

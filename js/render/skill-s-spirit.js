@@ -895,7 +895,7 @@ function drawPrimevalSummonEffect(eff) {
 // in the reference folder) so drawImage always scales it down to the real
 // gameplay radius (b._radius, 48-58px), never up, and stays crisp.
 const _photoBrangImg = new Image();
-_photoBrangImg.src = 'images/photokrystos-boomerang.png';
+_photoBrangImg.src = 'images/game/photokrystos-boomerang.png';
 
 function drawPhotoBrang(b) {
     const now = performance.now();
