@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v105';
+const CACHE_VERSION = 'v108';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -17,15 +17,21 @@ const CORE_FILES = [
     'guide.html',
     'manifest.json',
     'css/style.css',
-    'images/gameplay.png',
-    'images/logo.png',
-    'images/pisces_banner.png',
-    'images/weapons/1-longsword.png',
-    'images/weapons/2-spear.png',
-    'images/weapons/3-halberd.png',
-    'images/weapons/5-enuma-spear.png',
-    'images/update-log-hero.png',
-    'images/photokrystos-boomerang.png',
+    'images/site/gameplay.png',
+    'images/site/logo.png',
+    'images/site/pisces_banner.png',
+    'images/site/update-log-hero.png',
+    'images/game/weapons/1-longsword.png',
+    'images/game/weapons/2-spear.png',
+    'images/game/weapons/3-halberd.png',
+    'images/game/weapons/5-enuma-spear.png',
+    'images/game/photokrystos-boomerang.png',
+    'images/game/sentinel-shell.png',
+    'images/game/bullets/bullet-player.png',
+    'images/game/bullets/bullet-sentinel.png',
+    'images/game/bullets/bullet-enemy-small.png',
+    'images/game/bullets/bullet-enemy-large.png',
+    'images/game/rift-void.png',
     'js/audio.js',
     'js/background.js',
     'js/config.js',

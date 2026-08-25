@@ -1012,6 +1012,14 @@ function _drawEmbryo(enemy) {
     ctx.restore();
 }
 
+// Enemy bullet sprites: generated reference renders, chroma-keyed and
+// trimmed the same way as the other sprite-replaced assets this game uses.
+// The white rim ring, corona glow and glint are all baked into the images.
+const _bulletEnemySmallImg = new Image();
+_bulletEnemySmallImg.src = 'images/game/bullets/bullet-enemy-small.png';
+const _bulletEnemyLargeImg = new Image();
+_bulletEnemyLargeImg.src = 'images/game/bullets/bullet-enemy-large.png';
+
 function _drawEnemyBullet(enemy) {
     const now = performance.now();
     ctx.save();
@@ -1040,7 +1048,15 @@ function _drawEnemyBullet(enemy) {
         ctx.globalAlpha = 1;
     }
 
-    // White outline: blink only at FULL quality
+    const _img = isLarge ? _bulletEnemyLargeImg : _bulletEnemySmallImg;
+    if (_img.complete && _img.naturalWidth) {
+        ctx.drawImage(_img, enemy.x - enemy.size, enemy.y - enemy.size, enemy.size * 2, enemy.size * 2);
+        ctx.restore();
+        return;
+    }
+
+    // Sprite not loaded yet: fall back to the old procedural draw rather
+    // than skipping the bullet entirely.
     const blink = _gfxLevel >= 2 ? 0.78 : (0.55 + 0.45 * Math.sin(now / 90));
     ctx.strokeStyle = `rgba(255,255,255,${blink})`;
     ctx.lineWidth = isLarge ? 2.5 : 1.8;
@@ -1048,13 +1064,10 @@ function _drawEnemyBullet(enemy) {
     if (_gfxLevel < 1) ctx.shadowBlur = isLarge ? 12 : 8;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
-
-    // outer faint corona, FULL quality only
     if (_gfxLevel < 1) {
         ctx.fillStyle = isLarge ? 'rgba(255,100,20,0.22)' : 'rgba(220,0,0,0.2)';
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 1.5, 0, Math.PI * 2); ctx.fill();
     }
-    // main body gradient
     const bg = ctx.createRadialGradient(enemy.x - enemy.size * 0.25, enemy.y - enemy.size * 0.25, 0, enemy.x, enemy.y, enemy.size);
     bg.addColorStop(0, '#ffffff');
     bg.addColorStop(0.25, isLarge ? '#ffaa33' : '#ff4400');
@@ -1062,7 +1075,6 @@ function _drawEnemyBullet(enemy) {
     bg.addColorStop(1, isLarge ? 'rgba(120,30,0,0.8)' : 'rgba(100,0,0,0.8)');
     ctx.fillStyle = bg;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
-    // rim stroke
     ctx.strokeStyle = isLarge ? 'rgba(255,150,50,0.7)' : 'rgba(255,60,20,0.7)';
     ctx.lineWidth = 0.8;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.stroke();
@@ -1073,7 +1085,6 @@ function _drawEnemyBullet(enemy) {
         ctx.fillStyle = ig;
         ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 0.42, 0, Math.PI * 2); ctx.fill();
     }
-    // glint, FULL quality only
     if (_gfxLevel < 1) {
         ctx.fillStyle = 'rgba(255,255,200,0.4)';
         ctx.beginPath(); ctx.ellipse(enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, enemy.size * 0.2, enemy.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();

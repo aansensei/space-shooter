@@ -1920,16 +1920,16 @@ function _ariesHQ() { return !_mobPerf && _gfxLevel === 0; }
 // lands on the local origin so the weapon rotates around its grip like the
 // vector art it replaced, not around its visual center.
 const _ariesWeaponImgs = [new Image(), new Image(), new Image()];
-_ariesWeaponImgs[0].src = 'images/weapons/1-longsword.png';
-_ariesWeaponImgs[1].src = 'images/weapons/2-spear.png';
-_ariesWeaponImgs[2].src = 'images/weapons/3-halberd.png';
+_ariesWeaponImgs[0].src = 'images/game/weapons/1-longsword.png';
+_ariesWeaponImgs[1].src = 'images/game/weapons/2-spear.png';
+_ariesWeaponImgs[2].src = 'images/game/weapons/3-halberd.png';
 const _ARIES_WEAPON_CFG = [
     { img: 0, length: 50, pivot: 0.28 }, // Longsword
     { img: 1, length: 56, pivot: 0.42 }, // Spear
     { img: 2, length: 50, pivot: 0.45 }, // Halberd
 ];
 const _enumaSpearImg = new Image();
-_enumaSpearImg.src = 'images/weapons/5-enuma-spear.png';
+_enumaSpearImg.src = 'images/game/weapons/5-enuma-spear.png';
 
 function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
     const cfg = _ARIES_WEAPON_CFG[type] || _ARIES_WEAPON_CFG[0];

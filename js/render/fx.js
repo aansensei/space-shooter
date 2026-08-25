@@ -138,6 +138,13 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
 }
 
 // Dimensional Rift, full animated ctx render (always active, drawn before enemies)
+// Dimensional Rift void sprite: generated reference render, chroma-keyed
+// and trimmed the same way as the other sprite-replaced assets this game
+// uses. Shows a torn-open window into another universe (starfield +
+// distant galaxy) instead of a flat dark gradient disc.
+const _riftVoidImg = new Image();
+_riftVoidImg.src = 'images/game/rift-void.png';
+
 function _drawDimensionalRiftsCtx() {
     if (!dimensionalRifts || !dimensionalRifts.length) return;
     ctx.save();
@@ -149,22 +156,55 @@ function _drawDimensionalRiftsCtx() {
         ctx.save();
         ctx.globalAlpha = alpha;
 
-        // Void core
-        const grad = ctx.createRadialGradient(rift.x, rift.y, 0, rift.x, rift.y, r * 1.25);
-        grad.addColorStop(0,    'rgba(2,1,5,1)');
-        grad.addColorStop(0.60, 'rgba(60,9,108,0.5)');
-        grad.addColorStop(1,    'rgba(36,0,70,0.3)');
-        ctx.beginPath();
-        ctx.arc(rift.x, rift.y, r * 1.25, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.fill();
+        // Void core: a torn-open window into another universe. Static -
+        // no pulse/scale animation on the background art itself, only the
+        // energy ring and crack lines below stay animated.
+        if (_riftVoidImg.complete && _riftVoidImg.naturalWidth) {
+            const d = r * 2.0;
 
-        // pulsing inner black circle
-        const pulse = 1 + Math.sin((rift._age || 0) * 2.5) * 0.05;
-        ctx.beginPath();
-        ctx.arc(rift.x, rift.y, r * 0.75 * pulse, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(2,1,5,1)';
-        ctx.fill();
+            // Soft glow halo behind the void, medium/high graphics only
+            if (!_mobPerf && _gfxLevel <= 1) {
+                const haloR = d * 0.75;
+                const halo = ctx.createRadialGradient(rift.x, rift.y, d * 0.3, rift.x, rift.y, haloR);
+                halo.addColorStop(0, 'rgba(157,78,221,0.35)');
+                halo.addColorStop(1, 'rgba(157,78,221,0)');
+                ctx.fillStyle = halo;
+                ctx.beginPath();
+                ctx.arc(rift.x, rift.y, haloR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Clip to a clean circle: the source art's own edge is jagged
+            // (torn-crack silhouette, not a perfect circle) and chroma-key
+            // cutout can leave faint background residue right at the edge -
+            // clipping hides both instead of relying on a perfect cutout.
+            // Draw the source art oversized relative to the clip circle so
+            // any faint chroma-key fringe left right at its outer edge
+            // always lands outside the visible circle.
+            const dImg = d * 1.18;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(rift.x, rift.y, d / 2, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(_riftVoidImg, rift.x - dImg / 2, rift.y - dImg / 2, dImg, dImg);
+            ctx.restore();
+        } else {
+            const pulse = 1 + Math.sin((rift._age || 0) * 2.5) * 0.05;
+            // Sprite not loaded yet - fall back to the old gradient rather
+            // than drawing nothing.
+            const grad = ctx.createRadialGradient(rift.x, rift.y, 0, rift.x, rift.y, r * 1.25);
+            grad.addColorStop(0,    'rgba(2,1,5,1)');
+            grad.addColorStop(0.60, 'rgba(60,9,108,0.5)');
+            grad.addColorStop(1,    'rgba(36,0,70,0.3)');
+            ctx.beginPath();
+            ctx.arc(rift.x, rift.y, r * 1.25, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(rift.x, rift.y, r * 0.75 * pulse, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(2,1,5,1)';
+            ctx.fill();
+        }
 
         // Energy ring (rotates)
         ctx.save();
@@ -908,6 +948,13 @@ function _drawVanguardThreads() {
     ctx.restore();
 }
 
+// Sentinel shell sprite: generated reference render, chroma-keyed and
+// trimmed the same way as the Aries weapons/Photokrystos boomerang. Stays
+// neutral gunmetal gray with no baked-in color so the glowColor tint (ring
+// stroke + core gem, set below) keeps working unchanged on top of it.
+const _sentinelShellImg = new Image();
+_sentinelShellImg.src = 'images/game/sentinel-shell.png';
+
 function drawSentinel(sentinel) {
     const { x, y, size, angle, hp, maxHp } = sentinel;
     const now = performance.now();
@@ -976,15 +1023,21 @@ function drawSentinel(sentinel) {
     ctx.setLineDash([]);
     ctx.restore();
 
-    // multi-layer body
-    const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
-    bodyGrad.addColorStop(0, '#FFFFFF');
-    bodyGrad.addColorStop(0.35, '#CCCCCC');
-    bodyGrad.addColorStop(0.75, '#888888');
-    bodyGrad.addColorStop(1, '#444444');
-    ctx.fillStyle = bodyGrad;
+    // body shell
     ctx.shadowBlur = 0;
-    ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.fill();
+    if (_sentinelShellImg.complete && _sentinelShellImg.naturalWidth) {
+        ctx.drawImage(_sentinelShellImg, -size, -size, size * 2, size * 2);
+    } else {
+        // Sprite not loaded yet (first instant after page load) - fall back
+        // to the old flat gradient rather than drawing nothing.
+        const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        bodyGrad.addColorStop(0, '#FFFFFF');
+        bodyGrad.addColorStop(0.35, '#CCCCCC');
+        bodyGrad.addColorStop(0.75, '#888888');
+        bodyGrad.addColorStop(1, '#444444');
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.fill();
+    }
 
     // inner core gem
     const coreSize = size * 0.4;
@@ -1005,6 +1058,30 @@ function drawSentinel(sentinel) {
     ctx.moveTo(size * 0.5, -size * 0.3);
     ctx.lineTo(size * 0.5, size * 0.3);
     ctx.stroke();
+
+    // side fins: two small triangular metal fins flanking the body, static
+    // like the panel lines (don't rotate with the gun arm) - pure detail,
+    // no animation
+    for (const side of [-1, 1]) {
+        const fx0 = side * size * 0.75, fy0 = -size * 0.4;
+        const fx1 = side * size * 1.35, fy1 = 0;
+        const fx2 = side * size * 0.75, fy2 = size * 0.4;
+        ctx.save();
+        const finGrad = ctx.createLinearGradient(fx0, 0, fx1, 0);
+        finGrad.addColorStop(0, '#4a4a4a');
+        finGrad.addColorStop(1, '#1a1a1a');
+        ctx.fillStyle = finGrad;
+        ctx.beginPath();
+        ctx.moveTo(fx0, fy0);
+        ctx.lineTo(fx1, fy1);
+        ctx.lineTo(fx2, fy2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = `${glowColor}aa`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.restore();
+    }
 
     // Gaia Barrier crescent (top half-disc, static upward, not rotating with gun)
     if ((sentinel._gaiaBarrier || 0) > 0) {
@@ -1033,17 +1110,66 @@ function drawSentinel(sentinel) {
     // gun arm
     ctx.rotate(angle);
     const gunW = size * 0.8, gunH = size * 0.75;
-    ctx.fillStyle = '#3a3a3a';
-    ctx.fillRect(size * 0.5, -gunH / 2, gunW, gunH);
-    // barrel highlight
-    ctx.fillStyle = '#666';
-    ctx.fillRect(size * 0.5, -gunH / 2, gunW * 0.3, gunH);
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(size * 0.5, -gunH / 2, gunW, gunH);
-    // muzzle
+
+    // Recoil + muzzle flash: keyed off sentinel._lastFireTime, stamped in
+    // entities.js at the moment a shot actually fires, so the barrel kicks
+    // back into the mount and flashes on that exact frame instead of only
+    // ever tracking the target angle with no feedback on the shot itself.
+    const _fireDt = now - (sentinel._lastFireTime || -99999);
+    const _recoilDur = 140;
+    const _recoilT = _fireDt < _recoilDur ? 1 - (_fireDt / _recoilDur) : 0;
+    const gunX = size * 0.5 - _recoilT * gunW * 0.35;
+
+    // barrel: cylindrical metal shading instead of a flat block
+    const gunGrad = ctx.createLinearGradient(0, -gunH / 2, 0, gunH / 2);
+    gunGrad.addColorStop(0, '#232323');
+    gunGrad.addColorStop(0.35, '#6a6a6a');
+    gunGrad.addColorStop(0.55, '#3a3a3a');
+    gunGrad.addColorStop(1, '#161616');
+    ctx.fillStyle = gunGrad;
+    ctx.fillRect(gunX, -gunH / 2, gunW, gunH);
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(gunX, -gunH / 2, gunW, gunH);
+
+    // mount collar where the barrel meets the body
+    ctx.fillStyle = '#2a2a2a';
+    ctx.beginPath(); ctx.arc(size * 0.45, 0, gunH * 0.42, 0, Math.PI * 2); ctx.fill();
+
+    // muzzle ring, tinted by the squad glowColor
     ctx.fillStyle = glowColor;
-    ctx.fillRect(size * 0.5 + gunW - 2, -2, 4, 4);
+    ctx.beginPath(); ctx.arc(gunX + gunW, 0, 2, 0, Math.PI * 2); ctx.fill();
+
+    // muzzle flash on the fire frame, decaying with the recoil
+    if (_recoilT > 0) {
+        const flashR = size * 0.9 * _recoilT;
+        const flashGrad = ctx.createRadialGradient(gunX + gunW, 0, 0, gunX + gunW, 0, flashR);
+        flashGrad.addColorStop(0, `rgba(255,255,255,${0.9 * _recoilT})`);
+        flashGrad.addColorStop(0.4, `${glowColor}cc`);
+        flashGrad.addColorStop(1, `${glowColor}00`);
+        ctx.fillStyle = flashGrad;
+        ctx.beginPath(); ctx.arc(gunX + gunW, 0, flashR, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // muzzle smoke: a couple of soft gray puffs drifting off the barrel
+    // tip after the shot, lingering a bit longer than the flash itself.
+    // Radial gradients only, no shadowBlur.
+    const _smokeDur = 380;
+    if (_fireDt < _smokeDur) {
+        const _smokeT = _fireDt / _smokeDur;
+        for (let p = 0; p < 2; p++) {
+            const drift = _smokeT * size * (0.9 + p * 0.5);
+            const puffX = gunX + gunW + drift;
+            const puffY = (p === 0 ? -1 : 1) * _smokeT * size * 0.35;
+            const puffR = size * (0.22 + _smokeT * 0.28);
+            const puffAlpha = (1 - _smokeT) * 0.35;
+            const smokeGrad = ctx.createRadialGradient(puffX, puffY, 0, puffX, puffY, puffR);
+            smokeGrad.addColorStop(0, `rgba(200,200,200,${puffAlpha})`);
+            smokeGrad.addColorStop(1, 'rgba(200,200,200,0)');
+            ctx.fillStyle = smokeGrad;
+            ctx.beginPath(); ctx.arc(puffX, puffY, puffR, 0, Math.PI * 2); ctx.fill();
+        }
+    }
 
     ctx.restore();
 

@@ -1044,6 +1044,7 @@ function updateSentinels(deltaTime) {
         sentinel.shootTimer -= deltaTime;
         if (sentinel.shootTimer <= 0 && sentinel.target) {
             sentinel.shootTimer = sentinelFireRate;
+            sentinel._lastFireTime = performance.now(); // drives the gun-arm recoil/muzzle-flash draw in fx.js
             const _bDR = sentinel._blessingDR || 0;
             const _hpCost = Math.max(0, 1 - _bDR); // Blessing: -15% cost
             sentinel.hp = Math.max(0, sentinel.hp - _hpCost);
