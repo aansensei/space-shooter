@@ -40,6 +40,7 @@
         'js/entities/leviathan.js',
         'js/entities/marchosias.js',
         'js/entities/misc-enemies.js',
+        'js/entities/goliath.js',
         'js/input.js',
         'js/match-stats.js',
         'js/main.js',

@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v132';
+const CACHE_VERSION = 'v133';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -39,6 +39,7 @@ const CORE_FILES = [
     'js/entities/leviathan.js',
     'js/entities/marchosias.js',
     'js/entities/misc-enemies.js',
+    'js/entities/goliath.js',
     'js/input.js',
     'js/match-stats.js',
     'js/main.js',
