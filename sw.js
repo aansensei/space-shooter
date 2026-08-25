@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v108';
+const CACHE_VERSION = 'v109';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -122,9 +122,16 @@ self.addEventListener('fetch', (event) => {
         caches.match(req, { ignoreSearch: true }).then((cached) => {
             if (cached) return cached;
             return fetch(req).then((res) => {
-                if (res && res.ok) {
+                // res.ok is true for the whole 2xx range, including 206
+                // Partial Content — browsers issue ranged Range: requests
+                // against audio/video elements (BGM playback/seeking hits
+                // this constantly), and the Cache API throws on any attempt
+                // to store a partial response. That threw on every single
+                // BGM chunk, spamming unhandled promise rejections during
+                // playback. Only full 200 responses are cacheable here.
+                if (res && res.status === 200) {
                     const copy = res.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+                    caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
                 }
                 return res;
             }).catch(() => cached); // offline + not cached: nothing we can do
