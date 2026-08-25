@@ -33,7 +33,7 @@
         'js/audio.js',
         'js/background.js',
         'js/config.js',
-        'js/entities.js',
+        'js/entities/core.js',
         'js/entities/sentinel.js',
         'js/entities/veilshroud.js',
         'js/entities/egregor.js',
