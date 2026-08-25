@@ -142,10 +142,17 @@ function _drawLeviathanEffects() {
             // sweepCurrent được update bởi main.js mỗi frame
             const sweepAngle = beam.sweepCurrent !== undefined ? beam.sweepCurrent
                 : (beam.sweepOrigin + (beam.progress || 0) * Math.PI * 2);
+            // Leviathan keeps drifting downward the whole time this beam is
+            // sweeping (updateLeviathan never pauses movement for it) — track
+            // its live position through ownerRef instead of the ox/oy spot
+            // it happened to be at when the beam spawned, or the beam visibly
+            // gets left behind while the body moves on.
+            const _bx = beam.ownerRef ? beam.ownerRef.x : beam.ox;
+            const _by = beam.ownerRef ? beam.ownerRef.y : beam.oy;
             const seed = beam.ox * 0.017 + beam.oy * 0.013;
 
             ctx.save();
-            ctx.translate(beam.ox, beam.oy);
+            ctx.translate(_bx, _by);
             ctx.rotate(sweepAngle);
 
             // Wide outer void-purple haze
@@ -210,6 +217,52 @@ function _drawLeviathanEffects() {
 
     // Death lasers, with wing rotation animation
     if (!window._levDeathLasers) return;
+
+    // handleEnemyKill() has already removed the Leviathan from `enemies`
+    // by the time these lasers are still mid-sequence (it dies the instant
+    // hp hits 0, the same frame this whole thing spawns) — so _drawLeviathan
+    // never runs again for it, and the core/eye it draws would otherwise
+    // just vanish, leaving 9 firing blades around empty space. Draw a
+    // stand-in core+eye here instead, once per still-alive laser set (9
+    // lasers share one owner, so track which owners already got one this
+    // frame), so the body they're aiming from stays visible for the whole
+    // sequence.
+    const _levDrawnCores = new Set();
+    window._levDeathLasers.forEach(laser => {
+        if (!laser.ownerRef || _levDrawnCores.has(laser.ownerRef)) return;
+        _levDrawnCores.add(laser.ownerRef);
+        const owner = laser.ownerRef;
+        const _r = (owner.size || 245) / 2;
+        const _coreR = _r * 0.32;
+        const _beat = 0.9 + 0.15 * Math.abs(Math.sin(now / 500));
+        ctx.save();
+        ctx.translate(owner.x, owner.y);
+        const _cg = ctx.createRadialGradient(0, 0, 0, 0, 0, _coreR * _beat * 2);
+        _cg.addColorStop(0, 'rgba(255,100,0,0.5)');
+        _cg.addColorStop(0.5, 'rgba(255,60,0,0.2)');
+        _cg.addColorStop(1, 'transparent');
+        ctx.fillStyle = _cg;
+        ctx.beginPath(); ctx.arc(0, 0, _coreR * _beat * 2, 0, Math.PI * 2); ctx.fill();
+        const _coreG = ctx.createRadialGradient(0, 0, 0, 0, 0, _coreR * _beat);
+        _coreG.addColorStop(0, '#020205');
+        _coreG.addColorStop(0.6, '#3a0800');
+        _coreG.addColorStop(1, '#ff4400');
+        ctx.fillStyle = _coreG;
+        if (!_mobPerf) { ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 18; }
+        ctx.beginPath(); ctx.arc(0, 0, _coreR * _beat, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // Eye, frozen looking at whatever direction it last had rather than
+        // tracking the player — it's not really "alive" anymore.
+        const _eR = _coreR * 0.28;
+        ctx.fillStyle = '#e8e8ff';
+        ctx.beginPath(); ctx.arc(0, 0, _eR, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff4400';
+        ctx.beginPath(); ctx.arc(0, 0, _eR * 0.62, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(0, 0, _eR * 0.30, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    });
+
     window._levDeathLasers.forEach(laser => {
         const elapsed = laser.elapsed || 0;
         const warnTime = laser.warnTime || 1200;
@@ -233,8 +286,14 @@ function _drawLeviathanEffects() {
         const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         const currentAngle = startA + diff * ease;
 
+        // Same live-position tracking as the sweep beam above — hp hits 0
+        // the instant these spawn so updateLeviathan stops moving it for
+        // the rest of this sequence in practice, but track ownerRef anyway
+        // instead of trusting that to stay true forever.
+        const _lx = laser.ownerRef ? laser.ownerRef.x : laser.ox;
+        const _ly = laser.ownerRef ? laser.ownerRef.y : laser.oy;
         ctx.save();
-        ctx.translate(laser.ox, laser.oy);
+        ctx.translate(_lx, _ly);
 
         if (!isActive) {
             // Wing shape rotating into position, with a power surge building

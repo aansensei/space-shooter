@@ -288,9 +288,10 @@ function handleEnemyKill(enemy) {
     if (enemy.type !== 'egregor' && enemy.type !== 'leviathan') addExplosion(enemy.x, enemy.y, enemy.size);
     if (enemy.type === 'leviathan') {
         window._lastLeviathanKillTime = performance.now();
-        if (!window._levDeathBursts) window._levDeathBursts = [];
-        window._levDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, spawnAt: performance.now(), duration: 1300, _seed: Math.random() * Math.PI * 2 });
-        _setShake(20, 550);
+        // The actual burst fires later, in main.js, once this instance's
+        // own death lasers finish playing out (~2.1s from now) — not here,
+        // since this whole function runs the instant hp hits 0, the same
+        // frame the laser sequence starts, well before it's actually done.
     }
     if (enemy.type === 'egregor') {
         window._lastEgregorKillTime = performance.now();
@@ -2150,6 +2151,7 @@ function dealDamage(enemy, source) {
             const defaultAngle = (Math.PI * 2 / NUM_WINGS) * k - Math.PI / 2;
             window._levDeathLasers.push({
                 ox: lx, oy: ly,
+                ownerRef: enemy,
                 angle: targetAngle,          // góc cuối (nơi laser bắn)
                 startAngle: defaultAngle,     // góc đầu (vị trí cánh ban đầu)
                 warnTime: 1200,              // ms animation cánh xoay + warning

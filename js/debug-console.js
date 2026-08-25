@@ -746,7 +746,24 @@ function _setDebugAutoplay(on) {
         const e = enemies[idx];
         if (!e) return;
         if (e.type === 'aegis_core') e.aegisInvulnerable = false;
-        if (e.type === 'leviathan') e.afoShieldActive = false;
+        if (e.type === 'leviathan' && e.afoShieldActive) {
+            // Jump straight to the shield actually breaking — same end
+            // state and effects the real announce→charge→sweep sequence
+            // produces, so the shield-break burst still fires (a bare
+            // afoShieldActive=false skips that entirely, which is why this
+            // button used to look like it "did nothing").
+            e.afoShieldActive = false;
+            e.afoShieldBroken = true;
+            e.afoAnnouncePending = false;
+            e.afoAnnouncing = false;
+            e.perseveranceCharging = false;
+            e._afoBreakGraceEnd = performance.now() + 1000;
+            e.shield = (e.shield || 0) + e.maxHp * 0.50;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', e.x, e.y);
+            if (typeof addExplosion === 'function') addExplosion(e.x, e.y, e.size * 3, '#00e5ff');
+            if (!window._levShieldBreaks) window._levShieldBreaks = [];
+            window._levShieldBreaks.push({ x: e.x, y: e.y, size: e.size, spawnAt: performance.now(), duration: 700, _seed: Math.random() * Math.PI * 2 });
+        }
         if (e.type === 'marchosias' && e.arcBarrier) e.arcBarrier.hp = 0;
         if (e.type === 'egregor' && e._tentacleHps) e._tentacleHps = e._tentacleHps.map(() => 0);
     };
@@ -760,7 +777,17 @@ function _setDebugAutoplay(on) {
         if (which === 'haki' && typeof spawnBossShockwave === 'function') spawnBossShockwave(e.x, e.y);
         if (which === 'chains') e.chainTimer = 0;
         if (which === 'laser') e.shootTimer = 0;
-        if (which === 'perseverance') e.perseveranceCooldown = 0;
+        if (which === 'perseverance') {
+            e.perseveranceCooldown = 0;
+            // Clearing the cooldown alone only unblocks the natural
+            // trigger conditions in updateLeviathan — kick the charge off
+            // directly so the button actually starts the sequence now
+            // instead of waiting on those conditions to line up.
+            if (e.type === 'leviathan' && !e.perseveranceCharging) {
+                e.perseveranceCharging = true;
+                e.perseveranceChargeStart = performance.now();
+            }
+        }
         if (which === 'void' && typeof _veilshroudBeginLightning === 'function') _veilshroudBeginLightning(e);
         if (which === 'goliath_transform' && e.type === 'goliath' && e.phase === 'alpha') {
             // Bỏ qua yêu cầu 3 bảo thạch thật để test nhanh Transform + True Form
