@@ -1,5 +1,5 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
-// js/entities-sentinel.js — real Sentinel lifecycle (spawn, death, per-frame
+// js/entities/sentinel.js — real Sentinel lifecycle (spawn, death, per-frame
 // AI/fire loop). Extracted from entities.js. Must load after entities.js
 // (uses its shared dealDamage/particle/targeting helpers) and before main.js.
 
