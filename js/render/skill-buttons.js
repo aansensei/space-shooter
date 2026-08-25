@@ -287,6 +287,22 @@ function drawSkillButtons() {
             : { cd: laserCooldownDuration, lastAct: now - (laserCooldownDuration - _spcRem * 1000), active: false };
     }
     _pill(_spaceY, '⎵ SPC', '#3B82F6', _spaceOpts);
+
+    // Cycle of Flow: a full screen-width of movement just shaved 0.5s off
+    // every cooldown above — flash the whole panel so the reward actually
+    // reads as "something happened to my skills", on mobile and PC alike
+    // since this is the same canvas draw either way.
+    if (window._cofFlashEnd && now < window._cofFlashEnd) {
+        const _cofT = 1 - (window._cofFlashEnd - now) / 400;
+        ctx.save();
+        ctx.globalAlpha = 0.45 * (1 - _cofT);
+        ctx.strokeStyle = '#7F77DD';
+        ctx.lineWidth = 2.5;
+        if (!_mobPerf) { ctx.shadowColor = '#7F77DD'; ctx.shadowBlur = 12; }
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(panelX - 2 - _cofT * 4, panelY - 2 - _cofT * 4, panelW + 4 + _cofT * 8, panelH + 4 + _cofT * 8, 8); ctx.stroke(); }
+        else ctx.strokeRect(panelX - 2 - _cofT * 4, panelY - 2 - _cofT * 4, panelW + 4 + _cofT * 8, panelH + 4 + _cofT * 8);
+        ctx.restore();
+    }
 }
 
 //  VEILSHROUD RENDER

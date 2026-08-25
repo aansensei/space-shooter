@@ -1411,7 +1411,10 @@ function dealDamage(enemy, source) {
     // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 48% khi
     // đánh Goliath True Form — áp dụng SỚM, trước DR/Inevitable cap/true-dmg
     // bypass, để đè lên cả 2 loại sát thương thường lẫn true damage (boomerang).
-    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && (source.isPhoto || source._isPhotoSourced)) {
+    // Back to Motherland (đại kỹ của Remembrance Spirit) mượn cờ isPhoto cho
+    // mục đích khác, không phải đòn Photokrystos thật, nên loại trừ riêng.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && (source.isPhoto || source._isPhotoSourced)
+        && source._statSrc !== 'Skill S: Back to Motherland') {
         totalDamage = Math.ceil(totalDamage * 0.52);
     }
 
@@ -1597,7 +1600,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-        combinedDR += 0.70; // Inevitable: 70% base DR
+        combinedDR += 0.70 * Math.pow(0.85, _goliathWaningStacks(enemy)); // Inevitable: 70% base DR, decayed by Waning Might
 
         // Joker copies — mỗi cái chỉ cộng DR nếu Goliath THẬT SỰ có bảo thạch
         // đó (enemy._jokerState[name] chỉ tồn tại khi đã hấp thụ đúng viên)
@@ -1615,8 +1618,8 @@ function dealDamage(enemy, source) {
         if (js['Egregor'] && (js['Egregor'].phase === 'charging' || js['Egregor'].phase === 'striking')) {
             combinedDR += 0.40; // Null Slash đang vận/đánh: +40% DR
         }
-        // Hạn chế mới: đang vận bất kỳ skill nào (của chính Goliath hay Joker
-        // copy) thì +10% DR, bù lại cho việc bị chậm 35% + cấm dịch chuyển.
+        // Tempered Resolve: đang vận bất kỳ skill nào (của chính Goliath hay
+        // Joker copy) thì +10% DR, bù lại cho việc bị chậm 35% + cấm dịch chuyển.
         if (_goliathIsCasting(enemy)) {
             combinedDR += 0.10;
         }
@@ -1754,11 +1757,11 @@ function dealDamage(enemy, source) {
                 ? 400 * (enemy._unifiedFrontScalingDRMult || 1)
                 : 200 * (enemy._unifiedFrontDRMult || 1);
         }
-        // Casting restriction (Goliath True Form): +400 flat DR while
+        // Tempered Resolve (Goliath True Form): +420 flat DR while
         // channeling any skill (its own or a Joker copy's), on top of the
         // +10% DR already applied above — same subtract-after-% pattern.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _goliathIsCasting(enemy)) {
-            totalDamage -= 400;
+            totalDamage -= 420;
         }
         totalDamage = Math.max(0, totalDamage);
     }
@@ -2044,7 +2047,7 @@ function dealDamage(enemy, source) {
     // barrier mới = 50% tổng sát thương đã dồn trong window đó, ĐỒNG THỜI
     // rút sạch shield hiện có sang barrier (barrier KHÔNG tính vào EP =
     // maxHp+shield như shield thường — giảm luôn độ lớn các đòn %EP tiếp
-    // theo ăn vào), và hồi HP = 75% ĐÚNG PHẦN shield vừa rút đó. 0.5s
+    // theo ăn vào), và hồi HP = 60% ĐÚNG PHẦN shield vừa rút đó. 0.5s
     // cooldown giữa các lần kích hoạt, window reset ngay khi vừa kích hoạt.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hitSizeForBurst > 0) {
         const _gNow3 = performance.now();
@@ -2059,7 +2062,7 @@ function dealDamage(enemy, source) {
             const _convertedShield = enemy.shield || 0;
             enemy.barrier += _convertedShield;
             enemy.shield = 0;
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(_convertedShield * 0.75));
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(_convertedShield * 0.60));
             enemy._burstWindowDmg = 0;
             enemy._burstWindowStart = _gNow3;
             createParticles(enemy.x, enemy.y, 16, '#38bdf8', 3, 9);
@@ -2820,7 +2823,17 @@ function _goliathHealBoost(enemy, amount) {
     if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) mult += 0.40;
     mult += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
     mult += enemy._unifiedFrontHealPct || 0; // Unified Front: +5%/ally on the map, cap +60%
-    return amount * mult;
+    return amount * mult * Math.pow(0.80, _goliathWaningStacks(enemy));
+}
+
+// Waning Might (NEW): mỗi 35s True Form còn sống, Goliath yếu dần đi trên
+// 3 trục cùng lúc — DR gốc, hiệu quả hồi HP/khiên, và sát thương tự gây ra
+// — nhân dồn (không cộng thẳng, tránh về âm) chứ không có trần, đảm bảo
+// trận nào kéo dài cỡ nào cũng phải kết thúc mà không đụng vào sức mạnh
+// đầu trận (0 stack cho tới khi qua mốc 35s đầu tiên).
+function _goliathWaningStacks(enemy) {
+    if (!enemy._trueFormEnteredAt) return 0;
+    return Math.floor((performance.now() - enemy._trueFormEnteredAt) / 35000);
 }
 
 // Unified Front (True Form passive): counts every living player-side unit
@@ -2840,9 +2853,10 @@ function _goliathCountAllies() {
 
 // Fracture Step hậu-dịch-chuyển (NEW): +20% MỌI sát thương Goliath tự gây
 // ra (Joker copies, Absolute Verdict, Corrupted Meteor...) trong 1s sau khi
-// vừa dịch chuyển xong.
+// vừa dịch chuyển xong. Waning Might nhân dồn theo chiều ngược lại phía trên.
 function _goliathDmgBoost(enemy, amount) {
-    return (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? amount * 1.20 : amount;
+    const fractureMult = (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? 1.20 : 1;
+    return amount * fractureMult * Math.pow(0.85, _goliathWaningStacks(enemy));
 }
 
 // Unbroken Will (1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì thay
@@ -3109,8 +3123,8 @@ function updateGoliath(enemy, deltaTime) {
         // hoạt — Phantom thật của Veilshroud cũng đứng im lúc vô hiệu hoá.
         // Hạn chế mới: đang vận bất kỳ skill nào (của chính Goliath hay Joker
         // copy) thì chậm 35% (weave clock chạy chậm hơn thay vì đứng hẳn) +
-        // cấm Fracture Step (dịch chuyển) + hồi 15% MaxHP 1 LẦN DUY NHẤT lúc
-        // vừa bắt đầu vận (bắt cạnh lên false->true, không phải mỗi frame).
+        // cấm Fracture Step (dịch chuyển) + hồi 20% MaxHP 1 LẦN DUY NHẤT ngay
+        // khi vừa VẬN XONG (bắt cạnh xuống true->false, không phải mỗi frame).
         const isCasting = _goliathIsCasting(enemy);
         // Fracture Step hậu-dịch-chuyển (NEW): +10% tốc độ bay trong 1s.
         const _fractureSpdMult = (enemy._fractureBuffEnd && now < enemy._fractureBuffEnd) ? 1.10 : 1;
@@ -3125,8 +3139,8 @@ function updateGoliath(enemy, deltaTime) {
             enemy.hp = Math.min(enemy.hp, enemy.maxHp);
             enemy._unbrokenWillMaxHpBonus = 0;
         }
-        if (isCasting && !enemy._wasCasting) {
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.15));
+        if (!isCasting && enemy._wasCasting) {
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.20));
         }
         enemy._wasCasting = isCasting;
 
@@ -3365,8 +3379,8 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
-        // Inevitable: hồi máu 3%/s, ăn +35% Tenacity nếu có
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.03 * (deltaTime / 1000)));
+        // Inevitable: hồi máu 2.5%/s, ăn +35% Tenacity nếu có
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.025 * (deltaTime / 1000)));
 
         if (enemy._inevitableWindowEnd && now >= enemy._inevitableWindowEnd && !enemy._inevitableCooldownEnd) {
             enemy._inevitableCooldownEnd = now + 500;
