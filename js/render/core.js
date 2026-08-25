@@ -78,6 +78,7 @@ window._applyGfxLevel = _applyGfxLevel;
 const _glowSpriteCache = {};
 function _getGlowSprite(color, radius) {
     if (!isFinite(radius) || radius <= 0) return null;
+    color = color || '#ffffff'; // defensive: a particle missing .color must never crash the whole draw pass
     const r = Math.ceil(radius);
     const key = color + '_' + r;
     if (_glowSpriteCache[key]) return _glowSpriteCache[key];
@@ -94,48 +95,19 @@ function _getGlowSprite(color, radius) {
     return c;
 }
 
-// Player/sentinel bullet sprites: generated reference renders, chroma-keyed
-// and trimmed the same way as the other sprite-replaced assets this game
-// uses. Glow halo, glint and color are baked into the images themselves.
-const _bulletPlayerImg = new Image();
-_bulletPlayerImg.src = 'images/game/bullets/bullet-player.png';
-_bulletPlayerImg.decode().catch(() => {}); // force async decode now, not on first draw
-const _bulletSentinelImg = new Image();
-_bulletSentinelImg.src = 'images/game/bullets/bullet-sentinel.png';
-_bulletSentinelImg.decode().catch(() => {});
-
-// Bullet sprite cache: procedural bullet appearances (sentinel_special,
-// player_charged) are pre-rendered once per (type, size, quality) since
-// building their gradients every frame would be wasteful. player_auto and
-// sentinel_auto/sentinel_death draw straight from a baked image instead -
-// a single drawImage() call is cheap enough to skip caching entirely, so
-// that path isn't memoized here.
+// Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality)
 const _bulletSpriteCache = {};
 function _getBulletSprite(type, size, gfxLvl) {
     const sz = Math.max(1, Math.round(size));
+    const key = type + '_' + sz + '_' + gfxLvl;
+    if (_bulletSpriteCache[key]) return _bulletSpriteCache[key];
     const highQ = gfxLvl < 1;
     const pad = Math.ceil(sz * 1.6);
     const dim = sz * 2 + pad * 2;
-    const ctr = dim / 2;
-
-    const _imgType = (type === 'sentinel_auto' || type === 'sentinel_death') ? _bulletSentinelImg
-        : (type !== 'sentinel_special' && type !== 'player_charged') ? _bulletPlayerImg : null;
-    if (_imgType && _imgType.complete && _imgType.naturalWidth) {
-        const c = document.createElement('canvas');
-        c.width = c.height = dim;
-        const cx = c.getContext('2d');
-        cx.drawImage(_imgType, pad, pad, sz * 2, sz * 2);
-        return c;
-    }
-    // Either a procedural type, or the image hasn't loaded yet (first
-    // instant after page load) - fall back to the procedural draw below
-    // rather than drawing nothing.
-
-    const key = type + '_' + sz + '_' + gfxLvl;
-    if (_bulletSpriteCache[key]) return _bulletSpriteCache[key];
     const c = document.createElement('canvas');
     c.width = c.height = dim;
     const cx = c.getContext('2d');
+    const ctr = dim / 2;
     let grad;
     switch (type) {
         case 'sentinel_special': {
@@ -191,11 +163,7 @@ function _getBulletSprite(type, size, gfxLvl) {
             break;
         }
     }
-    // Only cache genuinely procedural types. player_auto/sentinel_auto
-    // reaching here means their image hasn't loaded yet - caching that
-    // placeholder would freeze it in forever, since this cache is never
-    // invalidated, so leave it uncached and let the next frame re-check.
-    if (!_imgType) _bulletSpriteCache[key] = c;
+    _bulletSpriteCache[key] = c;
     return c;
 }
 

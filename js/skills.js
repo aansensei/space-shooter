@@ -742,14 +742,23 @@ function updatePhotokrystos(spirit, deltaTime) {
     if (spirit.shootTimer <= 0) {
         spirit.shootTimer = photoFireRate;
         const targets = [];
-        // Find up to 3 distinct closest enemies
-        const allValid = enemies.filter(e =>
-            !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
-        ).sort((a, b) => Math.hypot(a.x - spirit.x, a.y - spirit.y) - Math.hypot(b.x - spirit.x, b.y - spirit.y));
-        if (allValid.length > 0) {
-            targets[0] = allValid[0];
-            targets[1] = allValid[Math.min(1, allValid.length - 1)];
-            targets[2] = allValid[Math.min(2, allValid.length - 1)];
+        // Find up to 3 distinct closest enemies. Fires every 42ms while
+        // Photokrystos is active, so a full filter+sort of the whole
+        // enemies array (incl. a Math.hypot per comparison) every single
+        // volley adds up — tracking the 3 nearest by hand in one pass
+        // avoids both the array allocation and the O(n log n) sort.
+        let e0 = null, d0 = Infinity, e1 = null, d1 = Infinity, e2 = null, d2 = Infinity;
+        for (const e of enemies) {
+            if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'veilshroud_echo' || e.inCoronation || e.hp <= 0 || e._markedForDeath) continue;
+            const d = Math.hypot(e.x - spirit.x, e.y - spirit.y);
+            if (d < d0) { e2 = e1; d2 = d1; e1 = e0; d1 = d0; e0 = e; d0 = d; }
+            else if (d < d1) { e2 = e1; d2 = d1; e1 = e; d1 = d; }
+            else if (d < d2) { e2 = e; d2 = d; }
+        }
+        if (e0) {
+            targets[0] = e0;
+            targets[1] = e1 || e0;
+            targets[2] = e2 || e1 || e0;
         }
         if (targets.length > 0) {
             // Duration starts from first shot
@@ -1470,6 +1479,7 @@ function spawnSkillDSpaceship(x, y) {
 // isn't re-scanned as a fusion candidate in the same pass.
 function _updateSkillDShipFusion() {
     const ships = window.skillDSpaceships;
+    if (ships.length < 2) return; // nothing to fuse — skip the Set/array allocation below
     const fused = new Set();
     const newShips = [];
     for (let i = 0; i < ships.length; i++) {
@@ -2558,7 +2568,16 @@ function updateGoldenArrowSweep(deltaTime) {
     }
 
     if (now < (window._goldenArrowNextSweepAt || 0)) return;
-    if (_validGoldenArrowTargets().length < 5) return;
+    // Manual count instead of _validGoldenArrowTargets().length — this idle
+    // check runs every frame once off cooldown, no need to allocate a
+    // filtered copy of `enemies` just to compare its length against 5.
+    let _validCount = 0;
+    for (const e of enemies) {
+        if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath) {
+            if (++_validCount >= 5) break;
+        }
+    }
+    if (_validCount < 5) return;
 
     window._goldenArrowNextSweepAt = now + 4000;
     window._goldenArrowSweep = { startTime: now, duration: 1000, hitEnemies: new Set() };

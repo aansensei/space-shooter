@@ -243,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener("resize", function () {
         if (typeof window._platform !== 'undefined' && window._platform === 'mobile') return;
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        ctx.imageSmoothingQuality = "high"; // resizing the canvas resets context state, including this
         player.y = canvas.height - 60;
         skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
     });

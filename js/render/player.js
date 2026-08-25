@@ -1949,13 +1949,20 @@ function _drawDivineWeapon(x, y, angle, type, alpha, scale) {
 
     // Breathing golden aura behind the blade - the one bit of "animation"
     // an otherwise-static sprite needs to not read as a flat pasted-in icon.
+    // A radial gradient halo instead of shadowBlur (this project's convention
+    // for glow effects — shadowBlur is a much heavier canvas op).
     if (!_mobPerf) {
         const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 260);
-        ctx.shadowColor = '#fbbf24';
-        ctx.shadowBlur = 8 + pulse * 6;
+        const cx = -w * cfg.pivot + w / 2;
+        const haloR = Math.max(w, h) * 0.32 * (0.85 + pulse * 0.3);
+        const halo = ctx.createRadialGradient(cx, 0, 0, cx, 0, haloR);
+        halo.addColorStop(0, `rgba(251,191,36,${0.4 + pulse * 0.2})`);
+        halo.addColorStop(0.7, `rgba(251,191,36,${0.15 + pulse * 0.1})`);
+        halo.addColorStop(1, 'rgba(251,191,36,0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(cx, 0, haloR, 0, Math.PI * 2); ctx.fill();
     }
     ctx.drawImage(img, -w * cfg.pivot, -h / 2, w, h);
-    ctx.shadowBlur = 0;
 
     ctx.restore();
 }
@@ -2091,13 +2098,18 @@ function drawEnumaElish() {
                 ctx.rotate(-Math.PI / 2);
                 const len = 290;
                 const h = len * (_enumaSpearImg.naturalHeight / _enumaSpearImg.naturalWidth);
+                // Radial gradient halo instead of shadowBlur (this
+                // project's glow convention — cheaper than a canvas blur).
                 if (!_mobPerf) {
                     const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 220);
-                    ctx.shadowColor = '#dc2626';
-                    ctx.shadowBlur = 10 + pulse * 10;
+                    const haloR = len * 0.35 * (0.85 + pulse * 0.3);
+                    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, haloR);
+                    halo.addColorStop(0, `rgba(220,38,38,${0.4 + pulse * 0.2})`);
+                    halo.addColorStop(1, 'rgba(220,38,38,0)');
+                    ctx.fillStyle = halo;
+                    ctx.beginPath(); ctx.arc(0, 0, haloR, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.drawImage(_enumaSpearImg, -len / 2, -h / 2, len, h);
-                ctx.shadowBlur = 0;
                 ctx.restore();
             }
             ctx.restore();
