@@ -199,6 +199,52 @@ function _getSpiritSprite(isPhoto, size) {
     return c;
 }
 
+// Enemy bullet sprite cache: static body (glow halo, gradient core, outline,
+// inner spark, highlight) pre-rendered once per (isLarge, size, quality).
+// The pulsing blink ring and the velocity-facing motion trail change every
+// frame and stay live in _drawEnemyBullet() instead of being baked here.
+const _enemyBulletSpriteCache = {};
+function _getEnemyBulletSprite(isLarge, size, gfxLvl) {
+    const sz = Math.max(1, Math.round(size));
+    const key = (isLarge ? 'L' : 'S') + '_' + sz + '_' + gfxLvl;
+    if (_enemyBulletSpriteCache[key]) return _enemyBulletSpriteCache[key];
+    const highQ = gfxLvl < 1;
+    const pad = Math.ceil(sz * 1.6);
+    const dim = sz * 2 + pad * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = dim;
+    const cx = c.getContext('2d');
+    const ctr = dim / 2;
+
+    if (highQ) {
+        cx.fillStyle = isLarge ? 'rgba(255,100,20,0.22)' : 'rgba(220,0,0,0.2)';
+        cx.beginPath(); cx.arc(ctr, ctr, sz * 1.5, 0, Math.PI * 2); cx.fill();
+    }
+    const bg = cx.createRadialGradient(ctr - sz * 0.25, ctr - sz * 0.25, 0, ctr, ctr, sz);
+    bg.addColorStop(0, '#ffffff');
+    bg.addColorStop(0.25, isLarge ? '#ffaa33' : '#ff4400');
+    bg.addColorStop(0.65, isLarge ? '#dd4400' : '#cc0000');
+    bg.addColorStop(1, isLarge ? 'rgba(120,30,0,0.8)' : 'rgba(100,0,0,0.8)');
+    cx.fillStyle = bg;
+    cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
+    cx.strokeStyle = isLarge ? 'rgba(255,150,50,0.7)' : 'rgba(255,60,20,0.7)';
+    cx.lineWidth = 0.8;
+    cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.stroke();
+    if (isLarge) {
+        const ig = cx.createRadialGradient(ctr, ctr, 0, ctr, ctr, sz * 0.42);
+        ig.addColorStop(0, 'rgba(255,240,100,0.95)');
+        ig.addColorStop(1, 'rgba(255,140,0,0.5)');
+        cx.fillStyle = ig;
+        cx.beginPath(); cx.arc(ctr, ctr, sz * 0.42, 0, Math.PI * 2); cx.fill();
+    }
+    if (highQ) {
+        cx.fillStyle = 'rgba(255,255,200,0.4)';
+        cx.beginPath(); cx.ellipse(ctr - sz * 0.28, ctr - sz * 0.28, sz * 0.2, sz * 0.12, -0.8, 0, Math.PI * 2); cx.fill();
+    }
+    _enemyBulletSpriteCache[key] = c;
+    return c;
+}
+
 function drawSpaceBackground(deltaTime) {
     // PIXI background (background.js) is active: just clear so it shows through
     if (window._bgReady) {

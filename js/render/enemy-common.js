@@ -1047,31 +1047,12 @@ function _drawEnemyBullet(enemy) {
     if (_gfxLevel < 1) ctx.shadowBlur = isLarge ? 12 : 8;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
-    if (_gfxLevel < 1) {
-        ctx.fillStyle = isLarge ? 'rgba(255,100,20,0.22)' : 'rgba(220,0,0,0.2)';
-        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 1.5, 0, Math.PI * 2); ctx.fill();
-    }
-    const bg = ctx.createRadialGradient(enemy.x - enemy.size * 0.25, enemy.y - enemy.size * 0.25, 0, enemy.x, enemy.y, enemy.size);
-    bg.addColorStop(0, '#ffffff');
-    bg.addColorStop(0.25, isLarge ? '#ffaa33' : '#ff4400');
-    bg.addColorStop(0.65, isLarge ? '#dd4400' : '#cc0000');
-    bg.addColorStop(1, isLarge ? 'rgba(120,30,0,0.8)' : 'rgba(100,0,0,0.8)');
-    ctx.fillStyle = bg;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = isLarge ? 'rgba(255,150,50,0.7)' : 'rgba(255,60,20,0.7)';
-    ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2); ctx.stroke();
-    if (isLarge) {
-        const ig = ctx.createRadialGradient(enemy.x, enemy.y, 0, enemy.x, enemy.y, enemy.size * 0.42);
-        ig.addColorStop(0, 'rgba(255,240,100,0.95)');
-        ig.addColorStop(1, 'rgba(255,140,0,0.5)');
-        ctx.fillStyle = ig;
-        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size * 0.42, 0, Math.PI * 2); ctx.fill();
-    }
-    if (_gfxLevel < 1) {
-        ctx.fillStyle = 'rgba(255,255,200,0.4)';
-        ctx.beginPath(); ctx.ellipse(enemy.x - enemy.size * 0.28, enemy.y - enemy.size * 0.28, enemy.size * 0.2, enemy.size * 0.12, -0.8, 0, Math.PI * 2); ctx.fill();
-    }
+
+    // Static body (glow halo, gradient core, outline, inner spark, highlight)
+    // pre-rendered once per (isLarge, size, quality) - see _getEnemyBulletSprite().
+    const _bs = _getEnemyBulletSprite(isLarge, enemy.size, _gfxLevel);
+    ctx.drawImage(_bs, enemy.x - _bs.width / 2, enemy.y - _bs.height / 2);
+
     ctx.restore();
 }
 
