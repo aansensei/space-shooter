@@ -7,6 +7,9 @@
 
 let bgStars = [];
 let nebulaPoints = null;
+const _walpurgisIconImg = new Image();
+_walpurgisIconImg.src = 'images/game/walpurgis-icon.png';
+_walpurgisIconImg.decode().catch(() => {}); // force async decode now, not on first draw
 // Falling stars system
 let _fallingStars = [];
 let _skillGActivatedAt = -Infinity; // track khi nào G vừa được bật
@@ -1239,7 +1242,8 @@ function draw(deltaTime) {
         const _hPad = 12;
         const _rH = _hMob ? 22 : 26;
         const _yuukiRow = _yuukiBonus > 0 ? _rH : 0;
-        const _hH = (_hMob ? 158 : 198) + _yuukiRow;
+        const _walpurgisRow = _walpurgisStacks() > 0 ? _rH : 0;
+        const _hH = (_hMob ? 158 : 198) + _yuukiRow + _walpurgisRow;
         // Sigil HUD (sigils.js) anchors itself below this panel and used to
         // keep its own hardcoded copy of this height formula, which could
         // silently drift out of sync — read this instead of duplicating it.
@@ -1344,6 +1348,18 @@ function draw(deltaTime) {
             _ry += _rH;
             ctx.fillStyle = '#ffaaaa';
             ctx.fillText(`⚔ Yuuki +${Math.round(_yuukiBonus * 100)}%`, _hX + _hW - _hPad, _ry + _fH);
+        }
+
+        if (_walpurgisRow > 0) {
+            _ry += _rH;
+            ctx.fillStyle = '#c86464';
+            const _wpLabel = `Walpurgis x${_walpurgisStacks()}`;
+            ctx.fillText(_wpLabel, _hX + _hW - _hPad, _ry + _fH);
+            if (_walpurgisIconImg.complete && _walpurgisIconImg.naturalWidth > 0) {
+                const _wpIconSize = _fH + 2;
+                const _wpLabelW = ctx.measureText(_wpLabel).width;
+                ctx.drawImage(_walpurgisIconImg, _hX + _hW - _hPad - _wpLabelW - _wpIconSize - 4, _ry + _fH - _wpIconSize, _wpIconSize, _wpIconSize);
+            }
         }
 
         ctx.restore();
