@@ -146,6 +146,27 @@ function _debugOpenLiveMatchStats() {
     }, 500);
 }
 
+// Directly override the two globals driving Walpurgis (Huyết Dạ, scales
+// off _waveNumber — see _walpurgisStacks in config.js) and the Yuuki HUD
+// bonus (_yuukiBonus, ally dmg multiplier applied in entities.js), so both
+// can be tested without grinding real waves. Clamped to the same range the
+// real game allows (_yuukiBonus caps at 3.00 in main.js) so debug testing
+// still reflects an actually-reachable state.
+window.debugSetWaveNumber = function () {
+    const el = document.getElementById('dbgWaveNumber');
+    const v = el && el.value !== '' ? Math.max(0, Math.floor(Number(el.value))) : null;
+    if (v === null || isNaN(v)) return;
+    // bare assignment, not window._waveNumber — _waveNumber is a top-level
+    // `let` in config.js, a separate lexical binding from any window property
+    _waveNumber = v;
+};
+window.debugSetYuukiBonus = function () {
+    const el = document.getElementById('dbgYuukiBonus');
+    const v = el && el.value !== '' ? Number(el.value) : null;
+    if (v === null || isNaN(v)) return;
+    _yuukiBonus = Math.max(0, Math.min(3.00, v / 100));
+};
+
 (function () {
     const PANEL_HTML = `
 <div id="debugConsoleOverlay" style="display:none; position:fixed; inset:0; z-index:999999999;
@@ -204,6 +225,18 @@ function _debugOpenLiveMatchStats() {
       </label>
       <div class="dbg-row">
         <button class="dbg-btn danger" onclick="debugExitSession()">Exit Debug Mode → Main Menu</button>
+      </div>
+    </div>
+
+    <div class="dbg-section">
+      <div class="dbg-h">WAVE / GLOBAL BUFFS</div>
+      <div class="dbg-row">
+        <input type="number" id="dbgWaveNumber" placeholder="Wave #" style="width:80px;">
+        <button class="dbg-btn" onclick="window.debugSetWaveNumber()">Set Wave (drives Walpurgis)</button>
+      </div>
+      <div class="dbg-row">
+        <input type="number" id="dbgYuukiBonus" placeholder="Yuuki %" step="1" style="width:80px;">
+        <button class="dbg-btn" onclick="window.debugSetYuukiBonus()">Set Yuuki %</button>
       </div>
     </div>
 
