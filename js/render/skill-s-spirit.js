@@ -896,6 +896,7 @@ function drawPrimevalSummonEffect(eff) {
 // gameplay radius (b._radius, 48-58px), never up, and stays crisp.
 const _photoBrangImg = new Image();
 _photoBrangImg.src = 'images/game/photokrystos-boomerang.png';
+_photoBrangImg.decode().catch(() => {}); // force async decode now, not on first draw
 
 function drawPhotoBrang(b) {
     const now = performance.now();
