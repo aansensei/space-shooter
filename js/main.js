@@ -620,6 +620,15 @@ function update(rawDeltaTime) {
     if (window._egregorDeathBursts && window._egregorDeathBursts.length) {
         window._egregorDeathBursts = window._egregorDeathBursts.filter(b => currentTime - b.spawnAt < b.duration);
     }
+    if (window._levDeathBursts && window._levDeathBursts.length) {
+        window._levDeathBursts = window._levDeathBursts.filter(b => currentTime - b.spawnAt < b.duration);
+    }
+    if (window._levShieldBreaks && window._levShieldBreaks.length) {
+        window._levShieldBreaks = window._levShieldBreaks.filter(b => currentTime - b.spawnAt < b.duration);
+    }
+    if (window._levShieldRipples && window._levShieldRipples.length) {
+        window._levShieldRipples = window._levShieldRipples.filter(rp => currentTime - rp.spawnAt < rp.duration);
+    }
     if (window._parryBursts && window._parryBursts.length) {
         window._parryBursts = window._parryBursts.filter(pb => currentTime - pb.spawnAt < pb.duration);
     }
@@ -2765,6 +2774,9 @@ function startGame() {
     window._levPersBeams = [];
     window._dimBreakZones = [];
     window._egregorDeathBursts = [];
+    window._levDeathBursts = [];
+    window._levShieldBreaks = [];
+    window._levShieldRipples = [];
     window._parryBursts = [];
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
