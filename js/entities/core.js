@@ -1023,7 +1023,7 @@ function dealDamage(enemy, source) {
             rawDmg = Math.ceil(rawDmg * (1 - _vDR));
         }
         rawDmg = Math.max(0, rawDmg);
-        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic', _vIsTrueDmg, enemy);
+        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic', _vIsTrueDmg, enemy, source._attackerType || null);
         return;
     }
 
@@ -1596,7 +1596,9 @@ function dealDamage(enemy, source) {
 // Mọi nguồn damage vào sentinel đều đi qua đây khi network active (5+ sentinels)
 // rawDmg: damage đã tính (sau multipliers), sourceTag: string unique per source instance
 // targetSentinel: sentinel bị nhắm trực tiếp (nhận thêm 50% damage gốc)
-function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSentinel = null) {
+// attackerType: enemy.type gây damage, nếu có sẽ ghi Match Stats theo tên boss
+// thật (vd "Leviathan") thay vì rơi về nhãn chung chung "Boss Attack"
+function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSentinel = null, attackerType = null) {
     if (!window._vanguardState || sentinels.length < 5) return;
     if (rawDmg <= 0) return;
     const vs = window._vanguardState;
@@ -1671,7 +1673,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
         }
         if (s.hp <= 0) s._markedForDeath = true;
     });
-    _recordStat('enemyDamage', _classifyDamageSource({ _vanguardTag: sourceTag }, false), _vanguardStatTotal);
+    _recordStat('enemyDamage', _classifyDamageSource({ _vanguardTag: sourceTag, _attackerType: attackerType }, false), _vanguardStatTotal);
 
     // Track cho Fuse Protocol (26% threshold)
     // BUG J fix: use rawDmg (pre-dampening) for accurate threshold detection

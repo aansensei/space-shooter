@@ -2236,7 +2236,7 @@ function update(rawDeltaTime) {
 
                     if (sentinels.length >= 5) {
                         // Vanguard Network: dùng beam.id làm sourceTag cho AoE dampening
-                        _applyVanguardDamage(dmg, beam.id, false, s);
+                        _applyVanguardDamage(dmg, beam.id, false, s, 'leviathan');
                     } else {
                         // Trực tiếp (< 5 sentinels)
                         if (!(s.ironBody && nowMs2 < s.ironBodyEnd)) {
@@ -2335,7 +2335,7 @@ function update(rawDeltaTime) {
                     const ep = s.maxHp + (s.shield || 0);
                     const dmg = Math.min(Math.ceil(ep * 0.55), Math.ceil(ep * scaledPctLaser * halfHits));
                     if (sentinels.length >= 5) {
-                        _applyVanguardDamage(dmg, laser.id, false, s);
+                        _applyVanguardDamage(dmg, laser.id, false, s, 'leviathan');
                     } else {
                         if (!(s.ironBody && performance.now() < s.ironBodyEnd)) {
                             let _levBeamDmg = dmg;
