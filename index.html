@@ -24,7 +24,8 @@
   cooldown consts from config.js each frame then paints arc progress via
   Canvas 2D. When player._silenced is true it draws a red X on every skill canvas.
 
-  F3 toggles a debug panel with live FPS and a console log mirror.
+  F3 toggles a debug panel with live FPS and a console log mirror (mobile:
+  long-press the FPS counter instead, since there's no F3 key).
   window._returnToMainMenu restores the overlay and restarts the star animation
   when the player exits a match.
 -->
@@ -1735,6 +1736,21 @@
                     visible = !visible;
                     panel.classList.toggle('visible', visible);
                 });
+                // Mobile has no F3 key, and a plain tap here is deliberately
+                // ignored above (a stray tap in the corner shouldn't pop this
+                // open mid-game) — a long-press is the mobile-safe equivalent,
+                // mainly so a crash/lag report can include a screenshot of
+                // the [PROF] log afterward.
+                let _fpsHoldTimer = null;
+                fpsEl.addEventListener('touchstart', function (e) {
+                    e.preventDefault();
+                    _fpsHoldTimer = setTimeout(() => {
+                        visible = !visible;
+                        panel.classList.toggle('visible', visible);
+                    }, 800);
+                }, { passive: false });
+                fpsEl.addEventListener('touchend', function () { clearTimeout(_fpsHoldTimer); });
+                fpsEl.addEventListener('touchcancel', function () { clearTimeout(_fpsHoldTimer); });
             }
 
             // FPS + Auto Quality Tier
@@ -1874,7 +1890,7 @@
         })();
     </script>
 
-    <script src="https://pixijs.download/v8.9.2/pixi.min.js"></script>
+    <script src="js/vendor/pixi.min.js"></script>
     <script src="js/audio.js?v=20260824b"></script>
     <script src="js/offline.js?v=20260804c"></script>
     <script src="js/background.js?v=20260803d"></script>
