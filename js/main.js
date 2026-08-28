@@ -2734,7 +2734,12 @@ function gameLoop(timeStamp) {
         update(Math.min(deltaTime, 50) * _debugSpeed);
     }
     const _t1 = _profOn ? performance.now() : 0;
-    draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50) * _debugSpeed);
+    // Guide overlay covers the whole screen - redrawing the canvas (2D +
+    // the Pixi bullet/particle layer, both driven from inside draw()) underneath
+    // it is pure wasted GPU/CPU work, real enough to feel like lag on mobile.
+    if (!window._guideOpen) {
+        draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50) * _debugSpeed);
+    }
     if (_profOn) {
         const _t2 = performance.now();
         const _upd = _t1 - _t0, _drw = _t2 - _t1, _tot = _t2 - _t0;

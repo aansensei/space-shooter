@@ -554,6 +554,16 @@
                 // worse than the original click-time bug. Back to lazy:
                 // reparent + load only happen on the player's first
                 // actual Guide click.
+                // Guide overlay fully covers the screen, so everything still
+                // running behind it is wasted work: gameLoop() in main.js skips
+                // its whole draw() call while this is true (2D canvas + the Pixi
+                // bullet/particle layer both live in there), and background.js's
+                // parallax stars run their own independent rAF loop untouched by
+                // any of that, so they need their own pause flag. _guidePrevBgPaused
+                // remembers whatever _bgPaused already was (e.g. still true if
+                // Guide was opened from the Pause screen) so closing Guide restores
+                // the right state instead of always forcing the background back on.
+                let _guidePrevBgPaused = false;
                 function openGuide() {
                     const ov = document.getElementById('guideOverlay');
                     const fr = document.getElementById('guideFrame');
@@ -563,8 +573,13 @@
                         fr.src = 'guide.html';
                         fr.setAttribute('data-loaded', '1');
                     }
+                    window._guideOpen = true;
+                    _guidePrevBgPaused = window._bgPaused;
+                    window._bgPaused = true;
                 }
                 function closeGuide() {
+                    window._guideOpen = false;
+                    window._bgPaused = _guidePrevBgPaused;
                     // Stop any music-archive preview inside the iframe first.
                     // Always call resumeBgm as a safety net in case the iframe
                     // is mid-load or the preview handler is unavailable.
