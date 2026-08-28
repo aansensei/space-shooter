@@ -30,6 +30,7 @@
         'images/game/sentinel-shell.png',
         'images/game/rift-void.png',
         'images/game/walpurgis-icon.png',
+        'js/vendor/pixi.min.js',
         'js/audio.js',
         'js/background.js',
         'js/config.js',

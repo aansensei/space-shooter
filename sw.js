@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v134';
+const CACHE_VERSION = 'v135';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -29,6 +29,7 @@ const CORE_FILES = [
     'images/game/sentinel-shell.png',
     'images/game/rift-void.png',
     'images/game/walpurgis-icon.png',
+    'js/vendor/pixi.min.js',
     'js/audio.js',
     'js/background.js',
     'js/config.js',
