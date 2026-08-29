@@ -1189,7 +1189,17 @@ function updateSpiritSpinners(deltaTime) {
         else if (s.x > canvas.width - s.size) { s.x = canvas.width - s.size; s.vx = -Math.abs(s.vx); bounced = true; }
         if (s.y < s.size) { s.y = s.size; s.vy = Math.abs(s.vy); bounced = true; }
         else if (s.y > canvas.height - s.size) { s.y = canvas.height - s.size; s.vy = -Math.abs(s.vy); bounced = true; }
-        if (bounced) s.bounceBoostEnd = now + 1000; // refreshes on each bounce, never stacks
+        if (bounced) {
+            s.bounceBoostEnd = now + 1000; // refreshes on each bounce, never stacks
+            // Small random angle jitter on every bounce so a near-axis
+            // trajectory doesn't lock into a short repeating back-and-forth
+            // path - keeps it actually covering the screen over its 5s life.
+            const _jitter = (Math.random() - 0.5) * 0.5; // ±0.25 rad (~±14°)
+            const _spd = Math.hypot(s.vx, s.vy);
+            const _ang = Math.atan2(s.vy, s.vx) + _jitter;
+            s.vx = Math.cos(_ang) * _spd;
+            s.vy = Math.sin(_ang) * _spd;
+        }
 
         // Body-contact damage: no per-enemy cooldown right now (removed per
         // request, temporary) - deals damage every frame it's overlapping.
@@ -1346,9 +1356,13 @@ function updateSpiritFinale(spirit, deltaTime) {
 // light, then a sharp starlight-shaped flash as it's ejected.
 function _launchSpinner(x, y) {
     const _spinTarget = _pickDensestEnemy();
+    // No enemies on screen: a random angle instead of a fixed direction - a
+    // fixed straight-up launch means vx is always exactly 0, so the Spinner
+    // just bounces up and down along one vertical line forever instead of
+    // covering the screen.
     const _spinAngle = _spinTarget
         ? Math.atan2(_spinTarget.y - y, _spinTarget.x - x)
-        : -Math.PI / 2; // no enemies on screen: straight up, same fallback Blade Arc uses
+        : Math.random() * Math.PI * 2;
     const _spinSpeed = 15 * 1.15; // 15 = old bouncing ball's speed, +15%
     spiritSpinners.push({
         x, y, size: 56 * 1.5, // was 1.35, bumped bigger again
