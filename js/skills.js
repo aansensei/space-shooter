@@ -1019,6 +1019,9 @@ function updatePrimevalSummonEffect(deltaTime) {
         // Transform the spirit
         const spirit = eff.targetSpirit;
         if (spirit && !spirit.isFinishing) {
+            // The normal Spirit's life effectively ends here too (it becomes
+            // Photokrystos) - launches a Spinner just like the natural finale.
+            _launchSpinner(spirit.x, spirit.y);
             spirit.isPhotokrystos = true;
             spirit._summoningUp = false;
             spirit.spawnGameTime = gameElapsedTime; // reset 40s timer
@@ -1327,30 +1330,36 @@ function updateSpiritFinale(spirit, deltaTime) {
         case 'firing': {
             addExplosion(spirit.x, spirit.y, 200, 'red');
             _setShake(25, 600);
-            // Launches toward whichever enemy sits in the densest local
-            // cluster, not the nearest one - the Spinner is meant to open
-            // on the crowd that gets the most value out of it.
-            const _spinTarget = _pickDensestEnemy();
-            const _spinAngle = _spinTarget
-                ? Math.atan2(_spinTarget.y - spirit.y, _spinTarget.x - spirit.x)
-                : -Math.PI / 2; // no enemies on screen: straight up, same fallback Blade Arc uses
-            const _spinSpeed = 15 * 1.15; // 15 = old bouncing ball's speed, +15%
-            spiritSpinners.push({
-                x: spirit.x, y: spirit.y, size: 56 * 1.5, // was 1.35, bumped bigger again
-                vx: Math.cos(_spinAngle) * _spinSpeed, vy: Math.sin(_spinAngle) * _spinSpeed,
-                spawnAt: performance.now(), lifetime: 5000,
-                bounceBoostEnd: 0, lastArcTick: 0,
-                _statSrc: 'Skill S: Spinner',
-            });
-            // Launch: a tight implosion of pink light at the Spirit's core,
-            // then a sharp starlight-shaped flash as it's ejected.
-            addExplosion(spirit.x, spirit.y, 22, '#ff44aa');
-            createParticles(spirit.x, spirit.y, 18, '#ffffff', 5, 12);
-            if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-throw', spirit.x, spirit.y);
+            _launchSpinner(spirit.x, spirit.y);
             spirit.isFinishing = false;
             break;
         }
     }
+}
+
+// Spawns a Spinner at (x,y), aimed at whichever enemy sits in the densest
+// local cluster (not the nearest one - it's meant to open on the crowd that
+// gets the most value out of it). Shared by the finale's natural end
+// (updateSpiritFinale's 'firing' case) and Primeval Creation's early
+// transform into Photokrystos (updatePrimevalSummonEffect) - both represent
+// the normal Spirit's life ending. Launch effects: a tight implosion of pink
+// light, then a sharp starlight-shaped flash as it's ejected.
+function _launchSpinner(x, y) {
+    const _spinTarget = _pickDensestEnemy();
+    const _spinAngle = _spinTarget
+        ? Math.atan2(_spinTarget.y - y, _spinTarget.x - x)
+        : -Math.PI / 2; // no enemies on screen: straight up, same fallback Blade Arc uses
+    const _spinSpeed = 15 * 1.15; // 15 = old bouncing ball's speed, +15%
+    spiritSpinners.push({
+        x, y, size: 56 * 1.5, // was 1.35, bumped bigger again
+        vx: Math.cos(_spinAngle) * _spinSpeed, vy: Math.sin(_spinAngle) * _spinSpeed,
+        spawnAt: performance.now(), lifetime: 5000,
+        bounceBoostEnd: 0, lastArcTick: 0,
+        _statSrc: 'Skill S: Spinner',
+    });
+    addExplosion(x, y, 22, '#ff44aa');
+    createParticles(x, y, 18, '#ffffff', 5, 12);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-throw', x, y);
 }
 
 function activateSkillD() {
