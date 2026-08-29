@@ -843,9 +843,9 @@
 </div>
 <div id="sSpiritPane1">
   <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
-  <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
-  <li><span class="det-full">Every 5th shot: <b>Blade Arc</b> (<span class="dmg">170 + 4.8% EP + 3% lost HP</span>). Destroys enemy bullets.</span><span class="det-short">Every 5th shot fires a <b>Blade Arc</b> that destroys bullets.</span></li>
-  <li><b>Finale @35s:</b> lasers + 8 bouncing plasma balls (both true damage).</li>
+  <ul><li>Orbiting Spirit fires homing bullets every <span class="hi">54ms</span> (<span class="dmg">120 + 0.50% EP</span>).</li>
+  <li><span class="det-full">Every 5th shot: <b>Blade Arc</b> (<span class="dmg">180 + 4.6% EP + 5.5% lost HP</span>). Destroys enemy bullets.</span><span class="det-short">Every 5th shot fires a <b>Blade Arc</b> that destroys bullets.</span></li>
+  <li><span class="det-full"><b>Finale @35s:</b> a 2.5s laser charge (<span class="dmg">10 + 40% EP</span> true dmg/tick), then launches a single <b>Spinner</b>: <span class="hi">5s</span> lifetime, bounces off every screen edge (a speed boost on launch and each bounce), <span class="dmg">200 + 20% EP</span> true damage on contact (can re-hit the same enemy after a short cooldown), and every <span class="hi">0.3s</span> near an enemy slashes 4 mini Arc Blades in a cross pattern (<span class="dmg">500 + 5% EP</span> piercing each).</span><span class="det-short"><b>Finale @35s:</b> lasers, then a single bouncing <b>Spinner</b> (5s) dealing heavy true damage on contact and periodically slashing 4 mini Arc Blades.</span></li>
   <li><b>Primeval Creation:</b> Spirit kills charge a mana bar (+2% per kill). At 100%, press S again to transform.</li></ul>
 </div>
 <div id="sSpiritPane2" style="display:none;">
@@ -1888,9 +1888,9 @@
 </div>
 <div id="sSpiritPane1">
   <div class="ab" style="height:210px"><canvas id="cvSkillS" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillS" onclick="playWidget('skillS', this)">▶ Play</button></div>
-  <ul><li>Tinh Linh bay quanh bắn đạn định hướng mỗi <span class="hi">54ms</span> (<span class="dmg">60 + 0.55% EP</span>).</li>
-  <li><span class="det-full">Mỗi phát bắn thứ 5: <b>Arc Blade</b> (<span class="dmg">170 + 4.8% EP + 3% HP đã mất</span>). Phá hủy đạn kẻ địch.</span><span class="det-short">Mỗi phát bắn thứ 5 bắn ra 1 đòn <b>Arc Blade</b> phá hủy đạn.</span></li>
-  <li><b>Chiêu cuối @35s:</b> laser + 8 quả cầu plasma nảy (cả hai đều là sát thương chuẩn).</li>
+  <ul><li>Tinh Linh bay quanh bắn đạn định hướng mỗi <span class="hi">54ms</span> (<span class="dmg">120 + 0.50% EP</span>).</li>
+  <li><span class="det-full">Mỗi phát bắn thứ 5: <b>Arc Blade</b> (<span class="dmg">180 + 4.6% EP + 5.5% HP đã mất</span>). Phá hủy đạn kẻ địch.</span><span class="det-short">Mỗi phát bắn thứ 5 bắn ra 1 đòn <b>Arc Blade</b> phá hủy đạn.</span></li>
+  <li><span class="det-full"><b>Chiêu cuối @35s:</b> tích lực laser 2.5s (<span class="dmg">10 + 40% EP</span> sát thương chuẩn/tick), sau đó phóng ra 1 <b>Spinner</b> duy nhất: tồn tại <span class="hi">5s</span>, nảy khi chạm mọi cạnh màn hình (được tăng tốc lúc phóng ra và mỗi lần nảy tường), gây <span class="dmg">200 + 20% EP</span> sát thương chuẩn khi chạm (có thể trúng lại cùng 1 kẻ địch sau một khoảng hồi ngắn), và mỗi <span class="hi">0.3s</span> nếu có kẻ địch gần sẽ chém ra 4 lưỡi Arc Blade nhỏ theo hình chữ thập (<span class="dmg">500 + 5% EP</span> xuyên giáp mỗi lưỡi).</span><span class="det-short"><b>Chiêu cuối @35s:</b> laser, sau đó 1 quả <b>Spinner</b> nảy tường (5s) gây sát thương chuẩn nặng khi chạm và định kỳ chém 4 lưỡi Arc Blade nhỏ.</span></li>
   <li><b>Khai Thiên Lập Địa:</b> hạ gục bằng Tinh Linh tích thanh năng lượng (+2% mỗi lần hạ gục). Ở 100%, bấm S lần nữa để biến hình.</li></ul>
 </div>
 <div id="sSpiritPane2" style="display:none;">
@@ -5045,10 +5045,15 @@
             if (window.AudioMgr) window.AudioMgr.playSfx('spirit-autofire');
             // elapsed/dt track real wall-clock time (matching lastSkillS, which
             // drawSpirit()'s own title-flash reads via performance.now()).
+            // Demo timeline: auto-fire+Blade Arc (0-2.4s) -> laser charge
+            // (2.4-3.4s, compressed from the real 2.5s for a snappier preview)
+            // -> Spinner finale (3.4-5.9s, shortened from the real 5s
+            // lifetime since this is just an illustration) -> reset.
             let lastShot = -999, shotCount = 0, arcFired = false, lastT = performance.now();
+            let demoSpinner = null;
             function tick() {
               const nowT = performance.now();
-              if (_widgetPauseGuard(btn, nowT, [{ get: () => lastSkillS, set: v => lastSkillS = v }])) { lastT = nowT; activeAnimations.push(requestAnimationFrame(tick)); return; }
+              if (_widgetPauseGuard(btn, nowT, [{ get: () => lastSkillS, set: v => lastSkillS = v }, { get: () => (demoSpinner ? demoSpinner.spawnAt : null), set: v => { if (demoSpinner) demoSpinner.spawnAt = v; } }])) { lastT = nowT; activeAnimations.push(requestAnimationFrame(tick)); return; }
               const elapsed = nowT - lastSkillS;
               const dt = nowT - lastT; lastT = nowT;
               gameElapsedTime += dt;
@@ -5060,7 +5065,7 @@
               demoSpirit.x = cx + Math.cos(sa) * 42;
               demoSpirit.y = cy + Math.sin(sa) * 26;
 
-              if (elapsed < 3200 && elapsed - lastShot >= 200) {
+              if (elapsed < 2400 && elapsed - lastShot >= 200) {
                 lastShot = elapsed; shotCount++;
                 const dx = target.x - demoSpirit.x, dy = target.y - demoSpirit.y, d = Math.hypot(dx, dy);
                 spiritBullets.push({ x: demoSpirit.x, y: demoSpirit.y, vx: (dx / d) * 6, vy: (dy / d) * 6, size: 3.5, isPhoto: false });
@@ -5084,10 +5089,13 @@
               }
               // Real bladeArcProjectiles are isPiercing (js/skills.js) — pass
               // straight through the target instead of stopping on first hit.
+              // isSpinnerBlade entries (from the finale below) skip the demo
+              // dummy's hp/particle feedback here since drawBladeArcProjectile
+              // already renders their own on-hit look distinctly.
               for (let i = bladeArcProjectiles.length - 1; i >= 0; i--) {
                 const arc = bladeArcProjectiles[i];
                 arc.x += arc.vx; arc.y += arc.vy;
-                if (!arc._hit && Math.hypot(arc.x - target.x, arc.y - target.y) < target.size + arc.radius * 0.5) {
+                if (!arc.isSpinnerBlade && !arc._hit && Math.hypot(arc.x - target.x, arc.y - target.y) < target.size + arc.radius * 0.5) {
                   arc._hit = true;
                   target.hp = Math.max(Math.ceil(target.maxHp * 0.15), target.hp - 30);
                   createParticles(target.x, target.y, 10, '#88ff00', 2, 5);
@@ -5095,20 +5103,75 @@
                 }
                 if (arc.x < -60 || arc.x > w + 60 || arc.y < -60 || arc.y > h + 60) bladeArcProjectiles.splice(i, 1);
               }
+
+              // Finale: compressed laser-charge flash, then a real Spinner —
+              // js/skills.js isn't loaded here, so its movement/bounce/arc-
+              // slash rules are mirrored inline (same numbers, not re-derived).
+              if (elapsed >= 2400 && elapsed < 3400) {
+                if (Math.floor(elapsed / 100) % 2 === 0) {
+                  particles.push({ isLaserLine: true, x1: demoSpirit.x, y1: demoSpirit.y, x2: target.x, y2: target.y, lifetime: 100, maxLifetime: 100, color: 'red' });
+                }
+              } else if (elapsed >= 3400 && !demoSpinner) {
+                addExplosion(demoSpirit.x, demoSpirit.y, 22, '#ff44aa');
+                createParticles(demoSpirit.x, demoSpirit.y, 14, '#ffffff', 3, 8);
+                const dx = target.x - demoSpirit.x, dy = target.y - demoSpirit.y, d = Math.hypot(dx, dy) || 1;
+                demoSpinner = {
+                  x: demoSpirit.x, y: demoSpirit.y, size: 56 * 1.5,
+                  vx: (dx / d) * 15 * 1.15, vy: (dy / d) * 15 * 1.15,
+                  spawnAt: nowT, lifetime: 2500, bounceBoostEnd: 0, lastArcTick: 0, // shortened from the real 5s - this is just an illustration
+                };
+              }
+              if (demoSpinner) {
+                const age = nowT - demoSpinner.spawnAt;
+                demoSpinner.lifetime -= dt;
+                if (demoSpinner.lifetime <= 0) {
+                  addExplosion(demoSpinner.x, demoSpinner.y, demoSpinner.size * 0.9, '#ff44aa');
+                  createParticles(demoSpinner.x, demoSpinner.y, 22, '#ff44aa', 3, 10);
+                  demoSpinner = null;
+                } else {
+                  const rampMult = age >= 2000 ? 1.0 : 1.5 - (0.4 * (age / 2000));
+                  const bounceMult = nowT < demoSpinner.bounceBoostEnd ? 1.10 : 1.0;
+                  const speedMult = rampMult * bounceMult;
+                  demoSpinner.x += demoSpinner.vx * speedMult * (dt / 16.67);
+                  demoSpinner.y += demoSpinner.vy * speedMult * (dt / 16.67);
+                  let bounced = false;
+                  if (demoSpinner.x < demoSpinner.size) { demoSpinner.x = demoSpinner.size; demoSpinner.vx = Math.abs(demoSpinner.vx); bounced = true; }
+                  else if (demoSpinner.x > w - demoSpinner.size) { demoSpinner.x = w - demoSpinner.size; demoSpinner.vx = -Math.abs(demoSpinner.vx); bounced = true; }
+                  if (demoSpinner.y < demoSpinner.size) { demoSpinner.y = demoSpinner.size; demoSpinner.vy = Math.abs(demoSpinner.vy); bounced = true; }
+                  else if (demoSpinner.y > h - demoSpinner.size) { demoSpinner.y = h - demoSpinner.size; demoSpinner.vy = -Math.abs(demoSpinner.vy); bounced = true; }
+                  if (bounced) demoSpinner.bounceBoostEnd = nowT + 1000;
+
+                  if (Math.hypot(target.x - demoSpinner.x, target.y - demoSpinner.y) < target.size + demoSpinner.size) {
+                    target.hp = Math.max(Math.ceil(target.maxHp * 0.15), target.hp - 40);
+                    createParticles(target.x, target.y, 6, '#ff44aa', 3, 8);
+                  }
+                  demoSpinner.lastArcTick -= dt;
+                  if (demoSpinner.lastArcTick <= 0 && Math.hypot(target.x - demoSpinner.x, target.y - demoSpinner.y) < demoSpinner.size / 2 + 100) {
+                    demoSpinner.lastArcTick = 300;
+                    demoSpinner._arcFlashEnd = nowT + 180;
+                    for (let d = 0; d < 4; d++) {
+                      const a = (Math.PI / 2) * d;
+                      bladeArcProjectiles.push({ x: demoSpinner.x, y: demoSpinner.y, vx: Math.cos(a) * 6, vy: Math.sin(a) * 6, radius: 70, isSpinnerBlade: true });
+                    }
+                    if (window.AudioMgr) window.AudioMgr.playSfx('spirit-arc-slash');
+                  }
+                }
+              }
               _tickParticlesAndExplosions(dt);
 
               drawPlayer();
               drawEnemy(target);
-              drawSpirit(demoSpirit);
+              if (!demoSpinner) drawSpirit(demoSpirit);
               spiritBullets.forEach(drawSpiritBullet);
               bladeArcProjectiles.forEach(drawBladeArcProjectile);
+              if (demoSpinner) drawSpiritSpinner(demoSpinner);
               particles.forEach(drawParticle);
               explosions.forEach(drawExplosion);
 
-              if (elapsed < 4000) {
+              if (elapsed < 6100) {
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
-                spiritBullets.length = 0; bladeArcProjectiles.length = 0; particles.length = 0; explosions.length = 0;
+                spiritBullets.length = 0; bladeArcProjectiles.length = 0; particles.length = 0; explosions.length = 0; demoSpinner = null;
                 btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
                 drawIdle();
               }

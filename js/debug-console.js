@@ -251,6 +251,7 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugForceSkill('Shift')">Shift</button>
         <button class="dbg-btn" onclick="debugForceSkill('Laser')">Laser</button>
         <button class="dbg-btn" onclick="debugForceSkill('Photokrystos')">Photokrystos</button>
+        <button class="dbg-btn" onclick="debugForceSkill('S-Spinner')">S Finale (Spinner)</button>
       </div>
       <div class="dbg-row">
         <button class="dbg-btn" onclick="if (typeof cancelSkillShift === 'function') cancelSkillShift();">Cancel Shift</button>
@@ -584,6 +585,26 @@ window.debugSetYuukiBonus = function () {
                     }
                     if (typeof primevalEnergy !== 'undefined') primevalEnergy = 100;
                     activateSkillS();
+                }
+                break;
+            case 'S-Spinner':
+                // Ensures a normal spirit exists, then jumps it straight into
+                // the finale's 'firing' state - skips the moving/charging
+                // wind-up (2.5s) so the Spinner spawns immediately for a
+                // quick visual check.
+                {
+                    let _spirit = (typeof spirits !== 'undefined') && spirits.find(sp => !sp.isFinishing && !sp.isPhotokrystos);
+                    if (!_spirit) {
+                        lastSkillS = -Infinity;
+                        spirits.length = 0;
+                        if (typeof activateSkillS === 'function') activateSkillS();
+                        _spirit = spirits[0];
+                    }
+                    if (_spirit) {
+                        _spirit.isFinishing = true;
+                        _spirit.finaleState = 'firing';
+                        if (typeof updateSpiritFinale === 'function') updateSpiritFinale(_spirit, 16.67);
+                    }
                 }
                 break;
             case 'D':

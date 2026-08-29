@@ -971,6 +971,7 @@ function draw(deltaTime) {
         drawMirrorLaserColumns();
         drawGoldenArrowSweep();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
+        spiritSpinners.forEach(drawSpiritSpinner);
         marchosiasBlades.forEach(_drawMarchoBlade);
         scatteredProjectiles.forEach(drawScatteredProjectile);
         _drawDimensionalRiftsCtx(); // always on ctx, drawn before enemies so rift appears behind them

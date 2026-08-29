@@ -452,7 +452,7 @@ function updateSpirits(deltaTime) {
                 const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 75, percentDamage: 0.007,
+                    damage: 120, percentDamage: 0.005,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
                     isSpirit: true, _statSrc: 'Skill S: Remembrance Spirit',
                 });
@@ -471,7 +471,7 @@ function updateSpirits(deltaTime) {
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
             if (_hasBuff('song_luoi')) {
-                const baseDmg = 210 * 1.60, basePct = 0.058 * 1.60;
+                const baseDmg = 180 * 1.60, basePct = 0.046 * 1.60;
                 const speed = 15.84;
                 const baseAngle = Math.atan2(vy, vx);
                 const sideOff = 22;
@@ -495,7 +495,7 @@ function updateSpirits(deltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             } else {
                 player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
-                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 210, percentDamage: 0.058, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 180, percentDamage: 0.046, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             }
         }
@@ -1081,7 +1081,7 @@ function updateBladeArcProjectiles(deltaTime) {
                 if (checkMarchosiasArcBarrier(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
                 const _arcBypass = _hasBuff('tu_huyet');
                 const _arcSrc = (arc.isSpirit && arc.isPiercing)
-                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.03), percentDamage: arc.percentDamage, isPiercing: true, _bypassIronBody: _arcBypass }
+                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.055), percentDamage: arc.percentDamage, isPiercing: true, _bypassIronBody: _arcBypass }
                     : arc;
                 if (_arcBypass) _arcSrc._bypassIronBody = true;
                 // Đánh dấu cho hiệu ứng "vết chém" riêng của Goliath (xem dealDamage)
@@ -1113,7 +1113,150 @@ function updateBladeArcProjectiles(deltaTime) {
                     enemy._spiritKillCounted = true;
                     primevalEnergy = Math.min(100, primevalEnergy + 2 * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1));
                 }
+                // Mini arc blade on-hit: a crescent flash wrapping the enemy's
+                // edge, dissolving into digital static - distinct from the
+                // big Blade Arc's own hit feel.
+                if (arc.isSpinnerBlade) {
+                    createParticles(enemy.x, enemy.y, 6, '#e0ffff', 2, 6);
+                    createParticles(enemy.x, enemy.y, 4, '#00ffff', 1, 4);
+                }
                 arc.hitEnemies.push(enemy);
+            }
+        }
+    }
+}
+
+// Fires the Spinner's 4-direction mini Arc Blade volley (cross pattern,
+// N/E/S/W) - shared by both triggers that launch it: the periodic proximity
+// check in updateSpiritSpinners() and the independent per-collision trigger
+// on the Spinner's own body-contact hit.
+function _fireSpinnerBlades(s, now) {
+    // Arc-blade launch: a sudden 4-way crosshair flash of cyan light over
+    // the Spinner, a beat before the blades snap out. Read by
+    // drawSpiritSpinner() every frame while now < this.
+    s._arcFlashEnd = now + 180;
+    // Twin Blades (Sagittarius): doubles each direction into a pair (+60%
+    // damage each, 2nd fires 15ms later at +20% radius) - the same
+    // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
+    const _twinBlades = _hasBuff('song_luoi');
+    const _bladeDmg = _twinBlades ? 500 * 1.60 : 500;
+    const _bladePct = _twinBlades ? 0.05 * 1.60 : 0.05;
+    for (let d = 0; d < 4; d++) {
+        const a = (Math.PI / 2) * d;
+        bladeArcProjectiles.push({
+            x: s.x, y: s.y, vx: Math.cos(a) * 15.84, vy: Math.sin(a) * 15.84,
+            radius: 70, damage: _bladeDmg, percentDamage: _bladePct, hitEnemies: [],
+            isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, _statSrc: s._statSrc,
+        });
+        if (_twinBlades) {
+            if (!window._pendingBlades) window._pendingBlades = [];
+            window._pendingBlades.push({
+                spawnAt: now + 15,
+                data: { x: s.x, y: s.y, vx: Math.cos(a) * 15.84, vy: Math.sin(a) * 15.84,
+                    radius: 70 * 1.20, damage: _bladeDmg, percentDamage: _bladePct, hitEnemies: [],
+                    isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, _statSrc: s._statSrc },
+            });
+        }
+    }
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', s.x, s.y);
+}
+
+// Bouncing Spinner from the Spirit finale (replaces the old 8-ball burst).
+// Speed is stored as a base vx/vy at spawn; the ramp/bounce-boost below are
+// pure per-frame multipliers on top of it, so they rise and fall freely
+// without ever needing to renormalize the velocity vector.
+function updateSpiritSpinners(deltaTime) {
+    const dt = deltaTime / 16.67;
+    const now = performance.now();
+    for (let i = spiritSpinners.length - 1; i >= 0; i--) {
+        const s = spiritSpinners[i];
+        s.lifetime -= deltaTime;
+        if (s.lifetime <= 0) {
+            // Despawn: a clean finish, not a fade - shatters inward into dust.
+            addExplosion(s.x, s.y, s.size * 0.9, '#ff44aa');
+            createParticles(s.x, s.y, 22, '#ff44aa', 3, 10);
+            createParticles(s.x, s.y, 8, '#ffffff', 1, 4);
+            spiritSpinners.splice(i, 1);
+            continue;
+        }
+
+        const age = now - s.spawnAt;
+        // Launch ramp: +50% speed decaying to +10% over the first 2s, then
+        // gone entirely - a one-time opening burst, not a lasting buff.
+        const rampMult = age >= 2000 ? 1.0 : 1.5 - (0.4 * (age / 2000));
+        const bounceMult = now < s.bounceBoostEnd ? 1.10 : 1.0;
+        const speedMult = rampMult * bounceMult;
+
+        s.x += s.vx * speedMult * dt;
+        s.y += s.vy * speedMult * dt;
+
+        // Clamp position to the wall (not just flip velocity) and force the
+        // post-bounce direction with Math.abs - at the higher speeds the
+        // launch ramp/bounce boost push it to, a plain "just negate vx" can
+        // overshoot far enough that the next frame's move doesn't clear the
+        // wall either, re-triggering the same flip and jittering in place
+        // instead of bouncing cleanly away.
+        let bounced = false;
+        if (s.x < s.size) { s.x = s.size; s.vx = Math.abs(s.vx); bounced = true; }
+        else if (s.x > canvas.width - s.size) { s.x = canvas.width - s.size; s.vx = -Math.abs(s.vx); bounced = true; }
+        if (s.y < s.size) { s.y = s.size; s.vy = Math.abs(s.vy); bounced = true; }
+        else if (s.y > canvas.height - s.size) { s.y = canvas.height - s.size; s.vy = -Math.abs(s.vy); bounced = true; }
+        if (bounced) s.bounceBoostEnd = now + 1000; // refreshes on each bounce, never stacks
+
+        // Body-contact damage: no per-enemy cooldown right now (removed per
+        // request, temporary) - deals damage every frame it's overlapping.
+        for (const enemy of enemies) {
+            if (enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
+            const enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
+            if (Math.hypot(enemy.x - s.x, enemy.y - s.y) >= enemyRadius + s.size) continue;
+            if (checkMarchosiasArcBarrier(enemy, s, s.x, s.y)) continue;
+            dealDamage(enemy, { damage: 200, percentDamage: 0.20, isTrueDamage: true, _statSrc: s._statSrc });
+            // On-hit: a sharp crack - jagged magenta shards plus a quick
+            // white flash at the contact point, selling the heavy true damage.
+            createParticles(enemy.x, enemy.y, 8, '#ff44aa', 3, 8);
+            createParticles(enemy.x, enemy.y, 3, '#ffffff', 2, 5);
+            // Colliding with ANY target also fires the mini Arc Blade volley
+            // immediately - independent of (on top of) the periodic 300ms
+            // proximity trigger below, so a body hit always slashes too.
+            _fireSpinnerBlades(s, now);
+            // Arctic Chill (Sagittarius): same slow+pull the Spirit's arc
+            // slash already gets, extended to the Spinner's own body hit too.
+            if (_hasBuff('cuc_han') && Math.random() < 0.75) {
+                enemy._slowEnd = Math.max(enemy._slowEnd || 0, now + 2000);
+                enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
+                const _cucSpinImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+                    || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
+                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+                if (enemy.type === 'goliath') {
+                    // không kéo
+                } else if (!_cucSpinImmune) {
+                    const _sdx = s.x - enemy.x, _sdy = s.y - enemy.y, _sd = Math.hypot(_sdx, _sdy) || 1;
+                    enemy.x += (_sdx / _sd) * 38; enemy.y += (_sdy / _sd) * 38;
+                } else if (Math.random() < 0.25) {
+                    const _sdx = s.x - enemy.x, _sdy = s.y - enemy.y, _sd = Math.hypot(_sdx, _sdy) || 1;
+                    enemy.x += (_sdx / _sd) * 38; enemy.y += (_sdy / _sd) * 38;
+                }
+            }
+        }
+
+        // Every 300ms, if any enemy is close enough, slash 4 mini arc blades
+        // in a fixed cross pattern - a secondary attack layered on the body.
+        s.lastArcTick -= deltaTime;
+        if (s.lastArcTick <= 0) {
+            const _arcRange = s.size / 2 + 100;
+            const _hasNearby = enemies.some(e =>
+                !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo'
+                && !e.inCoronation && e.hp > 0 && !e._markedForDeath
+                && Math.hypot(e.x - s.x, e.y - s.y) < _arcRange
+            );
+            if (_hasNearby) {
+                // Arctic Chill (Sagittarius): same +30% fire rate it already
+                // gives the Spirit's own auto-fire, applied to the Spinner's
+                // arc-slash beat.
+                s.lastArcTick = _hasBuff('cuc_han') ? 300 / 1.30 : 300;
+                _fireSpinnerBlades(s, now);
+            } else {
+                s.lastArcTick = 0; // keep checking every frame until an enemy comes into range
             }
         }
     }
@@ -1194,20 +1337,32 @@ function updateSpiritFinale(spirit, deltaTime) {
             }
             if (spirit.finaleChargeTime <= 0) spirit.finaleState = 'firing';
             break;
-        case 'firing':
+        case 'firing': {
             addExplosion(spirit.x, spirit.y, 200, 'red');
             _setShake(25, 600);
-            for (let i = 0; i < 8; i++) {
-                let angle = (Math.PI / 4) * i;
-                scatteredProjectiles.push({
-                    x: spirit.x, y: spirit.y,
-                    vx: Math.cos(angle) * 15, vy: Math.sin(angle) * 15,
-                    damage: 10, percentDamage: 0.25, size: 56, lifetime: 4000, isBouncingBall: true,
-                    isTrueDamage: true, _statSrc: 'Skill S: Remembrance Spirit',
-                });
-            }
+            // Launches toward whichever enemy sits in the densest local
+            // cluster, not the nearest one - the Spinner is meant to open
+            // on the crowd that gets the most value out of it.
+            const _spinTarget = _pickDensestEnemy();
+            const _spinAngle = _spinTarget
+                ? Math.atan2(_spinTarget.y - spirit.y, _spinTarget.x - spirit.x)
+                : -Math.PI / 2; // no enemies on screen: straight up, same fallback Blade Arc uses
+            const _spinSpeed = 15 * 1.15; // 15 = old bouncing ball's speed, +15%
+            spiritSpinners.push({
+                x: spirit.x, y: spirit.y, size: 56 * 1.5, // was 1.35, bumped bigger again
+                vx: Math.cos(_spinAngle) * _spinSpeed, vy: Math.sin(_spinAngle) * _spinSpeed,
+                spawnAt: performance.now(), lifetime: 5000,
+                bounceBoostEnd: 0, lastArcTick: 0,
+                _statSrc: 'Skill S: Spinner',
+            });
+            // Launch: a tight implosion of pink light at the Spirit's core,
+            // then a sharp starlight-shaped flash as it's ejected.
+            addExplosion(spirit.x, spirit.y, 22, '#ff44aa');
+            createParticles(spirit.x, spirit.y, 18, '#ffffff', 5, 12);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-throw', spirit.x, spirit.y);
             spirit.isFinishing = false;
             break;
+        }
     }
 }
 
@@ -2172,6 +2327,24 @@ function _pickSolArrowSecondaryTarget(exclude) {
         if (r <= 0) return candidates[i];
     }
     return candidates[candidates.length - 1];
+}
+
+// Direction-launch helper for the Spirit finale's Spinner: unlike
+// _pickSolArrowSecondaryTarget's weighted-random pick, this deterministically
+// returns whichever enemy sits in the single densest local cluster, reusing
+// the same 220px neighbor-counting formula.
+function _pickDensestEnemy() {
+    const validTargets = _solArrowValidTargets();
+    if (validTargets.length === 0) return null;
+    let best = validTargets[0], bestCount = -1;
+    for (const e of validTargets) {
+        let nearby = 0;
+        for (const other of validTargets) {
+            if (other !== e && Math.hypot(other.x - e.x, other.y - e.y) < 220) nearby++;
+        }
+        if (nearby > bestCount) { bestCount = nearby; best = e; }
+    }
+    return best;
 }
 
 function _queueSolArrowOne(isPrimary, marked) {

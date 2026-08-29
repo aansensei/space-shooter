@@ -2061,6 +2061,7 @@ function update(rawDeltaTime) {
     updateDimensionalRifts(deltaTime); _profChk2.push(performance.now());
     updateScatteredProjectiles(deltaTime); _profChk2.push(performance.now());
     updateSpirits(deltaTime); _profChk2.push(performance.now());
+    updateSpiritSpinners(deltaTime); _profChk2.push(performance.now());
     updateBladeArcProjectiles(deltaTime); _profChk2.push(performance.now());
     updateSpiritBullets(deltaTime); _profChk2.push(performance.now());
     updatePhotoBrangs(deltaTime); _profChk2.push(performance.now());
@@ -2797,7 +2798,7 @@ function startGame() {
     skillShiftChargeStart = 0;
     lastSkillShift = -Infinity;
 
-    spiritBullets = []; spiritParticles = []; bladeArcProjectiles = [];
+    spiritBullets = []; spiritParticles = []; bladeArcProjectiles = []; spiritSpinners = [];
     window._pendingBlades = [];
     playerClones = []; sentinels = []; killCountForPassive = 0;
     spirits = []; deathStar = null;

@@ -81,7 +81,7 @@ let primevalSummonEffect = null; // summoning circle animation
 let _spiritCooldownOverrideUntil = 0; // after Phōtokrystos BTM, force 40s CD
 let lastSkillS = -Infinity;
 const skillSCooldown = 12000;
-let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [];
+let spiritBullets = [], spiritParticles = [], bladeArcProjectiles = [], spiritSpinners = [];
 
 // Skill D
 let skillDCharging = false, skillDChargeStartTime = 0;

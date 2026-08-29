@@ -255,9 +255,9 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
-- **Spirit Bullet:** 60 base + 0.55% EP, homing, +10% flight speed bonus.
-- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 170 base + 4.8% EP + 3% of target's lost HP.
-- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% EP per tick, true damage), then explodes into 8 massive bouncing plasma balls (10 base + 25% EP, bounce off walls, true damage).
+- **Spirit Bullet:** 120 base + 0.50% EP, homing, +10% flight speed bonus.
+- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 180 base + 4.6% EP + 5.5% of target's lost HP.
+- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% EP per tick, true damage), then launches a single Spinner: 5-second lifetime, bounces off every screen edge (speed boost on launch and each bounce), 200 base + 20% EP true damage on contact (can re-hit the same enemy), and every 0.3s near an enemy slashes 4 mini Arc Blades in a cross pattern (500 base + 5% EP piercing each).
 
 ---
 

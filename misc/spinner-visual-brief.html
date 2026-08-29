@@ -1,0 +1,233 @@
+<title>Spinner Visual Brief</title>
+<style>
+  :root {
+    --bg: #0a0712;
+    --surface: #150f20;
+    --surface-2: #1c1430;
+    --border: #33254a;
+    --text: #ece6f5;
+    --text-dim: #a89bc2;
+    --spirit: #ff4fb3;
+    --spirit-dim: #7a2a5c;
+    --blade: #b6ff3f;
+    --blade-dim: #4d6e1c;
+    --amber: #ffcf6b;
+    --mono: #d8cdf0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f3fb;
+      --surface: #ffffff;
+      --surface-2: #efe9f9;
+      --border: #d9cfec;
+      --text: #241c33;
+      --text-dim: #6b5e85;
+      --spirit: #c22688;
+      --spirit-dim: #f0c9e2;
+      --blade: #5f8a12;
+      --blade-dim: #d8ecb0;
+      --amber: #a8710f;
+      --mono: #3a2f52;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f3fb;
+    --surface: #ffffff;
+    --surface-2: #efe9f9;
+    --border: #d9cfec;
+    --text: #241c33;
+    --text-dim: #6b5e85;
+    --spirit: #c22688;
+    --spirit-dim: #f0c9e2;
+    --blade: #5f8a12;
+    --blade-dim: #d8ecb0;
+    --amber: #a8710f;
+    --mono: #3a2f52;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', 'Be Vietnam Pro', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+  h1, h2, h3 {
+    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+    text-wrap: balance;
+    color: var(--text);
+    margin: 0;
+  }
+  .eyebrow {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--spirit);
+    margin: 0 0 10px;
+  }
+  h1 { font-size: 30px; font-weight: 700; letter-spacing: 1px; }
+  .sub { color: var(--text-dim); font-size: 15px; margin-top: 10px; max-width: 60ch; }
+  h2 {
+    font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--spirit); margin: 56px 0 16px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h2.blade { color: var(--blade); }
+  h3 { font-size: 16px; font-weight: 700; color: var(--text); margin: 22px 0 8px; }
+  p { margin: 0 0 12px; max-width: 65ch; }
+  ul { margin: 0 0 12px; padding-left: 22px; }
+  li { margin-bottom: 8px; max-width: 62ch; }
+  b { color: var(--text); font-weight: 700; }
+  .hi { color: var(--spirit); font-weight: 600; }
+  .hb { color: var(--blade); font-weight: 600; }
+  .amber { color: var(--amber); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  header {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-bottom: 28px; border-bottom: 1px solid var(--border);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 14px;
+  }
+
+  pre {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--mono);
+    margin: 0 0 16px;
+  }
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  .kw { color: var(--spirit); }
+  .num { color: var(--amber); }
+  .cm { color: var(--text-dim); font-style: italic; }
+  .str { color: var(--blade); }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-family: 'Orbitron', sans-serif; font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+  td.tier { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 1px; white-space: nowrap; }
+  .tier-full { color: var(--spirit); }
+  .tier-med { color: var(--amber); }
+  .tier-low { color: var(--text-dim); }
+
+  .effect-list { display: flex; flex-direction: column; gap: 10px; }
+  .effect-row {
+    display: grid; grid-template-columns: 160px 1fr; gap: 14px;
+    padding: 12px 14px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; align-items: baseline;
+  }
+  .effect-name { font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 1px; color: var(--text); }
+
+  .promptbox {
+    background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    border: 1.5px solid var(--spirit-dim);
+    border-radius: 12px;
+    padding: 26px 26px 22px;
+    position: relative;
+  }
+  .promptbox .eyebrow { margin-bottom: 14px; }
+  .promptbox p { color: var(--text); }
+  .promptbox p + p { margin-top: 14px; }
+
+  footer {
+    margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--border);
+    color: var(--text-dim); font-size: 13px;
+  }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<header>
+  <p class="eyebrow">Pisces: Space Journey — Skill S rework</p>
+  <h1>Spinner Visual Brief</h1>
+  <p class="sub">Reference doc for briefing an external design AI on two new effects replacing the Remembrance Spirit's finale: a single bouncing <span class="hi">Spinner</span> and its four-direction <span class="hb">mini Arc Blade</span> slash. Paste the boxed prompt at the bottom directly, or hand the whole page over as context.</p>
+</header>
+
+<h2>The mechanic, in plain terms</h2>
+<div class="card">
+  <p>Today, when a Remembrance Spirit reaches the end of its 35-second life, it fires <b>8 identical bouncing balls</b> that scatter outward. That's being replaced by <b>one</b> much stronger object — a <span class="hi">Spinner</span> — that lives for <span class="amber">5 seconds</span>:</p>
+  <ul>
+    <li>It launches toward whichever direction of the screen currently has the <b>most enemies clustered together</b> — not a random or nearest-enemy direction.</li>
+    <li>It flies fast, bounces off every screen edge indefinitely, and gets a real <b>speed rush</b> at two moments: right after launch (fading over its first 2 seconds), and again, briefly, every time it bounces off a wall.</li>
+    <li>Any enemy it physically touches takes heavy true damage — and unlike a normal bouncing ball, it can hit the <b>same enemy again</b> after a short cooldown, not just once ever.</li>
+    <li>Whenever an enemy is near it, it periodically <b>slashes out 4 small arc blades</b> in a fixed cross pattern (up/down/left/right), on a steady beat — a secondary attack layered on top of the bouncing body.</li>
+    <li>When its 5 seconds run out, it's gone — no lingering, a clean despawn.</li>
+  </ul>
+</div>
+
+<h2>Data shape (for grounding, not for the artist to read literally)</h2>
+<pre><span class="cm">// The Spinner itself — one object, spawned once per finale</span>
+{
+  x, y,                    <span class="cm">// world position</span>
+  size: <span class="num">70</span>,               <span class="cm">// 25% larger than the old bouncing ball (was 56)</span>
+  vx, vy,                  <span class="cm">// velocity, aimed at the enemy-densest direction on launch</span>
+  spawnAt, lifetime: <span class="num">5000</span>, <span class="cm">// 5-second total lifespan</span>
+  bounceBoostEnd: <span class="num">0</span>,        <span class="cm">// timestamp; +10% speed while now &lt; this (refreshes on bounce)</span>
+  lastArcTick: <span class="num">0</span>,           <span class="cm">// every 300ms, if an enemy is nearby: fire the 4-blade slash</span>
+  hitCooldowns: <span class="kw">new</span> Map(),  <span class="cm">// enemy → next time it can be hit again (not "once ever")</span>
+}
+
+<span class="cm">// Each of the 4 mini arc blades it slashes out, fixed N/E/S/W directions</span>
+{
+  x, y,                    <span class="cm">// spawned at the Spinner's current position</span>
+  vx, vy,                  <span class="cm">// one of 0°/90°/180°/270°, fixed screen-space, not aimed</span>
+  radius: <span class="num">70</span>,             <span class="cm">// smaller than the Spirit's own Blade Arc (radius 125)</span>
+  isSpinnerBlade: <span class="kw">true</span>,    <span class="cm">// flags it as this new, visually distinct blade variant</span>
+}</pre>
+
+<h2>Existing visual language to match — and depart from</h2>
+<div class="card">
+  <h3>The Remembrance Spirit's own palette</h3>
+  <p>The Spirit and everything it fires reads in <b style="color:var(--spirit)">magenta/pink</b> (hex family around <code>#ff44aa</code>) with white-hot highlights. The Spinner should clearly belong to this same creature — same family of pinks/magentas — but needs its own identity distinct from a plain bullet: think a dense, spinning, faceted mass rather than a soft glowing orb.</p>
+  <h3>The Spirit's current Blade Arc (the one already in the game)</h3>
+  <p>Every 5th shot, the Spirit already fires a <b style="color:var(--blade)">lime-green</b> Blade Arc: a wide half-ring stroke (like a scythe swing) with rotating pixel-square decorations and small orbiting "atom" particles drifting off its face. It's a big, deliberate arc — radius 125, built from layered strokes (soft outer wash → glow → bright core → thin edge line).</p>
+  <p>The new <b>mini Arc Blade</b> (the 4-directional one the Spinner fires) needs to read as a <b>relative</b> of that move — same "arc slash" family — but genuinely <b>redesigned</b>, not just a shrunk recolor: smaller (radius ~70), a different silhouette or decoration language, and ideally a color that separates it from both the big Blade Arc's lime-green and the Spinner's own magenta (a third accent — perhaps a hot white-violet or electric cyan — so all three read as distinct at a glance in a busy fight).</p>
+</div>
+
+<h2 class="blade">Quality tiers</h2>
+<div class="card">
+  <p>This game auto-scales visual detail across 3 tiers based on live performance (desktop stays on the top tier almost always; the drop only happens on genuinely weak hardware or heavy on-screen clutter). Every effect needs a design for all three — the artist should describe how each one <b>sheds</b> detail going down the tiers, not just draw the top tier and stop.</p>
+  <table>
+    <tr><th>Tier</th><th>What survives</th></tr>
+    <tr><td class="tier tier-full">Full</td><td>Full glow/bloom, layered strokes, particle trails, rotating decorative elements — the "hero" look.</td></tr>
+    <tr><td class="tier tier-med">Med</td><td>Flat gradient fill, no glow/shadow blur, no decorative particles — silhouette and color read the same, detail doesn't.</td></tr>
+    <tr><td class="tier tier-low">Low</td><td>A single flat-colored shape, no gradient — must still be instantly readable as "the Spinner" / "the mini blade" at a glance from its outline and color alone.</td></tr>
+  </table>
+</div>
+
+<h2>Effects needed</h2>
+<div class="effect-list">
+  <div class="effect-row"><span class="effect-name">Launch</span><span>The instant the Spinner fires off from the Spirit's position — a burst/wind-up moment that sells the initial speed rush.</span></div>
+  <div class="effect-row"><span class="effect-name">In-flight motion</span><span>Its constant look while spinning and bouncing around the arena — the idle/traveling state, most of its 5-second life.</span></div>
+  <div class="effect-row"><span class="effect-name">Speed-boost tell</span><span>A visible difference during the launch ramp and each post-bounce speed spike — motion blur, trail stretch, brighter core, whatever reads as "faster right now."</span></div>
+  <div class="effect-row"><span class="effect-name">Arc-blade slash launch</span><span>The moment all 4 mini blades fire outward from the Spinner.</span></div>
+  <div class="effect-row"><span class="effect-name">Arc-blade model</span><span>The blade's own shape/body while it travels outward — the new, redesigned look described above.</span></div>
+  <div class="effect-row"><span class="effect-name">On-hit impact</span><span>What plays when the Spinner's body connects with an enemy (separate from the arc blades' own hits).</span></div>
+  <div class="effect-row"><span class="effect-name">Despawn</span><span>How the Spinner ends at the 5-second mark — a deliberate finish, not a pop.</span></div>
+</div>
+
+<h2>Prompt — copy this to the design AI</h2>
+<div class="promptbox">
+  <p class="eyebrow">Ready to paste</p>
+  <p>Design the visual appearance of two new bullet-hell projectile effects for a space-shooter game, in the visual language of an existing "Remembrance Spirit" ally that fires magenta/pink energy attacks (hex family around <code>#ff44aa</code>).</p>
+  <p><b>Effect 1 — the Spinner:</b> a single dense, fast-spinning projectile (roughly 70px diameter on screen) that launches from the Spirit toward the densest cluster of enemies, then bounces off the screen's edges for 5 seconds, visibly speeding up right after launch and again briefly each time it bounces off a wall, before a deliberate despawn. It should read as a family member of the Spirit's magenta palette, but as a dense faceted/spinning mass rather than a soft glowing orb.</p>
+  <p><b>Effect 2 — the mini Arc Blade:</b> while the Spinner is near an enemy, it periodically slashes out 4 small versions of the same energy blade in a fixed cross pattern (up, down, left, right). The game already has a larger lime-green "Blade Arc" — a wide half-ring energy slash with rotating pixel-square decorations and small orbiting particle motes. This new mini blade (roughly half that size) needs to read as a clear relative of that move but genuinely redesigned, not a shrunk recolor — ideally its own third accent color (e.g. a hot white-violet or electric cyan) so it's visually distinct from both the Spirit's magenta and the big Blade Arc's lime-green in a busy fight.</p>
+  <p>Deliver both effects across <b>3 graphics quality tiers</b>: <b>Full</b> (complete glow/bloom, layered detail, particle trails), <b>Med</b> (flat gradient shapes only, no glow or particles), and <b>Low</b> (a single flat silhouette, still instantly recognizable by shape and color alone). For each effect, separately describe: its launch moment, its idle/in-flight look, a visible "speeding up" state, an on-hit impact flash, and (for the Spinner) its despawn moment.</p>
+</div>
+
+<footer>Pisces: Space Journey — internal design reference, not shipped game content.</footer>

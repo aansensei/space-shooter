@@ -955,12 +955,77 @@ function drawPhotoBrang(b) {
     ctx.restore();
 }
 
+// Crescent shape for the mini arc blade: a smooth outer arc (leading edge)
+// closed by a jagged chevron inner edge (trailing edge - the "fractured/
+// serrated" motif) instead of a plain half-ring.
+function _drawMiniBladeCrescent(x, y, sa, ea, r, teethScale) {
+    const innerR = r * 0.6;
+    ctx.beginPath();
+    ctx.arc(x, y, r, sa, ea);
+    const teeth = 6;
+    for (let i = 0; i <= teeth; i++) {
+        const t = i / teeth;
+        const a = ea - (ea - sa) * t;
+        const rr = (i % 2 === 0 ? innerR : innerR * 0.7) * teethScale;
+        ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+}
+
 // Blade arc
 function drawBladeArcProjectile(arc) {
     const now = performance.now();
     ctx.save();
     const angle = Math.atan2(arc.vy, arc.vx);
     const sa = angle - Math.PI / 2, ea = angle + Math.PI / 2;
+
+    // Spinner's mini arc blade: an electric-cyan serrated crescent, distinct
+    // from the lime-green half-ring Blade Arc below - smooth bright leading
+    // edge, jagged "teeth" trailing edge (chevron cutouts) instead of the
+    // big blade's pixel-square/atom-particle decoration, since 4 of these
+    // fire every 300ms and need to stay cheap.
+    if (arc.isSpinnerBlade) {
+        const r = arc.radius;
+        // LOW: flat unshaded cyan, trailing serration exaggerated for readability
+        if (_mobPerf) {
+            ctx.fillStyle = '#00ffff';
+            _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r, 1.2);
+            ctx.restore();
+            return;
+        }
+        const tip = { x: arc.x + Math.cos(angle) * r, y: arc.y + Math.sin(angle) * r };
+        const tail = { x: arc.x - Math.cos(angle) * r * 0.3, y: arc.y - Math.sin(angle) * r * 0.3 };
+        if (_gfxLevel < 1) {
+            // FULL: layered cyan glow behind + white-hot core + shed shards
+            ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 16;
+            ctx.fillStyle = 'rgba(0,255,255,0.32)';
+            _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r * 1.1, 1);
+            ctx.shadowBlur = 0;
+            const g = ctx.createLinearGradient(tip.x, tip.y, tail.x, tail.y);
+            g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#8dfcff'); g.addColorStop(1, '#00b3cc');
+            ctx.fillStyle = g;
+            _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r, 1);
+            for (let i = 0; i < 4; i++) {
+                const t = i / 3;
+                const sparkA = sa + (ea - sa) * t;
+                const bx = arc.x + Math.cos(sparkA) * r * 0.7, by = arc.y + Math.sin(sparkA) * r * 0.7;
+                const drift = (now / 260 + i * 0.4) % 1;
+                ctx.fillStyle = `rgba(150,255,255,${(1 - drift) * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(bx - Math.cos(angle) * drift * 14, by - Math.sin(angle) * drift * 14, 1.6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else {
+            // MED: clean hard gradient, no glow or shed particles
+            const g = ctx.createLinearGradient(tip.x, tip.y, tail.x, tail.y);
+            g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, '#00e5ff'); g.addColorStop(1, '#006e80');
+            ctx.fillStyle = g;
+            _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r, 1);
+        }
+        ctx.restore();
+        return;
+    }
 
     // LAYER 0: wide energy wash behind the arc
     ctx.strokeStyle = 'rgba(120,255,0,0.12)';
@@ -1122,6 +1187,146 @@ function drawBladeArcProjectile(arc) {
         }
     }
 
+    ctx.restore();
+}
+
+// One of the Spinner's two counter-rotating squares (together they read as
+// an 8-point star). glassy=true gives a translucent look (FULL); false gives
+// an opaque hard gradient (MED/LOW-adjacent use).
+function _drawSpinnerSquare(r, rot, glassy) {
+    ctx.save();
+    ctx.rotate(rot);
+    const g = ctx.createLinearGradient(-r, -r, r, r);
+    if (glassy) { g.addColorStop(0, 'rgba(255,180,220,0.55)'); g.addColorStop(1, 'rgba(200,20,110,0.35)'); }
+    else { g.addColorStop(0, '#ff8ad4'); g.addColorStop(1, '#8a0f52'); }
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.rect(-r * 0.72, -r * 0.72, r * 1.44, r * 1.44);
+    ctx.fill();
+    ctx.restore();
+}
+
+// Flat 8-point star silhouette, used by the Spinner's LOW tier and as the
+// stamped-afterimage shape in its FULL-tier speed trail.
+function _drawSpinnerStar(r, rot) {
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+        const a = rot + (Math.PI / 4) * i;
+        const rr = i % 2 === 0 ? r : r * 0.5;
+        const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+}
+
+// Arc-blade launch tell: a sudden 4-way cyan crosshair flash overlaying the
+// Spinner, drawn in its local (already-translated) space. s._arcFlashEnd is
+// set by updateSpiritSpinners() the instant the 4 mini blades fire.
+function _drawSpinnerArcFlash(s, now, glow) {
+    if (!s._arcFlashEnd || now >= s._arcFlashEnd) return;
+    const remain = (s._arcFlashEnd - now) / 180; // 1 -> 0 over the flash's life
+    const len = s.size * 1.4;
+    ctx.save();
+    ctx.globalAlpha = remain;
+    if (glow) { ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 18; }
+    ctx.strokeStyle = '#aefcff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-len, 0); ctx.lineTo(len, 0);
+    ctx.moveTo(0, -len); ctx.lineTo(0, len);
+    ctx.stroke();
+    ctx.restore();
+}
+
+// Spirit finale - the Spinner: a dense, hostile, rapidly-rotating faceted
+// gear (two counter-rotating squares forming an 8-point star), unlike the
+// soft glowing orbs the rest of the Spirit's kit fires.
+function drawSpiritSpinner(s) {
+    const now = performance.now();
+    const age = now - s.spawnAt;
+    const boosted = age < 2000 || now < s.bounceBoostEnd;
+    const spin = now / 500;
+
+    // LOW: flat solid color, static jagged silhouette that still physically
+    // rotates - speed is conveyed by motion alone, no trail/stretch.
+    if (_mobPerf) {
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.fillStyle = '#ff44aa';
+        _drawSpinnerStar(s.size * 0.5, spin);
+        _drawSpinnerArcFlash(s, now, false);
+        ctx.restore();
+        return;
+    }
+
+    ctx.save();
+
+    // Speed-boost tell: FULL gets a stepped afterimage trail (stamped copies
+    // that shrink/fade, connected by a thin glow line) instead of a smooth
+    // blur - reads as erratic/high-speed rather than continuous motion.
+    // MED gets a plain semi-transparent gradient ribbon, no stamping.
+    if (boosted) {
+        if (_gfxLevel < 1) {
+            if (!s._trail) s._trail = [];
+            if (now - (s._lastTrailStamp || 0) > 45) {
+                s._trail.push({ x: s.x, y: s.y, rot: spin });
+                s._lastTrailStamp = now;
+                if (s._trail.length > 5) s._trail.shift();
+            }
+            if (s._trail.length >= 2) {
+                ctx.strokeStyle = 'rgba(255,120,190,0.35)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(s._trail[0].x, s._trail[0].y);
+                for (let i = 1; i < s._trail.length; i++) ctx.lineTo(s._trail[i].x, s._trail[i].y);
+                ctx.lineTo(s.x, s.y);
+                ctx.stroke();
+            }
+            for (let i = 0; i < s._trail.length; i++) {
+                const st = s._trail[i];
+                ctx.save();
+                ctx.globalAlpha = (i + 1) / (s._trail.length + 1) * 0.35;
+                ctx.translate(st.x, st.y);
+                ctx.fillStyle = '#ff8ad4';
+                _drawSpinnerStar(s.size * 0.42, st.rot);
+                ctx.restore();
+            }
+        } else {
+            const spd = Math.hypot(s.vx, s.vy) || 1;
+            const ndx = -s.vx / spd, ndy = -s.vy / spd;
+            const rg = ctx.createLinearGradient(s.x, s.y, s.x + ndx * s.size * 2.2, s.y + ndy * s.size * 2.2);
+            rg.addColorStop(0, 'rgba(255,80,170,0.4)'); rg.addColorStop(1, 'rgba(255,80,170,0)');
+            ctx.strokeStyle = rg;
+            ctx.lineWidth = s.size * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(s.x, s.y);
+            ctx.lineTo(s.x + ndx * s.size * 2.2, s.y + ndy * s.size * 2.2);
+            ctx.stroke();
+        }
+    }
+
+    ctx.translate(s.x, s.y);
+    if (_gfxLevel < 1) {
+        ctx.shadowColor = '#ff44aa'; ctx.shadowBlur = boosted ? 42 : 28;
+        // Stray energy sparks shedding from the tips as it spins (FULL only)
+        for (let i = 0; i < 4; i++) {
+            const a = spin * 1.3 + i * (Math.PI / 2);
+            const sparkR = s.size * 0.55 + Math.sin(now / 90 + i) * 4;
+            ctx.fillStyle = 'rgba(255,180,220,0.7)';
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * sparkR, Math.sin(a) * sparkR, 1.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    // Two overlapping, counter-rotating squares - the 8-point star body
+    _drawSpinnerSquare(s.size * 0.5, spin, _gfxLevel < 1);
+    _drawSpinnerSquare(s.size * 0.5, -spin * 1.15, _gfxLevel < 1);
+    ctx.shadowBlur = 0;
+    // Blinding white-pink core, brighter while boosted
+    ctx.fillStyle = boosted ? '#ffffff' : '#ff8ad4';
+    ctx.beginPath(); ctx.arc(0, 0, s.size * 0.14, 0, Math.PI * 2); ctx.fill();
+    _drawSpinnerArcFlash(s, now, _gfxLevel < 1);
     ctx.restore();
 }
 
