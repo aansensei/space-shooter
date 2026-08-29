@@ -80,7 +80,7 @@ const SIGIL_DEFS = {
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
               desc: 'Spirit arc slash fires 2 blades (+60% each, 2nd fires 15ms later), plus a 25% chance for a 3rd blade. Each boomerang has 40% chance for 2 extra. Skill F sweep now throws 2 boomerangs from the player instead of blade arcs. Extra blades have +20% radius. Every auto-fire shot has a 15% chance to fire an arc blade (300 + 7% EP), same as the spirit\'s.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
-              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune: no pull (25% chance to pull anyway, except Goliath — never), still slowed. Remembrance Spirit and Phōtokrystos fire rate +30%.' },
+              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune targets are never pulled, but are still slowed. Remembrance Spirit and Phōtokrystos fire rate +30%.' },
         ]
     },
     capricorn: {
@@ -157,7 +157,7 @@ const SIGIL_I18N_VI = {
     }},
     sagittarius: { name: 'Nhân Mã', element: 'Hỏa', buffs: {
         song_luoi: { name: 'Song Lưỡi', desc: 'Đòn chém cung của Tinh Linh bắn 2 lưỡi kiếm (+60% mỗi lưỡi, lưỡi thứ 2 bắn trễ 15ms), cộng thêm 25% cơ hội có lưỡi thứ 3. Mỗi boomerang có 40% cơ hội thêm 2 boomerang phụ. Skill F giờ ném 2 boomerang từ người chơi thay vì chém cung. Lưỡi kiếm phụ có +20% bán kính. Mỗi phát bắn tự động có 15% cơ hội bắn ra 1 lưỡi kiếm cung (300 + 7% EP), giống của Tinh Linh.' },
-        cuc_han: { name: 'Cực Hàn', desc: 'Boomerang và chém cung: 75% cơ hội làm chậm 30% trong 2s và hút về phía đạn. Kẻ địch miễn nhiễm khống chế: không bị hút (vẫn có 25% cơ hội bị hút, trừ Goliath — không bao giờ), nhưng vẫn bị chậm. Tốc độ bắn của Tinh Linh Hoài Niệm và Phōtokrystos +30%.' },
+        cuc_han: { name: 'Cực Hàn', desc: 'Boomerang và chém cung: 75% cơ hội làm chậm 30% trong 2s và hút về phía đạn. Kẻ địch miễn nhiễm khống chế không bao giờ bị hút, nhưng vẫn bị chậm. Tốc độ bắn của Tinh Linh Hoài Niệm và Phōtokrystos +30%.' },
     }},
     capricorn: { name: 'Ma Kết', element: 'Thổ', buffs: {
         lai_kep: { name: 'Lãi Kép', desc: 'Mỗi lần hạ gục nhận +0.8% EP; mỗi 5% EP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, mỗi đòn đánh của phe ta gây thêm +200 sát thương thật.' },

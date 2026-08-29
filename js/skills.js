@@ -949,19 +949,11 @@ function updatePhotoBrangs(deltaTime) {
                         if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                             tgt._slowEnd = Math.max(tgt._slowEnd || 0, now_b + 2000);
                             tgt._slowFactor = Math.max(tgt._slowFactor || 1, 1 / 0.70);
-                            const _cucCCImmune = tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan'
+                            const _cucCCImmune = tgt.type === 'goliath' || tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan'
                                 || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
                                 || (tgt.type === 'aegis_core' && tgt.aegisInvulnerable);
-                            // Goliath: CC immune TUYỆT ĐỐI, luật riêng luôn đè mọi sigil —
-                            // không có ngoại lệ "25% kéo được dù miễn" như các CC-immune khác.
-                            if (tgt.type === 'goliath') {
-                                // không kéo
-                            } else if (!_cucCCImmune) {
-                                const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
-                                const _cd = Math.hypot(_cdx, _cdy) || 1;
-                                tgt.x += (_cdx / _cd) * 38;
-                                tgt.y += (_cdy / _cd) * 38;
-                            } else if (Math.random() < 0.25) {
+                            // CC-immune targets are never pulled - absolute, no exceptions.
+                            if (!_cucCCImmune) {
                                 const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
                                 const _cd = Math.hypot(_cdx, _cdy) || 1;
                                 tgt.x += (_cdx / _cd) * 38;
@@ -1090,18 +1082,11 @@ function updateBladeArcProjectiles(deltaTime) {
                 if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                     enemy._slowEnd = Math.max(enemy._slowEnd || 0, performance.now() + 2000);
                     enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
-                    const _cucArcCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+                    const _cucArcCCImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                         || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
-                    // Goliath: CC immune TUYỆT ĐỐI, không có ngoại lệ "25% kéo được".
-                    if (enemy.type === 'goliath') {
-                        // không kéo
-                    } else if (!_cucArcCCImmune) {
-                        const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;
-                        const _ad = Math.hypot(_adx, _ady) || 1;
-                        enemy.x += (_adx / _ad) * 38;
-                        enemy.y += (_ady / _ad) * 38;
-                    } else if (Math.random() < 0.25) {
+                    // CC-immune targets are never pulled - absolute, no exceptions.
+                    if (!_cucArcCCImmune) {
                         const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;
                         const _ad = Math.hypot(_adx, _ady) || 1;
                         enemy.x += (_adx / _ad) * 38;
@@ -1217,22 +1202,24 @@ function updateSpiritSpinners(deltaTime) {
             createParticles(enemy.x, enemy.y, 3, '#ffffff', 2, 5);
             // Colliding with ANY target also fires the mini Arc Blade volley
             // immediately - independent of (on top of) the periodic 300ms
-            // proximity trigger below, so a body hit always slashes too.
-            _fireSpinnerBlades(s, now);
+            // proximity trigger below, so a body hit always slashes too. Capped
+            // per-enemy at 0.4s (body damage itself has no such cooldown) so
+            // sitting on top of one target doesn't refire this every frame.
+            if (!s._collisionBladeCooldowns) s._collisionBladeCooldowns = new Map();
+            if (now >= (s._collisionBladeCooldowns.get(enemy) || 0)) {
+                _fireSpinnerBlades(s, now);
+                s._collisionBladeCooldowns.set(enemy, now + 400);
+            }
             // Arctic Chill (Sagittarius): same slow+pull the Spirit's arc
             // slash already gets, extended to the Spinner's own body hit too.
             if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                 enemy._slowEnd = Math.max(enemy._slowEnd || 0, now + 2000);
                 enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
-                const _cucSpinImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+                const _cucSpinImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                     || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                     || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
-                if (enemy.type === 'goliath') {
-                    // không kéo
-                } else if (!_cucSpinImmune) {
-                    const _sdx = s.x - enemy.x, _sdy = s.y - enemy.y, _sd = Math.hypot(_sdx, _sdy) || 1;
-                    enemy.x += (_sdx / _sd) * 38; enemy.y += (_sdy / _sd) * 38;
-                } else if (Math.random() < 0.25) {
+                // CC-immune targets are never pulled - absolute, no exceptions.
+                if (!_cucSpinImmune) {
                     const _sdx = s.x - enemy.x, _sdy = s.y - enemy.y, _sd = Math.hypot(_sdx, _sdy) || 1;
                     enemy.x += (_sdx / _sd) * 38; enemy.y += (_sdy / _sd) * 38;
                 }
