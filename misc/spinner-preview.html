@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spinner &amp; Mini Arc Blade — live preview</title>
+<style>
+  body { background: #0a0712; color: #ece6f5; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; display: flex; }
+  #panel { width: 260px; padding: 18px; box-sizing: border-box; background: #150f20; border-right: 1px solid #33254a; }
+  #panel h2 { font-size: 14px; letter-spacing: 1px; margin: 0 0 14px; color: #ff4fb3; }
+  #panel h3 { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #a89bc2; margin: 20px 0 8px; }
+  .row { display: flex; gap: 6px; margin-bottom: 8px; }
+  button { flex: 1; background: #1c1430; border: 1px solid #33254a; color: #ece6f5; padding: 8px 6px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  button.active { background: #ff4fb3; border-color: #ff4fb3; color: #150f20; font-weight: 700; }
+  button:hover { border-color: #ff4fb3; }
+  label { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px; }
+  #canvasWrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+  canvas { background: #05030a; border: 1px solid #33254a; }
+  .note { font-size: 11px; color: #a89bc2; line-height: 1.5; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <h2>Spinner / Mini Arc Blade</h2>
+  <div class="note">Uses the real <code>drawSpiritSpinner()</code> / <code>drawBladeArcProjectile()</code> from js/render/skill-s-spirit.js — this preview never redraws the look by hand, so it can't drift from what ships in-game.</div>
+
+  <h3>Quality tier</h3>
+  <div class="row">
+    <button id="tierFull" onclick="setTier('full')">Full</button>
+    <button id="tierMed" onclick="setTier('med')">Med</button>
+    <button id="tierLow" onclick="setTier('low')">Low</button>
+  </div>
+
+  <h3>Spinner</h3>
+  <div class="row"><button onclick="triggerLaunch()">Re-launch (speed ramp)</button></div>
+  <div class="row"><button onclick="triggerBounce()">Wall bounce (+10% 1s)</button></div>
+
+  <h3>Mini Arc Blade</h3>
+  <div class="row"><button onclick="fireBlades()">Fire 4-blade volley</button></div>
+
+  <div class="note">Spinner: magenta, 8-point star from two counter-rotating squares. Mini blades: electric-cyan serrated crescent, fixed N/E/S/W. Both match misc/spinner-visual-brief.html's spec.</div>
+</div>
+
+<div id="canvasWrap">
+  <canvas id="gameCanvas" width="640" height="640"></canvas>
+</div>
+
+<script>
+  // Minimal stand-ins for the globals js/render/skill-s-spirit.js expects -
+  // only what drawSpiritSpinner()/drawBladeArcProjectile() actually touch.
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  let _mobPerf = false;
+  let _gfxLevel = 0;
+  window._mobPerf = _mobPerf;
+  window._gfxLevel = _gfxLevel;
+</script>
+<script src="../js/render/skill-s-spirit.js"></script>
+<script>
+  function setTier(tier) {
+    _mobPerf = tier === 'low';
+    _gfxLevel = tier === 'med' ? 1 : 0;
+    ['tierFull', 'tierMed', 'tierLow'].forEach(id => document.getElementById(id).classList.remove('active'));
+    document.getElementById(tier === 'full' ? 'tierFull' : tier === 'med' ? 'tierMed' : 'tierLow').classList.add('active');
+  }
+  setTier('full');
+
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const spinner = {
+    x: cx, y: cy, size: 70, vx: 5, vy: 0,
+    spawnAt: performance.now(), lifetime: 999999,
+    bounceBoostEnd: 0,
+  };
+
+  function triggerLaunch() { spinner.spawnAt = performance.now(); }
+  function triggerBounce() { spinner.bounceBoostEnd = performance.now() + 1000; }
+
+  let blades = [];
+  function fireBlades() {
+    blades = [];
+    spinner._arcFlashEnd = performance.now() + 180;
+    for (let d = 0; d < 4; d++) {
+      const a = (Math.PI / 2) * d;
+      blades.push({
+        x: cx, y: cy, vx: Math.cos(a) * 15.84, vy: Math.sin(a) * 15.84,
+        radius: 70, isSpinnerBlade: true, spawnAt: performance.now(),
+      });
+    }
+  }
+  fireBlades();
+
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // faint ring marking the Spinner's fixed demo position
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.stroke();
+
+    // Blades travel outward from center, wrap back in so the volley loops
+    const now = performance.now();
+    blades.forEach(b => {
+      const age = (now - b.spawnAt) / 16.67;
+      b.x = cx + b.vx * age; b.y = cy + b.vy * age;
+      if (Math.hypot(b.x - cx, b.y - cy) > 260) b.spawnAt = now;
+      drawBladeArcProjectile(b);
+    });
+
+    drawSpiritSpinner(spinner);
+
+    requestAnimationFrame(tick);
+  }
+  tick();
+</script>
+</body>
+</html>
