@@ -958,7 +958,7 @@ function drawPhotoBrang(b) {
 // Crescent shape for the mini arc blade: a smooth outer arc (leading edge)
 // closed by a jagged chevron inner edge (trailing edge - the "fractured/
 // serrated" motif) instead of a plain half-ring.
-function _drawMiniBladeCrescent(x, y, sa, ea, r, teethScale) {
+function _drawMiniBladeCrescent(x, y, sa, ea, r, teethScale, strokeColor) {
     const innerR = r * 0.6;
     ctx.beginPath();
     ctx.arc(x, y, r, sa, ea);
@@ -971,6 +971,7 @@ function _drawMiniBladeCrescent(x, y, sa, ea, r, teethScale) {
     }
     ctx.closePath();
     ctx.fill();
+    if (strokeColor) { ctx.strokeStyle = strokeColor; ctx.stroke(); }
 }
 
 // Blade arc
@@ -997,23 +998,36 @@ function drawBladeArcProjectile(arc) {
         const tip = { x: arc.x + Math.cos(angle) * r, y: arc.y + Math.sin(angle) * r };
         const tail = { x: arc.x - Math.cos(angle) * r * 0.3, y: arc.y - Math.sin(angle) * r * 0.3 };
         if (_gfxLevel < 1) {
-            // FULL: layered cyan glow behind + white-hot core + shed shards
-            ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 16;
+            // FULL: outer glow wash, a dark shadow-side base underneath for
+            // real contrast (the glow alone washed the whole shape out pale),
+            // then a bright leading-edge-to-near-black-trailing-edge gradient
+            // with a crisp white rim stroke to sell a sharp, glinting blade.
+            ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 26;
             ctx.fillStyle = 'rgba(0,255,255,0.32)';
-            _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r * 1.1, 1);
+            _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r * 1.15, 1);
             ctx.shadowBlur = 0;
-            const g = ctx.createLinearGradient(tip.x, tip.y, tail.x, tail.y);
-            g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#8dfcff'); g.addColorStop(1, '#00b3cc');
-            ctx.fillStyle = g;
+            ctx.fillStyle = 'rgba(0,20,28,0.85)';
             _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r, 1);
-            for (let i = 0; i < 4; i++) {
-                const t = i / 3;
+            const g = ctx.createLinearGradient(tip.x, tip.y, tail.x, tail.y);
+            g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#7ff5ff'); g.addColorStop(0.7, '#0088aa'); g.addColorStop(1, '#001820');
+            ctx.fillStyle = g;
+            ctx.lineWidth = 1.4;
+            _drawMiniBladeCrescent(arc.x, arc.y, sa, ea, r * 0.96, 1, 'rgba(220,255,255,0.9)');
+            for (let i = 0; i < 5; i++) {
+                const t = i / 4;
                 const sparkA = sa + (ea - sa) * t;
                 const bx = arc.x + Math.cos(sparkA) * r * 0.7, by = arc.y + Math.sin(sparkA) * r * 0.7;
-                const drift = (now / 260 + i * 0.4) % 1;
-                ctx.fillStyle = `rgba(150,255,255,${(1 - drift) * 0.8})`;
+                const drift = (now / 240 + i * 0.35) % 1;
+                const tailX = bx - Math.cos(angle) * drift * 16, tailY = by - Math.sin(angle) * drift * 16;
+                ctx.strokeStyle = `rgba(160,255,255,${(1 - drift) * 0.7})`;
+                ctx.lineWidth = 1.2;
                 ctx.beginPath();
-                ctx.arc(bx - Math.cos(angle) * drift * 14, by - Math.sin(angle) * drift * 14, 1.6, 0, Math.PI * 2);
+                ctx.moveTo(bx - Math.cos(angle) * drift * 8, by - Math.sin(angle) * drift * 8);
+                ctx.lineTo(tailX, tailY);
+                ctx.stroke();
+                ctx.fillStyle = `rgba(200,255,255,${(1 - drift) * 0.9})`;
+                ctx.beginPath();
+                ctx.arc(tailX, tailY, 1.5, 0, Math.PI * 2);
                 ctx.fill();
             }
         } else {
@@ -1200,9 +1214,24 @@ function _drawSpinnerSquare(r, rot, glassy) {
     if (glassy) { g.addColorStop(0, 'rgba(255,180,220,0.55)'); g.addColorStop(1, 'rgba(200,20,110,0.35)'); }
     else { g.addColorStop(0, '#ff8ad4'); g.addColorStop(1, '#8a0f52'); }
     ctx.fillStyle = g;
+    const half = r * 0.72;
     ctx.beginPath();
-    ctx.rect(-r * 0.72, -r * 0.72, r * 1.44, r * 1.44);
+    ctx.rect(-half, -half, half * 2, half * 2);
     ctx.fill();
+    // A few circuit-trace lines on the glass face (FULL only) - fixed, cheap
+    // strokes, not a real procedural pattern, just enough surface detail to
+    // read as "material" instead of a flat translucent slab.
+    if (glassy) {
+        ctx.strokeStyle = 'rgba(255,230,245,0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-half * 0.7, -half * 0.3); ctx.lineTo(-half * 0.2, -half * 0.3); ctx.lineTo(-half * 0.2, half * 0.5);
+        ctx.moveTo(half * 0.15, -half * 0.6); ctx.lineTo(half * 0.15, -half * 0.1); ctx.lineTo(half * 0.6, -half * 0.1);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,240,250,0.5)';
+        ctx.beginPath(); ctx.arc(-half * 0.2, half * 0.5, 1.4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(half * 0.6, -half * 0.1, 1.4, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
 }
 
@@ -1229,7 +1258,7 @@ function _drawSpinnerArcFlash(s, now, glow) {
     const len = s.size * 1.4;
     ctx.save();
     ctx.globalAlpha = remain;
-    if (glow) { ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 18; }
+    if (glow) { ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 24; }
     ctx.strokeStyle = '#aefcff';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -1254,7 +1283,8 @@ function drawSpiritSpinner(s) {
         ctx.save();
         ctx.translate(s.x, s.y);
         ctx.fillStyle = '#ff44aa';
-        _drawSpinnerStar(s.size * 0.5, spin);
+        const lowPulse = 1 + Math.sin(now / 220) * 0.05; // cheap: no gradient/shadow, just a scale wobble
+        _drawSpinnerStar(s.size * 0.5 * lowPulse, spin);
         _drawSpinnerArcFlash(s, now, false);
         ctx.restore();
         return;
@@ -1308,21 +1338,75 @@ function drawSpiritSpinner(s) {
 
     ctx.translate(s.x, s.y);
     if (_gfxLevel < 1) {
-        ctx.shadowColor = '#ff44aa'; ctx.shadowBlur = boosted ? 42 : 28;
-        // Stray energy sparks shedding from the tips as it spins (FULL only)
+        // Soft outer halo aura - the single biggest cheap "wow" layer, a
+        // breathing glow disc sitting behind everything else.
+        const haloPulse = 1 + Math.sin(now / 220) * 0.06;
+        const haloR = s.size * (boosted ? 1.3 : 1.1) * haloPulse;
+        const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, haloR);
+        halo.addColorStop(0, boosted ? 'rgba(255,150,215,0.55)' : 'rgba(255,68,170,0.38)');
+        halo.addColorStop(1, 'rgba(255,68,170,0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(0, 0, haloR, 0, Math.PI * 2); ctx.fill();
+
+        // Thin rotating containment ring, dashed - "magnetic prism" read.
+        ctx.save();
+        ctx.rotate(-spin * 0.6);
+        ctx.strokeStyle = 'rgba(255,190,225,0.55)';
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([4, 5]);
+        ctx.beginPath(); ctx.arc(0, 0, s.size * 0.62, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        // A second, wider HUD ring counter-rotating with sparse tick marks -
+        // cheap (same stroke call, just a bigger radius/dash pattern) but
+        // reads as a richer tech readout instead of a single bare ring.
+        ctx.save();
+        ctx.rotate(spin * 0.35);
+        ctx.strokeStyle = 'rgba(255,210,235,0.32)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([1, 10]);
+        ctx.beginPath(); ctx.arc(0, 0, s.size * 0.85, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        ctx.shadowColor = '#ff44aa'; ctx.shadowBlur = boosted ? 50 : 34;
+        // Stray energy sparks shedding from the tips as it spins, each with a
+        // short comet tail rather than a plain dot (FULL only).
         for (let i = 0; i < 4; i++) {
             const a = spin * 1.3 + i * (Math.PI / 2);
             const sparkR = s.size * 0.55 + Math.sin(now / 90 + i) * 4;
-            ctx.fillStyle = 'rgba(255,180,220,0.7)';
+            const sx = Math.cos(a) * sparkR, sy = Math.sin(a) * sparkR;
+            const tailA = a - Math.sign(spin) * 0.5;
+            ctx.strokeStyle = 'rgba(255,180,220,0.6)';
+            ctx.lineWidth = 1.6;
             ctx.beginPath();
-            ctx.arc(Math.cos(a) * sparkR, Math.sin(a) * sparkR, 1.6, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(Math.cos(tailA) * sparkR, Math.sin(tailA) * sparkR);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,220,240,0.9)';
+            ctx.beginPath(); ctx.arc(sx, sy, 1.7, 0, Math.PI * 2); ctx.fill();
         }
+    } else if (_gfxLevel === 1) {
+        // MED: no glow/shadow, but a hard-edged bright rim gives it more
+        // presence than the bare squares alone.
+        ctx.strokeStyle = 'rgba(255,170,215,0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, s.size * 0.58, 0, Math.PI * 2); ctx.stroke();
     }
     // Two overlapping, counter-rotating squares - the 8-point star body
     _drawSpinnerSquare(s.size * 0.5, spin, _gfxLevel < 1);
     _drawSpinnerSquare(s.size * 0.5, -spin * 1.15, _gfxLevel < 1);
     ctx.shadowBlur = 0;
+    if (_gfxLevel < 1) {
+        // Swirling iris in front of the squares, behind the core dot - 2
+        // partial rings spinning at different rates for a "power building
+        // up" read, same cost class as the containment rings above.
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(0, 0, s.size * 0.3, spin * 2, spin * 2 + Math.PI * 1.3); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,150,210,0.55)';
+        ctx.beginPath(); ctx.arc(0, 0, s.size * 0.21, -spin * 2.6, -spin * 2.6 + Math.PI * 1.6); ctx.stroke();
+    }
     // Blinding white-pink core, brighter while boosted
     ctx.fillStyle = boosted ? '#ffffff' : '#ff8ad4';
     ctx.beginPath(); ctx.arc(0, 0, s.size * 0.14, 0, Math.PI * 2); ctx.fill();

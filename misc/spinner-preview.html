@@ -38,6 +38,9 @@
   <h3>Mini Arc Blade</h3>
   <div class="row"><button onclick="fireBlades()">Fire 4-blade volley</button></div>
 
+  <h3>Playback</h3>
+  <div class="row"><button id="pauseBtn" onclick="togglePause()">⏸ Pause</button></div>
+
   <div class="note">Spinner: magenta, 8-point star from two counter-rotating squares. Mini blades: electric-cyan serrated crescent, fixed N/E/S/W. Both match misc/spinner-visual-brief.html's spec.</div>
 </div>
 
@@ -89,7 +92,15 @@
   }
   fireBlades();
 
+  let paused = false;
+  function togglePause() {
+    paused = !paused;
+    document.getElementById('pauseBtn').textContent = paused ? '▶ Resume' : '⏸ Pause';
+    if (!paused) requestAnimationFrame(tick); // restart the loop tick() stopped rescheduling
+  }
+
   function tick() {
+    if (paused) return; // freeze on whatever's already drawn, don't reschedule
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // faint ring marking the Spinner's fixed demo position
