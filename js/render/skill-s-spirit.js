@@ -1268,6 +1268,76 @@ function _drawSpinnerArcFlash(s, now, glow) {
     ctx.restore();
 }
 
+// Detection-range indicator: 2 flashing dashed rings at the same radius
+// updateSpiritSpinners() uses to decide whether an enemy is close enough to
+// trigger the arc-blade slash (size/2 + 100) - shown at every quality tier
+// since it's gameplay info, not pure decoration, and it's cheap either way.
+function _drawSpinnerRangeIndicator(s, now) {
+    const range = s.size / 2 + 100;
+    const flash = 0.35 + 0.35 * Math.abs(Math.sin(now / 260));
+    ctx.save();
+    ctx.setLineDash([10, 8]);
+    ctx.strokeStyle = `rgba(255,210,235,${flash})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(0, 0, range, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineDashOffset = 9;
+    ctx.strokeStyle = `rgba(255,210,235,${flash * 0.6})`;
+    ctx.beginPath(); ctx.arc(0, 0, range - 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+}
+
+// Flight-path indicator: 2 dashed lines flanking the direction of travel,
+// running all the way out to whichever screen edge the Spinner will hit
+// next (a real ray-cast against the same wall bounds updateSpiritSpinners()
+// clamps against), plus one short segment past that point showing which way
+// it reflects off - drawn in the same local space as
+// _drawSpinnerRangeIndicator, at every quality tier.
+function _drawSpinnerFlightPath(s, now) {
+    const spd = Math.hypot(s.vx, s.vy) || 1;
+    const dx = s.vx / spd, dy = s.vy / spd;
+
+    // Ray-cast to the wall it reaches first.
+    let tHit = Infinity;
+    if (dx > 0.0001) tHit = Math.min(tHit, ((canvas.width - s.size) - s.x) / dx);
+    else if (dx < -0.0001) tHit = Math.min(tHit, (s.size - s.x) / dx);
+    if (dy > 0.0001) tHit = Math.min(tHit, ((canvas.height - s.size) - s.y) / dy);
+    else if (dy < -0.0001) tHit = Math.min(tHit, (s.size - s.y) / dy);
+    if (!isFinite(tHit) || tHit < 0) tHit = s.size * 3; // degenerate fallback, shouldn't happen
+
+    const px = -dy, py = dx; // perpendicular to travel direction
+    const offset = s.size * 0.35;
+    const startD = s.size * 0.6;
+    const flash = 0.3 + 0.3 * Math.abs(Math.sin(now / 300));
+    ctx.save();
+    ctx.setLineDash([8, 6]);
+    ctx.lineWidth = 1;
+
+    // Main path: 2 lines flanking the travel direction, out to the wall.
+    ctx.strokeStyle = `rgba(255,180,220,${flash})`;
+    for (const side of [1, -1]) {
+        ctx.beginPath();
+        ctx.moveTo(px * offset * side + dx * startD, py * offset * side + dy * startD);
+        ctx.lineTo(px * offset * side + dx * tHit, py * offset * side + dy * tHit);
+        ctx.stroke();
+    }
+
+    // Bounce preview: a short single segment past the hit point in the
+    // reflected direction (whichever axis actually hit flips sign).
+    const hitX = s.x + dx * tHit, hitY = s.y + dy * tHit;
+    let rdx = dx, rdy = dy;
+    if (Math.abs(hitX - s.size) < 1 || Math.abs(hitX - (canvas.width - s.size)) < 1) rdx = -dx;
+    if (Math.abs(hitY - s.size) < 1 || Math.abs(hitY - (canvas.height - s.size)) < 1) rdy = -dy;
+    ctx.strokeStyle = `rgba(255,180,220,${flash * 0.7})`;
+    ctx.beginPath();
+    ctx.moveTo(dx * tHit, dy * tHit);
+    ctx.lineTo(dx * tHit + rdx * s.size, dy * tHit + rdy * s.size);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.restore();
+}
+
 // Spirit finale - the Spinner: a dense, hostile, rapidly-rotating faceted
 // gear (two counter-rotating squares forming an 8-point star), unlike the
 // soft glowing orbs the rest of the Spirit's kit fires.
@@ -1284,6 +1354,8 @@ function drawSpiritSpinner(s) {
         ctx.translate(s.x, s.y);
         ctx.fillStyle = '#ff44aa';
         const lowPulse = 1 + Math.sin(now / 220) * 0.05; // cheap: no gradient/shadow, just a scale wobble
+        _drawSpinnerRangeIndicator(s, now);
+        _drawSpinnerFlightPath(s, now);
         _drawSpinnerStar(s.size * 0.5 * lowPulse, spin);
         _drawSpinnerArcFlash(s, now, false);
         ctx.restore();
@@ -1337,6 +1409,8 @@ function drawSpiritSpinner(s) {
     }
 
     ctx.translate(s.x, s.y);
+    _drawSpinnerRangeIndicator(s, now);
+    _drawSpinnerFlightPath(s, now);
     if (_gfxLevel < 1) {
         // Soft outer halo aura - the single biggest cheap "wow" layer, a
         // breathing glow disc sitting behind everything else.
