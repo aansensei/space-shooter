@@ -1165,6 +1165,7 @@ function updateSpiritSpinners(deltaTime) {
             addExplosion(s.x, s.y, s.size * 0.9, '#ff44aa');
             createParticles(s.x, s.y, 22, '#ff44aa', 3, 10);
             createParticles(s.x, s.y, 8, '#ffffff', 1, 4);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('sentinel-explode', s.x, s.y);
             spiritSpinners.splice(i, 1);
             continue;
         }
@@ -1373,13 +1374,18 @@ function updateSpiritFinale(spirit, deltaTime) {
             spirit.finaleLastLaserTick -= deltaTime;
             if (spirit.finaleLastLaserTick <= 0) {
                 spirit.finaleLastLaserTick = 100;
+                let _firedThisTick = false;
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return; // untargetable
                     if (enemy.inCoronation) return;
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
                     dealDamage(enemy, { damage: 10, percentDamage: 0.40, isSpiritLaser: true, isTrueDamage: true });
+                    _firedThisTick = true;
                 });
+                // One zap per tick, not per enemy - firing at 5 targets at once
+                // shouldn't stack 5 overlapping copies of the same sfx.
+                if (_firedThisTick && window.AudioMgr) window.AudioMgr.playSfxAt('spirit-finale-laser', spirit.x, spirit.y);
             }
             if (spirit.finaleChargeTime <= 0) spirit.finaleState = 'firing';
             break;
