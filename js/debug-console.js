@@ -264,6 +264,8 @@ window.debugSetYuukiBonus = function () {
       <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
         <div class="dbg-row">
           <button class="dbg-btn" onclick="debugForceAccurateParry()">Force Accurate Parry (4s)</button>
+          <button class="dbg-btn" onclick="debugForceSilence('dargruel')">Silence: Dargruel (root+silence, 4s)</button>
+          <button class="dbg-btn" onclick="debugForceSilence('goliath')">Silence: Goliath (silence only, 4s)</button>
         </div>
         <div style="opacity:0.5; font-size:10px;">Glory for Justice isn't a toggle — it auto-activates whenever &gt;4 enemies are on screen, an Abnormal+ enemy is present, Skill G is active, or Photokrystos is active. Spawn any boss type below (or 5+ enemies) to trigger it. Vulnerability is applied per-enemy — see the "+Vuln" button on each row in Active Enemies.</div>
       </div>
@@ -836,6 +838,16 @@ window.debugSetYuukiBonus = function () {
         if (typeof accurateParryActive === 'undefined') return;
         accurateParryActive = true;
         accurateParryEndTime = performance.now() + 4000;
+    };
+
+    // Forces the player._silenced overlay so both debuff icons (Dargruel's
+    // root+silence chain vs Goliath's silence-only attacks) can be checked
+    // visually without waiting for either enemy to actually land a hit.
+    window.debugForceSilence = function (kind) {
+        if (typeof player === 'undefined') return;
+        player._silenced = true;
+        player._silenceEnd = performance.now() + 4000;
+        player._rooted = (kind === 'dargruel');
     };
 
     window.debugApplyVuln = function (idx) {

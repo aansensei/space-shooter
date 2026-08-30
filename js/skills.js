@@ -1365,6 +1365,9 @@ function updateSpiritFinale(spirit, deltaTime) {
             const dx = spirit.finaleTargetPos.x - spirit.x, dy = spirit.finaleTargetPos.y - spirit.y;
             if (Math.hypot(dx, dy) < 5) {
                 spirit.finaleState = 'charging'; spirit.finaleChargeTime = 2500; spirit.finaleLastLaserTick = 0;
+                // Plays once for the whole charge, not per tick - retriggering
+                // it every 100ms stacked overlapping copies into a harsh mess.
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-finale-laser', spirit.x, spirit.y);
             } else {
                 spirit.x += dx * 0.1 * dt; spirit.y += dy * 0.1 * dt;
             }
@@ -1374,18 +1377,13 @@ function updateSpiritFinale(spirit, deltaTime) {
             spirit.finaleLastLaserTick -= deltaTime;
             if (spirit.finaleLastLaserTick <= 0) {
                 spirit.finaleLastLaserTick = 100;
-                let _firedThisTick = false;
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return; // untargetable
                     if (enemy.inCoronation) return;
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
                     dealDamage(enemy, { damage: 10, percentDamage: 0.40, isSpiritLaser: true, isTrueDamage: true });
-                    _firedThisTick = true;
                 });
-                // One zap per tick, not per enemy - firing at 5 targets at once
-                // shouldn't stack 5 overlapping copies of the same sfx.
-                if (_firedThisTick && window.AudioMgr) window.AudioMgr.playSfxAt('spirit-finale-laser', spirit.x, spirit.y);
             }
             if (spirit.finaleChargeTime <= 0) spirit.finaleState = 'firing';
             break;
