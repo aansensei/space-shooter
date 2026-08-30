@@ -2096,7 +2096,7 @@ function update(rawDeltaTime) {
                 // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
                 for (let li = 0; li < 5; li++) {
-                    if (!_yuushaPierceRedirect(orb.dmg, 'flat')) playerTakesHit({ type: 'goliath' });
+                    if (!_yuushaPierceRedirect(orb.dmg, 'flat')) { playerTakesHit({ type: 'goliath' }); _goliathApplySilence(1250); }
                 }
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
@@ -2124,7 +2124,7 @@ function update(rawDeltaTime) {
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
                 const _yHitsAlready = (sw.hitEnemies || []).length;
                 const _yPct = _yHitsAlready === 0 ? 0.27 : _yHitsAlready === 1 ? 0.23 : 0.21;
-                if (!_yuushaPierceRedirect(_yPct, true)) playerTakesHit({ type: 'goliath' });
+                if (!_yuushaPierceRedirect(_yPct, true)) { playerTakesHit({ type: 'goliath' }); _goliathApplySilence(); }
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
@@ -2157,7 +2157,7 @@ function update(rawDeltaTime) {
             m.y += m.vy * (deltaTime / 1000);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
-                if (!_yuushaPierceRedirect(0.25, true)) playerTakesHit({ type: 'goliath' });
+                if (!_yuushaPierceRedirect(0.25, true)) { playerTakesHit({ type: 'goliath' }); _goliathApplySilence(); }
                 addExplosion(m.x, m.y, 70, '#f59e0b');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;

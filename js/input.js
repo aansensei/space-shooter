@@ -196,7 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.code === "ArrowRight") keys.right = true;
         }
 
-        if (e.code === "Space" && !charging && !laserActive && !skillShiftActive) {
+        if (e.code === "Space" && !charging && !laserActive && !skillShiftActive
+            && !(typeof player !== 'undefined' && player._silenced)) {
             const _now = performance.now();
             if (_hasBuff('dong_chay_luan_hoi')) {
                 // Cycle of Flow: skip the charge phase entirely
@@ -225,7 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (e.code === "Space" && charging && !laserActive) {
             let chargeDuration = performance.now() - chargeStartTime;
-            if (chargeDuration < overloadChargeTime) {
+            // Getting silenced mid-charge (e.g. a Goliath hit lands while
+            // holding Space) still cancels the charge on release - no shot.
+            if (chargeDuration < overloadChargeTime && !(typeof player !== 'undefined' && player._silenced)) {
                 let multiplier = 1 + ((Math.min(chargeDuration, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
                 fireChargedBullet(Math.min(multiplier, maxMultiplier));
             }
