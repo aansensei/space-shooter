@@ -975,6 +975,7 @@ function updatePhotoBrangs(deltaTime) {
             let bounced = false;
             if (b.x < 0 || b.x > canvas.width) { b.vx = -b.vx; b._bounces++; bounced = true; }
             if (b.y < 0 || b.y > canvas.height) { b.vy = -b.vy; b._bounces++; bounced = true; }
+            if (bounced && window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-bounce', b.x, b.y);
             if (b._bounces >= 2 && !bounced) {
                 // Check if new enemies appeared
                 const newValid = enemies.filter(e =>
@@ -1184,13 +1185,14 @@ function updateSpiritSpinners(deltaTime) {
         // overshoot far enough that the next frame's move doesn't clear the
         // wall either, re-triggering the same flip and jittering in place
         // instead of bouncing cleanly away.
-        let bounced = false;
-        if (s.x < s.size) { s.x = s.size; s.vx = Math.abs(s.vx); bounced = true; }
-        else if (s.x > canvas.width - s.size) { s.x = canvas.width - s.size; s.vx = -Math.abs(s.vx); bounced = true; }
-        if (s.y < s.size) { s.y = s.size; s.vy = Math.abs(s.vy); bounced = true; }
-        else if (s.y > canvas.height - s.size) { s.y = canvas.height - s.size; s.vy = -Math.abs(s.vy); bounced = true; }
+        let bounced = false, _bouncedXSign = 0, _bouncedYSign = 0;
+        if (s.x < s.size) { s.x = s.size; s.vx = Math.abs(s.vx); bounced = true; _bouncedXSign = 1; }
+        else if (s.x > canvas.width - s.size) { s.x = canvas.width - s.size; s.vx = -Math.abs(s.vx); bounced = true; _bouncedXSign = -1; }
+        if (s.y < s.size) { s.y = s.size; s.vy = Math.abs(s.vy); bounced = true; _bouncedYSign = 1; }
+        else if (s.y > canvas.height - s.size) { s.y = canvas.height - s.size; s.vy = -Math.abs(s.vy); bounced = true; _bouncedYSign = -1; }
         if (bounced) {
             s.bounceBoostEnd = now + 1000; // refreshes on each bounce, never stacks
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('spinner-bounce', s.x, s.y);
             // Small random angle jitter on every bounce so a near-axis
             // trajectory doesn't lock into a short repeating back-and-forth
             // path - keeps it actually covering the screen over its 5s life.
@@ -1199,6 +1201,44 @@ function updateSpiritSpinners(deltaTime) {
             const _ang = Math.atan2(s.vy, s.vx) + _jitter;
             s.vx = Math.cos(_ang) * _spd;
             s.vy = Math.sin(_ang) * _spd;
+
+            if (_hasBuff('song_luoi')) {
+                // Ricochet Hunter: soft-lock the post-bounce direction partway
+                // toward the nearest enemy roughly in front of it (60° cone),
+                // instead of pure physics - a hunting shot, not a random one.
+                const _validTargets = _solArrowValidTargets();
+                let _bestEnemy = null, _bestAngDiff = Math.PI / 3;
+                const _curAngle = Math.atan2(s.vy, s.vx);
+                for (const e of _validTargets) {
+                    let _diff = Math.abs(Math.atan2(e.y - s.y, e.x - s.x) - _curAngle);
+                    if (_diff > Math.PI) _diff = Math.PI * 2 - _diff;
+                    if (_diff < _bestAngDiff) { _bestAngDiff = _diff; _bestEnemy = e; }
+                }
+                if (_bestEnemy) {
+                    const _targetAngle = Math.atan2(_bestEnemy.y - s.y, _bestEnemy.x - s.x);
+                    let _angDiff = _targetAngle - _curAngle;
+                    while (_angDiff > Math.PI) _angDiff -= Math.PI * 2;
+                    while (_angDiff < -Math.PI) _angDiff += Math.PI * 2;
+                    const _homeAngle = _curAngle + _angDiff * 0.45; // soft lock, not a full snap
+                    const _spd2 = Math.hypot(s.vx, s.vy);
+                    s.vx = Math.cos(_homeAngle) * _spd2;
+                    s.vy = Math.sin(_homeAngle) * _spd2;
+                }
+                // Escalating damage: +15% per bounce, up to 3 stacks (+45%),
+                // reset the instant it lands a body hit (see below).
+                s._songLuoiStacks = Math.min(3, (s._songLuoiStacks || 0) + 1);
+            }
+
+            // Safety clamp: for a shallow-angle bounce, the jitter and (with
+            // Ricochet Hunter) the homing pull can rotate far enough to send
+            // the axis that just bounced back toward the wall it left,
+            // triggering a second real bounce (and a second bounce sfx) one
+            // frame later. Re-force that axis's sign one more time so a
+            // single wall contact can never produce more than one bounce.
+            if (_bouncedXSign > 0 && s.vx < 0) s.vx = -s.vx;
+            else if (_bouncedXSign < 0 && s.vx > 0) s.vx = -s.vx;
+            if (_bouncedYSign > 0 && s.vy < 0) s.vy = -s.vy;
+            else if (_bouncedYSign < 0 && s.vy > 0) s.vy = -s.vy;
         }
 
         // Body-contact damage: no per-enemy cooldown right now (removed per
@@ -1208,7 +1248,13 @@ function updateSpiritSpinners(deltaTime) {
             const enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - s.x, enemy.y - s.y) >= enemyRadius + s.size) continue;
             if (checkMarchosiasArcBarrier(enemy, s, s.x, s.y)) continue;
-            dealDamage(enemy, { damage: 200, percentDamage: 0.20, isTrueDamage: true, _statSrc: s._statSrc });
+            // Ricochet Hunter (Sagittarius): damage escalates +15% per wall
+            // bounce since the last hit, up to +45% at 3 stacks, then resets
+            // the instant it actually lands one - rewards a clean run of
+            // bounces without a hit over chaining hits back to back.
+            const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
+            dealDamage(enemy, { damage: Math.round(200 * _songLuoiMult), percentDamage: 0.20 * _songLuoiMult, isTrueDamage: true, _statSrc: s._statSrc });
+            if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
             // On-hit: a sharp crack - jagged magenta shards plus a quick
             // white flash at the contact point, selling the heavy true damage.
             createParticles(enemy.x, enemy.y, 8, '#ff44aa', 3, 8);
