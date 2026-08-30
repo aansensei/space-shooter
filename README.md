@@ -630,11 +630,11 @@ Triggers exactly **once** per Goliath: the first hit that would otherwise kill i
 
 **Passive: Absolute Verdict**
 
-A self-cast channeled attack, not a reaction. Every time it comes off cooldown: both arms clasp together at Goliath's eye for a **3-second channel**, tracking the player's live position — but only until **0.5 seconds before it fires**, at which point the aim locks and no longer follows. On completion, a piercing orb launches from the eye along the locked direction: **35% of Max HP as true damage** to a Sentinel it hits, or **-5 lives** to the player. 8-second cooldown after firing.
+A self-cast channeled attack, not a reaction. Every time it comes off cooldown: both arms clasp together at Goliath's eye for a **3-second channel**, tracking the player's live position — but only until **0.5 seconds before it fires**, at which point the aim locks and no longer follows. On completion, a piercing orb launches from the eye along the locked direction: **35% of Max HP as true damage** to a Sentinel it hits, or **-5 lives** to the player. Hitting the player also **silences them for 1.25 seconds** (see Root & Silence below — no root here, silence only). 8-second cooldown after firing.
 
 **Skill: Corrupted Meteor**
 
-CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at once (fewer if fewer are available) into a compressed meteor core over **0.8 seconds**, consuming each one as fuel, then throws **more meteors than Apostles consumed**: 1 Apostle → 3 meteors, 2 → 4, 3 → 5 (the maximum), all in a fan spread — any extra meteors beyond the Apostles actually consumed are "empty" (no fuel, same as the zero-Apostle case). If no Apostle is available to pull, it still throws exactly **1** empty meteor (never a no-op). Hitting the player costs **1 life** per meteor; hitting a Sentinel explodes for **25% of that Sentinel's own Max HP** as splash damage to nearby Sentinels.
+CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at once (fewer if fewer are available) into a compressed meteor core over **0.8 seconds**, consuming each one as fuel, then throws **more meteors than Apostles consumed**: 1 Apostle → 3 meteors, 2 → 4, 3 → 5 (the maximum), all in a fan spread — any extra meteors beyond the Apostles actually consumed are "empty" (no fuel, same as the zero-Apostle case). If no Apostle is available to pull, it still throws exactly **1** empty meteor (never a no-op). Hitting the player costs **1 life** and **silences them for 0.75 seconds** (no root) per meteor; hitting a Sentinel explodes for **25% of that Sentinel's own Max HP** as splash damage to nearby Sentinels.
 
 **Passive: Warding Palm**
 
@@ -654,7 +654,7 @@ While channeling any skill — its own Absolute Verdict, or any Joker-copied abi
 
 **Skill: Joker System**
 
-True Form gains working, independently-cooldown copies of exactly the **3 abilities** tied to the 3 gems it absorbed during Alpha (out of 7 possible). Each copy is rebalanced to fit a boss and re-telegraphed against its own timing/size — not a flat, one-size-fits-all approximation:
+True Form gains working, independently-cooldown copies of exactly the **3 abilities** tied to the 3 gems it absorbed during Alpha (out of 7 possible). Each copy is rebalanced to fit a boss and re-telegraphed against its own timing/size — not a flat, one-size-fits-all approximation. Every copy below that actually lands on the player also **silences them for 0.75 seconds** (no root), same rule as Absolute Verdict and Corrupted Meteor above:
 
 - **Veilshroud — Phantom + Lightning:** randomly (~50% chance per 450ms once off cooldown) enters a 3s Phantom (+99% DR). On exit, locks the player's position plus up to 3 Sentinels, telegraphs for 1.5s, then strikes: the player takes a `playerTakesHit()` hit (dodgeable if it's moved out of the marked spot), Sentinels take **5% Max HP true damage**.
 - **Thaelis — Tenacity:** +20–60% DR (scales up as Goliath loses HP, same curve as the real Tenacity barrier trigger points). On top of that, +35% effectiveness on **every** heal/shield Goliath receives from any source (stacks additively with everything else — Inevitable regen, Threshold Ward, casting-restriction heal, and its own tick below), and every **5% of Max HP** lost (a fresh 5%-bracket, never re-triggers the same bracket twice) heals **2.5% Max HP** and grants **1% Max HP** as shield.
