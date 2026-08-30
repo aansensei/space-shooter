@@ -316,28 +316,28 @@
     // 21 in-game BGM tracks + the menu-only track ("Pisces" = soundtrack1.mp3).
     // Menu track is excluded from the in-game random pool.
     const BGM_LIST = [
-        { id: 'pisces',                 title: 'Pisces (Menu Theme)',            src: 'audio/bgm/pisces.mp3',                           menuOnly: true },
-        { id: 'ascension',              title: 'Ascension of the Void Shrine',   src: 'audio/bgm/ascension-of-the-void-shrine.mp3' },
-        { id: 'dorian-autumn',          title: 'A Dorian Autumn Fair',           src: 'audio/bgm/a-dorian-autumn-fair.mp3' },
-        { id: 'love-never-ends',        title: 'A Love That Never Ends',         src: 'audio/bgm/a-love-that-never-ends.mp3' },
-        { id: 'anata',                  title: 'Anata',                          src: 'audio/bgm/anata.mp3' },
-        { id: 'echoes-silent-prayer',   title: 'Echoes of a Silent Prayer',      src: 'audio/bgm/echoes-of-a-silent-prayer.mp3' },
-        { id: 'endless-rainfall',       title: 'Endless Rainfall',               src: 'audio/bgm/endless-rainfall.mp3' },
-        { id: 'requiem-persian-spring', title: 'Requiem for a Persian Spring',   src: 'audio/bgm/requiem-for-a-persian-spring.mp3' },
-        { id: 'requiem-falling-stars',  title: 'Requiem of Falling Stars',       src: 'audio/bgm/requiem-of-falling-stars.mp3' },
-        { id: 'sorrow-thousand-blades', title: 'Sorrow of a Thousand Blades',    src: 'audio/bgm/sorrow-of-a-thousand-blades.mp3' },
-        { id: 'last-cicada',            title: "The Last Cicada's Song",         src: 'audio/bgm/the-last-cicadas-song.mp3' },
-        { id: 'summer-fades',           title: 'Where Summer Fades to Silence',  src: 'audio/bgm/where-summer-fades-to-silence.mp3' },
-        { id: 'hold-my-hand',           title: 'Please Hold My Hand',            src: 'audio/bgm/please-hold-my-hand.mp3' },
-        { id: 'unfair-world',           title: 'Where the Unfair World Keeps Its Secrets', src: 'audio/bgm/where-the-unfair-world-keeps-its-secrets.mp3' },
-        { id: 'owari-waltz',            title: 'Owari no Waltz',                 src: 'audio/bgm/owari-no-waltz.mp3' },
-        { id: 'peach-blossoms-duel',    title: 'Duel Beneath the Peach Blossoms', src: 'audio/bgm/duel-beneath-the-peach-blossoms.mp3' },
-        { id: 'dance-with-me',          title: 'Will You Dance With Me?',        src: 'audio/bgm/will-you-dance-with-me.mp3' },
-        { id: 'kyoushinron',            title: 'Kyoushinron',                   src: 'audio/bgm/kyoushinron.mp3' },
-        { id: 'bartholomew-fair',       title: 'Bartholomew Fair',              src: 'audio/bgm/bartholomew-fair.mp3' },
-        { id: 'resurrection',           title: 'Resurrection',                  src: 'audio/bgm/resurrection.mp3' },
-        { id: 'blue-sky',               title: 'Blue Sky',                      src: 'audio/bgm/blue-sky.mp3' },
-        { id: 'sousei-no-hi',           title: 'Sousei no Hi',                  src: 'audio/bgm/sousei-no-hi.mp3' },
+        { id: 'pisces',                 title: 'Pisces (Menu Theme)',            src: 'assets/audio/bgm/pisces.mp3',                           menuOnly: true },
+        { id: 'ascension',              title: 'Ascension of the Void Shrine',   src: 'assets/audio/bgm/ascension-of-the-void-shrine.mp3' },
+        { id: 'dorian-autumn',          title: 'A Dorian Autumn Fair',           src: 'assets/audio/bgm/a-dorian-autumn-fair.mp3' },
+        { id: 'love-never-ends',        title: 'A Love That Never Ends',         src: 'assets/audio/bgm/a-love-that-never-ends.mp3' },
+        { id: 'anata',                  title: 'Anata',                          src: 'assets/audio/bgm/anata.mp3' },
+        { id: 'echoes-silent-prayer',   title: 'Echoes of a Silent Prayer',      src: 'assets/audio/bgm/echoes-of-a-silent-prayer.mp3' },
+        { id: 'endless-rainfall',       title: 'Endless Rainfall',               src: 'assets/audio/bgm/endless-rainfall.mp3' },
+        { id: 'requiem-persian-spring', title: 'Requiem for a Persian Spring',   src: 'assets/audio/bgm/requiem-for-a-persian-spring.mp3' },
+        { id: 'requiem-falling-stars',  title: 'Requiem of Falling Stars',       src: 'assets/audio/bgm/requiem-of-falling-stars.mp3' },
+        { id: 'sorrow-thousand-blades', title: 'Sorrow of a Thousand Blades',    src: 'assets/audio/bgm/sorrow-of-a-thousand-blades.mp3' },
+        { id: 'last-cicada',            title: "The Last Cicada's Song",         src: 'assets/audio/bgm/the-last-cicadas-song.mp3' },
+        { id: 'summer-fades',           title: 'Where Summer Fades to Silence',  src: 'assets/audio/bgm/where-summer-fades-to-silence.mp3' },
+        { id: 'hold-my-hand',           title: 'Please Hold My Hand',            src: 'assets/audio/bgm/please-hold-my-hand.mp3' },
+        { id: 'unfair-world',           title: 'Where the Unfair World Keeps Its Secrets', src: 'assets/audio/bgm/where-the-unfair-world-keeps-its-secrets.mp3' },
+        { id: 'owari-waltz',            title: 'Owari no Waltz',                 src: 'assets/audio/bgm/owari-no-waltz.mp3' },
+        { id: 'peach-blossoms-duel',    title: 'Duel Beneath the Peach Blossoms', src: 'assets/audio/bgm/duel-beneath-the-peach-blossoms.mp3' },
+        { id: 'dance-with-me',          title: 'Will You Dance With Me?',        src: 'assets/audio/bgm/will-you-dance-with-me.mp3' },
+        { id: 'kyoushinron',            title: 'Kyoushinron',                   src: 'assets/audio/bgm/kyoushinron.mp3' },
+        { id: 'bartholomew-fair',       title: 'Bartholomew Fair',              src: 'assets/audio/bgm/bartholomew-fair.mp3' },
+        { id: 'resurrection',           title: 'Resurrection',                  src: 'assets/audio/bgm/resurrection.mp3' },
+        { id: 'blue-sky',               title: 'Blue Sky',                      src: 'assets/audio/bgm/blue-sky.mp3' },
+        { id: 'sousei-no-hi',           title: 'Sousei no Hi',                  src: 'assets/audio/bgm/sousei-no-hi.mp3' },
     ];
 
     const state = {
@@ -706,107 +706,107 @@
         // later playMenuBgm() call just picks up the already-resolved buffer.
         const _menuTrack = BGM_LIST.find(t => t.menuOnly);
         if (_menuTrack) _decodeBuffer(_menuTrack.src);
-        _makePool('autoshot',     'audio/sfx/autoshot.mp3',    4);
-        _makePool('enemy-hit',    'audio/sfx/enemy-hit.wav',   6);
-        _makePool('enemy-death',  'audio/sfx/enemy-death.mp3', 3);
-        _makePool('shield-hit',   'audio/sfx/shield-hit.wav',  3);
-        _makePool('life-lost',    'audio/sfx/life-lost.mp3',   2);
-        _makePool('click',        'audio/sfx/click.mp3',       3);
-        _makePool('hover',        'audio/sfx/hover.mp3',       4);
-        _makePool('overlay',      'audio/sfx/overlay.wav',     2);
-        _makePool('skill-ready',    'audio/sfx/skill-ready.mp3',    3);
-        _makePool('skill-unlocked', 'audio/sfx/skill-unlocked.mp3', 2);
-        _makePool('sigil-open',       'audio/sfx/sigil-open.mp3',       2);
-        _makePool('sigil-confirm',    'audio/sfx/sigil-confirm.mp3',    2);
-        _makePool('sentinel-spawn',   'audio/sfx/sentinel-spawn.mp3',   3);
-        _makePool('sentinel-explode', 'audio/sfx/sentinel-explode.mp3', 3);
-        _makePool('shift-hold',       'audio/sfx/shift-hold.mp3',       2, true);
-        _makePool('shift-teleport',   'audio/sfx/shift-teleport.mp3',   2);
-        _makePool('coronation',       'audio/sfx/coronation.mp3',       2);
-        _makePool('spirit-autofire',  'audio/sfx/spirit-autofire.mp3',  5); // fires ~42ms cadence, needs deep pool
-        _makePool('tesla-coil-form',  'audio/sfx/tesla-coil-form.mp3',  2);
-        _makePool('skill-a-activate', 'audio/sfx/skill-a-activate.mp3', 2);
-        _makePool('skill-a-orb-hit',  'audio/sfx/skill-a-orb-hit.mp3',  4);
-        _makePool('skill-a-orb-lock', 'audio/sfx/skill-a-orb-lock.mp3', 4);
-        _makePool('photokrystos-dnt-laser',       'audio/sfx/photokrystos-dnt-laser.mp3',       2);
-        _makePool('photokrystos-boomerang-throw', 'audio/sfx/photokrystos-boomerang-throw.mp3', 3);
-        _makePool('photokrystos-boomerang-hit',   'audio/sfx/photokrystos-boomerang-hit.mp3',   3);
-        _makePool('photokrystos-boomerang-bounce', 'audio/sfx/photokrystos-boomerang-bounce.mp3', 3);
-        _makePool('spinner-bounce', 'audio/sfx/spinner-bounce.mp3', 3);
-        _makePool('spirit-finale-laser', 'audio/sfx/spirit-finale-laser.mp3', 4);
-        _makePool('spirit-arc-slash', 'audio/sfx/spirit-arc-slash.mp3', 3);
-        _makePool('gameover',  'audio/sfx/gameover.mp3',  1);
-        _makePool('new-wave',  'audio/sfx/new-wave.mp3',  2);
-        _makePool('yog-parry', 'audio/sfx/yog-parry.mp3', 2);
-        _makePool('charged-shot', 'audio/sfx/charged-shot.mp3', 2);
-        _makePool('wave-clear',   'audio/sfx/wave-clear.mp3',   1);
-        _makePool('dimensional-rift', 'audio/sfx/dimensional-rift.mp3', 2);
-        _makePool('dimension-break',  'audio/sfx/dimension-break.mp3',  2);
-        _makePool('egregor-nullslash-slash', 'audio/sfx/egregor-nullslash-slash.mp3', 2);
-        _makePool('egregor-nullslash-hit',   'audio/sfx/egregor-nullslash-hit.mp3',   2);
-        _makePool('egregor-death-roar',      'audio/sfx/egregor-death-roar.mp3',      1);
-        _makePool('egregor-tempest-strike',  'audio/sfx/egregor-tempest-strike.mp3',  2);
-        _makePool('chain-lightning',         'audio/sfx/chain-lightning.mp3',         4);
-        _makePool('photokrystos-summon-converge', 'audio/sfx/photokrystos-summon-converge.mp3', 1);
-        _makePool('photokrystos-summon-flash',    'audio/sfx/photokrystos-summon-flash.mp3',    1);
-        _makePool('photokrystos-summon-holy',     'audio/sfx/photokrystos-summon-holy.mp3',     1);
-        _makePool('photokrystos-btm-firing',      'audio/sfx/photokrystos-btm-firing.mp3',      1);
-        _makePool('photokrystos-btm-shockwave',   'audio/sfx/photokrystos-btm-shockwave.mp3',   1);
-        _makePool('photokrystos-btm-kill',        'audio/sfx/photokrystos-btm-kill.mp3',        6);
-        _makePool('photokrystos-btm-warming',     'audio/sfx/photokrystos-btm-warming.mp3',     1);
-        _makePool('photokrystos-vine-bind',       'audio/sfx/photokrystos-vine-bind.mp3',       3);
-        _makePool('laser-fire',             'audio/sfx/laser-fire.mp3',             3);
-        _makePool('goliath-verdict-launch', 'audio/sfx/goliath-verdict-launch.mp3', 1);
-        _makePool('dargruel-chain-launch',  'audio/sfx/dargruel-chain-launch.mp3',  2);
-        _makePool('dargruel-chain-root',    'audio/sfx/dargruel-chain-root.mp3',    2);
-        _makePool('metal-hit',              'audio/sfx/metal-hit.mp3',              6);
-        _makePool('phantom-strike',         'audio/sfx/phantom-strike.mp3',         2);
-        _makePool('goliath-transform',      'audio/sfx/goliath-transform.mp3',      1, true); // bypass duck so it stays clear
-        _makePool('goliath-fracture-step',  'audio/sfx/goliath-fracture-step.mp3',  2);
-        _makePool('goliath-verdict-impact', 'audio/sfx/goliath-verdict-impact.mp3', 2);
-        _makePool('leviathan-perseverance', 'audio/sfx/leviathan-perseverance.mp3', 2);
-        _makePool('goliath-death',          'audio/sfx/goliath-death.mp3',          1);
-        _makePool('goliath-spawn',          'audio/sfx/goliath-spawn.mp3',          1, true); // bypass duck so it stays clear, matches goliath-transform
-        _makePool('goliath-corrupted-meteor', 'audio/sfx/goliath-corrupted-meteor.mp3', 2);
-        _makePool('goliath-unbroken-wave',  'audio/sfx/goliath-unbroken-wave.mp3',  1);
-        _makePool('gate-of-babylon',        'audio/sfx/gate-of-babylon.mp3',        2);
-        _makePool('enuma-elish-charge',     'audio/sfx/enuma-elish-charge.mp3',     1);
-        _makePool('enuma-elish-release',    'audio/sfx/enuma-elish-release.mp3',    1);
+        _makePool('autoshot',     'assets/audio/sfx/autoshot.mp3',    4);
+        _makePool('enemy-hit',    'assets/audio/sfx/enemy-hit.wav',   6);
+        _makePool('enemy-death',  'assets/audio/sfx/enemy-death.mp3', 3);
+        _makePool('shield-hit',   'assets/audio/sfx/shield-hit.wav',  3);
+        _makePool('life-lost',    'assets/audio/sfx/life-lost.mp3',   2);
+        _makePool('click',        'assets/audio/sfx/click.mp3',       3);
+        _makePool('hover',        'assets/audio/sfx/hover.mp3',       4);
+        _makePool('overlay',      'assets/audio/sfx/overlay.wav',     2);
+        _makePool('skill-ready',    'assets/audio/sfx/skill-ready.mp3',    3);
+        _makePool('skill-unlocked', 'assets/audio/sfx/skill-unlocked.mp3', 2);
+        _makePool('sigil-open',       'assets/audio/sfx/sigil-open.mp3',       2);
+        _makePool('sigil-confirm',    'assets/audio/sfx/sigil-confirm.mp3',    2);
+        _makePool('sentinel-spawn',   'assets/audio/sfx/sentinel-spawn.mp3',   3);
+        _makePool('sentinel-explode', 'assets/audio/sfx/sentinel-explode.mp3', 3);
+        _makePool('shift-hold',       'assets/audio/sfx/shift-hold.mp3',       2, true);
+        _makePool('shift-teleport',   'assets/audio/sfx/shift-teleport.mp3',   2);
+        _makePool('coronation',       'assets/audio/sfx/coronation.mp3',       2);
+        _makePool('spirit-autofire',  'assets/audio/sfx/spirit-autofire.mp3',  5); // fires ~42ms cadence, needs deep pool
+        _makePool('tesla-coil-form',  'assets/audio/sfx/tesla-coil-form.mp3',  2);
+        _makePool('skill-a-activate', 'assets/audio/sfx/skill-a-activate.mp3', 2);
+        _makePool('skill-a-orb-hit',  'assets/audio/sfx/skill-a-orb-hit.mp3',  4);
+        _makePool('skill-a-orb-lock', 'assets/audio/sfx/skill-a-orb-lock.mp3', 4);
+        _makePool('photokrystos-dnt-laser',       'assets/audio/sfx/photokrystos-dnt-laser.mp3',       2);
+        _makePool('photokrystos-boomerang-throw', 'assets/audio/sfx/photokrystos-boomerang-throw.mp3', 3);
+        _makePool('photokrystos-boomerang-hit',   'assets/audio/sfx/photokrystos-boomerang-hit.mp3',   3);
+        _makePool('photokrystos-boomerang-bounce', 'assets/audio/sfx/photokrystos-boomerang-bounce.mp3', 3);
+        _makePool('spinner-bounce', 'assets/audio/sfx/spinner-bounce.mp3', 3);
+        _makePool('spirit-finale-laser', 'assets/audio/sfx/spirit-finale-laser.mp3', 4);
+        _makePool('spirit-arc-slash', 'assets/audio/sfx/spirit-arc-slash.mp3', 3);
+        _makePool('gameover',  'assets/audio/sfx/gameover.mp3',  1);
+        _makePool('new-wave',  'assets/audio/sfx/new-wave.mp3',  2);
+        _makePool('yog-parry', 'assets/audio/sfx/yog-parry.mp3', 2);
+        _makePool('charged-shot', 'assets/audio/sfx/charged-shot.mp3', 2);
+        _makePool('wave-clear',   'assets/audio/sfx/wave-clear.mp3',   1);
+        _makePool('dimensional-rift', 'assets/audio/sfx/dimensional-rift.mp3', 2);
+        _makePool('dimension-break',  'assets/audio/sfx/dimension-break.mp3',  2);
+        _makePool('egregor-nullslash-slash', 'assets/audio/sfx/egregor-nullslash-slash.mp3', 2);
+        _makePool('egregor-nullslash-hit',   'assets/audio/sfx/egregor-nullslash-hit.mp3',   2);
+        _makePool('egregor-death-roar',      'assets/audio/sfx/egregor-death-roar.mp3',      1);
+        _makePool('egregor-tempest-strike',  'assets/audio/sfx/egregor-tempest-strike.mp3',  2);
+        _makePool('chain-lightning',         'assets/audio/sfx/chain-lightning.mp3',         4);
+        _makePool('photokrystos-summon-converge', 'assets/audio/sfx/photokrystos-summon-converge.mp3', 1);
+        _makePool('photokrystos-summon-flash',    'assets/audio/sfx/photokrystos-summon-flash.mp3',    1);
+        _makePool('photokrystos-summon-holy',     'assets/audio/sfx/photokrystos-summon-holy.mp3',     1);
+        _makePool('photokrystos-btm-firing',      'assets/audio/sfx/photokrystos-btm-firing.mp3',      1);
+        _makePool('photokrystos-btm-shockwave',   'assets/audio/sfx/photokrystos-btm-shockwave.mp3',   1);
+        _makePool('photokrystos-btm-kill',        'assets/audio/sfx/photokrystos-btm-kill.mp3',        6);
+        _makePool('photokrystos-btm-warming',     'assets/audio/sfx/photokrystos-btm-warming.mp3',     1);
+        _makePool('photokrystos-vine-bind',       'assets/audio/sfx/photokrystos-vine-bind.mp3',       3);
+        _makePool('laser-fire',             'assets/audio/sfx/laser-fire.mp3',             3);
+        _makePool('goliath-verdict-launch', 'assets/audio/sfx/goliath-verdict-launch.mp3', 1);
+        _makePool('dargruel-chain-launch',  'assets/audio/sfx/dargruel-chain-launch.mp3',  2);
+        _makePool('dargruel-chain-root',    'assets/audio/sfx/dargruel-chain-root.mp3',    2);
+        _makePool('metal-hit',              'assets/audio/sfx/metal-hit.mp3',              6);
+        _makePool('phantom-strike',         'assets/audio/sfx/phantom-strike.mp3',         2);
+        _makePool('goliath-transform',      'assets/audio/sfx/goliath-transform.mp3',      1, true); // bypass duck so it stays clear
+        _makePool('goliath-fracture-step',  'assets/audio/sfx/goliath-fracture-step.mp3',  2);
+        _makePool('goliath-verdict-impact', 'assets/audio/sfx/goliath-verdict-impact.mp3', 2);
+        _makePool('leviathan-perseverance', 'assets/audio/sfx/leviathan-perseverance.mp3', 2);
+        _makePool('goliath-death',          'assets/audio/sfx/goliath-death.mp3',          1);
+        _makePool('goliath-spawn',          'assets/audio/sfx/goliath-spawn.mp3',          1, true); // bypass duck so it stays clear, matches goliath-transform
+        _makePool('goliath-corrupted-meteor', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 2);
+        _makePool('goliath-unbroken-wave',  'assets/audio/sfx/goliath-unbroken-wave.mp3',  1);
+        _makePool('gate-of-babylon',        'assets/audio/sfx/gate-of-babylon.mp3',        2);
+        _makePool('enuma-elish-charge',     'assets/audio/sfx/enuma-elish-charge.mp3',     1);
+        _makePool('enuma-elish-release',    'assets/audio/sfx/enuma-elish-release.mp3',    1);
 
         state.ambientEl  = _makeBufferLoop();
-        state.ambientEl.setSrc('audio/sfx/ingame.mp3');
+        state.ambientEl.setSrc('assets/audio/sfx/ingame.mp3');
         state.engineEl   = _makeBufferLoop();
-        state.engineEl.setSrc('audio/sfx/engine.wav');
+        state.engineEl.setSrc('assets/audio/sfx/engine.wav');
         state.laserEl    = _makeBufferLoop();
-        state.laserEl.setSrc('audio/sfx/laser.mp3');
+        state.laserEl.setSrc('assets/audio/sfx/laser.mp3');
         state.chargingEl = _makeBufferLoop();
-        state.chargingEl.setSrc('audio/sfx/charging.mp3');
+        state.chargingEl.setSrc('assets/audio/sfx/charging.mp3');
         state.skillDChargeEl = _makeBufferLoop();
-        state.skillDChargeEl.setSrc('audio/sfx/skill-d-charge.mp3');
+        state.skillDChargeEl.setSrc('assets/audio/sfx/skill-d-charge.mp3');
         state.lowHpEl = _makeBufferLoop(); // heartbeat, loops while lives < 5
-        state.lowHpEl.setSrc('audio/sfx/low-hp.mp3');
+        state.lowHpEl.setSrc('assets/audio/sfx/low-hp.mp3');
         state.photokrystosIdleEl = _makeBufferLoop();
-        state.photokrystosIdleEl.setSrc('audio/sfx/photokrystos-idle.mp3');
+        state.photokrystosIdleEl.setSrc('assets/audio/sfx/photokrystos-idle.mp3');
         state.crawlEl = _makeBufferLoop();
-        state.crawlEl.setSrc('audio/sfx/egregor-crawl.mp3');
+        state.crawlEl.setSrc('assets/audio/sfx/egregor-crawl.mp3');
         state.goliathIdleEl = _makeBufferLoop();
-        state.goliathIdleEl.setSrc('audio/sfx/goliath-idle.mp3');
+        state.goliathIdleEl.setSrc('assets/audio/sfx/goliath-idle.mp3');
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
         // to a fixed duration.
         state.skillFChargeEl = _makeBufferLoop();
-        state.skillFChargeEl.setSrc('audio/sfx/skill-f-charge.mp3', false);
+        state.skillFChargeEl.setSrc('assets/audio/sfx/skill-f-charge.mp3', false);
         state.skillFFireEl = _makeBufferLoop();
-        state.skillFFireEl.setSrc('audio/sfx/skill-f-fire.mp3', false);
+        state.skillFFireEl.setSrc('assets/audio/sfx/skill-f-fire.mp3', false);
         state.blackholeEl = _makeBufferLoop();
-        state.blackholeEl.setSrc('audio/sfx/blackhole.mp3', false);
+        state.blackholeEl.setSrc('assets/audio/sfx/blackhole.mp3', false);
         state.maouHakiEl = _makeBufferLoop();
-        state.maouHakiEl.setSrc('audio/sfx/maou-haki.mp3', false);
+        state.maouHakiEl.setSrc('assets/audio/sfx/maou-haki.mp3', false);
         state.nullSlashWindupEl = _makeBufferLoop();
-        state.nullSlashWindupEl.setSrc('audio/sfx/egregor-nullslash-windup.mp3', false);
+        state.nullSlashWindupEl.setSrc('assets/audio/sfx/egregor-nullslash-windup.mp3', false);
         state.goliathVerdictChargeEl = _makeBufferLoop();
-        state.goliathVerdictChargeEl.setSrc('audio/sfx/goliath-verdict-charge.mp3', false);
+        state.goliathVerdictChargeEl.setSrc('assets/audio/sfx/goliath-verdict-charge.mp3', false);
     }
 
     _boot();
