@@ -277,7 +277,7 @@
         'skill-f-fire': 1.0, 'skill-f-charge': 1.0,
         'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
         'photokrystos-boomerang-bounce': 0.65, 'spinner-bounce': 0.65,
-        'spirit-finale-laser': 0.5,
+        'spirit-finale-laser': 0.7,
         'spirit-arc-slash': 1.0,
         gameover: 1.0, 'new-wave': 1.0,
         'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,

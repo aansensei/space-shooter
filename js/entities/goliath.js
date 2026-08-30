@@ -167,6 +167,16 @@ function _goliathDmgBoost(enemy, amount) {
     return amount * fractureMult * Math.pow(0.85, _goliathWaningStacks(enemy));
 }
 
+// Every Goliath attack (Absolute Verdict, Corrupted Meteor, and every Joker
+// copy) that lands on the player also silences them - no skills, no auto-shot
+// - 0.75s for a normal attack, 1.25s for Absolute Verdict specifically. Root
+// is untouched; this is purely a lock on the player's own attacks, not movement.
+function _goliathApplySilence(durMs) {
+    const now = performance.now();
+    player._silenced = true;
+    player._silenceEnd = Math.max(player._silenceEnd || 0, now + (durMs || 750));
+}
+
 // Unbroken Will (1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì thay
 // vào đó — bất tử 4s (tái dùng đúng cổng Iron Body tuyệt đối của
 // _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
@@ -943,7 +953,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v. —
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) {
-                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat')) playerTakesHit(enemy);
+                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat')) { playerTakesHit(enemy); _goliathApplySilence(); }
                         }
                     } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
                         dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
@@ -989,7 +999,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const lineStart = { x: s.originX, y: s.originY };
                 if (t.isPlayer) {
                     if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) {
-                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.25), 'flat')) playerTakesHit(enemy);
+                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.25), 'flat')) { playerTakesHit(enemy); _goliathApplySilence(); }
                     }
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
                     dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
@@ -1082,6 +1092,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         addExplosion(player.x, player.y, 90, '#6600cc');
                         createParticles(player.x, player.y, 25, '#aa44ff', 3, 10);
                         _setShake(12, 350);
+                        _goliathApplySilence();
                     }
                 }
                 const hitSents = sentinels.filter(sn => _inSlash(sn.x, sn.y));
@@ -1125,6 +1136,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             spawnBossShockwave(enemy.x, enemy.y, 'goliath');
             if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < canvas.width) {
                 player._goliathSlowEnd = now + 2000; player._goliathSlowFactor = 0.30;
+                _goliathApplySilence();
             }
             addExplosion(enemy.x, enemy.y, 200, '#8A2BE2');
         }
@@ -1155,7 +1167,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
                     s._hitPlayer = true;
-                    if (!_yuushaPierceRedirect(0.50, true)) playerTakesHit(enemy);
+                    if (!_yuushaPierceRedirect(0.50, true)) { playerTakesHit(enemy); _goliathApplySilence(); }
                 }
             }
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —
