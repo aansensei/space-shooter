@@ -276,6 +276,7 @@
         'skill-a-activate': 1.0, 'skill-a-orb-hit': 1.0, 'skill-a-orb-lock': 1.0,
         'skill-f-fire': 1.0, 'skill-f-charge': 1.0,
         'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
+        'photokrystos-boomerang-bounce': 0.65, 'spinner-bounce': 0.65,
         'spirit-arc-slash': 1.0,
         gameover: 1.0, 'new-wave': 1.0,
         'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,
@@ -729,6 +730,8 @@
         _makePool('photokrystos-dnt-laser',       'audio/sfx/photokrystos-dnt-laser.mp3',       2);
         _makePool('photokrystos-boomerang-throw', 'audio/sfx/photokrystos-boomerang-throw.mp3', 3);
         _makePool('photokrystos-boomerang-hit',   'audio/sfx/photokrystos-boomerang-hit.mp3',   3);
+        _makePool('photokrystos-boomerang-bounce', 'audio/sfx/photokrystos-boomerang-bounce.mp3', 3);
+        _makePool('spinner-bounce', 'audio/sfx/spinner-bounce.mp3', 3);
         _makePool('spirit-arc-slash', 'audio/sfx/spirit-arc-slash.mp3', 3);
         _makePool('gameover',  'audio/sfx/gameover.mp3',  1);
         _makePool('new-wave',  'audio/sfx/new-wave.mp3',  2);
