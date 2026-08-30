@@ -715,158 +715,85 @@ function _drawFlyIn(p, elapsed) {
     ctx.restore();
 }
 
-function _drawZodiacGlyph(id, cx, cy, r, color) {
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(1.5, r * 0.09);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 6;
+// Zodiac glyph sprites: hand-drawn white line-art icons on transparent PNG,
+// one shared set for all 12 signs. Tinted per-element (Fire/Earth/Air/Water)
+// via source-atop compositing done on an OFFSCREEN canvas, then that already-
+// tinted result is drawn onto the real ctx with a plain drawImage. Tinting
+// straight on the real ctx doesn't work: source-atop paints wherever the
+// EXISTING canvas content already has alpha > 0, and every real call site
+// draws this over an already-opaque badge/panel background, so it painted
+// the whole square bounding box solid instead of just the icon's own shape.
+// Cached per (sigil, color) since the same pair redraws every frame.
+const _zodiacGlyphImgs = {};
+const _zodiacTintCache = {};
+['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'].forEach(id => {
+    const img = new Image();
+    img.src = 'assets/images/game/zodiac/zodiac_' + id + '.png';
+    img.decode().catch(() => {});
+    _zodiacGlyphImgs[id] = img;
+});
 
-    switch (id) {
-        case 'aries': {
-            ctx.beginPath();
-            ctx.moveTo(cx, cy + r * 0.45);
-            ctx.lineTo(cx, cy + r * 0.02);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx - r * 0.42, cy + r * 0.08, r * 0.44, Math.PI * 0.05, Math.PI * 0.85, true);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx + r * 0.42, cy + r * 0.08, r * 0.44, Math.PI * 0.15, Math.PI * 0.95, false);
-            ctx.stroke();
-            break;
-        }
-        case 'taurus': {
-            ctx.beginPath();
-            ctx.arc(cx, cy + r * 0.18, r * 0.44, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx, cy - r * 0.24, r * 0.48, Math.PI * 0.08, Math.PI * 0.92, false);
-            ctx.stroke();
-            break;
-        }
-        case 'gemini': {
-            const lx = cx - r * 0.28, rx = cx + r * 0.28;
-            const ty = cy - r * 0.5, by = cy + r * 0.5;
-            ctx.beginPath();
-            ctx.moveTo(cx - r * 0.55, ty); ctx.lineTo(cx + r * 0.55, ty);
-            ctx.moveTo(cx - r * 0.55, by); ctx.lineTo(cx + r * 0.55, by);
-            ctx.moveTo(lx, ty); ctx.lineTo(lx, by);
-            ctx.moveTo(rx, ty); ctx.lineTo(rx, by);
-            ctx.stroke();
-            break;
-        }
-        case 'cancer': {
-            ctx.beginPath();
-            ctx.arc(cx + r * 0.18, cy - r * 0.18, r * 0.35, Math.PI * 0.2, Math.PI * 1.9, false);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx - r * 0.18, cy + r * 0.18, r * 0.35, Math.PI * 1.2, Math.PI * 2.9, false);
-            ctx.stroke();
-            break;
-        }
-        case 'leo': {
-            ctx.beginPath();
-            ctx.arc(cx - r * 0.15, cy - r * 0.1, r * 0.38, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx + r * 0.23, cy - r * 0.1);
-            ctx.bezierCurveTo(cx + r * 0.75, cy - r * 0.08, cx + r * 0.78, cy - r * 0.62, cx + r * 0.38, cy - r * 0.6);
-            ctx.stroke();
-            break;
-        }
-        case 'virgo': {
-            const bY = cy + r * 0.48, tY = cy - r * 0.48, lX = cx - r * 0.52;
-            ctx.beginPath();
-            ctx.moveTo(lX, bY);
-            ctx.lineTo(lX, tY);
-            ctx.arc(lX + r * 0.26, tY, r * 0.26, Math.PI, 0, false);
-            ctx.arc(cx + r * 0.26, tY, r * 0.26, Math.PI, 0, false);
-            ctx.lineTo(cx + r * 0.52, cy + r * 0.22);
-            ctx.bezierCurveTo(cx + r * 0.52, cy + r * 0.55, cx + r * 0.18, cy + r * 0.55, cx + r * 0.18, cy + r * 0.22);
-            ctx.stroke();
-            break;
-        }
-        case 'libra': {
-            const baseY = cy + r * 0.48, midY = cy + r * 0.1;
-            ctx.beginPath();
-            ctx.moveTo(cx - r * 0.58, baseY); ctx.lineTo(cx + r * 0.58, baseY);
-            ctx.moveTo(cx - r * 0.52, midY);  ctx.lineTo(cx + r * 0.52, midY);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx, midY, r * 0.42, Math.PI, 0, false);
-            ctx.stroke();
-            break;
-        }
-        case 'scorpio': {
-            const bY2 = cy + r * 0.38, tY2 = cy - r * 0.48, lX2 = cx - r * 0.52;
-            ctx.beginPath();
-            ctx.moveTo(lX2, bY2);
-            ctx.lineTo(lX2, tY2);
-            ctx.arc(lX2 + r * 0.26, tY2, r * 0.26, Math.PI, 0, false);
-            ctx.arc(cx + r * 0.26, tY2, r * 0.26, Math.PI, 0, false);
-            ctx.lineTo(cx + r * 0.52, cy + r * 0.15);
-            ctx.bezierCurveTo(cx + r * 0.52, cy + r * 0.52, cx + r * 0.62, cy + r * 0.52, cx + r * 0.62, cy + r * 0.22);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx + r * 0.62, cy + r * 0.22);
-            ctx.lineTo(cx + r * 0.45, cy + r * 0.42);
-            ctx.moveTo(cx + r * 0.62, cy + r * 0.22);
-            ctx.lineTo(cx + r * 0.78, cy + r * 0.42);
-            ctx.stroke();
-            break;
-        }
-        case 'sagittarius': {
-            const ax1 = cx - r * 0.52, ay1 = cy + r * 0.52;
-            const ax2 = cx + r * 0.52, ay2 = cy - r * 0.52;
-            ctx.beginPath();
-            ctx.moveTo(ax1, ay1); ctx.lineTo(ax2, ay2);
-            ctx.moveTo(ax2, ay2); ctx.lineTo(ax2 - r * 0.35, ay2);
-            ctx.moveTo(ax2, ay2); ctx.lineTo(ax2, ay2 + r * 0.35);
-            ctx.moveTo(cx - r * 0.28, cy + r * 0.28); ctx.lineTo(cx + r * 0.28, cy - r * 0.28);
-            ctx.stroke();
-            break;
-        }
-        case 'capricorn': {
-            ctx.beginPath();
-            ctx.moveTo(cx - r * 0.5, cy - r * 0.45);
-            ctx.bezierCurveTo(cx - r * 0.5, cy + r * 0.28, cx, cy + r * 0.38, cx, cy - r * 0.02);
-            ctx.bezierCurveTo(cx, cy - r * 0.5, cx + r * 0.52, cy - r * 0.5, cx + r * 0.48, cy - r * 0.04);
-            ctx.bezierCurveTo(cx + r * 0.44, cy + r * 0.42, cx - r * 0.05, cy + r * 0.52, cx - r * 0.05, cy + r * 0.2);
-            ctx.stroke();
-            break;
-        }
-        case 'aquarius': {
-            const wY1 = cy - r * 0.22, wY2 = cy + r * 0.22;
-            const wA = r * 0.22, wL = r * 0.55;
-            ctx.beginPath();
-            ctx.moveTo(cx - wL, wY1);
-            ctx.bezierCurveTo(cx - wL * 0.5, wY1 - wA, cx - wL * 0.5, wY1 - wA, cx, wY1);
-            ctx.bezierCurveTo(cx + wL * 0.5, wY1 + wA, cx + wL * 0.5, wY1 + wA, cx + wL, wY1);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx - wL, wY2);
-            ctx.bezierCurveTo(cx - wL * 0.5, wY2 - wA, cx - wL * 0.5, wY2 - wA, cx, wY2);
-            ctx.bezierCurveTo(cx + wL * 0.5, wY2 + wA, cx + wL * 0.5, wY2 + wA, cx + wL, wY2);
-            ctx.stroke();
-            break;
-        }
-        case 'pisces': {
-            ctx.beginPath();
-            ctx.arc(cx - r * 0.14, cy, r * 0.42, Math.PI * 0.5, Math.PI * 1.5, true);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx + r * 0.14, cy, r * 0.42, Math.PI * 0.5, Math.PI * 1.5, false);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx - r * 0.55, cy); ctx.lineTo(cx + r * 0.55, cy);
-            ctx.stroke();
-            break;
-        }
+// Thin line-art at the source's native 1024px, downscaled in one shot to
+// the ~24-90px the HUD/cards actually draw it at, breaks apart into noisy
+// fragments - a single bilinear pass isn't real mipmapping and can't average
+// enough source pixels per output pixel at a 40:1+ ratio. Halving the size
+// repeatedly (each step a clean 2:1 reduction, well within what one bilinear
+// pass handles correctly) approximates a real mipmap chain and keeps the
+// lines solid all the way down.
+function _downscaleStepwise(img, targetSize) {
+    let srcCanvas = img, w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    while (w > targetSize * 2) {
+        const nw = Math.max(targetSize, Math.round(w / 2)), nh = Math.max(targetSize, Math.round(h / 2));
+        const step = document.createElement('canvas');
+        step.width = nw; step.height = nh;
+        step.getContext('2d').drawImage(srcCanvas, 0, 0, nw, nh);
+        srcCanvas = step; w = nw; h = nh;
     }
+    return srcCanvas;
+}
 
+// Call sites draw this glyph anywhere from ~15px (ship-upgrade icon) to
+// ~120px (the sigil-confirm burst over the ship), so one fixed cache
+// resolution can't be a clean ~2:1 final step for all of them - stepping
+// down to within 2x of THIS call's own actual display size instead keeps
+// every size crisp. Bucketed to the nearest 8px so a continuously-animated
+// size (the confirm burst) reuses a handful of cache entries instead of
+// re-running the stepwise reduction every single frame.
+function _getTintedZodiacGlyph(id, color, displaySize) {
+    const img = _zodiacGlyphImgs[id];
+    if (!img || !img.complete || !img.naturalWidth) return null;
+    const bucket = Math.max(8, Math.round(displaySize / 8) * 8);
+    const key = id + '|' + color + '|' + bucket;
+    const cached = _zodiacTintCache[key];
+    if (cached) return cached;
+    const small = _downscaleStepwise(img, bucket);
+    const off = document.createElement('canvas');
+    off.width = small.width; off.height = small.height;
+    const octx = off.getContext('2d');
+    octx.drawImage(small, 0, 0);
+    octx.globalCompositeOperation = 'source-atop';
+    octx.fillStyle = color;
+    octx.fillRect(0, 0, off.width, off.height);
+    _zodiacTintCache[key] = off;
+    return off;
+}
+
+function _drawZodiacGlyph(id, cx, cy, r, color) {
+    const size = r * 2.4; // a bit bigger than the old strokes' footprint - reads clearer at HUD scale
+    const tinted = _getTintedZodiacGlyph(id, color, size);
+    ctx.save();
+    if (tinted) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 9;
+        ctx.drawImage(tinted, cx - size / 2, cy - size / 2, size, size);
+    } else {
+        // Sprite not decoded yet (first instant after page load) - a plain
+        // glowing dot so the glyph never goes fully invisible.
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(cx, cy, r * 0.3, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
 }
 

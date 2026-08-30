@@ -6,10 +6,10 @@
 // (silence-only) get visually distinct badges over the ship - same asset-
 // loading pattern as the Photokrystos boomerang sprite in skill-s-spirit.js.
 const _dargruelSilenceImg = new Image();
-_dargruelSilenceImg.src = 'images/game/dargruel-root-silence-debuff.png';
+_dargruelSilenceImg.src = 'assets/images/game/dargruel-root-silence-debuff.png';
 _dargruelSilenceImg.decode().catch(() => {});
 const _goliathSilenceImg = new Image();
-_goliathSilenceImg.src = 'images/game/goliath-silence-debuff.png';
+_goliathSilenceImg.src = 'assets/images/game/goliath-silence-debuff.png';
 _goliathSilenceImg.decode().catch(() => {});
 
 function drawSkillShiftEffects() {
@@ -1928,9 +1928,9 @@ function _ariesHQ() { return !_mobPerf && _gfxLevel === 0; }
 // lands on the local origin so the weapon rotates around its grip like the
 // vector art it replaced, not around its visual center.
 const _ariesWeaponImgs = [new Image(), new Image(), new Image()];
-_ariesWeaponImgs[0].src = 'images/game/weapons/1-longsword.png';
-_ariesWeaponImgs[1].src = 'images/game/weapons/2-spear.png';
-_ariesWeaponImgs[2].src = 'images/game/weapons/3-halberd.png';
+_ariesWeaponImgs[0].src = 'assets/images/game/weapons/1-longsword.png';
+_ariesWeaponImgs[1].src = 'assets/images/game/weapons/2-spear.png';
+_ariesWeaponImgs[2].src = 'assets/images/game/weapons/3-halberd.png';
 for (const img of _ariesWeaponImgs) img.decode().catch(() => {}); // force async decode now, not on first draw
 const _ARIES_WEAPON_CFG = [
     { img: 0, length: 50, pivot: 0.28 }, // Longsword
@@ -1938,7 +1938,7 @@ const _ARIES_WEAPON_CFG = [
     { img: 2, length: 50, pivot: 0.45 }, // Halberd
 ];
 const _enumaSpearImg = new Image();
-_enumaSpearImg.src = 'images/game/weapons/5-enuma-spear.png';
+_enumaSpearImg.src = 'assets/images/game/weapons/5-enuma-spear.png';
 _enumaSpearImg.decode().catch(() => {});
 
 function _drawDivineWeapon(x, y, angle, type, alpha, scale) {

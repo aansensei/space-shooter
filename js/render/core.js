@@ -8,7 +8,7 @@
 let bgStars = [];
 let nebulaPoints = null;
 const _walpurgisIconImg = new Image();
-_walpurgisIconImg.src = 'images/game/walpurgis-icon.png';
+_walpurgisIconImg.src = 'assets/images/game/walpurgis-icon.png';
 _walpurgisIconImg.decode().catch(() => {}); // force async decode now, not on first draw
 // Falling stars system
 let _fallingStars = [];
