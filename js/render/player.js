@@ -2,6 +2,16 @@
 // render/player.js — extracted from render.js (skill-shift arrows, final defense,
 // player aura, bullets, drawPlayer, charge/laser effects). Depends on core.js.
 
+// Silence debuff icons: Dargruel's chain (root+silence) vs Goliath's attacks
+// (silence-only) get visually distinct badges over the ship - same asset-
+// loading pattern as the Photokrystos boomerang sprite in skill-s-spirit.js.
+const _dargruelSilenceImg = new Image();
+_dargruelSilenceImg.src = 'images/game/dargruel-root-silence-debuff.png';
+_dargruelSilenceImg.decode().catch(() => {});
+const _goliathSilenceImg = new Image();
+_goliathSilenceImg.src = 'images/game/goliath-silence-debuff.png';
+_goliathSilenceImg.decode().catch(() => {});
+
 function drawSkillShiftEffects() {
     if (!skillShiftActive) return;
     const now = performance.now();
@@ -670,57 +680,55 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         ctx.beginPath(); ctx.arc(0, 0, 0.8, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Silence lock icon, tím đè lên tàu khi bị câm lặng
+    // Silence debuff icon, đè lên tàu khi bị câm lặng - Dargruel's root+
+    // silence chain and Goliath's silence-only hits share the same
+    // player._silenced flag, so player._rooted (only Dargruel's chain ever
+    // sets it) picks which of the two generated icons reads as the source.
     if (alpha === 1 && typeof player !== 'undefined' && player._silenced) {
         const lNow = performance.now();
-        const lPulse = 0.7 + 0.3 * Math.sin(lNow / 80);
         const remaining = Math.max(0, (player._silenceEnd - lNow) / 1000);
         const fade = Math.min(1, remaining * 4);
+        const _silenceImg = player._rooted ? _dargruelSilenceImg : _goliathSilenceImg;
+        // Bigger than before (was 26) - the painterly artwork loses too much
+        // fine detail shrunk down that far and read as a blurry smudge.
+        const _sR = 34;
 
         ctx.save();
-        ctx.globalAlpha = 0.95 * fade;
+        if (_mobPerf) {
+            // LOW: flat, static, no glow/pulse - cheap and still readable.
+            ctx.globalAlpha = 0.95 * fade;
+            if (_silenceImg.complete && _silenceImg.naturalWidth) {
+                ctx.drawImage(_silenceImg, -_sR, -_sR, _sR * 2, _sR * 2);
+            } else {
+                ctx.strokeStyle = 'rgba(210,0,255,0.9)';
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(0, 0, _sR * 0.7, 0, Math.PI * 2); ctx.stroke();
+            }
+        } else {
+            // MED/FULL: flashing alpha + soft halo glow behind the icon.
+            // FULL adds a slight breathing scale on top for more punch.
+            const flash = 0.55 + 0.45 * Math.abs(Math.sin(lNow / 220));
+            const scalePulse = _gfxLevel < 1 ? 1 + 0.06 * Math.sin(lNow / 260) : 1;
+            const haloR = _sR * (1.25 + 0.1 * flash);
 
-        // Lock shackle (arc on top)
-        if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 20; }
-        ctx.strokeStyle = `rgba(210,0,255,${lPulse})`;
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.arc(0, -5, 10, Math.PI, 0);
-        ctx.stroke();
+            const halo = ctx.createRadialGradient(0, 0, _sR * 0.3, 0, 0, haloR);
+            halo.addColorStop(0, `rgba(220,120,255,${0.35 * flash})`);
+            halo.addColorStop(1, 'rgba(220,120,255,0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath(); ctx.arc(0, 0, haloR, 0, Math.PI * 2); ctx.fill();
 
-        // Lock body, manual rounded rect (no roundRect for iOS compat)
-        const lx = -12, ly = -5, lw = 24, lh = 20, lr = 4;
-        ctx.beginPath();
-        ctx.moveTo(lx + lr, ly);
-        ctx.lineTo(lx + lw - lr, ly);
-        ctx.arcTo(lx + lw, ly, lx + lw, ly + lr, lr);
-        ctx.lineTo(lx + lw, ly + lh - lr);
-        ctx.arcTo(lx + lw, ly + lh, lx + lw - lr, ly + lh, lr);
-        ctx.lineTo(lx + lr, ly + lh);
-        ctx.arcTo(lx, ly + lh, lx, ly + lh - lr, lr);
-        ctx.lineTo(lx, ly + lr);
-        ctx.arcTo(lx, ly, lx + lr, ly, lr);
-        ctx.closePath();
-        const grad = ctx.createLinearGradient(lx, ly, lx, ly + lh);
-        grad.addColorStop(0, `rgba(150,0,220,${0.92 * lPulse})`);
-        grad.addColorStop(1, `rgba(70,0,140,${0.92 * lPulse})`);
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.strokeStyle = `rgba(230,100,255,${lPulse})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Keyhole circle
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = `rgba(255,200,255,${0.9 * lPulse})`;
-        ctx.beginPath();
-        ctx.arc(0, 2, 4, 0, Math.PI * 2);
-        ctx.fill();
-        // Keyhole slot
-        ctx.fillStyle = `rgba(70,0,140,${lPulse})`;
-        ctx.fillRect(-2, 2, 4, 7);
-
+            ctx.globalAlpha = fade * (0.75 + 0.25 * flash);
+            ctx.shadowColor = '#e078ff';
+            ctx.shadowBlur = (_gfxLevel < 1 ? 26 : 14) * flash;
+            ctx.scale(scalePulse, scalePulse);
+            if (_silenceImg.complete && _silenceImg.naturalWidth) {
+                ctx.drawImage(_silenceImg, -_sR, -_sR, _sR * 2, _sR * 2);
+            } else {
+                ctx.strokeStyle = `rgba(210,0,255,${flash})`;
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.arc(0, 0, _sR * 0.7, 0, Math.PI * 2); ctx.stroke();
+            }
+        }
         ctx.restore();
     }
 

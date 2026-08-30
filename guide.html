@@ -5050,7 +5050,7 @@
             // -> Spinner finale (3.4-5.9s, shortened from the real 5s
             // lifetime since this is just an illustration) -> reset.
             let lastShot = -999, shotCount = 0, arcFired = false, lastT = performance.now();
-            let demoSpinner = null;
+            let demoSpinner = null, laserSfxPlayed = false;
             function tick() {
               const nowT = performance.now();
               if (_widgetPauseGuard(btn, nowT, [{ get: () => lastSkillS, set: v => lastSkillS = v }, { get: () => (demoSpinner ? demoSpinner.spawnAt : null), set: v => { if (demoSpinner) demoSpinner.spawnAt = v; } }])) { lastT = nowT; activeAnimations.push(requestAnimationFrame(tick)); return; }
@@ -5108,6 +5108,10 @@
               // js/skills.js isn't loaded here, so its movement/bounce/arc-
               // slash rules are mirrored inline (same numbers, not re-derived).
               if (elapsed >= 2400 && elapsed < 3400) {
+                if (!laserSfxPlayed) {
+                  laserSfxPlayed = true;
+                  if (window.AudioMgr) window.AudioMgr.playSfx('spirit-finale-laser');
+                }
                 if (Math.floor(elapsed / 100) % 2 === 0) {
                   particles.push({ isLaserLine: true, x1: demoSpirit.x, y1: demoSpirit.y, x2: target.x, y2: target.y, lifetime: 100, maxLifetime: 100, color: 'red' });
                 }
