@@ -54,19 +54,23 @@ function loseLife(cause) {
     if (window.AudioMgr) window.AudioMgr.playSfx('life-lost');
 }
 
+// Returns true if the hit actually landed (a life was lost), false if it was
+// negated/absorbed/deflected by any layer below - callers that gate a side
+// effect on "did the player actually get hit" (e.g. Goliath's on-hit
+// silence) need this instead of assuming every call costs a life.
 function playerTakesHit(attacker) {
-    if (window._debugPlayerInvuln) return;
+    if (window._debugPlayerInvuln) return false;
 
     // Dream Realm: 20% chance to negate a hit while active
     if (_hasBuff('coi_mong') && performance.now() < (window._coiMongEndTime || 0)) {
-        return;
+        return false;
     }
 
     // ƯU TIÊN 0: Yog-Sothoth - Miễn mọi sát thương trong Lãnh địa Thời Gian
     if (skillShiftActive) {
         // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
         _triggerAccurateParry();
-        return;
+        return false;
     }
 
     // ƯU TIÊN 1: Hy sinh Lôi Quang Cầu VÀNG (Chiêu A)
@@ -115,7 +119,7 @@ function playerTakesHit(attacker) {
                 updateDefensiveOrbs();
                 rebalanceSkillAOrbs();
             }
-            return;
+            return false;
         }
     }
 
@@ -125,11 +129,12 @@ function playerTakesHit(attacker) {
         finalDefense.playerCooldownEnd = performance.now() + 25000;
         addExplosion(player.x, player.y, 50, 'cyan');
         if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
-        return;
+        return false;
     }
 
     // ƯU TIÊN 3: Last Stand -> Mất mạng
     loseLife(_classifyAttacker(attacker));
+    return true;
 }
 
 function _triggerAccurateParry() {
@@ -2096,7 +2101,7 @@ function update(rawDeltaTime) {
                 // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
                 for (let li = 0; li < 5; li++) {
-                    if (!_yuushaPierceRedirect(orb.dmg, 'flat')) { playerTakesHit({ type: 'goliath' }); _goliathApplySilence(1250); }
+                    if (!_yuushaPierceRedirect(orb.dmg, 'flat') && playerTakesHit({ type: 'goliath' })) _goliathApplySilence(1250);
                 }
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
@@ -2124,7 +2129,7 @@ function update(rawDeltaTime) {
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
                 const _yHitsAlready = (sw.hitEnemies || []).length;
                 const _yPct = _yHitsAlready === 0 ? 0.27 : _yHitsAlready === 1 ? 0.23 : 0.21;
-                if (!_yuushaPierceRedirect(_yPct, true)) { playerTakesHit({ type: 'goliath' }); _goliathApplySilence(); }
+                if (!_yuushaPierceRedirect(_yPct, true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
@@ -2157,7 +2162,7 @@ function update(rawDeltaTime) {
             m.y += m.vy * (deltaTime / 1000);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
-                if (!_yuushaPierceRedirect(0.25, true)) { playerTakesHit({ type: 'goliath' }); _goliathApplySilence(); }
+                if (!_yuushaPierceRedirect(0.25, true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
                 addExplosion(m.x, m.y, 70, '#f59e0b');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;
