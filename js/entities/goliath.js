@@ -953,7 +953,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v. —
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) {
-                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat')) { playerTakesHit(enemy); _goliathApplySilence(); }
+                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
                         }
                     } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
                         dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
@@ -999,7 +999,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const lineStart = { x: s.originX, y: s.originY };
                 if (t.isPlayer) {
                     if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) {
-                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.25), 'flat')) { playerTakesHit(enemy); _goliathApplySilence(); }
+                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.25), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
                     }
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
                     dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
@@ -1136,7 +1136,10 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             spawnBossShockwave(enemy.x, enemy.y, 'goliath');
             if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < canvas.width) {
                 player._goliathSlowEnd = now + 2000; player._goliathSlowFactor = 0.30;
-                _goliathApplySilence();
+                // Doesn't route through playerTakesHit (it's an unconditional
+                // proximity slow, not a dodgeable hit), so Yog-Sothoth has to
+                // be checked here directly for the silence specifically.
+                if (!(typeof skillShiftActive !== 'undefined' && skillShiftActive)) _goliathApplySilence();
             }
             addExplosion(enemy.x, enemy.y, 200, '#8A2BE2');
         }
@@ -1167,7 +1170,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
                     s._hitPlayer = true;
-                    if (!_yuushaPierceRedirect(0.50, true)) { playerTakesHit(enemy); _goliathApplySilence(); }
+                    if (!_yuushaPierceRedirect(0.50, true) && playerTakesHit(enemy)) _goliathApplySilence();
                 }
             }
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —
