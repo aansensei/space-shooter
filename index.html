@@ -40,8 +40,8 @@
         content="Pisces: Space Journey is a free browser-based arcade space shooter with deep combat mechanics, zodiac sigils, epic boss battles, and endless enemy wave survival. No download required." />
     <meta name="keywords"
         content="space shooter game, free space shooter, browser space shooter, arcade shooter game, bullet hell game, shoot em up, shmup game, online shooter game, free online game, no download game, HTML5 game, web game, spaceship game, survival shooter game, wave survival game, boss rush game, sci-fi shooter, indie space shooter, roguelite shooter, zodiac game, Pisces game, Pisces Space Journey, sigil system game, progression shooter, PWA game, offline browser game, skill based shooter, free arcade game, space combat game, fun online game, addictive browser game, game bắn súng không gian, game bắn tàu vũ trụ, game bắn súng miễn phí, game online miễn phí, game trình duyệt, chơi game không cần tải, game vũ trụ, game sinh tồn, game đánh boss, game arcade hay" />
-    <link rel="icon" type="image/png" href="images/site/logo.png">
-    <link rel="apple-touch-icon" href="images/site/logo.png">
+    <link rel="icon" type="image/png" href="assets/images/site/logo.png">
+    <link rel="apple-touch-icon" href="assets/images/site/logo.png">
     <link rel="manifest" href="manifest.json">
     <!-- iOS ignores manifest.json for "Add to Home Screen" — these are the
          actual tags Safari reads for standalone (no browser chrome) launch. -->
@@ -55,13 +55,13 @@
     <meta property="og:title" content="Pisces: Space Journey" />
     <meta property="og:description"
         content="A fast-paced arcade space shooter with deep combat mechanics. Survive endless enemy waves!" />
-    <meta property="og:image" content="https://aansensei.dev/space-shooter/images/site/logo.png" />
+    <meta property="og:image" content="https://aansensei.dev/space-shooter/assets/images/site/logo.png" />
     <meta property="og:url" content="https://aansensei.dev/space-shooter/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Pisces: Space Journey" />
     <meta name="twitter:description" content="A fast-paced arcade space shooter with deep combat mechanics." />
-    <meta name="twitter:image" content="https://aansensei.dev/space-shooter/images/site/logo.png" />
+    <meta name="twitter:image" content="https://aansensei.dev/space-shooter/assets/images/site/logo.png" />
 
     <script type="application/ld+json">
     {
@@ -70,7 +70,7 @@
         "name": "Pisces: Space Journey",
         "description": "A free browser-based arcade space shooter with deep combat mechanics, zodiac sigils, epic boss battles, and endless enemy wave survival. No download required.",
         "url": "https://aansensei.dev/space-shooter/",
-        "image": "https://aansensei.dev/space-shooter/images/site/logo.png",
+        "image": "https://aansensei.dev/space-shooter/assets/images/site/logo.png",
         "genre": ["Shooter", "Arcade", "Bullet Hell"],
         "gamePlatform": ["Web Browser", "PWA"],
         "applicationCategory": "Game",
@@ -399,9 +399,9 @@
 
 <body>
     <!-- Audio -->
-    <audio id="snd-title" src="audio/bgm/pisces.mp3" loop preload="auto"></audio>
-    <audio id="snd-hyperjump" src="audio/sfx/hyperjump.mp3" preload="auto"></audio>
-    <audio id="snd-ingame" src="audio/sfx/ingame.mp3" loop preload="auto"></audio>
+    <audio id="snd-title" src="assets/audio/bgm/pisces.mp3" loop preload="auto"></audio>
+    <audio id="snd-hyperjump" src="assets/audio/sfx/hyperjump.mp3" preload="auto"></audio>
+    <audio id="snd-ingame" src="assets/audio/sfx/ingame.mp3" loop preload="auto"></audio>
 
     <!-- Mute button -->
     <button id="mute-btn" title="Bật/Tắt âm thanh">
@@ -471,6 +471,13 @@
     <button id="matchStatsBtn" data-i18n="matchStats.button" onclick="openMatchStats()">Match Stat</button>
 
     <div id="easter-egg-overlay">
+        <!-- Shows which Service Worker cache version is actually controlling
+             this page right now - queried live off sw.js, not hardcoded, so
+             it can't drift from what's really installed. Bottom-right corner
+             of the main menu only, out of the way of everything else. -->
+        <div id="cacheVersionTag" style="position:fixed; right:10px; bottom:8px; z-index:5;
+            font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px;
+            color:rgba(0,229,255,0.45); pointer-events:none; user-select:none;"></div>
         <canvas id="star-canvas"></canvas>
         <div id="ui-wrapper">
             <div id="lock-screen">
@@ -1910,7 +1917,7 @@
     <script src="js/offline.js?v=20260804c"></script>
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260826b"></script>
-    <script src="js/sigils.js?v=20260825c"></script>
+    <script src="js/sigils.js?v=20260830a"></script>
     <script src="js/yuusha-party.js?v=20260825b"></script>
     <script src="js/entities/core.js?v=20260826a"></script>
     <script src="js/entities/sentinel.js?v=20260825a"></script>
@@ -2061,6 +2068,34 @@
                 }).catch(() => {});
             });
         }
+
+        // Cache-version tag (bottom-right of the main menu): asks whichever
+        // SW is actually controlling this page right now for its
+        // CACHE_VERSION, rather than hardcoding a copy here that could drift
+        // out of sync with sw.js on the next bump.
+        (function () {
+            const _tagEl = document.getElementById('cacheVersionTag');
+            if (!_tagEl) return;
+            if (_isDevHost || !('serviceWorker' in navigator)) {
+                _tagEl.textContent = 'cache: dev (no SW)';
+                return;
+            }
+            _tagEl.textContent = 'cache: …';
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'PISCES_SW_VERSION') {
+                    _tagEl.textContent = 'cache: ' + event.data.version;
+                }
+            });
+            const _askVersion = () => {
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage('GET_VERSION');
+                } else {
+                    _tagEl.textContent = 'cache: (no controller yet)';
+                }
+            };
+            navigator.serviceWorker.ready.then(_askVersion).catch(() => {});
+            navigator.serviceWorker.addEventListener('controllerchange', _askVersion);
+        })();
     </script>
 
     <!-- ══ UI SFX WIRING ═════════════════════════════════════════════ -->

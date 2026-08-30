@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v135';
+const CACHE_VERSION = 'v138';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -17,18 +17,18 @@ const CORE_FILES = [
     'guide.html',
     'manifest.json',
     'css/style.css',
-    'images/site/gameplay.png',
-    'images/site/logo.png',
-    'images/site/pisces_banner.png',
-    'images/site/update-log-hero.png',
-    'images/game/weapons/1-longsword.png',
-    'images/game/weapons/2-spear.png',
-    'images/game/weapons/3-halberd.png',
-    'images/game/weapons/5-enuma-spear.png',
-    'images/game/photokrystos-boomerang.png',
-    'images/game/sentinel-shell.png',
-    'images/game/rift-void.png',
-    'images/game/walpurgis-icon.png',
+    'assets/images/site/gameplay.png',
+    'assets/images/site/logo.png',
+    'assets/images/site/pisces_banner.png',
+    'assets/images/site/update-log-hero.png',
+    'assets/images/game/weapons/1-longsword.png',
+    'assets/images/game/weapons/2-spear.png',
+    'assets/images/game/weapons/3-halberd.png',
+    'assets/images/game/weapons/5-enuma-spear.png',
+    'assets/images/game/photokrystos-boomerang.png',
+    'assets/images/game/sentinel-shell.png',
+    'assets/images/game/rift-void.png',
+    'assets/images/game/walpurgis-icon.png',
     'js/vendor/pixi.min.js',
     'js/audio.js',
     'js/background.js',
@@ -101,6 +101,16 @@ self.addEventListener('activate', (event) => {
             );
         }).then(() => self.clients.claim())
     );
+});
+
+// Lets the page ask which cache version is actually controlling it right now
+// (see the version tag in the bottom-right corner of the main menu) - reads
+// straight from CACHE_VERSION above so there's a single source of truth,
+// nothing to keep in sync by hand.
+self.addEventListener('message', (event) => {
+    if (event.data === 'GET_VERSION') {
+        event.source.postMessage({ type: 'PISCES_SW_VERSION', version: CACHE_VERSION });
+    }
 });
 
 // Cache-first, falling back to network — and opportunistically caching
