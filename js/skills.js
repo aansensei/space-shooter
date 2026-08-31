@@ -1830,7 +1830,11 @@ function _castStolenGemAttack(type, comboMult) {
     if (!info) return;
     comboMult = comboMult || 1;
     const now = performance.now();
-    createParticles(player.x, player.y, 16, info.mid, 2, 8);
+    // Every stolen attack fires in a shared blue tone instead of the gem's
+    // own color (that color is reserved for the gem's slot icon while it's
+    // still banked). Reads as "borrowed power", visually distinct from
+    // whichever enemy it was taken from the moment it's actually unleashed.
+    createParticles(player.x, player.y, 16, '#3b82f6', 2, 8);
     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', player.x, player.y);
 
     if (type === 'thaelis') {
@@ -1870,15 +1874,25 @@ function _castStolenGemAttack(type, comboMult) {
     }
     if (type === 'egregor') {
         // Null Slash: brief windup facing the nearest enemy, then a genuine
-        // 180° arc slash centered on the player
+        // 180° arc slash centered on the player. R is the tentacle's reach
+        // (distance to the locked target, clamped to a sane range).
         const target = _greatSageNearestEnemy();
         const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
-        _greatSageEffects.push({ type: 'egregor', phase: 'windup', timer: 0, dur: 500, x: player.x, y: player.y, angle, comboMult });
+        // Uncapped reach, matching the real Null Slash (R = distance to the
+        // locked target, no ceiling) instead of the clamped-down range this
+        // had before - the tentacle should be able to stretch across the
+        // whole screen just like Goliath's own version.
+        const fullRange = Math.hypot(canvas.width, canvas.height);
+        const R = target ? Math.min(fullRange, Math.hypot(target.x - player.x, target.y - player.y) + 25) : fullRange * 0.6;
+        _greatSageEffects.push({ type: 'egregor', phase: 'windup', timer: 0, dur: 500, x: player.x, y: player.y, angle, R, comboMult });
         return;
     }
     if (type === 'dargruel') {
-        // Maou Haki: an expanding ring, not an instant flat-radius hit
-        _greatSageEffects.push({ type: 'shockwave', timer: 0, dur: 500, maxRadius: 320 * comboMult, x: player.x, y: player.y, hitEnemies: [], comboMult });
+        // Maou Haki: an expanding ring, not an instant flat-radius hit.
+        // Full screen diagonal, matching the real spawnBossShockwave's own
+        // maxRadius (js/entities/core.js) instead of a scaled-down range.
+        const fullRange = Math.hypot(canvas.width, canvas.height);
+        _greatSageEffects.push({ type: 'shockwave', timer: 0, dur: 700, maxRadius: fullRange, x: player.x, y: player.y, hitEnemies: [], comboMult });
         return;
     }
     if (type === 'leviathan') {
@@ -1928,10 +1942,10 @@ function _updateGreatSageEffects(deltaTime) {
         } else if (fx.type === 'sword_windup') {
             if (fx.timer >= fx.dur) {
                 bladeArcProjectiles.push({
-                    x: fx.x, y: fx.y,
+                    x: fx.x, y: fx.y, originX: fx.x, originY: fx.y, _fireTime: performance.now(),
                     vx: Math.cos(fx.angle) * 20, vy: Math.sin(fx.angle) * 20,
                     radius: 44, damage: 260 * fx.comboMult, percentDamage: 0.13 * fx.comboMult,
-                    hitEnemies: [], isPiercing: true, _statSrc: 'Great Sage: Arc Barrier',
+                    hitEnemies: [], isPiercing: true, isGreatSageBlade: true, _statSrc: 'Great Sage: Arc Barrier',
                 });
                 done = true;
             }
@@ -1947,8 +1961,11 @@ function _updateGreatSageEffects(deltaTime) {
             }
         } else if (fx.type === 'egregor') {
             if (fx.phase === 'windup' && fx.timer >= fx.dur) {
-                fx.phase = 'strike'; fx.timer = 0; fx.dur = 150;
-                const arcR = 260;
+                // Real Null Slash timing: extend 200ms, sweep 520ms, retract
+                // 230ms (950ms total) - kept exact so the tentacle-whip
+                // render's own extend/sweep/retract curve reads correctly.
+                fx.phase = 'strike'; fx.timer = 0; fx.dur = 950;
+                const arcR = fx.R;
                 for (const enemy of enemies) {
                     const d = Math.hypot(enemy.x - fx.x, enemy.y - fx.y);
                     if (d > arcR + (enemy.size || 20)) continue;
@@ -1995,7 +2012,7 @@ function _updateGreatSageEffects(deltaTime) {
                     x: fx.x, y: fx.y,
                     vx: Math.cos(fx.angle) * 26, vy: Math.sin(fx.angle) * 26,
                     radius: 60, damage: 420 * fx.comboMult, percentDamage: 0.22 * fx.comboMult,
-                    hitEnemies: [], isPiercing: true, isGreatSageVerdict: true, _statSrc: 'Great Sage: Absolute Verdict',
+                    hitEnemies: [], isPiercing: true, isGreatSageVerdict: true, isGreatSageOrb: true, _statSrc: 'Great Sage: Absolute Verdict',
                 });
                 done = true;
             }
@@ -2022,27 +2039,39 @@ function _onSkillFKill(enemy) {
 function activateSkillF() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    const onCooldown = currentTime - lastSkillF <= skillFCooldown;
-    // Great Sage: Ransacked Treasury lets a banked gem fire Skill F again
-    // immediately, bypassing whatever cooldown remains
-    const hasGems = _hasBuff('cuop_bao_tang') && _greatSageGems.length > 0;
-    const useGems = onCooldown && hasGems;
-    if (gameState === "playing" && !window._sigilPicker && skillFState === "ready" && (!onCooldown || useGems)) {
-        lastSkillF = currentTime;
-        if (useGems) {
-            if (_greatSageGems.length >= 3 && _hasBuff('bien_hoa_72')) {
-                // 72 Transformations: unleash all 3 stolen attacks at once
-                const types = _greatSageGems.slice();
-                _greatSageGems.length = 0;
-                types.forEach(t => _castStolenGemAttack(t, 1.5));
-                if (typeof _setShake === 'function') _setShake(8, 200);
-            } else {
-                _castStolenGemAttack(_greatSageGems.shift(), 1);
-            }
+    if (gameState !== "playing" || window._sigilPicker) return;
+
+    // Great Sage: releasing a banked gem takes priority over the normal
+    // cast and never touches Skill F's own charge/cooldown cycle at all -
+    // Annihilation Sweep already kills nearly everything it crosses each
+    // pass, so bundling another full sweep onto every single gem spend was
+    // redundant. Works whether Skill F itself is ready or on cooldown.
+    if (_hasBuff('cuop_bao_tang') && _greatSageGems.length > 0) {
+        if (_greatSageGems.length >= 3 && _hasBuff('bien_hoa_72')) {
+            // 72 Transformations: unleash all 3 stolen attacks at once
+            const types = _greatSageGems.slice();
+            _greatSageGems.length = 0;
+            types.forEach(t => _castStolenGemAttack(t, 1.5));
+            if (typeof _setShake === 'function') _setShake(8, 200);
+        } else {
+            _castStolenGemAttack(_greatSageGems.shift(), 1);
         }
+        return;
+    }
+
+    const onCooldown = currentTime - lastSkillF <= skillFCooldown;
+    if (skillFState === "ready" && !onCooldown) {
+        lastSkillF = currentTime;
         enemies.forEach(e => e.hitBySkillF = false);
         _skillFKillsThisSweep = 0;
         _checkMirrorLaserProc();
+        // Great Sage: every real Annihilation Sweep also phases the player
+        // and every sentinel out for 1s, untargetable and immune like
+        // Veilshroud's own ghost. Damage immunity is checked in
+        // playerTakesHit (main.js) and dealDamage (entities/core.js).
+        if (_hasBuff('cuop_bao_tang')) {
+            window._greatSageStealthEnd = currentTime + 1000;
+        }
         if (_hasBuff('dong_chay_luan_hoi')) {
             // Cycle of Flow: skip the charge phase entirely
             skillFState = "sweeping";

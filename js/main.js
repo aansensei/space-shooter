@@ -66,8 +66,16 @@ function playerTakesHit(attacker) {
         return false;
     }
 
+    // Great Sage: 1s of untargetable phase-out after every real Annihilation
+    // Sweep, same rule as Veilshroud's own ghost (undetectable, every hit
+    // passes through with no damage). Sentinels get the matching check in
+    // dealDamage, entities/core.js.
+    if (window._greatSageStealthEnd && performance.now() < window._greatSageStealthEnd) {
+        return false;
+    }
+
     // Great Sage (stolen Tenacity Barrier gem): the player gets a single
-    // Iron Body layer that blocks the next hit outright — sentinels get
+    // Iron Body layer that blocks the next hit outright. Sentinels get
     // the duration-based 50% dodge chance instead (see dealDamage, core.js)
     if (window._greatSageIronBody) {
         window._greatSageIronBody = false;
