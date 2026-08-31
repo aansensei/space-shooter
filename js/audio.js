@@ -276,7 +276,7 @@
         'skill-a-activate': 1.0, 'skill-a-orb-hit': 1.0, 'skill-a-orb-lock': 1.0,
         'skill-f-fire': 1.0, 'skill-f-charge': 1.0,
         'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
-        'photokrystos-boomerang-bounce': 0.65, 'spinner-bounce': 0.65,
+        'spinner-bounce': 0.65,
         'spirit-finale-laser': 0.7,
         'great-sage-hit': 0.7,
         'spirit-arc-slash': 1.0,
@@ -732,7 +732,6 @@
         _makePool('photokrystos-dnt-laser',       'assets/audio/sfx/photokrystos-dnt-laser.mp3',       2);
         _makePool('photokrystos-boomerang-throw', 'assets/audio/sfx/photokrystos-boomerang-throw.mp3', 3);
         _makePool('photokrystos-boomerang-hit',   'assets/audio/sfx/photokrystos-boomerang-hit.mp3',   3);
-        _makePool('photokrystos-boomerang-bounce', 'assets/audio/sfx/photokrystos-boomerang-bounce.mp3', 3);
         _makePool('spinner-bounce', 'assets/audio/sfx/spinner-bounce.mp3', 3);
         _makePool('spirit-finale-laser', 'assets/audio/sfx/spirit-finale-laser.mp3', 4);
         _makePool('great-sage-hit', 'assets/audio/sfx/great-sage-hit.mp3', 4);

@@ -251,7 +251,12 @@ function _goliathTryTriggerSword(enemy) {
     if ((s.swordsThisCycle || 0) >= 10) return;
     s.lastSwordTriggerAt = now;
     s.swordsThisCycle = (s.swordsThisCycle || 0) + 1;
-    s.windups.push({ timer: 0, dur: 1000, targetX: player.x, targetY: player.y });
+    // Locks player + 2 more points (sentinels, or random positions if there
+    // aren't enough sentinels) instead of always the player alone — a single
+    // point is too easy to just walk out of before the 1000ms windup fires.
+    _goliathLockTargets(2).forEach(t => {
+        s.windups.push({ timer: 0, dur: 1000, targetX: t.x, targetY: t.y });
+    });
     // ĐÚNG bản gốc: chạm mốc sword thứ 10 (max/chu kỳ) thì barrier TỰ NỔ
     // ngay lập tức, không cần đợi hết HP.
     if (s.swordsThisCycle >= 10) _goliathMarchosiasBarrierBreak(enemy, s);
@@ -904,6 +909,22 @@ function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
     }
 }
 
+// Picks `count` extra lock points beyond the player for a Joker attack:
+// real sentinels first (random order, no duplicates), then random on-screen
+// positions filling whatever slots sentinels can't cover. Player is always
+// target 0 — a single-target lock is too easy to dodge, this spreads the
+// hit across multiple points like the real multi-target Joker attacks do.
+function _goliathLockTargets(count) {
+    const targets = [{ x: player.x, y: player.y, ref: player, isPlayer: true }];
+    _shuffleArray(sentinels).slice(0, count).forEach(s => {
+        targets.push({ x: s.x, y: s.y, ref: s, isPlayer: false });
+    });
+    while (targets.length < count + 1) {
+        targets.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, ref: null, isPlayer: false });
+    }
+    return targets;
+}
+
 // Đang "vận" 1 kỹ năng bất kỳ (của chính Goliath hoặc bất kỳ bản copy Joker
 // nào) — dùng cho hạn chế mới: chậm 35% + cấm Fracture Step (dịch chuyển) +
 // hồi 15% MaxHP (1 lần lúc bắt đầu vận) + thêm 10% DR trong lúc vận.
@@ -933,8 +954,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             // lightningCountdownDuration thật của Veilshroud — trước đây bắn
             // sét ngay không hề có cảnh báo dưới chân mục tiêu trước).
             s.phantomEnd = 0;
-            const targets = [player, ...sentinels.slice(0, 3)];
-            s.targets = targets.map(t => ({ x: t.x, y: t.y, ref: t, isPlayer: t === player }));
+            s.targets = _goliathLockTargets(2);
             s.lightningPending = true;
             s.lightningCountdown = 0;
         } else if (s.lightningPending) {
@@ -955,7 +975,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) {
                             if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
                         }
-                    } else if (t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
+                    } else if (t.ref && t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
                         dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                     }
                     addExplosion(t.x, t.y, 60, '#ff9a2e');
@@ -978,7 +998,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
         if (!s.telegraphing && !s.firing && now >= s.nextFireAt) {
             s.telegraphing = true;
             s.telegraphEnd = now + 1000;
-            s.targets = [{ x: player.x, y: player.y, isPlayer: true }, ...sentinels.map(sen => ({ x: sen.x, y: sen.y, ref: sen }))];
+            s.targets = _goliathLockTargets(2);
             // Chốt luôn điểm PHÁT (không chỉ điểm ĐÍCH) — Goliath giờ luôn di
             // chuyển nên nếu cứ tính hướng từ vị trí HIỆN TẠI mỗi frame, đường
             // ngắm sẽ trông như đang dí theo dù mục tiêu đã chốt (đúng ra chỉ
