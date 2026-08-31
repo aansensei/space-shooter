@@ -269,6 +269,36 @@ window.debugSetYuukiBonus = function () {
         </div>
         <div style="opacity:0.5; font-size:10px;">Glory for Justice isn't a toggle — it auto-activates whenever &gt;4 enemies are on screen, an Abnormal+ enemy is present, Skill G is active, or Photokrystos is active. Spawn any boss type below (or 5+ enemies) to trigger it. Vulnerability is applied per-enemy — see the "+Vuln" button on each row in Active Enemies.</div>
       </div>
+      <div id="dbgGreatSageSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
+        <div class="dbg-h" style="font-size:10px;">GREAT SAGE, STOLEN GEMS</div>
+        <div id="dbgGreatSageGems" style="font-size:10px; opacity:0.7; margin-bottom:4px;"></div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugGreatSageFire('thaelis')">Fire: Thaelis</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('aegis_core')">Fire: Aegis Core</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('marchosias')">Fire: Marchosias</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('veilshroud')">Fire: Veilshroud</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('egregor')">Fire: Egregor</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('dargruel')">Fire: Dargruel</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('leviathan')">Fire: Leviathan</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('goliath')">Fire: Goliath</button>
+        </div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('thaelis')">+Gem: Thaelis</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('aegis_core')">+Gem: Aegis Core</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('marchosias')">+Gem: Marchosias</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('veilshroud')">+Gem: Veilshroud</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('egregor')">+Gem: Egregor</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('dargruel')">+Gem: Dargruel</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('leviathan')">+Gem: Leviathan</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('goliath')">+Gem: Goliath</button>
+        </div>
+        <div class="dbg-row">
+          <button class="dbg-btn" onclick="debugGreatSageFillCombo()">Fill 3 Distinct Gems (combo ready)</button>
+          <button class="dbg-btn" onclick="debugGreatSageClearGems()">Clear Gems</button>
+          <button class="dbg-btn" onclick="debugGreatSageForceStealth()">Force Stealth (1s)</button>
+        </div>
+        <div style="opacity:0.5; font-size:10px;">"Fire" unleashes that stolen attack immediately without touching the gem bank. "+Gem" adds it to the bank (respects the 3-slot/no-duplicate cap) so you can test the real F-to-release flow.</div>
+      </div>
     </div>
 
     <div class="dbg-section">
@@ -462,10 +492,12 @@ window.debugSetYuukiBonus = function () {
         refreshSentinelList();
         refreshDummyStatus();
         updateSessionStatus();
+        _refreshGreatSageGemDisplay();
         if (refreshTimer) clearInterval(refreshTimer);
         refreshTimer = setInterval(() => {
             const _t0 = performance.now();
             refreshEnemyList(); refreshSentinelList(); refreshDummyStatus(); updateSessionStatus();
+            _refreshGreatSageGemDisplay();
             const _dt = performance.now() - _t0;
             if (_dt > 15) console.warn('[DBGPANEL] refresh took ' + _dt.toFixed(0) + 'ms');
         }, 500);
@@ -850,6 +882,44 @@ window.debugSetYuukiBonus = function () {
         player._silenceEnd = performance.now() + 4000;
         player._rooted = (kind === 'dargruel');
     };
+
+    // Great Sage sigil testing: "Fire" calls the same _castStolenGemAttack
+    // used by the real F-to-release flow, but standalone (doesn't touch the
+    // gem bank) so each of the 8 stolen attacks can be checked in isolation.
+    // "+Gem" instead goes through the real bank (respects the 3-slot cap and
+    // no-duplicate-type rule) so the actual press-F-to-release path can be
+    // exercised end to end.
+    window.debugGreatSageFire = function (type) {
+        if (typeof _castStolenGemAttack !== 'function') return;
+        _castStolenGemAttack(type, 1);
+    };
+    window.debugGreatSageGiveGem = function (type) {
+        if (typeof _greatSageGems === 'undefined') return;
+        if (_greatSageGems.length < 3 && !_greatSageGems.includes(type)) _greatSageGems.push(type);
+        _refreshGreatSageGemDisplay();
+    };
+    window.debugGreatSageFillCombo = function () {
+        if (typeof _greatSageGems === 'undefined') return;
+        _greatSageGems = ['thaelis', 'aegis_core', 'goliath'];
+        _refreshGreatSageGemDisplay();
+    };
+    window.debugGreatSageClearGems = function () {
+        if (typeof _greatSageGems === 'undefined') return;
+        _greatSageGems.length = 0;
+        _refreshGreatSageGemDisplay();
+    };
+    window.debugGreatSageForceStealth = function () {
+        window._greatSageStealthEnd = performance.now() + 1000;
+    };
+    function _refreshGreatSageGemDisplay() {
+        const section = document.getElementById('dbgGreatSageSection');
+        const equipped = typeof _hasSigil === 'function' && _hasSigil('than');
+        if (section) section.style.display = equipped ? '' : 'none';
+        if (!equipped) return;
+        const el = document.getElementById('dbgGreatSageGems');
+        if (!el || typeof _greatSageGems === 'undefined') return;
+        el.textContent = _greatSageGems.length ? 'Bank: ' + _greatSageGems.join(', ') : 'Bank: (empty)';
+    }
 
     window.debugApplyVuln = function (idx) {
         const e = enemies[idx];
