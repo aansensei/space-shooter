@@ -278,6 +278,7 @@
         'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
         'photokrystos-boomerang-bounce': 0.65, 'spinner-bounce': 0.65,
         'spirit-finale-laser': 0.7,
+        'great-sage-hit': 0.7,
         'spirit-arc-slash': 1.0,
         gameover: 1.0, 'new-wave': 1.0,
         'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,
@@ -734,6 +735,7 @@
         _makePool('photokrystos-boomerang-bounce', 'assets/audio/sfx/photokrystos-boomerang-bounce.mp3', 3);
         _makePool('spinner-bounce', 'assets/audio/sfx/spinner-bounce.mp3', 3);
         _makePool('spirit-finale-laser', 'assets/audio/sfx/spirit-finale-laser.mp3', 4);
+        _makePool('great-sage-hit', 'assets/audio/sfx/great-sage-hit.mp3', 4);
         _makePool('spirit-arc-slash', 'assets/audio/sfx/spirit-arc-slash.mp3', 3);
         _makePool('gameover',  'assets/audio/sfx/gameover.mp3',  1);
         _makePool('new-wave',  'assets/audio/sfx/new-wave.mp3',  2);

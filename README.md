@@ -329,6 +329,37 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 
 ---
 
+## Sigils
+
+Every wave 5 and wave 10, a sigil-pick screen offers 4 random choices from the full pool; picking one grants **both** of its buffs permanently for the rest of the run, and that sigil cannot be offered again. Twelve entries in the pool are tied to the Western zodiac signs (Aries through Pisces). **Great Sage** is the first entry of a separate, planned "Vietnamese Zodiac" (12 con giáp) set — it is drawn from its own pool alongside the zodiac signs rather than replacing any of them.
+
+### Great Sage — Đấu Chiến Thắng Phật
+
+Reskins **Annihilation Sweep (Skill F)** into Sun Wukong's own Ruyi Jingu Bang (Như Ý Kim Cô Bổng), with its own charge-up visuals, a Kim Cô binding-ring lock-on in place of the base skill's cyan reticle, and its own title card (鬥戰勝佛 / VICTORIOUS FIGHTING BUDDHA / Đấu Chiến Thắng Phật). Players without this sigil see zero change to Skill F.
+
+**Ransacked Treasury (SPEC)**
+- Within a single sweep, the staff's width grows with every kill it lands during that cast — not with elapsed time — up to **4.5x** its starting width, resetting at the start of each new cast.
+- Landing a kill on an **Elite-tier-or-higher** enemy (Thaelis, Aegis Core, Egregor, Marchosias, Veilshroud, Dargruel, Leviathan, or Goliath — Apostle kills never count) immediately steals that enemy's own **gem**, one of each kind, up to **3 held at once**. A duplicate of a gem already held is not collected. Gems never decay on their own.
+- Pressing Skill F again while it is still on cooldown, with at least 1 gem held, spends the **oldest** gem: it fires a scaled-down copy of that enemy's own signature attack (see table below), then fires Annihilation Sweep again immediately, ignoring the remaining cooldown. The sweep itself is unchanged — still an instant kill on contact.
+
+**72 Transformations (ATK)**
+- Once **3 different** gems are held at the same time, pressing Skill F on cooldown instead unleashes **all 3** stolen attacks together, each at **1.5x** strength, consuming all 3 gems in one go instead of spending just the oldest.
+
+**Stolen attacks, by gem** — each one keeps the real joker attack's own windup/telegraph/resolve shape (`_goliathUpdateJoker`, `js/entities/goliath.js`), just scaled down since this rides along a Skill F recast rather than standing alone as a boss ultimate. Values below are at 1x strength; 72 Transformations multiplies each by 1.5x.
+
+| Gem | Real joker attack | Stolen copy |
+|---|---|---|
+| Thaelis | Persistent damage reduction | Player: 1 Iron Body layer that blocks the next hit outright. Sentinels: a 3s window of 50% dodge chance per hit instead. |
+| Aegis Core | Marks a line, 1s telegraph, fires straight along it | Marks a line toward the nearest enemy, 0.5s telegraph, fires along that fixed line: 220 + 12% EP to everything still on it (Lumen Nova). |
+| Marchosias | 1s windup, throws a sword in a straight line, piercing | 0.5s windup, throws a real piercing blade (reuses the Blade Arc projectile) toward the target's locked position: 260 + 13% EP (Arc Barrier). |
+| Veilshroud | Marks a position, 1.5s delay, lightning strikes only if the target is still there | Marks the nearest enemy's position, 0.75s delay, a bolt strikes that spot — only damages whatever is still standing there: 320 + 17% EP true damage (Phantom Strike). |
+| Egregor | 3s windup tracking the target, then a 180° arc slash | 0.5s windup locking the nearest enemy's direction, then a real 180° arc slash centered on the player: 260 + 14% EP (Null Slash). |
+| Dargruel | An expanding shockwave ring (`spawnBossShockwave`), not an instant flat hit | An expanding ring from 0 to 320px over 0.5s, damaging each enemy the instant it passes through them: 190 + 11% EP (Root Shockwave). |
+| Leviathan | 1.5s warning, then one full 360° rotation of a sweeping beam | 0.3s warning, then one full 360° rotation around the player over 0.9s at full screen range: 200 + 11% EP (Perseverance Sweep). |
+| Goliath | 3s channel, locks aim, fires a piercing orb | 0.6s channel locked onto the toughest enemy on screen, then a real piercing orb (reuses the Blade Arc projectile): 420 + 22% EP, applying 1 Vulnerability stack and a 2.5s Soul Reaver curse to every enemy it pierces (Absolute Verdict) — real judgment against foes tough enough to shrug off one hit, Goliath's own Warding Palm/Inevitable DR chief among them. |
+
+---
+
 ## Enemies
 
 *All enemies have a hidden +15% HP bonus applied to their base stats.*

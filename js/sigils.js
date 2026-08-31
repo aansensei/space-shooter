@@ -110,10 +110,29 @@ const SIGIL_DEFS = {
               desc: 'Kill apostle: −1s all skill CD; kill abnormal/elite: −1.5s; kill dominator: −2s; kill Egregor: −3s. Every full screen-width of actual movement also takes −0.5s off all skill CDs. Charge rate for Phōtokrystos and Skill G +50%. Skill D, Skill F and Overload Laser fire instantly, skipping their charge phase entirely (Shift unaffected).' },
         ]
     },
+    // First entry of a future "Vietnamese Zodiac" (12 con giáp) sigil set,
+    // alongside the 12 Western signs above - not one of them, so it's kept
+    // out of SIGIL_ORDER's fixed Western sequence and appended into the
+    // random pool separately (see window._sigilPool in main.js).
+    than: {
+        name: 'Great Sage', element: 'Metal', color: '#D62839',
+        buffs: [
+            { id: 'cuop_bao_tang', name: 'Ransacked Treasury', type: 'SPEC', typeC: '#f59e0b',
+              desc: 'Annihilation Sweep is reskinned into the Great Sage\'s own Ruyi Jingu Bang, widening with every kill it lands within a single cast (up to 4.5x its starting width, resetting each cast). Every kill on an Elite-tier-or-higher enemy also plunders that enemy\'s own gem (up to 3 held at once, one of each kind) - the same way the Great Sage once ransacked the Dragon King\'s undersea treasury. Pressing Annihilation Sweep again while it is still on cooldown spends the oldest gem to unleash a scaled-down copy of that enemy\'s own signature attack and fires the sweep again immediately, ignoring the remaining cooldown - the sweep itself is unchanged (still an instant kill on contact).' },
+            { id: 'bien_hoa_72', name: '72 Transformations', type: 'ATK', typeC: '#ef4444',
+              desc: 'Once 3 different gems are held at once, pressing Annihilation Sweep on cooldown unleashes all 3 stolen attacks together at 1.5x strength instead of spending just one - the Great Sage\'s full mastery of borrowed powers, "72 Transformations" for whatever the moment demands.' },
+        ]
+    },
 };
 
 const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
                      'libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
+
+// Sigils outside the 12 Western signs' fixed order (Vietnamese Zodiac set,
+// currently just Great Sage) - appended into the random pool at run start
+// alongside SIGIL_ORDER (see window._sigilPool in main.js) rather than
+// interleaved into that fixed sequence.
+const SIGIL_EXTRA = ['than'];
 
 // Vietnamese display text for the sigil picker (name/element/buff name/buff
 // desc only) — SIGIL_DEFS above stays English and is what all game LOGIC
@@ -170,6 +189,10 @@ const SIGIL_I18N_VI = {
     pisces: { name: 'Song Ngư', element: 'Thủy', buffs: {
         coi_mong: { name: 'Cõi Mộng', desc: 'Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP đã mất của chúng.' },
         dong_chay_luan_hoi: { name: 'Dòng Chảy Luân Hồi', desc: 'Hạ Apostle: −1s hồi chiêu mọi skill; hạ Abnormal/Elite: −1.5s; hạ Dominator: −2s; hạ Egregor: −3s. Mỗi lần di chuyển thực tế đủ 1 bề ngang màn hình cũng được −0.5s hồi chiêu mọi skill. Tốc độ nạp Phōtokrystos và Skill G +50%. Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).' },
+    }},
+    than: { name: 'Đấu Chiến Thắng Phật', element: 'Kim', buffs: {
+        cuop_bao_tang: { name: 'Cướp Long Cung', desc: 'Thiên Ý Trảm được tái tạo hình thành Như Ý Kim Cô Bổng của Tề Thiên, tự nới rộng thêm mỗi khi hạ được 1 kẻ địch trong lượt quét đó (tối đa ~4.5 lần bề rộng gốc, reset mỗi lượt quét mới). Hạ được kẻ địch từ Elite trở lên sẽ cướp luôn bảo thạch của chính nó (tối đa 3 viên khác loại cùng lúc) — giống hệt cách Tề Thiên năm xưa cướp phá Long Cung để đoạt lấy cây gậy này. Bấm Thiên Ý Trảm khi đang hồi chiêu sẽ tiêu viên bảo thạch cũ nhất, tung ra 1 bản thu nhỏ của chính đòn đánh đặc trưng kẻ địch đó, và phóng lại Thiên Ý Trảm ngay lập tức — đòn quét bản thân không đổi (vẫn chạm là chết).' },
+        bien_hoa_72: { name: '72 Phép Biến Hóa', desc: 'Khi đang giữ đủ 3 viên bảo thạch khác loại, bấm Thiên Ý Trảm lúc đang hồi chiêu sẽ tung ra CẢ 3 đòn cướp được cùng lúc với sức mạnh x1.5, thay vì chỉ dùng 1 viên — thể hiện trọn vẹn khả năng "72 phép biến hóa" của Tề Thiên, sẵn sàng ứng biến mọi tình huống.' },
     }},
 };
 
@@ -726,7 +749,7 @@ function _drawFlyIn(p, elapsed) {
 // Cached per (sigil, color) since the same pair redraws every frame.
 const _zodiacGlyphImgs = {};
 const _zodiacTintCache = {};
-['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'].forEach(id => {
+['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than'].forEach(id => {
     const img = new Image();
     img.src = 'assets/images/game/zodiac/zodiac_' + id + '.png';
     img.decode().catch(() => {});

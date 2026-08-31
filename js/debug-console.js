@@ -650,7 +650,8 @@ window.debugSetYuukiBonus = function () {
     function buildSigilList() {
         const el = document.getElementById('dbgSigilList');
         if (!el || typeof SIGIL_ORDER === 'undefined') return;
-        el.innerHTML = SIGIL_ORDER.map(id => {
+        const allSigilIds = [...SIGIL_ORDER, ...(typeof SIGIL_EXTRA !== 'undefined' ? SIGIL_EXTRA : [])];
+        el.innerHTML = allSigilIds.map(id => {
             const def = SIGIL_DEFS[id];
             return `<label class="dbg-row" style="cursor:pointer;">
         <input type="checkbox" id="dbgSigil_${id}" onchange="debugToggleSigil('${id}', this.checked)">
@@ -663,7 +664,7 @@ window.debugSetYuukiBonus = function () {
 
     function syncSigilCheckboxes() {
         if (typeof SIGIL_ORDER === 'undefined') return;
-        SIGIL_ORDER.forEach(id => {
+        [...SIGIL_ORDER, ...(typeof SIGIL_EXTRA !== 'undefined' ? SIGIL_EXTRA : [])].forEach(id => {
             const cb = document.getElementById('dbgSigil_' + id);
             if (cb) cb.checked = typeof _hasSigil === 'function' && _hasSigil(id);
         });

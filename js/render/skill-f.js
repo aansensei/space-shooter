@@ -12,10 +12,140 @@ let _skillFChargeParticles = [];
 let _skillFScorchMarks = [];
 let _skillFLastScorchStamp = 0;
 
+// Great Sage sigil: draws the Ruyi Jingu Bang as an actual iron-and-gold rod
+// (ambient glow, dark shaft gradient, a white-hot core seam, 2 gold bands
+// with a ruby stud each, optional internal energy ridges) instead of the
+// base skill's wide blade wedge. Ported directly from the reference demo
+// (ruyi_sweep_demo.html's drawStaff) so the charging-phase growth and the
+// sweep itself both read as the same weapon, not two different effects.
+// Assumes ctx is already at the world origin (0,0); does its own
+// translate(player.x, player.y) + rotate(angle) like the demo's version.
+function _drawRuyiStaff(len, w, angle, alpha, opts) {
+    if (len <= 0) return;
+    opts = opts || {};
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(angle);
+    ctx.globalAlpha = alpha;
+
+    if (opts.richGlow) {
+        if (!_mobPerf) { ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = w * 3.8; }
+        ctx.fillStyle = 'rgba(251,191,36,0.26)';
+        ctx.fillRect(0, -w * 0.9, len, w * 1.8);
+        ctx.shadowBlur = 0;
+    }
+
+    // ambient glow
+    if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = w * (opts.richGlow ? 2.8 : 1.8); }
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(0, -w / 2, len, w);
+    ctx.shadowBlur = 0;
+
+    // iron/obsidian shaft
+    const shaftGrad = ctx.createLinearGradient(0, -w / 2, 0, w / 2);
+    shaftGrad.addColorStop(0, '#171717');
+    shaftGrad.addColorStop(0.2, '#404040');
+    shaftGrad.addColorStop(0.5, '#0a0a0a');
+    shaftGrad.addColorStop(0.8, '#262626');
+    shaftGrad.addColorStop(1, '#0a0a0a');
+    ctx.fillStyle = shaftGrad;
+    ctx.fillRect(0, -w / 2, len, w);
+
+    // white-hot core seam running the length of the shaft
+    if (opts.richGlow) {
+        const coreGrad = ctx.createLinearGradient(0, 0, len, 0);
+        coreGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+        coreGrad.addColorStop(0.5, 'rgba(254,240,138,0.6)');
+        coreGrad.addColorStop(1, 'rgba(245,158,11,0.35)');
+        ctx.fillStyle = coreGrad;
+        if (!_mobPerf) { ctx.shadowColor = '#fff'; ctx.shadowBlur = w * 0.9; }
+        ctx.fillRect(0, -w * 0.14, len, w * 0.28);
+        ctx.shadowBlur = 0;
+    }
+
+    // gold band with a ruby stud at its center, near each end of the staff
+    function drawBand(x, bWidth) {
+        if (x > len) return;
+        const actW = Math.min(bWidth, len - x);
+        if (actW <= 0) return;
+
+        const bGrad = ctx.createLinearGradient(0, -w / 2 - 5, 0, w / 2 + 5);
+        bGrad.addColorStop(0, '#fef08a');
+        bGrad.addColorStop(0.3, '#ca8a04');
+        bGrad.addColorStop(0.5, '#713f12');
+        bGrad.addColorStop(0.7, '#eab308');
+        bGrad.addColorStop(1, '#fef08a');
+        ctx.fillStyle = bGrad;
+        ctx.fillRect(x, -w / 2 - 5, actW, w + 10);
+
+        ctx.strokeStyle = 'rgba(40,20,0,0.5)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x + actW * 0.1, -w / 3);
+        ctx.bezierCurveTo(x + actW * 0.4, -w / 8, x + actW * 0.6, -w / 2, x + actW * 0.9, -w / 3);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + actW * 0.1, w / 3);
+        ctx.bezierCurveTo(x + actW * 0.4, w / 8, x + actW * 0.6, w / 2, x + actW * 0.9, w / 3);
+        ctx.stroke();
+
+        if (actW > bWidth * 0.7) {
+            ctx.fillStyle = '#991b1b';
+            if (!_mobPerf) { ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 12; }
+            ctx.beginPath(); ctx.ellipse(x + actW / 2, 0, actW * 0.12, w * 0.28, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fca5a5';
+            ctx.beginPath(); ctx.ellipse(x + actW / 2 - 3, -3, actW * 0.04, w * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+    drawBand(50, 110);
+    if (len > 250) drawBand(len - 150, 110);
+
+    // internal energy ridges, re-rolled every frame during the sweep, plus
+    // one long jitter streak the length of the shaft
+    if (opts.ridges) {
+        for (const rdg of opts.ridges) {
+            ctx.strokeStyle = `rgba(255,255,255,${rdg.a})`;
+            ctx.lineWidth = rdg.lw;
+            ctx.beginPath();
+            ctx.moveTo(len * rdg.t0, rdg.w0);
+            ctx.lineTo(len * rdg.t1, rdg.w1);
+            ctx.stroke();
+        }
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.5; if (!_mobPerf) { ctx.shadowBlur = 10; ctx.shadowColor = '#fff'; }
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(len, (Math.random() - 0.5) * 18); ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    // random crackling energy arcing along the shaft
+    if (Math.random() < 0.6) {
+        ctx.strokeStyle = 'rgba(253,230,138,0.9)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        let lx = Math.random() * len * 0.8;
+        let lEnd = lx + 100 + Math.random() * 200;
+        let ly = (Math.random() - 0.5) * w;
+        ctx.moveTo(lx, ly);
+        while (lx < lEnd && lx < len) {
+            lx += 25 + Math.random() * 40;
+            ly += (Math.random() - 0.5) * w * 2.5;
+            ctx.lineTo(Math.min(lx, len), ly);
+        }
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
 function drawSkillF() {
     const now = performance.now();
     const radius = Math.max(canvas.width, canvas.height);
     const _gfx = window._gfxLevel || 0;
+    // Great Sage sigil: Skill F is reskinned into the Ruyi Jingu Bang, gold
+    // instead of cyan, with the Kim Cô binding ring and its own title text
+    const _greatSage = typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang');
 
     if (skillFState !== "charging" && _skillFChargeParticles.length) {
         _skillFChargeParticles.length = 0;
@@ -38,13 +168,18 @@ function drawSkillF() {
             const spawnRate    = _gfx < 1 ? 3  : _gfx < 2 ? 1  : 0;
             if (spawnRate > 0 && _skillFChargeParticles.length < maxParticles) {
                 for (let i = 0; i < spawnRate; i++) {
-                    const a = Math.random() * Math.PI * 2;
+                    // Great Sage: particles funnel in from the direction the
+                    // staff is about to swing (-PI), like the demo, instead
+                    // of a fully even 360° vortex
+                    const a = _greatSage
+                        ? -Math.PI + (Math.random() - 0.5) * Math.PI * 1.5
+                        : Math.random() * Math.PI * 2;
                     const dist = Math.max(canvas.width, canvas.height) * (0.5 + Math.random() * 0.4);
                     const spin = (Math.random() < 0.5 ? -1 : 1) * (0.015 + Math.random() * 0.02);
                     _skillFChargeParticles.push({ angle: a, dist, spin });
                 }
             }
-            const pullSpeed = 3 + p * 14;
+            const pullSpeed = (_greatSage ? 5 : 3) + p * (_greatSage ? 22 : 14);
             ctx.save();
             for (let i = _skillFChargeParticles.length - 1; i >= 0; i--) {
                 const pt = _skillFChargeParticles[i];
@@ -60,14 +195,14 @@ function drawSkillF() {
                 // dot, so the motion itself reads instead of just position
                 const trailA = pt.angle - pt.spin * 6;
                 const trailD = pt.dist + 14;
-                ctx.strokeStyle = `rgba(120,255,255,${alpha * 0.4})`;
+                ctx.strokeStyle = _greatSage ? `rgba(217,119,6,${alpha * 0.4})` : `rgba(120,255,255,${alpha * 0.4})`;
                 ctx.lineWidth = 1.2;
                 ctx.beginPath();
                 ctx.moveTo(player.x + Math.cos(trailA) * trailD, player.y + Math.sin(trailA) * trailD);
                 ctx.lineTo(px, py);
                 ctx.stroke();
-                ctx.fillStyle = `rgba(180,255,255,${alpha})`;
-                ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = _greatSage ? `rgba(253,230,138,${alpha})` : `rgba(180,255,255,${alpha})`;
+                ctx.beginPath(); ctx.arc(px, py, _greatSage ? 3.2 : 2, 0, Math.PI * 2); ctx.fill();
             }
             ctx.restore();
         }
@@ -77,13 +212,25 @@ function drawSkillF() {
         // completes ("tụ năng lượng → người chơi sáng lên → phóng"), which
         // hands off smoothly into the sweep phase's own impact flash.
         {
-            const pulse = 0.85 + 0.15 * Math.sin(now / 90);
-            const auraR = (player.width * 1.4 + p * player.width * 2.6) * pulse;
+            // Great Sage's own aura runs bigger/brighter, matching the
+            // reference demo's dramatic gathering-power bloom (its aura is
+            // sized off the arena, not the player sprite) rather than the
+            // base skill's more modest ship-relative glow.
+            const pulse = 0.85 + 0.15 * Math.sin(now / (_greatSage ? 40 : 90));
+            const auraR = _greatSage
+                ? (60 + p * 220) * pulse
+                : (player.width * 1.4 + p * player.width * 2.6) * pulse;
             ctx.save();
             const auraGrad = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, auraR);
+            if (_greatSage) {
+                auraGrad.addColorStop(0,   `rgba(254,240,138,${0.15 + p * 0.55})`);
+                auraGrad.addColorStop(0.5, `rgba(217,119,6,${0.1 + p * 0.35})`);
+                auraGrad.addColorStop(1,   'rgba(180,83,9,0)');
+            } else {
             auraGrad.addColorStop(0,   `rgba(255,255,255,${0.15 + p * 0.55})`);
             auraGrad.addColorStop(0.5, `rgba(150,240,255,${0.1 + p * 0.35})`);
             auraGrad.addColorStop(1,   'rgba(120,200,255,0)');
+            }
             ctx.fillStyle = auraGrad;
             ctx.beginPath(); ctx.arc(player.x, player.y, auraR, 0, Math.PI * 2); ctx.fill();
 
@@ -101,6 +248,7 @@ function drawSkillF() {
             ctx.restore();
         }
 
+        if (!_greatSage) {
         // half-plane glow (charging side preview) — dialed back a touch now
         // that the particle vortex + player aura carry most of the "gathering
         // energy" read; this stays as a soft ambient wash, not the focal point.
@@ -122,68 +270,185 @@ function drawSkillF() {
             ctx.stroke();
         }
         ctx.restore();
+        } else {
+        // GREAT SAGE — the staff itself extends outward as charge builds,
+        // pointing at the sweep's start angle, instead of the base skill's
+        // cyan half-plane wash. Ported directly from the reference demo.
+        const e_p = Math.pow(p, 2.5);
+        _drawRuyiStaff(radius * e_p, 35 * (0.2 + 0.8 * e_p), -Math.PI, e_p, { richGlow: true });
+        }
 
-        // TARGET LOCK on every enemy
+        // TARGET LOCK on every enemy — Great Sage swaps this for the Kim
+        // Cô binding circlet; everyone else keeps the base cyan reticle.
         ctx.save();
         enemies.forEach(enemy => {
             const er = (enemy.size || 20) + 5;
+            const pulse0 = 0.55 + 0.45 * Math.sin(now / 100 + enemy.x * 0.08);
+            const lockIn0 = Math.min(p * 2, 1);
+            if (!_greatSage) {
+                if (lockIn0 <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = lockIn0;
+                // scan fill
+                ctx.fillStyle = `rgba(0,255,200,${0.07 * pulse0})`;
+                ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er * 1.4, 0, Math.PI * 2); ctx.fill();
+                // outer rotating dashed ring
+                ctx.save();
+                ctx.translate(enemy.x, enemy.y); ctx.rotate(-now / 350);
+                ctx.strokeStyle = `rgba(0,220,255,${0.7 * pulse0})`;
+                ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
+                ctx.beginPath(); ctx.arc(0, 0, er + 8, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]); ctx.restore();
+                // inner solid ring
+                ctx.strokeStyle = 'rgba(0,255,220,0.9)';
+                ctx.lineWidth = 2;
+                if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 14;
+                ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er, 0, Math.PI * 2); ctx.stroke();
+                ctx.shadowBlur = 0;
+                // corner brackets
+                const bSize = er * 0.5, bGap = er * 0.3;
+                [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
+                    const bx = enemy.x + dx * (er + bGap * 0.4);
+                    const by = enemy.y + dy * (er + bGap * 0.4);
+                    ctx.strokeStyle = `rgba(100,255,240,${0.9 * pulse0})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by - dy * bSize * 0.5); ctx.lineTo(bx, by);
+                    ctx.lineTo(bx - dx * bSize * 0.5, by); ctx.stroke();
+                });
+                // crosshair lines
+                ctx.strokeStyle = `rgba(0,255,200,${0.22 * pulse0})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(enemy.x - er * 1.6, enemy.y); ctx.lineTo(enemy.x + er * 1.6, enemy.y);
+                ctx.moveTo(enemy.x, enemy.y - er * 1.6); ctx.lineTo(enemy.x, enemy.y + er * 1.6);
+                ctx.stroke();
+                // dashed line from player to enemy
+                if (p > 0.5) {
+                    ctx.strokeStyle = `rgba(0,200,255,${(p - 0.5) * 0.5 * pulse0})`;
+                    ctx.lineWidth = 0.8; ctx.setLineDash([6, 10]);
+                    ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(enemy.x, enemy.y); ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                // TARGET label
+                if (p > 0.6) {
+                    ctx.fillStyle = `rgba(0,255,220,${Math.min((p - 0.6) * 5, 1) * (0.7 + 0.3 * pulse0)})`;
+                    ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                    ctx.fillText('TARGET', enemy.x, enemy.y - er - 6);
+                }
+                ctx.restore();
+                return;
+            }
             const pulse = 0.55 + 0.45 * Math.sin(now / 100 + enemy.x * 0.08);
             const lockIn = Math.min(p * 2, 1);
+            if (lockIn <= 0) return;
+            // starts loose and tightens onto the target as lock-in completes
+            const settle = Math.pow(lockIn, 0.6);
+            const ringR = er + (1 - settle) * er * 1.3;
             ctx.save();
             ctx.globalAlpha = lockIn;
 
-            // scan fill
-            ctx.fillStyle = `rgba(0,255,200,${0.07 * pulse})`;
-            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er * 1.4, 0, Math.PI * 2); ctx.fill();
+            // soft aura wash inside the band
+            ctx.fillStyle = `rgba(251,191,36,${0.09 * pulse})`;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, ringR * 0.92, 0, Math.PI * 2); ctx.fill();
 
-            // outer rotating dashed ring
+            // the band itself, slowly turning
             ctx.save();
-            ctx.translate(enemy.x, enemy.y); ctx.rotate(-now / 350);
-            ctx.strokeStyle = `rgba(0,220,255,${0.7 * pulse})`;
-            ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
-            ctx.beginPath(); ctx.arc(0, 0, er + 8, 0, Math.PI * 2); ctx.stroke();
-            ctx.setLineDash([]); ctx.restore();
-
-            // inner solid ring
-            ctx.strokeStyle = 'rgba(0,255,220,0.9)';
-            ctx.lineWidth = 2;
-            if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 14;
-            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er, 0, Math.PI * 2); ctx.stroke();
+            ctx.translate(enemy.x, enemy.y); ctx.rotate(now / 900);
+            const ringGrad = ctx.createLinearGradient(-ringR, 0, ringR, 0);
+            ringGrad.addColorStop(0, '#fde68a'); ringGrad.addColorStop(0.5, '#b45309'); ringGrad.addColorStop(1, '#fde68a');
+            ctx.strokeStyle = ringGrad;
+            ctx.lineWidth = 3;
+            if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 10 + 6 * pulse; }
+            ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
             ctx.shadowBlur = 0;
+            // inner darker rim line, reads as metal thickness
+            ctx.strokeStyle = 'rgba(120,53,15,0.5)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(0, 0, ringR - 2, 0, Math.PI * 2); ctx.stroke();
 
-            // corner brackets
-            const bSize = er * 0.5, bGap = er * 0.3;
-            [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([dx, dy]) => {
-                const bx = enemy.x + dx * (er + bGap * 0.4);
-                const by = enemy.y + dy * (er + bGap * 0.4);
-                ctx.strokeStyle = `rgba(100,255,240,${0.9 * pulse})`;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(bx, by - dy * bSize * 0.5); ctx.lineTo(bx, by);
-                ctx.lineTo(bx - dx * bSize * 0.5, by); ctx.stroke();
-            });
-
-            // crosshair lines
-            ctx.strokeStyle = `rgba(0,255,200,${0.22 * pulse})`;
-            ctx.lineWidth = 1;
+            // double-spiral "ruyi cloud" scroll fixed at the crown (undo the
+            // band's own rotation first so it doesn't spin around with it) —
+            // 2 mirrored brushed-gold hooks meeting at a center stud, matching
+            // the real Kim Cô circlet's own cloud-scroll clasp motif instead
+            // of a plain gem.
+            ctx.rotate(-now / 900);
+            const scrollR = 4.4;
+            const scrollGrad = ctx.createLinearGradient(0, -ringR - scrollR * 2, 0, -ringR + scrollR);
+            scrollGrad.addColorStop(0, '#fff4c2');
+            scrollGrad.addColorStop(0.55, '#eab308');
+            scrollGrad.addColorStop(1, '#92620a');
+            ctx.strokeStyle = scrollGrad;
+            ctx.lineWidth = 2.2;
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 8; }
+            // left hook curls clockwise inward toward the center
             ctx.beginPath();
-            ctx.moveTo(enemy.x - er * 1.6, enemy.y); ctx.lineTo(enemy.x + er * 1.6, enemy.y);
-            ctx.moveTo(enemy.x, enemy.y - er * 1.6); ctx.lineTo(enemy.x, enemy.y + er * 1.6);
+            ctx.arc(-scrollR * 0.95, -ringR, scrollR, Math.PI * 0.12, Math.PI * 1.85);
             ctx.stroke();
+            // right hook mirrors it, curling counter-clockwise
+            ctx.beginPath();
+            ctx.arc(scrollR * 0.95, -ringR, scrollR, Math.PI * 1.15, Math.PI * 2.88);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.lineCap = 'butt';
+            // center stud where the two scrolls meet
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath(); ctx.arc(0, -ringR, 1.3, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
 
-            // dashed line from player to enemy
+            // drifting incantation glyphs around the rim — the binding
+            // chant, not just a static shape. Skipped at LOW, thinned at MEDIUM.
+            if (!_mobPerf) {
+                const glyphs = ['緊', '箍', '咒'];
+                const glyphCount = _gfx < 1 ? 3 : 1;
+                for (let g = 0; g < glyphCount; g++) {
+                    const ga = now / 1400 + g * (Math.PI * 2 / 3);
+                    const gx = enemy.x + Math.cos(ga) * (ringR + 8);
+                    const gy = enemy.y + Math.sin(ga) * (ringR + 8);
+                    ctx.fillStyle = `rgba(253,224,71,${0.5 * settle})`;
+                    ctx.font = '9px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(glyphs[g % glyphs.length], gx, gy);
+                }
+            }
+
+            // snap-flash the instant the band fully closes — 4 short energy
+            // cracks radiating outward, gone within a blink.
+            if (settle > 0.92) {
+                const snapT = (settle - 0.92) / 0.08;
+                ctx.save();
+                ctx.globalAlpha = lockIn * (1 - snapT) * 0.8;
+                ctx.strokeStyle = '#fff7d6'; ctx.lineWidth = 2;
+                if (!_mobPerf) { ctx.shadowColor = '#fff'; ctx.shadowBlur = 16; }
+                for (let c = 0; c < 4; c++) {
+                    const ca = (c / 4) * Math.PI * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x + Math.cos(ca) * er * 0.6, enemy.y + Math.sin(ca) * er * 0.6);
+                    ctx.lineTo(enemy.x + Math.cos(ca) * (er + 14), enemy.y + Math.sin(ca) * (er + 14));
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
+
+            // fine inner ring, tight against the target — the "snug fit" line
+            ctx.strokeStyle = `rgba(255,247,214,${0.6 + 0.3 * pulse})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, er - 1, 0, Math.PI * 2); ctx.stroke();
+
+            // dashed tether from player, once mostly settled
             if (p > 0.5) {
-                ctx.strokeStyle = `rgba(0,200,255,${(p - 0.5) * 0.5 * pulse})`;
+                ctx.strokeStyle = `rgba(245,158,11,${(p - 0.5) * 0.5 * pulse})`;
                 ctx.lineWidth = 0.8; ctx.setLineDash([6, 10]);
                 ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(enemy.x, enemy.y); ctx.stroke();
                 ctx.setLineDash([]);
             }
 
-            // TARGET label
-            if (p > 0.6) {
-                ctx.fillStyle = `rgba(0,255,220,${Math.min((p - 0.6) * 5, 1) * (0.7 + 0.3 * pulse)})`;
-                ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-                ctx.fillText('TARGET', enemy.x, enemy.y - er - 6);
+            // BOUND label
+            if (settle > 0.7) {
+                const labelA = Math.min((settle - 0.7) / 0.3, 1);
+                ctx.fillStyle = `rgba(253,224,71,${labelA * (0.7 + 0.3 * pulse)})`;
+                ctx.font = 'italic bold 9px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText('BOUND', enemy.x, enemy.y - ringR - 6);
             }
             ctx.restore();
         });
@@ -200,21 +465,21 @@ function drawSkillF() {
 
                 ctx.globalAlpha = textT * 0.28;
                 ctx.font = 'bold 120px serif';
-                ctx.fillStyle = '#00ffff';
-                if (!_mobPerf) ctx.shadowColor = '#00aacc'; if (!_mobPerf) ctx.shadowBlur = 40;
-                ctx.fillText('殲滅掃射', player.x, player.y - 80);
+                ctx.fillStyle = _greatSage ? '#ffd700' : '#00ffff';
+                if (!_mobPerf) ctx.shadowColor = _greatSage ? '#b8860b' : '#00aacc'; if (!_mobPerf) ctx.shadowBlur = 40;
+                ctx.fillText(_greatSage ? '鬥戰勝佛' : '殲滅掃射', player.x, player.y - 80);
 
                 ctx.globalAlpha = textT * 0.9;
-                ctx.font = 'bold 34px "Arial Black", sans-serif';
+                ctx.font = _greatSage ? 'bold 28px "Arial Black", sans-serif' : 'bold 34px "Arial Black", sans-serif';
                 ctx.fillStyle = '#ffffff';
-                if (!_mobPerf) ctx.shadowColor = 'cyan'; if (!_mobPerf) ctx.shadowBlur = 24;
-                ctx.fillText('ANNIHILATION', player.x, player.y - 120);
+                if (!_mobPerf) ctx.shadowColor = _greatSage ? '#ffd700' : 'cyan'; if (!_mobPerf) ctx.shadowBlur = 24;
+                ctx.fillText(_greatSage ? 'VICTORIOUS FIGHTING BUDDHA' : 'ANNIHILATION', player.x, player.y - 120);
 
                 ctx.globalAlpha = textT * 0.9;
                 ctx.font = 'italic 13px monospace';
-                ctx.fillStyle = '#aaffff';
+                ctx.fillStyle = _greatSage ? '#ffe9a8' : '#aaffff';
                 if (!_mobPerf) ctx.shadowBlur = 8;
-                ctx.fillText('— Thiên Ý Trảm —', player.x, player.y - 96);
+                ctx.fillText(_greatSage ? '— Đấu Chiến Thắng Phật —' : '— Thiên Ý Trảm —', player.x, player.y - 96);
                 ctx.restore();
             }
         }
@@ -227,6 +492,7 @@ function drawSkillF() {
         const sp = (now - skillFSweepStart) / skillFSweepDuration;
         const currentAngle = -Math.PI + Math.PI * sp;
 
+        if (!_greatSage) {
         // MATRIX RAIN inside the swept area
         ctx.save();
         // clip to the already-swept cone sector
@@ -502,6 +768,248 @@ function drawSkillF() {
             }
         }
         ctx.restore();
+        }
+        } else {
+        // GREAT SAGE — Ruyi Jingu Bang sweep, ported directly from the
+        // reference demo (ruyi_sweep_demo.html): the staff itself sweeping
+        // through the arc, a soft radial fan wash behind it for the AOE
+        // read, translucent scorch streaks, a shockwave ring + impact
+        // flash, and a golden particle trail at the tip. Ransacked
+        // Treasury widens the staff with kills landed so far this sweep
+        // (not elapsed time), using the same multiplier the actual hit
+        // cone in js/skills.js uses so the visual always matches the real
+        // hitbox.
+        const nhuYMult = Math.min(1 + (_skillFKillsThisSweep || 0) * 0.5, 4.5);
+        // baseline widen as the swing travels (pure "gaining momentum"
+        // feel — an accelerating curve like a real swing picking up force,
+        // capped well below As One Wishes' own kill-driven growth so the
+        // two read as distinct: this is the swing itself, that is landing
+        // hits) separate from and stacking on top of the kill-driven
+        // growth above
+        const swingMomentum = 1 + Math.pow(sp, 1.5) * 0.8;
+        const curW = 35 * nhuYMult * swingMomentum;
+        const curLen = radius * (1.0 + sp * 0.3);
+
+        // fan wash across the swept cone
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y);
+        ctx.arc(player.x, player.y, radius * 1.3, -Math.PI, currentAngle);
+        ctx.closePath();
+        const fanGrad = ctx.createRadialGradient(player.x, player.y, 200, player.x, player.y, radius * 1.3);
+        fanGrad.addColorStop(0, 'rgba(251,191,36,0.58)');
+        fanGrad.addColorStop(0.5, 'rgba(217,119,6,0.3)');
+        fanGrad.addColorStop(1, 'rgba(180,83,9,0)');
+        ctx.fillStyle = fanGrad;
+        ctx.fill();
+
+        // scorch streaks stamped along the path already swept, fading over 450ms
+        if (now - _skillFLastScorchStamp > 16) {
+            _skillFLastScorchStamp = now;
+            _skillFScorchMarks.push({ angle: currentAngle, time: now, width: curW });
+        }
+        for (let i = _skillFScorchMarks.length - 1; i >= 0; i--) {
+            if (now - _skillFScorchMarks[i].time > 450) _skillFScorchMarks.splice(i, 1);
+        }
+        for (const mark of _skillFScorchMarks) {
+            const a = 1 - (now - mark.time) / 450;
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(mark.angle);
+            const sGrad = ctx.createLinearGradient(0, -mark.width / 2, 0, mark.width / 2);
+            sGrad.addColorStop(0, 'rgba(253,230,138,0)');
+            sGrad.addColorStop(0.5, `rgba(245,158,11,${a * 0.6})`);
+            sGrad.addColorStop(1, 'rgba(253,230,138,0)');
+            ctx.fillStyle = sGrad;
+            ctx.fillRect(0, -mark.width * 0.8, curLen, mark.width * 1.6);
+            ctx.restore();
+        }
+        ctx.restore();
+
+        // shockwave ring at the origin the instant the sweep begins
+        if (sp < 0.25) {
+            const ringT = sp / 0.25;
+            const ringA = (1 - ringT) * 0.8;
+            const ringR = 20 + ringT * 340;
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.strokeStyle = `rgba(253,224,71,${ringA})`;
+            ctx.lineWidth = 6 * (1 - ringT) + 1;
+            if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 20; }
+            ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+        }
+
+        // impact flash burst at the very start of the swing
+        if (sp < 0.15) {
+            const flashA = (1 - sp / 0.15) * 0.55;
+            const flashR = 50 + sp * 260;
+            ctx.save();
+            const fg = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, flashR);
+            fg.addColorStop(0, `rgba(255,255,255,${flashA})`);
+            fg.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = fg;
+            ctx.beginPath(); ctx.arc(player.x, player.y, flashR, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+
+        // internal energy ridges, re-rolled every frame
+        const ridgeCount = _gfx < 1 ? 3 : _gfx < 2 ? 2 : 0;
+        const ridges = [];
+        for (let i = 0; i < ridgeCount; i++) {
+            const t0 = Math.random() * 0.75;
+            const t1 = t0 + 0.1 + Math.random() * 0.15;
+            ridges.push({
+                t0, t1,
+                w0: (Math.random() - 0.5) * curW,
+                w1: (Math.random() - 0.5) * curW * 0.5,
+                a: 0.3 + Math.random() * 0.4,
+                lw: 1 + Math.random(),
+            });
+        }
+
+        _drawRuyiStaff(curLen, curW, currentAngle, 1.0, { richGlow: true, ridges });
+
+        // white-hot tip cap + golden particle trail near the tip
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.rotate(currentAngle);
+        ctx.beginPath();
+        ctx.ellipse(curLen, 0, curW * 0.6, curW * 1.5, 0, -Math.PI / 2, Math.PI / 2);
+        ctx.fillStyle = '#fff';
+        if (!_mobPerf) { ctx.shadowColor = '#fcd34d'; ctx.shadowBlur = 40; }
+        ctx.fill();
+
+        const sparkCount = _gfx < 1 ? 14 : _gfx < 2 ? 7 : 3;
+        for (let i = 0; i < sparkCount; i++) {
+            const dist = curLen * (0.7 + Math.random() * 0.3);
+            const off = (Math.random() - 0.5) * curW * 2.5;
+            ctx.fillStyle = `rgba(255,247,214,${0.5 + Math.random() * 0.5})`;
+            if (!_mobPerf) { ctx.shadowColor = '#fde68a'; ctx.shadowBlur = 6; }
+            ctx.beginPath(); ctx.arc(dist, off, 1.5 + Math.random() * 2.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // hit-impact flash — a bright golden burst that blooms then fades
+        // at each enemy the staff actually struck this sweep
+        for (let i = _skillFHitFlashes.length - 1; i >= 0; i--) {
+            const hit = _skillFHitFlashes[i];
+            const age = now - hit.time;
+            if (age > 280) { _skillFHitFlashes.splice(i, 1); continue; }
+            const a = 1 - age / 280;
+            ctx.save();
+            ctx.globalAlpha = a;
+            ctx.fillStyle = '#fff';
+            if (!_mobPerf) { ctx.shadowColor = '#fde68a'; ctx.shadowBlur = 30; }
+            ctx.beginPath(); ctx.arc(hit.x, hit.y, hit.r * (1 + (1 - a) * 0.9), 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(253,224,71,0.6)';
+            ctx.beginPath(); ctx.arc(hit.x, hit.y, hit.r * (1.6 + (1 - a) * 1.4), 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+        }
+    }
+    if (skillFState !== "sweeping" && skillFState !== "charging" && _skillFHitFlashes.length) {
+        _skillFHitFlashes.length = 0;
+    }
+}
+
+// Great Sage sigil: draws every pending stolen-attack effect
+// (_greatSageEffects, js/skills.js) — telegraph lines, delayed-strike
+// markers, arc-slash flashes, expanding shockwave rings, and the
+// Leviathan-style rotating sweep beam. The thrown-sword and piercing-orb
+// attacks need no draw code here since they're pushed straight into
+// bladeArcProjectiles and already render through drawBladeArcProjectile.
+function _drawGreatSageEffects() {
+    if (!_greatSageEffects.length) return;
+    for (const fx of _greatSageEffects) {
+        if (fx.type === 'aegis' && fx.phase === 'telegraph') {
+            const a = Math.min(1, fx.timer / fx.dur);
+            const fullLen = Math.hypot(canvas.width, canvas.height);
+            ctx.save();
+            ctx.globalAlpha = 0.35 + 0.35 * a;
+            ctx.strokeStyle = 'rgba(251,191,36,0.8)';
+            ctx.lineWidth = 2;
+            if (!_mobPerf) { ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 10; }
+            ctx.setLineDash([10, 8]);
+            ctx.beginPath();
+            ctx.moveTo(fx.x, fx.y);
+            ctx.lineTo(fx.x + Math.cos(fx.angle) * fullLen, fx.y + Math.sin(fx.angle) * fullLen);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        } else if (fx.type === 'aegis' && fx.phase === 'fire') {
+            const fullLen = Math.hypot(canvas.width, canvas.height);
+            const a = Math.max(0, 1 - fx.timer / fx.dur);
+            ctx.save();
+            ctx.globalAlpha = a;
+            ctx.strokeStyle = '#fff8e1';
+            ctx.lineWidth = 8;
+            if (!_mobPerf) { ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 26; }
+            ctx.beginPath();
+            ctx.moveTo(fx.x, fx.y);
+            ctx.lineTo(fx.x + Math.cos(fx.angle) * fullLen, fx.y + Math.sin(fx.angle) * fullLen);
+            ctx.stroke();
+            ctx.restore();
+        } else if (fx.type === 'veilshroud') {
+            const a = Math.min(1, fx.timer / fx.dur);
+            const r = 30 * (1 - a) + 8;
+            ctx.save();
+            ctx.strokeStyle = `rgba(45,212,191,${0.5 + 0.4 * a})`;
+            ctx.lineWidth = 2;
+            if (!_mobPerf) { ctx.shadowColor = '#2dd4bf'; ctx.shadowBlur = 12; }
+            ctx.beginPath(); ctx.arc(fx.x, fx.y, r, 0, Math.PI * 2); ctx.stroke();
+            if (a > 0.85) {
+                ctx.strokeStyle = '#e6fffb'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(fx.x, fx.y - 200); ctx.lineTo(fx.x, fx.y); ctx.stroke();
+            }
+            ctx.restore();
+        } else if (fx.type === 'egregor' && fx.phase === 'windup') {
+            const a = Math.min(1, fx.timer / fx.dur);
+            ctx.save();
+            ctx.strokeStyle = `rgba(170,68,255,${0.5 * a})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(fx.x, fx.y, 260 * a, fx.angle - Math.PI / 2, fx.angle + Math.PI / 2); ctx.stroke();
+            ctx.restore();
+        } else if (fx.type === 'egregor' && fx.phase === 'strike') {
+            const a = Math.max(0, 1 - fx.timer / fx.dur);
+            ctx.save();
+            ctx.globalAlpha = a;
+            ctx.fillStyle = 'rgba(170,68,255,0.35)';
+            if (!_mobPerf) { ctx.shadowColor = '#aa44ff'; ctx.shadowBlur = 20; }
+            ctx.beginPath();
+            ctx.moveTo(fx.x, fx.y);
+            ctx.arc(fx.x, fx.y, 260, fx.angle - Math.PI / 2, fx.angle + Math.PI / 2);
+            ctx.closePath(); ctx.fill();
+            ctx.restore();
+        } else if (fx.type === 'shockwave') {
+            const curRadius = fx.maxRadius * Math.min(1, fx.timer / fx.dur);
+            const a = Math.max(0, 1 - fx.timer / fx.dur);
+            ctx.save();
+            ctx.strokeStyle = `rgba(153,27,27,${0.6 * a + 0.2})`;
+            ctx.lineWidth = 5 * a + 1;
+            if (!_mobPerf) { ctx.shadowColor = '#991b1b'; ctx.shadowBlur = 16; }
+            ctx.beginPath(); ctx.arc(fx.x, fx.y, curRadius, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+        } else if (fx.type === 'leviathan') {
+            const fullRange = Math.max(canvas.width, canvas.height);
+            ctx.save();
+            if (fx.phase === 'warn') {
+                const a = Math.min(1, fx.timer / fx.warnDur);
+                ctx.strokeStyle = `rgba(0,229,255,${0.25 + 0.25 * a})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(fx.x, fx.y, fullRange, 0, Math.PI * 2); ctx.stroke();
+            } else {
+                const curAngle = fx.startAngle + (fx.timer / fx.sweepDur) * Math.PI * 2;
+                ctx.strokeStyle = '#eafaff';
+                ctx.lineWidth = 6;
+                if (!_mobPerf) { ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 24; }
+                ctx.beginPath();
+                ctx.moveTo(fx.x, fx.y);
+                ctx.lineTo(fx.x + Math.cos(curAngle) * fullRange, fx.y + Math.sin(curAngle) * fullRange);
+                ctx.stroke();
+            }
+            ctx.restore();
         }
     }
 }

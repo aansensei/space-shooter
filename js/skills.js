@@ -1109,6 +1109,16 @@ function updateBladeArcProjectiles(deltaTime) {
                     createParticles(enemy.x, enemy.y, 6, '#e0ffff', 2, 6);
                     createParticles(enemy.x, enemy.y, 4, '#00ffff', 1, 4);
                 }
+                // Great Sage's stolen Absolute Verdict: the orb marks every
+                // enemy it pierces with 1 Vulnerability stack and Soul Reaver,
+                // real judgment against foes tough enough to shrug off a
+                // single hit (Goliath's own Warding Palm/Inevitable DR chief
+                // among them) instead of just one damage tick.
+                if (arc.isGreatSageVerdict && enemy.hp > 0) {
+                    applyVulnerability(enemy);
+                    enemy.soulReaver = true;
+                    enemy.soulReaverEnd = performance.now() + 2500;
+                }
                 arc.hitEnemies.push(enemy);
             }
         }
@@ -1772,12 +1782,266 @@ function updateSkillDSpaceships(deltaTime) {
     }
 }
 
+// Great Sage sigil: per-type flavor/color for each stolen gem, and the
+// scaled-down player-usable copy of that enemy's own signature attack.
+// light/mid/dark match GOLIATH_GEM_COLORS (js/render/enemy-goliath.js) for
+// the 7 shared types, so a stolen gem reads as the same gem Goliath himself
+// would have absorbed; 'goliath' has no boss-of-its-own gem so it gets its
+// own color here.
+const GREAT_SAGE_GEM_INFO = {
+    thaelis:    { label: 'Tenacity Barrier',   light: '#e9ddff', mid: '#8b5cf6', dark: '#2d004d' },
+    aegis_core: { label: 'Lumen Nova',         light: '#fff8e1', mid: '#fbbf24', dark: '#7a5a00' },
+    marchosias: { label: 'Arc Barrier',        light: '#ccffe9', mid: '#10b981', dark: '#003322' },
+    veilshroud: { label: 'Phantom Strike',     light: '#e6fffb', mid: '#2dd4bf', dark: '#0b3b3a' },
+    egregor:    { label: 'Null Slash',         light: '#c9fff5', mid: '#14b8a6', dark: '#003344' },
+    dargruel:   { label: 'Root Shockwave',     light: '#ffcccc', mid: '#991b1b', dark: '#3a0000' },
+    leviathan:  { label: 'Perseverance Sweep', light: '#eafaff', mid: '#00e5ff', dark: '#1a0033' },
+    goliath:    { label: 'Absolute Verdict',   light: '#f5d0fe', mid: '#a21caf', dark: '#1a0010' },
+};
+
+// Fires a scaled-down copy of the stolen enemy's own signature attack,
+// centered on/near the player. comboMult is 1.5 when unleashed via 72
+// Transformations (all 3 gems at once), 1 for a single spent gem.
+// Nearest/toughest-enemy helpers used to lock a stolen attack's aim at the
+// moment it's cast, matching how the real jokers lock their own aim once at
+// mark-time instead of tracking continuously.
+function _greatSageNearestEnemy() {
+    let best = null, bestD = Infinity;
+    for (const e of enemies) {
+        const d = Math.hypot(e.x - player.x, e.y - player.y);
+        if (d < bestD) { bestD = d; best = e; }
+    }
+    return best;
+}
+function _greatSageToughestEnemy() {
+    let best = null, bestHp = -1;
+    for (const e of enemies) { if (e.maxHp > bestHp) { bestHp = e.maxHp; best = e; } }
+    return best;
+}
+
+// Enqueues the stolen attack as a timed effect matching the real joker's own
+// windup/telegraph/resolve shape (js/entities/goliath.js's
+// _goliathUpdateJoker), just scaled down in duration since this is a bonus
+// proc riding along a Skill F recast, not a standalone boss ultimate.
+// Thaelis is the one exception - its real kit is a persistent passive, so
+// its stolen copy applies as an instant timed shield with no windup.
+function _castStolenGemAttack(type, comboMult) {
+    const info = GREAT_SAGE_GEM_INFO[type];
+    if (!info) return;
+    comboMult = comboMult || 1;
+    const now = performance.now();
+    createParticles(player.x, player.y, 16, info.mid, 2, 8);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', player.x, player.y);
+
+    if (type === 'thaelis') {
+        // Tenacity Barrier: the player gets 1 Iron Body layer (blocks the
+        // next hit outright), sentinels get a 3s window of 50% dodge chance
+        // per hit instead — matching how the real barrier protects Goliath
+        // as a whole rather than each individual hit the same way.
+        window._greatSageIronBody = true;
+        window._greatSageShieldEnd = Math.max(window._greatSageShieldEnd || 0, now + 3000 * comboMult);
+        return;
+    }
+    if (type === 'aegis_core') {
+        // Lumen Nova: mark a line toward the current nearest enemy, hold a
+        // brief telegraph, then fire along that fixed line
+        const target = _greatSageNearestEnemy();
+        const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
+        _greatSageEffects.push({ type: 'aegis', phase: 'telegraph', timer: 0, dur: 500, x: player.x, y: player.y, angle, comboMult });
+        return;
+    }
+    if (type === 'marchosias') {
+        // Arc Barrier's own sword windup: a brief windup, then a blade
+        // thrown at the target's locked position (reuses the Blade Arc
+        // projectile system - a real piercing blade, not a burst)
+        const target = _greatSageNearestEnemy();
+        const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
+        _greatSageEffects.push({ type: 'sword_windup', timer: 0, dur: 500, x: player.x, y: player.y, angle, comboMult });
+        return;
+    }
+    if (type === 'veilshroud') {
+        // Phantom Strike: mark the target's current position, wait, then a
+        // lightning bolt lands there - only actually hits whatever enemy is
+        // still standing in that spot when it lands
+        const target = _greatSageNearestEnemy();
+        const x = target ? target.x : player.x, y = target ? target.y : player.y - 200;
+        _greatSageEffects.push({ type: 'veilshroud', timer: 0, dur: 750, x, y, comboMult });
+        return;
+    }
+    if (type === 'egregor') {
+        // Null Slash: brief windup facing the nearest enemy, then a genuine
+        // 180° arc slash centered on the player
+        const target = _greatSageNearestEnemy();
+        const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
+        _greatSageEffects.push({ type: 'egregor', phase: 'windup', timer: 0, dur: 500, x: player.x, y: player.y, angle, comboMult });
+        return;
+    }
+    if (type === 'dargruel') {
+        // Maou Haki: an expanding ring, not an instant flat-radius hit
+        _greatSageEffects.push({ type: 'shockwave', timer: 0, dur: 500, maxRadius: 320 * comboMult, x: player.x, y: player.y, hitEnemies: [], comboMult });
+        return;
+    }
+    if (type === 'leviathan') {
+        // Perseverance Sweep: short warning, then one full 360° rotation of
+        // a sweeping beam around the player
+        _greatSageEffects.push({ type: 'leviathan', phase: 'warn', timer: 0, warnDur: 300, sweepDur: 900, startAngle: Math.random() * Math.PI * 2, x: player.x, y: player.y, hitEnemies: [], comboMult });
+        return;
+    }
+    if (type === 'goliath') {
+        // Absolute Verdict: brief channel locked onto the toughest enemy on
+        // screen, then a heavy piercing orb (reuses Blade Arc's projectile
+        // system, same as the Marchosias sword above)
+        const target = _greatSageToughestEnemy();
+        const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
+        _greatSageEffects.push({ type: 'verdict', timer: 0, dur: 600, x: player.x, y: player.y, angle, comboMult });
+        return;
+    }
+}
+
+// Advances every pending stolen-attack effect, applying damage exactly once
+// at the moment the real joker's own attack would resolve (line telegraph
+// completing, sword windup finishing, lightning landing, arc slash firing,
+// shockwave ring passing through, sweep beam crossing). Called once per
+// frame from main.js's update loop, mirroring updateBladeArcProjectiles.
+function _updateGreatSageEffects(deltaTime) {
+    if (!_greatSageEffects.length) return;
+    for (let i = _greatSageEffects.length - 1; i >= 0; i--) {
+        const fx = _greatSageEffects[i];
+        fx.timer += deltaTime;
+        let done = false;
+
+        if (fx.type === 'aegis') {
+            if (fx.phase === 'telegraph' && fx.timer >= fx.dur) {
+                fx.phase = 'fire'; fx.timer = 0; fx.dur = 150;
+                const fullLen = Math.hypot(canvas.width, canvas.height);
+                const lineStart = { x: fx.x, y: fx.y };
+                const lineEnd = { x: fx.x + Math.cos(fx.angle) * fullLen, y: fx.y + Math.sin(fx.angle) * fullLen };
+                for (const enemy of enemies) {
+                    if (distToSegment(enemy, lineStart, lineEnd) < (enemy.size || 20) + 15) {
+                        dealDamage(enemy, { damage: 220 * fx.comboMult, percentDamage: 0.12 * fx.comboMult, _statSrc: 'Great Sage: Lumen Nova' });
+                    }
+                }
+                createParticles(fx.x, fx.y, 10, '#fbbf24', 2, 6);
+            } else if (fx.phase === 'fire' && fx.timer >= fx.dur) {
+                done = true;
+            }
+        } else if (fx.type === 'sword_windup') {
+            if (fx.timer >= fx.dur) {
+                bladeArcProjectiles.push({
+                    x: fx.x, y: fx.y,
+                    vx: Math.cos(fx.angle) * 20, vy: Math.sin(fx.angle) * 20,
+                    radius: 44, damage: 260 * fx.comboMult, percentDamage: 0.13 * fx.comboMult,
+                    hitEnemies: [], isPiercing: true, _statSrc: 'Great Sage: Arc Barrier',
+                });
+                done = true;
+            }
+        } else if (fx.type === 'veilshroud') {
+            if (fx.timer >= fx.dur) {
+                for (const enemy of enemies) {
+                    if (Math.hypot(enemy.x - fx.x, enemy.y - fx.y) < (enemy.size || 20) + 30) {
+                        dealDamage(enemy, { damage: 320 * fx.comboMult, percentDamage: 0.17 * fx.comboMult, isTrueDamage: true, _statSrc: 'Great Sage: Phantom Strike' });
+                    }
+                }
+                createParticles(fx.x, fx.y, 14, '#2dd4bf', 3, 9);
+                done = true;
+            }
+        } else if (fx.type === 'egregor') {
+            if (fx.phase === 'windup' && fx.timer >= fx.dur) {
+                fx.phase = 'strike'; fx.timer = 0; fx.dur = 150;
+                const arcR = 260;
+                for (const enemy of enemies) {
+                    const d = Math.hypot(enemy.x - fx.x, enemy.y - fx.y);
+                    if (d > arcR + (enemy.size || 20)) continue;
+                    let dA = Math.atan2(enemy.y - fx.y, enemy.x - fx.x) - fx.angle;
+                    while (dA > Math.PI) dA -= Math.PI * 2;
+                    while (dA < -Math.PI) dA += Math.PI * 2;
+                    if (Math.abs(dA) <= Math.PI / 2) {
+                        dealDamage(enemy, { damage: 260 * fx.comboMult, percentDamage: 0.14 * fx.comboMult, _statSrc: 'Great Sage: Null Slash' });
+                    }
+                }
+                if (typeof _setShake === 'function') _setShake(6, 150);
+            } else if (fx.phase === 'strike' && fx.timer >= fx.dur) {
+                done = true;
+            }
+        } else if (fx.type === 'shockwave') {
+            const curRadius = fx.maxRadius * Math.min(1, fx.timer / fx.dur);
+            for (const enemy of enemies) {
+                if (fx.hitEnemies.includes(enemy)) continue;
+                if (Math.hypot(enemy.x - fx.x, enemy.y - fx.y) <= curRadius) {
+                    fx.hitEnemies.push(enemy);
+                    dealDamage(enemy, { damage: 190 * fx.comboMult, percentDamage: 0.11 * fx.comboMult, _statSrc: 'Great Sage: Root Shockwave' });
+                }
+            }
+            if (fx.timer >= fx.dur) done = true;
+        } else if (fx.type === 'leviathan') {
+            if (fx.phase === 'warn' && fx.timer >= fx.warnDur) {
+                fx.phase = 'sweeping'; fx.timer = 0;
+            } else if (fx.phase === 'sweeping') {
+                const curAngle = fx.startAngle + (fx.timer / fx.sweepDur) * Math.PI * 2;
+                for (const enemy of enemies) {
+                    if (fx.hitEnemies.includes(enemy)) continue;
+                    const eAngle = Math.atan2(enemy.y - fx.y, enemy.x - fx.x);
+                    let d = Math.abs(((curAngle - eAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
+                    if (d < 0.15) {
+                        fx.hitEnemies.push(enemy);
+                        dealDamage(enemy, { damage: 200 * fx.comboMult, percentDamage: 0.11 * fx.comboMult, _statSrc: 'Great Sage: Perseverance Sweep' });
+                    }
+                }
+                if (fx.timer >= fx.sweepDur) done = true;
+            }
+        } else if (fx.type === 'verdict') {
+            if (fx.timer >= fx.dur) {
+                bladeArcProjectiles.push({
+                    x: fx.x, y: fx.y,
+                    vx: Math.cos(fx.angle) * 26, vy: Math.sin(fx.angle) * 26,
+                    radius: 60, damage: 420 * fx.comboMult, percentDamage: 0.22 * fx.comboMult,
+                    hitEnemies: [], isPiercing: true, isGreatSageVerdict: true, _statSrc: 'Great Sage: Absolute Verdict',
+                });
+                done = true;
+            }
+        }
+
+        if (done) _greatSageEffects.splice(i, 1);
+    }
+}
+
+// Records a Skill F kill for the Great Sage sigil: every kill widens the
+// current sweep's cone (Ransacked Treasury), and a kill on an Elite-or-
+// higher enemy also plunders that enemy's own gem, immediately, one of each
+// kind held at a time (max 3)
+function _onSkillFKill(enemy) {
+    _skillFKillsThisSweep++;
+    if (!_hasBuff('cuop_bao_tang')) return;
+    _skillFHitFlashes.push({ x: enemy.x, y: enemy.y, r: (enemy.size || 20) + 5, time: performance.now() });
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('great-sage-hit', enemy.x, enemy.y);
+    if (SKILL_F_ELITE_TIERS.includes(enemy.type) && _greatSageGems.length < 3 && !_greatSageGems.includes(enemy.type)) {
+        _greatSageGems.push(enemy.type);
+    }
+}
+
 function activateSkillF() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState === "playing" && !window._sigilPicker && skillFState === "ready" && currentTime - lastSkillF > skillFCooldown) {
+    const onCooldown = currentTime - lastSkillF <= skillFCooldown;
+    // Great Sage: Ransacked Treasury lets a banked gem fire Skill F again
+    // immediately, bypassing whatever cooldown remains
+    const hasGems = _hasBuff('cuop_bao_tang') && _greatSageGems.length > 0;
+    const useGems = onCooldown && hasGems;
+    if (gameState === "playing" && !window._sigilPicker && skillFState === "ready" && (!onCooldown || useGems)) {
         lastSkillF = currentTime;
+        if (useGems) {
+            if (_greatSageGems.length >= 3 && _hasBuff('bien_hoa_72')) {
+                // 72 Transformations: unleash all 3 stolen attacks at once
+                const types = _greatSageGems.slice();
+                _greatSageGems.length = 0;
+                types.forEach(t => _castStolenGemAttack(t, 1.5));
+                if (typeof _setShake === 'function') _setShake(8, 200);
+            } else {
+                _castStolenGemAttack(_greatSageGems.shift(), 1);
+            }
+        }
         enemies.forEach(e => e.hitBySkillF = false);
+        _skillFKillsThisSweep = 0;
         _checkMirrorLaserProc();
         if (_hasBuff('dong_chay_luan_hoi')) {
             // Cycle of Flow: skip the charge phase entirely
@@ -1812,6 +2076,9 @@ function updateSkillF(deltaTime) {
             return;
         }
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
+        // Ransacked Treasury: the cone widens with every kill landed this
+        // sweep, not with elapsed time, snowballing up to 4.5x its base width
+        const coneHalfWidth = _hasBuff('cuop_bao_tang') ? Math.min(0.2 * (1 + _skillFKillsThisSweep * 0.5), 0.2 * 4.5) : 0.2;
 
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;
@@ -1819,7 +2086,7 @@ function updateSkillF(deltaTime) {
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (enemy.inCoronation) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - 0.2) {
+            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - coneHalfWidth) {
                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive && !_hasBuff('tu_huyet')) {
@@ -1831,6 +2098,7 @@ function updateSkillF(deltaTime) {
                     // trong dealDamage. Phải đi qua dealDamage để mọi rule đó
                     // thực sự áp dụng.
                     dealDamage(enemy, { damage: 0, percentDamage: 0, _isSkillF: true, _statSrc: 'Skill F: Annihilation Sweep' });
+                    if (enemy.hp <= 0) _onSkillFKill(enemy);
                 } else {
                     // Coronation Iron Body absorbs 1 hit — bypassed only with Death Mark (tu_huyet)
                     if (!_hasBuff('tu_huyet') && (enemy.ironBodyHits || 0) > 0) {
@@ -1845,6 +2113,7 @@ function updateSkillF(deltaTime) {
                     if (enemy.type === 'leviathan' && !enemy._deathLaserSpawned) {
                         dealDamage(enemy, { damage: 0, percentDamage: 0, _bypassIronBody: true, _isSkillF: true, _statSrc: 'Skill F: Annihilation Sweep' });
                     }
+                    _onSkillFKill(enemy);
                 }
                 enemy.hitBySkillF = true;
             }
