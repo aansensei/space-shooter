@@ -684,9 +684,12 @@
                         Auto-adjusts graphics to maintain smooth performance.
                     </div>
 
-                    <!-- Quality buttons -->
+                    <!-- Quality buttons. q-per (mobile only, tier 4) is hidden by
+                         default and shown from JS once window._platform is known
+                         to be 'mobile' - see the platform-select code below. -->
                     <div id="quality-row" style="display:flex; gap:8px; margin-bottom:6px; opacity:0.35; pointer-events:none;">
-                        <button class="stg-q-btn" id="q-low"    onclick="onQualitySelect(3)" data-i18n="graphics.low">LOW</button>
+                        <button class="stg-q-btn" id="q-per"    onclick="onQualitySelect(4)" data-i18n="graphics.per" style="display:none;">PER</button>
+                        <button class="stg-q-btn" id="q-low"    onclick="onQualitySelect(2)" data-i18n="graphics.low">LOW</button>
                         <button class="stg-q-btn" id="q-med"    onclick="onQualitySelect(1)" data-i18n="graphics.medium">MEDIUM</button>
                         <button class="stg-q-btn" id="q-high"   onclick="onQualitySelect(0)" data-i18n="graphics.high">HIGH</button>
                     </div>
@@ -983,7 +986,8 @@
                 window._masterVolume      = 1.0;
 
                 // Store dataset on buttons for easy read-back
-                document.getElementById('q-low').dataset.level  = 3;
+                document.getElementById('q-per').dataset.level  = 4;
+                document.getElementById('q-low').dataset.level  = 2;
                 document.getElementById('q-med').dataset.level  = 1;
                 document.getElementById('q-high').dataset.level = 0;
 
@@ -1000,7 +1004,7 @@
                         'graphics.section': 'Graphics',
                         'graphics.smartQuality': 'Smart Quality',
                         'graphics.smartQualityDesc': 'Auto-adjusts graphics to maintain smooth performance.',
-                        'graphics.low': 'LOW', 'graphics.medium': 'MEDIUM', 'graphics.high': 'HIGH',
+                        'graphics.low': 'LOW', 'graphics.medium': 'MEDIUM', 'graphics.high': 'HIGH', 'graphics.per': 'PER',
                         'graphics.qualityNote': 'To choose a specific quality, please turn off Smart Quality.',
                         'audio.section': 'Audio', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Global',
                         'audio.inGameMusic': 'In-Game Music', 'audio.random': 'Random',
@@ -1034,7 +1038,7 @@
                         'graphics.section': 'Đồ Họa',
                         'graphics.smartQuality': 'Tự Động Điều Chỉnh',
                         'graphics.smartQualityDesc': 'Tự động điều chỉnh đồ họa để giữ hiệu năng mượt mà.',
-                        'graphics.low': 'THẤP', 'graphics.medium': 'TRUNG BÌNH', 'graphics.high': 'CAO',
+                        'graphics.low': 'THẤP', 'graphics.medium': 'TRUNG BÌNH', 'graphics.high': 'CAO', 'graphics.per': 'HIỆU NĂNG',
                         'graphics.qualityNote': 'Để chọn mức đồ họa cụ thể, vui lòng tắt Tự Động Điều Chỉnh.',
                         'audio.section': 'Âm Thanh', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Tổng',
                         'audio.inGameMusic': 'Nhạc Trong Game', 'audio.random': 'Ngẫu Nhiên',
@@ -1110,7 +1114,7 @@
                     // Highlight quality button matching live _gfxLevel
                     const lvl = typeof window._gfxLevel !== 'undefined' ? window._gfxLevel : 0;
                     document.querySelectorAll('.stg-q-btn').forEach(b => b.classList.remove('stg-q-active'));
-                    const qMap = { 0:'q-high', 1:'q-med', 2:'q-low', 3:'q-low' };
+                    const qMap = { 0:'q-high', 1:'q-med', 2:'q-low', 3:'q-low', 4:'q-per' };
                     const qBtn = document.getElementById(qMap[lvl] || 'q-high');
                     if (qBtn) qBtn.classList.add('stg-q-active');
 
@@ -1364,7 +1368,7 @@
                 // Quality button → only update active highlight
                 function onQualitySelect(level) {
                     document.querySelectorAll('.stg-q-btn').forEach(b => b.classList.remove('stg-q-active'));
-                    const map = { 0:'q-high', 1:'q-med', 3:'q-low' };
+                    const map = { 0:'q-high', 1:'q-med', 2:'q-low', 3:'q-low', 4:'q-per' };
                     const btn = document.getElementById(map[level]);
                     if (btn) btn.classList.add('stg-q-active');
                 }
@@ -1776,17 +1780,18 @@
             }
 
             // FPS + Auto Quality Tier
-            // Tier: 0=FULL(>25) 1=MED(≤25) 2=LOW(≤15) 3=MIN(≤8)
-            // Shadow chỉ tắt ở tier 2+ (fps ≤ 15). Tier 3 was previously
-            // unreachable by Smart Quality — render/core.js's particle
-            // scale/cap arrays support 4 levels but this auto watchdog only
-            // ever targeted 0-2, so severe lag (single-digit fps) got stuck
-            // at tier 2 with nowhere further to fall back to.
-            const _TIER_NAMES   = ['FULL', 'MED', 'LOW', 'MIN'];
+            // Tier: 0=FULL(>25) 1=MED(≤25) 2=LOW(≤15) 3=MIN(≤8) 4=PER(≤4, mobile only)
+            // Shadow chỉ tắt ở tier 2+ (fps ≤ 15). Tier 4 (PER) only exists on
+            // mobile - it's the manual "PER" button's own tier and the one
+            // extra fallback step Smart Quality reaches for on top of MIN
+            // when even that isn't enough, restricted to mobile since a
+            // desktop machine that lags this hard has a different problem
+            // no graphics tier fixes.
+            const _TIER_NAMES   = ['FULL', 'MED', 'LOW', 'MIN', 'PER'];
             // FPS threshold để downgrade TO tier N
-            const _TIER_DOWN_AT = [Infinity, 25, 15, 8];
+            const _TIER_DOWN_AT = [Infinity, 25, 15, 8, 4];
             // FPS threshold để upgrade FROM tier N (với buffer)
-            const _TIER_UP_AT   = [Infinity, 30, 20, 12];
+            const _TIER_UP_AT   = [Infinity, 30, 20, 12, 6];
 
             let _autoTier = 0;
             let _upgChecks = 0;       // upgrade cần 2 checks liên tiếp
@@ -1800,6 +1805,7 @@
                 return '#ff5a3a';
             }
             function _targetTier(fps) {
+                if (fps <= 4 && window._platform === 'mobile') return 4;
                 if (fps <= 8) return 3;
                 if (fps <= 15) return 2;
                 if (fps <= 25) return 1;
@@ -1928,8 +1934,8 @@
     <script src="js/entities/misc-enemies.js?v=20260825a"></script>
     <script src="js/entities/goliath.js?v=20260830b"></script>
     <script src="js/skills.js?v=20260830p"></script>
-    <script src="js/render/core.js?v=20260830b"></script>
-    <script src="js/render/fx.js?v=20260830a"></script>
+    <script src="js/render/core.js?v=20260830c"></script>
+    <script src="js/render/fx.js?v=20260830b"></script>
     <script src="js/render/player.js?v=20260830g"></script>
     <script src="js/render/enemy-common.js?v=20260825c"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
@@ -2330,6 +2336,15 @@
                 // Correct background.js's initial touch-detection guess (made
                 // before this menu even existed) to match the explicit choice.
                 if (typeof window._bgSetDensity === 'function') window._bgSetDensity(p);
+                // PER (tier 4) only exists on mobile - the button stays hidden
+                // on PC. If a player was on PER and somehow switches to PC
+                // mid-session, drop back to LOW rather than leaving a PC
+                // session pinned to a mobile-only tier.
+                const perBtn = document.getElementById('q-per');
+                if (perBtn) perBtn.style.display = (p === 'mobile') ? '' : 'none';
+                if (p !== 'mobile' && window._gfxLevel === 4 && typeof window._applyGfxLevel === 'function') {
+                    window._applyGfxLevel(2);
+                }
             };
 
             // MOBILE CONTROLS INIT

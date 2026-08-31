@@ -55,13 +55,13 @@ function _initMobilePerf() {
         });
     } catch(e) {}
 }
-// Auto quality tiers (0=FULL 1=MED 2=LOW 3=MIN)
+// Auto quality tiers (0=FULL 1=MED 2=LOW 3=MIN 4=PER, mobile-only)
 let _gfxLevel = 0;
 window._gfxLevel = 0;
 window._particleScale = 1.0;
 
-const _GFX_PARTICLE_SCALE = [1.0, 0.65, 0.35, 0.2];
-const _GFX_PARTICLE_CAP   = [350,  250,  150, 100];
+const _GFX_PARTICLE_SCALE = [1.0, 0.65, 0.35, 0.2, 0.12];
+const _GFX_PARTICLE_CAP   = [350,  250,  150, 100, 60];
 
 function _applyGfxLevel(level) {
     if (_gfxLevel === level) return;
