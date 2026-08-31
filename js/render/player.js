@@ -732,6 +732,38 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         ctx.restore();
     }
 
+    // Great Sage sigil: 3 small round gem slots hovering above the ship —
+    // empty/dim outline for an unfilled slot, lit up in the stolen enemy's
+    // own gem colors (GREAT_SAGE_GEM_INFO, js/skills.js) once filled. Only
+    // the ship's own draw (alpha===1) shows it, matching every other
+    // player-status overlay in this function.
+    if (alpha === 1 && typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')) {
+        const gNow = performance.now();
+        const gems = (typeof _greatSageGems !== 'undefined' ? _greatSageGems : []);
+        const slotR = 6, slotGap = 16, slotY = -(player.height / 2 + 22);
+        ctx.save();
+        for (let i = 0; i < 3; i++) {
+            const sx = (i - 1) * slotGap;
+            const filled = gems[i];
+            const info = filled && typeof GREAT_SAGE_GEM_INFO !== 'undefined' ? GREAT_SAGE_GEM_INFO[filled] : null;
+            if (info) {
+                const pulse = 0.7 + 0.3 * Math.sin(gNow / 260 + i);
+                const g = ctx.createRadialGradient(sx - slotR * 0.3, slotY - slotR * 0.3, 0, sx, slotY, slotR * 1.3);
+                g.addColorStop(0, info.light); g.addColorStop(0.55, info.mid); g.addColorStop(1, info.dark);
+                if (!_mobPerf) { ctx.shadowColor = info.mid; ctx.shadowBlur = 8 * pulse; }
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(sx, slotY, slotR, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1; ctx.stroke();
+            } else {
+                ctx.strokeStyle = 'rgba(255,215,120,0.35)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath(); ctx.arc(sx, slotY, slotR, 0, Math.PI * 2); ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+
     // Null Slash slow, purple ring + falling particles
     if (alpha === 1 && typeof player !== 'undefined' && player._nullSlashSlowed) {
         const nsNow = performance.now();

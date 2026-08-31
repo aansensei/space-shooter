@@ -971,6 +971,7 @@ function draw(deltaTime) {
         drawMirrorLaserColumns();
         drawGoldenArrowSweep();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
+        if (typeof _drawGreatSageEffects === 'function') _drawGreatSageEffects();
         spiritSpinners.forEach(drawSpiritSpinner);
         marchosiasBlades.forEach(_drawMarchoBlade);
         scatteredProjectiles.forEach(drawScatteredProjectile);

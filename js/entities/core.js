@@ -981,6 +981,14 @@ function dealDamage(enemy, source) {
         return; // hoàn toàn miễn sát thương
     }
 
+    // Great Sage (stolen Tenacity Barrier gem): sentinels get a duration
+    // window of 50% dodge chance per hit instead of the player's single
+    // Iron Body layer (see playerTakesHit, main.js)
+    if (isSentinel && window._greatSageShieldEnd && performance.now() < window._greatSageShieldEnd && Math.random() < 0.5) {
+        createParticles(enemy.x, enemy.y, 6, '#c4b5fd', 2, 6);
+        return;
+    }
+
     // Tidal Flow: 1-hit iron body layer per sentinel, cooldown starts after consumed
     if (isSentinel && enemy._trieuIronBody && _hasBuff('trieu_hoi')) {
         enemy._trieuIronBody = false;

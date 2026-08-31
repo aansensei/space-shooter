@@ -66,6 +66,15 @@ function playerTakesHit(attacker) {
         return false;
     }
 
+    // Great Sage (stolen Tenacity Barrier gem): the player gets a single
+    // Iron Body layer that blocks the next hit outright — sentinels get
+    // the duration-based 50% dodge chance instead (see dealDamage, core.js)
+    if (window._greatSageIronBody) {
+        window._greatSageIronBody = false;
+        createParticles(player.x, player.y, 10, '#c4b5fd', 2, 6);
+        return false;
+    }
+
     // ƯU TIÊN 0: Yog-Sothoth - Miễn mọi sát thương trong Lãnh địa Thời Gian
     if (skillShiftActive) {
         // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
@@ -2068,6 +2077,7 @@ function update(rawDeltaTime) {
     updateSpirits(deltaTime); _profChk2.push(performance.now());
     updateSpiritSpinners(deltaTime); _profChk2.push(performance.now());
     updateBladeArcProjectiles(deltaTime); _profChk2.push(performance.now());
+    _updateGreatSageEffects(deltaTime);
     updateSpiritBullets(deltaTime); _profChk2.push(performance.now());
     updatePhotoBrangs(deltaTime); _profChk2.push(performance.now());
     updateSkillD(deltaTime); _profChk2.push(performance.now());
@@ -2854,7 +2864,12 @@ function startGame() {
     hasTriggeredLastStand = false;
     playerAbsoluteShield = false;
 
-    window._sigilPool = [...(typeof SIGIL_ORDER !== 'undefined' ? SIGIL_ORDER : [])];
+    window._sigilPool = [...(typeof SIGIL_ORDER !== 'undefined' ? SIGIL_ORDER : []), ...(typeof SIGIL_EXTRA !== 'undefined' ? SIGIL_EXTRA : [])];
+    _greatSageGems = [];
+    _skillFKillsThisSweep = 0;
+    _greatSageEffects = [];
+    window._greatSageShieldEnd = 0;
+    window._greatSageIronBody = false;
     window._playerSigils = [];
     window._sigilPicker = null;
     window._sigilRerollsLeft = 2;
