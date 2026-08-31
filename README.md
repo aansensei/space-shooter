@@ -346,7 +346,7 @@ Every real cast of Annihilation Sweep also phases the player and every sentinel 
 - Pressing Skill F at any time with at least 1 gem held spends the **oldest** gem first: it fires a scaled-down copy of that enemy's own signature attack (see table below) without touching Skill F's own charge/cooldown cycle at all, since the sweep already clears most of the screen on its own. A center-screen prompt appears the whole time at least 1 gem is banked.
 
 **72 Transformations (ATK)**
-- Once **3 different** gems are held at the same time, pressing Skill F instead unleashes **all 3** stolen attacks together, each at **1.5x** strength, consuming all 3 gems in one go instead of spending just the oldest.
+- Every Skill F press still spends exactly **1** gem (oldest first), never more. While **3 different** gems are held at the same time, though, the one being spent hits **1.5x** as hard - a passive reward for staying topped up, not a separate all-3-at-once trigger.
 
 **Stolen attacks, by gem** — each one reuses the real joker attack's own render code (`_drawGoliathJokerEffects` and friends, `js/render/enemy-goliath.js`) recolored blue instead of the gem's own color, so the visual is a faithful copy of Goliath's own version, not an approximation. Values below are at 1x strength; 72 Transformations multiplies each by 1.5x.
 
