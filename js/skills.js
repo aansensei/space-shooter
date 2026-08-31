@@ -1831,7 +1831,12 @@ function _greatSageLockPoints(count) {
     const pool = enemies.filter(e => !used.includes(e));
     _shuffleArray(pool).slice(0, count).forEach(e => points.push({ x: e.x, y: e.y, ref: e }));
     while (points.length < count + 1) {
-        points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, ref: null });
+        // Near the player, not some random spot clear across the map with
+        // nothing anywhere near it (matches _goliathLockTargets's own
+        // fallback, js/entities/goliath.js).
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 140;
+        points.push({ x: player.x + Math.cos(ang) * dist, y: player.y + Math.sin(ang) * dist, ref: null });
     }
     return points;
 }
@@ -2140,15 +2145,12 @@ function activateSkillF() {
     // pass, so bundling another full sweep onto every single gem spend was
     // redundant. Works whether Skill F itself is ready or on cooldown.
     if (_hasBuff('cuop_bao_tang') && _greatSageGems.length > 0) {
-        if (_greatSageGems.length >= 3 && _hasBuff('bien_hoa_72')) {
-            // 72 Transformations: unleash all 3 stolen attacks at once
-            const types = _greatSageGems.slice();
-            _greatSageGems.length = 0;
-            types.forEach(t => _castStolenGemAttack(t, 1.5));
-            if (typeof _setShake === 'function') _setShake(8, 200);
-        } else {
-            _castStolenGemAttack(_greatSageGems.shift(), 1);
-        }
+        // 72 Transformations: holding a full set of 3 different gems makes
+        // the one being spent hit 1.5x as hard - a passive reward for
+        // staying topped up, not a separate "burst all 3 at once" trigger.
+        // Every press still spends exactly 1 gem (oldest first).
+        const comboMult = (_hasBuff('bien_hoa_72') && _greatSageGems.length >= 3) ? 1.5 : 1;
+        _castStolenGemAttack(_greatSageGems.shift(), comboMult);
         return;
     }
 
