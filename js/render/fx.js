@@ -1036,16 +1036,22 @@ function drawSentinel(sentinel) {
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.stroke();
 
-    // rotating outer dashed orbit ring
-    ctx.save();
-    ctx.rotate(now / 1800);
-    ctx.strokeStyle = `${glowColor}88`;
-    ctx.lineWidth = 1;
-    ctx.shadowBlur = 0;
-    ctx.setLineDash([5, 7]);
-    ctx.beginPath(); ctx.arc(0, 0, size + 5, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
+    // rotating outer dashed orbit ring - pure decoration (doesn't convey any
+    // game state), so it's the first thing to go on mobile once there are
+    // enough sentinels on screen that this per-sentinel rotate+dash+stroke
+    // actually adds up. Untouched on desktop at any tier.
+    const _mobSkipOrbitRing = window._platform === 'mobile' && _gfxLevel >= 1 && sentinels.length >= 5;
+    if (!_mobSkipOrbitRing) {
+        ctx.save();
+        ctx.rotate(now / 1800);
+        ctx.strokeStyle = `${glowColor}88`;
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 0;
+        ctx.setLineDash([5, 7]);
+        ctx.beginPath(); ctx.arc(0, 0, size + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
 
     // body shell
     ctx.shadowBlur = 0;
@@ -1063,12 +1069,28 @@ function drawSentinel(sentinel) {
         ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI * 2); ctx.fill();
     }
 
-    // inner core gem
+    // inner core gem - on mobile, cache the gradient per (size, glowColor)
+    // on the sentinel itself instead of rebuilding it every single frame
+    // for every sentinel (same trick already used for the fin gradients
+    // below); desktop keeps rebuilding it fresh, unchanged from before.
     const coreSize = size * 0.4;
-    const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize);
-    coreGrad.addColorStop(0, 'white');
-    coreGrad.addColorStop(0.5, glowColor);
-    coreGrad.addColorStop(1, `${glowColor}44`);
+    let coreGrad;
+    if (window._platform === 'mobile') {
+        if (sentinel._coreGradKey !== coreSize + glowColor) {
+            sentinel._coreGradKey = coreSize + glowColor;
+            const g = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize);
+            g.addColorStop(0, 'white');
+            g.addColorStop(0.5, glowColor);
+            g.addColorStop(1, `${glowColor}44`);
+            sentinel._coreGrad = g;
+        }
+        coreGrad = sentinel._coreGrad;
+    } else {
+        coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize);
+        coreGrad.addColorStop(0, 'white');
+        coreGrad.addColorStop(0.5, glowColor);
+        coreGrad.addColorStop(1, `${glowColor}44`);
+    }
     ctx.fillStyle = coreGrad;
     ctx.beginPath(); ctx.arc(0, 0, coreSize, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
