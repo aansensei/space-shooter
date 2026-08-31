@@ -931,85 +931,93 @@ function _drawGreatSageEffects() {
             // Ported from Goliath's own Aegis Core joker telegraph
             // (createAegisTelegraph, js/render/enemy-goliath.js), recolored
             // red->blue: wide translucent wash, dashed warning line, marker dot.
+            // One line per locked point (nearest enemy + 2 more).
             const fullLen = Math.hypot(canvas.width, canvas.height);
-            const lx = fx.x + Math.cos(fx.angle) * fullLen, ly = fx.y + Math.sin(fx.angle) * fullLen;
-            ctx.save();
-            ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
-            ctx.strokeStyle = 'rgba(59,130,246,0.14)'; ctx.lineWidth = 34; ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
-            ctx.setLineDash([16, 13]); ctx.strokeStyle = 'rgba(96,165,250,0.85)'; ctx.lineWidth = 2.5;
-            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 10; }
-            ctx.stroke(); ctx.shadowBlur = 0; ctx.setLineDash([]);
-            ctx.beginPath(); ctx.arc(lx, ly, 8, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(96,165,250,0.9)'; ctx.fill();
-            ctx.restore();
+            fx.angles.forEach(angle => {
+                const lx = fx.x + Math.cos(angle) * fullLen, ly = fx.y + Math.sin(angle) * fullLen;
+                ctx.save();
+                ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
+                ctx.strokeStyle = 'rgba(59,130,246,0.14)'; ctx.lineWidth = 34; ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
+                ctx.setLineDash([16, 13]); ctx.strokeStyle = 'rgba(96,165,250,0.85)'; ctx.lineWidth = 2.5;
+                if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 10; }
+                ctx.stroke(); ctx.shadowBlur = 0; ctx.setLineDash([]);
+                ctx.beginPath(); ctx.arc(lx, ly, 8, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(96,165,250,0.9)'; ctx.fill();
+                ctx.restore();
+            });
         } else if (fx.type === 'aegis' && fx.phase === 'fire') {
             // Ported from Goliath's own Aegis Core joker fire beam, recolored.
             const fullLen = Math.hypot(canvas.width, canvas.height);
-            const lx = fx.x + Math.cos(fx.angle) * fullLen, ly = fx.y + Math.sin(fx.angle) * fullLen;
             const fade = Math.max(0, 1 - fx.timer / fx.dur);
-            ctx.save();
-            ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
-            ctx.strokeStyle = `rgba(30,64,175,${0.5 * fade})`; ctx.lineWidth = 46;
-            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 30; }
-            ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
-            ctx.strokeStyle = `rgba(96,165,250,${fade})`; ctx.lineWidth = 22; ctx.shadowBlur = 16; ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
-            ctx.strokeStyle = `rgba(255,255,255,${fade})`; ctx.lineWidth = 8; ctx.shadowBlur = 0; ctx.stroke();
-            ctx.restore();
+            fx.angles.forEach(angle => {
+                const lx = fx.x + Math.cos(angle) * fullLen, ly = fx.y + Math.sin(angle) * fullLen;
+                ctx.save();
+                ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
+                ctx.strokeStyle = `rgba(30,64,175,${0.5 * fade})`; ctx.lineWidth = 46;
+                if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 30; }
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
+                ctx.strokeStyle = `rgba(96,165,250,${fade})`; ctx.lineWidth = 22; ctx.shadowBlur = 16; ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(fx.x, fx.y); ctx.lineTo(lx, ly);
+                ctx.strokeStyle = `rgba(255,255,255,${fade})`; ctx.lineWidth = 8; ctx.shadowBlur = 0; ctx.stroke();
+                ctx.restore();
+            });
         } else if (fx.type === 'veilshroud') {
             // Ported from Goliath's own Veilshroud joker (countdown ring +
             // sky-lightning strike, js/render/enemy-goliath.js), recolored
             // orange->blue. fx.timer/fx.dur stands in for the real
-            // lightningCountdown/1500 ratio.
+            // lightningCountdown/1500 ratio. Drawn once per locked point
+            // (nearest enemy + 2 more).
             const prog = Math.min(1, fx.timer / fx.dur);
-            ctx.save();
-            if (prog > 0.01) {
-                const fg = ctx.createRadialGradient(fx.x, fx.y, 0, fx.x, fx.y, 130);
-                fg.addColorStop(0, `rgba(59,130,246,${0.28 * prog})`);
-                fg.addColorStop(1, 'rgba(59,130,246,0)');
-                ctx.fillStyle = fg;
-                ctx.beginPath(); ctx.arc(fx.x, fx.y, 130, 0, Math.PI * 2); ctx.fill();
-            }
-            ctx.globalAlpha = 0.35 + prog * 0.65;
-            ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2.5;
-            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 12; }
-            ctx.setLineDash([9, 6]);
-            ctx.beginPath(); ctx.arc(fx.x, fx.y, 130, 0, Math.PI * 2); ctx.stroke();
-            ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-            ctx.restore();
-            // the bolt itself, once it lands (last 400ms of the window)
-            if (fx.timer >= fx.dur - 400) {
-                const fade = Math.max(0, (fx.dur - fx.timer) / 400);
-                const skyY = fx.y - 900;
-                const main = _greatSageJaggedLine(fx.x, skyY, fx.x, fx.y, 7, 30);
-                const outer = _greatSageJaggedLine(fx.x, skyY, fx.x, fx.y, 5, 40);
+            fx.points.forEach(pt => {
                 ctx.save();
-                ctx.strokeStyle = `rgba(59,130,246,${fade * 0.5})`; ctx.lineWidth = 3 + 5 * fade;
-                if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 20; }
-                ctx.beginPath(); ctx.arc(fx.x, fx.y, 60 * (1.3 - fade * 0.3), 0, Math.PI * 2); ctx.stroke();
-                ctx.beginPath();
-                outer.forEach((b, i) => i === 0 ? ctx.moveTo(b.x, b.y) : ctx.lineTo(b.x, b.y));
-                ctx.strokeStyle = `rgba(59,130,246,${fade * 0.65})`; ctx.lineWidth = 7 * fade;
-                ctx.stroke();
-                ctx.beginPath();
-                main.forEach((b, i) => i === 0 ? ctx.moveTo(b.x, b.y) : ctx.lineTo(b.x, b.y));
-                ctx.strokeStyle = `rgba(255,255,255,${fade})`; ctx.lineWidth = 3 * fade;
-                ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 22;
-                ctx.stroke();
-                for (let b = 0; b < 3; b++) {
-                    const src = main[1 + Math.floor((main.length - 2) * (b + 0.5) / 3)];
-                    const side = b % 2 === 0 ? 1 : -1;
-                    const branch = _greatSageJaggedLine(src.x, src.y, src.x + side * 50, src.y + 40, 3, 14);
-                    ctx.beginPath();
-                    branch.forEach((bp, i) => i === 0 ? ctx.moveTo(bp.x, bp.y) : ctx.lineTo(bp.x, bp.y));
-                    ctx.strokeStyle = `rgba(147,197,253,${fade * 0.7})`; ctx.lineWidth = 1.5 * fade;
-                    ctx.stroke();
+                if (prog > 0.01) {
+                    const fg = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 130);
+                    fg.addColorStop(0, `rgba(59,130,246,${0.28 * prog})`);
+                    fg.addColorStop(1, 'rgba(59,130,246,0)');
+                    ctx.fillStyle = fg;
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 130, 0, Math.PI * 2); ctx.fill();
                 }
-                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 0.35 + prog * 0.65;
+                ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2.5;
+                if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 12; }
+                ctx.setLineDash([9, 6]);
+                ctx.beginPath(); ctx.arc(pt.x, pt.y, 130, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
                 ctx.restore();
-            }
+                // the bolt itself, once it lands (last 400ms of the window)
+                if (fx.timer >= fx.dur - 400) {
+                    const fade = Math.max(0, (fx.dur - fx.timer) / 400);
+                    const skyY = pt.y - 900;
+                    const main = _greatSageJaggedLine(pt.x, skyY, pt.x, pt.y, 7, 30);
+                    const outer = _greatSageJaggedLine(pt.x, skyY, pt.x, pt.y, 5, 40);
+                    ctx.save();
+                    ctx.strokeStyle = `rgba(59,130,246,${fade * 0.5})`; ctx.lineWidth = 3 + 5 * fade;
+                    if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 20; }
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 60 * (1.3 - fade * 0.3), 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath();
+                    outer.forEach((b, i) => i === 0 ? ctx.moveTo(b.x, b.y) : ctx.lineTo(b.x, b.y));
+                    ctx.strokeStyle = `rgba(59,130,246,${fade * 0.65})`; ctx.lineWidth = 7 * fade;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    main.forEach((b, i) => i === 0 ? ctx.moveTo(b.x, b.y) : ctx.lineTo(b.x, b.y));
+                    ctx.strokeStyle = `rgba(255,255,255,${fade})`; ctx.lineWidth = 3 * fade;
+                    ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 22;
+                    ctx.stroke();
+                    for (let b = 0; b < 3; b++) {
+                        const src = main[1 + Math.floor((main.length - 2) * (b + 0.5) / 3)];
+                        const side = b % 2 === 0 ? 1 : -1;
+                        const branch = _greatSageJaggedLine(src.x, src.y, src.x + side * 50, src.y + 40, 3, 14);
+                        ctx.beginPath();
+                        branch.forEach((bp, i) => i === 0 ? ctx.moveTo(bp.x, bp.y) : ctx.lineTo(bp.x, bp.y));
+                        ctx.strokeStyle = `rgba(147,197,253,${fade * 0.7})`; ctx.lineWidth = 1.5 * fade;
+                        ctx.stroke();
+                    }
+                    ctx.shadowBlur = 0;
+                    ctx.restore();
+                }
+            });
         } else if (fx.type === 'egregor' && fx.phase === 'windup') {
             // Ported from Goliath's own Egregor charging arc, recolored
             // orange->blue, R substituted for the real fixed 500.

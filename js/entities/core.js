@@ -130,6 +130,11 @@ function handleEnemyKill(enemy) {
             spawnSkillDSpaceship(enemy.x, enemy.y);
         }
     }
+    // Great Sage: a gem drops off an Elite-or-higher kill no matter what
+    // killed it - auto-fire, another skill, a sentinel, anything - not just
+    // a Skill F sweep. This universal hook also catches Goliath once its own
+    // multi-phase death sequence finally brings its hp to 0 for real.
+    if (typeof _grantGreatSageGem === 'function') _grantGreatSageGem(enemy);
     score = Math.ceil(score + enemy.maxHp * 6);
     // Primeval Creation: +1.25% energy per kill from non-spirit sources
     if (!enemy._spiritKillCounted) {
@@ -531,6 +536,12 @@ function dealDamage(enemy, source) {
             enemy.hp = Math.max(0, enemy.hp - dmg);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
+            // Warding Palm alone means a Goliath fight eats several full Skill
+            // F cooldowns - landing a Skill F hit on it refunds 1.5s off Skill
+            // F's own cooldown to make the fight less of a slog.
+            if (source._isSkillF && typeof lastSkillF !== 'undefined') {
+                lastSkillF = Math.min(performance.now(), lastSkillF - 1500);
+            }
             return;
         }
         // Joker Marchosias: Arc Barrier hấp thụ đòn TRƯỚC KHI chạm thân (nếu
