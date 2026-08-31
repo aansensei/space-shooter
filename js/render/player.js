@@ -12,6 +12,15 @@ const _goliathSilenceImg = new Image();
 _goliathSilenceImg.src = 'assets/images/game/goliath-silence-debuff.png';
 _goliathSilenceImg.decode().catch(() => {});
 
+// Great Sage sigil: commissioned gem-slot frame (gold oval band, 3 holes,
+// same asset-loading pattern as the debuff icons above). Hole centers/
+// radius measured directly off the source PNG (1264x848) so the 3 gem
+// dots line up exactly regardless of the on-screen display size chosen.
+const _greatSageGemFrameImg = new Image();
+_greatSageGemFrameImg.src = 'assets/images/game/great-sage-gem-frame.png';
+_greatSageGemFrameImg.decode().catch(() => {});
+const GREAT_SAGE_GEM_FRAME_HOLE_FRAC = { offsetX: 294 / 1264, r: 115.5 / 1264 };
+
 function drawSkillShiftEffects() {
     if (!skillShiftActive) return;
     const now = performance.now();
@@ -309,6 +318,18 @@ function drawSpiritBullet(b) {
 // Player ship
 function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     const now = performance.now();
+    // Great Sage: 1s untargetable phase-out after every real Annihilation
+    // Sweep. The ship fades and sheds rising smoke wisps, like a vanishing
+    // spell. Only the real ship (not Shift decoys/Shadow Twin ghosts) gets
+    // this, same xOffset===0 && !pos gate as the gem-frame HUD below.
+    const _stealthActive = window._greatSageStealthEnd && now < window._greatSageStealthEnd;
+    if (_stealthActive && alpha === 1 && xOffset === 0 && !pos) {
+        alpha *= 0.35;
+        if (!player._greatSageSmokeLast || now - player._greatSageSmokeLast > 90) {
+            player._greatSageSmokeLast = now;
+            createParticles(player.x, player.y + player.height * 0.3, 2, 'rgba(148,163,184,0.5)', 3, 7);
+        }
+    }
     ctx.save();
     ctx.globalAlpha = alpha;
     if (pos) { ctx.translate(pos.x, pos.y); } else { ctx.translate(player.x + xOffset, player.y); }
@@ -732,33 +753,51 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         ctx.restore();
     }
 
-    // Great Sage sigil: 3 small round gem slots hovering above the ship —
-    // empty/dim outline for an unfilled slot, lit up in the stolen enemy's
-    // own gem colors (GREAT_SAGE_GEM_INFO, js/skills.js) once filled. Only
-    // the ship's own draw (alpha===1) shows it, matching every other
-    // player-status overlay in this function.
-    if (alpha === 1 && typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')) {
+    // Great Sage sigil: gem-slot frame hovering above the ship, commissioned
+    // gold-oval artwork (great-sage-gem-frame.png) instead of hand-drawn
+    // shapes, with the 3 gem dots positioned to land exactly in its 3 holes
+    // (measured off the source image, GREAT_SAGE_GEM_FRAME_HOLE_FRAC).
+    // Empty slots are a dim outline; filled ones light up in the stolen
+    // enemy's own gem colors (GREAT_SAGE_GEM_INFO, js/skills.js). Gated on
+    // xOffset===0 && !pos on top of the usual alpha===1 check so it draws
+    // only on the real ship, not the Yog-Sothoth Shift teleport decoys
+    // (drawSkillShiftEffects calls drawPlayer(1, leftX/rightX offset) for
+    // those, which alpha===1 alone doesn't rule out).
+    if (alpha === 1 && xOffset === 0 && !pos && typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')
+        && _greatSageGemFrameImg.complete && _greatSageGemFrameImg.naturalWidth) {
         const gNow = performance.now();
         const gems = (typeof _greatSageGems !== 'undefined' ? _greatSageGems : []);
-        const slotR = 6, slotGap = 16, slotY = -(player.height / 2 + 22);
+        const frameW = 132, frameH = frameW * (_greatSageGemFrameImg.naturalHeight / _greatSageGemFrameImg.naturalWidth);
+        const slotOffsetX = frameW * GREAT_SAGE_GEM_FRAME_HOLE_FRAC.offsetX;
+        const slotR = frameW * GREAT_SAGE_GEM_FRAME_HOLE_FRAC.r;
+        const medY = -(player.height / 2 + frameH / 2 + 12);
         ctx.save();
+        ctx.translate(0, medY);
+
+        // Glow flickers softly on HIGH/MEDIUM graphics (a slow pulse plus an
+        // occasional brief dim dip, like guttering torchlight) - off entirely
+        // on LOW/mobile-perf, matching every other glow in this file.
+        if (!_mobPerf && (window._gfxLevel || 0) < 2) {
+            const flicker = 0.8 + 0.2 * Math.sin(gNow / 260) - (Math.sin(gNow / 970) > 0.96 ? 0.35 : 0);
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 14 * Math.max(0.3, flicker);
+        }
+        ctx.drawImage(_greatSageGemFrameImg, -frameW / 2, -frameH / 2, frameW, frameH);
+        ctx.shadowBlur = 0;
+
         for (let i = 0; i < 3; i++) {
-            const sx = (i - 1) * slotGap;
+            const sx = (i - 1) * slotOffsetX;
             const filled = gems[i];
             const info = filled && typeof GREAT_SAGE_GEM_INFO !== 'undefined' ? GREAT_SAGE_GEM_INFO[filled] : null;
             if (info) {
                 const pulse = 0.7 + 0.3 * Math.sin(gNow / 260 + i);
-                const g = ctx.createRadialGradient(sx - slotR * 0.3, slotY - slotR * 0.3, 0, sx, slotY, slotR * 1.3);
-                g.addColorStop(0, info.light); g.addColorStop(0.55, info.mid); g.addColorStop(1, info.dark);
+                const gGrad = ctx.createRadialGradient(sx - slotR * 0.3, -slotR * 0.3, 0, sx, 0, slotR * 1.3);
+                gGrad.addColorStop(0, info.light); gGrad.addColorStop(0.55, info.mid); gGrad.addColorStop(1, info.dark);
                 if (!_mobPerf) { ctx.shadowColor = info.mid; ctx.shadowBlur = 8 * pulse; }
-                ctx.fillStyle = g;
-                ctx.beginPath(); ctx.arc(sx, slotY, slotR, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = gGrad;
+                ctx.beginPath(); ctx.arc(sx, 0, slotR * 0.82, 0, Math.PI * 2); ctx.fill();
                 ctx.shadowBlur = 0;
-                ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1; ctx.stroke();
-            } else {
-                ctx.strokeStyle = 'rgba(255,215,120,0.35)';
-                ctx.lineWidth = 1.2;
-                ctx.beginPath(); ctx.arc(sx, slotY, slotR, 0, Math.PI * 2); ctx.stroke();
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.2; ctx.stroke();
             }
         }
         ctx.restore();

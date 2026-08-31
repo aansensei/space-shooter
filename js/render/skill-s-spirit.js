@@ -1041,6 +1041,166 @@ function drawBladeArcProjectile(arc) {
         return;
     }
 
+    // Great Sage's stolen Arc Barrier sword: ported directly from Goliath's
+    // own Marchosias-sword joker (_drawGoliathSwords, js/render/
+    // enemy-goliath.js) - the corridor guide, launch burst, and 3-layer arc
+    // silhouette, just recolored orange->blue.
+    if (arc.isGreatSageBlade) {
+        if (arc.originX != null && arc.y < canvas.height * 0.85) {
+            const halfW = 36;
+            const corrLen = Math.hypot(arc.x - arc.originX, arc.y - arc.originY) + 200;
+            ctx.save();
+            ctx.translate(arc.originX, arc.originY); ctx.rotate(angle);
+            ctx.strokeStyle = 'rgba(96,165,250,0.85)'; ctx.lineWidth = 2.5;
+            ctx.setLineDash([10, 6]);
+            ctx.beginPath();
+            ctx.moveTo(0, -halfW); ctx.lineTo(corrLen, -halfW);
+            ctx.moveTo(0, halfW); ctx.lineTo(corrLen, halfW);
+            ctx.stroke(); ctx.setLineDash([]);
+            ctx.restore();
+        }
+        if (arc._fireTime && now - arc._fireTime < 320) {
+            const elapsed = now - arc._fireTime, prog = elapsed / 320;
+            const burstAlpha = (1 - prog) * 0.9, burstR = 12 + prog * 52;
+            ctx.save();
+            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 18; }
+            ctx.globalAlpha = burstAlpha;
+            ctx.strokeStyle = 'rgba(96,165,250,0.95)'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(arc.originX, arc.originY, burstR, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = burstAlpha * 0.45;
+            ctx.fillStyle = 'rgba(147,197,253,0.7)';
+            ctx.beginPath(); ctx.arc(arc.originX, arc.originY, burstR * 0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        ctx.strokeStyle = 'rgba(30,64,175,0.35)'; ctx.lineWidth = 18;
+        if (!_mobPerf) { ctx.shadowColor = 'rgba(59,130,246,0.6)'; ctx.shadowBlur = 12; }
+        ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(59,130,246,0.95)'; ctx.lineWidth = 5;
+        if (!_mobPerf) { ctx.shadowColor = 'white'; ctx.shadowBlur = 14; }
+        ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius, sa, ea); ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(219,234,254,0.7)'; ctx.lineWidth = 2; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(arc.x, arc.y, arc.radius - 3, sa, ea); ctx.stroke();
+
+        ctx.strokeStyle = `rgba(147,197,253,${0.5 + 0.4 * Math.sin(now / 60)})`; ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+            const slashA = sa + (ea - sa) * ((i + 1) / 4);
+            const px1 = arc.x + Math.cos(slashA) * (arc.radius - 10), py1 = arc.y + Math.sin(slashA) * (arc.radius - 10);
+            const px2 = arc.x + Math.cos(slashA) * (arc.radius + 10), py2 = arc.y + Math.sin(slashA) * (arc.radius + 10);
+            ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.stroke();
+        }
+        ctx.restore();
+        return;
+    }
+
+    // Great Sage's stolen Absolute Verdict orb: ported directly from
+    // Goliath's own orb (_drawGoliathOrbs, js/render/enemy-goliath.js) -
+    // outer aura wash, waving plasma tendrils, 8 orbiting shards, the rich
+    // multi-stop core gradient, branching containment lightning, and the
+    // bright inner hotspot - just recolored purple->blue.
+    if (arc.isGreatSageOrb) {
+        ctx.beginPath(); ctx.arc(arc.x, arc.y, 149, 0, Math.PI * 2);
+        const rg = ctx.createRadialGradient(arc.x, arc.y, 101, arc.x, arc.y, 149);
+        rg.addColorStop(0, 'rgba(59,130,246,0.18)'); rg.addColorStop(1, 'rgba(59,130,246,0)');
+        ctx.fillStyle = rg; ctx.fill();
+
+        if (!_mobPerf) {
+            for (let pl = 0; pl < 6; pl++) {
+                const baseA = now / 380 + pl * (Math.PI / 3);
+                ctx.beginPath();
+                for (let seg = 0; seg <= 10; seg++) {
+                    const st = seg / 10;
+                    const rr = 101 + Math.sin(now / 140 + pl * 2 + st * 8) * 22 + st * 24;
+                    const a2 = baseA + st * 0.7;
+                    const px2 = arc.x + Math.cos(a2) * rr, py2 = arc.y + Math.sin(a2) * rr;
+                    if (seg === 0) ctx.moveTo(px2, py2); else ctx.lineTo(px2, py2);
+                }
+                ctx.strokeStyle = `rgba(147,197,253,${0.35 + 0.25 * Math.sin(now / 200 + pl)})`;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 10;
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        for (let k = 0; k < 8; k++) {
+            const ang2 = now / 250 + k * (Math.PI * 2 / 8);
+            const orbitR = 125 + (k % 2 === 0 ? 0 : 14);
+            const sx = arc.x + Math.cos(ang2) * orbitR, sy = arc.y + Math.sin(ang2) * orbitR;
+            const shardScale = k % 3 === 0 ? 1.3 : 1;
+            ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang2 * 2); ctx.scale(shardScale, shardScale);
+            ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(12, 7); ctx.lineTo(-12, 7); ctx.closePath();
+            ctx.fillStyle = '#93c5fd';
+            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 8; }
+            ctx.fill(); ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        const g2 = ctx.createRadialGradient(arc.x, arc.y, 0, arc.x, arc.y, 101);
+        g2.addColorStop(0, '#eff6ff'); g2.addColorStop(0.22, '#93c5fd'); g2.addColorStop(0.55, '#1d4ed8');
+        g2.addColorStop(0.85, '#0a1024'); g2.addColorStop(1, 'rgba(10,16,32,0)');
+        ctx.beginPath(); ctx.arc(arc.x, arc.y, 101, 0, Math.PI * 2);
+        ctx.fillStyle = g2;
+        if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 26; }
+        ctx.fill();
+
+        if (!_mobPerf) {
+            ctx.save();
+            ctx.translate(arc.x, arc.y);
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8;
+            for (let i = 0; i < 5; i++) {
+                ctx.save();
+                ctx.rotate(now * 0.0016 + i * 1.3);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                let d = 0, py2 = 0;
+                const branchPoints = [];
+                for (let s = 0; s < 4; s++) {
+                    d += 12 + Math.random() * 12;
+                    py2 = (Math.random() - 0.5) * (12 + s * 9);
+                    ctx.lineTo(d, py2);
+                    if (s > 0 && Math.random() < 0.5) branchPoints.push({ d, py: py2 });
+                }
+                ctx.stroke();
+                if (branchPoints.length > 0) {
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(219,234,254,0.6)';
+                    for (const bp of branchPoints) {
+                        const forkAngle = (Math.random() - 0.5) * 1.4;
+                        const forkLen = 7 + Math.random() * 10;
+                        ctx.beginPath();
+                        ctx.moveTo(bp.d, bp.py);
+                        ctx.lineTo(bp.d + Math.cos(forkAngle) * forkLen, bp.py + Math.sin(forkAngle) * forkLen);
+                        ctx.stroke();
+                    }
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                }
+                ctx.restore();
+            }
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        ctx.save();
+        const hotspotG = ctx.createRadialGradient(arc.x, arc.y, 0, arc.x, arc.y, 30);
+        hotspotG.addColorStop(0, 'rgba(255,255,255,0.9)');
+        hotspotG.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(arc.x, arc.y, 30, 0, Math.PI * 2);
+        ctx.fillStyle = hotspotG; ctx.fill();
+        ctx.restore();
+
+        ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(arc.x, arc.y, 101, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.restore();
+        return;
+    }
+
     // LAYER 0: wide energy wash behind the arc
     ctx.strokeStyle = 'rgba(120,255,0,0.12)';
     ctx.lineWidth = 28;

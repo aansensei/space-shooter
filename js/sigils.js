@@ -115,7 +115,7 @@ const SIGIL_DEFS = {
     // out of SIGIL_ORDER's fixed Western sequence and appended into the
     // random pool separately (see window._sigilPool in main.js).
     than: {
-        name: 'Great Sage', element: 'Metal', color: '#D62839',
+        name: 'Great Sage', element: 'Earth', color: '#D62839',
         buffs: [
             { id: 'cuop_bao_tang', name: 'Ransacked Treasury', type: 'SPEC', typeC: '#f59e0b',
               desc: 'Annihilation Sweep is reskinned into the Great Sage\'s own Ruyi Jingu Bang, widening with every kill it lands within a single cast (up to 4.5x its starting width, resetting each cast). Every kill on an Elite-tier-or-higher enemy also plunders that enemy\'s own gem (up to 3 held at once, one of each kind) - the same way the Great Sage once ransacked the Dragon King\'s undersea treasury. Pressing Annihilation Sweep again while it is still on cooldown spends the oldest gem to unleash a scaled-down copy of that enemy\'s own signature attack and fires the sweep again immediately, ignoring the remaining cooldown - the sweep itself is unchanged (still an instant kill on contact).' },
@@ -190,7 +190,7 @@ const SIGIL_I18N_VI = {
         coi_mong: { name: 'Cõi Mộng', desc: 'Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP đã mất của chúng.' },
         dong_chay_luan_hoi: { name: 'Dòng Chảy Luân Hồi', desc: 'Hạ Apostle: −1s hồi chiêu mọi skill; hạ Abnormal/Elite: −1.5s; hạ Dominator: −2s; hạ Egregor: −3s. Mỗi lần di chuyển thực tế đủ 1 bề ngang màn hình cũng được −0.5s hồi chiêu mọi skill. Tốc độ nạp Phōtokrystos và Skill G +50%. Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).' },
     }},
-    than: { name: 'Đấu Chiến Thắng Phật', element: 'Kim', buffs: {
+    than: { name: 'Đấu Chiến Thắng Phật', element: 'Thổ', buffs: {
         cuop_bao_tang: { name: 'Cướp Long Cung', desc: 'Thiên Ý Trảm được tái tạo hình thành Như Ý Kim Cô Bổng của Tề Thiên, tự nới rộng thêm mỗi khi hạ được 1 kẻ địch trong lượt quét đó (tối đa ~4.5 lần bề rộng gốc, reset mỗi lượt quét mới). Hạ được kẻ địch từ Elite trở lên sẽ cướp luôn bảo thạch của chính nó (tối đa 3 viên khác loại cùng lúc) — giống hệt cách Tề Thiên năm xưa cướp phá Long Cung để đoạt lấy cây gậy này. Bấm Thiên Ý Trảm khi đang hồi chiêu sẽ tiêu viên bảo thạch cũ nhất, tung ra 1 bản thu nhỏ của chính đòn đánh đặc trưng kẻ địch đó, và phóng lại Thiên Ý Trảm ngay lập tức — đòn quét bản thân không đổi (vẫn chạm là chết).' },
         bien_hoa_72: { name: '72 Phép Biến Hóa', desc: 'Khi đang giữ đủ 3 viên bảo thạch khác loại, bấm Thiên Ý Trảm lúc đang hồi chiêu sẽ tung ra CẢ 3 đòn cướp được cùng lúc với sức mạnh x1.5, thay vì chỉ dùng 1 viên — thể hiện trọn vẹn khả năng "72 phép biến hóa" của Tề Thiên, sẵn sàng ứng biến mọi tình huống.' },
     }},
