@@ -975,7 +975,6 @@ function updatePhotoBrangs(deltaTime) {
             let bounced = false;
             if (b.x < 0 || b.x > canvas.width) { b.vx = -b.vx; b._bounces++; bounced = true; }
             if (b.y < 0 || b.y > canvas.height) { b.vy = -b.vy; b._bounces++; bounced = true; }
-            if (bounced && window.AudioMgr) window.AudioMgr.playSfxAt('photokrystos-boomerang-bounce', b.x, b.y);
             if (b._bounces >= 2 && !bounced) {
                 // Check if new enemies appeared
                 const newValid = enemies.filter(e =>
@@ -1818,6 +1817,24 @@ function _greatSageToughestEnemy() {
     for (const e of enemies) { if (e.maxHp > bestHp) { bestHp = e.maxHp; best = e; } }
     return best;
 }
+// Player-side mirror of Goliath's own _goliathLockTargets: picks the nearest
+// enemy plus `count` more (random pick, no duplicates), filling any leftover
+// slots with random on-screen points when there aren't enough enemies. A
+// single locked point is too easy to just dodge out of before the attack
+// resolves - matches the real Joker's multi-target lock (js/entities/goliath.js).
+function _greatSageLockPoints(count) {
+    const primary = _greatSageNearestEnemy();
+    const points = [];
+    const used = [];
+    if (primary) { points.push({ x: primary.x, y: primary.y, ref: primary }); used.push(primary); }
+    else points.push({ x: player.x, y: player.y - 200, ref: null });
+    const pool = enemies.filter(e => !used.includes(e));
+    _shuffleArray(pool).slice(0, count).forEach(e => points.push({ x: e.x, y: e.y, ref: e }));
+    while (points.length < count + 1) {
+        points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, ref: null });
+    }
+    return points;
+}
 
 // Enqueues the stolen attack as a timed effect matching the real joker's own
 // windup/telegraph/resolve shape (js/entities/goliath.js's
@@ -1847,29 +1864,29 @@ function _castStolenGemAttack(type, comboMult) {
         return;
     }
     if (type === 'aegis_core') {
-        // Lumen Nova: mark a line toward the current nearest enemy, hold a
-        // brief telegraph, then fire along that fixed line
-        const target = _greatSageNearestEnemy();
-        const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
-        _greatSageEffects.push({ type: 'aegis', phase: 'telegraph', timer: 0, dur: 500, x: player.x, y: player.y, angle, comboMult });
+        // Lumen Nova: marks lines toward 3 locked points (nearest enemy + 2
+        // more, matching the real Joker's multi-lock), holds a brief
+        // telegraph, then fires along each fixed line
+        const angles = _greatSageLockPoints(2).map(p => Math.atan2(p.y - player.y, p.x - player.x));
+        _greatSageEffects.push({ type: 'aegis', phase: 'telegraph', timer: 0, dur: 500, x: player.x, y: player.y, angles, comboMult });
         return;
     }
     if (type === 'marchosias') {
-        // Arc Barrier's own sword windup: a brief windup, then a blade
-        // thrown at the target's locked position (reuses the Blade Arc
-        // projectile system - a real piercing blade, not a burst)
-        const target = _greatSageNearestEnemy();
-        const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
-        _greatSageEffects.push({ type: 'sword_windup', timer: 0, dur: 500, x: player.x, y: player.y, angle, comboMult });
+        // Arc Barrier's own sword windup: a brief windup, then blades are
+        // thrown from wherever the player is standing AT FIRE TIME toward 3
+        // locked target points (nearest enemy + 2 more) - matches the real
+        // Sword (the eye tracks its owner live at fire time, only the
+        // target point itself is what's locked at proc time).
+        const targets = _greatSageLockPoints(2);
+        _greatSageEffects.push({ type: 'sword_windup', timer: 0, dur: 500, targets, comboMult });
         return;
     }
     if (type === 'veilshroud') {
-        // Phantom Strike: mark the target's current position, wait, then a
-        // lightning bolt lands there - only actually hits whatever enemy is
-        // still standing in that spot when it lands
-        const target = _greatSageNearestEnemy();
-        const x = target ? target.x : player.x, y = target ? target.y : player.y - 200;
-        _greatSageEffects.push({ type: 'veilshroud', timer: 0, dur: 750, x, y, comboMult });
+        // Phantom Strike: marks 3 locked points, waits, then a lightning
+        // bolt lands on each - only actually hits whatever enemy is still
+        // standing in that spot when it lands
+        const points = _greatSageLockPoints(2);
+        _greatSageEffects.push({ type: 'veilshroud', timer: 0, dur: 750, points, comboMult });
         return;
     }
     if (type === 'egregor') {
@@ -1884,6 +1901,11 @@ function _castStolenGemAttack(type, comboMult) {
         // whole screen just like Goliath's own version.
         const fullRange = Math.hypot(canvas.width, canvas.height);
         const R = target ? Math.min(fullRange, Math.hypot(target.x - player.x, target.y - player.y) + 25) : fullRange * 0.6;
+        // x/y/angle/R here are just the starting values for the very first
+        // render frame - the windup keeps re-locking them onto the player
+        // and the current nearest enemy every frame below (see the resolve
+        // loop), matching the real Null Slash's own "track continuously,
+        // lock at release" behavior.
         _greatSageEffects.push({ type: 'egregor', phase: 'windup', timer: 0, dur: 500, x: player.x, y: player.y, angle, R, comboMult });
         return;
     }
@@ -1904,7 +1926,10 @@ function _castStolenGemAttack(type, comboMult) {
     if (type === 'goliath') {
         // Absolute Verdict: brief channel locked onto the toughest enemy on
         // screen, then a heavy piercing orb (reuses Blade Arc's projectile
-        // system, same as the Marchosias sword above)
+        // system, same as the Marchosias sword above). x/y/angle are just
+        // the starting values - the channel keeps re-locking them onto the
+        // player and the current toughest enemy every frame below, matching
+        // the real Verdict's own "track live, lock right before firing".
         const target = _greatSageToughestEnemy();
         const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
         _greatSageEffects.push({ type: 'verdict', timer: 0, dur: 600, x: player.x, y: player.y, angle, comboMult });
@@ -1928,55 +1953,82 @@ function _updateGreatSageEffects(deltaTime) {
             if (fx.phase === 'telegraph' && fx.timer >= fx.dur) {
                 fx.phase = 'fire'; fx.timer = 0; fx.dur = 150;
                 const fullLen = Math.hypot(canvas.width, canvas.height);
-                const lineStart = { x: fx.x, y: fx.y };
-                const lineEnd = { x: fx.x + Math.cos(fx.angle) * fullLen, y: fx.y + Math.sin(fx.angle) * fullLen };
-                for (const enemy of enemies) {
-                    if (distToSegment(enemy, lineStart, lineEnd) < (enemy.size || 20) + 15) {
-                        dealDamage(enemy, { damage: 220 * fx.comboMult, percentDamage: 0.12 * fx.comboMult, _statSrc: 'Great Sage: Lumen Nova' });
+                fx.angles.forEach(angle => {
+                    const lineStart = { x: fx.x, y: fx.y };
+                    const lineEnd = { x: fx.x + Math.cos(angle) * fullLen, y: fx.y + Math.sin(angle) * fullLen };
+                    for (const enemy of enemies) {
+                        if (distToSegment(enemy, lineStart, lineEnd) < (enemy.size || 20) + 15) {
+                            dealDamage(enemy, { damage: 220 * fx.comboMult, percentDamage: 0.12 * fx.comboMult, _statSrc: 'Great Sage: Lumen Nova' });
+                        }
                     }
-                }
+                });
                 createParticles(fx.x, fx.y, 10, '#fbbf24', 2, 6);
             } else if (fx.phase === 'fire' && fx.timer >= fx.dur) {
                 done = true;
             }
         } else if (fx.type === 'sword_windup') {
             if (fx.timer >= fx.dur) {
-                bladeArcProjectiles.push({
-                    x: fx.x, y: fx.y, originX: fx.x, originY: fx.y, _fireTime: performance.now(),
-                    vx: Math.cos(fx.angle) * 20, vy: Math.sin(fx.angle) * 20,
-                    radius: 44, damage: 260 * fx.comboMult, percentDamage: 0.13 * fx.comboMult,
-                    hitEnemies: [], isPiercing: true, isGreatSageBlade: true, _statSrc: 'Great Sage: Arc Barrier',
+                // Fires from the player's CURRENT position, aimed at each
+                // locked target point - the target is what's frozen (set at
+                // cast time), the launch point tracks live, exactly like the
+                // real Sword's eye-tracks-live/target-is-locked split.
+                fx.targets.forEach(t => {
+                    const angle = Math.atan2(t.y - player.y, t.x - player.x);
+                    bladeArcProjectiles.push({
+                        x: player.x, y: player.y, originX: player.x, originY: player.y, _fireTime: performance.now(),
+                        vx: Math.cos(angle) * 20, vy: Math.sin(angle) * 20,
+                        radius: 44, damage: 260 * fx.comboMult, percentDamage: 0.13 * fx.comboMult,
+                        hitEnemies: [], isPiercing: true, isGreatSageBlade: true, _statSrc: 'Great Sage: Arc Barrier',
+                    });
                 });
                 done = true;
             }
         } else if (fx.type === 'veilshroud') {
             if (fx.timer >= fx.dur) {
-                for (const enemy of enemies) {
-                    if (Math.hypot(enemy.x - fx.x, enemy.y - fx.y) < (enemy.size || 20) + 30) {
-                        dealDamage(enemy, { damage: 320 * fx.comboMult, percentDamage: 0.17 * fx.comboMult, isTrueDamage: true, _statSrc: 'Great Sage: Phantom Strike' });
+                fx.points.forEach(pt => {
+                    for (const enemy of enemies) {
+                        if (Math.hypot(enemy.x - pt.x, enemy.y - pt.y) < (enemy.size || 20) + 30) {
+                            dealDamage(enemy, { damage: 320 * fx.comboMult, percentDamage: 0.17 * fx.comboMult, isTrueDamage: true, _statSrc: 'Great Sage: Phantom Strike' });
+                        }
                     }
-                }
-                createParticles(fx.x, fx.y, 14, '#2dd4bf', 3, 9);
+                    createParticles(pt.x, pt.y, 14, '#2dd4bf', 3, 9);
+                });
                 done = true;
             }
         } else if (fx.type === 'egregor') {
-            if (fx.phase === 'windup' && fx.timer >= fx.dur) {
-                // Real Null Slash timing: extend 200ms, sweep 520ms, retract
-                // 230ms (950ms total) - kept exact so the tentacle-whip
-                // render's own extend/sweep/retract curve reads correctly.
-                fx.phase = 'strike'; fx.timer = 0; fx.dur = 950;
-                const arcR = fx.R;
-                for (const enemy of enemies) {
-                    const d = Math.hypot(enemy.x - fx.x, enemy.y - fx.y);
-                    if (d > arcR + (enemy.size || 20)) continue;
-                    let dA = Math.atan2(enemy.y - fx.y, enemy.x - fx.x) - fx.angle;
-                    while (dA > Math.PI) dA -= Math.PI * 2;
-                    while (dA < -Math.PI) dA += Math.PI * 2;
-                    if (Math.abs(dA) <= Math.PI / 2) {
-                        dealDamage(enemy, { damage: 260 * fx.comboMult, percentDamage: 0.14 * fx.comboMult, _statSrc: 'Great Sage: Null Slash' });
-                    }
+            if (fx.phase === 'windup') {
+                // Keeps re-locking onto the player's current position and
+                // the current nearest enemy every frame of the windup,
+                // freezing only the instant it fires - matches the real
+                // Null Slash (tracks continuously, locks at release).
+                // Without this the arc stayed pinned to wherever the gem was
+                // cast from, so simply moving during the 500ms windup made
+                // the whole slash connect with nothing.
+                fx.x = player.x; fx.y = player.y;
+                const target = _greatSageNearestEnemy();
+                if (target) {
+                    fx.angle = Math.atan2(target.y - fx.y, target.x - fx.x);
+                    const fullRange = Math.hypot(canvas.width, canvas.height);
+                    fx.R = Math.min(fullRange, Math.hypot(target.x - fx.x, target.y - fx.y) + 25);
                 }
-                if (typeof _setShake === 'function') _setShake(6, 150);
+                if (fx.timer >= fx.dur) {
+                    // Real Null Slash timing: extend 200ms, sweep 520ms, retract
+                    // 230ms (950ms total) - kept exact so the tentacle-whip
+                    // render's own extend/sweep/retract curve reads correctly.
+                    fx.phase = 'strike'; fx.timer = 0; fx.dur = 950;
+                    const arcR = fx.R;
+                    for (const enemy of enemies) {
+                        const d = Math.hypot(enemy.x - fx.x, enemy.y - fx.y);
+                        if (d > arcR + (enemy.size || 20)) continue;
+                        let dA = Math.atan2(enemy.y - fx.y, enemy.x - fx.x) - fx.angle;
+                        while (dA > Math.PI) dA -= Math.PI * 2;
+                        while (dA < -Math.PI) dA += Math.PI * 2;
+                        if (Math.abs(dA) <= Math.PI / 2) {
+                            dealDamage(enemy, { damage: 260 * fx.comboMult, percentDamage: 0.14 * fx.comboMult, _statSrc: 'Great Sage: Null Slash' });
+                        }
+                    }
+                    if (typeof _setShake === 'function') _setShake(6, 150);
+                }
             } else if (fx.phase === 'strike' && fx.timer >= fx.dur) {
                 done = true;
             }
@@ -1984,9 +2036,16 @@ function _updateGreatSageEffects(deltaTime) {
             const curRadius = fx.maxRadius * Math.min(1, fx.timer / fx.dur);
             for (const enemy of enemies) {
                 if (fx.hitEnemies.includes(enemy)) continue;
-                if (Math.hypot(enemy.x - fx.x, enemy.y - fx.y) <= curRadius) {
+                if (Math.hypot(enemy.x - fx.x, enemy.y - fx.y) <= curRadius + 20) {
                     fx.hitEnemies.push(enemy);
-                    dealDamage(enemy, { damage: 190 * fx.comboMult, percentDamage: 0.11 * fx.comboMult, _statSrc: 'Great Sage: Root Shockwave' });
+                    // Matches the real Maou Haki: enemy bullets caught in the
+                    // ring are wiped outright, real enemies take damage.
+                    if (enemy.type.startsWith('enemy_bullet')) {
+                        createParticles(enemy.x, enemy.y, 3, '#3b82f6', 1, 3);
+                        enemy.hp = 0;
+                    } else {
+                        dealDamage(enemy, { damage: 190 * fx.comboMult, percentDamage: 0.11 * fx.comboMult, _statSrc: 'Great Sage: Root Shockwave' });
+                    }
                 }
             }
             if (fx.timer >= fx.dur) done = true;
@@ -2007,11 +2066,19 @@ function _updateGreatSageEffects(deltaTime) {
                 if (fx.timer >= fx.sweepDur) done = true;
             }
         } else if (fx.type === 'verdict') {
+            // Keeps re-locking onto the player's current position and the
+            // current toughest enemy every frame of the channel, freezing
+            // only at launch - matches the real Verdict (tracks live, locks
+            // right before firing) instead of aiming at wherever both stood
+            // when the gem was cast.
+            fx.x = player.x; fx.y = player.y;
+            const target = _greatSageToughestEnemy();
+            if (target) fx.angle = Math.atan2(target.y - fx.y, target.x - fx.x);
             if (fx.timer >= fx.dur) {
                 bladeArcProjectiles.push({
                     x: fx.x, y: fx.y,
                     vx: Math.cos(fx.angle) * 26, vy: Math.sin(fx.angle) * 26,
-                    radius: 60, damage: 420 * fx.comboMult, percentDamage: 0.22 * fx.comboMult,
+                    radius: 60, damage: 420 * fx.comboMult, percentDamage: 0.22 * fx.comboMult, isTrueDamage: true,
                     hitEnemies: [], isPiercing: true, isGreatSageVerdict: true, isGreatSageOrb: true, _statSrc: 'Great Sage: Absolute Verdict',
                 });
                 done = true;
@@ -2019,6 +2086,34 @@ function _updateGreatSageEffects(deltaTime) {
         }
 
         if (done) _greatSageEffects.splice(i, 1);
+    }
+}
+
+// Plunders a killed Elite-or-higher enemy's own gem for Ransacked Treasury,
+// one of each kind held at a time (max 3). Called for a kill by ANY method
+// (handleEnemyKill, js/entities/core.js), not just a Skill F sweep kill.
+// Maps Goliath's own _jokerState ability names (js/entities/goliath.js) to
+// the gem-type strings used here.
+const GOLIATH_JOKER_NAME_TO_GEM = {
+    'Veilshroud': 'veilshroud', 'Thaelis': 'thaelis', 'Aegis Core': 'aegis_core',
+    'Marchosias': 'marchosias', 'Egregor': 'egregor', 'Dargruel': 'dargruel', 'Leviathan': 'leviathan',
+};
+function _grantGreatSageGem(enemy) {
+    if (!_hasBuff('cuop_bao_tang')) return;
+    if (enemy.type === 'goliath') {
+        // Goliath absorbed exactly 3 other bosses' powers on the way to True
+        // Form - killing it steals those 3 gems directly instead of a single
+        // generic one.
+        Object.keys(enemy._jokerState || {}).forEach(name => {
+            const gemType = GOLIATH_JOKER_NAME_TO_GEM[name];
+            if (gemType && _greatSageGems.length < 3 && !_greatSageGems.includes(gemType)) {
+                _greatSageGems.push(gemType);
+            }
+        });
+        return;
+    }
+    if (SKILL_F_ELITE_TIERS.includes(enemy.type) && _greatSageGems.length < 3 && !_greatSageGems.includes(enemy.type)) {
+        _greatSageGems.push(enemy.type);
     }
 }
 
@@ -2031,9 +2126,7 @@ function _onSkillFKill(enemy) {
     if (!_hasBuff('cuop_bao_tang')) return;
     _skillFHitFlashes.push({ x: enemy.x, y: enemy.y, r: (enemy.size || 20) + 5, time: performance.now() });
     if (window.AudioMgr) window.AudioMgr.playSfxAt('great-sage-hit', enemy.x, enemy.y);
-    if (SKILL_F_ELITE_TIERS.includes(enemy.type) && _greatSageGems.length < 3 && !_greatSageGems.includes(enemy.type)) {
-        _greatSageGems.push(enemy.type);
-    }
+    _grantGreatSageGem(enemy);
 }
 
 function activateSkillF() {
