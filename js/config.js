@@ -103,6 +103,22 @@ let lastSkillF = -Infinity;
 const skillFCooldown = 7000;
 let skillFState = "ready", skillFChargeStart, skillFSweepStart;
 const skillFSweepDuration = 1000;
+// Great Sage sigil (Ransacked Treasury): up to 3 stolen enemy gems held at
+// once, one of each kind (FIFO — oldest is the one spent first), each one an
+// enemy type string from SKILL_F_ELITE_TIERS below. Never decays on its own.
+let _greatSageGems = [];
+// Great Sage sigil (Ransacked Treasury): widens the sweep cone with every
+// kill landed during the current cast; resets to 0 at the start of each sweep
+let _skillFKillsThisSweep = 0;
+const SKILL_F_ELITE_TIERS = ['thaelis', 'aegis_core', 'egregor', 'marchosias', 'veilshroud', 'dargruel', 'leviathan', 'goliath'];
+// Great Sage sigil only: impact flashes for the Ruyi staff sweep, one per
+// enemy struck this sweep, drawn by js/render/skill-f.js and pruned there
+let _skillFHitFlashes = [];
+// Great Sage sigil only: active stolen-attack effects (telegraphs, sweeps,
+// delayed strikes) spent gems enqueue - see _castStolenGemAttack/
+// _updateGreatSageEffects in js/skills.js and _drawGreatSageEffects in
+// js/render/skill-f.js
+let _greatSageEffects = [];
 let screenShake = { intensity: 0, duration: 0 };
 // Throttle: chỉ upgrade shake nếu mạnh hơn hoặc shake hiện tại đã hết
 function _setShake(intensity, duration) {
