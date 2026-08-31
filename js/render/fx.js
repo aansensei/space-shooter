@@ -966,6 +966,22 @@ function drawSentinel(sentinel) {
     const { x, y, size, angle, hp, maxHp } = sentinel;
     const now = performance.now();
 
+    // Great Sage: 1s untargetable phase-out after every real Annihilation
+    // Sweep. Every sentinel fades and sheds rising smoke wisps too, same
+    // as the player (js/render/player.js's drawPlayer).
+    const _gsStealthActive = window._greatSageStealthEnd && now < window._greatSageStealthEnd;
+    if (_gsStealthActive) {
+        if (!sentinel._greatSageSmokeLast || now - sentinel._greatSageSmokeLast > 90) {
+            sentinel._greatSageSmokeLast = now;
+            createParticles(x, y + size * 0.3, 2, 'rgba(148,163,184,0.5)', 3, 7);
+        }
+    }
+    // outer save() matching the ctx.restore() at the very end of this
+    // function - every nested save/restore pair below composes correctly
+    // with this outer alpha since canvas state nests as a stack.
+    ctx.save();
+    ctx.globalAlpha = _gsStealthActive ? 0.35 : 1;
+
     let activeCount = sentinels.length;
     let glowColor = '#00FFFF';
     if (activeCount >= 12) glowColor = '#FFD700';
@@ -985,6 +1001,7 @@ function drawSentinel(sentinel) {
             if (!_mobPerf) ctx.shadowColor = '#ffffff'; if (!_mobPerf) ctx.shadowBlur = 20;
             ctx.beginPath(); ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2); ctx.stroke();
             ctx.restore();
+            ctx.restore(); // matches the Great Sage stealth-fade save() above
             return;
         }
         glowColor = '#ffffff'; // white glow during iron body
@@ -1317,6 +1334,8 @@ function drawSentinel(sentinel) {
         ctx.setLineDash([]); ctx.shadowBlur = 0;
         ctx.restore();
     }
+
+    ctx.restore(); // matches the Great Sage stealth-fade save() below
 }
 
 // Bullets (no shadowBlur – use gradient layers for depth)

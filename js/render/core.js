@@ -1196,6 +1196,7 @@ function draw(deltaTime) {
 
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
         if (typeof drawSigilHUD === 'function') drawSigilHUD();
+        if (typeof _drawGreatSageReleasePrompt === 'function') _drawGreatSageReleasePrompt();
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
