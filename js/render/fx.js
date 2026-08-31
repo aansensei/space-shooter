@@ -1028,6 +1028,20 @@ function drawSentinel(sentinel) {
         ctx.restore();
     }
 
+    // Great Sage (stolen Tenacity Barrier): a pulsing lavender ring shows
+    // the 50%-dodge window is live - distinct from the white Iron Body
+    // flicker above since this is a chance to dodge, not a guaranteed block.
+    if (window._greatSageShieldEnd && now < window._greatSageShieldEnd) {
+        const _gsPulse = 0.5 + 0.5 * Math.sin(now / 220);
+        ctx.save();
+        ctx.strokeStyle = `rgba(196,181,253,${0.4 + _gsPulse * 0.35})`;
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#c4b5fd'; ctx.shadowBlur = 10 + _gsPulse * 6; }
+        ctx.beginPath(); ctx.arc(x, y, size * 1.15 + _gsPulse * 3, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
     ctx.save();
     ctx.translate(x, y);
 

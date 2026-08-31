@@ -385,6 +385,21 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         ctx.beginPath(); ctx.arc(0, 0, _coreR, 0, Math.PI * 2); ctx.fill();
     }
 
+    // Great Sage (stolen Tenacity Barrier): a slow-pulsing lavender ring
+    // shows the banked Iron Body layer is armed, waiting to block the next
+    // hit outright. Only the real ship gets it, same gate as the stealth
+    // fade and gem-frame HUD above.
+    if (window._greatSageIronBody && alpha === 1 && xOffset === 0 && !pos) {
+        const _gsPulse = 0.5 + 0.5 * Math.sin(now / 260);
+        ctx.save();
+        ctx.strokeStyle = `rgba(196,181,253,${0.45 + _gsPulse * 0.35})`;
+        ctx.lineWidth = 2.5;
+        if (!_mobPerf) { ctx.shadowColor = '#c4b5fd'; ctx.shadowBlur = 12 + _gsPulse * 8; }
+        ctx.beginPath(); ctx.arc(0, 0, player.width * 0.9 + _gsPulse * 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
     // Pulsing visibility beacon — ship outline strobes to stay visible in bullet hell
     const _pulseA = 0.45 + 0.55 * Math.abs(Math.sin(now / 520));
     const _blinkPhase = Math.abs(Math.sin(now / 380));

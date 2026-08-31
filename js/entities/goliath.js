@@ -909,18 +909,23 @@ function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
     }
 }
 
-// Picks `count` extra lock points beyond the player for a Joker attack:
-// real sentinels first (random order, no duplicates), then random on-screen
-// positions filling whatever slots sentinels can't cover. Player is always
-// target 0 — a single-target lock is too easy to dodge, this spreads the
-// hit across multiple points like the real multi-target Joker attacks do.
+// Picks `count` extra lock points beyond the player for a Joker attack: real
+// sentinels first (random order, no duplicates), then random points near the
+// player filling whatever slots sentinels can't cover (a real sentinel is
+// always hovering close by, so a stand-in point should be too, not some
+// random spot clear across the map that nothing is anywhere near). Player is
+// always target 0, since a single-target lock is too easy to dodge; this
+// spreads the hit across multiple points like the real multi-target Joker
+// attacks do.
 function _goliathLockTargets(count) {
     const targets = [{ x: player.x, y: player.y, ref: player, isPlayer: true }];
     _shuffleArray(sentinels).slice(0, count).forEach(s => {
         targets.push({ x: s.x, y: s.y, ref: s, isPlayer: false });
     });
     while (targets.length < count + 1) {
-        targets.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, ref: null, isPlayer: false });
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 60 + Math.random() * 140;
+        targets.push({ x: player.x + Math.cos(ang) * dist, y: player.y + Math.sin(ang) * dist, ref: null, isPlayer: false });
     }
     return targets;
 }

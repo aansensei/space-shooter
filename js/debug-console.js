@@ -293,7 +293,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugGreatSageGiveGem('goliath')">+Gem: Goliath</button>
         </div>
         <div class="dbg-row">
-          <button class="dbg-btn" onclick="debugGreatSageFillCombo()">Fill 3 Distinct Gems (combo ready)</button>
+          <button class="dbg-btn" onclick="debugGreatSageFillCombo()">Fill 3 Distinct Gems (72 buff active)</button>
           <button class="dbg-btn" onclick="debugGreatSageClearGems()">Clear Gems</button>
           <button class="dbg-btn" onclick="debugGreatSageForceStealth()">Force Stealth (1s)</button>
         </div>
