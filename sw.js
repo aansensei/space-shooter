@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v161';
+const CACHE_VERSION = 'v164';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -63,6 +63,7 @@ const CORE_FILES = [
     'js/render/skill-buttons.js',
     'js/render/skill-d.js',
     'js/render/skill-f.js',
+    'js/render/sigil-cancer.js',
     'js/render/skill-g.js',
     'js/render/skill-s-spirit.js',
 ];
