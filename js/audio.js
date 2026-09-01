@@ -297,6 +297,7 @@
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
         'gate-of-babylon': 1.0, 'enuma-elish-charge': 1.0, 'enuma-elish-release': 1.0,
+        'cancer-whirlpool-spin': 1.0, 'cancer-whale-splash': 1.0, 'cancer-whale-bite': 1.0,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -482,8 +483,9 @@
             photokrystosIdle: !!(state.photokrystosIdleEl && !state.photokrystosIdleEl.paused),
             goliathIdle: !!(state.goliathIdleEl && !state.goliathIdleEl.paused),
             goliathVerdictCharge: !!(state.goliathVerdictChargeEl && !state.goliathVerdictChargeEl.paused),
+            cancerWhirlpool: !!(state.cancerWhirlpoolEl && !state.cancerWhirlpoolEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -504,6 +506,7 @@
         if (s.nullSlashWindup && state.nullSlashWindupEl) try { state.nullSlashWindupEl.play().catch(() => {}); } catch (_) {}
         if (s.crawl && state.crawlEl) try { state.crawlEl.play().catch(() => {}); } catch (_) {}
         if (s.photokrystosIdle && state.photokrystosIdleEl) try { state.photokrystosIdleEl.play().catch(() => {}); } catch (_) {}
+        if (s.cancerWhirlpool && state.cancerWhirlpoolEl) try { state.cancerWhirlpoolEl.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -689,6 +692,10 @@
     function tickPhotokrystosIdle()  {}
     function startGoliathIdle() { startLoop('goliathIdleEl', 'goliath-idle'); }
     function stopGoliathIdle()  { stopLoop('goliathIdleEl'); }
+    // One shared loop for however many Riptide Surge whirlpools are active
+    // at once (up to 10 can spawn together) rather than one per instance.
+    function startCancerWhirlpool() { startLoop('cancerWhirlpoolEl', 'cancer-whirlpool-spin'); }
+    function stopCancerWhirlpool()  { stopLoop('cancerWhirlpoolEl'); }
 
     // Low-HP heartbeat: loops while lives < 5, and ducks/muffles the rest
     // of the mix (heavier than Yog-Sothoth's own duck) for the "choáng"
@@ -773,6 +780,8 @@
         _makePool('gate-of-babylon',        'assets/audio/sfx/gate-of-babylon.mp3',        2);
         _makePool('enuma-elish-charge',     'assets/audio/sfx/enuma-elish-charge.mp3',     1);
         _makePool('enuma-elish-release',    'assets/audio/sfx/enuma-elish-release.mp3',    1);
+        _makePool('cancer-whale-splash', 'assets/audio/sfx/cancer-whale-splash.mp3', 3);
+        _makePool('cancer-whale-bite',   'assets/audio/sfx/cancer-whale-bite.mp3',   4);
 
         state.ambientEl  = _makeBufferLoop();
         state.ambientEl.setSrc('assets/audio/sfx/ingame.mp3');
@@ -792,6 +801,8 @@
         state.crawlEl.setSrc('assets/audio/sfx/egregor-crawl.mp3');
         state.goliathIdleEl = _makeBufferLoop();
         state.goliathIdleEl.setSrc('assets/audio/sfx/goliath-idle.mp3');
+        state.cancerWhirlpoolEl = _makeBufferLoop(); // ambient bed shared across every whirlpool active at once, not per-instance
+        state.cancerWhirlpoolEl.setSrc('assets/audio/sfx/cancer-whirlpool-spin.mp3');
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
@@ -837,6 +848,7 @@
         startEgregorCrawl, stopEgregorCrawl, tickEgregorCrawl,
         startPhotokrystosIdle, stopPhotokrystosIdle, tickPhotokrystosIdle,
         startGoliathIdle, stopGoliathIdle,
+        startCancerWhirlpool, stopCancerWhirlpool,
         startLaser,   stopLaser,
 
         // Volumes / mute
