@@ -94,6 +94,21 @@ function _drawWhirlpool(w, now) {
         ctx.beginPath(); ctx.arc(w.x, w.y, 60, 0, Math.PI * 2); ctx.fill();
     }
 
+    // FULL only: a soft ambient glow halo behind the whole vortex, brightest
+    // at the core and fading out past the rim - reads as light scattering
+    // through churning water instead of a flat dark hole.
+    if (_gfxLevel === 0) {
+        ctx.save();
+        const haloR = 150 + popAmount * 25;
+        const halo = ctx.createRadialGradient(w.x, w.y, 20, w.x, w.y, haloR);
+        halo.addColorStop(0, 'rgba(94,234,212,0.22)');
+        halo.addColorStop(0.55, 'rgba(94,234,212,0.08)');
+        halo.addColorStop(1, 'rgba(94,234,212,0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(w.x, w.y, haloR, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+
     for (let i = 0; i < ringCount; i++) {
         const popRadius = popAmount * (20 + i * 10);
         const r = 30 + i * (_gfxLevel === 0 ? 15 : 25) + popRadius;
@@ -102,6 +117,13 @@ function _drawWhirlpool(w, now) {
         const layerAlpha = 0.3 + (i / ringCount) * 0.7;
         ctx.strokeStyle = i % 2 === 0 ? `rgba(94,234,212,${0.5 * layerAlpha})` : `rgba(15,95,87,${0.8 * layerAlpha})`;
         ctx.lineWidth = _gfxLevel === 0 ? 2 + i * 0.3 : 3;
+        // Each spinning band gets its own soft glow at FULL - brighter teal
+        // rings glow more than the darker deep-water ones, like light
+        // catching the moving surface instead of a flat stroked line.
+        if (_gfxLevel === 0) {
+            ctx.shadowColor = i % 2 === 0 ? '#5eead4' : '#0f5f57';
+            ctx.shadowBlur = 5 + layerAlpha * 6;
+        }
 
         ctx.beginPath();
         const startA = t * dir * speed;
@@ -115,12 +137,15 @@ function _drawWhirlpool(w, now) {
             if (a === startA) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
         ctx.stroke();
+        if (_gfxLevel === 0) ctx.shadowBlur = 0;
     }
 
+    const rimR = 132 + popAmount * 30;
     if (_gfxLevel === 0) {
         ctx.save();
         ctx.globalAlpha *= 0.4;
         ctx.strokeStyle = '#eaffff'; ctx.lineWidth = 1.2;
+        ctx.shadowColor = '#eaffff'; ctx.shadowBlur = 4; // faint caustic shimmer on each streak
         for (let i = 0; i < 12; i++) {
             const a = (i / 12) * Math.PI * 2 - t * 1.5;
             const swirl = Math.sin(t * 2 + i) * 10;
@@ -130,11 +155,25 @@ function _drawWhirlpool(w, now) {
             ctx.stroke();
         }
         ctx.restore();
+
+        // A single bright specular glint orbiting the rim, like a reflection
+        // of light catching the churning surface at one point as it spins.
+        ctx.save();
+        const hlA = t * 1.1;
+        const hlR = rimR * 0.72;
+        const hlX = w.x + Math.cos(hlA) * hlR, hlY = w.y + Math.sin(hlA) * hlR;
+        ctx.translate(hlX, hlY);
+        ctx.rotate(hlA + Math.PI / 2);
+        ctx.globalAlpha *= 0.55 + 0.35 * Math.sin(now / 220);
+        ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 16;
+        ctx.fillStyle = '#eaffff';
+        ctx.beginPath(); ctx.ellipse(0, 0, 5, 14, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
     }
 
-    const rimR = 132 + popAmount * 30;
     if (_gfxLevel < 2) {
         ctx.fillStyle = `rgba(255,255,255,${0.4 + popAmount * 0.5})`;
+        if (_gfxLevel === 0) { ctx.shadowColor = '#eaffff'; ctx.shadowBlur = 6; } // foam clumps get a soft glow instead of a flat white dot
         for (let a = 0; a < Math.PI * 2; a += 0.12) {
             const clump = Math.sin(a * 6 + t) * Math.cos(a * 3 - t * 1.5);
             if (clump > 0.1) {
@@ -145,6 +184,7 @@ function _drawWhirlpool(w, now) {
                 ctx.fill();
             }
         }
+        if (_gfxLevel === 0) ctx.shadowBlur = 0;
     } else {
         ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(w.x, w.y, rimR, 0, Math.PI * 2); ctx.stroke();
