@@ -2092,6 +2092,7 @@ function update(rawDeltaTime) {
     updateSpiritSpinners(deltaTime); _profChk2.push(performance.now());
     updateBladeArcProjectiles(deltaTime); _profChk2.push(performance.now());
     _updateGreatSageEffects(deltaTime);
+    _updateTidalSurge(deltaTime);
     updateSpiritBullets(deltaTime); _profChk2.push(performance.now());
     updatePhotoBrangs(deltaTime); _profChk2.push(performance.now());
     updateSkillD(deltaTime); _profChk2.push(performance.now());
@@ -2884,6 +2885,11 @@ function startGame() {
     _greatSageEffects = [];
     window._greatSageShieldEnd = 0;
     window._greatSageIronBody = false;
+    _tidalSurgeMeter = 0;
+    _tidalSurgeOverflow = 0;
+    window._tidalSurgeReady = false;
+    _tidalSurgeEffects = [];
+    _oceanHunterBites = [];
     window._playerSigils = [];
     window._sigilPicker = null;
     window._sigilRerollsLeft = 2;

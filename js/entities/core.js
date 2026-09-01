@@ -1008,11 +1008,13 @@ function dealDamage(enemy, source) {
         return;
     }
 
-    // Tidal Flow: 1-hit iron body layer per sentinel, cooldown starts after consumed
+    // Tidal Flow: 1-hit iron body layer per sentinel, cooldown starts after
+    // consumed. The whole blocked hit feeds the tide meter (Riptide Surge).
     if (isSentinel && enemy._trieuIronBody && _hasBuff('trieu_hoi')) {
         enemy._trieuIronBody = false;
         enemy._trieuIronBodyCooldownEnd = performance.now() + 8000;
         createParticles(enemy.x, enemy.y, 4, '#22c55e', 2, 5);
+        _feedTidalSurgeMeter(totalDamage);
         return;
     }
 
@@ -1214,6 +1216,8 @@ function dealDamage(enemy, source) {
             addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
             createParticles(enemy.x, enemy.y, 14, '#00ff88', 2, 7);
         }
+        // Tidal Flow: whatever the Barrier just soaked feeds the tide meter
+        if (_hasBuff('trieu_hoi')) _feedTidalSurgeMeter(_gAbsorb);
         totalDamage = Math.max(1, Math.ceil(totalDamage * 0.01));
     }
 
@@ -1496,6 +1500,10 @@ function dealDamage(enemy, source) {
         createParticles(lx, ly, 16, '#ffffff', 3, 8);
         createParticles(lx, ly, 10, '#88ccff', 2, 6);
     }
+
+    // Sigil: Ocean Hunter (Cancer) — same shape as Death Mark above, own
+    // threshold. Sentinels never get finished off by their own sigil.
+    if (!isSentinel) _tryOceanHunterExecute(enemy);
 
     // Leviathan: khi HP về 0 (hoặc đã ≤ 1), spawn death lasers ngay nếu chưa spawn
     if (enemy.type === 'leviathan' && enemy.hp <= 1 && !enemy._deathLaserSpawned) {
