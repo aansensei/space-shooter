@@ -2158,7 +2158,11 @@ function _releaseTidalSurge() {
 
 const TIDAL_SURGE_PULL_RADIUS = 110;
 const TIDAL_SURGE_BURST_RADIUS = 150;
-const TIDAL_SURGE_DAMAGE = 800;
+const TIDAL_SURGE_DAMAGE = 650;
+const TIDAL_SURGE_DAMAGE_PCT = 0.25;
+const TIDAL_SURGE_DOT_DAMAGE = 50;
+const TIDAL_SURGE_DOT_PCT = 0.0025;
+const TIDAL_SURGE_DOT_INTERVAL = 100;
 const TIDAL_SURGE_MAX_WHIRLPOOLS = 10;
 
 // One whirlpool per enemy currently on screen (capped, closest-to-player
@@ -2180,15 +2184,41 @@ function _spawnTidalWhirlpool() {
     picked.forEach(t => {
         _tidalSurgeEffects.push({ x: t.x, y: t.y, phase: 'spawn', timer: 0, hitEnemies: [], rot: 0, popAmount: 0, splashTimer: 0 });
     });
+    // One shared ambient loop for the whole batch (stopped in _updateTidalSurge
+    // once every whirlpool it spawned has finished), not one per instance.
+    if (window.AudioMgr) window.AudioMgr.startCancerWhirlpool();
 }
 
-// Passive trickle: 50/s into the tide meter whenever at least 1 sentinel is
-// alive, regardless of whether it's actually getting hit - without this the
+// Passive trickle into the tide meter whenever at least 1 sentinel is alive,
+// regardless of whether they're actually getting hit - without this the
 // whole Riptide Surge payoff never fires for a no-sentinel run or a run
 // where sentinels just never take a hit. Absorbing real damage still fills
 // it vastly faster (a single Gaia Barrier soak is most of the whole meter),
-// so tanking hits stays the primary, intended way to trigger it.
-const TIDAL_SURGE_PASSIVE_RATE = 50;
+// so tanking hits stays the primary, intended way to trigger it. Scales with
+// how many sentinels are actually up, rewarding keeping the squad alive.
+function _tidalSurgePassiveRate(sentinelCount) {
+    if (sentinelCount >= 3) return 75;
+    if (sentinelCount === 2) return 60;
+    if (sentinelCount === 1) return 50;
+    return 0;
+}
+
+// Keeps Tidal Flow's own tide meter running even through a wipe - checks
+// once a second, and if no real Sentinel is left, spawns 2 back in. Same
+// 1s-check / 2s-cooldown shape as Taurus's own Yuusha Party replenish
+// (_checkYuushaSentinelReplenish, js/yuusha-party.js), just with its own
+// independent timer/cooldown state so the two sigils don't share a clock.
+function _checkTidalSurgeSentinelReplenish(now) {
+    if (now - (window._tidalReplenishLastCheck || 0) < 1000) return;
+    window._tidalReplenishLastCheck = now;
+    if (now < (window._tidalReplenishCooldownEnd || 0)) return;
+    if (sentinels.length > 0) return;
+    if (typeof spawnSentinel !== 'function') return;
+
+    window._tidalReplenishCooldownEnd = now + 2000;
+    spawnSentinel(player.x, player.y, false);
+    spawnSentinel(player.x, player.y, false);
+}
 
 // Drags everything within TIDAL_SURGE_PULL_RADIUS toward the whirlpool's
 // center (enemies and enemy bullets alike), `strength` scaling how hard
@@ -2209,8 +2239,10 @@ function _pullEnemiesToward(w, strength, deltaTime, dur) {
     }
 }
 function _updateTidalSurge(deltaTime) {
-    if (_hasBuff('trieu_hoi') && sentinels.length > 0) {
-        _feedTidalSurgeMeter(TIDAL_SURGE_PASSIVE_RATE * (deltaTime / 1000));
+    if (_hasBuff('trieu_hoi')) {
+        _checkTidalSurgeSentinelReplenish(performance.now());
+        const _rate = _tidalSurgePassiveRate(sentinels.length);
+        if (_rate > 0) _feedTidalSurgeMeter(_rate * (deltaTime / 1000));
     }
     if (!_tidalSurgeEffects.length) return;
     for (let i = _tidalSurgeEffects.length - 1; i >= 0; i--) {
@@ -2224,6 +2256,21 @@ function _updateTidalSurge(deltaTime) {
         const spinning = w.phase === 'pulling' || w.phase === 'bite';
         w.rot = (w.rot || 0) + (deltaTime / 1000) * (0.5 + (spinning ? 2.5 : 0));
         if (w.popAmount > 0) w.popAmount = Math.max(0, w.popAmount - deltaTime / 300);
+
+        // Pressure DOT: everything caught within the whirlpool's own pull
+        // radius takes a small true-damage tick every 100ms for as long as
+        // the whirlpool exists (all phases, not just while pulling) - a
+        // standing reason to actually clear it out instead of just riding
+        // out the pull.
+        w.dotTimer = (w.dotTimer || 0) + deltaTime;
+        if (w.dotTimer >= TIDAL_SURGE_DOT_INTERVAL) {
+            w.dotTimer -= TIDAL_SURGE_DOT_INTERVAL;
+            for (const enemy of enemies) {
+                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
+                if (Math.hypot(enemy.x - w.x, enemy.y - w.y) > TIDAL_SURGE_PULL_RADIUS) continue;
+                dealDamage(enemy, { damage: TIDAL_SURGE_DOT_DAMAGE, percentDamage: TIDAL_SURGE_DOT_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
+            }
+        }
 
         // Periodic foam splash + rising bubbles kicked up off the rim while
         // the vortex is active - tier-scaled like every other particle burst.
@@ -2247,7 +2294,10 @@ function _updateTidalSurge(deltaTime) {
             const dur = 800;
             const p = Math.min(1, w.timer / dur);
             _pullEnemiesToward(w, 1 - Math.pow(1 - p, 3), deltaTime, dur);
-            if (p >= 1) { w.phase = 'bite'; w.timer = 0; }
+            if (p >= 1) {
+                w.phase = 'bite'; w.timer = 0;
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('cancer-whale-splash', w.x, w.y);
+            }
         } else if (w.phase === 'bite') {
             // Keeps dragging anything still caught right up until the whale
             // actually snaps its jaws (the 400ms mark below) instead of
@@ -2259,12 +2309,13 @@ function _updateTidalSurge(deltaTime) {
                 w.burst = true;
                 w.burstAt = performance.now(); // ripple draw uses this, not w.timer, so it survives the bite->fade phase reset below
                 w.popAmount = 1.5;
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('cancer-whale-bite', w.x, w.y);
                 for (const enemy of enemies) {
                     if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
                     if (w.hitEnemies.includes(enemy)) continue;
                     if (Math.hypot(enemy.x - w.x, enemy.y - w.y) <= TIDAL_SURGE_BURST_RADIUS) {
                         w.hitEnemies.push(enemy);
-                        dealDamage(enemy, { damage: TIDAL_SURGE_DAMAGE, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
+                        dealDamage(enemy, { damage: TIDAL_SURGE_DAMAGE, percentDamage: TIDAL_SURGE_DAMAGE_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
                     }
                 }
                 // Splash burst as the whale snaps its jaws shut - a spray of
@@ -2284,6 +2335,10 @@ function _updateTidalSurge(deltaTime) {
         }
         if (done) _tidalSurgeEffects.splice(i, 1);
     }
+    // Whole batch finished (splice above can only empty it here, since the
+    // early return above already catches an already-empty array) - stop the
+    // shared ambient loop started in _spawnTidalWhirlpool.
+    if (_tidalSurgeEffects.length === 0 && window.AudioMgr) window.AudioMgr.stopCancerWhirlpool();
 }
 
 // Cancer sigil (Lunar Aegis / Ocean Hunter): checked in dealDamage right
@@ -2299,6 +2354,7 @@ function _tryOceanHunterExecute(enemy) {
     createParticles(enemy.x, enemy.y, 20, '#ff5c5c', 2, 7);
     createParticles(enemy.x, enemy.y, 14, '#eaffff', 2, 6);
     createParticles(enemy.x, enemy.y, 12, '#5eead4', 2, 6);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('cancer-whale-bite', enemy.x, enemy.y);
     if (typeof _setShake === 'function') _setShake(15, 400);
     window._sigilChromFlashEnd = performance.now() + 350;
 }
