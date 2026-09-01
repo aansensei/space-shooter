@@ -948,6 +948,7 @@ function draw(deltaTime) {
 
     // Background full canvas
     drawSpaceBackground(deltaTime);
+    if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
 
     if (gameState === "playing" && skillShiftActive) drawYogSothothDomain();
 
@@ -972,6 +973,8 @@ function draw(deltaTime) {
         drawGoldenArrowSweep();
         bladeArcProjectiles.forEach(drawBladeArcProjectile);
         if (typeof _drawGreatSageEffects === 'function') _drawGreatSageEffects();
+        if (typeof _drawTidalSurgeEffects === 'function') _drawTidalSurgeEffects();
+        if (typeof _drawOceanHunterBites === 'function') _drawOceanHunterBites();
         spiritSpinners.forEach(drawSpiritSpinner);
         marchosiasBlades.forEach(_drawMarchoBlade);
         scatteredProjectiles.forEach(drawScatteredProjectile);
@@ -1020,6 +1023,7 @@ function draw(deltaTime) {
         }
         drawPlayer();
         if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
+        if (typeof _drawTidalSurgeMeter === 'function') _drawTidalSurgeMeter();
         drawPlayerAura();
         _drawParryBursts(); // Yog-Sothoth Accurate Parry "Temporal Fracture" burst
         drawFinalDefense();
@@ -1197,6 +1201,7 @@ function draw(deltaTime) {
         if (typeof _platform === 'undefined' || _platform !== 'mobile') drawSkillButtons();
         if (typeof drawSigilHUD === 'function') drawSigilHUD();
         if (typeof _drawGreatSageReleasePrompt === 'function') _drawGreatSageReleasePrompt();
+        if (typeof _drawTidalSurgeReadyPrompt === 'function') _drawTidalSurgeReadyPrompt();
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
@@ -1460,6 +1465,7 @@ function draw(deltaTime) {
         const _pxDt = performance.now() - _pxT0;
         if (_pxDt > 15) console.warn('[PIXI] render took ' + _pxDt.toFixed(0) + 'ms (bullets=' + bullets.length + ', particles=' + particles.length + ')');
     }
+    if (typeof _drawSigilChromFlash === 'function') _drawSigilChromFlash();
     ctx.restore();
     if (window._sigilPicker && typeof drawSigilPicker === 'function') drawSigilPicker();
 }

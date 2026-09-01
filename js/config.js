@@ -119,6 +119,19 @@ let _skillFHitFlashes = [];
 // _updateGreatSageEffects in js/skills.js and _drawGreatSageEffects in
 // js/render/skill-f.js
 let _greatSageEffects = [];
+
+// Cancer sigil (Tidal Flow / Riptide Surge): fed by every hit a Gaia Barrier
+// or a Tidal Flow Iron Body layer absorbs (see dealDamage, entities/core.js).
+// Fills to TIDAL_SURGE_METER_MAX, then spawns a whirlpool and resets to 0.
+let _tidalSurgeMeter = 0;
+const TIDAL_SURGE_METER_MAX = 4000;
+// Active whirlpools: {x, y, phase, timer, hitEnemies}. Advanced by
+// _updateTidalSurge (js/skills.js), drawn by js/render/sigil-cancer.js.
+let _tidalSurgeEffects = [];
+// Cancer sigil (Lunar Aegis / Ocean Hunter): queued bite visuals, one per
+// enemy executed at low HP - {x, y, spawnAt, duration, fromLeft}.
+let _oceanHunterBites = [];
+
 let screenShake = { intensity: 0, duration: 0 };
 // Throttle: chỉ upgrade shake nếu mạnh hơn hoặc shake hiện tại đã hết
 function _setShake(intensity, duration) {
