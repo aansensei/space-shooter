@@ -22,46 +22,117 @@ window._debugGameSpeed = 1;
 window._debugClickSpawnType = '';
 window._debugAutoplay = false;
 
-// Autoplay: sweeps the ship left/right, spams every skill's own activate
-// function on a timer, and also drives the two hold-and-release keyboard
-// mechanics (Skill Shift and the charged Space shot) by replicating the
-// same state transitions their real keydown/keyup handlers make (input.js) —
-// each activate function/transition already gates itself on its own
-// cooldown/resource/state (the same guard a real keypress hits), so driving
-// them repeatedly here is exactly as safe as a player mashing keys.
-// Meant for hands-off soak testing (e.g. watching [PROF]/[LONGTASK] output
-// over a long run) without needing to actually play.
+// Autoplay: a real threat-aware pilot instead of a random walk. Every tick
+// it scans the whole `enemies` array (bullets, chains, anything else with a
+// linear vx/vy) for whatever is on a collision course with the player's own
+// y-row, works out where each one will actually be when it gets there (pure
+// line geometry - since x and y both integrate as pos += v*dt every frame,
+// the arrival x is just current x plus (vx/vy) times the remaining vertical
+// distance, so real dt units never even come into it), and steers toward
+// whichever of "stay / step left / step right" scores least dangerous,
+// weighted by how soon and how close each threat is. Gets more cautious as
+// lives drop. Skill Shift's own cooldown scales hard with how it's used
+// (cancelSkillShift, js/skills.js): entering the domain and just cancelling
+// under 2s costs only ~1.1s CD and still wipes every enemy bullet within
+// ~45% of the screen on exit, while an actual teleport always costs the
+// full 9s regardless of hold length - so the pilot treats them as two
+// different tools, a cheap panic-clear for moderate heat and a real
+// (longer-held, bigger-distance) reposition saved for serious danger or low
+// lives, rather than always doing the same short-hold-then-teleport combo.
+// Skills still just fire on cooldown - each activate function already
+// gates itself on its own state/resources, so that part didn't need to
+// change. Meant for hands-off soak testing (e.g. watching [PROF]/[LONGTASK]
+// output over a long run) without needing to actually play.
 let _autoplayTimer = null;
-let _autoplayDir = 1;
 let _autoplayShiftReleaseAt = 0;   // 0 = not currently holding Shift
+let _autoplayShiftMode = null;     // 'clear' (cancel only) or 'teleport', set when the hold starts
 let _autoplayChargeReleaseAt = 0;  // 0 = not currently holding Space
+
+const AUTOPLAY_DANGER_LOOKAHEAD = 100; // in vx/vy's own per-frame units (~1.6s at 60fps)
+const AUTOPLAY_STEP = 90; // px a candidate dodge step is scored against
+
+// Every live threat that will cross the player's y-row within the lookahead
+// window, with where it'll actually be when it gets there.
+function _autoplayScanThreats() {
+    const threats = [];
+    for (const e of enemies) {
+        if (e.hp <= 0 || e.inCoronation) continue;
+        if (typeof e.vx !== 'number' || typeof e.vy !== 'number' || e.vy <= 0.01) continue;
+        const dy = player.y - e.y;
+        if (dy <= 0) continue; // already past the player's row
+        const framesToArrival = dy / e.vy;
+        if (framesToArrival > AUTOPLAY_DANGER_LOOKAHEAD) continue; // too far out to plan around yet
+        const arrivalX = e.x + e.vx * framesToArrival;
+        const radius = e.type && e.type.startsWith('enemy_bullet') ? e.size : (e.size ? e.size / 2 : 20);
+        threats.push({ arrivalX, radius, framesToArrival });
+    }
+    return threats;
+}
+// Aggregate danger score if the player were standing at x - higher for
+// threats that are both closer to x and sooner to arrive.
+function _autoplayDangerAt(threats, x, margin) {
+    let danger = 0;
+    for (const t of threats) {
+        const band = t.radius + player.hitRadius + margin;
+        const d = Math.abs(x - t.arrivalX);
+        if (d < band) danger += (band - d) / Math.max(t.framesToArrival, 4);
+    }
+    return danger;
+}
+
 function _setDebugAutoplay(on) {
     window._debugAutoplay = on;
     if (on) {
         if (_autoplayTimer) return;
-        _autoplayDir = 1;
         _autoplayShiftReleaseAt = 0;
+        _autoplayShiftMode = null;
         _autoplayChargeReleaseAt = 0;
         _autoplayTimer = setInterval(() => {
             if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
             const now = performance.now();
-            if (Math.random() < 0.15) _autoplayDir *= -1;
-            keys.left = _autoplayDir < 0;
-            keys.right = _autoplayDir > 0;
+
+            // More cautious the fewer lives are left: a wider safety margin
+            // means every threat starts getting dodged earlier and further out.
+            const livesNow = typeof lives === 'number' ? lives : 12;
+            const margin = 55 + Math.max(0, 12 - livesNow) * 5;
+
             if (typeof activateSkillA === 'function') activateSkillA();
             if (typeof activateSkillS === 'function') activateSkillS();
             if (typeof activateSkillD === 'function') activateSkillD();
             if (typeof activateSkillF === 'function') activateSkillF();
             if (typeof activateSkillG === 'function') activateSkillG();
 
-            // Skill Shift: open the domain (same keydown gate/effects as a
-            // real Shift press, including the Dream Realm mark-burst if that
-            // sigil is equipped), hold ~400ms, then release toward whichever
-            // side has the nearest threat so the teleport actually dodges
-            // something instead of firing blind.
+            // Movement + Skill Shift engage: both driven off the same
+            // threat scan, since "is walking alone enough" is exactly the
+            // signal that decides whether Shift is even worth spending.
             if (_autoplayShiftReleaseAt === 0) {
-                if (!skillShiftActive && now - lastSkillShift >= skillShiftCooldown
+                const threats = _autoplayScanThreats();
+                const leftX = Math.max(player.width / 2, player.x - AUTOPLAY_STEP);
+                const rightX = Math.min(canvas.width - player.width / 2, player.x + AUTOPLAY_STEP);
+                const dHere = _autoplayDangerAt(threats, player.x, margin);
+                const dLeft = _autoplayDangerAt(threats, leftX, margin);
+                const dRight = _autoplayDangerAt(threats, rightX, margin);
+
+                let dir = 0, bestScore = dHere; // 0 = stay, ties favor staying put
+                if (dLeft < bestScore) { bestScore = dLeft; dir = -1; }
+                if (dRight < bestScore) { bestScore = dRight; dir = 1; }
+
+                if (bestScore < 0.05 && dir === 0) {
+                    // Nothing dangerous anywhere nearby: drift back toward
+                    // center so there's equal room to dodge either way later.
+                    const center = canvas.width / 2;
+                    if (Math.abs(player.x - center) > 40) dir = player.x > center ? -1 : 1;
+                }
+                keys.left = dir < 0;
+                keys.right = dir > 0;
+
+                // bestScore is "how dangerous the safest available option
+                // still is" - if walking alone can't get it near zero,
+                // Skill Shift is genuinely worth spending here.
+                if (bestScore > 0.05 && !skillShiftActive && now - lastSkillShift >= skillShiftCooldown
                     && !(typeof player !== 'undefined' && player._silenced)) {
+                    const critical = bestScore > 0.6 || livesNow <= 3;
+                    keys.left = false; keys.right = false; // Iron Body covers us during the hold, no need to also drift
                     skillShiftActive = true;
                     window._shiftActive = true;
                     skillShiftChargeStart = now;
@@ -76,15 +147,27 @@ function _setDebugAutoplay(on) {
                             }
                         }
                     }
-                    _autoplayShiftReleaseAt = now + 400;
+                    // Moderate heat: short hold, cancel only, cheap ~1.1s CD.
+                    // Serious heat (or lives running low): hold toward full
+                    // charge and actually teleport, accepting the flat 9s CD.
+                    _autoplayShiftMode = critical ? 'teleport' : 'clear';
+                    _autoplayShiftReleaseAt = now + (critical ? 2900 : 1800);
                 }
             } else if (now >= _autoplayShiftReleaseAt) {
                 _autoplayShiftReleaseAt = 0;
                 if (skillShiftActive) {
-                    const _threat = typeof findClosestEnemy === 'function' ? findClosestEnemy(player.x, player.y) : null;
-                    const dir = _threat && _threat.x > player.x ? 'left' : 'right';
-                    executeShiftTeleport(dir);
+                    if (_autoplayShiftMode === 'teleport') {
+                        const threats = _autoplayScanThreats();
+                        const maxDist = canvas.width / 2;
+                        const leftX = Math.max(player.width / 2, player.x - maxDist);
+                        const rightX = Math.min(canvas.width - player.width / 2, player.x + maxDist);
+                        const dir = _autoplayDangerAt(threats, leftX, margin) <= _autoplayDangerAt(threats, rightX, margin) ? 'left' : 'right';
+                        executeShiftTeleport(dir);
+                    } else {
+                        cancelSkillShift(); // no reposition needed - just the cheap CD + bullet wipe on exit
+                    }
                 }
+                _autoplayShiftMode = null;
             }
 
             // Charged Space shot: hold to maxChargeTime for a max-multiplier
@@ -119,6 +202,7 @@ function _setDebugAutoplay(on) {
         if (skillShiftActive) cancelSkillShift();
         if (charging && !laserActive) { charging = false; if (window.AudioMgr) window.AudioMgr.stopCharging(); }
         _autoplayShiftReleaseAt = 0;
+        _autoplayShiftMode = null;
         _autoplayChargeReleaseAt = 0;
         if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
     }
