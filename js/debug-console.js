@@ -299,6 +299,17 @@ window.debugSetYuukiBonus = function () {
         </div>
         <div style="opacity:0.5; font-size:10px;">"Fire" unleashes that stolen attack immediately without touching the gem bank. "+Gem" adds it to the bank (respects the 3-slot/no-duplicate cap) so you can test the real F-to-release flow.</div>
       </div>
+      <div id="dbgCancerSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
+        <div class="dbg-h" style="font-size:10px;">CANCER, TIDAL SURGE / OCEAN HUNTER</div>
+        <div id="dbgCancerState" style="font-size:10px; opacity:0.7; margin-bottom:4px;"></div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugCancerFillMeter()">Fill Meter to Ready</button>
+          <button class="dbg-btn" onclick="debugCancerRelease()">Force Release (Space)</button>
+          <button class="dbg-btn" onclick="debugCancerOceanHunter()">Force Ocean Hunter (nearest enemy)</button>
+          <button class="dbg-btn" onclick="debugCancerClear()">Clear State</button>
+        </div>
+        <div style="opacity:0.5; font-size:10px;">"Fill Meter" mirrors real absorb/passive feed up to ready. "Force Release" simulates the real Space press. "Ocean Hunter" drops the nearest enemy to 5% HP so the real execute check fires on its own.</div>
+      </div>
     </div>
 
     <div class="dbg-section">
@@ -493,11 +504,13 @@ window.debugSetYuukiBonus = function () {
         refreshDummyStatus();
         updateSessionStatus();
         _refreshGreatSageGemDisplay();
+        _refreshCancerStateDisplay();
         if (refreshTimer) clearInterval(refreshTimer);
         refreshTimer = setInterval(() => {
             const _t0 = performance.now();
             refreshEnemyList(); refreshSentinelList(); refreshDummyStatus(); updateSessionStatus();
             _refreshGreatSageGemDisplay();
+            _refreshCancerStateDisplay();
             const _dt = performance.now() - _t0;
             if (_dt > 15) console.warn('[DBGPANEL] refresh took ' + _dt.toFixed(0) + 'ms');
         }, 500);
@@ -919,6 +932,39 @@ window.debugSetYuukiBonus = function () {
         const el = document.getElementById('dbgGreatSageGems');
         if (!el || typeof _greatSageGems === 'undefined') return;
         el.textContent = _greatSageGems.length ? 'Bank: ' + _greatSageGems.join(', ') : 'Bank: (empty)';
+    }
+
+    window.debugCancerFillMeter = function () {
+        if (typeof _feedTidalSurgeMeter !== 'function' || typeof TIDAL_SURGE_METER_MAX === 'undefined') return;
+        _feedTidalSurgeMeter(TIDAL_SURGE_METER_MAX);
+        _refreshCancerStateDisplay();
+    };
+    window.debugCancerRelease = function () {
+        if (typeof _releaseTidalSurge === 'function') _releaseTidalSurge();
+        _refreshCancerStateDisplay();
+    };
+    window.debugCancerOceanHunter = function () {
+        if (typeof findClosestEnemy !== 'function' || typeof _tryOceanHunterExecute !== 'function') return;
+        const e = findClosestEnemy(player.x, player.y);
+        if (e) { e.hp = Math.max(1, Math.ceil(e.maxHp * 0.05)); _tryOceanHunterExecute(e); }
+    };
+    window.debugCancerClear = function () {
+        if (typeof _tidalSurgeMeter !== 'undefined') _tidalSurgeMeter = 0;
+        if (typeof _tidalSurgeOverflow !== 'undefined') _tidalSurgeOverflow = 0;
+        window._tidalSurgeReady = false;
+        if (typeof _tidalSurgeEffects !== 'undefined') _tidalSurgeEffects.length = 0;
+        if (typeof _oceanHunterBites !== 'undefined') _oceanHunterBites.length = 0;
+        _refreshCancerStateDisplay();
+    };
+    function _refreshCancerStateDisplay() {
+        const section = document.getElementById('dbgCancerSection');
+        const equipped = typeof _hasSigil === 'function' && _hasSigil('cancer');
+        if (section) section.style.display = equipped ? '' : 'none';
+        if (!equipped) return;
+        const el = document.getElementById('dbgCancerState');
+        if (!el || typeof _tidalSurgeMeter === 'undefined') return;
+        const pct = Math.round((_tidalSurgeMeter / TIDAL_SURGE_METER_MAX) * 100);
+        el.textContent = `Meter: ${pct}% ${window._tidalSurgeReady ? '(READY)' : ''} · Overflow: ${Math.round(_tidalSurgeOverflow || 0)} · Whirlpools: ${(_tidalSurgeEffects || []).length}`;
     }
 
     window.debugApplyVuln = function (idx) {

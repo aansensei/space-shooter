@@ -33,9 +33,9 @@ const SIGIL_DEFS = {
         name: 'Cancer', element: 'Water', color: '#7F77DD',
         buffs: [
             { id: 'giap_nguyet', name: 'Lunar Aegis', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +40%; sentinels gain +20% evade' },
+              desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +40%; sentinels gain +20% evade. Ocean Hunter: any enemy at 8% HP or below is instantly finished off by a killer whale lunging in.' },
             { id: 'trieu_hoi', name: 'Tidal Flow', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Sentinel regenerates 3% MaxHP/s (scales with tier); healing effectiveness +30%. Each sentinel gains 1 Iron Body layer; 8s CD starts only after it is consumed.' },
+              desc: 'Sentinel regenerates 3% MaxHP/s (scales with tier); healing effectiveness +30%. Each sentinel gains 1 Iron Body layer; 8s CD starts only after it is consumed. Riptide Surge: every hit a Gaia Barrier or Iron Body layer absorbs feeds a shared tide meter (overflow banks up to +30% as a head start on the next fill); once full, press Space to erupt a whirlpool at every enemy on screen (up to 10, closest first), pulling everything nearby (including CC-immune enemies and bullets) toward center before bursting for 800 true damage when the whale bites.' },
         ]
     },
     leo: {
@@ -155,8 +155,8 @@ const SIGIL_I18N_VI = {
         guong_laze: { name: 'Gương Quang Tuyến', desc: 'Overload Laser sinh ra 2 thực thể gương (trên-trái & dưới-phải) di chuyển dọc theo hướng ngược nhau (+25% tốc độ), mỗi cái bắn 1 tia laser ngang bằng 75% sát thương tia gốc. Tia gốc được buff +30%. Ngoài ra, mỗi lần dùng skill hoặc bắn tự động có 5% cơ hội (+0.3% mỗi lần trượt, reset khi kích hoạt) bắn ra 1 cột laser xanh-tím xuyên phá gây 350 + 18% EP mỗi 125ms trong 3s — không hút địch, cộng dồn với Overload Laser (hồi chiêu 4s).' },
     }},
     cancer: { name: 'Cự Giải', element: 'Thủy', buffs: {
-        giap_nguyet: { name: 'Nguyệt Giáp', desc: 'Gaia Protection kích hoạt mà không cần Glory for Justice; khả năng hấp thụ của Gaia Barrier +40%; Vệ Binh nhận +20% né tránh' },
-        trieu_hoi: { name: 'Triều Lưu', desc: 'Vệ Binh hồi 3% Max HP/s (tăng theo cấp bậc); hiệu quả hồi máu +30%. Mỗi Vệ Binh nhận 1 lớp Iron Body; hồi chiêu 8s chỉ bắt đầu sau khi lớp đó bị tiêu hao.' },
+        giap_nguyet: { name: 'Nguyệt Giáp', desc: 'Gaia Protection kích hoạt mà không cần Glory for Justice; khả năng hấp thụ của Gaia Barrier +40%; Vệ Binh nhận +20% né tránh. Sát Thủ Đại Dương: kẻ địch còn 8% HP trở xuống lập tức bị 1 con cá voi sát thủ lao vào cắn chết.' },
+        trieu_hoi: { name: 'Triều Lưu', desc: 'Vệ Binh hồi 3% Max HP/s (tăng theo cấp bậc); hiệu quả hồi máu +30%. Mỗi Vệ Binh nhận 1 lớp Iron Body; hồi chiêu 8s chỉ bắt đầu sau khi lớp đó bị tiêu hao. Triều Cường: mỗi đòn bị Gaia Barrier hoặc lớp Iron Body hấp thụ sẽ đổ vào 1 thanh triều dùng chung (tràn thanh được tích thêm tối đa +30% làm đà cho lần sau); khi đầy, ấn Space để tạo xoáy nước tại từng kẻ địch trên màn hình (tối đa 10, gần người chơi nhất trước), hút mọi thứ quanh đó (kể cả kẻ địch miễn CC và đạn địch) vào tâm rồi nổ tung gây 800 sát thương chuẩn khi cá voi cắn xuống.' },
     }},
     leo: { name: 'Sư Tử', element: 'Hỏa', buffs: {
         su_tu_hong: { name: 'Sư Tử Hống', desc: 'Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP đã mất của mục tiêu.' },
