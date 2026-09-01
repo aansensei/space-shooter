@@ -1874,7 +1874,13 @@ function update(rawDeltaTime) {
                 if (b.type === 'player_charged') {
                     if (!b.hitEnemies) b.hitEnemies = [];
                     if (b.hitEnemies.includes(enemy)) continue;
-                    dealDamage(enemy, { damage: (b.damage >= maxMultiplier ? 0 : b.damage), percentDamage: (b.damage >= maxMultiplier ? 0.07 : 0) });
+                    // b.damage holds the charge multiplier (1-10, see
+                    // fireChargedBullet), not a raw damage value - scales the
+                    // same 7% EP a full charge deals down by how charged the
+                    // shot actually was, instead of the old flat 1-9 damage
+                    // that any release before full charge dealt (i.e.
+                    // basically nothing against a real enemy's HP pool).
+                    dealDamage(enemy, { damage: 0, percentDamage: 0.007 * b.damage });
                     b.hitEnemies.push(enemy);
                 } else {
                     if (b.isPiercing && b.hitEnemies) {
