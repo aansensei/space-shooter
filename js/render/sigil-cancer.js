@@ -89,6 +89,60 @@ function _drawWhirlpool(w, now) {
     ctx.save();
     ctx.globalAlpha = w.alpha != null ? w.alpha : 1;
 
+    // Dark core base + the painted ocean-floor/coral art on top of it,
+    // static (no rotation) - cheap either way (one gradient fill, one
+    // drawImage call), so both draw at every graphics tier, including
+    // mobile/LOW, not just FULL/MED like the rest of this effect. The
+    // gradient alone covers the split-second before the art has decoded.
+    const coreG = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, 60);
+    coreG.addColorStop(0, 'rgba(1,6,10,0.95)');
+    coreG.addColorStop(0.5, 'rgba(4,14,22,0.6)');
+    coreG.addColorStop(1, 'rgba(4,14,22,0)');
+    ctx.fillStyle = coreG;
+    ctx.beginPath(); ctx.arc(w.x, w.y, 60, 0, Math.PI * 2); ctx.fill();
+
+    if (_whirlpoolFloorImg.complete && _whirlpoolFloorImg.naturalWidth) {
+        const imgR = rimR * 0.8;
+        ctx.save();
+        // The source art reads a bit muted/dark on its own against the
+        // black of space - punched up so the coral/teal actually pops
+        // instead of blending into the background.
+        ctx.filter = 'saturate(1.7) brightness(1.2) contrast(1.1)';
+        ctx.drawImage(_whirlpoolFloorImg, w.x - imgR, w.y - imgR, imgR * 2, imgR * 2);
+        ctx.restore();
+
+        // FULL/MED only: a little extra life on top of the still image
+        // itself (the art never rotates or shifts) - a soft pulsing glow
+        // hugging its own circular edge, plus a handful of small bubbles
+        // drifting slowly upward within it, looping seamlessly off a
+        // time-modulo cycle per bubble rather than any stored particle state.
+        if (_gfxLevel < 2 && !_mobPerf) {
+            ctx.save();
+            const edgePulse = 0.5 + 0.5 * Math.sin(now / 900);
+            ctx.strokeStyle = `rgba(94,234,212,${0.25 + 0.2 * edgePulse})`;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#5eead4'; ctx.shadowBlur = 10 + edgePulse * 8;
+            ctx.beginPath(); ctx.arc(w.x, w.y, imgR, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.beginPath(); ctx.arc(w.x, w.y, imgR, 0, Math.PI * 2); ctx.clip();
+            const bubbleCount = _gfxLevel === 0 ? 10 : 5;
+            for (let i = 0; i < bubbleCount; i++) {
+                const seed = i * 137.5; // irrational-ish spacing so bubbles don't line up
+                const cycle = 4000 + (i % 3) * 800; // slightly different period per bubble
+                const p = ((now + seed * 10) % cycle) / cycle; // 0..1, loops forever
+                const bx = w.x + Math.sin(seed) * imgR * 0.7;
+                const by = w.y + imgR * 0.9 - p * imgR * 1.8; // rises from near the bottom to near the top of the circle
+                const bAlpha = Math.sin(p * Math.PI) * 0.6; // fades in, peaks mid-rise, fades out
+                const bSize = 1.5 + (i % 3);
+                ctx.fillStyle = `rgba(234,255,255,${bAlpha})`;
+                ctx.beginPath(); ctx.arc(bx, by, bSize, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+        }
+    }
+
     if (_mobPerf) {
         ctx.strokeStyle = 'rgba(94,234,212,0.6)'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(w.x, w.y, 96, 0, Math.PI * 2); ctx.stroke();
@@ -97,29 +151,6 @@ function _drawWhirlpool(w, now) {
     }
 
     const ringCount = _gfxLevel === 0 ? 8 : (_gfxLevel === 1 ? 4 : 2);
-    if (_gfxLevel < 2) {
-        // Flat dark base first (always renders, even before the art below
-        // has decoded) so there's never a gap. The painted ocean-floor/coral
-        // art draws on top of it, static (no rotation), replacing what used
-        // to just be a plain dark hole.
-        const coreG = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, 60);
-        coreG.addColorStop(0, 'rgba(1,6,10,0.95)');
-        coreG.addColorStop(0.5, 'rgba(4,14,22,0.6)');
-        coreG.addColorStop(1, 'rgba(4,14,22,0)');
-        ctx.fillStyle = coreG;
-        ctx.beginPath(); ctx.arc(w.x, w.y, 60, 0, Math.PI * 2); ctx.fill();
-
-        if (_whirlpoolFloorImg.complete && _whirlpoolFloorImg.naturalWidth) {
-            const imgR = rimR * 0.8;
-            ctx.save();
-            // The source art reads a bit muted/dark on its own against the
-            // black of space - punched up so the coral/teal actually pops
-            // instead of blending into the background.
-            ctx.filter = 'saturate(1.7) brightness(1.2) contrast(1.1)';
-            ctx.drawImage(_whirlpoolFloorImg, w.x - imgR, w.y - imgR, imgR * 2, imgR * 2);
-            ctx.restore();
-        }
-    }
 
     // FULL only: a soft ambient glow halo behind the whole vortex, brightest
     // at the core and fading out past the rim - reads as light scattering
