@@ -622,6 +622,19 @@ function _drawLeviathan(enemy) {
     // separately at the wrong angle.
     const hasDeathLasers = dying && window._levDeathLasers && window._levDeathLasers.length > 0;
 
+    // Extra detail/glow only at full graphics quality: a soft ambient
+    // halo behind the whole silhouette plus finer wing edge highlights,
+    // none of which change the shape itself.
+    const _hqDetail = _gfxLevel === 0 && !_mobPerf;
+    if (_hqDetail) {
+        const glowR = r * 1.3;
+        const bodyGlow = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, glowR);
+        bodyGlow.addColorStop(0, 'rgba(0,229,255,0.10)');
+        bodyGlow.addColorStop(1, 'rgba(0,229,255,0)');
+        ctx.fillStyle = bodyGlow;
+        ctx.beginPath(); ctx.arc(0, 0, glowR, 0, Math.PI * 2); ctx.fill();
+    }
+
     for (let i = 0; i < NUM_WINGS; i++) {
         let baseAngle;
         let fireT = 0; // 0 = idle cyan, 1 = fully charged/firing hot orange-white
@@ -691,6 +704,17 @@ function _drawLeviathan(enemy) {
         ctx.shadowBlur = 0;
         ctx.fill();
 
+        // Fine bevel highlight along the wing's two slanted edges, full
+        // quality only
+        if (_hqDetail) {
+            ctx.strokeStyle = fireT > 0 ? 'rgba(255,220,180,0.35)' : 'rgba(180,240,255,0.3)';
+            ctx.lineWidth = 0.75;
+            ctx.beginPath();
+            ctx.moveTo(-hw * 0.4, -wingLen); ctx.lineTo(-hw, 0);
+            ctx.moveTo(hw * 0.4, -wingLen); ctx.lineTo(hw, 0);
+            ctx.stroke();
+        }
+
         ctx.restore();
     }
 
@@ -754,7 +778,7 @@ function _drawLeviathan(enemy) {
     coreG.addColorStop(0.6, '#2a0066');
     coreG.addColorStop(1, '#00e5ff');
     ctx.fillStyle = coreG;
-    if (!_mobPerf) ctx.shadowColor = '#9d00ff'; if (!_mobPerf) ctx.shadowBlur = 18;
+    if (!_mobPerf) ctx.shadowColor = '#9d00ff'; if (!_mobPerf) ctx.shadowBlur = _hqDetail ? 26 : 18;
     ctx.beginPath(); ctx.arc(0, 0, coreR * beat, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -770,7 +794,7 @@ function _drawLeviathan(enemy) {
     ctx.beginPath(); ctx.arc(ex, ey, eR * 0.62, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#000';
     ctx.beginPath(); ctx.arc(ex, ey, eR * 0.30, 0, Math.PI * 2); ctx.fill();
-    if (!_mobPerf) ctx.shadowColor = '#00e5ff'; if (!_mobPerf) ctx.shadowBlur = 10;
+    if (!_mobPerf) ctx.shadowColor = '#00e5ff'; if (!_mobPerf) ctx.shadowBlur = _hqDetail ? 15 : 10;
     ctx.strokeStyle = 'rgba(0,229,255,0.7)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(ex, ey, eR, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;

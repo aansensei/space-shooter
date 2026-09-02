@@ -777,7 +777,7 @@ function drawSkillF() {
         // flash, and a golden particle trail at the tip. Ransacked
         // Treasury widens the staff with kills landed so far this sweep
         // (not elapsed time), using the same multiplier the actual hit
-        // cone in js/skills.js uses so the visual always matches the real
+        // cone in js/skills/skill-f.js uses so the visual always matches the real
         // hitbox.
         const nhuYMult = Math.min(1 + (_skillFKillsThisSweep || 0) * 0.5, 4.5);
         // baseline widen as the swing travels (pure "gaining momentum"
@@ -915,7 +915,7 @@ function drawSkillF() {
 }
 
 // Great Sage sigil: draws every pending stolen-attack effect
-// (_greatSageEffects, js/skills.js) — telegraph lines, delayed-strike
+// (_greatSageEffects, js/skills/sigil-great-sage.js) — telegraph lines, delayed-strike
 // markers, arc-slash flashes, expanding shockwave rings, and the
 // Leviathan-style rotating sweep beam. The thrown-sword and piercing-orb
 // attacks need no draw code here since they're pushed straight into

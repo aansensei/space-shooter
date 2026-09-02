@@ -1,10 +1,14 @@
-// EXTRACTED FROM js/skills/sigil-aries.js — Aries: Gate of Babylon + Enuma Elish.
-// Copied VERBATIM (not reimplemented) so test-aries-vfx.html renders exactly
-// what the real game renders. If the mechanic in js/skills/sigil-aries.js changes, re-copy
-// the block below from there (search "Aries: Gate of Babylon + Enuma Elish").
-// The trigger wrapper at the bottom mimics the proc conditions that live in
-// js/entities.js's dealDamage() (cong_babylon/enuma_elish blocks), since this
-// harness doesn't load the real damage pipeline.
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// js/skills/sigil-aries.js — split out of the old monolithic js/skills.js.
+// Aries sigil: Gate of Babylon's blade fan and Enuma Elish's spear thrust -
+// both proc off allied hit counts (trigger sites are in entities/core.js's
+// dealDamage); this is their per-frame timeline/collision.
+
+// Aries: Gate of Babylon + Enuma Elish. Trigger sites are in entities.js's
+// dealDamage (proc conditions + sequence creation); everything below is the
+// per-frame timeline/collision, mirroring a Gilgamesh Gate-of-Babylon VFX
+// spec ported for this project. Both fire from the player's position at the
+// moment they trigger (snapshotted, not re-tracked as the player moves).
 
 function _createGobSequence(startTime) {
     const fanAngle = Math.PI * 0.42, baseAngle = -Math.PI / 2;
@@ -23,7 +27,7 @@ function _createGobSequence(startTime) {
     return { startTime, phase: 0, baseAngle, fanAngle, portals, swords: [] };
 }
 
-const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_BASE = 40, GOB_SWORD_DMG_PCT = 0.03;
+const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_BASE = 50, GOB_SWORD_DMG_PCT = 0.04;
 
 function updateGateOfBabylon(deltaTime) {
     if (!window._gobSequences || window._gobSequences.length === 0) return;
@@ -101,7 +105,7 @@ function _createEeSequence(startTime, target) {
     return { startTime, phase: 0, x: ox, y: oy, angle: Math.atan2(target.y - oy, target.x - ox), beamWidth: 0, beamAlpha: 0, hitEnemies: new Set(), shockwaves: [], _lastShockwaveAt: 0 };
 }
 
-const EE_DMG_PCT = 0.14, EE_DMG_CAP = 12000, EE_BEAM_HALF = 50;
+const EE_DMG_PCT = 0.15, EE_DMG_CAP = 16000, EE_BEAM_HALF = 50;
 
 function updateEnumaElish(deltaTime) {
     if (!window._eeSequences || window._eeSequences.length === 0) return;
@@ -111,6 +115,7 @@ function updateEnumaElish(deltaTime) {
         const seq = window._eeSequences[si];
         const elapsed = now - seq.startTime;
 
+        // Windup sparks around the phantom while it winds the spear back
         if (elapsed >= 200 && elapsed < 600 && Math.random() > 0.5) {
             createParticles(seq.x + (Math.random() - 0.5) * 120, seq.y - Math.random() * 150, 2, '#dc2626', 2, 5);
         }
@@ -119,6 +124,8 @@ function updateEnumaElish(deltaTime) {
             seq.phase = 1;
             _setShake(12, 300);
             window._eeScreenFlash = 0.8;
+            // release crack + the beam roar (reuses Leviathan Perseverance's
+            // laser cue rather than a new asset - same "sustained beam" sound)
             if (window.AudioMgr) {
                 window.AudioMgr.playSfxAt('enuma-elish-release', seq.x, seq.y);
                 window.AudioMgr.playSfxAt('leviathan-perseverance', seq.x, seq.y);
@@ -133,13 +140,17 @@ function updateEnumaElish(deltaTime) {
             for (const en of enemies) {
                 if (!_skillDCanTarget(en) || en.hp <= 0 || en._markedForDeath) continue;
                 if (distToSegment(en, { x: seq.x, y: seq.y }, { x: endX, y: endY }) >= EE_BEAM_HALF + (en.size || 20) / 2) continue;
+                // ambient sparks off anything currently caught in the beam
                 if (Math.random() > 0.7) createParticles(en.x, en.y, 5, '#fca5a5', 2, 5);
                 if (seq.hitEnemies.has(en)) continue;
                 seq.hitEnemies.add(en);
-                const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.hp * EE_DMG_PCT));
+                const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.maxHp * EE_DMG_PCT));
                 dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
                 particles.push({ isEeSlash: true, x: en.x, y: en.y, angle: seq.angle + (Math.random() - 0.5) * 0.5, lifetime: 400, maxLifetime: 400 });
             }
+            // Ring-shaped shockwaves drifting outward along the beam - the
+            // "smoke rings" from the reference demo, spawned every ~50ms at a
+            // random distance down the beam's length
             if (now - seq._lastShockwaveAt >= 50) {
                 seq._lastShockwaveAt = now;
                 seq.shockwaves.push({ dist: 100 + Math.random() * (reach - 100), scale: 0.1, alpha: 1.0 });
@@ -157,29 +168,3 @@ function updateEnumaElish(deltaTime) {
     }
 }
 
-// --- Harness-only trigger wrapper -----------------------------------------
-// Mirrors the proc conditions from js/entities.js's dealDamage() (search
-// "cong_babylon" / "enuma_elish" there) since this page doesn't load the
-// real damage pipeline.
-function dealDamageAndMaybeTriggerAries(enemy, source) {
-    dealDamage(enemy, source);
-    const now = performance.now();
-
-    if (_hasBuff('cong_babylon') && now >= (window._gobCooldownEnd || 0)) {
-        window._gobCooldownEnd = now + 4500;
-        window._gobSequences = window._gobSequences || [];
-        window._gobSequences.push(_createGobSequence(now));
-    }
-
-    if (_hasBuff('enuma_elish')) {
-        window._eeHitCounter = (window._eeHitCounter || 0) + 1;
-        if (window._eeHitCounter >= 40) {
-            window._eeHitCounter = 0;
-            const target = _eeFindPriorityTarget();
-            if (target) {
-                window._eeSequences = window._eeSequences || [];
-                window._eeSequences.push(_createEeSequence(now, target));
-            }
-        }
-    }
-}
