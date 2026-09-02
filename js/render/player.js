@@ -6,10 +6,10 @@
 // (silence-only) get visually distinct badges over the ship - same asset-
 // loading pattern as the Photokrystos boomerang sprite in skill-s-spirit.js.
 const _dargruelSilenceImg = new Image();
-_dargruelSilenceImg.src = 'assets/images/game/dargruel-root-silence-debuff.png';
+_dargruelSilenceImg.src = 'assets/images/game/icons/dargruel-root-silence-debuff.png';
 _dargruelSilenceImg.decode().catch(() => {});
 const _goliathSilenceImg = new Image();
-_goliathSilenceImg.src = 'assets/images/game/goliath-silence-debuff.png';
+_goliathSilenceImg.src = 'assets/images/game/icons/goliath-silence-debuff.png';
 _goliathSilenceImg.decode().catch(() => {});
 
 // Great Sage sigil: commissioned gem-slot frame (gold oval band, 3 holes,
@@ -17,7 +17,7 @@ _goliathSilenceImg.decode().catch(() => {});
 // radius measured directly off the source PNG (1264x848) so the 3 gem
 // dots line up exactly regardless of the on-screen display size chosen.
 const _greatSageGemFrameImg = new Image();
-_greatSageGemFrameImg.src = 'assets/images/game/great-sage-gem-frame.png';
+_greatSageGemFrameImg.src = 'assets/images/game/sigils/great-sage-gem-frame.png';
 _greatSageGemFrameImg.decode().catch(() => {});
 const GREAT_SAGE_GEM_FRAME_HOLE_FRAC = { offsetX: 294 / 1264, r: 115.5 / 1264 };
 
@@ -337,7 +337,7 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     // Empower flash — plays right as the Remembrance Spirit's Blade Arc or
     // Phōtokrystos's boomerang launches, telegraphing "this is the player's
     // own summon attacking" even though the projectile spawns from the
-    // spirit's orbit position, not the ship itself. Set by js/skills.js at
+    // spirit's orbit position, not the ship itself. Set by js/skills/skill-s-spirit.js at
     // each launch (_empowerFlashStart/_empowerFlashEnd). Colored to match
     // the Remembrance Spirit's own magenta/white palette (js/render/
     // skill-s-spirit.js) instead of a generic white/blue hit-flash, so it
@@ -769,11 +769,11 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     }
 
     // Great Sage sigil: gem-slot frame hovering above the ship, commissioned
-    // gold-oval artwork (great-sage-gem-frame.png) instead of hand-drawn
+    // gold-oval artwork (sigils/great-sage-gem-frame.png) instead of hand-drawn
     // shapes, with the 3 gem dots positioned to land exactly in its 3 holes
     // (measured off the source image, GREAT_SAGE_GEM_FRAME_HOLE_FRAC).
     // Empty slots are a dim outline; filled ones light up in the stolen
-    // enemy's own gem colors (GREAT_SAGE_GEM_INFO, js/skills.js). Gated on
+    // enemy's own gem colors (GREAT_SAGE_GEM_INFO, js/skills/sigil-great-sage.js). Gated on
     // xOffset===0 && !pos on top of the usual alpha===1 check so it draws
     // only on the real ship, not the Yog-Sothoth Shift teleport decoys
     // (drawSkillShiftEffects calls drawPlayer(1, leftX/rightX offset) for

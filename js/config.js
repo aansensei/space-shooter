@@ -90,7 +90,7 @@ let deathStar = null, lastSkillD = -Infinity;
 const skillDCooldown = 10000;
 // Death Star's actual visible/contact radius = deathStar.size * this
 // multiplier (matches the base disc drawn at size*2.5 scaled by DS_SCALE =
-// 2.0/2.8 in js/render/skill-d.js) — shared between skills.js's own contact
+// 2.0/2.8 in js/render/skill-d.js) — shared between js/skills/skill-d.js's own contact
 // check and entities.js's Galactic Spaceships proximity-spawn check so the
 // two can never drift apart.
 const SKILLD_CONTACT_MULT = 2.5 * (2.0 / 2.8);
@@ -116,7 +116,7 @@ const SKILL_F_ELITE_TIERS = ['thaelis', 'aegis_core', 'egregor', 'marchosias', '
 let _skillFHitFlashes = [];
 // Great Sage sigil only: active stolen-attack effects (telegraphs, sweeps,
 // delayed strikes) spent gems enqueue - see _castStolenGemAttack/
-// _updateGreatSageEffects in js/skills.js and _drawGreatSageEffects in
+// _updateGreatSageEffects in js/skills/sigil-great-sage.js and _drawGreatSageEffects in
 // js/render/skill-f.js
 let _greatSageEffects = [];
 
@@ -126,7 +126,7 @@ let _greatSageEffects = [];
 let _tidalSurgeMeter = 0;
 const TIDAL_SURGE_METER_MAX = 4000;
 // Active whirlpools: {x, y, phase, timer, hitEnemies}. Advanced by
-// _updateTidalSurge (js/skills.js), drawn by js/render/sigil-cancer.js.
+// _updateTidalSurge (js/skills/sigil-cancer.js), drawn by js/render/sigil-cancer.js.
 let _tidalSurgeEffects = [];
 // Cancer sigil (Lunar Aegis / Ocean Hunter): queued bite visuals, one per
 // enemy executed at low HP - {x, y, spawnAt, duration, fromLeft}.

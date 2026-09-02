@@ -122,7 +122,7 @@ function handleEnemyKill(enemy) {
     // Galactic Spaceships (Skill D passive): ANY enemy that dies within
     // radius of an active Death Star spawns an allied spaceship, no matter
     // what killed it — an ally, the player, or the Death Star itself. This
-    // is separate from _skillDOnKill's cooldown refund (js/skills.js), which
+    // is separate from _skillDOnKill's cooldown refund (js/skills/skill-d.js), which
     // only fires for the Death Star's own 3 kill sources.
     if (deathStar) {
         const _dsSpawnR = deathStar.size * SKILLD_CONTACT_MULT + 180;
@@ -1424,7 +1424,7 @@ function dealDamage(enemy, source) {
     // Gate of Babylon (cong_babylon): every landed ally hit (except Skill D/F,
     // and not a blade's own impact) can open gates around the player and
     // fire a fan of 14 piercing blades, 1.5s CD. Timeline/collision runs in
-    // updateGateOfBabylon (js/skills.js); this just spawns the sequence.
+    // updateGateOfBabylon (js/skills/sigil-aries.js); this just spawns the sequence.
     if (_hasBuff('cong_babylon') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isGobBlade && !source._isYuushaParty && totalDamage > 0) {
         const _gobNow = performance.now();
         if (_gobNow >= (window._gobCooldownEnd || 0)) {
@@ -1440,7 +1440,7 @@ function dealDamage(enemy, source) {
     // current position that hurls a giant piercing spear toward whichever
     // enemy is the current highest priority (Dominator/Digiform first, else
     // highest HP), locked in at trigger time, 1s CD. Timeline/collision
-    // runs in updateEnumaElish (js/skills.js).
+    // runs in updateEnumaElish (js/skills/sigil-aries.js).
     if (_hasBuff('enuma_elish') && !isSentinel && !source._isSkillF && !source._isSkillD && !source._isEeSpear && !source._isYuushaParty && totalDamage > 0) {
         window._eeHitCounter = (window._eeHitCounter || 0) + 1;
         const _eeNow = performance.now();

@@ -40,7 +40,7 @@
     <canvas id="gameCanvas" width="600" height="800"></canvas>
 </div>
 
-<!-- Minimal stand-ins for the globals js/render/*.js and js/skills.js read.
+<!-- Minimal stand-ins for the globals js/render/*.js and js/skills/sigil-aries.js read.
      Loaded BEFORE the real files so their top-level `let`/`const` bindings
      are visible to them (classic scripts share one global lexical scope). -->
 <script>
@@ -101,10 +101,10 @@
 <script src="../js/render/fx.js"></script>
 <script src="../js/render/player.js"></script>
 <script>
-    // Just the 5 Aries functions, copied verbatim from js/skills.js so this
+    // Just the 5 Aries functions, copied verbatim from js/skills/sigil-aries.js so this
     // harness doesn't need to load the whole 2500-line file (which assumes
     // a fully booted game). If Gate of Babylon / Enuma Elish's mechanic ever
-    // changes in js/skills.js, re-copy these from there to keep this in sync
+    // changes in js/skills/sigil-aries.js, re-copy these from there to keep this in sync
     // — this is the ONE piece of this file that duplicates real-game code
     // rather than loading it directly, and it's the mechanic (not the VFX,
     // which loads for real above), so a drift here would misrepresent

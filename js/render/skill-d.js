@@ -2,7 +2,7 @@
 // render/skill-d.js — Death Star: Draconic Annihilation (Tinh Vương Long: Tử
 // Long Tinh). Charge VFX (drawSkillDCharging), the Death Star body itself
 // (drawDeathStar), the mark->laser beams (drawSkillDLasers) and spaceship
-// firing bolts (drawSkillDBolts) fired from js/skills.js's updateSkillD, and
+// firing bolts (drawSkillDBolts) fired from js/skills/skill-d.js's updateSkillD, and
 // the allied spaceship drone (drawSkillDSpaceships).
 
 function drawSkillDCharging() {
@@ -464,7 +464,7 @@ function drawDeathStar() {
 
 // Crosshair ring around each currently-marked target, telegraphing the
 // upcoming Mark & Annihilate beam — the mechanic has no other visual cue
-// without this, since js/skills.js only tracks the mark as a plain array.
+// without this, since js/skills/skill-d.js only tracks the mark as a plain array.
 function drawSkillDMarks() {
     if (!deathStar || !deathStar.markedTargets) return;
     for (const e of deathStar.markedTargets) {

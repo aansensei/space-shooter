@@ -1,7 +1,7 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/render/sigil-cancer.js — Cancer sigil VFX: Tidal Flow's Riptide Surge
 // (tide meter, whirlpool, killer-whale bite) and Lunar Aegis's Ocean Hunter
-// (execute lunge). Mechanic/state lives in js/skills.js (_tidalSurgeEffects,
+// (execute lunge). Mechanic/state lives in js/skills/sigil-cancer.js (_tidalSurgeEffects,
 // _tidalSurgeMeter) and js/entities/core.js (_oceanHunterBites queue).
 // Tier-scaled the same way as every other effect here: _gfxLevel<1 = FULL
 // only extras, _gfxLevel<2 = FULL+MED, !_mobPerf gates shadowBlur.
@@ -13,7 +13,7 @@
 // Great Sage's GREAT_SAGE_GEM_FRAME_HOLE_FRAC), so the fill bar drawn
 // underneath lines up exactly with the opening instead of guessing.
 const _tidalMeterFrameImg = new Image();
-_tidalMeterFrameImg.src = 'assets/images/game/tidal-meter-frame.png';
+_tidalMeterFrameImg.src = 'assets/images/game/sigils/tidal-meter-frame.png';
 const TIDAL_METER_FRAME_ASPECT = 768 / 1376;
 const TIDAL_METER_HOLE_FRAC = { x0: 0.1294, x1: 0.8700, y0: 0.4206, y1: 0.5781 };
 
@@ -23,7 +23,7 @@ const TIDAL_METER_HOLE_FRAC = { x0: 0.1294, x1: 0.8700, y0: 0.4206, y1: 0.5781 }
 // no extra clip is needed here; just drawn centered and rotated with the
 // whirlpool's own spin.
 const _whirlpoolFloorImg = new Image();
-_whirlpoolFloorImg.src = 'assets/images/game/cancer-whirlpool-oceanfloor.png';
+_whirlpoolFloorImg.src = 'assets/images/game/sigils/cancer-whirlpool-oceanfloor.png';
 
 // Stationary horizontal bar above the player ship - only shown once Tidal
 // Flow is actually equipped, so players without it see no change. Stacks
@@ -335,13 +335,17 @@ function _drawKillerWhale(x, y, scale, facing, rot, jawOpen, flex) {
     }
 
     if (_gfxLevel === 0) {
-        // 4. rim-light highlight along the top edge
+        // 4. rim-light highlight along the top edge, with a soft glow so the
+        // wet skin actually looks lit instead of just a bright stripe
         const rimGrad = ctx.createLinearGradient(0, -25, 0, 0);
         rimGrad.addColorStop(0, 'rgba(180,240,255,0.7)');
         rimGrad.addColorStop(1, 'rgba(180,240,255,0)');
         ctx.strokeStyle = rimGrad;
         ctx.lineWidth = 6;
+        ctx.shadowColor = 'rgba(150,230,255,0.9)';
+        ctx.shadowBlur = 10;
         ctx.stroke(bodyPath);
+        ctx.shadowBlur = 0;
 
         // 5. wet specular streak on the melon
         const specPath = new Path2D();
@@ -457,8 +461,11 @@ function _drawKillerWhale(x, y, scale, facing, rot, jawOpen, flex) {
     if (_gfxLevel === 0) {
         ctx.fillStyle = '#6ab8cc';
         ctx.beginPath(); ctx.arc(eyeX + 0.4, eyeY, 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 3;
         ctx.fillStyle = '#ffffff';
         ctx.beginPath(); ctx.arc(eyeX + 0.6, eyeY - 0.3, 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
     }
 
     ctx.restore();
@@ -518,7 +525,7 @@ function _drawWaveRipple(x, y, age, life, maxR, width, color) {
 }
 
 // Full "Tidal Surge" sequence: whirlpool spawns, pulls enemies (motion
-// handled in _updateTidalSurge, js/skills.js), whale breaches at the bite
+// handled in _updateTidalSurge, js/skills/sigil-cancer.js), whale breaches at the bite
 // moment, then everything fades. One draw pass per active whirlpool.
 function _drawTidalSurgeEffects() {
     if (!_tidalSurgeEffects.length) return;

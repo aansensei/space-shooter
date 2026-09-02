@@ -143,7 +143,7 @@ function _drawPersianTile(tx, ty, tileSize, baseAlpha, hue) {
 // uses. Shows a torn-open window into another universe (starfield +
 // distant galaxy) instead of a flat dark gradient disc.
 const _riftVoidImg = new Image();
-_riftVoidImg.src = 'assets/images/game/rift-void.png';
+_riftVoidImg.src = 'assets/images/game/effects/rift-void.png';
 // Force async decode now instead of on first draw - this sprite is only
 // ever drawn once a rift actually spawns (a conditional Skill A proc that
 // might not happen until well into a run), so without this the browser
@@ -959,7 +959,7 @@ function _drawVanguardThreads() {
 // neutral gunmetal gray with no baked-in color so the glowColor tint (ring
 // stroke + core gem, set below) keeps working unchanged on top of it.
 const _sentinelShellImg = new Image();
-_sentinelShellImg.src = 'assets/images/game/sentinel-shell.png';
+_sentinelShellImg.src = 'assets/images/game/effects/sentinel-shell.png';
 _sentinelShellImg.decode().catch(() => {}); // force async decode now, not on first draw
 
 function drawSentinel(sentinel) {
