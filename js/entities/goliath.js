@@ -782,7 +782,7 @@ function _goliathEnterTrueForm(enemy) {
     enemy.inCoronation = false; // giờ mới có thể bị nhắm mục tiêu
     enemy.size = 260; // giảm ~7% so với 280 theo yêu cầu
     const pulledCapped = Math.min(320000, enemy.damagePull);
-    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult());
+    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult() * 1.20);
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     enemy.trueFormReady = true;
     if (window.AudioMgr) { window.AudioMgr.exitGoliathTransformDuck(); window.AudioMgr.startGoliathIdle(); }
