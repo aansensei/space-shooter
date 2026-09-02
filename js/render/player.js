@@ -778,6 +778,7 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     // only on the real ship, not the Yog-Sothoth Shift teleport decoys
     // (drawSkillShiftEffects calls drawPlayer(1, leftX/rightX offset) for
     // those, which alpha===1 alone doesn't rule out).
+    if (alpha === 1 && xOffset === 0 && !pos) window._greatSageFrameClearance = 0;
     if (alpha === 1 && xOffset === 0 && !pos && typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')
         && _greatSageGemFrameImg.complete && _greatSageGemFrameImg.naturalWidth) {
         const gNow = performance.now();
@@ -786,6 +787,11 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         const slotOffsetX = frameW * GREAT_SAGE_GEM_FRAME_HOLE_FRAC.offsetX;
         const slotR = frameW * GREAT_SAGE_GEM_FRAME_HOLE_FRAC.r;
         const medY = -(player.height / 2 + frameH / 2 + 12);
+        // Published so any other "hovering above the ship" HUD element (e.g.
+        // Cancer's tide meter, js/render/sigil-cancer.js) can stack itself
+        // above this frame instead of drawing on top of it when both sigils
+        // are equipped at once.
+        window._greatSageFrameClearance = frameH + 12;
         ctx.save();
         ctx.translate(0, medY);
 

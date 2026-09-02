@@ -728,14 +728,14 @@ function dealDamage(enemy, source) {
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
     // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
-    // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 48% khi
+    // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 40% khi
     // đánh Goliath True Form — áp dụng SỚM, trước DR/Inevitable cap/true-dmg
     // bypass, để đè lên cả 2 loại sát thương thường lẫn true damage (boomerang).
     // Back to Motherland (đại kỹ của Remembrance Spirit) mượn cờ isPhoto cho
     // mục đích khác, không phải đòn Photokrystos thật, nên loại trừ riêng.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && (source.isPhoto || source._isPhotoSourced)
         && source._statSrc !== 'Skill S: Back to Motherland') {
-        totalDamage = Math.ceil(totalDamage * 0.52);
+        totalDamage = Math.ceil(totalDamage * 0.60);
     }
 
     if (!isSentinel && !source._vanguardTag && !source._noBase60
@@ -920,7 +920,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-        combinedDR += 0.70 * Math.pow(0.85, _goliathWaningStacks(enemy)); // Inevitable: 70% base DR, decayed by Waning Might
+        combinedDR += 0.70 * _goliathWaningMult(0.85, _goliathWaningStacks(enemy)); // Inevitable: 70% base DR, decayed by Waning Might
 
         // Joker copies — mỗi cái chỉ cộng DR nếu Goliath THẬT SỰ có bảo thạch
         // đó (enemy._jokerState[name] chỉ tồn tại khi đã hấp thụ đúng viên)
@@ -1345,10 +1345,11 @@ function dealDamage(enemy, source) {
         }
     }
     // GOLIATH True Form, before Unbroken Will has fired: floor hp at 1
-    // instead of 0 — the actual kill only happens once a hit lands while
-    // already pinned here (see _goliathTryUnbrokenWill above), so the save
-    // can never be skipped by a hit that's simply too big to compute against
-    // the death-phase check below in the same call.
+    // instead of 0. _goliathTryUnbrokenWill above already catches the exact
+    // lethal hit directly (checks whether THIS hit would bring hp to 0 or
+    // below), so this floor is now just a safety net rather than the real
+    // trigger - it stops the death-phase check below from ever firing on a
+    // still-unsaved Goliath no matter how that hp value got computed.
     const _gFloor = (enemy.type === 'goliath' && enemy.phase === 'true_form' && !enemy._unbrokenWillUsed) ? 1 : 0;
     enemy.hp = Math.max(_gFloor, enemy.hp);
     // GOLIATH True Form: bắt + ghim hp=1 NGAY TẠI ĐÂY, ĐỒNG BỘ trong chính

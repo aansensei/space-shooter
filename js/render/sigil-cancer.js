@@ -18,11 +18,14 @@ const TIDAL_METER_FRAME_ASPECT = 768 / 1376;
 const TIDAL_METER_HOLE_FRAC = { x0: 0.1294, x1: 0.8700, y0: 0.4206, y1: 0.5781 };
 
 // Stationary horizontal bar above the player ship - only shown once Tidal
-// Flow is actually equipped, so players without it see no change.
+// Flow is actually equipped, so players without it see no change. Stacks
+// above Great Sage's own gem-slot frame (js/render/player.js) instead of
+// drawing on top of it when both sigils are equipped at once.
 function _drawTidalSurgeMeter() {
     if (!_hasBuff('trieu_hoi')) return;
     const w = 110, h = w * TIDAL_METER_FRAME_ASPECT;
-    const x = player.x - w / 2, y = player.y - player.height / 2 - h - 6;
+    const clearAbove = window._greatSageFrameClearance || 0;
+    const x = player.x - w / 2, y = player.y - player.height / 2 - h - 6 - clearAbove;
 
     const holeX = x + w * TIDAL_METER_HOLE_FRAC.x0;
     const holeY = y + h * TIDAL_METER_HOLE_FRAC.y0;
