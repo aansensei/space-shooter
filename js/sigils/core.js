@@ -1,129 +1,12 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
-// Zodiac Sigil system — 12 sigils, pick 1 at wave 5 and 1 at wave 10
+// Zodiac Sigil engine: the generic picker/HUD/glyph machinery shared by every
+// sigil. Per-sigil EN+VI data (name/element/buff text) lives one file per sigil in
+// this same folder (js/sigils/<id>.js), each assigning into the SIGIL_DEFS and
+// SIGIL_I18N_VI objects declared empty right below - this file must load BEFORE
+// any of them (see index.html's script order). Split out of the old monolithic
+// js/sigils.js so each sigil's own data lives in its own small file.
 
-const SIGIL_DEFS = {
-    aries: {
-        name: 'Aries', element: 'Fire', color: '#EF9F27',
-        buffs: [
-            { id: 'cong_babylon', name: 'Gate of Babylon', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every landed hit from any allied source (except Skill D and Skill F) can open gates around the player and fire 14 blades in a fan, each piercing through every enemy in its path and dealing 50 + 4% EP as true damage per enemy hit (1.5s CD).' },
-            { id: 'enuma_elish', name: 'Enuma Elish', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 30 landed hits from any allied source (except Skill D and Skill F) summons a phantom double of the player that hurls a massive spear straight through the highest-priority enemy\'s direction (Dominator/Digiform first, otherwise highest current HP), piercing every enemy in the line: each one hit takes 15% of its own Max HP as true damage, capped at 16,000 (0.5s CD).' },
-        ]
-    },
-    taurus: {
-        name: 'Taurus', element: 'Earth', color: '#4D9B2A',
-        buffs: [
-            { id: 'doi_hinh_chien', name: 'Yuusha Party', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Summon a squad of 4 Sentinels that follow in formation above the player, one of each role (Tank 300 HP, Support/Marksman/Mage 200 HP each). Each member has its own HP bar and role-specific weapon, respawns 5s after falling (same role), and shares every buff real Sentinels get (Blessing, Gaia Protection/Barrier, Lunar Aegis, Last Stand, Glory for Justice). Enemy bullets passing near the squad can strike a member: Tanks draw ~75% of it. Piercing enemy attacks that would cost the player a life instead strike every living squad member at once, each taking 1.5x that same attack\'s real-Sentinel damage (non-piercing hits are unaffected). Every 1s, if no real Sentinels remain, 2 are spawned back in (2s cooldown).' },
-            { id: 'hiep_luc', name: 'Squad Synergy', type: 'ATK', typeC: '#ef4444',
-              desc: 'Tank: absorb meter fills from squad damage and from damage it soaks (30%) off real Sentinels\' hits; at 100 fires a piercing SentinelBlade sweep (40 + 4% EP true dmg per enemy) and heals itself 20 HP. Support: heals the 2 lowest-HP% targets across both the squad and real Sentinels for 50 HP each (never the player). Marksman: auto-fires a piercing arrow every 0.3s (75 + 5% EP). Mage: orbiting crystal flies to the nearest enemy roughly every 1s and detonates an arcane AoE zone (3s, 50 + 4% EP/tick).' },
-        ]
-    },
-    gemini: {
-        name: 'Gemini', element: 'Air', color: '#378ADD',
-        buffs: [
-            { id: 'bong_doi', name: 'Shadow Twin', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 10th hit landed by any allied source (Sentinels excluded) charges for 0.5s, then a phantom twin ship appears at a random screen edge and fires 3 volleys of piercing plasma orbs at random enemies, flying all the way across the screen. Each volley is 1 large orb flanked by 2 small orbs. Small orb: 75 + 3% EP dmg. Large orb: 180 + 8% EP dmg. Each hit applies 2 Vulnerability stacks and Soul Reaver. 0.5s cooldown before it can trigger again.' },
-            { id: 'guong_laze', name: 'Mirror Laser', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Overload spawns 2 mirror entities (top-left & bottom-right) moving vertically in opposite directions (+25% speed), each firing a horizontal laser beam at 75% of the original beam damage. The original beam itself is buffed +30%. Additionally, every skill cast or auto-fire shot has a 5% chance (+0.3% per miss, resets on trigger) to fire a piercing green-purple laser column dealing 350 + 18% EP every 125ms for 3s — no enemy pull, stacks with Overload Laser (CD 4s).' },
-        ]
-    },
-    cancer: {
-        name: 'Cancer', element: 'Water', color: '#7F77DD',
-        buffs: [
-            { id: 'giap_nguyet', name: 'Lunar Aegis', type: 'DEF', typeC: '#3b82f6',
-              desc: 'Gaia Protection activates without Glory for Justice; Gaia Barrier absorption +40%; sentinels gain +20% evade. Ocean Hunter: any enemy at 8% HP or below is instantly finished off by a killer whale lunging in.' },
-            { id: 'trieu_hoi', name: 'Tidal Flow', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Sentinel regenerates 3% MaxHP/s (scales with tier); healing effectiveness +30%. Each sentinel gains 1 Iron Body layer; 8s CD starts only after it is consumed. If no sentinel is left, 2 are summoned back in (checked every 1s, 2s CD). Riptide Surge: absorbed hits feed a shared tide meter, plus a passive trickle scaling with how many sentinels are up (50/60/75 per s for 1/2/3+ alive); overflow banks up to +30% as a head start. Once full, press Space to erupt a whirlpool at every enemy on screen (up to 10, closest first), pulling everything nearby (CC-immune enemies and bullets included) toward center - anything caught takes 50 + 0.25% EP true damage every 100ms the whole time it exists - before bursting for 650 + 25% EP true damage when the whale bites.' },
-        ]
-    },
-    leo: {
-        name: 'Leo', element: 'Fire', color: '#EF9F27',
-        buffs: [
-            { id: 'su_tu_hong', name: "Lion's Roar", type: 'ATK', typeC: '#ef4444',
-              desc: 'While GFJ active, attacks inflict Burn: 200 + 5% EP DoT per 500ms for 3s (resets on new hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire. Every hit also deals bonus damage equal to 2% of the target\'s own lost HP.' },
-            { id: 'than_menh', name: 'Divine Fate', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Wave start: 5s freeze — all enemies stop moving (new spawns also frozen) + all damage +100%' },
-        ]
-    },
-    virgo: {
-        name: 'Virgo', element: 'Earth', color: '#4D9B2A',
-        buffs: [
-            { id: 'mui_ten_vang', name: 'Forest Guardian', type: 'ATK', typeC: '#ef4444',
-              desc: 'Every 6th auto volley triggers a Critical Strike: 4x damage, Vulnerability, root + silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped wooden fist sweeps across the screen (60% of screen width), dealing 1000 + 10% EP + 15% of each target\'s lost HP.' },
-            { id: 'ky_su_dien', name: 'Circuit Engineer', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Tesla DoT & Coil +50% dmg; destroying a Coil reduces Skill G CD by 3s and increases G energy gain by 10%. Enemies carrying any debuff (slow, DoT, Vulnerability, Soul Reaver, etc.) take +50% damage from all sources.' },
-        ]
-    },
-    libra: {
-        name: 'Libra', element: 'Air', color: '#378ADD',
-        buffs: [
-            { id: 'mui_ten_apollo', name: "Blood Arrow", type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Skill A cooldown -2s while Libra is equipped. Each Skill A cast fires 3 arrows after a 0.5s windup: 1 big arrow marks the highest-EP enemy, the other 2 mark random enemies (biased toward denser clusters). Each arrow pierces all enemies (300 base dmg) and explodes on its marked target (400 base + 20% EP, up to +100% more from the target\'s DR). All hit enemies take 2 Vulnerability stacks. The 2 small arrows deal 40% less damage but fly 20% faster than the big one, which is also 15% bigger.' },
-            { id: 'xuyen_pha', name: 'Astral Pierce', type: 'ATK', typeC: '#ef4444',
-              desc: 'Skill A orbs pierce through their target on impact and continue flying to the screen edge, dealing hit damage to every enemy they cross. Orb size +30%.' },
-        ]
-    },
-    scorpio: {
-        name: 'Scorpio', element: 'Water', color: '#7F77DD',
-        buffs: [
-            { id: 'hoan_sinh', name: 'Resurrection', type: 'HEAL', typeC: '#22c55e',
-              desc: 'On pick: immediately gain +5 lives. Life bonus rate: +1 life per 250,000 pts (instead of 500,000)' },
-            { id: 'tu_huyet', name: 'Death Mark', type: 'ATK', typeC: '#ef4444',
-              desc: 'HP 100%→21%: +0%→+70% damage linearly. HP ≤20%: +80% damage from all sources. HP ≤5%: lightning instakill. Skill F blade arc pierces Iron Body. Enemies below 50% HP show a cyan warning ring.' },
-        ]
-    },
-    sagittarius: {
-        name: 'Sagittarius', element: 'Fire', color: '#EF9F27',
-        buffs: [
-            { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
-              desc: 'Spirit arc slash fires 2 blades (+60% each, 2nd fires 15ms later), plus a 25% chance for a 3rd blade. Each boomerang has 40% chance for 2 extra. Skill F sweep now throws 2 boomerangs from the player instead of blade arcs. Extra blades have +20% radius. Every auto-fire shot has a 15% chance to fire an arc blade (300 + 7% EP), same as the spirit\'s.' },
-            { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
-              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune targets are never pulled, but are still slowed. Remembrance Spirit and Phōtokrystos fire rate +30%.' },
-        ]
-    },
-    capricorn: {
-        name: 'Capricorn', element: 'Earth', color: '#4D9B2A',
-        buffs: [
-            { id: 'lai_kep', name: 'Compound Interest', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Each kill grants +0.8% PE; every 5% PE gained increases all ally fire rate by 1.5% (max +40%, preserved through BTM). While the great spirit is alive, every ally attack deals +200 bonus true damage.' },
-            { id: 'tuyet_lan', name: 'Avalanche', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Each kill grants +0.5% global damage (resets after 6s without a kill, max +70%)' },
-        ]
-    },
-    aquarius: {
-        name: 'Aquarius', element: 'Air', color: '#378ADD',
-        buffs: [
-            { id: 'set_day_chuyen', name: 'Chain Lightning', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Tesla DoT: 50% chain to nearest enemy within 150px. Skill G charge rate +35%. While Skill G is active, every energy orb that expires without pairing into a Tesla coil grants a stacking +15% ally dmg buff (max 6 stacks, 5s each), and is siphoned into an extra Skill A orb if Skill A has room.' },
-            { id: 'dien_tu_truong', name: 'Magnetic Field', type: 'DEF', typeC: '#3b82f6',
-              desc: 'While Skill G is active or fully charged, enemies within 300px are slowed 30% and suffer 3.5% MaxHP DoT/s' },
-        ]
-    },
-    pisces: {
-        name: 'Pisces', element: 'Water', color: '#7F77DD',
-        buffs: [
-            { id: 'coi_mong', name: 'Dream Realm', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Shift activation negates all enemy damage for 3s and marks all enemies on screen (each instantly takes 1 Vulnerability stack). After 1.65s, marked enemies burst for 60% of the damage they accumulated during the mark window plus 35% of their lost HP.' },
-            { id: 'dong_chay_luan_hoi', name: 'Cycle of Flow', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Kill apostle: −1s all skill CD; kill abnormal/elite: −1.5s; kill dominator: −2s; kill Egregor: −3s. Every full screen-width of actual movement also takes −0.5s off all skill CDs. Charge rate for Phōtokrystos and Skill G +50%. Skill D, Skill F and Overload Laser fire instantly, skipping their charge phase entirely (Shift unaffected).' },
-        ]
-    },
-    // First entry of a future "Vietnamese Zodiac" (12 con giáp) sigil set,
-    // alongside the 12 Western signs above - not one of them, so it's kept
-    // out of SIGIL_ORDER's fixed Western sequence and appended into the
-    // random pool separately (see window._sigilPool in main.js).
-    than: {
-        name: 'Great Sage', element: 'Earth', color: '#D62839',
-        buffs: [
-            { id: 'cuop_bao_tang', name: 'Ransacked Treasury', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Annihilation Sweep is reskinned into the Great Sage\'s own Ruyi Jingu Bang, widening with every kill it lands within a single cast (up to 4.5x its starting width, resetting each cast). Every kill on an Elite-tier-or-higher enemy also plunders that enemy\'s own gem (up to 3 held at once, one of each kind) - the same way the Great Sage once ransacked the Dragon King\'s undersea treasury. Pressing Annihilation Sweep again while it is still on cooldown spends the oldest gem to unleash a scaled-down copy of that enemy\'s own signature attack and fires the sweep again immediately, ignoring the remaining cooldown - the sweep itself is unchanged (still an instant kill on contact).' },
-            { id: 'bien_hoa_72', name: '72 Transformations', type: 'ATK', typeC: '#ef4444',
-              desc: 'While holding 3 different gems at once, every stolen attack unleashed hits 1.5x as hard - the Great Sage\'s full mastery of borrowed powers, "72 Transformations" for whatever the moment demands.' },
-        ]
-    },
-};
+const SIGIL_DEFS = {};
 
 const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
                      'libra','scorpio','sagittarius','capricorn','aquarius','pisces'];
@@ -141,60 +24,7 @@ const SIGIL_EXTRA = ['than'];
 // swaps to this via _localizedSigil(); every other reader of SIGIL_DEFS is
 // untouched, so a 'Fire'/'Air' element check elsewhere never sees a
 // Vietnamese string.
-const SIGIL_I18N_VI = {
-    aries: { name: 'Bạch Dương', element: 'Hỏa', buffs: {
-        cong_babylon: { name: 'Cổng Babylon', desc: 'Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể mở cổng quanh người chơi và phóng 14 lưỡi kiếm theo hình quạt, mỗi lưỡi xuyên qua mọi kẻ địch trên đường bay, gây 50 + 4% EP sát thương chuẩn cho mỗi kẻ địch bị xuyên (hồi chiêu 2.5s).' },
-        enuma_elish: { name: 'Enuma Elish', desc: 'Cứ mỗi 30 đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F), triệu hồi 1 bản thể ma ảnh của người chơi phóng 1 lưỡi thương khổng lồ thẳng theo hướng kẻ địch ưu tiên cao nhất (Dominator/Digiform trước, không thì HP hiện tại cao nhất), xuyên qua mọi kẻ địch trên đường bay, mỗi kẻ bị xuyên nhận 15% Max HP của chính nó dưới dạng sát thương chuẩn, tối đa 16,000 (hồi chiêu 0.5s).' },
-    }},
-    taurus: { name: 'Kim Ngưu', element: 'Thổ', buffs: {
-        doi_hinh_chien: { name: 'Tổ Đội Dũng Giả', desc: 'Triệu hồi đội hình 4 Vệ Binh bám theo đội hình phía trên người chơi, đủ 4 vai trò (Tank 300 HP, Support/Marksman/Mage mỗi con 200 HP). Mỗi thành viên có thanh HP riêng, vũ khí theo vai trò, hồi sinh sau 5s nếu gục (giữ nguyên vai trò cũ), và nhận đủ mọi buff mà Vệ Binh thật có (Blessing, Gaia Protection/Barrier, Lunar Aegis, Last Stand, Glory for Justice). Đạn địch bay gần đội hình có thể trúng 1 thành viên, Tank hứng ~75% số đó. Đòn tấn công xuyên (piercing) của địch đáng lẽ khiến người chơi mất mạng sẽ đánh trúng CẢ 4 thành viên còn sống cùng lúc, mỗi đứa chịu 1.5 lần sát thương mà chính đòn đó gây lên Vệ Binh thật (đạn/đòn thường không xuyên thì không có cơ chế này). Mỗi 1s, nếu bản đồ không còn Vệ Binh thật nào thì tự động spawn lại 2 con (hồi chiêu 2s).' },
-        hiep_luc: { name: 'Hiệp Lực Tổ Đội', desc: 'Tank: thanh hấp thụ đầy từ sát thương đội hình và từ phần dame nó gánh hộ (30%) mỗi khi Vệ Binh thật ăn đòn; đầy 100 → phóng lưỡi chém xuyên SentinelBlade (40 + 4% EP sát thương chuẩn mỗi kẻ địch) kèm tự hồi 20 HP. Support: hồi máu cho 2 mục tiêu %HP thấp nhất trong CẢ đội hình lẫn Vệ Binh thật (không phải người chơi), mỗi người 50 HP. Marksman: tự động bắn mũi tên xuyên mỗi 0.3s (75 + 5% EP). Mage: ngọc vệ tinh bay đến kẻ địch gần nhất khoảng mỗi 1s và nổ vùng arcane AoE (3s, 50 + 4% EP/tick).' },
-    }},
-    gemini: { name: 'Song Tử', element: 'Phong', buffs: {
-        bong_doi: { name: 'Ảnh Song', desc: 'Mỗi đòn đánh trúng thứ 10 từ bất kỳ nguồn phe ta nào (trừ Vệ Binh) tích 0.5s, sau đó 1 tàu bóng ma xuất hiện ở một cạnh màn hình ngẫu nhiên và bắn 3 đợt cầu plasma xuyên phá vào kẻ địch ngẫu nhiên, bay xuyên suốt màn hình. Mỗi đợt gồm 1 cầu lớn kèm 2 cầu nhỏ. Cầu nhỏ: 75 + 3% EP sát thương. Cầu lớn: 180 + 8% EP sát thương. Mỗi lần trúng gây 2 lớp Trọng Thương và Soul Reaver. Hồi chiêu 0.5s trước khi kích hoạt lại.' },
-        guong_laze: { name: 'Gương Quang Tuyến', desc: 'Overload Laser sinh ra 2 thực thể gương (trên-trái & dưới-phải) di chuyển dọc theo hướng ngược nhau (+25% tốc độ), mỗi cái bắn 1 tia laser ngang bằng 75% sát thương tia gốc. Tia gốc được buff +30%. Ngoài ra, mỗi lần dùng skill hoặc bắn tự động có 5% cơ hội (+0.3% mỗi lần trượt, reset khi kích hoạt) bắn ra 1 cột laser xanh-tím xuyên phá gây 350 + 18% EP mỗi 125ms trong 3s — không hút địch, cộng dồn với Overload Laser (hồi chiêu 4s).' },
-    }},
-    cancer: { name: 'Cự Giải', element: 'Thủy', buffs: {
-        giap_nguyet: { name: 'Nguyệt Giáp', desc: 'Gaia Protection kích hoạt mà không cần Glory for Justice; khả năng hấp thụ của Gaia Barrier +40%; Vệ Binh nhận +20% né tránh. Sát Thủ Đại Dương: kẻ địch còn 8% HP trở xuống lập tức bị 1 con cá voi sát thủ lao vào cắn chết.' },
-        trieu_hoi: { name: 'Triều Lưu', desc: 'Vệ Binh hồi 3% Max HP/s (tăng theo cấp bậc); hiệu quả hồi máu +30%. Mỗi Vệ Binh nhận 1 lớp Iron Body; hồi chiêu 8s chỉ bắt đầu sau khi lớp đó bị tiêu hao. Nếu không còn Vệ Binh nào, sẽ triệu hồi lại 2 con (kiểm tra mỗi 1s, hồi chiêu 2s). Triều Cường: đòn bị hấp thụ đổ vào 1 thanh triều dùng chung, cộng thêm lượng thụ động theo số Vệ Binh còn sống (50/60/75 mỗi giây ứng với 1/2/3+ con); tràn thanh được tích thêm tối đa +30% làm đà cho lần sau. Khi đầy, ấn Space để tạo xoáy nước tại từng kẻ địch trên màn hình (tối đa 10, gần nhất trước), hút mọi thứ quanh đó (kể cả kẻ địch miễn CC và đạn địch) vào tâm - thứ gì dính vào chịu 50 + 0.25% EP sát thương chuẩn mỗi 100ms suốt thời gian xoáy còn tồn tại - rồi nổ tung gây 650 + 25% EP sát thương chuẩn khi cá voi cắn xuống.' },
-    }},
-    leo: { name: 'Sư Tử', element: 'Hỏa', buffs: {
-        su_tu_hong: { name: 'Sư Tử Hống', desc: 'Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 200 + 5% EP sát thương theo thời gian mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 2% HP đã mất của mục tiêu.' },
-        than_menh: { name: 'Thần Mệnh', desc: 'Đầu mỗi wave: đóng băng 5s — mọi kẻ địch ngừng di chuyển (kể cả địch mới xuất hiện) + toàn bộ sát thương +100%' },
-    }},
-    virgo: { name: 'Xử Nữ', element: 'Thổ', buffs: {
-        mui_ten_vang: { name: 'Hộ Lâm', desc: 'Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x4, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 1000 + 10% EP + 15% HP đã mất của mỗi mục tiêu.' },
-        ky_su_dien: { name: 'Kỹ Sư Mạch', desc: 'Sát thương theo thời gian Tesla & Cuộn Tesla +50%; phá hủy 1 Cuộn Tesla giảm 3s hồi chiêu Skill G và tăng 10% tốc độ nạp năng lượng G. Kẻ địch mang bất kỳ hiệu ứng bất lợi nào (chậm, sát thương theo thời gian, Trọng Thương, Soul Reaver,...) nhận +50% sát thương từ mọi nguồn.' },
-    }},
-    libra: { name: 'Thiên Bình', element: 'Phong', buffs: {
-        mui_ten_apollo: { name: 'Huyết Tiễn', desc: 'Giảm 2s hồi chiêu Skill A khi trang bị Thiên Bình. Mỗi lần dùng Skill A bắn 3 mũi tên sau 0.5s chuẩn bị: 1 mũi tên lớn đánh dấu kẻ địch có EP cao nhất, 2 mũi còn lại đánh dấu kẻ địch ngẫu nhiên (ưu tiên khu vực đông địch). Mỗi mũi tên xuyên qua mọi kẻ địch (300 sát thương gốc) và nổ trên mục tiêu bị đánh dấu (400 gốc + 20% EP, tăng thêm tối đa +100% từ giáp của mục tiêu). Mọi kẻ địch trúng đòn nhận 2 lớp Trọng Thương. 2 mũi tên nhỏ gây ít hơn 40% sát thương nhưng bay nhanh hơn 20% so với mũi lớn, vốn cũng to hơn 15%.' },
-        xuyen_pha: { name: 'Tinh Xuyên', desc: 'Cầu năng lượng Skill A xuyên qua mục tiêu khi va chạm và tiếp tục bay tới mép màn hình, gây sát thương cho mọi kẻ địch nó đi qua. Kích thước cầu +30%.' },
-    }},
-    scorpio: { name: 'Bọ Cạp', element: 'Thủy', buffs: {
-        hoan_sinh: { name: 'Hoàn Sinh', desc: 'Khi chọn: nhận ngay +5 mạng. Tỉ lệ thưởng mạng: +1 mạng mỗi 250,000 điểm (thay vì 500,000)' },
-        tu_huyet: { name: 'Tử Ấn', desc: 'HP 100%→21%: sát thương tăng tuyến tính +0%→+70%. HP ≤20%: +80% sát thương từ mọi nguồn. HP ≤5%: sét đánh kết liễu ngay lập tức. Vòng cung lưỡi kiếm Skill F xuyên qua Iron Body. Kẻ địch dưới 50% HP hiện vòng cảnh báo màu xanh cyan.' },
-    }},
-    sagittarius: { name: 'Nhân Mã', element: 'Hỏa', buffs: {
-        song_luoi: { name: 'Song Lưỡi', desc: 'Đòn chém cung của Tinh Linh bắn 2 lưỡi kiếm (+60% mỗi lưỡi, lưỡi thứ 2 bắn trễ 15ms), cộng thêm 25% cơ hội có lưỡi thứ 3. Mỗi boomerang có 40% cơ hội thêm 2 boomerang phụ. Skill F giờ ném 2 boomerang từ người chơi thay vì chém cung. Lưỡi kiếm phụ có +20% bán kính. Mỗi phát bắn tự động có 15% cơ hội bắn ra 1 lưỡi kiếm cung (300 + 7% EP), giống của Tinh Linh.' },
-        cuc_han: { name: 'Cực Hàn', desc: 'Boomerang và chém cung: 75% cơ hội làm chậm 30% trong 2s và hút về phía đạn. Kẻ địch miễn nhiễm khống chế không bao giờ bị hút, nhưng vẫn bị chậm. Tốc độ bắn của Tinh Linh Hoài Niệm và Phōtokrystos +30%.' },
-    }},
-    capricorn: { name: 'Ma Kết', element: 'Thổ', buffs: {
-        lai_kep: { name: 'Lãi Kép', desc: 'Mỗi lần hạ gục nhận +0.8% EP; mỗi 5% EP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, mỗi đòn đánh của phe ta gây thêm +200 sát thương thật.' },
-        tuyet_lan: { name: 'Tuyết Lăn', desc: 'Mỗi lần hạ gục nhận +0.5% sát thương toàn cục (reset sau 6s không hạ gục, tối đa +70%)' },
-    }},
-    aquarius: { name: 'Bảo Bình', element: 'Phong', buffs: {
-        set_day_chuyen: { name: 'Liên Hoàn Lôi', desc: 'Sát thương theo thời gian Tesla: 50% cơ hội lan sang kẻ địch gần nhất trong bán kính 150px. Tốc độ nạp Skill G +35%. Trong lúc Skill G kích hoạt, mỗi cầu năng lượng hết hạn mà chưa ghép thành Cuộn Tesla sẽ cho +15% sát thương phe ta (cộng dồn, tối đa 6 lớp, mỗi lớp 5s), và được hút thành 1 cầu Skill A phụ nếu Skill A còn chỗ.' },
-        dien_tu_truong: { name: 'Điện Từ Trường', desc: 'Trong lúc Skill G kích hoạt hoặc nạp đầy, kẻ địch trong bán kính 300px bị chậm 30% và chịu sát thương theo thời gian 3.5% Max HP/s' },
-    }},
-    pisces: { name: 'Song Ngư', element: 'Thủy', buffs: {
-        coi_mong: { name: 'Cõi Mộng', desc: 'Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 3s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 60% sát thương đã tích lũy trong lúc bị đánh dấu cộng 35% HP đã mất của chúng.' },
-        dong_chay_luan_hoi: { name: 'Dòng Chảy Luân Hồi', desc: 'Hạ Apostle: −1s hồi chiêu mọi skill; hạ Abnormal/Elite: −1.5s; hạ Dominator: −2s; hạ Egregor: −3s. Mỗi lần di chuyển thực tế đủ 1 bề ngang màn hình cũng được −0.5s hồi chiêu mọi skill. Tốc độ nạp Phōtokrystos và Skill G +50%. Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).' },
-    }},
-    than: { name: 'Đấu Chiến Thắng Phật', element: 'Thổ', buffs: {
-        cuop_bao_tang: { name: 'Cướp Long Cung', desc: 'Thiên Ý Trảm được tái tạo hình thành Như Ý Kim Cô Bổng của Tề Thiên, tự nới rộng thêm mỗi khi hạ được 1 kẻ địch trong lượt quét đó (tối đa ~4.5 lần bề rộng gốc, reset mỗi lượt quét mới). Hạ được kẻ địch từ Elite trở lên sẽ cướp luôn bảo thạch của chính nó (tối đa 3 viên khác loại cùng lúc) — giống hệt cách Tề Thiên năm xưa cướp phá Long Cung để đoạt lấy cây gậy này. Bấm Thiên Ý Trảm khi đang hồi chiêu sẽ tiêu viên bảo thạch cũ nhất, tung ra 1 bản thu nhỏ của chính đòn đánh đặc trưng kẻ địch đó, và phóng lại Thiên Ý Trảm ngay lập tức — đòn quét bản thân không đổi (vẫn chạm là chết).' },
-        bien_hoa_72: { name: '72 Phép Biến Hóa', desc: 'Khi đang giữ đủ 3 viên bảo thạch khác loại, mỗi đòn cướp được tung ra sẽ mạnh hơn x1.5, thể hiện trọn vẹn khả năng "72 phép biến hóa" của Tề Thiên, sẵn sàng ứng biến mọi tình huống.' },
-    }},
-};
+const SIGIL_I18N_VI = {};
 
 // Returns a display-only copy of SIGIL_DEFS[sigilId] with name/element/buff
 // name+desc swapped to Vietnamese when window._lang === 'vi' — used ONLY by
