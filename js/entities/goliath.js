@@ -131,17 +131,26 @@ function _goliathHealBoost(enemy, amount) {
     if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) mult += 0.40;
     mult += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
     mult += enemy._unifiedFrontHealPct || 0; // Unified Front: +5%/ally on the map, cap +60%
-    return amount * mult * Math.pow(0.80, _goliathWaningStacks(enemy));
+    return amount * mult * _goliathWaningMult(0.80, _goliathWaningStacks(enemy));
 }
 
 // Waning Might (NEW): mỗi 35s True Form còn sống, Goliath yếu dần đi trên
-// 3 trục cùng lúc — DR gốc, hiệu quả hồi HP/khiên, và sát thương tự gây ra
-// — nhân dồn (không cộng thẳng, tránh về âm) chứ không có trần, đảm bảo
-// trận nào kéo dài cỡ nào cũng phải kết thúc mà không đụng vào sức mạnh
-// đầu trận (0 stack cho tới khi qua mốc 35s đầu tiên).
+// 3 trục cùng lúc: DR gốc, hiệu quả hồi HP/khiên, và sát thương tự gây ra.
+// Nhân dồn (không cộng thẳng, tránh về âm) chứ không có trần, đảm bảo trận
+// nào kéo dài cỡ nào cũng phải kết thúc mà không đụng vào sức mạnh đầu trận
+// (0 stack cho tới khi qua mốc 35s đầu tiên). Từ tầng thứ 3 trở đi, tốc độ
+// suy yếu tăng mạnh hẳn (xem _goliathWaningMult) so với 2 tầng đầu.
 function _goliathWaningStacks(enemy) {
     if (!enemy._trueFormEnteredAt) return 0;
     return Math.floor((performance.now() - enemy._trueFormEnteredAt) / 35000);
+}
+// The first 2 stacks decay at the plain per-stack rate (unchanged fight
+// feel early on); every stack past that squares the rate instead, so a
+// fight still dragging on by stack 3+ (105s+ in True Form) falls apart
+// fast instead of grinding on forever at roughly the same pace.
+function _goliathWaningMult(rate, stacks) {
+    if (stacks <= 2) return Math.pow(rate, stacks);
+    return Math.pow(rate, 2) * Math.pow(rate * rate, stacks - 2);
 }
 
 // Unified Front (True Form passive): counts every living player-side unit
@@ -164,7 +173,7 @@ function _goliathCountAllies() {
 // vừa dịch chuyển xong. Waning Might nhân dồn theo chiều ngược lại phía trên.
 function _goliathDmgBoost(enemy, amount) {
     const fractureMult = (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? 1.20 : 1;
-    return amount * fractureMult * Math.pow(0.85, _goliathWaningStacks(enemy));
+    return amount * fractureMult * _goliathWaningMult(0.85, _goliathWaningStacks(enemy));
 }
 
 // Every Goliath attack (Absolute Verdict, Corrupted Meteor, and every Joker
@@ -189,13 +198,14 @@ function _goliathApplySilence(durMs) {
 function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') return false;
     if (enemy._unbrokenWillUsed) return false;
-    // Fires reactively off the 1-HP floor below (not off this hit's own
-    // size) so it always catches the real final blow, no matter how many
-    // smaller unmitigated hits (true damage skips every other Goliath
-    // defense layer) chipped it down first — a single early oversized hit
-    // can no longer "waste" the save on something that wasn't actually
-    // the kill.
-    if (!(incomingHpDamage > 0) || enemy.hp > 1) return false;
+    // Catches the hit itself (would this exact damage bring hp to 0 or
+    // below), not a floor-then-wait-for-a-confirming-hit two-step. The old
+    // "fire off the 1-HP floor" version needed a SECOND hit to land after
+    // the killing blow to actually trigger the save, so a genuinely lethal
+    // hit with nothing else following it up that frame (or soon after) left
+    // Goliath sitting at a plain 1 HP with a normal-looking red bar instead
+    // of the white frosted one, reading as "Unbroken Will didn't fire".
+    if (!(incomingHpDamage > 0) || enemy.hp - incomingHpDamage > 0) return false;
     enemy._unbrokenWillUsed = true;
     const now = performance.now();
     enemy._transformIronBodyEnd = Math.max(enemy._transformIronBodyEnd || 0, now + 4000);

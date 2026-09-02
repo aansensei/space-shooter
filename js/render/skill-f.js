@@ -971,6 +971,11 @@ function _drawGreatSageEffects() {
             // (nearest enemy + 2 more).
             const prog = Math.min(1, fx.timer / fx.dur);
             fx.points.forEach(pt => {
+                // A point locked onto an enemy that goes non-finite between
+                // cast and now (rare, but createRadialGradient throws hard
+                // on a non-finite coordinate) skips drawing entirely rather
+                // than risk crashing the whole render loop over one point.
+                if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return;
                 ctx.save();
                 if (prog > 0.01) {
                     const fg = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 130);
