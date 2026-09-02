@@ -17,6 +17,14 @@ _tidalMeterFrameImg.src = 'assets/images/game/tidal-meter-frame.png';
 const TIDAL_METER_FRAME_ASPECT = 768 / 1376;
 const TIDAL_METER_HOLE_FRAC = { x0: 0.1294, x1: 0.8700, y0: 0.4206, y1: 0.5781 };
 
+// Commissioned top-down ocean-floor/coral art for the whirlpool's own core -
+// a real painted vortex-into-the-depths image instead of a flat dark
+// gradient. Square, pre-cropped to a circle with transparency outside it, so
+// no extra clip is needed here; just drawn centered and rotated with the
+// whirlpool's own spin.
+const _whirlpoolFloorImg = new Image();
+_whirlpoolFloorImg.src = 'assets/images/game/cancer-whirlpool-oceanfloor.png';
+
 // Stationary horizontal bar above the player ship - only shown once Tidal
 // Flow is actually equipped, so players without it see no change. Stacks
 // above Great Sage's own gem-slot frame (js/render/player.js) instead of
@@ -77,6 +85,7 @@ function _drawTidalSurgeMeter() {
 function _drawWhirlpool(w, now) {
     const t = w.rot || 0;
     const popAmount = w.popAmount || 0;
+    const rimR = 132 + popAmount * 30;
     ctx.save();
     ctx.globalAlpha = w.alpha != null ? w.alpha : 1;
 
@@ -89,12 +98,27 @@ function _drawWhirlpool(w, now) {
 
     const ringCount = _gfxLevel === 0 ? 8 : (_gfxLevel === 1 ? 4 : 2);
     if (_gfxLevel < 2) {
+        // Flat dark base first (always renders, even before the art below
+        // has decoded) so there's never a gap. The painted ocean-floor/coral
+        // art draws on top of it, static (no rotation), replacing what used
+        // to just be a plain dark hole.
         const coreG = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, 60);
         coreG.addColorStop(0, 'rgba(1,6,10,0.95)');
         coreG.addColorStop(0.5, 'rgba(4,14,22,0.6)');
         coreG.addColorStop(1, 'rgba(4,14,22,0)');
         ctx.fillStyle = coreG;
         ctx.beginPath(); ctx.arc(w.x, w.y, 60, 0, Math.PI * 2); ctx.fill();
+
+        if (_whirlpoolFloorImg.complete && _whirlpoolFloorImg.naturalWidth) {
+            const imgR = rimR * 0.8;
+            ctx.save();
+            // The source art reads a bit muted/dark on its own against the
+            // black of space - punched up so the coral/teal actually pops
+            // instead of blending into the background.
+            ctx.filter = 'saturate(1.7) brightness(1.2) contrast(1.1)';
+            ctx.drawImage(_whirlpoolFloorImg, w.x - imgR, w.y - imgR, imgR * 2, imgR * 2);
+            ctx.restore();
+        }
     }
 
     // FULL only: a soft ambient glow halo behind the whole vortex, brightest
@@ -104,8 +128,8 @@ function _drawWhirlpool(w, now) {
         ctx.save();
         const haloR = 150 + popAmount * 25;
         const halo = ctx.createRadialGradient(w.x, w.y, 20, w.x, w.y, haloR);
-        halo.addColorStop(0, 'rgba(94,234,212,0.22)');
-        halo.addColorStop(0.55, 'rgba(94,234,212,0.08)');
+        halo.addColorStop(0, 'rgba(94,234,212,0.34)');
+        halo.addColorStop(0.55, 'rgba(94,234,212,0.14)');
         halo.addColorStop(1, 'rgba(94,234,212,0)');
         ctx.fillStyle = halo;
         ctx.beginPath(); ctx.arc(w.x, w.y, haloR, 0, Math.PI * 2); ctx.fill();
@@ -118,7 +142,7 @@ function _drawWhirlpool(w, now) {
         const dir = i % 2 === 0 ? 1 : -1;
         const speed = 0.8 + i * 0.12;
         const layerAlpha = 0.3 + (i / ringCount) * 0.7;
-        ctx.strokeStyle = i % 2 === 0 ? `rgba(94,234,212,${0.5 * layerAlpha})` : `rgba(15,95,87,${0.8 * layerAlpha})`;
+        ctx.strokeStyle = i % 2 === 0 ? `rgba(94,234,212,${0.75 * layerAlpha})` : `rgba(20,150,133,${0.85 * layerAlpha})`;
         ctx.lineWidth = _gfxLevel === 0 ? 2 + i * 0.3 : 3;
         // Each spinning band gets its own soft glow at FULL - brighter teal
         // rings glow more than the darker deep-water ones, like light
@@ -143,7 +167,6 @@ function _drawWhirlpool(w, now) {
         if (_gfxLevel === 0) ctx.shadowBlur = 0;
     }
 
-    const rimR = 132 + popAmount * 30;
     if (_gfxLevel === 0) {
         ctx.save();
         ctx.globalAlpha *= 0.4;
