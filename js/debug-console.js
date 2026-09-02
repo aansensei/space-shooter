@@ -1,6 +1,6 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/debug-console.js — in-game debug/cheat console. Loaded last (after
-// config.js/sigils.js/entities.js/skills.js/main.js) so every function and
+// config.js/js/sigils/*.js/entities.js/skills.js/main.js) so every function and
 // global below is a real, already-safe-to-call piece of the actual game —
 // this file adds a panel UI around them, it does not reimplement any game
 // logic itself. The only edits made to existing files for this feature are
@@ -39,14 +39,22 @@ window._debugAutoplay = false;
 // different tools, a cheap panic-clear for moderate heat and a real
 // (longer-held, bigger-distance) reposition saved for serious danger or low
 // lives, rather than always doing the same short-hold-then-teleport combo.
-// Skills still just fire on cooldown - each activate function already
-// gates itself on its own state/resources, so that part didn't need to
-// change. Meant for hands-off soak testing (e.g. watching [PROF]/[LONGTASK]
+// A (self-homing orbs) and S (summon) fire purely on cooldown since there's
+// never a wrong time for either; D (pull+instakill) and F's normal sweep
+// only fire with a real enemy on screen so they're not wasted into empty
+// air, though a banked Great Sage gem still fires through F unconditionally
+// since that's free and never touches F's own cooldown. Cancer's Riptide
+// Surge gets the same Space priority it has for a real player: a banked
+// release fires the instant it's ready. When nothing's dangerous, movement
+// keeps a slow continuous patrol across the middle of the screen instead of
+// parking still, so it's always mid-repositioning for whatever shows up
+// next. Meant for hands-off soak testing (e.g. watching [PROF]/[LONGTASK]
 // output over a long run) without needing to actually play.
 let _autoplayTimer = null;
 let _autoplayShiftReleaseAt = 0;   // 0 = not currently holding Shift
 let _autoplayShiftMode = null;     // 'clear' (cancel only) or 'teleport', set when the hold starts
 let _autoplayChargeReleaseAt = 0;  // 0 = not currently holding Space
+let _autoplayPatrolDir = 1;        // continuous idle sweep direction when nothing's dangerous
 
 const AUTOPLAY_DANGER_LOOKAHEAD = 100; // in vx/vy's own per-frame units (~1.6s at 60fps)
 const AUTOPLAY_STEP = 90; // px a candidate dodge step is scored against
@@ -87,6 +95,7 @@ function _setDebugAutoplay(on) {
         _autoplayShiftReleaseAt = 0;
         _autoplayShiftMode = null;
         _autoplayChargeReleaseAt = 0;
+        _autoplayPatrolDir = 1;
         _autoplayTimer = setInterval(() => {
             if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
             const now = performance.now();
@@ -96,11 +105,31 @@ function _setDebugAutoplay(on) {
             const livesNow = typeof lives === 'number' ? lives : 12;
             const margin = 55 + Math.max(0, 12 - livesNow) * 5;
 
+            // Skill economy: A (self-homing orbs) and S (summons an ally) are
+            // never a wrong time to use, so they stay pure on-cooldown. D
+            // (pull+instakill) and F's normal sweep only fire with a real
+            // target on screen - excludes bullets/chains/coronation, same
+            // filter the mechanics themselves use for "a real enemy". A
+            // banked Great Sage gem always fires through F regardless (it's
+            // free and never touches F's own cooldown, see activateSkillF).
+            const _realEnemyCount = enemies.filter(e =>
+                !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation).length;
+            const _greatSageGemReady = typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')
+                && typeof _greatSageGems !== 'undefined' && _greatSageGems.length > 0;
+
             if (typeof activateSkillA === 'function') activateSkillA();
             if (typeof activateSkillS === 'function') activateSkillS();
-            if (typeof activateSkillD === 'function') activateSkillD();
-            if (typeof activateSkillF === 'function') activateSkillF();
+            if (typeof activateSkillD === 'function' && _realEnemyCount > 0) activateSkillD();
+            if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
             if (typeof activateSkillG === 'function') activateSkillG();
+
+            // Cancer - Riptide Surge: a banked release is free (doesn't touch
+            // any other cooldown) and just needs a Space press whenever it's
+            // ready, same priority Space itself gives it in input.js.
+            if (window._tidalSurgeReady && typeof _releaseTidalSurge === 'function'
+                && !(typeof player !== 'undefined' && player._silenced)) {
+                _releaseTidalSurge();
+            }
 
             // Movement + Skill Shift engage: both driven off the same
             // threat scan, since "is walking alone enough" is exactly the
@@ -118,10 +147,15 @@ function _setDebugAutoplay(on) {
                 if (dRight < bestScore) { bestScore = dRight; dir = 1; }
 
                 if (bestScore < 0.05 && dir === 0) {
-                    // Nothing dangerous anywhere nearby: drift back toward
-                    // center so there's equal room to dodge either way later.
-                    const center = canvas.width / 2;
-                    if (Math.abs(player.x - center) > 40) dir = player.x > center ? -1 : 1;
+                    // Nothing dangerous anywhere nearby: don't just park -
+                    // keep a slow continuous patrol sweep across the middle
+                    // of the screen (never standing still) so there's always
+                    // equal room to dodge either way the instant something
+                    // shows up, and it still visibly "plays" during a lull.
+                    const center = canvas.width / 2, patrolRange = 160;
+                    if (player.x <= center - patrolRange) _autoplayPatrolDir = 1;
+                    else if (player.x >= center + patrolRange) _autoplayPatrolDir = -1;
+                    dir = _autoplayPatrolDir;
                 }
                 keys.left = dir < 0;
                 keys.right = dir > 0;

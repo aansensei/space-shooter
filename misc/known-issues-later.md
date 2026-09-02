@@ -17,7 +17,7 @@ inflate already uses).
 **Why reverted:** broke the in-game sigil-picker card layout — cards
 rendered visibly smaller with large uneven gaps between them once
 `canvas.width` stopped matching `window.innerWidth` 1:1. Root cause not
-found yet — something in the sigil-picker's draw code (`js/sigils.js`,
+found yet — something in the sigil-picker's draw code (`js/sigils/core.js`,
 `_drawPickerCards` and friends) likely mixes `canvas.width` (now DPR-
 scaled) with a fixed/`window.innerWidth`-based constant for card
 sizing, so position and size math end up in two different scales. Needs
@@ -30,7 +30,7 @@ still exists on the local branch `pc-dpr-fix` (commit `0dd9478`, never
 pushed to origin) if picking this back up later.
 
 **If retried:** audit every place `canvas.width`/`canvas.height` is read
-in `js/sigils.js`'s picker draw path and cross-check each against
+in `js/sigils/core.js`'s picker draw path and cross-check each against
 `window.innerWidth`/`innerHeight` before touching config.js again —
 that mismatch is almost certainly the actual bug, not the DPR idea
 itself.
