@@ -641,7 +641,7 @@ Spawns near the top of the screen at **1 HP**, absolutely invulnerable and fully
 
 A 4-stage, ~4-second transform sequence: meteors converge on Alpha from all directions and fuse into a molten mass (Summon), the mass swells and bubbles as everything melds together (Fusion), it cools and crystallizes into the True Form body with the 3 absorbed gems igniting in sequence (Crystallize), then both arms extend and settle into place with a final shockwave ring (Settle). Goliath remains invulnerable and untargetable throughout.
 
-On completion, True Form's Max HP is set to `(65000 + min(damagePull, 247500)) × (1 + 0.20 × gemPoints)`.
+On completion, True Form's Max HP is set to `(65000 + min(damagePull, 320000)) × (1 + 0.25 × gemPoints) × Walpurgis's Max HP multiplier × 1.20`.
 
 **Passive: Inevitable**
 
