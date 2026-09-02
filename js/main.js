@@ -2653,7 +2653,11 @@ function _updateWaveSystem(deltaTime, now) {
                 const _wpStacks = _walpurgisStacks();
                 const _wpPrevStacks = window._walpurgisAppliedStacks || 0;
                 if (_wpStacks > _wpPrevStacks) {
-                    const _wpRatio = (1 + 0.10 * _wpStacks) / (1 + 0.10 * _wpPrevStacks);
+                    // Reads both sides straight off _walpurgisHpMult() (config.js,
+                    // takes an explicit stack count) instead of re-deriving its
+                    // own copy of the per-stack formula, so the two can never
+                    // drift apart.
+                    const _wpRatio = _walpurgisHpMult(_wpStacks) / _walpurgisHpMult(_wpPrevStacks);
                     window._walpurgisAppliedStacks = _wpStacks;
                     enemies.forEach(e => {
                         if (e.hp <= 0 || e._markedForDeath || !e.maxHp) return;

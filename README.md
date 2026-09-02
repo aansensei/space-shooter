@@ -750,12 +750,12 @@ Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marc
 
 ### Walpurgis (Huyết Dạ)
 
-Every **10 waves**, all enemies permanently gain **1 stack** of Walpurgis — the buff never expires or resets, and stacks are unlimited (wave 10 = 1 stack, wave 20 = 2 stacks, and so on). Each stack grants, to **every enemy on the field, including ones already spawned**:
+Every **5 waves**, all enemies permanently gain **1 stack** of Walpurgis (the buff never expires or resets; wave 5 = 1 stack, wave 10 = 2 stacks, and so on). Each stack grants, to **every enemy on the field, including ones already spawned**:
 
-- **+10% Max HP**
-- **+5% Evade**
-- **+100 flat damage reduction** — a separate stat from the percentage-based DR above: it subtracts a flat amount from each hit *after* percentage DR is applied, floored at 0 (never blocks a killing blow outright, only shaves a fixed amount off each hit).
-- **+5% effectiveness on all healing and shields the enemy receives**
+- **+20% Max HP**: pushed the hardest of the four on purpose, since this game's real death clock is lives lost to contact, not raw damage taken, so a longer time-to-kill matters far more than a harder-hitting enemy would. Stacks forever, no cap.
+- **+5% Evade**, capped at **+40%** from Walpurgis alone (8 stacks' worth) so a very long run never makes enemies outright unhittable; every other stat here keeps stacking past that point.
+- **+25 flat damage reduction**: a separate stat from the percentage-based DR above, subtracting a flat amount from each hit *after* percentage DR is applied, floored at 0 (never blocks a killing blow outright, only shaves a fixed amount off each hit). Stacks forever, no cap.
+- **+5% effectiveness on all healing and shields the enemy receives**. Stacks forever, no cap.
 
 Enemies already on screen when a new stack triggers are rescaled immediately, not just future spawns. A red glow aura appears around every enemy once at least 1 stack is active, growing more intense with each additional stack.
 
