@@ -5,7 +5,7 @@
 
   Main entry point and game shell. All JS modules load at the bottom in a
   fixed order bc they all share global state from config.js. Order is:
-  config.js, entities/*.js, render/*.js, skills.js, input.js, main.js.
+  config.js, entities/*.js, skills/*.js, render/*.js, input.js, main.js.
   That order is strict bc each module references globals the previous one set up.
 
   Title screen UI and the easter egg overlay live here. The star warp animation
@@ -1946,7 +1946,19 @@
     <script src="js/entities/marchosias.js?v=20260825a"></script>
     <script src="js/entities/misc-enemies.js?v=20260825a"></script>
     <script src="js/entities/goliath.js?v=20260901c"></script>
-    <script src="js/skills.js?v=20260901e"></script>
+    <script src="js/skills/skill-a.js?v=20260902a"></script>
+    <script src="js/skills/skill-s-spirit.js?v=20260902a"></script>
+    <script src="js/skills/skill-d.js?v=20260902a"></script>
+    <script src="js/skills/sigil-great-sage.js?v=20260902a"></script>
+    <script src="js/skills/sigil-cancer.js?v=20260902a"></script>
+    <script src="js/skills/skill-f.js?v=20260902a"></script>
+    <script src="js/skills/skill-g.js?v=20260902a"></script>
+    <script src="js/skills/skill-shift.js?v=20260902a"></script>
+    <script src="js/skills/misc-mechanics.js?v=20260902a"></script>
+    <script src="js/skills/sigil-libra.js?v=20260902a"></script>
+    <script src="js/skills/sigil-gemini.js?v=20260902a"></script>
+    <script src="js/skills/sigil-aries.js?v=20260902a"></script>
+    <script src="js/skills/sigil-virgo.js?v=20260902a"></script>
     <script src="js/render/core.js?v=20260901a"></script>
     <script src="js/render/fx.js?v=20260831a"></script>
     <script src="js/render/player.js?v=20260901a"></script>
@@ -1954,7 +1966,7 @@
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
     <script src="js/render/enemy-boss-thaelis.js?v=20260824b"></script>
     <script src="js/render/enemy-marchosias.js?v=20260717e"></script>
-    <script src="js/render/enemy-leviathan.js?v=20260825g"></script>
+    <script src="js/render/enemy-leviathan.js?v=20260902a"></script>
     <script src="js/render/enemy-goliath.js?v=20260825a"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260824e"></script>
     <script src="js/render/enemy-egregor.js?v=20260717e"></script>
@@ -1962,7 +1974,7 @@
     <script src="js/render/skill-a.js?v=20260722e"></script>
     <script src="js/render/skill-d.js?v=20260823b"></script>
     <script src="js/render/skill-f.js?v=20260901a"></script>
-    <script src="js/render/sigil-cancer.js?v=20260902c"></script>
+    <script src="js/render/sigil-cancer.js?v=20260902d"></script>
     <script src="js/render/skill-g.js?v=20260717e"></script>
     <script src="js/render/skill-buttons.js?v=20260825a"></script>
     <script src="js/pixi-renderer.js?v=20260825d"></script>

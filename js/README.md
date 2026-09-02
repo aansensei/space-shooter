@@ -15,7 +15,7 @@ ever looks stale — it is hand-maintained, not generated):
 3. config.js
 4. js/sigils/*.js (core.js, the engine, loads first, then one file per sigil)
 5. entities.js
-6. skills.js
+6. js/skills/*.js (one file per skill button/sigil mechanic, 13 files)
 7. render.js **or** js/render/*.js (16 files) — see below, only one of the two is active at a time
 8. pixi-renderer.js
 9. input.js
@@ -216,11 +216,20 @@ Arc segments between targets use Math.sin displaced midpoints. Each segment
 redraws every frame with an alpha value derived from the effect age, producing
 a natural flickering appearance.
 
-## skills.js
+## skills.js / js/skills/
 
-**Role:** Implementations of all six active skills. Each activation function
-reads cooldown timestamps from config.js, checks player._silenced, then mutates
-shared entity arrays and state flags.
+**Role:** Implementations of all six active skills, plus every sigil mechanic
+that isn't pure picker/HUD data (that part lives in `js/sigils/`). Each
+activation function reads cooldown timestamps from config.js, checks
+player._silenced, then mutates shared entity arrays and state flags.
+
+**Split into 13 files under `js/skills/`**, one per skill button or sigil
+mechanic (skill-a.js, skill-s-spirit.js, skill-d.js, skill-f.js, skill-g.js,
+skill-shift.js, sigil-great-sage.js, sigil-cancer.js, sigil-libra.js,
+sigil-gemini.js, sigil-aries.js, sigil-virgo.js, misc-mechanics.js). See
+[js/skills/README.md](skills/README.md) for the full file map. The technical
+subsections below still describe the mechanisms by skill/sigil name; each
+now maps onto exactly one of those files.
 
 ### Skill A (Thunder Orbs)
 
@@ -286,7 +295,7 @@ enemy object intersecting the beam geometry.
 ### Skill D (Death Star: Draconic Annihilation)
 
 activateSkillD sets skillDCharging to true; after skillDChargeTime elapses
-updateSkillD (js/skills.js) spawns the deathStar object and pulls every
+updateSkillD (js/skills/skill-d.js) spawns the deathStar object and pulls every
 targetable, non-CC-immune enemy toward it at a fixed speed. Center contact
 deals 999999999 damage (an instant kill) to normal enemies, or 30% MaxHP true
 damage per 400ms tick to CC-immune ones (dargruel/leviathan/goliath/egregor/
@@ -549,7 +558,7 @@ to prevent stale references from accumulating across sessions.
 
 Rift containers are created on demand through window._pixiSpawnRift and
 destroyed through window._pixiDestroyRift. Both hooks are called by
-spawnDimensionalRift and updateDimensionalRifts in skills.js. The _riftContainers
+spawnDimensionalRift and updateDimensionalRifts in js/skills/skill-a.js. The _riftContainers
 Map stores the association between rift game objects and their PIXI.Container
 instances.
 
@@ -598,7 +607,7 @@ name with no accessor or wrapper layer.
 
 The render pipeline (render.js, or the js/render/*.js split — see above) reads
 game state each frame and writes nothing back. entities.js owns damage
-resolution and entity lifecycle mutations. skills.js owns skill activation
+resolution and entity lifecycle mutations. js/skills/*.js owns skill activation
 and cooldown timestamp updates. input.js owns event routing and UI element
 transitions. main.js orchestrates the game loop and calls into all other modules
 each frame.
