@@ -683,7 +683,7 @@
     // the old HTMLAudioElement version (which needed two alternating clips
     // crossfaded across their final quarter to hide the loop-point seam),
     // a single looping buffer node just works — tick* are kept as no-op
-    // stubs since main.js/skills.js/entities.js still poll them every frame.
+    // stubs since main.js/skills/*.js/entities.js still poll them every frame.
     function startEgregorCrawl() { startLoop('crawlEl', 'egregor-crawl'); }
     function stopEgregorCrawl()  { stopLoop('crawlEl'); }
     function tickEgregorCrawl()  {}

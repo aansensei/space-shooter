@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v172';
+const CACHE_VERSION = 'v176';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -25,10 +25,10 @@ const CORE_FILES = [
     'assets/images/game/weapons/2-spear.png',
     'assets/images/game/weapons/3-halberd.png',
     'assets/images/game/weapons/5-enuma-spear.png',
-    'assets/images/game/photokrystos-boomerang.png',
-    'assets/images/game/sentinel-shell.png',
-    'assets/images/game/rift-void.png',
-    'assets/images/game/walpurgis-icon.png',
+    'assets/images/game/effects/photokrystos-boomerang.png',
+    'assets/images/game/effects/sentinel-shell.png',
+    'assets/images/game/effects/rift-void.png',
+    'assets/images/game/icons/walpurgis-icon.png',
     'js/vendor/pixi.min.js',
     'js/audio.js',
     'js/background.js',
@@ -60,7 +60,19 @@ const CORE_FILES = [
     'js/sigils/pisces.js',
     'js/sigils/than.js',
     'js/yuusha-party.js',
-    'js/skills.js',
+    'js/skills/skill-a.js',
+    'js/skills/skill-s-spirit.js',
+    'js/skills/skill-d.js',
+    'js/skills/sigil-great-sage.js',
+    'js/skills/sigil-cancer.js',
+    'js/skills/skill-f.js',
+    'js/skills/skill-g.js',
+    'js/skills/skill-shift.js',
+    'js/skills/misc-mechanics.js',
+    'js/skills/sigil-libra.js',
+    'js/skills/sigil-gemini.js',
+    'js/skills/sigil-aries.js',
+    'js/skills/sigil-virgo.js',
     'js/render/core.js',
     'js/render/enemy-aegis-core.js',
     'js/render/enemy-boss-thaelis.js',

@@ -1,6 +1,6 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/debug-console.js — in-game debug/cheat console. Loaded last (after
-// config.js/js/sigils/*.js/entities.js/skills.js/main.js) so every function and
+// config.js/js/sigils/*.js/entities.js/js/skills/*.js/main.js) so every function and
 // global below is a real, already-safe-to-call piece of the actual game —
 // this file adds a panel UI around them, it does not reimplement any game
 // logic itself. The only edits made to existing files for this feature are
@@ -32,7 +32,7 @@ window._debugAutoplay = false;
 // whichever of "stay / step left / step right" scores least dangerous,
 // weighted by how soon and how close each threat is. Gets more cautious as
 // lives drop. Skill Shift's own cooldown scales hard with how it's used
-// (cancelSkillShift, js/skills.js): entering the domain and just cancelling
+// (cancelSkillShift, js/skills/skill-shift.js): entering the domain and just cancelling
 // under 2s costs only ~1.1s CD and still wipes every enemy bullet within
 // ~45% of the screen on exit, while an actual teleport always costs the
 // full 9s regardless of hold length - so the pilot treats them as two
