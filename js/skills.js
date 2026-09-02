@@ -1823,12 +1823,18 @@ function _greatSageToughestEnemy() {
 // single locked point is too easy to just dodge out of before the attack
 // resolves - matches the real Joker's multi-target lock (js/entities/goliath.js).
 function _greatSageLockPoints(count) {
+    // Guards against any enemy whose x/y aren't real numbers at this exact
+    // instant (mid-transform, mid-teleport, etc. on whatever enemy type) -
+    // a locked point is frozen for the rest of the effect's life, so a bad
+    // read here would otherwise crash every future frame's render, not just
+    // this one.
+    const isValid = e => e && Number.isFinite(e.x) && Number.isFinite(e.y);
     const primary = _greatSageNearestEnemy();
     const points = [];
     const used = [];
-    if (primary) { points.push({ x: primary.x, y: primary.y, ref: primary }); used.push(primary); }
+    if (isValid(primary)) { points.push({ x: primary.x, y: primary.y, ref: primary }); used.push(primary); }
     else points.push({ x: player.x, y: player.y - 200, ref: null });
-    const pool = enemies.filter(e => !used.includes(e));
+    const pool = enemies.filter(e => !used.includes(e) && isValid(e));
     _shuffleArray(pool).slice(0, count).forEach(e => points.push({ x: e.x, y: e.y, ref: e }));
     while (points.length < count + 1) {
         // Near the player, not some random spot clear across the map with
