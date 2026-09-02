@@ -1625,7 +1625,7 @@
                 window._bgPaused = false;
                 // gameover sfx can still be ringing out if this fires right after death
                 if (window._gameoverVoice) { window._gameoverVoice.cancel(); window._gameoverVoice = null; }
-                // esc->menu mid-pick skips _completeSigilPicker (sigils.js),
+                // esc->menu mid-pick skips _completeSigilPicker (js/sigils/core.js),
                 // the only place that normally hides this overlay - was
                 // stuck covering everything incl. the hyperjump button
                 window._sigilPicker = null;
@@ -1923,7 +1923,20 @@
     <script src="js/offline.js?v=20260804c"></script>
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260901a"></script>
-    <script src="js/sigils.js?v=20260901a"></script>
+    <script src="js/sigils/core.js?v=20260901a"></script>
+    <script src="js/sigils/aries.js?v=20260901a"></script>
+    <script src="js/sigils/taurus.js?v=20260901a"></script>
+    <script src="js/sigils/gemini.js?v=20260901a"></script>
+    <script src="js/sigils/cancer.js?v=20260901a"></script>
+    <script src="js/sigils/leo.js?v=20260901a"></script>
+    <script src="js/sigils/virgo.js?v=20260901a"></script>
+    <script src="js/sigils/libra.js?v=20260901a"></script>
+    <script src="js/sigils/scorpio.js?v=20260901a"></script>
+    <script src="js/sigils/sagittarius.js?v=20260901a"></script>
+    <script src="js/sigils/capricorn.js?v=20260901a"></script>
+    <script src="js/sigils/aquarius.js?v=20260901a"></script>
+    <script src="js/sigils/pisces.js?v=20260901a"></script>
+    <script src="js/sigils/than.js?v=20260901a"></script>
     <script src="js/yuusha-party.js?v=20260825b"></script>
     <script src="js/entities/core.js?v=20260901a"></script>
     <script src="js/entities/sentinel.js?v=20260825a"></script>
@@ -1962,7 +1975,7 @@
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20260901a';
+            _dbgScript.src = 'js/debug-console.js?v=20260901b';
             document.head.appendChild(_dbgScript);
         }
     </script>

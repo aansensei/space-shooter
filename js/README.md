@@ -13,7 +13,7 @@ ever looks stale — it is hand-maintained, not generated):
 1. audio.js — AudioManager (BGM/SFX/mute), no dependency on config.js globals
 2. background.js
 3. config.js
-4. sigils.js
+4. js/sigils/*.js (core.js, the engine, loads first, then one file per sigil)
 5. entities.js
 6. skills.js
 7. render.js **or** js/render/*.js (16 files) — see below, only one of the two is active at a time
