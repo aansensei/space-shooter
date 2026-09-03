@@ -18,6 +18,7 @@ let _skillGActivatedAt = -Infinity; // track khi nào G vừa được bật
 // MOBILE PERFORMANCE FLAGS
 // Set once when platform is known. PC path untouched.
 let _mobPerf = false; // true when mobile mode active
+let _mobPerfBridged = false; // true once _initMobilePerf has forced the pre-tier safe mode once
 let _bgOffscreen   = null; // cached background canvas
 let _nebulaCanvas  = null; // cached nebula layer (HIGH only)
 let _bgDirty = true;    // redraw background this frame?
@@ -26,7 +27,18 @@ let _bgCacheFrame = 0;  // frame counter for cache refresh
 // Intercept ctx.shadowBlur on mobile, return to 0 for most calls
 // Wrapped lazily after canvas is set up (see initMobilePerf)
 function _initMobilePerf() {
-    _mobPerf = true;
+    // First call (platform just switched to mobile, real tier not known
+    // yet): force safe mode immediately instead of waiting for the FPS
+    // watchdog to react, which used to cost a few seconds of visible lag on
+    // real devices. index.html also re-runs this on every resize/
+    // orientation-change event (iOS toolbar show/hide, rotating the device,
+    // even mid-run) - unconditionally forcing true again there used to
+    // silently stomp whatever High/Medium tier the player or the auto-tier
+    // watchdog had already settled on, with nothing left to ever correct it
+    // back for the rest of the session. Every call after the first just
+    // recomputes from the real current tier instead.
+    _mobPerf = _mobPerfBridged ? (_gfxLevel >= 2) : true;
+    _mobPerfBridged = true;
     _bgDirty = true;
     try {
         const proto = Object.getPrototypeOf(ctx);
@@ -64,7 +76,13 @@ const _GFX_PARTICLE_SCALE = [1.0, 0.65, 0.35, 0.2, 0.12];
 const _GFX_PARTICLE_CAP   = [350,  250,  150, 100, 60];
 
 function _applyGfxLevel(level) {
-    if (_gfxLevel === level) return;
+    // Also re-applies when _mobPerf has drifted out of sync with the level
+    // it's already supposedly at - _initMobilePerf()'s pre-tier safe-mode
+    // bridge forces _mobPerf true before any real tier is known, and if the
+    // player's first real tier choice happens to be the already-default
+    // level 0, this guard alone would otherwise skip ever correcting it
+    // back, silently leaving High/Medium mobile stuck with LOW-level detail.
+    if (_gfxLevel === level && _mobPerf === (level >= 2)) return;
     _gfxLevel = level;
     window._gfxLevel = level;
     window._particleScale = _GFX_PARTICLE_SCALE[level];
@@ -1024,6 +1042,9 @@ function draw(deltaTime) {
         drawPlayer();
         if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
         if (typeof _drawTidalSurgeMeter === 'function') _drawTidalSurgeMeter();
+        if (typeof _drawCancerReadyAura === 'function') _drawCancerReadyAura();
+        if (typeof _drawGreatSageReadyAura === 'function') _drawGreatSageReadyAura();
+        if (typeof _drawGreatSageGemGrantBurst === 'function') _drawGreatSageGemGrantBurst();
         drawPlayerAura();
         _drawParryBursts(); // Yog-Sothoth Accurate Parry "Temporal Fracture" burst
         drawFinalDefense();
