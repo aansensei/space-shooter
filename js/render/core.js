@@ -18,7 +18,11 @@ let _skillGActivatedAt = -Infinity; // track khi nào G vừa được bật
 // MOBILE PERFORMANCE FLAGS
 // Set once when platform is known. PC path untouched.
 let _mobPerf = false; // true when mobile mode active
-let _mobPerfBridged = false; // true once _initMobilePerf has forced the pre-tier safe mode once
+// True once _applyGfxLevel has actually run with a real tier - tracks
+// whether a quality decision exists yet, independent of how many times
+// _initMobilePerf itself has been called (see there for why the two must
+// not be conflated).
+let _gfxLevelDecided = false;
 let _bgOffscreen   = null; // cached background canvas
 let _nebulaCanvas  = null; // cached nebula layer (HIGH only)
 let _bgDirty = true;    // redraw background this frame?
@@ -27,18 +31,17 @@ let _bgCacheFrame = 0;  // frame counter for cache refresh
 // Intercept ctx.shadowBlur on mobile, return to 0 for most calls
 // Wrapped lazily after canvas is set up (see initMobilePerf)
 function _initMobilePerf() {
-    // First call (platform just switched to mobile, real tier not known
-    // yet): force safe mode immediately instead of waiting for the FPS
-    // watchdog to react, which used to cost a few seconds of visible lag on
-    // real devices. index.html also re-runs this on every resize/
-    // orientation-change event (iOS toolbar show/hide, rotating the device,
-    // even mid-run) - unconditionally forcing true again there used to
-    // silently stomp whatever High/Medium tier the player or the auto-tier
-    // watchdog had already settled on, with nothing left to ever correct it
-    // back for the rest of the session. Every call after the first just
-    // recomputes from the real current tier instead.
-    _mobPerf = _mobPerfBridged ? (_gfxLevel >= 2) : true;
-    _mobPerfBridged = true;
+    // Force safe mode immediately on entering mobile, instead of waiting for
+    // the FPS watchdog to react (which used to cost a few seconds of visible
+    // lag on real devices) - but ONLY while no real tier decision exists yet.
+    // index.html also re-runs this on every resize/orientation-change event
+    // (iOS toolbar show/hide, rotating the device, even mid-run) and,
+    // depending on menu flow, it can even run for the first time AFTER the
+    // player already picked a quality tier in Settings before starting the
+    // game. Gating on _gfxLevelDecided (not "have I personally run before")
+    // covers both orderings: it never stomps a tier that was already chosen,
+    // whether that choice happened before or after this function's first call.
+    _mobPerf = _gfxLevelDecided ? (_gfxLevel >= 2) : true;
     _bgDirty = true;
     try {
         const proto = Object.getPrototypeOf(ctx);
@@ -77,16 +80,18 @@ const _GFX_PARTICLE_CAP   = [350,  250,  150, 100, 60];
 
 function _applyGfxLevel(level) {
     // Also re-applies when _mobPerf has drifted out of sync with the level
-    // it's already supposedly at - _initMobilePerf()'s pre-tier safe-mode
-    // bridge forces _mobPerf true before any real tier is known, and if the
-    // player's first real tier choice happens to be the already-default
-    // level 0, this guard alone would otherwise skip ever correcting it
-    // back, silently leaving High/Medium mobile stuck with LOW-level detail.
-    if (_gfxLevel === level && _mobPerf === (level >= 2)) return;
+    // it's already supposedly at, or when no real decision has been recorded
+    // yet - _initMobilePerf()'s pre-tier safe-mode bridge forces _mobPerf
+    // true before any real tier is known, and if the player's first real
+    // tier choice happens to be the already-default level 0, the plain
+    // dedup guard alone would otherwise skip ever correcting it back,
+    // silently leaving High/Medium mobile stuck with LOW-level detail.
+    if (_gfxLevel === level && _mobPerf === (level >= 2) && _gfxLevelDecided) return;
     _gfxLevel = level;
     window._gfxLevel = level;
     window._particleScale = _GFX_PARTICLE_SCALE[level];
     _mobPerf = (level >= 2); // level 2 (LOW): disable all shadowBlur globally
+    _gfxLevelDecided = true;
     _bgDirty = true;
     _nebulaCanvas = null;  // regenerate nebula on quality change
     window._lowPerfModeActive = (level >= 3);
