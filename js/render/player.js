@@ -907,6 +907,94 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     ctx.restore();
 }
 
+// Great Sage ready aura: once a stolen gem is banked, a red-gold glow blooms
+// around the ship itself with a ring of small auspicious-cloud swirls
+// orbiting it - Tề Thiên Đại Thánh's own motif, echoing the gem frame's
+// gold/red palette but on the ship, not just the HUD above it. Same
+// structure as Cancer's _drawCancerReadyAura (js/render/sigil-cancer.js);
+// base bloom + ring are cheap enough for every tier, the orbiting cloud
+// swirls are FULL/MED only.
+function _drawGreatSageReadyAura() {
+    if (typeof _greatSageGems === 'undefined' || _greatSageGems.length === 0) return;
+    const now = performance.now();
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    const ringR = player.width * 1.35;
+
+    ctx.save();
+    ctx.translate(player.x, player.y);
+
+    const glowR = ringR * 1.4;
+    const glow = ctx.createRadialGradient(0, 0, player.width * 0.2, 0, 0, glowR);
+    glow.addColorStop(0, `rgba(255,225,150,${0.32 + 0.16 * pulse})`);
+    glow.addColorStop(0.5, `rgba(255,90,30,${0.20 + 0.14 * pulse})`);
+    glow.addColorStop(1, 'rgba(150,10,10,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(0, 0, glowR, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = `rgba(255,210,60,${0.55 + 0.30 * pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+
+    if (_gfxLevel < 2 && !_mobPerf) {
+        const cloudCount = 8;
+        const rot = -now / 2200; // spins the opposite way from Cancer's waves
+        ctx.fillStyle = `rgba(255,235,180,${0.65 + 0.3 * pulse})`;
+        ctx.strokeStyle = `rgba(255,235,180,${0.75 + 0.25 * pulse})`;
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 6;
+        for (let i = 0; i < cloudCount; i++) {
+            const a = (i / cloudCount) * Math.PI * 2 + rot;
+            const cx = Math.cos(a) * ringR, cy = Math.sin(a) * ringR;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(a + Math.PI / 2);
+            // small auspicious-cloud swirl: two overlapping puffs + a tail
+            ctx.beginPath(); ctx.arc(-1.5, 0, 2.4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(2, -0.5, 1.6, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-3.5, 1.5);
+            ctx.quadraticCurveTo(0, 3.5, 3.5, 1.2);
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+}
+
+// One-time flash the instant a stolen gem actually lands (see
+// _grantGreatSageGem, js/skills/sigil-great-sage.js) - a bright core flash
+// plus an expanding gold shockwave ring centered on the ship, separate from
+// the standing ready aura above so the moment of gaining a gem reads as its
+// own event, not just the aura quietly turning on.
+function _drawGreatSageGemGrantBurst() {
+    const t0 = window._greatSageGemGrantFlash;
+    if (!t0) return;
+    const now = performance.now();
+    const age = now - t0;
+    const dur = 700;
+    if (age < 0 || age > dur) return;
+    const p = age / dur;
+    const fade = 1 - p;
+
+    ctx.save();
+    ctx.translate(player.x, player.y);
+
+    const flashR = player.width * (0.6 + p * 1.8);
+    const flash = ctx.createRadialGradient(0, 0, 0, 0, 0, flashR);
+    flash.addColorStop(0, `rgba(255,255,220,${fade * 0.8})`);
+    flash.addColorStop(0.5, `rgba(255,190,60,${fade * 0.5})`);
+    flash.addColorStop(1, 'rgba(255,120,20,0)');
+    ctx.fillStyle = flash;
+    ctx.beginPath(); ctx.arc(0, 0, flashR, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = `rgba(255,220,120,${fade})`;
+    ctx.lineWidth = 3 * fade;
+    ctx.beginPath(); ctx.arc(0, 0, player.width * (0.8 + p * 2.2), 0, Math.PI * 2); ctx.stroke();
+
+    ctx.restore();
+}
+
 // Star orbs for the Overload Laser charge-up: gathering stars that drift
 // in, then get pulled toward the player as the charge builds. One orb per
 // activation is the "Tinh Vương" rainbow star (cycles through all 7 hues)

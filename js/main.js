@@ -2885,6 +2885,7 @@ function startGame() {
 
     window._sigilPool = [...(typeof SIGIL_ORDER !== 'undefined' ? SIGIL_ORDER : []), ...(typeof SIGIL_EXTRA !== 'undefined' ? SIGIL_EXTRA : [])];
     _greatSageGems = [];
+    window._greatSageGemGrantFlash = 0;
     _skillFKillsThisSweep = 0;
     _greatSageEffects = [];
     window._greatSageShieldEnd = 0;

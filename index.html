@@ -1949,7 +1949,7 @@
     <script src="js/skills/skill-a.js?v=20260902a"></script>
     <script src="js/skills/skill-s-spirit.js?v=20260902a"></script>
     <script src="js/skills/skill-d.js?v=20260902a"></script>
-    <script src="js/skills/sigil-great-sage.js?v=20260902a"></script>
+    <script src="js/skills/sigil-great-sage.js?v=20260903a"></script>
     <script src="js/skills/sigil-cancer.js?v=20260902a"></script>
     <script src="js/skills/skill-f.js?v=20260902a"></script>
     <script src="js/skills/skill-g.js?v=20260902a"></script>
@@ -1959,9 +1959,9 @@
     <script src="js/skills/sigil-gemini.js?v=20260902a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260902a"></script>
-    <script src="js/render/core.js?v=20260901a"></script>
+    <script src="js/render/core.js?v=20260903a"></script>
     <script src="js/render/fx.js?v=20260831a"></script>
-    <script src="js/render/player.js?v=20260901a"></script>
+    <script src="js/render/player.js?v=20260903a"></script>
     <script src="js/render/enemy-common.js?v=20260825c"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
     <script src="js/render/enemy-boss-thaelis.js?v=20260824b"></script>
@@ -1974,13 +1974,13 @@
     <script src="js/render/skill-a.js?v=20260722e"></script>
     <script src="js/render/skill-d.js?v=20260823b"></script>
     <script src="js/render/skill-f.js?v=20260901a"></script>
-    <script src="js/render/sigil-cancer.js?v=20260902d"></script>
+    <script src="js/render/sigil-cancer.js?v=20260903a"></script>
     <script src="js/render/skill-g.js?v=20260717e"></script>
-    <script src="js/render/skill-buttons.js?v=20260825a"></script>
+    <script src="js/render/skill-buttons.js?v=20260903a"></script>
     <script src="js/pixi-renderer.js?v=20260825d"></script>
     <script src="js/input.js?v=20260830a"></script>
     <script src="js/match-stats.js?v=20260825a"></script>
-    <script src="js/main.js?v=20260901b"></script>
+    <script src="js/main.js?v=20260903a"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
@@ -2566,7 +2566,11 @@
                             }
                         }
                     } else if (id === 'mb-ch') {
-                        if (!charging && !laserActive && !skillShiftActive) {
+                        // Cancer sigil: a banked Riptide Surge takes priority over the
+                        // normal charge/laser, same as the keyboard Space path in input.js
+                        if (window._tidalSurgeReady && !(typeof player !== 'undefined' && player._silenced)) {
+                            _releaseTidalSurge();
+                        } else if (!charging && !laserActive && !skillShiftActive) {
                             const _now = performance.now();
                             if (_hasBuff('dong_chay_luan_hoi')) {
                                 // Cycle of Flow: skip the charge phase entirely, same as the keyboard path
@@ -2655,6 +2659,34 @@
                 ctx.beginPath();
                 ctx.arc(29, 29, 26, -Math.PI / 2, -Math.PI / 2 + (1 - frac) * Math.PI * 2);
                 ctx.stroke();
+            }
+
+            // Radial gradient fill (a list of [offset, color] stops) plus a
+            // white ring contracting inward from outside the button onto
+            // its own edge on a repeating cycle - the mobile equivalent of
+            // _pillReadyWash in js/render/skill-buttons.js, for a sigil's
+            // bonus action that bypasses this button's own cooldown (Cancer's
+            // banked Riptide Surge, Great Sage's banked stolen gem).
+            function _mbReadyGlow(cvId, stops, now) {
+                const c = _cdCtx(cvId);
+                if (!c) return;
+                c.clearRect(0, 0, 58, 58);
+                const pulse = 0.5 + 0.5 * Math.sin(now / 220);
+                const g = c.createRadialGradient(29, 29, 3, 29, 29, 27);
+                stops.forEach(([off, col]) => g.addColorStop(off, col));
+                c.save();
+                c.globalAlpha = 0.65 + 0.25 * pulse;
+                c.fillStyle = g;
+                c.beginPath(); c.arc(29, 29, 27, 0, Math.PI * 2); c.fill();
+                c.restore();
+
+                const cyc = 900;
+                const t = (now % cyc) / cyc;
+                const ringR = 27 + 14 * (1 - t);
+                const ringAlpha = t < 0.7 ? 1 : (1 - (t - 0.7) / 0.3);
+                c.strokeStyle = `rgba(255,255,255,${0.9 * ringAlpha})`;
+                c.lineWidth = 2.5;
+                c.beginPath(); c.arc(29, 29, ringR, 0, Math.PI * 2); c.stroke();
             }
 
             function _ready(last, cd) { return Math.min(1, (performance.now() - last) / cd); }
@@ -2758,10 +2790,22 @@
                         const dr = _ready(lastSkillD, skillDCooldown);
                         _paintRing('mb-d-cv', dr, '#bb88ff', _justUnsilenced);
                         document.getElementById('mb-d')?.classList.toggle('cd', dr < 1);
-                        // F
-                        const fr = _ready(lastSkillF, skillFCooldown);
-                        _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced);
-                        document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
+                        // F - a banked Great Sage stolen gem bypasses this
+                        // button's own cooldown entirely (same as Cancer's
+                        // tidal surge below), so it gets its own gradient
+                        // glow instead of the normal cooldown ring.
+                        if (typeof _greatSageGems !== 'undefined' && _greatSageGems.length > 0) {
+                            _mbReadyGlow('mb-f-cv', [
+                                [0, 'rgba(255,215,60,1)'], [0.45, 'rgba(255,140,20,1)'], [0.8, 'rgba(255,60,20,1)'], [1, 'rgba(150,10,10,1)'],
+                            ], now);
+                            document.getElementById('mb-f')?.classList.remove('cd');
+                            document.getElementById('mb-f')?.classList.add('skill-active');
+                        } else {
+                            const fr = _ready(lastSkillF, skillFCooldown);
+                            _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced);
+                            document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
+                            document.getElementById('mb-f')?.classList.remove('skill-active');
+                        }
                         // G, charge based 0-100
                         const gc = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
                         const gr = (typeof skillGActive !== 'undefined' && skillGActive) ? 1 : gc / 100;
@@ -2772,10 +2816,19 @@
                             gEl.classList.toggle('skill-active', typeof skillGActive !== 'undefined' && skillGActive);
                             gEl.querySelector('span').textContent = (gr < 1 && !skillGActive) ? Math.floor(gr * 100) + '%' : 'G';
                         }
-                        // CHARGE / laser
+                        // CHARGE / laser - a banked Riptide Surge takes
+                        // priority over both, same as the keyboard Space
+                        // path and _mbDown('mb-ch') above, so it gets first
+                        // say on this button's glow too.
                         const _charging = typeof charging !== 'undefined' && charging;
                         const _laserActive = typeof laserActive !== 'undefined' && laserActive;
-                        if (_charging) {
+                        if (window._tidalSurgeReady) {
+                            _mbReadyGlow('mb-ch-cv', [
+                                [0, 'rgba(220,255,250,1)'], [0.3, 'rgba(94,234,212,1)'], [0.6, 'rgba(0,200,225,1)'], [0.85, 'rgba(0,120,170,1)'], [1, 'rgba(3,50,80,1)'],
+                            ], now);
+                            document.getElementById('mb-ch')?.classList.remove('cd');
+                            document.getElementById('mb-ch')?.classList.add('skill-active');
+                        } else if (_charging) {
                             const cc = _cdCtx('mb-ch-cv');
                             if (cc) {
                                 cc.clearRect(0, 0, 58, 58);
