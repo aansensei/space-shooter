@@ -77,6 +77,57 @@ function _drawTidalSurgeMeter() {
     }
 }
 
+// Riptide Surge ready aura: once the tide meter is full, a soft ocean-toned
+// glow blooms around the ship itself with a ring of small wave-crest marks
+// orbiting it, calling attention to the ship rather than only the HUD meter
+// above it. Base bloom + ring are cheap enough for every tier; the orbiting
+// wave-crest ornaments are FULL/MED only, same cutoff as everything else here.
+function _drawCancerReadyAura() {
+    if (!window._tidalSurgeReady) return;
+    const now = performance.now();
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    const ringR = player.width * 1.35;
+
+    ctx.save();
+    ctx.translate(player.x, player.y);
+
+    const glowR = ringR * 1.4;
+    const glow = ctx.createRadialGradient(0, 0, player.width * 0.2, 0, 0, glowR);
+    glow.addColorStop(0, `rgba(220,255,250,${0.32 + 0.16 * pulse})`);
+    glow.addColorStop(0.5, `rgba(0,200,225,${0.20 + 0.14 * pulse})`);
+    glow.addColorStop(1, 'rgba(3,50,80,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(0, 0, glowR, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = `rgba(94,234,212,${0.55 + 0.30 * pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+
+    if (_gfxLevel < 2 && !_mobPerf) {
+        const waveCount = 10;
+        const rot = now / 2600;
+        ctx.strokeStyle = `rgba(220,255,250,${0.7 + 0.3 * pulse})`;
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#5eead4'; ctx.shadowBlur = 6;
+        for (let i = 0; i < waveCount; i++) {
+            const a = (i / waveCount) * Math.PI * 2 + rot;
+            const wx = Math.cos(a) * ringR, wy = Math.sin(a) * ringR;
+            ctx.save();
+            ctx.translate(wx, wy);
+            ctx.rotate(a + Math.PI / 2);
+            // little wave-crest mark, like a "~" tucked along the ring
+            ctx.beginPath();
+            ctx.moveTo(-5, 0);
+            ctx.quadraticCurveTo(-2.5, -3, 0, 0);
+            ctx.quadraticCurveTo(2.5, 3, 5, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+}
+
 // Layered rotating rings simulate a real vortex - ported directly from the
 // reference demo's drawWhirlpool. popAmount (0 normally, spikes at the bite/
 // snap moment then decays) kicks the rings and foam rim outward as the whale

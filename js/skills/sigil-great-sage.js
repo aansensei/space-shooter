@@ -334,6 +334,7 @@ const GOLIATH_JOKER_NAME_TO_GEM = {
 };
 function _grantGreatSageGem(enemy) {
     if (!_hasBuff('cuop_bao_tang')) return;
+    let gained = false;
     if (enemy.type === 'goliath') {
         // Goliath absorbed exactly 3 other bosses' powers on the way to True
         // Form - killing it steals those 3 gems directly instead of a single
@@ -342,12 +343,16 @@ function _grantGreatSageGem(enemy) {
             const gemType = GOLIATH_JOKER_NAME_TO_GEM[name];
             if (gemType && _greatSageGems.length < 3 && !_greatSageGems.includes(gemType)) {
                 _greatSageGems.push(gemType);
+                gained = true;
             }
         });
-        return;
-    }
-    if (SKILL_F_ELITE_TIERS.includes(enemy.type) && _greatSageGems.length < 3 && !_greatSageGems.includes(enemy.type)) {
+    } else if (SKILL_F_ELITE_TIERS.includes(enemy.type) && _greatSageGems.length < 3 && !_greatSageGems.includes(enemy.type)) {
         _greatSageGems.push(enemy.type);
+        gained = true;
     }
+    // Read by _drawGreatSageGemGrantBurst (js/render/player.js) for a one-time
+    // flash on the ship the instant a gem actually lands, not just a duplicate
+    // steal attempt that got skipped above.
+    if (gained) window._greatSageGemGrantFlash = performance.now();
 }
 

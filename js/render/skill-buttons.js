@@ -209,6 +209,43 @@ function drawSkillButtons() {
         ctx.restore();
     }
 
+    // Gradient wash laid over a pill when a sigil's own bonus action is
+    // ready to fire, separate from that skill's normal cooldown/charge
+    // state shown by _pill itself - Cancer's banked Riptide Surge (SPC row)
+    // and Great Sage's banked stolen gem (F row) both bypass their button's
+    // usual cooldown, so this is the only visual cue either one gets.
+    // `stops` is a list of [offset, color] pairs for the fill gradient. On
+    // top of the wash, a white ring contracts inward from outside the pill
+    // onto its edge on a repeating cycle, drawing the eye to it the moment
+    // it turns ready instead of just sitting there as a static tint.
+    function _pillReadyWash(py, stops) {
+        ctx.save();
+        const pulse = 0.5 + 0.5 * Math.sin(now / 220);
+        const g = ctx.createLinearGradient(pillX, 0, pillX + pW, 0);
+        stops.forEach(([off, c]) => g.addColorStop(off, c));
+        ctx.fillStyle = g;
+        ctx.globalAlpha = 0.42 + 0.26 * pulse;
+        ctx.fillRect(pillX, py, pW, pH);
+        ctx.restore();
+
+        ctx.save();
+        const cyc = 900;
+        const t = (now % cyc) / cyc;
+        const outset = 16 * (1 - t);
+        const ringAlpha = t < 0.7 ? 1 : (1 - (t - 0.7) / 0.3);
+        ctx.strokeStyle = `rgba(255,255,255,${0.85 * ringAlpha})`;
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 6; }
+        if (ctx.roundRect) {
+            ctx.beginPath();
+            ctx.roundRect(pillX - outset, py - outset, pW + outset * 2, pH + outset * 2, 6 + outset * 0.3);
+            ctx.stroke();
+        } else {
+            ctx.strokeRect(pillX - outset, py - outset, pW + outset * 2, pH + outset * 2);
+        }
+        ctx.restore();
+    }
+
     _pill(rowY(0), skillShiftActive ? '⏸ SH' : 'SH', '#A855F7', {
         cd: skillShiftCooldown, lastAct: lastSkillShift,
         active: skillShiftActive, activeLabel: 'SHIFT',
@@ -256,6 +293,9 @@ function drawSkillButtons() {
     _pill(rowY(4), 'F', '#EF4444', {
         cd: skillFCooldown, lastAct: lastSkillF, active: skillFState !== 'ready', activeLabel: 'ACTIVE',
     });
+    if (_greatSageGems.length > 0) _pillReadyWash(rowY(4), [
+        [0, 'rgba(150,10,10,1)'], [0.45, 'rgba(255,60,20,1)'], [0.75, 'rgba(255,140,20,1)'], [1, 'rgba(255,215,60,1)'],
+    ]);
 
     {
         const _gRemSec = skillGActive ? Math.max(0, (skillGEndTime - gameElapsedTime) / 1000) : 0;
@@ -287,6 +327,9 @@ function drawSkillButtons() {
             : { cd: laserCooldownDuration, lastAct: now - (laserCooldownDuration - _spcRem * 1000), active: false };
     }
     _pill(_spaceY, '⎵ SPC', '#3B82F6', _spaceOpts);
+    if (window._tidalSurgeReady) _pillReadyWash(_spaceY, [
+        [0, 'rgba(3,50,80,1)'], [0.35, 'rgba(0,140,180,1)'], [0.65, 'rgba(0,220,235,1)'], [0.85, 'rgba(94,234,212,1)'], [1, 'rgba(220,255,250,1)'],
+    ]);
 
     // Cycle of Flow: a full screen-width of movement just shaved 0.5s off
     // every cooldown above — flash the whole panel so the reward actually
