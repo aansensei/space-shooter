@@ -1902,7 +1902,7 @@
                     fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>'
                         + ' <span style="opacity:0.7">' + (_TIER_NAMES[_liveLvl] || 'FULL') + '</span>';
                     const _mcEl = document.getElementById('debug-mobctl');
-                    if (_mcEl && _plat === 'mobile') _mcEl.style.display = 'block';
+                    if (_mcEl && window._platform === 'mobile') _mcEl.style.display = 'block';
                 }
                 requestAnimationFrame(tick);
             }
