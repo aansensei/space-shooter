@@ -2591,6 +2591,26 @@
             // Micro haptic, 15ms, barely perceptible
             window._hap = function () { try { navigator.vibrate && navigator.vibrate(15); } catch (e) { } }
 
+            // Movement control swap: Yog-Sothoth needs a discrete "pick a
+            // side" tap, which a continuous drag axis doesn't map to, so it
+            // swaps back to the original 2 arrow buttons for as long as it's
+            // actively charging. Called directly from _mbDown/_mbUp('mb-yog')
+            // the instant skillShiftActive actually changes, not just polled
+            // from the per-frame loop below - a press/release-driven update
+            // can't miss a frame the way a poll theoretically could, and it's
+            // the only thing that ever writes these two elements' display,
+            // so the two can never end up visible at once.
+            function _syncMovementSwap() {
+                const joyEl = document.getElementById('mb-joy');
+                const arrowsEl = document.getElementById('mb-yog-arrows');
+                if (!joyEl || !arrowsEl) return;
+                const wantArrows = typeof skillShiftActive !== 'undefined' && skillShiftActive;
+                joyEl.style.display = wantArrows ? 'none' : 'flex';
+                arrowsEl.style.display = wantArrows ? 'block' : 'none';
+                if (wantArrows && typeof _joyTouchId !== 'undefined' && _joyTouchId !== null) _joyReset();
+            }
+            window._syncMovementSwap = _syncMovementSwap;
+
             window._mbDown = function (id) {
                 // Same freeze as main.js's update() (skipped while the sigil
                 // picker is up) and input.js's keydown gate — mobile's Shift/
@@ -2611,6 +2631,7 @@
                                 window.AudioMgr.enterTimeDomain();
                                 window.AudioMgr.playSfx('shift-hold');
                             }
+                            _syncMovementSwap();
                         }
                     } else if (id === 'mb-ch') {
                         // Cancer sigil: a banked Riptide Surge takes priority over the
@@ -2642,6 +2663,7 @@
                 try {
                     if (id === 'mb-yog') {
                         if (typeof cancelSkillShift === 'function') cancelSkillShift();
+                        _syncMovementSwap();
                     } else if (id === 'mb-ch') {
                         if (charging && !laserActive) {
                             const dur = performance.now() - chargeStartTime;
@@ -2866,24 +2888,11 @@
                             if (typeof cancelSkillShift === 'function') cancelSkillShift();
                         }
 
-                        // Movement control swap: Yog-Sothoth needs a discrete
-                        // "pick a side" tap, which a continuous drag axis
-                        // doesn't map to, so it swaps back to the original 2
-                        // arrow buttons for as long as it's actively charging.
-                        {
-                            const joyEl = document.getElementById('mb-joy');
-                            const arrowsEl = document.getElementById('mb-yog-arrows');
-                            const wantArrows = typeof skillShiftActive !== 'undefined' && skillShiftActive;
-                            if (joyEl && arrowsEl) {
-                                // Set both unconditionally every frame instead
-                                // of only on a detected change - cheap, and it
-                                // rules out the two ever being visible at once
-                                // even for a single frame from some missed edge.
-                                joyEl.style.display = wantArrows ? 'none' : 'flex';
-                                arrowsEl.style.display = wantArrows ? 'block' : 'none';
-                                if (wantArrows && _joyTouchId !== null) _joyReset();
-                            }
-                        }
+                        // Redundant per-frame safety net on top of the direct
+                        // calls in _mbDown/_mbUp('mb-yog') above - cheap, and
+                        // catches anything that changed skillShiftActive some
+                        // other way (the 15s watchdog just above included).
+                        _syncMovementSwap();
                         // YOG
                         if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
                             const yc = _cdCtx('mb-yog-cv');
