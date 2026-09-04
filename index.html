@@ -1867,10 +1867,18 @@
                     }
                 }
 
-                // FPS chip: chỉ hiện khi đang trong game — plain "FPS: N" readout only.
+                // FPS chip, now with the live quality tier next to it - Smart
+                // Quality (on by default) can silently drop this below
+                // whatever the player last manually picked in Settings the
+                // instant it measures low FPS, with nothing else on screen
+                // to reveal that happened. Surfacing it here turns "why does
+                // High look wrong on my phone" into something checkable at a
+                // glance instead of a mystery.
                 if (window._inGame) {
                     fpsEl.style.display = 'block';
-                    fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>';
+                    const _liveLvl = typeof window._gfxLevel !== 'undefined' ? window._gfxLevel : 0;
+                    fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>'
+                        + ' <span style="opacity:0.7">' + (_TIER_NAMES[_liveLvl] || 'FULL') + '</span>';
                 }
                 requestAnimationFrame(tick);
             }
@@ -2347,6 +2355,39 @@
             border-color: rgba(255, 255, 255, 0.55);
             transition: transform 0.05s, background 0.05s;
         }
+
+        /* Movement joystick: horizontal-drag only, replaces the 2 arrow
+           buttons except while Yog-Sothoth is charging (see #mb-yog-arrows
+           and the visibility swap in _startCooldownLoop). */
+        .mb-joy {
+            /* Flattened oval, not a full circle - the squashed shape itself
+               reads as "this only goes left/right", before the player even
+               touches it. */
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            touch-action: none; /* raw drag, no browser scroll/zoom gestures fighting it */
+        }
+
+        .mb-joy-knob {
+            position: absolute;
+            width: 46px;
+            height: 46px;
+            left: 50%;
+            top: 50%;
+            margin-left: -23px;
+            margin-top: -23px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.16);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            pointer-events: none;
+            transition: transform 0.15s ease-out;
+        }
+
+        .mb-joy-knob.engaged {
+            background: rgba(255, 255, 255, 0.32);
+            border-color: rgba(255, 255, 255, 0.65);
+        }
     </style>
 
     <script>
@@ -2522,6 +2563,11 @@
                     <canvas width="58" height="58" id="mb-ch-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#00e5ff;font-size:9px;font-weight:800;">CHARGE</span>
                 </div>
+                <div class="mb mb-joy" id="mb-joy" style="position:fixed;bottom:calc(46px + ${B});right:calc(6px + env(safe-area-inset-right, 0px));width:180px;height:76px;"
+                    ontouchstart="_joyTouchStart(event)" onmousedown="_joyMouseDown(event)">
+                    <div class="mb-joy-knob" id="mb-joy-knob"></div>
+                </div>
+                <div id="mb-yog-arrows" style="display:none;">
                 <button class="mb mb-ar" style="position:fixed;bottom:calc(28px + ${B});right:${R1};"
                     ontouchstart="event.preventDefault();_mbDown('mb-left')" ontouchend="_mbUp('mb-left')"
                     onmousedown="_mbDown('mb-left')" onmouseup="_mbUp('mb-left')">
@@ -2532,6 +2578,7 @@
                     onmousedown="_mbDown('mb-right')" onmouseup="_mbUp('mb-right')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
+                </div>
                 <button id="mb-esc" style="position:fixed;top:16px;left:70px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.10);backdrop-filter:blur(18px) saturate(180%);-webkit-backdrop-filter:blur(18px) saturate(180%);box-shadow:0 4px 20px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.15);opacity:0.65;cursor:pointer;pointer-events:all;touch-action:manipulation;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);letter-spacing:1px;outline:none;"
                     ontouchstart="event.preventDefault();_hap();if(typeof gameState!=='undefined'&&gameState==='playing'&&!gamePaused){gamePaused=true;window.showPauseScreen();}"
                     onmousedown="if(typeof gameState!=='undefined'&&gameState==='playing'&&!gamePaused){gamePaused=true;window.showPauseScreen();}">
@@ -2608,6 +2655,90 @@
                     else if (id === 'mb-right') { keys.right = false; }
                 } catch (e) { }
             };
+
+            // MOVEMENT JOYSTICK: horizontal-drag only. Tracked by touch/
+            // pointer identifier rather than by DOM element, so a finger
+            // that slides off the base while still down keeps steering
+            // (a real risk for a drag gesture, unlike a plain tap button),
+            // and the other hand's skill-button taps are never mistaken for
+            // this gesture. Reuses keys.left/keys.right exactly as the old
+            // arrow buttons did - movement itself is still a plain on/off
+            // flag, not analog speed, so nothing in main.js's movement code
+            // needs to change.
+            let _joyTouchId = null; // null = not currently dragging; 'mouse' for the mouse path
+            let _joyCenterX = 0;
+            const JOY_MAX = 58;      // px the knob can travel before clamping (base is now 180px wide)
+            const JOY_DEADZONE = 12; // px of travel before a direction engages
+
+            function _joyUpdate(clientX) {
+                const dx = Math.max(-JOY_MAX, Math.min(JOY_MAX, clientX - _joyCenterX));
+                const knob = document.getElementById('mb-joy-knob');
+                const engaged = Math.abs(dx) > JOY_DEADZONE;
+                if (knob) {
+                    knob.style.transform = `translateX(${dx}px)`;
+                    knob.classList.toggle('engaged', engaged);
+                }
+                keys.left = engaged && dx < 0;
+                keys.right = engaged && dx > 0;
+            }
+
+            function _joyReset() {
+                _joyTouchId = null;
+                keys.left = false; keys.right = false;
+                const knob = document.getElementById('mb-joy-knob');
+                if (knob) { knob.style.transform = 'translateX(0px)'; knob.classList.remove('engaged'); }
+            }
+
+            function _joyStart(clientX, touchId) {
+                if (window._sigilPicker) return;
+                const base = document.getElementById('mb-joy');
+                if (!base) return;
+                const rect = base.getBoundingClientRect();
+                _joyCenterX = rect.left + rect.width / 2;
+                _joyTouchId = touchId;
+                _joyUpdate(clientX);
+                _hap();
+            }
+
+            window._joyTouchStart = function (e) {
+                e.preventDefault();
+                const t = e.changedTouches[0];
+                _joyStart(t.clientX, t.identifier);
+            };
+            window._joyMouseDown = function (e) {
+                _joyStart(e.clientX, 'mouse');
+            };
+
+            // touchmove/touchend/mouseup listen on document, not the
+            // joystick element itself, precisely so dragging off the base
+            // doesn't drop the gesture, and release reliably clears the
+            // flags even if that happens outside the element.
+            document.addEventListener('touchmove', function (e) {
+                if (_joyTouchId === null) return;
+                for (const t of e.changedTouches) {
+                    if (t.identifier === _joyTouchId) { e.preventDefault(); _joyUpdate(t.clientX); break; }
+                }
+            }, { passive: false });
+            document.addEventListener('touchend', function (e) {
+                if (_joyTouchId === null) return;
+                for (const t of e.changedTouches) {
+                    if (t.identifier === _joyTouchId) { _joyReset(); break; }
+                }
+            });
+            document.addEventListener('touchcancel', function (e) {
+                if (_joyTouchId === null) return;
+                for (const t of e.changedTouches) {
+                    if (t.identifier === _joyTouchId) { _joyReset(); break; }
+                }
+            });
+            document.addEventListener('mousemove', function (e) {
+                if (_joyTouchId !== 'mouse') return;
+                _joyUpdate(e.clientX);
+            });
+            document.addEventListener('mouseup', function () {
+                if (_joyTouchId !== 'mouse') return;
+                _joyReset();
+            });
 
             // COOLDOWN RING PAINTER
             const CIRC = 2 * Math.PI * 26; // r=26 on 58×58 canvas
@@ -2719,6 +2850,25 @@
                         const silenced = typeof player !== 'undefined' && player._silenced;
                         const _justUnsilenced = _lastSilenced && !silenced;
                         _lastSilenced = silenced;
+
+                        // Movement control swap: Yog-Sothoth needs a discrete
+                        // "pick a side" tap, which a continuous drag axis
+                        // doesn't map to, so it swaps back to the original 2
+                        // arrow buttons for as long as it's actively charging.
+                        {
+                            const joyEl = document.getElementById('mb-joy');
+                            const arrowsEl = document.getElementById('mb-yog-arrows');
+                            const wantArrows = typeof skillShiftActive !== 'undefined' && skillShiftActive;
+                            if (joyEl && arrowsEl) {
+                                // Set both unconditionally every frame instead
+                                // of only on a detected change - cheap, and it
+                                // rules out the two ever being visible at once
+                                // even for a single frame from some missed edge.
+                                joyEl.style.display = wantArrows ? 'none' : 'flex';
+                                arrowsEl.style.display = wantArrows ? 'block' : 'none';
+                                if (wantArrows && _joyTouchId !== null) _joyReset();
+                            }
+                        }
                         // YOG
                         if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
                             const yc = _cdCtx('mb-yog-cv');
