@@ -2527,7 +2527,7 @@
                 const B  = 'env(safe-area-inset-bottom, 0px)';
                 return `
                 <div class="mb mb-sk" id="mb-yog" style="bottom:calc(180px + ${B});left:${L1};"
-                    ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')"
+                    ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')" ontouchcancel="_mbUp('mb-yog')"
                     onmousedown="_mbDown('mb-yog')" onmouseup="_mbUp('mb-yog')">
                     <canvas width="58" height="58" id="mb-yog-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#ffcc00;font-size:11px;font-weight:800;">YOG</span>
@@ -2558,7 +2558,7 @@
                     <span id="mb-g-lbl" style="position:relative;z-index:2;color:#00ffcc;">G</span>
                 </div>
                 <div class="mb mb-sk" id="mb-ch" style="bottom:calc(256px + ${B});left:${L1};"
-                    ontouchstart="event.preventDefault();_mbDown('mb-ch')" ontouchend="_mbUp('mb-ch')"
+                    ontouchstart="event.preventDefault();_mbDown('mb-ch')" ontouchend="_mbUp('mb-ch')" ontouchcancel="_mbUp('mb-ch')"
                     onmousedown="_mbDown('mb-ch')" onmouseup="_mbUp('mb-ch')">
                     <canvas width="58" height="58" id="mb-ch-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#00e5ff;font-size:9px;font-weight:800;">CHARGE</span>
@@ -2569,12 +2569,12 @@
                 </div>
                 <div id="mb-yog-arrows" style="display:none;">
                 <button class="mb mb-ar" style="position:fixed;bottom:calc(28px + ${B});right:${R1};"
-                    ontouchstart="event.preventDefault();_mbDown('mb-left')" ontouchend="_mbUp('mb-left')"
+                    ontouchstart="event.preventDefault();_mbDown('mb-left')" ontouchend="_mbUp('mb-left')" ontouchcancel="_mbUp('mb-left')"
                     onmousedown="_mbDown('mb-left')" onmouseup="_mbUp('mb-left')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
                 <button class="mb mb-ar" style="position:fixed;bottom:calc(28px + ${B});right:${R2};"
-                    ontouchstart="event.preventDefault();_mbDown('mb-right')" ontouchend="_mbUp('mb-right')"
+                    ontouchstart="event.preventDefault();_mbDown('mb-right')" ontouchend="_mbUp('mb-right')" ontouchcancel="_mbUp('mb-right')"
                     onmousedown="_mbDown('mb-right')" onmouseup="_mbUp('mb-right')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
@@ -2850,6 +2850,21 @@
                         const silenced = typeof player !== 'undefined' && player._silenced;
                         const _justUnsilenced = _lastSilenced && !silenced;
                         _lastSilenced = silenced;
+
+                        // Safety net: if skillShiftActive is somehow still
+                        // true long after any real charge could still be
+                        // going (touchcancel on mb-yog covers the known way
+                        // this could get stuck - the OS cancelling the touch
+                        // mid-hold, e.g. a scroll gesture or system dialog
+                        // stealing it before touchend fires - this is a
+                        // backstop for any other way it might happen), force
+                        // it off so the arrow-button swap below can't get
+                        // stuck showing them forever.
+                        if (typeof skillShiftActive !== 'undefined' && skillShiftActive
+                            && typeof skillShiftChargeStart !== 'undefined'
+                            && now - skillShiftChargeStart > 15000) {
+                            if (typeof cancelSkillShift === 'function') cancelSkillShift();
+                        }
 
                         // Movement control swap: Yog-Sothoth needs a discrete
                         // "pick a side" tap, which a continuous drag axis
