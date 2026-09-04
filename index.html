@@ -2393,19 +2393,33 @@
             touch-action: none; /* raw drag, no browser scroll/zoom gestures fighting it */
         }
 
+        /* Dead-zone boundary markers - thin lines at exactly +-JOY_DEADZONE
+           from center, so the 3 zones (left/stand still/right) are visible
+           instead of felt-out blind. Deliberately a narrow center strip:
+           most of the bar is "moving", only a small sliver in the middle is
+           "standing still", matching the small dead zone itself. */
+        .mb-joy-divider {
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.25);
+            pointer-events: none;
+        }
+
         .mb-joy-knob {
             position: absolute;
-            width: 46px;
-            height: 46px;
+            width: 38px;
+            height: 38px;
             left: 50%;
             top: 50%;
-            margin-left: -23px;
-            margin-top: -23px;
+            margin-left: -19px;
+            margin-top: -19px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.16);
             border: 2px solid rgba(255, 255, 255, 0.35);
             pointer-events: none;
-            transition: transform 0.15s ease-out;
+            transition: transform 0.08s ease-out;
         }
 
         .mb-joy-knob.engaged {
@@ -2587,8 +2601,10 @@
                     <canvas width="58" height="58" id="mb-ch-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#00e5ff;font-size:9px;font-weight:800;">CHARGE</span>
                 </div>
-                <div class="mb mb-joy" id="mb-joy" style="position:fixed;bottom:calc(46px + ${B});right:calc(6px + env(safe-area-inset-right, 0px));width:180px;height:76px;"
+                <div class="mb mb-joy" id="mb-joy" style="position:fixed;bottom:calc(46px + ${B});right:calc(6px + env(safe-area-inset-right, 0px));width:120px;height:56px;"
                     ontouchstart="_joyTouchStart(event)" onmousedown="_joyMouseDown(event)">
+                    <div class="mb-joy-divider" style="left:calc(50% - 8px);"></div>
+                    <div class="mb-joy-divider" style="left:calc(50% + 8px);"></div>
                     <div class="mb-joy-knob" id="mb-joy-knob"></div>
                 </div>
                 <div id="mb-yog-arrows" style="display:none;">
@@ -2722,8 +2738,8 @@
             // needs to change.
             let _joyTouchId = null; // null = not currently dragging; 'mouse' for the mouse path
             let _joyCenterX = 0;
-            const JOY_MAX = 58;      // px the knob can travel before clamping (base is now 180px wide)
-            const JOY_DEADZONE = 12; // px of travel before a direction engages
+            const JOY_MAX = 45;      // px the knob can travel before clamping (base is 120px wide)
+            const JOY_DEADZONE = 8;  // px of travel before a direction engages - matches the .mb-joy-divider lines
 
             function _joyUpdate(clientX) {
                 const dx = Math.max(-JOY_MAX, Math.min(JOY_MAX, clientX - _joyCenterX));
