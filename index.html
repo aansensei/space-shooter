@@ -2321,6 +2321,15 @@
         .mb-sk canvas {
             position: absolute;
             inset: 0;
+            /* The canvas's width/height HTML attributes (58, fixing its
+               drawing resolution) also count as a CSS size hint that inset:0
+               alone doesn't override - without this, a button bigger than
+               58px (like CHARGE) left its canvas pinned at a fixed 58x58 in
+               the top-left corner instead of stretching to fill it, so the
+               cooldown ring rendered small and off-center instead of framing
+               the whole button. */
+            width: 100%;
+            height: 100%;
             pointer-events: none;
         }
 
@@ -2542,49 +2551,68 @@
                 // "up" after rotation), so left- and right-pinned buttons both
                 // need the offset — the unused side's env() resolves to 0px
                 // and is a no-op there.
-                const L1 = 'calc(26px + env(safe-area-inset-left, 0px))';
-                const L2 = 'calc(94px + env(safe-area-inset-left, 0px))';
                 const R1 = 'calc(90px + env(safe-area-inset-right, 0px))';
                 const R2 = 'calc(10px + env(safe-area-inset-right, 0px))';
                 const B  = 'env(safe-area-inset-bottom, 0px)';
+                // Skill cluster: CHARGE as a big central hub with A/S/D/F/G
+                // overlapping it and each other so the whole group reads as
+                // one connected cluster; Yog-Sothoth sits well clear above
+                // it on its own, not part of that cluster - AanSensei's own
+                // sketch of the layout (2nd pass: Yog was meant standalone).
+                const HUB_X = 115, HUB_Y = 115; // CHARGE's own center, px (+ safe-area)
+                const HUB_SIZE = 84, SAT_SIZE = 58, SAT_R = 91; // gap between buttons, not touching - big-thumb mis-taps
+                const YOG_SIZE = 61; // Yog-Sothoth only, 5% bigger, sits apart from the rest of the cluster
+                function _hubPos(angleDeg, size) {
+                    const rad = angleDeg * Math.PI / 180;
+                    const x = HUB_X + Math.round(Math.cos(rad) * SAT_R) - size / 2;
+                    const y = HUB_Y + Math.round(Math.sin(rad) * SAT_R) - size / 2;
+                    return { left: `calc(${x}px + env(safe-area-inset-left, 0px))`, bottom: `calc(${y}px + ${B})` };
+                }
+                const HUB_POS = { left: `calc(${HUB_X - HUB_SIZE / 2}px + env(safe-area-inset-left, 0px))`, bottom: `calc(${HUB_Y - HUB_SIZE / 2}px + ${B})` };
+                const P_YOG = { left: `calc(${HUB_X - YOG_SIZE / 2}px + env(safe-area-inset-left, 0px))`, bottom: `calc(${HUB_Y + 150 - YOG_SIZE / 2}px + ${B})` };
+                const P_A = _hubPos(150, SAT_SIZE);
+                const P_S = _hubPos(106, SAT_SIZE);
+                const P_D = _hubPos(62, SAT_SIZE);
+                const P_F = _hubPos(18, SAT_SIZE);
+                const P_G = _hubPos(-26, SAT_SIZE);
                 return `
-                <div class="mb mb-sk" id="mb-yog" style="bottom:calc(180px + ${B});left:${L1};"
+                <div class="mb mb-sk" id="mb-yog" style="bottom:${P_YOG.bottom};left:${P_YOG.left};width:${YOG_SIZE}px;height:${YOG_SIZE}px;"
                     ontouchstart="event.preventDefault();_mbDown('mb-yog')" ontouchend="_mbUp('mb-yog')" ontouchcancel="_mbUp('mb-yog')"
                     onmousedown="_mbDown('mb-yog')" onmouseup="_mbUp('mb-yog')">
                     <canvas width="58" height="58" id="mb-yog-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#ffcc00;font-size:11px;font-weight:800;">YOG</span>
                 </div>
-                <button class="mb mb-sk" id="mb-a" style="bottom:calc(180px + ${B});left:${L2};"
+                <div class="mb mb-sk" id="mb-ch" style="bottom:${HUB_POS.bottom};left:${HUB_POS.left};width:${HUB_SIZE}px;height:${HUB_SIZE}px;"
+                    ontouchstart="event.preventDefault();_mbDown('mb-ch')" ontouchend="_mbUp('mb-ch')" ontouchcancel="_mbUp('mb-ch')"
+                    onmousedown="_mbDown('mb-ch')" onmouseup="_mbUp('mb-ch')">
+                    <canvas width="58" height="58" id="mb-ch-cv"></canvas>
+                    <span style="position:relative;z-index:2;color:#00e5ff;font-size:10px;font-weight:800;">CHARGE</span>
+                </div>
+                <button class="mb mb-sk" id="mb-a" style="bottom:${P_A.bottom};left:${P_A.left};"
                     ontouchstart="event.preventDefault();_hap();activateSkillA()" onmousedown="activateSkillA()">
                     <canvas width="58" height="58" id="mb-a-cv"></canvas>
                     <span style="position:relative;z-index:2;">A</span>
                 </button>
-                <button class="mb mb-sk" id="mb-s" style="bottom:calc(112px + ${B});left:${L1};"
+                <button class="mb mb-sk" id="mb-s" style="bottom:${P_S.bottom};left:${P_S.left};"
                     ontouchstart="event.preventDefault();_hap();activateSkillS()" onmousedown="activateSkillS()">
                     <canvas width="58" height="58" id="mb-s-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#00e5ff;">S</span>
                 </button>
-                <button class="mb mb-sk" id="mb-d" style="bottom:calc(112px + ${B});left:${L2};"
+                <button class="mb mb-sk" id="mb-d" style="bottom:${P_D.bottom};left:${P_D.left};"
                     ontouchstart="event.preventDefault();_hap();activateSkillD()" onmousedown="activateSkillD()">
                     <canvas width="58" height="58" id="mb-d-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#bb88ff;">D</span>
                 </button>
-                <button class="mb mb-sk" id="mb-f" style="bottom:calc(44px + ${B});left:${L1};"
+                <button class="mb mb-sk" id="mb-f" style="bottom:${P_F.bottom};left:${P_F.left};"
                     ontouchstart="event.preventDefault();_hap();activateSkillF()" onmousedown="activateSkillF()">
                     <canvas width="58" height="58" id="mb-f-cv"></canvas>
                     <span style="position:relative;z-index:2;color:#ff6666;">F</span>
                 </button>
-                <button class="mb mb-sk" id="mb-g" style="bottom:calc(44px + ${B});left:${L2};"
+                <button class="mb mb-sk" id="mb-g" style="bottom:${P_G.bottom};left:${P_G.left};"
                     ontouchstart="event.preventDefault();_hap();activateSkillG()" onmousedown="activateSkillG()">
                     <canvas width="58" height="58" id="mb-g-cv"></canvas>
                     <span id="mb-g-lbl" style="position:relative;z-index:2;color:#00ffcc;">G</span>
                 </button>
-                <div class="mb mb-sk" id="mb-ch" style="bottom:calc(256px + ${B});left:${L1};"
-                    ontouchstart="event.preventDefault();_mbDown('mb-ch')" ontouchend="_mbUp('mb-ch')" ontouchcancel="_mbUp('mb-ch')"
-                    onmousedown="_mbDown('mb-ch')" onmouseup="_mbUp('mb-ch')">
-                    <canvas width="58" height="58" id="mb-ch-cv"></canvas>
-                    <span style="position:relative;z-index:2;color:#00e5ff;font-size:9px;font-weight:800;">CHARGE</span>
-                </div>
                 <div class="mb mb-joy" id="mb-joy" style="position:fixed;bottom:calc(46px + ${B});right:calc(6px + env(safe-area-inset-right, 0px));width:120px;height:56px;"
                     ontouchstart="_joyTouchStart(event)" onmousedown="_joyMouseDown(event)">
                     <div class="mb-joy-divider" style="left:calc(50% - 8px);"></div>
@@ -2870,6 +2898,16 @@
             function _readyEnd(end, cd) { if (!end || end <= 0) return 1; return Math.min(1, Math.max(0, (performance.now() - (end - cd)) / cd)); }
 
             let _lastSilenced = false;
+            // Tracks whether mb-f/mb-ch were showing their ready-glow last
+            // frame - _paintRing skips its own redraw when the cooldown
+            // fraction it computes happens to match the last value it drew,
+            // but that dirty-check never saw the glow (a totally different
+            // draw path), so on the exact frame a gem/tidal-surge use ends
+            // and control falls back to _paintRing, the fraction can easily
+            // coincide with whatever was cached from before the glow ever
+            // started, and the button stays stuck showing the glow forever.
+            // Forcing one redraw on that specific transition frame clears it.
+            let _lastReadyGlow = { ch: false, f: false };
             let _cooldownLoopRunning = false;
             function _startCooldownLoop() {
                 // _initMobileControls() (which calls this) re-runs on every
@@ -2998,11 +3036,13 @@
                             ], now);
                             document.getElementById('mb-f')?.classList.remove('cd');
                             document.getElementById('mb-f')?.classList.add('skill-active');
+                            _lastReadyGlow.f = true;
                         } else {
                             const fr = _ready(lastSkillF, skillFCooldown);
-                            _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced);
+                            _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced || _lastReadyGlow.f);
                             document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
                             document.getElementById('mb-f')?.classList.remove('skill-active');
+                            _lastReadyGlow.f = false;
                         }
                         // G, charge based 0-100
                         const gc = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
@@ -3026,6 +3066,7 @@
                             ], now);
                             document.getElementById('mb-ch')?.classList.remove('cd');
                             document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _lastReadyGlow.ch = true;
                         } else if (_charging) {
                             const cc = _cdCtx('mb-ch-cv');
                             if (cc) {
@@ -3042,6 +3083,7 @@
                             }
                             document.getElementById('mb-ch')?.classList.remove('cd');
                             document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _lastReadyGlow.ch = false;
                         } else if (_laserActive) {
                             const cc = _cdCtx('mb-ch-cv');
                             if (cc) {
@@ -3053,9 +3095,11 @@
                             }
                             document.getElementById('mb-ch')?.classList.remove('cd');
                             document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _lastReadyGlow.ch = false;
                         } else {
                             const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
-                            _paintRing('mb-ch-cv', cr, '#00e5ff', _justUnsilenced);
+                            _paintRing('mb-ch-cv', cr, '#00e5ff', _justUnsilenced || _lastReadyGlow.ch);
+                            _lastReadyGlow.ch = false;
                             document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
                             document.getElementById('mb-ch')?.classList.remove('skill-active');
                         }
