@@ -298,7 +298,7 @@
         'dimensional-rift': 1.0, 'dimension-break': 1.0,
         'egregor-nullslash-windup': 1.0, 'egregor-nullslash-slash': 1.0, 'egregor-nullslash-hit': 1.0,
         'egregor-crawl': 1.0, 'egregor-death-roar': 1.0, 'egregor-tempest-strike': 1.0,
-        'chain-lightning': 1.0,
+        'chain-lightning': 0.7,
         'photokrystos-summon-converge': 1.0, 'photokrystos-summon-flash': 1.0, 'photokrystos-summon-holy': 1.0,
         'photokrystos-btm-firing': 1.0, 'photokrystos-btm-shockwave': 1.0, 'photokrystos-btm-kill': 1.0,
         'photokrystos-btm-warming': 1.0, 'photokrystos-idle': 1.0, 'photokrystos-vine-bind': 1.0,

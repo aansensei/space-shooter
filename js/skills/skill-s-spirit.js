@@ -829,7 +829,7 @@ function updateSpiritSpinners(deltaTime) {
         // Launch ramp: +50% speed decaying to +10% over the first 2s, then
         // gone entirely - a one-time opening burst, not a lasting buff.
         const rampMult = age >= 2000 ? 1.0 : 1.5 - (0.4 * (age / 2000));
-        const bounceMult = now < s.bounceBoostEnd ? 1.10 : 1.0;
+        const bounceMult = now < s.bounceBoostEnd ? 1.20 : 1.0;
         const speedMult = rampMult * bounceMult;
 
         s.x += s.vx * speedMult * dt;
