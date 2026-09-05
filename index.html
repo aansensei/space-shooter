@@ -1023,6 +1023,7 @@
                         'sigilPicker.chooseSeal': 'CHOOSE YOUR SEAL',
                         'sigilPicker.confirm': 'CONFIRM',
                         'sigilPicker.reroll': 'REROLL',
+                        'sigilPicker.swipeHint': 'SWIPE OR TAP ARROWS TO BROWSE',
                         'pause.title': 'SYSTEM TERMINATED',
                         'pause.subtitle': 'Press RESUME to continue',
                         'matchStats.button': 'Match Stat',
@@ -1057,6 +1058,7 @@
                         'sigilPicker.chooseSeal': 'CHỌN ẤN CỦA BẠN',
                         'sigilPicker.confirm': 'XÁC NHẬN',
                         'sigilPicker.reroll': 'ĐỔI LẠI',
+                        'sigilPicker.swipeHint': 'VUỐT HOẶC CHẠM MŨI TÊN ĐỂ XEM ẤN KHÁC',
                         'pause.title': 'HỆ THỐNG ĐÃ TẠM DỪNG',
                         'pause.subtitle': 'Ấn RESUME để tiếp tục',
                         'matchStats.button': 'Match Stat',
@@ -1935,11 +1937,11 @@
     </script>
 
     <script src="js/vendor/pixi.min.js"></script>
-    <script src="js/audio.js?v=20260901a"></script>
+    <script src="js/audio.js?v=20260904a"></script>
     <script src="js/offline.js?v=20260804c"></script>
     <script src="js/background.js?v=20260803d"></script>
     <script src="js/config.js?v=20260904a"></script>
-    <script src="js/sigils/core.js?v=20260901a"></script>
+    <script src="js/sigils/core.js?v=20260905a"></script>
     <script src="js/sigils/aries.js?v=20260901a"></script>
     <script src="js/sigils/taurus.js?v=20260901a"></script>
     <script src="js/sigils/gemini.js?v=20260901a"></script>
@@ -1986,7 +1988,7 @@
     <script src="js/render/enemy-goliath.js?v=20260825a"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260824e"></script>
     <script src="js/render/enemy-egregor.js?v=20260717e"></script>
-    <script src="js/render/skill-s-spirit.js?v=20260830b"></script>
+    <script src="js/render/skill-s-spirit.js?v=20260905a"></script>
     <script src="js/render/skill-a.js?v=20260722e"></script>
     <script src="js/render/skill-d.js?v=20260823b"></script>
     <script src="js/render/skill-f.js?v=20260901a"></script>
@@ -2563,7 +2565,7 @@
                 // one connected cluster; Yog-Sothoth sits well clear above
                 // it on its own, not part of that cluster - AanSensei's own
                 // sketch of the layout (2nd pass: Yog was meant standalone).
-                const HUB_X = 115, HUB_Y = 115; // CHARGE's own center, px (+ safe-area)
+                const HUB_X = 115, HUB_Y = 100; // CHARGE's own center, px (+ safe-area) - lowered a bit for a more comfortable thumb reach
                 const HUB_SIZE = 84, SAT_SIZE = 58, SAT_R = 91; // gap between buttons, not touching - big-thumb mis-taps
                 const YOG_SIZE = 61; // Yog-Sothoth only, 5% bigger, sits apart from the rest of the cluster
                 function _hubPos(angleDeg, size) {
@@ -2624,12 +2626,12 @@
                     <div class="mb-joy-knob" id="mb-joy-knob"></div>
                 </div>
                 <div id="mb-yog-arrows" style="display:none;">
-                <button class="mb mb-ar" style="position:fixed;bottom:calc(28px + ${B});right:${R1};"
+                <button class="mb mb-ar" style="position:fixed;bottom:calc(46px + ${B});right:${R1};"
                     ontouchstart="event.preventDefault();_mbDown('mb-left')" ontouchend="_mbUp('mb-left')" ontouchcancel="_mbUp('mb-left')"
                     onmousedown="_mbDown('mb-left')" onmouseup="_mbUp('mb-left')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
-                <button class="mb mb-ar" style="position:fixed;bottom:calc(28px + ${B});right:${R2};"
+                <button class="mb mb-ar" style="position:fixed;bottom:calc(46px + ${B});right:${R2};"
                     ontouchstart="event.preventDefault();_mbDown('mb-right')" ontouchend="_mbUp('mb-right')" ontouchcancel="_mbUp('mb-right')"
                     onmousedown="_mbDown('mb-right')" onmouseup="_mbUp('mb-right')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
