@@ -184,7 +184,7 @@ function _pickerLayout() {
         const panelW = canvas.width - margin * 2;
         const cardW = panelW - panelPad * 2;
 
-        const titleH = 42, confirmH = 44, navH = 30; // titleH reserves room for a swipe-hint line under the title
+        const titleH = 42, confirmH = 44, navH = 20; // titleH reserves room for a swipe-hint line under the title; navH is just the dot row
         const availH = canvas.height - margin * 2;
         const fixedH = panelPad * 2 + titleH + navH + confirmH + 10;
         const cardH = Math.max(190, Math.min(360, availH - fixedH));
@@ -327,13 +327,68 @@ function _mobileNavRects(L, yOff) {
     const cardX = L.panelX + L.panelPad;
     const cardY = L.panelY + yOff + L.panelPad + L.titleH;
     const cy = cardY + L.cardH / 2;
-    const r = 18;
     return {
         cardCx: cardX + L.cardW / 2, cardCy: cy,
-        left: { x: cardX, y: cy, r },
-        right: { x: cardX + L.cardW, y: cy, r },
         dotsY: cardY + L.cardH + L.navH / 2,
     };
+}
+
+// The bottom row, unchanged position from before any of this - CONFIRM
+// stays put, a nav arrow sits just outside each side of it, and reroll
+// trails a bit further past the right arrow. Not a new row, not moved.
+// Hand-drawn chevron (not a font glyph, which read as an unclear "<>" to
+// testers) that breathes with a glow ring and nudges toward its own
+// direction, so the buttons themselves draw the eye instead of leaning on
+// a text hint alone.
+function _drawMobileArrow(btn, enabled, dir, slideEase, now) {
+    const arrowPulse = 0.5 + 0.5 * Math.sin(now / 450);
+    const arrowNudge = Math.sin(now / 380) * 3;
+    ctx.save();
+    ctx.globalAlpha = slideEase * (enabled ? 1 : 0.25);
+
+    if (enabled) {
+        ctx.strokeStyle = `rgba(140,190,255,${0.25 + arrowPulse * 0.35})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r + 3 + arrowPulse * 2, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    ctx.fillStyle = 'rgba(10,16,40,0.85)';
+    ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = enabled ? `rgba(150,195,255,${0.7 + arrowPulse * 0.3})` : 'rgba(120,160,255,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2); ctx.stroke();
+
+    const ax = btn.x + (enabled ? dir * arrowNudge : 0);
+    const chevW = 6, chevH = 8;
+    ctx.strokeStyle = '#eaf2ff';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ax - dir * chevW * 0.5, btn.y - chevH);
+    ctx.lineTo(ax + dir * chevW * 0.5, btn.y);
+    ctx.lineTo(ax - dir * chevW * 0.5, btn.y + chevH);
+    ctx.stroke();
+    ctx.restore();
+}
+
+function _mobileBottomRowRects(L, yOff) {
+    yOff = yOff || 0;
+    const h = 42;
+    const y = L.panelY + yOff + L.panelH - h - 14;
+    const arrowR = 15, gap = 10;
+    const rerollW = 74, rerollH = 32;
+    const confirmW = Math.max(110, Math.min(160, L.panelW - 32 - (arrowR * 2 + gap) * 2 - rerollW - gap));
+    // CONFIRM's own center is pinned to the panel's true center - reroll
+    // trailing off to one side would otherwise pull a "center the whole
+    // group" layout off-center, and CONFIRM staying dead-center matters
+    // more than the group looking symmetric.
+    const centerX = L.panelX + L.panelW / 2;
+    const confirm = { x: centerX - confirmW / 2, y, w: confirmW, h };
+    const leftArrow = { x: confirm.x - gap - arrowR, y: y + h / 2, r: arrowR };
+    const rightArrow = { x: confirm.x + confirmW + gap + arrowR, y: y + h / 2, r: arrowR };
+    const reroll = { x: rightArrow.x + arrowR + gap, y: y + (h - rerollH) / 2, w: rerollW, h: rerollH };
+    return { leftArrow, confirm, rightArrow, reroll };
 }
 
 function _drawPickerCards(p, slideEase, dealElapsed) {
@@ -374,9 +429,9 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
         // thinking each swipe only shows a single fixed sigil rather than
         // browsing the same 4 - the arrows alone weren't noticeable enough.
         const hintPulse = 0.6 + 0.4 * Math.sin(now / 500);
-        ctx.fillStyle = `rgba(150,190,255,${hintPulse})`;
-        ctx.font = `9px "Courier New", monospace`;
-        ctx.fillText(_tt('sigilPicker.swipeHint'), canvas.width / 2, panelY + yOff + 40);
+        ctx.fillStyle = `rgba(170,205,255,${hintPulse})`;
+        ctx.font = `bold 12px "Courier New", monospace`;
+        ctx.fillText(_tt('sigilPicker.swipeHint'), canvas.width / 2, panelY + yOff + 41);
     }
 
     const startX = panelX + panelPad;
@@ -436,44 +491,6 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
                 const def = _localizedSigil(sigilId);
                 if (def) _drawSigilCardMobile(cx, cy, cardW, cardH, sigilId, def, now);
             }
-
-            // Nav arrows - a hand-drawn chevron (not a font glyph, which
-            // read as an unclear "<>" to testers) that breathes with a
-            // glow ring and nudges toward its own direction, so the
-            // buttons themselves draw the eye instead of leaning on a text
-            // hint alone.
-            const canPrev = p.mobileIndex > 0, canNext = p.mobileIndex < p.options.length - 1;
-            const arrowPulse = 0.5 + 0.5 * Math.sin(now / 450);
-            const arrowNudge = Math.sin(now / 380) * 3;
-            [[nav.left, canPrev, -1], [nav.right, canNext, 1]].forEach(([btn, enabled, dir]) => {
-                ctx.save();
-                ctx.globalAlpha = slideEase * (enabled ? 1 : 0.25);
-
-                if (enabled) {
-                    ctx.strokeStyle = `rgba(140,190,255,${0.25 + arrowPulse * 0.35})`;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r + 3 + arrowPulse * 2, 0, Math.PI * 2); ctx.stroke();
-                }
-
-                ctx.fillStyle = 'rgba(10,16,40,0.85)';
-                ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = enabled ? `rgba(150,195,255,${0.7 + arrowPulse * 0.3})` : 'rgba(120,160,255,0.7)';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2); ctx.stroke();
-
-                const ax = btn.x + (enabled ? dir * arrowNudge : 0);
-                const chevW = 6, chevH = 8;
-                ctx.strokeStyle = '#eaf2ff';
-                ctx.lineWidth = 3;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.beginPath();
-                ctx.moveTo(ax - dir * chevW * 0.5, btn.y - chevH);
-                ctx.lineTo(ax + dir * chevW * 0.5, btn.y);
-                ctx.lineTo(ax - dir * chevW * 0.5, btn.y + chevH);
-                ctx.stroke();
-                ctx.restore();
-            });
 
             // Dot indicator
             const dotGap = 14, dotR = 4;
@@ -580,6 +597,13 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
         }
     }
 
+    if (isMob) {
+        const bottomRow = _mobileBottomRowRects(L, yOff);
+        const canPrev = p.mobileIndex > 0, canNext = p.mobileIndex < p.options.length - 1;
+        _drawMobileArrow(bottomRow.leftArrow, canPrev, -1, slideEase, now);
+        _drawMobileArrow(bottomRow.rightArrow, canNext, 1, slideEase, now);
+    }
+
     const btn = _sigilConfirmRect(L, yOff);
     ctx.globalAlpha = slideEase;
     ctx.strokeStyle = 'rgba(60,90,160,0.30)';
@@ -630,9 +654,9 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
         ctx.fill();
     }
     ctx.fillStyle = canReroll ? '#ffe9b0' : '#444860';
-    ctx.font = `bold ${isMob ? 9 : 12}px "Courier New", monospace`;
+    ctx.font = `bold ${isMob ? 10 : 12}px "Courier New", monospace`;
     ctx.letterSpacing = isMob ? '0px' : '1px';
-    const rLabel = isMob ? `↻ ${rerollsLeft}` : `↻ ${_tt('sigilPicker.reroll')} (${rerollsLeft})`;
+    const rLabel = isMob ? `↻ ${_tt('sigilPicker.reroll')} ${rerollsLeft}` : `↻ ${_tt('sigilPicker.reroll')} (${rerollsLeft})`;
     ctx.fillText(rLabel, rbtn.x + rbtn.w / 2, rbtn.y + rbtn.h / 2 + 4);
     ctx.letterSpacing = '0px';
 
@@ -657,7 +681,8 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
 function _sigilConfirmRect(L, yOff) {
     yOff = yOff || 0;
     L = L || _pickerLayout();
-    const w = L.isMob ? Math.min(200, L.panelW - 32) : 200;
+    if (L.isMob) return _mobileBottomRowRects(L, yOff).confirm;
+    const w = 200;
     const h = 42;
     return { x: L.panelX + (L.panelW - w) / 2, y: L.panelY + yOff + L.panelH - h - 14, w, h };
 }
@@ -665,10 +690,11 @@ function _sigilConfirmRect(L, yOff) {
 function _sigilRerollRect(L, yOff) {
     yOff = yOff || 0;
     L = L || _pickerLayout();
+    if (L.isMob) return _mobileBottomRowRects(L, yOff).reroll;
     const confirmBtn = _sigilConfirmRect(L, yOff);
-    const w = L.isMob ? 64 : 130;
+    const w = 130;
     const h = 42;
-    const gap = L.isMob ? 6 : 14;
+    const gap = 14;
     return { x: confirmBtn.x + confirmBtn.w + gap, y: confirmBtn.y, w, h };
 }
 
@@ -1178,12 +1204,12 @@ function _handleSigilPickerClick(ex, ey) {
     const L = _pickerLayout();
 
     if (L.isMob) {
-        const nav = _mobileNavRects(L, 0);
-        if (Math.hypot(ex - nav.left.x, ey - nav.left.y) <= nav.left.r + 6) {
+        const bottomRow = _mobileBottomRowRects(L, 0);
+        if (Math.hypot(ex - bottomRow.leftArrow.x, ey - bottomRow.leftArrow.y) <= bottomRow.leftArrow.r + 6) {
             _mobileGoTo(p, p.mobileIndex - 1);
             return;
         }
-        if (Math.hypot(ex - nav.right.x, ey - nav.right.y) <= nav.right.r + 6) {
+        if (Math.hypot(ex - bottomRow.rightArrow.x, ey - bottomRow.rightArrow.y) <= bottomRow.rightArrow.r + 6) {
             _mobileGoTo(p, p.mobileIndex + 1);
             return;
         }
