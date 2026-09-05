@@ -131,6 +131,7 @@
         let _savedPos = 0;
         let _srcStartCtx = 0;
         let _srcOffset = 0;
+        let playToken = 0;
 
         function _swapToBuffer(buf, myBufferPromise) {
             if (!playing || bufferPromise !== myBufferPromise) return;
@@ -167,6 +168,17 @@
                 if (!actx || !bufferPromise) return Promise.resolve();
                 playing = true;
                 const myBufferPromise = bufferPromise;
+                // A fresh decode takes real async time, so a quick stop+
+                // restart of the SAME sound (charge canceled, then
+                // retriggered before the first decode resolves) used to let
+                // both play() calls' .then() callbacks pass the "stale
+                // promise" check below (bufferPromise only changes on
+                // setSrc(), not per play() call) and both swap in a live
+                // AudioBufferSourceNode - two overlapping copies of the
+                // same loop, heard as the sound doubling/repeating. A
+                // per-call token lets only the MOST RECENT play() actually
+                // swap in a source.
+                const myToken = ++playToken;
                 bridgeEl = new Audio(bridgeSrc);
                 bridgeEl.loop = shouldLoop;
                 bridgeEl.volume = curVolume;
@@ -179,7 +191,7 @@
                 }
                 const playPromise = bridgeEl.play().catch(() => {});
                 myBufferPromise.then(buf => {
-                    if (!buf) return;
+                    if (!buf || myToken !== playToken) return;
                     _swapToBuffer(buf, myBufferPromise);
                 });
                 return playPromise;

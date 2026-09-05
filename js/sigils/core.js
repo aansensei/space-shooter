@@ -66,12 +66,13 @@ function _triggerSigilPicker() {
     const shuffled = _shuffleArray(window._sigilPool || []);
     const options = shuffled.slice(0, Math.min(4, shuffled.length));
     window._sigilPicker = {
-        phase: 'slide_in',
+        phase: 'deal',
         startTime: performance.now(),
         options,
         hoveredSigil: null,
         hoveredConfirm: false,
         selectedSigil: null,
+        mobileIndex: 0,
         flyParticles: [],
         flyDone: false,
     };
@@ -135,21 +136,31 @@ function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(15, lives + 5); }
 }
 
+// Deck-deal intro: cards leave a single face-down stack at the panel's
+// center one at a time (staggered by DEAL_STAGGER), fly to their slot over
+// DEAL_FLY_DUR, then flip face-up over DEAL_FLIP_DUR - see _dealCardState().
+const DEAL_STAGGER = 110, DEAL_FLY_DUR = 260, DEAL_FLIP_DUR = 220;
+
 function drawSigilPicker() {
     const p = window._sigilPicker;
     if (!p) return;
     const now = performance.now();
 
-    if (p.phase === 'slide_in') {
-        const t = Math.min(1, (now - p.startTime) / 350);
-        const ease = 1 - Math.pow(1 - t, 3);
-        if (t >= 1) { p.phase = 'choosing_sigil'; p.startTime = now; }
-        _drawPickerCards(p, ease);
+    if (p.phase === 'deal') {
+        const elapsed = now - p.startTime;
+        const totalDur = Math.max(0, p.options.length - 1) * DEAL_STAGGER + DEAL_FLY_DUR + DEAL_FLIP_DUR + 80;
+        const panelEase = Math.min(1, elapsed / 250);
+        if (elapsed >= totalDur) {
+            p.phase = 'choosing_sigil'; p.startTime = now;
+            const isMob = typeof _platform !== 'undefined' && _platform === 'mobile';
+            if (isMob) p.selectedSigil = p.options[p.mobileIndex] || null;
+        }
+        _drawPickerCards(p, panelEase, elapsed);
         return;
     }
 
     if (p.phase === 'choosing_sigil') {
-        _drawPickerCards(p, 1);
+        _drawPickerCards(p, 1, null);
         return;
     }
 
@@ -164,34 +175,24 @@ function drawSigilPicker() {
 function _pickerLayout() {
     const isMob = typeof _platform !== 'undefined' && _platform === 'mobile';
     if (isMob) {
+        // One big card at a time (swipe/arrows to browse) instead of a
+        // cramped 2x2 grid - the card is wide enough that both buffs wrap
+        // to full, un-truncated text instead of the old 1-line cutoff.
         const margin = 10;
-        const panelPad = 12;
-        const gapX = 8, gapY = 8;
-        const cols = 2, rows = 2;
+        const panelPad = 14;
+        const cols = 1, rows = 1, gapX = 0, gapY = 0;
         const panelW = canvas.width - margin * 2;
-        const cardW = Math.floor((panelW - panelPad * 2 - gapX) / 2);
+        const cardW = panelW - panelPad * 2;
 
-        // Ideal (tablet-sized) budget. Short landscape phones can't fit this,
-        // so scale cardH/detailH down until the panel fits canvas.height —
-        // titleH/confirmH/padding stay fixed (already small, and confirmH
-        // must stay tappable).
-        const titleH = 26, confirmH = 44;
-        let cardH = 160, detailH = 76;
+        const titleH = 42, confirmH = 44, navH = 30; // titleH reserves room for a swipe-hint line under the title
         const availH = canvas.height - margin * 2;
-        const neededH = rows * cardH + (rows - 1) * gapY + panelPad * 2 + titleH + confirmH + detailH + 6;
-        if (neededH > availH) {
-            const fixedH = panelPad * 2 + titleH + confirmH + (rows - 1) * gapY + 6;
-            const flexAvail = Math.max(150, availH - fixedH);
-            const flexNeeded = rows * cardH + detailH;
-            const scale = flexAvail / flexNeeded;
-            cardH = Math.max(58, Math.floor(cardH * scale));
-            detailH = Math.max(0, Math.floor(detailH * scale));
-        }
+        const fixedH = panelPad * 2 + titleH + navH + confirmH + 10;
+        const cardH = Math.max(190, Math.min(360, availH - fixedH));
 
-        const panelH = rows * cardH + (rows - 1) * gapY + panelPad * 2 + titleH + confirmH + detailH + 6;
+        const panelH = cardH + fixedH;
         const panelX = (canvas.width - panelW) / 2;
         const panelY = Math.max(6, (canvas.height - panelH) / 2);
-        return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob, confirmH };
+        return { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob, confirmH, navH };
     }
     const margin = 32;
     const available = canvas.width - margin * 2;
@@ -265,12 +266,83 @@ function _drawDetailPanel(def, x, y, w, alpha) {
     ctx.restore();
 }
 
-function _drawPickerCards(p, slideEase) {
+// Per-card deal progress: flies from the deck position to its slot over
+// DEAL_FLY_DUR (face-down the whole flight), then flips face-up in place
+// over DEAL_FLIP_DUR. Returns null before this card's own turn starts.
+function _dealCardState(index, dealElapsed) {
+    if (dealElapsed == null) return { t: 1, scaleX: 1, showFront: true, flyT: 1, sinceLand: 9999 };
+    const cardStart = index * DEAL_STAGGER;
+    if (dealElapsed < cardStart) return null;
+    const flyT = Math.min(1, (dealElapsed - cardStart) / DEAL_FLY_DUR);
+    const flyEase = 1 - Math.pow(1 - flyT, 3);
+    if (flyT < 1) return { t: flyEase, scaleX: 1, showFront: false, flyT, sinceLand: -1 };
+    const sinceLand = dealElapsed - cardStart - DEAL_FLY_DUR;
+    const flipT = Math.min(1, sinceLand / DEAL_FLIP_DUR);
+    const angle = flipT * Math.PI;
+    const showFront = flipT >= 0.5;
+    // cos(angle) alone would carry the front half through negative scaleX
+    // (0 -> -1), mirroring the card's own text/icon for that whole half -
+    // the ~0.5s "sigil hiện ngược" bug. Negating it for the front half
+    // instead re-grows it from edge-on (0) back up to a normal +1, so the
+    // settled card is never mirrored.
+    const scaleX = showFront ? -Math.cos(angle) : Math.cos(angle);
+    return { t: 1, scaleX, showFront, flyT: 1, sinceLand };
+}
+
+function _drawCardBack(cx, cy, w, h, scaleX) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scaleX, 1);
+    const x = -w / 2, y = -h / 2;
+    const bg = ctx.createLinearGradient(x, y, x, y + h);
+    bg.addColorStop(0, '#0c1230'); bg.addColorStop(1, '#050814');
+    ctx.fillStyle = bg;
+    _drawRoundRect(x, y, w, h, 8); ctx.fill();
+    ctx.strokeStyle = 'rgba(120,160,255,0.55)'; ctx.lineWidth = 1.5;
+    _drawRoundRect(x, y, w, h, 8); ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,180,120,0.35)'; ctx.lineWidth = 1;
+    _drawRoundRect(x + 6, y + 6, w - 12, h - 12, 6); ctx.stroke();
+    const R = Math.min(w, h) * 0.28;
+    ctx.strokeStyle = 'rgba(150,180,255,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, R * 0.6, 0, Math.PI * 2); ctx.stroke();
+    for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * R * 0.6, Math.sin(a) * R * 0.6);
+        ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function _drawDeckStack(cx, cy, w, h) {
+    for (let i = 2; i >= 0; i--) {
+        _drawCardBack(cx + i * 2, cy + i * 2, w, h, 1);
+    }
+}
+
+function _mobileNavRects(L, yOff) {
+    yOff = yOff || 0;
+    const cardX = L.panelX + L.panelPad;
+    const cardY = L.panelY + yOff + L.panelPad + L.titleH;
+    const cy = cardY + L.cardH / 2;
+    const r = 18;
+    return {
+        cardCx: cardX + L.cardW / 2, cardCy: cy,
+        left: { x: cardX, y: cy, r },
+        right: { x: cardX + L.cardW, y: cy, r },
+        dotsY: cardY + L.cardH + L.navH / 2,
+    };
+}
+
+function _drawPickerCards(p, slideEase, dealElapsed) {
     const now = performance.now();
     const L = _pickerLayout();
     const { cardW, cardH, gapX, gapY, cols, rows, panelPad, panelW, panelH, panelX, panelY, titleH, isMob } = L;
     const yOff = (1 - slideEase) * -300;
     const hasSelected = p.selectedSigil != null;
+    const dealing = dealElapsed != null;
 
     ctx.save();
 
@@ -297,26 +369,214 @@ function _drawPickerCards(p, slideEase) {
         : `${_tt('sigilPicker.title')}  ${sigilCount} / 3  —  ${_tt('sigilPicker.chooseSeal')}`;
     ctx.fillText(titleLabel, canvas.width / 2, panelY + yOff + (isMob ? 26 : 26));
 
-    const startX = panelX + panelPad;
-    const startY = panelY + yOff + panelPad + titleH;
-    for (let i = 0; i < p.options.length; i++) {
-        const sigilId = p.options[i];
-        const def = _localizedSigil(sigilId);
-        if (!def) continue;
-        const col = isMob ? i % cols : i;
-        const row = isMob ? Math.floor(i / cols) : 0;
-        const cx = startX + col * (cardW + gapX) + cardW / 2;
-        const cy = startY + row * (cardH + gapY) + cardH / 2;
-        _drawSigilCard(cx, cy, cardW, cardH, sigilId, def, p.hoveredSigil === sigilId, p.selectedSigil === sigilId, now, isMob);
+    if (isMob) {
+        // Swipe hint: without this, players tended to burn both rerolls
+        // thinking each swipe only shows a single fixed sigil rather than
+        // browsing the same 4 - the arrows alone weren't noticeable enough.
+        const hintPulse = 0.6 + 0.4 * Math.sin(now / 500);
+        ctx.fillStyle = `rgba(150,190,255,${hintPulse})`;
+        ctx.font = `9px "Courier New", monospace`;
+        ctx.fillText(_tt('sigilPicker.swipeHint'), canvas.width / 2, panelY + yOff + 40);
     }
 
-    // Detail panel: shown for hovered card (PC) or selected card (mobile)
-    const _detailId = isMob ? p.selectedSigil : p.hoveredSigil;
-    if (_detailId) {
-        const _dd = _localizedSigil(_detailId);
-        if (_dd) {
-            const cardsBottom = startY + (isMob ? rows : 1) * (cardH + gapY);
-            _drawDetailPanel(_dd, panelX + panelPad, cardsBottom + 6, panelW - panelPad * 2, slideEase);
+    const startX = panelX + panelPad;
+    const startY = panelY + yOff + panelPad + titleH;
+
+    if (isMob) {
+        // Single big card, swiped/arrowed through instead of a 2x2 grid -
+        // full un-truncated buff text since there's no longer a cramped
+        // per-card space budget to fit into.
+        const nav = _mobileNavRects(L, yOff);
+        const cx = nav.cardCx, cy = nav.cardCy;
+        const deckY = cy + cardH * 0.7 + 30;
+
+        if (dealing) {
+            const st = _dealCardState(0, dealElapsed);
+            _drawDeckStack(cx, deckY, cardW * 0.8, cardH * 0.8);
+            if (st) {
+                const dx = cx, dy = cy + (1 - st.t) * (deckY - cy);
+                if (!st.showFront) {
+                    _drawCardBack(dx, dy, cardW, cardH, st.scaleX);
+                } else {
+                    const sigilId = p.options[0];
+                    const def = _localizedSigil(sigilId);
+                    if (def) {
+                        ctx.save();
+                        ctx.translate(dx, dy); ctx.scale(st.scaleX, 1); ctx.translate(-dx, -dy);
+                        _drawSigilCardMobile(dx, dy, cardW, cardH, sigilId, def, now);
+                        ctx.restore();
+                    }
+                }
+            }
+        } else {
+            const transElapsed = p.mobileTransStart ? now - p.mobileTransStart : MOBILE_SLIDE_DUR;
+            if (transElapsed < MOBILE_SLIDE_DUR && p.mobileTransFrom != null) {
+                const t = transElapsed / MOBILE_SLIDE_DUR;
+                const eased = 1 - Math.pow(1 - t, 3);
+                const dir = p.mobileTransDir;
+                const span = cardW + 24;
+
+                // Clip to the panel so the sliding cards never spill past
+                // its rounded border mid-transition
+                ctx.save();
+                _drawRoundRect(panelX, panelY + yOff, panelW, panelH, 12);
+                ctx.clip();
+
+                const outId = p.options[p.mobileTransFrom];
+                const outDef = _localizedSigil(outId);
+                if (outDef) _drawSigilCardMobile(cx - dir * eased * span, cy, cardW, cardH, outId, outDef, now);
+
+                const inId = p.options[p.mobileIndex];
+                const inDef = _localizedSigil(inId);
+                if (inDef) _drawSigilCardMobile(cx + dir * (1 - eased) * span, cy, cardW, cardH, inId, inDef, now);
+
+                ctx.restore();
+            } else {
+                const sigilId = p.options[p.mobileIndex] || p.options[0];
+                const def = _localizedSigil(sigilId);
+                if (def) _drawSigilCardMobile(cx, cy, cardW, cardH, sigilId, def, now);
+            }
+
+            // Nav arrows - a hand-drawn chevron (not a font glyph, which
+            // read as an unclear "<>" to testers) that breathes with a
+            // glow ring and nudges toward its own direction, so the
+            // buttons themselves draw the eye instead of leaning on a text
+            // hint alone.
+            const canPrev = p.mobileIndex > 0, canNext = p.mobileIndex < p.options.length - 1;
+            const arrowPulse = 0.5 + 0.5 * Math.sin(now / 450);
+            const arrowNudge = Math.sin(now / 380) * 3;
+            [[nav.left, canPrev, -1], [nav.right, canNext, 1]].forEach(([btn, enabled, dir]) => {
+                ctx.save();
+                ctx.globalAlpha = slideEase * (enabled ? 1 : 0.25);
+
+                if (enabled) {
+                    ctx.strokeStyle = `rgba(140,190,255,${0.25 + arrowPulse * 0.35})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r + 3 + arrowPulse * 2, 0, Math.PI * 2); ctx.stroke();
+                }
+
+                ctx.fillStyle = 'rgba(10,16,40,0.85)';
+                ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = enabled ? `rgba(150,195,255,${0.7 + arrowPulse * 0.3})` : 'rgba(120,160,255,0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, Math.PI * 2); ctx.stroke();
+
+                const ax = btn.x + (enabled ? dir * arrowNudge : 0);
+                const chevW = 6, chevH = 8;
+                ctx.strokeStyle = '#eaf2ff';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(ax - dir * chevW * 0.5, btn.y - chevH);
+                ctx.lineTo(ax + dir * chevW * 0.5, btn.y);
+                ctx.lineTo(ax - dir * chevW * 0.5, btn.y + chevH);
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // Dot indicator
+            const dotGap = 14, dotR = 4;
+            const dotsW = (p.options.length - 1) * dotGap;
+            const dotsStartX = canvas.width / 2 - dotsW / 2;
+            for (let i = 0; i < p.options.length; i++) {
+                const dx = dotsStartX + i * dotGap;
+                const active = i === p.mobileIndex;
+                ctx.fillStyle = active ? 'rgba(140,180,255,0.95)' : 'rgba(120,140,190,0.35)';
+                ctx.beginPath(); ctx.arc(dx, nav.dotsY, active ? dotR + 1 : dotR, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+    } else {
+        const deckCx = panelX + panelW / 2, deckCy = startY + rows * (cardH + gapY) / 2;
+
+        if (dealing) {
+            // Ambient glow behind the deck, brightest while cards are still
+            // actively departing, so the source of the deal reads clearly
+            const totalDur = Math.max(0, p.options.length - 1) * DEAL_STAGGER + DEAL_FLY_DUR + DEAL_FLIP_DUR;
+            const deckFade = Math.max(0, 1 - dealElapsed / totalDur);
+            ctx.save();
+            const haloR = cardH * 0.55;
+            const halo = ctx.createRadialGradient(deckCx, deckCy, 0, deckCx, deckCy, haloR);
+            halo.addColorStop(0, `rgba(120,160,255,${0.35 * deckFade})`);
+            halo.addColorStop(1, 'rgba(120,160,255,0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath(); ctx.arc(deckCx, deckCy, haloR, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+            _drawDeckStack(deckCx, deckCy, cardW * 0.7, cardH * 0.7);
+        }
+
+        for (let i = 0; i < p.options.length; i++) {
+            const sigilId = p.options[i];
+            const def = _localizedSigil(sigilId);
+            if (!def) continue;
+            const [r, g, b] = _hexRgb3(def.color);
+            const col = i, row = 0;
+            const cx = startX + col * (cardW + gapX) + cardW / 2;
+            const cy = startY + row * (cardH + gapY) + cardH / 2;
+
+            if (dealing) {
+                const st = _dealCardState(i, dealElapsed);
+                if (!st) continue;
+                const dx = deckCx + (cx - deckCx) * st.t, dy = deckCy + (cy - deckCy) * st.t;
+
+                // Launch ring, right as this card departs the deck
+                if (st.flyT < 0.4) {
+                    const ringP = st.flyT / 0.4;
+                    ctx.save();
+                    ctx.globalAlpha = 1 - ringP;
+                    ctx.strokeStyle = `rgba(${r},${g},${b},0.9)`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(deckCx, deckCy, 8 + ringP * 46, 0, Math.PI * 2); ctx.stroke();
+                    ctx.restore();
+                }
+
+                if (!st.showFront) {
+                    _drawCardBack(dx, dy, cardW, cardH, st.scaleX);
+                } else {
+                    ctx.save();
+                    ctx.translate(dx, dy); ctx.scale(st.scaleX, 1); ctx.translate(-dx, -dy);
+                    _drawSigilCard(dx, dy, cardW, cardH, sigilId, def, false, false, now, isMob);
+                    ctx.restore();
+
+                    // Bright edge-on flash right at the midpoint of the flip
+                    if (Math.abs(st.scaleX) < 0.15) {
+                        ctx.save();
+                        ctx.globalAlpha = 1 - Math.abs(st.scaleX) / 0.15;
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 3;
+                        if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 12; }
+                        ctx.beginPath(); ctx.moveTo(dx, dy - cardH / 2); ctx.lineTo(dx, dy + cardH / 2); ctx.stroke();
+                        ctx.shadowBlur = 0;
+                        ctx.restore();
+                    }
+
+                    // Landing sparkle burst, fading over the first 220ms after settling
+                    if (st.sinceLand >= 0 && st.sinceLand < 220) {
+                        const burstP = st.sinceLand / 220;
+                        ctx.save();
+                        ctx.fillStyle = `rgba(${r},${g},${b},${1 - burstP})`;
+                        for (let sp = 0; sp < 8; sp++) {
+                            const sa = (sp / 8) * Math.PI * 2 + i * 0.7;
+                            const sd = burstP * 42;
+                            ctx.beginPath();
+                            ctx.arc(dx + Math.cos(sa) * sd, dy + Math.sin(sa) * sd, 2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    }
+                }
+            } else {
+                _drawSigilCard(cx, cy, cardW, cardH, sigilId, def, p.hoveredSigil === sigilId, p.selectedSigil === sigilId, now, isMob);
+            }
+        }
+
+        // Detail panel: shown for the hovered card (desktop only)
+        if (p.hoveredSigil) {
+            const _dd = _localizedSigil(p.hoveredSigil);
+            if (_dd) {
+                const cardsBottom = startY + (cardH + gapY);
+                _drawDetailPanel(_dd, panelX + panelPad, cardsBottom + 6, panelW - panelPad * 2, slideEase);
+            }
         }
     }
 
@@ -473,6 +733,78 @@ function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, 
     _drawMiniBuffRow(cx, compact ? y + 90 : y + 160, w - (compact ? 12 : 20), def.buffs[0], compact ? 1 : 2);
     _drawMiniBuffRow(cx, compact ? y + 140 : y + 228, w - (compact ? 12 : 20), def.buffs[1], compact ? 1 : 2);
 
+    ctx.restore();
+}
+
+// Full-size mobile card: same identity block as _drawSigilCard but with
+// generous room, so both buff descriptions get real word-wrap instead of
+// the old 1-line hard cutoff. maxLines is computed from actual row height,
+// not a fixed guess, so it adapts to whatever cardH _pickerLayout() picked.
+function _drawSigilCardMobile(cx, cy, w, h, sigilId, def, now) {
+    const x = cx - w / 2, y = cy - h / 2;
+    const [r, g, b] = _hexRgb3(def.color);
+
+    ctx.save();
+
+    ctx.fillStyle = `rgba(${r},${g},${b},0.20)`;
+    _drawRoundRect(x, y, w, h, 10);
+    ctx.fill();
+
+    const pulse = 0.5 + 0.5 * Math.sin(now / 500);
+    ctx.strokeStyle = `rgba(${r},${g},${b},${0.75 + 0.25 * pulse})`;
+    ctx.lineWidth = 2;
+    _drawRoundRect(x, y, w, h, 10);
+    ctx.stroke();
+
+    const symR = 28;
+    const symCx = cx, symCy = y + 40;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.15)`;
+    ctx.beginPath(); ctx.arc(symCx, symCy, symR + 5, 0, Math.PI * 2); ctx.fill();
+    _drawZodiacGlyph(sigilId, symCx, symCy, symR * 0.72, def.color);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f0f4ff';
+    ctx.font = `bold 17px "Courier New", monospace`;
+    ctx.fillText(def.name, cx, y + 84);
+
+    ctx.fillStyle = `rgba(${r},${g},${b},1.0)`;
+    ctx.font = `11px "Courier New", monospace`;
+    ctx.fillText(def.element, cx, y + 100);
+
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
+    ctx.lineWidth = 0.8;
+    const divY = y + 112;
+    ctx.beginPath(); ctx.moveTo(x + 14, divY); ctx.lineTo(x + w - 14, divY); ctx.stroke();
+
+    ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    const rowH = Math.max(40, (h - 112 - 16) / 2);
+    _drawFullBuffRow(def.buffs[0], x + 14, divY + 10, w - 28, rowH);
+    _drawFullBuffRow(def.buffs[1], x + 14, divY + 10 + rowH, w - 28, rowH);
+
+    ctx.restore();
+}
+
+function _drawFullBuffRow(buff, x, y, maxW, rowH) {
+    const badgeW = 42;
+    ctx.save();
+    ctx.fillStyle = buff.typeC + 'cc';
+    _drawRoundRect(x, y, badgeW, 16, 3);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold 9px "Courier New", monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(buff.type, x + badgeW / 2, y + 11);
+
+    ctx.fillStyle = '#e8f4ff';
+    ctx.font = `bold 12px "Courier New", monospace`;
+    ctx.textAlign = 'left';
+    ctx.fillText(buff.name, x + badgeW + 8, y + 12);
+
+    ctx.fillStyle = 'rgba(190,215,245,0.95)';
+    ctx.font = '11px sans-serif';
+    const lineH = 14;
+    const maxLines = Math.max(1, Math.floor((rowH - 20) / lineH));
+    _wrapText(buff.desc, x, y + 28, maxW, lineH, maxLines);
     ctx.restore();
 }
 
@@ -819,17 +1151,50 @@ function _pickerCardHitTest(ex, ey, L) {
     return -1;
 }
 
+const MOBILE_SLIDE_DUR = 220;
+
+// Moves the mobile single-card view to a new index (clamped), keeping
+// p.selectedSigil in sync since there's no separate tap-to-select step
+// there - whichever card is currently shown is what CONFIRM would pick.
+// Records a from-index + direction so the draw code can slide the old card
+// out and the new one in instead of snapping instantly (the instant swap
+// was the "chưa mượt" jank reported after the first pass).
+function _mobileGoTo(p, newIndex) {
+    newIndex = Math.max(0, Math.min(p.options.length - 1, newIndex));
+    if (newIndex === p.mobileIndex) return;
+    if (p.mobileTransStart && performance.now() - p.mobileTransStart < MOBILE_SLIDE_DUR) return;
+    p.mobileTransFrom = p.mobileIndex;
+    p.mobileTransDir = newIndex > p.mobileIndex ? 1 : -1;
+    p.mobileTransStart = performance.now();
+    p.mobileIndex = newIndex;
+    p.selectedSigil = p.options[newIndex];
+    if (window.AudioMgr) window.AudioMgr.playSfx('hover');
+}
+
 function _handleSigilPickerClick(ex, ey) {
     const p = window._sigilPicker;
     if (!p || p.phase !== 'choosing_sigil') return;
 
     const L = _pickerLayout();
-    const idx = _pickerCardHitTest(ex, ey, L);
-    if (idx >= 0 && idx < p.options.length) {
-        p.hoveredSigil = p.options[idx];
-        p.selectedSigil = p.options[idx];
-        if (window.AudioMgr) window.AudioMgr.playSfx('click');
-        return;
+
+    if (L.isMob) {
+        const nav = _mobileNavRects(L, 0);
+        if (Math.hypot(ex - nav.left.x, ey - nav.left.y) <= nav.left.r + 6) {
+            _mobileGoTo(p, p.mobileIndex - 1);
+            return;
+        }
+        if (Math.hypot(ex - nav.right.x, ey - nav.right.y) <= nav.right.r + 6) {
+            _mobileGoTo(p, p.mobileIndex + 1);
+            return;
+        }
+    } else {
+        const idx = _pickerCardHitTest(ex, ey, L);
+        if (idx >= 0 && idx < p.options.length) {
+            p.hoveredSigil = p.options[idx];
+            p.selectedSigil = p.options[idx];
+            if (window.AudioMgr) window.AudioMgr.playSfx('click');
+            return;
+        }
     }
 
     if ((window._sigilRerollsLeft || 0) > 0) {
@@ -837,7 +1202,8 @@ function _handleSigilPickerClick(ex, ey) {
         if (ex >= rbtn.x && ex <= rbtn.x + rbtn.w && ey >= rbtn.y && ey <= rbtn.y + rbtn.h) {
             window._sigilRerollsLeft--;
             p.options = _shuffleArray(window._sigilPool || []).slice(0, Math.min(4, (window._sigilPool || []).length));
-            p.selectedSigil = null;
+            p.mobileIndex = 0;
+            p.selectedSigil = L.isMob ? (p.options[0] || null) : null;
             p.hoveredSigil = null;
             p.rerollFlash = performance.now();
             if (window.AudioMgr) window.AudioMgr.playSfx('sigil-confirm');
@@ -867,7 +1233,7 @@ function _handleSigilPickerMouseMove(ex, ey) {
     p.hoveredSigil = null;
     p.hoveredConfirm = false;
     p.hoveredReroll = false;
-    const idx = _pickerCardHitTest(ex, ey, L);
+    const idx = L.isMob ? -1 : _pickerCardHitTest(ex, ey, L);
     if (idx >= 0 && idx < p.options.length) {
         p.hoveredSigil = p.options[idx];
     } else if (p.selectedSigil) {
@@ -923,12 +1289,25 @@ document.addEventListener('DOMContentLoaded', () => {
             _handleSigilPickerMouseMove(ex, ey);
         });
 
+        // Swipe support for the mobile single-card view: a horizontal drag
+        // past SWIPE_THRESHOLD moves to the next/prev card instead of
+        // registering as a tap on release.
+        const SWIPE_THRESHOLD = 40;
+        let _swipeStartX = 0, _swipeStartY = 0;
+
         ov.addEventListener('touchend', (e) => {
             if (!window._sigilPicker) return;
             e.preventDefault();
             const t = e.changedTouches[0];
             const [ex, ey] = _canvasCoords(t.clientX, t.clientY);
-            _handleSigilPickerClick(ex, ey);
+            const p = window._sigilPicker;
+            const L = _pickerLayout();
+            const dx = t.clientX - _swipeStartX, dy = t.clientY - _swipeStartY;
+            if (L.isMob && p.phase === 'choosing_sigil' && Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+                _mobileGoTo(p, p.mobileIndex + (dx < 0 ? 1 : -1));
+            } else {
+                _handleSigilPickerClick(ex, ey);
+            }
             try { navigator.vibrate && navigator.vibrate(18); } catch (_) {}
         }, { passive: false });
 
@@ -943,6 +1322,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ov.addEventListener('touchstart', (e) => {
             if (!window._sigilPicker) return;
             e.preventDefault();
+            const t = e.touches[0];
+            _swipeStartX = t.clientX; _swipeStartY = t.clientY;
         }, { passive: false });
     }
 });
