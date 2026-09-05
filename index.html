@@ -2379,10 +2379,12 @@
         .mb-joy {
             /* Flattened oval, not a full circle - the squashed shape itself
                reads as "this only goes left/right", before the player even
-               touches it. */
+               touches it. Neon-cyan HUD treatment to match the rest of the
+               game's UI instead of the plain grey placeholder look. */
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(180deg, rgba(0, 229, 255, 0.10), rgba(0, 40, 55, 0.20));
+            border: 2px solid rgba(0, 229, 255, 0.45);
+            box-shadow: 0 0 14px rgba(0, 229, 255, 0.22), inset 0 0 12px rgba(0, 229, 255, 0.12);
             touch-action: none; /* raw drag, no browser scroll/zoom gestures fighting it */
         }
 
@@ -2393,10 +2395,10 @@
            "standing still", matching the small dead zone itself. */
         .mb-joy-divider {
             position: absolute;
-            top: 8px;
-            bottom: 8px;
+            top: 10px;
+            bottom: 10px;
             width: 1px;
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(0, 229, 255, 0.35);
             pointer-events: none;
         }
 
@@ -2409,15 +2411,17 @@
             margin-left: -19px;
             margin-top: -19px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.16);
-            border: 2px solid rgba(255, 255, 255, 0.35);
+            background: radial-gradient(circle at 35% 30%, rgba(200, 255, 250, 0.85), rgba(0, 200, 220, 0.4) 60%, rgba(0, 100, 120, 0.3) 100%);
+            border: 2px solid rgba(0, 229, 255, 0.65);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.45);
             pointer-events: none;
-            transition: transform 0.08s ease-out;
+            transition: transform 0.08s ease-out, box-shadow 0.15s, background 0.15s, border-color 0.15s;
         }
 
         .mb-joy-knob.engaged {
-            background: rgba(255, 255, 255, 0.32);
-            border-color: rgba(255, 255, 255, 0.65);
+            background: radial-gradient(circle at 35% 30%, #ffffff, rgba(94, 234, 212, 0.9) 55%, rgba(0, 180, 160, 0.55) 100%);
+            border-color: rgba(180, 255, 240, 0.9);
+            box-shadow: 0 0 18px rgba(94, 234, 212, 0.7);
         }
     </style>
 
