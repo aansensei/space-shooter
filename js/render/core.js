@@ -1097,6 +1097,8 @@ function draw(deltaTime) {
             }
         }
         chainLightningEffects.forEach(drawChainLightning);
+        marchoDeathBursts.forEach(_drawMarchoDeathBurst);
+        marchoBarrierBursts.forEach(_drawMarchoBarrierBurst);
         if (skillFState !== 'ready') drawSkillF();
         if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();

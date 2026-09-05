@@ -30,6 +30,7 @@
         'assets/images/game/effects/sentinel-shell.png',
         'assets/images/game/effects/rift-void.png',
         'assets/images/game/icons/walpurgis-icon.png',
+        'assets/images/game/enemies/marchosias-hexagon-armor.png',
         'js/vendor/pixi.min.js',
         'js/audio.js',
         'js/background.js',
