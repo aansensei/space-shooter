@@ -1121,6 +1121,7 @@ function update(rawDeltaTime) {
                 }
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
+                marchoDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, lifetime: 900, maxLifetime: 900 });
                 for (let k = 0; k < 3; k++) {
                     const spawnAngle = (Math.PI * 2 / 3) * k;
                     spawnMarchosiasMinion(
@@ -1687,6 +1688,7 @@ function update(rawDeltaTime) {
                 }
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
                 createParticles(enemy.x, enemy.y, 40, '#00ff88', 2, 8);
+                marchoDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, lifetime: 900, maxLifetime: 900 });
                 for (let k = 0; k < 3; k++) {
                     const spawnAngle = (Math.PI * 2 / 3) * k;
                     const spawnX = enemy.x + Math.cos(spawnAngle) * enemy.size * 0.5;
@@ -1950,6 +1952,12 @@ function update(rawDeltaTime) {
     }
     for (let i = chainLightningEffects.length - 1; i >= 0; i--) {
         if ((chainLightningEffects[i].lifetime -= deltaTime) <= 0) chainLightningEffects.splice(i, 1);
+    }
+    for (let i = marchoDeathBursts.length - 1; i >= 0; i--) {
+        if ((marchoDeathBursts[i].lifetime -= deltaTime) <= 0) marchoDeathBursts.splice(i, 1);
+    }
+    for (let i = marchoBarrierBursts.length - 1; i >= 0; i--) {
+        if ((marchoBarrierBursts[i].lifetime -= deltaTime) <= 0) marchoBarrierBursts.splice(i, 1);
     }
 
     updateSentinels(deltaTime);
@@ -2806,7 +2814,7 @@ function startGame() {
     score = 0;
     window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
     nextLifeMilestone = 500000;
-    bullets = []; enemies = []; explosions = []; particles = [];
+    bullets = []; enemies = []; explosions = []; particles = []; marchoDeathBursts = []; marchoBarrierBursts = [];
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
     window._solArrows = [];

@@ -34,7 +34,7 @@ let playerClones = [];
 let lastAutoFire = 0;
 const autoFireInterval = 135; // 135ms = base 168ms with the +20% fire rate bonus already baked in
 
-let bullets = [], enemies = [], explosions = [], particles = [], chainLightningEffects = [];
+let bullets = [], enemies = [], explosions = [], particles = [], chainLightningEffects = [], marchoDeathBursts = [], marchoBarrierBursts = [];
 let demonGiftEffect = { active: false, endTime: 0 };
 let gloryForJusticeActive = false;
 let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 }; // both start true so they are ready from hit 1

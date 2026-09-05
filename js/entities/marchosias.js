@@ -12,8 +12,8 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     while (diff < -Math.PI) diff += Math.PI * 2;
     if (Math.abs(diff) >= Math.PI / 4) return false; // outside 90° arc
 
-    // Arc barrier has +10% evade (stacks on top of Mar's body evade)
-    if (Math.random() < 0.10) {
+    // Arc barrier has +15% evade (stacks on top of Mar's body evade)
+    if (Math.random() < 0.15) {
         _tryTriggerMarchosiasCounter(enemy);
         addExplosion(enemy.x, enemy.y, enemy.size * 0.45, '#aaddff');
         return true;
@@ -55,6 +55,32 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     return true;
 }
 
+// Skill A (Thunder Orbs) treats Marchosias specially: its orbs home in and
+// almost always land outside the barrier's rotating 90° facing arc, so the
+// generic checkMarchosiasArcBarrier() above never triggers for them and
+// every hit used to go straight to the body untouched. This always splits
+// an orb hit 60% Arc Barrier / 40% body regardless of facing, so the
+// barrier still meaningfully soaks Skill A instead of being irrelevant to it.
+function applyMarchosiasSkillASplit(enemy, dmgProps) {
+    if (enemy.type !== 'marchosias' || !enemy.arcBarrier || enemy.arcBarrier.hp <= 0) {
+        dealDamage(enemy, dmgProps);
+        return;
+    }
+    const barrierEffectiveHp = enemy.arcBarrier.maxHp;
+    let barrierDmg = Math.ceil((dmgProps.damage || 0) * 0.60 + barrierEffectiveHp * (dmgProps.percentDamage || 0) * 0.60);
+    barrierDmg = Math.min(barrierDmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
+    const barrierHeal = Math.min(1000, Math.ceil(barrierDmg * 0.05));
+    const barrierWasAlive = enemy.arcBarrier.hp > 0;
+    enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - barrierDmg + barrierHeal);
+    _applyArcBarrierBodyHeal(enemy, barrierDmg);
+    if (barrierWasAlive && enemy.arcBarrier.hp <= 0) _triggerArcBarrierBreak(enemy);
+
+    dealDamage(enemy, Object.assign({}, dmgProps, {
+        damage: Math.ceil((dmgProps.damage || 0) * 0.40),
+        percentDamage: (dmgProps.percentDamage || 0) * 0.40,
+    }));
+}
+
 function _applyArcBarrierBodyHeal(enemy, dmg) {
     const healAmt = Math.min(1000, Math.ceil(dmg * 0.10));
     const newHp = enemy.hp + healAmt;
@@ -85,6 +111,10 @@ function _triggerArcBarrierBreak(enemy) {
     } else {
         addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#00ff88');
     }
+    marchoBarrierBursts.push({
+        x: enemy.x, y: enemy.y, size: enemy.size, angle: enemy.arcBarrier.angle,
+        lifetime: 650, maxLifetime: 650,
+    });
     _tryTriggerMarchosiasCounter(enemy);
     enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 5;
     const healAmt = Math.ceil(enemy.maxHp * 0.40);
@@ -95,7 +125,7 @@ function _triggerArcBarrierBreak(enemy) {
     } else {
         enemy.hp = newHp;
     }
-    const _breakShield = Math.ceil(enemy.maxHp * 0.15 + (enemy.maxHp - enemy.hp) * 0.15);
+    const _breakShield = Math.ceil(enemy.maxHp * 0.30 + (enemy.maxHp - enemy.hp) * 0.30);
     _addEnemyShield(enemy, _breakShield);
     enemy.DR = Math.min(0.99, (enemy.DR || 0.45) + 0.20);
     const _reviveDelay = _fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
@@ -150,9 +180,13 @@ function spawnMarchosias() {
     const size = baseSize * 5;
     const speed = (1 + Math.random() * 2) * 0.4 * 0.9 * 1.067; // ~1.6 u/s
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.ceil(Math.min(4092, 2112 + hpFromTime * 55) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
+    // Two separate +15% buff passes stacked here: the first 1.15 was an
+    // earlier global enemy HP pass, the second is this pass's own body buff.
+    let hp = Math.ceil(Math.min(4092, 2112 + hpFromTime * 55) * 1.15 * 1.15 * _walpurgisHpMult());
 
-    const shieldHp = hp;
+    // Arc Barrier carries 15% more HP than the body itself, instead of
+    // matching it 1:1 like before.
+    const shieldHp = Math.ceil(hp * 1.15);
 
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size,
