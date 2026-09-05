@@ -313,27 +313,6 @@
             user-select: none;
             text-shadow: 0 1px 4px rgba(0,0,0,1);
         }
-        /* Temporary: reading out the joystick/arrow swap's live state on
-           screen to track down a real-device report that both are showing
-           at once even with Yog-Sothoth never pressed - remove once that's
-           actually found and fixed. */
-        #debug-mobctl {
-            display: none;
-            position: fixed;
-            top: 96px;
-            left: 16px;
-            z-index: 10000000;
-            font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 11px;
-            font-weight: bold;
-            color: #ffcc00;
-            background: rgba(0,0,0,0.65);
-            border-radius: 4px;
-            padding: 3px 8px;
-            pointer-events: none;
-            user-select: none;
-            text-shadow: 0 1px 4px rgba(0,0,0,1);
-        }
         /* --- DEBUG CONSOLE (F3 toggle) --- */
         #debug-panel {
             position: fixed;
@@ -442,7 +421,6 @@
 
     <!-- FPS chip (luôn hiện) -->
     <div id="debug-fps">FPS: --</div>
-    <div id="debug-mobctl">mobctl: --</div>
     <!-- Debug console (F3 toggle) -->
     <div id="debug-panel">
         <div id="debug-console"></div>
@@ -1882,7 +1860,15 @@
                         _upgChecks++;
                         if (_upgChecks >= 2) {
                             _upgChecks = 0;
-                            _applyTier(_autoTier - 1, avg1s); // lên 1 bậc
+                            // Jump straight to whatever tier this FPS actually
+                            // justifies (never worse than 1 step up) instead of
+                            // always crawling exactly 1 tier per 2s check - an
+                            // early-game stall that dropped this all the way to
+                            // PER used to take 4 separate 2s climbs (8s+) to
+                            // claw back to FULL even once FPS was a steady 60,
+                            // which read as "Smart Quality just defaults to
+                            // low" since most players never wait that long.
+                            _applyTier(Math.min(_autoTier - 1, _targetTier(avg1s)), avg1s);
                         }
                     } else {
                         _upgChecks = 0;
@@ -1901,8 +1887,6 @@
                     const _liveLvl = typeof window._gfxLevel !== 'undefined' ? window._gfxLevel : 0;
                     fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>'
                         + ' <span style="opacity:0.7">' + (_TIER_NAMES[_liveLvl] || 'FULL') + '</span>';
-                    const _mcEl = document.getElementById('debug-mobctl');
-                    if (_mcEl && window._platform === 'mobile') _mcEl.style.display = 'block';
                 }
                 requestAnimationFrame(tick);
             }
@@ -2648,15 +2632,6 @@
                 joyEl.style.display = wantArrows ? 'none' : 'flex';
                 arrowsEl.style.display = wantArrows ? 'block' : 'none';
                 if (wantArrows && typeof _joyTouchId !== 'undefined' && _joyTouchId !== null) _joyReset();
-                // Temporary on-screen readout, see #debug-mobctl's own comment.
-                const _mcEl2 = document.getElementById('debug-mobctl');
-                if (_mcEl2) {
-                    _mcEl2.textContent = 'mobctl: shift=' + wantArrows
-                        + ' joyEl=' + (joyEl.style.display || '(css)')
-                        + ' arrEl=' + (arrowsEl.style.display || '(css)')
-                        + ' joyCS=' + getComputedStyle(joyEl).display
-                        + ' arrCS=' + getComputedStyle(arrowsEl).display;
-                }
             }
             window._syncMovementSwap = _syncMovementSwap;
 
