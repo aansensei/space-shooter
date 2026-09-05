@@ -5274,7 +5274,7 @@
                   demoSpinner = null;
                 } else {
                   const rampMult = age >= 2000 ? 1.0 : 1.5 - (0.4 * (age / 2000));
-                  const bounceMult = nowT < demoSpinner.bounceBoostEnd ? 1.10 : 1.0;
+                  const bounceMult = nowT < demoSpinner.bounceBoostEnd ? 1.20 : 1.0;
                   const speedMult = rampMult * bounceMult;
                   demoSpinner.x += demoSpinner.vx * speedMult * (dt / 16.67);
                   demoSpinner.y += demoSpinner.vy * speedMult * (dt / 16.67);
