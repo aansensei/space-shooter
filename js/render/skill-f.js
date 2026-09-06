@@ -1156,22 +1156,146 @@ function _drawGreatSageEffects() {
                 ctx.restore();
             }
         } else if (fx.type === 'shockwave') {
-            // Ported from Goliath's own Dargruel joker (a slow static
-            // "influence zone" ring at 150px + the expanding shockwave burst
-            // itself, which the real game draws via the shared
-            // spawnBossShockwave/drawBossShockwaves system) - recolored to blue.
+            // Full parity with the real Maou Haki (drawBossShockwaves' own
+            // default branch, js/render/fx.js) instead of the bare single-
+            // ring version this used to be - void-core fill, rotating
+            // Persian arcs + hexagon, a heavy double-layer outer halo, and
+            // flying sparks, all recolored blue for "borrowed power". A
+            // scattering of pixel blocks along the expanding edge is new,
+            // selling the idea that this copy is a digitized reconstruction
+            // of the real thing rather than the original spell itself.
             ctx.save();
             ctx.beginPath(); ctx.arc(fx.x, fx.y, 150, 0, Math.PI * 2);
             ctx.strokeStyle = 'rgba(59,130,246,0.4)'; ctx.lineWidth = 2.5;
             ctx.setLineDash([10, 6]); ctx.stroke(); ctx.setLineDash([]);
             ctx.restore();
-            const curRadius = fx.maxRadius * Math.min(1, fx.timer / fx.dur);
-            const a = Math.max(0, 1 - fx.timer / fx.dur);
+
+            const curRadius = Math.min(fx.maxRadius, fx.speed * (fx.timer / 16.67));
+            const prog = curRadius / fx.maxRadius;
+            const fade = Math.max(0, 1 - prog);
+            const heavyPulse = 0.75 + 0.25 * Math.sin(now / 260);
+            const blink = 0.7 + 0.3 * Math.sin(now / 40);
+
             ctx.save();
-            ctx.strokeStyle = `rgba(59,130,246,${0.6 * a + 0.2})`;
-            ctx.lineWidth = 5 * a + 1;
-            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 16; }
-            ctx.beginPath(); ctx.arc(fx.x, fx.y, curRadius, 0, Math.PI * 2); ctx.stroke();
+            ctx.translate(fx.x, fx.y);
+
+            // Dense core fill, near-black-blue center darkening out to a
+            // lighter blue edge - a pressure zone, not a flat glow wash.
+            const core = ctx.createRadialGradient(0, 0, 0, 0, 0, curRadius);
+            core.addColorStop(0,   `rgba(0,10,35,${fade * 0.55 * heavyPulse})`);
+            core.addColorStop(0.6, `rgba(10,60,150,${fade * 0.42 * heavyPulse})`);
+            core.addColorStop(1,   `rgba(40,120,230,${fade * 0.30 * heavyPulse})`);
+            ctx.fillStyle = core;
+            ctx.beginPath(); ctx.arc(0, 0, curRadius, 0, Math.PI * 2); ctx.fill();
+
+            // Rotating Persian arcs + inner hexagon + counter-rotating dashed ring
+            const numArcs = 8;
+            const rot = now / 1200;
+            ctx.save();
+            ctx.rotate(rot);
+            for (let i = 0; i < numArcs; i++) {
+                const ang = (Math.PI * 2 / numArcs) * i;
+                const r1 = curRadius * 0.25, r2 = curRadius * 0.80;
+                ctx.strokeStyle = `rgba(120,190,255,${fade * 0.40 * blink})`;
+                ctx.lineWidth = 1.0;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(ang) * r1, Math.sin(ang) * r1);
+                ctx.lineTo(Math.cos(ang) * r2, Math.sin(ang) * r2);
+                ctx.stroke();
+            }
+            ctx.strokeStyle = `rgba(100,170,255,${fade * 0.50 * blink})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const ang = (Math.PI * 2 / 6) * i;
+                const r = curRadius * 0.42;
+                i === 0 ? ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r)
+                    : ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+            }
+            ctx.closePath(); ctx.stroke();
+            ctx.rotate(-rot * 1.7);
+            ctx.strokeStyle = `rgba(150,205,255,${fade * 0.28})`;
+            ctx.lineWidth = 1.0;
+            ctx.setLineDash([6, 10]);
+            ctx.beginPath(); ctx.arc(0, 0, curRadius * 0.62, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // Heavy outer halo: soft blue band + a near-black-blue outer wall
+            ctx.globalAlpha = fade * 0.34 * heavyPulse;
+            ctx.strokeStyle = 'rgba(40,110,220,1)';
+            ctx.lineWidth = 44;
+            ctx.beginPath(); ctx.arc(0, 0, curRadius, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = fade * 0.5 * heavyPulse;
+            ctx.strokeStyle = 'rgba(0,10,40,1)';
+            ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.arc(0, 0, curRadius + 20, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            if (!_mobPerf) {
+                // Flying sparks orbiting the outer ring, each with a short tail
+                const sparkCount = 10;
+                for (let i = 0; i < sparkCount; i++) {
+                    const sparkAngle = (Math.PI * 2 / sparkCount) * i + now / (400 + i * 33);
+                    const rOff = curRadius + Math.sin(now / 180 + i * 1.3) * 8;
+                    const sx = Math.cos(sparkAngle) * rOff, sy = Math.sin(sparkAngle) * rOff;
+                    const sparkFade = fade * blink * (0.6 + 0.4 * Math.sin(now / 120 + i));
+                    ctx.shadowColor = '#8ecaff'; ctx.shadowBlur = 10;
+                    ctx.fillStyle = `rgba(180,220,255,${sparkFade * 0.9})`;
+                    ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill();
+                    const tailAngle = sparkAngle - 0.18;
+                    ctx.strokeStyle = `rgba(120,180,255,${sparkFade * 0.5})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.shadowBlur = 0;
+                    ctx.beginPath();
+                    ctx.moveTo(sx, sy);
+                    ctx.lineTo(Math.cos(tailAngle) * (rOff - 14), Math.sin(tailAngle) * (rOff - 14));
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+
+                // Pixel scatter: small square blocks along the expanding
+                // edge, seeded per-index so each block holds a stable
+                // angle/offset instead of jittering randomly every frame.
+                // Each pixel is a dim colored square with a small bright
+                // white core stamped on top, and a touch of glow, so the
+                // scatter actually reads at a glance instead of blending
+                // into the ring behind it.
+                const pixCount = 40;
+                for (let i = 0; i < pixCount; i++) {
+                    const seedA = Math.abs(Math.sin(i * 12.9898)) % 1;
+                    const seedR = Math.abs(Math.sin(i * 78.233)) % 1;
+                    const seedS = Math.abs(Math.sin(i * 45.164)) % 1;
+                    const pa = seedA * Math.PI * 2;
+                    const pr = curRadius + (seedR - 0.5) * 90;
+                    if (pr < 4) continue;
+                    const px = Math.cos(pa) * pr, py = Math.sin(pa) * pr;
+                    const pAlpha = fade * (0.6 + 0.4 * Math.abs(Math.sin(now / 150 + i)));
+                    const pSize = 5 + seedS * 9;
+                    ctx.shadowColor = '#9fd6ff'; ctx.shadowBlur = 6;
+                    ctx.fillStyle = `rgba(120,195,255,${pAlpha})`;
+                    ctx.fillRect(px - pSize / 2, py - pSize / 2, pSize, pSize);
+                    ctx.shadowBlur = 0;
+                    const coreSize = pSize * 0.45;
+                    ctx.fillStyle = `rgba(235,250,255,${pAlpha})`;
+                    ctx.fillRect(px - coreSize / 2, py - coreSize / 2, coreSize, coreSize);
+                }
+            }
+
+            // Main ring, heavy and glowing
+            ctx.strokeStyle = `rgba(59,130,246,${(0.7 + 0.3 * blink) * fade})`;
+            ctx.lineWidth = 12;
+            if (!_mobPerf) { ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 24 + 14 * blink; }
+            ctx.beginPath(); ctx.arc(0, 0, curRadius, 0, Math.PI * 2); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Inner bright edge
+            if (curRadius > 12) {
+                ctx.strokeStyle = `rgba(210,235,255,${fade * 0.55 * blink})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(0, 0, curRadius - 7, 0, Math.PI * 2); ctx.stroke();
+            }
+
             ctx.restore();
         } else if (fx.type === 'leviathan') {
             // Ported from Goliath's own Leviathan Perseverance Sweep beam

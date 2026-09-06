@@ -7,7 +7,7 @@
 
 function spawnDargruel() {
     const baseSize = (20 + Math.random() * 10);
-    const size = baseSize * 10;
+    const size = baseSize * 13; // was *10, Dargruel read visibly smaller than Egregor at the same Dominator tier
     let hp = Math.ceil((6200 + Math.random() * 9800) * 1.15 * _walpurgisHpMult()); // 6200–16000, +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
