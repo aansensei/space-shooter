@@ -4353,17 +4353,49 @@
             c.setLineDash([12, 8]); c.beginPath(); c.arc(0, 0, r * 1.25, 0, Math.PI * 2); c.stroke();
             c.setLineDash([]); c.restore();
 
-            // 3. Main octagon
+            // 3. Main octagon body: angular silhouette, wrapped in dashed
+            // chain bands, high-contrast dark fill + hard rim light (mirrors
+            // the real in-game Dargruel body).
             c.save(); c.translate(cx2, cy2); c.rotate(t / 3500);
+            const octP = (m) => { c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; const px = Math.cos(a) * r * m, py = Math.sin(a) * r * m; i === 0 ? c.moveTo(px, py) : c.lineTo(px, py); } c.closePath(); };
+            octP(1);
             const bodyG = c.createRadialGradient(0, 0, 0, 0, 0, r);
-            bodyG.addColorStop(0, '#15002a'); bodyG.addColorStop(0.7, '#2d004d'); bodyG.addColorStop(1, '#0d001a');
-            c.fillStyle = bodyG; c.strokeStyle = '#6a0dad'; c.lineWidth = 3;
-            c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; i === 0 ? c.moveTo(Math.cos(a) * r, Math.sin(a) * r) : c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); c.fill(); c.stroke();
+            bodyG.addColorStop(0, '#22004a'); bodyG.addColorStop(0.55, '#12001f'); bodyG.addColorStop(0.85, '#050009'); bodyG.addColorStop(1, '#000000');
+            c.fillStyle = bodyG; c.fill();
+            c.strokeStyle = '#6a0dad'; c.lineWidth = 4; c.stroke();
+            octP(0.985); c.strokeStyle = 'rgba(210,150,255,0.75)'; c.lineWidth = 1.5; c.stroke();
+
+            // Chain wraps: dashed bands like meridian lines, clipped to the octagon
+            c.save(); octP(1); c.clip();
+            for (let bi = 0; bi < 6; bi++) {
+              const bandRot = (bi / 6) * Math.PI, bandSquash = 0.2 + ((bi * 37) % 5) / 5 * 0.55, linkW = r * 0.1;
+              c.save(); c.rotate(bandRot); c.scale(1, bandSquash); c.lineCap = 'round';
+              c.setLineDash([linkW * 1.5, linkW * 0.55]);
+              c.strokeStyle = 'rgba(2,0,6,0.95)'; c.lineWidth = linkW;
+              c.beginPath(); c.arc(0, 0, r * 0.92, 0, Math.PI * 2); c.stroke();
+              c.strokeStyle = 'rgba(190,110,255,0.75)'; c.lineWidth = linkW * 0.45;
+              c.beginPath(); c.arc(0, 0, r * 0.92, 0, Math.PI * 2); c.stroke();
+              c.setLineDash([]); c.restore();
+            }
+            c.restore();
+
+            // Loose chain ends off each of the 8 corners, swaying gently
+            for (let ti = 0; ti < 8; ti++) {
+              const ta = (ti / 8) * Math.PI * 2 + Math.PI / 8, sway = Math.sin(t / 900 + ti * 1.7) * 0.22;
+              c.save(); c.rotate(ta + sway); c.translate(r * 0.99, 0); c.rotate(Math.PI / 2);
+              const tailLen = r * (0.24 + (ti % 3) * 0.07);
+              c.lineCap = 'round'; c.setLineDash([r * 0.08, r * 0.035]);
+              c.strokeStyle = 'rgba(2,0,6,0.95)'; c.lineWidth = r * 0.08;
+              c.beginPath(); c.moveTo(0, 0); c.lineTo(0, tailLen); c.stroke();
+              c.strokeStyle = 'rgba(190,110,255,0.75)'; c.lineWidth = r * 0.045;
+              c.beginPath(); c.moveTo(0, 0); c.lineTo(0, tailLen); c.stroke();
+              c.setLineDash([]); c.restore();
+            }
 
             // 4. Counter-rotating inner octagon + veins
-            c.rotate(-t / 3500 * 3.5); c.strokeStyle = '#8A2BE2'; c.lineWidth = 1.5;
+            c.rotate(-t / 3500 * 3.5); c.strokeStyle = '#a855f7'; c.lineWidth = 1.5;
             c.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + Math.PI / 8; i === 0 ? c.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75) : c.lineTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75); } c.closePath(); c.stroke();
-            c.strokeStyle = 'rgba(138,43,226,0.4)';
+            c.strokeStyle = 'rgba(168,85,247,0.5)';
             for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI; c.beginPath(); c.moveTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75); c.lineTo(Math.cos(a + Math.PI) * r * 0.75, Math.sin(a + Math.PI) * r * 0.75); c.stroke(); }
             c.restore();
 
