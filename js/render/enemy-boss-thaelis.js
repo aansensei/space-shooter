@@ -181,15 +181,56 @@ function _drawBossOrThaelis(enemy) {
     // NEW DARGRUEL DESIGN
     const r = enemy.size / 2;
     const pulse = 0.5 + 0.5 * Math.sin(now / 300);
+    const hpPct = enemy.hp / enemy.maxHp;
+    // Rage: how far into its last 50% HP the boss is, 0 at full/half HP up
+    // to 1 near death - drives the eye dilating and how visible the
+    // corruption cracks below are, instead of both just following a hard
+    // hp<40% cutoff like the crackle already did.
+    const rageT = Math.max(0, Math.min(1, 1 - hpPct / 0.5));
+    // One-shot flash right as a Demon Gift threshold fires (90/70/50/30/1%,
+    // see _demonGiftFlashAt in entities/core.js), decaying over ~900ms -
+    // every threshold reads as a real punctuation instead of blending into
+    // the passive low-HP crackle.
+    const demonFlash = enemy._demonGiftFlashAt ? Math.max(0, 1 - (now - enemy._demonGiftFlashAt) / 900) : 0;
 
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    // 1. Abyss aura (outer glow)
-    ctx.fillStyle = `rgba(138,43,226,${0.12 + 0.08 * pulse})`;
-    if (!_mobPerf) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 25; }
-    ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, Math.PI * 2); ctx.fill();
+    // 1. Abyss aura (outer glow) - swells hard on a Demon Gift flash
+    ctx.fillStyle = `rgba(138,43,226,${0.12 + 0.08 * pulse + demonFlash * 0.35})`;
+    if (!_mobPerf) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 25 + demonFlash * 30; }
+    ctx.beginPath(); ctx.arc(0, 0, r * (1.5 + demonFlash * 0.6), 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
+
+    if (demonFlash > 0) {
+        // Bright white-violet body flash, a fast expanding ring, and a
+        // radial burst of jagged bolts - the visual equivalent of the
+        // Demon Gift heal pulse it's throwing out to every ally on screen.
+        ctx.save();
+        ctx.globalAlpha = demonFlash;
+        ctx.fillStyle = 'rgba(230,200,255,0.9)';
+        ctx.beginPath(); ctx.arc(0, 0, r * (1 - demonFlash) * 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(200,110,255,0.9)';
+        ctx.lineWidth = 3;
+        if (!_mobPerf) { ctx.shadowColor = '#df88ff'; ctx.shadowBlur = 20; }
+        ctx.beginPath(); ctx.arc(0, 0, r * (1.1 + (1 - demonFlash) * 1.4), 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        for (let bi = 0; bi < 6; bi++) {
+            const ba = (bi / 6) * Math.PI * 2 + bi * 0.9;
+            let bx = 0, by = 0, ba2 = ba;
+            ctx.strokeStyle = `rgba(220,170,255,${demonFlash * 0.85})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(bx, by);
+            for (let s = 0; s < 3; s++) {
+                ba2 += (Math.sin(bi * 7.1 + s * 3.3) % 1) * 0.6;
+                bx += Math.cos(ba2) * r * 0.5;
+                by += Math.sin(ba2) * r * 0.5;
+                ctx.lineTo(bx, by);
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
 
     // 2. Maître Suprême shield ring, scales with sentinel count
     const activeSentinels = typeof sentinels !== 'undefined' ? sentinels.length : 0;
@@ -205,28 +246,197 @@ function _drawBossOrThaelis(enemy) {
         ctx.restore();
     }
 
-    // 3. Main octagon body
+    // 3. Main octagon body - AanSensei's call: keep the original angular
+    // silhouette, don't melt it into a sphere. Chains now wrap the plate
+    // as armor bands instead of replacing its shape, contrast is pushed
+    // much harder (deep black shadow + a hard rim light) so the plate
+    // reads as a thick, looming slab instead of a flat gradient wash.
     const rot = now / 3500;
     ctx.rotate(rot);
+    const octPath = (mul) => {
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            const px = Math.cos(a) * r * mul, py = Math.sin(a) * r * mul;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+    };
+
+    octPath(1);
     const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    bodyGrad.addColorStop(0, '#15002a');
-    bodyGrad.addColorStop(0.7, '#2d004d');
-    bodyGrad.addColorStop(1, '#0d001a');
+    bodyGrad.addColorStop(0, '#22004a');
+    bodyGrad.addColorStop(0.55, '#12001f');
+    bodyGrad.addColorStop(0.85, '#050009');
+    bodyGrad.addColorStop(1, '#000000');
     ctx.fillStyle = bodyGrad;
+    ctx.fill();
+    // A big black shadowBlur here would soften the plate's own outline
+    // against the dark backdrop and read as a smaller silhouette, not more
+    // contrast - keep the outline crisp and put the contrast into the
+    // stroke color/width instead.
     ctx.strokeStyle = '#6a0dad';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    // Hard rim light just inside the outline, the kind of sharp highlight
+    // that sells a thick beveled plate catching strong light from one side.
+    octPath(0.985);
+    if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 10; }
+    ctx.strokeStyle = 'rgba(210,150,255,0.75)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 3.4 Surface plating detail: panel seams, rivets, and small glowing
+    // runes etched into the body itself.
+    ctx.save();
+    octPath(1);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(138,43,226,0.28)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.86, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(100,20,180,0.22)'; ctx.lineWidth = 0.8;
     for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
-            : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        const a1 = (i / 8) * Math.PI * 2;
+        const a2 = ((i + 3) / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a1) * r * 0.9, Math.sin(a1) * r * 0.9);
+        ctx.lineTo(Math.cos(a2) * r * 0.9, Math.sin(a2) * r * 0.9);
+        ctx.stroke();
     }
-    ctx.closePath(); ctx.fill(); ctx.stroke();
+    for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        const rx = Math.cos(a) * r * 0.95, ry = Math.sin(a) * r * 0.95;
+        ctx.fillStyle = 'rgba(5,0,10,0.95)';
+        ctx.beginPath(); ctx.arc(rx, ry, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(220,180,255,0.6)';
+        ctx.beginPath(); ctx.arc(rx - 0.6, ry - 0.6, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
+    const runePulse = 0.6 + 0.4 * Math.sin(now / 500);
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+        ctx.save();
+        ctx.translate(Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6);
+        ctx.rotate(a);
+        if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 8 * runePulse; }
+        ctx.strokeStyle = `rgba(220,170,255,${0.5 + 0.5 * runePulse})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, -5); ctx.lineTo(3, 0); ctx.lineTo(0, 5); ctx.lineTo(-3, 0); ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // 3.6 Chain wraps: a handful of dashed bands laid over the plate like
+    // meridian lines on a globe - round-capped dashes read as a row of
+    // link beads without needing per-link geometry. Clipped to the octagon
+    // so nothing spills past the plate's own edge; the Cosmic Eye paints
+    // its own opaque disc over the middle later, so no hole needs cutting
+    // here.
+    ctx.save();
+    octPath(1);
+    ctx.clip();
+    const chainBandCount = 6;
+    for (let bi = 0; bi < chainBandCount; bi++) {
+        const bandRot = (bi / chainBandCount) * Math.PI;
+        const bandSquash = 0.2 + ((bi * 37) % 5) / 5 * 0.55;
+        const linkW = r * 0.1;
+        ctx.save();
+        ctx.rotate(bandRot);
+        ctx.scale(1, bandSquash);
+        ctx.lineCap = 'round';
+        ctx.setLineDash([linkW * 1.5, linkW * 0.55]);
+        ctx.strokeStyle = 'rgba(2,0,6,0.95)';
+        ctx.lineWidth = linkW;
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(190,110,255,0.75)';
+        ctx.lineWidth = linkW * 0.45;
+        if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 6; }
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+    ctx.restore();
+
+    // Loose chain ends hanging off each of the octagon's 8 corners,
+    // swaying gently - the chains actually spilling off the plate rather
+    // than just decorating its face.
+    for (let ti = 0; ti < 8; ti++) {
+        const ta = (ti / 8) * Math.PI * 2 + Math.PI / 8;
+        const sway = Math.sin(now / 900 + ti * 1.7) * 0.22;
+        ctx.save();
+        ctx.rotate(ta + sway);
+        ctx.translate(r * 0.99, 0);
+        ctx.rotate(Math.PI / 2);
+        const tailLen = r * (0.24 + (ti % 3) * 0.07);
+        ctx.lineCap = 'round';
+        ctx.setLineDash([r * 0.08, r * 0.035]);
+        ctx.strokeStyle = 'rgba(2,0,6,0.95)';
+        ctx.lineWidth = r * 0.08;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, tailLen); ctx.stroke();
+        ctx.strokeStyle = 'rgba(190,110,255,0.75)';
+        ctx.lineWidth = r * 0.045;
+        if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 7; }
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, tailLen); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+
+    // 3.5 Corruption cracks: a fixed set of fracture lines, generated once
+    // and cached on the enemy itself, that reveal progressively as HP
+    // drops instead of all appearing (or not) at once - reads as the body
+    // actually breaking apart over the fight rather than just the existing
+    // crackle sparks flaring up under one hard 40% cutoff.
+    if (!enemy._corruptionCracks) {
+        const crackCount = 7;
+        const cracks = [];
+        for (let i = 0; i < crackCount; i++) {
+            const startA = Math.random() * Math.PI * 2;
+            const startR = Math.random() * r * 0.25;
+            let a2 = startA + (Math.random() - 0.5) * 1.2;
+            let px = Math.cos(startA) * startR, py = Math.sin(startA) * startR;
+            const pts = [[px, py]];
+            const segCount = 3 + Math.floor(Math.random() * 3);
+            const totalLen = r * (0.7 + Math.random() * 0.5);
+            for (let s = 0; s < segCount; s++) {
+                a2 += (Math.random() - 0.5) * 0.7;
+                const segLen = totalLen / segCount;
+                px += Math.cos(a2) * segLen; py += Math.sin(a2) * segLen;
+                pts.push([px, py]);
+            }
+            cracks.push({ pts, revealHpPct: 0.9 - (i / crackCount) * 0.8, width: 1 + Math.random() * 1.5 });
+        }
+        enemy._corruptionCracks = cracks;
+    }
+    ctx.save();
+    octPath(1);
+    ctx.clip();
+    ctx.lineCap = 'round';
+    for (const crack of enemy._corruptionCracks) {
+        const alpha = Math.max(0, Math.min(1, (crack.revealHpPct - hpPct) / 0.08));
+        if (alpha <= 0) continue;
+        ctx.strokeStyle = `rgba(5,0,15,${alpha * 0.8})`;
+        ctx.lineWidth = crack.width + 1.5;
+        ctx.beginPath();
+        ctx.moveTo(crack.pts[0][0], crack.pts[0][1]);
+        for (let p = 1; p < crack.pts.length; p++) ctx.lineTo(crack.pts[p][0], crack.pts[p][1]);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(200,110,255,${alpha * 0.7})`;
+        ctx.lineWidth = crack.width * 0.4;
+        if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 4; }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+    ctx.restore();
 
     // 4. Counter-rotating inner octagon + veins
     ctx.save();
     ctx.rotate(-rot * 2.5);
-    ctx.strokeStyle = '#8A2BE2'; ctx.lineWidth = 1.5;
+    if (!_mobPerf) { ctx.shadowColor = '#8A2BE2'; ctx.shadowBlur = 8; }
+    ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
@@ -234,7 +444,8 @@ function _drawBossOrThaelis(enemy) {
             : ctx.lineTo(Math.cos(a) * r * 0.75, Math.sin(a) * r * 0.75);
     }
     ctx.closePath(); ctx.stroke();
-    ctx.strokeStyle = 'rgba(138,43,226,0.4)';
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(168,85,247,0.5)';
     for (let i = 0; i < 4; i++) {
         const a = (i / 4) * Math.PI;
         ctx.beginPath();
@@ -271,6 +482,21 @@ function _drawBossOrThaelis(enemy) {
     _bgG.addColorStop(1, '#04000c');
     ctx.fillStyle = _bgG; ctx.fill(); ctx.clip();
 
+    // Nebula clouds drifting slowly within the eye, behind the spiral arms
+    // - gives the vortex some atmospheric depth instead of bare arms over
+    // a flat gradient backdrop.
+    for (let _n = 0; _n < 4; _n++) {
+        const _nPhase = now / 5000 + _n * 1.7;
+        const _nR = coreR * (0.35 + (_n % 2) * 0.2);
+        const _nx = Math.cos(_nPhase) * coreR * 0.35, _ny = Math.sin(_nPhase * 0.8) * coreR * 0.35;
+        const _nColor = _n % 2 === 0 ? '150,60,220' : '90,20,160';
+        const _nG = ctx.createRadialGradient(_nx, _ny, 0, _nx, _ny, _nR);
+        _nG.addColorStop(0, `rgba(${_nColor},0.22)`);
+        _nG.addColorStop(1, `rgba(${_nColor},0)`);
+        ctx.fillStyle = _nG;
+        ctx.beginPath(); ctx.arc(_nx, _ny, _nR, 0, Math.PI * 2); ctx.fill();
+    }
+
     // Galaxy spiral arms
     ctx.save();
     ctx.translate(_dX, _dY); ctx.rotate(_galaxyRot);
@@ -296,19 +522,25 @@ function _drawBossOrThaelis(enemy) {
     }
     ctx.restore();
 
-    // Pupil — soft glow halo then hard bright center
-    if (!_mobPerf) { ctx.shadowColor = '#cc88ff'; ctx.shadowBlur = 14; }
-    const _coreG = ctx.createRadialGradient(_dX, _dY, 0, _dX, _dY, coreR * 0.38);
+    // Pupil: soft glow halo then hard bright center. Dilates and shifts
+    // from violet toward blood-red as rageT climbs (last 50% HP), instead
+    // of a fixed calm iris the whole fight.
+    const _irisR = coreR * 0.38 * (1 + rageT * 0.45);
+    const _rageMidR = Math.round(200 + (255 - 200) * rageT);
+    const _rageMidG = Math.round(120 + (40 - 120) * rageT);
+    const _rageMidB = Math.round(255 + (50 - 255) * rageT);
+    if (!_mobPerf) { ctx.shadowColor = rageT > 0.5 ? '#ff5555' : '#cc88ff'; ctx.shadowBlur = 14; }
+    const _coreG = ctx.createRadialGradient(_dX, _dY, 0, _dX, _dY, _irisR);
     _coreG.addColorStop(0, 'rgba(255,255,255,1)');
-    _coreG.addColorStop(0.3, 'rgba(200,120,255,0.8)');
-    _coreG.addColorStop(0.7, 'rgba(100,0,200,0.35)');
+    _coreG.addColorStop(0.3, `rgba(${_rageMidR},${_rageMidG},${_rageMidB},0.8)`);
+    _coreG.addColorStop(0.7, `rgba(${Math.round(100 + 120 * rageT)},0,${Math.round(200 - 140 * rageT)},0.35)`);
     _coreG.addColorStop(1, 'rgba(60,0,140,0)');
     ctx.fillStyle = _coreG;
-    ctx.beginPath(); ctx.arc(_dX, _dY, coreR * 0.38, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(_dX, _dY, _irisR, 0, Math.PI * 2); ctx.fill();
     // Hard white dot
     if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 18; }
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(_dX, _dY, coreR * 0.10, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(_dX, _dY, coreR * 0.10 * (1 + rageT * 0.3), 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
     ctx.restore(); // end clip
 
@@ -365,7 +597,6 @@ function _drawBossOrThaelis(enemy) {
     }
 
     // Low HP energy crackle
-    const hpPct = enemy.hp / enemy.maxHp;
     if (hpPct < 0.4) {
         const crackleCount = Math.floor((1 - hpPct / 0.4) * 4) + 2;
         for (let c = 0; c < crackleCount; c++) {

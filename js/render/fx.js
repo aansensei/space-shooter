@@ -728,6 +728,23 @@ function drawBossShockwaves() {
         const heavyPulse = 0.75 + 0.25 * Math.sin(now / 260);
         const blink = 0.7 + 0.3 * Math.sin(now / 40);
 
+        // Gentle wobble applied to the core/ring/inner-edge outlines below -
+        // a soft, slow undulation (not the turbulent crashing-wave wobble
+        // Unbroken Will uses), so the wave's edge flows outward like a
+        // calm ripple on water instead of a rigid, perfectly circular disc.
+        const segs = 48;
+        const wob = (a) => 1 + Math.sin(a * 4 + now / 320) * 0.025 + Math.sin(a * 7 - now / 480) * 0.014;
+        const wobbledPath = (rMul) => {
+            ctx.beginPath();
+            for (let i = 0; i <= segs; i++) {
+                const a = (i / segs) * Math.PI * 2;
+                const r = wave.radius * rMul * wob(a);
+                const x = Math.cos(a) * r, y = Math.sin(a) * r;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+        };
+
         // Dense void core: near-black at the very center darkening to
         // violet toward the edge, instead of one flat translucent violet
         // wash — reads as a crushing pressure zone rather than a light
@@ -738,7 +755,7 @@ function drawBossShockwaves() {
         core.addColorStop(1,   `rgba(140,0,220,${fade * 0.30 * heavyPulse})`);
         ctx.globalAlpha = 1;
         ctx.fillStyle = core;
-        ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.fill();
+        wobbledPath(1); ctx.fill();
 
         // 2. Lightweight Persian arcs (8 rotating arcs, NO grid loop)
         const numArcs = 8;
@@ -814,19 +831,45 @@ function drawBossShockwaves() {
         }
         ctx.shadowBlur = 0;
 
+        if (!_mobPerf) {
+            // Pixel scatter: small square blocks drifting along the
+            // expanding edge, seeded per-index so each block holds a
+            // stable angle/offset instead of jittering randomly every
+            // frame - reads as the wave dissolving into grit as it spreads.
+            const pixCount = 40;
+            for (let i = 0; i < pixCount; i++) {
+                const seedA = Math.abs(Math.sin(i * 12.9898)) % 1;
+                const seedR = Math.abs(Math.sin(i * 78.233)) % 1;
+                const seedS = Math.abs(Math.sin(i * 45.164)) % 1;
+                const pa = seedA * Math.PI * 2;
+                const pr = wave.radius * wob(pa) + (seedR - 0.5) * 90;
+                if (pr < 4) continue;
+                const px = Math.cos(pa) * pr, py = Math.sin(pa) * pr;
+                const pAlpha = fade * (0.6 + 0.4 * Math.abs(Math.sin(now / 150 + i)));
+                const pSize = 5 + seedS * 9;
+                ctx.shadowColor = '#e0a8ff'; ctx.shadowBlur = 6;
+                ctx.fillStyle = `rgba(190,120,255,${pAlpha})`;
+                ctx.fillRect(px - pSize / 2, py - pSize / 2, pSize, pSize);
+                ctx.shadowBlur = 0;
+                const coreSize = pSize * 0.45;
+                ctx.fillStyle = `rgba(248,230,255,${pAlpha})`;
+                ctx.fillRect(px - coreSize / 2, py - coreSize / 2, coreSize, coreSize);
+            }
+        }
+
         // 5. Main ring — thicker (7px → 12px) for more visual weight
         ctx.strokeStyle = `rgba(138,43,226,${(0.7 + 0.3 * blink) * fade})`;
         ctx.lineWidth = 12;
         if (!_mobPerf) ctx.shadowColor = '#CC00FF';
         if (!_mobPerf) ctx.shadowBlur = 24 + 14 * blink;
-        ctx.beginPath(); ctx.arc(0, 0, wave.radius, 0, Math.PI * 2); ctx.stroke();
+        wobbledPath(1); ctx.stroke();
         ctx.shadowBlur = 0;
 
         // 6. Inner bright edge
         if (wave.radius > 12) {
             ctx.strokeStyle = `rgba(255,200,255,${fade * 0.55 * blink})`;
             ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(0, 0, wave.radius - 7, 0, Math.PI * 2); ctx.stroke();
+            wobbledPath((wave.radius - 7) / wave.radius); ctx.stroke();
         }
 
         ctx.restore();
