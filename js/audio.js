@@ -825,8 +825,15 @@
         state.skillFFireEl.setSrc('assets/audio/sfx/skill-f-fire.mp3', false);
         state.blackholeEl = _makeBufferLoop();
         state.blackholeEl.setSrc('assets/audio/sfx/blackhole.mp3', false);
+        // Looped (unlike its charge/fire neighbors above): the clip is a
+        // fixed 3.5s, but the real shockwave's expansion time scales with
+        // screen diagonal (radius/12 frames) plus a 500ms linger - on any
+        // screen wider than a normal 16:9 monitor that easily runs past
+        // 3.5s, so a one-shot clip went silent well before stopMaouHaki()
+        // actually fired, well before the visual effect (and the shake/
+        // bullet-clear it drives) was done.
         state.maouHakiEl = _makeBufferLoop();
-        state.maouHakiEl.setSrc('assets/audio/sfx/maou-haki.mp3', false);
+        state.maouHakiEl.setSrc('assets/audio/sfx/maou-haki.mp3');
         state.nullSlashWindupEl = _makeBufferLoop();
         state.nullSlashWindupEl.setSrc('assets/audio/sfx/egregor-nullslash-windup.mp3', false);
         state.goliathVerdictChargeEl = _makeBufferLoop();

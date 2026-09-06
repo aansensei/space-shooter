@@ -144,11 +144,13 @@ function _castStolenGemAttack(type, comboMult) {
         return;
     }
     if (type === 'dargruel') {
-        // Maou Haki: an expanding ring, not an instant flat-radius hit.
-        // Full screen diagonal, matching the real spawnBossShockwave's own
-        // maxRadius (js/entities/core.js) instead of a scaled-down range.
+        // Maou Haki: an expanding ring, not an instant flat-radius hit -
+        // expands at the SAME rate as the real spawnBossShockwave (radius
+        // += 12 per 16.67ms frame, js/entities/core.js), not a fixed 700ms
+        // sprint to full screen - the real one takes ~2s to cross a normal
+        // screen, this used to finish more than twice as fast.
         const fullRange = Math.hypot(canvas.width, canvas.height);
-        _greatSageEffects.push({ type: 'shockwave', timer: 0, dur: 700, maxRadius: fullRange, x: player.x, y: player.y, hitEnemies: [], comboMult });
+        _greatSageEffects.push({ type: 'shockwave', timer: 0, speed: 12, maxRadius: fullRange, x: player.x, y: player.y, hitEnemies: [], comboMult });
         return;
     }
     if (type === 'leviathan') {
@@ -267,7 +269,7 @@ function _updateGreatSageEffects(deltaTime) {
                 done = true;
             }
         } else if (fx.type === 'shockwave') {
-            const curRadius = fx.maxRadius * Math.min(1, fx.timer / fx.dur);
+            const curRadius = Math.min(fx.maxRadius, fx.speed * (fx.timer / 16.67));
             for (const enemy of enemies) {
                 if (fx.hitEnemies.includes(enemy)) continue;
                 if (Math.hypot(enemy.x - fx.x, enemy.y - fx.y) <= curRadius + 20) {
@@ -282,7 +284,7 @@ function _updateGreatSageEffects(deltaTime) {
                     }
                 }
             }
-            if (fx.timer >= fx.dur) done = true;
+            if (curRadius >= fx.maxRadius) done = true;
         } else if (fx.type === 'leviathan') {
             if (fx.phase === 'warn' && fx.timer >= fx.warnDur) {
                 fx.phase = 'sweeping'; fx.timer = 0;

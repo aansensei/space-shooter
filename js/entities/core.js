@@ -1600,6 +1600,10 @@ function dealDamage(enemy, source) {
         const _demonTrigger = () => {
             triggerDemonGift(enemy);
             enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 3;
+            // Render-side hook (_drawBossOrThaelis) - a big one-shot body
+            // flash right as a threshold fires, instead of every Demon
+            // Gift trigger looking the same as the passive low-HP crackle.
+            enemy._demonGiftFlashAt = performance.now();
         };
         if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y, 'dargruel'); enemy.demonGift90Triggered = true; }
         if (oldPercent > 0.70 && newPercent <= 0.70 && !enemy.demonGift70Triggered) { _demonTrigger(); enemy.demonGift70Triggered = true; }
