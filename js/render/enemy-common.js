@@ -805,8 +805,9 @@ function drawEnemy(enemy) {
         ctx.fillText(Math.ceil(enemy.shield), enemy.x, by - 2);
     }
 
-    // MARCHOSIAS PARASITE SHIELD bar (green arc shield on host)
-    if (enemy.marchosiasParasiteShield && enemy.marchosiasParasiteShield > 0) {
+    // MARCHOSIAS PARASITE host ring (flavor only - the shield amount itself
+    // is just enemy.shield, shown by the bar right above)
+    if (enemy._marchosiasParasiteHost && enemy.shield > 0) {
         ctx.save();
         const pR = enemy.size / 2 + 8;
         // rotating dashed ring
@@ -824,7 +825,7 @@ function drawEnemy(enemy) {
         ctx.save();
         ctx.fillStyle = '#00ff88'; ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('⬡' + Math.ceil(enemy.marchosiasParasiteShield), enemy.x, enemy.y - enemy.size / 2 - 24);
+        ctx.fillText('⬡' + Math.ceil(enemy.shield), enemy.x, enemy.y - enemy.size / 2 - 24);
         ctx.restore();
     }
 

@@ -153,11 +153,11 @@ function updateSkillA(deltaTime) {
             });
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
-                const _preTotal = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0);
+                const _preTotal = orb.target.hp + (orb.target.shield || 0);
                 applyMarchosiasSkillASplit(orb.target, { damage: 200, percentDamage: 0.20, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                 // Sát thương CHUẨN (true damage) thêm: 100 base + 15% HP đã mất của mục tiêu
                 if (orb.target.hp > 0) applyMarchosiasSkillASplit(orb.target, { damage: 100 + Math.ceil((orb.target.maxHp - orb.target.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
-                const _didDmg = orb.target.hp + (orb.target.shield || 0) + (orb.target._tenacityBarrier || 0) < _preTotal;
+                const _didDmg = orb.target.hp + (orb.target.shield || 0) < _preTotal;
                 orb.target.isTargetedByA = false;
 
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 8, percentDamage: 0.020 });

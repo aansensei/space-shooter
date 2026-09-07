@@ -827,7 +827,7 @@ function _yuushaPierceRedirect(value, pctMode) {
     alive.forEach(member => {
         const sentinelDmg = pctMode === 'flat'
             ? value
-            : (pctMode ? (member.maxHp + (member.shield || 0)) : member.maxHp) * value;
+            : member.maxHp * value;
         const rawDmg = sentinelDmg * 1.5;
         const actualDmg = _yuushaApplyDamage(member, rawDmg, now);
         if (member.role === 'Tank' && actualDmg > 0) _yuushaFillTankAbsorb(member, actualDmg * 2.2);

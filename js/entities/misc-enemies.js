@@ -72,7 +72,7 @@ function spawnThaelis() {
         hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'thaelis', shootTimer: 1000, reincarnated: false,
-        _tenacityBarrier: 0, _tenacityBarrierMax: 0,
+        _shieldPeak: 0,
         _tenacityBarrier70: false, _tenacityBarrier40: false, _tenacityBarrier10: false
     });
 }

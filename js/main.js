@@ -471,7 +471,6 @@ function update(rawDeltaTime) {
                         e.shield = 0;
                         e.absoluteShield = false;
                         e.aegisInvulnerable = false;
-                        e.marchosiasParasiteShield = 0;
                         e.afoShieldActive = false; // AFO shield also bypassed
                         // GOLIATH True Form: BTM cố tình xuyên thủng MỌI thứ bằng
                         // cách chỉnh thẳng e.hp ở đây, hoàn toàn KHÔNG đi qua
@@ -557,7 +556,7 @@ function update(rawDeltaTime) {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.38, _vanguardTag: wave._id, _attackerType: wave._ownerType });
+                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.38, _vanguardTag: wave._id, _attackerType: wave._ownerType });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -594,7 +593,7 @@ function update(rawDeltaTime) {
                 if (!laser._id) laser._id = 'aegis_laser_' + performance.now().toFixed(0);
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * 0.20, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'aegis_core' });
+                        dealDamage(s, { damage: s.maxHp * 0.20, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'aegis_core' });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -863,8 +862,8 @@ function update(rawDeltaTime) {
         if (enemy.type === 'aegis_core') {
             let healAmt = enemy.maxHp * 0.08 * (deltaTime / 1000);
             if (enemy._custosExpired) healAmt *= 1.35;
-            let shieldAmt = enemy.maxHp * 0.48;
-            let tickShieldAmt = enemy.maxHp * 0.08 * (deltaTime / 1000); // 8% MaxHP shield/s
+            let shieldAmt = enemy.maxHp * 0.38;
+            let tickShieldAmt = enemy.maxHp * 0.06 * (deltaTime / 1000); // 6% MaxHP shield/s
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
@@ -1245,8 +1244,8 @@ function update(rawDeltaTime) {
                             s._trieuIronBody = false;
                             s._trieuIronBodyCooldownEnd = currentTime + 8000;
                         } else {
-                            const _chainEpPct = enemy.isDarkened ? 0.20 : 0.15;
-                            const rawDmgChain = Math.ceil((s.maxHp + (s.shield || 0)) * _chainEpPct);
+                            const _chainPct = enemy.isDarkened ? 0.20 : 0.15;
+                            const rawDmgChain = Math.ceil(s.maxHp * _chainPct);
                             if (sentinels.length >= 5) {
                                 _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s);
                             } else {
@@ -1291,7 +1290,7 @@ function update(rawDeltaTime) {
                     if (_hasBuff('giap_nguyet') && Math.random() < 0.20) {
                         // Lunar Aegis: 20% sentinel evade — bullet consumed, no damage
                     } else if (enemy.type === 'enemy_bullet_small') {
-                        dealDamage(sentinel, { damage: (sentinel.maxHp + (sentinel.shield || 0)) * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
+                        dealDamage(sentinel, { damage: sentinel.maxHp * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
                         dealDamage(sentinel, { damage: enemy.hp, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     }
@@ -1610,8 +1609,8 @@ function update(rawDeltaTime) {
                     Math.hypot(e.x - enemy.x, e.y - enemy.y) < 170
                 );
                 if (_nearHost) {
-                    _nearHost.marchosiasParasiteShield = (_nearHost.marchosiasParasiteShield || 0) + enemy.hp;
-                    _goliathTrackResourceGain(_nearHost, enemy.hp);
+                    _nearHost._marchosiasParasiteHost = true;
+                    _addEnemyShield(_nearHost, enemy.hp);
                     createParticles(_nearHost.x, _nearHost.y, 12, '#00ff88', 2, 5);
                     enemy.hp = 0;
                     continue;
@@ -1878,7 +1877,7 @@ function update(rawDeltaTime) {
                     if (b.hitEnemies.includes(enemy)) continue;
                     // b.damage holds the charge multiplier (1-10, see
                     // fireChargedBullet), not a raw damage value - scales the
-                    // same 7% EP a full charge deals down by how charged the
+                    // same 7% Max HP a full charge deals down by how charged the
                     // shot actually was, instead of the old flat 1-9 damage
                     // that any release before full charge dealt (i.e.
                     // basically nothing against a real enemy's HP pool).
@@ -2055,7 +2054,7 @@ function update(rawDeltaTime) {
     }
 
     // Gaia Barrier pulse (GfJ): fires immediately on activation, then every 8s (5s after wave 10)
-    // Barrier = 20% HP lost + 10% Max HP, non-stacking, replaces previous pulse; NOT part of shield/EP
+    // Barrier = 20% HP lost + 10% Max HP, non-stacking, replaces previous pulse; NOT part of shield
     if (!window._gfjShieldTimer) window._gfjShieldTimer = 0;
     if (!window._gfjWasActive) window._gfjWasActive = false;
     const _gaiaActive = gloryForJusticeActive || _hasBuff('giap_nguyet');
@@ -2168,14 +2167,14 @@ function update(rawDeltaTime) {
                 return false;
             }
             // Sentinel: ĐÚNG công thức thật (updateMarchosiasBlades) — 27%/
-            // 23%/21% EP giảm dần theo thứ tự Sentinel bị trúng, xuyên qua
+            // 23%/21% Max HP giảm dần theo thứ tự Sentinel bị trúng, xuyên qua
             // (không biến mất) như đúng bản gốc, chỉ trừ đúng 1 lần/Sentinel.
             if (!sw.hitEnemies) sw.hitEnemies = [];
             for (const s of sentinels) {
                 if (!sw.hitEnemies.includes(s) && Math.hypot(sw.x - s.x, sw.y - s.y) < (sw.radius || 88) + s.size) {
                     const hitsAlready = sw.hitEnemies.length;
                     const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
-                    dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct, _noHitSfx: true, _attackerType: 'goliath' });
+                    dealDamage(s, { damage: s.maxHp * pct, _noHitSfx: true, _attackerType: 'goliath' });
                     sw.hitEnemies.push(s);
                     addExplosion(s.x, s.y, 20, '#ff6600');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
@@ -2187,7 +2186,7 @@ function update(rawDeltaTime) {
 
     // Goliath Corrupted Meteor (independent objects) — trúng người chơi trừ
     // 1 mạng qua playerTakesHit() (tôn trọng mọi lớp bảo vệ), trúng Sentinel
-    // thì nổ gây sát thương lan 25% EP true damage cho các Sentinel gần đó.
+    // thì nổ gây sát thương lan 25% Max HP true damage cho các Sentinel gần đó.
     if (window._goliathMeteors && window._goliathMeteors.length) {
         window._goliathMeteors = window._goliathMeteors.filter(m => {
             m.life -= deltaTime;
@@ -2270,8 +2269,7 @@ function update(rawDeltaTime) {
                 const last = beam.hitSentinels.get(s) || 0;
                 if (nowMs2 - last > 80) {
                     beam.hitSentinels.set(s, nowMs2);
-                    const ep = s.maxHp + (s.shield || 0);
-                    const dmg = Math.min(Math.ceil(ep * 0.50), Math.ceil(ep * scaledPct * ownerHits));
+                    const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPct * ownerHits));
 
                     if (sentinels.length >= 5) {
                         // Vanguard Network: dùng beam.id làm sourceTag cho AoE dampening
@@ -2371,8 +2369,7 @@ function update(rawDeltaTime) {
             sentinels.forEach(s => {
                 if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
                     laser.hitSentinels.add(s);
-                    const ep = s.maxHp + (s.shield || 0);
-                    const dmg = Math.min(Math.ceil(ep * 0.55), Math.ceil(ep * scaledPctLaser * halfHits));
+                    const dmg = Math.min(Math.ceil(s.maxHp * 0.55), Math.ceil(s.maxHp * scaledPctLaser * halfHits));
                     if (sentinels.length >= 5) {
                         _applyVanguardDamage(dmg, laser.id, false, s, 'leviathan');
                     } else {
@@ -2435,7 +2432,7 @@ function update(rawDeltaTime) {
             // Damage ticks: sentinels
             for (const s of sentinels) {
                 if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius) {
-                    const dmg = Math.ceil((s.maxHp + (s.shield || 0)) * 0.02);
+                    const dmg = Math.ceil(s.maxHp * 0.02);
                     dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl' });
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }

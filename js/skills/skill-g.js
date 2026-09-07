@@ -230,7 +230,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     }
                     if (currentTime - dotMap.get(enemy) >= 125) {
                         const _teslaDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
-                        dealDamage(enemy, { damage: 58 * _teslaDmgMult, percentDamage: 0.015 * _teslaDmgMult, isTeslaDot: true });
+                        dealDamage(enemy, { damage: 95 * _teslaDmgMult, percentDamage: 0.006 * _teslaDmgMult, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                         if (_hasBuff('set_day_chuyen') && Math.random() < 0.50) {
                             let _closest = null, _closestDist = Infinity;
@@ -240,7 +240,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                                 if (_d < 150 && _d < _closestDist) { _closest = _oe; _closestDist = _d; }
                             }
                             if (_closest) {
-                                dealDamage(_closest, { damage: 58 * _teslaDmgMult, percentDamage: 0.015 * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
+                                dealDamage(_closest, { damage: 95 * _teslaDmgMult, percentDamage: 0.006 * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
                                 chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: _closest.x, y2: _closest.y, lifetime: 200, maxLifetime: 200 });
                             }
                         }

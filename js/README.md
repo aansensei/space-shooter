@@ -322,7 +322,7 @@ skillGCharge accumulates at 0.5 per enemy kill. At 100 activateSkillG sets
 skillGActive to true, skillGEndTime to 30000ms from the current timestamp, and
 immediately sets gloryForJusticeActive to true. Energy orb objects spawn at kill
 locations during the duration. After 5000ms each paired orb set merges into a
-Tesla Coil object that applies 6% EP damage every 50ms to all enemies within a
+Tesla Coil object that applies 6% Max HP damage every 50ms to all enemies within a
 200px aura radius.
 
 ## input.js
