@@ -431,7 +431,7 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 - The Cocoon itself carries no HP and cannot be hit directly: it's **CC Immune**, has an absolute **Iron Body**, and cannot receive outside heals or shields. It's guarded by **4 Guards** at all times, each with **500–1,000 flat HP** (not tied to Thaelis's own Max HP), the same evade chance as Thaelis's own tier, **40% + 20 flat Damage Reduction**, and full immunity to every DoT source in the game.
 - Killing a Guard doesn't damage the Cocoon directly. It banks a flat **300 Shield** (carried over to Thaelis if it revives, see below) and counts toward a random **12–16 kill quota** rolled fresh each time, shown live as a number on the Cocoon's body. A dead Guard is replaced after **1 second**.
-- Meeting the kill quota within the **9-second** timer destroys the Cocoon for good, killing Thaelis. Falling short, Thaelis climbs back out at **80% of its original Max HP** (the base 40% revive HP, doubled) plus whatever Shield was banked, with **1 second of invulnerability**, a permanent **+20% DR and +250 flat DR** on top of its usual Tenacity scaling, and a **12-second cooldown** before it can trigger Reincarnation again if it dies again right away.
+- Meeting the kill quota within the **9-second** timer destroys the Cocoon for good, killing Thaelis. Falling short, Thaelis climbs back out at **40% of its original Max HP** plus whatever Shield was banked, with **1 second of invulnerability**, a **12-second cooldown** before it can trigger Reincarnation again if it dies again right away, and three permanent Reincarnation buffs: **+100% Max HP** (so effectively 80% of its original Max HP), **+20% DR**, and **+250 flat DR** on top of its usual Tenacity scaling.
 
 ---
 
