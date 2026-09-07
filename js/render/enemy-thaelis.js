@@ -357,6 +357,41 @@ function _drawThaelisCocoon(enemy) {
         }
     }
 
+    // 9. Kill-quota readout: how many more Guards still need to die to break
+    // the Cocoon for good, styled as a small tech console chip embedded in
+    // the body rather than bare floating text - a glowing hex plate with a
+    // monospace digit, matching the game's existing on-body HUD readouts
+    // (DEFLECT/BLOCK/etc in enemy-common.js use the same font+glow, no
+    // outline stroke).
+    const killsLeft = Math.max(0, (enemy._cocoonKillsNeeded || 0) - (enemy._cocoonKillsSoFar || 0));
+    const plateR = r * 0.5;
+    ctx.save();
+    ctx.rotate(rock);
+    // Hex plate backing, dark glass with a thin glowing rim
+    ctx.beginPath();
+    for (let hx = 0; hx < 6; hx++) {
+        const ha = (Math.PI / 3) * hx - Math.PI / 2;
+        const px = Math.cos(ha) * plateR, py = Math.sin(ha) * plateR;
+        if (hx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(6,10,8,0.72)';
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${auraHue},90%,65%,${0.7 + pulse * 0.3})`;
+    ctx.lineWidth = 1.5;
+    if (!_mobPerf) { ctx.shadowColor = `hsl(${auraHue},90%,65%)`; ctx.shadowBlur = 10; }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Digit itself, glowing in the same hue language as the rest of the body
+    ctx.font = `bold ${Math.round(plateR * 1.1)}px "Courier New", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = `hsla(${auraHue},100%,${88 - urgency * 10}%,0.95)`;
+    if (!_mobPerf) { ctx.shadowColor = `hsl(${auraHue},100%,80%)`; ctx.shadowBlur = 9; }
+    ctx.fillText(String(killsLeft), 0, 1);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
     ctx.restore();
 }
 
