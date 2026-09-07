@@ -844,18 +844,66 @@ function update(rawDeltaTime) {
             continue;
         }
 
-        if (enemy.type === 'embryo') {
-            enemy.hatchTimer -= deltaTime;
-            if (enemy.hatchTimer <= 0) {
+        if (enemy.type === 'thaelis_cocoon' && enemy.hp > 0) {
+            enemy._cocoonTimer -= deltaTime;
+            // Once HP is drained to 0 via Guard kills it must stay dead - no
+            // regen tick past that point, so it can't hover near 0 forever
+            // waiting on the next Guard kill (guarded by the hp > 0 on the
+            // outer if instead of clamping after the fact, since clamping
+            // after a regen tick would still let it visibly climb off 0 for
+            // a frame first).
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * THAELIS_COCOON_REGEN_PCT * (deltaTime / 1000));
+
+            // Guard respawns: each dead Guard queued a timer here (see the
+            // guard-death handling below) - count them down and spawn a
+            // replacement the instant one hits 0, keeping up to
+            // THAELIS_COCOON_GUARD_COUNT alive without a fixed schedule.
+            if (enemy._cocoonGuardRespawnTimers && enemy._cocoonGuardRespawnTimers.length) {
+                for (let ti = enemy._cocoonGuardRespawnTimers.length - 1; ti >= 0; ti--) {
+                    enemy._cocoonGuardRespawnTimers[ti] -= deltaTime;
+                    if (enemy._cocoonGuardRespawnTimers[ti] <= 0) {
+                        enemy._cocoonGuardRespawnTimers.splice(ti, 1);
+                        _spawnThaelisCocoonGuard(enemy);
+                    }
+                }
+            }
+
+            if (enemy._cocoonTimer <= 0) {
+                _reviveThaelis(enemy);
                 enemy.hp = 0;
-                enemy.hatched = true;
-                enemies.push({
-                    x: enemy.x, y: enemy.y, size: 20 + Math.random() * 10,
-                    speed: (1 + Math.random() * 2) * 0.8,
-                    hp: enemy.originalHpAtHatch + 60, maxHp: enemy.originalHpAtHatch + 60,
-                    isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-                    type: 'apostle', shootTimer: 1000
-                });
+                enemy._cocoonHatched = true;
+                _despawnCocoonGuards(enemy);
+            }
+        }
+
+        // Thaelis Cocoon Guard, killed: transfers its own Max HP as damage to
+        // the Cocoon it belongs to (the Cocoon itself can't be hit directly -
+        // see dealDamage), then queues a replacement after a short delay.
+        // Also feeds the Cocoon flat Shield per kill - see _reviveThaelis for
+        // where that Shield ends up if the Cocoon survives to revive.
+        if (enemy.type === 'thaelis_guard' && enemy.hp <= 0 && enemy._guardCocoon && !enemy._guardConsumed) {
+            enemy._guardConsumed = true;
+            const cocoon = enemy._guardCocoon;
+            if (cocoon.hp > 0 && !cocoon._markedForDeath) {
+                // Shield (banked from earlier Guard kills) absorbs this
+                // transfer first, same as every other Shield in the game -
+                // only the overflow past it actually reaches HP.
+                let _guardDmg = enemy.maxHp;
+                if (cocoon.shield > 0) {
+                    const _absorbed = Math.min(cocoon.shield, _guardDmg);
+                    cocoon.shield -= _absorbed;
+                    _guardDmg -= _absorbed;
+                }
+                cocoon.hp = Math.max(0, cocoon.hp - _guardDmg);
+                // This kill's own reward is granted after, so it doesn't
+                // retroactively soak the damage it just caused.
+                cocoon.shield = (cocoon.shield || 0) + THAELIS_COCOON_GUARD_SHIELD_GRANT;
+                if (cocoon.hp > 0) {
+                    cocoon._cocoonGuardRespawnTimers = cocoon._cocoonGuardRespawnTimers || [];
+                    cocoon._cocoonGuardRespawnTimers.push(THAELIS_COCOON_GUARD_RESPAWN_MS);
+                } else {
+                    _despawnCocoonGuards(cocoon);
+                }
             }
         }
 
@@ -882,6 +930,8 @@ function update(rawDeltaTime) {
                 if (ally.type === 'leviathan' && ally._deathLaserSpawned) return;
                 // Void Echo không nhận heal/shield
                 if (ally.type === 'veilshroud_echo') return;
+                // Thaelis Cocoon: chỉ tự hồi máu của chính nó, không nhận heal/shield từ bên ngoài
+                if (ally.type === 'thaelis_cocoon') return;
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.60 : healAmt;
@@ -1043,17 +1093,8 @@ function update(rawDeltaTime) {
                 }
             }
 
-            if (enemy.type === 'thaelis' && !enemy.reincarnated) {
-                enemy.reincarnated = true;
-                for (let k = 0; k < 3; k++) {
-                    let angle = (Math.PI * 2 / 3) * k;
-                    let eggHp = enemy.maxHp / 3 + 50 + Math.random() * 50;
-                    enemies.push({
-                        x: enemy.x + Math.cos(angle) * 30, y: enemy.y + Math.sin(angle) * 30,
-                        size: 15, speed: 0, hp: eggHp, maxHp: eggHp, type: 'embryo',
-                        shield: 0, hatchTimer: 3000, originalHpAtHatch: eggHp
-                    });
-                }
+            if (enemy.type === 'thaelis' && (!enemy._cocoonCooldownUntil || performance.now() >= enemy._cocoonCooldownUntil)) {
+                _spawnThaelisCocoon(enemy);
             }
 
             if (enemy.type === 'abyssal_chain') {
@@ -1132,7 +1173,7 @@ function update(rawDeltaTime) {
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
-                if (!enemy.hatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
+                if (!enemy.hatched && !enemy._cocoonHatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
@@ -1277,8 +1318,37 @@ function update(rawDeltaTime) {
             }
 
         } else if (enemy.type.startsWith('enemy_bullet')) {
-            enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
-            enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+            if (enemy.type === 'enemy_bullet_large') {
+                // Sine-wave weave: forward motion along the original firing
+                // angle plus a perpendicular oscillation, computed straight
+                // from elapsed travel distance rather than accumulated
+                // velocity - one smooth, repeatable curve for the whole
+                // flight instead of a flat line.
+                const _wSpdMult = dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                enemy._waveForward += enemy._waveSpeed * _wSpdMult;
+                const _ca = Math.cos(enemy._waveAngle), _sa = Math.sin(enemy._waveAngle);
+                const _wPhase = enemy._waveForward * enemy._waveFreq;
+                const _waveOffset = enemy._waveAmp * enemy._waveSign * Math.sin(_wPhase);
+                enemy.x = enemy._waveOriginX + _ca * enemy._waveForward - _sa * _waveOffset;
+                enemy.y = enemy._waveOriginY + _sa * enemy._waveForward + _ca * _waveOffset;
+                // Keep vx/vy as the instantaneous tangent direction (derivative
+                // of the curve above) so anything else reading velocity -
+                // rendering, trail effects - still points the right way.
+                const _waveTangentPerp = enemy._waveAmp * enemy._waveSign * enemy._waveFreq * Math.cos(_wPhase);
+                enemy.vx = enemy._waveSpeed * (_ca - _sa * _waveTangentPerp);
+                enemy.vy = enemy._waveSpeed * (_sa + _ca * _waveTangentPerp);
+            } else if (enemy.type === 'enemy_bullet_small' && enemy._curveRate) {
+                // Touhou-style bloom (see spawn site): heading keeps rotating
+                // at this fragment's own fixed rate instead of staying dead straight.
+                enemy._curveAngle += enemy._curveRate * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                enemy.vx = Math.cos(enemy._curveAngle) * enemy._curveSpeed;
+                enemy.vy = Math.sin(enemy._curveAngle) * enemy._curveSpeed;
+                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+            } else {
+                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+            }
 
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -1334,10 +1404,17 @@ function update(rawDeltaTime) {
                     const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                     let baseAngle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) : Math.PI / 2;
                     for (let j = 0; j < 6; j++) {
-                        let angle = baseAngle + (j - 2.5) * 0.28;
+                        const _slot = j - 2.5;
+                        let angle = baseAngle + _slot * 0.28;
+                        const _spd = 3.73;
                         enemies.push({
-                            x: enemy.x, y: enemy.y, vx: Math.cos(angle) * 3.73, vy: Math.sin(angle) * 3.73,
-                            damage: 1, size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0, ownerRef: enemy.ownerRef || null
+                            x: enemy.x, y: enemy.y, vx: Math.cos(angle) * _spd, vy: Math.sin(angle) * _spd,
+                            damage: 1, size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0, ownerRef: enemy.ownerRef || null,
+                            // Touhou-style bloom: each fragment keeps bending along its own
+                            // fixed rate (outer ones bend out more than inner ones) instead
+                            // of flying dead straight, so the whole fan opens like a flower
+                            // over its flight - reads as one deliberate curve, not 6 flat rays.
+                            _curveAngle: angle, _curveSpeed: _spd, _curveRate: _slot * 0.006,
                         });
                     }
                 }
@@ -1406,9 +1483,19 @@ function update(rawDeltaTime) {
                             // Tenacity: +3.5% bullet speed per 0.5% HP lost, cap +25%
                             const thaelisBonusPct = Math.min(0.25, (1 - enemy.hp / enemy.maxHp) * 7.0);
                             const thaelisSpd = 3.36 * (1 + thaelisBonusPct);
-                            // Fires 2 large projectiles per second with slight spread
+                            // Fires 2 large projectiles per second with slight spread, each
+                            // weaving in a fixed sine-wave instead of a plain straight line
+                            // (see the 'enemy_bullet_large' branch below) - same damage/split,
+                            // just a smooth predictable curve that reads clearly on approach
+                            // instead of a flat line, easier to track and dodge on reaction.
                             for (const _spr of [-0.15, 0.15]) {
-                                enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle + _spr) * thaelisSpd, vy: Math.sin(angle + _spr) * thaelisSpd, damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600, ownerRef: enemy });
+                                const _waveAngle = angle + _spr;
+                                enemies.push({
+                                    x: enemy.x, y: enemy.y, vx: Math.cos(_waveAngle) * thaelisSpd, vy: Math.sin(_waveAngle) * thaelisSpd,
+                                    damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600, ownerRef: enemy,
+                                    _waveAngle, _waveSpeed: thaelisSpd, _waveOriginX: enemy.x, _waveOriginY: enemy.y,
+                                    _waveForward: 0, _waveAmp: 26, _waveFreq: 1 / 260, _waveSign: _spr < 0 ? 1 : -1,
+                                });
                             }
                         } else {
                             const bulletHp = Math.ceil(10 + Math.random() * 30);
@@ -1650,17 +1737,8 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1); continue;
             }
 
-            if (enemy.type === 'thaelis' && !enemy.reincarnated) {
-                enemy.reincarnated = true;
-                for (let k = 0; k < 3; k++) {
-                    let angle = (Math.PI * 2 / 3) * k;
-                    let eggHp = enemy.maxHp / 3 + 50 + Math.random() * 50;
-                    enemies.push({
-                        x: enemy.x + Math.cos(angle) * 30, y: enemy.y + Math.sin(angle) * 30,
-                        size: 15, speed: 0, hp: eggHp, maxHp: eggHp, type: 'embryo',
-                        shield: 0, hatchTimer: 3000, originalHpAtHatch: eggHp
-                    });
-                }
+            if (enemy.type === 'thaelis' && (!enemy._cocoonCooldownUntil || performance.now() >= enemy._cocoonCooldownUntil)) {
+                _spawnThaelisCocoon(enemy);
             }
 
             // ASSIMILATION: Marchosias tách 3 robot nhỏ khi chết
@@ -1725,7 +1803,7 @@ function update(rawDeltaTime) {
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
-                if (!enemy.hatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
+                if (!enemy.hatched && !enemy._cocoonHatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }

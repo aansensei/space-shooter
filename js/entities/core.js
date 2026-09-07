@@ -473,6 +473,7 @@ function findClosestSentinelOrPlayer(x, y) {
 // included: see the standardization note near effectiveHp below.
 function _addEnemyShield(enemy, amount) {
     if (!amount || amount <= 0) return;
+    if (enemy.type === 'thaelis_cocoon') return; // no shield from any outside source, only its own HP pool matters
     amount *= _walpurgisHealShieldMult(); // Walpurgis (Huyết Dạ): +5% shield effectiveness per stack
     _goliathTrackResourceGain(enemy, amount);
     enemy.shield = (enemy.shield || 0) + amount;
@@ -593,6 +594,28 @@ function dealDamage(enemy, source) {
     // Leviathan đang dying: chặn mọi damage VÀ không cho HP thay đổi
     if (enemy.type === 'leviathan' && enemy.dyingLaserPhase) {
         return; // ignore all damage during death sequence
+    }
+
+    // Thaelis fresh out of its Cocoon: brief invulnerability so it isn't
+    // punished for the exact frame it reappears on.
+    if (enemy.type === 'thaelis' && enemy._reviveInvulnEnd && performance.now() < enemy._reviveInvulnEnd) {
+        return;
+    }
+
+    // Thaelis Cocoon: cannot be damaged directly by anything, from any
+    // source (Skill F/D's own hp=0 shortcuts still bypass this, same as
+    // every other enemy). The only way to hurt it is to kill its Guards -
+    // see the guard-death handling in main.js.
+    if (enemy.type === 'thaelis_cocoon') {
+        return;
+    }
+
+    // Thaelis Cocoon Guards: fully immune to every DoT source in the game
+    // (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare) - only a
+    // direct hit counts against them, so a Guard can't just be tagged with a
+    // tick and left to melt on its own.
+    if (enemy.type === 'thaelis_guard' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot)) {
+        return;
     }
     if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
         if (source.damage > 0 || source.percentDamage > 0) {
@@ -879,6 +902,13 @@ function dealDamage(enemy, source) {
         combinedDR += Math.min(0.95, hpLostPct * 0.025);
     }
 
+    // Thaelis Cocoon Guards: the real damage sink now that the Cocoon
+    // itself can't be hit directly at all (see the early return above) -
+    // some DR keeps them from melting in one shot.
+    if (enemy.type === 'thaelis_guard') {
+        combinedDR += THAELIS_COCOON_GUARD_DR;
+    }
+
     if (enemy.type === 'aegis_core') {
         combinedDR += 0.55;
     }
@@ -1066,6 +1096,10 @@ function dealDamage(enemy, source) {
         // Inevitable (Leviathan): 350 flat armor on top of its 60% DR above,
         // same subtract-after-percentage pattern as Walpurgis's flat DR.
         if (enemy.type === 'leviathan') totalDamage -= 350;
+        // Thaelis Cocoon Guards: flat armor on top of the % DR above, same
+        // subtract-after-percentage pattern - still fully bypassed by true
+        // damage, same as the % DR right above it.
+        if (enemy.type === 'thaelis_guard') totalDamage -= THAELIS_COCOON_GUARD_FLAT_DR;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same pattern. Base 200 (scaling
         // 1+10%/ally) against normal hits, base 400 (scaling 1+15%/ally)
@@ -1281,6 +1315,23 @@ function dealDamage(enemy, source) {
     // sáng ngang thân, khác hẳn hiệu ứng nổ tròn generic. Xem enemy-goliath.js.
     if (enemy.type === 'goliath' && source._isSlashVfx) {
         enemy._slashVfx = { end: performance.now() + 350, angle: Math.random() * Math.PI * 2 };
+    }
+
+    // Thaelis Cocoon Guards: a piercing hit that's already punched through
+    // one Guard this same pass loses 40% damage on every Guard after the
+    // first, so one piercing shot can't shred the whole formation at full
+    // value in a single line. Approximated by a short shared cooldown on the
+    // Cocoon itself (any piercing hit on ANY of its Guards within 60ms of
+    // the last one counts as "already pierced through"), since piercing
+    // projectiles are built too many different ways across the codebase to
+    // thread a real per-shot hit-index through every one of them.
+    if (enemy.type === 'thaelis_guard' && source.isPiercing && enemy._guardCocoon) {
+        const _gNow = performance.now();
+        const _cocoon = enemy._guardCocoon;
+        if (_cocoon._lastGuardPierceAt && _gNow - _cocoon._lastGuardPierceAt < 60) {
+            totalDamage = Math.ceil(totalDamage * 0.60);
+        }
+        _cocoon._lastGuardPierceAt = _gNow;
     }
 
     // Apply damage: true damage bypasses shield/barrier entirely (same rule
@@ -1579,7 +1630,7 @@ function dealDamage(enemy, source) {
         const _demonTrigger = () => {
             triggerDemonGift(enemy);
             enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 3;
-            // Render-side hook (_drawBossOrThaelis) - a big one-shot body
+            // Render-side hook (_drawDargruel) - a big one-shot body
             // flash right as a threshold fires, instead of every Demon
             // Gift trigger looking the same as the passive low-HP crackle.
             enemy._demonGiftFlashAt = performance.now();

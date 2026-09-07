@@ -440,7 +440,7 @@ window.debugSetYuukiBonus = function () {
       </div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugSpawn('spawnApostle')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="22–330" data-size="20–30">Apostle</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1100–2640" data-size="100–150">Thaelis</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1265–2640" data-size="100–150">Thaelis</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnAegisCore')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2500–4500" data-size="52–66">Aegis Core</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnMarchosias')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2112–4092" data-size="100–150">Marchosias</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnDargruel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="6200–16000" data-size="200–300">Dargruel</button>

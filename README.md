@@ -416,7 +416,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 
 **Available after:** Wave 2 | **Spawn rate:** 12% → 25% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.4 u/s
 
-HP: **1,100–2,640**.
+HP: **1,265–2,640**.
 
 Fires **2 large projectiles** every second. After 0.6 seconds of flight each splits into **6 smaller homing bullets**. Small bullets deal 1 life of damage to the player, or **15% Max HP** to a Sentinel.
 

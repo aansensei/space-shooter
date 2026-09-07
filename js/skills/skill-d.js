@@ -78,7 +78,7 @@ function updateSkillD(deltaTime) {
             if (!_skillDCanTarget(enemy)) continue;
             let dx = deathStar.x - enemy.x, dy = deathStar.y - enemy.y, d = Math.hypot(dx, dy);
             const _bhCCImmune = _skillDIsCCImmune(enemy);
-            if (enemy.type !== 'embryo' && !_bhCCImmune) {
+            if (enemy.type !== 'embryo' && enemy.type !== 'thaelis_cocoon' && !_bhCCImmune) {
                 if (d > 1) {
                     enemy.x += (dx / d) * pullSpeed * dt;
                     enemy.y += (dy / d) * pullSpeed * dt;
