@@ -117,8 +117,9 @@ function _queueSolArrowOne(isPrimary, marked) {
     if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-orb-lock');
 }
 
-// Every Skill A cast fires 3 arrows: 1 big one marking the highest-EP enemy,
-// and 2 smaller ones marking random enemies (biased toward denser clusters).
+// Every Skill A cast fires 3 arrows: 1 big one marking the toughest enemy on
+// screen (highest current HP+shield), and 2 smaller ones marking random
+// enemies (biased toward denser clusters).
 function _queueSolArrow() {
     const primary = _pickSolArrowPrimaryTarget();
     _queueSolArrowOne(true, primary);
@@ -181,8 +182,8 @@ function updateSolArrows(deltaTime) {
                         const drBonus = Math.min(1.0, Math.floor(estDR * 100) * 0.02);
                         const _baMult = (1 + drBonus) * dmgMult;
                         // was primevalEnergy*0.20 (the Photokrystos 0-100 meter, a different
-                        // "PE") - description always meant 20% of the TARGET's own effective
-                        // HP like every other sigil's "%EP", fixed to actually do that
+                        // "PE") - description always meant 20% of the TARGET's own Max HP
+                        // like every other sigil's %-based hits, fixed to actually do that
                         dealDamage(enemy, { damage: 400 * _baMult, percentDamage: 0.20 * _baMult, isTrueDamage: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         addExplosion(arrow.x, arrow.y, 60, '#f59e0b');

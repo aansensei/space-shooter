@@ -157,7 +157,7 @@ function _veilshroudStrike(enemy) {
     for (const s of sentinels) {
         if (Math.hypot(s.x - tx, s.y - ty) < 100) {
             _lt.hitSentinelPositions.push({ x: s.x, y: s.y });
-            const dmg = Math.ceil((s.maxHp + (s.shield || 0)) * 0.18);
+            const dmg = Math.ceil(s.maxHp * 0.18);
             dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx, _noHitSfx: true });
             addExplosion(s.x, s.y, 60, '#ff1133');
             createParticles(s.x, s.y, 22, '#ffffff', 3, 10);

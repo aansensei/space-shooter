@@ -37,7 +37,7 @@ function updateMarchosiasBlades(deltaTime) {
                 // 1st sentinel hit: 30%, 2nd: 28%, 3rd+: 24%
                 const hitsAlready = blade.hitEnemies.length;
                 const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
-                dealDamage(s, { damage: (s.maxHp + (s.shield || 0)) * pct, _noHitSfx: true, _attackerType: 'marchosias' });
+                dealDamage(s, { damage: s.maxHp * pct, _noHitSfx: true, _attackerType: 'marchosias' });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
