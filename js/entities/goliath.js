@@ -189,7 +189,7 @@ function _goliathApplySilence(durMs) {
 // Unbroken Will (1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì thay
 // vào đó — bất tử 4s (tái dùng đúng cổng Iron Body tuyệt đối của
 // _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
-// hồi đầy HP, và +1 lớp barrier = 20% MaxHP ngay lập tức. Sau khi 4s bất tử đã hết hẳn (KHÔNG
+// hồi đầy HP, và +1 lớp Shield = 20% MaxHP ngay lập tức. Sau khi 4s bất tử đã hết hẳn (KHÔNG
 // chồng lấn), mở ra cửa sổ 6s tiếp theo: +40% hiệu quả hồi HP/khiên (cộng dồn
 // qua _goliathHealBoost), +20% MaxHP (kèm HP hiện tại cộng thẳng phần đó, tự
 // rút lại khi hết hạn — xem updateGoliath), +15% tốc độ bay — cửa sổ này được
@@ -214,7 +214,7 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
     enemy._unbrokenWillInvulnEnd = now + 4000;
     enemy.hp = enemy.maxHp;
-    enemy.barrier = (enemy.barrier || 0) + Math.ceil(enemy.maxHp * 0.20);
+    enemy.shield = (enemy.shield || 0) + Math.ceil(enemy.maxHp * 0.20);
     addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#f97316');
     createParticles(enemy.x, enemy.y, 40, '#fdba74', 3, 11);
     _setShake(16, 400);
@@ -1211,7 +1211,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —
             // Goliath không có afoHitCount thật nên LẤY CỐ ĐỊNH 150 (vượt xa
             // ngưỡng 10 hit làm bão hoà công thức thật), tức luôn chạm trần
-            // 50% EP mỗi lần quét trúng — đúng như Leviathan thật lúc AFO đã
+            // 50% Max HP mỗi lần quét trúng — đúng như Leviathan thật lúc AFO đã
             // vỡ từ lâu. Mỗi Sentinel chỉ trúng 1 lần/vòng quét.
             for (const sen of sentinels) {
                 if (s._hitSentinels.has(sen)) continue;
@@ -1219,9 +1219,8 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d2 = Math.abs(((curAngle - sAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d2 < 0.15 && Math.hypot(sen.x - enemy.x, sen.y - enemy.y) < 900) {
                     s._hitSentinels.add(sen);
-                    const ep = sen.maxHp + (sen.shield || 0);
                     const ownerHits = 150;
-                    const dmg = Math.min(Math.ceil(ep * 0.50), Math.ceil(ep * 0.05 * ownerHits));
+                    const dmg = Math.min(Math.ceil(sen.maxHp * 0.50), Math.ceil(sen.maxHp * 0.05 * ownerHits));
                     dealDamage(sen, { damage: _goliathDmgBoost(enemy, dmg), isTrueDamage: true, _attackerType: 'goliath' });
                 }
             }

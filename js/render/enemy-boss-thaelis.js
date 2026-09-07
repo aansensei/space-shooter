@@ -136,10 +136,11 @@ function _drawBossOrThaelis(enemy) {
         }
         _drawThaelisOrbitDots(enemy, rotation * 1.5);
 
-        // Tenacity Barrier ring, lớp khiên riêng, hiển thị bên ngoài Thaelis
-        if ((enemy._tenacityBarrier || 0) > 0) {
-            const _bMax = enemy._tenacityBarrierMax || enemy._tenacityBarrier;
-            const _bFrac = enemy._tenacityBarrier / _bMax;
+        // Tenacity Shield ring, vẽ thành vòng ngoài thân cho dễ nhìn dù bản
+        // chất chỉ là enemy.shield như mọi enemy khác
+        if ((enemy.shield || 0) > 0) {
+            const _bMax = enemy._shieldPeak || enemy.shield;
+            const _bFrac = enemy.shield / _bMax;
             const _bR = r + 16 + 3 * Math.sin(now / 100);
             const _bPulse = 0.70 + 0.30 * Math.sin(now / 80);
             ctx.save();
