@@ -130,8 +130,7 @@ function updateMirrorLaserColumns(deltaTime) {
                 if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                     if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                         const _src = { damage: 350, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
-                        checkMarchosiasArcBarrier(enemy, _src, enemy.x, enemy.y);
-                        dealDamage(enemy, _src);
+                        if (!checkMarchosiasArcBarrier(enemy, _src, enemy.x, enemy.y)) dealDamage(enemy, _src);
                     } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                         enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     } else {

@@ -425,13 +425,13 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 - For every **1% of Max HP lost**, Thaelis gains **+2.5% Damage Reduction** on its body. Capped at **95% total DR** from this source.
 - For every **0.5% of Max HP lost**, Thaelis's projectile speed increases by **+3.5%**. Capped at **+25%**.
 - No single hit can exceed **max(35%, 90% − 5% × HP% lost) × MaxHP** damage (scales down as HP is chipped away).
-- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **(30% MaxHP + 20% HP lost + 250) × 1.10**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. Exceptions: **Spirit Laser** and **true damage** bypass it.
+- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **(30% MaxHP + 20% HP lost + 250) × 1.10**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. The sole exception is **Spirit Laser**, which bypasses it; even true damage from other sources must destroy the Shield first.
 
-**Reincarnation** — At 0 HP, Thaelis splits into 3 Embryos in a triangle formation:
+**Reincarnation:** At 0 HP, Thaelis collapses into an untargetable **Cocoon**.
 
-- Each Embryo has 33% of Thaelis's Max HP + 50–100 bonus HP.
-- Embryos have **90% Damage Reduction** and **CC Immunity** (immune to Death Star pull and Tesla slow). They CAN receive shields and heals from Aegis Core or Demon Gift. **No single hit can exceed 10% of the Embryo's current Max HP.**
-- After 3 seconds, any surviving Embryo hatches into a new Normal Enemy (Embryo's HP + 60 base HP).
+- The Cocoon itself carries no HP and cannot be hit directly: it's **CC Immune**, has an absolute **Iron Body**, and cannot receive outside heals or shields. It's guarded by **4 Guards** at all times, each with **500–1,000 flat HP** (not tied to Thaelis's own Max HP), the same evade chance as Thaelis's own tier, **40% + 20 flat Damage Reduction**, and full immunity to every DoT source in the game.
+- Killing a Guard doesn't damage the Cocoon directly. It banks a flat **300 Shield** (carried over to Thaelis if it revives, see below) and counts toward a random **12–16 kill quota** rolled fresh each time, shown live as a number on the Cocoon's body. A dead Guard is replaced after **1 second**.
+- Meeting the kill quota within the **9-second** timer destroys the Cocoon for good, killing Thaelis. Falling short, Thaelis climbs back out at **80% of its original Max HP** (the base 40% revive HP, doubled) plus whatever Shield was banked, with **1 second of invulnerability**, a permanent **+20% DR and +250 flat DR** on top of its usual Tenacity scaling, and a **12-second cooldown** before it can trigger Reincarnation again if it dies again right away.
 
 ---
 

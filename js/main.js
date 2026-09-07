@@ -763,8 +763,11 @@ function update(rawDeltaTime) {
                             // Laser vs Mar arc barrier: piercing — 30% body DR, barrier takes +15%, sword 25%
                             if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                                 const _lSrc = { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser' };
-                                checkMarchosiasArcBarrier(enemy, _lSrc, enemy.x, enemy.y);
-                                dealDamage(enemy, _lSrc);
+                                // return true means the barrier's own 15% evade proc fired
+                                // (a full miss) - dealDamage must not run in that case, or the
+                                // laser deals full unreduced body damage right through what's
+                                // supposed to be a clean dodge.
+                                if (!checkMarchosiasArcBarrier(enemy, _lSrc, enemy.x, enemy.y)) dealDamage(enemy, _lSrc);
                                 break;
                             } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
@@ -786,8 +789,7 @@ function update(rawDeltaTime) {
                             if (Math.abs(enemy.y - ent.y) < 50) {
                                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                                     const _mlSrc = { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser: Mirror' };
-                                    checkMarchosiasArcBarrier(enemy, _mlSrc, enemy.x, enemy.y);
-                                    dealDamage(enemy, _mlSrc);
+                                    if (!checkMarchosiasArcBarrier(enemy, _mlSrc, enemy.x, enemy.y)) dealDamage(enemy, _mlSrc);
                                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                                 } else {
@@ -805,6 +807,7 @@ function update(rawDeltaTime) {
                 if (enemy.type === 'veilshroud_echo') return;
                 if (enemy.inCoronation) return;
                 const _laserCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel'
+                    || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
                     || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                     || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
                 if (_laserCCImmune) return;
@@ -846,13 +849,6 @@ function update(rawDeltaTime) {
 
         if (enemy.type === 'thaelis_cocoon' && enemy.hp > 0) {
             enemy._cocoonTimer -= deltaTime;
-            // Once HP is drained to 0 via Guard kills it must stay dead - no
-            // regen tick past that point, so it can't hover near 0 forever
-            // waiting on the next Guard kill (guarded by the hp > 0 on the
-            // outer if instead of clamping after the fact, since clamping
-            // after a regen tick would still let it visibly climb off 0 for
-            // a frame first).
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * THAELIS_COCOON_REGEN_PCT * (deltaTime / 1000));
 
             // Guard respawns: each dead Guard queued a timer here (see the
             // guard-death handling below) - count them down and spawn a
@@ -876,33 +872,24 @@ function update(rawDeltaTime) {
             }
         }
 
-        // Thaelis Cocoon Guard, killed: transfers its own Max HP as damage to
-        // the Cocoon it belongs to (the Cocoon itself can't be hit directly -
-        // see dealDamage), then queues a replacement after a short delay.
-        // Also feeds the Cocoon flat Shield per kill - see _reviveThaelis for
-        // where that Shield ends up if the Cocoon survives to revive.
+        // Thaelis Cocoon Guard, killed: counts toward the random kill quota
+        // that actually destroys the Cocoon for good (it has no HP of its
+        // own - see _spawnThaelisCocoon), then queues a replacement after a
+        // short delay. Also banks flat Shield per kill - see _reviveThaelis
+        // for where that Shield ends up if the Cocoon survives to revive;
+        // it's a reward, not part of the kill-count win condition.
         if (enemy.type === 'thaelis_guard' && enemy.hp <= 0 && enemy._guardCocoon && !enemy._guardConsumed) {
             enemy._guardConsumed = true;
             const cocoon = enemy._guardCocoon;
             if (cocoon.hp > 0 && !cocoon._markedForDeath) {
-                // Shield (banked from earlier Guard kills) absorbs this
-                // transfer first, same as every other Shield in the game -
-                // only the overflow past it actually reaches HP.
-                let _guardDmg = enemy.maxHp;
-                if (cocoon.shield > 0) {
-                    const _absorbed = Math.min(cocoon.shield, _guardDmg);
-                    cocoon.shield -= _absorbed;
-                    _guardDmg -= _absorbed;
-                }
-                cocoon.hp = Math.max(0, cocoon.hp - _guardDmg);
-                // This kill's own reward is granted after, so it doesn't
-                // retroactively soak the damage it just caused.
+                cocoon._cocoonKillsSoFar++;
                 cocoon.shield = (cocoon.shield || 0) + THAELIS_COCOON_GUARD_SHIELD_GRANT;
-                if (cocoon.hp > 0) {
+                if (cocoon._cocoonKillsSoFar >= cocoon._cocoonKillsNeeded) {
+                    cocoon.hp = 0;
+                    _despawnCocoonGuards(cocoon);
+                } else {
                     cocoon._cocoonGuardRespawnTimers = cocoon._cocoonGuardRespawnTimers || [];
                     cocoon._cocoonGuardRespawnTimers.push(THAELIS_COCOON_GUARD_RESPAWN_MS);
-                } else {
-                    _despawnCocoonGuards(cocoon);
                 }
             }
         }
@@ -1348,6 +1335,16 @@ function update(rawDeltaTime) {
             } else {
                 enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
                 enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+            }
+
+            // Thaelis's large/small bullets curve and wave instead of flying
+            // in a straight line, so they can drift off any edge (not just
+            // the bottom, which is all the generic boundaryY cull below
+            // catches) - despawn once fully off-screen in any direction
+            // instead of lingering forever.
+            if ((enemy.type === 'enemy_bullet_large' || enemy.type === 'enemy_bullet_small')
+                && (enemy.x < -100 || enemy.x > canvas.width + 100 || enemy.y < -100 || enemy.y > canvas.height + 100)) {
+                enemies.splice(i, 1); continue;
             }
 
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
