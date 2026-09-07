@@ -89,6 +89,7 @@ function updateSkillF(deltaTime) {
             if (enemy.hitBySkillF) continue;
             if (enemy.type === 'abyssal_chain') continue; // piercing, immune to skill F
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
+            if (enemy.type === 'thaelis_cocoon') continue; // untargetable, only its Guards can be hit
             if (enemy.inCoronation) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - coneHalfWidth) {

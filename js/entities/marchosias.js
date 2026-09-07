@@ -19,31 +19,40 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
         return true;
     }
 
-    // Compute base damage to barrier (60% DR, cap 35% barrier HP)
     const effectiveHp = enemy.arcBarrier.maxHp;
+
+    // Piercing attacks (spirit arc, boomerang, overload laser) partially
+    // penetrate: barrier still eats the large majority (70% of the raw hit),
+    // body eats a flat 20% share that still runs through the caller's own
+    // dealDamage - DR/shield/everything else applies normally to that share.
+    // Exception: if this exact hit is what breaks the barrier, there's
+    // nothing left standing between it and the body, so the body eats the
+    // full remaining damage instead of just its usual 20% cut.
+    if (source._barrierPiercing) {
+        let barrierDmg = Math.ceil((source.damage || 0) * 0.70 + effectiveHp * (source.percentDamage || 0) * 0.70);
+        if (gloryForJusticeActive) barrierDmg = Math.ceil(barrierDmg * 1.70);
+        barrierDmg = Math.min(barrierDmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
+        const barrierHeal = Math.min(1000, Math.ceil(barrierDmg * 0.05));
+        const barrierWasAlive = enemy.arcBarrier.hp > 0;
+        enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - barrierDmg + barrierHeal);
+        _applyArcBarrierBodyHeal(enemy, barrierDmg);
+        const barrierBroke = barrierWasAlive && enemy.arcBarrier.hp <= 0;
+        if (barrierBroke) {
+            _triggerArcBarrierBreak(enemy);
+            // Barrier just broke from this hit - leave source.damage/percentDamage untouched so the body takes the full amount.
+        } else {
+            source.damage = Math.ceil((source.damage || 0) * 0.20);
+            if (source.percentDamage) source.percentDamage = source.percentDamage * 0.20;
+        }
+        if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
+        createParticles(bx, by, 3, '#aaffaa', 1, 4);
+        return false; // passes through, fully or at a reduced 20% depending on whether the barrier just broke
+    }
+
+    // Normal attack: fully absorbed by barrier, nothing reaches the body
     let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
     if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.70);
     dmg = Math.ceil(dmg * 0.40);
-
-    // Piercing attacks (spirit arc, boomerang, overload laser) partially penetrate:
-    // barrier takes +15% extra, body damage reduced 30%, hit not fully absorbed
-    if (source._barrierPiercing) {
-        dmg = Math.ceil(dmg * 1.15);
-        dmg = Math.min(dmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
-        const barrierHeal = Math.min(1000, Math.ceil(dmg * 0.05));
-        const barrierWasAlive = enemy.arcBarrier.hp > 0;
-        enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - dmg + barrierHeal);
-        _applyArcBarrierBodyHeal(enemy, dmg);
-        if (barrierWasAlive && enemy.arcBarrier.hp <= 0) _triggerArcBarrierBreak(enemy);
-        if (Math.random() < 0.25) _tryTriggerMarchosiasCounter(enemy);
-        // Reduce damage that reaches body by 30%
-        source.damage = Math.ceil((source.damage || 0) * 0.70);
-        if (source.percentDamage) source.percentDamage = source.percentDamage * 0.70;
-        createParticles(bx, by, 3, '#aaffaa', 1, 4);
-        return false; // passes through at reduced damage
-    }
-
-    // Normal attack: fully absorbed by barrier
     dmg = Math.min(dmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
     const barrierHeal = Math.min(1000, Math.ceil(dmg * 0.05));
     const barrierWasAlive = enemy.arcBarrier.hp > 0;
@@ -59,7 +68,7 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
 // almost always land outside the barrier's rotating 90° facing arc, so the
 // generic checkMarchosiasArcBarrier() above never triggers for them and
 // every hit used to go straight to the body untouched. This always splits
-// an orb hit 60% Arc Barrier / 40% body regardless of facing, so the
+// an orb hit 70% Arc Barrier / 20% body regardless of facing, so the
 // barrier still meaningfully soaks Skill A instead of being irrelevant to it.
 function applyMarchosiasSkillASplit(enemy, dmgProps) {
     if (enemy.type !== 'marchosias' || !enemy.arcBarrier || enemy.arcBarrier.hp <= 0) {
@@ -67,17 +76,20 @@ function applyMarchosiasSkillASplit(enemy, dmgProps) {
         return;
     }
     const barrierEffectiveHp = enemy.arcBarrier.maxHp;
-    let barrierDmg = Math.ceil((dmgProps.damage || 0) * 0.60 + barrierEffectiveHp * (dmgProps.percentDamage || 0) * 0.60);
+    let barrierDmg = Math.ceil((dmgProps.damage || 0) * 0.70 + barrierEffectiveHp * (dmgProps.percentDamage || 0) * 0.70);
     barrierDmg = Math.min(barrierDmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
     const barrierHeal = Math.min(1000, Math.ceil(barrierDmg * 0.05));
     const barrierWasAlive = enemy.arcBarrier.hp > 0;
     enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - barrierDmg + barrierHeal);
     _applyArcBarrierBodyHeal(enemy, barrierDmg);
-    if (barrierWasAlive && enemy.arcBarrier.hp <= 0) _triggerArcBarrierBreak(enemy);
+    const barrierBroke = barrierWasAlive && enemy.arcBarrier.hp <= 0;
+    if (barrierBroke) _triggerArcBarrierBreak(enemy);
 
-    dealDamage(enemy, Object.assign({}, dmgProps, {
-        damage: Math.ceil((dmgProps.damage || 0) * 0.40),
-        percentDamage: (dmgProps.percentDamage || 0) * 0.40,
+    dealDamage(enemy, Object.assign({}, dmgProps, barrierBroke ? null : {
+        // Barrier already broke from this hit - let the full amount through
+        // instead of the usual 20% share, same rule as the piercing branch above.
+        damage: Math.ceil((dmgProps.damage || 0) * 0.20),
+        percentDamage: (dmgProps.percentDamage || 0) * 0.20,
     }));
 }
 
@@ -184,9 +196,9 @@ function spawnMarchosias() {
     // earlier global enemy HP pass, the second is this pass's own body buff.
     let hp = Math.ceil(Math.min(4092, 2112 + hpFromTime * 55) * 1.15 * 1.15 * _walpurgisHpMult());
 
-    // Arc Barrier carries 15% more HP than the body itself, instead of
-    // matching it 1:1 like before.
-    const shieldHp = Math.ceil(hp * 1.15);
+    // Arc Barrier carries 15% more HP than the body itself, plus a further
+    // +35% on top of that.
+    const shieldHp = Math.ceil(hp * 1.15 * 1.35);
 
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size,

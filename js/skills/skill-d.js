@@ -31,6 +31,7 @@ function _skillDCanTarget(enemy) {
 }
 function _skillDIsCCImmune(enemy) {
     return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath'
+        || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
         || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
 }

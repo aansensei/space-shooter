@@ -182,11 +182,17 @@ function handleEnemyKill(enemy) {
         }
     });
 
-    killCountForPassive++;
-    // 30% cơ hội nhận thêm 1 điểm kill (tiến nhanh hơn tới mốc 3)
-    if (Math.random() < 0.30) killCountForPassive++;
-    if (killCountForPassive % 4 === 0) {
-        spawnSentinel(player.x, player.y, false);
+    // Thaelis Cocoon Guards: killing one doesn't feed the Sentinel-per-4-kills
+    // passive - there are always 4 of them respawning on a short timer, so
+    // farming them would spawn Sentinels far faster than any other enemy
+    // ever could.
+    if (enemy.type !== 'thaelis_guard') {
+        killCountForPassive++;
+        // 30% cơ hội nhận thêm 1 điểm kill (tiến nhanh hơn tới mốc 3)
+        if (Math.random() < 0.30) killCountForPassive++;
+        if (killCountForPassive % 4 === 0) {
+            spawnSentinel(player.x, player.y, false);
+        }
     }
 
     if (skillGCharge < 100) {
@@ -602,10 +608,11 @@ function dealDamage(enemy, source) {
         return;
     }
 
-    // Thaelis Cocoon: cannot be damaged directly by anything, from any
+    // Thaelis Cocoon: CC immune, absolute Iron Body, and fully untargetable
+    // all in one gate - cannot be damaged directly by anything, from any
     // source (Skill F/D's own hp=0 shortcuts still bypass this, same as
-    // every other enemy). The only way to hurt it is to kill its Guards -
-    // see the guard-death handling in main.js.
+    // every other enemy). The only way to hurt it is to kill enough of its
+    // Guards within the timer - see the guard-death handling in main.js.
     if (enemy.type === 'thaelis_cocoon') {
         return;
     }
@@ -662,7 +669,7 @@ function dealDamage(enemy, source) {
         const _evadeDom      = 0.10 + _t * 0.05;
         let _evade = ({
             'apostle': _evadeLesser,
-            'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal,
+            'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal, 'thaelis_guard': _evadeAbnormal,
             'aegis_core': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
             'dargruel': _evadeDom, 'leviathan': _evadeDom
         })[enemy.type] || 0;
@@ -900,6 +907,9 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'thaelis') {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
         combinedDR += Math.min(0.95, hpLostPct * 0.025);
+        // A Thaelis that climbed back out of its Cocoon is tougher than the
+        // one that went in: +20% DR on top of Tenacity's own scaling.
+        if (enemy.reincarnated) combinedDR += 0.20;
     }
 
     // Thaelis Cocoon Guards: the real damage sink now that the Cocoon
@@ -1100,6 +1110,8 @@ function dealDamage(enemy, source) {
         // subtract-after-percentage pattern - still fully bypassed by true
         // damage, same as the % DR right above it.
         if (enemy.type === 'thaelis_guard') totalDamage -= THAELIS_COCOON_GUARD_FLAT_DR;
+        // A revived Thaelis also gets 250 flat armor on top of its extra 20% DR above.
+        if (enemy.type === 'thaelis' && enemy.reincarnated) totalDamage -= 250;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same pattern. Base 200 (scaling
         // 1+10%/ally) against normal hits, base 400 (scaling 1+15%/ally)
@@ -1207,10 +1219,14 @@ function dealDamage(enemy, source) {
     }
 
     // Tenacity (Thaelis): its own Shield stacks block MỌI đòn (kể cả
-    // piercing). Ngoại lệ: isSpiritLaser và true damage xuyên qua - so this
-    // early check drains it before the generic Shield absorb further down
-    // even gets a chance to run.
-    if (enemy.type === 'thaelis' && (enemy.shield || 0) > 0 && !source.isSpiritLaser && !source.isTrueDamage) {
+    // piercing và true damage). Ngoại lệ duy nhất: isSpiritLaser xuyên qua -
+    // so this early check drains it before the generic Shield absorb further
+    // down even gets a chance to run. True damage used to skip this outright
+    // (matching the generic Shield rule everywhere else in the game), which
+    // let sources like Skill A's bonus true-damage hit punch straight through
+    // a fully-stacked Shield and finish Thaelis off in a couple of hits -
+    // Thaelis's own Shield is meant to be a harder block than that.
+    if (enemy.type === 'thaelis' && (enemy.shield || 0) > 0 && !source.isSpiritLaser) {
         const _absorbed = Math.min(totalDamage, enemy.shield);
         enemy.shield -= _absorbed;
         enemy.shield = Math.max(0, enemy.shield);
