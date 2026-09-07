@@ -278,15 +278,17 @@ function updateDimensionalRifts(deltaTime) {
             enemy.soulReaver = true;
             enemy.soulReaverEnd = performance.now() + 2000;
 
-            // Soul Devourer DoT, direct HP subtraction, bypasses DR
+            // Soul Devourer DoT: true damage (bypasses DR), routed through
+            // dealDamage so Iron Body/Custos Aeternus/Absolute Shield still
+            // block it like every other true-damage source in the game -
+            // used to subtract straight from enemy.hp, which skipped all of
+            // those gates entirely.
             if (!enemy._riftDotTimer) enemy._riftDotTimer = 0;
             enemy._riftDotTimer -= deltaTime;
             if (enemy._riftDotTimer <= 0) {
                 enemy._riftDotTimer = 350;
                 const dotDmg = Math.ceil(60 + (enemy.maxHp || enemy.hp) * 0.055);
-                enemy.hp -= dotDmg;
-                enemy.hp = Math.max(0, enemy.hp);
-                if (enemy.hp <= 0) enemy._markedForDeath = true;
+                dealDamage(enemy, { damage: 60, percentDamage: 0.055, isTrueDamage: true, _statSrc: 'Skill A: Dimensional Rift' });
                 createParticles(
                     enemy.x + (Math.random() - 0.5) * (enemy.size || 20),
                     enemy.y + (Math.random() - 0.5) * (enemy.size || 20),
