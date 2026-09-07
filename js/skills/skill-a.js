@@ -266,6 +266,16 @@ function updateDimensionalRifts(deltaTime) {
             if (!inRange) continue;
             if (enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo') continue;
             if (enemy.type === 'embryo') continue; // CC-immune + special DR rules, fully exempt from all rift effects
+            // Thaelis Cocoon/Guards: immune to every DOT in the game (see
+            // dealDamage) - the direct tick below was already blocked for
+            // them, but without this exemption they'd still roll the chain
+            // lightning proc a few lines down, which isn't tagged as a DOT
+            // and so wasn't covered by that immunity at all. Left in, a
+            // lingering rift sitting right on top of a freshly-spawned
+            // Cocoon (it spawns exactly where Thaelis died, i.e. right where
+            // the rift is centered) could chain-shred the whole Guard
+            // cluster in a couple of seconds.
+            if (enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard') continue;
             if (enemy.hp <= 0 || enemy.inCoronation) continue;
 
             // Mark for damage bonus & slow (egregor/dargruel/leviathan immune to slow; marchosias immune while Arc Shield active)
@@ -304,6 +314,7 @@ function updateDimensionalRifts(deltaTime) {
                         if (chainCount >= 8) break;
                         if (other === enemy || other.type.startsWith('enemy_bullet')) continue;
                         if (other.type === 'veilshroud_echo' || other.type === 'embryo' || other.inCoronation) continue;
+                        if (other.type === 'thaelis_cocoon' || other.type === 'thaelis_guard') continue; // immune to every DOT, chain lightning included
                         if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < 150) {
                             dealDamage(other, { damage: chainDmg, isChainLightning: true, applySoulReaver: Math.random() < 0.60 });
                             chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: other.x, y2: other.y, lifetime: 250, maxLifetime: 250 });
