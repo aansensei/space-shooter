@@ -14,6 +14,6 @@ SIGIL_DEFS.capricorn = {
 };
 
 SIGIL_I18N_VI.capricorn = { name: 'Ma Kết', element: 'Thổ', buffs: {
-        lai_kep: { name: 'Lãi Kép', desc: 'Mỗi lần hạ gục nhận +0.8% EP; mỗi 5% EP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, mỗi đòn đánh của phe ta gây thêm +200 sát thương thật.' },
+        lai_kep: { name: 'Lãi Kép', desc: 'Mỗi lần hạ gục nhận +0.8% Max HP; mỗi 5% Max HP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, mỗi đòn đánh của phe ta gây thêm +200 sát thương thật.' },
         tuyet_lan: { name: 'Tuyết Lăn', desc: 'Mỗi lần hạ gục nhận +0.5% sát thương toàn cục (reset sau 6s không hạ gục, tối đa +70%)' },
 }};

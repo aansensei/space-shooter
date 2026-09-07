@@ -259,7 +259,7 @@ function fireAutoShot() {
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 75, percentDamage: 0.009, size: 6.5, type: 'player_auto',
+            damage: 130, percentDamage: 0.004, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28,
             _muiTenVangCrit: _isCritVolley,
         });
@@ -467,16 +467,14 @@ function findClosestSentinelOrPlayer(x, y) {
     return closest;
 }
 
-// Helper: add shield to an enemy, khi Thaelis đang có barrier, mọi khiên đều dồn vào barrier thay thế
+// Helper: add shield to an enemy. Every defensive "extra HP layer" that
+// isn't a genuinely separate object (Marchosias's rotating arc barrier,
+// Goliath's Joker copy of it) lives in this one field, Thaelis's Tenacity
+// included: see the standardization note near effectiveHp below.
 function _addEnemyShield(enemy, amount) {
     if (!amount || amount <= 0) return;
     amount *= _walpurgisHealShieldMult(); // Walpurgis (Huyết Dạ): +5% shield effectiveness per stack
     _goliathTrackResourceGain(enemy, amount);
-    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0) {
-        enemy._tenacityBarrier += amount;
-        enemy._tenacityBarrierMax = Math.max(enemy._tenacityBarrierMax || 0, enemy._tenacityBarrier);
-        return;
-    }
     enemy.shield = (enemy.shield || 0) + amount;
 }
 
@@ -572,25 +570,6 @@ function dealDamage(enemy, source) {
         // lại để death-hook ở main.js cộng phẳng +50,000 thay vì % ledger thật.
         if (source.isSpiritLaser || source._isSkillF || source._isSkillD) enemy._goliathLethalWasUncapped = true;
     }
-    if (enemy.marchosiasParasiteShield && enemy.marchosiasParasiteShield > 0) {
-        const effectiveHpForParasite = (enemy.maxHp || enemy.hp) + (enemy.marchosiasParasiteShield || 0);
-        let parasiteDmg = Math.ceil((source.damage || 0) + (effectiveHpForParasite * (source.percentDamage || 0)));
-        if (gloryForJusticeActive) parasiteDmg = Math.ceil(parasiteDmg * 1.70);
-        parasiteDmg = Math.max(0, parasiteDmg);
-
-        if (parasiteDmg <= 0) {
-        } else if (enemy.marchosiasParasiteShield >= parasiteDmg) {
-            enemy.marchosiasParasiteShield -= parasiteDmg;
-            return;
-        } else {
-            const overflow = parasiteDmg - enemy.marchosiasParasiteShield;
-            enemy.marchosiasParasiteShield = 0;
-            addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#00ff88');
-            const origDmg = source.damage || 0;
-            source = Object.assign({}, source, { damage: Math.max(0, origDmg - (parasiteDmg - overflow)) });
-        }
-    }
-
     // Coronation: apostle undergoing transformation, immortal, cannot take damage
     if (enemy.type === 'apostle' && enemy.inCoronation) return;
 
@@ -631,12 +610,10 @@ function dealDamage(enemy, source) {
                         Math.hypot(a.x - enemy.x, a.y - enemy.y) <= _aR
                     ).length;
                     if (_inAura === 0) {
-                        _addEnemyShield(enemy, enemy.maxHp * 0.10);
+                        _addEnemyShield(enemy, enemy.maxHp * 0.08);
                     } else {
-                        const _bPct = _inAura >= 4 ? 0.35 : _inAura >= 3 ? 0.30 : _inAura >= 2 ? 0.25 : 0.15;
-                        const _aegisGain = enemy.maxHp * _bPct;
-                        enemy._aegisBarrier = (enemy._aegisBarrier || 0) + _aegisGain;
-                        _goliathTrackResourceGain(enemy, _aegisGain);
+                        const _bPct = _inAura >= 4 ? 0.28 : _inAura >= 3 ? 0.24 : _inAura >= 2 ? 0.20 : 0.12;
+                        _addEnemyShield(enemy, enemy.maxHp * _bPct);
                     }
                 }
             }
@@ -724,7 +701,12 @@ function dealDamage(enemy, source) {
     const isSentinel = enemy.hasOwnProperty('shotsFiredSinceSpecial');
     const isSpaceship = window.skillDSpaceships.includes(enemy);
     const enemyMaxHp = enemy.maxHp || enemy.hp;
-    const effectiveHp = enemyMaxHp + enemy.shield;
+    // percentDamage always scales off raw MaxHP now, never current shield -
+    // a big shield used to inflate every %-based hit landing on it, which
+    // punished healers/shield-grantors for helping and rewarded whoever
+    // stacked the most temporary shield. "EP" (MaxHP+Shield) as a separate
+    // scaling basis is retired; MaxHP alone is the only number that matters here.
+    const effectiveHp = enemyMaxHp;
     let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
 
     // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
@@ -1036,7 +1018,7 @@ function dealDamage(enemy, source) {
 
     // Vanguard Network (Liên kết Vanguard), 5+ sentinels
     if (isSentinel && sentinels.length >= 5 && (source.damage > 0 || source.percentDamage > 0)) {
-        const effHp = (enemy.maxHp || enemy.hp) + (enemy.shield || 0);
+        const effHp = enemy.maxHp || enemy.hp;
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
         if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.70);
         if (accurateParryActive && performance.now() < accurateParryEndTime) rawDmg = Math.ceil(rawDmg * 1.25);
@@ -1087,7 +1069,7 @@ function dealDamage(enemy, source) {
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same pattern. Base 200 (scaling
         // 1+10%/ally) against normal hits, base 400 (scaling 1+15%/ally)
-        // against any %HP/EP/MaxHP-scaling hit (percentDamage > 0) — that's
+        // against any %MaxHP-scaling hit (percentDamage > 0) — that's
         // the damage class that ignores Goliath's raw HP pool, so it gets
         // punished harder here.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
@@ -1108,7 +1090,7 @@ function dealDamage(enemy, source) {
 
     // Inevitable (Goliath, True Form): CHỈ sát thương xuyên (isPiercing),
     // CHUẨN (true damage), và DOT mới được đánh full — sát thương BÌNH
-    // THƯỜNG (%HP/%EP, ăn shield trước — gồm cả đạn auto-fire cơ bản) bị
+    // THƯỜNG (%MaxHP, ăn shield trước — gồm cả đạn auto-fire cơ bản) bị
     // giới hạn cứng 1.5% MaxHP/đòn (tính SAU khi đã trừ DR ở trên), +0.3%
     // trần cho MỖI tầng debuff đang dính (bất kỳ sigil nào áp được lên
     // Goliath — vd 2 tầng Vulnerability = 1.5%+0.6%=2.1%), trần tối đa 3%.
@@ -1180,25 +1162,26 @@ function dealDamage(enemy, source) {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
 
-    // Reincarnation, embryo per-hit damage cap: 10% of EP
+    // Reincarnation, embryo per-hit damage cap: 10% of MaxHP
     if (enemy.type === 'embryo') {
-        totalDamage = Math.min(totalDamage, Math.ceil((enemy.maxHp + (enemy.shield || 0)) * 0.10));
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.10));
     }
 
-    // Marchosias minion: per-hit cap 50% of max EP
+    // Marchosias minion: per-hit cap 50% of MaxHP
     if (enemy.type === 'marchosias_minion') {
-        totalDamage = Math.min(totalDamage, Math.ceil((enemy.maxHp + (enemy.shield || 0)) * 0.50));
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.50));
     }
 
-    // Tenacity Barrier (Thaelis): lớp khiên riêng, chặn MỌI đòn (kể cả piercing)
-    // Ngoại lệ: isSpiritLaser và true damage xuyên qua
-    if (enemy.type === 'thaelis' && (enemy._tenacityBarrier || 0) > 0 && !source.isSpiritLaser && !source.isTrueDamage) {
-        const _absorbed = Math.min(totalDamage, enemy._tenacityBarrier);
-        enemy._tenacityBarrier -= _absorbed;
-        enemy._tenacityBarrier = Math.max(0, enemy._tenacityBarrier);
-        if (enemy._tenacityBarrier <= 0) {
-            enemy._tenacityBarrier = 0;
-            // Barrier break VFX
+    // Tenacity (Thaelis): its own Shield stacks block MỌI đòn (kể cả
+    // piercing). Ngoại lệ: isSpiritLaser và true damage xuyên qua - so this
+    // early check drains it before the generic Shield absorb further down
+    // even gets a chance to run.
+    if (enemy.type === 'thaelis' && (enemy.shield || 0) > 0 && !source.isSpiritLaser && !source.isTrueDamage) {
+        const _absorbed = Math.min(totalDamage, enemy.shield);
+        enemy.shield -= _absorbed;
+        enemy.shield = Math.max(0, enemy.shield);
+        if (enemy.shield <= 0) {
+            // Shield break VFX
             addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#ffdd00');
             createParticles(enemy.x, enemy.y, 40, '#ffe066', 4, 14);
             createParticles(enemy.x, enemy.y, 20, '#ffffff', 3, 10);
@@ -1226,26 +1209,22 @@ function dealDamage(enemy, source) {
         enemy._yogMarkAccum = (enemy._yogMarkAccum || 0) + totalDamage;
     }
 
-    // Boon and Bane (Egregor passive): during Null Slash charge, each body hit grants barrier
-    // Barrier absorbs non-true hits; true damage pierces through
+    // Boon and Bane (Egregor passive, its own Vessel - not Shield, not
+    // Barrier): during Null Slash charge, each body hit fills a temporary
+    // pool that both absorbs non-true hits AND separately tracks its full
+    // running total, which slams back into Egregor as true damage backlash
+    // once the windup ends (see js/entities/egregor.js). Nothing else in
+    // the game works this way, so it doesn't belong in either standard bucket.
     if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging' && !source._boonBaneBacklash && totalDamage > 0) {
         const _bbGain = Math.ceil(totalDamage * 0.75);
-        enemy._boonBaneBarrier      = (enemy._boonBaneBarrier      || 0) + _bbGain;
-        enemy._boonBaneBarrierTotal = (enemy._boonBaneBarrierTotal || 0) + _bbGain;
+        enemy._boonBaneVessel      = (enemy._boonBaneVessel      || 0) + _bbGain;
+        enemy._boonBaneVesselTotal = (enemy._boonBaneVesselTotal || 0) + _bbGain;
         if (!source.isTrueDamage) {
-            const _bbAbsorb = Math.min(totalDamage, enemy._boonBaneBarrier);
-            enemy._boonBaneBarrier = Math.max(0, enemy._boonBaneBarrier - _bbAbsorb);
+            const _bbAbsorb = Math.min(totalDamage, enemy._boonBaneVessel);
+            enemy._boonBaneVessel = Math.max(0, enemy._boonBaneVessel - _bbAbsorb);
             totalDamage -= _bbAbsorb;
             if (totalDamage <= 0) return;
         }
-    }
-
-    // Aegis Core post-Custos barrier: absorbs non-true hits, true damage pierces
-    if (enemy.type === 'aegis_core' && (enemy._aegisBarrier || 0) > 0 && !source.isTrueDamage) {
-        const _absorb = Math.min(totalDamage, enemy._aegisBarrier);
-        enemy._aegisBarrier = Math.max(0, enemy._aegisBarrier - _absorb);
-        totalDamage -= _absorb;
-        if (totalDamage <= 0) return;
     }
 
     // Goliath Inevitable damage window: hit > 8% MaxHP (post-DR) opens a
@@ -1326,15 +1305,17 @@ function dealDamage(enemy, source) {
             const _vulnPct = 0.40 - _vulnFrac * 0.20;
             _vulnTrueBonus = Math.ceil(totalDamage * _vulnPct);
         }
-        if (enemy.type === 'goliath' && enemy.barrier > 0) {
-            const damageToBarrier = Math.min(enemy.barrier, totalDamage);
-            enemy.barrier -= damageToBarrier;
-            totalDamage -= damageToBarrier;
+        // Thaelis's own Tenacity check above already drained its Shield for
+        // any hit that isn't isSpiritLaser - skip this generic drain for
+        // that exact case so Spirit Laser still cuts through Thaelis's
+        // Shield untouched, same as before the fields were unified.
+        const _shieldBypass = enemy.type === 'thaelis' && source.isSpiritLaser;
+        if (!_shieldBypass) {
+            const damageToShield = Math.min(enemy.shield, totalDamage);
+            enemy.shield -= damageToShield;
+            enemy.shield = Math.max(0, enemy.shield);
+            totalDamage -= damageToShield;
         }
-        const damageToShield = Math.min(enemy.shield, totalDamage);
-        enemy.shield -= damageToShield;
-        enemy.shield = Math.max(0, enemy.shield);
-        totalDamage -= damageToShield;
         totalDamage += _vulnTrueBonus;
         if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
             totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
@@ -1384,12 +1365,12 @@ function dealDamage(enemy, source) {
     }
 
     // Inevitable — bùng nổ khiên: dồn sát thương MỌI loại nhận được trong 1
-    // giây trôi (rolling window) — vượt quá 12% MaxHP thì cấp 1 khoản
-    // barrier mới = 50% tổng sát thương đã dồn trong window đó, ĐỒNG THỜI
-    // rút sạch shield hiện có sang barrier (barrier KHÔNG tính vào EP =
-    // maxHp+shield như shield thường — giảm luôn độ lớn các đòn %EP tiếp
-    // theo ăn vào), và hồi HP = 60% ĐÚNG PHẦN shield vừa rút đó. 0.5s
-    // cooldown giữa các lần kích hoạt, window reset ngay khi vừa kích hoạt.
+    // giây trôi (rolling window) — vượt quá 12% MaxHP thì cấp thêm 1 khoản
+    // Shield mới = 50% tổng sát thương đã dồn trong window đó, ĐỒNG THỜI hồi
+    // HP = 60% ĐÚNG PHẦN Shield đang có ngay trước khi cấp thêm (phần thưởng
+    // cho việc trigger đúng lúc, không phải "chuyển đổi" gì cả vì giờ chỉ
+    // còn 1 field Shield duy nhất). 0.5s cooldown giữa các lần kích hoạt,
+    // window reset ngay khi vừa kích hoạt.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hitSizeForBurst > 0) {
         const _gNow3 = performance.now();
         if (!enemy._burstWindowStart || _gNow3 - enemy._burstWindowStart >= 1000) {
@@ -1399,11 +1380,9 @@ function dealDamage(enemy, source) {
         enemy._burstWindowDmg = (enemy._burstWindowDmg || 0) + _hitSizeForBurst;
         if (enemy._burstWindowDmg > enemy.maxHp * 0.12 && !(enemy._burstCooldownEnd && _gNow3 < enemy._burstCooldownEnd)) {
             enemy._burstCooldownEnd = _gNow3 + 500;
-            enemy.barrier = (enemy.barrier || 0) + Math.ceil(enemy._burstWindowDmg * 0.50);
-            const _convertedShield = enemy.shield || 0;
-            enemy.barrier += _convertedShield;
-            enemy.shield = 0;
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(_convertedShield * 0.60));
+            const _preBurstShield = enemy.shield || 0;
+            enemy.shield = _preBurstShield + Math.ceil(enemy._burstWindowDmg * 0.50);
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(_preBurstShield * 0.60));
             enemy._burstWindowDmg = 0;
             enemy._burstWindowStart = _gNow3;
             createParticles(enemy.x, enemy.y, 16, '#38bdf8', 3, 9);
@@ -1612,22 +1591,21 @@ function dealDamage(enemy, source) {
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { _demonTrigger(); enemy.demonGift1Triggered = true; }
     }
 
-    // Tenacity, mỗi khi mất 30% HP, nhận lớp khiên riêng (30% MaxHP + 15% HP đã mất + 100) × 1.25
+    // Tenacity, mỗi khi mất 30% HP, nhận Shield (30% MaxHP + 20% HP đã mất + 250) × 1.10
     if (enemy.type === 'thaelis') {
         const oldPct = oldHP / enemy.maxHp;
         const newPct = enemy.hp / enemy.maxHp;
         const _hpLost = enemy.maxHp - enemy.hp;
-        const shieldGrant = Math.ceil((enemy.maxHp * 0.30 + _hpLost * 0.20 + 250) * 1.34);
-        const _grantBarrier = () => {
-            // Lớp khiên hoàn toàn tách biệt với EP, _tenacityBarrier
-            enemy._tenacityBarrier = (enemy._tenacityBarrier || 0) + shieldGrant;
-            enemy._tenacityBarrierMax = (enemy._tenacityBarrierMax || 0) + shieldGrant;
+        const shieldGrant = Math.ceil((enemy.maxHp * 0.30 + _hpLost * 0.20 + 250) * 1.10);
+        const _grantShield = () => {
+            enemy.shield = (enemy.shield || 0) + shieldGrant;
+            enemy._shieldPeak = (enemy._shieldPeak || 0) + shieldGrant;
             createParticles(enemy.x, enemy.y, 35, '#ffe066', 3, 12);
             createParticles(enemy.x, enemy.y, 18, '#ffffff', 2, 8);
         };
-        if (oldPct > 0.70 && newPct <= 0.70 && !enemy._tenacityBarrier70) { _grantBarrier(); enemy._tenacityBarrier70 = true; }
-        if (oldPct > 0.40 && newPct <= 0.40 && !enemy._tenacityBarrier40) { _grantBarrier(); enemy._tenacityBarrier40 = true; }
-        if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityBarrier10) { _grantBarrier(); enemy._tenacityBarrier10 = true; }
+        if (oldPct > 0.70 && newPct <= 0.70 && !enemy._tenacityBarrier70) { _grantShield(); enemy._tenacityBarrier70 = true; }
+        if (oldPct > 0.40 && newPct <= 0.40 && !enemy._tenacityBarrier40) { _grantShield(); enemy._tenacityBarrier40 = true; }
+        if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityBarrier10) { _grantShield(); enemy._tenacityBarrier10 = true; }
     }
 }
 // Leviathan moved to js/entities/leviathan.js.

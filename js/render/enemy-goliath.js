@@ -2189,7 +2189,7 @@ function _drawGoliathBossBar(enemy) {
     }
     ctx.restore();
 
-    // row below bar: left = debuffs on goliath, right = shield+barrier
+    // row below bar: left = debuffs on goliath, right = shield
     const rowY = barY + barH + 5;
     const rowH = 13;
 
@@ -2228,7 +2228,7 @@ function _drawGoliathBossBar(enemy) {
     }
     ctx.restore();
 
-    const shieldVal = Math.ceil((enemy.shield || 0) + (enemy.barrier || 0));
+    const shieldVal = Math.ceil(enemy.shield || 0);
     if (shieldVal > 0) {
         // real value uncapped on purpose (see entities.js), can hit 6-7
         // figures over a long fight - only cap what's printed here

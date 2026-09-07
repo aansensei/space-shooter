@@ -224,8 +224,8 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             // Windup: base 3s (no rage) / 2.5s (rage active), −0.35s per stack, min 1s
             const _nsBase = ((enemy._rageStacks || 0) > 0) ? 2500 : 3000;
             enemy._nullSlashWindupDur = Math.max(1000, _nsBase - (enemy._rageStacks || 0) * 350);
-            enemy._boonBaneBarrier = 250;
-            enemy._boonBaneBarrierTotal = 0;
+            enemy._boonBaneVessel = 250;
+            enemy._boonBaneVesselTotal = 0;
             enemy._nullSlashTentPts = null;
             // Windup drone plays at natural pace and is cut short below the
             // instant the strike begins, so its length always tracks the
@@ -335,17 +335,17 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
 
         // Strike animation: 950ms (EXTEND 200 + SWEEP 520 + RETRACT 230)
         if (enemy._nullSlashStrikeTimer >= 950) {
-            // Boon and Bane backlash: 50% of total accumulated barrier, cap 40% MaxHP, bypasses all
-            if ((enemy._boonBaneBarrierTotal || 0) > 0) {
+            // Boon and Bane backlash: 50% of total accumulated in the Vessel, cap 40% MaxHP, bypasses all
+            if ((enemy._boonBaneVesselTotal || 0) > 0) {
                 const _backDmg = Math.min(
-                    Math.ceil(enemy._boonBaneBarrierTotal * 0.50),
+                    Math.ceil(enemy._boonBaneVesselTotal * 0.50),
                     Math.ceil(enemy.maxHp * 0.40)
                 );
                 dealDamage(enemy, { damage: _backDmg, isTrueDamage: true, _boonBaneBacklash: true, _noBase60: true });
                 addExplosion(enemy.x, enemy.y, enemy.size * 0.7, '#cc00cc');
                 createParticles(enemy.x, enemy.y, 22, '#880088', 3, 9);
-                enemy._boonBaneBarrier = 0;
-                enemy._boonBaneBarrierTotal = 0;
+                enemy._boonBaneVessel = 0;
+                enemy._boonBaneVesselTotal = 0;
             }
             enemy._nullSlashPhase = 'ready';
             enemy._nullSlashCooldownEnd = now + 3500; // 3.5s CD

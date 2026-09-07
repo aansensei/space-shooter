@@ -223,8 +223,8 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
     );
 
     if (host) {
-        host.marchosiasParasiteShield = (host.marchosiasParasiteShield || 0) + hp;
-        _goliathTrackResourceGain(host, hp);
+        host._marchosiasParasiteHost = true;
+        _addEnemyShield(host, hp);
         createParticles(host.x, host.y, 20, '#00ff88', 2, 6);
         addExplosion(host.x, host.y, host.size * 0.8, '#00ff88');
     } else {
