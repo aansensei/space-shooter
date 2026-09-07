@@ -141,11 +141,14 @@ function _spawnThaelisCocoon(deadThaelis) {
 // a brief invulnerability window so it isn't punished for the exact frame it
 // reappears on.
 function _reviveThaelis(cocoon) {
-    // 40% of its original Max HP, then doubled - surviving the Cocoon comes
-    // back stronger, not just a diminished remnant. `reincarnated: true`
-    // marks this lineage for the extra DR it gets from now on (see dealDamage,
-    // entities/core.js).
-    const hp = Math.max(1, Math.ceil(cocoon._cocoonOriginalMaxHp * THAELIS_REVIVE_HP_PCT * 2));
+    // Base revive HP: 40% of its original Max HP.
+    const _reviveBaseHp = Math.ceil(cocoon._cocoonOriginalMaxHp * THAELIS_REVIVE_HP_PCT);
+    // Reincarnation buff: +100% Max HP (the base amount, doubled) on top of
+    // that, alongside the +20% DR / +250 flat DR it also gets from now on
+    // (see dealDamage, entities/core.js) - surviving the Cocoon comes back
+    // stronger, not just a diminished remnant. `reincarnated: true` marks
+    // this lineage for those DR bonuses.
+    const hp = Math.max(1, _reviveBaseHp * 2);
     enemies.push({
         x: cocoon.x, y: cocoon.y, size: cocoon._cocoonOriginalSize || cocoon.size / 0.85,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
