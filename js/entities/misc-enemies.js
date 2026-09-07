@@ -31,6 +31,7 @@ function triggerDemonGift(boss) {
         if (enemy.hp <= 0 || enemy._markedForDeath) return; // đã chết, không heal
         if (enemy.type === 'leviathan' && enemy._deathLaserSpawned) return;
         if (enemy.type === 'veilshroud_echo') return; // echo không nhận buff
+        if (enemy.type === 'thaelis_cocoon') return; // Cocoon chỉ tự hồi máu của chính nó
         const healBase = boss.maxHp * 0.28;
         const healMultiplier = enemy.levEnvy ? 1.25 : 1.0; // Envy: +25% heal
         let healAmount = (enemy.soulReaver ? healBase * 0.75 : healBase) * healMultiplier;
@@ -61,11 +62,108 @@ function triggerDemonGift(boss) {
     });
 }
 
+// Reincarnation (Thaelis): death no longer splits into 3 weak Embryos that
+// silently hatch into basic Apostles - it collapses into a single Cocoon at
+// the death spot. The Cocoon itself cannot be damaged directly (see the
+// early return in dealDamage) and takes no heal/shield from any outside
+// source, only its own slow self-regen - the only way to hurt it is to kill
+// the Guards standing around it, each one worth a chunk of its HP. Destroy
+// the Cocoon before the timer runs out and Thaelis is gone for good; let it
+// survive the full window and the real Thaelis climbs back out, fully
+// itself (not a downgraded copy), at reduced Max HP.
+const THAELIS_COCOON_HP_PCT = 0.60;
+const THAELIS_COCOON_REGEN_PCT = 0.01; // per second, of the cocoon's own maxHp
+const THAELIS_COCOON_DURATION = 9000;
+const THAELIS_COCOON_GUARD_COUNT = 4; // kept alive at all times
+const THAELIS_COCOON_GUARD_HP_MIN_PCT = 0.10; // of Thaelis's original maxHp
+const THAELIS_COCOON_GUARD_HP_MAX_PCT = 0.20;
+const THAELIS_COCOON_GUARD_DR = 0.40; // Guards are the real damage sink now, some DR keeps them from melting instantly
+const THAELIS_COCOON_GUARD_FLAT_DR = 20; // subtracted after the % cut above, same pattern as Walpurgis/Leviathan's own flat DR
+const THAELIS_COCOON_GUARD_RESPAWN_MS = 500;
+const THAELIS_COCOON_GUARD_SHIELD_GRANT = 300; // flat Shield the Cocoon banks per Guard kill, carried over to Thaelis if it revives (see _reviveThaelis)
+const THAELIS_REVIVE_HP_PCT = 0.40;
+const THAELIS_REVIVE_INVULN_MS = 1000;
+const THAELIS_COCOON_RETRIGGER_COOLDOWN_MS = 12000; // a revived Thaelis can't cocoon again this soon if it dies right away
+
+function _spawnThaelisCocoonGuard(cocoon) {
+    const pct = THAELIS_COCOON_GUARD_HP_MIN_PCT + Math.random() * (THAELIS_COCOON_GUARD_HP_MAX_PCT - THAELIS_COCOON_GUARD_HP_MIN_PCT);
+    const hp = Math.ceil(cocoon._cocoonOriginalMaxHp * pct);
+    const slot = (cocoon._cocoonGuardSlot = (cocoon._cocoonGuardSlot || 0) + 1);
+    const angle = (slot / THAELIS_COCOON_GUARD_COUNT) * Math.PI * 2;
+    const dist = cocoon.size * 0.95;
+    enemies.push({
+        x: cocoon.x + Math.cos(angle) * dist, y: cocoon.y + Math.sin(angle) * dist,
+        size: 15, speed: 0, hp: hp, maxHp: hp, shield: 0,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false,
+        type: 'thaelis_guard', _guardCocoon: cocoon, _guardAngle: angle,
+    });
+}
+
+// Whenever the Cocoon resolves one way or the other (drained to real death,
+// or surviving to revive Thaelis), any Guards still standing no longer have
+// anything to protect - clear them out instead of leaving them behind as
+// inert leftover enemies.
+function _despawnCocoonGuards(cocoon) {
+    for (const e of enemies) {
+        if (e.type === 'thaelis_guard' && e._guardCocoon === cocoon && e.hp > 0) {
+            e._guardConsumed = true; // skip the death->damage transfer, the cocoon is already resolved
+            e.hp = 0;
+        }
+    }
+}
+
+function _spawnThaelisCocoon(deadThaelis) {
+    const cocoonHp = Math.ceil(deadThaelis.maxHp * THAELIS_COCOON_HP_PCT);
+    const cocoon = {
+        x: deadThaelis.x, y: deadThaelis.y, size: deadThaelis.size * 0.85,
+        speed: 0, hp: cocoonHp, maxHp: cocoonHp, shield: 0,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false,
+        type: 'thaelis_cocoon',
+        _cocoonOriginalMaxHp: deadThaelis.maxHp,
+        _cocoonOriginalSize: deadThaelis.size,
+        _cocoonTimer: THAELIS_COCOON_DURATION,
+        _cocoonGuardRespawnTimers: [],
+    };
+    enemies.push(cocoon);
+    for (let i = 0; i < THAELIS_COCOON_GUARD_COUNT; i++) _spawnThaelisCocoonGuard(cocoon);
+}
+
+// Cocoon survived its full timer: the real Thaelis climbs back out at the
+// same spot, fully itself (not a downgraded copy) but at reduced Max HP, with
+// a brief invulnerability window so it isn't punished for the exact frame it
+// reappears on.
+function _reviveThaelis(cocoon) {
+    const hp = Math.max(1, Math.ceil(cocoon._cocoonOriginalMaxHp * THAELIS_REVIVE_HP_PCT));
+    enemies.push({
+        x: cocoon.x, y: cocoon.y, size: cocoon._cocoonOriginalSize || cocoon.size / 0.85,
+        speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
+        hp: hp, maxHp: hp,
+        isTargetedByA: false, hitBySkillF: false, laserHit: false,
+        // Shield banked from every Guard sacrificed while the Cocoon held out
+        // carries straight over as a head start, instead of being wasted.
+        shield: cocoon.shield || 0,
+        type: 'thaelis', shootTimer: 1000, reincarnated: false,
+        _shieldPeak: cocoon.shield || 0,
+        _tenacityBarrier70: false, _tenacityBarrier40: false, _tenacityBarrier10: false,
+        _reviveInvulnEnd: performance.now() + THAELIS_REVIVE_INVULN_MS,
+        _justRevivedAt: performance.now(),
+        // Cooldown before THIS lineage can cocoon again if it dies right
+        // away - without this a revived Thaelis could chain-cocoon forever.
+        _cocoonCooldownUntil: performance.now() + THAELIS_COCOON_RETRIGGER_COOLDOWN_MS,
+    });
+    addExplosion(cocoon.x, cocoon.y, cocoon.size * 1.6, '#22cc55');
+    createParticles(cocoon.x, cocoon.y, 40, '#22cc55', 3, 10);
+    _setShake(10, 300);
+}
+
 function spawnThaelis() {
     const baseSize = (20 + Math.random() * 10);
     const size = baseSize * 5;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
-    let hp = Math.ceil(Math.min(2640, 1100 + hpFromTime * 53) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
+    // Early-game floor bumped 1100 -> 1265 (+15%), on top of the separate
+    // +15% global HP buff multiplier below - Thaelis specifically reads too
+    // squishy in the first waves compared to other Abnormal-tier enemies.
+    let hp = Math.ceil(Math.min(2640, 1265 + hpFromTime * 53) * 1.15 * _walpurgisHpMult());
     enemies.push({
         x: Math.random() * (canvas.width - size) + size / 2, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
