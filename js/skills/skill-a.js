@@ -288,7 +288,7 @@ function updateDimensionalRifts(deltaTime) {
             if (enemy._riftDotTimer <= 0) {
                 enemy._riftDotTimer = 350;
                 const dotDmg = Math.ceil(60 + (enemy.maxHp || enemy.hp) * 0.055);
-                dealDamage(enemy, { damage: 60, percentDamage: 0.055, isTrueDamage: true, _statSrc: 'Skill A: Dimensional Rift' });
+                dealDamage(enemy, { damage: 60, percentDamage: 0.055, isTrueDamage: true, _isDtuDot: true, _statSrc: 'Skill A: Dimensional Rift' });
                 createParticles(
                     enemy.x + (Math.random() - 0.5) * (enemy.size || 20),
                     enemy.y + (Math.random() - 0.5) * (enemy.size || 20),

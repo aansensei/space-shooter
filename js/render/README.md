@@ -24,7 +24,8 @@ Check `index.html`'s script tags to see which mode is currently active.
 | `player.js` | 1050 | Skill-Shift teleport arrows/portals (`drawSkillShiftEffects`), Final Defense, player aura, player bullets, `drawPlayer`, charge/laser visual effects. Depends on `core.js`. |
 | `enemy-common.js` | 1091 | `drawEnemy()` — the type-dispatch entry point `draw()` in `core.js` calls for every enemy. Also: normal-enemy visuals, enemy bullets, Embryo, Vulnerability icon, Coronation fx. |
 | `enemy-aegis-core.js` | 185 | Heavenly Aegis Core visuals. Self-contained, no cross-file calls besides `core.js`'s `_mobPerf`. |
-| `enemy-boss-thaelis.js` | 297 | Apostle/Thaelis boss visuals. Calls `drawPolygon()` from `fx.js`. |
+| `enemy-thaelis.js` | 323 | Thaelis's own visuals (split out of the old shared `enemy-boss-thaelis.js`), plus its Reincarnation Cocoon and Guards, drawn over a commissioned sprite (`assets/images/game/enemies/thaelis-cocoon.png`). Calls `drawPolygon()` from `fx.js`. |
+| `enemy-dargruel.js` | 335 | Dargruel's own visuals (the other half of the old shared `enemy-boss-thaelis.js`). |
 | `enemy-marchosias.js` | 340 | Marchosias main body, minion, death-sword blade. Reassembled from three separate ranges in the original file. |
 | `enemy-leviathan.js` | 360 | Leviathan body + `_drawLeviathanEffects` (standalone death-laser / Perseverance-sweep fx that survives Leviathan's own death — sat far from the main draw function in the original file, reassembled together here). |
 | `enemy-veilshroud.js` | 505 | Veilshroud base body, Echo clone, lightning-strike/echo-explosion effects. Calls `_genBoltPoints`/`_strokeBoltPath` from `fx.js`. |
@@ -47,7 +48,8 @@ fx.js
 player.js
 enemy-common.js
 enemy-aegis-core.js
-enemy-boss-thaelis.js
+enemy-thaelis.js
+enemy-dargruel.js
 enemy-marchosias.js
 enemy-leviathan.js
 enemy-veilshroud.js

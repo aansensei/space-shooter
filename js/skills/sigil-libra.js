@@ -33,6 +33,11 @@ function _estimateSolArrowDR(enemy) {
     if (enemy.type === 'marchosias_minion' && enemy.DR) dr += enemy.DR;
     if (enemy.type === 'leviathan') dr += 0.60;
     if (enemy.type === 'embryo') dr += 0.90;
+    // Cocoon itself can't be damaged directly at all - the closest estimate
+    // this DR-based formula has for "immune", so Sol Arrow doesn't rate it
+    // as a juicy target over the Guards actually protecting it.
+    if (enemy.type === 'thaelis_cocoon') dr += 0.99;
+    if (enemy.type === 'thaelis_guard') dr += THAELIS_COCOON_GUARD_DR;
     if (enemy.type === 'veilshroud') {
         if (enemy._veilHealDRExpiry && performance.now() < enemy._veilHealDRExpiry) dr += 0.20;
         dr += enemy.inPhantom ? 0.99 : 0.40;

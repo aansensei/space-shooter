@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v205';
+const CACHE_VERSION = 'v213';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -30,6 +30,7 @@ const CORE_FILES = [
     'assets/images/game/effects/rift-void.png',
     'assets/images/game/icons/walpurgis-icon.png',
     'assets/images/game/enemies/marchosias-hexagon-armor.png',
+    'assets/images/game/enemies/thaelis-cocoon.png',
     'js/vendor/pixi.min.js',
     'js/audio.js',
     'js/background.js',
@@ -76,7 +77,8 @@ const CORE_FILES = [
     'js/skills/sigil-virgo.js',
     'js/render/core.js',
     'js/render/enemy-aegis-core.js',
-    'js/render/enemy-boss-thaelis.js',
+    'js/render/enemy-thaelis.js',
+    'js/render/enemy-dargruel.js',
     'js/render/enemy-common.js',
     'js/render/enemy-egregor.js',
     'js/render/enemy-goliath.js',

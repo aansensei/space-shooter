@@ -770,10 +770,16 @@ function drawEnemy(enemy) {
 
     if (enemy.type === 'aegis_core') {
         drawAegisCore(enemy);
-    } else if (enemy.type === 'dargruel' || enemy.type === 'thaelis') {
-        _drawBossOrThaelis(enemy);
+    } else if (enemy.type === 'dargruel') {
+        _drawDargruel(enemy);
+    } else if (enemy.type === 'thaelis') {
+        _drawThaelis(enemy);
     } else if (enemy.type === 'embryo') {
         _drawEmbryo(enemy);
+    } else if (enemy.type === 'thaelis_cocoon') {
+        _drawThaelisCocoon(enemy);
+    } else if (enemy.type === 'thaelis_guard') {
+        _drawThaelisGuard(enemy);
     } else if (enemy.type === 'marchosias') {
         _drawMarchosias(enemy);
     } else if (enemy.type === 'marchosias_minion') {
