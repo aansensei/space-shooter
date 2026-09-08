@@ -23,10 +23,12 @@ function _drawDargruel(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    // 1. Abyss aura (outer glow) - swells hard on a Demon Gift flash
-    ctx.fillStyle = `rgba(138,43,226,${0.12 + 0.08 * pulse + demonFlash * 0.35})`;
-    if (!_mobPerf) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 25 + demonFlash * 30; }
-    ctx.beginPath(); ctx.arc(0, 0, r * (1.5 + demonFlash * 0.6), 0, Math.PI * 2); ctx.fill();
+    // 1. Abyss aura (outer glow) - a gentle swell on a Demon Gift flash, not
+    // a bright blowout - the cracks below already carry the "punctuation"
+    // read for each threshold, so this only needs a small nudge on top.
+    ctx.fillStyle = `rgba(138,43,226,${0.12 + 0.08 * pulse + demonFlash * 0.12})`;
+    if (!_mobPerf) { ctx.shadowColor = '#9900ff'; ctx.shadowBlur = 25 + demonFlash * 10; }
+    ctx.beginPath(); ctx.arc(0, 0, r * (1.5 + demonFlash * 0.2), 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
 
     if (demonFlash > 0) {

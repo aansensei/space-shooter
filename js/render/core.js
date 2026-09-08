@@ -986,6 +986,9 @@ function draw(deltaTime) {
         // Vanguard Network threads (5+ sentinels)
         if (sentinels.length >= 5) _drawVanguardThreads();
         if (skillAActive) drawSkillA();
+        // Ground-splat, not an on-body bloom - drawn early so enemies/bullets
+        // still visually stand on top of it, unlike the lily bloom below.
+        if (typeof drawBloodPoolSplats === 'function') drawBloodPoolSplats();
         drawSolArrowParticles();
         drawSolArrows();
         drawSkillDSpaceships();
@@ -1024,6 +1027,7 @@ function draw(deltaTime) {
         // Blood Arrow's impact bloom draws AFTER enemies so it sits layered
         // on top of whatever it just hit, instead of hiding underneath it.
         drawSolArrowLilies();
+        if (typeof _drawBloodArrowTargetRings === 'function') _drawBloodArrowTargetRings();
         _drawVineBinds(); // Phōtokrystos DNT Vine Bind — growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
             const _pxbT0 = performance.now();

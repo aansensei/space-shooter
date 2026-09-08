@@ -151,8 +151,212 @@ _riftVoidImg.src = 'assets/images/game/effects/rift-void.png';
 // one-time frame hitch right as the rift appears.
 _riftVoidImg.decode().catch(() => {});
 
+// Libra's own background art for the blood-garden reskin below - same
+// chroma-keyed/trimmed prep as rift-void.png, swapped in as the base layer
+// under the procedural flowers/vines instead of the void starfield. Falls
+// back to the procedural ink-wash pool alone (already implemented) until
+// this file actually exists on disk.
+const _riftGardenImg = new Image();
+_riftGardenImg.src = 'assets/images/game/effects/rift-blood-garden.png';
+_riftGardenImg.decode().catch(() => {});
+
+// Libra (Blood Arrow) reskin of Dimensional Rift: instead of the sci-fi
+// void tear, the same spot blooms into a small patch of red spider lilies
+// growing out of a dark ink-wash pool - purely cosmetic, every mechanic
+// (radius, timer, bullet absorption, chain lightning, pull) stays on the
+// same untouched `rift` object. Layout (bloom positions/sizes, pool outline)
+// is rolled once per rift instance and cached on it so the garden doesn't
+// reshuffle every frame.
+function _drawDimensionalRiftBloodGarden(rift, alpha) {
+    const r = rift.radius;
+    if (!rift._gardenBlooms) {
+        const bloomCount = 6 + Math.floor(Math.random() * 3);
+        rift._gardenBlooms = [];
+        for (let i = 0; i < bloomCount; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const dist = Math.random() * r * 0.65;
+            rift._gardenBlooms.push({
+                x: Math.cos(a) * dist, y: Math.sin(a) * dist,
+                scale: 0.4 + Math.random() * 0.5, rot: Math.random() * Math.PI * 2,
+                sway: Math.random() * Math.PI * 2, petals: 6 + Math.floor(Math.random() * 3),
+            });
+        }
+        const poolPoints = 10 + Math.floor(Math.random() * 4);
+        rift._gardenPool = [];
+        for (let i = 0; i < poolPoints; i++) {
+            rift._gardenPool.push({ angle: (Math.PI * 2 / poolPoints) * i, r: r * (0.75 + Math.random() * 0.4) });
+        }
+        // Drifting petals (fall top-to-bottom) and will-o-wisp motes (rise
+        // bottom-to-top) - both stateless, positioned as a pure function of
+        // `now` (a phase offset + speed rolled once here) rather than
+        // integrated frame to frame, so they never need their own update()
+        // pass and can't drift out of sync after a pause.
+        const petalCount = 5 + Math.floor(Math.random() * 4);
+        rift._gardenPetals = [];
+        for (let i = 0; i < petalCount; i++) {
+            rift._gardenPetals.push({
+                seedX: (Math.random() - 0.5) * r * 1.6, phase: Math.random(),
+                speed: 0.00012 + Math.random() * 0.00008, sway: Math.random() * Math.PI * 2,
+                size: 3 + Math.random() * 2.5, rotSpeed: (Math.random() - 0.5) * 0.003,
+            });
+        }
+        const wispCount = 3 + Math.floor(Math.random() * 3);
+        rift._gardenWisps = [];
+        for (let i = 0; i < wispCount; i++) {
+            rift._gardenWisps.push({
+                seedX: (Math.random() - 0.5) * r * 1.2, phase: Math.random(),
+                speed: 0.00009 + Math.random() * 0.00006, sway: Math.random() * Math.PI * 2,
+                size: 2 + Math.random() * 2,
+            });
+        }
+    }
+
+    const now = performance.now();
+    ctx.save();
+    ctx.translate(rift.x, rift.y);
+
+    // Ground layer: the commissioned garden background art once it exists
+    // (same circular-clip technique as the old void sprite), falling back
+    // to the procedural ink-wash gradient pool until then.
+    if (_riftGardenImg.complete && _riftGardenImg.naturalWidth) {
+        const d = r * 2.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 1.05, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(_riftGardenImg, -d / 2, -d / 2, d, d);
+        ctx.restore();
+    } else {
+        ctx.beginPath();
+        rift._gardenPool.forEach((p, i) => {
+            const px = Math.cos(p.angle) * p.r, py = Math.sin(p.angle) * p.r;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        });
+        ctx.closePath();
+        const poolGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.1);
+        poolGrad.addColorStop(0, 'rgba(40, 0, 6, 0.85)');
+        poolGrad.addColorStop(0.7, 'rgba(70, 0, 8, 0.6)');
+        poolGrad.addColorStop(1, 'rgba(20, 0, 4, 0.3)');
+        ctx.fillStyle = poolGrad;
+        ctx.fill();
+    }
+    // Rim stroke - drawn either way, over the art or the fallback gradient,
+    // so the garden always reads as a distinct patch with a clean edge.
+    ctx.beginPath();
+    rift._gardenPool.forEach((p, i) => {
+        const px = Math.cos(p.angle) * p.r, py = Math.sin(p.angle) * p.r;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(8, 0, 2, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // A slow breathing pulse over the whole garden, tied to the rift's own
+    // existing age counter - reads as the ground itself being alive/
+    // pulsing rather than a static painting.
+    {
+        const breathe = 0.5 + 0.5 * Math.sin((rift._age || 0) * 1.2);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.globalCompositeOperation = 'lighter';
+        const pulseGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.05);
+        pulseGrad.addColorStop(0, `rgba(180, 10, 20, ${0.08 + breathe * 0.06})`);
+        pulseGrad.addColorStop(1, 'rgba(180, 10, 20, 0)');
+        ctx.fillStyle = pulseGrad;
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.05, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+
+    // Curling thorn/vine tendrils around the rim - replaces the sci-fi
+    // crack lines, rotating with the rift's own existing _ringRot state.
+    ctx.save();
+    ctx.rotate(rift._ringRot || 0);
+    const vineCount = 8;
+    for (let i = 0; i < vineCount; i++) {
+        const a = (i / vineCount) * Math.PI * 2;
+        const baseX = Math.cos(a) * r * 0.95, baseY = Math.sin(a) * r * 0.95;
+        const curl = Math.sin(a * 3 + now / 900) * 8;
+        ctx.beginPath();
+        ctx.moveTo(baseX, baseY);
+        ctx.quadraticCurveTo(
+            baseX + Math.cos(a) * 14 + curl, baseY + Math.sin(a) * 14,
+            baseX + Math.cos(a) * 20, baseY + Math.sin(a) * 20 + curl
+        );
+        ctx.strokeStyle = 'rgba(120, 5, 15, 0.6)';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    // The blood-flower blooms themselves - simplified spider-lily petals,
+    // same silhouette language as Sol Arrow's own impact bloom.
+    for (const bloom of rift._gardenBlooms) {
+        ctx.save();
+        ctx.translate(bloom.x, bloom.y);
+        ctx.scale(bloom.scale, bloom.scale);
+        ctx.rotate(bloom.rot + Math.sin(now / 700 + bloom.sway) * 0.08);
+        for (let p = 0; p < bloom.petals; p++) {
+            const pa = (Math.PI * 2 / bloom.petals) * p;
+            const len = 22, curl = (p % 2 === 0 ? 1 : -1) * 0.7;
+            ctx.save();
+            ctx.rotate(pa);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(len * 0.4, curl * 8, len * 0.8, curl * 22, len * 0.85, curl * 32);
+            ctx.strokeStyle = 'rgba(210, 10, 20, 0.95)';
+            ctx.lineWidth = 2.4;
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 220, 220, 0.85)';
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Drifting petals + will-o-wisp motes - cut entirely at Low/Min like
+    // every other pure-ambience layer in this game, since neither carries
+    // any gameplay information.
+    if ((window._gfxLevel || 0) < 2) {
+        for (const p of rift._gardenPetals) {
+            const cycle = ((now * p.speed) + p.phase) % 1;
+            const py = -r * 0.9 + cycle * r * 1.9;
+            const px = p.seedX + Math.sin(now / 600 + p.sway) * 10;
+            const fadeEdge = Math.min(1, Math.min(cycle, 1 - cycle) * 6);
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(now * p.rotSpeed);
+            ctx.globalAlpha = alpha * fadeEdge * 0.85;
+            ctx.fillStyle = 'rgba(200, 20, 30, 0.9)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.size, p.size * 0.45, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        for (const w of rift._gardenWisps) {
+            const cycle = ((now * w.speed) + w.phase) % 1;
+            const wy = r * 0.8 - cycle * r * 1.6;
+            const wx = w.seedX + Math.sin(now / 500 + w.sway) * 8;
+            const flicker = 0.5 + 0.5 * Math.sin(now / 180 + w.sway * 3);
+            const fadeEdge = Math.min(1, Math.min(cycle, 1 - cycle) * 5);
+            ctx.save();
+            ctx.globalAlpha = alpha * fadeEdge * flicker;
+            const wispGrad = ctx.createRadialGradient(wx, wy, 0, wx, wy, w.size * 3);
+            wispGrad.addColorStop(0, 'rgba(255,120,140,0.9)');
+            wispGrad.addColorStop(1, 'rgba(255,60,80,0)');
+            ctx.fillStyle = wispGrad;
+            ctx.beginPath(); ctx.arc(wx, wy, w.size * 3, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    ctx.restore();
+}
+
 function _drawDimensionalRiftsCtx() {
     if (!dimensionalRifts || !dimensionalRifts.length) return;
+    const _bloodGarden = typeof _hasBuff === 'function' && _hasBuff('mui_ten_apollo');
     ctx.save();
     for (const rift of dimensionalRifts) {
         const lifeRatio = rift.timer / rift.maxTimer;
@@ -161,6 +365,19 @@ function _drawDimensionalRiftsCtx() {
 
         ctx.save();
         ctx.globalAlpha = alpha;
+
+        if (_bloodGarden) {
+            _drawDimensionalRiftBloodGarden(rift, alpha);
+            for (const p of (rift._particles || [])) {
+                ctx.globalAlpha = alpha * Math.max(0, p.life);
+                ctx.fillStyle = p.isCyan ? 'rgba(160,10,20,0.9)' : 'rgba(255,90,110,0.9)';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 1.2 + Math.random() * 1.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+            continue;
+        }
 
         // Void core: a torn-open window into another universe. Static -
         // no pulse/scale animation on the background art itself, only the

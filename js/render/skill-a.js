@@ -123,6 +123,21 @@ function drawSkillA() {
             ctx.arc(orb.x + Math.cos(dotAngle) * r * 0.7, orb.y + Math.sin(dotAngle) * r * 0.7, 1.8, 0, Math.PI * 2);
             ctx.fill();
         }
+
+        // Libra (Blood Arrow): every Thunder Orb gets a thin blood-red
+        // membrane wrapped around it, orbiting or in flight alike - drawn
+        // on top of the orb's own body, never replacing it.
+        if (typeof _hasBuff === 'function' && _hasBuff('mui_ten_apollo')) {
+            const bg = ctx.createRadialGradient(orb.x, orb.y, r * 0.3, orb.x, orb.y, r * 1.15);
+            bg.addColorStop(0, 'rgba(120, 0, 10, 0)');
+            bg.addColorStop(0.7, 'rgba(160, 0, 10, 0.35)');
+            bg.addColorStop(1, 'rgba(20, 0, 5, 0.55)');
+            ctx.fillStyle = bg;
+            ctx.beginPath(); ctx.arc(orb.x, orb.y, r * 1.15, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(10, 0, 5, 0.7)';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath(); ctx.arc(orb.x, orb.y, r * 1.05, 0, Math.PI * 2); ctx.stroke();
+        }
         ctx.restore();
     });
 }
@@ -286,6 +301,66 @@ function drawSolArrowParticles() {
     }
 }
 
+// Libra Thunder Orb reskin's own on-hit effect - a spreading blood pool on
+// the ground (an irregular blob, not a bloom), spawned in js/skills/
+// sigil-libra.js's _spawnBloodPoolSplat. Grows in fast, holds, then fades
+// out in the back half of its life - deliberately distinct from the
+// spider-lily bloom below, which stays exclusive to Sol Arrow's own hit.
+function drawBloodPoolSplats() {
+    const arr = window._bloodPoolSplats;
+    if (!arr || arr.length === 0) return;
+    for (const s of arr) {
+        const t = s.life / s.maxLife;
+        const growT = Math.min(1, s.life / (s.maxLife * 0.15));
+        const scale = 1 - Math.pow(1 - growT, 3);
+        const fadeStart = 0.55;
+        const alpha = t > fadeStart ? Math.max(0, 1 - (t - fadeStart) / (1 - fadeStart)) : 1;
+        if (scale <= 0 || alpha <= 0) continue;
+
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = alpha;
+
+        let maxR = 0;
+        ctx.beginPath();
+        s.points.forEach((p, i) => {
+            maxR = Math.max(maxR, p.r);
+            const px = Math.cos(p.angle) * p.r, py = Math.sin(p.angle) * p.r;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        });
+        ctx.closePath();
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, maxR);
+        grad.addColorStop(0, 'rgba(150, 5, 10, 0.9)');
+        grad.addColorStop(0.7, 'rgba(110, 0, 8, 0.85)');
+        grad.addColorStop(1, 'rgba(60, 0, 5, 0.6)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // rough ink-wash border - two slightly offset passes for a
+        // brush-bleed look instead of one clean stroke
+        for (let pass = 0; pass < 2; pass++) {
+            ctx.beginPath();
+            s.points.forEach((p, i) => {
+                const jr = p.r * (1 + (pass === 0 ? 0.04 : -0.03));
+                const px = Math.cos(p.angle) * jr, py = Math.sin(p.angle) * jr;
+                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            });
+            ctx.closePath();
+            ctx.strokeStyle = pass === 0 ? 'rgba(10, 0, 3, 0.55)' : 'rgba(30, 0, 5, 0.4)';
+            ctx.lineWidth = pass === 0 ? 2.2 : 1;
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = 'rgba(120, 0, 8, 0.8)';
+        for (const d of s.droplets) {
+            ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+        }
+
+        ctx.restore();
+    }
+}
+
 // Blood Arrow impact bloom - a red spider lily (higanbana) unfurling on the
 // primary target, spawned in js/skills/sigil-libra.js's _spawnSolArrowLily.
 function drawSolArrowLilies() {
@@ -403,6 +478,160 @@ function _drawBloodArrowReadyPrompt() {
     ctx.restore();
 }
 
+// While a Blood Arrow stack is banked, ring-mark every enemy that would
+// actually get chosen as a target if fired right now - reuses
+// _solArrowValidTargets() itself (same function _queueSolArrow() picks
+// from) rather than a separate on-screen check, so this can never mark an
+// enemy the volley wouldn't actually be able to hit (Cocoon, bullets,
+// Coronation-shielded enemies, etc. are already excluded there).
+function _drawBloodArrowTargetRings() {
+    if ((window._bloodArrowStacks || 0) === 0) return;
+    if (typeof _solArrowValidTargets !== 'function') return;
+    const targets = _solArrowValidTargets();
+    if (targets.length === 0) return;
+    const now = performance.now();
+    const pulse = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(now / 260));
+    ctx.save();
+    for (const e of targets) {
+        const rad = e.size / 2 + 10 + pulse * 3;
+        ctx.strokeStyle = `rgba(200, 10, 20, ${0.5 + 0.35 * pulse})`;
+        ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = 'rgba(220, 10, 20, 0.8)'; ctx.shadowBlur = 8 * pulse; }
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, rad, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        // a few ink-drip ticks around the rim, matching the rest of this
+        // sigil's ink-wash language instead of a plain clean circle
+        for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2 + now / 900;
+            const tx = e.x + Math.cos(a) * rad, ty = e.y + Math.sin(a) * rad;
+            ctx.strokeStyle = `rgba(140, 0, 5, ${0.5 + 0.3 * pulse})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(tx + Math.cos(a) * 4, ty + Math.sin(a) * 4 + 2);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+}
+
+// Cancer's Riptide Surge charge vignette: layered ocean swells sweeping left
+// to right across the top of the screen (a traveling sine wave, `sin(kx -
+// wt)`, moves in +x as time passes), with foam-highlight dots riding the
+// crest of the frontmost layer. Clipped to a fixed band so the swell never
+// paints over the HUD below it.
+function _drawTideWaveVignette(rgb, tierMul) {
+    const [r, g, b] = rgb;
+    const now = performance.now();
+    const layers = tierMul >= 1 ? 3 : 2;
+    const bandH = 130;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, canvas.width, bandH);
+    ctx.clip();
+
+    for (let i = 0; i < layers; i++) {
+        const depth = i / layers; // 0 = nearest/frontmost swell, closer to 1 = further back
+        const baseY = 18 + depth * 34;
+        const amp = (16 - depth * 6) * tierMul;
+        const wavelen = 140 + depth * 60;
+        const speed = 0.0016 + depth * 0.0007;
+        const phase = now * speed;
+        const alpha = 0.5 - depth * 0.14;
+
+        ctx.beginPath();
+        ctx.moveTo(-10, baseY);
+        for (let x = -10; x <= canvas.width + 10; x += 8) {
+            ctx.lineTo(x, baseY + Math.sin(x / wavelen - phase) * amp);
+        }
+        ctx.lineTo(canvas.width + 10, 0);
+        ctx.lineTo(-10, 0);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, 0, baseY + amp);
+        grad.addColorStop(0, `rgba(${r},${g},${b},0)`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},${alpha})`);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        if (i === 0) {
+            const dotSpacing = 46;
+            const scrollX = (now * speed * wavelen) % dotSpacing;
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            for (let x = scrollX - dotSpacing; x <= canvas.width + dotSpacing; x += dotSpacing) {
+                const y = baseY + Math.sin(x / wavelen - phase) * amp;
+                ctx.beginPath();
+                ctx.arc(x, y, 2.4 * tierMul, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+    ctx.restore();
+}
+
+// Great Sage's Kim Co circlet: a detailed ornate golden band arcing across
+// the top of the screen - an embossed base band, a bright highlight rim,
+// 5 gem studs (the center one bigger, a "third eye" read), and curling
+// prong flourishes at both ends, matching the classic monkey-king headband
+// this sigil is themed after. Pulses on a slow, steady sine, deliberately
+// calmer than the erratic lightning streaks around it.
+function _drawKimCoRing(rgb, tierMul) {
+    const now = performance.now();
+    const [r, g, b] = rgb;
+    const pulse = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(now / 500));
+    const cx = canvas.width / 2;
+    const y0 = 18, dip = 62;
+    const halfW = canvas.width * 0.32;
+    const arcPoint = (tt) => ({ x: cx + tt * halfW, y: y0 + (1 - tt * tt) * (dip - y0) });
+
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+        const p = arcPoint(-1 + (i / 24) * 2);
+        if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    }
+    ctx.strokeStyle = `rgba(${Math.round(r * 0.5)},${Math.round(g * 0.5)},${Math.round(b * 0.4)},${0.7 * pulse})`;
+    ctx.lineWidth = 7 * tierMul;
+    ctx.lineCap = 'round';
+    if (tierMul >= 1) { ctx.shadowColor = `rgba(${r},${g},${b},0.8)`; ctx.shadowBlur = 14 * pulse; }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.beginPath();
+    for (let i = 0; i <= 24; i++) {
+        const p = arcPoint(-1 + (i / 24) * 2);
+        if (i === 0) ctx.moveTo(p.x, p.y - 2); else ctx.lineTo(p.x, p.y - 2);
+    }
+    ctx.strokeStyle = `rgba(${Math.min(255, r + 50)},${Math.min(255, g + 60)},${Math.min(255, b + 80)},${0.85 * pulse})`;
+    ctx.lineWidth = 2 * tierMul;
+    ctx.stroke();
+
+    [-0.85, -0.42, 0, 0.42, 0.85].forEach((tt, i) => {
+        const p = arcPoint(tt);
+        const rad = (i === 2 ? 6 : 3.6) * tierMul;
+        const g2 = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad);
+        g2.addColorStop(0, `rgba(255,255,255,${0.95 * pulse})`);
+        g2.addColorStop(0.4, `rgba(${Math.min(255, r + 30)},${Math.min(255, g + 20)},${b},${0.9 * pulse})`);
+        g2.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        ctx.fillStyle = g2;
+        ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI * 2); ctx.fill();
+    });
+
+    [-1, 1].forEach((side) => {
+        const p = arcPoint(side * 0.98);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.quadraticCurveTo(p.x + side * 10, p.y - 14, p.x + side * 2, p.y - 22);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${0.75 * pulse})`;
+        ctx.lineWidth = 3 * tierMul;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    });
+    ctx.restore();
+}
+
 // Shared "charging" screen-edge vignette: a colored glow along the top edge
 // with a handful of streaks creeping down, reused by every skill with a
 // bank-then-release windup moment (Blood Arrow, Great Sage's stolen gems,
@@ -410,10 +639,12 @@ function _drawBloodArrowReadyPrompt() {
 // render file). `state` is a persistent {streaks, wasActive} object owned by
 // the caller so simultaneous effects never fight over one shared pool;
 // `rgb` is that skill's own accent color as a [r,g,b] triple. `style` picks
-// the streak's actual shape/motion so each skill reads as its own effect,
-// not a recolor of the others: 'blood' (straight drip, round tip - Libra
-// only), 'spark' (jagged crackling energy, star tip - Great Sage), 'foam'
-// (wavy curve, bubble cluster tip - Cancer).
+// the effect's actual shape/motion so each skill reads as its own thing,
+// not a recolor of the others: 'blood' (straight dripping streaks, round
+// tip - Libra only), 'spark' (jagged crackling lightning streaks + a
+// detailed Kim Co circlet glow - Great Sage), 'foam' (a traveling ocean
+// swell sweeping left to right, no streaks at all - Cancer's Riptide Surge;
+// see _drawTideWaveVignette/_drawKimCoRing below).
 //
 // Graphics-tier scaling: Full/Medium keep the effect (Medium a bit smaller/
 // fewer streaks), Low/Min cut it entirely - a screen-edge ambience layer
@@ -422,7 +653,19 @@ function _drawBloodArrowReadyPrompt() {
 function _updateDrawChargeVignette(state, active, rgb, style) {
     style = style || 'blood';
     const gfxLvl = window._gfxLevel || 0;
+    state.streaks = state.streaks || [];
     if (gfxLvl >= 2) { state.streaks.length = 0; state.wasActive = active; return; }
+
+    if (style === 'foam') {
+        // Riptide Surge reads as a traveling ocean swell sweeping left to
+        // right, not something dripping down - no lingering fall to let
+        // play out, so it's simply gone the instant charging stops rather
+        // than sharing the streak-based fall-clear below.
+        state.wasActive = active;
+        if (!active) return;
+        _drawTideWaveVignette(rgb, gfxLvl === 1 ? 0.75 : 1.0);
+        return;
+    }
 
     // The instant charging stops, clear immediately instead of a lingering
     // natural fall - reads as "the effect resolved", not "still bleeding".
@@ -468,6 +711,9 @@ function _updateDrawChargeVignette(state, active, rgb, style) {
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, canvas.width, 220);
     }
+    // Great Sage's Kim Cô circlet: a steady ornate glow above the erratic
+    // lightning streaks, drawn once per frame (not once per streak).
+    if (active && style === 'spark') _drawKimCoRing(rgb, tierMul);
     for (const s of streaks) {
         const topY = Math.max(0, s.y - s.len);
 
@@ -501,25 +747,6 @@ function _updateDrawChargeVignette(state, active, rgb, style) {
                 ctx.stroke();
             }
             ctx.restore();
-        } else if (style === 'foam') {
-            // Wavy water-curl streak with a small foam/bubble cluster tip -
-            // bigger, slower sway than blood's tight shiver.
-            const swayX = Math.sin(now / 380 + s.sway) * 9;
-            ctx.strokeStyle = `rgba(${r},${g},${b},0.7)`;
-            ctx.lineWidth = s.width;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(s.x, topY);
-            ctx.quadraticCurveTo(s.x + swayX, (topY + s.y) / 2, s.x + swayX * 0.6, s.y);
-            ctx.stroke();
-            ctx.fillStyle = `rgba(${rl},${gl},${bl},0.85)`;
-            for (let bIdx = 0; bIdx < 3; bIdx++) {
-                const bx = s.x + swayX * 0.6 + (bIdx - 1) * s.width * 0.6;
-                const by = s.y + (bIdx === 1 ? -s.width * 0.5 : 0);
-                ctx.beginPath();
-                ctx.arc(bx, by, s.width * (bIdx === 1 ? 0.55 : 0.35), 0, Math.PI * 2);
-                ctx.fill();
-            }
         } else {
             // Blood: straight, tightly-shivering drip with a single round tip.
             const swayX = Math.sin(now / 400 + s.sway) * 3;

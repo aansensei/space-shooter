@@ -2926,6 +2926,7 @@ function startGame() {
     window._solArrows = [];
     window._solArrowParticles = [];
     window._solArrowLilies = [];
+    window._bloodPoolSplats = [];
     window._bloodDripState = { streaks: [], wasActive: false };
     window._greatSageDripState = { streaks: [], wasActive: false };
     window._cancerDripState = { streaks: [], wasActive: false };
