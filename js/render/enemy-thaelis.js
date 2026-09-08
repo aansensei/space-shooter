@@ -175,6 +175,48 @@ function _drawThaelis(enemy) {
         }
         ctx.restore();
     }
+
+    // Shield break: cracks spidering across the body over a subtle dark
+    // dent, instead of a bright flash (see dealDamage, entities/core.js,
+    // which just stamps _shieldBreakCrackAt - same shape/cache pattern as
+    // Dargruel's own Demon Gift crack, render/enemy-dargruel.js).
+    const shieldCrackT = enemy._shieldBreakCrackAt ? Math.max(0, 1 - (now - enemy._shieldBreakCrackAt) / 900) : 0;
+    if (shieldCrackT > 0) {
+        if (enemy._shieldCrackAt !== enemy._shieldBreakCrackAt) {
+            enemy._shieldCrackAt = enemy._shieldBreakCrackAt;
+            enemy._shieldCrackPaths = [];
+            for (let ci = 0; ci < 7; ci++) {
+                let ca = Math.random() * Math.PI * 2;
+                let cx = 0, cy = 0;
+                const segs = 4 + Math.floor(Math.random() * 3);
+                const pts = [[0, 0]];
+                for (let s = 0; s < segs; s++) {
+                    ca += (Math.random() * 2 - 1) * 0.5;
+                    cx += Math.cos(ca) * (r * 0.9 / segs);
+                    cy += Math.sin(ca) * (r * 0.9 / segs);
+                    pts.push([cx, cy]);
+                }
+                enemy._shieldCrackPaths.push(pts);
+            }
+        }
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        const dentG = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.9);
+        dentG.addColorStop(0, `rgba(60,45,0,${shieldCrackT * 0.5})`);
+        dentG.addColorStop(1, 'rgba(60,45,0,0)');
+        ctx.fillStyle = dentG;
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = `rgba(255,230,120,${shieldCrackT * 0.9})`;
+        ctx.lineWidth = 1.5;
+        if (!_mobPerf) { ctx.shadowColor = '#ffdd55'; ctx.shadowBlur = 6 * shieldCrackT; }
+        for (const pts of enemy._shieldCrackPaths) {
+            ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+            for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
+            ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
 }
 
 // Commissioned Cocoon sprite - dark chrysalis shell with glowing green

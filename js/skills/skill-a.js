@@ -26,10 +26,29 @@ function updateDefensiveOrbs() {
 function activateSkillA() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState !== "playing" || window._sigilPicker || currentTime - lastSkillA < _skillACooldown()) return;
+    if (gameState !== "playing" || window._sigilPicker) return;
+
+    const hasSolJudgment = _hasBuff('mui_ten_apollo');
+    const onCooldown = currentTime - lastSkillA < _skillACooldown();
+
+    // Releasing an already-banked Blood Arrow volley doesn't cast Skill A
+    // itself (no orbs, cooldown untouched) - it has to stay available the
+    // instant a target shows up even while the orb-summon side is still on
+    // cooldown from the earlier press that banked the stack. Without this
+    // bypass a banked volley could sit stuck doing nothing for the entire
+    // cooldown despite a target already being on screen and Skill A visibly
+    // "ready to release" in the HUD.
+    if (hasSolJudgment && onCooldown) {
+        const _baTargets = _solArrowValidTargets();
+        if ((window._bloodArrowStacks || 0) > 0 && _baTargets.length > 0) {
+            for (let i = 0; i < window._bloodArrowStacks; i++) _queueSolArrow();
+            window._bloodArrowStacks = 0;
+        }
+        return;
+    }
+    if (onCooldown) return;
 
     const canSpawnOrbs = skillAOrbs.length < maxSkillAOrbs;
-    const hasSolJudgment = _hasBuff('mui_ten_apollo');
     if (!canSpawnOrbs && !hasSolJudgment) return; // nothing would happen — don't consume the cooldown
 
     lastSkillA = currentTime;
@@ -53,7 +72,28 @@ function activateSkillA() {
         updateDefensiveOrbs();
         rebalanceSkillAOrbs();
     }
-    if (hasSolJudgment) _queueSolArrow();
+    // Blood Arrow: same bank-then-release shape as Great Sage's stolen gem
+    // (js/render/skill-f.js's _drawGreatSageReleasePrompt) - the first press
+    // just banks 1 stack (shown via the ready wash on Skill A's own pill and
+    // the center-screen prompt below, both keyed off window._bloodArrowStacks).
+    // Every press after that needs an actual target on screen to release -
+    // with nothing to aim at yet, it just banks another stack instead of
+    // firing into empty space, so stacks can keep piling up indefinitely
+    // while waiting for an enemy to show up. Releasing fires once per banked
+    // stack. Orb summoning above is completely unaffected either way - Blood
+    // Arrow is a layer on top of Skill A's normal cast, never a replacement.
+    // (The on-cooldown release bypass above handles releasing while Skill A
+    // itself isn't ready yet - this branch only ever runs off-cooldown.)
+    if (hasSolJudgment) {
+        window._bloodArrowStacks = window._bloodArrowStacks || 0;
+        const _baTargets = _solArrowValidTargets();
+        if (window._bloodArrowStacks > 0 && _baTargets.length > 0) {
+            for (let i = 0; i < window._bloodArrowStacks; i++) _queueSolArrow();
+            window._bloodArrowStacks = 0;
+        } else {
+            window._bloodArrowStacks++;
+        }
+    }
 }
 
 function rebalanceSkillAOrbs() {

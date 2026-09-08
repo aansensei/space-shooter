@@ -560,6 +560,17 @@ function _drawTidalSurgeReadyPrompt() {
     ctx.restore();
 }
 
+// Riptide Surge's own charge vignette (shares _updateDrawChargeVignette with
+// Blood Arrow/Libra and Great Sage's stolen gems, see js/render/skill-a.js) -
+// active while any whirlpool from the current release hasn't bitten yet,
+// teal to match this sigil's own palette above.
+function _drawTidalSurgeChargeVignette() {
+    if (typeof _updateDrawChargeVignette !== 'function') return;
+    window._cancerDripState = window._cancerDripState || { streaks: [], wasActive: false };
+    const charging = typeof _tidalSurgeEffects !== 'undefined' && _tidalSurgeEffects.some(w => !w.burst);
+    _updateDrawChargeVignette(window._cancerDripState, charging, [94, 234, 212], 'foam');
+}
+
 // One expanding, fading wave-crash ring. age<0 means it hasn't started yet
 // (no-op); age>life means it's finished (no-op).
 function _drawWaveRipple(x, y, age, life, maxR, width, color) {

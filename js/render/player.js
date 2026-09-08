@@ -12,6 +12,26 @@ const _goliathSilenceImg = new Image();
 _goliathSilenceImg.src = 'assets/images/game/icons/goliath-silence-debuff.png';
 _goliathSilenceImg.decode().catch(() => {});
 
+// Blood Arrow (Libra) stack icon - hovers above the ship while 1+ stacks are
+// banked, same "above the ship" placement as Great Sage's gem frame below.
+// Falls back to a plain drawn arrow-in-a-circle until the commissioned art
+// lands at this path.
+const _bloodArrowIconImg = new Image();
+_bloodArrowIconImg.src = 'assets/images/game/icons/blood-arrow-stack.png';
+_bloodArrowIconImg.decode().catch(() => {});
+
+// Converts a positive integer into a Roman numeral string - stacks can pile
+// up indefinitely while there's no target to release into (js/skills/
+// skill-a.js), so this needs to handle more than just I-IV.
+function _toRomanNumeral(n) {
+    if (n <= 0) return '0';
+    const table = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+        [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+    let out = '';
+    for (const [v, sym] of table) { while (n >= v) { out += sym; n -= v; } }
+    return out;
+}
+
 // Great Sage sigil: commissioned gem-slot frame (gold oval band, 3 holes,
 // same asset-loading pattern as the debuff icons above). Hole centers/
 // radius measured directly off the source PNG (1264x848) so the 3 gem
@@ -821,6 +841,57 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
                 ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.2; ctx.stroke();
             }
         }
+        ctx.restore();
+    }
+
+    // Blood Arrow (Libra): stack icon hovering above the ship, same
+    // placement formula as Great Sage's gem frame above (mutually exclusive
+    // sigils, so the two never actually compete for the same spot). Roman
+    // numeral badge sits in the bottom-right quadrant of the icon circle
+    // (the 270deg-360deg arc on the standard trig circle), matching a
+    // typical item-stack-count badge instead of a plain floating number.
+    if (alpha === 1 && xOffset === 0 && !pos && (window._bloodArrowStacks || 0) > 0) {
+        const baNow = performance.now();
+        const baR = 22;
+        const baY = -(player.height / 2 + baR + 12);
+        const baPulse = 0.7 + 0.3 * Math.sin(baNow / 260);
+
+        ctx.save();
+        ctx.translate(0, baY);
+
+        if (!_mobPerf) { ctx.shadowColor = '#c80000'; ctx.shadowBlur = 10 * baPulse; }
+        if (_bloodArrowIconImg.complete && _bloodArrowIconImg.naturalWidth) {
+            ctx.drawImage(_bloodArrowIconImg, -baR, -baR, baR * 2, baR * 2);
+        } else {
+            // Placeholder until the commissioned icon lands: a plain
+            // arrow-in-a-circle badge in the same red the real one will use.
+            ctx.fillStyle = 'rgba(30,0,0,0.75)';
+            ctx.beginPath(); ctx.arc(0, 0, baR, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `rgba(200,0,0,${0.7 + 0.3 * baPulse})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, 0, baR, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#ff3030'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(0, baR * 0.55); ctx.lineTo(0, -baR * 0.55);
+            ctx.moveTo(0, -baR * 0.55); ctx.lineTo(-baR * 0.3, -baR * 0.15);
+            ctx.moveTo(0, -baR * 0.55); ctx.lineTo(baR * 0.3, -baR * 0.15);
+            ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+
+        // Roman numeral badge, bottom-right quadrant of the icon
+        const badgeX = baR * 0.72, badgeY = baR * 0.72;
+        const roman = _toRomanNumeral(window._bloodArrowStacks);
+        ctx.font = `bold ${roman.length > 2 ? 9 : 11}px "Courier New", monospace`;
+        const badgeW = ctx.measureText(roman).width + 8, badgeH = 13;
+        ctx.fillStyle = 'rgba(20,0,0,0.9)';
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(badgeX - badgeW / 2, badgeY - badgeH / 2, badgeW, badgeH, 4); ctx.fill(); }
+        else ctx.fillRect(badgeX - badgeW / 2, badgeY - badgeH / 2, badgeW, badgeH);
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(badgeX - badgeW / 2, badgeY - badgeH / 2, badgeW, badgeH, 4); ctx.stroke(); }
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(roman, badgeX, badgeY + 1);
         ctx.restore();
     }
 

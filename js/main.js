@@ -2835,6 +2835,35 @@ function gameLoop(timeStamp) {
         showPauseScreen();
     }
 
+    // Pause-duration compensation: every real-time-based cooldown/charge/
+    // sweep timestamp gets shifted forward by however long the pause just
+    // lasted, the instant it ends, so each of those resumes exactly where
+    // it left off instead of either jumping straight to "cooldown ready" /
+    // "sweep finished" (comparing against performance.now() would otherwise
+    // count the whole pause as elapsed time) or - for the sweep's own
+    // rendered angle, which reads _frozenNow instead - looking like nothing
+    // happened at all while paused, then snapping forward on resume. Runs
+    // here (not update(), which doesn't run while paused at all) so it can
+    // see both edges of the pause regardless of which button/key toggled it.
+    if (gamePaused && !window._wasPausedLastFrame) {
+        window._pauseStartedAt = performance.now();
+    } else if (!gamePaused && window._wasPausedLastFrame) {
+        const _pauseDelay = performance.now() - (window._pauseStartedAt || performance.now());
+        lastAutoFire += _pauseDelay;
+        if (charging) chargeStartTime += _pauseDelay;
+        if (laserActive) { laserStartTime += _pauseDelay; lastLaserTick += _pauseDelay; }
+        lastSkillA += _pauseDelay;
+        lastSkillS += _pauseDelay;
+        lastSkillD += _pauseDelay;
+        lastSkillF += _pauseDelay;
+        if (skillFState === 'charging') skillFChargeStart += _pauseDelay;
+        if (skillFState === 'sweeping') skillFSweepStart += _pauseDelay;
+        finalDefense.playerCooldownEnd += _pauseDelay;
+        finalDefense.boundaryCooldownEnd += _pauseDelay;
+        lastEnemySpawn += _pauseDelay;
+    }
+    window._wasPausedLastFrame = gamePaused;
+
     const _debugSpeed = (typeof window._debugGameSpeed === 'number' && window._debugGameSpeed > 0) ? window._debugGameSpeed : 1;
     // Coarse profiling for the still-unexplained Safari FPS collapse on
     // this iPhone — confirmed present in BOTH the in-game PC and Mobile
@@ -2849,6 +2878,11 @@ function gameLoop(timeStamp) {
         update(Math.min(deltaTime, 50) * _debugSpeed);
     }
     const _t1 = _profOn ? performance.now() : 0;
+    // Only advance while unpaused - see its declaration in config.js. Frozen
+    // this way, any render code timing an animation off it (instead of a
+    // raw performance.now() call) naturally stops moving during a pause
+    // instead of jumping ahead the instant the game resumes.
+    if (!gamePaused) _frozenNow = performance.now();
     // Guide overlay covers the whole screen - redrawing the canvas (2D +
     // the Pixi bullet/particle layer, both driven from inside draw()) underneath
     // it is pure wasted GPU/CPU work, real enough to feel like lag on mobile.
@@ -2890,6 +2924,11 @@ function startGame() {
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
     window._solArrows = [];
+    window._solArrowParticles = [];
+    window._solArrowLilies = [];
+    window._bloodDripState = { streaks: [], wasActive: false };
+    window._greatSageDripState = { streaks: [], wasActive: false };
+    window._cancerDripState = { streaks: [], wasActive: false };
     window._bongDoiHitCount = 0;
     window._bongDoiCharging = false;
     window._bongDoiChargeStart = 0;
@@ -2973,6 +3012,7 @@ function startGame() {
     _tidalSurgeMeter = 0;
     _tidalSurgeOverflow = 0;
     window._tidalSurgeReady = false;
+    window._bloodArrowStacks = 0;
     _tidalSurgeEffects = [];
     _oceanHunterBites = [];
     window._playerSigils = [];

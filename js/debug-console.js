@@ -565,6 +565,11 @@ window.debugSetYuukiBonus = function () {
     window.debugTogglePause = function () {
         if (typeof gameState === 'undefined' || gameState !== 'playing') return;
         gamePaused = !gamePaused;
+        // Match the real ESC pause's audio behavior instead of leaving bgm/
+        // engine/laser loops running while everything else is frozen.
+        if (window.AudioMgr) {
+            if (gamePaused) window.AudioMgr.pauseAll(); else window.AudioMgr.resumeAll();
+        }
         updateSessionStatus();
     };
 

@@ -202,6 +202,13 @@ function _walpurgisFlatDR() { return 25 * _walpurgisStacks(); }
 function _walpurgisHealShieldMult() { return 1 + 0.05 * _walpurgisStacks(); }
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
+// A performance.now() snapshot that only advances while the game is NOT
+// paused - render code that needs "how much time has passed" for an
+// in-progress animation (e.g. Skill F's sweep angle) should read this
+// instead of calling performance.now() directly, or the animation keeps
+// advancing in real time even while frozen behind the pause screen. Updated
+// once per frame in main.js's gameLoop, right before draw() runs.
+let _frozenNow = performance.now();
 
 // match stats, reset in startGame. label -> cumulative total (damage
 // maps) or count (lifeLoss). amount defaults to 1 for lifeLoss calls

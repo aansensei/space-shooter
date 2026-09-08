@@ -257,6 +257,14 @@ function drawSkillButtons() {
         active: _aCdDone && skillAOrbs.length >= maxSkillAOrbs,
         activeLabel: 'MAX',
     });
+    // Blood Arrow (Libra): 1+ stacks banked, released on the next Skill A
+    // press that lands with a target on screen - same wash treatment as
+    // Great Sage's stolen gem below, just on the A row instead of F. Deep
+    // red into a white-hot core (no orange/gold) so it doesn't read as the
+    // same effect as Great Sage's own red-to-gold wash.
+    if ((window._bloodArrowStacks || 0) > 0) _pillReadyWash(rowY(1), [
+        [0, 'rgba(80,0,0,1)'], [0.55, 'rgba(200,0,0,1)'], [1, 'rgba(255,255,255,1)'],
+    ]);
 
     const _photo = spirits.find(s2 => s2.isPhotokrystos && !s2._done);
     const _normalSpirit = spirits.find(s2 => !s2.isPhotokrystos && !s2.isFinishing);

@@ -1231,10 +1231,9 @@ function dealDamage(enemy, source) {
         enemy.shield -= _absorbed;
         enemy.shield = Math.max(0, enemy.shield);
         if (enemy.shield <= 0) {
-            // Shield break VFX
-            addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#ffdd00');
-            createParticles(enemy.x, enemy.y, 40, '#ffe066', 4, 14);
-            createParticles(enemy.x, enemy.y, 20, '#ffffff', 3, 10);
+            // Shield break: a crack effect (see _drawThaelis, render/
+            // enemy-thaelis.js) instead of a bright explosion/particle flash.
+            enemy._shieldBreakCrackAt = performance.now();
         }
         totalDamage -= _absorbed;
         if (totalDamage <= 0) { enemy.hp = Math.max(0, enemy.hp); return; }

@@ -28,8 +28,11 @@
         'assets/images/game/weapons/5-enuma-spear.png',
         'assets/images/game/effects/photokrystos-boomerang.png',
         'assets/images/game/effects/sentinel-shell.png',
+        'assets/images/game/effects/sol-arrow-primary.png',
+        'assets/images/game/effects/sol-arrow-secondary.png',
         'assets/images/game/effects/rift-void.png',
         'assets/images/game/icons/walpurgis-icon.png',
+        'assets/images/game/icons/blood-arrow-stack.png',
         'assets/images/game/enemies/marchosias-hexagon-armor.png',
         'assets/images/game/enemies/thaelis-cocoon.png',
         'js/vendor/pixi.min.js',
@@ -100,13 +103,14 @@
     // with no single exported array — mirror this list by hand if new SFX
     // files are ever added to assets/audio/sfx/.
     const SFX_FILES = [
-        'assets/audio/sfx/autoshot.mp3', 'assets/audio/sfx/blackhole.mp3', 'assets/audio/sfx/chain-lightning.mp3',
+        'assets/audio/sfx/autoshot.mp3', 'assets/audio/sfx/blackhole.mp3', 'assets/audio/sfx/blood-arrow-launch.mp3',
+        'assets/audio/sfx/blood-arrow-impact.mp3', 'assets/audio/sfx/chain-lightning.mp3',
         'assets/audio/sfx/charged-shot.mp3', 'assets/audio/sfx/charging.mp3', 'assets/audio/sfx/click.mp3',
         'assets/audio/sfx/coronation.mp3', 'assets/audio/sfx/dargruel-chain-launch.mp3', 'assets/audio/sfx/dargruel-chain-root.mp3',
         'assets/audio/sfx/dimension-break.mp3', 'assets/audio/sfx/dimensional-rift.mp3',
         'assets/audio/sfx/egregor-crawl.mp3', 'assets/audio/sfx/egregor-death-roar.mp3', 'assets/audio/sfx/egregor-nullslash-hit.mp3',
         'assets/audio/sfx/egregor-nullslash-slash.mp3', 'assets/audio/sfx/egregor-nullslash-windup.mp3', 'assets/audio/sfx/egregor-tempest-strike.mp3',
-        'assets/audio/sfx/enemy-death.mp3', 'assets/audio/sfx/enemy-hit.wav', 'assets/audio/sfx/engine.wav',
+        'assets/audio/sfx/enemy-death.mp3', 'assets/audio/sfx/enemy-hit.wav', 'assets/audio/sfx/engine.mp3',
         'assets/audio/sfx/gameover.mp3', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 'assets/audio/sfx/goliath-death.mp3',
         'assets/audio/sfx/goliath-fracture-step.mp3', 'assets/audio/sfx/goliath-idle.mp3',
         'assets/audio/sfx/goliath-spawn.mp3', 'assets/audio/sfx/goliath-transform.mp3', 'assets/audio/sfx/goliath-verdict-charge.mp3',
