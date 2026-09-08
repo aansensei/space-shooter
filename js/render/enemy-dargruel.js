@@ -30,32 +30,43 @@ function _drawDargruel(enemy) {
     ctx.shadowBlur = 0;
 
     if (demonFlash > 0) {
-        // Bright white-violet body flash, a fast expanding ring, and a
-        // radial burst of jagged bolts - the visual equivalent of the
-        // Demon Gift heal pulse it's throwing out to every ally on screen.
-        ctx.save();
-        ctx.globalAlpha = demonFlash;
-        ctx.fillStyle = 'rgba(230,200,255,0.9)';
-        ctx.beginPath(); ctx.arc(0, 0, r * (1 - demonFlash) * 0.6, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(200,110,255,0.9)';
-        ctx.lineWidth = 3;
-        if (!_mobPerf) { ctx.shadowColor = '#df88ff'; ctx.shadowBlur = 20; }
-        ctx.beginPath(); ctx.arc(0, 0, r * (1.1 + (1 - demonFlash) * 1.4), 0, Math.PI * 2); ctx.stroke();
-        ctx.shadowBlur = 0;
-        for (let bi = 0; bi < 6; bi++) {
-            const ba = (bi / 6) * Math.PI * 2 + bi * 0.9;
-            let bx = 0, by = 0, ba2 = ba;
-            ctx.strokeStyle = `rgba(220,170,255,${demonFlash * 0.85})`;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.moveTo(bx, by);
-            for (let s = 0; s < 3; s++) {
-                ba2 += (Math.sin(bi * 7.1 + s * 3.3) % 1) * 0.6;
-                bx += Math.cos(ba2) * r * 0.5;
-                by += Math.sin(ba2) * r * 0.5;
-                ctx.lineTo(bx, by);
+        // Cracks spidering out from the core, over a subtle dark dent -
+        // reads as the shell fracturing under the surge instead of a bright
+        // flash. The crack shape is rolled once per trigger and cached
+        // (keyed off _demonGiftFlashAt itself), then just faded out over the
+        // full 900ms so it doesn't reshape/flicker every frame.
+        if (enemy._demonCrackFlashAt !== enemy._demonGiftFlashAt) {
+            enemy._demonCrackFlashAt = enemy._demonGiftFlashAt;
+            enemy._demonCrackPaths = [];
+            for (let ci = 0; ci < 7; ci++) {
+                let ca = Math.random() * Math.PI * 2;
+                let cx = 0, cy = 0;
+                const segs = 4 + Math.floor(Math.random() * 3);
+                const pts = [[0, 0]];
+                for (let s = 0; s < segs; s++) {
+                    ca += (Math.random() * 2 - 1) * 0.5;
+                    cx += Math.cos(ca) * (r * 0.9 / segs);
+                    cy += Math.sin(ca) * (r * 0.9 / segs);
+                    pts.push([cx, cy]);
+                }
+                enemy._demonCrackPaths.push(pts);
             }
+        }
+        ctx.save();
+        const dentG = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.9);
+        dentG.addColorStop(0, `rgba(20,0,35,${demonFlash * 0.5})`);
+        dentG.addColorStop(1, 'rgba(20,0,35,0)');
+        ctx.fillStyle = dentG;
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = `rgba(190,110,255,${demonFlash * 0.9})`;
+        ctx.lineWidth = 1.5;
+        if (!_mobPerf) { ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 6 * demonFlash; }
+        for (const pts of enemy._demonCrackPaths) {
+            ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+            for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
             ctx.stroke();
         }
+        ctx.shadowBlur = 0;
         ctx.restore();
     }
 

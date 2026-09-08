@@ -986,6 +986,7 @@ function draw(deltaTime) {
         // Vanguard Network threads (5+ sentinels)
         if (sentinels.length >= 5) _drawVanguardThreads();
         if (skillAActive) drawSkillA();
+        drawSolArrowParticles();
         drawSolArrows();
         drawSkillDSpaceships();
         drawShadowTwin();
@@ -1020,6 +1021,9 @@ function draw(deltaTime) {
         // sau cùng (sau cả Sigil HUD) vì Goliath giờ hay lượn gần viền trên
         // màn hình, dễ bị icon Sigil HUD đè lên nếu vẽ chung ở đây.
         enemies.forEach(e => { if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'goliath') drawEnemy(e); });
+        // Blood Arrow's impact bloom draws AFTER enemies so it sits layered
+        // on top of whatever it just hit, instead of hiding underneath it.
+        drawSolArrowLilies();
         _drawVineBinds(); // Phōtokrystos DNT Vine Bind — growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
             const _pxbT0 = performance.now();
@@ -1230,6 +1234,10 @@ function draw(deltaTime) {
         if (typeof drawSigilHUD === 'function') drawSigilHUD();
         if (typeof _drawGreatSageReleasePrompt === 'function') _drawGreatSageReleasePrompt();
         if (typeof _drawTidalSurgeReadyPrompt === 'function') _drawTidalSurgeReadyPrompt();
+        if (typeof _drawBloodArrowReadyPrompt === 'function') _drawBloodArrowReadyPrompt();
+        if (typeof _drawBloodArrowChargeVignette === 'function') _drawBloodArrowChargeVignette();
+        if (typeof _drawGreatSageChargeVignette === 'function') _drawGreatSageChargeVignette();
+        if (typeof _drawTidalSurgeChargeVignette === 'function') _drawTidalSurgeChargeVignette();
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });

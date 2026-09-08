@@ -89,7 +89,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=20260823c">
+    <link rel="stylesheet" href="css/style.css?v=20260907a">
 
     <style>
         body {
@@ -433,6 +433,7 @@
 
     <canvas id="gameCanvas"></canvas>
     <div id="pause-overlay">
+        <button id="view-position-btn" data-i18n="pause.viewPosition">◎ View Position</button>
         <h2 id="pause-title" data-i18n="pause.title">SYSTEM TERMINATED</h2>
         <p id="pause-subtitle" data-i18n="pause.subtitle">Press RESUME to continue</p>
         <div id="pause-guide-btns" style="display:flex; gap:16px; margin-top:8px; margin-bottom:24px;">
@@ -464,6 +465,14 @@
         <div id="resume-progress-container">
             <div id="resume-progress-bar"></div>
         </div>
+    </div>
+
+    <!-- View Current Position: hides #pause-overlay above so the frozen game
+         scene shows through untouched (gamePaused stays true the whole
+         time - see js/input.js). Covers the screen so a click/tap anywhere
+         returns to the pause screen; Esc does the same on desktop. -->
+    <div id="position-peek-overlay">
+        <div id="position-peek-hint" data-i18n="pause.peekHint">Click/Tap anywhere or press Esc to return</div>
     </div>
 
     <button id="startBtn" style="display: none;">Start</button>
@@ -1026,6 +1035,8 @@
                         'sigilPicker.swipeHint': 'SWIPE OR TAP ARROWS TO BROWSE',
                         'pause.title': 'SYSTEM TERMINATED',
                         'pause.subtitle': 'Press RESUME to continue',
+                        'pause.viewPosition': '◎ View Position',
+                        'pause.peekHint': 'Click/Tap anywhere or press Esc to return',
                         'matchStats.button': 'Match Stat',
                         'matchStats.title': 'Match Statistics',
                         'matchStats.tabAlly': 'Ally Damage',
@@ -1061,6 +1072,8 @@
                         'sigilPicker.swipeHint': 'VUỐT HOẶC CHẠM MŨI TÊN ĐỂ XEM ẤN KHÁC',
                         'pause.title': 'HỆ THỐNG ĐÃ TẠM DỪNG',
                         'pause.subtitle': 'Ấn RESUME để tiếp tục',
+                        'pause.viewPosition': '◎ Xem Vị Trí',
+                        'pause.peekHint': 'Click/Chạm vào bất kỳ đâu hoặc nhấn Esc để quay lại',
                         'matchStats.button': 'Match Stat',
                         'matchStats.title': 'Thống Kê Trận Đấu',
                         'matchStats.tabAlly': 'ST Đồng Minh',
@@ -1937,10 +1950,10 @@
     </script>
 
     <script src="js/vendor/pixi.min.js"></script>
-    <script src="js/audio.js?v=20260906a"></script>
-    <script src="js/offline.js?v=20260804c"></script>
+    <script src="js/audio.js?v=20260907b"></script>
+    <script src="js/offline.js?v=20260907c"></script>
     <script src="js/background.js?v=20260803d"></script>
-    <script src="js/config.js?v=20260904a"></script>
+    <script src="js/config.js?v=20260907a"></script>
     <script src="js/sigils/core.js?v=20260905d"></script>
     <script src="js/sigils/aries.js?v=20260906a"></script>
     <script src="js/sigils/taurus.js?v=20260906a"></script>
@@ -1948,7 +1961,7 @@
     <script src="js/sigils/cancer.js?v=20260906a"></script>
     <script src="js/sigils/leo.js?v=20260906a"></script>
     <script src="js/sigils/virgo.js?v=20260906a"></script>
-    <script src="js/sigils/libra.js?v=20260906a"></script>
+    <script src="js/sigils/libra.js?v=20260907b"></script>
     <script src="js/sigils/scorpio.js?v=20260901a"></script>
     <script src="js/sigils/sagittarius.js?v=20260906a"></script>
     <script src="js/sigils/capricorn.js?v=20260906a"></script>
@@ -1956,7 +1969,7 @@
     <script src="js/sigils/pisces.js?v=20260901a"></script>
     <script src="js/sigils/than.js?v=20260901a"></script>
     <script src="js/yuusha-party.js?v=20260906a"></script>
-    <script src="js/entities/core.js?v=20260907e"></script>
+    <script src="js/entities/core.js?v=20260907f"></script>
     <script src="js/entities/sentinel.js?v=20260825a"></script>
     <script src="js/entities/veilshroud.js?v=20260906a"></script>
     <script src="js/entities/egregor.js?v=20260906c"></script>
@@ -1964,7 +1977,7 @@
     <script src="js/entities/marchosias.js?v=20260907a"></script>
     <script src="js/entities/misc-enemies.js?v=20260907e"></script>
     <script src="js/entities/goliath.js?v=20260906c"></script>
-    <script src="js/skills/skill-a.js?v=20260907b"></script>
+    <script src="js/skills/skill-a.js?v=20260907f"></script>
     <script src="js/skills/skill-s-spirit.js?v=20260905a"></script>
     <script src="js/skills/skill-d.js?v=20260906a"></script>
     <script src="js/skills/sigil-great-sage.js?v=20260906a"></script>
@@ -1973,40 +1986,40 @@
     <script src="js/skills/skill-g.js?v=20260906c"></script>
     <script src="js/skills/skill-shift.js?v=20260902a"></script>
     <script src="js/skills/misc-mechanics.js?v=20260906a"></script>
-    <script src="js/skills/sigil-libra.js?v=20260907a"></script>
+    <script src="js/skills/sigil-libra.js?v=20260907g"></script>
     <script src="js/skills/sigil-gemini.js?v=20260907a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260902a"></script>
-    <script src="js/render/core.js?v=20260904a"></script>
+    <script src="js/render/core.js?v=20260907e"></script>
     <script src="js/render/fx.js?v=20260906a"></script>
-    <script src="js/render/player.js?v=20260903a"></script>
+    <script src="js/render/player.js?v=20260907a"></script>
     <script src="js/render/enemy-common.js?v=20260906d"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
-    <script src="js/render/enemy-thaelis.js?v=20260907b"></script>
-    <script src="js/render/enemy-dargruel.js?v=20260906a"></script>
+    <script src="js/render/enemy-thaelis.js?v=20260907c"></script>
+    <script src="js/render/enemy-dargruel.js?v=20260907a"></script>
     <script src="js/render/enemy-marchosias.js?v=20260904b"></script>
     <script src="js/render/enemy-leviathan.js?v=20260902a"></script>
     <script src="js/render/enemy-goliath.js?v=20260906c"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260824e"></script>
     <script src="js/render/enemy-egregor.js?v=20260717e"></script>
     <script src="js/render/skill-s-spirit.js?v=20260905a"></script>
-    <script src="js/render/skill-a.js?v=20260722e"></script>
+    <script src="js/render/skill-a.js?v=20260907h"></script>
     <script src="js/render/skill-d.js?v=20260823b"></script>
-    <script src="js/render/skill-f.js?v=20260906b"></script>
-    <script src="js/render/sigil-cancer.js?v=20260903a"></script>
+    <script src="js/render/skill-f.js?v=20260907c"></script>
+    <script src="js/render/sigil-cancer.js?v=20260907b"></script>
     <script src="js/render/skill-g.js?v=20260717e"></script>
-    <script src="js/render/skill-buttons.js?v=20260903a"></script>
+    <script src="js/render/skill-buttons.js?v=20260907a"></script>
     <script src="js/pixi-renderer.js?v=20260825d"></script>
-    <script src="js/input.js?v=20260830a"></script>
+    <script src="js/input.js?v=20260907a"></script>
     <script src="js/match-stats.js?v=20260825a"></script>
-    <script src="js/main.js?v=20260907d"></script>
+    <script src="js/main.js?v=20260907i"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20260907a';
+            _dbgScript.src = 'js/debug-console.js?v=20260907b';
             document.head.appendChild(_dbgScript);
         }
     </script>

@@ -78,8 +78,34 @@ document.addEventListener('DOMContentLoaded', () => {
         startGame();
     }, { passive: false });
 
+    // View Current Position: hides the pause overlay so the frozen game
+    // scene underneath becomes visible - gamePaused (and the paused audio
+    // mix) is untouched the whole time, this only toggles which of the two
+    // full-screen overlays is on top. The peek overlay is transparent but
+    // still catches any click/tap to return, same as Esc does on desktop.
+    const positionPeekOverlay = document.getElementById("position-peek-overlay");
+    const viewPositionBtn = document.getElementById("view-position-btn");
+    window._enterPositionPeek = function () {
+        if (!gamePaused) return;
+        pauseOverlay.style.display = "none";
+        if (positionPeekOverlay) positionPeekOverlay.style.display = "block";
+    };
+    window._exitPositionPeek = function () {
+        if (positionPeekOverlay) positionPeekOverlay.style.display = "none";
+        if (gamePaused) pauseOverlay.style.display = "flex";
+    };
+    if (viewPositionBtn) {
+        viewPositionBtn.addEventListener("click", window._enterPositionPeek);
+        viewPositionBtn.addEventListener("touchstart", (e) => { e.preventDefault(); window._enterPositionPeek(); }, { passive: false });
+    }
+    if (positionPeekOverlay) {
+        positionPeekOverlay.addEventListener("click", window._exitPositionPeek);
+        positionPeekOverlay.addEventListener("touchstart", (e) => { e.preventDefault(); window._exitPositionPeek(); }, { passive: false });
+    }
+
     // showPauseScreen cần pauseOverlay nên vẫn ở trong DOMContentLoaded, expose ra window để main.js gọi được
     window.showPauseScreen = function showPauseScreen() {
+        if (positionPeekOverlay) positionPeekOverlay.style.display = "none";
         pauseOverlay.style.display = "flex";
         if (pauseMainBtns) pauseMainBtns.style.display = "flex";
         progressContainer.style.display = "none";
@@ -146,6 +172,18 @@ document.addEventListener('DOMContentLoaded', () => {
             gamePaused = true;
             window.showPauseScreen();
             e.preventDefault();
+            return;
+        }
+        // Already paused: Esc toggles View Current Position instead, same
+        // as clicking the button/peek overlay - never touches gamePaused.
+        if (e.code === "Escape" && gameState === "playing" && gamePaused) {
+            e.preventDefault();
+            const _peekOv = document.getElementById("position-peek-overlay");
+            if (_peekOv && _peekOv.style.display === "block") {
+                window._exitPositionPeek();
+            } else {
+                window._enterPositionPeek();
+            }
             return;
         }
 

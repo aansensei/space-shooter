@@ -278,7 +278,11 @@
     const SFX_BASE = {
         autoshot: 1.0, charging: 1.0, 'skill-d-charge': 1.0, laser: 1.0,
         'enemy-hit': 0.25, 'enemy-death': 1.0, 'shield-hit': 1.0, 'life-lost': 1.0,
-        click: 1.0, hover: 1.0, overlay: 1.0, engine: 1.0, ambient: 1.0,
+        click: 1.0, hover: 1.0, overlay: 1.0,
+        // Engine loop kept quieter than the ambient space bed it plays under
+        // (see engine.mp3 above) - a rocket thruster hum shouldn't compete
+        // with it for attention. Ambient bumped +10% on top of its own 1.0.
+        engine: 0.8, ambient: 1.1,
         'skill-ready': 1.0, 'skill-unlocked': 1.0,
         'sigil-open': 1.0, 'sigil-confirm': 1.0,
         'sentinel-spawn': 1.0, 'sentinel-explode': 1.0,
@@ -295,6 +299,10 @@
         gameover: 1.0, 'new-wave': 1.0,
         'maou-haki': 1.0, 'low-hp': 1.0, 'yog-parry': 1.0,
         'charged-shot': 1.0, 'wave-clear': 1.0,
+        // Boosted above the usual 1.0 baseline per an explicit "make both
+        // louder" request, on top of the source files already being
+        // peak-normalized during import.
+        'blood-arrow-launch': 1.3, 'blood-arrow-impact': 1.3,
         'dimensional-rift': 1.0, 'dimension-break': 1.0,
         'egregor-nullslash-windup': 1.0, 'egregor-nullslash-slash': 1.0, 'egregor-nullslash-hit': 1.0,
         'egregor-crawl': 1.0, 'egregor-death-roar': 1.0, 'egregor-tempest-strike': 1.0,
@@ -759,6 +767,11 @@
         _makePool('new-wave',  'assets/audio/sfx/new-wave.mp3',  2);
         _makePool('yog-parry', 'assets/audio/sfx/yog-parry.mp3', 2);
         _makePool('charged-shot', 'assets/audio/sfx/charged-shot.mp3', 2);
+        // Blood Arrow (Libra): launch fires once per volley, impact fires
+        // once per landed arrow (up to 5 in quick succession), hence the
+        // deeper pool on the impact side.
+        _makePool('blood-arrow-launch', 'assets/audio/sfx/blood-arrow-launch.mp3', 2);
+        _makePool('blood-arrow-impact', 'assets/audio/sfx/blood-arrow-impact.mp3', 5);
         _makePool('wave-clear',   'assets/audio/sfx/wave-clear.mp3',   1);
         _makePool('dimensional-rift', 'assets/audio/sfx/dimensional-rift.mp3', 2);
         _makePool('dimension-break',  'assets/audio/sfx/dimension-break.mp3',  2);
@@ -798,7 +811,7 @@
         state.ambientEl  = _makeBufferLoop();
         state.ambientEl.setSrc('assets/audio/sfx/ingame.mp3');
         state.engineEl   = _makeBufferLoop();
-        state.engineEl.setSrc('assets/audio/sfx/engine.wav');
+        state.engineEl.setSrc('assets/audio/sfx/engine.mp3');
         state.laserEl    = _makeBufferLoop();
         state.laserEl.setSrc('assets/audio/sfx/laser.mp3');
         state.chargingEl = _makeBufferLoop();

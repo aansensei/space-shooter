@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v219';
+const CACHE_VERSION = 'v228';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -27,8 +27,11 @@ const CORE_FILES = [
     'assets/images/game/weapons/5-enuma-spear.png',
     'assets/images/game/effects/photokrystos-boomerang.png',
     'assets/images/game/effects/sentinel-shell.png',
+    'assets/images/game/effects/sol-arrow-primary.png',
+    'assets/images/game/effects/sol-arrow-secondary.png',
     'assets/images/game/effects/rift-void.png',
     'assets/images/game/icons/walpurgis-icon.png',
+    'assets/images/game/icons/blood-arrow-stack.png',
     'assets/images/game/enemies/marchosias-hexagon-armor.png',
     'assets/images/game/enemies/thaelis-cocoon.png',
     'js/vendor/pixi.min.js',

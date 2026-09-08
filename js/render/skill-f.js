@@ -140,7 +140,12 @@ function _drawRuyiStaff(len, w, angle, alpha, opts) {
 }
 
 function drawSkillF() {
-    const now = performance.now();
+    // Frozen while paused (see config.js) so the sweep's angle - derived
+    // from elapsed time since skillFSweepStart - stops advancing instead of
+    // spinning the cone continuously behind the pause screen (updateSkillF
+    // itself already stops running while paused, but this draw call keeps
+    // firing every frame to show the frozen scene underneath).
+    const now = _frozenNow;
     const radius = Math.max(canvas.width, canvas.height);
     const _gfx = window._gfxLevel || 0;
     // Great Sage sigil: Skill F is reskinned into the Ruyi Jingu Bang, gold
@@ -1395,6 +1400,23 @@ function _drawGreatSageReleasePrompt() {
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillText(sub, cx, cy + 10);
     ctx.restore();
+}
+
+// Great Sage's own charge vignette (shares _updateDrawChargeVignette with
+// Blood Arrow/Libra and Cancer's Riptide Surge, see js/render/skill-a.js) -
+// active while any stolen-gem effect is still in its telegraph/windup/warn
+// lead-up, gold/amber to match this sigil's own palette above.
+function _isGreatSageCharging() {
+    if (typeof _greatSageEffects === 'undefined') return false;
+    return _greatSageEffects.some(e =>
+        e.phase === 'telegraph' || e.phase === 'windup' || e.phase === 'warn' ||
+        (!e.phase && typeof e.dur === 'number' && e.timer < e.dur)
+    );
+}
+function _drawGreatSageChargeVignette() {
+    if (typeof _updateDrawChargeVignette !== 'function') return;
+    window._greatSageDripState = window._greatSageDripState || { streaks: [], wasActive: false };
+    _updateDrawChargeVignette(window._greatSageDripState, _isGreatSageCharging(), [245, 158, 11], 'spark');
 }
 
 // Skill G barrier
