@@ -476,8 +476,13 @@ function updateSolArrows(deltaTime) {
                         const _baMult = (1 + drBonus) * repeatMult;
                         // was primevalEnergy*0.20 (the Photokrystos 0-100 meter, a different
                         // "PE") - description always meant 20% of the TARGET's own Max HP
-                        // like every other sigil's %-based hits, fixed to actually do that
-                        dealDamage(enemy, { damage: explodeBase * _baMult, percentDamage: explodePct * _baMult, isTrueDamage: true, _statSrc: 'Sigil: Blood Arrow' });
+                        // like every other sigil's %-based hits, fixed to actually do that.
+                        // Only the big arrow's explosion is true damage (bypasses shield
+                        // entirely); small arrows explode as piercing damage instead - still
+                        // respects shield, but (like every other isPiercing hit) skips the
+                        // hard per-hit %MaxHP cap normal damage runs into against enemies
+                        // like Goliath's Inevitable.
+                        dealDamage(enemy, { damage: explodeBase * _baMult, percentDamage: explodePct * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         // Blood-flower bloom (red spider lily / higanbana) instead of a flat gold explosion
                         _spawnSolArrowLily(arrow.x, arrow.y, arrow.isPrimary, Math.atan2(arrow.vy, arrow.vx));
@@ -485,7 +490,9 @@ function updateSolArrows(deltaTime) {
                         window._solArrows.splice(i, 1);
                         break;
                     } else {
-                        dealDamage(enemy, { damage: 300 * dmgMult * repeatMult, _statSrc: 'Sigil: Blood Arrow' });
+                        // Pass-through hit on a non-marked enemy: piercing damage for
+                        // every arrow, big or small - never true damage, always respects shield.
+                        dealDamage(enemy, { damage: 300 * dmgMult * repeatMult, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         createParticles(arrow.x, arrow.y, 8, '#f59e0b', 2, 5);
                     }
