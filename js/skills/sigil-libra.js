@@ -187,6 +187,40 @@ function _spawnSolArrowLily(x, y, isPrimary, angleOffset) {
     _spawnSolArrowFlash(x, y, cfg.impactSize * 0.7, 'rgba(255, 180, 180, 0.95)');
 }
 
+// Libra's Thunder Orb reskin gets its OWN on-hit effect - a spreading blood
+// pool on the ground, not the arrow's own spider-lily bloom (that one stays
+// exclusive to Sol Arrow's actual explode-on-target hit). An irregular
+// blob outline (randomized per spawn) plus a few satellite droplet spatters,
+// drawn/animated separately from the lily system below.
+function _spawnBloodPoolSplat(x, y) {
+    const gfx = _solArrowGfxTier();
+    const pointCount = Math.max(6, Math.round(9 * gfx.petalMul));
+    const baseR = 16 + Math.random() * 6;
+    const points = [];
+    for (let i = 0; i < pointCount; i++) {
+        points.push({ angle: (Math.PI * 2 / pointCount) * i, r: baseR * (0.7 + Math.random() * 0.6) });
+    }
+    const droplets = [];
+    const dropletCount = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < dropletCount; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const dist = baseR * (1.1 + Math.random() * 0.9);
+        droplets.push({ x: Math.cos(a) * dist, y: Math.sin(a) * dist, r: 2 + Math.random() * 3 });
+    }
+    window._bloodPoolSplats = window._bloodPoolSplats || [];
+    window._bloodPoolSplats.push({ x, y, points, droplets, life: 0, maxLife: 90 });
+}
+
+function updateBloodPoolSplats(deltaTime) {
+    const arr = window._bloodPoolSplats;
+    if (!arr || arr.length === 0) return;
+    const dt = deltaTime / 16.67;
+    for (let i = arr.length - 1; i >= 0; i--) {
+        arr[i].life += dt;
+        if (arr[i].life >= arr[i].maxLife) arr.splice(i, 1);
+    }
+}
+
 function updateSolArrowParticles(deltaTime) {
     const arr = window._solArrowParticles;
     if (!arr || arr.length === 0) return;
@@ -329,7 +363,17 @@ function updateSolArrows(deltaTime) {
                 _spawnSolArrowFlash(player.x, player.y, 90 * glowT, 'rgba(180, 0, 10, 0.2)');
             }
             if (now - arrow.windupStart >= arrow.windupDuration) {
-                if (!enemies.includes(arrow.target) || arrow.target.hp <= 0) {
+                // Target can die mid-windup (500ms is plenty of time for
+                // something else to finish it off). Don't just eat the
+                // stack - a dead enemy object still holds its last real x/y
+                // (splicing it out of `enemies` doesn't erase its own
+                // fields), so fire the shot toward where it last stood
+                // instead of silently deleting it. It won't get the big
+                // explode-on-target hit since nothing in `enemies` still
+                // equals arrow.target, but it can still pierce through
+                // whatever else is standing in that direction rather than
+                // wasting the whole volley slot.
+                if (!arrow.target || !Number.isFinite(arrow.target.x) || !Number.isFinite(arrow.target.y)) {
                     window._solArrows.splice(i, 1);
                     continue;
                 }
@@ -443,5 +487,6 @@ function updateSolArrows(deltaTime) {
     // spawned them is long gone.
     updateSolArrowParticles(deltaTime);
     updateSolArrowLilies(deltaTime);
+    updateBloodPoolSplats(deltaTime);
 }
 

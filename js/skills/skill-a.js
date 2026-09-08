@@ -140,6 +140,14 @@ function updateSkillA(deltaTime) {
             rebalanceSkillAOrbs();
         }
     }
+    // Libra (Blood Arrow) reskins every Thunder Orb - orbiting, homing, or
+    // piercing - in the same ink-wash blood language as Sol Arrow itself:
+    // an ink-red trail while it flies, a spreading blood-pool splat on hit
+    // (its own effect, not Sol Arrow's spider-lily bloom - see
+    // _spawnBloodPoolSplat in sigil-libra.js). Gameplay (targeting, damage,
+    // pierce) is completely untouched; this only ever adds visuals on top.
+    const _libraBloodOrbs = typeof _hasBuff === 'function' && _hasBuff('mui_ten_apollo');
+
     for (let i = skillAOrbs.length - 1; i >= 0; i--) {
         let orb = skillAOrbs[i];
         // When player is silenced, orbs stop targeting and return to orbit
@@ -154,6 +162,14 @@ function updateSkillA(deltaTime) {
             orb.x += orb._pvx * dt;
             orb.y += orb._pvy * dt;
             particles.push({ x: orb.x, y: orb.y, vx: -orb._pvx * 0.1, vy: -orb._pvy * 0.1, lifetime: 200, maxLifetime: 200, size: 4, color: 'rgba(0, 200, 255, 0.7)' });
+            if (_libraBloodOrbs && typeof _spawnSolArrowParticle === 'function') {
+                _spawnSolArrowParticle({
+                    x: orb.x, y: orb.y, vx: -orb._pvx * 0.12, vy: -orb._pvy * 0.12,
+                    ax: 0, ay: 0, drag: 0.9, type: 'tendril', scale: 2.2,
+                    color: 'rgba(200, 10, 20, 0.85)', life: 0, maxLife: 16 + Math.random() * 10,
+                    angle: Math.atan2(orb._pvy, orb._pvx),
+                });
+            }
             if (orb.x < -100 || orb.x > canvas.width + 100 || orb.y < -100 || orb.y > canvas.height + 100) {
                 skillAOrbs.splice(i, 1);
                 updateDefensiveOrbs();
@@ -170,6 +186,9 @@ function updateSkillA(deltaTime) {
                     if (_pe.hp > 0) applyMarchosiasSkillASplit(_pe, { damage: 100 + Math.ceil((_pe.maxHp - _pe.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                     spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 8, percentDamage: 0.020 });
                     addExplosion(orb.x, orb.y, 20, 'cyan');
+                    if (_libraBloodOrbs && typeof _spawnBloodPoolSplat === 'function') {
+                        _spawnBloodPoolSplat(orb.x, orb.y);
+                    }
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
                 }
             }
@@ -191,6 +210,14 @@ function updateSkillA(deltaTime) {
                 x: orb.x, y: orb.y, vx: -(dx / dist) * 2, vy: -(dy / dist) * 2,
                 lifetime: 200, maxLifetime: 200, size: 4, color: orb.isDefensive ? 'rgba(255, 255, 0, 0.7)' : 'rgba(0, 255, 255, 0.7)'
             });
+            if (_libraBloodOrbs && typeof _spawnSolArrowParticle === 'function') {
+                _spawnSolArrowParticle({
+                    x: orb.x, y: orb.y, vx: -(dx / dist) * 2.4, vy: -(dy / dist) * 2.4,
+                    ax: 0, ay: 0, drag: 0.9, type: 'tendril', scale: 2.4,
+                    color: 'rgba(200, 10, 20, 0.85)', life: 0, maxLife: 16 + Math.random() * 10,
+                    angle: Math.atan2(dy, dx),
+                });
+            }
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
                 const _preTotal = orb.target.hp + (orb.target.shield || 0);
@@ -202,6 +229,9 @@ function updateSkillA(deltaTime) {
 
                 spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 8, percentDamage: 0.020 });
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
+                if (_libraBloodOrbs && typeof _spawnBloodPoolSplat === 'function') {
+                    _spawnBloodPoolSplat(orb.x, orb.y);
+                }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
                 if (_didDmg) spawnDimensionalRift(orb.x, orb.y);
                 if (_hasBuff('xuyen_pha')) {
