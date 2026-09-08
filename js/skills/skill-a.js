@@ -181,9 +181,14 @@ function updateSkillA(deltaTime) {
                 if (orb._pierceHits.has(_pe)) continue;
                 if (Math.hypot(_pe.x - orb.x, _pe.y - orb.y) < _pe.size / 2 + orb.size) {
                     orb._pierceHits.add(_pe);
-                    applyMarchosiasSkillASplit(_pe, { damage: 200, percentDamage: 0.20, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
-                    // Sát thương CHUẨN (true damage) thêm: 100 base + 15% HP đã mất của mục tiêu
-                    if (_pe.hp > 0) applyMarchosiasSkillASplit(_pe, { damage: 100 + Math.ceil((_pe.maxHp - _pe.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                    // This whole block only ever runs on an Astral-Pierce orb
+                    // (orb._pierced is only set when xuyen_pha is equipped -
+                    // see below), so the +20% damage bonus is baked directly
+                    // into these base numbers rather than gated separately:
+                    // 200*1.2=240, 0.20*1.2=0.24, 100*1.2=120, 0.15*1.2=0.18.
+                    applyMarchosiasSkillASplit(_pe, { damage: 240, percentDamage: 0.24, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                    // Sát thương CHUẨN (true damage) thêm: 120 base + 18% HP đã mất của mục tiêu
+                    if (_pe.hp > 0) applyMarchosiasSkillASplit(_pe, { damage: 120 + Math.ceil((_pe.maxHp - _pe.hp) * 0.18), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                     spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 8, percentDamage: 0.020 });
                     addExplosion(orb.x, orb.y, 20, 'cyan');
                     if (_libraBloodOrbs && typeof _spawnBloodPoolSplat === 'function') {

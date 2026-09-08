@@ -260,20 +260,20 @@ function updateSolArrowLilies(deltaTime) {
     }
 }
 
-function _queueSolArrowOne(isPrimary, marked) {
+function _queueSolArrowOne(isPrimary, marked, volleyHits) {
     if (!window._solArrows) window._solArrows = [];
     // Per-arrow phase offset so the body's liquid wobble (see drawSolArrows)
     // undulates independently instead of every arrow breathing in sync.
     const bloodPhase = Math.random() * Math.PI * 2;
     if (!marked) {
         // No enemy on screen yet — bank the shot, it fires the instant one appears
-        window._solArrows.push({ state: 'pending', isPrimary, bloodPhase });
+        window._solArrows.push({ state: 'pending', isPrimary, bloodPhase, volleyHits: volleyHits || new Map() });
         return;
     }
     window._solArrows.push({
         state: 'windup', windupStart: performance.now(), windupDuration: 500,
         target: marked, x: player.x, y: player.y, vx: 0, vy: 0,
-        hitEnemies: new Set(), isPrimary, bloodPhase,
+        hitEnemies: new Set(), isPrimary, bloodPhase, volleyHits: volleyHits || new Map(),
     });
     if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-orb-lock');
 }
@@ -283,14 +283,18 @@ function _queueSolArrowOne(isPrimary, marked) {
 // different enemy from the big one and from every other small arrow already
 // queued this same volley (still biased toward denser clusters among
 // whatever's left to pick from) - only repeats a target once every enemy on
-// screen has already been marked once.
+// screen has already been marked once. `volleyHits` is one Map shared by all
+// 5 arrows in this same volley (enemy -> hit count so far), so a second hit
+// on the same enemy from ANY of these 5 arrows deals reduced damage - see
+// the -40% discount applied where it's read in updateSolArrows().
 function _queueSolArrow() {
+    const volleyHits = new Map();
     const primary = _pickSolArrowPrimaryTarget();
-    _queueSolArrowOne(true, primary);
+    _queueSolArrowOne(true, primary, volleyHits);
     const used = primary ? [primary] : [];
     for (let i = 0; i < 4; i++) {
         const target = primary ? _pickSolArrowSecondaryTarget(used) : null;
-        _queueSolArrowOne(false, target);
+        _queueSolArrowOne(false, target, volleyHits);
         if (target) used.push(target);
     }
 }
@@ -456,10 +460,18 @@ function updateSolArrows(deltaTime) {
                 if (arrow.hitEnemies.has(enemy)) continue;
                 if (Math.hypot(enemy.x - arrow.x, enemy.y - arrow.y) < enemy.size / 2 + hitRadius) {
                     arrow.hitEnemies.add(enemy);
+                    // Anti-focus discount: the 1st arrow (from any of the 5 in
+                    // this volley) to hit a given enemy deals full damage,
+                    // every hit after that on the SAME enemy deals -40% -
+                    // stops a single juicy target standing in multiple arrows'
+                    // path from eating 5 full hits.
+                    const priorHits = arrow.volleyHits.get(enemy) || 0;
+                    const repeatMult = priorHits > 0 ? 0.6 : 1.0;
+                    arrow.volleyHits.set(enemy, priorHits + 1);
                     if (enemy === arrow.target) {
                         const estDR = _estimateSolArrowDR(enemy);
                         const drBonus = Math.min(1.0, Math.floor(estDR * 100) * 0.02);
-                        const _baMult = (1 + drBonus) * dmgMult;
+                        const _baMult = (1 + drBonus) * dmgMult * repeatMult;
                         // was primevalEnergy*0.20 (the Photokrystos 0-100 meter, a different
                         // "PE") - description always meant 20% of the TARGET's own Max HP
                         // like every other sigil's %-based hits, fixed to actually do that
@@ -471,7 +483,7 @@ function updateSolArrows(deltaTime) {
                         window._solArrows.splice(i, 1);
                         break;
                     } else {
-                        dealDamage(enemy, { damage: 300 * dmgMult, _statSrc: 'Sigil: Blood Arrow' });
+                        dealDamage(enemy, { damage: 300 * dmgMult * repeatMult, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         createParticles(arrow.x, arrow.y, 8, '#f59e0b', 2, 5);
                     }
