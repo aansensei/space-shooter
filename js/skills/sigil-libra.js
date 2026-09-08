@@ -453,7 +453,9 @@ function updateSolArrows(deltaTime) {
                 }
             }
 
-            const dmgMult = arrow.isPrimary ? 1 : 0.60;
+            const dmgMult = arrow.isPrimary ? 1 : 0.60; // pierce-hit multiplier only
+            const explodeBase = arrow.isPrimary ? 400 : 160;
+            const explodePct = arrow.isPrimary ? 0.20 : 0.105;
             const hitRadius = arrow.isPrimary ? 9.2 : 8;
             for (const enemy of enemies) {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0) continue;
@@ -471,11 +473,11 @@ function updateSolArrows(deltaTime) {
                     if (enemy === arrow.target) {
                         const estDR = _estimateSolArrowDR(enemy);
                         const drBonus = Math.min(1.0, Math.floor(estDR * 100) * 0.02);
-                        const _baMult = (1 + drBonus) * dmgMult * repeatMult;
+                        const _baMult = (1 + drBonus) * repeatMult;
                         // was primevalEnergy*0.20 (the Photokrystos 0-100 meter, a different
                         // "PE") - description always meant 20% of the TARGET's own Max HP
                         // like every other sigil's %-based hits, fixed to actually do that
-                        dealDamage(enemy, { damage: 400 * _baMult, percentDamage: 0.20 * _baMult, isTrueDamage: true, _statSrc: 'Sigil: Blood Arrow' });
+                        dealDamage(enemy, { damage: explodeBase * _baMult, percentDamage: explodePct * _baMult, isTrueDamage: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         // Blood-flower bloom (red spider lily / higanbana) instead of a flat gold explosion
                         _spawnSolArrowLily(arrow.x, arrow.y, arrow.isPrimary, Math.atan2(arrow.vy, arrow.vx));
