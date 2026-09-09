@@ -397,7 +397,608 @@ function _makeFallingStar(W, H, initial) {
     };
 }
 
+// Commissioned Van Gogh "Starry Night" painting, drawn at low opacity as a
+// textured base layer under the procedural swirls/stars below. Falls back
+// to the procedural layers alone (already a complete scene on their own)
+// until this file actually exists on disk.
+const _yogDomainStarryImg = new Image();
+_yogDomainStarryImg.src = 'assets/images/game/effects/yog-sothoth-starry-night.jpg';
+_yogDomainStarryImg.decode().catch(() => {});
+
+// Yog-Sothoth's domain, painted as a living Van Gogh "The Starry Night":
+// thick swirling brushstroke currents, glowing stars with painterly halo
+// rings, all in cobalt blue and gold. FULL gets the full scene; MED keeps
+// the same elements at a lighter density. Boundary ring, title card and
+// player core burst share the classic version's own math (elapsed/
+// currentDomainRadius) so the domain's actual expansion timing reads
+// identically either way.
+function _drawYogSothothDomainMythos() {
+    const now = performance.now();
+    const elapsed = now - skillShiftChargeStart;
+    const maxRadius = Math.hypot(canvas.width, canvas.height);
+    const expandT = Math.min(elapsed / 600, 1);
+    const easeExpand = 1 - Math.pow(1 - expandT, 3);
+    const currentDomainRadius = maxRadius * easeExpand;
+    const domainFull = expandT >= 1;
+    const cx = player.x, cy = player.y;
+    // The clip mask (below) is anchored to the player and expands from them,
+    // same as always - but the painting/effects inside it are anchored to a
+    // FIXED screen point instead. Anchoring them to cx/cy too used to mean
+    // the whole backdrop re-centered on the player every frame; once the
+    // player drifted toward an edge, the mask (which reaches the full canvas
+    // diagonal once expanded) revealed area the backdrop had never actually
+    // been painted into, showing a blank half-screen. A fixed backdrop with
+    // a moving "window" (the mask) over it never runs out of canvas.
+    const bgCx = canvas.width / 2, bgCy = canvas.height / 2;
+    const isFull = _gfxLevel === 0;
+    // fxIn ramps every effect layer in together over the first 300ms instead
+    // of most of them waiting behind domainFull (600ms) to pop in all at
+    // once - the expanding clip mask already handles hiding what shouldn't
+    // be visible yet, so there's no need for a second, more abrupt gate.
+    const fxIn = Math.min(1, elapsed / 300);
+    const breathe = (0.94 + 0.06 * Math.sin(now / 4000)) * fxIn;
+
+    ctx.save();
+
+    // Cobalt-blue Starry Night sky, not a flat purple wash.
+    ctx.beginPath();
+    ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2);
+    const voidGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, currentDomainRadius);
+    voidGrad.addColorStop(0, 'rgba(15,35,80,0.82)');
+    voidGrad.addColorStop(0.55, 'rgba(10,20,50,0.90)');
+    voidGrad.addColorStop(1, 'rgba(5,10,25,0.97)');
+    ctx.fillStyle = voidGrad;
+    ctx.fill();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2);
+    ctx.clip();
+
+    // 0. Painted Starry Night base layer, low opacity. Sized off maxRadius
+    // (the screen's own diagonal, a fixed value) with just a small safety
+    // margin for the rotation, NOT off currentDomainRadius (which is that
+    // same diagonal already, so squaring it up further here used to blow
+    // the image up to ~5x the screen and read as an extreme zoomed-in crop
+    // instead of the whole painting). A pure rotation around its own pivot
+    // barely moves anything near that pivot (zero displacement right at the
+    // center), reading as static - orbiting the image's own center on a
+    // small radius on top of the rotation keeps the whole frame visibly
+    // flowing, not just its outer edge.
+    if (_yogDomainStarryImg.complete && _yogDomainStarryImg.naturalWidth) {
+        const imgD = maxRadius * 1.1;
+        const driftAngle = now / 22000;
+        const driftR = maxRadius * 0.05;
+        ctx.save();
+        ctx.translate(bgCx + Math.cos(driftAngle) * driftR, bgCy + Math.sin(driftAngle) * driftR);
+        ctx.rotate(now / 30000);
+        ctx.globalAlpha = (isFull ? 0.48 : 0.40) * breathe;
+        ctx.drawImage(_yogDomainStarryImg, -imgD / 2, -imgD / 2, imgD, imgD);
+        ctx.restore();
+    }
+
+    // 1. Void brushstroke texture: short curved dabs standing in for the
+    // canvas texture of the painting itself, not a flat fill.
+    {
+        const dabCount = isFull ? 150 : 50;
+        for (let i = 0; i < dabCount; i++) {
+            const p1 = (Math.sin(i * 11.1) + 1) / 2;
+            const p2 = (Math.sin(i * 22.2) + 1) / 2;
+            const r = p1 * maxRadius;
+            const a = p2 * Math.PI * 2 + (now / 35000);
+            const dabX = bgCx + Math.cos(a) * r;
+            const dabY = bgCy + Math.sin(a) * r;
+            const dabAngle = a + Math.PI / 2 + Math.PI / 8;
+
+            ctx.save();
+            ctx.translate(dabX, dabY);
+            ctx.rotate(dabAngle);
+
+            const twinkle = (Math.sin(now / 800 + i) + 1) / 2;
+            ctx.globalAlpha = (0.15 + 0.15 * twinkle) * breathe;
+
+            const colors = ['#1a2b5a', '#294382', '#0d1633', '#253e7a'];
+            ctx.strokeStyle = colors[i % 4];
+            ctx.lineWidth = 4 + p2 * 6;
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            const len = 15 + p1 * 20;
+            ctx.moveTo(-len / 2, 0);
+            ctx.quadraticCurveTo(0, -len * 0.2, len / 2, 0);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+    }
+
+    // 2. Field of small stars, denser toward the edge.
+    {
+        const smallStarCount = isFull ? 120 : 40;
+        ctx.save();
+        for (let i = 0; i < smallStarCount; i++) {
+            const p1 = (Math.sin(i * 14.5) + 1) / 2;
+            const p2 = (Math.sin(i * 39.1) + 1) / 2;
+            const rDist = Math.pow(p1, 0.4) * maxRadius;
+            const angle = p2 * Math.PI * 2 + now / 45000;
+            const sx = bgCx + Math.cos(angle) * rDist;
+            const sy = bgCy + Math.sin(angle) * rDist;
+            const twinkle = (Math.sin(now / (200 + p1 * 500) + p2 * Math.PI * 2) + 1) / 2;
+            ctx.globalAlpha = (0.2 + 0.8 * twinkle) * breathe;
+            if (i % 5 === 0) ctx.fillStyle = '#ffdd66';
+            else if (i % 7 === 0) ctx.fillStyle = '#aaccff';
+            else ctx.fillStyle = '#ffffff';
+            const size = 1 + p2 * (isFull ? 2 : 1.5);
+            ctx.beginPath();
+            ctx.arc(sx, sy, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // 2b. Flowing current motes: bright particles that actually travel
+    // inward along spiral streams (each mote's own radius/angle advance
+    // with `now`), instead of a static shape that only rotates as a rigid
+    // whole - this is the part that reads as real flow/motion at any zoom.
+    {
+        const moteCount = isFull ? 90 : 32;
+        ctx.save();
+        for (let i = 0; i < moteCount; i++) {
+            const p1 = (Math.sin(i * 17.3) + 1) / 2;
+            const p2 = (Math.sin(i * 51.7) + 1) / 2;
+            const cycle = 5000 + p1 * 6000;
+            const phase = ((now + p2 * cycle) % cycle) / cycle; // 0 at the edge, 1 at the core
+            const startR = maxRadius * (0.5 + p1 * 0.6);
+            const rr = startR * (1 - phase);
+            const spiralTurns = 2.2 + p2 * 2.2;
+            const angle = p2 * Math.PI * 2 + phase * Math.PI * 2 * spiralTurns;
+            const mx = bgCx + Math.cos(angle) * rr;
+            const my = bgCy + Math.sin(angle) * rr * 0.85;
+            const moteAlpha = Math.sin(phase * Math.PI) * 0.9 * breathe;
+            const moteSize = (isFull ? 1.4 : 1.1) + p1 * 2.2;
+            ctx.globalAlpha = moteAlpha;
+            ctx.fillStyle = i % 4 === 0 ? '#ffe08c' : '#8cbcfc';
+            if (!_mobPerf) { ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6; }
+            ctx.beginPath(); ctx.arc(mx, my, moteSize, 0, Math.PI * 2); ctx.fill();
+
+            // Short trailing streak along the direction of travel, sells the flow
+            const trailAng = angle - Math.PI / 2 * Math.sign(spiralTurns);
+            const trailLen = moteSize * 3.5;
+            ctx.globalAlpha = moteAlpha * 0.5;
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.lineWidth = moteSize * 0.6;
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.lineTo(mx + Math.cos(trailAng) * trailLen, my + Math.sin(trailAng) * trailLen * 0.85);
+            ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // 3. Swirling sky currents: thick overlapping brush-dab arms curling
+    // outward, standing in for the warped-space rings.
+    {
+        const arms = isFull ? 3 : 1;
+        for (let arm = 0; arm < arms; arm++) {
+            ctx.save();
+            ctx.translate(bgCx, bgCy);
+            const armRot = now / (14000 + arm * 2000);
+            ctx.rotate(armRot + (Math.PI * 2 / arms) * arm);
+
+            const strokeCount = isFull ? 60 : 30;
+            for (let i = 0; i < strokeCount; i++) {
+                // Starts at 0.12 instead of 0 so every arm's dabs don't all
+                // converge into one dense overlapping knot right at the origin.
+                const t = 0.12 + (i / strokeCount) * 0.88;
+                const angle = t * Math.PI * 2.2;
+                const radius = t * maxRadius * 1.1;
+                const p1 = (Math.sin(i * 12.3) + 1) / 2;
+                const p2 = (Math.sin(i * 45.6) + 1) / 2;
+                const rOffset = (p1 - 0.5) * (maxRadius * 0.3);
+                const finalR = Math.max(0, radius + rOffset);
+                const px = Math.cos(angle) * finalR;
+                const py = Math.sin(angle) * finalR;
+
+                ctx.save();
+                ctx.translate(px, py);
+                const tangent = angle + Math.PI / 2 + Math.PI / 6;
+                ctx.rotate(tangent + (p2 - 0.5) * 0.5);
+
+                // Mostly cobalt blue, with an occasional warm ochre stroke
+                // mixed in (real impasto Starry Nights always bleed a little
+                // warmth into the blue currents, never pure monochrome).
+                const colors = ['#295f9c', '#3c7cd4', '#599df2', '#8cbcfc', '#153663', '#4da6ff'];
+                const warmColors2 = ['#c99a4a', '#e0b25e'];
+                ctx.strokeStyle = (i % 9 === 0) ? warmColors2[Math.floor(i / 9) % 2] : colors[i % colors.length];
+                ctx.lineWidth = 10 + p1 * 14;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = (0.5 + 0.4 * Math.sin(now / 600 + i)) * breathe;
+                if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10; }
+
+                const len = 35 + p2 * 45;
+                ctx.beginPath();
+                ctx.moveTo(-len / 2, 0);
+                ctx.quadraticCurveTo(0, -len * 0.3, len / 2, 0);
+                ctx.stroke();
+
+                // Impasto highlight: a thin bright core down the middle of
+                // the stroke, like paint caught in raking light.
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = 'rgba(220,235,255,0.55)';
+                ctx.lineWidth = Math.max(1, (10 + p1 * 14) * 0.28);
+                ctx.beginPath();
+                ctx.moveTo(-len * 0.3, -len * 0.06);
+                ctx.quadraticCurveTo(0, -len * 0.28, len * 0.3, -len * 0.06);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+    }
+
+    // 3b. Great Spiral centerpiece: one big continuous painted spiral arm,
+    // the single dominant swirl the real painting is built around, distinct
+    // from the many small scattered dab-arms above.
+    if (isFull) {
+        // Offset from canvas dimensions, not maxRadius (the diagonal),
+        // so the anchor point itself always stays on-screen at any aspect ratio.
+        const gsCx = bgCx + canvas.width * 0.09, gsCy = bgCy + canvas.height * 0.03;
+        ctx.save();
+        ctx.translate(gsCx, gsCy);
+        ctx.rotate(now / 26000);
+
+        const turns = 2.3, maxR = maxRadius * 0.32, segs = 90;
+        const spiralPath = (rMul) => {
+            ctx.beginPath();
+            for (let s = 0; s <= segs; s++) {
+                const t = s / segs;
+                const a = t * Math.PI * 2 * turns;
+                const r = t * maxR * rMul;
+                const px = Math.cos(a) * r, py = Math.sin(a) * r * 0.9;
+                s === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+        };
+
+        ctx.globalAlpha = 0.5 * breathe;
+        ctx.strokeStyle = '#2b4f8c';
+        ctx.lineWidth = maxRadius * 0.018;
+        ctx.lineCap = 'round';
+        if (!_mobPerf) { ctx.shadowColor = '#3f6fc4'; ctx.shadowBlur = 14; }
+        spiralPath(1);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(170,205,255,0.5)';
+        ctx.lineWidth = Math.max(1.5, maxRadius * 0.006);
+        spiralPath(0.92);
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.7 * breathe;
+        ctx.fillStyle = '#ffdf9a';
+        if (!_mobPerf) { ctx.shadowColor = '#ffdf9a'; ctx.shadowBlur = 16; }
+        ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.012, 0, Math.PI * 2); ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // 4. Huge glowing stars with thick, dashed painterly halo rings, one
+    // dedicated cool-toned star among the warm ones as an accent.
+    {
+        const bigStarCount = isFull ? 4 : 2;
+        for (let i = 0; i < bigStarCount; i++) {
+            const p1 = (Math.sin(i * 7.1) + 1) / 2;
+            const p2 = (Math.sin(i * 13.2) + 1) / 2;
+            const r = maxRadius * (0.25 + p1 * 0.55);
+            const angle = (i * Math.PI * 2 / bigStarCount) + p2 + now / (18000 + i * 4000);
+            const sx = bgCx + Math.cos(angle) * r;
+            const sy = bgCy + Math.sin(angle) * r;
+
+            ctx.save();
+            ctx.translate(sx, sy);
+
+            const ringCount = isFull ? 5 : 3;
+            const isCool = (i === 1);
+
+            for (let rIdx = ringCount; rIdx > 0; rIdx--) {
+                const ringScale = rIdx * (isFull ? 20 : 16);
+                ctx.save();
+                ctx.rotate(now / (2500 + rIdx * 400) * (rIdx % 2 === 0 ? 1 : -1));
+
+                const tOpacity = 0.9 - (rIdx / ringCount) * 0.7;
+                ctx.globalAlpha = tOpacity * breathe;
+
+                if (isCool) {
+                    const coolColors = ['#ffffff', '#bbddff', '#77aaff', '#4477ee', '#2255cc'];
+                    ctx.strokeStyle = coolColors[(rIdx - 1) % coolColors.length];
+                } else {
+                    const warmColors = ['#ffffff', '#ffeedd', '#ffcc55', '#ffaa22', '#ee7711'];
+                    ctx.strokeStyle = warmColors[(rIdx - 1) % warmColors.length];
+                }
+
+                ctx.lineWidth = 7 + Math.sin(now / 500 + i + rIdx) * 3;
+                if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 12; }
+
+                ctx.setLineDash([14 + rIdx * 6, 8 + rIdx * 4]);
+                ctx.lineCap = 'round';
+
+                const segs = 24;
+                ctx.beginPath();
+                for (let s = 0; s <= segs; s++) {
+                    const a = (s / segs) * Math.PI * 2;
+                    const dist = ringScale + Math.sin(a * 4 + now / 700 + i) * (rIdx * 1.5);
+                    const px = Math.cos(a) * dist;
+                    const py = Math.sin(a) * dist;
+                    if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 8 + p1 * 5, 0, Math.PI * 2);
+            ctx.fillStyle = isCool ? '#ffffff' : '#ffffee';
+            if (!_mobPerf) { ctx.shadowColor = isCool ? '#aaccff' : '#ffdd66'; ctx.shadowBlur = 25; }
+            ctx.fill();
+
+            // Radiating light spikes, a classic star-burst so the core reads
+            // as a light source rather than a flat dot.
+            const rayColor = isCool ? '#cfe4ff' : '#ffe6a0';
+            const rayCount = isFull ? 8 : 4;
+            const rayPulse = 0.6 + 0.4 * Math.sin(now / 450 + i);
+            ctx.save();
+            ctx.rotate(now / 6000 * (isCool ? -1 : 1));
+            ctx.strokeStyle = rayColor;
+            ctx.lineCap = 'round';
+            for (let ry = 0; ry < rayCount; ry++) {
+                const ra = (ry / rayCount) * Math.PI * 2;
+                const rLen = (26 + p2 * 18) * (isFull ? 1 : 0.7) * rayPulse;
+                ctx.globalAlpha = (ry % 2 === 0 ? 0.6 : 0.35) * rayPulse * breathe;
+                ctx.lineWidth = ry % 2 === 0 ? 2.5 : 1.3;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(ra) * (10 + p1 * 5), Math.sin(ra) * (10 + p1 * 5));
+                ctx.lineTo(Math.cos(ra) * rLen, Math.sin(ra) * rLen);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Orbiting sparkle motes, small shimmer circling the star.
+            if (isFull) {
+                const sparkleCount = 6;
+                for (let sp = 0; sp < sparkleCount; sp++) {
+                    const spAngle = (sp / sparkleCount) * Math.PI * 2 + now / (1600 + sp * 90);
+                    const spR = 30 + (sp % 3) * 10;
+                    const spx = Math.cos(spAngle) * spR, spy = Math.sin(spAngle) * spR * 0.8;
+                    const spTwinkle = (Math.sin(now / 250 + sp * 2) + 1) / 2;
+                    ctx.globalAlpha = spTwinkle * 0.8 * breathe;
+                    ctx.fillStyle = rayColor;
+                    ctx.beginPath(); ctx.arc(spx, spy, 1.4, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+
+    // 4c. Crescent moon, the Starry Night's signature piece: a single fixed
+    // glowing feature distinct from the round stars, with its own soft halo.
+    if (isFull) {
+        // Offset from canvas dimensions, not maxRadius (the diagonal),
+        // so the anchor point itself always stays on-screen at any aspect ratio.
+        const moonX = bgCx - canvas.width * 0.22, moonY = bgCy - canvas.height * 0.26;
+        const moonR = maxRadius * 0.075;
+        const moonPulse = 0.85 + 0.15 * Math.sin(now / 2200);
+
+        ctx.save();
+        ctx.translate(moonX, moonY);
+
+        // Soft halo behind the crescent
+        const haloG = ctx.createRadialGradient(0, 0, moonR * 0.5, 0, 0, moonR * 3.2);
+        haloG.addColorStop(0, `rgba(255,238,190,${0.32 * breathe * moonPulse})`);
+        haloG.addColorStop(1, 'rgba(255,238,190,0)');
+        ctx.fillStyle = haloG;
+        ctx.beginPath(); ctx.arc(0, 0, moonR * 3.2, 0, Math.PI * 2); ctx.fill();
+
+        // Dashed painterly rings, same language as the big stars' halos
+        for (let rIdx = 3; rIdx > 0; rIdx--) {
+            ctx.save();
+            ctx.rotate(now / (3000 + rIdx * 500) * (rIdx % 2 === 0 ? 1 : -1));
+            ctx.globalAlpha = (0.55 - rIdx * 0.12) * breathe;
+            ctx.strokeStyle = '#ffe9b0';
+            ctx.lineWidth = 4;
+            if (!_mobPerf) { ctx.shadowColor = '#ffe9b0'; ctx.shadowBlur = 14; }
+            ctx.setLineDash([10 + rIdx * 5, 6 + rIdx * 3]);
+            ctx.beginPath(); ctx.arc(0, 0, moonR * (1.5 + rIdx * 0.35), 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+
+        // The crescent body itself, cut via two overlapping arcs
+        ctx.globalAlpha = breathe;
+        ctx.fillStyle = '#fff3d0';
+        if (!_mobPerf) { ctx.shadowColor = '#ffdf8a'; ctx.shadowBlur = 22; }
+        ctx.beginPath();
+        ctx.arc(0, 0, moonR, Math.PI * 0.5, Math.PI * 1.5, false);
+        ctx.arc(moonR * 0.55, 0, moonR * 0.92, Math.PI * 1.5, Math.PI * 0.5, true);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // 4d. A hand-painted starburst: unlike the halo-ring stars above (smooth
+    // dashed circles), this one is actually built from many short individual
+    // brush dashes radiating outward at uneven lengths/angles, matching how
+    // the smaller stars are textured in the real reference painting.
+    if (isFull) {
+        // Offset from canvas dimensions directly, not maxRadius (the full
+        // diagonal - a fraction of that easily overshoots past the visible
+        // canvas height and put this star below the bottom edge, unseen).
+        const bsX = bgCx - canvas.width * 0.16, bsY = bgCy + canvas.height * 0.27;
+        const dashCount = 22;
+        ctx.save();
+        ctx.translate(bsX, bsY);
+        ctx.rotate(now / 15000);
+        for (let d = 0; d < dashCount; d++) {
+            const p1 = (Math.sin(d * 19.7) + 1) / 2;
+            const p2 = (Math.sin(d * 63.4) + 1) / 2;
+            const da = (d / dashCount) * Math.PI * 2 + (p1 - 0.5) * 0.35;
+            const inner = maxRadius * 0.006 + p2 * maxRadius * 0.004;
+            const outer = inner + maxRadius * (0.012 + p1 * 0.02);
+            ctx.save();
+            ctx.rotate(da);
+            ctx.globalAlpha = (0.55 + 0.35 * p2) * breathe;
+            ctx.strokeStyle = d % 6 === 0 ? '#bfe3ff' : '#ffe9b0';
+            ctx.lineWidth = 2 + p1 * 2.5;
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5; }
+            ctx.beginPath();
+            ctx.moveTo(inner, 0);
+            ctx.lineTo(outer, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.globalAlpha = 0.9 * breathe;
+        ctx.fillStyle = '#fff6de';
+        if (!_mobPerf) { ctx.shadowColor = '#ffe9b0'; ctx.shadowBlur = 18; }
+        ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.01, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+
+    // 4e. Shooting stars: two bright comets streak across the sky on
+    // staggered, independent cycles, alternating gold/blue tails for extra
+    // color variety, drawn last so they read on top of everything else.
+    {
+        const comets = [
+            { cycle: 7000, offset: 0, headColor: '255,255,255', tailColor: '255,224,150' },
+            { cycle: 9000, offset: 4200, headColor: '210,230,255', tailColor: '140,190,255' },
+        ];
+        for (const comet of comets) {
+            const t = (now + comet.offset) % comet.cycle;
+            const shootT = t / comet.cycle;
+            if (shootT >= 0.25) continue;
+            const shootSeed = Math.floor((now + comet.offset) / comet.cycle);
+            const travel = shootT / 0.25;
+            const rnd = (n) => Math.abs(Math.sin(shootSeed * 12.9898 + n * 78.233) % 1);
+            const pathAngle = rnd(comet.offset + 1) * Math.PI * 2;
+            const startR = maxRadius * 0.05, endR = maxRadius * 0.85;
+            const curR = startR + (endR - startR) * travel;
+            const hx = bgCx + Math.cos(pathAngle) * curR;
+            const hy = bgCy + Math.sin(pathAngle) * curR * 0.8;
+            const tailLen = maxRadius * 0.12;
+            const tailAngle = pathAngle + Math.PI;
+            const tx = hx + Math.cos(tailAngle) * tailLen, ty = hy + Math.sin(tailAngle) * tailLen * 0.8;
+            const fadeAlpha = Math.sin(travel * Math.PI);
+
+            ctx.save();
+            ctx.globalAlpha = fadeAlpha * breathe;
+            const grad = ctx.createLinearGradient(hx, hy, tx, ty);
+            grad.addColorStop(0, `rgba(${comet.headColor},0.95)`);
+            grad.addColorStop(1, `rgba(${comet.tailColor},0)`);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = `rgb(${comet.headColor})`; ctx.shadowBlur = 10; }
+            ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+            ctx.fillStyle = `rgb(${comet.headColor})`;
+            ctx.shadowBlur = _mobPerf ? 0 : 14;
+            ctx.beginPath(); ctx.arc(hx, hy, 2.2, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+
+    ctx.restore(); // undo domain clip
+
+    // 5. Boundary wall, recolored cobalt/gold to match the new palette.
+    if (!domainFull) {
+        ctx.lineWidth = 16;
+        ctx.strokeStyle = 'rgba(50,100,255,0.9)';
+        if (!_mobPerf) { ctx.shadowColor = '#3264ff'; ctx.shadowBlur = 46; }
+        ctx.beginPath(); ctx.arc(cx, cy, currentDomainRadius, 0, Math.PI * 2); ctx.stroke();
+        const shockR = currentDomainRadius + 12 * (1 - expandT);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = `rgba(255,255,255,${(1 - expandT) * 0.9})`;
+        if (!_mobPerf) ctx.shadowBlur = 12;
+        if (shockR > 0) { ctx.beginPath(); ctx.arc(cx, cy, shockR, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.shadowBlur = 0;
+    } else {
+        const wallPulse = 0.6 + 0.4 * Math.sin(now / 280);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(now / 8000);
+        const wallSegs = 24;
+        for (let i = 0; i < wallSegs; i++) {
+            const wa = (i / wallSegs) * Math.PI * 2;
+            const wa2 = wa + Math.PI / (wallSegs * 0.6);
+            ctx.strokeStyle = `rgba(200,170,60,${wallPulse * 0.8})`;
+            ctx.lineWidth = 8;
+            if (!_mobPerf) { ctx.shadowColor = '#e8c060'; ctx.shadowBlur = 16; }
+            ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.998, wa, wa2); ctx.stroke();
+        }
+        ctx.restore();
+        ctx.shadowBlur = 0;
+    }
+
+    // 6. Title card, recolored gold/cobalt, text unchanged.
+    {
+        const textT = Math.min(elapsed / 200, 1) * Math.max(0, 1 - (elapsed - 200) / 1500);
+        if (textT > 0.02) {
+            ctx.save();
+            ctx.globalAlpha = textT * 0.38;
+            ctx.font = 'bold 130px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffcc44';
+            if (!_mobPerf) { ctx.shadowColor = '#cc8800'; ctx.shadowBlur = 40; }
+            ctx.fillText('律域展開', cx, cy - 30);
+
+            ctx.globalAlpha = textT * 0.92;
+            if (!_mobPerf) { ctx.shadowColor = '#5588ff'; ctx.shadowBlur = 22; }
+            ctx.font = 'bold 32px "Arial Black", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('YOG-SOTHOTH', cx, cy - 72);
+
+            ctx.font = 'italic 14px monospace';
+            ctx.fillStyle = '#aaccff';
+            if (!_mobPerf) ctx.shadowBlur = 10;
+            ctx.fillText('Bành trướng lãnh địa', cx, cy - 46);
+            ctx.restore();
+        }
+    }
+
+    // 7. Core burst at the player, recolored gold/cobalt.
+    {
+        const coreSize = 22 + 10 * Math.sin(now / 160);
+        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreSize * 2.2);
+        coreGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+        coreGrad.addColorStop(0.15, 'rgba(255,210,100,0.85)');
+        coreGrad.addColorStop(0.4, 'rgba(80,130,255,0.55)');
+        coreGrad.addColorStop(0.75, 'rgba(20,50,150,0.25)');
+        coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = coreGrad;
+        ctx.globalAlpha = Math.min(elapsed / 200, 1);
+        ctx.beginPath(); ctx.arc(cx, cy, coreSize * 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+}
+
+// Dispatcher: FULL/MED get the Mythos treatment (a Van Gogh Starry Night
+// take on Yog-Sothoth's domain), LOW/MIN keep the original abstract
+// cursed-energy domain unchanged.
 function drawYogSothothDomain() {
+    if (_gfxLevel >= 2) { _drawYogSothothDomainClassic(); return; }
+    _drawYogSothothDomainMythos();
+}
+
+function _drawYogSothothDomainClassic() {
         const now = performance.now();
         let elapsed = now - skillShiftChargeStart;
         let maxRadius = Math.hypot(canvas.width, canvas.height);

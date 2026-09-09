@@ -463,7 +463,11 @@
     function startLoop(refKey, key) {
         const el = state[refKey];
         if (!el) return;
-        el.volume = sfxGain(key);
+        // el is a real HTMLAudioElement here (unlike the AudioBufferSourceNode-
+        // backed idle loops, whose gain node has no such limit) - its .volume
+        // setter throws for anything outside [0,1], and a boosted gain like
+        // ambient's 1.1 would otherwise crash every call site that starts it.
+        el.volume = Math.min(1, sfxGain(key));
         if (state.muted) return; // stay silent until unmute; setMuted resumes them
         if (el.paused) { try { el.currentTime = 0; el.play().catch(() => {}); } catch (_) {} }
     }
@@ -621,22 +625,25 @@
         });
     }
 
-    // Apply current volumes to all live audio elements.
+    // Apply current volumes to all live audio elements. These are all real
+    // HTMLAudioElements (unlike the AudioBufferSourceNode-backed idle loops),
+    // so their .volume setter throws for anything outside [0,1] - a boosted
+    // gain like ambient's 1.1 would otherwise crash this on every slider move.
     function refreshVolumes() {
-        if (state.bgmEl)     state.bgmEl.volume     = bgmGain();
-        if (state.ambientEl) state.ambientEl.volume = sfxGain('ambient');
-        if (state.engineEl)  state.engineEl.volume  = sfxGain('engine');
-        if (state.laserEl)   state.laserEl.volume   = sfxGain('laser');
-        if (state.chargingEl) state.chargingEl.volume = sfxGain('charging');
-        if (state.skillDChargeEl) state.skillDChargeEl.volume = sfxGain('skill-d-charge');
-        if (state.skillFChargeEl) state.skillFChargeEl.volume = sfxGain('skill-f-charge');
-        if (state.skillFFireEl) state.skillFFireEl.volume = sfxGain('skill-f-fire');
-        if (state.blackholeEl) state.blackholeEl.volume = sfxGain('blackhole');
-        if (state.maouHakiEl) state.maouHakiEl.volume = sfxGain('maou-haki');
-        if (state.lowHpEl) state.lowHpEl.volume = sfxGain('low-hp');
-        if (state.nullSlashWindupEl) state.nullSlashWindupEl.volume = sfxGain('egregor-nullslash-windup');
-        if (state.crawlEl) state.crawlEl.volume = sfxGain('egregor-crawl');
-        if (state.photokrystosIdleEl) state.photokrystosIdleEl.volume = sfxGain('photokrystos-idle');
+        if (state.bgmEl)     state.bgmEl.volume     = Math.min(1, bgmGain());
+        if (state.ambientEl) state.ambientEl.volume = Math.min(1, sfxGain('ambient'));
+        if (state.engineEl)  state.engineEl.volume  = Math.min(1, sfxGain('engine'));
+        if (state.laserEl)   state.laserEl.volume   = Math.min(1, sfxGain('laser'));
+        if (state.chargingEl) state.chargingEl.volume = Math.min(1, sfxGain('charging'));
+        if (state.skillDChargeEl) state.skillDChargeEl.volume = Math.min(1, sfxGain('skill-d-charge'));
+        if (state.skillFChargeEl) state.skillFChargeEl.volume = Math.min(1, sfxGain('skill-f-charge'));
+        if (state.skillFFireEl) state.skillFFireEl.volume = Math.min(1, sfxGain('skill-f-fire'));
+        if (state.blackholeEl) state.blackholeEl.volume = Math.min(1, sfxGain('blackhole'));
+        if (state.maouHakiEl) state.maouHakiEl.volume = Math.min(1, sfxGain('maou-haki'));
+        if (state.lowHpEl) state.lowHpEl.volume = Math.min(1, sfxGain('low-hp'));
+        if (state.nullSlashWindupEl) state.nullSlashWindupEl.volume = Math.min(1, sfxGain('egregor-nullslash-windup'));
+        if (state.crawlEl) state.crawlEl.volume = Math.min(1, sfxGain('egregor-crawl'));
+        if (state.photokrystosIdleEl) state.photokrystosIdleEl.volume = Math.min(1, sfxGain('photokrystos-idle'));
     }
 
     function setVolume(cat, v) {
