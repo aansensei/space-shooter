@@ -430,7 +430,11 @@ function _drawYogSothothDomainMythos() {
     // been painted into, showing a blank half-screen. A fixed backdrop with
     // a moving "window" (the mask) over it never runs out of canvas.
     const bgCx = canvas.width / 2, bgCy = canvas.height / 2;
-    const isFull = _gfxLevel === 0;
+    // 0 FULL, 1 MED, 2 LOW, 3 MIN - every section below scales its own
+    // element counts off this instead of LOW/MIN falling back to the
+    // unrelated old cursed-energy Classic version entirely.
+    const tier = _gfxLevel;
+    const isFull = tier === 0;
     // fxIn ramps every effect layer in together over the first 300ms instead
     // of most of them waiting behind domainFull (600ms) to pop in all at
     // once - the expanding clip mask already handles hiding what shouldn't
@@ -467,12 +471,20 @@ function _drawYogSothothDomainMythos() {
     // flowing, not just its outer edge.
     if (_yogDomainStarryImg.complete && _yogDomainStarryImg.naturalWidth) {
         const imgD = maxRadius * 1.1;
-        const driftAngle = now / 22000;
-        const driftR = maxRadius * 0.05;
         ctx.save();
-        ctx.translate(bgCx + Math.cos(driftAngle) * driftR, bgCy + Math.sin(driftAngle) * driftR);
-        ctx.rotate(now / 30000);
-        ctx.globalAlpha = (isFull ? 0.48 : 0.40) * breathe;
+        // LOW/MIN skip the drift+rotation (a couple of trig calls saved,
+        // and it's the one element every tier keeps, so opacity is bumped
+        // up to compensate for the missing decoration on top of it).
+        if (tier < 2) {
+            const driftAngle = now / 22000;
+            const driftR = maxRadius * 0.05;
+            ctx.translate(bgCx + Math.cos(driftAngle) * driftR, bgCy + Math.sin(driftAngle) * driftR);
+            ctx.rotate(now / 30000);
+        } else {
+            ctx.translate(bgCx, bgCy);
+        }
+        const imgAlpha = [0.48, 0.40, 0.55, 0.60][tier];
+        ctx.globalAlpha = imgAlpha * breathe;
         ctx.drawImage(_yogDomainStarryImg, -imgD / 2, -imgD / 2, imgD, imgD);
         ctx.restore();
     }
@@ -480,7 +492,7 @@ function _drawYogSothothDomainMythos() {
     // 1. Void brushstroke texture: short curved dabs standing in for the
     // canvas texture of the painting itself, not a flat fill.
     {
-        const dabCount = isFull ? 150 : 50;
+        const dabCount = [150, 50, 15, 0][tier];
         for (let i = 0; i < dabCount; i++) {
             const p1 = (Math.sin(i * 11.1) + 1) / 2;
             const p2 = (Math.sin(i * 22.2) + 1) / 2;
@@ -514,7 +526,7 @@ function _drawYogSothothDomainMythos() {
 
     // 2. Field of small stars, denser toward the edge.
     {
-        const smallStarCount = isFull ? 120 : 40;
+        const smallStarCount = [120, 40, 16, 6][tier];
         ctx.save();
         for (let i = 0; i < smallStarCount; i++) {
             const p1 = (Math.sin(i * 14.5) + 1) / 2;
@@ -529,9 +541,22 @@ function _drawYogSothothDomainMythos() {
             else if (i % 7 === 0) ctx.fillStyle = '#aaccff';
             else ctx.fillStyle = '#ffffff';
             const size = 1 + p2 * (isFull ? 2 : 1.5);
-            ctx.beginPath();
-            ctx.arc(sx, sy, size, 0, Math.PI * 2);
-            ctx.fill();
+            // A third of them get a tiny brush-dash cross instead of a
+            // plain dot - a little paint texture even at this small scale.
+            if (isFull && i % 3 === 0) {
+                ctx.strokeStyle = ctx.fillStyle;
+                ctx.lineWidth = Math.max(0.6, size * 0.5);
+                ctx.lineCap = 'round';
+                const dl = size * 2.2;
+                ctx.beginPath();
+                ctx.moveTo(sx - dl, sy); ctx.lineTo(sx + dl, sy);
+                ctx.moveTo(sx, sy - dl); ctx.lineTo(sx, sy + dl);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.arc(sx, sy, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
         ctx.restore();
     }
@@ -540,7 +565,7 @@ function _drawYogSothothDomainMythos() {
     // inward along spiral streams (each mote's own radius/angle advance
     // with `now`), instead of a static shape that only rotates as a rigid
     // whole - this is the part that reads as real flow/motion at any zoom.
-    {
+    if (tier < 2) {
         const moteCount = isFull ? 90 : 32;
         ctx.save();
         for (let i = 0; i < moteCount; i++) {
@@ -578,7 +603,7 @@ function _drawYogSothothDomainMythos() {
 
     // 3. Swirling sky currents: thick overlapping brush-dab arms curling
     // outward, standing in for the warped-space rings.
-    {
+    if (tier < 3) {
         const arms = isFull ? 3 : 1;
         for (let arm = 0; arm < arms; arm++) {
             ctx.save();
@@ -586,7 +611,7 @@ function _drawYogSothothDomainMythos() {
             const armRot = now / (14000 + arm * 2000);
             ctx.rotate(armRot + (Math.PI * 2 / arms) * arm);
 
-            const strokeCount = isFull ? 60 : 30;
+            const strokeCount = [60, 30, 12, 0][tier];
             for (let i = 0; i < strokeCount; i++) {
                 // Starts at 0.12 instead of 0 so every arm's dabs don't all
                 // converge into one dense overlapping knot right at the origin.
@@ -623,14 +648,17 @@ function _drawYogSothothDomainMythos() {
                 ctx.stroke();
 
                 // Impasto highlight: a thin bright core down the middle of
-                // the stroke, like paint caught in raking light.
-                ctx.shadowBlur = 0;
-                ctx.strokeStyle = 'rgba(220,235,255,0.55)';
-                ctx.lineWidth = Math.max(1, (10 + p1 * 14) * 0.28);
-                ctx.beginPath();
-                ctx.moveTo(-len * 0.3, -len * 0.06);
-                ctx.quadraticCurveTo(0, -len * 0.28, len * 0.3, -len * 0.06);
-                ctx.stroke();
+                // the stroke, like paint caught in raking light. Skipped on
+                // LOW - a second stroke() per dab isn't worth it there.
+                if (tier < 2) {
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = 'rgba(220,235,255,0.55)';
+                    ctx.lineWidth = Math.max(1, (10 + p1 * 14) * 0.28);
+                    ctx.beginPath();
+                    ctx.moveTo(-len * 0.3, -len * 0.06);
+                    ctx.quadraticCurveTo(0, -len * 0.28, len * 0.3, -len * 0.06);
+                    ctx.stroke();
+                }
 
                 ctx.restore();
             }
@@ -685,9 +713,10 @@ function _drawYogSothothDomainMythos() {
     }
 
     // 4. Huge glowing stars with thick, dashed painterly halo rings, one
-    // dedicated cool-toned star among the warm ones as an accent.
-    {
-        const bigStarCount = isFull ? 4 : 2;
+    // dedicated cool-toned star among the warm ones as an accent. MIN
+    // skips these entirely and relies on the small-star field alone.
+    if (tier < 3) {
+        const bigStarCount = [4, 2, 1][tier];
         for (let i = 0; i < bigStarCount; i++) {
             const p1 = (Math.sin(i * 7.1) + 1) / 2;
             const p2 = (Math.sin(i * 13.2) + 1) / 2;
@@ -699,7 +728,7 @@ function _drawYogSothothDomainMythos() {
             ctx.save();
             ctx.translate(sx, sy);
 
-            const ringCount = isFull ? 5 : 3;
+            const ringCount = [5, 3, 2][tier];
             const isCool = (i === 1);
 
             for (let rIdx = ringCount; rIdx > 0; rIdx--) {
@@ -746,7 +775,7 @@ function _drawYogSothothDomainMythos() {
             // Radiating light spikes, a classic star-burst so the core reads
             // as a light source rather than a flat dot.
             const rayColor = isCool ? '#cfe4ff' : '#ffe6a0';
-            const rayCount = isFull ? 8 : 4;
+            const rayCount = [8, 4, 4][tier];
             const rayPulse = 0.6 + 0.4 * Math.sin(now / 450 + i);
             ctx.save();
             ctx.rotate(now / 6000 * (isCool ? -1 : 1));
@@ -796,37 +825,85 @@ function _drawYogSothothDomainMythos() {
         ctx.translate(moonX, moonY);
 
         // Soft halo behind the crescent
-        const haloG = ctx.createRadialGradient(0, 0, moonR * 0.5, 0, 0, moonR * 3.2);
-        haloG.addColorStop(0, `rgba(255,238,190,${0.32 * breathe * moonPulse})`);
+        const haloG = ctx.createRadialGradient(0, 0, moonR * 0.5, 0, 0, moonR * 3.4);
+        haloG.addColorStop(0, `rgba(255,238,190,${0.34 * breathe * moonPulse})`);
         haloG.addColorStop(1, 'rgba(255,238,190,0)');
         ctx.fillStyle = haloG;
-        ctx.beginPath(); ctx.arc(0, 0, moonR * 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, moonR * 3.4, 0, Math.PI * 2); ctx.fill();
 
-        // Dashed painterly rings, same language as the big stars' halos
-        for (let rIdx = 3; rIdx > 0; rIdx--) {
+        // Swirling corona: curved brushstroke bands curling around the
+        // moon like the real painting's halo, not a UI-style dashed ring.
+        const coronaBands = 5;
+        for (let b = 0; b < coronaBands; b++) {
+            const p1 = (Math.sin(b * 27.4) + 1) / 2;
+            const p2 = (Math.sin(b * 61.8) + 1) / 2;
+            const bandR = moonR * (1.5 + b * 0.42);
+            const spin = now / (5000 + b * 1400) * (b % 2 === 0 ? 1 : -1);
+            const sweep = Math.PI * (0.9 + p1 * 0.6);
+            const startA = spin + p2 * Math.PI * 2;
             ctx.save();
-            ctx.rotate(now / (3000 + rIdx * 500) * (rIdx % 2 === 0 ? 1 : -1));
-            ctx.globalAlpha = (0.55 - rIdx * 0.12) * breathe;
-            ctx.strokeStyle = '#ffe9b0';
-            ctx.lineWidth = 4;
-            if (!_mobPerf) { ctx.shadowColor = '#ffe9b0'; ctx.shadowBlur = 14; }
-            ctx.setLineDash([10 + rIdx * 5, 6 + rIdx * 3]);
-            ctx.beginPath(); ctx.arc(0, 0, moonR * (1.5 + rIdx * 0.35), 0, Math.PI * 2); ctx.stroke();
-            ctx.setLineDash([]);
+            ctx.globalAlpha = (0.5 - b * 0.06) * breathe;
+            ctx.strokeStyle = b % 2 === 0 ? '#ffe9b0' : '#fff3d0';
+            ctx.lineWidth = moonR * (0.16 - b * 0.015);
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = '#ffdf8a'; ctx.shadowBlur = 10; }
+            const segs = 20;
+            ctx.beginPath();
+            for (let s = 0; s <= segs; s++) {
+                const a = startA + (s / segs) * sweep;
+                const wob = Math.sin(a * 3 + now / 900) * moonR * 0.06;
+                const rr = bandR + wob;
+                const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+                s === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.stroke();
             ctx.restore();
         }
 
-        // The crescent body itself, cut via two overlapping arcs
-        ctx.globalAlpha = breathe;
-        ctx.fillStyle = '#fff3d0';
+        // The crescent shape, clipped, then filled with real painted
+        // texture instead of one flat color - the flat fill was the one
+        // vector-smooth shape in an otherwise all-painterly scene.
+        ctx.save();
         if (!_mobPerf) { ctx.shadowColor = '#ffdf8a'; ctx.shadowBlur = 22; }
         ctx.beginPath();
         ctx.arc(0, 0, moonR, Math.PI * 0.5, Math.PI * 1.5, false);
         ctx.arc(moonR * 0.55, 0, moonR * 0.92, Math.PI * 1.5, Math.PI * 0.5, true);
         ctx.closePath();
+        ctx.globalAlpha = breathe;
+        ctx.fillStyle = '#fff3d0';
         ctx.fill();
-
         ctx.shadowBlur = 0;
+        ctx.clip();
+
+        // Layered curved strokes across the clipped crescent - actual
+        // impasto brushwork instead of a flat wash underneath it.
+        const moonTones = ['#ffedc2', '#fff6de', '#ffe4a6', '#fffaf0', '#ffdf95'];
+        for (let m = 0; m < 9; m++) {
+            const p1 = (Math.sin(m * 31.7) + 1) / 2;
+            const p2 = (Math.sin(m * 58.2) + 1) / 2;
+            const my = -moonR * 0.9 + p1 * moonR * 1.8;
+            const mLen = moonR * (1.1 + p2 * 0.7);
+            const mx0 = -moonR * 0.3 + (p2 - 0.5) * moonR * 0.6;
+            ctx.globalAlpha = (0.35 + p1 * 0.35) * breathe;
+            ctx.strokeStyle = moonTones[m % moonTones.length];
+            ctx.lineWidth = moonR * (0.14 + p2 * 0.1);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(mx0, my);
+            ctx.quadraticCurveTo(mx0 + mLen * 0.5, my - moonR * 0.12, mx0 + mLen, my);
+            ctx.stroke();
+        }
+
+        // Bright impasto highlight near the crescent's inner rim
+        ctx.globalAlpha = 0.6 * breathe;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = moonR * 0.06;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-moonR * 0.15, -moonR * 0.6);
+        ctx.quadraticCurveTo(moonR * 0.1, 0, -moonR * 0.15, moonR * 0.6);
+        ctx.stroke();
+
         ctx.restore();
     }
 
@@ -873,11 +950,12 @@ function _drawYogSothothDomainMythos() {
     // 4e. Shooting stars: two bright comets streak across the sky on
     // staggered, independent cycles, alternating gold/blue tails for extra
     // color variety, drawn last so they read on top of everything else.
-    {
-        const comets = [
+    if (tier < 3) {
+        const allComets = [
             { cycle: 7000, offset: 0, headColor: '255,255,255', tailColor: '255,224,150' },
             { cycle: 9000, offset: 4200, headColor: '210,230,255', tailColor: '140,190,255' },
         ];
+        const comets = tier < 2 ? allComets : allComets.slice(0, 1);
         for (const comet of comets) {
             const t = (now + comet.offset) % comet.cycle;
             const shootT = t / comet.cycle;
@@ -990,11 +1068,12 @@ function _drawYogSothothDomainMythos() {
     ctx.restore();
 }
 
-// Dispatcher: FULL/MED get the Mythos treatment (a Van Gogh Starry Night
-// take on Yog-Sothoth's domain), LOW/MIN keep the original abstract
-// cursed-energy domain unchanged.
+// Every tier gets the Van Gogh Starry Night treatment now - the function
+// scales its own element counts down per tier internally instead of
+// LOW/MIN falling back to the old, unrelated cursed-energy Classic version.
+// _drawYogSothothDomainClassic() is kept below, unused, in case it's ever
+// wanted back for a specific tier.
 function drawYogSothothDomain() {
-    if (_gfxLevel >= 2) { _drawYogSothothDomainClassic(); return; }
     _drawYogSothothDomainMythos();
 }
 
