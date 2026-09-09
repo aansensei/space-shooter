@@ -583,7 +583,11 @@ function _drawYogSothothDomainMythos() {
             const moteSize = (isFull ? 1.4 : 1.1) + p1 * 2.2;
             ctx.globalAlpha = moteAlpha;
             ctx.fillStyle = i % 4 === 0 ? '#ffe08c' : '#8cbcfc';
-            if (!_mobPerf) { ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6; }
+            // No shadowBlur here - up to 90 of these drawn every frame (plus
+            // their trail stroke below), and a blurred glow per mote was
+            // costly enough on its own to trip the FPS-based auto-downgrade
+            // mid-fight, stripping away the hero elements below that
+            // actually need the budget (moon, big stars, Great Spiral).
             ctx.beginPath(); ctx.arc(mx, my, moteSize, 0, Math.PI * 2); ctx.fill();
 
             // Short trailing streak along the direction of travel, sells the flow
@@ -639,7 +643,10 @@ function _drawYogSothothDomainMythos() {
                 ctx.lineWidth = 10 + p1 * 14;
                 ctx.lineCap = 'round';
                 ctx.globalAlpha = (0.58 + 0.42 * Math.sin(now / 600 + i)) * breathe;
-                if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10; }
+                // No shadowBlur on these - up to 180 dabs drawn per frame at
+                // FULL tier (3 arms x 60), and a blurred stroke per dab was
+                // the single biggest cost tripping the FPS auto-downgrade
+                // mid-fight, taking the moon/big stars/Great Spiral with it.
 
                 const len = 35 + p2 * 45;
                 ctx.beginPath();
@@ -983,7 +990,9 @@ function _drawYogSothothDomainMythos() {
                 ctx.strokeStyle = d % 6 === 0 ? '#bfe3ff' : '#ffe9b0';
                 ctx.lineWidth = 2 + p1 * 2.5;
                 ctx.lineCap = 'round';
-                if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5; }
+                // No shadowBlur on the individual dashes - 22 per star, 2
+                // stars, every frame; the bright core below (which does
+                // keep its blur) already sells the glow.
                 ctx.beginPath();
                 ctx.moveTo(inner, 0);
                 ctx.lineTo(outer, 0);
@@ -1062,15 +1071,20 @@ function _drawYogSothothDomainMythos() {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(now / 8000);
+        // One dashed stroke around the whole ring instead of 24 separate
+        // blurred arc segments - same segmented look (dash/gap lengths
+        // match the old per-segment angles), but a single blurred draw
+        // call instead of 24 every frame for the whole domain duration.
         const wallSegs = 24;
-        for (let i = 0; i < wallSegs; i++) {
-            const wa = (i / wallSegs) * Math.PI * 2;
-            const wa2 = wa + Math.PI / (wallSegs * 0.6);
-            ctx.strokeStyle = `rgba(200,170,60,${wallPulse * 0.8})`;
-            ctx.lineWidth = 8;
-            if (!_mobPerf) { ctx.shadowColor = '#e8c060'; ctx.shadowBlur = 16; }
-            ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.998, wa, wa2); ctx.stroke();
-        }
+        const wallR = maxRadius * 0.998;
+        const segAngle = Math.PI / (wallSegs * 0.6);
+        const gapAngle = (Math.PI * 2 / wallSegs) - segAngle;
+        ctx.strokeStyle = `rgba(200,170,60,${wallPulse * 0.8})`;
+        ctx.lineWidth = 8;
+        if (!_mobPerf) { ctx.shadowColor = '#e8c060'; ctx.shadowBlur = 16; }
+        ctx.setLineDash([wallR * segAngle, wallR * gapAngle]);
+        ctx.beginPath(); ctx.arc(0, 0, wallR, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
         ctx.restore();
         ctx.shadowBlur = 0;
     }
