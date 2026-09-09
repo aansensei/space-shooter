@@ -2472,6 +2472,10 @@ function update(rawDeltaTime) {
             if (!window._levDeathBursts) window._levDeathBursts = [];
             window._levDeathBursts.push({ x: owner.x, y: owner.y, size: owner.size, spawnAt: performance.now(), duration: 1300, _seed: Math.random() * Math.PI * 2 });
             _setShake(20, 550);
+            if (window.AudioMgr) {
+                window.AudioMgr.playSfxAt('leviathan-death-roar', owner.x, owner.y);
+                window.AudioMgr.stopLeviathanIdle();
+            }
         });
     }
 

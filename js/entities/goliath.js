@@ -362,6 +362,7 @@ function updateGoliath(enemy, deltaTime) {
         enemy._deathPhaseTimer = 0;
         enemy._deathGemsExploded = 0;
         enemy.hp = 1;
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
         _goliathUpdateDeathSequence(enemy, deltaTime, now);
         return;
     }

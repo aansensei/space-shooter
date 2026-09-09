@@ -61,6 +61,7 @@ function spawnLeviathan() {
     enemies.push(lev);
     // Thủ Lĩnh Bầy Đàn: đánh dấu Envy lên tất cả enemy hiện có
     _applyLeviathanEnvy(lev);
+    if (window.AudioMgr) window.AudioMgr.startLeviathanIdle();
 }
 
 function _ensureLeviathanQuota(lev) {
