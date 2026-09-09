@@ -132,6 +132,7 @@
         'assets/audio/sfx/skill-f-charge.mp3', 'assets/audio/sfx/skill-f-fire.mp3', 'assets/audio/sfx/skill-ready.mp3',
         'assets/audio/sfx/skill-unlocked.mp3', 'assets/audio/sfx/spirit-arc-slash.mp3', 'assets/audio/sfx/spirit-autofire.mp3',
         'assets/audio/sfx/tesla-coil-form.mp3', 'assets/audio/sfx/wave-clear.mp3', 'assets/audio/sfx/yog-parry.mp3',
+        'assets/audio/sfx/yog-sothoth-domain-theme.mp3',
     ];
 
     function bgmFiles() {

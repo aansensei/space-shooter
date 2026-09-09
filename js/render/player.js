@@ -63,13 +63,13 @@ function drawSkillShiftEffects() {
         ctx.translate(px, py);
 
         // outer ring glow
-        ctx.strokeStyle = `rgba(160,0,255,${0.5 * pulse})`;
+        ctx.strokeStyle = `rgba(70,130,255,${0.5 * pulse})`;
         ctx.lineWidth = 10;
         ctx.beginPath(); ctx.arc(0, 0, portalR + 8, 0, Math.PI * 2); ctx.stroke();
 
         // rotating segmented ring A
         ctx.rotate(spinA);
-        ctx.strokeStyle = `rgba(220,80,255,${0.85 * pulse})`;
+        ctx.strokeStyle = `rgba(255,210,120,${0.85 * pulse})`;
         ctx.lineWidth = 3;
         for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2;
@@ -80,7 +80,7 @@ function drawSkillShiftEffects() {
 
         // rotating segmented ring B (inner, opposite)
         ctx.rotate(spinB - spinA);
-        ctx.strokeStyle = `rgba(255,180,255,${0.7 * pulse})`;
+        ctx.strokeStyle = `rgba(255,240,200,${0.7 * pulse})`;
         ctx.lineWidth = 2;
         for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2 + 0.3;
@@ -93,14 +93,14 @@ function drawSkillShiftEffects() {
         ctx.rotate(-spinB);
         const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, portalR * 0.55);
         coreGrad.addColorStop(0, `rgba(255,255,255,${0.9 * pulse})`);
-        coreGrad.addColorStop(0.3, `rgba(200,80,255,${0.8 * pulse})`);
-        coreGrad.addColorStop(0.7, `rgba(60,0,120,0.6)`);
+        coreGrad.addColorStop(0.3, `rgba(120,170,255,${0.8 * pulse})`);
+        coreGrad.addColorStop(0.7, `rgba(10,20,60,0.6)`);
         coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = coreGrad;
         ctx.beginPath(); ctx.arc(0, 0, portalR * 0.55, 0, Math.PI * 2); ctx.fill();
 
         // space crack lines inside portal
-        ctx.strokeStyle = `rgba(255,200,255,${0.6 * pulse})`;
+        ctx.strokeStyle = `rgba(255,235,190,${0.6 * pulse})`;
         ctx.lineWidth = 0.8;
         for (let i = 0; i < 5; i++) {
             const ca = (i / 5) * Math.PI * 2 + now / 900;
@@ -117,8 +117,8 @@ function drawSkillShiftEffects() {
     // CONNECTOR LINE between portals
     ctx.save();
     const connPulse = 0.4 + 0.3 * Math.abs(Math.sin(now / 220));
-    // dashed cursed-energy thread
-    ctx.strokeStyle = `rgba(200,0,255,${connPulse})`;
+    // dashed thread, gold/cobalt to match the Van Gogh domain palette
+    ctx.strokeStyle = `rgba(90,150,255,${connPulse})`;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([10, 14]);
     ctx.lineDashOffset = -(now / 40) % 24;
@@ -150,10 +150,10 @@ function drawSkillShiftEffects() {
         const sy = player.y + Math.sin(now / 200 + i * 1.2) * 6;
         const sAlpha = 0.6 * Math.sin(t * Math.PI);
         const sSize = 2.5 + 1.5 * Math.sin(now / 150 + i);
-        ctx.fillStyle = `rgba(200,80,255,${sAlpha})`;
+        ctx.fillStyle = `rgba(255,210,120,${sAlpha})`;
         ctx.beginPath(); ctx.arc(sx, sy, sSize, 0, Math.PI * 2); ctx.fill();
         // bright core dot
-        ctx.fillStyle = `rgba(255,220,255,${sAlpha * 0.8})`;
+        ctx.fillStyle = `rgba(255,250,220,${sAlpha * 0.8})`;
         ctx.beginPath(); ctx.arc(sx, sy, sSize * 0.4, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
@@ -702,14 +702,14 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         ctx.beginPath(); ctx.arc(0, -36, 1.5, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Domain purple ally tint on player
+    // Domain tint on player, gold/cobalt to match the Van Gogh domain palette
     if (skillShiftActive && alpha === 1) {
-        ctx.fillStyle = 'rgba(120,0,220,0.30)';
+        ctx.fillStyle = 'rgba(60,120,255,0.28)';
         ctx.beginPath();
         ctx.moveTo(0, -28); ctx.lineTo(24, 12); ctx.lineTo(24, 20);
         ctx.lineTo(10, 16); ctx.lineTo(-10, 16); ctx.lineTo(-24, 20);
         ctx.lineTo(-24, 12); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = 'rgba(180,60,255,0.65)';
+        ctx.strokeStyle = 'rgba(255,210,120,0.6)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
     }

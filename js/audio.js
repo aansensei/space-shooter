@@ -216,6 +216,58 @@
         };
     }
 
+    // Yog-Sothoth Domain theme: a full-volume music bed, never ducked or
+    // muffled - it IS the domain's own music, not something the domain's
+    // usual lowpass duck should be dulling. Starts from a random point in
+    // the track each activation (rather than always the same spot) and
+    // fades in/out instead of snapping, so back-to-back activations don't
+    // feel identical or abrupt. Deliberately its own small dedicated player
+    // rather than another _makeBufferLoop() instance - random-start and
+    // fade in/out aren't shared needs, so this stays isolated instead of
+    // growing the shared factory's surface for a one-off.
+    let _yogThemeSource = null, _yogThemeGain = null, _yogThemeToken = 0;
+    const YOG_THEME_SRC = 'assets/audio/sfx/yog-sothoth-domain-theme.mp3';
+    function startYogDomainTheme() {
+        if (!actx || state.muted) return;
+        const myToken = ++_yogThemeToken;
+        _decodeBuffer(YOG_THEME_SRC).then(buf => {
+            if (!buf || myToken !== _yogThemeToken) return; // stopped/retriggered before decode finished
+            if (_yogThemeSource) { try { _yogThemeSource.stop(); } catch (_) {} }
+            _yogThemeGain = actx.createGain();
+            _yogThemeGain.connect(_bypassGain);
+            _yogThemeSource = actx.createBufferSource();
+            _yogThemeSource.buffer = buf;
+            _yogThemeSource.loop = true;
+            _yogThemeSource.connect(_yogThemeGain);
+            _yogThemeSource.start(0, Math.random() * buf.duration);
+
+            const targetVol = (SFX_BASE['yog-sothoth-domain-theme'] || 1.0) * state.vol.sfx * state.vol.global;
+            const now = actx.currentTime;
+            _yogThemeGain.gain.setValueAtTime(0, now);
+            _yogThemeGain.gain.linearRampToValueAtTime(targetVol, now + 1.4);
+        });
+    }
+    function stopYogDomainTheme() {
+        _yogThemeToken++; // invalidates a still-decoding start() so it never plays after this
+        if (_yogThemeGain && actx) {
+            const now = actx.currentTime;
+            _yogThemeGain.gain.cancelScheduledValues(now);
+            _yogThemeGain.gain.setValueAtTime(_yogThemeGain.gain.value, now);
+            _yogThemeGain.gain.linearRampToValueAtTime(0, now + 1.0);
+        }
+        const src = _yogThemeSource;
+        _yogThemeSource = null;
+        if (src) setTimeout(() => { try { src.stop(); } catch (_) {} }, 1050);
+    }
+    // Keeps the theme's actual output in step with the sfx/global sliders
+    // while it's playing, same as refreshVolumes() does for every other loop.
+    function _refreshYogThemeVolume() {
+        if (_yogThemeGain && actx && !state.muted) {
+            const targetVol = (SFX_BASE['yog-sothoth-domain-theme'] || 1.0) * state.vol.sfx * state.vol.global;
+            _yogThemeGain.gain.setTargetAtTime(targetVol, actx.currentTime, 0.1);
+        }
+    }
+
     function unlockContext() {
         if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
     }
@@ -265,8 +317,11 @@
     function enterGoliathSpawnDuck() { enterDuck('goliathSpawn'); }
     function exitGoliathSpawnDuck()  { exitDuck('goliathSpawn'); }
 
-    function enterTimeDomain() { enterDuck('yogsothoth'); }
-    function exitTimeDomain()  { exitDuck('yogsothoth'); }
+    // The duck still applies to everything else (bgm, ambient, sfx...) so
+    // the domain still reads as muffling the outside world - the theme
+    // itself is the one exception, routed through _bypassGain instead.
+    function enterTimeDomain() { enterDuck('yogsothoth'); startYogDomainTheme(); }
+    function exitTimeDomain()  { exitDuck('yogsothoth'); stopYogDomainTheme(); }
     function enterLowHpDuck()  { enterDuck('lowhp'); }
     function exitLowHpDuck()   { exitDuck('lowhp'); }
 
@@ -318,6 +373,7 @@
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
+        'yog-sothoth-domain-theme': 1.0,
         'gate-of-babylon': 1.0, 'enuma-elish-charge': 1.0, 'enuma-elish-release': 1.0,
         'cancer-whirlpool-spin': 1.0, 'cancer-whale-splash': 1.0, 'cancer-whale-bite': 1.0,
     };
@@ -644,6 +700,7 @@
         if (state.nullSlashWindupEl) state.nullSlashWindupEl.volume = Math.min(1, sfxGain('egregor-nullslash-windup'));
         if (state.crawlEl) state.crawlEl.volume = Math.min(1, sfxGain('egregor-crawl'));
         if (state.photokrystosIdleEl) state.photokrystosIdleEl.volume = Math.min(1, sfxGain('photokrystos-idle'));
+        _refreshYogThemeVolume();
     }
 
     function setVolume(cat, v) {

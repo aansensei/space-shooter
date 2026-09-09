@@ -579,9 +579,9 @@ function _drawEgregorDeathBursts() {
     }
 }
 
-// Yog-Sothoth Accurate Parry burst: "Temporal Fracture" — a dedicated
-// violet/white ring-and-spoke flash distinct from the flat gold explosion
-// shared with Sentinel Parry, themed to match the Domain's cursed-energy
+// Yog-Sothoth Accurate Parry burst: "Temporal Fracture," a dedicated
+// gold/blue ring-and-spoke flash distinct from the flat gold explosion
+// shared with Sentinel Parry, themed to match the domain's own Van Gogh
 // palette so the dodge itself reads as Yog-Sothoth's own effect.
 function _drawParryBursts() {
     if (!window._parryBursts || window._parryBursts.length === 0) return;
@@ -597,7 +597,7 @@ function _drawParryBursts() {
             const flashA = 1 - t / 0.35;
             const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
             fg.addColorStop(0, `rgba(255,255,255,${flashA * 0.95})`);
-            fg.addColorStop(0.35, `rgba(200,120,255,${flashA * 0.6})`);
+            fg.addColorStop(0.35, `rgba(255,210,120,${flashA * 0.6})`);
             fg.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = fg;
             ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill();
@@ -609,9 +609,9 @@ function _drawParryBursts() {
             if (rt <= 0 || rt >= 1) return;
             const r = rt * 130;
             const ringA = (1 - rt) * (i === 0 ? 0.85 : 0.55);
-            ctx.strokeStyle = i === 0 ? `rgba(220,180,255,${ringA})` : `rgba(150,60,255,${ringA})`;
+            ctx.strokeStyle = i === 0 ? `rgba(255,225,170,${ringA})` : `rgba(70,130,255,${ringA})`;
             ctx.lineWidth = i === 0 ? 3 : 5;
-            if (!_mobPerf) { ctx.shadowColor = '#a020f0'; ctx.shadowBlur = 14; }
+            if (!_mobPerf) { ctx.shadowColor = '#ffcc55'; ctx.shadowBlur = 14; }
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
         });
         ctx.shadowBlur = 0;
@@ -624,13 +624,140 @@ function _drawParryBursts() {
             for (let i = 0; i < spokeCount; i++) {
                 const a = (i / spokeCount) * Math.PI * 2 + spin;
                 const r0 = 34;
-                ctx.strokeStyle = `rgba(230,200,255,${fade * 0.7})`;
+                ctx.strokeStyle = `rgba(210,230,255,${fade * 0.7})`;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
                 ctx.lineTo(Math.cos(a) * (r0 + spokeLen), Math.sin(a) * (r0 + spokeLen));
                 ctx.stroke();
             }
+        }
+
+        ctx.restore();
+    }
+}
+
+// Skill Shift teleport: a Van Gogh-style painterly bloom bursting outward
+// from the departure point instead of a flat particle puff. Round spiral
+// arms winding outward (same shape as the domain's own Great Spiral
+// centerpiece) in the domain's gold/cobalt palette, a bright core flash,
+// and a scatter of small drifting star-motes.
+function _drawTeleportBursts() {
+    if (!window._teleportBursts || window._teleportBursts.length === 0) return;
+    const now = performance.now();
+    for (const tb of window._teleportBursts) {
+        const t = (now - tb.spawnAt) / tb.duration;
+        if (t >= 1) continue;
+        const fade = 1 - t;
+        ctx.save();
+        ctx.translate(tb.x, tb.y);
+
+        if (t < 0.3) {
+            const flashA = 1 - t / 0.3;
+            const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, 50);
+            fg.addColorStop(0, `rgba(255,255,255,${flashA})`);
+            fg.addColorStop(0.4, `rgba(255,225,170,${flashA * 0.7})`);
+            fg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fg;
+            ctx.beginPath(); ctx.arc(0, 0, 50, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // Round spiral arms winding outward (same Archimedean-spiral shape
+        // as the domain's own Great Spiral centerpiece, just small and
+        // fast) instead of straight radiating petals - reads as a proper
+        // swirl, not a starburst.
+        const armCount = _gfxLevel < 1 ? 3 : 2;
+        const maxR = 16 + t * 85;
+        const turns = 1.6;
+        const segs = 22;
+        for (let arm = 0; arm < armCount; arm++) {
+            const armOffset = (arm / armCount) * Math.PI * 2;
+            const spin = t * 2.2 * (arm % 2 === 0 ? 1 : -1);
+            ctx.save();
+            ctx.rotate(armOffset + spin);
+            ctx.strokeStyle = arm % 2 === 0 ? `rgba(255,210,120,${0.7 * fade})` : `rgba(90,150,255,${0.7 * fade})`;
+            ctx.lineWidth = 3 + 2.5 * fade;
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = arm % 2 === 0 ? '#ffcc55' : '#4488ff'; ctx.shadowBlur = 8; }
+            ctx.beginPath();
+            for (let s = 0; s <= segs; s++) {
+                const st = s / segs;
+                const a = st * Math.PI * 2 * turns;
+                const r = st * maxR;
+                const px = Math.cos(a) * r, py = Math.sin(a) * r;
+                st === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.shadowBlur = 0;
+
+        if (_gfxLevel < 2) {
+            const moteCount = _gfxLevel < 1 ? 10 : 6;
+            for (let i = 0; i < moteCount; i++) {
+                const ma = (i / moteCount) * Math.PI * 2 + i * 1.3;
+                const mr = t * 70 + 10;
+                const mx = Math.cos(ma) * mr, my = Math.sin(ma) * mr;
+                ctx.globalAlpha = fade * 0.8;
+                ctx.fillStyle = i % 3 === 0 ? '#fff3d0' : '#cfe4ff';
+                ctx.beginPath(); ctx.arc(mx, my, 1.6, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        ctx.restore();
+    }
+}
+
+// Skill Shift domain closing (released without teleporting): a quick
+// ~300ms collapse, spiral arms winding inward and shrinking to nothing,
+// ending in a brief implosion flash, instead of the domain just vanishing
+// on the spot. Skipped entirely when the domain closed via a teleport
+// instead - that already gets its own distinct outward burst above.
+function _drawDomainCloseBursts() {
+    if (!window._domainCloseBursts || window._domainCloseBursts.length === 0) return;
+    const now = performance.now();
+    for (const cb of window._domainCloseBursts) {
+        const t = (now - cb.spawnAt) / cb.duration;
+        if (t >= 1) continue;
+        const fade = t; // grows brighter as it collapses in, opposite of the outward burst
+        ctx.save();
+        ctx.translate(cb.x, cb.y);
+
+        const armCount = _gfxLevel < 1 ? 3 : 2;
+        const maxR = 90 * (1 - t) + 6;
+        const turns = 1.6;
+        const segs = 22;
+        for (let arm = 0; arm < armCount; arm++) {
+            const armOffset = (arm / armCount) * Math.PI * 2;
+            const spin = -t * 2.2 * (arm % 2 === 0 ? 1 : -1); // spins the opposite way, "pulling in"
+            ctx.save();
+            ctx.rotate(armOffset + spin);
+            ctx.strokeStyle = arm % 2 === 0 ? `rgba(255,210,120,${0.7 * fade})` : `rgba(90,150,255,${0.7 * fade})`;
+            ctx.lineWidth = 3 + 2 * fade;
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = arm % 2 === 0 ? '#ffcc55' : '#4488ff'; ctx.shadowBlur = 8; }
+            ctx.beginPath();
+            for (let s = 0; s <= segs; s++) {
+                const st = s / segs;
+                const a = st * Math.PI * 2 * turns;
+                const r = st * maxR;
+                const px = Math.cos(a) * r, py = Math.sin(a) * r;
+                st === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.shadowBlur = 0;
+
+        if (t > 0.7) {
+            const flashA = (t - 0.7) / 0.3;
+            const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+            fg.addColorStop(0, `rgba(255,255,255,${flashA})`);
+            fg.addColorStop(0.5, `rgba(255,225,170,${flashA * 0.6})`);
+            fg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fg;
+            ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI * 2); ctx.fill();
         }
 
         ctx.restore();
@@ -1578,12 +1705,12 @@ function drawSentinel(sentinel) {
         ctx.restore();
     }
 
-    // Domain purple ally tint
+    // Domain ally tint, gold/cobalt to match the Van Gogh domain palette
     if (skillShiftActive) {
         ctx.save();
-        ctx.fillStyle = 'rgba(140,0,255,0.28)';
+        ctx.fillStyle = 'rgba(70,130,255,0.26)';
         ctx.beginPath(); ctx.arc(x, y, size * 1.15, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(200,80,255,0.7)';
+        ctx.strokeStyle = 'rgba(255,210,120,0.65)';
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(x, y, size * 1.2, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
