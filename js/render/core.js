@@ -1794,6 +1794,7 @@ function draw(deltaTime) {
         _drawParryBursts(); // Yog-Sothoth Accurate Parry "Temporal Fracture" burst
         _drawTeleportBursts(); // Skill Shift teleport bloom
         _drawDomainCloseBursts(); // Skill Shift domain closing collapse
+        _drawYogBulletClearBursts(); // Skill Shift bullet-clear paint streaks
         drawFinalDefense();
 
         if (charging && !laserActive) drawChargeEffect();

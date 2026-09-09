@@ -154,16 +154,21 @@ function _goliathWaningMult(rate, stacks) {
 }
 
 // Unified Front (True Form passive): counts every living player-side unit
-// on the map right now - the player, real Sentinels, Yuusha Party members,
-// and the Remembrance Spirit - and scales 3 defensive stats off that count
-// (N). Refreshed every 1s to the CURRENT N rather than compounding tick
-// over tick. The shield top-up adds into the same shared enemy.shield pool
-// everything else uses (Threshold Ward, Corrupted Genesis...), so it stacks
-// with those normally - it just doesn't keep growing across its own ticks.
+// on the map right now - the player, real Sentinels, and the Remembrance
+// Spirit - and scales 3 defensive stats off that count (N). Refreshed every
+// 1s to the CURRENT N rather than compounding tick over tick. The shield
+// top-up adds into the same shared enemy.shield pool everything else uses
+// (Threshold Ward, Corrupted Genesis...), so it stacks with those normally -
+// it just doesn't keep growing across its own ticks.
+//
+// Yuusha Party members deliberately don't count here: every one of their
+// attacks is a %MaxHP hit, which already eats the heavier of Unified
+// Front's two flat-DR brackets below (see entities/core.js) - counting them
+// toward N too would mean summoning the squad to help fight Goliath makes
+// Goliath tankier against everyone, including the squad's own attacks.
 function _goliathCountAllies() {
     let n = 1; // the player is always on the map while a run is active
     n += sentinels.length;
-    n += (window._yuushaSquad || []).filter(s => s.hp > 0).length;
     n += spirits.length;
     return n;
 }
