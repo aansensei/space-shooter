@@ -317,6 +317,7 @@
         'goliath-idle': 1.0, 'goliath-fracture-step': 1.0, 'goliath-verdict-impact': 1.0, 'goliath-verdict-charge': 1.0,
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
+        'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
         'gate-of-babylon': 1.0, 'enuma-elish-charge': 1.0, 'enuma-elish-release': 1.0,
         'cancer-whirlpool-spin': 1.0, 'cancer-whale-splash': 1.0, 'cancer-whale-bite': 1.0,
     };
@@ -383,6 +384,7 @@
         crawlEl: null,        // Egregor crawl texture, a native gapless AudioBufferSourceNode loop
         photokrystosIdleEl: null, // Phōtokrystos flight/movement texture, same native gapless loop
         goliathIdleEl: null, // Goliath True Form ambient breathing/hum, same native gapless loop
+        leviathanIdleEl: null, // Leviathan flight ambience (wingbeat whoosh + scrap rattle), same native gapless loop
         pool: {},            // sfx key → { src, bypass }
         // In-game BGM rotation pool the player picked in Settings (track ids,
         // excludes the menu-only "pisces" track — that one never plays in a
@@ -505,8 +507,9 @@
             goliathIdle: !!(state.goliathIdleEl && !state.goliathIdleEl.paused),
             goliathVerdictCharge: !!(state.goliathVerdictChargeEl && !state.goliathVerdictChargeEl.paused),
             cancerWhirlpool: !!(state.cancerWhirlpoolEl && !state.cancerWhirlpoolEl.paused),
+            leviathanIdle: !!(state.leviathanIdleEl && !state.leviathanIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -528,6 +531,7 @@
         if (s.crawl && state.crawlEl) try { state.crawlEl.play().catch(() => {}); } catch (_) {}
         if (s.photokrystosIdle && state.photokrystosIdleEl) try { state.photokrystosIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.cancerWhirlpool && state.cancerWhirlpoolEl) try { state.cancerWhirlpoolEl.play().catch(() => {}); } catch (_) {}
+        if (s.leviathanIdle && state.leviathanIdleEl) try { state.leviathanIdleEl.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -713,6 +717,8 @@
     function tickPhotokrystosIdle()  {}
     function startGoliathIdle() { startLoop('goliathIdleEl', 'goliath-idle'); }
     function stopGoliathIdle()  { stopLoop('goliathIdleEl'); }
+    function startLeviathanIdle() { startLoop('leviathanIdleEl', 'leviathan-idle'); }
+    function stopLeviathanIdle()  { stopLoop('leviathanIdleEl'); }
     // One shared loop for however many Riptide Surge whirlpools are active
     // at once (up to 10 can spawn together) rather than one per instance.
     function startCancerWhirlpool() { startLoop('cancerWhirlpoolEl', 'cancer-whirlpool-spin'); }
@@ -802,6 +808,8 @@
         _makePool('goliath-death',          'assets/audio/sfx/goliath-death.mp3',          1);
         _makePool('goliath-spawn',          'assets/audio/sfx/goliath-spawn.mp3',          1, true); // bypass duck so it stays clear, matches goliath-transform
         _makePool('goliath-corrupted-meteor', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 2);
+        _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1);
+        _makePool('leviathan-death-roar',    'assets/audio/sfx/leviathan-death-roar.mp3',    1);
         _makePool('goliath-unbroken-wave',  'assets/audio/sfx/goliath-unbroken-wave.mp3',  1);
         _makePool('gate-of-babylon',        'assets/audio/sfx/gate-of-babylon.mp3',        2);
         _makePool('enuma-elish-charge',     'assets/audio/sfx/enuma-elish-charge.mp3',     1);
@@ -829,6 +837,8 @@
         state.goliathIdleEl.setSrc('assets/audio/sfx/goliath-idle.mp3');
         state.cancerWhirlpoolEl = _makeBufferLoop(); // ambient bed shared across every whirlpool active at once, not per-instance
         state.cancerWhirlpoolEl.setSrc('assets/audio/sfx/cancer-whirlpool-spin.mp3');
+        state.leviathanIdleEl = _makeBufferLoop();
+        state.leviathanIdleEl.setSrc('assets/audio/sfx/leviathan-idle.mp3');
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
@@ -881,6 +891,7 @@
         startEgregorCrawl, stopEgregorCrawl, tickEgregorCrawl,
         startPhotokrystosIdle, stopPhotokrystosIdle, tickPhotokrystosIdle,
         startGoliathIdle, stopGoliathIdle,
+        startLeviathanIdle, stopLeviathanIdle,
         startCancerWhirlpool, stopCancerWhirlpool,
         startLaser,   stopLaser,
 
