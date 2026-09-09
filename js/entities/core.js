@@ -502,16 +502,16 @@ function spawnBossShockwave(x, y, ownerType) {
 }
 
 // Marchosias (Arc Barrier still up) and Egregor (still has any live tentacle)
-// share a rolling 750ms piercing-damage cap: 15% MaxHP total, tracked per
+// share a rolling 700ms piercing-damage cap: 20% MaxHP total, tracked per
 // enemy so a burst of piercing hits landing within the same window (e.g.
 // Blood Arrow's 5-arrow volley) can't add up to more than that regardless of
 // how many separate hits it takes to get there. Once the barrier/tentacles
 // are gone this cap no longer applies at all.
 function _capPierceBurstDamage(enemy, dmg) {
     const now = performance.now();
-    enemy._pierceBurstHits = (enemy._pierceBurstHits || []).filter(h => now - h.t < 750);
+    enemy._pierceBurstHits = (enemy._pierceBurstHits || []).filter(h => now - h.t < 700);
     const dealtSoFar = enemy._pierceBurstHits.reduce((s, h) => s + h.dmg, 0);
-    const allowed = Math.max(0, Math.min(dmg, Math.ceil(enemy.maxHp * 0.15) - dealtSoFar));
+    const allowed = Math.max(0, Math.min(dmg, Math.ceil(enemy.maxHp * 0.20) - dealtSoFar));
     enemy._pierceBurstHits.push({ t: now, dmg: allowed });
     return allowed;
 }
@@ -1151,7 +1151,7 @@ function dealDamage(enemy, source) {
     // Damage caps apply regardless of true damage
 
     // Marchosias (barrier still up) / Egregor (tentacles still up): piercing
-    // damage capped at 15% MaxHP total per rolling 750ms window, see
+    // damage capped at 20% MaxHP total per rolling 700ms window, see
     // _capPierceBurstDamage above. Marchosias's own body-only DR/split
     // already ran before this point (checkMarchosiasArcBarrier /
     // applyMarchosiasSkillASplit, called by the attacker before dealDamage),
