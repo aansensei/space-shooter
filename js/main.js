@@ -1113,8 +1113,9 @@ function update(rawDeltaTime) {
                     speed: 0,
                     echoTimer: 0,
                     echoShootTimer: 0,
-                    echoShootInterval: 200,
+                    echoShootInterval: 600,
                     echoOriginMaxHp: enemy.maxHp,
+                    echoPhantomDmg: enemy._totalPhantomDamageReceived || 0,
                     echoExplosionDone: false,
                 });
             }
@@ -2499,10 +2500,33 @@ function update(rawDeltaTime) {
         return true;
     });
 
+    // Veilshroud Phantom Portal: apostle spawn telegraphs (dark patch marking
+    // where each one will appear, resolved into a real apostle once the
+    // countdown ends)
+    if (!window._veilshroudPendingApostles) window._veilshroudPendingApostles = [];
+    if (window._veilshroudPendingApostles.length) window._veilshroudPendingApostles = window._veilshroudPendingApostles.filter(pa => {
+        pa.countdown -= deltaTime;
+        if (pa.countdown <= 0) {
+            enemies.push({
+                x: pa.x, y: pa.y, size: pa.size,
+                speed: (1 + Math.random() * 2) * 0.8 * 0.8, // -20% vs a normal wave apostle
+                hp: pa.hp, maxHp: pa.hp,
+                isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
+                type: 'apostle', shootTimer: 1000,
+            });
+            addExplosion(pa.x, pa.y, pa.size * 1.1, '#aa44ff');
+            createParticles(pa.x, pa.y, 16, '#cc66ff', 2, 7);
+            createParticles(pa.x, pa.y, 8, '#ffffff', 1, 5);
+            return false;
+        }
+        return true;
+    });
+
     // Veilshroud echo explosion zones
     if (!window._veilshroudExplosions) window._veilshroudExplosions = [];
     if (window._veilshroudExplosions.length) window._veilshroudExplosions = window._veilshroudExplosions.filter(ez => {
         ez.life -= deltaTime;
+        ez._shockwaveAge = (ez._shockwaveAge || 0) + deltaTime;
         ez.tickTimer += deltaTime;
         if (ez.tickTimer >= ez.tickInterval) {
             ez.tickTimer -= ez.tickInterval;
@@ -2511,7 +2535,7 @@ function update(rawDeltaTime) {
             // Damage ticks: sentinels
             for (const s of sentinels) {
                 if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius) {
-                    const dmg = Math.ceil(s.maxHp * 0.02);
+                    const dmg = Math.ceil(s.maxHp * 0.06);
                     dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl' });
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }

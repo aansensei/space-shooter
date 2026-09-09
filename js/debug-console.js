@@ -598,6 +598,10 @@ window.debugSetYuukiBonus = function () {
         // đúng luồng chọn sigil như 1 trận chơi thật.
         window._debugSkipSigilPick = true;
         if (typeof startGame === 'function') startGame();
+        // The real hyperjump click-chain (index.html) is what normally starts
+        // these, but this button skips straight to startGame() without going
+        // through it, so the sandbox would otherwise run completely silent.
+        if (window.AudioMgr) { window.AudioMgr.stopBgm(); window.AudioMgr.startAmbient(); window.AudioMgr.startEngine(); }
         window._sigilPicker = null;
         const ov = document.getElementById('sigil-pick-overlay');
         if (ov) ov.style.display = 'none';
