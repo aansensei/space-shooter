@@ -43,6 +43,12 @@
     <link rel="icon" type="image/png" href="assets/images/site/logo.png">
     <link rel="apple-touch-icon" href="assets/images/site/logo.png">
     <link rel="manifest" href="manifest.json">
+    <!-- Skill Shift's Yog-Sothoth domain can be pressed within the first
+         few seconds of a match, well before the service worker's own
+         background install would otherwise get around to caching this.
+         Preloaded here so the very first activation doesn't race the
+         painting's network fetch and render without it. -->
+    <link rel="preload" as="image" href="assets/images/game/effects/yog-sothoth-starry-night.jpg">
     <!-- iOS ignores manifest.json for "Add to Home Screen" — these are the
          actual tags Safari reads for standalone (no browser chrome) launch. -->
     <meta name="apple-mobile-web-app-capable" content="yes">
