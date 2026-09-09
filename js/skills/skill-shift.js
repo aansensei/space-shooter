@@ -20,9 +20,12 @@ function executeShiftTeleport(direction) {
     // Giới hạn không cho người chơi bay khỏi màn hình
     player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
 
-    // Hiệu ứng dịch chuyển
-    addExplosion(player.x, player.y, 60, 'purple');
-    createParticles(player.x, player.y, 30, 'magenta', 3, 10);
+    // Hiệu ứng dịch chuyển: 1 cụm cánh hoa cọ vẽ xoáy lan ra ngoài (xem
+    // _drawTeleportBursts, fx.js), khớp tone vàng-xanh coban của lãnh địa
+    // thay vì cụm nổ tím/magenta phẳng cũ
+    if (!window._teleportBursts) window._teleportBursts = [];
+    window._teleportBursts.push({ x: player.x, y: player.y, spawnAt: performance.now(), duration: 550 });
+    createParticles(player.x, player.y, 14, '#8cbcfc', 2, 7);
     _setShake(10, 200);
     if (window.AudioMgr) window.AudioMgr.playSfx('shift-teleport');
 
@@ -41,6 +44,14 @@ function cancelSkillShift() {
         // If teleport (←/→) was used during domain → 9s CD (same as held ≥7s)
         const teleportUsed = !!window._shiftTeleportUsed;
         window._shiftTeleportUsed = false; // reset flag
+
+        // Quick collapse flash on a normal release - teleporting already
+        // gets its own distinct outward burst (executeShiftTeleport above),
+        // so this only fires when the domain just closed on its own.
+        if (!teleportUsed) {
+            if (!window._domainCloseBursts) window._domainCloseBursts = [];
+            window._domainCloseBursts.push({ x: player.x, y: player.y, spawnAt: performance.now(), duration: 300 });
+        }
 
         let effectiveCD;
         if (teleportUsed || holdDuration >= 7) {

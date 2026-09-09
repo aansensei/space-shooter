@@ -259,12 +259,12 @@ function _drawNormalSpirit(spirit) {
         ctx.shadowBlur = 0;
     }
 
-    // Domain purple ally tint
+    // Domain tint, gold/cobalt to match the Van Gogh domain palette
     if (skillShiftActive) {
         ctx.save();
-        ctx.fillStyle = 'rgba(140,0,255,0.32)';
+        ctx.fillStyle = 'rgba(70,130,255,0.30)';
         ctx.beginPath(); ctx.arc(spirit.x, spirit.y, size * 1.2, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(220,100,255,0.75)';
+        ctx.strokeStyle = 'rgba(255,210,120,0.7)';
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(spirit.x, spirit.y, size * 1.3, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
@@ -734,11 +734,11 @@ function drawPhotokrystos(spirit) {
         ctx.fillText('Phōtokrystos', sx, by - 4);
     }
 
-    // Domain tint
+    // Domain tint, gold/cobalt to match the Van Gogh domain palette
     if (skillShiftActive) {
-        ctx.save(); ctx.fillStyle = 'rgba(140,0,255,0.28)';
+        ctx.save(); ctx.fillStyle = 'rgba(70,130,255,0.26)';
         ctx.beginPath(); ctx.arc(sx, sy, size * 1.2, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(220,100,255,0.65)'; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(255,210,120,0.6)'; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(sx, sy, size * 1.3, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
     }

@@ -483,7 +483,7 @@ function _drawYogSothothDomainMythos() {
         } else {
             ctx.translate(bgCx, bgCy);
         }
-        const imgAlpha = [0.48, 0.40, 0.55, 0.60][tier];
+        const imgAlpha = [0.56, 0.46, 0.60, 0.65][tier];
         ctx.globalAlpha = imgAlpha * breathe;
         ctx.drawImage(_yogDomainStarryImg, -imgD / 2, -imgD / 2, imgD, imgD);
         ctx.restore();
@@ -507,7 +507,7 @@ function _drawYogSothothDomainMythos() {
             ctx.rotate(dabAngle);
 
             const twinkle = (Math.sin(now / 800 + i) + 1) / 2;
-            ctx.globalAlpha = (0.15 + 0.15 * twinkle) * breathe;
+            ctx.globalAlpha = (0.2 + 0.2 * twinkle) * breathe;
 
             const colors = ['#1a2b5a', '#294382', '#0d1633', '#253e7a'];
             ctx.strokeStyle = colors[i % 4];
@@ -638,7 +638,7 @@ function _drawYogSothothDomainMythos() {
                 ctx.strokeStyle = (i % 9 === 0) ? warmColors2[Math.floor(i / 9) % 2] : colors[i % colors.length];
                 ctx.lineWidth = 10 + p1 * 14;
                 ctx.lineCap = 'round';
-                ctx.globalAlpha = (0.5 + 0.4 * Math.sin(now / 600 + i)) * breathe;
+                ctx.globalAlpha = (0.58 + 0.42 * Math.sin(now / 600 + i)) * breathe;
                 if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10; }
 
                 const len = 35 + p2 * 45;
@@ -664,6 +664,50 @@ function _drawYogSothothDomainMythos() {
             }
             ctx.restore();
         }
+    }
+
+    // 3c. Cypress tree silhouette, the reference painting's signature dark
+    // foreground shape, built from many layered curved brush strands instead
+    // of a flat solid outline - fills what was previously a bare stretch of
+    // sky with a real painted element instead of leaving it empty.
+    if (tier < 2) {
+        const treeX = bgCx - canvas.width * 0.34;
+        const treeBaseY = bgCy + canvas.height * 0.55;
+        const treeH = canvas.height * 0.62;
+        ctx.save();
+        ctx.translate(treeX, treeBaseY);
+        ctx.rotate(Math.sin(now / 3000) * 0.02);
+        const strandCount = isFull ? 26 : 14;
+        for (let i = 0; i < strandCount; i++) {
+            const p1 = (Math.sin(i * 21.3) + 1) / 2;
+            const p2 = (Math.sin(i * 47.9) + 1) / 2;
+            const strandH = treeH * (0.35 + p1 * 0.65);
+            const baseX = (p2 - 0.5) * treeH * 0.16;
+            const sway = Math.sin(now / (2200 + i * 90) + i) * treeH * 0.03;
+            ctx.globalAlpha = (0.55 + p1 * 0.3) * breathe;
+            ctx.strokeStyle = i % 5 === 0 ? '#0d2b28' : (i % 3 === 0 ? '#173f3a' : '#0a1f30');
+            ctx.lineWidth = 3 + p2 * 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(baseX, 0);
+            ctx.quadraticCurveTo(baseX + sway, -strandH * 0.55, baseX * 0.3 + sway * 0.6, -strandH);
+            ctx.stroke();
+        }
+        // Brighter strokes along the strands, moonlight catching the edges.
+        if (isFull) {
+            for (let h = 0; h < 5; h++) {
+                const p1 = (Math.sin(h * 33.1) + 1) / 2;
+                const hH = treeH * (0.4 + p1 * 0.5);
+                ctx.globalAlpha = 0.25 * breathe;
+                ctx.strokeStyle = '#2f6b5e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo((p1 - 0.5) * treeH * 0.1, -hH * 0.2);
+                ctx.quadraticCurveTo((p1 - 0.3) * treeH * 0.14, -hH * 0.6, (p1 - 0.5) * treeH * 0.08, -hH);
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
     }
 
     // 3b. Great Spiral centerpiece: one big continuous painted spiral arm,
@@ -784,7 +828,7 @@ function _drawYogSothothDomainMythos() {
             for (let ry = 0; ry < rayCount; ry++) {
                 const ra = (ry / rayCount) * Math.PI * 2;
                 const rLen = (26 + p2 * 18) * (isFull ? 1 : 0.7) * rayPulse;
-                ctx.globalAlpha = (ry % 2 === 0 ? 0.6 : 0.35) * rayPulse * breathe;
+                ctx.globalAlpha = (ry % 2 === 0 ? 0.68 : 0.42) * rayPulse * breathe;
                 ctx.lineWidth = ry % 2 === 0 ? 2.5 : 1.3;
                 ctx.beginPath();
                 ctx.moveTo(Math.cos(ra) * (10 + p1 * 5), Math.sin(ra) * (10 + p1 * 5));
@@ -826,7 +870,7 @@ function _drawYogSothothDomainMythos() {
 
         // Soft halo behind the crescent
         const haloG = ctx.createRadialGradient(0, 0, moonR * 0.5, 0, 0, moonR * 3.4);
-        haloG.addColorStop(0, `rgba(255,238,190,${0.34 * breathe * moonPulse})`);
+        haloG.addColorStop(0, `rgba(255,238,190,${0.42 * breathe * moonPulse})`);
         haloG.addColorStop(1, 'rgba(255,238,190,0)');
         ctx.fillStyle = haloG;
         ctx.beginPath(); ctx.arc(0, 0, moonR * 3.4, 0, Math.PI * 2); ctx.fill();
@@ -915,36 +959,44 @@ function _drawYogSothothDomainMythos() {
         // Offset from canvas dimensions directly, not maxRadius (the full
         // diagonal - a fraction of that easily overshoots past the visible
         // canvas height and put this star below the bottom edge, unseen).
-        const bsX = bgCx - canvas.width * 0.16, bsY = bgCy + canvas.height * 0.27;
-        const dashCount = 22;
-        ctx.save();
-        ctx.translate(bsX, bsY);
-        ctx.rotate(now / 15000);
-        for (let d = 0; d < dashCount; d++) {
-            const p1 = (Math.sin(d * 19.7) + 1) / 2;
-            const p2 = (Math.sin(d * 63.4) + 1) / 2;
-            const da = (d / dashCount) * Math.PI * 2 + (p1 - 0.5) * 0.35;
-            const inner = maxRadius * 0.006 + p2 * maxRadius * 0.004;
-            const outer = inner + maxRadius * (0.012 + p1 * 0.02);
+        // Two of them, mirrored left/right, so both sides of the sky carry
+        // a hand-painted star instead of only the left half.
+        const spots = [
+            { x: bgCx - canvas.width * 0.16, y: bgCy + canvas.height * 0.27, seed: 0 },
+            { x: bgCx + canvas.width * 0.30, y: bgCy - canvas.height * 0.06, seed: 40 },
+        ];
+        for (const spot of spots) {
+            const bsX = spot.x, bsY = spot.y;
+            const dashCount = 22;
             ctx.save();
-            ctx.rotate(da);
-            ctx.globalAlpha = (0.55 + 0.35 * p2) * breathe;
-            ctx.strokeStyle = d % 6 === 0 ? '#bfe3ff' : '#ffe9b0';
-            ctx.lineWidth = 2 + p1 * 2.5;
-            ctx.lineCap = 'round';
-            if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5; }
-            ctx.beginPath();
-            ctx.moveTo(inner, 0);
-            ctx.lineTo(outer, 0);
-            ctx.stroke();
+            ctx.translate(bsX, bsY);
+            ctx.rotate(now / 15000 + spot.seed);
+            for (let d = 0; d < dashCount; d++) {
+                const p1 = (Math.sin((d + spot.seed) * 19.7) + 1) / 2;
+                const p2 = (Math.sin((d + spot.seed) * 63.4) + 1) / 2;
+                const da = (d / dashCount) * Math.PI * 2 + (p1 - 0.5) * 0.35;
+                const inner = maxRadius * 0.006 + p2 * maxRadius * 0.004;
+                const outer = inner + maxRadius * (0.012 + p1 * 0.02);
+                ctx.save();
+                ctx.rotate(da);
+                ctx.globalAlpha = (0.55 + 0.35 * p2) * breathe;
+                ctx.strokeStyle = d % 6 === 0 ? '#bfe3ff' : '#ffe9b0';
+                ctx.lineWidth = 2 + p1 * 2.5;
+                ctx.lineCap = 'round';
+                if (!_mobPerf) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5; }
+                ctx.beginPath();
+                ctx.moveTo(inner, 0);
+                ctx.lineTo(outer, 0);
+                ctx.stroke();
+                ctx.restore();
+            }
+            ctx.globalAlpha = 0.9 * breathe;
+            ctx.fillStyle = '#fff6de';
+            if (!_mobPerf) { ctx.shadowColor = '#ffe9b0'; ctx.shadowBlur = 18; }
+            ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.01, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
             ctx.restore();
         }
-        ctx.globalAlpha = 0.9 * breathe;
-        ctx.fillStyle = '#fff6de';
-        if (!_mobPerf) { ctx.shadowColor = '#ffe9b0'; ctx.shadowBlur = 18; }
-        ctx.beginPath(); ctx.arc(0, 0, maxRadius * 0.01, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.restore();
     }
 
     // 4e. Shooting stars: two bright comets streak across the sky on
@@ -1740,6 +1792,8 @@ function draw(deltaTime) {
         if (typeof _drawGreatSageGemGrantBurst === 'function') _drawGreatSageGemGrantBurst();
         drawPlayerAura();
         _drawParryBursts(); // Yog-Sothoth Accurate Parry "Temporal Fracture" burst
+        _drawTeleportBursts(); // Skill Shift teleport bloom
+        _drawDomainCloseBursts(); // Skill Shift domain closing collapse
         drawFinalDefense();
 
         if (charging && !laserActive) drawChargeEffect();
