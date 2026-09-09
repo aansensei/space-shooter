@@ -65,11 +65,17 @@ function cancelSkillShift() {
         }
         lastSkillShift = performance.now() - (skillShiftCooldown - effectiveCD);
 
-        // Xóa tất cả enemy bullet trong vùng phạm vi Shift (bán kính = nửa màn hình)
+        // Xóa tất cả enemy bullet trong vùng phạm vi Shift (bán kính = nửa màn hình).
+        // Each one wiped gets the same paint-streak burst as the domain's
+        // continuous clear (see _drawYogBulletClearBursts, fx.js).
         const shiftRadius = Math.min(canvas.width, canvas.height) * 0.45;
+        if (!window._yogBulletClearBursts) window._yogBulletClearBursts = [];
+        const _shiftClearNow = performance.now();
         enemies = enemies.filter(e => {
             if (!e.type.startsWith('enemy_bullet')) return true;
-            return Math.hypot(e.x - player.x, e.y - player.y) > shiftRadius;
+            const inRange = Math.hypot(e.x - player.x, e.y - player.y) <= shiftRadius;
+            if (inRange) window._yogBulletClearBursts.push({ x: e.x, y: e.y, spawnAt: _shiftClearNow, duration: 260 });
+            return !inRange;
         });
     }
 }

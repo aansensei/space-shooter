@@ -764,6 +764,42 @@ function _drawDomainCloseBursts() {
     }
 }
 
+// Yog-Sothoth bullet clear: a handful of short brush-stroke paint streaks
+// flicking outward from a bullet's position the instant the domain wipes
+// it - the domain's own gold/cobalt dabs, standing in for the mass-clear
+// filters that used to just delete the bullet with no effect at all.
+function _drawYogBulletClearBursts() {
+    if (!window._yogBulletClearBursts || window._yogBulletClearBursts.length === 0) return;
+    const now = performance.now();
+    for (const cb of window._yogBulletClearBursts) {
+        const t = (now - cb.spawnAt) / cb.duration;
+        if (t >= 1) continue;
+        const fade = 1 - t;
+        const seed = ((cb.x * 13 + cb.y * 7) % 360) * Math.PI / 180;
+        ctx.save();
+        ctx.translate(cb.x, cb.y);
+
+        const streakCount = 5;
+        for (let i = 0; i < streakCount; i++) {
+            const a = (i / streakCount) * Math.PI * 2 + seed;
+            const len = 6 + t * 16;
+            ctx.save();
+            ctx.rotate(a);
+            ctx.strokeStyle = i % 2 === 0 ? `rgba(255,210,120,${0.85 * fade})` : `rgba(90,150,255,${0.85 * fade})`;
+            ctx.lineWidth = 2 + 1.5 * fade;
+            ctx.lineCap = 'round';
+            if (!_mobPerf) { ctx.shadowColor = i % 2 === 0 ? '#ffcc55' : '#4488ff'; ctx.shadowBlur = 5; }
+            ctx.beginPath();
+            ctx.moveTo(len * 0.3, 0);
+            ctx.quadraticCurveTo(len * 0.65, -len * 0.15, len, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+    }
+}
+
 // Vine Bind (Phōtokrystos DNT companion effect): vines grow from nothing to
 // wrap the rooted enemy's base over the first 1s, then a pulsing green aura
 // marks the 2s 50% slow that follows — both fade out together at the end.

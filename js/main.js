@@ -659,6 +659,9 @@ function update(rawDeltaTime) {
     if (window._domainCloseBursts && window._domainCloseBursts.length) {
         window._domainCloseBursts = window._domainCloseBursts.filter(cb => currentTime - cb.spawnAt < cb.duration);
     }
+    if (window._yogBulletClearBursts && window._yogBulletClearBursts.length) {
+        window._yogBulletClearBursts = window._yogBulletClearBursts.filter(cb => currentTime - cb.spawnAt < cb.duration);
+    }
 
     let _dimBreakMult = 1.0;
     if (window._dimBreakZones && window._dimBreakZones.length) {
@@ -1888,8 +1891,17 @@ function update(rawDeltaTime) {
     const _profChk3 = [performance.now()];
     // Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới
     if (skillShiftActive) {
-        // Abyssal Chains survive YOG, piercing, cannot be cleared by any means
-        enemies = enemies.filter(e => e.type === 'abyssal_chain' || !e.type.startsWith('enemy_bullet'));
+        // Abyssal Chains survive YOG, piercing, cannot be cleared by any means.
+        // Each bullet actually wiped gets a small paint-streak burst at its
+        // spot (see _drawYogBulletClearBursts, fx.js) instead of just
+        // vanishing with no effect.
+        if (!window._yogBulletClearBursts) window._yogBulletClearBursts = [];
+        const _yogClearNow = performance.now();
+        enemies = enemies.filter(e => {
+            if (e.type === 'abyssal_chain' || !e.type.startsWith('enemy_bullet')) return true;
+            window._yogBulletClearBursts.push({ x: e.x, y: e.y, spawnAt: _yogClearNow, duration: 260 });
+            return false;
+        });
     }
 
     if (!window._debugSessionActive) _updateWaveSystem(deltaTime, currentTime);
@@ -3015,6 +3027,7 @@ function startGame() {
     window._parryBursts = [];
     window._teleportBursts = [];
     window._domainCloseBursts = [];
+    window._yogBulletClearBursts = [];
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;
