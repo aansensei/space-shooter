@@ -501,6 +501,21 @@ function spawnBossShockwave(x, y, ownerType) {
     if (window.AudioMgr) window.AudioMgr.startMaouHaki();
 }
 
+// Marchosias (Arc Barrier still up) and Egregor (still has any live tentacle)
+// share a rolling 750ms piercing-damage cap: 15% MaxHP total, tracked per
+// enemy so a burst of piercing hits landing within the same window (e.g.
+// Blood Arrow's 5-arrow volley) can't add up to more than that regardless of
+// how many separate hits it takes to get there. Once the barrier/tentacles
+// are gone this cap no longer applies at all.
+function _capPierceBurstDamage(enemy, dmg) {
+    const now = performance.now();
+    enemy._pierceBurstHits = (enemy._pierceBurstHits || []).filter(h => now - h.t < 750);
+    const dealtSoFar = enemy._pierceBurstHits.reduce((s, h) => s + h.dmg, 0);
+    const allowed = Math.max(0, Math.min(dmg, Math.ceil(enemy.maxHp * 0.15) - dealtSoFar));
+    enemy._pierceBurstHits.push({ t: now, dmg: allowed });
+    return allowed;
+}
+
 function dealDamage(enemy, source) {
     if (enemy.type === 'abyssal_chain') return;
 
@@ -876,6 +891,7 @@ function dealDamage(enemy, source) {
                 Math.ceil(enemy.maxHp * 0.30)
             );
             if (enemy._nullSlashPhase === 'charging') _pierceDmg = Math.ceil(_pierceDmg * 0.70);
+            _pierceDmg = _capPierceBurstDamage(enemy, _pierceDmg);
             enemy.hp = Math.max(0, enemy.hp - _pierceDmg);
             return;
         }
@@ -1133,6 +1149,23 @@ function dealDamage(enemy, source) {
     }
 
     // Damage caps apply regardless of true damage
+
+    // Marchosias (barrier still up) / Egregor (tentacles still up): piercing
+    // damage capped at 15% MaxHP total per rolling 750ms window, see
+    // _capPierceBurstDamage above. Marchosias's own body-only DR/split
+    // already ran before this point (checkMarchosiasArcBarrier /
+    // applyMarchosiasSkillASplit, called by the attacker before dealDamage),
+    // so every piercing hit on it lands here regardless of true damage.
+    // Egregor's non-true piercing hits are already handled (and return
+    // early) inside the tentacle block above; this only catches the
+    // true-damage piercing hits that skip that block entirely.
+    if (source.isPiercing) {
+        const _mkPierceGuard = enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0;
+        const _egPierceGuard = enemy.type === 'egregor' && enemy._tentacleHps && enemy._tentacleHps.some(hp => hp > 0);
+        if (_mkPierceGuard || _egPierceGuard) {
+            totalDamage = _capPierceBurstDamage(enemy, totalDamage);
+        }
+    }
 
     // Inevitable (Goliath, True Form): CHỈ sát thương xuyên (isPiercing),
     // CHUẨN (true damage), và DOT mới được đánh full — sát thương BÌNH

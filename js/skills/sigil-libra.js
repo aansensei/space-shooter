@@ -486,7 +486,13 @@ function updateSolArrows(deltaTime) {
                         // respects shield, but (like every other isPiercing hit) skips the
                         // hard per-hit %MaxHP cap normal damage runs into against enemies
                         // like Goliath's Inevitable.
-                        dealDamage(enemy, { damage: explodeBase * _baMult + _lostHpBonus, percentDamage: explodePct * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
+                        // Routed through applyMarchosiasSkillASplit like Thunder Orb's own
+                        // hits - Blood Arrow's arrows home in on their target the same way
+                        // orbs do, so they almost never arrive from within the Arc Barrier's
+                        // rotating 90° facing arc that checkMarchosiasArcBarrier() itself
+                        // gates on. Without this, every arrow skipped the barrier entirely
+                        // and hit Marchosias's body directly. A no-op for every other enemy.
+                        applyMarchosiasSkillASplit(enemy, { damage: explodeBase * _baMult + _lostHpBonus, percentDamage: explodePct * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         // Blood-flower bloom (red spider lily / higanbana) instead of a flat gold explosion
                         _spawnSolArrowLily(arrow.x, arrow.y, arrow.isPrimary, Math.atan2(arrow.vy, arrow.vx));
@@ -495,8 +501,9 @@ function updateSolArrows(deltaTime) {
                         break;
                     } else {
                         // Pass-through hit on a non-marked enemy: piercing damage for
-                        // every arrow, big or small - never true damage, always respects shield.
-                        dealDamage(enemy, { damage: 300 * dmgMult * repeatMult, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
+                        // every arrow, big or small - never true damage, always respects
+                        // shield. Same Arc Barrier routing as the explosion above.
+                        applyMarchosiasSkillASplit(enemy, { damage: 300 * dmgMult * repeatMult, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         createParticles(arrow.x, arrow.y, 8, '#f59e0b', 2, 5);
                     }
