@@ -1187,6 +1187,11 @@ function dealDamage(enemy, source) {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.25));
         // Energy Accumulation: record absorbed damage
         enemy._phantomAbsorb = (enemy._phantomAbsorb || 0) + Math.max(0, _veilPreDr - totalDamage);
+        // Phantom Portal (Void Echo): lifetime tally of real damage actually
+        // taken while Phantom, carried over to the Echo on death so its
+        // spawned apostles scale off how much punishment this Veilshroud
+        // actually soaked up, not just its base MaxHP.
+        enemy._totalPhantomDamageReceived = (enemy._totalPhantomDamageReceived || 0) + totalDamage;
     }
 
     // Inevitable (Leviathan): if hit > 20% maxHP, cap at 10% for 3s (2s cooldown after it ends)

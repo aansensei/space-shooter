@@ -39,6 +39,12 @@ function _drawVeilshroud(enemy) {
         ctx.translate((Math.random() - 0.5) * 14 * t, (Math.random() - 0.5) * 9 * t);
     }
 
+    // Hazy/dreamlike blur while cloaked, grows in with the same fade-in
+    // progress (t) as the rest of the phantom transition, cut on lower tiers.
+    if (enemy.inPhantom && !_mobPerf && _gfxLevel < 2) {
+        ctx.filter = `blur(${(1.5 + t * 2.5).toFixed(1)}px)`;
+    }
+
     // 1. AURA HƯ KHÔNG
     const auraPulse = Math.sin(now / 300) * 12;
     const auraR = r * 3.2 + auraPulse;
@@ -250,93 +256,131 @@ function _drawVeilshroud(enemy) {
     }
 }
 
+// The Phantom Portal: a proper black hole (gravitational lens, swirling
+// rings, infalling matter, wobbling event horizon, reusing the color
+// palette/glow technique from the original Cosmic Black Hole's Skill D
+// render before it became Death Star, flattened into a circular vortex
+// instead of a tilted-perspective disk). The vortex pulls in everything
+// from the full blast radius down to the small core at its center.
 function _drawVeilshroudEcho(enemy) {
     const now = performance.now();
     const echoT = enemy.echoTimer || 0;
-    const r = enemy.size / 2;
+    const outerR = VEIL_ECHO_BLAST_RADIUS; // vortex spans out to the blast edge
+    // Portal core rendered 4x bigger than the entity's actual hitbox, capped
+    // so the swirling rings (which start at r*1.3) always stay inside outerR.
+    const r = Math.min((enemy.size / 2) * 4, outerR * 0.7);
 
-    // Mức độ "charging" (3–5s: echo chuyển sang đỏ rực, sắp nổ)
+    // Mức độ "charging" (3–5s: sắp sụp)
     const isCharging = echoT >= 3000;
     const chargeProg = isCharging ? Math.min(1, (echoT - 3000) / 2000) : 0;
 
-    const pulse = 0.55 + 0.45 * Math.abs(Math.sin(now / 180 + enemy.x * 0.03));
-    const alpha = isCharging ? (0.5 + chargeProg * 0.4) : (0.5 + pulse * 0.3);
-
-    ctx.save();
-    ctx.translate(enemy.x, enemy.y);
-    ctx.globalAlpha = alpha;
-
-    // Màu: cyan → đỏ khi charging
+    // State color: cyan (fresh) -> red (about to collapse)
     const eR = Math.round(200 * chargeProg);
     const eG = Math.round(240 - 240 * chargeProg);
     const eB = Math.round(255 - 200 * chargeProg);
     const echoColor = `rgb(${eR},${eG},${eB})`;
 
-    // Aura mờ
-    const aG = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r * 3);
-    aG.addColorStop(0, `rgba(${eR},${eG},${eB},0.12)`);
-    aG.addColorStop(1, 'transparent');
-    ctx.fillStyle = aG;
-    ctx.beginPath(); ctx.arc(0, 0, r * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
 
-    // Floating shards (wireframe / khung dây)
-    ctx.strokeStyle = `rgba(${eR},${eG},${eB},0.55)`;
-    ctx.lineWidth = 1.5;
-    if (!_mobPerf) { ctx.shadowColor = echoColor; ctx.shadowBlur = 8; }
-    const float = Math.sin(now / 700) * 6;
-    const crystalShards = [
-        [[0, -r * 1.65 - float], [r * 0.55, -r * 0.5 - float * 0.5], [0, -r * 0.2], [-r * 0.55, -r * 0.5 - float * 0.5]],
-        [[0, r * 1.45 + float], [r * 0.45, r * 0.42 + float * 0.5], [0, r * 0.12], [-r * 0.45, r * 0.42 + float * 0.5]],
-        [[-r * 1.35 - float, 0], [-r * 0.48, -r * 0.28], [-r * 0.22, 0], [-r * 0.48, r * 0.28]],
-        [[r * 1.35 + float, 0], [r * 0.48, -r * 0.28], [r * 0.22, 0], [r * 0.48, r * 0.28]],
-    ];
-    crystalShards.forEach(pts => {
-        ctx.beginPath();
-        ctx.moveTo(pts[0][0], pts[0][1]);
-        for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
-        ctx.closePath(); ctx.stroke();
-    });
-    ctx.shadowBlur = 0;
+    // Gravitational lens glow, out to the blast radius, breathing gently
+    if (_gfxLevel < 2) {
+        const _lensA = _gfxLevel < 1 ? 1.0 : 0.40;
+        const _breathe = 0.9 + 0.1 * Math.sin(now / 500);
+        const lensG = ctx.createRadialGradient(0, 0, r * 0.85, 0, 0, outerR * _breathe);
+        lensG.addColorStop(0, `rgba(190,80,255,${0.30 * _lensA})`);
+        lensG.addColorStop(0.6, `rgba(100,0,180,${0.12 * _lensA})`);
+        lensG.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = lensG;
+        ctx.beginPath(); ctx.arc(0, 0, outerR * _breathe, 0, Math.PI * 2); ctx.fill();
+    }
 
-    // Lõi đỏ rực (charging phase)
-    if (isCharging) {
-        if (!_mobPerf) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 20 + chargeProg * 40; }
-        ctx.fillStyle = `rgba(255,0,0,${chargeProg * 0.7})`;
-        ctx.beginPath(); ctx.arc(0, 0, r * 0.35 + chargeProg * r * 0.45, 0, Math.PI * 2); ctx.fill();
+    // Circular swirling rings, spinning from the blast edge down to the
+    // core (same violet color layers as the old black hole, just flattened
+    // from tilted ellipses into plain spinning circles for a top-down vortex).
+    if (_gfxLevel < 3) {
+        const _t = now / 1000;
+        const _ringCount = _gfxLevel < 1 ? 6 : 4;
+        const _layerColors = [[60, 0, 110], [130, 0, 200], [190, 40, 255], [230, 120, 255]];
+        for (let i = 0; i < _ringCount; i++) {
+            const frac = i / (_ringCount - 1); // 0 = blast edge, 1 = core
+            const ringR = r * 1.3 + (outerR - r * 1.3) * (1 - frac);
+            const spin = (i % 2 === 0 ? 1 : -1) * (0.25 + frac * 0.6);
+            const c = _layerColors[Math.min(_layerColors.length - 1, Math.floor(frac * _layerColors.length))];
+            ctx.save();
+            ctx.rotate(_t * spin);
+            ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${0.75 - frac * 0.15})`;
+            ctx.lineWidth = 4 + frac * 7;
+            if (!_mobPerf) { ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 18; }
+            ctx.setLineDash([ringR * 0.5, ringR * 0.35]);
+            ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
         ctx.shadowBlur = 0;
     }
 
-    // Lõi trung tâm (event horizon mờ)
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = echoColor;
-    ctx.save();
-    ctx.rotate(now / 1400);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r * 0.1, r * 0.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // Vết nứt đỏ (charging phase)
-    if (isCharging) {
-        ctx.strokeStyle = `rgba(255,50,50,${chargeProg * 0.75})`;
-        ctx.lineWidth = 1.5;
-        for (let ci = 0; ci < 5; ci++) {
-            ctx.save();
-            ctx.rotate((ci / 5) * Math.PI * 2 + now / 2000);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(r * 0.45, r * 0.22);
-            ctx.lineTo(r * 0.9, -r * 0.1);
-            ctx.lineTo(r * 1.5, r * 0.32);
-            ctx.stroke();
-            ctx.restore();
+    // Infalling matter, spiraling in from the blast edge toward the core
+    if (_gfxLevel < 1) {
+        for (let i = 0; i < 16; i++) {
+            const phase = ((now / 1400 + i / 16) % 1 + 1) % 1;
+            const dist = r * 1.2 + (outerR - r * 1.2) * (1 - phase);
+            const pAngle = (i / 16) * Math.PI * 2 + phase * 4.5;
+            const px = Math.cos(pAngle) * dist;
+            const py = Math.sin(pAngle) * dist;
+            const pA = Math.min(1, phase * 1.6) * 0.9;
+            const pR = Math.max(1, 1.6 + phase * 2);
+            ctx.fillStyle = `rgba(230,170,255,${pA})`;
+            if (!_mobPerf) { ctx.shadowColor = '#e0aaff'; ctx.shadowBlur = 6; }
+            ctx.beginPath(); ctx.arc(px, py, pR, 0, Math.PI * 2); ctx.fill();
         }
+        ctx.shadowBlur = 0;
+    }
+
+    // Event horizon: wobbling boundary on HIGH, plain circle otherwise
+    const _ehWobble = _gfxLevel < 1 ? 0.08 : 0;
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * (1 + _ehWobble));
+    grad.addColorStop(0, 'black');
+    grad.addColorStop(0.36, '#1a0030');
+    grad.addColorStop(0.68, 'purple');
+    grad.addColorStop(1, 'rgba(80,0,80,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    if (_gfxLevel < 1) {
+        const _ehT = now / 1000;
+        const _seg = 48;
+        for (let i = 0; i <= _seg; i++) {
+            const a = (i / _seg) * Math.PI * 2;
+            const w = 1
+                + Math.sin(a * 3 + _ehT * 1.10) * 0.028
+                + Math.sin(a * 5 + _ehT * 0.73 + 1.40) * 0.018
+                + Math.sin(a * 2 + _ehT * 0.51 + 0.70) * 0.022;
+            const rr = r * w;
+            i === 0 ? ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr) : ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        ctx.closePath();
+    } else {
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+
+    // Photon sphere, tinted with the state color (cyan -> red)
+    if (_gfxLevel < 3) {
+        const _psP = _gfxLevel < 1 ? (0.70 + 0.30 * Math.sin(now / 700)) : _gfxLevel < 2 ? 0.60 : 0.30;
+        const psG = ctx.createRadialGradient(0, 0, r * 0.88, 0, 0, r * 1.05);
+        psG.addColorStop(0, 'rgba(0,0,0,0)');
+        psG.addColorStop(0.35, `rgba(${eR + 60},${eG + 20},${eB},${0.45 * _psP})`);
+        psG.addColorStop(0.62, `rgba(255,255,255,${0.7 * _psP})`);
+        psG.addColorStop(1, `rgba(${eR},${eG},${eB},0)`);
+        ctx.fillStyle = psG;
+        if (!_mobPerf) { ctx.shadowColor = echoColor; ctx.shadowBlur = _gfxLevel < 1 ? 20 : 10; }
+        ctx.beginPath(); ctx.arc(0, 0, r * 1.05, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
     }
 
     ctx.restore();
 
-    // Vòng nét đứt 300px cảnh báo vùng nổ (hiện trước khi nổ trong giai đoạn charging)
+    // Vòng nét đứt cảnh báo vùng nổ (hiện trước khi nổ trong giai đoạn charging)
     if (isCharging) {
         const warnA = 0.18 + chargeProg * 0.55;
         ctx.save();
@@ -346,7 +390,7 @@ function _drawVeilshroudEcho(enemy) {
         if (!_mobPerf) { ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8 + chargeProg * 12; }
         ctx.setLineDash([12, 8]);
         ctx.lineDashOffset = -(now / 70) % 20;
-        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, 300, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, VEIL_ECHO_BLAST_RADIUS, 0, Math.PI * 2); ctx.stroke();
         ctx.setLineDash([]);
         ctx.lineDashOffset = 0;
         ctx.shadowBlur = 0;
@@ -392,6 +436,35 @@ function _drawVeilshroudEffects() {
             ctx.setLineDash([8, 5]);
             ctx.beginPath(); ctx.arc(tx, ty, 100, 0, Math.PI * 2); ctx.stroke();
             ctx.setLineDash([]);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+
+    // Apostle spawn telegraphs: a solid dark patch pooling at the exact
+    // spot, growing and brightening its rim right up until the apostle appears.
+    if (window._veilshroudPendingApostles && window._veilshroudPendingApostles.length > 0) {
+        for (const pa of window._veilshroudPendingApostles) {
+            const prog = 1 - Math.max(0, pa.countdown) / pa.duration; // 0→1
+            const rr = pa.size * (0.75 + prog * 0.55);
+            const pulse = 0.85 + 0.15 * Math.sin(now / 90);
+            ctx.save();
+            const pg = ctx.createRadialGradient(pa.x, pa.y, 0, pa.x, pa.y, rr);
+            pg.addColorStop(0, `rgba(5,0,12,${0.9 * pulse})`);
+            pg.addColorStop(0.7, `rgba(15,0,30,${0.7 * pulse})`);
+            pg.addColorStop(1, 'rgba(15,0,30,0)');
+            ctx.fillStyle = pg;
+            ctx.beginPath(); ctx.arc(pa.x, pa.y, rr, 0, Math.PI * 2); ctx.fill();
+
+            ctx.globalAlpha = 0.5 + prog * 0.5;
+            ctx.strokeStyle = '#cc66ff';
+            ctx.lineWidth = 2 + prog * 1.5;
+            if (!_mobPerf) { ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 14; }
+            ctx.setLineDash([6, 4]);
+            ctx.lineDashOffset = -(now / 50) % 10;
+            ctx.beginPath(); ctx.arc(pa.x, pa.y, rr, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.lineDashOffset = 0;
             ctx.shadowBlur = 0;
             ctx.restore();
         }
@@ -538,6 +611,33 @@ function _drawVeilshroudEffects() {
             ctx.lineDashOffset = 0;
 
             ctx.restore();
+
+            // Shockwave from the collapse: a fast white flash ring right at
+            // the moment of the burst, followed by a slower, bigger violet
+            // ring that outruns the zone's own boundary before fading.
+            const swAge = ez._shockwaveAge || 0;
+            if (swAge < 250) {
+                const flashT = swAge / 250;
+                ctx.save();
+                ctx.globalAlpha = (1 - flashT) * 0.95;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 8 * (1 - flashT) + 2;
+                if (!_mobPerf) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 24; }
+                ctx.beginPath(); ctx.arc(ez.x, ez.y, ez.radius * (0.1 + flashT * 0.5), 0, Math.PI * 2); ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
+            if (swAge < 700) {
+                const swT = swAge / 700;
+                ctx.save();
+                ctx.globalAlpha = (1 - swT) * 0.85;
+                ctx.strokeStyle = '#e0aaff';
+                ctx.lineWidth = 7 * (1 - swT) + 2;
+                if (!_mobPerf) { ctx.shadowColor = '#cc00ff'; ctx.shadowBlur = 22; }
+                ctx.beginPath(); ctx.arc(ez.x, ez.y, ez.radius * (0.15 + swT * 1.15), 0, Math.PI * 2); ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
         }
     }
 }

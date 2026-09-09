@@ -1,7 +1,10 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/entities/veilshroud.js — Veilshroud's phantom/lightning kit and its
-// Echo (post-death lingering hazard). Extracted from entities.js. Must load
-// after entities.js and before main.js.
+// Echo (post-death lingering hazard, the Phantom Portal). Extracted from
+// entities.js. Must load after entities.js and before main.js.
+
+// Blast radius of the Phantom Portal's final collapse (was 300, +15%).
+const VEIL_ECHO_BLAST_RADIUS = 345;
 
 function spawnVeilshroud() {
     const baseSize = 20 + Math.random() * 10;
@@ -184,34 +187,34 @@ function _veilshroudFireVolley(enemy) {
     }
 }
 
-// VEILSHROUD ECHO UPDATE
+// VEILSHROUD ECHO UPDATE (Phantom Portal)
 function updateVeilshroudEcho(enemy, deltaTime) {
     enemy.echoTimer += deltaTime;
 
-    // 0–3s: bắn đạn nhanh hơn (222ms, −10% fire rate so với 200ms gốc)
+    // 0–3s: instead of firing bullets, the rift spits out real apostles,
+    // 2 every 600ms, each born straight out of the crack rather than
+    // falling from off-screen. Each one telegraphs first (a dark patch
+    // marking exactly where it'll appear) instead of just popping in.
     if (enemy.echoTimer < 3000) {
         enemy.echoShootTimer += deltaTime;
-        if (enemy.echoShootTimer >= (enemy.echoShootInterval || 222)) {
+        if (enemy.echoShootTimer >= (enemy.echoShootInterval || 600)) {
             enemy.echoShootTimer = 0;
-            const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
-            if (target) {
-                const baseAngle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-                for (let i = 0; i < 2; i++) {
-                    const a = baseAngle + (i - 0.5) * 0.22;
-                    const bulletHp = Math.max(10, Math.ceil(enemy.echoOriginMaxHp * 0.012));
-                    enemies.push({
-                        x: enemy.x, y: enemy.y,
-                        vx: Math.cos(a) * 4.8, vy: Math.sin(a) * 4.8,
-                        damage: 2, size: 9,
-                        hp: bulletHp, maxHp: bulletHp,
-                        type: 'enemy_bullet', shield: 0, ownerRef: enemy
-                    });
-                }
+            const apostleHp = Math.max(60, Math.ceil((enemy.echoPhantomDmg || 0) * 0.30));
+            if (!window._veilshroudPendingApostles) window._veilshroudPendingApostles = [];
+            for (let i = 0; i < 2; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const dist = enemy.size * (0.3 + Math.random() * 0.3);
+                const size = 20 + Math.random() * 10;
+                window._veilshroudPendingApostles.push({
+                    x: enemy.x + Math.cos(a) * dist, y: enemy.y + Math.sin(a) * dist,
+                    size, hp: apostleHp,
+                    countdown: 450, duration: 450,
+                });
             }
         }
     }
 
-    // 5s: phát nổ
+    // 5s: the rift collapses
     if (enemy.echoTimer >= 5000 && !enemy.echoExplosionDone) {
         enemy.echoExplosionDone = true;
         _veilshroudEchoExplode(enemy);
@@ -220,10 +223,24 @@ function updateVeilshroudEcho(enemy, deltaTime) {
 }
 
 function _veilshroudEchoExplode(enemy) {
-    const x = enemy.x, y = enemy.y, r = 300;
-    addExplosion(x, y, 60, '#aa00ff');
-    _setShake(12, 500);
-    createParticles(x, y, 50, '#cc44ff', 2, 10);
+    const x = enemy.x, y = enemy.y, r = VEIL_ECHO_BLAST_RADIUS;
+    // Bright white core flash first (the collapse itself), violet burst after
+    addExplosion(x, y, r * 0.5, '#ffffff');
+    addExplosion(x, y, 90, '#aa00ff');
+    _setShake(20, 600);
+    createParticles(x, y, 70, '#cc44ff', 3, 13);
+    createParticles(x, y, 30, '#ffffff', 2, 9);
+
+    // The collapse erases any ally-side projectile caught in it, arc blades included
+    bullets = bullets.filter(b => Math.hypot(b.x - x, b.y - y) >= r);
+    bladeArcProjectiles = bladeArcProjectiles.filter(p => Math.hypot(p.x - x, p.y - y) >= r);
+
+    // Caught in the collapse: -1 life outright, same save-system stack as
+    // any other hit (Dream Realm, Great Sage, Yog-Sothoth, Skill A's own
+    // defensive orb, Final Defense all still get first say via playerTakesHit).
+    if (Math.hypot(player.x - x, player.y - y) < r) {
+        playerTakesHit({ type: 'veilshroud_echo' });
+    }
 
     // Tạo vùng nổ tick
     if (!window._veilshroudExplosions) window._veilshroudExplosions = [];
@@ -234,5 +251,6 @@ function _veilshroudEchoExplode(enemy) {
         tickTimer: 0, tickInterval: 500,
         hitPlayerThisTick: false,
         originMaxHp: enemy.echoOriginMaxHp,
+        _shockwaveAge: 0, // drives the expanding ring in _drawVeilshroudEffects
     });
 }
