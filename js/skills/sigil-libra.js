@@ -454,8 +454,8 @@ function updateSolArrows(deltaTime) {
             }
 
             const dmgMult = arrow.isPrimary ? 1 : 0.60; // pierce-hit multiplier only
-            const explodeBase = arrow.isPrimary ? 400 : 160;
-            const explodePct = arrow.isPrimary ? 0.20 : 0.105;
+            const explodeBase = arrow.isPrimary ? 400 : 180;
+            const explodePct = arrow.isPrimary ? 0.20 : 0.12;
             const hitRadius = arrow.isPrimary ? 9.2 : 8;
             for (const enemy of enemies) {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0) continue;
@@ -464,16 +464,20 @@ function updateSolArrows(deltaTime) {
                     arrow.hitEnemies.add(enemy);
                     // Anti-focus discount: the 1st arrow (from any of the 5 in
                     // this volley) to hit a given enemy deals full damage,
-                    // every hit after that on the SAME enemy deals -40% -
+                    // every hit after that on the SAME enemy deals -30% -
                     // stops a single juicy target standing in multiple arrows'
                     // path from eating 5 full hits.
                     const priorHits = arrow.volleyHits.get(enemy) || 0;
-                    const repeatMult = priorHits > 0 ? 0.6 : 1.0;
+                    const repeatMult = priorHits > 0 ? 0.7 : 1.0;
                     arrow.volleyHits.set(enemy, priorHits + 1);
                     if (enemy === arrow.target) {
                         const estDR = _estimateSolArrowDR(enemy);
-                        const drBonus = Math.min(1.0, Math.floor(estDR * 100) * 0.02);
+                        const drBonus = Math.min(1.2, Math.floor(estDR * 100) * 0.02);
                         const _baMult = (1 + drBonus) * repeatMult;
+                        // Small arrows also tack on 5% of the target's already-lost HP,
+                        // scaled by the same anti-focus repeat discount as everything
+                        // else on this hit - a small execute bonus the big arrow doesn't get.
+                        const _lostHpBonus = arrow.isPrimary ? 0 : Math.ceil((enemy.maxHp - enemy.hp) * 0.05 * repeatMult);
                         // was primevalEnergy*0.20 (the Photokrystos 0-100 meter, a different
                         // "PE") - description always meant 20% of the TARGET's own Max HP
                         // like every other sigil's %-based hits, fixed to actually do that.
@@ -482,7 +486,7 @@ function updateSolArrows(deltaTime) {
                         // respects shield, but (like every other isPiercing hit) skips the
                         // hard per-hit %MaxHP cap normal damage runs into against enemies
                         // like Goliath's Inevitable.
-                        dealDamage(enemy, { damage: explodeBase * _baMult, percentDamage: explodePct * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
+                        dealDamage(enemy, { damage: explodeBase * _baMult + _lostHpBonus, percentDamage: explodePct * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         // Blood-flower bloom (red spider lily / higanbana) instead of a flat gold explosion
                         _spawnSolArrowLily(arrow.x, arrow.y, arrow.isPrimary, Math.atan2(arrow.vy, arrow.vx));

@@ -897,29 +897,37 @@ function updateSpiritSpinners(deltaTime) {
             else if (_bouncedYSign < 0 && s.vy > 0) s.vy = -s.vy;
         }
 
-        // Body-contact damage: no per-enemy cooldown right now (removed per
-        // request, temporary) - deals damage every frame it's overlapping.
+        // Body-contact damage: re-hittable per enemy every 600ms instead of
+        // every single frame - sitting stuck overlapping one big/slow target
+        // for its whole 5s life used to rack up dozens of full hits back to
+        // back (200+20% Max HP true damage, uncapped), badly out-damaging
+        // everything else in the kit.
+        if (!s._bodyHitCooldowns) s._bodyHitCooldowns = new Map();
         for (const enemy of enemies) {
             if (enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
             const enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - s.x, enemy.y - s.y) >= enemyRadius + s.size) continue;
             if (checkMarchosiasArcBarrier(enemy, s, s.x, s.y)) continue;
-            // Ricochet Hunter (Sagittarius): damage escalates +15% per wall
-            // bounce since the last hit, up to +45% at 3 stacks, then resets
-            // the instant it actually lands one - rewards a clean run of
-            // bounces without a hit over chaining hits back to back.
-            const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
-            dealDamage(enemy, { damage: Math.round(200 * _songLuoiMult), percentDamage: 0.20 * _songLuoiMult, isTrueDamage: true, _statSrc: s._statSrc });
-            if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
-            // On-hit: a sharp crack - jagged magenta shards plus a quick
-            // white flash at the contact point, selling the heavy true damage.
-            createParticles(enemy.x, enemy.y, 8, '#ff44aa', 3, 8);
-            createParticles(enemy.x, enemy.y, 3, '#ffffff', 2, 5);
+            if (now >= (s._bodyHitCooldowns.get(enemy) || 0)) {
+                s._bodyHitCooldowns.set(enemy, now + 600);
+                // Ricochet Hunter (Sagittarius): damage escalates +15% per wall
+                // bounce since the last hit, up to +45% at 3 stacks, then resets
+                // the instant it actually lands one - rewards a clean run of
+                // bounces without a hit over chaining hits back to back.
+                const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
+                dealDamage(enemy, { damage: Math.round(200 * _songLuoiMult), percentDamage: 0.20 * _songLuoiMult, isTrueDamage: true, _statSrc: s._statSrc });
+                if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
+                // On-hit: a sharp crack - jagged magenta shards plus a quick
+                // white flash at the contact point, selling the heavy true damage.
+                createParticles(enemy.x, enemy.y, 8, '#ff44aa', 3, 8);
+                createParticles(enemy.x, enemy.y, 3, '#ffffff', 2, 5);
+            }
             // Colliding with ANY target also fires the mini Arc Blade volley
             // immediately - independent of (on top of) the periodic 300ms
-            // proximity trigger below, so a body hit always slashes too. Capped
-            // per-enemy at 0.4s (body damage itself has no such cooldown) so
-            // sitting on top of one target doesn't refire this every frame.
+            // proximity trigger below, and of the body-damage cooldown above,
+            // so overlapping a target still keeps slashing even between body
+            // hits. Capped per-enemy at 0.4s of its own so it doesn't refire
+            // every single frame.
             if (!s._collisionBladeCooldowns) s._collisionBladeCooldowns = new Map();
             if (now >= (s._collisionBladeCooldowns.get(enemy) || 0)) {
                 _fireSpinnerBlades(s, now);

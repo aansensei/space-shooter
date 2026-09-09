@@ -301,8 +301,9 @@
         'charged-shot': 1.0, 'wave-clear': 1.0,
         // Boosted above the usual 1.0 baseline per an explicit "make both
         // louder" request, on top of the source files already being
-        // peak-normalized during import.
-        'blood-arrow-launch': 1.3, 'blood-arrow-impact': 1.3,
+        // peak-normalized during import. Launch bumped again after the sfx
+        // itself was replaced with a correct/louder recording.
+        'blood-arrow-launch': 1.5, 'blood-arrow-impact': 1.3,
         'dimensional-rift': 1.0, 'dimension-break': 1.0,
         'egregor-nullslash-windup': 1.0, 'egregor-nullslash-slash': 1.0, 'egregor-nullslash-hit': 1.0,
         'egregor-crawl': 1.0, 'egregor-death-roar': 1.0, 'egregor-tempest-strike': 1.0,
