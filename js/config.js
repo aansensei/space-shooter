@@ -179,6 +179,15 @@ let _waveAnnouncedAt = 0;
 let _waveForceEndTimer = 0;
 let _yuukiBonus = 0;
 
+// Wave 11+ live trickle spawner (replaces the fixed-15s _waveQueue at high
+// waves - see _updateWaveTrickle). Budget is the remaining per-tier count
+// for the current wave; the rest are countdown/count-up timers in ms.
+let _waveSpawnBudget = null;
+let _waveNextSpawnAt = 0;
+let _waveSurgeAt = 0;
+let _waveLastEliteAt = 0;
+let _waveLastDomAt = 0;
+
 // Walpurgis (Huyết Dạ): every 5 waves, all enemies permanently gain +20% Max
 // HP, +5% evade (capped at +40% total from Walpurgis alone, i.e. 8 stacks'
 // worth - past that, more stacks keep buffing everything else but stop

@@ -182,6 +182,12 @@ class YuushaMember {
         if (this.role === 'Mage') {
             this.crystal.active = true;
             this.crystal.flyStart = performance.now();
+            this.crystal.exploded = false;
+            // Role Match: every 4th Mage cast (running count) empowers that
+            // crystal - it lights the caster up, throws a richer bolt, and
+            // its zone tags enemies with Soul Reaver for 3.5s.
+            window._yuushaMageCasts = (window._yuushaMageCasts || 0) + 1;
+            this.crystal._roleMatch = (window._yuushaMageCasts % 4 === 0);
             const tgt = this._findTarget();
             if (tgt) {
                 this.crystal.targetX = tgt.x + (Math.random() - 0.5) * 100;
@@ -514,16 +520,39 @@ class YuushaMember {
                 cx = this.crystal.x + (this.crystal.targetX - this.crystal.x) * t;
                 cy = this.crystal.y + (this.crystal.targetY - this.crystal.y) * t;
             } else if (elapsed > 350 && !this.crystal.exploded) {
-                window._yuushaDotZones.push(new YuushaDoTZone(this.crystal.targetX, this.crystal.targetY, '#a855f7'));
+                const _rm = this.crystal._roleMatch;
+                const _zone = new YuushaDoTZone(this.crystal.targetX, this.crystal.targetY, '#a855f7');
+                _zone._roleMatch = _rm;
+                window._yuushaDotZones.push(_zone);
                 this.crystal.exploded = true;
-                for (let i = 0; i < 15; i++) {
+                const _rayN = _rm ? 30 : 15;
+                for (let i = 0; i < _rayN; i++) {
                     const angle = Math.random() * Math.PI * 2;
-                    const speed = 2 + Math.random() * 5;
+                    const speed = (_rm ? 3 : 2) + Math.random() * (_rm ? 7 : 5);
                     window._yuushaBurstRays.push({
                         x: this.crystal.targetX, y: this.crystal.targetY,
                         vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-                        life: 1, start: now
+                        life: 1, start: now, big: _rm
                     });
+                }
+                if (_rm) {
+                    // Bright impact flash + expanding shockwave ring, only on
+                    // the empowered cast so it reads as the "this one debuffs"
+                    // hit rather than a normal bombardment.
+                    window._yuushaBurstRays.push({
+                        x: this.crystal.targetX, y: this.crystal.targetY,
+                        vx: 0, vy: 0, life: 1, start: now, flash: true
+                    });
+                    for (let i = 0; i < 18; i++) {
+                        const a = (i / 18) * Math.PI * 2;
+                        window._yuushaParticles.push(new YuushaParticle(
+                            this.crystal.targetX, this.crystal.targetY,
+                            this.crystal.targetX + Math.cos(a) * 90,
+                            this.crystal.targetY + Math.sin(a) * 90,
+                            '#f0d0ff'
+                        ));
+                    }
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', this.crystal.targetX, this.crystal.targetY);
                 }
             } else if (elapsed > 750) {
                 const t = Math.min(1, (elapsed - 750) / 200);
@@ -545,6 +574,35 @@ class YuushaMember {
             }
 
             if (cx !== -999 && !this.crystal.exploded) {
+                const _rm = this.crystal._roleMatch;
+
+                // Empowered cast: a bright aura on the caster and a longer
+                // sparkle trail streaming from the bolt to its target.
+                if (_rm) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.scale(this.scale, this.scale);
+                    const aura = 0.55 + 0.25 * Math.sin(now / 90);
+                    if (!_lq) { ctx.shadowBlur = 26; ctx.shadowColor = '#e9b3ff'; }
+                    ctx.strokeStyle = `rgba(240, 210, 255, ${aura})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2); ctx.stroke();
+                    ctx.strokeStyle = `rgba(200, 130, 255, ${aura * 0.6})`;
+                    ctx.lineWidth = 6;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 15, 0, Math.PI * 2); ctx.stroke();
+                    ctx.restore();
+
+                    for (let i = 0; i < 2; i++) {
+                        const lp = new YuushaParticle(
+                            cx + (Math.random() - 0.5) * 14, cy + (Math.random() - 0.5) * 14,
+                            cx + (Math.random() - 0.5) * 40, cy + (Math.random() - 0.5) * 40,
+                            i === 0 ? '#f0d0ff' : '#c084fc'
+                        );
+                        lp.speed = 0.04; lp.life = 1;
+                        window._yuushaParticles.push(lp);
+                    }
+                }
+
                 const pt = new YuushaParticle(cx, cy, cx + (Math.random() - 0.5) * 20, cy + (Math.random() - 0.5) * 20, '#a855f7');
                 pt.speed = 0.05;
                 window._yuushaParticles.push(pt);
@@ -554,12 +612,19 @@ class YuushaMember {
                 const spinAngle = (now - this.crystal.flyStart) / 50;
                 ctx.rotate(spinAngle);
 
-                if (!_lq) { ctx.shadowBlur = 20; ctx.shadowColor = '#a855f7'; }
-                ctx.fillStyle = '#a855f7';
+                if (!_lq) { ctx.shadowBlur = _rm ? 34 : 20; ctx.shadowColor = _rm ? '#e9b3ff' : '#a855f7'; }
+                ctx.fillStyle = _rm ? '#f3ddff' : '#a855f7';
+                const _cs = _rm ? 1.4 : 1;
                 ctx.beginPath();
-                ctx.moveTo(0, -9); ctx.lineTo(6, 0); ctx.lineTo(0, 9); ctx.lineTo(-6, 0);
+                ctx.moveTo(0, -9 * _cs); ctx.lineTo(6 * _cs, 0); ctx.lineTo(0, 9 * _cs); ctx.lineTo(-6 * _cs, 0);
                 ctx.closePath();
                 ctx.fill();
+                if (_rm) {
+                    ctx.fillStyle = '#a855f7';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -5); ctx.lineTo(3.5, 0); ctx.lineTo(0, 5); ctx.lineTo(-3.5, 0);
+                    ctx.closePath(); ctx.fill();
+                }
 
                 ctx.restore();
             }
@@ -725,6 +790,8 @@ class YuushaDoTZone {
     }
     draw(ctx) {
         const p = Math.max(0, this.life / this.maxLife);
+        const _lq = typeof _mobPerf !== 'undefined' && _mobPerf;
+        const _rm = this._roleMatch;
         ctx.save();
         ctx.translate(this.x, this.y);
 
@@ -732,16 +799,34 @@ class YuushaDoTZone {
         const currentR = this.radius + pulse;
 
         const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, currentR);
-        grad.addColorStop(0, `rgba(168, 85, 247, ${0.5 * p})`);
-        grad.addColorStop(0.5, `rgba(216, 180, 254, ${0.3 * p})`);
-        grad.addColorStop(1, 'transparent');
-
+        if (_rm) {
+            grad.addColorStop(0, `rgba(240, 208, 255, ${0.62 * p})`);
+            grad.addColorStop(0.45, `rgba(192, 132, 252, ${0.4 * p})`);
+            grad.addColorStop(1, 'transparent');
+        } else {
+            grad.addColorStop(0, `rgba(168, 85, 247, ${0.5 * p})`);
+            grad.addColorStop(0.5, `rgba(216, 180, 254, ${0.3 * p})`);
+            grad.addColorStop(1, 'transparent');
+        }
+        if (_rm && !_lq) { ctx.shadowBlur = 16; ctx.shadowColor = '#d8b4fe'; }
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(0, 0, currentR, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
 
         ctx.strokeStyle = `rgba(216, 180, 254, ${0.8 * p})`;
         ctx.lineWidth = 2 + Math.random() * 2;
         ctx.beginPath(); ctx.arc(0, 0, currentR * 0.9, 0, Math.PI * 2); ctx.stroke();
+
+        // Empowered zone: a second counter-rotating rune ring of dashes so
+        // it reads clearly as the debuff pool at a glance.
+        if (_rm) {
+            ctx.rotate(-performance.now() / 900);
+            ctx.strokeStyle = `rgba(245, 220, 255, ${0.7 * p})`;
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([10, 9]);
+            ctx.beginPath(); ctx.arc(0, 0, currentR * 1.04, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+        }
 
         ctx.restore();
     }
@@ -1069,6 +1154,12 @@ function _updateYuushaPartyInner(deltaTime) {
                                 _noBase60: true
                             });
                         }
+                        // Role Match: an empowered zone refreshes Soul Reaver
+                        // (3.5s) on anything it ticks.
+                        if (z._roleMatch && (!e.type || !e.type.startsWith('enemy_bullet'))) {
+                            e.soulReaver = true;
+                            e.soulReaverEnd = performance.now() + 3500;
+                        }
                     }
                 }
             }
@@ -1134,12 +1225,29 @@ function _drawYuushaPartyInner() {
 
     for (const r of (window._yuushaBurstRays || [])) {
         ctx.save();
-        if (!_lq) { ctx.shadowBlur = 15; ctx.shadowColor = '#a855f7'; }
+        const _rl = Math.max(0, r.life);
+        if (r.flash) {
+            // Empowered-cast impact: a bright core flash + one expanding ring.
+            if (!_lq) { ctx.shadowBlur = 30; ctx.shadowColor = '#f0d0ff'; }
+            const fr = (1 - r.life) * 110;
+            ctx.strokeStyle = `rgba(240, 208, 255, ${_rl * 0.9})`;
+            ctx.lineWidth = 3 + _rl * 4;
+            ctx.beginPath(); ctx.arc(r.x, r.y, fr, 0, Math.PI * 2); ctx.stroke();
+            const g = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, 46);
+            g.addColorStop(0, `rgba(255, 250, 255, ${_rl * 0.8})`);
+            g.addColorStop(0.5, `rgba(216, 180, 254, ${_rl * 0.4})`);
+            g.addColorStop(1, 'transparent');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(r.x, r.y, 46, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+            continue;
+        }
+        if (!_lq) { ctx.shadowBlur = r.big ? 22 : 15; ctx.shadowColor = r.big ? '#f0d0ff' : '#a855f7'; }
         ctx.beginPath();
         ctx.moveTo(r.x, r.y);
-        ctx.lineTo(r.x + r.vx * 15, r.y + r.vy * 15);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = `rgba(233, 213, 255, ${Math.max(0, r.life)})`;
+        ctx.lineTo(r.x + r.vx * (r.big ? 22 : 15), r.y + r.vy * (r.big ? 22 : 15));
+        ctx.lineWidth = r.big ? 6 : 4;
+        ctx.strokeStyle = r.big ? `rgba(248, 232, 255, ${_rl})` : `rgba(233, 213, 255, ${_rl})`;
         ctx.stroke();
         ctx.restore();
     }

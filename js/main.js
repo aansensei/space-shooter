@@ -1904,7 +1904,10 @@ function update(rawDeltaTime) {
         });
     }
 
-    if (!window._debugSessionActive) _updateWaveSystem(deltaTime, currentTime);
+    // A debug session normally freezes the wave system, but the "Spawn
+    // Wave's Full Roster" button flips _debugWaveRosterActive to drive one
+    // real wave through it (countdown, banner, trickle) then flips it back.
+    if (!window._debugSessionActive || window._debugWaveRosterActive) _updateWaveSystem(deltaTime, currentTime);
     _profChk3.push(performance.now());
     _updateSigilPassives(currentTime, deltaTime);
     _profChk3.push(performance.now());
@@ -2708,6 +2711,94 @@ function _spawnWaveTier(tier) {
     }
 }
 
+// First wave that uses the live trickle spawner instead of the fixed 15s
+// _waveQueue. Below this, waves are short enough that the window works fine.
+const _WAVE_TRICKLE_MIN = 11;
+
+// Spawns one enemy of a wave tier ('apostle'/'abnormal'/'elite'/
+// 'dominator') and applies Goliath's Alpha "+15% MaxHP to the rest of the
+// wave" buff to it when one is active. Shared by the fixed queue (waves
+// 1-10) and the trickle spawner (waves 11+).
+function _spawnWaveEnemyBuffed(tier) {
+    const _preSpawnLen = enemies.length;
+    if (tier === 'apostle') spawnApostle();
+    else _spawnWaveTier(tier);
+    if (window._goliathWaveHpBuff && window._goliathWaveHpBuff !== 1 && enemies.length > _preSpawnLen) {
+        const _ne = enemies[enemies.length - 1];
+        if (_ne.type !== 'goliath') {
+            _ne.maxHp = Math.ceil(_ne.maxHp * window._goliathWaveHpBuff);
+            _ne.hp = Math.ceil(_ne.hp * window._goliathWaveHpBuff);
+        }
+    }
+}
+
+function _waveTrickleBudgetLeft() {
+    const B = _waveSpawnBudget;
+    return B ? B.normals + B.abnormals + B.elites + B.dominators : 0;
+}
+
+// Picks and spawns one enemy from the remaining wave-11+ budget, honouring
+// the same elite/dominator min-gaps the fixed queue uses so their skills
+// never stack. isSurge relaxes the random tier rolls (a surge wants the
+// heavier tiers). Returns false when the budget is empty or everything
+// left is still gap-blocked this tick.
+function _trickleSpawnOne(isSurge) {
+    const B = _waveSpawnBudget;
+    if (!B) return false;
+    const eliteOk = B.elites > 0 && _waveLastEliteAt >= 2500;
+    const domOk = B.dominators > 0 && _waveLastDomAt >= 3500;
+
+    let tier = null;
+    if (domOk && (isSurge || Math.random() < 0.5)) tier = 'dominator';
+    else if (eliteOk && (isSurge || Math.random() < 0.55)) tier = 'elite';
+    else if (B.abnormals > 0 && Math.random() < 0.5) tier = 'abnormal';
+    else if (B.normals > 0) tier = 'apostle';
+    else if (B.abnormals > 0) tier = 'abnormal';
+    else if (eliteOk) tier = 'elite';
+    else if (domOk) tier = 'dominator';
+    else return false;
+
+    if (tier === 'apostle') B.normals--;
+    else if (tier === 'abnormal') B.abnormals--;
+    else if (tier === 'elite') { B.elites--; _waveLastEliteAt = 0; }
+    else if (tier === 'dominator') { B.dominators--; _waveLastDomAt = 0; }
+    _spawnWaveEnemyBuffed(tier);
+    return true;
+}
+
+// Live rate-controlled spawner for waves 11+. Holds the on-screen count
+// near a cap that grows slowly with the wave number, spawns on a variable
+// gap with occasional lulls, and every 16-28s fires a "surge": a rapid
+// batch that briefly ignores the cap, so high waves still spike in
+// pressure instead of being a flat trickle. The wave ends only once the
+// whole budget is spent AND the last enemy is dead.
+function _updateWaveTrickle(deltaTime) {
+    _waveLastEliteAt += deltaTime;
+    _waveLastDomAt += deltaTime;
+    if (_waveTrickleBudgetLeft() <= 0) return;
+
+    const cap = 18 + Math.floor((_waveNumber - 10) / 3);
+    const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
+
+    _waveSurgeAt -= deltaTime;
+    if (_waveSurgeAt <= 0) {
+        const surgeCount = Math.min(_waveTrickleBudgetLeft(), 12, 4 + Math.floor((_waveNumber - 10) / 3));
+        for (let k = 0; k < surgeCount; k++) { if (!_trickleSpawnOne(true)) break; }
+        _waveSurgeAt = 16000 + Math.random() * 12000;
+        _waveNextSpawnAt = 3500 + Math.random() * 2500; // lull right after a surge
+        return;
+    }
+
+    _waveNextSpawnAt -= deltaTime;
+    if (_waveNextSpawnAt <= 0 && active < cap) {
+        if (_trickleSpawnOne(false)) {
+            _waveNextSpawnAt = (Math.random() < 0.15) ? 2000 + Math.random() * 2000 : 650 + Math.random() * 500;
+        } else {
+            _waveNextSpawnAt = 500; // gap-blocked, retry soon
+        }
+    }
+}
+
 function _updateSigilPassives(now, deltaTime) {
     if (_hasBuff('doi_hinh_chien') && typeof updateYuushaParty === 'function') {
         const _yuT0 = performance.now();
@@ -2794,9 +2885,28 @@ function _updateWaveSystem(deltaTime, now) {
                     });
                 }
             }
-            _waveQueue = _buildWaveQueue(_waveNumber);
-            _waveQueueTimer = 0;
             window._goliathWaveHpBuff = 1;
+            if (_waveNumber >= _WAVE_TRICKLE_MIN) {
+                // Waves 11+: live trickle spawner instead of a fixed 15s
+                // queue - the whole enemy count no longer has to land
+                // inside one window, so high waves stop dumping 100+
+                // enemies at once and lagging.
+                const _tmpl = _getWaveTemplate(_waveNumber);
+                _waveSpawnBudget = {
+                    normals: _tmpl.normals, abnormals: _tmpl.abnormals,
+                    elites: _tmpl.elites, dominators: _tmpl.dominators,
+                };
+                _waveQueue = [];
+                _waveNextSpawnAt = 600;
+                _waveSurgeAt = 9000 + Math.random() * 6000; // first surge 9-15s in
+                _waveLastEliteAt = 9999;
+                _waveLastDomAt = 9999;
+                if (_waveNumber % 5 === 0) _spawnWaveTier('goliath');
+            } else {
+                _waveSpawnBudget = null;
+                _waveQueue = _buildWaveQueue(_waveNumber);
+            }
+            _waveQueueTimer = 0;
             _wavePhase = 'spawning';
             _waveAnnouncedAt = now;
             if (window.AudioMgr) window.AudioMgr.playSfx('new-wave');
@@ -2805,29 +2915,32 @@ function _updateWaveSystem(deltaTime, now) {
         return;
     }
     _waveQueueTimer += deltaTime;
-    const _cap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 10 : Infinity;
-    while (_waveQueue.length > 0 && _waveQueue[0].at <= _waveQueueTimer) {
-        const entry = _waveQueue.shift();
-        const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
-        if (active < _cap) {
-            const _preSpawnLen = enemies.length;
-            if (entry.tier === 'apostle') spawnApostle();
-            else _spawnWaveTier(entry.tier);
-            // Goliath's Alpha passive (entities.js spawnGoliath): +15% MaxHP
-            // to everything else spawned the rest of this wave, whatever tier.
-            if (window._goliathWaveHpBuff && window._goliathWaveHpBuff !== 1 && enemies.length > _preSpawnLen) {
-                const _ne = enemies[enemies.length - 1];
-                if (_ne.type !== 'goliath') {
-                    _ne.maxHp = Math.ceil(_ne.maxHp * window._goliathWaveHpBuff);
-                    _ne.hp = Math.ceil(_ne.hp * window._goliathWaveHpBuff);
-                }
+    if (_waveSpawnBudget) {
+        _updateWaveTrickle(deltaTime);
+    } else {
+        const _cap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 10 : Infinity;
+        while (_waveQueue.length > 0 && _waveQueue[0].at <= _waveQueueTimer) {
+            const entry = _waveQueue.shift();
+            const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
+            if (active < _cap) {
+                _spawnWaveEnemyBuffed(entry.tier === 'apostle' ? 'apostle' : entry.tier);
             }
         }
     }
-    if (_waveQueue.length === 0) {
+    const _spawnDone = _waveSpawnBudget ? (_waveTrickleBudgetLeft() <= 0) : (_waveQueue.length === 0);
+    if (_spawnDone) {
         const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'debug_dummy').length;
         if (_alive === 0) {
-            if ((_waveNumber === 5 || _waveNumber === 10) && (window._playerSigils || []).length < 3 && (window._sigilPool || []).length > 0) {
+            // Debug "Spawn Wave's Full Roster" runs exactly one wave through
+            // here: once it's spawned and cleared, hand control back to the
+            // frozen sandbox instead of counting down into the next wave or
+            // opening the wave 5/10 sigil picker.
+            if (window._debugWaveRosterActive) {
+                window._debugWaveRosterActive = false;
+                _wavePhase = 'rest';
+                _waveRestTimer = 0;
+                _waveForceEndTimer = 0;
+            } else if ((_waveNumber === 5 || _waveNumber === 10) && (window._playerSigils || []).length < 3 && (window._sigilPool || []).length > 0) {
                 _wavePhase = 'sigil_pick';
                 _triggerSigilPicker();
             } else {
@@ -2844,10 +2957,15 @@ function _updateWaveSystem(deltaTime, now) {
             _waveForceEndTimer = 0;
         } else {
             _waveForceEndTimer += deltaTime;
-            if (_waveForceEndTimer >= 12000) {
+            // Waves 11+ are meant to end on killing the last enemy, not on a
+            // timer - keep only a long safety net for an enemy stuck off
+            // screen. Waves 1-10 keep the original 12s force-end.
+            const _feLimit = _waveNumber >= _WAVE_TRICKLE_MIN ? 45000 : 12000;
+            if (_waveForceEndTimer >= _feLimit) {
                 _wavePhase = 'rest';
-                _waveRestTimer = 1000;
+                _waveRestTimer = window._debugWaveRosterActive ? 0 : 1000;
                 _waveForceEndTimer = 0;
+                window._debugWaveRosterActive = false;
             }
         }
     }
@@ -3034,6 +3152,7 @@ function startGame() {
     _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0; _yuukiBonus = 0;
     window._walpurgisAppliedStacks = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
+    _waveSpawnBudget = null; _waveNextSpawnAt = 0; _waveSurgeAt = 0; _waveLastEliteAt = 0; _waveLastDomAt = 0;
     window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     window._blessingRegenTimer = 0;
     accurateParryActive = false;
@@ -3076,6 +3195,7 @@ function startGame() {
     window._yuushaBlades = []; window._yuushaProjectiles = []; window._yuushaParticles = [];
     window._yuushaDotZones = []; window._yuushaBurstRays = [];
     window._yuushaFloatingTexts = [];
+    window._yuushaMageCasts = 0;
     window._yuushaReplenishLastCheck = 0; window._yuushaReplenishCooldownEnd = 0;
     window._coiMongEndTime = 0;
     window._thanMenhEndTime = 0;
