@@ -9,6 +9,12 @@
 // Vulnerability icon. Falls back to a plain drawn cross until it loads.
 const _soulReaverIconImg = new Image();
 _soulReaverIconImg.src = 'assets/images/game/icons/soul-reaver-debuff.png';
+// One retry if a stale service worker cache misses the file on first load.
+_soulReaverIconImg.onerror = () => {
+    if (_soulReaverIconImg._retried) return;
+    _soulReaverIconImg._retried = true;
+    setTimeout(() => { _soulReaverIconImg.src = 'assets/images/game/icons/soul-reaver-debuff.png?r=1'; }, 1500);
+};
 
 function _drawDebugDummy(e, now) {
     const x = e.x, y = e.y, R = e.size;
@@ -632,21 +638,32 @@ function drawEnemy(enemy) {
     const _vulnActive = enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime;
     if (enemy.soulReaver) {
         const now = performance.now();
-        const srX = _vulnActive ? enemy.x - 14 : enemy.x;
+        const srX = _vulnActive ? enemy.x - 15 : enemy.x;
         const srY = enemy.y - (enemy.size || 20) - 28;
-        const R = 11;
+        const R = 14;
         ctx.save();
         ctx.translate(srX, srY);
-        const pulse = 0.97 + 0.03 * Math.sin(now / 200);
+        const pulse = 0.95 + 0.05 * Math.sin(now / 180);
         ctx.scale(pulse, pulse);
+        // Pulsing red glow ring behind the badge so it reads as an active
+        // debuff from across a busy screen, not just a small dark dot.
+        if (!_mobPerf) {
+            const ga = 0.35 + 0.25 * Math.sin(now / 180);
+            const g = ctx.createRadialGradient(0, 0, R * 0.5, 0, 0, R * 1.7);
+            g.addColorStop(0, `rgba(255, 40, 40, ${ga})`);
+            g.addColorStop(1, 'rgba(255, 40, 40, 0)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(0, 0, R * 1.7, 0, Math.PI * 2); ctx.fill();
+        }
         if (_soulReaverIconImg.complete && _soulReaverIconImg.naturalWidth) {
-            if (!_mobPerf) { ctx.shadowColor = '#ff2a2a'; ctx.shadowBlur = 8; }
+            if (!_mobPerf) { ctx.shadowColor = '#ff2a2a'; ctx.shadowBlur = 10; }
             ctx.drawImage(_soulReaverIconImg, -R, -R, R * 2, R * 2);
         } else {
-            ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 3;
             if (!_mobPerf) { ctx.shadowColor = 'red'; ctx.shadowBlur = 10; }
-            ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(8, 8);
-            ctx.moveTo(8, -8); ctx.lineTo(-8, 8); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(9, 9);
+            ctx.moveTo(9, -9); ctx.lineTo(-9, 9); ctx.stroke();
         }
         ctx.restore();
     }
