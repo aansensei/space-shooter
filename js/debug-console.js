@@ -471,7 +471,7 @@ window.debugSetYuukiBonus = function () {
         <input type="number" id="dbgWaveNum" class="dbg-enemy-hp" style="width:70px;" min="1" value="5" placeholder="Wave #">
         <button class="dbg-btn" onclick="debugSpawnWaveComposition()">Spawn Wave's Full Roster</button>
       </div>
-      <div style="opacity:0.55; font-size:10px;">Spawns the EXACT enemy composition that wave number would normally spawn (same counts/tiers as the real wave system, all at once instead of trickled over 15s) — Apostles, Abnormals, Elites, Dominators, and Goliath if the wave is a multiple of 5. Ignores current on-screen caps the same way the real spawner does (falls back to an Apostle if a tier's pool is full).</div>
+      <div style="opacity:0.55; font-size:10px;">Runs that wave number through the real wave system: a 3s countdown, then the normal wave banner and a gradual spawn (the 15s queue for waves 1-10, the live trickle + surges for waves 11+), Goliath included if the wave is a multiple of 5. Hands back to the frozen sandbox once the wave is fully spawned and cleared. Applies that wave's Walpurgis and Yuuki scaling.</div>
     </div>
 
     <div class="dbg-section">
@@ -591,6 +591,7 @@ window.debugSetYuukiBonus = function () {
     // that gates the wave-spawner call in main.js's update() loop.
     window.debugStartSession = function () {
         window._debugSessionActive = true;
+        window._debugWaveRosterActive = false;
         window._debugAutoshotOff = true;
         // Chỉ skip sigil picker khi CHỦ ĐỘNG bấm nút bắt đầu sandbox này —
         // không set ở nơi mở panel nữa, để 1 lượt Initiate Hyperjump bình
@@ -657,6 +658,7 @@ window.debugSetYuukiBonus = function () {
     // separately since that button knows nothing about them.
     window.debugExitSession = function () {
         window._debugSessionActive = false;
+        window._debugWaveRosterActive = false;
         window._debugAutoshotOff = false;
         window._debugNoCooldown = false;
         window._debugGameSpeed = 1;
@@ -906,15 +908,19 @@ window.debugSetYuukiBonus = function () {
     // toàn bộ thành phần của 1 wave bất kỳ (kể cả Goliath nếu chia hết 5),
     // thay vì rải đều trong 15s như wave thật.
     window.debugSpawnWaveComposition = function () {
-        if (typeof _getWaveTemplate !== 'function' || typeof _spawnWaveTier !== 'function' || typeof spawnApostle !== 'function') return;
+        if (typeof _updateWaveSystem !== 'function' || typeof _wavePhase === 'undefined') return;
         const input = document.getElementById('dbgWaveNum');
         const waveNum = Math.max(1, Math.floor(Number(input && input.value) || 1));
-        const tmpl = _getWaveTemplate(waveNum);
-        for (let i = 0; i < tmpl.normals; i++) spawnApostle();
-        for (let i = 0; i < tmpl.abnormals; i++) _spawnWaveTier('abnormal');
-        for (let i = 0; i < tmpl.elites; i++) _spawnWaveTier('elite');
-        for (let i = 0; i < tmpl.dominators; i++) _spawnWaveTier('dominator');
-        if (waveNum % 5 === 0) _spawnWaveTier('goliath');
+        // Drive the real wave system for one wave: a 3s countdown, then the
+        // normal wave banner and the gradual trickle/queue spawn, instead
+        // of dumping the whole roster at once. _debugWaveRosterActive lets
+        // the (otherwise frozen) wave system run for just this one wave and
+        // hands control back once it's spawned + cleared - see js/main.js.
+        _waveNumber = waveNum - 1;
+        _wavePhase = 'rest';
+        _waveRestTimer = 3000;
+        _waveForceEndTimer = 0;
+        window._debugWaveRosterActive = true;
         refreshEnemyList();
     };
 

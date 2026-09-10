@@ -5,6 +5,11 @@
 // (normal enemy, enemy bullets, embryo, vulnerability icon, coronation fx).
 // Depends on core.js + fx.js (_drawLightningBolt used by _drawCoronationEffect).
 
+// Soul Reaver debuff badge, shown above an afflicted enemy next to the
+// Vulnerability icon. Falls back to a plain drawn cross until it loads.
+const _soulReaverIconImg = new Image();
+_soulReaverIconImg.src = 'assets/images/game/icons/soul-reaver-debuff.png';
+
 function _drawDebugDummy(e, now) {
     const x = e.x, y = e.y, R = e.size;
     if (!e._particles) e._particles = [];
@@ -621,14 +626,28 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // Soul reaver icon
+    // Soul reaver icon. Sits next to the Vulnerability badge when both are
+    // up (Soul Reaver on the left, Vuln shifts right by 14 in its own
+    // block), otherwise centered above the enemy.
+    const _vulnActive = enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime;
     if (enemy.soulReaver) {
+        const now = performance.now();
+        const srX = _vulnActive ? enemy.x - 14 : enemy.x;
+        const srY = enemy.y - (enemy.size || 20) - 28;
+        const R = 11;
         ctx.save();
-        ctx.translate(enemy.x, enemy.y - enemy.size - 25);
-        ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 2.5;
-        if (!_mobPerf) ctx.shadowColor = 'red'; if (!_mobPerf) ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(8, 8);
-        ctx.moveTo(8, -8); ctx.lineTo(-8, 8); ctx.stroke();
+        ctx.translate(srX, srY);
+        const pulse = 0.97 + 0.03 * Math.sin(now / 200);
+        ctx.scale(pulse, pulse);
+        if (_soulReaverIconImg.complete && _soulReaverIconImg.naturalWidth) {
+            if (!_mobPerf) { ctx.shadowColor = '#ff2a2a'; ctx.shadowBlur = 8; }
+            ctx.drawImage(_soulReaverIconImg, -R, -R, R * 2, R * 2);
+        } else {
+            ctx.strokeStyle = '#FF4500'; ctx.lineWidth = 2.5;
+            if (!_mobPerf) { ctx.shadowColor = 'red'; ctx.shadowBlur = 10; }
+            ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(8, 8);
+            ctx.moveTo(8, -8); ctx.lineTo(-8, 8); ctx.stroke();
+        }
         ctx.restore();
     }
 
