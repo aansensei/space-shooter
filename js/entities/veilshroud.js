@@ -227,6 +227,7 @@ function _veilshroudEchoExplode(enemy) {
     // Bright white core flash first (the collapse itself), violet burst after
     addExplosion(x, y, r * 0.5, '#ffffff');
     addExplosion(x, y, 90, '#aa00ff');
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('veilshroud-portal-collapse', x, y);
     _setShake(20, 600);
     createParticles(x, y, 70, '#cc44ff', 3, 13);
     createParticles(x, y, 30, '#ffffff', 2, 9);
