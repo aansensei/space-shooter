@@ -31,9 +31,10 @@ function _skillDCanTarget(enemy) {
 }
 function _skillDIsCCImmune(enemy) {
     return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath'
-        || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
+        || enemy.type === 'uriel' || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-        || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+        || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)
+        || enemy._urielCCImmune;
 }
 // A Death Star kill (center instakill, Mark & Annihilate beam, or a
 // CC-immune enemy finally dying from accumulated 30%-MaxHP ticks) refunds
@@ -62,7 +63,12 @@ function updateSkillD(deltaTime) {
     }
     if (deathStar) {
         let dt = deltaTime / 16.67;
-        deathStar.y += deathStar.vy * dt;
+        // Uriel's death barrier: the core cannot pass through it. It simply
+        // holds position while blocked and resumes the instant the barrier
+        // (a fixed 3s lifetime) is gone - never consumed, never bypassed.
+        const _dsBlocked = typeof _urielBarrierBlocksPoint === 'function'
+            && _urielBarrierBlocksPoint(deathStar.x, deathStar.y + deathStar.vy * dt);
+        if (!_dsBlocked) deathStar.y += deathStar.vy * dt;
         deathStar.activeTime += deltaTime;
         if (deathStar.size < deathStar.maxSize) deathStar.size += 1 * dt;
 

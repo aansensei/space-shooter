@@ -421,6 +421,9 @@ function _drawWalpurgisAura(enemy, stacks) {
 }
 
 function drawEnemy(enemy) {
+    // Uriel, fully stealthed (Camouflage): invisible, untargetable, skip
+    // every overlay below too (vuln icon, shield bar, Walpurgis aura...).
+    if (enemy.type === 'uriel' && enemy._stealthed) return;
     if (enemy.type === 'debug_dummy') {
         _drawDebugDummy(enemy, performance.now());
         // The dummy's early return skips every generic overlay below (vuln
@@ -824,6 +827,8 @@ function drawEnemy(enemy) {
         _drawLeviathan(enemy);
     } else if (enemy.type === 'goliath') {
         _drawGoliath(enemy);
+    } else if (enemy.type === 'uriel') {
+        _drawUriel(enemy);
     } else if (enemy.type === 'veilshroud') {
         _drawVeilshroud(enemy);
     } else if (enemy.type === 'veilshroud_echo') {

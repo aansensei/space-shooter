@@ -43,6 +43,7 @@ function _goliathDebuffStackCount(enemy) {
 const VULN_TRUE_DMG_WINDOW_MS = 2500;
 
 function applyVulnerability(enemy) {
+    if (enemy.type === 'uriel') return; // Covenant King: immune to every debuff
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
     if (stacks < 4) {
@@ -639,6 +640,12 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'thaelis_guard' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot)) {
         return;
     }
+    // Uriel: immune to every DOT source (Tesla Coil, Dimensional Rift's Soul
+    // Devourer, Solar Flare, Yog-Sothoth's own tick) - a Covenant King never
+    // gets whittled down by a lingering tick, only a direct hit counts.
+    if (enemy.type === 'uriel' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot)) {
+        return;
+    }
     if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
         if (source.damage > 0 || source.percentDamage > 0) {
             enemy.aegisCustosHits = (enemy.aegisCustosHits || 0) + 1;
@@ -684,7 +691,7 @@ function dealDamage(enemy, source) {
         const _evadeDom      = 0.10 + _t * 0.05;
         let _evade = ({
             'apostle': _evadeLesser,
-            'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal, 'thaelis_guard': _evadeAbnormal,
+            'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal, 'thaelis_guard': _evadeAbnormal, 'uriel': _evadeAbnormal,
             'aegis_core': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
             'dargruel': _evadeDom, 'leviathan': _evadeDom
         })[enemy.type] || 0;
@@ -709,6 +716,12 @@ function dealDamage(enemy, source) {
             _evade = 0.40 - _gDecayT * 0.15;
             if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.10;
         }
+        // Against Chaos (Uriel): own formula entirely replaces the tier
+        // table above, scaling with the current living horde size and
+        // self-decaying every successful dodge (see _urielOnDodge).
+        if (enemy.type === 'uriel' && typeof _urielCurrentEvade === 'function') {
+            _evade = _urielCurrentEvade(enemy);
+        }
         // Walpurgis (Huyết Dạ): +5% evade per stack, applies on top of every
         // enemy's own tier/type evade (including types with 0 base evade).
         _evade += _walpurgisEvadeBonus();
@@ -725,11 +738,12 @@ function dealDamage(enemy, source) {
             }
             // Evaded body hits on Marchosias can still trigger sword
             if (enemy.type === 'marchosias') _tryTriggerMarchosiasCounter(enemy);
+            if (enemy.type === 'uriel' && typeof _urielOnDodge === 'function') _urielOnDodge(enemy);
             return;
         }
     }
 
-    if (source.applySoulReaver) {
+    if (source.applySoulReaver && enemy.type !== 'uriel') {
         enemy.soulReaver = true;
         enemy.soulReaverEnd = performance.now() + 2000;
     }
@@ -947,6 +961,10 @@ function dealDamage(enemy, source) {
         combinedDR += 0.45;
     }
 
+    if (enemy.type === 'uriel') {
+        combinedDR += 0.40;
+    }
+
     if (enemy.type === 'marchosias_minion' && enemy.DR) {
         combinedDR += enemy.DR;
     }
@@ -1063,6 +1081,18 @@ function dealDamage(enemy, source) {
         return; // 1 hit absorbed
     }
 
+    // Uriel's Covenant King: a granted Uriel Iron Body layer fully negates
+    // the hit, then starts its own 5s re-grant timer and feeds the shared
+    // Judgment/Camouflage trigger counter.
+    if (!isSentinel && enemy._urielIB && !source._bypassIronBody) {
+        enemy._urielIB = false;
+        enemy._urielIBAt = performance.now();
+        createParticles(enemy.x, enemy.y, 6, '#ffe27a', 2, 7);
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
+        if (typeof _urielOnIBConsumed === 'function') _urielOnIBConsumed();
+        return;
+    }
+
     // Sentinel Parry (khi Glory for Justice active)
     if (isSentinel && gloryForJusticeActive && (source.damage > 0 || source.percentDamage > 0)
         && !source.isTeslaDot && !source.isChainLightning) {
@@ -1122,6 +1152,8 @@ function dealDamage(enemy, source) {
         // Inevitable (Leviathan): 350 flat armor on top of its 60% DR above,
         // same subtract-after-percentage pattern as Walpurgis's flat DR.
         if (enemy.type === 'leviathan') totalDamage -= 350;
+        // Uriel, right after a Camouflage reappear: +200 flat DR for 2s.
+        if (enemy.type === 'uriel' && enemy._camoFlatDREnd && currentTime < enemy._camoFlatDREnd) totalDamage -= 200;
         // Thaelis Cocoon Guards: flat armor on top of the % DR above, same
         // subtract-after-percentage pattern - still fully bypassed by true
         // damage, same as the % DR right above it.
@@ -1192,6 +1224,13 @@ function dealDamage(enemy, source) {
         // spawned apostles scale off how much punishment this Veilshroud
         // actually soaked up, not just its base MaxHP.
         enemy._totalPhantomDamageReceived = (enemy._totalPhantomDamageReceived || 0) + totalDamage;
+    }
+
+    // Per-hit cap 30% MaxHP, always on (Covenant King never lets a single
+    // hit through for more than a slice of its pool).
+    if (enemy.type === 'uriel') {
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.30));
+        if (typeof _urielOnHitLanded === 'function') _urielOnHitLanded(enemy);
     }
 
     // Inevitable (Leviathan): if hit > 20% maxHP, cap at 10% for 3s (2s cooldown after it ends)

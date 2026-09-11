@@ -1762,6 +1762,7 @@ function draw(deltaTime) {
         _drawGoliathSwords(); // Joker Marchosias-copy sword projectiles (independent objects)
         _drawGoliathMeteorProjectiles(); // Corrupted Meteor thrown projectile (independent objects)
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
+        if (typeof _drawUrielEffects === 'function') _drawUrielEffects(); // Holy Sword projectiles + death barrier
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash
         _drawDimBreakZones();   // Lingering Dimension Break arcs (world-space, independent of Egregor)
         _drawEgregorDeathBursts(); // Dedicated Egregor death explosion, independent of Egregor's own lifetime

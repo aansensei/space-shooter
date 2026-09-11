@@ -714,6 +714,7 @@
   <script src="js/render/enemy-thaelis.js"></script>
   <script src="js/render/enemy-dargruel.js"></script>
   <script src="js/render/enemy-egregor.js"></script>
+  <script src="js/render/enemy-uriel.js"></script>
   <script src="js/render/skill-s-spirit.js"></script>
   <script src="js/render/skill-a.js"></script>
   <script src="js/render/skill-d.js"></script>
@@ -1062,7 +1063,7 @@
 <div class="card"><h2 class="dsname">ENEMY CLASSES</h2><table class="controls-table">
 <tr><th>Class</th><th>Examples</th><th>On-screen cap</th></tr>
 <tr><td style="color:#aaaaaa">Lesser</td><td>Apostles</td><td>HP 22–330, scales</td></tr>
-<tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud</td><td>3 / 2</td></tr>
+<tr><td style="color:#22cc55">Abnormal</td><td>Thaelis, Veilshroud, Uriel</td><td>3 / 2 / 1</td></tr>
 <tr><td style="color:#ff8844">Elite</td><td>Marchosias, Aegis, Egregor</td><td>2 / 2 / 1</td></tr>
 <tr><td style="color:#cc55ff">Dominator</td><td>Dargruel, Leviathan</td><td>2 / 1</td></tr>
 <tr><td style="color:#eab308">Digiform</td><td>Goliath</td><td>1, every wave 5/10/15/20...</td></tr>
@@ -1089,10 +1090,20 @@
 <div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">Wave 2 • HP 1,320–3,300 • CAP 2 • Speed 2.0 u/s • Base DR 40% • Evade 3→5%</div>
 <div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — <span class="det-full">Leaves an <b>untargetable ghost</b> at death position. Fires for 3s (double rate), then charges up. At 5s: <span class="hr">explosion</span> in <span class="hr">300px radius</span> — <span class="dmg">2% Max HP/tick</span> for 2s (4 ticks). Immune to all damage &amp; CC. <span style="color:var(--dim)">The wave system counts Veilshroud as dead the moment it enters ghost form.</span></span><span class="det-short">Leaves an untargetable ghost that fires for 3s, then explodes in a 300px radius for 2% Max HP/tick over 2s.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Void Echo</b> — <span class="det-full">On death leaves an <b>untargetable Phantom Portal</b> at the death spot, immune to all damage &amp; CC. <span class="hi">0&ndash;3s</span>: the portal births <b>real Apostles</b>, 2 every 600ms (~10 total), each telegraphed by a dark patch for 450ms before it forms. Apostle HP = <span class="hg">max(60, 30% of the total damage this Veilshroud soaked while in Phantom over its whole life)</span>; they move <span class="hr">20% slower</span> than a wave Apostle. At <span class="hi">5s</span> the portal <span class="hr">collapses</span>: white flash, screen shake, <span class="dmg">erases every ally projectile</span> (Arc Blades included) within <span class="hr">345px</span>, and any player inside 345px at that instant loses <span class="dmg">1 life</span> (Dream Realm / Great Sage / Yog-Sothoth / Skill A orb / Final Defense still get first say). It then leaves a <span class="hi">2s</span> zone (345px, ticks every 500ms, 4 ticks): <span class="dmg">Sentinels 6% Max HP/tick</span>; the player takes no life loss from the zone, only the collapse. <span style="color:var(--dim)">The wave system counts Veilshroud as dead the moment the portal opens.</span></span><span class="det-short">On death opens an untargetable, immune Phantom Portal that births ~10 real Apostles over 3s (HP scales off Phantom damage soaked). At 5s it collapses: wipes ally projectiles in 345px, costs the player 1 life if inside, then a 2s zone hits Sentinels for 6% MaxHP/tick (no player life loss).</span></li>
 <li><span style="color:var(--gold);font-size:10px">NORMAL ATK</span> Fires a 2-bullet volley every 500ms at nearest target. Disabled during Phantom / countdown.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL: Alteration</span> <b>Phase Shift &amp; Void Strike</b> — <span class="det-full">Every 0.45s: <span class="hi">40% chance</span> to enter <b>Phantom</b> state (1.5s, <span class="dmg">99% DR</span>, stops moving &amp; attacking). While in Phantom: <span class="dmg">no single hit can exceed 25% MaxHP</span> (absolute cap); healing &amp; shields received are reduced by <span class="dmg">25%</span>. On hit: additional <span class="hi">40% chance</span> to instantly dodge and activate Phantom. On Phantom exit: marks a random target; after 1.5s a <span class="hr">red lightning bolt</span> strikes. Player: <span class="hr">1 life</span>. Sentinels in 100px: <span class="dmg">18% Max HP</span>. In normal state: incoming healing also grants equal shield; incoming shield boosted <span class="hi">+35%</span>. Receiving healing in normal state grants <span class="hg">+20% DR for 3 seconds</span>.</span><span class="det-short">Randomly enters an untargetable Phantom state (99% DR) that blocks damage; on exit fires a red lightning bolt — Player: 1 life. Sentinels in 100px: 18% Max HP. Healing in normal state → +20% DR (3s).</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Energy Accumulation</b> — <span class="det-full">While in <b>Phantom</b>, Veilshroud records all damage it absorbs. On Phantom exit, converts the accumulated absorption into a shield: <span class="hg">min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)</span>. The base 200 guarantees a minimum shield of <span class="hg">230</span> even if no damage was taken.</span><span class="det-short">Converts damage absorbed during Phantom into a shield on exit (base 230, cap 1200).</span></li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#22cc55">URIEL <span class="dsclass" style="font-size:10px;color:#22cc55">ABNORMAL</span></h2><div class="sub">HP 1,725–4,140 • CAP 1 • Base DR 40% • Per-hit cap 30% MaxHP • Evade 99%→40% (decays on hit)</div>
+<div class="ab" style="height:150px"><canvas id="cvUriel" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Covenant King</b> — <span class="det-full">Refreshes its own 1-hit Iron Body every 2s. Every 1s, scans and grants EVERY other living enemy <b>infinite CC Immunity</b> plus a <b>Uriel Iron Body layer</b> (re-granted every 5s per enemy once consumed). Consuming one of these layers fully negates that hit and feeds a shared counter: every consumption tries <b>Camouflage</b>; every 3rd consumption tries to fire a <b>Holy Sword</b> (Judgment). Uriel itself is immune to every DOT source and every debuff (Vulnerability, Soul Reaver, slows, root, silence).</span><span class="det-short">Grants every other enemy infinite CC Immunity + a re-granting Iron Body layer. Consuming one tries Camouflage; every 3rd also tries Judgment. Uriel itself is immune to DOT and every debuff.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Against Chaos</b> — <span class="det-full">Starts at <span class="hi">99% evade</span>. Every hit that actually lands permanently knocks it down <span class="dmg">3%</span>, floored at <span class="hi">40%</span> (never recovers). Each successful dodge also stacks a 1s <span class="hg">+5% move speed</span> (cap +40% total).</span><span class="det-short">Starts at 99% evade, permanently -3% per landed hit down to a 40% floor. Each dodge also stacks +5% move speed for 1s (cap +40%).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Protection</b> — <span class="det-full">On death, leaves a stationary <b>barrier</b> at the death spot for 3s (1.2x its own body diameter wide). Blocks and cannot be pierced by normal bullets, piercing projectiles, Skill F, Skill D's core (which waits out the barrier instead of passing through, never consumed), and the Overload Laser. Never a valid ally target. Vanishes after 3s.</span><span class="det-short">On death, a 3s stationary barrier blocks every player-side attack outright (Skill D's core just waits it out) before vanishing.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Judgment (Holy Sword)</b> — <span class="det-full">Can only fire while visible — a trigger during Camouflage is banked and auto-released the instant it's free again. 0.5s charge-up (energy converges, wings flare), then launches straight toward the player's position from 100ms ago at ~806px/s, piercing. Player hit: normal life loss + <b>Judged</b> (3s: any further hit costs 1 extra life, net −2). Sentinel hit: <span class="hr">30% Max HP true damage</span>, does not stop the blade.</span><span class="det-short">Fires only while visible (else queued). 0.5s charge, then a piercing sword at ~806px/s toward the player's position 100ms ago. Player: hit + Judged (next hit in 3s costs 2 lives). Sentinel: 30% MaxHP true damage.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Camouflage</b> — <span class="det-full">Triggers on every Uriel Iron Body consumption (3s cooldown from the moment the previous stealth ends). 1.5s fully invisible, untargetable, absolute Iron Body. On reappear: <span class="hg">20% MaxHP shield</span> + <span class="hg">200 flat DR for 2s</span>.</span><span class="det-short">1.5s untargetable stealth (3s CD), then reappears with a 20% MaxHP shield + 200 flat DR for 2s.</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">ELITE</span></h2><div class="sub">Wave 2 • HP 2,500–4,500 • Permanent DR 55% • Evade 5→10% • Speed 1.65 u/s</div>
@@ -2239,7 +2250,7 @@
 <div class="card"><h2 class="dsname">CẤP ĐỘ KẺ ĐỊCH</h2><table class="controls-table">
 <tr><th>Cấp</th><th>Ví dụ</th><th>CAP trên màn hình</th></tr>
 <tr><td style="color:#aaaaaa">Hạ Cấp</td><td>Apostle</td><td>HP 22–330, tăng dần</td></tr>
-<tr><td style="color:#22cc55">Thượng Cấp</td><td>Thaelis, Veilshroud</td><td>3 / 2</td></tr>
+<tr><td style="color:#22cc55">Thượng Cấp</td><td>Thaelis, Veilshroud, Uriel</td><td>3 / 2 / 1</td></tr>
 <tr><td style="color:#ff8844">Tinh Anh</td><td>Marchosias, Aegis, Egregor</td><td>2 / 2 / 1</td></tr>
 <tr><td style="color:#cc55ff">Ma Thần</td><td>Dargruel, Leviathan</td><td>2 / 1</td></tr>
 <tr><td style="color:#eab308">Digiform</td><td>Goliath</td><td>1, mỗi wave 5/10/15/20...</td></tr>
@@ -2266,10 +2277,20 @@
 <div class="card"><h2 class="dsname" style="color:#22cc55">VEILSHROUD <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">Wave 2 • HP 1,320–3,300 • CAP 2 • Tốc độ 2.0 u/s • DR nền 40% • Né 3→5%</div>
 <div class="ab" style="height:120px"><canvas id="cvVeil" style="width:100%;height:100%"></canvas></div>
 <ul>
-<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Vọng Hư Không</b> — <span class="det-full">Để lại 1 <b>bóng ma không bị chọn làm mục tiêu</b> tại vị trí chết. Bắn trong 3s (gấp đôi tốc độ), sau đó tích lũy năng lượng. Tại giây thứ 5: <span class="hr">nổ</span> trong <span class="hr">bán kính 300px</span> — <span class="dmg">2% Max HP/tick</span> trong 2s (4 tick). Miễn nhiễm mọi sát thương &amp; khống chế. <span style="color:var(--dim)">Hệ thống wave tính Veilshroud là đã chết ngay khi nó vào dạng bóng ma.</span></span><span class="det-short">Để lại 1 bóng ma không bị chọn làm mục tiêu bắn trong 3s, sau đó nổ trong bán kính 300px gây 2% Max HP/tick trong 2s.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Vọng Hư Không</b> — <span class="det-full">Khi chết để lại 1 <b>Cổng Hư Ảo không bị chọn làm mục tiêu</b> tại chỗ chết, miễn nhiễm mọi sát thương &amp; khống chế. <span class="hi">0&ndash;3s</span>: cổng sinh ra <b>Apostle thật</b>, 2 con mỗi 600ms (~10 con), mỗi con báo hiệu bằng 1 vệt tối 450ms trước khi hiện. HP mỗi Apostle = <span class="hg">max(60, 30% tổng sát thương con Veilshroud này đã hứng trong lúc Phantom suốt cả đời)</span>; chúng chậm hơn Apostle wave <span class="hr">20%</span>. Tại giây thứ <span class="hi">5</span> cổng <span class="hr">sụp đổ</span>: chớp trắng, rung màn hình, <span class="dmg">xóa mọi đạn/đòn phe ta</span> (kể cả Arc Blade) trong <span class="hr">345px</span>, và người chơi đứng trong 345px đúng lúc đó mất <span class="dmg">1 mạng</span> (Cõi Mộng / Đại Thánh / Yog-Sothoth / cầu phòng thủ Skill A / Phòng Thủ Tối Thượng vẫn được quyền cản trước). Sau đó để lại 1 vùng <span class="hi">2s</span> (345px, tick mỗi 500ms, 4 tick): <span class="dmg">Vệ Binh 6% Max HP/tick</span>; người chơi không mất mạng do vùng này, chỉ do cú sụp đổ. <span style="color:var(--dim)">Hệ thống wave tính Veilshroud là đã chết ngay khi cổng mở ra.</span></span><span class="det-short">Khi chết mở 1 Cổng Hư Ảo không bị chọn làm mục tiêu, sinh ~10 Apostle thật trong 3s (HP scale theo sát thương hứng lúc Phantom). Tại giây thứ 5 cổng sụp: xóa đạn phe ta trong 345px, người chơi trong vùng mất 1 mạng, rồi vùng 2s đánh Vệ Binh 6% MaxHP/tick (người chơi không mất mạng).</span></li>
 <li><span style="color:var(--gold);font-size:10px">ĐÒN THƯỜNG</span> Bắn 1 đợt 2 đạn mỗi 500ms vào mục tiêu gần nhất. Vô hiệu hóa trong lúc Phantom / đếm ngược.</li>
 <li><span style="color:var(--cyan);font-size:10px">SKILL: Biến Đổi</span> <b>Dịch Chuyển Pha &amp; Đòn Đánh Hư Không</b> — <span class="det-full">Mỗi 0.45s: <span class="hi">40% cơ hội</span> vào trạng thái <b>Phantom</b> (1.5s, <span class="dmg">99% DR</span>, ngừng di chuyển &amp; tấn công). Trong lúc Phantom: <span class="dmg">không đòn đánh đơn lẻ nào được vượt quá 25% MaxHP</span> (CAP tuyệt đối); hồi máu &amp; khiên nhận vào bị giảm <span class="dmg">25%</span>. Khi trúng đòn: thêm <span class="hi">40% cơ hội</span> né ngay lập tức và kích hoạt Phantom. Khi thoát Phantom: đánh dấu 1 mục tiêu ngẫu nhiên; sau 1.5s 1 <span class="hr">tia sét đỏ</span> giáng xuống. Người chơi: <span class="hr">1 mạng</span>. Vệ Binh trong 100px: <span class="dmg">18% Max HP</span>. Ở trạng thái bình thường: hồi máu nhận vào cũng cấp khiên tương đương; khiên nhận vào tăng <span class="hi">+35%</span>. Nhận hồi máu ở trạng thái bình thường cấp <span class="hg">+20% DR trong 3 giây</span>.</span><span class="det-short">Ngẫu nhiên vào trạng thái Phantom không bị chọn làm mục tiêu (99% DR) chặn sát thương; khi thoát bắn 1 tia sét đỏ — Người chơi: 1 mạng. Vệ Binh trong 100px: 18% Max HP. Hồi máu ở trạng thái bình thường → +20% DR (3s).</span></li>
 <li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Tích Lũy Năng Lượng</b> — <span class="det-full">Trong lúc Phantom, Veilshroud ghi nhận mọi sát thương nó hấp thụ. Khi thoát Phantom, chuyển lượng hấp thụ tích lũy thành khiên: <span class="hg">min(1200, ⌈(35% × lượng hấp thụ + 200) × 1.15⌉)</span>. Con số gốc 200 đảm bảo khiên tối thiểu <span class="hg">230</span> dù không nhận sát thương nào.</span><span class="det-short">Chuyển sát thương hấp thụ được trong lúc Phantom thành khiên khi thoát ra (gốc 230, CAP 1200).</span></li>
+</ul></div>
+
+<div class="card"><h2 class="dsname" style="color:#22cc55">URIEL <span class="dsclass" style="font-size:10px;color:#22cc55">THƯỢNG CẤP</span></h2><div class="sub">HP 1.725–4.140 • CAP 1 • DR nền 40% • Trần mỗi đòn 30% MaxHP • Né 99%→40% (giảm khi trúng đòn)</div>
+<div class="ab" style="height:150px"><canvas id="cvUriel" style="width:100%;height:100%"></canvas></div>
+<ul>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Thệ Ước Vương</b> — <span class="det-full">Tự làm mới 1 lớp Iron Body của chính nó mỗi 2s. Mỗi 1s, quét và cấp cho MỌI kẻ địch khác đang sống <b>miễn nhiễm khống chế vĩnh viễn</b> cùng 1 <b>lớp Iron Body của Uriel</b> (cấp lại mỗi 5s sau khi bị tiêu thụ). Tiêu thụ 1 lớp này chặn đứng hoàn toàn đòn đánh đó và cộng vào 1 bộ đếm chung: mỗi lần tiêu thụ đều thử kích hoạt <b>Ngụy Trang</b>; cứ mỗi 3 lần thử bắn 1 <b>Kiếm Thánh</b> (Phán Xét). Bản thân Uriel miễn nhiễm với mọi DOT và mọi debuff (Trọng Thương, Soul Reaver, làm chậm, trói, câm lặng).</span><span class="det-short">Cấp cho mọi kẻ địch khác miễn nhiễm khống chế vĩnh viễn + 1 lớp Iron Body tự làm mới. Tiêu thụ 1 lớp thử Ngụy Trang; cứ mỗi 3 lần cũng thử Phán Xét. Bản thân Uriel miễn nhiễm DOT và mọi debuff.</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Chống Lại Hỗn Mang</b> — <span class="det-full">Bắt đầu ở <span class="hi">99% né</span>. Mỗi lần thực sự bị trúng đòn sẽ giảm vĩnh viễn <span class="dmg">3%</span>, chạm sàn <span class="hi">40%</span> (không hồi lại). Mỗi lần né thành công còn cộng dồn 1s <span class="hg">+5% tốc độ</span> (trần +40% tổng).</span><span class="det-short">Bắt đầu 99% né, mỗi lần trúng đòn giảm vĩnh viễn 3% xuống sàn 40%. Mỗi lần né còn cộng dồn +5% tốc độ trong 1s (trần +40%).</span></li>
+<li><span style="color:#a855f7;font-size:10px">PASSIVE</span> <b>Bảo Vệ</b> — <span class="det-full">Khi chết, để lại 1 <b>rào chắn</b> đứng yên tại chỗ chết trong 3s (rộng gấp 1.2 lần đường kính thân). Chặn đứng và không thể xuyên qua bởi đạn thường, đạn xuyên, Skill F, lõi Skill D (sẽ đợi hết rào chắn thay vì xuyên qua, không bị tiêu hao), và Overload Laser. Không bao giờ là mục tiêu hợp lệ cho đồng minh. Biến mất sau 3s.</span><span class="det-short">Khi chết, 1 rào chắn đứng yên 3s chặn đứng mọi đòn đánh phe người chơi (lõi Skill D chỉ đợi) rồi biến mất.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Phán Xét (Kiếm Thánh)</b> — <span class="det-full">Chỉ bắn được khi đang hiện hình — nếu kích hoạt lúc Ngụy Trang, sẽ dồn lại và tự bắn ngay khi hiện hình trở lại. Tụ lực 0.5s (năng lượng hội tụ, cánh xòe ra), rồi phóng thẳng về vị trí người chơi từ 100ms trước với tốc độ ~806px/s, xuyên qua mục tiêu. Trúng người chơi: mất mạng bình thường + <b>Bị Phán Xét</b> (3s: đòn tiếp theo tốn thêm 1 mạng, tổng −2). Trúng Vệ Binh: <span class="hr">30% Max HP sát thương chuẩn</span>, không làm kiếm dừng lại.</span><span class="det-short">Chỉ bắn khi hiện hình (không thì dồn lại). Tụ lực 0.5s rồi phóng kiếm xuyên ~806px/s về vị trí người chơi 100ms trước. Người chơi: trúng đòn + Bị Phán Xét (đòn kế trong 3s tốn 2 mạng). Vệ Binh: 30% MaxHP sát thương chuẩn.</span></li>
+<li><span style="color:var(--cyan);font-size:10px">SKILL</span> <b>Ngụy Trang</b> — <span class="det-full">Kích hoạt mỗi lần 1 lớp Iron Body của Uriel bị tiêu thụ (hồi chiêu 3s tính từ lúc lần ẩn thân trước kết thúc). Ẩn thân hoàn toàn 1.5s, không thể chọn làm mục tiêu, Iron Body tuyệt đối. Khi hiện lại: <span class="hg">khiên 20% MaxHP</span> + <span class="hg">200 DR phẳng trong 2s</span>.</span><span class="det-short">Ẩn thân 1.5s không thể target (hồi chiêu 3s), hiện lại với khiên 20% MaxHP + 200 DR phẳng trong 2s.</span></li>
 </ul></div>
 
 <div class="card"><h2 class="dsname" style="color:#ff8844">AEGIS CORE <span class="dsclass" style="font-size:10px;color:#ff8844">TINH ANH</span></h2><div class="sub">Wave 2 • HP 2,500–4,500 • DR vĩnh viễn 55% • Né 5→10% • Tốc độ 1.65 u/s</div>
@@ -3696,6 +3717,94 @@
             activeAnimations.push(requestAnimationFrame(() => drawVeil(performance.now())));
           }
           drawVeil(performance.now());
+        }
+
+        // Uriel: reuses the real _drawUriel()/_drawUrielHolySwords() from
+        // js/render/enemy-uriel.js (same trick as the Player Ship widget:
+        // point the global ctx/canvas/player at this mini-canvas and call
+        // the actual game renderer) instead of a hand-drawn illustration.
+        const su = setup('cvUriel');
+        if (su) {
+          const { c, w, h } = su;
+          const uEnemy = {
+            type: 'uriel', x: w * 0.5, y: h * 0.42, size: 92,
+            _stealthed: false, _camoPhase: 'idle', _camoTimer: 0,
+            _swordCharging: false, _swordFiring: false, _swordChargeStart: 0, _swordReleaseAt: 0,
+            _fxScanRings: [], _fxSelfPulses: [], _fxChargeMotes: [], _fxIronBursts: [],
+          };
+          const CYCLE_U = [2600, 500, 300, 2000]; // idle -> charging -> firing -> shielded
+          const TOTAL_U = CYCLE_U.reduce((a, b) => a + b, 0);
+          let lastPulseAt = 0, lastScanAt = 0, lastT_U = performance.now(), swordSpawned = false;
+          window._urielMotes = [];
+          window._urielHolySwords = [];
+
+          function drawUri(now) {
+            c.clearRect(0, 0, w, h);
+            _miniStars(c, w, h, now, 20);
+            const dtSec = Math.min(0.05, (now - lastT_U) / 1000); lastT_U = now;
+
+            const tMod = now % TOTAL_U;
+            let phase = 0, acc = 0;
+            for (let i = 0; i < CYCLE_U.length; i++) { if (tMod < acc + CYCLE_U[i]) { phase = i; break; } acc += CYCLE_U[i]; }
+            const phaseT = (tMod - acc) / 1000;
+
+            uEnemy._camoPhase = phase === 3 ? 'shielded' : 'idle';
+            uEnemy._camoTimer = phase === 3 ? phaseT * 1000 : 0;
+            uEnemy._swordCharging = phase === 1;
+            uEnemy._swordChargeStart = phase === 1 ? now - phaseT * 1000 : now;
+            uEnemy._swordFiring = phase === 2;
+            uEnemy._swordReleaseAt = phase === 2 ? now - phaseT * 1000 : now;
+
+            if (phase === 2 && !swordSpawned) {
+              swordSpawned = true;
+              uEnemy._fxIronBursts.push({ t: 0 });
+              window._urielHolySwords = [{ x: uEnemy.x, y: uEnemy.y, ang: Math.PI / 2, vx: 0, vy: 4.6, life: 1, _releaseFlash: 1, hitSentinels: [], trail: [] }];
+            }
+            if (phase !== 2) swordSpawned = false;
+
+            if (now - lastPulseAt > 2000) { lastPulseAt = now; uEnemy._fxSelfPulses.push({ t: 0 }); }
+            if (now - lastScanAt > 1000) { lastScanAt = now; uEnemy._fxScanRings.push({ r: uEnemy.size / 2, t: 0 }); }
+            if (Math.random() < 0.5) window._urielMotes.push({ x: uEnemy.x + (Math.random() - 0.5) * uEnemy.size * 0.8, y: uEnemy.y + uEnemy.size * 0.3, vy: -(0.3 + Math.random() * 0.23), life: 1 });
+            if (phase === 1 && Math.random() < 0.6) {
+              const a = Math.random() * Math.PI * 2, dist = (uEnemy.size / 2) * (1.8 + Math.random() * 1.4);
+              uEnemy._fxChargeMotes.push({ x: uEnemy.x + Math.cos(a) * dist, y: uEnemy.y + Math.sin(a) * dist, t: 0, dur: 0.35 + Math.random() * 0.15 });
+            }
+
+            for (let i = uEnemy._fxSelfPulses.length - 1; i >= 0; i--) { uEnemy._fxSelfPulses[i].t += dtSec; if (uEnemy._fxSelfPulses[i].t > 0.5) uEnemy._fxSelfPulses.splice(i, 1); }
+            for (let i = uEnemy._fxScanRings.length - 1; i >= 0; i--) { uEnemy._fxScanRings[i].t += dtSec; uEnemy._fxScanRings[i].r += dtSec * 260; if (uEnemy._fxScanRings[i].t > 1.1) uEnemy._fxScanRings.splice(i, 1); }
+            for (let i = uEnemy._fxIronBursts.length - 1; i >= 0; i--) { uEnemy._fxIronBursts[i].t += dtSec; if (uEnemy._fxIronBursts[i].t > 0.5) uEnemy._fxIronBursts.splice(i, 1); }
+            for (let i = uEnemy._fxChargeMotes.length - 1; i >= 0; i--) {
+              const m = uEnemy._fxChargeMotes[i]; m.t += dtSec;
+              const p = Math.min(1, m.t / m.dur);
+              m.cx = m.x + (uEnemy.x - m.x) * (p * p); m.cy = m.y + (uEnemy.y - m.y) * (p * p);
+              if (p >= 1) uEnemy._fxChargeMotes.splice(i, 1);
+            }
+            for (let i = window._urielMotes.length - 1; i >= 0; i--) {
+              const m = window._urielMotes[i]; m.y += m.vy; if (m.vx) m.x += m.vx;
+              m.life -= dtSec * 0.6; if (m.life <= 0) window._urielMotes.splice(i, 1);
+            }
+            if (window._urielHolySwords.length) {
+              const s = window._urielHolySwords[0];
+              s.x += s.vx; s.y += s.vy;
+              if (s._releaseFlash > 0) s._releaseFlash -= 0.05;
+              s.trail.push({ x: s.x, y: s.y, time: now });
+              while (s.trail.length > 0 && now - s.trail[0].time > 300) s.trail.shift();
+              if (s.y > h + 60) window._urielHolySwords.length = 0;
+            }
+
+            ctx = c; canvas = { width: w, height: h }; player.x = w * 0.5; player.y = h * 0.98;
+            _drawUriel(uEnemy);
+            _drawUrielMotes();
+            _drawUrielHolySwords();
+
+            c.fillStyle = 'rgba(255,215,130,0.65)'; c.font = '7px Share Tech Mono,monospace'; c.textAlign = 'center';
+            const label = phase === 0 ? 'idle: Covenant King ticking' : phase === 1 ? 'JUDGMENT: charging' : phase === 2 ? 'JUDGMENT: released' : 'CAMOUFLAGE: shielded';
+            c.fillText(label, uEnemy.x, h - 8);
+            c.textAlign = 'left';
+
+            activeAnimations.push(requestAnimationFrame(drawUri));
+          }
+          drawUri(performance.now());
         }
 
         // Aegis Core

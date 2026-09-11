@@ -445,6 +445,7 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugSpawn('spawnMarchosias')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2112–4092" data-size="100–150">Marchosias</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnDargruel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="6200–16000" data-size="200–300">Dargruel</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnVeilshroud')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1320–3300" data-size="100–150">Veilshroud</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnUriel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1725–4140" data-size="100–150">Uriel</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnLeviathan')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="8820–15435" data-size="250–300">Leviathan</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnEgregor')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2200–4750" data-size="160">Egregor</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnGoliath')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1 (Alpha, invuln)" data-size="380/460">Goliath (WIP)</button>
@@ -460,6 +461,7 @@ window.debugSetYuukiBonus = function () {
           <option value="spawnMarchosias">Marchosias</option>
           <option value="spawnDargruel">Dargruel</option>
           <option value="spawnVeilshroud">Veilshroud</option>
+          <option value="spawnUriel">Uriel</option>
           <option value="spawnLeviathan">Leviathan</option>
           <option value="spawnEgregor">Egregor</option>
           <option value="spawnGoliath">Goliath (WIP)</option>
@@ -1150,8 +1152,27 @@ window.debugSetYuukiBonus = function () {
             refreshEnemyList();
             return;
         }
-        if (typeof dealDamage !== 'function') return;
-        dealDamage(e, { damage: (e.hp || 0) + (e.shield || 0) + 999999, isTrueDamage: true });
+        // Every other type: force the kill directly instead of routing
+        // through dealDamage's normal damage math. Several enemies have a
+        // per-hit % MaxHP cap that applies even to true damage (Veilshroud
+        // Phantom, Thaelis Tenacity Bulwark, Leviathan/Dargruel Inevitable,
+        // Uriel's Covenant King, Egregor's body, embryo, Marchosias minion),
+        // on top of ironBodyHits/absoluteShield/Custos Aeternus/thaelis_cocoon
+        // - any of which can eat a single hit no matter how large. One debug
+        // press must always actually kill, so bypass all of it the same way
+        // Skill F's own instant-kill does: zero shield/hp directly.
+        e.shield = 0;
+        e.hp = 0;
+        // Leviathan's death-laser spawn is only triggered from inside
+        // dealDamage's own hp<=1 check - a direct hp=0 set skips it, so fire
+        // a harmless 0-damage call just to run that hook, same as Skill F does.
+        // The AFO shield's own early-return would skip that check too, so
+        // it's cleared first.
+        if (e.type === 'leviathan' && !e._deathLaserSpawned && typeof dealDamage === 'function') {
+            e.afoShieldActive = false;
+            dealDamage(e, { damage: 0, percentDamage: 0, _bypassIronBody: true, _statSrc: 'Debug Kill' });
+        }
+        refreshEnemyList();
     };
 
     window.debugClearDefense = function (idx) {
@@ -1201,6 +1222,8 @@ window.debugSetYuukiBonus = function () {
             }
         }
         if (which === 'void' && typeof _veilshroudBeginLightning === 'function') _veilshroudBeginLightning(e);
+        if (which === 'uriel_camo' && typeof _urielTriggerCamo === 'function') { e._camoCDReadyAt = 0; e._camoPhase = 'idle'; _urielTriggerCamo(e); }
+        if (which === 'uriel_sword' && typeof _urielTriggerSword === 'function') _urielTriggerSword(e);
         if (which === 'goliath_transform' && e.type === 'goliath' && e.phase === 'alpha') {
             // Bỏ qua yêu cầu 3 bảo thạch thật để test nhanh Transform + True Form
             e.slots.forEach((s, i) => { if (!s.filled) { s.filled = true; s.gem = GOLIATH_GEM_COLORS[i]; } });
@@ -1249,6 +1272,7 @@ window.debugSetYuukiBonus = function () {
         if (e.type === 'aegis_core') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button>`;
         if (e.type === 'leviathan') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'perseverance')">Perseverance</button>`;
         if (e.type === 'veilshroud') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'void')">Void Strike</button>`;
+        if (e.type === 'uriel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'uriel_camo')">Force Camouflage</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'uriel_sword')">Force Judgment</button>`;
         if (e.type === 'goliath' && e.phase === 'alpha') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_transform')">Force Transform</button>`;
         if (e.type === 'goliath' && e.phase === 'transforming') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_trueform')">Skip to True Form</button>`;
         if (e.type === 'goliath' && e.phase === 'true_form') {
@@ -1261,7 +1285,7 @@ window.debugSetYuukiBonus = function () {
         return '';
     }
 
-    const BOSS_TYPES = ['apostle', 'thaelis', 'aegis_core', 'marchosias', 'dargruel', 'veilshroud', 'leviathan', 'egregor', 'goliath'];
+    const BOSS_TYPES = ['apostle', 'thaelis', 'aegis_core', 'marchosias', 'dargruel', 'veilshroud', 'uriel', 'leviathan', 'egregor', 'goliath'];
 
     function refreshEnemyList() {
         const el = document.getElementById('dbgEnemyList');

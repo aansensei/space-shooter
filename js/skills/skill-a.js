@@ -351,6 +351,7 @@ function updateDimensionalRifts(deltaTime) {
             // the rift is centered) could chain-shred the whole Guard
             // cluster in a couple of seconds.
             if (enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard') continue;
+            if (enemy.type === 'uriel') continue; // Covenant King: immune to every debuff, including Dimensional Rift's own DoT
             if (enemy.hp <= 0 || enemy.inCoronation) continue;
 
             // Mark for damage bonus & slow (egregor/dargruel/leviathan immune to slow; marchosias immune while Arc Shield active)

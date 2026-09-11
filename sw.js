@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v273';
+const CACHE_VERSION = 'v280';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -36,6 +36,8 @@ const CORE_FILES = [
     'assets/images/game/icons/blood-arrow-stack.png',
     'assets/images/game/enemies/marchosias-hexagon-armor.png',
     'assets/images/game/enemies/thaelis-cocoon.png',
+    'assets/images/game/enemies/uriel-divine-core.png',
+    'assets/images/game/enemies/uriel-holy-sword.png',
     'js/vendor/pixi.min.js',
     'js/audio.js',
     'js/background.js',
@@ -43,6 +45,7 @@ const CORE_FILES = [
     'js/entities/core.js',
     'js/entities/sentinel.js',
     'js/entities/veilshroud.js',
+    'js/entities/uriel.js',
     'js/entities/egregor.js',
     'js/entities/leviathan.js',
     'js/entities/marchosias.js',
@@ -90,6 +93,7 @@ const CORE_FILES = [
     'js/render/enemy-leviathan.js',
     'js/render/enemy-marchosias.js',
     'js/render/enemy-veilshroud.js',
+    'js/render/enemy-uriel.js',
     'js/render/fx.js',
     'js/render/player.js',
     'js/render/skill-a.js',
