@@ -1416,9 +1416,12 @@ function drawLaser() {
         const cw = laserBeamWidth + wobble;
         const cx = laserX;
         const wavePhase = now / 220 + clone.xOffset;
+        // Uriel's death barrier stops the beam like a wall instead of it
+        // just rendering straight through while damage alone is occluded.
+        const topY = (typeof _urielBarrierClipTopY === 'function') ? _urielBarrierClipTopY(laserX, player.y) : 0;
 
         // outer glow — wide, soft, wavy
-        _laserBeamPath(cx, cw + 40, 0, player.y, 14, wavePhase);
+        _laserBeamPath(cx, cw + 40, topY, player.y, 14, wavePhase);
         const glow = ctx.createLinearGradient(cx - cw / 2, 0, cx + cw / 2, 0);
         glow.addColorStop(0, "rgba(0,255,255,0)");
         glow.addColorStop(0.5, "rgba(0,200,255,0.2)");
@@ -1428,7 +1431,7 @@ function drawLaser() {
 
         // violet mid layer — extra ring so the beam has a visible step in
         // tone instead of one smooth gradient (same trick used on Skill F).
-        _laserBeamPath(cx, cw * 0.8, 0, player.y, 11, wavePhase + 0.6);
+        _laserBeamPath(cx, cw * 0.8, topY, player.y, 11, wavePhase + 0.6);
         ctx.fillStyle = 'rgba(130,90,255,0.28)';
         if (!_mobPerf || _gfxLevel === 0) { ctx.shadowColor = '#8a5aff'; ctx.shadowBlur = 20; }
         ctx.fill();
@@ -1438,7 +1441,7 @@ function drawLaser() {
         // holding one static value, so the cross-section doesn't read as a
         // fixed, painted-on gloss highlight (the biggest source of the
         // "plastic tube" look).
-        _laserBeamPath(cx, cw, 0, player.y, 8, wavePhase);
+        _laserBeamPath(cx, cw, topY, player.y, 8, wavePhase);
         const _flicker = 0.85 + Math.random() * 0.15;
         let grad = ctx.createLinearGradient(cx - cw / 2, 0, cx + cw / 2, 0);
         grad.addColorStop(0, "rgba(0,255,255,0)");
@@ -1462,7 +1465,7 @@ function drawLaser() {
             const jw = 5 + Math.random() * 6;
             ctx.fillStyle = `rgba(255,255,255,${0.45 + Math.random() * 0.3})`;
             if (!_mobPerf || _gfxLevel === 0) ctx.shadowBlur = 15;
-            ctx.fillRect(jx - jw / 2, 0, jw, player.y);
+            ctx.fillRect(jx - jw / 2, topY, jw, player.y - topY);
             ctx.shadowBlur = 0;
         }
 
@@ -1475,7 +1478,7 @@ function drawLaser() {
             ctx.lineWidth = 1;
             for (let i = 0; i < crackleCount; i++) {
                 if (Math.random() < 0.35) continue; // flicker: not every frame
-                const cy2 = Math.random() * player.y;
+                const cy2 = topY + Math.random() * (player.y - topY);
                 const half = cw / 2;
                 ctx.beginPath();
                 ctx.moveTo(cx - half + Math.random() * 4, cy2);
@@ -1492,13 +1495,24 @@ function drawLaser() {
             const pulseCount = _gfx < 1 ? 3 : _gfx < 2 ? 2 : 1;
             for (let i = 0; i < pulseCount; i++) {
                 const cyclePos = (((now - laserStartTime) + i * laserTickInterval / pulseCount) % laserTickInterval) / laserTickInterval;
-                const py = player.y * (1 - cyclePos);
+                const py = player.y - (player.y - topY) * cyclePos;
                 const pulseA = Math.sin(cyclePos * Math.PI) * 0.5;
                 ctx.fillStyle = `rgba(255,255,255,${pulseA})`;
                 if (!_mobPerf) { ctx.shadowColor = 'white'; ctx.shadowBlur = 18; }
                 ctx.fillRect(cx - cw / 2 - 6, py - 6, cw + 12, 12);
                 ctx.shadowBlur = 0;
             }
+        }
+
+        // Impact flash where the beam is actually stopped by the barrier.
+        if (topY > 0) {
+            const impactPulse = 0.6 + 0.4 * Math.sin(now / 90);
+            const ig = ctx.createRadialGradient(cx, topY, 0, cx, topY, cw * 0.7);
+            ig.addColorStop(0, `rgba(255,255,255,${0.85 * impactPulse})`);
+            ig.addColorStop(0.5, `rgba(150,220,255,${0.4 * impactPulse})`);
+            ig.addColorStop(1, 'rgba(150,220,255,0)');
+            ctx.fillStyle = ig;
+            ctx.beginPath(); ctx.arc(cx, topY, cw * 0.7, 0, Math.PI * 2); ctx.fill();
         }
 
         ctx.restore();

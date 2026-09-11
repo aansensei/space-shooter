@@ -458,6 +458,7 @@ function findClosestEnemy(x, y) {
         if (enemy.type === 'abyssal_chain') continue;
         if (enemy.type === 'veilshroud_echo') continue;
         if (enemy.inCoronation) continue; // Coronation: untargetable during animation
+        if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
         let d = Math.hypot(enemy.x - x, enemy.y - y);
         if (d < closestDist) { closest = enemy; closestDist = d; }
     }

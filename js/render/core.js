@@ -770,6 +770,50 @@ function _drawYogSothothDomainMythos() {
         ctx.restore();
     }
 
+    // 3e. A smaller, playful accent vortex in a joyful multicolor palette
+    // (the Great Spiral below is cobalt-only), filling the otherwise-bare
+    // sky in the upper-right, under where the HUD numbers sit.
+    if (isFull) {
+        const avX = bgCx + canvas.width * 0.36, avY = bgCy - canvas.height * 0.28;
+        ctx.save();
+        ctx.translate(avX, avY);
+        ctx.rotate(now / 9000);
+
+        const avColors = ['#ffd76b', '#ff8fa3', '#7ee3c9', '#c299fc', '#ffb066'];
+        const segCount = 22;
+        for (let i = 0; i < segCount; i++) {
+            const t = 0.08 + (i / segCount) * 0.92;
+            const angle = t * Math.PI * 2 * 2.6;
+            const radius = t * canvas.width * 0.09;
+            const px = Math.cos(angle) * radius, py = Math.sin(angle) * radius * 0.85;
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(angle + Math.PI / 2);
+            ctx.strokeStyle = avColors[i % avColors.length];
+            ctx.lineWidth = 4 + (i % 3) * 1.5;
+            ctx.lineCap = 'round';
+            ctx.globalAlpha = (0.55 + 0.35 * Math.sin(now / 500 + i)) * breathe;
+            const len = 14 + (i % 4) * 5;
+            ctx.beginPath();
+            ctx.moveTo(-len / 2, 0);
+            ctx.quadraticCurveTo(0, -len * 0.35, len / 2, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // A bright little core, like a captured star at the swirl's center.
+        const coreR = canvas.width * 0.012;
+        const coreG = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR * 3);
+        coreG.addColorStop(0, `rgba(255,246,214,${0.9 * breathe})`);
+        coreG.addColorStop(1, 'rgba(255,246,214,0)');
+        ctx.fillStyle = coreG;
+        ctx.beginPath(); ctx.arc(0, 0, coreR * 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${0.85 * breathe})`;
+        ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2); ctx.fill();
+
+        ctx.restore();
+    }
+
     // 3b. Great Spiral centerpiece: one big continuous painted spiral arm,
     // the single dominant swirl the real painting is built around, distinct
     // from the many small scattered dab-arms above.

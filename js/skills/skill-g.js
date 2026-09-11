@@ -211,6 +211,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 if (enemy.type === 'abyssal_chain') return;
                 if (enemy.type === 'veilshroud_echo') return; // untargetable
                 if (enemy.inCoronation) return;               // untargetable during coronation
+                if (enemy._stealthed) return;                 // Uriel mid-Camouflage: fully invisible and untargetable
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                 const dist = distToSegment(enemy, orb, orb2);
                 const linkThickness = ENERGY_ORB_SIZE / 2;

@@ -201,6 +201,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 && !(typeof player !== 'undefined' && player._silenced)) {
                 skillShiftActive = true;
                 window._shiftActive = true;
+                // The domain's whole Van Gogh painting treatment is FULL-tier
+                // only. Smart Quality freezes further changes for the rest of
+                // the domain the instant _shiftActive flips true (see
+                // index.html's FPS watchdog) but never lifts a tier that had
+                // already been auto-downgraded before Shift was pressed - so
+                // without this, a fight that had recently dipped FPS could
+                // silently strip the domain's own showcase effects even
+                // though Settings still says "Full". Forcing tier 0 right
+                // here gives the domain its best shot every time; the
+                // watchdog resumes its own normal downgrade/recovery once
+                // Shift ends if performance genuinely can't hold it.
+                if (window._smartQuality !== false && typeof window._applyGfxLevel === 'function') window._applyGfxLevel(0);
                 skillShiftChargeStart = performance.now();
                 if (window.AudioMgr) {
                     window.AudioMgr.enterTimeDomain();
