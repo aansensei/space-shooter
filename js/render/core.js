@@ -717,6 +717,59 @@ function _drawYogSothothDomainMythos() {
         ctx.restore();
     }
 
+    // 3d. Distant hillside village with a church spire, the reference
+    // painting's other signature shape, balancing the cypress on the
+    // opposite side so the right half of the sky isn't left bare.
+    if (tier < 2) {
+        const villX = bgCx + canvas.width * 0.30;
+        const villBaseY = bgCy + canvas.height * 0.52;
+        ctx.save();
+        ctx.translate(villX, villBaseY);
+
+        const roofCount = isFull ? 7 : 4;
+        for (let i = 0; i < roofCount; i++) {
+            const p1 = (Math.sin(i * 17.7) + 1) / 2;
+            const p2 = (Math.sin(i * 39.1) + 1) / 2;
+            const rx = (i - roofCount / 2) * (canvas.width * 0.028) + (p2 - 0.5) * 10;
+            const rw = canvas.width * (0.02 + p1 * 0.018);
+            const rh = canvas.height * (0.03 + p1 * 0.035);
+            ctx.globalAlpha = (0.55 + p1 * 0.3) * breathe;
+            ctx.fillStyle = i % 3 === 0 ? '#0d2b28' : (i % 2 === 0 ? '#173f3a' : '#0a1f30');
+            ctx.beginPath();
+            ctx.moveTo(rx - rw / 2, 0);
+            ctx.lineTo(rx - rw / 2, -rh);
+            ctx.lineTo(rx, -rh - rw * 0.5);
+            ctx.lineTo(rx + rw / 2, -rh);
+            ctx.lineTo(rx + rw / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // A warm little window light in a few of the roofs.
+            if (isFull && i % 2 === 0) {
+                ctx.globalAlpha = (0.5 + 0.3 * Math.sin(now / 900 + i)) * breathe;
+                ctx.fillStyle = '#ffdd88';
+                ctx.beginPath();
+                ctx.arc(rx, -rh * 0.4, rw * 0.12, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Church spire, taller and centered, the tallest silhouette in the cluster.
+        const spireH = canvas.height * 0.16;
+        const spireW = canvas.width * 0.022;
+        ctx.globalAlpha = 0.75 * breathe;
+        ctx.fillStyle = '#0a1f30';
+        ctx.beginPath();
+        ctx.moveTo(-spireW / 2, 0);
+        ctx.lineTo(-spireW / 2, -spireH * 0.55);
+        ctx.lineTo(0, -spireH);
+        ctx.lineTo(spireW / 2, -spireH * 0.55);
+        ctx.lineTo(spireW / 2, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
     // 3b. Great Spiral centerpiece: one big continuous painted spiral arm,
     // the single dominant swirl the real painting is built around, distinct
     // from the many small scattered dab-arms above.

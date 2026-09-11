@@ -31,6 +31,7 @@ function spawnUriel() {
         _fxScanRings: [], _fxSelfPulses: [], _fxChargeMotes: [], _fxIronBursts: [],
     });
     _urielPickWaypoint(enemies[enemies.length - 1]);
+    if (window.AudioMgr) window.AudioMgr.startUrielIdle();
 }
 
 function _urielPickWaypoint(enemy) {
@@ -61,11 +62,11 @@ function _urielOnDodge(enemy) {
 }
 
 // Called from dealDamage (entities/core.js) every time a hit actually
-// lands on Uriel's own body (evade roll failed): permanently knocks 3% off
+// lands on Uriel's own body (evade roll failed): permanently knocks 5% off
 // Against Chaos's own evade (floor 40%), and a hexagonal facet ring flashes
 // outward, reading as "a real layer of protection just ate that".
 function _urielOnHitLanded(enemy) {
-    enemy._urielEvade = Math.max(0.40, (enemy._urielEvade === undefined ? 0.99 : enemy._urielEvade) - 0.03);
+    enemy._urielEvade = Math.max(0.40, (enemy._urielEvade === undefined ? 0.99 : enemy._urielEvade) - 0.05);
     enemy._fxIronBursts = enemy._fxIronBursts || [];
     enemy._fxIronBursts.push({ t: 0 });
 }
