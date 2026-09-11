@@ -1969,6 +1969,11 @@ function update(rawDeltaTime) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (b.type === 'sentinel_special') {
+            // A target that goes stealthed mid-flight (Uriel entering
+            // Camouflage) can't still be tracked - the bullet had already
+            // locked on before it vanished, so it's despawned outright
+            // instead of visibly beelining for an untargetable enemy.
+            if (b.target && b.target._stealthed) { bullets.splice(i, 1); continue; }
             if (b.target && enemies.includes(b.target) && !b.target.inCoronation && b.target.hp > 0) {
                 const dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
                 const speed = (9 * 0.65) * (b.speedMultiplier || 1);

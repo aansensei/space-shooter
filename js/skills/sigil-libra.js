@@ -377,7 +377,7 @@ function updateSolArrows(deltaTime) {
                 // equals arrow.target, but it can still pierce through
                 // whatever else is standing in that direction rather than
                 // wasting the whole volley slot.
-                if (!arrow.target || !Number.isFinite(arrow.target.x) || !Number.isFinite(arrow.target.y)) {
+                if (!arrow.target || !Number.isFinite(arrow.target.x) || !Number.isFinite(arrow.target.y) || arrow.target._stealthed) {
                     window._solArrows.splice(i, 1);
                     continue;
                 }

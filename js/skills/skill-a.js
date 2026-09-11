@@ -200,7 +200,7 @@ function updateSkillA(deltaTime) {
             continue;
         }
         if (orb.target) {
-            if (!enemies.includes(orb.target) || orb.target.hp <= 0) {
+            if (!enemies.includes(orb.target) || orb.target.hp <= 0 || orb.target._stealthed) {
                 if (orb.target) orb.target.isTargetedByA = false;
                 skillAOrbs.splice(i, 1);
                 updateDefensiveOrbs();
