@@ -91,6 +91,7 @@ function updateSkillF(deltaTime) {
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (enemy.type === 'thaelis_cocoon') continue; // untargetable, only its Guards can be hit
             if (enemy.inCoronation) continue;
+            if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
             // Uriel's death barrier occludes the sweep like a flashlight hitting a wall.
             if (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(player.x, player.y, enemy.x, enemy.y)) continue;
             let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);

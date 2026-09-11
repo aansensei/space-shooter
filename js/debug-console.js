@@ -169,6 +169,8 @@ function _setDebugAutoplay(on) {
                     keys.left = false; keys.right = false; // Iron Body covers us during the hold, no need to also drift
                     skillShiftActive = true;
                     window._shiftActive = true;
+                    // Force FULL tier for the domain's own showcase effects, same reasoning as input.js's real activation.
+                    if (window._smartQuality !== false && typeof window._applyGfxLevel === 'function') window._applyGfxLevel(0);
                     skillShiftChargeStart = now;
                     if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }
                     if (typeof _hasBuff === 'function' && _hasBuff('coi_mong')) {
@@ -806,6 +808,8 @@ window.debugSetYuukiBonus = function () {
                 if (!skillShiftActive) {
                     skillShiftActive = true;
                     window._shiftActive = true;
+                    // Force FULL tier for the domain's own showcase effects, same reasoning as input.js's real activation.
+                    if (window._smartQuality !== false && typeof window._applyGfxLevel === 'function') window._applyGfxLevel(0);
                     skillShiftChargeStart = now;
                     lastSkillShift = now;
                     if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }

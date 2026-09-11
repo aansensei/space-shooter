@@ -781,6 +781,7 @@ function update(rawDeltaTime) {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return;
                     if (enemy.inCoronation) return;
+                    if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {

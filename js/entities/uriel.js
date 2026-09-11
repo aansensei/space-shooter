@@ -26,7 +26,7 @@ function spawnUriel() {
         _stealthed: false, _camoPhase: 'idle', _camoTimer: 0,
         _stealthIBEnd: 0, _camoCDReadyAt: 0, _camoFlatDREnd: 0,
         _swordCharging: false, _swordFiring: false, _swordChargeStart: 0, _swordReleaseAt: 0,
-        _urielSwordQueued: 0,
+        _urielSwordQueued: 0, _urielNoAllyTimer: 0, _urielSoloJudgmentTimer: 0,
         _urielEvade: 0.99, _dodgeSpeedBuffs: [],
         _fxScanRings: [], _fxSelfPulses: [], _fxChargeMotes: [], _fxIronBursts: [],
     });
@@ -116,6 +116,18 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
     } else if (enemy._camoPhase === 'stealthed') {
         if (enemy._camoTimer >= 1500) {
             enemy._stealthed = false;
+            // The absolute Iron Body granted for the stealth window (set to
+            // 999 via Math.max, so it can only ever be pushed up, never back
+            // down) has to be cleared here explicitly, or it sits in the
+            // hundreds through the generic Coronation Iron Body check in
+            // dealDamage - which absorbs and returns before the evade roll,
+            // DR, or per-hit cap ever run - and real combat can't burn
+            // through anywhere near 999 hits before the next Camouflage
+            // cycle (~5s later) pushes it straight back up to 999 again.
+            // Left as-is this makes Uriel functionally unkillable after its
+            // very first Camouflage trigger. The 2s self-refresh timer
+            // brings it back to a normal 1-layer state on its own shortly after.
+            enemy.ironBodyHits = 0;
             enemy._camoCDReadyAt = now + 3000;
             _addEnemyShield(enemy, Math.ceil(enemy.maxHp * 0.20));
             enemy._camoFlatDREnd = now + 2000;
@@ -208,18 +220,35 @@ function updateUriel(enemy, deltaTime) {
     // Horde scan: every 1s, grant CC immunity + a Uriel Iron Body layer
     // (re-granted every 5s per enemy) to every other living enemy. A gold
     // ring expands outward from the body each time the scan actually fires.
+    // Also tracks how long it's gone with nobody to buff at all.
     enemy._urielScanTimer += deltaTime;
     if (enemy._urielScanTimer >= 1000) {
         enemy._urielScanTimer = 0;
         enemy._fxScanRings.push({ r: enemy.size / 2, t: 0 });
         const now = performance.now();
+        let foundAlly = false;
         for (const e of enemies) {
             if (e === enemy || e.type === 'uriel' || e.hp <= 0 || e.type.startsWith('enemy_bullet')) continue;
+            foundAlly = true;
             e._urielCCImmune = true;
             if (!e._urielIB && (!e._urielIBAt || now - e._urielIBAt >= 5000)) {
                 e._urielIB = true;
             }
         }
+        enemy._urielNoAllyTimer = foundAlly ? 0 : (enemy._urielNoAllyTimer || 0) + 1000;
+    }
+
+    // Solo Judgment fallback: a Covenant King with nobody left to protect
+    // isn't just standing there - once it's gone more than 3s without a
+    // single ally to buff, it starts firing a Holy Sword on its own every 1.5s.
+    if ((enemy._urielNoAllyTimer || 0) >= 3000) {
+        enemy._urielSoloJudgmentTimer = (enemy._urielSoloJudgmentTimer || 0) + deltaTime;
+        if (enemy._urielSoloJudgmentTimer >= 1500) {
+            enemy._urielSoloJudgmentTimer = 0;
+            _urielTriggerSword(enemy);
+        }
+    } else {
+        enemy._urielSoloJudgmentTimer = 0;
     }
 
     // Idle ambient motes drifting up off the body while visible - a
@@ -346,7 +375,7 @@ function _urielSpawnBarrier(enemy) {
     window._urielBarriers.push({
         x: enemy.x, y: enemy.y,
         w: enemy.size * 1.2, h: enemy.size * 0.9,
-        life: 3000, maxLife: 3000,
+        life: 4000, maxLife: 4000,
     });
 }
 
@@ -388,4 +417,20 @@ function _urielBarrierBlocksSegment(x1, y1, x2, y2) {
         if (blocked) return true;
     }
     return false;
+}
+
+// Where a straight vertical beam at x, travelling from fromY up toward the
+// top of the screen, should stop: the bottom edge of the nearest barrier in
+// its path, or 0 (screen top) if nothing's in the way. Lets a rendered beam
+// actually terminate at the wall instead of just being damage-occluded
+// while still drawing straight through it.
+function _urielBarrierClipTopY(x, fromY) {
+    const barriers = window._urielBarriers;
+    if (!barriers || !barriers.length) return 0;
+    let stopY = 0;
+    for (const b of barriers) {
+        const r = _urielBarrierRect(b);
+        if (x >= r.x0 && x <= r.x1 && r.y1 <= fromY && r.y1 > stopY) stopY = r.y1;
+    }
+    return stopY;
 }

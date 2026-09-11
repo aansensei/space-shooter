@@ -28,7 +28,7 @@ function _drawUrielBuffRing(enemy) {
     ctx.strokeStyle = hasIB ? 'rgba(255,225,130,0.9)' : 'rgba(255,225,130,0.35)';
     ctx.lineWidth = hasIB ? 2 : 1.3;
     ctx.setLineDash([5, 5]);
-    if (!_mobPerf && hasIB) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 8; }
+    if (!_mobPerf && _gfxLevel < 2 && hasIB) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 8; }
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.stroke();
@@ -117,7 +117,7 @@ function _drawUrielEye(enemy, ex, ey, w, h, targetAng, idx, now) {
     ctx.restore(); // end iris translation
 
     // Volumetric glow spilling out of the eye.
-    if (!_mobPerf) {
+    if (!_mobPerf && _gfxLevel < 2) {
         const spill = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h) * 1.5);
         spill.addColorStop(0, 'rgba(255,230,150,0.3)'); spill.addColorStop(1, 'rgba(255,230,150,0)');
         ctx.fillStyle = spill;
@@ -255,7 +255,7 @@ function _drawUriel(enemy) {
         ctx.save();
         ctx.globalAlpha = breathe;
         ctx.rotate(sway);
-        if (!_mobPerf) { ctx.shadowColor = 'rgba(5,3,0,0.6)'; ctx.shadowBlur = 14; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = 'rgba(5,3,0,0.6)'; ctx.shadowBlur = 14; }
         ctx.drawImage(_urielCoreImg, -coreSize / 2, -coreSize / 2, coreSize, coreSize);
         if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 22; ctx.drawImage(_urielCoreImg, -coreSize / 2, -coreSize / 2, coreSize, coreSize); }
         ctx.shadowBlur = 0;
@@ -289,7 +289,7 @@ function _drawUriel(enemy) {
         const p = Math.min(1, (now - enemy._swordChargeStart) / 500);
         ctx.globalAlpha = 0.5 + 0.5 * p;
         ctx.fillStyle = URIEL_WHITE;
-        if (!_mobPerf) { ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 16 + p * 16; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 16 + p * 16; }
         ctx.beginPath(); ctx.arc(0, 0, r * (0.3 + p * 0.5), 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     }
@@ -310,7 +310,7 @@ function _drawUriel(enemy) {
         const p = Math.min(1, (enemy._camoTimer || 0) / 300);
         ctx.globalAlpha = 1 - p * 0.35;
         ctx.fillStyle = URIEL_BLUE;
-        if (!_mobPerf) { ctx.shadowColor = URIEL_BLUE; ctx.shadowBlur = 12 + p * 14; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_BLUE; ctx.shadowBlur = 12 + p * 14; }
         ctx.beginPath(); ctx.arc(0, 0, r * (0.25 + p * 0.3), 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     }
@@ -341,22 +341,25 @@ function _drawUriel(enemy) {
         ctx.beginPath(); ctx.arc(0, 0, sr, 0, Math.PI * 2); ctx.fill();
         ctx.rotate(now / 4000);
         const facetN = _mobPerf ? 5 : 10;
+        // Shadow set once for the whole ring instead of per facet.
+        // 10 shadowBlur toggles a frame here was a real cost for a 2s effect.
+        const facetGlow = !_mobPerf && _gfxLevel < 2;
+        if (facetGlow) { ctx.shadowColor = URIEL_BLUE; ctx.shadowBlur = 8; }
         for (let f = 0; f < facetN; f++) {
             const a0 = (f / facetN) * Math.PI * 2, a1 = ((f + 0.82) / facetN) * Math.PI * 2;
             ctx.save();
             ctx.strokeStyle = `rgba(210,230,255,${0.5 + 0.25 * Math.sin(now / 300 + f)})`;
             ctx.lineWidth = 1.5;
-            if (!_mobPerf) { ctx.shadowColor = URIEL_BLUE; ctx.shadowBlur = 8; }
             ctx.beginPath(); ctx.arc(0, 0, sr, a0, a1); ctx.stroke();
+            ctx.restore();
 
             // Hexagonal/facet joint glint.
             ctx.fillStyle = 'rgba(255,255,255,0.8)';
             ctx.beginPath(); ctx.arc(Math.cos(a0) * sr, Math.sin(a0) * sr, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.restore();
         }
+        ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(230,240,255,0.9)'; ctx.lineWidth = 2;
-        if (!_mobPerf) { ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 10; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 10; }
         ctx.beginPath(); ctx.arc(0, 0, sr, 0, Math.PI * 2); ctx.stroke();
         ctx.shadowBlur = 0;
         ctx.restore();
@@ -399,15 +402,18 @@ function _drawUrielSelfPulses(enemy, r) {
 // Judgment's charge-up: individual motes gathering in and converging on
 // the body, layered under the simple expanding glow drawn in _drawUriel.
 function _drawUrielChargeMotes(enemy) {
-    for (const m of enemy._fxChargeMotes || []) {
+    const motes = enemy._fxChargeMotes;
+    if (!motes || !motes.length) return;
+    // Shadow set once for the whole batch instead of per mote.
+    if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 8; }
+    ctx.fillStyle = URIEL_WHITE;
+    for (const m of motes) {
         if (m.cx === undefined) continue;
-        ctx.save();
         ctx.globalAlpha = Math.min(1, m.t / m.dur * 2);
-        ctx.fillStyle = URIEL_WHITE;
-        if (!_mobPerf) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 8; }
         ctx.beginPath(); ctx.arc(m.cx, m.cy, 2.4, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
     }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 
 // A hit landing on the body (Against Chaos evade failed): a hexagonal
@@ -429,7 +435,7 @@ function _drawUrielIronBursts(enemy, r) {
 
         ctx.strokeStyle = `rgba(255,236,190,${1 - p})`;
         ctx.lineWidth = 2;
-        if (!_mobPerf) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 10; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 10; }
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2;
@@ -446,20 +452,24 @@ function _drawUrielIronBursts(enemy, r) {
 // Ambient idle motes drifting off the body, the odd sparkle flung from a
 // flying Holy Sword, and the sparkle burst a barrier disperses into.
 function _drawUrielMotes() {
-    for (const m of window._urielMotes || []) {
-        ctx.save();
+    const motes = window._urielMotes;
+    if (!motes || !motes.length) return;
+    const glowOn = !_mobPerf && _gfxLevel < 2;
+    if (glowOn) ctx.shadowColor = URIEL_GOLD;
+    for (const m of motes) {
         ctx.globalAlpha = Math.max(0, m.life);
         if (m.glow) {
             ctx.fillStyle = '#ffffff';
-            if (!_mobPerf) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 8; }
+            if (glowOn) ctx.shadowBlur = 8;
             ctx.beginPath(); ctx.arc(m.x, m.y, 2.0, 0, Math.PI * 2); ctx.fill();
         } else {
             ctx.fillStyle = URIEL_GOLD;
-            if (!_mobPerf) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 4; }
+            if (glowOn) ctx.shadowBlur = 4;
             ctx.beginPath(); ctx.arc(m.x, m.y, 1.8, 0, Math.PI * 2); ctx.fill();
         }
-        ctx.restore();
     }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 
 function _drawUrielHolySwords() {
@@ -471,18 +481,28 @@ function _drawUrielHolySwords() {
             ctx.save();
             ctx.lineCap = 'round'; ctx.lineJoin = 'round';
             const trailLen = s.trail.length;
+            // Glow and crisp strokes are drawn as two separate passes instead
+            // of alternating shadowBlur per segment. With up to ~17 segments
+            // per sword, that was up to 34 shadowBlur toggles a frame, per
+            // sword in flight.
+            if (_gfxLevel < 2) {
+                ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 10;
+                for (let i = 1; i < trailLen; i++) {
+                    const pt1 = s.trail[i - 1], pt2 = s.trail[i];
+                    const alpha = (i / trailLen) * s.life;
+                    ctx.beginPath(); ctx.moveTo(pt1.x, pt1.y); ctx.lineTo(pt2.x, pt2.y);
+                    ctx.strokeStyle = `rgba(255,230,150,${alpha * 0.8})`;
+                    ctx.lineWidth = 8 * (i / trailLen);
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+            }
             for (let i = 1; i < trailLen; i++) {
                 const pt1 = s.trail[i - 1], pt2 = s.trail[i];
                 const alpha = (i / trailLen) * s.life;
                 ctx.beginPath(); ctx.moveTo(pt1.x, pt1.y); ctx.lineTo(pt2.x, pt2.y);
-                ctx.strokeStyle = `rgba(255,230,150,${alpha * 0.8})`;
-                ctx.lineWidth = 8 * (i / trailLen);
-                ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 10;
-                ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(pt1.x, pt1.y); ctx.lineTo(pt2.x, pt2.y);
                 ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
                 ctx.lineWidth = 3 * (i / trailLen);
-                ctx.shadowBlur = 0;
                 ctx.stroke();
             }
             ctx.restore();
@@ -492,13 +512,13 @@ function _drawUrielHolySwords() {
         ctx.rotate(s.ang + Math.PI / 2);
         if (_urielSwordImg.complete && _urielSwordImg.naturalWidth) {
             const sw = 108, sh = 108 * (_urielSwordImg.naturalHeight / _urielSwordImg.naturalWidth);
-            if (!_mobPerf) {
+            if (!_mobPerf && _gfxLevel < 2) {
                 ctx.globalCompositeOperation = 'screen';
                 ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 22;
                 ctx.drawImage(_urielSwordImg, -sw / 2, -sh / 2, sw, sh);
                 ctx.globalCompositeOperation = 'source-over';
             }
-            ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = _mobPerf ? 0 : 18;
+            ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = (!_mobPerf && _gfxLevel < 2) ? 18 : 0;
             ctx.drawImage(_urielSwordImg, -sw / 2, -sh / 2, sw, sh);
             ctx.shadowBlur = 0;
         }
@@ -572,7 +592,7 @@ function _drawUrielBarriers() {
         ctx.clip();
         ctx.strokeStyle = 'rgba(255,255,255,0.9)';
         ctx.lineWidth = 1.5;
-        if (!_mobPerf) { ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 8; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 8; }
         for (let rn = 0; rn < 7; rn++) {
             const rx = -w / 2 + (w / 7) * rn + (w / 14);
             const ry = hgt / 2 - ((now / 15 + rn * 45) % (hgt * 1.5));
@@ -589,7 +609,7 @@ function _drawUrielBarriers() {
 
         ctx.globalCompositeOperation = 'source-over';
 
-        if (!_mobPerf) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 10; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 10; }
         ctx.strokeStyle = 'rgba(255,215,107,0.95)';
         ctx.lineWidth = 2.5;
         ctx.beginPath();

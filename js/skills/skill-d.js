@@ -27,6 +27,7 @@ function _skillDCanTarget(enemy) {
     if (enemy.type === 'veilshroud_echo') return false; // echo miễn CC
     if (enemy.inCoronation) return false; // untargetable during coronation
     if (enemy.type === 'veilshroud' && enemy.inPhantom) return false; // frozen during phantom
+    if (enemy._stealthed) return false; // Uriel mid-Camouflage: fully invisible and untargetable
     return true;
 }
 function _skillDIsCCImmune(enemy) {

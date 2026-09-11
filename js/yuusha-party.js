@@ -152,6 +152,7 @@ class YuushaMember {
             if (e.type === 'abyssal_chain') continue;
             if (e.type === 'veilshroud_echo') continue; // untargetable
             if (e.inCoronation) continue; // untargetable during coronation
+            if (e._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
             const d = Math.hypot(e.x - this.x, e.y - this.y);
             if (d < bestDist) { bestDist = d; best = e; }
         }
