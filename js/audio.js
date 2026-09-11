@@ -333,6 +333,9 @@
     const SFX_BASE = {
         autoshot: 1.0, charging: 1.0, 'skill-d-charge': 1.0, laser: 1.0,
         'enemy-hit': 0.25, 'enemy-death': 1.0, 'shield-hit': 1.0, 'life-lost': 1.0,
+        // Same clip as enemy-death but boosted, for the Phantom Portal's
+        // own collapse - reads as a real detonation, not just another kill.
+        'veilshroud-portal-collapse': 1.6,
         click: 1.0, hover: 1.0, overlay: 1.0,
         // Engine loop kept quieter than the ambient space bed it plays under
         // (see engine.mp3 above) - a rocket thruster hum shouldn't compete
@@ -814,6 +817,7 @@
         _makePool('autoshot',     'assets/audio/sfx/autoshot.mp3',    4);
         _makePool('enemy-hit',    'assets/audio/sfx/enemy-hit.wav',   6);
         _makePool('enemy-death',  'assets/audio/sfx/enemy-death.mp3', 3);
+        _makePool('veilshroud-portal-collapse', 'assets/audio/sfx/enemy-death.mp3', 2);
         _makePool('shield-hit',   'assets/audio/sfx/shield-hit.wav',  3);
         _makePool('life-lost',    'assets/audio/sfx/life-lost.mp3',   2);
         _makePool('click',        'assets/audio/sfx/click.mp3',       3);
