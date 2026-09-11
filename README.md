@@ -436,7 +436,7 @@ A herald-boss that never attacks the player directly. It patrols the **upper hal
 
 **Passive: Covenant King** — Refreshes its own **1-hit Iron Body** every 2 seconds. Every 1 second, scans and grants **every other living enemy** on screen **infinite CC Immunity** plus a **Uriel Iron Body layer** (re-granted every 5 seconds per enemy once consumed). Consuming one of these layers fully negates that hit and feeds a shared counter: **every consumption** tries to trigger Camouflage; **every 3rd consumption** tries to fire a Holy Sword. Uriel itself is immune to every DOT source and every debuff (Vulnerability, Soul Reaver, slows, root, silence).
 
-**Passive: Against Chaos** — Starts at **99% evade**. Every hit that actually lands permanently knocks it down **3%**, floored at **40%** (never recovers). Each successful dodge also stacks a 1-second **+5% move speed** bonus, capped **+40% total**.
+**Passive: Against Chaos** — Starts at **99% evade**. Every hit that actually lands permanently knocks it down **5%**, floored at **40%** (never recovers). Each successful dodge also stacks a 1-second **+5% move speed** bonus, capped **+40% total**.
 
 **Passive: Protection** — On death, leaves a **stationary barrier** at the death spot for **3 seconds**, **1.2×** its own body diameter wide. Blocks and cannot be pierced by normal bullets (deleted on contact), piercing projectiles (stopped), Skill F's sweep, Skill D's core (which simply waits at the barrier instead of passing through, never consumed), and the Overload Laser. It is never a valid target for any ally. Vanishes after 3 seconds, at which point the rest of the horde also loses Covenant King's CC Immunity and any unspent Uriel Iron Body layer.
 

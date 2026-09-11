@@ -1164,6 +1164,7 @@ function update(rawDeltaTime) {
                 }
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#fff4cc');
                 createParticles(enemy.x, enemy.y, 40, '#ffe27a', 2, 8);
+                if (window.AudioMgr) { window.AudioMgr.stopUrielIdle(); window.AudioMgr.playSfxAt('uriel-death-roar', enemy.x, enemy.y); }
             }
 
             // MARCHOSIAS: convert pending windups → blades on death (Skill F / Black Hole path)

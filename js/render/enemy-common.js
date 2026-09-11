@@ -807,6 +807,13 @@ function drawEnemy(enemy) {
         if (_wpStacks > 0) _drawWalpurgisAura(enemy, _wpStacks);
     }
 
+    // Covenant King (Uriel): a gold dashed ring on every enemy currently
+    // holding the granted CC immunity + Uriel Iron Body layer, so the buff
+    // actually reads on-screen instead of only showing on Uriel's own body.
+    if (enemy._urielCCImmune && typeof _drawUrielBuffRing === 'function') {
+        _drawUrielBuffRing(enemy);
+    }
+
     if (enemy.type === 'aegis_core') {
         drawAegisCore(enemy);
     } else if (enemy.type === 'dargruel') {

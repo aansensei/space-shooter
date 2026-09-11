@@ -13,6 +13,30 @@ _urielSwordImg.src = 'assets/images/game/enemies/uriel-holy-sword.png';
 
 const URIEL_GOLD = '#ffd76b', URIEL_WHITE = '#fffaf0', URIEL_BLUE = '#7aa8ff';
 
+// Covenant King's granted buff, drawn on every OTHER enemy that currently
+// holds it (called from enemy-common.js's drawEnemy(), not from Uriel's own
+// render). Brighter/thicker while a Uriel Iron Body layer still sits ready
+// to absorb a hit; dims to a thin standby ring while that layer is spent
+// and waiting out its 5s re-grant timer, so the two states read apart.
+function _drawUrielBuffRing(enemy) {
+    const now = performance.now();
+    const r = (enemy.size || 20) / 2 + 8;
+    const hasIB = !!enemy._urielIB;
+    ctx.save();
+    ctx.translate(enemy.x, enemy.y);
+    ctx.rotate(now / 2600);
+    ctx.strokeStyle = hasIB ? 'rgba(255,225,130,0.9)' : 'rgba(255,225,130,0.35)';
+    ctx.lineWidth = hasIB ? 2 : 1.3;
+    ctx.setLineDash([5, 5]);
+    if (!_mobPerf && hasIB) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 8; }
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
 function _urielBlink(enemy, idx, now) {
     if (!enemy._eyeBlinks) enemy._eyeBlinks = Array.from({ length: 7 }, () => 4000 + Math.random() * 4000);
     const cycle = enemy._eyeBlinks[idx];
