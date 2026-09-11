@@ -982,6 +982,11 @@ function updateSpiritBullets(deltaTime) {
             // Directional bullet (no homing)
             b.x += b.vx * dt;
             b.y += b.vy * dt;
+        } else if (b.target && b.target._stealthed) {
+            // Locked on before its target went stealthed (Uriel entering
+            // Camouflage) - can't keep tracking an untargetable enemy.
+            spiritBullets.splice(i, 1);
+            continue;
         } else if (b.target && enemies.includes(b.target)) {
             let dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
             if (d > 0) {

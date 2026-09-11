@@ -247,6 +247,7 @@ function _skillDFindHighestHpTarget() {
         if (enemy.type === 'abyssal_chain') continue;
         if (enemy.type === 'veilshroud_echo') continue;
         if (enemy.inCoronation) continue;
+        if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
         if (enemy.hp > bestHp) { best = enemy; bestHp = enemy.hp; }
     }
     return best;
@@ -321,9 +322,10 @@ function updateSkillDSpaceships(deltaTime) {
         const ship = window.skillDSpaceships[i];
         const mult = SKILLD_SHIP_TIER_MULT[ship.tier || 1] * _gfjDmg;
 
-        if (!ship.target || !enemies.includes(ship.target) || ship.target.hp <= 0) {
-            // Old target died — re-acquire the current highest-HP enemy
-            // instead of just drifting off, so the ship keeps hunting.
+        if (!ship.target || !enemies.includes(ship.target) || ship.target.hp <= 0 || ship.target._stealthed) {
+            // Old target died, or went stealthed (Uriel entering
+            // Camouflage) — re-acquire the current highest-HP enemy instead
+            // of just drifting off, so the ship keeps hunting.
             ship.target = _skillDFindHighestHpTarget();
         }
 
