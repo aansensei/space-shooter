@@ -27,7 +27,7 @@ function spawnUriel() {
         _stealthIBEnd: 0, _camoCDReadyAt: 0, _camoFlatDREnd: 0,
         _swordCharging: false, _swordFiring: false, _swordChargeStart: 0, _swordReleaseAt: 0,
         _urielSwordQueued: 0, _urielNoAllyTimer: 0, _urielSoloJudgmentTimer: 0,
-        _urielEvade: 0.99, _dodgeSpeedBuffs: [],
+        _urielEvade: 0.99, _dodgeSpeedBuffs: [], _urielHitStreak: 0,
         _fxScanRings: [], _fxSelfPulses: [], _fxChargeMotes: [], _fxIronBursts: [],
     });
     _urielPickWaypoint(enemies[enemies.length - 1]);
@@ -40,7 +40,7 @@ function _urielPickWaypoint(enemy) {
 }
 
 // Against Chaos: starts at 99% evade, permanently down 3% every time a hit
-// actually lands, floored at 40% (never recovers on its own).
+// actually lands, floored at 30% (never recovers on its own).
 function _urielCurrentEvade(enemy) {
     if (enemy._urielEvade === undefined) enemy._urielEvade = 0.99;
     return enemy._urielEvade;
@@ -63,12 +63,21 @@ function _urielOnDodge(enemy) {
 
 // Called from dealDamage (entities/core.js) every time a hit actually
 // lands on Uriel's own body (evade roll failed): permanently knocks 5% off
-// Against Chaos's own evade (floor 40%), and a hexagonal facet ring flashes
+// Against Chaos's own evade (floor 30%), and a hexagonal facet ring flashes
 // outward, reading as "a real layer of protection just ate that".
 function _urielOnHitLanded(enemy) {
-    enemy._urielEvade = Math.max(0.40, (enemy._urielEvade === undefined ? 0.99 : enemy._urielEvade) - 0.05);
+    enemy._urielEvade = Math.max(0.30, (enemy._urielEvade === undefined ? 0.99 : enemy._urielEvade) - 0.05);
     enemy._fxIronBursts = enemy._fxIronBursts || [];
     enemy._fxIronBursts.push({ t: 0 });
+
+    // Safety net for when the horde-scan has nothing to feed Camouflage off
+    // of (no other living enemy around to consume a granted Iron Body
+    // layer): 10 hits landed directly on Uriel also triggers it.
+    enemy._urielHitStreak = (enemy._urielHitStreak || 0) + 1;
+    if (enemy._urielHitStreak >= 10) {
+        enemy._urielHitStreak = 0;
+        _urielTriggerCamo(enemy);
+    }
 }
 
 // Called from dealDamage (entities/core.js) every time a granted Uriel Iron
@@ -114,6 +123,8 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
             }
         }
     } else if (enemy._camoPhase === 'stealthed') {
+        // Regens while fully hidden: 2% MaxHP per second, prorated per frame.
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.02 * (deltaTime / 1000));
         if (enemy._camoTimer >= 1500) {
             enemy._stealthed = false;
             // The absolute Iron Body granted for the stealth window (set to
