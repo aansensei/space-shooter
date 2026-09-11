@@ -731,7 +731,7 @@ function updateBladeArcProjectiles(deltaTime) {
                 if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                     enemy._slowEnd = Math.max(enemy._slowEnd || 0, performance.now() + 2000);
                     enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
-                    const _cucArcCCImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+                    const _cucArcCCImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel'
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                         || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
                     // CC-immune targets are never pulled - absolute, no exceptions.
@@ -761,8 +761,10 @@ function updateBladeArcProjectiles(deltaTime) {
                 // among them) instead of just one damage tick.
                 if (arc.isGreatSageVerdict && enemy.hp > 0) {
                     applyVulnerability(enemy);
-                    enemy.soulReaver = true;
-                    enemy.soulReaverEnd = performance.now() + 2500;
+                    if (enemy.type !== 'uriel') {
+                        enemy.soulReaver = true;
+                        enemy.soulReaverEnd = performance.now() + 2500;
+                    }
                 }
                 arc.hitEnemies.push(enemy);
             }
@@ -938,7 +940,7 @@ function updateSpiritSpinners(deltaTime) {
             if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                 enemy._slowEnd = Math.max(enemy._slowEnd || 0, now + 2000);
                 enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
-                const _cucSpinImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
+                const _cucSpinImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel'
                     || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
                     || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
                 // CC-immune targets are never pulled - absolute, no exceptions.

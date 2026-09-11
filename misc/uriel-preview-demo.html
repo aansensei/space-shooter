@@ -1,0 +1,1108 @@
+<title>Uriel Preview</title>
+<style>
+  html, body { margin: 0; background: #05040d; overflow: hidden; height: 100%; }
+  canvas { display: block; }
+  #legend {
+    position: fixed; left: 14px; top: 14px;
+    font: 12px/1.5 'Consolas', monospace;
+    color: #cfe0ff;
+    background: rgba(8, 10, 22, 0.72);
+    border: 1px solid rgba(255, 215, 130, 0.35);
+    border-radius: 6px;
+    padding: 10px 14px;
+    width: 250px;
+    pointer-events: none;
+  }
+  #legend b { color: #ffe9a8; }
+  #legend .row { display: flex; justify-content: space-between; gap: 10px; }
+  #legend .dim { color: #7f8cae; }
+  #phase {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    font: bold 13px/1 'Consolas', monospace;
+    color: #ffe9a8;
+    text-shadow: 0 0 10px rgba(255, 210, 120, 0.8);
+    letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  #panel {
+    position: fixed; right: 14px; top: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+    width: 190px;
+  }
+  #panel button {
+    font: 11px 'Consolas', monospace;
+    letter-spacing: 0.03em;
+    background: rgba(8, 10, 22, 0.8);
+    border: 1px solid rgba(255, 215, 130, 0.4);
+    color: #ffe9a8;
+    padding: 7px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+  }
+  #panel button:hover { border-color: #ffe9a8; background: rgba(255, 215, 130, 0.12); }
+  #panel .hdr { color: #7f8cae; font: 10px 'Consolas', monospace; letter-spacing: 0.1em; margin: 6px 0 -2px; }
+</style>
+
+<canvas id="c"></canvas>
+<div id="legend">
+  <div><b>URIEL</b> - live preview</div>
+  <div class="row"><span>Simulated horde</span><span class="dim">5 enemies</span></div>
+  <div class="row"><span>Against Chaos evade</span><span id="evadeVal" class="dim">--</span></div>
+  <div class="row"><span>Wards broken</span><span id="wardVal" class="dim">0 / 3</span></div>
+  <div class="row"><span>Camouflage CD</span><span id="camoVal" class="dim">ready</span></div>
+</div>
+<div id="panel">
+  <div class="hdr">EFFECT SELECT</div>
+  <button data-act="scan">Covenant scan (pulse)</button>
+  <button data-act="selfib">Self Iron Body (pulse)</button>
+  <button data-act="ward">Ward broken (x1)</button>
+  <button data-act="sword">Force Holy Sword</button>
+  <button data-act="camo">Force Camouflage</button>
+  <button data-act="dodge">Force incoming attack</button>
+  <button data-act="barrier">Toggle death barrier</button>
+  <button data-act="reset">Reset all</button>
+</div>
+<div id="phase"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const legendEvade = document.getElementById('evadeVal');
+  const legendWard = document.getElementById('wardVal');
+  const legendCamo = document.getElementById('camoVal');
+  const phaseEl = document.getElementById('phase');
+
+  let W = 0, H = 0;
+  function resize() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; }
+  window.addEventListener('resize', resize);
+  resize();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // ── Assets ──────────────────────────────────────────────────────────
+  // The angelic mask overlay was dropped - Uriel's "face" is now the
+  // procedural eye cluster below (biblical seraphim/ophanim: many eyes,
+  // many wings, not a single mask). Only the Holy Sword sprite remains
+  // an external asset; the barrier is drawn procedurally here until its
+  // real Ophanim/Metatron art is ready to swap in.
+  const swordImg = new Image();
+  swordImg.src = '../assets/images/game/enemies/uriel-holy-sword.png';
+  const coreImg = new Image();
+  coreImg.src = '../assets/images/game/enemies/uriel-divine-core.png';
+
+  // ── Palette ─────────────────────────────────────────────────────────
+  const GOLD = '#ffd76b', WHITE = '#fffaf0', BLUE = '#7aa8ff', SHADOW = '#2a1f10';
+
+  const stars = Array.from({ length: 140 }, () => ({
+    x: Math.random(), y: Math.random(), r: Math.random() * 1.3 + 0.3, tw: Math.random() * 6000,
+  }));
+
+  function drawBackground(now) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0a0918'); g.addColorStop(1, '#05040d');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    for (const s of stars) {
+      const tw = 0.35 + 0.65 * ((Math.sin((now + s.tw) / 1400) + 1) / 2);
+      ctx.globalAlpha = tw; ctx.fillStyle = '#dfe6ff';
+      ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(122,168,255,0.25)'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.moveTo(0, H * 0.5); ctx.lineTo(W, H * 0.5); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(122,168,255,0.55)'; ctx.font = '11px Consolas, monospace';
+    ctx.fillText('patrol zone: upper half only', 10, H * 0.5 - 8);
+    ctx.restore();
+  }
+
+  // ── Uriel state ─────────────────────────────────────────────────────
+  const uriel = {
+    x: 0, y: 0, wpX: 0, wpY: 0,
+    baseSpeed: 55, r: 46, visible: true,
+    camoPhase: 'idle', camoT: 0, camoReadyAt: 0, shieldEnd: 0,
+    swordPhase: 'idle', swordT: 0,
+    wardCount: 0, dodgeStacks: [], swordQueued: 0,
+    lastSelfIBAt: 0, lastScanAt: 0,
+    blinks: Array.from({ length: 7 }, () => 4000 + Math.random() * 4000),
+  };
+  function resetUriel() {
+    uriel.x = W * 0.5; uriel.y = H * 0.24; uriel.wpX = uriel.x; uriel.wpY = uriel.y;
+    uriel.visible = true; uriel.camoPhase = 'idle'; uriel.camoT = 0; uriel.camoReadyAt = 0;
+    uriel.swordPhase = 'idle'; uriel.swordT = 0; uriel.wardCount = 0; uriel.dodgeStacks = []; uriel.swordQueued = 0;
+    barrier.active = false; barrier.phase = 'hidden';
+  }
+  function pickWaypoint() {
+    uriel.wpX = uriel.r + Math.random() * (W - uriel.r * 2);
+    uriel.wpY = uriel.r + Math.random() * (H * 0.5 - uriel.r * 2 - 40) + 20;
+  }
+
+  const scanRings = [], selfPulses = [], holySwords = [], dodgeShots = [], motes = [], wardFlashes = [], chargeMotes = [], ironBodyBursts = [], swordImpacts = [];
+
+  const dummyPlayer = { x: 0, y: 0, t0: Math.random() * 1000 };
+  const dummySentinel = { x: 0, y: 0, t0: Math.random() * 1000 + 700 };
+  const posHistory = [];
+
+  const barrier = { active: false, phase: 'hidden', t: 0, x: 0, y: 0, w: 0 };
+
+  function currentEvade(now) {
+    const base = Math.min(0.40, 0.30 + 0.01 * 5);
+    let penalty = 0;
+    for (const st of uriel.dodgeStacks) if (now < st.until) penalty += 0.05;
+    return Math.max(0, base - penalty);
+  }
+  function currentSpeedMult(now) {
+    let bonus = 0;
+    for (const st of uriel.dodgeStacks) if (now < st.until) bonus += 0.05;
+    return 1 + bonus;
+  }
+
+  function triggerScan(now) { scanRings.push({ x: uriel.x, y: uriel.y, r: uriel.r, t: 0 }); uriel.lastScanAt = now; }
+  function triggerSelfIB(now) { selfPulses.push({ x: uriel.x, y: uriel.y, t: 0 }); uriel.lastSelfIBAt = now; }
+  function triggerWard(now) {
+    wardFlashes.push({ x: uriel.x + uriel.r * 1.4, y: uriel.y - uriel.r, t: 0 });
+    uriel.wardCount++;
+    if (uriel.wardCount >= 3 && uriel.swordPhase === 'idle') { uriel.wardCount = 0; startSword(); }
+    if (uriel.camoPhase === 'idle' && now >= uriel.camoReadyAt) startCamo();
+  }
+  // The Holy Sword can only fire while Uriel is actually visible. If a
+  // Judgment triggers while Camouflage is in any non-idle/shielded phase,
+  // it banks a queued stack instead of charging; queued shots release
+  // automatically (see the update() check below) the moment Uriel is
+  // visible and free again. If a charge is already underway when
+  // Camouflage triggers, that in-progress charge is cancelled and banked
+  // too, rather than firing invisibly.
+  function startSword() {
+    if (uriel.camoPhase !== 'idle' && uriel.camoPhase !== 'shielded') { uriel.swordQueued++; return; }
+    uriel.swordPhase = 'charging'; uriel.swordT = 0;
+  }
+  function startCamo() {
+    if (uriel.swordPhase === 'charging') { uriel.swordQueued++; uriel.swordPhase = 'idle'; uriel.swordT = 0; }
+    uriel.camoPhase = 'stealthing'; uriel.camoT = 0;
+  }
+  function triggerDodge() {
+    const a = Math.random() * Math.PI * 2;
+    dodgeShots.push({ x: uriel.x + Math.cos(a) * 260, y: uriel.y + Math.sin(a) * 260, t: 0, resolved: false });
+  }
+  function toggleBarrier() {
+    if (!barrier.active) {
+      barrier.active = true; barrier.phase = 'appearing'; barrier.t = 0;
+      barrier.x = W * 0.5; barrier.y = H * 0.7; barrier.w = uriel.r * 2 * 1.2;
+    } else if (barrier.phase !== 'retracting') {
+      barrier.phase = 'retracting'; barrier.t = 0;
+    }
+  }
+
+  document.getElementById('panel').addEventListener('click', (e) => {
+    const act = e.target.dataset.act;
+    if (!act) return;
+    const now = performance.now();
+    if (act === 'scan') triggerScan(now);
+    else if (act === 'selfib') triggerSelfIB(now);
+    else if (act === 'ward') triggerWard(now);
+    else if (act === 'sword') { if (uriel.swordPhase === 'idle') startSword(); }
+    else if (act === 'camo') { if (uriel.camoPhase === 'idle') startCamo(); }
+    else if (act === 'dodge') triggerDodge();
+    else if (act === 'barrier') toggleBarrier();
+    else if (act === 'reset') resetUriel();
+  });
+
+  function update(dt, now) {
+    dummyPlayer.x = W * 0.5 + Math.sin((now + dummyPlayer.t0) / 1300) * (W * 0.28);
+    dummyPlayer.y = H * 0.86 + Math.sin((now + dummyPlayer.t0) / 2100) * 18;
+    posHistory.push({ t: now, x: dummyPlayer.x, y: dummyPlayer.y });
+    while (posHistory.length && now - posHistory[0].t > 400) posHistory.shift();
+
+    dummySentinel.x = W * 0.68 + Math.sin((now + dummySentinel.t0) / 1900) * (W * 0.16);
+    dummySentinel.y = H * 0.6 + Math.sin((now + dummySentinel.t0) / 2600) * 40;
+
+    if (uriel.camoPhase === 'idle' || uriel.camoPhase === 'shielded') {
+      const dx = uriel.wpX - uriel.x, dy = uriel.wpY - uriel.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 6) pickWaypoint();
+      else {
+        const sp = uriel.baseSpeed * currentSpeedMult(now);
+        uriel.x += (dx / dist) * sp * dt; uriel.y += (dy / dist) * sp * dt;
+      }
+    }
+
+    if (Math.random() < 0.5 && uriel.visible) {
+      motes.push({ x: uriel.x + (Math.random() - 0.5) * uriel.r * 1.6, y: uriel.y + uriel.r * 0.6, vy: -18 - Math.random() * 14, life: 1 });
+    }
+    for (let i = motes.length - 1; i >= 0; i--) { const m = motes[i]; m.y += m.vy * dt; if (m.vx) m.x += m.vx * dt; m.life -= dt * 0.6; if (m.life <= 0) motes.splice(i, 1); }
+
+    for (let i = selfPulses.length - 1; i >= 0; i--) { selfPulses[i].t += dt; if (selfPulses[i].t > 0.5) selfPulses.splice(i, 1); }
+    for (let i = scanRings.length - 1; i >= 0; i--) { scanRings[i].t += dt; scanRings[i].r += dt * 260; if (scanRings[i].t > 1.1) scanRings.splice(i, 1); }
+    for (let i = wardFlashes.length - 1; i >= 0; i--) { wardFlashes[i].t += dt; if (wardFlashes[i].t > 0.7) wardFlashes.splice(i, 1); }
+
+    // Camouflage state machine.
+    uriel.camoT += dt;
+    if (uriel.camoPhase === 'stealthing') {
+      uriel.visible = uriel.camoT < 0.15;
+      if (uriel.camoT >= 0.3) { uriel.camoPhase = 'stealthed'; uriel.camoT = 0; uriel.visible = false; }
+    } else if (uriel.camoPhase === 'stealthed') {
+      if (uriel.camoT >= 1.5) { uriel.camoPhase = 'reappearing'; uriel.camoT = 0; }
+    } else if (uriel.camoPhase === 'reappearing') {
+      uriel.visible = true;
+      if (uriel.camoT >= 0.3) { uriel.camoPhase = 'shielded'; uriel.camoT = 0; uriel.shieldEnd = now + 2000; uriel.camoReadyAt = now + 3000; }
+    } else if (uriel.camoPhase === 'shielded') {
+      if (now >= uriel.shieldEnd) uriel.camoPhase = 'idle';
+    }
+
+    // Holy Sword: charging (0.5s, energy gathers in) -> firing (sharp
+    // release + sword launches) -> idle.
+    if (uriel.swordPhase === 'charging') {
+      uriel.swordT += dt;
+      if (Math.random() < 0.6) {
+        const a = Math.random() * Math.PI * 2;
+        const dist = uriel.r * (1.8 + Math.random() * 1.4);
+        chargeMotes.push({ x: uriel.x + Math.cos(a) * dist, y: uriel.y + Math.sin(a) * dist, tx: uriel.x, ty: uriel.y, t: 0, dur: 0.35 + Math.random() * 0.15 });
+      }
+      if (uriel.swordT >= 0.5) {
+        uriel.swordPhase = 'firing'; uriel.swordT = 0;
+        const lead = posHistory[0] || dummyPlayer;
+        const ang = Math.atan2(lead.y - uriel.y, lead.x - uriel.x);
+        holySwords.push({ x: uriel.x, y: uriel.y, ang, vx: Math.cos(ang) * 806, vy: Math.sin(ang) * 806, life: 1 });
+        uriel._releaseFlash = 1;
+      }
+    } else if (uriel.swordPhase === 'firing') {
+      uriel.swordT += dt;
+      if (uriel.swordT >= 0.25) uriel.swordPhase = 'idle';
+    }
+    for (let i = chargeMotes.length - 1; i >= 0; i--) {
+      const m = chargeMotes[i]; m.t += dt;
+      const p = Math.min(1, m.t / m.dur);
+      m.cx = m.x + (m.tx - m.x) * (p * p); m.cy = m.y + (m.ty - m.y) * (p * p);
+      if (p >= 1) chargeMotes.splice(i, 1);
+    }
+    if (uriel._releaseFlash > 0) uriel._releaseFlash -= dt * 3.2;
+    for (let i = holySwords.length - 1; i >= 0; i--) {
+      const s = holySwords[i]; s.x += s.vx * dt; s.y += s.vy * dt;
+
+      // Judgment on the player triggers the Judged debuff callout; a
+      // Sentinel in the sword's path takes a true-damage tick without
+      // stopping the blade, it keeps flying until it leaves the screen.
+      if (!s._hitPlayer && Math.hypot(s.x - dummyPlayer.x, s.y - dummyPlayer.y) < 46) {
+        s._hitPlayer = true;
+        swordImpacts.push({ x: dummyPlayer.x, y: dummyPlayer.y, t: 0, kind: 'player' });
+      }
+      if (!s._hitSentinel && Math.hypot(s.x - dummySentinel.x, s.y - dummySentinel.y) < 46) {
+        s._hitSentinel = true;
+        swordImpacts.push({ x: dummySentinel.x, y: dummySentinel.y, t: 0, kind: 'sentinel' });
+      }
+
+      if (s.x < -80 || s.x > W + 80 || s.y < -80 || s.y > H + 80) holySwords.splice(i, 1);
+    }
+    for (let i = swordImpacts.length - 1; i >= 0; i--) { swordImpacts[i].t += dt; if (swordImpacts[i].t > 0.7) swordImpacts.splice(i, 1); }
+
+    // Against Chaos dummy attacks.
+    for (let i = dodgeShots.length - 1; i >= 0; i--) {
+      const d = dodgeShots[i]; d.t += dt;
+      const p = Math.min(1, d.t / 0.55);
+      d.cx = d.x + (uriel.x - d.x) * p; d.cy = d.y + (uriel.y - d.y) * p;
+      if (p >= 1 && !d.resolved) {
+        d.resolved = true;
+        const dodged = Math.random() < currentEvade(now);
+        d.outcome = dodged ? 'DODGE' : 'IRON BODY';
+        if (dodged) uriel.dodgeStacks.push({ until: now + 1000 });
+        else ironBodyBursts.push({ x: uriel.x, y: uriel.y, t: 0 });
+        d.life = 1;
+      }
+      if (d.resolved) { d.life -= dt * 1.6; if (d.life <= 0) dodgeShots.splice(i, 1); }
+    }
+    for (let i = uriel.dodgeStacks.length - 1; i >= 0; i--) if (now >= uriel.dodgeStacks[i].until) uriel.dodgeStacks.splice(i, 1);
+    for (let i = ironBodyBursts.length - 1; i >= 0; i--) { ironBodyBursts[i].t += dt; if (ironBodyBursts[i].t > 0.5) ironBodyBursts.splice(i, 1); }
+
+    // Queued Judgment: fires the moment Uriel is visible and free again.
+    if (uriel.swordQueued > 0 && uriel.swordPhase === 'idle' && (uriel.camoPhase === 'idle' || uriel.camoPhase === 'shielded')) {
+      uriel.swordQueued--; startSword();
+    }
+
+    // Barrier lifecycle: appear -> hold -> retract & vanish.
+    if (barrier.active) {
+      barrier.t += dt;
+      if (barrier.phase === 'appearing' && barrier.t >= 0.35) { barrier.phase = 'hold'; barrier.t = 0; }
+      else if (barrier.phase === 'retracting' && barrier.t >= 0.45) { barrier.active = false; barrier.phase = 'hidden'; }
+    }
+
+    legendEvade.textContent = Math.round(currentEvade(now) * 100) + '% (base 35%, ' + uriel.dodgeStacks.length + ' stack' + (uriel.dodgeStacks.length === 1 ? '' : 's') + ')';
+    legendWard.textContent = uriel.wardCount + ' / 3';
+    legendCamo.textContent = uriel.camoPhase !== 'idle' ? uriel.camoPhase : (now >= uriel.camoReadyAt ? 'ready' : Math.ceil((uriel.camoReadyAt - now) / 1000) + 's');
+    phaseEl.textContent =
+      uriel.camoPhase === 'stealthed' ? 'CAMOUFLAGE: untargetable' + (uriel.swordQueued > 0 ? ' (Judgment queued x' + uriel.swordQueued + ')' : '') :
+      uriel.camoPhase === 'shielded' ? 'SHIELD + FLAT DR ACTIVE' :
+      uriel.swordPhase === 'charging' ? 'GATHERING JUDGMENT...' :
+      uriel.swordPhase === 'firing' ? 'HOLY SWORD LAUNCHED' :
+      barrier.phase === 'appearing' ? 'BARRIER FORMING' :
+      barrier.phase === 'retracting' ? 'BARRIER COLLAPSING' :
+      barrier.phase === 'hold' ? 'BARRIER ACTIVE' : '';
+  }
+
+  // ── Eyes: 3 eyes tracking the dummy player, 1 horizontal + 2 vertical,
+  // per the "many eyes, many wings" seraphim/ophanim description. Each
+  // has its own idle blink cycle so they never sync perfectly.
+  function drawEye(ex, ey, w, h, targetAng, idx, now) {
+    ctx.save();
+    ctx.translate(ex, ey);
+    const blinkPhase = (now % uriel.blinks[idx]) / uriel.blinks[idx];
+    const blink = blinkPhase > 0.96 ? Math.abs(Math.sin((blinkPhase - 0.96) / 0.04 * Math.PI)) : 1;
+    ctx.scale(1, Math.max(0.06, blink));
+
+    // Deep shadow under the eye for integration
+    ctx.fillStyle = 'rgba(10, 8, 5, 0.6)';
+    ctx.beginPath(); ctx.ellipse(0, h * 0.15, w * 1.1, h * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Outer lid / socket with metallic rim
+    const socketG = ctx.createLinearGradient(0, -h, 0, h);
+    socketG.addColorStop(0, '#ffe599'); socketG.addColorStop(0.5, '#b38230'); socketG.addColorStop(1, '#33220a');
+    ctx.fillStyle = socketG;
+    ctx.beginPath(); ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2); ctx.fill();
+    
+    // Inner dark recess
+    ctx.fillStyle = '#0f0a05';
+    ctx.beginPath(); ctx.ellipse(0, 0, w * 0.92, h * 0.92, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Lash / rim highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(0, -h * 0.1, w * 0.95, h * 0.95, 0, Math.PI, Math.PI * 2); ctx.stroke();
+
+    // Sclera glow with depth
+    const sclera = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h));
+    sclera.addColorStop(0, 'rgba(255,250,230,1)');
+    sclera.addColorStop(0.5, 'rgba(255,210,130,0.8)');
+    sclera.addColorStop(1, 'rgba(120,60,10,0.2)');
+    ctx.fillStyle = sclera;
+    ctx.beginPath(); ctx.ellipse(0, 0, w * 0.88, h * 0.88, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Iris/pupil
+    const maxOff = Math.min(w, h) * 0.35;
+    const ix = Math.cos(targetAng) * maxOff, iy = Math.sin(targetAng) * maxOff;
+    
+    ctx.save();
+    ctx.translate(ix, iy);
+    
+    // Outer iris dark rim
+    ctx.fillStyle = '#102040';
+    ctx.beginPath(); ctx.arc(0, 0, Math.min(w, h) * 0.45, 0, Math.PI * 2); ctx.fill();
+    
+    // Iris radial gradient
+    const irisR = Math.min(w, h) * 0.42;
+    const irisG = ctx.createRadialGradient(0, 0, irisR * 0.2, 0, 0, irisR);
+    irisG.addColorStop(0, '#aaddff'); irisG.addColorStop(0.6, '#4477ff'); irisG.addColorStop(1, '#002288');
+    ctx.fillStyle = irisG;
+    ctx.beginPath(); ctx.arc(0, 0, irisR, 0, Math.PI * 2); ctx.fill();
+
+    // Radial detail (striations)
+    ctx.strokeStyle = 'rgba(200, 240, 255, 0.4)';
+    ctx.lineWidth = 0.5;
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * irisR * 0.3, Math.sin(a) * irisR * 0.3);
+      ctx.lineTo(Math.cos(a) * irisR * 0.9, Math.sin(a) * irisR * 0.9);
+      ctx.stroke();
+    }
+
+    // Pupil
+    ctx.fillStyle = '#050a14';
+    ctx.beginPath(); ctx.arc(0, 0, irisR * 0.4, 0, Math.PI * 2); ctx.fill();
+    
+    // Inner pupil glow
+    const pupilG = ctx.createRadialGradient(0, 0, 0, 0, 0, irisR * 0.4);
+    pupilG.addColorStop(0, 'rgba(122,168,255,0.6)'); pupilG.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = pupilG;
+    ctx.beginPath(); ctx.arc(0, 0, irisR * 0.4, 0, Math.PI * 2); ctx.fill();
+
+    // Sharp specular highlights
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(-irisR * 0.3, -irisR * 0.3, irisR * 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.arc(irisR * 0.4, irisR * 0.3, irisR * 0.1, 0, Math.PI * 2); ctx.fill();
+
+    ctx.restore(); // end iris translation
+
+    // Volumetric glow spilling out of the eye
+    const spill = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h) * 1.5);
+    spill.addColorStop(0, 'rgba(255, 230, 150, 0.3)'); spill.addColorStop(1, 'rgba(255, 230, 150, 0)');
+    ctx.fillStyle = spill;
+    ctx.globalCompositeOperation = 'screen';
+    ctx.beginPath(); ctx.ellipse(0, 0, w * 1.3, h * 1.3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.restore();
+  }
+
+  function drawWing(side, i, sway, flare, r, now) {
+    const spread = (0.30 + i * 0.30 + flare * 0.22) * side;
+    ctx.save();
+    ctx.rotate(spread + sway);
+    const len = r * (1.5 + i * 0.35 + flare * 0.4);
+    const baseX = r * 0.45 * side;
+    
+    // Base structural glow
+    ctx.beginPath();
+    ctx.moveTo(baseX, -r * 0.08);
+    ctx.quadraticCurveTo(len * 0.55 * side, len * -0.34, len * side, len * -0.06);
+    ctx.quadraticCurveTo(len * 0.5 * side, len * 0.1, baseX * 0.7, r * 0.12);
+    const baseG = ctx.createLinearGradient(baseX, 0, len * side, 0);
+    baseG.addColorStop(0, 'rgba(255,225,160,0.2)');
+    baseG.addColorStop(1, 'rgba(255,255,255,0.7)');
+    ctx.fillStyle = baseG;
+    ctx.shadowColor = GOLD; ctx.shadowBlur = 12 + flare * 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Overlapping layered feathers
+    const numFeathers = 9 + i * 2;
+    for (let f = 0; f < numFeathers; f++) {
+      const t = f / (numFeathers - 1);
+      // distribute along the bottom curve
+      const fx = baseX * 0.7 * (1 - t) * (1 - t) + 2 * (len * 0.5 * side) * (1 - t) * t + (len * side) * t * t;
+      const fy = (r * 0.12) * (1 - t) * (1 - t) + 2 * (len * 0.1) * (1 - t) * t + (len * -0.06) * t * t;
+      
+      const featherLen = r * (0.4 + (1 - t) * 0.5 + flare * 0.2); // larger near base
+      const featherAng = (side > 0 ? 0.2 : -0.2) + t * (side > 0 ? -0.4 : 0.4);
+      
+      ctx.save();
+      ctx.translate(fx, fy);
+      ctx.rotate(featherAng);
+      
+      ctx.beginPath();
+      // start at connection point, curve down/out
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(featherLen * 0.3 * side, featherLen * 0.5, featherLen * 0.1 * side, featherLen);
+      ctx.quadraticCurveTo(featherLen * -0.1 * side, featherLen * 0.5, 0, 0);
+      
+      const fGrad = ctx.createLinearGradient(0, 0, featherLen * 0.1 * side, featherLen);
+      fGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+      fGrad.addColorStop(0.3, 'rgba(255,215,130,0.85)');
+      fGrad.addColorStop(1, 'rgba(200,120,30,0)');
+      ctx.fillStyle = fGrad;
+      ctx.fill();
+      
+      // Rim light
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      
+      // Central barb
+      ctx.strokeStyle = 'rgba(255, 230, 180, 0.4)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(featherLen * 0.05 * side, featherLen * 0.9);
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+    
+    ctx.restore();
+  }
+
+  function drawUriel(now) {
+    if (!uriel.visible) return;
+    const breathe = 0.94 + 0.06 * Math.sin(now / 900);
+    const shieldActive = uriel.camoPhase === 'shielded';
+    const flare = (uriel.swordPhase !== 'idle') ? 1 : 0;
+
+    ctx.save();
+    ctx.translate(uriel.x, uriel.y);
+
+    // Deep background aura
+    const auraG = ctx.createRadialGradient(0, 0, uriel.r * 0.5, 0, 0, uriel.r * 2.8);
+    auraG.addColorStop(0, `rgba(255,240,200,${0.35 * breathe})`);
+    auraG.addColorStop(0.4, `rgba(255,190,100,${0.15 * breathe})`);
+    auraG.addColorStop(1, 'rgba(255,215,150,0)');
+    ctx.fillStyle = auraG;
+    ctx.beginPath(); ctx.arc(0, 0, uriel.r * 2.8, 0, Math.PI * 2); ctx.fill();
+
+    // Six wings total (3 per side), seraphim-style, idle sway + flare.
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const sway = Math.sin(now / 700 + i * 0.9 + (side > 0 ? 3 : 0)) * 0.1;
+        ctx.save();
+        drawWing(side, i, sway, flare, uriel.r, now);
+        ctx.restore();
+      }
+    }
+
+    // Halo Rings - Ornate, segmented, metallic
+    for (let ring = 0; ring < 2; ring++) {
+      const rr = uriel.r * (1.35 + ring * 0.28);
+      const spin = (now / (2600 + ring * 900)) * (ring === 0 ? 1 : -1);
+      ctx.save();
+      ctx.rotate(spin);
+      
+      const isGold = ring === 0;
+      const baseColor = isGold ? '255,215,130' : '122,168,255';
+      const highlight = isGold ? '255,250,230' : '200,230,255';
+      
+      ctx.shadowColor = isGold ? GOLD : BLUE; 
+      ctx.shadowBlur = 12;
+
+      // Outer thick engraved ring
+      ctx.strokeStyle = `rgba(${baseColor},${0.6 * breathe})`;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
+      
+      // Inner glowing track
+      ctx.strokeStyle = `rgba(${highlight},${0.9 * breathe})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, 0, rr - 2, 0, Math.PI * 2); ctx.stroke();
+
+      // Engraved segments / Runes
+      const segments = ring === 0 ? 12 : 8;
+      ctx.lineWidth = 2.5;
+      for(let s = 0; s < segments; s++) {
+        const ang = (s / segments) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(ang);
+        
+        // Segment dash
+        ctx.strokeStyle = `rgba(${highlight}, 0.95)`;
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, -0.08, 0.08);
+        ctx.stroke();
+        
+        // Perpendicular notch
+        ctx.strokeStyle = `rgba(${baseColor}, 0.8)`;
+        ctx.beginPath();
+        ctx.moveTo(rr - 6, 0);
+        ctx.lineTo(rr + 6, 0);
+        ctx.stroke();
+        
+        ctx.restore();
+      }
+      
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    // Core: a divine relic shard, not a sphere - a cracked golden
+    // reliquary art asset. It stays put (no continuous spin), only
+    // drifting through a slight idle sway, and breathes with the rest
+    // of Uriel instead of being clipped into a circular mask.
+    if (coreImg.complete && coreImg.naturalWidth) {
+      const coreSize = uriel.r * 2.4;
+      const sway = Math.sin(now / 2600) * 0.035;
+
+      ctx.save();
+      ctx.globalAlpha = breathe;
+      ctx.rotate(sway);
+
+      // Contact shadow: a dark pool cast behind/below the relic so it
+      // reads as a solid object with real depth, not a flat cutout.
+      ctx.shadowColor = 'rgba(5,3,0,0.6)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 10;
+      ctx.drawImage(coreImg, -coreSize / 2, -coreSize / 2, coreSize, coreSize);
+      ctx.shadowOffsetY = 0;
+
+      // Warm magical halo glow layered over the same silhouette.
+      ctx.shadowColor = GOLD; ctx.shadowBlur = 26;
+      ctx.drawImage(coreImg, -coreSize / 2, -coreSize / 2, coreSize, coreSize);
+      ctx.shadowBlur = 0;
+
+      // Inner light bleeding through the crack at the relic's heart,
+      // pulsing on its own rhythm so it reads as living energy.
+      const bleedPulse = 0.5 + 0.5 * Math.sin(now / 500);
+      ctx.globalCompositeOperation = 'screen';
+      const bleedG = ctx.createRadialGradient(0, 0, 0, 0, 0, coreSize * 0.22);
+      bleedG.addColorStop(0, `rgba(255,250,225,${0.55 * bleedPulse})`);
+      bleedG.addColorStop(1, 'rgba(255,180,80,0)');
+      ctx.fillStyle = bleedG;
+      ctx.beginPath(); ctx.arc(0, 0, coreSize * 0.22, 0, Math.PI * 2); ctx.fill();
+
+      // A slow specular glint sweeping across the facets, selling real
+      // material shine instead of a static painted texture.
+      const glintAng = (now / 3200) % (Math.PI * 2);
+      ctx.save();
+      ctx.rotate(glintAng);
+      const glintG = ctx.createLinearGradient(-coreSize * 0.5, 0, coreSize * 0.5, 0);
+      glintG.addColorStop(0, 'rgba(255,255,255,0)');
+      glintG.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+      glintG.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = glintG;
+      ctx.fillRect(-coreSize * 0.5, -coreSize * 0.06, coreSize, coreSize * 0.12);
+      ctx.restore();
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    // Charge-up: energy motes drawn while charging pull inward here so
+    // they visually converge on the core (see chargeMotes update loop).
+    if (uriel.swordPhase === 'charging') {
+      const p = Math.min(1, uriel.swordT / 0.5);
+      ctx.globalAlpha = 0.5 + 0.5 * p;
+      ctx.fillStyle = WHITE;
+      ctx.shadowColor = WHITE; ctx.shadowBlur = 20 + p * 20;
+      ctx.beginPath(); ctx.arc(0, 0, uriel.r * (0.3 + p * 0.5), 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+    }
+    if (uriel._releaseFlash > 0) {
+      ctx.globalAlpha = Math.max(0, uriel._releaseFlash);
+      const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, uriel.r * 3);
+      fg.addColorStop(0, 'rgba(255,255,255,0.95)');
+      fg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.arc(0, 0, uriel.r * 3, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // A row of 7 tracking eyes across the center (biblically-accurate-
+    // angel composition: many eyes in a band, framed by the wings above
+    // rather than a single face), the center one largest, tapering
+    // toward both ends. All aim toward the dummy player. Drawn outermost
+    // first so every eye layers behind the center one, never in front of it.
+    const targetAng = Math.atan2(dummyPlayer.y - uriel.y, dummyPlayer.x - uriel.x);
+    const eyeN = 7;
+    const eyeMid = (eyeN - 1) / 2;
+    const eyeOrder = Array.from({ length: eyeN }, (_, i) => i)
+      .sort((a, b) => Math.abs(b - eyeMid) - Math.abs(a - eyeMid));
+    for (const i of eyeOrder) {
+      const t = (i - eyeMid) / eyeMid; // -1..1
+      const taper = 1 - Math.abs(t) * 0.55;
+      const ex = t * uriel.r * 0.95;
+      const ey = Math.abs(t) * uriel.r * 0.16; // slight downward curve at the ends
+      drawEye(ex, ey, uriel.r * 0.35 * taper, uriel.r * 0.22 * taper, targetAng, i, now); // slightly larger eyes
+    }
+
+    if (shieldActive) {
+      // Dedicated faceted shield dome instead of a bare ring: a soft
+      // fill, angular facet panels, and bright corner glints, matching
+      // the weight of a real "you have a shield up" tell.
+      const sp = 1 - (uriel.shieldEnd - now) / 2000;
+      const sr = uriel.r * 1.62;
+      ctx.save();
+      ctx.globalAlpha = 0.85 * (1 - sp * 0.3);
+      const domeG = ctx.createRadialGradient(0, 0, sr * 0.4, 0, 0, sr);
+      domeG.addColorStop(0, 'rgba(122,168,255,0.05)');
+      domeG.addColorStop(0.8, 'rgba(122,168,255,0.22)');
+      domeG.addColorStop(1, 'rgba(190,215,255,0.55)');
+      ctx.fillStyle = domeG;
+      ctx.beginPath(); ctx.arc(0, 0, sr, 0, Math.PI * 2); ctx.fill();
+
+      const facetN = 10;
+      ctx.rotate(now / 4000);
+      for (let f = 0; f < facetN; f++) {
+        const a0 = (f / facetN) * Math.PI * 2, a1 = ((f + 0.82) / facetN) * Math.PI * 2;
+        ctx.save();
+        ctx.strokeStyle = `rgba(210,230,255,${0.5 + 0.25 * Math.sin(now / 300 + f)})`;
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = BLUE; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(0, 0, sr, a0, a1); ctx.stroke();
+        
+        // Hexagonal / facet joint glints
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.beginPath(); ctx.arc(Math.cos(a0)*sr, Math.sin(a0)*sr, 2, 0, Math.PI*2); ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+      ctx.strokeStyle = 'rgba(230,240,255,0.9)'; ctx.lineWidth = 2;
+      ctx.shadowColor = WHITE; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, 0, sr, 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+
+  function drawChargeMotes() {
+    for (const m of chargeMotes) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, m.t / m.dur * 2);
+      ctx.fillStyle = WHITE;
+      ctx.shadowColor = GOLD; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(m.cx, m.cy, 2.4, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+  function drawScanRings() {
+    for (const r of scanRings) {
+      ctx.save(); ctx.globalAlpha = (1 - r.t / 1.1) * 0.5; ctx.strokeStyle = GOLD; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+  }
+  function drawSelfPulses() {
+    for (const p of selfPulses) {
+      ctx.save(); ctx.globalAlpha = (1 - p.t / 0.5) * 0.8; ctx.strokeStyle = WHITE; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, uriel.r * (1 + p.t * 0.4), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+  }
+  function drawWardFlashes() {
+    ctx.save(); ctx.font = 'bold 11px Consolas, monospace';
+    for (const w of wardFlashes) { ctx.globalAlpha = 1 - w.t / 0.7; ctx.fillStyle = '#ffb0b0'; ctx.fillText('ward broken', w.x, w.y - w.t * 20); }
+    ctx.restore();
+  }
+  function drawHolySwords(now) {
+    for (const s of holySwords) {
+      if (!s.trail) s.trail = [];
+      s.trail.push({x: s.x, y: s.y, time: now});
+      while(s.trail.length > 0 && now - s.trail[0].time > 300) s.trail.shift();
+
+      if (s.trail.length > 1) {
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        const trailLen = s.trail.length;
+        for (let i = 1; i < trailLen; i++) {
+            const pt1 = s.trail[i-1];
+            const pt2 = s.trail[i];
+            const alpha = (i / trailLen) * s.life;
+            ctx.beginPath();
+            ctx.moveTo(pt1.x, pt1.y);
+            ctx.lineTo(pt2.x, pt2.y);
+            ctx.strokeStyle = `rgba(255, 230, 150, ${alpha * 0.8})`;
+            ctx.lineWidth = 8 * (i / trailLen);
+            ctx.shadowColor = GOLD;
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(pt1.x, pt1.y);
+            ctx.lineTo(pt2.x, pt2.y);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.lineWidth = 3 * (i / trailLen);
+            ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (Math.random() < 0.4) {
+         motes.push({ x: s.x + (Math.random()-0.5)*30, y: s.y + (Math.random()-0.5)*30, vy: (Math.random()-0.5)*30, vx: (Math.random()-0.5)*30, life: 1, glow: true });
+      }
+
+      ctx.save(); 
+      ctx.globalAlpha = s.life; 
+      ctx.translate(s.x, s.y); 
+      const wobble = Math.sin(now / 50 + s.x) * 0.08;
+      ctx.rotate(s.ang + Math.PI / 2 + wobble);
+      
+      const pulse = 1 + 0.2 * Math.sin(now / 80);
+      
+      if (swordImg.complete && swordImg.naturalWidth) {
+        const sw = 108, sh = 108 * (swordImg.naturalHeight / swordImg.naturalWidth);
+        
+        ctx.globalCompositeOperation = 'screen';
+        ctx.shadowColor = WHITE; ctx.shadowBlur = 25 * pulse;
+        ctx.drawImage(swordImg, -sw / 2, -sh / 2, sw, sh);
+        ctx.shadowColor = GOLD; ctx.shadowBlur = 40 * pulse;
+        ctx.drawImage(swordImg, -sw / 2, -sh / 2, sw, sh);
+        ctx.globalCompositeOperation = 'source-over';
+        
+        ctx.shadowColor = WHITE; ctx.shadowBlur = 15;
+        ctx.drawImage(swordImg, -sw / 2, -sh / 2, sw, sh);
+        ctx.shadowBlur = 0;
+      }
+      ctx.restore();
+    }
+  }
+  // Holy Sword impact: a warm shockwave on the player, a cooler
+  // true-damage burst on a Sentinel (the blade doesn't stop for either,
+  // it keeps flying to its lifetime end).
+  function drawSwordImpacts() {
+    for (const hit of swordImpacts) {
+      const p = hit.t / 0.7;
+      const isPlayer = hit.kind === 'player';
+      const col = isPlayer ? '255,235,180' : '150,210,255';
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      ctx.translate(hit.x, hit.y);
+
+      const flashR = 10 + p * 46;
+      const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, flashR);
+      fg.addColorStop(0, `rgba(${col},0.9)`);
+      fg.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.arc(0, 0, flashR, 0, Math.PI * 2); ctx.fill();
+
+      ctx.strokeStyle = `rgba(${col},${1 - p})`;
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = isPlayer ? GOLD : BLUE; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(0, 0, 8 + p * 34, 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+  function drawDodgeShots() {
+    for (const d of dodgeShots) {
+      ctx.save();
+      if (!d.resolved) {
+        ctx.globalAlpha = 0.9; ctx.fillStyle = '#ff6a6a'; ctx.shadowColor = '#ff3a3a'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(d.cx, d.cy, 5, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.globalAlpha = Math.max(0, d.life); ctx.font = 'bold 12px Consolas, monospace';
+        ctx.fillStyle = d.outcome === 'DODGE' ? '#a8ffcf' : '#ffe9a8';
+        ctx.fillText(d.outcome, d.cx + 10, d.cy - 10 - (1 - d.life) * 16);
+      }
+      ctx.restore();
+    }
+  }
+  function drawMotes() {
+    for (const m of motes) {
+      ctx.save(); 
+      ctx.globalAlpha = Math.max(0, m.life); 
+      if (m.glow) {
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = GOLD;
+        ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(m.x, m.y, 2.0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = GOLD;
+        ctx.shadowColor = GOLD;
+        ctx.shadowBlur = 4;
+        ctx.beginPath(); ctx.arc(m.x, m.y, 1.8, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // Iron Body absorb: a proper geometric ward-break tell (a hexagonal
+  // facet ring flashing outward with crack fragments) instead of a bare
+  // text label - reads as "a real layer of protection just ate that hit".
+  function drawIronBodyBursts() {
+    for (const b of ironBodyBursts) {
+      const p = b.t / 0.5;
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.globalAlpha = Math.max(0, 1 - p);
+      const flashR = uriel.r * (0.6 + p * 1.3);
+      const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, flashR);
+      fg.addColorStop(0, 'rgba(255,255,255,0.9)');
+      fg.addColorStop(0.5, 'rgba(255,225,150,0.4)');
+      fg.addColorStop(1, 'rgba(255,225,150,0)');
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.arc(0, 0, flashR, 0, Math.PI * 2); ctx.fill();
+
+      ctx.strokeStyle = `rgba(255,236,190,${1 - p})`;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = GOLD; ctx.shadowBlur = 10;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const r0 = uriel.r * (0.9 + p * 0.5), r1 = uriel.r * (1.3 + p * 1.1);
+        ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+        ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+
+  // Barrier: procedural placeholder using the same segmented-plate idea
+  // discussed for the real Ophanim/Metatron art, so the appear/hold/
+  // retract lifecycle can be judged now and the real texture dropped in
+  // later without touching this animation logic.
+  function drawBarrier(now) {
+    if (!barrier.active) return;
+    let scaleY = 1, alpha = 1;
+    if (barrier.phase === 'appearing') { const p = barrier.t / 0.35; scaleY = p; alpha = p; }
+    else if (barrier.phase === 'retracting') { const p = 1 - barrier.t / 0.45; scaleY = Math.max(0, p); alpha = Math.max(0, p); }
+
+    ctx.save();
+    ctx.translate(barrier.x, barrier.y);
+    ctx.scale(1, scaleY);
+    ctx.globalAlpha = alpha;
+
+    const w = barrier.w * 1.4;
+    const hgt = uriel.r * 1.8;
+
+    // Background veil of light
+    const bgGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.8);
+    bgGlow.addColorStop(0, 'rgba(255, 250, 230, 0.4)'); 
+    bgGlow.addColorStop(0.4, 'rgba(122, 168, 255, 0.25)'); 
+    bgGlow.addColorStop(1, 'rgba(122, 168, 255, 0)');
+    ctx.fillStyle = bgGlow;
+    ctx.beginPath(); ctx.ellipse(0, 0, w * 0.8, hgt * 0.9, 0, 0, Math.PI * 2); ctx.fill();
+
+    ctx.globalCompositeOperation = 'screen';
+    
+    // Stained Glass / Light Panels
+    const panelCount = 5;
+    const panelW = w / panelCount;
+    for (let i = 0; i < panelCount; i++) {
+      const px = -w / 2 + i * panelW + panelW / 2;
+      const shimmer = Math.sin(now / 300 + i * 1.5);
+      
+      const pg = ctx.createLinearGradient(0, -hgt / 2, 0, hgt / 2);
+      pg.addColorStop(0, `rgba(122, 168, 255, ${0.1 + shimmer * 0.05})`);
+      pg.addColorStop(0.5, `rgba(255, 230, 150, ${0.4 + shimmer * 0.1})`);
+      pg.addColorStop(1, `rgba(122, 168, 255, ${0.1 + shimmer * 0.05})`);
+      
+      ctx.fillStyle = pg;
+      ctx.shadowColor = GOLD; ctx.shadowBlur = 10;
+      
+      // Gothic arch for each panel
+      ctx.beginPath();
+      ctx.moveTo(px - panelW*0.45, hgt/2 * 0.8);
+      ctx.lineTo(px - panelW*0.45, -hgt/2 * 0.2);
+      // Gothic pointed arch top
+      ctx.quadraticCurveTo(px - panelW*0.45, -hgt/2 * 0.8, px, -hgt/2 * 1.1);
+      ctx.quadraticCurveTo(px + panelW*0.45, -hgt/2 * 0.8, px + panelW*0.45, -hgt/2 * 0.2);
+      ctx.lineTo(px + panelW*0.45, hgt/2 * 0.8);
+      // Base point
+      ctx.lineTo(px, hgt/2 * 1.0);
+      ctx.closePath();
+      
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Fine interior filigree
+      ctx.strokeStyle = `rgba(255, 240, 200, ${0.6 + shimmer * 0.3})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    
+    // Abstract Floating Runes
+    ctx.save();
+    // Clip runes to the general barrier bounds
+    ctx.beginPath();
+    ctx.moveTo(-w/2, -hgt/2 * 0.5);
+    ctx.quadraticCurveTo(0, -hgt * 0.9, w/2, -hgt/2 * 0.5);
+    ctx.lineTo(w/2, hgt/2 * 0.5);
+    ctx.quadraticCurveTo(0, hgt * 0.9, -w/2, hgt/2 * 0.5);
+    ctx.closePath();
+    ctx.clip();
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = WHITE; ctx.shadowBlur = 8;
+    for (let r = 0; r < 7; r++) {
+       const rx = -w/2 + (w/7) * r + (w/14);
+       // Float upwards
+       const ry = hgt/2 - ((now / 15 + r * 45) % (hgt * 1.5));
+       
+       ctx.beginPath();
+       // Simple geometric runes
+       ctx.moveTo(rx - 4, ry - 4);
+       ctx.lineTo(rx + 4, ry - 4);
+       ctx.moveTo(rx, ry - 4);
+       ctx.lineTo(rx, ry + 6);
+       if (r % 2 === 0) {
+         ctx.lineTo(rx + 4, ry + 10);
+       } else {
+         ctx.moveTo(rx - 3, ry);
+         ctx.lineTo(rx + 3, ry + 4);
+       }
+       ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.globalCompositeOperation = 'source-over';
+    
+    // Ornate Gold Outer Frame
+    ctx.shadowColor = GOLD; ctx.shadowBlur = 12;
+    ctx.strokeStyle = 'rgba(255, 215, 107, 0.95)';
+    ctx.lineWidth = 2.5;
+    
+    ctx.beginPath();
+    ctx.moveTo(-w/2, hgt/2 * 0.6);
+    ctx.lineTo(-w/2, -hgt/2 * 0.6);
+    // Arch to center top peak
+    ctx.quadraticCurveTo(-w/4, -hgt/2 * 0.8, 0, -hgt/2 * 1.3);
+    ctx.quadraticCurveTo(w/4, -hgt/2 * 0.8, w/2, -hgt/2 * 0.6);
+    ctx.lineTo(w/2, hgt/2 * 0.6);
+    // Arch to center bottom peak
+    ctx.quadraticCurveTo(w/4, hgt/2 * 0.8, 0, hgt/2 * 1.3);
+    ctx.quadraticCurveTo(-w/4, hgt/2 * 0.8, -w/2, hgt/2 * 0.6);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Inner accent line
+    ctx.strokeStyle = 'rgba(255, 250, 230, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-w/2 + 6, -hgt/2 * 0.5);
+    ctx.quadraticCurveTo(0, -hgt/2 * 1.1, w/2 - 6, -hgt/2 * 0.5);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-w/2 + 6, hgt/2 * 0.5);
+    ctx.quadraticCurveTo(0, hgt/2 * 1.1, w/2 - 6, hgt/2 * 0.5);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // Blessing Sweep (Light Ray)
+    const scanT = (Math.sin(now / 1400) + 1) / 2;
+    const scanX = -w / 2 + (w) * scanT;
+    
+    const rayG = ctx.createLinearGradient(scanX - 25, 0, scanX + 25, 0);
+    rayG.addColorStop(0, 'rgba(255,255,255,0)'); 
+    rayG.addColorStop(0.5, 'rgba(255,245,200,0.8)'); 
+    rayG.addColorStop(1, 'rgba(255,255,255,0)');
+    
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = rayG;
+    ctx.beginPath();
+    ctx.moveTo(scanX - 8, -hgt/2 * 1.3);
+    ctx.lineTo(scanX + 8, -hgt/2 * 1.3);
+    ctx.lineTo(scanX + 35, hgt/2 * 1.3);
+    ctx.lineTo(scanX - 35, hgt/2 * 1.3);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // Dispersal sparkle right as it fully vanishes.
+    if (barrier.phase === 'retracting' && scaleY <= 0.02 && !barrier._dispersed) {
+      barrier._dispersed = true;
+      for (let i = 0; i < 20; i++) motes.push({ x: barrier.x + (Math.random() - 0.5) * w, y: barrier.y, vy: -20 - Math.random() * 30, life: 1 });
+    }
+    if (barrier.phase !== 'retracting') barrier._dispersed = false;
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    update(dt, now);
+    drawBackground(now);
+    drawScanRings();
+    drawUriel(now);
+    drawChargeMotes();
+    drawSelfPulses();
+    drawMotes();
+    drawWardFlashes();
+    drawHolySwords(now);
+    drawSwordImpacts();
+    drawDodgeShots();
+    drawIronBodyBursts();
+    drawBarrier(now);
+
+    ctx.save();
+    ctx.fillStyle = '#5be0ff'; ctx.shadowColor = '#5be0ff'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(dummyPlayer.x, dummyPlayer.y, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.font = '10px Consolas, monospace'; ctx.fillStyle = 'rgba(150,220,255,0.7)';
+    ctx.fillText('player (demo)', dummyPlayer.x + 10, dummyPlayer.y + 4);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = '#8effc0'; ctx.shadowColor = '#8effc0'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(dummySentinel.x, dummySentinel.y - 7);
+    ctx.lineTo(dummySentinel.x + 7, dummySentinel.y);
+    ctx.lineTo(dummySentinel.x, dummySentinel.y + 7);
+    ctx.lineTo(dummySentinel.x - 7, dummySentinel.y);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.font = '10px Consolas, monospace'; ctx.fillStyle = 'rgba(160,255,210,0.7)';
+    ctx.fillText('sentinel (demo)', dummySentinel.x + 10, dummySentinel.y + 4);
+    ctx.restore();
+
+    requestAnimationFrame(frame);
+  }
+  dummyPlayer.x = W * 0.5; dummyPlayer.y = H * 0.86;
+  resetUriel(); pickWaypoint();
+  requestAnimationFrame(frame);
+})();
+</script>

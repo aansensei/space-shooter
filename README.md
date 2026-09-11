@@ -92,7 +92,7 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 Activates automatically when **any of the following** is true:
 
 - More than 4 enemies are on screen
-- Any **Abnormal or higher** enemy is present (Veilshroud, Thaelis, Aegis Core, Marchosias, Egregor, Dargruel, Leviathan, or Goliath)
+- Any **Abnormal or higher** enemy is present (Veilshroud, Uriel, Thaelis, Aegis Core, Marchosias, Egregor, Dargruel, Leviathan, or Goliath)
 - Skill G is active
 - **Phōtokrystos** (Đại Tinh Linh Khởi Nguyên) is active
 
@@ -406,11 +406,12 @@ HP: **1,320–3,300**. Innate **40% Damage Reduction**.
 
 A shifting entity that phases in and out of reality to avoid damage and punish careless positioning.
 
-**Passive — Void Echo** — On death, leaves an **untargetable, immortal ghost** at the death position. When Veilshroud enters this ghost form, the wave system counts it as dead — the wave can progress without waiting for the ghost to detonate.
+**Passive — Void Echo (Phantom Portal)** — On death, leaves an **untargetable, immortal Phantom Portal** at the death position. When Veilshroud enters this form, the wave system counts it as dead, so the wave can progress without waiting for the portal to collapse.
 
-- Fires double-rate bullets for **3 seconds** (200ms interval).
-- Charges up visually from seconds 3–5.
-- At **5 seconds**, detonates with a **1000px radius explosion** that pulses **7% of target Max HP** as damage every 0.5 seconds for **2 seconds** (4 ticks total). Affects all Sentinels in range each tick; Player in range takes a hit per tick (protection layers apply). The ghost is fully immune to all damage and CC.
+- **Seconds 0–3:** the portal births **real Apostles**, 2 every **600ms** (~10 total). Each is telegraphed by a dark patch at its spawn spot for 450ms before it forms. Apostle HP = `max(60, ceil(0.30 × total damage this Veilshroud took while in Phantom over its lifetime))`. Portal Apostles move **20% slower** than a normal wave Apostle.
+- **Second 5:** the portal **collapses**. White core flash, screen shake, and every ally-side projectile (bullets and Arc Blades) within **345px** is erased. A Player inside 345px at the instant of collapse loses **1 life** (the normal save stack still applies: Dream Realm, Great Sage, Yog-Sothoth, Skill A's orb, Final Defense).
+- The collapse leaves a **2-second** damage zone (345px, ticks every 500ms, 4 ticks): **Sentinels take 6% Max HP per tick**; the Player takes no life loss from the zone, only from the collapse itself.
+- The portal is fully immune to all damage and CC for its whole lifetime.
 
 **Normal Attack** — Fires **2 bullets** every **500ms** at the nearest target. Disabled while in Phantom or during a Void Strike countdown.
 
@@ -422,6 +423,26 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 - **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+35%**. Neither bonus applies while in Phantom. Receiving healing in normal state also grants **+20% DR for 3 seconds**.
 
 **Passive: Energy Accumulation** — While in **Phantom** state, Veilshroud records all damage it absorbs. On Phantom exit, the accumulated absorption is converted into a shield: **min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)**. The base 200 guarantees a minimum shield of **230** even if no damage was absorbed. Resets each time Phantom is entered.
+
+---
+
+### Uriel (Abnormal)
+
+**Cap:** 1 on screen | **Spawn cooldown:** 5s between spawns | **Never spawns on a Goliath wave** (wave number divisible by 5)
+
+HP: **1,725–4,140**. Innate **40% Damage Reduction**, and every hit is separately hard-capped at **30% of Max HP** regardless of DR.
+
+A herald-boss that never attacks the player directly. It patrols the **upper half of the arena only** and never descends past mid-screen, shields the whole horde, and answers every broken ward with a Holy Sword.
+
+**Passive: Covenant King** — Refreshes its own **1-hit Iron Body** every 2 seconds. Every 1 second, scans and grants **every other living enemy** on screen **infinite CC Immunity** plus a **Uriel Iron Body layer** (re-granted every 5 seconds per enemy once consumed). Consuming one of these layers fully negates that hit and feeds a shared counter: **every consumption** tries to trigger Camouflage; **every 3rd consumption** tries to fire a Holy Sword. Uriel itself is immune to every DOT source and every debuff (Vulnerability, Soul Reaver, slows, root, silence).
+
+**Passive: Against Chaos** — Starts at **99% evade**. Every hit that actually lands permanently knocks it down **3%**, floored at **40%** (never recovers). Each successful dodge also stacks a 1-second **+5% move speed** bonus, capped **+40% total**.
+
+**Passive: Protection** — On death, leaves a **stationary barrier** at the death spot for **3 seconds**, **1.2×** its own body diameter wide. Blocks and cannot be pierced by normal bullets (deleted on contact), piercing projectiles (stopped), Skill F's sweep, Skill D's core (which simply waits at the barrier instead of passing through, never consumed), and the Overload Laser. It is never a valid target for any ally. Vanishes after 3 seconds, at which point the rest of the horde also loses Covenant King's CC Immunity and any unspent Uriel Iron Body layer.
+
+**Skill: Judgment (Holy Sword)** — Can only actually fire while Uriel is visible; a trigger during Camouflage is banked and auto-released the instant it's free again. **0.5-second charge-up** (energy converges into the core, wings flare), then launches straight toward the player's position **from 100ms ago** (not the live position) at roughly **806px/s**, piercing along its line. On hitting the player: normal life loss through the usual save stack, plus **Judged** (3 seconds: any further hit costs 1 extra life, net −2). On hitting a Sentinel: **30% Max HP true damage**, and the sword keeps flying afterward.
+
+**Skill: Camouflage** — Triggers every time a Uriel Iron Body layer is consumed anywhere, on a **3-second cooldown** measured from the moment the previous stealth ends. **1.5 seconds** fully invisible, untargetable, absolute Iron Body. On reappearing: a **20% Max HP shield** plus **200 flat DR for 2 seconds**.
 
 ---
 

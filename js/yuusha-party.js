@@ -1156,7 +1156,7 @@ function _updateYuushaPartyInner(deltaTime) {
                         }
                         // Role Match: an empowered zone refreshes Soul Reaver
                         // (3.5s) on anything it ticks.
-                        if (z._roleMatch && (!e.type || !e.type.startsWith('enemy_bullet'))) {
+                        if (z._roleMatch && e.type !== 'uriel' && (!e.type || !e.type.startsWith('enemy_bullet'))) {
                             e.soulReaver = true;
                             e.soulReaverEnd = performance.now() + 3500;
                         }

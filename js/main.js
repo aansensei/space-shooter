@@ -49,6 +49,13 @@ function loseLife(cause) {
     }
 
     lives--;
+    // Uriel's Judged debuff: any life lost while it's active costs 1 extra
+    // life on top of the one just taken (net -2), a hard punish for
+    // getting hit again inside its 3s window.
+    if (player._urielJudgedEnd && performance.now() < player._urielJudgedEnd) {
+        lives--;
+        createParticles(player.x, player.y, 14, '#ffd76b', 3, 8);
+    }
     _recordStat('lifeLoss', cause || 'Unknown');
     window._hitVignetteStart = performance.now(); // trigger red border flash
     if (window.AudioMgr) window.AudioMgr.playSfx('life-lost');
@@ -122,6 +129,7 @@ function playerTakesHit(attacker) {
                 && _curseTarget.type !== 'abyssal_chain'
                 && _curseTarget.type !== 'veilshroud_echo'
                 && _curseTarget.type !== 'leviathan'
+                && _curseTarget.type !== 'uriel'
                 && !_curseTarget.inCoronation
                 && !(_curseTarget.type === 'marchosias' && _curseTarget.arcBarrier && _curseTarget.arcBarrier.hp > 0)
                 && !(_curseTarget.type === 'aegis_core' && _curseTarget.aegisInvulnerable)) {
@@ -682,6 +690,13 @@ function update(rawDeltaTime) {
     if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
     if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
 
+    // Uriel's Holy Sword aims at the player's position ~100ms ago instead of
+    // the live position, so it can't be launched dead-on-arrival - keep a
+    // short ring buffer of recent positions.
+    player._posHistory = player._posHistory || [];
+    player._posHistory.push({ t: currentTime, x: player.x, y: player.y });
+    while (player._posHistory.length && currentTime - player._posHistory[0].t > 400) player._posHistory.shift();
+
     // Cycle of Flow (Pisces, dong_chay_luan_hoi): actual on-screen movement
     // (not just holding a direction key against the boundary) accumulates —
     // once it adds up to a full screen width, -0.5s off every skill
@@ -769,6 +784,8 @@ function update(rawDeltaTime) {
                     for (const clone of allLasers) {
                         const laserX = player.x + clone.xOffset;
                         if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
+                            // Uriel's death barrier occludes the beam like a flashlight hitting a wall.
+                            if (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(laserX, player.y, enemy.x, enemy.y)) continue;
                             // Laser vs Mar arc barrier: piercing — 30% body DR, barrier takes +15%, sword 25%
                             if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                                 const _lSrc = { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser' };
@@ -816,9 +833,10 @@ function update(rawDeltaTime) {
                 if (enemy.type === 'veilshroud_echo') return;
                 if (enemy.inCoronation) return;
                 const _laserCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel'
-                    || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
+                    || enemy.type === 'uriel' || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
                     || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)
+                    || enemy._urielCCImmune;
                 if (_laserCCImmune) return;
 
                 let closestLaserX = player.x + allLasers.reduce((prev, curr) =>
@@ -1134,6 +1152,20 @@ function update(rawDeltaTime) {
                 enemies.splice(i, 1); continue;
             }
 
+            // URIEL: Protection, a stationary barrier at the death spot; the
+            // whole horde also loses the Covenant King buffs (CC immunity +
+            // any unspent Uriel Iron Body layer) the same frame it dies.
+            if (enemy.type === 'uriel') {
+                _urielSpawnBarrier(enemy);
+                for (const e of enemies) {
+                    if (e === enemy) continue;
+                    e._urielCCImmune = false;
+                    e._urielIB = false;
+                }
+                addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#fff4cc');
+                createParticles(enemy.x, enemy.y, 40, '#ffe27a', 2, 8);
+            }
+
             // MARCHOSIAS: convert pending windups → blades on death (Skill F / Black Hole path)
             if (enemy.type === 'marchosias') {
                 if (enemy.marchosiasWindups && enemy.marchosiasWindups.length > 0) {
@@ -1443,11 +1475,15 @@ function update(rawDeltaTime) {
         } else if (enemy.type === 'veilshroud_echo') {
             updateVeilshroudEcho(enemy, deltaTime);
 
+        } else if (enemy.type === 'uriel') {
+            updateUriel(enemy, deltaTime);
+
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
             const _coronaSlow = (enemy.type === 'apostle' && enemy.inCoronation) ? 0.55 : 1.0;
             const _ccImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                 || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+                || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)
+                || enemy._urielCCImmune;
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
             const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
             const _thanMenhMul = enemy._thanMenhFrozen ? 0 : 1.0;
@@ -1942,6 +1978,10 @@ function update(rawDeltaTime) {
         } else { b.x += b.vx * dt; b.y += b.vy * dt; }
 
         if (b.y < -b.size || b.x < -b.size || b.x > canvas.width + b.size) { bullets.splice(i, 1); continue; }
+
+        // Uriel's death barrier blocks everything player-side: normal
+        // bullets die on contact, piercing bullets stop instead of passing through.
+        if (typeof _urielBarrierBlocksPoint === 'function' && _urielBarrierBlocksPoint(b.x, b.y)) { bullets.splice(i, 1); continue; }
 
         _queryEnemyGrid(_enemyGrid, b.x, b.y, _gridCandidates);
         for (let enemy of _gridCandidates) {
@@ -2570,6 +2610,8 @@ function update(rawDeltaTime) {
         return ez.life > 0;
     });
 
+    if (typeof _updateUrielEffects === 'function') _updateUrielEffects(deltaTime);
+
     _profChk.push(performance.now()); // end of leviathan beams/veilshroud fx tail
     const _profTotal = _profChk[_profChk.length - 1] - _profChk[0];
     if (_profTotal > 80) {
@@ -2681,9 +2723,14 @@ function _spawnWaveTier(tier) {
         const vc = enemies.filter(e => e.type === 'veilshroud').length;
         const ec = enemies.filter(e => e.type === 'egregor').length;
         if (vc < 2 && ec === 0) pool.push('veilshroud');
+        // Uriel: never on a Goliath wave, 5s spawn cooldown, only 1 on screen.
+        if (_waveNumber % 5 !== 0 && (_now - (window._lastUrielSpawn || 0)) >= 5000
+            && enemies.filter(e => e.type === 'uriel').length < 1) pool.push('uriel');
         if (!pool.length) { spawnApostle(); return; }
         const pick = pool[Math.floor(Math.random() * pool.length)];
-        if (pick === 'marchosias') spawnMarchosias(); else spawnVeilshroud();
+        if (pick === 'marchosias') spawnMarchosias();
+        else if (pick === 'uriel') spawnUriel();
+        else spawnVeilshroud();
     } else if (tier === 'elite') {
         const pool = [];
         if (enemies.filter(e => e.type === 'thaelis').length < 3) pool.push('thaelis');
@@ -3149,6 +3196,13 @@ function startGame() {
     window._lastLeviathanSpawnTime = null;
     window._lastLeviathanKillTime = null;
     window._lastEgregorKillTime = null;
+    window._lastUrielSpawn = 0;
+    window._urielIBConsumed = 0;
+    window._urielHolySwords = [];
+    window._urielBarriers = [];
+    window._urielMotes = [];
+    player._posHistory = [];
+    player._urielJudgedEnd = 0;
     _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0; _yuukiBonus = 0;
     window._walpurgisAppliedStacks = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
