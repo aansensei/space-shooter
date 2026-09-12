@@ -498,9 +498,7 @@ function _drawYogSothothDomainMythos() {
     if (_yogDomainStarryImg.complete && _yogDomainStarryImg.naturalWidth) {
         const imgD = maxRadius * 1.1;
         ctx.save();
-        // LOW/MIN skip the drift+rotation (a couple of trig calls saved,
-        // and it's the one element every tier keeps, so opacity is bumped
-        // up to compensate for the missing decoration on top of it).
+        // LOW/MIN skip the drift+rotation (a couple of trig calls saved).
         if (tier < 2) {
             const driftAngle = now / 22000;
             const driftR = maxRadius * 0.05;
@@ -509,7 +507,18 @@ function _drawYogSothothDomainMythos() {
         } else {
             ctx.translate(bgCx, bgCy);
         }
-        const imgAlpha = [0.56, 0.46, 0.60, 0.65][tier];
+        // Used to compensate LOW/MIN's missing decoration by bumping this
+        // brighter than FULL's own value (0.60/0.65 vs FULL's 0.56) -
+        // backwards, and the reported "too bright" tier turned out to be
+        // PER (tier 4, mobile-only), which this array didn't even cover:
+        // reading index 4 gave undefined, undefined*breathe is NaN, and
+        // assigning NaN to globalAlpha is simply ignored by the canvas
+        // spec - so PER silently kept whatever alpha was left over from
+        // earlier in the frame instead of ever setting its own, which on
+        // a weak device with less throttling elsewhere in between draws
+        // could land close to fully opaque. Every tier now gets its own
+        // real entry, darker as detail drops rather than brighter.
+        const imgAlpha = [0.56, 0.46, 0.40, 0.34, 0.28][tier] || 0.28;
         ctx.globalAlpha = imgAlpha * breathe;
         ctx.drawImage(_yogDomainStarryImg, -imgD / 2, -imgD / 2, imgD, imgD);
         ctx.restore();
