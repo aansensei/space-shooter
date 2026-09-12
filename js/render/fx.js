@@ -1826,7 +1826,11 @@ function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
 function drawExplosion(exp) {
     ctx.save();
     let p = 1 - exp.lifetime / exp.maxLifetime;
-    let radius = exp.size * (1 + p * 1.2);
+    // Shrunk twice now (was 1+p*1.2, then 1+p*0.4) - the base size itself
+    // is scaled down too this time, not just the growth over its
+    // lifetime, so it stays visibly smaller than the size passed in
+    // rather than just growing less than before.
+    let radius = exp.size * 0.65 * (1 + p * 0.2);
     if (radius <= 0 || !isFinite(radius)) { ctx.restore(); return; }
     ctx.globalAlpha = 1 - p;
 
@@ -1838,7 +1842,7 @@ function drawExplosion(exp) {
         // Fast outward shockwave ring (HIGH, first 40% of lifetime)
         if (p < 0.4) {
             const rp = p / 0.4; // 0→1
-            const shockR = exp.size * (1.6 + rp * 3.2);
+            const shockR = exp.size * 0.65 * (1.0 + rp * 0.8);
             ctx.save();
             ctx.globalAlpha = (1 - p) * (1 - rp) * 0.9;
             ctx.strokeStyle = 'rgba(255,255,255,0.95)';
@@ -1855,24 +1859,32 @@ function drawExplosion(exp) {
         ctx.shadowColor = exp.color; ctx.shadowBlur = 15;
         ctx.beginPath(); ctx.arc(exp.x, exp.y, radius * 1.2, 0, Math.PI * 2); ctx.stroke();
 
+        // Ring-shaped burst instead of a disc bright right at its own
+        // center - that center is exactly where whatever triggered this
+        // explosion (an enemy that's often still alive, e.g. Skill A's
+        // Thunder Orb hit) is standing, so a solid white-centered fill hid
+        // it completely every single hit.
         const eg = ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, radius);
-        eg.addColorStop(0, 'white');
-        eg.addColorStop(0.3, exp.color);
+        eg.addColorStop(0, 'rgba(255,255,255,0)');
+        eg.addColorStop(0.35, 'rgba(255,255,255,0.9)');
+        eg.addColorStop(0.6, exp.color);
         eg.addColorStop(1, 'transparent');
         ctx.fillStyle = eg;
         ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
 
-        // Bloom pass: wide soft halo with screen blend (HIGH only)
+        // Bloom pass: wide soft halo with screen blend (HIGH only), same
+        // hollow-center treatment as the fill above.
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = (1 - p) * 0.28;
         ctx.shadowBlur = 0;
-        const bloomR = radius * 2.0;
+        const bloomR = radius * 1.1;
         const bg = ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, bloomR);
-        bg.addColorStop(0,   'rgba(255,255,255,0.9)');
-        bg.addColorStop(0.4, exp.color);
-        bg.addColorStop(1,   'rgba(0,0,0,0)');
+        bg.addColorStop(0,    'rgba(255,255,255,0)');
+        bg.addColorStop(0.25, 'rgba(255,255,255,0.9)');
+        bg.addColorStop(0.45, exp.color);
+        bg.addColorStop(1,    'rgba(0,0,0,0)');
         ctx.fillStyle = bg;
         ctx.beginPath(); ctx.arc(exp.x, exp.y, bloomR, 0, Math.PI * 2); ctx.fill();
         ctx.restore();

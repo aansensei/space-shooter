@@ -95,7 +95,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=20260907a">
+    <link rel="stylesheet" href="css/style.css?v=20260911a">
 
     <style>
         body {
@@ -480,6 +480,11 @@
     <div id="position-peek-overlay">
         <div id="position-peek-hint" data-i18n="pause.peekHint">Click/Tap anywhere or press Esc to return</div>
     </div>
+
+    <!-- Yog-Sothoth domain: shown/hidden each frame from render/core.js's
+         _drawYogShiftTeleportHint(), not toggled at the domain's various
+         activation sites - simpler than mirroring every one of them. -->
+    <div id="yog-teleport-hint">←  →  to teleport</div>
 
     <button id="startBtn" style="display: none;">Start</button>
     <button id="mainMenuBtn" style="display: none;">Main Menu</button>
@@ -1997,8 +2002,8 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20260910w"></script>
-    <script src="js/render/fx.js?v=20260909c"></script>
+    <script src="js/render/core.js?v=20260911d"></script>
+    <script src="js/render/fx.js?v=20260911c"></script>
     <script src="js/render/player.js?v=20260911a"></script>
     <script src="js/render/enemy-common.js?v=20260911a"></script>
     <script src="js/render/enemy-aegis-core.js?v=20260717e"></script>
@@ -2017,7 +2022,7 @@
     <script src="js/render/sigil-cancer.js?v=20260907b"></script>
     <script src="js/render/skill-g.js?v=20260717e"></script>
     <script src="js/render/skill-buttons.js?v=20260907a"></script>
-    <script src="js/pixi-renderer.js?v=20260825d"></script>
+    <script src="js/pixi-renderer.js?v=20260911d"></script>
     <script src="js/input.js?v=20260910a"></script>
     <script src="js/match-stats.js?v=20260825a"></script>
     <script src="js/main.js?v=20260911c"></script>

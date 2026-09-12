@@ -6,7 +6,7 @@
 // Phase 2: ctx.shadowBlur suppressed (383 calls eliminated → 10fps→144fps)
 // Phase 3: nebula atmosphere, bullet trails, hit-flash feedback
 //
-// Depends on render.js:  _getBulletSprite, _getSpiritSprite, _getGlowSprite
+// Depends on render.js:  _getBulletSprite, _getSpiritSprite, _getGlowSprite, _getRingGlowSprite
 
 window._usePixi          = false;
 window._pixiDrawBullets  = null;
@@ -94,6 +94,9 @@ window._pixiRender       = null;
     const _GLOW_REF_R = 20;
     function _getGlowTex(color) {
         return _canvasTex(_getGlowSprite(color, _GLOW_REF_R), 'g_' + color);
+    }
+    function _getRingGlowTex(color) {
+        return _canvasTex(_getRingGlowSprite(color, _GLOW_REF_R), 'rg_' + color);
     }
     function _glowDisplayRadius(size, gfxLvl) {
         const glowR = gfxLvl < 1 ? 14 : gfxLvl < 2 ? 8 : 5;
@@ -278,13 +281,25 @@ window._pixiRender       = null;
 
     // ══════════════════════════════════════════════════════════════════
     // PHASE 3C, Hit flash
-    // Track enemy HP each frame, when HP drops, spawn a brief white
-    // flash at the enemy's position.  Uses object-reference keying so
-    // it works regardless of enemy position or type.
+    // Track enemy HP each frame, when HP drops, spawn a brief flash at
+    // the enemy's position. Uses object-reference keying so it works
+    // regardless of enemy position or type. Was a pure white additive
+    // burst on EVERY hit, one independent instance per hit - with
+    // continuous auto-fire (and sentinels/skills often hitting the same
+    // target in the same frame or two), many of these stacked on top of
+    // each other via additive blending, which blows out toward a glaring
+    // white/overexposed bloom regardless of what color each individual
+    // flash actually used - a color change alone didn't fix it. Now keyed
+    // one flash per enemy (a second hit resets it instead of adding a
+    // second independent layer), so it can never stack past a single
+    // instance no matter how fast that enemy is being hit from how many
+    // sources at once.
     // ══════════════════════════════════════════════════════════════════
     const _enemyHp  = new Map(); // enemy object → last hp
-    const _flashes  = []; // { x, y, alpha, r }
+    const _flashes  = new Map(); // enemy object → { x, y, alpha, r }
     const _FLASH_DECAY = 0.48;
+    const _FLASH_ALPHA = 0.45;
+    const _FLASH_COLOR = '#ff6a3c';
 
     function _checkHits() {
         if (typeof enemies === 'undefined' || typeof gameState === 'undefined' || gameState !== 'playing') {
@@ -295,7 +310,9 @@ window._pixiRender       = null;
         for (const e of enemies) {
             const prev = _enemyHp.get(e);
             if (prev !== undefined && e.hp < prev) {
-                _flashes.push({ x: e.x, y: e.y, alpha: 0.88, r: (e.size || 20) * 1.1 });
+                const f = _flashes.get(e);
+                if (f) { f.x = e.x; f.y = e.y; f.alpha = _FLASH_ALPHA; }
+                else _flashes.set(e, { x: e.x, y: e.y, alpha: _FLASH_ALPHA, r: (e.size || 20) * 1.1 });
             }
             _enemyHp.set(e, e.hp);
         }
@@ -304,18 +321,30 @@ window._pixiRender       = null;
 
     function _drawFlashes() {
         _clearLayer(flashLayer);
-        for (let i = _flashes.length - 1; i >= 0; i--) {
-            const f = _flashes[i];
+        for (const [e, f] of _flashes) {
             f.alpha *= _FLASH_DECAY;
-            if (f.alpha < 0.02) { _flashes.splice(i, 1); continue; }
+            if (f.alpha < 0.02) { _flashes.delete(e); continue; }
             const s = _acq();
-            _setTex(s, _getGlowTex('#ffffff'));
+            // Ring, not a filled disc - a solid glow disc was bright right
+            // at its own center, which is exactly where the enemy sprite
+            // sits, so every hit hid the thing that was just hit. A ring
+            // traces the silhouette's edge instead and leaves the middle
+            // clear, applies to every enemy type since it's keyed off each
+            // one's own size the same way the old disc was.
+            _setTex(s, _getRingGlowTex(_FLASH_COLOR));
             const _fr = _glowDisplayRadius(f.r, 0) * 2;
             s.width = s.height = _fr;
             s.anchor.set(0.5);
             s.position.set(f.x, f.y);
             s.alpha     = f.alpha;
-            s.blendMode = 'add';
+            // Normal blending, not additive - the per-enemy cap above stops
+            // one enemy's own flash from stacking with itself, but a dense
+            // cluster of DIFFERENT enemies all getting hit at once (AOE,
+            // horde packed together) still had each one's flash additively
+            // blowing out toward white wherever they overlapped. Normal
+            // blending can never exceed the flash color's own brightness no
+            // matter how many overlap.
+            s.blendMode = 'normal';
             flashLayer.addChild(s);
         }
     }
