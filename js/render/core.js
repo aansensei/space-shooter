@@ -2578,7 +2578,12 @@ function draw(deltaTime) {
             ctx.fillStyle = '#667788';
             ctx.fillText(`↻ ${_restSec}s  ·  ${_aliveCount} alive`, _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13));
         } else {
-            const _total = _aliveCount + _waveQueue.length;
+            // _waveQueue is only populated for the old fixed-15s queue - waves
+            // now always use the trickle spawner instead (_WAVE_TRICKLE_MIN
+            // dropped to 1), whose still-to-spawn count lives in
+            // _waveSpawnBudget instead, or this always undercounted down to
+            // just _aliveCount once the queue-based path stopped being used.
+            const _total = _aliveCount + (_waveSpawnBudget ? _waveTrickleBudgetLeft() : _waveQueue.length);
             const _pulseCnt = 0.7 + 0.3 * Math.abs(Math.sin(performance.now() / 600));
             ctx.fillStyle = _total > 0 ? `rgba(255,160,80,${_pulseCnt})` : '#446644';
             ctx.fillText(_total > 0 ? `◉ ${_total} enemies` : '◉ clearing...', _hX + _hW - _hPad, _ry + (_hMob ? 11 : 13));
