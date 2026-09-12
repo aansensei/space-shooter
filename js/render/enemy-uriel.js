@@ -191,24 +191,43 @@ function _drawUrielEye(enemy, ex, ey, w, h, targetAng, idx, now) {
     ctx.restore();
 }
 
-function _drawUrielWing(side, i, sway, flare, r) {
-    const spread = (0.30 + i * 0.30 + flare * 0.22) * side;
-    ctx.save();
-    ctx.rotate(spread + sway);
+// A wing's whole shape (base + every feather) depends only on side/i/flare/r
+// - sway only rotates the finished wing at draw time, so the geometry itself
+// (base gradient + up to 13 feather gradients) is fully static per
+// combination. Baking each into a cached sprite turns what was up to 14
+// gradient allocations x 6 wing instances = up to 72/frame into a handful of
+// drawImage calls, same fix already proven on Uriel's eyes.
+const _urielWingSpriteCache = {};
+function _urielWingSprite(side, i, flare, r) {
+    // The glow (shadowBlur) is gated on !_mobPerf && _gfxLevel < 2, same as
+    // the live original - both need to be in the key or a sprite baked with
+    // the glow on would keep showing it after Smart Quality drops the tier.
+    const hasGlow = !_mobPerf && _gfxLevel < 2;
+    const key = side + '_' + i + '_' + flare + '_' + r.toFixed(1) + '_' + (hasGlow ? 1 : 0);
+    let s = _urielWingSpriteCache[key];
+    if (s) return s;
+
     const len = r * (1.5 + i * 0.35 + flare * 0.4);
+    const pad = len * 1.6 + r;
+    const dim = Math.ceil(pad * 2);
+    const c = document.createElement('canvas');
+    c.width = c.height = dim;
+    const cx = c.getContext('2d');
+    cx.translate(pad, pad);
+
     const baseX = r * 0.45 * side;
 
-    ctx.beginPath();
-    ctx.moveTo(baseX, -r * 0.08);
-    ctx.quadraticCurveTo(len * 0.55 * side, len * -0.34, len * side, len * -0.06);
-    ctx.quadraticCurveTo(len * 0.5 * side, len * 0.1, baseX * 0.7, r * 0.12);
-    const baseG = ctx.createLinearGradient(baseX, 0, len * side, 0);
+    cx.beginPath();
+    cx.moveTo(baseX, -r * 0.08);
+    cx.quadraticCurveTo(len * 0.55 * side, len * -0.34, len * side, len * -0.06);
+    cx.quadraticCurveTo(len * 0.5 * side, len * 0.1, baseX * 0.7, r * 0.12);
+    const baseG = cx.createLinearGradient(baseX, 0, len * side, 0);
     baseG.addColorStop(0, 'rgba(255,225,160,0.2)');
     baseG.addColorStop(1, 'rgba(255,255,255,0.7)');
-    ctx.fillStyle = baseG;
-    if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 10 + flare * 6; }
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    cx.fillStyle = baseG;
+    if (hasGlow) { cx.shadowColor = URIEL_GOLD; cx.shadowBlur = 10 + flare * 6; }
+    cx.fill();
+    cx.shadowBlur = 0;
 
     const numFeathers = _mobPerf ? 5 : (9 + i * 2);
     for (let f = 0; f < numFeathers; f++) {
@@ -217,35 +236,47 @@ function _drawUrielWing(side, i, sway, flare, r) {
         const fy = (r * 0.12) * (1 - t) * (1 - t) + 2 * (len * 0.1) * (1 - t) * t + (len * -0.06) * t * t;
         const featherLen = r * (0.4 + (1 - t) * 0.5 + flare * 0.2);
         const featherAng = (side > 0 ? 0.2 : -0.2) + t * (side > 0 ? -0.4 : 0.4);
-        ctx.save();
-        ctx.translate(fx, fy);
-        ctx.rotate(featherAng);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(featherLen * 0.3 * side, featherLen * 0.5, featherLen * 0.1 * side, featherLen);
-        ctx.quadraticCurveTo(featherLen * -0.1 * side, featherLen * 0.5, 0, 0);
-        const fGrad = ctx.createLinearGradient(0, 0, featherLen * 0.1 * side, featherLen);
+        cx.save();
+        cx.translate(fx, fy);
+        cx.rotate(featherAng);
+        cx.beginPath();
+        cx.moveTo(0, 0);
+        cx.quadraticCurveTo(featherLen * 0.3 * side, featherLen * 0.5, featherLen * 0.1 * side, featherLen);
+        cx.quadraticCurveTo(featherLen * -0.1 * side, featherLen * 0.5, 0, 0);
+        const fGrad = cx.createLinearGradient(0, 0, featherLen * 0.1 * side, featherLen);
         fGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
         fGrad.addColorStop(0.3, 'rgba(255,215,130,0.85)');
         fGrad.addColorStop(1, 'rgba(200,120,30,0)');
-        ctx.fillStyle = fGrad;
-        ctx.fill();
+        cx.fillStyle = fGrad;
+        cx.fill();
 
         // Rim light.
-        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
+        cx.strokeStyle = 'rgba(255,255,255,0.7)';
+        cx.lineWidth = 1.2;
+        cx.stroke();
 
         // Central barb.
-        ctx.strokeStyle = 'rgba(255,230,180,0.4)';
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(featherLen * 0.05 * side, featherLen * 0.9);
-        ctx.stroke();
+        cx.strokeStyle = 'rgba(255,230,180,0.4)';
+        cx.lineWidth = 0.8;
+        cx.beginPath();
+        cx.moveTo(0, 0);
+        cx.lineTo(featherLen * 0.05 * side, featherLen * 0.9);
+        cx.stroke();
 
-        ctx.restore();
+        cx.restore();
     }
+
+    s = { canvas: c, pad };
+    _urielWingSpriteCache[key] = s;
+    return s;
+}
+
+function _drawUrielWing(side, i, sway, flare, r) {
+    const spread = (0.30 + i * 0.30 + flare * 0.22) * side;
+    ctx.save();
+    ctx.rotate(spread + sway);
+    const sprite = _urielWingSprite(side, i, flare, r);
+    ctx.drawImage(sprite.canvas, -sprite.pad, -sprite.pad);
     ctx.restore();
 }
 
