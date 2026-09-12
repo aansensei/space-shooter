@@ -376,7 +376,14 @@
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
-        'uriel-idle': 1.0, 'uriel-holy-sword': 1.0, 'uriel-death-roar': 1.0,
+        'uriel-idle': 1.0, 'uriel-sword-launch': 1.15, 'uriel-death-roar': 1.15,
+        'uriel-sword-windup': 1.15, 'uriel-sword-impact': 1.15,
+        // camo-vanish's own clip already peaks at 0dBFS - any gain above 1.0
+        // just hard-clips its loudest instant instead of getting louder, so
+        // it stays at 1.0. camo-reappear peaks at barely a third of full
+        // scale (measured via decodeAudioData), quietest of all 6 by far, so
+        // it gets a much bigger push to actually read at a comparable volume.
+        'uriel-camo-vanish': 1.0, 'uriel-camo-reappear': 2.4, 'uriel-barrier-spawn': 1.15,
         'yog-sothoth-domain-theme': 1.0,
         'gate-of-babylon': 1.0, 'enuma-elish-charge': 1.0, 'enuma-elish-release': 1.0,
         'cancer-whirlpool-spin': 1.0, 'cancer-whale-splash': 1.0, 'cancer-whale-bite': 1.0,
@@ -884,12 +891,12 @@
         _makePool('goliath-corrupted-meteor', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 2);
         _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1);
         _makePool('leviathan-death-roar',    'assets/audio/sfx/leviathan-death-roar.mp3',    1);
-        // Reuses the existing generic blade-whoosh clip (already the
-        // established multi-source "sword attack" sound across Marchosias,
-        // Goliath, Yuusha Party, Remembrance Spirit) - a dedicated
-        // uriel-holy-sword.mp3 was declared here but never actually existed
-        // on disk, so this sfx had been completely silent since launch.
-        _makePool('uriel-holy-sword',       'assets/audio/sfx/spirit-arc-slash.mp3',       2);
+        _makePool('uriel-sword-launch',     'assets/audio/sfx/uriel-sword-launch.mp3',     2);
+        _makePool('uriel-sword-windup',     'assets/audio/sfx/uriel-sword-windup.mp3',     2);
+        _makePool('uriel-sword-impact',     'assets/audio/sfx/uriel-sword-impact.mp3',     2);
+        _makePool('uriel-camo-vanish',      'assets/audio/sfx/uriel-camo-vanish.mp3',      1);
+        _makePool('uriel-camo-reappear',    'assets/audio/sfx/uriel-camo-reappear.mp3',    1);
+        _makePool('uriel-barrier-spawn',    'assets/audio/sfx/uriel-barrier-spawn.mp3',    1);
         _makePool('uriel-death-roar',       'assets/audio/sfx/uriel-death-roar.mp3',       1);
         _makePool('goliath-unbroken-wave',  'assets/audio/sfx/goliath-unbroken-wave.mp3',  1);
         _makePool('gate-of-babylon',        'assets/audio/sfx/gate-of-babylon.mp3',        2);

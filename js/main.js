@@ -1560,10 +1560,20 @@ function update(rawDeltaTime) {
                 if (enemy.type === 'dargruel') {
                     if (!enemy.chainTimer && enemy.chainTimer !== 0) enemy.chainTimer = 0; // fire immediately on spawn
                     enemy.chainTimer -= deltaTime;
+                    // Red threat ring for the last 400ms before it fires (see
+                    // _drawDargruel, render/enemy-dargruel.js) - the fan angle
+                    // itself is locked here too, at windup start, instead of
+                    // being recomputed the instant it fires.
+                    const CHAIN_WINDUP = 400;
+                    if (!enemy._chainWindupActive && enemy.chainTimer > 0 && enemy.chainTimer <= CHAIN_WINDUP) {
+                        enemy._chainWindupActive = true;
+                        enemy._chainWindupAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                    }
                     if (enemy.chainTimer <= 0) {
                         enemy.chainTimer = 2100;
                         if (window.AudioMgr) window.AudioMgr.playSfxAt('dargruel-chain-launch', enemy.x, enemy.y);
-                        const baseAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                        const baseAngle = enemy._chainWindupActive ? enemy._chainWindupAngle : Math.atan2(player.y - enemy.y, player.x - enemy.x);
+                        enemy._chainWindupActive = false;
                         const spread = 0.28;
                         const angles4 = [-spread * 1.5, -spread * 0.5, spread * 0.5, spread * 1.5];
                         const chainSpeed = 10.75 * 0.9;

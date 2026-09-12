@@ -147,6 +147,48 @@ function _getRingGlowSprite(color, radius) {
     return c;
 }
 
+// Shared red "incoming attack" telegraph: a contracting ring + center cross
+// at (x, y), sized by radius, closing in as progress goes 0 -> 1. Reused by
+// every enemy special ranged attack that gets one (Marchosias's counter
+// blade, Goliath's Absolute Verdict, Uriel's Holy Sword, Dargruel's chains)
+// so they all read as the same "watch this spot" cue instead of each enemy
+// inventing its own. Red specifically so it pops against a busy background
+// of other enemies' own telegraphs (Marchosias's own is orange, Goliath's
+// runway lanes already red, etc.) - no per-frame gradient allocation, the
+// glow is the same cached ring sprite the hit-flash system already uses.
+// Gated on skillShiftActive here (one choke point) rather than at every call
+// site - this is Yog-Sothoth's own danger-sense read on the world, not a
+// permanent HUD element.
+function _drawThreatRing(x, y, radius, progress) {
+    if (!skillShiftActive) return;
+    if (!isFinite(x) || !isFinite(y) || !isFinite(radius) || radius <= 0) return;
+    const now = performance.now();
+    const p = Math.min(1, Math.max(0, progress));
+    const pulse = 0.6 + 0.4 * Math.sin(now / 80);
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = 0.3 + 0.55 * p;
+
+    const glowR = radius * 1.15;
+    const tex = _getRingGlowSprite('#ff2e2e', glowR);
+    if (tex) ctx.drawImage(tex, -glowR, -glowR, glowR * 2, glowR * 2);
+
+    const closeR = radius * (1 + (1 - p) * 1.4);
+    ctx.strokeStyle = `rgba(255,46,46,${0.75 * pulse})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, closeR, 0, Math.PI * 2); ctx.stroke();
+
+    ctx.strokeStyle = `rgba(255,205,205,${0.5 + 0.5 * p})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-radius * 0.25, 0); ctx.lineTo(radius * 0.25, 0);
+    ctx.moveTo(0, -radius * 0.25); ctx.lineTo(0, radius * 0.25);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
 // Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality)
 const _bulletSpriteCache = {};
 function _getBulletSprite(type, size, gfxLvl) {

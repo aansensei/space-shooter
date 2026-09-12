@@ -778,6 +778,10 @@ function _drawGoliathOrbs() {
 
         ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6;
         ctx.beginPath(); ctx.arc(p.x, p.y, 101, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+
+        // Yog-Sothoth danger-sense: rings the orb itself while it's in
+        // flight, on top of Verdict's own runway-lane windup telegraph.
+        if (typeof _drawThreatRing === 'function') _drawThreatRing(p.x, p.y, 149, 1);
     });
 }
 
@@ -1863,6 +1867,11 @@ function _drawGoliath(enemy) {
                     ctx.stroke();
                     ctx.restore();
                 }
+            }
+
+            // Where the orb will actually land, telegraphed the whole channel.
+            if (typeof _drawThreatRing === 'function') {
+                _drawThreatRing(aimX, aimY, laneW, vp);
             }
         }
 

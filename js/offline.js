@@ -141,7 +141,9 @@
         'assets/audio/sfx/skill-unlocked.mp3', 'assets/audio/sfx/spinner-bounce.mp3', 'assets/audio/sfx/spirit-arc-slash.mp3', 'assets/audio/sfx/spirit-autofire.mp3',
         'assets/audio/sfx/spirit-finale-laser.mp3',
         'assets/audio/sfx/tesla-coil-form.mp3', 'assets/audio/sfx/uriel-idle.mp3',
-        'assets/audio/sfx/uriel-death-roar.mp3', 'assets/audio/sfx/wave-clear.mp3', 'assets/audio/sfx/yog-parry.mp3',
+        'assets/audio/sfx/uriel-death-roar.mp3', 'assets/audio/sfx/uriel-sword-launch.mp3', 'assets/audio/sfx/uriel-sword-windup.mp3',
+        'assets/audio/sfx/uriel-sword-impact.mp3', 'assets/audio/sfx/uriel-camo-vanish.mp3', 'assets/audio/sfx/uriel-camo-reappear.mp3',
+        'assets/audio/sfx/uriel-barrier-spawn.mp3', 'assets/audio/sfx/wave-clear.mp3', 'assets/audio/sfx/yog-parry.mp3',
         'assets/audio/sfx/yog-sothoth-domain-theme.mp3',
     ];
 

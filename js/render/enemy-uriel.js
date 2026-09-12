@@ -50,85 +50,141 @@ function _urielBlink(enemy, idx, now) {
     return phase > 0.96 ? Math.abs(Math.sin((phase - 0.96) / 0.04 * Math.PI)) : 1;
 }
 
+// Every gradient an eye needs (socket/sclera/iris/pupil/spill) has fixed
+// color stops that never change frame to frame - only w/h (eye size, just 4
+// distinct taper values across the 7-eye row) and irisR (derived from w/h)
+// vary. Baking each into a small offscreen canvas once and reusing it via
+// drawImage turns up to 5 gradient allocations x 7 eyes = 35/frame into a
+// handful of cheap blits, since drawImage (unlike a raw CanvasGradient
+// object) is correctly repositioned by whatever transform is active per call.
+const _urielEyeSpriteCache = {};
+
+function _urielEyeBaseSprite(w, h) {
+    const key = 'base_' + w.toFixed(2) + '_' + h.toFixed(2);
+    let s = _urielEyeSpriteCache[key];
+    if (s) return s;
+    const pad = 6;
+    const cw = Math.ceil(w * 2.3 + pad * 2), ch = Math.ceil(h * 2.3 + pad * 2);
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const cx = c.getContext('2d');
+    cx.translate(cw / 2, ch / 2);
+
+    // Deep shadow under the eye for integration into the relic surface.
+    cx.fillStyle = 'rgba(10,8,5,0.6)';
+    cx.beginPath(); cx.ellipse(0, h * 0.15, w * 1.1, h * 1.1, 0, 0, Math.PI * 2); cx.fill();
+
+    // Outer lid/socket with metallic rim.
+    const socketG = cx.createLinearGradient(0, -h, 0, h);
+    socketG.addColorStop(0, '#ffe599'); socketG.addColorStop(0.5, '#b38230'); socketG.addColorStop(1, '#33220a');
+    cx.fillStyle = socketG;
+    cx.beginPath(); cx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2); cx.fill();
+
+    // Inner dark recess.
+    cx.fillStyle = '#0f0a05';
+    cx.beginPath(); cx.ellipse(0, 0, w * 0.92, h * 0.92, 0, 0, Math.PI * 2); cx.fill();
+
+    // Lash/rim highlight.
+    cx.strokeStyle = 'rgba(255,255,255,0.7)'; cx.lineWidth = 1.2;
+    cx.beginPath(); cx.ellipse(0, -h * 0.1, w * 0.95, h * 0.95, 0, Math.PI, Math.PI * 2); cx.stroke();
+
+    // Sclera glow with depth.
+    const sclera = cx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h));
+    sclera.addColorStop(0, 'rgba(255,250,230,1)');
+    sclera.addColorStop(0.5, 'rgba(255,210,130,0.8)');
+    sclera.addColorStop(1, 'rgba(120,60,10,0.2)');
+    cx.fillStyle = sclera;
+    cx.beginPath(); cx.ellipse(0, 0, w * 0.88, h * 0.88, 0, 0, Math.PI * 2); cx.fill();
+
+    s = { c, cw, ch };
+    _urielEyeSpriteCache[key] = s;
+    return s;
+}
+
+// Iris + pupil, baked at their own local origin - the gaze offset (ix,iy)
+// is applied by where this sprite gets drawImage'd, not by anything inside it.
+function _urielIrisSprite(irisR) {
+    const key = 'iris_' + irisR.toFixed(2);
+    let s = _urielEyeSpriteCache[key];
+    if (s) return s;
+    const pad = 4;
+    const cw = Math.ceil(irisR * 2.3 + pad * 2);
+    const c = document.createElement('canvas');
+    c.width = c.height = cw;
+    const cx = c.getContext('2d');
+    cx.translate(cw / 2, cw / 2);
+
+    cx.fillStyle = '#102040';
+    cx.beginPath(); cx.arc(0, 0, irisR * 1.07, 0, Math.PI * 2); cx.fill();
+
+    const irisG = cx.createRadialGradient(0, 0, irisR * 0.2, 0, 0, irisR);
+    irisG.addColorStop(0, '#aaddff'); irisG.addColorStop(0.6, '#4477ff'); irisG.addColorStop(1, '#002288');
+    cx.fillStyle = irisG;
+    cx.beginPath(); cx.arc(0, 0, irisR, 0, Math.PI * 2); cx.fill();
+
+    cx.strokeStyle = 'rgba(200,240,255,0.4)'; cx.lineWidth = 0.5;
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
+        cx.beginPath();
+        cx.moveTo(Math.cos(a) * irisR * 0.3, Math.sin(a) * irisR * 0.3);
+        cx.lineTo(Math.cos(a) * irisR * 0.9, Math.sin(a) * irisR * 0.9);
+        cx.stroke();
+    }
+
+    cx.fillStyle = '#050a14';
+    cx.beginPath(); cx.arc(0, 0, irisR * 0.4, 0, Math.PI * 2); cx.fill();
+    const pupilG = cx.createRadialGradient(0, 0, 0, 0, 0, irisR * 0.4);
+    pupilG.addColorStop(0, 'rgba(122,168,255,0.6)'); pupilG.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = pupilG;
+    cx.beginPath(); cx.arc(0, 0, irisR * 0.4, 0, Math.PI * 2); cx.fill();
+
+    cx.fillStyle = 'rgba(255,255,255,0.9)';
+    cx.beginPath(); cx.arc(-irisR * 0.3, -irisR * 0.3, irisR * 0.2, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = 'rgba(255,255,255,0.4)';
+    cx.beginPath(); cx.arc(irisR * 0.4, irisR * 0.3, irisR * 0.1, 0, Math.PI * 2); cx.fill();
+
+    s = { c, cw };
+    _urielEyeSpriteCache[key] = s;
+    return s;
+}
+
+function _urielEyeSpillSprite(w, h) {
+    const key = 'spill_' + w.toFixed(2) + '_' + h.toFixed(2);
+    let s = _urielEyeSpriteCache[key];
+    if (s) return s;
+    const rr = Math.max(w, h) * 1.5;
+    const cw = Math.ceil(rr * 2);
+    const c = document.createElement('canvas');
+    c.width = c.height = cw;
+    const cx = c.getContext('2d');
+    cx.translate(cw / 2, cw / 2);
+    const spill = cx.createRadialGradient(0, 0, 0, 0, 0, rr);
+    spill.addColorStop(0, 'rgba(255,230,150,0.3)'); spill.addColorStop(1, 'rgba(255,230,150,0)');
+    cx.fillStyle = spill;
+    cx.beginPath(); cx.ellipse(0, 0, w * 1.3, h * 1.3, 0, 0, Math.PI * 2); cx.fill();
+    s = { c, cw };
+    _urielEyeSpriteCache[key] = s;
+    return s;
+}
+
 function _drawUrielEye(enemy, ex, ey, w, h, targetAng, idx, now) {
     ctx.save();
     ctx.translate(ex, ey);
     ctx.scale(1, Math.max(0.06, _urielBlink(enemy, idx, now)));
 
-    // Deep shadow under the eye for integration into the relic surface.
-    ctx.fillStyle = 'rgba(10,8,5,0.6)';
-    ctx.beginPath(); ctx.ellipse(0, h * 0.15, w * 1.1, h * 1.1, 0, 0, Math.PI * 2); ctx.fill();
-
-    // Outer lid/socket with metallic rim.
-    const socketG = ctx.createLinearGradient(0, -h, 0, h);
-    socketG.addColorStop(0, '#ffe599'); socketG.addColorStop(0.5, '#b38230'); socketG.addColorStop(1, '#33220a');
-    ctx.fillStyle = socketG;
-    ctx.beginPath(); ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2); ctx.fill();
-
-    // Inner dark recess.
-    ctx.fillStyle = '#0f0a05';
-    ctx.beginPath(); ctx.ellipse(0, 0, w * 0.92, h * 0.92, 0, 0, Math.PI * 2); ctx.fill();
-
-    // Lash/rim highlight.
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.ellipse(0, -h * 0.1, w * 0.95, h * 0.95, 0, Math.PI, Math.PI * 2); ctx.stroke();
-
-    // Sclera glow with depth.
-    const sclera = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h));
-    sclera.addColorStop(0, 'rgba(255,250,230,1)');
-    sclera.addColorStop(0.5, 'rgba(255,210,130,0.8)');
-    sclera.addColorStop(1, 'rgba(120,60,10,0.2)');
-    ctx.fillStyle = sclera;
-    ctx.beginPath(); ctx.ellipse(0, 0, w * 0.88, h * 0.88, 0, 0, Math.PI * 2); ctx.fill();
+    const base = _urielEyeBaseSprite(w, h);
+    ctx.drawImage(base.c, -base.cw / 2, -base.ch / 2, base.cw, base.ch);
 
     const maxOff = Math.min(w, h) * 0.35;
     const ix = Math.cos(targetAng) * maxOff, iy = Math.sin(targetAng) * maxOff;
     const irisR = Math.min(w, h) * 0.42;
-    ctx.save();
-    ctx.translate(ix, iy);
-
-    // Outer iris dark rim.
-    ctx.fillStyle = '#102040';
-    ctx.beginPath(); ctx.arc(0, 0, irisR * 1.07, 0, Math.PI * 2); ctx.fill();
-
-    // Iris radial gradient.
-    const irisG = ctx.createRadialGradient(0, 0, irisR * 0.2, 0, 0, irisR);
-    irisG.addColorStop(0, '#aaddff'); irisG.addColorStop(0.6, '#4477ff'); irisG.addColorStop(1, '#002288');
-    ctx.fillStyle = irisG;
-    ctx.beginPath(); ctx.arc(0, 0, irisR, 0, Math.PI * 2); ctx.fill();
-
-    // Radial striations.
-    ctx.strokeStyle = 'rgba(200,240,255,0.4)'; ctx.lineWidth = 0.5;
-    for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * irisR * 0.3, Math.sin(a) * irisR * 0.3);
-        ctx.lineTo(Math.cos(a) * irisR * 0.9, Math.sin(a) * irisR * 0.9);
-        ctx.stroke();
-    }
-
-    // Pupil + inner glow.
-    ctx.fillStyle = '#050a14';
-    ctx.beginPath(); ctx.arc(0, 0, irisR * 0.4, 0, Math.PI * 2); ctx.fill();
-    const pupilG = ctx.createRadialGradient(0, 0, 0, 0, 0, irisR * 0.4);
-    pupilG.addColorStop(0, 'rgba(122,168,255,0.6)'); pupilG.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = pupilG;
-    ctx.beginPath(); ctx.arc(0, 0, irisR * 0.4, 0, Math.PI * 2); ctx.fill();
-
-    // Sharp specular highlights.
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.beginPath(); ctx.arc(-irisR * 0.3, -irisR * 0.3, irisR * 0.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.beginPath(); ctx.arc(irisR * 0.4, irisR * 0.3, irisR * 0.1, 0, Math.PI * 2); ctx.fill();
-
-    ctx.restore(); // end iris translation
+    const iris = _urielIrisSprite(irisR);
+    ctx.drawImage(iris.c, ix - iris.cw / 2, iy - iris.cw / 2, iris.cw, iris.cw);
 
     // Volumetric glow spilling out of the eye.
     if (!_mobPerf && _gfxLevel < 2) {
-        const spill = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h) * 1.5);
-        spill.addColorStop(0, 'rgba(255,230,150,0.3)'); spill.addColorStop(1, 'rgba(255,230,150,0)');
-        ctx.fillStyle = spill;
+        const spill = _urielEyeSpillSprite(w, h);
         ctx.globalCompositeOperation = 'screen';
-        ctx.beginPath(); ctx.ellipse(0, 0, w * 1.3, h * 1.3, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.drawImage(spill.c, -spill.cw / 2, -spill.cw / 2, spill.cw, spill.cw);
         ctx.globalCompositeOperation = 'source-over';
     }
 
@@ -190,6 +246,45 @@ function _drawUrielWing(side, i, sway, flare, r) {
 
         ctx.restore();
     }
+    ctx.restore();
+}
+
+// Marks where Camouflage is about to drop Uriel back in, 550ms before it
+// actually reappears there (see _urielUpdateCamouflage, entities/uriel.js).
+// No per-frame gradient allocation - the glow reuses the same cached ring
+// sprite the hit-flash system already uses (_getRingGlowSprite, render/core.js).
+function _drawUrielCamoTelegraph(enemy) {
+    if (!enemy._camoNextPicked) return;
+    const now = performance.now();
+    const remaining = Math.max(0, 1750 - (enemy._camoTimer || 0));
+    const p = Math.min(1, Math.max(0, 1 - remaining / 550));
+    const r = enemy.size / 2;
+    const pulse = 0.6 + 0.4 * Math.sin(now / 90);
+
+    ctx.save();
+    ctx.translate(enemy._camoNextX, enemy._camoNextY);
+    ctx.globalAlpha = 0.25 + 0.55 * p;
+
+    if (typeof _getRingGlowSprite === 'function') {
+        const glowR = r * 1.15;
+        const tex = _getRingGlowSprite(URIEL_BLUE, glowR);
+        if (tex) ctx.drawImage(tex, -glowR, -glowR, glowR * 2, glowR * 2);
+    }
+
+    // Contracting ring: starts wide, closes in on the exact reappear point.
+    const closeR = r * (1 + (1 - p) * 1.4);
+    ctx.strokeStyle = `rgba(122,168,255,${0.7 * pulse})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, closeR, 0, Math.PI * 2); ctx.stroke();
+
+    // Center cross mark, brightening as the reappear moment nears.
+    ctx.strokeStyle = `rgba(230,240,255,${0.5 + 0.5 * p})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.25, 0); ctx.lineTo(r * 0.25, 0);
+    ctx.moveTo(0, -r * 0.25); ctx.lineTo(0, r * 0.25);
+    ctx.stroke();
+
     ctx.restore();
 }
 
@@ -298,6 +393,11 @@ function _drawUriel(enemy) {
         if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = URIEL_WHITE; ctx.shadowBlur = 16 + p * 16; }
         ctx.beginPath(); ctx.arc(0, 0, r * (0.3 + p * 0.5), 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        // The Holy Sword's aim only resolves at launch (from the player's
+        // recent position history, see _urielLaunchSword) so there's no
+        // fixed landing point to ring during the charge - the ring goes
+        // around Uriel itself instead, flagging "this is about to fire".
+        if (typeof _drawThreatRing === 'function') _drawThreatRing(0, 0, r * 1.4, p);
     }
     if (enemy._swordFiring) {
         const p = Math.max(0, 1 - (now - enemy._swordReleaseAt) / 250);
@@ -529,6 +629,9 @@ function _drawUrielHolySwords() {
             ctx.shadowBlur = 0;
         }
         ctx.restore();
+        // Yog-Sothoth danger-sense: rings the blade itself while it's in
+        // flight, not just Uriel's charge-up (see _drawThreatRing, render/core.js).
+        if (typeof _drawThreatRing === 'function') _drawThreatRing(s.x, s.y, 58, 1);
         if (s._releaseFlash > 0) {
             ctx.save();
             ctx.globalAlpha = Math.max(0, s._releaseFlash);

@@ -185,6 +185,7 @@ function updateSkillD(deltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', deathStar.x, deathStar.y);
             }
             const reach = Math.hypot(canvas.width, canvas.height) * 1.5;
+            const _beamNow = performance.now();
             for (const target of deathStar.markedTargets) {
                 if (!enemies.includes(target) || target.hp <= 0) continue;
                 const tdx = target.x - deathStar.x, tdy = target.y - deathStar.y;
@@ -196,6 +197,10 @@ function updateSkillD(deltaTime) {
                     if (!_skillDCanTarget(enemy) || enemy.hp <= 0) continue;
                     if (distToSegment(enemy, { x: deathStar.x, y: deathStar.y }, { x: endX, y: endY }) < enemy.size / 2 + 6) {
                         dealDamage(enemy, { damage: 100, percentDamage: 0.15, isTrueDamage: true, isPiercing: true });
+                        // -10% evade for 2s (Covenant King ignores every debuff, same as Vulnerability).
+                        // Evade can't go negative - dealDamage's evade check converts any overflow
+                        // past the enemy's own current evade into bonus damage taken instead.
+                        if (enemy.type !== 'uriel') enemy._skillDEvadeDebuffEnd = _beamNow + 2000;
                         _skillDOnKill(enemy);
                     }
                 }

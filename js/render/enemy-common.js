@@ -423,7 +423,13 @@ function _drawWalpurgisAura(enemy, stacks) {
 function drawEnemy(enemy) {
     // Uriel, fully stealthed (Camouflage): invisible, untargetable, skip
     // every overlay below too (vuln icon, shield bar, Walpurgis aura...).
-    if (enemy.type === 'uriel' && enemy._stealthed) return;
+    // Still draws the reappear telegraph (see _drawUrielCamoTelegraph,
+    // render/enemy-uriel.js) once one's been picked, since that's the one
+    // thing meant to show while Uriel itself stays invisible.
+    if (enemy.type === 'uriel' && enemy._stealthed) {
+        if (typeof _drawUrielCamoTelegraph === 'function') _drawUrielCamoTelegraph(enemy);
+        return;
+    }
     if (enemy.type === 'debug_dummy') {
         _drawDebugDummy(enemy, performance.now());
         // The dummy's early return skips every generic overlay below (vuln
@@ -590,6 +596,8 @@ function drawEnemy(enemy) {
             ctx.fill();
         }
         ctx.restore();
+        // Yog-Sothoth danger-sense: rings the chain itself while it's flying.
+        if (typeof _drawThreatRing === 'function') _drawThreatRing(enemy.x, enemy.y, enemy.size * 1.3, 1);
         return;
     }
 
@@ -926,6 +934,10 @@ function drawEnemy(enemy) {
                 ctx.setLineDash([]);
             }
             ctx.restore();
+            // Where the blade will actually land, telegraphed the whole windup.
+            if (frozen && typeof _drawThreatRing === 'function') {
+                _drawThreatRing(gw.targetX, gw.targetY, halfW * 1.3, 1 - gw.freezeTimer / 1000);
+            }
         }
     }
 

@@ -699,6 +699,13 @@ function _drawMarchoBlade(blade) {
         ctx.shadowBlur = 0;
     }
 
+    // Yog-Sothoth danger-sense: rings the blade itself while it's actually
+    // flying (not the pending/warning corridor above, which already has its
+    // own orange telegraph) - see _drawThreatRing, render/core.js.
+    if (blade.active && typeof _drawThreatRing === 'function') {
+        _drawThreatRing(blade.x, blade.y, blade.radius + 15, 1);
+    }
+
     ctx.restore();
 }
 
