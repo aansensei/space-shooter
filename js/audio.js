@@ -378,7 +378,8 @@
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
         'uriel-idle': 1.0, 'uriel-sword-launch': 1.15, 'uriel-death-roar': 1.15,
         'uriel-sword-windup': 1.15, 'uriel-sword-impact': 1.15,
-        'uriel-sword-hover': 0.3, // quiet background texture under the charge, not a lead cue
+        'uriel-sword-hover': 0.6, // quiet background texture under the charge, not a lead cue
+        'uriel-sword-launch-burst': 1.15, // layered under uriel-sword-launch for extra punch
         // camo-vanish's own clip already peaks at 0dBFS - any gain above 1.0
         // just hard-clips its loudest instant instead of getting louder, so
         // it stays at 1.0. camo-reappear peaks at barely a third of full
@@ -898,6 +899,7 @@
         _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1);
         _makePool('leviathan-death-roar',    'assets/audio/sfx/leviathan-death-roar.mp3',    1);
         _makePool('uriel-sword-launch',     'assets/audio/sfx/uriel-sword-launch.mp3',     2);
+        _makePool('uriel-sword-launch-burst', 'assets/audio/sfx/uriel-sword-launch-burst.mp3', 2);
         _makePool('uriel-sword-windup',     'assets/audio/sfx/uriel-sword-windup.mp3',     2);
         _makePool('uriel-sword-impact',     'assets/audio/sfx/uriel-sword-impact.mp3',     2);
         _makePool('uriel-camo-vanish',      'assets/audio/sfx/uriel-camo-vanish.mp3',      1);

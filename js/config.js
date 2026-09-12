@@ -1,6 +1,12 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+// alpha:false - the game background always fully covers the canvas, so the
+// browser never needs to composite it against whatever's behind it.
+// desynchronized:true - lets the browser present frames as soon as they're
+// drawn instead of buffering for vsync alignment, cutting input-to-photon
+// latency. Both are pure presentation hints; neither changes a single pixel
+// this code draws.
+const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 // Default smoothing quality is browser-dependent and can look noticeably
