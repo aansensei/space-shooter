@@ -1863,15 +1863,16 @@ function drawExplosion(exp) {
         // center - that center is exactly where whatever triggered this
         // explosion (an enemy that's often still alive, e.g. Skill A's
         // Thunder Orb hit) is standing, so a solid white-centered fill hid
-        // it completely every single hit.
-        const eg = ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, radius);
-        eg.addColorStop(0, 'rgba(255,255,255,0)');
-        eg.addColorStop(0.35, 'rgba(255,255,255,0.9)');
-        eg.addColorStop(0.6, exp.color);
-        eg.addColorStop(1, 'transparent');
-        ctx.fillStyle = eg;
+        // it completely every single hit. Cached sprite (see
+        // _getExplosionGlowSprite, render/core.js) scaled to the current
+        // radius via drawImage instead of rebuilding the gradient every
+        // frame - radius changes continuously over the lifetime, so a
+        // per-exact-radius cache would never hit, but the color set is
+        // small and fixed, so caching by color alone works well.
+        const _eg = _getExplosionGlowSprite(exp.color);
         ctx.shadowBlur = 20;
-        ctx.beginPath(); ctx.arc(exp.x, exp.y, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowColor = exp.color;
+        ctx.drawImage(_eg, exp.x - radius, exp.y - radius, radius * 2, radius * 2);
 
         // Bloom pass: wide soft halo with screen blend (HIGH only), same
         // hollow-center treatment as the fill above.
@@ -1880,13 +1881,8 @@ function drawExplosion(exp) {
         ctx.globalAlpha = (1 - p) * 0.28;
         ctx.shadowBlur = 0;
         const bloomR = radius * 1.1;
-        const bg = ctx.createRadialGradient(exp.x, exp.y, 0, exp.x, exp.y, bloomR);
-        bg.addColorStop(0,    'rgba(255,255,255,0)');
-        bg.addColorStop(0.25, 'rgba(255,255,255,0.9)');
-        bg.addColorStop(0.45, exp.color);
-        bg.addColorStop(1,    'rgba(0,0,0,0)');
-        ctx.fillStyle = bg;
-        ctx.beginPath(); ctx.arc(exp.x, exp.y, bloomR, 0, Math.PI * 2); ctx.fill();
+        const _bg = _getExplosionBloomSprite(exp.color);
+        ctx.drawImage(_bg, exp.x - bloomR, exp.y - bloomR, bloomR * 2, bloomR * 2);
         ctx.restore();
     }
     ctx.restore();
