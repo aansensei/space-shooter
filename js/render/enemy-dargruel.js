@@ -23,6 +23,15 @@ function _drawDargruel(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
+    // Yog-Sothoth danger-sense: the chain fan doesn't have one single
+    // landing point, so this rings Dargruel itself for the last 400ms
+    // before it fires (see the windup added in main.js's Abyssal Chains
+    // block) - same "about to fire" cue Uriel's own Holy Sword charge gets.
+    if (enemy._chainWindupActive && typeof _drawThreatRing === 'function') {
+        const _chainWp = Math.min(1, Math.max(0, 1 - (enemy.chainTimer || 0) / 400));
+        _drawThreatRing(0, 0, r * 1.4, _chainWp);
+    }
+
     // 1. Abyss aura (outer glow) - a gentle swell on a Demon Gift flash, not
     // a bright blowout - the cracks below already carry the "punctuation"
     // read for each threshold, so this only needs a small nudge on top.

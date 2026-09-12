@@ -116,6 +116,7 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
             enemy._camoTimer = 0;
             enemy._stealthed = true;
             enemy._stealthIBEnd = now + 1750;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-camo-vanish', enemy.x, enemy.y);
             window._urielMotes = window._urielMotes || [];
             for (let k = 0; k < 10; k++) {
                 const a = Math.random() * Math.PI * 2;
@@ -125,6 +126,15 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
     } else if (enemy._camoPhase === 'stealthed') {
         // Regens while fully hidden: 2% MaxHP per second, prorated per frame.
         enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.02 * (deltaTime / 1000));
+        // The reappear spot is rolled 550ms before it actually happens, not
+        // at the moment itself, so _drawUrielCamoTelegraph (render/enemy-
+        // uriel.js) has a fixed point to warn the player at while Uriel is
+        // still fully invisible, instead of it just popping back into view.
+        if (!enemy._camoNextPicked && enemy._camoTimer >= 1750 - 550) {
+            enemy._camoNextPicked = true;
+            enemy._camoNextX = enemy.size / 2 + Math.random() * (canvas.width - enemy.size);
+            enemy._camoNextY = enemy.size / 2 + Math.random() * (canvas.height * 0.5 - enemy.size);
+        }
         if (enemy._camoTimer >= 1750) {
             enemy._stealthed = false;
             // The absolute Iron Body granted for the stealth window (set to
@@ -142,11 +152,13 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
             enemy._camoCDReadyAt = now + 3000;
             // Vanish burst at the spot it's leaving, right before relocating.
             createParticles(enemy.x, enemy.y, 12, '#fff4cc', 3, 9);
-            // Camouflage doesn't just end in place - it relocates Uriel to a
-            // fresh point in the upper half (same margin the normal patrol
-            // waypoints use), so reappearing somewhere new is part of the dodge.
-            enemy.x = enemy.size / 2 + Math.random() * (canvas.width - enemy.size);
-            enemy.y = enemy.size / 2 + Math.random() * (canvas.height * 0.5 - enemy.size);
+            // Camouflage doesn't just end in place - it relocates Uriel to
+            // the point picked 550ms ago above (telegraphed the whole time),
+            // so reappearing somewhere new is part of the dodge.
+            enemy.x = enemy._camoNextX;
+            enemy.y = enemy._camoNextY;
+            enemy._camoNextPicked = false;
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-camo-reappear', enemy.x, enemy.y);
             _urielPickWaypoint(enemy);
             _addEnemyShield(enemy, Math.ceil(enemy.maxHp * 0.20));
             enemy._camoFlatDREnd = now + 2000;
@@ -176,6 +188,7 @@ function _urielTriggerSword(enemy) {
 function _urielStartSword(enemy) {
     enemy._swordCharging = true;
     enemy._swordChargeStart = performance.now();
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-windup', enemy.x, enemy.y);
 }
 
 function _urielUpdateSword(enemy) {
@@ -205,7 +218,7 @@ function _urielLaunchSword(enemy) {
     });
     _setShake(6, 150);
     addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#fff4cc');
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-holy-sword', enemy.x, enemy.y);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-launch', enemy.x, enemy.y);
 }
 
 function updateUriel(enemy, deltaTime) {
@@ -353,6 +366,7 @@ function _updateUrielEffects(deltaTime) {
                 }
                 addExplosion(s.x, s.y, 60, '#ffe27a');
                 createParticles(s.x, s.y, 20, '#fff4cc', 3, 9);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-impact', s.x, s.y);
             }
             for (const sen of sentinels) {
                 if (sen.hp <= 0 || s.hitSentinels.includes(sen)) continue;
@@ -360,6 +374,7 @@ function _updateUrielEffects(deltaTime) {
                     s.hitSentinels.push(sen);
                     dealDamage(sen, { damage: Math.ceil(sen.maxHp * 0.30), isTrueDamage: true, isPiercing: true, _statSrc: 'Uriel: Holy Sword' });
                     addExplosion(sen.x, sen.y, 40, '#bfe0ff');
+                    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-impact', sen.x, sen.y);
                 }
             }
             if (s.x < -100 || s.x > canvas.width + 100 || s.y < -100 || s.y > canvas.height + 100) {
@@ -396,6 +411,7 @@ function _urielSpawnBarrier(enemy) {
         w: enemy.size * 1.2, h: enemy.size * 0.9,
         life: 4000, maxLife: 4000,
     });
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-barrier-spawn', enemy.x, enemy.y);
 }
 
 function _urielBarrierRect(b) {

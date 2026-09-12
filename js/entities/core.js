@@ -685,6 +685,7 @@ function dealDamage(enemy, source) {
     }
 
     // Evade scales from min to max over 3 minutes: lesser 1–2%, abnormal 3–5%, elite 5–10%, dominator 10–15%
+    let _skillDEvadeDmgBonus = 0;
     {
         const _t = Math.min(1, gameElapsedTime / 180000);
         const _evadeLesser   = 0.01 + _t * 0.01;
@@ -727,6 +728,13 @@ function dealDamage(enemy, source) {
         // Walpurgis (Huyết Dạ): +5% evade per stack, applies on top of every
         // enemy's own tier/type evade (including types with 0 base evade).
         _evade += _walpurgisEvadeBonus();
+        // SKILL D Mark & Annihilate: -10% evade for 2s. Evade can never go
+        // negative, so any reduction past the enemy's current evade converts
+        // 1:1 into bonus damage taken on this hit instead of being wasted.
+        if (enemy._skillDEvadeDebuffEnd && performance.now() < enemy._skillDEvadeDebuffEnd) {
+            _skillDEvadeDmgBonus = Math.max(0, 0.10 - _evade);
+            _evade = Math.max(0, _evade - 0.10);
+        }
         if (_evade > 0 && Math.random() < _evade) {
             if (enemy.type === 'goliath') {
                 // Riêng cho Goliath: vòng lục giác tím giãn ra + thân nhấp
@@ -843,6 +851,12 @@ function dealDamage(enemy, source) {
     // Trọng Thương: +16% mỗi stack (max 4 stacks = +64%)
     if (enemy.vulnStacks && enemy.vulnStacks > 0) {
         totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.16));
+    }
+
+    // SKILL D Mark & Annihilate: evade debuff overflow (computed above, in the
+    // evade check) becomes bonus damage taken on this same hit.
+    if (_skillDEvadeDmgBonus > 0) {
+        totalDamage = Math.ceil(totalDamage * (1 + _skillDEvadeDmgBonus));
     }
 
     // Dimensional Rift zone: +25% incoming damage
