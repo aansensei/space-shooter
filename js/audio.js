@@ -884,7 +884,12 @@
         _makePool('goliath-corrupted-meteor', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 2);
         _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1);
         _makePool('leviathan-death-roar',    'assets/audio/sfx/leviathan-death-roar.mp3',    1);
-        _makePool('uriel-holy-sword',       'assets/audio/sfx/uriel-holy-sword.mp3',       2);
+        // Reuses the existing generic blade-whoosh clip (already the
+        // established multi-source "sword attack" sound across Marchosias,
+        // Goliath, Yuusha Party, Remembrance Spirit) - a dedicated
+        // uriel-holy-sword.mp3 was declared here but never actually existed
+        // on disk, so this sfx had been completely silent since launch.
+        _makePool('uriel-holy-sword',       'assets/audio/sfx/spirit-arc-slash.mp3',       2);
         _makePool('uriel-death-roar',       'assets/audio/sfx/uriel-death-roar.mp3',       1);
         _makePool('goliath-unbroken-wave',  'assets/audio/sfx/goliath-unbroken-wave.mp3',  1);
         _makePool('gate-of-babylon',        'assets/audio/sfx/gate-of-babylon.mp3',        2);

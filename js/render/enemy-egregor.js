@@ -402,8 +402,13 @@ function _drawEgregorEffects() {
                 ctx.save();
                 ctx.globalAlpha = fade;
 
+                // All 5 layers share one glow gate instead of only the first
+                // layer checking it - each layer used to set shadowBlur
+                // unconditionally regardless of tier.
+                const _tempestGlow = !_mobPerf && _gfxLevel < 2;
+
                 // Layer 0: wide outer aura (deep purple)
-                if (!_mobPerf) { ctx.shadowColor = '#7700ff'; ctx.shadowBlur = 28; }
+                if (_tempestGlow) { ctx.shadowColor = '#7700ff'; ctx.shadowBlur = 28; }
                 ctx.strokeStyle = `rgba(100,0,220,${fade * 0.5})`;
                 ctx.lineWidth = 14;
                 ctx.lineCap = 'round';
@@ -413,7 +418,7 @@ function _drawEgregorEffects() {
                 ctx.stroke();
 
                 // Layer 1: magenta mid bolt
-                ctx.shadowBlur = 18;
+                if (_tempestGlow) ctx.shadowBlur = 18;
                 ctx.strokeStyle = `rgba(220,50,255,${fade * 0.8})`;
                 ctx.lineWidth = 6;
                 ctx.beginPath();
@@ -425,7 +430,7 @@ function _drawEgregorEffects() {
                 if (t._branchA) {
                     ctx.strokeStyle = `rgba(180,80,255,${fade * 0.7})`;
                     ctx.lineWidth = 4;
-                    ctx.shadowColor = '#cc44ff'; ctx.shadowBlur = 14;
+                    if (_tempestGlow) { ctx.shadowColor = '#cc44ff'; ctx.shadowBlur = 14; }
                     ctx.beginPath();
                     ctx.moveTo(t._branchA[0].x, t._branchA[0].y);
                     for (let k = 1; k < t._branchA.length; k++) ctx.lineTo(t._branchA[k].x, t._branchA[k].y);
@@ -435,7 +440,7 @@ function _drawEgregorEffects() {
                 // Layer 3: main zigzag bolt (bright purple-white)
                 ctx.strokeStyle = `rgba(230,160,255,${fade})`;
                 ctx.lineWidth = 2.5;
-                ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 16;
+                if (_tempestGlow) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 16; }
                 ctx.beginPath();
                 ctx.moveTo(t._mainBolt[0].x, t._mainBolt[0].y);
                 for (let k = 1; k < t._mainBolt.length; k++) ctx.lineTo(t._mainBolt[k].x, t._mainBolt[k].y);
@@ -444,7 +449,7 @@ function _drawEgregorEffects() {
                 // Layer 4: white-hot core bolt (thinnest)
                 ctx.strokeStyle = `rgba(255,255,255,${fade * 0.95})`;
                 ctx.lineWidth = 1.2;
-                ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8;
+                if (_tempestGlow) { ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8; }
                 ctx.beginPath();
                 ctx.moveTo(t._thinBolt[0].x, t._thinBolt[0].y);
                 for (let k = 1; k < t._thinBolt.length; k++) ctx.lineTo(t._thinBolt[k].x, t._thinBolt[k].y);

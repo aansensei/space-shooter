@@ -1995,6 +1995,13 @@ function update(rawDeltaTime) {
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemyRadius + b.size) {
 
+                // URIEL MID-CAMOUFLAGE: fully invisible and untargetable. Its
+                // own absolute Iron Body would've silently eaten the hit
+                // anyway, but not skipping the collision outright still
+                // consumed the bullet and spawned Iron Body's gold particles
+                // at its exact position, betraying a spot that's supposed to
+                // be completely hidden.
+                if (enemy._stealthed) { continue; }
                 // ABYSSAL CHAIN: piercing, immune to all player attacks
                 if (enemy.type === 'abyssal_chain') { continue; }
                 // VEILSHROUD ECHO: untargetable / immune

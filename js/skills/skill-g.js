@@ -30,6 +30,7 @@ function endSkillG() {
     energyOrbs.forEach(orb => {
         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
+            if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
@@ -42,6 +43,7 @@ function endSkillG() {
         if (coil.dotTargets) coil.dotTargets.clear();
         addExplosion(coil.x, coil.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
+            if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < explosionRadius + enemyRadius) {
                 dealDamage(enemy, explosionProps);
@@ -159,6 +161,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         const explosionRadius = orb.size * 5;
                         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                         enemies.forEach(enemy => {
+                            if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                                 dealDamage(enemy, explosionProps);
@@ -186,6 +189,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     const explosionRadius = orb.size * 5;
                     addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                     enemies.forEach(enemy => {
+                        if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                         let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                         if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < explosionRadius + enemyRadius) {
                             dealDamage(enemy, explosionProps);
@@ -236,7 +240,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         if (_hasBuff('set_day_chuyen') && Math.random() < 0.50) {
                             let _closest = null, _closestDist = Infinity;
                             for (const _oe of enemies) {
-                                if (_oe === enemy || _oe.type.startsWith('enemy_bullet') || _oe.inCoronation) continue;
+                                if (_oe === enemy || _oe.type.startsWith('enemy_bullet') || _oe.inCoronation || _oe._stealthed) continue;
                                 const _d = Math.hypot(_oe.x - enemy.x, _oe.y - enemy.y);
                                 if (_d < 150 && _d < _closestDist) { _closest = _oe; _closestDist = _d; }
                             }
@@ -297,6 +301,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
             const explosionProps = { damage: 20 * _coilDmgMult, percentDamage: 0.15 * _coilDmgMult, _statSrc: 'Skill G: Tesla Coil' };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {
+                if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
                 if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
                     dealDamage(enemy, explosionProps);

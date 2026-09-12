@@ -395,7 +395,7 @@ function updatePhotokrystos(spirit, deltaTime) {
         // avoids both the array allocation and the O(n log n) sort.
         let e0 = null, d0 = Infinity, e1 = null, d1 = Infinity, e2 = null, d2 = Infinity;
         for (const e of enemies) {
-            if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'veilshroud_echo' || e.inCoronation || e.hp <= 0 || e._markedForDeath) continue;
+            if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'veilshroud_echo' || e.inCoronation || e.hp <= 0 || e._markedForDeath || e._stealthed) continue;
             const d = Math.hypot(e.x - spirit.x, e.y - spirit.y);
             if (d < d0) { e2 = e1; d2 = d1; e1 = e0; d1 = d0; e0 = e; d0 = d; }
             else if (d < d1) { e2 = e1; d2 = d1; e1 = e; d1 = d; }
@@ -446,7 +446,7 @@ const MAX_BRANG_PENDING = 5;
 function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
     const _photo = spirits.find(s => s.isPhotokrystos);
     const validTargets = enemies.filter(e =>
-        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath && !e._stealthed
     );
     if (validTargets.length === 0) return;
 
@@ -541,7 +541,7 @@ function updatePhotoBrangs(deltaTime) {
         let tgt = null;
         while (b.targetIdx < b.targets.length) {
             const candidate = b.targets[b.targetIdx];
-            if (candidate && enemies.includes(candidate) && candidate.type !== 'veilshroud_echo' && !candidate.inCoronation && candidate.hp > 0 && !candidate._markedForDeath) {
+            if (candidate && enemies.includes(candidate) && candidate.type !== 'veilshroud_echo' && !candidate.inCoronation && candidate.hp > 0 && !candidate._markedForDeath && !candidate._stealthed) {
                 tgt = candidate; break;
             }
             b.targetIdx++; // skip dead/gone targets
@@ -626,7 +626,7 @@ function updatePhotoBrangs(deltaTime) {
                 const newValid = enemies.filter(e =>
                     !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' &&
                     e.type !== 'veilshroud_echo' && !e.inCoronation &&
-                    e.hp > 0 && !e._markedForDeath
+                    e.hp > 0 && !e._markedForDeath && !e._stealthed
                 );
                 if (newValid.length > 0) {
                     b.targets = _shuffleArray(newValid);

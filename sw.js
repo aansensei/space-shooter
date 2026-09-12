@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v290';
+const CACHE_VERSION = 'v292';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -34,6 +34,12 @@ const CORE_FILES = [
     'assets/images/game/effects/yog-sothoth-starry-night.jpg',
     'assets/images/game/icons/walpurgis-icon.png',
     'assets/images/game/icons/blood-arrow-stack.png',
+    'assets/images/game/icons/dargruel-root-silence-debuff.png',
+    'assets/images/game/icons/goliath-silence-debuff.png',
+    'assets/images/game/icons/soul-reaver-debuff.png',
+    'assets/images/game/sigils/cancer-whirlpool-oceanfloor.png',
+    'assets/images/game/sigils/tidal-meter-frame.png',
+    'assets/images/game/sigils/great-sage-gem-frame.png',
     'assets/images/game/enemies/marchosias-hexagon-armor.png',
     'assets/images/game/enemies/thaelis-cocoon.png',
     'assets/images/game/enemies/uriel-divine-core.png',

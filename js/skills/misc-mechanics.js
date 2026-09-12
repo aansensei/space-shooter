@@ -69,11 +69,11 @@ function updateSoulReaverDoT(deltaTime) {
         enemy.soulReaverDotTimer -= deltaTime;
         if (enemy.soulReaverDotTimer <= 0) {
             enemy.soulReaverDotTimer = 350; // 0.35 giây
-            // Sát thương chuẩn bỏ qua khiên, áp thẳng vào HP
-            const dotDmg = Math.ceil(60 + (enemy.maxHp || enemy.hp) * 0.055);
-            enemy.hp -= dotDmg;
-            enemy.hp = Math.max(0, enemy.hp);
-            if (enemy.hp <= 0) enemy._markedForDeath = true;
+            // Routed through dealDamage (true damage, bypasses shield same
+            // as before) instead of subtracting HP directly, so Iron Body,
+            // Custos Aeternus, AFO shields, Arc Barrier, and Goliath's own
+            // invincibility phases actually gate it like every other source.
+            dealDamage(enemy, { damage: 60, percentDamage: 0.055, isTrueDamage: true, _isSrDot: true, _statSrc: 'Soul Reaver' });
             // Particle nhỏ màu cam để thể hiện DoT
             createParticles(
                 enemy.x + (Math.random() - 0.5) * (enemy.size || 20),

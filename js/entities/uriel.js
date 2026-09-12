@@ -115,7 +115,7 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
             enemy._camoPhase = 'stealthed';
             enemy._camoTimer = 0;
             enemy._stealthed = true;
-            enemy._stealthIBEnd = now + 1500;
+            enemy._stealthIBEnd = now + 1750;
             window._urielMotes = window._urielMotes || [];
             for (let k = 0; k < 10; k++) {
                 const a = Math.random() * Math.PI * 2;
@@ -125,7 +125,7 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
     } else if (enemy._camoPhase === 'stealthed') {
         // Regens while fully hidden: 2% MaxHP per second, prorated per frame.
         enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.02 * (deltaTime / 1000));
-        if (enemy._camoTimer >= 1500) {
+        if (enemy._camoTimer >= 1750) {
             enemy._stealthed = false;
             // The absolute Iron Body granted for the stealth window (set to
             // 999 via Math.max, so it can only ever be pushed up, never back
@@ -140,6 +140,14 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
             // brings it back to a normal 1-layer state on its own shortly after.
             enemy.ironBodyHits = 0;
             enemy._camoCDReadyAt = now + 3000;
+            // Vanish burst at the spot it's leaving, right before relocating.
+            createParticles(enemy.x, enemy.y, 12, '#fff4cc', 3, 9);
+            // Camouflage doesn't just end in place - it relocates Uriel to a
+            // fresh point in the upper half (same margin the normal patrol
+            // waypoints use), so reappearing somewhere new is part of the dodge.
+            enemy.x = enemy.size / 2 + Math.random() * (canvas.width - enemy.size);
+            enemy.y = enemy.size / 2 + Math.random() * (canvas.height * 0.5 - enemy.size);
+            _urielPickWaypoint(enemy);
             _addEnemyShield(enemy, Math.ceil(enemy.maxHp * 0.20));
             enemy._camoFlatDREnd = now + 2000;
             enemy._camoPhase = 'shielded';

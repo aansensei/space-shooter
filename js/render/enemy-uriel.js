@@ -19,6 +19,12 @@ const URIEL_GOLD = '#ffd76b', URIEL_WHITE = '#fffaf0', URIEL_BLUE = '#7aa8ff';
 // to absorb a hit; dims to a thin standby ring while that layer is spent
 // and waiting out its 5s re-grant timer, so the two states read apart.
 function _drawUrielBuffRing(enemy) {
+    // This buff never expires while Uriel is alive, so it's showing on
+    // every enemy that's been alive alongside it - potentially the whole
+    // horde by mid-wave. Gated by tier like the rest of Uriel's own
+    // effects, since a dashed ring + shadow on dozens of enemies a frame
+    // adds up fast, and Smart Quality already dropped tier for a reason.
+    if (_gfxLevel >= 2) return;
     const now = performance.now();
     const r = (enemy.size || 20) / 2 + 8;
     const hasIB = !!enemy._urielIB;

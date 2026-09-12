@@ -391,6 +391,7 @@ function updateDimensionalRifts(deltaTime) {
                         if (other === enemy || other.type.startsWith('enemy_bullet')) continue;
                         if (other.type === 'veilshroud_echo' || other.type === 'embryo' || other.inCoronation) continue;
                         if (other.type === 'thaelis_cocoon' || other.type === 'thaelis_guard') continue; // immune to every DOT, chain lightning included
+                        if (other.type === 'uriel' || other._stealthed) continue; // Covenant King: immune to every DOT/debuff source
                         if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < 150) {
                             dealDamage(other, { damage: chainDmg, isChainLightning: true, applySoulReaver: Math.random() < 0.60 });
                             chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: other.x, y2: other.y, lifetime: 250, maxLifetime: 250 });
@@ -434,6 +435,7 @@ function updateScatteredProjectiles(deltaTime) {
             if (enemy.type === 'abyssal_chain') continue;   // piercing, immune
             if (enemy.type === 'veilshroud_echo') continue; // untargetable
             if (enemy.inCoronation) continue;               // untargetable during coronation
+            if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - proj.x, enemy.y - proj.y) < enemyRadius + proj.size) {
                 if (proj.isBouncingBall) {

@@ -638,13 +638,14 @@ function dealDamage(enemy, source) {
     // (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare) - only a
     // direct hit counts against them, so a Guard can't just be tagged with a
     // tick and left to melt on its own.
-    if (enemy.type === 'thaelis_guard' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot)) {
+    if (enemy.type === 'thaelis_guard' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
         return;
     }
     // Uriel: immune to every DOT source (Tesla Coil, Dimensional Rift's Soul
-    // Devourer, Solar Flare, Yog-Sothoth's own tick) - a Covenant King never
-    // gets whittled down by a lingering tick, only a direct hit counts.
-    if (enemy.type === 'uriel' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot)) {
+    // Devourer, Solar Flare, Yog-Sothoth's own tick, Soul Reaver) - a
+    // Covenant King never gets whittled down by a lingering tick, only a
+    // direct hit counts.
+    if (enemy.type === 'uriel' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
         return;
     }
     if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
@@ -783,7 +784,7 @@ function dealDamage(enemy, source) {
     if (!isSentinel && !source._vanguardTag && !source._noBase60
         && (source.damage > 0 || (source.percentDamage || 0) > 0)
         && !source.isTeslaDot && !source._isNocToiDot
-        && !source._isDtuDot && !source._isSthDot && !source._yogExplosion) {
+        && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._yogExplosion) {
         totalDamage += 60;
         // Sigil: Lion's Roar — every hit also deals 2% of the enemy's own lost HP as bonus dmg
         if (_hasBuff('su_tu_hong')) {
@@ -1210,7 +1211,7 @@ function dealDamage(enemy, source) {
     // return sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
-        && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot) {
+        && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot && !source._isSrDot) {
         const _capPct = Math.min(0.03, 0.015 + _goliathDebuffStackCount(enemy) * 0.003);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }

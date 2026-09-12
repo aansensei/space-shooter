@@ -50,12 +50,12 @@ const TIDAL_SURGE_MAX_WHIRLPOOLS = 10;
 // One whirlpool per enemy currently on screen (capped, closest-to-player
 // first) instead of one whirlpool trying to reach across the whole map -
 // every enemy gets its own personal riptide right where it's standing,
-// guaranteeing the pull always actually catches something. CC Immune still
-// isn't pulled once it's spinning (see _updateTidalSurge), it just also
-// starts right on top of its own vortex either way.
+// guaranteeing the pull always actually catches something. CC Immune enemies
+// get pulled in too, same as Skill D's own black hole (see _pullEnemiesToward)
+// - a whirlpool's suction is primordial force, not a status-effect CC.
 function _spawnTidalWhirlpool() {
     const targets = enemies.filter(e =>
-        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation);
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && !e._stealthed);
     targets.sort((a, b) => Math.hypot(a.x - player.x, a.y - player.y) - Math.hypot(b.x - player.x, b.y - player.y));
     const picked = targets.slice(0, TIDAL_SURGE_MAX_WHIRLPOOLS);
     if (picked.length === 0) {
@@ -110,6 +110,10 @@ function _checkTidalSurgeSentinelReplenish(now) {
 function _pullEnemiesToward(w, strength, deltaTime, dur) {
     for (const enemy of enemies) {
         if (enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
+        if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
+        // CC Immune enemies are pulled anyway, same as Skill D's own black
+        // hole - the whirlpool's suction is raw primordial force, not a
+        // status-effect CC, so immunity to the latter doesn't cover it.
         const d = Math.hypot(enemy.x - w.x, enemy.y - w.y);
         if (d > TIDAL_SURGE_PULL_RADIUS || d < 10) continue;
         enemy.x += (w.x - enemy.x) * strength * (deltaTime / dur) * 6;
@@ -148,7 +152,7 @@ function _updateTidalSurge(deltaTime) {
         if (w.dotTimer >= TIDAL_SURGE_DOT_INTERVAL) {
             w.dotTimer -= TIDAL_SURGE_DOT_INTERVAL;
             for (const enemy of enemies) {
-                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
+                if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy._stealthed) continue;
                 if (Math.hypot(enemy.x - w.x, enemy.y - w.y) > TIDAL_SURGE_PULL_RADIUS) continue;
                 dealDamage(enemy, { damage: TIDAL_SURGE_DOT_DAMAGE, percentDamage: TIDAL_SURGE_DOT_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
             }
@@ -193,7 +197,7 @@ function _updateTidalSurge(deltaTime) {
                 w.popAmount = 1.5;
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('cancer-whale-bite', w.x, w.y);
                 for (const enemy of enemies) {
-                    if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
+                    if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy._stealthed) continue;
                     if (w.hitEnemies.includes(enemy)) continue;
                     if (Math.hypot(enemy.x - w.x, enemy.y - w.y) <= TIDAL_SURGE_BURST_RADIUS) {
                         w.hitEnemies.push(enemy);
