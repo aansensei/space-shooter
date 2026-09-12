@@ -99,6 +99,7 @@ function _urielTriggerCamo(enemy) {
     if (enemy._swordCharging) {
         enemy._swordCharging = false;
         enemy._urielSwordQueued = (enemy._urielSwordQueued || 0) + 1;
+        if (window.AudioMgr) window.AudioMgr.stopUrielSwordHover();
     }
     // A brief visible windup (energy gathering in) before it actually
     // vanishes, rather than snapping straight to invisible.
@@ -188,7 +189,10 @@ function _urielTriggerSword(enemy) {
 function _urielStartSword(enemy) {
     enemy._swordCharging = true;
     enemy._swordChargeStart = performance.now();
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-windup', enemy.x, enemy.y);
+    if (window.AudioMgr) {
+        window.AudioMgr.playSfxAt('uriel-sword-windup', enemy.x, enemy.y);
+        window.AudioMgr.startUrielSwordHover();
+    }
 }
 
 function _urielUpdateSword(enemy) {
@@ -197,6 +201,7 @@ function _urielUpdateSword(enemy) {
         enemy._swordCharging = false;
         enemy._swordFiring = true;
         enemy._swordReleaseAt = now;
+        if (window.AudioMgr) window.AudioMgr.stopUrielSwordHover();
         _urielLaunchSword(enemy);
     } else if (enemy._swordFiring && now - enemy._swordReleaseAt > 250) {
         enemy._swordFiring = false;
