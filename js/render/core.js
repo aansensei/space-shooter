@@ -121,6 +121,32 @@ function _getGlowSprite(color, radius) {
     return c;
 }
 
+// Ring-shaped glow: transparent at the center AND at the outer edge, a
+// bright band in between - used for the enemy hit-flash (pixi-renderer.js)
+// so the flash reads as a pulse around an enemy's own silhouette instead
+// of a filled disc sitting on top of it and hiding the sprite underneath.
+const _ringGlowSpriteCache = {};
+function _getRingGlowSprite(color, radius) {
+    if (!isFinite(radius) || radius <= 0) return null;
+    color = color || '#ffffff';
+    const r = Math.ceil(radius);
+    const key = color + '_' + r;
+    if (_ringGlowSpriteCache[key]) return _ringGlowSpriteCache[key];
+    const dim = r * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = dim;
+    const cx = c.getContext('2d');
+    const g = cx.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.55, 'rgba(0,0,0,0)');
+    g.addColorStop(0.75, color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = g;
+    cx.fillRect(0, 0, dim, dim);
+    _ringGlowSpriteCache[key] = c;
+    return c;
+}
+
 // Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality)
 const _bulletSpriteCache = {};
 function _getBulletSprite(type, size, gfxLvl) {
@@ -1240,6 +1266,211 @@ function drawYogSothothDomain() {
     _drawYogSothothDomainMythos();
 }
 
+// Teleport control hint: a real DOM pill (#yog-teleport-hint, index.html),
+// same small floating-pill language the game already uses elsewhere (see
+// #position-peek-hint), instead of canvas text - it sits above the canvas
+// natively with no z-order juggling needed, and its own CSS keeps it small
+// and translucent enough to never fully hide an enemy or the backdrop
+// behind it. Toggled here each frame rather than at the domain's various
+// activation/deactivation sites, so it can't drift out of sync with any of them.
+function _drawYogShiftTeleportHint() {
+    const hintEl = document.getElementById('yog-teleport-hint');
+    if (!hintEl) return;
+    if (!(gameState === "playing" && skillShiftActive)) { hintEl.style.display = 'none'; return; }
+    const elapsed = performance.now() - skillShiftChargeStart;
+    if (elapsed < 600) { hintEl.style.display = 'none'; return; } // wait for the domain's own expand-in
+    hintEl.style.display = 'block';
+    hintEl.style.opacity = Math.min(1, (elapsed - 600) / 400);
+}
+
+// Suspended brass pocket watch, the domain's "time" motif made literal.
+// Used to be drawn inside _drawYogSothothDomainMythos() itself, last in
+// its clipped painting pass - fine against the rest of the backdrop, but
+// still only the topmost of THAT one pass, drawn early in the frame
+// (see the call site near the top of the main render loop). Anything
+// drawn afterward - enemies, bullets, particles - still rendered over
+// it. Now its own function, called dead last in the frame (see the call
+// site near the bottom, right by _drawYogShiftTeleportHint), so nothing
+// in the scene can ever cover it.
+function _drawYogShiftPocketWatch() {
+    if (!(gameState === "playing" && skillShiftActive)) return;
+    if (_gfxLevel !== 0) return; // FULL tier only, same as the rest of the domain's showcase detail
+    const now = performance.now();
+    const elapsed = now - skillShiftChargeStart;
+    // No hard time gate here - fxIn alone (same 300ms ramp every other
+    // domain element uses) fades it in from elapsed=0, so it opens up
+    // together with the rest of the scene instead of popping in at full
+    // brightness 300ms after everything else already finished fading in.
+    const fxIn = Math.min(1, elapsed / 300);
+    const breathe = (0.94 + 0.06 * Math.sin(now / 4000)) * fxIn;
+    const bgCx = canvas.width / 2, bgCy = canvas.height / 2;
+
+    const pwX = bgCx + canvas.width * 0.38, pwY = bgCy + canvas.height * 0.22;
+    const pwR = canvas.width * 0.04;
+    const sway = Math.sin(now / 2600) * 0.1;
+    ctx.save();
+    ctx.translate(pwX, pwY);
+
+    // Outer glow halo, pulsing - sells "this thing bends time around
+    // it" before a single gear is even visible.
+    const haloPulse = 0.6 + 0.4 * Math.sin(now / 1400);
+    const haloG = ctx.createRadialGradient(0, 0, 0, 0, 0, pwR * 2.6);
+    haloG.addColorStop(0, `rgba(255,214,120,${0.35 * haloPulse * breathe})`);
+    haloG.addColorStop(0.5, `rgba(200,150,60,${0.16 * haloPulse * breathe})`);
+    haloG.addColorStop(1, 'rgba(200,150,60,0)');
+    ctx.fillStyle = haloG;
+    ctx.beginPath(); ctx.arc(0, 0, pwR * 2.6, 0, Math.PI * 2); ctx.fill();
+
+    // Orbiting motes of gold dust, like the watch is actively pulling
+    // time (and light) in around itself.
+    const moteCount = 7;
+    for (let m = 0; m < moteCount; m++) {
+        const mAng = now / 1800 + (m / moteCount) * Math.PI * 2;
+        const mR = pwR * (1.35 + 0.25 * Math.sin(now / 700 + m * 2));
+        const mx = Math.cos(mAng) * mR, my = Math.sin(mAng) * mR * 0.9;
+        const mAlpha = (0.4 + 0.4 * Math.sin(now / 500 + m)) * breathe;
+        ctx.fillStyle = `rgba(255,224,150,${mAlpha})`;
+        if (!_mobPerf) { ctx.shadowColor = '#ffdd88'; ctx.shadowBlur = 6; }
+        ctx.beginPath(); ctx.arc(mx, my, 1.6, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    ctx.rotate(sway);
+
+    // Bail + a short length of chain fading up into the painted sky,
+    // selling that it hangs from somewhere rather than floating loose.
+    ctx.strokeStyle = `rgba(180,150,90,${0.5 * breathe})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -pwR * 1.1);
+    for (let k = 1; k <= 4; k++) {
+        const ly = -pwR * 1.1 - k * pwR * 0.3;
+        ctx.lineTo(Math.sin(now / 900 + k) * pwR * 0.05, ly);
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, -pwR * 0.98, pwR * 0.11, pwR * 0.15, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Crown (winding knob).
+    ctx.fillStyle = `rgba(200,168,96,${0.7 * breathe})`;
+    ctx.fillRect(-pwR * 0.05, -pwR * 0.98, pwR * 0.1, pwR * 0.18);
+
+    // Case: a ring built from short overlapping arced brush strokes
+    // instead of one perfect ctx.arc() stroke - a clean vector circle
+    // was the one sterile shape sitting in an otherwise all-painterly
+    // scene, same problem the domain's own moon crescent solves.
+    ctx.globalAlpha = breathe;
+    if (!_mobPerf) { ctx.shadowColor = '#c9a04a'; ctx.shadowBlur = 6; }
+    const caseTones = ['#caa568', '#a9793a', '#e0bc7e', '#8f6a2e'];
+    const caseStrokes = 16;
+    for (let cs = 0; cs < caseStrokes; cs++) {
+        const p1 = (Math.sin(cs * 24.3) + 1) / 2;
+        const a0 = (cs / caseStrokes) * Math.PI * 2;
+        const sweep = (Math.PI * 2 / caseStrokes) * (1.35 + p1 * 0.3);
+        const rr = pwR * (0.97 + p1 * 0.06);
+        ctx.strokeStyle = caseTones[cs % caseTones.length];
+        ctx.lineWidth = 3 + p1 * 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, a0, a0 + sweep);
+        ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    // Face: base tonal gradient first, then clipped impasto brush
+    // strokes on top so the face itself reads as painted canvas, not a
+    // flat vector fill.
+    ctx.save();
+    ctx.beginPath(); ctx.arc(0, 0, pwR * 0.82, 0, Math.PI * 2); ctx.clip();
+    const faceG = ctx.createRadialGradient(0, 0, 0, 0, 0, pwR * 0.88);
+    faceG.addColorStop(0, 'rgba(250,238,205,0.85)');
+    faceG.addColorStop(1, 'rgba(210,190,140,0.65)');
+    ctx.fillStyle = faceG;
+    ctx.beginPath(); ctx.arc(0, 0, pwR * 0.82, 0, Math.PI * 2); ctx.fill();
+    const faceTones = ['#fff6de', '#f3e3b8', '#fffaf0', '#e8d19c'];
+    for (let f = 0; f < 7; f++) {
+        const p1 = (Math.sin(f * 41.3) + 1) / 2;
+        const p2 = (Math.sin(f * 19.6) + 1) / 2;
+        const fy = -pwR * 0.7 + p1 * pwR * 1.4;
+        const fx0 = -pwR * 0.75 + p2 * pwR * 0.5;
+        const fLen = pwR * (0.7 + p2 * 0.5);
+        ctx.globalAlpha = (0.25 + p1 * 0.3) * breathe;
+        ctx.strokeStyle = faceTones[f % faceTones.length];
+        ctx.lineWidth = pwR * (0.1 + p2 * 0.06);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(fx0, fy);
+        ctx.quadraticCurveTo(fx0 + fLen * 0.5, fy - pwR * 0.08, fx0 + fLen, fy);
+        ctx.stroke();
+    }
+    ctx.globalAlpha = breathe;
+    ctx.restore();
+
+    // Hour ticks.
+    ctx.strokeStyle = 'rgba(90,70,30,0.7)';
+    ctx.lineWidth = 1.4;
+    for (let h = 0; h < 12; h++) {
+        const a = (h / 12) * Math.PI * 2;
+        const r1 = pwR * 0.68, r2 = pwR * 0.78;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+        ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+        ctx.stroke();
+    }
+
+    // Hands sweep at a visibly brisk, satisfying pace instead of
+    // barely creeping - minute hand once every 6s, hour hand once a minute.
+    const hourAngle = (now / 60000) * Math.PI * 2 - Math.PI / 2;
+    const minAngle = (now / 6000) * Math.PI * 2 - Math.PI / 2;
+
+    // Glowing motion trail behind the minute hand - a fan of fading
+    // wedges sweeping backward from its tip, so the "brisk" sweep
+    // actually reads as fast motion instead of just a moved line.
+    const trailSteps = 10;
+    for (let t = trailSteps; t >= 1; t--) {
+        const trAngle = minAngle - t * 0.05;
+        const trAlpha = (1 - t / trailSteps) * 0.35 * breathe;
+        ctx.strokeStyle = `rgba(255,214,120,${trAlpha})`;
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(trAngle) * pwR * 0.6, Math.sin(trAngle) * pwR * 0.6);
+        ctx.stroke();
+    }
+
+    ctx.strokeStyle = 'rgba(60,45,20,0.85)';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(hourAngle) * pwR * 0.4, Math.sin(hourAngle) * pwR * 0.4); ctx.stroke();
+    if (!_mobPerf) { ctx.shadowColor = '#ffe9b0'; ctx.shadowBlur = 8; }
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(minAngle) * pwR * 0.6, Math.sin(minAngle) * pwR * 0.6); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(60,45,20,0.9)';
+    ctx.beginPath(); ctx.arc(0, 0, pwR * 0.05, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.restore();
+
+    // Time-pulse ripple: once per full minute-hand sweep (every 6s), a
+    // ring of light bursts outward from the watch - a visible "beat".
+    const pulsePhase = (now / 6000) % 1;
+    if (pulsePhase < 0.4) {
+        const pulseT = pulsePhase / 0.4;
+        ctx.save();
+        ctx.translate(pwX, pwY);
+        ctx.globalAlpha = (1 - pulseT) * 0.5 * breathe;
+        ctx.strokeStyle = '#ffdd88';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, pwR * (1.1 + pulseT * 1.8), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
 function _drawYogSothothDomainClassic() {
         const now = performance.now();
         let elapsed = now - skillShiftChargeStart;
@@ -2353,6 +2584,8 @@ function draw(deltaTime) {
         if (_pxDt > 15) console.warn('[PIXI] render took ' + _pxDt.toFixed(0) + 'ms (bullets=' + bullets.length + ', particles=' + particles.length + ')');
     }
     if (typeof _drawSigilChromFlash === 'function') _drawSigilChromFlash();
+    _drawYogShiftPocketWatch();
+    _drawYogShiftTeleportHint();
     ctx.restore();
     if (window._sigilPicker && typeof drawSigilPicker === 'function') drawSigilPicker();
 }

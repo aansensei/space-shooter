@@ -251,6 +251,31 @@ canvas {
     white-space: nowrap;
 }
 
+/* Yog-Sothoth domain: small floating reminder that arrows teleport while
+   the domain is open. Same pill language as #position-peek-hint, kept
+   smaller/quieter since it has to hover over live gameplay (enemies,
+   bullets, the painted backdrop) rather than a paused, frozen screen. */
+#yog-teleport-hint {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 14px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    color: rgba(203, 213, 225, 0.85);
+    background: rgba(0, 5, 15, 0.45);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    border-radius: 16px;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;
+    z-index: 50;
+    transition: opacity 0.3s;
+}
+
 #main-menu-btn {
     padding: 15px 32px;
     font-size: 20px;
