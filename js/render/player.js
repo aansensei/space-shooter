@@ -335,6 +335,222 @@ function drawSpiritBullet(b) {
     ctx.restore();
 }
 
+// The ship's hull/wings/body/cockpit/thrusters never change shape or color
+// frame to frame (no skin system, no rotation, no buff recolors this deep) -
+// only the engine flames animate. Baking that static block into one sprite
+// turns 7 gradient rebuilds + ~30 fill/stroke calls a frame into a single
+// drawImage, the same fix already proven on Uriel's eyes (render/enemy-uriel.js).
+const _PLAYER_SHIP_PAD_X = 35, _PLAYER_SHIP_PAD_Y = 35, _PLAYER_SHIP_H = 100;
+let _playerShipBaseSprite = null;
+function _getPlayerShipBaseSprite() {
+    if (_playerShipBaseSprite) return _playerShipBaseSprite;
+    const c = document.createElement('canvas');
+    c.width = _PLAYER_SHIP_PAD_X * 2;
+    c.height = _PLAYER_SHIP_H;
+    const cx = c.getContext('2d');
+    cx.translate(_PLAYER_SHIP_PAD_X, _PLAYER_SHIP_PAD_Y);
+
+    // engine exhaust plume (gradient fill, no blur)
+    const exG = cx.createRadialGradient(0, 30, 0, 0, 38, 22);
+    exG.addColorStop(0, 'rgba(0,180,255,0.28)');
+    exG.addColorStop(0.5, 'rgba(0,100,200,0.1)');
+    exG.addColorStop(1, 'transparent');
+    cx.fillStyle = exG;
+    cx.fillRect(-22, 24, 44, 32);
+
+    //  LAYER 1 – MAIN HULL BASE (dark fuselage)
+    const hullG = cx.createLinearGradient(-28, 0, 28, 0);
+    hullG.addColorStop(0, '#0a1428');
+    hullG.addColorStop(0.5, '#1a2a45');
+    hullG.addColorStop(1, '#0a1428');
+    cx.fillStyle = hullG;
+    cx.beginPath();
+    cx.moveTo(0, 0);
+    cx.lineTo(24, 12); cx.lineTo(24, 20); cx.lineTo(10, 16);
+    cx.lineTo(-10, 16); cx.lineTo(-24, 20); cx.lineTo(-24, 12);
+    cx.closePath(); cx.fill();
+
+    // hull surface panels (riveted look)
+    // left panel
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.beginPath();
+    cx.moveTo(-2, 2); cx.lineTo(-22, 14); cx.lineTo(-22, 20); cx.lineTo(-10, 16); cx.lineTo(-2, 14);
+    cx.closePath(); cx.fill();
+    // right panel
+    cx.beginPath();
+    cx.moveTo(2, 2); cx.lineTo(22, 14); cx.lineTo(22, 20); cx.lineTo(10, 16); cx.lineTo(2, 14);
+    cx.closePath(); cx.fill();
+
+    //  LAYER 2 – WINGS
+    const wingG = cx.createLinearGradient(0, -10, 0, 20);
+    wingG.addColorStop(0, '#1e3a5f');
+    wingG.addColorStop(0.5, '#162d4a');
+    wingG.addColorStop(1, '#0d1f33');
+    cx.fillStyle = wingG;
+    cx.beginPath();
+    cx.moveTo(0, -10); cx.lineTo(28, 10); cx.lineTo(26, 16);
+    cx.lineTo(8, 12); cx.lineTo(-8, 12); cx.lineTo(-26, 16);
+    cx.lineTo(-28, 10); cx.closePath(); cx.fill();
+
+    // wing accent edge (cyan trim line)
+    cx.strokeStyle = '#38bdf8'; cx.lineWidth = 1.2;
+    cx.beginPath();
+    cx.moveTo(0, -10); cx.lineTo(28, 10); cx.lineTo(26, 16);
+    cx.lineTo(8, 12); cx.lineTo(-8, 12); cx.lineTo(-26, 16);
+    cx.lineTo(-28, 10); cx.closePath(); cx.stroke();
+
+    // wing surface highlight (top surface lighter)
+    cx.fillStyle = 'rgba(100,180,255,0.07)';
+    cx.beginPath();
+    cx.moveTo(0, -10); cx.lineTo(28, 10); cx.lineTo(8, 12); cx.lineTo(-8, 12); cx.lineTo(-28, 10);
+    cx.closePath(); cx.fill();
+
+    // wing panel seam lines
+    cx.strokeStyle = 'rgba(56,189,248,0.35)'; cx.lineWidth = 0.8;
+    // right wing seams
+    cx.beginPath(); cx.moveTo(6, 10); cx.lineTo(25, 13); cx.stroke();
+    cx.beginPath(); cx.moveTo(14, 11); cx.lineTo(26, 14); cx.stroke();
+    // left wing seams
+    cx.beginPath(); cx.moveTo(-6, 10); cx.lineTo(-25, 13); cx.stroke();
+    cx.beginPath(); cx.moveTo(-14, 11); cx.lineTo(-26, 14); cx.stroke();
+
+    // wing tip accent rectangles
+    cx.fillStyle = '#0ea5e9';
+    cx.fillRect(22, 14, 5, 3);
+    cx.fillRect(-27, 14, 5, 3);
+    // tip highlight
+    cx.fillStyle = 'rgba(150,230,255,0.7)';
+    cx.fillRect(22, 14, 5, 1);
+    cx.fillRect(-27, 14, 5, 1);
+
+    //  LAYER 3 – FUSELAGE / BODY CENTER
+    const bodyG = cx.createLinearGradient(-12, -26, 12, 22);
+    bodyG.addColorStop(0, '#dde8f0');
+    bodyG.addColorStop(0.3, '#b0c8dc');
+    bodyG.addColorStop(0.7, '#7a9ab8');
+    bodyG.addColorStop(1, '#4a6a88');
+    cx.fillStyle = bodyG;
+    cx.beginPath();
+    cx.moveTo(0, -26); cx.lineTo(8, -8); cx.lineTo(12, 18);
+    cx.lineTo(6, 22); cx.lineTo(-6, 22); cx.lineTo(-12, 18);
+    cx.lineTo(-8, -8); cx.closePath(); cx.fill();
+
+    // body border
+    cx.strokeStyle = '#0284c7'; cx.lineWidth = 1.2;
+    cx.beginPath();
+    cx.moveTo(0, -26); cx.lineTo(8, -8); cx.lineTo(12, 18);
+    cx.lineTo(6, 22); cx.lineTo(-6, 22); cx.lineTo(-12, 18);
+    cx.lineTo(-8, -8); cx.closePath(); cx.stroke();
+
+    // body panel seam lines (horizontal ribs)
+    cx.strokeStyle = 'rgba(2,132,199,0.4)'; cx.lineWidth = 0.7;
+    cx.beginPath(); cx.moveTo(-5, -12); cx.lineTo(5, -12); cx.stroke();  // top rib
+    cx.beginPath(); cx.moveTo(-7, -2); cx.lineTo(7, -2); cx.stroke();    // mid rib
+    cx.beginPath(); cx.moveTo(-9, 8); cx.lineTo(9, 8); cx.stroke();      // lower rib
+    cx.beginPath(); cx.moveTo(-10, 16); cx.lineTo(10, 16); cx.stroke();  // base rib
+
+    // vertical spine seam
+    cx.strokeStyle = 'rgba(2,132,199,0.25)'; cx.lineWidth = 0.6;
+    cx.beginPath(); cx.moveTo(0, -24); cx.lineTo(0, 22); cx.stroke();
+
+    // side panel insets
+    cx.fillStyle = 'rgba(0,60,100,0.3)';
+    cx.fillRect(-10, 0, 4, 8);
+    cx.fillRect(6, 0, 4, 8);
+    cx.strokeStyle = 'rgba(56,189,248,0.3)'; cx.lineWidth = 0.5;
+    cx.strokeRect(-10, 0, 4, 8);
+    cx.strokeRect(6, 0, 4, 8);
+
+    // body surface sheen (left highlight)
+    cx.fillStyle = 'rgba(255,255,255,0.12)';
+    cx.beginPath();
+    cx.moveTo(-1, -24); cx.lineTo(-7, -8); cx.lineTo(-10, 18); cx.lineTo(-4, 18); cx.lineTo(0, -24);
+    cx.closePath(); cx.fill();
+
+    //  LAYER 4 – COCKPIT GLASS
+    // cockpit frame
+    cx.fillStyle = '#0369a1';
+    cx.beginPath();
+    cx.moveTo(0, -13); cx.lineTo(8, 4); cx.lineTo(8, 14);
+    cx.lineTo(-8, 14); cx.lineTo(-8, 4); cx.closePath(); cx.fill();
+
+    // glass fill (multi-tone)
+    const glassG = cx.createLinearGradient(-7, -13, 7, 14);
+    glassG.addColorStop(0, '#67e8f9');
+    glassG.addColorStop(0.4, '#0ea5e9');
+    glassG.addColorStop(1, '#0c4a6e');
+    cx.fillStyle = glassG;
+    cx.beginPath();
+    cx.moveTo(0, -12); cx.lineTo(7, 4); cx.lineTo(7, 13);
+    cx.lineTo(-7, 13); cx.lineTo(-7, 4); cx.closePath(); cx.fill();
+
+    // cockpit divider frame line
+    cx.strokeStyle = '#0369a1'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, -12); cx.lineTo(0, 13); cx.stroke();
+
+    // glass highlight streaks
+    cx.fillStyle = 'rgba(255,255,255,0.55)';
+    cx.beginPath();
+    cx.moveTo(-5, -10); cx.lineTo(-3, -10); cx.lineTo(-5, 10); cx.lineTo(-6, 10);
+    cx.closePath(); cx.fill();
+    cx.fillStyle = 'rgba(255,255,255,0.2)';
+    cx.beginPath();
+    cx.moveTo(2, -10); cx.lineTo(4, -10); cx.lineTo(3, 5); cx.lineTo(1, 5);
+    cx.closePath(); cx.fill();
+
+    // HUD glow inside cockpit
+    cx.fillStyle = 'rgba(0,200,255,0.18)';
+    cx.fillRect(-6, 4, 12, 4);
+
+    //  LAYER 5 – NOSE TIP
+    cx.fillStyle = '#e2e8f0';
+    cx.beginPath();
+    cx.moveTo(0, -26); cx.lineTo(3, -16); cx.lineTo(-3, -16);
+    cx.closePath(); cx.fill();
+    cx.fillStyle = 'rgba(255,255,255,0.6)';
+    cx.beginPath();
+    cx.moveTo(0, -26); cx.lineTo(1.5, -20); cx.lineTo(0, -18);
+    cx.closePath(); cx.fill();
+
+    //  LAYER 6 – THRUSTERS
+    // thruster pods
+    cx.fillStyle = '#1e293b';
+    cx.fillRect(-9, 21, 6, 6);
+    cx.fillRect(3, 21, 6, 6);
+    // pod highlight top edge
+    cx.fillStyle = 'rgba(100,180,255,0.3)';
+    cx.fillRect(-9, 21, 6, 1.5);
+    cx.fillRect(3, 21, 6, 1.5);
+    // pod border
+    cx.strokeStyle = '#334155'; cx.lineWidth = 0.8;
+    cx.strokeRect(-9, 21, 6, 6);
+    cx.strokeRect(3, 21, 6, 6);
+    // thruster nozzle inner glow (gradient fill, no blur)
+    const nozzleG = cx.createRadialGradient(-6, 27, 0, -6, 27, 3);
+    nozzleG.addColorStop(0, '#ffffff');
+    nozzleG.addColorStop(0.4, '#00eeff');
+    nozzleG.addColorStop(1, 'rgba(0,80,150,0.4)');
+    cx.fillStyle = nozzleG;
+    cx.beginPath(); cx.arc(-6, 27, 2.5, 0, Math.PI * 2); cx.fill();
+    const nozzleG2 = cx.createRadialGradient(6, 27, 0, 6, 27, 3);
+    nozzleG2.addColorStop(0, '#ffffff');
+    nozzleG2.addColorStop(0.4, '#00eeff');
+    nozzleG2.addColorStop(1, 'rgba(0,80,150,0.4)');
+    cx.fillStyle = nozzleG2;
+    cx.beginPath(); cx.arc(6, 27, 2.5, 0, Math.PI * 2); cx.fill();
+
+    // side micro-boosters
+    cx.fillStyle = '#0f172a';
+    cx.fillRect(-13, 18, 3, 5);
+    cx.fillRect(10, 18, 3, 5);
+    cx.strokeStyle = '#38bdf8'; cx.lineWidth = 0.5;
+    cx.strokeRect(-13, 18, 3, 5);
+    cx.strokeRect(10, 18, 3, 5);
+
+    _playerShipBaseSprite = c;
+    return c;
+}
+
 // Player ship
 function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     const now = performance.now();
@@ -440,202 +656,10 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     }
     ctx.shadowBlur = 0;
 
-    // engine exhaust plume (gradient fill, no blur)
-    const exG = ctx.createRadialGradient(0, 30, 0, 0, 38, 22);
-    exG.addColorStop(0, 'rgba(0,180,255,0.28)');
-    exG.addColorStop(0.5, 'rgba(0,100,200,0.1)');
-    exG.addColorStop(1, 'transparent');
-    ctx.fillStyle = exG;
-    ctx.fillRect(-22, 24, 44, 32);
-
-    //  LAYER 1 – MAIN HULL BASE (dark fuselage)
-    const hullG = ctx.createLinearGradient(-28, 0, 28, 0);
-    hullG.addColorStop(0, '#0a1428');
-    hullG.addColorStop(0.5, '#1a2a45');
-    hullG.addColorStop(1, '#0a1428');
-    ctx.fillStyle = hullG;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(24, 12); ctx.lineTo(24, 20); ctx.lineTo(10, 16);
-    ctx.lineTo(-10, 16); ctx.lineTo(-24, 20); ctx.lineTo(-24, 12);
-    ctx.closePath(); ctx.fill();
-
-    // hull surface panels (riveted look)
-    // left panel
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    ctx.beginPath();
-    ctx.moveTo(-2, 2); ctx.lineTo(-22, 14); ctx.lineTo(-22, 20); ctx.lineTo(-10, 16); ctx.lineTo(-2, 14);
-    ctx.closePath(); ctx.fill();
-    // right panel
-    ctx.beginPath();
-    ctx.moveTo(2, 2); ctx.lineTo(22, 14); ctx.lineTo(22, 20); ctx.lineTo(10, 16); ctx.lineTo(2, 14);
-    ctx.closePath(); ctx.fill();
-
-    //  LAYER 2 – WINGS
-    const wingG = ctx.createLinearGradient(0, -10, 0, 20);
-    wingG.addColorStop(0, '#1e3a5f');
-    wingG.addColorStop(0.5, '#162d4a');
-    wingG.addColorStop(1, '#0d1f33');
-    ctx.fillStyle = wingG;
-    ctx.beginPath();
-    ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(26, 16);
-    ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-26, 16);
-    ctx.lineTo(-28, 10); ctx.closePath(); ctx.fill();
-
-    // wing accent edge (cyan trim line)
-    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(26, 16);
-    ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-26, 16);
-    ctx.lineTo(-28, 10); ctx.closePath(); ctx.stroke();
-
-    // wing surface highlight (top surface lighter)
-    ctx.fillStyle = 'rgba(100,180,255,0.07)';
-    ctx.beginPath();
-    ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-28, 10);
-    ctx.closePath(); ctx.fill();
-
-    // wing panel seam lines
-    ctx.strokeStyle = 'rgba(56,189,248,0.35)'; ctx.lineWidth = 0.8;
-    // right wing seams
-    ctx.beginPath(); ctx.moveTo(6, 10); ctx.lineTo(25, 13); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(14, 11); ctx.lineTo(26, 14); ctx.stroke();
-    // left wing seams
-    ctx.beginPath(); ctx.moveTo(-6, 10); ctx.lineTo(-25, 13); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-14, 11); ctx.lineTo(-26, 14); ctx.stroke();
-
-    // wing tip accent rectangles
-    ctx.fillStyle = '#0ea5e9';
-    ctx.fillRect(22, 14, 5, 3);
-    ctx.fillRect(-27, 14, 5, 3);
-    // tip highlight
-    ctx.fillStyle = 'rgba(150,230,255,0.7)';
-    ctx.fillRect(22, 14, 5, 1);
-    ctx.fillRect(-27, 14, 5, 1);
-
-    //  LAYER 3 – FUSELAGE / BODY CENTER
-    const bodyG = ctx.createLinearGradient(-12, -26, 12, 22);
-    bodyG.addColorStop(0, '#dde8f0');
-    bodyG.addColorStop(0.3, '#b0c8dc');
-    bodyG.addColorStop(0.7, '#7a9ab8');
-    bodyG.addColorStop(1, '#4a6a88');
-    ctx.fillStyle = bodyG;
-    ctx.beginPath();
-    ctx.moveTo(0, -26); ctx.lineTo(8, -8); ctx.lineTo(12, 18);
-    ctx.lineTo(6, 22); ctx.lineTo(-6, 22); ctx.lineTo(-12, 18);
-    ctx.lineTo(-8, -8); ctx.closePath(); ctx.fill();
-
-    // body border
-    ctx.strokeStyle = '#0284c7'; ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(0, -26); ctx.lineTo(8, -8); ctx.lineTo(12, 18);
-    ctx.lineTo(6, 22); ctx.lineTo(-6, 22); ctx.lineTo(-12, 18);
-    ctx.lineTo(-8, -8); ctx.closePath(); ctx.stroke();
-
-    // body panel seam lines (horizontal ribs)
-    ctx.strokeStyle = 'rgba(2,132,199,0.4)'; ctx.lineWidth = 0.7;
-    ctx.beginPath(); ctx.moveTo(-5, -12); ctx.lineTo(5, -12); ctx.stroke();  // top rib
-    ctx.beginPath(); ctx.moveTo(-7, -2); ctx.lineTo(7, -2); ctx.stroke();    // mid rib
-    ctx.beginPath(); ctx.moveTo(-9, 8); ctx.lineTo(9, 8); ctx.stroke();      // lower rib
-    ctx.beginPath(); ctx.moveTo(-10, 16); ctx.lineTo(10, 16); ctx.stroke();  // base rib
-
-    // vertical spine seam
-    ctx.strokeStyle = 'rgba(2,132,199,0.25)'; ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.moveTo(0, -24); ctx.lineTo(0, 22); ctx.stroke();
-
-    // side panel insets
-    ctx.fillStyle = 'rgba(0,60,100,0.3)';
-    ctx.fillRect(-10, 0, 4, 8);
-    ctx.fillRect(6, 0, 4, 8);
-    ctx.strokeStyle = 'rgba(56,189,248,0.3)'; ctx.lineWidth = 0.5;
-    ctx.strokeRect(-10, 0, 4, 8);
-    ctx.strokeRect(6, 0, 4, 8);
-
-    // body surface sheen (left highlight)
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.beginPath();
-    ctx.moveTo(-1, -24); ctx.lineTo(-7, -8); ctx.lineTo(-10, 18); ctx.lineTo(-4, 18); ctx.lineTo(0, -24);
-    ctx.closePath(); ctx.fill();
-
-    //  LAYER 4 – COCKPIT GLASS
-    // cockpit frame
-    ctx.fillStyle = '#0369a1';
-    ctx.beginPath();
-    ctx.moveTo(0, -13); ctx.lineTo(8, 4); ctx.lineTo(8, 14);
-    ctx.lineTo(-8, 14); ctx.lineTo(-8, 4); ctx.closePath(); ctx.fill();
-
-    // glass fill (multi-tone)
-    const glassG = ctx.createLinearGradient(-7, -13, 7, 14);
-    glassG.addColorStop(0, '#67e8f9');
-    glassG.addColorStop(0.4, '#0ea5e9');
-    glassG.addColorStop(1, '#0c4a6e');
-    ctx.fillStyle = glassG;
-    ctx.beginPath();
-    ctx.moveTo(0, -12); ctx.lineTo(7, 4); ctx.lineTo(7, 13);
-    ctx.lineTo(-7, 13); ctx.lineTo(-7, 4); ctx.closePath(); ctx.fill();
-
-    // cockpit divider frame line
-    ctx.strokeStyle = '#0369a1'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 13); ctx.stroke();
-
-    // glass highlight streaks
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.beginPath();
-    ctx.moveTo(-5, -10); ctx.lineTo(-3, -10); ctx.lineTo(-5, 10); ctx.lineTo(-6, 10);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.beginPath();
-    ctx.moveTo(2, -10); ctx.lineTo(4, -10); ctx.lineTo(3, 5); ctx.lineTo(1, 5);
-    ctx.closePath(); ctx.fill();
-
-    // HUD glow inside cockpit
-    ctx.fillStyle = 'rgba(0,200,255,0.18)';
-    ctx.fillRect(-6, 4, 12, 4);
-
-    //  LAYER 5 – NOSE TIP
-    ctx.fillStyle = '#e2e8f0';
-    ctx.beginPath();
-    ctx.moveTo(0, -26); ctx.lineTo(3, -16); ctx.lineTo(-3, -16);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.beginPath();
-    ctx.moveTo(0, -26); ctx.lineTo(1.5, -20); ctx.lineTo(0, -18);
-    ctx.closePath(); ctx.fill();
-
-    //  LAYER 6 – THRUSTERS
-    // thruster pods
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-9, 21, 6, 6);
-    ctx.fillRect(3, 21, 6, 6);
-    // pod highlight top edge
-    ctx.fillStyle = 'rgba(100,180,255,0.3)';
-    ctx.fillRect(-9, 21, 6, 1.5);
-    ctx.fillRect(3, 21, 6, 1.5);
-    // pod border
-    ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.8;
-    ctx.strokeRect(-9, 21, 6, 6);
-    ctx.strokeRect(3, 21, 6, 6);
-    // thruster nozzle inner glow (gradient fill, no blur)
-    const nozzleG = ctx.createRadialGradient(-6, 27, 0, -6, 27, 3);
-    nozzleG.addColorStop(0, '#ffffff');
-    nozzleG.addColorStop(0.4, '#00eeff');
-    nozzleG.addColorStop(1, 'rgba(0,80,150,0.4)');
-    ctx.fillStyle = nozzleG;
-    ctx.beginPath(); ctx.arc(-6, 27, 2.5, 0, Math.PI * 2); ctx.fill();
-    const nozzleG2 = ctx.createRadialGradient(6, 27, 0, 6, 27, 3);
-    nozzleG2.addColorStop(0, '#ffffff');
-    nozzleG2.addColorStop(0.4, '#00eeff');
-    nozzleG2.addColorStop(1, 'rgba(0,80,150,0.4)');
-    ctx.fillStyle = nozzleG2;
-    ctx.beginPath(); ctx.arc(6, 27, 2.5, 0, Math.PI * 2); ctx.fill();
-
-    // side micro-boosters
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(-13, 18, 3, 5);
-    ctx.fillRect(10, 18, 3, 5);
-    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 0.5;
-    ctx.strokeRect(-13, 18, 3, 5);
-    ctx.strokeRect(10, 18, 3, 5);
+    // Hull/wings/body/cockpit/thrusters (static every frame) - baked sprite,
+    // see _getPlayerShipBaseSprite above.
+    const _shipBase = _getPlayerShipBaseSprite();
+    ctx.drawImage(_shipBase, -_PLAYER_SHIP_PAD_X, -_PLAYER_SHIP_PAD_Y);
 
     //  LAYER 7 – ENGINE FLAMES (no blur)
     const flameT = now / 60;
