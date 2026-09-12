@@ -2783,12 +2783,11 @@ function _spawnWaveTier(tier) {
 }
 
 // First wave that uses the live trickle spawner instead of the fixed 15s
-// _waveQueue. Used to be 11 (waves below that were short enough the window
-// worked fine) but even early waves were cramming enough enemies into the
-// same 15s to lag both PC and mobile, so every wave now spreads its spawns
-// out via the trickle spawner instead - the cap/surge formulas below already
-// degrade to sensible smaller values for low wave numbers on their own.
-const _WAVE_TRICKLE_MIN = 1;
+// _waveQueue. Briefly dropped to 1 to spread every wave's spawns out and
+// cut lag, but that made waves 1-10 feel too slow/low-pressure - reverted
+// back to 11, matching the original tuning (waves below that are short
+// enough the fixed window works fine).
+const _WAVE_TRICKLE_MIN = 11;
 
 // Spawns one enemy of a wave tier ('apostle'/'abnormal'/'elite'/
 // 'dominator') and applies Goliath's Alpha "+15% MaxHP to the rest of the
@@ -2852,7 +2851,9 @@ function _updateWaveTrickle(deltaTime) {
     _waveLastDomAt += deltaTime;
     if (_waveTrickleBudgetLeft() <= 0) return;
 
-    const cap = 18 + Math.floor((_waveNumber - 10) / 3);
+    // Base bumped 18 -> 24 (+33%): waves 11+ felt low-pressure with too few
+    // enemies allowed on screen at once.
+    const cap = 24 + Math.floor((_waveNumber - 10) / 3);
     const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
 
     _waveSurgeAt -= deltaTime;
