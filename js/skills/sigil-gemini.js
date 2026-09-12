@@ -75,7 +75,7 @@ function updateShadowOrbs(deltaTime) {
         orb.x += orb.vx * dt;
         orb.y += orb.vy * dt;
         for (const enemy of enemies) {
-            if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0) continue;
+            if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0 || enemy._stealthed) continue;
             if (orb.hitEnemies.has(enemy)) continue;
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < enemy.size / 2 + (orb.isLarge ? 15 : 10)) {
                 orb.hitEnemies.add(enemy);
@@ -127,6 +127,7 @@ function updateMirrorLaserColumns(deltaTime) {
                 if (enemy.type === 'abyssal_chain') return;
                 if (enemy.type === 'veilshroud_echo') return;
                 if (enemy.inCoronation) return;
+                if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                 if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                     if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                         const _src = { damage: 350, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };

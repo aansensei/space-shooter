@@ -496,22 +496,26 @@ function _drawBloodArrowTargetRings() {
         const rad = e.size / 2 + 10 + pulse * 3;
         ctx.strokeStyle = `rgba(200, 10, 20, ${0.5 + 0.35 * pulse})`;
         ctx.lineWidth = 2;
-        if (!_mobPerf) { ctx.shadowColor = 'rgba(220, 10, 20, 0.8)'; ctx.shadowBlur = 8 * pulse; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = 'rgba(220, 10, 20, 0.8)'; ctx.shadowBlur = 8 * pulse; }
         ctx.beginPath();
         ctx.arc(e.x, e.y, rad, 0, Math.PI * 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
         // a few ink-drip ticks around the rim, matching the rest of this
-        // sigil's ink-wash language instead of a plain clean circle
-        for (let i = 0; i < 5; i++) {
-            const a = (i / 5) * Math.PI * 2 + now / 900;
-            const tx = e.x + Math.cos(a) * rad, ty = e.y + Math.sin(a) * rad;
-            ctx.strokeStyle = `rgba(140, 0, 5, ${0.5 + 0.3 * pulse})`;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(tx, ty);
-            ctx.lineTo(tx + Math.cos(a) * 4, ty + Math.sin(a) * 4 + 2);
-            ctx.stroke();
+        // sigil's ink-wash language instead of a plain clean circle - this
+        // whole per-target sub-loop is decoration only, so it's dropped
+        // below FULL tier where it'd otherwise run for every enemy on screen.
+        if (!_mobPerf && _gfxLevel < 1) {
+            for (let i = 0; i < 5; i++) {
+                const a = (i / 5) * Math.PI * 2 + now / 900;
+                const tx = e.x + Math.cos(a) * rad, ty = e.y + Math.sin(a) * rad;
+                ctx.strokeStyle = `rgba(140, 0, 5, ${0.5 + 0.3 * pulse})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx + Math.cos(a) * 4, ty + Math.sin(a) * 4 + 2);
+                ctx.stroke();
+            }
         }
     }
     ctx.restore();

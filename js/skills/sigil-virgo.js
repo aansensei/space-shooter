@@ -7,7 +7,7 @@
 // every 4s a vine-wrapped log sweeps across the screen.
 function _validGoldenArrowTargets() {
     return enemies.filter(e =>
-        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath
+        !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath && !e._stealthed
     );
 }
 

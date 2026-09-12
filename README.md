@@ -442,7 +442,7 @@ A herald-boss that never attacks the player directly. It patrols the **upper hal
 
 **Skill: Judgment (Holy Sword)** — Can only actually fire while Uriel is visible; a trigger during Camouflage is banked and auto-released the instant it's free again. **0.5-second charge-up** (energy converges into the core, wings flare), then launches straight toward the player's position **from 100ms ago** (not the live position) at roughly **806px/s**, piercing along its line. On hitting the player: normal life loss through the usual save stack, plus **Judged** (3 seconds: any further hit costs 1 extra life, net −2). On hitting a Sentinel: **30% Max HP true damage**, and the sword keeps flying afterward.
 
-**Skill: Camouflage** — Triggers every time a Uriel Iron Body layer is consumed anywhere, or after **10 hits** land directly on Uriel itself (a safety net for when there's nothing else around to consume a granted layer), on a **3-second cooldown** measured from the moment the previous stealth ends. **1.5 seconds** fully invisible, untargetable, absolute Iron Body, regenerating **2% Max HP per second** the whole time. On reappearing: a **20% Max HP shield** plus **200 flat DR for 2 seconds**.
+**Skill: Camouflage** — Triggers every time a Uriel Iron Body layer is consumed anywhere, or after **10 hits** land directly on Uriel itself (a safety net for when there's nothing else around to consume a granted layer), on a **3-second cooldown** measured from the moment the previous stealth ends. **1.75 seconds** fully invisible, untargetable, absolute Iron Body, regenerating **2% Max HP per second** the whole time. On reappearing, Uriel teleports to a fresh random point in the upper half of the arena (same margin its normal patrol waypoints use) with a **20% Max HP shield** plus **200 flat DR for 2 seconds**.
 
 ---
 
@@ -710,9 +710,9 @@ Separately, **all damage from Phōtokrystos itself** (its homing bullets and its
 
 **Passive: Threshold Ward**
 
-Starts True Form at **35% evade**, decaying linearly down to **25%** over the first **15 seconds**, then holding at 25% for the rest of the fight — evade applies against everything except Skill F, Skill D's center pull-kill, and the Phōtokrystos finale laser, which bypass it entirely via Warding Palm's own return path above.
+Starts True Form at **40% evade**, decaying linearly down to **25%** over the first **15 seconds**, then holding at 25% for the rest of the fight — evade applies against everything except Skill F, Skill D's center pull-kill, and the Phōtokrystos finale laser, which bypass it entirely via Warding Palm's own return path above.
 
-On top of the base evade, crossing each of the **75%, 50%, and 25%** HP milestones (downward) does two things at once: a **one-time** (never re-triggers) **+15% Max HP** shield pool — healing later back up across a milestone that already paid out restores HP up to that milestone's percentage — and a **+5% evade bump for 3 seconds** that, unlike the shield, can retrigger any number of times over the fight (healing back above a milestone and dropping through it again re-fires it), though it never stacks past a single +5% layer no matter how many milestones are crossed at once.
+On top of the base evade, crossing each of the **75%, 50%, and 25%** HP milestones (downward) does two things at once: a **one-time** (never re-triggers) **+20% Max HP** shield pool — healing later back up across a milestone that already paid out restores HP up to that milestone's percentage — and a **+10% evade bump for 3.5 seconds** that, unlike the shield, can retrigger any number of times over the fight (healing back above a milestone and dropping through it again re-fires it), though it never stacks past a single +10% layer no matter how many milestones are crossed at once.
 
 **Passive: Casting Restriction**
 

@@ -631,7 +631,7 @@ function _drawGoliathInevitableAura(now) {
     ctx.fillStyle = g;
     if (!_mobPerf) { ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 26 * pulse; }
     ctx.fill(); ctx.shadowBlur = 0;
-    if (_mobPerf) return; // phần trang trí còn lại tốn nhiều shadowBlur, bỏ trên mobile
+    if (_mobPerf || _gfxLevel >= 2) return; // phần trang trí còn lại tốn nhiều shadowBlur, bỏ khi tier thấp
 
     ctx.save(); ctx.rotate(now / 6670);
     for (let i = 0; i < 6; i++) {
@@ -681,7 +681,7 @@ function _drawGoliathOrbs() {
         ctx.restore();
 
         // Aura plasma: các dải năng lượng lượn sóng toả quanh quả cầu
-        if (!_mobPerf) {
+        if (!_mobPerf && _gfxLevel < 2) {
             ctx.save();
             for (let pl = 0; pl < 6; pl++) {
                 const baseA = now / 380 + pl * (Math.PI / 3);
@@ -712,7 +712,7 @@ function _drawGoliathOrbs() {
             ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang * 2); ctx.scale(shardScale, shardScale);
             ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(12, 7); ctx.lineTo(-12, 7); ctx.closePath();
             ctx.fillStyle = '#c084fc';
-            if (!_mobPerf) { ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 8; }
+            if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 8; }
             ctx.fill(); ctx.shadowBlur = 0;
             ctx.restore();
         }
@@ -722,12 +722,12 @@ function _drawGoliathOrbs() {
         g.addColorStop(0.85, '#1a0a2e'); g.addColorStop(1, 'rgba(10,0,20,0)');
         ctx.beginPath(); ctx.arc(p.x, p.y, 101, 0, Math.PI * 2);
         ctx.fillStyle = g;
-        if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 26; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 26; }
         ctx.fill();
 
         // Branching containment lightning crackling across the core surface,
         // matching Death Star's in-core arc technique (js/render/skill-d.js).
-        if (!_mobPerf) {
+        if (!_mobPerf && _gfxLevel < 2) {
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.strokeStyle = 'rgba(255,255,255,0.85)';

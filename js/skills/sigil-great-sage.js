@@ -193,6 +193,7 @@ function _updateGreatSageEffects(deltaTime) {
                     const lineStart = { x: fx.x, y: fx.y };
                     const lineEnd = { x: fx.x + Math.cos(angle) * fullLen, y: fx.y + Math.sin(angle) * fullLen };
                     for (const enemy of enemies) {
+                        if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         if (distToSegment(enemy, lineStart, lineEnd) < (enemy.size || 20) + 15) {
                             dealDamage(enemy, { damage: 220 * fx.comboMult, percentDamage: 0.12 * fx.comboMult, _statSrc: 'Great Sage: Lumen Nova' });
                         }
@@ -223,6 +224,7 @@ function _updateGreatSageEffects(deltaTime) {
             if (fx.timer >= fx.dur) {
                 fx.points.forEach(pt => {
                     for (const enemy of enemies) {
+                        if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         if (Math.hypot(enemy.x - pt.x, enemy.y - pt.y) < (enemy.size || 20) + 30) {
                             dealDamage(enemy, { damage: 320 * fx.comboMult, percentDamage: 0.17 * fx.comboMult, isTrueDamage: true, _statSrc: 'Great Sage: Phantom Strike' });
                         }
@@ -254,6 +256,7 @@ function _updateGreatSageEffects(deltaTime) {
                     fx.phase = 'strike'; fx.timer = 0; fx.dur = 950;
                     const arcR = fx.R;
                     for (const enemy of enemies) {
+                        if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         const d = Math.hypot(enemy.x - fx.x, enemy.y - fx.y);
                         if (d > arcR + (enemy.size || 20)) continue;
                         let dA = Math.atan2(enemy.y - fx.y, enemy.x - fx.x) - fx.angle;
@@ -272,6 +275,7 @@ function _updateGreatSageEffects(deltaTime) {
             const curRadius = Math.min(fx.maxRadius, fx.speed * (fx.timer / 16.67));
             for (const enemy of enemies) {
                 if (fx.hitEnemies.includes(enemy)) continue;
+                if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                 if (Math.hypot(enemy.x - fx.x, enemy.y - fx.y) <= curRadius + 20) {
                     fx.hitEnemies.push(enemy);
                     // Matches the real Maou Haki: enemy bullets caught in the
@@ -292,6 +296,7 @@ function _updateGreatSageEffects(deltaTime) {
                 const curAngle = fx.startAngle + (fx.timer / fx.sweepDur) * Math.PI * 2;
                 for (const enemy of enemies) {
                     if (fx.hitEnemies.includes(enemy)) continue;
+                    if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                     const eAngle = Math.atan2(enemy.y - fx.y, enemy.x - fx.x);
                     let d = Math.abs(((curAngle - eAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                     if (d < 0.15) {

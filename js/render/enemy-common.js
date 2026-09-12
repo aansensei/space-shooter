@@ -441,14 +441,14 @@ function drawEnemy(enemy) {
         const dark = !!enemy.isDarkened;
 
         // Trailing sparks
-        const trailCount = _mobPerf ? 3 : 6;
+        const trailCount = (_mobPerf || _gfxLevel >= 2) ? 3 : 6;
         for (let t = 1; t <= trailCount; t++) {
             const tf = t / trailCount;
             const tx = enemy.x - enemy.vx * tf * 0.5;
             const ty = enemy.y - enemy.vy * tf * 0.5;
             ctx.save();
             ctx.globalAlpha = (1 - tf) * 0.75;
-            if (!_mobPerf) { ctx.shadowColor = dark ? '#ff0000' : '#dd00ff'; ctx.shadowBlur = 14; }
+            if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = dark ? '#ff0000' : '#dd00ff'; ctx.shadowBlur = 14; }
             ctx.fillStyle = dark ? (tf < 0.4 ? '#ff4444' : '#550000') : (tf < 0.4 ? '#ff88ff' : '#9900cc');
             ctx.beginPath();
             ctx.arc(tx, ty, Math.max(1, enemy.size * (1 - tf * 0.6) * 0.38), 0, Math.PI * 2);
@@ -457,7 +457,7 @@ function drawEnemy(enemy) {
         }
 
         // Darkened chain: red smoke aura
-        if (dark && !_mobPerf) {
+        if (dark && !_mobPerf && _gfxLevel < 2) {
             const smokeCount = 4;
             for (let si = 0; si < smokeCount; si++) {
                 const sAng = now0 / 300 + si * Math.PI * 0.5;
@@ -483,7 +483,7 @@ function drawEnemy(enemy) {
                 ctx.globalAlpha = alpha * blink;
                 ctx.translate(mp.x, mp.y);
                 ctx.rotate(mp.angle);
-                if (!_mobPerf) { ctx.shadowColor = mp.col; ctx.shadowBlur = 8; }
+                if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = mp.col; ctx.shadowBlur = 8; }
                 ctx.fillStyle = mp.col;
                 const s = mp.size;
                 ctx.beginPath();
@@ -498,13 +498,13 @@ function drawEnemy(enemy) {
 
         // Darkened chain: chaos energy particles
         if (dark) {
-            const chaosCount = _mobPerf ? 2 : 5;
+            const chaosCount = (_mobPerf || _gfxLevel >= 2) ? 2 : 5;
             for (let ci = 0; ci < chaosCount; ci++) {
                 const cAng = now0 / 80 + ci * 1.257;
                 const cr = enemy.size * (0.5 + 0.8 * ((ci * 0.37) % 1));
                 ctx.save();
                 ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(now0 / 60 + ci));
-                if (!_mobPerf) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 6; }
+                if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 6; }
                 ctx.fillStyle = ci % 2 === 0 ? '#cc0000' : '#1a0000';
                 ctx.beginPath();
                 ctx.arc(enemy.x + Math.cos(cAng) * cr, enemy.y + Math.sin(cAng) * cr, 2 + ci * 0.5, 0, Math.PI * 2);
@@ -521,7 +521,7 @@ function drawEnemy(enemy) {
         const dist = Math.hypot(dx, dy);
         if (dist > 1) {
             const segs = Math.max(3, Math.floor(dist / 24));
-            if (!_mobPerf) { ctx.shadowColor = dark ? '#aa0000' : '#cc00ff'; ctx.shadowBlur = 12; }
+            if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = dark ? '#aa0000' : '#cc00ff'; ctx.shadowBlur = 12; }
             ctx.strokeStyle = dark ? `rgba(160,0,0,${0.7 + pulse * 0.2})` : `rgba(180,0,255,${0.6 + pulse * 0.2})`;
             ctx.lineWidth = 3;
             ctx.setLineDash([5, 5]);
@@ -1139,14 +1139,14 @@ function _drawVulnerabilityIcon(enemy) {
     // Viền đỏ + glow
     ctx.strokeStyle = '#ff1a40';
     ctx.lineWidth = 1.8;
-    if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 8;
+    if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 8;
     ctx.stroke();
     ctx.shadowBlur = 0;
 
     // LED dots top & bottom (từ design)
     for (const [lx, ly] of [[0, -R + 1.5], [0, R - 1.5]]) {
         ctx.fillStyle = '#ff1a40';
-        if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 6;
+        if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 6;
         ctx.beginPath(); ctx.arc(lx, ly, 2.2, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
     }
@@ -1182,7 +1182,7 @@ function _drawVulnerabilityIcon(enemy) {
         grad.addColorStop(0.5, '#2a1c20');
         grad.addColorStop(1, '#150a0c');
         ctx.fillStyle = grad;
-        if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 6;
+        if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 6;
         ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -1198,7 +1198,7 @@ function _drawVulnerabilityIcon(enemy) {
         // Viền sáng đỏ ở mép cắt
         ctx.strokeStyle = clipLeft ? '#ff1a40' : 'rgba(255,100,80,0.6)';
         ctx.lineWidth = clipLeft ? 1.5 : 0.8;
-        if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 5;
+        if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 5;
         ctx.beginPath();
         ctx.moveTo(0, -9 * s); ctx.lineTo(0, 11 * s);
         ctx.stroke();
@@ -1212,7 +1212,7 @@ function _drawVulnerabilityIcon(enemy) {
 
     // Dấu X neon laser
     const xFlare = 0.7 + 0.3 * Math.sin(now / 120);
-    if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 10 * xFlare;
+    if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 10 * xFlare;
 
     // Line 1: dài hơn, góc -45°
     ctx.save();
@@ -1269,7 +1269,7 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.font = 'bold 7px serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillStyle = stacks === 4 ? '#ff6680' : '#ff3355';
-        if (!_mobPerf) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
+        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
         ctx.fillText(_romans[stacks - 1], _rx, _ry);
         ctx.shadowBlur = 0;
         ctx.restore();
@@ -1281,7 +1281,7 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.beginPath();
         ctx.arc(-4 + s * 4, R + 5, 2, 0, Math.PI * 2);
         ctx.fillStyle = filled ? '#ff1a40' : 'rgba(255,26,64,0.25)';
-        if (filled) { if (!_mobPerf) ctx.shadowColor = '#ff1a40'; if (!_mobPerf) ctx.shadowBlur = 5; }
+        if (filled && !_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
         ctx.fill();
         ctx.shadowBlur = 0;
     }
@@ -1294,7 +1294,7 @@ function _drawVulnerabilityIcon(enemy) {
         const yOff = R + 22;
         ctx.save();
         if (queueCount > 0) {
-            if (!_mobPerf) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; }
+            if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 10; }
             ctx.fillStyle = '#00ff88';
         } else {
             ctx.fillStyle = 'rgba(0,255,136,0.35)';
@@ -1314,7 +1314,7 @@ function _drawVulnerabilityIcon(enemy) {
             const atFull = cycleCount >= 4;
             ctx.save();
             if (atFull) {
-                if (!_mobPerf) { ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 12; }
+                if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#ffaa00'; ctx.shadowBlur = 12; }
                 ctx.fillStyle = '#ffaa00';
             } else {
                 ctx.fillStyle = `rgba(255,170,0,${0.3 + cycleCount * 0.15})`;
