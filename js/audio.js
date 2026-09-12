@@ -378,7 +378,7 @@
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
         'uriel-idle': 1.0, 'uriel-sword-launch': 1.15, 'uriel-death-roar': 1.15,
         'uriel-sword-windup': 1.15, 'uriel-sword-impact': 1.15,
-        'uriel-sword-hover': 0.6, // quiet background texture under the charge, not a lead cue
+        'uriel-sword-hover': 0.6, // wind texture while the blade is actually in flight, not a lead cue
         'uriel-sword-launch-burst': 1.15, // layered under uriel-sword-launch for extra punch
         // camo-vanish's own clip already peaks at 0dBFS - any gain above 1.0
         // just hard-clips its loudest instant instead of getting louder, so
@@ -455,7 +455,7 @@
         goliathIdleEl: null, // Goliath True Form ambient breathing/hum, same native gapless loop
         leviathanIdleEl: null, // Leviathan flight ambience (wingbeat whoosh + scrap rattle), same native gapless loop
         urielIdleEl: null,    // Uriel ambient presence (wind hum + wing flap + breath), same native gapless loop
-        urielSwordHoverEl: null, // Holy Sword's suspended air-hover texture, looped for the 500ms charge window
+        urielSwordHoverEl: null, // Holy Sword's wind-rush texture while any blade is in flight
         pool: {},            // sfx key → { src, bypass }
         // In-game BGM rotation pool the player picked in Settings (track ids,
         // excludes the menu-only "pisces" track — that one never plays in a

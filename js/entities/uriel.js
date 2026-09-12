@@ -99,7 +99,6 @@ function _urielTriggerCamo(enemy) {
     if (enemy._swordCharging) {
         enemy._swordCharging = false;
         enemy._urielSwordQueued = (enemy._urielSwordQueued || 0) + 1;
-        if (window.AudioMgr) window.AudioMgr.stopUrielSwordHover();
     }
     // A brief visible windup (energy gathering in) before it actually
     // vanishes, rather than snapping straight to invisible.
@@ -189,10 +188,7 @@ function _urielTriggerSword(enemy) {
 function _urielStartSword(enemy) {
     enemy._swordCharging = true;
     enemy._swordChargeStart = performance.now();
-    if (window.AudioMgr) {
-        window.AudioMgr.playSfxAt('uriel-sword-windup', enemy.x, enemy.y);
-        window.AudioMgr.startUrielSwordHover();
-    }
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-windup', enemy.x, enemy.y);
 }
 
 function _urielUpdateSword(enemy) {
@@ -201,7 +197,6 @@ function _urielUpdateSword(enemy) {
         enemy._swordCharging = false;
         enemy._swordFiring = true;
         enemy._swordReleaseAt = now;
-        if (window.AudioMgr) window.AudioMgr.stopUrielSwordHover();
         _urielLaunchSword(enemy);
     } else if (enemy._swordFiring && now - enemy._swordReleaseAt > 250) {
         enemy._swordFiring = false;
@@ -390,6 +385,17 @@ function _updateUrielEffects(deltaTime) {
             }
         }
     }
+    // Hover/wind loop tracks whether ANY Holy Sword is currently in flight,
+    // not per-instance - multiple swords can be airborne at once (queued
+    // shots), so this only starts on the 0->1 transition (against last
+    // frame's state, via window._urielSwordsInFlight) and only stops once
+    // the very last one lands/leaves, instead of each sword's own lifetime.
+    const _hasSwordsInFlight = !!(swords && swords.length > 0);
+    if (window.AudioMgr) {
+        if (_hasSwordsInFlight && !window._urielSwordsInFlight) window.AudioMgr.startUrielSwordHover();
+        else if (!_hasSwordsInFlight && window._urielSwordsInFlight) window.AudioMgr.stopUrielSwordHover();
+    }
+    window._urielSwordsInFlight = _hasSwordsInFlight;
 
     const barriers = window._urielBarriers;
     if (barriers && barriers.length) {
