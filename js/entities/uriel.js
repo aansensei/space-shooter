@@ -223,7 +223,10 @@ function _urielLaunchSword(enemy) {
     });
     _setShake(6, 150);
     addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#fff4cc');
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-launch', enemy.x, enemy.y);
+    if (window.AudioMgr) {
+        window.AudioMgr.playSfxAt('uriel-sword-launch', enemy.x, enemy.y);
+        window.AudioMgr.playSfxAt('uriel-sword-launch-burst', enemy.x, enemy.y);
+    }
 }
 
 function updateUriel(enemy, deltaTime) {
