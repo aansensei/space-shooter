@@ -302,6 +302,11 @@ function _drawVeilshroudEcho(enemy) {
         const _t = now / 1000;
         const _ringCount = _gfxLevel < 1 ? 6 : 4;
         const _layerColors = [[60, 0, 110], [130, 0, 200], [190, 40, 255], [230, 120, 255]];
+        // Shadow set once for the whole ring batch instead of reassigning the
+        // same color/blur every single ring - up to 6 redundant sets a frame
+        // for as long as this echo is alive (5s), same fix already applied
+        // to Uriel's Holy Sword trail (render/enemy-uriel.js).
+        if (!_mobPerf) { ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 18; }
         for (let i = 0; i < _ringCount; i++) {
             const frac = i / (_ringCount - 1); // 0 = blast edge, 1 = core
             const ringR = r * 1.3 + (outerR - r * 1.3) * (1 - frac);
@@ -311,7 +316,6 @@ function _drawVeilshroudEcho(enemy) {
             ctx.rotate(_t * spin);
             ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${0.75 - frac * 0.15})`;
             ctx.lineWidth = 4 + frac * 7;
-            if (!_mobPerf) { ctx.shadowColor = '#aa00ff'; ctx.shadowBlur = 18; }
             ctx.setLineDash([ringR * 0.5, ringR * 0.35]);
             ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2); ctx.stroke();
             ctx.setLineDash([]);
@@ -320,8 +324,11 @@ function _drawVeilshroudEcho(enemy) {
         ctx.shadowBlur = 0;
     }
 
-    // Infalling matter, spiraling in from the blast edge toward the core
+    // Infalling matter, spiraling in from the blast edge toward the core.
+    // Same shadow-hoist as the ring batch above - was reassigning shadowColor/
+    // shadowBlur to the same value 16 times a frame.
     if (_gfxLevel < 1) {
+        if (!_mobPerf) { ctx.shadowColor = '#e0aaff'; ctx.shadowBlur = 6; }
         for (let i = 0; i < 16; i++) {
             const phase = ((now / 1400 + i / 16) % 1 + 1) % 1;
             const dist = r * 1.2 + (outerR - r * 1.2) * (1 - phase);
@@ -331,7 +338,6 @@ function _drawVeilshroudEcho(enemy) {
             const pA = Math.min(1, phase * 1.6) * 0.9;
             const pR = Math.max(1, 1.6 + phase * 2);
             ctx.fillStyle = `rgba(230,170,255,${pA})`;
-            if (!_mobPerf) { ctx.shadowColor = '#e0aaff'; ctx.shadowBlur = 6; }
             ctx.beginPath(); ctx.arc(px, py, pR, 0, Math.PI * 2); ctx.fill();
         }
         ctx.shadowBlur = 0;
