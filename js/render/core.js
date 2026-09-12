@@ -102,6 +102,52 @@ window._applyGfxLevel = _applyGfxLevel;
 
 // Glow sprite cache: pre-rendered radial gradient drawn with drawImage (GPU path, no CPU blur)
 const _glowSpriteCache = {};
+
+// Explosion glow sprites (render/fx.js's drawExplosion, used by every
+// addExplosion call in the game). radius grows/shrinks continuously over an
+// explosion's ~500ms lifetime, so caching by exact radius like _getGlowSprite
+// does would almost never hit - instead these bake at one fixed reference
+// radius per color and get scaled to the real radius via drawImage at draw
+// time (cheap raster scale vs rebuilding a gradient object every frame of
+// every explosion on screen).
+const _EXPLOSION_GLOW_REF_R = 128;
+const _explosionGlowSpriteCache = {};
+function _getExplosionGlowSprite(color) {
+    color = color || 'orange';
+    const key = 'fill_' + color;
+    if (_explosionGlowSpriteCache[key]) return _explosionGlowSpriteCache[key];
+    const r = _EXPLOSION_GLOW_REF_R;
+    const c = document.createElement('canvas');
+    c.width = c.height = r * 2;
+    const cx = c.getContext('2d');
+    const g = cx.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.35, 'rgba(255,255,255,0.9)');
+    g.addColorStop(0.6, color);
+    g.addColorStop(1, 'transparent');
+    cx.fillStyle = g;
+    cx.fillRect(0, 0, r * 2, r * 2);
+    _explosionGlowSpriteCache[key] = c;
+    return c;
+}
+function _getExplosionBloomSprite(color) {
+    color = color || 'orange';
+    const key = 'bloom_' + color;
+    if (_explosionGlowSpriteCache[key]) return _explosionGlowSpriteCache[key];
+    const r = _EXPLOSION_GLOW_REF_R;
+    const c = document.createElement('canvas');
+    c.width = c.height = r * 2;
+    const cx = c.getContext('2d');
+    const g = cx.createRadialGradient(r, r, 0, r, r, r);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.25, 'rgba(255,255,255,0.9)');
+    g.addColorStop(0.45, color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = g;
+    cx.fillRect(0, 0, r * 2, r * 2);
+    _explosionGlowSpriteCache[key] = c;
+    return c;
+}
 function _getGlowSprite(color, radius) {
     if (!isFinite(radius) || radius <= 0) return null;
     color = color || '#ffffff'; // defensive: a particle missing .color must never crash the whole draw pass
