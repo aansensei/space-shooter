@@ -12,7 +12,7 @@
 // own color here.
 const GREAT_SAGE_GEM_INFO = {
     thaelis:    { label: 'Tenacity Barrier',   light: '#e9ddff', mid: '#8b5cf6', dark: '#2d004d' },
-    aegis_core: { label: 'Lumen Nova',         light: '#fff8e1', mid: '#fbbf24', dark: '#7a5a00' },
+    raphael: { label: 'Lumen Nova',         light: '#fff8e1', mid: '#fbbf24', dark: '#7a5a00' },
     marchosias: { label: 'Arc Barrier',        light: '#ccffe9', mid: '#10b981', dark: '#003322' },
     veilshroud: { label: 'Phantom Strike',     light: '#e6fffb', mid: '#2dd4bf', dark: '#0b3b3a' },
     egregor:    { label: 'Null Slash',         light: '#c9fff5', mid: '#14b8a6', dark: '#003344' },
@@ -97,12 +97,12 @@ function _castStolenGemAttack(type, comboMult) {
         window._greatSageShieldEnd = Math.max(window._greatSageShieldEnd || 0, now + 3000 * comboMult);
         return;
     }
-    if (type === 'aegis_core') {
+    if (type === 'raphael') {
         // Lumen Nova: marks lines toward 3 locked points (nearest enemy + 2
         // more, matching the real Joker's multi-lock), holds a brief
         // telegraph, then fires along each fixed line
         const angles = _greatSageLockPoints(2).map(p => Math.atan2(p.y - player.y, p.x - player.x));
-        _greatSageEffects.push({ type: 'aegis', phase: 'telegraph', timer: 0, dur: 500, x: player.x, y: player.y, angles, comboMult });
+        _greatSageEffects.push({ type: 'raphael', phase: 'telegraph', timer: 0, dur: 500, x: player.x, y: player.y, angles, comboMult });
         return;
     }
     if (type === 'marchosias') {
@@ -185,7 +185,7 @@ function _updateGreatSageEffects(deltaTime) {
         fx.timer += deltaTime;
         let done = false;
 
-        if (fx.type === 'aegis') {
+        if (fx.type === 'raphael') {
             if (fx.phase === 'telegraph' && fx.timer >= fx.dur) {
                 fx.phase = 'fire'; fx.timer = 0; fx.dur = 150;
                 const fullLen = Math.hypot(canvas.width, canvas.height);
@@ -336,7 +336,7 @@ function _updateGreatSageEffects(deltaTime) {
 // Maps Goliath's own _jokerState ability names (js/entities/goliath.js) to
 // the gem-type strings used here.
 const GOLIATH_JOKER_NAME_TO_GEM = {
-    'Veilshroud': 'veilshroud', 'Thaelis': 'thaelis', 'Aegis Core': 'aegis_core',
+    'Veilshroud': 'veilshroud', 'Thaelis': 'thaelis', 'Raphael': 'raphael',
     'Marchosias': 'marchosias', 'Egregor': 'egregor', 'Dargruel': 'dargruel', 'Leviathan': 'leviathan',
 };
 function _grantGreatSageGem(enemy) {

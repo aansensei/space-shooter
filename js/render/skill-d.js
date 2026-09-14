@@ -500,8 +500,8 @@ function drawSkillDLasers() {
         ctx.save();
         ctx.globalAlpha = l.life;
 
-        // Three-layer beam sized like Aegis Core's Lumen Nova (js/render/fx.js
-        // drawAegisLasers — outer/core/center ~50/30/10 lineWidth) rather than
+        // Three-layer beam sized like Raphael's Lumen Nova (js/render/fx.js
+        // drawRaphaelLasers — outer/core/center ~50/30/10 lineWidth) rather than
         // a thin line, so it reads with real weight instead of a laser pointer.
         ctx.strokeStyle = '#aa00ff';
         ctx.lineWidth = 46 * punch;

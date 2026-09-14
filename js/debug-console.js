@@ -394,7 +394,7 @@ window.debugSetYuukiBonus = function () {
         <div id="dbgGreatSageGems" style="font-size:10px; opacity:0.7; margin-bottom:4px;"></div>
         <div class="dbg-row" style="flex-wrap:wrap;">
           <button class="dbg-btn" onclick="debugGreatSageFire('thaelis')">Fire: Thaelis</button>
-          <button class="dbg-btn" onclick="debugGreatSageFire('aegis_core')">Fire: Aegis Core</button>
+          <button class="dbg-btn" onclick="debugGreatSageFire('raphael')">Fire: Raphael</button>
           <button class="dbg-btn" onclick="debugGreatSageFire('marchosias')">Fire: Marchosias</button>
           <button class="dbg-btn" onclick="debugGreatSageFire('veilshroud')">Fire: Veilshroud</button>
           <button class="dbg-btn" onclick="debugGreatSageFire('egregor')">Fire: Egregor</button>
@@ -404,7 +404,7 @@ window.debugSetYuukiBonus = function () {
         </div>
         <div class="dbg-row" style="flex-wrap:wrap;">
           <button class="dbg-btn" onclick="debugGreatSageGiveGem('thaelis')">+Gem: Thaelis</button>
-          <button class="dbg-btn" onclick="debugGreatSageGiveGem('aegis_core')">+Gem: Aegis Core</button>
+          <button class="dbg-btn" onclick="debugGreatSageGiveGem('raphael')">+Gem: Raphael</button>
           <button class="dbg-btn" onclick="debugGreatSageGiveGem('marchosias')">+Gem: Marchosias</button>
           <button class="dbg-btn" onclick="debugGreatSageGiveGem('veilshroud')">+Gem: Veilshroud</button>
           <button class="dbg-btn" onclick="debugGreatSageGiveGem('egregor')">+Gem: Egregor</button>
@@ -443,7 +443,7 @@ window.debugSetYuukiBonus = function () {
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugSpawn('spawnApostle')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="22–330" data-size="20–30">Apostle</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1265–2640" data-size="100–150">Thaelis</button>
-        <button class="dbg-btn" onclick="debugSpawn('spawnAegisCore')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2500–4500" data-size="52–66">Aegis Core</button>
+        <button class="dbg-btn" onclick="debugSpawn('spawnRaphael')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2500–4500" data-size="52–66">Raphael</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnMarchosias')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="2112–4092" data-size="100–150">Marchosias</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnDargruel')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="6200–16000" data-size="200–300">Dargruel</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnVeilshroud')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1320–3300" data-size="100–150">Veilshroud</button>
@@ -459,7 +459,7 @@ window.debugSetYuukiBonus = function () {
           <option value="">Click-to-spawn: off</option>
           <option value="spawnApostle">Apostle</option>
           <option value="spawnThaelis">Thaelis</option>
-          <option value="spawnAegisCore">Aegis Core</option>
+          <option value="spawnRaphael">Raphael</option>
           <option value="spawnMarchosias">Marchosias</option>
           <option value="spawnDargruel">Dargruel</option>
           <option value="spawnVeilshroud">Veilshroud</option>
@@ -509,7 +509,7 @@ window.debugSetYuukiBonus = function () {
       <div class="dbg-row" style="align-items:center; gap:6px;">
         <span style="font-size:11px; opacity:0.7;">DR live:</span>
         <input type="number" id="dbgDummyDRLive" class="dbg-enemy-hp" style="width:58px;" min="0" max="99" placeholder="0" oninput="debugSetDummyDR(this.value)">
-        <span style="font-size:10px; opacity:0.5;">% (0=none | 40=Egregor/Veil | 45=Marchosias | 50-60=Dargruel | 55=Aegis | 60=Leviathan | 90=Embryo | Thaelis 0→95%)</span>
+        <span style="font-size:10px; opacity:0.5;">% (0=none | 40=Egregor/Veil | 45=Marchosias | 50-60=Dargruel | 55=Raphael | 60=Leviathan | 90=Embryo | Thaelis 0→95%)</span>
       </div>
       <div id="dbgDummyStatus" style="opacity:0.55; font-size:10px; min-height:14px;"></div>
     </div>
@@ -1052,7 +1052,7 @@ window.debugSetYuukiBonus = function () {
     };
     window.debugGreatSageFillCombo = function () {
         if (typeof _greatSageGems === 'undefined') return;
-        _greatSageGems = ['thaelis', 'aegis_core', 'goliath'];
+        _greatSageGems = ['thaelis', 'raphael', 'goliath'];
         _refreshGreatSageGemDisplay();
     };
     window.debugGreatSageClearGems = function () {
@@ -1182,7 +1182,7 @@ window.debugSetYuukiBonus = function () {
     window.debugClearDefense = function (idx) {
         const e = enemies[idx];
         if (!e) return;
-        if (e.type === 'aegis_core') e.aegisInvulnerable = false;
+        if (e.type === 'raphael') e.raphaelInvulnerable = false;
         if (e.type === 'leviathan' && e.afoShieldActive) {
             // Jump straight to the shield actually breaking — same end
             // state and effects the real announce→charge→sweep sequence
@@ -1261,7 +1261,7 @@ window.debugSetYuukiBonus = function () {
     };
 
     function enemyDefenseNote(e) {
-        if (e.type === 'aegis_core' && e.aegisInvulnerable) return '<button class="dbg-btn" onclick="debugClearDefense(' + enemies.indexOf(e) + ')">Break Custos</button>';
+        if (e.type === 'raphael' && e.raphaelInvulnerable) return '<button class="dbg-btn" onclick="debugClearDefense(' + enemies.indexOf(e) + ')">Break Custos</button>';
         if (e.type === 'leviathan' && e.afoShieldActive) return '<button class="dbg-btn" onclick="debugClearDefense(' + enemies.indexOf(e) + ')">Break AFO Shield</button>';
         if (e.type === 'marchosias' && e.arcBarrier && e.arcBarrier.hp > 0) return '<button class="dbg-btn" onclick="debugClearDefense(' + enemies.indexOf(e) + ')">Break Arc Barrier</button>';
         if (e.type === 'egregor' && e._tentacleHps && e._tentacleHps.some(h => h > 0)) return '<button class="dbg-btn" onclick="debugClearDefense(' + enemies.indexOf(e) + ')">Clear Tentacles</button>';
@@ -1273,7 +1273,7 @@ window.debugSetYuukiBonus = function () {
         if (e.type === 'egregor') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'ns')">Null Slash</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'tempest')">Tempest</button>`;
         if (e.type === 'marchosias') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'sword')">Sword</button>`;
         if (e.type === 'dargruel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'haki')">Maou Haki</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'chains')">Chains</button>`;
-        if (e.type === 'aegis_core') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button>`;
+        if (e.type === 'raphael') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button>`;
         if (e.type === 'leviathan') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'perseverance')">Perseverance</button>`;
         if (e.type === 'veilshroud') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'void')">Void Strike</button>`;
         if (e.type === 'uriel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'uriel_camo')">Force Camouflage</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'uriel_sword')">Force Judgment</button>`;
@@ -1289,7 +1289,7 @@ window.debugSetYuukiBonus = function () {
         return '';
     }
 
-    const BOSS_TYPES = ['apostle', 'thaelis', 'aegis_core', 'marchosias', 'dargruel', 'veilshroud', 'uriel', 'leviathan', 'egregor', 'goliath'];
+    const BOSS_TYPES = ['apostle', 'thaelis', 'raphael', 'marchosias', 'dargruel', 'veilshroud', 'uriel', 'leviathan', 'egregor', 'goliath'];
 
     function refreshEnemyList() {
         const el = document.getElementById('dbgEnemyList');

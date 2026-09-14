@@ -40,7 +40,7 @@ let playerClones = [];
 let lastAutoFire = 0;
 const autoFireInterval = 135; // 135ms = base 168ms with the +20% fire rate bonus already baked in
 
-let bullets = [], enemies = [], explosions = [], particles = [], chainLightningEffects = [], marchoDeathBursts = [], marchoBarrierBursts = [];
+let bullets = [], enemies = [], explosions = [], particles = [], chainLightningEffects = [], marchoDeathBursts = [], marchoBarrierBursts = [], raphaelDeathBursts = [];
 let demonGiftEffect = { active: false, endTime: 0 };
 let gloryForJusticeActive = false;
 let finalDefense = { playerShield: true, boundaryShield: true, playerCooldownEnd: 0, boundaryCooldownEnd: 0 }; // both start true so they are ready from hit 1
@@ -50,7 +50,7 @@ let hasTriggeredLastStand = false;
 let playerAbsoluteShield = false;
 
 let bossShockwaves = [];
-let aegisLasers = [];
+let raphaelLasers = [];
 let marchosiasBlades = []; // Global array, blades tồn tại độc lập, không bị ngắt
 
 // Accurate Parry (Yog-Sothoth)
@@ -116,7 +116,7 @@ let _greatSageGems = [];
 // Great Sage sigil (Ransacked Treasury): widens the sweep cone with every
 // kill landed during the current cast; resets to 0 at the start of each sweep
 let _skillFKillsThisSweep = 0;
-const SKILL_F_ELITE_TIERS = ['thaelis', 'aegis_core', 'egregor', 'marchosias', 'veilshroud', 'dargruel', 'leviathan', 'goliath'];
+const SKILL_F_ELITE_TIERS = ['thaelis', 'raphael', 'egregor', 'marchosias', 'veilshroud', 'dargruel', 'leviathan', 'goliath'];
 // Great Sage sigil only: impact flashes for the Ruyi staff sweep, one per
 // enemy struck this sweep, drawn by js/render/skill-f.js and pruned there
 let _skillFHitFlashes = [];
@@ -278,7 +278,7 @@ function _classifyDamageSource(source, isAllyDealt) {
 const _ENEMY_TYPE_LABELS = {
     goliath: 'Goliath', leviathan: 'Leviathan', egregor: 'Egregor', dargruel: 'Dargruel',
     marchosias: 'Marchosias', veilshroud: 'Veilshroud', veilshroud_echo: 'Veilshroud',
-    aegis_core: 'Aegis Core', thaelis: 'Thaelis', apostle: 'Apostle', embryo: 'Embryo',
+    raphael: 'Raphael', thaelis: 'Thaelis', apostle: 'Apostle', embryo: 'Embryo',
     abyssal_chain: 'Abyssal Chain', normal: 'Normal Enemy',
 };
 function _enemyTypeLabel(type) {

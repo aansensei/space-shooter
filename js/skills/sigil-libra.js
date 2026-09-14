@@ -27,8 +27,8 @@ function _estimateSolArrowDR(enemy) {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
         dr += Math.min(0.95, hpLostPct * 0.025);
     }
-    if (enemy.type === 'aegis_core') dr += 0.55;
-    if (enemy.shield > 0 && enemy.aegisShieldReceived) dr += 0.18;
+    if (enemy.type === 'raphael') dr += 0.55;
+    if (enemy.shield > 0 && enemy.raphaelShieldReceived) dr += 0.18;
     if (enemy.type === 'marchosias') dr += 0.45;
     if (enemy.type === 'marchosias_minion' && enemy.DR) dr += enemy.DR;
     if (enemy.type === 'leviathan') dr += 0.60;

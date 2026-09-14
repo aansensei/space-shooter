@@ -227,7 +227,7 @@ function handleEnemyKill(enemy) {
         const _t = enemy.type;
         if (_t === 'apostle') _cdReduc = 1000;
         else if (_t === 'egregor') _cdReduc = 3000;
-        else if (_t === 'thaelis' || _t === 'veilshroud' || _t === 'marchosias' || _t === 'aegis_core') _cdReduc = 1500;
+        else if (_t === 'thaelis' || _t === 'veilshroud' || _t === 'marchosias' || _t === 'raphael') _cdReduc = 1500;
         else if (_t === 'dargruel' || _t === 'leviathan') _cdReduc = 2000;
         if (_cdReduc > 0) {
             lastSkillA     = Math.min(_now, lastSkillA     - _cdReduc);
@@ -306,12 +306,12 @@ function spawnEnemy() {
 
     const dargruelCount = enemies.filter(e => e.type === 'dargruel').length;
     const thaelisCount = enemies.filter(e => e.type === 'thaelis').length;
-    const aegisCount = enemies.filter(e => e.type === 'aegis_core').length;
+    const raphaelCount = enemies.filter(e => e.type === 'raphael').length;
     const marchosiasCount = enemies.filter(e => e.type === 'marchosias').length;
     const leviathanCount = enemies.filter(e => e.type === 'leviathan').length;
     const veilshroudCount = enemies.filter(e => e.type === 'veilshroud').length;
     const egregorCount = enemies.filter(e => e.type === 'egregor').length;
-    const totalElite = dargruelCount + thaelisCount + aegisCount + marchosiasCount + leviathanCount + veilshroudCount + egregorCount;
+    const totalElite = dargruelCount + thaelisCount + raphaelCount + marchosiasCount + leviathanCount + veilshroudCount + egregorCount;
 
     if (elapsedSec < 20) {
         spawnApostle();
@@ -331,7 +331,7 @@ function spawnEnemy() {
     const t = Math.min(1, (elapsedSec - 30) / 210);
 
     const dargruelRate = 0.04 + t * 0.09;
-    const aegisRate = 0.06 + t * 0.08;
+    const raphaelRate = 0.06 + t * 0.08;
     const thaelisRate = 0.12 + t * 0.13;
     const marchosiasRate = 0.05 + t * 0.08;
 
@@ -346,7 +346,7 @@ function spawnEnemy() {
         (_now - window._lastEgregorKillTime) >= 6000;
 
     const canSpawnDargruel = dargruelCount < 2 && totalElite < 6;
-    const canSpawnAegis = aegisCount < 2 && totalElite < 6;
+    const canSpawnRaphael = raphaelCount < 2 && totalElite < 6;
     const canSpawnThaelis = thaelisCount < 3 && totalElite < 6;
     const canSpawnMarchosias = marchosiasCount < 2 && totalElite < 6;
     const canSpawnLeviathan = leviathanCount < 1 && totalElite < 6 && levCooldownOk;
@@ -366,8 +366,8 @@ function spawnEnemy() {
     if (canSpawnDargruel && rand < (cursor += dargruelRate)) {
         spawnDargruel(); return;
     }
-    if (canSpawnAegis && rand < (cursor += aegisRate)) {
-        spawnAegisCore(); return;
+    if (canSpawnRaphael && rand < (cursor += raphaelRate)) {
+        spawnRaphael(); return;
     }
     if (canSpawnThaelis && rand < (cursor += thaelisRate)) {
         spawnThaelis(); return;
@@ -385,18 +385,18 @@ function spawnEnemy() {
     spawnApostle();
 }
 
-// spawnDargruel / spawnThaelis / spawnAegisCore / spawnApostle moved to
+// spawnDargruel / spawnThaelis / spawnRaphael / spawnApostle moved to
 // js/entities/misc-enemies.js. spawnMarchosias / spawnMarchosiasMinion
 // moved to js/entities/marchosias.js.
 
 // spawnVeilshroud (real + Echo) moved to js/entities/veilshroud.js.
 
-function createAegisTelegraph(startX, startY, target) {
+function createRaphaelTelegraph(startX, startY, target) {
     let angle = Math.atan2(target.y - startY, target.x - startX);
     let length = Math.hypot(canvas.width, canvas.height);
     let endX = startX + Math.cos(angle) * length;
     let endY = startY + Math.sin(angle) * length;
-    aegisLasers.push({
+    raphaelLasers.push({
         start: { x: startX, y: startY },
         end: { x: endX, y: endY },
         delay: 1000,
@@ -648,12 +648,48 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'uriel' && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
         return;
     }
-    if (enemy.type === 'aegis_core' && enemy.aegisInvulnerable) {
+    // Raphael's Custos Aeternus shield, while its layers are still up, is
+    // fully immune to every DoT/lingering-effect source in the game (Tesla
+    // Coil, Dimensional Rift's Soul Devourer, Solar Flare, Yog-Sothoth's own
+    // tick, Soul Reaver) - same immunity Uriel and Thaelis Guards get.
+    // Without this, a Dimensional Rift tick still carried source.damage>0
+    // and silently chipped a Custos layer per tick even though the shield
+    // read as "invulnerable" - a rift left sitting on Raphael could burn
+    // through all its layers on its own, no direct hit needed.
+    if (enemy.type === 'raphael' && enemy.raphaelInvulnerable
+        && (source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
+        // Small cyan ward spark, throttled to once every ~200ms per enemy -
+        // a DoT ticks far faster than that, and a full particle burst on
+        // every single tick would be both wasteful and visually noisy.
+        // Reads as "this tick did nothing" distinct from the bigger white
+        // flash a real absorbed hit gets below.
+        const _wardNow = performance.now();
+        if (!enemy._lastWardSparkAt || _wardNow - enemy._lastWardSparkAt > 200) {
+            enemy._lastWardSparkAt = _wardNow;
+            createParticles(enemy.x, enemy.y, 4, '#7fe6ff', 1, 3);
+        }
+        return;
+    }
+    if (enemy.type === 'raphael' && enemy.raphaelInvulnerable) {
         if (source.damage > 0 || source.percentDamage > 0) {
-            enemy.aegisCustosHits = (enemy.aegisCustosHits || 0) + 1;
+            // Throttled to at most 1 counted hit per ~175ms, same spirit as
+            // the DoT ward-spark above. Skill A's Thunder Orbs fire up to 20
+            // orbs a cast, each landing as 2 separate dealDamage calls (a
+            // main hit + a true-damage follow-up) - unthrottled, a single
+            // cast that converges on Raphael could burn through the entire
+            // 25-hit pool in one burst, making the "25 hits" figure
+            // meaningless against burst sources while still working as
+            // intended against single-hit attacks. Damage is still fully
+            // absorbed either way (the function returns below regardless);
+            // this only throttles how fast the counter itself moves.
+            const _custosNow = performance.now();
+            const _custosThrottled = enemy._lastCustosHitAt && _custosNow - enemy._lastCustosHitAt < 175;
+            if (_custosThrottled) return;
+            enemy._lastCustosHitAt = _custosNow;
+            enemy.raphaelCustosHits = (enemy.raphaelCustosHits || 0) + 1;
             addExplosion(enemy.x, enemy.y, enemy.size * 1.2, 'white');
-            if (enemy.aegisCustosHits >= 20) {
-                enemy.aegisInvulnerable = false;
+            if (enemy.raphaelCustosHits >= 25) {
+                enemy.raphaelInvulnerable = false;
                 enemy._custosExpired = true;
                 // One-time defensive grant based on allies in support aura when Custos breaks
                 {
@@ -695,7 +731,7 @@ function dealDamage(enemy, source) {
         let _evade = ({
             'apostle': _evadeLesser,
             'veilshroud': _evadeAbnormal, 'thaelis': _evadeAbnormal, 'thaelis_guard': _evadeAbnormal, 'uriel': _evadeAbnormal,
-            'aegis_core': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
+            'raphael': _evadeElite, 'marchosias': _evadeElite, 'egregor': _evadeElite,
             'dargruel': _evadeDom, 'leviathan': _evadeDom
         })[enemy.type] || 0;
         // Marchosias: +10% extra body evade while arc barrier is alive
@@ -965,11 +1001,11 @@ function dealDamage(enemy, source) {
         combinedDR += THAELIS_COCOON_GUARD_DR;
     }
 
-    if (enemy.type === 'aegis_core') {
+    if (enemy.type === 'raphael') {
         combinedDR += 0.55;
     }
 
-    if (enemy.shield > 0 && enemy.aegisShieldReceived) {
+    if (enemy.shield > 0 && enemy.raphaelShieldReceived) {
         combinedDR += 0.18;
     }
 

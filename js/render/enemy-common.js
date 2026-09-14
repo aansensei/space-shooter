@@ -766,7 +766,7 @@ function drawEnemy(enemy) {
 
     // Boss aura (HIGH + MED)
     if (_gfxLevel < 2) {
-        const _bossTypes = { boss:[255,80,0], thaelis:[255,200,0], marchosias:[0,255,120], leviathan:[0,180,255], veilshroud:[160,0,255], aegis_core:[0,220,255] };
+        const _bossTypes = { boss:[255,80,0], thaelis:[255,200,0], marchosias:[0,255,120], leviathan:[0,180,255], veilshroud:[160,0,255], raphael:[0,220,255] };
         const _bossCol = _bossTypes[enemy.type];
         if (_bossCol) {
             const nowB = performance.now();
@@ -822,8 +822,8 @@ function drawEnemy(enemy) {
         _drawUrielBuffRing(enemy);
     }
 
-    if (enemy.type === 'aegis_core') {
-        drawAegisCore(enemy);
+    if (enemy.type === 'raphael') {
+        drawRaphael(enemy);
     } else if (enemy.type === 'dargruel') {
         _drawDargruel(enemy);
     } else if (enemy.type === 'thaelis') {

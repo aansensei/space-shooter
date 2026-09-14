@@ -92,7 +92,7 @@ A stacking debuff inflicted by all friendly attacks that progressively weakens e
 Activates automatically when **any of the following** is true:
 
 - More than 4 enemies are on screen
-- Any **Abnormal or higher** enemy is present (Veilshroud, Uriel, Thaelis, Aegis Core, Marchosias, Egregor, Dargruel, Leviathan, or Goliath)
+- Any **Abnormal or higher** enemy is present (Veilshroud, Uriel, Thaelis, Raphael, Marchosias, Egregor, Dargruel, Leviathan, or Goliath)
 - Skill G is active
 - **Phōtokrystos** (Đại Tinh Linh Khởi Nguyên) is active
 
@@ -292,7 +292,7 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Passive: Danger? Not Today!** — Triggers when any enemy comes within **170px of the player** or within **170px of the bottom boundary**. Phōtokrystos halts all attacks and aims for **100ms**, continuously re-locking onto the nearest threatening enemy each frame. It then unleashes a **2-second primeval laser beam** that sweeps **±20°** around the locked angle — the beam extends to the screen edge and **instantly destroys every enemy it touches**, bypassing all shields, Iron Body, and invulnerability. Allies are unaffected. Each enemy killed by the beam produces a burst effect. After firing, Phōtokrystos suffers **−20% damage output for 3 seconds** from primeval energy exhaustion. The **10-second cooldown begins after the beam ends**.
 
-**Companion Effect: Vine Bind** — The instant Danger? Not Today! locks on, Phōtokrystos also calls on the primeval forest: vines erupt from nothing to bind the enemy nearest the bottom boundary **and** the enemy nearest the player (the same enemy if it qualifies for both). Vines take **1 second** to fully grow in, then a **green aura** appears and the bound enemy(s) are slowed **50% for 2 seconds** — aura and slow end together. CC-immune enemies (Egregor, Dargruel, Leviathan, barrier-shielded Marchosias, invulnerable Aegis Core) are unaffected.
+**Companion Effect: Vine Bind** — The instant Danger? Not Today! locks on, Phōtokrystos also calls on the primeval forest: vines erupt from nothing to bind the enemy nearest the bottom boundary **and** the enemy nearest the player (the same enemy if it qualifies for both). Vines take **1 second** to fully grow in, then a **green aura** appears and the bound enemy(s) are slowed **50% for 2 seconds** — aura and slow end together. CC-immune enemies (Egregor, Dargruel, Leviathan, barrier-shielded Marchosias, invulnerable Raphael) are unaffected.
 
 **Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels' shot recoil HP cost is reduced by **15%**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+1.75% Max HP every 0.75s**, and every **3 seconds** each Sentinel individually receives a flat **+50 HP shield** (capped at 50).
 
@@ -352,7 +352,7 @@ Every real cast of Annihilation Sweep also phases the player and every sentinel 
 
 **Ransacked Treasury (SPEC)**
 - Within a single sweep, the staff's width grows with every kill it lands during that cast, not with elapsed time, up to **4.5x** its starting width, resetting at the start of each new cast.
-- Killing an **Elite-tier-or-higher** enemy (Thaelis, Aegis Core, Egregor, Marchosias, Veilshroud, Dargruel, or Leviathan; Apostle kills never count) by **any** means, not just a Skill F sweep kill, immediately steals that enemy's own **gem**, one of each kind, up to **3 held at once**. A duplicate of a gem already held is not collected. Gems never decay on their own.
+- Killing an **Elite-tier-or-higher** enemy (Thaelis, Raphael, Egregor, Marchosias, Veilshroud, Dargruel, or Leviathan; Apostle kills never count) by **any** means, not just a Skill F sweep kill, immediately steals that enemy's own **gem**, one of each kind, up to **3 held at once**. A duplicate of a gem already held is not collected. Gems never decay on their own.
 - **Goliath is the exception:** since it's already made of 3 other bosses' stolen powers, killing it steals all **3** of the gems it currently holds (whichever 3 abilities its own Joker system absorbed) in one go, instead of a single generic gem.
 - Pressing Skill F at any time with at least 1 gem held spends the **oldest** gem first: it fires a scaled-down copy of that enemy's own signature attack (see table below) without touching Skill F's own charge/cooldown cycle at all, since the sweep already clears most of the screen on its own. A center-screen prompt appears the whole time at least 1 gem is banked.
 
@@ -364,7 +364,7 @@ Every real cast of Annihilation Sweep also phases the player and every sentinel 
 | Gem | Real joker attack | Stolen copy |
 |---|---|---|
 | Thaelis | Persistent damage reduction | Player: 1 Iron Body layer that blocks the next hit outright. Sentinels: a 3s window of 50% dodge chance per hit instead. |
-| Aegis Core | Marks up to 3 lines (player + 2 more), 1s telegraph, fires straight along each | Marks lines toward 3 locked points (nearest enemy + 2 more enemies, or random on-screen points if there aren't enough), 0.5s telegraph, fires along each fixed line: 220 + 12% Max HP per line to everything still on it (Lumen Nova). |
+| Raphael | Marks up to 3 lines (player + 2 more), 1s telegraph, fires straight along each | Marks lines toward 3 locked points (nearest enemy + 2 more enemies, or random on-screen points if there aren't enough), 0.5s telegraph, fires along each fixed line: 220 + 12% Max HP per line to everything still on it (Lumen Nova). |
 | Marchosias | 1s windup, throws a sword at each of 3 locked points (player + 2 more), piercing | 0.5s windup (the launch point tracks the player live, only the 3 target points - nearest enemy + 2 more, or random points if not enough - are locked at cast time), throws a real piercing blade (reuses the Blade Arc projectile) toward each: 260 + 13% Max HP each (Arc Barrier). |
 | Veilshroud | Marks 3 positions (player + 2 more), 1.5s delay, lightning strikes each spot only if something is still there | Marks 3 locked points (nearest enemy + 2 more, or random points if not enough), 0.75s delay, a bolt strikes each spot, only damaging whatever is still standing there: 320 + 17% Max HP true damage per bolt (Phantom Strike). |
 | Egregor | Windup tracking the target, then a 180° tentacle-whip slash reaching however far the target is | 0.5s windup that keeps tracking the player's position and the current nearest enemy the whole time (locking only the instant it fires), then a real 180° arc slash centered on the player reaching up to the full screen diagonal: 260 + 14% Max HP (Null Slash). |
@@ -469,19 +469,19 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 ---
 
-### Heavenly Aegis Core (Elite)
+### Heavenly Raphael (Elite)
 
 **Available after:** Wave 2 | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.65 u/s
 
 HP: **2,376–4,118**. Permanent **55% Damage Reduction** at all times.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash. After the 20th hit the shield breaks and Aegis Core takes damage normally. **While Custos is active, Aegis Core is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash. After the 20th hit the shield breaks and Raphael takes damage normally. **While Custos is active, Raphael is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for **6% of Aegis Core's Max HP per second** (×1.20 after Custos expires; Aegis Core itself heals at 50% efficiency). Cannot heal units at 0 HP.
-- Grants every allied unit inside a **6% of Aegis Core's Max HP shield every second** (passive tick — stacks on top of the one-time 38% shield; units with any remaining shield also benefit from the +18% DR bonus).
-- Grants a **shield** equal to **38% of Aegis Core's Max HP** to all allies inside (once per ally). Shielded units gain **+18% Damage Reduction** while the shield has any HP remaining.
+- Heals all ally units inside for **6% of Raphael's Max HP per second** (×1.20 after Custos expires; Raphael itself heals at 50% efficiency). Cannot heal units at 0 HP.
+- Grants every allied unit inside a **6% of Raphael's Max HP shield every second** (passive tick — stacks on top of the one-time 38% shield; units with any remaining shield also benefit from the +18% DR bonus).
+- Grants a **shield** equal to **38% of Raphael's Max HP** to all allies inside (once per ally). Shielded units gain **+18% Damage Reduction** while the shield has any HP remaining.
 - If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
 - All enemies and enemy bullets inside move 5% faster.
 
@@ -502,7 +502,7 @@ Marchosias carries a rotating **Arc Barrier** — a glowing 90-degree arc that c
 *Barrier properties:*
 
 - **60% Damage Reduction** on all incoming damage to the barrier. No single hit can exceed **35% of the barrier's current HP**.
-- **Completely buff-immune:** the barrier cannot receive heals, DR boosts, Aegis shields, or any other beneficial effect.
+- **Completely buff-immune:** the barrier cannot receive heals, DR boosts, Raphael shields, or any other beneficial effect.
 - While the arc barrier is alive, Marchosias and the barrier gain **+10% evade** (applies to both body hits and barrier hits).
 - **Piercing attacks** (Spirit Arc Blade, Boomerang, Overload Laser) that connect with the barrier first: body damage is reduced **−30%**, the barrier takes **+15% extra damage**, and the attack continues through. **True damage** bypasses the Arc Barrier entirely and hits the body directly. All other attacks are fully absorbed by the barrier.
 - **Lifesteal per hit:** each hit on the barrier heals the barrier for **5% of damage dealt** (max 1000 HP); Marchosias's body heals for **10% of damage dealt** (max 1000 HP, overflow → **50% converted to shield** on Marchosias's body).
@@ -535,7 +535,7 @@ At 0 HP, explodes and spawns **3 Minion Robots**, each inheriting **25–35%** o
 
 Each minion scans within **170px** for a valid host (excluding other Marchosias):
 
-**Host found → Parasite Mode:** Attaches as a **Parasite Shield** — absorbs damage before all other shields, including Aegis shields. Completely buff-immune: no heals, no regeneration, no DR bonuses can affect it. A green rotating ring marks infected hosts.
+**Host found → Parasite Mode:** Attaches as a **Parasite Shield** — absorbs damage before all other shields, including Raphael shields. Completely buff-immune: no heals, no regeneration, no DR bonuses can affect it. A green rotating ring marks infected hosts.
 
 **No host nearby → Hunt Mode:** Charges the player at **+55% speed**, firing bullets and dealing contact damage. During hunt mode the minion rescans every 500ms — if a valid host enters range, it attaches immediately. Minions flash a glowing ring to signal their presence in the bullet chaos.
 
@@ -724,7 +724,7 @@ True Form gains working, independently-cooldown copies of exactly the **3 abilit
 
 - **Veilshroud — Phantom + Lightning:** randomly (~50% chance per 450ms once off cooldown) enters a 3s Phantom (+99% DR). On exit, locks 3 points (the player plus 2 Sentinels, or random on-screen positions filling in for any Sentinel the fight doesn't have), telegraphs for 1.5s, then strikes each: the player takes a `playerTakesHit()` hit (dodgeable if it's moved out of the marked spot), Sentinels take **5% Max HP true damage**.
 - **Thaelis — Tenacity:** +20–60% DR (scales up as Goliath loses HP, same curve as the real Tenacity barrier trigger points). On top of that, +35% effectiveness on **every** heal/shield Goliath receives from any source (stacks additively with everything else — Inevitable regen, Threshold Ward, casting-restriction heal, and its own tick below), and every **5% of Max HP** lost (a fresh 5%-bracket, never re-triggers the same bracket twice) heals **2.5% Max HP** and grants **1% Max HP** as shield.
-- **Aegis Core — Lumen Nova:** every 4s, marks 3 fixed targeting lines (chosen once, not re-tracked) toward the player plus 2 Sentinels, or random on-screen positions filling in for any Sentinel the fight doesn't have, telegraphs 1s, then fires along each line. Player hit → `playerTakesHit()`. Sentinel hit → **25% Max HP true damage**.
+- **Raphael — Lumen Nova:** every 4s, marks 3 fixed targeting lines (chosen once, not re-tracked) toward the player plus 2 Sentinels, or random on-screen positions filling in for any Sentinel the fight doesn't have, telegraphs 1s, then fires along each line. Player hit → `playerTakesHit()`. Sentinel hit → **25% Max HP true damage**.
 - **Marchosias — Sword & Barrier (full port):** a separate **8000 HP barrier** (fixed value, not scaled to Goliath's own Max HP) absorbs incoming hits before they reach the body — 60% DR on the barrier itself, no single hit exceeding 35% of the barrier's *current* HP, 10% flat evade per hit (also on a miss), piercing hits get +15% extra barrier damage but pass through to the body at −30%, true damage bypasses the barrier entirely. Every hit landed on the barrier heals it 5% of the damage dealt (cap 2000) and heals Goliath's body 10% of that damage (cap 2000, overflow above Max HP → 50% converted to shield), and has a **25% chance** (10% on an evaded hit) to queue a Sword strike — up to **10** per barrier cycle, 650ms between triggers, each trigger throwing 3 swords (1000ms windup each) at the player plus 2 more locked points (Sentinels, or random on-screen positions filling in for any Sentinel the fight doesn't have): costs the player 1 life per sword that hits, and Sentinels caught in a sword's path (it pierces through, not destroyed on a Sentinel hit) take **27% / 23% / 21% Max HP** for the 1st / 2nd / 3rd-and-later Sentinel it hits — the same formula the real Marchosias's blades use. Reaching the 10th sword self-detonates the barrier immediately, same as running it down to 0 HP. When the barrier breaks: +5-hit Iron Body, heal 40% Max HP (overflow → 50% shield), +shield worth 15% Max HP + 15% of HP lost, and +20% DR until the barrier revives. Revive takes a fixed 3s if all 10 swords fired before the break, otherwise 4–5s (scaling faster later in the match). Note: unlike the real Marchosias, Goliath's barrier has no facing direction — it absorbs from every angle, since most damage sources reaching it carry no positional data to check against.
 - **Egregor — Null Slash (not Psychic Tempest):** a 3s windup tracking the player continuously, locking angle and target at release. At the 460ms mark of the strike, sweeps a 180° arc: the player is slowed 50% for 1.5s (no life lost, dodgeable through Yog-Sothoth Domain), and every Sentinel caught in the arc takes true damage scaled by how many were hit at once (30% / 35% / 40% of their Max HP for 1 / 2 / 3+ hit). At 720ms, opens a Dimension Break zone (the same shared world-object system the real Egregor uses). 3.5s cooldown after. Visually, this is **not** Egregor's real tentacle — the arm itself stretches out into a long orange plasma/slime tendril (matching Goliath's own material) that sweeps through the arc, rather than a dark octopus tentacle or a bare fist.
 - **Dargruel — Maou Haki:** every 8s, a screen-wide shockwave clears player projectiles in range and slows the player 30% for 2s if within range.
@@ -744,12 +744,12 @@ Enemies are divided into six tiers of power.
 |---|---|
 | **Normal** | Apostles |
 | **Abnormal** | Thaelis, Veilshroud |
-| **Elite** | Marchosias, Heavenly Aegis Core, Egregor |
+| **Elite** | Marchosias, Heavenly Raphael, Egregor |
 | **Dominator** | Dargruel, Leviathan |
 | **Digiform** (testbed) | Goliath |
 | **Administrator** | Kanade of the Endless Nights |
 
-**Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Aegis Core 2 · Egregor 1 · Dargruel 2 · Leviathan 1 · Goliath 1 (spawns once on every wave 5/10/15/20...). A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
+**Cap (individual, on-screen simultaneously):** Marchosias 2 · Veilshroud 2 · Thaelis 3 · Raphael 2 · Egregor 1 · Dargruel 2 · Leviathan 1 · Goliath 1 (spawns once on every wave 5/10/15/20...). A single wave can have more of a given type than its cap — new ones simply wait until a slot opens. There is no combined cap across tiers.
 
 ---
 
@@ -778,7 +778,7 @@ Enemies spawn in **waves**. Each wave defines an exact count per tier — all qu
 | 9 | 64 | 14 | 12 | 8 | — |
 | 10+ | +5/wave | +1/wave | +1/wave | +1/wave | 1 every 5th wave |
 
-Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marchosias, Veilshroud), **Elites** (Thaelis, Aegis Core, Egregor), **Dominators** (Dargruel, Leviathan). Individual on-screen caps apply; there is no combined cap. **Goliath** (Digiform) spawns exactly once, outside every other tier, on any wave number divisible by 5.
+Within each tier, enemies are chosen randomly from the pool: **Abnormals** (Marchosias, Veilshroud), **Elites** (Thaelis, Raphael, Egregor), **Dominators** (Dargruel, Leviathan). Individual on-screen caps apply; there is no combined cap. **Goliath** (Digiform) spawns exactly once, outside every other tier, on any wave number divisible by 5.
 
 ### Walpurgis (Huyết Dạ)
 

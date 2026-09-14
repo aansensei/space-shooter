@@ -84,7 +84,7 @@
         'js/skills/sigil-aries.js',
         'js/skills/sigil-virgo.js',
         'js/render/core.js',
-        'js/render/enemy-aegis-core.js',
+        'js/render/enemy-raphael.js',
         'js/render/enemy-thaelis.js',
         'js/render/enemy-dargruel.js',
         'js/render/enemy-common.js',
