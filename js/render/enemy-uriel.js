@@ -395,7 +395,7 @@ function _drawUriel(enemy) {
     // value - matches the original fixed r*2.8 exactly), shrinking and
     // dimming as failed rolls burn it down toward its 30% floor, so the
     // aura itself reads as a depleting resource instead of pure decoration.
-    const _evade = _urielCurrentEvade(enemy);
+    const _evade = typeof _urielCurrentEvade === 'function' ? _urielCurrentEvade(enemy) : 0.99;
     const _evadeNorm = Math.max(0, Math.min(1, (_evade - 0.30) / (0.99 - 0.30)));
     const auraMaxR = r * (1.3 + _evadeNorm * 1.5);
     const auraG = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, auraMaxR);
