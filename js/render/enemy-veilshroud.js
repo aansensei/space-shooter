@@ -39,11 +39,14 @@ function _drawVeilshroud(enemy) {
         ctx.translate((Math.random() - 0.5) * 14 * t, (Math.random() - 0.5) * 9 * t);
     }
 
-    // Hazy/dreamlike blur while cloaked, grows in with the same fade-in
-    // progress (t) as the rest of the phantom transition, cut on lower tiers.
-    if (enemy.inPhantom && !_mobPerf && _gfxLevel < 2) {
-        ctx.filter = `blur(${(1.5 + t * 2.5).toFixed(1)}px)`;
-    }
+    // Hazy/dreamlike look while cloaked used to be a real ctx.filter blur
+    // here, measured directly as the single biggest FPS cost on this enemy
+    // (its cost comes from having a filter active across ~20 draw calls a
+    // frame, not from the blur radius chosen - reducing the radius alone
+    // didn't help). Replaced with a cheap "double-exposure" echo instead: a
+    // second, fainter aura pass drifting a few px away from the real one,
+    // no filter involved at all - just one extra cheap gradient fill,
+    // reusing the exact same gradient object as the real aura below.
 
     // 1. AURA HƯ KHÔNG
     const auraPulse = Math.sin(now / 300) * 12;
@@ -52,6 +55,14 @@ function _drawVeilshroud(enemy) {
     auraG.addColorStop(0, `rgba(${curR},${curG},${curB},0.18)`);
     auraG.addColorStop(1, 'transparent');
     ctx.fillStyle = auraG;
+    if (enemy.inPhantom && !_mobPerf && _gfxLevel < 2) {
+        const echoX = Math.sin(now / 150) * 6 * t, echoY = Math.cos(now / 190) * 5 * t;
+        ctx.save();
+        ctx.globalAlpha *= 0.5;
+        ctx.translate(echoX, echoY);
+        ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
     ctx.beginPath(); ctx.arc(0, 0, auraR, 0, Math.PI * 2); ctx.fill();
 
     // 2. VOID RIBBONS (áo choàng năng lượng uốn lượn)
