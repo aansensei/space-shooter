@@ -3022,7 +3022,7 @@ function _updateWaveSystem(deltaTime, now) {
     if (_waveSpawnBudget) {
         _updateWaveTrickle(deltaTime);
     } else {
-        const _cap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 10 : Infinity;
+        const _cap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 25 : Infinity;
         while (_waveQueue.length > 0 && _waveQueue[0].at <= _waveQueueTimer) {
             const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
             // Wait for room instead of discarding the entry - shifting it off
