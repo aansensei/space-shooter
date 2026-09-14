@@ -22,7 +22,7 @@ const _MATCH_STATS_LABEL_VI = {
     'Boss Attack': 'Đòn Đánh Boss',
     'Goliath': 'Goliath', 'Leviathan': 'Leviathan', 'Egregor': 'Egregor',
     'Dargruel': 'Dargruel', 'Marchosias': 'Marchosias', 'Veilshroud': 'Veilshroud',
-    'Aegis Core': 'Aegis Core', 'Thaelis': 'Thaelis', 'Apostle': 'Sứ Đồ',
+    'Raphael': 'Raphael', 'Thaelis': 'Thaelis', 'Apostle': 'Sứ Đồ',
     'Embryo': 'Phôi Thai', 'Abyssal Chain': 'Xiềng Xích Hắc Ám',
     'Normal Enemy': 'Địch Thường', 'Unknown': 'Không Rõ', 'Other': 'Khác',
 };

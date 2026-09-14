@@ -820,7 +820,7 @@ function _goliathEnterTrueForm(enemy) {
         if (enemy._jokerState[name]) return; // phòng khi 2 khe cùng tên (không nên xảy ra)
         if (name === 'Veilshroud') enemy._jokerState[name] = { phase: 'ready', cooldownEnd: 0, phantomEnd: 0, targets: [], lightningPending: false, lightningCountdown: 0 };
         else if (name === 'Thaelis') enemy._jokerState[name] = { active: true }; // passive dai dẳng, không cooldown
-        else if (name === 'Aegis Core') enemy._jokerState[name] = { nextFireAt: performance.now() + 4000, originX: 0, originY: 0 };
+        else if (name === 'Raphael') enemy._jokerState[name] = { nextFireAt: performance.now() + 4000, originX: 0, originY: 0 };
         else if (name === 'Marchosias') enemy._jokerState[name] = {
             barrierAngle: 0, barrierHp: 8000, barrierMaxHp: 8000,
             barrierDown: false, reviveAt: 0,
@@ -953,7 +953,7 @@ function _goliathIsCasting(enemy) {
     if (enemy._verdictPhase === 'channeling') return true;
     if (enemy._meteorPhase === 'charging') return true;
     const js = enemy._jokerState;
-    if (js['Aegis Core'] && (js['Aegis Core'].telegraphing || js['Aegis Core'].firing)) return true;
+    if (js['Raphael'] && (js['Raphael'].telegraphing || js['Raphael'].firing)) return true;
     if (js['Egregor'] && (js['Egregor'].phase === 'charging' || js['Egregor'].phase === 'striking')) return true;
     if (js['Veilshroud']) {
         const s = js['Veilshroud'];
@@ -1009,13 +1009,13 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
     }
     // Thaelis: passive thuần, DR áp trong combinedDR — không cần cập nhật gì ở đây
 
-    if (js['Aegis Core']) {
-        // Đúng cơ chế Lumen Nova THẬT (fx.js drawAegisLasers): trước tiên MARK
+    if (js['Raphael']) {
+        // Đúng cơ chế Lumen Nova THẬT (fx.js drawRaphaelLasers): trước tiên MARK
         // mục tiêu + báo trước bằng 1 đường thẳng mờ TẠI VỊ TRÍ ĐÃ CHỐT (chỉ
         // track 1 lần lúc mark, không đuổi theo sau đó), rồi mới bắn dọc đúng
         // đường đó — KHÔNG PHẢI 1 chùm tia xoay tròn như bản trước (xoay vậy
         // không cách nào né được).
-        const s = js['Aegis Core'];
+        const s = js['Raphael'];
         if (!s.telegraphing && !s.firing && now >= s.nextFireAt) {
             s.telegraphing = true;
             s.telegraphEnd = now + 1000;
@@ -1023,13 +1023,13 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             // Chốt luôn điểm PHÁT (không chỉ điểm ĐÍCH) — Goliath giờ luôn di
             // chuyển nên nếu cứ tính hướng từ vị trí HIỆN TẠI mỗi frame, đường
             // ngắm sẽ trông như đang dí theo dù mục tiêu đã chốt (đúng ra chỉ
-            // track/chốt 1 lần lúc mark, y hệt Aegis Core thật đứng yên bắn).
+            // track/chốt 1 lần lúc mark, y hệt Raphael thật đứng yên bắn).
             const _eye = _goliathEyeWorldPos(enemy);
             s.originX = _eye.x; s.originY = _eye.y;
         } else if (s.telegraphing && now >= s.telegraphEnd) {
             s.telegraphing = false; s.firing = true; s.fireEnd = now + 200;
             if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', s.originX, s.originY);
-            // Đúng thật (main.js aegisLasers: distToSegment check tại thời
+            // Đúng thật (main.js raphaelLasers: distToSegment check tại thời
             // điểm bắn) — chỉ trúng nếu người chơi/Sentinel CÒN Ở TRÊN đường
             // thẳng lúc bắn, không phải trúng vô điều kiện mọi mục tiêu đã
             // chốt (trước đây né ra khỏi đường vẫn dính do không hề check).

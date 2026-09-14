@@ -932,9 +932,9 @@ function _drawGreatSageEffects() {
     // distinct from each gem's own color on its slot icon while still
     // banked - reads as "borrowed power" rather than the original owner's.
     for (const fx of _greatSageEffects) {
-        if (fx.type === 'aegis' && fx.phase === 'telegraph') {
-            // Ported from Goliath's own Aegis Core joker telegraph
-            // (createAegisTelegraph, js/render/enemy-goliath.js), recolored
+        if (fx.type === 'raphael' && fx.phase === 'telegraph') {
+            // Ported from Goliath's own Raphael joker telegraph
+            // (createRaphaelTelegraph, js/render/enemy-goliath.js), recolored
             // red->blue: wide translucent wash, dashed warning line, marker dot.
             // One line per locked point (nearest enemy + 2 more).
             const fullLen = Math.hypot(canvas.width, canvas.height);
@@ -951,8 +951,8 @@ function _drawGreatSageEffects() {
                 ctx.fillStyle = 'rgba(96,165,250,0.9)'; ctx.fill();
                 ctx.restore();
             });
-        } else if (fx.type === 'aegis' && fx.phase === 'fire') {
-            // Ported from Goliath's own Aegis Core joker fire beam, recolored.
+        } else if (fx.type === 'raphael' && fx.phase === 'fire') {
+            // Ported from Goliath's own Raphael joker fire beam, recolored.
             const fullLen = Math.hypot(canvas.width, canvas.height);
             const fade = Math.max(0, 1 - fx.timer / fx.dur);
             fx.angles.forEach(angle => {

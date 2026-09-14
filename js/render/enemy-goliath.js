@@ -8,7 +8,7 @@
 const GOLIATH_GEM_COLORS = [
     { name: 'Veilshroud', dark: '#0b3b3a', mid: '#2dd4bf', light: '#e6fffb' },
     { name: 'Thaelis', dark: '#2d004d', mid: '#8b5cf6', light: '#e9ddff' },
-    { name: 'Aegis Core', dark: '#7a5a00', mid: '#fbbf24', light: '#fff8e1' },
+    { name: 'Raphael', dark: '#7a5a00', mid: '#fbbf24', light: '#fff8e1' },
     { name: 'Marchosias', dark: '#003322', mid: '#10b981', light: '#ccffe9' },
     { name: 'Egregor', dark: '#003344', mid: '#14b8a6', light: '#c9fff5' },
     { name: 'Dargruel', dark: '#3a0000', mid: '#991b1b', light: '#ffcccc' },
@@ -1014,12 +1014,12 @@ function _drawGoliathJokerEffects(enemy, now) {
         });
     }
 
-    if (js['Aegis Core']) {
+    if (js['Raphael']) {
         // Mark mục tiêu cố định trước, vẽ vùng cảnh báo thẳng mờ, rồi mới bắn
-        // đúng theo đường đó — không xoay tròn (đối chiếu fx.js drawAegisLasers thật)
-        const s = js['Aegis Core'];
+        // đúng theo đường đó — không xoay tròn (đối chiếu fx.js drawRaphaelLasers thật)
+        const s = js['Raphael'];
         if ((s.telegraphing || s.firing) && s.targets) {
-            // Đúng thật (createAegisTelegraph): đường thẳng kéo dài hết đường
+            // Đúng thật (createRaphaelTelegraph): đường thẳng kéo dài hết đường
             // chéo màn hình theo hướng đã chốt, KHÔNG dừng lại đúng tại vị trí
             // mục tiêu — chỉ dùng mục tiêu để xác định hướng bắn.
             const fullLen = Math.hypot(canvas.width, canvas.height);

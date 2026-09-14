@@ -597,7 +597,7 @@ function updatePhotoBrangs(deltaTime) {
                             tgt._slowFactor = Math.max(tgt._slowFactor || 1, 1 / 0.70);
                             const _cucCCImmune = tgt.type === 'goliath' || tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan'
                                 || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
-                                || (tgt.type === 'aegis_core' && tgt.aegisInvulnerable);
+                                || (tgt.type === 'raphael' && tgt.raphaelInvulnerable);
                             // CC-immune targets are never pulled - absolute, no exceptions.
                             if (!_cucCCImmune) {
                                 const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
@@ -743,7 +743,7 @@ function updateBladeArcProjectiles(deltaTime) {
                     enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
                     const _cucArcCCImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel'
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                        || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+                        || (enemy.type === 'raphael' && enemy.raphaelInvulnerable);
                     // CC-immune targets are never pulled - absolute, no exceptions.
                     if (!_cucArcCCImmune) {
                         const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;
@@ -967,7 +967,7 @@ function updateSpiritSpinners(deltaTime) {
                 enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
                 const _cucSpinImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel'
                     || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable);
+                    || (enemy.type === 'raphael' && enemy.raphaelInvulnerable);
                 // CC-immune targets are never pulled - absolute, no exceptions.
                 if (!_cucSpinImmune) {
                     const _sdx = s.x - enemy.x, _sdy = s.y - enemy.y, _sd = Math.hypot(_sdx, _sdy) || 1;

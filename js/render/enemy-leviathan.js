@@ -31,7 +31,7 @@ function _drawLevBeamCrackle(len, seedBase, now, count, color, maxBranch) {
     }
 }
 
-// Aegis lasers
+// Raphael lasers
 // Leviathan standalone effects (survive enemy death)
 function _drawLeviathanEffects() {
     const now = performance.now();

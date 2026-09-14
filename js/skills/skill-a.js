@@ -358,7 +358,7 @@ function updateDimensionalRifts(deltaTime) {
             enemy._inDimensionalRift = true;
             if (enemy.type !== 'egregor' && enemy.type !== 'dargruel' && enemy.type !== 'leviathan'
                 && !(enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                && !(enemy.type === 'aegis_core' && enemy.aegisInvulnerable)) enemy._riftSlow = true;
+                && !(enemy.type === 'raphael' && enemy.raphaelInvulnerable)) enemy._riftSlow = true;
 
             // Apply Soul Reaver debuff
             enemy.soulReaver = true;

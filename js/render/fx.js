@@ -1,12 +1,12 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
-// render/fx.js — extracted from render.js (shared visual effects: aegis lasers,
+// render/fx.js — extracted from render.js (shared visual effects: raphael lasers,
 // persian tile, dimensional rifts, dim-break zones, boss shockwaves, chain
 // lightning, demon-gift aura, vanguard threads, sentinel, polygon helper,
 // explosion/particle, scattered projectile, lightning-bolt helpers).
 // Depends on core.js (_getGlowSprite, _mobPerf, _gfxLevel).
 
-function drawAegisLasers() {
-    aegisLasers.forEach(laser => {
+function drawRaphaelLasers() {
+    raphaelLasers.forEach(laser => {
         ctx.save();
         if (!laser.fired) {
             // Wide warning zone
@@ -1821,7 +1821,7 @@ function drawPolygon(x, y, radius, sides, angleOffset, color1, color2) {
     ctx.restore();
 }
 
-// Aegis Core
+// Raphael
 
 function drawExplosion(exp) {
     ctx.save();

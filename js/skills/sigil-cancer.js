@@ -2,7 +2,7 @@
 // js/skills/sigil-cancer.js — split out of the old monolithic js/skills.js.
 // Cancer sigil: Tidal Flow's Riptide Surge (tide meter, overflow banking,
 // whirlpool spawn/pull/burst/DOT, sentinel auto-replenish) and Lunar
-// Aegis's Ocean Hunter execute.
+// Raphael's Ocean Hunter execute.
 
 // Cancer sigil (Tidal Flow / Riptide Surge): every point of damage a Gaia
 // Barrier or Tidal Flow's own Iron Body layer absorbs feeds this meter (see

@@ -1,7 +1,7 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/entities/misc-enemies.js — the smaller enemy types that don't have
 // enough standalone update logic to justify their own file: Dargruel (spawn
-// + Demon's Gift), Thaelis (spawn), Aegis Core (spawn), Apostle (spawn +
+// + Demon's Gift), Thaelis (spawn), Raphael (spawn), Apostle (spawn +
 // Coronation transform). Extracted from entities.js. Must load after
 // entities.js and before main.js.
 
@@ -190,7 +190,7 @@ function spawnThaelis() {
     });
 }
 
-function spawnAegisCore() {
+function spawnRaphael() {
     const baseSize = (20 + Math.random() * 10);
     const size = ((baseSize * 5) / 2) * 0.7;
     const hpFromTime = Math.floor(gameElapsedTime / 10000);
@@ -199,8 +199,8 @@ function spawnAegisCore() {
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
         speed: (1 + Math.random() * 2) * 0.367, hp: hp, maxHp: hp,
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
-        type: 'aegis_core', shootTimer: 0,
-        aegisInvulnerable: true, aegisCustosHits: 0, aegisShieldReceived: false
+        type: 'raphael', shootTimer: 0,
+        raphaelInvulnerable: true, raphaelCustosHits: 0, raphaelShieldReceived: false
     });
 }
 

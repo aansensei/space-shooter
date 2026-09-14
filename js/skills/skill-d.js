@@ -34,7 +34,7 @@ function _skillDIsCCImmune(enemy) {
     return enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'goliath'
         || enemy.type === 'uriel' || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-        || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)
+        || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)
         || enemy._urielCCImmune;
 }
 // A Death Star kill (center instakill, Mark & Annihilate beam, or a
@@ -178,7 +178,7 @@ function updateSkillD(deltaTime) {
             deathStar.markedTargets = pool.slice(0, 3);
             deathStar.laserAt = deathStar.activeTime + 1500;
         } else if (deathStar.laserAt >= 0 && deathStar.activeTime >= deathStar.laserAt) {
-            // Same shake weight as Aegis Core's Lumen Nova (js/main.js) so the
+            // Same shake weight as Raphael's Lumen Nova (js/main.js) so the
             // volley reads with real impact instead of a flat visual-only beam.
             if (deathStar.markedTargets.length > 0) {
                 _setShake(8, 200);

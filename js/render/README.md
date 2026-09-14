@@ -20,10 +20,10 @@ Check `index.html`'s script tags to see which mode is currently active.
 | File | ~Lines | Contents |
 |---|---|---|
 | `core.js` | 1416 | Module state (quality flags, sprite caches), init helpers, background rendering, the main `draw()` orchestrator, the start screen. **Loaded first** — every other file reads globals/helpers this file defines (`_mobPerf`, `_gfxLevel`, sprite-cache getters, `_initMobilePerf`, `_GFX_PARTICLE_SCALE`, `_bgOffscreen` background cache, screen-shake offset). |
-| `fx.js` | 1016 | Shared visual effects used by multiple other files: aegis lasers, persian tile pattern, dimensional rifts, dim-break zones, boss shockwaves, `drawChainLightning`, demon-gift aura, vanguard threads, sentinel draw, `drawPolygon` helper, explosion/particle draw, scattered projectiles, lightning-bolt line helpers (`_genBoltPoints`/`_strokeBoltPath`). |
+| `fx.js` | 1016 | Shared visual effects used by multiple other files: raphael lasers, persian tile pattern, dimensional rifts, dim-break zones, boss shockwaves, `drawChainLightning`, demon-gift aura, vanguard threads, sentinel draw, `drawPolygon` helper, explosion/particle draw, scattered projectiles, lightning-bolt line helpers (`_genBoltPoints`/`_strokeBoltPath`). |
 | `player.js` | 1050 | Skill-Shift teleport arrows/portals (`drawSkillShiftEffects`), Final Defense, player aura, player bullets, `drawPlayer`, charge/laser visual effects. Depends on `core.js`. |
 | `enemy-common.js` | 1091 | `drawEnemy()` — the type-dispatch entry point `draw()` in `core.js` calls for every enemy. Also: normal-enemy visuals, enemy bullets, Embryo, Vulnerability icon, Coronation fx. |
-| `enemy-aegis-core.js` | 185 | Heavenly Aegis Core visuals. Self-contained, no cross-file calls besides `core.js`'s `_mobPerf`. |
+| `enemy-raphael.js` | 185 | Heavenly Raphael visuals. Self-contained, no cross-file calls besides `core.js`'s `_mobPerf`. |
 | `enemy-thaelis.js` | 323 | Thaelis's own visuals (split out of the old shared `enemy-boss-thaelis.js`), plus its Reincarnation Cocoon and Guards, drawn over a commissioned sprite (`assets/images/game/enemies/thaelis-cocoon.png`). Calls `drawPolygon()` from `fx.js`. |
 | `enemy-dargruel.js` | 335 | Dargruel's own visuals (the other half of the old shared `enemy-boss-thaelis.js`). |
 | `enemy-marchosias.js` | 340 | Marchosias main body, minion, death-sword blade. Reassembled from three separate ranges in the original file. |
@@ -47,7 +47,7 @@ core.js               (must be first: defines shared state/helpers)
 fx.js
 player.js
 enemy-common.js
-enemy-aegis-core.js
+enemy-raphael.js
 enemy-thaelis.js
 enemy-dargruel.js
 enemy-marchosias.js

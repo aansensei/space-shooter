@@ -132,7 +132,7 @@ function playerTakesHit(attacker) {
                 && _curseTarget.type !== 'uriel'
                 && !_curseTarget.inCoronation
                 && !(_curseTarget.type === 'marchosias' && _curseTarget.arcBarrier && _curseTarget.arcBarrier.hp > 0)
-                && !(_curseTarget.type === 'aegis_core' && _curseTarget.aegisInvulnerable)) {
+                && !(_curseTarget.type === 'raphael' && _curseTarget.raphaelInvulnerable)) {
                 _curseTarget.soulReaver = true;
                 _curseTarget.soulReaverEnd = performance.now() + 2000;
                 _curseTarget._orbRetaliationSlowEnd = performance.now() + 3000;
@@ -408,7 +408,7 @@ function update(rawDeltaTime) {
     // recalc every frame bc enemies spawn and die constantly
     gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
         (typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) ||
-        enemies.some(e => e.type === 'dargruel' || e.type === 'thaelis' || e.type === 'aegis_core' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan' || e.type === 'goliath');
+        enemies.some(e => e.type === 'dargruel' || e.type === 'thaelis' || e.type === 'raphael' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan' || e.type === 'goliath');
 
     // Accurate Parry expiry
     if (accurateParryActive && performance.now() >= accurateParryEndTime) {
@@ -478,7 +478,7 @@ function update(rawDeltaTime) {
                         _recordStat('allyDamage', 'Skill S: Back to Motherland', rawDmg);
                         e.shield = 0;
                         e.absoluteShield = false;
-                        e.aegisInvulnerable = false;
+                        e.raphaelInvulnerable = false;
                         e.afoShieldActive = false; // AFO shield also bypassed
                         // GOLIATH True Form: BTM cố tình xuyên thủng MỌI thứ bằng
                         // cách chỉnh thẳng e.hp ở đây, hoàn toàn KHÔNG đi qua
@@ -585,7 +585,7 @@ function update(rawDeltaTime) {
     // tiếng của sóng còn lại vẫn đang lan ra.
     if (bossShockwaves.length === 0 && window.AudioMgr) window.AudioMgr.stopMaouHaki();
 
-    aegisLasers.forEach(laser => {
+    raphaelLasers.forEach(laser => {
         if (!laser.fired) {
             laser.delay -= deltaTime;
             if (laser.delay <= 0) {
@@ -595,13 +595,13 @@ function update(rawDeltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', laser.start.x, laser.start.y);
 
                 if (distToSegment(player, laser.start, laser.end) < player.hitRadius + 15) {
-                    if (!_yuushaPierceRedirect(0.20, true)) playerTakesHit({ type: 'aegis_core' });
+                    if (!_yuushaPierceRedirect(0.20, true)) playerTakesHit({ type: 'raphael' });
                 }
 
-                if (!laser._id) laser._id = 'aegis_laser_' + performance.now().toFixed(0);
+                if (!laser._id) laser._id = 'raphael_laser_' + performance.now().toFixed(0);
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: s.maxHp * 0.20, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'aegis_core' });
+                        dealDamage(s, { damage: s.maxHp * 0.20, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'raphael' });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -610,7 +610,7 @@ function update(rawDeltaTime) {
             laser.duration -= deltaTime; // Laze mờ đi cũng chậm lại
         }
     });
-    if (aegisLasers.length) aegisLasers = aegisLasers.filter(l => !l.fired || l.duration > 0);
+    if (raphaelLasers.length) raphaelLasers = raphaelLasers.filter(l => !l.fired || l.duration > 0);
 
     if (skillGActive && gameElapsedTime > skillGEndTime) {
         endSkillG();
@@ -836,7 +836,7 @@ function update(rawDeltaTime) {
                 const _laserCCImmune = enemy.type === 'egregor' || enemy.type === 'dargruel'
                     || enemy.type === 'uriel' || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
                     || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)
+                    || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)
                     || enemy._urielCCImmune;
                 if (_laserCCImmune) return;
 
@@ -922,7 +922,7 @@ function update(rawDeltaTime) {
             }
         }
 
-        if (enemy.type === 'aegis_core') {
+        if (enemy.type === 'raphael') {
             let healAmt = enemy.maxHp * 0.08 * (deltaTime / 1000);
             if (enemy._custosExpired) healAmt *= 1.35;
             let shieldAmt = enemy.maxHp * 0.38;
@@ -931,7 +931,7 @@ function update(rawDeltaTime) {
 
             enemies.forEach(ally => {
                 if (ally === enemy) {
-                    // Aegis tự heal 55% hiệu quả (không heal khi đang chết)
+                    // Raphael tự heal 55% hiệu quả (không heal khi đang chết)
                     if (!ally._markedForDeath && enemy.hp > 0) {
                         const _hpBefore = enemy.hp;
                         enemy.hp = Math.min(enemy.maxHp, enemy.hp + healAmt * 0.55);
@@ -970,11 +970,11 @@ function update(rawDeltaTime) {
                     }
                     if (veilNormal && finalHeal > 0) ally._veilHealDRExpiry = performance.now() + 3000;
 
-                    if (!ally.aegisShieldReceived) {
+                    if (!ally.raphaelShieldReceived) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.60 : shieldAmt;
                         if (veilNormal) finalShield *= 1.35; // Alteration: +35% shield
                         _addEnemyShield(ally, finalShield);
-                        ally.aegisShieldReceived = true;
+                        ally.raphaelShieldReceived = true;
                     }
                     // 8% MaxHP tick shield per second, always applies
                     const tsAmt = ally.soulReaver ? tickShieldAmt * 0.60 : tickShieldAmt;
@@ -987,9 +987,9 @@ function update(rawDeltaTime) {
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 5000;
-                createAegisTelegraph(enemy.x, enemy.y, player);
+                createRaphaelTelegraph(enemy.x, enemy.y, player);
                 let availableSents = _shuffleArray(sentinels).slice(0, 3);
-                availableSents.forEach(s => createAegisTelegraph(enemy.x, enemy.y, s));
+                availableSents.forEach(s => createRaphaelTelegraph(enemy.x, enemy.y, s));
             }
         }
 
@@ -998,11 +998,11 @@ function update(rawDeltaTime) {
         let inTeslaAura = false;
         let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
 
-        let aegisSpeedMultiplier = 1.0;
-        for (const aegis of enemies) {
-            if (aegis.type === 'aegis_core') {
-                if (Math.hypot(enemy.x - aegis.x, enemy.y - aegis.y) <= canvas.width / 2) {
-                    aegisSpeedMultiplier = 1.05;
+        let raphaelSpeedMultiplier = 1.0;
+        for (const raphael of enemies) {
+            if (raphael.type === 'raphael') {
+                if (Math.hypot(enemy.x - raphael.x, enemy.y - raphael.y) <= canvas.width / 2) {
+                    raphaelSpeedMultiplier = 1.05;
                     break;
                 }
             }
@@ -1031,12 +1031,12 @@ function update(rawDeltaTime) {
                     // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
                 } else if ((enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                    || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)) {
+                    || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)) {
                     // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
                 } else {
                     teslaSpeedMultiplier = 0.30;
-                    if (enemy.type === 'dargruel' || enemy.type === 'thaelis' || enemy.type === 'aegis_core') {
+                    if (enemy.type === 'dargruel' || enemy.type === 'thaelis' || enemy.type === 'raphael') {
                         teslaAttackSpeedMultiplier = 2.0;
                     }
                 }
@@ -1091,7 +1091,7 @@ function update(rawDeltaTime) {
                     }
                     g._linkedLedger.delete(enemy);
                     const _goliathBossTypes = {
-                        veilshroud: 0, thaelis: 1, aegis_core: 2, marchosias: 3,
+                        veilshroud: 0, thaelis: 1, raphael: 2, marchosias: 3,
                         egregor: 4, dargruel: 5, leviathan: 6,
                     };
                     if (_goliathBossTypes.hasOwnProperty(enemy.type) && (g._pendingGems || []).length + (g._flyingGems || []).length < 12) {
@@ -1151,6 +1151,16 @@ function update(rawDeltaTime) {
             // VEILSHROUD ECHO: đã xử lý explosion trong updateVeilshroudEcho, chỉ cần xóa entity
             if (enemy.type === 'veilshroud_echo') {
                 enemies.splice(i, 1); continue;
+            }
+
+            // RAPHAEL: a bright divine-light burst instead of the plain
+            // generic explosion - the halo shatters into scattering light
+            // rays and falling embers, matching the archangel presence its
+            // aura carries while alive.
+            if (enemy.type === 'raphael') {
+                addExplosion(enemy.x, enemy.y, enemy.size * 1.6, '#ffd76b');
+                createParticles(enemy.x, enemy.y, 50, '#ffcc66', 2, 9);
+                raphaelDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, lifetime: 1100, maxLifetime: 1100 });
             }
 
             // URIEL: Protection, a stationary barrier at the death spot; the
@@ -1355,7 +1365,7 @@ function update(rawDeltaTime) {
                 // from elapsed travel distance rather than accumulated
                 // velocity - one smooth, repeatable curve for the whole
                 // flight instead of a flat line.
-                const _wSpdMult = dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                const _wSpdMult = dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
                 enemy._waveForward += enemy._waveSpeed * _wSpdMult;
                 const _ca = Math.cos(enemy._waveAngle), _sa = Math.sin(enemy._waveAngle);
                 const _wPhase = enemy._waveForward * enemy._waveFreq;
@@ -1371,14 +1381,14 @@ function update(rawDeltaTime) {
             } else if (enemy.type === 'enemy_bullet_small' && enemy._curveRate) {
                 // Touhou-style bloom (see spawn site): heading keeps rotating
                 // at this fragment's own fixed rate instead of staying dead straight.
-                enemy._curveAngle += enemy._curveRate * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                enemy._curveAngle += enemy._curveRate * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
                 enemy.vx = Math.cos(enemy._curveAngle) * enemy._curveSpeed;
                 enemy.vy = Math.sin(enemy._curveAngle) * enemy._curveSpeed;
-                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
-                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
+                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
             } else {
-                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
-                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * aegisSpeedMultiplier;
+                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
+                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
             }
 
             // Thaelis's large/small bullets curve and wave instead of flying
@@ -1484,7 +1494,7 @@ function update(rawDeltaTime) {
             const _coronaSlow = (enemy.type === 'apostle' && enemy.inCoronation) ? 0.55 : 1.0;
             const _ccImmune = enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan'
                 || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                || (enemy.type === 'aegis_core' && enemy.aegisInvulnerable)
+                || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)
                 || enemy._urielCCImmune;
             const _riftSlowMul = (enemy._riftSlow && !_ccImmune) ? 0.65 : 1.0;
             const _orbSlowMul = (!_ccImmune && (enemy._orbRetaliationSlowEnd || 0) > currentTime) ? 0.75 : 1.0;
@@ -1495,7 +1505,7 @@ function update(rawDeltaTime) {
             // Vine Bind (Phōtokrystos DNT): vines take 1s to grow in, then a
             // flat 2s 50% slow follows — no effect during the growth window.
             const _vineSlowMul = (!_ccImmune && enemy._vineStart && currentTime >= enemy._vineStart + 1000 && currentTime < enemy._vineStart + 3000) ? 0.50 : 1.0;
-            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * aegisSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul;
+            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul;
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -2118,6 +2128,9 @@ function update(rawDeltaTime) {
     }
     for (let i = marchoBarrierBursts.length - 1; i >= 0; i--) {
         if ((marchoBarrierBursts[i].lifetime -= deltaTime) <= 0) marchoBarrierBursts.splice(i, 1);
+    }
+    for (let i = raphaelDeathBursts.length - 1; i >= 0; i--) {
+        if ((raphaelDeathBursts[i].lifetime -= deltaTime) <= 0) raphaelDeathBursts.splice(i, 1);
     }
 
     updateSentinels(deltaTime);
@@ -2762,7 +2775,7 @@ function _spawnWaveTier(tier) {
     } else if (tier === 'elite') {
         const pool = [];
         if (enemies.filter(e => e.type === 'thaelis').length < 3) pool.push('thaelis');
-        if (enemies.filter(e => e.type === 'aegis_core').length < 2) pool.push('aegis_core');
+        if (enemies.filter(e => e.type === 'raphael').length < 2) pool.push('raphael');
         const ec = enemies.filter(e => e.type === 'egregor').length;
         const vc = enemies.filter(e => e.type === 'veilshroud').length;
         const egrOk = !window._lastEgregorKillTime || (_now - window._lastEgregorKillTime) >= 6000;
@@ -2770,7 +2783,7 @@ function _spawnWaveTier(tier) {
         if (!pool.length) { spawnApostle(); return; }
         const pick = pool[Math.floor(Math.random() * pool.length)];
         if (pick === 'thaelis') spawnThaelis();
-        else if (pick === 'aegis_core') spawnAegisCore();
+        else if (pick === 'raphael') spawnRaphael();
         else spawnEgregor();
     } else if (tier === 'dominator') {
         const pool = [];
@@ -3192,7 +3205,7 @@ function startGame() {
     score = 0;
     window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
     nextLifeMilestone = 500000;
-    bullets = []; enemies = []; explosions = []; particles = []; marchoDeathBursts = []; marchoBarrierBursts = [];
+    bullets = []; enemies = []; explosions = []; particles = []; marchoDeathBursts = []; marchoBarrierBursts = []; raphaelDeathBursts = [];
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
     window._solArrows = [];
@@ -3240,7 +3253,7 @@ function startGame() {
     window._gfjWasActive = false;
     window._goliathWaveHpBuff = 1;
     bossShockwaves = [];
-    aegisLasers = [];
+    raphaelLasers = [];
     marchosiasBlades = [];
     window._levDeathLasers = [];
     window._levDeathLaserSoundPending = false;

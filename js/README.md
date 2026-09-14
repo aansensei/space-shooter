@@ -299,7 +299,7 @@ updateSkillD (js/skills/skill-d.js) spawns the deathStar object and pulls every
 targetable, non-CC-immune enemy toward it at a fixed speed. Center contact
 deals 999999999 damage (an instant kill) to normal enemies, or 30% MaxHP true
 damage per 400ms tick to CC-immune ones (dargruel/leviathan/goliath/egregor/
-marchosias-with-barrier/aegis-invulnerable). A separate Mark & Annihilate
+marchosias-with-barrier/raphael-invulnerable). A separate Mark & Annihilate
 cycle runs every ~2s (1.5s telegraph), marking 3 targets and firing a
 piercing true-damage beam through each.
 
@@ -314,7 +314,7 @@ range). Ships home on the current highest-HP enemy, fire true-damage bolts
 in flight, deal contact damage + apply Vulnerability on impact, fuse with a
 same-tier ship within 50px into a stronger tier, and receive the same
 ally-wide buffs Sentinels get (Blessing, Gaia Protection/Barrier, Lunar
-Aegis evade, Glory for Justice damage+fire rate) via updateSkillDSpaceships.
+Raphael evade, Glory for Justice damage+fire rate) via updateSkillDSpaceships.
 
 ### Skill G (Tesla Matrix)
 

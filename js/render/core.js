@@ -2181,7 +2181,7 @@ function draw(deltaTime) {
         teslaCoils.forEach(drawTeslaCoil);
         energyOrbs.forEach(drawEnergyOrb);
 
-        drawAegisLasers();
+        drawRaphaelLasers();
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
         _drawGoliathOrbs(); // Absolute Verdict orb (independent object)
         _drawGoliathSwords(); // Joker Marchosias-copy sword projectiles (independent objects)
@@ -2282,6 +2282,7 @@ function draw(deltaTime) {
         chainLightningEffects.forEach(drawChainLightning);
         marchoDeathBursts.forEach(_drawMarchoDeathBurst);
         marchoBarrierBursts.forEach(_drawMarchoBarrierBurst);
+        raphaelDeathBursts.forEach(_drawRaphaelDeathBurst);
         if (skillFState !== 'ready') drawSkillF();
         if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();
