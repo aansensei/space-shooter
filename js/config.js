@@ -198,22 +198,27 @@ let _waveLastDomAt = 0;
 // HP, +5% evade (capped at +40% total from Walpurgis alone, i.e. 8 stacks'
 // worth - past that, more stacks keep buffing everything else but stop
 // pushing evade further, so a very long run never makes enemies outright
-// unhittable), +25 flat damage reduction (a separate flat armor stat, not
-// the existing %-based DR — applied per hit before the enemy hp<=0 checks so
-// it never blocks a kill, just shaves a fixed amount off each hit), and +5%
-// effectiveness on heals/shields they receive. HP is the one stat pushed
-// hardest here on purpose: this game's real death clock is lives lost to
-// contact, not raw incoming damage, so a longer time-to-kill means more
-// exposure to that over a fight rather than a harder-hitting one. Stacks
-// forever, derived directly from _waveNumber so there's no separate counter
-// to track/reset.
+// unhittable), and +5% effectiveness on heals/shields they receive. HP is the
+// one stat pushed hardest here on purpose: this game's real death clock is
+// lives lost to contact, not raw incoming damage, so a longer time-to-kill
+// means more exposure to that over a fight rather than a harder-hitting one.
+// Stacks forever, derived directly from _waveNumber so there's no separate
+// counter to track/reset.
 function _walpurgisStacks() { return Math.floor(_waveNumber / 5); }
 // Takes an explicit stack count when given (used to compare an old stack
 // count against the current one, e.g. main.js's retroactive on-screen
 // rescale), defaulting to the current real stack count otherwise.
 function _walpurgisHpMult(stacks) { return 1 + 0.20 * (stacks != null ? stacks : _walpurgisStacks()); }
 function _walpurgisEvadeBonus() { return Math.min(0.40, 0.05 * _walpurgisStacks()); }
-function _walpurgisFlatDR() { return 25 * _walpurgisStacks(); }
+// Flat damage reduction (a separate stat from the %-based DR above),
+// subtracted straight off a hit before the enemy hp<=0 check, same as every
+// other flat-DR source in dealDamage - it can only shave a hit down to a
+// graze, never block a kill outright. Scales with the raw wave number
+// instead of Walpurgis's own 5-wave stack count so it grows smoothly every
+// wave (+5 flat DR each) rather than in stair-step jumps, and is computed
+// live off the enemy's current wave rather than frozen at spawn, so an
+// enemy that survives across a wave boundary keeps pace automatically.
+function _walpurgisFlatDR() { return 5 * _waveNumber; }
 function _walpurgisHealShieldMult() { return 1 + 0.05 * _walpurgisStacks(); }
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
