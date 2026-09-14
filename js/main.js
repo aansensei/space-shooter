@@ -2648,7 +2648,11 @@ function update(rawDeltaTime) {
     }
 }
 
-const WAVE_SPAWN_DURATION = 15000;
+// Was 15000 - waves 1-10 crammed their whole roster into a tight 15s window,
+// good for pressure but real material to the earlier lag complaints (and to
+// how bunched up spawns felt). Doubled to 30s: still noticeably denser than
+// the wave-11+ trickle spawner (by design), just not as frantic as before.
+const WAVE_SPAWN_DURATION = 30000;
 const WAVE_REST_DURATION = 4000;
 const WAVE_TEMPLATES = [
     { normals: 32, abnormals: 0,  elites: 0,  dominators: 0 },
@@ -2851,24 +2855,27 @@ function _updateWaveTrickle(deltaTime) {
     _waveLastDomAt += deltaTime;
     if (_waveTrickleBudgetLeft() <= 0) return;
 
-    // Base bumped 18 -> 24 (+33%): waves 11+ felt low-pressure with too few
-    // enemies allowed on screen at once.
-    const cap = 24 + Math.floor((_waveNumber - 10) / 3);
+    // Base 18 -> 24 (+33%), then another pass +35% on top -> 32: waves 11+
+    // still felt low-pressure with too few enemies allowed on screen at once.
+    const cap = 32 + Math.floor((_waveNumber - 10) / 3);
     const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
 
     _waveSurgeAt -= deltaTime;
     if (_waveSurgeAt <= 0) {
-        const surgeCount = Math.min(_waveTrickleBudgetLeft(), 12, 4 + Math.floor((_waveNumber - 10) / 3));
+        // Base surge size 4 -> 5 (+25%), fires more often (16-28s -> 11.8-20.6s, ~35% faster).
+        const surgeCount = Math.min(_waveTrickleBudgetLeft(), 12, 5 + Math.floor((_waveNumber - 10) / 3));
         for (let k = 0; k < surgeCount; k++) { if (!_trickleSpawnOne(true)) break; }
-        _waveSurgeAt = 16000 + Math.random() * 12000;
-        _waveNextSpawnAt = 3500 + Math.random() * 2500; // lull right after a surge
+        _waveSurgeAt = 11800 + Math.random() * 8800;
+        _waveNextSpawnAt = 2600 + Math.random() * 1800; // lull right after a surge (~25% shorter)
         return;
     }
 
     _waveNextSpawnAt -= deltaTime;
     if (_waveNextSpawnAt <= 0 && active < cap) {
         if (_trickleSpawnOne(false)) {
-            _waveNextSpawnAt = (Math.random() < 0.15) ? 2000 + Math.random() * 2000 : 650 + Math.random() * 500;
+            // Normal gap 650-1150ms -> 480-850ms, occasional lull 2000-4000ms
+            // -> 1500-3000ms - both ~35% faster, same 15% lull chance.
+            _waveNextSpawnAt = (Math.random() < 0.15) ? 1500 + Math.random() * 1500 : 480 + Math.random() * 370;
         } else {
             _waveNextSpawnAt = 500; // gap-blocked, retry soon
         }
@@ -2996,11 +3003,15 @@ function _updateWaveSystem(deltaTime, now) {
     } else {
         const _cap = (typeof _platform !== 'undefined' && _platform === 'mobile') ? 10 : Infinity;
         while (_waveQueue.length > 0 && _waveQueue[0].at <= _waveQueueTimer) {
-            const entry = _waveQueue.shift();
             const active = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo').length;
-            if (active < _cap) {
-                _spawnWaveEnemyBuffed(entry.tier === 'apostle' ? 'apostle' : entry.tier);
-            }
+            // Wait for room instead of discarding the entry - shifting it off
+            // unconditionally (checking the cap only after) silently deleted
+            // whatever was due right when the cap was hit, on mobile. Break
+            // instead of shift+skip so it's still at the front of the queue
+            // to retry the instant a slot opens up, next frame or later.
+            if (active >= _cap) break;
+            const entry = _waveQueue.shift();
+            _spawnWaveEnemyBuffed(entry.tier === 'apostle' ? 'apostle' : entry.tier);
         }
     }
     const _spawnDone = _waveSpawnBudget ? (_waveTrickleBudgetLeft() <= 0) : (_waveQueue.length === 0);
