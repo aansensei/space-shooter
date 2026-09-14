@@ -721,9 +721,19 @@ function updateBladeArcProjectiles(deltaTime) {
             if (Math.hypot(enemy.x - arc.x, enemy.y - arc.y) < arc.radius + enemyRadius) {
                 if (checkMarchosiasArcBarrier(enemy, arc, arc.x, arc.y)) { arc.hitEnemies.push(enemy); continue; }
                 const _arcBypass = _hasBuff('tu_huyet');
-                const _arcSrc = (arc.isSpirit && arc.isPiercing)
-                    ? { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.055), percentDamage: arc.percentDamage, isPiercing: true, _bypassIronBody: _arcBypass }
-                    : arc;
+                let _arcSrc;
+                if (arc.isSpirit && arc.isPiercing) {
+                    _arcSrc = { damage: arc.damage + Math.ceil((enemy.maxHp - enemy.hp) * 0.055), percentDamage: arc.percentDamage, isPiercing: true, _bypassIronBody: _arcBypass };
+                } else if (arc.isSpinnerBlade) {
+                    // Same per-target DR as the Spinner's own body-contact hit
+                    // (_spinnerDrMult, above updateSpiritSpinners) - a fresh
+                    // object, since `arc` is shared across every enemy this
+                    // same piercing blade still goes on to hit.
+                    const _drMult = _spinnerDrMult(enemy, performance.now());
+                    _arcSrc = { ...arc, damage: arc.damage * _drMult, percentDamage: arc.percentDamage * _drMult };
+                } else {
+                    _arcSrc = arc;
+                }
                 if (_arcBypass) _arcSrc._bypassIronBody = true;
                 // Đánh dấu cho hiệu ứng "vết chém" riêng của Goliath (xem dealDamage)
                 _arcSrc._isSlashVfx = true;
@@ -772,6 +782,19 @@ function updateBladeArcProjectiles(deltaTime) {
     }
 }
 
+// Diminishing returns, Spinner only: a hit (body contact or mini blade) that
+// lands on the same enemy within 1s of the last Spinner hit that landed on
+// it gets -30% damage. Without this, the body hit plus all 4 mini blades
+// landing on the same target in the same instant (the on-collision blade
+// trigger fires right alongside a body hit) stacked into one huge burst.
+// Cleared once the last live Spinner despawns (see updateSpiritSpinners).
+const _spinnerHitTimestamps = new Map();
+function _spinnerDrMult(enemy, now) {
+    const last = _spinnerHitTimestamps.get(enemy);
+    _spinnerHitTimestamps.set(enemy, now);
+    return (last !== undefined && now - last < 1000) ? 0.70 : 1.0;
+}
+
 // Fires the Spinner's 4-direction mini Arc Blade volley (cross pattern,
 // N/E/S/W) - shared by both triggers that launch it: the periodic proximity
 // check in updateSpiritSpinners() and the independent per-collision trigger
@@ -785,8 +808,8 @@ function _fireSpinnerBlades(s, now) {
     // damage each, 2nd fires 15ms later at +20% radius) - the same
     // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
     const _twinBlades = _hasBuff('song_luoi');
-    const _bladeDmg = _twinBlades ? 500 * 1.60 : 500;
-    const _bladePct = _twinBlades ? 0.05 * 1.60 : 0.05;
+    const _bladeDmg = _twinBlades ? 350 * 1.60 : 350;
+    const _bladePct = _twinBlades ? 0.035 * 1.60 : 0.035;
     for (let d = 0; d < 4; d++) {
         const a = (Math.PI / 2) * d;
         bladeArcProjectiles.push({
@@ -824,6 +847,7 @@ function updateSpiritSpinners(deltaTime) {
             createParticles(s.x, s.y, 8, '#ffffff', 1, 4);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('sentinel-explode', s.x, s.y);
             spiritSpinners.splice(i, 1);
+            if (spiritSpinners.length === 0) _spinnerHitTimestamps.clear();
             continue;
         }
 
@@ -899,11 +923,11 @@ function updateSpiritSpinners(deltaTime) {
             else if (_bouncedYSign < 0 && s.vy > 0) s.vy = -s.vy;
         }
 
-        // Body-contact damage: re-hittable per enemy every 600ms instead of
+        // Body-contact damage: re-hittable per enemy every 1s instead of
         // every single frame - sitting stuck overlapping one big/slow target
         // for its whole 5s life used to rack up dozens of full hits back to
-        // back (200+20% Max HP true damage, uncapped), badly out-damaging
-        // everything else in the kit.
+        // back (200+15% Max HP true damage, uncapped outside the Spinner DR
+        // above), badly out-damaging everything else in the kit.
         if (!s._bodyHitCooldowns) s._bodyHitCooldowns = new Map();
         for (const enemy of enemies) {
             if (enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation) continue;
@@ -911,13 +935,14 @@ function updateSpiritSpinners(deltaTime) {
             if (Math.hypot(enemy.x - s.x, enemy.y - s.y) >= enemyRadius + s.size) continue;
             if (checkMarchosiasArcBarrier(enemy, s, s.x, s.y)) continue;
             if (now >= (s._bodyHitCooldowns.get(enemy) || 0)) {
-                s._bodyHitCooldowns.set(enemy, now + 600);
+                s._bodyHitCooldowns.set(enemy, now + 1000);
                 // Ricochet Hunter (Sagittarius): damage escalates +15% per wall
                 // bounce since the last hit, up to +45% at 3 stacks, then resets
                 // the instant it actually lands one - rewards a clean run of
                 // bounces without a hit over chaining hits back to back.
                 const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
-                dealDamage(enemy, { damage: Math.round(200 * _songLuoiMult), percentDamage: 0.20 * _songLuoiMult, isTrueDamage: true, _statSrc: s._statSrc });
+                const _drMult = _spinnerDrMult(enemy, now);
+                dealDamage(enemy, { damage: Math.round(200 * _songLuoiMult * _drMult), percentDamage: 0.15 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
                 if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
                 // On-hit: a sharp crack - jagged magenta shards plus a quick
                 // white flash at the contact point, selling the heavy true damage.
@@ -928,12 +953,12 @@ function updateSpiritSpinners(deltaTime) {
             // immediately - independent of (on top of) the periodic 300ms
             // proximity trigger below, and of the body-damage cooldown above,
             // so overlapping a target still keeps slashing even between body
-            // hits. Capped per-enemy at 0.4s of its own so it doesn't refire
+            // hits. Capped per-enemy at 0.65s of its own so it doesn't refire
             // every single frame.
             if (!s._collisionBladeCooldowns) s._collisionBladeCooldowns = new Map();
             if (now >= (s._collisionBladeCooldowns.get(enemy) || 0)) {
                 _fireSpinnerBlades(s, now);
-                s._collisionBladeCooldowns.set(enemy, now + 400);
+                s._collisionBladeCooldowns.set(enemy, now + 650);
             }
             // Arctic Chill (Sagittarius): same slow+pull the Spirit's arc
             // slash already gets, extended to the Spinner's own body hit too.
