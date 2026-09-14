@@ -280,6 +280,65 @@ function _drawUrielWing(side, i, sway, flare, r) {
     ctx.restore();
 }
 
+// Each halo ring (main double stroke + up to 12 segment tick-marks, up to
+// 26 canvas stroke calls a frame per ring) only depends on (r, ring index)
+// for its geometry - `spin` is applied live via ctx.rotate same as the
+// wings above, and `breathe` (a slow, narrow 0.94-1.0 sine) is bucketed to
+// 0.02 steps instead of re-baked every frame; the segment tick-marks use a
+// fixed alpha regardless of breathe in the original too, so baking them in
+// is exact, not an approximation. hasGlow (= !_mobPerf && _gfxLevel<2) is
+// part of the key for the same reason as the wing sprite's own hasGlow.
+const _urielRingSpriteCache = {};
+function _urielBreatheBucket(breathe) { return Math.round(breathe * 50) / 50; }
+function _urielRingSprite(r, ringIdx, breatheBucket, hasGlow) {
+    const key = r.toFixed(1) + '_' + ringIdx + '_' + breatheBucket + '_' + (hasGlow ? 1 : 0);
+    let s = _urielRingSpriteCache[key];
+    if (s) return s;
+
+    const rr = r * (1.35 + ringIdx * 0.28);
+    const isGold = ringIdx === 0;
+    const baseColor = isGold ? '255,215,130' : '122,168,255';
+    const highlight = isGold ? '255,250,230' : '200,230,255';
+    // Generous pad: shadowBlur=10 spreads its visible falloff well past the
+    // stroke edge itself, and a too-tight canvas clips that glow at the
+    // sprite's own boundary (caught via pixel-diff testing before shipping -
+    // an earlier smaller pad here showed up as a ring of clipped-glow pixels
+    // that the live, unbounded canvas never had).
+    const pad = rr + 40;
+    const dim = Math.ceil(pad * 2 / 2) * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = dim;
+    const cx = c.getContext('2d');
+    const half = dim / 2;
+    cx.translate(half, half);
+
+    if (hasGlow) { cx.shadowColor = isGold ? URIEL_GOLD : URIEL_BLUE; cx.shadowBlur = 10; }
+    cx.strokeStyle = `rgba(${baseColor},${0.6 * breatheBucket})`;
+    cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(0, 0, rr, 0, Math.PI * 2); cx.stroke();
+    cx.strokeStyle = `rgba(${highlight},${0.85 * breatheBucket})`;
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.arc(0, 0, rr - 2, 0, Math.PI * 2); cx.stroke();
+
+    const segments = isGold ? 12 : 8;
+    cx.lineWidth = 2.5;
+    for (let sIdx = 0; sIdx < segments; sIdx++) {
+        const ang = (sIdx / segments) * Math.PI * 2;
+        cx.save();
+        cx.rotate(ang);
+        cx.strokeStyle = `rgba(${highlight},0.95)`;
+        cx.beginPath(); cx.arc(0, 0, rr, -0.08, 0.08); cx.stroke();
+        cx.strokeStyle = `rgba(${baseColor},0.8)`;
+        cx.beginPath(); cx.moveTo(rr - 6, 0); cx.lineTo(rr + 6, 0); cx.stroke();
+        cx.restore();
+    }
+    cx.shadowBlur = 0;
+
+    s = { canvas: c, pad: half };
+    _urielRingSpriteCache[key] = s;
+    return s;
+}
+
 // Marks where Camouflage is about to drop Uriel back in, 550ms before it
 // actually reappears there (see _urielUpdateCamouflage, entities/uriel.js).
 // No per-frame gradient allocation - the glow reuses the same cached ring
@@ -331,12 +390,20 @@ function _drawUriel(enemy) {
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
 
-    const auraG = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r * 2.8);
-    auraG.addColorStop(0, `rgba(255,240,200,${0.32 * breathe})`);
-    auraG.addColorStop(0.4, `rgba(255,190,100,${0.14 * breathe})`);
+    // Against Chaos's own evade (_urielCurrentEvade, entities/uriel.js) scales
+    // this aura directly: full size/brightness at 99% evade (its starting
+    // value - matches the original fixed r*2.8 exactly), shrinking and
+    // dimming as failed rolls burn it down toward its 30% floor, so the
+    // aura itself reads as a depleting resource instead of pure decoration.
+    const _evade = _urielCurrentEvade(enemy);
+    const _evadeNorm = Math.max(0, Math.min(1, (_evade - 0.30) / (0.99 - 0.30)));
+    const auraMaxR = r * (1.3 + _evadeNorm * 1.5);
+    const auraG = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, auraMaxR);
+    auraG.addColorStop(0, `rgba(255,240,200,${(0.18 + _evadeNorm * 0.14) * breathe})`);
+    auraG.addColorStop(0.4, `rgba(255,190,100,${(0.06 + _evadeNorm * 0.08) * breathe})`);
     auraG.addColorStop(1, 'rgba(255,215,150,0)');
     ctx.fillStyle = auraG;
-    ctx.beginPath(); ctx.arc(0, 0, r * 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, auraMaxR, 0, Math.PI * 2); ctx.fill();
 
     for (const side of [-1, 1]) {
         for (let i = 0; i < 3; i++) {
@@ -345,37 +412,14 @@ function _drawUriel(enemy) {
         }
     }
 
+    const _ringHasGlow = !_mobPerf && _gfxLevel < 2;
+    const _ringBreatheB = _urielBreatheBucket(breathe);
     for (let ring = 0; ring < 2; ring++) {
-        const rr = r * (1.35 + ring * 0.28);
         const spin = (now / (2600 + ring * 900)) * (ring === 0 ? 1 : -1);
+        const sprite = _urielRingSprite(r, ring, _ringBreatheB, _ringHasGlow);
         ctx.save();
         ctx.rotate(spin);
-        const isGold = ring === 0;
-        const baseColor = isGold ? '255,215,130' : '122,168,255';
-        const highlight = isGold ? '255,250,230' : '200,230,255';
-        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = isGold ? URIEL_GOLD : URIEL_BLUE; ctx.shadowBlur = 10; }
-        ctx.strokeStyle = `rgba(${baseColor},${0.6 * breathe})`;
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = `rgba(${highlight},${0.85 * breathe})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(0, 0, rr - 2, 0, Math.PI * 2); ctx.stroke();
-
-        // Engraved segments / runes around the ring.
-        const segments = ring === 0 ? 12 : 8;
-        ctx.lineWidth = 2.5;
-        for (let s = 0; s < segments; s++) {
-            const ang = (s / segments) * Math.PI * 2;
-            ctx.save();
-            ctx.rotate(ang);
-            ctx.strokeStyle = `rgba(${highlight},0.95)`;
-            ctx.beginPath(); ctx.arc(0, 0, rr, -0.08, 0.08); ctx.stroke();
-            ctx.strokeStyle = `rgba(${baseColor},0.8)`;
-            ctx.beginPath(); ctx.moveTo(rr - 6, 0); ctx.lineTo(rr + 6, 0); ctx.stroke();
-            ctx.restore();
-        }
-
-        ctx.shadowBlur = 0;
+        ctx.drawImage(sprite.canvas, -sprite.pad, -sprite.pad);
         ctx.restore();
     }
 

@@ -12,6 +12,70 @@ const _marchoHexArmorImg = new Image();
 _marchoHexArmorImg.src = 'assets/images/game/enemies/marchosias-hexagon-armor.png';
 _marchoHexArmorImg.decode().catch(() => {});
 
+// The hexagon body (fill + armor texture + stroke outline, plus the HIGH-
+// tier neon bloom stroke) never animates - same 6 vertices and same 2
+// colors on every frame for a given enemy, only the radius (from
+// enemy.size, fixed per enemy) changes. Baked once per (radius, whether the
+// armor PNG is ready to composite in, whether the HIGH-tier bloom applies)
+// instead of re-filling/re-clipping/re-drawing-image/re-stroking every
+// frame. Everything else in _drawMarchosias (core, circuit traces, gear
+// ring, panels, motes...) pulses or rotates every frame and stays live.
+const _marchoHexBodySpriteCache = {};
+const _MARCHO_HEX_PAD = 30;
+function _getMarchoHexBodySprite(r, hasArmor, hasBloom) {
+    const key = r.toFixed(1) + '_' + (hasArmor ? 1 : 0) + '_' + (hasBloom ? 1 : 0);
+    const cached = _marchoHexBodySpriteCache[key];
+    if (cached) return cached;
+
+    // Rounded up to an even number so pad (size/2) is always a whole pixel -
+    // an odd canvas size would bake/place the sprite half a pixel off from
+    // where the live vector path would land, softening every edge under
+    // antialiasing even though the shape itself is otherwise identical.
+    const size = Math.ceil((r + _MARCHO_HEX_PAD) * 2 / 2) * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const cx = c.getContext('2d');
+    cx.translate(size / 2, size / 2);
+
+    cx.strokeStyle = '#00cc66'; cx.lineWidth = 2;
+    cx.fillStyle = '#1a1a2e';
+    cx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+        i === 0 ? cx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+            : cx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    cx.closePath(); cx.fill();
+    if (hasArmor) {
+        cx.save();
+        cx.clip();
+        const armorH = r * 2, armorW = r * Math.sqrt(3);
+        cx.drawImage(_marchoHexArmorImg, -armorW / 2, -armorH / 2, armorW, armorH);
+        cx.restore();
+    }
+    cx.stroke();
+
+    if (hasBloom) {
+        cx.save();
+        cx.strokeStyle = 'rgba(0,255,150,0.35)';
+        cx.lineWidth = 5;
+        cx.shadowColor = '#00ffaa'; cx.shadowBlur = 16;
+        cx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+            i === 0 ? cx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+                : cx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        cx.closePath(); cx.stroke();
+        cx.shadowBlur = 0;
+        cx.restore();
+    }
+
+    const sprite = { canvas: c, pad: size / 2 };
+    _marchoHexBodySpriteCache[key] = sprite;
+    return sprite;
+}
+
 function _drawMarchosias(enemy) {
     const now = performance.now();
     const r = enemy.size / 2;
@@ -33,47 +97,14 @@ function _drawMarchosias(enemy) {
     const _tickPhase = (now % CORE_TICK_MS) / CORE_TICK_MS;
     const _tickPulse = Math.exp(-_tickPhase * 6);
 
-    // Hexagon body (6-sided like ref image)
-    ctx.strokeStyle = '#00cc66'; ctx.lineWidth = 2;
-    ctx.fillStyle = '#1a1a2e';
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
-            : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-    }
-    ctx.closePath(); ctx.fill();
-    // Textured armor panel is FULL+MED only - the flat fill above is already
-    // the LOW/MIN/PER look, so skipping the clip+drawImage there is a free
-    // perf win with no visible fallback code needed.
-    if (!_mobPerf && _marchoHexArmorImg.complete && _marchoHexArmorImg.naturalWidth > 0) {
-        ctx.save();
-        ctx.clip();
-        // Vertex-to-vertex height is 2r, flat-side-to-flat-side width is
-        // r*sqrt(3) for this same pointy-top hexagon - matching the image's
-        // own aspect ratio instead of stretching it into the bounding square.
-        const armorH = r * 2, armorW = r * Math.sqrt(3);
-        ctx.drawImage(_marchoHexArmorImg, -armorW / 2, -armorH / 2, armorW, armorH);
-        ctx.restore();
-    }
-    ctx.stroke();
-
-    if (_gfxLevel < 1) {
-        // Extra neon bloom on the hull outline, HIGH only
-        ctx.save();
-        ctx.strokeStyle = 'rgba(0,255,150,0.35)';
-        ctx.lineWidth = 5;
-        ctx.shadowColor = '#00ffaa'; ctx.shadowBlur = 16;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-            i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
-                : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath(); ctx.stroke();
-        ctx.shadowBlur = 0;
-        ctx.restore();
-    }
+    // Hexagon body (6-sided like ref image) - fill, armor texture and
+    // stroke outline never change frame-to-frame, so they're baked once per
+    // (radius, armor-ready, bloom-tier) in _getMarchoHexBodySprite instead
+    // of being filled/clipped/drawn/stroked live every frame.
+    const _hexHasArmor = !_mobPerf && _marchoHexArmorImg.complete && _marchoHexArmorImg.naturalWidth > 0;
+    const _hexHasBloom = _gfxLevel < 1;
+    const _hexSprite = _getMarchoHexBodySprite(r, _hexHasArmor, _hexHasBloom);
+    ctx.drawImage(_hexSprite.canvas, -_hexSprite.pad, -_hexSprite.pad);
 
     // Inner triangle frame doubles as the core's circuit traces, so its glow
     // pulses on the same clock as the core instead of sitting static. Each
