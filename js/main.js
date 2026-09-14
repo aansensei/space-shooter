@@ -2648,11 +2648,11 @@ function update(rawDeltaTime) {
     }
 }
 
-// Was 15000 - waves 1-10 crammed their whole roster into a tight 15s window,
-// good for pressure but real material to the earlier lag complaints (and to
-// how bunched up spawns felt). Doubled to 30s: still noticeably denser than
-// the wave-11+ trickle spawner (by design), just not as frantic as before.
-const WAVE_SPAWN_DURATION = 30000;
+// Was 15000, doubled to 30000 (waves 1-10 were cramming their whole roster
+// into a tight 15s window), then eased once more to 36000 - still felt like
+// too much pressure at 30s. Still denser than the wave-11+ trickle spawner
+// by design, just not frantic.
+const WAVE_SPAWN_DURATION = 36000;
 const WAVE_REST_DURATION = 4000;
 const WAVE_TEMPLATES = [
     { normals: 32, abnormals: 0,  elites: 0,  dominators: 0 },
@@ -2793,6 +2793,22 @@ function _spawnWaveTier(tier) {
 // enough the fixed window works fine).
 const _WAVE_TRICKLE_MIN = 11;
 
+// Per-wave enemy growth, uncapped: every wave past the first permanently
+// adds +20 flat MaxHP to whatever an enemy already spawns with. Applied once
+// at spawn time, keyed on the wave number at that moment - an enemy that
+// lives across multiple waves (which doesn't currently happen; enemies don't
+// persist across a wave boundary) would NOT get retroactively bumped, only
+// what's true at spawn. The matching flat-DR half of this growth lives in
+// Walpurgis's own flat DR instead (_walpurgisFlatDR, js/config.js), so there
+// aren't two independently-stacking flat-DR sources on the same hit.
+function _applyWaveGrowth(enemy) {
+    const n = Math.max(0, _waveNumber - 1);
+    if (n <= 0) return;
+    const hpBonus = n * 20;
+    enemy.maxHp += hpBonus;
+    enemy.hp += hpBonus;
+}
+
 // Spawns one enemy of a wave tier ('apostle'/'abnormal'/'elite'/
 // 'dominator') and applies Goliath's Alpha "+15% MaxHP to the rest of the
 // wave" buff to it when one is active. Shared by the fixed queue (waves
@@ -2801,12 +2817,13 @@ function _spawnWaveEnemyBuffed(tier) {
     const _preSpawnLen = enemies.length;
     if (tier === 'apostle') spawnApostle();
     else _spawnWaveTier(tier);
-    if (window._goliathWaveHpBuff && window._goliathWaveHpBuff !== 1 && enemies.length > _preSpawnLen) {
+    if (enemies.length > _preSpawnLen) {
         const _ne = enemies[enemies.length - 1];
-        if (_ne.type !== 'goliath') {
+        if (window._goliathWaveHpBuff && window._goliathWaveHpBuff !== 1 && _ne.type !== 'goliath') {
             _ne.maxHp = Math.ceil(_ne.maxHp * window._goliathWaveHpBuff);
             _ne.hp = Math.ceil(_ne.hp * window._goliathWaveHpBuff);
         }
+        _applyWaveGrowth(_ne);
     }
 }
 
@@ -2984,7 +3001,11 @@ function _updateWaveSystem(deltaTime, now) {
                 _waveSurgeAt = 9000 + Math.random() * 6000; // first surge 9-15s in
                 _waveLastEliteAt = 9999;
                 _waveLastDomAt = 9999;
-                if (_waveNumber % 5 === 0) _spawnWaveTier('goliath');
+                if (_waveNumber % 5 === 0) {
+                    const _preGolLen = enemies.length;
+                    _spawnWaveTier('goliath');
+                    if (enemies.length > _preGolLen) _applyWaveGrowth(enemies[enemies.length - 1]);
+                }
             } else {
                 _waveSpawnBudget = null;
                 _waveQueue = _buildWaveQueue(_waveNumber);
