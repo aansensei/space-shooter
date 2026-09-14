@@ -4,6 +4,114 @@
 // the same function, branching on enemy.type - see js/render/enemy-thaelis.js
 // for that half).
 
+// The octagon plate's fill/rim/seams/rivets/chain-bands never animate on
+// their own - the only thing that moves them is the shared `rot` transform
+// the caller applies before drawing (see the ctx.rotate(rot) in
+// _drawDargruel). Baked once per (radius, glow-tier) instead of rebuilt via
+// ~30 fill/stroke/clip calls (including 2 clip() passes and a handful of
+// shadowBlur strokes) every frame, same trick already proven on
+// Marchosias's hex body. The rune diamonds (their glow pulses every frame)
+// and everything outside the plate (aura, eye, chain tails, cracks...)
+// stay live - see _drawDargruel below for exactly where this sprite gets
+// drawImage'd back in.
+const _dargruelPlateSpriteCache = {};
+function _getDargruelPlateSprite(r, hasGlow) {
+    const key = r.toFixed(1) + '_' + (hasGlow ? 1 : 0);
+    const cached = _dargruelPlateSpriteCache[key];
+    if (cached) return cached;
+
+    const half = Math.ceil((r + 20) / 2) * 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = half * 2;
+    const cx = c.getContext('2d');
+    cx.translate(half, half);
+
+    const octPath = (mul) => {
+        cx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            const px = Math.cos(a) * r * mul, py = Math.sin(a) * r * mul;
+            i === 0 ? cx.moveTo(px, py) : cx.lineTo(px, py);
+        }
+        cx.closePath();
+    };
+
+    octPath(1);
+    const bodyGrad = cx.createRadialGradient(0, 0, 0, 0, 0, r);
+    bodyGrad.addColorStop(0, '#22004a');
+    bodyGrad.addColorStop(0.55, '#12001f');
+    bodyGrad.addColorStop(0.85, '#050009');
+    bodyGrad.addColorStop(1, '#000000');
+    cx.fillStyle = bodyGrad;
+    cx.fill();
+    cx.strokeStyle = '#6a0dad';
+    cx.lineWidth = 4;
+    cx.stroke();
+    octPath(0.985);
+    if (hasGlow) { cx.shadowColor = '#c86eff'; cx.shadowBlur = 10; }
+    cx.strokeStyle = 'rgba(210,150,255,0.75)';
+    cx.lineWidth = 1.5;
+    cx.stroke();
+    cx.shadowBlur = 0;
+
+    // Surface plating detail: panel seams + rivets (the glowing rune
+    // diamonds are excluded - they pulse every frame and stay live).
+    cx.save();
+    octPath(1);
+    cx.clip();
+    cx.strokeStyle = 'rgba(138,43,226,0.28)'; cx.lineWidth = 1;
+    cx.beginPath(); cx.arc(0, 0, r * 0.86, 0, Math.PI * 2); cx.stroke();
+    cx.strokeStyle = 'rgba(100,20,180,0.22)'; cx.lineWidth = 0.8;
+    for (let i = 0; i < 8; i++) {
+        const a1 = (i / 8) * Math.PI * 2;
+        const a2 = ((i + 3) / 8) * Math.PI * 2;
+        cx.beginPath();
+        cx.moveTo(Math.cos(a1) * r * 0.9, Math.sin(a1) * r * 0.9);
+        cx.lineTo(Math.cos(a2) * r * 0.9, Math.sin(a2) * r * 0.9);
+        cx.stroke();
+    }
+    for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        const rx = Math.cos(a) * r * 0.95, ry = Math.sin(a) * r * 0.95;
+        cx.fillStyle = 'rgba(5,0,10,0.95)';
+        cx.beginPath(); cx.arc(rx, ry, 2.2, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = 'rgba(220,180,255,0.6)';
+        cx.beginPath(); cx.arc(rx - 0.6, ry - 0.6, 0.8, 0, Math.PI * 2); cx.fill();
+    }
+    cx.restore();
+
+    // Chain wraps: dashed bands laid over the plate like meridian lines.
+    cx.save();
+    octPath(1);
+    cx.clip();
+    const chainBandCount = 6;
+    for (let bi = 0; bi < chainBandCount; bi++) {
+        const bandRot = (bi / chainBandCount) * Math.PI;
+        const bandSquash = 0.2 + ((bi * 37) % 5) / 5 * 0.55;
+        const linkW = r * 0.1;
+        cx.save();
+        cx.rotate(bandRot);
+        cx.scale(1, bandSquash);
+        cx.lineCap = 'round';
+        cx.setLineDash([linkW * 1.5, linkW * 0.55]);
+        cx.strokeStyle = 'rgba(2,0,6,0.95)';
+        cx.lineWidth = linkW;
+        cx.beginPath(); cx.arc(0, 0, r * 0.92, 0, Math.PI * 2); cx.stroke();
+        cx.strokeStyle = 'rgba(190,110,255,0.75)';
+        cx.lineWidth = linkW * 0.45;
+        if (hasGlow) { cx.shadowColor = '#c86eff'; cx.shadowBlur = 6; }
+        cx.beginPath(); cx.arc(0, 0, r * 0.92, 0, Math.PI * 2); cx.stroke();
+        cx.shadowBlur = 0;
+        cx.setLineDash([]);
+        cx.restore();
+    }
+    cx.restore();
+
+    const sprite = { canvas: c, pad: half };
+    _dargruelPlateSpriteCache[key] = sprite;
+    return sprite;
+}
+
 function _drawDargruel(enemy) {
     const now = performance.now();
     const r = enemy.size / 2;
@@ -112,54 +220,18 @@ function _drawDargruel(enemy) {
         ctx.closePath();
     };
 
-    octPath(1);
-    const bodyGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    bodyGrad.addColorStop(0, '#22004a');
-    bodyGrad.addColorStop(0.55, '#12001f');
-    bodyGrad.addColorStop(0.85, '#050009');
-    bodyGrad.addColorStop(1, '#000000');
-    ctx.fillStyle = bodyGrad;
-    ctx.fill();
-    // A big black shadowBlur here would soften the plate's own outline
-    // against the dark backdrop and read as a smaller silhouette, not more
-    // contrast - keep the outline crisp and put the contrast into the
-    // stroke color/width instead.
-    ctx.strokeStyle = '#6a0dad';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-    // Hard rim light just inside the outline, the kind of sharp highlight
-    // that sells a thick beveled plate catching strong light from one side.
-    octPath(0.985);
-    if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 10; }
-    ctx.strokeStyle = 'rgba(210,150,255,0.75)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+    // Plate fill/rim/seams/rivets/chain-bands are baked - see
+    // _getDargruelPlateSprite above. Only the rune diamonds below (their
+    // glow pulses every frame) still draw live.
+    const _plateSprite = _getDargruelPlateSprite(r, !_mobPerf);
+    ctx.drawImage(_plateSprite.canvas, -_plateSprite.pad, -_plateSprite.pad);
 
-    // 3.4 Surface plating detail: panel seams, rivets, and small glowing
-    // runes etched into the body itself.
+    // 3.4b Glowing rune diamonds etched into the plate - the one piece of
+    // the surface detail that still animates every frame (pulsing glow),
+    // so it stays live while the seams/rivets around it are baked in.
     ctx.save();
     octPath(1);
     ctx.clip();
-    ctx.strokeStyle = 'rgba(138,43,226,0.28)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.86, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = 'rgba(100,20,180,0.22)'; ctx.lineWidth = 0.8;
-    for (let i = 0; i < 8; i++) {
-        const a1 = (i / 8) * Math.PI * 2;
-        const a2 = ((i + 3) / 8) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a1) * r * 0.9, Math.sin(a1) * r * 0.9);
-        ctx.lineTo(Math.cos(a2) * r * 0.9, Math.sin(a2) * r * 0.9);
-        ctx.stroke();
-    }
-    for (let i = 0; i < 16; i++) {
-        const a = (i / 16) * Math.PI * 2;
-        const rx = Math.cos(a) * r * 0.95, ry = Math.sin(a) * r * 0.95;
-        ctx.fillStyle = 'rgba(5,0,10,0.95)';
-        ctx.beginPath(); ctx.arc(rx, ry, 2.2, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(220,180,255,0.6)';
-        ctx.beginPath(); ctx.arc(rx - 0.6, ry - 0.6, 0.8, 0, Math.PI * 2); ctx.fill();
-    }
     const runePulse = 0.6 + 0.4 * Math.sin(now / 500);
     for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
@@ -175,38 +247,6 @@ function _drawDargruel(enemy) {
         ctx.restore();
     }
     ctx.shadowBlur = 0;
-    ctx.restore();
-
-    // 3.6 Chain wraps: a handful of dashed bands laid over the plate like
-    // meridian lines on a globe - round-capped dashes read as a row of
-    // link beads without needing per-link geometry. Clipped to the octagon
-    // so nothing spills past the plate's own edge; the Cosmic Eye paints
-    // its own opaque disc over the middle later, so no hole needs cutting
-    // here.
-    ctx.save();
-    octPath(1);
-    ctx.clip();
-    const chainBandCount = 6;
-    for (let bi = 0; bi < chainBandCount; bi++) {
-        const bandRot = (bi / chainBandCount) * Math.PI;
-        const bandSquash = 0.2 + ((bi * 37) % 5) / 5 * 0.55;
-        const linkW = r * 0.1;
-        ctx.save();
-        ctx.rotate(bandRot);
-        ctx.scale(1, bandSquash);
-        ctx.lineCap = 'round';
-        ctx.setLineDash([linkW * 1.5, linkW * 0.55]);
-        ctx.strokeStyle = 'rgba(2,0,6,0.95)';
-        ctx.lineWidth = linkW;
-        ctx.beginPath(); ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = 'rgba(190,110,255,0.75)';
-        ctx.lineWidth = linkW * 0.45;
-        if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 6; }
-        ctx.beginPath(); ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2); ctx.stroke();
-        ctx.shadowBlur = 0;
-        ctx.setLineDash([]);
-        ctx.restore();
-    }
     ctx.restore();
 
     // Loose chain ends hanging off each of the octagon's 8 corners,
