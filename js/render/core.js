@@ -2284,14 +2284,19 @@ function draw(deltaTime) {
         marchoBarrierBursts.forEach(_drawMarchoBarrierBurst);
         raphaelDeathBursts.forEach(_drawRaphaelDeathBurst);
         _drawRaphaelWisdomZones();
-        _drawRaphaelWisdomOrbs();
         if (skillFState !== 'ready') drawSkillF();
         if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();
         if (skillShiftActive) drawSkillShiftEffects();
 
-        // ENEMY BULLETS: top layer, always visible
+        // TOP LAYER, ALWAYS VISIBLE: enemy bullets, plus the two fast
+        // player-facing dodge hazards that used to be able to get buried
+        // under everything drawn above (enemies, particles, explosions,
+        // skill effects) - Uriel's Holy Sword and Raphael's Wisdom Orb.
+        // Both must stay readable no matter how much else is on screen.
         enemies.forEach(e => { if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') drawEnemy(e); });
+        if (typeof _drawUrielHolySwords === 'function') _drawUrielHolySwords();
+        _drawRaphaelWisdomOrbs();
 
         // boundary line
         ctx.save();
