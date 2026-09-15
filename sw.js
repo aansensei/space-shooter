@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v351';
+const CACHE_VERSION = 'v352';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -21,6 +21,7 @@ const CORE_FILES = [
     'assets/images/site/logo.png',
     'assets/images/site/pisces_banner.png',
     'assets/images/site/update-log-hero.png',
+    'assets/images/site/kanade-genesis.png',
     'assets/images/game/weapons/1-longsword.png',
     'assets/images/game/weapons/2-spear.png',
     'assets/images/game/weapons/3-halberd.png',

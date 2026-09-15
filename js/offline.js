@@ -22,6 +22,7 @@
         'assets/images/site/logo.png',
         'assets/images/site/pisces_banner.png',
         'assets/images/site/update-log-hero.png',
+        'assets/images/site/kanade-genesis.png',
         'assets/images/game/weapons/1-longsword.png',
         'assets/images/game/weapons/2-spear.png',
         'assets/images/game/weapons/3-halberd.png',
