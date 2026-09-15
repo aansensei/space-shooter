@@ -514,6 +514,7 @@
     @media (prefers-reduced-motion: reduce) {
       .kanade-hero, .kanade-hero::after { animation:none; }
     }
+    .kanade-hero-fx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
     .sigil-deck { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
     @media (max-width:900px) { .sigil-deck { grid-template-columns:repeat(3,1fr); } }
@@ -1223,7 +1224,7 @@
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">ADMINISTRATOR</span></h2>
 <div class="sub" style="color:#ff2244aa">— UNDEFINED —</div>
-<div class="ul-hero kanade-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"></div>
+<div class="ul-hero kanade-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"><canvas id="cvKanadeFx" class="kanade-hero-fx"></canvas></div>
 <ul>
 <li>An Administrator exists beyond reality, governing it as a <span class="hr">system</span> — not living within it.</li>
 <li>Created the <span class="hg">Endless Nights Protocol</span>: infinite universe replication, preventing all finality.</li>
@@ -2470,7 +2471,7 @@
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">QUẢN TRỊ VIÊN</span></h2>
 <div class="sub" style="color:#ff2244aa">— CHƯA XÁC ĐỊNH —</div>
-<div class="ul-hero kanade-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"></div>
+<div class="ul-hero kanade-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"><canvas id="cvKanadeFx" class="kanade-hero-fx"></canvas></div>
 <ul>
 <li>1 Quản Trị Viên tồn tại vượt ngoài thực tại, cai quản nó như 1 <span class="hr">hệ thống</span> — không sống bên trong nó.</li>
 <li>Tạo ra <span class="hg">Endless Nights Protocol</span> (Giao Thức Đêm Vô Tận): nhân bản vũ trụ vô hạn, ngăn chặn mọi sự kết thúc.</li>
@@ -5090,6 +5091,52 @@
           }
           drawTrue(performance.now());
         };
+
+        // ── KANADE HERO ART OVERLAY — live sparkle/glow dressing painted on
+        // top of the static kanade-genesis.png, concentrated over the
+        // planets/galaxies in the left/background portion of the frame
+        // (approximate fractional positions eyeballed against the actual
+        // artwork) rather than touching the image file itself. Twinkling
+        // dust reuses _miniStars; each hotspot pulses independently so the
+        // background reads as alive without competing with Kanade or the
+        // newborn world under her hand. ──
+        const skfx = setup('cvKanadeFx');
+        if (skfx) {
+          const { c, w, h } = skfx;
+          const hotspots = [
+            { fx: 0.18, fy: 0.16, r: 0.09, hue: '150,160,255', period: 4200, ring: true },
+            { fx: 0.47, fy: 0.07, r: 0.05, hue: '255,225,160', period: 3400, ring: true },
+            { fx: 0.62, fy: 0.10, r: 0.035, hue: '200,190,255', period: 5000, ring: false },
+            { fx: 0.05, fy: 0.37, r: 0.045, hue: '255,210,150', period: 3800, ring: false },
+            { fx: 0.11, fy: 0.58, r: 0.04, hue: '180,200,255', period: 4600, ring: false },
+            { fx: 0.04, fy: 0.78, r: 0.05, hue: '255,235,190', period: 3100, ring: true },
+          ];
+          function drawKanadeFx(t) {
+            c.clearRect(0, 0, w, h);
+            _miniStars(c, w, h, t, 55);
+            for (const hs of hotspots) {
+              const cx3 = hs.fx * w, cy3 = hs.fy * h, r3 = hs.r * Math.min(w, h);
+              const pulse = 0.55 + 0.45 * Math.sin(t / hs.period + cx3);
+              const g = c.createRadialGradient(cx3, cy3, 0, cx3, cy3, r3 * (1.1 + pulse * 0.3));
+              g.addColorStop(0, `rgba(${hs.hue},${0.32 * pulse})`);
+              g.addColorStop(0.6, `rgba(${hs.hue},${0.12 * pulse})`);
+              g.addColorStop(1, `rgba(${hs.hue},0)`);
+              c.fillStyle = g;
+              c.beginPath(); c.arc(cx3, cy3, r3 * (1.1 + pulse * 0.3), 0, Math.PI * 2); c.fill();
+              if (hs.ring) {
+                c.save();
+                c.translate(cx3, cy3); c.rotate(t / 9000);
+                c.scale(1, 0.32);
+                c.strokeStyle = `rgba(${hs.hue},${0.25 * pulse})`;
+                c.lineWidth = 1;
+                c.beginPath(); c.arc(0, 0, r3 * 1.7, 0, Math.PI * 2); c.stroke();
+                c.restore();
+              }
+            }
+            activeAnimations.push(requestAnimationFrame(() => drawKanadeFx(performance.now())));
+          }
+          drawKanadeFx(performance.now());
+        }
 
       }
 
