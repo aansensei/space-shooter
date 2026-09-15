@@ -376,6 +376,7 @@
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
+        'raphael-idle': 1.0,
         'uriel-idle': 1.0, 'uriel-sword-launch': 1.15, 'uriel-death-roar': 1.15,
         'uriel-sword-windup': 1.15, 'uriel-sword-impact': 1.15,
         'uriel-sword-hover': 0.6, // wind texture while the blade is actually in flight, not a lead cue
@@ -456,6 +457,7 @@
         leviathanIdleEl: null, // Leviathan flight ambience (wingbeat whoosh + scrap rattle), same native gapless loop
         urielIdleEl: null,    // Uriel ambient presence (wind hum + wing flap + breath), same native gapless loop
         urielSwordHoverEl: null, // Holy Sword's wind-rush texture while any blade is in flight
+        raphaelIdleEl: null,  // Raphael ambient presence (gear-hum + choral drone + platform-rise + breath), same native gapless loop
         pool: {},            // sfx key → { src, bypass }
         // In-game BGM rotation pool the player picked in Settings (track ids,
         // excludes the menu-only "pisces" track — that one never plays in a
@@ -585,8 +587,9 @@
             leviathanIdle: !!(state.leviathanIdleEl && !state.leviathanIdleEl.paused),
             urielIdle: !!(state.urielIdleEl && !state.urielIdleEl.paused),
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
+            raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -611,6 +614,7 @@
         if (s.leviathanIdle && state.leviathanIdleEl) try { state.leviathanIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.urielIdle && state.urielIdleEl) try { state.urielIdleEl.play().catch(() => {}); } catch (_) {}
         if (s.urielSwordHover && state.urielSwordHoverEl) try { state.urielSwordHoverEl.play().catch(() => {}); } catch (_) {}
+        if (s.raphaelIdle && state.raphaelIdleEl) try { state.raphaelIdleEl.play().catch(() => {}); } catch (_) {}
     }
 
     // BGM: pick a random in-game track (excludes menu-only tracks and the
@@ -804,6 +808,8 @@
     function stopLeviathanIdle()  { stopLoop('leviathanIdleEl'); }
     function startUrielIdle() { startLoop('urielIdleEl', 'uriel-idle'); }
     function stopUrielIdle()  { stopLoop('urielIdleEl'); }
+    function startRaphaelIdle() { startLoop('raphaelIdleEl', 'raphael-idle'); }
+    function stopRaphaelIdle()  { stopLoop('raphaelIdleEl'); }
     function startUrielSwordHover() { startLoop('urielSwordHoverEl', 'uriel-sword-hover'); }
     function stopUrielSwordHover()  { stopLoop('urielSwordHoverEl'); }
     // One shared loop for however many Riptide Surge whirlpools are active
@@ -939,6 +945,8 @@
         state.urielIdleEl.setSrc('assets/audio/sfx/uriel-idle.mp3');
         state.urielSwordHoverEl = _makeBufferLoop();
         state.urielSwordHoverEl.setSrc('assets/audio/sfx/uriel-sword-hover.mp3');
+        state.raphaelIdleEl = _makeBufferLoop();
+        state.raphaelIdleEl.setSrc('assets/audio/sfx/raphael-idle.wav');
         // Not looped: play once at natural pace, cut short by stopLoop() when
         // the game event they track (charge window / on-screen lifetime /
         // sweep animation) ends rather than being pre-trimmed/time-stretched
@@ -994,6 +1002,7 @@
         startLeviathanIdle, stopLeviathanIdle,
         startUrielIdle, stopUrielIdle,
         startUrielSwordHover, stopUrielSwordHover,
+        startRaphaelIdle, stopRaphaelIdle,
         startCancerWhirlpool, stopCancerWhirlpool,
         startLaser,   stopLaser,
 

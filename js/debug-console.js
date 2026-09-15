@@ -1214,6 +1214,7 @@ window.debugSetYuukiBonus = function () {
         if (which === 'haki' && typeof spawnBossShockwave === 'function') spawnBossShockwave(e.x, e.y);
         if (which === 'chains') e.chainTimer = 0;
         if (which === 'laser') e.shootTimer = 0;
+        if (which === 'wisdom_orb' && typeof _raphaelSpawnWisdomOrb === 'function') _raphaelSpawnWisdomOrb(e);
         if (which === 'perseverance') {
             e.perseveranceCooldown = 0;
             // Clearing the cooldown alone only unblocks the natural
@@ -1273,7 +1274,7 @@ window.debugSetYuukiBonus = function () {
         if (e.type === 'egregor') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'ns')">Null Slash</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'tempest')">Tempest</button>`;
         if (e.type === 'marchosias') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'sword')">Sword</button>`;
         if (e.type === 'dargruel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'haki')">Maou Haki</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'chains')">Chains</button>`;
-        if (e.type === 'raphael') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button>`;
+        if (e.type === 'raphael') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'laser')">Laser</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'wisdom_orb')">Wisdom Orb</button>`;
         if (e.type === 'leviathan') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'perseverance')">Perseverance</button>`;
         if (e.type === 'veilshroud') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'void')">Void Strike</button>`;
         if (e.type === 'uriel') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'uriel_camo')">Force Camouflage</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'uriel_sword')">Force Judgment</button>`;

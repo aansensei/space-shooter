@@ -202,6 +202,7 @@ function spawnRaphael() {
         type: 'raphael', shootTimer: 0,
         raphaelInvulnerable: true, raphaelCustosHits: 0, raphaelShieldReceived: false
     });
+    if (window.AudioMgr) window.AudioMgr.startRaphaelIdle();
 }
 
 function spawnApostle() {

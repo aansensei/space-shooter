@@ -645,6 +645,14 @@ function update(rawDeltaTime) {
     }
     const _nullSlashSpeedMult = (player._nullSlashSlowed) ? 0.50 : 1.0;
 
+    // Raphael's Wisdom Orb: 50% slow for 1s on a direct hit, 25% continuous
+    // while standing in a scorched-ground zone the orb left behind
+    if (player._wisdomOrbSlowed && currentTime >= player._wisdomOrbSlowEnd) {
+        player._wisdomOrbSlowed = false;
+    }
+    let _wisdomOrbSpeedMult = (player._wisdomOrbSlowed) ? 0.50 : 1.0;
+    if (player._inWisdomZone) _wisdomOrbSpeedMult *= 0.75;
+
     // Dimension Break zone: 20% slow when player stands on the lingering rift arc
     if (window._egregorDeathBursts && window._egregorDeathBursts.length) {
         window._egregorDeathBursts = window._egregorDeathBursts.filter(b => currentTime - b.spawnAt < b.duration);
@@ -687,8 +695,8 @@ function update(rawDeltaTime) {
     }
 
     const _xBeforeMove = player.x;
-    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * _dimBreakMult * dt;
+    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
 
     // Uriel's Holy Sword aims at the player's position ~100ms ago instead of
     // the live position, so it can't be launched dead-on-arrival - keep a
@@ -1161,6 +1169,7 @@ function update(rawDeltaTime) {
                 addExplosion(enemy.x, enemy.y, enemy.size * 1.6, '#ffd76b');
                 createParticles(enemy.x, enemy.y, 50, '#ffcc66', 2, 9);
                 raphaelDeathBursts.push({ x: enemy.x, y: enemy.y, size: enemy.size, lifetime: 1100, maxLifetime: 1100 });
+                if (window.AudioMgr) window.AudioMgr.stopRaphaelIdle();
             }
 
             // URIEL: Protection, a stationary barrier at the death spot; the
@@ -2281,8 +2290,10 @@ function update(rawDeltaTime) {
     updateEnergyOrbs(deltaTime, gameElapsedTime); _profChk2.push(performance.now());
     updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
     updateMarchosiasBlades(deltaTime); _profChk2.push(performance.now());
+    updateRaphaelWisdomOrbs(deltaTime); _profChk2.push(performance.now());
+    updateRaphaelWisdomZones(deltaTime); _profChk2.push(performance.now());
     if (_profChk2[_profChk2.length - 1] - _profChk2[0] > 60) {
-        const _labels2 = ['vulnWindows', 'soulReaverDoT', 'skillA', 'solArrows', 'shadowTwin', 'shadowOrbs', 'dimRifts', 'scatteredProj', 'spirits', 'bladeArc', 'spiritBullets', 'photoBrangs', 'skillD', 'skillF', 'energyOrbs', 'teslaCoils', 'marchosiasBlades'];
+        const _labels2 = ['vulnWindows', 'soulReaverDoT', 'skillA', 'solArrows', 'shadowTwin', 'shadowOrbs', 'dimRifts', 'scatteredProj', 'spirits', 'bladeArc', 'spiritBullets', 'photoBrangs', 'skillD', 'skillF', 'energyOrbs', 'teslaCoils', 'marchosiasBlades', 'raphaelWisdomOrbs', 'raphaelWisdomZones'];
         const _parts2 = [];
         for (let _i2 = 1; _i2 < _profChk2.length; _i2++) {
             _parts2.push(_labels2[_i2 - 1] + ' ' + (_profChk2[_i2] - _profChk2[_i2 - 1]).toFixed(0) + 'ms');
@@ -3205,7 +3216,7 @@ function startGame() {
     score = 0;
     window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
     nextLifeMilestone = 500000;
-    bullets = []; enemies = []; explosions = []; particles = []; marchoDeathBursts = []; marchoBarrierBursts = []; raphaelDeathBursts = [];
+    bullets = []; enemies = []; explosions = []; particles = []; marchoDeathBursts = []; marchoBarrierBursts = []; raphaelDeathBursts = []; raphaelWisdomOrbs = []; raphaelWisdomZones = [];
     skillAOrbs = []; scatteredProjectiles = [];
     skillADefensiveCharges = 0;
     window._solArrows = [];
