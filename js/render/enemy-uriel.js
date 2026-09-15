@@ -851,8 +851,11 @@ function _drawUrielBarriers() {
     }
 }
 
+// Holy Sword projectiles are drawn separately, on the top layer alongside
+// enemy bullets (render/core.js) - the barrier stays here at the earlier
+// call site since it's a slow-moving stationary zone, not a fast hazard the
+// player needs to track and dodge every frame.
 function _drawUrielEffects() {
     _drawUrielMotes();
-    _drawUrielHolySwords();
     _drawUrielBarriers();
 }
