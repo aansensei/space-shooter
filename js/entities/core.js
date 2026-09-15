@@ -669,8 +669,8 @@ function dealDamage(enemy, source) {
             createParticles(enemy.x, enemy.y, 4, '#7fe6ff', 1, 3);
         }
         // Wisdom King: every tick landed while Custos is up still counts
-        // toward the 100-hit Wisdom Orb tally below (see the direct-hit
-        // branch), completely separate from the throttled 25-hit Custos
+        // toward the 80-hit Wisdom Orb tally below (see the direct-hit
+        // branch), completely separate from the throttled 20-hit Custos
         // counter - a DoT sitting on Raphael "teaches" it just as much as a
         // real attack would, even though it can't chip the shield itself.
         if (typeof _raphaelRegisterWisdomHit === 'function') _raphaelRegisterWisdomHit(enemy);
@@ -684,7 +684,7 @@ function dealDamage(enemy, source) {
             // orbs a cast, each landing as 2 separate dealDamage calls (a
             // main hit + a true-damage follow-up) - unthrottled, a single
             // cast that converges on Raphael could burn through the entire
-            // 25-hit pool in one burst, making the "25 hits" figure
+            // 20-hit pool in one burst, making the "20 hits" figure
             // meaningless against burst sources while still working as
             // intended against single-hit attacks. Damage is still fully
             // absorbed either way (the function returns below regardless);
@@ -694,8 +694,17 @@ function dealDamage(enemy, source) {
             if (_custosThrottled) return;
             enemy._lastCustosHitAt = _custosNow;
             enemy.raphaelCustosHits = (enemy.raphaelCustosHits || 0) + 1;
-            addExplosion(enemy.x, enemy.y, enemy.size * 1.2, 'white');
-            if (enemy.raphaelCustosHits >= 25) {
+            // A short, non-overlapping flash instead of the generic 500ms
+            // addExplosion() this used to call - at sustained fire rate the
+            // 175ms throttle above still lets a new hit land well before a
+            // 500ms explosion finishes, so up to ~3 of them used to stack
+            // and cross-fade at once, reading as a screen-wide strobe/
+            // flicker rather than a single clean "hit blocked" pulse.
+            // Shorter than the throttle window itself, so at most one is
+            // ever on screen (see the flash render, render/enemy-raphael.js).
+            enemy._custosFlashUntil = _custosNow + 140;
+            createParticles(enemy.x, enemy.y, 6, 'white', 1, 4);
+            if (enemy.raphaelCustosHits >= 20) {
                 enemy.raphaelInvulnerable = false;
                 enemy._custosExpired = true;
                 // One-time defensive grant based on allies in support aura when Custos breaks

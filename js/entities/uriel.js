@@ -390,10 +390,13 @@ function _updateUrielEffects(deltaTime) {
     // shots), so this only starts on the 0->1 transition (against last
     // frame's state, via window._urielSwordsInFlight) and only stops once
     // the very last one lands/leaves, instead of each sword's own lifetime.
+    // Raphael's Wisdom Orb may be sharing this same loop at the same time
+    // (both are on-screen elites) - only actually stop it once neither
+    // source still needs it, so one finishing doesn't cut the other off.
     const _hasSwordsInFlight = !!(swords && swords.length > 0);
     if (window.AudioMgr) {
         if (_hasSwordsInFlight && !window._urielSwordsInFlight) window.AudioMgr.startUrielSwordHover();
-        else if (!_hasSwordsInFlight && window._urielSwordsInFlight) window.AudioMgr.stopUrielSwordHover();
+        else if (!_hasSwordsInFlight && window._urielSwordsInFlight && !window._raphaelWisdomOrbsInFlight) window.AudioMgr.stopUrielSwordHover();
     }
     window._urielSwordsInFlight = _hasSwordsInFlight;
 
