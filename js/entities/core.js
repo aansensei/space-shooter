@@ -668,10 +668,17 @@ function dealDamage(enemy, source) {
             enemy._lastWardSparkAt = _wardNow;
             createParticles(enemy.x, enemy.y, 4, '#7fe6ff', 1, 3);
         }
+        // Wisdom King: every tick landed while Custos is up still counts
+        // toward the 100-hit Wisdom Orb tally below (see the direct-hit
+        // branch), completely separate from the throttled 25-hit Custos
+        // counter - a DoT sitting on Raphael "teaches" it just as much as a
+        // real attack would, even though it can't chip the shield itself.
+        if (typeof _raphaelRegisterWisdomHit === 'function') _raphaelRegisterWisdomHit(enemy);
         return;
     }
     if (enemy.type === 'raphael' && enemy.raphaelInvulnerable) {
         if (source.damage > 0 || source.percentDamage > 0) {
+            if (typeof _raphaelRegisterWisdomHit === 'function') _raphaelRegisterWisdomHit(enemy);
             // Throttled to at most 1 counted hit per ~175ms, same spirit as
             // the DoT ward-spark above. Skill A's Thunder Orbs fire up to 20
             // orbs a cast, each landing as 2 separate dealDamage calls (a
@@ -760,6 +767,19 @@ function dealDamage(enemy, source) {
         // self-decaying every successful dodge (see _urielOnDodge).
         if (enemy.type === 'uriel' && typeof _urielCurrentEvade === 'function') {
             _evade = _urielCurrentEvade(enemy);
+        }
+        // Wisdom King (Raphael): once Custos Aeternus has broken, replaces
+        // the elite-tier evade entirely with a flat 20%, +5% more (25%
+        // total) specifically against player/Sentinel/spirit fire - the
+        // sources a real fight is mostly made of - rather than every
+        // source equally. While Custos is still up this doesn't apply at
+        // all; the shield is already absorbing everything outright.
+        if (enemy.type === 'raphael' && !enemy.raphaelInvulnerable) {
+            _evade = 0.20;
+            const _isPlayerSideFire = source.type === 'player_auto' || source.type === 'player_charged'
+                || source.type === 'sentinel_auto' || source.type === 'sentinel_special'
+                || source.isSpirit || source.isPhoto;
+            if (_isPlayerSideFire) _evade += 0.05;
         }
         // Walpurgis (Huyết Dạ): +5% evade per stack, applies on top of every
         // enemy's own tier/type evade (including types with 0 base evade).

@@ -2283,6 +2283,8 @@ function draw(deltaTime) {
         marchoDeathBursts.forEach(_drawMarchoDeathBurst);
         marchoBarrierBursts.forEach(_drawMarchoBarrierBurst);
         raphaelDeathBursts.forEach(_drawRaphaelDeathBurst);
+        _drawRaphaelWisdomZones();
+        _drawRaphaelWisdomOrbs();
         if (skillFState !== 'ready') drawSkillF();
         if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();

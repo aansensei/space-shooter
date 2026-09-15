@@ -571,4 +571,110 @@ function _drawRaphaelDeathBurst(burst) {
 
     ctx.restore();
 }
+// Wisdom Orb: gathers in place (light dust pulling inward, a seam cracking
+// open to show the orb before launch), then flies as the AI-art orb image,
+// rotated along its travel angle with a short directional light trail.
+// Zones are the small scorched patches the orb leaves on each Sentinel it
+// pierces (raphaelWisdomZones, see updateRaphaelWisdomZones in
+// entities/raphael.js) - drawn separately below.
+function _drawRaphaelWisdomOrb(o) {
+    ctx.save();
+    ctx.translate(o.x, o.y);
+
+    if (o.phase === 'gather') {
+        const p = 1 - o.gatherTimer / RAPHAEL_WISDOM_GATHER_MS; // 0 -> 1
+        ctx.rotate(o.ang);
+
+        // Dust motes pulled inward along the launch angle, seeded once.
+        if (!o._motes) {
+            o._motes = [];
+            for (let i = 0; i < 10; i++) {
+                const a = Math.random() * Math.PI * 2;
+                o._motes.push({ a, dist: 26 + Math.random() * 22, seed: Math.random() });
+            }
+        }
+        ctx.fillStyle = `rgba(255,226,122,${0.15 + p * 0.5})`;
+        for (const m of o._motes) {
+            const d = m.dist * (1 - p * 0.85);
+            ctx.beginPath();
+            ctx.arc(Math.cos(m.a) * d, Math.sin(m.a) * d, 1.4 + m.seed * 1.3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // A seam of light cracking open, bowing apart as the gate opens.
+        const seamW = 3 + p * 5, seamH = 30 * (0.3 + p * 0.7);
+        if (!_mobPerf) { ctx.shadowColor = '#ffe27a'; ctx.shadowBlur = 16 * p; }
+        ctx.strokeStyle = `rgba(255,235,180,${0.5 + p * 0.5})`;
+        ctx.lineWidth = seamW;
+        ctx.beginPath(); ctx.moveTo(0, -seamH / 2); ctx.lineTo(0, seamH / 2); ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // The orb itself, glimpsed through the seam, fading and scaling in.
+        if (p > 0.35 && _raphaelWisdomOrbImg.complete && _raphaelWisdomOrbImg.naturalWidth) {
+            const revealP = (p - 0.35) / 0.65;
+            const s = 42.5 * (0.4 + revealP * 0.6);
+            ctx.save();
+            ctx.globalAlpha = revealP * 0.9;
+            ctx.drawImage(_raphaelWisdomOrbImg, -s / 2, -s / 2, s, s);
+            ctx.restore();
+        }
+        ctx.restore();
+        return;
+    }
+
+    // Launch phase: directional light trail behind the orb, then the image
+    // itself rotated to face its travel direction.
+    if (!_mobPerf) {
+        const trailLen = 30 + o.speed * 2.4;
+        const tg = ctx.createLinearGradient(0, 0, -Math.cos(o.ang) * trailLen, -Math.sin(o.ang) * trailLen);
+        tg.addColorStop(0, 'rgba(255,226,122,0.55)');
+        tg.addColorStop(1, 'rgba(255,226,122,0)');
+        ctx.strokeStyle = tg;
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-Math.cos(o.ang) * trailLen, -Math.sin(o.ang) * trailLen); ctx.stroke();
+    }
+
+    ctx.rotate(o.ang);
+    if (_raphaelWisdomOrbImg.complete && _raphaelWisdomOrbImg.naturalWidth) {
+        const s = 47.5;
+        if (!_mobPerf) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.shadowColor = '#fff3c4'; ctx.shadowBlur = 18;
+            ctx.drawImage(_raphaelWisdomOrbImg, -s / 2, -s / 2, s, s);
+            ctx.restore();
+        }
+        ctx.shadowColor = '#ffcf5c'; ctx.shadowBlur = (!_mobPerf) ? 14 : 0;
+        ctx.drawImage(_raphaelWisdomOrbImg, -s / 2, -s / 2, s, s);
+        ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+}
+function _drawRaphaelWisdomOrbs() {
+    for (const o of raphaelWisdomOrbs) _drawRaphaelWisdomOrb(o);
+}
+
+// Scorched patches the Wisdom Orb leaves on each Sentinel it pierces - a
+// pulsing translucent ring that fades out over its life.
+function _drawRaphaelWisdomZone(z) {
+    const p = 1 - z.life / z.maxLife; // 0 -> 1
+    const pulse = 0.85 + Math.sin(p * Math.PI * 6) * 0.15;
+    ctx.save();
+    ctx.translate(z.x, z.y);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, z.radius * pulse);
+    g.addColorStop(0, `rgba(255,190,80,${(1 - p) * 0.28})`);
+    g.addColorStop(0.7, `rgba(255,150,40,${(1 - p) * 0.16})`);
+    g.addColorStop(1, 'rgba(255,150,40,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, z.radius * pulse, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(255,220,150,${(1 - p) * 0.5})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, z.radius * pulse, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+}
+function _drawRaphaelWisdomZones() {
+    for (const z of raphaelWisdomZones) _drawRaphaelWisdomZone(z);
+}
+
 // Enemy dispatcher
