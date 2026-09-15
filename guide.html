@@ -5099,9 +5099,18 @@
         // artwork) rather than touching the image file itself. Twinkling
         // dust reuses _miniStars; each hotspot pulses independently so the
         // background reads as alive without competing with Kanade or the
-        // newborn world under her hand. ──
-        const skfx = setup('cvKanadeFx');
-        if (skfx) {
+        // newborn world under her hand.
+        //
+        // The container's height comes from the <img>'s own intrinsic size
+        // (no explicit CSS height), so on a real connection the ~2.4MB
+        // artwork can easily still be downloading well past the generic
+        // 32ms/150ms re-init safety net above - setup()'s
+        // getBoundingClientRect() would read a 0-height box and the canvas
+        // would silently stay blank. Gate this specific canvas on the
+        // image's own load event instead of relying on those timers.
+        function initKanadeFx() {
+          const skfx = setup('cvKanadeFx');
+          if (!skfx) return;
           const { c, w, h } = skfx;
           const hotspots = [
             { fx: 0.18, fy: 0.16, r: 0.09, hue: '150,160,255', period: 4200, ring: true },
@@ -5136,6 +5145,19 @@
             activeAnimations.push(requestAnimationFrame(() => drawKanadeFx(performance.now())));
           }
           drawKanadeFx(performance.now());
+        }
+        const kanadeImg = document.querySelector('.kanade-hero img');
+        if (kanadeImg) {
+          if (kanadeImg.complete && kanadeImg.naturalWidth) initKanadeFx();
+          // initCanvases() re-runs a few times per tab-open (rAF + two
+          // staggered timeouts, see the layout-timing-race comment above) -
+          // guard so a still-loading image only ever gets one 'load'
+          // listener instead of one per re-run, each independently kicking
+          // off its own draw loop once the image finally resolves.
+          else if (!kanadeImg._kanadeFxBound) {
+            kanadeImg._kanadeFxBound = true;
+            kanadeImg.addEventListener('load', initKanadeFx, { once: true });
+          }
         }
 
       }
