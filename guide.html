@@ -491,6 +491,30 @@
     .ul-hero { width:100%; border-radius:10px; overflow:hidden; margin-bottom:14px; border:1px solid rgba(255,255,255,0.08); }
     .ul-hero img { width:100%; display:block; -webkit-user-drag:none; user-select:none; pointer-events:none; }
 
+    /* Kanade's hero art: a slow breathing gold/violet aura around the frame
+       plus a periodic diagonal light sweep across the image - reads as her
+       own creation-light spilling past the frame edge, not a generic hover
+       effect, so it plays continuously rather than on :hover. */
+    .kanade-hero { position:relative; animation:kanadeAura 5s ease-in-out infinite; }
+    @keyframes kanadeAura {
+      0%, 100% { box-shadow:0 0 18px 2px rgba(255,215,120,0.15), 0 0 40px 8px rgba(150,120,255,0.08); }
+      50% { box-shadow:0 0 30px 4px rgba(255,215,120,0.3), 0 0 60px 12px rgba(150,120,255,0.18); }
+    }
+    .kanade-hero::after {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.10) 45%, rgba(255,240,200,0.24) 50%, rgba(255,255,255,0.10) 55%, transparent 70%);
+      background-size:260% 260%; background-position:-60% 0%;
+      mix-blend-mode:screen;
+      animation:kanadeShimmer 6s ease-in-out infinite;
+    }
+    @keyframes kanadeShimmer {
+      0%, 82% { background-position:-60% 0%; }
+      100% { background-position:160% 0%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .kanade-hero, .kanade-hero::after { animation:none; }
+    }
+
     .sigil-deck { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:14px; }
     @media (max-width:900px) { .sigil-deck { grid-template-columns:repeat(3,1fr); } }
     @media (max-width:600px) { .sigil-deck { grid-template-columns:repeat(2,1fr); } }
@@ -1199,7 +1223,7 @@
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">ADMINISTRATOR</span></h2>
 <div class="sub" style="color:#ff2244aa">— UNDEFINED —</div>
-<div class="ul-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"></div>
+<div class="ul-hero kanade-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"></div>
 <ul>
 <li>An Administrator exists beyond reality, governing it as a <span class="hr">system</span> — not living within it.</li>
 <li>Created the <span class="hg">Endless Nights Protocol</span>: infinite universe replication, preventing all finality.</li>
@@ -2446,7 +2470,7 @@
 <div class="card" style="border-color:rgba(255,34,68,0.3);position:relative;overflow:hidden;">
 <h2 class="dsname" style="color:#ff2244">KANADE OF THE ENDLESS NIGHTS <span class="dsclass" style="font-size:9px;color:#ff2244">QUẢN TRỊ VIÊN</span></h2>
 <div class="sub" style="color:#ff2244aa">— CHƯA XÁC ĐỊNH —</div>
-<div class="ul-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"></div>
+<div class="ul-hero kanade-hero" oncontextmenu="return false"><img src="assets/images/site/kanade-genesis.png" draggable="false" alt="Kanade of the Endless Nights"></div>
 <ul>
 <li>1 Quản Trị Viên tồn tại vượt ngoài thực tại, cai quản nó như 1 <span class="hr">hệ thống</span> — không sống bên trong nó.</li>
 <li>Tạo ra <span class="hg">Endless Nights Protocol</span> (Giao Thức Đêm Vô Tận): nhân bản vũ trụ vô hạn, ngăn chặn mọi sự kết thúc.</li>
