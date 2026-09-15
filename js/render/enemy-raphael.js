@@ -22,7 +22,19 @@
 // for a given auraRadius (= canvas.width/2, which only changes on resize).
 const _raphaelZoneSpriteCache = {};
 function _getRaphaelZoneSprite(auraRadius, r, hasGlow) {
-    const key = auraRadius.toFixed(0) + '_' + r.toFixed(1) + '_' + (hasGlow ? 1 : 0);
+    // r only sets the gradient's inner radius (where the red danger-zone
+    // starts, right at the enemy's own edge) - a few pixels of difference
+    // there is imperceptible against a gradient spanning hundreds of
+    // pixels, but keying on r's exact value (enemy.size, randomized per
+    // spawn) meant this ~1360px sprite - by far the single biggest draw
+    // call in this file, gradient fill plus an 18px shadowBlur ring -
+    // never actually hit cache between different Raphaels and got
+    // rebaked from scratch on every single spawn, a real stutter caught
+    // via the game's own [LONGTASK]/[PIXI] perf warnings. Bucketing r to
+    // the nearest 5px keeps the cache effectively static for a given
+    // auraRadius, matching what this function's own header comment
+    // already claimed should be true.
+    const key = auraRadius.toFixed(0) + '_' + (Math.round(r / 5) * 5) + '_' + (hasGlow ? 1 : 0);
     const cached = _raphaelZoneSpriteCache[key];
     if (cached) return cached;
 
@@ -637,6 +649,33 @@ function _drawRaphaelWisdomOrb(o) {
             ctx.beginPath(); ctx.arc(t.x, t.y, 4.5 + i * 0.4, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
         }
+
+        // Loose embers peeling off and actually left behind in world space
+        // (unlike the stamped afterimage above, which just re-traces the
+        // orb's own path) - each spark keeps its own scatter velocity plus a
+        // slight bias opposite the orb's heading, so they read as debris
+        // shed while flying rather than a second copy of the trail.
+        if (!o._embers2) o._embers2 = [];
+        if (performance.now() - (o._lastEmber2At || 0) > 30) {
+            o._lastEmber2At = performance.now();
+            const a = Math.random() * Math.PI * 2;
+            o._embers2.push({
+                x: o.x, y: o.y,
+                vx: Math.cos(a) * (0.4 + Math.random() * 0.8) - Math.cos(o.ang) * 0.6,
+                vy: Math.sin(a) * (0.4 + Math.random() * 0.8) - Math.sin(o.ang) * 0.6,
+                life: 380, maxLife: 380,
+            });
+            if (o._embers2.length > 16) o._embers2.shift();
+        }
+        for (let i = o._embers2.length - 1; i >= 0; i--) {
+            const em = o._embers2[i];
+            em.life -= 16.7;
+            if (em.life <= 0) { o._embers2.splice(i, 1); continue; }
+            em.x += em.vx; em.y += em.vy + 0.02;
+            const emP = em.life / em.maxLife;
+            ctx.fillStyle = `rgba(255,${210 - emP * 40},130,${emP * 0.8})`;
+            ctx.beginPath(); ctx.arc(em.x, em.y, 1.2 * emP + 0.3, 0, Math.PI * 2); ctx.fill();
+        }
     }
 
     ctx.save();
@@ -645,6 +684,24 @@ function _drawRaphaelWisdomOrb(o) {
     if (o.phase === 'gather') {
         const p = 1 - o.gatherTimer / RAPHAEL_WISDOM_GATHER_MS; // 0 -> 1
         ctx.rotate(o.ang);
+
+        // Danger-line telegraph: a dashed red line straight down the exact
+        // path this orb is about to fire along, visible for the whole
+        // ~0.65s gather window instead of only once the orb is already
+        // moving - the player gets real time to read the line and step off
+        // it before anything launches. Brightens as the gather builds so it
+        // reads as an escalating warning, not a static decoration.
+        if (!_mobPerf) {
+            ctx.save();
+            ctx.globalAlpha = 0.25 + p * 0.5;
+            ctx.strokeStyle = 'rgba(255,60,60,0.9)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([14, 12]);
+            ctx.lineDashOffset = -p * 40; // dashes crawl outward, reinforcing direction
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(2200, 0); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
 
         // Dust motes pulled inward along the launch angle, seeded once.
         if (!o._motes) {
@@ -697,6 +754,56 @@ function _drawRaphaelWisdomOrb(o) {
         // A ring of the orb's own etched glyphs, spinning up and drawing
         // inward as the gate opens - the "wisdom" tell before anything fires.
         if (!_mobPerf) _drawRaphaelWisdomGlyphRing(10 + p * 15, p * 5, p * 0.85);
+
+        // A full portal ring forming around the whole gather point (not just
+        // the vertical seam) - grows from a pinpoint to a wide circle as the
+        // gate opens, reading as an actual portal rather than only a crack.
+        if (!_mobPerf) {
+            const portalR = 6 + p * 40;
+            ctx.save();
+            ctx.globalAlpha = p * 0.55;
+            ctx.strokeStyle = 'rgba(255,230,170,0.9)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 5]);
+            ctx.lineDashOffset = p * 20;
+            ctx.beginPath(); ctx.arc(0, 0, portalR, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+
+        // Crackling lightning tendrils reaching out from the portal in its
+        // final stretch - a jagged, high-energy tell distinct from the soft
+        // glow/rays above, seeded once per orb so they don't reroll every frame.
+        if (!_mobPerf && _peakP > 0) {
+            if (!o._tendrils) {
+                o._tendrils = [];
+                for (let i = 0; i < 5; i++) {
+                    const baseAng = Math.random() * Math.PI * 2;
+                    const segs = [];
+                    let len = 0;
+                    for (let s = 0; s < 4; s++) { len += 8 + Math.random() * 8; segs.push({ len, jitter: (Math.random() - 0.5) * 10 }); }
+                    o._tendrils.push({ baseAng, segs });
+                }
+            }
+            ctx.save();
+            ctx.globalAlpha = _peakP * 0.8;
+            ctx.strokeStyle = 'rgba(220,240,255,0.95)';
+            ctx.lineWidth = 1.2;
+            if (!_mobPerf) { ctx.shadowColor = '#bfe8ff'; ctx.shadowBlur = 6; }
+            for (const t of o._tendrils) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                for (const seg of t.segs) {
+                    const perpAng = t.baseAng + Math.PI / 2;
+                    const x = Math.cos(t.baseAng) * seg.len * _peakP + Math.cos(perpAng) * seg.jitter;
+                    const y = Math.sin(t.baseAng) * seg.len * _peakP + Math.sin(perpAng) * seg.jitter;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
 
         // A seam of light cracking open, bowing apart as the gate opens.
         const seamW = 3 + p * 5, seamH = 36 * (0.3 + p * 0.7);
@@ -754,6 +861,45 @@ function _drawRaphaelWisdomOrb(o) {
         // A ring of the orb's own etched glyphs, still slowly orbiting while
         // it flies - continuity with the gather phase's ring.
         _drawRaphaelWisdomGlyphRing(30, performance.now() / 450, 0.5);
+
+        // A pulsing high-contrast danger ring around the orb itself, so it
+        // reads clearly against busy/bright backgrounds (nebula, other
+        // effects) instead of blending into its own warm glow - the whole
+        // point being it stays easy to spot and dodge while it's actually
+        // in flight, not just during the gather telegraph.
+        const _ringPulse = 0.6 + 0.4 * Math.sin(performance.now() / 90);
+        ctx.save();
+        ctx.globalAlpha = 0.5 + 0.3 * _ringPulse;
+        ctx.strokeStyle = `rgba(255,${60 + _ringPulse * 120},${60 + _ringPulse * 120},0.9)`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 20 + _ringPulse * 4, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+
+        // A wide soft outer glow bed underneath everything else, so the orb
+        // reads as a real presence on screen rather than just a bright dot -
+        // separate from (and larger than) the tight core glow drawn with the
+        // image below.
+        {
+            const outerGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, 46);
+            outerGlow.addColorStop(0, 'rgba(255,210,120,0.22)');
+            outerGlow.addColorStop(1, 'rgba(255,210,120,0)');
+            ctx.fillStyle = outerGlow;
+            ctx.beginPath(); ctx.arc(0, 0, 46, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // A pair of Saturn-style rings orbiting the orb at different speeds
+        // and tilts, echoing Raphael's own armillary-ring body - the orb
+        // reads as a fragment of Raphael itself, not a generic fireball.
+        const _orbitNow = performance.now();
+        for (let ri = 0; ri < 2; ri++) {
+            ctx.save();
+            ctx.rotate(_orbitNow / (900 + ri * 500) * (ri === 0 ? 1 : -1));
+            ctx.scale(1, 0.35);
+            ctx.strokeStyle = ri === 0 ? 'rgba(255,235,190,0.55)' : 'rgba(191,232,255,0.4)';
+            ctx.lineWidth = 1.3;
+            ctx.beginPath(); ctx.arc(0, 0, 26 + ri * 8, 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+        }
     }
 
     ctx.rotate(o.ang);

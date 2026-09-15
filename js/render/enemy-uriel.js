@@ -203,7 +203,13 @@ function _urielWingSprite(side, i, flare, r) {
     // the live original - both need to be in the key or a sprite baked with
     // the glow on would keep showing it after Smart Quality drops the tier.
     const hasGlow = !_mobPerf && _gfxLevel < 2;
-    const key = side + '_' + i + '_' + flare + '_' + r.toFixed(1) + '_' + (hasGlow ? 1 : 0);
+    // r is enemy.size, randomized per spawn - keying on its exact value
+    // meant this (up to 6 wing instances, each with per-feather gradients
+    // and strokes) never actually hit cache between different Uriels and
+    // got rebaked from scratch on every single spawn. Bucketing to the
+    // nearest 5px keeps the cache effectively static across spawns, same
+    // fix and same reasoning as Raphael's zone sprite (render/enemy-raphael.js).
+    const key = side + '_' + i + '_' + flare + '_' + (Math.round(r / 5) * 5) + '_' + (hasGlow ? 1 : 0);
     let s = _urielWingSpriteCache[key];
     if (s) return s;
 
@@ -291,7 +297,11 @@ function _drawUrielWing(side, i, sway, flare, r) {
 const _urielRingSpriteCache = {};
 function _urielBreatheBucket(breathe) { return Math.round(breathe * 50) / 50; }
 function _urielRingSprite(r, ringIdx, breatheBucket, hasGlow) {
-    const key = r.toFixed(1) + '_' + ringIdx + '_' + breatheBucket + '_' + (hasGlow ? 1 : 0);
+    // Same r-bucketing fix as the wing sprite above and Raphael's zone
+    // sprite - r is enemy.size, randomized per spawn, so keying on its
+    // exact value meant a fresh bake (up to 26 stroke calls) on every
+    // single Uriel spawn regardless of the breathe-bucket cache already here.
+    const key = (Math.round(r / 5) * 5) + '_' + ringIdx + '_' + breatheBucket + '_' + (hasGlow ? 1 : 0);
     let s = _urielRingSpriteCache[key];
     if (s) return s;
 
