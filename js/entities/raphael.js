@@ -1,7 +1,7 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
 // js/entities/raphael.js — Wisdom King mechanic: a hit tally that builds
 // while Custos Aeternus is up, and the Wisdom Orb it periodically launches
-// once that tally hits a multiple of 100. Rendering lives in
+// once that tally hits a multiple of 80. Rendering lives in
 // js/render/enemy-raphael.js (_drawRaphaelWisdomOrbs/_drawRaphaelWisdomZones).
 
 const _raphaelWisdomOrbImg = new Image();
@@ -9,12 +9,12 @@ _raphaelWisdomOrbImg.src = 'assets/images/game/enemies/raphael-wisdom-orb.png';
 
 // Called from dealDamage (entities/core.js) on every hit that lands while
 // Custos is up, DoT ticks included - this tally is deliberately separate
-// from (and not throttled like) the 25-hit Custos-break counter, so a
+// from (and not throttled like) the 20-hit Custos-break counter, so a
 // burst of rapid attacks that only counts once or twice toward breaking
 // the shield still fully "teaches" the Wisdom King.
 function _raphaelRegisterWisdomHit(enemy) {
     enemy._wisdomHitCount = (enemy._wisdomHitCount || 0) + 1;
-    if (enemy._wisdomHitCount % 100 === 0) _raphaelSpawnWisdomOrb(enemy);
+    if (enemy._wisdomHitCount % 80 === 0) _raphaelSpawnWisdomOrb(enemy);
 }
 
 // Picks the straight line out of Raphael that pierces the most targets
@@ -63,14 +63,14 @@ const RAPHAEL_WISDOM_LIFE_MS = 4500;
 function _raphaelSpawnWisdomOrb(enemy) {
     const ang = _raphaelBestWisdomAngle(enemy);
     raphaelWisdomOrbs.push({
-        x: enemy.x, y: enemy.y, ang,
+        x: enemy.x, y: enemy.y, ang, enemy,
         phase: 'gather', gatherTimer: RAPHAEL_WISDOM_GATHER_MS,
         speed: RAPHAEL_WISDOM_LAUNCH_SPEED_MIN,
         life: RAPHAEL_WISDOM_LIFE_MS,
         hitTargets: [], playerHit: false,
     });
     addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#ffe27a');
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-windup', enemy.x, enemy.y);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('raphael-wisdom-charge', enemy.x, enemy.y);
 }
 
 function updateRaphaelWisdomOrbs(deltaTime) {
@@ -82,7 +82,8 @@ function updateRaphaelWisdomOrbs(deltaTime) {
             o.gatherTimer -= deltaTime;
             if (o.gatherTimer <= 0) {
                 o.phase = 'launch';
-                if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-launch', o.x, o.y);
+                o._launchAt = performance.now(); // drives the launch-flash render burst
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('raphael-wisdom-launch', o.x, o.y);
             }
             continue;
         }
@@ -99,23 +100,39 @@ function updateRaphaelWisdomOrbs(deltaTime) {
 
         for (const s of sentinels) {
             if (s.hp <= 0 || o.hitTargets.includes(s)) continue;
-            if (Math.hypot(s.x - o.x, s.y - o.y) < (s.size || 20) + 17.5) {
+            if (Math.hypot(s.x - o.x, s.y - o.y) < (s.size || 20) + 21) {
                 o.hitTargets.push(s);
                 dealDamage(s, { damage: 0, percentDamage: 0.25, isTrueDamage: true, isPiercing: true, _statSrc: 'Wisdom Orb' });
                 raphaelWisdomZones.push({ x: s.x, y: s.y, radius: 62, life: 1500, maxLife: 1500 });
                 createParticles(s.x, s.y, 20, '#ffe27a', 2, 7);
-                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('raphael-wisdom-impact', s.x, s.y);
             }
         }
 
-        if (!o.playerHit && Math.hypot(player.x - o.x, player.y - o.y) < (player.hitRadius || 6) + 17.5) {
+        if (!o.playerHit && Math.hypot(player.x - o.x, player.y - o.y) < (player.hitRadius || 6) + 21) {
             o.playerHit = true;
             playerTakesHit({ type: 'raphael' });
             player._wisdomOrbSlowed = true;
             player._wisdomOrbSlowEnd = performance.now() + 1000;
             createParticles(player.x, player.y, 20, '#ffe27a', 2, 7);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('raphael-wisdom-impact', player.x, player.y);
         }
     }
+
+    // Wind-rush texture while any Wisdom Orb is actually in flight - reuses
+    // Uriel's Holy Sword hover loop rather than a dedicated clip, same
+    // shared-loop convention as that sword's own hover (entities/uriel.js):
+    // tracks whether ANY orb is currently in the launch phase, not
+    // per-instance, only toggling on the 0->1 / 1->0 transition.
+    // Uriel's own swords may be sharing this same loop at the same time
+    // (both are on-screen elites) - only actually stop it once neither
+    // source still needs it, so one finishing doesn't cut the other off.
+    const _hasOrbsInFlight = raphaelWisdomOrbs.some(o => o.phase === 'launch');
+    if (window.AudioMgr) {
+        if (_hasOrbsInFlight && !window._raphaelWisdomOrbsInFlight) window.AudioMgr.startUrielSwordHover();
+        else if (!_hasOrbsInFlight && window._raphaelWisdomOrbsInFlight && !window._urielSwordsInFlight) window.AudioMgr.stopUrielSwordHover();
+    }
+    window._raphaelWisdomOrbsInFlight = _hasOrbsInFlight;
 }
 
 function updateRaphaelWisdomZones(deltaTime) {

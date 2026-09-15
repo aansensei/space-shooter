@@ -399,17 +399,31 @@ function drawRaphael(enemy) {
         ctx.shadowBlur = 0;
         ctx.restore();
 
-        // 4.5 Custos layer pips - one per remaining hit out of the 25-hit
+        // A brief white pulse on the shield ring itself when a hit was just
+        // blocked (see enemy._custosFlashUntil, entities/core.js) - shorter
+        // than the 175ms hit throttle so at most one is ever visible at
+        // once, unlike the old reused addExplosion() call this replaced.
+        if (enemy._custosFlashUntil && now < enemy._custosFlashUntil) {
+            const _flashP = 1 - Math.max(0, enemy._custosFlashUntil - now) / 140;
+            ctx.save();
+            ctx.globalAlpha = 1 - _flashP;
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(0, 0, shieldR * (0.9 + _flashP * 0.25), 0, Math.PI * 2); ctx.stroke();
+            ctx.restore();
+        }
+
+        // 4.5 Custos layer pips - one per remaining hit out of the 20-hit
         // pool (see the raphaelCustosHits threshold in dealDamage,
         // entities/core.js), so the shield reads as a depleting resource at
         // a glance instead of an opaque on/off gate. Spent pips just fade
         // out rather than vanish, so the ring doesn't visibly "jump".
         {
-            const _hitsLeft = Math.max(0, 25 - (enemy.raphaelCustosHits || 0));
+            const _hitsLeft = Math.max(0, 20 - (enemy.raphaelCustosHits || 0));
             const _pipR = shieldR + 9;
             ctx.save();
-            for (let i = 0; i < 25; i++) {
-                const a = (i / 25) * Math.PI * 2 - Math.PI / 2;
+            for (let i = 0; i < 20; i++) {
+                const a = (i / 20) * Math.PI * 2 - Math.PI / 2;
                 const _spent = i >= _hitsLeft;
                 ctx.fillStyle = _spent ? 'rgba(255,215,0,0.12)' : `rgba(255,240,180,${0.75 + 0.25 * Math.sin(now / 200 + i)})`;
                 if (!_mobPerf && !_spent) { ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 4; }
@@ -459,11 +473,16 @@ function drawRaphael(enemy) {
     // _getRaphaelCoreDiscSprite above.
     const _coreDisc = _getRaphaelCoreDiscSprite(innerR);
     ctx.drawImage(_coreDisc.canvas, -_coreDisc.pad, -_coreDisc.pad);
-    const coreBeat = 0.85 + 0.2 * Math.abs(Math.sin(now / 750));
+    // The core reads as "the thing powering Wisdom King" - it burns
+    // brighter and beats faster for as long as this Raphael has a Wisdom
+    // Orb gathering or in flight (see the `enemy` reference stashed on each
+    // orb, entities/raphael.js), not just during the gather telegraph.
+    const _wisdomSkillActive = raphaelWisdomOrbs.some(o => o.enemy === enemy && (o.phase === 'gather' || o.phase === 'launch'));
+    const coreBeat = (0.85 + 0.2 * Math.abs(Math.sin(now / (_wisdomSkillActive ? 400 : 750)))) * (_wisdomSkillActive ? 1.3 : 1);
     const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerR * coreBeat);
-    coreGrad.addColorStop(0, '#ffffff'); coreGrad.addColorStop(0.2, '#ffdd44');
-    coreGrad.addColorStop(0.5, '#ff2200'); coreGrad.addColorStop(1, 'transparent');
-    if (!_mobPerf) { ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 20; }
+    coreGrad.addColorStop(0, '#ffffff'); coreGrad.addColorStop(0.2, _wisdomSkillActive ? '#ffe27a' : '#ffdd44');
+    coreGrad.addColorStop(0.5, _wisdomSkillActive ? '#ffb020' : '#ff2200'); coreGrad.addColorStop(1, 'transparent');
+    if (!_mobPerf) { ctx.shadowColor = _wisdomSkillActive ? '#ffcf5c' : '#ff2200'; ctx.shadowBlur = _wisdomSkillActive ? 34 : 20; }
     ctx.fillStyle = coreGrad;
     ctx.beginPath(); ctx.arc(0, 0, innerR * coreBeat, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
@@ -577,7 +596,49 @@ function _drawRaphaelDeathBurst(burst) {
 // Zones are the small scorched patches the orb leaves on each Sentinel it
 // pierces (raphaelWisdomZones, see updateRaphaelWisdomZones in
 // entities/raphael.js) - drawn separately below.
+// The four Greek letters etched on the orb art itself (see the AI-art
+// prompt this asset was generated from) - reused here as a small rotating
+// glyph ring so the "wisdom" theme reads in the effects too, not just the
+// texture. rot is in radians and free-running (independent of the orb's
+// travel angle) so the ring keeps spinning steadily regardless of heading.
+const _raphaelWisdomGlyphs = ['α', 'σ', 'ω', 'φ'];
+function _drawRaphaelWisdomGlyphRing(radius, rot, alpha) {
+    ctx.save();
+    ctx.font = 'bold 12px Georgia, serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (!_mobPerf) { ctx.shadowColor = '#ffe27a'; ctx.shadowBlur = 8; }
+    ctx.fillStyle = `rgba(255,232,160,${alpha})`;
+    for (let i = 0; i < 4; i++) {
+        const a = rot + i * (Math.PI / 2);
+        ctx.fillText(_raphaelWisdomGlyphs[i], Math.cos(a) * radius, Math.sin(a) * radius);
+    }
+    ctx.restore();
+}
+
 function _drawRaphaelWisdomOrb(o) {
+    // Sparkle afterimage trail: stamped dots at the orb's actual world
+    // position, sampled every 40ms - drawn before translate/rotate since
+    // o.x/o.y are already absolute canvas coordinates, same convention the
+    // spinner's speed-boost trail uses (render/skill-s-spirit.js).
+    if (o.phase === 'launch' && !_mobPerf) {
+        if (!o._sparkTrail) o._sparkTrail = [];
+        const nowT = performance.now();
+        if (nowT - (o._lastSparkStamp || 0) > 40) {
+            o._sparkTrail.push({ x: o.x, y: o.y });
+            o._lastSparkStamp = nowT;
+            if (o._sparkTrail.length > 8) o._sparkTrail.shift();
+        }
+        for (let i = 0; i < o._sparkTrail.length; i++) {
+            const t = o._sparkTrail[i];
+            const a = (i + 1) / (o._sparkTrail.length + 1) * 0.5;
+            ctx.save();
+            ctx.globalAlpha = a;
+            ctx.fillStyle = '#ffe27a';
+            ctx.beginPath(); ctx.arc(t.x, t.y, 4.5 + i * 0.4, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        }
+    }
+
     ctx.save();
     ctx.translate(o.x, o.y);
 
@@ -588,9 +649,9 @@ function _drawRaphaelWisdomOrb(o) {
         // Dust motes pulled inward along the launch angle, seeded once.
         if (!o._motes) {
             o._motes = [];
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 13; i++) {
                 const a = Math.random() * Math.PI * 2;
-                o._motes.push({ a, dist: 26 + Math.random() * 22, seed: Math.random() });
+                o._motes.push({ a, dist: 30 + Math.random() * 26, seed: Math.random() });
             }
         }
         ctx.fillStyle = `rgba(255,226,122,${0.15 + p * 0.5})`;
@@ -601,8 +662,44 @@ function _drawRaphaelWisdomOrb(o) {
             ctx.fill();
         }
 
+        // A soft ambient glow building underneath the seam, so the gather
+        // reads as charging up rather than just the seam+motes alone. In
+        // the last 20% of the telegraph it blooms harder and throws out a
+        // burst of light rays - a distinct "peak" right before the gate
+        // actually releases, instead of building at a flat rate the whole
+        // way and cutting straight to the launch flash.
+        const _peakP = p > 0.8 ? (p - 0.8) / 0.2 : 0; // 0 -> 1 over the final stretch
+        if (!_mobPerf) {
+            const glowR = (10 + p * 34) * (1 + _peakP * 0.7);
+            const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowR);
+            glow.addColorStop(0, `rgba(255,225,150,${p * 0.35 + _peakP * 0.4})`);
+            glow.addColorStop(1, 'rgba(255,220,140,0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath(); ctx.arc(0, 0, glowR, 0, Math.PI * 2); ctx.fill();
+
+            if (_peakP > 0) {
+                ctx.save();
+                ctx.globalAlpha = _peakP * 0.7;
+                ctx.strokeStyle = 'rgba(255,240,195,0.9)';
+                ctx.lineWidth = 1.5;
+                for (let i = 0; i < 8; i++) {
+                    const a = (i / 8) * Math.PI * 2 + p * 3;
+                    const rayLen = 16 + _peakP * 28;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * 8, Math.sin(a) * 8);
+                    ctx.lineTo(Math.cos(a) * rayLen, Math.sin(a) * rayLen);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        // A ring of the orb's own etched glyphs, spinning up and drawing
+        // inward as the gate opens - the "wisdom" tell before anything fires.
+        if (!_mobPerf) _drawRaphaelWisdomGlyphRing(10 + p * 15, p * 5, p * 0.85);
+
         // A seam of light cracking open, bowing apart as the gate opens.
-        const seamW = 3 + p * 5, seamH = 30 * (0.3 + p * 0.7);
+        const seamW = 3 + p * 5, seamH = 36 * (0.3 + p * 0.7);
         if (!_mobPerf) { ctx.shadowColor = '#ffe27a'; ctx.shadowBlur = 16 * p; }
         ctx.strokeStyle = `rgba(255,235,180,${0.5 + p * 0.5})`;
         ctx.lineWidth = seamW;
@@ -612,7 +709,7 @@ function _drawRaphaelWisdomOrb(o) {
         // The orb itself, glimpsed through the seam, fading and scaling in.
         if (p > 0.35 && _raphaelWisdomOrbImg.complete && _raphaelWisdomOrbImg.naturalWidth) {
             const revealP = (p - 0.35) / 0.65;
-            const s = 42.5 * (0.4 + revealP * 0.6);
+            const s = 51 * (0.4 + revealP * 0.6);
             ctx.save();
             ctx.globalAlpha = revealP * 0.9;
             ctx.drawImage(_raphaelWisdomOrbImg, -s / 2, -s / 2, s, s);
@@ -622,30 +719,54 @@ function _drawRaphaelWisdomOrb(o) {
         return;
     }
 
+    // Launch-instant flash: a quick bright ring at the exact moment the
+    // gate releases, fading out over ~260ms - reads as a distinct "release"
+    // beat rather than the orb just appearing already at full flight speed.
+    if (!_mobPerf && o._launchAt) {
+        const since = performance.now() - o._launchAt;
+        if (since < 260) {
+            const fp = since / 260;
+            const flashR = 12 + fp * 48;
+            const flashG = ctx.createRadialGradient(0, 0, 0, 0, 0, flashR);
+            flashG.addColorStop(0, `rgba(255,255,255,${(1 - fp) * 0.9})`);
+            flashG.addColorStop(0.6, `rgba(255,224,140,${(1 - fp) * 0.5})`);
+            flashG.addColorStop(1, 'rgba(255,200,80,0)');
+            ctx.fillStyle = flashG;
+            ctx.beginPath(); ctx.arc(0, 0, flashR, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `rgba(255,235,180,${(1 - fp) * 0.8})`;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(0, 0, flashR * 0.7, 0, Math.PI * 2); ctx.stroke();
+        }
+    }
+
     // Launch phase: directional light trail behind the orb, then the image
     // itself rotated to face its travel direction.
     if (!_mobPerf) {
-        const trailLen = 30 + o.speed * 2.4;
+        const trailLen = 36 + o.speed * 2.6;
         const tg = ctx.createLinearGradient(0, 0, -Math.cos(o.ang) * trailLen, -Math.sin(o.ang) * trailLen);
         tg.addColorStop(0, 'rgba(255,226,122,0.55)');
         tg.addColorStop(1, 'rgba(255,226,122,0)');
         ctx.strokeStyle = tg;
-        ctx.lineWidth = 10;
+        ctx.lineWidth = 12;
         ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-Math.cos(o.ang) * trailLen, -Math.sin(o.ang) * trailLen); ctx.stroke();
+
+        // A ring of the orb's own etched glyphs, still slowly orbiting while
+        // it flies - continuity with the gather phase's ring.
+        _drawRaphaelWisdomGlyphRing(30, performance.now() / 450, 0.5);
     }
 
     ctx.rotate(o.ang);
     if (_raphaelWisdomOrbImg.complete && _raphaelWisdomOrbImg.naturalWidth) {
-        const s = 47.5;
+        const s = 57;
         if (!_mobPerf) {
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
-            ctx.shadowColor = '#fff3c4'; ctx.shadowBlur = 18;
+            ctx.shadowColor = '#fff3c4'; ctx.shadowBlur = 20;
             ctx.drawImage(_raphaelWisdomOrbImg, -s / 2, -s / 2, s, s);
             ctx.restore();
         }
-        ctx.shadowColor = '#ffcf5c'; ctx.shadowBlur = (!_mobPerf) ? 14 : 0;
+        ctx.shadowColor = '#ffcf5c'; ctx.shadowBlur = (!_mobPerf) ? 16 : 0;
         ctx.drawImage(_raphaelWisdomOrbImg, -s / 2, -s / 2, s, s);
         ctx.shadowBlur = 0;
     }

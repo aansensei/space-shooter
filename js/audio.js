@@ -376,7 +376,7 @@
         'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
-        'raphael-idle': 1.0,
+        'raphael-idle': 1.0, 'raphael-wisdom-charge': 1.0, 'raphael-wisdom-launch': 1.15, 'raphael-wisdom-impact': 1.1,
         'uriel-idle': 1.0, 'uriel-sword-launch': 1.15, 'uriel-death-roar': 1.15,
         'uriel-sword-windup': 1.15, 'uriel-sword-impact': 1.15,
         'uriel-sword-hover': 0.6, // wind texture while the blade is actually in flight, not a lead cue
@@ -912,6 +912,9 @@
         _makePool('uriel-camo-reappear',    'assets/audio/sfx/uriel-camo-reappear.mp3',    1);
         _makePool('uriel-barrier-spawn',    'assets/audio/sfx/uriel-barrier-spawn.mp3',    1);
         _makePool('uriel-death-roar',       'assets/audio/sfx/uriel-death-roar.mp3',       1);
+        _makePool('raphael-wisdom-charge',  'assets/audio/sfx/raphael-wisdom-charge.mp3',  2);
+        _makePool('raphael-wisdom-launch',  'assets/audio/sfx/raphael-wisdom-launch.mp3',  2);
+        _makePool('raphael-wisdom-impact',  'assets/audio/sfx/raphael-wisdom-impact.mp3',  3);
         _makePool('goliath-unbroken-wave',  'assets/audio/sfx/goliath-unbroken-wave.mp3',  1);
         _makePool('gate-of-babylon',        'assets/audio/sfx/gate-of-babylon.mp3',        2);
         _makePool('enuma-elish-charge',     'assets/audio/sfx/enuma-elish-charge.mp3',     1);

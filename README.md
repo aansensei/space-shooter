@@ -475,7 +475,7 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 HP: **2,376–4,118**. Permanent **55% Damage Reduction** at all times.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 25 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash, and hit-counting is throttled to at most 1 per ~175ms so a single burst of near-simultaneous attacks (e.g. Skill A's Thunder Orbs) can't blow through the whole pool in one cast. After the 25th hit the shield breaks and Raphael takes damage normally. **While Custos is active, Raphael is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow — and takes **zero damage from any DoT tick** (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare, Yog-Sothoth's tick, Soul Reaver) while the shield is up, sparking a small cyan flicker instead of counting toward the 25. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash, and hit-counting is throttled to at most 1 per ~175ms so a single burst of near-simultaneous attacks (e.g. Skill A's Thunder Orbs) can't blow through the whole pool in one cast. After the 20th hit the shield breaks and Raphael takes damage normally. **While Custos is active, Raphael is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow — and takes **zero damage from any DoT tick** (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare, Yog-Sothoth's tick, Soul Reaver) while the shield is up, sparking a small cyan flicker instead of counting toward the 20. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
@@ -486,6 +486,11 @@ HP: **2,376–4,118**. Permanent **55% Damage Reduction** at all times.
 - All enemies and enemy bullets inside move 5% faster.
 
 **Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a protective layer). Hitting a Sentinel deals **20% of its Max HP**.
+
+**Wisdom King** — Raphael's title backed by a real mechanic, split across two states:
+
+- **Custos Aeternus still up:** every hit that lands on Raphael (including DoT ticks that Custos otherwise no-sells) builds a hidden tally. Every **80 hits**, Raphael gathers for ~0.65 seconds — a seam of light cracking open with a ring of its own etched glyphs spinning inward — then launches a piercing **Wisdom Orb**. The orb doesn't fire in a fixed or random direction: it picks whichever straight line out of Raphael threatens the most targets at once (Sentinels plus the player), with a tie-break bonus for a line that also catches the player. It accelerates as it flies and pierces everything on that line — **Sentinel hit:** **25% of its Max HP as piercing true damage**, plus a scorched zone left behind that deals **5% of the Sentinel's Max HP per second for 1.5 seconds** and slows anything standing in it by **25%**. **Player hit:** costs **1 life** and applies a **50% movement slow for 1 second**.
+- **Custos Aeternus broken:** Raphael's evade is replaced entirely by a flat **20%**, boosted to **25%** specifically against player, Sentinel, and spirit/Photokrystos fire.
 
 ---
 
