@@ -31,6 +31,7 @@ function spawnUriel() {
         _fxScanRings: [], _fxSelfPulses: [], _fxChargeMotes: [], _fxIronBursts: [],
     });
     _urielPickWaypoint(enemies[enemies.length - 1]);
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'uriel');
     if (window.AudioMgr) window.AudioMgr.startUrielIdle();
 }
 
@@ -215,6 +216,7 @@ function _urielLaunchSword(enemy) {
         x: enemy.x, y: enemy.y, ang,
         vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
         life: 1, _releaseFlash: 1, hitSentinels: [],
+        atk: enemy.atk, // snapshotted at launch, independent of Uriel's later state
     });
     _setShake(6, 150);
     addExplosion(enemy.x, enemy.y, enemy.size * 0.6, '#fff4cc');
@@ -375,7 +377,7 @@ function _updateUrielEffects(deltaTime) {
                 if (sen.hp <= 0 || s.hitSentinels.includes(sen)) continue;
                 if (Math.hypot(s.x - sen.x, s.y - sen.y) < 46 + sen.size / 2) {
                     s.hitSentinels.push(sen);
-                    dealDamage(sen, { damage: Math.ceil(sen.maxHp * 0.30), isTrueDamage: true, isPiercing: true, _statSrc: 'Uriel: Holy Sword' });
+                    dealDamage(sen, { damage: s.atk, isTrueDamage: true, isPiercing: true, _statSrc: 'Uriel: Holy Sword' });
                     addExplosion(sen.x, sen.y, 40, '#bfe0ff');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-impact', sen.x, sen.y);
                 }

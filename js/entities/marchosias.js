@@ -182,6 +182,7 @@ function _fireMarchosiasDeathSwords(enemy) {
             delay: 0, active: true, // fire immediately
             hitEnemies: [], hitPlayer: false,
             originX: enemy.x, originY: enemy.y,
+            atk: enemy.atk,
         });
     });
     enemy.marchosiasWindups = [];
@@ -216,6 +217,7 @@ function spawnMarchosias() {
         _arcBarrierReviveAt: null,
         _barrierSwordsThisCycle: 0,
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'marchosias');
 }
 
 function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
@@ -251,5 +253,6 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
             DR: 0.75, // 75% innate DR
             shootTimer: 1000,
         });
+        _enemySnapshotAtk(enemies[enemies.length - 1], 'marchosias_minion');
     }
 }

@@ -391,7 +391,7 @@ function spawnEnemy() {
 
 // spawnVeilshroud (real + Echo) moved to js/entities/veilshroud.js.
 
-function createRaphaelTelegraph(startX, startY, target) {
+function createRaphaelTelegraph(startX, startY, target, atk) {
     let angle = Math.atan2(target.y - startY, target.x - startX);
     let length = Math.hypot(canvas.width, canvas.height);
     let endX = startX + Math.cos(angle) * length;
@@ -401,7 +401,8 @@ function createRaphaelTelegraph(startX, startY, target) {
         end: { x: endX, y: endY },
         delay: 1000,
         fired: false,
-        duration: 0
+        duration: 0,
+        atk: atk || 0, // snapshotted at telegraph time, independent of Raphael's later state
     });
 }
 
@@ -489,7 +490,7 @@ function _addEnemyShield(enemy, amount) {
 
 // triggerDemonGift moved to js/entities/misc-enemies.js.
 
-function spawnBossShockwave(x, y, ownerType) {
+function spawnBossShockwave(x, y, ownerType, dmg) {
     bossShockwaves.push({
         x: x, y: y,
         radius: 0,
@@ -498,6 +499,11 @@ function spawnBossShockwave(x, y, ownerType) {
         hitSentinels: new Set(),
         active: true,
         _ownerType: ownerType || null,
+        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2):
+        // computed once at cast time from the caster's own Hs, since the same
+        // wave/collision code serves both Dargruel's real Maou Haki and
+        // Goliath's Joker copy of it, at different coefficients.
+        _dmg: dmg || 0,
     });
     _setShake(20, 600);
     if (window.AudioMgr) window.AudioMgr.startMaouHaki();
@@ -1517,6 +1523,11 @@ function dealDamage(enemy, source) {
     // damage tacked on separately as guaranteed true dmg. that % decays
     // 40% -> 20% linearly across the window instead of a flat rate.
     let _hpDamageDealt = 0;
+    // Goliath Shield Burst (docs/combat-scaling-rebalance.md Part 4) reads
+    // actual resource loss, not raw incoming damage - shield absorption
+    // counts toward its trigger the same as HP loss does. True damage
+    // bypasses shield entirely, so this stays 0 on that path.
+    let _shieldDamageDealt = 0;
     if (source.isTrueDamage) {
         if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
             totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
@@ -1543,6 +1554,7 @@ function dealDamage(enemy, source) {
             enemy.shield -= damageToShield;
             enemy.shield = Math.max(0, enemy.shield);
             totalDamage -= damageToShield;
+            _shieldDamageDealt = damageToShield;
         }
         totalDamage += _vulnTrueBonus;
         if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
@@ -1581,39 +1593,42 @@ function dealDamage(enemy, source) {
     // enemy-hit fallback would just stack on top of it.
     else if (window.AudioMgr && !source._noHitSfx) window.AudioMgr.playSfxAt('enemy-hit', enemy.x, enemy.y);
 
-    // Threshold Ward: every 1 real HP dmg taken (post-shield) regens 0.25
-    // shield. Total shield can still balloon over a long fight (no cap on
-    // the running total), but each individual hit's own contribution is
-    // capped at 10% MaxHP — an oversized true-damage spike (the kind that
-    // skips every other Goliath defense layer) would otherwise mint a
-    // shield way bigger than the hit that caused it, which Shield Burst
-    // below then converts straight into a huge HP heal-back.
+    // Damage-fed Threshold shield (docs/combat-scaling-rebalance.md Part 4):
+    // 10% of the actual HP just lost, capped at 0.5% Hentry per hit, drawn
+    // from the shared repeatable shield budget - an oversized true-damage
+    // spike can no longer mint an unbounded shield off one hit.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hpDamageDealt > 0) {
-        enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, Math.min(_hpDamageDealt, enemy.maxHp * 0.10) * 0.25);
+        const _tReq = _goliathHealBoost(enemy, Math.min(0.10 * _hpDamageDealt, 0.005 * enemy._hentry));
+        _goliathGrantShield(enemy, _goliathDrawBudget(enemy, 'shield', _tReq));
     }
 
-    // Inevitable — bùng nổ khiên: dồn sát thương MỌI loại nhận được trong 1
-    // giây trôi (rolling window) — vượt quá 12% MaxHP thì cấp thêm 1 khoản
-    // Shield mới = 50% tổng sát thương đã dồn trong window đó, ĐỒNG THỜI hồi
-    // HP = 60% ĐÚNG PHẦN Shield đang có ngay trước khi cấp thêm (phần thưởng
-    // cho việc trigger đúng lúc, không phải "chuyển đổi" gì cả vì giờ chỉ
-    // còn 1 field Shield duy nhất). 0.5s cooldown giữa các lần kích hoạt,
-    // window reset ngay khi vừa kích hoạt.
-    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _hitSizeForBurst > 0) {
-        const _gNow3 = performance.now();
-        if (!enemy._burstWindowStart || _gNow3 - enemy._burstWindowStart >= 1000) {
-            enemy._burstWindowStart = _gNow3;
-            enemy._burstWindowDmg = 0;
-        }
-        enemy._burstWindowDmg = (enemy._burstWindowDmg || 0) + _hitSizeForBurst;
-        if (enemy._burstWindowDmg > enemy.maxHp * 0.12 && !(enemy._burstCooldownEnd && _gNow3 < enemy._burstCooldownEnd)) {
-            enemy._burstCooldownEnd = _gNow3 + 500;
-            const _preBurstShield = enemy.shield || 0;
-            enemy.shield = _preBurstShield + Math.ceil(enemy._burstWindowDmg * 0.50);
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(_preBurstShield * 0.60));
-            enemy._burstWindowDmg = 0;
-            enemy._burstWindowStart = _gNow3;
-            createParticles(enemy.x, enemy.y, 16, '#38bdf8', 3, 9);
+    // Shield Burst (docs/combat-scaling-rebalance.md Part 4): rolling 1s
+    // window of actual HP+shield loss (not raw incoming damage), >12%
+    // Hentry triggers a shield grant of 20% of that window's loss (capped
+    // at 3% Hentry) plus a heal that consumes up to 10% Hentry of current
+    // shield at 50% efficiency - both drawn from their shared repeatable
+    // budgets. 3s cooldown between triggers.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
+        const _burstLoss = _hpDamageDealt + _shieldDamageDealt;
+        if (_burstLoss > 0) {
+            const _gNow3 = performance.now();
+            if (!enemy._burstWindowStart || _gNow3 - enemy._burstWindowStart >= 1000) {
+                enemy._burstWindowStart = _gNow3;
+                enemy._burstWindowDmg = 0;
+            }
+            enemy._burstWindowDmg = (enemy._burstWindowDmg || 0) + _burstLoss;
+            if (enemy._burstWindowDmg > enemy._hentry * 0.12 && !(enemy._burstCooldownEnd && _gNow3 < enemy._burstCooldownEnd)) {
+                enemy._burstCooldownEnd = _gNow3 + 3000;
+                const _shieldReq = _goliathHealBoost(enemy, Math.min(enemy._burstWindowDmg * 0.20, enemy._hentry * 0.03));
+                _goliathGrantShield(enemy, _goliathDrawBudget(enemy, 'shield', _shieldReq));
+                const _shieldConsumed = Math.min(enemy.shield || 0, enemy._hentry * 0.10);
+                enemy.shield -= _shieldConsumed;
+                const _healReq = _goliathHealBoost(enemy, _shieldConsumed * 0.50);
+                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathDrawBudget(enemy, 'heal', _healReq));
+                enemy._burstWindowDmg = 0;
+                enemy._burstWindowStart = _gNow3;
+                createParticles(enemy.x, enemy.y, 16, '#38bdf8', 3, 9);
+            }
         }
     }
 
@@ -1812,9 +1827,9 @@ function dealDamage(enemy, source) {
             // Gift trigger looking the same as the passive low-HP crackle.
             enemy._demonGiftFlashAt = performance.now();
         };
-        if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y, 'dargruel'); enemy.demonGift90Triggered = true; }
+        if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y, 'dargruel', 0.0095 * _enemyHs(enemy)); enemy.demonGift90Triggered = true; }
         if (oldPercent > 0.70 && newPercent <= 0.70 && !enemy.demonGift70Triggered) { _demonTrigger(); enemy.demonGift70Triggered = true; }
-        if (oldPercent > 0.50 && newPercent <= 0.50 && !enemy.demonGift50Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y, 'dargruel'); enemy.demonGift50Triggered = true; }
+        if (oldPercent > 0.50 && newPercent <= 0.50 && !enemy.demonGift50Triggered) { _demonTrigger(); spawnBossShockwave(enemy.x, enemy.y, 'dargruel', 0.0095 * _enemyHs(enemy)); enemy.demonGift50Triggered = true; }
         if (oldPercent > 0.30 && newPercent <= 0.30 && !enemy.demonGift30Triggered) { _demonTrigger(); enemy.demonGift30Triggered = true; }
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { _demonTrigger(); enemy.demonGift1Triggered = true; }
     }

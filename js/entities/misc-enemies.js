@@ -20,6 +20,7 @@ function spawnDargruel() {
         _demonEvadeStacks: 0, _demonEvadeExpiry: 0,
         _chainDarkenChance: 0.18
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'dargruel');
 }
 
 function triggerDemonGift(boss) {
@@ -188,6 +189,7 @@ function spawnThaelis() {
         _shieldPeak: 0,
         _tenacityBarrier70: false, _tenacityBarrier40: false, _tenacityBarrier10: false
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'thaelis');
 }
 
 function spawnRaphael() {
@@ -202,6 +204,7 @@ function spawnRaphael() {
         type: 'raphael', shootTimer: 0,
         raphaelInvulnerable: true, raphaelCustosHits: 0, raphaelShieldReceived: false
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'raphael');
     if (window.AudioMgr) window.AudioMgr.startRaphaelIdle();
 }
 
@@ -215,6 +218,7 @@ function spawnApostle() {
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'apostle', shootTimer: 1000
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'apostle');
 }
 
 function updateApostleCoronation(enemy, deltaTime) {

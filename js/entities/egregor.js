@@ -46,6 +46,7 @@ function spawnEgregor() {
         _eyeBlinkTimers: [0, 0, 0, 0],
         _eyeNextBlinks: [2000, 2800, 1500, 3500],
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'egregor');
 }
 
 function updateEgregor(enemy, deltaTime) {
@@ -147,12 +148,13 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                 t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
                 // Damage (radius 100px), player and each sentinel hit at most once per cast
                 if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-                    if (!_yuushaPierceRedirect(0.20, false)) playerTakesHit(enemy);
+                    if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), 'flat')) playerTakesHit(enemy);
                     _playerHit = true;
                 }
                 for (const s of sentinels) {
                     if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
-                        dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
+                        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
+                        dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
                         _hitSentinels.add(s);
                     }
                 }
@@ -203,12 +205,12 @@ function _forceFireEgregorTempest(enemy) {
         t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
         t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
         if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-            if (!_yuushaPierceRedirect(0.20, false)) playerTakesHit(enemy);
+            if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), 'flat')) playerTakesHit(enemy);
             _playerHit = true;
         }
         for (const s of sentinels) {
             if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
-                dealDamage(s, { damage: Math.ceil(s.maxHp * 0.20), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
+                dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
                 _hitSentinels.add(s);
             }
         }
@@ -297,11 +299,13 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             const hitSents = sentinels.filter(s => _inSlash(s.x, s.y));
             const hc = hitSents.length;
             if (hc > 0) {
-                const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
-                // Rage bonus: +5% per stack, max +25%
-                const _nsRageMult = 1 + Math.min(0.30, Math.min(5, enemy._rageStacks || 0) * 0.06);
+                // Lost-HP/enrage category (docs/combat-scaling-rebalance.md
+                // Part 2): coefficient scales with victim count, output then
+                // rises the more of its own HP Egregor has already lost.
+                const coeff = hc === 1 ? 1.50 : hc === 2 ? 1.75 : 2.00;
+                const _nsDmg = coeff * enemy.atk * _enemyEnrageMult(enemy);
                 for (const s of hitSents) {
-                    dealDamage(s, { damage: Math.ceil(s.maxHp * pct * _nsRageMult), isTrueDamage: true, _noHitSfx: true, _attackerType: 'egregor' });
+                    dealDamage(s, { damage: _nsDmg, isTrueDamage: true, _noHitSfx: true, _attackerType: 'egregor' });
                     addExplosion(s.x, s.y, 65, '#7700dd');
                     createParticles(s.x, s.y, 18, '#cc44ff', 3, 7);
                 }

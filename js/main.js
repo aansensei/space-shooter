@@ -530,7 +530,7 @@ function update(rawDeltaTime) {
                 if (!wave.hitSentinels.has(sentinel)) {
                     const d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                     if (d <= wave.radius) {
-                        dealDamage(sentinel, { damage: 100 + wave._sourceMaxHp * 0.20, isTrueDamage: true, _vanguardTag: wave._id, _attackerType: 'goliath' });
+                        dealDamage(sentinel, { damage: 0.00060 * (wave._hs || 0), isTrueDamage: true, _vanguardTag: wave._id, _attackerType: 'goliath' });
                         wave.hitSentinels.add(sentinel);
                         addExplosion(sentinel.x, sentinel.y, 40, '#f97316');
                     }
@@ -564,7 +564,7 @@ function update(rawDeltaTime) {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                 if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: sentinel.maxHp * 0.38, _vanguardTag: wave._id, _attackerType: wave._ownerType });
+                    dealDamage(sentinel, { damage: wave._dmg, _vanguardTag: wave._id, _attackerType: wave._ownerType });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -595,13 +595,16 @@ function update(rawDeltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('laser-fire', laser.start.x, laser.start.y);
 
                 if (distToSegment(player, laser.start, laser.end) < player.hitRadius + 15) {
-                    if (!_yuushaPierceRedirect(0.20, true)) playerTakesHit({ type: 'raphael' });
+                    // Feed the squad the same snapshotted atk-based payload real
+                    // Sentinels take (docs/combat-scaling-rebalance.md Part 2),
+                    // not a fraction of each member's own maxHp.
+                    if (!_yuushaPierceRedirect(laser.atk || 0, 'flat')) playerTakesHit({ type: 'raphael' });
                 }
 
                 if (!laser._id) laser._id = 'raphael_laser_' + performance.now().toFixed(0);
                 sentinels.forEach(s => {
                     if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: s.maxHp * 0.20, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'raphael' });
+                        dealDamage(s, { damage: laser.atk, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'raphael' });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -995,9 +998,9 @@ function update(rawDeltaTime) {
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 5000;
-                createRaphaelTelegraph(enemy.x, enemy.y, player);
+                createRaphaelTelegraph(enemy.x, enemy.y, player, enemy.atk);
                 let availableSents = _shuffleArray(sentinels).slice(0, 3);
-                availableSents.forEach(s => createRaphaelTelegraph(enemy.x, enemy.y, s));
+                availableSents.forEach(s => createRaphaelTelegraph(enemy.x, enemy.y, s, enemy.atk));
             }
         }
 
@@ -1134,6 +1137,7 @@ function update(rawDeltaTime) {
                     targetRef: enemy.lightningTargetRef,
                     targetX: enemy.lightningTargetX,
                     targetY: enemy.lightningTargetY,
+                    atk: enemy.atk,
                 });
             }
 
@@ -1153,6 +1157,7 @@ function update(rawDeltaTime) {
                     echoOriginMaxHp: enemy.maxHp,
                     echoPhantomDmg: enemy._totalPhantomDamageReceived || 0,
                     echoExplosionDone: false,
+                    atk: enemy.atk, _h0: enemy._h0, // snapshot of the original host's own offense, not a fresh roll
                 });
             }
 
@@ -1205,6 +1210,7 @@ function update(rawDeltaTime) {
                             originX: enemy.x, originY: enemy.y,
                             targetX: windup.target.x, targetY: windup.target.y, // cho corridor style
                             hitEnemies: [], hitPlayer: false,
+                            atk: enemy.atk,
                         });
                     });
                     enemy.marchosiasWindups = [];
@@ -1335,8 +1341,11 @@ function update(rawDeltaTime) {
                             s._trieuIronBody = false;
                             s._trieuIronBodyCooldownEnd = currentTime + 8000;
                         } else {
-                            const _chainPct = enemy.isDarkened ? 0.20 : 0.15;
-                            const rawDmgChain = Math.ceil(s.maxHp * _chainPct);
+                            // ATK category (docs/combat-scaling-rebalance.md Part 2):
+                            // true damage off the launching Dargruel's own atk,
+                            // read through ownerRef since it outlives the chain.
+                            const _chainAtkMult = enemy.isDarkened ? 2.40 : 1.80;
+                            const rawDmgChain = (enemy.ownerRef && enemy.ownerRef.atk || 0) * _chainAtkMult;
                             if (sentinels.length >= 5) {
                                 _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s);
                             } else {
@@ -1422,7 +1431,7 @@ function update(rawDeltaTime) {
                     } else if (enemy.type === 'enemy_bullet_small') {
                         dealDamage(sentinel, { damage: sentinel.maxHp * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
-                        dealDamage(sentinel, { damage: enemy.hp, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
+                        dealDamage(sentinel, { damage: enemy.damage, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     }
                     enemy.hp = 0;
                     break;
@@ -1469,7 +1478,7 @@ function update(rawDeltaTime) {
                         const _spd = 3.73;
                         enemies.push({
                             x: enemy.x, y: enemy.y, vx: Math.cos(angle) * _spd, vy: Math.sin(angle) * _spd,
-                            damage: 1, size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0, ownerRef: enemy.ownerRef || null,
+                            damage: 0.25 * ((enemy.ownerRef && enemy.ownerRef.atk) || 0), size: 10.8, hp: 60, maxHp: 60, type: 'enemy_bullet_small', shield: 0, ownerRef: enemy.ownerRef || null,
                             // Touhou-style bloom: each fragment keeps bending along its own
                             // fixed rate (outer ones bend out more than inner ones) instead
                             // of flying dead straight, so the whole fan opens like a flower
@@ -1552,18 +1561,23 @@ function update(rawDeltaTime) {
                             // (see the 'enemy_bullet_large' branch below) - same damage/split,
                             // just a smooth predictable curve that reads clearly on approach
                             // instead of a flat line, easier to track and dodge on reaction.
+                            // Enrage (lost-HP) category: scales with how much of Thaelis's
+                            // own HP is already gone, snapshotted per shot rather than
+                            // re-read later - a desperate low-HP Thaelis hits harder.
+                            const _thaelisBulletDmg = enemy.atk * _enemyEnrageMult(enemy);
                             for (const _spr of [-0.15, 0.15]) {
                                 const _waveAngle = angle + _spr;
                                 enemies.push({
                                     x: enemy.x, y: enemy.y, vx: Math.cos(_waveAngle) * thaelisSpd, vy: Math.sin(_waveAngle) * thaelisSpd,
-                                    damage: 2, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600, ownerRef: enemy,
+                                    damage: _thaelisBulletDmg, size: 18, hp: 180, maxHp: 180, type: 'enemy_bullet_large', shield: 0, splitTimer: 600, ownerRef: enemy,
                                     _waveAngle, _waveSpeed: thaelisSpd, _waveOriginX: enemy.x, _waveOriginY: enemy.y,
                                     _waveForward: 0, _waveAmp: 26, _waveFreq: 1 / 260, _waveSign: _spr < 0 ? 1 : -1,
                                 });
                             }
                         } else {
                             const bulletHp = Math.ceil(10 + Math.random() * 30);
-                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: 2, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
+                            const _dargruelBulletDmg = enemy.atk * (0.4 + Math.random() * 1.2); // uniform(0.4, 1.6) x E
+                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: _dargruelBulletDmg, size: 15, hp: bulletHp, maxHp: bulletHp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                         }
                     }
                 }
@@ -1650,7 +1664,7 @@ function update(rawDeltaTime) {
                         const target = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                         if (target) {
                             const angle = Math.atan2(target.y - enemy.y, target.x - enemy.x);
-                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
+                            enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(angle) * (player.speed / 3), vy: Math.sin(angle) * (player.speed / 3), damage: enemy.atk, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                         }
                     }
                 }
@@ -1704,7 +1718,10 @@ function update(rawDeltaTime) {
                                 x: enemy.x, y: enemy.y,
                                 vx: Math.cos(angle) * (player.speed / 3),
                                 vy: Math.sin(angle) * (player.speed / 3),
-                                damage: 2, size: 10,
+                                // ATK category (docs/combat-scaling-rebalance.md Part 2):
+                                // damage is the enemy's own snapshotted atk, decoupled
+                                // from bulletHp, which stays a pure interception pool.
+                                damage: enemy.atk, size: 10,
                                 hp: bulletHp, maxHp: bulletHp,
                                 type: 'enemy_bullet', shield: 0, ownerRef: enemy
                             });
@@ -1730,6 +1747,7 @@ function update(rawDeltaTime) {
                             targetX: tx, targetY: ty, // corridor edge persistence
                             _fireTime: performance.now(), // launch aura
                             hitEnemies: [], hitPlayer: false,
+                            atk: enemy.atk,
                         });
                         if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', enemy.x, enemy.y);
                         // Ghost đã được push khi windup bắt đầu, chỉ cần xoá windup
@@ -1789,7 +1807,7 @@ function update(rawDeltaTime) {
                 const tgt = findClosestSentinelOrPlayer(enemy.x, enemy.y);
                 if (tgt) {
                     const ang = Math.atan2(tgt.y - enemy.y, tgt.x - enemy.x);
-                    enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(ang) * (player.speed / 3), vy: Math.sin(ang) * (player.speed / 3), damage: enemy.hp, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
+                    enemies.push({ x: enemy.x, y: enemy.y, vx: Math.cos(ang) * (player.speed / 3), vy: Math.sin(ang) * (player.speed / 3), damage: enemy.atk, size: 10, hp: enemy.hp, maxHp: enemy.hp, type: 'enemy_bullet', shield: 0, ownerRef: enemy });
                 }
             }
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
@@ -1833,6 +1851,7 @@ function update(rawDeltaTime) {
                             originX: enemy.x, originY: enemy.y,
                             targetX: windup.target.x, targetY: windup.target.y, // cho corridor style
                             hitEnemies: [], hitPlayer: false,
+                            atk: enemy.atk,
                         });
                     });
                     enemy.marchosiasWindups = [];
@@ -2345,8 +2364,8 @@ function update(rawDeltaTime) {
             if (sw.life <= 0 || sw.x < -50 || sw.x > canvas.width + 50 || sw.y < -50 || sw.y > canvas.height + 50) return false;
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
                 const _yHitsAlready = (sw.hitEnemies || []).length;
-                const _yPct = _yHitsAlready === 0 ? 0.27 : _yHitsAlready === 1 ? 0.23 : 0.21;
-                if (!_yuushaPierceRedirect(_yPct, true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                const _yCoeff = _yHitsAlready === 0 ? 0.675 : _yHitsAlready === 1 ? 0.575 : 0.525;
+                if (!_yuushaPierceRedirect(_yCoeff * (sw.atk || 0), 'flat') && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
@@ -2358,8 +2377,8 @@ function update(rawDeltaTime) {
             for (const s of sentinels) {
                 if (!sw.hitEnemies.includes(s) && Math.hypot(sw.x - s.x, sw.y - s.y) < (sw.radius || 88) + s.size) {
                     const hitsAlready = sw.hitEnemies.length;
-                    const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
-                    dealDamage(s, { damage: s.maxHp * pct, _noHitSfx: true, _attackerType: 'goliath' });
+                    const coeff = hitsAlready === 0 ? 0.675 : hitsAlready === 1 ? 0.575 : 0.525;
+                    dealDamage(s, { damage: coeff * (sw.atk || 0), _noHitSfx: true, _attackerType: 'goliath' });
                     sw.hitEnemies.push(s);
                     addExplosion(s.x, s.y, 20, '#ff6600');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
@@ -2379,7 +2398,7 @@ function update(rawDeltaTime) {
             m.y += m.vy * (deltaTime / 1000);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
-                if (!_yuushaPierceRedirect(0.25, true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                if (!_yuushaPierceRedirect(0.625 * (m.atk || 0), 'flat') && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
                 addExplosion(m.x, m.y, 70, '#f59e0b');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;
@@ -2390,7 +2409,11 @@ function update(rawDeltaTime) {
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                     sentinels.forEach(s2 => {
                         if (s2.hp > 0 && Math.hypot(m.x - s2.x, m.y - s2.y) < 140) {
-                            dealDamage(s2, { percentDamage: 0.25, isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
+                            // ATK category (docs/combat-scaling-rebalance.md Part 2):
+                            // fixes a pre-existing bug where this call had no `damage`
+                            // field, so the shared resolver added undefined and the
+                            // final damage came out nonfinite.
+                            dealDamage(s2, { damage: 0.625 * (m.atk || 0), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                         }
                     });
                     return false;
@@ -2431,34 +2454,36 @@ function update(rawDeltaTime) {
         spiritBullets = spiritBullets.filter(b => !angHit(b.x, b.y, 14));
         skillAOrbs = skillAOrbs.filter(b => !angHit(b.x, b.y, 14));
 
-        // Hit player
-        if (angHit(player.x, player.y, 18)) {
-            if (!beam.hitPlayer) {
-                beam.hitPlayer = true;
-                const _yOwnerHits = Math.min(250, beam.ownerRef ? (beam.ownerRef.afoHitCount || 0) : 0);
-                const _yPct = Math.min(0.50, 0.05 * _yOwnerHits);
-                if (!_yuushaPierceRedirect(_yPct, true)) playerTakesHit(beam.ownerRef || { type: 'leviathan' });
-            }
-        } else {
-            beam.hitPlayer = false;
-        }
-
         // Hit sentinels, route qua Vanguard Network nếu active, else direct true damage
         if (!beam.hitSentinels) beam.hitSentinels = new Map();
         const nowMs2 = performance.now();
         if (!beam.id) beam.id = 'pers_' + nowMs2;
         const ownerHits = Math.min(250, beam.ownerRef ? (beam.ownerRef.afoHitCount || 0) : 0);
-        const scaledPct = 0.05; // flat 5% per tick
+        // ATK category (docs/combat-scaling-rebalance.md Part 2): charge from
+        // hit count still saturates the same way, basis is now the
+        // Leviathan's own atk instead of the target's maxHp.
+        const _persAtk = (beam.ownerRef && beam.ownerRef.atk) || 0;
+
+        // Hit player
+        if (angHit(player.x, player.y, 18)) {
+            if (!beam.hitPlayer) {
+                beam.hitPlayer = true;
+                if (!_yuushaPierceRedirect(_persAtk * Math.min(5 / 6, ownerHits / 12), 'flat')) playerTakesHit(beam.ownerRef || { type: 'leviathan' });
+            }
+        } else {
+            beam.hitPlayer = false;
+        }
         sentinels.forEach(s => {
             if (angHit(s.x, s.y, 20)) {
                 const last = beam.hitSentinels.get(s) || 0;
                 if (nowMs2 - last > 80) {
                     beam.hitSentinels.set(s, nowMs2);
-                    const dmg = Math.min(Math.ceil(s.maxHp * 0.50), Math.ceil(s.maxHp * scaledPct * ownerHits));
+                    const dmg = _persAtk * Math.min(5 / 6, ownerHits / 12);
 
                     if (sentinels.length >= 5) {
                         // Vanguard Network: dùng beam.id làm sourceTag cho AoE dampening
-                        _applyVanguardDamage(dmg, beam.id, false, s, 'leviathan');
+                        // Unified to true damage, same route as the direct branch below.
+                        _applyVanguardDamage(dmg, beam.id, true, s, 'leviathan');
                     } else {
                         // Trực tiếp (< 5 sentinels)
                         if (!(s.ironBody && nowMs2 < s.ironBodyEnd)) {
@@ -2536,27 +2561,29 @@ function update(rawDeltaTime) {
                 return (proj / dist) >= Math.cos(halfDeg * Math.PI / 180);
             };
 
-            // Hit player (pixel distance OK, player is large target)
-            const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
-            if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
-                laser.hitPlayer = true;
-                const _yHalfHits = (laser.levHits || 1) / 2;
-                const _yPct = Math.min(0.55, 0.03 * _yHalfHits);
-                if (!_yuushaPierceRedirect(_yPct, true)) playerTakesHit({ type: 'leviathan' });
-            }
-
             // Hit sentinels, true damage: (hits/2) × (1%→3%), cap 50%
             if (!laser.hitSentinels) laser.hitSentinels = new Set();
             if (!laser.id) laser.id = 'lastrites_' + laser.angle.toFixed(4);
             const hits = laser.levHits || 1;
-            const halfHits = hits / 2;
-            const scaledPctLaser = 0.03; // flat 3% per hit
+            // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2):
+            // Hs read straight off ownerRef, which outlives the Leviathan's
+            // own removal from the enemies array (its fields stay intact).
+            const _lastRitesHs = _enemyHs(laser.ownerRef || {});
+
+            // Hit player (pixel distance OK, player is large target)
+            const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
+            if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
+                laser.hitPlayer = true;
+                if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), 'flat')) playerTakesHit({ type: 'leviathan' });
+            }
+
             sentinels.forEach(s => {
                 if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
                     laser.hitSentinels.add(s);
-                    const dmg = Math.min(Math.ceil(s.maxHp * 0.55), Math.ceil(s.maxHp * scaledPctLaser * halfHits));
+                    const dmg = _lastRitesHs * Math.min(0.01375, 0.000375 * hits);
                     if (sentinels.length >= 5) {
-                        _applyVanguardDamage(dmg, laser.id, false, s, 'leviathan');
+                        // Resolved as true damage on every route per spec.
+                        _applyVanguardDamage(dmg, laser.id, true, s, 'leviathan');
                     } else {
                         if (!(s.ironBody && performance.now() < s.ironBodyEnd)) {
                             let _levBeamDmg = dmg;
@@ -2603,7 +2630,7 @@ function update(rawDeltaTime) {
     if (window._veilshroudPendingStrikes.length) window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
         ps.countdown += deltaTime;
         if (ps.countdown >= ps.duration) {
-            _veilshroudStrike({ lightningTargetX: ps.targetX, lightningTargetY: ps.targetY });
+            _veilshroudStrike({ lightningTargetX: ps.targetX, lightningTargetY: ps.targetY, atk: ps.atk });
             return false;
         }
         return true;
@@ -2644,7 +2671,7 @@ function update(rawDeltaTime) {
             // Damage ticks: sentinels
             for (const s of sentinels) {
                 if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius) {
-                    const dmg = Math.ceil(s.maxHp * 0.06);
+                    const dmg = 0.006 * (ez.hs || 0);
                     dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl' });
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }
@@ -2983,6 +3010,7 @@ function _updateWaveSystem(deltaTime, now) {
         _waveRestTimer = Math.max(0, _waveRestTimer - deltaTime);
         if (_waveRestTimer <= 0) {
             _waveNumber++;
+            player.atk = 100 * _atkWaveMult(_waveNumber);
             if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
                 _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.20);
             }
@@ -3289,6 +3317,7 @@ function startGame() {
     player._posHistory = [];
     player._urielJudgedEnd = 0;
     _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0; _yuukiBonus = 0;
+    player.atk = 100;
     window._walpurgisAppliedStacks = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
     _waveSpawnBudget = null; _waveNextSpawnAt = 0; _waveSurgeAt = 0; _waveLastEliteAt = 0; _waveLastDomAt = 0;

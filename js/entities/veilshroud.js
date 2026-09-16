@@ -38,6 +38,7 @@ function spawnVeilshroud() {
         // Energy Accumulation: tracks damage absorbed during Phantom
         _phantomAbsorb: 0,
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'veilshroud');
 }
 
 // VEILSHROUD UPDATE
@@ -149,7 +150,7 @@ function _veilshroudStrike(enemy) {
     if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
         _lt.hitPlayer = true;
         _lt.playerHitPos = { x: player.x, y: player.y };
-        if (!_yuushaPierceRedirect(0.18, true)) playerTakesHit(enemy);
+        if (!_yuushaPierceRedirect(enemy.atk || 0, 'flat')) playerTakesHit(enemy);
         addExplosion(player.x, player.y, 90, '#ff0033');
         createParticles(player.x, player.y, 35, '#ffffff', 4, 14);
         createParticles(player.x, player.y, 20, '#ff3355', 2, 8);
@@ -160,8 +161,10 @@ function _veilshroudStrike(enemy) {
     for (const s of sentinels) {
         if (Math.hypot(s.x - tx, s.y - ty) < 100) {
             _lt.hitSentinelPositions.push({ x: s.x, y: s.y });
-            const dmg = Math.ceil(s.maxHp * 0.18);
-            dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx, _noHitSfx: true });
+            // ATK category (docs/combat-scaling-rebalance.md Part 2): snapshotted
+            // at launch, so a delayed post-death strike still uses the host's
+            // real atk instead of reading a since-removed enemy.
+            dealDamage(s, { damage: enemy.atk || 0, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx, _noHitSfx: true });
             addExplosion(s.x, s.y, 60, '#ff1133');
             createParticles(s.x, s.y, 22, '#ffffff', 3, 10);
             createParticles(s.x, s.y, 14, '#ff3355', 2, 7);
@@ -180,7 +183,10 @@ function _veilshroudFireVolley(enemy) {
         enemies.push({
             x: enemy.x, y: enemy.y,
             vx: Math.cos(a) * 4.8, vy: Math.sin(a) * 4.8,
-            damage: 2, size: 9,
+            // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2):
+            // damage is a slice of Veilshroud's own bounded Max HP, decoupled
+            // from bulletHp, which stays a pure interception pool.
+            damage: 0.012 * _enemyHs(enemy), size: 9,
             hp: bulletHp, maxHp: bulletHp,
             type: 'enemy_bullet', shield: 0, ownerRef: enemy
         });
@@ -252,6 +258,10 @@ function _veilshroudEchoExplode(enemy) {
         tickTimer: 0, tickInterval: 500,
         hitPlayerThisTick: false,
         originMaxHp: enemy.echoOriginMaxHp,
+        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2): Hs is
+        // computed from the original host's real maxHp/h0, snapshotted onto
+        // the echo at creation, never the echo's own placeholder 9999 maxHp.
+        hs: Math.min(enemy.echoOriginMaxHp || enemy._h0 || 0, 2 * (enemy._h0 || enemy.echoOriginMaxHp || 0)),
         _shockwaveAge: 0, // drives the expanding ring in _drawVeilshroudEffects
     });
 }

@@ -32,11 +32,9 @@ let _gameOverPlayTime = 0; // ms played, captured at game over
 let nextLifeMilestone = 500000;
 
 // atk: the player's attack-power stat every in-scope friendly damage
-// formula below is now expressed as a coefficient of (see
-// docs/combat-scaling-rebalance.md, Part 1). This conversion pass keeps it
-// pinned at the reference value of 100 - every converted formula reduces
-// to its exact pre-conversion constant at A=100, so nothing changes yet.
-// Wave-based growth is a Part 2+ (rebalance) concern, not this pass.
+// formula is expressed as a coefficient of (docs/combat-scaling-rebalance.md).
+// Starts at the reference value of 100 and grows via _atkWaveMult() as waves
+// clear (recalculated in _updateWaveSystem, main.js; reset here on a new run).
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75, atk: 100 }; // must match the cyan dot drawn in render.js, change both or neither
 let playerClones = [];
 let lastAutoFire = 0;
@@ -176,6 +174,65 @@ let laserCooldownEnd = 0;
 // Spawn enemy (legacy timer kept for Yog-Sothoth offset)
 let lastEnemySpawn = 0;
 const initialSpawnInterval = 1494, spawnDecreaseRate = 50, minSpawnInterval = 370;
+
+// Combat scaling (docs/combat-scaling-rebalance.md Part 2): the shared
+// wave-based growth multiplier both player.atk and every enemy's own ATK
+// stat scale by - +2% per wave up to +30% at wave 16+, so bounded flat
+// damage keeps some relevance against armor without compounding on top of
+// Yuuki/Sigil multipliers, which already grow independently.
+function _atkWaveMult(wave) { return 1 + 0.02 * Math.min(15, Math.max(0, wave - 1)); }
+
+// Per-species enemy ATK base (E0) and the fixed Max HP calibration (H0)
+// "own Max HP"-category attacks scale against (docs/combat-scaling-rebalance.md
+// Part 2). E0 is unrelated to the species' actual spawn HP - it exists so an
+// attack's threat doesn't silently ride the same HP roll a build/Walpurgis
+// stack inflates. H0 is a fixed reference point, not the instance's own Max
+// HP - see _enemySnapshotAtk's Hs bound below.
+const _ENEMY_ATK_TABLE = {
+    apostle: { e0: 36, h0: 100 },
+    thaelis: { e0: 180, h0: 3000 },
+    thaelis_cocoon: { e0: 30, h0: 750 },
+    embryo: { e0: 0, h0: 1 },
+    uriel: { e0: 90, h0: 3000 },
+    raphael: { e0: 60, h0: 4000 },
+    marchosias: { e0: 50, h0: 4000 },
+    marchosias_minion: { e0: 100, h0: 1500 },
+    veilshroud: { e0: 54, h0: 3000 },
+    dargruel: { e0: 25, h0: 12000 },
+    egregor: { e0: 60, h0: 4000 },
+    leviathan: { e0: 180, h0: 12000 },
+    goliath: { e0: 120, h0: 200000 }, // h0 applies to True Form only; Alpha has no numeric attack
+};
+
+// Snapshots an enemy's ATK (E = E0 * g(wave at spawn)) and H0 onto the
+// instance at spawn time - every attack this enemy fires reads enemy.atk /
+// enemy._h0 rather than re-deriving them later, so a build-up mid-fight
+// (Walpurgis Max HP stacks, Sentinel count, etc.) never silently changes an
+// already-launched or already-spawned enemy's own offense.
+function _enemySnapshotAtk(enemy, speciesKey) {
+    const spec = _ENEMY_ATK_TABLE[speciesKey];
+    if (!spec) return;
+    enemy.atk = spec.e0 * _atkWaveMult(typeof _waveNumber !== 'undefined' ? Math.max(1, _waveNumber) : 1);
+    enemy._h0 = spec.h0;
+}
+
+// Bounded own-Max-HP basis for "own Max HP" category attacks: Hs = min(H, 2*H0).
+// Lets a real HP build still make these hit harder (up to double the
+// species' calibration point) without unbounded late-run HP inflation
+// turning one of these into a one-shot.
+function _enemyHs(enemy) {
+    const h0 = enemy._h0 || 1;
+    return Math.min(enemy.maxHp || h0, 2 * h0);
+}
+
+// Enrage multiplier for the handful of attacks that scale off how much HP
+// the attacker itself has already lost (docs/combat-scaling-rebalance.md
+// Part 2) - averages the old nominal amount over a uniformly traversed HP
+// bar rather than assuming any particular fight duration.
+function _enemyEnrageMult(enemy) {
+    const r = Math.max(0, Math.min(1, 1 - (enemy.hp / (enemy.maxHp || 1))));
+    return 0.80 + 0.40 * r;
+}
 
 // Wave System
 let _waveNumber = 0;

@@ -29,6 +29,10 @@ function spawnGoliath() {
         _pendingGems: [],
         _flyingGems: [], // {x,y,gem,t,dur} — bảo thạch đang bay từ chỗ enemy chết vào khe
         damagePull: 0,
+        // Resource-credit share of damagePull fed by linked allies' own heal/
+        // shield grants (docs/combat-scaling-rebalance.md Part 4), tracked
+        // separately so it can carry its own lifetime cap of 60000.
+        _resourceCreditTotal: 0,
         gemPoints: 0,
         transformTimer: 0,
         // True Form (rỗng cho tới khi biến hình xong)
@@ -56,11 +60,13 @@ function spawnGoliath() {
         _meteorChargeTimer: 0,
         _meteorCooldownEnd: 0,
         _meteorTargets: [],
-        // Threshold Ward: mốc HP đã kích hoạt + kho khiên tích luỹ
+        // Threshold Ward: mốc HP đã kích hoạt (mỗi mốc chỉ cấp khiên 1 lần)
         _thresholdMilestonesHit: { 75: false, 50: false, 25: false },
-        _thresholdShieldPool: 0,
-        // Joker Thaelis (Tenacity, NEW): mốc HP 5% gần nhất đã phát thưởng
+        // Joker Thaelis (Tenacity, NEW): mốc HP 5% gần nhất đã phát thưởng,
+        // cộng dồn tổng heal/shield đã cấp qua cơ chế này để áp trần đời (Part 4).
         _thaelisLastMilestone: 100,
+        _thaelisMilestoneHealUsed: 0,
+        _thaelisMilestoneShieldUsed: 0,
         _meteors: [],
         _fusedCount: 0,
         _armFused: { left: 0, right: 0 },
@@ -71,6 +77,7 @@ function spawnGoliath() {
         _jokerState: {},
     };
     enemies.push(g);
+    _enemySnapshotAtk(g, 'goliath');
     if (window.AudioMgr) {
         window.AudioMgr.enterGoliathSpawnDuck();
         window.AudioMgr.playSfxAt('goliath-spawn', g.x, g.y);
@@ -116,7 +123,13 @@ function _goliathCircuitLink(g) {
 function _goliathTrackResourceGain(enemy, amount) {
     if (!(amount > 0)) return;
     const g = enemy._goliathLinkedTo;
-    if (g && g.phase === 'alpha') g.damagePull += amount;
+    if (!g || g.phase !== 'alpha') return;
+    // docs/combat-scaling-rebalance.md Part 4: 25% of the actual grant,
+    // once per grant, capped at a 60000 lifetime total for this share.
+    const room = Math.max(0, 60000 - g._resourceCreditTotal);
+    const credit = Math.min(room, amount * 0.25);
+    g._resourceCreditTotal += credit;
+    g.damagePull += credit;
 }
 
 // Tổng hợp mọi hệ số +hiệu quả heal/shield Goliath tự nhận, cộng dồn với
@@ -125,12 +138,15 @@ function _goliathTrackResourceGain(enemy, amount) {
 // 1s sau mỗi lần dịch chuyển). Dùng ở mọi nơi Goliath tự cấp heal/shield cho
 // chính mình (Inevitable regen, Threshold Ward, hồi lúc bắt đầu vận skill...).
 function _goliathHealBoost(enemy, amount) {
-    let mult = 1;
-    if (enemy._jokerState && enemy._jokerState['Thaelis']) mult += 0.35;
-    if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) mult += 0.15;
-    if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) mult += 0.40;
-    mult += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
-    mult += enemy._unifiedFrontHealPct || 0; // Unified Front: +5%/ally on the map, cap +60%
+    // docs/combat-scaling-rebalance.md Part 4: each source's own bonus is
+    // lowered, and their sum is capped at +50% before Waning Might applies.
+    let bonus = 0;
+    if (enemy._jokerState && enemy._jokerState['Thaelis']) bonus += 0.20;
+    if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) bonus += 0.10;
+    if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) bonus += 0.20;
+    bonus += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
+    bonus += enemy._unifiedFrontHealPct || 0; // Unified Front: +2%/ally on the map, cap +20%
+    const mult = 1 + Math.min(0.50, bonus);
     return amount * mult * _goliathWaningMult(0.80, _goliathWaningStacks(enemy));
 }
 
@@ -181,6 +197,58 @@ function _goliathDmgBoost(enemy, amount) {
     return amount * fractureMult * _goliathWaningMult(0.85, _goliathWaningStacks(enemy));
 }
 
+// Rolling sustain budgets (docs/combat-scaling-rebalance.md Part 4,
+// GOLIATH-SUSTAIN-01): every repeatable heal source shares one 10s budget
+// of 0.12*Hentry, every repeatable shield source shares a separate 10s
+// budget of 0.15*Hentry, so no single mechanic (or several stacked at once)
+// can refill Goliath faster than these aggregate rates regardless of how
+// much the underlying formula would otherwise grant. Token-bucket style:
+// capacity continuously refills over the window instead of resetting in
+// one lump, so a mechanic firing right after the window opens isn't
+// unfairly starved by one that fired just before it closed. One-time
+// milestone/revive grants (Threshold Ward's per-threshold shield, Unbroken
+// Will's lethal-save heal/shield/temporary Max HP, copied Thaelis
+// milestones, copied Marchosias barrier-break heal/shield) bypass this
+// budget entirely, per spec.
+const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.12;
+const GOLIATH_SHIELD_BUDGET_CAP_FRAC = 0.15;
+const GOLIATH_BUDGET_WINDOW_MS = 10000;
+
+// Generic token bucket: `store` holds the bucket's own two fields (so a
+// Joker sub-state object can own a bucket separate from the enemy's own
+// shared ones). Used both for the two shared heal/shield budgets below and
+// for a couple of narrower per-mechanic rolling caps (copied Marchosias
+// barrier repair/lifesteal).
+function _goliathDrawBucket(store, tokensKey, atKey, cap, windowMs, requested) {
+    if (!(requested > 0) || !(cap > 0)) return 0;
+    const now = performance.now();
+    const last = store[atKey] || now;
+    const refilled = Math.min(cap, (store[tokensKey] === undefined ? cap : store[tokensKey]) + (now - last) * cap / windowMs);
+    const granted = Math.min(requested, refilled);
+    store[tokensKey] = refilled - granted;
+    store[atKey] = now;
+    return granted;
+}
+
+function _goliathDrawBudget(enemy, kind, requested) {
+    if (!enemy._hentry) return 0;
+    const cap = enemy._hentry * (kind === 'shield' ? GOLIATH_SHIELD_BUDGET_CAP_FRAC : GOLIATH_HEAL_BUDGET_CAP_FRAC);
+    const tokensKey = kind === 'shield' ? '_shieldBudgetTokens' : '_healBudgetTokens';
+    const atKey = kind === 'shield' ? '_shieldBudgetAt' : '_healBudgetAt';
+    return _goliathDrawBucket(enemy, tokensKey, atKey, cap, GOLIATH_BUDGET_WINDOW_MS, requested);
+}
+
+// Ordinary Goliath shield capacity (docs/combat-scaling-rebalance.md Part 4):
+// aggregate shield cap of 0.30*Hentry, separate from the arc barrier's own
+// pool. Applies to both budgeted and one-time shield grants.
+function _goliathGrantShield(enemy, amount) {
+    if (!(amount > 0) || !enemy._hentry) return 0;
+    const room = Math.max(0, enemy._hentry * 0.30 - (enemy.shield || 0));
+    const grant = Math.min(amount, room);
+    if (grant > 0) _addEnemyShield(enemy, grant);
+    return grant;
+}
+
 // Every Goliath attack (Absolute Verdict, Corrupted Meteor, and every Joker
 // copy) that lands on the player also silences them - no skills, no auto-shot
 // - 0.75s for a normal attack, 1.25s for Absolute Verdict specifically. Root
@@ -218,8 +286,11 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     // chung _transformIronBodyEnd — field đó có thể bị mốc invuln biến hình
     // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
     enemy._unbrokenWillInvulnEnd = now + 4000;
-    enemy.hp = enemy.maxHp;
-    enemy.shield = (enemy.shield || 0) + Math.ceil(enemy.maxHp * 0.20);
+    // docs/combat-scaling-rebalance.md Part 4: a second phase, not a
+    // complete second full-health fight - revives to 35% Hentry HP and a
+    // 10% Hentry shield instead of a full heal and a 20% current-HP shield.
+    enemy.hp = Math.min(enemy.maxHp, 0.35 * enemy._hentry);
+    _goliathGrantShield(enemy, 0.10 * enemy._hentry);
     addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#f97316');
     createParticles(enemy.x, enemy.y, 40, '#fdba74', 3, 11);
     _setShake(16, 400);
@@ -243,7 +314,8 @@ function _goliathReleaseUnbrokenWave(enemy, now) {
         hitSentinels: new Set(),
         active: true,
         _isUnbrokenWave: true,
-        _sourceMaxHp: enemy.maxHp,
+        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
+        _hs: _enemyHs(enemy),
     });
     // Animation "tung chiêu": cờ hint cho render vẽ tư thế giải phóng năng
     // lượng (2 tay/thân bung ra) trong 500ms trước khi sóng thật bắt đầu đọc rõ.
@@ -300,7 +372,7 @@ function _goliathMarchosiasBarrier(enemy, source) {
     if (source.isPiercing) {
         dmg = Math.ceil(dmg * 1.15);
         dmg = Math.min(dmg, Math.ceil(s.barrierHp * 0.35));
-        const barrierHeal = Math.min(2000, Math.ceil(dmg * 0.05));
+        const barrierHeal = _goliathMarchosiasBarrierRepair(enemy, s, dmg);
         const wasAlive = s.barrierHp > 0;
         s.barrierHp = Math.max(0, s.barrierHp - dmg + barrierHeal);
         _goliathMarchosiasBodyHeal(enemy, dmg);
@@ -311,7 +383,7 @@ function _goliathMarchosiasBarrier(enemy, source) {
         return 'passthrough';
     }
     dmg = Math.min(dmg, Math.ceil(s.barrierHp * 0.35));
-    const barrierHeal = Math.min(2000, Math.ceil(dmg * 0.05));
+    const barrierHeal = _goliathMarchosiasBarrierRepair(enemy, s, dmg);
     const wasAlive = s.barrierHp > 0;
     s.barrierHp = Math.max(0, s.barrierHp - dmg + barrierHeal);
     _goliathMarchosiasBodyHeal(enemy, dmg);
@@ -320,12 +392,25 @@ function _goliathMarchosiasBarrier(enemy, source) {
     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
     return 'absorbed';
 }
-function _goliathMarchosiasBodyHeal(enemy, dmg) {
-    const healAmt = Math.min(2000, Math.ceil(dmg * 0.10));
+// Copied Marchosias impact barrier repair (docs/combat-scaling-rebalance.md
+// Part 4): 3% of the actual barrier loss this hit caused, rate-capped at
+// 160 per rolling 1s via its own bucket on the Joker sub-state.
+function _goliathMarchosiasBarrierRepair(enemy, s, actualBarrierLoss) {
+    const requested = actualBarrierLoss * 0.03;
+    return _goliathDrawBucket(s, '_repairTokens', '_repairAt', 160, 1000, requested);
+}
+// Copied Marchosias body lifesteal (docs/combat-scaling-rebalance.md Part
+// 4): 5% of the actual barrier loss, rate-capped at 0.5% Hentry per rolling
+// 1s, and drawn from the shared repeatable heal budget on top of that.
+function _goliathMarchosiasBodyHeal(enemy, actualBarrierLoss) {
+    const s = enemy._jokerState['Marchosias'];
+    const rateCapped = _goliathDrawBucket(s, '_lifestealTokens', '_lifestealAt', 0.005 * enemy._hentry, 1000, actualBarrierLoss * 0.05);
+    const healAmt = _goliathDrawBudget(enemy, 'heal', rateCapped);
     const newHp = enemy.hp + healAmt;
     if (newHp > enemy.maxHp) {
         enemy.hp = enemy.maxHp;
-        _addEnemyShield(enemy, Math.ceil((newHp - enemy.maxHp) * 0.50));
+        // docs/combat-scaling-rebalance.md Part 4: 25% of the excess, repeatable shield budget
+        _goliathGrantShield(enemy, _goliathDrawBudget(enemy, 'shield', (newHp - enemy.maxHp) * 0.25));
     } else {
         enemy.hp = newHp;
     }
@@ -335,15 +420,18 @@ function _goliathMarchosiasBarrierBreak(enemy, s) {
     addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#ff3344');
     createParticles(enemy.x, enemy.y, 24, '#ff3344', 3, 10);
     enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 5;
-    const healAmt = Math.ceil(enemy.maxHp * 0.40);
+    // docs/combat-scaling-rebalance.md Part 4: barrier-break heal/shield are
+    // both off Hentry now, boosted, and drawn from the repeatable budgets -
+    // breaking its 8000-point defense can no longer return most of the body.
+    const healAmt = _goliathDrawBudget(enemy, 'heal', _goliathHealBoost(enemy, 0.05 * enemy._hentry));
     const newHp = enemy.hp + healAmt;
     if (newHp > enemy.maxHp) {
         enemy.hp = enemy.maxHp;
-        _addEnemyShield(enemy, Math.ceil((newHp - enemy.maxHp) * 0.50));
+        _goliathGrantShield(enemy, _goliathDrawBudget(enemy, 'shield', (newHp - enemy.maxHp) * 0.25));
     } else {
         enemy.hp = newHp;
     }
-    _addEnemyShield(enemy, Math.ceil(enemy.maxHp * 0.15 + (enemy.maxHp - enemy.hp) * 0.15));
+    _goliathGrantShield(enemy, _goliathDrawBudget(enemy, 'shield', _goliathHealBoost(enemy, 0.05 * enemy._hentry)));
     s.barrierDown = true;
     const fullCycle = (s.swordsThisCycle || 0) >= 10;
     const reviveDelay = fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
@@ -439,18 +527,22 @@ function updateGoliath(enemy, deltaTime) {
         if (enemy.transformTimer >= 4000) _goliathEnterTrueForm(enemy);
     } else if (enemy.phase === 'true_form') {
         // Unified Front: every 1s, recompute healing effectiveness + flat DR
-        // off the current ally count, and top up shield by 5% MaxHP per ally.
+        // off the current ally count, and top up shield off Hentry, capped
+        // and budgeted (docs/combat-scaling-rebalance.md Part 4).
         enemy._unifiedFrontTimer = (enemy._unifiedFrontTimer || 0) + deltaTime;
         if (enemy._unifiedFrontTimer >= 1000) {
             enemy._unifiedFrontTimer -= 1000;
             const _uAllies = _goliathCountAllies();
-            enemy._unifiedFrontHealPct = Math.min(0.60, 0.05 * _uAllies);
+            enemy._unifiedFrontHealPct = Math.min(0.20, 0.02 * _uAllies);
             enemy._unifiedFrontDRMult = 1 + 0.1 * _uAllies;
             enemy._unifiedFrontScalingDRMult = 1 + 0.15 * _uAllies;
             if (_uAllies > 0) {
-                const _uShield = enemy.maxHp * 0.05 * _uAllies;
-                enemy.shield = (enemy.shield || 0) + _uShield;
-                _goliathTrackResourceGain(enemy, _uShield);
+                const _uShieldReq = _goliathHealBoost(enemy, 0.0025 * enemy._hentry * Math.min(_uAllies, 8));
+                const _uShieldGranted = _goliathDrawBudget(enemy, 'shield', _uShieldReq);
+                if (_uShieldGranted > 0) {
+                    const _uActual = _goliathGrantShield(enemy, _uShieldGranted);
+                    _goliathTrackResourceGain(enemy, _uActual);
+                }
             }
         }
 
@@ -478,8 +570,13 @@ function updateGoliath(enemy, deltaTime) {
             enemy.hp = Math.min(enemy.hp, enemy.maxHp);
             enemy._unbrokenWillMaxHpBonus = 0;
         }
-        if (!isCasting && enemy._wasCasting) {
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.20));
+        // Cast-end recovery (docs/combat-scaling-rebalance.md Part 4): 3%
+        // Hentry off a shared 4s cooldown, drawn from the repeatable budget,
+        // instead of an uncooled 20% current Max HP burst every cast.
+        if (!isCasting && enemy._wasCasting && now >= (enemy._castEndRecoveryCooldownEnd || 0)) {
+            enemy._castEndRecoveryCooldownEnd = now + 4000;
+            const _granted = _goliathDrawBudget(enemy, 'heal', _goliathHealBoost(enemy, 0.03 * enemy._hentry));
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _granted);
         }
         enemy._wasCasting = isCasting;
 
@@ -606,7 +703,8 @@ function updateGoliath(enemy, deltaTime) {
                 window._goliathOrbs = window._goliathOrbs || [];
                 window._goliathOrbs.push({
                     x: _eye.x, y: _eye.y, vx: Math.cos(vAngle) * 420, vy: Math.sin(vAngle) * 420,
-                    dmg: enemy.maxHp * 0.35, owner: enemy, life: 4000,
+                    // Lost-HP/enrage category (docs/combat-scaling-rebalance.md Part 2)
+                    dmg: 1.50 * enemy.atk * _enemyEnrageMult(enemy), owner: enemy, life: 4000,
                 });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-launch', _eye.x, _eye.y);
             }
@@ -652,6 +750,8 @@ function updateGoliath(enemy, deltaTime) {
                     window._goliathMeteors.push({
                         x: _eye.x, y: _eye.y, vx: Math.cos(ang) * 400, vy: Math.sin(ang) * 400,
                         owner: enemy, life: 4000, _fireTime: now,
+                        // ATK category (docs/combat-scaling-rebalance.md Part 2)
+                        atk: enemy.atk,
                     });
                 }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-corrupted-meteor', _eye.x, _eye.y);
@@ -663,12 +763,15 @@ function updateGoliath(enemy, deltaTime) {
 
         _goliathUpdateJoker(enemy, deltaTime, now);
 
-        // Threshold Ward: mốc HP 75/50/25% mỗi mốc cho +20% MaxHP khiên 1 lần
+        // Threshold Ward (docs/combat-scaling-rebalance.md Part 4): 75/50/25%
+        // HP milestones each grant a one-time 10% Hentry ordinary shield
+        // instead of feeding a pool that silently refills HP every frame it
+        // stays covered.
         const hpPct = enemy.hp / enemy.maxHp;
         [75, 50, 25].forEach(mile => {
             if (!enemy._thresholdMilestonesHit[mile] && hpPct * 100 <= mile) {
                 enemy._thresholdMilestonesHit[mile] = true;
-                enemy._thresholdShieldPool += _goliathHealBoost(enemy, enemy.maxHp * 0.20);
+                _goliathGrantShield(enemy, _goliathHealBoost(enemy, 0.10 * enemy._hentry));
             }
         });
         // Evade (NEW): +10% 3.5s mỗi lần HP tụt XUYÊN QUA 75/50/25% — dùng HP
@@ -693,33 +796,42 @@ function updateGoliath(enemy, deltaTime) {
         if (enemy._unbrokenWillInvulnEnd && now >= enemy._unbrokenWillInvulnEnd && !enemy._unbrokenWillWaveFired) {
             enemy._unbrokenWillWaveFired = true;
             enemy._unbrokenWillBuffEnd = now + 6000;
-            const _maxHpBonus = Math.ceil(enemy.maxHp * 0.20);
+            // docs/combat-scaling-rebalance.md Part 4
+            const _maxHpBonus = Math.ceil(0.10 * enemy._hentry);
             enemy._unbrokenWillMaxHpBonus = _maxHpBonus;
             enemy.maxHp += _maxHpBonus;
             enemy.hp += _maxHpBonus;
             _goliathReleaseUnbrokenWave(enemy, now);
         }
-        // Khiên tích luỹ vượt mốc 25/50/75/100% MaxHp → hồi máu tương ứng
-        [1.0, 0.75, 0.5, 0.25].forEach(frac => {
-            if (enemy._thresholdShieldPool >= enemy.maxHp * frac && enemy.hp < enemy.maxHp * frac) {
-                enemy.hp = Math.max(enemy.hp, enemy.maxHp * frac);
-            }
-        });
-
         // Joker Thaelis (Tenacity, NEW): mỗi 5% MaxHP mất (mốc mới, chưa từng
         // phát) hồi 2.5% MaxHP + cấp 1% MaxHP khiên — cả 2 đều ăn +35% của
         // chính Tenacity (cộng dồn, không tự loại trừ chính nó).
+        // Copied Thaelis HP milestones (docs/combat-scaling-rebalance.md
+        // Part 4): one-time per 5%-lost-HP milestone, each of heal and
+        // shield has its own lifetime cap off Hentry so this mechanic alone
+        // can't return the boss to full over a long fight.
         if (enemy._jokerState['Thaelis']) {
             while (enemy._thaelisLastMilestone - hpPct * 100 >= 5) {
                 enemy._thaelisLastMilestone -= 5;
-                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.025));
-                enemy.shield = (enemy.shield || 0) + _goliathHealBoost(enemy, enemy.maxHp * 0.01);
+                const _healRoom = Math.max(0, 0.15 * enemy._hentry - enemy._thaelisMilestoneHealUsed);
+                const _healGrant = Math.min(_healRoom, _goliathHealBoost(enemy, 0.0075 * enemy._hentry));
+                enemy._thaelisMilestoneHealUsed += _healGrant;
+                enemy.hp = Math.min(enemy.maxHp, enemy.hp + _healGrant);
+                const _shieldRoom = Math.max(0, 0.10 * enemy._hentry - enemy._thaelisMilestoneShieldUsed);
+                const _shieldGrant = Math.min(_shieldRoom, _goliathHealBoost(enemy, 0.005 * enemy._hentry));
+                enemy._thaelisMilestoneShieldUsed += _goliathGrantShield(enemy, _shieldGrant);
                 createParticles(enemy.x, enemy.y, 12, '#ffe066', 2, 7);
             }
         }
 
-        // Inevitable: hồi máu 2.5%/s, ăn +35% Tenacity nếu có
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + _goliathHealBoost(enemy, enemy.maxHp * 0.025 * (deltaTime / 1000)));
+        // Inevitable (docs/combat-scaling-rebalance.md Part 4): 0.75% Hentry/s,
+        // boosted, drawn from the shared repeatable heal budget instead of an
+        // unbudgeted 2.5% of current Max HP every second.
+        {
+            const _inevReq = _goliathHealBoost(enemy, 0.0075 * enemy._hentry * (deltaTime / 1000));
+            const _inevGranted = _goliathDrawBudget(enemy, 'heal', _inevReq);
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + _inevGranted);
+        }
 
         if (enemy._inevitableWindowEnd && now >= enemy._inevitableWindowEnd && !enemy._inevitableCooldownEnd) {
             enemy._inevitableCooldownEnd = now + 500;
@@ -790,6 +902,11 @@ function _goliathEnterTrueForm(enemy) {
     const pulledCapped = Math.min(320000, enemy.damagePull);
     const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult() * 1.20);
     enemy.hp = maxHp; enemy.maxHp = maxHp;
+    // Hentry (docs/combat-scaling-rebalance.md Part 4): Max HP at the moment
+    // True Form starts, before Unbroken Will's temporary bonus. Every
+    // sustain budget below is sized off this fixed value so a temporary HP
+    // bump can never recursively enlarge its own refill.
+    enemy._hentry = maxHp;
     enemy.trueFormReady = true;
     if (window.AudioMgr) { window.AudioMgr.exitGoliathTransformDuck(); window.AudioMgr.startGoliathIdle(); }
 
@@ -845,7 +962,8 @@ function _goliathEnterTrueForm(enemy) {
         _nearby.sort((a, b) => Math.hypot(a.x - enemy.x, a.y - enemy.y) - Math.hypot(b.x - enemy.x, b.y - enemy.y));
         const _target = _nearby[0];
         if (_target) {
-            _addEnemyShield(_target, _target.maxHp * 0.20);
+            // docs/combat-scaling-rebalance.md Part 4: 15% recipient Max HP
+            _addEnemyShield(_target, _target.maxHp * 0.15);
             addExplosion(_target.x, _target.y, _target.size * 0.8, '#f59e0b');
             createParticles(_target.x, _target.y, 20, '#f59e0b', 3, 8);
         }
@@ -994,10 +1112,11 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v. —
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) {
-                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.05), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
+                            // ATK category (docs/combat-scaling-rebalance.md Part 2)
+                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.625 * enemy.atk), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
                         }
                     } else if (t.ref && t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
-                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.05), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
+                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, 0.625 * enemy.atk), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                     }
                     addExplosion(t.x, t.y, 60, '#ff9a2e');
                 });
@@ -1040,10 +1159,11 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const lineStart = { x: s.originX, y: s.originY };
                 if (t.isPlayer) {
                     if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) {
-                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, enemy.maxHp * 0.25), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
+                        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
+                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.00060 * _enemyHs(enemy)), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
                     }
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
-                    dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, enemy.maxHp * 0.25), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
+                    dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, 0.00060 * _enemyHs(enemy)), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                 }
                 addExplosion(t.x, t.y, 60, '#fff8e1');
             });
@@ -1080,6 +1200,9 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                     x: _eye.x, y: _eye.y, vx: Math.cos(ang) * 792, vy: Math.sin(ang) * 792,
                     radius: 88, life: 2000,
                     originX: _eye.x, originY: _eye.y, _fireTime: now,
+                    // ATK category (docs/combat-scaling-rebalance.md Part 2):
+                    // fracture/waning snapshotted at launch, not recomputed at impact.
+                    atk: _goliathDmgBoost(enemy, enemy.atk),
                 });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', _eye.x, _eye.y);
             }
@@ -1140,9 +1263,10 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const hc = hitSents.length;
                 if (hc > 0) {
                     _nsHitLanded = true;
-                    const pct = hc === 1 ? 0.30 : hc === 2 ? 0.35 : 0.40;
+                    // ATK category, no enrage on this copy (docs/combat-scaling-rebalance.md Part 2)
+                    const coeff = hc === 1 ? 0.75 : hc === 2 ? 0.875 : 1.00;
                     for (const sn of hitSents) {
-                        dealDamage(sn, { damage: _goliathDmgBoost(enemy, Math.ceil(sn.maxHp * pct)), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
+                        dealDamage(sn, { damage: _goliathDmgBoost(enemy, coeff * enemy.atk), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                         addExplosion(sn.x, sn.y, 65, '#7700dd');
                         createParticles(sn.x, sn.y, 18, '#cc44ff', 3, 7);
                     }
@@ -1174,7 +1298,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
             // Dùng đúng cơ chế Maou Haki thật (spawnBossShockwave): tự động
             // quét sạch đạn người chơi trong bán kính lan ra + gây sát thương
             // Sentinel — trước đây thiếu hẳn phần dọn đạn.
-            spawnBossShockwave(enemy.x, enemy.y, 'goliath');
+            spawnBossShockwave(enemy.x, enemy.y, 'goliath', _goliathDmgBoost(enemy, 0.00057 * _enemyHs(enemy)));
             if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < canvas.width) {
                 player._goliathSlowEnd = now + 2000; player._goliathSlowFactor = 0.30;
                 // Doesn't route through playerTakesHit (it's an unconditional
@@ -1211,7 +1335,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
                     s._hitPlayer = true;
-                    if (!_yuushaPierceRedirect(0.50, true) && playerTakesHit(enemy)) _goliathApplySilence();
+                    if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 1.25 * enemy.atk), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
                 }
             }
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —
@@ -1225,9 +1349,8 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d2 = Math.abs(((curAngle - sAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d2 < 0.15 && Math.hypot(sen.x - enemy.x, sen.y - enemy.y) < 900) {
                     s._hitSentinels.add(sen);
-                    const ownerHits = 150;
-                    const dmg = Math.min(Math.ceil(sen.maxHp * 0.50), Math.ceil(sen.maxHp * 0.05 * ownerHits));
-                    dealDamage(sen, { damage: _goliathDmgBoost(enemy, dmg), isTrueDamage: true, _attackerType: 'goliath' });
+                    // ATK category (docs/combat-scaling-rebalance.md Part 2)
+                    dealDamage(sen, { damage: _goliathDmgBoost(enemy, 1.25 * enemy.atk), isTrueDamage: true, _attackerType: 'goliath' });
                 }
             }
             if (s.sweepTimer >= 1800) {

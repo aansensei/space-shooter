@@ -68,6 +68,10 @@ function _raphaelSpawnWisdomOrb(enemy) {
         speed: RAPHAEL_WISDOM_LAUNCH_SPEED_MIN,
         life: RAPHAEL_WISDOM_LIFE_MS,
         hitTargets: [], playerHit: false,
+        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2):
+        // snapshotted at spawn so a later buff to Raphael's own Max HP
+        // doesn't retroactively change an orb already in flight.
+        atk: 0.01875 * _enemyHs(enemy),
     });
     addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#ffe27a');
     if (window.AudioMgr) window.AudioMgr.playSfxAt('raphael-wisdom-charge', enemy.x, enemy.y);
@@ -102,8 +106,11 @@ function updateRaphaelWisdomOrbs(deltaTime) {
             if (s.hp <= 0 || o.hitTargets.includes(s)) continue;
             if (Math.hypot(s.x - o.x, s.y - o.y) < (s.size || 20) + 21) {
                 o.hitTargets.push(s);
-                dealDamage(s, { damage: 0, percentDamage: 0.25, isTrueDamage: true, isPiercing: true, _statSrc: 'Wisdom Orb' });
-                raphaelWisdomZones.push({ x: s.x, y: s.y, radius: 62, life: 1500, maxLife: 1500 });
+                dealDamage(s, { damage: o.atk, isTrueDamage: true, isPiercing: true, _statSrc: 'Wisdom Orb' });
+                // Zone inherits the same own-Max-HP basis as the orb itself
+                // (0.00375*Hs/s = 0.25 x the orb's own 0.01875*Hs hit, per
+                // the spec's stated per-second rate), not the target's HP.
+                raphaelWisdomZones.push({ x: s.x, y: s.y, radius: 62, life: 1500, maxLife: 1500, atkPerSec: o.atk * 0.20 });
                 createParticles(s.x, s.y, 20, '#ffe27a', 2, 7);
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('raphael-wisdom-impact', s.x, s.y);
             }
@@ -145,7 +152,7 @@ function updateRaphaelWisdomZones(deltaTime) {
         for (const s of sentinels) {
             if (s.hp <= 0) continue;
             if (Math.hypot(s.x - z.x, s.y - z.y) <= z.radius) {
-                dealDamage(s, { damage: 0, percentDamage: 0.05 * (deltaTime / 1000), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Wisdom Orb zone' });
+                dealDamage(s, { damage: z.atkPerSec * (deltaTime / 1000), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Wisdom Orb zone' });
             }
         }
         if (Math.hypot(player.x - z.x, player.y - z.y) <= z.radius) _playerInAnyZone = true;

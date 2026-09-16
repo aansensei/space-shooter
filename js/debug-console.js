@@ -1211,7 +1211,7 @@ window.debugSetYuukiBonus = function () {
         if (which === 'ns') e._nullSlashCooldownEnd = 0;
         if (which === 'tempest') e._tempestCooldownEnd = 0;
         if (which === 'sword') { e.lastSwordTriggerTime = 0; if (typeof _tryTriggerMarchosiasCounter === 'function') _tryTriggerMarchosiasCounter(e); }
-        if (which === 'haki' && typeof spawnBossShockwave === 'function') spawnBossShockwave(e.x, e.y);
+        if (which === 'haki' && typeof spawnBossShockwave === 'function') spawnBossShockwave(e.x, e.y, 'dargruel', 0.0095 * _enemyHs(e));
         if (which === 'chains') e.chainTimer = 0;
         if (which === 'laser') e.shootTimer = 0;
         if (which === 'wisdom_orb' && typeof _raphaelSpawnWisdomOrb === 'function') _raphaelSpawnWisdomOrb(e);

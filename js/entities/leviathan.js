@@ -59,6 +59,7 @@ function spawnLeviathan() {
         _levHalfHpTriggered: false,
     };
     enemies.push(lev);
+    _enemySnapshotAtk(lev, 'leviathan');
     // Thủ Lĩnh Bầy Đàn: đánh dấu Envy lên tất cả enemy hiện có
     _applyLeviathanEnvy(lev);
     if (window.AudioMgr) window.AudioMgr.startLeviathanIdle();
@@ -211,6 +212,8 @@ function updateLeviathan(enemy, deltaTime) {
                     enemies.push({
                         x: enemy.x, y: enemy.y,
                         vx: Math.cos(a) * 5.5, vy: Math.sin(a) * 5.5,
+                        // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
+                        damage: 0.02 * _enemyHs(enemy),
                         hp: bulletHp, maxHp: bulletHp, size: 10,
                         type: 'enemy_bullet', isSplit: false, ownerRef: enemy
                     });

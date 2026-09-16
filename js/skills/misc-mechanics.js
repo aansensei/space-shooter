@@ -27,17 +27,19 @@ function updateMarchosiasBlades(deltaTime) {
         if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.hitRadius) {
             blade.hitPlayer = true;
             const _yHitsAlready = blade.hitEnemies.length;
-            const _yPct = _yHitsAlready === 0 ? 0.27 : _yHitsAlready === 1 ? 0.23 : 0.21;
-            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(_yPct, true)) playerTakesHit({ type: 'marchosias' });
+            const _yCoeff = _yHitsAlready === 0 ? 1.62 : _yHitsAlready === 1 ? 1.38 : 1.26;
+            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(_yCoeff * (blade.atk || 0), 'flat')) playerTakesHit({ type: 'marchosias' });
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', blade.x, blade.y);
         }
         // Hit sentinel, damage scales down with number of sentinels already hit
         for (const s of sentinels) {
             if (!blade.hitEnemies.includes(s) && Math.hypot(blade.x - s.x, blade.y - s.y) < blade.radius + s.size) {
-                // 1st sentinel hit: 30%, 2nd: 28%, 3rd+: 24%
+                // ATK category (docs/combat-scaling-rebalance.md Part 2): falloff
+                // now scales off the blade's own snapshotted atk, not the victim's
+                // maxHp. 1st hit: 1.62E, 2nd: 1.38E, 3rd+: 1.26E.
                 const hitsAlready = blade.hitEnemies.length;
-                const pct = hitsAlready === 0 ? 0.27 : hitsAlready === 1 ? 0.23 : 0.21;
-                dealDamage(s, { damage: s.maxHp * pct, _noHitSfx: true, _attackerType: 'marchosias' });
+                const coeff = hitsAlready === 0 ? 1.62 : hitsAlready === 1 ? 1.38 : 1.26;
+                dealDamage(s, { damage: (blade.atk || 0) * coeff, _noHitSfx: true, _attackerType: 'marchosias' });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);
