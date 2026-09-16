@@ -41,22 +41,35 @@ function triggerDemonGift(boss) {
         const veilPhantom = enemy.type === 'veilshroud' && enemy.inPhantom;
         if (veilPhantom) healAmount *= 0.75; // Phantom: -25% heal & shield received
         healAmount *= _walpurgisHealShieldMult(); // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
-        const potentialHp = enemy.hp + healAmount;
 
-        if (potentialHp > enemy.maxHp) {
-            const overheal = potentialHp - enemy.maxHp;
-            let shieldGain = Math.ceil(overheal * 0.20); // docs/combat-scaling-rebalance.md Part 3
-            if (enemy.soulReaver) shieldGain *= 0.75;
-            if (veilNormal) shieldGain *= 1.20; // Alteration: +20% shield (docs/combat-scaling-rebalance.md Part 3)
-            if (veilPhantom) shieldGain *= 0.75; // Phantom: -25% shield
-            _addEnemyShield(enemy, shieldGain);
-        } else if (veilNormal) {
-            // Alteration: khiên bằng 50% lượng HP thực tế hồi được, không phải
-            // toàn bộ lượng heal (docs/combat-scaling-rebalance.md Part 3);
-            // _addEnemyShield's own aggregate cap still applies on top.
-            _addEnemyShield(enemy, healAmount * 0.50);
+        // An allied Goliath in True Form routes this heal (and any overheal
+        // shield) through its own sustain budget instead of receiving Demon
+        // Gift's grant directly (docs/combat-scaling-rebalance.md Part 4).
+        if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
+            const grantedHeal = _goliathDrawBudget(enemy, 'heal', _goliathHealBoost(enemy, healAmount));
+            const overheal = Math.max(0, enemy.hp + healAmount - enemy.maxHp);
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + grantedHeal);
+            if (overheal > 0) {
+                const shieldGain = Math.ceil(overheal * 0.20); // docs/combat-scaling-rebalance.md Part 3
+                _goliathGrantShield(enemy, _goliathDrawBudget(enemy, 'shield', _goliathHealBoost(enemy, shieldGain)));
+            }
+        } else {
+            const potentialHp = enemy.hp + healAmount;
+            if (potentialHp > enemy.maxHp) {
+                const overheal = potentialHp - enemy.maxHp;
+                let shieldGain = Math.ceil(overheal * 0.20); // docs/combat-scaling-rebalance.md Part 3
+                if (enemy.soulReaver) shieldGain *= 0.75;
+                if (veilNormal) shieldGain *= 1.20; // Alteration: +20% shield (docs/combat-scaling-rebalance.md Part 3)
+                if (veilPhantom) shieldGain *= 0.75; // Phantom: -25% shield
+                _addEnemyShield(enemy, shieldGain);
+            } else if (veilNormal) {
+                // Alteration: khiên bằng 50% lượng HP thực tế hồi được, không phải
+                // toàn bộ lượng heal (docs/combat-scaling-rebalance.md Part 3);
+                // _addEnemyShield's own aggregate cap still applies on top.
+                _addEnemyShield(enemy, healAmount * 0.50);
+            }
+            enemy.hp = Math.min(enemy.maxHp, potentialHp);
         }
-        enemy.hp = Math.min(enemy.maxHp, potentialHp);
         if (veilNormal) enemy._veilHealDRExpiry = performance.now() + 3000;
 
         enemy.demonGiftStacks = (enemy.demonGiftStacks || 0) + 1;

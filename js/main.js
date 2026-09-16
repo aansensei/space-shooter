@@ -978,20 +978,29 @@ function update(rawDeltaTime) {
                     finalHeal = Math.min(finalHeal, 0.03 * ally.maxHp * (deltaTime / 1000));
                     if (ally.hp <= 0) return; // cannot heal at 0 HP
                     const veilNormal = ally.type === 'veilshroud' && !ally.inPhantom;
-                    const newHp = ally.hp + finalHeal;
-                    if (newHp > ally.maxHp) {
-                        // Overheal: 50% of excess → shield
-                        const overheal = newHp - ally.maxHp;
-                        _goliathTrackResourceGain(ally, ally.maxHp - ally.hp);
-                        ally.hp = ally.maxHp;
-                        let overshield = overheal * 0.25; // docs/combat-scaling-rebalance.md Part 3
-                        if (veilNormal) overshield *= 1.20; // Alteration: +20% shield (docs/combat-scaling-rebalance.md Part 3)
-                        _addEnemyShield(ally, overshield);
+                    // An allied Goliath in True Form routes all external heal/shield
+                    // through its own sustain budget (docs/combat-scaling-rebalance.md
+                    // Part 4) instead of receiving Raphael's grants directly.
+                    const isGoliathTrueForm = ally.type === 'goliath' && ally.phase === 'true_form';
+                    if (isGoliathTrueForm) {
+                        const granted = _goliathDrawBudget(ally, 'heal', _goliathHealBoost(ally, finalHeal));
+                        ally.hp = Math.min(ally.maxHp, ally.hp + granted);
                     } else {
-                        _goliathTrackResourceGain(ally, finalHeal);
-                        ally.hp = Math.max(0, newHp);
-                        // Alteration: khiên bằng 50% lượng HP thực tế hồi được (docs/combat-scaling-rebalance.md Part 3)
-                        if (veilNormal) _addEnemyShield(ally, finalHeal * 0.50);
+                        const newHp = ally.hp + finalHeal;
+                        if (newHp > ally.maxHp) {
+                            // Overheal: 50% of excess → shield
+                            const overheal = newHp - ally.maxHp;
+                            _goliathTrackResourceGain(ally, ally.maxHp - ally.hp);
+                            ally.hp = ally.maxHp;
+                            let overshield = overheal * 0.25; // docs/combat-scaling-rebalance.md Part 3
+                            if (veilNormal) overshield *= 1.20; // Alteration: +20% shield (docs/combat-scaling-rebalance.md Part 3)
+                            _addEnemyShield(ally, overshield);
+                        } else {
+                            _goliathTrackResourceGain(ally, finalHeal);
+                            ally.hp = Math.max(0, newHp);
+                            // Alteration: khiên bằng 50% lượng HP thực tế hồi được (docs/combat-scaling-rebalance.md Part 3)
+                            if (veilNormal) _addEnemyShield(ally, finalHeal * 0.50);
+                        }
                     }
                     if (veilNormal && finalHeal > 0) ally._veilHealDRExpiry = performance.now() + 3000;
 
@@ -1000,13 +1009,21 @@ function update(rawDeltaTime) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.60 : shieldAmt;
                         finalShield = Math.min(finalShield, 0.25 * ally.maxHp);
                         if (veilNormal) finalShield *= 1.20; // Alteration: +20% shield
-                        _addEnemyShield(ally, finalShield);
+                        if (isGoliathTrueForm) {
+                            _goliathGrantShield(ally, _goliathDrawBudget(ally, 'shield', _goliathHealBoost(ally, finalShield)));
+                        } else {
+                            _addEnemyShield(ally, finalShield);
+                        }
                         ally.raphaelShieldReceived = true;
                     }
                     // caster-side 2%/s, capped at 2% of the recipient's own Max HP per second
                     const tsAmt = Math.min(ally.soulReaver ? tickShieldAmt * 0.60 : tickShieldAmt, 0.02 * ally.maxHp * (deltaTime / 1000));
                     const finalTs = veilNormal ? tsAmt * 1.20 : tsAmt; // Alteration: +20% shield
-                    _addEnemyShield(ally, finalTs);
+                    if (isGoliathTrueForm) {
+                        _goliathGrantShield(ally, _goliathDrawBudget(ally, 'shield', _goliathHealBoost(ally, finalTs)));
+                    } else {
+                        _addEnemyShield(ally, finalTs);
+                    }
                 }
             });
 
@@ -1835,9 +1852,16 @@ function update(rawDeltaTime) {
         // Envy 0.75% MaxHP/s regen (docs/combat-scaling-rebalance.md Part 3, applied to all envy-marked non-bullet enemies)
         if (enemy.levEnvy && enemy.hp > 0 && !enemy._markedForDeath &&
             !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
-            const _hpBefore = enemy.hp;
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.0075 * (deltaTime / 1000));
-            _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
+            if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
+                // Routed through Goliath's own heal budget (docs/combat-scaling-rebalance.md Part 4)
+                // instead of a direct regen, same as every other external heal source.
+                const granted = _goliathDrawBudget(enemy, 'heal', _goliathHealBoost(enemy, enemy.maxHp * 0.0075 * (deltaTime / 1000)));
+                enemy.hp = Math.min(enemy.maxHp, enemy.hp + granted);
+            } else {
+                const _hpBefore = enemy.hp;
+                enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.0075 * (deltaTime / 1000));
+                _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
+            }
         }
 
         if (enemy.hp <= 0) {
