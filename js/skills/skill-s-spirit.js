@@ -98,7 +98,7 @@ function updateSpirits(deltaTime) {
                 const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 1.20 * player.atk, percentDamage: 0.005,
+                    damage: 0.138 * player.atk,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
                     isSpirit: true, _statSrc: 'Skill S: Remembrance Spirit',
                 });
@@ -117,31 +117,31 @@ function updateSpirits(deltaTime) {
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
             if (_hasBuff('song_luoi')) {
-                const baseDmg = 1.80 * player.atk * 1.20, basePct = 0.046 * 1.20; // docs/combat-scaling-rebalance.md Part 5
+                const baseDmg = 0.207 * player.atk * 1.20; // docs/combat-scaling-rebalance.md Part 5
                 const speed = 15.84;
                 const baseAngle = Math.atan2(vy, vx);
                 const sideOff = 22;
                 const px = -Math.sin(baseAngle) * sideOff, py = Math.cos(baseAngle) * sideOff;
                 // First blade: immediate
                 player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
-                bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 // Second blade (extra): 15ms delay, +20% radius to bypass Iron Body on same frame
                 if (!window._pendingBlades) window._pendingBlades = [];
                 window._pendingBlades.push({
                     spawnAt: performance.now() + 15,
-                    data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
+                    data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
                 });
                 // Third blade: 25% chance, fires straight down the middle 30ms later
                 if (Math.random() < 0.25) {
                     window._pendingBlades.push({
                         spawnAt: performance.now() + 30,
-                        data: { x: spirit.x, y: spirit.y, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, percentDamage: basePct, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
+                        data: { x: spirit.x, y: spirit.y, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
                     });
                 }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             } else {
                 player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
-                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 1.80 * player.atk, percentDamage: 0.046, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 0.207 * player.atk, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             }
         }
@@ -417,7 +417,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             for (let bi = 0; bi < 3; bi++) {
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 1.25 * player.atk * dmgMult * dntMult, percentDamage: 0.017 * dntMult,
+                    damage: 0.144 * player.atk * dmgMult * dntMult,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
                     applyVuln: true, vulnChance: 0.15, _statSrc: 'Skill S: Photokrystos',
@@ -487,7 +487,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
             targetIdx: 0,
             hitEnemies: [],
             rotation: Math.random() * Math.PI * 2,
-            damage: 5 * player.atk, percentDamage: 0.070,
+            damage: 0.575 * player.atk,
             lifetime: 9000,
             _radius: _isExtra ? 58 : 48,
         });
@@ -810,13 +810,12 @@ function _fireSpinnerBlades(s, now) {
     // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
     const _twinBlades = _hasBuff('song_luoi');
     // docs/combat-scaling-rebalance.md Part 5
-    const _bladeDmg = _twinBlades ? 3.50 * player.atk * 1.20 : 3.50 * player.atk;
-    const _bladePct = _twinBlades ? 0.035 * 1.20 : 0.035;
+    const _bladeDmg = _twinBlades ? 0.4025 * player.atk * 1.20 : 0.4025 * player.atk;
     for (let d = 0; d < 4; d++) {
         const a = (Math.PI / 2) * d;
         bladeArcProjectiles.push({
             x: s.x, y: s.y, vx: Math.cos(a) * 15.84, vy: Math.sin(a) * 15.84,
-            radius: 70, damage: _bladeDmg, percentDamage: _bladePct, hitEnemies: [],
+            radius: 70, damage: _bladeDmg, hitEnemies: [],
             isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, _statSrc: s._statSrc,
         });
         if (_twinBlades) {
@@ -824,7 +823,7 @@ function _fireSpinnerBlades(s, now) {
             window._pendingBlades.push({
                 spawnAt: now + 15,
                 data: { x: s.x, y: s.y, vx: Math.cos(a) * 15.84, vy: Math.sin(a) * 15.84,
-                    radius: 70 * 1.20, damage: _bladeDmg, percentDamage: _bladePct, hitEnemies: [],
+                    radius: 70 * 1.20, damage: _bladeDmg, hitEnemies: [],
                     isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, _statSrc: s._statSrc },
             });
         }
@@ -944,7 +943,7 @@ function updateSpiritSpinners(deltaTime) {
                 // bounces without a hit over chaining hits back to back.
                 const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
                 const _drMult = _spinnerDrMult(enemy, now);
-                dealDamage(enemy, { damage: Math.round(2 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.15 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
+                dealDamage(enemy, { damage: Math.round(0.23 * player.atk * _songLuoiMult * _drMult), isTrueDamage: true, _statSrc: s._statSrc });
                 if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
                 // On-hit: a sharp crack - jagged magenta shards plus a quick
                 // white flash at the contact point, selling the heavy true damage.
@@ -1079,7 +1078,7 @@ function updateSpiritFinale(spirit, deltaTime) {
                     if (enemy.type === 'veilshroud_echo') return; // untargetable
                     if (enemy.inCoronation) return;
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
-                    dealDamage(enemy, { damage: 0.10 * player.atk, percentDamage: 0.40, isSpiritLaser: true, isTrueDamage: true });
+                    dealDamage(enemy, { damage: 0.0115 * player.atk, isSpiritLaser: true, isTrueDamage: true });
                 });
             }
             if (spirit.finaleChargeTime <= 0) spirit.finaleState = 'firing';
