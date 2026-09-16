@@ -598,7 +598,7 @@ function update(rawDeltaTime) {
                     // Feed the squad the same snapshotted atk-based payload real
                     // Sentinels take (docs/combat-scaling-rebalance.md Part 2),
                     // not a fraction of each member's own maxHp.
-                    if (!_yuushaPierceRedirect(laser.atk || 0, 'flat')) playerTakesHit({ type: 'raphael' });
+                    if (!_yuushaPierceRedirect(laser.atk || 0, false)) playerTakesHit({ type: 'raphael' });
                 }
 
                 if (!laser._id) laser._id = 'raphael_laser_' + performance.now().toFixed(0);
@@ -934,10 +934,13 @@ function update(rawDeltaTime) {
         }
 
         if (enemy.type === 'raphael') {
-            let healAmt = enemy.maxHp * 0.08 * (deltaTime / 1000);
-            if (enemy._custosExpired) healAmt *= 1.35;
-            let shieldAmt = enemy.maxHp * 0.38;
-            let tickShieldAmt = enemy.maxHp * 0.06 * (deltaTime / 1000); // 6% MaxHP shield/s
+            // docs/combat-scaling-rebalance.md Part 3: lower caster-side rate,
+            // capped per-recipient below so a big Raphael can't fully
+            // restore a small ally every second.
+            let healAmt = enemy.maxHp * 0.04 * (deltaTime / 1000);
+            if (enemy._custosExpired) healAmt *= 1.20;
+            let shieldAmt = enemy.maxHp * 0.20;
+            let tickShieldAmt = enemy.maxHp * 0.02 * (deltaTime / 1000); // 2% caster MaxHP shield/s, capped per-recipient below
             let auraRadius = canvas.width / 2;
 
             enemies.forEach(ally => {
@@ -961,7 +964,9 @@ function update(rawDeltaTime) {
                 let d = Math.hypot(ally.x - enemy.x, ally.y - enemy.y);
                 if (d <= auraRadius) {
                     let finalHeal = ally.soulReaver ? healAmt * 0.60 : healAmt;
-                    if (ally.levEnvy) finalHeal *= 1.25; // Envy: +25% heal
+                    if (ally.levEnvy) finalHeal *= 1.15; // Envy: +15% heal (docs/combat-scaling-rebalance.md Part 3)
+                    // docs/combat-scaling-rebalance.md Part 3: capped at 3% of the recipient's own Max HP per second
+                    finalHeal = Math.min(finalHeal, 0.03 * ally.maxHp * (deltaTime / 1000));
                     if (ally.hp <= 0) return; // cannot heal at 0 HP
                     const veilNormal = ally.type === 'veilshroud' && !ally.inPhantom;
                     const newHp = ally.hp + finalHeal;
@@ -970,26 +975,28 @@ function update(rawDeltaTime) {
                         const overheal = newHp - ally.maxHp;
                         _goliathTrackResourceGain(ally, ally.maxHp - ally.hp);
                         ally.hp = ally.maxHp;
-                        let overshield = overheal * 0.5;
-                        if (veilNormal) overshield *= 1.35; // Alteration: +35% shield
+                        let overshield = overheal * 0.25; // docs/combat-scaling-rebalance.md Part 3
+                        if (veilNormal) overshield *= 1.20; // Alteration: +20% shield (docs/combat-scaling-rebalance.md Part 3)
                         _addEnemyShield(ally, overshield);
                     } else {
                         _goliathTrackResourceGain(ally, finalHeal);
                         ally.hp = Math.max(0, newHp);
-                        // Alteration: nhận thêm khiên bằng lượng hồi phục
-                        if (veilNormal) _addEnemyShield(ally, finalHeal);
+                        // Alteration: khiên bằng 50% lượng HP thực tế hồi được (docs/combat-scaling-rebalance.md Part 3)
+                        if (veilNormal) _addEnemyShield(ally, finalHeal * 0.50);
                     }
                     if (veilNormal && finalHeal > 0) ally._veilHealDRExpiry = performance.now() + 3000;
 
+                    // docs/combat-scaling-rebalance.md Part 3
                     if (!ally.raphaelShieldReceived) {
                         let finalShield = ally.soulReaver ? shieldAmt * 0.60 : shieldAmt;
-                        if (veilNormal) finalShield *= 1.35; // Alteration: +35% shield
+                        finalShield = Math.min(finalShield, 0.25 * ally.maxHp);
+                        if (veilNormal) finalShield *= 1.20; // Alteration: +20% shield
                         _addEnemyShield(ally, finalShield);
                         ally.raphaelShieldReceived = true;
                     }
-                    // 8% MaxHP tick shield per second, always applies
-                    const tsAmt = ally.soulReaver ? tickShieldAmt * 0.60 : tickShieldAmt;
-                    const finalTs = veilNormal ? tsAmt * 1.35 : tsAmt; // Alteration: +35% shield
+                    // caster-side 2%/s, capped at 2% of the recipient's own Max HP per second
+                    const tsAmt = Math.min(ally.soulReaver ? tickShieldAmt * 0.60 : tickShieldAmt, 0.02 * ally.maxHp * (deltaTime / 1000));
+                    const finalTs = veilNormal ? tsAmt * 1.20 : tsAmt; // Alteration: +20% shield
                     _addEnemyShield(ally, finalTs);
                 }
             });
@@ -1249,15 +1256,15 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
-                            // +15% MaxHP and heal 22% MaxHP
+                            // +15% MaxHP and heal 12% of new Max HP (docs/combat-scaling-rebalance.md Part 3)
                             _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
-                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.22));
-                            // Heal alive tentacles 15% of their max HP
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.12));
+                            // Heal alive tentacles 10% of their max HP (docs/combat-scaling-rebalance.md Part 3)
                             if (_eg._tentacleHps) {
                                 const _tMax = Math.ceil(_eg.maxHp * 0.80);
                                 for (let _ti = 0; _ti < _eg._tentacleHps.length; _ti++) {
                                     if (_eg._tentacleHps[_ti] > 0)
-                                        _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.15));
+                                        _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.10));
                                 }
                             }
                         }
@@ -1349,14 +1356,10 @@ function update(rawDeltaTime) {
                             if (sentinels.length >= 5) {
                                 _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s);
                             } else {
-                                let _chainDmg = rawDmgChain;
-                                if ((s._gaiaBarrier || 0) > 0) {
-                                    _chainDmg = Math.ceil(_chainDmg * 0.80); // true dmg mitigation
-                                    const _gAbsorb = Math.min(Math.ceil(_chainDmg * 0.99), s._gaiaBarrier);
-                                    s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
-                                    if (s._gaiaBarrier <= 0) { addExplosion(s.x, s.y, s.size * 1.2, '#00ff88'); createParticles(s.x, s.y, 14, '#00ff88', 2, 7); }
-                                    _chainDmg = Math.max(1, Math.ceil(_chainDmg * 0.01));
-                                }
+                                // True damage bypasses Gaia consistently
+                                // (docs/combat-scaling-rebalance.md Part 3) -
+                                // no partial mitigation/absorption here.
+                                const _chainDmg = rawDmgChain;
                                 s.hp = Math.max(0, s.hp - _chainDmg);
                                 _recordStat('enemyDamage', 'Enemy Chain Lightning', _chainDmg);
                                 if (s.hp <= 0) s._markedForDeath = true;
@@ -1789,7 +1792,8 @@ function update(rawDeltaTime) {
                 );
                 if (_nearHost) {
                     _nearHost._marchosiasParasiteHost = true;
-                    _addEnemyShield(_nearHost, enemy.hp);
+                    // docs/combat-scaling-rebalance.md Part 3: capped at 15% host Max HP
+                    _addEnemyShield(_nearHost, Math.min(enemy.hp, 0.15 * _nearHost.maxHp));
                     createParticles(_nearHost.x, _nearHost.y, 12, '#00ff88', 2, 5);
                     enemy.hp = 0;
                     continue;
@@ -1815,11 +1819,11 @@ function update(rawDeltaTime) {
             }
         }
 
-        // Envy 1% MaxHP/s regen (applied to all envy-marked non-bullet enemies)
+        // Envy 0.75% MaxHP/s regen (docs/combat-scaling-rebalance.md Part 3, applied to all envy-marked non-bullet enemies)
         if (enemy.levEnvy && enemy.hp > 0 && !enemy._markedForDeath &&
             !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
             const _hpBefore = enemy.hp;
-            enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.01 * (deltaTime / 1000));
+            enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.0075 * (deltaTime / 1000));
             _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
         }
 
@@ -1877,15 +1881,15 @@ function update(rawDeltaTime) {
                         if (_eg._rageEndTimes.length < 5) {
                             _eg._rageEndTimes.push(_dNow + 8000);
                             _eg._rageStacks = _eg._rageEndTimes.length;
-                            // +15% MaxHP and heal 22% MaxHP
+                            // +15% MaxHP and heal 12% of new Max HP (docs/combat-scaling-rebalance.md Part 3)
                             _eg.maxHp = Math.ceil(_eg.maxHp * 1.15);
-                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.22));
-                            // Heal alive tentacles 15% of their max HP
+                            _eg.hp = Math.min(_eg.maxHp, _eg.hp + Math.ceil(_eg.maxHp * 0.12));
+                            // Heal alive tentacles 10% of their max HP (docs/combat-scaling-rebalance.md Part 3)
                             if (_eg._tentacleHps) {
                                 const _tMax = Math.ceil(_eg.maxHp * 0.80);
                                 for (let _ti = 0; _ti < _eg._tentacleHps.length; _ti++) {
                                     if (_eg._tentacleHps[_ti] > 0)
-                                        _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.15));
+                                        _eg._tentacleHps[_ti] = Math.min(_tMax, _eg._tentacleHps[_ti] + Math.ceil(_tMax * 0.10));
                                 }
                             }
                         }
@@ -2088,10 +2092,17 @@ function update(rawDeltaTime) {
                         b.hitEnemies.push(enemy);
                     }
 
+                    const _preHitHp = enemy.hp, _preHitShield = enemy.shield || 0;
                     dealDamage(enemy, b);
 
-                    if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0) {
-                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + 2);
+                    // docs/combat-scaling-rebalance.md Part 3: min(0.02A, 1%
+                    // own T), and only when this hit actually landed (real
+                    // HP/shield loss), not unconditionally on every collision
+                    // even if the hit was fully blocked or evaded.
+                    const _actualLoss = (_preHitHp - enemy.hp) + (_preHitShield - (enemy.shield || 0));
+                    if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0 && _actualLoss > 0) {
+                        const _healAmt = Math.min(0.02 * player.atk, 0.01 * b.sourceSentinel.maxHp);
+                        b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + _healAmt);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
 
@@ -2169,8 +2180,8 @@ function update(rawDeltaTime) {
     const _levOnField = enemies.some(e => e.type === 'leviathan' && e.hp > 0);
     const _allyUnits = [...sentinels, ...window.skillDSpaceships, ...(window._yuushaSquad || []).filter(s => s.hp > 0)];
     _allyUnits.forEach(s => {
-        // Base blessing DR: +15%, +5% more if Leviathan on field
-        s._blessingDR = _photoActive ? (0.15 + (_levOnField ? 0.05 : 0)) : 0;
+        // Base blessing DR: +10%, +5% more if Leviathan on field (docs/combat-scaling-rebalance.md Part 3)
+        s._blessingDR = _photoActive ? (0.10 + (_levOnField ? 0.05 : 0)) : 0;
         s._blessingDmg = _photoActive ? 0.15 : 0;
         // Keep _blessingShield in sync, can't exceed actual shield
         if (s._blessingShield && s._blessingShield > (s.shield || 0)) {
@@ -2179,35 +2190,43 @@ function update(rawDeltaTime) {
         if (!_photoActive) s._blessingShield = 0;
     });
     if (_photoActive) {
-        // Leviathan on field: instant +50 shield (ignores cap, fires once per lev presence)
+        // Leviathan on field: one min(0.40A, 15% T) shield grant per presence
+        // episode (docs/combat-scaling-rebalance.md Part 3) - the flag now
+        // only resets when Leviathan actually leaves the field (below),
+        // not every 3s alongside the ordinary shield tick, which used to
+        // let this same grant repeat indefinitely while Leviathan stayed.
         if (_levOnField && !window._blessingLevShieldGiven) {
             window._blessingLevShieldGiven = true;
-            _allyUnits.forEach(s => { s.shield = (s.shield || 0) + 50; });
+            _allyUnits.forEach(s => {
+                const grant = Math.min(0.40 * player.atk, 0.15 * (s.maxHp || 100));
+                s.shield = (s.shield || 0) + grant;
+            });
         } else if (!_levOnField) {
             window._blessingLevShieldGiven = false;
         }
 
-        // +1.75% maxHp every 0.75s to all allied units
+        // +1.50% maxHp every 0.75s to all allied units (docs/combat-scaling-rebalance.md Part 3)
         if (!window._blessingRegenTimer) window._blessingRegenTimer = 0;
         window._blessingRegenTimer += deltaTime;
         if (window._blessingRegenTimer >= 750) {
             window._blessingRegenTimer = 0;
             _allyUnits.forEach(s => {
-                const healAmt2 = (s.maxHp || 100) * 0.0175;
+                const healAmt2 = (s.maxHp || 100) * 0.015;
                 s.hp = Math.min(s.maxHp || 100, s.hp + healAmt2);
             });
         }
-        // +50 flat shield every 3s (capped at 50 for blessing portion)
+        // Shield tops up to min(0.40A, 15% T) every 3s (docs/combat-scaling-rebalance.md Part 3)
         if (!window._blessingShieldTimer) window._blessingShieldTimer = 0;
         window._blessingShieldTimer += deltaTime;
         if (window._blessingShieldTimer >= 3000) {
-            window._blessingShieldTimer = 0; window._blessingLevShieldGiven = false;
+            window._blessingShieldTimer = 0;
             _allyUnits.forEach(s => {
+                const cap = Math.min(0.40 * player.atk, 0.15 * (s.maxHp || 100));
                 const current = s._blessingShield || 0;
-                const toAdd = Math.min(50 - current, 50);
+                const toAdd = Math.min(cap - current, cap);
                 if (toAdd > 0) {
                     s.shield = (s.shield || 0) + toAdd;
-                    s._blessingShield = Math.min(50, current + toAdd);
+                    s._blessingShield = Math.min(cap, current + toAdd);
                 }
             });
         }
@@ -2270,7 +2289,8 @@ function update(rawDeltaTime) {
             const _shieldBonus = _hasBuff('giap_nguyet') ? 1.40 : 1;
             [...sentinels, ...window.skillDSpaceships, ...(window._yuushaSquad || [])].forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
-                const newBarrier = Math.floor((lostHp * 0.25 + (s.maxHp || 100) * 0.15) * _shieldBonus);
+                // docs/combat-scaling-rebalance.md Part 3
+                const newBarrier = Math.floor((lostHp * 0.20 + (s.maxHp || 100) * 0.12) * _shieldBonus);
                 s._gaiaBarrier = newBarrier;
                 s._gaiaBarrierMax = newBarrier;
             });
@@ -2337,7 +2357,7 @@ function update(rawDeltaTime) {
                 // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
                 for (let li = 0; li < 5; li++) {
-                    if (!_yuushaPierceRedirect(orb.dmg, 'flat') && playerTakesHit({ type: 'goliath' })) _goliathApplySilence(1250);
+                    if (!_yuushaPierceRedirect(orb.dmg, true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence(1250);
                 }
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
@@ -2365,7 +2385,7 @@ function update(rawDeltaTime) {
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
                 const _yHitsAlready = (sw.hitEnemies || []).length;
                 const _yCoeff = _yHitsAlready === 0 ? 0.675 : _yHitsAlready === 1 ? 0.575 : 0.525;
-                if (!_yuushaPierceRedirect(_yCoeff * (sw.atk || 0), 'flat') && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                if (!_yuushaPierceRedirect(_yCoeff * (sw.atk || 0), false) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
                 addExplosion(sw.x, sw.y, 50, '#ff8c1a');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', sw.x, sw.y);
                 return false;
@@ -2398,7 +2418,7 @@ function update(rawDeltaTime) {
             m.y += m.vy * (deltaTime / 1000);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
-                if (!_yuushaPierceRedirect(0.625 * (m.atk || 0), 'flat') && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                if (!_yuushaPierceRedirect(0.625 * (m.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
                 addExplosion(m.x, m.y, 70, '#f59e0b');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', m.x, m.y);
                 return false;
@@ -2468,7 +2488,7 @@ function update(rawDeltaTime) {
         if (angHit(player.x, player.y, 18)) {
             if (!beam.hitPlayer) {
                 beam.hitPlayer = true;
-                if (!_yuushaPierceRedirect(_persAtk * Math.min(5 / 6, ownerHits / 12), 'flat')) playerTakesHit(beam.ownerRef || { type: 'leviathan' });
+                if (!_yuushaPierceRedirect(_persAtk * Math.min(5 / 6, ownerHits / 12), true)) playerTakesHit(beam.ownerRef || { type: 'leviathan' });
             }
         } else {
             beam.hitPlayer = false;
@@ -2487,13 +2507,8 @@ function update(rawDeltaTime) {
                     } else {
                         // Trực tiếp (< 5 sentinels)
                         if (!(s.ironBody && nowMs2 < s.ironBodyEnd)) {
-                            let _levDmg = dmg;
-                            if ((s._gaiaBarrier || 0) > 0) {
-                                const _gAbsorb = Math.min(Math.ceil(_levDmg * 0.99), s._gaiaBarrier);
-                                s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
-                                if (s._gaiaBarrier <= 0) { addExplosion(s.x, s.y, s.size * 1.2, '#00ff88'); createParticles(s.x, s.y, 14, '#00ff88', 2, 7); }
-                                _levDmg = Math.max(1, Math.ceil(_levDmg * 0.01));
-                            }
+                            // True damage bypasses Gaia consistently (docs/combat-scaling-rebalance.md Part 3)
+                            const _levDmg = dmg;
                             s.hp = Math.max(0, s.hp - _levDmg);
                             _recordStat('enemyDamage', 'Leviathan', _levDmg);
                             if (s.hp <= 0) s._markedForDeath = true;
@@ -2574,7 +2589,7 @@ function update(rawDeltaTime) {
             const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
             if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
                 laser.hitPlayer = true;
-                if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), 'flat')) playerTakesHit({ type: 'leviathan' });
+                if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), true)) playerTakesHit({ type: 'leviathan' });
             }
 
             sentinels.forEach(s => {
@@ -2586,13 +2601,8 @@ function update(rawDeltaTime) {
                         _applyVanguardDamage(dmg, laser.id, true, s, 'leviathan');
                     } else {
                         if (!(s.ironBody && performance.now() < s.ironBodyEnd)) {
-                            let _levBeamDmg = dmg;
-                            if ((s._gaiaBarrier || 0) > 0) {
-                                const _gAbsorb = Math.min(Math.ceil(_levBeamDmg * 0.99), s._gaiaBarrier);
-                                s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
-                                if (s._gaiaBarrier <= 0) { addExplosion(s.x, s.y, s.size * 1.2, '#00ff88'); createParticles(s.x, s.y, 14, '#00ff88', 2, 7); }
-                                _levBeamDmg = Math.max(1, Math.ceil(_levBeamDmg * 0.01));
-                            }
+                            // True damage bypasses Gaia consistently (docs/combat-scaling-rebalance.md Part 3)
+                            const _levBeamDmg = dmg;
                             s.hp = Math.max(0, s.hp - _levBeamDmg);
                             if (s.hp <= 0) s._markedForDeath = true;
                         }

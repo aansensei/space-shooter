@@ -148,7 +148,7 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
                 t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
                 // Damage (radius 100px), player and each sentinel hit at most once per cast
                 if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-                    if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), 'flat')) playerTakesHit(enemy);
+                    if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false)) playerTakesHit(enemy);
                     _playerHit = true;
                 }
                 for (const s of sentinels) {
@@ -205,7 +205,7 @@ function _forceFireEgregorTempest(enemy) {
         t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
         t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
         if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-            if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), 'flat')) playerTakesHit(enemy);
+            if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false)) playerTakesHit(enemy);
             _playerHit = true;
         }
         for (const s of sentinels) {

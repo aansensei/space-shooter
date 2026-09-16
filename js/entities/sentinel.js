@@ -77,7 +77,8 @@ function updateSentinels(deltaTime) {
     if (_hasBuff('trieu_hoi')) {
         const _tNow = performance.now();
         for (const s of sentinels) {
-            s.hp = Math.min(s.maxHp, s.hp + (s.maxHp * 0.03 / 1000) * deltaTime * 1.30);
+            // docs/combat-scaling-rebalance.md Part 3: 2.5% T/s x1.20 = 3% T/s
+            s.hp = Math.min(s.maxHp, s.hp + (s.maxHp * 0.025 / 1000) * deltaTime * 1.20);
             if (!s._trieuIronBody && _tNow >= (s._trieuIronBodyCooldownEnd || 0)) {
                 s._trieuIronBody = true;
             }

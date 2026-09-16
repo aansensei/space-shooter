@@ -150,7 +150,7 @@ function _veilshroudStrike(enemy) {
     if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
         _lt.hitPlayer = true;
         _lt.playerHitPos = { x: player.x, y: player.y };
-        if (!_yuushaPierceRedirect(enemy.atk || 0, 'flat')) playerTakesHit(enemy);
+        if (!_yuushaPierceRedirect(enemy.atk || 0, false)) playerTakesHit(enemy);
         addExplosion(player.x, player.y, 90, '#ff0033');
         createParticles(player.x, player.y, 35, '#ffffff', 4, 14);
         createParticles(player.x, player.y, 20, '#ff3355', 2, 8);

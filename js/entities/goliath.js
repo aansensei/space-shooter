@@ -534,8 +534,11 @@ function updateGoliath(enemy, deltaTime) {
             enemy._unifiedFrontTimer -= 1000;
             const _uAllies = _goliathCountAllies();
             enemy._unifiedFrontHealPct = Math.min(0.20, 0.02 * _uAllies);
-            enemy._unifiedFrontDRMult = 1 + 0.1 * _uAllies;
-            enemy._unifiedFrontScalingDRMult = 1 + 0.15 * _uAllies;
+            // docs/combat-scaling-rebalance.md Part 3: same rate for both the
+            // normal and percent-payload armor base now (100(1+.05*min(N,12))
+            // each), removing the old penalty against percent-scaling hits.
+            enemy._unifiedFrontDRMult = 1 + 0.05 * Math.min(_uAllies, 12);
+            enemy._unifiedFrontScalingDRMult = enemy._unifiedFrontDRMult;
             if (_uAllies > 0) {
                 const _uShieldReq = _goliathHealBoost(enemy, 0.0025 * enemy._hentry * Math.min(_uAllies, 8));
                 const _uShieldGranted = _goliathDrawBudget(enemy, 'shield', _uShieldReq);
@@ -1113,7 +1116,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) {
                             // ATK category (docs/combat-scaling-rebalance.md Part 2)
-                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.625 * enemy.atk), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
+                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.625 * enemy.atk), true) && playerTakesHit(enemy)) _goliathApplySilence();
                         }
                     } else if (t.ref && t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
                         dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, 0.625 * enemy.atk), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
@@ -1160,7 +1163,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 if (t.isPlayer) {
                     if (distToSegment(player, lineStart, lineEnd) < (player.hitRadius || 15) + 15) {
                         // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
-                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.00060 * _enemyHs(enemy)), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
+                        if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.00060 * _enemyHs(enemy)), true) && playerTakesHit(enemy)) _goliathApplySilence();
                     }
                 } else if (t.ref && t.ref.hp > 0 && distToSegment(t.ref, lineStart, lineEnd) < (t.ref.size || 20) + 15) {
                     dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, 0.00060 * _enemyHs(enemy)), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
@@ -1335,7 +1338,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
                     s._hitPlayer = true;
-                    if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 1.25 * enemy.atk), 'flat') && playerTakesHit(enemy)) _goliathApplySilence();
+                    if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 1.25 * enemy.atk), true) && playerTakesHit(enemy)) _goliathApplySilence();
                 }
             }
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —

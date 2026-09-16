@@ -6,47 +6,54 @@
 
 // Blood Arrow (Libra buff 1): Sol Arrow queue/windup/flight
 
+// Mirrors the real per-enemy DR stack in entities/core.js dealDamage, kept
+// in sync with docs/combat-scaling-rebalance.md Part 3, so Sol Arrow's
+// target ranking doesn't drift from actual incoming-damage math.
 function _estimateSolArrowDR(enemy) {
     let dr = 0;
     if (enemy.type === 'egregor') {
         dr += 0.40;
-        if (enemy._nullSlashPhase === 'charging') dr += 0.40;
-        dr += Math.min(0.20, (enemy._tentaclesLost || 0) * 0.05);
+        if (enemy._nullSlashPhase === 'charging') dr += 0.25;
+        dr += Math.min(0.15, (enemy._tentaclesLost || 0) * 0.03);
     }
     if (enemy.demonGiftEndTime && performance.now() < enemy.demonGiftEndTime) {
-        dr += (enemy.demonGiftStacks === 2) ? 0.40 : 0.20;
+        dr += (enemy.demonGiftStacks === 2) ? 0.20 : 0.10;
     }
     if (enemy.type === 'dargruel') {
-        dr += Math.min(0.60, 0.50 + sentinels.length * 0.025);
+        dr += Math.min(0.55, 0.45 + sentinels.length * 0.01);
         if (enemy.hp < enemy.maxHp * 0.6) {
             const hpPercent = (enemy.hp / enemy.maxHp) * 100;
-            dr += Math.min(0.72, ((60 - hpPercent) * 1.5 / 100));
+            dr += Math.min(0.30, ((60 - hpPercent) * 0.75 / 100));
         }
     }
     if (enemy.type === 'thaelis') {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
-        dr += Math.min(0.95, hpLostPct * 0.025);
+        dr += Math.min(0.60, hpLostPct * 0.01);
+        if (enemy.reincarnated) dr += 0.10;
     }
-    if (enemy.type === 'raphael') dr += 0.55;
-    if (enemy.shield > 0 && enemy.raphaelShieldReceived) dr += 0.18;
-    if (enemy.type === 'marchosias') dr += 0.45;
+    if (enemy.type === 'raphael') dr += 0.50;
+    if (enemy.shield > 0 && enemy.raphaelShieldReceived) dr += 0.12;
+    if (enemy.type === 'marchosias') {
+        dr += 0.45;
+        if (enemy.arcBarrier && enemy.arcBarrier.hp <= 0) dr += 0.10;
+    }
     if (enemy.type === 'marchosias_minion' && enemy.DR) dr += enemy.DR;
-    if (enemy.type === 'leviathan') dr += 0.60;
-    if (enemy.type === 'embryo') dr += 0.90;
+    if (enemy.type === 'leviathan') dr += 0.55;
+    if (enemy.type === 'embryo') dr += 0.85;
     // Cocoon itself can't be damaged directly at all - the closest estimate
     // this DR-based formula has for "immune", so Sol Arrow doesn't rate it
     // as a juicy target over the Guards actually protecting it.
     if (enemy.type === 'thaelis_cocoon') dr += 0.99;
     if (enemy.type === 'thaelis_guard') dr += THAELIS_COCOON_GUARD_DR;
     if (enemy.type === 'veilshroud') {
-        if (enemy._veilHealDRExpiry && performance.now() < enemy._veilHealDRExpiry) dr += 0.20;
+        if (enemy._veilHealDRExpiry && performance.now() < enemy._veilHealDRExpiry) dr += 0.10;
         dr += enemy.inPhantom ? 0.99 : 0.40;
     }
-    if (enemy.levEnvy) dr += 0.25;
+    if (enemy.levEnvy) dr += 0.15;
     if (sentinels.includes(enemy)) {
         dr += 0.08;
-        if (gloryForJusticeActive) dr += 0.30;
-        if (sentinels.length >= 5 && sentinels.length < 12) dr += 0.10;
+        if (gloryForJusticeActive) dr += 0.25;
+        if (sentinels.length >= 5 && sentinels.length < 12) dr += 0.08;
         if (enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) dr += 0.10;
     }
     return Math.min(0.99, dr);

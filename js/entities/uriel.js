@@ -125,8 +125,8 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
             }
         }
     } else if (enemy._camoPhase === 'stealthed') {
-        // Regens while fully hidden: 2% MaxHP per second, prorated per frame.
-        enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.02 * (deltaTime / 1000));
+        // Regens while fully hidden: 1.5% MaxHP per second, prorated per frame (docs/combat-scaling-rebalance.md Part 3)
+        enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * 0.015 * (deltaTime / 1000));
         // The reappear spot is rolled 550ms before it actually happens, not
         // at the moment itself, so _drawUrielCamoTelegraph (render/enemy-
         // uriel.js) has a fixed point to warn the player at while Uriel is
@@ -161,7 +161,7 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
             enemy._camoNextPicked = false;
             if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-camo-reappear', enemy.x, enemy.y);
             _urielPickWaypoint(enemy);
-            _addEnemyShield(enemy, Math.ceil(enemy.maxHp * 0.20));
+            _addEnemyShield(enemy, Math.ceil(enemy.maxHp * 0.15)); // docs/combat-scaling-rebalance.md Part 3
             enemy._camoFlatDREnd = now + 2000;
             enemy._camoPhase = 'shielded';
             enemy._camoTimer = 0;

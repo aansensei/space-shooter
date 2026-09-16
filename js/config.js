@@ -277,8 +277,12 @@ function _walpurgisEvadeBonus() { return Math.min(0.40, 0.05 * _walpurgisStacks(
 // wave (+5 flat DR each) rather than in stair-step jumps, and is computed
 // live off the enemy's current wave rather than frozen at spawn, so an
 // enemy that survives across a wave boundary keeps pace automatically.
-function _walpurgisFlatDR() { return 5 * _waveNumber; }
-function _walpurgisHealShieldMult() { return 1 + 0.05 * _walpurgisStacks(); }
+// docs/combat-scaling-rebalance.md Part 3: capped at 100 so it can no
+// longer grow into eventual immunity to all small normal hits; the 60%
+// post-DR armor cap in dealDamage bounds it further on any single hit.
+function _walpurgisFlatDR() { return Math.min(100, 5 * _waveNumber); }
+// docs/combat-scaling-rebalance.md Part 3: lower per-stack rate, capped at +30%
+function _walpurgisHealShieldMult() { return 1 + Math.min(0.30, 0.03 * _walpurgisStacks()); }
 
 let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
 // A performance.now() snapshot that only advances while the game is NOT

@@ -30,9 +30,11 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
     // full remaining damage instead of just its usual 20% cut.
     if (source._barrierPiercing) {
         let barrierDmg = Math.ceil((source.damage || 0) * 0.70 + effectiveHp * (source.percentDamage || 0) * 0.70);
-        if (gloryForJusticeActive) barrierDmg = Math.ceil(barrierDmg * 1.70);
+        if (gloryForJusticeActive) barrierDmg = Math.ceil(barrierDmg * 1.55); // docs/combat-scaling-rebalance.md Part 3
         barrierDmg = Math.min(barrierDmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
-        const barrierHeal = Math.min(1000, Math.ceil(barrierDmg * 0.05));
+        // docs/combat-scaling-rebalance.md Part 3: 3% of the actual barrier
+        // loss, rate-capped at 2% of body Max HP per rolling 1s.
+        const barrierHeal = _goliathDrawBucket(enemy, '_barrierRepairTokens', '_barrierRepairAt', 0.02 * enemy.maxHp, 1000, barrierDmg * 0.03);
         const barrierWasAlive = enemy.arcBarrier.hp > 0;
         enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - barrierDmg + barrierHeal);
         _applyArcBarrierBodyHeal(enemy, barrierDmg);
@@ -51,10 +53,12 @@ function checkMarchosiasArcBarrier(enemy, source, bx, by) {
 
     // Normal attack: fully absorbed by barrier, nothing reaches the body
     let dmg = Math.ceil((source.damage || 0) + (effectiveHp * (source.percentDamage || 0)));
-    if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.70);
+    if (gloryForJusticeActive) dmg = Math.ceil(dmg * 1.55); // docs/combat-scaling-rebalance.md Part 3
     dmg = Math.ceil(dmg * 0.40);
     dmg = Math.min(dmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
-    const barrierHeal = Math.min(1000, Math.ceil(dmg * 0.05));
+    // docs/combat-scaling-rebalance.md Part 3: 3% of the actual barrier
+    // loss, rate-capped at 2% of body Max HP per rolling 1s.
+    const barrierHeal = _goliathDrawBucket(enemy, '_barrierRepairTokens', '_barrierRepairAt', 0.02 * enemy.maxHp, 1000, dmg * 0.03);
     const barrierWasAlive = enemy.arcBarrier.hp > 0;
     enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - dmg + barrierHeal);
     _applyArcBarrierBodyHeal(enemy, dmg);
@@ -78,7 +82,8 @@ function applyMarchosiasSkillASplit(enemy, dmgProps) {
     const barrierEffectiveHp = enemy.arcBarrier.maxHp;
     let barrierDmg = Math.ceil((dmgProps.damage || 0) * 0.70 + barrierEffectiveHp * (dmgProps.percentDamage || 0) * 0.70);
     barrierDmg = Math.min(barrierDmg, Math.ceil(enemy.arcBarrier.hp * 0.35));
-    const barrierHeal = Math.min(1000, Math.ceil(barrierDmg * 0.05));
+    // docs/combat-scaling-rebalance.md Part 3
+    const barrierHeal = _goliathDrawBucket(enemy, '_barrierRepairTokens', '_barrierRepairAt', 0.02 * enemy.maxHp, 1000, barrierDmg * 0.03);
     const barrierWasAlive = enemy.arcBarrier.hp > 0;
     enemy.arcBarrier.hp = Math.max(0, enemy.arcBarrier.hp - barrierDmg + barrierHeal);
     _applyArcBarrierBodyHeal(enemy, barrierDmg);
@@ -93,12 +98,14 @@ function applyMarchosiasSkillASplit(enemy, dmgProps) {
     }));
 }
 
+// docs/combat-scaling-rebalance.md Part 3: 5% of the actual barrier loss,
+// rate-capped at 2% of body Max HP per rolling 1s via its own bucket.
 function _applyArcBarrierBodyHeal(enemy, dmg) {
-    const healAmt = Math.min(1000, Math.ceil(dmg * 0.10));
+    const healAmt = _goliathDrawBucket(enemy, '_marchBodyHealTokens', '_marchBodyHealAt', 0.02 * enemy.maxHp, 1000, dmg * 0.05);
     const newHp = enemy.hp + healAmt;
     if (newHp > enemy.maxHp) {
         enemy.hp = enemy.maxHp;
-        enemy.shield = (enemy.shield || 0) + Math.ceil((newHp - enemy.maxHp) * 0.50);
+        enemy.shield = (enemy.shield || 0) + Math.ceil((newHp - enemy.maxHp) * 0.25); // docs/combat-scaling-rebalance.md Part 3
     } else {
         enemy.hp = newHp;
     }
@@ -129,15 +136,16 @@ function _triggerArcBarrierBreak(enemy) {
     });
     _tryTriggerMarchosiasCounter(enemy);
     enemy.ironBodyHits = (enemy.ironBodyHits || 0) + 5;
-    const healAmt = Math.ceil(enemy.maxHp * 0.40);
+    // docs/combat-scaling-rebalance.md Part 3
+    const healAmt = Math.ceil(enemy.maxHp * 0.15);
     const newHp = enemy.hp + healAmt;
     if (newHp > enemy.maxHp) {
         enemy.hp = enemy.maxHp;
-        enemy.shield = (enemy.shield || 0) + Math.ceil((newHp - enemy.maxHp) * 0.50);
+        enemy.shield = (enemy.shield || 0) + Math.ceil((newHp - enemy.maxHp) * 0.25);
     } else {
         enemy.hp = newHp;
     }
-    const _breakShield = Math.ceil(enemy.maxHp * 0.30 + (enemy.maxHp - enemy.hp) * 0.30);
+    const _breakShield = Math.ceil(enemy.maxHp * 0.15 + (enemy.maxHp - enemy.hp) * 0.10);
     _addEnemyShield(enemy, _breakShield);
     enemy.DR = Math.min(0.99, (enemy.DR || 0.45) + 0.20);
     const _reviveDelay = _fullCycle ? 3000 : Math.max(4000, 5000 - (gameElapsedTime / 180000) * 1000);
@@ -238,7 +246,8 @@ function spawnMarchosiasMinion(parentX, parentY, parentMaxHp) {
 
     if (host) {
         host._marchosiasParasiteHost = true;
-        _addEnemyShield(host, hp);
+        // docs/combat-scaling-rebalance.md Part 3: capped at 15% host Max HP
+        _addEnemyShield(host, Math.min(hp, 0.15 * host.maxHp));
         createParticles(host.x, host.y, 20, '#00ff88', 2, 6);
         addExplosion(host.x, host.y, host.size * 0.8, '#00ff88');
     } else {

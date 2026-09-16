@@ -28,7 +28,7 @@ function updateMarchosiasBlades(deltaTime) {
             blade.hitPlayer = true;
             const _yHitsAlready = blade.hitEnemies.length;
             const _yCoeff = _yHitsAlready === 0 ? 1.62 : _yHitsAlready === 1 ? 1.38 : 1.26;
-            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(_yCoeff * (blade.atk || 0), 'flat')) playerTakesHit({ type: 'marchosias' });
+            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(_yCoeff * (blade.atk || 0), false)) playerTakesHit({ type: 'marchosias' });
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', blade.x, blade.y);
         }
         // Hit sentinel, damage scales down with number of sentinels already hit

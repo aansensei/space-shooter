@@ -105,20 +105,21 @@ function updateLeviathan(enemy, deltaTime) {
         _applyLeviathanEnvy(enemy);
     }
 
-    // Bulwark Barrier (passive): every 1s, if the shield hasn't reached its
-    // cap of 2 layers, gain 1 more layer worth 1.2% MaxHP per on-screen
-    // enemy (each layer individually capped at 25% MaxHP). Resets once the
+    // Bulwark Barrier (passive): every 1.5s, if the shield hasn't reached its
+    // cap of 2 layers, gain 1 more layer worth 0.8% MaxHP per on-screen
+    // enemy (each layer individually capped at 15% MaxHP). Resets once the
     // shield is fully depleted so it builds back up from scratch.
+    // docs/combat-scaling-rebalance.md Part 3.
     enemy._levBarrierTimer = (enemy._levBarrierTimer || 0) + deltaTime;
-    if (enemy._levBarrierTimer >= 1000) {
-        enemy._levBarrierTimer -= 1000;
+    if (enemy._levBarrierTimer >= 1500) {
+        enemy._levBarrierTimer -= 1500;
         if ((enemy.shield || 0) <= 0) enemy._levBarrierLayers = 0;
         if ((enemy._levBarrierLayers || 0) < 2) {
             const _onScreenEnemies = enemies.filter(e =>
                 e !== enemy && !e.type.startsWith('enemy_bullet') &&
                 e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation
             ).length;
-            const _levLayerVal = Math.min(enemy.maxHp * 0.25, enemy.maxHp * 0.012 * _onScreenEnemies);
+            const _levLayerVal = Math.min(enemy.maxHp * 0.15, enemy.maxHp * 0.008 * _onScreenEnemies);
             if (_levLayerVal > 0) {
                 enemy.shield = (enemy.shield || 0) + _levLayerVal;
                 _goliathTrackResourceGain(enemy, _levLayerVal);
@@ -154,7 +155,7 @@ function updateLeviathan(enemy, deltaTime) {
                 // 90% DR plus a fresh barrier layer worth 50% Max HP (a shield
                 // pool, absorbed like normal — not another Iron Body).
                 enemy._afoBreakGraceEnd = now + 1000;
-                enemy.shield = (enemy.shield || 0) + enemy.maxHp * 0.50;
+                enemy.shield = (enemy.shield || 0) + enemy.maxHp * 0.30; // docs/combat-scaling-rebalance.md Part 3
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
                 addExplosion(enemy.x, enemy.y, enemy.size * 3, '#00e5ff');
                 if (!window._levShieldBreaks) window._levShieldBreaks = [];

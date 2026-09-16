@@ -33,8 +33,9 @@ function triggerDemonGift(boss) {
         if (enemy.type === 'leviathan' && enemy._deathLaserSpawned) return;
         if (enemy.type === 'veilshroud_echo') return; // echo không nhận buff
         if (enemy.type === 'thaelis_cocoon') return; // Cocoon chỉ tự hồi máu của chính nó
-        const healBase = boss.maxHp * 0.28;
-        const healMultiplier = enemy.levEnvy ? 1.25 : 1.0; // Envy: +25% heal
+        // docs/combat-scaling-rebalance.md Part 3
+        const healBase = Math.min(0.15 * boss.maxHp, 0.20 * enemy.maxHp);
+        const healMultiplier = enemy.levEnvy ? 1.15 : 1.0; // Envy: +15% heal
         let healAmount = (enemy.soulReaver ? healBase * 0.75 : healBase) * healMultiplier;
         const veilNormal = enemy.type === 'veilshroud' && !enemy.inPhantom;
         const veilPhantom = enemy.type === 'veilshroud' && enemy.inPhantom;
@@ -44,14 +45,16 @@ function triggerDemonGift(boss) {
 
         if (potentialHp > enemy.maxHp) {
             const overheal = potentialHp - enemy.maxHp;
-            let shieldGain = Math.ceil(overheal * 0.30);
+            let shieldGain = Math.ceil(overheal * 0.20); // docs/combat-scaling-rebalance.md Part 3
             if (enemy.soulReaver) shieldGain *= 0.75;
-            if (veilNormal) shieldGain *= 1.35; // Alteration: +35% shield
+            if (veilNormal) shieldGain *= 1.20; // Alteration: +20% shield (docs/combat-scaling-rebalance.md Part 3)
             if (veilPhantom) shieldGain *= 0.75; // Phantom: -25% shield
             _addEnemyShield(enemy, shieldGain);
         } else if (veilNormal) {
-            // Alteration: nhận thêm khiên bằng lượng hồi phục
-            _addEnemyShield(enemy, healAmount);
+            // Alteration: khiên bằng 50% lượng HP thực tế hồi được, không phải
+            // toàn bộ lượng heal (docs/combat-scaling-rebalance.md Part 3);
+            // _addEnemyShield's own aggregate cap still applies on top.
+            _addEnemyShield(enemy, healAmount * 0.50);
         }
         enemy.hp = Math.min(enemy.maxHp, potentialHp);
         if (veilNormal) enemy._veilHealDRExpiry = performance.now() + 3000;
@@ -80,7 +83,7 @@ const THAELIS_COCOON_GUARD_HP_MAX = 1000;
 const THAELIS_COCOON_GUARD_DR = 0.40; // Guards are the real damage sink now, some DR keeps them from melting instantly
 const THAELIS_COCOON_GUARD_FLAT_DR = 20; // subtracted after the % cut above, same pattern as Walpurgis/Leviathan's own flat DR
 const THAELIS_COCOON_GUARD_RESPAWN_MS = 1000;
-const THAELIS_COCOON_GUARD_SHIELD_GRANT = 300; // flat Shield banked per Guard kill, carried over to Thaelis if it revives (see _reviveThaelis) - purely a reward, doesn't affect the kill-count win condition
+const THAELIS_COCOON_GUARD_SHIELD_GRANT = 150; // flat Shield banked per Guard kill, carried over to Thaelis if it revives (see _reviveThaelis, capped there at 30% revived Max HP) - purely a reward, doesn't affect the kill-count win condition. docs/combat-scaling-rebalance.md Part 3
 const THAELIS_COCOON_KILLS_NEEDED_MIN = 12; // random per Cocoon, how many Guard kills within the 9s actually destroys it
 const THAELIS_COCOON_KILLS_NEEDED_MAX = 16;
 const THAELIS_REVIVE_HP_PCT = 0.40;
@@ -150,6 +153,8 @@ function _reviveThaelis(cocoon) {
     // stronger, not just a diminished remnant. `reincarnated: true` marks
     // this lineage for those DR bonuses.
     const hp = Math.max(1, _reviveBaseHp * 2);
+    // docs/combat-scaling-rebalance.md Part 3: capped at 30% of revived Max HP
+    const _bankedShield = Math.min(cocoon.shield || 0, hp * 0.30);
     enemies.push({
         x: cocoon.x, y: cocoon.y, size: cocoon._cocoonOriginalSize || cocoon.size / 0.85,
         speed: (1 + Math.random() * 2) * 0.8 * 0.80 * 0.80,
@@ -157,9 +162,9 @@ function _reviveThaelis(cocoon) {
         isTargetedByA: false, hitBySkillF: false, laserHit: false,
         // Shield banked from every Guard sacrificed while the Cocoon held out
         // carries straight over as a head start, instead of being wasted.
-        shield: cocoon.shield || 0,
+        shield: _bankedShield,
         type: 'thaelis', shootTimer: 1000, reincarnated: true,
-        _shieldPeak: cocoon.shield || 0,
+        _shieldPeak: _bankedShield,
         _tenacityBarrier70: false, _tenacityBarrier40: false, _tenacityBarrier10: false,
         _reviveInvulnEnd: performance.now() + THAELIS_REVIVE_INVULN_MS,
         _justRevivedAt: performance.now(),

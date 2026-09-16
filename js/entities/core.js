@@ -47,9 +47,9 @@ function applyVulnerability(enemy) {
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
     if (stacks < 4) {
-        // Lập tức giảm 26% khiên hiện tại
+        // Lập tức giảm 20% khiên hiện tại (docs/combat-scaling-rebalance.md Part 3)
         if (enemy.shield > 0) {
-            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.74));
+            enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.80));
         }
         enemy.vulnStacks = stacks + 1;
         // full stack -> 2.5s true dmg window. goliath: 5s cd, starts counting
@@ -484,6 +484,12 @@ function _addEnemyShield(enemy, amount) {
     if (!amount || amount <= 0) return;
     if (enemy.type === 'thaelis_cocoon') return; // no shield from any outside source, only its own HP pool matters
     amount *= _walpurgisHealShieldMult(); // Walpurgis (Huyết Dạ): +5% shield effectiveness per stack
+    // docs/combat-scaling-rebalance.md Part 3: ordinary enemy shields have an
+    // aggregate cap of 50% Max HP. Goliath's own stricter 30% Hentry cap is
+    // already enforced upstream by _goliathGrantShield before this runs.
+    const room = Math.max(0, enemy.maxHp * 0.50 - (enemy.shield || 0));
+    amount = Math.min(amount, room);
+    if (amount <= 0) return;
     _goliathTrackResourceGain(enemy, amount);
     enemy.shield = (enemy.shield || 0) + amount;
 }
@@ -721,10 +727,11 @@ function dealDamage(enemy, source) {
                         !a.type.startsWith('enemy_bullet') && a.type !== 'veilshroud_echo' &&
                         Math.hypot(a.x - enemy.x, a.y - enemy.y) <= _aR
                     ).length;
+                    // docs/combat-scaling-rebalance.md Part 3
                     if (_inAura === 0) {
                         _addEnemyShield(enemy, enemy.maxHp * 0.08);
                     } else {
-                        const _bPct = _inAura >= 4 ? 0.28 : _inAura >= 3 ? 0.24 : _inAura >= 2 ? 0.20 : 0.12;
+                        const _bPct = _inAura >= 4 ? 0.25 : _inAura >= 3 ? 0.20 : _inAura >= 2 ? 0.15 : 0.10;
                         _addEnemyShield(enemy, enemy.maxHp * _bPct);
                     }
                 }
@@ -857,7 +864,9 @@ function dealDamage(enemy, source) {
     // mục đích khác, không phải đòn Photokrystos thật, nên loại trừ riêng.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form' && (source.isPhoto || source._isPhotoSourced)
         && source._statSrc !== 'Skill S: Back to Motherland') {
-        totalDamage = Math.ceil(totalDamage * 0.60);
+        // docs/combat-scaling-rebalance.md Part 3: partly offsets removing
+        // the double Glory application while keeping boss resistance.
+        totalDamage = Math.ceil(totalDamage * 0.80);
     }
 
     if (!isSentinel && !source._vanguardTag && !source._noBase60
@@ -876,7 +885,9 @@ function dealDamage(enemy, source) {
     }
 
     if (gloryForJusticeActive) {
-        totalDamage = Math.ceil(totalDamage * 1.70);
+        // docs/combat-scaling-rebalance.md Part 3: one shared x1.55 for
+        // in-scope outgoing damage, replacing the old core x1.70.
+        totalDamage = Math.ceil(totalDamage * 1.55);
     }
 
     // Accurate Parry buff: +25% tất cả damage đầu ra trong 4s
@@ -923,9 +934,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * 2.00);
     }
 
-    // Trọng Thương: +16% mỗi stack (max 4 stacks = +64%)
+    // Trọng Thương: +12% mỗi stack (max 4 stacks = +48%), docs/combat-scaling-rebalance.md Part 3
     if (enemy.vulnStacks && enemy.vulnStacks > 0) {
-        totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.16));
+        totalDamage = Math.ceil(totalDamage * (1 + enemy.vulnStacks * 0.12));
     }
 
     // SKILL D Mark & Annihilate: evade debuff overflow (computed above, in the
@@ -934,9 +945,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * (1 + _skillDEvadeDmgBonus));
     }
 
-    // Dimensional Rift zone: +25% incoming damage
+    // Dimensional Rift zone: +20% incoming damage (docs/combat-scaling-rebalance.md Part 3)
     if (enemy._inDimensionalRift) {
-        totalDamage = Math.ceil(totalDamage * 1.25);
+        totalDamage = Math.ceil(totalDamage * 1.20);
     }
 
     // vuln 4 stacks -> 2.5s window. hit still eats shield/barrier as normal,
@@ -961,7 +972,7 @@ function dealDamage(enemy, source) {
                 if (_wasAlive && enemy._tentacleHps[_ti] <= 0) {
                     enemy._tentaclesLost = (enemy._tentaclesLost || 0) + 1;
                     const _hpBefore = enemy.hp;
-                    enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(enemy.maxHp * 0.06 * _walpurgisHealShieldMult()));
+                    enemy.hp = Math.min(enemy.maxHp, enemy.hp + Math.ceil(enemy.maxHp * 0.04 * _walpurgisHealShieldMult())); // docs/combat-scaling-rebalance.md Part 3
                     _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
                     enemy.maxHp += Math.ceil(_tentMaxHp * 0.20);
                     const _sc = (enemy.size / 2) / 110;
@@ -1009,28 +1020,31 @@ function dealDamage(enemy, source) {
     }
 
     let combinedDR = 0;
+    // docs/combat-scaling-rebalance.md Part 3: the old code applied Null
+    // Slash's charging DR twice (once here, once further below), a real
+    // double-application bug - it's now a single +25% applied only in the
+    // block further below.
     if (enemy.type === 'egregor') {
         combinedDR += 0.40;
-        if (enemy._nullSlashPhase === 'charging') combinedDR += 0.40;
-        combinedDR += Math.min(0.20, (enemy._tentaclesLost || 0) * 0.05); // +5% DR per tentacle lost, max 20%
+        combinedDR += Math.min(0.15, (enemy._tentaclesLost || 0) * 0.03); // +3% DR per tentacle lost, max 15%
     }
     if (enemy.demonGiftEndTime && currentTime < enemy.demonGiftEndTime) {
-        combinedDR += (enemy.demonGiftStacks === 2) ? 0.40 : 0.20;
+        combinedDR += (enemy.demonGiftStacks === 2) ? 0.20 : 0.10;
     }
 
     if (enemy.type === 'dargruel' && enemy.hp < enemy.maxHp * 0.6) {
         const hpPercent = (enemy.hp / enemy.maxHp) * 100;
         const percentPointsLost = 60 - hpPercent;
-        combinedDR += Math.min(0.72, (percentPointsLost * 1.5 / 100));
+        combinedDR += Math.min(0.30, (percentPointsLost * 0.75 / 100));
     }
 
-    // Tenacity: +2.5% DR per 1% HP lost, cap 95%
+    // Tenacity: +1% DR per 1% HP lost, cap 60% (docs/combat-scaling-rebalance.md Part 3)
     if (enemy.type === 'thaelis') {
         const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
-        combinedDR += Math.min(0.95, hpLostPct * 0.025);
+        combinedDR += Math.min(0.60, hpLostPct * 0.01);
         // A Thaelis that climbed back out of its Cocoon is tougher than the
-        // one that went in: +20% DR on top of Tenacity's own scaling.
-        if (enemy.reincarnated) combinedDR += 0.20;
+        // one that went in: +10% DR on top of Tenacity's own scaling.
+        if (enemy.reincarnated) combinedDR += 0.10;
     }
 
     // Thaelis Cocoon Guards: the real damage sink now that the Cocoon
@@ -1041,15 +1055,19 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'raphael') {
-        combinedDR += 0.55;
+        combinedDR += 0.50; // docs/combat-scaling-rebalance.md Part 3
     }
 
     if (enemy.shield > 0 && enemy.raphaelShieldReceived) {
-        combinedDR += 0.18;
+        combinedDR += 0.12; // docs/combat-scaling-rebalance.md Part 3
     }
 
     if (enemy.type === 'marchosias') {
         combinedDR += 0.45;
+        // docs/combat-scaling-rebalance.md Part 3: an explicit +10% while the
+        // arc barrier is broken, replacing a stale enemy.DR field the core
+        // resolver never actually read.
+        if (enemy.arcBarrier && enemy.arcBarrier.hp <= 0) combinedDR += 0.10;
     }
 
     if (enemy.type === 'uriel') {
@@ -1061,13 +1079,13 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'dargruel') {
-        // Maître suprême: 50% base + 2.5% per sentinel, capped at 60%
-        const maitreDR = Math.min(0.60, 0.50 + sentinels.length * 0.025);
+        // Maître suprême: 45% base + 1% per sentinel, capped at 55% (docs/combat-scaling-rebalance.md Part 3)
+        const maitreDR = Math.min(0.55, 0.45 + sentinels.length * 0.01);
         combinedDR += maitreDR;
     }
 
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-        combinedDR += 0.70 * _goliathWaningMult(0.85, _goliathWaningStacks(enemy)); // Inevitable: 70% base DR, decayed by Waning Might
+        combinedDR += 0.60 * _goliathWaningMult(0.85, _goliathWaningStacks(enemy)); // Inevitable: 60% base DR, decayed by Waning Might (docs/combat-scaling-rebalance.md Part 3)
 
         // Joker copies — mỗi cái chỉ cộng DR nếu Goliath THẬT SỰ có bảo thạch
         // đó (enemy._jokerState[name] chỉ tồn tại khi đã hấp thụ đúng viên)
@@ -1077,13 +1095,13 @@ function dealDamage(enemy, source) {
         }
         if (js['Thaelis']) {
             const hpLostPct = (1 - enemy.hp / enemy.maxHp) * 100;
-            combinedDR += Math.max(0.20, 0.60 - hpLostPct * 0.006); // Tenacity: trần dao động 20-60%
+            combinedDR += Math.max(0.10, 0.25 - hpLostPct * 0.0015); // Tenacity, docs/combat-scaling-rebalance.md Part 3
         }
         if (js['Marchosias'] && js['Marchosias'].barrierDown) {
-            combinedDR += 0.20; // Barrier vừa vỡ: +20% DR tạm, mất khi barrier hồi sinh
+            combinedDR += 0.10; // Barrier vừa vỡ: +10% DR tạm (docs/combat-scaling-rebalance.md Part 3)
         }
         if (js['Egregor'] && (js['Egregor'].phase === 'charging' || js['Egregor'].phase === 'striking')) {
-            combinedDR += 0.40; // Null Slash đang vận/đánh: +40% DR
+            combinedDR += 0.15; // Null Slash đang vận/đánh: +15% DR (docs/combat-scaling-rebalance.md Part 3)
         }
         // Tempered Resolve: đang vận bất kỳ skill nào (của chính Goliath hay
         // Joker copy) thì +10% DR, bù lại cho việc bị chậm 35% + cấm dịch chuyển.
@@ -1093,19 +1111,21 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'leviathan') {
-        combinedDR += 0.60; // Inevitable: 60% base DR
+        combinedDR += 0.55; // Inevitable: 55% base DR (docs/combat-scaling-rebalance.md Part 3)
         // Grace period right as the AFO shield breaks: 90% DR for 1s
         if (enemy._afoBreakGraceEnd && currentTime < enemy._afoBreakGraceEnd) {
             combinedDR = Math.max(combinedDR, 0.90);
         }
     }
 
-    // Egregor Null Slash charging: +40% DR on body hits
+    // Egregor Null Slash charging: +25% DR on body hits, applied exactly
+    // once (docs/combat-scaling-rebalance.md Part 3 - this used to also be
+    // added above, doubling it to +80%)
     if (enemy.type === 'egregor' && enemy._nullSlashPhase === 'charging') {
-        combinedDR += 0.40;
+        combinedDR += 0.25;
     }
     if (enemy.type === 'embryo') {
-        combinedDR += 0.90;
+        combinedDR += 0.85; // docs/combat-scaling-rebalance.md Part 3
     }
 
     // Veilshroud: 99% DR trong phantom, 40% base DR bình thường
@@ -1120,7 +1140,7 @@ function dealDamage(enemy, source) {
             return; // đòn bị né hoàn toàn
         }
         if (enemy._veilHealDRExpiry && currentTime < enemy._veilHealDRExpiry) {
-            combinedDR += 0.20; // Alteration heal DR buff: +20% for 3s after receiving heal
+            combinedDR += 0.10; // Alteration heal DR buff: +10% for 3s after receiving heal (docs/combat-scaling-rebalance.md Part 3)
         }
         combinedDR += enemy.inPhantom ? 0.99 : 0.40;
     }
@@ -1130,8 +1150,8 @@ function dealDamage(enemy, source) {
 
     // Thủ Lĩnh Bầy Đàn (Envy): +25% DR, cộng dồn với mọi nguồn
     if (enemy.levEnvy) {
-        combinedDR += 0.25;
-        // Envy 1% MaxHP/s regen handled in main loop
+        combinedDR += 0.15; // docs/combat-scaling-rebalance.md Part 3
+        // Envy 0.75% MaxHP/s regen handled in main loop
     }
 
     // Iron Body (Bất tử tuyệt đối), bypass all damage
@@ -1197,17 +1217,21 @@ function dealDamage(enemy, source) {
     if (isSentinel && sentinels.length >= 5 && (source.damage > 0 || source.percentDamage > 0)) {
         const effHp = enemy.maxHp || enemy.hp;
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
-        if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.70);
+        if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.55);
         if (accurateParryActive && performance.now() < accurateParryEndTime) rawDmg = Math.ceil(rawDmg * 1.25);
-        if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.16));
+        if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.12));
         rawDmg = Math.max(0, rawDmg);
         // BUG A fix: apply vanguard DR (each source 10%, max 30%)
         const _vIsTrueDmg = source.isTrueDamage || inTrueDmgWindow;
         if (!_vIsTrueDmg) {
-            let _vDR = 0.05; // base sentinel DR
-            if (gloryForJusticeActive) _vDR += 0.15;
-            if (sentinels.length >= 5 && sentinels.length < 12) _vDR += 0.10;
+            // docs/combat-scaling-rebalance.md Part 3: base and herd-tier DR
+            // now match the solo route exactly (8% base, +8% herd tier 2);
+            // Glory DR unified to 25% on both routes.
+            let _vDR = 0.08; // base sentinel DR
+            if (gloryForJusticeActive) _vDR += 0.25;
+            if (sentinels.length >= 5 && sentinels.length < 12) _vDR += 0.08;
             if (enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) _vDR += 0.10;
+            if (enemy._blessingDR) _vDR += enemy._blessingDR; // docs/combat-scaling-rebalance.md Part 3
             rawDmg = Math.ceil(rawDmg * (1 - _vDR));
         }
         rawDmg = Math.max(0, rawDmg);
@@ -1217,58 +1241,76 @@ function dealDamage(enemy, source) {
 
     if (isSentinel) combinedDR += 0.08; // base sentinel DR
     if (isSentinel && gloryForJusticeActive) {
-        combinedDR += 0.30; // Glory for Justice sentinel DR
+        combinedDR += 0.25; // Glory for Justice sentinel DR (docs/combat-scaling-rebalance.md Part 3)
     }
-    // Tier 2 Herd Mentality: +10% DR thêm khi có 5-11 sentinels
+    // Tier 2 Herd Mentality: +8% DR thêm khi có 5-11 sentinels (docs/combat-scaling-rebalance.md Part 3)
     if (isSentinel && sentinels.length >= 5 && sentinels.length < 12) {
-        combinedDR += 0.10;
+        combinedDR += 0.08;
     }
     // Sentinel Parry buff: +10% DR (có thể cộng dồn)
     if (isSentinel && enemy.sentinelParryBuff && performance.now() < enemy.sentinelParryBuffEnd) {
         combinedDR += 0.10;
     }
+    // Blessing of the Primordial DR (docs/combat-scaling-rebalance.md Part 3):
+    // was only ever applied to recoil cost, never to actual incoming damage.
+    if (isSentinel && enemy._blessingDR) {
+        combinedDR += enemy._blessingDR;
+    }
 
     if (enemy._debugDR) combinedDR += enemy._debugDR;
-    combinedDR = Math.min(0.99, combinedDR);
+    // docs/combat-scaling-rebalance.md Part 3: additive DR is capped at 85%
+    // for sustained enemy defense and 65% for friendly summons, except the
+    // two timed states explicitly allowed to keep their own higher limit
+    // (Veilshroud's own 3s Phantom, its Goliath Joker copy's Phantom, and
+    // Leviathan's 1s AFO-break grace).
+    const _drTimedException = (enemy.type === 'veilshroud' && enemy.inPhantom)
+        || (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy._jokerState['Veilshroud']
+            && enemy._jokerState['Veilshroud'].phantomEnd && currentTime < enemy._jokerState['Veilshroud'].phantomEnd)
+        || (enemy.type === 'leviathan' && enemy._afoBreakGraceEnd && currentTime < enemy._afoBreakGraceEnd);
+    const _drCap = _drTimedException ? 0.99 : (isSentinel ? 0.65 : 0.85);
+    combinedDR = Math.min(_drCap, combinedDR);
     const _veilPreDr = (enemy.type === 'veilshroud' && enemy.inPhantom) ? totalDamage : 0;
     // True damage skips DR; Lion's Roar Burn uses 50% of DR; normal damage uses full DR
     if (!source.isTrueDamage) {
         const _drMul = source._isSthDot ? combinedDR * 0.5 : combinedDR;
-        totalDamage = Math.ceil(totalDamage * (1 - _drMul));
-        // Walpurgis (Huyết Dạ): flat "DR Base" armor, +100 per stack — a
-        // separate stat from the %-based DR above, subtracted straight off
-        // the remaining damage. Floored at 0 same as everywhere else, so it
-        // can only ever reduce a hit to a graze, never block a kill outright.
-        totalDamage -= _walpurgisFlatDR();
-        // Inevitable (Leviathan): 350 flat armor on top of its 60% DR above,
-        // same subtract-after-percentage pattern as Walpurgis's flat DR.
-        if (enemy.type === 'leviathan') totalDamage -= 350;
-        // Uriel, right after a Camouflage reappear: +200 flat DR for 2s.
-        if (enemy.type === 'uriel' && enemy._camoFlatDREnd && currentTime < enemy._camoFlatDREnd) totalDamage -= 200;
-        // Thaelis Cocoon Guards: flat armor on top of the % DR above, same
-        // subtract-after-percentage pattern - still fully bypassed by true
-        // damage, same as the % DR right above it.
-        if (enemy.type === 'thaelis_guard') totalDamage -= THAELIS_COCOON_GUARD_FLAT_DR;
-        // A revived Thaelis also gets 250 flat armor on top of its extra 20% DR above.
-        if (enemy.type === 'thaelis' && enemy.reincarnated) totalDamage -= 250;
+        const _postDR = Math.ceil(totalDamage * (1 - _drMul));
+
+        // Every flat-armor source is summed here, then capped as one pool
+        // against this hit's own post-DR value (docs/combat-scaling-
+        // rebalance.md Part 3: armorLoss = min(flatArmor, 0.60*postDR)).
+        // Stacking flat armor sources used to each subtract in full,
+        // sequentially, with no relationship to the hit's own size - a
+        // small hit against a heavily-armored target could be zeroed out
+        // entirely and stay that way forever as more armor sources piled
+        // on. Capping the combined total at 60% of what survives % DR
+        // means armor can always be worn down by a large enough hit.
+        let _flatArmor = _walpurgisFlatDR();
+        // Inevitable (Leviathan): flat armor on top of its 55% DR above.
+        if (enemy.type === 'leviathan') _flatArmor += 150;
+        // Uriel, right after a Camouflage reappear: +100 flat DR for 2s.
+        if (enemy.type === 'uriel' && enemy._camoFlatDREnd && currentTime < enemy._camoFlatDREnd) _flatArmor += 100;
+        // Thaelis Cocoon Guards: flat armor on top of the % DR above - still
+        // fully bypassed by true damage, same as the % DR right above it.
+        if (enemy.type === 'thaelis_guard') _flatArmor += THAELIS_COCOON_GUARD_FLAT_DR;
+        // A revived Thaelis also gets flat armor on top of its extra 10% DR above.
+        if (enemy.type === 'thaelis' && enemy.reincarnated) _flatArmor += 100;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
-        // off the current ally count, same pattern. Base 200 (scaling
-        // 1+10%/ally) against normal hits, base 400 (scaling 1+15%/ally)
-        // against any %MaxHP-scaling hit (percentDamage > 0) — that's
-        // the damage class that ignores Goliath's raw HP pool, so it gets
-        // punished harder here.
+        // off the current ally count, same base and rate against both
+        // normal and %MaxHP-scaling hits now.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-            totalDamage -= source.percentDamage > 0
-                ? 400 * (enemy._unifiedFrontScalingDRMult || 1)
-                : 200 * (enemy._unifiedFrontDRMult || 1);
+            _flatArmor += 100 * (source.percentDamage > 0
+                ? (enemy._unifiedFrontScalingDRMult || 1)
+                : (enemy._unifiedFrontDRMult || 1));
         }
-        // Tempered Resolve (Goliath True Form): +420 flat DR while
-        // channeling any skill (its own or a Joker copy's), on top of the
-        // +10% DR already applied above — same subtract-after-% pattern.
+        // Tempered Resolve (Goliath True Form): flat armor while channeling
+        // any skill (its own or a Joker copy's), on top of the +10% DR
+        // already applied above.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _goliathIsCasting(enemy)) {
-            totalDamage -= 420;
+            _flatArmor += 100;
         }
-        totalDamage = Math.max(0, totalDamage);
+
+        const _armorLoss = Math.min(_flatArmor, 0.60 * _postDR);
+        totalDamage = Math.max(0, _postDR - _armorLoss);
     }
 
     // Damage caps apply regardless of true damage
@@ -1407,18 +1449,20 @@ function dealDamage(enemy, source) {
         if (totalDamage <= 0) { enemy.hp = Math.max(0, enemy.hp); return; }
     }
 
-    // Gaia Barrier (Sentinel): 99% absorbed by barrier, 1% through to body
-    // True damage bypasses the barrier entirely
+    // Gaia Barrier (Sentinel): absorbs only what its pool actually has,
+    // never more than the hit itself; true damage bypasses it entirely
+    // (docs/combat-scaling-rebalance.md Part 3 - a 1-point barrier can no
+    // longer discard 99% of a 1000-point hit down to a flat 1% floor).
     if (isSentinel && (enemy._gaiaBarrier || 0) > 0 && !source.isTrueDamage) {
-        const _gAbsorb = Math.min(Math.ceil(totalDamage * 0.99), enemy._gaiaBarrier);
-        enemy._gaiaBarrier = Math.max(0, enemy._gaiaBarrier - _gAbsorb);
+        const _gAbsorb = Math.min(totalDamage, enemy._gaiaBarrier);
+        enemy._gaiaBarrier -= _gAbsorb;
         if (enemy._gaiaBarrier <= 0) {
             addExplosion(enemy.x, enemy.y, enemy.size * 1.2, '#00ff88');
             createParticles(enemy.x, enemy.y, 14, '#00ff88', 2, 7);
         }
         // Tidal Flow: whatever the Barrier just soaked feeds the tide meter
         if (_hasBuff('trieu_hoi')) _feedTidalSurgeMeter(_gAbsorb);
-        totalDamage = Math.max(1, Math.ceil(totalDamage * 0.01));
+        totalDamage -= _gAbsorb;
     }
 
     // Pisces Dream Realm: enemies marked by black hole accumulate damage
@@ -1541,7 +1585,8 @@ function dealDamage(enemy, source) {
         if (inTrueDmgWindow) {
             const _vulnElapsed = VULN_TRUE_DMG_WINDOW_MS - (enemy.vulnTrueDmgEnd - performance.now());
             const _vulnFrac = Math.min(1, Math.max(0, _vulnElapsed / VULN_TRUE_DMG_WINDOW_MS));
-            const _vulnPct = 0.40 - _vulnFrac * 0.20;
+            // docs/combat-scaling-rebalance.md Part 3: 30% declining to 15% over the window
+            const _vulnPct = 0.30 - _vulnFrac * 0.15;
             _vulnTrueBonus = Math.ceil(totalDamage * _vulnPct);
         }
         // Thaelis's own Tenacity check above already drained its Shield for
@@ -1834,12 +1879,13 @@ function dealDamage(enemy, source) {
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { _demonTrigger(); enemy.demonGift1Triggered = true; }
     }
 
-    // Tenacity, mỗi khi mất 30% HP, nhận Shield (30% MaxHP + 20% HP đã mất + 250) × 1.10
+    // Tenacity, mỗi khi mất 30% HP, nhận Shield (20% MaxHP + 10% HP đã mất +
+    // 100), docs/combat-scaling-rebalance.md Part 3
     if (enemy.type === 'thaelis') {
         const oldPct = oldHP / enemy.maxHp;
         const newPct = enemy.hp / enemy.maxHp;
         const _hpLost = enemy.maxHp - enemy.hp;
-        const shieldGrant = Math.ceil((enemy.maxHp * 0.30 + _hpLost * 0.20 + 250) * 1.10);
+        const shieldGrant = Math.ceil(enemy.maxHp * 0.20 + _hpLost * 0.10 + 100);
         const _grantShield = () => {
             enemy.shield = (enemy.shield || 0) + shieldGrant;
             enemy._shieldPeak = (enemy._shieldPeak || 0) + shieldGrant;
@@ -1911,16 +1957,17 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
         const isTarget = targetSentinel !== null && s === targetSentinel;
         let totalDmg = dmgPerSentinel + (isTarget ? targetExtra : 0);
 
-        // Gaia Barrier: 99% absorbed, 1% passes through; true damage reduced 20% first
-        if ((s._gaiaBarrier || 0) > 0) {
-            if (isTrueDamage) totalDmg = Math.ceil(totalDmg * 0.80);
-            const _gAbsorb = Math.min(Math.ceil(totalDmg * 0.99), s._gaiaBarrier);
-            s._gaiaBarrier = Math.max(0, s._gaiaBarrier - _gAbsorb);
+        // Gaia Barrier: absorbs only what its pool actually has, never more
+        // than the hit itself; true damage bypasses it entirely and
+        // consistently (docs/combat-scaling-rebalance.md Part 3).
+        if (!isTrueDamage && (s._gaiaBarrier || 0) > 0) {
+            const _gAbsorb = Math.min(totalDmg, s._gaiaBarrier);
+            s._gaiaBarrier -= _gAbsorb;
             if (s._gaiaBarrier <= 0) {
                 addExplosion(s.x, s.y, s.size * 1.2, '#00ff88');
                 createParticles(s.x, s.y, 14, '#00ff88', 2, 7);
             }
-            totalDmg = Math.max(1, Math.ceil(totalDmg * 0.01));
+            totalDmg -= _gAbsorb;
         }
 
         _vanguardStatTotal += totalDmg;
@@ -1936,10 +1983,13 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
     });
     _recordStat('enemyDamage', _classifyDamageSource({ _vanguardTag: sourceTag, _attackerType: attackerType }, false), _vanguardStatTotal);
 
-    // Track cho Fuse Protocol (26% threshold)
-    // BUG J fix: use rawDmg (pre-dampening) for accurate threshold detection
+    // Track cho Fuse Protocol (26% threshold). docs/combat-scaling-
+    // rebalance.md Part 3: count the damage actually accepted into the
+    // network - after source damping, before the 60/40 distribution split -
+    // not the raw pre-dampening value, which overcounted a heavily-damped
+    // repeated or multi-source hit as if the network had taken it in full.
     vs.recentDamage = vs.recentDamage.filter(d => now - d.time < 500);
-    vs.recentDamage.push({ time: now, damage: rawDmg });
+    vs.recentDamage.push({ time: now, damage: dampenedDmg });
 
     const totalRecentDmg = vs.recentDamage.reduce((a, b) => a + b.damage, 0);
     const totalNetworkMaxHp = sentinels.reduce((a, s) => a + s.maxHp, 0);

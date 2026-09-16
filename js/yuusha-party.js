@@ -264,7 +264,9 @@ class YuushaMember {
             if (t >= 350 && !this._healApplied) {
                 this._healApplied = true;
                 for (const tgt of targets) {
-                    tgt.hp = Math.min(tgt.maxHp, tgt.hp + 50);
+                    // docs/combat-scaling-rebalance.md Part 3
+                    const _healAmt = Math.min(0.50 * player.atk, 0.20 * tgt.maxHp);
+                    tgt.hp = Math.min(tgt.maxHp, tgt.hp + _healAmt);
                     tgt.healFlashUntil = now + 800;
                     window._yuushaFloatingTexts = window._yuushaFloatingTexts || [];
                     window._yuushaFloatingTexts.push({
@@ -897,25 +899,22 @@ function _updateYuushaFormation(slotsChanged) {
 // onto EVERY living squad member at once, each taking 1.5x whatever that same
 // attack already deals to a real Sentinel — piercing/AoE attacks sweep through
 // every entity in their path, so all 4 members share that fate together, not
-// just one. Called from each piercing enemy attack's own player-hit call site,
-// using that same attack's own sentinel-damage formula. `value` is a fraction
-// of each member's own maxHp (optionally +shield when `pctMode` is true)
-// unless `pctMode === 'flat'`, in which case `value` is already an absolute
-// damage number (matches abilities like Goliath's Absolute Verdict, whose
-// sentinel damage is a flat % of ITS OWN maxHp, unrelated to the target's).
+// just one. Called from each piercing enemy attack's own player-hit call
+// site, with `value` already the exact same attacker-derived damage number
+// that attack deals to a real Sentinel (docs/combat-scaling-rebalance.md
+// Part 2's Yuusha audit fix - never a fraction of each member's own maxHp).
+// `isTrueDamage` mirrors the source attack's own flag, so it bypasses DR/
+// shield here exactly as it would against a real Sentinel (Part 3).
 // Returns true if redirected (caller should skip its own playerTakesHit call).
-function _yuushaPierceRedirect(value, pctMode) {
+function _yuushaPierceRedirect(value, isTrueDamage) {
     if (!_hasBuff('doi_hinh_chien') || !(value > 0)) return false;
     const alive = (window._yuushaSquad || []).filter(s => s.hp > 0);
     if (alive.length === 0) return false;
 
     const now = performance.now();
     alive.forEach(member => {
-        const sentinelDmg = pctMode === 'flat'
-            ? value
-            : member.maxHp * value;
-        const rawDmg = sentinelDmg * 1.5;
-        const actualDmg = _yuushaApplyDamage(member, rawDmg, now);
+        const rawDmg = value * 1.5;
+        const actualDmg = _yuushaApplyDamage(member, rawDmg, now, isTrueDamage);
         if (member.role === 'Tank' && actualDmg > 0) _yuushaFillTankAbsorb(member, actualDmg * 2.2);
         if (member.hp <= 0) member._deathTime = now;
         addExplosion(member.x, member.y, 40, 'cyan');
@@ -944,7 +943,8 @@ function _yuushaFillTankAbsorb(tank, amount) {
     tank.absorb = Math.min(100, (tank.absorb || 0) + amount);
     if (tank.absorb >= 100) {
         tank.absorb = 0;
-        tank.hp = Math.min(tank.maxHp, tank.hp + 20);
+        // docs/combat-scaling-rebalance.md Part 3
+        tank.hp = Math.min(tank.maxHp, tank.hp + Math.min(0.20 * player.atk, 0.08 * tank.maxHp));
         tank.triggerActive();
     }
 }
@@ -955,7 +955,7 @@ function _yuushaFillTankAbsorb(tank, amount) {
 // Barrier), since those buffs are now granted to _yuushaSquad too via the
 // same forEach loops that grant them to `sentinels`. Returns the HP damage
 // actually applied (0 if fully blocked/evaded).
-function _yuushaApplyDamage(member, dmg, now) {
+function _yuushaApplyDamage(member, dmg, now, isTrueDamage) {
     if (member.absoluteShield) {
         member.absoluteShield = false;
         return 0;
@@ -967,15 +967,29 @@ function _yuushaApplyDamage(member, dmg, now) {
     }
     if (_hasBuff('giap_nguyet') && Math.random() < 0.20) return 0;
 
-    let dr = member._blessingDR || 0;
-    if (member.sentinelParryBuff && now < member.sentinelParryBuffEnd) dr += 0.10;
-    if (typeof gloryForJusticeActive !== 'undefined' && gloryForJusticeActive) dr += 0.30;
-    let mitigated = dmg * (1 - Math.min(0.9, dr));
+    // docs/combat-scaling-rebalance.md Part 3: true damage bypasses DR,
+    // Gaia, and ordinary shield consistently, same as a real Sentinel.
+    let mitigated = dmg;
+    if (!isTrueDamage) {
+        // Base 8% DR (was 0%), Glory unified to +25%, shared friendly DR cap of 65%.
+        let dr = 0.08 + (member._blessingDR || 0);
+        if (member.sentinelParryBuff && now < member.sentinelParryBuffEnd) dr += 0.10;
+        if (typeof gloryForJusticeActive !== 'undefined' && gloryForJusticeActive) dr += 0.25;
+        mitigated = dmg * (1 - Math.min(0.65, dr));
 
-    if ((member._gaiaBarrier || 0) > 0) {
-        const absorbed = Math.min(member._gaiaBarrier, mitigated);
-        member._gaiaBarrier -= absorbed;
-        mitigated -= absorbed;
+        if ((member._gaiaBarrier || 0) > 0) {
+            const absorbed = Math.min(member._gaiaBarrier, mitigated);
+            member._gaiaBarrier -= absorbed;
+            mitigated -= absorbed;
+        }
+        // Ordinary shield was granted to Yuusha members (via the shared
+        // _allyUnits loops in main.js) but never actually drained here -
+        // it just sat inert while every hit went straight through to HP.
+        if ((member.shield || 0) > 0) {
+            const absorbedShield = Math.min(member.shield, mitigated);
+            member.shield -= absorbedShield;
+            mitigated -= absorbedShield;
+        }
     }
     member.hp = Math.max(0, member.hp - mitigated);
     return mitigated;
@@ -1008,8 +1022,13 @@ function _checkYuushaBulletCollisions(now) {
             ? tanks[Math.floor(Math.random() * tanks.length)]
             : nearest;
 
-        const rawDmg = e.type === 'enemy_bullet_small' ? member.maxHp * 0.15 : Math.min(member.maxHp * 0.3, e.hp);
-        const actualDmg = _yuushaApplyDamage(member, rawDmg, now);
+        // docs/combat-scaling-rebalance.md Part 3: the 30% member Max HP cap
+        // is preserved as a post-scaling cap, but its source is now the
+        // bullet's own real damage payload, not its remaining interception
+        // HP (Part 2 decoupled the two - a partially-shot-down bullet no
+        // longer deals less damage).
+        const rawDmg = e.type === 'enemy_bullet_small' ? member.maxHp * 0.15 : Math.min(member.maxHp * 0.3, e.damage || 0);
+        const actualDmg = _yuushaApplyDamage(member, rawDmg, now, false);
         e.hp = 0;
 
         if (member.role === 'Tank' && actualDmg > 0) _yuushaFillTankAbsorb(member, actualDmg * 2.2);
