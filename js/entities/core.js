@@ -1380,6 +1380,20 @@ function dealDamage(enemy, source) {
         const _capPct = Math.min(0.03, 0.015 + _goliathDebuffStackCount(enemy) * 0.003);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
+    // Hotfix: piercing/true/DoT hits landed at full value with only the 60%
+    // base DR standing between them and Goliath's HP bar, since the cap
+    // above deliberately excludes them. That left them completely
+    // unbounded (unlike every other per-hit cap on this enemy, all of which
+    // also skip true damage), so a true-damage-heavy loadout could clear
+    // True Form in well under the intended ~1 minute at wave 5. Same shape
+    // as the cap above, just a higher ceiling so these sources stay
+    // meaningfully stronger than a capped normal hit rather than becoming
+    // identical to it.
+    if (enemy.type === 'goliath' && enemy.phase === 'true_form'
+        && (source.isTrueDamage || source.isPiercing || source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
+        const _capPctTrue = Math.min(0.06, 0.04 + _goliathDebuffStackCount(enemy) * 0.003);
+        totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPctTrue));
+    }
 
     // Veilshroud Phantom: damage capped at 25% maxHP per hit
     if (enemy.type === 'veilshroud' && enemy.inPhantom) {
