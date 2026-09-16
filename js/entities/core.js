@@ -1119,7 +1119,13 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-        combinedDR += 0.60 * _goliathWaningMult(0.85, _goliathWaningStacks(enemy)); // Inevitable: 60% base DR, decayed by Waning Might (docs/combat-scaling-rebalance.md Part 3)
+        combinedDR += 0.63 * _goliathWaningMult(0.85, _goliathWaningStacks(enemy)); // Inevitable: 63% base DR, decayed by Waning Might (docs/combat-scaling-rebalance.md Part 3, nudged up slightly per AanSensei's live-test hotfix)
+        // Second phase, permanently tougher: once Unbroken Will has actually
+        // triggered (not just its temporary 6s reinforcement window, which
+        // ends), Goliath keeps a flat +12% DR for the rest of the fight -
+        // surviving its own death should make the back half of the encounter
+        // meaningfully harder, not just a brief buff window.
+        if (enemy._unbrokenWillUsed) combinedDR += 0.12;
 
         // Joker copies — mỗi cái chỉ cộng DR nếu Goliath THẬT SỰ có bảo thạch
         // đó (enemy._jokerState[name] chỉ tồn tại khi đã hấp thụ đúng viên)
