@@ -75,7 +75,7 @@ function updateSoulReaverDoT(deltaTime) {
             // as before) instead of subtracting HP directly, so Iron Body,
             // Custos Aeternus, AFO shields, Arc Barrier, and Goliath's own
             // invincibility phases actually gate it like every other source.
-            dealDamage(enemy, { damage: 0.60 * player.atk, percentDamage: 0.055, isTrueDamage: true, _isSrDot: true, _statSrc: 'Soul Reaver' });
+            dealDamage(enemy, { damage: 0.069 * player.atk, isTrueDamage: true, _isSrDot: true, _statSrc: 'Soul Reaver' });
             // Particle nhỏ màu cam để thể hiện DoT
             createParticles(
                 enemy.x + (Math.random() - 0.5) * (enemy.size || 20),

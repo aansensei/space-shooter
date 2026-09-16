@@ -27,7 +27,7 @@ function _createGobSequence(startTime) {
     return { startTime, phase: 0, baseAngle, fanAngle, portals, swords: [] };
 }
 
-const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_PCT = 0.03; // docs/combat-scaling-rebalance.md Part 5
+const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20;
 
 function updateGateOfBabylon(deltaTime) {
     if (!window._gobSequences || window._gobSequences.length === 0) return;
@@ -73,7 +73,7 @@ function updateGateOfBabylon(deltaTime) {
                     const dx = sw.x - en.x, dy = sw.y - en.y, r = (en.size || 20) / 2;
                     if (dx * dx + dy * dy < r * r) {
                         sw.hitEnemies.add(en);
-                        dealDamage(en, { damage: 0.50 * player.atk, percentDamage: GOB_SWORD_DMG_PCT, isTrueDamage: true, _isGobBlade: true, _noHitSfx: true, _statSrc: 'Aries: Gate of Babylon' });
+                        dealDamage(en, { damage: 0.0575 * player.atk, isTrueDamage: true, _isGobBlade: true, _noHitSfx: true, _statSrc: 'Aries: Gate of Babylon' });
                         if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', sw.x, sw.y);
                         particles.push({ isGobImpact: true, x: en.x, y: en.y, angle: sw.angle, lifetime: 200, maxLifetime: 200 });
                         createParticles(sw.x, sw.y, 8, '#fef08a', 2, 6);
@@ -105,7 +105,7 @@ function _createEeSequence(startTime, target) {
     return { startTime, phase: 0, x: ox, y: oy, angle: Math.atan2(target.y - oy, target.x - ox), beamWidth: 0, beamAlpha: 0, hitEnemies: new Set(), shockwaves: [], _lastShockwaveAt: 0 };
 }
 
-const EE_DMG_PCT = 0.12, EE_BEAM_HALF = 50; // docs/combat-scaling-rebalance.md Part 5
+const EE_BEAM_HALF = 50;
 
 function updateEnumaElish(deltaTime) {
     if (!window._eeSequences || window._eeSequences.length === 0) return;
@@ -144,7 +144,7 @@ function updateEnumaElish(deltaTime) {
                 if (Math.random() > 0.7) createParticles(en.x, en.y, 5, '#fca5a5', 2, 5);
                 if (seq.hitEnemies.has(en)) continue;
                 seq.hitEnemies.add(en);
-                const dmg = Math.min(120 * player.atk, Math.ceil(en.maxHp * EE_DMG_PCT)); // docs/combat-scaling-rebalance.md Part 5
+                const dmg = Math.ceil(13.8 * player.atk); // no target-Max-HP cap anymore, pure ATK
                 dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
                 particles.push({ isEeSlash: true, x: en.x, y: en.y, angle: seq.angle + (Math.random() - 0.5) * 0.5, lifetime: 400, maxLifetime: 400 });
             }

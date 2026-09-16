@@ -40,8 +40,6 @@ function _releaseTidalSurge() {
 
 const TIDAL_SURGE_PULL_RADIUS = 110;
 const TIDAL_SURGE_BURST_RADIUS = 150;
-const TIDAL_SURGE_DAMAGE_PCT = 0.18; // docs/combat-scaling-rebalance.md Part 5
-const TIDAL_SURGE_DOT_PCT = 0.0025;
 const TIDAL_SURGE_DOT_INTERVAL = 100;
 const TIDAL_SURGE_MAX_WHIRLPOOLS = 10;
 
@@ -163,7 +161,7 @@ function _updateTidalSurge(deltaTime) {
                 const _lastTick = w._activation.dotTickedAt.get(enemy) || 0;
                 if (_dotNow - _lastTick < TIDAL_SURGE_DOT_INTERVAL) continue;
                 w._activation.dotTickedAt.set(enemy, _dotNow);
-                dealDamage(enemy, { damage: 0.50 * player.atk, percentDamage: TIDAL_SURGE_DOT_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
+                dealDamage(enemy, { damage: 0.0575 * player.atk, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
             }
         }
 
@@ -213,7 +211,7 @@ function _updateTidalSurge(deltaTime) {
                     if (w._activation.bitVictims.has(enemy)) continue;
                     if (Math.hypot(enemy.x - w.x, enemy.y - w.y) <= TIDAL_SURGE_BURST_RADIUS) {
                         w._activation.bitVictims.add(enemy);
-                        dealDamage(enemy, { damage: 6.50 * player.atk, percentDamage: TIDAL_SURGE_DAMAGE_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
+                        dealDamage(enemy, { damage: 0.7475 * player.atk, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
                     }
                 }
                 // Splash burst as the whale snaps its jaws shut - a spray of

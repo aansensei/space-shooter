@@ -2149,7 +2149,7 @@ function update(rawDeltaTime) {
                     // even if the hit was fully blocked or evaded.
                     const _actualLoss = (_preHitHp - enemy.hp) + (_preHitShield - (enemy.shield || 0));
                     if (b.type === 'sentinel_special' && b.sourceSentinel && b.sourceSentinel.hp > 0 && _actualLoss > 0) {
-                        const _healAmt = Math.min(0.02 * player.atk, 0.01 * b.sourceSentinel.maxHp);
+                        const _healAmt = Math.min(0.0023 * player.atk, 0.01 * b.sourceSentinel.maxHp);
                         b.sourceSentinel.hp = Math.min(b.sourceSentinel.maxHp, b.sourceSentinel.hp + _healAmt);
                         createParticles(b.sourceSentinel.x, b.sourceSentinel.y, 5, 'lime', 1, 3);
                     }
@@ -2247,7 +2247,7 @@ function update(rawDeltaTime) {
         if (_levOnField && !window._blessingLevShieldGiven) {
             window._blessingLevShieldGiven = true;
             _allyUnits.forEach(s => {
-                const grant = Math.min(0.40 * player.atk, 0.15 * (s.maxHp || 100));
+                const grant = Math.min(0.046 * player.atk, 0.15 * (s.maxHp || 100));
                 _addAllyShield(s, grant);
             });
         } else if (!_levOnField) {
@@ -2270,7 +2270,7 @@ function update(rawDeltaTime) {
         if (window._blessingShieldTimer >= 3000) {
             window._blessingShieldTimer = 0;
             _allyUnits.forEach(s => {
-                const cap = Math.min(0.40 * player.atk, 0.15 * (s.maxHp || 100));
+                const cap = Math.min(0.046 * player.atk, 0.15 * (s.maxHp || 100));
                 const current = s._blessingShield || 0;
                 const toAdd = Math.min(cap - current, cap);
                 if (toAdd > 0) {

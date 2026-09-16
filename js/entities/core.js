@@ -74,7 +74,7 @@ function updateVulnerabilityWindows() {
             enemy.vulnTrueDmgEnd = 0;
             enemy.vulnStacks = 0;
             enemy.vulnEndTime = 0;
-            dealDamage(enemy, { damage: 5 * player.atk, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Vulnerability' });
+            dealDamage(enemy, { damage: 0.575 * player.atk, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Vulnerability' });
         }
     }
 }
@@ -902,7 +902,7 @@ function dealDamage(enemy, source) {
         // stat (docs/combat-scaling-rebalance.md, Part 1) instead of a bare
         // constant - at the conversion baseline (player.atk = 100) this is
         // exactly the same +60 as before.
-        totalDamage += 0.60 * player.atk;
+        totalDamage += 0.069 * player.atk;
         // Sigil: Lion's Roar — every eligible primary hit also deals 1% of
         // the enemy's own lost HP as bonus dmg (docs/combat-scaling-rebalance.md Part 5)
         if (_hasBuff('su_tu_hong')) {
@@ -1812,7 +1812,7 @@ function dealDamage(enemy, source) {
         const _laiKepNow = performance.now();
         if (!enemy._laiKepLastAt || _laiKepNow - enemy._laiKepLastAt >= 100) {
             enemy._laiKepLastAt = _laiKepNow;
-            enemy.hp = Math.max(0, enemy.hp - 1.50 * player.atk);
+            enemy.hp = Math.max(0, enemy.hp - 0.1725 * player.atk);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
         }
     }
