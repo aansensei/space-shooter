@@ -3053,7 +3053,7 @@ function _updateSigilPassives(now, deltaTime) {
                     if (_dtuShouldTick) {
                         // No target-Max-HP term (was 0.35% target MaxHP/tick) - first-pass
                         // ATK-only estimate, flag for AanSensei's own review/retune.
-                        dealDamage(e, { damage: 0.05 * player.atk, _isDtuDot: true });
+                        dealDamage(e, { damage: 0.065 * player.atk, _isDtuDot: true });
                     }
                 }
             }
@@ -3066,7 +3066,7 @@ function _updateSigilPassives(now, deltaTime) {
             if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
             if (now >= burnData.nextTick) {
                 const stacks = Math.min(3, burnData.stacks || 1);
-                const dmg = 0.23 * player.atk * stacks; // docs/combat-scaling-rebalance.md Part 5
+                const dmg = 0.30 * player.atk * stacks; // docs/combat-scaling-rebalance.md Part 5
                 dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
                 burnData.nextTick = now + 500;
             }
@@ -3081,8 +3081,11 @@ function _updateWaveSystem(deltaTime, now) {
         _waveRestTimer = Math.max(0, _waveRestTimer - deltaTime);
         if (_waveRestTimer <= 0) {
             _waveNumber++;
-            player.atk = PLAYER_BASE_ATK * _atkWaveMult(_waveNumber) * _sigilAtkMult();
-            if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
+            player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult();
+            // Per AanSensei: reaches its +300%/15-tier cap by wave 20 now
+            // (was wave 36+), so it's fully online for the wave-15-and-later
+            // waves that were wiping runs, instead of arriving too late to help.
+            if (_waveNumber >= 6 && _waveNumber <= 20) {
                 _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.20);
             }
             // Walpurgis (Huyết Dạ): a new stack crossed — rescale every enemy

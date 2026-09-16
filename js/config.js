@@ -184,12 +184,17 @@ let laserCooldownEnd = 0;
 let lastEnemySpawn = 0;
 const initialSpawnInterval = 1494, spawnDecreaseRate = 50, minSpawnInterval = 370;
 
-// Combat scaling (docs/combat-scaling-rebalance.md Part 2): the shared
-// wave-based growth multiplier both player.atk and every enemy's own ATK
-// stat scale by - +2% per wave up to +30% at wave 16+, so bounded flat
-// damage keeps some relevance against armor without compounding on top of
-// Yuuki/Sigil multipliers, which already grow independently.
+// Combat scaling (docs/combat-scaling-rebalance.md Part 2): the wave-based
+// growth multiplier every enemy's own ATK stat scales by - +2% per wave up
+// to +30% at wave 16+, so bounded flat damage keeps some relevance against
+// armor without compounding on top of Yuuki/Sigil multipliers, which already
+// grow independently.
 function _atkWaveMult(wave) { return 1 + 0.02 * Math.min(15, Math.max(0, wave - 1)); }
+
+// Player-only wave growth (per AanSensei: buff the player's own scaling
+// so it pulls ahead of the enemy curve above rather than tracking it 1:1).
+// +3% per wave up to +57% at wave 20+, where it plateaus.
+function _playerAtkWaveMult(wave) { return 1 + 0.03 * Math.min(19, Math.max(0, wave - 1)); }
 
 // Per-sigil ATK bonus (per AanSensei): each of the 13 sigils grants a
 // different flat percentage bump to player.atk on top of everything else,
@@ -197,9 +202,9 @@ function _atkWaveMult(wave) { return 1 + 0.02 * Math.min(15, Math.max(0, wave - 
 // Sagittarius highest, Taurus/Cancer's support-and-defense kits lowest).
 // Additive across every equipped sigil, applied in _sigilAtkMult() below.
 const SIGIL_ATK_BONUS = {
-    aries: 0.08, taurus: 0.02, gemini: 0.05, cancer: 0.02, leo: 0.07,
-    virgo: 0.06, libra: 0.05, scorpio: 0.05, sagittarius: 0.07,
-    capricorn: 0.03, aquarius: 0.04, pisces: 0.03, than: 0.06,
+    aries: 0.12, taurus: 0.04, gemini: 0.08, cancer: 0.04, leo: 0.11,
+    virgo: 0.09, libra: 0.08, scorpio: 0.08, sagittarius: 0.11,
+    capricorn: 0.05, aquarius: 0.06, pisces: 0.05, than: 0.09,
 };
 function _sigilAtkMult() {
     const sigils = (typeof window !== 'undefined' && window._playerSigils) || [];
