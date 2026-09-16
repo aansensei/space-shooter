@@ -1,0 +1,20 @@
+{
+  "kind": "Specification structure and arithmetic only. No game simulation or gameplay tests.",
+  "sourceRevision": "7770ee4",
+  "tableCount": 10,
+  "rowCount": 346,
+  "sigilCount": 13,
+  "sourceReferencesWithinFileBounds": 120,
+  "simpleFlatConversionsChecked": 56,
+  "oldMultiplierProduct": 4.35625,
+  "newMultiplierProduct": 3.4410000000000003,
+  "multiplierReductionPercent": 21.010043041606885,
+  "legacyGaiaMultiplier": 1.7850569308638307,
+  "goliathGemCombinations": 35,
+  "newGoliathAt200000": {
+    "repeatHealPer10s": 24000,
+    "repeatShieldPer10s": 30000,
+    "ordinaryShieldCapacity": 60000
+  },
+  "specSha256": "56bfe5c1c1d4307d7688906aa84a5cef7d9d4adae85d33e94413a89223afc508"
+}

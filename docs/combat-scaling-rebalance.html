@@ -1,0 +1,2399 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pisces combat scaling review</title>
+<style>
+:root { color-scheme: light dark; --bg: light-dark(#fafaf9,#141719); --fg: light-dark(#202b31,#e1e7ea); --muted: light-dark(#53616a,#aebcc4); --line: light-dark(#ccd3d6,#39454c); --surface: light-dark(#eef2f3,#20292e); --accent: light-dark(#075b78,#7ed1eb); }
+* { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.65 system-ui,sans-serif }
+header { position:sticky; top:0; z-index:5; padding:12px max(20px,calc((100vw - 1440px)/2)); background:var(--bg); border-bottom:1px solid var(--line) }
+.controls { display:flex; gap:16px; flex-wrap:wrap; align-items:end }.controls label { display:flex; flex-direction:column; gap:3px; color:var(--muted); font-size:12px } input,select,button { font:inherit; padding:8px 10px; border:1px solid var(--line); background:var(--bg); color:var(--fg); border-radius:4px } input { min-width:260px } button { cursor:pointer } #matches { margin-left:auto; font-size:13px; color:var(--muted) }
+main { max-width:1480px; padding:26px 28px 80px; margin:auto } h1 { font-size:24px;line-height:1.3;margin:0 0 12px } h2 { font-size:22px;border-top:1px solid var(--line);padding-top:24px;margin-top:40px;scroll-margin-top:100px } h3 { font-size:18px;margin-top:30px } p,li { max-width:1100px } a { color:var(--accent) } code { font:0.92em ui-monospace,monospace; overflow-wrap:anywhere }.table-scroll { overflow-x:auto; margin:18px 0 28px } table { border-collapse:collapse; width:100%; min-width:780px; font-size:14px;line-height:1.5 } th { text-align:left; background:var(--surface); color:var(--fg) } td,th { border-bottom:1px solid var(--line); padding:12px; vertical-align:top } td:first-child { font-weight:600; min-width:185px } td { min-width:155px;overflow-wrap:anywhere } [hidden] {display:none!important}
+.report-section { margin-bottom:25px } @media(max-width:600px){main{padding:20px 14px 50px} header{padding:10px 14px}input{min-width:0;width:100%}.controls label{width:100%}#matches{margin:0}select{width:100%}} @media print { header{display:none} main{max-width:none;padding:0}.table-scroll{overflow:visible}table{min-width:0;font-size:9px}td,th{min-width:0!important;padding:5px}h2{break-before:page}.report-section[hidden],tr[hidden],.table-scroll[hidden]{display:revert!important} }
+</style></head><body>
+<header><div class="controls"><label>Review section<select id="section"><option value="all">All five parts and scope</option><option value="0">Overview</option><option value="1">Scope and decisions</option><option value="2">Part 1: player ATK conversion</option><option value="3">Part 2: enemy scaling diversity</option><option value="4">Part 3: DR, healing, and resource rules</option><option value="5">Part 4: dedicated Goliath sustain review</option><option value="6">Part 5: all Zodiac Sigils and Great Sage</option><option value="7">Implementation boundaries and verification</option></select></label><label>Find a table entry<input id="search" type="search" placeholder="Goliath, healing, Spirit, Aries..."></label><button id="reset" type="button">Reset</button><span id="matches" role="status" aria-live="polite"></span></div></header>
+<main><section class="report-section" data-section="0"><h1 id="pisces-space-journey-combat-scaling-proposal">Pisces: Space Journey: combat scaling proposal</h1>
+<p>Prepared for AanSensei. Source baseline: local checkout <code>7770ee4</code>, inspected September 15, 2026. This is a proposed specification, not an implemented or playtested balance patch. Runtime code takes precedence over descriptions and comments.</p>
+</section>
+<section class="report-section" data-section="1"><h2 id="scope-and-decisions">Scope and decisions</h2>
+<p>Keep Skill F, all of Skill D including its spaceships, Phōtokrystos's Danger? Not Today! laser, and Back to Motherland unchanged. Their damage, cooldowns, activation, targeting, buffs, defensive interactions, and Sigil modifications are protected. Ordinary Remembrance Spirit attacks and its separate finale are in scope. There are 13 Sigils to review: 12 Zodiac signs plus Great Sage (<code>than</code>).</p>
+<p>Use two releases. <strong>Conversion</strong> introduces stats with exact baseline parity. <strong>Rebalance</strong> applies the explicit numerical changes below. Do not combine these into one unmeasurable change. The Part 1 table is the conversion table; Parts 2 through 5 define the proposed balance release. When a Sigil appears in both, Part 5 is its final tuning.</p>
+<p><strong>The player has lives, not numeric HP.</strong> Enemy damage amounts currently matter primarily to Sentinels, Yuusha members, and destructible objects. Keep the life system: an ordinary unblocked collision still costs one life, and a control-only attack still costs zero. Do not silently introduce player HP. Enemy attack scaling will therefore affect numeric recipients; exposure, encounter duration, and unit survival still determine the threat to the player. Goliath Verdict's five sequential life-hit attempts and Uriel's additional Judged life loss remain unchanged in this proposal. If enemy ATK must determine player life loss too, that requires a separate decision about fractional life damage or a player HP system.</p>
+<h3 id="notation-and-table-conventions">Notation and table conventions</h3>
+<ul>
+<li><code>A</code>: current player ATK. Conversion release: 100. Proposed balance release: <code>100 + 2 × min(15, max(0, wave − 1))</code>, giving 100, 108, 118, and 130 at waves 1, 5, 10, and 16+. Recalculate at wave start, reset at run start. Summons inherit live player ATK when firing; projectiles snapshot it when created. DoT applications snapshot it when applied or refreshed.</li>
+<li><code>E</code>: attacker's enemy ATK. Values and progression are listed in Part 2. Never derive <code>E</code> from HP, shields, projectile HP, or damage taken.</li>
+<li><code>T</code>: victim's Max HP, excluding shields. <code>L</code>: victim's lost HP, <code>max(0, T − currentHP)</code>. <code>H</code>: attacker's own Max HP. <code>r</code>: attacker's lost HP fraction, <code>clamp(1 − currentHP/H, 0, 1)</code>.</li>
+<li><code>P</code>: Primeval Energy in points, 0 to 100. The Yuusha implementation uses this value, despite its descriptions saying Max HP.</li>
+<li><code>g(w) = 1 + 0.02 × min(15, max(0, w − 1))</code>. Thus <code>A = 100g(w)</code> in the balance release. <code>u = 1 + _yuukiBonus</code> remains an independent multiplier, currently growing by 0.20 every two waves starting at wave 8, up to 4.00 total. Do not count it again inside ATK.</li>
+<li><code>Hs = min(H, 2H₀)</code> is the bounded attacker Max HP used by the selected HP attacks. <code>H₀</code> is a fixed species calibration value in Part 2, not the particular instance's spawn HP. This preserves HP builds while preventing late HP inflation from creating unbounded one-hit damage. HP attacks do not also multiply by <code>g</code>.</li>
+<li>Tables show raw payloads before global multipliers, DR, shields, and existing per-target caps unless explicitly stated. Preserve true, piercing, and ordinary damage types unless a row explicitly changes one. Percentages retain the named basis. Numeric enemy examples use <code>T = 300</code>, <code>g = 1</code>, and the listed <code>H₀</code>.</li>
+<li>Keep floating point amounts through the proposed pipeline. Round only the final numeric loss or displayed value. For periodic rates, accumulate fractional damage rather than rounding every rendered frame. The conversion release retains current rounding points for parity.</li>
+<li>Source locations in tables are relative to the project's <code>js/</code> directory. Before values describe executable source, not tooltip promises. No measured hit rate or encounter duration is assumed.</li>
+</ul>
+<h3 id="important-source-discrepancies">Important source discrepancies</h3>
+<ol>
+<li><code>entities/core.js:869</code> uses <strong>Glory ×1.70</strong>, not ×1.55. Phōtokrystos bullets additionally multiply their base by 1.55 at <code>skill-s-spirit.js:420</code>; boomerangs multiply base plus lost HP locally at line 581. Conversion preserves both. The rebalance explicitly normalizes in-scope friendly damage to <strong>one ×1.55</strong>, as described in the request, with Accurate Parry still ×1.25. Both together become ×1.9375 instead of the core's ×2.125. Protected sources keep their current behavior.</li>
+<li>Most eligible hits also receive an undocumented <strong>+60</strong> in <code>entities/core.js:861</code>. Converting only projectile constants misses this. It becomes <code>0.60A</code> on precisely the same eligible payloads during conversion.</li>
+<li>Some enemy hits receive friendly Glory, Parry, Yuuki, and Sigil multipliers through the shared resolver. Vanguard reconstructs incoming damage and applies Glory and Parry again in its own path. This must be corrected as an explicit balance change, not hidden in the conversion.</li>
+<li>Abnormal and Elite names differ from the prompt's tiers. Runtime wave selection uses Marchosias, Veilshroud, and Uriel in the abnormal pool; Thaelis, Raphael, and Egregor in the elite pool; Dargruel and Leviathan in the dominator pool. All are covered without moving them between pools.</li>
+<li>Tesla Coil aura is <strong>130 + 2.5% T per 125ms</strong>, not the README's 6% per 50ms. Enuma Elish's runtime cooldown is <strong>1s</strong>, not the tooltip's 0.5s. Gaia Barrier is <strong>25% lost HP + 15% Max HP</strong>, not its adjacent comment's 20% + 10%.</li>
+<li>Goliath Corrupted Meteor's Sentinel call supplies <code>percentDamage</code> without <code>damage</code>; the shared resolver adds <code>undefined</code>, producing a nonfinite result. The table labels the intended 25% formula separately from that runtime defect. Fix nonfinite damage before using match statistics as a balance baseline.</li>
+</ol>
+</section>
+<section class="report-section" data-section="2"><h2 id="part-1-player-atk-conversion">Part 1: player ATK conversion</h2>
+<p>For each existing flat base <code>B</code>, use <code>c = B/100</code>, then <code>raw = cA + pT + qL</code>. Preserve all existing multipliers and proc conditions during conversion. Summons use the player's ATK, with their existing Blessing and herd multipliers applied afterward. This changes the source of the number without changing its value at <code>A = 100</code>.</p>
+<p>In the balance release, the final in-scope friendly pipeline is:</p>
+<p><code>raw = cA + pT + qL + eligibleImpactBonus(0.60A)</code></p>
+<p><code>outgoing = raw × Glory(1 or 1.55) × Parry(1 or 1.25) × u × attackSpecificModifiers × SigilModifiers</code></p>
+<p>Then apply target debuffs, target DR/armor, relevant caps, shields, and actual HP loss in that order, retaining explicit special interception rules. Reflected or stored damage is tagged as already scaled and must not receive the same outgoing multipliers a second time. Enemy faction attacks never receive this friendly multiplier bundle. Protected sources use the existing path and constants.</p>
+<h3 id="every-in-scope-flat-player-and-sentinel-payload">Every in-scope flat player and Sentinel payload</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Attack or component</th>
+<th>Current raw value</th>
+<th>Conversion formula</th>
+<th>Base at A=100 → A=130</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Eligible impact bonus</td>
+<td>+60</td>
+<td>+0.60A</td>
+<td>60 → 78</td>
+<td>entities/core.js:861</td>
+</tr>
+<tr>
+<td>Auto-fire, each of 5 bullets</td>
+<td>130 + 0.4% T</td>
+<td>1.30A + 0.4% T</td>
+<td>130 → 169</td>
+<td>entities/core.js:269</td>
+</tr>
+<tr>
+<td>Charged bullet, charge m from 1 to 10</td>
+<td>0 + 0.7% × m × T</td>
+<td>0A + 0.7% × m × T</td>
+<td>0 → 0; eligible impact bonus still applies</td>
+<td>main.js:2064</td>
+</tr>
+<tr>
+<td>Overload, each 155ms tick</td>
+<td>350 + 23% T</td>
+<td>3.50A + 23% T</td>
+<td>350 → 455</td>
+<td>main.js:786</td>
+</tr>
+<tr>
+<td>Overload clone beams, each of 4 clones</td>
+<td>Same 350 + 23% T; hit geometry may cover more than one beam</td>
+<td>3.50A + 23% T</td>
+<td>350 → 455</td>
+<td>main.js:322,793</td>
+</tr>
+<tr>
+<td>Gemini mirrored Overload, each of 2 mirrors</td>
+<td>341.25 + 22.425% T, from 1.30×0.75</td>
+<td>3.4125A + 22.425% T</td>
+<td>341.25 → 443.625</td>
+<td>main.js:818</td>
+</tr>
+<tr>
+<td>A, primary orb impact</td>
+<td>200 + 20% T</td>
+<td>2A + 20% T</td>
+<td>200 → 260</td>
+<td>skills/skill-a.js:229</td>
+</tr>
+<tr>
+<td>A, primary follow-up true hit</td>
+<td>100 + 15% L</td>
+<td>A + 15% L</td>
+<td>100 → 130</td>
+<td>skills/skill-a.js:231</td>
+</tr>
+<tr>
+<td>A, Astral Pierce subsequent impact</td>
+<td>240 + 24% T</td>
+<td>2.40A + 24% T</td>
+<td>240 → 312</td>
+<td>skills/skill-a.js:189</td>
+</tr>
+<tr>
+<td>A, Astral Pierce subsequent true hit</td>
+<td>120 + 18% L</td>
+<td>1.20A + 18% L</td>
+<td>120 → 156</td>
+<td>skills/skill-a.js:191</td>
+</tr>
+<tr>
+<td>A, scattered projectile, each</td>
+<td>8 + 2% T</td>
+<td>0.08A + 2% T</td>
+<td>8 → 10.4</td>
+<td>skills/skill-a.js:192,232</td>
+</tr>
+<tr>
+<td>A, Dimensional Rift DoT</td>
+<td>60 + 5.5% T / 350ms</td>
+<td>0.60A + 5.5% T / 350ms</td>
+<td>60 → 78</td>
+<td>skills/skill-a.js:376</td>
+</tr>
+<tr>
+<td>A, Rift chain payload</td>
+<td>50% of originating raw Rift tick</td>
+<td>0.5 × (0.60A + 5.5% originating T)</td>
+<td>flat portion 30 → 39</td>
+<td>skills/skill-a.js:387</td>
+</tr>
+<tr>
+<td>Soul Reaver DoT, including orb retaliation</td>
+<td>60 + 5.5% T / 350ms</td>
+<td>0.60A + 5.5% T / 350ms</td>
+<td>60 → 78</td>
+<td>skills/misc-mechanics.js:76</td>
+</tr>
+<tr>
+<td>Normal Spirit bullet</td>
+<td>120 + 0.5% T</td>
+<td>1.20A + 0.5% T</td>
+<td>120 → 156</td>
+<td>skills/skill-s-spirit.js:101</td>
+</tr>
+<tr>
+<td>Normal Spirit arc</td>
+<td>180 + 4.6% T + 5.5% L</td>
+<td>1.80A + 4.6% T + 5.5% L</td>
+<td>180 → 234</td>
+<td>skills/skill-s-spirit.js:144,726</td>
+</tr>
+<tr>
+<td>Twin Blades Spirit arc, each</td>
+<td>288 + 7.36% T + 5.5% L</td>
+<td>2.88A + 7.36% T + 5.5% L</td>
+<td>288 → 374.4</td>
+<td>skills/skill-s-spirit.js:120,726</td>
+</tr>
+<tr>
+<td>Normal Spirit finale tick</td>
+<td>10 + 40% T / 100ms</td>
+<td>0.10A + 40% T / 100ms</td>
+<td>10 → 13</td>
+<td>skills/skill-s-spirit.js:1080</td>
+</tr>
+<tr>
+<td>Finale spinner body</td>
+<td>200 + 15% T, per-target 1s</td>
+<td>2A + 15% T</td>
+<td>200 → 260</td>
+<td>skills/skill-s-spirit.js:945</td>
+</tr>
+<tr>
+<td>Spinner mini arc, each</td>
+<td>350 + 3.5% T</td>
+<td>3.50A + 3.5% T</td>
+<td>350 → 455</td>
+<td>skills/skill-s-spirit.js:811</td>
+</tr>
+<tr>
+<td>Twin Blades spinner mini arc, each</td>
+<td>560 + 5.6% T</td>
+<td>5.60A + 5.6% T</td>
+<td>560 → 728</td>
+<td>skills/skill-s-spirit.js:811</td>
+</tr>
+<tr>
+<td>Phōtokrystos homing bullet</td>
+<td>125 + 1.7% T, before local buffs</td>
+<td>1.25A + 1.7% T</td>
+<td>125 → 162.5</td>
+<td>skills/skill-s-spirit.js:420</td>
+</tr>
+<tr>
+<td>Phōtokrystos boomerang</td>
+<td>500 + 7% T + 5% L, before local buffs</td>
+<td>5A + 7% T + 5% L</td>
+<td>500 → 650</td>
+<td>skills/skill-s-spirit.js:489,581</td>
+</tr>
+<tr>
+<td>G, link DoT</td>
+<td>95 + 0.6% T / 125ms</td>
+<td>0.95A + 0.6% T / 125ms</td>
+<td>95 → 123.5</td>
+<td>skills/skill-g.js:238</td>
+</tr>
+<tr>
+<td>G, Aquarius link chain</td>
+<td>95 + 0.6% struck target T</td>
+<td>0.95A + 0.6% struck target T</td>
+<td>95 → 123.5</td>
+<td>skills/skill-g.js:248</td>
+</tr>
+<tr>
+<td>G, Coil aura</td>
+<td>130 + 2.5% T / 125ms</td>
+<td>1.30A + 2.5% T / 125ms</td>
+<td>130 → 169</td>
+<td>main.js:1060</td>
+</tr>
+<tr>
+<td>G, orb collision or expiry burst</td>
+<td>10 + 6% T</td>
+<td>0.10A + 6% T</td>
+<td>10 → 13</td>
+<td>skills/skill-g.js:160,188</td>
+</tr>
+<tr>
+<td>G, expiry burst at endSkillG</td>
+<td>20 + 9% T</td>
+<td>0.20A + 9% T</td>
+<td>20 → 26</td>
+<td>skills/skill-g.js:27</td>
+</tr>
+<tr>
+<td>G, destroyed Coil burst</td>
+<td>20 + 15% T</td>
+<td>0.20A + 15% T</td>
+<td>20 → 26</td>
+<td>skills/skill-g.js:301</td>
+</tr>
+<tr>
+<td>Sentinel normal bullet</td>
+<td>30 + 1.5% T</td>
+<td>0.30A + 1.5% T</td>
+<td>30 → 39</td>
+<td>entities/sentinel.js:155</td>
+</tr>
+<tr>
+<td>Sentinel special bullet</td>
+<td>50 + 3% T</td>
+<td>0.50A + 3% T</td>
+<td>50 → 65</td>
+<td>entities/sentinel.js:145</td>
+</tr>
+<tr>
+<td>Sentinel death bullet, each of 10</td>
+<td>2 + 2% T</td>
+<td>0.02A + 2% T</td>
+<td>2 → 2.6</td>
+<td>entities/sentinel.js:64</td>
+</tr>
+<tr>
+<td>Vulnerability window end</td>
+<td>500 true</td>
+<td>5A true</td>
+<td>500 → 650</td>
+<td>entities/core.js:77</td>
+</tr>
+<tr>
+<td>Aries blade</td>
+<td>50 + 4% T</td>
+<td>0.50A + 4% T</td>
+<td>50 → 65</td>
+<td>skills/sigil-aries.js:30,76</td>
+</tr>
+<tr>
+<td>Yuusha Tank blade</td>
+<td>40 + 0.04P</td>
+<td>0.40A + 0.04P</td>
+<td>40 → 52</td>
+<td>yuusha-party.js:1075</td>
+</tr>
+<tr>
+<td>Yuusha Marksman arrow</td>
+<td>75 + 0.05P</td>
+<td>0.75A + 0.05P</td>
+<td>75 → 97.5</td>
+<td>yuusha-party.js:1109</td>
+</tr>
+<tr>
+<td>Yuusha Mage zone tick</td>
+<td>50 + 0.04P / 500ms</td>
+<td>0.50A + 0.04P / 500ms</td>
+<td>50 → 65</td>
+<td>yuusha-party.js:1148</td>
+</tr>
+<tr>
+<td>Gemini small orb</td>
+<td>75 + 3% T</td>
+<td>0.75A + 3% T</td>
+<td>75 → 97.5</td>
+<td>skills/sigil-gemini.js:85</td>
+</tr>
+<tr>
+<td>Gemini large orb</td>
+<td>180 + 8% T</td>
+<td>1.80A + 8% T</td>
+<td>180 → 234</td>
+<td>skills/sigil-gemini.js:83</td>
+</tr>
+<tr>
+<td>Gemini proc laser</td>
+<td>350 + 18% T / 125ms</td>
+<td>3.50A + 18% T / 125ms</td>
+<td>350 → 455</td>
+<td>skills/sigil-gemini.js:133</td>
+</tr>
+<tr>
+<td>Cancer whirlpool DoT</td>
+<td>50 + 0.25% T / 100ms</td>
+<td>0.50A + 0.25% T / 100ms</td>
+<td>50 → 65</td>
+<td>skills/sigil-cancer.js:43</td>
+</tr>
+<tr>
+<td>Cancer whirlpool bite</td>
+<td>650 + 25% T</td>
+<td>6.50A + 25% T</td>
+<td>650 → 845</td>
+<td>skills/sigil-cancer.js:43</td>
+</tr>
+<tr>
+<td>Leo Burn per stack</td>
+<td>200 + 5% T / 500ms</td>
+<td>2A + 5% T / 500ms</td>
+<td>200 → 260</td>
+<td>main.js:2971</td>
+</tr>
+<tr>
+<td>Virgo fist</td>
+<td>1000 + 10% T + 15% L</td>
+<td>10A + 10% T + 15% L</td>
+<td>1000 → 1300</td>
+<td>skills/sigil-virgo.js:34</td>
+</tr>
+<tr>
+<td>Libra large arrow traversal</td>
+<td>300</td>
+<td>3A</td>
+<td>300 → 390</td>
+<td>skills/sigil-libra.js:506</td>
+</tr>
+<tr>
+<td>Libra small arrow traversal</td>
+<td>180</td>
+<td>1.80A</td>
+<td>180 → 234</td>
+<td>skills/sigil-libra.js:456,506</td>
+</tr>
+<tr>
+<td>Libra large explosion</td>
+<td>400 + 20% T</td>
+<td>4A + 20% T</td>
+<td>400 → 520</td>
+<td>skills/sigil-libra.js:457</td>
+</tr>
+<tr>
+<td>Libra small explosion</td>
+<td>180 + 12% T + 5% L</td>
+<td>1.80A + 12% T + 5% L</td>
+<td>180 → 234</td>
+<td>skills/sigil-libra.js:457</td>
+</tr>
+<tr>
+<td>Sagittarius auto proc arc</td>
+<td>300 + 7% T + 5.5% L</td>
+<td>3A + 7% T + 5.5% L</td>
+<td>300 → 390</td>
+<td>entities/core.js:286; skills/skill-s-spirit.js:726</td>
+</tr>
+<tr>
+<td>Capricorn bonus direct true hit</td>
+<td>200, excluding Goliath</td>
+<td>2A, same eligibility</td>
+<td>200 → 260</td>
+<td>entities/core.js:1684</td>
+</tr>
+<tr>
+<td>Great Sage Raphael</td>
+<td>220 + 12% T</td>
+<td>2.20A + 12% T</td>
+<td>220 → 286</td>
+<td>skills/sigil-great-sage.js:198</td>
+</tr>
+<tr>
+<td>Great Sage Marchosias</td>
+<td>260 + 13% T</td>
+<td>2.60A + 13% T</td>
+<td>260 → 338</td>
+<td>skills/sigil-great-sage.js:217</td>
+</tr>
+<tr>
+<td>Great Sage Veilshroud</td>
+<td>320 + 17% T true</td>
+<td>3.20A + 17% T true</td>
+<td>320 → 416</td>
+<td>skills/sigil-great-sage.js:229</td>
+</tr>
+<tr>
+<td>Great Sage Egregor</td>
+<td>260 + 14% T</td>
+<td>2.60A + 14% T</td>
+<td>260 → 338</td>
+<td>skills/sigil-great-sage.js:266</td>
+</tr>
+<tr>
+<td>Great Sage Dargruel</td>
+<td>190 + 11% T</td>
+<td>1.90A + 11% T</td>
+<td>190 → 247</td>
+<td>skills/sigil-great-sage.js:287</td>
+</tr>
+<tr>
+<td>Great Sage Leviathan</td>
+<td>200 + 11% T</td>
+<td>2A + 11% T</td>
+<td>200 → 260</td>
+<td>skills/sigil-great-sage.js:304</td>
+</tr>
+<tr>
+<td>Great Sage Goliath copy</td>
+<td>420 + 22% T true</td>
+<td>4.20A + 22% T true</td>
+<td>420 → 546</td>
+<td>skills/sigil-great-sage.js:322</td>
+</tr>
+</tbody>
+</table></div>
+<p>The Great Sage Goliath attack has an implementation, but ordinary Goliath kills award its three absorbed gems instead of a Goliath gem. Treat that attack as a dormant compatibility path, not measured normal-run DPS. Uriel is absent from the current stealable gem registry; do not invent an Uriel gem.</p>
+<h3 id="derived-percentage-only-and-special-paths">Derived, percentage-only, and special paths</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Current</th>
+<th>Conversion</th>
+<th>Balance-release decision and rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Glory chain</td>
+<td>50% of already resolved parent damage, passed through outgoing multipliers again; 8 targets, 150ms gate</td>
+<td>Preserve exactly for parity</td>
+<td>Use 50% of parent's pre-target-defense, already outgoing-scaled payload; apply only destination defenses. Preserve 8 targets and 150ms. Avoid double Glory/Parry and target DR inheritance.</td>
+</tr>
+<tr>
+<td>Enuma Elish</td>
+<td>min(15% T, 16000)</td>
+<td>Unchanged, no flat base</td>
+<td>Part 5 adds an ATK-related cap.</td>
+</tr>
+<tr>
+<td>Virgo auto critical</td>
+<td>Normal hit plus separate 3× base and percent true hit, with no second +60</td>
+<td>Derive the extra hit from the converted auto payload</td>
+<td>Part 5 retunes the extra hit; do not mistake this for four ordinary hits.</td>
+</tr>
+<tr>
+<td>Aquarius field</td>
+<td>3.5% T/s</td>
+<td>Unchanged</td>
+<td>Part 5 retains rate with fixed 100ms ticks.</td>
+</tr>
+<tr>
+<td>Pisces marked detonation</td>
+<td>60% accumulated damage + 35% L</td>
+<td>Unchanged</td>
+<td>Part 5 removes repeat amplification and lowers lost HP contribution.</td>
+</tr>
+<tr>
+<td>Shift</td>
+<td>No numeric damage; bullet clearing and protection</td>
+<td>No ATK coefficient</td>
+<td>Unchanged.</td>
+</tr>
+<tr>
+<td>Spinner repeated-contact discount</td>
+<td>×0.70 within 1s, shared timestamp</td>
+<td>Unchanged</td>
+<td>Keep; protects against overlapping spinner blades.</td>
+</tr>
+<tr>
+<td>Spinner ricochet bonus</td>
+<td>+15% per bounce, max +45%</td>
+<td>Unchanged</td>
+<td>Keep in Part 5.</td>
+</tr>
+<tr>
+<td>Phōtokrystos post-DNT penalty on ordinary bullets</td>
+<td>×0.80 for 3s</td>
+<td>Unchanged</td>
+<td>Keep without changing DNT or its timing.</td>
+</tr>
+<tr>
+<td>Spirit finale against Goliath</td>
+<td>Warding Palm overrides payload: 35% chance of 15% H loss, otherwise 35% H</td>
+<td>Keep override in conversion</td>
+<td>Keep this override, and flag it as a major exception to ATK scaling. Separating it from the protected F/D interception would require its own encounter test.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Rationale:</strong> 100 ATK makes every legacy base a readable coefficient and an exact equality at the reference point. A bounded 30% increase over 15 waves helps flat damage against armor without compounding the already large Yuuki and Sigil multipliers. It does not inflate percentage components. For example, a 130 + 0.4% hit against T=10000 is 170 before impact bonus at A=100 and 209 at A=130, a 22.94% increase, not 30% to the entire hit. Including its impact bonus, 230 becomes 287.</p>
+</section>
+<section class="report-section" data-section="3"><h2 id="part-2-enemy-scaling-diversity">Part 2: enemy scaling diversity</h2>
+<p>Every numeric hostile attack gets exactly one primary basis: ATK, own Max HP, or own lost HP. The enrage formula is <code>cE × (0.80 + 0.40r)</code>. It averages the old nominal amount over a uniformly traversed HP bar, with 80%, 100%, and 116% output at 100%, 50%, and 10% remaining HP. That average is a calibration assumption, not evidence about actual encounter residence time. Use enrage only for Thaelis's large volley, Egregor's Null Slash, and Goliath's Verdict.</p>
+<p>Snapshot owner, faction, ATK, <code>Hs</code>, missing HP fraction, and damage type at launch, including delayed attacks and death attacks. Projectile HP remains an independent interception durability. A wounded or shot projectile must not deal less damage merely because its HP was depleted. If a source dies, its projectile retains its snapshot. This is particularly necessary for Marchosias blades, Veilshroud delayed strikes/echoes, and shared shockwaves, which do not all preserve owner references today.</p>
+<h3 id="enemy-stats">Enemy stats</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Enemy</th>
+<th style="text-align: right;">New base ATK E₀</th>
+<th style="text-align: right;">E at g=1.30</th>
+<th style="text-align: right;">Fixed H₀ for own-HP attacks</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apostle</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">46.8</td>
+<td style="text-align: right;">100</td>
+<td>Early full-health Apostle is roughly 26 to 48 HP; decouple offense from its large late HP growth.</td>
+</tr>
+<tr>
+<td>Thaelis, including revived</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">234</td>
+<td style="text-align: right;">3000</td>
+<td>Match its existing 180-HP large projectile nominal hit.</td>
+</tr>
+<tr>
+<td>Cocoon Guard</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">750</td>
+<td>No active numeric attack currently; explicit zero attack rows below.</td>
+</tr>
+<tr>
+<td>Legacy Embryo</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td>No active numeric offense found; do not invent one.</td>
+</tr>
+<tr>
+<td>Uriel</td>
+<td style="text-align: right;">90</td>
+<td style="text-align: right;">117</td>
+<td style="text-align: right;">3000</td>
+<td>Holy Sword nominal 30% of a 300-HP Sentinel.</td>
+</tr>
+<tr>
+<td>Raphael</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">78</td>
+<td style="text-align: right;">4000</td>
+<td>Laser nominal 20% of a 300-HP Sentinel.</td>
+</tr>
+<tr>
+<td>Marchosias</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">65</td>
+<td style="text-align: right;">4000</td>
+<td>Normal rounds near 1.25% of full body HP.</td>
+</tr>
+<tr>
+<td>Marchosias minion</td>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">130</td>
+<td style="text-align: right;">1500</td>
+<td>Prevent a minion's roughly 32.5% to 45.5% parent HP becoming one projectile's damage.</td>
+</tr>
+<tr>
+<td>Veilshroud and retained echo snapshot</td>
+<td style="text-align: right;">54</td>
+<td style="text-align: right;">70.2</td>
+<td style="text-align: right;">3000</td>
+<td>Phantom Strike nominal 18% of a 300-HP Sentinel.</td>
+</tr>
+<tr>
+<td>Dargruel</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">32.5</td>
+<td style="text-align: right;">12000</td>
+<td>Mean of its nominal 10 to 40 projectile roll.</td>
+</tr>
+<tr>
+<td>Egregor</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">78</td>
+<td style="text-align: right;">4000</td>
+<td>Tempest's nominal 60 damage and Null Slash ratios.</td>
+</tr>
+<tr>
+<td>Leviathan</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">234</td>
+<td style="text-align: right;">12000</td>
+<td>Heavy basic fire and sweep compared with ordinary 300-HP summons.</td>
+</tr>
+<tr>
+<td>Goliath Alpha/True Form</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: right;">156</td>
+<td style="text-align: right;">200000 for True Form only</td>
+<td>Alpha has no numeric attack. True Form attacks must not inherit hundreds of thousands of damage from health growth.</td>
+</tr>
+</tbody>
+</table></div>
+<p>For ATK and enrage sources, <code>E = E₀g(waveAtSpawn)</code>; revived forms retain their spawn wave's <code>g</code>. For HP sources use <code>Hs</code> only, without an extra ATK multiplier. Keep existing body HP, spawn budgets, cadence, geometry, telegraphs, and collision behavior unless explicitly listed. HP coefficients use current Max HP at launch, so Max HP buffs change those attacks up to the <code>2H₀</code> limit.</p>
+<h3 id="complete-hostile-numeric-attack-assignment">Complete hostile numeric attack assignment</h3>
+<p>The example column compares <strong>nominal raw amounts</strong>, not current resolved damage after accidental friendly buffs or route differences. <code>n</code> is the number of relevant hits counted by the current skill.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Enemy and attack</th>
+<th>Current raw formula</th>
+<th>Category and proposed formula</th>
+<th>Example before → after</th>
+<th>Source and rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apostle bullet</td>
+<td>Remaining projectile HP, initially shooter's current HP</td>
+<td>ATK: 1E</td>
+<td>36 at a full 36-HP Apostle → 36</td>
+<td>main.js:1653,1425. Preserve early threat, remove HP coupling.</td>
+</tr>
+<tr>
+<td>Echo-spawned Apostle bullet</td>
+<td>Same, potentially huge HP inherited from phantom damage</td>
+<td>ATK: 1E using Apostle E₀</td>
+<td>Variable, no finite fixed baseline → 36</td>
+<td>main.js:2620. Same projectile shape should not hide an arbitrary one-hit payload.</td>
+</tr>
+<tr>
+<td>Thaelis large projectile</td>
+<td>Remaining projectile HP, starts at 180</td>
+<td>Lost HP: E(0.80 + 0.40r)</td>
+<td>180 → 144 / 180 / 208.8 at r=0/.5/.9</td>
+<td>main.js:1559. Tenacity fits desperation. Keep projectile durability 180.</td>
+</tr>
+<tr>
+<td>Thaelis small split projectile</td>
+<td>15% T; durability 60</td>
+<td>ATK: 0.25E</td>
+<td>45 → 45</td>
+<td>main.js:1423,1472. Keep splits non-enraged so a volley does not multiply two enrage bonuses.</td>
+</tr>
+<tr>
+<td>Uriel Holy Sword</td>
+<td>30% T, true</td>
+<td>ATK: 1E, true</td>
+<td>90 → 90</td>
+<td>entities/uriel.js:378. Precision blade, no HP connection.</td>
+</tr>
+<tr>
+<td>Raphael Lumen Nova</td>
+<td>20% T</td>
+<td>ATK: 1E</td>
+<td>60 → 60</td>
+<td>main.js:604. Match typical Sentinel hit.</td>
+</tr>
+<tr>
+<td>Raphael Wisdom Orb</td>
+<td>25% T, true</td>
+<td>Own Max HP: 0.01875Hs, true</td>
+<td>75 → 75 at H₀=4000</td>
+<td>entities/raphael.js:105. Stored vitality themed orb.</td>
+</tr>
+<tr>
+<td>Raphael Wisdom zone</td>
+<td>5% T/s, true; called every frame</td>
+<td>Own Max HP: 0.00375Hs/s, true</td>
+<td>15/s → 15/s</td>
+<td>entities/raphael.js:148. Fixed 100ms ticks eliminate frame-rounding inflation.</td>
+</tr>
+<tr>
+<td>Marchosias normal bullet</td>
+<td>Remaining projectile HP; initially ceil(1.25% current owner HP)</td>
+<td>ATK: 1E</td>
+<td>50 at full H=4000 → 50</td>
+<td>main.js:1700. Wounds no longer silently weaken its basic weapon.</td>
+</tr>
+<tr>
+<td>Marchosias counter sword, first victim</td>
+<td>27% T</td>
+<td>ATK: 1.62E</td>
+<td>81 → 81</td>
+<td>skills/misc-mechanics.js:39. Preserve first-hit weight.</td>
+</tr>
+<tr>
+<td>Marchosias counter sword, second victim</td>
+<td>23% T</td>
+<td>ATK: 1.38E</td>
+<td>69 → 69</td>
+<td>Same source. Preserve falloff.</td>
+</tr>
+<tr>
+<td>Marchosias counter sword, third+ victim</td>
+<td>21% T</td>
+<td>ATK: 1.26E</td>
+<td>63 → 63</td>
+<td>Same source. Preserve falloff.</td>
+</tr>
+<tr>
+<td>Marchosias 1%-HP/death queued swords</td>
+<td>Same 27% / 23% / 21% T</td>
+<td>ATK: 1.62E / 1.38E / 1.26E, owner snapshot</td>
+<td>81 / 69 / 63 → same</td>
+<td>entities/marchosias.js:169; main.js:1662. Do not add another enrage source.</td>
+</tr>
+<tr>
+<td>Marchosias minion bullet</td>
+<td>Remaining bullet HP, initially full current minion HP</td>
+<td>ATK: 1E</td>
+<td>1500 for an illustrative full minion → 100</td>
+<td>main.js:1792. Intentional outlier reduction; high uncertainty about realized collision frequency.</td>
+</tr>
+<tr>
+<td>Veilshroud Phantom Strike</td>
+<td>18% T</td>
+<td>ATK: 1E</td>
+<td>54 → 54</td>
+<td>entities/veilshroud.js:163. Same for delayed post-death strike.</td>
+</tr>
+<tr>
+<td>Veilshroud normal volley, each bullet</td>
+<td>ceil(1.2% owner H), then reduced with projectile HP</td>
+<td>Own Max HP: 0.012Hs</td>
+<td>36 → 36 at H₀=3000</td>
+<td>entities/veilshroud.js:179. Retain an existing vitality attack but separate durability.</td>
+</tr>
+<tr>
+<td>Veilshroud Echo field</td>
+<td>6% T / 500ms for 2s</td>
+<td>Own Max HP: 0.006Hs / 500ms, snapshot original Veilshroud</td>
+<td>18/tick → 18/tick</td>
+<td>main.js:2647. Use original host HP, never the echo's placeholder 9999.</td>
+</tr>
+<tr>
+<td>Dargruel basic bullet</td>
+<td>Remaining projectile HP, initially ceil(10 + random×30)</td>
+<td>ATK: E × uniform(0.4,1.6)</td>
+<td>Roughly 10 to 40 → 10 to 40</td>
+<td>main.js:1565. Preserve spread and mean before integer rounding.</td>
+</tr>
+<tr>
+<td>Dargruel normal chain</td>
+<td>15% T, true</td>
+<td>ATK: 1.80E, true</td>
+<td>45 → 45</td>
+<td>main.js:1338. Keep player effect control-only.</td>
+</tr>
+<tr>
+<td>Dargruel dark chain</td>
+<td>20% T, true</td>
+<td>ATK: 2.40E, true</td>
+<td>60 → 60</td>
+<td>main.js:1338. Preserve dangerous chain distinction.</td>
+</tr>
+<tr>
+<td>Dargruel death chain volley</td>
+<td>Normal chain formula</td>
+<td>ATK: 1.80E, true</td>
+<td>45 → 45</td>
+<td>main.js:1620. Snapshot at launch.</td>
+</tr>
+<tr>
+<td>Dargruel Maou Haki shockwave</td>
+<td>38% T</td>
+<td>Own Max HP: 0.0095Hs</td>
+<td>114 → 114 at H₀=12000</td>
+<td>main.js:567. Large body fuels an expanding wave.</td>
+</tr>
+<tr>
+<td>Egregor Psychic Tempest, normal and forced</td>
+<td>20% T</td>
+<td>Own Max HP: 0.015Hs</td>
+<td>60 → 60 at H₀=4000</td>
+<td>entities/egregor.js:155,211. Tentacle body fuels discharge.</td>
+</tr>
+<tr>
+<td>Egregor Null Slash, one victim</td>
+<td>30% T × (1 + min(.30,.06×rageStacks))</td>
+<td>Lost HP: 1.50E × (0.80 + 0.40r)</td>
+<td>90 to 117 → 72 / 90 / 104.4 at r=0/.5/.9</td>
+<td>entities/egregor.js:300. Replace damage rage multiplier, retain movement/cadence rage.</td>
+</tr>
+<tr>
+<td>Egregor Null Slash, two victims</td>
+<td>35% T × rage multiplier</td>
+<td>Lost HP: 1.75E × (0.80 + 0.40r)</td>
+<td>105 to 136.5 → 84 / 105 / 121.8</td>
+<td>Same source.</td>
+</tr>
+<tr>
+<td>Egregor Null Slash, three+ victims</td>
+<td>40% T × rage multiplier</td>
+<td>Lost HP: 2E × (0.80 + 0.40r)</td>
+<td>120 to 156 → 96 / 120 / 139.2</td>
+<td>Same source. True damage retained on all three slash rows.</td>
+</tr>
+<tr>
+<td>Egregor Boon and Bane self-backlash</td>
+<td>min(50% accumulated vessel, 40% H), then resolver amplification</td>
+<td>Own Max HP capped reaction: min(0.50V,0.40H), already scaled</td>
+<td>At V=1000,H=4000: raw 500 → 500</td>
+<td>entities/egregor.js:340. Reactive self-damage exception; never replace stored damage with an invented flat attack.</td>
+</tr>
+<tr>
+<td>Leviathan basic bullet</td>
+<td>ceil(2% H), then projectile HP loss reduces damage</td>
+<td>Own Max HP: 0.02Hs</td>
+<td>240 → 240 at H₀=12000</td>
+<td>entities/leviathan.js:210. High-body-HP artillery identity retained.</td>
+</tr>
+<tr>
+<td>Leviathan Perseverance opener and repeat sweep</td>
+<td>min(50% T,5% T×min(250,n)) per &gt;80ms contact</td>
+<td>ATK: E × min(5/6,n/12), same contact interval</td>
+<td>At n≥10: 150 → 150</td>
+<td>main.js:2451. Retain charge from hit count and saturation; unify currently inconsistent true/normal routes as true.</td>
+</tr>
+<tr>
+<td>Leviathan Last Rites, each beam</td>
+<td>min(55% T,1.5% T×n), once per beam</td>
+<td>Own Max HP: Hs × min(0.01375,0.000375n)</td>
+<td>At n≥37: 165 → 165</td>
+<td>main.js:2550. Death releases remaining body energy; resolve as true on all routes.</td>
+</tr>
+<tr>
+<td>Goliath Absolute Verdict</td>
+<td>35% H, true</td>
+<td>Lost HP: 1.50E × (0.80 + 0.40r), true</td>
+<td>H=200000: 70000 → 144 / 180 / 208.8</td>
+<td>entities/goliath.js:609. Large deliberate numeric reduction; five player life-hit attempts retained.</td>
+</tr>
+<tr>
+<td>Goliath Corrupted Meteor AoE</td>
+<td>Intended 25% T true; numeric resolver currently receives undefined base</td>
+<td>ATK: 0.625E, true</td>
+<td>Intended 75 → 75; actual invalid baseline</td>
+<td>main.js:2393. Fix invalid payload; preserve area and throw count.</td>
+</tr>
+<tr>
+<td>Goliath Unbroken Will wave</td>
+<td>100 + 20% H, true</td>
+<td>Own Max HP: 0.00060Hs, true</td>
+<td>40100 → 120 at H₀=200000</td>
+<td>main.js:533. A recovery wave should hurt summons without invariably erasing them.</td>
+</tr>
+<tr>
+<td>Goliath Joker Veilshroud</td>
+<td>5% H × fracture/waning, true</td>
+<td>ATK: 0.625E × fracture/waning, true</td>
+<td>10000 → 75 before modifiers</td>
+<td>entities/goliath.js:1000. Two targets and warning retained.</td>
+</tr>
+<tr>
+<td>Goliath Joker Raphael</td>
+<td>25% H × fracture/waning, true</td>
+<td>Own Max HP: 0.00060Hs × fracture/waning, true</td>
+<td>50000 → 120 before modifiers</td>
+<td>entities/goliath.js:1046. Heavier telegraphed vitality laser.</td>
+</tr>
+<tr>
+<td>Goliath Joker Marchosias sword</td>
+<td>27% / 23% / 21% T</td>
+<td>ATK: 0.675E / 0.575E / 0.525E</td>
+<td>81 / 69 / 63 → same before modifiers</td>
+<td>main.js:2361. Snapshot and consistently apply its own fracture/waning.</td>
+</tr>
+<tr>
+<td>Goliath Joker Egregor Null Slash</td>
+<td>30% / 35% / 40% T × fracture/waning</td>
+<td>ATK: 0.75E / 0.875E / 1E × fracture/waning</td>
+<td>90 / 105 / 120 → same</td>
+<td>entities/goliath.js:1145. No extra enrage on this copy.</td>
+</tr>
+<tr>
+<td>Goliath Joker Dargruel wave</td>
+<td>38% T</td>
+<td>Own Max HP: 0.00057Hs × fracture/waning</td>
+<td>114 → 114 before modifiers</td>
+<td>main.js:567; entities/goliath.js:1179. Same nominal wave budget.</td>
+</tr>
+<tr>
+<td>Goliath Joker Leviathan sweep</td>
+<td>50% T × fracture/waning, once per sweep</td>
+<td>ATK: 1.25E × fracture/waning, true</td>
+<td>150 → 150</td>
+<td>entities/goliath.js:1229. Preserve one-hit-per-sweep budget.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="zero-damage-and-life-based-paths-explicitly-audited">Zero-damage and life-based paths, explicitly audited</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Current → proposed</th>
+<th>Assignment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ordinary enemy body contact, including Apostle, Thaelis, Raphael, Marchosias, minions, Uriel, Veilshroud, Egregor, Leviathan, Goliath where a collision handler exists</td>
+<td>1 unblocked life event → 1</td>
+<td>ATK-family contact metadata, but no numeric player HP conversion. Do not add collision handlers where none exist.</td>
+</tr>
+<tr>
+<td>Enemy bottom-boundary breach</td>
+<td>Existing life-event behavior → unchanged</td>
+<td>Encounter failure event, not a damage coefficient.</td>
+</tr>
+<tr>
+<td>Uriel Judged</td>
+<td>+1 extra lost life inside its 3s window → unchanged</td>
+<td>Status punishment, not ATK damage.</td>
+</tr>
+<tr>
+<td>Dargruel ordinary chains against player</td>
+<td>0 lives, 1s root/silence → unchanged</td>
+<td>ATK category for numeric recipients, zero damage/control against player.</td>
+</tr>
+<tr>
+<td>Dargruel Maou Haki / Goliath copied wave against player</td>
+<td>Control and projectile clearing → unchanged</td>
+<td>Own-HP category for numeric recipients only.</td>
+</tr>
+<tr>
+<td>Egregor and copied Null Slash / Dimension Break against player</td>
+<td>Slow/control and projectile disruption → unchanged</td>
+<td>No new life damage or invented DoT.</td>
+</tr>
+<tr>
+<td>Raphael Wisdom field against player</td>
+<td>Slow field, no numeric HP loss → unchanged</td>
+<td>Own-HP category for summons, no life tick.</td>
+</tr>
+<tr>
+<td>Veilshroud Echo collapse / lingering field against player</td>
+<td>Collapse 1 life event; field 0 → same</td>
+<td>Own-HP field for summons only.</td>
+</tr>
+<tr>
+<td>Goliath Unbroken wave against player</td>
+<td>0 lives → 0</td>
+<td>Own-HP attack to summons; projectile clearing retained.</td>
+</tr>
+<tr>
+<td>Goliath Alpha / transforming form</td>
+<td>No active numeric attacks; untargetable → unchanged</td>
+<td>ATK initialized but inactive. Do not use placeholder HP=1 for combat scaling.</td>
+</tr>
+<tr>
+<td>Goliath Joker Thaelis</td>
+<td>Passive protection, no attack → unchanged as an attack</td>
+<td>Sustain tuning is in Part 4.</td>
+</tr>
+<tr>
+<td>Thaelis Cocoon / Guards / legacy Embryos</td>
+<td>No active numeric damage payload found → no new attack</td>
+<td>Passive or contact behavior only.</td>
+</tr>
+<tr>
+<td>Yuusha piercing redirect</td>
+<td>1.5× attack's victim-based formula to each living member → 1.5× the same snapshotted attacker-derived payload to each</td>
+<td>Feed the same damage descriptor to the squad resolver. Preserve number of recipients and interception conditions.</td>
+</tr>
+<tr>
+<td>Ordinary bullets against Yuusha</td>
+<td>min(30% member T,remaining bullet HP), except small bullets 15% T → min(30% member T,new payload)</td>
+<td>Preserve the existing squad safety cap as a post-scaling cap, not the scaling source.</td>
+</tr>
+<tr>
+<td>Enemy bullets against Tesla Coil</td>
+<td>Remaining projectile HP → snapshotted new payload</td>
+<td>Separate interception durability from impact damage.</td>
+</tr>
+<tr>
+<td>Enemy attacks against D spaceships</td>
+<td>Current formulas → unchanged</td>
+<td>Protected legacy path; explicitly outside the otherwise shared enemy resolver.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="telegraphs-and-wave-calibration">Telegraphs and wave calibration</h3>
+<p>Use labels and shapes, not color alone: <strong>ATK</strong> with a narrow weapon reticle; <strong>VITALITY</strong> with outward concentric rings; <strong>ENRAGE</strong> with a segmented ring that fills as HP is lost and a visible multiplier such as ×1.16. Friendly target-Max-HP damage should say <strong>TARGET HP</strong>, while enemy own-HP attacks say <strong>CASTER HP</strong>. Keep existing windup times and geometry.</p>
+<p>This design preserves most ordinary nominal hits at T=300. It does <strong>not</strong> claim equal realized wave threat: minion HP bullets, Goliath's extreme payloads, friendly-buff leakage, and new mitigation routes are deliberate outlier corrections. T=300 is close to the current 299-HP herd Sentinel, but below the 389 to 450 solo Sentinel, fortified variants, and Gaia-enhanced units. Larger HP builds should now buy survival rather than raise incoming damage proportionally.</p>
+<p>For acceptance, replay identical seeds and inputs at waves 1, 2, 5, 10, 15, and 20, with 1/5/12 Sentinels and no Sigil, each individual Sigil, plus Taurus/Cancer/Capricorn and Aries/Gemini/Virgo. Record life loss, completed waves, actual HP damage to summons, summon deaths, enemy residence time, and damage by source. Ordinary-wave life-loss rate and median clear time should stay within 10% of baseline, summon deaths within 15%. These are proposed acceptance bands, not measured results. Keep spawn rosters and cadence fixed while tuning E₀ in 5% increments. Track Goliath separately as an intentional sustain/outlier correction. Do not label a raw-damage sum a wave simulation.</p>
+</section>
+<section class="report-section" data-section="4"><h2 id="part-3-dr-healing-and-resource-rules">Part 3: DR, healing, and resource rules</h2>
+<p>Use additive percentage DR with explicit caps, preserving the existing design rather than silently changing every stack to multiplication: <code>DR = clamp(sum(contributions),0,cap)</code>. Cap sustained enemy DR at 85% and friendly summon DR at 65%. Timed Veilshroud Phantom and Leviathan break grace retain their explicitly stated temporary limits. True damage bypasses ordinary DR and flat armor. It does not bypass invulnerability gates. Keep the protected sources' existing defenses and exceptions.</p>
+<p>For ordinary numeric hits, <code>postDR = raw × (1 − DR)</code>; then <code>armorLoss = min(flatArmor,0.60 × postDR)</code>; damage after armor is <code>postDR − armorLoss</code>. Armor can remove at most 60% of what survives percentage DR. This avoids a permanent zero-damage floor from growing flat armor. This armor rule does not convert an invulnerability or evade into chip damage.</p>
+<p>Resolve friendly unit damage once: incoming payload, evade/invulnerability, network dampening/distribution if present, per-recipient DR, barrier, shield, HP. Store actual resource changes for statistics and lifesteal. Gaia must subtract <strong>only what its pool actually absorbed</strong>; a 1-point barrier cannot discard 99% of a 1000-point hit. True damage bypasses Gaia and ordinary shields consistently on all in-scope routes. Fix Yuusha's ignored ordinary shield pool and pass true/normal type through its resolver.</p>
+<h3 id="dr-and-damage-multiplier-review">DR and damage-multiplier review</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Effect</th>
+<th>Current</th>
+<th>Proposed</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Friendly Glory damage</td>
+<td>Core ×1.70, some Photo bases also ×1.55</td>
+<td>One ×1.55 on in-scope outgoing damage</td>
+<td>Match requested meaning; explicit 8.82% core reduction.</td>
+</tr>
+<tr>
+<td>Accurate Parry</td>
+<td>×1.25 for 4s</td>
+<td>×1.25 for 4s</td>
+<td>Preserve reward and stacking.</td>
+</tr>
+<tr>
+<td>Phōtokrystos local Glory</td>
+<td>Base ×1.55 plus core ×1.70</td>
+<td>Remove local ×1.55 in ordinary Photo attacks only</td>
+<td>Eliminate double application; protected BTM/DNT untouched.</td>
+</tr>
+<tr>
+<td>Friendly buffs on hostile hits</td>
+<td>Several resolver paths apply them</td>
+<td>×1 for all friendly offensive buffs on hostile hits</td>
+<td>Defensive buffs should not increase incoming attack damage.</td>
+</tr>
+<tr>
+<td>Yuuki</td>
+<td>+20% every 2 waves from 8, cap +300%</td>
+<td>Unchanged</td>
+<td>Existing global progression remains separate from the modest ATK growth.</td>
+</tr>
+<tr>
+<td>Vulnerability</td>
+<td>+16% per stack, max +64%; shield destruction 26%</td>
+<td>+12% per stack, max +48%; shield destruction 20%</td>
+<td>Reduce multiplicative amplification and repeated shield shredding.</td>
+</tr>
+<tr>
+<td>Vulnerability true kicker / expiry</td>
+<td>40% declining to 20% over 2.5s; 500 expiry</td>
+<td>30% declining to 15% over 2.5s; 5A expiry</td>
+<td>Lower amplification, preserve flat conversion and timing.</td>
+</tr>
+<tr>
+<td>Dimensional Rift damage taken</td>
+<td>+25%</td>
+<td>+20%</td>
+<td>Stacks with Vulnerability and Sigils.</td>
+</tr>
+<tr>
+<td>Normal Sentinel base DR</td>
+<td>8% solo; 5% in reconstructed Vanguard route</td>
+<td>8% on all numeric routes</td>
+<td>Consistent defense.</td>
+</tr>
+<tr>
+<td>Sentinel Glory DR</td>
+<td>30% solo; 15% network path</td>
+<td>25% on all numeric routes</td>
+<td>Useful without the old incoming Glory multiplication.</td>
+</tr>
+<tr>
+<td>Herd tier 2 DR</td>
+<td>+10% at 5 to 11</td>
+<td>+8% at 5 to 11</td>
+<td>Network already distributes damage.</td>
+</tr>
+<tr>
+<td>Sentinel Parry DR</td>
+<td>+10%</td>
+<td>+10%</td>
+<td>Keep successful parry payoff.</td>
+</tr>
+<tr>
+<td>Blessing DR</td>
+<td>Stored 15%, or 20% with Leviathan; used for recoil and Yuusha, missing in ordinary Sentinel DR accumulation</td>
+<td>Apply 10%, or 15% with Leviathan, to in-scope summon DR and recoil</td>
+<td>Explicitly fix missing route; values lowered for wider actual coverage.</td>
+</tr>
+<tr>
+<td>Yuusha base DR</td>
+<td>0%; other bonuses additive, cap 90%</td>
+<td>8%; shared friendly cap 65%</td>
+<td>Match the intended Sentinel defenses after common routing.</td>
+</tr>
+<tr>
+<td>Apostle base DR</td>
+<td>0%</td>
+<td>0%</td>
+<td>Preserve fragile fodder.</td>
+</tr>
+<tr>
+<td>Thaelis Tenacity</td>
+<td>+2.5 percentage points DR per 1% HP lost, max 95%</td>
+<td>+1 percentage point per 1% HP lost, max 60%</td>
+<td>Strong but killable without requiring true damage.</td>
+</tr>
+<tr>
+<td>Thaelis revived bonus</td>
+<td>+20% DR, +250 flat armor</td>
+<td>+10% DR, +100 flat armor</td>
+<td>Revived body already has 80% original Max HP.</td>
+</tr>
+<tr>
+<td>Cocoon Guard</td>
+<td>40% DR +20 flat</td>
+<td>40% DR +20 flat</td>
+<td>Keep timed challenge baseline; new armor floor applies.</td>
+</tr>
+<tr>
+<td>Legacy Embryo</td>
+<td>90% DR</td>
+<td>85% DR</td>
+<td>Shared sustained cap; no new spawning behavior.</td>
+</tr>
+<tr>
+<td>Uriel base / camouflage armor</td>
+<td>40%; +200 flat for 2s</td>
+<td>40%; +100 flat for 2s</td>
+<td>Retain evade and stealth identity; avoid zeroing small hits.</td>
+</tr>
+<tr>
+<td>Raphael base</td>
+<td>55%</td>
+<td>50%</td>
+<td>Custos remains its distinct protection phase.</td>
+</tr>
+<tr>
+<td>Raphael-granted shield DR</td>
+<td>+18%</td>
+<td>+12%</td>
+<td>Reduce healer stack compounding.</td>
+</tr>
+<tr>
+<td>Marchosias body / broken-barrier bonus</td>
+<td>45%; <code>enemy.DR</code> receives +20%, but core hardcodes 45%</td>
+<td>45% + explicit 10% while barrier is broken</td>
+<td>Expose runtime discrepancy; evaluate actual body DR, not unused state.</td>
+</tr>
+<tr>
+<td>Marchosias arc barrier DR</td>
+<td>60% on ordinary barrier hits</td>
+<td>60%</td>
+<td>Keep shield-facing mechanic and 35%-current-barrier hit cap.</td>
+</tr>
+<tr>
+<td>Marchosias minion DR</td>
+<td>75%</td>
+<td>65%</td>
+<td>Parasite can be cleared after its bullet outlier is removed.</td>
+</tr>
+<tr>
+<td>Veilshroud normal / Phantom</td>
+<td>40% / 99%</td>
+<td>40% / 99%</td>
+<td>Preserve timed Phantom identity, excluding it from sustained cap.</td>
+</tr>
+<tr>
+<td>Veilshroud post-heal DR</td>
+<td>+20% for 3s</td>
+<td>+10% for 3s</td>
+<td>Less defensive feedback from support.</td>
+</tr>
+<tr>
+<td>Dargruel Maître</td>
+<td>50% +2.5% per Sentinel, max 60%</td>
+<td>45% +1% per Sentinel, max 55%</td>
+<td>Summoning help should not negate most added offense.</td>
+</tr>
+<tr>
+<td>Dargruel low-HP DR</td>
+<td>+1.5 points per point below 60% HP, max 72%</td>
+<td>+0.75 points per point below 60%, max 30%</td>
+<td>Caps combined intrinsic protection at 85%.</td>
+</tr>
+<tr>
+<td>Egregor body</td>
+<td>40% base, +5% per lost tentacle max 20%</td>
+<td>40% base, +3% per lost tentacle max 15%</td>
+<td>Tentacle interception already provides protection.</td>
+</tr>
+<tr>
+<td>Egregor charging DR</td>
+<td>+40% appears twice in common accumulation; some nontrue tentacle paths return earlier</td>
+<td>Apply +25% exactly once on applicable body path</td>
+<td>Remove path-dependent 99% plateau.</td>
+</tr>
+<tr>
+<td>Leviathan base / flat armor</td>
+<td>60% +350 flat</td>
+<td>55% +150 flat</td>
+<td>Maintain heavy defense while allowing ATK weapons to matter.</td>
+</tr>
+<tr>
+<td>Leviathan AFO break grace</td>
+<td>90% for 1s</td>
+<td>90% for 1s</td>
+<td>Explicit brief exception to ordinary cap.</td>
+</tr>
+<tr>
+<td>Demon Gift DR</td>
+<td>20% per stack, max 40%, 4s</td>
+<td>10% per stack, max 20%, 4s</td>
+<td>Buff still matters without repeatedly reaching 99%.</td>
+</tr>
+<tr>
+<td>Envy DR</td>
+<td>+25%</td>
+<td>+15%</td>
+<td>Reduce support stack saturation.</td>
+</tr>
+<tr>
+<td>Walpurgis flat armor</td>
+<td>5 × wave, uncapped</td>
+<td>min(100,5 × wave), plus 60% post-DR armor cap</td>
+<td>Avoid eventual immunity to all small normal hits.</td>
+</tr>
+<tr>
+<td>Goliath base DR</td>
+<td>70% × waning</td>
+<td>60% × waning</td>
+<td>Sustain reductions must be tested together; preserve waning timing.</td>
+</tr>
+<tr>
+<td>Goliath copied Thaelis DR</td>
+<td>max(20%,60% − 0.6×lost-HP percentage points)</td>
+<td>max(10%,25% − 0.15×lost-HP percentage points)</td>
+<td>Keeps defensive gem without immediate 99% addition.</td>
+</tr>
+<tr>
+<td>Goliath copied Marchosias broken barrier / Egregor casting</td>
+<td>+20% / +40%</td>
+<td>+10% / +15%</td>
+<td>Stay within 85% sustained cap.</td>
+</tr>
+<tr>
+<td>Goliath copied Veilshroud</td>
+<td>+99% during Phantom, total capped 99%</td>
+<td>Total 99% during its 3s Phantom</td>
+<td>Preserve timed identity.</td>
+</tr>
+<tr>
+<td>Goliath Tempered Resolve</td>
+<td>+10% DR and +420 flat while casting</td>
+<td>+10% DR and +100 flat while casting</td>
+<td>Large armor reduction makes ordinary attacks viable.</td>
+</tr>
+<tr>
+<td>Goliath Unified Front armor</td>
+<td>200(1+.10N), or 400(1+.15N) against percent payload</td>
+<td>100(1+.05min(N,12)) for both</td>
+<td>Remove penalty based on payload encoding; max 160.</td>
+</tr>
+<tr>
+<td>Goliath ordinary Photo resistance</td>
+<td>×0.60</td>
+<td>×0.80</td>
+<td>Partly offsets removal of double Glory while keeping boss resistance.</td>
+</tr>
+<tr>
+<td>Other per-hit and timed damage caps</td>
+<td>Existing target-specific caps</td>
+<td>Retain numerical limits</td>
+<td>Avoid simultaneously redesigning every interception mechanic. See source inventory and protected boundaries.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Retained special defenses still need explicit coverage; they are not ordinary DR contributions and must not be stacked a second time by the common resolver:</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Special defense</th>
+<th>Before → after</th>
+<th>Source / interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Egregor ordinary hit, tentacles alive</td>
+<td>Tentacle loss =35%×75%×(1−rageDR) of payload; rageDR +5%/stack capped25% → unchanged</td>
+<td>entities/core.js:944. Interception path returns before common body DR.</td>
+</tr>
+<tr>
+<td>Egregor body bleed after4 tentacle losses</td>
+<td>min(12% payload,12% H) → unchanged</td>
+<td>entities/core.js:974. This explicit88% attenuation is an interception exception to the ordinary85% DR cap.</td>
+</tr>
+<tr>
+<td>Egregor piercing body with tentacles</td>
+<td>30% payload capped30% H; additional×.70 while charging → unchanged</td>
+<td>entities/core.js:985. Do not add the common charging bonus to this early-return path.</td>
+</tr>
+<tr>
+<td>Egregor all tentacles dead, nonpiercing normal hit</td>
+<td>50% payload capped30% H → unchanged</td>
+<td>entities/core.js:995. Separate early-return path.</td>
+</tr>
+<tr>
+<td>Marchosias/Egregor piercing burst cap</td>
+<td>20% H per rolling700ms → unchanged</td>
+<td>entities/core.js:512</td>
+</tr>
+<tr>
+<td>Marchosias directional barrier</td>
+<td>Normal barrier DR60%; piercing split70% to barrier and20% to body while intact; cap35% current barrier per hit → unchanged</td>
+<td>entities/marchosias.js:7,73. Retain routing, including barrier-break transition.</td>
+</tr>
+<tr>
+<td>Goliath copied directional barrier</td>
+<td>60% barrier DR; piercing barrier payload×1.15 and body payload×.70; cap35% current barrier per hit → unchanged</td>
+<td>entities/goliath.js:289</td>
+</tr>
+<tr>
+<td>Veilshroud Phantom cap</td>
+<td>25% H per hit → unchanged</td>
+<td>entities/core.js:1300</td>
+</tr>
+<tr>
+<td>Uriel body cap</td>
+<td>30% H per hit → unchanged</td>
+<td>entities/core.js:1313</td>
+</tr>
+<tr>
+<td>Leviathan Inevitable</td>
+<td>Hit&gt;20% H opens3s cap10% H;2s cooldown after;one forced trigger at50% HP → unchanged</td>
+<td>entities/core.js:1323,1618</td>
+</tr>
+<tr>
+<td>Dargruel protection window</td>
+<td>Hit&gt;25% H opens3.5s cap11% H;2s cooldown after → unchanged</td>
+<td>entities/core.js:1341</td>
+</tr>
+<tr>
+<td>Thaelis per-hit cap</td>
+<td>max(35%,90%−5×lost-HP percentage points) of H → unchanged</td>
+<td>entities/core.js:1354</td>
+</tr>
+<tr>
+<td>Egregor per-hit cap</td>
+<td>max(25%,90%−10% per lost tentacle) of H → unchanged</td>
+<td>entities/core.js:1366. Backlash retains its own cap.</td>
+</tr>
+<tr>
+<td>Embryo cap</td>
+<td>10% H per hit → unchanged</td>
+<td>entities/core.js:1371</td>
+</tr>
+<tr>
+<td>Goliath ordinary-hit cap</td>
+<td>min(3%,1.5%+0.3% per debuff stack) of H → unchanged</td>
+<td>entities/core.js:1294. Piercing, true, and listed DoTs exempt.</td>
+</tr>
+<tr>
+<td>Goliath burst window</td>
+<td>Hit&gt;8% H opens2s cap2.5% H;0.5s cooldown after → unchanged</td>
+<td>entities/core.js:1440. True damage exempt.</td>
+</tr>
+<tr>
+<td>Goliath large normal HP hit adjustment</td>
+<td>If damage&gt;30% current HP: max(damage−8% H,30% current HP) → unchanged</td>
+<td>entities/core.js:1456</td>
+</tr>
+<tr>
+<td>Raphael Custos / Uriel Iron Body / Dargruel threshold Iron Body</td>
+<td>Custos20 qualified hits with175ms throttle;existing Uriel gates;Dargruel3 hits per threshold → unchanged</td>
+<td>Preserve hit-count defenses rather than translating them into DR.</td>
+</tr>
+<tr>
+<td>Marchosias and Goliath copied barrier break</td>
+<td>Grants5 Iron Body hits → unchanged</td>
+<td>entities/marchosias.js:131; entities/goliath.js:337</td>
+</tr>
+<tr>
+<td>Goliath Fracture / transform</td>
+<td>Fracture grants up to3 Iron Body hits;transform invulnerability4s → unchanged</td>
+<td>entities/goliath.js:560,797</td>
+</tr>
+</tbody>
+</table></div>
+<p>At baseline Glory, Parry, four Vulnerability stacks, and Rift, the core multiplier product decreases from <code>1.70×1.25×1.64×1.25 = 4.35625</code> to <code>1.55×1.25×1.48×1.20 = 3.441</code>. This 21.01% reduction is an intentional compensation for less armor and less sustain, not part of neutral ATK conversion. Enemy HP, evasion, and spawn frequency remain separate challenge levers.</p>
+<h3 id="healing-shield-generation-and-general-defensive-resources">Healing, shield generation, and general defensive resources</h3>
+<p>Use recipient Max HP for percent healing and shields unless a row deliberately names caster HP. Ordinary player-side flat support amounts become ATK-based, with recipient-HP caps so a large ATK build cannot refill a fragile unit with every hit. Enemy sustain does not automatically use enemy ATK: changing an offensive stat should not secretly buff all defense.</p>
+<p>Apply healing-effectiveness and anti-heal once, then resource caps. Standard Soul Reaver anti-heal is ×0.60 to in-scope HP recovery and shield grants. Do not apply it twice to overheal conversion. Ordinary numeric shields have aggregate caps: allies 30% T, ordinary enemies 50% T, Goliath 30% H. Named arc barriers and hit-count invulnerability are separate pools. Clamp new grants to available capacity, never erase already granted protected resources.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>Current</th>
+<th>Proposed</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sentinel recoil per shot</td>
+<td>1 × (1 − Blessing DR) HP</td>
+<td>Same formula with retuned Blessing DR</td>
+<td>Self-cost is not an attack; do not multiply by ATK.</td>
+</tr>
+<tr>
+<td>Sentinel special-hit heal</td>
+<td>2 per collision, even if damage blocked</td>
+<td>min(0.02A,1% own T), only if positive actual enemy HP/shield loss</td>
+<td>2 at A=100; 2.6 at 130. No healing on invulnerable targets.</td>
+</tr>
+<tr>
+<td>Sentinel base HP</td>
+<td>Tier 1 max(389,time-scaled 300 to 450); herd 299; 36% chance ×1.5 fortified</td>
+<td>Keep base values and fortified rate</td>
+<td>Avoid unnecessary HP inflation while incoming scaling is corrected.</td>
+</tr>
+<tr>
+<td>Gaia Max HP progression</td>
+<td>Sequential ×1.05, ×1.10, ×1.15, then ten ×1.03: approximately ×1.7851</td>
+<td>Additive 5%,15%,30%, then +3%/wave, cap +60%: ×1.60</td>
+<td>Match stated cap; reapply from each unit's base on tier transition without losing accumulated Gaia.</td>
+</tr>
+<tr>
+<td>Gaia Barrier amount</td>
+<td>25% lost HP +15% T, every 8s, 5s at wave 10+</td>
+<td>20% lost HP +12% T, same intervals</td>
+<td>Bounded pool; Lunar still increases it as Part 5 specifies.</td>
+</tr>
+<tr>
+<td>Gaia absorption</td>
+<td>Some paths keep only 1% of hit even if pool is insufficient; other routes differ</td>
+<td>Absorb min(pool,incoming ordinary damage); preserve remainder</td>
+<td>Correct resource conservation before balance testing.</td>
+</tr>
+<tr>
+<td>Gaia against true damage</td>
+<td>Bypass in one route; 20% mitigation and 99% absorption in others</td>
+<td>Bypass consistently</td>
+<td>Makes stated damage type reliable.</td>
+</tr>
+<tr>
+<td>Blessing regen</td>
+<td>1.75% T every 0.75s = 2.3333% T/s</td>
+<td>1.50% T every 0.75s = 2% T/s</td>
+<td>Modest reduction alongside restored shield/DR behavior.</td>
+</tr>
+<tr>
+<td>Blessing shield</td>
+<td>+50 every 3s, its portion capped 50</td>
+<td>Add up to min(0.40A,15% T), portion cap same, every 3s</td>
+<td>40 at A=100 on T=300; grows to 45 cap.</td>
+</tr>
+<tr>
+<td>Blessing Leviathan shield grant</td>
+<td>+50; guard resets each 3s, allowing repeated grants</td>
+<td>One min(0.40A,15% T) grant per Leviathan presence episode</td>
+<td>Correct unintended repeated unbounded grant.</td>
+</tr>
+<tr>
+<td>Cancer Tidal regen</td>
+<td>3% T/s ×1.30 = 3.9% T/s</td>
+<td>2.5% T/s ×1.20 = 3% T/s</td>
+<td>Stable sustain relative to recoil, without indefinite passive replacement of all incoming damage.</td>
+</tr>
+<tr>
+<td>Taurus Support heal</td>
+<td>50 to each of 2 lowest-HP% targets; checks every 1.2s</td>
+<td>min(0.50A,20% recipient T), same targets and cadence</td>
+<td>50 on T=300; 40 on a 200-HP role.</td>
+</tr>
+<tr>
+<td>Taurus Tank self-heal</td>
+<td>20 per absorb-meter release</td>
+<td>min(0.20A,8% own T)</td>
+<td>20 at A=100; capped 24 for base 300 HP.</td>
+</tr>
+<tr>
+<td>Taurus Tank damage soak</td>
+<td>30% real-Sentinel incoming share</td>
+<td>30%, routed through consistent numeric defense exactly once</td>
+<td>Preserve role; no double mitigation.</td>
+</tr>
+<tr>
+<td>Taurus role HP / respawn</td>
+<td>Tank 300; others 200; 5s respawn</td>
+<td>Unchanged</td>
+<td>Evaluate offense/sustain independently.</td>
+</tr>
+<tr>
+<td>Friendly network distribution</td>
+<td>60% target, 40% shared</td>
+<td>Unchanged</td>
+<td>Preserve formation behavior.</td>
+</tr>
+<tr>
+<td>Network repeated-source damping</td>
+<td>Hits 1/2 ×1, 3 ×.62, 4+ ×.32 within 200ms</td>
+<td>Unchanged</td>
+<td>Retain anti-AoE protection.</td>
+</tr>
+<tr>
+<td>Network multi-source damping</td>
+<td>3/5/7/9 sources: ×.84/.72/.62/.52 within 100ms</td>
+<td>Unchanged</td>
+<td>Keep existing burst protection.</td>
+</tr>
+<tr>
+<td>Fuse Protocol</td>
+<td>26% combined Max HP in 500ms; 3s CD; 1.25s Iron Body</td>
+<td>Same numbers, count accepted incoming damage before distribution and after source damping</td>
+<td>Stable source accounting; don't count friendly multipliers or rejected hits.</td>
+</tr>
+<tr>
+<td>Final Defense player / boundary</td>
+<td>1 hit layer; player regeneration 25s</td>
+<td>Unchanged existing timers and layers</td>
+<td>Life-based defense is not a numeric heal.</td>
+</tr>
+<tr>
+<td>Last Stand</td>
+<td>Once at final life; Absolute Shield for player and summons</td>
+<td>Unchanged</td>
+<td>No new life inflation.</td>
+</tr>
+<tr>
+<td>Raphael aura ally heal</td>
+<td>8% caster H/s, ×1.35 after Custos; self receives 55% rate</td>
+<td>4% caster H/s, capped at 3% recipient T/s; post-Custos ×1.20 before cap; self retains 55%</td>
+<td>Prevent large healers fully restoring small units each second.</td>
+</tr>
+<tr>
+<td>Raphael first shield</td>
+<td>38% caster H</td>
+<td>min(20% caster H,25% recipient T)</td>
+<td>Retain first protection burst.</td>
+</tr>
+<tr>
+<td>Raphael ongoing shield</td>
+<td>6% caster H/s</td>
+<td>min(2% caster H/s,2% recipient T/s)</td>
+<td>Finite refill under aggregate shield cap.</td>
+</tr>
+<tr>
+<td>Raphael overheal shield conversion</td>
+<td>50% excess</td>
+<td>25% excess</td>
+<td>Reduce HP-to-shield feedback.</td>
+</tr>
+<tr>
+<td>Raphael Custos-break shield</td>
+<td>8/12/20/24/28% own H for 0/1/2/3/4+ allies</td>
+<td>8/10/15/20/25% own H</td>
+<td>Keep nearby allies relevant.</td>
+</tr>
+<tr>
+<td>Dargruel Demon Gift heal</td>
+<td>28% caster H at five HP thresholds</td>
+<td>min(15% caster H,20% recipient T)</td>
+<td>Large boss no longer fully resets every small enemy.</td>
+</tr>
+<tr>
+<td>Demon Gift overheal conversion</td>
+<td>30% excess</td>
+<td>20% excess</td>
+<td>Lower shield banking.</td>
+</tr>
+<tr>
+<td>Envy regen / received-heal bonus</td>
+<td>1% own T/s; +25% healing</td>
+<td>0.75% own T/s; +15% healing</td>
+<td>Less combined support sustain.</td>
+</tr>
+<tr>
+<td>Veilshroud normal received shield multiplier</td>
+<td>×1.35</td>
+<td>×1.20</td>
+<td>Lower support amplification.</td>
+</tr>
+<tr>
+<td>Veilshroud extra shield from healing</td>
+<td>Can equal incoming heal amount</td>
+<td>50% of actual HP restored, capped by shield capacity</td>
+<td>No reward for wasted full-health healing.</td>
+</tr>
+<tr>
+<td>Veilshroud Phantom received recovery</td>
+<td>×0.75 in some paths</td>
+<td>×0.75 consistently</td>
+<td>Preserve vulnerability to attrition during protection.</td>
+</tr>
+<tr>
+<td>Uriel stealth healing</td>
+<td>2% H/s over 1.75s</td>
+<td>1.5% H/s over 1.75s</td>
+<td>3.5% → 2.625% H per full stealth.</td>
+</tr>
+<tr>
+<td>Uriel reappearance shield</td>
+<td>20% H</td>
+<td>15% H</td>
+<td>Compensate for reliable stealth and armor.</td>
+</tr>
+<tr>
+<td>Marchosias barrier repair on impact</td>
+<td>5% barrier damage, cap 1000 per hit</td>
+<td>3% actual barrier loss, cap 2% body H per 1s</td>
+<td>Prevent high-frequency attack spam from funding high repair.</td>
+</tr>
+<tr>
+<td>Marchosias body heal from barrier</td>
+<td>10% barrier damage, cap 1000 per hit</td>
+<td>5% actual barrier loss, cap 2% H per 1s</td>
+<td>Bounded reactive sustain.</td>
+</tr>
+<tr>
+<td>Marchosias overheal conversion</td>
+<td>50% excess</td>
+<td>25% excess</td>
+<td>Lower repeated conversion.</td>
+</tr>
+<tr>
+<td>Marchosias barrier-break heal</td>
+<td>40% H</td>
+<td>15% H</td>
+<td>Breaking defense must yield progress.</td>
+</tr>
+<tr>
+<td>Marchosias barrier-break shield</td>
+<td>30% H +30% lost HP after heal</td>
+<td>15% H +10% lost HP after heal</td>
+<td>Keep a recovery phase without replacing the broken barrier fully.</td>
+</tr>
+<tr>
+<td>Marchosias initial/revived barrier</td>
+<td>Initial 1.5525H; revived H</td>
+<td>Unchanged pool sizes and regeneration timer</td>
+<td>Its visible facing mechanic remains meaningful.</td>
+</tr>
+<tr>
+<td>Marchosias parasite host grant</td>
+<td>Remaining minion HP; spawn grant 32.5% to 45.5% parent H</td>
+<td>min(remaining minion HP,15% host T)</td>
+<td>Prevent small host acquiring a disproportionately large shield.</td>
+</tr>
+<tr>
+<td>Thaelis threshold shield</td>
+<td>(30% H +20% lost HP +250)×1.10 at 70/40/10% HP</td>
+<td>20% H +10% lost HP +100, same one-time thresholds</td>
+<td>No ATK tie for defense; reduce repeated huge shields.</td>
+</tr>
+<tr>
+<td>Thaelis revival</td>
+<td>40% original Max HP ×2 =80%; full at that reduced max; 1s invulnerability</td>
+<td>Unchanged</td>
+<td>Preserve Cocoon identity.</td>
+</tr>
+<tr>
+<td>Thaelis guard-kill shield bank</td>
+<td>+300 per killed guard</td>
+<td>+150 per killed guard, capped at 30% revived H</td>
+<td>Reward no longer scales unboundedly with repeated guard kills.</td>
+</tr>
+<tr>
+<td>Leviathan Bulwark</td>
+<td>1.2% H per other enemy, max25% per layer; 2 layers; one per 1s</td>
+<td>0.8% H per enemy, max15% per layer; 2 layers; one per 1.5s</td>
+<td>Maximum own shield rebuild 50% → 30% H.</td>
+</tr>
+<tr>
+<td>Leviathan AFO-break shield</td>
+<td>50% H</td>
+<td>30% H</td>
+<td>Short grace already prevents immediate burst.</td>
+</tr>
+<tr>
+<td>Egregor tentacle-loss body heal</td>
+<td>6% H ×Walpurgis recovery</td>
+<td>4% H, same event and one effectiveness pass</td>
+<td>Separate from Goliath review.</td>
+</tr>
+<tr>
+<td>Egregor tentacle-loss Max HP gain</td>
+<td>+20% of tentacle Max HP; tentacle is 80% body H</td>
+<td>Unchanged</td>
+<td>Major encounter HP structure; do not retune without tentacle kill data.</td>
+</tr>
+<tr>
+<td>Egregor Mind Link ally-death heal</td>
+<td>+15% Max HP; heal22% new H; heal living tentacles15%</td>
+<td>Keep +15% Max HP; body heal12% new H; tentacles10%</td>
+<td>Reduce reset strength while preserving reactive growth.</td>
+</tr>
+<tr>
+<td>Walpurgis heal/shield effectiveness</td>
+<td>+5% per 5-wave stack, unbounded</td>
+<td>+3% per stack, cap +30%</td>
+<td>Avoid compounding endless defense with HP growth.</td>
+</tr>
+<tr>
+<td>Walpurgis body HP / evasion</td>
+<td>+20% HP per stack; +5% evade per stack capped40%</td>
+<td>Unchanged</td>
+<td>Preserve primary late-run challenge while ATK/armor is evaluated.</td>
+</tr>
+<tr>
+<td>Protected D spaceship healing/DR/shields</td>
+<td>Shared ally buffs currently include these units</td>
+<td>Preserve every existing value and route for spaceships</td>
+<td>Separate recipient policy is required; do not alter shared loops blindly.</td>
+</tr>
+</tbody>
+</table></div>
+<p>At T=300, old Tidal plus Blessing regen is 18.7 HP/s. The proposed native rates sum to15 HP/s; with Cancer's20% healing-effectiveness bonus applied consistently to Blessing too, that becomes16.2 HP/s. Sentinel recoil under Glory is roughly19.2 shots/s solo and23.04 shots/s in a herd before other fire-rate bonuses. Special-hit heals and Support are still needed. This is an arithmetic comparison, not a prediction that every special shot lands.</p>
+</section>
+<section class="report-section" data-section="5"><h2 id="part-4-dedicated-goliath-sustain-review">Part 4: dedicated Goliath sustain review</h2>
+<p><strong>Review item GOLIATH-SUSTAIN-01.</strong> Alpha has placeholder HP and is invulnerable; it does not have a meaningful self-heal loop. Its healing-related mechanism is Circuit Link recording allied recovery into the eventual True Form HP budget. True Form has direct regen, cast-end healing, shield-to-heal feedback, copied Marchosias lifesteal, Thaelis milestones, and Unbroken Will. These are independent effects and must each be bounded.</p>
+<p>Let <code>Hentry</code> be Max HP upon entering True Form, before Unbroken Will's temporary bonus. Use Hentry for all new Goliath sustain budgets so temporary HP cannot recursively enlarge its own refill. Ordinary shield cap is <code>0.30Hentry</code>. Total repeatable healing has a rolling 10s budget of <code>0.12Hentry</code>; repeatable shield generation has a rolling 10s budget of <code>0.15Hentry</code>. Apply bonuses, anti-heal, and Waning Might before those final budgets. One-time phase rewards below are outside the rolling budget but inside the aggregate shield cap. Consumed milestone flags never reset on healing or Unbroken Will.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Goliath mechanic</th>
+<th>Current</th>
+<th>Proposed</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alpha linked resource credit</td>
+<td>+100% each positive tracked heal/shield grant to damagePull; coverage differs by path</td>
+<td>+25% actual HP/shield/barrier restored after caps, once per grant; cumulative resource credit cap60000</td>
+<td>Measured resources, no credit for overheal, rejected shields, or the same grant twice.</td>
+</tr>
+<tr>
+<td>Alpha damage ledger and True Form HP</td>
+<td>Kill ledger: ceil(.75×damage)×10, special protected kills50000; damagePull cap320000; H=round((65000+pull)×(1+.25gemPoints)×Walpurgis×1.20)</td>
+<td>Retain damage credit, cap, and HP formula; use retuned resource-credit part only</td>
+<td>Isolate recovery-fed HP inflation from the base encounter and protected finishers.</td>
+</tr>
+<tr>
+<td>Alpha remaining-wave HP grant / cull</td>
+<td>+15% enemy HP; removes ceil(one-third remaining queued roster)</td>
+<td>Unchanged</td>
+<td>Not self-healing; no silent wave rewrite.</td>
+</tr>
+<tr>
+<td>Extra gems at transform</td>
+<td>One 20% recipient Max HP shield to nearest eligible enemy</td>
+<td>One 15% recipient Max HP shield, normal capacity limit</td>
+<td>Bounded support reward.</td>
+</tr>
+<tr>
+<td>Base Inevitable regen</td>
+<td>2.5% H/s ×heal boost</td>
+<td>0.75% Hentry/s ×heal boost, repeatable budget</td>
+<td>At Hentry=200000: 5000/s →1500/s before boosts.</td>
+</tr>
+<tr>
+<td>Cast-end recovery</td>
+<td>20% H ×heal boost on transition from casting to idle</td>
+<td>3% Hentry ×heal boost, shared 4s cooldown, repeatable budget</td>
+<td>At 200000: 40000 →6000 before boosts. Overlapping copied skills cannot multiply it.</td>
+</tr>
+<tr>
+<td>Unified Front shield</td>
+<td>Adds 5% H×N every second, no capacity limit</td>
+<td>Restore 0.25% Hentry×min(N,8) per second, max2%/s, repeatable budget</td>
+<td>N=12,H=200000: 120000/s →4000/s before rolling cap.</td>
+</tr>
+<tr>
+<td>Unified Front healing bonus</td>
+<td>+5% per player-side unit, cap60%</td>
+<td>+2% per unit, cap20%</td>
+<td>Counter-summon identity without overwhelming summon contribution.</td>
+</tr>
+<tr>
+<td>Thaelis gem healing bonus</td>
+<td>+35%</td>
+<td>+20%</td>
+<td>Keep strongest sustain gem meaningful.</td>
+</tr>
+<tr>
+<td>Fracture recovery bonus</td>
+<td>+15% for 1s</td>
+<td>+10% for 1s</td>
+<td>Small benefit only.</td>
+</tr>
+<tr>
+<td>Unbroken recovery bonus</td>
+<td>+40% for 6s after invulnerability</td>
+<td>+20% for 6s</td>
+<td>Avoid enormous post-revive recovery.</td>
+</tr>
+<tr>
+<td>Total recovery boost</td>
+<td>Additive, no aggregate bonus cap before waning</td>
+<td>Additive bonus capped +50%, then waning/anti-heal/budgets</td>
+<td>Maximum repeatable recovery remains provable.</td>
+</tr>
+<tr>
+<td>Waning Might</td>
+<td>Every35s: heal/shield factor .80^s for s≤2, then .80^(2s−2); damage/base DR analogous .85</td>
+<td>Keep rates and timing; apply to every in-scope repeatable recovery path</td>
+<td>Existing Unified Front and some copied recovery bypass it; proposal closes those paths.</td>
+</tr>
+<tr>
+<td>Threshold milestones</td>
+<td>At75/50/25% HP, adds20% H×heal boost to threshold pool</td>
+<td>Grant10% Hentry ordinary shield once at each threshold</td>
+<td>Replace a persistent floor mechanism with consumable protection.</td>
+</tr>
+<tr>
+<td>Threshold pool restoration</td>
+<td>Each frame, pool≥25/50/75/100% H restores HP to matching threshold, without spending pool</td>
+<td>Remove recurring restoration; no replacement heal</td>
+<td>Unspent stored value must not be an unlimited HP source.</td>
+</tr>
+<tr>
+<td>Damage-fed Threshold shield</td>
+<td>25%×min(recorded HP damage,10% H), boosted, no total cap</td>
+<td>10% actual HP lost; max0.5% Hentry per hit; repeatable budget</td>
+<td>At actual loss10000,H=200000:2500 →1000 before boosts.</td>
+</tr>
+<tr>
+<td>Shield Burst trigger</td>
+<td>&gt;12% H recorded damage in a reset-on-timeout 1s bucket; 0.5s cooldown</td>
+<td>&gt;12% Hentry actual HP+shield loss in rolling1s; 3s cooldown</td>
+<td>Count real resource loss, not overkill or blocked payload.</td>
+</tr>
+<tr>
+<td>Shield Burst new shield</td>
+<td>50% accumulated damage</td>
+<td>20% actual window loss, max3% Hentry; repeatable shield budget</td>
+<td>Keep anti-burst response without refilling half every attack.</td>
+</tr>
+<tr>
+<td>Shield Burst heal</td>
+<td>60% pre-burst shield; shield is not spent</td>
+<td>Consume up to10% Hentry current shield, heal50% of shield consumed; repeatable heal budget</td>
+<td>At shield60000,Hentry200000:36000 free heal → up to10000 heal costing20000 shield.</td>
+</tr>
+<tr>
+<td>Copied Marchosias barrier</td>
+<td>8000 pool, 60% DR; regenerates full after break timer</td>
+<td>8000 pool, 60% DR; full replacement on existing timer</td>
+<td>Keep separate visible pool and clock.</td>
+</tr>
+<tr>
+<td>Copied Marchosias impact barrier repair</td>
+<td>5% impact damage, cap2000 per hit</td>
+<td>3% actual barrier loss; cap160 per rolling1s</td>
+<td>2% of the 8000 barrier per second.</td>
+</tr>
+<tr>
+<td>Copied Marchosias body lifesteal</td>
+<td>10% impact damage, cap2000 per hit</td>
+<td>5% actual barrier loss; cap0.5% Hentry/s; repeatable heal budget</td>
+<td>Lifesteal scales from actual intercepted damage and cannot duplicate it.</td>
+</tr>
+<tr>
+<td>Copied Marchosias excess-heal shield</td>
+<td>50% excess</td>
+<td>25% excess, repeatable shield budget</td>
+<td>One effectiveness/anti-heal application.</td>
+</tr>
+<tr>
+<td>Copied Marchosias barrier-break heal</td>
+<td>40% H</td>
+<td>5% Hentry, repeatable heal budget</td>
+<td>Breaking its 8000-point defense cannot return80000 body HP.</td>
+</tr>
+<tr>
+<td>Copied Marchosias barrier-break shield</td>
+<td>15% H +15% lost HP</td>
+<td>5% Hentry, repeatable shield budget</td>
+<td>Predictable recovery event.</td>
+</tr>
+<tr>
+<td>Copied Thaelis HP milestones</td>
+<td>Each new5% lost HP milestone: heal2.5% H and shield1% H, both boosted</td>
+<td>Same one-time milestones: heal0.75% Hentry and shield0.5% Hentry; total milestone healing cap15% Hentry and shields10% Hentry</td>
+<td>Bounded lifetime reward; retained across Unbroken Will.</td>
+</tr>
+<tr>
+<td>Unbroken Will lethal-save heal</td>
+<td>Full HP, once</td>
+<td>35% Hentry HP, once</td>
+<td>A second phase, not a complete second full-health fight.</td>
+</tr>
+<tr>
+<td>Unbroken Will shield / invulnerability</td>
+<td>+20% H shield;4s invulnerability</td>
+<td>+10% Hentry shield;4s invulnerability</td>
+<td>Preserve transition readability and timing.</td>
+</tr>
+<tr>
+<td>Unbroken Will temporary Max HP</td>
+<td>+20% H and matching HP for6s</td>
+<td>+10% Hentry and matching HP for6s, removed on expiry</td>
+<td>Keep temporary empowerment without changing sustain reference.</td>
+</tr>
+<tr>
+<td>External Raphael, Demon Gift, Envy healing to Goliath</td>
+<td>Separate paths, inconsistent bonuses</td>
+<td>Shared effectiveness/anti-heal and repeatable budgets</td>
+<td>Multiple supports cannot bypass the boss's recovery budget.</td>
+</tr>
+</tbody>
+</table></div>
+<p>For Hentry=200000, proposed repeatable healing is at most24000 per10s, repeatable shield generation at most30000 per10s, and ordinary shields at most60000 at a time, after all boosts. This excludes the explicitly limited one-time revive/milestone events and separate arc barrier. The old Unified Front alone generates120000 shield each second at N=12. This is a large intended reduction, not a claim of neutral balance.</p>
+<p><strong>Uncertain and mandatory encounter check:</strong> No baseline combat traces establish typical True Form HP, gem combinations, time spent casting, incoming true-damage share, or completion time. Target a median True Form duration of35 to60s for an appropriately equipped wave-5/10 run, with the existing Waning Might as the long-fight relief. That duration is a proposed playtest target. Test every 3-gem combination of the seven supported gems (35 combinations), especially Thaelis/Marchosias/Raphael and Veilshroud/Egregor/Leviathan. Do not claim the target has been achieved from the recovery budget alone.</p>
+</section>
+<section class="report-section" data-section="6"><h2 id="part-5-all-zodiac-sigils-and-great-sage">Part 5: all Zodiac Sigils and Great Sage</h2>
+<p>The following values are the <strong>final rebalance</strong> after the neutral conversions in Part 1. Where a Sigil modifies F, D, D spaceships, DNT, or BTM, leave that branch and its numbers unchanged. Changes to global Sigil multipliers apply only to in-scope source descriptors. This requires explicit source provenance, including F-generated boomerangs or arcs; relying on their shape or <code>isSpirit</code> flag is insufficient.</p>
+<p>Proc rules: a secondary Sigil event must not generate another secondary Sigil event. Eligible primary player, Spirit, and Sentinel hits can still trigger their specified Sigil. Preserve explicit exclusions such as Yuusha not feeding Aries, and Sentinels not feeding Shadow Twin. Retain hit counters by logical attack event rather than re-counting a split damage packet, reflected damage, or a stored-damage detonation. These are explicit balance fixes, not part of the parity release.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Sigil / effect</th>
+<th>Current runtime or documented discrepancy</th>
+<th>Final proposed value</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Aries Gate of Babylon</td>
+<td>14 blades, each50+4% T true;1.5s CD</td>
+<td>14 blades, each0.50A+3% T true;1.5s CD</td>
+<td>Flat baseline retained; lower fan percentage budget. At A=100,T=10000:450 →350 per blade.</td>
+</tr>
+<tr>
+<td>Aries Enuma Elish</td>
+<td>min(15% T,16000) true;30 hits;runtime1s CD</td>
+<td>min(12% T,120A) true;30 hits;1s CD</td>
+<td>ATK ceiling grows12000 →15600; target HP remains the attack identity. At T=10000:1500 →1200.</td>
+</tr>
+<tr>
+<td>Taurus Yuusha formation</td>
+<td>HP300/200/200/200;5s respawn;1.5× piercing redirect;2 Sentinels replenished on empty,2s gate</td>
+<td>Keep all listed numbers</td>
+<td>Formation is utility, not a new HP scaling system.</td>
+</tr>
+<tr>
+<td>Taurus Tank offense</td>
+<td>40+0.04P true, not4% enemy Max HP</td>
+<td>0.40A+0.04P true</td>
+<td>At A=100,P=100:44 →44. Correct tooltip, not a hidden tenfold buff.</td>
+</tr>
+<tr>
+<td>Taurus Marksman</td>
+<td>75+0.05P every0.3s, not5% enemy Max HP</td>
+<td>0.75A+0.05P every0.3s</td>
+<td>At A=100,P=100:80 →80.</td>
+</tr>
+<tr>
+<td>Taurus Mage</td>
+<td>50+0.04P per500ms per3s zone</td>
+<td>0.50A+0.04P, same timing</td>
+<td>At A=100,P=100:54 →54. Preserve every fourth cast's3.5s Soul Reaver.</td>
+</tr>
+<tr>
+<td>Taurus Support / Tank healing</td>
+<td>50 to2 recipients /20 self</td>
+<td>min(.50A,.20T) / min(.20A,.08T)</td>
+<td>Same formulas as Part 3; never heals player lives.</td>
+</tr>
+<tr>
+<td>Cancer Lunar Aegis</td>
+<td>Gaia without Glory;barrier×1.40;evade20%;execute≤8% HP</td>
+<td>Keep activation;barrier×1.30;evade15%;execute≤8%</td>
+<td>Reduce combined avoidance and sustain; preserve execution immunity exclusions.</td>
+</tr>
+<tr>
+<td>Cancer Tidal Flow regen</td>
+<td>3% T/s×1.30</td>
+<td>2.5% T/s×1.20</td>
+<td>3.9% →3% T/s total for its own regen. Healing-effectiveness bonus applied once.</td>
+</tr>
+<tr>
+<td>Cancer Tidal Iron Body / replenish</td>
+<td>One layer,8s after consumption;2 Sentinels on empty with2s gate</td>
+<td>Unchanged</td>
+<td>One-hit protection is independent of ATK.</td>
+</tr>
+<tr>
+<td>Cancer Riptide meter</td>
+<td>4000;overflow30%;passive50/60/75 per s at1/2/3+ Sentinels</td>
+<td>Unchanged values; feed actual absorbed damage only</td>
+<td>Fix barrier overcount before lowering meter requirements.</td>
+</tr>
+<tr>
+<td>Cancer Riptide DoT</td>
+<td>50+0.25% T true per100ms</td>
+<td>.50A+0.25% T true per100ms</td>
+<td>At A=100,T=10000:75 →75.</td>
+</tr>
+<tr>
+<td>Cancer Riptide bite</td>
+<td>650+25% T true per whirlpool, up to10</td>
+<td>6.50A+18% T true;one bite per victim per activation</td>
+<td>At A=100,T=10000:3150 →2450. No ten-overlapping-whirlpool boss burst.</td>
+</tr>
+<tr>
+<td>Cancer overlapping whirlpool ticks</td>
+<td>Each overlapping whirlpool can tick</td>
+<td>At most one Riptide tick per victim per100ms per activation</td>
+<td>Keep10 spawn sites and crowd coverage; no accidental single-target multiplier.</td>
+</tr>
+<tr>
+<td>Gemini Shadow Twin</td>
+<td>Small75+3% T;large180+8% T;3 volleys of3;10-hit trigger</td>
+<td>Small.75A+2.5% T;large1.80A+6% T;same volleys and trigger</td>
+<td>At T=10000,A=100:375 →325,980 →780.</td>
+</tr>
+<tr>
+<td>Gemini Twin vulnerability</td>
+<td>2 stacks per orb hit</td>
+<td>1 stack per orb hit</td>
+<td>Nine orbs already reach cap quickly; Soul Reaver retained.</td>
+</tr>
+<tr>
+<td>Gemini Overload mirrors</td>
+<td>Main×1.30,2 mirrors each75% of buffed main</td>
+<td>Main×1.20,2 mirrors each60% of buffed main</td>
+<td>One main beam plus both mirrors: 3.25× → 2.64×; clone beam overlap is additional. Preserve movement and 125% mirror speed.</td>
+</tr>
+<tr>
+<td>Gemini proc column</td>
+<td>350+18% T every125ms for3s;4s CD;5% chance,+0.3 point/miss</td>
+<td>3.50A+8% T every125ms for3s;6s CD;same chance/pity</td>
+<td>At A=100,T=10000:2150 →1150 per tick. Reduces boss melting while retaining rare burst.</td>
+</tr>
+<tr>
+<td>Leo Lion's Roar Burn</td>
+<td>(200+5% T)×up to3 stacks per500ms;3s;ignores50% DR</td>
+<td>(2A+3% T)×up to3 stacks per500ms;same duration and DR bypass</td>
+<td>At A=100,T=10000:700 →500 per stack.</td>
+</tr>
+<tr>
+<td>Leo direct lost-HP bonus</td>
+<td>2% L on eligible hits</td>
+<td>1% L on eligible primary hits</td>
+<td>High fire rate otherwise makes execute-like damage dominant.</td>
+</tr>
+<tr>
+<td>Leo Divine Fate</td>
+<td>5s freeze and ×2 damage at wave start</td>
+<td>Same5s freeze;×1.60 in-scope damage</td>
+<td>Preserve crowd-control identity, reduce burst stacking. Protected damage branches retain current value.</td>
+</tr>
+<tr>
+<td>Virgo Forest Guardian critical</td>
+<td>Every6th auto volley:normal hit +3× payload true</td>
+<td>Every6th:normal hit +2× payload true</td>
+<td>Nominal4× →3× payload; keep1s root/silence and two Vulnerability applications.</td>
+</tr>
+<tr>
+<td>Virgo wooden fist</td>
+<td>1000+10% T+15% L;4s while5+ enemies</td>
+<td>10A+8% T+10% L;same gate</td>
+<td>At A=100,T=10000,L=5000:2750 →2300.</td>
+</tr>
+<tr>
+<td>Virgo Tesla boost</td>
+<td>+50% to link ticks and destroyed-Coil burst; aura call does not apply it</td>
+<td>+30% to link,aura,and all in-scope Coil bursts</td>
+<td>Correct inconsistent coverage; explicitly buff previously unboosted aura to1.30×.</td>
+</tr>
+<tr>
+<td>Virgo debuffed-target amplification</td>
+<td>+50% all-source damage</td>
+<td>+25% in-scope damage</td>
+<td>Highly available debuffs made this nearly permanent.</td>
+</tr>
+<tr>
+<td>Virgo Coil destruction charge</td>
+<td>Runtime +10 G points;tooltip claims CD reduction and rate bonus</td>
+<td>+10 G points, unchanged</td>
+<td>Display real mechanic; no invented G cooldown reduction.</td>
+</tr>
+<tr>
+<td>Libra Blood Arrow traversal</td>
+<td>Large300;small180</td>
+<td>Large3A;small1.80A</td>
+<td>Exact base parity.</td>
+</tr>
+<tr>
+<td>Libra large explosion</td>
+<td>(400+20% T)×(1+DR bonus)×repeat</td>
+<td>(4A+16% T)×(1+DR bonus)×repeat</td>
+<td>At DR0,A100,T10000:2400 →2000.</td>
+</tr>
+<tr>
+<td>Libra small explosion</td>
+<td>(180+12% T)×(1+DR bonus)×repeat +5% L×repeat</td>
+<td>(1.80A+9% T)×(1+DR bonus)×repeat +3% L×repeat</td>
+<td>At DR0,A100,T10000,L5000:1630 →1230.</td>
+</tr>
+<tr>
+<td>Libra DR bonus</td>
+<td>2% per1 percentage point estimated DR, cap120%</td>
+<td>1% per1 percentage point actual applicable DR, cap60%</td>
+<td>Still counters tanks after DR is retuned; no stale duplicate estimate.</td>
+</tr>
+<tr>
+<td>Libra repeat multiplier</td>
+<td>×0.70 for subsequent arrow hits in same volley</td>
+<td>×0.70</td>
+<td>Preserve spread incentive.</td>
+</tr>
+<tr>
+<td>Libra Skill A cooldown / stacking</td>
+<td>−2s;bank stacks;1 large+4 small arrows per stack</td>
+<td>Unchanged</td>
+<td>Cadence and stored-cast identity preserved.</td>
+</tr>
+<tr>
+<td>Libra Astral Pierce</td>
+<td>+20% payload on onward impacts;size+30%</td>
+<td>Same coefficients in Part 1;size+30%</td>
+<td>Keep piercing identity. Do not assume initial primary orb already gains20%; current code distinguishes the paths.</td>
+</tr>
+<tr>
+<td>Scorpio Resurrection</td>
+<td>+5 lives on pick;1 life/250000 points instead of500000</td>
+<td>+4 lives;1 life/300000 points</td>
+<td>Slightly less life supply after enemy damage outliers are reduced.</td>
+</tr>
+<tr>
+<td>Scorpio Death Mark</td>
+<td>+0 to70% as HP100 to21%;+80% at≤20%;execute≤5%,excluding Goliath</td>
+<td>+0 to40% over same range;+50% at≤20%;same execute/exclusions</td>
+<td>Keep finisher identity with less global damage stacking.</td>
+</tr>
+<tr>
+<td>Scorpio F Iron Body interaction</td>
+<td>F arc can bypass Iron Body</td>
+<td>Unchanged</td>
+<td>Explicit protected Skill F interaction.</td>
+</tr>
+<tr>
+<td>Sagittarius Spirit Twin Blades</td>
+<td>2 arcs each×1.60,+25% chance of third</td>
+<td>2 arcs each×1.20,+25% third;15ms stagger unchanged</td>
+<td>Expected3.60× →2.70× baseline arc count×payload.</td>
+</tr>
+<tr>
+<td>Sagittarius spinner blade pairs</td>
+<td>2 per direction each×1.60</td>
+<td>2 per direction each×1.20</td>
+<td>3.20× →2.40× baseline mini-arc budget.</td>
+</tr>
+<tr>
+<td>Sagittarius auto arc proc</td>
+<td>15% per volley;300+7% T+5.5% L</td>
+<td>15%;3A+5% T+5.5% L</td>
+<td>Flat preserved, percent reduced.</td>
+</tr>
+<tr>
+<td>Sagittarius ordinary Photo extra boomerangs</td>
+<td>Two independent40% rolls,each adds2 to base2</td>
+<td>Two independent30% rolls,each adds2</td>
+<td>Expected3.6 →3.2 boomerangs per trigger. No F-sourced change.</td>
+</tr>
+<tr>
+<td>Sagittarius spinner ricochet</td>
+<td>+15% per bounce,max45%,reset on hit</td>
+<td>Unchanged</td>
+<td>Rewards spatial behavior rather than passive scaling.</td>
+</tr>
+<tr>
+<td>Sagittarius Arctic Chill</td>
+<td>75% slow/pull chance;30% slow,2s;Spirit/Photo fire rate+30%</td>
+<td>Keep chance/control;ordinary fire rate+20%</td>
+<td>Less multiplication with Capricorn; no DNT/BTM scheduling changes.</td>
+</tr>
+<tr>
+<td>Sagittarius F replacement</td>
+<td>F casts its existing2 boomerangs</td>
+<td>Unchanged, including damage and modifiers</td>
+<td>Explicit Skill F protection.</td>
+</tr>
+<tr>
+<td>Capricorn Compound Interest energy</td>
+<td>+0.8P per kill;every5P gives1.5% fire rate,cap40%</td>
+<td>Energy and fire-rate values unchanged</td>
+<td>PE also fuels protected transformation/BTM; leave lifecycle intact.</td>
+</tr>
+<tr>
+<td>Capricorn true rider</td>
+<td>Flat200 per eligible hit while Photo alive,excludes Goliath,no cooldown</td>
+<td>1.50A,100ms shared per-target gate,primary hits only,same Goliath exclusion</td>
+<td>Maximum1500 raw/s per target at A100; no recursive procs or double outgoing multiplier.</td>
+</tr>
+<tr>
+<td>Capricorn Avalanche</td>
+<td>+0.5% per kill,cap70%,resets6s without kill</td>
+<td>+0.5% per kill,cap40%,same6s</td>
+<td>Keep ramp, lower late-run multiplier pileup.</td>
+</tr>
+<tr>
+<td>Aquarius Chain Lightning</td>
+<td>50% link tick proc at150px;G charge+35%</td>
+<td>Same proc/range/charge</td>
+<td>Scales naturally through .95A link payload.</td>
+</tr>
+<tr>
+<td>Aquarius unpaired-orb damage stacks</td>
+<td>+15% each,max6,5s</td>
+<td>+8% each,max6,5s</td>
+<td>Maximum+90% →+48%. Extra A orb conversion unchanged.</td>
+</tr>
+<tr>
+<td>Aquarius Magnetic Field</td>
+<td>3.5% T/s within300px;slow30%</td>
+<td>Same rate/range/slow;100ms ticks of0.35% T</td>
+<td>Fix frame-rate dependence, don't add a flat ATK term to a percentage identity.</td>
+</tr>
+<tr>
+<td>Pisces Dream Realm protection</td>
+<td>3s immunity on Shift</td>
+<td>2.5s,shared6s minimum retrigger interval</td>
+<td>Prevent repeated short Shift activations from sustaining near-continuous invulnerability. Shift's own protection is unchanged.</td>
+</tr>
+<tr>
+<td>Pisces marked explosion</td>
+<td>60% pre-shield accumulator +35% L at1.65s,then outgoing buffs can apply again</td>
+<td>min(50% actual marked HP+shield loss +15% L,25% T);true;no repeat outgoing buffs</td>
+<td>Damage storage already scales with ATK; prevent amplified damage recycling.</td>
+</tr>
+<tr>
+<td>Pisces Cycle kill CD reductions</td>
+<td>Apostle1s;abnormal/elite1.5s;dominator2s;Egregor3s</td>
+<td>In-scope skills:0.75s /1s /1.5s /2s;max2s reduction per skill per real second</td>
+<td>Smooth rapid-kill resets while retaining utility. D/F reductions unchanged.</td>
+</tr>
+<tr>
+<td>Pisces movement CD reduction</td>
+<td>.5s per actual screen width moved</td>
+<td>.5s,inside the same2s/s budget for in-scope skills</td>
+<td>Movement incentive retained. D/F unchanged.</td>
+</tr>
+<tr>
+<td>Pisces G / Photo energy charge</td>
+<td>+50%</td>
+<td>G+35%;Photo+50% unchanged</td>
+<td>Avoid altering protected Photo ultimate availability.</td>
+</tr>
+<tr>
+<td>Pisces instant charge behavior</td>
+<td>D,F,Overload instantaneous</td>
+<td>Unchanged</td>
+<td>Protected D/F; Overload utility retained.</td>
+</tr>
+<tr>
+<td>Great Sage Ransacked Treasury sweep/gems</td>
+<td>F recast, widening up to4.5×,3 distinct gems</td>
+<td>Unchanged</td>
+<td>All F activation and sweep behavior protected.</td>
+</tr>
+<tr>
+<td>Great Sage Raphael stolen attack</td>
+<td>220+12% T</td>
+<td>2.20A+10% T</td>
+<td>At A100,T10000:1420 →1220.</td>
+</tr>
+<tr>
+<td>Great Sage Marchosias stolen attack</td>
+<td>260+13% T</td>
+<td>2.60A+11% T</td>
+<td>1560 →1360.</td>
+</tr>
+<tr>
+<td>Great Sage Veilshroud stolen attack</td>
+<td>320+17% T true</td>
+<td>3.20A+14% T true</td>
+<td>2020 →1720.</td>
+</tr>
+<tr>
+<td>Great Sage Egregor stolen attack</td>
+<td>260+14% T</td>
+<td>2.60A+12% T</td>
+<td>1660 →1460.</td>
+</tr>
+<tr>
+<td>Great Sage Dargruel stolen attack</td>
+<td>190+11% T</td>
+<td>1.90A+9% T</td>
+<td>1290 →1090.</td>
+</tr>
+<tr>
+<td>Great Sage Leviathan stolen attack</td>
+<td>200+11% T</td>
+<td>2A+9% T</td>
+<td>1300 →1100.</td>
+</tr>
+<tr>
+<td>Great Sage Goliath dormant copy</td>
+<td>420+22% T true</td>
+<td>4.20A+18% T true</td>
+<td>2620 →2220; normal gem acquisition still does not grant it.</td>
+</tr>
+<tr>
+<td>Great Sage Thaelis protection</td>
+<td>Player1 Iron Body layer;summons50% evade for3s×combo</td>
+<td>Player1 layer;summons40% evade for3s×combo</td>
+<td>Keep borrowed defense, reduce stacked avoidance.</td>
+</tr>
+<tr>
+<td>Great Sage 72 Transformations</td>
+<td>×1.50 stolen attack power with3 gems</td>
+<td>×1.50</td>
+<td>Scarce conditional payoff retained; only copied payloads above change.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Than's copied attacks are treated as separate Sigil payloads riding an unchanged F recast. If AanSensei intends the entire gem activation payload to be included in the F exclusion, freeze those eight copy rows too. This is the remaining scope ambiguity; no game code has been changed.</p>
+</section>
+<section class="report-section" data-section="7"><h2 id="implementation-boundaries-and-verification">Implementation boundaries and verification</h2>
+<p>Do not use a blind search-and-replace of every <code>damage</code> value. <code>fireChargedBullet.damage</code> stores a charge multiplier, enemy projectile HP is durability, Alpha HP is a placeholder, and the game has direct HP deductions that bypass the main resolver.</p>
+<p>Suggested concrete shape: <code>player.atk</code>, <code>enemy.atk</code>, and a damage descriptor carrying <code>faction</code>, <code>owner</code>, <code>attackId</code>, <code>atkCoefficient</code>, <code>targetMaxHpPct</code>, <code>targetLostHpPct</code>, <code>ownMaxHpCoefficient</code>, <code>enrage</code>, <code>damageType</code>, and snapshot values. Only include fields needed by that attack; no general scripting engine. A small explicit protected-source discriminator must preserve old payloads and old shared-buff behavior for F/D/spaceships/DNT/BTM. Source lineage must survive copied arcs and boomerangs.</p>
+<p>The Pisces mark resolver is physically inside <code>skills/skill-d.js:238</code>, though Shift also creates the marks. In an implementation, separate the <strong>Shift/Pisces-owned mark behavior</strong> from D-owned marks without changing D's current behavior. Similarly, shared ally loops in <code>main.js:2148</code> currently include D spaceships. File location alone is not a safe scope boundary.</p>
+<p>Verification gates:</p>
+<ol>
+<li>At A=100 and unchanged legacy multipliers, compare every Part 1 payload against the original at T=100,10000,200000 and L=0,.5T,.9T. Include ordinary, piercing, true, barrier, crit, and direct-HP paths. Assert identical conversion results, including original rounding.</li>
+<li>Test actor provenance: no friendly offensive multiplier on hostile payloads in the balance release; no double outgoing multiplier on reflected/stored damage; no unknown owner fallback to target HP. Assert finite, nonnegative payloads, including Meteor and expired owners.</li>
+<li>Test shield conservation: HP loss plus shield/barrier loss cannot exceed accepted damage; tiny barriers do not erase excess damage; healing and lifesteal use actual loss with overkill excluded. Test true damage with and without Vanguard and Yuusha.</li>
+<li>Test protection of F/D/spaceships/DNT/BTM with frozen fixtures covering Glory, Parry, every relevant Sigil, Goliath interception, shield/invulnerability, cooldown reduction, and direct HP bypass. Never route protected attacks into the new Sigil proc rules implicitly.</li>
+<li>Test temporal boundaries: wave reset, pause, owner death, Goliath transform, simultaneous cast endings, Unbroken Will expiry, debuff refresh, and 30/60/120fps DoT totals. Use simulation time rather than wall time for combat snapshots and budgets.</li>
+<li>Run the paired encounter matrix from Part 2 and the35 Goliath gem combinations. Report actual results before claiming the rebalance is fair. A later implementation should retain the legacy configuration until the parity fixtures and paired traces pass.</li>
+</ol>
+<h3 id="confidence-and-unresolved-items">Confidence and unresolved items</h3>
+<p><strong>High confidence:</strong> the listed constants, source distinctions, +60 impact bonus, Yuusha's Primeval Energy basis, Glory inconsistency, numeric Meteor defect, and unbounded Goliath shield/recovery paths are directly visible in source.</p>
+<p><strong>Medium confidence:</strong> T=300 is a useful calibration anchor; bounded ATK growth, armor limits, and capped recovery are coherent first-pass designs. Exact coefficients remain playtest proposals.</p>
+<p><strong>Low confidence until measured:</strong> total wave threat, the right endgame ATK cap, fair Goliath duration, minion bullet exposure, and the net interaction of lower damage amplification with much lower defense. This proposal deliberately does not claim those are validated.</p>
+<p><strong>Scope clarification still useful:</strong> whether Great Sage's stolen payloads count as excluded F behavior; whether ordinary Spirit finale's Goliath Warding Palm exception should eventually become ATK-based; and whether the user-facing Glory×1.55 is the desired final value despite the current core×1.70. The tables choose separate Sigil payloads, retain the finale exception, and use final×1.55 respectively, with no silent implementation.</p>
+<p>The advisor-executor MCP requested by the workspace instructions was unavailable. No advisor model selection, attempt count, or Opus review result exists for this proposal. The analysis is local source inspection and formula design only.</p></section></main>
+<script>
+const sectionSelect=document.getElementById('section');
+const search=document.getElementById('search');
+const status=document.getElementById('matches');
+function filterReport(){
+ const query=search.value.trim().toLowerCase();let shown=0,total=0;
+ document.querySelectorAll('.report-section').forEach(section=>{
+  const visible=sectionSelect.value==='all'||section.dataset.section===sectionSelect.value;
+  section.hidden=!visible;
+  section.querySelectorAll('.table-scroll').forEach(wrapper=>{
+   let matches=0;
+   wrapper.querySelectorAll('tbody tr').forEach(row=>{const match=!query||row.textContent.toLowerCase().includes(query);row.hidden=!match;if(match)matches++;if(visible){total++;if(match)shown++;}});
+   wrapper.hidden=matches===0;
+  });
+ });
+ status.textContent=shown+' of '+total+' entries shown';
+}
+sectionSelect.addEventListener('change',filterReport);
+search.addEventListener('input',filterReport);
+document.getElementById('reset').addEventListener('click',()=>{sectionSelect.value='all';search.value='';filterReport();});
+filterReport();
+</script></body></html>
