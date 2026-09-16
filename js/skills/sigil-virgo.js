@@ -31,7 +31,7 @@ function updateGoldenArrowSweep(deltaTime) {
             if (dist < range && angle < currentAngle && angle > currentAngle - 0.2) {
                 sw.hitEnemies.add(enemy);
                 const missingHpBonus = Math.ceil((enemy.maxHp - enemy.hp) * 0.15);
-                dealDamage(enemy, { damage: 1000 + missingHpBonus, percentDamage: 0.10, _statSrc: 'Virgo: Forest Guardian' });
+                dealDamage(enemy, { damage: 10 * player.atk + missingHpBonus, percentDamage: 0.10, _statSrc: 'Virgo: Forest Guardian' });
                 createParticles(enemy.x, enemy.y, 14, '#c9a227', 3, 8);
                 createParticles(enemy.x, enemy.y, 8, '#5fae3a', 2, 6);
             }

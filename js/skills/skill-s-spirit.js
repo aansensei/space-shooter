@@ -98,7 +98,7 @@ function updateSpirits(deltaTime) {
                 const speedMultiplier = (gloryForJusticeActive ? 1.30 : 1) * 1.32;
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 120, percentDamage: 0.005,
+                    damage: 1.20 * player.atk, percentDamage: 0.005,
                     size: 7.2, lifetime: 2000, target: closest, speedMultiplier: speedMultiplier,
                     isSpirit: true, _statSrc: 'Skill S: Remembrance Spirit',
                 });
@@ -117,7 +117,7 @@ function updateSpirits(deltaTime) {
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
             if (_hasBuff('song_luoi')) {
-                const baseDmg = 180 * 1.60, basePct = 0.046 * 1.60;
+                const baseDmg = 1.80 * player.atk * 1.60, basePct = 0.046 * 1.60;
                 const speed = 15.84;
                 const baseAngle = Math.atan2(vy, vx);
                 const sideOff = 22;
@@ -141,7 +141,7 @@ function updateSpirits(deltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             } else {
                 player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
-                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 180, percentDamage: 0.046, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 1.80 * player.atk, percentDamage: 0.046, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             }
         }
@@ -417,7 +417,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             for (let bi = 0; bi < 3; bi++) {
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 125 * dmgMult * dntMult, percentDamage: 0.017 * dntMult,
+                    damage: 1.25 * player.atk * dmgMult * dntMult, percentDamage: 0.017 * dntMult,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
                     applyVuln: true, vulnChance: 0.15, _statSrc: 'Skill S: Photokrystos',
@@ -486,7 +486,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
             targetIdx: 0,
             hitEnemies: [],
             rotation: Math.random() * Math.PI * 2,
-            damage: 500, percentDamage: 0.070,
+            damage: 5 * player.atk, percentDamage: 0.070,
             lifetime: 9000,
             _radius: _isExtra ? 58 : 48,
         });
@@ -808,7 +808,7 @@ function _fireSpinnerBlades(s, now) {
     // damage each, 2nd fires 15ms later at +20% radius) - the same
     // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
     const _twinBlades = _hasBuff('song_luoi');
-    const _bladeDmg = _twinBlades ? 350 * 1.60 : 350;
+    const _bladeDmg = _twinBlades ? 3.50 * player.atk * 1.60 : 3.50 * player.atk;
     const _bladePct = _twinBlades ? 0.035 * 1.60 : 0.035;
     for (let d = 0; d < 4; d++) {
         const a = (Math.PI / 2) * d;
@@ -942,7 +942,7 @@ function updateSpiritSpinners(deltaTime) {
                 // bounces without a hit over chaining hits back to back.
                 const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
                 const _drMult = _spinnerDrMult(enemy, now);
-                dealDamage(enemy, { damage: Math.round(200 * _songLuoiMult * _drMult), percentDamage: 0.15 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
+                dealDamage(enemy, { damage: Math.round(2 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.15 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
                 if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
                 // On-hit: a sharp crack - jagged magenta shards plus a quick
                 // white flash at the contact point, selling the heavy true damage.
@@ -1077,7 +1077,7 @@ function updateSpiritFinale(spirit, deltaTime) {
                     if (enemy.type === 'veilshroud_echo') return; // untargetable
                     if (enemy.inCoronation) return;
                     particles.push({ isLaserLine: true, x1: spirit.x, y1: spirit.y, x2: enemy.x, y2: enemy.y, lifetime: 150, maxLifetime: 150, color: 'red' });
-                    dealDamage(enemy, { damage: 10, percentDamage: 0.40, isSpiritLaser: true, isTrueDamage: true });
+                    dealDamage(enemy, { damage: 0.10 * player.atk, percentDamage: 0.40, isSpiritLaser: true, isTrueDamage: true });
                 });
             }
             if (spirit.finaleChargeTime <= 0) spirit.finaleState = 'firing';

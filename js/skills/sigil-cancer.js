@@ -40,9 +40,7 @@ function _releaseTidalSurge() {
 
 const TIDAL_SURGE_PULL_RADIUS = 110;
 const TIDAL_SURGE_BURST_RADIUS = 150;
-const TIDAL_SURGE_DAMAGE = 650;
 const TIDAL_SURGE_DAMAGE_PCT = 0.25;
-const TIDAL_SURGE_DOT_DAMAGE = 50;
 const TIDAL_SURGE_DOT_PCT = 0.0025;
 const TIDAL_SURGE_DOT_INTERVAL = 100;
 const TIDAL_SURGE_MAX_WHIRLPOOLS = 10;
@@ -154,7 +152,7 @@ function _updateTidalSurge(deltaTime) {
             for (const enemy of enemies) {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy._stealthed) continue;
                 if (Math.hypot(enemy.x - w.x, enemy.y - w.y) > TIDAL_SURGE_PULL_RADIUS) continue;
-                dealDamage(enemy, { damage: TIDAL_SURGE_DOT_DAMAGE, percentDamage: TIDAL_SURGE_DOT_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
+                dealDamage(enemy, { damage: 0.50 * player.atk, percentDamage: TIDAL_SURGE_DOT_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
             }
         }
 
@@ -201,7 +199,7 @@ function _updateTidalSurge(deltaTime) {
                     if (w.hitEnemies.includes(enemy)) continue;
                     if (Math.hypot(enemy.x - w.x, enemy.y - w.y) <= TIDAL_SURGE_BURST_RADIUS) {
                         w.hitEnemies.push(enemy);
-                        dealDamage(enemy, { damage: TIDAL_SURGE_DAMAGE, percentDamage: TIDAL_SURGE_DAMAGE_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
+                        dealDamage(enemy, { damage: 6.50 * player.atk, percentDamage: TIDAL_SURGE_DAMAGE_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
                     }
                 }
                 // Splash burst as the whale snaps its jaws shut - a spray of

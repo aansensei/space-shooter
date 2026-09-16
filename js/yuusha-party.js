@@ -1073,7 +1073,7 @@ function _updateYuushaPartyInner(deltaTime) {
                 if (Math.hypot(blade.x - e.x, blade.y - e.y) < blade.height / 2 + eRadius) {
                     blade.hitEnemies.add(e);
                     const ep = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
-                    const dmg = 40 + ep * 0.04;
+                    const dmg = 0.40 * player.atk + ep * 0.04;
                     if (typeof dealDamage === 'function') {
                         dealDamage(e, {
                             damage: dmg, percentDamage: 0,
@@ -1107,7 +1107,7 @@ function _updateYuushaPartyInner(deltaTime) {
                 if (dist < eRadius + 6) {
                     p.hitEnemies.add(e);
                     const ep = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
-                    const dmg = 75 + ep * 0.05;
+                    const dmg = 0.75 * player.atk + ep * 0.05;
                     if (typeof dealDamage === 'function') {
                         dealDamage(e, {
                             damage: dmg, percentDamage: 0,
@@ -1146,7 +1146,7 @@ function _updateYuushaPartyInner(deltaTime) {
                     if (tickNow - lastTick >= 500) {
                         z.hitEnemies.set(e, tickNow);
                         const ep = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
-                        const dmg = 50 + ep * 0.04;
+                        const dmg = 0.50 * player.atk + ep * 0.04;
                         if (typeof dealDamage === 'function') {
                             dealDamage(e, {
                                 damage: dmg, percentDamage: 0,

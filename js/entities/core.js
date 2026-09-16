@@ -74,7 +74,7 @@ function updateVulnerabilityWindows() {
             enemy.vulnTrueDmgEnd = 0;
             enemy.vulnStacks = 0;
             enemy.vulnEndTime = 0;
-            dealDamage(enemy, { damage: 500, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Vulnerability' });
+            dealDamage(enemy, { damage: 5 * player.atk, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Vulnerability' });
         }
     }
 }
@@ -266,7 +266,7 @@ function fireAutoShot() {
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 130, percentDamage: 0.004, size: 6.5, type: 'player_auto',
+            damage: 1.30 * player.atk, percentDamage: 0.004, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28,
             _muiTenVangCrit: _isCritVolley,
         });
@@ -283,7 +283,7 @@ function fireAutoShot() {
         }
         bladeArcProjectiles.push({
             x: player.x, y: player.y, vx: _abvx, vy: _abvy, radius: 125,
-            damage: 300, percentDamage: 0.07, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true
+            damage: 3 * player.atk, percentDamage: 0.07, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true
         });
         if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', player.x, player.y);
     }
@@ -858,7 +858,11 @@ function dealDamage(enemy, source) {
         && (source.damage > 0 || (source.percentDamage || 0) > 0)
         && !source.isTeslaDot && !source._isNocToiDot
         && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._yogExplosion) {
-        totalDamage += 60;
+        // Flat impact bonus, expressed as a coefficient of the player's ATK
+        // stat (docs/combat-scaling-rebalance.md, Part 1) instead of a bare
+        // constant - at the conversion baseline (player.atk = 100) this is
+        // exactly the same +60 as before.
+        totalDamage += 0.60 * player.atk;
         // Sigil: Lion's Roar — every hit also deals 2% of the enemy's own lost HP as bonus dmg
         if (_hasBuff('su_tu_hong')) {
             totalDamage += Math.ceil((enemy.maxHp - enemy.hp) * 0.02);
@@ -1681,7 +1685,7 @@ function dealDamage(enemy, source) {
     // riêng (Inevitable/Warding Palm) phải luôn trên mọi sigil, kể cả bypass nhỏ này.
     if (_hasBuff('lai_kep') && !isSentinel && enemy.type !== 'goliath'
         && typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) {
-        enemy.hp = Math.max(0, enemy.hp - 200);
+        enemy.hp = Math.max(0, enemy.hp - 2 * player.atk);
         if (enemy.hp <= 0) enemy._markedForDeath = true;
     }
 

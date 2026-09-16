@@ -783,7 +783,7 @@ function update(rawDeltaTime) {
                 lastLaserTick = currentTime;
                 // Mirror Laser: original beam +30% dmg; mirror entity beams inherit 75% of that
                 const _mlBuffed = _hasBuff('guong_laze');
-                const _laserDmg = 350 * (_mlBuffed ? 1.30 : 1);
+                const _laserDmg = 3.50 * player.atk * (_mlBuffed ? 1.30 : 1);
                 const _laserPct = 0.23 * (_mlBuffed ? 1.30 : 1);
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
@@ -1057,7 +1057,7 @@ function update(rawDeltaTime) {
                 }
 
                 if (currentTime - coil.dotTargets.get(enemy) >= 125) {
-                    dealDamage(enemy, { damage: 130, percentDamage: 0.025, isTeslaDot: true });
+                    dealDamage(enemy, { damage: 1.30 * player.atk, percentDamage: 0.025, isTeslaDot: true });
                     coil.dotTargets.set(enemy, currentTime);
                 }
             }
@@ -2968,7 +2968,7 @@ function _updateSigilPassives(now, deltaTime) {
             if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
             if (now >= burnData.nextTick) {
                 const stacks = Math.min(3, burnData.stacks || 1);
-                const dmg = (200 + 0.05 * (e.maxHp || e.hp)) * stacks;
+                const dmg = (2 * player.atk + 0.05 * (e.maxHp || e.hp)) * stacks;
                 dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
                 burnData.nextTick = now + 500;
             }

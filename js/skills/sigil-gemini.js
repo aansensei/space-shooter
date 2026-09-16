@@ -80,9 +80,9 @@ function updateShadowOrbs(deltaTime) {
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < enemy.size / 2 + (orb.isLarge ? 15 : 10)) {
                 orb.hitEnemies.add(enemy);
                 if (orb.isLarge) {
-                    dealDamage(enemy, { damage: 180, percentDamage: 0.08, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
+                    dealDamage(enemy, { damage: 1.80 * player.atk, percentDamage: 0.08, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 } else {
-                    dealDamage(enemy, { damage: 75, percentDamage: 0.03, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
+                    dealDamage(enemy, { damage: 0.75 * player.atk, percentDamage: 0.03, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 }
                 applyVulnerability(enemy); applyVulnerability(enemy);
                 createParticles(orb.x, orb.y, orb.isLarge ? 10 : 6, '#4fc3ff', 2, 6);
@@ -130,12 +130,12 @@ function updateMirrorLaserColumns(deltaTime) {
                 if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                 if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                     if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                        const _src = { damage: 350, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
+                        const _src = { damage: 3.50 * player.atk, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
                         if (!checkMarchosiasArcBarrier(enemy, _src, enemy.x, enemy.y)) dealDamage(enemy, _src);
                     } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                         enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     } else {
-                        dealDamage(enemy, { damage: 350, percentDamage: 0.18, isPiercing: true, _statSrc: 'Sigil: Mirror Laser' });
+                        dealDamage(enemy, { damage: 3.50 * player.atk, percentDamage: 0.18, isPiercing: true, _statSrc: 'Sigil: Mirror Laser' });
                     }
                 }
             });

@@ -454,7 +454,7 @@ function updateSolArrows(deltaTime) {
             }
 
             const dmgMult = arrow.isPrimary ? 1 : 0.60; // pierce-hit multiplier only
-            const explodeBase = arrow.isPrimary ? 400 : 180;
+            const explodeBase = arrow.isPrimary ? 4 * player.atk : 1.80 * player.atk;
             const explodePct = arrow.isPrimary ? 0.20 : 0.12;
             const hitRadius = arrow.isPrimary ? 9.2 : 8;
             for (const enemy of enemies) {
@@ -503,7 +503,7 @@ function updateSolArrows(deltaTime) {
                         // Pass-through hit on a non-marked enemy: piercing damage for
                         // every arrow, big or small - never true damage, always respects
                         // shield. Same Arc Barrier routing as the explosion above.
-                        applyMarchosiasSkillASplit(enemy, { damage: 300 * dmgMult * repeatMult, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
+                        applyMarchosiasSkillASplit(enemy, { damage: 3 * player.atk * dmgMult * repeatMult, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         createParticles(arrow.x, arrow.y, 8, '#f59e0b', 2, 5);
                     }

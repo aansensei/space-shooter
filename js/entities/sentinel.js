@@ -60,7 +60,7 @@ function destroySentinel(sentinel) {
         bullets.push({
             x: sentinel.x, y: sentinel.y,
             vx: Math.cos(angle) * 8, vy: Math.sin(angle) * 8,
-            damage: 2, percentDamage: 0.02, size: 6, type: 'sentinel_death'
+            damage: 0.02 * player.atk, percentDamage: 0.02, size: 6, type: 'sentinel_death'
         });
     }
 }
@@ -144,7 +144,7 @@ function updateSentinels(deltaTime) {
                 bullets.push({
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
-                    damage: 50 * damageMultiplier * _bDmg, percentDamage: 0.03 * damageMultiplier * _bDmg, size: 30, type: 'sentinel_special',
+                    damage: 0.50 * player.atk * damageMultiplier * _bDmg, percentDamage: 0.03 * damageMultiplier * _bDmg, size: 30, type: 'sentinel_special',
                     target: sentinel.target, speedMultiplier: 1.12 * speedMultiplier,
                     sourceSentinel: sentinel, _isSentinelBullet: true
                 });
@@ -154,7 +154,7 @@ function updateSentinels(deltaTime) {
                     x: sentinel.x + Math.cos(angle) * sentinel.size,
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
                     vx: Math.cos(angle) * 10.8 * speedMultiplier, vy: Math.sin(angle) * 10.8 * speedMultiplier,
-                    damage: 30 * damageMultiplier * _bDmg2,
+                    damage: 0.30 * player.atk * damageMultiplier * _bDmg2,
                     percentDamage: 0.015 * damageMultiplier * _bDmg2,
                     size: 7.8, type: 'sentinel_auto',
                     _isSentinelBullet: true,

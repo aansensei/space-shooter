@@ -31,7 +31,13 @@ let gameElapsedTime = 0; // Thời gian game thực tế (bị slow bởi Yog-So
 let _gameOverPlayTime = 0; // ms played, captured at game over
 let nextLifeMilestone = 500000;
 
-const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75 }; // must match the cyan dot drawn in render.js, change both or neither
+// atk: the player's attack-power stat every in-scope friendly damage
+// formula below is now expressed as a coefficient of (see
+// docs/combat-scaling-rebalance.md, Part 1). This conversion pass keeps it
+// pinned at the reference value of 100 - every converted formula reduces
+// to its exact pre-conversion constant at A=100, so nothing changes yet.
+// Wave-based growth is a Part 2+ (rebalance) concern, not this pass.
+const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75, atk: 100 }; // must match the cyan dot drawn in render.js, change both or neither
 let playerClones = [];
 let lastAutoFire = 0;
 const autoFireInterval = 135; // 135ms = base 168ms with the +20% fire rate bonus already baked in

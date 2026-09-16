@@ -27,7 +27,7 @@ function _createGobSequence(startTime) {
     return { startTime, phase: 0, baseAngle, fanAngle, portals, swords: [] };
 }
 
-const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_BASE = 50, GOB_SWORD_DMG_PCT = 0.04;
+const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_PCT = 0.04;
 
 function updateGateOfBabylon(deltaTime) {
     if (!window._gobSequences || window._gobSequences.length === 0) return;
@@ -73,7 +73,7 @@ function updateGateOfBabylon(deltaTime) {
                     const dx = sw.x - en.x, dy = sw.y - en.y, r = (en.size || 20) / 2;
                     if (dx * dx + dy * dy < r * r) {
                         sw.hitEnemies.add(en);
-                        dealDamage(en, { damage: GOB_SWORD_DMG_BASE, percentDamage: GOB_SWORD_DMG_PCT, isTrueDamage: true, _isGobBlade: true, _noHitSfx: true, _statSrc: 'Aries: Gate of Babylon' });
+                        dealDamage(en, { damage: 0.50 * player.atk, percentDamage: GOB_SWORD_DMG_PCT, isTrueDamage: true, _isGobBlade: true, _noHitSfx: true, _statSrc: 'Aries: Gate of Babylon' });
                         if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', sw.x, sw.y);
                         particles.push({ isGobImpact: true, x: en.x, y: en.y, angle: sw.angle, lifetime: 200, maxLifetime: 200 });
                         createParticles(sw.x, sw.y, 8, '#fef08a', 2, 6);

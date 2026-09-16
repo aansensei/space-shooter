@@ -24,7 +24,7 @@ function activateSkillG() {
 
 function endSkillG() {
     skillGActive = false;
-    const explosionProps = { damage: 20, percentDamage: 0.09, _statSrc: 'Skill G: Tesla Coil' };
+    const explosionProps = { damage: 0.20 * player.atk, percentDamage: 0.09, _statSrc: 'Skill G: Tesla Coil' };
     const explosionRadius = ENERGY_ORB_SIZE * 5;
 
     energyOrbs.forEach(orb => {
@@ -157,7 +157,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
 
                         linksProcessed.add(orb.linkedTo.id);
                     } else if (!energyOrbs.includes(orb2)) {
-                        const explosionProps = { damage: 10, percentDamage: 0.06, _statSrc: 'Skill G: Tesla Coil' };
+                        const explosionProps = { damage: 0.10 * player.atk, percentDamage: 0.06, _statSrc: 'Skill G: Tesla Coil' };
                         const explosionRadius = orb.size * 5;
                         addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                         enemies.forEach(enemy => {
@@ -185,7 +185,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     createParticles(orb.x, orb.y, 10, '#00e5ff', 2, 5);
                     orbsToDestroy.add(orb);
                 } else {
-                    const explosionProps = { damage: 10, percentDamage: 0.06, _statSrc: 'Skill G: Tesla Coil' };
+                    const explosionProps = { damage: 0.10 * player.atk, percentDamage: 0.06, _statSrc: 'Skill G: Tesla Coil' };
                     const explosionRadius = orb.size * 5;
                     addExplosion(orb.x, orb.y, explosionRadius, 'cyan');
                     enemies.forEach(enemy => {
@@ -235,7 +235,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     }
                     if (currentTime - dotMap.get(enemy) >= 125) {
                         const _teslaDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
-                        dealDamage(enemy, { damage: 95 * _teslaDmgMult, percentDamage: 0.006 * _teslaDmgMult, isTeslaDot: true });
+                        dealDamage(enemy, { damage: 0.95 * player.atk * _teslaDmgMult, percentDamage: 0.006 * _teslaDmgMult, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                         if (_hasBuff('set_day_chuyen') && Math.random() < 0.50) {
                             let _closest = null, _closestDist = Infinity;
@@ -245,7 +245,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                                 if (_d < 150 && _d < _closestDist) { _closest = _oe; _closestDist = _d; }
                             }
                             if (_closest) {
-                                dealDamage(_closest, { damage: 95 * _teslaDmgMult, percentDamage: 0.006 * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
+                                dealDamage(_closest, { damage: 0.95 * player.atk * _teslaDmgMult, percentDamage: 0.006 * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
                                 chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: _closest.x, y2: _closest.y, lifetime: 200, maxLifetime: 200 });
                             }
                         }
@@ -298,7 +298,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
 
         if (coil.hp <= 0) {
             const _coilDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
-            const explosionProps = { damage: 20 * _coilDmgMult, percentDamage: 0.15 * _coilDmgMult, _statSrc: 'Skill G: Tesla Coil' };
+            const explosionProps = { damage: 0.20 * player.atk * _coilDmgMult, percentDamage: 0.15 * _coilDmgMult, _statSrc: 'Skill G: Tesla Coil' };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {
                 if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
