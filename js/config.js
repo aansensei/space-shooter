@@ -35,9 +35,12 @@ let nextLifeMilestone = 500000;
 // formula is expressed as a coefficient of (docs/combat-scaling-rebalance.md).
 // Starts at PLAYER_BASE_ATK and grows via _atkWaveMult() as waves clear
 // (recalculated in _updateWaveSystem, main.js; reset here on a new run).
-// Above the spec's original T=100 conversion anchor by design (+15%), a
-// deliberate buff on top of the conversion/rebalance rather than part of it.
-const PLAYER_BASE_ATK = 115;
+// Rescaled to a round 1000 baseline per AanSensei (was 115): every formula
+// below that multiplies player.atk had its own coefficient divided by the
+// same 115/1000 ratio, so real damage output is unchanged by this rescale
+// alone - only removing each formula's separate target-Max-HP percent term
+// (see the same commits) actually changes numbers.
+const PLAYER_BASE_ATK = 1000;
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75, atk: PLAYER_BASE_ATK }; // must match the cyan dot drawn in render.js, change both or neither
 let playerClones = [];
 let lastAutoFire = 0;

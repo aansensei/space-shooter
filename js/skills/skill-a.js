@@ -184,12 +184,14 @@ function updateSkillA(deltaTime) {
                     // This whole block only ever runs on an Astral-Pierce orb
                     // (orb._pierced is only set when xuyen_pha is equipped -
                     // see below), so the +20% damage bonus is baked directly
-                    // into these base numbers rather than gated separately:
-                    // 200*1.2=240, 0.20*1.2=0.24, 100*1.2=120, 0.15*1.2=0.18.
-                    applyMarchosiasSkillASplit(_pe, { damage: 2.40 * player.atk, percentDamage: 0.24, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
-                    // Sát thương CHUẨN (true damage) thêm: 120 base + 18% HP đã mất của mục tiêu
-                    if (_pe.hp > 0) applyMarchosiasSkillASplit(_pe, { damage: 1.20 * player.atk + Math.ceil((_pe.maxHp - _pe.hp) * 0.18), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
-                    spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 0.08 * player.atk, percentDamage: 0.020 });
+                    // into these base numbers rather than gated separately.
+                    // No longer carries a target-Max-HP percent term - only
+                    // the lost-HP true-damage bonus below still scales off
+                    // the target (docs/combat-scaling-rebalance.md, ATK rescale).
+                    applyMarchosiasSkillASplit(_pe, { damage: 0.276 * player.atk, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                    // Sát thương CHUẨN (true damage) thêm: hệ số ATK + 18% HP đã mất của mục tiêu
+                    if (_pe.hp > 0) applyMarchosiasSkillASplit(_pe, { damage: 0.138 * player.atk + Math.ceil((_pe.maxHp - _pe.hp) * 0.18), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                    spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 0.009 * player.atk });
                     addExplosion(orb.x, orb.y, 20, 'cyan');
                     if (_libraBloodOrbs && typeof _spawnBloodPoolSplat === 'function') {
                         _spawnBloodPoolSplat(orb.x, orb.y);
@@ -226,13 +228,13 @@ function updateSkillA(deltaTime) {
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
                 const _preTotal = orb.target.hp + (orb.target.shield || 0);
-                applyMarchosiasSkillASplit(orb.target, { damage: 2 * player.atk, percentDamage: 0.20, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
-                // Sát thương CHUẨN (true damage) thêm: 100 base + 15% HP đã mất của mục tiêu
-                if (orb.target.hp > 0) applyMarchosiasSkillASplit(orb.target, { damage: player.atk + Math.ceil((orb.target.maxHp - orb.target.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                applyMarchosiasSkillASplit(orb.target, { damage: 0.23 * player.atk, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                // Sát thương CHUẨN (true damage) thêm: hệ số ATK + 15% HP đã mất của mục tiêu
+                if (orb.target.hp > 0) applyMarchosiasSkillASplit(orb.target, { damage: 0.115 * player.atk + Math.ceil((orb.target.maxHp - orb.target.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                 const _didDmg = orb.target.hp + (orb.target.shield || 0) < _preTotal;
                 orb.target.isTargetedByA = false;
 
-                spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 0.08 * player.atk, percentDamage: 0.020 });
+                spawnScatteredProjectiles(orb.x, orb.y, 16, { damage: 0.009 * player.atk });
                 addExplosion(orb.x, orb.y, 30, orb.isDefensive ? 'yellow' : 'cyan');
                 if (_libraBloodOrbs && typeof _spawnBloodPoolSplat === 'function') {
                     _spawnBloodPoolSplat(orb.x, orb.y);
@@ -373,8 +375,8 @@ function updateDimensionalRifts(deltaTime) {
             enemy._riftDotTimer -= deltaTime;
             if (enemy._riftDotTimer <= 0) {
                 enemy._riftDotTimer = 350;
-                const dotDmg = Math.ceil(0.60 * player.atk + (enemy.maxHp || enemy.hp) * 0.055);
-                dealDamage(enemy, { damage: 0.60 * player.atk, percentDamage: 0.055, isTrueDamage: true, _isDtuDot: true, _statSrc: 'Skill A: Dimensional Rift' });
+                const dotDmg = Math.ceil(0.069 * player.atk);
+                dealDamage(enemy, { damage: dotDmg, isTrueDamage: true, _isDtuDot: true, _statSrc: 'Skill A: Dimensional Rift' });
                 createParticles(
                     enemy.x + (Math.random() - 0.5) * (enemy.size || 20),
                     enemy.y + (Math.random() - 0.5) * (enemy.size || 20),

@@ -276,7 +276,7 @@ function fireAutoShot() {
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 1.30 * player.atk, percentDamage: 0.004, size: 6.5, type: 'player_auto',
+            damage: 0.15 * player.atk, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28,
             _muiTenVangCrit: _isCritVolley,
         });
@@ -293,7 +293,7 @@ function fireAutoShot() {
         }
         bladeArcProjectiles.push({
             x: player.x, y: player.y, vx: _abvx, vy: _abvy, radius: 125,
-            damage: 3 * player.atk, percentDamage: 0.05, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true // docs/combat-scaling-rebalance.md Part 5
+            damage: 0.345 * player.atk, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true // docs/combat-scaling-rebalance.md Part 5
         });
         if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', player.x, player.y);
     }
