@@ -1143,7 +1143,11 @@ function _drawSparkleStar(x, y, size, color, alpha) {
 function drawChargeEffect() {
     const now = performance.now();
     let chargeDuration = now - chargeStartTime;
-    let chargeRatio = Math.min(chargeDuration / overloadChargeTime, 1);
+    // Clamped at 0 too: chargeStartTime can read fractionally ahead of this
+    // frame's own performance.now() (set from a keydown event or the debug
+    // autoplay tick, both their own separate performance.now() reads), which
+    // made chargeDuration briefly negative and fed ctx.arc() a negative radius.
+    let chargeRatio = Math.max(0, Math.min(chargeDuration / overloadChargeTime, 1));
     let radius = player.width / 2 + chargeRatio * player.width * 2;
     const _gfx = window._gfxLevel || 0;
 
