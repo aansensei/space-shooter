@@ -3082,11 +3082,14 @@ function _updateWaveSystem(deltaTime, now) {
         if (_waveRestTimer <= 0) {
             _waveNumber++;
             player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult();
-            // Per AanSensei: reaches its +300%/15-tier cap by wave 20 now
-            // (was wave 36+), so it's fully online for the wave-15-and-later
-            // waves that were wiping runs, instead of arriving too late to help.
-            if (_waveNumber >= 6 && _waveNumber <= 20) {
+            if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
                 _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.20);
+            }
+            // Per AanSensei: only the target-Max-HP portion of Yuuki's bonus
+            // maxes out by wave 20 (15 tiers x 0.35% = 5.25%) - the damage
+            // multiplier above keeps its own original pace out to wave 36.
+            if (_waveNumber >= 6 && _waveNumber <= 20) {
+                _yuukiHpPctTiers = Math.min(15, _yuukiHpPctTiers + 1);
             }
             // Walpurgis (Huyết Dạ): a new stack crossed — rescale every enemy
             // already on screen by the ratio between the old and new Max HP
@@ -3390,7 +3393,7 @@ function startGame() {
     window._urielMotes = [];
     player._posHistory = [];
     player._urielJudgedEnd = 0;
-    _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0; _yuukiBonus = 0;
+    _waveNumber = 0; _wavePhase = 'rest'; _waveRestTimer = 0; _yuukiBonus = 0; _yuukiHpPctTiers = 0;
     player.atk = PLAYER_BASE_ATK;
     window._walpurgisAppliedStacks = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;

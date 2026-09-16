@@ -274,6 +274,10 @@ let _waveQueueTimer = 0;
 let _waveAnnouncedAt = 0;
 let _waveForceEndTimer = 0;
 let _yuukiBonus = 0;
+// Separate tier counter for Yuuki's target-Max-HP bonus (per AanSensei: this
+// part alone maxes out by wave 20; the damage-multiplier bonus above keeps
+// growing on its own original, slower schedule out to wave 36).
+let _yuukiHpPctTiers = 0;
 
 // Wave 11+ live trickle spawner (replaces the fixed-15s _waveQueue at high
 // waves - see _updateWaveTrickle). Budget is the remaining per-tier count
