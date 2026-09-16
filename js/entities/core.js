@@ -584,13 +584,16 @@ function dealDamage(enemy, source) {
         }
         // Warding Palm: đòn tới từ Skill F/D/tia Photokrystos — sức mạnh khởi
         // nguyên của những đòn này quá mạnh nên KHÔNG BAO GIỜ bị chặn đứng
-        // hoàn toàn, kể cả khi đỡ thành công. 35% mỗi đòn đỡ được (chỉ ăn 15%
-        // MaxHP), 65% đỡ hụt (ăn 35% MaxHP) — tính PER HIT, không phải trần
+        // hoàn toàn, kể cả khi đỡ thành công. 35% mỗi đòn đỡ được (chỉ ăn 10%
+        // MaxHP), 65% đỡ hụt (ăn 22% MaxHP) — tính PER HIT, không phải trần
         // cộng dồn cho cả trận.
         if (source._isSkillF || source._isSkillD || source.isSpiritLaser) {
             const _blocked = Math.random() < 0.35;
             enemy._wardingPalmFlash = { end: performance.now() + 500, success: _blocked };
-            const dmg = enemy.maxHp * (_blocked ? 0.15 : 0.35);
+            // Per AanSensei: trimmed down a bit (was 15%/35%) - still a
+            // meaningful chunk of Goliath's HP bar per hit, just not quite
+            // as brutal against a Skill F/D-heavy loadout.
+            const dmg = enemy.maxHp * (_blocked ? 0.10 : 0.22);
             if (_blocked) createParticles(enemy.x, enemy.y, 14, '#c084fc', 3, 9);
             enemy.hp = Math.max(0, enemy.hp - dmg);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
@@ -961,9 +964,9 @@ function dealDamage(enemy, source) {
     if (_hasBuff('tu_huyet') && !isSentinel) {
         const _tuFrac = enemy.hp / (enemy.maxHp || enemy.hp);
         if (_tuFrac <= 0.20) {
-            totalDamage = Math.ceil(totalDamage * 1.50);
+            totalDamage = Math.ceil(totalDamage * 1.65);
         } else {
-            totalDamage = Math.ceil(totalDamage * (1 + (1 - _tuFrac) / 0.79 * 0.40));
+            totalDamage = Math.ceil(totalDamage * (1 + (1 - _tuFrac) / 0.79 * 0.50));
         }
     }
 
@@ -1343,7 +1346,7 @@ function dealDamage(enemy, source) {
         // off the current ally count, same base and rate against both
         // normal and %MaxHP-scaling hits now.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-            _flatArmor += 100 * (source.percentDamage > 0
+            _flatArmor += 130 * (source.percentDamage > 0
                 ? (enemy._unifiedFrontScalingDRMult || 1)
                 : (enemy._unifiedFrontDRMult || 1));
         }
@@ -1817,7 +1820,7 @@ function dealDamage(enemy, source) {
         const _laiKepNow = performance.now();
         if (!enemy._laiKepLastAt || _laiKepNow - enemy._laiKepLastAt >= 100) {
             enemy._laiKepLastAt = _laiKepNow;
-            enemy.hp = Math.max(0, enemy.hp - 0.1725 * player.atk);
+            enemy.hp = Math.max(0, enemy.hp - 0.225 * player.atk);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
         }
     }

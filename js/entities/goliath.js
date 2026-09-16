@@ -286,10 +286,10 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     // chung _transformIronBodyEnd — field đó có thể bị mốc invuln biến hình
     // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
     enemy._unbrokenWillInvulnEnd = now + 4000;
-    // docs/combat-scaling-rebalance.md Part 4: a second phase, not a
-    // complete second full-health fight - revives to 35% Hentry HP and a
-    // 10% Hentry shield instead of a full heal and a 20% current-HP shield.
-    enemy.hp = Math.min(enemy.maxHp, 0.35 * enemy._hentry);
+    // Per AanSensei: Unbroken Will now revives Goliath to a full heal
+    // (100% Max HP) plus a 10% Hentry shield, making the second phase a
+    // genuine full second fight rather than a weakened continuation.
+    enemy.hp = enemy.maxHp;
     _goliathGrantShield(enemy, 0.10 * enemy._hentry);
     addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#f97316');
     createParticles(enemy.x, enemy.y, 40, '#fdba74', 3, 11);
@@ -451,6 +451,13 @@ function updateGoliath(enemy, deltaTime) {
         return;
     }
     if (enemy.phase === 'true_form' && enemy.hp <= 0) {
+        // Last-resort catch-all: a damage path that bypasses dealDamage()
+        // (manual enemy.hp subtraction elsewhere) can reach hp<=0 without
+        // ever routing through _goliathTryUnbrokenWill upstream. Give it
+        // one final chance to fire right here, at the single place death
+        // actually gets decided, instead of chasing down every individual
+        // bypass source one at a time.
+        if (!enemy._unbrokenWillUsed && _goliathTryUnbrokenWill(enemy, 1)) return;
         enemy._deathPhase = 'core';
         enemy._deathPhaseTimer = 0;
         enemy._deathGemsExploded = 0;
