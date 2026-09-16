@@ -930,6 +930,11 @@ function dealDamage(enemy, source) {
 
     if (_yuukiBonus > 0) {
         totalDamage = Math.ceil(totalDamage * (1 + _yuukiBonus));
+        // Per AanSensei: each Yuuki tier (+20% dmg, up to 15 tiers/+300%)
+        // also grants +0.35% of the target's own Max HP as bonus damage,
+        // so at max Yuuki (wave 36+) this adds +5.25% Max HP on top.
+        const _yuukiTiers = Math.round(_yuukiBonus / 0.20);
+        if (_yuukiTiers > 0) totalDamage += Math.ceil(enemy.maxHp * 0.0035 * _yuukiTiers);
     }
 
     // Sigil: Avalanche — global damage multiplier (per kill stacks, max 40%), docs/combat-scaling-rebalance.md Part 5

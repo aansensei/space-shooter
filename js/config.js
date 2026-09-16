@@ -39,10 +39,11 @@ let nextLifeMilestone = 500000;
 // below that multiplies player.atk had its own coefficient divided by the
 // same 115/1000 ratio, so that rescale alone didn't change output - only
 // removing each formula's separate target-Max-HP percent term did. The
-// +10% on top of that round 1000 (1100) is a deliberate compensating buff
+// +40% on top of that round 1000 (1400) is a deliberate compensating buff
 // for the overall damage lost by that removal, per AanSensei's own request
-// after reviewing the rescale - a first-pass number, not verified live yet.
-const PLAYER_BASE_ATK = 1100;
+// after reviewing live DPS/TTK verification data - a first-pass number,
+// wave 15+ especially still needs its own retest after this.
+const PLAYER_BASE_ATK = 1400;
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75, atk: PLAYER_BASE_ATK }; // must match the cyan dot drawn in render.js, change both or neither
 let playerClones = [];
 let lastAutoFire = 0;
