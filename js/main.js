@@ -455,13 +455,19 @@ function update(rawDeltaTime) {
                 // chạy sequence sẽ trừ thẳng hp xuống 0 (thay vì giữ 1),
                 // phá vỡ hiệu ứng đang chạy dở.
                 if (e.type === 'goliath' && e._deathPhase) continue;
-                // Unbroken Will: "no exception can pierce it" — unlike the
-                // post-transform Iron Body window (which BTM is specifically
-                // built to punch through), this invuln shares the same
-                // _transformIronBodyEnd field but must actually hold even
-                // against BTM's bypass-everything hit, or the passive can
-                // never fulfill "first killing hit is negated".
-                if (e.type === 'goliath' && e._unbrokenWillInvulnEnd && performance.now() < e._unbrokenWillInvulnEnd) {
+                // Both of Goliath's absolute Iron Body windows are "no
+                // exception can pierce it" (the initial 4s post-transform
+                // window and Unbroken Will's own 4s invuln), so BTM's own
+                // bypass-everything hit has to respect them too, same as
+                // dealDamage's _transformIronBodyEnd check (entities/core.js)
+                // already does for every other damage source. This used to
+                // only check _unbrokenWillInvulnEnd, letting BTM occasionally
+                // land on Goliath during the first 4s after transforming if
+                // the finale's ~37s cycle happened to line up with it.
+                if (e.type === 'goliath' && (
+                    (e._transformIronBodyEnd && performance.now() < e._transformIronBodyEnd)
+                    || (e._unbrokenWillInvulnEnd && performance.now() < e._unbrokenWillInvulnEnd)
+                )) {
                     createParticles(e.x, e.y, 6, '#f59e0b', 2, 7);
                     continue;
                 }
