@@ -40,7 +40,7 @@ function _releaseTidalSurge() {
 
 const TIDAL_SURGE_PULL_RADIUS = 110;
 const TIDAL_SURGE_BURST_RADIUS = 150;
-const TIDAL_SURGE_DAMAGE_PCT = 0.25;
+const TIDAL_SURGE_DAMAGE_PCT = 0.18; // docs/combat-scaling-rebalance.md Part 5
 const TIDAL_SURGE_DOT_PCT = 0.0025;
 const TIDAL_SURGE_DOT_INTERVAL = 100;
 const TIDAL_SURGE_MAX_WHIRLPOOLS = 10;
@@ -61,8 +61,13 @@ function _spawnTidalWhirlpool() {
         // isn't wasted with zero visual payoff.
         picked.push({ x: player.x, y: player.y - 150 });
     }
+    // docs/combat-scaling-rebalance.md Part 5: shared across every whirlpool
+    // spawned in this same activation, so a victim caught by several
+    // overlapping whirlpools still only takes one bite and one DoT tick
+    // per 100ms, not one per whirlpool touching it.
+    const _activation = { bitVictims: new Set(), dotTickedAt: new Map() };
     picked.forEach(t => {
-        _tidalSurgeEffects.push({ x: t.x, y: t.y, phase: 'spawn', timer: 0, hitEnemies: [], rot: 0, popAmount: 0, splashTimer: 0 });
+        _tidalSurgeEffects.push({ x: t.x, y: t.y, phase: 'spawn', timer: 0, hitEnemies: [], rot: 0, popAmount: 0, splashTimer: 0, _activation });
     });
     // One shared ambient loop for the whole batch (stopped in _updateTidalSurge
     // once every whirlpool it spawned has finished), not one per instance.
@@ -149,9 +154,15 @@ function _updateTidalSurge(deltaTime) {
         w.dotTimer = (w.dotTimer || 0) + deltaTime;
         if (w.dotTimer >= TIDAL_SURGE_DOT_INTERVAL) {
             w.dotTimer -= TIDAL_SURGE_DOT_INTERVAL;
+            const _dotNow = performance.now();
             for (const enemy of enemies) {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy._stealthed) continue;
                 if (Math.hypot(enemy.x - w.x, enemy.y - w.y) > TIDAL_SURGE_PULL_RADIUS) continue;
+                // docs/combat-scaling-rebalance.md Part 5: at most one tick
+                // per victim per 100ms across every whirlpool in this activation.
+                const _lastTick = w._activation.dotTickedAt.get(enemy) || 0;
+                if (_dotNow - _lastTick < TIDAL_SURGE_DOT_INTERVAL) continue;
+                w._activation.dotTickedAt.set(enemy, _dotNow);
                 dealDamage(enemy, { damage: 0.50 * player.atk, percentDamage: TIDAL_SURGE_DOT_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
             }
         }
@@ -196,9 +207,12 @@ function _updateTidalSurge(deltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('cancer-whale-bite', w.x, w.y);
                 for (const enemy of enemies) {
                     if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy._stealthed) continue;
-                    if (w.hitEnemies.includes(enemy)) continue;
+                    // docs/combat-scaling-rebalance.md Part 5: one bite per
+                    // victim per activation, shared across every whirlpool
+                    // in this batch (was per-whirlpool, so up to 10 bites).
+                    if (w._activation.bitVictims.has(enemy)) continue;
                     if (Math.hypot(enemy.x - w.x, enemy.y - w.y) <= TIDAL_SURGE_BURST_RADIUS) {
-                        w.hitEnemies.push(enemy);
+                        w._activation.bitVictims.add(enemy);
                         dealDamage(enemy, { damage: 6.50 * player.atk, percentDamage: TIDAL_SURGE_DAMAGE_PCT, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
                     }
                 }

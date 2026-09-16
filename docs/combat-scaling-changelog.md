@@ -27,9 +27,37 @@ Tracks every actual code change made while implementing `docs/combat-scaling-reb
   - [ ] Verify via simulation script (DPS/TTK at wave checkpoints, not full manual playtesting)
 - [x] Part 3: DR, healing, and resource rules
 - [x] Part 4: dedicated Goliath sustain review (pulled forward from its normal order because it directly answers the user's Goliath-heal question above)
-- [ ] Part 5: all Zodiac Sigils and Great Sage final tuning
+- [x] Part 5: all Zodiac Sigils and Great Sage final tuning
 
-Status: **Part 1 (Conversion) complete and spot-verified.** Part 2 substantially complete (only the simulation-script verification step remains). Parts 3 and 4 implemented ahead of Part 5. Part 5 (Sigils) not started.
+Status: **Part 1 (Conversion) complete and spot-verified.** Part 2 substantially complete (only the simulation-script verification step remains). Parts 3, 4, and 5 implemented. All that remains before this can ship is human playtesting and the simulation-script verification pass.
+
+## Part 5: all Zodiac Sigils and Great Sage
+
+Retunes every Sigil's final numbers per the spec's Part 5 table (`docs/combat-scaling-rebalance.md` lines 424-490). Where a row's "current" value already matched the proposed value exactly (several Taurus/Aries/Gemini/Libra rows had already landed on their final coefficient during Part 1's ATK conversion), no code change was needed - confirmed by direct comparison rather than assumed.
+
+**Aries**: Gate of Babylon's percent term 4%->3% (flat 0.50A already correct). Enuma Elish 15%T/16000-flat-cap -> 12%T/120A-cap (the cap itself is now ATK-scaling, not a frozen number).
+
+**Gemini**: Shadow Twin large/small orb percent terms 8%/3% -> 6%/2.5%, Vulnerability stacks per orb hit 2->1. Overload Laser's Mirror buff x1.30 main / x0.75-of-that mirrors -> x1.20 main / x0.60-of-that mirrors (`main.js`, shared by the beam and its mirror-entity clones).
+
+**Cancer**: Lunar Aegis barrier bonus x1.40->x1.30, its 20% evade rolls (3 sites in main.js plus the Yuusha-side one in yuusha-party.js) ->15%. Riptide bite percent 25%->18%, and both the bite and the DoT tick are now capped at one per victim per activation (added a shared `_activation` object across every whirlpool spawned in the same `_spawnTidalWhirlpool()` call, replacing each whirlpool's own independent `hitEnemies` tracking - up to 10 overlapping whirlpools could previously bite or tick the same clustered victim once each). Tidal Flow regen done earlier in Part 3.
+
+**Virgo**: Forest Guardian's wooden-fist percent/lost-HP terms 10%/15% -> 8%/10%. Its 6th-volley crit bonus reduced from +3x to +2x payload (main.js). Circuit Engineer's Tesla boost unified to +30% (was +50%) across link ticks, the destroyed-Coil burst, AND the proximity aura tick - the aura tick previously got no boost at all despite the tooltip claiming universal coverage (a real missing-route bug, fixed in `main.js`). Its debuffed-target damage amplification 50%->25%.
+
+**Libra**: large/small explosion percent terms 20%/12% -> 16%/9%, small arrow's lost-HP bonus 5%->3%, DR-bonus rate 2%/point (cap 120%) -> 1%/point (cap 60%). Blood Arrow traversal damage was already at its final parity value, confirmed unchanged.
+
+**Scorpio**: Resurrection's on-pick life grant +5->+4, its life-per-score-milestone 250k->300k points. Death Mark's damage ramp 0-70%->0-40%, its sub-20%-HP flat bonus 80%->50%.
+
+**Sagittarius**: Twin Blades arc multiplier x1.60->x1.20 (both the Spirit's own Blade Arc and the Spinner's 4-way mini-arc volley share this constant). Auto-fire arc proc percent 7%->5%. Ordinary Photokrystos extra-boomerang rolls 40%->30% each (two independent rolls). Arctic Chill's Spirit/Photokrystos/Spinner fire-rate bonus +30%->+20% (3 call sites).
+
+**Capricorn**: Compound Interest's true-damage rider 2A->1.50A, and it's now gated to primary hits only (reusing the same eligibility gate as the +60 impact bonus) with a new 100ms-per-target cooldown (`enemy._laiKepLastAt`) - previously it fired on every single eligible hit with no rate limit at all. Avalanche's damage-stack cap 70%->40% (and its stack-count ceiling lowered to match, since stacking further was already pointless).
+
+**Aquarius**: Chain Lightning's unpaired-orb stack bonus 15%/stack->8%/stack. Magnetic Field's DoT fixed from a frame-rate-dependent per-frame `deltaTime`-scaled tick (more, smaller `dealDamage` calls at a high frame rate rounded up to noticeably more total damage per second than fewer, larger ticks at a low frame rate) to a discrete 100ms-tick accumulator dealing a flat 0.35% Max HP per tick (main.js) - same nominal 3.5%/s rate, no ATK term added (kept it a pure percentage identity per spec).
+
+**Pisces**: Dream Realm's immunity window 3s->2.5s, plus a new shared 6s minimum retrigger interval (`window._coiMongCooldownEnd` in `input.js` and `debug-console.js`) so repeated short Shift activations can't chain into near-continuous invulnerability. Yog-Sothoth marked-explosion damage reworked: the accumulator now tracks actual accepted HP+shield loss per hit (`_hpDamageDealt + _shieldDamageDealt`, moved to right after those are finalized in `dealDamage`) instead of the pre-shield raw damage attempt; the explosion formula itself changed from `60%accum + 35%lostHP` to `min(50%accum + 15%lostHP, 25%MaxHP)` true damage (`skills/skill-d.js`); and the entire outgoing-buff multiplier chain (Glory, Parry, Yuuki, Avalanche, Chain Lightning, Circuit Engineer, Death Mark, Divine Fate, Vulnerability stacks, Skill D evade overflow, Dimensional Rift) is now skipped when resolving the explosion itself (wrapped in `!source._yogExplosion` in `entities/core.js`), preventing every contributing hit's buffs from being counted a second time when the accumulated total detonates. Cycle of Flow's kill-based and movement-based cooldown reductions for Skill A/S/Overload Laser lowered (0.75/1/1.5/2s per kill tier, was 1/1.5/2/3s) and now share a rolling 2s-per-real-second budget per skill (reusing the generic `_goliathDrawBucket` token-bucket helper from Part 4, called on `window` since these are global cooldown timestamps rather than per-enemy state) - Skill D and F keep their original, larger, uncapped reductions since they're protected sources. Its G-charge-rate bonus split from a shared +50% to +35% for Skill G specifically (Photokrystos energy charge stays +50%, unchanged).
+
+**Great Sage**: all 7 stolen-attack percent terms reduced (Raphael 12%->10%, Marchosias 13%->11%, Veilshroud 17%->14%, Egregor 14%->12%, Dargruel 11%->9%, Leviathan 11%->9%, Goliath 22%->18%), and the Thaelis-gem sentinel-evade window 50%->40%.
+
+**Not touched**: in-game Sigil tooltip/description text (`js/sigils/*.js`) still shows the pre-Part-5 numbers in both English and Vietnamese. Left alone deliberately, same standing convention as `guide.html`/`README.md` - updated only after the user has tested and approved the release.
 
 ## Part 3: DR, healing, and resource rules
 

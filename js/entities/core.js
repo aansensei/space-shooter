@@ -145,7 +145,7 @@ function handleEnemyKill(enemy) {
     // Blessing HP regen handled in main.js update loop
     if (score >= nextLifeMilestone) {
         lives = Math.min(15, lives + 1);
-        nextLifeMilestone += _hasBuff('hoan_sinh') ? 250000 : 500000;
+        nextLifeMilestone += _hasBuff('hoan_sinh') ? 300000 : 500000; // docs/combat-scaling-rebalance.md Part 5
         createParticles(player.x, player.y, 50, 'lime', 3, 8);
     }
     // Egregor and Leviathan get their own dedicated death bursts below
@@ -197,7 +197,7 @@ function handleEnemyKill(enemy) {
     }
 
     if (skillGCharge < 100) {
-        const _gChargeGain = 0.5 * (_hasBuff('set_day_chuyen') ? 1.35 : 1) * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1) * (_hasBuff('ky_su_dien') ? 1.10 : 1); // Chain Lightning: +35%, Cycle of Flow: +50%, Circuit Engineer: +10%
+        const _gChargeGain = 0.5 * (_hasBuff('set_day_chuyen') ? 1.35 : 1) * (_hasBuff('dong_chay_luan_hoi') ? 1.35 : 1) * (_hasBuff('ky_su_dien') ? 1.10 : 1); // Chain Lightning: +35%, Cycle of Flow: +35% (docs/combat-scaling-rebalance.md Part 5), Circuit Engineer: +10%
         skillGCharge = Math.min(100, skillGCharge + _gChargeGain);
     }
     if (skillGActive) {
@@ -207,7 +207,7 @@ function handleEnemyKill(enemy) {
     const _now = performance.now();
 
     if (_hasBuff('tuyet_lan')) {
-        window._tuyetLanStacks = Math.min(140, (window._tuyetLanStacks || 0) + 1);
+        window._tuyetLanStacks = Math.min(80, (window._tuyetLanStacks || 0) + 1); // docs/combat-scaling-rebalance.md Part 5: cap matches the new 40% multiplier cap
         window._tuyetLanLastKill = _now;
     }
 
@@ -223,18 +223,28 @@ function handleEnemyKill(enemy) {
     }
 
     if (_hasBuff('dong_chay_luan_hoi')) {
-        let _cdReduc = 0;
+        // docs/combat-scaling-rebalance.md Part 5: in-scope skills (A, S,
+        // Overload Laser) get smaller per-kill reductions, each capped at a
+        // rolling 2s of total reduction per real second so a rapid-kill
+        // streak can't reset them near-instantly. Skill D and F are
+        // protected and keep their original larger, uncapped reduction.
+        let _cdReduc = 0, _cdReducProtected = 0;
         const _t = enemy.type;
-        if (_t === 'apostle') _cdReduc = 1000;
-        else if (_t === 'egregor') _cdReduc = 3000;
-        else if (_t === 'thaelis' || _t === 'veilshroud' || _t === 'marchosias' || _t === 'raphael') _cdReduc = 1500;
-        else if (_t === 'dargruel' || _t === 'leviathan') _cdReduc = 2000;
+        if (_t === 'apostle') { _cdReduc = 750; _cdReducProtected = 1000; }
+        else if (_t === 'egregor') { _cdReduc = 2000; _cdReducProtected = 3000; }
+        else if (_t === 'thaelis' || _t === 'veilshroud' || _t === 'marchosias' || _t === 'raphael') { _cdReduc = 1000; _cdReducProtected = 1500; }
+        else if (_t === 'dargruel' || _t === 'leviathan') { _cdReduc = 1500; _cdReducProtected = 2000; }
         if (_cdReduc > 0) {
-            lastSkillA     = Math.min(_now, lastSkillA     - _cdReduc);
-            lastSkillS     = Math.min(_now, lastSkillS     - _cdReduc);
-            lastSkillD     = Math.min(_now, lastSkillD     - _cdReduc);
-            lastSkillF     = Math.min(_now, lastSkillF     - _cdReduc);
-            laserCooldownEnd = Math.max(0, laserCooldownEnd - _cdReduc);
+            const _grantA = _goliathDrawBucket(window, '_pofCdTokensA', '_pofCdAtA', 2000, 1000, _cdReduc);
+            const _grantS = _goliathDrawBucket(window, '_pofCdTokensS', '_pofCdAtS', 2000, 1000, _cdReduc);
+            const _grantLaser = _goliathDrawBucket(window, '_pofCdTokensLaser', '_pofCdAtLaser', 2000, 1000, _cdReduc);
+            lastSkillA = Math.min(_now, lastSkillA - _grantA);
+            lastSkillS = Math.min(_now, lastSkillS - _grantS);
+            laserCooldownEnd = Math.max(0, laserCooldownEnd - _grantLaser);
+        }
+        if (_cdReducProtected > 0) {
+            lastSkillD = Math.min(_now, lastSkillD - _cdReducProtected);
+            lastSkillF = Math.min(_now, lastSkillF - _cdReducProtected);
         }
     }
 
@@ -283,7 +293,7 @@ function fireAutoShot() {
         }
         bladeArcProjectiles.push({
             x: player.x, y: player.y, vx: _abvx, vy: _abvy, radius: 125,
-            damage: 3 * player.atk, percentDamage: 0.07, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true
+            damage: 3 * player.atk, percentDamage: 0.05, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true // docs/combat-scaling-rebalance.md Part 5
         });
         if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', player.x, player.y);
     }
@@ -878,12 +888,20 @@ function dealDamage(enemy, source) {
         // constant - at the conversion baseline (player.atk = 100) this is
         // exactly the same +60 as before.
         totalDamage += 0.60 * player.atk;
-        // Sigil: Lion's Roar — every hit also deals 2% of the enemy's own lost HP as bonus dmg
+        // Sigil: Lion's Roar — every eligible primary hit also deals 1% of
+        // the enemy's own lost HP as bonus dmg (docs/combat-scaling-rebalance.md Part 5)
         if (_hasBuff('su_tu_hong')) {
-            totalDamage += Math.ceil((enemy.maxHp - enemy.hp) * 0.02);
+            totalDamage += Math.ceil((enemy.maxHp - enemy.hp) * 0.01);
         }
     }
 
+    // docs/combat-scaling-rebalance.md Part 5: none of this outgoing-buff
+    // chain (Glory, Parry, Yuuki, Avalanche, Chain Lightning, Circuit
+    // Engineer, Death Mark, Divine Fate, Vulnerability stacks, Skill D
+    // evade overflow, Dimensional Rift) re-applies to the Yog-Sothoth marked
+    // explosion - its accumulated damage already had each of these applied
+    // once, when the contributing hit that fed it actually landed.
+    if (!source._yogExplosion) {
     if (gloryForJusticeActive) {
         // docs/combat-scaling-rebalance.md Part 3: one shared x1.55 for
         // in-scope outgoing damage, replacing the old core x1.70.
@@ -899,9 +917,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * (1 + _yuukiBonus));
     }
 
-    // Sigil: Avalanche — global damage multiplier (per kill stacks, max 70%)
+    // Sigil: Avalanche — global damage multiplier (per kill stacks, max 40%), docs/combat-scaling-rebalance.md Part 5
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
-        totalDamage = Math.ceil(totalDamage * (1 + Math.min(0.70, window._tuyetLanStacks * 0.005)));
+        totalDamage = Math.ceil(totalDamage * (1 + Math.min(0.40, window._tuyetLanStacks * 0.005)));
     }
 
     // Sigil: Chain Lightning — unpaired Skill G energy orbs grant a stacking dmg buff (max 6x, 5s each)
@@ -909,29 +927,29 @@ function dealDamage(enemy, source) {
         const _sdcNow = performance.now();
         window._sdcDmgStacks = window._sdcDmgStacks.filter(t => t > _sdcNow);
         if (window._sdcDmgStacks.length > 0) {
-            totalDamage = Math.ceil(totalDamage * (1 + window._sdcDmgStacks.length * 0.15));
+            totalDamage = Math.ceil(totalDamage * (1 + window._sdcDmgStacks.length * 0.08)); // docs/combat-scaling-rebalance.md Part 5
         }
     }
 
     // Sigil: Circuit Engineer — any active debuff on the target (slow, DoT, Vulnerability,
-    // Soul Reaver, Dimensional Rift, Yog mark, ...) grants +50% dmg taken
+    // Soul Reaver, Dimensional Rift, Yog mark, ...) grants +25% dmg taken (docs/combat-scaling-rebalance.md Part 5)
     if (_hasBuff('ky_su_dien') && !isSentinel && _hasAnyDebuff(enemy)) {
-        totalDamage = Math.ceil(totalDamage * 1.50);
+        totalDamage = Math.ceil(totalDamage * 1.25);
     }
 
-    // Sigil: Death Mark — linear 0%→70% from 100%→21% HP; flat +80% at ≤20%
+    // Sigil: Death Mark — linear 0%→40% from 100%→21% HP; flat +50% at ≤20% (docs/combat-scaling-rebalance.md Part 5)
     if (_hasBuff('tu_huyet') && !isSentinel) {
         const _tuFrac = enemy.hp / (enemy.maxHp || enemy.hp);
         if (_tuFrac <= 0.20) {
-            totalDamage = Math.ceil(totalDamage * 1.80);
+            totalDamage = Math.ceil(totalDamage * 1.50);
         } else {
-            totalDamage = Math.ceil(totalDamage * (1 + (1 - _tuFrac) / 0.79 * 0.70));
+            totalDamage = Math.ceil(totalDamage * (1 + (1 - _tuFrac) / 0.79 * 0.40));
         }
     }
 
-    // Sigil: Divine Fate — +100% dmg during 5s freeze window at wave start
+    // Sigil: Divine Fate — +60% dmg during 5s freeze window at wave start (docs/combat-scaling-rebalance.md Part 5)
     if (_hasBuff('than_menh') && window._thanMenhEndTime > 0 && performance.now() < window._thanMenhEndTime) {
-        totalDamage = Math.ceil(totalDamage * 2.00);
+        totalDamage = Math.ceil(totalDamage * 1.60);
     }
 
     // Trọng Thương: +12% mỗi stack (max 4 stacks = +48%), docs/combat-scaling-rebalance.md Part 3
@@ -948,6 +966,7 @@ function dealDamage(enemy, source) {
     // Dimensional Rift zone: +20% incoming damage (docs/combat-scaling-rebalance.md Part 3)
     if (enemy._inDimensionalRift) {
         totalDamage = Math.ceil(totalDamage * 1.20);
+    }
     }
 
     // vuln 4 stacks -> 2.5s window. hit still eats shield/barrier as normal,
@@ -1168,9 +1187,9 @@ function dealDamage(enemy, source) {
     }
 
     // Great Sage (stolen Tenacity Barrier gem): sentinels get a duration
-    // window of 50% dodge chance per hit instead of the player's single
-    // Iron Body layer (see playerTakesHit, main.js)
-    if (isSentinel && window._greatSageShieldEnd && performance.now() < window._greatSageShieldEnd && Math.random() < 0.5) {
+    // window of 40% dodge chance per hit instead of the player's single
+    // Iron Body layer (see playerTakesHit, main.js). docs/combat-scaling-rebalance.md Part 5
+    if (isSentinel && window._greatSageShieldEnd && performance.now() < window._greatSageShieldEnd && Math.random() < 0.4) {
         createParticles(enemy.x, enemy.y, 6, '#c4b5fd', 2, 6);
         return;
     }
@@ -1465,11 +1484,6 @@ function dealDamage(enemy, source) {
         totalDamage -= _gAbsorb;
     }
 
-    // Pisces Dream Realm: enemies marked by black hole accumulate damage
-    if (_hasBuff('coi_mong') && enemy._yogMark && !source._yogExplosion) {
-        enemy._yogMarkAccum = (enemy._yogMarkAccum || 0) + totalDamage;
-    }
-
     // Boon and Bane (Egregor passive, its own Vessel - not Shield, not
     // Barrier): during Null Slash charge, each body hit fills a temporary
     // pool that both absorbs non-true hits AND separately tracks its full
@@ -1610,6 +1624,16 @@ function dealDamage(enemy, source) {
             enemy.hp -= totalDamage;
         }
     }
+
+    // Pisces Dream Realm: enemies marked by black hole accumulate the
+    // actual HP+shield loss from this hit (docs/combat-scaling-rebalance.md
+    // Part 5 - was the pre-shield raw damage attempt, which could overcount
+    // when a later shield absorption this same call would have soaked some
+    // of it).
+    if (_hasBuff('coi_mong') && enemy._yogMark && !source._yogExplosion) {
+        enemy._yogMarkAccum = (enemy._yogMarkAccum || 0) + _hpDamageDealt + _shieldDamageDealt;
+    }
+
     // GOLIATH True Form, before Unbroken Will has fired: floor hp at 1
     // instead of 0. _goliathTryUnbrokenWill above already catches the exact
     // lethal hit directly (checks whether THIS hit would bring hp to 0 or
@@ -1740,13 +1764,22 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Compound Interest: +200 true damage (bypasses shield and DR, like isTrueDamage
-    // elsewhere in this function) while Photokrystos is alive — Goliath luật
-    // riêng (Inevitable/Warding Palm) phải luôn trên mọi sigil, kể cả bypass nhỏ này.
+    // Compound Interest (docs/combat-scaling-rebalance.md Part 5): 1.50A true
+    // damage (bypasses shield and DR, like isTrueDamage elsewhere in this
+    // function) on primary hits only, gated to once per 100ms per target so
+    // it can't be procced many times a second by fast multi-hit sources -
+    // while Photokrystos is alive. Goliath luật riêng (Inevitable/Warding
+    // Palm) phải luôn trên mọi sigil, kể cả bypass nhỏ này.
     if (_hasBuff('lai_kep') && !isSentinel && enemy.type !== 'goliath'
+        && !source._vanguardTag && !source._noBase60 && (source.damage > 0 || (source.percentDamage || 0) > 0)
+        && !source.isTeslaDot && !source._isNocToiDot && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._yogExplosion
         && typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) {
-        enemy.hp = Math.max(0, enemy.hp - 2 * player.atk);
-        if (enemy.hp <= 0) enemy._markedForDeath = true;
+        const _laiKepNow = performance.now();
+        if (!enemy._laiKepLastAt || _laiKepNow - enemy._laiKepLastAt >= 100) {
+            enemy._laiKepLastAt = _laiKepNow;
+            enemy.hp = Math.max(0, enemy.hp - 1.50 * player.atk);
+            if (enemy.hp <= 0) enemy._markedForDeath = true;
+        }
     }
 
     // Sigil: Death Mark — enemy at ≤5% HP triggers lightning instakill. LOẠI

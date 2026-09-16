@@ -218,8 +218,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.AudioMgr.enterTimeDomain();
                     window.AudioMgr.playSfx('shift-hold');
                 }
-                if (_hasBuff('coi_mong')) {
-                    window._coiMongEndTime = performance.now() + 3000;
+                // docs/combat-scaling-rebalance.md Part 5: 2.5s immunity
+                // (was 3s), and a shared 6s minimum retrigger interval so
+                // repeated short Shift activations can't chain into
+                // near-continuous invulnerability.
+                if (_hasBuff('coi_mong') && performance.now() >= (window._coiMongCooldownEnd || 0)) {
+                    window._coiMongEndTime = performance.now() + 2500;
+                    window._coiMongCooldownEnd = performance.now() + 6000;
                     const _markT = performance.now();
                     for (const _e of enemies) {
                         if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;

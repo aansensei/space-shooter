@@ -79,12 +79,13 @@ function updateShadowOrbs(deltaTime) {
             if (orb.hitEnemies.has(enemy)) continue;
             if (Math.hypot(enemy.x - orb.x, enemy.y - orb.y) < enemy.size / 2 + (orb.isLarge ? 15 : 10)) {
                 orb.hitEnemies.add(enemy);
+                // docs/combat-scaling-rebalance.md Part 5
                 if (orb.isLarge) {
-                    dealDamage(enemy, { damage: 1.80 * player.atk, percentDamage: 0.08, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
+                    dealDamage(enemy, { damage: 1.80 * player.atk, percentDamage: 0.06, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 } else {
-                    dealDamage(enemy, { damage: 0.75 * player.atk, percentDamage: 0.03, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
+                    dealDamage(enemy, { damage: 0.75 * player.atk, percentDamage: 0.025, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 }
-                applyVulnerability(enemy); applyVulnerability(enemy);
+                applyVulnerability(enemy);
                 createParticles(orb.x, orb.y, orb.isLarge ? 10 : 6, '#4fc3ff', 2, 6);
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-orb-hit', orb.x, orb.y);
             }
@@ -105,7 +106,7 @@ function _checkMirrorLaserProc() {
     if (now < (window._mlProcCooldownEnd || 0)) return;
     if (Math.random() < (window._mlProcChance || 0.05)) {
         window._mlProcChance = 0.05;
-        window._mlProcCooldownEnd = now + 3000 + 4000;
+        window._mlProcCooldownEnd = now + 3000 + 6000; // docs/combat-scaling-rebalance.md Part 5: 6s CD (was 4s)
         if (!window._mirrorLaserColumns) window._mirrorLaserColumns = [];
         window._mirrorLaserColumns.push({ startTime: now, duration: 3000, lastTick: 0 });
         if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-a-activate', player.x, player.y);
@@ -129,13 +130,14 @@ function updateMirrorLaserColumns(deltaTime) {
                 if (enemy.inCoronation) return;
                 if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                 if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
+                    // docs/combat-scaling-rebalance.md Part 5
                     if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                        const _src = { damage: 3.50 * player.atk, percentDamage: 0.18, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
+                        const _src = { damage: 3.50 * player.atk, percentDamage: 0.08, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
                         if (!checkMarchosiasArcBarrier(enemy, _src, enemy.x, enemy.y)) dealDamage(enemy, _src);
                     } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                         enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     } else {
-                        dealDamage(enemy, { damage: 3.50 * player.atk, percentDamage: 0.18, isPiercing: true, _statSrc: 'Sigil: Mirror Laser' });
+                        dealDamage(enemy, { damage: 3.50 * player.atk, percentDamage: 0.08, isPiercing: true, _statSrc: 'Sigil: Mirror Laser' });
                     }
                 }
             });

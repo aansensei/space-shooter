@@ -235,7 +235,13 @@ function updateSkillD(deltaTime) {
         const _markNow = performance.now();
         for (const enemy of enemies) {
             if (enemy._yogMark && _markNow - enemy._yogMarkStart >= 1650) {
-                const _expDmg = Math.ceil((enemy._yogMarkAccum || 0) * 0.60 + (enemy.maxHp - enemy.hp) * 0.35);
+                // docs/combat-scaling-rebalance.md Part 5: capped at 25% Max
+                // HP so accumulated damage plus lost-HP scaling can't recycle
+                // into an unbounded true-damage burst.
+                const _expDmg = Math.min(
+                    Math.ceil((enemy._yogMarkAccum || 0) * 0.50 + (enemy.maxHp - enemy.hp) * 0.15),
+                    Math.ceil(enemy.maxHp * 0.25)
+                );
                 if (_expDmg > 0) dealDamage(enemy, { damage: _expDmg, isTrueDamage: true, _yogExplosion: true });
                 createParticles(enemy.x, enemy.y, 15, '#8b5cf6', 3, 8);
                 enemy._yogMark = false;

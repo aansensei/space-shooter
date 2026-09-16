@@ -174,7 +174,7 @@ function _setDebugAutoplay(on) {
                     skillShiftChargeStart = now;
                     if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }
                     if (typeof _hasBuff === 'function' && _hasBuff('coi_mong')) {
-                        window._coiMongEndTime = now + 3000;
+                        window._coiMongEndTime = now + 2500; // docs/combat-scaling-rebalance.md Part 5
                         for (const _e of enemies) {
                             if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
                             if (!_e._yogMark) {

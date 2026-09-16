@@ -462,7 +462,7 @@ function updateSolArrows(deltaTime) {
 
             const dmgMult = arrow.isPrimary ? 1 : 0.60; // pierce-hit multiplier only
             const explodeBase = arrow.isPrimary ? 4 * player.atk : 1.80 * player.atk;
-            const explodePct = arrow.isPrimary ? 0.20 : 0.12;
+            const explodePct = arrow.isPrimary ? 0.16 : 0.09; // docs/combat-scaling-rebalance.md Part 5
             const hitRadius = arrow.isPrimary ? 9.2 : 8;
             for (const enemy of enemies) {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0) continue;
@@ -478,13 +478,15 @@ function updateSolArrows(deltaTime) {
                     const repeatMult = priorHits > 0 ? 0.7 : 1.0;
                     arrow.volleyHits.set(enemy, priorHits + 1);
                     if (enemy === arrow.target) {
+                        // docs/combat-scaling-rebalance.md Part 5: 1% per DR
+                        // percentage point (was 2%), cap 60% (was 120%)
                         const estDR = _estimateSolArrowDR(enemy);
-                        const drBonus = Math.min(1.2, Math.floor(estDR * 100) * 0.02);
+                        const drBonus = Math.min(0.60, Math.floor(estDR * 100) * 0.01);
                         const _baMult = (1 + drBonus) * repeatMult;
-                        // Small arrows also tack on 5% of the target's already-lost HP,
+                        // Small arrows also tack on 3% of the target's already-lost HP,
                         // scaled by the same anti-focus repeat discount as everything
                         // else on this hit - a small execute bonus the big arrow doesn't get.
-                        const _lostHpBonus = arrow.isPrimary ? 0 : Math.ceil((enemy.maxHp - enemy.hp) * 0.05 * repeatMult);
+                        const _lostHpBonus = arrow.isPrimary ? 0 : Math.ceil((enemy.maxHp - enemy.hp) * 0.03 * repeatMult);
                         // was primevalEnergy*0.20 (the Photokrystos 0-100 meter, a different
                         // "PE") - description always meant 20% of the TARGET's own Max HP
                         // like every other sigil's %-based hits, fixed to actually do that.

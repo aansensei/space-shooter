@@ -234,7 +234,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                         dotMap.set(enemy, currentTime);
                     }
                     if (currentTime - dotMap.get(enemy) >= 125) {
-                        const _teslaDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
+                        const _teslaDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1; // docs/combat-scaling-rebalance.md Part 5
                         dealDamage(enemy, { damage: 0.95 * player.atk * _teslaDmgMult, percentDamage: 0.006 * _teslaDmgMult, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                         if (_hasBuff('set_day_chuyen') && Math.random() < 0.50) {
@@ -297,7 +297,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
         });
 
         if (coil.hp <= 0) {
-            const _coilDmgMult = _hasBuff('ky_su_dien') ? 1.50 : 1;
+            const _coilDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1; // docs/combat-scaling-rebalance.md Part 5
             const explosionProps = { damage: 0.20 * player.atk * _coilDmgMult, percentDamage: 0.15 * _coilDmgMult, _statSrc: 'Skill G: Tesla Coil' };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
             enemies.forEach(enemy => {

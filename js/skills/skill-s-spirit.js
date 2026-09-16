@@ -89,7 +89,7 @@ function updateSpirits(deltaTime) {
         spirit.shootTimer -= deltaTime;
         let spiritFireRate = 54.2;
         if (gloryForJusticeActive) spiritFireRate /= 1.20;
-        if (_hasBuff('cuc_han')) spiritFireRate /= 1.30; // Arctic Chill: +30% fire rate
+        if (_hasBuff('cuc_han')) spiritFireRate /= 1.20; // Arctic Chill: +20% fire rate (docs/combat-scaling-rebalance.md Part 5)
 
         if (spirit.shootTimer <= 0) {
             spirit.shootTimer = spiritFireRate;
@@ -117,7 +117,7 @@ function updateSpirits(deltaTime) {
                 vy = (closest.y - spirit.y) / d * 15.84;
             }
             if (_hasBuff('song_luoi')) {
-                const baseDmg = 1.80 * player.atk * 1.60, basePct = 0.046 * 1.60;
+                const baseDmg = 1.80 * player.atk * 1.20, basePct = 0.046 * 1.20; // docs/combat-scaling-rebalance.md Part 5
                 const speed = 15.84;
                 const baseAngle = Math.atan2(vy, vx);
                 const sideOff = 22;
@@ -384,7 +384,7 @@ function updatePhotokrystos(spirit, deltaTime) {
     spirit.shootTimer -= deltaTime;
     let photoFireRate = 42; // fire rate
     if (gloryForJusticeActive) photoFireRate /= 1.20;
-    if (_hasBuff('cuc_han')) photoFireRate /= 1.30; // Arctic Chill: +30% fire rate
+    if (_hasBuff('cuc_han')) photoFireRate /= 1.20; // Arctic Chill: +20% fire rate (docs/combat-scaling-rebalance.md Part 5)
     if (spirit.shootTimer <= 0) {
         spirit.shootTimer = photoFireRate;
         const targets = [];
@@ -433,8 +433,9 @@ function updatePhotokrystos(spirit, deltaTime) {
         spirit.volleyCount = 0;
         let brangCount = 2;
         if (_hasBuff('song_luoi')) {
-            if (Math.random() < 0.40) brangCount += 2;
-            if (Math.random() < 0.40) brangCount += 2;
+            // docs/combat-scaling-rebalance.md Part 5
+            if (Math.random() < 0.30) brangCount += 2;
+            if (Math.random() < 0.30) brangCount += 2;
         }
         spawnPhotoBrangs(spirit.x, spirit.y, brangCount, _hasBuff('song_luoi'));
     }
@@ -808,8 +809,9 @@ function _fireSpinnerBlades(s, now) {
     // damage each, 2nd fires 15ms later at +20% radius) - the same
     // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
     const _twinBlades = _hasBuff('song_luoi');
-    const _bladeDmg = _twinBlades ? 3.50 * player.atk * 1.60 : 3.50 * player.atk;
-    const _bladePct = _twinBlades ? 0.035 * 1.60 : 0.035;
+    // docs/combat-scaling-rebalance.md Part 5
+    const _bladeDmg = _twinBlades ? 3.50 * player.atk * 1.20 : 3.50 * player.atk;
+    const _bladePct = _twinBlades ? 0.035 * 1.20 : 0.035;
     for (let d = 0; d < 4; d++) {
         const a = (Math.PI / 2) * d;
         bladeArcProjectiles.push({
@@ -987,10 +989,10 @@ function updateSpiritSpinners(deltaTime) {
                 && Math.hypot(e.x - s.x, e.y - s.y) < _arcRange
             );
             if (_hasNearby) {
-                // Arctic Chill (Sagittarius): same +30% fire rate it already
-                // gives the Spirit's own auto-fire, applied to the Spinner's
-                // arc-slash beat.
-                s.lastArcTick = _hasBuff('cuc_han') ? 300 / 1.30 : 300;
+                // Arctic Chill (Sagittarius): same +20% fire rate it already
+                // gives the Spirit's own auto-fire (docs/combat-scaling-
+                // rebalance.md Part 5), applied to the Spinner's arc-slash beat.
+                s.lastArcTick = _hasBuff('cuc_han') ? 300 / 1.20 : 300;
                 _fireSpinnerBlades(s, now);
             } else {
                 s.lastArcTick = 0; // keep checking every frame until an enemy comes into range

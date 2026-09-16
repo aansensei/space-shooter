@@ -133,7 +133,7 @@ function _onSigilApplied(sigilId, buffId) {
     }
     if (buffId === 'hiep_luc') { /* synergy — no separate state, keyed off doi_hinh_chien arrays */ }
     if (buffId === 'su_tu_hong')   { window._sthBurning = new Map(); }
-    if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(15, lives + 5); }
+    if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(15, lives + 4); } // docs/combat-scaling-rebalance.md Part 5
 }
 
 // Deck-deal intro: cards leave a single face-down stack at the panel's

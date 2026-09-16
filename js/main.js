@@ -718,8 +718,16 @@ function update(rawDeltaTime) {
         if (window._cofMoveDist >= canvas.width) {
             window._cofMoveDist -= canvas.width;
             const _cofNow = performance.now();
-            lastSkillA = Math.min(_cofNow, lastSkillA - 500);
-            lastSkillS = Math.min(_cofNow, lastSkillS - 500);
+            // docs/combat-scaling-rebalance.md Part 5: same 0.5s reduction,
+            // but A/S/Laser now share the same rolling 2s-per-real-second
+            // budget as the kill-based reduction above (entities/core.js),
+            // so movement and rapid kills together still can't reset a
+            // skill faster than that combined cap. D and F stay unchanged.
+            const _grantA = _goliathDrawBucket(window, '_pofCdTokensA', '_pofCdAtA', 2000, 1000, 500);
+            const _grantS = _goliathDrawBucket(window, '_pofCdTokensS', '_pofCdAtS', 2000, 1000, 500);
+            const _grantLaser = _goliathDrawBucket(window, '_pofCdTokensLaser', '_pofCdAtLaser', 2000, 1000, 500);
+            lastSkillA = Math.min(_cofNow, lastSkillA - _grantA);
+            lastSkillS = Math.min(_cofNow, lastSkillS - _grantS);
             lastSkillD = Math.min(_cofNow, lastSkillD - 500);
             lastSkillF = Math.min(_cofNow, lastSkillF - 500);
             lastSkillShift = Math.min(_cofNow, lastSkillShift - 500);
@@ -727,7 +735,7 @@ function update(rawDeltaTime) {
             // not a "last used" one like the others above — subtracting
             // then clamping to _cofNow would force it fully ready off a
             // single screen-width of movement instead of shaving 0.5s.
-            laserCooldownEnd -= 500;
+            laserCooldownEnd -= _grantLaser;
             window._cofFlashEnd = _cofNow + 400;
         }
     }
@@ -784,10 +792,11 @@ function update(rawDeltaTime) {
 
             if (currentTime - lastLaserTick > laserTickInterval) {
                 lastLaserTick = currentTime;
-                // Mirror Laser: original beam +30% dmg; mirror entity beams inherit 75% of that
+                // Mirror Laser: original beam +20% dmg; mirror entity beams
+                // inherit 60% of that (docs/combat-scaling-rebalance.md Part 5)
                 const _mlBuffed = _hasBuff('guong_laze');
-                const _laserDmg = 3.50 * player.atk * (_mlBuffed ? 1.30 : 1);
-                const _laserPct = 0.23 * (_mlBuffed ? 1.30 : 1);
+                const _laserDmg = 3.50 * player.atk * (_mlBuffed ? 1.20 : 1);
+                const _laserPct = 0.23 * (_mlBuffed ? 1.20 : 1);
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return;
@@ -818,7 +827,7 @@ function update(rawDeltaTime) {
                 });
 
                 if (_mlBuffed && window._mirrorLaserEntities) {
-                    const _mlMirrorDmg = _laserDmg * 0.75, _mlMirrorPct = _laserPct * 0.75;
+                    const _mlMirrorDmg = _laserDmg * 0.60, _mlMirrorPct = _laserPct * 0.60; // docs/combat-scaling-rebalance.md Part 5
                     for (const ent of window._mirrorLaserEntities) {
                         enemies.forEach(enemy => {
                             if (enemy.type === 'abyssal_chain') return;
@@ -1067,7 +1076,11 @@ function update(rawDeltaTime) {
                 }
 
                 if (currentTime - coil.dotTargets.get(enemy) >= 125) {
-                    dealDamage(enemy, { damage: 1.30 * player.atk, percentDamage: 0.025, isTeslaDot: true });
+                    // docs/combat-scaling-rebalance.md Part 5: Circuit Engineer's
+                    // +30% previously covered link ticks and the destroyed-Coil
+                    // burst but not this proximity aura tick - now consistent.
+                    const _auraDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1;
+                    dealDamage(enemy, { damage: 1.30 * player.atk * _auraDmgMult, percentDamage: 0.025 * _auraDmgMult, isTeslaDot: true });
                     coil.dotTargets.set(enemy, currentTime);
                 }
             }
@@ -1340,8 +1353,8 @@ function update(rawDeltaTime) {
             if (enemy.hp > 0) {
                 for (const s of sentinels) {
                     if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
-                        if (_hasBuff('giap_nguyet') && Math.random() < 0.20) {
-                            // Lunar Aegis: 20% sentinel evade — chain consumed, no damage
+                        if (_hasBuff('giap_nguyet') && Math.random() < 0.15) {
+                            // Lunar Aegis: 15% sentinel evade — chain consumed, no damage (docs/combat-scaling-rebalance.md Part 5)
                         } else if (s.ironBody && currentTime < s.ironBodyEnd) {
                             // Iron Body: absorb but still consume chain
                         } else if (_hasBuff('trieu_hoi') && s._trieuIronBody) {
@@ -1429,8 +1442,8 @@ function update(rawDeltaTime) {
 
             for (const sentinel of sentinels) {
                 if (enemy.hp > 0 && Math.hypot(enemy.x - sentinel.x, enemy.y - sentinel.y) < enemy.size + sentinel.size) {
-                    if (_hasBuff('giap_nguyet') && Math.random() < 0.20) {
-                        // Lunar Aegis: 20% sentinel evade — bullet consumed, no damage
+                    if (_hasBuff('giap_nguyet') && Math.random() < 0.15) {
+                        // Lunar Aegis: 15% sentinel evade — bullet consumed, no damage (docs/combat-scaling-rebalance.md Part 5)
                     } else if (enemy.type === 'enemy_bullet_small') {
                         dealDamage(sentinel, { damage: sentinel.maxHp * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
@@ -1448,8 +1461,8 @@ function update(rawDeltaTime) {
                 for (const ship of window.skillDSpaceships) {
                     if (Math.hypot(enemy.x - ship.x, enemy.y - ship.y) < enemy.size + ship.size / 2) {
                         enemy.hp = 0;
-                        // Lunar Aegis: same 20% evade allied units get vs enemy bullets
-                        if (_hasBuff('giap_nguyet') && Math.random() < 0.20) break;
+                        // Lunar Aegis: same 15% evade allied units get vs enemy bullets (docs/combat-scaling-rebalance.md Part 5)
+                        if (_hasBuff('giap_nguyet') && Math.random() < 0.15) break;
                         let _shipDmg = (enemy.type === 'enemy_bullet_small') ? Math.ceil(ship.maxHp * 0.15) : enemy.hp;
                         if ((ship._gaiaBarrier || 0) > 0) {
                             const _gAbsorb = Math.min(_shipDmg, ship._gaiaBarrier);
@@ -2110,7 +2123,8 @@ function update(rawDeltaTime) {
                         const _hn = performance.now();
 
                         if (b._muiTenVangCrit && enemy.hp > 0) {
-                            dealDamage(enemy, { damage: b.damage * 3, percentDamage: (b.percentDamage || 0) * 3, isTrueDamage: true, _noBase60: true, type: b.type });
+                            // docs/combat-scaling-rebalance.md Part 5: normal hit + 2x payload (was +3x)
+                            dealDamage(enemy, { damage: b.damage * 2, percentDamage: (b.percentDamage || 0) * 2, isTrueDamage: true, _noBase60: true, type: b.type });
                             // +2 stacks via applyVulnerability (not a direct field set) so this
                             // respects goliath's true-dmg-window cooldown like every other source
                             applyVulnerability(enemy);
@@ -2286,7 +2300,7 @@ function update(rawDeltaTime) {
         const _gfjInterval = _waveNumber >= 10 ? 5000 : 8000;
         if (_gfjJustActivated || window._gfjShieldTimer >= _gfjInterval) {
             window._gfjShieldTimer = 0;
-            const _shieldBonus = _hasBuff('giap_nguyet') ? 1.40 : 1;
+            const _shieldBonus = _hasBuff('giap_nguyet') ? 1.30 : 1; // docs/combat-scaling-rebalance.md Part 5
             [...sentinels, ...window.skillDSpaceships, ...(window._yuushaSquad || [])].forEach(s => {
                 const lostHp = Math.max(0, Math.floor((s.maxHp || 100) - s.hp));
                 // docs/combat-scaling-rebalance.md Part 3
@@ -2986,14 +3000,24 @@ function _updateSigilPassives(now, deltaTime) {
     }
 
     if (_hasBuff('dien_tu_truong') && (skillGActive || skillGCharge >= 100)) {
+        // docs/combat-scaling-rebalance.md Part 5: discrete 100ms ticks of a
+        // flat 0.35% Max HP (3.5%/s) instead of scaling a tiny per-frame
+        // amount by deltaTime, which was frame-rate dependent - dealDamage's
+        // own rounding meant more, smaller ticks at a high frame rate added
+        // up to noticeably more total damage per second than fewer, larger
+        // ticks at a low frame rate.
+        window._dtuFieldTickTimer = (window._dtuFieldTickTimer || 0) + deltaTime;
+        const _dtuShouldTick = window._dtuFieldTickTimer >= 100;
+        if (_dtuShouldTick) window._dtuFieldTickTimer -= 100;
         for (const e of enemies) {
             if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') {
                 const dist = Math.hypot(e.x - player.x, e.y - player.y);
                 if (dist <= 300) {
                     e._dtuSlow = true;
                     e._dtuSlowEnd = now + 200;
-                    const dot = 0.035 * (e.maxHp || e.hp) * (deltaTime / 1000);
-                    dealDamage(e, { damage: dot, percentDamage: 0, _isDtuDot: true });
+                    if (_dtuShouldTick) {
+                        dealDamage(e, { damage: 0.0035 * (e.maxHp || e.hp), percentDamage: 0, _isDtuDot: true });
+                    }
                 }
             }
         }
@@ -3005,7 +3029,7 @@ function _updateSigilPassives(now, deltaTime) {
             if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
             if (now >= burnData.nextTick) {
                 const stacks = Math.min(3, burnData.stacks || 1);
-                const dmg = (2 * player.atk + 0.05 * (e.maxHp || e.hp)) * stacks;
+                const dmg = (2 * player.atk + 0.03 * (e.maxHp || e.hp)) * stacks; // docs/combat-scaling-rebalance.md Part 5
                 dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
                 burnData.nextTick = now + 500;
             }

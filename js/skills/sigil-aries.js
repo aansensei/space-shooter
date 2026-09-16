@@ -27,7 +27,7 @@ function _createGobSequence(startTime) {
     return { startTime, phase: 0, baseAngle, fanAngle, portals, swords: [] };
 }
 
-const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_PCT = 0.04;
+const GOB_SWORD_COUNT = 14, GOB_SWORD_SPEED = 20, GOB_SWORD_DMG_PCT = 0.03; // docs/combat-scaling-rebalance.md Part 5
 
 function updateGateOfBabylon(deltaTime) {
     if (!window._gobSequences || window._gobSequences.length === 0) return;
@@ -105,7 +105,7 @@ function _createEeSequence(startTime, target) {
     return { startTime, phase: 0, x: ox, y: oy, angle: Math.atan2(target.y - oy, target.x - ox), beamWidth: 0, beamAlpha: 0, hitEnemies: new Set(), shockwaves: [], _lastShockwaveAt: 0 };
 }
 
-const EE_DMG_PCT = 0.15, EE_DMG_CAP = 16000, EE_BEAM_HALF = 50;
+const EE_DMG_PCT = 0.12, EE_BEAM_HALF = 50; // docs/combat-scaling-rebalance.md Part 5
 
 function updateEnumaElish(deltaTime) {
     if (!window._eeSequences || window._eeSequences.length === 0) return;
@@ -144,7 +144,7 @@ function updateEnumaElish(deltaTime) {
                 if (Math.random() > 0.7) createParticles(en.x, en.y, 5, '#fca5a5', 2, 5);
                 if (seq.hitEnemies.has(en)) continue;
                 seq.hitEnemies.add(en);
-                const dmg = Math.min(EE_DMG_CAP, Math.ceil(en.maxHp * EE_DMG_PCT));
+                const dmg = Math.min(120 * player.atk, Math.ceil(en.maxHp * EE_DMG_PCT)); // docs/combat-scaling-rebalance.md Part 5
                 dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
                 particles.push({ isEeSlash: true, x: en.x, y: en.y, angle: seq.angle + (Math.random() - 0.5) * 0.5, lifetime: 400, maxLifetime: 400 });
             }

@@ -965,7 +965,7 @@ function _yuushaApplyDamage(member, dmg, now, isTrueDamage) {
         if (typeof _triggerSentinelParry === 'function') _triggerSentinelParry(member);
         return 0;
     }
-    if (_hasBuff('giap_nguyet') && Math.random() < 0.20) return 0;
+    if (_hasBuff('giap_nguyet') && Math.random() < 0.15) return 0; // docs/combat-scaling-rebalance.md Part 5
 
     // docs/combat-scaling-rebalance.md Part 3: true damage bypasses DR,
     // Gaia, and ordinary shield consistently, same as a real Sentinel.
