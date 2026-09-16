@@ -490,6 +490,19 @@
     <button id="mainMenuBtn" style="display: none;">Main Menu</button>
     <button id="matchStatsBtn" data-i18n="matchStats.button" onclick="openMatchStats()">Match Stat</button>
 
+    <!-- Misclick guard in front of both Main Menu buttons (this one and
+         #main-menu-btn on the pause screen), see js/input.js's
+         _showConfirmMainMenu. Sits above pause-overlay's own z-index. -->
+    <div id="confirmMenuOverlay">
+        <div id="confirmMenuBox">
+            <p id="confirmMenuText" data-i18n="confirmMenu.message">Return to the main menu? Your current run will be lost.</p>
+            <div id="confirmMenuBtns">
+                <button id="confirmMenuYes" data-i18n="confirmMenu.yes">YES</button>
+                <button id="confirmMenuNo" data-i18n="confirmMenu.no">NO</button>
+            </div>
+        </div>
+    </div>
+
     <div id="easter-egg-overlay">
         <!-- Shows which Service Worker cache version is actually controlling
              this page right now - queried live off sw.js, not hardcoded, so
@@ -1053,6 +1066,9 @@
                         'matchStats.tabAlly': 'Ally Damage',
                         'matchStats.tabEnemy': 'Enemy Damage',
                         'matchStats.tabLives': 'Lives Lost',
+                        'confirmMenu.message': 'Return to the main menu? Your current run will be lost.',
+                        'confirmMenu.yes': 'YES',
+                        'confirmMenu.no': 'NO',
                     },
                     vi: {
                         'settings.title': '⚙ Cài Đặt',
@@ -1090,6 +1106,9 @@
                         'matchStats.tabAlly': 'ST Đồng Minh',
                         'matchStats.tabEnemy': 'ST Kẻ Địch',
                         'matchStats.tabLives': 'Mạng Đã Mất',
+                        'confirmMenu.message': 'Quay về màn hình chính? Lượt chơi hiện tại sẽ mất.',
+                        'confirmMenu.yes': 'CÓ',
+                        'confirmMenu.no': 'KHÔNG',
                     },
                 };
                 function _t(key) {

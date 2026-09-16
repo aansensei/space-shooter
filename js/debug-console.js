@@ -775,11 +775,10 @@ window.debugSetYuukiBonus = function () {
         if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     };
 
-    // Reuses the real "Main Menu" button's own click handler (js/input.js,
-    // `_goToMenu`: gameState = "start" + window._returnToMainMenu()) instead
-    // of re-deriving that reset logic here — the button is just hidden via
-    // CSS, .click() still fires its listener. Debug-only flags are reset
-    // separately since that button knows nothing about them.
+    // Reuses the real Main Menu button's own reset logic (js/input.js,
+    // exposed as window._goToMenuImmediate: gameState = "start" +
+    // window._returnToMainMenu()) instead of re-deriving it here. Debug-only
+    // flags are reset separately since that logic knows nothing about them.
     window.debugExitSession = function () {
         window._debugSessionActive = false;
         window._debugWaveRosterActive = false;
@@ -793,8 +792,10 @@ window.debugSetYuukiBonus = function () {
         const sel = document.getElementById('dbgClickSpawnType');
         if (sel) sel.value = '';
         if (typeof gamePaused !== 'undefined') gamePaused = false;
-        const btn = document.getElementById('mainMenuBtn');
-        if (btn) btn.click();
+        // Calls the real handler directly, not mainMenuBtn.click() - the
+        // button now shows a Yes/No confirm first (misclick guard), which
+        // isn't appropriate for this already-deliberate debug exit.
+        if (typeof window._goToMenuImmediate === 'function') window._goToMenuImmediate();
         window.closeDebugConsole();
     };
 

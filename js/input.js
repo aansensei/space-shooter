@@ -5,7 +5,10 @@ function showStartButton(text) {
     if (!btn) return;
     btn.textContent = text;
     const _isGO = typeof gameState !== 'undefined' && gameState === "gameover";
-    btn.style.top = _isGO ? "calc(50% + 143px)" : "50%";
+    // min() clamps the Game Over position to a safe distance from the bottom
+    // edge on short viewports, same fix as #mainMenuBtn/#matchStatsBtn in
+    // css/style.css (123px slot: between their 58px and 188px).
+    btn.style.top = _isGO ? "min(calc(50% + 143px), calc(100% - 123px))" : "50%";
     btn.style.transform = _isGO ? "translateX(-50%)" : "translate(-50%, -50%)";
     if (_isGO) { btn.classList.add("ds-mode"); } else { btn.classList.remove("ds-mode"); }
     btn.style.display = "block";
@@ -43,6 +46,22 @@ function hideMatchStatsButton() {
     if (typeof closeMatchStats === 'function') closeMatchStats();
 }
 
+// Shared Yes/No guard in front of both Main Menu buttons (the Game Over
+// screen's standalone one and the pause screen's) so an accidental click
+// doesn't immediately discard the current run. Yes runs whichever real
+// menu-return action was passed in; No just closes the confirm overlay.
+let _pendingMainMenuAction = null;
+function _showConfirmMainMenu(action) {
+    _pendingMainMenuAction = action;
+    const ov = document.getElementById("confirmMenuOverlay");
+    if (ov) ov.style.display = "flex";
+}
+function _hideConfirmMainMenu() {
+    const ov = document.getElementById("confirmMenuOverlay");
+    if (ov) ov.style.display = "none";
+    _pendingMainMenuAction = null;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById("startBtn");
     const mainMenuBtn = document.getElementById("mainMenuBtn");
@@ -56,8 +75,39 @@ document.addEventListener('DOMContentLoaded', () => {
             screenShake.duration = 0;
             if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
         };
-        mainMenuBtn.addEventListener("click", _goToMenu);
-        mainMenuBtn.addEventListener("touchstart", (e) => { e.preventDefault(); _goToMenu(); }, { passive: false });
+        const _confirmGoToMenu = () => _showConfirmMainMenu(_goToMenu);
+        mainMenuBtn.addEventListener("click", _confirmGoToMenu);
+        mainMenuBtn.addEventListener("touchstart", (e) => { e.preventDefault(); _confirmGoToMenu(); }, { passive: false });
+        // debug-console.js's debugExitSession calls this directly, skipping
+        // the confirm prompt - that exit is already a deliberate debug
+        // action, not a click that needs a misclick guard.
+        window._goToMenuImmediate = _goToMenu;
+    }
+
+    const confirmMenuOverlay = document.getElementById("confirmMenuOverlay");
+    const confirmMenuYes = document.getElementById("confirmMenuYes");
+    const confirmMenuNo = document.getElementById("confirmMenuNo");
+    const _confirmYes = () => {
+        const action = _pendingMainMenuAction;
+        _hideConfirmMainMenu();
+        if (action) action();
+    };
+    if (confirmMenuYes) {
+        confirmMenuYes.addEventListener("click", _confirmYes);
+        confirmMenuYes.addEventListener("touchstart", (e) => { e.preventDefault(); _confirmYes(); }, { passive: false });
+    }
+    if (confirmMenuNo) {
+        confirmMenuNo.addEventListener("click", _hideConfirmMainMenu);
+        confirmMenuNo.addEventListener("touchstart", (e) => { e.preventDefault(); _hideConfirmMainMenu(); }, { passive: false });
+    }
+    // Tapping the dimmed backdrop (outside the box) also counts as No.
+    if (confirmMenuOverlay) {
+        confirmMenuOverlay.addEventListener("click", (e) => {
+            if (e.target === confirmMenuOverlay) _hideConfirmMainMenu();
+        });
+        confirmMenuOverlay.addEventListener("touchstart", (e) => {
+            if (e.target === confirmMenuOverlay) { e.preventDefault(); _hideConfirmMainMenu(); }
+        }, { passive: false });
     }
 
     // Elements của màn hình Pause
@@ -163,8 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
             screenShake.duration = 0;
             if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
         };
-        pauseMenuBtn.addEventListener('click', _goMenuFromPause);
-        pauseMenuBtn.addEventListener('touchstart', (e) => { e.preventDefault(); _goMenuFromPause(); }, { passive: false });
+        const _confirmGoMenuFromPause = () => _showConfirmMainMenu(_goMenuFromPause);
+        pauseMenuBtn.addEventListener('click', _confirmGoMenuFromPause);
+        pauseMenuBtn.addEventListener('touchstart', (e) => { e.preventDefault(); _confirmGoMenuFromPause(); }, { passive: false });
     }
 
     document.addEventListener("keydown", (e) => {
