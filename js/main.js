@@ -2129,10 +2129,10 @@ function update(rawDeltaTime) {
                     if (!b.hitEnemies) b.hitEnemies = [];
                     if (b.hitEnemies.includes(enemy)) continue;
                     // b.damage holds the charge multiplier (1-10, see
-                    // fireChargedBullet). No target-Max-HP term anymore (was
-                    // up to 7% Max HP at full charge) - first-pass ATK-only
-                    // estimate, flag for AanSensei's own review/retune.
-                    dealDamage(enemy, { damage: 0.08 * player.atk * b.damage });
+                    // fireChargedBullet). Small target-Max-HP term kept
+                    // deliberately (per AanSensei): a deliberate hold-and-release
+                    // burst is exactly the kind of anti-tank tool meant to keep some.
+                    dealDamage(enemy, { damage: 0.08 * player.atk * b.damage, percentDamage: 0.006 * b.damage });
                     b.hitEnemies.push(enemy);
                 } else {
                     if (b.isPiercing && b.hitEnemies) {

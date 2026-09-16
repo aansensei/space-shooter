@@ -144,7 +144,10 @@ function updateEnumaElish(deltaTime) {
                 if (Math.random() > 0.7) createParticles(en.x, en.y, 5, '#fca5a5', 2, 5);
                 if (seq.hitEnemies.has(en)) continue;
                 seq.hitEnemies.add(en);
-                const dmg = Math.ceil(13.8 * player.atk); // no target-Max-HP cap anymore, pure ATK
+                // Small target-Max-HP term kept deliberately (per AanSensei):
+                // a rare every-30-hits nuke, exactly the kind of anti-tank
+                // burst meant to keep some.
+                const dmg = Math.ceil(13.8 * player.atk + en.maxHp * 0.04);
                 dealDamage(en, { damage: dmg, isTrueDamage: true, _isEeSpear: true, _noHitSfx: true, _statSrc: 'Aries: Enuma Elish' });
                 particles.push({ isEeSlash: true, x: en.x, y: en.y, angle: seq.angle + (Math.random() - 0.5) * 0.5, lifetime: 400, maxLifetime: 400 });
             }

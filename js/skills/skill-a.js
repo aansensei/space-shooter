@@ -185,10 +185,11 @@ function updateSkillA(deltaTime) {
                     // (orb._pierced is only set when xuyen_pha is equipped -
                     // see below), so the +20% damage bonus is baked directly
                     // into these base numbers rather than gated separately.
-                    // No longer carries a target-Max-HP percent term - only
-                    // the lost-HP true-damage bonus below still scales off
-                    // the target (docs/combat-scaling-rebalance.md, ATK rescale).
-                    applyMarchosiasSkillASplit(_pe, { damage: 0.276 * player.atk, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                    // Small target-Max-HP term kept deliberately (per AanSensei):
+                    // Thunder Orbs is a cooldown-gated burst hit, one of the
+                    // few sources meant to still chew through a big-HP target
+                    // a little faster than pure ATK alone would allow.
+                    applyMarchosiasSkillASplit(_pe, { damage: 0.276 * player.atk, percentDamage: 0.02, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                     // Sát thương CHUẨN (true damage) thêm: hệ số ATK + 18% HP đã mất của mục tiêu
                     if (_pe.hp > 0) applyMarchosiasSkillASplit(_pe, { damage: 0.138 * player.atk + Math.ceil((_pe.maxHp - _pe.hp) * 0.18), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                     spawnScatteredProjectiles(orb.x, orb.y, 8, { damage: 0.009 * player.atk });
@@ -228,7 +229,8 @@ function updateSkillA(deltaTime) {
             if (dist < orb.target.size / 2 + orb.size) {
                 // Detect actual damage dealt (not blocked by iron body / absoluteShield / evade)
                 const _preTotal = orb.target.hp + (orb.target.shield || 0);
-                applyMarchosiasSkillASplit(orb.target, { damage: 0.23 * player.atk, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
+                // Small target-Max-HP term kept deliberately (per AanSensei), same reasoning as the split path above.
+                applyMarchosiasSkillASplit(orb.target, { damage: 0.23 * player.atk, percentDamage: 0.02, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                 // Sát thương CHUẨN (true damage) thêm: hệ số ATK + 15% HP đã mất của mục tiêu
                 if (orb.target.hp > 0) applyMarchosiasSkillASplit(orb.target, { damage: 0.115 * player.atk + Math.ceil((orb.target.maxHp - orb.target.hp) * 0.15), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Skill A: Thunder Orbs' });
                 const _didDmg = orb.target.hp + (orb.target.shield || 0) < _preTotal;

@@ -124,24 +124,24 @@ function updateSpirits(deltaTime) {
                 const px = -Math.sin(baseAngle) * sideOff, py = Math.cos(baseAngle) * sideOff;
                 // First blade: immediate
                 player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
-                bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                bladeArcProjectiles.push({ x: spirit.x - px, y: spirit.y - py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 125, damage: baseDmg, percentDamage: 0.015, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 // Second blade (extra): 15ms delay, +20% radius to bypass Iron Body on same frame
                 if (!window._pendingBlades) window._pendingBlades = [];
                 window._pendingBlades.push({
                     spawnAt: performance.now() + 15,
-                    data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
+                    data: { x: spirit.x + px, y: spirit.y + py, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, percentDamage: 0.015, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
                 });
                 // Third blade: 25% chance, fires straight down the middle 30ms later
                 if (Math.random() < 0.25) {
                     window._pendingBlades.push({
                         spawnAt: performance.now() + 30,
-                        data: { x: spirit.x, y: spirit.y, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
+                        data: { x: spirit.x, y: spirit.y, vx: Math.cos(baseAngle) * speed, vy: Math.sin(baseAngle) * speed, radius: 150, damage: baseDmg, percentDamage: 0.015, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true }
                     });
                 }
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             } else {
                 player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320;
-                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 0.207 * player.atk, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
+                bladeArcProjectiles.push({ x: spirit.x, y: spirit.y, vx, vy, radius: 125, damage: 0.207 * player.atk, percentDamage: 0.015, hitEnemies: [], isSpirit: true, isPiercing: true, _barrierPiercing: true });
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', spirit.x, spirit.y);
             }
         }
@@ -487,7 +487,9 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
             targetIdx: 0,
             hitEnemies: [],
             rotation: Math.random() * Math.PI * 2,
-            damage: 0.575 * player.atk,
+            // Small target-Max-HP term kept deliberately (per AanSensei):
+            // a periodic anti-tank chain hit, not a spammy source.
+            damage: 0.575 * player.atk, percentDamage: 0.02,
             lifetime: 9000,
             _radius: _isExtra ? 58 : 48,
         });
@@ -943,7 +945,9 @@ function updateSpiritSpinners(deltaTime) {
                 // bounces without a hit over chaining hits back to back.
                 const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
                 const _drMult = _spinnerDrMult(enemy, now);
-                dealDamage(enemy, { damage: Math.round(0.23 * player.atk * _songLuoiMult * _drMult), isTrueDamage: true, _statSrc: s._statSrc });
+                // Small target-Max-HP term kept deliberately (per AanSensei):
+                // a rare once-per-second Finale hit, not a spammy source.
+                dealDamage(enemy, { damage: Math.round(0.23 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.02 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
                 if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
                 // On-hit: a sharp crack - jagged magenta shards plus a quick
                 // white flash at the contact point, selling the heavy true damage.

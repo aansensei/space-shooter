@@ -211,7 +211,9 @@ function _updateTidalSurge(deltaTime) {
                     if (w._activation.bitVictims.has(enemy)) continue;
                     if (Math.hypot(enemy.x - w.x, enemy.y - w.y) <= TIDAL_SURGE_BURST_RADIUS) {
                         w._activation.bitVictims.add(enemy);
-                        dealDamage(enemy, { damage: 0.7475 * player.atk, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
+                        // Small target-Max-HP term kept deliberately (per AanSensei):
+                        // the whale-bite finisher, a rare per-activation burst.
+                        dealDamage(enemy, { damage: 0.7475 * player.atk, percentDamage: 0.03, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
                     }
                 }
                 // Splash burst as the whale snaps its jaws shut - a spray of

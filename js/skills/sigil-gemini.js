@@ -81,7 +81,8 @@ function updateShadowOrbs(deltaTime) {
                 orb.hitEnemies.add(enemy);
                 // docs/combat-scaling-rebalance.md Part 5
                 if (orb.isLarge) {
-                    dealDamage(enemy, { damage: 0.207 * player.atk, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
+                    // Small target-Max-HP term kept deliberately (per AanSensei) on the large orb only.
+                    dealDamage(enemy, { damage: 0.207 * player.atk, percentDamage: 0.02, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 } else {
                     dealDamage(enemy, { damage: 0.08625 * player.atk, applySoulReaver: true, _noHitSfx: true, _statSrc: 'Shadow Twin' });
                 }
@@ -132,12 +133,12 @@ function updateMirrorLaserColumns(deltaTime) {
                 if (enemy.y < player.y && Math.abs(enemy.x - laserX) < 100 / 2) {
                     // docs/combat-scaling-rebalance.md Part 5
                     if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                        const _src = { damage: 0.4025 * player.atk, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
+                        const _src = { damage: 0.4025 * player.atk, percentDamage: 0.02, isPiercing: true, _barrierPiercing: true, _statSrc: 'Sigil: Mirror Laser' };
                         if (!checkMarchosiasArcBarrier(enemy, _src, enemy.x, enemy.y)) dealDamage(enemy, _src);
                     } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                         enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                     } else {
-                        dealDamage(enemy, { damage: 0.4025 * player.atk, isPiercing: true, _statSrc: 'Sigil: Mirror Laser' });
+                        dealDamage(enemy, { damage: 0.4025 * player.atk, percentDamage: 0.02, isPiercing: true, _statSrc: 'Sigil: Mirror Laser' });
                     }
                 }
             });

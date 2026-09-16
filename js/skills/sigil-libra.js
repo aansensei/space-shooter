@@ -500,7 +500,8 @@ function updateSolArrows(deltaTime) {
                         // rotating 90° facing arc that checkMarchosiasArcBarrier() itself
                         // gates on. Without this, every arrow skipped the barrier entirely
                         // and hit Marchosias's body directly. A no-op for every other enemy.
-                        applyMarchosiasSkillASplit(enemy, { damage: explodeBase * _baMult + _lostHpBonus, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
+                        // Small target-Max-HP term kept deliberately (per AanSensei), bigger on the primary arrow.
+                        applyMarchosiasSkillASplit(enemy, { damage: explodeBase * _baMult + _lostHpBonus, percentDamage: (arrow.isPrimary ? 0.03 : 0.02) * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         // Blood-flower bloom (red spider lily / higanbana) instead of a flat gold explosion
                         _spawnSolArrowLily(arrow.x, arrow.y, arrow.isPrimary, Math.atan2(arrow.vy, arrow.vx));

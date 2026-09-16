@@ -195,7 +195,7 @@ function _updateGreatSageEffects(deltaTime) {
                     for (const enemy of enemies) {
                         if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         if (distToSegment(enemy, lineStart, lineEnd) < (enemy.size || 20) + 15) {
-                            dealDamage(enemy, { damage: 0.253 * player.atk * fx.comboMult, _statSrc: 'Great Sage: Lumen Nova' }); // docs/combat-scaling-rebalance.md Part 5
+                            dealDamage(enemy, { damage: 0.253 * player.atk * fx.comboMult, percentDamage: 0.03, _statSrc: 'Great Sage: Lumen Nova' }); // docs/combat-scaling-rebalance.md Part 5
                         }
                     }
                 });
@@ -214,7 +214,7 @@ function _updateGreatSageEffects(deltaTime) {
                     bladeArcProjectiles.push({
                         x: player.x, y: player.y, originX: player.x, originY: player.y, _fireTime: performance.now(),
                         vx: Math.cos(angle) * 20, vy: Math.sin(angle) * 20,
-                        radius: 44, damage: 0.299 * player.atk * fx.comboMult, // docs/combat-scaling-rebalance.md Part 5
+                        radius: 44, damage: 0.299 * player.atk * fx.comboMult, percentDamage: 0.03, // docs/combat-scaling-rebalance.md Part 5
                         hitEnemies: [], isPiercing: true, isGreatSageBlade: true, _statSrc: 'Great Sage: Arc Barrier',
                     });
                 });
@@ -226,7 +226,7 @@ function _updateGreatSageEffects(deltaTime) {
                     for (const enemy of enemies) {
                         if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         if (Math.hypot(enemy.x - pt.x, enemy.y - pt.y) < (enemy.size || 20) + 30) {
-                            dealDamage(enemy, { damage: 0.368 * player.atk * fx.comboMult, isTrueDamage: true, _statSrc: 'Great Sage: Phantom Strike' }); // docs/combat-scaling-rebalance.md Part 5
+                            dealDamage(enemy, { damage: 0.368 * player.atk * fx.comboMult, percentDamage: 0.03, isTrueDamage: true, _statSrc: 'Great Sage: Phantom Strike' }); // docs/combat-scaling-rebalance.md Part 5
                         }
                     }
                     createParticles(pt.x, pt.y, 14, '#2dd4bf', 3, 9);
@@ -263,7 +263,7 @@ function _updateGreatSageEffects(deltaTime) {
                         while (dA > Math.PI) dA -= Math.PI * 2;
                         while (dA < -Math.PI) dA += Math.PI * 2;
                         if (Math.abs(dA) <= Math.PI / 2) {
-                            dealDamage(enemy, { damage: 0.299 * player.atk * fx.comboMult, _statSrc: 'Great Sage: Null Slash' }); // docs/combat-scaling-rebalance.md Part 5
+                            dealDamage(enemy, { damage: 0.299 * player.atk * fx.comboMult, percentDamage: 0.03, _statSrc: 'Great Sage: Null Slash' }); // docs/combat-scaling-rebalance.md Part 5
                         }
                     }
                     if (typeof _setShake === 'function') _setShake(6, 150);
@@ -284,7 +284,7 @@ function _updateGreatSageEffects(deltaTime) {
                         createParticles(enemy.x, enemy.y, 3, '#3b82f6', 1, 3);
                         enemy.hp = 0;
                     } else {
-                        dealDamage(enemy, { damage: 0.2185 * player.atk * fx.comboMult, _statSrc: 'Great Sage: Root Shockwave' }); // docs/combat-scaling-rebalance.md Part 5
+                        dealDamage(enemy, { damage: 0.2185 * player.atk * fx.comboMult, percentDamage: 0.03, _statSrc: 'Great Sage: Root Shockwave' }); // docs/combat-scaling-rebalance.md Part 5
                     }
                 }
             }
@@ -301,7 +301,7 @@ function _updateGreatSageEffects(deltaTime) {
                     let d = Math.abs(((curAngle - eAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                     if (d < 0.15) {
                         fx.hitEnemies.push(enemy);
-                        dealDamage(enemy, { damage: 0.23 * player.atk * fx.comboMult, _statSrc: 'Great Sage: Perseverance Sweep' }); // docs/combat-scaling-rebalance.md Part 5
+                        dealDamage(enemy, { damage: 0.23 * player.atk * fx.comboMult, percentDamage: 0.03, _statSrc: 'Great Sage: Perseverance Sweep' }); // docs/combat-scaling-rebalance.md Part 5
                     }
                 }
                 if (fx.timer >= fx.sweepDur) done = true;
@@ -319,7 +319,7 @@ function _updateGreatSageEffects(deltaTime) {
                 bladeArcProjectiles.push({
                     x: fx.x, y: fx.y,
                     vx: Math.cos(fx.angle) * 26, vy: Math.sin(fx.angle) * 26,
-                    radius: 60, damage: 0.483 * player.atk * fx.comboMult, isTrueDamage: true, // docs/combat-scaling-rebalance.md Part 5
+                    radius: 60, damage: 0.483 * player.atk * fx.comboMult, percentDamage: 0.02, isTrueDamage: true, // docs/combat-scaling-rebalance.md Part 5
                     hitEnemies: [], isPiercing: true, isGreatSageVerdict: true, isGreatSageOrb: true, _statSrc: 'Great Sage: Absolute Verdict',
                 });
                 done = true;
