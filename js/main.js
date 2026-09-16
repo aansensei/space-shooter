@@ -809,8 +809,7 @@ function update(rawDeltaTime) {
                 // Mirror Laser: original beam +20% dmg; mirror entity beams
                 // inherit 60% of that (docs/combat-scaling-rebalance.md Part 5)
                 const _mlBuffed = _hasBuff('guong_laze');
-                const _laserDmg = 3.50 * player.atk * (_mlBuffed ? 1.20 : 1);
-                const _laserPct = 0.23 * (_mlBuffed ? 1.20 : 1);
+                const _laserDmg = 0.4025 * player.atk * (_mlBuffed ? 1.20 : 1);
                 enemies.forEach(enemy => {
                     if (enemy.type === 'abyssal_chain') return;
                     if (enemy.type === 'veilshroud_echo') return;
@@ -823,7 +822,7 @@ function update(rawDeltaTime) {
                             if (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(laserX, player.y, enemy.x, enemy.y)) continue;
                             // Laser vs Mar arc barrier: piercing — 30% body DR, barrier takes +15%, sword 25%
                             if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                                const _lSrc = { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser' };
+                                const _lSrc = { damage: _laserDmg, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser' };
                                 // return true means the barrier's own 15% evade proc fired
                                 // (a full miss) - dealDamage must not run in that case, or the
                                 // laser deals full unreduced body damage right through what's
@@ -833,7 +832,7 @@ function update(rawDeltaTime) {
                             } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                 enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                             } else {
-                                dealDamage(enemy, { damage: _laserDmg, percentDamage: _laserPct, isPiercing: true, _statSrc: 'Overload Laser' });
+                                dealDamage(enemy, { damage: _laserDmg, isPiercing: true, _statSrc: 'Overload Laser' });
                             }
                             break;
                         }
@@ -841,7 +840,7 @@ function update(rawDeltaTime) {
                 });
 
                 if (_mlBuffed && window._mirrorLaserEntities) {
-                    const _mlMirrorDmg = _laserDmg * 0.60, _mlMirrorPct = _laserPct * 0.60; // docs/combat-scaling-rebalance.md Part 5
+                    const _mlMirrorDmg = _laserDmg * 0.60; // docs/combat-scaling-rebalance.md Part 5
                     for (const ent of window._mirrorLaserEntities) {
                         enemies.forEach(enemy => {
                             if (enemy.type === 'abyssal_chain') return;
@@ -849,12 +848,12 @@ function update(rawDeltaTime) {
                             if (enemy.inCoronation) return;
                             if (Math.abs(enemy.y - ent.y) < 50) {
                                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
-                                    const _mlSrc = { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser: Mirror' };
+                                    const _mlSrc = { damage: _mlMirrorDmg, isPiercing: true, _barrierPiercing: true, _statSrc: 'Overload Laser: Mirror' };
                                     if (!checkMarchosiasArcBarrier(enemy, _mlSrc, enemy.x, enemy.y)) dealDamage(enemy, _mlSrc);
                                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                                     enemy.afoHitCount = (enemy.afoHitCount || 0) + 1;
                                 } else {
-                                    dealDamage(enemy, { damage: _mlMirrorDmg, percentDamage: _mlMirrorPct, isPiercing: true, _statSrc: 'Overload Laser: Mirror' });
+                                    dealDamage(enemy, { damage: _mlMirrorDmg, isPiercing: true, _statSrc: 'Overload Laser: Mirror' });
                                 }
                             }
                         });
@@ -1111,7 +1110,7 @@ function update(rawDeltaTime) {
                     // +30% previously covered link ticks and the destroyed-Coil
                     // burst but not this proximity aura tick - now consistent.
                     const _auraDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1;
-                    dealDamage(enemy, { damage: 1.30 * player.atk * _auraDmgMult, percentDamage: 0.025 * _auraDmgMult, isTeslaDot: true });
+                    dealDamage(enemy, { damage: 0.15 * player.atk * _auraDmgMult, isTeslaDot: true });
                     coil.dotTargets.set(enemy, currentTime);
                 }
             }
@@ -2130,12 +2129,10 @@ function update(rawDeltaTime) {
                     if (!b.hitEnemies) b.hitEnemies = [];
                     if (b.hitEnemies.includes(enemy)) continue;
                     // b.damage holds the charge multiplier (1-10, see
-                    // fireChargedBullet), not a raw damage value - scales the
-                    // same 7% Max HP a full charge deals down by how charged the
-                    // shot actually was, instead of the old flat 1-9 damage
-                    // that any release before full charge dealt (i.e.
-                    // basically nothing against a real enemy's HP pool).
-                    dealDamage(enemy, { damage: 0, percentDamage: 0.007 * b.damage });
+                    // fireChargedBullet). No target-Max-HP term anymore (was
+                    // up to 7% Max HP at full charge) - first-pass ATK-only
+                    // estimate, flag for AanSensei's own review/retune.
+                    dealDamage(enemy, { damage: 0.08 * player.atk * b.damage });
                     b.hitEnemies.push(enemy);
                 } else {
                     if (b.isPiercing && b.hitEnemies) {
@@ -3054,7 +3051,9 @@ function _updateSigilPassives(now, deltaTime) {
                     e._dtuSlow = true;
                     e._dtuSlowEnd = now + 200;
                     if (_dtuShouldTick) {
-                        dealDamage(e, { damage: 0.0035 * (e.maxHp || e.hp), percentDamage: 0, _isDtuDot: true });
+                        // No target-Max-HP term (was 0.35% target MaxHP/tick) - first-pass
+                        // ATK-only estimate, flag for AanSensei's own review/retune.
+                        dealDamage(e, { damage: 0.05 * player.atk, _isDtuDot: true });
                     }
                 }
             }
@@ -3067,7 +3066,7 @@ function _updateSigilPassives(now, deltaTime) {
             if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
             if (now >= burnData.nextTick) {
                 const stacks = Math.min(3, burnData.stacks || 1);
-                const dmg = (2 * player.atk + 0.03 * (e.maxHp || e.hp)) * stacks; // docs/combat-scaling-rebalance.md Part 5
+                const dmg = 0.23 * player.atk * stacks; // docs/combat-scaling-rebalance.md Part 5
                 dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
                 burnData.nextTick = now + 500;
             }
