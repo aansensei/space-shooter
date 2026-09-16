@@ -32,7 +32,7 @@ function updateGoldenArrowSweep(deltaTime) {
                 sw.hitEnemies.add(enemy);
                 // docs/combat-scaling-rebalance.md Part 5
                 const missingHpBonus = Math.ceil((enemy.maxHp - enemy.hp) * 0.10);
-                dealDamage(enemy, { damage: 1.15 * player.atk + missingHpBonus, _statSrc: 'Virgo: Forest Guardian' });
+                dealDamage(enemy, { damage: 1.5 * player.atk + missingHpBonus, _statSrc: 'Virgo: Forest Guardian' });
                 createParticles(enemy.x, enemy.y, 14, '#c9a227', 3, 8);
                 createParticles(enemy.x, enemy.y, 8, '#5fae3a', 2, 6);
             }

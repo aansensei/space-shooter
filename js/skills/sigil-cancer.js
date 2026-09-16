@@ -161,7 +161,7 @@ function _updateTidalSurge(deltaTime) {
                 const _lastTick = w._activation.dotTickedAt.get(enemy) || 0;
                 if (_dotNow - _lastTick < TIDAL_SURGE_DOT_INTERVAL) continue;
                 w._activation.dotTickedAt.set(enemy, _dotNow);
-                dealDamage(enemy, { damage: 0.0575 * player.atk, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
+                dealDamage(enemy, { damage: 0.075 * player.atk, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge (DOT)' });
             }
         }
 
@@ -213,7 +213,7 @@ function _updateTidalSurge(deltaTime) {
                         w._activation.bitVictims.add(enemy);
                         // Small target-Max-HP term kept deliberately (per AanSensei):
                         // the whale-bite finisher, a rare per-activation burst.
-                        dealDamage(enemy, { damage: 0.7475 * player.atk, percentDamage: 0.03, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
+                        dealDamage(enemy, { damage: 0.97 * player.atk, percentDamage: 0.035, isTrueDamage: true, _statSrc: 'Cancer: Riptide Surge' });
                     }
                 }
                 // Splash burst as the whale snaps its jaws shut - a spray of

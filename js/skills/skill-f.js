@@ -27,10 +27,10 @@ function activateSkillF() {
     // redundant. Works whether Skill F itself is ready or on cooldown.
     if (_hasBuff('cuop_bao_tang') && _greatSageGems.length > 0) {
         // 72 Transformations: holding a full set of 3 different gems makes
-        // the one being spent hit 1.5x as hard - a passive reward for
+        // the one being spent hit 1.65x as hard - a passive reward for
         // staying topped up, not a separate "burst all 3 at once" trigger.
         // Every press still spends exactly 1 gem (oldest first).
-        const comboMult = (_hasBuff('bien_hoa_72') && _greatSageGems.length >= 3) ? 1.5 : 1;
+        const comboMult = (_hasBuff('bien_hoa_72') && _greatSageGems.length >= 3) ? 1.65 : 1;
         _castStolenGemAttack(_greatSageGems.shift(), comboMult);
         return;
     }

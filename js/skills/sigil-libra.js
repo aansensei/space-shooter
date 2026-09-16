@@ -461,7 +461,7 @@ function updateSolArrows(deltaTime) {
             }
 
             const dmgMult = arrow.isPrimary ? 1 : 0.60; // pierce-hit multiplier only
-            const explodeBase = arrow.isPrimary ? 0.46 * player.atk : 0.207 * player.atk;
+            const explodeBase = arrow.isPrimary ? 0.60 * player.atk : 0.27 * player.atk;
             const hitRadius = arrow.isPrimary ? 9.2 : 8;
             for (const enemy of enemies) {
                 if (enemy.type.startsWith('enemy_bullet') || enemy.type === 'abyssal_chain' || enemy.type === 'veilshroud_echo' || enemy.inCoronation || enemy.hp <= 0) continue;
@@ -501,7 +501,7 @@ function updateSolArrows(deltaTime) {
                         // gates on. Without this, every arrow skipped the barrier entirely
                         // and hit Marchosias's body directly. A no-op for every other enemy.
                         // Small target-Max-HP term kept deliberately (per AanSensei), bigger on the primary arrow.
-                        applyMarchosiasSkillASplit(enemy, { damage: explodeBase * _baMult + _lostHpBonus, percentDamage: (arrow.isPrimary ? 0.03 : 0.02) * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
+                        applyMarchosiasSkillASplit(enemy, { damage: explodeBase * _baMult + _lostHpBonus, percentDamage: (arrow.isPrimary ? 0.035 : 0.025) * _baMult, isTrueDamage: arrow.isPrimary, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         // Blood-flower bloom (red spider lily / higanbana) instead of a flat gold explosion
                         _spawnSolArrowLily(arrow.x, arrow.y, arrow.isPrimary, Math.atan2(arrow.vy, arrow.vx));
@@ -512,7 +512,7 @@ function updateSolArrows(deltaTime) {
                         // Pass-through hit on a non-marked enemy: piercing damage for
                         // every arrow, big or small - never true damage, always respects
                         // shield. Same Arc Barrier routing as the explosion above.
-                        applyMarchosiasSkillASplit(enemy, { damage: 0.345 * player.atk * dmgMult * repeatMult, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
+                        applyMarchosiasSkillASplit(enemy, { damage: 0.45 * player.atk * dmgMult * repeatMult, isPiercing: true, _statSrc: 'Sigil: Blood Arrow' });
                         applyVulnerability(enemy); applyVulnerability(enemy);
                         createParticles(arrow.x, arrow.y, 8, '#f59e0b', 2, 5);
                     }

@@ -265,7 +265,7 @@ class YuushaMember {
                 this._healApplied = true;
                 for (const tgt of targets) {
                     // docs/combat-scaling-rebalance.md Part 3
-                    const _healAmt = Math.min(0.0575 * player.atk, 0.20 * tgt.maxHp);
+                    const _healAmt = Math.min(0.075 * player.atk, 0.20 * tgt.maxHp);
                     tgt.hp = Math.min(tgt.maxHp, tgt.hp + _healAmt);
                     tgt.healFlashUntil = now + 800;
                     window._yuushaFloatingTexts = window._yuushaFloatingTexts || [];
@@ -944,7 +944,7 @@ function _yuushaFillTankAbsorb(tank, amount) {
     if (tank.absorb >= 100) {
         tank.absorb = 0;
         // docs/combat-scaling-rebalance.md Part 3
-        tank.hp = Math.min(tank.maxHp, tank.hp + Math.min(0.023 * player.atk, 0.08 * tank.maxHp));
+        tank.hp = Math.min(tank.maxHp, tank.hp + Math.min(0.03 * player.atk, 0.08 * tank.maxHp));
         tank.triggerActive();
     }
 }
@@ -1092,7 +1092,7 @@ function _updateYuushaPartyInner(deltaTime) {
                 if (Math.hypot(blade.x - e.x, blade.y - e.y) < blade.height / 2 + eRadius) {
                     blade.hitEnemies.add(e);
                     const ep = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
-                    const dmg = 0.046 * player.atk + ep * 0.04;
+                    const dmg = 0.06 * player.atk + ep * 0.04;
                     if (typeof dealDamage === 'function') {
                         dealDamage(e, {
                             damage: dmg, percentDamage: 0,
@@ -1126,7 +1126,7 @@ function _updateYuushaPartyInner(deltaTime) {
                 if (dist < eRadius + 6) {
                     p.hitEnemies.add(e);
                     const ep = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
-                    const dmg = 0.08625 * player.atk + ep * 0.05;
+                    const dmg = 0.112 * player.atk + ep * 0.05;
                     if (typeof dealDamage === 'function') {
                         dealDamage(e, {
                             damage: dmg, percentDamage: 0,
@@ -1165,7 +1165,7 @@ function _updateYuushaPartyInner(deltaTime) {
                     if (tickNow - lastTick >= 500) {
                         z.hitEnemies.set(e, tickNow);
                         const ep = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
-                        const dmg = 0.0575 * player.atk + ep * 0.04;
+                        const dmg = 0.075 * player.atk + ep * 0.04;
                         if (typeof dealDamage === 'function') {
                             dealDamage(e, {
                                 damage: dmg, percentDamage: 0,
