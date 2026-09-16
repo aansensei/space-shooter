@@ -88,6 +88,149 @@ function _autoplayDangerAt(threats, x, margin) {
     return danger;
 }
 
+// Extracted out of _setDebugAutoplay's setInterval callback so a fast-
+// forwarded simulation (e.g. a verification script driving update()
+// directly, without real wall-clock time passing) can call this same
+// decision logic on its own simulated cadence instead of waiting on the
+// real 200ms interval below, which never fires while that kind of script
+// blocks the event loop between real ticks.
+function _autoplayTick() {
+        if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
+        const now = performance.now();
+
+        // More cautious the fewer lives are left: a wider safety margin
+        // means every threat starts getting dodged earlier and further out.
+        const livesNow = typeof lives === 'number' ? lives : 12;
+        const margin = 55 + Math.max(0, 12 - livesNow) * 5;
+
+        // Skill economy: A (self-homing orbs) and S (summons an ally) are
+        // never a wrong time to use, so they stay pure on-cooldown. D
+        // (pull+instakill) and F's normal sweep only fire with a real
+        // target on screen - excludes bullets/chains/coronation, same
+        // filter the mechanics themselves use for "a real enemy". A
+        // banked Great Sage gem always fires through F regardless (it's
+        // free and never touches F's own cooldown, see activateSkillF).
+        const _realEnemyCount = enemies.filter(e =>
+            !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation).length;
+        const _greatSageGemReady = typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')
+            && typeof _greatSageGems !== 'undefined' && _greatSageGems.length > 0;
+
+        if (typeof activateSkillA === 'function') activateSkillA();
+        if (typeof activateSkillS === 'function') activateSkillS();
+        if (typeof activateSkillD === 'function' && _realEnemyCount > 0) activateSkillD();
+        if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
+        if (typeof activateSkillG === 'function') activateSkillG();
+
+        // Cancer - Riptide Surge: a banked release is free (doesn't touch
+        // any other cooldown) and just needs a Space press whenever it's
+        // ready, same priority Space itself gives it in input.js.
+        if (window._tidalSurgeReady && typeof _releaseTidalSurge === 'function'
+            && !(typeof player !== 'undefined' && player._silenced)) {
+            _releaseTidalSurge();
+        }
+
+        // Movement + Skill Shift engage: both driven off the same
+        // threat scan, since "is walking alone enough" is exactly the
+        // signal that decides whether Shift is even worth spending.
+        if (_autoplayShiftReleaseAt === 0) {
+            const threats = _autoplayScanThreats();
+            const leftX = Math.max(player.width / 2, player.x - AUTOPLAY_STEP);
+            const rightX = Math.min(canvas.width - player.width / 2, player.x + AUTOPLAY_STEP);
+            const dHere = _autoplayDangerAt(threats, player.x, margin);
+            const dLeft = _autoplayDangerAt(threats, leftX, margin);
+            const dRight = _autoplayDangerAt(threats, rightX, margin);
+
+            let dir = 0, bestScore = dHere; // 0 = stay, ties favor staying put
+            if (dLeft < bestScore) { bestScore = dLeft; dir = -1; }
+            if (dRight < bestScore) { bestScore = dRight; dir = 1; }
+
+            if (bestScore < 0.05 && dir === 0) {
+                // Nothing dangerous anywhere nearby: don't just park -
+                // keep a slow continuous patrol sweep across the middle
+                // of the screen (never standing still) so there's always
+                // equal room to dodge either way the instant something
+                // shows up, and it still visibly "plays" during a lull.
+                const center = canvas.width / 2, patrolRange = 160;
+                if (player.x <= center - patrolRange) _autoplayPatrolDir = 1;
+                else if (player.x >= center + patrolRange) _autoplayPatrolDir = -1;
+                dir = _autoplayPatrolDir;
+            }
+            keys.left = dir < 0;
+            keys.right = dir > 0;
+
+            // bestScore is "how dangerous the safest available option
+            // still is" - if walking alone can't get it near zero,
+            // Skill Shift is genuinely worth spending here.
+            if (bestScore > 0.05 && !skillShiftActive && now - lastSkillShift >= skillShiftCooldown
+                && !(typeof player !== 'undefined' && player._silenced)) {
+                const critical = bestScore > 0.6 || livesNow <= 3;
+                keys.left = false; keys.right = false; // Iron Body covers us during the hold, no need to also drift
+                skillShiftActive = true;
+                window._shiftActive = true;
+                // Force FULL tier for the domain's own showcase effects, same reasoning as input.js's real activation.
+                if (window._smartQuality !== false && typeof window._applyGfxLevel === 'function') window._applyGfxLevel(0);
+                skillShiftChargeStart = now;
+                if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }
+                if (typeof _hasBuff === 'function' && _hasBuff('coi_mong')) {
+                    window._coiMongEndTime = now + 2500; // docs/combat-scaling-rebalance.md Part 5
+                    for (const _e of enemies) {
+                        if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
+                        if (!_e._yogMark) {
+                            _e._yogMark = true; _e._yogMarkStart = now; _e._yogMarkAccum = 0;
+                            applyVulnerability(_e);
+                        }
+                    }
+                }
+                // Moderate heat: short hold, cancel only, cheap ~1.1s CD.
+                // Serious heat (or lives running low): hold toward full
+                // charge and actually teleport, accepting the flat 9s CD.
+                _autoplayShiftMode = critical ? 'teleport' : 'clear';
+                _autoplayShiftReleaseAt = now + (critical ? 2900 : 1800);
+            }
+        } else if (now >= _autoplayShiftReleaseAt) {
+            _autoplayShiftReleaseAt = 0;
+            if (skillShiftActive) {
+                if (_autoplayShiftMode === 'teleport') {
+                    const threats = _autoplayScanThreats();
+                    const maxDist = canvas.width / 2;
+                    const leftX = Math.max(player.width / 2, player.x - maxDist);
+                    const rightX = Math.min(canvas.width - player.width / 2, player.x + maxDist);
+                    const dir = _autoplayDangerAt(threats, leftX, margin) <= _autoplayDangerAt(threats, rightX, margin) ? 'left' : 'right';
+                    executeShiftTeleport(dir);
+                } else {
+                    cancelSkillShift(); // no reposition needed - just the cheap CD + bullet wipe on exit
+                }
+            }
+            _autoplayShiftMode = null;
+        }
+
+        // Charged Space shot: hold to maxChargeTime for a max-multiplier
+        // charged bullet (Cycle of Flow's insta-fire path is left to the
+        // instant branch below, matching the real keydown's own check).
+        if (_autoplayChargeReleaseAt === 0) {
+            if (!charging && !laserActive && !skillShiftActive) {
+                if (typeof _hasBuff === 'function' && _hasBuff('dong_chay_luan_hoi')) {
+                    if (now >= laserCooldownEnd && typeof _activateOverloadLaser === 'function') _activateOverloadLaser(now);
+                } else {
+                    charging = true; chargeStartTime = now;
+                    if (window.AudioMgr) window.AudioMgr.startCharging();
+                    _autoplayChargeReleaseAt = now + maxChargeTime;
+                }
+            }
+        } else if (now >= _autoplayChargeReleaseAt) {
+            _autoplayChargeReleaseAt = 0;
+            if (charging && !laserActive) {
+                const chargeDuration = now - chargeStartTime;
+                if (chargeDuration < overloadChargeTime) {
+                    const multiplier = 1 + ((Math.min(chargeDuration, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
+                    fireChargedBullet(Math.min(multiplier, maxMultiplier));
+                }
+                charging = false;
+                if (window.AudioMgr) window.AudioMgr.stopCharging();
+            }
+        }
+}
+
 function _setDebugAutoplay(on) {
     window._debugAutoplay = on;
     if (on) {
@@ -96,142 +239,7 @@ function _setDebugAutoplay(on) {
         _autoplayShiftMode = null;
         _autoplayChargeReleaseAt = 0;
         _autoplayPatrolDir = 1;
-        _autoplayTimer = setInterval(() => {
-            if (!window._debugAutoplay || typeof gameState === 'undefined' || gameState !== 'playing' || gamePaused) return;
-            const now = performance.now();
-
-            // More cautious the fewer lives are left: a wider safety margin
-            // means every threat starts getting dodged earlier and further out.
-            const livesNow = typeof lives === 'number' ? lives : 12;
-            const margin = 55 + Math.max(0, 12 - livesNow) * 5;
-
-            // Skill economy: A (self-homing orbs) and S (summons an ally) are
-            // never a wrong time to use, so they stay pure on-cooldown. D
-            // (pull+instakill) and F's normal sweep only fire with a real
-            // target on screen - excludes bullets/chains/coronation, same
-            // filter the mechanics themselves use for "a real enemy". A
-            // banked Great Sage gem always fires through F regardless (it's
-            // free and never touches F's own cooldown, see activateSkillF).
-            const _realEnemyCount = enemies.filter(e =>
-                !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation).length;
-            const _greatSageGemReady = typeof _hasBuff === 'function' && _hasBuff('cuop_bao_tang')
-                && typeof _greatSageGems !== 'undefined' && _greatSageGems.length > 0;
-
-            if (typeof activateSkillA === 'function') activateSkillA();
-            if (typeof activateSkillS === 'function') activateSkillS();
-            if (typeof activateSkillD === 'function' && _realEnemyCount > 0) activateSkillD();
-            if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
-            if (typeof activateSkillG === 'function') activateSkillG();
-
-            // Cancer - Riptide Surge: a banked release is free (doesn't touch
-            // any other cooldown) and just needs a Space press whenever it's
-            // ready, same priority Space itself gives it in input.js.
-            if (window._tidalSurgeReady && typeof _releaseTidalSurge === 'function'
-                && !(typeof player !== 'undefined' && player._silenced)) {
-                _releaseTidalSurge();
-            }
-
-            // Movement + Skill Shift engage: both driven off the same
-            // threat scan, since "is walking alone enough" is exactly the
-            // signal that decides whether Shift is even worth spending.
-            if (_autoplayShiftReleaseAt === 0) {
-                const threats = _autoplayScanThreats();
-                const leftX = Math.max(player.width / 2, player.x - AUTOPLAY_STEP);
-                const rightX = Math.min(canvas.width - player.width / 2, player.x + AUTOPLAY_STEP);
-                const dHere = _autoplayDangerAt(threats, player.x, margin);
-                const dLeft = _autoplayDangerAt(threats, leftX, margin);
-                const dRight = _autoplayDangerAt(threats, rightX, margin);
-
-                let dir = 0, bestScore = dHere; // 0 = stay, ties favor staying put
-                if (dLeft < bestScore) { bestScore = dLeft; dir = -1; }
-                if (dRight < bestScore) { bestScore = dRight; dir = 1; }
-
-                if (bestScore < 0.05 && dir === 0) {
-                    // Nothing dangerous anywhere nearby: don't just park -
-                    // keep a slow continuous patrol sweep across the middle
-                    // of the screen (never standing still) so there's always
-                    // equal room to dodge either way the instant something
-                    // shows up, and it still visibly "plays" during a lull.
-                    const center = canvas.width / 2, patrolRange = 160;
-                    if (player.x <= center - patrolRange) _autoplayPatrolDir = 1;
-                    else if (player.x >= center + patrolRange) _autoplayPatrolDir = -1;
-                    dir = _autoplayPatrolDir;
-                }
-                keys.left = dir < 0;
-                keys.right = dir > 0;
-
-                // bestScore is "how dangerous the safest available option
-                // still is" - if walking alone can't get it near zero,
-                // Skill Shift is genuinely worth spending here.
-                if (bestScore > 0.05 && !skillShiftActive && now - lastSkillShift >= skillShiftCooldown
-                    && !(typeof player !== 'undefined' && player._silenced)) {
-                    const critical = bestScore > 0.6 || livesNow <= 3;
-                    keys.left = false; keys.right = false; // Iron Body covers us during the hold, no need to also drift
-                    skillShiftActive = true;
-                    window._shiftActive = true;
-                    // Force FULL tier for the domain's own showcase effects, same reasoning as input.js's real activation.
-                    if (window._smartQuality !== false && typeof window._applyGfxLevel === 'function') window._applyGfxLevel(0);
-                    skillShiftChargeStart = now;
-                    if (window.AudioMgr) { window.AudioMgr.enterTimeDomain(); window.AudioMgr.playSfx('shift-hold'); }
-                    if (typeof _hasBuff === 'function' && _hasBuff('coi_mong')) {
-                        window._coiMongEndTime = now + 2500; // docs/combat-scaling-rebalance.md Part 5
-                        for (const _e of enemies) {
-                            if (_e.type.startsWith('enemy_bullet') || _e.type === 'abyssal_chain' || _e.inCoronation) continue;
-                            if (!_e._yogMark) {
-                                _e._yogMark = true; _e._yogMarkStart = now; _e._yogMarkAccum = 0;
-                                applyVulnerability(_e);
-                            }
-                        }
-                    }
-                    // Moderate heat: short hold, cancel only, cheap ~1.1s CD.
-                    // Serious heat (or lives running low): hold toward full
-                    // charge and actually teleport, accepting the flat 9s CD.
-                    _autoplayShiftMode = critical ? 'teleport' : 'clear';
-                    _autoplayShiftReleaseAt = now + (critical ? 2900 : 1800);
-                }
-            } else if (now >= _autoplayShiftReleaseAt) {
-                _autoplayShiftReleaseAt = 0;
-                if (skillShiftActive) {
-                    if (_autoplayShiftMode === 'teleport') {
-                        const threats = _autoplayScanThreats();
-                        const maxDist = canvas.width / 2;
-                        const leftX = Math.max(player.width / 2, player.x - maxDist);
-                        const rightX = Math.min(canvas.width - player.width / 2, player.x + maxDist);
-                        const dir = _autoplayDangerAt(threats, leftX, margin) <= _autoplayDangerAt(threats, rightX, margin) ? 'left' : 'right';
-                        executeShiftTeleport(dir);
-                    } else {
-                        cancelSkillShift(); // no reposition needed - just the cheap CD + bullet wipe on exit
-                    }
-                }
-                _autoplayShiftMode = null;
-            }
-
-            // Charged Space shot: hold to maxChargeTime for a max-multiplier
-            // charged bullet (Cycle of Flow's insta-fire path is left to the
-            // instant branch below, matching the real keydown's own check).
-            if (_autoplayChargeReleaseAt === 0) {
-                if (!charging && !laserActive && !skillShiftActive) {
-                    if (typeof _hasBuff === 'function' && _hasBuff('dong_chay_luan_hoi')) {
-                        if (now >= laserCooldownEnd && typeof _activateOverloadLaser === 'function') _activateOverloadLaser(now);
-                    } else {
-                        charging = true; chargeStartTime = now;
-                        if (window.AudioMgr) window.AudioMgr.startCharging();
-                        _autoplayChargeReleaseAt = now + maxChargeTime;
-                    }
-                }
-            } else if (now >= _autoplayChargeReleaseAt) {
-                _autoplayChargeReleaseAt = 0;
-                if (charging && !laserActive) {
-                    const chargeDuration = now - chargeStartTime;
-                    if (chargeDuration < overloadChargeTime) {
-                        const multiplier = 1 + ((Math.min(chargeDuration, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
-                        fireChargedBullet(Math.min(multiplier, maxMultiplier));
-                    }
-                    charging = false;
-                    if (window.AudioMgr) window.AudioMgr.stopCharging();
-                }
-            }
-        }, 200);
+        _autoplayTimer = setInterval(_autoplayTick, 200);
     } else {
         keys.left = false;
         keys.right = false;
@@ -243,6 +251,109 @@ function _setDebugAutoplay(on) {
         if (_autoplayTimer) { clearInterval(_autoplayTimer); _autoplayTimer = null; }
     }
 }
+
+// DPS/TTK verification (docs/combat-scaling-rebalance.md Part 2's remaining
+// checklist item): runs a fixed set of wave milestones back to back through
+// the real wave system (debugSpawnWaveComposition's own logic, inlined here
+// so it doesn't depend on the panel's wave-number input field), with
+// autoplay driving the ship and 4x game speed, no sigils equipped. Reports
+// clear time, lives lost, and damage dealt/received per wave so the numbers
+// can be read off directly instead of guessed at from manual play.
+const VERIFY_WAVE_MILESTONES = [1, 2, 5, 10, 15, 20];
+const VERIFY_NON_GOLIATH_BUDGET_MS = 90000; // waves 1-10 force-end well under this anyway
+const VERIFY_GOLIATH_BUDGET_MS = 300000; // Goliath waves (multiples of 5) never force-end on their own
+
+function _verifyResetWaveState(waveNum) {
+    enemies.length = 0;
+    window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
+    lives = 12;
+    if (typeof player !== 'undefined' && typeof canvas !== 'undefined') {
+        player.x = canvas.width / 2;
+        player._silenced = false;
+        player._rooted = false;
+    }
+    _waveNumber = waveNum - 1;
+    _wavePhase = 'rest';
+    _waveRestTimer = 3000;
+    _waveForceEndTimer = 0;
+    window._debugWaveRosterActive = true;
+}
+
+function _verifySleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function _verifyRunWave(waveNum) {
+    const budgetMs = waveNum % 5 === 0 ? VERIFY_GOLIATH_BUDGET_MS : VERIFY_NON_GOLIATH_BUDGET_MS;
+    _verifyResetWaveState(waveNum);
+
+    let started = false;
+    const startDeadline = performance.now() + 8000;
+    while (!started && performance.now() < startDeadline) {
+        if (enemies.some((e) => !e.type.startsWith('enemy_bullet'))) started = true;
+        await _verifySleep(200);
+    }
+
+    let gameElapsed = 0, lastCheck = performance.now(), cleared = false, timedOut = false;
+    while (true) {
+        await _verifySleep(250);
+        const now = performance.now();
+        gameElapsed += (now - lastCheck) * (window._debugGameSpeed || 1);
+        lastCheck = now;
+        if (typeof gameState !== 'undefined' && gameState !== 'playing') break; // ran out of lives, or similar
+        if (started && window._debugWaveRosterActive === false) { cleared = true; break; }
+        if (gameElapsed > budgetMs) { timedOut = true; break; }
+    }
+
+    const remainingEnemies = enemies.filter((e) => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo');
+    const remainingHp = remainingEnemies.reduce((s, e) => s + Math.max(0, e.hp), 0);
+    const remainingMaxHp = remainingEnemies.reduce((s, e) => s + Math.max(0, e.maxHp || e.hp), 0);
+    const sumBucket = (b) => Object.values(b).reduce((s, v) => s + v, 0);
+    return {
+        wave: waveNum,
+        cleared: cleared,
+        timedOut: timedOut,
+        gameOver: typeof gameState !== 'undefined' && gameState !== 'playing',
+        approxGameMs: Math.round(gameElapsed),
+        livesLost: 12 - lives,
+        allyDamageDealt: Math.round(sumBucket(window._matchStats.allyDamage)),
+        enemyDamageReceived: Math.round(sumBucket(window._matchStats.enemyDamage)),
+        remainingEnemyCount: remainingEnemies.length,
+        remainingHpPct: remainingMaxHp > 0 ? +(100 * remainingHp / remainingMaxHp).toFixed(1) : 0,
+    };
+}
+
+function _verifyFormatRow(r) {
+    const status = r.cleared ? 'CLEARED' : (r.gameOver ? 'GAME OVER' : 'TIMED OUT');
+    return `Wave ${r.wave}: ${status} in ~${(r.approxGameMs / 1000).toFixed(1)}s | lives lost ${r.livesLost} | dealt ${r.allyDamageDealt} | took ${r.enemyDamageReceived} | ${r.remainingEnemyCount} left (${r.remainingHpPct}% HP)`;
+}
+
+window.runCombatVerification = async function () {
+    const resultsEl = document.getElementById('dbgVerifyResults');
+    if (typeof gameState === 'undefined' || gameState !== 'playing' || !window._debugSessionActive) {
+        window.debugStartSession();
+        await _verifySleep(300);
+    }
+    const prevSpeed = window._debugGameSpeed;
+    window.debugSetSpeed(4);
+    _setDebugAutoplay(true);
+
+    const results = [];
+    for (const w of VERIFY_WAVE_MILESTONES) {
+        if (resultsEl) resultsEl.textContent = results.map(_verifyFormatRow).concat('Running wave ' + w + '...').join('\n');
+        const r = await _verifyRunWave(w);
+        results.push(r);
+        if (resultsEl) resultsEl.textContent = results.map(_verifyFormatRow).join('\n');
+        if (r.gameOver) break; // out of lives entirely, no point continuing to the next milestone
+    }
+
+    _setDebugAutoplay(false);
+    window.debugSetSpeed(prevSpeed || 1);
+    window.__combatVerifyReport = results;
+    console.table(results);
+    if (resultsEl) resultsEl.textContent = results.map(_verifyFormatRow).join('\n') + '\n\nFull data in window.__combatVerifyReport (also logged as a table in the browser console).';
+    return results;
+};
 
 // Live Match Stat: opens the same overlay/tabs the Game Over screen uses
 // (match-stats.js is pure UI reading window._matchStats, no gameState gate),
@@ -358,6 +469,15 @@ window.debugSetYuukiBonus = function () {
         <input type="number" id="dbgYuukiBonus" placeholder="Yuuki %" step="1" style="width:80px;">
         <button class="dbg-btn" onclick="window.debugSetYuukiBonus()">Set Yuuki %</button>
       </div>
+    </div>
+
+    <div class="dbg-section">
+      <div class="dbg-h">COMBAT VERIFY (DPS/TTK)</div>
+      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Runs waves 1, 2, 5, 10, 15, 20 back to back through the real wave system, autoplay + 4x speed, no sigils. Reports clear time, lives lost, and damage dealt/received per wave. docs/combat-scaling-rebalance.md Part 2.</div>
+      <div class="dbg-row">
+        <button class="dbg-btn" onclick="runCombatVerification()">Run Verification</button>
+      </div>
+      <pre id="dbgVerifyResults" style="font-size:10px; white-space:pre-wrap; opacity:0.85; max-height:200px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:6px; border-radius:6px; margin:0;"></pre>
     </div>
 
     <div class="dbg-section">
