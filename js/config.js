@@ -37,10 +37,12 @@ let nextLifeMilestone = 500000;
 // (recalculated in _updateWaveSystem, main.js; reset here on a new run).
 // Rescaled to a round 1000 baseline per AanSensei (was 115): every formula
 // below that multiplies player.atk had its own coefficient divided by the
-// same 115/1000 ratio, so real damage output is unchanged by this rescale
-// alone - only removing each formula's separate target-Max-HP percent term
-// (see the same commits) actually changes numbers.
-const PLAYER_BASE_ATK = 1000;
+// same 115/1000 ratio, so that rescale alone didn't change output - only
+// removing each formula's separate target-Max-HP percent term did. The
+// +10% on top of that round 1000 (1100) is a deliberate compensating buff
+// for the overall damage lost by that removal, per AanSensei's own request
+// after reviewing the rescale - a first-pass number, not verified live yet.
+const PLAYER_BASE_ATK = 1100;
 const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75, atk: PLAYER_BASE_ATK }; // must match the cyan dot drawn in render.js, change both or neither
 let playerClones = [];
 let lastAutoFire = 0;
@@ -187,6 +189,23 @@ const initialSpawnInterval = 1494, spawnDecreaseRate = 50, minSpawnInterval = 37
 // damage keeps some relevance against armor without compounding on top of
 // Yuuki/Sigil multipliers, which already grow independently.
 function _atkWaveMult(wave) { return 1 + 0.02 * Math.min(15, Math.max(0, wave - 1)); }
+
+// Per-sigil ATK bonus (per AanSensei): each of the 13 sigils grants a
+// different flat percentage bump to player.atk on top of everything else,
+// weighted toward how offense-focused that sigil's own theme is (Aries/
+// Sagittarius highest, Taurus/Cancer's support-and-defense kits lowest).
+// Additive across every equipped sigil, applied in _sigilAtkMult() below.
+const SIGIL_ATK_BONUS = {
+    aries: 0.08, taurus: 0.02, gemini: 0.05, cancer: 0.02, leo: 0.07,
+    virgo: 0.06, libra: 0.05, scorpio: 0.05, sagittarius: 0.07,
+    capricorn: 0.03, aquarius: 0.04, pisces: 0.03, than: 0.06,
+};
+function _sigilAtkMult() {
+    const sigils = (typeof window !== 'undefined' && window._playerSigils) || [];
+    let bonus = 0;
+    for (const s of sigils) bonus += SIGIL_ATK_BONUS[s.sigilId] || 0;
+    return 1 + bonus;
+}
 
 // Per-species enemy ATK base (E0) and the fixed Max HP calibration (H0)
 // "own Max HP"-category attacks scale against (docs/combat-scaling-rebalance.md

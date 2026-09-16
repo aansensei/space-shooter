@@ -3081,7 +3081,7 @@ function _updateWaveSystem(deltaTime, now) {
         _waveRestTimer = Math.max(0, _waveRestTimer - deltaTime);
         if (_waveRestTimer <= 0) {
             _waveNumber++;
-            player.atk = PLAYER_BASE_ATK * _atkWaveMult(_waveNumber);
+            player.atk = PLAYER_BASE_ATK * _atkWaveMult(_waveNumber) * _sigilAtkMult();
             if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
                 _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.20);
             }
