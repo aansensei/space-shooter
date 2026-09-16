@@ -2213,7 +2213,7 @@ function update(rawDeltaTime) {
             window._blessingLevShieldGiven = true;
             _allyUnits.forEach(s => {
                 const grant = Math.min(0.40 * player.atk, 0.15 * (s.maxHp || 100));
-                s.shield = (s.shield || 0) + grant;
+                _addAllyShield(s, grant);
             });
         } else if (!_levOnField) {
             window._blessingLevShieldGiven = false;
@@ -2239,8 +2239,8 @@ function update(rawDeltaTime) {
                 const current = s._blessingShield || 0;
                 const toAdd = Math.min(cap - current, cap);
                 if (toAdd > 0) {
-                    s.shield = (s.shield || 0) + toAdd;
-                    s._blessingShield = Math.min(cap, current + toAdd);
+                    const actualAdded = _addAllyShield(s, toAdd);
+                    s._blessingShield = Math.min(cap, current + actualAdded);
                 }
             });
         }

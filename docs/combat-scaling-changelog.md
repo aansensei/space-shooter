@@ -77,7 +77,7 @@ Retunes every Sigil's final numbers per the spec's Part 5 table (`docs/combat-sc
 
 **Ordinary enemy shields** now share an aggregate 50% Max HP cap, added directly inside `_addEnemyShield` (the single shared grant helper) rather than at each call site; Goliath's own stricter 30%*Hentry cap (from Part 4) is enforced upstream of that and takes precedence for Goliath specifically.
 
-**Not done**: the general ally-side (Sentinel/Yuusha/spaceship) 30% Max HP aggregate shield cap has no single shared choke point the way `_addEnemyShield` does for hostile enemies - ally shield grants are scattered across several raw `.shield +=` call sites in main.js. Flagging as a known gap rather than guessing at a partial fix.
+**Ally shields** (Sentinel/Yuusha/spaceship) now share an aggregate 30% Max HP cap too, added via a new `_addAllyShield(unit, amount)` helper in `entities/core.js` (mirrors `_addEnemyShield`'s pattern, returns the actually-granted amount). Both Blessing of the Primordial call sites in main.js (the one-time Leviathan-presence grant and the 3s top-up) route through it; the top-up's `_blessingShield` bookkeeping now tracks the clamped return value instead of the requested amount, so it can't drift above what was actually granted.
 
 ## Part 4: dedicated Goliath sustain review
 

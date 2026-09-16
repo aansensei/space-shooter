@@ -504,6 +504,21 @@ function _addEnemyShield(enemy, amount) {
     enemy.shield = (enemy.shield || 0) + amount;
 }
 
+// Aggregate shield cap for friendly units (docs/combat-scaling-rebalance.md
+// Part 3): allies (Sentinel, Yuusha squad, Skill D spaceships) cap total
+// shield at 30% Max HP, mirroring _addEnemyShield's 50% cap above. Returns
+// the amount actually granted, since callers that track their own sub-budget
+// (e.g. Blessing of the Primordial's per-tick shield) need the clamped value.
+function _addAllyShield(unit, amount) {
+    if (!amount || amount <= 0) return 0;
+    const cap = (unit.maxHp || 0) * 0.30;
+    const room = Math.max(0, cap - (unit.shield || 0));
+    const grant = Math.min(amount, room);
+    if (grant <= 0) return 0;
+    unit.shield = (unit.shield || 0) + grant;
+    return grant;
+}
+
 // triggerDemonGift moved to js/entities/misc-enemies.js.
 
 function spawnBossShockwave(x, y, ownerType, dmg) {
