@@ -33,9 +33,12 @@ let nextLifeMilestone = 500000;
 
 // atk: the player's attack-power stat every in-scope friendly damage
 // formula is expressed as a coefficient of (docs/combat-scaling-rebalance.md).
-// Starts at the reference value of 100 and grows via _atkWaveMult() as waves
-// clear (recalculated in _updateWaveSystem, main.js; reset here on a new run).
-const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75, atk: 100 }; // must match the cyan dot drawn in render.js, change both or neither
+// Starts at PLAYER_BASE_ATK and grows via _atkWaveMult() as waves clear
+// (recalculated in _updateWaveSystem, main.js; reset here on a new run).
+// Above the spec's original T=100 conversion anchor by design (+15%), a
+// deliberate buff on top of the conversion/rebalance rather than part of it.
+const PLAYER_BASE_ATK = 115;
+const player = { x: canvas.width / 2, y: canvas.height - 60, width: 40, height: 40, speed: 8.6, hitRadius: 5.75, atk: PLAYER_BASE_ATK }; // must match the cyan dot drawn in render.js, change both or neither
 let playerClones = [];
 let lastAutoFire = 0;
 const autoFireInterval = 135; // 135ms = base 168ms with the +20% fire rate bonus already baked in
