@@ -480,7 +480,15 @@ function update(rawDeltaTime) {
                         // Bypass everything: shields, DR, Iron Body, Absolute Shield
                         const maxHp = e.maxHp || e.hp;
                         const rawDmg = Math.ceil((wave._damage || 10) + maxHp * (wave._percentDamage || 0.99));
-                        e.hp = Math.max(0, e.hp - rawDmg);
+                        // Goliath True Form: this raw hp subtraction skips dealDamage
+                        // entirely, so it also skips dealDamage's own
+                        // _goliathTryUnbrokenWill check - meaning a BTM hit that
+                        // happens to be the lethal one could kill Goliath outright
+                        // without ever giving Unbroken Will a chance to fire. Route
+                        // through the same check here so BTM can't bypass it.
+                        const _goliathSaved = e.type === 'goliath' && e.phase === 'true_form'
+                            && typeof _goliathTryUnbrokenWill === 'function' && _goliathTryUnbrokenWill(e, rawDmg);
+                        if (!_goliathSaved) e.hp = Math.max(0, e.hp - rawDmg);
                         _recordStat('allyDamage', 'Skill S: Back to Motherland', rawDmg);
                         e.shield = 0;
                         e.absoluteShield = false;
