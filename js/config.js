@@ -212,6 +212,13 @@ function _sigilAtkMult() {
     return 1 + bonus;
 }
 
+// Goliath's on-hit weaken: any hit the player takes from Goliath cuts
+// player.atk by 30% for 1.5s. Getting hit again while it's already active
+// just refreshes the 1.5s window, it never stacks the reduction itself.
+function _playerAtkDebuffMult() {
+    return (typeof player !== 'undefined' && player._goliathAtkDebuffEnd && performance.now() < player._goliathAtkDebuffEnd) ? 0.70 : 1.0;
+}
+
 // Per-species enemy ATK base (E0) and the fixed Max HP calibration (H0)
 // "own Max HP"-category attacks scale against (docs/combat-scaling-rebalance.md
 // Part 2). E0 is unrelated to the species' actual spawn HP - it exists so an

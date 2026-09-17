@@ -157,6 +157,13 @@ function playerTakesHit(attacker) {
         return false;
     }
 
+    // Goliath weaken: any of its damage that actually lands cuts player.atk
+    // 30% for 1.5s (see _playerAtkDebuffMult, config.js). Non-stacking:
+    // this just resets the window, never extends or deepens it.
+    if (attacker && attacker.type === 'goliath') {
+        player._goliathAtkDebuffEnd = performance.now() + 1500;
+    }
+
     // ƯU TIÊN 3: Last Stand -> Mất mạng
     loseLife(_classifyAttacker(attacker));
     return true;
@@ -366,6 +373,11 @@ function update(rawDeltaTime) {
     // of these calls specifically.
     const _profChk = [performance.now()];
     _updateSkillReadySfx(currentTime);
+
+    // Recomputed every frame (not just at wave transitions) so Goliath's
+    // on-hit weaken decays smoothly 1.5s after the last hit instead of
+    // only updating on the next wave boundary.
+    player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult();
 
     // Mobile: pin player.y to boundaryY every frame, triệt để fix position
     if (typeof _platform !== 'undefined' && _platform === 'mobile') {

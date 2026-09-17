@@ -1715,7 +1715,10 @@ function dealDamage(enemy, source) {
         enemy._deathGemsExploded = 0;
         enemy.hp = 1;
         enemy._markedForDeath = false;
-        if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y);
+        if (window.AudioMgr) {
+            window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y);
+            window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
+        }
     }
     if (enemy.hp <= 0) enemy._markedForDeath = true;
     // _noHitSfx: caller already plays its own dedicated hit sound for this

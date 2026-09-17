@@ -718,7 +718,7 @@ Separately, **all damage from Phōtokrystos itself** (its homing bullets and its
 
 **Passive: Threshold Ward**
 
-Starts True Form at **40% evade**, decaying linearly down to **30%** over the first **15 seconds**, then holding at 25% for the rest of the fight — evade applies against everything except Skill F, Skill D's center pull-kill, and the Phōtokrystos finale laser, which bypass it entirely via Warding Palm's own return path above.
+Starts True Form at **40% evade**, decaying linearly down to **30%** over the first **15 seconds**, then holding there for the rest of the fight — evade applies against everything except Skill F, Skill D's center pull-kill, and the Phōtokrystos finale laser, which bypass it entirely via Warding Palm's own return path above.
 
 On top of the base evade, crossing each of the **75%, 50%, and 25%** HP milestones (downward) does two things at once: a **one-time** (never re-triggers) **15% of Hentry** shield grant, and a **+10% evade bump for 3.5 seconds** that, unlike the shield, can retrigger any number of times over the fight (healing back above a milestone and dropping through it again re-fires it), though it never stacks past a single +10% layer no matter how many milestones are crossed at once.
 
@@ -729,6 +729,10 @@ Every 1 second, recounts every living player-side unit on the map right now (the
 - **Flat armor:** `180 × (1 + 5% × min(N, 12))` — subtracted after the % DR above, same shared flat-armor pool Tempered Resolve (below) and Walpurgis add into.
 - **Healing/shield effectiveness:** `+2% per ally, capped at +20%` — stacks with every other heal/shield bonus Goliath has.
 - **Shield top-up:** every second, grants a Shield worth `0.25% of Hentry × min(N, 8)`, drawn from the shared shield budget.
+
+**Passive: Weaken on Hit**
+
+Any Goliath damage that actually lands on the player — body attacks, Absolute Verdict, Corrupted Meteor, any Joker copy — cuts their ATK by **30% for 1.5 seconds**. Getting hit again while it's still active just refreshes the window; it never stacks deeper or lasts longer than 1.5 seconds from the most recent hit.
 
 **Passive: Waning Might**
 
