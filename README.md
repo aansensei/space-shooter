@@ -83,9 +83,9 @@ Every friendly damage number below (and every Sigil/Sentinel number elsewhere in
 A stacking debuff inflicted by all friendly attacks that progressively weakens enemies.
 
 - **Application Chance:** Player auto-fire bullets each have a **28% chance** per hit. All other allied sources — Sentinels, Spirits, Skill A orbs, Death Star, Overload Laser, Chain Lightning, Tesla DoT, and all other damage sources — have a **15% chance**.
-- **On Application — Shield Shred:** Instantly destroys **26% of the enemy's current Shield HP** (scales down as the shield depletes — it always shreds 26% of whatever shield HP remains at that moment).
-- **Damage Amplification:** Each stack increases all incoming damage to that enemy by **+16%**. At maximum stacks (4 stacks) the enemy takes **+64% more damage** from all sources.
-- **Stacking:** Caps at **4 stacks**. Applying a new stack fully **refreshes the 3-second duration**. All stacks are lost at once when the timer expires. When an enemy reaches all 4 stacks, for the next **2.5 seconds** every player-side hit still eats Shield/Barriers normally but gains additional bonus true damage on top, **decaying linearly from +40% down to +20%** of the hit's damage over the window. When the window ends, the enemy takes **500 base true damage** and its stacks reset to 0 (a fresh climb back to 4 is required to trigger another window). Goliath specifically also has a **5-second cooldown** between windows, starting only once the current window ends (not overlapping it).
+- **On Application — Shield Shred:** Instantly destroys **20% of the enemy's current Shield HP** (scales down as the shield depletes — it always shreds 20% of whatever shield HP remains at that moment).
+- **Damage Amplification:** Each stack increases all incoming damage to that enemy by **+12%**. At maximum stacks (4 stacks) the enemy takes **+48% more damage** from all sources.
+- **Stacking:** Caps at **4 stacks**. Applying a new stack fully **refreshes the 3-second duration**. All stacks are lost at once when the timer expires. When an enemy reaches all 4 stacks, for the next **2.5 seconds** every player-side hit still eats Shield/Barriers normally but gains additional bonus true damage on top, **decaying linearly from +30% down to +15%** of the hit's damage over the window. When the window ends, the enemy takes **57.5% ATK true damage** and its stacks reset to 0 (a fresh climb back to 4 is required to trigger another window). Goliath specifically also has a **5-second cooldown** between windows, starting only once the current window ends (not overlapping it).
 
 ---
 
@@ -101,12 +101,12 @@ Activates automatically when **any of the following** is true:
 **While active:**
 
 - All friendly damage ×**1.55** (player, sentinels, chain lightning, tesla DoT)
-- Player and Sentinel fire rate ×**1.5**
+- Player and Sentinel fire rate ×**1.2**
 - Spirit bullets (Skill S) move **30%** faster
 - Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to **8** nearby enemies for **50%** of the triggering hit's damage
 - Chain Lightning hits have a **60% chance** to apply **Soul Reaver** for **2 seconds** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **40%**
 - **Soul Devourer (Cắn nuốt linh hồn):** Every **0.35 seconds**, enemies with Soul Reaver take **6.9% ATK** as true damage (bypasses all shields)
-- All active Sentinels gain **+30% Damage Reduction**
+- All active Sentinels gain **+25% Damage Reduction**
 
 ---
 
@@ -168,7 +168,7 @@ Iron Body from the Fuse Protocol protects against all damage sources including P
 
 Sentinels with Iron Body active are individually immune in all damage paths (dealDamage, Perseverance, Last Rites). Tesla DoT and Chain Lightning are excluded from AoE Dampening tracking — they do not consume hit counts.
 
-**Gaia Protection** — Sentinel Max HP grows by wave milestone: **+5%** at Wave 2 · **+10%** at Wave 6 · **+15%** at Wave 10; then **+3% per wave** afterwards until the total bonus reaches **+60% cap**. Current HP scales proportionally with each increase. While **Glory for Justice** is active, every **8 seconds** (reduced to **5 seconds** after Wave 10) each Sentinel generates a **Gaia Barrier** equal to **20% of lost HP + 10% Max HP** — non-stacking (each pulse replaces the previous). Fires immediately upon GfJ activation. The Barrier absorbs **99%** of all incoming damage; the remaining **1%** passes through to the Sentinel body. **True damage bypasses the Gaia Barrier entirely.** Does **not** count as Max HP. Displayed as a green crescent above the Sentinel with a dedicated HP bar.
+**Gaia Protection** — Sentinel Max HP grows by wave milestone: **+5%** at Wave 2 · **+10%** at Wave 6 · **+15%** at Wave 10; then **+3% per wave** afterwards until the total bonus reaches **+60% cap**. Current HP scales proportionally with each increase. While **Glory for Justice** is active, every **8 seconds** (reduced to **5 seconds** after Wave 10) each Sentinel generates a **Gaia Barrier** equal to **20% of lost HP + 12% Max HP** — non-stacking (each pulse replaces the previous). Fires immediately upon GfJ activation. The Barrier absorbs incoming damage up to its own remaining pool (no fixed percentage passes through regardless of size). **True damage bypasses the Gaia Barrier entirely.** Does **not** count as Max HP. Displayed as a green crescent above the Sentinel with a dedicated HP bar.
 
 **On death** — explodes into 10 scattered projectiles (0.23% ATK each, speed 8) and causes a brief screen shake.
 
@@ -685,10 +685,10 @@ On completion, True Form's Max HP is set to `(65000 + min(damagePull, 320000)) �
 
 **Passive: Inevitable**
 
-- **2-second absolute Iron Body** immediately upon successfully transforming into True Form — no exceptions, not even piercing or true damage.
+- **4-second absolute Iron Body** immediately upon successfully transforming into True Form — no exceptions, not even piercing or true damage.
 - **63% base Damage Reduction** at all times (decayed further by Waning Might, see below).
 - **Permanent CC Immunity** and **0.75% of its True-Form-entry Max HP ("Hentry") regeneration per second**, drawn from a shared repeatable heal budget rather than an unbounded tick.
-- When any single hit would exceed **10% of Max HP** (after DR), activates a **2-second protection window**: all further damage during the window is capped at **5% of Max HP per hit** (1.5-second cooldown after the window ends).
+- When any single hit would exceed **8% of Max HP** (after DR), activates a **2-second protection window**: all further damage during the window is capped at **2.5% of Max HP per hit** (0.5-second cooldown after the window ends).
 - Regular %Max HP-scaling damage — including the player's and sentinels' basic auto-fire — is hard-capped at **1.3% of Max HP per hit** (still subject to DR), **+0.3% per stack** of any debuff currently on Goliath — Vulnerability stacks, Soul Reaver, any active slow (including Electromagnetic Field), Venom stacks, Yog-Sothoth's mark, standing inside a Dimensional Rift, Leo's Burn stacks, or standing in a Tesla Coil's aura — capped at **3% of Max HP total**. **Piercing, true damage, and DoT hits are not unbounded either** — they get their own separate, higher per-hit cap: **3.5% of Max HP** (still subject to DR), **+0.3% per debuff stack**, capped at **6% of Max HP total**. This second cap is what governs Tesla/Leo/Aquarius/Soul-Reaver-style DoT ticks specifically, the most continuous of the sustained damage sources. Since Goliath is otherwise CC-immune, these debuff-stack bonuses are effectively the only way sigils can meaningfully punish it beyond raw damage. Neither cap affects Skill F, Skill D, or the Phōtokrystos finale laser, which have their own Warding Palm rule below.
 - **Shield Burst:** tracks *actual HP+shield loss* (not raw incoming damage — true damage that bypasses shield only counts its HP portion) within a rolling 1-second window. The instant that total exceeds **12% of Hentry**, Goliath gains a new **Shield** worth **20% of the damage accumulated in that window, capped at 3% of Hentry**, then immediately consumes up to **10% of Hentry** worth of its *current* Shield and converts **50%** of whatever was consumed into a heal. **3-second cooldown** between triggers; the damage window resets the instant it fires.
 
@@ -700,7 +700,7 @@ For **1 second** after arriving, Goliath gains **+20% damage dealt**, **+10% fli
 
 **Passive: Unbroken Will**
 
-Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **4 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions), is revived to a **full 100% of its Max HP**, and immediately gains a Barrier layer worth **10% of its entry Max HP (Hentry)**. For the following **6 seconds**, starting at the same moment as the 4-second invulnerability (not after it): **+20% effectiveness on all heal/shield it receives** (stacks with everything else), **+10% of Hentry as Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. On top of that, once Unbroken Will has triggered, Goliath permanently keeps an extra **+12% Damage Reduction**, **+60 flat armor**, and **+10% evade** for the rest of the fight — the second phase is meant to be a genuine full second fight, not a weakened continuation. The instant the 4-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave deals **no damage and costs no lives** to anyone; it's a pure release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
+Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **4 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions), is revived to a **full 100% of its Max HP**, and immediately gains a Barrier layer worth **10% of its entry Max HP (Hentry)**. For the following **6 seconds**, starting the instant the 4-second invulnerability ends (not overlapping it): **+20% effectiveness on all heal/shield it receives** (stacks with everything else), **+10% of Hentry as Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. On top of that, once Unbroken Will has triggered, Goliath permanently keeps an extra **+12% Damage Reduction**, **+60 flat armor**, and **+10% evade** for the rest of the fight — the second phase is meant to be a genuine full second fight, not a weakened continuation. The instant the 4-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave deals **no damage and costs no lives** to anyone; it's a pure release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
 
 **Passive: Absolute Verdict**
 
