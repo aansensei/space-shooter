@@ -217,7 +217,7 @@ function spawnRaphael() {
     let hp = Math.ceil(Math.min(4500, 2500 + hpFromTime * 64) * 1.15 * _walpurgisHpMult()); // +15% global HP buff
     enemies.push({
         x: Math.random() * (canvas.width - size * 2) + size, y: -size, size: size,
-        speed: (1 + Math.random() * 2) * 0.367, hp: hp, maxHp: hp,
+        speed: (1 + Math.random() * 2) * 0.32, hp: hp, maxHp: hp, // per AanSensei: nudged down a bit (was 0.367)
         isTargetedByA: false, hitBySkillF: false, laserHit: false, shield: 0,
         type: 'raphael', shootTimer: 0,
         raphaelInvulnerable: true, raphaelCustosHits: 0, raphaelShieldReceived: false
