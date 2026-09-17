@@ -801,9 +801,11 @@ function updateGoliath(enemy, deltaTime) {
         // tốc độ/maxRadius), không gây sát thương/trừ mạng người chơi, nhưng
         // CÓ gây 50 + 20% MaxHp cho Sentinels (xem wave._isUnbrokenWave ở
         // main.js). Cùng lúc này, mở cửa sổ buff 6s hậu-cứu-mạng (KHÔNG chồng
-        // lấn với 4s bất tử vừa qua) — +20% MaxHp cấp ngay tại đây, +40% hiệu
-        // quả hồi HP/khiên và +15% tốc độ bay đọc trực tiếp từ
-        // _unbrokenWillBuffEnd ở nơi khác.
+        // lấn với 4s bất tử vừa qua) — +10% Hentry MaxHp cấp ngay tại đây,
+        // +20% hiệu quả hồi HP/khiên và +15% tốc độ bay đọc trực tiếp từ
+        // _unbrokenWillBuffEnd ở nơi khác. Riêng +12% DR, +60 flat armor và
+        // +10% evade (xem entities/core.js) là vĩnh viễn, không nằm trong
+        // cửa sổ 6s này.
         if (enemy._unbrokenWillInvulnEnd && now >= enemy._unbrokenWillInvulnEnd && !enemy._unbrokenWillWaveFired) {
             enemy._unbrokenWillWaveFired = true;
             enemy._unbrokenWillBuffEnd = now + 6000;

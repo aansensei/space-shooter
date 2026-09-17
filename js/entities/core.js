@@ -811,6 +811,9 @@ function dealDamage(enemy, source) {
             const _gDecayT = Math.min(1, (performance.now() - (enemy._trueFormEnteredAt || performance.now())) / 15000);
             _evade = 0.40 - _gDecayT * 0.15;
             if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.10;
+            // Per AanSensei: a further permanent +10% evade once Unbroken
+            // Will has actually triggered, on top of everything else above.
+            if (enemy._unbrokenWillUsed) _evade += 0.10;
         }
         // Against Chaos (Uriel): own formula entirely replaces the tier
         // table above, scaling with the current living horde size and
@@ -1355,6 +1358,11 @@ function dealDamage(enemy, source) {
         // already applied above.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _goliathIsCasting(enemy)) {
             _flatArmor += 100;
+        }
+        // Per AanSensei: a small permanent flat-armor bump on top of the
+        // +12% DR above, once Unbroken Will has actually triggered.
+        if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy._unbrokenWillUsed) {
+            _flatArmor += 60;
         }
 
         const _armorLoss = Math.min(_flatArmor, 0.60 * _postDR);
