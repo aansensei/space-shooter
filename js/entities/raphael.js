@@ -156,10 +156,19 @@ function updateRaphaelWisdomZones(deltaTime) {
         z.life -= deltaTime;
         if (z.life <= 0) { raphaelWisdomZones.splice(i, 1); continue; }
 
-        for (const s of sentinels) {
-            if (s.hp <= 0) continue;
-            if (Math.hypot(s.x - z.x, s.y - z.y) <= z.radius) {
-                dealDamage(s, { damage: z.atkPerSec * (deltaTime / 1000), isTrueDamage: true, _noHitSfx: true, _statSrc: 'Wisdom Orb zone' });
+        // Fixed 100ms tick instead of a per-frame dealDamage call: dealDamage
+        // ceils its damage input, so a small fractional per-frame amount
+        // (e.g. 0.375 at 60fps) rounded up to a whole point every single
+        // frame, making the zone deal several times more damage per second
+        // on a higher refresh-rate display than on a 60fps one.
+        z._tickTimer = (z._tickTimer || 0) + deltaTime;
+        while (z._tickTimer >= 100) {
+            z._tickTimer -= 100;
+            for (const s of sentinels) {
+                if (s.hp <= 0) continue;
+                if (Math.hypot(s.x - z.x, s.y - z.y) <= z.radius) {
+                    dealDamage(s, { damage: z.atkPerSec * 0.1, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Wisdom Orb zone' });
+                }
             }
         }
         if (Math.hypot(player.x - z.x, player.y - z.y) <= z.radius) _playerInAnyZone = true;

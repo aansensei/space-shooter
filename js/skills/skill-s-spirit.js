@@ -313,7 +313,6 @@ function updatePhotokrystos(spirit, deltaTime) {
             spirit._btmTickTimer += deltaTime;
             if (spirit._btmTickTimer >= 100) {
                 spirit._btmTickTimer = 0;
-                const dmgMult = gloryForJusticeActive ? 1.55 : 1;
                 spirit._btmLightnings = []; // reset each tick
                 // Hit ALL enemies on screen
                 for (const e of enemies) {
@@ -324,7 +323,11 @@ function updatePhotokrystos(spirit, deltaTime) {
                         continue;
                     }
                     dealDamage(e, {
-                        damage: 20 * dmgMult, percentDamage: 0.35,
+                        // Glory's damage multiplier is not applied here -
+                        // dealDamage already applies it once for every
+                        // in-scope source, and this used to double it while
+                        // Glory was active.
+                        damage: 20, percentDamage: 0.35,
                         applyVuln: true, vulnChance: 0.15, isTrueDamage: true,
                         isPhoto: true, _statSrc: 'Skill S: Back to Motherland'
                     });
@@ -409,7 +412,9 @@ function updatePhotokrystos(spirit, deltaTime) {
         if (targets.length > 0) {
             // Duration starts from first shot
             if (!spirit._combatStartTime) spirit._combatStartTime = now;
-            const dmgMult = gloryForJusticeActive ? 1.55 : 1;
+            // Glory's damage multiplier is not applied here - dealDamage
+            // already applies it once for every in-scope source, and this
+            // used to double it while Glory was active.
             // -20% dmg penalty for 3s after DNT laser
             const dntMult = (spirit._dntPenaltyUntil && now < spirit._dntPenaltyUntil) ? 0.8 : 1;
             const speedMult = (gloryForJusticeActive ? 1.30 : 1) * 1.3;
@@ -417,7 +422,7 @@ function updatePhotokrystos(spirit, deltaTime) {
             for (let bi = 0; bi < 3; bi++) {
                 spiritBullets.push({
                     x: spirit.x, y: spirit.y,
-                    damage: 0.144 * player.atk * dmgMult * dntMult,
+                    damage: 0.144 * player.atk * dntMult,
                     size: 8, lifetime: 2500, target: targets[bi], speedMultiplier: speedMult,
                     isSpirit: true, isPhoto: true, destroysEnemyBullets: true,
                     applyVuln: true, vulnChance: 0.15, _statSrc: 'Skill S: Photokrystos',
@@ -580,8 +585,11 @@ function updatePhotoBrangs(deltaTime) {
                         _sp.size = 2.5; _sp.color = '#e6ffeb';
                         particles.push(_sp);
                     }
+                    // Glory's damage multiplier is not applied here -
+                    // dealDamage already applies it once for every in-scope
+                    // source, and this used to double it while Glory was active.
                     const brangSrc = {
-                        damage: Math.ceil((b.damage + (tgt.maxHp - tgt.hp) * 0.05) * (gloryForJusticeActive ? 1.55 : 1)),
+                        damage: Math.ceil(b.damage + (tgt.maxHp - tgt.hp) * 0.05),
                         percentDamage: b.percentDamage,
                         applyVuln: true, vulnChance: 0.15,
                         isTrueDamage: true, _barrierPiercing: true,
@@ -812,7 +820,7 @@ function _fireSpinnerBlades(s, now) {
     // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
     const _twinBlades = _hasBuff('song_luoi');
     // docs/combat-scaling-rebalance.md Part 5
-    const _bladeDmg = _twinBlades ? 0.4025 * player.atk * 1.20 : 0.4025 * player.atk;
+    const _bladeDmg = _twinBlades ? 0.40 * player.atk : 0.35 * player.atk;
     for (let d = 0; d < 4; d++) {
         const a = (Math.PI / 2) * d;
         bladeArcProjectiles.push({
@@ -938,7 +946,7 @@ function updateSpiritSpinners(deltaTime) {
             if (Math.hypot(enemy.x - s.x, enemy.y - s.y) >= enemyRadius + s.size) continue;
             if (checkMarchosiasArcBarrier(enemy, s, s.x, s.y)) continue;
             if (now >= (s._bodyHitCooldowns.get(enemy) || 0)) {
-                s._bodyHitCooldowns.set(enemy, now + 1000);
+                s._bodyHitCooldowns.set(enemy, now + 900);
                 // Ricochet Hunter (Sagittarius): damage escalates +15% per wall
                 // bounce since the last hit, up to +45% at 3 stacks, then resets
                 // the instant it actually lands one - rewards a clean run of
@@ -946,8 +954,8 @@ function updateSpiritSpinners(deltaTime) {
                 const _songLuoiMult = _hasBuff('song_luoi') ? 1 + 0.15 * (s._songLuoiStacks || 0) : 1;
                 const _drMult = _spinnerDrMult(enemy, now);
                 // Small target-Max-HP term kept deliberately (per AanSensei):
-                // a rare once-per-second Finale hit, not a spammy source.
-                dealDamage(enemy, { damage: Math.round(0.23 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.02 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
+                // a rare once-per-0.9s Finale hit, not a spammy source.
+                dealDamage(enemy, { damage: Math.round(0.20 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.015 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
                 if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
                 // On-hit: a sharp crack - jagged magenta shards plus a quick
                 // white flash at the contact point, selling the heavy true damage.

@@ -327,11 +327,13 @@ function _updateSkillDShipFusion() {
 function updateSkillDSpaceships(deltaTime) {
     _updateSkillDShipFusion();
     const dt = deltaTime / 16.67;
-    const _gfjDmg = gloryForJusticeActive ? 1.55 : 1;
     const _gfjFireRate = gloryForJusticeActive ? 1.2 : 1;
     for (let i = window.skillDSpaceships.length - 1; i >= 0; i--) {
         const ship = window.skillDSpaceships[i];
-        const mult = SKILLD_SHIP_TIER_MULT[ship.tier || 1] * _gfjDmg;
+        // Glory's damage multiplier is not applied here - dealDamage already
+        // applies it once for every in-scope source, and this used to double
+        // it (~2.40x instead of the documented 1.55x) while Glory was active.
+        const mult = SKILLD_SHIP_TIER_MULT[ship.tier || 1];
 
         if (!ship.target || !enemies.includes(ship.target) || ship.target.hp <= 0 || ship.target._stealthed) {
             // Old target died, or went stealthed (Uriel entering

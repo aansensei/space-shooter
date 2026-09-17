@@ -921,8 +921,12 @@ function dealDamage(enemy, source) {
     // Engineer, Death Mark, Divine Fate, Vulnerability stacks, Skill D
     // evade overflow, Dimensional Rift) re-applies to the Yog-Sothoth marked
     // explosion - its accumulated damage already had each of these applied
-    // once, when the contributing hit that fed it actually landed.
-    if (!source._yogExplosion) {
+    // once, when the contributing hit that fed it actually landed. It also
+    // never applies when the target is a Sentinel (isSentinel) - every one
+    // of these is a bonus for the player's own side's outgoing damage, and
+    // without this guard an enemy attacking a Sentinel while e.g. Glory or
+    // Yuuki was active picked up the same bonuses meant for allies.
+    if (!source._yogExplosion && !isSentinel) {
     if (gloryForJusticeActive) {
         // docs/combat-scaling-rebalance.md Part 3: one shared x1.55 for
         // in-scope outgoing damage, replacing the old core x1.70.
@@ -1267,10 +1271,10 @@ function dealDamage(enemy, source) {
     // Vanguard Network (Liên kết Vanguard), 5+ sentinels
     if (isSentinel && sentinels.length >= 5 && (source.damage > 0 || source.percentDamage > 0)) {
         const effHp = enemy.maxHp || enemy.hp;
+        // Glory/Parry/Vulnerability are outgoing buffs for the player's own
+        // side's damage - this is an enemy attack landing on a Sentinel, so
+        // none of them apply here (matches the main isSentinel guard above).
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
-        if (gloryForJusticeActive) rawDmg = Math.ceil(rawDmg * 1.55);
-        if (accurateParryActive && performance.now() < accurateParryEndTime) rawDmg = Math.ceil(rawDmg * 1.25);
-        if (enemy.vulnStacks) rawDmg = Math.ceil(rawDmg * (1 + enemy.vulnStacks * 0.12));
         rawDmg = Math.max(0, rawDmg);
         // BUG A fix: apply vanguard DR (each source 10%, max 30%)
         const _vIsTrueDmg = source.isTrueDamage || inTrueDmgWindow;
