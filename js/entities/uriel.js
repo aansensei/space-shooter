@@ -207,6 +207,9 @@ function _urielUpdateSword(enemy) {
 function _urielLaunchSword(enemy) {
     const hist = player._posHistory || [];
     const now = performance.now();
+    // Per AanSensei: at least 0.8s between launches, timed from this actual
+    // fire (not from when the sword started charging or was queued).
+    enemy._judgmentCooldownEnd = now + 800;
     let aim = { x: player.x, y: player.y };
     for (const p of hist) { if (now - p.t >= 100) aim = p; }
     const ang = Math.atan2(aim.y - enemy.y, aim.x - enemy.x);
@@ -322,7 +325,8 @@ function updateUriel(enemy, deltaTime) {
 
     _urielUpdateSword(enemy);
 
-    if (enemy._urielSwordQueued > 0 && !enemy._swordCharging && !enemy._swordFiring && !enemy._stealthed) {
+    if (enemy._urielSwordQueued > 0 && !enemy._swordCharging && !enemy._swordFiring && !enemy._stealthed
+        && performance.now() >= (enemy._judgmentCooldownEnd || 0)) {
         enemy._urielSwordQueued--;
         _urielStartSword(enemy);
     }

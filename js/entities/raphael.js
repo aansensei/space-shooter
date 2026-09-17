@@ -14,7 +14,13 @@ _raphaelWisdomOrbImg.src = 'assets/images/game/enemies/raphael-wisdom-orb.png';
 // the shield still fully "teaches" the Wisdom King.
 function _raphaelRegisterWisdomHit(enemy) {
     enemy._wisdomHitCount = (enemy._wisdomHitCount || 0) + 1;
-    if (enemy._wisdomHitCount % 80 === 0) _raphaelSpawnWisdomOrb(enemy);
+    // Per AanSensei: at least 1s between launches, timed from the previous
+    // orb's actual launch (not its gather start) - a burst of near-simultaneous
+    // hits (piercing AoE skills especially) could otherwise cross a multiple
+    // of 80 more than once before the first orb even leaves gather.
+    if (enemy._wisdomHitCount % 80 === 0 && performance.now() - (enemy._wisdomOrbLastLaunchAt || -Infinity) >= 1000) {
+        _raphaelSpawnWisdomOrb(enemy);
+    }
 }
 
 // Picks the straight line out of Raphael that pierces the most targets
@@ -87,6 +93,7 @@ function updateRaphaelWisdomOrbs(deltaTime) {
             if (o.gatherTimer <= 0) {
                 o.phase = 'launch';
                 o._launchAt = performance.now(); // drives the launch-flash render burst
+                o.enemy._wisdomOrbLastLaunchAt = o._launchAt;
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('raphael-wisdom-launch', o.x, o.y);
             }
             continue;
