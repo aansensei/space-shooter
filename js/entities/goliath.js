@@ -158,7 +158,7 @@ function _goliathHealBoost(enemy, amount) {
 // suy yếu tăng mạnh hẳn (xem _goliathWaningMult) so với 2 tầng đầu.
 function _goliathWaningStacks(enemy) {
     if (!enemy._trueFormEnteredAt) return 0;
-    return Math.floor((performance.now() - enemy._trueFormEnteredAt) / 35000);
+    return Math.floor((performance.now() - enemy._trueFormEnteredAt) / 45000);
 }
 // The first 2 stacks decay at the plain per-stack rate (unchanged fight
 // feel early on); every stack past that squares the rate instead, so a
@@ -288,10 +288,10 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
     enemy._unbrokenWillInvulnEnd = now + 4000;
     // Per AanSensei: Unbroken Will now revives Goliath to a full heal
-    // (100% Max HP) plus a 10% Hentry shield, making the second phase a
+    // (100% Max HP) plus a 15% Hentry shield, making the second phase a
     // genuine full second fight rather than a weakened continuation.
     enemy.hp = enemy.maxHp;
-    _goliathGrantShield(enemy, 0.10 * enemy._hentry);
+    _goliathGrantShield(enemy, 0.15 * enemy._hentry);
     addExplosion(enemy.x, enemy.y, enemy.size * 1.1, '#f97316');
     createParticles(enemy.x, enemy.y, 40, '#fdba74', 3, 11);
     _setShake(16, 400);
@@ -775,14 +775,14 @@ function updateGoliath(enemy, deltaTime) {
         _goliathUpdateJoker(enemy, deltaTime, now);
 
         // Threshold Ward (docs/combat-scaling-rebalance.md Part 4): 75/50/25%
-        // HP milestones each grant a one-time 10% Hentry ordinary shield
+        // HP milestones each grant a one-time 15% Hentry ordinary shield
         // instead of feeding a pool that silently refills HP every frame it
         // stays covered.
         const hpPct = enemy.hp / enemy.maxHp;
         [75, 50, 25].forEach(mile => {
             if (!enemy._thresholdMilestonesHit[mile] && hpPct * 100 <= mile) {
                 enemy._thresholdMilestonesHit[mile] = true;
-                _goliathGrantShield(enemy, _goliathHealBoost(enemy, 0.10 * enemy._hentry));
+                _goliathGrantShield(enemy, _goliathHealBoost(enemy, 0.15 * enemy._hentry));
             }
         });
         // Evade (NEW): +10% 3.5s mỗi lần HP tụt XUYÊN QUA 75/50/25% — dùng HP

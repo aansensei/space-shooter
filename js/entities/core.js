@@ -809,7 +809,7 @@ function dealDamage(enemy, source) {
         // không bao giờ chạy tới khối evade này.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
             const _gDecayT = Math.min(1, (performance.now() - (enemy._trueFormEnteredAt || performance.now())) / 15000);
-            _evade = 0.40 - _gDecayT * 0.15;
+            _evade = 0.40 - _gDecayT * 0.10;
             if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.10;
             // Per AanSensei: a further permanent +10% evade once Unbroken
             // Will has actually triggered, on top of everything else above.
@@ -1367,7 +1367,7 @@ function dealDamage(enemy, source) {
         // Per AanSensei: a permanent flat-armor bump on top of the +12% DR
         // above, once Unbroken Will has actually triggered.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy._unbrokenWillUsed) {
-            _flatArmor += 200;
+            _flatArmor += 250;
         }
 
         const _armorLoss = Math.min(_flatArmor, 0.60 * _postDR);
@@ -1735,7 +1735,7 @@ function dealDamage(enemy, source) {
     // Shield Burst (docs/combat-scaling-rebalance.md Part 4): rolling 1s
     // window of actual HP+shield loss (not raw incoming damage), >12%
     // Hentry triggers a shield grant of 20% of that window's loss (capped
-    // at 3% Hentry) plus a heal that consumes up to 10% Hentry of current
+    // at 8% Hentry) plus a heal that consumes up to 10% Hentry of current
     // shield at 50% efficiency - both drawn from their shared repeatable
     // budgets. 3s cooldown between triggers.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
@@ -1749,7 +1749,7 @@ function dealDamage(enemy, source) {
             enemy._burstWindowDmg = (enemy._burstWindowDmg || 0) + _burstLoss;
             if (enemy._burstWindowDmg > enemy._hentry * 0.12 && !(enemy._burstCooldownEnd && _gNow3 < enemy._burstCooldownEnd)) {
                 enemy._burstCooldownEnd = _gNow3 + 3000;
-                const _shieldReq = _goliathHealBoost(enemy, Math.min(enemy._burstWindowDmg * 0.20, enemy._hentry * 0.03));
+                const _shieldReq = _goliathHealBoost(enemy, Math.min(enemy._burstWindowDmg * 0.20, enemy._hentry * 0.08));
                 _goliathGrantShield(enemy, _goliathDrawBudget(enemy, 'shield', _shieldReq));
                 const _shieldConsumed = Math.min(enemy.shield || 0, enemy._hentry * 0.10);
                 enemy.shield -= _shieldConsumed;
