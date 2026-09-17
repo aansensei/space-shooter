@@ -700,7 +700,7 @@ For **1 second** after arriving, Goliath gains **+20% damage dealt**, **+10% fli
 
 **Passive: Unbroken Will**
 
-Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **4 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions), is revived to a **full 100% of its Max HP**, and immediately gains a Barrier layer worth **10% of its entry Max HP (Hentry)**. For the following **6 seconds**, starting the instant the 4-second invulnerability ends (not overlapping it): **+20% effectiveness on all heal/shield it receives** (stacks with everything else), **+10% of Hentry as Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. On top of that, once Unbroken Will has triggered, Goliath permanently keeps an extra **+12% Damage Reduction**, **+60 flat armor**, and **+10% evade** for the rest of the fight — the second phase is meant to be a genuine full second fight, not a weakened continuation. The instant the 4-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave deals **no damage and costs no lives** to anyone; it's a pure release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
+Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **4 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions), is revived to a **full 100% of its Max HP**, and immediately gains a Barrier layer worth **10% of its entry Max HP (Hentry)**. For the following **6 seconds**, starting the instant the 4-second invulnerability ends (not overlapping it): **+20% effectiveness on all heal/shield it receives** (stacks with everything else), **+10% of Hentry as Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. On top of that, once Unbroken Will has triggered, Goliath permanently keeps an extra **+12% Damage Reduction**, **+200 flat armor**, and **+10% evade** for the rest of the fight — the second phase is meant to be a genuine full second fight, not a weakened continuation. The instant the 4-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave deals **no damage and costs no lives** to anyone; it's a pure release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
 
 **Passive: Absolute Verdict**
 
@@ -726,7 +726,7 @@ On top of the base evade, crossing each of the **75%, 50%, and 25%** HP mileston
 
 Every 1 second, recounts every living player-side unit on the map right now (the player always counts as 1, plus every real Sentinel, plus the Remembrance Spirit if summoned — Yuusha Party squad members deliberately don't count, since their attacks already eat the heavier of the two flat-armor brackets in this section) and refreshes 3 defensive stats off that count (N), rather than compounding tick over tick:
 
-- **Flat armor:** `130 × (1 + 5% × min(N, 12))` — subtracted after the % DR above, same shared flat-armor pool Tempered Resolve (below) and Walpurgis add into.
+- **Flat armor:** `180 × (1 + 5% × min(N, 12))` — subtracted after the % DR above, same shared flat-armor pool Tempered Resolve (below) and Walpurgis add into.
 - **Healing/shield effectiveness:** `+2% per ally, capped at +20%` — stacks with every other heal/shield bonus Goliath has.
 - **Shield top-up:** every second, grants a Shield worth `0.25% of Hentry × min(N, 8)`, drawn from the shared shield budget.
 
@@ -736,7 +736,7 @@ Every **35 seconds** spent in True Form, Goliath grows weaker across 3 axes at o
 
 **Passive: Casting Restriction / Tempered Resolve**
 
-While channeling any skill — its own Absolute Verdict, or any Joker-copied ability below — Goliath is **35% slower**, cannot use Fracture Step, and gains **+10% Damage Reduction** plus a separate **+100 flat armor** (Tempered Resolve, on top of Unified Front's own flat armor below) for the duration. Separately, a **Cast-end recovery** triggers the instant a cast actually ends (not when it begins): a heal worth **3% of Hentry**, drawn from the shared heal budget, on its own **4-second cooldown** shared across every cast.
+While channeling any skill — its own Absolute Verdict, or any Joker-copied ability below — Goliath is **35% slower**, cannot use Fracture Step, and gains **+10% Damage Reduction** plus a separate **+300 flat armor** (Tempered Resolve, on top of Unified Front's own flat armor below) for the duration. Separately, a **Cast-end recovery** triggers the instant a cast actually ends (not when it begins): a heal worth **3% of Hentry**, drawn from the shared heal budget, on its own **4-second cooldown** shared across every cast.
 
 **Skill: Joker System**
 

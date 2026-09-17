@@ -1353,20 +1353,21 @@ function dealDamage(enemy, source) {
         // off the current ally count, same base and rate against both
         // normal and %MaxHP-scaling hits now.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-            _flatArmor += 130 * (source.percentDamage > 0
+            _flatArmor += 180 * (source.percentDamage > 0
                 ? (enemy._unifiedFrontScalingDRMult || 1)
                 : (enemy._unifiedFrontDRMult || 1));
         }
         // Tempered Resolve (Goliath True Form): flat armor while channeling
         // any skill (its own or a Joker copy's), on top of the +10% DR
-        // already applied above.
+        // already applied above. Bigger number than the other two sources
+        // since it's gone the instant the cast ends, not a standing bonus.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _goliathIsCasting(enemy)) {
-            _flatArmor += 100;
+            _flatArmor += 300;
         }
-        // Per AanSensei: a small permanent flat-armor bump on top of the
-        // +12% DR above, once Unbroken Will has actually triggered.
+        // Per AanSensei: a permanent flat-armor bump on top of the +12% DR
+        // above, once Unbroken Will has actually triggered.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy._unbrokenWillUsed) {
-            _flatArmor += 60;
+            _flatArmor += 200;
         }
 
         const _armorLoss = Math.min(_flatArmor, 0.60 * _postDR);
