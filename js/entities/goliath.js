@@ -262,12 +262,13 @@ function _goliathApplySilence(durMs) {
 // Unbroken Will (1 lần duy nhất/con): đòn lẽ ra đã kết liễu Goliath thì thay
 // vào đó — bất tử 4s (tái dùng đúng cổng Iron Body tuyệt đối của
 // _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
-// hồi đầy HP, và +1 lớp Shield = 20% MaxHP ngay lập tức. Sau khi 4s bất tử đã hết hẳn (KHÔNG
-// chồng lấn), mở ra cửa sổ 6s tiếp theo: +40% hiệu quả hồi HP/khiên (cộng dồn
-// qua _goliathHealBoost), +20% MaxHP (kèm HP hiện tại cộng thẳng phần đó, tự
-// rút lại khi hết hạn — xem updateGoliath), +15% tốc độ bay — cửa sổ này được
-// mở đúng lúc bắn sóng giải phóng, xem entities.js updateGoliath. Trả về true
-// nếu đã kích hoạt (đòn này KHÔNG trừ HP thật) để nơi gọi bỏ qua việc trừ HP.
+// hồi đầy 100% Max HP, và +1 lớp Shield = 10% Hentry ngay lập tức. Sau khi 4s
+// bất tử đã hết hẳn (KHÔNG chồng lấn), mở ra cửa sổ 6s tiếp theo: +40% hiệu
+// quả hồi HP/khiên (cộng dồn qua _goliathHealBoost), +20% MaxHP (kèm HP hiện
+// tại cộng thẳng phần đó, tự rút lại khi hết hạn — xem updateGoliath), +15%
+// tốc độ bay — cửa sổ này được mở đúng lúc bắn sóng giải phóng, xem
+// entities.js updateGoliath. Trả về true nếu đã kích hoạt (đòn này KHÔNG trừ
+// HP thật) để nơi gọi bỏ qua việc trừ HP.
 function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') return false;
     if (enemy._unbrokenWillUsed) return false;
