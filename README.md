@@ -38,9 +38,9 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 ## General Combat Rules
 
-**Damage Reduction (DR)** is a percentage of incoming damage that is negated before it is applied. All DR sources stack additively and are hard-capped at **99%** — nothing is ever completely immune to damage through DR alone.
+**Damage Reduction (DR)** is a percentage of incoming damage that is negated before it is applied. All DR sources stack additively and are capped at **85%** for sustained enemy defense (**65%** for friendly summons) — two timed exceptions (Veilshroud's own 3s Phantom and its Goliath Joker copy, Leviathan's 1s post-shield-break grace) still reach 99%.
 
-**Shields** are an HP buffer that absorbs incoming damage before the body's HP is touched. Shields can be stacked from multiple sources. Destroying a shield does not reduce the target's Max HP.
+**Shields** are an HP buffer that absorbs incoming damage before the body's HP is touched. Shields can be stacked from multiple sources, but ordinary shields share an aggregate cap: **50% Max HP** for enemies, **30% Max HP** for allies (Goliath's own is stricter still, see its own passives below). Destroying a shield does not reduce the target's Max HP.
 
 **Percentage damage** is calculated against the target's raw **Max HP** alone, never its current Shield — a big shield doesn't make percentage-based hits land harder. It still hits the shield first before reaching body HP, same as all other damage.
 
@@ -54,7 +54,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 | Abnormal | 3% → 5% |
 | Elite | 5% → 10% |
 | Dominator | 10% → 15% |
-| Digiform (Goliath) | 35% → 25% over 15s post-transform, +5% (3s, non-stacking) per HP milestone crossed — see its own Evasion passive below, not this generic system |
+| Digiform (Goliath) | 40% → 25% over 15s post-transform, +10% (3.5s, non-stacking) per HP milestone crossed — see its own Evasion passive below, not this generic system |
 
 **Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Death Star, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
@@ -66,11 +66,13 @@ When **Glory for Justice** is active, all friendly damage is multiplied by **1.5
 
 ## Player Stats & Attacks
 
-**Auto-Fire** — Fires 5 bullets in a 45-degree spread every **135ms** (+20% vs base). Each bullet deals **75 base + 0.9% of target's Max HP**. Bullet speed increased +20%. Each bullet independently rolls a **28% chance** to apply Vulnerability (Trọng Thương).
+Every friendly damage number below (and every Sigil/Sentinel number elsewhere in this doc) is expressed as a percentage of the player's own **ATK** stat, not a flat number — that's what stays constant across rebalances, not the raw damage. ATK starts at a base value and grows two ways: **+3%/wave up to Wave 20** (plateaus at +57%), and a flat bonus per equipped Sigil (each of the 13 grants a different amount, roughly 2-12%, weighted toward how offense-focused its kit is).
 
-**Charged Shot** — Hold Space to charge for up to 1 second, then release. Damage scales up to **10×**, capping at **7% of target's Max HP** at full charge.
+**Auto-Fire** — Fires 5 bullets in a 45-degree spread every **135ms** (+20% vs base). Each bullet deals **15% ATK**. Bullet speed increased +20%. Each bullet independently rolls a **28% chance** to apply Vulnerability (Trọng Thương).
 
-**Overload Laser** — Hold Space for a full **3 seconds** without releasing. Fires a continuous beam for **12 seconds** (9s cooldown after). Deals **350 base + 23% of target's Max HP** per tick every 155ms. Also pulls nearby enemies toward the beam.
+**Charged Shot** — Hold Space to charge for up to 1 second, then release. Each charge-unit deals **8% ATK + 0.6% of target's Max HP**, scaling up to **10×** (80% ATK + 6% Max HP) at full charge.
+
+**Overload Laser** — Hold Space for a full **3 seconds** without releasing. Fires a continuous beam for **12 seconds** (9s cooldown after). Deals **40.25% ATK** per tick every 155ms (Mirror Laser sigil: +20%). Also pulls nearby enemies toward the beam.
 
 ---
 
@@ -103,7 +105,7 @@ Activates automatically when **any of the following** is true:
 - Spirit bullets (Skill S) move **30%** faster
 - Attacks trigger **Chain Lightning** (150ms cooldown) that arcs to up to **8** nearby enemies for **50%** of the triggering hit's damage
 - Chain Lightning hits have a **60% chance** to apply **Soul Reaver** for **2 seconds** — a debuff (marked by a crossed-swords icon) that reduces all healing and shielding the target receives by **40%**
-- **Soul Devourer (Cắn nuốt linh hồn):** Every **0.35 seconds**, enemies with Soul Reaver take **60 base + 5.5% Max HP** as true damage (bypasses all shields)
+- **Soul Devourer (Cắn nuốt linh hồn):** Every **0.35 seconds**, enemies with Soul Reaver take **6.9% ATK** as true damage (bypasses all shields)
 - All active Sentinels gain **+30% Damage Reduction**
 
 ---
@@ -118,7 +120,7 @@ Each enemy kill has a **30% chance** to grant an extra kill count — meaning a 
 
 - Loses **1 HP** every time it fires (recoil).
 - Takes damage equal to the HP of any enemy bullet that hits it.
-- Every **4th shot** is a Special Shot: homing, deals **50 base + 3% Max HP**, +12% speed, and **heals the firing Sentinel for 2 HP** on hit.
+- Every **4th shot** is a Special Shot: homing, deals **5.75% ATK**, +12% speed, and **heals the firing Sentinel for 2 HP** on hit.
 
 **Herd Mentality** — bonuses scale with how many Sentinels are alive:
 
@@ -168,7 +170,7 @@ Sentinels with Iron Body active are individually immune in all damage paths (dea
 
 **Gaia Protection** — Sentinel Max HP grows by wave milestone: **+5%** at Wave 2 · **+10%** at Wave 6 · **+15%** at Wave 10; then **+3% per wave** afterwards until the total bonus reaches **+60% cap**. Current HP scales proportionally with each increase. While **Glory for Justice** is active, every **8 seconds** (reduced to **5 seconds** after Wave 10) each Sentinel generates a **Gaia Barrier** equal to **20% of lost HP + 10% Max HP** — non-stacking (each pulse replaces the previous). Fires immediately upon GfJ activation. The Barrier absorbs **99%** of all incoming damage; the remaining **1%** passes through to the Sentinel body. **True damage bypasses the Gaia Barrier entirely.** Does **not** count as Max HP. Displayed as a green crescent above the Sentinel with a dedicated HP bar.
 
-**On death** — explodes into 10 scattered projectiles (2 base + 2% target Max HP, speed 8) and causes a brief screen shake.
+**On death** — explodes into 10 scattered projectiles (0.23% ATK each, speed 8) and causes a brief screen shake.
 
 ---
 
@@ -197,6 +199,7 @@ A passive that builds momentum as the run progresses, rewarding survival deep in
 
 - **Trigger:** Starting at **Wave 8**, and every **2 waves** thereafter (Wave 8, 10, 12, …), all allied units permanently gain **+20% damage output**.
 - **Cap:** Stacks additively until the total bonus reaches **+300%** (15 triggers, reached at Wave 36), after which it stays fixed.
+- **Bonus target-Max-HP damage:** On its own separate schedule (every wave from Wave 6 through Wave 20), each tier also adds **+0.35% of the target's own Max HP** as flat bonus damage, maxing out at **+5.25% target Max HP** by Wave 20 — this part reaches its cap much earlier than the damage-multiplier bonus above, which keeps growing on its own pace out to Wave 36.
 - **Scope:** Applies to all player and sentinel damage — auto-fire, charged shot, skills, spirits, chain lightning, tesla DoT, and all other sources processed through `dealDamage`.
 - **Display:** Once active, shown in the HUD as **⚔ Yuuki +X%**.
 
@@ -232,31 +235,31 @@ While active, press **← or →** to teleport. The teleport range increases the
 
 **Cooldown:** 6s
 
-Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **200 base + 20% Max HP** on impact, plus an additional **100 base + 15% of the target's lost HP** as true damage, then shatters into **16 scattered projectiles** (5 base + 1.5% Max HP each) that fly outward in all directions.
+Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in on the nearest enemy and deals **23% ATK + 2% Max HP** on impact (27.6% ATK + 2% Max HP for the split-orb path, e.g. Libra's Astral Pierce below), plus an additional **11.5% ATK + 15% of the target's lost HP** (13.8% ATK + 18% lost HP, split path) as true damage, then shatters into **16 scattered projectiles** (0.9% ATK each) that fly outward in all directions.
 
 **Dimensional Rift** — When a targeting orb hits an enemy and actually deals damage (not blocked by Iron Body, Absolute Shield, or Evade), a **50 px spatial rift zone** tears open at the impact point and lasts **3 seconds**. Enemies inside the zone:
 - **−35% movement speed**
-- Immediately receive **Soul Reaver + Soul Devourer DoT** (60 base + 5.5% Max HP every 0.35s, true damage — skips Embryo)
+- Immediately receive **Soul Reaver + Soul Devourer DoT** (6.9% ATK every 0.35s, true damage — skips Embryo)
 - Take **+25% incoming damage** from all sources
 - Enemy bullets (`enemy_bullet*`) within **2.5× the radius** are pulled toward the center; any bullet reaching the inner core (radius × 0.45) is destroyed
-- The DoT has a **20% chance per tick** to trigger a Chain Lightning arc to up to **8** nearby enemies within 150 px (independent of Glory for Justice)
+- The DoT has a **20% chance per tick** to trigger a Chain Lightning arc to up to **8** nearby enemies within 150 px, each hit for 3.45% ATK (independent of Glory for Justice)
 
 **Orb Sacrifice** — Up to 3 orbs glow yellow at any time. If the player takes a hit, one yellow orb is automatically consumed to completely absorb the damage (acts as an Absolute Shield for that single hit). When an orb is sacrificed, the attacker (excluding untargetable types: `enemy_bullet`, Abyssal Chain, Veilshroud Echo, and enemies in Coronation) is immediately cursed:
-- Receives **Soul Reaver + Soul Devourer DoT** (60 base + 5.5% Max HP every 0.35s, true damage)
+- Receives **Soul Reaver + Soul Devourer DoT** (6.9% ATK every 0.35s, true damage)
 - **−25% movement speed** for **3 seconds**
 
 **Blood Arrow (Libra sigil's SPEC buff)** — Skill A's cooldown is reduced by **2s** while Libra is equipped, and casting it works completely differently: instead of firing right away, each press banks 1 stack. Pressing it with no enemy on screen just adds another stack, with no cap on how many can pile up while waiting for a target to show up. The next press that lands with a target releases **every** banked stack at once — each stack fires its own volley of **5 arrows** after a **0.5s windup**:
 - **1 big arrow** marks whichever enemy currently has the highest HP + shield total.
 - **4 small arrows** each prefer a different enemy from every arrow already marked earlier in the same volley (weighted toward denser enemy clusters), only repeating a target once every enemy on screen has already been marked once.
-- The big arrow **pierces all enemies** it passes through for **300 base damage**, then **explodes** on its own marked target for **400 base + 20% of the target's Max HP**, scaled up by the target's estimated damage reduction (up to **+120%** more against very tanky targets). The explosion is **true damage** — bypasses shield entirely.
-- The 4 small arrows pierce for **180 base damage** and explode for **180 base + 12% of the target's Max HP** (same DR scaling as the big arrow applies) **plus a flat 5% of the target's already-lost HP** on top, but fly **20% faster**; the big arrow is **15% bigger** than the small ones. The explosion is **piercing damage, not true damage** — shield still absorbs it normally.
+- The big arrow **pierces all enemies** it passes through for **45% ATK**, then **explodes** on its own marked target for **60% ATK + 3.5% of the target's Max HP**, scaled up by the target's estimated damage reduction (up to **+60%** more against very tanky targets). The explosion is **true damage** — bypasses shield entirely.
+- The 4 small arrows pierce for **27% ATK** and explode for **27% ATK + 2.5% of the target's Max HP** (same DR scaling as the big arrow applies) **plus a flat 3% of the target's already-lost HP** on top, but fly **20% faster**; the big arrow is **15% bigger** than the small ones. The explosion is **piercing damage, not true damage** — shield still absorbs it normally.
 - Every pierce hit (from either arrow size, on any enemy that isn't its own marked target) is also piercing damage, never true damage.
 - Every explosion applies **2 Vulnerability stacks**.
 - **Anti-focus discount:** within a single volley, the first arrow (any of the 5) to hit a given enemy deals full damage — every hit after that on that *same* enemy deals **30% less**, whether it's a pierce hit or an explosion. Stops one juicy target standing in multiple arrows' path from eating 5 full hits.
 - If an arrow's marked target dies during the 0.5s windup, the arrow still fires toward that target's last known position instead of the stack being wasted — it can still pierce-hit whatever else is standing there, it just won't get the explode-on-target bonus since nothing is left to explode on.
 - Libra also reskins the base Thunder Orb kit itself: every orb (orbiting, homing, or piercing) is wrapped in a thin blood-red visual coating, trails ink-red instead of cyan/yellow while in flight, and leaves a spreading blood-pool splat on hit instead of the normal explosion — cosmetic only, none of the numbers above change. Dimensional Rift (below) is also reskinned into a small blood-flower garden while Libra is equipped.
 
-**Astral Pierce (Libra sigil's ATK buff)** — Skill A orbs no longer stop at their target: on impact they punch straight through and keep flying to the screen edge, dealing **240 base + 24% Max HP** plus **120 base + 18% of the target's lost HP** as true damage to every enemy they cross (both the flat and %-scaling numbers are the normal orb hit's own values, +20%). Orb size is also **+30%**.
+**Astral Pierce (Libra sigil's ATK buff)** — Skill A orbs no longer stop at their target: on impact they punch straight through and keep flying to the screen edge, dealing **27.6% ATK + 2% Max HP** plus **13.8% ATK + 18% of the target's lost HP** as true damage to every enemy they cross (the split-orb path numbers from the Thunder Orbs section above). Orb size is also **+30%**.
 
 ---
 
@@ -266,9 +269,9 @@ Summons **20 homing energy orbs** (up to 80 total on screen). Each orb homes in 
 
 Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets automatically every **54ms** (+20% vs base).
 
-- **Spirit Bullet:** 120 base + 0.50% Max HP, homing, +10% flight speed bonus.
-- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 180 base + 4.6% Max HP + 5.5% of target's lost HP.
-- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (10 base + 40% Max HP per tick, true damage), then launches a single Spinner: 5-second lifetime, bounces off every screen edge (speed boost on launch and each bounce), 200 base + 20% Max HP true damage on contact (600ms cooldown per enemy, so it can re-hit the same target repeatedly over its life without doing it every single frame), and every 0.3s near an enemy slashes 4 mini Arc Blades in a cross pattern (500 base + 5% Max HP piercing each).
+- **Spirit Bullet:** 13.8% ATK, homing, +10% flight speed bonus.
+- **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 20.7% ATK + 1.5% Max HP (24.8% ATK + 1.5% Max HP with the Twin Blades sigil).
+- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (1.15% ATK per tick, true damage), then launches a single Spinner: 5-second lifetime, bounces off every screen edge (speed boost on launch and each bounce), 23% ATK + 2% Max HP true damage on contact (600ms cooldown per enemy, so it can re-hit the same target repeatedly over its life without doing it every single frame), and every 0.3s near an enemy slashes 4 mini Arc Blades in a cross pattern (40.25% ATK piercing each, 48.3% ATK with Twin Blades).
 
 ---
 
@@ -286,15 +289,15 @@ Phōtokrystos replaces the normal Spirit when Primeval Creation activates. A sum
 
 **Duration:** 40s (from first shot) | **Cooldown:** 12s (starts at summon, unlocks after BTM ends) | **Size:** +20% vs normal Spirit
 
-**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **125 base + 1.7% Max HP** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
+**Normal Attack** — Every **42ms** (+20% fire rate), fires **3 homing bullets** all tracking the nearest targets: **14.4% ATK** each. All attacks destroy enemy bullets on contact, apply Glory×1.55 and Vulnerability (15% chance).
 
-**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **400 base + 5.8% Max HP + 5% of target's lost HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
+**Skill: Boomerang** — Every 6 volleys, throws **2 spinning boomerangs** that chain all enemies: **57.5% ATK + 2% Max HP (True Damage)** per hit. Any contact — even a glancing blow — deals damage (re-hittable every 200ms). Destroys enemy bullets along path. If no enemies are present when the volley triggers, the throw is queued (up to **5 pending**). Maximum **10 boomerangs** on screen simultaneously — if the cap is reached, the oldest active boomerang is recalled to make room. Instead of disappearing, boomerangs **fly back to Phōtokrystos** after 2 bounces or when their lifetime expires (return speed is **60% faster** than flight speed). Back to Motherland instantly recalls all active boomerangs.
 
 **Passive: Danger? Not Today!** — Triggers when any enemy comes within **170px of the player** or within **170px of the bottom boundary**. Phōtokrystos halts all attacks and aims for **100ms**, continuously re-locking onto the nearest threatening enemy each frame. It then unleashes a **2-second primeval laser beam** that sweeps **±20°** around the locked angle — the beam extends to the screen edge and **instantly destroys every enemy it touches**, bypassing all shields, Iron Body, and invulnerability. Allies are unaffected. Each enemy killed by the beam produces a burst effect. After firing, Phōtokrystos suffers **−20% damage output for 3 seconds** from primeval energy exhaustion. The **10-second cooldown begins after the beam ends**.
 
 **Companion Effect: Vine Bind** — The instant Danger? Not Today! locks on, Phōtokrystos also calls on the primeval forest: vines erupt from nothing to bind the enemy nearest the bottom boundary **and** the enemy nearest the player (the same enemy if it qualifies for both). Vines take **1 second** to fully grow in, then a **green aura** appears and the bound enemy(s) are slowed **50% for 2 seconds** — aura and slow end together. CC-immune enemies (Egregor, Dargruel, Leviathan, barrier-shielded Marchosias, invulnerable Raphael) are unaffected.
 
-**Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels' shot recoil HP cost is reduced by **15%**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+1.75% Max HP every 0.75s**, and every **3 seconds** each Sentinel individually receives a flat **+50 HP shield** (capped at 50).
+**Passive: Blessing of the Primordial** — While Phōtokrystos is active: all Sentinels' shot recoil HP cost is reduced by **15%**, all allied damage is boosted by **+15%**, all Sentinels regenerate **+1.5% Max HP every 0.75s**, and every **3 seconds** each Sentinel individually receives a **+4.6% ATK shield** (capped at 15% of that Sentinel's own Max HP).
 
 **Skill: Back to Motherland (@37s from first shot)** — Phōtokrystos stops moving and activates a **full-screen lightning barrier** for **3.5 seconds**: a green energy field covers the entire screen, every enemy is struck by a lightning bolt every 100ms dealing **20 base + 35% Max HP (True Damage)**. All enemy bullets are destroyed each tick. After the barrier ends, Phōtokrystos fires a **final shockwave** sweeping the entire map (**10 base + 99% Max HP**, bypasses ALL shields/Iron Body, destroys all enemy bullets), then vanishes.
 
@@ -332,11 +335,11 @@ Charges up, then sweeps a massive plasma beam across the entire screen. Every en
 
 Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locations throughout the duration.
 
-**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **10 base + 6% Max HP** damage every 125ms.
+**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **10.9% ATK** damage every 125ms (Circuit Engineer sigil: +30%).
 
-**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **45 base + 1.2% Max HP** every 50ms.
+**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **15% ATK** every 125ms (Circuit Engineer sigil: +30%).
 
-**Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **10 base + 12% Max HP** in a large area.
+**Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **2.3% ATK** in a large area (Circuit Engineer sigil: +30%).
 
 ---
 
@@ -357,20 +360,20 @@ Every real cast of Annihilation Sweep also phases the player and every sentinel 
 - Pressing Skill F at any time with at least 1 gem held spends the **oldest** gem first: it fires a scaled-down copy of that enemy's own signature attack (see table below) without touching Skill F's own charge/cooldown cycle at all, since the sweep already clears most of the screen on its own. A center-screen prompt appears the whole time at least 1 gem is banked.
 
 **72 Transformations (ATK)**
-- Every Skill F press still spends exactly **1** gem (oldest first), never more. While **3 different** gems are held at the same time, though, the one being spent hits **1.5x** as hard - a passive reward for staying topped up, not a separate all-3-at-once trigger.
+- Every Skill F press still spends exactly **1** gem (oldest first), never more. While **3 different** gems are held at the same time, though, the one being spent hits **1.65x** as hard - a passive reward for staying topped up, not a separate all-3-at-once trigger.
 
-**Stolen attacks, by gem** — each one reuses the real joker attack's own render code (`_drawGoliathJokerEffects` and friends, `js/render/enemy-goliath.js`) recolored blue instead of the gem's own color, so the visual is a faithful copy of Goliath's own version, not an approximation. Values below are at 1x strength; 72 Transformations multiplies each by 1.5x.
+**Stolen attacks, by gem** — each one reuses the real joker attack's own render code (`_drawGoliathJokerEffects` and friends, `js/render/enemy-goliath.js`) recolored blue instead of the gem's own color, so the visual is a faithful copy of Goliath's own version, not an approximation. Values below are expressed as a percentage of the player's own ATK stat (so they stay readable across future rebalances instead of a single number computed at one specific baseline) and are at 1x strength; 72 Transformations multiplies each by 1.65x.
 
 | Gem | Real joker attack | Stolen copy |
 |---|---|---|
 | Thaelis | Persistent damage reduction | Player: 1 Iron Body layer that blocks the next hit outright. Sentinels: a 3s window of 50% dodge chance per hit instead. |
-| Raphael | Marks up to 3 lines (player + 2 more), 1s telegraph, fires straight along each | Marks lines toward 3 locked points (nearest enemy + 2 more enemies, or random on-screen points if there aren't enough), 0.5s telegraph, fires along each fixed line: 220 + 12% Max HP per line to everything still on it (Lumen Nova). |
-| Marchosias | 1s windup, throws a sword at each of 3 locked points (player + 2 more), piercing | 0.5s windup (the launch point tracks the player live, only the 3 target points - nearest enemy + 2 more, or random points if not enough - are locked at cast time), throws a real piercing blade (reuses the Blade Arc projectile) toward each: 260 + 13% Max HP each (Arc Barrier). |
-| Veilshroud | Marks 3 positions (player + 2 more), 1.5s delay, lightning strikes each spot only if something is still there | Marks 3 locked points (nearest enemy + 2 more, or random points if not enough), 0.75s delay, a bolt strikes each spot, only damaging whatever is still standing there: 320 + 17% Max HP true damage per bolt (Phantom Strike). |
-| Egregor | Windup tracking the target, then a 180° tentacle-whip slash reaching however far the target is | 0.5s windup that keeps tracking the player's position and the current nearest enemy the whole time (locking only the instant it fires), then a real 180° arc slash centered on the player reaching up to the full screen diagonal: 260 + 14% Max HP (Null Slash). |
-| Dargruel | An expanding shockwave ring covering the full screen (`spawnBossShockwave`), clearing enemy bullets in its path before damaging what's left, not an instant flat hit | An expanding ring covering the full screen diagonal over 0.7s: wipes any enemy bullet it passes through outright, and damages every other enemy the instant it passes through them: 190 + 11% Max HP (Root Shockwave). |
-| Leviathan | 1.5s warning, then one full 360° rotation of a sweeping beam | 0.3s warning, then one full 360° rotation around the player over 0.9s at full screen range: 200 + 11% Max HP (Perseverance Sweep). |
-| Goliath | 3s channel, locks aim, fires a piercing orb | 0.6s channel that keeps tracking the player's position and the current toughest enemy the whole time (locking only at launch), then fires a real piercing **true damage** orb (reuses the Blade Arc projectile) straight through every enemy in its path: 420 + 22% Max HP, applying 1 Vulnerability stack and a 2.5s Soul Reaver curse to each one it pierces (Absolute Verdict), real judgment against foes tough enough to shrug off one hit, Goliath's own Warding Palm and Inevitable DR chief among them. |
+| Raphael | Marks up to 3 lines (player + 2 more), 1s telegraph, fires straight along each | Marks lines toward 3 locked points (nearest enemy + 2 more enemies, or random on-screen points if there aren't enough), 0.5s telegraph, fires along each fixed line: 33% ATK + 3.5% Max HP per line to everything still on it (Lumen Nova). |
+| Marchosias | 1s windup, throws a sword at each of 3 locked points (player + 2 more), piercing | 0.5s windup (the launch point tracks the player live, only the 3 target points - nearest enemy + 2 more, or random points if not enough - are locked at cast time), throws a real piercing blade (reuses the Blade Arc projectile) toward each: 39% ATK + 3.5% Max HP each (Arc Barrier). |
+| Veilshroud | Marks 3 positions (player + 2 more), 1.5s delay, lightning strikes each spot only if something is still there | Marks 3 locked points (nearest enemy + 2 more, or random points if not enough), 0.75s delay, a bolt strikes each spot, only damaging whatever is still standing there: 48% ATK + 3.5% Max HP true damage per bolt (Phantom Strike). |
+| Egregor | Windup tracking the target, then a 180° tentacle-whip slash reaching however far the target is | 0.5s windup that keeps tracking the player's position and the current nearest enemy the whole time (locking only the instant it fires), then a real 180° arc slash centered on the player reaching up to the full screen diagonal: 39% ATK + 3.5% Max HP (Null Slash). |
+| Dargruel | An expanding shockwave ring covering the full screen (`spawnBossShockwave`), clearing enemy bullets in its path before damaging what's left, not an instant flat hit | An expanding ring covering the full screen diagonal over 0.7s: wipes any enemy bullet it passes through outright, and damages every other enemy the instant it passes through them: 28.4% ATK + 3.5% Max HP (Root Shockwave). |
+| Leviathan | 1.5s warning, then one full 360° rotation of a sweeping beam | 0.3s warning, then one full 360° rotation around the player over 0.9s at full screen range: 30% ATK + 3.5% Max HP (Perseverance Sweep). |
+| Goliath | 3s channel, locks aim, fires a piercing orb | 0.6s channel that keeps tracking the player's position and the current toughest enemy the whole time (locking only at launch), then fires a real piercing **true damage** orb (reuses the Blade Arc projectile) straight through every enemy in its path: 63% ATK + 2.5% Max HP, applying 1 Vulnerability stack and a 2.5s Soul Reaver curse to each one it pierces (Absolute Verdict), real judgment against foes tough enough to shrug off one hit, Goliath's own Warding Palm and Inevitable DR chief among them. |
 
 ---
 
@@ -420,7 +423,7 @@ A shifting entity that phases in and out of reality to avoid damage and punish c
 - Every **0.45 seconds**, has a **40% chance** to enter **Phantom** state for **1.5 seconds**: **99% DR**, movement and attacks stop. Additionally, while in Phantom, **no single hit can exceed 25% of Veilshroud's Max HP** (absolute damage cap on top of the 99% DR). Healing and shields received by Veilshroud are also **reduced by 25%** while in Phantom.
 - Every incoming hit has an additional **40% chance** to instantly trigger Phantom (the hit is completely negated).
 - On Phantom exit, marks a random Sentinel or Player with a **red targeting reticle**. After a **1.5-second countdown**, a **red lightning bolt** strikes: Player = **1 life lost** (protections apply); Sentinels within **100px** = **18% Max HP** damage.
-- **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+35%**. Neither bonus applies while in Phantom. Receiving healing in normal state also grants **+20% DR for 3 seconds**.
+- **In normal state only**: incoming healing also grants equal **shield**; incoming shield is boosted by **+20%**. Neither bonus applies while in Phantom. Receiving healing in normal state also grants **+10% DR for 3 seconds**.
 
 **Passive: Energy Accumulation** — While in **Phantom** state, Veilshroud records all damage it absorbs. On Phantom exit, the accumulated absorption is converted into a shield: **min(1200, ⌈(35% × absorbed + 200) × 1.15⌉)**. The base 200 guarantees a minimum shield of **230** even if no damage was absorbed. Resets each time Phantom is entered.
 
@@ -442,7 +445,7 @@ A herald-boss that never attacks the player directly. It patrols the **upper hal
 
 **Skill: Judgment (Holy Sword)** — Can only actually fire while Uriel is visible; a trigger during Camouflage is banked and auto-released the instant it's free again. **0.5-second charge-up** (energy converges into the core, wings flare), then launches straight toward the player's position **from 100ms ago** (not the live position) at roughly **806px/s**, piercing along its line. On hitting the player: normal life loss through the usual save stack, plus **Judged** (3 seconds: any further hit costs 1 extra life, net −2). On hitting a Sentinel: **30% Max HP true damage**, and the sword keeps flying afterward.
 
-**Skill: Camouflage** — Triggers every time a Uriel Iron Body layer is consumed anywhere, or after **10 hits** land directly on Uriel itself (a safety net for when there's nothing else around to consume a granted layer), on a **3-second cooldown** measured from the moment the previous stealth ends. **1.75 seconds** fully invisible, untargetable, absolute Iron Body, regenerating **2% Max HP per second** the whole time. On reappearing, Uriel teleports to a fresh random point in the upper half of the arena (same margin its normal patrol waypoints use) with a **20% Max HP shield** plus **200 flat DR for 2 seconds**.
+**Skill: Camouflage** — Triggers every time a Uriel Iron Body layer is consumed anywhere, or after **10 hits** land directly on Uriel itself (a safety net for when there's nothing else around to consume a granted layer), on a **3-second cooldown** measured from the moment the previous stealth ends. **1.75 seconds** fully invisible, untargetable, absolute Iron Body, regenerating **1.5% Max HP per second** the whole time. On reappearing, Uriel teleports to a fresh random point in the upper half of the arena (same margin its normal patrol waypoints use) with a **15% Max HP shield** plus **200 flat DR for 2 seconds**.
 
 ---
 
@@ -456,16 +459,16 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 **Skill: Tenacity** — A passive scaling skill that activates as Thaelis loses HP:
 
-- For every **1% of Max HP lost**, Thaelis gains **+2.5% Damage Reduction** on its body. Capped at **95% total DR** from this source.
+- For every **1% of Max HP lost**, Thaelis gains **+1% Damage Reduction** on its body. Capped at **60% total DR** from this source.
 - For every **0.5% of Max HP lost**, Thaelis's projectile speed increases by **+3.5%**. Capped at **+25%**.
 - No single hit can exceed **max(35%, 90% − 5% × HP% lost) × MaxHP** damage (scales down as HP is chipped away).
-- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **(30% MaxHP + 20% HP lost + 250) × 1.10**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. The sole exception is **Spirit Laser**, which bypasses it; even true damage from other sources must destroy the Shield first.
+- Every time Thaelis loses **30% of its Max HP** (at 70%, 40%, and 10% HP thresholds), it generates a **Shield** worth **20% MaxHP + 10% HP lost + 100**: it must be fully destroyed before any damage (normal or piercing) reaches Thaelis's body. Displayed as a pulsing gold ring. The sole exception is **Spirit Laser**, which bypasses it; even true damage from other sources must destroy the Shield first.
 
 **Reincarnation:** At 0 HP, Thaelis collapses into an untargetable **Cocoon**.
 
 - The Cocoon itself carries no HP and cannot be hit directly: it's **CC Immune**, has an absolute **Iron Body**, and cannot receive outside heals or shields. It's guarded by **4 Guards** at all times, each with **500–1,000 flat HP** (not tied to Thaelis's own Max HP), the same evade chance as Thaelis's own tier, **40% + 20 flat Damage Reduction**, and full immunity to every DoT source in the game.
-- Killing a Guard doesn't damage the Cocoon directly. It banks a flat **300 Shield** (carried over to Thaelis if it revives, see below) and counts toward a random **12–16 kill quota** rolled fresh each time, shown live as a number on the Cocoon's body. A dead Guard is replaced after **1 second**.
-- Meeting the kill quota within the **9-second** timer destroys the Cocoon for good, killing Thaelis. Falling short, Thaelis climbs back out at **40% of its original Max HP** plus whatever Shield was banked, with **1 second of invulnerability**, a **12-second cooldown** before it can trigger Reincarnation again if it dies again right away, and three permanent Reincarnation buffs: **+100% Max HP** (so effectively 80% of its original Max HP), **+20% DR**, and **+250 flat DR** on top of its usual Tenacity scaling.
+- Killing a Guard doesn't damage the Cocoon directly. It banks a flat **150 Shield** (carried over to Thaelis if it revives, capped at 30% of its revived Max HP, see below) and counts toward a random **12–16 kill quota** rolled fresh each time, shown live as a number on the Cocoon's body. A dead Guard is replaced after **1 second**.
+- Meeting the kill quota within the **9-second** timer destroys the Cocoon for good, killing Thaelis. Falling short, Thaelis climbs back out at **40% of its original Max HP** plus whatever Shield was banked, with **1 second of invulnerability**, a **12-second cooldown** before it can trigger Reincarnation again if it dies again right away, and three permanent Reincarnation buffs: **+100% Max HP** (so effectively 80% of its original Max HP), **+10% DR**, and **+100 flat DR** on top of its usual Tenacity scaling.
 
 ---
 
@@ -473,16 +476,16 @@ Fires **2 large projectiles** every second. After 0.6 seconds of flight each spl
 
 **Available after:** Wave 2 | **Spawn rate:** 6% → 14% | **Cap:** 2 on screen | **Score on kill:** HP × 6 points | **Speed:** 1.65 u/s
 
-HP: **2,376–4,118**. Permanent **55% Damage Reduction** at all times.
+HP: **2,376–4,118**. Permanent **50% Damage Reduction** at all times.
 
-**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash, and hit-counting is throttled to at most 1 per ~175ms so a single burst of near-simultaneous attacks (e.g. Skill A's Thunder Orbs) can't blow through the whole pool in one cast. After the 20th hit the shield breaks and Raphael takes damage normally. **While Custos is active, Raphael is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow — and takes **zero damage from any DoT tick** (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare, Yog-Sothoth's tick, Soul Reaver) while the shield is up, sparking a small cyan flicker instead of counting toward the 20. After Iron Body expires, **Support Aura gains +20% heal efficiency** permanently for the rest of the encounter.
+**Custos Aeternus** — Spawns with an **Iron Body shield**: the **first 20 hits** it receives from any source — including Death Stars and Skill F — are completely nullified. Each hit triggers a white flash, and hit-counting is throttled to at most 1 per ~175ms so a single burst of near-simultaneous attacks (e.g. Skill A's Thunder Orbs) can't blow through the whole pool in one cast. After the 20th hit the shield breaks and Raphael takes damage normally. **While Custos is active, Raphael is CC Immune** — immune to Death Star pull, Tesla slow, Dimensional Rift slow, and Orb slow — and takes **zero damage from any DoT tick** (Tesla Coil, Dimensional Rift's Soul Devourer, Solar Flare, Yog-Sothoth's tick, Soul Reaver) while the shield is up, sparking a small cyan flicker instead of counting toward the 20. After Iron Body expires, **Support Aura gains +35% heal efficiency** permanently for the rest of the encounter. When Custos breaks, Raphael also gets a one-time Shield based on how many allies were inside its aura at that moment: 0 allies → +8% Max HP, 1 ally → +10%, 2 → +15%, 3 → +20%, 4+ → +25%.
 
 **Support Aura** — Constantly emits a field covering half the screen width:
 
-- Heals all ally units inside for **6% of Raphael's Max HP per second** (×1.20 after Custos expires; Raphael itself heals at 50% efficiency). Cannot heal units at 0 HP.
-- Grants every allied unit inside a **6% of Raphael's Max HP shield every second** (passive tick — stacks on top of the one-time 38% shield; units with any remaining shield also benefit from the +18% DR bonus).
-- Grants a **shield** equal to **38% of Raphael's Max HP** to all allies inside (once per ally). Shielded units gain **+18% Damage Reduction** while the shield has any HP remaining.
-- If a heal exceeds the target's Max HP, the overflow becomes a shield at 50% efficiency.
+- Heals all ally units inside for **4% of Raphael's Max HP per second, capped at 3% of the recipient's own Max HP per second** (×1.35 after Custos expires; Raphael itself heals at 55% efficiency). Cannot heal units at 0 HP.
+- Grants every allied unit inside a shield every second, capped at **min(2% of Raphael's Max HP, 2% of the recipient's own Max HP)** (passive tick — stacks on top of the one-time shield below; units with any remaining shield also benefit from the +12% DR bonus).
+- Grants a **shield** equal to **min(20% of Raphael's Max HP, 25% of the recipient's own Max HP)** to all allies inside (once per ally). Shielded units gain **+12% Damage Reduction** while the shield has any HP remaining.
+- If a heal exceeds the target's Max HP, the overflow becomes a shield at 25% efficiency.
 - All enemies and enemy bullets inside move 5% faster.
 
 **Lumen Nova** — Every 5 seconds, marks the player and 3 random Sentinels with targeting lines. After 1 second, fires fast lasers along those paths. Hitting the player costs 1 life (or consumes a protective layer). Hitting a Sentinel deals **20% of its Max HP**.
@@ -697,7 +700,7 @@ For **1 second** after arriving, Goliath gains **+20% damage dealt**, **+10% fli
 
 **Passive: Unbroken Will**
 
-Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **3.5 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions) and immediately gains a Barrier layer worth **20% of Max HP**. For the following **6 seconds**, starting at the same moment as the 3.5-second invulnerability (not after it): **+40% effectiveness on all heal/shield it receives** (stacks with everything else), **+20% Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. The instant the 3.5-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave deals **no damage and costs no lives** to anyone; it's a pure release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
+Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **4 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions), is revived to a **full 100% of its Max HP**, and immediately gains a Barrier layer worth **10% of its entry Max HP (Hentry)**. For the following **6 seconds**, starting at the same moment as the 4-second invulnerability (not after it): **+40% effectiveness on all heal/shield it receives** (stacks with everything else), **+20% Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. On top of that, once Unbroken Will has triggered, Goliath permanently keeps an extra **+12% Damage Reduction** for the rest of the fight — the second phase is meant to be a genuine full second fight, not a weakened continuation. The instant the 4-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave deals **no damage and costs no lives** to anyone; it's a pure release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
 
 **Passive: Absolute Verdict**
 
@@ -709,7 +712,7 @@ CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at
 
 **Passive: Warding Palm**
 
-Incoming hits specifically from **Skill F**, **Skill D**'s center pull-kill (the Death Star's Mark & Annihilate beams and its spaceships' damage are unaffected — only the center-contact hit itself), or the **Phōtokrystos finale laser** are simply too powerful to ever be fully negated. Each hit has a **30% chance** to be deflected, taking only **15% of Max HP**; the other **70% of the time** it lands for **35% of Max HP**. This is per hit, with no lifetime cap. This rule, like every other Goliath-specific rule, takes priority over any sigil that would otherwise bypass Iron Body or trigger an unconditional instakill (e.g. Death Mark's ≤5%-HP lightning instakill, or its Skill F Iron-Body-piercing effect) — Goliath cannot die to those regardless of sigil. Landing a Skill F hit against Goliath through Warding Palm also refunds **1.5 seconds** off Skill F's own cooldown, whether the hit was deflected or not (otherwise the fight is little more than waiting out Skill F's full cooldown 3+ times in a row).
+Incoming hits specifically from **Skill F**, **Skill D**'s center pull-kill (the Death Star's Mark & Annihilate beams and its spaceships' damage are unaffected — only the center-contact hit itself), or the **Phōtokrystos finale laser** are simply too powerful to ever be fully negated. Each hit has a **35% chance** to be deflected, taking only **10% of Max HP**; the other **65% of the time** it lands for **22% of Max HP**. This is per hit, with no lifetime cap. This rule, like every other Goliath-specific rule, takes priority over any sigil that would otherwise bypass Iron Body or trigger an unconditional instakill (e.g. Death Mark's ≤5%-HP lightning instakill, or its Skill F Iron-Body-piercing effect) — Goliath cannot die to those regardless of sigil. Landing a Skill F hit against Goliath through Warding Palm also refunds **1.5 seconds** off Skill F's own cooldown, whether the hit was deflected or not (otherwise the fight is little more than waiting out Skill F's full cooldown 3+ times in a row).
 
 Separately, **all damage from Phōtokrystos itself** (its homing bullets and its boomerang) is reduced **40%** against Goliath — applied before Damage Reduction and before Inevitable's per-hit cap, so it reduces both the capped normal-type hits and the uncapped true-damage boomerang alike.
 
