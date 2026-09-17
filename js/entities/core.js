@@ -1391,7 +1391,9 @@ function dealDamage(enemy, source) {
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
         && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot && !source._isSrDot) {
-        const _capPct = Math.min(0.03, 0.015 + _goliathDebuffStackCount(enemy) * 0.003);
+        // Per AanSensei: base trimmed slightly (was 1.5%) to take a little
+        // more bite out of sustained rapid-fire chip damage specifically.
+        const _capPct = Math.min(0.03, 0.013 + _goliathDebuffStackCount(enemy) * 0.003);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
     // Hotfix: piercing/true/DoT hits landed at full value with only the 60%
@@ -1405,7 +1407,10 @@ function dealDamage(enemy, source) {
     // identical to it.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && (source.isTrueDamage || source.isPiercing || source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
-        const _capPctTrue = Math.min(0.06, 0.04 + _goliathDebuffStackCount(enemy) * 0.003);
+        // Per AanSensei: base trimmed slightly (was 4%) - this is the cap
+        // governing Tesla/Leo/Aquarius/Soul-Reaver-style DoT ticks, exactly
+        // the sustained rapid-fire sources this trim targets.
+        const _capPctTrue = Math.min(0.06, 0.035 + _goliathDebuffStackCount(enemy) * 0.003);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPctTrue));
     }
 
