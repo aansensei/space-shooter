@@ -717,6 +717,19 @@
                         Auto-adjusts graphics to maintain smooth performance.
                     </div>
 
+                    <!-- Quality buttons. q-per (mobile only, tier 4) is hidden by
+                         default and shown from JS once window._platform is known
+                         to be 'mobile' - see the platform-select code below. -->
+                    <div id="quality-row" style="display:flex; gap:8px; margin-bottom:6px; opacity:0.35; pointer-events:none;">
+                        <button class="stg-q-btn" id="q-per"    onclick="onQualitySelect(4)" data-i18n="graphics.per" style="display:none;">PER</button>
+                        <button class="stg-q-btn" id="q-low"    onclick="onQualitySelect(2)" data-i18n="graphics.low">LOW</button>
+                        <button class="stg-q-btn" id="q-med"    onclick="onQualitySelect(1)" data-i18n="graphics.medium">MEDIUM</button>
+                        <button class="stg-q-btn" id="q-high"   onclick="onQualitySelect(0)" data-i18n="graphics.high">HIGH</button>
+                    </div>
+                    <div id="quality-note" style="font-size:10px; color:rgba(255,200,74,0.5); margin-bottom:18px; padding-left:2px; line-height:1.5; display:block;" data-i18n="graphics.qualityNote">
+                        To choose a specific quality, please turn off Smart Quality.
+                    </div>
+
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
                         <label class="stg-toggle-row" style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
                             <div class="stg-toggle-wrap" id="highfps-wrap">
@@ -729,19 +742,6 @@
                     </div>
                     <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;" data-i18n="graphics.highFpsDesc">
                         Removes the ~45fps cap on mobile. Smoother on a strong device, uses more battery.
-                    </div>
-
-                    <!-- Quality buttons. q-per (mobile only, tier 4) is hidden by
-                         default and shown from JS once window._platform is known
-                         to be 'mobile' - see the platform-select code below. -->
-                    <div id="quality-row" style="display:flex; gap:8px; margin-bottom:6px; opacity:0.35; pointer-events:none;">
-                        <button class="stg-q-btn" id="q-per"    onclick="onQualitySelect(4)" data-i18n="graphics.per" style="display:none;">PER</button>
-                        <button class="stg-q-btn" id="q-low"    onclick="onQualitySelect(2)" data-i18n="graphics.low">LOW</button>
-                        <button class="stg-q-btn" id="q-med"    onclick="onQualitySelect(1)" data-i18n="graphics.medium">MEDIUM</button>
-                        <button class="stg-q-btn" id="q-high"   onclick="onQualitySelect(0)" data-i18n="graphics.high">HIGH</button>
-                    </div>
-                    <div id="quality-note" style="font-size:10px; color:rgba(255,200,74,0.5); margin-bottom:18px; padding-left:2px; line-height:1.5; display:block;" data-i18n="graphics.qualityNote">
-                        To choose a specific quality, please turn off Smart Quality.
                     </div>
 
                     <div class="stg-divider"></div>
