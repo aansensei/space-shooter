@@ -2041,7 +2041,7 @@
     <script src="js/render/skill-f.js?v=20260914b"></script>
     <script src="js/render/sigil-cancer.js?v=20260914b"></script>
     <script src="js/render/skill-g.js?v=20260717e"></script>
-    <script src="js/render/skill-buttons.js?v=20260907a"></script>
+    <script src="js/render/skill-buttons.js?v=20260917a"></script>
     <script src="js/pixi-renderer.js?v=20260911d"></script>
     <script src="js/input.js?v=20260910a"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
@@ -2977,7 +2977,7 @@
             // coincide with whatever was cached from before the glow ever
             // started, and the button stays stuck showing the glow forever.
             // Forcing one redraw on that specific transition frame clears it.
-            let _lastReadyGlow = { ch: false, f: false };
+            let _lastReadyGlow = { ch: false, f: false, a: false, s: false };
             let _cooldownLoopRunning = false;
             function _startCooldownLoop() {
                 // _initMobileControls() (which calls this) re-runs on every
@@ -3045,42 +3045,59 @@
                             document.getElementById('mb-yog')?.classList.toggle('cd', yr < 1);
                             document.getElementById('mb-yog')?.classList.remove('skill-active');
                         }
-                        // A
-                        const ar = _ready(lastSkillA, skillACooldown);
-                        _paintRing('mb-a-cv', ar, '#8888ff', _justUnsilenced);
-                        document.getElementById('mb-a')?.classList.toggle('cd', ar < 1);
+                        // A - a banked Blood Arrow (Libra) stack bypasses this
+                        // button's own cooldown entirely, same treatment as
+                        // Great Sage's gem (F) and Cancer's tidal surge (CHARGE).
+                        if (typeof window._bloodArrowStacks !== 'undefined' && window._bloodArrowStacks > 0) {
+                            _mbReadyGlow('mb-a-cv', [
+                                [0, 'rgba(255,255,255,1)'], [0.45, 'rgba(200,0,0,1)'], [1, 'rgba(80,0,0,1)'],
+                            ], now);
+                            document.getElementById('mb-a')?.classList.remove('cd');
+                            document.getElementById('mb-a')?.classList.add('skill-active');
+                            _lastReadyGlow.a = true;
+                        } else {
+                            const ar = _ready(lastSkillA, skillACooldown);
+                            _paintRing('mb-a-cv', ar, '#8888ff', _justUnsilenced || _lastReadyGlow.a);
+                            document.getElementById('mb-a')?.classList.toggle('cd', ar < 1);
+                            document.getElementById('mb-a')?.classList.remove('skill-active');
+                            _lastReadyGlow.a = false;
+                        }
                         // S
                         // S: show mana if spirit alive, else cooldown
                         const _hasSpirit2 = typeof spirits !== 'undefined' && spirits.some(s2 => !s2.isFinishing);
                         const _pEnergy = typeof primevalEnergy !== 'undefined' ? primevalEnergy : 0;
                         if (_hasSpirit2 || _pEnergy > 0) {
-                            // Draw mana bar on canvas — animates every frame
-                            // (pulsing glow while full), so always redrawn,
-                            // just via the cached context instead of a fresh
-                            // getElementById+getContext lookup each frame.
-                            const _sc = _cdCtx('mb-s-cv');
-                            if (_sc) {
-                                _sc.clearRect(0, 0, 58, 58);
-                                // Background circle
-                                _sc.strokeStyle = 'rgba(0,255,136,0.25)';
-                                _sc.lineWidth = 4; _sc.lineCap = 'round';
-                                _sc.beginPath(); _sc.arc(29, 29, 26, 0, Math.PI * 2); _sc.stroke();
-                                // Mana fill arc (bottom-up like rising water)
-                                const mFrac = _pEnergy / 100;
-                                if (mFrac > 0) {
-                                    const startA = -Math.PI / 2; // top (12 o'clock)
-                                    const endA = startA + Math.PI * 2 * mFrac;
-                                    _sc.strokeStyle = _pEnergy >= 100 ? '#00ff88' : '#22cc66';
-                                    _sc.lineWidth = 4;
-                                    _sc.beginPath(); _sc.arc(29, 29, 26, startA, endA); _sc.stroke();
-                                }
-                                // Glow if ready
-                                if (_pEnergy >= 100) {
-                                    const gPulse = 0.35 + 0.35 * Math.sin(now / 200);
-                                    _sc.strokeStyle = `rgba(0,255,136,${gPulse})`;
-                                    _sc.lineWidth = 3;
+                            if (_pEnergy >= 100) {
+                                // Primeval Creation ready (press S again to summon
+                                // Phōtokrystos) - same bold ready-glow treatment as
+                                // Great Sage's gem / Cancer's tidal surge above,
+                                // instead of the plain mana bar below.
+                                _mbReadyGlow('mb-s-cv', [
+                                    [0, 'rgba(220,255,240,1)'], [0.5, 'rgba(0,200,130,1)'], [1, 'rgba(0,40,25,1)'],
+                                ], now);
+                                _lastReadyGlow.s = true;
+                            } else {
+                                // Draw mana bar on canvas — animates every frame,
+                                // so always redrawn, via the cached context instead
+                                // of a fresh getElementById+getContext lookup each frame.
+                                const _sc = _cdCtx('mb-s-cv');
+                                if (_sc) {
+                                    _sc.clearRect(0, 0, 58, 58);
+                                    // Background circle
+                                    _sc.strokeStyle = 'rgba(0,255,136,0.25)';
+                                    _sc.lineWidth = 4; _sc.lineCap = 'round';
                                     _sc.beginPath(); _sc.arc(29, 29, 26, 0, Math.PI * 2); _sc.stroke();
+                                    // Mana fill arc (bottom-up like rising water)
+                                    const mFrac = _pEnergy / 100;
+                                    if (mFrac > 0) {
+                                        const startA = -Math.PI / 2; // top (12 o'clock)
+                                        const endA = startA + Math.PI * 2 * mFrac;
+                                        _sc.strokeStyle = '#22cc66';
+                                        _sc.lineWidth = 4;
+                                        _sc.beginPath(); _sc.arc(29, 29, 26, startA, endA); _sc.stroke();
+                                    }
                                 }
+                                _lastReadyGlow.s = false;
                             }
                             document.getElementById('mb-s')?.classList.toggle('cd', false);
                             document.getElementById('mb-s')?.classList.add('skill-active');
@@ -3088,9 +3105,10 @@
                             const _oCd = (typeof _spiritCooldownOverrideUntil !== 'undefined' && _spiritCooldownOverrideUntil > now)
                                 ? (_spiritCooldownOverrideUntil - now + skillSCooldown) : skillSCooldown;
                             const sr = _ready(lastSkillS, _oCd);
-                            _paintRing('mb-s-cv', sr, '#00e5ff', _justUnsilenced);
+                            _paintRing('mb-s-cv', sr, '#00e5ff', _justUnsilenced || _lastReadyGlow.s);
                             document.getElementById('mb-s')?.classList.toggle('cd', sr < 1);
                             document.getElementById('mb-s')?.classList.remove('skill-active');
+                            _lastReadyGlow.s = false;
                         }
                         // D
                         const dr = _ready(lastSkillD, skillDCooldown);

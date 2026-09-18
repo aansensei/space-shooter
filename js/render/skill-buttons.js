@@ -280,6 +280,11 @@ function drawSkillButtons() {
         _pill(rowY(2), 'S', _sReady ? '#00ff88' : '#22C55E', {
             charge: Math.min(100, primevalEnergy), active: false,
         });
+        // Primeval Creation ready (press S again to summon Phōtokrystos) -
+        // same ready-wash treatment as Blood Arrow/Great Sage's gem above.
+        if (_sReady) _pillReadyWash(rowY(2), [
+            [0, 'rgba(0,40,25,1)'], [0.5, 'rgba(0,200,130,1)'], [1, 'rgba(220,255,240,1)'],
+        ]);
     } else {
         _pill(rowY(2), 'S', '#22C55E', {
             cd: skillSCooldown, lastAct: lastSkillS, active: _anySpiritAlive,
