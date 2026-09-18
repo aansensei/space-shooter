@@ -425,8 +425,12 @@
         </svg>
     </button>
 
-    <!-- FPS chip (luôn hiện) -->
-    <div id="debug-fps">FPS: --</div>
+    <!-- FPS chip (luôn hiện). This reads the browser's own raw
+         requestAnimationFrame callback cadence, not a "frames drawn"
+         counter - the game can't tell whether a rate below the display's
+         max (e.g. 60 on a 120Hz phone) comes from the OS/browser's own
+         power-saving policy, thermal throttling, or true hardware limits. -->
+    <div id="debug-fps" title="Raw browser callback rate (requestAnimationFrame), not necessarily the display's max refresh rate - the browser/OS may cap this below hardware capability (power saving, thermal, etc.) and the page has no way to tell which.">rAF: --</div>
     <!-- Debug console (F3 toggle) -->
     <div id="debug-panel">
         <div id="debug-console"></div>
@@ -1952,7 +1956,7 @@
                 if (window._inGame) {
                     fpsEl.style.display = 'block';
                     const _liveLvl = typeof window._gfxLevel !== 'undefined' ? window._gfxLevel : 0;
-                    fpsEl.innerHTML = 'FPS: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>'
+                    fpsEl.innerHTML = 'rAF: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>'
                         + ' <span style="opacity:0.7">' + (_TIER_NAMES[_liveLvl] || 'FULL') + '</span>';
                 }
                 requestAnimationFrame(tick);
