@@ -3237,8 +3237,10 @@ function gameLoop(timeStamp) {
     if (!lastTimeStamp) lastTimeStamp = timeStamp;
     let deltaTime = timeStamp - lastTimeStamp;
 
-    // Mobile 45fps throttle: skip frame if < 22ms since last
-    if (typeof _platform !== 'undefined' && _platform === 'mobile') {
+    // Mobile 45fps throttle: skip frame if < 22ms since last. Settings'
+    // "High FPS" toggle (default on) lets the player opt out of this and
+    // run at whatever rate the browser's own rAF allows instead.
+    if (typeof _platform !== 'undefined' && _platform === 'mobile' && window._highFpsEnabled !== true) {
         if (deltaTime < 22) { // ~45fps cap
             requestAnimationFrame(gameLoop);
             return;

@@ -717,6 +717,20 @@
                         Auto-adjusts graphics to maintain smooth performance.
                     </div>
 
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                        <label class="stg-toggle-row" style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
+                            <div class="stg-toggle-wrap" id="highfps-wrap">
+                                <input type="checkbox" id="highfps-check" checked>
+                                <div class="stg-toggle-track"></div>
+                                <div class="stg-toggle-thumb"></div>
+                            </div>
+                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;" data-i18n="graphics.highFps">High FPS</span>
+                        </label>
+                    </div>
+                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;" data-i18n="graphics.highFpsDesc">
+                        Removes the ~45fps cap on mobile. Smoother on a strong device, uses more battery.
+                    </div>
+
                     <!-- Quality buttons. q-per (mobile only, tier 4) is hidden by
                          default and shown from JS once window._platform is known
                          to be 'mobile' - see the platform-select code below. -->
@@ -1017,6 +1031,7 @@
                 window._smartQuality      = true;
                 window._screenShakeEnabled = false;
                 window._masterVolume      = 1.0;
+                window._highFpsEnabled    = true;
 
                 // Store dataset on buttons for easy read-back
                 document.getElementById('q-per').dataset.level  = 4;
@@ -1039,6 +1054,8 @@
                         'graphics.smartQualityDesc': 'Auto-adjusts graphics to maintain smooth performance.',
                         'graphics.low': 'LOW', 'graphics.medium': 'MEDIUM', 'graphics.high': 'HIGH', 'graphics.per': 'PER',
                         'graphics.qualityNote': 'To choose a specific quality, please turn off Smart Quality.',
+                        'graphics.highFps': 'High FPS',
+                        'graphics.highFpsDesc': 'Removes the ~45fps cap on mobile. Smoother on a strong device, uses more battery.',
                         'audio.section': 'Audio', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Global',
                         'audio.inGameMusic': 'In-Game Music', 'audio.random': 'Random',
                         'background.section': 'Background', 'background.brightness': 'Brightness',
@@ -1079,6 +1096,8 @@
                         'graphics.smartQualityDesc': 'Tự động điều chỉnh đồ họa để giữ hiệu năng mượt mà.',
                         'graphics.low': 'THẤP', 'graphics.medium': 'TRUNG BÌNH', 'graphics.high': 'CAO', 'graphics.per': 'HIỆU NĂNG',
                         'graphics.qualityNote': 'Để chọn mức đồ họa cụ thể, vui lòng tắt Tự Động Điều Chỉnh.',
+                        'graphics.highFps': 'FPS Cao',
+                        'graphics.highFpsDesc': 'Bỏ giới hạn ~45fps trên mobile. Mượt hơn trên máy khỏe, tốn pin hơn.',
                         'audio.section': 'Âm Thanh', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Tổng',
                         'audio.inGameMusic': 'Nhạc Trong Game', 'audio.random': 'Ngẫu Nhiên',
                         'background.section': 'Hình Nền', 'background.brightness': 'Độ Sáng',
@@ -1443,6 +1462,9 @@
                     // Smart Quality
                     const sqOn = document.getElementById('sq-check').checked;
                     window._smartQuality = sqOn;
+
+                    // High FPS (removes the mobile ~45fps throttle in main.js)
+                    window._highFpsEnabled = document.getElementById('highfps-check').checked;
 
                     // Manual quality (only if smart quality OFF)
                     if (!sqOn) {
@@ -2045,7 +2067,7 @@
     <script src="js/pixi-renderer.js?v=20260911d"></script>
     <script src="js/input.js?v=20260910a"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20260917b"></script>
+    <script src="js/main.js?v=20260918a"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
