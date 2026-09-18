@@ -962,16 +962,21 @@ function updateSpiritSpinners(deltaTime) {
                 createParticles(enemy.x, enemy.y, 8, '#ff44aa', 3, 8);
                 createParticles(enemy.x, enemy.y, 3, '#ffffff', 2, 5);
             }
-            // Colliding with ANY target also fires the mini Arc Blade volley
-            // immediately - independent of (on top of) the periodic 300ms
-            // proximity trigger below, and of the body-damage cooldown above,
-            // so overlapping a target still keeps slashing even between body
-            // hits. Capped per-enemy at 0.65s of its own so it doesn't refire
-            // every single frame.
+            // Colliding with ANY target also fires the mini Arc Blade volley,
+            // on top of the body-damage cooldown above, so overlapping a
+            // target still keeps slashing even between body hits. Shares
+            // s._lastBladeVolleyAt with the periodic 300ms proximity trigger
+            // below so the two can't both land a volley back to back - a
+            // big, near-stationary target (Goliath) sits inside both
+            // triggers' range at once, which used to fire both independently
+            // and roughly double the intended arc-blade rate against it.
             if (!s._collisionBladeCooldowns) s._collisionBladeCooldowns = new Map();
             if (now >= (s._collisionBladeCooldowns.get(enemy) || 0)) {
-                _fireSpinnerBlades(s, now);
                 s._collisionBladeCooldowns.set(enemy, now + 650);
+                if (now >= (s._lastBladeVolleyAt || 0)) {
+                    _fireSpinnerBlades(s, now);
+                    s._lastBladeVolleyAt = now + 300;
+                }
             }
             // Arctic Chill (Sagittarius): same slow+pull the Spirit's arc
             // slash already gets, extended to the Spinner's own body hit too.
@@ -1004,7 +1009,12 @@ function updateSpiritSpinners(deltaTime) {
                 // gives the Spirit's own auto-fire (docs/combat-scaling-
                 // rebalance.md Part 5), applied to the Spinner's arc-slash beat.
                 s.lastArcTick = _hasBuff('cuc_han') ? 300 / 1.20 : 300;
-                _fireSpinnerBlades(s, now);
+                // Shares s._lastBladeVolleyAt with the collision trigger above -
+                // skips this tick's volley if that one just fired one.
+                if (now >= (s._lastBladeVolleyAt || 0)) {
+                    _fireSpinnerBlades(s, now);
+                    s._lastBladeVolleyAt = now + 300;
+                }
             } else {
                 s.lastArcTick = 0; // keep checking every frame until an enemy comes into range
             }
