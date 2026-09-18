@@ -724,8 +724,12 @@ function update(rawDeltaTime) {
     }
 
     const _xBeforeMove = player.x;
-    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    // A phone's play area is narrow enough that full speed crosses most of
+    // the screen in one sweep - trimmed a bit so lateral movement feels
+    // proportional to the smaller width. PC/tablet unaffected.
+    const _phoneMoveMult = window._deviceTier === 'phone' ? 0.90 : 1;
+    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _phoneMoveMult * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _phoneMoveMult * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
 
     // Uriel's Holy Sword aims at the player's position ~100ms ago instead of
     // the live position, so it can't be launched dead-on-arrival - keep a
@@ -1581,7 +1585,10 @@ function update(rawDeltaTime) {
             // Vine Bind (Phōtokrystos DNT): vines take 1s to grow in, then a
             // flat 2s 50% slow follows — no effect during the growth window.
             const _vineSlowMul = (!_ccImmune && enemy._vineStart && currentTime >= enemy._vineStart + 1000 && currentTime < enemy._vineStart + 3000) ? 0.50 : 1.0;
-            enemy.y += enemy.speed * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul;
+            // Phone screens are cramped enough that enemies closing distance
+            // at full speed feels unfair versus PC/tablet - trimmed a bit.
+            const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
+            enemy.y += enemy.speed * _phoneSpeedMul * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul;
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -1859,7 +1866,8 @@ function update(rawDeltaTime) {
             const _mmRiftSlow = enemy._riftSlow ? 0.65 : 1.0;
             const _mmOrbSlow = (enemy._orbRetaliationSlowEnd || 0) > currentTime ? 0.75 : 1.0;
             const _mmSlowMul = _mmRiftSlow * _mmOrbSlow;
-            if (mmd > 0) { enemy.x += (mmdx / mmd) * enemy.speed * dt * _mmSlowMul; enemy.y += (mmdy / mmd) * enemy.speed * dt * _mmSlowMul; }
+            const _mmPhoneMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
+            if (mmd > 0) { enemy.x += (mmdx / mmd) * enemy.speed * _mmPhoneMul * dt * _mmSlowMul; enemy.y += (mmdy / mmd) * enemy.speed * _mmPhoneMul * dt * _mmSlowMul; }
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 1000;
@@ -2802,7 +2810,9 @@ function _getWaveTemplate(waveNum) {
 
 function _buildWaveQueue(waveNum) {
     const tmpl = _getWaveTemplate(waveNum);
-    const T = WAVE_SPAWN_DURATION;
+    // Wave 1 is Apostles only (no abnormals/elites/dominators) - no reason
+    // to stretch that across the full window, so it crams into 15s instead.
+    const T = waveNum === 1 ? 15000 : WAVE_SPAWN_DURATION;
     const queue = [];
 
     // Normals: trickle mix throughout the full window
@@ -3002,7 +3012,10 @@ function _updateWaveTrickle(deltaTime) {
     _waveSurgeAt -= deltaTime;
     if (_waveSurgeAt <= 0) {
         // Base surge size 4 -> 5 (+25%), fires more often (16-28s -> 11.8-20.6s, ~35% faster).
-        const surgeCount = Math.min(_waveTrickleBudgetLeft(), 12, 5 + Math.floor((_waveNumber - 10) / 3));
+        // Phone gets a trimmed surge (not a hard cap-active clamp) so it still
+        // spikes above the steady trickle, just a bit lighter than PC/tablet.
+        const _phoneSurgeMult = window._deviceTier === 'phone' ? 0.85 : 1;
+        const surgeCount = Math.ceil(Math.min(_waveTrickleBudgetLeft(), 12, 5 + Math.floor((_waveNumber - 10) / 3)) * _phoneSurgeMult);
         for (let k = 0; k < surgeCount; k++) { if (!_trickleSpawnOne(true)) break; }
         _waveSurgeAt = 11800 + Math.random() * 8800;
         _waveNextSpawnAt = 2600 + Math.random() * 1800; // lull right after a surge (~25% shorter)

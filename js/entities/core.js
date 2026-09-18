@@ -430,7 +430,9 @@ function _releaseParticle(p) {
 }
 
 function createParticles(x, y, count, color, minSpeed, maxSpeed) {
-    const _actualCount = Math.ceil(count * (window._particleScale !== undefined ? window._particleScale : 1));
+    const _qualityScale = window._particleScale !== undefined ? window._particleScale : 1;
+    const _phoneParticleScale = window._deviceTier === 'phone' ? 0.75 : 1;
+    const _actualCount = Math.ceil(count * _qualityScale * _phoneParticleScale);
     for (let i = 0; i < _actualCount; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * (maxSpeed - minSpeed) + minSpeed;

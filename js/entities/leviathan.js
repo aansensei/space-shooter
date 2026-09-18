@@ -95,7 +95,8 @@ function updateLeviathan(enemy, deltaTime) {
     if (enemy.hp <= 0) return;
 
     // MOVE DOWN
-    enemy.y += enemy.speed * (deltaTime / 16.67);
+    const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
+    enemy.y += enemy.speed * _phoneSpeedMul * (deltaTime / 16.67);
     if (enemy.y > canvas.height + enemy.size) { enemy.hp = 0; return; }
 
     // Re-apply Envy to enemies that spawned after this Leviathan

@@ -1999,17 +1999,17 @@
     <script src="js/sigils/pisces.js?v=20260901a"></script>
     <script src="js/sigils/than.js?v=20260901a"></script>
     <script src="js/yuusha-party.js?v=20260914b"></script>
-    <script src="js/entities/core.js?v=20260917a"></script>
+    <script src="js/entities/core.js?v=20260917b"></script>
     <script src="js/entities/sentinel.js?v=20260825a"></script>
-    <script src="js/entities/veilshroud.js?v=20260911a"></script>
+    <script src="js/entities/veilshroud.js?v=20260917a"></script>
     <script src="js/entities/uriel.js?v=20260915f"></script>
-    <script src="js/entities/egregor.js?v=20260906c"></script>
-    <script src="js/entities/leviathan.js?v=20260909a"></script>
+    <script src="js/entities/egregor.js?v=20260917a"></script>
+    <script src="js/entities/leviathan.js?v=20260917a"></script>
     <script src="js/entities/marchosias.js?v=20260907a"></script>
     <script src="js/entities/misc-enemies.js?v=20260915c"></script>
     <script src="js/entities/raphael.js?v=20260915j"></script>
     <script src="js/entities/goliath.js?v=20260914b"></script>
-    <script src="js/skills/skill-a.js?v=20260914b"></script>
+    <script src="js/skills/skill-a.js?v=20260917a"></script>
     <script src="js/skills/skill-s-spirit.js?v=20260914b"></script>
     <script src="js/skills/skill-d.js?v=20260914b"></script>
     <script src="js/skills/sigil-great-sage.js?v=20260914b"></script>
@@ -2045,7 +2045,7 @@
     <script src="js/pixi-renderer.js?v=20260911d"></script>
     <script src="js/input.js?v=20260910a"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20260917a"></script>
+    <script src="js/main.js?v=20260917b"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
@@ -2478,10 +2478,21 @@
         (function () {
             let _plat = 'pc';
             window._platform = 'pc'; // exposed for the render/*.js modules
+            window._deviceTier = 'pc'; // 'pc' | 'tablet' | 'phone' - phone-only tuning reads this
+
+            // Short viewport side, so a rotated phone (e.g. 844x390 landscape)
+            // still reads as 'phone' instead of matching an iPad's width.
+            const PHONE_MAX_SHORT_SIDE = 600;
+            function _syncDeviceTier(platform) {
+                if (platform !== 'mobile') { window._deviceTier = 'pc'; return; }
+                const shortSide = Math.min(window.innerWidth, window.innerHeight);
+                window._deviceTier = shortSide <= PHONE_MAX_SHORT_SIDE ? 'phone' : 'tablet';
+            }
 
             window.selectPlatform = function (p) {
                 _plat = p;
                 window._platform = p; // keep the render/*.js modules in sync
+                _syncDeviceTier(p);
                 document.getElementById('btn-pc').classList.toggle('pf-active', p === 'pc');
                 document.getElementById('btn-mobile').classList.toggle('pf-active', p === 'mobile');
                 // Correct background.js's initial touch-detection guess (made
@@ -2501,13 +2512,17 @@
             // MOBILE CONTROLS INIT
             window._initMobileControls = function () {
                 if (_plat !== 'mobile') return;
+                _syncDeviceTier(_plat);
 
-                // Canvas inflate: logical size = screen * 1.282
-                // CSS size = screen (browser composites at CSS size, GPU safe)
-                // Result: game world fits full screen, objects appear 78% smaller
+                // Canvas inflate: logical size = screen / mobileWorldScale.
+                // CSS size = screen (browser composites at CSS size, GPU safe).
+                // Result: game world fits full screen, objects appear smaller
+                // by mobileWorldScale - phones shrink a bit further than
+                // tablets since a phone's screen has much less room to begin with.
                 const physW = window.innerWidth;
                 const physH = window.innerHeight;
-                const S = 1 / 0.78; // 1.282
+                const mobileWorldScale = window._deviceTier === 'phone' ? 0.74 : 0.78;
+                const S = 1 / mobileWorldScale;
                 const cv = document.getElementById('gameCanvas');
                 cv.style.position = 'fixed';
                 cv.style.top = '0';

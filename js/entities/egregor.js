@@ -82,7 +82,8 @@ function updateEgregor(enemy, deltaTime) {
 
     // Move at 10% speed during NullSlash windup, full speed otherwise
     const _nsMoveMult = (enemy._nullSlashPhase === 'charging') ? 0.10 : 1.0;
-    enemy.y += enemy.speed * _speedMult * _nsMoveMult * dt;
+    const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
+    enemy.y += enemy.speed * _phoneSpeedMul * _speedMult * _nsMoveMult * dt;
     if (enemy.x < enemy.size) enemy.x = enemy.size;
     if (enemy.x > canvas.width - enemy.size) enemy.x = canvas.width - enemy.size;
 

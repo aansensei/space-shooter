@@ -47,7 +47,8 @@ function updateVeilshroud(enemy, deltaTime) {
 
     // Movement (không di chuyển trong phantom)
     if (!enemy.inPhantom) {
-        enemy.y += enemy.speed * dt;
+        const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
+        enemy.y += enemy.speed * _phoneSpeedMul * dt;
     }
 
     // Va chạm người chơi

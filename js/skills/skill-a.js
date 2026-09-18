@@ -309,8 +309,10 @@ function updateDimensionalRifts(deltaTime) {
         rift._age     += dt * 0.05;
         rift._ringRot -= 0.025 * dt;
 
-        // Particle spawn (45% chance per frame, matches Pixi reference)
-        if (Math.random() < 0.45) {
+        // Particle spawn (45% chance per frame, matches Pixi reference).
+        // Trimmed on phone - this fires every single frame a rift is up.
+        const _riftParticleChance = window._deviceTier === 'phone' ? 0.30 : 0.45;
+        if (Math.random() < _riftParticleChance) {
             const pA = Math.random() * Math.PI * 2;
             const pD = Math.random() * rift.radius * 1.1;
             rift._particles.push({
