@@ -319,6 +319,37 @@
             user-select: none;
             text-shadow: 0 1px 4px rgba(0,0,0,1);
         }
+        /* --- FPS TIP (one-time, iOS only, when rAF looks stuck near 60) --- */
+        #fps-tip {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000001;
+            max-width: min(420px, calc(100vw - 32px));
+            background: rgba(5, 15, 25, 0.92);
+            border: 1px solid rgba(0, 229, 255, 0.45);
+            border-radius: 8px;
+            padding: 10px 34px 10px 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #cdeeff;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+        }
+        #fps-tip b { color: #00e5ff; }
+        #fps-tip-close {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: #7fd8ff;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 2px 4px;
+        }
         /* --- DEBUG CONSOLE (F3 toggle) --- */
         #debug-panel {
             position: fixed;
@@ -431,6 +462,15 @@
          max (e.g. 60 on a 120Hz phone) comes from the OS/browser's own
          power-saving policy, thermal throttling, or true hardware limits. -->
     <div id="debug-fps" title="Raw browser callback rate (requestAnimationFrame), not necessarily the display's max refresh rate - the browser/OS may cap this below hardware capability (power saving, thermal, etc.) and the page has no way to tell which.">rAF: --</div>
+
+    <!-- One-time tip, iOS only: shown if rAF looks stuck near 60 while
+         High FPS is on, since that's WebKit's own "Prefer Page Rendering
+         Updates near 60fps" preference (default on) - the page can't turn
+         it off itself, only point the player at where to. -->
+    <div id="fps-tip">
+        <span data-i18n="fpsTip.body">Your Safari looks capped near 60fps. To try for 120fps on ProMotion: turn off Low Power Mode, then in Settings search Safari's Advanced > Feature Flags and turn off "Prefer Page Rendering Updates near 60fps".</span>
+        <button id="fps-tip-close" onclick="document.getElementById('fps-tip').style.display='none'; try { localStorage.setItem('pisces_fps_tip_dismissed', '1'); } catch(_) {}">×</button>
+    </div>
     <!-- Debug console (F3 toggle) -->
     <div id="debug-panel">
         <div id="debug-console"></div>
@@ -1060,6 +1100,7 @@
                         'graphics.qualityNote': 'To choose a specific quality, please turn off Smart Quality.',
                         'graphics.highFps': 'High FPS',
                         'graphics.highFpsDesc': 'Removes the ~45fps cap on mobile. Smoother on a strong device, uses more battery.',
+                        'fpsTip.body': 'Your Safari looks capped near 60fps. To try for 120fps on ProMotion: turn off Low Power Mode, then in Settings search Safari\'s Advanced > Feature Flags and turn off "Prefer Page Rendering Updates near 60fps".',
                         'audio.section': 'Audio', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Global',
                         'audio.inGameMusic': 'In-Game Music', 'audio.random': 'Random',
                         'background.section': 'Background', 'background.brightness': 'Brightness',
@@ -1102,6 +1143,7 @@
                         'graphics.qualityNote': 'Để chọn mức đồ họa cụ thể, vui lòng tắt Tự Động Điều Chỉnh.',
                         'graphics.highFps': 'FPS Cao',
                         'graphics.highFpsDesc': 'Bỏ giới hạn ~45fps trên mobile. Mượt hơn trên máy khỏe, tốn pin hơn.',
+                        'fpsTip.body': 'Safari của bạn có vẻ đang bị khóa gần 60fps. Để thử lên 120fps trên máy ProMotion: tắt Low Power Mode, sau đó vào Settings tìm Advanced > Feature Flags của Safari và tắt "Prefer Page Rendering Updates near 60fps".',
                         'audio.section': 'Âm Thanh', 'audio.bgm': 'BGM', 'audio.sfx': 'SFX', 'audio.global': 'Tổng',
                         'audio.inGameMusic': 'Nhạc Trong Game', 'audio.random': 'Ngẫu Nhiên',
                         'background.section': 'Hình Nền', 'background.brightness': 'Độ Sáng',
@@ -1891,6 +1933,25 @@
                 _autoTier = tier;
             }
 
+            // One-time tip: iOS + rAF stuck near 60fps + High FPS setting on.
+            // Reuses the same rAF cadence the chip itself already shows, not
+            // a separate measurement - just a delayed, gated check on top.
+            const _isAppleDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            let _fpsTipStartAt = 0;
+            let _fpsTipShown = false;
+            function _maybeShowFpsTip(fps, now) {
+                if (_fpsTipShown || !_isAppleDevice || window._highFpsEnabled !== true || !window._inGame) return;
+                try { if (localStorage.getItem('pisces_fps_tip_dismissed') === '1') { _fpsTipShown = true; return; } } catch (_) {}
+                if (!_fpsTipStartAt) _fpsTipStartAt = now;
+                // Wait 5s so early-load stutter doesn't read as a false positive.
+                if (now - _fpsTipStartAt < 5000) return;
+                if (fps >= 50 && fps <= 65) {
+                    _fpsTipShown = true;
+                    const tip = document.getElementById('fps-tip');
+                    if (tip) tip.style.display = 'block';
+                }
+            }
+
             function tick(now) {
                 const dt = now - lastFrameTime;
                 lastFrameTime = now;
@@ -1903,6 +1964,7 @@
                 }
                 const avg = sum / frameTimes.length;
                 const fps = avg > 0 ? Math.round(1000 / avg) : 0;
+                _maybeShowFpsTip(fps, now);
 
                 // 1-second FPS average for tier decisions
                 // Push raw dt (không dùng rolling-avg fps để tránh lag khi FPS vừa drop)
