@@ -905,6 +905,16 @@ window.debugSetYuukiBonus = function () {
                         _spirit.isFinishing = true;
                         _spirit.finaleState = 'firing';
                         if (typeof updateSpiritFinale === 'function') updateSpiritFinale(_spirit, 16.67);
+                        // updateSpiritFinale's 'firing' case resets isFinishing to
+                        // false once the Spinner launches, same as a real finale -
+                        // normally updateSpirits() itself splices the spirit out
+                        // right after seeing that, but this call runs standalone
+                        // outside that loop, so it never gets the chance. Without
+                        // this, the spirit lingers as if it were a fresh, ordinary
+                        // spirit for another full 35s, and the next press just
+                        // reuses it instead of testing a clean Spinner launch.
+                        const _idx = spirits.indexOf(_spirit);
+                        if (_idx !== -1 && !_spirit.isFinishing) spirits.splice(_idx, 1);
                     }
                 }
                 break;

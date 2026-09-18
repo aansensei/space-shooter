@@ -820,7 +820,7 @@ function _fireSpinnerBlades(s, now) {
     // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
     const _twinBlades = _hasBuff('song_luoi');
     // docs/combat-scaling-rebalance.md Part 5
-    const _bladeDmg = _twinBlades ? 0.40 * player.atk : 0.35 * player.atk;
+    const _bladeDmg = _twinBlades ? 0.47 * player.atk : 0.41 * player.atk;
     for (let d = 0; d < 4; d++) {
         const a = (Math.PI / 2) * d;
         bladeArcProjectiles.push({
@@ -955,7 +955,7 @@ function updateSpiritSpinners(deltaTime) {
                 const _drMult = _spinnerDrMult(enemy, now);
                 // Small target-Max-HP term kept deliberately (per AanSensei):
                 // a rare once-per-0.9s Finale hit, not a spammy source.
-                dealDamage(enemy, { damage: Math.round(0.20 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.015 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
+                dealDamage(enemy, { damage: Math.round(0.24 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.015 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
                 if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
                 // On-hit: a sharp crack - jagged magenta shards plus a quick
                 // white flash at the contact point, selling the heavy true damage.

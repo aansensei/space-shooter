@@ -271,7 +271,7 @@ Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets 
 
 - **Spirit Bullet:** 13.8% ATK, homing, +10% flight speed bonus.
 - **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 20.7% ATK + 1.5% Max HP (24.8% ATK + 1.5% Max HP with the Twin Blades sigil).
-- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (1.15% ATK per tick, true damage), then launches a single Spinner: 5-second lifetime, bounces off every screen edge (speed boost on launch and each bounce), 23% ATK + 2% Max HP true damage on contact (600ms cooldown per enemy, so it can re-hit the same target repeatedly over its life without doing it every single frame), and every 0.3s near an enemy slashes 4 mini Arc Blades in a cross pattern (40.25% ATK piercing each, 48.3% ATK with Twin Blades).
+- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (1.15% ATK per tick, true damage), then launches a single Spinner: 5-second lifetime, bounces off every screen edge (speed boost on launch and each bounce), 24% ATK + 1.5% Max HP true damage on contact (900ms cooldown per enemy, so it can re-hit the same target repeatedly over its life without doing it every single frame), and every 0.3s near an enemy slashes 4 mini Arc Blades in a cross pattern (41% ATK piercing each, 47% ATK with Twin Blades). Both the contact hit and the arc blades share one diminishing-returns rule: a repeat hit on a target within 1s of the last Spinner hit that landed on it deals 30% less.
 
 ---
 
