@@ -331,56 +331,132 @@ function _sgCoilRim() {
         x.beginPath(); x.arc(w / 2, w / 2, R, 0, Math.PI * 2); x.stroke();
     }, 1);
 }
-function _sgCoilGear() {
-    const br = TESLA_COIL_SIZE / 2;
-    const dim = br * 3.2;
-    return _sgSprite('coilGear', dim, dim, (x, w) => {
-        x.translate(w / 2, w / 2);
-        x.strokeStyle = 'rgba(0,180,200,0.7)'; x.lineWidth = 2;
-        const teeth = 10;
-        for (let i = 0; i < teeth; i++) {
-            const a = (i / teeth) * Math.PI * 2;
-            x.beginPath();
-            x.moveTo(Math.cos(a) * br * 1.05, Math.sin(a) * br * 1.05);
-            x.lineTo(Math.cos(a) * br * 1.35, Math.sin(a) * br * 1.35);
-            x.stroke();
+// Ornate ring platform: bronze band with glowing rune marks, a dark
+// energy floor inside, and six copper-coil pylon mounts. Baked once; the
+// whole sprite turns slowly.
+function _sgCoilRingSprite() {
+    const VR = TESLA_COIL_VISUAL_R, PR = TESLA_PYLON_R;
+    const dim = (VR + 8) * 2;
+    return _sgSprite('coilRing', dim, dim, (x, w) => {
+        const c = w / 2;
+        x.translate(c, c);
+
+        // energy floor
+        const fl = x.createRadialGradient(0, 0, 0, 0, 0, 16);
+        fl.addColorStop(0, '#0a5c9a');
+        fl.addColorStop(0.6, '#06305a');
+        fl.addColorStop(1, '#041426');
+        x.fillStyle = fl;
+        x.beginPath(); x.arc(0, 0, 16, 0, Math.PI * 2); x.fill();
+
+        // bronze band
+        const band = x.createRadialGradient(0, 0, 15, 0, 0, 25);
+        band.addColorStop(0, '#5a3d16');
+        band.addColorStop(0.35, '#b98b3e');
+        band.addColorStop(0.7, '#8c6428');
+        band.addColorStop(1, '#3d2809');
+        x.fillStyle = band;
+        x.beginPath(); x.arc(0, 0, 25, 0, Math.PI * 2); x.arc(0, 0, 15, 0, Math.PI * 2, true); x.fill();
+        x.strokeStyle = '#2a1c0a'; x.lineWidth = 1;
+        x.beginPath(); x.arc(0, 0, 25, 0, Math.PI * 2); x.stroke();
+        x.beginPath(); x.arc(0, 0, 15, 0, Math.PI * 2); x.stroke();
+        // steel inner lip and a soft highlight on the outer edge
+        x.strokeStyle = '#9aa7b8'; x.lineWidth = 1.2;
+        x.beginPath(); x.arc(0, 0, 16.2, 0, Math.PI * 2); x.stroke();
+        x.strokeStyle = 'rgba(255,225,160,0.55)'; x.lineWidth = 0.8;
+        x.beginPath(); x.arc(0, 0, 24, 0, Math.PI * 2); x.stroke();
+
+        // rune marks along the band, glowing
+        x.shadowColor = '#5ee7ff'; x.shadowBlur = 3;
+        x.strokeStyle = '#8ff3ff'; x.lineWidth = 1.3; x.lineCap = 'round';
+        for (let i = 0; i < 24; i++) {
+            const a = (i / 24) * Math.PI * 2;
+            const len = (i % 2 === 0) ? 0.075 : 0.045;
+            x.beginPath(); x.arc(0, 0, 20, a, a + len * Math.PI); x.stroke();
         }
-        x.strokeStyle = 'rgba(0,220,255,0.4)'; x.lineWidth = 1.5;
-        for (let i = 0; i < teeth; i++) {
-            const a = (i / teeth) * Math.PI * 2;
-            x.beginPath(); x.arc(0, 0, br * 1.18, a, ((i + 0.5) / teeth) * Math.PI * 2); x.stroke();
+        x.shadowBlur = 0;
+
+        // six pylons: mount plate, copper coil windings, cyan tip socket
+        for (let i = 0; i < 6; i++) {
+            const a = i * Math.PI / 3;
+            x.save();
+            x.translate(Math.cos(a) * PR, Math.sin(a) * PR);
+            x.fillStyle = '#3d2809';
+            x.beginPath(); x.arc(0, 0, 5, 0, Math.PI * 2); x.fill();
+            x.strokeStyle = '#d8b46a'; x.lineWidth = 0.9;
+            x.beginPath(); x.arc(0, 0, 5, 0, Math.PI * 2); x.stroke();
+            const cg = x.createRadialGradient(-0.8, -0.8, 0.5, 0, 0, 3.8);
+            cg.addColorStop(0, '#f0a066');
+            cg.addColorStop(0.6, '#b8562a');
+            cg.addColorStop(1, '#6a2c12');
+            x.fillStyle = cg;
+            x.beginPath(); x.arc(0, 0, 3.8, 0, Math.PI * 2); x.fill();
+            x.strokeStyle = 'rgba(70,25,8,0.85)'; x.lineWidth = 0.7;
+            x.beginPath(); x.arc(0, 0, 2.9, 0, Math.PI * 2); x.stroke();
+            x.beginPath(); x.arc(0, 0, 2.0, 0, Math.PI * 2); x.stroke();
+            x.fillStyle = '#c9f9ff';
+            x.beginPath(); x.arc(0, 0, 1.1, 0, Math.PI * 2); x.fill();
+            x.restore();
         }
     });
 }
-function _sgCoilBody() {
-    const br = TESLA_COIL_SIZE / 2;
-    const dim = br * 12;
-    return _sgSprite('coilBody', dim, dim, (x, w) => {
+
+// Eight-point star ornament around the crystal, turning the other way.
+function _sgCoilStarSprite() {
+    return _sgSprite('coilStar', 32, 32, (x, w) => {
         const c = w / 2;
-        x.fillStyle = 'rgba(0,200,255,0.15)';
-        x.shadowColor = 'cyan'; x.shadowBlur = 30;
-        x.beginPath(); x.arc(c, c, br * 1.5, 0, Math.PI * 2); x.fill();
-        x.shadowBlur = 0;
-        const bodyGrad = x.createRadialGradient(c, c, 0, c, c, br);
-        bodyGrad.addColorStop(0, 'white');
-        bodyGrad.addColorStop(0.4, '#00FFFF');
-        bodyGrad.addColorStop(0.8, '#0088AA');
-        bodyGrad.addColorStop(1, '#004455');
-        x.fillStyle = bodyGrad;
-        x.shadowColor = 'cyan'; x.shadowBlur = 28;
-        x.beginPath(); x.arc(c, c, br, 0, Math.PI * 2); x.fill();
-        x.shadowBlur = 0;
-        const coreR = br * 0.45;
-        const cg = x.createRadialGradient(c, c, 0, c, c, coreR);
-        cg.addColorStop(0, 'white');
-        cg.addColorStop(0.5, 'cyan');
-        cg.addColorStop(1, 'rgba(0,200,255,0.2)');
-        x.fillStyle = cg;
-        x.beginPath(); x.arc(c, c, coreR, 0, Math.PI * 2); x.fill();
-        x.fillStyle = 'rgba(255,255,255,0.45)';
+        x.translate(c, c);
+        const g = x.createRadialGradient(0, 0, 2, 0, 0, 14);
+        g.addColorStop(0, '#6b7a90');
+        g.addColorStop(1, '#2a3444');
+        x.fillStyle = g;
+        x.strokeStyle = '#b98b3e'; x.lineWidth = 0.9; x.lineJoin = 'round';
         x.beginPath();
-        x.ellipse(c - br * 0.2, c - br * 0.2, br * 0.26, br * 0.16, -Math.PI / 4, 0, Math.PI * 2);
-        x.fill();
+        for (let i = 0; i < 16; i++) {
+            const a = (i / 16) * Math.PI * 2 - Math.PI / 2;
+            const r = i % 2 === 0 ? 14 : 8.2;
+            const px = Math.cos(a) * r, py = Math.sin(a) * r;
+            i === 0 ? x.moveTo(px, py) : x.lineTo(px, py);
+        }
+        x.closePath(); x.fill(); x.stroke();
+        x.shadowColor = '#5ee7ff'; x.shadowBlur = 3;
+        x.fillStyle = '#9af4ff';
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+            x.save(); x.translate(Math.cos(a) * 11, Math.sin(a) * 11); x.rotate(a + Math.PI / 2);
+            x.beginPath(); x.moveTo(0, -1.8); x.lineTo(1.1, 0); x.lineTo(0, 1.8); x.lineTo(-1.1, 0); x.closePath(); x.fill();
+            x.restore();
+        }
+    });
+}
+
+// Faceted crystal at the center.
+function _sgCoilCrystalSprite() {
+    return _sgSprite('coilCrystal', 26, 26, (x, w) => {
+        const c = w / 2;
+        x.translate(c, c);
+        x.shadowColor = '#5ee7ff'; x.shadowBlur = 8;
+        const shades = ['#e9ffff', '#7ff3ff', '#2fb4ee', '#1478c4', '#1b9be0', '#a8f7ff'];
+        for (let i = 0; i < 6; i++) {
+            const a0 = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            const a1 = ((i + 1) / 6) * Math.PI * 2 - Math.PI / 2;
+            x.fillStyle = shades[i];
+            x.beginPath();
+            x.moveTo(0, 0);
+            x.lineTo(Math.cos(a0) * 8, Math.sin(a0) * 8);
+            x.lineTo(Math.cos(a1) * 8, Math.sin(a1) * 8);
+            x.closePath(); x.fill();
+        }
+        x.shadowBlur = 0;
+        x.strokeStyle = 'rgba(255,255,255,0.7)'; x.lineWidth = 0.6;
+        x.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            x.moveTo(0, 0); x.lineTo(Math.cos(a) * 8, Math.sin(a) * 8);
+        }
+        x.stroke();
+        x.fillStyle = 'rgba(255,255,255,0.85)';
+        x.beginPath(); x.ellipse(-1.6, -2.4, 1.6, 0.9, -0.6, 0, Math.PI * 2); x.fill();
     });
 }
 
@@ -388,7 +464,7 @@ function _sgCoilBody() {
 function drawTeslaCoil(coil) {
     const now = performance.now();
     ctx.save();
-    const br = coil.size / 2;
+    const VR = TESLA_COIL_VISUAL_R;
     const R = coil.auraRadius;
 
     // aura: slowly turning octagon + static dashed rim
@@ -400,17 +476,72 @@ function drawTeslaCoil(coil) {
     ctx.restore();
     ctx.drawImage(_sgCoilRim(), coil.x - ps / 2, coil.y - ps / 2, ps, ps);
 
-    // counter-rotating gear ring
-    const gs = br * 3.2;
+    // ring platform (turns with the pylons), then the star the other way
+    const rs = (VR + 8) * 2;
     ctx.save();
     ctx.translate(coil.x, coil.y);
-    ctx.rotate(-now / 4000);
-    ctx.drawImage(_sgCoilGear(), -gs / 2, -gs / 2, gs, gs);
+    ctx.rotate(teslaRingRot(now));
+    ctx.drawImage(_sgCoilRingSprite(), -rs / 2, -rs / 2, rs, rs);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(coil.x, coil.y);
+    ctx.rotate(-now / 3500);
+    ctx.drawImage(_sgCoilStarSprite(), -16, -16, 32, 32);
     ctx.restore();
 
-    // body + core + glow
-    const bs = br * 12;
-    ctx.drawImage(_sgCoilBody(), coil.x - bs / 2, coil.y - bs / 2, bs, bs);
+    // crystal with a breathing glow
+    const breathe = 0.5 + 0.5 * Math.sin(now / 420 + coil.id * 9);
+    const cGlow = _getGlowSprite('#5ee7ff', 32);
+    if (cGlow) {
+        const gs = 44 + 8 * breathe;
+        ctx.globalAlpha = 0.55 + 0.3 * breathe;
+        ctx.drawImage(cGlow, coil.x - gs / 2, coil.y - gs / 2, gs, gs);
+        ctx.globalAlpha = 1;
+    }
+    const cs = 26 * (1 + 0.05 * breathe);
+    ctx.drawImage(_sgCoilCrystalSprite(), coil.x - cs / 2, coil.y - cs / 2, cs, cs);
+
+    // pylon tips: glow dots, plus lightning arcing tip to tip (HIGH + MED)
+    const tips = [];
+    for (let i = 0; i < 6; i++) tips.push(teslaPylonPos(coil, i, now));
+    const tipGlow = _getGlowSprite('#7ff3ff', 8);
+    const flashF = coil.flashMs > 0 ? coil.flashMs / 160 : 0;
+    if (tipGlow) {
+        for (let i = 0; i < 6; i++) {
+            const hot = (coil.muzzlePylon === i) ? flashF : 0;
+            const s = 9 + 4 * Math.sin(now / 160 + i) + 14 * hot;
+            ctx.globalAlpha = 0.75 + 0.25 * hot;
+            ctx.drawImage(tipGlow, tips[i].x - s / 2, tips[i].y - s / 2, s, s);
+        }
+        ctx.globalAlpha = 1;
+    }
+    if (_gfxLevel < 2) {
+        const beat = Math.floor(now / 90);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        for (let i = 0; i < 6; i++) {
+            const seed = beat * 13 + i * 41 + Math.floor(coil.id * 1000);
+            if (_sgNoise(seed) < 0.4) continue;
+            const A = tips[i], B = tips[(i + 1) % 6];
+            const dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy) || 1;
+            const nx = -dy / len, ny = dx / len;
+            const pts = [A.x, A.y];
+            for (let k = 1; k < 4; k++) {
+                const t = k / 4, amp = (_sgNoise(seed + k * 5.7) - 0.5) * 9;
+                pts.push(A.x + dx * t + nx * amp, A.y + dy * t + ny * amp);
+            }
+            pts.push(B.x, B.y);
+            const trace = () => {
+                ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+                for (let q = 2; q < pts.length; q += 2) ctx.lineTo(pts[q], pts[q + 1]);
+                ctx.stroke();
+            };
+            ctx.strokeStyle = 'rgba(0,170,255,0.35)'; ctx.lineWidth = 3.2; trace();
+            ctx.strokeStyle = 'rgba(220,255,255,0.95)'; ctx.lineWidth = 1; trace();
+        }
+        ctx.restore();
+    }
 
     // Bolt-count ring: fills clockwise toward the coil's self-destruct at
     // TESLA_COIL_MAX_BOLTS, turning red as it nears the limit.
@@ -419,51 +550,73 @@ function drawTeslaCoil(coil) {
         ctx.strokeStyle = frac > 0.8 ? `rgba(255,${Math.round(120 - 100 * (frac - 0.8) / 0.2)},60,0.9)` : 'rgba(170,250,255,0.75)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(coil.x, coil.y, br * 1.62, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+        ctx.arc(coil.x, coil.y, VR + 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
         ctx.stroke();
     }
 
-    // Firing flash: a bloom over the whole coil plus a short bright spike
-    // pointing the way the bolt just left, fading over flashMs.
+    // Firing flash: bloom over the coil plus a spike out of the firing pylon
     if (coil.flashMs > 0) {
-        const f = coil.flashMs / 160;
-        const bloomS = br * (4.8 + (1 - f) * 1.6);
         const bloom = _getGlowSprite('#9af4ff', 48);
         if (bloom) {
-            ctx.globalAlpha = 0.95 * f;
+            const bloomS = VR * (3.6 + (1 - flashF) * 1.2);
+            ctx.globalAlpha = 0.8 * flashF;
             ctx.drawImage(bloom, coil.x - bloomS / 2, coil.y - bloomS / 2, bloomS, bloomS);
             ctx.globalAlpha = 1;
         }
+        const tp = tips[coil.muzzlePylon || 0];
         ctx.save();
-        ctx.translate(coil.x, coil.y);
+        ctx.translate(tp.x, tp.y);
         ctx.rotate(coil.muzzleAngle);
         ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = `rgba(190,250,255,${0.85 * f})`;
+        ctx.fillStyle = `rgba(190,250,255,${0.9 * flashF})`;
         ctx.beginPath();
-        ctx.moveTo(br * 0.6, -br * 0.4);
-        ctx.lineTo(br * 2.8, 0);
-        ctx.lineTo(br * 0.6, br * 0.4);
+        ctx.moveTo(0, -4);
+        ctx.lineTo(VR * 1.2, 0);
+        ctx.lineTo(0, 4);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
     }
-    // Charge-up: while a volley is queued the core pulses brighter.
+    // Charge-up: while a volley is queued the ring pulses brighter.
     if (coil.boltQueue && coil.boltQueue.length > 0) {
         const cp = 0.5 + 0.5 * Math.sin(now / 45);
         ctx.strokeStyle = `rgba(200,255,255,${0.35 + 0.35 * cp})`;
         ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(coil.x, coil.y, br * (1.95 + 0.12 * cp), 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(coil.x, coil.y, VR + 6 + 2 * cp, 0, Math.PI * 2); ctx.stroke();
     }
 
-    // HP bar
-    const bw = 42, bh = 5;
-    const bx = coil.x - bw / 2, by = coil.y - coil.size - 10;
-    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-    ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, bh);
-    const hpPct = coil.hp / coil.maxHp;
-    ctx.fillStyle = hpPct > 0.5 ? '#00FFFF' : hpPct > 0.25 ? 'orange' : 'red';
-    ctx.fillRect(bx, by, bw * hpPct, bh);
-    ctx.strokeStyle = '#FFF'; ctx.lineWidth = 0.8; ctx.strokeRect(bx, by, bw, bh);
+    // Stack bar: five cells above the coil. A cell dims as its stack runs
+    // out its 1.5s; a full bar pulses gold, the next bolt is the empowered one.
+    {
+        const cw = 9, gap = 2, bh = 5;
+        const total = cw * TESLA_STACK_MAX + gap * (TESLA_STACK_MAX - 1);
+        const bx = coil.x - total / 2, by = coil.y - VR - 16;
+        const full = coil.stacks.length >= TESLA_STACK_MAX;
+        const pulse = 0.5 + 0.5 * Math.sin(now / 90);
+        ctx.fillStyle = 'rgba(10,20,30,0.8)';
+        ctx.fillRect(bx - 2, by - 2, total + 4, bh + 4);
+        for (let i = 0; i < TESLA_STACK_MAX; i++) {
+            const x0 = bx + i * (cw + gap);
+            ctx.fillStyle = 'rgba(60,80,95,0.55)';
+            ctx.fillRect(x0, by, cw, bh);
+            if (i < coil.stacks.length) {
+                const life = Math.max(0.25, Math.min(1, coil.stacks[i] / TESLA_STACK_MS));
+                ctx.fillStyle = full ? `rgba(255,${Math.round(200 + 40 * pulse)},${Math.round(90 + 90 * pulse)},1)` : `rgba(0,255,255,${0.45 + 0.55 * life})`;
+                ctx.fillRect(x0, by, cw, bh);
+            }
+        }
+        ctx.strokeStyle = full ? `rgba(255,235,170,${0.6 + 0.4 * pulse})` : 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(bx - 2, by - 2, total + 4, bh + 4);
+        if (full) {
+            const g = _getGlowSprite('#ffe9a8', 24);
+            if (g) {
+                ctx.globalAlpha = 0.35 + 0.35 * pulse;
+                ctx.drawImage(g, coil.x - 24, coil.y - 24, 48, 48);
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
 
     ctx.restore();
 }
@@ -510,6 +663,11 @@ function drawTeslaBolt(b) {
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.rotate(b.angle);
+    if (b.empowered) {
+        const g = _getGlowSprite('#ffe9a8', 20);
+        if (g) { ctx.globalAlpha = 0.85; ctx.drawImage(g, -22, -22, 44, 44); ctx.globalAlpha = 1; }
+        ctx.scale(1.45, 1.45);
+    }
     ctx.drawImage(_sgBoltSprite(), -26, -13, 52, 26);
     ctx.restore();
 }

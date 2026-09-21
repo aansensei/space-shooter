@@ -1092,11 +1092,6 @@ function update(rawDeltaTime) {
 
                 if (enemy.type.startsWith('enemy_bullet')) {
                     teslaSpeedMultiplier = 0.50;
-                    if (distToCoil < coil.size / 2 + enemy.size) {
-                        coil.hp -= enemy.hp;
-                        _recordStat('enemyDamage', 'Enemy Bullet', enemy.hp);
-                        enemy.hp = 0;
-                    }
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     // Leviathan immune to CC while shield active, no slow, still takes dot
                     teslaSpeedMultiplier = 1.0;

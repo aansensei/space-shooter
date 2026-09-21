@@ -273,7 +273,8 @@ function spawnTeslaCoil(midX, midY) {
 
     teslaCoils.push({
         x: midX, y: midY,
-        hp: 30, maxHp: 30,
+        hp: 1, maxHp: 1, // coils have no health: this is only an alive flag the 500-bolt self-destruct clears
+        stacks: [],
         size: TESLA_COIL_SIZE,
         auraRadius: TESLA_AURA_RADIUS,
         scanTimer: TESLA_BOLT_SCAN_MS,
@@ -324,6 +325,14 @@ function updateTeslaCoils(deltaTime, currentTime) {
 }
 
 
+// The coil's ring turns slowly; a pylon's world position comes from the
+// clock alone, so render and firing agree without any stored state.
+function teslaRingRot(now) { return now / 7000; }
+function teslaPylonPos(coil, i, now) {
+    const a = teslaRingRot(now) + i * Math.PI / 3;
+    return { x: coil.x + Math.cos(a) * TESLA_PYLON_R, y: coil.y + Math.sin(a) * TESLA_PYLON_R, a: a };
+}
+
 function _teslaBoltTargetable(e) {
     return e && e.hp > 0 && !e._markedForDeath && !e._stealthed && !e.inCoronation
         && !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo';
@@ -338,7 +347,15 @@ function _updateCoilBoltVolley(coil, deltaTime) {
     if (coil.flashMs > 0) coil.flashMs = Math.max(0, coil.flashMs - deltaTime);
     if (coil.hp <= 0) return;
 
-    coil.scanTimer -= deltaTime;
+    // Each stack carries its own remaining time; every stack adds fire rate,
+    // which speeds up the scan timer and the per-shot delays alike.
+    for (let i = coil.stacks.length - 1; i >= 0; i--) {
+        coil.stacks[i] -= deltaTime;
+        if (coil.stacks[i] <= 0) coil.stacks.splice(i, 1);
+    }
+    const rate = 1 + TESLA_STACK_FIRE_RATE * coil.stacks.length;
+
+    coil.scanTimer -= deltaTime * rate;
     if (coil.scanTimer <= 0) {
         coil.scanTimer += TESLA_BOLT_SCAN_MS;
         const inAura = [];
@@ -356,7 +373,7 @@ function _updateCoilBoltVolley(coil, deltaTime) {
 
     for (let q = coil.boltQueue.length - 1; q >= 0; q--) {
         const item = coil.boltQueue[q];
-        item.delay -= deltaTime;
+        item.delay -= deltaTime * rate;
         if (item.delay > 0) continue;
         coil.boltQueue.splice(q, 1);
         if (!_teslaBoltTargetable(item.target)) continue;
@@ -366,17 +383,33 @@ function _updateCoilBoltVolley(coil, deltaTime) {
 }
 
 function _launchTeslaBolt(coil, target) {
-    const ang = Math.atan2(target.y - coil.y, target.x - coil.x);
+    const now = performance.now();
+    const toTarget = Math.atan2(target.y - coil.y, target.x - coil.x);
+    // Fire from whichever pylon currently points closest to the target.
+    let best = 0, bestDiff = Infinity;
+    for (let i = 0; i < 6; i++) {
+        let d = teslaPylonPos(coil, i, now).a - toTarget;
+        d = Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
+        if (d < bestDiff) { bestDiff = d; best = i; }
+    }
+    const tip = teslaPylonPos(coil, best, now);
+    const ang = Math.atan2(target.y - tip.y, target.x - tip.x);
+    // Stack bookkeeping: a full set of stacks makes THIS bolt the empowered
+    // one and resets them; otherwise the shot adds a stack of its own.
+    const empowered = coil.stacks.length >= TESLA_STACK_MAX;
+    if (empowered) coil.stacks.length = 0;
+    else coil.stacks.push(TESLA_STACK_MS);
+    const boltStacks = empowered ? TESLA_STACK_MAX : coil.stacks.length;
     coil.boltsFired++;
     coil.flashMs = 160;
     coil.muzzleAngle = ang;
-    const br = coil.size / 2;
+    coil.muzzlePylon = best;
     teslaBolts.push({
-        x: coil.x + Math.cos(ang) * br, y: coil.y + Math.sin(ang) * br,
-        angle: ang, speed: 13, target, life: 2200, trail: [],
-        spawnAt: performance.now(),
+        x: tip.x, y: tip.y,
+        angle: ang, speed: 13, target: target, life: 2200, trail: [],
+        spawnAt: now, stacks: boltStacks, empowered: empowered,
     });
-    createParticles(coil.x + Math.cos(ang) * br, coil.y + Math.sin(ang) * br, 5, '#aaf6ff', 1, 4);
+    createParticles(tip.x, tip.y, 5, '#aaf6ff', 1, 4);
     if (window.AudioMgr) window.AudioMgr.playSfxAt('chain-lightning', coil.x, coil.y);
 }
 
@@ -421,8 +454,15 @@ function updateTeslaBolts(deltaTime, currentTime) {
             addExplosion(b.x, b.y, 30, 'electric_blue');
             teslaRings.push({ x: b.x, y: b.y, r0: 6, r1: 30, life: 240, maxLife: 240 });
             createParticles(b.x, b.y, 6, '#ffffff', 2, 7);
+            let _dmg = (TESLA_BOLT_DAMAGE + TESLA_STACK_ATK * b.stacks + (b.empowered ? TESLA_EMPOWER_ATK : 0)) * player.atk * _mult;
+            if (b.empowered) {
+                _dmg += TESLA_EMPOWER_LOST_HP * Math.max(0, hitTarget.maxHp - hitTarget.hp);
+                hitTarget._rootEnd = Math.max(hitTarget._rootEnd || 0, currentTime + TESLA_EMPOWER_ROOT_MS);
+                teslaRings.push({ x: b.x, y: b.y, r0: 10, r1: 62, life: 360, maxLife: 360 });
+                createParticles(b.x, b.y, 12, '#ffe9a8', 2, 9);
+            }
             dealDamage(hitTarget, {
-                damage: TESLA_BOLT_DAMAGE * player.atk * _mult,
+                damage: _dmg,
                 isPiercing: true, _teslaBolt: true, _statSrc: 'Skill G: Tesla Coil',
             });
             // Hit slow: fixed strength, timer just refreshes on repeat hits

@@ -167,6 +167,10 @@ const MAX_TESLA_COILS = 4;
 const ENERGY_ORB_SIZE = 15;
 const TESLA_COIL_SIZE = 20;
 const TESLA_AURA_RADIUS = TESLA_COIL_SIZE * 10;
+// Visual only: the ring is drawn wider than the coil's 20px hitbox
+// (TESLA_COIL_SIZE), with 6 pylons on a circle of TESLA_PYLON_R.
+const TESLA_COIL_VISUAL_R = 26;
+const TESLA_PYLON_R = 20;
 const TESLA_AURA_DR_SHRED = 0.05;
 const TESLA_AURA_FLAT_DR_SHRED = 100;
 // Base volley timing is 500ms scan / 100ms windup / 100ms stagger, all
@@ -176,7 +180,17 @@ const TESLA_BOLT_SCAN_MS = 500 / TESLA_BOLT_FIRE_RATE_MULT;
 const TESLA_BOLT_WINDUP_MS = 100 / TESLA_BOLT_FIRE_RATE_MULT;
 const TESLA_BOLT_STAGGER_MS = 100 / TESLA_BOLT_FIRE_RATE_MULT;
 const TESLA_BOLT_SLOW_MS = 1500;
-const TESLA_BOLT_SLOW_MULT = 0.70;
+const TESLA_BOLT_SLOW_MULT = 0.62;
+// Coil stacks: every bolt launched adds one, each lasting TESLA_STACK_MS.
+// Per stack: +5% fire rate, +2% ATK on every bolt hit. At 5 stacks the next
+// bolt is empowered (root, extra ATK and lost-HP damage) and stacks reset.
+const TESLA_STACK_MAX = 5;
+const TESLA_STACK_MS = 1500;
+const TESLA_STACK_FIRE_RATE = 0.05;
+const TESLA_STACK_ATK = 0.02;
+const TESLA_EMPOWER_ATK = 0.10;
+const TESLA_EMPOWER_LOST_HP = 0.05;
+const TESLA_EMPOWER_ROOT_MS = 500;
 const TESLA_BOLT_MAX_TARGETS = 5;
 const TESLA_BOLT_DAMAGE = 0.20;
 const TESLA_COIL_MAX_BOLTS = 500;
