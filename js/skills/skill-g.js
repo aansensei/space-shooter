@@ -288,6 +288,9 @@ function spawnTeslaCoil(midX, midY) {
 
 function updateTeslaCoils(deltaTime, currentTime) {
     let dt = deltaTime / 16.67;
+    // Each enemy gets pushed back once per frame no matter how many auras it
+    // sits in, so stacked coils slow it instead of shoving it backward.
+    const _pushed = new Set();
     for (let i = teslaCoils.length - 1; i >= 0; i--) {
         const coil = teslaCoils[i];
 
@@ -296,7 +299,8 @@ function updateTeslaCoils(deltaTime, currentTime) {
             if (enemy.inCoronation) return;               // untargetable during coronation
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
             if (Math.hypot(enemy.x - coil.x, enemy.y - coil.y) < coil.auraRadius + enemyRadius) {
-                if (!enemy.type.startsWith('enemy_bullet')) {
+                if (!enemy.type.startsWith('enemy_bullet') && !_pushed.has(enemy)) {
+                    _pushed.add(enemy);
                     enemy.y -= (enemy.speed * dt * 0.08);
                 }
             }

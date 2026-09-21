@@ -184,7 +184,7 @@ const TESLA_BOLT_STAGGER_MS = 100 / TESLA_BOLT_FIRE_RATE_MULT;
 // contributes only this fraction of its slow (i.e. 40% less effective).
 const TESLA_OVERLAP_SLOW_EFFECT = 0.60;
 const TESLA_BOLT_SLOW_MS = 1500;
-const TESLA_BOLT_SLOW_MULT = 0.62;
+const TESLA_BOLT_SLOW_MULT = 0.68;
 // Coil stacks: every bolt launched adds one, each lasting TESLA_STACK_MS.
 // Per stack: +5% fire rate, +2% ATK on every bolt hit. At 5 stacks the next
 // bolt is empowered (root, extra ATK and lost-HP damage) and stacks reset

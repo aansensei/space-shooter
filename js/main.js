@@ -1113,7 +1113,7 @@ function update(rawDeltaTime) {
                     // CC immune, no slow
                     teslaSpeedMultiplier = 1.0;
                 } else {
-                    teslaSpeedMultiplier = 0.30;
+                    teslaSpeedMultiplier = 0.40;
                     if (enemy.type === 'dargruel' || enemy.type === 'thaelis' || enemy.type === 'raphael') {
                         teslaAttackSpeedMultiplier = 2.0;
                     }

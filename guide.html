@@ -635,6 +635,16 @@
     let energyOrbs = [];
     let teslaCoils = [];
     const ENERGY_ORB_SIZE = 15, TESLA_COIL_SIZE = 20, TESLA_AURA_RADIUS = TESLA_COIL_SIZE * 10;
+    // Mirrors of the game's Tesla constants/helpers (js/config.js, js/skills/skill-g.js)
+    // that js/render/skill-g.js reads; the Skill G widget below drives them.
+    const TESLA_COIL_VISUAL_R = 26, TESLA_PYLON_R = 20, TESLA_STACK_MAX = 5, TESLA_STACK_MS = 1500;
+    const TESLA_STACK_FIRE_RATE = 0.05, TESLA_COIL_MAX_BOLTS = 500;
+    let teslaBolts = [], teslaRings = [];
+    function teslaRingRot(now) { return now / 7000; }
+    function teslaPylonPos(coil, i, now) {
+      const a = teslaRingRot(now) + i * Math.PI / 3;
+      return { x: coil.x + Math.cos(a) * TESLA_PYLON_R, y: coil.y + Math.sin(a) * TESLA_PYLON_R, a: a };
+    }
     let charging = false, chargeStartTime = 0;
     const maxChargeTime = 1000, maxMultiplier = 10, overloadChargeTime = 3000;
     let laserActive = false, laserStartTime = 0;
@@ -904,7 +914,7 @@
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> TESLA MATRIX</h2><div class="sub"><span class="cd">CHARGE VIA KILLS</span> <span class="cd">30s</span></div>
 <div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
 <ul><li>Spawns Energy Orbs → pair into Links (slow 8% + <span class="dmg">8% ATK</span>/250ms).</li>
-<li>Links merge @5s → <b>Tesla Coils</b> (max 4). Enemies inside the aura are slowed and lose <span class="hr">5% DR and 100 flat DR</span> (a target with less than that to lose takes the shortfall as bonus damage instead). Every ~0.42s (0.5s with +20% fire rate) each coil picks up to <b>5 different enemies</b> in its aura, charges ~0.08s, then fires a homing bolt at each one ~0.08s apart for <span class="dmg">20% ATK piercing</span> (one bolt per enemy per volley). A bolt that lands also slows its target <span class="hr">38% for 1.5s</span> (refreshes, never stacks). Coils have no HP: every bolt fired adds a <b>stack</b> (max 5, 1.5s each). Per stack <span class="hg">+5% fire rate</span> and <span class="hg">+2% ATK</span> on every bolt hit. At 5 stacks the next bolt is <b>empowered</b>: <span class="dmg">+10% ATK and +5% of the target's lost HP</span>, roots for <span class="hr">0.5s</span>, then stacks reset to 1. Each enemy bullet entering an aura has a <span class="hr">25% chance to vanish</span> (one roll per bullet). Slows from overlapping coils stack with diminishing effect: the first is full strength, each extra coil's is <span class="hr">40% less effective</span>. A coil that fires 500 bolts detonates itself.</li>
+<li>Links merge @5s → <b>Tesla Coils</b> (max 4). Enemies inside the aura are slowed and lose <span class="hr">5% DR and 100 flat DR</span> (a target with less than that to lose takes the shortfall as bonus damage instead). Every ~0.42s (0.5s with +20% fire rate) each coil picks up to <b>5 different enemies</b> in its aura, charges ~0.08s, then fires a homing bolt at each one ~0.08s apart for <span class="dmg">20% ATK piercing</span> (one bolt per enemy per volley). A bolt that lands also slows its target <span class="hr">32% for 1.5s</span> (refreshes, never stacks). Coils have no HP: every bolt fired adds a <b>stack</b> (max 5, 1.5s each). Per stack <span class="hg">+5% fire rate</span> and <span class="hg">+2% ATK</span> on every bolt hit. At 5 stacks the next bolt is <b>empowered</b>: <span class="dmg">+10% ATK and +5% of the target's lost HP</span>, roots for <span class="hr">0.5s</span>, then stacks reset to 1. Each enemy bullet entering an aura has a <span class="hr">25% chance to vanish</span> (one roll per bullet). Slows from overlapping coils stack with diminishing effect: the first is full strength, each extra coil's is <span class="hr">40% less effective</span>. A coil that fires 500 bolts detonates itself.</li>
 <li>Detonation (Skill G ends): <span class="dmg">2.3% ATK</span> area on every remaining orb/coil.</li></ul></div>`,
 
       sigils: `
@@ -1303,8 +1313,8 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>DPS/TTK verification (debug console):</b> a "Run Verification" button drives waves 1/2/5/10/15/20 back to back with autoplay at 4x speed, reporting clear time, lives lost, and damage dealt/received per wave.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Main Menu confirmation:</b> both the pause screen's and the Game Over screen's Main Menu button now ask Yes/No before actually leaving the current run.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Goliath weaken on hit (NEW):</b> any Goliath damage that lands on the player cuts their ATK by <span class="hg">30%</span> for <span class="hg">1.5s</span>. Getting hit again while it's still active just refreshes the window, it never stacks deeper or lasts longer.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Skill G: Tesla Matrix remake:</b> Energy Link ticks <span class="hg">10.9% ATK/125ms → 8% ATK/250ms</span> (Chain Lightning jump 10.9% → 8%). The Tesla Coil aura no longer deals damage over time: it slows enemies and strips <span class="hg">5% DR + 100 flat DR</span> (shortfall becomes bonus damage on targets with less to lose). Each coil instead scans every ~0.42s (+20% fire rate), charges ~0.08s, and fires a homing bolt at up to <span class="hg">5 different enemies</span> ~0.08s apart for <span class="hg">20% ATK piercing</span>, and a landed bolt slows its target 38% for 1.5s (non-stacking). A coil that fires 500 bolts self-destructs, shown by a fill ring around it. Bolts do not trigger Glory for Justice's Chain Lightning.</li>
-<li><span class="ul-tag tag-balance">BALANCE</span> <b>Tesla Coil stacks replace coil HP:</b> coils no longer have health and enemy bullets no longer hurt them. Every bolt fired adds a stack (max 5, 1.5s each, shown as a 5-cell bar): <span class="hg">+5% fire rate</span> and <span class="hg">+2% ATK</span> per hit per stack. At 5 stacks the next bolt is empowered: <span class="hg">+10% ATK + 5% lost HP</span>, roots 0.5s, and resets the stacks to 1. Bolt-hit slow raised 30% to 38%. Enemy bullets flying into a coil aura now have a 25% chance to vanish. Bolts now leave the crystal core with a core flare, shock spike and a lightning conduit to the nearest pylon, and coils no longer target enemies that cannot be targeted (Thaelis's Cocoon, Goliath before True Form, Veilshroud in Phantom). Slows from several overlapping coils stack with the extra ones 40% less effective.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Skill G: Tesla Matrix remake:</b> Energy Link ticks <span class="hg">10.9% ATK/125ms → 8% ATK/250ms</span> (Chain Lightning jump 10.9% → 8%). The Tesla Coil aura no longer deals damage over time: it slows enemies and strips <span class="hg">5% DR + 100 flat DR</span> (shortfall becomes bonus damage on targets with less to lose). Each coil instead scans every ~0.42s (+20% fire rate), charges ~0.08s, and fires a homing bolt at up to <span class="hg">5 different enemies</span> ~0.08s apart for <span class="hg">20% ATK piercing</span>, and a landed bolt slows its target 32% for 1.5s (non-stacking). A coil that fires 500 bolts self-destructs, shown by a fill ring around it. Bolts do not trigger Glory for Justice's Chain Lightning.</li>
+<li><span class="ul-tag tag-balance">BALANCE</span> <b>Tesla Coil stacks replace coil HP:</b> coils no longer have health and enemy bullets no longer hurt them. Every bolt fired adds a stack (max 5, 1.5s each, shown as a 5-cell bar): <span class="hg">+5% fire rate</span> and <span class="hg">+2% ATK</span> per hit per stack. At 5 stacks the next bolt is empowered: <span class="hg">+10% ATK + 5% lost HP</span>, roots 0.5s, and resets the stacks to 1. Bolt-hit slow raised 30% to 32%, aura slow eased 70% to 60%, and overlapping coils no longer stack their pushback (an enemy inside several auras could be shoved backward instead of just slowed). Enemy bullets flying into a coil aura now have a 25% chance to vanish. Bolts now leave the crystal core with a core flare, shock spike and a lightning conduit to the nearest pylon, and coils no longer target enemies that cannot be targeted (Thaelis's Cocoon, Goliath before True Form, Veilshroud in Phantom). Slows from several overlapping coils stack with the extra ones 40% less effective.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Skill G visual revamp:</b> new coil firing flash, charge-up pulse, bolt-count ring, lens-shaped homing bolts with trails, impact and detonation rings, jagged animated Energy Link lightning with two-way energy packets, activation shockwaves, and a slow scan band across the barrier.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Skill G sprite caching:</b> the barrier frame, grid, orbs, coils, aura and bolts are baked into offscreen sprites and drawn as image blits instead of rebuilding gradients and glow blurs every frame.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Debug console:</b> new "Spawn Tesla Coil" button.</li>
@@ -1315,6 +1325,7 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Minimum delay between Wisdom Orb / Judgment launches:</b> both were gated only on a hit-count or queue check with no time floor, so a burst of near-simultaneous hits could trigger a second cast before the first had even left its charge/gather phase. Now at least 1s apart for Wisdom Orb, 0.8s for Uriel's Judgment, timed from the actual launch.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Charge-shot ring crash (IndexSizeError):</b> a timing edge case could occasionally make the charge ratio read briefly negative, feeding a negative radius into the ring effect's canvas draw call and throwing. Clamped at 0.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Goliath's death roar was silent:</b> three separate places in the code raced to catch its HP hitting 0, and the earliest one to fire (inside the shared damage function itself) always won, playing only the generic death stinger and never the roar the other two were set up to play. The roar now fires from that same earliest point instead.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Skill G guide demo:</b> the animated Tesla Matrix demo threw an error after the coil redesign and stopped mid-animation. It now runs the real coil, bolts, stack bar and empowered shot.</li>
 </ul>
 </div>
 
@@ -2144,7 +2155,7 @@
 <div class="card"><h2 style="color:#06b6d4"><span class="key">G</span> MA TRẬN TESLA</h2><div class="sub"><span class="cd">NẠP QUA HẠ GỤC</span> <span class="cd">30s</span></div>
 <div class="ab"><canvas id="cvSkillG" style="width:100%;height:100%"></canvas><button class="play-btn" id="btnPlaySkillG" onclick="playWidget('skillG', this)">▶ Play</button></div>
 <ul><li>Sinh ra Cầu Năng Lượng → ghép thành Liên Kết (chậm 8% + <span class="dmg">8% ATK</span>/250ms).</li>
-<li>Liên Kết hợp nhất @5s → <b>Cuộn Tesla</b> (tối đa 4). Kẻ địch trong hào quang bị làm chậm và mất <span class="hr">5% DR và 100 DR phẳng</span> (mục tiêu không có đủ để mất thì phần thiếu được đền thành sát thương cộng thêm). Mỗi ~0.42s (0.5s cộng 20% tốc độ bắn) mỗi cuộn chọn tối đa <b>5 kẻ địch khác nhau</b> trong hào quang, tụ lực ~0.08s rồi bắn 1 viên sét tự dẫn vào từng kẻ, cách nhau ~0.08s, gây <span class="dmg">20% ATK sát thương xuyên</span> (mỗi kẻ chỉ ăn 1 viên mỗi đợt). Viên sét trúng còn làm chậm mục tiêu <span class="hr">38% trong 1.5s</span> (làm mới thời gian, không cộng dồn). Cuộn Tesla không có máu: mỗi viên bắn ra cộng 1 <b>stack</b> (tối đa 5, mỗi stack 1.5s). Mỗi stack <span class="hg">+5% tốc độ bắn</span> và <span class="hg">+2% ATK</span> cho mọi viên trúng. Đủ 5 stack thì viên kế tiếp được <b>cường hóa</b>: <span class="dmg">+10% ATK và +5% máu đã mất của mục tiêu</span>, trói chân <span class="hr">0.5s</span>, rồi reset stack về 1. Mỗi viên đạn địch bay vào hào quang có <span class="hr">25% xác suất biến mất</span> (chỉ tính 1 lần cho mỗi viên). Làm chậm từ nhiều cuộn chồng nhau cộng dồn có giảm dần: cuộn đầu đủ hiệu lực, mỗi cuộn thêm <span class="hr">kém hiệu quả 40%</span>. Cuộn nào bắn đủ 500 viên sẽ tự phát nổ.</li>
+<li>Liên Kết hợp nhất @5s → <b>Cuộn Tesla</b> (tối đa 4). Kẻ địch trong hào quang bị làm chậm và mất <span class="hr">5% DR và 100 DR phẳng</span> (mục tiêu không có đủ để mất thì phần thiếu được đền thành sát thương cộng thêm). Mỗi ~0.42s (0.5s cộng 20% tốc độ bắn) mỗi cuộn chọn tối đa <b>5 kẻ địch khác nhau</b> trong hào quang, tụ lực ~0.08s rồi bắn 1 viên sét tự dẫn vào từng kẻ, cách nhau ~0.08s, gây <span class="dmg">20% ATK sát thương xuyên</span> (mỗi kẻ chỉ ăn 1 viên mỗi đợt). Viên sét trúng còn làm chậm mục tiêu <span class="hr">32% trong 1.5s</span> (làm mới thời gian, không cộng dồn). Cuộn Tesla không có máu: mỗi viên bắn ra cộng 1 <b>stack</b> (tối đa 5, mỗi stack 1.5s). Mỗi stack <span class="hg">+5% tốc độ bắn</span> và <span class="hg">+2% ATK</span> cho mọi viên trúng. Đủ 5 stack thì viên kế tiếp được <b>cường hóa</b>: <span class="dmg">+10% ATK và +5% máu đã mất của mục tiêu</span>, trói chân <span class="hr">0.5s</span>, rồi reset stack về 1. Mỗi viên đạn địch bay vào hào quang có <span class="hr">25% xác suất biến mất</span> (chỉ tính 1 lần cho mỗi viên). Làm chậm từ nhiều cuộn chồng nhau cộng dồn có giảm dần: cuộn đầu đủ hiệu lực, mỗi cuộn thêm <span class="hr">kém hiệu quả 40%</span>. Cuộn nào bắn đủ 500 viên sẽ tự phát nổ.</li>
 <li>Kích nổ (khi Skill G kết thúc): <span class="dmg">2.3% ATK</span> diện rộng cho mọi cầu/cuộn còn lại.</li></ul></div>`,
 
       rules: `
@@ -5699,16 +5710,17 @@
           };
         }
 
-        // ── TESLA MATRIX (Skill G) — real drawEnergyOrb() converge + real drawTeslaCoil() ──
+        // ── TESLA MATRIX (Skill G) — real drawEnergyOrb() converge, then a real
+        // drawTeslaCoil() firing real drawTeslaBolt() volleys with the stack bar ──
         const skg = setup('cvSkillG');
         if (skg) {
           const { c, w, h } = skg;
-          const cx = w * 0.5, cy = h * 0.48;
+          const cx = w * 0.5, cy = h * 0.46;
           function drawIdle() {
             ctx = c; canvas = { width: w, height: h };
             c.clearRect(0, 0, w, h);
             player.x = cx; player.y = cy;
-            energyOrbs = []; teslaCoils = [];
+            energyOrbs = []; teslaCoils = []; teslaBolts = []; teslaRings = [];
             drawPlayer();
           }
           drawIdle();
@@ -5721,13 +5733,42 @@
               { id: 1, x: w * 0.18, y: h * 0.3, size: ENERGY_ORB_SIZE, isMerging: false, mergeStartTime: 0, linkedTo: null },
               { id: 2, x: w * 0.82, y: h * 0.66, size: ENERGY_ORB_SIZE, isMerging: false, mergeStartTime: 0, linkedTo: null },
             ];
-            teslaCoils = [];
-            const target = { x: w * 0.5, y: h * 0.86, size: 12, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 0 };
-            let elapsed = 0, merged = false;
+            teslaCoils = []; teslaBolts = []; teslaRings = [];
+            const rr = Math.min(w, h) * 0.36;
+            const dummies = [[2.65, 1.0], [0.4, 1.08], [1.55, 0.92]].map(([a, d]) => ({
+              x: Math.max(18, Math.min(w - 18, cx + Math.cos(a) * rr * d * 1.5)),
+              y: Math.max(18, Math.min(h - 18, cy + Math.sin(a) * rr * d)),
+              size: 12, hp: 200, maxHp: 200, type: 'debug_dummy', shield: 0,
+            }));
+            const SCAN = 500 / 1.2, WINDUP = 100 / 1.2, STAGGER = 100 / 1.2;
+            let elapsed = 0, merged = false, lastT = 0;
+
+            function launch(coil, target) {
+              const now = performance.now();
+              const ang = Math.atan2(target.y - coil.y, target.x - coil.x);
+              let best = 0, bestDiff = Infinity;
+              for (let i = 0; i < 6; i++) {
+                let d = teslaPylonPos(coil, i, now).a - ang;
+                d = Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
+                if (d < bestDiff) { bestDiff = d; best = i; }
+              }
+              const empowered = coil.stacks.length >= TESLA_STACK_MAX;
+              if (empowered) coil.stacks.length = 0;
+              coil.stacks.push(TESLA_STACK_MS);
+              coil.boltsFired++;
+              coil.flashMs = 200; coil.muzzleAngle = ang; coil.muzzlePylon = best;
+              teslaBolts.push({ x: coil.x, y: coil.y, angle: ang, speed: 13, target, life: 2200, trail: [], empowered, stacks: 0 });
+              teslaRings.push({ x: coil.x, y: coil.y, r0: 6, r1: TESLA_COIL_VISUAL_R + 10, life: 220, maxLife: 220 });
+            }
+
             function tick() {
               const nowT = performance.now();
               if (_widgetPauseGuard(btn, nowT)) { activeAnimations.push(requestAnimationFrame(tick)); return; }
-              const dt = 16.67;
+              // Real elapsed time (clamped), so the demo runs at game speed on any
+              // refresh rate instead of speeding up on 120Hz/144Hz screens.
+              const dt = lastT ? Math.max(1, Math.min(50, nowT - lastT)) : 16.67;
+              const df = dt / 16.67;
+              lastT = nowT;
               elapsed += dt;
               ctx = c; canvas = { width: w, height: h };
               c.clearRect(0, 0, w, h);
@@ -5741,36 +5782,72 @@
                   merged = true;
                   o1.isMerging = o2.isMerging = true;
                   o1.mergeStartTime = o2.mergeStartTime = gameElapsedTime;
-                  teslaCoils = [{ x: cx, y: cy, size: TESLA_COIL_SIZE, auraRadius: TESLA_AURA_RADIUS }];
+                  teslaCoils = [{
+                    x: cx, y: cy, size: TESLA_COIL_SIZE, auraRadius: TESLA_AURA_RADIUS, id: 0.4242,
+                    stacks: [], boltQueue: [], boltsFired: 0, flashMs: 0, muzzleAngle: 0, muzzlePylon: 0, scanTimer: SCAN,
+                  }];
                   if (window.AudioMgr) window.AudioMgr.playSfx('tesla-coil-form');
                 }
               } else {
                 gameElapsedTime += dt;
                 energyOrbs = energyOrbs.filter(o => (gameElapsedTime - o.mergeStartTime) < 500);
-                if (teslaCoils.length && elapsed - 1500 > 200 && Math.floor((elapsed - 1500) / 250) % 2 === 0) {
-                  createParticles((cx + target.x) / 2, (cy + target.y) / 2, 1, '#00e5ff', 1, 2);
-                  // Dummy takes visible tick damage but never dies (floor 15% of max).
-                  target.hp = Math.max(Math.ceil(target.maxHp * 0.15), target.hp - 4);
+                const coil = teslaCoils[0];
+                if (coil.flashMs > 0) coil.flashMs = Math.max(0, coil.flashMs - dt);
+                for (let i = coil.stacks.length - 1; i >= 0; i--) {
+                  coil.stacks[i] -= dt;
+                  if (coil.stacks[i] <= 0) coil.stacks.splice(i, 1);
+                }
+                const rate = 1 + TESLA_STACK_FIRE_RATE * coil.stacks.length;
+                coil.scanTimer -= dt * rate;
+                if (coil.scanTimer <= 0) {
+                  coil.scanTimer += SCAN;
+                  coil.boltQueue = dummies.map((t, i) => ({ target: t, delay: WINDUP + i * STAGGER }));
+                }
+                for (let q = coil.boltQueue.length - 1; q >= 0; q--) {
+                  const item = coil.boltQueue[q];
+                  item.delay -= dt * rate;
+                  if (item.delay > 0) continue;
+                  coil.boltQueue.splice(q, 1);
+                  launch(coil, item.target);
+                }
+                for (let i = teslaBolts.length - 1; i >= 0; i--) {
+                  const b = teslaBolts[i];
+                  b.life -= dt;
+                  const want = Math.atan2(b.target.y - b.y, b.target.x - b.x);
+                  let diff = want - b.angle;
+                  while (diff > Math.PI) diff -= Math.PI * 2;
+                  while (diff < -Math.PI) diff += Math.PI * 2;
+                  b.angle += Math.max(-0.14 * df, Math.min(0.14 * df, diff));
+                  b.trail.push({ x: b.x, y: b.y });
+                  if (b.trail.length > 7) b.trail.shift();
+                  b.x += Math.cos(b.angle) * b.speed * df; b.y += Math.sin(b.angle) * b.speed * df;
+                  if (Math.hypot(b.target.x - b.x, b.target.y - b.y) < b.target.size / 2 + 9 || b.life <= 0) {
+                    if (b.life > 0) {
+                      teslaRings.push({ x: b.x, y: b.y, r0: b.empowered ? 10 : 6, r1: b.empowered ? 62 : 30, life: b.empowered ? 360 : 240, maxLife: b.empowered ? 360 : 240 });
+                      createParticles(b.x, b.y, b.empowered ? 10 : 4, b.empowered ? '#ffe9a8' : '#aaf6ff', 1, 6);
+                      b.target.hp = Math.max(Math.ceil(b.target.maxHp * 0.15), b.target.hp - (b.empowered ? 30 : 6));
+                    }
+                    teslaBolts.splice(i, 1);
+                  }
+                }
+                for (let r = teslaRings.length - 1; r >= 0; r--) {
+                  teslaRings[r].life -= dt;
+                  if (teslaRings[r].life <= 0) teslaRings.splice(r, 1);
                 }
               }
               _tickParticlesAndExplosions(dt);
 
-              drawEnemy(target);
-              if (merged && teslaCoils.length) {
-                const coil = teslaCoils[0];
-                c.save(); c.globalAlpha = 0.7 + 0.3 * Math.sin(performance.now() / 150);
-                c.strokeStyle = '#00ffff'; c.lineWidth = 1.5;
-                c.beginPath(); c.moveTo(coil.x, coil.y); c.lineTo(target.x, target.y); c.stroke();
-                c.restore();
-              }
+              dummies.forEach(drawEnemy);
               energyOrbs.forEach(drawEnergyOrb);
               teslaCoils.forEach(drawTeslaCoil);
+              teslaBolts.forEach(drawTeslaBolt);
+              drawTeslaRings();
               particles.forEach(drawParticle);
 
-              if (elapsed < 4000) {
+              if (elapsed < 8000) {
                 activeAnimations.push(requestAnimationFrame(tick));
               } else {
-                energyOrbs = []; teslaCoils = []; particles.length = 0;
+                energyOrbs = []; teslaCoils = []; teslaBolts = []; teslaRings = []; particles.length = 0;
                 btn.dataset.running = 'false'; btn.dataset.paused = 'false'; delete btn.dataset._pauseAnchorAt; btn.textContent = '▶ Play';
                 drawIdle();
               }
