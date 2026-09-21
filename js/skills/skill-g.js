@@ -51,6 +51,7 @@ function endSkillG() {
     });
     teslaCoils = [];
     teslaBolts = [];
+    teslaRings = [];
 }
 
 function spawnEnergyOrb(x, y) {
@@ -306,6 +307,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
             const _coilDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1; // docs/combat-scaling-rebalance.md Part 5
             const explosionProps = { damage: 0.023 * player.atk * _coilDmgMult, _statSrc: 'Skill G: Tesla Coil' };
             addExplosion(coil.x, coil.y, coil.auraRadius, 'electric_blue');
+            teslaRings.push({ x: coil.x, y: coil.y, r0: coil.size, r1: coil.auraRadius * 1.15, life: 420, maxLife: 420 });
             enemies.forEach(enemy => {
                 if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
                 let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
@@ -380,6 +382,10 @@ function _launchTeslaBolt(coil, target) {
 
 function updateTeslaBolts(deltaTime, currentTime) {
     const dt = deltaTime / 16.67;
+    for (let r = teslaRings.length - 1; r >= 0; r--) {
+        teslaRings[r].life -= deltaTime;
+        if (teslaRings[r].life <= 0) teslaRings.splice(r, 1);
+    }
     for (let i = teslaBolts.length - 1; i >= 0; i--) {
         const b = teslaBolts[i];
         b.life -= deltaTime;
@@ -413,11 +419,15 @@ function updateTeslaBolts(deltaTime, currentTime) {
             const _mult = _hasBuff('ky_su_dien') ? 1.30 : 1;
             const hitTarget = b.target;
             addExplosion(b.x, b.y, 30, 'electric_blue');
+            teslaRings.push({ x: b.x, y: b.y, r0: 6, r1: 30, life: 240, maxLife: 240 });
             createParticles(b.x, b.y, 6, '#ffffff', 2, 7);
             dealDamage(hitTarget, {
                 damage: TESLA_BOLT_DAMAGE * player.atk * _mult,
                 isPiercing: true, _teslaBolt: true, _statSrc: 'Skill G: Tesla Coil',
             });
+            // Hit slow: fixed strength, timer just refreshes on repeat hits
+            // (never stacks). CC-immune enemies ignore it in main.js.
+            hitTarget._teslaBoltSlowUntil = currentTime + TESLA_BOLT_SLOW_MS;
             teslaBolts.splice(i, 1);
             continue;
         }

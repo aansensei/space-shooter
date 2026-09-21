@@ -1566,13 +1566,14 @@ function update(rawDeltaTime) {
             const _dtuSlowMul = (!_ccImmune && enemy._dtuSlow && currentTime < (enemy._dtuSlowEnd || 0)) ? 0.70 : 1.0;
             const _cucHanMul = (!_ccImmune && enemy._slowEnd && currentTime < enemy._slowEnd) ? (1 / (enemy._slowFactor || 1)) : 1.0;
             const _rootMul = (!_ccImmune && enemy._rootEnd && currentTime < enemy._rootEnd) ? 0 : 1.0;
+            const _teslaBoltSlowMul = (!_ccImmune && enemy._teslaBoltSlowUntil && currentTime < enemy._teslaBoltSlowUntil) ? TESLA_BOLT_SLOW_MULT : 1.0;
             // Vine Bind (Phōtokrystos DNT): vines take 1s to grow in, then a
             // flat 2s 50% slow follows — no effect during the growth window.
             const _vineSlowMul = (!_ccImmune && enemy._vineStart && currentTime >= enemy._vineStart + 1000 && currentTime < enemy._vineStart + 3000) ? 0.50 : 1.0;
             // Phone screens are cramped enough that enemies closing distance
             // at full speed feels unfair versus PC/tablet - trimmed a bit.
             const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
-            enemy.y += enemy.speed * _phoneSpeedMul * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul;
+            enemy.y += enemy.speed * _phoneSpeedMul * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul * _teslaBoltSlowMul;
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -3471,6 +3472,7 @@ function startGame() {
     energyOrbs = [];
     teslaCoils = [];
     teslaBolts = [];
+    teslaRings = [];
 
     player.x = canvas.width / 2;
     // Mobile: tính ngược scale để player xuất hiện đúng đáy màn hình sau ctx.scale(0.78)

@@ -2181,6 +2181,7 @@ function draw(deltaTime) {
         teslaCoils.forEach(drawTeslaCoil);
         energyOrbs.forEach(drawEnergyOrb);
         teslaBolts.forEach(drawTeslaBolt);
+        drawTeslaRings();
 
         drawRaphaelLasers();
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)

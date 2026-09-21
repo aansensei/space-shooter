@@ -162,15 +162,21 @@ let skillGBorderOpacity = 0;
 let energyOrbs = [];
 let teslaCoils = [];
 let teslaBolts = [];
+let teslaRings = [];
 const MAX_TESLA_COILS = 4;
 const ENERGY_ORB_SIZE = 15;
 const TESLA_COIL_SIZE = 20;
 const TESLA_AURA_RADIUS = TESLA_COIL_SIZE * 10;
 const TESLA_AURA_DR_SHRED = 0.05;
 const TESLA_AURA_FLAT_DR_SHRED = 100;
-const TESLA_BOLT_SCAN_MS = 500;
-const TESLA_BOLT_WINDUP_MS = 100;
-const TESLA_BOLT_STAGGER_MS = 100;
+// Base volley timing is 500ms scan / 100ms windup / 100ms stagger, all
+// divided by the +20% fire rate bonus.
+const TESLA_BOLT_FIRE_RATE_MULT = 1.2;
+const TESLA_BOLT_SCAN_MS = 500 / TESLA_BOLT_FIRE_RATE_MULT;
+const TESLA_BOLT_WINDUP_MS = 100 / TESLA_BOLT_FIRE_RATE_MULT;
+const TESLA_BOLT_STAGGER_MS = 100 / TESLA_BOLT_FIRE_RATE_MULT;
+const TESLA_BOLT_SLOW_MS = 1500;
+const TESLA_BOLT_SLOW_MULT = 0.70;
 const TESLA_BOLT_MAX_TARGETS = 5;
 const TESLA_BOLT_DAMAGE = 0.20;
 const TESLA_COIL_MAX_BOLTS = 500;
