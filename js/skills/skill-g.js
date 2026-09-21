@@ -395,10 +395,10 @@ function _launchTeslaBolt(coil, target) {
     const tip = teslaPylonPos(coil, best, now);
     const ang = Math.atan2(target.y - tip.y, target.x - tip.x);
     // Stack bookkeeping: a full set of stacks makes THIS bolt the empowered
-    // one and resets them; otherwise the shot adds a stack of its own.
+    // one and resets them to a single stack (its own); otherwise the shot adds a stack.
     const empowered = coil.stacks.length >= TESLA_STACK_MAX;
     if (empowered) coil.stacks.length = 0;
-    else coil.stacks.push(TESLA_STACK_MS);
+    coil.stacks.push(TESLA_STACK_MS);
     const boltStacks = empowered ? TESLA_STACK_MAX : coil.stacks.length;
     coil.boltsFired++;
     coil.flashMs = 160;

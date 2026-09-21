@@ -1092,6 +1092,14 @@ function update(rawDeltaTime) {
 
                 if (enemy.type.startsWith('enemy_bullet')) {
                     teslaSpeedMultiplier = 0.50;
+                    // One roll per bullet, on first entering any coil's aura.
+                    if (!enemy._teslaBulletRolled) {
+                        enemy._teslaBulletRolled = true;
+                        if (Math.random() < TESLA_AURA_BULLET_VANISH_CHANCE) {
+                            createParticles(enemy.x, enemy.y, 5, '#7ff3ff', 1, 5);
+                            enemy.hp = 0;
+                        }
+                    }
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive) {
                     // Leviathan immune to CC while shield active, no slow, still takes dot
                     teslaSpeedMultiplier = 1.0;

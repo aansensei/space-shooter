@@ -183,7 +183,10 @@ const TESLA_BOLT_SLOW_MS = 1500;
 const TESLA_BOLT_SLOW_MULT = 0.62;
 // Coil stacks: every bolt launched adds one, each lasting TESLA_STACK_MS.
 // Per stack: +5% fire rate, +2% ATK on every bolt hit. At 5 stacks the next
-// bolt is empowered (root, extra ATK and lost-HP damage) and stacks reset.
+// bolt is empowered (root, extra ATK and lost-HP damage) and stacks reset
+// to 1 (the empowered bolt counts as the first stack of the next cycle).
+// Enemy bullets entering a coil aura roll once, this chance to vanish.
+const TESLA_AURA_BULLET_VANISH_CHANCE = 0.25;
 const TESLA_STACK_MAX = 5;
 const TESLA_STACK_MS = 1500;
 const TESLA_STACK_FIRE_RATE = 0.05;
