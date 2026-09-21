@@ -1116,29 +1116,13 @@ function update(rawDeltaTime) {
 
                 if (enemy.hp <= 0) break;
 
-                if (!coil.dotTargets) coil.dotTargets = new Map();
-                if (!coil.dotTargets.has(enemy)) {
-                    coil.dotTargets.set(enemy, currentTime); // Dot timer runs in real-time
-                }
-
-                if (currentTime - coil.dotTargets.get(enemy) >= 125) {
-                    // docs/combat-scaling-rebalance.md Part 5: Circuit Engineer's
-                    // +30% previously covered link ticks and the destroyed-Coil
-                    // burst but not this proximity aura tick - now consistent.
-                    const _auraDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1;
-                    dealDamage(enemy, { damage: 0.15 * player.atk * _auraDmgMult, isTeslaDot: true });
-                    coil.dotTargets.set(enemy, currentTime);
-                }
+                // Standing in the aura strips DR and flat DR (applied inside
+                // dealDamage while this stamp is live). Refreshed every frame
+                // spent inside, so it lapses shortly after leaving. The
+                // coil's own damage is the homing bolt volley in skill-g.js.
+                enemy._teslaAuraUntil = currentTime + 250;
             }
             if (enemy.hp <= 0) break;
-        }
-
-        if (!inTeslaAura) {
-            for (const coil of teslaCoils) {
-                if (coil.dotTargets && coil.dotTargets.has(enemy)) {
-                    coil.dotTargets.delete(enemy);
-                }
-            }
         }
 
         // GOLIATH True Form: KHÔNG xử lý chết ở đây — updateGoliath() (chạy
@@ -2397,6 +2381,7 @@ function update(rawDeltaTime) {
     updateSkillF(deltaTime); _profChk2.push(performance.now());
     updateEnergyOrbs(deltaTime, gameElapsedTime); _profChk2.push(performance.now());
     updateTeslaCoils(deltaTime, currentTime); _profChk2.push(performance.now());
+    updateTeslaBolts(deltaTime, currentTime);
     updateMarchosiasBlades(deltaTime); _profChk2.push(performance.now());
     updateRaphaelWisdomOrbs(deltaTime); _profChk2.push(performance.now());
     updateRaphaelWisdomZones(deltaTime); _profChk2.push(performance.now());
@@ -3485,6 +3470,7 @@ function startGame() {
     skillGBorderOpacity = 0;
     energyOrbs = [];
     teslaCoils = [];
+    teslaBolts = [];
 
     player.x = canvas.width / 2;
     // Mobile: tính ngược scale để player xuất hiện đúng đáy màn hình sau ctx.scale(0.78)

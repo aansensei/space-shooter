@@ -335,9 +335,9 @@ Charges up, then sweeps a massive plasma beam across the entire screen. Every en
 
 Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locations throughout the duration.
 
-**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **10.9% ATK** damage every 125ms (Circuit Engineer sigil: +30%).
+**Energy Links** — Orbs automatically pair up and connect. Enemies passing through the link slow down by 8% and take **8% ATK** damage every 250ms (Circuit Engineer sigil: +30%). Chain Lightning's jump from a link tick deals 8% ATK.
 
-**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies by 8% and shocks them for **15% ATK** every 125ms (Circuit Engineer sigil: +30%).
+**Tesla Coils** — After 5 seconds, each linked pair of orbs merges into a Tesla Coil (max 4 total). Each coil has a radius-200 aura that slows enemies and strips **5% DR and 100 flat DR** from them (a target with less than that to lose takes the shortfall as bonus damage: 5% per missing DR point, 1:1 for flat). Every 0.5 seconds each coil picks up to **5 different enemies** inside the aura, charges for 0.1 seconds, then fires a homing bolt at each one, 0.1 seconds apart, for **20% ATK piercing** damage (Circuit Engineer sigil: +30%). Each enemy takes at most one bolt per volley, and bolts do not trigger Glory for Justice's Chain Lightning. A coil that has fired 500 bolts self-destructs.
 
 **Detonation** — When a coil's HP (30) runs out or the 30-second duration ends, all orbs and coils explode. Each coil blast deals **2.3% ATK** in a large area (Circuit Engineer sigil: +30%).
 

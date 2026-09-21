@@ -161,10 +161,19 @@ let skillGEndTime = 0;
 let skillGBorderOpacity = 0;
 let energyOrbs = [];
 let teslaCoils = [];
+let teslaBolts = [];
 const MAX_TESLA_COILS = 4;
 const ENERGY_ORB_SIZE = 15;
 const TESLA_COIL_SIZE = 20;
 const TESLA_AURA_RADIUS = TESLA_COIL_SIZE * 10;
+const TESLA_AURA_DR_SHRED = 0.05;
+const TESLA_AURA_FLAT_DR_SHRED = 100;
+const TESLA_BOLT_SCAN_MS = 500;
+const TESLA_BOLT_WINDUP_MS = 100;
+const TESLA_BOLT_STAGGER_MS = 100;
+const TESLA_BOLT_MAX_TARGETS = 5;
+const TESLA_BOLT_DAMAGE = 0.20;
+const TESLA_COIL_MAX_BOLTS = 500;
 
 // Tụ đạn & Overload
 let charging = false, chargeStartTime = 0;

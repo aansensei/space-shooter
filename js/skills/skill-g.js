@@ -40,7 +40,6 @@ function endSkillG() {
     energyOrbs = [];
 
     teslaCoils.forEach(coil => {
-        if (coil.dotTargets) coil.dotTargets.clear();
         addExplosion(coil.x, coil.y, explosionRadius, 'cyan');
         enemies.forEach(enemy => {
             if (enemy._stealthed) return; // Uriel mid-Camouflage: fully invisible and untargetable
@@ -51,6 +50,7 @@ function endSkillG() {
         });
     });
     teslaCoils = [];
+    teslaBolts = [];
 }
 
 function spawnEnergyOrb(x, y) {
@@ -233,9 +233,9 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                     if (!dotMap.has(enemy)) {
                         dotMap.set(enemy, currentTime);
                     }
-                    if (currentTime - dotMap.get(enemy) >= 125) {
+                    if (currentTime - dotMap.get(enemy) >= 250) {
                         const _teslaDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1; // docs/combat-scaling-rebalance.md Part 5
-                        dealDamage(enemy, { damage: 0.109 * player.atk * _teslaDmgMult, isTeslaDot: true });
+                        dealDamage(enemy, { damage: 0.08 * player.atk * _teslaDmgMult, isTeslaDot: true });
                         dotMap.set(enemy, currentTime);
                         if (_hasBuff('set_day_chuyen') && Math.random() < 0.50) {
                             let _closest = null, _closestDist = Infinity;
@@ -245,7 +245,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                                 if (_d < 150 && _d < _closestDist) { _closest = _oe; _closestDist = _d; }
                             }
                             if (_closest) {
-                                dealDamage(_closest, { damage: 0.109 * player.atk * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
+                                dealDamage(_closest, { damage: 0.08 * player.atk * _teslaDmgMult, isTeslaDot: true, isChainLightning: true });
                                 chainLightningEffects.push({ x1: enemy.x, y1: enemy.y, x2: _closest.x, y2: _closest.y, lifetime: 200, maxLifetime: 200 });
                             }
                         }
@@ -275,7 +275,11 @@ function spawnTeslaCoil(midX, midY) {
         hp: 30, maxHp: 30,
         size: TESLA_COIL_SIZE,
         auraRadius: TESLA_AURA_RADIUS,
-        dotTargets: new Map(),
+        scanTimer: TESLA_BOLT_SCAN_MS,
+        boltQueue: [],
+        boltsFired: 0,
+        flashMs: 0,
+        muzzleAngle: 0,
         id: Math.random()
     });
 }
@@ -296,6 +300,8 @@ function updateTeslaCoils(deltaTime, currentTime) {
             }
         });
 
+        _updateCoilBoltVolley(coil, deltaTime);
+
         if (coil.hp <= 0) {
             const _coilDmgMult = _hasBuff('ky_su_dien') ? 1.30 : 1; // docs/combat-scaling-rebalance.md Part 5
             const explosionProps = { damage: 0.023 * player.atk * _coilDmgMult, _statSrc: 'Skill G: Tesla Coil' };
@@ -310,9 +316,112 @@ function updateTeslaCoils(deltaTime, currentTime) {
             if (_hasBuff('ky_su_dien')) {
                 skillGCharge = Math.min(100, skillGCharge + 10);
             }
-            coil.dotTargets.clear();
             teslaCoils.splice(i, 1);
         }
     }
 }
 
+
+function _teslaBoltTargetable(e) {
+    return e && e.hp > 0 && !e._markedForDeath && !e._stealthed && !e.inCoronation
+        && !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo';
+}
+
+// Every TESLA_BOLT_SCAN_MS the coil picks up to TESLA_BOLT_MAX_TARGETS
+// distinct enemies inside its aura (closest first), winds up for
+// TESLA_BOLT_WINDUP_MS, then launches one homing bolt per target
+// TESLA_BOLT_STAGGER_MS apart, so each enemy takes at most one bolt per
+// scan. A coil that has launched TESLA_COIL_MAX_BOLTS bolts detonates itself.
+function _updateCoilBoltVolley(coil, deltaTime) {
+    if (coil.flashMs > 0) coil.flashMs = Math.max(0, coil.flashMs - deltaTime);
+    if (coil.hp <= 0) return;
+
+    coil.scanTimer -= deltaTime;
+    if (coil.scanTimer <= 0) {
+        coil.scanTimer += TESLA_BOLT_SCAN_MS;
+        const inAura = [];
+        for (const e of enemies) {
+            if (!_teslaBoltTargetable(e)) continue;
+            const er = e.size / 2;
+            const d = Math.hypot(e.x - coil.x, e.y - coil.y);
+            if (d < coil.auraRadius + er) inAura.push({ e, d });
+        }
+        inAura.sort((a, b) => a.d - b.d);
+        coil.boltQueue = inAura.slice(0, TESLA_BOLT_MAX_TARGETS).map((t, i) => ({
+            target: t.e, delay: TESLA_BOLT_WINDUP_MS + i * TESLA_BOLT_STAGGER_MS,
+        }));
+    }
+
+    for (let q = coil.boltQueue.length - 1; q >= 0; q--) {
+        const item = coil.boltQueue[q];
+        item.delay -= deltaTime;
+        if (item.delay > 0) continue;
+        coil.boltQueue.splice(q, 1);
+        if (!_teslaBoltTargetable(item.target)) continue;
+        _launchTeslaBolt(coil, item.target);
+        if (coil.boltsFired >= TESLA_COIL_MAX_BOLTS) { coil.hp = 0; coil.boltQueue.length = 0; break; }
+    }
+}
+
+function _launchTeslaBolt(coil, target) {
+    const ang = Math.atan2(target.y - coil.y, target.x - coil.x);
+    coil.boltsFired++;
+    coil.flashMs = 160;
+    coil.muzzleAngle = ang;
+    const br = coil.size / 2;
+    teslaBolts.push({
+        x: coil.x + Math.cos(ang) * br, y: coil.y + Math.sin(ang) * br,
+        angle: ang, speed: 13, target, life: 2200, trail: [],
+        spawnAt: performance.now(),
+    });
+    createParticles(coil.x + Math.cos(ang) * br, coil.y + Math.sin(ang) * br, 5, '#aaf6ff', 1, 4);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('chain-lightning', coil.x, coil.y);
+}
+
+function updateTeslaBolts(deltaTime, currentTime) {
+    const dt = deltaTime / 16.67;
+    for (let i = teslaBolts.length - 1; i >= 0; i--) {
+        const b = teslaBolts[i];
+        b.life -= deltaTime;
+        if (b.life <= 0) { teslaBolts.splice(i, 1); continue; }
+
+        if (!_teslaBoltTargetable(b.target) || !enemies.includes(b.target)) {
+            let best = null, bestD = 350;
+            for (const e of enemies) {
+                if (!_teslaBoltTargetable(e)) continue;
+                const d = Math.hypot(e.x - b.x, e.y - b.y);
+                if (d < bestD) { best = e; bestD = d; }
+            }
+            b.target = best;
+        }
+
+        if (b.target) {
+            const want = Math.atan2(b.target.y - b.y, b.target.x - b.x);
+            let diff = want - b.angle;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            const maxTurn = 0.14 * dt;
+            b.angle += Math.max(-maxTurn, Math.min(maxTurn, diff));
+        }
+
+        b.trail.push({ x: b.x, y: b.y });
+        if (b.trail.length > 7) b.trail.shift();
+        b.x += Math.cos(b.angle) * b.speed * dt;
+        b.y += Math.sin(b.angle) * b.speed * dt;
+
+        if (b.target && Math.hypot(b.target.x - b.x, b.target.y - b.y) < b.target.size / 2 + 9) {
+            const _mult = _hasBuff('ky_su_dien') ? 1.30 : 1;
+            const hitTarget = b.target;
+            addExplosion(b.x, b.y, 30, 'electric_blue');
+            createParticles(b.x, b.y, 6, '#ffffff', 2, 7);
+            dealDamage(hitTarget, {
+                damage: TESLA_BOLT_DAMAGE * player.atk * _mult,
+                isPiercing: true, _teslaBolt: true, _statSrc: 'Skill G: Tesla Coil',
+            });
+            teslaBolts.splice(i, 1);
+            continue;
+        }
+
+        if (b.x < -60 || b.x > canvas.width + 60 || b.y < -60 || b.y > canvas.height + 60) teslaBolts.splice(i, 1);
+    }
+}

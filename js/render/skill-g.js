@@ -280,21 +280,39 @@ function drawTeslaCoil(coil) {
     ctx.ellipse(coil.x - br * 0.2, coil.y - br * 0.2, br * 0.26, br * 0.16, -Math.PI / 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // random discharge sparks (probabilistic – cheap)
-    if (Math.random() < 0.35) {
-        ctx.strokeStyle = `rgba(200,255,255,${0.5 + Math.random() * 0.5})`;
-        ctx.lineWidth = 1.5 + Math.random();
-        if (!_mobPerf) ctx.shadowColor = 'white'; if (!_mobPerf) ctx.shadowBlur = 8;
-        const sa = Math.random() * Math.PI * 2;
-        const sd = br + Math.random() * 28;
+    // Firing flash: a bloom over the whole coil plus a short bright spike
+    // pointing the way the bolt just left, fading over flashMs.
+    if (coil.flashMs > 0) {
+        const f = coil.flashMs / 160;
+        const bloomR = br * (2.4 + (1 - f) * 0.8);
+        const bg = ctx.createRadialGradient(coil.x, coil.y, 0, coil.x, coil.y, bloomR);
+        bg.addColorStop(0, `rgba(255,255,255,${0.9 * f})`);
+        bg.addColorStop(0.35, `rgba(120,240,255,${0.55 * f})`);
+        bg.addColorStop(1, 'rgba(0,200,255,0)');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(coil.x, coil.y, bloomR, 0, Math.PI * 2); ctx.fill();
+
+        ctx.save();
+        ctx.translate(coil.x, coil.y);
+        ctx.rotate(coil.muzzleAngle);
+        const sg = ctx.createLinearGradient(br * 0.6, 0, br * 2.6, 0);
+        sg.addColorStop(0, `rgba(255,255,255,${f})`);
+        sg.addColorStop(1, 'rgba(0,220,255,0)');
+        ctx.fillStyle = sg;
         ctx.beginPath();
-        ctx.moveTo(coil.x, coil.y);
-        const mx = coil.x + Math.cos(sa) * sd * 0.5 + (Math.random() - 0.5) * 10;
-        const my = coil.y + Math.sin(sa) * sd * 0.5 + (Math.random() - 0.5) * 10;
-        ctx.lineTo(mx, my);
-        ctx.lineTo(coil.x + Math.cos(sa) * sd, coil.y + Math.sin(sa) * sd);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+        ctx.moveTo(br * 0.6, -br * 0.35);
+        ctx.lineTo(br * 2.6, 0);
+        ctx.lineTo(br * 0.6, br * 0.35);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+    // Charge-up: while a volley is queued the core pulses brighter.
+    if (coil.boltQueue && coil.boltQueue.length > 0) {
+        const cp = 0.5 + 0.5 * Math.sin(now / 45);
+        ctx.strokeStyle = `rgba(200,255,255,${0.35 + 0.35 * cp})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(coil.x, coil.y, br * (1.55 + 0.12 * cp), 0, Math.PI * 2); ctx.stroke();
     }
 
     // HP bar
@@ -311,3 +329,44 @@ function drawTeslaCoil(coil) {
 }
 
 // Skill buttons (UI – unchanged logic, minor glow)
+
+
+// Tesla Coil homing bolt: a flattened, pointed oval (lens shape) with the
+// head toward the target, a short fading trail behind it.
+function drawTeslaBolt(b) {
+    const len = 15, wid = 5.5;
+    ctx.save();
+    if (b.trail.length > 1) {
+        for (let i = 1; i < b.trail.length; i++) {
+            const t = i / b.trail.length;
+            ctx.strokeStyle = `rgba(120,235,255,${0.45 * t})`;
+            ctx.lineWidth = 1 + 3.5 * t;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(b.trail[i - 1].x, b.trail[i - 1].y);
+            ctx.lineTo(b.trail[i].x, b.trail[i].y);
+            ctx.stroke();
+        }
+    }
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.angle);
+    if (!_mobPerf) { ctx.shadowColor = '#5ee7ff'; ctx.shadowBlur = 12; }
+    const g = ctx.createLinearGradient(-len, 0, len, 0);
+    g.addColorStop(0, 'rgba(0,120,200,0.85)');
+    g.addColorStop(0.55, '#7ff3ff');
+    g.addColorStop(1, '#ffffff');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(len, 0);
+    ctx.quadraticCurveTo(len * 0.2, -wid * 1.25, -len * 0.85, -wid * 0.5);
+    ctx.quadraticCurveTo(-len, 0, -len * 0.85, wid * 0.5);
+    ctx.quadraticCurveTo(len * 0.2, wid * 1.25, len, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.ellipse(len * 0.2, 0, len * 0.5, wid * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}

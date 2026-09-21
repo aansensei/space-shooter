@@ -492,6 +492,7 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugForceSkill('Laser')">Laser</button>
         <button class="dbg-btn" onclick="debugForceSkill('Photokrystos')">Photokrystos</button>
         <button class="dbg-btn" onclick="debugForceSkill('S-Spinner')">S Finale (Spinner)</button>
+        <button class="dbg-btn" onclick="debugForceSkill('TeslaCoil')">Spawn Tesla Coil</button>
       </div>
       <div class="dbg-row">
         <button class="dbg-btn" onclick="if (typeof cancelSkillShift === 'function') cancelSkillShift();">Cancel Shift</button>
@@ -931,6 +932,15 @@ window.debugSetYuukiBonus = function () {
             case 'G':
                 skillGCharge = 100;
                 if (typeof activateSkillG === 'function') activateSkillG();
+                break;
+            case 'TeslaCoil':
+                // Drops a coil above the player, fanned out sideways so
+                // repeated presses (up to MAX_TESLA_COILS) don't stack on
+                // the same spot. No Skill G run needed to test it.
+                if (typeof spawnTeslaCoil === 'function') {
+                    const _slot = teslaCoils.length;
+                    spawnTeslaCoil(player.x + (_slot - 1.5) * 130, Math.max(120, player.y - 260));
+                }
                 break;
             case 'Shift':
                 // Real activation is inlined in js/input.js's keydown handler

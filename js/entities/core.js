@@ -1329,6 +1329,18 @@ function dealDamage(enemy, source) {
     const _veilPreDr = (enemy.type === 'veilshroud' && enemy.inPhantom) ? totalDamage : 0;
     // True damage skips DR; Lion's Roar Burn uses 50% of DR; normal damage uses full DR
     if (!source.isTrueDamage) {
+        // Tesla Coil aura: strips 5% DR and 100 flat DR from enemies inside
+        // it. Whatever a target has too little of to strip is paid back as
+        // bonus damage instead (5% per missing DR point, 1:1 for flat), so
+        // an unarmored enemy still takes extra from standing in the aura.
+        const _teslaShred = !isSentinel && enemy._teslaAuraUntil && currentTime < enemy._teslaAuraUntil;
+        let _teslaDmgMult = 1;
+        let _teslaFlatBonus = 0;
+        if (_teslaShred) {
+            const _drCut = Math.min(TESLA_AURA_DR_SHRED, combinedDR);
+            combinedDR -= _drCut;
+            _teslaDmgMult += TESLA_AURA_DR_SHRED - _drCut;
+        }
         const _drMul = source._isSthDot ? combinedDR * 0.5 : combinedDR;
         const _postDR = Math.ceil(totalDamage * (1 - _drMul));
 
@@ -1372,8 +1384,15 @@ function dealDamage(enemy, source) {
             _flatArmor += 250;
         }
 
+        if (_teslaShred) {
+            const _flatCut = Math.min(TESLA_AURA_FLAT_DR_SHRED, _flatArmor);
+            _flatArmor -= _flatCut;
+            _teslaFlatBonus = TESLA_AURA_FLAT_DR_SHRED - _flatCut;
+        }
+
         const _armorLoss = Math.min(_flatArmor, 0.60 * _postDR);
         totalDamage = Math.max(0, _postDR - _armorLoss);
+        if (_teslaShred) totalDamage = Math.ceil(totalDamage * _teslaDmgMult) + _teslaFlatBonus;
     }
 
     // Damage caps apply regardless of true damage
@@ -1922,7 +1941,7 @@ function dealDamage(enemy, source) {
         window._levDeathLaserSoundPending = true;
     }
 
-    const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot;
+    const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot && !source._teslaBolt;
 
     if (isChainable && currentTime > chainLightningCooldownEnd) {
         chainLightningCooldownEnd = currentTime + 150;
