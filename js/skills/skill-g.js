@@ -333,6 +333,18 @@ function teslaPylonPos(coil, i, now) {
     return { x: coil.x + Math.cos(a) * TESLA_PYLON_R, y: coil.y + Math.sin(a) * TESLA_PYLON_R, a: a };
 }
 
+// Speed multiplier from bolt-hit slows: the first active coil's slow is at
+// full strength, each further coil adds only TESLA_OVERLAP_SLOW_EFFECT of it.
+function teslaBoltSlowMult(enemy, now) {
+    const m = enemy._teslaBoltSlows;
+    if (!m) return 1;
+    let n = 0;
+    for (const k in m) { if (m[k] > now) n++; else delete m[k]; }
+    if (n === 0) return 1;
+    const slow = 1 - TESLA_BOLT_SLOW_MULT;
+    return TESLA_BOLT_SLOW_MULT * Math.pow(1 - slow * TESLA_OVERLAP_SLOW_EFFECT, n - 1);
+}
+
 function _teslaBoltTargetable(e) {
     return e && e.hp > 0 && !e._markedForDeath && !e._stealthed && !e.inCoronation
         && !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo';
@@ -407,7 +419,7 @@ function _launchTeslaBolt(coil, target) {
     teslaBolts.push({
         x: tip.x, y: tip.y,
         angle: ang, speed: 13, target: target, life: 2200, trail: [],
-        spawnAt: now, stacks: boltStacks, empowered: empowered,
+        spawnAt: now, stacks: boltStacks, empowered: empowered, coilId: coil.id,
     });
     createParticles(tip.x, tip.y, 5, '#aaf6ff', 1, 4);
     if (window.AudioMgr) window.AudioMgr.playSfxAt('chain-lightning', coil.x, coil.y);
@@ -465,9 +477,12 @@ function updateTeslaBolts(deltaTime, currentTime) {
                 damage: _dmg,
                 isPiercing: true, _teslaBolt: true, _statSrc: 'Skill G: Tesla Coil',
             });
-            // Hit slow: fixed strength, timer just refreshes on repeat hits
-            // (never stacks). CC-immune enemies ignore it in main.js.
-            hitTarget._teslaBoltSlowUntil = currentTime + TESLA_BOLT_SLOW_MS;
+            // Hit slow: fixed strength per coil, the timer just refreshes on
+            // repeat hits from the same coil. Several coils overlap with
+            // diminishing effect (see teslaBoltSlowMult). CC-immune enemies
+            // ignore it in main.js.
+            if (!hitTarget._teslaBoltSlows) hitTarget._teslaBoltSlows = {};
+            hitTarget._teslaBoltSlows[b.coilId] = currentTime + TESLA_BOLT_SLOW_MS;
             teslaBolts.splice(i, 1);
             continue;
         }

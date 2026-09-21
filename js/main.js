@@ -1081,6 +1081,7 @@ function update(rawDeltaTime) {
             }
         }
 
+        let _auraSlowCoils = 0;
         for (const coil of teslaCoils) {
             if (coil.hp <= 0) continue;
             if (enemy.type === 'veilshroud_echo') continue; // echo miễn CC
@@ -1089,6 +1090,7 @@ function update(rawDeltaTime) {
 
             if (distToCoil < TESLA_AURA_RADIUS + enemyRadius) {
                 inTeslaAura = true;
+                _auraSlowCoils++;
 
                 if (enemy.type.startsWith('enemy_bullet')) {
                     teslaSpeedMultiplier = 0.50;
@@ -1126,6 +1128,11 @@ function update(rawDeltaTime) {
                 enemy._teslaAuraUntil = currentTime + 250;
             }
             if (enemy.hp <= 0) break;
+        }
+        // Overlapping auras: the first coil's slow is full strength, each
+        // extra coil only adds TESLA_OVERLAP_SLOW_EFFECT of its slow.
+        if (_auraSlowCoils > 1 && teslaSpeedMultiplier < 1) {
+            teslaSpeedMultiplier *= Math.pow(1 - (1 - teslaSpeedMultiplier) * TESLA_OVERLAP_SLOW_EFFECT, _auraSlowCoils - 1);
         }
 
         // GOLIATH True Form: KHÔNG xử lý chết ở đây — updateGoliath() (chạy
@@ -1569,7 +1576,7 @@ function update(rawDeltaTime) {
             const _dtuSlowMul = (!_ccImmune && enemy._dtuSlow && currentTime < (enemy._dtuSlowEnd || 0)) ? 0.70 : 1.0;
             const _cucHanMul = (!_ccImmune && enemy._slowEnd && currentTime < enemy._slowEnd) ? (1 / (enemy._slowFactor || 1)) : 1.0;
             const _rootMul = (!_ccImmune && enemy._rootEnd && currentTime < enemy._rootEnd) ? 0 : 1.0;
-            const _teslaBoltSlowMul = (!_ccImmune && enemy._teslaBoltSlowUntil && currentTime < enemy._teslaBoltSlowUntil) ? TESLA_BOLT_SLOW_MULT : 1.0;
+            const _teslaBoltSlowMul = _ccImmune ? 1.0 : teslaBoltSlowMult(enemy, currentTime);
             // Vine Bind (Phōtokrystos DNT): vines take 1s to grow in, then a
             // flat 2s 50% slow follows — no effect during the growth window.
             const _vineSlowMul = (!_ccImmune && enemy._vineStart && currentTime >= enemy._vineStart + 1000 && currentTime < enemy._vineStart + 3000) ? 0.50 : 1.0;

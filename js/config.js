@@ -179,6 +179,10 @@ const TESLA_BOLT_FIRE_RATE_MULT = 1.2;
 const TESLA_BOLT_SCAN_MS = 500 / TESLA_BOLT_FIRE_RATE_MULT;
 const TESLA_BOLT_WINDUP_MS = 100 / TESLA_BOLT_FIRE_RATE_MULT;
 const TESLA_BOLT_STAGGER_MS = 100 / TESLA_BOLT_FIRE_RATE_MULT;
+// When several coils slow the same enemy (overlapping auras, or bolts from
+// different coils), the strongest slow lands in full and every extra coil
+// contributes only this fraction of its slow (i.e. 40% less effective).
+const TESLA_OVERLAP_SLOW_EFFECT = 0.60;
 const TESLA_BOLT_SLOW_MS = 1500;
 const TESLA_BOLT_SLOW_MULT = 0.62;
 // Coil stacks: every bolt launched adds one, each lasting TESLA_STACK_MS.
