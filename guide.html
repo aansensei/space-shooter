@@ -640,6 +640,9 @@
     const TESLA_COIL_VISUAL_R = 26, TESLA_PYLON_R = 20, TESLA_STACK_MAX = 5, TESLA_STACK_MS = 1500;
     const TESLA_STACK_FIRE_RATE = 0.05, TESLA_COIL_MAX_BOLTS = 500;
     let teslaBolts = [], teslaRings = [];
+    // config.js's pause-aware clock; js/render/skill-f.js reads it. The Skill F
+    // widget refreshes it every tick (nothing here ever pauses the scene itself).
+    let _frozenNow = performance.now();
     function teslaRingRot(now) { return now / 7000; }
     function teslaPylonPos(coil, i, now) {
       const a = teslaRingRot(now) + i * Math.PI / 3;
@@ -5957,6 +5960,7 @@
                 { get: () => skillFSweepStart, set: v => skillFSweepStart = v },
               ])) { activeAnimations.push(requestAnimationFrame(tick)); return; }
               const elapsed = nowT - skillFChargeStart;
+              _frozenNow = nowT;
               ctx = c; canvas = { width: w, height: h };
               c.clearRect(0, 0, w, h);
 
