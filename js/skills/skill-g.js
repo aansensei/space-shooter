@@ -345,9 +345,18 @@ function teslaBoltSlowMult(enemy, now) {
     return TESLA_BOLT_SLOW_MULT * Math.pow(1 - slow * TESLA_OVERLAP_SLOW_EFFECT, n - 1);
 }
 
+// Anything dealDamage() no-ops on, or that other skills already treat as
+// untargetable, must not draw a bolt: Thaelis's Cocoon, Goliath before True
+// Form and during its death sequence, Veilshroud mid-Phantom, a freshly
+// revived Thaelis, plus the stealth/coronation/echo cases.
 function _teslaBoltTargetable(e) {
-    return e && e.hp > 0 && !e._markedForDeath && !e._stealthed && !e.inCoronation
-        && !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo';
+    if (!e || e.hp <= 0 || e._markedForDeath || e._stealthed || e.inCoronation) return false;
+    if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain' || e.type === 'veilshroud_echo') return false;
+    if (e.type === 'thaelis_cocoon') return false;
+    if (e.type === 'goliath' && (e.phase !== 'true_form' || e._deathPhase)) return false;
+    if (e.type === 'veilshroud' && e.inPhantom) return false;
+    if (e.type === 'thaelis' && e._reviveInvulnEnd && performance.now() < e._reviveInvulnEnd) return false;
+    return true;
 }
 
 // Every TESLA_BOLT_SCAN_MS the coil picks up to TESLA_BOLT_MAX_TARGETS
@@ -396,16 +405,15 @@ function _updateCoilBoltVolley(coil, deltaTime) {
 
 function _launchTeslaBolt(coil, target) {
     const now = performance.now();
-    const toTarget = Math.atan2(target.y - coil.y, target.x - coil.x);
-    // Fire from whichever pylon currently points closest to the target.
+    // The bolt is released from the crystal core and flies out over the ring;
+    // the pylon pointing closest to the target lights up as its conduit.
+    const ang = Math.atan2(target.y - coil.y, target.x - coil.x);
     let best = 0, bestDiff = Infinity;
     for (let i = 0; i < 6; i++) {
-        let d = teslaPylonPos(coil, i, now).a - toTarget;
+        let d = teslaPylonPos(coil, i, now).a - ang;
         d = Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
         if (d < bestDiff) { bestDiff = d; best = i; }
     }
-    const tip = teslaPylonPos(coil, best, now);
-    const ang = Math.atan2(target.y - tip.y, target.x - tip.x);
     // Stack bookkeeping: a full set of stacks makes THIS bolt the empowered
     // one and resets them to a single stack (its own); otherwise the shot adds a stack.
     const empowered = coil.stacks.length >= TESLA_STACK_MAX;
@@ -413,15 +421,16 @@ function _launchTeslaBolt(coil, target) {
     coil.stacks.push(TESLA_STACK_MS);
     const boltStacks = empowered ? TESLA_STACK_MAX : coil.stacks.length;
     coil.boltsFired++;
-    coil.flashMs = 160;
+    coil.flashMs = 200;
     coil.muzzleAngle = ang;
     coil.muzzlePylon = best;
     teslaBolts.push({
-        x: tip.x, y: tip.y,
+        x: coil.x, y: coil.y,
         angle: ang, speed: 13, target: target, life: 2200, trail: [],
         spawnAt: now, stacks: boltStacks, empowered: empowered, coilId: coil.id,
     });
-    createParticles(tip.x, tip.y, 5, '#aaf6ff', 1, 4);
+    teslaRings.push({ x: coil.x, y: coil.y, r0: 6, r1: TESLA_COIL_VISUAL_R + 10, life: 220, maxLife: 220 });
+    createParticles(coil.x, coil.y, 6, '#aaf6ff', 1, 5);
     if (window.AudioMgr) window.AudioMgr.playSfxAt('chain-lightning', coil.x, coil.y);
 }
 

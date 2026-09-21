@@ -505,7 +505,7 @@ function drawTeslaCoil(coil) {
     const tips = [];
     for (let i = 0; i < 6; i++) tips.push(teslaPylonPos(coil, i, now));
     const tipGlow = _getGlowSprite('#7ff3ff', 8);
-    const flashF = coil.flashMs > 0 ? coil.flashMs / 160 : 0;
+    const flashF = coil.flashMs > 0 ? coil.flashMs / 200 : 0;
     if (tipGlow) {
         for (let i = 0; i < 6; i++) {
             const hot = (coil.muzzlePylon === i) ? flashF : 0;
@@ -554,25 +554,51 @@ function drawTeslaCoil(coil) {
         ctx.stroke();
     }
 
-    // Firing flash: bloom over the coil plus a spike out of the firing pylon
+    // Firing flash: the core flares white, a shock spike leaves the crystal
+    // along the shot direction, and a lightning conduit runs from the core
+    // out to the pylon that points at the target.
     if (coil.flashMs > 0) {
         const bloom = _getGlowSprite('#9af4ff', 48);
+        const core = _getGlowSprite('#ffffff', 32);
         if (bloom) {
-            const bloomS = VR * (3.6 + (1 - flashF) * 1.2);
-            ctx.globalAlpha = 0.8 * flashF;
+            const bloomS = VR * (3.8 + (1 - flashF) * 1.4);
+            ctx.globalAlpha = 0.85 * flashF;
             ctx.drawImage(bloom, coil.x - bloomS / 2, coil.y - bloomS / 2, bloomS, bloomS);
+            ctx.globalAlpha = 1;
+        }
+        if (core) {
+            const cs2 = 30 + 26 * flashF;
+            ctx.globalAlpha = Math.min(1, flashF * 1.3);
+            ctx.drawImage(core, coil.x - cs2 / 2, coil.y - cs2 / 2, cs2, cs2);
             ctx.globalAlpha = 1;
         }
         const tp = tips[coil.muzzlePylon || 0];
         ctx.save();
-        ctx.translate(tp.x, tp.y);
-        ctx.rotate(coil.muzzleAngle);
         ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = `rgba(190,250,255,${0.9 * flashF})`;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        const seed = Math.floor(now / 40) * 17 + Math.floor(coil.id * 1000);
+        const dx = tp.x - coil.x, dy = tp.y - coil.y, len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const pts = [coil.x, coil.y];
+        for (let k = 1; k < 4; k++) {
+            const t = k / 4, amp = (_sgNoise(seed + k * 3.9) - 0.5) * 7;
+            pts.push(coil.x + dx * t + nx * amp, coil.y + dy * t + ny * amp);
+        }
+        pts.push(tp.x, tp.y);
+        const trace = () => {
+            ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+            for (let q = 2; q < pts.length; q += 2) ctx.lineTo(pts[q], pts[q + 1]);
+            ctx.stroke();
+        };
+        ctx.strokeStyle = `rgba(0,190,255,${0.55 * flashF})`; ctx.lineWidth = 4; trace();
+        ctx.strokeStyle = `rgba(235,255,255,${flashF})`; ctx.lineWidth = 1.4; trace();
+        ctx.translate(coil.x, coil.y);
+        ctx.rotate(coil.muzzleAngle);
+        ctx.fillStyle = `rgba(200,252,255,${0.9 * flashF})`;
         ctx.beginPath();
-        ctx.moveTo(0, -4);
-        ctx.lineTo(VR * 1.2, 0);
-        ctx.lineTo(0, 4);
+        ctx.moveTo(4, -5);
+        ctx.lineTo(VR * 1.7, 0);
+        ctx.lineTo(4, 5);
         ctx.closePath();
         ctx.fill();
         ctx.restore();
