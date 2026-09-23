@@ -611,6 +611,37 @@ function drawTeslaCoil(coil) {
         ctx.beginPath(); ctx.arc(coil.x, coil.y, VR + 6 + 2 * cp, 0, Math.PI * 2); ctx.stroke();
     }
 
+    // Empowered shot (5th stack): a brief radial burst of golden lightning
+    // shooting outward in every direction, on top of the wider shockwave
+    // ring and screen shake fired alongside it in skill-g.js.
+    if (coil.empowerBurstMs > 0) {
+        const bf = coil.empowerBurstMs / 320;
+        const bolts = 9;
+        const seed3 = Math.floor(coil.id * 10000);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        for (let i = 0; i < bolts; i++) {
+            const a = (i / bolts) * Math.PI * 2 + seed3 * 0.001;
+            const reach = (VR + 20) + (1 - bf) * 46;
+            const ex = coil.x + Math.cos(a) * reach, ey = coil.y + Math.sin(a) * reach;
+            const nx = -Math.sin(a), ny = Math.cos(a);
+            const mx = coil.x + Math.cos(a) * reach * 0.55 + nx * (_sgNoise(seed3 + i * 4.4) - 0.5) * 14;
+            const my = coil.y + Math.sin(a) * reach * 0.55 + ny * (_sgNoise(seed3 + i * 4.4) - 0.5) * 14;
+            ctx.strokeStyle = `rgba(255,225,150,${0.75 * bf})`;
+            ctx.lineWidth = 2.4 * bf + 0.4;
+            ctx.beginPath(); ctx.moveTo(coil.x, coil.y); ctx.lineTo(mx, my); ctx.lineTo(ex, ey); ctx.stroke();
+        }
+        const flareS = 60 + (1 - bf) * 50;
+        const flare = _getGlowSprite('#ffe9a8', 40);
+        if (flare) {
+            ctx.globalAlpha = 0.8 * bf;
+            ctx.drawImage(flare, coil.x - flareS / 2, coil.y - flareS / 2, flareS, flareS);
+            ctx.globalAlpha = 1;
+        }
+        ctx.restore();
+    }
+
     // Stack bar: five cells above the coil. A cell dims as its stack runs
     // out its 1.5s; a full bar pulses gold, the next bolt is the empowered one.
     {
@@ -676,6 +707,7 @@ function _sgBoltSprite() {
 }
 
 function drawTeslaBolt(b) {
+    const now = performance.now();
     const trailGlow = _getGlowSprite('#7ff3ff', 8);
     if (trailGlow && b.trail.length > 1) {
         for (let i = 0; i < b.trail.length; i++) {
@@ -686,6 +718,23 @@ function drawTeslaBolt(b) {
         }
         ctx.globalAlpha = 1;
     }
+    // HIGH only: a few bright embers peeling off the trail, plus tiny
+    // crackling arcs jumping between consecutive trail points.
+    if (_gfxLevel < 1 && b.trail.length > 2) {
+        const seed = Math.floor(now / 60) * 13 + Math.floor((b.spawnAt || 0) * 7);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let i = 1; i < b.trail.length; i++) {
+            if (_sgNoise(seed + i * 5.3) < 0.55) continue;
+            const p0 = b.trail[i - 1], p1 = b.trail[i];
+            const mx = (p0.x + p1.x) / 2 + (_sgNoise(seed + i * 9.1) - 0.5) * 6;
+            const my = (p0.y + p1.y) / 2 + (_sgNoise(seed + i * 2.4) - 0.5) * 6;
+            ctx.strokeStyle = `rgba(200,255,255,${0.35 * (i / b.trail.length)})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(mx, my); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        }
+        ctx.restore();
+    }
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.rotate(b.angle);
@@ -695,6 +744,25 @@ function drawTeslaBolt(b) {
         ctx.scale(1.45, 1.45);
     }
     ctx.drawImage(_sgBoltSprite(), -26, -13, 52, 26);
+    // HIGH only: a hot core stripe down the spine plus two short crackle
+    // ticks off the sides, re-rolled on a fixed beat so it reads as live
+    // arcing rather than a static decal.
+    if (_gfxLevel < 1) {
+        const seed2 = Math.floor(now / 50) * 19 + Math.floor((b.spawnAt || 0) * 11);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(13, 0); ctx.stroke();
+        ctx.strokeStyle = 'rgba(160,240,255,0.7)';
+        ctx.lineWidth = 0.8;
+        for (let k = 0; k < 2; k++) {
+            if (_sgNoise(seed2 + k * 6.6) < 0.4) continue;
+            const sx = -6 + k * 10, sy = (k === 0 ? -1 : 1) * 3.6;
+            ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx + 2, sy); ctx.stroke();
+        }
+        ctx.restore();
+    }
     ctx.restore();
 }
 
@@ -705,8 +773,9 @@ function drawTeslaRings() {
     ctx.globalCompositeOperation = 'lighter';
     for (const r of teslaRings) {
         const t = 1 - r.life / r.maxLife;
-        ctx.strokeStyle = `rgba(150,245,255,${(1 - t) * 0.85})`;
-        ctx.lineWidth = 3 * (1 - t) + 1;
+        const rgb = r.color === '#ffe9a8' ? '255,225,150' : '150,245,255';
+        ctx.strokeStyle = `rgba(${rgb},${(1 - t) * 0.85})`;
+        ctx.lineWidth = (r.color ? 4.5 : 3) * (1 - t) + 1;
         ctx.beginPath(); ctx.arc(r.x, r.y, r.r0 + (r.r1 - r.r0) * t, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
