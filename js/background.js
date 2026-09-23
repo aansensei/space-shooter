@@ -113,7 +113,7 @@
         (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     let CFG = _isTouchDevice ? MOBILE_CFG : DESKTOP_CFG;
 
-    // ─── LAYERS (back → front) ────────────────────────────────────────────
+    // LAYERS (back → front)
     const bgLayer           = new PIXI.Container();
     const galaxyLayer       = new PIXI.Container();
     const nebulaLayer       = new PIXI.Container();
@@ -132,10 +132,10 @@
         asteroidNearLayer, brightnessLayer,
     ]) app.stage.addChild(L);
 
-    // ─── HELPER: Canvas 2D → PIXI Texture ────────────────────────────────
+    // HELPER: Canvas 2D → PIXI Texture
     function toTex(cvs) { return PIXI.Texture.from(cvs); }
 
-    // ─── BACKGROUND GRADIENT ─────────────────────────────────────────────
+    // BACKGROUND GRADIENT
     function makeBgTex(w, h) {
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
@@ -154,7 +154,7 @@
     bgSprite.height = H();
     bgLayer.addChild(bgSprite);
 
-    // ─── BRIGHTNESS OVERLAY ───────────────────────────────────────────────
+    // BRIGHTNESS OVERLAY
     // A black rectangle whose alpha = (1 - brightness). When brightness=1
     // the overlay is invisible; brightness=0.01 makes it nearly opaque.
     const brightnessGfx = new PIXI.Graphics();
@@ -178,7 +178,7 @@
         if (!isNaN(saved)) window._bgSetBrightness(saved);
     } catch (_) {}
 
-    // ─── GALAXY GLOW ─────────────────────────────────────────────────────
+    // GALAXY GLOW
     function makeGalaxyTex(radius) {
         const d  = Math.ceil(radius * 2);
         const c  = document.createElement('canvas');
@@ -242,7 +242,7 @@
 
     let galaxies = Array.from({ length: CFG.galaxyCount }, () => new GalaxyObj());
 
-    // ─── NEBULA CLOUDS ───────────────────────────────────────────────────
+    // NEBULA CLOUDS
     const NPALETTES = [
         [255, 70,  150], // hot pink
         [50,  150, 255], // electric blue
@@ -303,7 +303,7 @@
 
     let nebulas = Array.from({ length: CFG.nebulaCount }, () => new NebulaObj());
 
-    // ─── STARS ───────────────────────────────────────────────────────────
+    // STARS
     const STAR_HUES = [
         { min: 180, max: 240 }, // cyan→blue
         { min: 280, max: 330 }, // purple→pink
@@ -396,7 +396,7 @@
         ...Array.from({ length: CFG.starsNear  }, () => new StarObj('near')),
     ];
 
-    // ─── COSMIC DUST ─────────────────────────────────────────────────────
+    // COSMIC DUST
     const _dustTex = (() => {
         const cv = document.createElement('canvas'); cv.width = cv.height = 8;
         const cx = cv.getContext('2d');
@@ -436,7 +436,7 @@
 
     let dusts = Array.from({ length: CFG.dustCount }, () => new DustObj());
 
-    // ─── ASTEROIDS ───────────────────────────────────────────────────────
+    // ASTEROIDS
     const AST_PALETTES = [
         { dark: '#0a0812', base: '#1e162b', light: '#36284a', highlight: '#503e6b' },
         { dark: '#050710', base: '#151b2b', light: '#26324a', highlight: '#3a4a6b' },
@@ -621,7 +621,7 @@
         ...Array.from({ length: CFG.asteroidsNear  }, () => new AsteroidObj('near')),
     ];
 
-    // ─── DENSITY REBUILD (explicit PC/Mobile selection) ────────────────────
+    // DENSITY REBUILD (explicit PC/Mobile selection)
     // Called from selectPlatform() in index.html once the player actually
     // makes a choice, so the initial touch-detection guess above gets
     // corrected to match their real selection — PC always rebuilds back to
@@ -682,7 +682,7 @@
         for (const a of asteroids) a.reset(true);
     };
 
-    // ─── RESIZE ──────────────────────────────────────────────────────────
+    // RESIZE
     // Full resize: resizes the renderer AND rebuilds bgSprite/brightnessGfx
     // to the new dimensions (renderer.resize() alone leaves the old, now
     // wrong-sized sprites in place). Exposed on window so index.html's
@@ -712,7 +712,7 @@
         _doBgResize(window.innerWidth, window.innerHeight);
     }).observe(document.documentElement);
 
-    // ─── ANIMATION LOOP ──────────────────────────────────────────────────
+    // ANIMATION LOOP
     // On mobile this background is a fixed cost the gameplay perf tiers
     // never touch, so on top of the reduced sprite counts above, update+
     // render only run every other frame (~half the CPU work of moving

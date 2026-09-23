@@ -59,7 +59,19 @@ function _sgGridPatternGet() {
     return _sgGridPattern;
 }
 
+// Cached once; index.html declares #skillg-crest as a fixed, centered,
+// pointer-events:none overlay - this just drives its opacity/rotation in
+// lockstep with the barrier itself instead of it being its own separate cue.
+let _sgCrestEl;
+function _sgSyncCrest(opacity, now) {
+    if (_sgCrestEl === undefined) _sgCrestEl = document.getElementById('skillg-crest');
+    if (!_sgCrestEl) return;
+    _sgCrestEl.style.opacity = (opacity * 0.16).toFixed(3);
+    _sgCrestEl.style.transform = `translate(-50%,-50%) rotate(${(now / 9000) % 1 * 360}deg)`;
+}
+
 function drawSkillGBarrier() {
+    _sgSyncCrest(Math.max(0, Math.min(1, skillGBorderOpacity / 0.5)), performance.now());
     if (skillGBorderOpacity <= 0) return;
     const now = performance.now();
     ctx.save();

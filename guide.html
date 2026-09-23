@@ -569,7 +569,6 @@
   </div>
 
   <script>
-    // ═══════════════════════════════════════════════════════════════
     // PREVIEW HARNESS — mock game state so the REAL js/render/*.js draw
     // functions (loaded below via <script src>) can run against small
     // per-widget canvases, instead of guide.html hand-drawing its own
@@ -586,7 +585,6 @@
     // be a fatal SyntaxError (see js/render/README.md's debugging
     // checklist, point 3). Their core.js defaults (HIGH quality, not
     // mobile) are exactly what these widgets want anyway.
-    // ═══════════════════════════════════════════════════════════════
     let canvas = null, ctx = null;
     let gameElapsedTime = 0;
     let player = { x: 0, y: 0, width: 40, height: 40, speed: 8.6, hitRadius: 5.75 };
@@ -2790,7 +2788,7 @@
       });
     }
 
-    // ── Render tab content ──
+    // Render tab content
     function _tabHtml(name) {
       const lang = (window.parent && window.parent._lang) || 'en';
       document.body.classList.toggle('lang-vi', lang === 'vi');
@@ -2844,7 +2842,7 @@
       };
     } catch (_) {}
 
-    // ── Scroll-reveal via IntersectionObserver ──
+    // Scroll-reveal via IntersectionObserver
     function attachScrollReveal() {
       const obs = new IntersectionObserver((entries) => {
         entries.forEach(e => {
@@ -2879,7 +2877,7 @@
       _togBtn.classList.toggle('shortened', isShort);
     });
 
-    // ── Open/Close ──
+    // Open/Close
     const ov = document.getElementById('guideOverlay');
     // guide is always open in iframe mode
     function closeG() { if (window.parent && window.parent !== window) window.parent.closeGuide(); }
@@ -2955,7 +2953,7 @@
         return { c, w: r.width, h: r.height };
       }
 
-      // ── PLAYER SHIP — real drawPlayer()/drawBullet(), real autoshot volley timing ──
+      // PLAYER SHIP — real drawPlayer()/drawBullet(), real autoshot volley timing
       if (tab === 'basics') {
         const s = setup('cvShip');
         if (s) {
@@ -3025,7 +3023,7 @@
         }
       }
 
-      // ── SENTINELS — real drawSentinel() (real tier colors), spawn burst, autofire, death ──
+      // SENTINELS — real drawSentinel() (real tier colors), spawn burst, autofire, death
       if (tab === 'passives') {
         const s = setup('cvSentinels');
         if (s) {
@@ -3122,7 +3120,7 @@
           };
         }
 
-        // ── VULNERABILITY — real applyVulnerability() stacking + real _drawVulnerabilityIcon (via drawEnemy) ──
+        // VULNERABILITY — real applyVulnerability() stacking + real _drawVulnerabilityIcon (via drawEnemy)
         const sv = setup('cvVuln');
         if (sv) {
           const { c, w, h } = sv;
@@ -3196,7 +3194,7 @@
           };
         }
 
-        // ── GLORY / CHAIN LIGHTNING — real 150px-radius chain propagation + real drawChainLightning() ──
+        // GLORY / CHAIN LIGHTNING — real 150px-radius chain propagation + real drawChainLightning()
         const sg = setup('cvGlory');
         if (sg) {
           const { c, w, h } = sg;
@@ -3298,7 +3296,7 @@
         }
       }
 
-      // ── FINAL DEFENSE — real drawFinalDefense(), driven by real finalDefense/playerAbsoluteShield fields ──
+      // FINAL DEFENSE — real drawFinalDefense(), driven by real finalDefense/playerAbsoluteShield fields
       if (tab === 'passives') {
         const sfd = setup('cvFinal');
         if (sfd) {
@@ -3352,7 +3350,7 @@
         }
       }
 
-      // ── ENEMY TAB CANVASES ──
+      // ENEMY TAB CANVASES
       if (tab === 'enemies') {
         // Apostles
         const sn = setup('cvNormal');
@@ -3384,7 +3382,7 @@
             const ex=w*0.28, ey=h*0.5, r=16;
 
             if(ph===0){
-              // ── Normal apostle ──
+              // Normal apostle
               const hpR=0.7+0.3*Math.sin(t/3000), hue=10+hpR*40;
               const gc=`hsl(${hue},100%,55%)`, dc=`hsl(${hue},90%,25%)`;
               c.fillStyle=`hsla(${hue},100%,50%,0.15)`;
@@ -3417,7 +3415,7 @@
               c.fillText('CORONATION passive ▼',w*.5,ey+12);
 
             }else if(ph===1){
-              // ── Coronation: freeze → energy suck inward → lightning from sky → dissipate ──
+              // Coronation: freeze → energy suck inward → lightning from sky → dissipate
               // Apostle body frozen
               c.save();c.translate(ex,ey);
               c.fillStyle='#181822';c.strokeStyle='#aaaaaa';c.lineWidth=1.5;
@@ -3483,7 +3481,7 @@
               c.fillText('→ transforms on finish',w*.5,ey+11);
 
             }else{
-              // ── Transformed enemy ──
+              // Transformed enemy
               const xcol=XCOLS[nxi],xsub=XSUBS[nxi];
               if(nxi===0){
                 // Marchosias — GREEN hexagon, gear teeth, inner triangle, arc shield
@@ -3775,7 +3773,7 @@
 
             c.restore(); // end entity
 
-            // ── PHASE LABELS (right side) ──
+            // PHASE LABELS (right side)
             c.fillStyle = '#22cc55'; c.font = 'bold 8px Orbitron,sans-serif'; c.textAlign = 'left';
             if (phase === 0) {
               c.fillText('NORMAL STANCE', w * 0.48, h * 0.12);
@@ -4039,7 +4037,7 @@
             c.beginPath(); c.arc(0, 0, r * 0.12, 0, Math.PI * 2); c.fill();
             c.restore();
 
-            // ── LUMEN NOVA ──
+            // LUMEN NOVA
             const novaPhase = (t % 5000) / 5000;
             const novaTargets = [[w * 0.6, h * 0.75], [w * 0.45, h * 0.25], [w * 0.75, h * 0.35], [w * 0.85, h * 0.7]];
             if (novaPhase < 0.3) {
@@ -4132,7 +4130,7 @@
             c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 1.5;
             c.beginPath(); c.arc(cx2, cy2, r + 10, shA - Math.PI / 4, shA + Math.PI / 4); c.stroke();
 
-            // ── SWORD ANIMATION: warning beam → orange arc blade fires ──
+            // SWORD ANIMATION: warning beam → orange arc blade fires
             const swordCycle = 3500;
             const sp = (t % swordCycle) / swordCycle;
             const swordOriginX = cx2, swordOriginY = cy2;
@@ -4246,7 +4244,7 @@
           drawMar(performance.now());
         }
 
-        // ── EGREGOR — Elite ──
+        // EGREGOR — Elite
         const sEg = setup('cvEgregor');
         if (sEg) {
           const { c, w, h } = sEg;
@@ -4410,7 +4408,7 @@
           }
           drawEg(performance.now());
 
-          // ── PLAY: real _drawEgregor()/_drawEgregorEffects()/_drawEgregorDeathBursts()
+          // PLAY: real _drawEgregor()/_drawEgregorEffects()/_drawEgregorDeathBursts()
           // (js/render/enemy-egregor.js + fx.js), hand-driven through the real
           // phase fields from js/entities.js's spawnEgregor()/updateEgregor() —
           // appear → 5 rage stacks → Null Slash → Psychic Tempest → death + roar.
@@ -4591,7 +4589,7 @@
             const cx2 = w * 0.22, cy2 = h * 0.50, r = Math.min(h, w * 0.32) * 0.45;
             const pulse = 0.5 + 0.5 * Math.sin(t / 300);
 
-            // ── MAOU HAKI SHOCKWAVE (every 6s) ──
+            // MAOU HAKI SHOCKWAVE (every 6s)
             const hakiPhase = (t % 6000) / 6000;
             if (hakiPhase > 0.7 && hakiPhase < 0.95) {
               const hT = (hakiPhase - 0.7) / 0.25;
@@ -4607,7 +4605,7 @@
               c.fillText('MAOU HAKI', cx2, cy2 - hR - 4); c.textAlign = 'left';
             }
 
-            // ── NEW DARGRUEL BODY ──
+            // NEW DARGRUEL BODY
             // 1. Abyss aura
             c.fillStyle = `rgba(138,43,226,${0.12 + 0.08 * pulse})`;
             c.beginPath(); c.arc(cx2, cy2, r * 1.5, 0, Math.PI * 2); c.fill();
@@ -4741,7 +4739,7 @@
             }
             c.restore();
 
-            // ── ABYSSAL CHAIN FAN ──
+            // ABYSSAL CHAIN FAN
             const chainPhase = (t % 3000) / 3000;
             if (chainPhase < 0.65) {
               const chainT = chainPhase / 0.65;
@@ -4803,7 +4801,7 @@
             const NUM_W = 9;
             const laserLen = Math.max(w, h);
 
-            // ── BIG CYCLE: 16s total ──
+            // BIG CYCLE: 16s total
             // 0.00-0.25: AFO shield active (wings folded)
             // 0.25-0.32: shield shatters, wings open
             // 0.32-0.52: Perseverance (charge + 360° sweep)
@@ -4840,7 +4838,7 @@
             else if (isLRFire || isLRFade) c.fillText('▶ LAST RITES — ALL 9 LASERS FIRE', cx2, 10);
             c.textAlign = 'left';
 
-            // ── Draw target markers during Last Rites phases ──
+            // Draw target markers during Last Rites phases
             if (isLRAim || isLRFire || isLRFade) {
               lrTargets.forEach(([tx, ty], ti) => {
                 c.globalAlpha = 0.4;
@@ -4858,7 +4856,7 @@
               });
             }
 
-            // ── WINGS (always drawn, phase controls fold/open) ──
+            // WINGS (always drawn, phase controls fold/open)
             // During Last Rites aiming: each wing rotates independently to its target
             c.save(); c.translate(cx2, cy2);
             const baseWingRot = -t / 9000; // slow counter-clockwise orbit
@@ -4905,7 +4903,7 @@
             }
             c.restore();
 
-            // ── Last Rites: warning beams during aiming ──
+            // Last Rites: warning beams during aiming
             if (isLRAim) {
               const aimP = (bp - 0.56) / 0.20;
               for (let i = 0; i < NUM_W; i++) {
@@ -4927,7 +4925,7 @@
               }
             }
 
-            // ── Last Rites: all 9 lasers fire ──
+            // Last Rites: all 9 lasers fire
             if (isLRFire || isLRFade) {
               const fireP = isLRFire ? (bp - 0.76) / 0.14 : 1;
               const fadeMul = isLRFade ? Math.max(0, 1 - (bp - 0.90) / 0.10) : 1;
@@ -4956,7 +4954,7 @@
               }
             }
 
-            // ── ENERGY VORTEX (only when shield broken, not during Last Rites fire) ──
+            // ENERGY VORTEX (only when shield broken, not during Last Rites fire)
             if (!isAFO && !isLRFire && !isLRFade) {
               c.save(); c.translate(cx2, cy2); c.rotate(t / 400);
               for (let i = 0; i < 8; i++) {
@@ -4967,7 +4965,7 @@
               c.restore();
             }
 
-            // ── CORE ──
+            // CORE
             const beat = 0.9 + 0.15 * Math.sin(t / 500);
             const coreR = r * 0.30 * beat;
             const coreG = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, coreR);
@@ -4987,7 +4985,7 @@
             c.fillStyle = '#00e5ff'; c.beginPath(); c.arc(ex2, ey2, eR * 0.6, 0, Math.PI * 2); c.fill();
             c.fillStyle = '#000'; c.beginPath(); c.arc(ex2, ey2, eR * 0.28, 0, Math.PI * 2); c.fill();
 
-            // ── AFO SHIELD (phase 1 only) ──
+            // AFO SHIELD (phase 1 only)
             if (isAFO) {
               const sR = r * 1.5;
               const pulse = 0.85 + 0.15 * Math.sin(t / 1500);
@@ -5007,7 +5005,7 @@
               c.fillText('IRON BODY', cx2, cy2 + sR + 25); c.textAlign = 'left';
             }
 
-            // ── PERSEVERANCE (after shield break) ──
+            // PERSEVERANCE (after shield break)
             if (isPers) {
               const persT = (bp - 0.32) / 0.20;
               if (persT < 0.35) {
@@ -5035,7 +5033,7 @@
               }
             }
 
-            // ── DYING GLOW (HP→1) ──
+            // DYING GLOW (HP→1)
             if (isDying) {
               const dyeP = (bp - 0.52) / 0.04;
               const glow = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, r * 1.8);
@@ -5045,7 +5043,7 @@
               c.fillText('HP → 1', cx2, cy2 + r + 22); c.textAlign = 'left';
             }
 
-            // ── Right side labels ──
+            // Right side labels
             c.fillStyle = '#cc55ff'; c.font = 'bold 7px Orbitron, sans-serif';
             c.fillText('HERD LEADER', w * 0.58, h * 0.15);
             c.fillStyle = '#8899bb'; c.font = '6px Share Tech Mono, monospace';
@@ -5066,7 +5064,7 @@
           drawLev(performance.now());
         }
 
-        // ── GOLIATH — Alpha + True Form, using the REAL _drawGoliath() via
+        // GOLIATH — Alpha + True Form, using the REAL _drawGoliath() via
         // drawEnemy() (js/render/enemy-goliath.js, included above) instead of
         // a hand-approximated look, so the preview matches the actual in-game
         // appearance exactly. Both auto-loop continuously, no Play/Pause
@@ -5149,7 +5147,7 @@
           drawTrue(performance.now());
         };
 
-        // ── KANADE HERO ART OVERLAY — live sparkle/glow dressing painted on
+        // KANADE HERO ART OVERLAY — live sparkle/glow dressing painted on
         // top of the static kanade-genesis.png, concentrated over the
         // planets/galaxies in the left/background portion of the frame
         // (approximate fractional positions eyeballed against the actual
@@ -5219,11 +5217,11 @@
 
       }
 
-      // ── SKILL TAB CANVASES — real drawXxx() from js/render/*.js, click-to-play ──
+      // SKILL TAB CANVASES — real drawXxx() from js/render/*.js, click-to-play
       if (tab === 'skills') {
-        // ── YOG-SOTHOTH DOMAIN — real drawYogSothothDomain() (purple layer, title,
+        // YOG-SOTHOTH DOMAIN — real drawYogSothothDomain() (purple layer, title,
         // hex floor, runes) + real drawSkillShiftEffects() (teleport portals) +
-        // real _triggerAccurateParry()/_drawParryBursts() for the parry demo ──
+        // real _triggerAccurateParry()/_drawParryBursts() for the parry demo
         const ss = setup('cvShift');
         if (ss) {
           const { c, w, h } = ss;
@@ -5293,7 +5291,7 @@
           };
         }
 
-        // ── THUNDER ORBS (Skill A) — real drawSkillA() + real drawEnemy() apostle target ──
+        // THUNDER ORBS (Skill A) — real drawSkillA() + real drawEnemy() apostle target
         const ska = setup('cvSkillA');
         if (ska) {
           const { c, w, h } = ska;
@@ -5434,7 +5432,7 @@
           };
         }
 
-        // ── REMEMBRANCE SPIRIT (Skill S, normal) — real drawSpirit()/drawSpiritBullet()/drawBladeArcProjectile() ──
+        // REMEMBRANCE SPIRIT (Skill S, normal) — real drawSpirit()/drawSpiritBullet()/drawBladeArcProjectile()
         const sks = setup('cvSkillS');
         if (sks) {
           const { c, w, h } = sks;
@@ -5606,8 +5604,8 @@
 
         // --- Remaining skill canvases ---
 
-        // ── DEATH STAR (Skill D) — real drawSkillDCharging()/drawDeathStar()/
-        // drawSkillDMarks()/drawSkillDLasers()/drawSkillDSpaceships() ──
+        // DEATH STAR (Skill D) — real drawSkillDCharging()/drawDeathStar()/
+        // drawSkillDMarks()/drawSkillDLasers()/drawSkillDSpaceships()
         const skd = setup('cvSkillD');
         if (skd) {
           const { c, w, h } = skd;
@@ -5714,8 +5712,8 @@
           };
         }
 
-        // ── TESLA MATRIX (Skill G) — real drawEnergyOrb() converge, then a real
-        // drawTeslaCoil() firing real drawTeslaBolt() volleys with the stack bar ──
+        // TESLA MATRIX (Skill G) — real drawEnergyOrb() converge, then a real
+        // drawTeslaCoil() firing real drawTeslaBolt() volleys with the stack bar
         const skg = setup('cvSkillG');
         if (skg) {
           const { c, w, h } = skg;
@@ -5858,7 +5856,7 @@
           };
         }
 
-        // ── OVERLOAD LASER — real drawChargeEffect() + real drawLaser() ──
+        // OVERLOAD LASER — real drawChargeEffect() + real drawLaser()
         const slz = setup('cvLaser');
         if (slz) {
           const { c, w, h } = slz;
@@ -5928,7 +5926,7 @@
           };
         }
 
-        // ── ANNIHILATION SWEEP (Skill F) — real drawSkillF() charge + sweep ──
+        // ANNIHILATION SWEEP (Skill F) — real drawSkillF() charge + sweep
         const skf = setup('cvSkillF');
         if (skf) {
           const { c, w, h } = skf;
@@ -5986,7 +5984,7 @@
         }
       }
 
-      // ── SIGIL TAB GLYPHS ──
+      // SIGIL TAB GLYPHS
       if (tab === 'sigils') {
         // Same white line-art sprites + source-atop tint the real game uses
         // (js/sigils/core.js's _drawZodiacGlyph) - mirrored here since guide.html
@@ -6033,7 +6031,7 @@
     }
   </script>
   <script>
-    // ── Spirit tab switcher ──
+    // Spirit tab switcher
     function showSpiritTab(n) {
       document.getElementById('sSpiritPane1').style.display = n === 1 ? 'block' : 'none';
       document.getElementById('sSpiritPane2').style.display = n === 2 ? 'block' : 'none';
@@ -6049,7 +6047,7 @@
       if (n === 2 && window._initGoliathTrueCanvas) window._initGoliathTrueCanvas();
     }
 
-    // ── PHŌTOKRYSTOS — real drawSpirit()/drawPrimevalSummonEffect()/drawPhotoBrang()/
+    // PHŌTOKRYSTOS — real drawSpirit()/drawPrimevalSummonEffect()/drawPhotoBrang()/
     // drawBossShockwaves()/_drawVineBinds() from js/render/skill-s-spirit.js + fx.js.
     // Phase sequence ported from the verified test-photokrystos.html driver, adapted
     // to a single click-to-play run instead of an auto-looping demo.

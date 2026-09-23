@@ -41,7 +41,7 @@ canvas {
     box-shadow: 0 8px 25px rgba(35, 197, 184, 0.6);
 }
 
-/* ── Dark Souls game-over button style ──────────────────── */
+/* Dark Souls game-over button style */
 #startBtn.ds-mode {
     background: rgba(8, 3, 3, 0.93) !important;
     border: 1px solid rgba(178, 122, 26, 0.68) !important;

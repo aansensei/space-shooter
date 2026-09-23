@@ -179,12 +179,10 @@ window._pixiRender       = null;
         for (const s of warm) { s.parent.removeChild(s); _rel(s); }
     };
 
-    // ══════════════════════════════════════════════════════════════════
     // PHASE 3A, Nebula atmosphere
     // Custom radial-gradient textures (opacity baked in) drift slowly.
     // 'screen' blend brightens dark backgrounds proportionally, visible
     // on the dark space canvas without covering gameplay.
-    // ══════════════════════════════════════════════════════════════════
     const W = () => app.renderer.width, H = () => app.renderer.height;
 
     function _makeNebulaTex(r, g, b, size) {
@@ -243,12 +241,10 @@ window._pixiRender       = null;
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
     // PHASE 3B, Bullet trails
     // Each frame a trail entry is recorded at the bullet's current
     // position.  The entry persists and fades over ~6 frames, so as the
     // bullet advances it leaves a glowing streak behind it.
-    // ══════════════════════════════════════════════════════════════════
     const _trails   = []; // { x, y, alpha, size }
     const _TRAIL_CAP = 200;
     const _TRAIL_DECAY = 0.50;
@@ -279,7 +275,6 @@ window._pixiRender       = null;
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
     // PHASE 3C, Hit flash
     // Track enemy HP each frame, when HP drops, spawn a brief flash at
     // the enemy's position. Uses object-reference keying so it works
@@ -294,7 +289,6 @@ window._pixiRender       = null;
     // second independent layer), so it can never stack past a single
     // instance no matter how fast that enemy is being hit from how many
     // sources at once.
-    // ══════════════════════════════════════════════════════════════════
     const _enemyHp  = new Map(); // enemy object → last hp
     const _flashes  = new Map(); // enemy object → { x, y, alpha, r }
     const _FLASH_DECAY = 0.48;
@@ -349,12 +343,10 @@ window._pixiRender       = null;
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════
     // PHASE 3D, Dimensional Rift zones (Skill A)
     // Extracted exactly from dimensional_rift_pixi-v2.html:
     //   void core circles, rotating energy ring w/ 12 spikes, animated
     //   cracks with 18% glitch chance, floating antimatter particles.
-    // ══════════════════════════════════════════════════════════════════
     const _riftContainers = new Map(); // rift object → PIXI.Container
 
     function _pixiCreateRiftContainer(rift) {
@@ -515,9 +507,7 @@ window._pixiRender       = null;
         }
     };
 
-    // ══════════════════════════════════════════════════════════════════
     // PHASE 1, Bullets / spirits / particles
-    // ══════════════════════════════════════════════════════════════════
     window._pixiDrawBullets = function(bullets, spiritBullets) {
         _spawnTrails(bullets); // record trail positions before layer clear
         _clearLayer(bulletLayer);

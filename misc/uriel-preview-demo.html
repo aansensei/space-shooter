@@ -83,7 +83,7 @@
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // ── Assets ──────────────────────────────────────────────────────────
+  // Assets
   // The angelic mask overlay was dropped - Uriel's "face" is now the
   // procedural eye cluster below (biblical seraphim/ophanim: many eyes,
   // many wings, not a single mask). Only the Holy Sword sprite remains
@@ -94,7 +94,7 @@
   const coreImg = new Image();
   coreImg.src = '../assets/images/game/enemies/uriel-divine-core.png';
 
-  // ── Palette ─────────────────────────────────────────────────────────
+  // Palette
   const GOLD = '#ffd76b', WHITE = '#fffaf0', BLUE = '#7aa8ff', SHADOW = '#2a1f10';
 
   const stars = Array.from({ length: 140 }, () => ({
@@ -121,7 +121,7 @@
     ctx.restore();
   }
 
-  // ── Uriel state ─────────────────────────────────────────────────────
+  // Uriel state
   const uriel = {
     x: 0, y: 0, wpX: 0, wpY: 0,
     baseSpeed: 55, r: 46, visible: true,
@@ -343,7 +343,7 @@
       barrier.phase === 'hold' ? 'BARRIER ACTIVE' : '';
   }
 
-  // ── Eyes: 3 eyes tracking the dummy player, 1 horizontal + 2 vertical,
+  // Eyes: 3 eyes tracking the dummy player, 1 horizontal + 2 vertical,
   // per the "many eyes, many wings" seraphim/ophanim description. Each
   // has its own idle blink cycle so they never sync perfectly.
   function drawEye(ex, ey, w, h, targetAng, idx, now) {

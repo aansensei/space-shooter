@@ -831,7 +831,7 @@ window.debugSetYuukiBonus = function () {
         }
     });
 
-    // ── Click-to-spawn ──────────────────────────────────────────────
+    // Click-to-spawn
     // Independent of the panel being open/closed so a type can be armed
     // once and then spawned repeatedly across the full screen. Ignores
     // clicks that land on the panel itself so its own buttons still work.
@@ -848,7 +848,7 @@ window.debugSetYuukiBonus = function () {
         window.debugSpawn(fnName, x, y);
     });
 
-    // ── Player ──────────────────────────────────────────────────────
+    // Player
     window.debugResetPlayer = function () {
         if (typeof player === 'undefined') return;
         player.x = canvas.width / 2;
@@ -862,7 +862,7 @@ window.debugSetYuukiBonus = function () {
         window.debugStartSession();
     };
 
-    // ── Skills ──────────────────────────────────────────────────────
+    // Skills
     window.debugForceSkill = function (id) {
         const now = performance.now();
         switch (id) {
@@ -967,7 +967,7 @@ window.debugSetYuukiBonus = function () {
         }
     };
 
-    // ── Sigils / passives ───────────────────────────────────────────
+    // Sigils / passives
     function buildSigilList() {
         const el = document.getElementById('dbgSigilList');
         if (!el || typeof SIGIL_ORDER === 'undefined') return;
@@ -1008,7 +1008,7 @@ window.debugSetYuukiBonus = function () {
         }
     };
 
-    // ── Spawn enemy / sentinel ──────────────────────────────────────
+    // Spawn enemy / sentinel
     function applySpawnStatOverrides(obj, allowSpeed) {
         const hpEl = document.getElementById('dbgSpawnHp');
         const sizeEl = document.getElementById('dbgSpawnSize');
@@ -1079,7 +1079,7 @@ window.debugSetYuukiBonus = function () {
         el.textContent = btn.textContent.trim() + ': HP ' + hp + ', size ' + size;
     };
 
-    // ── Combat Dummy ─────────────────────────────────────────────────
+    // Combat Dummy
     function _getDummy() {
         if (typeof enemies === 'undefined') return null;
         return enemies.find(e => e.type === 'debug_dummy') || null;
@@ -1159,7 +1159,7 @@ window.debugSetYuukiBonus = function () {
         if (drLive && document.activeElement !== drLive) drLive.value = _drPct || '';
     }
 
-    // ── Core passives (not sigils) ──────────────────────────────────
+    // Core passives (not sigils)
     window.debugForceAccurateParry = function () {
         if (typeof accurateParryActive === 'undefined') return;
         accurateParryActive = true;
@@ -1254,7 +1254,7 @@ window.debugSetYuukiBonus = function () {
         refreshEnemyList();
     };
 
-    // ── Active enemy list ───────────────────────────────────────────
+    // Active enemy list
     function debugSetHp(idx) {
         const input = document.getElementById('dbgHp_' + idx);
         const e = enemies[idx];
@@ -1467,7 +1467,7 @@ window.debugSetYuukiBonus = function () {
         }).join('');
     }
 
-    // ── Sentinels ────────────────────────────────────────────────────
+    // Sentinels
     window.debugSetSentinelHp = function (idx) {
         const input = document.getElementById('dbgSentHp_' + idx);
         const s = sentinels[idx];
