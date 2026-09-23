@@ -60,18 +60,40 @@ function _sgGridPatternGet() {
 }
 
 // Cached once; index.html declares #skillg-crest as a fixed, centered,
-// pointer-events:none overlay - this just drives its opacity/rotation in
-// lockstep with the barrier itself instead of it being its own separate cue.
-let _sgCrestEl;
-function _sgSyncCrest(opacity, now) {
-    if (_sgCrestEl === undefined) _sgCrestEl = document.getElementById('skillg-crest');
+// pointer-events:none, STATIC overlay (no rotation) with two stacked
+// copies of the same artwork: a dim base (always faint while active) and
+// a brighter "lit" copy clipped by #sgCrestRevealRect. This drives the
+// container's fade in lockstep with the barrier itself, and grows the lit
+// clip rect from the bottom edge upward as the skill's own 30s duration
+// (activateSkillG, skill-g.js) elapses - full duration = fully lit.
+let _sgCrestEl, _sgCrestLitEl, _sgCrestRevealRect;
+function _sgSyncCrest(opacity) {
+    if (_sgCrestEl === undefined) {
+        _sgCrestEl = document.getElementById('skillg-crest');
+        _sgCrestLitEl = document.getElementById('sgCrestLit');
+        _sgCrestRevealRect = document.getElementById('sgCrestRevealRect');
+    }
     if (!_sgCrestEl) return;
     _sgCrestEl.style.opacity = (opacity * 0.16).toFixed(3);
-    _sgCrestEl.style.transform = `translate(-50%,-50%) rotate(${(now / 9000) % 1 * 360}deg)`;
+
+    const progress = skillGActive
+        ? Math.max(0, Math.min(1, 1 - (skillGEndTime - gameElapsedTime) / 30000))
+        : 0;
+    if (_sgCrestRevealRect) {
+        const h = 200 * progress;
+        _sgCrestRevealRect.setAttribute('y', 200 - h);
+        _sgCrestRevealRect.setAttribute('height', h);
+    }
+    if (_sgCrestLitEl) {
+        _sgCrestLitEl.style.opacity = progress > 0 ? '1' : '0';
+        _sgCrestLitEl.style.filter = progress > 0.05
+            ? `drop-shadow(0 0 ${(2 + 6 * progress).toFixed(1)}px rgba(220,255,255,${(0.35 * progress).toFixed(2)}))`
+            : 'none';
+    }
 }
 
 function drawSkillGBarrier() {
-    _sgSyncCrest(Math.max(0, Math.min(1, skillGBorderOpacity / 0.5)), performance.now());
+    _sgSyncCrest(Math.max(0, Math.min(1, skillGBorderOpacity / 0.5)));
     if (skillGBorderOpacity <= 0) return;
     const now = performance.now();
     ctx.save();

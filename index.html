@@ -226,10 +226,12 @@
             transition: opacity 0.1s;
         }
 
-        /* Skill G (Tesla Matrix) crest: a faint watermark centered on the
-           barrier, faded in/out by js/render/skill-g.js's drawSkillGBarrier
-           in lockstep with skillGBorderOpacity, so it's part of the same
-           activation as the border/grid rather than its own separate cue. */
+        /* Skill G (Tesla Matrix) crest: a static, faint watermark centered
+           on the barrier. Its container fades in/out with skillGBorderOpacity
+           (js/render/skill-g.js's drawSkillGBarrier), and a second "lit"
+           copy of the same artwork (#sgCrestLit) brightens from the bottom
+           edge upward as the skill's own duration elapses - see
+           #sgCrestRevealRect below. */
         #skillg-crest {
             position: fixed;
             top: 50%;
@@ -242,7 +244,8 @@
             z-index: 15;
             will-change: opacity, transform;
         }
-        #skillg-crest svg { width: 100%; height: 100%; display: block; }
+        #skillg-crest svg { width: 100%; height: 100%; display: block; overflow: visible; }
+        #sgCrestLit { transition: opacity 0.4s ease-out; }
 
         /* --- CLICK TO START --- */
         #click-to-start {
@@ -499,10 +502,15 @@
 
     <div id="white-flash"></div>
 
-    <!-- Skill G crest: faint watermark shown while the Tesla Matrix barrier
-         is up (see #skillg-crest CSS above and drawSkillGBarrier's opacity
-         sync). One cyan stroke color throughout, no fills but the soft core
-         glow, so it reads as a mark on the barrier rather than a sticker. -->
+    <!-- Skill G crest: a static watermark centered on screen while the
+         Tesla Matrix barrier is up (see #skillg-crest CSS above and
+         drawSkillGBarrier's sync in js/render/skill-g.js). The artwork is
+         defined once (#sgCrestArt) and drawn twice: a faint "dim" copy
+         that's always visible while active, and a brighter "lit" copy
+         clipped by #sgCrestRevealRect, which JS grows from the bottom edge
+         upward as the skill's 30s duration elapses - full duration = fully
+         lit. Placeholder geometry; swap #sgCrestArt's contents for real
+         artwork later without touching the reveal mechanics. -->
     <div id="skillg-crest">
         <svg viewBox="0 0 200 200">
             <defs>
@@ -510,30 +518,35 @@
                     <stop offset="0%" stop-color="#7ff3ff" stop-opacity="0.5"/>
                     <stop offset="100%" stop-color="#7ff3ff" stop-opacity="0"/>
                 </radialGradient>
+                <g id="sgCrestArt" fill="none" stroke-width="1">
+                    <polygon points="100,8 179.67,54 179.67,146 100,192 20.33,146 20.33,54" stroke-width="1.1"/>
+                    <circle cx="100" cy="100" r="70" stroke-width="0.8" stroke-dasharray="2 5"/>
+                    <circle cx="100" cy="100" r="40" stroke-width="1"/>
+                    <circle cx="100" cy="100" r="22" fill="url(#sgCrestCore)" stroke="none"/>
+                    <g stroke-width="1.1">
+                        <line x1="100" y1="60" x2="100" y2="30"/>
+                        <line x1="127.32" y1="75" x2="152.85" y2="60.5"/>
+                        <line x1="127.32" y1="125" x2="152.85" y2="139.5"/>
+                        <line x1="100" y1="140" x2="100" y2="170"/>
+                        <line x1="72.68" y1="125" x2="47.15" y2="139.5"/>
+                        <line x1="72.68" y1="75" x2="47.15" y2="60.5"/>
+                    </g>
+                    <g stroke="none" fill="currentColor">
+                        <rect x="97" y="42" width="6" height="6" transform="rotate(45 100 45)"/>
+                        <rect x="139.5" y="65" width="6" height="6" transform="rotate(45 142.5 68)"/>
+                        <rect x="139.5" y="129" width="6" height="6" transform="rotate(45 142.5 132)"/>
+                        <rect x="97" y="152" width="6" height="6" transform="rotate(45 100 155)"/>
+                        <rect x="54.5" y="129" width="6" height="6" transform="rotate(45 57.5 132)"/>
+                        <rect x="54.5" y="65" width="6" height="6" transform="rotate(45 57.5 68)"/>
+                    </g>
+                    <path d="M100,84 L108,100 L100,116 L92,100 Z" stroke-width="1.3"/>
+                </g>
+                <clipPath id="sgCrestClip" clipPathUnits="userSpaceOnUse">
+                    <rect id="sgCrestRevealRect" x="0" y="200" width="200" height="0"/>
+                </clipPath>
             </defs>
-            <g fill="none" stroke="#7ff3ff" stroke-width="1">
-                <polygon points="100,8 179.67,54 179.67,146 100,192 20.33,146 20.33,54" stroke-width="1.1"/>
-                <circle cx="100" cy="100" r="70" stroke-width="0.8" stroke-dasharray="2 5"/>
-                <circle cx="100" cy="100" r="40" stroke-width="1"/>
-                <circle cx="100" cy="100" r="22" fill="url(#sgCrestCore)" stroke="none"/>
-                <g stroke-width="1.1">
-                    <line x1="100" y1="60" x2="100" y2="30"/>
-                    <line x1="127.32" y1="75" x2="152.85" y2="60.5"/>
-                    <line x1="127.32" y1="125" x2="152.85" y2="139.5"/>
-                    <line x1="100" y1="140" x2="100" y2="170"/>
-                    <line x1="72.68" y1="125" x2="47.15" y2="139.5"/>
-                    <line x1="72.68" y1="75" x2="47.15" y2="60.5"/>
-                </g>
-                <g stroke="none" fill="#7ff3ff">
-                    <rect x="97" y="42" width="6" height="6" transform="rotate(45 100 45)"/>
-                    <rect x="139.5" y="65" width="6" height="6" transform="rotate(45 142.5 68)"/>
-                    <rect x="139.5" y="129" width="6" height="6" transform="rotate(45 142.5 132)"/>
-                    <rect x="97" y="152" width="6" height="6" transform="rotate(45 100 155)"/>
-                    <rect x="54.5" y="129" width="6" height="6" transform="rotate(45 57.5 132)"/>
-                    <rect x="54.5" y="65" width="6" height="6" transform="rotate(45 57.5 68)"/>
-                </g>
-                <path d="M100,84 L108,100 L100,116 L92,100 Z" stroke-width="1.3"/>
-            </g>
+            <use href="#sgCrestArt" stroke="#7ff3ff" color="#7ff3ff" opacity="0.5"/>
+            <use href="#sgCrestArt" stroke="#eafeff" color="#eafeff" clip-path="url(#sgCrestClip)" id="sgCrestLit"/>
         </svg>
     </div>
 
@@ -2184,7 +2197,7 @@
     <script src="js/render/skill-d.js?v=20260914b"></script>
     <script src="js/render/skill-f.js?v=20260914b"></script>
     <script src="js/render/sigil-cancer.js?v=20260914b"></script>
-    <script src="js/render/skill-g.js?v=20260923c"></script>
+    <script src="js/render/skill-g.js?v=20260923d"></script>
     <script src="js/render/skill-buttons.js?v=20260917a"></script>
     <script src="js/pixi-renderer.js?v=20260923a"></script>
     <script src="js/input.js?v=20260910a"></script>
