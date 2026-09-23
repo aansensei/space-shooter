@@ -34,6 +34,7 @@
         'assets/images/game/effects/rift-void.png',
         'assets/images/game/effects/rift-blood-garden.png',
         'assets/images/game/effects/yog-sothoth-starry-night.jpg',
+        'assets/images/game/effects/skill-g-crest.png',
         'assets/images/game/icons/walpurgis-icon.png',
         'assets/images/game/icons/blood-arrow-stack.png',
         'assets/images/game/enemies/marchosias-hexagon-armor.png',

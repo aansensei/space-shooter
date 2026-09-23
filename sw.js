@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v380';
+const CACHE_VERSION = 'v381';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -33,6 +33,7 @@ const CORE_FILES = [
     'assets/images/game/effects/rift-void.png',
     'assets/images/game/effects/rift-blood-garden.png',
     'assets/images/game/effects/yog-sothoth-starry-night.jpg',
+    'assets/images/game/effects/skill-g-crest.png',
     'assets/images/game/icons/walpurgis-icon.png',
     'assets/images/game/icons/blood-arrow-stack.png',
     'assets/images/game/icons/dargruel-root-silence-debuff.png',

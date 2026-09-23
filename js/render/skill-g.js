@@ -61,30 +61,26 @@ function _sgGridPatternGet() {
 
 // Cached once; index.html declares #skillg-crest as a fixed, centered,
 // pointer-events:none, STATIC overlay (no rotation) with two stacked
-// copies of the same artwork: a dim base (always faint while active) and
-// a brighter "lit" copy clipped by #sgCrestRevealRect. This drives the
-// container's fade in lockstep with the barrier itself, and grows the lit
-// clip rect from the bottom edge upward as the skill's own 30s duration
+// <img> copies of assets/images/game/effects/skill-g-crest.png: a dim base
+// (always faint while active) and a brighter "lit" copy whose clip-path
+// this grows from the bottom edge upward as the skill's own 30s duration
 // (activateSkillG, skill-g.js) elapses - full duration = fully lit.
-let _sgCrestEl, _sgCrestLitEl, _sgCrestRevealRect;
+let _sgCrestEl, _sgCrestLitEl;
 function _sgSyncCrest(opacity) {
     if (_sgCrestEl === undefined) {
         _sgCrestEl = document.getElementById('skillg-crest');
         _sgCrestLitEl = document.getElementById('sgCrestLit');
-        _sgCrestRevealRect = document.getElementById('sgCrestRevealRect');
     }
     if (!_sgCrestEl) return;
-    _sgCrestEl.style.opacity = (opacity * 0.16).toFixed(3);
+    // Container just fades the whole overlay in/out with the barrier - the
+    // dim/lit balance itself lives in #sgCrestDim/#sgCrestLit's own CSS opacity.
+    _sgCrestEl.style.opacity = opacity.toFixed(3);
 
     const progress = skillGActive
         ? Math.max(0, Math.min(1, 1 - (skillGEndTime - gameElapsedTime) / 30000))
         : 0;
-    if (_sgCrestRevealRect) {
-        const h = 200 * progress;
-        _sgCrestRevealRect.setAttribute('y', 200 - h);
-        _sgCrestRevealRect.setAttribute('height', h);
-    }
     if (_sgCrestLitEl) {
+        _sgCrestLitEl.style.clipPath = `inset(${((1 - progress) * 100).toFixed(2)}% 0 0 0)`;
         _sgCrestLitEl.style.opacity = progress > 0 ? '1' : '0';
         _sgCrestLitEl.style.filter = progress > 0.05
             ? `drop-shadow(0 0 ${(2 + 6 * progress).toFixed(1)}px rgba(220,255,255,${(0.35 * progress).toFixed(2)}))`
