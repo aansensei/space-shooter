@@ -642,22 +642,24 @@ function drawTeslaCoil(coil) {
         ctx.restore();
     }
 
-    // Stack bar: five cells above the coil. A cell dims as its stack runs
-    // out its 1.5s; a full bar pulses gold, the next bolt is the empowered one.
+    // Stack bar: five cells above the coil. The whole bar shares one combo
+    // timer (any bolt fired refreshes it), so it dims together as that
+    // timer runs down instead of each cell decaying on its own; a full bar
+    // pulses gold, the next bolt is the empowered one.
     {
         const cw = 9, gap = 2, bh = 5;
         const total = cw * TESLA_STACK_MAX + gap * (TESLA_STACK_MAX - 1);
         const bx = coil.x - total / 2, by = coil.y - VR - 16;
-        const full = coil.stacks.length >= TESLA_STACK_MAX;
+        const full = coil.stackCount >= TESLA_STACK_MAX;
         const pulse = 0.5 + 0.5 * Math.sin(now / 90);
+        const life = coil.stackCount > 0 ? Math.max(0.25, Math.min(1, (coil.stackExpireAt - now) / TESLA_STACK_MS)) : 0;
         ctx.fillStyle = 'rgba(10,20,30,0.8)';
         ctx.fillRect(bx - 2, by - 2, total + 4, bh + 4);
         for (let i = 0; i < TESLA_STACK_MAX; i++) {
             const x0 = bx + i * (cw + gap);
             ctx.fillStyle = 'rgba(60,80,95,0.55)';
             ctx.fillRect(x0, by, cw, bh);
-            if (i < coil.stacks.length) {
-                const life = Math.max(0.25, Math.min(1, coil.stacks[i] / TESLA_STACK_MS));
+            if (i < coil.stackCount) {
                 ctx.fillStyle = full ? `rgba(255,${Math.round(200 + 40 * pulse)},${Math.round(90 + 90 * pulse)},1)` : `rgba(0,255,255,${0.45 + 0.55 * life})`;
                 ctx.fillRect(x0, by, cw, bh);
             }

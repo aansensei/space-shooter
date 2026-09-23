@@ -274,7 +274,7 @@ function spawnTeslaCoil(midX, midY) {
     teslaCoils.push({
         x: midX, y: midY,
         hp: 1, maxHp: 1, // coils have no health: this is only an alive flag the 500-bolt self-destruct clears
-        stacks: [],
+        stackCount: 0, stackExpireAt: 0,
         size: TESLA_COIL_SIZE,
         auraRadius: TESLA_AURA_RADIUS,
         scanTimer: TESLA_BOLT_SCAN_MS,
@@ -374,13 +374,12 @@ function _updateCoilBoltVolley(coil, deltaTime) {
     if (coil.empowerBurstMs > 0) coil.empowerBurstMs = Math.max(0, coil.empowerBurstMs - deltaTime);
     if (coil.hp <= 0) return;
 
-    // Each stack carries its own remaining time; every stack adds fire rate,
-    // which speeds up the scan timer and the per-shot delays alike.
-    for (let i = coil.stacks.length - 1; i >= 0; i--) {
-        coil.stacks[i] -= deltaTime;
-        if (coil.stacks[i] <= 0) coil.stacks.splice(i, 1);
-    }
-    const rate = 1 + TESLA_STACK_FIRE_RATE * coil.stacks.length;
+    // The whole combo shares one expiry: every bolt fired refreshes it, so
+    // sustained fire keeps building instead of the oldest stack quietly
+    // expiring mid-combo while new ones keep coming in. Only lapses (back to
+    // 0) once TESLA_STACK_MS passes with no new bolt at all.
+    if (coil.stackCount > 0 && performance.now() >= coil.stackExpireAt) coil.stackCount = 0;
+    const rate = 1 + TESLA_STACK_FIRE_RATE * coil.stackCount;
 
     coil.scanTimer -= deltaTime * rate;
     if (coil.scanTimer <= 0) {
@@ -420,12 +419,14 @@ function _launchTeslaBolt(coil, target) {
         d = Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
         if (d < bestDiff) { bestDiff = d; best = i; }
     }
-    // Stack bookkeeping: a full set of stacks makes THIS bolt the empowered
-    // one and resets them to a single stack (its own); otherwise the shot adds a stack.
-    const empowered = coil.stacks.length >= TESLA_STACK_MAX;
-    if (empowered) coil.stacks.length = 0;
-    coil.stacks.push(TESLA_STACK_MS);
-    const boltStacks = empowered ? TESLA_STACK_MAX : coil.stacks.length;
+    // Stack bookkeeping: already holding a full combo makes THIS bolt the
+    // empowered one and resets it to a single stack (its own); otherwise the
+    // shot adds a stack. Firing always refreshes the shared expiry timer.
+    const empowered = coil.stackCount >= TESLA_STACK_MAX;
+    if (empowered) coil.stackCount = 0;
+    coil.stackCount++;
+    coil.stackExpireAt = now + TESLA_STACK_MS;
+    const boltStacks = empowered ? TESLA_STACK_MAX : coil.stackCount;
     coil.boltsFired++;
     coil.flashMs = 200;
     coil.muzzleAngle = ang;
