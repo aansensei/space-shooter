@@ -241,7 +241,12 @@
             transform: translate(-50%, -50%);
             opacity: 0;
             pointer-events: none;
-            z-index: 15;
+            /* Same z-index as gameCanvas/pixiCanvas (js/background.js,
+               js/pixi-renderer.js) - ties break on DOM order, and this div
+               sits earlier in the HTML than both, so it paints above the
+               z:0 starfield background but below the ship/enemies/bullets/
+               HUD, instead of floating over everything at z:15. */
+            z-index: 1;
             will-change: opacity;
         }
         #skillg-crest img {
@@ -257,6 +262,38 @@
             opacity: 0;
             clip-path: inset(100% 0 0 0);
             transition: opacity 0.4s ease-out;
+        }
+        /* Embers riding the advancing edge of #sgCrestLit's reveal, like the
+           crest is catching fire as it fills - top is synced by JS to the
+           same boundary as the clip-path above. */
+        #sgCrestBlaze {
+            position: absolute;
+            left: 6%;
+            right: 6%;
+            top: 100%;
+            height: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+        .sg-ember {
+            position: absolute;
+            bottom: 0;
+            width: 9px;
+            height: 9px;
+            margin-left: -4.5px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fbffff 0%, #8fe9ff 45%, rgba(110,225,255,0) 75%);
+            filter: blur(0.4px);
+            opacity: 0;
+            animation: sgEmberRise linear infinite;
+        }
+        .sg-ember-warm {
+            background: radial-gradient(circle, #fff8e6 0%, #ffcf7a 45%, rgba(255,180,90,0) 75%);
+        }
+        @keyframes sgEmberRise {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            18% { opacity: 0.9; }
+            100% { transform: translateY(-42px) scale(1); opacity: 0; }
         }
 
         /* --- CLICK TO START --- */
@@ -524,6 +561,15 @@
     <div id="skillg-crest">
         <img id="sgCrestDim" src="assets/images/game/effects/skill-g-crest.png" alt="">
         <img id="sgCrestLit" src="assets/images/game/effects/skill-g-crest.png" alt="">
+        <div id="sgCrestBlaze">
+            <span class="sg-ember" style="left:8%; animation-delay:0s; animation-duration:1.4s;"></span>
+            <span class="sg-ember sg-ember-warm" style="left:22%; animation-delay:0.3s; animation-duration:1.7s;"></span>
+            <span class="sg-ember" style="left:37%; animation-delay:0.6s; animation-duration:1.3s;"></span>
+            <span class="sg-ember sg-ember-warm" style="left:50%; animation-delay:0.15s; animation-duration:1.6s;"></span>
+            <span class="sg-ember" style="left:63%; animation-delay:0.5s; animation-duration:1.5s;"></span>
+            <span class="sg-ember sg-ember-warm" style="left:78%; animation-delay:0.8s; animation-duration:1.8s;"></span>
+            <span class="sg-ember" style="left:92%; animation-delay:0.35s; animation-duration:1.4s;"></span>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -2173,7 +2219,7 @@
     <script src="js/render/skill-d.js?v=20260914b"></script>
     <script src="js/render/skill-f.js?v=20260914b"></script>
     <script src="js/render/sigil-cancer.js?v=20260914b"></script>
-    <script src="js/render/skill-g.js?v=20260923e"></script>
+    <script src="js/render/skill-g.js?v=20260923f"></script>
     <script src="js/render/skill-buttons.js?v=20260917a"></script>
     <script src="js/pixi-renderer.js?v=20260923a"></script>
     <script src="js/input.js?v=20260910a"></script>

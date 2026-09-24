@@ -64,12 +64,15 @@ function _sgGridPatternGet() {
 // <img> copies of assets/images/game/effects/skill-g-crest.png: a dim base
 // (always faint while active) and a brighter "lit" copy whose clip-path
 // this grows from the bottom edge upward as the skill's own 30s duration
-// (activateSkillG, skill-g.js) elapses - full duration = fully lit.
-let _sgCrestEl, _sgCrestLitEl;
+// (activateSkillG, skill-g.js) elapses - full duration = fully lit. A row
+// of embers (#sgCrestBlaze) rides that same advancing edge, so the crest
+// looks like it's catching fire as the fill climbs.
+let _sgCrestEl, _sgCrestLitEl, _sgCrestBlazeEl;
 function _sgSyncCrest(opacity) {
     if (_sgCrestEl === undefined) {
         _sgCrestEl = document.getElementById('skillg-crest');
         _sgCrestLitEl = document.getElementById('sgCrestLit');
+        _sgCrestBlazeEl = document.getElementById('sgCrestBlaze');
     }
     if (!_sgCrestEl) return;
     // Container just fades the whole overlay in/out with the barrier - the
@@ -85,6 +88,10 @@ function _sgSyncCrest(opacity) {
         _sgCrestLitEl.style.filter = progress > 0.05
             ? `drop-shadow(0 0 ${(2 + 6 * progress).toFixed(1)}px rgba(220,255,255,${(0.35 * progress).toFixed(2)}))`
             : 'none';
+    }
+    if (_sgCrestBlazeEl) {
+        _sgCrestBlazeEl.style.top = `${((1 - progress) * 100).toFixed(2)}%`;
+        _sgCrestBlazeEl.style.opacity = (progress > 0.02 && progress < 0.985) ? '1' : '0';
     }
 }
 
