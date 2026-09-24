@@ -12,6 +12,7 @@ function activateSkillG() {
     skillGEndTime = gameElapsedTime + 30000;
     skillGBorderOpacity = 0.01;
     _checkMirrorLaserProc();
+    if (window.AudioMgr) { window.AudioMgr.playSfx('skill-g-activate'); window.AudioMgr.startSkillGLoop(); }
 
     particles.push({
         isSkillGAura: true,
@@ -24,6 +25,7 @@ function activateSkillG() {
 
 function endSkillG() {
     skillGActive = false;
+    if (window.AudioMgr) window.AudioMgr.stopSkillGLoop();
     const explosionProps = { damage: 0.023 * player.atk, _statSrc: 'Skill G: Tesla Coil' };
     const explosionRadius = ENERGY_ORB_SIZE * 5;
 
@@ -442,7 +444,7 @@ function _launchTeslaBolt(coil, target) {
     // core, so the shot visibly leaves the ring rather than just the middle.
     const tip = teslaPylonPos(coil, best, now);
     createParticles(tip.x, tip.y, empowered ? 8 : 4, '#e8ffff', 2, 8);
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('chain-lightning', coil.x, coil.y);
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('tesla-bolt-launch', coil.x, coil.y);
     if (empowered) {
         // The 5th shot gets its own moment: a screen shake, a wide golden
         // shockwave, and a full radial lightning burst (drawn in

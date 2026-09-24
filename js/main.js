@@ -2032,6 +2032,7 @@ function update(rawDeltaTime) {
             window.AudioMgr.stopNullSlashWindup();
             window.AudioMgr.stopEgregorCrawl();
             window.AudioMgr.stopPhotokrystosIdle();
+            window.AudioMgr.stopSkillGLoop();
             window.AudioMgr.exitGoliathTransformDuck();
             window.AudioMgr.exitTimeDomain();
             window.AudioMgr.stopBgm();
@@ -3428,7 +3429,7 @@ function startGame() {
     skillAActive = false; skillDCharging = false; skillFState = "ready";
     window._lowHpActive = false;
     window._egregorCrawlActive = false;
-    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopDeathStar(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); window.AudioMgr.exitGoliathTransformDuck(); }
+    if (window.AudioMgr) { window.AudioMgr.stopSkillDCharge(); window.AudioMgr.stopSkillFCharge(); window.AudioMgr.stopSkillFFire(); window.AudioMgr.stopDeathStar(); window.AudioMgr.stopMaouHaki(); window.AudioMgr.stopLowHp(); window.AudioMgr.stopCharging(); window.AudioMgr.stopLaser(); window.AudioMgr.stopNullSlashWindup(); window.AudioMgr.stopEgregorCrawl(); window.AudioMgr.stopPhotokrystosIdle(); window.AudioMgr.stopSkillGLoop(); window.AudioMgr.exitGoliathTransformDuck(); }
     // Play Again can fire right after death while the gameover voice is
     // still ringing out - Main Menu already cancels it (index.html's
     // _returnToMainMenu), Play Again skips that path entirely so it needs

@@ -346,7 +346,8 @@
         'sentinel-spawn': 1.0, 'sentinel-explode': 1.0,
         'shift-hold': 1.0, 'shift-teleport': 1.0,
         coronation: 1.0, blackhole: 1.0,
-        'spirit-autofire': 1.0, 'tesla-coil-form': 1.0,
+        'spirit-autofire': 1.0, 'tesla-coil-form': 1.0, 'tesla-bolt-launch': 1.0,
+        'skill-g-activate': 1.0, 'skill-g-loop': 1.0,
         'skill-a-activate': 1.0, 'skill-a-orb-hit': 1.0, 'skill-a-orb-lock': 1.0,
         'skill-f-fire': 1.0, 'skill-f-charge': 1.0,
         'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
@@ -443,6 +444,7 @@
         engineEl: null,      // engine loop
         laserEl: null,       // sustained laser loop
         chargingEl: null,    // charging hum loop (Space-hold overload laser, 3s)
+        skillGLoopEl: null,  // Skill G Tesla Matrix ambient loop, held for the full 30s barrier
         skillDChargeEl: null, // black hole charge hum (Skill D, 2s — distinct clip)
         skillFChargeEl: null, // Skill F charge-up cue, cut short at natural pace (not looped)
         skillFFireEl: null,   // Skill F slash cue, cut short when the sweep animation ends (not looped)
@@ -572,6 +574,7 @@
             engine:   !!(state.engineEl   && !state.engineEl.paused),
             laser:    !!(state.laserEl    && !state.laserEl.paused),
             charging: !!(state.chargingEl && !state.chargingEl.paused),
+            skillGLoop: !!(state.skillGLoopEl && !state.skillGLoopEl.paused),
             skillDCharge: !!(state.skillDChargeEl && !state.skillDChargeEl.paused),
             skillFCharge: !!(state.skillFChargeEl && !state.skillFChargeEl.paused),
             skillFFire: !!(state.skillFFireEl && !state.skillFFireEl.paused),
@@ -589,7 +592,7 @@
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
             raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
+        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -601,6 +604,7 @@
         if (s.engine   && state.engineEl)   try { state.engineEl.play().catch(() => {}); } catch (_) {}
         if (s.laser    && state.laserEl)    try { state.laserEl.play().catch(() => {}); } catch (_) {}
         if (s.charging && state.chargingEl) try { state.chargingEl.play().catch(() => {}); } catch (_) {}
+        if (s.skillGLoop && state.skillGLoopEl) try { state.skillGLoopEl.play().catch(() => {}); } catch (_) {}
         if (s.skillDCharge && state.skillDChargeEl) try { state.skillDChargeEl.play().catch(() => {}); } catch (_) {}
         if (s.skillFCharge && state.skillFChargeEl) try { state.skillFChargeEl.play().catch(() => {}); } catch (_) {}
         if (s.skillFFire && state.skillFFireEl) try { state.skillFFireEl.play().catch(() => {}); } catch (_) {}
@@ -714,6 +718,7 @@
         if (state.engineEl)  state.engineEl.volume  = Math.min(1, sfxGain('engine'));
         if (state.laserEl)   state.laserEl.volume   = Math.min(1, sfxGain('laser'));
         if (state.chargingEl) state.chargingEl.volume = Math.min(1, sfxGain('charging'));
+        if (state.skillGLoopEl) state.skillGLoopEl.volume = Math.min(1, sfxGain('skill-g-loop'));
         if (state.skillDChargeEl) state.skillDChargeEl.volume = Math.min(1, sfxGain('skill-d-charge'));
         if (state.skillFChargeEl) state.skillFChargeEl.volume = Math.min(1, sfxGain('skill-f-charge'));
         if (state.skillFFireEl) state.skillFFireEl.volume = Math.min(1, sfxGain('skill-f-fire'));
@@ -773,6 +778,9 @@
     function stopEngine()   { stopLoop('engineEl'); }
     function startCharging(){ startLoop('chargingEl', 'charging'); }
     function stopCharging() { stopLoop('chargingEl'); }
+
+    function startSkillGLoop(){ startLoop('skillGLoopEl', 'skill-g-loop'); }
+    function stopSkillGLoop() { stopLoop('skillGLoopEl'); }
     function startSkillDCharge(){ startLoop('skillDChargeEl', 'skill-d-charge'); }
     function stopSkillDCharge() { stopLoop('skillDChargeEl'); }
     function startSkillFCharge(){ startLoop('skillFChargeEl', 'skill-f-charge'); }
@@ -854,6 +862,9 @@
         _makePool('coronation',       'assets/audio/sfx/coronation.mp3',       2);
         _makePool('spirit-autofire',  'assets/audio/sfx/spirit-autofire.mp3',  5); // fires ~42ms cadence, needs deep pool
         _makePool('tesla-coil-form',  'assets/audio/sfx/tesla-coil-form.mp3',  2);
+        // Deep pool: a single volley can fire 5 bolts ~0.1s apart.
+        _makePool('tesla-bolt-launch', 'assets/audio/sfx/tesla-bolt-launch.mp3', 5);
+        _makePool('skill-g-activate', 'assets/audio/sfx/skill-g-activate.mp3', 1);
         _makePool('skill-a-activate', 'assets/audio/sfx/skill-a-activate.mp3', 2);
         _makePool('skill-a-orb-hit',  'assets/audio/sfx/skill-a-orb-hit.mp3',  4);
         _makePool('skill-a-orb-lock', 'assets/audio/sfx/skill-a-orb-lock.mp3', 4);
@@ -930,6 +941,8 @@
         state.laserEl.setSrc('assets/audio/sfx/laser.mp3');
         state.chargingEl = _makeBufferLoop();
         state.chargingEl.setSrc('assets/audio/sfx/charging.mp3');
+        state.skillGLoopEl = _makeBufferLoop();
+        state.skillGLoopEl.setSrc('assets/audio/sfx/skill-g-loop.mp3');
         state.skillDChargeEl = _makeBufferLoop();
         state.skillDChargeEl.setSrc('assets/audio/sfx/skill-d-charge.mp3');
         state.lowHpEl = _makeBufferLoop(); // heartbeat, loops while lives < 5
@@ -991,6 +1004,7 @@
         startAmbient, stopAmbient,
         startEngine,  stopEngine,
         startCharging, stopCharging,
+        startSkillGLoop, stopSkillGLoop,
         startSkillDCharge, stopSkillDCharge,
         startSkillFCharge, stopSkillFCharge,
         startSkillFFire, stopSkillFFire,
