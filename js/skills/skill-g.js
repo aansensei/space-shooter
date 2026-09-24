@@ -513,10 +513,16 @@ function updateTeslaBolts(deltaTime, currentTime) {
                 teslaRings.push({ x: b.x, y: b.y, r0: 10, r1: 62, life: 360, maxLife: 360 });
                 createParticles(b.x, b.y, 12, '#ffe9a8', 2, 9);
             }
-            dealDamage(hitTarget, {
+            // Marchosias's arc barrier: same 70%-barrier/20%-body partial
+            // pierce every other piercing source (spirit arc, boomerang,
+            // overload laser) gets, instead of ignoring the barrier outright.
+            const _boltDmgProps = {
                 damage: _dmg,
-                isPiercing: true, _teslaBolt: true, _statSrc: 'Skill G: Tesla Coil',
-            });
+                isPiercing: true, _barrierPiercing: true, _teslaBolt: true, _statSrc: 'Skill G: Tesla Coil',
+            };
+            if (!checkMarchosiasArcBarrier(hitTarget, _boltDmgProps, b.x, b.y)) {
+                dealDamage(hitTarget, _boltDmgProps);
+            }
             // Hit slow: fixed strength per coil, the timer just refreshes on
             // repeat hits from the same coil. Several coils overlap with
             // diminishing effect (see teslaBoltSlowMult). CC-immune enemies
