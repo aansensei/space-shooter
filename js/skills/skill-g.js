@@ -369,8 +369,11 @@ function _teslaBoltTargetable(e) {
 // Every TESLA_BOLT_SCAN_MS the coil picks up to TESLA_BOLT_MAX_TARGETS
 // distinct enemies inside its aura (closest first), winds up for
 // TESLA_BOLT_WINDUP_MS, then launches one homing bolt per target
-// TESLA_BOLT_STAGGER_MS apart, so each enemy takes at most one bolt per
-// scan. A coil that has launched TESLA_COIL_MAX_BOLTS bolts detonates itself.
+// TESLA_BOLT_STAGGER_MS apart. Each bolt pierces: it doesn't despawn on its
+// first hit, it keeps homing onto the next untried enemy in range and can
+// land on several targets before its life runs out (see updateTeslaBolts's
+// hitEnemies tracking). A coil that has launched TESLA_COIL_MAX_BOLTS bolts
+// detonates itself.
 function _updateCoilBoltVolley(coil, deltaTime) {
     if (coil.flashMs > 0) coil.flashMs = Math.max(0, coil.flashMs - deltaTime);
     if (coil.empowerBurstMs > 0) coil.empowerBurstMs = Math.max(0, coil.empowerBurstMs - deltaTime);
@@ -437,6 +440,7 @@ function _launchTeslaBolt(coil, target) {
         x: coil.x, y: coil.y,
         angle: ang, speed: 13, target: target, life: 2200, trail: [],
         spawnAt: now, stacks: boltStacks, empowered: empowered, coilId: coil.id,
+        hitEnemies: new Set(),
     });
     teslaRings.push({ x: coil.x, y: coil.y, r0: 6, r1: TESLA_COIL_VISUAL_R + 10, life: 220, maxLife: 220 });
     createParticles(coil.x, coil.y, empowered ? 16 : 9, empowered ? '#ffe9a8' : '#aaf6ff', 1, 6);
@@ -467,10 +471,10 @@ function updateTeslaBolts(deltaTime, currentTime) {
         b.life -= deltaTime;
         if (b.life <= 0) { teslaBolts.splice(i, 1); continue; }
 
-        if (!_teslaBoltTargetable(b.target) || !enemies.includes(b.target)) {
+        if (!b.target || !_teslaBoltTargetable(b.target) || !enemies.includes(b.target) || b.hitEnemies.has(b.target)) {
             let best = null, bestD = 350;
             for (const e of enemies) {
-                if (!_teslaBoltTargetable(e)) continue;
+                if (!_teslaBoltTargetable(e) || b.hitEnemies.has(e)) continue;
                 const d = Math.hypot(e.x - b.x, e.y - b.y);
                 if (d < bestD) { best = e; bestD = d; }
             }
@@ -491,9 +495,14 @@ function updateTeslaBolts(deltaTime, currentTime) {
         b.x += Math.cos(b.angle) * b.speed * dt;
         b.y += Math.sin(b.angle) * b.speed * dt;
 
-        if (b.target && Math.hypot(b.target.x - b.x, b.target.y - b.y) < b.target.size / 2 + 9) {
+        // Piercing: the bolt doesn't despawn on its first hit, it keeps flying
+        // through every enemy in its path (hitEnemies stops a repeat hit on
+        // the same one) until its life runs out or it leaves the screen.
+        for (const hitTarget of enemies) {
+            if (!_teslaBoltTargetable(hitTarget) || b.hitEnemies.has(hitTarget)) continue;
+            if (Math.hypot(hitTarget.x - b.x, hitTarget.y - b.y) >= hitTarget.size / 2 + 9) continue;
+            b.hitEnemies.add(hitTarget);
             const _mult = _hasBuff('ky_su_dien') ? 1.30 : 1;
-            const hitTarget = b.target;
             addExplosion(b.x, b.y, 30, 'electric_blue');
             teslaRings.push({ x: b.x, y: b.y, r0: 6, r1: 30, life: 240, maxLife: 240 });
             createParticles(b.x, b.y, 6, '#ffffff', 2, 7);
@@ -514,8 +523,7 @@ function updateTeslaBolts(deltaTime, currentTime) {
             // ignore it in main.js.
             if (!hitTarget._teslaBoltSlows) hitTarget._teslaBoltSlows = {};
             hitTarget._teslaBoltSlows[b.coilId] = currentTime + TESLA_BOLT_SLOW_MS;
-            teslaBolts.splice(i, 1);
-            continue;
+            break;
         }
 
         if (b.x < -60 || b.x > canvas.width + 60 || b.y < -60 || b.y > canvas.height + 60) teslaBolts.splice(i, 1);
