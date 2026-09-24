@@ -142,6 +142,7 @@
         'assets/audio/sfx/sigil-confirm.mp3', 'assets/audio/sfx/sigil-open.mp3', 'assets/audio/sfx/skill-a-activate.mp3',
         'assets/audio/sfx/skill-a-orb-hit.mp3', 'assets/audio/sfx/skill-a-orb-lock.mp3', 'assets/audio/sfx/skill-d-charge.mp3',
         'assets/audio/sfx/skill-f-charge.mp3', 'assets/audio/sfx/skill-f-fire.mp3', 'assets/audio/sfx/skill-g-activate.mp3', 'assets/audio/sfx/skill-g-loop.mp3', 'assets/audio/sfx/skill-ready.mp3',
+        'assets/audio/sfx/skill-s-summon.mp3',
         'assets/audio/sfx/skill-unlocked.mp3', 'assets/audio/sfx/spinner-bounce.mp3', 'assets/audio/sfx/spirit-arc-slash.mp3', 'assets/audio/sfx/spirit-autofire.mp3',
         'assets/audio/sfx/spirit-finale-laser.mp3',
         'assets/audio/sfx/tesla-coil-form.mp3', 'assets/audio/sfx/tesla-bolt-launch.mp3', 'assets/audio/sfx/raphael-idle.wav',

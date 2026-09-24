@@ -23,6 +23,7 @@ function activateSkillS() {
     if (currentTime - lastSkillS >= skillSCooldown) {
         lastSkillS = currentTime;
         _checkMirrorLaserProc();
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-s-summon', player.x, player.y);
         primevalEnergy = 0; // Energy only accumulates from this new spirit
         spirits.push({
             x: player.x, y: player.y, shootTimer: 0,

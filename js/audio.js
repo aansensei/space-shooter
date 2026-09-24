@@ -347,7 +347,7 @@
         'shift-hold': 1.0, 'shift-teleport': 1.0,
         coronation: 1.0, blackhole: 1.0,
         'spirit-autofire': 1.0, 'tesla-coil-form': 1.0, 'tesla-bolt-launch': 1.0,
-        'skill-g-activate': 1.0, 'skill-g-loop': 1.0,
+        'skill-g-activate': 1.0, 'skill-g-loop': 1.0, 'skill-s-summon': 1.0,
         'skill-a-activate': 1.0, 'skill-a-orb-hit': 1.0, 'skill-a-orb-lock': 1.0,
         'skill-f-fire': 1.0, 'skill-f-charge': 1.0,
         'photokrystos-dnt-laser': 1.0, 'photokrystos-boomerang-throw': 1.0, 'photokrystos-boomerang-hit': 1.0,
@@ -866,6 +866,7 @@
         _makePool('tesla-bolt-launch', 'assets/audio/sfx/tesla-bolt-launch.mp3', 5);
         _makePool('skill-g-activate', 'assets/audio/sfx/skill-g-activate.mp3', 1);
         _makePool('skill-a-activate', 'assets/audio/sfx/skill-a-activate.mp3', 2);
+        _makePool('skill-s-summon', 'assets/audio/sfx/skill-s-summon.mp3', 2);
         _makePool('skill-a-orb-hit',  'assets/audio/sfx/skill-a-orb-hit.mp3',  4);
         _makePool('skill-a-orb-lock', 'assets/audio/sfx/skill-a-orb-lock.mp3', 4);
         _makePool('photokrystos-dnt-laser',       'assets/audio/sfx/photokrystos-dnt-laser.mp3',       2);
