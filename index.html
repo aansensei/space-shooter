@@ -950,6 +950,19 @@
                         ⚠ Turning on screen shake may cause unexpected lag on some devices.
                     </div>
 
+                    <!-- Only shown once the player has actually watched Kanade's
+                         cutscene through once; before that it is not an option. -->
+                    <div id="kanade-skip-row" style="display:none; align-items:center; gap:10px; margin-top:14px; margin-bottom:4px;">
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;" data-i18n="gameplay.skipKanade">Skip Kanade Animation</span>
+                        <div style="display:flex; gap:6px;">
+                            <button class="stg-onoff-btn"                  id="kanade-skip-on"  onclick="onKanadeSkipChange(true)" data-i18n="gameplay.on">ON</button>
+                            <button class="stg-onoff-btn stg-onoff-active" id="kanade-skip-off" onclick="onKanadeSkipChange(false)" data-i18n="gameplay.off">OFF</button>
+                        </div>
+                    </div>
+                    <div id="kanade-skip-note" style="display:none; font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:4px; line-height:1.5;" data-i18n="gameplay.skipKanadeNote">
+                        The boss wave still rolls and applies its Timeline Distortion either way.
+                    </div>
+
                     <div class="stg-divider"></div>
 
                     <!-- OFFLINE PLAY -->
@@ -1198,6 +1211,8 @@
                         'gameplay.section': 'Gameplay', 'gameplay.screenShake': 'Screen Shake',
                         'gameplay.on': 'ON', 'gameplay.off': 'OFF',
                         'gameplay.screenShakeWarn': '⚠ Turning on screen shake may cause unexpected lag on some devices.',
+                        'gameplay.skipKanade': 'Skip Kanade Animation',
+                        'gameplay.skipKanadeNote': 'The boss wave still rolls and applies its Timeline Distortion either way.',
                         'offline.section': 'Offline Play', 'offline.desc': 'Download in advance to play without internet.',
                         'offline.downloadLabel': 'Download offline resources',
                         'offline.pkgBasic': 'Basic (~33MB)', 'offline.pkgFull': 'Full (~196MB)',
@@ -1241,6 +1256,8 @@
                         'gameplay.section': 'Lối Chơi', 'gameplay.screenShake': 'Rung Màn Hình',
                         'gameplay.on': 'BẬT', 'gameplay.off': 'TẮT',
                         'gameplay.screenShakeWarn': '⚠ Bật rung màn hình có thể gây giật lag trên một số thiết bị.',
+                        'gameplay.skipKanade': 'Bỏ Qua Hoạt Ảnh Kanade',
+                        'gameplay.skipKanadeNote': 'Wave boss vẫn quay và áp dụng Timeline Distortion như thường.',
                         'offline.section': 'Chơi Offline', 'offline.desc': 'Tải trước để chơi được khi không có mạng.',
                         'offline.downloadLabel': 'Tải tài nguyên offline',
                         'offline.pkgBasic': 'Cơ Bản (~33MB)', 'offline.pkgFull': 'Đầy Đủ (~196MB)',
@@ -1332,6 +1349,15 @@
 
                     // Screen shake
                     onShakeChange(window._screenShakeEnabled !== false);
+
+                    // Skip Kanade animation - the row only exists after the
+                    // first, mandatory viewing.
+                    {
+                        const seen = typeof _kanadeIntroSeen === 'function' && _kanadeIntroSeen();
+                        document.getElementById('kanade-skip-row').style.display = seen ? 'flex' : 'none';
+                        document.getElementById('kanade-skip-note').style.display = seen ? '' : 'none';
+                        onKanadeSkipChange(typeof _kanadeCutsceneSkipped === 'function' && _kanadeCutsceneSkipped());
+                    }
 
                     // Background brightness
                     const bgPct = Math.round((window._bgBrightness || 1.0) * 100);
@@ -1594,6 +1620,11 @@
                     document.getElementById('shake-off').classList.toggle('stg-onoff-active', !enabled);
                 }
 
+                function onKanadeSkipChange(enabled) {
+                    document.getElementById('kanade-skip-on').classList.toggle('stg-onoff-active',  enabled);
+                    document.getElementById('kanade-skip-off').classList.toggle('stg-onoff-active', !enabled);
+                }
+
                 // APPLY: read UI state, apply everything
                 function applySettings() {
                     // Smart Quality
@@ -1615,6 +1646,11 @@
 
                     // Screen shake
                     window._screenShakeEnabled = document.getElementById('shake-on').classList.contains('stg-onoff-active');
+
+                    // Skip Kanade animation
+                    if (typeof _setKanadeCutsceneSkipped === 'function') {
+                        _setKanadeCutsceneSkipped(document.getElementById('kanade-skip-on').classList.contains('stg-onoff-active'));
+                    }
 
                     closeSettings();
                 }
@@ -2159,10 +2195,11 @@
     </script>
 
     <script src="js/vendor/pixi.min.js"></script>
-    <script src="js/audio.js?v=20260924b"></script>
-    <script src="js/offline.js?v=20260924b"></script>
+    <script src="js/audio.js?v=20260925b"></script>
+    <script src="js/offline.js?v=20260925b"></script>
     <script src="js/background.js?v=20260923a"></script>
-    <script src="js/config.js?v=20260924a"></script>
+    <script src="js/config.js?v=20260925b"></script>
+    <script src="js/timeline-distortion.js?v=20260925b"></script>
     <script src="js/sigils/core.js?v=20260905d"></script>
     <script src="js/sigils/aries.js?v=20260906a"></script>
     <script src="js/sigils/taurus.js?v=20260914b"></script>
@@ -2178,7 +2215,7 @@
     <script src="js/sigils/pisces.js?v=20260901a"></script>
     <script src="js/sigils/than.js?v=20260901a"></script>
     <script src="js/yuusha-party.js?v=20260914b"></script>
-    <script src="js/entities/core.js?v=20260920a"></script>
+    <script src="js/entities/core.js?v=20260925b"></script>
     <script src="js/entities/sentinel.js?v=20260825a"></script>
     <script src="js/entities/veilshroud.js?v=20260917a"></script>
     <script src="js/entities/uriel.js?v=20260915f"></script>
@@ -2187,21 +2224,22 @@
     <script src="js/entities/marchosias.js?v=20260907a"></script>
     <script src="js/entities/misc-enemies.js?v=20260915c"></script>
     <script src="js/entities/raphael.js?v=20260915j"></script>
-    <script src="js/entities/goliath.js?v=20260914b"></script>
-    <script src="js/skills/skill-a.js?v=20260917a"></script>
-    <script src="js/skills/skill-s-spirit.js?v=20260924a"></script>
-    <script src="js/skills/skill-d.js?v=20260914b"></script>
+    <script src="js/entities/goliath.js?v=20260925b"></script>
+    <script src="js/skills/skill-a.js?v=20260925b"></script>
+    <script src="js/skills/skill-s-spirit.js?v=20260925b"></script>
+    <script src="js/skills/skill-d.js?v=20260925b"></script>
     <script src="js/skills/sigil-great-sage.js?v=20260914b"></script>
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
-    <script src="js/skills/skill-f.js?v=20260911a"></script>
-    <script src="js/skills/skill-g.js?v=20260924c"></script>
+    <script src="js/skills/skill-f.js?v=20260925b"></script>
+    <script src="js/skills/skill-g.js?v=20260925b"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>
     <script src="js/skills/misc-mechanics.js?v=20260911a"></script>
     <script src="js/skills/sigil-libra.js?v=20260914b"></script>
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20260920b"></script>
+    <script src="js/render/core.js?v=20260925b"></script>
+    <script src="js/render/kanade-cutscene.js?v=20260925b"></script>
     <script src="js/render/fx.js?v=20260914b"></script>
     <script src="js/render/player.js?v=20260912a"></script>
     <script src="js/render/enemy-common.js?v=20260914b"></script>
@@ -2222,9 +2260,9 @@
     <script src="js/render/skill-g.js?v=20260923f"></script>
     <script src="js/render/skill-buttons.js?v=20260917a"></script>
     <script src="js/pixi-renderer.js?v=20260923a"></script>
-    <script src="js/input.js?v=20260910a"></script>
+    <script src="js/input.js?v=20260925b"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20260924a"></script>
+    <script src="js/main.js?v=20260925b"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
@@ -2916,7 +2954,7 @@
                 // charge/movement buttons call straight into skillShiftActive/
                 // charging/keys.left/right with no game-loop involvement, so
                 // they needed their own explicit check for the same bug.
-                if (window._sigilPicker) return;
+                if (window._sigilPicker || window._kanadeCutscene) return;
                 _hap();
                 const _heldEl = document.getElementById(id);
                 if (_heldEl) _heldEl.classList.add('held');
@@ -3013,7 +3051,7 @@
             }
 
             function _joyStart(clientX, touchId) {
-                if (window._sigilPicker) return;
+                if (window._sigilPicker || window._kanadeCutscene) return;
                 const base = document.getElementById('mb-joy');
                 if (!base) return;
                 const rect = base.getBoundingClientRect();

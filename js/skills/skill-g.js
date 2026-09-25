@@ -5,7 +5,7 @@
 
 function activateSkillG() {
     if (typeof player !== 'undefined' && player._silenced) return;
-    if (gameState !== "playing" || window._sigilPicker || skillGActive || skillGCharge < 100) return;
+    if (gameState !== "playing" || window._sigilPicker || window._kanadeCutscene || skillGActive || skillGCharge < 100) return;
 
     skillGActive = true;
     skillGCharge = 0;
@@ -180,7 +180,7 @@ function updateEnergyOrbs(deltaTime, currentTime) {
                 if (_hasBuff('set_day_chuyen') && skillGActive) {
                     if (!window._sdcDmgStacks) window._sdcDmgStacks = [];
                     window._sdcDmgStacks = window._sdcDmgStacks.filter(t => t > currentTime);
-                    if (window._sdcDmgStacks.length < 6) window._sdcDmgStacks.push(currentTime + 5000);
+                    if (window._sdcDmgStacks.length < _stackCap('chainLightning')) window._sdcDmgStacks.push(currentTime + 5000);
                 }
                 if (_hasBuff('set_day_chuyen') && skillAOrbs.length < maxSkillAOrbs) {
                     const _orbSize = _hasBuff('xuyen_pha') ? 8 * 1.30 : 8;
@@ -428,10 +428,10 @@ function _launchTeslaBolt(coil, target) {
     // empowered one and resets it to a single stack (its own); otherwise the
     // shot adds a stack. Firing always refreshes the shared expiry timer.
     const empowered = coil.stackCount >= TESLA_STACK_MAX;
-    if (empowered) coil.stackCount = 0;
+    if (empowered && coil.stackCount >= _stackCap('teslaCoil')) coil.stackCount = 0;
     coil.stackCount++;
     coil.stackExpireAt = now + TESLA_STACK_MS;
-    const boltStacks = empowered ? TESLA_STACK_MAX : coil.stackCount;
+    const boltStacks = empowered ? Math.max(TESLA_STACK_MAX, coil.stackCount) : coil.stackCount;
     coil.boltsFired++;
     coil.flashMs = 200;
     coil.muzzleAngle = ang;

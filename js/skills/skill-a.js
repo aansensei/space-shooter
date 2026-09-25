@@ -26,7 +26,7 @@ function updateDefensiveOrbs() {
 function activateSkillA() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState !== "playing" || window._sigilPicker) return;
+    if (gameState !== "playing" || window._sigilPicker || window._kanadeCutscene) return;
 
     const hasSolJudgment = _hasBuff('mui_ten_apollo');
     const onCooldown = currentTime - lastSkillA < _skillACooldown();

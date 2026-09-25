@@ -2915,6 +2915,15 @@ function _spawnWaveTier(tier) {
     }
 }
 
+// The one way Goliath enters a boss wave. Called either straight from the
+// wave-start branch (cutscene skipped) or from Kanade's summon beat, so both
+// routes give him the same per-wave HP growth.
+function _spawnWaveGoliath() {
+    const _preGolLen = enemies.length;
+    _spawnWaveTier('goliath');
+    if (enemies.length > _preGolLen) _applyWaveGrowth(enemies[enemies.length - 1]);
+}
+
 // First wave that uses the live trickle spawner instead of the fixed 15s
 // _waveQueue. Briefly dropped to 1 to spread every wave's spawns out and
 // cut lag, but that made waves 1-10 feel too slow/low-pressure - reverted
@@ -3087,7 +3096,7 @@ function _updateSigilPassives(now, deltaTime) {
         for (const [e, burnData] of window._sthBurning.entries()) {
             if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
             if (now >= burnData.nextTick) {
-                const stacks = Math.min(3, burnData.stacks || 1);
+                const stacks = Math.min(_stackCap('sunLionBurn'), burnData.stacks || 1);
                 const dmg = 0.30 * player.atk * stacks; // docs/combat-scaling-rebalance.md Part 5
                 dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
                 burnData.nextTick = now + 500;
@@ -3137,6 +3146,13 @@ function _updateWaveSystem(deltaTime, now) {
                 }
             }
             window._goliathWaveHpBuff = 1;
+            // Timeline Distortion is per boss fight, never cumulative: whatever
+            // the previous milestone rolled comes off here before the next one
+            // rolls its own.
+            if (typeof _clearTimelineDistortion === 'function') _clearTimelineDistortion();
+            if (_waveNumber % 5 === 0 && typeof _startTimelineDistortion === 'function') {
+                _startTimelineDistortion(_waveNumber);
+            }
             if (_waveNumber >= _WAVE_TRICKLE_MIN) {
                 // Waves 11+: live trickle spawner instead of a fixed 15s
                 // queue - the whole enemy count no longer has to land
@@ -3152,11 +3168,11 @@ function _updateWaveSystem(deltaTime, now) {
                 _waveSurgeAt = 9000 + Math.random() * 6000; // first surge 9-15s in
                 _waveLastEliteAt = 9999;
                 _waveLastDomAt = 9999;
-                if (_waveNumber % 5 === 0) {
-                    const _preGolLen = enemies.length;
-                    _spawnWaveTier('goliath');
-                    if (enemies.length > _preGolLen) _applyWaveGrowth(enemies[enemies.length - 1]);
-                }
+                // Kanade's cutscene summons him itself once its animation
+                // reaches that beat; with it skipped he spawns right here as
+                // he always did. The fixed queue used by waves 1-10 carries
+                // its own goliath entry and no-ops if he is already out.
+                if (_waveNumber % 5 === 0 && !window._kanadeCutscene) _spawnWaveGoliath();
             } else {
                 _waveSpawnBudget = null;
                 _waveQueue = _buildWaveQueue(_waveNumber);
@@ -3299,7 +3315,7 @@ function gameLoop(timeStamp) {
     // silent during normal play.
     const _profOn = true;
     const _t0 = _profOn ? performance.now() : 0;
-    if (!gamePaused && !loading && !window._sigilPicker) {
+    if (!gamePaused && !loading && !window._sigilPicker && !window._kanadeCutscene) {
         update(Math.min(deltaTime, 50) * _debugSpeed);
     }
     const _t1 = _profOn ? performance.now() : 0;
@@ -3451,6 +3467,8 @@ function startGame() {
     _tidalSurgeOverflow = 0;
     window._tidalSurgeReady = false;
     window._bloodArrowStacks = 0;
+    window._kanadeCutscene = null;
+    if (typeof _clearTimelineDistortion === 'function') _clearTimelineDistortion();
     _tidalSurgeEffects = [];
     _oceanHunterBites = [];
     window._playerSigils = [];

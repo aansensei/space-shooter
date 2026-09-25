@@ -1,112 +1,38 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<title>Kanade: Boss Portrait Demo</title>
-<style>
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: radial-gradient(circle at 50% 40%, #241b3d 0%, #120b22 55%, #060410 100%);
-    font-family: "Consolas", "Courier New", monospace;
-    color: #e8dfff;
-    overflow: hidden;
-  }
-  #wrap { 
-    position: relative; width: 100%; height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #stage {
-    position: relative;
-    width: min(520px, 92vmin); aspect-ratio: 1;
-    flex-shrink: 0;
-  }
-  #sprite-canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
-  #fx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-  #title {
-    position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
-    text-align: center; letter-spacing: 0.12em;
-  }
-  #title .name { font-size: 22px; color: #ffd9f0; text-shadow: 0 0 12px rgba(255,120,220,0.5); }
-  #title .sub { font-size: 11px; color: #b39fe0; margin-top: 2px; }
-  #bottom-ui {
-    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-    display: flex; flex-direction: column; align-items: center; gap: 7px;
-    max-width: 94vw;
-  }
-  #state-label {
-    font-size: 13px; padding: 4px 14px; border-radius: 14px;
-    background: rgba(30,16,50,0.65); border: 1px solid rgba(200,160,255,0.4);
-  }
-  #btns {
-    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
-  }
-  #btns button {
-    background: linear-gradient(180deg, #3b2a5c, #221338);
-    border: 1px solid rgba(200, 160, 255, 0.45);
-    color: #f2e9ff; padding: 9px 14px; border-radius: 8px;
-    font-family: inherit; font-size: 12px; cursor: pointer;
-    transition: transform 0.12s ease, background 0.12s ease;
-  }
-  #btns button:hover { background: linear-gradient(180deg, #4d3878, #2c1a46); transform: translateY(-2px); }
-  #btns button.active { border-color: #ff8fd6; box-shadow: 0 0 10px rgba(255,143,214,0.6); }
-  #expr-btns {
-    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
-  }
-  #expr-btns button {
-    background: linear-gradient(180deg, #2c2444, #1a1330);
-    border: 1px solid rgba(160, 130, 220, 0.35);
-    color: #d9cdf5; padding: 5px 10px; border-radius: 7px;
-    font-family: inherit; font-size: 10.5px; cursor: pointer;
-  }
-  #expr-btns button.active { border-color: #8dffd8; box-shadow: 0 0 8px rgba(141,255,216,0.5); }
-  #note {
-    position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
-    font-size: 10.5px; color: #a996d6; text-align: center; max-width: 480px; line-height: 1.5;
-  }
-</style>
-</head>
-<body>
-<div id="wrap">
-  <div id="title">
-    <div class="name">KANADE</div>
-    <div class="sub">25-JI, NIGHTCORD DE.: SPELL CARD PORTRAIT</div>
-  </div>
-  <div id="note">Pixel art được vẽ hoàn toàn bằng thuật toán trong canvas (không dùng ảnh có sẵn). Mọi khung hình bên dưới là animation thật, không phải video.</div>
-  <div id="stage">
-    <canvas id="fx-canvas" width="520" height="520"></canvas>
-    <canvas id="sprite-canvas" width="520" height="520"></canvas>
-  </div>
-  <div id="bottom-ui">
-    <div id="state-label">IDLE</div>
-    <div id="expr-btns"></div>
-    <div id="btns"></div>
-  </div>
-</div>
-
-<script>
+// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+// render/kanade-cutscene.js — the Timeline Distortion boss-wave cutscene.
+// Kanade's pixel art is ported from misc/kanade-boss/kanade_boss_demo.html:
+// drawKanade, drawKanadeBack and the reality gate are verbatim apart from the
+// block-parry arm pose, which this sequence never uses. Self-contained besides
+// core.js — it reads `canvas`, `ctx` and `_frozenNow` and nothing else.
+//
+// The whole module sits inside one IIFE on purpose: the sprite helpers below
+// use short generic names (rect, poly, line, ellipse, PAL) and classic
+// <script> tags share one global lexical scope, so at top level any of those
+// would be a fatal duplicate-declaration SyntaxError the moment another file
+// picks the same name. Only drawKanadeCutscene and _beginKanadeCutscene are
+// published on window.
 (function () {
-  const DISP = 520;
-  const spriteCanvas = document.getElementById('sprite-canvas');
-  const fxCanvas = document.getElementById('fx-canvas');
-  const sctx = spriteCanvas.getContext('2d');
-  const fctx = fxCanvas.getContext('2d');
-  sctx.imageSmoothingEnabled = false;
 
+  // Kanade is drawn once per frame into her own 180x180 logical buffer, then
+  // blitted to the game canvas at whatever size the screen calls for.
+  // RES_MULT only supersamples that buffer so curves antialias properly — the
+  // sprite coordinates below stay in plain 180x180 units.
   const GRID_W = 180, GRID_H = 180;
-  // Every drawKanade/drawKanadeBack coordinate is written in this logical
-  // 180x180 space and stays untouched - RES_MULT just supersamples the
-  // offscreen buffer itself so flat shapes (rect/poly/ellipse, which round
-  // to whole logical units) land on a finer physical grid and curves get
-  // proper antialiasing before the final 3x blit, without moving anything.
   const RES_MULT = 2;
   const px = document.createElement('canvas');
   px.width = GRID_W * RES_MULT; px.height = GRID_H * RES_MULT;
   const pctx = px.getContext('2d');
   pctx.imageSmoothingEnabled = false;
   pctx.scale(RES_MULT, RES_MULT);
-  const haloImg = new Image();
-  haloImg.decoding = 'async';
-  haloImg.src = 'kanade-halo.png';
+
+  const _tdBannerImg = new Image();
+  _tdBannerImg.src = 'assets/images/game/effects/timeline-distortion-banner.png';
+  const _tdPlayerIconImg = new Image();
+  _tdPlayerIconImg.src = 'assets/images/game/icons/timeline-distortion-player.png';
+  const _tdEnemyIconImg = new Image();
+  _tdEnemyIconImg.src = 'assets/images/game/icons/timeline-distortion-enemy.png';
+  const _kanadeHaloImg = new Image();
+  _kanadeHaloImg.src = 'assets/images/game/effects/kanade-halo.png';
   const PAL = {
     hairShadow: '#6b6690', hairDeep: '#4a4570', hairMid: '#9f9cc4', hairLight: '#e7e5f5', hairHi: '#fffdf8',
     skin: '#ffe3d4', skinShadow: '#e3ac9d', blush: '#f5b7c2',
@@ -229,8 +155,7 @@
     if (style === 'soft') { bezierLine([90.7, 44.9], [[91.6, 45.9, 92.4, 45.9, 93.3, 44.9]], c, 0.9); return; }
     bezierLine([90.5, 45], [[91.5, 46, 92.5, 46, 93.5, 45]], c, 1);
   }
-  // Ten named expressions, each just a brow/eye/mouth combo - independent
-  // of the pose state, selectable from their own button row.
+
   const EXPRESSIONS = {
     neutral: { brow: 'flat', eye: 'open', mouth: 'neutral' },
     determined: { brow: 'down', eye: 'narrow', mouth: 'flat' },
@@ -243,21 +168,13 @@
     thinking: { brow: 'raised', eye: 'up', mouth: 'flat' },
     serene: { brow: 'flat', eye: 'soft', mouth: 'soft' },
   };
-  const EXPRESSION_LABEL = {
-    neutral: 'Bình thường', determined: 'Quyết tâm', smug: 'Tự tin', happy: 'Vui vẻ',
-    surprised: 'Ngạc nhiên', angry: 'Tức giận', sad: 'Buồn', pain: 'Đau đớn',
-    thinking: 'Suy nghĩ', serene: 'Thanh thản',
-  };
   const OPEN_EYE_FAMILY = { open: 1, wide: 1, narrow: 1, up: 1, droop: 1 };
-  const CX = GRID_W / 2;
-
   function drawKanade(t, opts) {
     opts = opts || {};
     const sway = Math.sin(t * Math.PI * 2) * (opts.swayAmp != null ? opts.swayAmp : 1.5);
     const bob = Math.sin(t * Math.PI * 2) * (opts.bobAmp != null ? opts.bobAmp : 1);
     const lean = opts.lean || 0;
     const castExt = opts.castExt || 0;
-    const blockPose = opts.blockPose || 0;
     const trail = opts.trail || 0;
     const whip = opts.whip || 0;
     const droop = opts.droop || 0;
@@ -408,35 +325,7 @@
     ellipse(75, 53, 2.2, 1.6, PAL.skinShadow);
     ellipse(105, 54, 2.2, 1.6, PAL.skinShadow);
 
-    if (blockPose > 0) {
-      const elbowX = 121;
-      const elbowY = 78 - blockPose * 17;
-      const handX = 132 - blockPose * 3;
-      const handY = 100 - blockPose * 43;
-      bezierLine([106, 54], [[113, 54, 118, 59, elbowX, elbowY]], PAL.creamMid, 13);
-      bezierLine([106, 51], [[113, 50, 118, 56, elbowX, elbowY - 2]], PAL.cream, 3);
-      bezierLine([108, 58], [[114, 58, 118, 62, elbowX, elbowY + 2]], PAL.indigoMid, 4);
-      bezierLine([elbowX, elbowY], [[124, elbowY - 1, 127, handY + 2, handX, handY + 2]], PAL.skin, 4.5);
-      bezierLine([elbowX, elbowY + 1], [[124, elbowY + 1, 127, handY + 4, handX, handY + 3]], PAL.skinShadow, 1.2);
-      // Same wrist-crease + palm + 3-finger structure the resting hands use
-      // (was 4 splayed fingers here, one more than every other hand draws).
-      // Crease sits where the forearm bezier above actually lands (handX,
-      // handY+2/+3) - it was misplaced up near the fingertip corner instead
-      // of the wrist, reading as a stray mark on the hand.
-      line([[handX - 2, handY + 2], [handX + 1, handY + 3.5]], PAL.skinShadow, 0.6);
-      poly([
-        [handX - 2, handY - 2], [handX + 1, handY - 3],
-        [handX + 4, handY - 1], [handX + 4, handY + 2],
-        [handX + 1, handY + 4], [handX - 2, handY + 2]
-      ], PAL.skin);
-      line([[handX + 2, handY - 2], [handX + 8, handY - 4]], PAL.skin, 1.1);
-      line([[handX + 3, handY], [handX + 9, handY - 0.5]], PAL.skin, 1.1);
-      line([[handX + 2, handY + 3], [handX + 7, handY + 4]], PAL.skin, 1.1);
-      // Short diagonal webbing creases right at the finger bases, not long
-      // parallel strokes - those read as a 4th/5th finger at this scale.
-      line([[handX + 2.2, handY - 1.6], [handX + 2.8, handY - 0.8]], PAL.skinShadow, 0.5);
-      line([[handX + 2.8, handY + 0.8], [handX + 2.2, handY + 1.8]], PAL.skinShadow, 0.5);
-    } else if (castExt > 0) {
+    if (castExt > 0) {
       const handX = 118 + castExt * 21;
       const handY = 75 - castExt * 37;
       const elbowX = 115 + castExt * 10;
@@ -585,7 +474,6 @@
 
     pctx.restore();
   }
-
   function drawKanadeBack(t, opts) {
     opts = opts || {};
     const sway = Math.sin(t * Math.PI * 2) * (opts.swayAmp != null ? opts.swayAmp : 1.5);
@@ -737,342 +625,270 @@
     pctx.restore();
   }
 
-  function blit(opts) {
-    opts = opts || {};
-    const scale = 3;
-    const ox = (DISP - GRID_W * scale) / 2;
-    const oy = (DISP - GRID_H * scale) / 2 + 10;
-    const offsetX = opts.offsetX || 0;
-    const offsetY = opts.offsetY || 0;
-    sctx.save();
-    sctx.globalAlpha = opts.alpha == null ? 1 : opts.alpha;
-    sctx.translate(DISP / 2 + offsetX, DISP / 2 + 10 + offsetY);
-    sctx.rotate(opts.rotation || 0);
-    sctx.scale(opts.scaleX == null ? 1 : opts.scaleX, opts.scaleY == null ? 1 : opts.scaleY);
-    sctx.translate(-DISP / 2, -DISP / 2 - 10);
-    sctx.drawImage(px, ox, oy, GRID_W * scale, GRID_H * scale);
-    sctx.restore();
-    return { ox, oy, scale };
+  function easeOutCubic(v) { return 1 - Math.pow(1 - v, 3); }
+  function easeInOut(v) { return v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2; }
+  function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+
+  // Flat colour wash over whatever is already in the sprite buffer. Kept
+  // inside the buffer rather than applied on the game canvas so a tint only
+  // ever touches Kanade, never the frozen battlefield behind her.
+  function tintBuffer(color, alpha) {
+    if (alpha <= 0) return;
+    pctx.save();
+    pctx.globalCompositeOperation = 'source-atop';
+    pctx.globalAlpha = Math.min(1, alpha);
+    pctx.fillStyle = color;
+    pctx.fillRect(0, 0, GRID_W, GRID_H);
+    pctx.restore();
   }
 
-  let ringRot = 0;
-  function drawRing(now, energyLevel, hueShift, ox, oy) {
-    const cx = DISP / 2 + (ox || 0), cy = DISP / 2 + 10 + (oy || 0);
-    const R = 188;
-    fctx.save();
-    fctx.translate(cx, cy);
-
-    const hue = (280 + (hueShift || 0)) % 360;
-    fctx.strokeStyle = `hsla(${hue}, 70%, 70%, ${0.55 + energyLevel * 0.35})`;
-    // Thickened from 2 to 3.5 - the character is rendered as chunky 3x
-    // pixel blocks, and a hairline-thin ring next to that silhouette read
-    // as two different, uncoordinated levels of visual detail.
-    fctx.lineWidth = 3.5;
-    fctx.beginPath(); fctx.arc(0, 0, R, 0, Math.PI * 2); fctx.stroke();
-
-    fctx.strokeStyle = `hsla(${hue}, 80%, 80%, ${0.25 + energyLevel * 0.3})`;
-    fctx.lineWidth = 6;
-    fctx.beginPath(); fctx.arc(0, 0, R - 10, 0, Math.PI * 2); fctx.stroke();
-
-    fctx.rotate(ringRot);
-    for (let i = 0; i < 24; i++) {
-      const a = (i / 24) * Math.PI * 2;
-      const inner = R + 4, outer = R + (i % 3 === 0 ? 16 : 9);
-      fctx.strokeStyle = `hsla(${hue}, 70%, 75%, ${0.5 + energyLevel * 0.4})`;
-      fctx.lineWidth = i % 3 === 0 ? 3.2 : 1.8;
-      fctx.beginPath();
-      fctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
-      fctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
-      fctx.stroke();
-    }
-    for (let i = 0; i < 8; i++) {
-      const a = ringRot * 1.6 + (i / 8) * Math.PI * 2;
-      const r = R + 26;
-      fctx.fillStyle = `hsla(${hue + 40}, 90%, 78%, ${0.7 + energyLevel * 0.3})`;
-      fctx.beginPath(); fctx.arc(Math.cos(a) * r, Math.sin(a) * r, 3.2, 0, Math.PI * 2); fctx.fill();
-    }
-    fctx.restore();
+  // Screen placement, recomputed every frame so a resize mid-cutscene simply
+  // lands correctly on the next one. She stands left of centre; the gate she
+  // steps out of and leaves through sits to her right.
+  function layout() {
+    const box = Math.min(canvas.height * 0.50, canvas.width * 0.44);
+    return {
+      box,
+      standX: canvas.width * 0.37,
+      // Low enough that the announcement banner clears her face.
+      centerY: canvas.height * 0.52,
+      gateX: canvas.width * 0.66,
+      gateR: box * 0.38,
+      ringR: box * 0.62,
+    };
   }
 
-  function drawRealityGate(now, openness, alpha) {
+  function blitSprite(L, x, y, scale, alpha) {
+    if (alpha <= 0.01 || scale <= 0.01) return;
+    const w = L.box * scale;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(px, x - w / 2, y - w / 2, w, w);
+    ctx.restore();
+  }
+
+  // The reality gate, ported from the prototype's drawRealityGate. Its body
+  // is written against a fixed 154px radius, so the caller's radius comes in
+  // as a uniform scale around it and `openness` squashes it horizontally the
+  // same way the prototype's portal opens and shuts.
+  function drawGate(x, y, radius, openness, alpha, now) {
     if (openness <= 0 || alpha <= 0) return;
-    const x = 360, y = 260, radius = 154;
+    const R = 154;
+    const k = radius / R;
     const squash = Math.max(0.025, openness);
     const lineComp = 1 / Math.max(0.2, squash);
     const pulse = 0.82 + Math.sin(now * 0.006) * 0.18;
-    fctx.save();
-    fctx.globalAlpha = alpha;
-    fctx.translate(x, y);
-    fctx.scale(squash, 1);
-
-    const interior = fctx.createRadialGradient(0, 0, 8, 0, 0, radius);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.scale(squash * k, k);
+    const interior = ctx.createRadialGradient(0, 0, 8, 0, 0, R);
     interior.addColorStop(0, 'rgba(18,12,42,0.82)');
     interior.addColorStop(0.56, 'rgba(31,19,68,0.72)');
     interior.addColorStop(0.84, 'rgba(89,58,142,0.28)');
     interior.addColorStop(1, 'rgba(12,8,31,0)');
-    fctx.fillStyle = interior;
-    fctx.beginPath();
-    fctx.arc(0, 0, radius - 4, 0, Math.PI * 2);
-    fctx.fill();
+    ctx.fillStyle = interior;
+    ctx.beginPath();
+    ctx.arc(0, 0, R - 4, 0, Math.PI * 2);
+    ctx.fill();
 
-    fctx.save();
-    fctx.beginPath();
-    fctx.arc(0, 0, radius - 18, 0, Math.PI * 2);
-    fctx.clip();
-    fctx.globalCompositeOperation = 'lighter';
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, R - 18, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.globalCompositeOperation = 'lighter';
     for (let gy = -112; gy <= 112; gy += 16) {
-      const half = Math.sqrt(Math.max(0, (radius - 22) * (radius - 22) - gy * gy));
+      const half = Math.sqrt(Math.max(0, (R - 22) * (R - 22) - gy * gy));
       const shimmer = 0.1 + 0.1 * Math.sin(now * 0.004 + gy * 0.08);
-      fctx.strokeStyle = `rgba(193,169,255,${shimmer})`;
-      fctx.lineWidth = 0.8 * lineComp;
-      fctx.beginPath();
-      fctx.moveTo(-half, gy);
-      fctx.lineTo(half, gy);
-      fctx.stroke();
+      ctx.strokeStyle = `rgba(193,169,255,${shimmer})`;
+      ctx.lineWidth = 0.8 * lineComp;
+      ctx.beginPath();
+      ctx.moveTo(-half, gy);
+      ctx.lineTo(half, gy);
+      ctx.stroke();
     }
     for (let gx = -112; gx <= 112; gx += 16) {
-      const half = Math.sqrt(Math.max(0, (radius - 22) * (radius - 22) - gx * gx));
+      const half = Math.sqrt(Math.max(0, (R - 22) * (R - 22) - gx * gx));
       const shimmer = 0.08 + 0.09 * Math.sin(now * 0.0035 + gx * 0.07);
-      fctx.strokeStyle = `rgba(151,126,226,${shimmer})`;
-      fctx.lineWidth = 0.75 * lineComp;
-      fctx.beginPath();
-      fctx.moveTo(gx, -half);
-      fctx.lineTo(gx, half);
-      fctx.stroke();
+      ctx.strokeStyle = `rgba(151,126,226,${shimmer})`;
+      ctx.lineWidth = 0.75 * lineComp;
+      ctx.beginPath();
+      ctx.moveTo(gx, -half);
+      ctx.lineTo(gx, half);
+      ctx.stroke();
     }
     for (let sy = -104; sy <= 104; sy += 9) {
       const drift = Math.sin(now * 0.005 + sy * 0.12) * 5;
-      const half = Math.sqrt(Math.max(0, (radius - 26) * (radius - 26) - sy * sy));
-      fctx.strokeStyle = `rgba(239,226,255,${0.035 + pulse * 0.025})`;
-      fctx.lineWidth = 0.55 * lineComp;
-      fctx.beginPath();
-      fctx.moveTo(-half + drift, sy);
-      fctx.lineTo(half + drift, sy);
-      fctx.stroke();
+      const half = Math.sqrt(Math.max(0, (R - 26) * (R - 26) - sy * sy));
+      ctx.strokeStyle = `rgba(239,226,255,${0.035 + pulse * 0.025})`;
+      ctx.lineWidth = 0.55 * lineComp;
+      ctx.beginPath();
+      ctx.moveTo(-half + drift, sy);
+      ctx.lineTo(half + drift, sy);
+      ctx.stroke();
     }
-    fctx.restore();
+    ctx.restore();
 
-    fctx.globalCompositeOperation = 'lighter';
-    fctx.shadowColor = '#c8a9ff';
-    fctx.shadowBlur = 24 * pulse;
-    fctx.strokeStyle = `rgba(239,226,255,${0.82 + pulse * 0.16})`;
-    fctx.lineWidth = 3.4 * lineComp;
-    fctx.beginPath();
-    fctx.arc(0, 0, radius, 0, Math.PI * 2);
-    fctx.stroke();
-    fctx.shadowBlur = 10;
-    fctx.strokeStyle = 'rgba(178,137,255,0.82)';
-    fctx.lineWidth = 2 * lineComp;
-    fctx.beginPath();
-    fctx.arc(0, 0, radius - 12, 0, Math.PI * 2);
-    fctx.stroke();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = '#c8a9ff';
+    ctx.shadowBlur = 24 * pulse;
+    ctx.strokeStyle = `rgba(239,226,255,${0.82 + pulse * 0.16})`;
+    ctx.lineWidth = 3.4 * lineComp;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'rgba(178,137,255,0.82)';
+    ctx.lineWidth = 2 * lineComp;
+    ctx.beginPath();
+    ctx.arc(0, 0, R - 12, 0, Math.PI * 2);
+    ctx.stroke();
 
-    fctx.save();
-    fctx.rotate(now * 0.0006);
-    fctx.strokeStyle = 'rgba(205,181,255,0.66)';
-    fctx.lineWidth = 1.25 * lineComp;
+    ctx.save();
+    ctx.rotate(now * 0.0006);
+    ctx.strokeStyle = 'rgba(205,181,255,0.66)';
+    ctx.lineWidth = 1.25 * lineComp;
     for (let i = 0; i < 12; i++) {
       const a = i * Math.PI / 6;
       const a2 = a + Math.PI * 5 / 12;
       const ax = Math.cos(a) * 118, ay = Math.sin(a) * 118;
       const bx = Math.cos(a2) * 72, by = Math.sin(a2) * 72;
-      fctx.beginPath();
-      fctx.moveTo(ax, ay);
-      fctx.lineTo(bx, by);
-      fctx.stroke();
-      fctx.fillStyle = i % 2 ? '#eee1ff' : '#bca4f5';
-      fctx.beginPath();
-      fctx.arc(ax, ay, (2.4 + pulse) * lineComp, 0, Math.PI * 2);
-      fctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+      ctx.fillStyle = i % 2 ? '#eee1ff' : '#bca4f5';
+      ctx.beginPath();
+      ctx.arc(ax, ay, (2.4 + pulse) * lineComp, 0, Math.PI * 2);
+      ctx.fill();
     }
-    fctx.restore();
+    ctx.restore();
 
-    fctx.save();
-    fctx.rotate(-now * 0.0011);
-    fctx.strokeStyle = 'rgba(240,226,255,0.7)';
-    fctx.lineWidth = 1.3 * lineComp;
-    fctx.beginPath();
+    ctx.save();
+    ctx.rotate(-now * 0.0011);
+    ctx.strokeStyle = 'rgba(240,226,255,0.7)';
+    ctx.lineWidth = 1.3 * lineComp;
+    ctx.beginPath();
     for (let i = 0; i < 6; i++) {
       const a = -Math.PI / 2 + i * Math.PI / 3;
       const px = Math.cos(a) * 84, py = Math.sin(a) * 84;
-      if (i === 0) fctx.moveTo(px, py); else fctx.lineTo(px, py);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
-    fctx.closePath();
-    fctx.stroke();
-    fctx.strokeStyle = 'rgba(137,107,213,0.62)';
-    fctx.beginPath();
+    ctx.closePath();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(137,107,213,0.62)';
+    ctx.beginPath();
     for (let i = 0; i < 6; i++) {
       const a = i * Math.PI / 3;
       const px = Math.cos(a) * 54, py = Math.sin(a) * 54;
-      if (i === 0) fctx.moveTo(px, py); else fctx.lineTo(px, py);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
-    fctx.closePath();
-    fctx.stroke();
-    fctx.restore();
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
 
-    fctx.save();
-    fctx.rotate(now * 0.0009);
+    ctx.save();
+    ctx.rotate(now * 0.0009);
     for (let i = 0; i < 10; i++) {
       const a = i * Math.PI / 5;
-      const rr = radius + 12 + (i % 2) * 8;
+      const rr = R + 12 + (i % 2) * 8;
       const dx = Math.cos(a) * rr, dy = Math.sin(a) * rr;
       const size = 3.5 + (i % 3);
-      fctx.fillStyle = i % 2 ? 'rgba(230,214,255,0.9)' : 'rgba(144,111,220,0.82)';
-      fctx.beginPath();
-      fctx.moveTo(dx, dy - size * 1.8);
-      fctx.lineTo(dx + size, dy);
-      fctx.lineTo(dx, dy + size * 1.8);
-      fctx.lineTo(dx - size, dy);
-      fctx.closePath();
-      fctx.fill();
+      ctx.fillStyle = i % 2 ? 'rgba(230,214,255,0.9)' : 'rgba(144,111,220,0.82)';
+      ctx.beginPath();
+      ctx.moveTo(dx, dy - size * 1.8);
+      ctx.lineTo(dx + size, dy);
+      ctx.lineTo(dx, dy + size * 1.8);
+      ctx.lineTo(dx - size, dy);
+      ctx.closePath();
+      ctx.fill();
     }
-    fctx.restore();
+    ctx.restore();
 
-    const core = fctx.createRadialGradient(0, 0, 0, 0, 0, 48);
+    const core = ctx.createRadialGradient(0, 0, 0, 0, 0, 48);
     core.addColorStop(0, `rgba(242,231,255,${0.24 + pulse * 0.12})`);
     core.addColorStop(0.35, 'rgba(154,116,230,0.2)');
     core.addColorStop(1, 'rgba(22,14,50,0)');
-    fctx.fillStyle = core;
-    fctx.beginPath();
-    fctx.arc(0, 0, 48, 0, Math.PI * 2);
-    fctx.fill();
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(0, 0, 48, 0, Math.PI * 2);
+    ctx.fill();
 
-    fctx.globalCompositeOperation = 'source-over';
-    fctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
   }
 
-  function drawWard(progress, now) {
-    const x = 372, y = 242;
-    const pulse = 1 + Math.sin(now * 0.03) * 0.08;
-    const alpha = Math.sin(Math.min(1, progress) * Math.PI);
-    if (alpha <= 0) return;
-    sctx.save();
-    sctx.globalAlpha = alpha;
-    sctx.translate(x, y);
-    sctx.scale(pulse, pulse);
-    sctx.shadowColor = '#8feaff';
-    sctx.shadowBlur = 18;
-    sctx.strokeStyle = '#b9f4ff';
-    sctx.lineWidth = 3;
-    sctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = -Math.PI / 2 + i * Math.PI / 3;
-      const px = Math.cos(a) * 48, py = Math.sin(a) * 48;
-      if (i === 0) sctx.moveTo(px, py); else sctx.lineTo(px, py);
+  // The geometric halo behind her head is part of her look, not a one-off
+  // flourish, so it tracks her head through every scale and fade the blit
+  // above applies to the sprite itself.
+  function drawHaloAt(L, x, y, scale, alpha, now) {
+    if (alpha <= 0.02 || scale <= 0.02) return;
+    if (!_kanadeHaloImg.complete || !_kanadeHaloImg.naturalWidth) return;
+    const unit = (L.box * scale) / GRID_W;
+    const hx = x + (92 - GRID_W / 2) * unit;
+    const hy = y + (26 - GRID_H / 2) * unit;
+    const size = 56 * unit;
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(Math.sin(now * 0.0015) * 0.04);
+    ctx.globalAlpha = alpha * 0.9;
+    ctx.shadowColor = '#8dffd8';
+    ctx.shadowBlur = 18 * scale;
+    ctx.drawImage(_kanadeHaloImg, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+
+  // The spell-card ring she stands inside, ported from the prototype's
+  // drawRing. Radius comes in from the caller; everything inside is written
+  // against the prototype's own 188px ring and scaled to match.
+  let ringRot = 0;
+  function drawSpellRing(x, y, radius, energy, alpha) {
+    if (alpha <= 0.01) return;
+    const R = 188;
+    const k = radius / R;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.translate(x, y);
+    ctx.scale(k, k);
+
+    ctx.shadowColor = 'rgba(190,150,255,0.9)';
+    ctx.shadowBlur = 14 + energy * 16;
+    ctx.strokeStyle = 'hsla(280, 75%, 78%, ' + (0.6 + energy * 0.35) + ')';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = 'hsla(280, 80%, 80%, ' + (0.25 + energy * 0.3) + ')';
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(0, 0, R - 10, 0, Math.PI * 2); ctx.stroke();
+
+    ctx.rotate(ringRot);
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      const inner = R + 4, outer = R + (i % 3 === 0 ? 16 : 9);
+      ctx.strokeStyle = 'hsla(280, 70%, 75%, ' + (0.5 + energy * 0.4) + ')';
+      ctx.lineWidth = i % 3 === 0 ? 3.2 : 1.8;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+      ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+      ctx.stroke();
     }
-    sctx.closePath();
-    sctx.stroke();
-    sctx.shadowBlur = 0;
-    sctx.strokeStyle = 'rgba(165,135,255,0.8)';
-    sctx.lineWidth = 1.5;
-    sctx.beginPath();
-    sctx.arc(0, 0, 31, 0, Math.PI * 2);
-    sctx.stroke();
-    for (let i = 0; i < 6; i++) {
-      const a = i * Math.PI / 3 + now * 0.001;
-      sctx.fillStyle = '#ffffff';
-      sctx.fillRect(Math.cos(a) * 31 - 2, Math.sin(a) * 31 - 2, 4, 4);
+    for (let i = 0; i < 8; i++) {
+      const a = ringRot * 1.6 + (i / 8) * Math.PI * 2;
+      const r = R + 26;
+      ctx.fillStyle = 'hsla(320, 90%, 78%, ' + (0.7 + energy * 0.3) + ')';
+      ctx.beginPath(); ctx.arc(Math.cos(a) * r, Math.sin(a) * r, 3.2, 0, Math.PI * 2); ctx.fill();
     }
-    sctx.restore();
+    ctx.restore();
   }
 
-  // Geometric halo behind the head during the power surge - the actual
-  // supplied artwork (overlapping glowing mint/teal window frames), not a
-  // redrawn approximation.
-  function drawHalo(cx, cy, intensity, now, scale, alphaMul) {
-    if (intensity <= 0 || !haloImg.complete || !haloImg.naturalWidth) return;
-    scale = scale == null ? 1 : scale;
-    alphaMul = alphaMul == null ? 1 : alphaMul;
-    if (scale <= 0.01 || alphaMul <= 0.01) return;
-    const size = (150 + intensity * 20) * scale;
-    fctx.save();
-    fctx.translate(cx, cy);
-    fctx.rotate(Math.sin(now * 0.0015) * 0.04);
-    fctx.globalAlpha = Math.min(1, intensity * 1.3) * alphaMul;
-    fctx.shadowColor = '#8dffd8';
-    fctx.shadowBlur = (20 + intensity * 18) * scale;
-    fctx.drawImage(haloImg, -size / 2, -size / 2, size, size);
-    fctx.drawImage(haloImg, -size / 2, -size / 2, size, size);
-    fctx.restore();
-  }
-
-  // Expanding ground shockwave rings, repeating on a fixed cadence purely
-  // from elapsed time (no extra state array needed) - the Saiyan-style
-  // "power radiating outward" read during the surge's buildup.
-  function drawSurgeShockwave(cx, cy, age, intensity) {
-    if (intensity <= 0) return;
-    const period = 260;
-    for (let i = 0; i < 3; i++) {
-      const local = (age + i * (period / 3)) % period;
-      const p = local / period;
-      const r = 20 + p * 130;
-      const alpha = (1 - p) * intensity * 0.5;
-      if (alpha <= 0.01) continue;
-      fctx.save();
-      fctx.globalAlpha = alpha;
-      fctx.strokeStyle = '#fff2c9';
-      fctx.lineWidth = 3 * (1 - p) + 0.5;
-      fctx.beginPath();
-      fctx.ellipse(cx, cy, r, r * 0.32, 0, 0, Math.PI * 2);
-      fctx.stroke();
-      fctx.restore();
-    }
-  }
-
-  // Bright vertical light pillar shooting up from her at the surge's peak -
-  // the "10000x more dramatic" flourish on top of the shockwaves/halo.
-  function drawSurgePillar(cx, cy, strength) {
-    if (strength <= 0) return;
-    fctx.save();
-    fctx.globalAlpha = strength;
-    fctx.globalCompositeOperation = 'lighter';
-    const w = 34 + strength * 18;
-    const grad = fctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
-    grad.addColorStop(0, 'rgba(255,246,216,0)');
-    grad.addColorStop(0.5, 'rgba(255,246,216,0.85)');
-    grad.addColorStop(1, 'rgba(255,246,216,0)');
-    fctx.fillStyle = grad;
-    fctx.fillRect(cx - w / 2, -20, w, cy + 30);
-    fctx.restore();
-  }
-
-  let particles = [];
-  function spawnBurst(count, opts) {
-    const angleLo = opts.angleMin != null ? opts.angleMin : 0;
-    const angleHi = opts.angleMax != null ? opts.angleMax : Math.PI * 2;
-    for (let i = 0; i < count; i++) {
-      const a = angleLo + Math.random() * (angleHi - angleLo);
-      const spd = (opts.spdMin || 1) + Math.random() * (opts.spdRange || 3);
-      particles.push({
-        x: opts.x !== undefined ? opts.x : DISP / 2,
-        y: opts.y !== undefined ? opts.y : DISP / 2 + 18,
-        vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
-        life: 0, maxLife: (opts.life || 40) + Math.random() * 20,
-        size: (opts.size || 3) + Math.random() * 3,
-        color: opts.color || '#ffd9f0',
-      });
-    }
-  }
-  function updateDrawParticles() {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.life++;
-      p.x += p.vx; p.y += p.vy; p.vx *= 0.97; p.vy *= 0.97;
-      if (p.life >= p.maxLife) { particles.splice(i, 1); continue; }
-      const a = 1 - p.life / p.maxLife;
-      fctx.globalAlpha = a;
-      fctx.fillStyle = p.color;
-      fctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-      fctx.globalAlpha = 1;
-    }
-  }
-
-  // Gentle falling sakura petals, ambient only during idle/fly - drifts
-  // side to side on a sine sway rather than falling straight down.
+  // Ambient petals drifting down around her while she is on screen.
   let sakuraPetals = [];
-  function spawnSakuraPetal() {
+  function spawnSakuraPetal(L) {
     sakuraPetals.push({
-      x: DISP / 2 + (Math.random() - 0.5) * 80, y: 180 + Math.random() * 100,
+      x: L.standX + (Math.random() - 0.5) * L.box * 1.1,
+      y: L.centerY - L.box * 0.7 - Math.random() * L.box * 0.3,
       vx: (Math.random() - 0.5) * 0.25,
       vy: 0.35 + Math.random() * 0.35,
       sway: Math.random() * Math.PI * 2,
@@ -1084,6 +900,7 @@
       color: Math.random() < 0.5 ? '#ffd3e0' : '#ffbfd8',
     });
   }
+
   function updateDrawSakura() {
     for (let i = sakuraPetals.length - 1; i >= 0; i--) {
       const p = sakuraPetals[i];
@@ -1092,387 +909,440 @@
       p.x += p.vx + Math.sin(p.sway) * 0.4;
       p.y += p.vy;
       p.rot += p.rotSpeed;
-      if (p.life >= p.maxLife || p.y > DISP + 20) { sakuraPetals.splice(i, 1); continue; }
-      const fadeIn = Math.min(1, p.life / 30);
-      const fadeOut = Math.min(1, (p.maxLife - p.life) / 40);
-      fctx.save();
-      fctx.globalAlpha = Math.min(fadeIn, fadeOut) * 0.85;
-      fctx.translate(p.x, p.y);
-      fctx.rotate(p.rot);
-      fctx.fillStyle = p.color;
-      fctx.beginPath();
-      fctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
-      fctx.fill();
-      fctx.restore();
+      if (p.life >= p.maxLife || p.y > canvas.height + 20) { sakuraPetals.splice(i, 1); continue; }
+      const fade = Math.min(Math.min(1, p.life / 30), Math.min(1, (p.maxLife - p.life) / 40));
+      ctx.save();
+      ctx.globalAlpha = fade * 0.85;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
-  const STATES = ['idle', 'fly', 'cast', 'block', 'dodge', 'hit', 'defeated', 'phase'];
-  const STATE_LABEL = {
-    idle: 'IDLE: lơ lửng', fly: 'FLY: di chuyển', cast: 'CAST SKILL: tung chiêu',
-    block: 'BLOCK PARRY: đỡ đòn', dodge: 'DODGE: né đòn', hit: 'HIT: dính chiêu',
-    defeated: 'DEFEATED: rút lui', phase: 'PHASE SHIFT: chuyển phase',
-  };
-  let state = 'idle';
-  let stateStart = performance.now();
-  let hueShift = 0;
-  let castFired = false;
-  let surgeReleased = false;
-  let surgeReleaseAt = 0;
-  let hitDirection = 1;
-  let dodgeDirection = 1;
-  let defeatTurnBurstFired = false;
-  let currentExpression = 'neutral';
-  let blinkUntil = 0;
-  let nextBlinkAt = performance.now() + 2000 + Math.random() * 2000;
+  // Sparks thrown by the gate opening, the turn flash and the summon. Screen
+  // coordinates, one step per frame — the cutscene runs with the sim frozen,
+  // so there is no deltaTime to integrate here.
+  let fxParticles = [];
 
+  function spawnBurst(count, x, y, color, spdMin, spdRange, life, size) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const spd = spdMin + Math.random() * spdRange;
+      fxParticles.push({
+        x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+        life: 0, maxLife: life + Math.random() * 20,
+        size: size + Math.random() * 3, color,
+      });
+    }
+  }
+
+  function updateDrawParticles() {
+    for (let i = fxParticles.length - 1; i >= 0; i--) {
+      const p = fxParticles[i];
+      p.life++;
+      p.x += p.vx; p.y += p.vy; p.vx *= 0.97; p.vy *= 0.97;
+      if (p.life >= p.maxLife) { fxParticles.splice(i, 1); continue; }
+      ctx.globalAlpha = 1 - p.life / p.maxLife;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // Speech bubble with a 3-dot typing indicator, in the same dark-panel
+  // language the sigil picker already uses — she is deciding what to summon.
+  function drawThoughtBubble(L, x, y, alpha, now) {
+    if (alpha <= 0.01) return;
+    const w = Math.max(96, L.box * 0.30);
+    const h = w * 0.44;
+    const bx = x - w / 2, by = y - h;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.fillStyle = 'rgba(4,10,28,0.95)';
+    ctx.strokeStyle = 'rgba(196,160,255,0.75)';
+    ctx.lineWidth = 1.4;
+    roundRect(bx, by, w, h, h * 0.30);
+    ctx.fill();
+    ctx.stroke();
+    // Tail, pointing down at her
+    const tw = h * 0.22;
+    ctx.beginPath();
+    ctx.moveTo(x - tw, by + h - 1);
+    ctx.lineTo(x - tw * 0.2, by + h + tw * 1.6);
+    ctx.lineTo(x + tw, by + h - 1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    const dotR = Math.max(2, h * 0.09);
+    for (let i = 0; i < 3; i++) {
+      const lift = Math.max(0, Math.sin(now * 0.006 - i * 0.7)) * dotR * 1.2;
+      ctx.globalAlpha = Math.min(1, alpha) * (0.45 + 0.55 * Math.max(0, Math.sin(now * 0.006 - i * 0.7)));
+      ctx.fillStyle = '#e6d9ff';
+      ctx.beginPath();
+      ctx.arc(bx + w / 2 + (i - 1) * dotR * 3, by + h / 2 - lift, dotR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // The announcement that runs over the cast beat: the wide banner art, the
+  // rolled effect's name on top of it, and both halves of the pair — the
+  // player-favouring hourglass and the enemy-favouring broken one.
+  function drawEffectBanner(effect, alpha, L) {
+    if (alpha <= 0.01) return;
+    const w = Math.min(canvas.width * 0.82, 700);
+    const h = w * 0.21;
+    const cx = canvas.width / 2;
+    const top = canvas.height * 0.03;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (_tdBannerImg.complete && _tdBannerImg.naturalWidth) {
+      ctx.drawImage(_tdBannerImg, cx - w / 2, top, w, h);
+    }
+    ctx.shadowColor = 'rgba(190,140,255,0.9)';
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = '#f3e9ff';
+    ctx.font = "900 " + Math.round(h * 0.34) + "px 'Cinzel', serif";
+    ctx.fillText(effect.name, cx, top + h * 0.52);
+    ctx.shadowBlur = 0;
+
+    // The pair reads as one line under the banner: the player-favouring
+    // hourglass and its half on the left, the broken enemy one on the right.
+    // Icons sit out at the banner's decorated ends so they stay off her.
+    const iconR = Math.max(16, w * 0.045);
+    const halves = [
+      { img: _tdPlayerIconImg, text: effect.playerHalf, dir: -1, color: '#ffe9a8' },
+      { img: _tdEnemyIconImg, text: effect.enemyHalf, dir: 1, color: '#ff9aa6' },
+    ];
+    // Below the ring, in the clear band under her, so neither line crosses her.
+    const rowY = Math.min(canvas.height - iconR * 1.6, L.centerY + L.ringR + iconR * 1.4);
+    ctx.font = Math.round(w * 0.021) + "px 'Courier New', monospace";
+    for (const half of halves) {
+      const hx = cx + half.dir * w * 0.26;
+      if (half.img.complete && half.img.naturalWidth) {
+        ctx.drawImage(half.img, hx - iconR * 2.6, rowY - iconR, iconR * 2, iconR * 2);
+      }
+      ctx.fillStyle = half.color;
+      ctx.fillText(half.text, hx + iconR * 0.7, rowY);
+    }
+    ctx.restore();
+  }
+
+  // The eight beats, in order, with their lengths in ms. Elapsed time is
+  // measured against _frozenNow, so an ESC pause mid-cutscene holds the whole
+  // sequence in place instead of letting it run on behind the pause screen.
+  const BEATS = [
+    { id: 'freeze',  ms: 800 },   // sim stops, the screen darkens
+    { id: 'gate',    ms: 900 },   // the reality gate tears open
+    { id: 'walkOut', ms: 1900 },  // she steps out back-first, then turns to face forward
+    { id: 'think',   ms: 1800 },  // she stands deciding, thought bubble up
+    { id: 'summon',  ms: 1300 },  // Goliath Alpha enters the arena for real
+    { id: 'cast',    ms: 2400 },  // the rolled effect applies, banner up
+    { id: 'leave',   ms: 1800 },  // she turns, walks back into the gate
+    { id: 'close',   ms: 700 },   // gate shuts, overlay lifts, time resumes
+  ];
+
+  const BEAT_AT = {};
+  let _beatAcc = 0;
+  for (const b of BEATS) { BEAT_AT[b.id] = _beatAcc; _beatAcc += b.ms; }
+  const TOTAL_MS = _beatAcc;
+  // Where inside their own beats the two real game-logic side effects land.
+  const SUMMON_AT = BEAT_AT.summon + 0.55 * 1300;
+  const APPLY_AT = BEAT_AT.cast + 0.25 * 2400;
+
+  function currentBeat(elapsed) {
+    for (const b of BEATS) {
+      const start = BEAT_AT[b.id];
+      if (elapsed < start + b.ms) return { id: b.id, p: clamp01((elapsed - start) / b.ms) };
+    }
+    return null;
+  }
+
+  // Gate openness for a given beat: it tears open before she arrives, shuts
+  // once she is clear of it, and reopens for her exit.
+  function gateOpenness(beatId, p) {
+    if (beatId === 'gate') return easeOutCubic(p);
+    if (beatId === 'walkOut') return p < 0.70 ? 1 : 1 - easeInOut((p - 0.70) / 0.30);
+    if (beatId === 'leave') return p < 0.18 ? easeOutCubic(p / 0.18) : 1;
+    if (beatId === 'close') return 1 - easeInOut(p);
+    return 0;
+  }
+
+  // How dark the world behind her gets. Ramps in over the freeze beat, holds,
+  // then lifts as the gate shuts.
+  function overlayAlpha(beatId, p) {
+    if (beatId === 'freeze') return 0.86 * easeOutCubic(p);
+    if (beatId === 'close') return 0.86 * (1 - easeInOut(p));
+    return 0.86;
+  }
+
+  // A vignette over the flat wash, so the frozen battlefield falls away at the
+  // edges and the eye lands on her rather than on the HUD.
+  function drawVignette(alpha) {
+    if (alpha <= 0.01) return;
+    const g = ctx.createRadialGradient(
+      canvas.width * 0.45, canvas.height * 0.5, canvas.height * 0.18,
+      canvas.width * 0.45, canvas.height * 0.5, Math.max(canvas.width, canvas.height) * 0.72);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  // How lit the spell ring is and how far it has faded in. It arrives with her
+  // and burns brightest on the two cast beats.
+  function ringState(beatId, p) {
+    if (beatId === 'walkOut') return { alpha: clamp01((p - 0.25) / 0.35), energy: 0.45 };
+    if (beatId === 'think') return { alpha: 1, energy: 0.5 };
+    if (beatId === 'summon') return { alpha: 1, energy: 0.6 + 0.4 * Math.sin(p * Math.PI) };
+    if (beatId === 'cast') return { alpha: 1, energy: 0.65 + 0.35 * Math.sin(p * Math.PI) };
+    if (beatId === 'leave') return { alpha: clamp01(1 - p / 0.45), energy: 0.45 };
+    return { alpha: 0, energy: 0 };
+  }
+
+  let blinkUntil = 0;
+  let nextBlinkAt = 0;
   function blinkNow(now) {
+    if (!nextBlinkAt) nextBlinkAt = now + 1200;
     if (now >= nextBlinkAt) {
       blinkUntil = now + 170;
-      nextBlinkAt = blinkUntil + 2000 + Math.random() * 2000;
+      nextBlinkAt = blinkUntil + 1800 + Math.random() * 1800;
     }
     return now < blinkUntil;
   }
 
-  function easeOutCubic(v) { return 1 - Math.pow(1 - v, 3); }
-  function easeInOut(v) { return v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2; }
+  // Everything about how she is posed and placed this frame. Returns null on
+  // the beats where she is not on screen at all.
+  function poseFor(L, beatId, p, now) {
+    if (beatId === 'freeze' || beatId === 'gate' || beatId === 'close') return null;
 
-  function tintSprite(color, alpha) {
-    if (alpha <= 0) return;
-    sctx.save();
-    sctx.globalCompositeOperation = 'source-atop';
-    sctx.globalAlpha = alpha;
-    sctx.fillStyle = color;
-    sctx.fillRect(0, 0, DISP, DISP);
-    sctx.restore();
-  }
-
-  // One-shot action states auto-return to idle once their animation has
-  // finished playing (plus a short grace period so the ending pose/effect
-  // is still visible for a beat) instead of freezing on the last frame
-  // under the wrong state label forever. 'defeated' is a terminal state
-  // (she leaves), so it does not return.
-  const ONE_SHOT_RETURN_MS = { cast: 1200, block: 760, dodge: 1000, hit: 520, phase: 1600 };
-
-  function enterState(s) {
-    state = s; stateStart = performance.now();
-    document.getElementById('state-label').textContent = STATE_LABEL[s];
-    document.querySelectorAll('#btns button').forEach(b => b.classList.toggle('active', b.dataset.state === s));
-    
-    if (s === 'cast') castFired = false;
-    if (s === 'hit') {
-      hitDirection *= -1;
-      spawnBurst(26, { color: '#ff6677', spdRange: 7, life: 26, size: 3 });
-    }
-    if (s === 'block') spawnBurst(24, { x: 372, y: 242, color: '#b9f4ff', spdRange: 6, life: 28, size: 3 });
-    if (s === 'dodge') dodgeDirection *= -1;
-    if (s === 'defeated') {
-      defeatTurnBurstFired = false;
-      spawnBurst(42, { x: 360, y: 260, color: '#9fe8ff', spdRange: 5, life: 58, size: 4 });
-    }
-    if (s === 'phase') {
-      surgeReleased = false;
-      spawnBurst(20, { color: '#e9d8ff', spdRange: 4, life: 30, size: 3 });
-    }
-  }
-
-  function loop(now) {
-    const t = (now / 900) % 1;
-    const age = now - stateStart;
-    const oneShotLimit = ONE_SHOT_RETURN_MS[state];
-    if (oneShotLimit != null && age > oneShotLimit + 200) {
-      enterState('idle');
-      requestAnimationFrame(loop);
-      return;
-    }
-    fctx.clearRect(0, 0, DISP, DISP);
-    sctx.clearRect(0, 0, DISP, DISP);
-
-    let energy = 0.15, spriteOpts = {};
-    hueShift += 0.15;
-    let ringOffsetX = 0, ringOffsetY = 0;
-    let renderOpts = {};
-    let phaseData = null;
-    let gateData = null;
-    let wardProgress = null;
-    let showRing = true;
-    let drawBackView = false;
-    let surgeGlow = 0;
-    let surgeAura = 0;
-    let surgePillar = 0;
-    let defeatTurnFlash = 0;
-    const isBlinking = blinkNow(now);
-
-    if (state === 'idle' || state === 'fly') {
-      if (Math.random() < 0.06) spawnSakuraPetal();
-    }
-    if (state === 'idle') {
-      spriteOpts = { swayAmp: 1.7, bobAmp: 1.2, blink: isBlinking };
-    } else if (state === 'fly') {
-      const leanVal = Math.sin(age / 650) * 9;
-      const bobVal = 1.8;
-      spriteOpts = {
-        swayAmp: 2.4,
-        bobAmp: bobVal,
-        lean: leanVal,
-        trail: -leanVal * 0.9,
-        blink: isBlinking,
+    if (beatId === 'walkOut') {
+      // She glides out of the gate already facing the camera, growing and
+      // fading in as she crosses. Her hair trails behind the movement and
+      // settles once she stops.
+      const w = clamp01(p / 0.70);
+      const x = L.gateX + (L.standX - L.gateX) * easeInOut(w);
+      const glide = Math.sin(w * Math.PI);
+      return {
+        back: false,
+        x, y: L.centerY - L.box * 0.05 * glide,
+        scale: 0.74 + 0.26 * easeOutCubic(w),
+        alpha: clamp01(w / 0.22),
+        flash: 0,
+        opts: {
+          swayAmp: 1.6, bobAmp: 1.0,
+          lean: -3 * glide,
+          trail: 7 * glide,
+          blink: false,
+          expression: 'smug',
+        },
       };
-      energy = 0.3;
-      ringOffsetX = leanVal * 3;
-      ringOffsetY = Math.sin(t * Math.PI * 2) * bobVal * 3;
-    } else if (state === 'cast') {
-      const p = Math.min(1, age / 1200);
-      let castExt = 0;
+    }
+
+    if (beatId === 'think') {
+      return {
+        back: false, x: L.standX, y: L.centerY, scale: 1, alpha: 1, flash: 0,
+        opts: { swayAmp: 1.7, bobAmp: 1.2, blink: blinkNow(now), expression: 'thinking' },
+      };
+    }
+
+    if (beatId === 'summon' || beatId === 'cast') {
+      // Both beats reuse the prototype's cast pose: the arm sweeps up, holds,
+      // and comes back down.
+      let castExt;
       if (p < 0.36) castExt = easeOutCubic(p / 0.36);
-      else if (p < 0.66) castExt = 1;
-      else castExt = 1 - easeInOut((p - 0.66) / 0.34);
-      spriteOpts = { swayAmp: 0.7, bobAmp: 0.35, castExt, blink: false };
-      energy = 0.9 * (1 - p) + 0.3;
-      const handX = -10 + (120 + castExt * 21) * 3;
-      const handY = (77 - castExt * 37) * 3;
-      if (castExt > 0.2 && Math.random() < 0.7) {
-         spawnBurst(1, { x: handX, y: handY, color: '#ffffff', spdRange: 2, life: 20, size: 2 });
-      }
-      if (castExt > 0.95 && !castFired) {
-         castFired = true;
-         spawnBurst(30, { x: handX, y: handY, color: '#ffd9f0', spdRange: 5, life: 40, size: 4 });
-      }
-    } else if (state === 'block') {
-      const p = Math.min(1, age / 760);
-      const guard = p < 0.35 ? easeOutCubic(p / 0.35) : 1;
-      spriteOpts = { swayAmp: 0.35, bobAmp: 0.2, blockPose: guard, blink: false };
-      wardProgress = p;
-      energy = 0.75 * guard + 0.2;
-    } else if (state === 'dodge') {
-      // Teleport-dash out and back with a trailing afterimage - this used
-      // to be "phase shift"; dodge now owns it, phase shift below is a
-      // stationary power surge instead.
-      const p = Math.min(1, age / 1000);
-      let offset = 0, alpha = 1, motionDirection = dodgeDirection, flash = 0;
-      if (p < 0.28) {
-        const q = p / 0.28;
-        offset = dodgeDirection * 72 * easeOutCubic(q);
-      } else if (p < 0.42) {
-        const q = (p - 0.28) / 0.14;
-        offset = dodgeDirection * 72;
-        alpha = 1 - q;
-        flash = Math.sin(q * Math.PI);
-      } else if (p < 0.55) {
-        offset = dodgeDirection * 72;
-        alpha = 0;
-      } else if (p < 0.7) {
-        const q = (p - 0.55) / 0.15;
-        offset = dodgeDirection * 72;
-        alpha = q;
-        flash = Math.sin(q * Math.PI);
-      } else {
-        const q = (p - 0.7) / 0.3;
-        offset = dodgeDirection * 72 * (1 - easeInOut(q));
-        motionDirection = -dodgeDirection;
-      }
-      spriteOpts = { swayAmp: 1, bobAmp: 0.5, trail: -motionDirection * 7, blink: false };
-      phaseData = { offset, alpha, motionDirection, flash };
-      energy = 0.95;
-    } else if (state === 'hit') {
-      const p = Math.min(1, age / 520);
-      const recoil = hitDirection * Math.cos(p * Math.PI * 3) * 12 * (1 - p);
-      const whip = -hitDirection * Math.sin(p * Math.PI * 3) * 8 * (1 - p);
-      spriteOpts = { swayAmp: 0.5, bobAmp: 0.2, lean: recoil, whip, blink: p < 0.65 };
-      energy = 0.7 * (1 - p);
-    } else if (state === 'defeated') {
-      // She opens the gate while facing forward, turns within a bright
-      // particle flash, then glides into it with her back visible.
-      const p = Math.min(1, age / 4600);
-      let openness = 1;
-      if (p < 0.22) openness = easeOutCubic(p / 0.22);
-      else if (p > 0.86) openness = 1 - easeInOut((p - 0.86) / 0.14);
-      let offsetX = 0, offsetY = 0, alpha = 1, scale = 1, flightTrail = 0;
-      if (p >= 0.27) {
-        drawBackView = true;
-        if (!defeatTurnBurstFired) {
-          defeatTurnBurstFired = true;
-          spawnBurst(44, {
-            x: DISP / 2, y: DISP / 2 - 24,
-            color: '#fff4ff', spdMin: 2, spdRange: 6, life: 24, size: 4,
-          });
-          spawnBurst(24, {
-            x: DISP / 2, y: DISP / 2 - 24,
-            color: '#bfa8ff', spdMin: 1, spdRange: 4, life: 30, size: 3,
-          });
-        }
-      }
-      if (p >= 0.245 && p <= 0.295) {
-        defeatTurnFlash = Math.sin(((p - 0.245) / 0.05) * Math.PI);
-      }
-      if (p >= 0.32 && p < 0.78) {
-        const q = (p - 0.32) / 0.46;
-        offsetX = 108 * easeInOut(q);
-        offsetY = -12 * Math.sin(q * Math.PI);
-        scale = 1 - q * 0.18;
-        flightTrail = -4 * Math.sin(q * Math.PI);
-        if (q > 0.75) alpha = 1 - (q - 0.75) / 0.25;
-      } else if (p >= 0.78) {
-        offsetX = 108;
-        offsetY = 0;
-        scale = 0.82;
-        alpha = 0;
-      }
-      spriteOpts = {
-        swayAmp: 1.1,
-        bobAmp: 0.45,
-        trail: flightTrail,
-        blink: false,
+      else if (p < 0.72) castExt = 1;
+      else castExt = 1 - easeInOut((p - 0.72) / 0.28);
+      return {
+        back: false, x: L.standX, y: L.centerY, scale: 1, alpha: 1, flash: 0,
+        opts: {
+          swayAmp: 0.7, bobAmp: 0.35, castExt, blink: false,
+          expression: beatId === 'cast' ? 'smug' : 'determined',
+        },
       };
-      renderOpts = { offsetX, offsetY, scaleX: scale, scaleY: scale, alpha };
-      gateData = { openness, alpha: openness > 0 ? 1 : 0 };
-      showRing = p < 0.42;
-      energy = 0.15;
-    } else if (state === 'phase') {
-      // Power surge in place: energy gathers, releases in a blinding flare,
-      // then settles - Saiyan-style aura, no positional movement, ground
-      // shockwaves and a rising column of energy instead of a light dash.
-      const p = Math.min(1, age / 1900);
-      let surge;
-      if (p < 0.42) surge = easeOutCubic(p / 0.42);
-      else if (p < 0.58) surge = 1;
-      else surge = 1 - easeInOut((p - 0.58) / 0.42);
-      const jitter = surge > 0.3 ? (Math.random() - 0.5) * surge * 2 : 0;
-      spriteOpts = {
-        swayAmp: 1 + surge * 4,
-        bobAmp: 0.5 + surge * 3,
-        trail: -surge * 14 + jitter,
-        blink: false,
-      };
-      renderOpts = { offsetX: jitter * 1.5, offsetY: jitter };
-      energy = 0.3 + surge * 1.1;
-      surgeGlow = surge;
-      surgeAura = surge;
-      // Rising column of energy peeling off her body, DBZ-aura style -
-      // upward cone instead of a random outward puff.
-      const risingCount = surge > 0.15 ? Math.ceil(1 + surge * 3) : 0;
-      for (let i = 0; i < risingCount; i++) {
-        spawnBurst(1, {
-          x: DISP / 2 + (Math.random() - 0.5) * 90 * surge,
-          y: DISP / 2 + 80,
-          angleMin: -Math.PI * 0.85, angleMax: -Math.PI * 0.15,
-          spdMin: 1.5 + surge * 2, spdRange: 1.5 + surge * 2.5,
-          color: surge > 0.85 ? '#fff6d8' : (surge > 0.5 ? '#ffe9a8' : '#e9d8ff'),
-          life: 22, size: 2 + surge * 2.5,
-        });
-      }
-      if (surge >= 0.99 && !surgeReleased) {
-        surgeReleased = true;
-        surgeReleaseAt = now;
-        spawnBurst(70, { color: '#fff9e6', spdRange: 9, life: 36, size: 5 });
-      }
-      if (surgeReleased) surgePillar = Math.max(0, 1 - (now - surgeReleaseAt) / 550);
     }
 
-    spriteOpts.expression = currentExpression;
-    if (drawBackView) drawKanadeBack(t, spriteOpts);
-    else drawKanade(t, spriteOpts);
-    if (phaseData) {
-      for (let i = 3; i >= 1; i--) {
-        blit({
-          offsetX: phaseData.offset - phaseData.motionDirection * i * 16,
-          alpha: phaseData.alpha * (0.08 + i * 0.055),
-        });
+    // leave: she turns away, then glides into the gate, shrinking and fading.
+    const back = p >= 0.24;
+    let x = L.standX, y = L.centerY, scale = 1, alpha = 1, trail = 0;
+    if (p >= 0.30) {
+      const q = clamp01((p - 0.30) / 0.60);
+      x = L.standX + (L.gateX - L.standX) * easeInOut(q);
+      y = L.centerY - 12 * Math.sin(q * Math.PI);
+      scale = 1 - q * 0.20;
+      trail = -4 * Math.sin(q * Math.PI);
+      if (q > 0.72) alpha = 1 - (q - 0.72) / 0.28;
+    }
+    return {
+      back, x, y, scale, alpha: clamp01(alpha),
+      flash: (p >= 0.18 && p <= 0.30) ? Math.sin(((p - 0.18) / 0.12) * Math.PI) : 0,
+      opts: {
+        swayAmp: 1.1, bobAmp: 0.45, trail,
+        walkStep: (p >= 0.30 && p < 0.90) ? Math.sin(now * 0.012) : 0,
+        blink: false, expression: 'neutral',
+      },
+    };
+  }
+
+  // How long the descent gets: from the summon gesture to the moment she
+  // opens her exit gate, so he has settled before she goes.
+  const GOLIATH_DRIFT_MS = (BEAT_AT.leave - SUMMON_AT);
+
+  // Goliath Alpha already owns an entrance - a 1500ms ease from above the top
+  // edge down to _restY, driven by _appearTimer in its own update. The freeze
+  // has that update stopped, so this drives the same timer by hand and
+  // recomputes y with the same curve: the descent the player sees is the real
+  // one, stretched over the cast, and the timer is already spent when time
+  // restarts so he does not enter twice.
+  function goliathDrift(cs, elapsed) {
+    const g = cs.goliath;
+    if (!g || g.hp <= 0) return null;
+    const q = clamp01((elapsed - SUMMON_AT) / GOLIATH_DRIFT_MS);
+    g._appearTimer = 1500 * q;
+    const ease = easeOutCubic(q);
+    g.y = -g.size + (g._restY - (-g.size)) * ease;
+    return g;
+  }
+
+  // Both real game-logic beats, fired off elapsed time rather than off a
+  // particular frame landing on them, so a dropped frame can never skip one.
+  function runSideEffects(cs, elapsed, L) {
+    if (!cs.spawned && elapsed >= SUMMON_AT) {
+      cs.spawned = true;
+      const before = enemies.length;
+      if (typeof _spawnWaveGoliath === 'function') _spawnWaveGoliath();
+      const g = enemies.length > before ? enemies[enemies.length - 1] : null;
+      if (g && g.type === 'goliath') {
+        cs.goliath = g;
+        g._appearTimer = 0;
+        g.y = -g.size;
       }
-      if (phaseData.alpha > 0) blit({ offsetX: phaseData.offset, alpha: phaseData.alpha });
-      if (phaseData.flash > 0) {
-        const fx = DISP / 2 + phaseData.offset;
-        const glow = fctx.createRadialGradient(fx, DISP / 2, 4, fx, DISP / 2, 95);
-        glow.addColorStop(0, `rgba(255,255,255,${phaseData.flash * 0.8})`);
-        glow.addColorStop(1, 'rgba(150,110,255,0)');
-        fctx.fillStyle = glow;
-        fctx.fillRect(fx - 100, DISP / 2 - 100, 200, 200);
+      spawnBurst(34, L.standX + L.box * 0.22, L.centerY - L.box * 0.18, '#ffe9a8', 2, 6, 30, 4);
+    }
+    if (!cs.applied && elapsed >= APPLY_AT) {
+      cs.applied = true;
+      if (typeof _applyTimelineDistortion === 'function') _applyTimelineDistortion(cs.effect);
+      spawnBurst(40, L.standX, L.centerY, '#d8b6ff', 2, 7, 34, 4);
+    }
+  }
+
+  function finishCutscene(cs) {
+    // Land him exactly where his own entrance would have, in case the last
+    // frame of the drift never drew.
+    if (cs.goliath && cs.goliath.hp > 0) {
+      cs.goliath._appearTimer = 1500;
+      cs.goliath.y = cs.goliath._restY;
+    }
+    window._kanadeCutscene = null;
+    fxParticles.length = 0;
+    sakuraPetals.length = 0;
+    // Time starts again, so the mix comes back with it - the gate always lifts,
+    // or sound would stay dead for the rest of the run, but the restart behind
+    // it is left to the player's own unpause when they have the game paused on
+    // top of this.
+    if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(false, !gamePaused);
+    if (!cs.spawned && typeof _spawnWaveGoliath === 'function') _spawnWaveGoliath();
+    if (!cs.applied && typeof _applyTimelineDistortion === 'function') _applyTimelineDistortion(cs.effect);
+    if (typeof _markKanadeIntroSeen === 'function') _markKanadeIntroSeen();
+  }
+
+  function drawKanadeCutscene() {
+    const cs = window._kanadeCutscene;
+    if (!cs) return;
+    const now = (typeof _frozenNow === 'number' && _frozenNow > 0) ? _frozenNow : performance.now();
+    if (!cs.startedAt) cs.startedAt = now;
+    const elapsed = now - cs.startedAt;
+    const L = layout();
+
+    runSideEffects(cs, elapsed, L);
+    const beat = currentBeat(elapsed);
+    if (!beat) { finishCutscene(cs); return; }
+
+    const wash = overlayAlpha(beat.id, beat.p);
+    ctx.save();
+    ctx.fillStyle = 'rgba(6,4,16,1)';
+    ctx.globalAlpha = wash;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    drawVignette(wash);
+
+    const openness = gateOpenness(beat.id, beat.p);
+    if (openness > 0) {
+      drawGate(L.gateX, L.centerY, L.gateR, openness, 1, now);
+      if (beat.id === 'gate' && beat.p < 0.04) {
+        spawnBurst(30, L.gateX, L.centerY, '#9fe8ff', 1, 5, 44, 4);
       }
-      tintSprite('#bfa8ff', 0.16 * phaseData.alpha);
-    } else {
-      blit(renderOpts);
     }
 
-    if (wardProgress != null) drawWard(wardProgress, now);
-    if (state === 'hit') {
-      const p = Math.min(1, age / 520);
-      if (age < 75) tintSprite('#ffffff', 0.8);
-      else tintSprite('#ff3048', Math.max(0, (1 - p) * 0.65));
-    }
-    if (defeatTurnFlash > 0) tintSprite('#fff8ff', defeatTurnFlash * 0.92);
-    if (surgeGlow > 0) tintSprite('#ffdf9e', surgeGlow * 0.2);
-    if (surgeAura > 0) drawSurgeShockwave(DISP / 2, DISP / 2 + 200, age, surgeAura);
-    if (surgePillar > 0) drawSurgePillar(DISP / 2, DISP / 2 + 60, surgePillar);
-    // The halo behind her head is a permanent fixture, not just a phase-
-    // surge flourish - always at least faintly present, brighter while
-    // surging. Separate from drawRing's big spell-card border, untouched.
-    // Tracks her actual head position/scale/fade this frame: drawKanade's
-    // own lean/bob translate (baked into the pixel buffer before blit)
-    // plus blit's own offsetX/offsetY/scale/alpha (dodge dash, phase
-    // jitter, defeated shrink-and-fade as she flies into the gate) - if
-    // she shrinks or vanishes, the halo shrinks/vanishes right with her.
-    {
-      const leanPx = (spriteOpts.lean || 0) * 3;
-      const bobPx = Math.sin(t * Math.PI * 2) * (spriteOpts.bobAmp != null ? spriteOpts.bobAmp : 1) * 3;
-      // Her head's position before blit's own offset/scale/rotate (matches
-      // where drawKanade actually put it inside the px buffer).
-      const headRawX = DISP / 2 + leanPx;
-      const headRawY = 75 + bobPx;
-      let haloX, haloY, haloScale, haloAlpha;
-      if (phaseData) {
-        haloX = DISP / 2 + phaseData.offset + leanPx;
-        haloY = headRawY;
-        haloScale = 1;
-        haloAlpha = phaseData.alpha;
-      } else {
-        // Same pivot-relative scale/offset blit() itself applies, so if she
-        // shrinks toward blit's pivot (dodge/defeated), the halo shrinks
-        // and moves toward that exact same point instead of staying put.
-        const offsetX = renderOpts.offsetX || 0;
-        const offsetY = renderOpts.offsetY || 0;
-        const scaleX = renderOpts.scaleX != null ? renderOpts.scaleX : 1;
-        const scaleY = renderOpts.scaleY != null ? renderOpts.scaleY : 1;
-        haloX = DISP / 2 + offsetX + scaleX * (headRawX - DISP / 2);
-        haloY = DISP / 2 + 10 + offsetY + scaleY * (headRawY - (DISP / 2 + 10));
-        haloScale = scaleX;
-        haloAlpha = renderOpts.alpha != null ? renderOpts.alpha : 1;
-      }
-      drawHalo(haloX, haloY, Math.max(0.65, surgeAura), now, haloScale, haloAlpha);
+    const descending = goliathDrift(cs, elapsed);
+    if (descending && typeof drawEnemy === 'function') {
+      drawEnemy(descending);
+      if (typeof _drawGoliathBossBar === 'function') _drawGoliathBossBar(descending);
     }
 
+    const ring = ringState(beat.id, beat.p);
+    ringRot += 0.004 + ring.energy * 0.01;
+    drawSpellRing(L.standX, L.centerY, L.ringR, ring.energy, ring.alpha);
+    if (ring.alpha > 0.4 && Math.random() < 0.10) spawnSakuraPetal(L);
     updateDrawSakura();
 
-    ringRot += 0.004 + energy * 0.01;
-    if (showRing) drawRing(now, energy, state === 'dodge' ? hueShift * 3 : (state === 'phase' ? 30 : 0), ringOffsetX, ringOffsetY);
-    if (gateData) drawRealityGate(now, gateData.openness, gateData.alpha);
-    updateDrawParticles();
+    const t = (now / 900) % 1;
+    const pose = poseFor(L, beat.id, beat.p, now);
+    if (pose) {
+      if (pose.back) drawKanadeBack(t, pose.opts);
+      else drawKanade(t, pose.opts);
+      if (pose.flash > 0) tintBuffer('#fff8ff', pose.flash * 0.92);
+      drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha, now);
+      blitSprite(L, pose.x, pose.y, pose.scale, pose.alpha);
+      if (pose.flash > 0.9 && fxParticles.length < 90) {
+        spawnBurst(26, pose.x, pose.y - L.box * 0.16, '#fff4ff', 2, 6, 24, 4);
+      }
+      if (beat.id === 'think') {
+        drawThoughtBubble(L, pose.x + L.box * 0.30, pose.y - L.box * 0.34,
+          Math.min(1, beat.p / 0.18) * Math.min(1, (1 - beat.p) / 0.15), now);
+      }
+    }
 
-    requestAnimationFrame(loop);
+    if (beat.id === 'cast') {
+      drawEffectBanner(cs.effect, Math.min(1, beat.p / 0.15) * Math.min(1, (1 - beat.p) / 0.12), L);
+    }
+
+    updateDrawParticles();
   }
 
-  const btnsEl = document.getElementById('btns');
-  STATES.forEach(s => {
-    const b = document.createElement('button');
-    b.textContent = STATE_LABEL[s].split(': ')[0];
-    b.dataset.state = s;
-    b.onclick = () => enterState(s);
-    btnsEl.appendChild(b);
-  });
-  const exprBtnsEl = document.getElementById('expr-btns');
-  Object.keys(EXPRESSIONS).forEach(k => {
-    const b = document.createElement('button');
-    b.textContent = EXPRESSION_LABEL[k];
-    b.dataset.expr = k;
-    if (k === 'neutral') b.classList.add('active');
-    b.onclick = () => {
-      currentExpression = k;
-      exprBtnsEl.querySelectorAll('button').forEach(x => x.classList.toggle('active', x.dataset.expr === k));
+  function beginKanadeCutscene(effect, waveNum) {
+    fxParticles.length = 0;
+    sakuraPetals.length = 0;
+    // She stops time, so the whole mix stops with it: music, ambience, every
+    // sustained loop, and any one-shot that tries to fire while she holds it.
+    if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);
+    window._kanadeCutscene = {
+      effect, wave: waveNum,
+      startedAt: 0, spawned: false, applied: false,
+      goliath: null,
     };
-    exprBtnsEl.appendChild(b);
-  });
-  enterState('idle');
-  requestAnimationFrame(loop);
+  }
+
+  window.drawKanadeCutscene = drawKanadeCutscene;
+  window._beginKanadeCutscene = beginKanadeCutscene;
+  window._KANADE_CUTSCENE_MS = TOTAL_MS;
 })();
-</script>
-</body>
-</html>

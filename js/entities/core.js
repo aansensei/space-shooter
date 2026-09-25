@@ -46,7 +46,7 @@ function applyVulnerability(enemy) {
     if (enemy.type === 'uriel') return; // Covenant King: immune to every debuff
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
-    if (stacks < 4) {
+    if (stacks < _stackCap('vulnerability')) {
         // Lập tức giảm 20% khiên hiện tại (docs/combat-scaling-rebalance.md Part 3)
         if (enemy.shield > 0) {
             enemy.shield = Math.max(0, Math.floor(enemy.shield * 0.80));
@@ -207,7 +207,7 @@ function handleEnemyKill(enemy) {
     const _now = performance.now();
 
     if (_hasBuff('tuyet_lan')) {
-        window._tuyetLanStacks = Math.min(80, (window._tuyetLanStacks || 0) + 1); // docs/combat-scaling-rebalance.md Part 5: cap matches the new 40% multiplier cap
+        window._tuyetLanStacks = Math.min(_stackCap('avalancheStacks'), (window._tuyetLanStacks || 0) + 1); // docs/combat-scaling-rebalance.md Part 5: cap matches the new 40% multiplier cap
         window._tuyetLanLastKill = _now;
     }
 
@@ -951,7 +951,7 @@ function dealDamage(enemy, source) {
 
     // Sigil: Avalanche — global damage multiplier (per kill stacks, max 40%), docs/combat-scaling-rebalance.md Part 5
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
-        totalDamage = Math.ceil(totalDamage * (1 + Math.min(0.40, window._tuyetLanStacks * 0.005)));
+        totalDamage = Math.ceil(totalDamage * (1 + Math.min(_stackCap('avalancheMult'), window._tuyetLanStacks * 0.005)));
     }
 
     // Sigil: Chain Lightning — unpaired Skill G energy orbs grant a stacking dmg buff (max 6x, 5s each)
@@ -1012,7 +1012,7 @@ function dealDamage(enemy, source) {
         if (!_allTentDead) {
             const _applyTentacleDmg = () => {
                 // Mind Link rage: +5% tentacle DR per stack, max +25%
-                const _rageTentDR = Math.min(0.25, (enemy._rageStacks || 0) * 0.05);
+                const _rageTentDR = Math.min(_stackCap('egregorRageDR'), (enemy._rageStacks || 0) * 0.05);
                 const _tenDmg = Math.ceil(totalDamage * 0.35 * 0.75 * (1 - _rageTentDR));
                 if (!enemy._tentacleHps) return;
                 const _ti = enemy._tentacleHps.findIndex(hp => hp > 0);
@@ -1365,9 +1365,11 @@ function dealDamage(enemy, source) {
         if (enemy.type === 'thaelis' && enemy.reincarnated) _flatArmor += 100;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same base and rate against both
-        // normal and %MaxHP-scaling hits now.
+        // normal and %MaxHP-scaling hits now. The leading 50 is Goliath's own
+        // standing armor and stays out of the ally-count multiplier, so it
+        // holds at the same value whether or not he has anyone left alive.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-            _flatArmor += 180 * (source.percentDamage > 0
+            _flatArmor += 50 + 180 * (source.percentDamage > 0
                 ? (enemy._unifiedFrontScalingDRMult || 1)
                 : (enemy._unifiedFrontDRMult || 1));
         }
@@ -1842,7 +1844,7 @@ function dealDamage(enemy, source) {
         window._sthBurning = window._sthBurning || new Map();
         const _sthExisting = window._sthBurning.get(enemy);
         if (_sthExisting) {
-            _sthExisting.stacks = Math.min(3, _sthExisting.stacks + 1);
+            _sthExisting.stacks = Math.min(_stackCap('sunLionBurn'), _sthExisting.stacks + 1);
             _sthExisting.expiry = _sthNow + 3000;
         } else {
             window._sthBurning.set(enemy, { stacks: 1, nextTick: _sthNow + 500, expiry: _sthNow + 3000 });

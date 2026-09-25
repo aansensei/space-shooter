@@ -2700,6 +2700,9 @@ function draw(deltaTime) {
     _drawYogShiftTeleportHint();
     ctx.restore();
     if (window._sigilPicker && typeof drawSigilPicker === 'function') drawSigilPicker();
+    // Kanade's boss-wave cutscene sits on top of everything, same as the
+    // sigil picker - the sim is frozen behind it while it plays.
+    if (window._kanadeCutscene && typeof drawKanadeCutscene === 'function') drawKanadeCutscene();
 }
 
 // Start Screen, Pisces Constellation

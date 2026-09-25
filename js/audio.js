@@ -515,7 +515,22 @@
         state.pool[key] = { src, bypass };
     }
 
+    // Kanade's boss-wave cutscene stops time, and nothing is allowed to make a
+    // sound while it does. pauseAll() alone only silences what was already
+    // playing; the gate below also blocks anything fired afterwards from a
+    // handler that runs outside the frozen game loop. `resume` false lifts the
+    // gate without restarting anything, for when the player has the pause
+    // overlay up and their own unpause will do it.
+    let _timeFrozen = false;
+    function setTimeFrozen(frozen, resume) {
+        if (!!frozen === _timeFrozen) return;
+        _timeFrozen = !!frozen;
+        if (_timeFrozen) pauseAll();
+        else if (resume !== false) resumeAll();
+    }
+
     function playSfx(key) {
+        if (_timeFrozen) return;
         const p = state.pool[key];
         if (!p) return;
         const g = sfxGain(key);
@@ -527,6 +542,7 @@
     // ship (x, y in world/canvas coordinates), so explosions and events near
     // the player read louder than ones happening far up the screen.
     function playSfxAt(key, x, y) {
+        if (_timeFrozen) return;
         const p = state.pool[key];
         if (!p) return;
         const g = sfxGain(key) * _distanceGain(x, y);
@@ -536,6 +552,7 @@
 
     // Loop controls for sustained sfx (charging, laser, crawl, idle, ...). Idempotent.
     function startLoop(refKey, key) {
+        if (_timeFrozen) return;
         const el = state[refKey];
         if (!el) return;
         // el is a real HTMLAudioElement here (unlike the AudioBufferSourceNode-
@@ -995,7 +1012,7 @@
         // BGM
         playMenuBgm, playRandomInGameBgm, playBgmById, stopBgm,
         pauseBgm, resumeBgm,
-        pauseAll, resumeAll,
+        pauseAll, resumeAll, setTimeFrozen,
         list: () => BGM_LIST.slice(),
         currentBgmId: () => state.currentBgmId,
         getSelectedBgmIds, isBgmSelected, toggleBgmSelection,

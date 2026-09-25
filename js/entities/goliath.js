@@ -913,9 +913,9 @@ function _goliathEnterTrueForm(enemy) {
     enemy.inCoronation = false; // giờ mới có thể bị nhắm mục tiêu
     enemy.size = 260; // giảm ~7% so với 280 theo yêu cầu
     const pulledCapped = Math.min(320000, enemy.damagePull);
-    // Per AanSensei: the flat multiplier bumped 1.20 -> 1.40, a straight
-    // buff to the whole HP pool regardless of damagePull/gemPoints/Walpurgis.
-    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult() * 1.40);
+    // Per AanSensei: a flat 1.82 multiplier on the whole pool, applied after
+    // damagePull/gemPoints/Walpurgis so it lifts all three together.
+    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult() * 1.82);
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     // Hentry (docs/combat-scaling-rebalance.md Part 4): Max HP at the moment
     // True Form starts, before Unbroken Will's temporary bonus. Every

@@ -18,7 +18,7 @@ function _onSkillFKill(enemy) {
 function activateSkillF() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
-    if (gameState !== "playing" || window._sigilPicker) return;
+    if (gameState !== "playing" || window._sigilPicker || window._kanadeCutscene) return;
 
     // Great Sage: releasing a banked gem takes priority over the normal
     // cast and never touches Skill F's own charge/cooldown cycle at all -

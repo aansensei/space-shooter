@@ -7,7 +7,7 @@
 function activateSkillS() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return;
-    if (gameState !== "playing" || window._sigilPicker) return;
+    if (gameState !== "playing" || window._sigilPicker || window._kanadeCutscene) return;
 
     // Primeval Creation: transform normal spirit → Phōtokrystos
     const normalSpirit = spirits.find(sp => !sp.isFinishing && !sp.isPhotokrystos);
@@ -920,7 +920,7 @@ function updateSpiritSpinners(deltaTime) {
                 }
                 // Escalating damage: +15% per bounce, up to 3 stacks (+45%),
                 // reset the instant it lands a body hit (see below).
-                s._songLuoiStacks = Math.min(3, (s._songLuoiStacks || 0) + 1);
+                s._songLuoiStacks = Math.min(_stackCap('spiritBounce'), (s._songLuoiStacks || 0) + 1);
             }
 
             // Safety clamp: for a shallow-angle bounce, the jitter and (with

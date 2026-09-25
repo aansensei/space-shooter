@@ -6,7 +6,7 @@
 function activateSkillD() {
     const currentTime = performance.now();
     if (typeof player !== 'undefined' && player._silenced) return;
-    if (gameState !== "playing" || window._sigilPicker || skillDCharging || deathStar || currentTime - lastSkillD < skillDCooldown) return;
+    if (gameState !== "playing" || window._sigilPicker || window._kanadeCutscene || skillDCharging || deathStar || currentTime - lastSkillD < skillDCooldown) return;
     _checkMirrorLaserProc();
     if (_hasBuff('dong_chay_luan_hoi')) {
         // Cycle of Flow: skip the charge phase entirely
