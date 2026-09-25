@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Kanade — Live2D Mini Demo</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: radial-gradient(circle at 50% 30%, #2a2440 0%, #120e1f 60%, #08060f 100%);
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    color: #eae6ff;
+    overflow: hidden;
+  }
+  #stage-wrap {
+    position: relative;
+    width: 100%; height: 100%;
+  }
+  canvas { display: block; margin: 0 auto; }
+  #panel {
+    position: absolute; top: 16px; left: 16px;
+    background: rgba(20, 14, 34, 0.72);
+    border: 1px solid rgba(180, 160, 255, 0.35);
+    border-radius: 10px;
+    padding: 14px 16px;
+    max-width: 360px;
+    font-size: 13px;
+    line-height: 1.5;
+    backdrop-filter: blur(6px);
+  }
+  #panel h1 {
+    font-size: 15px; margin: 0 0 6px;
+    color: #d9c9ff;
+    letter-spacing: 0.03em;
+  }
+  #panel p { margin: 6px 0; opacity: 0.88; }
+  #panel code {
+    background: rgba(0,0,0,0.35);
+    padding: 1px 5px; border-radius: 4px;
+    color: #ffd9a8;
+  }
+  #btns {
+    position: absolute; bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 8px; flex-wrap: wrap;
+    justify-content: center;
+    max-width: 90vw;
+  }
+  #btns button {
+    background: linear-gradient(180deg, #3a2f5c, #241a3d);
+    border: 1px solid rgba(190, 160, 255, 0.4);
+    color: #f0e8ff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease;
+  }
+  #btns button:hover { background: linear-gradient(180deg, #4c3d78, #2e2350); transform: translateY(-2px); }
+  #btns button:active { transform: translateY(0); }
+  #status {
+    position: absolute; top: 16px; right: 16px;
+    font-size: 12px; opacity: 0.75;
+    background: rgba(20,14,34,0.6);
+    border-radius: 8px; padding: 6px 10px;
+    border: 1px solid rgba(180,160,255,0.25);
+  }
+  #hint {
+    position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%);
+    font-size: 11.5px; opacity: 0.55; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage-wrap">
+  <canvas id="canvas"></canvas>
+
+  <div id="panel">
+    <h1>Kanade — Live2D Mini Demo (placeholder rig)</h1>
+    <p>
+      Chưa có file rig Live2D thật của Kanade (.moc3/.model3.json) nên demo này
+      đang chạy model mẫu miễn phí <b>Shizuku</b> (Cubism 2.1) để chứng minh
+      pipeline hoạt động thật — tải model, kéo/thả, chạm để đổi biểu cảm, phát
+      motion, tất cả chạy bằng thư viện thật, không giả lập.
+    </p>
+    <p>
+      Khi có rig Kanade thật (từ file PSD tách lớp theo prompt đã viết), chỉ
+      cần đổi 1 dòng: <code>MODEL_URL</code> ở đầu file JS bên dưới, trỏ sang
+      file <code>kanade.model3.json</code> (Cubism 4) hoặc
+      <code>kanade.model.json</code> (Cubism 2.1) — code còn lại không cần
+      sửa gì thêm.
+    </p>
+  </div>
+
+  <div id="status">đang tải model…</div>
+  <div id="hint">kéo để di chuyển · lăn chuột để zoom · chạm vào model để tương tác</div>
+  <div id="btns"></div>
+</div>
+
+<!-- PixiJS (WebGL renderer pixi-live2d-display sits on top of) -->
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+<!-- Cubism 2.1 core runtime (needed for the free Shizuku sample below; a
+     Cubism-4-authored Kanade rig would instead need the official Cubism 4
+     core script, already included further down so both formats work) -->
+<script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+<!-- Cubism 4 core runtime (official, needed only if/when the real Kanade
+     rig is authored in Cubism 4 as a .model3.json) -->
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<!-- pixi-live2d-display: the actual Live2D renderer/controller plugin -->
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"></script>
+
+<script>
+(async function () {
+  // ---------------------------------------------------------------
+  // Swap this one line once the real Kanade rig exists. Both a Cubism 2.1
+  // "*.model.json" and a Cubism 4 "*.model3.json" path work unchanged below
+  // - pixi-live2d-display auto-detects the format from the file itself.
+  // ---------------------------------------------------------------
+  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json';
+
+  const statusEl = document.getElementById('status');
+  const btnsEl = document.getElementById('btns');
+  const canvas = document.getElementById('canvas');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', () => { resize(); layoutModel(); });
+
+  window.PIXI = PIXI; // pixi-live2d-display auto-updates via PIXI.Ticker.shared, needs PIXI on window
+  const app = new PIXI.Application({
+    view: canvas,
+    autoStart: true,
+    backgroundAlpha: 0,
+    antialias: true,
+  });
+
+  const Live2DModel = PIXI.live2d.Live2DModel;
+  let model;
+
+  function layoutModel() {
+    if (!model) return;
+    const targetH = window.innerHeight * 0.82;
+    const scale = targetH / model.internalModel.originalHeight;
+    model.scale.set(scale);
+    model.anchor.set(0.5, 1);
+    model.x = window.innerWidth / 2;
+    model.y = window.innerHeight * 0.95;
+  }
+
+  try {
+    model = await Live2DModel.from(MODEL_URL, { autoInteract: true });
+    app.stage.addChild(model);
+    layoutModel();
+
+    // Drag to move
+    model.buttonMode = true;
+    let dragging = false, dragOffset = { x: 0, y: 0 };
+    model.on('pointerdown', (e) => {
+      dragging = true;
+      dragOffset.x = e.data.global.x - model.x;
+      dragOffset.y = e.data.global.y - model.y;
+    });
+    app.view.addEventListener('pointerup', () => dragging = false);
+    app.view.addEventListener('pointerleave', () => dragging = false);
+    app.view.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const rect = app.view.getBoundingClientRect();
+      model.x = (e.clientX - rect.left) - dragOffset.x;
+      model.y = (e.clientY - rect.top) - dragOffset.y;
+    });
+
+    // Scroll to zoom
+    app.view.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.92 : 1.08;
+      model.scale.set(model.scale.x * delta);
+    }, { passive: false });
+
+    // Tap the model itself to trigger its built-in hit-area motions
+    model.on('hit', (hitAreas) => {
+      statusEl.textContent = 'chạm: ' + hitAreas.join(', ');
+    });
+
+    // Motion group buttons - reads whatever motion groups the loaded model
+    // actually defines, so this panel works unchanged for any future model.
+    const defs = model.internalModel.settings.motions || model.internalModel.settings.json?.motions || {};
+    const groups = Object.keys(defs);
+    if (groups.length === 0) {
+      const b = document.createElement('button');
+      b.textContent = 'model không khai báo motion group nào';
+      b.disabled = true;
+      btnsEl.appendChild(b);
+    }
+    groups.forEach((g) => {
+      const b = document.createElement('button');
+      b.textContent = 'Motion: ' + g;
+      b.onclick = () => model.motion(g);
+      btnsEl.appendChild(b);
+    });
+
+    const idleBtn = document.createElement('button');
+    idleBtn.textContent = 'Reset vị trí/scale';
+    idleBtn.onclick = layoutModel;
+    btnsEl.appendChild(idleBtn);
+
+    statusEl.textContent = 'model đã tải xong ✓';
+  } catch (err) {
+    statusEl.textContent = 'lỗi tải model — xem console (F12)';
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>

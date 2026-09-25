@@ -1,0 +1,111 @@
+TASK FOR A CODING AGENT WITH FILE/FOLDER ACCESS
+
+Target file: C:\Users\Thien An Nguyen\Downloads\kânda\kanade_boss_demo.html
+(open the whole folder C:\Users\Thien An Nguyen\Downloads\kânda\ — it may also
+contain a reference character image and a separate Live2D rig prompt file;
+use the reference image for the character's actual look if present)
+
+WHAT THIS FILE IS
+A single self-contained HTML page: a Touhou-style "spellcard portrait" for a
+bullet-hell / danmaku-shooter boss character named Kanade (long pale silver-
+blue hair, dark charcoal oversized hoodie-dress with a popped collar held up
+over her mouth, pastel pink shorts peeking under the hem, black flat shoes,
+holding purple on-ear headphones in one hand). The character is drawn
+entirely procedurally on a small offscreen pixel canvas (no external image
+files), then scaled up with image-rendering:pixelated for a crisp pixel-art
+look, and shown centered inside a decorative rotating circular ring (ticks +
+orbiting dots) like a Touhou spell-card border. A row of buttons switches
+between animation states: idle (floating), fly, cast skill, hit, defeated,
+phase shift. Read the full file before changing anything — it is short and
+the drawKanade()/blit()/drawRing()/loop() functions contain everything.
+
+CONCRETE PROBLEMS TO FIX (verified by the user actually opening the file)
+
+1. LAYOUT / CENTERING IS BROKEN in a real browser window (confirmed via
+   screenshots: the character + ring render pushed toward the bottom-right
+   of the window instead of centered, and get clipped by the window edge).
+   Root cause to check: #stage is `position:absolute` with only absolutely-
+   positioned canvas children, so it can collapse to zero intrinsic size and
+   the `left:50%;top:46%;transform:translate(-50%,-50%)` trick then centers
+   an empty 0x0 box rather than the 520x520 content — a fixed width/height
+   was added to #stage as a first pass but the user still sees it broken, so
+   don't assume that alone fully fixed it. Rebuild this centering with a
+   robust, well-tested approach — e.g. make #wrap a flex container
+   (display:flex; align-items:center; justify-content:center; height:100vh)
+   and let #stage sit in normal flow with an explicit fixed pixel size,
+   rather than the absolute+transform combination. Verify by actually taking
+   a screenshot of the rendered page at more than one window size (e.g.
+   1280x720 and a very wide 1920x1080) and confirming the ring + character
+   sit visually centered in both, with nothing clipped by the viewport edge.
+
+2. THE CHARACTER DOES NOT READ AS FEMININE. Right now the silhouette is a
+   flat, blocky, androgynous column — it needs an actual feminine figure:
+   - Add a visible waist taper between the chest and the hip/dress-flare
+     area instead of a straight-sided rectangle.
+   - Soften the head/jaw shape (currently reads too square/masculine) and
+     make the face proportionally a bit smaller relative to the very long
+     hair mass.
+   - Give the long hair more visual structure: distinct front strands
+     framing both sides of the face all the way to roughly waist height,
+     a separate back-hair mass with its own silhouette (not just a same-
+     width rectangle repeated), and at least one or two thin stray strands
+     for visual interest — hair is the single most important read for this
+     character (extremely long, pale silver-blue, straight) so it deserves
+     the most extra polish.
+   - Keep the oversized-hoodie silhouette (that's intentional — she's
+     supposed to look swallowed by borrowed/oversized clothing) but make
+     the flare from shoulder to hem read as a smoother A-line curve rather
+     than stepped rectangles, and make sure the popped collar clearly
+     covers the lower half of the face as in the reference.
+   - Legs should be slimmer than the current blocky bars, with a small
+     visible knee-bend suggestion, and the shoes should read as small flat
+     ballet-style shoes, not thick blocks.
+
+3. THE "CAST SKILL" STATE MUST ACTUALLY USE HER HAND/ARM AS THE VISIBLE
+   CAST GESTURE. Right now casting only raises the arm that's already
+   holding the collar (armRaise param) and relies on background particles
+   for the "casting" read — there's no clear moment where she visibly
+   extends or raises a hand outward to actually cast something. Add a
+   distinct arm/hand pose specifically for the cast state (e.g. the
+   headphone-holding arm swings up and the hand opens/extends outward
+   toward the viewer, or she raises both arms briefly), ideally with a
+   small glow/particle concentrated right at the hand position (not just a
+   generic burst from the character's center) so the READ is unmistakably
+   "she is casting a spell with her hand," not just "some sparkles
+   appeared near her."
+
+4. THE RING MUST STAY COMPLETELY STATIC DURING THE "FLY" STATE — confirmed
+   by the user that right now the whole circular ring appears to move/fly
+   together with the character instead of staying fixed in place while only
+   the character drifts inside it. The ring (drawRing(), drawn on the
+   separate fx-canvas) is supposed to always stay centered and only rotate
+   in place (ringRot) — it must never translate/shift position for any
+   state, fly included. Only the character sprite (on sprite-canvas) should
+   move/lean during fly. Track down why the ring is visually moving with
+   her — check whether the fx-canvas and sprite-canvas are being offset
+   together somewhere (e.g. a shared parent transform, or the motion-trail
+   code accidentally drawing onto or shifting the wrong canvas) and fix it
+   so a static full-window screenshot taken mid-fly clearly shows the ring
+   in the exact same screen position as it is in the idle state, with only
+   the character offset from center.
+
+5. GENERAL POLISH PASS ONCE THE ABOVE ARE FIXED:
+   - Double-check every one of the 6 states (idle, fly, cast, hit, defeated,
+     phase) still plays correctly and with zero browser console errors
+     after your changes — open the file in a real browser, click through
+     every button, and read the console.
+   - The color palette should have clearer separation between the hoodie's
+     shadow/mid/light tones (currently they read as almost the same dark
+     value) so the fabric folds are actually visible.
+   - Keep everything procedurally drawn on canvas (no external image
+     assets) — that constraint is intentional, do not switch to loading a
+     sprite PNG.
+   - Keep the Touhou-style rotating ring/border as-is unless it's also
+     visibly mis-centered after your layout fix, in which case fix it the
+     same way.
+
+DELIVERABLE
+Edit kanade_boss_demo.html in place (same file/location) so it is centered
+correctly, reads clearly as a young woman, has a real hand-gesture cast
+animation, and still runs with zero console errors across all 6 states.
+Do not rename the file or move it out of the kânda folder.

@@ -1,0 +1,102 @@
+FOLLOW-UP TASK FOR A CODING AGENT WITH FILE/FOLDER ACCESS
+(this is a second, additional pass on top of FIX_PROMPT_FOR_AI_AGENT.txt in
+the same folder — read that file too for full context on what this page is
+and what was already asked for; some of it may already be addressed, judge
+from the current state of the file rather than assuming it's unfixed)
+
+Target file: C:\Users\Thien An Nguyen\Downloads\kânda\kanade_boss_demo.html
+
+CORRECTION TO THE PREVIOUS PROMPT — READ THIS FIRST: item 4 of
+FIX_PROMPT_FOR_AI_AGENT.txt said the ring must stay static and never move
+with the character during "fly." That was wrong and should be REVERSED. The
+halo/ring is conceptually part of the boss herself (like a Touhou spell-card
+aura she carries with her), not a fixed background frame — so during "fly"
+the ring SHOULD move together with the character as one single unit (same
+lean/drift offset applied to both the sprite and the ring), not stay pinned
+to the center of the screen. If the previous pass already made the ring
+static per the old instruction, undo that specifically: apply the fly
+state's lean/drift to the ring's draw position too (drawRing currently
+always draws at a fixed center — give it an offset parameter driven by the
+same lean value used for the character sprite, so both move together). The
+ring should still only ever move during "fly" (or whichever states
+legitimately reposition her) and stay centered/static for idle, cast, hit,
+defeated, phase — the point is that ring + character are one rigid boss
+unit, so wherever she visually moves, the ring moves with her.
+
+The user looked at the latest version and it still doesn't read right. Fresh,
+concrete feedback below — please address all of it in this pass.
+
+1. DRAW BOTH ARMS PROPERLY AND LOWERED. Right now the arms don't read as
+   arms at all — they look like disconnected floating shapes near the
+   shoulders/collar rather than actual limbs attached to the body. Simplify
+   the default pose: BOTH arms hang down naturally at her sides in the
+   idle/fly/hit/defeated states (drop the "one hand raised to hold the
+   collar over her mouth" gesture from the reference image — it does not
+   need to match the source image 100%, a simpler natural standing pose
+   with both arms down reads much better at this resolution and is more
+   important to get right than that specific gesture). Each arm needs a
+   clear, continuous shape from shoulder to hand: shoulder/sleeve, a slight
+   elbow bend is fine, sleeve cuff, then a visible hand/fingertip shape at
+   the end, not just a bar that stops. One hand can still hold the
+   headphones prop dangling at her side if that reads cleanly, but both
+   arms must look like an actual young woman's arms — proportioned
+   correctly (not too thick/blocky), softly shaped, roughly symmetrical at
+   rest. Keep the dedicated cast-skill arm pose (from the previous prompt,
+   the arm that extends/raises for casting) as the ONE exception — that
+   pose only plays during the "cast skill" state.
+
+2. FACE NEEDS MORE DETAIL. Add: visible eyelashes or at least a slightly
+   thicker/darker line on the upper eyelid edge, a small nose hint (even a
+   single tiny shaded pixel/line under the center of the eyes reads as a
+   nose at this scale), soft cheek/blush shading on both cheeks (a few
+   pixels of a warm pink tone), a clearer jaw/chin shape instead of a flat
+   bottom edge on the face rectangle, and slightly larger, more expressive
+   eyes relative to the face (anime-style eyes read bigger than realistic
+   proportions — lean into that here).
+
+3. HAIR NEEDS TO LOOK BETTER / MORE BEAUTIFUL. The hair is this character's
+   single most defining feature (very long, straight, pale silver-blue-
+   white) and currently reads as flat slabs. Improve it with: a visible
+   center part or at least asymmetry so it doesn't look like a uniform
+   block, soft tapering at the ends of the long strands instead of hard
+   flat-cut bottoms, at least 2-3 different tonal shades of the
+   silver-blue palette used across the hair mass (not just one flat mid-
+   tone) to suggest volume and light catching it, and the two long
+   face-framing strands should visibly taper thinner as they go down
+   rather than staying a constant width the whole way to the waist.
+
+4. BLINKING DURING THE "FLY" STATE. Add an actual eye-blink animation that
+   plays while the character is in the fly state — periodically (e.g. once
+   every 2-4 seconds, not on a perfectly fixed rhythm, add a little
+   randomness) swap the open-eye shapes for a brief closed/half-closed eye
+   shape for a few frames, then back to open. This should be visible and
+   readable, not a 1-frame flicker. If convenient, make this blink logic
+   reusable so it could later apply to idle too, but it must definitely be
+   present and working during fly specifically, since that's what was
+   asked for.
+
+5. CHARACTER GETS CLIPPED/CUT OFF WHEN SHE DRIFTS DURING FLY/DEFEATED.
+   Confirmed by the user: as soon as she leans/drifts away from center
+   (the `lean` offset in fly and defeated states), part of her — hair,
+   limbs, feet — gets hard-clipped and disappears instead of staying fully
+   visible while just shifted sideways. Root cause: the low-res offscreen
+   pixel buffer (`px`, currently GRID_W x GRID_H) is sized tightly around
+   her resting silhouette with little to no margin, so `pctx.translate(lean,
+   bob)` pushes part of the drawing past the buffer's own edges, and canvas
+   content outside a canvas's own width/height is simply not there — it's
+   not a z-order or overlap issue, the pixels never existed past that edge.
+   Fix by adding enough empty margin around the drawn silhouette inside the
+   low-res buffer (increase GRID_W/GRID_H and shift all the existing draw
+   coordinates inward to re-center her with real margin on every side — big
+   enough to cover the largest lean/drift value used by any state, fly's
+   `Math.sin(ft) * 10` and defeated's `p * 14` in particular) so that even
+   at maximum drift she is still drawn completely, just off-center within a
+   bigger transparent buffer, and remains 100% intact when blitted up.
+   Confirm by watching a full fly cycle and the full defeated fall and
+   checking no part of her ever visibly vanishes or gets a hard cut edge.
+
+VERIFY BEFORE CALLING IT DONE: open the file in a real browser, check all 6
+states still run with zero console errors, and specifically watch the fly
+state for at least 5-6 seconds to confirm the blink actually fires and both
+arms are clearly visible and correctly attached to the body throughout every
+state (not just idle).

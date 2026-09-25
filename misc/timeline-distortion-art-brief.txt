@@ -1,0 +1,68 @@
+ART BRIEF: "Timeline Distortion" — Kanade's wave-5 reality-rewrite event
+
+CONTEXT
+A new game mechanic (not yet implemented): at the start of every wave that's
+a multiple of 5 (5, 10, 15...), the game randomly rolls one paired effect —
+one part that favors the ENEMIES, one part that favors the PLAYER — and
+applies it for the rest of the run, no player choice involved. It's framed
+in-story as Kanade (an "Administrator-class" entity who runs the "Endless
+Nights Protocol", constantly duplicating and rewriting reality/timelines)
+reshuffling the rules mid-run. Effects stack across multiple wave-5
+milestones over a single run.
+
+Existing house style reference: assets/images/game/icons/walpurgis-icon.png
+— painterly, semi-realistic dark-fantasy circular emblem, jagged spiky ring
+border, soft radial glow at the center, moody desaturated-but-rich color
+grading (not flat vector, not cutesy). New art should match this rendering
+style/quality, not clash with it.
+
+WHAT NEEDS TO BE DRAWN
+
+1. ANNOUNCEMENT BANNER (shown briefly, ~2-3 seconds, full-width overlay
+   across the screen when the effect triggers)
+   - A wide horizontal banner/frame background, dark and atmospheric,
+     conveying "reality glitching / being rewritten" — think: a torn or
+     fractured edge along the banner, faint scan-line or static texture,
+     a subtle circuit/lattice pattern bleeding in at the edges (ties
+     visually to Kanade's own "Endless Nights" god-tier reality-editing
+     theme, distinct from the cyan Tesla Matrix electric look already used
+     elsewhere in the game — lean toward pale silver-lavender/violet and
+     deep indigo/black instead of cyan, since this is Kanade's motif, not
+     Skill G's).
+   - Should read clearly as a special, rare, narratively significant event
+     — not just another routine HUD popup. Ornate but not so busy that the
+     effect text overlaid on top becomes unreadable; leave a clear calm
+     region in the center/middle for text (that part will be added by
+     code, not baked into the image).
+   - Deliver as a single PNG, transparent background outside the banner
+     shape itself, roughly 1200x300px (wide aspect), so it can sit as a
+     horizontal strip across the game canvas.
+
+2. TWO STATUS ICONS (small, circular emblem, same style as
+   walpurgis-icon.png, both ~512x512px transparent PNG)
+   - "Enemy-favoring" icon: should read as hostile/dangerous at a glance —
+     lean into red/crimson/dark tones like walpurgis-icon.png does, but
+     make the silhouette clearly DIFFERENT from Walpurgis's own icon (that
+     one is a crescent-moon-with-thorns motif) so they're never confused
+     at a glance. Something like a jagged fracture/crack radiating from
+     the center, or a broken hourglass/clock motif (since this is about
+     reality/time being rewritten against the player), rendered in the
+     same painterly jagged-ring-border style.
+   - "Player-favoring" icon: should read as a boon/advantage at a glance —
+     warmer or cooler favorable tones (gold, pale cyan, or soft violet —
+     whichever reads as clearly "good" against the enemy icon's red/dark
+     palette while still fitting the painterly house style), same jagged
+     circular ring border and center glow construction, but a distinct
+     silhouette (e.g. an hourglass running the other way, or a mended/
+     glowing fracture instead of a broken one) so the pair reads as two
+     halves of the same event rather than unrelated icons.
+   - Both icons need to work at small HUD size (roughly 32-40px on
+     screen) as well as the full 512x512 source, so keep the core shape
+     bold and legible, save fine detail for what actually reads at a
+     glance.
+
+NOT NEEDED
+No character art, no full scenes, no additional UI chrome beyond the
+banner + 2 icons above — the rest of the display (effect name/description
+text, positioning, stacking multiple active icons in the HUD) is handled
+in code, not art.

@@ -1,0 +1,68 @@
+TASK FOR A CODING AGENT WITH FILE ACCESS
+
+Target file: C:\Users\Thien An Nguyen\SpaceShooter\misc\kanade-boss\kanade_boss_demo.html
+(read FIX_PROMPT_FOR_AI_AGENT.txt through FIX_PROMPT_5_POLISH_AND_DEFEAT_REWORK.txt
+in this same folder first for full history/context - character design, palette,
+the drawKanade() function structure, and the "defeated" state's turn-and-walk
+sequence added most recently)
+
+WHAT'S NEEDED
+The "defeated" state has Kanade turn around and walk into a reality gate. Right
+now the "turn" is faked with a horizontal mirror-flip (scaleX briefly passing
+through 0) because there is no actual back-view art - she's only ever drawn
+facing forward. Add a real back view.
+
+WHY THIS IS EASIER THAN IT SOUNDS
+Her hair is extremely long and covers almost her entire back already (see the
+existing front-view hair shapes in drawKanade - the same long silver-lavender
+hair mass draping past the waist). A back view does NOT need:
+- A face (no eyes/nose/mouth/eyebrows/blush at all - the single hardest part
+  of the front view, which took many redraw passes to get right, simply
+  doesn't exist here since her face is turned away).
+- Front-specific details (the gold chain running down the front of the gown,
+  the one-shoulder neckline detail) - none of that is visible from behind.
+
+It DOES need:
+- The same long hair mass, drawn from behind - can reuse the front view's
+  hair silhouette shapes almost as-is (same overall long-hair-past-the-waist
+  shape, same multi-tone palette), since hair looks similar from front and
+  back for a style this long and straight.
+- A hint of shoulders/upper back and the gown's collar-back peeking out
+  above/around the hair.
+- The back of the gown/skirt below where the hair ends, in the same
+  cream/indigo palette already established (PAL.cream, PAL.creamMid,
+  PAL.indigoMid, PAL.indigoDeep, etc. - reuse the existing palette, don't
+  invent new colors).
+- The same arms/sleeves are fine to reuse close to as-is, since arms read
+  similarly from front and back at this silhouette level.
+
+HOW TO WIRE IT IN
+1. Add a new function, e.g. drawKanadeBack(t, opts), mirroring drawKanade's
+   structure (same GRID_W/GRID_H buffer, same PAL, same bob/sway/trail
+   handling) but drawing the back view described above. Keep it simple - this
+   only needs to read correctly at the small size and brief moment it's
+   actually shown, not hold up to a close zoom.
+2. In the 'defeated' state's logic (search for state === 'defeated' in the
+   script), replace the current scaleX-flip "fake turn" with: call
+   drawKanade() normally up until the turn point, then switch to calling
+   drawKanadeBack() instead for the walk-toward-the-gate phase and beyond,
+   with a brief crossfade or a quick flip-transition between the two (a few
+   frames of blending, or just cut on a bright flash particle burst timed to
+   the turn moment - reuse the existing spawnBurst() particle system for that
+   flash so the swap isn't jarring).
+3. Verify all 8 states still run with zero console errors, and specifically
+   watch the "defeated" state's turn from front to back view for a clean
+   transition with no visible seam/glitch, in a real browser (rAF-driven
+   animation won't advance if the browser tab/pane is backgrounded/hidden -
+   make sure the tab is focused and visible while testing).
+
+Keep everything else (idle, fly, cast, block, dodge, hit, phase) completely
+untouched - this is additive only, a new back-view function plus swapping
+which one gets called during part of the 'defeated' sequence.
+
+ALSO NEEDED (new, for a planned game cutscene - see misc/timeline-distortion-plan.md):
+The real game will reuse this back view for the REVERSE moment too - Kanade
+walking OUT of a portal (facing away from camera, toward the portal she just
+stepped through, then turning to face forward). Keep drawKanadeBack() generic
+enough that it can be called standalone for that walk-out-then-turn sequence
+later, not hardcoded only for the walk-in-and-shrink defeated flow.

@@ -1,0 +1,369 @@
+FOLLOW-UP TASK FOR A CODING AGENT WITH FILE ACCESS
+(fifth pass — read FIX_PROMPT_FOR_AI_AGENT.txt through
+FIX_PROMPT_4_MATCH_REFERENCE.txt in this same folder first for full history)
+
+Target file: C:\Users\Thien An Nguyen\Downloads\kânda\kanade_boss_demo.html
+
+The face and silhouette from the last pass are a real improvement (face is
+now visible, eyes are blue, gown/jewelry present) but the user has looked at
+a fresh screenshot and it still reads as "off" / "not pretty yet" — a
+polish pass, not a full redraw this time.
+
+PART A — POLISH PASS ON THE CURRENT RESULT
+
+1. HAIR IS TOO SYMMETRIC AND TOO ANGULAR. Right now both sides mirror each
+   other almost exactly and are made of sharp jagged zigzag/flame-like
+   triangle shapes — this reads as a static emblem/coat-of-arms, not soft
+   flowing hair. Fix:
+   - Round out the shapes: use soft curling/wave silhouettes (rounded
+     outward curls, like the reference image's ribbon-curl ends), not
+     pointed zigzag triangles.
+   - Break the mirror symmetry: make the left and right hair masses
+     different in size, curl amount, and length from each other (real hair
+     caught in motion is never a perfect mirror), while keeping the overall
+     balance so it doesn't look lopsided-wrong.
+
+2. FACE PROPORTIONS/DETAIL:
+   - Eyes are currently too large and spaced too far apart relative to the
+     face — bring them slightly closer together and reduce size a bit so
+     the face reads more balanced.
+   - Add visible thin eyebrows above each eye.
+   - Add a small nose shadow/line hint (currently almost invisible).
+   - The mouth is currently a flat pink line with no shape — give it a
+     small, soft curved shape (a gentle closed smile works well and matches
+     the personality described in Part B below).
+   - The face currently gets visually lost inside the huge hair mass —
+     make sure the face-to-hair size ratio keeps the face as a clear focal
+     point, not a small detail buried in the middle of a bigger shape.
+
+3. NO VISIBLE NECK. The head currently sits directly on the shoulders/collar
+   with no neck gap at all, breaking the head-to-body proportion. Add a
+   visible neck segment (skin-tone) between the chin and the collar/shoulder
+   line.
+
+4. ARMS ARE STILL FLAT TRIANGLE FLAPS. Give them an actual sleeve+arm read:
+   a rounded/puffed sleeve shape at the shoulder, a visible forearm
+   continuing from it (can still be mostly covered by long sleeve fabric per
+   the reference), and a clearer hand shape at the end instead of a small
+   flat dot.
+
+5. FLAT COLOR / NO SHADING. The gown currently reads as solid flat cream and
+   navy blocks with no gradient — add at least a shadow tone and a highlight
+   tone within each major fabric area (not just the base color) so the
+   fabric reads as soft and dimensional instead of a flat color fill/decal.
+
+6. MISSING ONE-SHOULDER DETAIL. The reference shows one bare shoulder; the
+   current version covers both shoulders symmetrically like a closed robe.
+   Restore the off-one-shoulder neckline from the reference so the design
+   keeps that elegant asymmetric detail instead of reading as a plain
+   symmetric robe.
+
+PART B — DEFEATED STATE: FULL REWORK (LORE-DRIVEN)
+
+Important context: Kanade is an "Administrator-class" entity — she exists
+beyond reality and governs it as a system, with god-like control over
+causality (duplicate/overwrite/define reality itself). An entity like this
+does not simply collapse and die like a normal boss. Being "defeated" for
+her means a calm, controlled strategic withdrawal, not death. Replace
+whatever fall/collapse animation currently plays for the "defeated" state
+with this sequence instead:
+
+1. A circular teleport gate/portal opens somewhere near her (behind her or
+   to one side) — a glowing magic-circle-style ring with a matrix/circuit-
+   like inner pattern (rotating geometric lines, nodes, a grid or lattice
+   feel — think "reality being redefined," not a plain glowing hole).
+   Animate it opening: start as a thin line/sliver that expands outward
+   into a full circle over a short duration, with a soft glow.
+2. She turns calmly toward the gate. Her expression shifts to a soft, gentle
+   smile (use the same mouth-shape improvement from Part A item 2 — this is
+   exactly the moment that smile should read clearly).
+3. She takes a few steps toward the gate (a simple walk cycle is fine at
+   this resolution: alternating leg/foot positions, slight body bob) —
+   this should read as an unhurried, composed walk, not a stumble or flee.
+   Hair and gown fabric can sway gently with the walking motion.
+4. She steps through/into the gate and disappears (fade out or get
+   "swallowed" by the portal glow as she crosses the threshold).
+5. Once she's fully through, the gate closes — reverse of step 1's opening
+   animation (shrinks back down to a sliver, then fades out completely).
+
+This entirely replaces any "falling down defeated" motion — she should
+never fall over or look physically beaten in this state, since that
+contradicts her being an Administrator-class entity. The whole sequence
+should read as calm, in-control, almost dismissive of having been
+"defeated" at all — she's leaving on her own terms.
+
+PART C — CAST-SKILL ARM RAISE LOOKS OFF
+
+The current cast-skill pose (one arm raises/extends to cast) reads as weird
+right now. Likely causes, check and fix each:
+- The raised arm loses the same continuous shoulder-to-hand shape it should
+  have per Part A item 4 (sleeve, forearm, clear hand/fingers) — if it's
+  just a bar or a disconnected shape at the raised position, that's the
+  main problem, not the pose/angle itself.
+- The transition into the raised pose should ease in/out smoothly (a short
+  eased motion, e.g. easeOutCubic over a few frames) rather than snapping
+  instantly from down to raised, which reads as broken/glitchy.
+- The hand should end in a clear open-palm or extended-fingers shape at the
+  top of the raise (per FIX_PROMPT_2's original spec), with the glow/
+  particle effect concentrated tightly at that hand position, not a
+  generic burst from the character's center.
+- Double check the raised arm doesn't clip through or overlap oddly with
+  the hair mass or the opposite shoulder given the new wider hair/sleeve
+  silhouette from Part A — the wider silhouette from this pass may need the
+  raise angle/position nudged so it still reads cleanly against the new,
+  bigger hair shape.
+
+PART D — TWO NEW STATES: SUCCESSFUL BLOCK/PARRY AND SUCCESSFUL DODGE
+
+These are new, in addition to the existing 6 states (idle, fly, cast, hit,
+defeated, phase) — add 2 new buttons for them. They must read as clearly
+different from both "hit" (she actually got hit, recoils + damage flash)
+and "phase" (a full teleport dash away). These two are about handling an
+incoming attack WITHOUT taking real damage:
+
+- BLOCK/PARRY (successfully blocked/parried an attack): she does NOT flinch
+  or get knocked back like the "hit" state — instead, a brief defensive
+  ward/barrier effect flashes at the point of impact in front of her (a
+  small glowing glyph, hexagonal/circuit-pattern shield shimmer consistent
+  with the matrix-gate visual language from Part B, or a simple shimmering
+  arc), with a quick deflection spark/particle burst at that point. Her
+  pose stays composed/upright — at most a very slight, controlled lean or a
+  raised arm/hand toward the incoming attack (like an intentional ward
+  gesture), never a pained recoil. Her expression should stay calm, not
+  hurt. This should read as "that attack simply didn't work," not "she
+  survived a hit."
+
+- DODGE (successfully dodged an attack): a quick, small, INSTANT sideways
+  step/lean — sharper and faster than the "fly" state's gentle drift, but
+  smaller in scale than "phase" (no vanishing/afterimage teleport here,
+  just a fast, tight sidestep). Hair and gown fabric should whip sharply
+  from the sudden motion in the direction opposite the dodge. She then
+  settles back to her normal position shortly after. This should read as
+  "that attack missed because she moved," a light, precise motion — not a
+  panicked scramble and not a full teleport.
+
+Keep both of these clearly distinct from each other and from "hit"/"phase":
+block = stationary + a visible ward effect; dodge = a quick lean/step with
+no ward effect and no vanish; hit = recoil + damage flash; phase = full
+teleport-dash with afterimages and a vanish/reappear.
+
+PART E — STOP THE SWIRLING ROPE-LOOP HAIR, ADD REAL ANIME-STYLE SHADING
+
+The user has looked at the latest screenshot (all 8 state buttons now exist
+and the face is visible with eyes/nose/mouth, which is progress) and the
+overall art quality still does not read as proper anime art. Two specific,
+important problems:
+
+1. HAIR IS NOW THICK SWIRLING ROPE/HOSE LOOPS. The current hair shape reads
+   as several thick pale tube-like coils/loops swirling outward on both
+   sides — like curled garden hoses, not hair. This is a worse direction
+   than intended. SIMPLIFY INSTEAD: straight, long hair falling down is
+   completely fine and preferred over these swirl loops — drop the dramatic
+   curling/looping shapes entirely. Draw it as proper long anime hair:
+   - A center part at the crown, hair falling down both sides and behind.
+   - Distinct individual strand clusters (varying width bands, not one
+     solid mass and not thick uniform tubes) that fall mostly straight down
+     with just soft, gentle waves near the ends — not swirls or loops.
+   - Two face-framing strands running down past the shoulders, thinner than
+     the main mass.
+   - The rest of the hair falls down the back and sides, reaching past the
+     waist, with the ends tapering naturally instead of a hard cutoff.
+   Reference proper anime long-hair illustrations for how strand clusters
+   are typically separated by thin shadow lines to suggest many individual
+   locks within the larger mass, instead of one flat swirly shape.
+
+2. THERE IS NO SHADING/VOLUME ANYWHERE. Every element (hair, face/skin,
+   gown, sleeves) is currently a single flat flood-fill color with no light
+   or shadow at all, which is why nothing reads as having real form/depth —
+   this is the single biggest thing separating the current result from
+   "proper anime art." Fix this everywhere, consistently:
+   - Pick one consistent light direction (e.g. light from upper-left).
+   - For EVERY major shape (each hair mass/strand cluster, the face, the
+     neck, each gown/sleeve panel, the skirt), add at minimum 3 tone values:
+     a base tone, a darker shadow tone on the side away from the light
+     (especially where one shape overlaps/sits behind another, like hair
+     behind the shoulder, or a sleeve fold), and a lighter highlight tone
+     on the side facing the light (a soft highlight streak on the hair's
+     crown/strands is especially important for that classic "shiny anime
+     hair" look).
+   - Cel-shading style (flat bands of tone with a clean edge between them)
+     is the right approach here, not a smooth gradient/airbrush blend — that
+     matches anime art conventions and is also easier to read at small pixel
+     sizes.
+   - This shading pass applies to the face too: a soft shadow under the
+     hair line/fringe on the forehead, a little under-chin shadow, and the
+     existing cheek blush should all be visible.
+
+Do this shading + hair simplification pass across ALL 8 states (idle, fly,
+cast, block/parry, dodge, hit, defeated, phase) since it's a fix to how the
+character is drawn overall, not a single-state issue — the earlier
+per-state animation work (blink, directional hair in fly, hit flash, dash
+in phase, walk-in defeated, ward in block, quick step in dodge) should all
+still play correctly on top of this new hair shape and shading.
+
+PART F — FACE CLOSE-UP STILL LOOKS OFF (see the attached zoomed-in
+screenshot of just the face)
+
+The user zoomed into just the face and it still reads as wrong. Specific
+problems visible in that close-up, fix each:
+
+1. THE NOSE IS A FLAT HORIZONTAL BAR. Right now the nose is a wide flat
+   rectangular smudge sitting under the eyes — it should instead be a small,
+   soft, mostly-vertical hint: a thin shadow line down the bridge and a
+   tiny soft shading dot/curve at the tip, much smaller and narrower than
+   what's there now, not a wide horizontal stripe.
+
+2. CHEEK BLUSH IS AN UNEVEN SPLOTCHY PATCH, NOT SOFT BLUSH. On one side the
+   blush is fine, but the other side has a large, uneven, hard-edged
+   tan/pink patch sitting low near the jaw/chin instead of a soft circular
+   blush higher up on the cheekbone (roughly below the outer eye corner).
+   Fix: make blush on BOTH cheeks identical in size/position — a small,
+   soft-edged (feathered/dithered edge, not a hard rectangle), circular
+   patch of warm pink sitting on the upper cheek/cheekbone area, well above
+   the jawline, symmetric left and right.
+
+3. EYEBROWS ARE TOO THICK AND TOO CLOSE TO THE HAIRLINE. Make them thinner
+   and add clear visible gap/space between the eyebrow and the hairline/
+   fringe above — right now they read as one merged dark mass with the hair.
+
+4. HARSH DIAGONAL SHADING SEAM ACROSS THE LOWER CHEEK/JAW. There's a
+   visible hard-edged diagonal color break cutting across the lower face
+   that doesn't correspond to any real facial feature or consistent light
+   source — it just looks like an editing artifact. Remove it or replace it
+   with a soft, correctly-motivated shadow (e.g. a subtle jaw-shadow using
+   the same light-direction logic as Part E, not a random diagonal cut).
+
+5. Re-check the overall face still follows Part A item 2's balance (eyes
+   not too large/far apart, clear small nose per item 1 above, soft mouth
+   shape, neck visible below the chin) now that these close-up-specific
+   issues are fixed — zoom into just the face in a screenshot the same way
+   the user did to verify all of this before moving on.
+
+PART G — HYBRID APPROACH: FACE BECOMES A REAL SPRITE IMAGE, EVERYTHING ELSE
+STAYS PROCEDURAL
+
+After several passes the procedurally-drawn (rectangles-only) face still
+doesn't read as genuinely pretty/correctly-proportioned anime art — this is
+a real limitation of guessing rectangle placement by hand rather than a
+one-off mistake. The rest of the character (hair mass, body/gown, all 8
+state animations, the ring) is working well as procedural canvas art and
+should stay exactly as-is. Change ONLY the face to a real baked sprite
+image, composited into the existing canvas render:
+
+1. A small face sprite image will be supplied separately (a properly
+   drawn/generated pixel-art anime face matching Kanade: blue eyes per
+   earlier requirements, soft gentle smile as the default resting
+   expression, same silver-lavender hair color at the visible fringe edges
+   if any hair is included in the sprite). Load it the normal way
+   (`new Image(); img.src = 'kanade-face.png'` or similar, same folder as
+   the HTML file) and wait for it to load before the render loop uses it.
+
+2. Remove the current procedural face-drawing code (the eyes/eyebrows/nose/
+   mouth/blush rectangles from earlier passes) and replace it with a single
+   `ctx.drawImage(faceSprite, ...)` call positioned and scaled to sit
+   exactly where the face region currently is, at the same effective pixel
+   scale as the rest of the character (so it doesn't look like a smooth
+   image pasted onto blocky pixel art — `imageSmoothingEnabled = false` /
+   `image-rendering: pixelated` should already be in effect for the whole
+   canvas, make sure that also applies to this drawImage call).
+
+3. Keep the hair drawn in the correct order around it: back-hair mass
+   first, then the face sprite on top of that, then the face-framing front
+   hair strands drawn last so they still overlap the top/sides of the face
+   sprite naturally (per FIX_PROMPT_3's "face sits inside a deliberate gap
+   in the hair" requirement) — this keeps the hair-to-face transition
+   blended instead of looking like a flat sticker on top.
+
+4. BLINKING WITH A STATIC IMAGE: since the face is now one static image
+   (default = eyes open), implement the blink (idle + fly, per Part A/
+   earlier prompts) as a small procedural overlay drawn ONLY during blink
+   frames: a thin closed-eyelid shape (a simple curved dark line, matching
+   the sprite's skin tone as the fill above it) drawn directly over each
+   eye's position on top of the face sprite for those few frames, then
+   removed again. Do not try to swap in a whole second face image for this
+   — a small overlay shape is enough and much simpler.
+
+5. HIT-STATE DAMAGE FLASH: the existing whole-sprite white/red flash tint
+   (a canvas composite operation over everything) should already apply to
+   the face sprite too automatically since it's part of the same render —
+   just confirm this is still true after switching the face to an image
+   (i.e. the flash isn't applied only to the procedural shapes and
+   skipping the new drawImage call).
+
+6. DEFEATED STATE: since the face sprite's default expression is already a
+   gentle smile (per item 1), the smile for Part B's portal-retreat sequence
+   is already covered by simply using the same face sprite — no special
+   expression swap needed there either.
+
+7. If no face sprite file exists yet in the folder when you start this pass,
+   stop and say so instead of guessing a placeholder — this step depends on
+   a real image file being supplied.
+
+PART H — GIVE UP ON DETAILED BIG ANIME EYES, USE A SIMPLE STYLIZED SHAPE
+INSTEAD (procedural face, applies whether or not Part G's sprite is used yet)
+
+Repeated attempts at detailed, large, fully-proportioned anime eyes drawn by
+hand with rectangles keep coming out asymmetric and uncanny (mismatched
+eye sizes, a strange half-open mismatched look). Stop trying to nail
+"big detailed HD anime eyes" procedurally — it isn't working at this
+resolution. Instead, simplify to a small, stylized/symbolic eye shape:
+
+- A simple, small, rounded almond or curved-line shape per eye (noticeably
+  SMALLER than the previous attempts) — think of how classic retro pixel-
+  art game sprites simplify eyes: a clean small shape, a solid pupil/iris
+  color, at most one small highlight dot. Skip separate eyelash detail,
+  multi-tone iris gradients, or any fine detail that requires precise
+  placement to avoid looking wrong.
+- Prioritize LEFT/RIGHT SYMMETRY and correct spacing above all else — a
+  plain, simple, perfectly symmetric pair of small eyes reads far better
+  and prettier at this resolution than a detailed but slightly-off pair.
+  Draw both eyes from the same mirrored shape/coordinates so they cannot
+  end up mismatched in size again.
+- Keep the blue iris color, but as a simple flat-to-2-tone fill in the
+  small shape rather than a detailed multi-highlight gradient.
+- The rest of the face (eyebrows, nose hint, mouth) should match this same
+  "simple, clean, symmetric" philosophy rather than trying for fine detail.
+- Judge success by "does this look clean, balanced, and pleasant" over
+  "does this technically include every anime-eye detail" — simpler and
+  correct beats detailed and wrong.
+
+WORK ITERATIVELY
+
+NOTE ON PART G vs PARTS A/F: check whether a face sprite image has actually
+been supplied in this folder before starting.
+- If YES a face image is present: do Part G instead of Part A item 2 (face
+  detail) and instead of Part F entirely — those two are about fixing the
+  procedural face, which no longer applies once the face is a sprite image.
+  Still do every other item in Part A (neck, arms, one-shoulder, hair/gown
+  shading) normally.
+- If NO face image is present yet: skip Part G for now and do Part A item 2
+  and Part F as originally written (keep improving the procedural face),
+  since there's nothing to composite in yet.
+
+1. Start with Part E: replace the swirling rope-loop hair with straight
+   falling anime hair, and add the 3-tone cel-shading pass to hair, face,
+   and gown. This is the foundational visual fix everything else sits on
+   top of — screenshot and confirm it actually looks like proper anime art
+   now before doing anything else.
+2. Then do Part A's remaining polish items one at a time (neck, arms,
+   one-shoulder, plus face detail ONLY if skipping Part G per the note
+   above — hair asymmetry and shading are now covered by step 1),
+   screenshotting after each before moving to the next.
+3. If a face sprite is available, do Part G here: swap the procedural face
+   for the sprite image, keep hair layering correct around it, and
+   implement the blink overlay. Screenshot to confirm it's positioned and
+   scaled correctly against the rest of the pixel art.
+4. Then rework the "defeated" state per Part B as its own separate pass,
+   checking each of the 5 steps (gate open, smile+turn, walk, step through,
+   gate close) actually plays in sequence with a real screenshot or two.
+5. Then fix the cast-skill arm raise per Part C, screenshotting the raised
+   pose specifically to confirm the hand/arm shape and glow placement.
+6. Then add the two new block/parry and dodge states per Part D, checking
+   each reads distinctly from hit and phase with its own screenshot.
+7. If NOT using a face sprite (Part G skipped), fix the close-up face
+   issues per Part F (nose, blush, eyebrows, the diagonal shading seam) —
+   take a zoomed-in screenshot of just the face to verify.
+8. Re-verify all 8 states now run with zero console errors, the new hair
+   and shading look consistent across every state, the face reads correctly
+   at close zoom, and the smile in the new defeated sequence is clearly
+   visible (not covered by hair or collar) at the moment it should read.

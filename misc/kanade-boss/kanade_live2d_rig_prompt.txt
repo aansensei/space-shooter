@@ -1,0 +1,139 @@
+LIVE2D CHARACTER PREPARATION PROMPT — "Kanade" (25-ji, Nightcord de. style)
+Reference: full-body character illustration, transparent background, front-
+facing standing pose, one hand pulling an oversized hoodie collar up over
+the nose/mouth.
+
+============================================================
+PART 1 — CHARACTER DESCRIPTION (for the artist/AI to match exactly)
+============================================================
+- Very long, straight, pale silvery-blue-white hair reaching past the hips,
+  blunt-cut bangs with a few longer face-framing strands, no visible part
+  line, subtle cool-grey shading in the hair shadows.
+- Sharp, slightly hooded blue eyes, thin pale eyebrows, a calm/shy/guarded
+  expression, small nose, mouth fully hidden behind the raised collar.
+- Wearing a heavily oversized dark charcoal-grey zip-up hoodie cut like a
+  flared dress: a popped/standing collar tall enough to cover the nose and
+  mouth, long sleeves that fully swallow the hands (one hand emerges just
+  enough to pinch the collar shut), a center-front zipper, a thin brown
+  cord/ribbon tied at the neck under the collar, and a pleated, A-line skirt
+  hem printed with a faded grey tone-on-tone poinsettia/lily floral pattern
+  that fades out toward the waist, finished with a black trim band at the
+  very bottom edge and black cuffs.
+- Pale pink/blush shorts peek out just below the hoodie hem.
+- Bare pale legs, black flat ballet-style shoes with a small strap/buckle.
+- Holding a pair of on-ear headphones (matte deep purple/plum ear cups and
+  headband) by the band, dangling loosely in her lowered hand.
+- Pose: standing, weight shifted onto one leg, the other leg relaxed with
+  the foot turned slightly outward; one arm bent up to hold the collar
+  closed near the face, the other arm hanging down holding the headphones.
+
+============================================================
+PART 2 — WHAT TO DELIVER
+============================================================
+A fully layered source file (PSD or Clip Studio CLIP, NOT a flattened image),
+canvas at least 2400 x 3400 px, 300+ DPI, transparent background, with every
+part below on its own named layer or layer group, drawn in clean, closed
+vector-style linework so Live2D Cubism Editor can generate ArtMeshes from
+each layer directly. Where one part is hidden behind another at rest (a
+shoulder under hair, an arm under the sleeve, the far leg partly behind the
+near one), still draw that part's FULL shape, extended slightly past the
+overlapping edge — Cubism has to move these independently, and a part that
+was only ever drawn as a visible sliver will show a torn/cut edge the moment
+it's rotated or shifted by physics. Name every layer/group in plain English
+so a Cubism Editor operator can map them to ArtMeshes without guessing.
+
+============================================================
+PART 3 — REQUIRED LAYER / PART BREAKDOWN
+============================================================
+
+FACE
+- FaceBase (skin, neck, ears if visible)
+- Eyebrow_L, Eyebrow_R (separate)
+- Eye_L and Eye_R, each split into: EyeWhite, Iris, Pupil, Highlight_Small,
+  Highlight_Large, UpperEyelid_Open, UpperEyelid_Half, UpperEyelid_Closed
+  (3 alternate shapes for blinking), LowerEyelid, EyelashesUpper,
+  EyelashesLower
+- Nose (small hint shape)
+- Mouth (even though hidden by the collar at rest, draw a full mouth set in
+  case a future "collar down" variant is wanted): Mouth_Closed, Mouth_Smile,
+  Mouth_OpenSmall, Mouth_OpenMedium, Mouth_OpenLarge
+- Blush_L, Blush_R (separate, so they can be toggled/faded independently)
+
+HAIR (draw every strand generously longer/wider than its visible silhouette
+so swinging or physics motion never reveals a hard cut edge)
+- HairBack (the mass of hair behind the body, drawn all the way down past
+  the lowest point it can visibly reach)
+- HairFront_Left, HairFront_Right (the two long strands framing the face,
+  down to the waist)
+- HairBangs (the front fringe over the forehead)
+- HairStrand_01 through HairStrand_04 (a handful of extra loose individual
+  strands, each its own small mesh, for independent secondary-motion jiggle)
+- HairShadowOnFace, HairShadowOnBody (soft semi-transparent overlay shapes
+  where hair crosses in front of skin/clothing, kept separate so they can be
+  repositioned as the hair moves without redrawing the base underneath)
+
+ARMS / HANDS
+- UpperArm_L, UpperArm_R (sleeve fabric, shoulder to elbow)
+- Forearm_L, Forearm_R (sleeve fabric, elbow to wrist/cuff)
+- Hand_Near (the one hand visible, pinching the collar - draw fingers)
+- Hand_Far (fully drawn even though hidden inside the far sleeve, for future
+  wave/gesture motions)
+- Cuff_L, Cuff_R (the black ribbed cuff band, separate from the sleeve body
+  so it can slide slightly with arm bend)
+
+COLLAR / NECKLINE (must move independently from the torso, since it's being
+actively held up by the hand)
+- CollarFlap (the tall popped-collar piece covering the nose/mouth)
+- NeckRibbon (the thin brown tie, drawn with a little extra slack for a
+  soft dangle physics)
+
+TORSO / HOODIE BODY
+- TorsoFront (chest/stomach panel, zipper line included as its own thin
+  overlay so it can flex slightly with breathing)
+- TorsoBack (hidden at rest, still fully drawn)
+- ZipperPull (the small separate zipper-tab shape, for a tiny independent
+  swing)
+
+SKIRT / DRESS HEM (split for independent pleat swing; keep the floral print
+on its own multiply-mode layer above the base pleat shading so the print
+doesn't stretch oddly when a pleat panel deforms)
+- SkirtPanel_FrontCenter, SkirtPanel_FrontLeft, SkirtPanel_FrontRight,
+  SkirtPanel_Back (hidden, still fully drawn)
+- SkirtFloralPrint (separate overlay layer, same panel boundaries as above)
+- SkirtHemTrim (the black band at the very bottom edge, separate so its
+  thickness stays consistent even if the panels above it deform)
+- ShortsPeek (the pink shorts visible just under the hem)
+
+LEGS / FEET
+- ThighUpper_L, ThighUpper_R
+- Shin_L, Shin_R (split at the knee for a subtle idle weight-shift sway)
+- Shoe_L, Shoe_R (with the small strap/buckle as its own tiny sub-layer)
+
+HELD PROP — HEADPHONES (its own independent physics chain, since it just
+hangs from one hand by the band)
+- Headphone_Band
+- Headphone_EarCup_Near, Headphone_EarCup_Far
+- Headphone_Highlight (the small glossy plastic highlight on each ear cup,
+  separate so it can stay visually "attached" as the prop swings)
+
+============================================================
+PART 4 — STYLE NOTES
+============================================================
+Soft cel-shading with one shadow tone and one highlight tone per major
+color area (no painterly gradients that would be hard to separate). Palette:
+muted lavender-grey charcoal for the hoodie, pale silver-blue-white for the
+hair, pastel blush pink for the shorts, deep clear blue with a bright round
+highlight for the eyes, matte plum/deep purple for the headphones, soft
+warm-white for the skin. Line color should shift subtly per part (dark
+brown-black for outlines, not pure black) to match the reference's soft
+overall look.
+
+============================================================
+PART 5 — DELIVERABLE FORMAT
+============================================================
+1) One layered PSD or CLIP file with the exact groups above, each layer
+   fully painted (not just outlines) and positioned in true character space
+   (not scattered on a spritesheet).
+2) A flattened reference PNG of the whole illustration for comparison.
+3) A short manifest text file listing every layer name in the order given
+   above, so whoever imports this into Cubism Editor can move quickly.

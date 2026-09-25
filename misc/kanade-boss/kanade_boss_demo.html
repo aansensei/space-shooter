@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Kanade: Boss Portrait Demo</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: radial-gradient(circle at 50% 40%, #241b3d 0%, #120b22 55%, #060410 100%);
+    font-family: "Consolas", "Courier New", monospace;
+    color: #e8dfff;
+    overflow: hidden;
+  }
+  #wrap { 
+    position: relative; width: 100%; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #stage {
+    position: relative;
+    width: min(520px, 92vmin); aspect-ratio: 1;
+    flex-shrink: 0;
+  }
+  #sprite-canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+  #fx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #title {
+    position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+    text-align: center; letter-spacing: 0.12em;
+  }
+  #title .name { font-size: 22px; color: #ffd9f0; text-shadow: 0 0 12px rgba(255,120,220,0.5); }
+  #title .sub { font-size: 11px; color: #b39fe0; margin-top: 2px; }
+  #state-label {
+    position: absolute; bottom: 122px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; padding: 4px 14px; border-radius: 14px;
+    background: rgba(30,16,50,0.65); border: 1px solid rgba(200,160,255,0.4);
+  }
+  #btns {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 92vw;
+  }
+  #btns button {
+    background: linear-gradient(180deg, #3b2a5c, #221338);
+    border: 1px solid rgba(200, 160, 255, 0.45);
+    color: #f2e9ff; padding: 9px 14px; border-radius: 8px;
+    font-family: inherit; font-size: 12px; cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease;
+  }
+  #btns button:hover { background: linear-gradient(180deg, #4d3878, #2c1a46); transform: translateY(-2px); }
+  #btns button.active { border-color: #ff8fd6; box-shadow: 0 0 10px rgba(255,143,214,0.6); }
+  #note {
+    position: absolute; top: 78px; left: 50%; transform: translateX(-50%);
+    font-size: 10.5px; color: #a996d6; text-align: center; max-width: 480px; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="title">
+    <div class="name">KANADE</div>
+    <div class="sub">25-JI, NIGHTCORD DE.: SPELL CARD PORTRAIT</div>
+  </div>
+  <div id="note">Pixel art được vẽ hoàn toàn bằng thuật toán trong canvas (không dùng ảnh có sẵn). Mọi khung hình bên dưới là animation thật, không phải video.</div>
+  <div id="stage">
+    <canvas id="fx-canvas" width="520" height="520"></canvas>
+    <canvas id="sprite-canvas" width="520" height="520"></canvas>
+  </div>
+  <div id="state-label">IDLE</div>
+  <div id="btns"></div>
+</div>
+
+<script>
+(function () {
+  const DISP = 520;
+  const spriteCanvas = document.getElementById('sprite-canvas');
+  const fxCanvas = document.getElementById('fx-canvas');
+  const sctx = spriteCanvas.getContext('2d');
+  const fctx = fxCanvas.getContext('2d');
+  sctx.imageSmoothingEnabled = false;
+
+  const GRID_W = 180, GRID_H = 180;
+  const px = document.createElement('canvas');
+  px.width = GRID_W; px.height = GRID_H;
+  const pctx = px.getContext('2d');
+  pctx.imageSmoothingEnabled = false;
+  const haloImg = new Image();
+  haloImg.decoding = 'async';
+  haloImg.src = 'kanade-halo.png';
+  const PAL = {
+    hairShadow: '#6b6690', hairDeep: '#4a4570', hairMid: '#9f9cc4', hairLight: '#e7e5f5', hairHi: '#fffdf8',
+    skin: '#ffe3d4', skinShadow: '#e3ac9d', blush: '#f5b7c2',
+    eyeDeep: '#244f9d', eyeBlue: '#4f8fe0', eyeLight: '#8ed6ff', eyeHi: '#ffffff', lid: '#332b55',
+    creamShadow: '#b8b2ca', creamMid: '#e9e5ea', cream: '#fffaf0',
+    indigoDeep: '#110f24', indigo: '#292552', indigoMid: '#403a78', indigoHi: '#665ba1',
+    goldDark: '#9b7131', gold: '#d8b35a', goldHi: '#fff0a3',
+    bootDeep: '#15142a', boot: '#292647', bootHi: '#ece7ef',
+    outline: '#231f38',
+  };
+
+  function rect(x, y, w, h, c) { pctx.fillStyle = c; pctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
+  function poly(points, c) {
+    pctx.fillStyle = c;
+    pctx.beginPath();
+    pctx.moveTo(Math.round(points[0][0]), Math.round(points[0][1]));
+    for (let i = 1; i < points.length; i++) pctx.lineTo(Math.round(points[i][0]), Math.round(points[i][1]));
+    pctx.closePath();
+    pctx.fill();
+  }
+  function ellipse(x, y, rx, ry, c) {
+    pctx.fillStyle = c;
+    pctx.beginPath();
+    pctx.ellipse(Math.round(x), Math.round(y), Math.max(1, Math.round(rx)), Math.max(1, Math.round(ry)), 0, 0, Math.PI * 2);
+    pctx.fill();
+  }
+  function line(points, c, width) {
+    pctx.strokeStyle = c;
+    pctx.lineWidth = width;
+    pctx.lineCap = 'round';
+    pctx.lineJoin = 'round';
+    pctx.beginPath();
+    pctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) pctx.lineTo(points[i][0], points[i][1]);
+    pctx.stroke();
+  }
+  function bezierLine(start, segments, c, width) {
+    pctx.strokeStyle = c;
+    pctx.lineWidth = width;
+    pctx.lineCap = 'round';
+    pctx.lineJoin = 'round';
+    pctx.beginPath();
+    pctx.moveTo(start[0], start[1]);
+    segments.forEach(s => pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]));
+    pctx.stroke();
+  }
+  function bezierShape(start, segments, c) {
+    pctx.fillStyle = c;
+    pctx.beginPath();
+    pctx.moveTo(start[0], start[1]);
+    segments.forEach(s => pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]));
+    pctx.closePath();
+    pctx.fill();
+  }
+  function sparkle(x, y, size, c) {
+    poly([[x, y - size], [x + 1, y - 1], [x + size, y], [x + 1, y + 1], [x, y + size], [x - 1, y + 1], [x - size, y], [x - 1, y - 1]], c);
+  }
+  // Simple, small, perfectly symmetric stylized eye (blue), reused for both
+  // sides from the same shape so they can never end up mismatched in size.
+  function drawSimpleEye(cx, cy, closed) {
+    if (closed) {
+      bezierLine([cx - 2, cy], [[cx - 0.8, cy + 0.6, cx + 0.8, cy + 0.6, cx + 2, cy]], PAL.lid, 1);
+      return;
+    }
+    ellipse(cx, cy, 1.8, 1.8, PAL.eyeDeep);
+    ellipse(cx, cy + 0.5, 1.3, 1.2, PAL.eyeBlue);
+    rect(cx - 0.5, cy - 0.8, 0.8, 0.8, PAL.eyeHi);
+    bezierLine([cx - 2.2, cy - 1.5], [[cx, cy - 2, cx + 1.2, cy - 1, cx + 2.5, cy - 0.2]], PAL.hairDeep, 0.8);
+  }
+  const CX = GRID_W / 2;
+
+  function drawKanade(t, opts) {
+    opts = opts || {};
+    const sway = Math.sin(t * Math.PI * 2) * (opts.swayAmp != null ? opts.swayAmp : 1.5);
+    const bob = Math.sin(t * Math.PI * 2) * (opts.bobAmp != null ? opts.bobAmp : 1);
+    const lean = opts.lean || 0;
+    const castExt = opts.castExt || 0;
+    const blockPose = opts.blockPose || 0;
+    const trail = opts.trail || 0;
+    const whip = opts.whip || 0;
+    const droop = opts.droop || 0;
+    const walkStep = opts.walkStep || 0;
+    const fabricTrail = trail * 0.75 + whip;
+
+    pctx.clearRect(0, 0, GRID_W, GRID_H);
+    pctx.save();
+    pctx.translate(lean, bob);
+
+    bezierShape([79, 17], [
+      [67, 21, 61, 39, 61 + trail * 0.08, 68],
+      [61 + trail * 0.2, 98, 60 + trail * 0.5, 128 + droop * 8, 54 + trail * 0.7, 146 + droop * 7],
+      [59 + trail * 0.65, 153 + droop * 5, 66 + trail * 0.45, 151 + droop * 5, 71 + trail * 0.35, 138 + droop * 7],
+      [73 + trail * 0.25, 149 + droop * 6, 80 + trail * 0.15, 154 + droop * 4, 84, 139 + droop * 6],
+      [88, 151 + droop * 5, 94, 153 + droop * 4, 98, 137 + droop * 6],
+      [104 + trail * 0.15, 151 + droop * 5, 112 + trail * 0.35, 151 + droop * 5, 116 + trail * 0.6, 139 + droop * 7],
+      [122 + trail * 0.7, 124 + droop * 8, 121 + trail * 0.2, 78, 119, 57],
+      [116, 31, 108, 18, 99, 16],
+      [92, 12, 85, 13, 79, 17]
+    ], PAL.hairMid);
+
+    bezierShape([78, 24], [
+      [68, 35, 65, 66, 66 + trail * 0.15, 96],
+      [65 + trail * 0.35, 119, 61 + trail * 0.6, 138 + droop * 7, 55 + trail * 0.7, 146 + droop * 7],
+      [61 + trail * 0.55, 149 + droop * 5, 68 + trail * 0.35, 139 + droop * 6, 72, 121],
+      [74, 87, 75, 48, 78, 24]
+    ], PAL.hairShadow);
+    bezierShape([103, 20], [
+      [112, 31, 116, 58, 115 + trail * 0.12, 88],
+      [116 + trail * 0.35, 116, 116 + trail * 0.62, 135 + droop * 7, 112 + trail * 0.7, 148 + droop * 6],
+      [107 + trail * 0.5, 150 + droop * 5, 102 + trail * 0.3, 140 + droop * 6, 100, 123],
+      [101, 87, 100, 43, 103, 20]
+    ], PAL.hairDeep);
+    // Dark outline along the outer edge of each side-hair strand only -
+    // this is exactly where hair drapes right next to the sleeve fabric
+    // and the two were blending into one shape with no separating line.
+    bezierLine([78, 24], [
+      [68, 35, 65, 66, 66 + trail * 0.15, 96],
+      [65 + trail * 0.35, 119, 61 + trail * 0.6, 138 + droop * 7, 55 + trail * 0.7, 146 + droop * 7]
+    ], PAL.outline, 0.8);
+    bezierLine([103, 20], [
+      [112, 31, 116, 58, 115 + trail * 0.12, 88],
+      [116 + trail * 0.35, 116, 116 + trail * 0.62, 135 + droop * 7, 112 + trail * 0.7, 148 + droop * 6]
+    ], PAL.outline, 0.8);
+    bezierShape([84, 20], [
+      [78, 38, 77, 72, 78 + trail * 0.1, 101],
+      [78 + trail * 0.35, 121, 76 + trail * 0.52, 136 + droop * 6, 72 + trail * 0.6, 143 + droop * 6],
+      [78 + trail * 0.4, 141 + droop * 4, 83 + trail * 0.2, 124 + droop * 5, 84, 101],
+      [86, 70, 87, 39, 84, 20]
+    ], PAL.hairLight);
+    bezierShape([94, 18], [
+      [99, 37, 101, 67, 101 + trail * 0.08, 96],
+      [102 + trail * 0.3, 119, 105 + trail * 0.5, 134 + droop * 6, 109 + trail * 0.58, 143 + droop * 6],
+      [103 + trail * 0.38, 140 + droop * 4, 97 + trail * 0.18, 124 + droop * 5, 96, 101],
+      [93, 67, 91, 35, 94, 18]
+    ], PAL.hairLight);
+    bezierLine([70, 35], [[68, 64, 70 + trail * 0.2, 101, 64 + trail * 0.55, 136 + droop * 6]], PAL.hairDeep, 1.5);
+    bezierLine([81, 26], [[80, 54, 82 + trail * 0.12, 91, 78 + trail * 0.42, 128 + droop * 5]], PAL.hairHi, 2);
+    bezierLine([108, 28], [[111, 56, 109 + trail * 0.15, 92, 113 + trail * 0.48, 132 + droop * 5]], PAL.hairShadow, 1.5);
+
+    poly([[63 + fabricTrail * 0.15, 72], [48 + fabricTrail * 0.45, 89], [31 + fabricTrail, 119 + droop * 13], [45 + fabricTrail, 116 + droop * 14], [34 + fabricTrail * 1.1, 143 + droop * 8], [61 + fabricTrail * 0.45, 132 + droop * 10], [78, 91]], PAL.indigoDeep);
+    poly([[117 + fabricTrail * 0.15, 72], [132 + fabricTrail * 0.45, 90], [151 + fabricTrail, 120 + droop * 13], [135 + fabricTrail, 116 + droop * 14], [148 + fabricTrail * 1.1, 144 + droop * 8], [119 + fabricTrail * 0.45, 132 + droop * 10], [102, 91]], PAL.indigo);
+
+    if (Math.abs(walkStep) > 0.04) {
+      const backFoot = walkStep * 4;
+      poly([[82, 105], [88, 105], [88 - backFoot * 0.25, 143], [85 - backFoot, 158], [79 - backFoot, 157], [81 - backFoot * 0.4, 132]], PAL.skinShadow);
+      poly([[80 - backFoot, 139], [88 - backFoot * 0.4, 140], [88 - backFoot, 160], [81 - backFoot, 164], [76 - backFoot, 160]], PAL.bootDeep);
+      poly([[78 - backFoot, 159], [90 - backFoot, 159], [91 - backFoot, 163], [83 - backFoot, 166], [77 - backFoot, 163]], PAL.boot);
+    }
+    // A small hint of the other foot, mostly tucked behind the visible leg
+    // and hem - without this the standing pose reads as one-legged, since
+    // the walking foot above only appears during the mid-flight walk cycle.
+    if (Math.abs(walkStep) <= 0.04) {
+      poly([[82, 152], [90, 152], [91, 158], [86, 161], [80, 158]], PAL.bootDeep);
+      poly([[83, 158], [89, 158], [90, 162], [85, 164], [81, 162]], PAL.boot);
+    }
+    poly([[86, 92], [95, 92], [100, 126], [97, 151], [89, 151], [86, 124]], PAL.skin);
+    line([[86, 92], [95, 92], [100, 126], [97, 151], [89, 151]], PAL.outline, 0.7);
+    // Soft contact shadow where the gown hem falls across the leg, so the
+    // leg reads as clearly in front of/below the robe instead of the two
+    // silhouettes just merging together at that overlap.
+    bezierLine([87, 123], [[91, 126, 95, 126, 99, 123]], PAL.skinShadow, 1.5);
+    // Knee crease further down, splitting the leg into a clear thigh/calf
+    // read instead of one straight undifferentiated column, plus a soft
+    // shin-side shadow suggesting the calf's own curve and a slight
+    // weight-bearing bend rather than a perfectly rigid standing pole.
+    bezierLine([90, 134], [[93, 136, 96, 136, 98, 134]], PAL.skinShadow, 1);
+    bezierLine([98, 127], [[97, 136, 96, 144, 95.5, 150]], PAL.skinShadow, 1);
+    poly([[94, 124], [102, 126], [103, 159], [96, 164], [89, 159], [90, 142]], PAL.bootDeep);
+    poly([[95, 127], [100, 128], [99, 157], [95, 159], [92, 156], [93, 140]], PAL.bootHi);
+    poly([[90, 158], [104, 158], [105, 163], [99, 166], [91, 163]], PAL.boot);
+    ellipse(96, 151, 4, 3, PAL.gold);
+    ellipse(96, 151, 2, 2, PAL.bootDeep);
+    rect(94, 129, 1, 26, PAL.goldDark);
+    rect(98, 130, 1, 24, PAL.bootHi);
+
+    poly([[78, 75], [68, 86], [58 + fabricTrail * 0.15, 112], [52 + fabricTrail * 0.45, 142], [74 + fabricTrail * 0.15, 151], [89, 142], [94, 96]], PAL.creamShadow);
+    poly([[102, 74], [114, 86], [124 + fabricTrail * 0.15, 113], [132 + fabricTrail * 0.45, 146], [108 + fabricTrail * 0.15, 154], [92, 142], [87, 96]], PAL.creamMid);
+    // Outline along the widest outer edge of the gown's lower front panels
+    // so the robe reads as one clear silhouette instead of merging into
+    // whatever sits behind/beside it.
+    line([[78, 75], [68, 86], [58 + fabricTrail * 0.15, 112], [52 + fabricTrail * 0.45, 142], [74 + fabricTrail * 0.15, 151]], PAL.outline, 0.8);
+    line([[102, 74], [114, 86], [124 + fabricTrail * 0.15, 113], [132 + fabricTrail * 0.45, 146], [108 + fabricTrail * 0.15, 154]], PAL.outline, 0.8);
+    poly([[86, 78], [75, 91], [67 + fabricTrail * 0.1, 118], [63 + fabricTrail * 0.35, 148], [86, 145], [92, 126], [94, 87]], PAL.cream);
+    poly([[94, 79], [107, 92], [116 + fabricTrail * 0.1, 121], [123 + fabricTrail * 0.35, 150], [101, 147], [93, 126], [87, 88]], PAL.indigoMid);
+    poly([[91, 91], [100, 105], [103, 133], [100, 151], [92, 145], [87, 126]], PAL.indigoDeep);
+    poly([[92, 103], [98, 116], [96, 142], [90, 143], [87, 126]], PAL.skin);
+
+    poly([[77, 49], [86, 45], [101, 47], [109, 53], [104, 73], [98, 84], [82, 83], [75, 72]], PAL.cream);
+    poly([[76, 49], [84, 48], [88, 79], [80, 82], [74, 69]], PAL.indigoMid);
+    poly([[91, 47], [105, 50], [103, 57], [92, 55]], PAL.creamShadow);
+    poly([[88, 54], [96, 55], [102, 82], [92, 88], [83, 82]], PAL.indigoDeep);
+
+    bezierShape([76, 52], [
+      [68, 49, 61, 54, 58 + fabricTrail * 0.15, 64],
+      [52 + fabricTrail * 0.35, 76, 42 + fabricTrail * 0.75, 87, 33 + fabricTrail, 92],
+      [31 + fabricTrail, 98, 39 + fabricTrail * 0.9, 105, 47 + fabricTrail * 0.7, 101],
+      [55 + fabricTrail * 0.45, 97, 61, 91, 66, 104],
+      [72, 99, 77, 85, 76, 52]
+    ], PAL.creamMid);
+    // Outline along the sleeve's own outer edge - same fix as the hair,
+    // this is the other side of the "can't tell hair from sleeve" boundary.
+    bezierLine([76, 52], [
+      [68, 49, 61, 54, 58 + fabricTrail * 0.15, 64],
+      [52 + fabricTrail * 0.35, 76, 42 + fabricTrail * 0.75, 87, 33 + fabricTrail, 92]
+    ], PAL.outline, 0.8);
+    bezierLine([72, 54], [[64, 56, 58 + fabricTrail * 0.2, 69, 51 + fabricTrail * 0.45, 82]], PAL.cream, 3);
+    bezierLine([63, 92], [[55 + fabricTrail * 0.35, 96, 47 + fabricTrail * 0.6, 99, 40 + fabricTrail * 0.8, 96]], PAL.creamShadow, 2);
+    bezierShape([66, 71], [
+      [57 + fabricTrail * 0.25, 79, 45 + fabricTrail * 0.65, 88, 36 + fabricTrail, 94],
+      [42 + fabricTrail * 0.85, 99, 54 + fabricTrail * 0.5, 92, 64, 84],
+      [66, 79, 67, 75, 66, 71]
+    ], PAL.indigo);
+    // Upper arm + forearm as two segments meeting at a real elbow bend
+    // (same technique the block/cast poses already use), instead of one
+    // smooth curve with no visible joint reaching too far down.
+    bezierLine([74, 53], [[69, 58, 64, 64, 62 + fabricTrail * 0.15, 70]], PAL.skin, 5.5);
+    bezierLine([62 + fabricTrail * 0.15, 70], [[58 + fabricTrail * 0.3, 78, 53 + fabricTrail * 0.42, 85, 49 + fabricTrail * 0.5, 90]], PAL.skin, 4);
+    bezierLine([72, 56], [[66, 62, 60 + fabricTrail * 0.2, 74, 51 + fabricTrail * 0.45, 91]], PAL.skinShadow, 1.2);
+    // Wrist crease marks where the forearm actually ends, then the palm,
+    // then 3 short separated finger lines instead of one undifferentiated
+    // bright blob - gives the hand real structure at a glance.
+    line([[46 + fabricTrail * 0.5, 88.5], [50 + fabricTrail * 0.5, 89]], PAL.skinShadow, 0.6);
+    ellipse(48 + fabricTrail * 0.5, 90, 2.4, 3.6, PAL.skin);
+    line([[46.5 + fabricTrail * 0.5, 92], [45.5 + fabricTrail * 0.55, 94.5]], PAL.skin, 0.9);
+    line([[48 + fabricTrail * 0.5, 93], [47.5 + fabricTrail * 0.55, 96]], PAL.skin, 0.9);
+    line([[49.5 + fabricTrail * 0.5, 92.5], [49.5 + fabricTrail * 0.55, 95]], PAL.skin, 0.9);
+    line([[46, 92.5], [48, 93.5]], PAL.skinShadow, 0.5);
+    line([[47.5, 93.5], [49, 94.5]], PAL.skinShadow, 0.5);
+
+    // Small shoulder-socket shading where each arm actually meets the
+    // torso, so the join reads clearly instead of the arm just vanishing
+    // into the hair/collar/sleeve with no visible anchor point.
+    ellipse(75, 53, 2.2, 1.6, PAL.skinShadow);
+    ellipse(105, 54, 2.2, 1.6, PAL.skinShadow);
+
+    if (blockPose > 0) {
+      const elbowX = 121;
+      const elbowY = 78 - blockPose * 17;
+      const handX = 132 - blockPose * 3;
+      const handY = 100 - blockPose * 43;
+      bezierLine([106, 54], [[113, 54, 118, 59, elbowX, elbowY]], PAL.creamMid, 13);
+      bezierLine([106, 51], [[113, 50, 118, 56, elbowX, elbowY - 2]], PAL.cream, 3);
+      bezierLine([108, 58], [[114, 58, 118, 62, elbowX, elbowY + 2]], PAL.indigoMid, 4);
+      bezierLine([elbowX, elbowY], [[124, elbowY - 1, 127, handY + 2, handX, handY + 2]], PAL.skin, 4.5);
+      bezierLine([elbowX, elbowY + 1], [[124, elbowY + 1, 127, handY + 4, handX, handY + 3]], PAL.skinShadow, 1.2);
+      poly([
+        [handX - 2, handY - 2], [handX + 1, handY - 3],
+        [handX + 4, handY - 1], [handX + 4, handY + 2],
+        [handX + 1, handY + 4], [handX - 2, handY + 2]
+      ], PAL.skin);
+      line([[handX + 2, handY - 2], [handX + 8, handY - 4]], PAL.skin, 1.1);
+      line([[handX + 3, handY - 1], [handX + 9, handY - 1]], PAL.skin, 1.1);
+      line([[handX + 3, handY + 1], [handX + 8, handY + 2]], PAL.skin, 1.1);
+      line([[handX + 2, handY + 3], [handX + 7, handY + 4]], PAL.skin, 1.1);
+      line([[handX, handY + 2], [handX + 4, handY + 6]], PAL.skinShadow, 1.1);
+    } else if (castExt > 0) {
+      const handX = 118 + castExt * 21;
+      const handY = 75 - castExt * 37;
+      const elbowX = 115 + castExt * 10;
+      const elbowY = 62 - castExt * 20;
+      bezierLine([106, 54], [[112, 52, 116 + castExt * 5, 54 - castExt * 11, elbowX, elbowY]], PAL.creamMid, 13);
+      bezierLine([106, 51], [[113, 49, 117 + castExt * 5, 51 - castExt * 11, elbowX, elbowY - 2]], PAL.cream, 3);
+      bezierLine([108, 58], [[113, 57, 117 + castExt * 5, 57 - castExt * 10, elbowX, elbowY + 2]], PAL.indigoMid, 4);
+      bezierLine([elbowX, elbowY], [[130 + castExt * 3, 48 - castExt * 9, handX - 3, handY + 2, handX, handY + 2]], PAL.skin, 4.5);
+      bezierLine([elbowX, elbowY + 1], [[130 + castExt * 3, 50 - castExt * 9, handX - 3, handY + 4, handX, handY + 3]], PAL.skinShadow, 1.2);
+      ellipse(handX + 2, handY + 2, 3, 4, PAL.skin);
+      line([[handX + 3, handY - 1], [handX + 8, handY - 4]], PAL.skin, 1.2);
+      line([[handX + 4, handY], [handX + 9, handY - 1]], PAL.skin, 1.2);
+      line([[handX + 4, handY + 1], [handX + 8, handY + 2]], PAL.skin, 1.2);
+    } else {
+      bezierShape([104, 52], [
+        [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
+        [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92],
+        [152 + fabricTrail, 99, 143 + fabricTrail * 0.9, 106, 135 + fabricTrail * 0.7, 102],
+        [127 + fabricTrail * 0.45, 97, 120, 91, 115, 104],
+        [109, 98, 104, 84, 104, 52]
+      ], PAL.creamMid);
+      bezierLine([104, 52], [
+        [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
+        [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92]
+      ], PAL.outline, 0.8);
+      bezierLine([108, 54], [[116, 56, 124 + fabricTrail * 0.2, 69, 131 + fabricTrail * 0.45, 82]], PAL.cream, 3);
+      bezierLine([118, 93], [[126 + fabricTrail * 0.35, 97, 135 + fabricTrail * 0.6, 100, 143 + fabricTrail * 0.8, 96]], PAL.creamShadow, 2);
+      bezierShape([115, 72], [
+        [125 + fabricTrail * 0.25, 80, 137 + fabricTrail * 0.65, 89, 146 + fabricTrail, 95],
+        [140 + fabricTrail * 0.85, 101, 128 + fabricTrail * 0.5, 93, 117, 85],
+        [115, 80, 114, 76, 115, 72]
+      ], PAL.indigo);
+      // Upper arm + forearm as two segments meeting at a real elbow bend,
+      // mirroring the left arm's fix above - elbow bent a bit more and the
+      // hand held a bit higher/closer-in than the left arm on purpose, so
+      // the pose doesn't read as a perfectly mirrored mannequin stance.
+      bezierLine([106, 54], [[111, 59, 116, 65, 119 + fabricTrail * 0.15, 73]], PAL.skin, 5.5);
+      bezierLine([119 + fabricTrail * 0.15, 73], [[122 + fabricTrail * 0.25, 79, 125 + fabricTrail * 0.32, 84, 128 + fabricTrail * 0.35, 88]], PAL.skin, 4);
+      bezierLine([108, 57], [[114, 65, 118 + fabricTrail * 0.2, 78, 127 + fabricTrail * 0.33, 89]], PAL.skinShadow, 1.2);
+      line([[127 + fabricTrail * 0.35, 86.5], [131 + fabricTrail * 0.35, 87]], PAL.skinShadow, 0.6);
+      ellipse(129 + fabricTrail * 0.35, 88, 2.4, 3.6, PAL.skin);
+      line([[127.5 + fabricTrail * 0.35, 90], [126.5 + fabricTrail * 0.4, 92.5]], PAL.skin, 0.9);
+      line([[129 + fabricTrail * 0.35, 91], [128.5 + fabricTrail * 0.4, 94]], PAL.skin, 0.9);
+      line([[130.5 + fabricTrail * 0.35, 90.5], [130.5 + fabricTrail * 0.4, 93]], PAL.skin, 0.9);
+      line([[127, 90.5], [129, 91.5]], PAL.skinShadow, 0.5);
+      line([[128.5, 91.5], [130, 92.5]], PAL.skinShadow, 0.5);
+    }
+
+    line([[70, 89], [65 + fabricTrail * 0.1, 116], [62 + fabricTrail * 0.3, 142]], PAL.creamShadow, 1.5);
+    line([[109, 91], [116 + fabricTrail * 0.1, 117], [123 + fabricTrail * 0.3, 144]], PAL.cream, 1.5);
+    line([[82, 91], [77, 113], [73, 143]], PAL.hairHi, 1);
+    line([[102, 91], [110, 115], [117, 145]], PAL.indigoHi, 1.5);
+    line([[88, 58], [91, 74], [91, 101], [94, 128]], PAL.gold, 1);
+    line([[95, 57], [94, 77], [96, 94], [95, 118], [98, 141]], PAL.goldDark, 1);
+    ellipse(92, 72, 3, 3, PAL.gold);
+    ellipse(92, 72, 1, 1, PAL.indigoDeep);
+    ellipse(96, 105, 3, 3, PAL.gold);
+    ellipse(96, 105, 1, 1, PAL.indigoDeep);
+    sparkle(91, 91, 3, PAL.goldHi);
+    sparkle(99, 128, 3, PAL.gold);
+    sparkle(73, 119, 2, PAL.goldHi);
+    sparkle(116, 133, 2, PAL.goldHi);
+    sparkle(52 + fabricTrail * 0.5, 87, 2, PAL.gold);
+    sparkle(132 + fabricTrail * 0.5, 88, 2, PAL.gold);
+    rect(45 + fabricTrail * 0.8, 96, 1, 1, PAL.goldHi);
+    rect(137 + fabricTrail * 0.8, 97, 1, 1, PAL.goldHi);
+    rect(64, 130, 1, 1, PAL.goldHi);
+    rect(111, 120, 1, 1, PAL.goldHi);
+
+    poly([[86, 42], [96, 42], [98, 57], [91, 61], [84, 56]], PAL.skin);
+    poly([[94, 44], [98, 48], [97, 57], [93, 58]], PAL.skinShadow);
+    bezierShape([76, 50], [
+      [80, 48, 84, 47, 88, 48],
+      [91, 51, 91, 56, 88, 60],
+      [82, 59, 76, 57, 71, 56],
+      [72, 53, 74, 51, 76, 50]
+    ], PAL.skin);
+    bezierLine([72, 57], [[79, 59, 84, 60, 89, 57]], PAL.indigoDeep, 3);
+    bezierShape([92, 48], [
+      [99, 46, 108, 49, 114, 56],
+      [116, 60, 112, 65, 107, 66],
+      [102, 61, 98, 56, 92, 54],
+      [91, 52, 91, 50, 92, 48]
+    ], PAL.indigoMid);
+    bezierLine([94, 48], [[101, 48, 107, 51, 112, 57]], PAL.cream, 2);
+    bezierLine([85, 52], [[89, 54, 94, 54, 98, 51]], PAL.gold, 1.5);
+    sparkle(91, 55, 2, PAL.goldHi);
+    rect(91, 56, 1, 2, PAL.eyeBlue);
+
+    poly([[85, 42], [99, 42], [95, 52], [89, 52]], PAL.skinShadow);
+    bezierShape([81, 32], [
+      [81, 42, 86, 46, 92, 47],
+      [98, 46, 103, 42, 103, 32],
+      [103, 20, 81, 20, 81, 32]
+    ], PAL.skin);
+    // Soft warm rim along the jaw/cheek edge so the face separates from the
+    // similarly pale hair/gown around it instead of blending into a flat
+    // bright mass - the face is meant to be the first thing the eye lands on.
+    bezierLine([81, 32], [
+      [81, 42, 86, 46, 92, 47],
+      [98, 46, 103, 42, 103, 32]
+    ], PAL.skinShadow, 0.6);
+    line([[85, 34.5], [89, 34]], PAL.hairDeep, 1);
+    line([[95, 34], [99, 34.5]], PAL.hairDeep, 1);
+    drawSimpleEye(88, 38, opts.blink);
+    drawSimpleEye(96, 38, opts.blink);
+    line([[92, 41.5], [92, 42.5]], PAL.skinShadow, 0.9);
+    bezierLine([90.5, 45], [[91.5, 46, 92.5, 46, 93.5, 45]], '#a85f78', 1);
+    ellipse(83.5, 41, 2, 1.2, PAL.blush);
+    ellipse(100.5, 41, 2, 1.2, PAL.blush);
+
+    bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
+    bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);
+
+    // Crown drawn first in a light tone so it blends with the bangs sitting
+    // on top of it, instead of reading as a separate dark "cap".
+    bezierShape([75, 34], [
+      [73, 10, 111, 10, 109, 34],
+      [100, 18, 84, 18, 75, 34]
+    ], PAL.hairLight);
+    bezierShape([75, 34], [[74, 20, 80, 16, 82, 14], [80, 26, 78, 32, 75, 34]], PAL.hairMid);
+    bezierShape([109, 34], [[110, 20, 104, 16, 102, 14], [104, 26, 106, 32, 109, 34]], PAL.hairMid);
+
+    // Bangs, roots widened to y=11 (near the crown's own peak) so the three
+    // locks fan out and overlap instead of leaving forehead gaps between
+    // them - a fuller, denser M-shape instead of three thin separate locks.
+    bezierShape([82, 11], [[86, 28, 88, 38, 89, 41], [91, 35, 93, 25, 92, 16]], PAL.hairHi);
+    bezierShape([102, 11], [[98, 28, 96, 38, 95, 41], [93, 35, 91, 25, 92, 16]], PAL.hairLight);
+    bezierShape([92, 11], [[90, 25, 91, 35, 92, 38], [94, 35, 94, 25, 92, 11]], PAL.hairHi);
+
+    // Extra fine strand lines within the bangs for a bit more detail/volume.
+    bezierLine([86, 16], [[87, 26, 88.5, 34, 89, 40]], PAL.hairShadow, 0.4);
+    bezierLine([98, 16], [[97, 26, 95.5, 34, 95, 40]], PAL.hairShadow, 0.4);
+
+    bezierLine([79, 14], [[85, 11, 99, 11, 105, 14]], PAL.hairHi, 1.5);
+
+    pctx.restore();
+  }
+
+  function drawKanadeBack(t, opts) {
+    opts = opts || {};
+    const sway = Math.sin(t * Math.PI * 2) * (opts.swayAmp != null ? opts.swayAmp : 1.5);
+    const bob = Math.sin(t * Math.PI * 2) * (opts.bobAmp != null ? opts.bobAmp : 1);
+    const lean = opts.lean || 0;
+    const trail = opts.trail || 0;
+    const whip = opts.whip || 0;
+    const walkStep = opts.walkStep || 0;
+    const fabricTrail = trail * 0.75 + whip;
+    const armSwing = walkStep * 2.2;
+
+    pctx.clearRect(0, 0, GRID_W, GRID_H);
+    pctx.save();
+    pctx.translate(lean, bob);
+
+    const backFoot = walkStep * 4;
+    poly([[80, 124], [88, 124], [88 - backFoot * 0.2, 157], [80 - backFoot, 162], [76 - backFoot, 159], [79, 140]], PAL.bootDeep);
+    poly([[92, 123], [100, 123], [102 + backFoot * 0.2, 158], [98 + backFoot, 164], [90 + backFoot, 161], [92, 139]], PAL.boot);
+    poly([[76 - backFoot, 158], [89 - backFoot, 158], [90 - backFoot, 162], [82 - backFoot, 165], [76 - backFoot, 162]], PAL.boot);
+    poly([[89 + backFoot, 159], [103 + backFoot, 159], [104 + backFoot, 163], [98 + backFoot, 166], [90 + backFoot, 163]], PAL.bootDeep);
+    rect(82 - backFoot, 133, 1, 25, PAL.bootHi);
+    rect(97 + backFoot, 132, 1, 27, PAL.goldDark);
+    ellipse(97 + backFoot, 151, 3, 3, PAL.gold);
+
+    bezierShape([79, 63], [
+      [69, 72, 62 + fabricTrail * 0.12, 98, 55 + fabricTrail * 0.35, 144],
+      [64 + fabricTrail * 0.25, 151, 75 + fabricTrail * 0.12, 154, 88, 147],
+      [92, 140, 92, 100, 89, 67]
+    ], PAL.creamShadow);
+    bezierShape([101, 63], [
+      [112, 73, 120 + fabricTrail * 0.12, 101, 128 + fabricTrail * 0.35, 147],
+      [117 + fabricTrail * 0.25, 154, 104 + fabricTrail * 0.12, 155, 91, 147],
+      [87, 137, 88, 96, 91, 66]
+    ], PAL.indigoMid);
+    bezierShape([84, 68], [
+      [74, 87, 69 + fabricTrail * 0.12, 116, 65 + fabricTrail * 0.28, 149],
+      [75, 153, 83, 151, 90, 146],
+      [91, 119, 91, 90, 90, 68]
+    ], PAL.cream);
+    bezierShape([96, 68], [
+      [105, 87, 113 + fabricTrail * 0.12, 117, 121 + fabricTrail * 0.28, 150],
+      [111, 153, 101, 151, 90, 146],
+      [89, 118, 90, 89, 90, 68]
+    ], PAL.indigo);
+    line([[65, 148], [75, 153], [90, 146], [106, 153], [121, 150]], PAL.outline, 0.8);
+    bezierLine([72, 78], [[69, 101, 68 + fabricTrail * 0.2, 126, 65 + fabricTrail * 0.28, 146]], PAL.creamMid, 1.5);
+    bezierLine([108, 78], [[113, 103, 116 + fabricTrail * 0.2, 128, 121 + fabricTrail * 0.28, 147]], PAL.indigoHi, 1.5);
+    sparkle(70, 122, 2, PAL.goldHi);
+    sparkle(112, 132, 2, PAL.gold);
+    sparkle(100, 111, 2, PAL.goldHi);
+
+    bezierShape([77, 51], [
+      [68, 49, 61, 54, 57 + fabricTrail * 0.15, 64],
+      [51 + fabricTrail * 0.35, 75, 42 + fabricTrail * 0.7, 86, 34 + fabricTrail, 92],
+      [33 + fabricTrail, 99, 41 + fabricTrail * 0.85, 104, 49 + fabricTrail * 0.65, 100],
+      [58 + fabricTrail * 0.4, 94, 65, 82, 77, 51]
+    ], PAL.creamMid);
+    bezierShape([103, 51], [
+      [112, 49, 120, 55, 124 + fabricTrail * 0.15, 65],
+      [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 93],
+      [151 + fabricTrail, 100, 143 + fabricTrail * 0.85, 105, 135 + fabricTrail * 0.65, 101],
+      [126 + fabricTrail * 0.4, 95, 115, 82, 103, 51]
+    ], PAL.creamShadow);
+    bezierLine([73, 54], [[66, 57, 59 + fabricTrail * 0.2, 70, 51 + fabricTrail * 0.45, 83]], PAL.cream, 3);
+    bezierLine([107, 54], [[115, 57, 123 + fabricTrail * 0.2, 70, 131 + fabricTrail * 0.45, 83]], PAL.creamMid, 3);
+    bezierLine([74, 54], [[68, 60, 63, 67, 61 + fabricTrail * 0.15, 73 + armSwing]], PAL.skin, 5.5);
+    bezierLine([61 + fabricTrail * 0.15, 73 + armSwing], [[57, 80 + armSwing, 52, 86 + armSwing, 49 + fabricTrail * 0.45, 91 + armSwing]], PAL.skin, 4);
+    bezierLine([106, 54], [[112, 60, 117, 67, 120 + fabricTrail * 0.15, 73 - armSwing]], PAL.skin, 5.5);
+    bezierLine([120 + fabricTrail * 0.15, 73 - armSwing], [[123, 79 - armSwing, 126, 84 - armSwing, 129 + fabricTrail * 0.35, 89 - armSwing]], PAL.skin, 4);
+    ellipse(48 + fabricTrail * 0.45, 92 + armSwing, 2.4, 3.5, PAL.skin);
+    ellipse(130 + fabricTrail * 0.35, 90 - armSwing, 2.4, 3.5, PAL.skin);
+    line([[47, 94 + armSwing], [46, 97 + armSwing]], PAL.skinShadow, 0.8);
+    line([[49, 94 + armSwing], [49, 97 + armSwing]], PAL.skinShadow, 0.8);
+    line([[129, 92 - armSwing], [128, 95 - armSwing]], PAL.skinShadow, 0.8);
+    line([[131, 92 - armSwing], [131, 95 - armSwing]], PAL.skinShadow, 0.8);
+
+    bezierShape([74, 52], [
+      [78, 46, 84, 43, 90, 44],
+      [97, 43, 103, 46, 108, 53],
+      [104, 60, 98, 64, 91, 65],
+      [84, 64, 78, 60, 74, 52]
+    ], PAL.cream);
+    bezierLine([77, 51], [[84, 56, 97, 57, 105, 51]], PAL.indigoDeep, 3);
+    bezierLine([80, 48], [[86, 51, 96, 52, 102, 48]], PAL.gold, 1);
+
+    bezierShape([79, 16], [
+      [67, 20, 61, 38, 61 + trail * 0.08, 67],
+      [61 + trail * 0.2, 97, 60 + trail * 0.5, 128, 54 + trail * 0.7, 145],
+      [60 + trail * 0.62, 152, 68 + trail * 0.42, 150, 73 + trail * 0.32, 137],
+      [77 + trail * 0.22, 151, 84 + trail * 0.12, 154, 88, 138],
+      [92, 152, 100 + trail * 0.12, 153, 104 + trail * 0.32, 137],
+      [109 + trail * 0.42, 151, 117 + trail * 0.62, 150, 121 + trail * 0.7, 137],
+      [123 + trail * 0.2, 105, 122 + trail * 0.08, 63, 119, 48],
+      [116, 28, 108, 17, 99, 14],
+      [92, 11, 85, 12, 79, 16]
+    ], PAL.hairMid);
+    bezierShape([78, 22], [
+      [69, 32, 65, 57, 66 + trail * 0.12, 91],
+      [66 + trail * 0.32, 116, 62 + trail * 0.58, 135, 56 + trail * 0.68, 145],
+      [62 + trail * 0.52, 148, 70 + trail * 0.3, 137, 74, 119],
+      [76, 82, 76, 43, 78, 22]
+    ], PAL.hairShadow);
+    bezierShape([103, 20], [
+      [112, 31, 116, 57, 115 + trail * 0.12, 87],
+      [116 + trail * 0.34, 114, 117 + trail * 0.6, 134, 113 + trail * 0.68, 147],
+      [107 + trail * 0.48, 149, 102 + trail * 0.28, 139, 100, 121],
+      [101, 84, 100, 42, 103, 20]
+    ], PAL.hairDeep);
+    bezierShape([84, 18], [
+      [80, 37, 79, 69, 80 + trail * 0.08, 99],
+      [80 + trail * 0.28, 121, 77 + trail * 0.48, 136, 73 + trail * 0.56, 143],
+      [80 + trail * 0.36, 141, 85 + trail * 0.18, 123, 86, 99],
+      [87, 64, 87, 35, 84, 18]
+    ], PAL.hairLight);
+    bezierShape([94, 16], [
+      [99, 35, 101, 66, 101 + trail * 0.08, 96],
+      [103 + trail * 0.28, 119, 106 + trail * 0.48, 134, 110 + trail * 0.56, 143],
+      [103 + trail * 0.36, 140, 97 + trail * 0.18, 123, 96, 99],
+      [93, 64, 91, 33, 94, 16]
+    ], PAL.hairLight);
+    bezierShape([86, 14], [
+      [84, 42, 86, 78, 88 + sway * 0.2, 113],
+      [89 + trail * 0.18, 128, 89 + trail * 0.24, 139, 88 + trail * 0.3, 146],
+      [93 + trail * 0.22, 137, 94 + trail * 0.12, 125, 93, 111],
+      [92, 73, 91, 38, 92, 13]
+    ], PAL.hairHi);
+    bezierLine([79, 17], [[72, 41, 71, 83, 66 + trail * 0.42, 132]], PAL.outline, 0.8);
+    bezierLine([102, 17], [[110, 42, 111, 83, 114 + trail * 0.45, 134]], PAL.outline, 0.8);
+    bezierLine([82, 24], [[81, 58, 83 + trail * 0.12, 94, 79 + trail * 0.38, 129]], PAL.hairHi, 1.8);
+    bezierLine([107, 25], [[110, 57, 108 + trail * 0.14, 92, 112 + trail * 0.4, 132]], PAL.hairShadow, 1.4);
+    bezierLine([91, 13], [[88, 25, 89, 48, 90, 66]], PAL.hairShadow, 0.8);
+    bezierLine([92, 13], [[96, 25, 95, 48, 94, 66]], PAL.hairHi, 0.8);
+    bezierLine([80, 15], [[86, 11, 98, 11, 104, 15]], PAL.hairHi, 1.4);
+    bezierLine([62, 56], [[68, 49, 73, 47, 78, 50]], PAL.cream, 2.5);
+    bezierLine([102, 50], [[108, 47, 113, 49, 119, 56]], PAL.indigoMid, 2.5);
+    bezierLine([76, 50], [[84, 55, 97, 55, 104, 50]], PAL.goldDark, 0.8);
+
+    pctx.restore();
+  }
+
+  function blit(opts) {
+    opts = opts || {};
+    const scale = 3;
+    const ox = (DISP - GRID_W * scale) / 2;
+    const oy = (DISP - GRID_H * scale) / 2 + 10;
+    const offsetX = opts.offsetX || 0;
+    const offsetY = opts.offsetY || 0;
+    sctx.save();
+    sctx.globalAlpha = opts.alpha == null ? 1 : opts.alpha;
+    sctx.translate(DISP / 2 + offsetX, DISP / 2 + 10 + offsetY);
+    sctx.rotate(opts.rotation || 0);
+    sctx.scale(opts.scaleX == null ? 1 : opts.scaleX, opts.scaleY == null ? 1 : opts.scaleY);
+    sctx.translate(-DISP / 2, -DISP / 2 - 10);
+    sctx.drawImage(px, ox, oy, GRID_W * scale, GRID_H * scale);
+    sctx.restore();
+    return { ox, oy, scale };
+  }
+
+  let ringRot = 0;
+  function drawRing(now, energyLevel, hueShift, ox, oy) {
+    const cx = DISP / 2 + (ox || 0), cy = DISP / 2 + 10 + (oy || 0);
+    const R = 188;
+    fctx.save();
+    fctx.translate(cx, cy);
+
+    const hue = (280 + (hueShift || 0)) % 360;
+    fctx.strokeStyle = `hsla(${hue}, 70%, 70%, ${0.55 + energyLevel * 0.35})`;
+    // Thickened from 2 to 3.5 - the character is rendered as chunky 3x
+    // pixel blocks, and a hairline-thin ring next to that silhouette read
+    // as two different, uncoordinated levels of visual detail.
+    fctx.lineWidth = 3.5;
+    fctx.beginPath(); fctx.arc(0, 0, R, 0, Math.PI * 2); fctx.stroke();
+
+    fctx.strokeStyle = `hsla(${hue}, 80%, 80%, ${0.25 + energyLevel * 0.3})`;
+    fctx.lineWidth = 6;
+    fctx.beginPath(); fctx.arc(0, 0, R - 10, 0, Math.PI * 2); fctx.stroke();
+
+    fctx.rotate(ringRot);
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      const inner = R + 4, outer = R + (i % 3 === 0 ? 16 : 9);
+      fctx.strokeStyle = `hsla(${hue}, 70%, 75%, ${0.5 + energyLevel * 0.4})`;
+      fctx.lineWidth = i % 3 === 0 ? 3.2 : 1.8;
+      fctx.beginPath();
+      fctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+      fctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+      fctx.stroke();
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = ringRot * 1.6 + (i / 8) * Math.PI * 2;
+      const r = R + 26;
+      fctx.fillStyle = `hsla(${hue + 40}, 90%, 78%, ${0.7 + energyLevel * 0.3})`;
+      fctx.beginPath(); fctx.arc(Math.cos(a) * r, Math.sin(a) * r, 3.2, 0, Math.PI * 2); fctx.fill();
+    }
+    fctx.restore();
+  }
+
+  function drawRealityGate(now, openness, alpha) {
+    if (openness <= 0 || alpha <= 0) return;
+    const x = 360, y = 260, radius = 154;
+    const squash = Math.max(0.025, openness);
+    const lineComp = 1 / Math.max(0.2, squash);
+    const pulse = 0.82 + Math.sin(now * 0.006) * 0.18;
+    fctx.save();
+    fctx.globalAlpha = alpha;
+    fctx.translate(x, y);
+    fctx.scale(squash, 1);
+
+    const interior = fctx.createRadialGradient(0, 0, 8, 0, 0, radius);
+    interior.addColorStop(0, 'rgba(18,12,42,0.82)');
+    interior.addColorStop(0.56, 'rgba(31,19,68,0.72)');
+    interior.addColorStop(0.84, 'rgba(89,58,142,0.28)');
+    interior.addColorStop(1, 'rgba(12,8,31,0)');
+    fctx.fillStyle = interior;
+    fctx.beginPath();
+    fctx.arc(0, 0, radius - 4, 0, Math.PI * 2);
+    fctx.fill();
+
+    fctx.save();
+    fctx.beginPath();
+    fctx.arc(0, 0, radius - 18, 0, Math.PI * 2);
+    fctx.clip();
+    fctx.globalCompositeOperation = 'lighter';
+    for (let gy = -112; gy <= 112; gy += 16) {
+      const half = Math.sqrt(Math.max(0, (radius - 22) * (radius - 22) - gy * gy));
+      const shimmer = 0.1 + 0.1 * Math.sin(now * 0.004 + gy * 0.08);
+      fctx.strokeStyle = `rgba(193,169,255,${shimmer})`;
+      fctx.lineWidth = 0.8 * lineComp;
+      fctx.beginPath();
+      fctx.moveTo(-half, gy);
+      fctx.lineTo(half, gy);
+      fctx.stroke();
+    }
+    for (let gx = -112; gx <= 112; gx += 16) {
+      const half = Math.sqrt(Math.max(0, (radius - 22) * (radius - 22) - gx * gx));
+      const shimmer = 0.08 + 0.09 * Math.sin(now * 0.0035 + gx * 0.07);
+      fctx.strokeStyle = `rgba(151,126,226,${shimmer})`;
+      fctx.lineWidth = 0.75 * lineComp;
+      fctx.beginPath();
+      fctx.moveTo(gx, -half);
+      fctx.lineTo(gx, half);
+      fctx.stroke();
+    }
+    for (let sy = -104; sy <= 104; sy += 9) {
+      const drift = Math.sin(now * 0.005 + sy * 0.12) * 5;
+      const half = Math.sqrt(Math.max(0, (radius - 26) * (radius - 26) - sy * sy));
+      fctx.strokeStyle = `rgba(239,226,255,${0.035 + pulse * 0.025})`;
+      fctx.lineWidth = 0.55 * lineComp;
+      fctx.beginPath();
+      fctx.moveTo(-half + drift, sy);
+      fctx.lineTo(half + drift, sy);
+      fctx.stroke();
+    }
+    fctx.restore();
+
+    fctx.globalCompositeOperation = 'lighter';
+    fctx.shadowColor = '#c8a9ff';
+    fctx.shadowBlur = 24 * pulse;
+    fctx.strokeStyle = `rgba(239,226,255,${0.82 + pulse * 0.16})`;
+    fctx.lineWidth = 3.4 * lineComp;
+    fctx.beginPath();
+    fctx.arc(0, 0, radius, 0, Math.PI * 2);
+    fctx.stroke();
+    fctx.shadowBlur = 10;
+    fctx.strokeStyle = 'rgba(178,137,255,0.82)';
+    fctx.lineWidth = 2 * lineComp;
+    fctx.beginPath();
+    fctx.arc(0, 0, radius - 12, 0, Math.PI * 2);
+    fctx.stroke();
+
+    fctx.save();
+    fctx.rotate(now * 0.0006);
+    fctx.strokeStyle = 'rgba(205,181,255,0.66)';
+    fctx.lineWidth = 1.25 * lineComp;
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6;
+      const a2 = a + Math.PI * 5 / 12;
+      const ax = Math.cos(a) * 118, ay = Math.sin(a) * 118;
+      const bx = Math.cos(a2) * 72, by = Math.sin(a2) * 72;
+      fctx.beginPath();
+      fctx.moveTo(ax, ay);
+      fctx.lineTo(bx, by);
+      fctx.stroke();
+      fctx.fillStyle = i % 2 ? '#eee1ff' : '#bca4f5';
+      fctx.beginPath();
+      fctx.arc(ax, ay, (2.4 + pulse) * lineComp, 0, Math.PI * 2);
+      fctx.fill();
+    }
+    fctx.restore();
+
+    fctx.save();
+    fctx.rotate(-now * 0.0011);
+    fctx.strokeStyle = 'rgba(240,226,255,0.7)';
+    fctx.lineWidth = 1.3 * lineComp;
+    fctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 3;
+      const px = Math.cos(a) * 84, py = Math.sin(a) * 84;
+      if (i === 0) fctx.moveTo(px, py); else fctx.lineTo(px, py);
+    }
+    fctx.closePath();
+    fctx.stroke();
+    fctx.strokeStyle = 'rgba(137,107,213,0.62)';
+    fctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      const px = Math.cos(a) * 54, py = Math.sin(a) * 54;
+      if (i === 0) fctx.moveTo(px, py); else fctx.lineTo(px, py);
+    }
+    fctx.closePath();
+    fctx.stroke();
+    fctx.restore();
+
+    fctx.save();
+    fctx.rotate(now * 0.0009);
+    for (let i = 0; i < 10; i++) {
+      const a = i * Math.PI / 5;
+      const rr = radius + 12 + (i % 2) * 8;
+      const dx = Math.cos(a) * rr, dy = Math.sin(a) * rr;
+      const size = 3.5 + (i % 3);
+      fctx.fillStyle = i % 2 ? 'rgba(230,214,255,0.9)' : 'rgba(144,111,220,0.82)';
+      fctx.beginPath();
+      fctx.moveTo(dx, dy - size * 1.8);
+      fctx.lineTo(dx + size, dy);
+      fctx.lineTo(dx, dy + size * 1.8);
+      fctx.lineTo(dx - size, dy);
+      fctx.closePath();
+      fctx.fill();
+    }
+    fctx.restore();
+
+    const core = fctx.createRadialGradient(0, 0, 0, 0, 0, 48);
+    core.addColorStop(0, `rgba(242,231,255,${0.24 + pulse * 0.12})`);
+    core.addColorStop(0.35, 'rgba(154,116,230,0.2)');
+    core.addColorStop(1, 'rgba(22,14,50,0)');
+    fctx.fillStyle = core;
+    fctx.beginPath();
+    fctx.arc(0, 0, 48, 0, Math.PI * 2);
+    fctx.fill();
+
+    fctx.globalCompositeOperation = 'source-over';
+    fctx.restore();
+  }
+
+  function drawWard(progress, now) {
+    const x = 372, y = 242;
+    const pulse = 1 + Math.sin(now * 0.03) * 0.08;
+    const alpha = Math.sin(Math.min(1, progress) * Math.PI);
+    if (alpha <= 0) return;
+    sctx.save();
+    sctx.globalAlpha = alpha;
+    sctx.translate(x, y);
+    sctx.scale(pulse, pulse);
+    sctx.shadowColor = '#8feaff';
+    sctx.shadowBlur = 18;
+    sctx.strokeStyle = '#b9f4ff';
+    sctx.lineWidth = 3;
+    sctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 3;
+      const px = Math.cos(a) * 48, py = Math.sin(a) * 48;
+      if (i === 0) sctx.moveTo(px, py); else sctx.lineTo(px, py);
+    }
+    sctx.closePath();
+    sctx.stroke();
+    sctx.shadowBlur = 0;
+    sctx.strokeStyle = 'rgba(165,135,255,0.8)';
+    sctx.lineWidth = 1.5;
+    sctx.beginPath();
+    sctx.arc(0, 0, 31, 0, Math.PI * 2);
+    sctx.stroke();
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3 + now * 0.001;
+      sctx.fillStyle = '#ffffff';
+      sctx.fillRect(Math.cos(a) * 31 - 2, Math.sin(a) * 31 - 2, 4, 4);
+    }
+    sctx.restore();
+  }
+
+  // Geometric halo behind the head during the power surge - the actual
+  // supplied artwork (overlapping glowing mint/teal window frames), not a
+  // redrawn approximation.
+  function drawHalo(cx, cy, intensity, now, scale, alphaMul) {
+    if (intensity <= 0 || !haloImg.complete || !haloImg.naturalWidth) return;
+    scale = scale == null ? 1 : scale;
+    alphaMul = alphaMul == null ? 1 : alphaMul;
+    if (scale <= 0.01 || alphaMul <= 0.01) return;
+    const size = (150 + intensity * 20) * scale;
+    fctx.save();
+    fctx.translate(cx, cy);
+    fctx.rotate(Math.sin(now * 0.0015) * 0.04);
+    fctx.globalAlpha = Math.min(1, intensity * 1.3) * alphaMul;
+    fctx.shadowColor = '#8dffd8';
+    fctx.shadowBlur = (20 + intensity * 18) * scale;
+    fctx.drawImage(haloImg, -size / 2, -size / 2, size, size);
+    fctx.drawImage(haloImg, -size / 2, -size / 2, size, size);
+    fctx.restore();
+  }
+
+  // Expanding ground shockwave rings, repeating on a fixed cadence purely
+  // from elapsed time (no extra state array needed) - the Saiyan-style
+  // "power radiating outward" read during the surge's buildup.
+  function drawSurgeShockwave(cx, cy, age, intensity) {
+    if (intensity <= 0) return;
+    const period = 260;
+    for (let i = 0; i < 3; i++) {
+      const local = (age + i * (period / 3)) % period;
+      const p = local / period;
+      const r = 20 + p * 130;
+      const alpha = (1 - p) * intensity * 0.5;
+      if (alpha <= 0.01) continue;
+      fctx.save();
+      fctx.globalAlpha = alpha;
+      fctx.strokeStyle = '#fff2c9';
+      fctx.lineWidth = 3 * (1 - p) + 0.5;
+      fctx.beginPath();
+      fctx.ellipse(cx, cy, r, r * 0.32, 0, 0, Math.PI * 2);
+      fctx.stroke();
+      fctx.restore();
+    }
+  }
+
+  // Bright vertical light pillar shooting up from her at the surge's peak -
+  // the "10000x more dramatic" flourish on top of the shockwaves/halo.
+  function drawSurgePillar(cx, cy, strength) {
+    if (strength <= 0) return;
+    fctx.save();
+    fctx.globalAlpha = strength;
+    fctx.globalCompositeOperation = 'lighter';
+    const w = 34 + strength * 18;
+    const grad = fctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+    grad.addColorStop(0, 'rgba(255,246,216,0)');
+    grad.addColorStop(0.5, 'rgba(255,246,216,0.85)');
+    grad.addColorStop(1, 'rgba(255,246,216,0)');
+    fctx.fillStyle = grad;
+    fctx.fillRect(cx - w / 2, -20, w, cy + 30);
+    fctx.restore();
+  }
+
+  let particles = [];
+  function spawnBurst(count, opts) {
+    const angleLo = opts.angleMin != null ? opts.angleMin : 0;
+    const angleHi = opts.angleMax != null ? opts.angleMax : Math.PI * 2;
+    for (let i = 0; i < count; i++) {
+      const a = angleLo + Math.random() * (angleHi - angleLo);
+      const spd = (opts.spdMin || 1) + Math.random() * (opts.spdRange || 3);
+      particles.push({
+        x: opts.x !== undefined ? opts.x : DISP / 2,
+        y: opts.y !== undefined ? opts.y : DISP / 2 + 18,
+        vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+        life: 0, maxLife: (opts.life || 40) + Math.random() * 20,
+        size: (opts.size || 3) + Math.random() * 3,
+        color: opts.color || '#ffd9f0',
+      });
+    }
+  }
+  function updateDrawParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life++;
+      p.x += p.vx; p.y += p.vy; p.vx *= 0.97; p.vy *= 0.97;
+      if (p.life >= p.maxLife) { particles.splice(i, 1); continue; }
+      const a = 1 - p.life / p.maxLife;
+      fctx.globalAlpha = a;
+      fctx.fillStyle = p.color;
+      fctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      fctx.globalAlpha = 1;
+    }
+  }
+
+  // Gentle falling sakura petals, ambient only during idle/fly - drifts
+  // side to side on a sine sway rather than falling straight down.
+  let sakuraPetals = [];
+  function spawnSakuraPetal() {
+    sakuraPetals.push({
+      x: DISP / 2 + (Math.random() - 0.5) * 80, y: 180 + Math.random() * 100,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: 0.35 + Math.random() * 0.35,
+      sway: Math.random() * Math.PI * 2,
+      swaySpeed: 0.01 + Math.random() * 0.015,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.03,
+      life: 0, maxLife: 600 + Math.random() * 300,
+      size: 3.5 + Math.random() * 2.5,
+      color: Math.random() < 0.5 ? '#ffd3e0' : '#ffbfd8',
+    });
+  }
+  function updateDrawSakura() {
+    for (let i = sakuraPetals.length - 1; i >= 0; i--) {
+      const p = sakuraPetals[i];
+      p.life++;
+      p.sway += p.swaySpeed;
+      p.x += p.vx + Math.sin(p.sway) * 0.4;
+      p.y += p.vy;
+      p.rot += p.rotSpeed;
+      if (p.life >= p.maxLife || p.y > DISP + 20) { sakuraPetals.splice(i, 1); continue; }
+      const fadeIn = Math.min(1, p.life / 30);
+      const fadeOut = Math.min(1, (p.maxLife - p.life) / 40);
+      fctx.save();
+      fctx.globalAlpha = Math.min(fadeIn, fadeOut) * 0.85;
+      fctx.translate(p.x, p.y);
+      fctx.rotate(p.rot);
+      fctx.fillStyle = p.color;
+      fctx.beginPath();
+      fctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+      fctx.fill();
+      fctx.restore();
+    }
+  }
+
+  const STATES = ['idle', 'fly', 'cast', 'block', 'dodge', 'hit', 'defeated', 'phase'];
+  const STATE_LABEL = {
+    idle: 'IDLE: lơ lửng', fly: 'FLY: di chuyển', cast: 'CAST SKILL: tung chiêu',
+    block: 'BLOCK PARRY: đỡ đòn', dodge: 'DODGE: né đòn', hit: 'HIT: dính chiêu',
+    defeated: 'DEFEATED: rút lui', phase: 'PHASE SHIFT: chuyển phase',
+  };
+  let state = 'idle';
+  let stateStart = performance.now();
+  let hueShift = 0;
+  let castFired = false;
+  let surgeReleased = false;
+  let surgeReleaseAt = 0;
+  let hitDirection = 1;
+  let dodgeDirection = 1;
+  let defeatTurnBurstFired = false;
+  let blinkUntil = 0;
+  let nextBlinkAt = performance.now() + 2000 + Math.random() * 2000;
+
+  function blinkNow(now) {
+    if (now >= nextBlinkAt) {
+      blinkUntil = now + 170;
+      nextBlinkAt = blinkUntil + 2000 + Math.random() * 2000;
+    }
+    return now < blinkUntil;
+  }
+
+  function easeOutCubic(v) { return 1 - Math.pow(1 - v, 3); }
+  function easeInOut(v) { return v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2; }
+
+  function tintSprite(color, alpha) {
+    if (alpha <= 0) return;
+    sctx.save();
+    sctx.globalCompositeOperation = 'source-atop';
+    sctx.globalAlpha = alpha;
+    sctx.fillStyle = color;
+    sctx.fillRect(0, 0, DISP, DISP);
+    sctx.restore();
+  }
+
+  // One-shot action states auto-return to idle once their animation has
+  // finished playing (plus a short grace period so the ending pose/effect
+  // is still visible for a beat) instead of freezing on the last frame
+  // under the wrong state label forever. 'defeated' is a terminal state
+  // (she leaves), so it does not return.
+  const ONE_SHOT_RETURN_MS = { cast: 1200, block: 760, dodge: 1000, hit: 520, phase: 1600 };
+
+  function enterState(s) {
+    state = s; stateStart = performance.now();
+    document.getElementById('state-label').textContent = STATE_LABEL[s];
+    document.querySelectorAll('#btns button').forEach(b => b.classList.toggle('active', b.dataset.state === s));
+    
+    if (s === 'cast') castFired = false;
+    if (s === 'hit') {
+      hitDirection *= -1;
+      spawnBurst(26, { color: '#ff6677', spdRange: 7, life: 26, size: 3 });
+    }
+    if (s === 'block') spawnBurst(24, { x: 372, y: 242, color: '#b9f4ff', spdRange: 6, life: 28, size: 3 });
+    if (s === 'dodge') dodgeDirection *= -1;
+    if (s === 'defeated') {
+      defeatTurnBurstFired = false;
+      spawnBurst(42, { x: 360, y: 260, color: '#9fe8ff', spdRange: 5, life: 58, size: 4 });
+    }
+    if (s === 'phase') {
+      surgeReleased = false;
+      spawnBurst(20, { color: '#e9d8ff', spdRange: 4, life: 30, size: 3 });
+    }
+  }
+
+  function loop(now) {
+    const t = (now / 900) % 1;
+    const age = now - stateStart;
+    const oneShotLimit = ONE_SHOT_RETURN_MS[state];
+    if (oneShotLimit != null && age > oneShotLimit + 200) {
+      enterState('idle');
+      requestAnimationFrame(loop);
+      return;
+    }
+    fctx.clearRect(0, 0, DISP, DISP);
+    sctx.clearRect(0, 0, DISP, DISP);
+
+    let energy = 0.15, spriteOpts = {};
+    hueShift += 0.15;
+    let ringOffsetX = 0, ringOffsetY = 0;
+    let renderOpts = {};
+    let phaseData = null;
+    let gateData = null;
+    let wardProgress = null;
+    let showRing = true;
+    let drawBackView = false;
+    let surgeGlow = 0;
+    let surgeAura = 0;
+    let surgePillar = 0;
+    let defeatTurnFlash = 0;
+    const isBlinking = blinkNow(now);
+
+    if (state === 'idle' || state === 'fly') {
+      if (Math.random() < 0.06) spawnSakuraPetal();
+    }
+    if (state === 'idle') {
+      spriteOpts = { swayAmp: 1.7, bobAmp: 1.2, blink: isBlinking };
+    } else if (state === 'fly') {
+      const leanVal = Math.sin(age / 650) * 9;
+      const bobVal = 1.8;
+      spriteOpts = {
+        swayAmp: 2.4,
+        bobAmp: bobVal,
+        lean: leanVal,
+        trail: -leanVal * 0.9,
+        blink: isBlinking,
+      };
+      energy = 0.3;
+      ringOffsetX = leanVal * 3;
+      ringOffsetY = Math.sin(t * Math.PI * 2) * bobVal * 3;
+    } else if (state === 'cast') {
+      const p = Math.min(1, age / 1200);
+      let castExt = 0;
+      if (p < 0.36) castExt = easeOutCubic(p / 0.36);
+      else if (p < 0.66) castExt = 1;
+      else castExt = 1 - easeInOut((p - 0.66) / 0.34);
+      spriteOpts = { swayAmp: 0.7, bobAmp: 0.35, castExt, blink: false };
+      energy = 0.9 * (1 - p) + 0.3;
+      const handX = -10 + (120 + castExt * 21) * 3;
+      const handY = (77 - castExt * 37) * 3;
+      if (castExt > 0.2 && Math.random() < 0.7) {
+         spawnBurst(1, { x: handX, y: handY, color: '#ffffff', spdRange: 2, life: 20, size: 2 });
+      }
+      if (castExt > 0.95 && !castFired) {
+         castFired = true;
+         spawnBurst(30, { x: handX, y: handY, color: '#ffd9f0', spdRange: 5, life: 40, size: 4 });
+      }
+    } else if (state === 'block') {
+      const p = Math.min(1, age / 760);
+      const guard = p < 0.35 ? easeOutCubic(p / 0.35) : 1;
+      spriteOpts = { swayAmp: 0.35, bobAmp: 0.2, blockPose: guard, blink: false };
+      wardProgress = p;
+      energy = 0.75 * guard + 0.2;
+    } else if (state === 'dodge') {
+      // Teleport-dash out and back with a trailing afterimage - this used
+      // to be "phase shift"; dodge now owns it, phase shift below is a
+      // stationary power surge instead.
+      const p = Math.min(1, age / 1000);
+      let offset = 0, alpha = 1, motionDirection = dodgeDirection, flash = 0;
+      if (p < 0.28) {
+        const q = p / 0.28;
+        offset = dodgeDirection * 72 * easeOutCubic(q);
+      } else if (p < 0.42) {
+        const q = (p - 0.28) / 0.14;
+        offset = dodgeDirection * 72;
+        alpha = 1 - q;
+        flash = Math.sin(q * Math.PI);
+      } else if (p < 0.55) {
+        offset = dodgeDirection * 72;
+        alpha = 0;
+      } else if (p < 0.7) {
+        const q = (p - 0.55) / 0.15;
+        offset = dodgeDirection * 72;
+        alpha = q;
+        flash = Math.sin(q * Math.PI);
+      } else {
+        const q = (p - 0.7) / 0.3;
+        offset = dodgeDirection * 72 * (1 - easeInOut(q));
+        motionDirection = -dodgeDirection;
+      }
+      spriteOpts = { swayAmp: 1, bobAmp: 0.5, trail: -motionDirection * 7, blink: false };
+      phaseData = { offset, alpha, motionDirection, flash };
+      energy = 0.95;
+    } else if (state === 'hit') {
+      const p = Math.min(1, age / 520);
+      const recoil = hitDirection * Math.cos(p * Math.PI * 3) * 12 * (1 - p);
+      const whip = -hitDirection * Math.sin(p * Math.PI * 3) * 8 * (1 - p);
+      spriteOpts = { swayAmp: 0.5, bobAmp: 0.2, lean: recoil, whip, blink: p < 0.65 };
+      energy = 0.7 * (1 - p);
+    } else if (state === 'defeated') {
+      // She opens the gate while facing forward, turns within a bright
+      // particle flash, then glides into it with her back visible.
+      const p = Math.min(1, age / 4600);
+      let openness = 1;
+      if (p < 0.22) openness = easeOutCubic(p / 0.22);
+      else if (p > 0.86) openness = 1 - easeInOut((p - 0.86) / 0.14);
+      let offsetX = 0, offsetY = 0, alpha = 1, scale = 1, flightTrail = 0;
+      if (p >= 0.27) {
+        drawBackView = true;
+        if (!defeatTurnBurstFired) {
+          defeatTurnBurstFired = true;
+          spawnBurst(44, {
+            x: DISP / 2, y: DISP / 2 - 24,
+            color: '#fff4ff', spdMin: 2, spdRange: 6, life: 24, size: 4,
+          });
+          spawnBurst(24, {
+            x: DISP / 2, y: DISP / 2 - 24,
+            color: '#bfa8ff', spdMin: 1, spdRange: 4, life: 30, size: 3,
+          });
+        }
+      }
+      if (p >= 0.245 && p <= 0.295) {
+        defeatTurnFlash = Math.sin(((p - 0.245) / 0.05) * Math.PI);
+      }
+      if (p >= 0.32 && p < 0.78) {
+        const q = (p - 0.32) / 0.46;
+        offsetX = 108 * easeInOut(q);
+        offsetY = -12 * Math.sin(q * Math.PI);
+        scale = 1 - q * 0.18;
+        flightTrail = -4 * Math.sin(q * Math.PI);
+        if (q > 0.75) alpha = 1 - (q - 0.75) / 0.25;
+      } else if (p >= 0.78) {
+        offsetX = 108;
+        offsetY = 0;
+        scale = 0.82;
+        alpha = 0;
+      }
+      spriteOpts = {
+        swayAmp: 1.1,
+        bobAmp: 0.45,
+        trail: flightTrail,
+        blink: false,
+      };
+      renderOpts = { offsetX, offsetY, scaleX: scale, scaleY: scale, alpha };
+      gateData = { openness, alpha: openness > 0 ? 1 : 0 };
+      showRing = p < 0.42;
+      energy = 0.15;
+    } else if (state === 'phase') {
+      // Power surge in place: energy gathers, releases in a blinding flare,
+      // then settles - Saiyan-style aura, no positional movement, ground
+      // shockwaves and a rising column of energy instead of a light dash.
+      const p = Math.min(1, age / 1900);
+      let surge;
+      if (p < 0.42) surge = easeOutCubic(p / 0.42);
+      else if (p < 0.58) surge = 1;
+      else surge = 1 - easeInOut((p - 0.58) / 0.42);
+      const jitter = surge > 0.3 ? (Math.random() - 0.5) * surge * 2 : 0;
+      spriteOpts = {
+        swayAmp: 1 + surge * 4,
+        bobAmp: 0.5 + surge * 3,
+        trail: -surge * 14 + jitter,
+        blink: false,
+      };
+      renderOpts = { offsetX: jitter * 1.5, offsetY: jitter };
+      energy = 0.3 + surge * 1.1;
+      surgeGlow = surge;
+      surgeAura = surge;
+      // Rising column of energy peeling off her body, DBZ-aura style -
+      // upward cone instead of a random outward puff.
+      const risingCount = surge > 0.15 ? Math.ceil(1 + surge * 3) : 0;
+      for (let i = 0; i < risingCount; i++) {
+        spawnBurst(1, {
+          x: DISP / 2 + (Math.random() - 0.5) * 90 * surge,
+          y: DISP / 2 + 80,
+          angleMin: -Math.PI * 0.85, angleMax: -Math.PI * 0.15,
+          spdMin: 1.5 + surge * 2, spdRange: 1.5 + surge * 2.5,
+          color: surge > 0.85 ? '#fff6d8' : (surge > 0.5 ? '#ffe9a8' : '#e9d8ff'),
+          life: 22, size: 2 + surge * 2.5,
+        });
+      }
+      if (surge >= 0.99 && !surgeReleased) {
+        surgeReleased = true;
+        surgeReleaseAt = now;
+        spawnBurst(70, { color: '#fff9e6', spdRange: 9, life: 36, size: 5 });
+      }
+      if (surgeReleased) surgePillar = Math.max(0, 1 - (now - surgeReleaseAt) / 550);
+    }
+
+    if (drawBackView) drawKanadeBack(t, spriteOpts);
+    else drawKanade(t, spriteOpts);
+    if (phaseData) {
+      for (let i = 3; i >= 1; i--) {
+        blit({
+          offsetX: phaseData.offset - phaseData.motionDirection * i * 16,
+          alpha: phaseData.alpha * (0.08 + i * 0.055),
+        });
+      }
+      if (phaseData.alpha > 0) blit({ offsetX: phaseData.offset, alpha: phaseData.alpha });
+      if (phaseData.flash > 0) {
+        const fx = DISP / 2 + phaseData.offset;
+        const glow = fctx.createRadialGradient(fx, DISP / 2, 4, fx, DISP / 2, 95);
+        glow.addColorStop(0, `rgba(255,255,255,${phaseData.flash * 0.8})`);
+        glow.addColorStop(1, 'rgba(150,110,255,0)');
+        fctx.fillStyle = glow;
+        fctx.fillRect(fx - 100, DISP / 2 - 100, 200, 200);
+      }
+      tintSprite('#bfa8ff', 0.16 * phaseData.alpha);
+    } else {
+      blit(renderOpts);
+    }
+
+    if (wardProgress != null) drawWard(wardProgress, now);
+    if (state === 'hit') {
+      const p = Math.min(1, age / 520);
+      if (age < 75) tintSprite('#ffffff', 0.8);
+      else tintSprite('#ff3048', Math.max(0, (1 - p) * 0.65));
+    }
+    if (defeatTurnFlash > 0) tintSprite('#fff8ff', defeatTurnFlash * 0.92);
+    if (surgeGlow > 0) tintSprite('#ffdf9e', surgeGlow * 0.2);
+    if (surgeAura > 0) drawSurgeShockwave(DISP / 2, DISP / 2 + 200, age, surgeAura);
+    if (surgePillar > 0) drawSurgePillar(DISP / 2, DISP / 2 + 60, surgePillar);
+    // The halo behind her head is a permanent fixture, not just a phase-
+    // surge flourish - always at least faintly present, brighter while
+    // surging. Separate from drawRing's big spell-card border, untouched.
+    // Tracks her actual head position/scale/fade this frame: drawKanade's
+    // own lean/bob translate (baked into the pixel buffer before blit)
+    // plus blit's own offsetX/offsetY/scale/alpha (dodge dash, phase
+    // jitter, defeated shrink-and-fade as she flies into the gate) - if
+    // she shrinks or vanishes, the halo shrinks/vanishes right with her.
+    {
+      const leanPx = (spriteOpts.lean || 0) * 3;
+      const bobPx = Math.sin(t * Math.PI * 2) * (spriteOpts.bobAmp != null ? spriteOpts.bobAmp : 1) * 3;
+      // Her head's position before blit's own offset/scale/rotate (matches
+      // where drawKanade actually put it inside the px buffer).
+      const headRawX = DISP / 2 + leanPx;
+      const headRawY = 75 + bobPx;
+      let haloX, haloY, haloScale, haloAlpha;
+      if (phaseData) {
+        haloX = DISP / 2 + phaseData.offset + leanPx;
+        haloY = headRawY;
+        haloScale = 1;
+        haloAlpha = phaseData.alpha;
+      } else {
+        // Same pivot-relative scale/offset blit() itself applies, so if she
+        // shrinks toward blit's pivot (dodge/defeated), the halo shrinks
+        // and moves toward that exact same point instead of staying put.
+        const offsetX = renderOpts.offsetX || 0;
+        const offsetY = renderOpts.offsetY || 0;
+        const scaleX = renderOpts.scaleX != null ? renderOpts.scaleX : 1;
+        const scaleY = renderOpts.scaleY != null ? renderOpts.scaleY : 1;
+        haloX = DISP / 2 + offsetX + scaleX * (headRawX - DISP / 2);
+        haloY = DISP / 2 + 10 + offsetY + scaleY * (headRawY - (DISP / 2 + 10));
+        haloScale = scaleX;
+        haloAlpha = renderOpts.alpha != null ? renderOpts.alpha : 1;
+      }
+      drawHalo(haloX, haloY, Math.max(0.65, surgeAura), now, haloScale, haloAlpha);
+    }
+
+    updateDrawSakura();
+
+    ringRot += 0.004 + energy * 0.01;
+    if (showRing) drawRing(now, energy, state === 'dodge' ? hueShift * 3 : (state === 'phase' ? 30 : 0), ringOffsetX, ringOffsetY);
+    if (gateData) drawRealityGate(now, gateData.openness, gateData.alpha);
+    updateDrawParticles();
+
+    requestAnimationFrame(loop);
+  }
+
+  const btnsEl = document.getElementById('btns');
+  STATES.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = STATE_LABEL[s].split(': ')[0];
+    b.dataset.state = s;
+    b.onclick = () => enterState(s);
+    btnsEl.appendChild(b);
+  });
+  enterState('idle');
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

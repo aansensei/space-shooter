@@ -1,0 +1,158 @@
+FOLLOW-UP TASK FOR A CODING AGENT WITH FILE ACCESS
+(fourth pass — read FIX_PROMPT_FOR_AI_AGENT.txt, FIX_PROMPT_2_FOR_AI_AGENT.txt,
+and FIX_PROMPT_3_DETAILED_REDRAW.txt in this same folder first for the full
+history: layout centering, ring-follows-boss during fly, the 6-state button
+system, and the previous proportion/face/hair redraw attempt)
+
+Target file: C:\Users\Thien An Nguyen\Downloads\kânda\kanade_boss_demo.html
+
+STEP 0 — LOOK AT THE ATTACHED REFERENCE IMAGE FIRST
+A new reference image is attached to this message (also saved at
+kanade-full-body-reference.png) — study it before writing any code. This
+REPLACES the earlier hoodie/headphones look from FIX_PROMPT_3's references;
+the character's outfit and overall silhouette should now follow THIS image
+instead.
+
+THE CURRENT PROBLEM (see the attached current-state screenshot)
+Two separate critical problems right now, confirmed by an actual screenshot
+of the running page:
+
+1. THERE IS NO FACE AT ALL. The hair currently forms a solid, spiky,
+   crown-like mass that completely covers the entire head region — there is
+   no exposed skin-tone face patch, no eyes, no nose, no mouth, nothing.
+   It reads as a faceless hooded silhouette, not a character. This is the
+   single most important thing to fix: carve out an actual face-shaped gap
+   in the hair silhouette (oval, wider at the eye-line, narrower at the
+   chin, per FIX_PROMPT_3's face section) and draw the full face detail
+   into it — eyes (blue, per below), eyebrows, nose hint, mouth, blush —
+   so the face is clearly visible and recognizable as a face in every
+   screenshot, not hidden behind hair spikes.
+
+2. The body reads as a flat, thin, disconnected "stick figure" / blocky
+   triangular shape — arms are just plain triangular flaps, no real limb
+   shape, and there's no sense of volume or a real body underneath the
+   hair/gown. Before adding any fine detail, first confirm the base
+   silhouette actually reads as a solid, wide-shaped figure WITH a visible
+   face (see WORK ITERATIVELY at the end).
+
+Precision matters here — draw carefully and accurately to the reference,
+don't approximate loosely. Take an actual screenshot after each pass and
+visually compare it side-by-side against the reference image before moving
+on, not just eyeball the code.
+
+NEW REFERENCE — WHAT TO MATCH
+- Long, flowing, pale silver-lavender hair, loose and voluminous, with the
+  ends curling outward into wide ribbon-like strands that billow outward on
+  both sides of the body (not straight, not flat — it should read as
+  dramatically flowing, taking up significant silhouette width on both left
+  and right of the body, almost like the hair itself frames her like wings).
+  Use at least 3 tonal shades of silver/lavender/white to suggest volume and
+  movement, same as previous passes but now with this wider, more dynamic
+  flowing shape instead of straight long hair.
+- EYES ARE BLUE — not purple/lavender like the reference image shows. Keep
+  the reference for hair/outfit/pose, but render the eyes as a clear light-
+  to-deep blue (2 tones: deeper blue at the top of the iris fading to a
+  lighter blue lower down, 2 highlight dots), same eye construction detail
+  as described in FIX_PROMPT_3, just blue instead of purple.
+- An elegant, one-shoulder gown: white/cream fabric with deep indigo-purple
+  accents, small gold star/sparkle details scattered across the fabric. Wide,
+  flowing sleeve fabric hangs open from both arms (the sleeves themselves are
+  a big part of the silhouette width — they should read as large soft
+  flowing shapes, not thin lines).
+- A long, layered, flowing skirt/gown train that widens toward the floor,
+  same white/indigo palette with the star-sparkle accents, a hint of a slit
+  showing one leg.
+- Thin gold chain/jewelry details layered down the front of the gown (a
+  simplified straight or slightly curved gold line down the center is enough
+  at this resolution — don't over-detail this part).
+- Tall heeled boots (ankle-to-knee height), same indigo/white palette with a
+  small gold ring/buckle detail near the ankle.
+- Overall silhouette: she should look tall, elegant, and WIDE from the
+  flowing hair + open sleeves + layered gown train — the opposite of a thin
+  stick figure. If anything, exaggerate the width of hair/sleeves/gown at
+  this small pixel resolution so the silhouette reads clearly rather than
+  trying to cram in fine detail on a narrow frame.
+
+WHAT TO KEEP FROM EARLIER PASSES (do not lose these)
+- The 6-state button system (idle, fly, cast, hit, defeated, phase) and the
+  Touhou-style rotating ring that moves together with the character during
+  fly (per FIX_PROMPT_2).
+- Layout centering (per FIX_PROMPT_FOR_AI_AGENT.txt item 1) and zero
+  console errors across all 6 states.
+- The both-arms-visible, correctly-attached-to-shoulder arm construction
+  from FIX_PROMPT_3 (just now emerging from wide flowing sleeves instead of
+  a plain hoodie cuff), with the dedicated cast-skill arm-raise pose kept as
+  the one exception during the "cast skill" state.
+- The proportion system from FIX_PROMPT_3 (roughly 6-7 heads tall) as the
+  skeleton to build this new silhouette on top of — the fix here is adding
+  back real WIDTH (hair, sleeves, gown) to that skeleton, not the vertical
+  proportions themselves.
+
+ANIMATION POLISH — SPECIFIC PER-STATE REQUIREMENTS
+These apply once the silhouette/detail redraw above is done. Be explicit
+and thorough here, this is not just a vague "add some animation" note:
+
+- IDLE: add a periodic eye blink — closed/half-closed eye shape for a few
+  frames every ~2-4 seconds with a bit of randomness so it's not a metronome,
+  then back to open. (FIX_PROMPT_2 already required this for "fly"; it must
+  now ALSO play during idle, not just fly — reuse the same blink logic/timer
+  for both states.)
+
+- FLY (directional hair reaction): hair must visibly react to horizontal
+  flight direction, not just sway in place. When drifting/leaning LEFT,
+  the hair mass and its flowing ribbon-strand ends should stream and trail
+  toward the RIGHT (as if wind resistance is pushing it backward relative to
+  travel), and when drifting RIGHT, hair streams toward the LEFT. The gown's
+  flowing sleeve/skirt fabric should get the same directional lag/trail, not
+  just the hair. This should be clearly readable — compare a screenshot of
+  leaning left vs leaning right and confirm the hair/fabric trail is
+  visibly mirrored, not identical or symmetric in both directions. Continue
+  the blink logic from above during fly too.
+
+- HIT (getting hit reaction): add a clear, brief reaction distinct from the
+  idle/fly pose — a quick recoil/knockback displacement (a short jolt a few
+  pixels in the opposite direction of the hit, then settle back), combined
+  with a brief white or red damage-flash tint over the whole sprite (a
+  couple of frames, using a canvas composite/tint pass, not redrawing every
+  color by hand), and the hair/gown fabric should whip/flick briefly from
+  the impact instead of staying perfectly still. This needs to read
+  unmistakably as "she just got hit," not just a static color change.
+
+- PHASE (dodge/displacement state): this state should read as a quick
+  teleport-dash out and back, not a static pose or a plain color shift.
+  Implement it as: a brief directional blur/afterimage trail (2-3 faded
+  duplicate silhouettes staggered behind the movement direction, decreasing
+  opacity), a short vanish (full transparency or a bright flash-out) at the
+  peak of the dash, then a quick reappear at the offset position with a
+  brief flash-in. The overall read should be "she just dashed/phased out of
+  the way," distinct from both the fly-drift motion and the hit-knockback
+  motion above.
+
+- DEFEATED: keep the existing fall/collapse motion from earlier passes, but
+  make sure hair and gown fabric visibly go slack/droop during the fall
+  rather than staying in their normal flowing pose, since a defeated pose
+  should read as different energy from idle/fly.
+
+WORK ITERATIVELY, DON'T TRY TO NAIL EVERYTHING IN ONE PASS
+1. First, just fix the silhouette width problem: block in the flowing hair
+   mass, open sleeves, and gown train as flat placeholder shapes at the
+   correct wide silhouette (no fine detail yet). Screenshot and confirm this
+   no longer reads as a stick figure before continuing.
+2. Then reapply/adjust face detail (per FIX_PROMPT_3) with blue eyes instead
+   of purple.
+3. Then add the multi-tone shading to hair, sleeves, and gown.
+4. Then the gold jewelry/chain and boot details.
+5. Then the per-state animation polish above (idle blink, directional fly
+   hair, hit recoil+flash, phase dash/afterimage, defeated droop) — do these
+   one state at a time, not all at once.
+6. After each pass, open the file in a real browser and actually look at it
+   before moving on — don't stack all changes together blind.
+
+VERIFY BEFORE CALLING IT DONE: open the file in a real browser, click
+through all 6 states, confirm zero console errors, confirm the silhouette
+reads as a wide, flowing, elegant figure (not a stick figure) in every state,
+confirm the eyes are blue, and specifically confirm: idle blinks
+periodically, flying left vs flying right visibly mirrors the hair/fabric
+trail direction, hit shows a clear knockback+flash reaction, phase shows a
+clear dash/afterimage effect distinct from hit, and defeated shows hair/
+fabric going slack during the fall.

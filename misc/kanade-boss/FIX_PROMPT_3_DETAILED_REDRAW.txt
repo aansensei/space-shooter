@@ -1,0 +1,143 @@
+MAJOR REDRAW TASK FOR A CODING AGENT WITH FOLDER/FILE ACCESS
+
+STEP 0 — READ BEFORE TOUCHING ANYTHING
+Open the folder C:\Users\Thien An Nguyen\Downloads\kânda\ and actually look at
+these three reference images before writing a single line of code:
+  - Kanade_3rd_Anniversary.webp  (full body, grey hoodie, the original pose)
+  - 714bc429245f1505622f2d3330cee0b9.jpg  (full body, navy jacket + plaid
+    skirt outfit, headphones worn around the neck, BOTH ARMS HANGING
+    STRAIGHT DOWN AT HER SIDES — this is the exact rest pose to copy)
+  - kanade half body.webp  (close-up face/upper-body shot — this is the
+    single most important reference for the face and hair rework below)
+Also read FIX_PROMPT_FOR_AI_AGENT.txt and FIX_PROMPT_2_FOR_AI_AGENT.txt in
+the same folder for the full history of what's already been asked for and
+fixed (arm gesture logic, ring-follows-boss behavior, graphics-tier
+scaling, the 6-state animation system) — do not undo any of that, this pass
+is specifically about redrawing the character herself to actually look like
+this specific person instead of a generic blocky pixel figure.
+
+Target file: C:\Users\Thien An Nguyen\Downloads\kânda\kanade_boss_demo.html
+The user has looked at the current result and it still does not resemble
+the character at all — body/hair proportions read as wrong, and the face is
+not recognizable as a face. This is a real redraw, not a small tweak.
+
+WHY THE CURRENT VERSION FAILS
+The character is drawn procedurally with rectangles on a small pixel grid
+(GRID_W x GRID_H inside drawKanade()). The current shapes were placed by
+guesswork rather than following any real proportion system, which is why
+the head/body/hair ratios read as "off" even though every individual part
+technically exists. Fix this by actually planning proportions before
+drawing, the same way a character sheet would.
+
+PROPORTION SYSTEM TO FOLLOW
+Anime characters are typically 6-7 "heads" tall. Pick the head height as
+your base unit (call it H) and lay out the rest of the grid against it:
+  - Head (crown to chin): 1H
+  - Neck + shoulders to waist: about 1.3H
+  - Waist to hip/dress-hem: about 1H (this is where the oversized hoodie
+    flares out, per Kanade_3rd_Anniversary.webp)
+  - Hip to knee: about 1.5H
+  - Knee to ankle: about 1.5H
+  - Total: roughly 6.3H, which is correct for this kind of character (not
+    a chibi, not hyper-realistic 8-head proportions either)
+Increase GRID_W/GRID_H as needed so 1H maps to enough pixel rows to still
+show detail (the current grid is too small to do the face justice — do not
+be afraid to grow the buffer significantly, e.g. roughly double the current
+resolution, and adjust the blit() scale factor down to compensate so the
+final on-screen size stays about the same).
+
+FACE — follow kanade half body.webp closely, this is the priority fix
+- A softly rounded face shape: wider at the eye-line, narrowing gently to a
+  small rounded chin — not the current flat-bottomed rectangle.
+- Eyes are large and expressive (anime proportions): each eye should be
+  roughly 1/5 to 1/4 of the face width, with a visible upper eyelid line
+  (thicker/darker stroke, slightly upturned at the outer corner), a lower
+  lid hint, iris with at least 2 tones (a deeper blue at the top fading to
+  a lighter blue) and 2 highlight dots (one larger, one small) like the
+  reference — this is what makes anime eyes read as "alive" instead of
+  blank squares.
+- Thin, soft eyebrows sitting close above the eyes, angled slightly.
+- A tiny nose hint directly between/below the eyes (in the reference it's
+  just a couple of soft short strokes, not a full nose shape).
+- A small, closed, gently curved mouth (soft smile hint) positioned in the
+  lower third of the face — this matters even though her hoodie collar
+  usually covers it, because the face needs to look complete and correct
+  in any state/angle where it might be visible, and because getting the
+  vertical spacing between eyes/nose/mouth right also fixes how the whole
+  face reads even when partially covered.
+- Soft pink blush shading on both cheeks, a few pixels each side, blended
+  rather than a hard-edged block.
+- The face should sit clearly INSIDE the hair, not have hair simply
+  overlapping it at random — leave a deliberate face-shaped gap in the
+  hair silhouette that the face sits into.
+
+HAIR — this character's single most defining trait, currently the weakest
+part of the redraw
+- Very long, straight, pale silver-blue-white hair reaching well past the
+  hips (see Kanade_3rd_Anniversary.webp and the jpg reference for exact
+  length — past the knee in both).
+- A visible part near the crown with hair falling to both sides, not a
+  uniform slab.
+- Two long strands frame the face on both sides, running the full length of
+  the hair — these should be a slightly different (usually slightly darker
+  or more saturated) tone than the main hair mass so they read as distinct
+  strands, and they should taper (get narrower) toward the ends rather than
+  staying a constant width.
+- The main hair mass behind/around the body should use at least 3 tonal
+  values of the silver-blue-white palette (a shadow tone where hair
+  overlaps itself or sits behind the body, a mid tone for the bulk, and a
+  light/near-white tone for where it catches light) to suggest volume and
+  softness instead of one flat fill.
+- Ends of the hair should taper/thin out softly rather than being cut off
+  with a hard flat bottom edge.
+- Keep the hair readable at a glance as "extremely long straight hair" even
+  at this pixel resolution — err on the side of a bit more length/volume
+  rather than less, since it's this character's signature feature.
+
+BODY / POSE
+- Default rest pose (idle, fly, hit, defeated, phase): BOTH ARMS HANG
+  STRAIGHT DOWN naturally at her sides, matching
+  714bc429245f1505622f2d3330cee0b9.jpg exactly for arm placement — do not
+  raise a hand to her face/collar by default, that reference clearly shows
+  the natural resting arm position to copy. Each arm needs a continuous,
+  correctly-proportioned shape (shoulder, upper arm, slight elbow bend is
+  fine, forearm, a visible hand shape at the end) - not a bar that just
+  stops.
+- ONLY during the "cast skill" state does one arm swing/raise into a
+  distinct casting gesture (this logic already exists from the previous
+  prompt pass — keep that behavior, just make sure the REST pose it's
+  swinging FROM is the correct both-arms-down pose, not the old
+  collar-holding pose).
+- Keep the oversized hoodie silhouette flaring out from waist to hem (that
+  oversized/borrowed-clothing look is intentional per the reference), but
+  make the flare a smooth curve rather than stepped rectangle bands, and
+  make sure the waist area actually narrows before the flare starts so a
+  feminine silhouette reads clearly.
+- Slender legs with a visible knee, small flat shoes.
+- Keep the purple headphones prop, held or clipped near one hand/hip as
+  already implemented.
+
+WORK ITERATIVELY, DON'T TRY TO NAIL EVERYTHING IN ONE PASS
+1. First pass: rebuild just the proportion skeleton (resize the grid, block
+   in head/torso/hip/leg regions at the correct relative sizes with flat
+   placeholder colors, no detail yet). Screenshot/check this looks like a
+   correctly-proportioned young woman silhouette before adding any detail.
+2. Second pass: add the face detail described above onto the correctly-
+   sized head region. Check it actually reads as a face at the final
+   display scale (zoom in / view the actual rendered size, not just the
+   source code).
+3. Third pass: rebuild the hair with the multi-tone, tapering, parted
+   structure described above.
+4. Fourth pass: fix the arm pose to both-down-at-rest + the cast gesture,
+   and do a final color/shading polish pass on the hoodie.
+5. After each pass, actually open the file in a browser and look at it
+   before moving to the next pass — don't stack all four changes together
+   without checking in between, since it will be much harder to tell which
+   change caused which visual problem.
+
+DO NOT BREAK what already works: the 6-state button system (idle, fly,
+cast, hit, defeated, phase), the Touhou-style ring that now correctly moves
+together with the character during fly (per FIX_PROMPT_2), the graphics-
+tier cutoffs, and zero-console-error behavior across all states. Verify all
+of that still holds after this redraw, in addition to the new proportion/
+face/hair/pose requirements above.
