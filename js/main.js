@@ -3503,11 +3503,15 @@ function startGame() {
     window._tidalSurgeReady = false;
     window._bloodArrowStacks = 0;
     window._kanadeCutscene = null;
+    window._kanadeSnapAlpha = 1;
     _adminBlessedThisWave = 0;
     if (typeof window._clearFreezeSnapshot === 'function') window._clearFreezeSnapshot();
     // A run started mid-cutscene would otherwise leave Pixi's stage and the
     // background stuck at whatever the freeze last set them to.
-    if (window._pixiApp && window._pixiApp.stage) window._pixiApp.stage.alpha = 1;
+    if (window._pixiApp && window._pixiApp.stage) {
+        window._pixiApp.stage.alpha = 1;
+        window._pixiApp.stage.visible = true;
+    }
     window._bgPaused = false;
     if (typeof _clearTimelineDistortion === 'function') _clearTimelineDistortion();
     _tidalSurgeEffects = [];

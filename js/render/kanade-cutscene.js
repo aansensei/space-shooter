@@ -1901,6 +1901,7 @@
       cs.goliath.y = cs.goliath._restY;
     }
     window._kanadeCutscene = null;
+    window._kanadeSnapAlpha = 1;
     if (window.AudioMgr && window.AudioMgr.stopCutsceneAmbience) window.AudioMgr.stopCutsceneAmbience();
     fxParticles.length = 0;
     sakuraPetals.length = 0;
@@ -1937,6 +1938,19 @@
 
     const wash = overlayAlpha();
     const reach = freezeFront(beat.id, beat.p);
+    // Everything the freeze puts on screen is bounded by the front, so it all
+    // withdraws on its own. The one thing that was not was the stopped
+    // battlefield itself: a still frame held at full strength until the last
+    // frame of the beat, which then cut to the live scene. It comes off with
+    // the front now, and the starfield starts moving again the moment the
+    // front does, so the world is back before the cutscene ends rather than
+    // arriving all at once when it does. js/render/core.js reads both.
+    if (beat.id === 'close') {
+      window._kanadeSnapAlpha = reach;
+      window._bgPaused = reach >= 0.999;
+    } else {
+      window._kanadeSnapAlpha = 1;
+    }
     drivePixi(reach);
     drawFreezeWash(L, wash, reach);
     drawFrozenRealm(L, reach, now);

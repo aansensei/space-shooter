@@ -2151,11 +2151,17 @@ function _captureFreezeSnapshot() {
 }
 
 function draw(deltaTime) {
+    // How much of the frozen battlefield snapshot still covers the live scene.
+    // The cutscene drops it below 1 while the freeze is releasing (see
+    // _kanadeSnapAlpha in js/render/kanade-cutscene.js); at 1 the snapshot is
+    // the whole picture and the live scene underneath is never drawn.
+    const _snapA = typeof window._kanadeSnapAlpha === 'number' ? window._kanadeSnapAlpha : 1;
+    const _snapFits = _freezeSnap && _freezeSnap._filled
+        && _freezeSnap.width === canvas.width && _freezeSnap.height === canvas.height;
     // Cutscene running and the battlefield already captured: put the frozen
     // frame back and go straight to the overlay. Everything between here and
     // the capture below is exactly what this skips.
-    if (window._kanadeCutscene && _freezeSnap && _freezeSnap._filled
-        && _freezeSnap.width === canvas.width && _freezeSnap.height === canvas.height) {
+    if (window._kanadeCutscene && _snapFits && _snapA >= 0.999) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = 1;
         ctx.drawImage(_freezeSnap, 0, 0);
@@ -2794,6 +2800,17 @@ function draw(deltaTime) {
     // First frame of the cutscene: the battlefield below is final now, so take
     // the picture before the overlay goes on top of it.
     if (window._kanadeCutscene && (!_freezeSnap || !_freezeSnap._filled)) _captureFreezeSnapshot();
+    // Releasing the freeze: the live scene above was drawn in full, and the
+    // snapshot goes over it at whatever the front has left. It is a still
+    // frame with nothing moving in it, so holding it opaque to the last frame
+    // and then cutting showed as a jump; this way the live scene is already
+    // all that is left by the time the cutscene ends.
+    if (window._kanadeCutscene && _snapFits && _snapA > 0.002 && _snapA < 0.999) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = _snapA;
+        ctx.drawImage(_freezeSnap, 0, 0);
+        ctx.globalAlpha = 1;
+    }
     // Kanade's boss-wave cutscene sits on top of everything, same as the
     // sigil picker - the sim is frozen behind it while it plays.
     if (window._kanadeCutscene && typeof drawKanadeCutscene === 'function') drawKanadeCutscene();
