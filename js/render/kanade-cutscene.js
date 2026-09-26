@@ -1822,9 +1822,10 @@
   function runCues(cs, elapsed) {
     const A = window.AudioMgr;
     if (!A || !A.playCutsceneSfx) return;
-    // The looping bed comes up with the freeze and holds under the whole
-    // sequence. It goes through its own entry point too: the freeze gate that
-    // silences the rest of the mix would otherwise silence this as well.
+    // The looping bed, both of its layers, comes up with the freeze and holds
+    // under the whole sequence. It goes through its own entry point too: the
+    // freeze gate that silences the rest of the mix would otherwise silence
+    // this as well.
     if (!cs.bedStarted) {
       cs.bedStarted = true;
       if (A.startCutsceneAmbience) A.startCutsceneAmbience();
@@ -1835,12 +1836,19 @@
     }
   }
 
-  // The bed rides out over the closing beat instead of being cut off with it,
-  // so the room does not go abruptly dead a moment before time restarts.
-  function fadeCutsceneBed(cs, beatId, p) {
+  // Mixes the two bed layers each frame. The ambience holds level for the
+  // whole sequence, while the collapse layer sits back until the Distortion
+  // lands and then comes up full, because that is the moment the world's own
+  // limits come off. Both ride out together over the closing beat instead of
+  // being cut off with it, so the room does not go abruptly dead a moment
+  // before time restarts.
+  const COLLAPSE_SWELL_MS = 900;
+  function driveCutsceneBed(cs, elapsed, beatId, p) {
     const A = window.AudioMgr;
-    if (!A || !A.setCutsceneAmbienceGain || beatId !== 'close') return;
-    A.setCutsceneAmbienceGain(1 - p);
+    if (!A || !A.setCutsceneBedGains) return;
+    const out = beatId === 'close' ? 1 - easeInOut(p) : 1;
+    const swell = clamp01((elapsed - APPLY_AT) / COLLAPSE_SWELL_MS);
+    A.setCutsceneBedGains(out, out * (0.5 + 0.5 * swell));
   }
 
   // Both real game-logic beats, fired off elapsed time rather than off a
@@ -1911,7 +1919,7 @@
     const pose = poseFor(L, beat.id, beat.p, now);
     runSideEffects(cs, elapsed, L, handPos(L, pose, t));
     runCues(cs, elapsed);
-    fadeCutsceneBed(cs, beat.id, beat.p);
+    driveCutsceneBed(cs, elapsed, beat.id, beat.p);
 
     const wash = overlayAlpha();
     const reach = freezeFront(beat.id, beat.p);

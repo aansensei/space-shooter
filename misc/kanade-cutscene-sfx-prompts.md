@@ -205,12 +205,18 @@ C:\Users\Thien An Nguyen\SpaceShooter\assets\audio\sfx\kanade-collapse-loop.mp3
 nước), file này lo phần **động** (thực tại đang chịu không nổi và nứt dần).
 Hai lớp chạy song song nghe sẽ đầy hơn hẳn một lớp.
 
-Đề xuất mức phát: vào từ mốc 0 cùng tiếng nền nhưng để nhỏ, khoảng 0.45, rồi
-dâng lên đầy khi Stack Overflow áp vào ở mốc **7300**, vì đó đúng là lúc các
-giới hạn của thế giới bị gỡ bỏ. Nếu AanSensei muốn nó chỉ xuất hiện ở đoạn
-cast thôi thì đổi mốc bắt đầu sang **6700**.
+**Đã có file và đã wire.** Dựng từ hai bản gen độc lập cùng prompt này, trộn
+chồng lên nhau (không phải nối tiếp) để tiếng nứt dày đặc hơn: bản mỏng hơn
+được nâng 8 dB rồi mix, qua limiter chặn ở 0.71 với `level=disabled` để chừa
+chỗ cho phần vọt lên khi encode mp3. Kết quả 8.00s, peak -0.58 dB,
+mean -16.1 dB, ngang mức lớp ambience.
 
-Phải nghe qua nước giống mọi SFX khác trong cutscene, xem ghi chú ở mục 2.
+Mức phát: vào từ mốc 0 cùng tiếng nền ở **0.5**, dâng lên **1.0** trong 900ms
+kể từ lúc Stack Overflow áp vào (mốc **7300**), vì đó đúng là lúc các giới hạn
+của thế giới bị gỡ bỏ, rồi fade về 0 cùng lớp ambience trong beat `close`.
+Điều khiển nằm ở `driveCutsceneBed` trong `js/render/kanade-cutscene.js`.
+
+Muốn gen lại thì giữ đúng 8 giây và seamless, vì hai lớp phải khớp chu kỳ.
 
 ## Cách wire vào game
 
@@ -234,7 +240,8 @@ Mỗi file mới phải thêm vào danh sách precache trong `js/offline.js`, k�
 `?v=` của các file js đã sửa trong `index.html` và `CACHE_VERSION` trong
 `sw.js`.
 
-Để thêm `kanade-collapse-loop.mp3`: tạo một loop thứ hai theo đúng khuôn
-`state.kanadeAmbienceEl` (nhớ `_makeBufferLoop(true)`), thêm mức vào bảng
-`SFX_BASE`, thêm vào `pauseAll` / `resumeAll` / `refreshVolumes`, rồi cho
-`runCues` bật nó cùng lúc với tiếng nền.
+Tiếng nền là **hai lớp** chạy song song: `state.kanadeAmbienceEl` lo phần
+tĩnh, `state.kanadeCollapseEl` lo phần sụp đổ. Cả hai tạo bằng
+`_makeBufferLoop(true)`, bật cùng lúc trong `startCutsceneAmbience`, và trộn
+mỗi frame qua `setCutsceneBedGains(ambMul, collapseMul)` để lớp sụp đổ dâng
+lên được mà lớp ambience vẫn giữ nguyên mức.

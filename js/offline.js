@@ -139,6 +139,7 @@
         'assets/audio/sfx/great-sage-hit.mp3',
         'assets/audio/sfx/hover.mp3', 'assets/audio/sfx/hyperjump.mp3',
         'assets/audio/sfx/ingame.mp3',
+        'assets/audio/sfx/kanade-collapse-loop.mp3',
         'assets/audio/sfx/kanade-depart.mp3', 'assets/audio/sfx/kanade-emerge.mp3', 'assets/audio/sfx/kanade-frozen-ambience.mp3',
         'assets/audio/sfx/kanade-gate-open.mp3', 'assets/audio/sfx/kanade-summon.mp3', 'assets/audio/sfx/kanade-think.mp3',
         'assets/audio/sfx/kanade-time-freeze.mp3', 'assets/audio/sfx/kanade-time-resume.mp3',
