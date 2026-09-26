@@ -420,6 +420,60 @@ function _drawWalpurgisAura(enemy, stacks) {
     ctx.restore();
 }
 
+// Administrator's Blessing: violet flame licking up around the enemy. The
+// base glow reuses the same cached-sprite idiom as the Walpurgis aura above so
+// it stays cheap with several blessed enemies on screen, and the tongues are
+// drawn as a handful of tapering shapes whose lengths ride their own sine, so
+// the fire reads as moving rather than as a static halo. Brighter while the
+// granted shield is up, since that is what the extra DR is tied to.
+function _drawAdminBlessingAura(enemy) {
+    const now = performance.now();
+    const size = enemy.size || 20;
+    const warded = (enemy.shield || 0) > 0;
+    const seed = enemy._adminBlessedAt || 0;
+    const pulse = 0.78 + 0.22 * Math.sin(now / 240 + enemy.x * 0.02);
+    const power = warded ? 1 : 0.55;
+
+    const r = size * (1.18 + 0.10 * pulse);
+    const sprite = _getGlowSprite(`rgba(168,60,255,${(0.34 * power * pulse).toFixed(2)})`, r);
+    if (sprite) ctx.drawImage(sprite, enemy.x - r, enemy.y - r, r * 2, r * 2);
+
+    // Flame tongues. Fewer of them on the reduced-detail tiers, same rule the
+    // rest of this file's ambient effects follow.
+    const tongues = (_mobPerf || _gfxLevel >= 2) ? 5 : 9;
+    const baseR = size * 0.52;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < tongues; i++) {
+        const a = (i / tongues) * Math.PI * 2 + now / 1400 + seed * 0.0007;
+        const wob = Math.sin(now / 150 + i * 1.7 + seed * 0.001);
+        const len = size * (0.26 + 0.20 * (0.5 + 0.5 * wob)) * power;
+        const wide = size * 0.16;
+        const cos = Math.cos(a), sin = Math.sin(a);
+        const bx = enemy.x + cos * baseR, by = enemy.y + sin * baseR;
+        const tx = enemy.x + cos * (baseR + len), ty = enemy.y + sin * (baseR + len);
+        // Perpendicular, so each tongue tapers from a wide root to a point.
+        const px = -sin * wide * 0.5, py = cos * wide * 0.5;
+        ctx.fillStyle = i % 2
+            ? `rgba(196,110,255,${(0.42 * power).toFixed(2)})`
+            : `rgba(120,40,220,${(0.38 * power).toFixed(2)})`;
+        ctx.beginPath();
+        ctx.moveTo(bx + px, by + py);
+        ctx.quadraticCurveTo(bx + px * 0.4 + cos * len * 0.6, by + py * 0.4 + sin * len * 0.6, tx, ty);
+        ctx.quadraticCurveTo(bx - px * 0.4 + cos * len * 0.6, by - py * 0.4 + sin * len * 0.6, bx - px, by - py);
+        ctx.closePath();
+        ctx.fill();
+    }
+    // Hot core edge, so the violet still reads against a dark enemy body.
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = `rgba(214,150,255,${(0.55 * power * pulse).toFixed(2)})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, baseR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+}
+
 function drawEnemy(enemy) {
     // Uriel, fully stealthed (Camouflage): invisible, untargetable, skip
     // every overlay below too (vuln icon, shield bar, Walpurgis aura...).
@@ -814,6 +868,9 @@ function drawEnemy(enemy) {
         const _wpStacks = _walpurgisStacks();
         if (_wpStacks > 0) _drawWalpurgisAura(enemy, _wpStacks);
     }
+
+    // Administrator's Blessing, under the body like the Walpurgis aura above.
+    if (enemy._adminBlessing) _drawAdminBlessingAura(enemy);
 
     // Covenant King (Uriel): a gold dashed ring on every enemy currently
     // holding the granted CC immunity + Uriel Iron Body layer, so the buff

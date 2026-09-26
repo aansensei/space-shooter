@@ -44,6 +44,10 @@ const VULN_TRUE_DMG_WINDOW_MS = 2500;
 
 function applyVulnerability(enemy) {
     if (enemy.type === 'uriel') return; // Covenant King: immune to every debuff
+    // Goliath's post-Unbroken Will window refuses new debuffs outright, and
+    // this one has an immediate side effect (the 20% shield shave below), so
+    // it has to be stopped here rather than cleaned up a frame later.
+    if (_goliathDebuffImmune(enemy)) return;
     const now = performance.now();
     const stacks = (enemy.vulnStacks || 0);
     if (stacks < _stackCap('vulnerability')) {
@@ -54,7 +58,10 @@ function applyVulnerability(enemy) {
         enemy.vulnStacks = stacks + 1;
         // full stack -> 2.5s true dmg window. goliath: 5s cd, starts counting
         // once the window ends (not at trigger) so it's a real dead gap
-        if (enemy.vulnStacks === 4 && (enemy.type !== 'goliath' || now >= (enemy._vulnTrueDmgCooldownEnd || 0))) {
+        // >= rather than ==: an exact-equality trigger silently stops firing
+        // the moment anything lets the count past 4, and then nothing ever
+        // resets the stacks again.
+        if (enemy.vulnStacks >= 4 && (enemy.type !== 'goliath' || now >= (enemy._vulnTrueDmgCooldownEnd || 0))) {
             enemy.vulnTrueDmgEnd = now + VULN_TRUE_DMG_WINDOW_MS;
             if (enemy.type === 'goliath') enemy._vulnTrueDmgCooldownEnd = enemy.vulnTrueDmgEnd + 5000;
         }
@@ -948,11 +955,6 @@ function dealDamage(enemy, source) {
     if (_yuukiBonus > 0) {
         totalDamage = Math.ceil(totalDamage * (1 + _yuukiBonus));
     }
-    // Per AanSensei: Yuuki also grants +0.35% of the target's own Max HP as
-    // bonus damage per tier, on its own separate schedule that maxes out
-    // (15 tiers/+5.25% Max HP) by wave 20, independent of the damage
-    // multiplier above, which keeps growing on its own slower pace to wave 36.
-    if (_yuukiHpPctTiers > 0) totalDamage += Math.ceil(enemy.maxHp * 0.0035 * _yuukiHpPctTiers);
 
     // Sigil: Avalanche — global damage multiplier (per kill stacks, max 40%), docs/combat-scaling-rebalance.md Part 5
     if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
@@ -1003,6 +1005,28 @@ function dealDamage(enemy, source) {
     // Dimensional Rift zone: +20% incoming damage (docs/combat-scaling-rebalance.md Part 3)
     if (enemy._inDimensionalRift) {
         totalDamage = Math.ceil(totalDamage * 1.20);
+    }
+
+    // Yuuki's target-Max-HP bonus: +0.35% per tier, maxing out at 15 tiers
+    // (+5.25%) by wave 20, on its own schedule separate from the damage
+    // multiplier further up, which keeps growing to wave 36.
+    //
+    // Added here, after every multiplier above, rather than in the middle of
+    // them. Sitting mid-chain it was itself multiplied by everything
+    // downstream (Avalanche, Chain Lightning, Circuit Engineer, Death Mark,
+    // Divine Fate, Vulnerability, Skill D's evade overflow, Dimensional
+    // Rift), so on a stacked build +5.25% Max HP landed as roughly ten times
+    // that and the weapon's own damage stopped mattering. It still goes
+    // through the target's DR below like any other damage.
+    //
+    // Charged at most once per YUUKI_HP_PCT_INTERVAL_MS per target, so a
+    // stream of small hits no longer collects it once per hit.
+    if (_yuukiHpPctTiers > 0) {
+        const _yNow = performance.now();
+        if (!enemy._yuukiHpPctAt || _yNow - enemy._yuukiHpPctAt >= YUUKI_HP_PCT_INTERVAL_MS) {
+            enemy._yuukiHpPctAt = _yNow;
+            totalDamage += Math.ceil(enemy.maxHp * 0.0035 * _yuukiHpPctTiers);
+        }
     }
     }
 
@@ -1116,6 +1140,12 @@ function dealDamage(enemy, source) {
 
     if (enemy.shield > 0 && enemy.raphaelShieldReceived) {
         combinedDR += 0.12; // docs/combat-scaling-rebalance.md Part 3
+    }
+
+    // Administrator's Blessing: the DR rides on the granted shield, not on the
+    // mark itself, so breaking the shield is what actually strips it.
+    if (enemy._adminBlessing && enemy.shield > 0) {
+        combinedDR += ADMIN_BLESSING_DR;
     }
 
     if (enemy.type === 'marchosias') {
@@ -1363,6 +1393,8 @@ function dealDamage(enemy, source) {
         if (enemy.type === 'leviathan') _flatArmor += 150;
         // Uriel, right after a Camouflage reappear: +100 flat DR for 2s.
         if (enemy.type === 'uriel' && enemy._camoFlatDREnd && currentTime < enemy._camoFlatDREnd) _flatArmor += 100;
+        // Administrator's Blessing, same shield-gated window as its % DR above.
+        if (enemy._adminBlessing && enemy.shield > 0) _flatArmor += ADMIN_BLESSING_FLAT_DR;
         // Thaelis Cocoon Guards: flat armor on top of the % DR above - still
         // fully bypassed by true damage, same as the % DR right above it.
         if (enemy.type === 'thaelis_guard') _flatArmor += THAELIS_COCOON_GUARD_FLAT_DR;

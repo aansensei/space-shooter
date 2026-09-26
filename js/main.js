@@ -2959,7 +2959,43 @@ function _spawnWaveEnemyBuffed(tier) {
             _ne.hp = Math.ceil(_ne.hp * window._goliathWaveHpBuff);
         }
         _applyWaveGrowth(_ne);
+        // Rolled last, so the +20% Max HP sits on top of the wave growth and
+        // Goliath's Alpha buff rather than being multiplied by them after.
+        _tryAdminBlessing(_ne);
     }
+}
+
+// Administrator's Blessing: Kanade marks an enemy on the way in. Tougher in
+// every way that matters while its granted shield holds, and slower for as
+// long as it lives. Split from the roll below so the debug console can force
+// it onto any enemy without also bypassing the wave gate for real runs.
+function _applyAdminBlessing(enemy) {
+    if (!enemy || enemy._adminBlessing) return false;
+    enemy._adminBlessing = true;
+    enemy._adminBlessedAt = performance.now();
+
+    const hpBonus = Math.ceil(enemy.maxHp * ADMIN_BLESSING_HP_BONUS);
+    enemy.maxHp += hpBonus;
+    enemy.hp += hpBonus;
+
+    enemy.speed = (enemy.speed || 0) * ADMIN_BLESSING_SPEED_MULT;
+
+    // Through the shared grant so Walpurgis scaling and the 50% Max HP
+    // aggregate shield cap apply to it like any other enemy shield.
+    _addEnemyShield(enemy, ADMIN_BLESSING_SHIELD_BASE + ADMIN_BLESSING_SHIELD_PER_WAVE * _waveNumber);
+    return true;
+}
+
+// The wave-time roll: eligible type, past the opening waves, under this
+// wave's ceiling, and then the chance itself.
+function _tryAdminBlessing(enemy) {
+    if (!enemy || !ADMIN_BLESSING_TYPES[enemy.type]) return false;
+    if (_waveNumber < ADMIN_BLESSING_MIN_WAVE) return false;
+    if (_adminBlessedThisWave >= ADMIN_BLESSING_MAX_PER_WAVE) return false;
+    if (Math.random() >= ADMIN_BLESSING_CHANCE) return false;
+    if (!_applyAdminBlessing(enemy)) return false;
+    _adminBlessedThisWave++;
+    return true;
 }
 
 function _waveTrickleBudgetLeft() {
@@ -3143,6 +3179,7 @@ function _updateWaveSystem(deltaTime, now) {
                 }
             }
             window._goliathWaveHpBuff = 1;
+            _adminBlessedThisWave = 0;
             // Timeline Distortion is per boss fight, never cumulative: whatever
             // the previous milestone rolled comes off here before the next one
             // rolls its own.
@@ -3465,6 +3502,11 @@ function startGame() {
     window._tidalSurgeReady = false;
     window._bloodArrowStacks = 0;
     window._kanadeCutscene = null;
+    _adminBlessedThisWave = 0;
+    // A run started mid-cutscene would otherwise leave Pixi's stage and the
+    // background stuck at whatever the freeze last set them to.
+    if (window._pixiApp && window._pixiApp.stage) window._pixiApp.stage.alpha = 1;
+    window._bgPaused = false;
     if (typeof _clearTimelineDistortion === 'function') _clearTimelineDistortion();
     _tidalSurgeEffects = [];
     _oceanHunterBites = [];

@@ -321,6 +321,34 @@ let _yuukiBonus = 0;
 // part alone maxes out by wave 20; the damage-multiplier bonus above keeps
 // growing on its own original, slower schedule out to wave 36).
 let _yuukiHpPctTiers = 0;
+// Minimum gap between two charges of Yuuki's Max-HP bonus against the same
+// target. Without it the bonus rode on every single damage source, so each
+// DoT tick and each auto-fire bullet collected the full amount and a
+// fast-firing build pulled several times the nominal value out of one tier.
+const YUUKI_HP_PCT_INTERVAL_MS = 250;
+
+// ADMINISTRATOR'S BLESSING (Chuc phuc Quan tri vien)
+// From wave 6 on, Kanade marks some of the heavier enemies as they spawn.
+// Rolled per spawn, so a wave that fields few Elites simply sees fewer of
+// them blessed rather than the same total being redistributed.
+const ADMIN_BLESSING_MIN_WAVE = 6;
+const ADMIN_BLESSING_CHANCE = 0.10;
+const ADMIN_BLESSING_MAX_PER_WAVE = 12;
+const ADMIN_BLESSING_HP_BONUS = 0.20;      // +20% Max HP, applied at spawn
+const ADMIN_BLESSING_SHIELD_BASE = 1000;   // shield = base + per-wave * wave
+const ADMIN_BLESSING_SHIELD_PER_WAVE = 20;
+const ADMIN_BLESSING_FLAT_DR = 100;        // both only while that shield holds
+const ADMIN_BLESSING_DR = 0.10;
+const ADMIN_BLESSING_SPEED_MULT = 0.90;    // the cost: 10% slower
+// Which enemies can be blessed. Listed by type rather than by spawn tier
+// because _spawnWaveTier falls back to spawnApostle() when a tier's pool is
+// momentarily empty, so the tier it was asked for does not always match what
+// actually spawned. Goliath (Digiform) is excluded: it is Kanade's own summon.
+const ADMIN_BLESSING_TYPES = {
+    thaelis: 1, raphael: 1, egregor: 1,   // Elite
+    dargruel: 1, leviathan: 1,            // Dominator
+};
+let _adminBlessedThisWave = 0;
 
 // Wave 11+ live trickle spawner (replaces the fixed-15s _waveQueue at high
 // waves - see _updateWaveTrickle). Budget is the remaining per-tier count

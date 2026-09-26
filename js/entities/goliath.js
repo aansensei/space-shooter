@@ -278,6 +278,29 @@ function _goliathApplySilence(durMs) {
 //   - Before Unbroken Will has fired, HP can never go below 1 by any route.
 //   - Once it has, reaching 0 hands off to the death sequence rather than to
 //     _markedForDeath, which removes the enemy with no animation at all.
+// Every status Goliath can be carrying, in one place. Dominant force (Cancer's
+// Riptide pull) is deliberately absent: that is raw physical displacement
+// rather than a status effect, and Unbroken Will does not grant immunity to it.
+function _goliathClearDebuffs(enemy) {
+    enemy.vulnStacks = 0;
+    enemy.vulnEndTime = 0;
+    enemy.vulnTrueDmgEnd = 0;
+    enemy.soulReaver = false;
+    enemy._slowEnd = 0;
+    enemy._dtuSlow = false;
+    enemy._nocToiStacks = 0;
+    enemy._yogMark = false;
+    enemy._yogMarkStart = 0;
+    enemy._yogMarkAccum = 0;
+    enemy._inDimensionalRift = false;
+    if (window._sthBurning) window._sthBurning.delete(enemy);
+}
+
+function _goliathDebuffImmune(enemy) {
+    return !!(enemy && enemy.type === 'goliath' && enemy._debuffImmuneEnd
+        && performance.now() < enemy._debuffImmuneEnd);
+}
+
 function _goliathSettleLethalHp(enemy) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') {
         enemy.hp = Math.max(0, enemy.hp);
@@ -325,6 +348,13 @@ function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     // chung _transformIronBodyEnd — field đó có thể bị mốc invuln biến hình
     // ban đầu ghi đè/kéo dài) để biết CHÍNH XÁC lúc nào bắn sóng giải phóng.
     enemy._unbrokenWillInvulnEnd = now + 4000;
+    // Per AanSensei: the revive also burns off everything already stuck to him
+    // and refuses new statuses for those same 4 seconds. Debuffs are applied
+    // from a dozen scattered call sites, so rather than gate each one the
+    // window is also swept clean every frame in updateGoliath below, which
+    // covers any source added later without it having to know about this.
+    enemy._debuffImmuneEnd = now + 4000;
+    _goliathClearDebuffs(enemy);
     // Per AanSensei: Unbroken Will now revives Goliath to a full heal
     // (100% Max HP) plus a 15% Hentry shield, making the second phase a
     // genuine full second fight rather than a weakened continuation.
@@ -479,6 +509,13 @@ function _goliathMarchosiasBarrierBreak(enemy, s) {
 
 function updateGoliath(enemy, deltaTime) {
     const now = performance.now();
+
+    // Unbroken Will's 4s debuff immunity, enforced by sweeping rather than by
+    // gating every one of the dozen scattered call sites that can apply a
+    // status. Anything that lands during the window is gone the same frame,
+    // before it can tick, and a debuff source added later is covered without
+    // needing to know this window exists.
+    if (enemy._debuffImmuneEnd && now < enemy._debuffImmuneEnd) _goliathClearDebuffs(enemy);
 
     // Hiệu ứng nổ chết (True Form): mắt + 3 bảo thạch phát nổ lần lượt, rồi
     // thân từ từ tan rã thành đá vụn, cuối cùng bốc hơi bụi theo gió. Giữ

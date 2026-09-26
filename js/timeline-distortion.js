@@ -10,7 +10,12 @@
 // instead of writing its own number inline, so Stack Overflow lifts all of
 // them at once and clearing it puts every one back exactly where it was.
 const TIMELINE_STACK_CAPS = {
-    vulnerability:       { side: 'player', base: 4,               where: 'js/entities/core.js applyVulnerability' },
+    // Deliberately not lifted. Vulnerability's stacks are not a plain counter:
+    // reaching 4 is what opens the true-damage window, and the window expiring
+    // is what resets them. Uncapped, Goliath could climb past 4 while its own
+    // 5s window cooldown was still running, never hit the trigger again, and
+    // sit on 20-plus permanent stacks with no reset in sight. It stays at 4.
+    vulnerability:       { side: 'player', base: 4, overflow: false, where: 'js/entities/core.js applyVulnerability' },
     teslaCoil:           { side: 'player', base: TESLA_STACK_MAX, where: 'js/skills/skill-g.js _launchTeslaBolt' },
     chainLightning:      { side: 'player', base: 6,               where: 'js/skills/skill-g.js orb pairing' },
     avalancheStacks:     { side: 'player', base: 80,              where: 'js/entities/core.js kill hook' },
@@ -31,6 +36,7 @@ const TIMELINE_STACK_CAPS = {
 function _stackCap(id) {
     const entry = TIMELINE_STACK_CAPS[id];
     if (!entry) return Infinity;
+    if (entry.overflow === false) return entry.base;
     return window._stackOverflowActive ? Infinity : entry.base;
 }
 

@@ -685,20 +685,28 @@
   // Rebuilt only when the canvas size actually changes. It used to allocate a
   // fresh object every frame, which is small on its own but adds up across a
   // sustained sequence and shows as periodic collection pauses.
-  const _layout = { box: 0, standX: 0, centerY: 0, gateX: 0, gateR: 0, ringR: 0 };
+  const _layout = { box: 0, portrait: false, standX: 0, centerY: 0, gateX: 0, gateR: 0, ringR: 0 };
   let _layoutW = 0, _layoutH = 0;
   function layout() {
     if (_layoutW === canvas.width && _layoutH === canvas.height) return _layout;
     _layoutW = canvas.width; _layoutH = canvas.height;
-    const box = Math.min(canvas.height * 0.50, canvas.width * 0.44);
+    // A phone held upright has almost no horizontal room, and the landscape
+    // numbers put her spell ring straight through the gate. Portrait gets its
+    // own set: a slightly larger figure (there is vertical room to spare), a
+    // tighter ring, and the gate pushed further out.
+    const portrait = canvas.height > canvas.width * 1.15;
+    const box = portrait
+      ? Math.min(canvas.height * 0.30, canvas.width * 0.52)
+      : Math.min(canvas.height * 0.50, canvas.width * 0.44);
     return Object.assign(_layout, {
       box,
-      standX: canvas.width * 0.37,
+      portrait,
+      standX: canvas.width * (portrait ? 0.30 : 0.37),
       // Low enough that the announcement banner clears her face.
       centerY: canvas.height * 0.52,
-      gateX: canvas.width * 0.66,
-      gateR: box * 0.38,
-      ringR: box * 0.62,
+      gateX: canvas.width * (portrait ? 0.78 : 0.66),
+      gateR: box * (portrait ? 0.32 : 0.38),
+      ringR: box * (portrait ? 0.50 : 0.62),
     });
   }
 
@@ -893,6 +901,159 @@
     ctx.restore();
   }
 
+  // One radial-gradient sprite, built once and then stretched per draw. Every
+  // other option here allocates: createRadialGradient rebuilds the ramp on the
+  // CPU each call, and shadowBlur re-rasterises the whole shape. Neither is
+  // affordable on something drawn a dozen times a frame.
+  // core.js owns the quality flags, and this module can be loaded without it
+  // (the standalone preview harness under misc/scratch does exactly that, and
+  // guide.html loads render files with no config.js at all), so read them
+  // defensively rather than assuming they exist.
+  function gfxLevel() { return typeof _gfxLevel === 'number' ? _gfxLevel : 0; }
+  function lowDetail() { return (typeof _mobPerf !== 'undefined' && _mobPerf) || gfxLevel() >= 2; }
+
+  let _energyGlow = null;
+  function energyGlow() {
+    if (_energyGlow) return _energyGlow;
+    const S = 64;
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    grad.addColorStop(0, 'rgba(255,252,255,0.95)');
+    grad.addColorStop(0.22, 'rgba(226,168,255,0.8)');
+    grad.addColorStop(0.55, 'rgba(158,70,255,0.32)');
+    grad.addColorStop(1, 'rgba(120,30,220,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, S, S);
+    _energyGlow = c;
+    return c;
+  }
+
+  // Where her raised hand actually is on screen. Both the energy glow and the
+  // bursts fired by the summon and cast beats read from this, so they can
+  // never end up pointing at different places.
+  function handPos(L, pose, t) {
+    if (!pose || !pose.opts) return null;
+    const castExt = pose.opts.castExt || 0;
+    if (castExt <= 0.02) return null;
+    // Matches the casting branch in drawKanade, plus the lean/bob that
+    // drawKanade translates the whole body by before it draws anything.
+    const lean = pose.opts.lean || 0;
+    const bobAmp = pose.opts.bobAmp != null ? pose.opts.bobAmp : 1;
+    const bob = Math.sin(t * Math.PI * 2) * bobAmp;
+    const u = (L.box * pose.scale) / GRID_W;
+    return {
+      x: pose.x + (118 + castExt * 21 + lean - GRID_W / 2) * u,
+      y: pose.y + (75 - castExt * 37 + bob - GRID_H / 2) * u,
+      u,
+    };
+  }
+
+  // Energy gathering in her raised hand across the summon and cast beats.
+  // Everything is positioned from `now` alone rather than from stored particle
+  // state, so there is no array to grow, no objects allocated per frame and
+  // nothing for the collector to sweep up mid-sequence.
+  function drawCastEnergy(L, pose, t, now, charge) {
+    if (charge <= 0.02) return;
+    const hand = handPos(L, pose, t);
+    if (!hand) return;
+    const hx = hand.x, hy = hand.y, u = hand.u;
+
+    const pulse = 0.85 + 0.15 * Math.sin(now * 0.012);
+    const core = u * (3.4 + 5.2 * charge) * pulse;
+    const glow = energyGlow();
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = Math.min(1, pose.alpha) * (0.30 + 0.45 * charge);
+
+    // Wide halo, then the bright core, both the same sprite at two sizes.
+    const halo = core * 3.1;
+    ctx.drawImage(glow, hx - halo, hy - halo, halo * 2, halo * 2);
+    ctx.globalAlpha = Math.min(1, pose.alpha) * (0.55 + 0.45 * charge);
+    ctx.drawImage(glow, hx - core, hy - core, core * 2, core * 2);
+
+    // Motes spiralling inward. Position comes straight out of `now` and the
+    // index, so this loop touches no state at all.
+    const motes = lowDetail() ? 8 : 16;
+    const reach = core * 4.4;
+    ctx.fillStyle = 'rgba(224,180,255,0.9)';
+    for (let i = 0; i < motes; i++) {
+      const phase = (now * 0.0009 + i / motes) % 1;
+      const r = reach * (1 - phase);
+      const a = i * 2.399 + now * 0.004 + phase * 5.2;
+      const sz = Math.max(1, u * 1.1 * (1 - phase));
+      ctx.globalAlpha = Math.min(1, pose.alpha) * charge * (1 - Math.abs(phase - 0.5) * 1.4);
+      ctx.fillRect(hx + Math.cos(a) * r - sz / 2, hy + Math.sin(a) * r - sz / 2, sz, sz);
+    }
+
+    // Two thin arcs crossing the core, only on the full-detail tier - they are
+    // the one part here that costs real stroke work.
+    if (!lowDetail() && gfxLevel() === 0) {
+      ctx.globalAlpha = Math.min(1, pose.alpha) * charge * 0.75;
+      ctx.strokeStyle = 'rgba(236,206,255,0.9)';
+      ctx.lineWidth = Math.max(1, u * 0.55);
+      for (let k = 0; k < 2; k++) {
+        const spin = now * (k ? -0.0035 : 0.0026) + k * 1.9;
+        ctx.beginPath();
+        ctx.ellipse(hx, hy, core * 1.9, core * 0.62, spin, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Violet power still clinging to Goliath as he comes down, burning off as he
+  // settles. `q` runs 0 at the moment she summons him to 1 once he has landed.
+  // Built from the same cached sprite and index-driven maths as the cast glow,
+  // so it adds no allocation and no per-frame gradient.
+  function drawSummonAura(enemy, q, now) {
+    const tier = freezeTier();
+    if (tier >= 3) return;
+    // Full strength while he descends, then burning off over the last stretch.
+    const fade = 1 - clamp01((q - 0.5) / 0.5);
+    if (fade <= 0.02) return;
+
+    const r = (enemy.size || 150) * 0.75;
+    const pulse = 0.85 + 0.15 * Math.sin(now * 0.006);
+    const glow = energyGlow();
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    const halo = r * 1.9 * pulse;
+    ctx.globalAlpha = fade * 0.5;
+    ctx.drawImage(glow, enemy.x - halo, enemy.y - halo, halo * 2, halo * 2);
+
+    // Rings wrapping him, tilted so they read as orbiting rather than flat.
+    if (tier <= 1) {
+      ctx.globalAlpha = fade * 0.75;
+      ctx.strokeStyle = 'rgba(214,166,255,1)';
+      ctx.lineWidth = 2;
+      const rings = tier === 0 ? 3 : 2;
+      for (let k = 0; k < rings; k++) {
+        const spin = now * (0.0016 + k * 0.0009) * (k % 2 ? -1 : 1);
+        ctx.beginPath();
+        ctx.ellipse(enemy.x, enemy.y, r * (1.15 - k * 0.16), r * (0.34 + k * 0.1), spin, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Embers streaming off him as the power burns away.
+    const embers = tier === 0 ? 18 : 10;
+    ctx.fillStyle = 'rgba(232,196,255,1)';
+    for (let i = 0; i < embers; i++) {
+      const phase = (now * 0.0007 + i / embers) % 1;
+      const a = i * 2.39996 + now * 0.0012;
+      const rad = r * (0.7 + phase * 1.5);
+      const sz = Math.max(1, r * 0.035 * (1 - phase));
+      ctx.globalAlpha = fade * (1 - phase) * 0.8;
+      ctx.fillRect(enemy.x + Math.cos(a) * rad - sz / 2, enemy.y + Math.sin(a) * rad * 0.8 - sz / 2, sz, sz);
+    }
+    ctx.restore();
+  }
+
   // The spell-card ring she stands inside, ported from the prototype's
   // drawRing. Radius comes in from the caller; everything inside is written
   // against the prototype's own 188px ring and scaled to match.
@@ -1072,29 +1233,49 @@
     ctx.shadowColor = 'rgba(190,140,255,0.9)';
     ctx.shadowBlur = 14;
     ctx.fillStyle = '#f3e9ff';
-    ctx.font = "900 " + Math.round(h * 0.34) + "px 'Cinzel', serif";
+    ctx.font = "900 " + Math.max(18, Math.round(h * 0.34)) + "px 'Cinzel', serif";
     ctx.fillText(effect.name, cx, top + h * 0.52);
     ctx.shadowBlur = 0;
 
     // The pair reads as one line under the banner: the player-favouring
     // hourglass and its half on the left, the broken enemy one on the right.
     // Icons sit out at the banner's decorated ends so they stay off her.
-    const iconR = Math.max(16, w * 0.045);
+    // Floors matter on a phone: straight percentages of a 330px-wide banner
+    // give a 6px font, which is unreadable.
+    const iconR = Math.max(14, w * 0.045);
     const halves = [
       { img: _tdPlayerIconImg, text: effect.playerHalf, dir: -1, color: '#ffe9a8' },
       { img: _tdEnemyIconImg, text: effect.enemyHalf, dir: 1, color: '#ff9aa6' },
     ];
     // Below the ring, in the clear band under her, so neither line crosses her.
     const rowY = Math.min(canvas.height - iconR * 1.6, L.centerY + L.ringR + iconR * 1.4);
-    ctx.font = Math.round(w * 0.021) + "px 'Courier New', monospace";
-    for (const half of halves) {
-      const hx = cx + half.dir * w * 0.26;
-      if (half.img.complete && half.img.naturalWidth) {
-        ctx.drawImage(half.img, hx - iconR * 2.6, rowY - iconR, iconR * 2, iconR * 2);
+    ctx.font = Math.max(11, Math.round(w * 0.021)) + "px 'Courier New', monospace";
+    // Each half is an icon followed by its line, measured and laid out as one
+    // group. Placing them at fixed offsets meant the text was centred on a
+    // point that sat inside its own icon, so the two overlapped as soon as the
+    // line was longer than the gap allowed for.
+    const gap = iconR * 0.55;
+    const groups = halves.map(half => {
+      const tw = ctx.measureText(half.text).width;
+      return { half, tw, width: iconR * 2 + gap + tw };
+    });
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const rowGap = iconR * 1.6;
+    const sideBySide = groups[0].width + groups[1].width + rowGap <= canvas.width * 0.94;
+    groups.forEach((g, i) => {
+      // Side by side when both fit on one line, stacked when they do not,
+      // which is what happens on a narrow screen or with longer copy.
+      const y = sideBySide ? rowY : rowY + (i - 0.5) * iconR * 2.4;
+      const startX = sideBySide
+        ? cx + (i === 0 ? -(g.width + rowGap / 2) : rowGap / 2)
+        : cx - g.width / 2;
+      if (g.half.img.complete && g.half.img.naturalWidth) {
+        ctx.drawImage(g.half.img, startX, y - iconR, iconR * 2, iconR * 2);
       }
-      ctx.fillStyle = half.color;
-      ctx.fillText(half.text, hx + iconR * 0.7, rowY);
-    }
+      ctx.fillStyle = g.half.color;
+      ctx.fillText(g.half.text, startX + iconR * 2 + gap, y);
+    });
     ctx.restore();
   }
 
@@ -1146,8 +1327,134 @@
     return 0.86;
   }
 
+  // How much of the freeze treatment this machine gets. The sequence runs for
+  // eleven seconds with the whole simulation stopped, so there is headroom on
+  // the tiers that can afford it, but none of it is worth a dropped frame on
+  // the ones that cannot.
+  //   0 HIGH   everything
+  //   1 MEDIUM everything, fewer of each
+  //   2 LOW    the grid only, no shards or scanline
+  //   3+ MIN   wash and vignette alone
+  function freezeTier() {
+    const lv = gfxLevel();
+    if (typeof _mobPerf !== 'undefined' && _mobPerf && lv < 2) return 2;
+    return lv;
+  }
+
+  // The stopped-time treatment layered over the flat wash: a faint lattice
+  // pulling toward her, shards of frozen light hanging in the air, a shock
+  // ring on the moment of the freeze, and a slow scanline crawling down.
+  // Everything is positioned out of `now` and a loop index, so none of it
+  // allocates and none of it needs state carried between frames.
+  function drawFreezeField(L, wash, elapsed, now) {
+    const tier = freezeTier();
+    if (tier >= 3 || wash <= 0.02) return;
+
+    const W = canvas.width, H = canvas.height;
+    // Everything radiates from the gate, not from where she ends up standing:
+    // the gate is what tore time open, so the shock ring and the scatter of
+    // shards both read as coming out of it.
+    const cx = L.gateX, cy = L.centerY;
+    const strength = Math.min(1, wash / 0.86);
+    const mobile = typeof _platform !== 'undefined' && _platform === 'mobile';
+
+    ctx.save();
+
+    // Lattice. Spacing scales with the canvas so a phone gets the same
+    // density rather than a much finer mesh crammed into a narrow screen.
+    const step = Math.max(34, Math.min(W, H) / (mobile ? 7 : 11));
+    const drift = Math.sin(now * 0.0004) * step * 0.25;
+    ctx.globalAlpha = strength * (tier === 0 ? 0.16 : 0.11);
+    ctx.strokeStyle = 'rgba(150,110,235,1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = -step + drift; x < W + step; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (let y = -step - drift; y < H + step; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+
+    if (tier <= 1) {
+      // Shards of caught light, hanging still but breathing very slightly so
+      // the screen does not read as a frozen image.
+      const shards = tier === 0 ? (mobile ? 16 : 26) : (mobile ? 9 : 14);
+      const reach = Math.max(W, H) * 0.52;
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < shards; i++) {
+        // Golden-angle scatter: an even spread with no repeating pattern and
+        // no random numbers, so every frame places them identically.
+        const a = i * 2.39996;
+        const rad = reach * Math.sqrt((i + 0.5) / shards);
+        const breathe = 0.82 + 0.18 * Math.sin(now * 0.0016 + i * 1.7);
+        const sx = cx + Math.cos(a) * rad;
+        const sy = cy + Math.sin(a) * rad * 0.78;
+        if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
+        const len = (6 + (i % 5) * 3) * breathe;
+        ctx.globalAlpha = strength * 0.5 * breathe;
+        ctx.strokeStyle = i % 3 === 0 ? 'rgba(226,196,255,1)' : 'rgba(150,104,232,1)';
+        ctx.lineWidth = i % 4 === 0 ? 1.8 : 1;
+        ctx.beginPath();
+        ctx.moveTo(sx - len * 0.5, sy - len * 0.28);
+        ctx.lineTo(sx + len * 0.5, sy + len * 0.28);
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // The shock of time stopping: two rings racing outward once, on the way in.
+    if (tier <= 1 && elapsed < 1500) {
+      const q = elapsed / 1500;
+      ctx.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 2; k++) {
+        const qq = q - k * 0.16;
+        if (qq <= 0 || qq >= 1) continue;
+        ctx.globalAlpha = (1 - qq) * 0.5;
+        ctx.strokeStyle = 'rgba(206,166,255,1)';
+        ctx.lineWidth = (1 - qq) * 4 + 0.6;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, Math.max(W, H) * 0.85 * qq, Math.max(W, H) * 0.62 * qq, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // A single band crawling down the frozen frame. Top tier only: it is a
+    // full-width fill and the cheapest thing to drop.
+    if (tier === 0) {
+      const band = H * 0.14;
+      const y = ((now * 0.035) % (H + band)) - band;
+      const g = ctx.createLinearGradient(0, y, 0, y + band);
+      g.addColorStop(0, 'rgba(170,130,255,0)');
+      g.addColorStop(0.5, 'rgba(190,150,255,0.055)');
+      g.addColorStop(1, 'rgba(170,130,255,0)');
+      ctx.globalAlpha = strength;
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y, W, band);
+    }
+
+    ctx.restore();
+  }
+
   // A vignette over the flat wash, so the frozen battlefield falls away at the
   // edges and the eye lands on her rather than on the HUD.
+  // Bullets and particles are rendered by Pixi into its own canvas, which sits
+  // ABOVE the 2D game canvas this overlay draws into (background.js gives
+  // gameCanvas z-index 1 and pixi-renderer.js puts pixiCanvas at 1 after it in
+  // the DOM). So the freeze wash could never darken them, and the player's
+  // shots stayed at full brightness while the rest of the world went dim,
+  // scattered across a scene that is supposed to have stopped. Dimming Pixi's
+  // stage by the same amount as the wash puts them on the same layer visually
+  // without touching the DOM every frame.
+  function dimPixi(wash) {
+    const app = window._pixiApp;
+    if (!app || !app.stage) return;
+    const want = Math.max(0, 1 - wash);
+    if (Math.abs(app.stage.alpha - want) > 0.004) app.stage.alpha = want;
+  }
+
+  function restorePixi() {
+    const app = window._pixiApp;
+    if (app && app.stage) app.stage.alpha = 1;
+  }
+
   let _vignetteGrad = null, _vignetteW = 0, _vignetteH = 0;
   function drawVignette(alpha) {
     if (alpha <= 0.01) return;
@@ -1259,7 +1566,7 @@
       // raise, plus hair pulled up by it.
       const charge = Math.sin(p * Math.PI);
       return {
-        back: false,
+        back: false, charge,
         x: L.standX + Math.sin(now * 0.037) * charge * 0.6,
         y: L.centerY - L.box * 0.012 * castExt,
         scale: 1 + charge * 0.012,
@@ -1315,12 +1622,17 @@
     g._appearTimer = 1500 * q;
     const ease = easeOutCubic(q);
     g.y = -g.size + (g._restY - (-g.size)) * ease;
+    g._summonAuraQ = q;
     return g;
   }
 
   // Both real game-logic beats, fired off elapsed time rather than off a
   // particular frame landing on them, so a dropped frame can never skip one.
-  function runSideEffects(cs, elapsed, L) {
+  function runSideEffects(cs, elapsed, L, hand) {
+    // Both bursts come off her palm. They used to be spawned at her body
+    // centre, which read as the particles erupting out of her stomach.
+    const fxX = hand ? hand.x : L.standX;
+    const fxY = hand ? hand.y : L.centerY - L.box * 0.18;
     if (!cs.spawned && elapsed >= SUMMON_AT) {
       cs.spawned = true;
       const before = enemies.length;
@@ -1331,12 +1643,14 @@
         g._appearTimer = 0;
         g.y = -g.size;
       }
-      spawnBurst(34, L.standX + L.box * 0.22, L.centerY - L.box * 0.18, '#ffe9a8', 2, 6, 30, 4);
+      // A short violet flare at her palm, as the summon leaves her hand. The
+      // arrival itself is shown on Goliath, in drawSummonAura below.
+      spawnBurst(18, fxX, fxY, '#d8b6ff', 2, 5, 22, 3);
     }
     if (!cs.applied && elapsed >= APPLY_AT) {
       cs.applied = true;
       if (typeof _applyTimelineDistortion === 'function') _applyTimelineDistortion(cs.effect);
-      spawnBurst(40, L.standX, L.centerY, '#d8b6ff', 2, 7, 34, 4);
+      spawnBurst(40, fxX, fxY, '#d8b6ff', 2, 7, 34, 4);
     }
   }
 
@@ -1353,8 +1667,10 @@
     // Time starts again, so the mix comes back with it - the gate always lifts,
     // or sound would stay dead for the rest of the run, but the restart behind
     // it is left to the player's own unpause when they have the game paused on
-    // top of this.
+    // top of this. The background follows the same rule.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(false, !gamePaused);
+    window._bgPaused = gamePaused === true;
+    restorePixi();
     if (!cs.spawned && typeof _spawnWaveGoliath === 'function') _spawnWaveGoliath();
     if (!cs.applied && typeof _applyTimelineDistortion === 'function') _applyTimelineDistortion(cs.effect);
     if (typeof _markKanadeIntroSeen === 'function') _markKanadeIntroSeen();
@@ -1368,9 +1684,14 @@
     const elapsed = now - cs.startedAt;
     const L = layout();
 
-    runSideEffects(cs, elapsed, L);
     const beat = currentBeat(elapsed);
     if (!beat) { finishCutscene(cs); return; }
+    // Pose first: the summon and cast bursts fire from her hand, so they need
+    // to know where it is. finishCutscene above still carries the safety net
+    // that fires either effect if its frame never came.
+    const t = (now / 900) % 1;
+    const pose = poseFor(L, beat.id, beat.p, now);
+    runSideEffects(cs, elapsed, L, handPos(L, pose, t));
 
     const wash = overlayAlpha(beat.id, beat.p);
     ctx.save();
@@ -1379,6 +1700,8 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
     drawVignette(wash);
+    drawFreezeField(L, wash, elapsed, now);
+    dimPixi(wash);
 
     const openness = gateOpenness(beat.id, beat.p);
     if (openness > 0) {
@@ -1391,6 +1714,7 @@
     const descending = goliathDrift(cs, elapsed);
     if (descending && typeof drawEnemy === 'function') {
       drawEnemy(descending);
+      drawSummonAura(descending, descending._summonAuraQ || 0, now);
       if (typeof _drawGoliathBossBar === 'function') _drawGoliathBossBar(descending);
     }
 
@@ -1400,8 +1724,6 @@
     if (ring.alpha > 0.4 && sakuraPetals.length < 46 && Math.random() < 0.12) spawnSakuraPetal(L);
     updateDrawSakura();
 
-    const t = (now / 900) % 1;
-    const pose = poseFor(L, beat.id, beat.p, now);
     if (pose) {
       if (pose.back) drawKanadeBack(t, pose.opts);
       else drawKanade(t, pose.opts);
@@ -1415,6 +1737,8 @@
       // Drawn over her it would otherwise swallow the back of her head, so
       // the near side of the halo is held back to about half strength.
       if (pose.back) drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha * 0.55, now);
+      // Over her, since it gathers in front of the palm.
+      if (pose.charge) drawCastEnergy(L, pose, t, now, pose.charge);
       if (pose.flash > 0.9 && fxParticles.length < 90) {
         spawnBurst(26, pose.x, pose.y - L.box * 0.16, '#fff4ff', 2, 6, 24, 4);
       }
@@ -1452,6 +1776,9 @@
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);
+    // The drifting starfield behind the arena is part of the world too - left
+    // running it was the one thing still moving while everything else held.
+    window._bgPaused = true;
     window._kanadeCutscene = {
       effect, wave: waveNum,
       startedAt: 0, spawned: false, applied: false,

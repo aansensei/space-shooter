@@ -561,6 +561,12 @@ window.debugSetYuukiBonus = function () {
         <input type="number" id="dbgSpawnSize" placeholder="Size" class="dbg-enemy-hp" style="width:70px;">
         <input type="number" id="dbgSpawnSpeed" placeholder="Speed" step="0.1" class="dbg-enemy-hp" style="width:60px;">
       </div>
+      <div class="dbg-row" style="flex-wrap:wrap; gap:10px;">
+        <label style="cursor:pointer; display:flex; gap:4px; align-items:center; font-size:11px;">
+          <input type="checkbox" id="dbgSpawnBlessed"> Administrator's Blessing
+        </label>
+      </div>
+      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Applies the blessing to whatever spawns next, skipping the 10% roll, the wave-6 gate and the 12-per-wave ceiling. Works on any type, including ones the real roll never picks.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
         <button class="dbg-btn" onclick="debugSpawn('spawnApostle')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="22–330" data-size="20–30">Apostle</button>
         <button class="dbg-btn" onclick="debugSpawn('spawnThaelis')" onmouseover="_dbgHint(this)" onmouseout="_dbgHint()" data-hp="1265–2640" data-size="100–150">Thaelis</button>
@@ -597,6 +603,24 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugSpawnWaveComposition()">Spawn Wave's Full Roster</button>
       </div>
       <div style="opacity:0.55; font-size:10px;">Runs that wave number through the real wave system: a 3s countdown, then the normal wave banner and a gradual spawn (the 15s queue for waves 1-10, the live trickle + surges for waves 11+), Goliath included if the wave is a multiple of 5. Hands back to the frozen sandbox once the wave is fully spawned and cleared. Applies that wave's Walpurgis and Yuuki scaling.</div>
+    </div>
+
+    <div class="dbg-section">
+      <div class="dbg-h">KANADE / TIMELINE DISTORTION</div>
+      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">The boss-wave cutscene and the effect it imposes. Playing it freezes the sim, the audio and the background exactly as a real boss wave does, and its summon beat spawns a real Goliath.</div>
+      <div class="dbg-row" style="flex-wrap:wrap;">
+        <button class="dbg-btn" onclick="debugPlayKanadeCutscene()">Play Cutscene</button>
+        <button class="dbg-btn" onclick="debugPlayKanadeCutscene(true)">Play (no Goliath)</button>
+        <button class="dbg-btn danger" onclick="debugStopKanadeCutscene()">Stop</button>
+      </div>
+      <div class="dbg-row" style="flex-wrap:wrap; margin-top:6px;">
+        <button class="dbg-btn" onclick="debugToggleStackOverflow()">Toggle Stack Overflow</button>
+        <span id="dbgStackOverflowState" style="font-size:10px; color:#7fd8ff; align-self:center;"></span>
+      </div>
+      <div class="dbg-row" style="flex-wrap:wrap; margin-top:6px;">
+        <button class="dbg-btn" onclick="debugResetKanadeIntro()">Reset "first viewing" flag</button>
+      </div>
+      <div style="opacity:0.55; font-size:10px;">Resetting the flag makes the next boss wave play the cutscene forced again and hides the Skip toggle in Settings until it has been watched once more.</div>
     </div>
 
     <div class="dbg-section">
@@ -764,6 +788,7 @@ window.debugSetYuukiBonus = function () {
             refreshEnemyList(); refreshSentinelList(); refreshDummyStatus(); updateSessionStatus();
             _refreshGreatSageGemDisplay();
             _refreshCancerStateDisplay();
+            _dbgRefreshStackOverflowState();
             const _dt = performance.now() - _t0;
             if (_dt > 15) console.warn('[DBGPANEL] refresh took ' + _dt.toFixed(0) + 'ms');
         }, 500);
@@ -1009,6 +1034,15 @@ window.debugSetYuukiBonus = function () {
     };
 
     // Spawn enemy / sentinel
+    // Administrator's Blessing on a debug spawn. Runs after the HP/Size/Speed
+    // overrides so its +20% Max HP and its own speed cut sit on top of the
+    // values typed in, matching the order the real wave path uses.
+    function applyDebugBlessing(enemy) {
+        const el = document.getElementById('dbgSpawnBlessed');
+        if (!el || !el.checked) return;
+        if (typeof _applyAdminBlessing === 'function') _applyAdminBlessing(enemy);
+    }
+
     function applySpawnStatOverrides(obj, allowSpeed) {
         const hpEl = document.getElementById('dbgSpawnHp');
         const sizeEl = document.getElementById('dbgSpawnSize');
@@ -1045,10 +1079,59 @@ window.debugSetYuukiBonus = function () {
         if (typeof x === 'number') e.x = x;
         if (typeof y === 'number') e.y = y;
         applySpawnStatOverrides(e, true);
+        applyDebugBlessing(e);
         refreshEnemyList();
     };
 
     window.debugSpawnSentinel = function () { window.debugSpawn('spawnSentinel'); };
+
+    // Kanade's cutscene, driven exactly as a boss wave drives it so the freeze,
+    // the audio gate, the background hold and the summon all behave the same.
+    window.debugPlayKanadeCutscene = function (noGoliath) {
+        if (typeof window._beginKanadeCutscene !== 'function' || typeof _rollTimelineDistortion !== 'function') return;
+        // The summon beat calls _spawnWaveGoliath itself. Stubbing it out for
+        // this one run is how the "no Goliath" variant stays a pure preview of
+        // the animation without leaving a boss behind afterwards.
+        if (noGoliath) {
+            const _realSpawn = window._spawnWaveGoliath;
+            window._spawnWaveGoliath = function () {};
+            setTimeout(() => { window._spawnWaveGoliath = _realSpawn; }, (window._KANADE_CUTSCENE_MS || 12000) + 500);
+        }
+        window._beginKanadeCutscene(_rollTimelineDistortion(), typeof _waveNumber !== 'undefined' ? _waveNumber : 5);
+        refreshEnemyList();
+    };
+
+    window.debugStopKanadeCutscene = function () {
+        window._kanadeCutscene = null;
+        // Undo what the freeze had taken over, since cutting it short skips
+        // the cutscene's own teardown.
+        if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(false, true);
+        window._bgPaused = false;
+        if (window._pixiApp && window._pixiApp.stage) window._pixiApp.stage.alpha = 1;
+    };
+
+    window.debugToggleStackOverflow = function () {
+        if (typeof _applyTimelineDistortion !== 'function') return;
+        if (window._timelineDistortion) _clearTimelineDistortion();
+        else _applyTimelineDistortion(_rollTimelineDistortion());
+        _dbgRefreshStackOverflowState();
+    };
+
+    function _dbgRefreshStackOverflowState() {
+        const el = document.getElementById('dbgStackOverflowState');
+        if (!el) return;
+        const on = !!window._stackOverflowActive;
+        el.textContent = on
+            ? 'active: ' + (window._timelineDistortion ? window._timelineDistortion.name : '?')
+            : 'inactive';
+    }
+
+    window.debugResetKanadeIntro = function () {
+        try {
+            localStorage.removeItem('kanadeIntroSeen');
+            localStorage.removeItem('kanadeSkipCutscene');
+        } catch (_) {}
+    };
 
     // Tái dùng đúng logic wave thật (js/main.js: _getWaveTemplate +
     // _spawnWaveTier) thay vì tự suy ra số lượng riêng — spawn NGAY LẬP TỨC
