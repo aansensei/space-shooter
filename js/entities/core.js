@@ -597,8 +597,13 @@ function dealDamage(enemy, source) {
             // as brutal against a Skill F/D-heavy loadout.
             const dmg = enemy.maxHp * (_blocked ? 0.10 : 0.22);
             if (_blocked) createParticles(enemy.x, enemy.y, 14, '#c084fc', 3, 9);
-            enemy.hp = Math.max(0, enemy.hp - dmg);
-            if (enemy.hp <= 0) enemy._markedForDeath = true;
+            // This branch computes its own damage and returns before the main
+            // pipeline below, so it has to go through the shared lethal path
+            // itself. Subtracting HP straight here (and flagging
+            // _markedForDeath) skipped Unbroken Will completely, which is why
+            // a Skill F / Skill D / Photokrystos-laser finishing blow killed
+            // Goliath outright with no save and no death animation.
+            _goliathApplyTrueFormDamage(enemy, dmg);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', enemy.x, enemy.y);
             // Warding Palm alone means a Goliath fight eats several full Skill
             // F cooldowns - landing a Skill F hit on it refunds 1.5s off Skill
@@ -1718,31 +1723,11 @@ function dealDamage(enemy, source) {
         enemy._yogMarkAccum = (enemy._yogMarkAccum || 0) + _hpDamageDealt + _shieldDamageDealt;
     }
 
-    // GOLIATH True Form, before Unbroken Will has fired: floor hp at 1
-    // instead of 0. _goliathTryUnbrokenWill above already catches the exact
-    // lethal hit directly (checks whether THIS hit would bring hp to 0 or
-    // below), so this floor is now just a safety net rather than the real
-    // trigger - it stops the death-phase check below from ever firing on a
-    // still-unsaved Goliath no matter how that hp value got computed.
-    const _gFloor = (enemy.type === 'goliath' && enemy.phase === 'true_form' && !enemy._unbrokenWillUsed) ? 1 : 0;
-    enemy.hp = Math.max(_gFloor, enemy.hp);
-    // GOLIATH True Form: bắt + ghim hp=1 NGAY TẠI ĐÂY, ĐỒNG BỘ trong chính
-    // dealDamage — không đợi tới frame sau để updateGoliath() bắt kịp nữa.
-    // Bất kỳ đoạn code nào gọi dealDamage() rồi tự ý splice/kill luôn enemy
-    // ngay sau đó trong CÙNG lần gọi (không đợi qua vòng lặp main.js) đều sẽ
-    // thấy hp đã về 1 trước khi kịp làm gì — loại hẳn khoảng hở thời gian mà
-    // trước đây khiến Goliath có thể "biến mất" không chạy hiệu ứng chết.
-    if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy.hp <= 0 && !enemy._deathPhase) {
-        enemy._deathPhase = 'core';
-        enemy._deathPhaseTimer = 0;
-        enemy._deathGemsExploded = 0;
-        enemy.hp = 1;
-        enemy._markedForDeath = false;
-        if (window.AudioMgr) {
-            window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y);
-            window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
-        }
-    }
+    // Clamp and, for Goliath, hold the 1 HP floor or hand off to the death
+    // sequence. Pinning it here inside dealDamage rather than waiting for the
+    // next updateGoliath() matters: a caller that kills and splices the enemy
+    // immediately after this same call still sees the settled value.
+    _goliathSettleLethalHp(enemy);
     if (enemy.hp <= 0) enemy._markedForDeath = true;
     // _noHitSfx: caller already plays its own dedicated hit sound for this
     // exact hit (e.g. skill-a-orb-hit, phantom-strike) — the generic

@@ -269,6 +269,44 @@ function _goliathApplySilence(durMs) {
 // tốc độ bay — cửa sổ này được mở đúng lúc bắn sóng giải phóng, xem
 // entities.js updateGoliath. Trả về true nếu đã kích hoạt (đòn này KHÔNG trừ
 // HP thật) để nơi gọi bỏ qua việc trừ HP.
+// Where every route that lowers True Form HP has to land. Three separate
+// places used to hold their own copy of this logic and one of them (Warding
+// Palm) was missing the Unbroken Will call entirely, so a Skill F / Skill D /
+// Photokrystos-laser killing blow deleted Goliath outright with no save and no
+// death sequence. Keeping it in one function is what stops that drifting apart
+// again.
+//   - Before Unbroken Will has fired, HP can never go below 1 by any route.
+//   - Once it has, reaching 0 hands off to the death sequence rather than to
+//     _markedForDeath, which removes the enemy with no animation at all.
+function _goliathSettleLethalHp(enemy) {
+    if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') {
+        enemy.hp = Math.max(0, enemy.hp);
+        return;
+    }
+    if (!enemy._unbrokenWillUsed) { enemy.hp = Math.max(1, enemy.hp); return; }
+    if (enemy.hp > 0) return;
+    if (enemy._deathPhase) { enemy.hp = Math.max(0, enemy.hp); return; }
+    enemy._deathPhase = 'core';
+    enemy._deathPhaseTimer = 0;
+    enemy._deathGemsExploded = 0;
+    enemy.hp = 1;
+    enemy._markedForDeath = false;
+    if (window.AudioMgr) {
+        window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y);
+        window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
+    }
+}
+
+// Subtract HP from True Form through Unbroken Will and the floor above, for
+// callers that compute their own damage and bypass dealDamage's pipeline.
+// Returns true when Unbroken Will ate the hit and no HP was lost.
+function _goliathApplyTrueFormDamage(enemy, dmg) {
+    if (_goliathTryUnbrokenWill(enemy, dmg)) return true;
+    enemy.hp -= dmg;
+    _goliathSettleLethalHp(enemy);
+    return false;
+}
+
 function _goliathTryUnbrokenWill(enemy, incomingHpDamage) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') return false;
     if (enemy._unbrokenWillUsed) return false;

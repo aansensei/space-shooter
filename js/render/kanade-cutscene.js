@@ -33,6 +33,10 @@
   _tdEnemyIconImg.src = 'assets/images/game/icons/timeline-distortion-enemy.png';
   const _kanadeHaloImg = new Image();
   _kanadeHaloImg.src = 'assets/images/game/effects/kanade-halo.png';
+  [_tdBannerImg, _tdPlayerIconImg, _tdEnemyIconImg, _kanadeHaloImg].forEach(img => {
+    img.decoding = 'async';
+    if (img.decode) img.decode().catch(() => {});
+  });
   const PAL = {
     hairShadow: '#6b6690', hairDeep: '#4a4570', hairMid: '#9f9cc4', hairLight: '#e7e5f5', hairHi: '#fffdf8',
     skin: '#ffe3d4', skinShadow: '#e3ac9d', blush: '#f5b7c2',
@@ -169,6 +173,54 @@
     serene: { brow: 'flat', eye: 'soft', mouth: 'soft' },
   };
   const OPEN_EYE_FAMILY = { open: 1, wide: 1, narrow: 1, up: 1, droop: 1 };
+  // One hand, as a single tapered mass with the thumb split off by a crease.
+  // The whole hand is about six pixels wide once she is on screen, and at that
+  // size separate 1px finger strokes read as claws rather than fingers, so the
+  // fingers are one silhouette and only its outline plus a crease or two
+  // suggest where they divide.
+  //   x, y  centre of the wrist, fingers hanging down from there
+  //   s     +1 when the thumb sits to the right of the fingers, -1 mirrored
+  //   open  0 for a relaxed hand, up to 1 for a splayed casting hand
+  function drawHand(x, y, s, open) {
+    open = open || 0;
+    const w = 1 + open * 0.5;        // fingers splay wider as the hand opens
+    const len = 1 + open * 0.15;     // and reach a little further
+    const X = (o) => x + o * s * w;
+    const Y = (o) => y + o * len;
+
+    // Wrist crease: where the forearm actually stops.
+    line([[X(-1.9), Y(-1.5)], [X(1.9), Y(-1.2)]], PAL.skinShadow, 0.6);
+
+    bezierShape([X(-2.4), Y(-1.7)], [
+      [X(-3.1), Y(1.8), X(-2.7), Y(5.2), X(-1.4), Y(6.7)],
+      [X(-0.1), Y(7.9), X(1.9), Y(7.1), X(2.3), Y(4.8)],
+      [X(2.9), Y(1.8), X(2.6), Y(-0.8), X(2.2), Y(-1.8)]
+    ], PAL.skin);
+
+    // Thumb: a small mass tucked against the inner edge, with its own crease
+    // so it separates from the fingers instead of merging into the palm.
+    ellipse(X(1.9), Y(1.9), 1.2 * w, 1.9, PAL.skin);
+    line([[X(0.9), Y(0.6)], [X(1.5), Y(3.7)]], PAL.skinShadow, 0.45);
+
+    // Creases between the closed fingers. A relaxed hand only needs one; a
+    // splayed hand shows the second as the fingers come apart.
+    line([[X(-0.5), Y(3.9)], [X(-0.3), Y(6.5)]], PAL.skinShadow, 0.4);
+    if (open > 0.3) line([[X(-1.5), Y(3.6)], [X(-1.5), Y(6.2)]], PAL.skinShadow, 0.4);
+
+    // A dark edge along the outside and around the fingertips. The hand sits
+    // against pale sleeve fabric, and skin on cream has so little contrast
+    // that without this the silhouette simply washes out.
+    bezierLine([X(-2.4), Y(-1.7)], [
+      [X(-3.1), Y(1.8), X(-2.7), Y(5.2), X(-1.4), Y(6.7)],
+      [X(-0.1), Y(7.9), X(1.9), Y(7.1), X(2.3), Y(4.8)]
+    ], PAL.outline, 0.55);
+    // Softer shading just inside that edge, so it reads as rounded rather
+    // than as a flat cutout with a line drawn round it.
+    bezierLine([X(-2), Y(0)], [
+      [X(-2.5), Y(2.4), X(-2.2), Y(5), X(-1.3), Y(6.1)]
+    ], PAL.skinShadow, 0.5);
+  }
+
   function drawKanade(t, opts) {
     opts = opts || {};
     const sway = Math.sin(t * Math.PI * 2) * (opts.swayAmp != null ? opts.swayAmp : 1.5);
@@ -308,16 +360,8 @@
     bezierLine([74, 53], [[69, 58, 64, 64, 62 + fabricTrail * 0.15, 70]], PAL.skin, 5.5);
     bezierLine([62 + fabricTrail * 0.15, 70], [[58 + fabricTrail * 0.3, 78, 53 + fabricTrail * 0.42, 85, 49 + fabricTrail * 0.5, 90]], PAL.skin, 4);
     bezierLine([72, 56], [[66, 62, 60 + fabricTrail * 0.2, 74, 51 + fabricTrail * 0.45, 91]], PAL.skinShadow, 1.2);
-    // Wrist crease marks where the forearm actually ends, then the palm,
-    // then 3 short separated finger lines instead of one undifferentiated
-    // bright blob - gives the hand real structure at a glance.
-    line([[46 + fabricTrail * 0.5, 88.5], [50 + fabricTrail * 0.5, 89]], PAL.skinShadow, 0.6);
-    ellipse(48 + fabricTrail * 0.5, 90, 2.4, 3.6, PAL.skin);
-    line([[46.5 + fabricTrail * 0.5, 92], [45.5 + fabricTrail * 0.55, 94.5]], PAL.skin, 0.9);
-    line([[48 + fabricTrail * 0.5, 93], [47.5 + fabricTrail * 0.55, 96]], PAL.skin, 0.9);
-    line([[49.5 + fabricTrail * 0.5, 92.5], [49.5 + fabricTrail * 0.55, 95]], PAL.skin, 0.9);
-    line([[46, 92.5], [48, 93.5]], PAL.skinShadow, 0.5);
-    line([[47.5, 93.5], [49, 94.5]], PAL.skinShadow, 0.5);
+    // Left hand, hanging relaxed off the end of the forearm above.
+    drawHand(48 + fabricTrail * 0.5, 88.6, 1, 0);
 
     // Small shoulder-socket shading where each arm actually meets the
     // torso, so the join reads clearly instead of the arm just vanishing
@@ -335,18 +379,16 @@
       bezierLine([108, 58], [[113, 57, 117 + castExt * 5, 57 - castExt * 10, elbowX, elbowY + 2]], PAL.indigoMid, 4);
       bezierLine([elbowX, elbowY], [[130 + castExt * 3, 48 - castExt * 9, handX - 3, handY + 2, handX, handY + 2]], PAL.skin, 4.5);
       bezierLine([elbowX, elbowY + 1], [[130 + castExt * 3, 50 - castExt * 9, handX - 3, handY + 4, handX, handY + 3]], PAL.skinShadow, 1.2);
-      // Same wrist-crease + palm + 3-finger structure the resting hands use
-      // (was 3 bare finger lines with no crease/shading, reading as fewer
-      // fingers than the other hand right next to it).
-      line([[handX - 1, handY + 3.5], [handX + 3, handY + 4]], PAL.skinShadow, 0.6);
-      ellipse(handX + 2, handY + 2, 3, 4, PAL.skin);
-      line([[handX + 3, handY - 1], [handX + 8, handY - 4]], PAL.skin, 1.2);
-      line([[handX + 4, handY], [handX + 9, handY - 1]], PAL.skin, 1.2);
-      line([[handX + 4, handY + 1], [handX + 8, handY + 2]], PAL.skin, 1.2);
-      // Short diagonal webbing creases right at the finger bases, not long
-      // parallel strokes - those read as a 4th/5th finger at this scale.
-      line([[handX + 3.3, handY - 0.7], [handX + 4.2, handY - 0.3]], PAL.skinShadow, 0.5);
-      line([[handX + 4.1, handY + 0.3], [handX + 4.6, handY + 0.8]], PAL.skinShadow, 0.5);
+      // The casting hand is the same shape splayed open and rotated so the
+      // fingers point up and outward along the raised arm, instead of a palm
+      // blob with three long strokes fanning off it.
+      // Rotation tracks the arm: near the body the hand still hangs, and by
+      // the top of the raise the fingers point up and out along it.
+      pctx.save();
+      pctx.translate(handX + 0.5, handY + 2);
+      pctx.rotate(-1 - castExt * 1.5);
+      drawHand(0, 0, -1, 0.45 + castExt * 0.35);
+      pctx.restore();
     } else {
       bezierShape([104, 52], [
         [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
@@ -373,13 +415,8 @@
       bezierLine([106, 54], [[111, 59, 116, 65, 119 + fabricTrail * 0.15, 73]], PAL.skin, 5.5);
       bezierLine([119 + fabricTrail * 0.15, 73], [[122 + fabricTrail * 0.25, 79, 125 + fabricTrail * 0.32, 84, 128 + fabricTrail * 0.35, 88]], PAL.skin, 4);
       bezierLine([108, 57], [[114, 65, 118 + fabricTrail * 0.2, 78, 127 + fabricTrail * 0.33, 89]], PAL.skinShadow, 1.2);
-      line([[127 + fabricTrail * 0.35, 86.5], [131 + fabricTrail * 0.35, 87]], PAL.skinShadow, 0.6);
-      ellipse(129 + fabricTrail * 0.35, 88, 2.4, 3.6, PAL.skin);
-      line([[127.5 + fabricTrail * 0.35, 90], [126.5 + fabricTrail * 0.4, 92.5]], PAL.skin, 0.9);
-      line([[129 + fabricTrail * 0.35, 91], [128.5 + fabricTrail * 0.4, 94]], PAL.skin, 0.9);
-      line([[130.5 + fabricTrail * 0.35, 90.5], [130.5 + fabricTrail * 0.4, 93]], PAL.skin, 0.9);
-      line([[127, 90.5], [129, 91.5]], PAL.skinShadow, 0.5);
-      line([[128.5, 91.5], [130, 92.5]], PAL.skinShadow, 0.5);
+      // Right hand, mirrored so its thumb faces the body like the left one's.
+      drawHand(129 + fabricTrail * 0.35, 86.8, -1, 0);
     }
 
     line([[70, 89], [65 + fabricTrail * 0.1, 116], [62 + fabricTrail * 0.3, 142]], PAL.creamShadow, 1.5);
@@ -396,9 +433,9 @@
     sparkle(99, 128, 3, PAL.gold);
     sparkle(73, 119, 2, PAL.goldHi);
     sparkle(116, 133, 2, PAL.goldHi);
-    sparkle(52 + fabricTrail * 0.5, 87, 2, PAL.gold);
-    sparkle(132 + fabricTrail * 0.5, 88, 2, PAL.gold);
-    rect(45 + fabricTrail * 0.8, 96, 1, 1, PAL.goldHi);
+    sparkle(56 + fabricTrail * 0.5, 81, 2, PAL.gold);
+    sparkle(136 + fabricTrail * 0.5, 82, 2, PAL.gold);
+    rect(41 + fabricTrail * 0.8, 99, 1, 1, PAL.goldHi);
     rect(137 + fabricTrail * 0.8, 97, 1, 1, PAL.goldHi);
     rect(64, 130, 1, 1, PAL.goldHi);
     rect(111, 120, 1, 1, PAL.goldHi);
@@ -645,9 +682,16 @@
   // Screen placement, recomputed every frame so a resize mid-cutscene simply
   // lands correctly on the next one. She stands left of centre; the gate she
   // steps out of and leaves through sits to her right.
+  // Rebuilt only when the canvas size actually changes. It used to allocate a
+  // fresh object every frame, which is small on its own but adds up across a
+  // sustained sequence and shows as periodic collection pauses.
+  const _layout = { box: 0, standX: 0, centerY: 0, gateX: 0, gateR: 0, ringR: 0 };
+  let _layoutW = 0, _layoutH = 0;
   function layout() {
+    if (_layoutW === canvas.width && _layoutH === canvas.height) return _layout;
+    _layoutW = canvas.width; _layoutH = canvas.height;
     const box = Math.min(canvas.height * 0.50, canvas.width * 0.44);
-    return {
+    return Object.assign(_layout, {
       box,
       standX: canvas.width * 0.37,
       // Low enough that the announcement banner clears her face.
@@ -655,7 +699,7 @@
       gateX: canvas.width * 0.66,
       gateR: box * 0.38,
       ringR: box * 0.62,
-    };
+    });
   }
 
   function blitSprite(L, x, y, scale, alpha) {
@@ -672,6 +716,21 @@
   // is written against a fixed 154px radius, so the caller's radius comes in
   // as a uniform scale around it and `openness` squashes it horizontally the
   // same way the prototype's portal opens and shuts.
+  // The gate's interior wash has fixed geometry and fixed stops, so it only
+  // ever needed building once rather than on every frame the gate is open.
+  // createRadialGradient is one of the more expensive calls on this path.
+  let _gateInteriorGrad = null;
+  function _gateInterior() {
+    if (!_gateInteriorGrad) {
+      _gateInteriorGrad = ctx.createRadialGradient(0, 0, 8, 0, 0, 154);
+      _gateInteriorGrad.addColorStop(0, 'rgba(18,12,42,0.82)');
+      _gateInteriorGrad.addColorStop(0.56, 'rgba(31,19,68,0.72)');
+      _gateInteriorGrad.addColorStop(0.84, 'rgba(89,58,142,0.28)');
+      _gateInteriorGrad.addColorStop(1, 'rgba(12,8,31,0)');
+    }
+    return _gateInteriorGrad;
+  }
+
   function drawGate(x, y, radius, openness, alpha, now) {
     if (openness <= 0 || alpha <= 0) return;
     const R = 154;
@@ -683,12 +742,7 @@
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
     ctx.scale(squash * k, k);
-    const interior = ctx.createRadialGradient(0, 0, 8, 0, 0, R);
-    interior.addColorStop(0, 'rgba(18,12,42,0.82)');
-    interior.addColorStop(0.56, 'rgba(31,19,68,0.72)');
-    interior.addColorStop(0.84, 'rgba(89,58,142,0.28)');
-    interior.addColorStop(1, 'rgba(12,8,31,0)');
-    ctx.fillStyle = interior;
+    ctx.fillStyle = _gateInterior();
     ctx.beginPath();
     ctx.arc(0, 0, R - 4, 0, Math.PI * 2);
     ctx.fill();
@@ -1016,7 +1070,7 @@
       ctx.drawImage(_tdBannerImg, cx - w / 2, top, w, h);
     }
     ctx.shadowColor = 'rgba(190,140,255,0.9)';
-    ctx.shadowBlur = 22;
+    ctx.shadowBlur = 14;
     ctx.fillStyle = '#f3e9ff';
     ctx.font = "900 " + Math.round(h * 0.34) + "px 'Cinzel', serif";
     ctx.fillText(effect.name, cx, top + h * 0.52);
@@ -1094,13 +1148,18 @@
 
   // A vignette over the flat wash, so the frozen battlefield falls away at the
   // edges and the eye lands on her rather than on the HUD.
+  let _vignetteGrad = null, _vignetteW = 0, _vignetteH = 0;
   function drawVignette(alpha) {
     if (alpha <= 0.01) return;
-    const g = ctx.createRadialGradient(
-      canvas.width * 0.45, canvas.height * 0.5, canvas.height * 0.18,
-      canvas.width * 0.45, canvas.height * 0.5, Math.max(canvas.width, canvas.height) * 0.72);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,0,0.85)');
+    if (!_vignetteGrad || _vignetteW !== canvas.width || _vignetteH !== canvas.height) {
+      _vignetteGrad = ctx.createRadialGradient(
+        canvas.width * 0.45, canvas.height * 0.5, canvas.height * 0.18,
+        canvas.width * 0.45, canvas.height * 0.5, Math.max(canvas.width, canvas.height) * 0.72);
+      _vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      _vignetteGrad.addColorStop(1, 'rgba(0,0,0,0.85)');
+      _vignetteW = canvas.width; _vignetteH = canvas.height;
+    }
+    const g = _vignetteGrad;
     ctx.save();
     ctx.globalAlpha = Math.min(1, alpha);
     ctx.fillStyle = g;
@@ -1117,6 +1176,19 @@
     if (beatId === 'cast') return { alpha: 1, energy: 0.65 + 0.35 * Math.sin(p * Math.PI) };
     if (beatId === 'leave') return { alpha: clamp01(1 - p / 0.45), energy: 0.45 };
     return { alpha: 0, energy: 0 };
+  }
+
+  // Slow secondary motion, layered under whatever a beat asks for. The three
+  // periods are deliberately unrelated (roughly 10.1s, 7.4s and 3.0s) so they
+  // never resynchronise into an obvious loop.
+  function breath(now) { return Math.sin(now * 0.00062); }
+  function drift(now) { return Math.sin(now * 0.00085 + 1.1); }
+  function flutter(now) { return Math.sin(now * 0.0021 + 0.4); }
+
+  // Hair and sleeves never hang perfectly still: a slow swell with a small
+  // faster ripple on it, scaled by how lively the beat is.
+  function idleTrail(now, amp) {
+    return (drift(now) * 1.7 + flutter(now) * 0.55) * amp;
   }
 
   let blinkUntil = 0;
@@ -1150,8 +1222,9 @@
         flash: 0,
         opts: {
           swayAmp: 1.6, bobAmp: 1.0,
-          lean: -3 * glide,
-          trail: 7 * glide,
+          lean: -3 * glide + breath(now) * 0.8,
+          trail: 7 * glide + idleTrail(now, 0.6),
+          whip: flutter(now) * 0.8 * glide,
           blink: false,
           expression: 'smug',
         },
@@ -1160,8 +1233,18 @@
 
     if (beatId === 'think') {
       return {
-        back: false, x: L.standX, y: L.centerY, scale: 1, alpha: 1, flash: 0,
-        opts: { swayAmp: 1.7, bobAmp: 1.2, blink: blinkNow(now), expression: 'thinking' },
+        back: false, x: L.standX, y: L.centerY,
+        // A breath in the scale as well as the bob, so the whole figure
+        // swells slightly instead of only sliding up and down.
+        scale: 1 + breath(now) * 0.006,
+        alpha: 1, flash: 0,
+        opts: {
+          swayAmp: 1.7, bobAmp: 1.2,
+          lean: breath(now) * 1.5,
+          trail: idleTrail(now, 1),
+          blink: blinkNow(now),
+          expression: 'thinking',
+        },
       };
     }
 
@@ -1172,10 +1255,20 @@
       if (p < 0.36) castExt = easeOutCubic(p / 0.36);
       else if (p < 0.72) castExt = 1;
       else castExt = 1 - easeInOut((p - 0.72) / 0.28);
+      // Power gathering: a fine tremor on top of the pose that grows with the
+      // raise, plus hair pulled up by it.
+      const charge = Math.sin(p * Math.PI);
       return {
-        back: false, x: L.standX, y: L.centerY, scale: 1, alpha: 1, flash: 0,
+        back: false,
+        x: L.standX + Math.sin(now * 0.037) * charge * 0.6,
+        y: L.centerY - L.box * 0.012 * castExt,
+        scale: 1 + charge * 0.012,
+        alpha: 1, flash: 0,
         opts: {
           swayAmp: 0.7, bobAmp: 0.35, castExt, blink: false,
+          lean: breath(now) * 0.7,
+          trail: idleTrail(now, 0.7) - 3.4 * castExt,
+          whip: Math.sin(now * 0.021) * charge * 1.2,
           expression: beatId === 'cast' ? 'smug' : 'determined',
         },
       };
@@ -1196,7 +1289,9 @@
       back, x, y, scale, alpha: clamp01(alpha),
       flash: (p >= 0.18 && p <= 0.30) ? Math.sin(((p - 0.18) / 0.12) * Math.PI) : 0,
       opts: {
-        swayAmp: 1.1, bobAmp: 0.45, trail,
+        swayAmp: 1.1, bobAmp: 0.45,
+        trail: trail + idleTrail(now, 0.5),
+        whip: flutter(now) * 0.6,
         walkStep: (p >= 0.30 && p < 0.90) ? Math.sin(now * 0.012) : 0,
         blink: false, expression: 'neutral',
       },
@@ -1302,7 +1397,7 @@
     const ring = ringState(beat.id, beat.p);
     ringRot += 0.004 + ring.energy * 0.01;
     drawSpellRing(L.standX, L.centerY, L.ringR, ring.energy, ring.alpha);
-    if (ring.alpha > 0.4 && Math.random() < 0.10) spawnSakuraPetal(L);
+    if (ring.alpha > 0.4 && sakuraPetals.length < 46 && Math.random() < 0.12) spawnSakuraPetal(L);
     updateDrawSakura();
 
     const t = (now / 900) % 1;
@@ -1311,8 +1406,15 @@
       if (pose.back) drawKanadeBack(t, pose.opts);
       else drawKanade(t, pose.opts);
       if (pose.flash > 0) tintBuffer('#fff8ff', pose.flash * 0.92);
-      drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha, now);
+      // The halo hovers behind her head, so which side of her it draws on
+      // depends on which way she is facing: seen from the front it sits
+      // further from the camera and her head occludes it, seen from behind
+      // it is the nearer of the two and occludes her hair instead.
+      if (!pose.back) drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha, now);
       blitSprite(L, pose.x, pose.y, pose.scale, pose.alpha);
+      // Drawn over her it would otherwise swallow the back of her head, so
+      // the near side of the halo is held back to about half strength.
+      if (pose.back) drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha * 0.55, now);
       if (pose.flash > 0.9 && fxParticles.length < 90) {
         spawnBurst(26, pose.x, pose.y - L.box * 0.16, '#fff4ff', 2, 6, 24, 4);
       }
@@ -1332,6 +1434,21 @@
   function beginKanadeCutscene(effect, waveNum) {
     fxParticles.length = 0;
     sakuraPetals.length = 0;
+    // Warm the banner's font and its shadowed-text path now. Doing it on the
+    // frame the banner first appears costs a few hundred milliseconds, which
+    // lands as a visible hitch right on the beat that is supposed to be the
+    // loudest moment of the sequence. Here it is six seconds early and free.
+    try {
+      ctx.save();
+      ctx.globalAlpha = 0;
+      ctx.shadowColor = 'rgba(190,140,255,0.9)';
+      ctx.shadowBlur = 14;
+      ctx.font = "900 48px 'Cinzel', serif";
+      ctx.fillText(effect.name, -9999, -9999);
+      ctx.font = "16px 'Courier New', monospace";
+      ctx.fillText(effect.playerHalf, -9999, -9999);
+      ctx.restore();
+    } catch (_) {}
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);

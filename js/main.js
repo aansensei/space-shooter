@@ -493,14 +493,16 @@ function update(rawDeltaTime) {
                         const maxHp = e.maxHp || e.hp;
                         const rawDmg = Math.ceil((wave._damage || 10) + maxHp * (wave._percentDamage || 0.99));
                         // Goliath True Form: this raw hp subtraction skips dealDamage
-                        // entirely, so it also skips dealDamage's own
-                        // _goliathTryUnbrokenWill check - meaning a BTM hit that
-                        // happens to be the lethal one could kill Goliath outright
-                        // without ever giving Unbroken Will a chance to fire. Route
-                        // through the same check here so BTM can't bypass it.
-                        const _goliathSaved = e.type === 'goliath' && e.phase === 'true_form'
-                            && typeof _goliathTryUnbrokenWill === 'function' && _goliathTryUnbrokenWill(e, rawDmg);
-                        if (!_goliathSaved) e.hp = Math.max(0, e.hp - rawDmg);
+                        // entirely, so it goes through the shared lethal path
+                        // directly - Unbroken Will, the 1 HP floor and the death
+                        // sequence all live in there, and BTM must not be able to
+                        // bypass any of them.
+                        const _isGoliathTF = e.type === 'goliath' && e.phase === 'true_form';
+                        if (_isGoliathTF && typeof _goliathApplyTrueFormDamage === 'function') {
+                            _goliathApplyTrueFormDamage(e, rawDmg);
+                        } else {
+                            e.hp = Math.max(0, e.hp - rawDmg);
+                        }
                         _recordStat('allyDamage', 'Skill S: Back to Motherland', rawDmg);
                         e.shield = 0;
                         e.absoluteShield = false;
@@ -511,12 +513,7 @@ function update(rawDeltaTime) {
                         // dealDamage() — nên phải tự ghim death-phase ngay tại
                         // chỗ này luôn, không thì chuỗi hiệu ứng chết (sống
                         // trong dealDamage) sẽ không bao giờ được kích hoạt.
-                        if (e.hp <= 0 && e.type === 'goliath' && e.phase === 'true_form' && !e._deathPhase) {
-                            e._deathPhase = 'core';
-                            e._deathPhaseTimer = 0;
-                            e._deathGemsExploded = 0;
-                            e.hp = 1;
-                        } else if (e.hp <= 0) { e._markedForDeath = true; e._btmKilled = true; }
+                        if (e.hp <= 0 && !_isGoliathTF) { e._markedForDeath = true; e._btmKilled = true; }
                         // Leviathan: Phōtokrystos BTM wave bypasses dealDamage → trigger last rites
                         if (e.type === 'leviathan' && e.hp <= 0 && !e._deathLaserSpawned) {
                             dealDamage(e, { damage: 0, percentDamage: 0 });
