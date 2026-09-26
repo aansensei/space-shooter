@@ -41,6 +41,25 @@
         'assets/images/game/effects/timeline-distortion-banner.png',
         'assets/images/game/effects/kanade-halo.png',
         'assets/images/game/effects/frozen-realm.jpg',
+        'assets/images/game/icons/soul-reaver-debuff.png',
+        'assets/images/game/icons/goliath-silence-debuff.png',
+        'assets/images/game/icons/dargruel-root-silence-debuff.png',
+        'assets/images/game/sigils/cancer-whirlpool-oceanfloor.png',
+        'assets/images/game/sigils/great-sage-gem-frame.png',
+        'assets/images/game/sigils/tidal-meter-frame.png',
+        'assets/images/game/zodiac/zodiac_aquarius.png',
+        'assets/images/game/zodiac/zodiac_aries.png',
+        'assets/images/game/zodiac/zodiac_cancer.png',
+        'assets/images/game/zodiac/zodiac_capricorn.png',
+        'assets/images/game/zodiac/zodiac_gemini.png',
+        'assets/images/game/zodiac/zodiac_leo.png',
+        'assets/images/game/zodiac/zodiac_libra.png',
+        'assets/images/game/zodiac/zodiac_pisces.png',
+        'assets/images/game/zodiac/zodiac_sagittarius.png',
+        'assets/images/game/zodiac/zodiac_scorpio.png',
+        'assets/images/game/zodiac/zodiac_taurus.png',
+        'assets/images/game/zodiac/zodiac_than.png',
+        'assets/images/game/zodiac/zodiac_virgo.png',
         'assets/video/frozen-realm.mp4',
         'assets/images/game/icons/blood-arrow-stack.png',
         'assets/images/game/enemies/marchosias-hexagon-armor.png',
@@ -181,8 +200,8 @@
     }
 
     const PACKAGES = {
-        basic: { label: 'Basic', sizeLabel: '~33MB', files: () => [...CORE_FILES, ...SFX_FILES] },
-        full:  { label: 'Full', sizeLabel: '~196MB (includes all music)', files: () => [...CORE_FILES, ...SFX_FILES, ...bgmFiles()] },
+        basic: { label: 'Basic', sizeLabel: '~60MB', files: () => [...CORE_FILES, ...SFX_FILES] },
+        full:  { label: 'Full', sizeLabel: '~210MB (includes all music)', files: () => [...CORE_FILES, ...SFX_FILES, ...bgmFiles()] },
     };
 
     // Was a hand-kept literal ('pisces-cache-v2') that had to be bumped by
