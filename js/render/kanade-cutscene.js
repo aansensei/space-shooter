@@ -33,7 +33,10 @@
   _tdEnemyIconImg.src = 'assets/images/game/icons/timeline-distortion-enemy.png';
   const _kanadeHaloImg = new Image();
   _kanadeHaloImg.src = 'assets/images/game/effects/kanade-halo.png';
-  [_tdBannerImg, _tdPlayerIconImg, _tdEnemyIconImg, _kanadeHaloImg].forEach(img => {
+  // The derelict citadel hanging in the void behind the stopped arena.
+  const _frozenRealmImg = new Image();
+  _frozenRealmImg.src = 'assets/images/game/effects/frozen-realm.jpg';
+  [_tdBannerImg, _tdPlayerIconImg, _tdEnemyIconImg, _kanadeHaloImg, _frozenRealmImg].forEach(img => {
     img.decoding = 'async';
     if (img.decode) img.decode().catch(() => {});
   });
@@ -1489,6 +1492,119 @@
     ctx.restore();
   }
 
+  // The citadel behind the freeze. Drawn over the wash rather than under it,
+  // because the wash is opaque where it has passed: this sits between the
+  // stopped battlefield and everything else the cutscene puts on top.
+  //
+  // Faded in with the front, so the place is revealed by the freeze reaching
+  // it rather than being there all along, and skipped entirely on the lowest
+  // tier since it is a full-screen image.
+  // Where the artwork lands on screen this frame, so the lighting below can
+  // sit on features of the painting rather than on arbitrary screen positions.
+  // Cover fit: fill the canvas and let the overflow crop, which is what the
+  // art brief's 18-82% vertical safe area was drawn against.
+  const _realmFit = { x: 0, y: 0, w: 0, h: 0 };
+  function realmFit(now) {
+    const W = canvas.width, H = canvas.height;
+    const iw = _frozenRealmImg.naturalWidth, ih = _frozenRealmImg.naturalHeight;
+    const scale = Math.max(W / iw, H / ih);
+    const dw = iw * scale, dh = ih * scale;
+    // A very slow drift, a fraction of a pixel per frame, so the place feels
+    // suspended rather than pasted on. Kept well inside the crop margin.
+    const driftX = Math.sin(now * 0.00007) * Math.min(14, (dw - W) * 0.5 + 6);
+    const driftY = Math.cos(now * 0.00005) * Math.min(10, (dh - H) * 0.5 + 4);
+    _realmFit.x = (W - dw) / 2 + driftX;
+    _realmFit.y = (H - dh) / 2 + driftY;
+    _realmFit.w = dw;
+    _realmFit.h = dh;
+    return _realmFit;
+  }
+
+  function drawFrozenRealm(L, reach, now) {
+    if (freezeTier() >= 3) return;
+    if (reach <= 0.02) return;
+    if (!_frozenRealmImg.complete || !_frozenRealmImg.naturalWidth) return;
+    const f = realmFit(now);
+    ctx.save();
+    ctx.globalAlpha = 0.25 * reach;
+    ctx.drawImage(_frozenRealmImg, f.x, f.y, f.w, f.h);
+    ctx.restore();
+  }
+
+  // Light on top of the painting. Without it the backdrop reads as a still
+  // photograph pasted behind the scene: the black hole sits there inert and
+  // the emptier half of the frame has nothing happening in it at all.
+  //
+  // Two pieces, both cheap. A slow breathing bloom anchored to the accretion
+  // disk in the artwork, and dust drifting through the void. Everything is
+  // positioned from `now` and a loop index, so nothing is allocated per frame.
+  //
+  // UV coordinates of the disk within the source image, eyeballed off the art.
+  const REALM_DISK_U = 0.56, REALM_DISK_V = 0.20;
+
+  function drawRealmLight(L, reach, now) {
+    const tier = freezeTier();
+    if (tier >= 3 || reach <= 0.02) return;
+    if (!_frozenRealmImg.complete || !_frozenRealmImg.naturalWidth) return;
+
+    const W = canvas.width, H = canvas.height;
+    const f = realmFit(now);
+    const dx = f.x + f.w * REALM_DISK_U;
+    const dy = f.y + f.h * REALM_DISK_V;
+    const glow = energyGlow();
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    // The disk breathing. Two offset periods so it never settles into an
+    // obvious pulse.
+    const breath = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(now * 0.00035))
+                        * (0.75 + 0.25 * Math.sin(now * 0.00097 + 1.3));
+    const bloom = Math.min(W, H) * (0.34 + 0.06 * breath);
+    ctx.globalAlpha = 0.16 * reach * breath;
+    ctx.drawImage(glow, dx - bloom, dy - bloom, bloom * 2, bloom * 2);
+
+    // Dust suspended in the void, thickest toward the disk and thinning out
+    // across the empty side of the frame. Time is stopped, so it barely moves:
+    // this is a slow shimmer, not a particle system.
+    const motes = tier === 0 ? 54 : (tier === 1 ? 32 : 16);
+    for (let i = 0; i < motes; i++) {
+      // Golden-angle scatter over the whole canvas, deterministic per index.
+      const a = i * 2.39996;
+      const rad = Math.sqrt((i + 0.5) / motes);
+      const mx = dx + Math.cos(a) * rad * W * 0.72;
+      const my = dy + Math.sin(a) * rad * H * 0.95;
+      if (mx < -8 || mx > W + 8 || my < -8 || my > H + 8) continue;
+      // Each mote fades in and out on its own slow cycle.
+      const twinkle = 0.5 + 0.5 * Math.sin(now * 0.0006 + i * 1.7);
+      const sz = 1 + (i % 3) * 0.7;
+      ctx.globalAlpha = 0.5 * reach * twinkle * (1 - rad * 0.55);
+      ctx.fillStyle = i % 5 === 0 ? 'rgba(255,170,190,1)' : 'rgba(198,180,255,1)';
+      ctx.fillRect(mx - sz / 2, my + Math.sin(now * 0.0002 + i) * 3 - sz / 2, sz, sz);
+    }
+
+    // A few long shafts thrown off the disk, top tier only: these are the one
+    // part here that costs real stroke work.
+    if (tier === 0) {
+      const shafts = 5;
+      for (let i = 0; i < shafts; i++) {
+        const a = -0.35 + i * 0.22 + Math.sin(now * 0.00013 + i) * 0.05;
+        const len = Math.max(W, H) * (0.5 + 0.12 * Math.sin(now * 0.0004 + i * 2.1));
+        const g = ctx.createLinearGradient(dx, dy, dx + Math.cos(a) * len, dy + Math.sin(a) * len);
+        g.addColorStop(0, 'rgba(214,190,255,0.16)');
+        g.addColorStop(1, 'rgba(214,190,255,0)');
+        ctx.globalAlpha = reach * (0.5 + 0.5 * Math.sin(now * 0.0003 + i));
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 16 + i * 5;
+        ctx.beginPath();
+        ctx.moveTo(dx, dy);
+        ctx.lineTo(dx + Math.cos(a) * len, dy + Math.sin(a) * len);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
   // A vignette over the flat wash, so the frozen battlefield falls away at the
   // edges and the eye lands on her rather than on the HUD.
   // Bullets and particles are rendered by Pixi into its own canvas, which sits
@@ -1752,6 +1868,8 @@
     const wash = overlayAlpha();
     const reach = freezeFront(beat.id, beat.p);
     drawFreezeWash(L, wash, reach);
+    drawFrozenRealm(L, reach, now);
+    drawRealmLight(L, reach, now);
     // The vignette and the lattice only make sense once the front has covered
     // the screen, so they come up with it rather than ahead of it.
     drawVignette(wash * reach);

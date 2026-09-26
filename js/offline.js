@@ -40,6 +40,7 @@
         'assets/images/game/icons/timeline-distortion-enemy.png',
         'assets/images/game/effects/timeline-distortion-banner.png',
         'assets/images/game/effects/kanade-halo.png',
+        'assets/images/game/effects/frozen-realm.jpg',
         'assets/images/game/icons/blood-arrow-stack.png',
         'assets/images/game/enemies/marchosias-hexagon-armor.png',
         'assets/images/game/enemies/thaelis-cocoon.png',
