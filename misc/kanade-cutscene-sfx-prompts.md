@@ -59,6 +59,11 @@ high above like light rippling down through water. Muffled and weightless,
 highs rolled off. No rhythm, no melody. Cold and vast. 8 seconds.
 ```
 
+File trong repo được nâng loudness sau khi nối: boost 7 dB rồi qua limiter
+chặn ở 0.63 với `level=disabled`, ra mean -12.7 dB và peak -4.27 dB. Làm ở
+file chứ không kéo `SFX_BASE` lên, vì ở mức 1.55 mà file giữ nguyên peak gốc
+-2.8 dB thì đã vượt 0 dBFS và méo rồi.
+
 Đây là tầng nền quyết định cảm giác của cả cutscene: thời gian ngưng đọng nghe
 như bị nhấn chìm dưới đáy biển, không phải như một căn phòng câm.
 

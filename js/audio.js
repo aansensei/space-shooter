@@ -344,7 +344,10 @@
         // sequence and sits above the one-shots rather than under them; the
         // collapse layer is texture on top of it, kept well back so the
         // cracking colours the room without competing with the bed or the
-        // beats landing on it.
+        // beats landing on it. The bed's level lives in the file rather than
+        // here: it is limited to -4.3 dBFS peak at -12.7 dB mean, so 1.55x
+        // still lands under full scale. Raising this number instead would
+        // only clip it.
         'kanade-time-freeze': 1.2, 'kanade-frozen-ambience': 1.55,
         'kanade-collapse-loop': 0.5,
         'kanade-gate-open': 1.0, 'kanade-emerge': 0.9, 'kanade-think': 0.8,

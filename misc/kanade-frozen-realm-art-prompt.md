@@ -127,3 +127,78 @@ cover, căn giữa. Opacity bám theo `reach` của mặt sóng để toà thàn
 đúng lúc không gian ngưng đọng lan tới chứ không bật sẵn. Bỏ hẳn ở tầng đồ
 hoạ thấp nhất vì đây là ảnh full màn hình. Thêm vào precache của
 `js/offline.js` và `sw.js` kèm bump `CACHE_VERSION`.
+
+---
+
+## PHẦN 4: Prompt Veo, biến ảnh tĩnh thành video loop
+
+Dùng chế độ **image-to-video**, đưa chính file `frozen-realm.jpg` vào làm ảnh
+gốc. Không phải text-to-video, nếu không nó sẽ vẽ lại một toà thành khác.
+
+Chỉ copy đúng khối trong khung:
+
+```
+Animate this image. Locked-off static camera. No pan, no zoom, no push-in,
+no dolly, no parallax, no camera shake. The framing is identical in the first
+and last frame.
+
+The black hole is alive and is the focus of all motion. Its accretion disk
+rotates continuously and visibly around the event horizon, the bright ring
+streaming and churning along its length with hot filaments moving through it.
+Its light pulses and breathes, brightening and dimming across the shot, and
+the lensed arc of light bending around the black sphere shimmers and warps as
+the disk turns. The event horizon itself stays a perfect still black circle.
+
+Every floating black cube and slab is drifting. None of them are static: each
+one moves slowly through the void on its own path and tumbles gently as it
+goes, rotating a few degrees. The red glow along their edges flickers and
+pulses, brighter and dimmer, and thin red glitch bands crawl along the seams
+at irregular intervals like data corruption spreading. Small shards and
+pixel-like fragments break off the corroding blocks and drift away into the
+dark. Faint dust and embers drift slowly through the whole frame.
+
+The citadel itself hangs completely motionless, as if time around it has
+stopped. It is the one still thing in the shot.
+
+The cubes stay entirely within frame and never pass in front of the citadel's
+silhouette. Nothing enters or leaves the frame. No people, no creatures, no
+ships, no new objects. No text, no captions, no subtitles, no logos, no
+watermark, no UI. Completely silent: no audio, no music, no sound effects,
+no ambience.
+```
+
+### Cài đặt
+
+- Tỉ lệ **16:9**, khớp với 1536 x 1024 của ảnh gốc và với `"orientation":
+  "landscape"` trong `manifest.json`
+- Độ dài mặc định 8 giây là đủ, ping-pong xong thành 16 giây
+- Tắt audio nếu giao diện có nút đó. Veo 3 mặc định tự sinh tiếng, mà prompt
+  đã ghi silent nhưng nút vẫn chắc hơn chữ
+
+### Vì sao chia rõ cái gì động, cái gì tĩnh
+
+Veo hiểu "very slowly" thành "gần như đứng yên", nên bản đầu ra các khối gần
+như bất động và hố đen chỉ sáng lên tắt đi. Prompt giờ nói thẳng hố đen là tâm
+của mọi chuyển động và **không khối nào được đứng yên**, mô tả từng thứ chúng
+làm (trôi, lật nhẹ, viền đỏ nhấp nháy, vệt glitch bò dọc mép, mảnh vỡ tách ra)
+thay vì gộp chung một câu.
+
+Toà thành vẫn phải đứng im, và giờ prompt nói rõ nó là thứ duy nhất đứng im.
+Đó là điểm neo của cả cảnh: mọi thứ quanh nó rã ra trong khi bản thân nó bị
+đóng băng.
+
+### Vì sao prompt khoá chặt camera
+
+Veo rất thích tự thêm push-in chậm. Camera trôi một chút là hỏng cả hai việc:
+bố cục lệch khỏi vùng an toàn 18% đến 82% mà ảnh được vẽ theo, và khung cuối
+không còn khớp khung đầu nên ping-pong sẽ giật.
+
+Cũng vì thế mà prompt cấm mọi thứ đi vào hoặc ra khỏi khung. Một khối trôi ra
+ngoài rồi biến mất là một chi tiết không thể khớp lại khi lặp.
+
+### Loop
+
+Veo không tạo loop khít, khung cuối gần như chắc chắn lệch khung đầu. Gen xong
+đưa file cho tôi, tôi ghép **ping-pong** bằng ffmpeg: phát xuôi rồi phát ngược,
+khít tuyệt đối vì khung cuối của chiều này đúng là khung đầu của chiều kia.
+Chuyển động trôi lơ lửng rất hợp kiểu này, xem ngược cũng không nhận ra.

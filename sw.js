@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v409';
+const CACHE_VERSION = 'v410';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -40,6 +40,7 @@ const CORE_FILES = [
     'assets/images/game/effects/timeline-distortion-banner.png',
     'assets/images/game/effects/kanade-halo.png',
     'assets/images/game/effects/frozen-realm.jpg',
+    'assets/video/frozen-realm.mp4',
     'assets/images/game/icons/blood-arrow-stack.png',
     'assets/images/game/icons/dargruel-root-silence-debuff.png',
     'assets/images/game/icons/goliath-silence-debuff.png',

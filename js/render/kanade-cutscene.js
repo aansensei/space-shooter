@@ -33,9 +33,43 @@
   _tdEnemyIconImg.src = 'assets/images/game/icons/timeline-distortion-enemy.png';
   const _kanadeHaloImg = new Image();
   _kanadeHaloImg.src = 'assets/images/game/effects/kanade-halo.png';
-  // The derelict citadel hanging in the void behind the stopped arena.
+  // The derelict citadel hanging in the void behind the stopped arena. The
+  // footage is the real backdrop; the still is what gets drawn when it cannot
+  // be (decode not finished, format refused, or a graphics tier where paying
+  // to decode video every frame is not worth it).
   const _frozenRealmImg = new Image();
   _frozenRealmImg.src = 'assets/images/game/effects/frozen-realm.jpg';
+  // Muted and inline so it is allowed to autoplay without a gesture. It is
+  // only ever running while the cutscene is on screen: a decoding video is
+  // real work and there is no reason to pay for it the rest of the run.
+  let _realmVidOk = false;
+  const _frozenRealmVid = document.createElement('video');
+  _frozenRealmVid.muted = true;
+  _frozenRealmVid.defaultMuted = true;
+  _frozenRealmVid.loop = true;
+  _frozenRealmVid.playsInline = true;
+  _frozenRealmVid.setAttribute('playsinline', '');
+  _frozenRealmVid.setAttribute('muted', '');
+  _frozenRealmVid.preload = 'auto';
+  _frozenRealmVid.addEventListener('canplay', () => { _realmVidOk = true; });
+  _frozenRealmVid.addEventListener('error', () => { _realmVidOk = false; });
+  _frozenRealmVid.src = 'assets/video/frozen-realm.mp4';
+
+  // Decoding a 720p frame every frame is the one part of this backdrop that
+  // costs real time, so the two reduced tiers fall back to the still.
+  function realmVideoReady() {
+    return _realmVidOk && _frozenRealmVid.readyState >= 2
+      && _frozenRealmVid.videoWidth > 0 && freezeTier() <= 1;
+  }
+
+  function startRealmVideo() {
+    if (!_realmVidOk || freezeTier() > 1) return;
+    try { _frozenRealmVid.currentTime = 0; _frozenRealmVid.play().catch(() => {}); } catch (_) {}
+  }
+
+  function stopRealmVideo() {
+    try { _frozenRealmVid.pause(); _frozenRealmVid.currentTime = 0; } catch (_) {}
+  }
   [_tdBannerImg, _tdPlayerIconImg, _tdEnemyIconImg, _kanadeHaloImg, _frozenRealmImg].forEach(img => {
     img.decoding = 'async';
     if (img.decode) img.decode().catch(() => {});
@@ -1354,12 +1388,33 @@
 
   // The wash itself, bounded by the front. A hard-ish edge with a short
   // feathered band reads as an expanding wavefront rather than a fade.
+  // Where the front is this frame, measured from the gate she opens. One
+  // source of truth: the wash draws to it, and everything that belongs to the
+  // frozen space is clipped by it.
+  function frontRadius(L, reach) {
+    const W = canvas.width, H = canvas.height;
+    const cx = L.gateX, cy = L.centerY;
+    return Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) * 1.02 * reach;
+  }
+
+  // The stopped world exists inside the front and nowhere else, so its layers
+  // are cut to that circle rather than faded across the whole screen. Fading
+  // them left the citadel and the lattice hanging over the live arena after
+  // the front had already withdrawn past them, and on the way in they simply
+  // appeared everywhere at once instead of spreading out of the gate.
+  // Caller owns the save/restore.
+  function clipToFront(L, reach) {
+    if (reach >= 0.999) return;
+    ctx.beginPath();
+    ctx.arc(L.gateX, L.centerY, frontRadius(L, reach), 0, Math.PI * 2);
+    ctx.clip();
+  }
+
   function drawFreezeWash(L, wash, reach) {
     if (wash <= 0.01 || reach <= 0.001) return;
     const W = canvas.width, H = canvas.height;
     const cx = L.gateX, cy = L.centerY;
-    const maxR = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) * 1.02;
-    const r = maxR * reach;
+    const r = frontRadius(L, reach);
     ctx.save();
     if (reach >= 0.999) {
       ctx.globalAlpha = wash;
@@ -1512,9 +1567,8 @@
   // Cover fit: fill the canvas and let the overflow crop, which is what the
   // art brief's 18-82% vertical safe area was drawn against.
   const _realmFit = { x: 0, y: 0, w: 0, h: 0 };
-  function realmFit(now) {
+  function realmFit(now, iw, ih) {
     const W = canvas.width, H = canvas.height;
-    const iw = _frozenRealmImg.naturalWidth, ih = _frozenRealmImg.naturalHeight;
     const scale = Math.max(W / iw, H / ih);
     const dw = iw * scale, dh = ih * scale;
     // A very slow drift, a fraction of a pixel per frame, so the place feels
@@ -1531,11 +1585,36 @@
   function drawFrozenRealm(L, reach, now) {
     if (freezeTier() >= 3) return;
     if (reach <= 0.02) return;
-    if (!_frozenRealmImg.complete || !_frozenRealmImg.naturalWidth) return;
-    const f = realmFit(now);
+    const vid = realmVideoReady();
+    const src = vid ? _frozenRealmVid : _frozenRealmImg;
+    const iw = vid ? _frozenRealmVid.videoWidth : _frozenRealmImg.naturalWidth;
+    const ih = vid ? _frozenRealmVid.videoHeight : _frozenRealmImg.naturalHeight;
+    if (!iw || !ih) return;
+    if (!vid && !_frozenRealmImg.complete) return;
+    _realmIsVideo = vid;
+    const f = realmFit(now, iw, ih);
     ctx.save();
-    ctx.globalAlpha = 0.25 * reach;
-    ctx.drawImage(_frozenRealmImg, f.x, f.y, f.w, f.h);
+    clipToFront(L, reach);
+    // Held at full strength inside the front instead of scaled by it: the
+    // citadel is simply there wherever time has stopped. It sits under an
+    // overlay that takes the scene down to 14 percent, so this is already a
+    // long way from the source's own brightness. The ceiling is where the
+    // citadel starts competing with her.
+    ctx.globalAlpha = 0.32;
+    ctx.drawImage(src, f.x, f.y, f.w, f.h);
+
+    // Bloom taken from the picture itself: the same frame again, slightly
+    // enlarged and added on top, so wherever the source is bright it blooms
+    // and wherever it is dark nothing happens. Cheaper and truer to the art
+    // than any glow drawn by hand, but it is a second full-frame draw, so
+    // only the top tier pays for it.
+    if (freezeTier() === 0) {
+      const grow = 1.035;
+      const bw = f.w * grow, bh = f.h * grow;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.11;
+      ctx.drawImage(src, f.x - (bw - f.w) / 2, f.y - (bh - f.h) / 2, bw, bh);
+    }
     ctx.restore();
   }
 
@@ -1547,18 +1626,28 @@
   // disk in the artwork, and dust drifting through the void. Everything is
   // positioned from `now` and a loop index, so nothing is allocated per frame.
   //
-  // UV coordinates of the disk within the source image, eyeballed off the art.
+  // Where the accretion disk sits within each source, as a fraction of its
+  // own frame. The two are nowhere near each other: the painting puts the
+  // black hole right of centre and high, the footage puts it left and near
+  // the middle, so lighting both from one point lit empty space in one of
+  // them. Read off the sources themselves.
   const REALM_DISK_U = 0.56, REALM_DISK_V = 0.20;
+  const REALM_VID_DISK_U = 0.22, REALM_VID_DISK_V = 0.43;
+  // Which source drawFrozenRealm actually used this frame.
+  let _realmIsVideo = false;
 
   function drawRealmLight(L, reach, now) {
     const tier = freezeTier();
     if (tier >= 3 || reach <= 0.02) return;
-    if (!_frozenRealmImg.complete || !_frozenRealmImg.naturalWidth) return;
 
     const W = canvas.width, H = canvas.height;
-    const f = realmFit(now);
-    const dx = f.x + f.w * REALM_DISK_U;
-    const dy = f.y + f.h * REALM_DISK_V;
+    // Positioned off whatever drawFrozenRealm just laid down, footage or
+    // still, so the bloom stays on the disk either way. A zero width means it
+    // drew nothing this frame and there is nothing to light.
+    const f = _realmFit;
+    if (!f.w) return;
+    const dx = f.x + f.w * (_realmIsVideo ? REALM_VID_DISK_U : REALM_DISK_U);
+    const dy = f.y + f.h * (_realmIsVideo ? REALM_VID_DISK_V : REALM_DISK_V);
     const glow = energyGlow();
 
     ctx.save();
@@ -1902,6 +1991,7 @@
     }
     window._kanadeCutscene = null;
     window._kanadeSnapAlpha = 1;
+    stopRealmVideo();
     if (window.AudioMgr && window.AudioMgr.stopCutsceneAmbience) window.AudioMgr.stopCutsceneAmbience();
     fxParticles.length = 0;
     sakuraPetals.length = 0;
@@ -1954,11 +2044,17 @@
     drivePixi(reach);
     drawFreezeWash(L, wash, reach);
     drawFrozenRealm(L, reach, now);
+    ctx.save();
+    clipToFront(L, reach);
     drawRealmLight(L, reach, now);
+    ctx.restore();
     // The vignette and the lattice only make sense once the front has covered
     // the screen, so they come up with it rather than ahead of it.
     drawVignette(wash * reach);
+    ctx.save();
+    clipToFront(L, reach);
     drawFreezeField(L, wash * reach, elapsed, now);
+    ctx.restore();
     // Bullets dim with the front too, so nothing outside it goes dark early.
 
     const openness = gateOpenness(beat.id, beat.p);
@@ -2042,6 +2138,7 @@
     // The drifting starfield behind the arena is part of the world too - left
     // running it was the one thing still moving while everything else held.
     window._bgPaused = true;
+    startRealmVideo();
     window._kanadeCutscene = {
       effect, wave: waveNum,
       startedAt: 0, spawned: false, applied: false,
