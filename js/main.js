@@ -3503,6 +3503,7 @@ function startGame() {
     window._bloodArrowStacks = 0;
     window._kanadeCutscene = null;
     _adminBlessedThisWave = 0;
+    if (typeof window._clearFreezeSnapshot === 'function') window._clearFreezeSnapshot();
     // A run started mid-cutscene would otherwise leave Pixi's stage and the
     // background stuck at whatever the freeze last set them to.
     if (window._pixiApp && window._pixiApp.stage) window._pixiApp.stage.alpha = 1;

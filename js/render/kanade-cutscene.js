@@ -760,37 +760,43 @@
     ctx.arc(0, 0, R - 18, 0, Math.PI * 2);
     ctx.clip();
     ctx.globalCompositeOperation = 'lighter';
+    // Per-line alpha goes through globalAlpha rather than into a fresh rgba()
+    // string. Same result on screen, no allocation and no colour parse for the
+    // roughly fifty lines these three loops draw every frame.
+    ctx.strokeStyle = 'rgb(193,169,255)';
     for (let gy = -112; gy <= 112; gy += 16) {
       const half = Math.sqrt(Math.max(0, (R - 22) * (R - 22) - gy * gy));
       const shimmer = 0.1 + 0.1 * Math.sin(now * 0.004 + gy * 0.08);
-      ctx.strokeStyle = `rgba(193,169,255,${shimmer})`;
+      ctx.globalAlpha = alpha * shimmer;
       ctx.lineWidth = 0.8 * lineComp;
       ctx.beginPath();
       ctx.moveTo(-half, gy);
       ctx.lineTo(half, gy);
       ctx.stroke();
     }
+    ctx.strokeStyle = 'rgb(151,126,226)';
     for (let gx = -112; gx <= 112; gx += 16) {
       const half = Math.sqrt(Math.max(0, (R - 22) * (R - 22) - gx * gx));
       const shimmer = 0.08 + 0.09 * Math.sin(now * 0.0035 + gx * 0.07);
-      ctx.strokeStyle = `rgba(151,126,226,${shimmer})`;
+      ctx.globalAlpha = alpha * shimmer;
       ctx.lineWidth = 0.75 * lineComp;
       ctx.beginPath();
       ctx.moveTo(gx, -half);
       ctx.lineTo(gx, half);
       ctx.stroke();
     }
+    ctx.strokeStyle = 'rgb(239,226,255)';
+    ctx.globalAlpha = alpha * (0.035 + pulse * 0.025);
+    ctx.lineWidth = 0.55 * lineComp;
     for (let sy = -104; sy <= 104; sy += 9) {
       const drift = Math.sin(now * 0.005 + sy * 0.12) * 5;
       const half = Math.sqrt(Math.max(0, (R - 26) * (R - 26) - sy * sy));
-      ctx.strokeStyle = `rgba(239,226,255,${0.035 + pulse * 0.025})`;
-      ctx.lineWidth = 0.55 * lineComp;
       ctx.beginPath();
       ctx.moveTo(-half + drift, sy);
       ctx.lineTo(half + drift, sy);
       ctx.stroke();
     }
-    ctx.restore();
+    ctx.restore(); // also restores the globalAlpha the loops above changed
 
     ctx.globalCompositeOperation = 'lighter';
     ctx.shadowColor = '#c8a9ff';
@@ -1079,20 +1085,23 @@
     ctx.beginPath(); ctx.arc(0, 0, R - 10, 0, Math.PI * 2); ctx.stroke();
 
     ctx.rotate(ringRot);
+    // Hoisted: these do not vary across the loop, but rebuilding the string
+    // inside it meant 24 identical allocations plus 24 CSS colour parses every
+    // frame, and the same again for the eight orbiting dots below.
+    ctx.strokeStyle = 'hsla(280, 70%, 75%, ' + (0.5 + energy * 0.4) + ')';
     for (let i = 0; i < 24; i++) {
       const a = (i / 24) * Math.PI * 2;
       const inner = R + 4, outer = R + (i % 3 === 0 ? 16 : 9);
-      ctx.strokeStyle = 'hsla(280, 70%, 75%, ' + (0.5 + energy * 0.4) + ')';
       ctx.lineWidth = i % 3 === 0 ? 3.2 : 1.8;
       ctx.beginPath();
       ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
       ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
       ctx.stroke();
     }
+    ctx.fillStyle = 'hsla(320, 90%, 78%, ' + (0.7 + energy * 0.3) + ')';
     for (let i = 0; i < 8; i++) {
       const a = ringRot * 1.6 + (i / 8) * Math.PI * 2;
       const r = R + 26;
-      ctx.fillStyle = 'hsla(320, 90%, 78%, ' + (0.7 + energy * 0.3) + ')';
       ctx.beginPath(); ctx.arc(Math.cos(a) * r, Math.sin(a) * r, 3.2, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
@@ -1319,12 +1328,51 @@
     return 0;
   }
 
-  // How dark the world behind her gets. Ramps in over the freeze beat, holds,
-  // then lifts as the gate shuts.
-  function overlayAlpha(beatId, p) {
-    if (beatId === 'freeze') return 0.86 * easeOutCubic(p);
-    if (beatId === 'close') return 0.86 * (1 - easeInOut(p));
-    return 0.86;
+  // The freeze does not fade in over the whole screen. It spreads out from the
+  // gate as a front, so the stopped space reads as having a source rather than
+  // arriving everywhere at once. Returns how far that front has travelled, 0
+  // to 1 of the distance from the gate to the furthest screen corner.
+  function freezeFront(beatId, p) {
+    if (beatId === 'freeze') return easeOutCubic(p);
+    if (beatId === 'close') return 1 - easeInOut(p);
+    return 1;
+  }
+
+  // Constant: the wash is bounded by the front above, not by its own fade.
+  function overlayAlpha() { return 0.86; }
+
+  // The wash itself, bounded by the front. A hard-ish edge with a short
+  // feathered band reads as an expanding wavefront rather than a fade.
+  function drawFreezeWash(L, wash, reach) {
+    if (wash <= 0.01 || reach <= 0.001) return;
+    const W = canvas.width, H = canvas.height;
+    const cx = L.gateX, cy = L.centerY;
+    const maxR = Math.hypot(Math.max(cx, W - cx), Math.max(cy, H - cy)) * 1.02;
+    const r = maxR * reach;
+    ctx.save();
+    if (reach >= 0.999) {
+      ctx.globalAlpha = wash;
+      ctx.fillStyle = 'rgba(6,4,16,1)';
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      const feather = Math.max(0.001, Math.min(0.18, 26 / Math.max(1, r)));
+      const g = ctx.createRadialGradient(cx, cy, Math.max(0, r * (1 - feather)), cx, cy, r);
+      g.addColorStop(0, 'rgba(6,4,16,1)');
+      g.addColorStop(0.72, 'rgba(6,4,16,1)');
+      g.addColorStop(1, 'rgba(6,4,16,0)');
+      ctx.globalAlpha = wash;
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      // A bright rim riding the front.
+      ctx.globalAlpha = Math.min(1, wash) * 0.7;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(206,166,255,1)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // How much of the freeze treatment this machine gets. The sequence runs for
@@ -1346,6 +1394,7 @@
   // ring on the moment of the freeze, and a slow scanline crawling down.
   // Everything is positioned out of `now` and a loop index, so none of it
   // allocates and none of it needs state carried between frames.
+  let _scanGrad = null, _scanGradBand = -1;
   function drawFreezeField(L, wash, elapsed, now) {
     const tier = freezeTier();
     if (tier >= 3 || wash <= 0.02) return;
@@ -1421,13 +1470,20 @@
     if (tier === 0) {
       const band = H * 0.14;
       const y = ((now * 0.035) % (H + band)) - band;
-      const g = ctx.createLinearGradient(0, y, 0, y + band);
-      g.addColorStop(0, 'rgba(170,130,255,0)');
-      g.addColorStop(0.5, 'rgba(190,150,255,0.055)');
-      g.addColorStop(1, 'rgba(170,130,255,0)');
+      // Built once for this canvas height and then translated into place, so
+      // the crawl costs a transform rather than a new gradient every frame.
+      if (!_scanGrad || _scanGradBand !== band) {
+        _scanGrad = ctx.createLinearGradient(0, 0, 0, band);
+        _scanGrad.addColorStop(0, 'rgba(170,130,255,0)');
+        _scanGrad.addColorStop(0.5, 'rgba(190,150,255,0.055)');
+        _scanGrad.addColorStop(1, 'rgba(170,130,255,0)');
+        _scanGradBand = band;
+      }
       ctx.globalAlpha = strength;
-      ctx.fillStyle = g;
-      ctx.fillRect(0, y, W, band);
+      ctx.translate(0, y);
+      ctx.fillStyle = _scanGrad;
+      ctx.fillRect(0, 0, W, band);
+      ctx.translate(0, -y);
     }
 
     ctx.restore();
@@ -1693,15 +1749,15 @@
     const pose = poseFor(L, beat.id, beat.p, now);
     runSideEffects(cs, elapsed, L, handPos(L, pose, t));
 
-    const wash = overlayAlpha(beat.id, beat.p);
-    ctx.save();
-    ctx.fillStyle = 'rgba(6,4,16,1)';
-    ctx.globalAlpha = wash;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-    drawVignette(wash);
-    drawFreezeField(L, wash, elapsed, now);
-    dimPixi(wash);
+    const wash = overlayAlpha();
+    const reach = freezeFront(beat.id, beat.p);
+    drawFreezeWash(L, wash, reach);
+    // The vignette and the lattice only make sense once the front has covered
+    // the screen, so they come up with it rather than ahead of it.
+    drawVignette(wash * reach);
+    drawFreezeField(L, wash * reach, elapsed, now);
+    // Bullets dim with the front too, so nothing outside it goes dark early.
+    dimPixi(wash * reach);
 
     const openness = gateOpenness(beat.id, beat.p);
     if (openness > 0) {
