@@ -668,6 +668,9 @@
   function easeOutCubic(v) { return 1 - Math.pow(1 - v, 3); }
   function easeInOut(v) { return v < 0.5 ? 2 * v * v : 1 - Math.pow(-2 * v + 2, 2) / 2; }
   function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+  // Quintic smoothstep: zero slope at both ends, so anything driven by it
+  // leaves rest and returns to it without a visible corner.
+  function smootherstep(v) { return v * v * v * (v * (v * 6 - 15) + 10); }
 
   // Flat colour wash over whatever is already in the sprite buffer. Kept
   // inside the buffer rather than applied on the game canvas so a tint only
@@ -1295,14 +1298,14 @@
   // measured against _frozenNow, so an ESC pause mid-cutscene holds the whole
   // sequence in place instead of letting it run on behind the pause screen.
   const BEATS = [
-    { id: 'freeze',  ms: 800 },   // sim stops, the screen darkens
+    { id: 'freeze',  ms: 1200 },  // sim stops, the screen darkens
     { id: 'gate',    ms: 900 },   // the reality gate tears open
     { id: 'walkOut', ms: 1900 },  // she steps out back-first, then turns to face forward
     { id: 'think',   ms: 1800 },  // she stands deciding, thought bubble up
     { id: 'summon',  ms: 1300 },  // Goliath Alpha enters the arena for real
     { id: 'cast',    ms: 2400 },  // the rolled effect applies, banner up
     { id: 'leave',   ms: 1800 },  // she turns, walks back into the gate
-    { id: 'close',   ms: 700 },   // gate shuts, overlay lifts, time resumes
+    { id: 'close',   ms: 1100 },  // gate shuts, overlay lifts, time resumes
   ];
 
   const BEAT_AT = {};
@@ -1335,9 +1338,14 @@
   // gate as a front, so the stopped space reads as having a source rather than
   // arriving everywhere at once. Returns how far that front has travelled, 0
   // to 1 of the distance from the gate to the furthest screen corner.
+  // How far the freeze has spread, 0 to 1. Both the arrival and the release
+  // ride a quintic smoothstep: it leaves 0 and reaches 1 with no slope at
+  // either end, so the front eases into motion and settles instead of
+  // snapping on at full speed and stopping dead. Everything that follows the
+  // front inherits that, which is most of the transition.
   function freezeFront(beatId, p) {
-    if (beatId === 'freeze') return easeOutCubic(p);
-    if (beatId === 'close') return 1 - easeInOut(p);
+    if (beatId === 'freeze') return smootherstep(p);
+    if (beatId === 'close') return 1 - smootherstep(p);
     return 1;
   }
 
@@ -1613,15 +1621,21 @@
   // pixiCanvas at 1 after it in the DOM), so the freeze wash cannot reach
   // them and they have to be taken out on Pixi's own side.
   //
-  // Hidden outright rather than faded with the front. These layers draw
-  // additively, so the exhaust at a few percent alpha was still burning
-  // bright cyan through a scene that is supposed to have stopped, and the
-  // opening beat left a window where it showed at full strength. Nothing of
-  // the live world belongs in stopped time, so the stage goes at frame one
-  // and comes back whole when she lets go.
-  function hidePixi() {
+  // Faded out far ahead of the front rather than with it, and hidden
+  // completely once it is close to gone. These layers draw additively, so
+  // they stay legible at alphas where the rest of the scene has already gone
+  // dark, and tying them to the front one for one left the exhaust burning
+  // through a stopped world. At this rate they are gone by the time the
+  // front is a third of the way across, which is early enough to read as
+  // part of the freeze and slow enough not to blink out.
+  const PIXI_FADE_RATE = 3.2;
+  function drivePixi(reach) {
     const app = window._pixiApp;
-    if (app && app.stage) { app.stage.visible = false; app.stage.alpha = 1; }
+    if (!app || !app.stage) return;
+    const want = clamp01(1 - reach * PIXI_FADE_RATE);
+    const vis = want > 0.002;
+    if (app.stage.visible !== vis) app.stage.visible = vis;
+    if (vis && Math.abs(app.stage.alpha - want) > 0.004) app.stage.alpha = want;
   }
 
   function restorePixi() {
@@ -1923,6 +1937,7 @@
 
     const wash = overlayAlpha();
     const reach = freezeFront(beat.id, beat.p);
+    drivePixi(reach);
     drawFreezeWash(L, wash, reach);
     drawFrozenRealm(L, reach, now);
     drawRealmLight(L, reach, now);
@@ -2005,9 +2020,6 @@
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);
-    // Pixi's layers go before the first frame of the freeze is ever drawn, so
-    // nothing live is on screen at any point during it.
-    hidePixi();
     // Decorative sparks only, and the sim that feeds them is about to stop.
     // Dropping them here means they are gone from the battlefield snapshot as
     // well, which matters on the canvas fallback path where they are drawn

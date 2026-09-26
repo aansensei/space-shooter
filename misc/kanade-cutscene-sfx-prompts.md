@@ -13,24 +13,29 @@ khối trong file này đều được giữ dưới mức đó. Sửa prompt xo
 
 ## Bảng thời gian thật của cutscene
 
-Tổng: **11600ms**. Mốc tính từ lúc `window._kanadeCutscene` được set.
+Tổng: **12400ms**. Mốc tính từ lúc `window._kanadeCutscene` được set.
 
 | Beat | Bắt đầu | Kết thúc | Dài | Chuyện gì xảy ra |
 |---|---|---|---|---|
-| freeze | 0 | 800 | 800 | Sim dừng, màn hình tối lại |
-| gate | 800 | 1700 | 900 | Cổng thực tại xé mở |
-| walkOut | 1700 | 3600 | 1900 | Kanade bay ra, mặt hướng về trước |
-| think | 3600 | 5400 | 1800 | Đứng nghĩ, bong bóng 3 chấm |
-| summon | 5400 | 6700 | 1300 | Vung tay; Goliath spawn thật ở **6115** |
-| cast | 6700 | 9100 | 2400 | Stack Overflow áp vào ở **7300**, banner hiện |
-| leave | 9100 | 10900 | 1800 | Quay lưng, đi vào cổng |
-| close | 10900 | 11600 | 700 | Cổng đóng, overlay tan, thời gian chạy lại |
+| freeze | 0 | 1200 | 1200 | Sim dừng, màn hình tối lại |
+| gate | 1200 | 2100 | 900 | Cổng thực tại xé mở |
+| walkOut | 2100 | 4000 | 1900 | Kanade bay ra, mặt hướng về trước |
+| think | 4000 | 5800 | 1800 | Đứng nghĩ, bong bóng 3 chấm |
+| summon | 5800 | 7100 | 1300 | Vung tay; Goliath spawn thật ở **6515** |
+| cast | 7100 | 9500 | 2400 | Stack Overflow áp vào ở **7700**, banner hiện |
+| leave | 9500 | 11300 | 1800 | Quay lưng, đi vào cổng |
+| close | 11300 | 12400 | 1100 | Cổng đóng, overlay tan, thời gian chạy lại |
 
-Goliath trôi xuống: **6115 đến 9100**, tức **2985ms**.
+Goliath trôi xuống: **6515 đến 9500**, tức **2985ms**.
+
+`freeze` và `close` dài hơn phần còn lại một chút vì chúng là hai đoạn chuyển
+cảnh, và cả hai chạy trên quintic smoothstep để mặt sóng không bật lên rồi
+dừng phụt. Độ dài các beat ở giữa không đổi, nên mọi SFX vẫn khớp đúng nhịp
+của nó, chỉ là mốc phát dời muộn hơn 400ms.
 
 ## 1. kanade-time-freeze.mp3
 
-**Duration: 0.8s** (phát ở mốc 0)
+**Duration: 0.8s** (phát ở mốc 0, beat `freeze` dài 1200ms nên đuôi ngân thoải mái)
 
 ```
 A single sharp moment of time stopping dead. Starts with a bright glass-like
@@ -43,7 +48,7 @@ boss-intro sound design. No music, no voice. 0.8 seconds.
 ## 2. kanade-frozen-ambience.mp3 (LOOP, dưới đại dương)
 
 **Duration: 8s, phải loop seamless.** Bắt đầu ở mốc 0, fade out trong beat
-`close` (10900 đến 11600).
+`close` (11300 đến 12400).
 
 ```
 Seamless looping deep underwater ambience for a world where time has
@@ -64,7 +69,7 @@ thêm chút reverb dài khi hậu kỳ.
 
 ## 3. kanade-gate-open.mp3
 
-**Duration: 0.9s** (phát ở mốc 800)
+**Duration: 0.9s** (phát ở mốc 1200)
 
 ```
 A tear opening in reality. Starts as a thin high-pitched slit of static, widens
@@ -76,7 +81,7 @@ something being unzipped. 0.9 seconds.
 
 ## 4. kanade-emerge.mp3
 
-**Duration: 1.9s** (phát ở mốc 1700)
+**Duration: 1.9s** (phát ở mốc 2100)
 
 ```
 An elegant figure gliding out of a portal into open space. A soft airy whoosh
@@ -88,7 +93,7 @@ a hard stop. Ethereal, feminine, magical. 1.9 seconds.
 
 ## 5. kanade-think.mp3
 
-**Duration: 1.8s** (phát ở mốc 3600)
+**Duration: 1.8s** (phát ở mốc 4000)
 
 ```
 Quiet thinking. Three soft rounded bell-like blips in a slow steady rhythm,
@@ -104,7 +109,7 @@ khớp nhất.
 ## 6. kanade-summon.mp3
 
 **Duration: 1.3s**, điểm nhấn mạnh nhất phải rơi vào **55% clip (0.715s)**
-(phát ở mốc 5400, spawn thật ở 6115)
+(phát ở mốc 5800, spawn thật ở 6515)
 
 ```
 A commanding summoning gesture. A short rising magical charge for the first
@@ -116,7 +121,7 @@ is now on its way. Regal, imperious, not evil. 1.3 seconds.
 
 ## 7. goliath-descend.mp3
 
-**Duration: 3.0s** (phát ở mốc 6115, kéo dài tới 9100)
+**Duration: 3.0s** (phát ở mốc 6515, kéo dài tới 9500)
 
 ```
 Something enormous descending slowly through dead silent air. A continuous low
@@ -132,8 +137,8 @@ bị lọc bớt tần số cao.
 
 ## 8. stack-overflow-cast.mp3
 
-**Duration: 2.4s**, điểm nhấn ở **25% clip (0.6s)** (phát ở mốc 6700, effect
-áp vào ở 7300)
+**Duration: 2.4s**, điểm nhấn ở **25% clip (0.6s)** (phát ở mốc 7100, effect
+áp vào ở 7700)
 
 ```
 Casting a reality-rewriting spell. A fast rising glassy charge for the first
@@ -146,7 +151,7 @@ glitchy, mathematical, slightly wrong. 2.4 seconds.
 
 ## 9. timeline-distortion-banner.mp3
 
-**Duration: 1.2s** (phát ở mốc 7300, cùng lúc banner hiện)
+**Duration: 1.2s** (phát ở mốc 7700, cùng lúc banner hiện)
 
 ```
 A short announcement stinger for a boss modifier appearing on screen. One deep
@@ -160,7 +165,7 @@ banner vẫn dùng chung một stinger, chỉ đổi tiếng cast.
 
 ## 10. kanade-depart.mp3
 
-**Duration: 1.8s** (phát ở mốc 9100)
+**Duration: 1.8s** (phát ở mốc 9500)
 
 ```
 An elegant figure turning away and walking back into a portal. A soft turn with
@@ -171,7 +176,7 @@ listener. Ends almost silent. Graceful, final, unhurried. 1.8 seconds.
 
 ## 11. kanade-time-resume.mp3
 
-**Duration: 0.7s** (phát ở mốc 10900)
+**Duration: 0.7s** (phát ở mốc 11300)
 
 ```
 Time starting again. A portal snapping shut with a soft glassy clap, then the
@@ -182,8 +187,9 @@ gesture of a freeze. 0.7 seconds.
 
 ## 12. kanade-collapse-loop.mp3 (LOOP, vạn vật sụp đổ)
 
-**Duration: 8s, phải loop seamless.** Lớp thứ hai chồng lên
-`kanade-frozen-ambience.mp3`, không thay thế nó.
+**Duration: 8s khi gen, phải loop seamless.** Lớp thứ hai chồng lên
+`kanade-frozen-ambience.mp3`, không thay thế nó. File trong repo dài 10s vì
+đã được kéo chậm lại, xem ghi chú bên dưới.
 
 ```
 Seamless looping ambience of a world breaking apart. Stone and glass
@@ -212,11 +218,18 @@ chỗ cho phần vọt lên khi encode mp3. Kết quả 8.00s, peak -0.58 dB,
 mean -16.1 dB, ngang mức lớp ambience.
 
 Mức phát: vào từ mốc 0 cùng tiếng nền ở **0.5**, dâng lên **1.0** trong 900ms
-kể từ lúc Stack Overflow áp vào (mốc **7300**), vì đó đúng là lúc các giới hạn
+kể từ lúc Stack Overflow áp vào (mốc **7700**), vì đó đúng là lúc các giới hạn
 của thế giới bị gỡ bỏ, rồi fade về 0 cùng lớp ambience trong beat `close`.
 Điều khiển nằm ở `driveCutsceneBed` trong `js/render/kanade-cutscene.js`.
 
-Muốn gen lại thì giữ đúng 8 giây và seamless, vì hai lớp phải khớp chu kỳ.
+Sau khi trộn, bản mix được cho chạy ở **0.8x** bằng `asetrate` rồi resample
+về 48kHz. Đây là kéo chậm kiểu tua băng nên cao độ tụt theo khoảng 3.9 nửa
+cung: tiếng nứt nghe nặng và to hơn, hợp với thứ đang sụp đổ hơn là giữ
+nguyên cao độ. Độ dài thành 10.00s, vẫn seamless vì cả vòng lặp bị kéo đều.
+Muốn giữ nguyên cao độ thì thay `asetrate` bằng `atempo=0.8`, đổi lại là
+`atempo` dùng phase vocoder nên dễ làm nhòe các transient sắc như tiếng crack.
+
+Muốn gen lại thì giữ đúng 8 giây và seamless.
 
 ## Cách wire vào game
 
