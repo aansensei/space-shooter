@@ -117,9 +117,12 @@
     // short decode window, never for the sustained duration of a track, so
     // it doesn't reintroduce the long-lived-<audio>-loop stall this whole
     // rewrite exists to avoid.
-    function _makeBufferLoop() {
+    // bypass routes the loop past the duck/filter chain, for a sound that is
+    // its own moment rather than part of the gameplay mix. Everything else
+    // sits on _duckGain so low-hp and the domain ducks can still muffle it.
+    function _makeBufferLoop(bypass = false) {
         const gainNode = actx ? actx.createGain() : null;
-        if (gainNode) gainNode.connect(_duckGain);
+        if (gainNode) gainNode.connect(bypass ? _bypassGain : _duckGain);
         let source = null;
         let bufferPromise = null;
         let playing = false;
@@ -337,6 +340,14 @@
         // own collapse - reads as a real detonation, not just another kill.
         'veilshroud-portal-collapse': 1.6,
         click: 1.0, hover: 1.0, overlay: 1.0,
+        // Kanade's boss-wave cutscene. The bed carries the whole sequence, so it
+        // sits close to the one-shots rather than under them, and the two big
+        // beats (the freeze landing and the cast) still top it.
+        'kanade-time-freeze': 1.2, 'kanade-frozen-ambience': 1.15,
+        'kanade-gate-open': 1.0, 'kanade-emerge': 0.9, 'kanade-think': 0.8,
+        'kanade-summon': 1.1, 'goliath-descend': 1.0,
+        'stack-overflow-cast': 1.2, 'timeline-distortion-banner': 1.0,
+        'kanade-depart': 0.9, 'kanade-time-resume': 1.0,
         // Engine loop kept quieter than the ambient space bed it plays under
         // (see engine.mp3 above) - a rocket thruster hum shouldn't compete
         // with it for attention. Ambient bumped +10% on top of its own 1.0.
@@ -441,6 +452,7 @@
         currentBgmId: null,
         bgmEl: null,
         ambientEl: null,     // ingame.mp3 space background (grouped under SFX)
+        kanadeAmbienceEl: null, // looping bed under Kanade's frozen-time cutscene
         engineEl: null,      // engine loop
         laserEl: null,       // sustained laser loop
         chargingEl: null,    // charging hum loop (Space-hold overload laser, 3s)
@@ -529,6 +541,41 @@
         else if (resume !== false) resumeAll();
     }
 
+    // Kanade's cutscene is the one thing that must still be heard while the
+    // freeze holds the rest of the mix silent, so it gets its own entry point
+    // that does not consult the gate. Everything else keeps going through
+    // playSfx and stays blocked.
+    function playCutsceneSfx(key) {
+        const p = state.pool[key];
+        if (!p) return;
+        const g = sfxGain(key);
+        if (g <= 0) return;
+        return _playVoice(p.src, g, p.bypass);
+    }
+
+    const KANADE_AMBIENCE_SRC = 'assets/audio/sfx/kanade-frozen-ambience.mp3';
+
+    function startCutsceneAmbience() {
+        const el = state.kanadeAmbienceEl;
+        if (!el || !el.paused || state.muted) return;
+        // The bed opens on a swell, so every showing should hear it from the
+        // top. setSrc is what clears the saved loop position, and the buffer is
+        // already cached by then, so this costs nothing.
+        el.setSrc(KANADE_AMBIENCE_SRC);
+        el.volume = Math.min(1, sfxGain('kanade-frozen-ambience'));
+        try { el.play().catch(() => {}); } catch (_) {}
+    }
+
+    // Scales the bed against its configured level, so the cutscene can ride it
+    // out over the closing beat without having to know what that level is.
+    function setCutsceneAmbienceGain(mul) {
+        const el = state.kanadeAmbienceEl;
+        if (!el) return;
+        el.volume = Math.min(1, sfxGain('kanade-frozen-ambience') * Math.max(0, mul));
+    }
+
+    function stopCutsceneAmbience() { stopLoop('kanadeAmbienceEl'); }
+
     function playSfx(key) {
         if (_timeFrozen) return;
         const p = state.pool[key];
@@ -588,6 +635,7 @@
         _pauseSnapshot = {
             bgm:      !!(state.bgmEl      && !state.bgmEl.paused),
             ambient:  !!(state.ambientEl  && !state.ambientEl.paused),
+            kanadeAmbience: !!(state.kanadeAmbienceEl && !state.kanadeAmbienceEl.paused),
             engine:   !!(state.engineEl   && !state.engineEl.paused),
             laser:    !!(state.laserEl    && !state.laserEl.paused),
             charging: !!(state.chargingEl && !state.chargingEl.paused),
@@ -609,7 +657,7 @@
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
             raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
+        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -618,6 +666,7 @@
         _pauseSnapshot = null;
         if (s.bgm      && state.bgmEl)      try { state.bgmEl.play().catch(() => {}); } catch (_) {}
         if (s.ambient  && state.ambientEl)  try { state.ambientEl.play().catch(() => {}); } catch (_) {}
+        if (s.kanadeAmbience && state.kanadeAmbienceEl) try { state.kanadeAmbienceEl.play().catch(() => {}); } catch (_) {}
         if (s.engine   && state.engineEl)   try { state.engineEl.play().catch(() => {}); } catch (_) {}
         if (s.laser    && state.laserEl)    try { state.laserEl.play().catch(() => {}); } catch (_) {}
         if (s.charging && state.chargingEl) try { state.chargingEl.play().catch(() => {}); } catch (_) {}
@@ -732,6 +781,7 @@
     function refreshVolumes() {
         if (state.bgmEl)     state.bgmEl.volume     = Math.min(1, bgmGain());
         if (state.ambientEl) state.ambientEl.volume = Math.min(1, sfxGain('ambient'));
+        if (state.kanadeAmbienceEl) state.kanadeAmbienceEl.volume = Math.min(1, sfxGain('kanade-frozen-ambience'));
         if (state.engineEl)  state.engineEl.volume  = Math.min(1, sfxGain('engine'));
         if (state.laserEl)   state.laserEl.volume   = Math.min(1, sfxGain('laser'));
         if (state.chargingEl) state.chargingEl.volume = Math.min(1, sfxGain('charging'));
@@ -948,11 +998,32 @@
         _makePool('gate-of-babylon',        'assets/audio/sfx/gate-of-babylon.mp3',        2);
         _makePool('enuma-elish-charge',     'assets/audio/sfx/enuma-elish-charge.mp3',     1);
         _makePool('enuma-elish-release',    'assets/audio/sfx/enuma-elish-release.mp3',    1);
+        // Kanade's cutscene. All bypass-routed past the duck/filter chain: the
+        // sequence stops the rest of the mix outright, so there is nothing to
+        // duck against and the clips should read exactly as authored.
+        _makePool('kanade-time-freeze',   'assets/audio/sfx/kanade-time-freeze.mp3',   1, true);
+        _makePool('kanade-gate-open',     'assets/audio/sfx/kanade-gate-open.mp3',     1, true);
+        _makePool('kanade-emerge',        'assets/audio/sfx/kanade-emerge.mp3',        1, true);
+        _makePool('kanade-think',         'assets/audio/sfx/kanade-think.mp3',         1, true);
+        _makePool('kanade-summon',        'assets/audio/sfx/kanade-summon.mp3',        1, true);
+        _makePool('goliath-descend',      'assets/audio/sfx/goliath-descend.mp3',      1, true);
+        _makePool('stack-overflow-cast',  'assets/audio/sfx/stack-overflow-cast.mp3',  1, true);
+        _makePool('timeline-distortion-banner', 'assets/audio/sfx/timeline-distortion-banner.mp3', 1, true);
+        _makePool('kanade-depart',        'assets/audio/sfx/kanade-depart.mp3',        1, true);
+        _makePool('kanade-time-resume',   'assets/audio/sfx/kanade-time-resume.mp3',   1, true);
+
         _makePool('cancer-whale-splash', 'assets/audio/sfx/cancer-whale-splash.mp3', 3);
         _makePool('cancer-whale-bite',   'assets/audio/sfx/cancer-whale-bite.mp3',   4);
 
         state.ambientEl  = _makeBufferLoop();
         state.ambientEl.setSrc('assets/audio/sfx/ingame.mp3');
+        // Bypass-routed, same as the ten one-shots above it. On the duck chain
+        // it inherited whatever duck happened to be live when she stopped time
+        // (low-hp alone cuts to 0.16 and muffles down to 260Hz, and pauseAll
+        // silences the siren without ever releasing its duck), which left the
+        // bed inaudible under a cutscene that has silenced everything else.
+        state.kanadeAmbienceEl = _makeBufferLoop(true);
+        state.kanadeAmbienceEl.setSrc(KANADE_AMBIENCE_SRC);
         state.engineEl   = _makeBufferLoop();
         state.engineEl.setSrc('assets/audio/sfx/engine.mp3');
         state.laserEl    = _makeBufferLoop();
@@ -1013,6 +1084,7 @@
         playMenuBgm, playRandomInGameBgm, playBgmById, stopBgm,
         pauseBgm, resumeBgm,
         pauseAll, resumeAll, setTimeFrozen,
+        playCutsceneSfx, startCutsceneAmbience, setCutsceneAmbienceGain, stopCutsceneAmbience,
         list: () => BGM_LIST.slice(),
         currentBgmId: () => state.currentBgmId,
         getSelectedBgmIds, isBgmSelected, toggleBgmSelection,

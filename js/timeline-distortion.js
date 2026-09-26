@@ -67,6 +67,7 @@ function _applyTimelineDistortion(effect) {
 function _clearTimelineDistortion() {
     if (window._timelineDistortion) window._timelineDistortion.clear();
     window._timelineDistortion = null;
+    window._tdSkipBannerAt = 0;
 }
 
 // The first boss wave a player ever reaches plays the cutscene forced — it's
@@ -98,6 +99,14 @@ function _startTimelineDistortion(waveNum) {
     const effect = _rollTimelineDistortion();
     if (_kanadeCutsceneSkipped() || typeof window._beginKanadeCutscene !== 'function') {
         _applyTimelineDistortion(effect);
+        // The cutscene is the only thing that ever names the rolled effect,
+        // and nothing in the HUD tracks it, so skipping the animation left the
+        // fight's biggest rule change completely unannounced. Its own banner
+        // and cue stand in, drawn in js/render/core.js.
+        window._tdSkipBannerAt = (typeof performance !== 'undefined') ? performance.now() : 0;
+        if (window.AudioMgr && window.AudioMgr.playCutsceneSfx) {
+            window.AudioMgr.playCutsceneSfx('timeline-distortion-banner');
+        }
         return;
     }
     window._beginKanadeCutscene(effect, waveNum);

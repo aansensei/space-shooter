@@ -689,11 +689,15 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         ctx.lineTo(cx + 1.2, 27);
         ctx.closePath(); ctx.fill();
     };
-    makeFlame(-6);
-    makeFlame(6);
+    // Her freeze stops the engines too. These are the brightest thing the ship
+    // draws, near-white at the nozzle, and the overlay only takes the scene
+    // down to 14 percent, so they went on burning through a stopped world
+    // while the hull behind them had already gone dark.
+    const _engineOut = !!window._kanadeCutscene;
+    if (!_engineOut) { makeFlame(-6); makeFlame(6); }
 
     // Engine glow bloom (HIGH only)
-    if (_gfxLevel < 1) {
+    if (_gfxLevel < 1 && !_engineOut) {
         const eGlow = ctx.createRadialGradient(0, 29, 0, 0, 36, 18 + flameH);
         eGlow.addColorStop(0, `rgba(0,220,255,${0.20 + 0.08 * Math.sin(flameT * 2.1)})`);
         eGlow.addColorStop(0.5, 'rgba(0,100,200,0.08)');
@@ -704,7 +708,7 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
 
     // micro-booster flames
     const mfH = flameH * 0.5;
-    [-11.5, 11.5].forEach(cx => {
+    if (!_engineOut) [-11.5, 11.5].forEach(cx => {
         const mfg = ctx.createLinearGradient(cx, 23, cx, 23 + mfH);
         mfg.addColorStop(0, 'rgba(200,240,255,0.7)');
         mfg.addColorStop(1, 'rgba(0,100,200,0)');

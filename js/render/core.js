@@ -2531,6 +2531,53 @@ function draw(deltaTime) {
                 ctx.restore();
             }
         }
+        // Timeline Distortion announcement, for the runs where Kanade's cutscene
+        // is skipped. Sits below the wave banner and opens after it so the two
+        // never share the screen at full strength.
+        const _tdb = window._tdSkipBannerAt || 0;
+        if (_tdb > 0 && window._timelineDistortion) {
+            const _tAge = performance.now() - _tdb - 1200;
+            if (_tAge > 0 && _tAge < 4000) {
+                const _tA = _tAge < 260 ? _tAge / 260 : (_tAge < 3200 ? 1 : Math.max(0, 1 - (_tAge - 3200) / 800));
+                const _e = window._timelineDistortion;
+                const _tW = 360, _tH = 92;
+                const _tX = _wcx - _tW / 2, _tY = canvas.height * 0.60 - _tH / 2;
+                ctx.save();
+                ctx.textAlign = 'center';
+
+                ctx.globalAlpha = _tA * 0.66;
+                const _tg = ctx.createLinearGradient(_tX, _tY, _tX, _tY + _tH);
+                _tg.addColorStop(0, '#140a24');
+                _tg.addColorStop(1, '#07030f');
+                ctx.fillStyle = _tg;
+                if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(_tX, _tY, _tW, _tH, 7); ctx.fill(); }
+                else ctx.fillRect(_tX, _tY, _tW, _tH);
+
+                ctx.globalAlpha = _tA * 0.85;
+                ctx.strokeStyle = '#6a3caa'; ctx.lineWidth = 1;
+                if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(_tX, _tY, _tW, _tH, 7); ctx.stroke(); }
+                else ctx.strokeRect(_tX, _tY, _tW, _tH);
+
+                ctx.globalAlpha = _tA;
+                ctx.font = 'bold 10px monospace';
+                ctx.fillStyle = '#7a5aa8';
+                ctx.fillText('T I M E L I N E   D I S T O R T I O N', _wcx, _tY + 22);
+
+                ctx.shadowBlur = 18; ctx.shadowColor = '#8a44ff';
+                ctx.font = 'bold 26px Arial';
+                ctx.fillStyle = '#e2c8ff';
+                ctx.fillText(_e.name, _wcx, _tY + 52);
+                ctx.shadowBlur = 0;
+
+                ctx.font = '11px monospace';
+                ctx.fillStyle = '#9fd8ff';
+                ctx.fillText(_e.playerHalf, _wcx, _tY + 70);
+                ctx.fillStyle = '#ff9fbf';
+                ctx.fillText(_e.enemyHalf, _wcx, _tY + 84);
+                ctx.restore();
+            }
+        }
+
         // Rest-phase countdown banner
         if (_wavePhase === 'rest' && _waveRestTimer > 0) {
             const _restSec = Math.ceil(_waveRestTimer / 1000);

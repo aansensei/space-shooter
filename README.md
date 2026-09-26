@@ -824,3 +824,46 @@ Enemies already on screen when a new stack triggers are rescaled immediately, no
 *— Undefined —*
 
 An Administrator-class entity exists beyond reality and governs it as a system rather than living within it. She created the Endless Nights Protocol to endlessly replicate universes and timelines, preventing all forms of finality and turning existence into an infinite chain of rewritten outcomes. With absolute control over causality, she can duplicate, overwrite, and define reality itself, yet she remains a distant overseer driven by the fear of an irreversible end. However, the emergence of Irregulars, entities beyond her authority, introduces a flaw in her perfect system and threatens the endless continuity she maintains.
+
+### Boss Waves
+
+Every wave that is a multiple of 5 opens with Kanade rather than with Goliath simply appearing. Time stops dead, a reality gate tears open, and she comes through to decide what the fight is going to be: she summons Goliath Alpha herself, casts a Timeline Distortion on the encounter, and leaves before time restarts.
+
+The cutscene is forced the first time a player ever reaches a boss wave. After that, **Skip Kanade Animation** appears in Settings under Gameplay. With it on the boss wave still rolls and applies its Distortion and still spawns Goliath, and the Distortion announces itself with its own banner in the cutscene's place.
+
+### Timeline Distortion
+
+One paired anomaly per boss fight, rolled when the wave starts. Each pair has one half in the player's favour and one half in the enemy's. It is active for that fight only, never cumulative, and fully removed when the fight ends. The next boss wave rolls its own.
+
+**Stack Overflow** (first pair): every hard-capped stacking mechanic on both sides loses its ceiling for the fight.
+
+| Mechanic | Side | Normal cap |
+|---|---|---|
+| Tesla Coil combo stacks | Player | 5 |
+| Chain Lightning | Player | 6 |
+| Avalanche | Player | 80 stacks / +40% |
+| Sun Lion's burn | Player | 3 |
+| Spirit bounce damage | Player | 3 |
+| Walpurgis heal/shield scaling | Enemy | +30% |
+| Walpurgis flat armour | Enemy | 100 |
+| Egregor Mind Link rage armour | Enemy | 25% |
+
+The result is a speed contest: kill the boss fast and the uncapped stacks are yours, drag it out and they belong to him.
+
+**Vulnerability is deliberately excluded.** Its stacks are a trigger rather than a counter, since reaching 4 is what opens the true-damage window and that window expiring is what resets them. Uncapped, Goliath could climb past 4 while the window's own cooldown was still running, never hit the trigger again, and sit on permanent stacks with nothing left to reset them.
+
+Walpurgis's evade bonus is excluded for a different reason: it grows 0.05 per 5-wave stack, so uncapped it crosses 100% evade around wave 100 and the boss stops being killable at all.
+
+### Administrator's Blessing
+
+From wave 6 on, every Elite or Dominator that spawns has a **10% chance** to be marked by Kanade, at most **12 per wave**. Digiform is excluded, being her own summon rather than something she blesses.
+
+A blessed enemy gains:
+
+- **+20% Max HP**
+- A shield worth **1000 + 20 x wave**
+- **+100 flat DR and +10% DR** while that shield holds
+
+The trade is **10% less movement speed** for the rest of its life. Break the shield and the extra defence goes with it, though the Max HP and the speed penalty stay.
+
+Blessed enemies are ringed by a violet aura whose edge churns like the surface of something liquid. The ripple travels on MEDIUM and HIGH. On the tiers below it the same ring is drawn static, with its ripple frozen at a shape derived from when the enemy was blessed, so blessed enemies still do not all look alike.

@@ -426,44 +426,102 @@ function _drawWalpurgisAura(enemy, stacks) {
 // drawn as a handful of tapering shapes whose lengths ride their own sine, so
 // the fire reads as moving rather than as a static halo. Brighter while the
 // granted shield is up, since that is what the extra DR is tied to.
+// Unit circle, sampled once at module load. The ring below only ever changes
+// radius and ripple, never shape, so the trig for the circle itself is paid
+// once for the session rather than per blessed enemy per frame.
+const _AURA_N = 64;
+const _AURA_COS = new Float32Array(_AURA_N);
+const _AURA_SIN = new Float32Array(_AURA_N);
+for (let i = 0; i < _AURA_N; i++) {
+    const a = (i / _AURA_N) * Math.PI * 2;
+    _AURA_COS[i] = Math.cos(a);
+    _AURA_SIN[i] = Math.sin(a);
+}
+
+// One point on the ring, pushed in and out by two travelling waves so the
+// edge churns like the surface of something liquid instead of holding a clean
+// circle. Both harmonics are whole multiples of a full turn, so the ripple
+// meets itself exactly where the path closes and leaves no seam.
+const _auraPt = { x: 0, y: 0 };
+function _auraPoint(i, cx, cy, r, amp, phase) {
+    const k = i % _AURA_N;
+    const a = (k / _AURA_N) * 6.2832;
+    const wob = Math.sin(a * 3 + phase) * 0.62 + Math.sin(a * 5 - phase * 1.7) * 0.38;
+    const rr = r + amp * wob;
+    _auraPt.x = cx + _AURA_COS[k] * rr;
+    _auraPt.y = cy + _AURA_SIN[k] * rr;
+    return _auraPt;
+}
+
+function _auraPath(cx, cy, r, amp, phase, step) {
+    ctx.beginPath();
+    for (let i = 0; i <= _AURA_N; i += step) {
+        const p = _auraPoint(i, cx, cy, r, amp, phase);
+        if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+}
+
 function _drawAdminBlessingAura(enemy) {
     const now = performance.now();
     const size = enemy.size || 20;
     const warded = (enemy.shield || 0) > 0;
     const seed = enemy._adminBlessedAt || 0;
-    const pulse = 0.78 + 0.22 * Math.sin(now / 240 + enemy.x * 0.02);
     const power = warded ? 1 : 0.55;
+    // The ring only moves on the two upper tiers. Below them it is the same
+    // mark held still: no pulse, no ripple travelling, no motes, one stroke
+    // instead of two, and a ripple phase fixed off the enemy's own blessing
+    // time so blessed enemies still do not all look identical.
+    const live = !_mobPerf && _gfxLevel <= 1;
+    const top = !_mobPerf && _gfxLevel === 0;
+    const pulse = live ? 0.78 + 0.22 * Math.sin(now / 240 + enemy.x * 0.02) : 1;
 
-    const r = size * (1.18 + 0.10 * pulse);
+    const r = size * (live ? 1.18 + 0.10 * pulse : 1.24);
     const sprite = _getGlowSprite(`rgba(168,60,255,${(0.34 * power * pulse).toFixed(2)})`, r);
     if (sprite) ctx.drawImage(sprite, enemy.x - r, enemy.y - r, r * 2, r * 2);
 
-    // Flame tongues. Fewer of them on the reduced-detail tiers, same rule the
-    // rest of this file's ambient effects follow.
-    const tongues = (_mobPerf || _gfxLevel >= 2) ? 5 : 9;
     const baseR = size * 0.52;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < tongues; i++) {
-        const a = (i / tongues) * Math.PI * 2 + now / 1400 + seed * 0.0007;
-        const wob = Math.sin(now / 150 + i * 1.7 + seed * 0.001);
-        const len = size * (0.26 + 0.20 * (0.5 + 0.5 * wob)) * power;
-        const wide = size * 0.16;
-        const cos = Math.cos(a), sin = Math.sin(a);
-        const bx = enemy.x + cos * baseR, by = enemy.y + sin * baseR;
-        const tx = enemy.x + cos * (baseR + len), ty = enemy.y + sin * (baseR + len);
-        // Perpendicular, so each tongue tapers from a wide root to a point.
-        const px = -sin * wide * 0.5, py = cos * wide * 0.5;
-        ctx.fillStyle = i % 2
-            ? `rgba(196,110,255,${(0.42 * power).toFixed(2)})`
-            : `rgba(120,40,220,${(0.38 * power).toFixed(2)})`;
-        ctx.beginPath();
-        ctx.moveTo(bx + px, by + py);
-        ctx.quadraticCurveTo(bx + px * 0.4 + cos * len * 0.6, by + py * 0.4 + sin * len * 0.6, tx, ty);
-        ctx.quadraticCurveTo(bx - px * 0.4 + cos * len * 0.6, by - py * 0.4 + sin * len * 0.6, bx - px, by - py);
-        ctx.closePath();
-        ctx.fill();
+
+    if (live) {
+        const ringR = size * 1.12 * (1 + 0.04 * Math.sin(now / 520 + seed * 0.0013));
+        const amp = size * 0.15 * power;
+        const step = top ? 1 : 2;
+        // The two passes run a quarter cycle apart rather than on one shared
+        // path, so the band reads as a body of liquid with a moving surface
+        // instead of a single line with a highlight painted down it.
+        const phase = now * 0.0062 + seed * 0.0011;
+
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = `rgba(120,40,220,${(0.32 * power * pulse).toFixed(2)})`;
+        ctx.lineWidth = Math.max(2.4, size * 0.17);
+        _auraPath(enemy.x, enemy.y, ringR, amp, phase, step);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(216,160,255,${(0.70 * power * pulse).toFixed(2)})`;
+        ctx.lineWidth = Math.max(1, size * 0.05);
+        _auraPath(enemy.x, enemy.y, ringR, amp * 0.72, phase + 1.57, step);
+        ctx.stroke();
+
+        // Motes drifting around the ring, riding the same displaced edge so
+        // they stay in the band as it churns rather than cutting across it.
+        const motes = top ? 3 : 2;
+        for (let i = 0; i < motes; i++) {
+            const idx = Math.floor((((now / 2600) + i / motes + seed * 0.0002) % 1) * _AURA_N);
+            const pt = _auraPoint(idx, enemy.x, enemy.y, ringR, amp, phase);
+            const mr = size * (0.20 + 0.05 * Math.sin(now / 180 + i * 2.1));
+            const ms = _getGlowSprite(`rgba(226,186,255,${(0.60 * power).toFixed(2)})`, mr);
+            if (ms) ctx.drawImage(ms, pt.x - mr, pt.y - mr, mr * 2, mr * 2);
+        }
+    } else {
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = `rgba(178,96,255,${(0.58 * power).toFixed(2)})`;
+        ctx.lineWidth = Math.max(2, size * 0.11);
+        _auraPath(enemy.x, enemy.y, size * 1.12, size * 0.13 * power, seed * 0.0007, 4);
+        ctx.stroke();
     }
+
     // Hot core edge, so the violet still reads against a dark enemy body.
     ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = `rgba(214,150,255,${(0.55 * power * pulse).toFixed(2)})`;

@@ -1607,24 +1607,26 @@
 
   // A vignette over the flat wash, so the frozen battlefield falls away at the
   // edges and the eye lands on her rather than on the HUD.
-  // Bullets and particles are rendered by Pixi into its own canvas, which sits
-  // ABOVE the 2D game canvas this overlay draws into (background.js gives
-  // gameCanvas z-index 1 and pixi-renderer.js puts pixiCanvas at 1 after it in
-  // the DOM). So the freeze wash could never darken them, and the player's
-  // shots stayed at full brightness while the rest of the world went dim,
-  // scattered across a scene that is supposed to have stopped. Dimming Pixi's
-  // stage by the same amount as the wash puts them on the same layer visually
-  // without touching the DOM every frame.
-  function dimPixi(wash) {
+  // Bullets, particles and the ship's exhaust trail are rendered by Pixi into
+  // its own canvas, which sits ABOVE the 2D game canvas this overlay draws
+  // into (background.js gives gameCanvas z-index 1 and pixi-renderer.js puts
+  // pixiCanvas at 1 after it in the DOM), so the freeze wash cannot reach
+  // them and they have to be taken out on Pixi's own side.
+  //
+  // Hidden outright rather than faded with the front. These layers draw
+  // additively, so the exhaust at a few percent alpha was still burning
+  // bright cyan through a scene that is supposed to have stopped, and the
+  // opening beat left a window where it showed at full strength. Nothing of
+  // the live world belongs in stopped time, so the stage goes at frame one
+  // and comes back whole when she lets go.
+  function hidePixi() {
     const app = window._pixiApp;
-    if (!app || !app.stage) return;
-    const want = Math.max(0, 1 - wash);
-    if (Math.abs(app.stage.alpha - want) > 0.004) app.stage.alpha = want;
+    if (app && app.stage) { app.stage.visible = false; app.stage.alpha = 1; }
   }
 
   function restorePixi() {
     const app = window._pixiApp;
-    if (app && app.stage) app.stage.alpha = 1;
+    if (app && app.stage) { app.stage.visible = true; app.stage.alpha = 1; }
   }
 
   let _vignetteGrad = null, _vignetteW = 0, _vignetteH = 0;
@@ -1798,6 +1800,49 @@
     return g;
   }
 
+  // Every sound in the sequence, keyed to the absolute moment it belongs on.
+  // Read off elapsed time with a cursor rather than off a frame landing on the
+  // beat, so a long frame still plays what it passed over. A cue more than
+  // LATE_MS behind is consumed without playing: by then its beat is visibly
+  // gone from the screen and firing it would only land on top of the next one.
+  const CUES = [
+    { at: 0,               key: 'kanade-time-freeze' },
+    { at: BEAT_AT.gate,    key: 'kanade-gate-open' },
+    { at: BEAT_AT.walkOut, key: 'kanade-emerge' },
+    { at: BEAT_AT.think,   key: 'kanade-think' },
+    { at: BEAT_AT.summon,  key: 'kanade-summon' },
+    { at: SUMMON_AT,       key: 'goliath-descend' },
+    { at: BEAT_AT.cast,    key: 'stack-overflow-cast' },
+    { at: APPLY_AT,        key: 'timeline-distortion-banner' },
+    { at: BEAT_AT.leave,   key: 'kanade-depart' },
+    { at: BEAT_AT.close,   key: 'kanade-time-resume' },
+  ];
+  const CUE_LATE_MS = 600;
+
+  function runCues(cs, elapsed) {
+    const A = window.AudioMgr;
+    if (!A || !A.playCutsceneSfx) return;
+    // The looping bed comes up with the freeze and holds under the whole
+    // sequence. It goes through its own entry point too: the freeze gate that
+    // silences the rest of the mix would otherwise silence this as well.
+    if (!cs.bedStarted) {
+      cs.bedStarted = true;
+      if (A.startCutsceneAmbience) A.startCutsceneAmbience();
+    }
+    while (cs.cueIdx < CUES.length && elapsed >= CUES[cs.cueIdx].at) {
+      const cue = CUES[cs.cueIdx++];
+      if (elapsed - cue.at <= CUE_LATE_MS) A.playCutsceneSfx(cue.key);
+    }
+  }
+
+  // The bed rides out over the closing beat instead of being cut off with it,
+  // so the room does not go abruptly dead a moment before time restarts.
+  function fadeCutsceneBed(cs, beatId, p) {
+    const A = window.AudioMgr;
+    if (!A || !A.setCutsceneAmbienceGain || beatId !== 'close') return;
+    A.setCutsceneAmbienceGain(1 - p);
+  }
+
   // Both real game-logic beats, fired off elapsed time rather than off a
   // particular frame landing on them, so a dropped frame can never skip one.
   function runSideEffects(cs, elapsed, L, hand) {
@@ -1834,6 +1879,7 @@
       cs.goliath.y = cs.goliath._restY;
     }
     window._kanadeCutscene = null;
+    if (window.AudioMgr && window.AudioMgr.stopCutsceneAmbience) window.AudioMgr.stopCutsceneAmbience();
     fxParticles.length = 0;
     sakuraPetals.length = 0;
     // Time starts again, so the mix comes back with it - the gate always lifts,
@@ -1864,6 +1910,8 @@
     const t = (now / 900) % 1;
     const pose = poseFor(L, beat.id, beat.p, now);
     runSideEffects(cs, elapsed, L, handPos(L, pose, t));
+    runCues(cs, elapsed);
+    fadeCutsceneBed(cs, beat.id, beat.p);
 
     const wash = overlayAlpha();
     const reach = freezeFront(beat.id, beat.p);
@@ -1875,7 +1923,6 @@
     drawVignette(wash * reach);
     drawFreezeField(L, wash * reach, elapsed, now);
     // Bullets dim with the front too, so nothing outside it goes dark early.
-    dimPixi(wash * reach);
 
     const openness = gateOpenness(beat.id, beat.p);
     if (openness > 0) {
@@ -1950,12 +1997,21 @@
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);
+    // Pixi's layers go before the first frame of the freeze is ever drawn, so
+    // nothing live is on screen at any point during it.
+    hidePixi();
+    // Decorative sparks only, and the sim that feeds them is about to stop.
+    // Dropping them here means they are gone from the battlefield snapshot as
+    // well, which matters on the canvas fallback path where they are drawn
+    // into the 2D canvas instead of into Pixi.
+    if (typeof particles !== 'undefined' && particles) particles.length = 0;
     // The drifting starfield behind the arena is part of the world too - left
     // running it was the one thing still moving while everything else held.
     window._bgPaused = true;
     window._kanadeCutscene = {
       effect, wave: waveNum,
       startedAt: 0, spawned: false, applied: false,
+      cueIdx: 0, bedStarted: false,
       goliath: null,
     };
   }

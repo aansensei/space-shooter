@@ -3471,6 +3471,7 @@ function startGame() {
     player.atk = PLAYER_BASE_ATK;
     window._walpurgisAppliedStacks = 0;
     _waveQueue = []; _waveQueueTimer = 0; _waveAnnouncedAt = 0; _waveForceEndTimer = 0;
+    window._tdSkipBannerAt = 0;
     _waveSpawnBudget = null; _waveNextSpawnAt = 0; _waveSurgeAt = 0; _waveLastEliteAt = 0; _waveLastDomAt = 0;
     window._vanguardState = { recentDamage: [], fuseTriggered: false, fuseCooldownEnd: 0 };
     window._blessingRegenTimer = 0;

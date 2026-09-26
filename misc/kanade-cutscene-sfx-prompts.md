@@ -8,6 +8,9 @@ AudioGen...).
 Format xuất: **mp3**, mono hoặc stereo đều được, đặt trong
 `assets/audio/sfx/`, tên file kebab-case giống mọi SFX sẵn có.
 
+**Giới hạn 450 ký tự cho mỗi prompt.** Công cụ gen cắt phần vượt quá, nên mọi
+khối trong file này đều được giữ dưới mức đó. Sửa prompt xong thì đếm lại.
+
 ## Bảng thời gian thật của cutscene
 
 Tổng: **11600ms**. Mốc tính từ lúc `window._kanadeCutscene` được set.
@@ -43,15 +46,12 @@ boss-intro sound design. No music, no voice. 0.8 seconds.
 `close` (10900 đến 11600).
 
 ```
-Seamless looping deep underwater ambience for a world where time has been
+Seamless looping deep underwater ambience for a world where time has
 stopped. Heard from far below the surface: a heavy submerged low-pass drone,
-a slow water-pressure swell rising and falling across the whole loop, distant
-muffled whale-like tones far off in the dark, a few sparse bubble trails
-drifting past, and a soft filtered shimmer high above like light rippling down
-through water. Everything is muffled and weightless, all high frequencies
-rolled off, nothing sharp or close. No rhythm, no percussion, no melody. Cold,
-vast, slightly unsettling. Must loop perfectly with no audible seam.
-8 seconds.
+a slow water-pressure swell rising and falling, distant muffled whale-like
+tones far off in the dark, sparse bubble trails, a soft filtered shimmer
+high above like light rippling down through water. Muffled and weightless,
+highs rolled off. No rhythm, no melody. Cold and vast. 8 seconds.
 ```
 
 Đây là tầng nền quyết định cảm giác của cả cutscene: thời gian ngưng đọng nghe
@@ -180,21 +180,61 @@ bright air, like a vacuum being released. Short, clean, relieving. The opposite
 gesture of a freeze. 0.7 seconds.
 ```
 
+## 12. kanade-collapse-loop.mp3 (LOOP, vạn vật sụp đổ)
+
+**Duration: 8s, phải loop seamless.** Lớp thứ hai chồng lên
+`kanade-frozen-ambience.mp3`, không thay thế nó.
+
+```
+Seamless looping ambience of a world breaking apart. Stone and glass
+fracturing: dry hairline cracks racing outward, deep structural groans,
+crystalline splinters snapping off one after another, rubble grinding far
+below. The cracking never resolves, arriving in uneven clusters, never on a
+beat. Under it a subsonic rumble of collapse that swells and recedes. Heard
+through water: highs rolled off, muffled tails. No music, no voices.
+8 seconds.
+```
+
+Lưu tại:
+
+```
+C:\Users\Thien An Nguyen\SpaceShooter\assets\audio\sfx\kanade-collapse-loop.mp3
+```
+
+Ý đồ: `kanade-frozen-ambience` lo phần **tĩnh** (thời gian đã dừng, chìm dưới
+nước), file này lo phần **động** (thực tại đang chịu không nổi và nứt dần).
+Hai lớp chạy song song nghe sẽ đầy hơn hẳn một lớp.
+
+Đề xuất mức phát: vào từ mốc 0 cùng tiếng nền nhưng để nhỏ, khoảng 0.45, rồi
+dâng lên đầy khi Stack Overflow áp vào ở mốc **7300**, vì đó đúng là lúc các
+giới hạn của thế giới bị gỡ bỏ. Nếu AanSensei muốn nó chỉ xuất hiện ở đoạn
+cast thôi thì đổi mốc bắt đầu sang **6700**.
+
+Phải nghe qua nước giống mọi SFX khác trong cutscene, xem ghi chú ở mục 2.
+
 ## Cách wire vào game
 
-Mọi SFX của cutscene đều phải **bypass cổng đóng băng**, vì
-`AudioMgr.setTimeFrozen(true)` đang chặn `playSfx` / `playSfxAt` / `startLoop`
+Mọi SFX của cutscene đều **bypass cổng đóng băng**, vì
+`AudioMgr.setTimeFrozen(true)` chặn `playSfx` / `playSfxAt` / `startLoop`
 trong suốt cutscene (đó chính là thứ giữ cho mọi âm thanh khác im lặng).
 
-Thêm một đường phát riêng cho cutscene trong `js/audio.js` là cách gọn nhất,
-ví dụ `playCutsceneSfx(key)` không đọc `_timeFrozen`, và
-`_makePool(..., true)` để bypass duck chain giống `goliath-transform` và
-`goliath-spawn` đang làm.
+`js/audio.js` có sẵn đường riêng cho việc này: `playCutsceneSfx(key)` cho
+one-shot, và `startCutsceneAmbience` / `setCutsceneAmbienceGain` /
+`stopCutsceneAmbience` cho tiếng nền. Không hàm nào trong số đó đọc
+`_timeFrozen`. Mười one-shot đăng ký qua `_makePool(key, src, 1, true)` và
+tiếng nền tạo bằng `_makeBufferLoop(true)`, tức cả hai đều đi `_bypassGain`
+chứ không qua duck chain, nên một duck đang bật lúc Kanade ngưng thời gian
+(nặng nhất là `lowhp`, còn 0.16 gain kèm lowpass 260Hz) không bóp được chúng.
 
-Điểm phát nằm trong `js/render/kanade-cutscene.js`, bắn theo mốc elapsed
-tuyệt đối giống `runSideEffects()` đang làm với `SUMMON_AT` / `APPLY_AT`, chứ
-không bắn theo frame nào rơi đúng beat, để một frame bị drop không nuốt mất
-tiếng.
+Điểm phát nằm trong `js/render/kanade-cutscene.js`, ở bảng `CUES`: đọc theo
+mốc elapsed tuyệt đối với một con trỏ, nên một frame bị drop không nuốt mất
+tiếng. Cue trễ quá `CUE_LATE_MS` thì bỏ qua chứ không phát chồng lên nhịp sau.
 
-Ba file cần thêm vào danh sách precache của `js/offline.js` và `sw.js` cùng
-với việc bump `CACHE_VERSION`.
+Mỗi file mới phải thêm vào danh sách precache trong `js/offline.js`, kèm bump
+`?v=` của các file js đã sửa trong `index.html` và `CACHE_VERSION` trong
+`sw.js`.
+
+Để thêm `kanade-collapse-loop.mp3`: tạo một loop thứ hai theo đúng khuôn
+`state.kanadeAmbienceEl` (nhớ `_makeBufferLoop(true)`), thêm mức vào bảng
+`SFX_BASE`, thêm vào `pauseAll` / `resumeAll` / `refreshVolumes`, rồi cho
+`runCues` bật nó cùng lúc với tiếng nền.
