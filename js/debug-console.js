@@ -620,6 +620,16 @@ window.debugSetYuukiBonus = function () {
       <div class="dbg-row" style="flex-wrap:wrap; margin-top:6px;">
         <button class="dbg-btn" onclick="debugResetKanadeIntro()">Reset "first viewing" flag</button>
       </div>
+      <div class="dbg-row" style="flex-wrap:wrap; margin-top:8px;">
+        <button class="dbg-btn" onclick="debugToggleKanadeModel()">Show model</button>
+        <button class="dbg-btn" onclick="debugKanadeModel('back')">Front / Back</button>
+        <button class="dbg-btn" onclick="debugKanadeModel('expr')">Expression</button>
+        <button class="dbg-btn" onclick="debugKanadeModel('still')">Still / Idle</button>
+        <button class="dbg-btn" onclick="debugKanadeModel('grid')">Grid</button>
+        <button class="dbg-btn" onclick="debugKanadeModel('cast')">Cast pose</button>
+        <span id="dbgKanadeModelState" style="font-size:10px; color:#7fd8ff; align-self:center;"></span>
+      </div>
+      <div style="opacity:0.55; font-size:10px;">Holds the body sprite still, blown up, with the 180-unit grid and the landmark lines the drawing code is written against (eyes y=38, shoulders y=62, hem y=125). Opens over anything, including a running cutscene.</div>
       <div style="opacity:0.55; font-size:10px;">Resetting the flag makes the next boss wave play the cutscene forced again and hides the Skip toggle in Settings until it has been watched once more.</div>
     </div>
 
@@ -1125,6 +1135,41 @@ window.debugSetYuukiBonus = function () {
             ? 'active: ' + (window._timelineDistortion ? window._timelineDistortion.name : '?')
             : 'inactive';
     }
+
+    const KANADE_EXPRESSIONS = ['neutral', 'serene', 'thinking', 'determined',
+        'smug', 'happy', 'surprised', 'angry', 'sad', 'pain'];
+
+    function _kanadeModelState() {
+        const m = window._kanadeDebugModel;
+        const el = document.getElementById('dbgKanadeModelState');
+        if (!el) return;
+        el.textContent = m
+            ? (m.back ? 'back' : 'front') + ' / ' + m.expression +
+              (m.still ? ' / still' : ' / idle') + (m.grid ? ' / grid' : '') +
+              (m.castExt ? ' / cast' : '')
+            : 'off';
+    }
+
+    window.debugToggleKanadeModel = function () {
+        window._kanadeDebugModel = window._kanadeDebugModel
+            ? null
+            : { back: false, expression: 'neutral', still: false, grid: true, blink: true, castExt: 0, trail: 0 };
+        _kanadeModelState();
+    };
+
+    window.debugKanadeModel = function (what) {
+        const m = window._kanadeDebugModel;
+        if (!m) return;
+        if (what === 'back') m.back = !m.back;
+        else if (what === 'still') m.still = !m.still;
+        else if (what === 'grid') m.grid = !m.grid;
+        else if (what === 'cast') m.castExt = m.castExt ? 0 : 1;
+        else if (what === 'expr') {
+            const i = KANADE_EXPRESSIONS.indexOf(m.expression);
+            m.expression = KANADE_EXPRESSIONS[(i + 1) % KANADE_EXPRESSIONS.length];
+        }
+        _kanadeModelState();
+    };
 
     window.debugResetKanadeIntro = function () {
         try {

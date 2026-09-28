@@ -2814,6 +2814,11 @@ function draw(deltaTime) {
     // Kanade's boss-wave cutscene sits on top of everything, same as the
     // sigil picker - the sim is frozen behind it while it plays.
     if (window._kanadeCutscene && typeof drawKanadeCutscene === 'function') drawKanadeCutscene();
+    // Debug console's Kanade model viewer, over everything including the
+    // cutscene so it can be opened at any time.
+    if (window._kanadeDebugModel && typeof window._kanadeDebugModelDraw === 'function') {
+        window._kanadeDebugModelDraw();
+    }
 }
 
 // Start Screen, Pisces Constellation

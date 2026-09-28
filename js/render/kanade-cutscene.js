@@ -2495,6 +2495,87 @@
     };
   }
 
+  // Model viewer for the debug console. Draws the body sprite on its own,
+  // blown up, over a dark plate, with the grid and the landmark lines the
+  // drawing code is written against. Working on her through the cutscene
+  // means waiting 12 seconds and catching the pose as it goes past; this
+  // holds her still at any pose and shows where y=38 actually falls.
+  const DEBUG_LANDMARKS = [
+    [11, 'head'], [38, 'eyes'], [47, 'chin'], [62, 'shoulders'],
+    [75, 'cast hand'], [95, 'waist'], [150, 'hem'], [175, 'soles'],
+  ];
+
+  function drawKanadeDebugModel() {
+    const m = window._kanadeDebugModel;
+    if (!m) return;
+    const W = canvas.width, H = canvas.height;
+    const now = performance.now();
+    const t = (now / 900) % 1;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#140f24';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
+
+    // The sprite is square and GRID_W across, so one grid unit is this many
+    // screen pixels once it is blown up to fill the plate.
+    const box = Math.min(W, H) * 0.92;
+    const u = box / GRID_W;
+    const ox = (W - box) / 2, oy = (H - box) / 2;
+
+    if (m.grid) {
+      ctx.strokeStyle = 'rgba(120,110,170,0.20)';
+      ctx.lineWidth = 1;
+      for (let g = 0; g <= GRID_W; g += 20) {
+        ctx.beginPath();
+        ctx.moveTo(ox + g * u, oy); ctx.lineTo(ox + g * u, oy + box);
+        ctx.moveTo(ox, oy + g * u); ctx.lineTo(ox + box, oy + g * u);
+        ctx.stroke();
+      }
+      // Centreline she is drawn against.
+      ctx.strokeStyle = 'rgba(255,120,180,0.35)';
+      ctx.beginPath();
+      ctx.moveTo(ox + 90 * u, oy); ctx.lineTo(ox + 90 * u, oy + box);
+      ctx.stroke();
+    }
+
+    const opts = {
+      expression: m.expression || 'neutral',
+      blink: m.blink ? (Math.sin(now / 700) > 0.94) : false,
+      swayAmp: m.still ? 0 : 1.5,
+      bobAmp: m.still ? 0 : 1,
+      castExt: m.castExt || 0,
+      trail: m.trail || 0,
+    };
+    if (m.back) drawKanadeBack(t, opts); else drawKanade(t, opts);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(px, ox, oy, box, box);
+    ctx.imageSmoothingEnabled = true;
+
+    if (m.grid) {
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'left';
+      for (const [gy, label] of DEBUG_LANDMARKS) {
+        const y = oy + gy * u;
+        ctx.strokeStyle = 'rgba(120,220,255,0.45)';
+        ctx.beginPath(); ctx.moveTo(ox, y); ctx.lineTo(ox + box, y); ctx.stroke();
+        ctx.fillStyle = 'rgba(150,230,255,0.9)';
+        ctx.fillText(label + '  y=' + gy, ox + 4, y - 3);
+      }
+    }
+
+    ctx.fillStyle = 'rgba(200,190,240,0.85)';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText((m.back ? 'BACK' : 'FRONT') + '  ' + (m.expression || 'neutral') +
+      (m.still ? '  still' : '  idle') + (m.castExt ? '  cast ' + m.castExt.toFixed(1) : ''),
+      W / 2, oy + box + 18);
+    ctx.restore();
+  }
+
+  window._kanadeDebugModelDraw = drawKanadeDebugModel;
   window.drawKanadeCutscene = drawKanadeCutscene;
   window._beginKanadeCutscene = beginKanadeCutscene;
   window._KANADE_CUTSCENE_MS = TOTAL_MS;
