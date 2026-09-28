@@ -968,8 +968,9 @@
     const wave = (lag, amp) => Math.sin(t * Math.PI * 2 - lag) * swayAmp * amp;
     const quiver = (lag, amp) => Math.sin(t * Math.PI * 4 - lag) * amp;
     // How far the lower hair has swung, used in place of trail everywhere in
-    // the hair so the whole mass follows a beat behind her.
-    const hairTrail = trail + wave(1.1, 1.2);
+    // the hair so the whole mass follows a beat behind her. While she walks,
+    // each step throws it the other way as her weight moves over the foot.
+    const hairTrail = trail + wave(1.1, 1.2) - walkStep * 1.2;
 
     pctx.clearRect(0, 0, GRID_W, GRID_H);
     pctx.save();
@@ -1282,8 +1283,8 @@
     const tipX = (x, k) => x + hairTrail * k;
     const hang = (x0, y0, w, x1, y1, bend, c, k, lag, shaded) => {
       const len = (y1 - y0) / 100;
-      const tip = wave(lag + 1.3, len * 1.1);
-      const mid = wave(lag + 0.6, len * 0.7);
+      const tip = wave(lag + 1.3, len * 1.5) - walkStep * len * 0.7;
+      const mid = wave(lag + 0.6, len * 0.9) - walkStep * len * 0.3;
       (shaded ? hairLockShaded : hairLock)(x0, y0, w, tipX(x1, k) + tip, y1, bend + mid - tip * 0.35, c);
     };
     // The outer locks, darker as they turn away from the light.
