@@ -275,8 +275,35 @@
     ], PAL.skinShadow, 0.5);
   }
 
+  // Both body sprites share one buffer, and at 60fps most frames were
+  // redrawing a picture identical to the one already in it. The sway and bob
+  // phase is quantised to 24 steps per cycle and everything else that changes
+  // the drawing is folded into a key; when the key matches the last one the
+  // draw is skipped and the existing buffer is blitted again.
+  //
+  // 24 steps is not a compromise, it is the rate hand-drawn animation runs at.
+  // The tag keeps the two views apart, since they write to the same buffer.
+  //
+  // The one thing that can invalidate the buffer from outside is tintBuffer,
+  // which paints into it after the draw returns. Skipping the draw would let
+  // that tint stack on itself and the sprite would darken frame by frame, so
+  // the caller clears the key whenever it tints. The flash lives on the pose
+  // rather than in opts, so it cannot be caught by the key itself.
+  let _spriteKey = '';
+  function invalidateSprite() { _spriteKey = ''; }
+  function spriteKey(tag, t, o) {
+    const q = v => Math.round((v || 0) * 8);
+    return tag + Math.round(t * 24) + ':' +
+      q(o.lean) + ',' + q(o.trail) + ',' + q(o.whip) + ',' + q(o.droop) + ',' +
+      q(o.walkStep) + ',' + q(o.castExt) + ',' + q(o.swayAmp) + ',' + q(o.bobAmp) +
+      ':' + (o.expression || '') + (o.blink ? 'b' : '');
+  }
+
   function drawKanade(t, opts) {
     opts = opts || {};
+    const _key = spriteKey('f', t, opts);
+    if (_key === _spriteKey) return;
+    _spriteKey = _key;
     const sway = Math.sin(t * Math.PI * 2) * (opts.swayAmp != null ? opts.swayAmp : 1.5);
     const bob = Math.sin(t * Math.PI * 2) * (opts.bobAmp != null ? opts.bobAmp : 1);
     const lean = opts.lean || 0;
@@ -767,10 +794,51 @@
     sparkle(71.6, 20, 1.3, PAL.goldHi);
     sparkle(72.4, 27, 1, PAL.gold);
 
+    // Top graphics tier only. Everything below this line is polish rather
+    // than information, so the tiers under it get the sprite as it stands and
+    // pay nothing for it. The sprite cache is what buys the room: this is
+    // drawn 24 times a second, not 60.
+    if (gfxLevel() === 0) {
+      // Rim light down her far side. The gate she comes out of sits on that
+      // side in every layout, so the light has a source in the scene rather
+      // than being decoration.
+      bezierLine([111, 20], [[116, 34, 117, 52, 115, 68]], PAL.hairHi, 0.8);
+      bezierLine([106, 52], [[110, 57, 112, 62, 112, 66]], PAL.cream, 0.7);
+      bezierLine([116, 70], [[124, 80, 132, 88, 139, 94]], PAL.cream, 0.6);
+      bezierLine([105, 96], [[112, 113, 118, 131, 123, 148]], PAL.cream, 0.5);
+
+      // Contact shadows, so the parts sit in front of each other instead of
+      // all lying on one plane: under the chin, and under each sleeve where
+      // it crosses the gown.
+      bezierLine([84, 49], [[88, 52, 96, 52, 100, 49]], PAL.skinShadow, 1.2);
+      bezierLine([51, 97], [[59, 101, 66, 101, 72, 97]], PAL.creamShadow, 0.8);
+      bezierLine([129, 98], [[121, 102, 114, 102, 108, 98]], PAL.creamShadow, 0.8);
+
+      // Loose strands breaking off the side hair, tied to sway so they trail
+      // the head.
+      bezierLine([77, 34], [[73, 44, 71, 54, 72 + sway * 0.5, 63]], PAL.hairLight, 0.4);
+      bezierLine([107, 38], [[111, 48, 113, 58, 112 + sway * 0.5, 67]], PAL.hairLight, 0.4);
+
+      // The gold catching light on a slow cycle, the ornaments and the centre
+      // band taking turns. Driven off t so it lands on the cache's own steps
+      // instead of forcing extra redraws.
+      const glint = Math.sin(t * Math.PI * 2);
+      if (glint > 0.35) {
+        sparkle(82.3, 22, 4.4, PAL.goldHi);
+        sparkle(104, 21, 3.8, PAL.goldHi);
+      } else if (glint < -0.35) {
+        sparkle(92, 72, 3.2, PAL.goldHi);
+        sparkle(96, 105, 3.2, PAL.goldHi);
+      }
+    }
+
     pctx.restore();
   }
   function drawKanadeBack(t, opts) {
     opts = opts || {};
+    const _key = spriteKey('b', t, opts);
+    if (_key === _spriteKey) return;
+    _spriteKey = _key;
     const sway = Math.sin(t * Math.PI * 2) * (opts.swayAmp != null ? opts.swayAmp : 1.5);
     const bob = Math.sin(t * Math.PI * 2) * (opts.bobAmp != null ? opts.bobAmp : 1);
     const lean = opts.lean || 0;
@@ -2278,6 +2346,17 @@
     if (!cs) return;
     const now = (typeof _frozenNow === 'number' && _frozenNow > 0) ? _frozenNow : performance.now();
     if (!cs.startedAt) cs.startedAt = now;
+    // _frozenNow stops advancing while the game is paused (js/main.js) and
+    // then snaps forward to the current time on resume, so the clock jumps by
+    // however long the pause lasted. Left alone the sequence sees that as
+    // elapsed time and runs to its end the instant the game unpauses.
+    // Anything larger than a very long frame is that jump, not real time, so
+    // it is carried into startedAt and the sequence resumes where it stopped.
+    if (cs.lastNow !== undefined) {
+      const dt = now - cs.lastNow;
+      if (dt > 250) cs.startedAt += dt - 16;
+    }
+    cs.lastNow = now;
     const elapsed = now - cs.startedAt;
     const L = layout();
 
@@ -2347,7 +2426,10 @@
     if (pose) {
       if (pose.back) drawKanadeBack(t, pose.opts);
       else drawKanade(t, pose.opts);
-      if (pose.flash > 0) tintBuffer('#fff8ff', pose.flash * 0.92);
+      // Tinting writes into the shared sprite buffer, so the cached key has
+      // to be dropped: otherwise the next frame reuses a buffer that is
+      // already tinted and tints it again.
+      if (pose.flash > 0) { tintBuffer('#fff8ff', pose.flash * 0.92); invalidateSprite(); }
       // The halo hovers behind her head, so which side of her it draws on
       // depends on which way she is facing: seen from the front it sits
       // further from the camera and her head occludes it, seen from behind
@@ -2407,7 +2489,7 @@
     startRealmVideo();
     window._kanadeCutscene = {
       effect, wave: waveNum,
-      startedAt: 0, spawned: false, applied: false,
+      startedAt: 0, lastNow: undefined, spawned: false, applied: false,
       cueIdx: 0, bedStarted: false,
       goliath: null,
     };
