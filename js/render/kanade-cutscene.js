@@ -779,15 +779,13 @@
     bezierShape([75, 34], [[73, 24, 76, 19, 81, 17], [81, 23, 79, 28, 75, 34]], PAL.hairMid);
     bezierShape([109, 34], [[111, 24, 108, 19, 103, 17], [103, 23, 105, 28, 109, 34]], PAL.hairMid);
 
-    // Shadow the fringe throws onto the forehead and the upper cheeks. This
-    // is what gives it volume: without it the hair reads as painted flat onto
-    // the face rather than as something sitting in front of it.
-    bezierShape([77, 24], [
-      [80, 29, 86, 32, 92, 32.5],
-      [98, 32, 104, 29, 107, 24],
-      [103, 27, 98, 28, 92, 28],
-      [86, 28, 81, 27, 77, 24]
-    ], PAL.skinShadow);
+    // Shadow the fringe throws onto the forehead. A filled band across the
+    // whole forehead read as a smear of colour rather than as shade, so this
+    // is a few short strokes tucked just under the lock tips, which is the
+    // only place the hair is actually close enough to the skin to darken it.
+    bezierLine([83, 29], [[85, 31, 87, 32, 88, 31.6]], PAL.skinShadow, 0.8);
+    bezierLine([90.5, 28], [[91.5, 29.6, 92.5, 30, 93.5, 29.4]], PAL.skinShadow, 0.7);
+    bezierLine([96, 30], [[97.5, 31.8, 99, 32, 100, 30.4]], PAL.skinShadow, 0.8);
 
     // Fringe as one solid mass with a scalloped lower edge, the way cel anime
     // draws it. Built from separate locks it left gaps between them showing
