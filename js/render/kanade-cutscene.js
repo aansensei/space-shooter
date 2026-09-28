@@ -83,6 +83,8 @@
     goldDark: '#9b7131', gold: '#d8b35a', goldHi: '#fff0a3',
     bootDeep: '#15142a', boot: '#292647', bootHi: '#ece7ef',
     outline: '#231f38',
+    // Light thrown back onto her by her own spell. Only used while casting.
+    magic: '#b98cff', magicHi: '#efdcff',
   };
 
   function rect(x, y, w, h, c) { pctx.fillStyle = c; pctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
@@ -177,9 +179,18 @@
     const ry = narrow ? 1.1 : (wide ? 2.3 : 1.8);
     const irisRx = wide ? 1.6 : 1.3, irisRy = wide ? 1.5 : 1.2;
     const upShift = mode === 'up' ? 0.5 : 0;
+    // Built in depth order the way a cel eye is painted: dark base, iris,
+    // the lit lower half of the iris, pupil, the lash shadow falling across
+    // the top, then the catchlights last so nothing covers them. eyeLight
+    // was sitting unused in the palette, and it is the tone that stops the
+    // eye reading as a flat blue disc.
     ellipse(cx, cy - upShift, rx, ry, PAL.eyeDeep);
     ellipse(cx, cy + 0.5 - upShift, irisRx, irisRy, PAL.eyeBlue);
+    ellipse(cx, cy + 0.9 - upShift, irisRx * 0.85, irisRy * 0.55, PAL.eyeLight);
+    ellipse(cx, cy + 0.4 - upShift, irisRx * 0.42, irisRy * 0.55, PAL.lid);
+    ellipse(cx, cy - ry * 0.72 - upShift, rx * 0.88, ry * 0.42, PAL.lid);
     rect(cx - 0.5, cy - 0.8 - upShift, 0.8, 0.8, PAL.eyeHi);
+    rect(cx + 0.7, cy + 0.9 - upShift, 0.5, 0.5, PAL.eyeHi);
     if (mode === 'droop') {
       bezierLine([cx - 2.2, cy - 1.2], [[cx, cy - 1.4, cx + 1.2, cy - 0.7, cx + 2.3, cy + 0.4]], PAL.hairDeep, 0.8);
     } else {
@@ -501,11 +512,27 @@
       const handY = 75 - castExt * 37;
       const elbowX = 115 + castExt * 10;
       const elbowY = 62 - castExt * 20;
+      // Shoulder joint under the sleeve. Without it the sleeve appeared to
+      // start in mid air, with a gap between it and the bodice.
+      ellipse(105, 55, 5.5, 6, PAL.creamShadow);
       bezierLine([106, 54], [[112, 52, 116 + castExt * 5, 54 - castExt * 11, elbowX, elbowY]], PAL.creamMid, 13);
       bezierLine([106, 51], [[113, 49, 117 + castExt * 5, 51 - castExt * 11, elbowX, elbowY - 2]], PAL.cream, 3);
       bezierLine([108, 58], [[113, 57, 117 + castExt * 5, 57 - castExt * 10, elbowX, elbowY + 2]], PAL.indigoMid, 4);
-      bezierLine([elbowX, elbowY], [[130 + castExt * 3, 48 - castExt * 9, handX - 3, handY + 2, handX, handY + 2]], PAL.skin, 4.5);
-      bezierLine([elbowX, elbowY + 1], [[130 + castExt * 3, 50 - castExt * 9, handX - 3, handY + 4, handX, handY + 3]], PAL.skinShadow, 1.2);
+      // Cuff where the sleeve ends and the forearm comes out.
+      bezierLine([elbowX - 3, elbowY + 4], [[elbowX, elbowY + 5, elbowX + 3, elbowY + 3, elbowX + 4, elbowY - 1]], PAL.goldDark, 1.2);
+
+      // Forearm. It used to be a single 4.5-wide stroke against a 13-wide
+      // sleeve, so the arm shrank to a thread the moment it left the cloth.
+      // Drawn as outline, mass, then shadow, and tapered from elbow to wrist
+      // rather than held at one width.
+      const foreC = [130 + castExt * 3, 48 - castExt * 9, handX - 3, handY + 2, handX, handY + 2];
+      bezierLine([elbowX, elbowY], [foreC], PAL.outline, 8);
+      bezierLine([elbowX, elbowY], [foreC], PAL.skin, 6.4);
+      // Wrist, narrower than the forearm, laid over its end.
+      bezierLine([handX - 6, handY + 4], [[handX - 4, handY + 3, handX - 2, handY + 2, handX, handY + 2]], PAL.skin, 4.6);
+      // Underside shadow, and a lit edge along the top where the spell is.
+      bezierLine([elbowX + 1, elbowY + 2], [[131 + castExt * 3, 51 - castExt * 9, handX - 3, handY + 5, handX, handY + 4]], PAL.skinShadow, 1.6);
+      bezierLine([elbowX, elbowY - 2], [[130 + castExt * 3, 45 - castExt * 9, handX - 4, handY - 1, handX - 1, handY]], PAL.magicHi, 1);
       // The casting hand is the same shape splayed open and rotated so the
       // fingers point up and outward along the raised arm, instead of a palm
       // blob with three long strokes fanning off it.
@@ -516,6 +543,21 @@
       pctx.rotate(-1 - castExt * 1.5);
       drawHand(0, 0, -1, 0.45 + castExt * 0.35);
       pctx.restore();
+
+      // Light thrown back onto her by the spell in her hand. The energy is
+      // drawn on the main canvas over the sprite, so without this she stayed
+      // lit as if nothing were happening six units from her face.
+      const lit = castExt;
+      if (lit > 0.05) {
+        bezierLine([100, 41], [[102, 44, 103, 46, 103, 48]], PAL.magic, 1.4);
+        bezierLine([99, 36], [[101, 37, 102, 39, 102, 41]], PAL.magicHi, 0.9);
+        bezierLine([103, 52], [[106, 56, 108, 60, 108, 63]], PAL.magic, 1.6);
+        bezierLine([98, 62], [[102, 68, 105, 76, 106, 84]], PAL.magic, 1.2);
+        if (lit > 0.5) {
+          sparkle(handX - 4, handY + 6, 2.2, PAL.magicHi);
+          bezierLine([106, 46], [[108, 48, 109, 50, 109, 52]], PAL.magicHi, 0.7);
+        }
+      }
     } else {
       bezierShape([104, 52], [
         [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
@@ -659,6 +701,27 @@
     bezierLine([96, 60], [[97, 72, 97, 84, 96, 94]], PAL.indigoHi, 0.45);
     bezierLine([86, 90], [[89, 93, 95, 93, 98, 90]], PAL.goldDark, 0.6);
 
+    // Gold at the collar and the sleeve openings. The metal is the only part
+    // of the outfit that can catch light, so more of it is what reads as
+    // expensive rather than more cloth detail would.
+    bezierLine([82, 62], [[86, 66, 98, 66, 102, 62]], PAL.goldDark, 1);
+    bezierLine([83, 61], [[87, 64, 97, 64, 101, 61]], PAL.gold, 0.5);
+    sparkle(92, 65, 1.8, PAL.goldHi);
+    bezierLine([86, 76], [[89, 78, 95, 78, 98, 76]], PAL.goldDark, 0.7);
+    bezierLine([87, 118], [[90, 121, 94, 121, 97, 118]], PAL.goldDark, 0.6);
+    ellipse(89, 86, 1.2, 1.2, PAL.gold);
+    ellipse(95, 86, 1.2, 1.2, PAL.gold);
+    ellipse(92, 131, 1.4, 1.4, PAL.gold);
+    ellipse(92, 131, 0.6, 0.6, PAL.indigoDeep);
+
+    // Contact shadows. Each one marks where something sits in front of
+    // something else, and together they are what turns a set of flat panels
+    // into a figure with depth.
+    bezierLine([78, 66], [[84, 70, 100, 70, 106, 66]], PAL.indigoDeep, 1.6);
+    bezierLine([74, 74], [[80, 80, 86, 84, 88, 92]], PAL.creamShadow, 1.2);
+    bezierLine([110, 74], [[104, 80, 98, 84, 96, 92]], PAL.indigoDeep, 1.2);
+    bezierLine([86, 124], [[89, 127, 95, 127, 98, 124]], PAL.skinShadow, 1.4);
+
     // A few more stars, smaller than the existing ones and scattered off the
     // regular spacing.
     sparkle(74, 108, 1.6, PAL.gold);
@@ -715,6 +778,16 @@
     // sticking up off the top of her head.
     bezierShape([75, 34], [[73, 24, 76, 19, 81, 17], [81, 23, 79, 28, 75, 34]], PAL.hairMid);
     bezierShape([109, 34], [[111, 24, 108, 19, 103, 17], [103, 23, 105, 28, 109, 34]], PAL.hairMid);
+
+    // Shadow the fringe throws onto the forehead and the upper cheeks. This
+    // is what gives it volume: without it the hair reads as painted flat onto
+    // the face rather than as something sitting in front of it.
+    bezierShape([77, 24], [
+      [80, 29, 86, 32, 92, 32.5],
+      [98, 32, 104, 29, 107, 24],
+      [103, 27, 98, 28, 92, 28],
+      [86, 28, 81, 27, 77, 24]
+    ], PAL.skinShadow);
 
     // Fringe as one solid mass with a scalloped lower edge, the way cel anime
     // draws it. Built from separate locks it left gaps between them showing
