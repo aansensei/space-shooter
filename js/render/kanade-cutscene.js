@@ -2215,7 +2215,7 @@
           trail: 7 * glide + idleTrail(now, 0.6),
           whip: flutter(now) * 0.8 * glide,
           blink: false,
-          expression: 'smug',
+          expression: 'neutral',
         },
       };
     }
@@ -2232,7 +2232,7 @@
           lean: breath(now) * 1.5,
           trail: idleTrail(now, 1),
           blink: blinkNow(now),
-          expression: 'thinking',
+          expression: 'serene',
         },
       };
     }
@@ -2258,7 +2258,7 @@
           lean: breath(now) * 0.7,
           trail: idleTrail(now, 0.7) - 3.4 * castExt,
           whip: Math.sin(now * 0.021) * charge * 1.2,
-          expression: beatId === 'cast' ? 'smug' : 'determined',
+          expression: 'smug',
         },
       };
     }
@@ -2282,7 +2282,7 @@
         trail: trail + idleTrail(now, 0.5),
         whip: flutter(now) * 0.6,
         walkStep: (p >= 0.30 && p < 0.90) ? Math.sin(now * 0.012) : 0,
-        blink: false, expression: 'neutral',
+        blink: false, expression: 'smug',
       },
     };
   }
