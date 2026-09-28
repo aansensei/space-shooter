@@ -100,6 +100,23 @@
     pctx.ellipse(Math.round(x), Math.round(y), Math.max(1, Math.round(rx)), Math.max(1, Math.round(ry)), 0, 0, Math.PI * 2);
     pctx.fill();
   }
+  // Open ellipse, for the orbital rings on her hair ornament. Unrounded on
+  // purpose: these are a couple of units across and snapping them to whole
+  // pixels makes them wobble as she breathes.
+  function ring(x, y, rx, ry, rot, c, w) {
+    pctx.save();
+    pctx.strokeStyle = c;
+    pctx.lineWidth = w;
+    pctx.beginPath();
+    pctx.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+    pctx.stroke();
+    pctx.restore();
+  }
+  // A hanging crystal: a narrow diamond with a lit facet down one side.
+  function crystal(x, y, h, c, hi) {
+    poly([[x, y - h], [x + h * 0.45, y], [x, y + h], [x - h * 0.45, y]], c);
+    poly([[x, y - h], [x + h * 0.45, y], [x, y + h * 0.15]], hi);
+  }
   function line(points, c, width) {
     pctx.strokeStyle = c;
     pctx.lineWidth = width;
@@ -325,8 +342,41 @@
     bezierLine([81, 26], [[80, 54, 82 + trail * 0.12, 91, 78 + trail * 0.42, 128 + droop * 5]], PAL.hairHi, 2);
     bezierLine([108, 28], [[111, 56, 109 + trail * 0.15, 92, 113 + trail * 0.48, 132 + droop * 5]], PAL.hairShadow, 1.5);
 
-    poly([[63 + fabricTrail * 0.15, 72], [48 + fabricTrail * 0.45, 89], [31 + fabricTrail, 119 + droop * 13], [45 + fabricTrail, 116 + droop * 14], [34 + fabricTrail * 1.1, 143 + droop * 8], [61 + fabricTrail * 0.45, 132 + droop * 10], [78, 91]], PAL.indigoDeep);
-    poly([[117 + fabricTrail * 0.15, 72], [132 + fabricTrail * 0.45, 90], [151 + fabricTrail, 120 + droop * 13], [135 + fabricTrail, 116 + droop * 14], [148 + fabricTrail * 1.1, 144 + droop * 8], [119 + fabricTrail * 0.45, 132 + droop * 10], [102, 91]], PAL.indigo);
+    // Second pass over the back hair. It is the largest single area on the
+    // sprite and was three flat fills, so it carried none of the detail the
+    // rest of her has. Locks are built from alternating tones at uneven
+    // spacing: evenly spaced lines of one colour read as corduroy.
+    bezierLine([65, 40], [[62, 66, 61 + trail * 0.3, 96, 58 + trail * 0.6, 126 + droop * 6]], PAL.hairDeep, 1.1);
+    bezierLine([70, 30], [[68, 58, 67 + trail * 0.25, 90, 65 + trail * 0.55, 124 + droop * 6]], PAL.hairLight, 0.7);
+    bezierLine([75, 46], [[73, 72, 72 + trail * 0.2, 100, 70 + trail * 0.45, 130 + droop * 5]], PAL.hairShadow, 0.9);
+    bezierLine([113, 40], [[116, 66, 117 + trail * 0.3, 96, 120 + trail * 0.6, 126 + droop * 6]], PAL.hairDeep, 1.1);
+    bezierLine([108, 34], [[110, 60, 111 + trail * 0.25, 92, 113 + trail * 0.55, 124 + droop * 6]], PAL.hairLight, 0.7);
+    bezierLine([103, 48], [[105, 74, 106 + trail * 0.2, 102, 108 + trail * 0.45, 130 + droop * 5]], PAL.hairShadow, 0.9);
+
+    // Sheen band across the back hair, the anime convention for a lit head of
+    // hair, kept low and broken so it does not look like a painted stripe.
+    bezierLine([66, 52], [[72, 47, 79, 45, 84, 47]], PAL.hairHi, 1.6);
+    bezierLine([100, 47], [[106, 45, 113, 47, 118, 53]], PAL.hairHi, 1.6);
+
+    // Tips: a few strands breaking away from the mass at the bottom so the
+    // hair does not end on one clean edge.
+    bezierLine([60 + trail * 0.6, 120], [[57 + trail * 0.7, 132, 56 + trail * 0.8, 142, 58 + trail * 0.9, 152 + droop * 6]], PAL.hairMid, 0.8);
+    bezierLine([118 + trail * 0.6, 122], [[121 + trail * 0.7, 134, 122 + trail * 0.8, 144, 120 + trail * 0.9, 153 + droop * 6]], PAL.hairMid, 0.8);
+    bezierLine([88, 130], [[87, 140, 87, 148, 88, 156 + droop * 5]], PAL.hairShadow, 0.6);
+
+    // Robe panels trailing behind her. Curves rather than polygons: as
+    // polygons their corners came out under the hem as hard points, reading
+    // as spikes growing off the gown instead of as cloth.
+    bezierShape([63 + fabricTrail * 0.15, 72], [
+      [52 + fabricTrail * 0.4, 84, 41 + fabricTrail * 0.8, 101, 37 + fabricTrail, 121 + droop * 12],
+      [39 + fabricTrail, 133 + droop * 10, 49 + fabricTrail * 0.7, 137 + droop * 10, 59 + fabricTrail * 0.45, 131 + droop * 10],
+      [69, 119, 76, 101, 78, 91]
+    ], PAL.indigoDeep);
+    bezierShape([117 + fabricTrail * 0.15, 72], [
+      [128 + fabricTrail * 0.4, 85, 139 + fabricTrail * 0.8, 102, 143 + fabricTrail, 122 + droop * 12],
+      [141 + fabricTrail, 134 + droop * 10, 131 + fabricTrail * 0.7, 138 + droop * 10, 121 + fabricTrail * 0.45, 131 + droop * 10],
+      [111, 119, 104, 101, 102, 91]
+    ], PAL.indigo);
 
     if (Math.abs(walkStep) > 0.04) {
       const backFoot = walkStep * 4;
@@ -334,8 +384,12 @@
       poly([[80 - backFoot, 139], [88 - backFoot * 0.4, 140], [88 - backFoot, 160], [81 - backFoot, 164], [76 - backFoot, 160]], PAL.bootDeep);
       poly([[78 - backFoot, 159], [90 - backFoot, 159], [91 - backFoot, 163], [83 - backFoot, 166], [77 - backFoot, 163]], PAL.boot);
     }
-    poly([[86, 92], [95, 92], [100, 126], [97, 151], [89, 151], [86, 124]], PAL.skin);
-    line([[86, 92], [95, 92], [100, 126], [97, 151], [89, 151]], PAL.outline, 0.7);
+    // Leg, run further down than the gown's hem so a real length of it shows
+    // in the skirt's front split. At 4.1 heads she reads as stunted, and the
+    // grid is only 180 tall so the ratio cannot be fixed by height alone:
+    // what sells the change is how much leg is visible, not the number.
+    poly([[86, 92], [95, 92], [99, 126], [96, 162], [89, 162], [86, 124]], PAL.skin);
+    line([[86, 92], [95, 92], [99, 126], [96, 162], [89, 162]], PAL.outline, 0.7);
     // Soft contact shadow where the gown hem falls across the leg, so the
     // leg reads as clearly in front of/below the robe instead of the two
     // silhouettes just merging together at that overlap.
@@ -344,15 +398,24 @@
     // read instead of one straight undifferentiated column, plus a soft
     // shin-side shadow suggesting the calf's own curve and a slight
     // weight-bearing bend rather than a perfectly rigid standing pole.
-    bezierLine([90, 134], [[93, 136, 96, 136, 98, 134]], PAL.skinShadow, 1);
-    bezierLine([98, 127], [[97, 136, 96, 144, 95.5, 150]], PAL.skinShadow, 1);
-    poly([[94, 124], [102, 126], [103, 159], [96, 164], [89, 159], [90, 142]], PAL.bootDeep);
-    poly([[95, 127], [100, 128], [99, 157], [95, 159], [92, 156], [93, 140]], PAL.bootHi);
-    poly([[90, 158], [104, 158], [105, 163], [99, 166], [91, 163]], PAL.boot);
-    ellipse(96, 151, 4, 3, PAL.gold);
-    ellipse(96, 151, 2, 2, PAL.bootDeep);
-    rect(94, 129, 1, 26, PAL.goldDark);
-    rect(98, 130, 1, 24, PAL.bootHi);
+    bezierLine([90, 136], [[93, 138, 96, 138, 98, 136]], PAL.skinShadow, 1);
+    bezierLine([97.5, 128], [[97, 140, 96, 152, 95.5, 160]], PAL.skinShadow, 1);
+    // Ankle boot rather than the old shin-high block: narrower, starting far
+    // lower, so the leg above it has somewhere to be. The bulk of the old one
+    // ate most of the visible leg and left the whole lower half looking
+    // truncated.
+    poly([[91, 145], [99, 146], [100, 168], [95, 173], [89, 169], [89.5, 155]], PAL.bootDeep);
+    // Body of the boot in the mid tone, with the pale trim kept to a thin
+    // strip. Filled with the highlight tone it read as a white sock rather
+    // than as the near-black boot the rest of the outfit is built around.
+    poly([[92, 148], [97, 149], [96.5, 166], [94, 168], [91.5, 165], [91.5, 154]], PAL.boot);
+    poly([[89, 167], [101, 167], [102, 172], [96, 175], [89, 172]], PAL.bootDeep);
+    rect(92.6, 150, 0.9, 15, PAL.bootHi);
+    ellipse(95, 158, 2.4, 2, PAL.gold);
+    ellipse(95, 158, 1, 1, PAL.bootDeep);
+    rect(91.4, 149, 0.7, 17, PAL.goldDark);
+    // Thin gold ankle strap, picking up the trim on the rest of the outfit.
+    bezierLine([89.5, 152], [[92, 154, 96, 154, 99.5, 152]], PAL.gold, 0.7);
 
     poly([[78, 75], [68, 86], [58 + fabricTrail * 0.15, 112], [52 + fabricTrail * 0.45, 142], [74 + fabricTrail * 0.15, 151], [89, 142], [94, 96]], PAL.creamShadow);
     poly([[102, 74], [114, 86], [124 + fabricTrail * 0.15, 113], [132 + fabricTrail * 0.45, 146], [108 + fabricTrail * 0.15, 154], [92, 142], [87, 96]], PAL.creamMid);
@@ -456,16 +519,43 @@
       drawHand(129 + fabricTrail * 0.35, 86.8, -1, 0);
     }
 
+    // Shoulder caps, drawn last so they sit over the seam where each sleeve
+    // meets the bodice. Without them the sleeve grows straight out of the
+    // neck and there is nothing for the eye to read as a shoulder, which is
+    // what made the upper body look boneless.
+    bezierShape([77, 49], [
+      [73, 52, 71, 57, 71, 62],
+      [76, 62, 81, 59, 84, 54],
+      [83, 50, 80, 48, 77, 49]
+    ], PAL.creamShadow);
+    bezierLine([71, 62], [[76, 62, 81, 59, 84, 54]], PAL.outline, 0.7);
+    bezierShape([103, 49], [
+      [107, 52, 109, 57, 109, 62],
+      [104, 62, 99, 59, 96, 54],
+      [97, 50, 100, 48, 103, 49]
+    ], PAL.creamMid);
+    bezierLine([109, 62], [[104, 62, 99, 59, 96, 54]], PAL.outline, 0.7);
+    // Seam from the shoulder down the outside of each sleeve, so sleeve and
+    // bodice stop reading as one continuous sheet of cloth.
+    bezierLine([72, 61], [[68, 70, 62, 79, 55 + fabricTrail * 0.4, 86]], PAL.outline, 0.6);
+    bezierLine([108, 61], [[112, 70, 118, 79, 125 + fabricTrail * 0.4, 87]], PAL.outline, 0.6);
+
     line([[70, 89], [65 + fabricTrail * 0.1, 116], [62 + fabricTrail * 0.3, 142]], PAL.creamShadow, 1.5);
     line([[109, 91], [116 + fabricTrail * 0.1, 117], [123 + fabricTrail * 0.3, 144]], PAL.cream, 1.5);
     line([[82, 91], [77, 113], [73, 143]], PAL.hairHi, 1);
     line([[102, 91], [110, 115], [117, 145]], PAL.indigoHi, 1.5);
+    // Folds. Each one is a single thin line in a neighbouring tone, enough to
+    // tell the panels apart without adding shapes that cost fill time.
+    bezierLine([76, 96], [[72, 113, 69, 128, 67 + fabricTrail * 0.25, 144]], PAL.creamShadow, 0.6);
+    bezierLine([86, 99], [[83, 116, 81, 131, 80, 146]], PAL.creamShadow, 0.5);
+    bezierLine([106, 97], [[110, 114, 113, 129, 115 + fabricTrail * 0.25, 145]], PAL.indigoHi, 0.6);
+    bezierLine([99, 100], [[102, 117, 104, 132, 105, 147]], PAL.indigoHi, 0.5);
     line([[88, 58], [91, 74], [91, 101], [94, 128]], PAL.gold, 1);
     line([[95, 57], [94, 77], [96, 94], [95, 118], [98, 141]], PAL.goldDark, 1);
-    ellipse(92, 72, 3, 3, PAL.gold);
-    ellipse(92, 72, 1, 1, PAL.indigoDeep);
-    ellipse(96, 105, 3, 3, PAL.gold);
-    ellipse(96, 105, 1, 1, PAL.indigoDeep);
+    ellipse(92, 72, 2, 2, PAL.gold);
+    ellipse(92, 72, 0.7, 0.7, PAL.indigoDeep);
+    ellipse(96, 105, 2, 2, PAL.gold);
+    ellipse(96, 105, 0.7, 0.7, PAL.indigoDeep);
     sparkle(91, 91, 3, PAL.goldHi);
     sparkle(99, 128, 3, PAL.gold);
     sparkle(73, 119, 2, PAL.goldHi);
@@ -497,6 +587,59 @@
     sparkle(91, 55, 2, PAL.goldHi);
     rect(91, 56, 1, 2, PAL.eyeBlue);
 
+    // Detail pass over the gown, under the face and front hair so nothing here
+    // can crowd them. Everything is a thin line or a small flat shape: at this
+    // sprite size anything finer than about one grid unit never resolves, it
+    // only costs draw time.
+
+    // Gold piping down the leading edge of each front panel, which is what
+    // makes the robe read as a tailored garment rather than as draped cloth.
+    bezierLine([86, 79], [[76, 92, 69 + fabricTrail * 0.1, 118, 65 + fabricTrail * 0.35, 147]], PAL.goldDark, 0.7);
+    bezierLine([94, 80], [[108, 93, 117 + fabricTrail * 0.1, 121, 124 + fabricTrail * 0.35, 149]], PAL.goldDark, 0.7);
+    bezierLine([87, 81], [[78, 93, 71 + fabricTrail * 0.1, 118, 67 + fabricTrail * 0.35, 146]], PAL.gold, 0.4);
+
+    // Hem band along the bottom of each panel.
+    bezierLine([64 + fabricTrail * 0.35, 147], [[73, 151, 81, 150, 87, 146]], PAL.goldDark, 0.6);
+    bezierLine([125 + fabricTrail * 0.35, 149], [[115, 153, 104, 152, 95, 147]], PAL.goldDark, 0.6);
+
+    // Second tier of folds, offset from the first so the panels do not look
+    // ribbed at a regular interval.
+    bezierLine([80, 103], [[77, 118, 75, 132, 74 + fabricTrail * 0.2, 145]], PAL.creamShadow, 0.45);
+    bezierLine([91, 106], [[89, 120, 88, 134, 87, 147]], PAL.creamShadow, 0.4);
+    bezierLine([103, 104], [[106, 119, 108, 133, 109 + fabricTrail * 0.2, 146]], PAL.indigoHi, 0.45);
+    bezierLine([97, 108], [[99, 121, 100, 135, 101, 148]], PAL.indigoHi, 0.4);
+
+    // Cuff bands at the wrist end of each sleeve.
+    bezierLine([40 + fabricTrail * 0.85, 95], [[45 + fabricTrail * 0.8, 100, 52 + fabricTrail * 0.7, 101, 58 + fabricTrail * 0.5, 97]], PAL.goldDark, 0.8);
+    bezierLine([140 + fabricTrail * 0.85, 96], [[135 + fabricTrail * 0.8, 101, 128 + fabricTrail * 0.7, 102, 122 + fabricTrail * 0.5, 98]], PAL.goldDark, 0.8);
+
+    // Folds running the length of each sleeve. These are the largest areas on
+    // the front view that are always visible, so they carry the most detail
+    // per unit of draw time spent.
+    bezierLine([70, 62], [[62, 72, 54 + fabricTrail * 0.5, 82, 46 + fabricTrail * 0.9, 92]], PAL.creamShadow, 0.5);
+    bezierLine([110, 62], [[118, 72, 126 + fabricTrail * 0.5, 83, 134 + fabricTrail * 0.9, 93]], PAL.creamShadow, 0.5);
+    bezierLine([74, 57], [[66, 67, 57 + fabricTrail * 0.5, 77, 48 + fabricTrail * 0.9, 87]], PAL.creamShadow, 0.4);
+    bezierLine([76, 68], [[69, 77, 61 + fabricTrail * 0.5, 86, 52 + fabricTrail * 0.9, 95]], PAL.creamShadow, 0.35);
+    bezierLine([106, 57], [[114, 67, 123 + fabricTrail * 0.5, 78, 132 + fabricTrail * 0.9, 88]], PAL.creamShadow, 0.4);
+    bezierLine([104, 68], [[111, 78, 119 + fabricTrail * 0.5, 87, 128 + fabricTrail * 0.9, 96]], PAL.creamShadow, 0.35);
+    // Lit edge along the top of each sleeve, opposite the folds below it.
+    bezierLine([72, 55], [[64, 63, 55 + fabricTrail * 0.5, 71, 45 + fabricTrail * 0.9, 80]], PAL.cream, 0.7);
+    bezierLine([108, 55], [[116, 63, 125 + fabricTrail * 0.5, 72, 135 + fabricTrail * 0.9, 81]], PAL.cream, 0.7);
+
+    // Bodice seams either side of the centre band, and a waist line, so the
+    // torso stops being one unbroken dark field.
+    bezierLine([88, 60], [[87, 72, 87, 84, 88, 94]], PAL.indigoHi, 0.45);
+    bezierLine([96, 60], [[97, 72, 97, 84, 96, 94]], PAL.indigoHi, 0.45);
+    bezierLine([86, 90], [[89, 93, 95, 93, 98, 90]], PAL.goldDark, 0.6);
+
+    // A few more stars, smaller than the existing ones and scattered off the
+    // regular spacing.
+    sparkle(74, 108, 1.6, PAL.gold);
+    sparkle(113, 124, 1.6, PAL.goldHi);
+    sparkle(84, 134, 1.4, PAL.gold);
+    sparkle(106, 139, 1.4, PAL.gold);
+    sparkle(68, 133, 1.2, PAL.goldHi);
+
     poly([[85, 42], [99, 42], [95, 52], [89, 52]], PAL.skinShadow);
     bezierShape([81, 32], [
       [81, 42, 86, 46, 92, 47],
@@ -523,28 +666,106 @@
 
     bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
     bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);
+    // Locks inside the side hair. Without them each side is one flat slab
+    // with a straight outer edge, which is most of what made the hair read as
+    // a pair of curtains.
+    bezierLine([79, 26], [[76.5, 40, 76, 56, 76.5 + sway * 0.3, 70]], PAL.hairShadow, 0.8);
+    bezierLine([83, 30], [[81, 44, 80.5, 60, 81 + sway * 0.25, 76]], PAL.hairHi, 0.7);
+    bezierLine([105, 26], [[107.5, 40, 108, 56, 107.5 + sway * 0.3, 70]], PAL.hairDeep, 0.8);
+    bezierLine([101, 30], [[103, 44, 103.5, 60, 103 + sway * 0.25, 76]], PAL.hairLight, 0.7);
 
     // Crown drawn first in a light tone so it blends with the bangs sitting
-    // on top of it, instead of reading as a separate dark "cap".
+    // on top of it, instead of reading as a separate dark "cap". Its inner
+    // edge sits low enough that the dome has real thickness: pulled up near
+    // the outer curve it collapsed into a thin horizontal bar, which read as
+    // a headband rather than as the top of a skull.
     bezierShape([75, 34], [
-      [73, 10, 111, 10, 109, 34],
-      [100, 18, 84, 18, 75, 34]
+      [73, 9, 111, 9, 109, 34],
+      [101, 27, 83, 27, 75, 34]
     ], PAL.hairLight);
-    bezierShape([75, 34], [[74, 20, 80, 16, 82, 14], [80, 26, 78, 32, 75, 34]], PAL.hairMid);
-    bezierShape([109, 34], [[110, 20, 104, 16, 102, 14], [104, 26, 106, 32, 109, 34]], PAL.hairMid);
+    // Shadowed mass at each temple. Their peaks are rounded and set back from
+    // the crown's own peak; brought level with it they became two spikes
+    // sticking up off the top of her head.
+    bezierShape([75, 34], [[73, 24, 76, 19, 81, 17], [81, 23, 79, 28, 75, 34]], PAL.hairMid);
+    bezierShape([109, 34], [[111, 24, 108, 19, 103, 17], [103, 23, 105, 28, 109, 34]], PAL.hairMid);
 
-    // Bangs, roots widened to y=11 (near the crown's own peak) so the three
-    // locks fan out and overlap instead of leaving forehead gaps between
-    // them - a fuller, denser M-shape instead of three thin separate locks.
-    bezierShape([82, 11], [[86, 28, 88, 38, 89, 41], [91, 35, 93, 25, 92, 16]], PAL.hairHi);
-    bezierShape([102, 11], [[98, 28, 96, 38, 95, 41], [93, 35, 91, 25, 92, 16]], PAL.hairLight);
-    bezierShape([92, 11], [[90, 25, 91, 35, 92, 38], [94, 35, 94, 25, 92, 11]], PAL.hairHi);
+    // Fringe as one solid mass with a scalloped lower edge, the way cel anime
+    // draws it. Built from separate locks it left gaps between them showing
+    // the lit crown underneath, and the row of gaps read as the teeth of a
+    // comb sitting on her head. The lower edge stays above the eye line at
+    // y=38 throughout: crossing it puts bars over her eyes.
+    bezierShape([75, 26], [
+      [76, 14, 83, 9, 92, 9],
+      [101, 9, 108, 14, 109, 26],
+      [108, 30, 107, 33, 106, 35],
+      [104, 30, 102, 25, 101, 21],
+      [100, 27, 99, 32, 98, 36],
+      [96, 31, 95, 25, 94, 20],
+      [93, 26, 92.5, 31, 92, 34],
+      [91, 30, 90, 25, 89, 20],
+      [88, 27, 87, 32, 86, 36],
+      [84, 31, 82, 26, 80, 22],
+      [78, 27, 76, 30, 75, 26]
+    ], PAL.hairHi);
 
-    // Extra fine strand lines within the bangs for a bit more detail/volume.
-    bezierLine([86, 16], [[87, 26, 88.5, 34, 89, 40]], PAL.hairShadow, 0.4);
-    bezierLine([98, 16], [[97, 26, 95.5, 34, 95, 40]], PAL.hairShadow, 0.4);
+    // Two sidelocks dropping past the jaw, so the fringe does not end in a
+    // hard line at the temples.
+    bezierShape([78, 18], [[76, 30, 76, 42, 77, 52], [80, 44, 81, 32, 81, 22]], PAL.hairMid);
+    bezierShape([106, 18], [[108, 30, 108, 42, 107, 52], [104, 44, 103, 32, 103, 22]], PAL.hairMid);
 
-    bezierLine([79, 14], [[85, 11, 99, 11, 105, 14]], PAL.hairHi, 1.5);
+    // Strand lines inside the fringe, following the locks the scalloped edge
+    // implies so the mass does not read as one flat card. Kept in the mid
+    // tone and started below the crown: in the shadow tone and run from the
+    // parting they cut across the fringe like scratches instead of sitting
+    // inside it.
+    bezierLine([85, 20], [[85.5, 25, 86, 30, 86, 34]], PAL.hairMid, 0.4);
+    bezierLine([90, 18], [[90, 24, 90, 29, 90, 32]], PAL.hairMid, 0.35);
+    bezierLine([94, 18], [[94, 24, 94, 29, 94, 32]], PAL.hairMid, 0.35);
+    bezierLine([99, 20], [[98.5, 25, 98, 30, 98, 34]], PAL.hairMid, 0.4);
+
+    // Gold hair ornament: a star pinned where the fringe meets the temple,
+    // with a short beaded chain falling from it. Gold is the only thing on
+    // her that catches light, so this is what gives the head a focal point
+    // instead of leaving it a pale mass. Worn on the near side only, since a
+    // matched pair across the head reads as a crown rather than as jewellery.
+    // The chain trails the head, so it swings a beat behind the body.
+    const accLag = sway * 0.35;
+    bezierLine([82, 25], [[81.6, 28, 81, 30, 80.4 + accLag, 32]], PAL.goldDark, 0.6);
+    ellipse(81.6, 27.6, 0.75, 0.75, PAL.gold);
+    ellipse(80.9, 30, 0.75, 0.75, PAL.gold);
+    sparkle(80.2 + accLag, 33.6, 2.2, PAL.goldDark);
+    sparkle(80.2 + accLag, 33.6, 1.5, PAL.gold);
+    sparkle(82.3, 22, 3.4, PAL.goldDark);
+    sparkle(82.3, 22, 2.6, PAL.gold);
+    sparkle(82.3, 22, 1.2, PAL.goldHi);
+
+    // Orbital ornament on the far side, the piece her key art is built
+    // around: thin gold rings crossing at different angles with a lit core,
+    // and a chain of crystals hanging off it. Rings rather than another star
+    // so the two sides of the head do not mirror each other.
+    ring(104, 21, 7, 2.6, -0.5, PAL.goldDark, 0.55);
+    ring(104, 21, 6.2, 2.2, 0.75, PAL.gold, 0.5);
+    ring(104, 21, 4.4, 4.2, 0, PAL.goldDark, 0.45);
+    sparkle(104, 21, 2.6, PAL.gold);
+    sparkle(104, 21, 1.2, PAL.goldHi);
+    sparkle(110, 17, 1.3, PAL.goldHi);
+    sparkle(98.5, 25, 1.1, PAL.gold);
+
+    // Crystal drop hanging from the rings, trailing the head like the chain
+    // on the near side.
+    const dropLag = sway * 0.4;
+    bezierLine([105, 24], [[106, 30, 107, 36, 107.5 + dropLag, 41]], PAL.goldDark, 0.5);
+    ellipse(106.3, 29, 0.7, 0.7, PAL.gold);
+    ellipse(107, 34.5, 0.7, 0.7, PAL.gold);
+    crystal(107.5 + dropLag, 44, 3.2, PAL.eyeBlue, PAL.eyeLight);
+    crystal(103 + dropLag * 0.5, 33, 2, PAL.eyeDeep, PAL.eyeBlue);
+
+    // Gold filigree sweeping back off the near temple, echoing the branching
+    // gold in the key art.
+    bezierLine([80, 19], [[77, 16, 74, 17, 72, 20]], PAL.goldDark, 0.5);
+    bezierLine([78, 22], [[75, 22, 73, 24, 72.5, 27]], PAL.gold, 0.4);
+    sparkle(71.6, 20, 1.3, PAL.goldHi);
+    sparkle(72.4, 27, 1, PAL.gold);
 
     pctx.restore();
   }
@@ -633,28 +854,43 @@
     bezierLine([77, 51], [[84, 56, 97, 57, 105, 51]], PAL.indigoDeep, 3);
     bezierLine([80, 48], [[86, 51, 96, 52, 102, 48]], PAL.gold, 1);
 
-    bezierShape([79, 16], [
-      [67, 20, 61, 38, 61 + trail * 0.08, 67],
-      [61 + trail * 0.2, 97, 60 + trail * 0.5, 128, 54 + trail * 0.7, 145],
+    // The outer silhouette, and the only thing that decides whether the back
+    // view reads as a person at all. It has to narrow at the neck: run
+    // straight from the crown to the hem and the head, neck and shoulders
+    // merge into one shape, which is why this used to look like a cocoon
+    // rather than someone seen from behind.
+    bezierShape([80, 14], [
+      [72, 17, 69, 25, 70, 35],
+      [71, 44, 75, 49, 78, 53],
+      [70, 61, 63, 88, 61 + trail * 0.08, 110],
+      [61 + trail * 0.2, 126, 59 + trail * 0.5, 137, 54 + trail * 0.7, 145],
       [60 + trail * 0.62, 152, 68 + trail * 0.42, 150, 73 + trail * 0.32, 137],
       [77 + trail * 0.22, 151, 84 + trail * 0.12, 154, 88, 138],
       [92, 152, 100 + trail * 0.12, 153, 104 + trail * 0.32, 137],
       [109 + trail * 0.42, 151, 117 + trail * 0.62, 150, 121 + trail * 0.7, 137],
-      [123 + trail * 0.2, 105, 122 + trail * 0.08, 63, 119, 48],
-      [116, 28, 108, 17, 99, 14],
-      [92, 11, 85, 12, 79, 16]
+      [124 + trail * 0.5, 137, 123 + trail * 0.2, 126, 123 + trail * 0.08, 110],
+      [121, 88, 114, 61, 106, 53],
+      [109, 49, 113, 44, 114, 35],
+      [115, 25, 112, 17, 104, 14],
+      [96, 11, 88, 11, 80, 14]
     ], PAL.hairMid);
-    bezierShape([78, 22], [
-      [69, 32, 65, 57, 66 + trail * 0.12, 91],
+    // Inner layers have to follow the outer one's pinch at the neck. Left
+    // wide through y=53 they spill past it and fill the gap back in, which is
+    // why the silhouette still read as a cocoon after the outer shape was
+    // given a neck.
+    bezierShape([79, 22], [
+      [73, 30, 72, 44, 75, 54],
+      [70, 64, 66, 78, 66 + trail * 0.12, 91],
       [66 + trail * 0.32, 116, 62 + trail * 0.58, 135, 56 + trail * 0.68, 145],
       [62 + trail * 0.52, 148, 70 + trail * 0.3, 137, 74, 119],
-      [76, 82, 76, 43, 78, 22]
+      [76, 82, 77, 44, 79, 22]
     ], PAL.hairShadow);
-    bezierShape([103, 20], [
-      [112, 31, 116, 57, 115 + trail * 0.12, 87],
+    bezierShape([105, 20], [
+      [111, 29, 112, 43, 109, 54],
+      [114, 64, 115, 76, 115 + trail * 0.12, 87],
       [116 + trail * 0.34, 114, 117 + trail * 0.6, 134, 113 + trail * 0.68, 147],
       [107 + trail * 0.48, 149, 102 + trail * 0.28, 139, 100, 121],
-      [101, 84, 100, 42, 103, 20]
+      [101, 84, 103, 42, 105, 20]
     ], PAL.hairDeep);
     bezierShape([84, 18], [
       [80, 37, 79, 69, 80 + trail * 0.08, 99],
@@ -668,6 +904,18 @@
       [103 + trail * 0.36, 140, 97 + trail * 0.18, 123, 96, 99],
       [93, 64, 91, 33, 94, 16]
     ], PAL.hairLight);
+    // Locks across the back hair. On this view the hair is effectively the
+    // entire figure, so without them the whole sprite is three flat fills.
+    bezierLine([70, 38], [[67, 70, 66 + trail * 0.3, 102, 63 + trail * 0.6, 136]], PAL.hairDeep, 1.1);
+    bezierLine([77, 30], [[75, 64, 74 + trail * 0.25, 98, 72 + trail * 0.5, 134]], PAL.hairShadow, 0.8);
+    bezierLine([84, 44], [[83, 74, 82 + trail * 0.2, 104, 81 + trail * 0.4, 138]], PAL.hairLight, 0.7);
+    bezierLine([96, 44], [[97, 74, 98 + trail * 0.2, 104, 99 + trail * 0.4, 138]], PAL.hairLight, 0.7);
+    bezierLine([103, 30], [[105, 64, 106 + trail * 0.25, 98, 108 + trail * 0.5, 134]], PAL.hairShadow, 0.8);
+    bezierLine([110, 38], [[113, 70, 114 + trail * 0.3, 102, 117 + trail * 0.6, 136]], PAL.hairDeep, 1.1);
+    // Sheen across the back of the head, the anime convention for lit hair.
+    bezierLine([74, 40], [[80, 34, 88, 32, 94, 34]], PAL.hairHi, 1.8);
+    bezierLine([100, 34], [[106, 33, 112, 36, 116, 42]], PAL.hairHi, 1.4);
+
     bezierShape([86, 14], [
       [84, 42, 86, 78, 88 + sway * 0.2, 113],
       [89 + trail * 0.18, 128, 89 + trail * 0.24, 139, 88 + trail * 0.3, 146],
@@ -695,6 +943,24 @@
     bezierLine([62, 56], [[68, 49, 73, 47, 78, 50]], PAL.cream, 2.5);
     bezierLine([102, 50], [[108, 47, 113, 49, 119, 56]], PAL.indigoMid, 2.5);
     bezierLine([76, 50], [[84, 55, 97, 55, 104, 50]], PAL.goldDark, 0.8);
+
+    // Edge line down the outside of the hair mass. The hair already narrows
+    // at the neck, but the shoulders and sleeves fill that gap right back in,
+    // so the two pale fields merged and the whole back view read as one
+    // cocoon. What was missing was the boundary between them, not the shape.
+    bezierLine([80, 14], [
+      [72, 17, 69, 25, 70, 35],
+      [71, 44, 75, 49, 78, 53],
+      [70, 61, 63, 88, 61 + trail * 0.08, 110]
+    ], PAL.hairDeep, 0.9);
+    bezierLine([104, 14], [
+      [112, 17, 115, 25, 114, 35],
+      [113, 44, 109, 49, 106, 53],
+      [114, 61, 121, 88, 123 + trail * 0.08, 110]
+    ], PAL.hairDeep, 0.9);
+    // Nape shadow, so the head sits in front of the hair behind it rather
+    // than being flush with it.
+    bezierLine([79, 50], [[85, 55, 99, 55, 105, 50]], PAL.hairDeep, 1.2);
 
     pctx.restore();
   }
