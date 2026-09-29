@@ -311,18 +311,37 @@
     pctx.restore();
   }
 
-  // Simple, small, perfectly symmetric stylized eye (blue), reused for both
-  // sides from the same shape so they can never end up mismatched in size.
-  // `mode` picks which expression variant to draw; 'blink' is the transient
-  // auto-blink override and wins over any open-eye mode passed alongside it.
-  function drawSimpleEye(cx, cy, mode) {
+  // An ellipse at its exact size and place. ellipse() snaps both to whole
+  // grid units, which in an eye four units across turned the iris and the
+  // pupil into the same circle and would make a small change of gaze
+  // either vanish or jump a whole unit.
+  function ellipseF(x, y, rx, ry, c) {
+    pctx.fillStyle = c;
+    pctx.beginPath();
+    pctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    pctx.fill();
+  }
+  // One eye, the same shape for both sides so they can never be mismatched
+  // in size. mode picks the expression; blink is 0 (open) to 1 (closed);
+  // gx and gy are the gaze, -1..1, which move only the iris, the pupil and
+  // the highlights, never the eye's outline or the lash.
+  //
+  // A blink is the upper lid coming down: skin fills in from above along a
+  // curve that runs from the open lash line to the closed-eye line, the lash
+  // travelling with it, so the iris is covered progressively rather than the
+  // open eye swapping for a closed line. The highlights go out before the
+  // lid reaches them. Closed and happy expressions do not blink again.
+  function drawSimpleEye(cx, cy, mode, blink, gx, gy) {
     mode = mode || 'open';
-    if (mode === 'blink') {
-      bezierLine([cx - 2, cy], [[cx - 0.8, cy + 0.6, cx + 0.8, cy + 0.6, cx + 2, cy]], PAL.lid, STROKE.edge);
-      return;
-    }
+    if (mode === 'blink') { mode = 'open'; blink = 1; }
+    // Which way is out from the face: the outer corner of the left eye is
+    // on the left.
+    const side = cx < 92 ? -1 : 1;
     if (mode === 'happy') {
-      bezierLine([cx - 2, cy + 0.3], [[cx - 0.8, cy - 1.3, cx + 0.8, cy - 1.3, cx + 2, cy + 0.3]], PAL.lid, STROKE.edge);
+      // A low arc with the lash's tail, rather than a steep ^ that read as
+      // an emoji.
+      bezierLine([cx - 2, cy + 0.2], [[cx - 0.8, cy - 0.9, cx + 0.8, cy - 0.9, cx + 2, cy + 0.2]], PAL.lid, STROKE.seam);
+      line([[cx + 2 * side, cy + 0.2], [cx + 2.5 * side, cy - 0.2]], PAL.lid, STROKE.fine);
       return;
     }
     if (mode === 'shut') {
@@ -334,58 +353,127 @@
       bezierLine([cx - 2, cy + 0.2], [[cx - 0.9, cy + 0.7, cx + 0.9, cy + 0.7, cx + 2, cy + 0.2]], PAL.lid, STROKE.seam);
       return;
     }
-    const wide = mode === 'wide';
-    const narrow = mode === 'narrow';
-    const rx = wide ? 2.3 : 1.8;
-    const ry = narrow ? 1.1 : (wide ? 2.3 : 1.8);
-    const irisRx = wide ? 1.6 : 1.3, irisRy = wide ? 1.5 : 1.2;
-    const upShift = mode === 'up' ? 0.5 : 0;
-    // Built in depth order the way a cel eye is painted: dark base, iris,
-    // the lit lower half of the iris, pupil, the lash shadow falling across
-    // the top, then the catchlights last so nothing covers them. eyeLight
-    // was sitting unused in the palette, and it is the tone that stops the
-    // eye reading as a flat blue disc.
-    ellipse(cx, cy - upShift, rx, ry, PAL.eyeDeep);
-    ellipse(cx, cy + 0.5 - upShift, irisRx, irisRy, PAL.eyeBlue);
-    ellipse(cx, cy + 0.9 - upShift, irisRx * 0.85, irisRy * 0.55, PAL.eyeLight);
-    ellipse(cx, cy + 0.4 - upShift, irisRx * 0.42, irisRy * 0.55, PAL.lid);
-    ellipse(cx, cy - ry * 0.72 - upShift, rx * 0.88, ry * 0.42, PAL.lid);
-    rect(cx - 0.5, cy - 0.8 - upShift, 0.8, 0.8, PAL.eyeHi);
-    rect(cx + 0.7, cy + 0.9 - upShift, 0.5, 0.5, PAL.eyeHi);
-    if (mode === 'droop') {
-      bezierLine([cx - 2.2, cy - 1.2], [[cx, cy - 1.4, cx + 1.2, cy - 0.7, cx + 2.3, cy + 0.4]], PAL.hairDeep, STROKE.seam);
-    } else {
-      bezierLine([cx - 2.2, cy - 1.5 - upShift], [[cx, cy - 2 - upShift, cx + 1.2, cy - 1 - upShift, cx + 2.5, cy - 0.2 - upShift]], PAL.hairDeep, STROKE.seam);
+    // Thinking looks up with the lids a little lowered, not wide open.
+    const b = Math.max(mode === 'up' ? 0.22 : 0, Math.min(1, blink || 0));
+    const wide = mode === 'wide', narrow = mode === 'narrow', droop = mode === 'droop';
+    const up = mode === 'up' ? 0.5 : 0;
+    // A touch wider than tall, an almond more than a marble.
+    const rx = wide ? 2.4 : 2.12, ry = narrow ? 1.2 : (wide ? 2.2 : 1.9);
+    const ey = cy - up;
+    // Gaze, kept inside the eye: at most about half a unit across and a
+    // third of a unit up or down.
+    const ox = Math.max(-1, Math.min(1, gx || 0)) * 0.45;
+    const oy = Math.max(-1, Math.min(1, gy || 0)) * 0.3 - up * 0.4;
+
+    pctx.save();
+    pctx.beginPath();
+    pctx.ellipse(cx, ey, rx, ry, 0, 0, Math.PI * 2);
+    pctx.clip();
+    // Dark base, the iris with its lit lower half, the pupil, then the lid's
+    // shadow across the top of the eye, which stays put while the iris
+    // looks about under it.
+    pctx.fillStyle = PAL.eyeDeep;
+    pctx.fill();
+    ellipseF(cx + ox, ey + 0.55 + oy, wide ? 1.6 : 1.4, wide ? 1.55 : 1.45, PAL.eyeBlue);
+    ellipseF(cx + ox, ey + 1.15 + oy, wide ? 1.0 : 0.88, 0.58, PAL.eyeLight);
+    ellipseF(cx + ox, ey + 0.3 + oy, 0.6, 0.8, PAL.lid);
+    ellipseF(cx, ey - ry * 0.68, rx * 0.95, ry * 0.44, PAL.lid);
+    if (b < 0.45) {
+      // One strong catchlight and one much smaller one, riding with the
+      // iris. The strong one is high on the side toward the gate, where the
+      // light on the rest of her comes from.
+      ellipseF(cx + 0.5 + ox, ey - 0.4 + oy, 0.52, 0.48, PAL.eyeHi);
+      ellipseF(cx - 0.65 + ox, ey + 1.0 + oy, 0.26, 0.26, PAL.eyeHi);
     }
+    pctx.restore();
+
+    // The lash line, open (or drooping) at b = 0 and the closed-eye curve at
+    // b = 1, with the lid's skin filling everything above it.
+    const L0 = droop
+      ? [cx - 2.2, ey - 1.2, cx, ey - 1.4, cx + 1.2, ey - 0.7, cx + 2.3, ey + 0.4]
+      : [cx - 2.2, ey - ry * 0.8, cx, ey - ry * 1.02, cx + 1.2, ey - ry * 0.55, cx + 2.5, ey - 0.25];
+    const L1 = [cx - 2, cy, cx - 0.8, cy + 0.6, cx + 0.8, cy + 0.6, cx + 2, cy];
+    const Lb = L0.map((v, i) => v + (L1[i] - v) * b);
+    if (b > 0) {
+      pctx.fillStyle = PAL.skin;
+      pctx.beginPath();
+      pctx.moveTo(cx - rx - 0.5, ey - ry - 0.6);
+      pctx.lineTo(Lb[0] - 0.3, Lb[1]);
+      pctx.bezierCurveTo(Lb[2], Lb[3], Lb[4], Lb[5], Lb[6] + 0.3, Lb[7]);
+      pctx.lineTo(cx + rx + 0.6, ey - ry - 0.6);
+      pctx.closePath();
+      pctx.fill();
+    }
+    // The upper lash is the eye's heaviest line, with a small flick past
+    // the outer corner that goes as the lid closes.
+    bezierLine([Lb[0], Lb[1]], [[Lb[2], Lb[3], Lb[4], Lb[5], Lb[6], Lb[7]]], b > 0.85 ? PAL.lid : PAL.hairDeep, STROKE.seam);
+    if (b < 0.5 && mode !== 'droop') {
+      const ex = side > 0 ? Lb[6] : Lb[0], eyy = side > 0 ? Lb[7] : Lb[1];
+      line([[ex - 0.2 * side, eyy - 0.05], [ex + 0.5 * side, eyy - 0.5]], PAL.hairDeep, STROKE.fine);
+    }
+    // A soft lower edge under the open eye, fading out as it closes.
+    if (b < 0.6) bezierLine([cx - 1.3, ey + ry + 0.15], [[cx - 0.4, ey + ry + 0.55, cx + 0.5, ey + ry + 0.55, cx + 1.4, ey + ry + 0.1]], PAL.skinShadow, STROKE.hairline);
   }
-  // Eyebrows are one straight stroke defined once for the left side and
-  // mirrored across the face's x=92 centerline for the right, so the two
-  // brows can never end up asymmetric.
+  // Eyebrows, defined once for the left side and mirrored across the
+  // face's x=92 centreline, so the pair can never end up asymmetric. Each is
+  // a thin shape along a shallow arch, thickest near the middle and tapering
+  // to both ends; a straight stroke of one width read as a painted dash.
   const BROW_SHAPES = {
     flat: [85, 34.5, 89, 34],
     raised: [85, 32.8, 89, 32.3],
     down: [85, 35.4, 89, 35],
-    angryIn: [85, 33, 89, 36],
+    angryIn: [85, 33.6, 89, 35.5],
     sadIn: [85, 35.5, 89, 32.5],
   };
   function drawBrow(shape, mirror) {
-    const b = BROW_SHAPES[shape] || BROW_SHAPES.flat;
-    const x1 = mirror ? 184 - b[0] : b[0];
-    const x2 = mirror ? 184 - b[2] : b[2];
-    line([[x1, b[1]], [x2, b[3]]], PAL.hairDeep, STROKE.edge);
+    const bw = BROW_SHAPES[shape] || BROW_SHAPES.flat;
+    const X = v => mirror ? 184 - v : v;
+    const x0 = bw[0], y0 = bw[1], x1 = bw[2], y1 = bw[3];
+    const N = 8, top = [], bot = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      const x = x0 + (x1 - x0) * t;
+      // The arch lifts the middle a little above the straight line.
+      const y = y0 + (y1 - y0) * t - Math.sin(t * Math.PI) * 0.4;
+      const h = 0.08 + Math.pow(Math.sin(t * Math.PI), 0.7) * 0.36 * (1 - t * 0.35);
+      top.push([X(x), y - h]);
+      bot.push([X(x), y + h]);
+    }
+    // The hair's shadow tone rather than its darkest: slim and pale, they
+    // sit under the fringe instead of competing with the lashes.
+    pctx.fillStyle = PAL.hairShadow;
+    pctx.beginPath();
+    pctx.moveTo(top[0][0], top[0][1]);
+    for (const p of top) pctx.lineTo(p[0], p[1]);
+    for (let i = bot.length - 1; i >= 0; i--) pctx.lineTo(bot[i][0], bot[i][1]);
+    pctx.closePath();
+    pctx.fill();
   }
+  // The mouth, kept small and light: drawn about 15% narrower than its
+  // numbers, at the fine weight, so it no longer outweighs the eyes.
   function drawMouth(style) {
     const c = '#a85f78';
-    if (style === 'flat') { line([[90.5, 45.3], [93.5, 45.3]], c, STROKE.edge); return; }
-    if (style === 'smile') { bezierLine([89.5, 44.7], [[91, 46.3, 93, 46.3, 94.5, 44.7]], c, STROKE.edge); return; }
-    if (style === 'smirk') { bezierLine([90.5, 45.2], [[91.5, 46, 93, 45.8, 94.5, 44]], c, STROKE.edge); return; }
-    if (style === 'frown') { bezierLine([90, 45.7], [[91, 44, 93, 44, 94, 45.7]], c, STROKE.edge); return; }
-    if (style === 'open') { ellipse(92, 45.4, 1.2, 1.6, PAL.indigoDeep); return; }
-    if (style === 'tense') { line([[89.8, 45.4], [92, 44.9], [94.2, 45.4]], c, STROKE.edge); return; }
-    if (style === 'soft') { bezierLine([90.7, 44.9], [[91.6, 45.9, 92.4, 45.9, 93.3, 44.9]], c, STROKE.seam); return; }
-    bezierLine([90.5, 45], [[91.5, 46, 92.5, 46, 93.5, 45]], c, STROKE.edge);
+    pctx.save();
+    pctx.translate(92, 0);
+    pctx.scale(0.85, 1);
+    pctx.translate(-92, 0);
+    drawMouthShape(style, c);
+    pctx.restore();
   }
-
+  function drawMouthShape(style, c) {
+    if (style === 'flat') { bezierLine([90.6, 45.3], [[91.6, 45.5, 92.6, 45.5, 93.4, 45.3]], c, STROKE.fine); return; }
+    if (style === 'smile') { bezierLine([89.8, 44.8], [[91, 46.1, 93, 46.1, 94.2, 44.8]], c, STROKE.fine); return; }
+    if (style === 'smirk') { bezierLine([90.5, 45.3], [[91.6, 45.95, 93, 45.85, 94.1, 44.8]], c, STROKE.fine); return; }
+    if (style === 'frown') { bezierLine([90.8, 45.5], [[91.6, 44.7, 92.4, 44.7, 93.2, 45.5]], c, STROKE.fine); return; }
+    if (style === 'open') {
+      ellipseF(92, 45.4, 0.86, 1.1, PAL.indigoDeep);
+      ellipseF(92, 46.0, 0.5, 0.3, PAL.blush);
+      return;
+    }
+    if (style === 'tense') { line([[89.9, 45.4], [92, 45], [94.1, 45.4]], c, STROKE.fine); return; }
+    if (style === 'soft') { bezierLine([90.8, 44.9], [[91.6, 45.8, 92.4, 45.8, 93.2, 44.9]], c, STROKE.fine); return; }
+    bezierLine([90.6, 45], [[91.5, 45.9, 92.5, 45.9, 93.4, 45]], c, STROKE.fine);
+  }
   const EXPRESSIONS = {
     neutral: { brow: 'flat', eye: 'open', mouth: 'neutral' },
     determined: { brow: 'down', eye: 'narrow', mouth: 'flat' },
@@ -418,10 +506,10 @@
   // along the fingers when relaxed and turned out about 34 degrees open.
   //        [centre x, half width, tip y closed, tip y open], little to index
   const HAND_FINGERS = [
-    [-1.85, 0.55, 6.3, 7.5],
-    [-0.68, 0.6, 7.05, 8.75],
-    [0.52, 0.62, 7.35, 9.35],
-    [1.7, 0.58, 7.05, 8.9],
+    [-1.95, 0.6, 6.4, 7.5],
+    [-0.7, 0.62, 7.0, 8.7],
+    [0.55, 0.63, 7.2, 9.3],
+    [1.8, 0.61, 7.0, 8.85],
   ];
   function drawCastHand(x, y, s, open) {
     const k = 1.05, q = 0.552;
@@ -441,9 +529,6 @@
     const W1 = [-1.85, -0.4], PL0 = [-2.3, 1.6], PL = [m(-2.45, -2.6), 4.0];
     const PR = [m(2.45, 2.6), 4.6], PR0 = [2.3, 1.6], W2 = [1.85, -0.4];
     const segs = [];
-    // Which segments are valleys: they get no outline, since two edges a
-    // hair apart inside a narrow gap drew a black slit, a fork's tines.
-    const valley = new Set();
     segs.push(seg([-2.05, 0.3], [-2.25, 0.9], PL0));
     segs.push(seg([-2.4, 2.4], [PL[0], 3.2], PL));
     const f0 = fing[0];
@@ -457,9 +542,8 @@
         // The valley to the next finger: vertical at both ends so it meets
         // both caps smoothly, and deepest halfway between them.
         const ends = (f.capY + n.capY) / 2;
-        const vy = Math.min(f.capY, n.capY) - m(0.15, 0.2) - 0.95 * gap;
+        const vy = Math.min(f.capY, n.capY) - m(0.05, 0.15) - 0.6 * gap;
         const cy = (vy - 0.25 * ends) / 0.75;
-        valley.add(segs.length);
         segs.push(seg([f.cx + f.r, cy], [n.cx - n.r, cy], [n.cx - n.r, n.capY]));
       }
     });
@@ -486,25 +570,32 @@
     ];
     const tStart = P(...at(0, -0.9));
 
-    // Skin, the hand's edge over it (from part way up each side of the palm,
-    // never across the wrist), then the thumb over both so the hand's edge
-    // disappears where the thumb joins and no dark seam is left between
-    // them. The thumb's own edge runs down its outer side and round its tip.
+    // The hand's edge is one unbroken line from part way up each side of
+    // the palm, never across the wrist: stroked a piece at a time, every
+    // fingertip got its own rounded line ends and read as a separate claw.
+    // It goes down before the skin, so only its outer half survives; laid
+    // over the skin, a full-width line filled each shallow valley and cut a
+    // dark notch between the fingertips. Then the thumb over both, so the
+    // hand's edge disappears where the thumb joins and there is no dark seam
+    // between them; the thumb's own edge runs down its outer side and round
+    // its tip.
+    bezierLine(P(PL0[0], PL0[1]), segs.slice(1, segs.length - 1), PAL.outline, STROKE.edge);
     bezierShape(start, segs, PAL.skin);
-    let from = P(PL0[0], PL0[1]);
-    for (let i = 1; i < segs.length - 1; i++) {
-      if (!valley.has(i)) bezierLine(from, [segs[i]], PAL.outline, STROKE.seam);
-      from = segs[i].slice(4);
+    // Short partings in shade, not outline, running back from each valley.
+    // The middle one is always there; the outer two grow with the gaps, so
+    // the relaxed hand keeps a single crease.
+    for (let i = 0; i < 3; i++) {
+      const a = fing[i], b = fing[i + 1];
+      const len = i === 1 ? m(1.1, 0.8) : 0.9 * gap;
+      if (len < 0.05) continue;
+      const vx = (a.cx + a.r + b.cx - b.r) / 2, vy = Math.min(a.capY, b.capY) - m(0.05, 0.15) - 0.6 * gap;
+      line([P(vx, vy - 0.1), P(vx - 0.05, vy - 0.1 - len)], PAL.skinShadow, i === 1 ? STROKE.fine : STROKE.hairline);
     }
     bezierShape(tStart, tSegs, PAL.skin);
     bezierLine(P(...at(0.7, root)), tSegs.slice(1, 4), PAL.outline, STROKE.seam);
 
-    // One short crease under the middle of the finger mass, where the
-    // middle and ring fingers part, a hint of the thumb's fold, and a little
-    // shade down the side of the palm away from the thumb.
-    const mid = fing[1].cx + fing[1].r + (fing[2].cx - fing[2].r - fing[1].cx - fing[1].r) / 2;
-    const my = Math.min(fing[1].capY, fing[2].capY) - 0.5 - 0.95 * gap;
-    line([P(mid, my), P(mid - 0.05, my - m(1.1, 0.7))], PAL.skinShadow, STROKE.fine);
+    // A hint of the thumb's fold, and a little shade down the side of the
+    // palm away from the thumb.
     bezierLine(P(...at(1.5, -0.75)), [seg(at(2, -0.8), at(len - 1.6, -0.65), at(len - 1.2, -0.55))], PAL.skinShadow, STROKE.fine);
     bezierLine(P(-2.0, 0.6), [seg([-2.3, 1.8], [-2.35, 3.0], [-2.2, 4.2])], PAL.skinShadow, STROKE.seam);
   }
@@ -543,6 +634,25 @@
     pctx.fill();
   }
 
+  // The ahoge: one strand standing up off the crown and curling over. sw
+  // is how far its tip has swung; it is the lightest thing on her, so it
+  // swings further and later than any lock of hair. Root at (x, y).
+  // Short, with a slight S: out of the parting, bending one way and then
+  // tipping the other at the end, tapering to a point, and at rest leaning
+  // a little to one side rather than standing straight up. Its edge is a
+  // hairline and only along the upper part, so it reads as a strand and
+  // not as a horn.
+  function drawAhoge(x, y, sw) {
+    const tipX = x + 2.7 + sw, tipY = y - 5.4;
+    const start = [x - 0.6, y + 0.2];
+    const segs = [
+      [x - 1.3, y - 2.2, x + 0.4 + sw * 0.5, y - 5.6, tipX, tipY],
+      [x + 1.1 + sw * 0.5, y - 4.2, x + 0.5, y - 2.2, x + 0.6, y]
+    ];
+    bezierShape(start, segs, PAL.hairLight);
+    bezierLine([x - 0.9, y - 2], [[x - 0.6, y - 4, x + 0.8 + sw * 0.5, y - 5.6, tipX, tipY]], PAL.hairShadow, STROKE.hairline);
+  }
+
   // Where her right wrist is for a given castExt, in grid units before the
   // shoulder drop: hanging at her side at 0, up by her head at 1. Shared by
   // the arm drawing and by handPos, so the spell energy drawn on the main
@@ -577,7 +687,13 @@
     return tag + Math.round(t * 24) + ':' +
       q(o.lean) + ',' + q(o.trail) + ',' + q(o.whip) + ',' + q(o.droop) + ',' +
       q(o.walkStep) + ',' + Math.round((o.castExt || 0) * 32) + ',' + q(o.swayAmp) + ',' + q(o.bobAmp) +
-      ':' + (o.expression || '') + (o.blink ? 'b' : '');
+      ':' + (o.expression || '') + ':' +
+      // Blink in tenths, gaze in tenths of its range, head turn in
+      // thousandths of a radian: fine enough to move smoothly, coarse
+      // enough that a still face still hits the cache.
+      Math.round((o.blinkAmount != null ? o.blinkAmount : (o.blink ? 1 : 0)) * 10) + ',' +
+      Math.round((o.gazeX || 0) * 10) + ',' + Math.round((o.gazeY || 0) * 10) + ',' +
+      Math.round((o.headTurn || 0) * 1000);
   }
 
   function drawKanade(t, opts) {
@@ -602,7 +718,10 @@
     // toward the high shoulder, the waist tilts the other way, and the far
     // leg, off the weight, rests its heel a little higher.
     const relaxed = 1 - castExt;
-    const headTilt = -0.012 * relaxed;
+    // headTurn is the head answering the scene, a hundredth of a radian or
+    // so toward the thought bubble or away from the rising spell, on top of
+    // the resting tilt; it is clamped so it can never become a nod.
+    const headTilt = -0.012 * relaxed + Math.max(-0.012, Math.min(0.012, opts.headTurn || 0));
     const hipTilt = 0.6 * relaxed;
     const fabricTrail = trail * 0.75 + whip;
     // The hair behind her follows droop only halfway. Taken all the way, its
@@ -1063,7 +1182,7 @@
     pctx.save();
     pctx.translate(wrist[0] + 0.5 * castExt, wrist[1] + 0.8 * castExt);
     pctx.rotate(Math.atan2(-foreDX, foreDY) - 0.85 * castEase);
-    const handSize = mix(0.75, 1, castExt);
+    const handSize = mix(0.75, 1.05, castExt);
     pctx.scale(handSize, handSize);
     // Thumb on the +1 side keeps the palm toward the viewer the whole way:
     // turned out a little while the hand hangs, turned in toward her as it
@@ -1093,30 +1212,55 @@
     pctx.translate(92, 50);
     pctx.rotate(headTilt);
     pctx.translate(-92, -50);
-    const chinShade = smoothOutline([[85, 42], [99, 42], [95, 52], [89, 52]], 0.6);
-    bezierShape(chinShade[0], chinShade[1], PAL.skinShadow);
+    // A soft oval narrowing to the chin: full width through the temples and
+    // eyes, tapering from the cheekbones, the chin at 47.8 so the mouth has
+    // room under it. Wider cheeks and a chin brought lower made the face a
+    // circle. Its one shadow is a small crescent right under the chin; a
+    // second, wider one there read as a double chin.
+    bezierShape([88.4, 47.35], [
+      [90.0, 48.15, 94.0, 48.15, 95.6, 47.35],
+      [94.1, 47.75, 89.9, 47.75, 88.4, 47.35]
+    ], PAL.skinShadow);
     bezierShape([81, 32], [
-      [81, 42, 86, 46, 92, 47],
-      [98, 46, 103, 42, 103, 32],
+      [81, 40.8, 85.2, 46.0, 92, 47.8],
+      [98.8, 46.0, 103, 40.8, 103, 32],
       [103, 20, 81, 20, 81, 32]
     ], PAL.skin);
     // Soft warm rim along the jaw/cheek edge so the face separates from the
     // similarly pale hair/gown around it instead of blending into a flat
     // bright mass - the face is meant to be the first thing the eye lands on.
     bezierLine([81, 32], [
-      [81, 42, 86, 46, 92, 47],
-      [98, 46, 103, 42, 103, 32]
+      [81, 40.8, 85.2, 46.0, 92, 47.8],
+      [98.8, 46.0, 103, 40.8, 103, 32]
     ], PAL.skinShadow, STROKE.fine);
     const expr = EXPRESSIONS[opts.expression] || EXPRESSIONS.neutral;
-    const eyeMode = (opts.blink && OPEN_EYE_FAMILY[expr.eye]) ? 'blink' : expr.eye;
+    // blinkAmount is 0..1; the older boolean blink still means fully shut.
+    // Only open eyes blink or look about: closed and happy ones hold still.
+    const openEye = !!OPEN_EYE_FAMILY[expr.eye];
+    const blinkAmt = openEye ? (opts.blinkAmount != null ? opts.blinkAmount : (opts.blink ? 1 : 0)) : 0;
+    const gazeX = openEye ? opts.gazeX || 0 : 0, gazeY = openEye ? opts.gazeY || 0 : 0;
+    drawSimpleEye(88, 38, expr.eye, blinkAmt, gazeX, gazeY);
+    drawSimpleEye(96, 38, expr.eye, blinkAmt, gazeX, gazeY);
+    // Brows after the eyes, so a closing lid can never paint over them.
     drawBrow(expr.brow, false);
     drawBrow(expr.brow, true);
-    drawSimpleEye(88, 38, eyeMode);
-    drawSimpleEye(96, 38, eyeMode);
-    line([[92, 41.5], [92, 42.5]], PAL.skinShadow, STROKE.seam);
+    // The nose: a short angled shadow under its tip rather than a dash down
+    // the middle of the face.
+    bezierLine([92.6, 41.9], [[92.5, 42.1, 92.35, 42.3, 92.1, 42.4]], PAL.skinShadow, STROKE.hairline);
+    // The mouth sits 0.7 higher than it was drawn, with room below it for
+    // the chin.
+    pctx.save();
+    pctx.translate(0, -0.7);
     drawMouth(expr.mouth);
-    ellipse(83.5, 41, 2, 1.2, PAL.blush);
-    ellipse(100.5, 41, 2, 1.2, PAL.blush);
+    // Light on the lower lip, under the closed-mouth shapes only.
+    if (expr.mouth !== 'open' && expr.mouth !== 'tense') line([[91.5, 46.2], [92.5, 46.2]], PAL.blush, STROKE.fine);
+    pctx.restore();
+    // Blush as a wide, thin wash with two faint strokes on it; a solid oval
+    // read as a stamp, and darker strokes as scratches.
+    for (const bx of [83.6, 100.4]) {
+      ellipseF(bx, 41.2, 2.3, 0.75, PAL.blush);
+      for (const d of [-0.6, 0.6]) line([[bx + d - 0.3, 41.6], [bx + d + 0.3, 40.8]], PAL.blush, STROKE.hairline);
+    }
 
     bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
     bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);
@@ -1159,13 +1303,13 @@
     bezierShape([75, 26], [
       [76, 14, 83, 9, 92, 9],
       [101, 9, 108, 14, 109, 26],
-      [108, 30, 107, 33, 106, 35],
+      [108, 30, 107, 32.6, 106, 34.3],
       [104, 30, 102, 25, 101, 21],
-      [100, 27, 99, 32, 98, 36],
+      [100, 27, 99, 31.6, 98, 35.1],
       [96, 31, 95, 25, 94, 20],
-      [93, 26, 92.5, 31, 92, 34],
+      [93, 26, 92.5, 30.6, 92, 33.4],
       [91, 30, 90, 25, 89, 20],
-      [88, 27, 87, 32, 86, 36],
+      [88, 27, 87, 31.6, 86, 35.1],
       [84, 31, 82, 26, 80, 22],
       [78, 27, 76, 30, 75, 26]
     ], PAL.hairLight);
@@ -1198,6 +1342,7 @@
     bezierLine([86.8, 19], [[87, 21, 87.1, 23, 87.1, 25]], PAL.hairHi, STROKE.fine);
     bezierLine([96.6, 18.6], [[96.8, 20.4, 96.9, 22, 96.9, 24]], PAL.hairHi, STROKE.fine);
     bezierLine([75, 26], [[76, 14, 83, 9, 92, 9], [101, 9, 108, 14, 109, 26]], PAL.hairShadow, STROKE.fine);
+    drawAhoge(92, 9.6, sway * 0.45);
     bezierLine([99, 20], [[98.5, 25, 98, 30, 98, 34]], PAL.hairMid, STROKE.hairline);
 
     // Gold hair ornament: a star pinned where the fringe meets the temple,
@@ -1255,10 +1400,6 @@
       // than being decoration.
       bezierLine([111, 20], [[116, 34, 117, 52, 115, 68]], PAL.hairHi, STROKE.seam);
       bezierLine([105, 96], [[112, 113, 118, 131, 123, 148]], PAL.cream, STROKE.fine);
-
-      // Contact shadow under the chin, so the head sits in front of the neck
-      // instead of on the same plane.
-      bezierLine([84, 49], [[88, 52, 96, 52, 100, 49]], PAL.skinShadow, STROKE.edge);
 
       // Loose strands breaking off the side hair, tied to sway so they trail
       // the head.
@@ -1671,6 +1812,9 @@
     // into the cream sleeves it falls over.
     bezierLine([91, 11], hairR, PAL.hairDeep, STROKE.seam);
     bezierLine([91, 11], hairL, PAL.hairShadow, STROKE.seam);
+    // The same strand from behind, curling toward her right, which is the
+    // viewer's right from this side too since it leans back over her head.
+    drawAhoge(90.6, 11.6, wave(0.8, 0.65));
 
     // Her ornaments, from behind. The orbital rings and the crystal drop are
     // on her left, so they sit on the viewer's left here, and the star pin
@@ -2842,15 +2986,24 @@
     return (drift(now) * 1.7 + flutter(now) * 0.55) * amp;
   }
 
-  let blinkUntil = 0;
+  // How far shut her eyes are, 0..1. A blink closes over about 60ms,
+  // stays shut for 30 and takes about 95 to open again, the reopening
+  // slower than the close, which is what makes it read as a blink rather
+  // than a flicker. The next one is scheduled at random, once per blink.
+  let blinkStart = -1;
   let nextBlinkAt = 0;
   function blinkNow(now) {
     if (!nextBlinkAt) nextBlinkAt = now + 1200;
     if (now >= nextBlinkAt) {
-      blinkUntil = now + 170;
-      nextBlinkAt = blinkUntil + 1800 + Math.random() * 1800;
+      blinkStart = nextBlinkAt;
+      nextBlinkAt = blinkStart + 185 + 1800 + Math.random() * 1800;
     }
-    return now < blinkUntil;
+    const e = now - blinkStart;
+    const ease = v => v * v * (3 - 2 * v);
+    if (blinkStart < 0 || e < 0 || e > 185) return 0;
+    if (e < 60) return ease(e / 60);
+    if (e < 90) return 1;
+    return 1 - ease((e - 90) / 95);
   }
 
   // Everything about how she is posed and placed this frame. Returns null on
@@ -2876,7 +3029,9 @@
           lean: -3 * glide + breath(now) * 0.8,
           trail: 7 * glide + idleTrail(now, 0.6),
           whip: flutter(now) * 0.8 * glide,
-          blink: false,
+          blinkAmount: blinkNow(now),
+          // Looking out at the viewer, with only the slowest drift.
+          gazeX: drift(now) * 0.15, gazeY: 0,
           expression: 'neutral',
         },
       };
@@ -2893,7 +3048,9 @@
           swayAmp: 1.7, bobAmp: 1.2,
           lean: breath(now) * 1.5,
           trail: idleTrail(now, 1),
-          blink: blinkNow(now),
+          blinkAmount: blinkNow(now),
+          // Her head tips a touch toward the thought bubble and back.
+          headTurn: 0.01 * Math.sin(Math.PI * p),
           expression: 'serene',
         },
       };
@@ -2916,7 +3073,12 @@
         scale: 1 + charge * 0.012,
         alpha: 1, flash: 0,
         opts: {
-          swayAmp: 0.7, bobAmp: 0.35, castExt, blink: false,
+          swayAmp: 0.7, bobAmp: 0.35, castExt,
+          blinkAmount: blinkNow(now),
+          // Eyes follow the raised hand and the spell in it; the head draws
+          // back a hair while the arm comes up, and settles again.
+          gazeX: 0.85 * castExt, gazeY: -0.75 * castExt,
+          headTurn: -0.008 * Math.sin(Math.PI * Math.min(1, p / 0.36)),
           lean: breath(now) * 0.7,
           trail: idleTrail(now, 0.7) - 3.4 * castExt,
           whip: Math.sin(now * 0.021) * charge * 1.2,
@@ -2944,7 +3106,11 @@
         trail: trail + idleTrail(now, 0.5),
         whip: flutter(now) * 0.6,
         walkStep: (p >= 0.30 && p < 0.90) ? Math.sin(now * 0.012) : 0,
-        blink: false, expression: 'smug',
+        // A glance toward the gate before she turns to it.
+        blinkAmount: blinkNow(now),
+        gazeX: 0.9 * easeInOut(clamp01(p / 0.15)), gazeY: 0,
+        headTurn: 0.006 * easeInOut(clamp01(p / 0.15)),
+        expression: 'smug',
       },
     };
   }
@@ -3277,7 +3443,7 @@
 
     const opts = {
       expression: m.expression || 'neutral',
-      blink: m.blink ? (Math.sin(now / 700) > 0.94) : false,
+      blinkAmount: m.blink ? blinkNow(now) : 0,
       swayAmp: m.still ? 0 : 1.5,
       bobAmp: m.still ? 0 : 1,
       castExt: m.castExt || 0,
