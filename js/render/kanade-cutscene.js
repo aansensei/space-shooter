@@ -399,129 +399,148 @@
     serene: { brow: 'flat', eye: 'soft', mouth: 'soft' },
   };
   const OPEN_EYE_FAMILY = { open: 1, wide: 1, narrow: 1, up: 1, droop: 1 };
-  // One hand, as a single tapered mass with the thumb split off by a crease.
-  // The whole hand is about six pixels wide once she is on screen, and at that
-  // size separate 1px finger strokes read as claws rather than fingers, so the
-  // fingers are one silhouette and only its outline plus a crease or two
-  // suggest where they divide.
-  //   x, y  centre of the wrist, fingers hanging down from there
-  //   s     +1 when the thumb sits to the right of the fingers, -1 mirrored
-  //   open  0 for a relaxed hand, up to 1 for a splayed casting hand
-  function drawHand(x, y, s, open) {
-    open = open || 0;
-    const w = 1 + open * 0.5;        // fingers splay wider as the hand opens
-    const len = 1 + open * 0.15;     // and reach a little further
-    const X = (o) => x + o * s * w;
-    const Y = (o) => y + o * len;
-
-    // Wrist crease: where the forearm actually stops.
-    line([[X(-1.9), Y(-1.5)], [X(1.9), Y(-1.2)]], PAL.skinShadow, STROKE.fine);
-
-    bezierShape([X(-2.4), Y(-1.7)], [
-      [X(-3.1), Y(1.8), X(-2.7), Y(5.2), X(-1.4), Y(6.7)],
-      [X(-0.1), Y(7.9), X(1.9), Y(7.1), X(2.3), Y(4.8)],
-      [X(2.9), Y(1.8), X(2.6), Y(-0.8), X(2.2), Y(-1.8)]
-    ], PAL.skin);
-
-    // Thumb: a small mass tucked against the inner edge, with its own crease
-    // so it separates from the fingers instead of merging into the palm.
-    ellipse(X(1.9), Y(1.9), 1.2 * w, 1.9, PAL.skin);
-    line([[X(0.9), Y(0.6)], [X(1.5), Y(3.7)]], PAL.skinShadow, STROKE.hairline);
-
-    // Creases between the closed fingers. A relaxed hand only needs one; a
-    // splayed hand shows the second as the fingers come apart.
-    line([[X(-0.5), Y(3.9)], [X(-0.3), Y(6.5)]], PAL.skinShadow, STROKE.hairline);
-    if (open > 0.3) line([[X(-1.5), Y(3.6)], [X(-1.5), Y(6.2)]], PAL.skinShadow, STROKE.hairline);
-
-    // A dark edge along the outside and around the fingertips. The hand sits
-    // against pale sleeve fabric, and skin on cream has so little contrast
-    // that without this the silhouette simply washes out.
-    bezierLine([X(-2.4), Y(-1.7)], [
-      [X(-3.1), Y(1.8), X(-2.7), Y(5.2), X(-1.4), Y(6.7)],
-      [X(-0.1), Y(7.9), X(1.9), Y(7.1), X(2.3), Y(4.8)]
-    ], PAL.outline, STROKE.fine);
-    // Softer shading just inside that edge, so it reads as rounded rather
-    // than as a flat cutout with a line drawn round it.
-    bezierLine([X(-2), Y(0)], [
-      [X(-2.5), Y(2.4), X(-2.2), Y(5), X(-1.3), Y(6.1)]
-    ], PAL.skinShadow, STROKE.fine);
-  }
-
-  // Her hand, the same one for both sides and for every moment of the cast.
-  // Frame: wrist at (x, y), fingers pointing down the local y axis, s the
-  // side the thumb is on (+1 or -1), open 0..1 from a relaxed hanging hand
-  // to the open casting hand.
+  // Her hand, the same one for both sides, both views and every moment of
+  // the cast. Frame: wrist at (x, y), fingers pointing down the local y
+  // axis, s the side the thumb is on (+1 or -1), open 0..1 from a relaxed
+  // hanging hand to the open casting hand.
   //
-  // The palm and the four fingers are one outline, so there are no seams
-  // where parts overlap. Its fingertip edge steps through four rounded tips
-  // of different lengths, middle longest and little finger shortest, rather
-  // than four equal bumps: equal tips read as a paw, and separate finger
-  // shapes read as a fork or a mitten. The thumb is a short tapered lobe
-  // growing out of the heel of the palm, lying along the curled fingers when
-  // closed and turned out about 37 degrees when open, never square to the
-  // hand. Every point runs smoothly between its closed and open place.
-  const HAND_CLOSED = [
-    [-1.9, -0.4], [-2.4, 1.8], [-2.55, 3.8], [-2.4, 5.3],
-    [-2.0, 6.25], [-1.45, 6.0], [-0.85, 7.2], [-0.25, 6.75], [0.45, 7.6],
-    [1.05, 6.85], [1.6, 7.2], [2.2, 6.4], [2.45, 4.9], [2.55, 3.3],
-    [2.25, 1.3], [1.9, -0.4]
+  // The palm and fingers are one path built from explicit curves. Each
+  // fingertip is a true round cap, two quarter arcs meeting the finger's
+  // sides with matching tangents; run through a generic spline, tip and
+  // valley vertices came out as points and the open hand read as flames or
+  // a claw. Between two fingers is a single U-shaped curve whose depth is
+  // the gap: nearly nothing on the relaxed hand, so the fingers sit as one
+  // soft mass, opening only in the second half of the unfolding. The path
+  // has the same pieces in every pose, so nothing appears or vanishes.
+  //
+  // Finger lengths run middle, index, ring, little, and the thumb is a
+  // short tapered lobe off the heel of the palm with a round tip, lying
+  // along the fingers when relaxed and turned out about 34 degrees open.
+  //        [centre x, half width, tip y closed, tip y open], little to index
+  const HAND_FINGERS = [
+    [-1.85, 0.55, 6.3, 7.5],
+    [-0.68, 0.6, 7.05, 8.75],
+    [0.52, 0.62, 7.35, 9.35],
+    [1.7, 0.58, 7.05, 8.9],
   ];
-  const HAND_OPEN = [
-    [-1.9, -0.4], [-2.5, 1.8], [-2.65, 4.0], [-2.6, 6.2],
-    [-2.25, 7.4], [-1.55, 7.05], [-0.9, 8.85], [-0.2, 8.2], [0.55, 9.5],
-    [1.25, 8.35], [1.95, 9.0], [2.5, 7.8], [2.6, 5.6], [2.65, 3.4],
-    [2.35, 1.3], [1.9, -0.4]
-  ];
-  // The two valleys that get a short parting line: little finger from
-  // ring, and middle from index. The middle pair stays one mass.
-  const HAND_PARTINGS = [5, 9];
   function drawCastHand(x, y, s, open) {
-    const k = 1.05;
+    const k = 1.05, q = 0.552;
     const u = Math.max(0, Math.min(1, open / 0.8));
     const m = (a, b) => a + (b - a) * u;
+    // Gaps between the fingers only start to show a third of the way open.
+    const g0 = Math.max(0, Math.min(1, (u - 0.35) / 0.65));
+    const gap = g0 * g0 * (3 - 2 * g0);
+    const spread = u * 0.18;
     const P = (lx, ly) => [x + lx * s * k, y + ly * k];
-    // A little spread as the hand opens, fanning out from the middle
-    // finger; kept small so the open hand never turns into a starfish.
-    const pts = HAND_CLOSED.map((c, i) => {
-      const o = HAND_OPEN[i];
-      const spread = (i >= 4 && i <= 11) ? (c[0] - 0.45) * 0.08 * u : 0;
-      return P(m(c[0], o[0]) + spread, m(c[1], o[1]));
+    const seg = (a, b, c) => [...P(a[0], a[1]), ...P(b[0], b[1]), ...P(c[0], c[1])];
+
+    const fing = HAND_FINGERS.map(f => {
+      const cx = f[0] + (f[0] - 0.52) * spread, r = f[1], tip = m(f[2], f[3]);
+      return { cx, r, tip, capY: tip - r };
     });
-    const hand = smoothOutline(pts, 0.9);
-    // The outline starts and stops a point short of the wrist on each side,
-    // where the forearm carries on; run up to the wrist it curled round the
-    // narrower forearm and read as a bracelet.
-    const edgeSegs = hand[1].slice(1, pts.length - 2);
+    const W1 = [-1.85, -0.4], PL0 = [-2.3, 1.6], PL = [m(-2.45, -2.6), 4.0];
+    const PR = [m(2.45, 2.6), 4.6], PR0 = [2.3, 1.6], W2 = [1.85, -0.4];
+    const segs = [];
+    // Which segments are valleys: they get no outline, since two edges a
+    // hair apart inside a narrow gap drew a black slit, a fork's tines.
+    const valley = new Set();
+    segs.push(seg([-2.05, 0.3], [-2.25, 0.9], PL0));
+    segs.push(seg([-2.4, 2.4], [PL[0], 3.2], PL));
+    const f0 = fing[0];
+    segs.push(seg([PL[0] - 0.05, PL[1] + (f0.capY - PL[1]) * 0.5], [f0.cx - f0.r, f0.capY - (f0.capY - PL[1]) * 0.3], [f0.cx - f0.r, f0.capY]));
+    fing.forEach((f, i) => {
+      // The cap: two quarter arcs over the tip.
+      segs.push(seg([f.cx - f.r, f.capY + q * f.r], [f.cx - q * f.r, f.tip], [f.cx, f.tip]));
+      segs.push(seg([f.cx + q * f.r, f.tip], [f.cx + f.r, f.capY + q * f.r], [f.cx + f.r, f.capY]));
+      const n = fing[i + 1];
+      if (n) {
+        // The valley to the next finger: vertical at both ends so it meets
+        // both caps smoothly, and deepest halfway between them.
+        const ends = (f.capY + n.capY) / 2;
+        const vy = Math.min(f.capY, n.capY) - m(0.15, 0.2) - 0.95 * gap;
+        const cy = (vy - 0.25 * ends) / 0.75;
+        valley.add(segs.length);
+        segs.push(seg([f.cx + f.r, cy], [n.cx - n.r, cy], [n.cx - n.r, n.capY]));
+      }
+    });
+    const fl = fing[3];
+    segs.push(seg([fl.cx + fl.r, fl.capY - (fl.capY - PR[1]) * 0.3], [PR[0] + 0.05, PR[1] + (fl.capY - PR[1]) * 0.5], PR));
+    segs.push(seg([2.55, 3.5], [2.45, 2.3], PR0));
+    segs.push(seg([2.25, 0.9], [2.05, 0.3], W2));
+    const start = P(W1[0], W1[1]);
 
-    // Thumb: a tapered lobe from a root on the heel of the palm.
-    const phi = m(0.12, 0.62), len = m(3.7, 3.9);
-    const d = [Math.sin(phi), Math.cos(phi)], n = [Math.cos(phi), -Math.sin(phi)];
+    // Thumb, in its own frame: along d from a root on the heel of the palm,
+    // n across it toward the outside.
+    const phi = m(0.12, 0.6), len = m(3.4, 3.6), tr = 0.72, root = m(1.35, 1.45);
+    const d = [Math.sin(phi), Math.cos(phi)], nn = [Math.cos(phi), -Math.sin(phi)];
     const R = [m(2.0, 2.1), m(1.4, 1.2)];
-    const at = (a, b) => P(R[0] + d[0] * a + n[0] * b, R[1] + d[1] * a + n[1] * b);
-    const thumbPts = [at(-0.2, -1), at(0.7, 1.3), at(len - 0.9, 0.95), at(len, 0.1), at(len - 0.9, -0.75), at(1.5, -1)];
-    const thumb = smoothOutline(thumbPts, 0.8);
+    const at = (a, b) => [R[0] + d[0] * a + nn[0] * b, R[1] + d[1] * a + nn[1] * b];
+    const c0 = len - tr;
+    const tSegs = [
+      seg(at(0.1, 0.5), at(0.2, root), at(0.7, root)),
+      seg(at(0.7 + (c0 - 0.7) * 0.5, root - 0.1), at(c0 - 0.5, tr + 0.05), at(c0, tr)),
+      seg(at(c0 + q * tr, tr), at(len, q * tr), at(len, 0)),
+      seg(at(len, -q * tr), at(c0 + q * tr, -tr), at(c0, -tr)),
+      seg(at(c0 - 1, -0.85), at(2.1, -0.98), at(1.3, -1.0)),
+      seg(at(0.8, -1.02), at(0.2, -1.0), at(0, -0.9)),
+    ];
+    const tStart = P(...at(0, -0.9));
 
-    // Skin, then the hand's edge over it, then the thumb over both, so the
-    // hand's edge disappears under the thumb where they meet and there is no
-    // dark gap between them. The thumb's edge runs only down its outer side
-    // and round its tip.
-    bezierShape(hand[0], hand[1], PAL.skin);
-    bezierLine(pts[1], edgeSegs, PAL.outline, STROKE.seam);
-    bezierShape(thumb[0], thumb[1], PAL.skin);
-    bezierLine(thumb[1][0].slice(4), thumb[1].slice(1, 4), PAL.outline, STROKE.seam);
-
-    // Two short partings, starting just under their valleys and stopping
-    // well short of the palm.
-    const plen = m(1, 1.6);
-    for (const i of HAND_PARTINGS) {
-      const c = HAND_CLOSED[i], o = HAND_OPEN[i];
-      const vx = m(c[0], o[0]), vy = m(c[1], o[1]) - 0.35;
-      line([P(vx, vy), P(vx - 0.05, vy - plen)], PAL.skinShadow, STROKE.fine);
+    // Skin, the hand's edge over it (from part way up each side of the palm,
+    // never across the wrist), then the thumb over both so the hand's edge
+    // disappears where the thumb joins and no dark seam is left between
+    // them. The thumb's own edge runs down its outer side and round its tip.
+    bezierShape(start, segs, PAL.skin);
+    let from = P(PL0[0], PL0[1]);
+    for (let i = 1; i < segs.length - 1; i++) {
+      if (!valley.has(i)) bezierLine(from, [segs[i]], PAL.outline, STROKE.seam);
+      from = segs[i].slice(4);
     }
-    // The fold where the thumb lies against the hand, and a little shade
-    // down the side of the palm away from it.
-    bezierLine(at(1.5, -0.7), [[...at(2.3, -0.75), ...at(len - 1.6, -0.6), ...at(len - 1.1, -0.5)]], PAL.skinShadow, STROKE.fine);
-    bezierLine(P(-2.0, 0.6), [[...P(-2.3, 1.8), ...P(-2.35, 3.0), ...P(-2.2, 4.2)]], PAL.skinShadow, STROKE.seam);
+    bezierShape(tStart, tSegs, PAL.skin);
+    bezierLine(P(...at(0.7, root)), tSegs.slice(1, 4), PAL.outline, STROKE.seam);
+
+    // One short crease under the middle of the finger mass, where the
+    // middle and ring fingers part, a hint of the thumb's fold, and a little
+    // shade down the side of the palm away from the thumb.
+    const mid = fing[1].cx + fing[1].r + (fing[2].cx - fing[2].r - fing[1].cx - fing[1].r) / 2;
+    const my = Math.min(fing[1].capY, fing[2].capY) - 0.5 - 0.95 * gap;
+    line([P(mid, my), P(mid - 0.05, my - m(1.1, 0.7))], PAL.skinShadow, STROKE.fine);
+    bezierLine(P(...at(1.5, -0.75)), [seg(at(2, -0.8), at(len - 1.6, -0.65), at(len - 1.2, -0.55))], PAL.skinShadow, STROKE.fine);
+    bezierLine(P(-2.0, 0.6), [seg([-2.3, 1.8], [-2.35, 3.0], [-2.2, 4.2])], PAL.skinShadow, STROKE.seam);
+  }
+
+  // A limb as a filled shape that tapers from w0 at its start to w1 at its
+  // end along one cubic, with round ends. A stroke holds one width the
+  // whole way, and a raised forearm drawn that way read as a hose.
+  function taperedLimb(start, s, w0, w1, c) {
+    const N = 12, L = [], Rt = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, v = 1 - t;
+      const x = v * v * v * start[0] + 3 * v * v * t * s[0] + 3 * v * t * t * s[2] + t * t * t * s[4];
+      const y = v * v * v * start[1] + 3 * v * v * t * s[1] + 3 * v * t * t * s[3] + t * t * t * s[5];
+      const dx = 3 * v * v * (s[0] - start[0]) + 6 * v * t * (s[2] - s[0]) + 3 * t * t * (s[4] - s[2]);
+      const dy = 3 * v * v * (s[1] - start[1]) + 6 * v * t * (s[3] - s[1]) + 3 * t * t * (s[5] - s[3]);
+      const len = Math.hypot(dx, dy) || 1, h = (w0 + (w1 - w0) * t) / 2;
+      L.push([x - dy / len * h, y + dx / len * h]);
+      Rt.push([x + dy / len * h, y - dx / len * h]);
+    }
+    pctx.fillStyle = c;
+    pctx.beginPath();
+    pctx.moveTo(L[0][0], L[0][1]);
+    for (const p of L) pctx.lineTo(p[0], p[1]);
+    for (let i = Rt.length - 1; i >= 0; i--) pctx.lineTo(Rt[i][0], Rt[i][1]);
+    pctx.closePath();
+    pctx.fill();
+    ellipse0(start[0], start[1], w0 / 2, c);
+    ellipse0(s[4], s[5], w1 / 2, c);
+  }
+  // An unrounded circle, for the limb ends; ellipse() snaps to whole grid
+  // units, which would put a step at each end of a smooth limb.
+  function ellipse0(x, y, r, c) {
+    pctx.fillStyle = c;
+    pctx.beginPath();
+    pctx.arc(x, y, r, 0, Math.PI * 2);
+    pctx.fill();
   }
 
   // Where her right wrist is for a given castExt, in grid units before the
@@ -696,11 +715,14 @@
     // near boot, and only a little shorter than it: much shorter and it read
     // as a stump.
     if (Math.abs(walkStep) <= 0.04) {
-      const farBoot = smoothOutline([[81, 148], [88, 148], [89, 164], [88, 172 - hipTilt], [82, 173 - hipTilt], [80.5, 164]], 0.6);
+      const farBoot = smoothOutline([[80, 148], [87, 148], [88, 164], [87, 172 - hipTilt], [81, 173 - hipTilt], [79.5, 164]], 0.6);
       bezierShape(farBoot[0], farBoot[1], PAL.bootDeep);
-      bezierLine([83, 151], [[83.2, 157, 83.4, 163, 83.6, 169]], PAL.boot, STROKE.band);
-      bezierLine([81.5, 158], [[83, 159, 86, 159, 88, 158]], PAL.goldDark, STROKE.fine);
-      line([[81.8, 171.6 - hipTilt], [87.6, 170.8 - hipTilt]], PAL.outline, STROKE.fine);
+      // A thin lit edge down its outer side, so the dark boot does not sink
+      // into the dark behind her and leave one leg under the gown.
+      bezierLine([80.2, 151], [[79.6, 157, 79.7, 164, 81, 171.5 - hipTilt]], PAL.boot, STROKE.seam);
+      bezierLine([82.2, 151], [[82.4, 157, 82.6, 163, 82.8, 169]], PAL.boot, STROKE.band);
+      bezierLine([80.5, 158], [[82, 159, 85, 159, 87, 158]], PAL.goldDark, STROKE.fine);
+      line([[80.8, 171.6 - hipTilt], [86.6, 170.8 - hipTilt]], PAL.outline, STROKE.fine);
     }
     // Leg, run further down than the gown's hem so a real length of it shows
     // in the skirt's front split. At 4.1 heads she reads as stunted, and the
@@ -994,23 +1016,36 @@
     const mix = (a, b, k) => a + (b - a) * k;
     const lift = castExt * castExt;
     const wrist = castWrist(castExt, fabricTrail);
-    const elbowX = mix(119 + fabricTrail * 0.15, 125, castExt), elbowY = mix(73, 42, lift);
-    const upperC = [mix(111, 112, castExt), mix(59, 50, castExt), mix(116, 119, castExt), mix(65, 45, lift)];
+    // At full cast the elbow sits a little below the line from shoulder to
+    // wrist, so the raised arm keeps a slight bend and the elbow reads.
+    // Straight, the arm looked like a hose and longer than it is.
+    const elbowX = mix(119 + fabricTrail * 0.15, 123, castExt), elbowY = mix(73, 46, lift);
+    const upperC = [mix(111, 112, castExt), mix(59, 50.5, castExt), mix(116, 118.5, castExt), mix(65, 47.5, lift)];
+    // The forearm's control points are placed along the line from elbow to
+    // wrist with a slight outward bow, rather than blended between two
+    // fixed sets: blended, they ran ahead of the late-rising elbow and put
+    // an S-bend in the forearm halfway up.
+    const fx = (wrist[0] - 1) - elbowX, fy = (wrist[1] + 1.2) - elbowY;
+    const fl = Math.hypot(fx, fy) || 1, bow = 0.9;
+    const bx = fy / fl * bow, by = -fx / fl * bow;
     const foreC = [
-      mix(122 + fabricTrail * 0.25, 130, castExt), mix(79, 40, castExt),
-      mix(125 + fabricTrail * 0.32, 135.5, castExt), mix(84, 39.5, castExt)
+      elbowX + fx * 0.35 + bx, elbowY + fy * 0.35 + by,
+      elbowX + fx * 0.75 + bx * 0.5, elbowY + fy * 0.75 + by * 0.5
     ];
     // Raised toward the viewer the forearm reads wider, and against the dark
     // behind her it needs an edge; both grow from nothing at rest, where the
     // arm lies on pale cloth like the left one.
-    const foreW = mix(STROKE.limb, STROKE.limb + STROKE.fine, castExt);
+    // The forearm is widest just below the elbow and tapers to the wrist,
+    // which stays narrower than the upper arm and than the palm.
+    const foreW0 = mix(STROKE.limb, STROKE.limb + STROKE.fine, castExt);
+    const foreW1 = mix(STROKE.limb * 0.85, 3.2, castExt);
     const edgeW = STROKE.edge * castExt;
     const upperSeg = [[upperC[0], upperC[1], upperC[2], upperC[3], elbowX, elbowY]];
     const foreSeg = [[foreC[0], foreC[1], foreC[2], foreC[3], wrist[0] - 1, wrist[1] + 1.2]];
     bezierLine([106, 54], upperSeg, PAL.outline, STROKE.limbUpper + edgeW);
-    bezierLine([elbowX, elbowY], foreSeg, PAL.outline, foreW + edgeW);
+    taperedLimb([elbowX, elbowY], foreSeg[0], foreW0 + edgeW, foreW1 + edgeW, PAL.outline);
     bezierLine([106, 54], upperSeg, PAL.skin, STROKE.limbUpper);
-    bezierLine([elbowX, elbowY], foreSeg, PAL.skin, foreW);
+    taperedLimb([elbowX, elbowY], foreSeg[0], foreW0, foreW1, PAL.skin);
     // Shade along the underside of the arm.
     bezierLine([108, 57], [[upperC[0] + 2, upperC[1] + 3, upperC[2] + 2, upperC[3] + 2.5, elbowX + 1.2, elbowY + 2]], PAL.skinShadow, STROKE.edge);
     bezierLine([elbowX + 1, elbowY + 2], [[foreC[0] + 1, foreC[1] + 2.5, foreC[2], foreC[3] + 2.5, wrist[0] - 1, wrist[1] + 2.6]], PAL.skinShadow, STROKE.edge);
@@ -1455,8 +1490,16 @@
     bezierLine([109.5, 60], [[111.5, 63.5, 115, 67.5, rElbow[0] - 1.5, rElbow[1] + 1.5], [123, rElbow[1] + 7.5, 127.5, rWrist[1] - 4, rWrist[0] - 1.5, rWrist[1]]], PAL.skinShadow, STROKE.band);
     bezierLine([lElbow[0] - 1.6, lElbow[1] - 1], [[lElbow[0] - 1, lElbow[1] + 0.8, lElbow[0] + 0.4, lElbow[1] + 1.4, lElbow[0] + 1.4, lElbow[1] + 1]], PAL.skinShadow, STROKE.fine);
     bezierLine([rElbow[0] + 1.6, rElbow[1] - 1], [[rElbow[0] + 1, rElbow[1] + 0.8, rElbow[0] - 0.4, rElbow[1] + 1.4, rElbow[0] - 1.4, rElbow[1] + 1]], PAL.skinShadow, STROKE.fine);
-    drawHand(lWrist[0] - 0.6, lWrist[1] - 1.2, 1, 0);
-    drawHand(rWrist[0] + 0.6, rWrist[1] - 1.2, -1, 0);
+    // The same hand as the front view, relaxed, turned along each forearm
+    // with the thumb toward her body.
+    for (const [wr, fore, sd] of [[lWrist, lFore[0], 1], [rWrist, rFore[0], -1]]) {
+      pctx.save();
+      pctx.translate(wr[0], wr[1] - 0.6);
+      pctx.rotate(Math.atan2(-(wr[0] - fore[2]), wr[1] - fore[3]));
+      pctx.scale(0.75, 0.75);
+      drawCastHand(0, 0, sd, 0);
+      pctx.restore();
+    }
 
     // Hair. The two sides of its outline are shared by the fill, the clip
     // that keeps the locks inside it and the edge line drawn round it, so
@@ -1767,10 +1810,16 @@
     // what is on screen, so at rest this is a 1:1 copy; at a fractional
     // offset, with smoothing off, which source pixel each screen pixel takes
     // flips from frame to frame and her edges crawl as she glides.
+    //
+    // Shrinking the buffer is the one case that gets smoothing: a phone
+    // shows her at about 195px from a 360px buffer, and nearest-neighbour
+    // down that far drops whole lines and shimmers as she moves. At 1:1 or
+    // above, smoothing only blurs, so it stays off.
     const w = Math.round(L.box * scale);
     ctx.save();
     ctx.globalAlpha = Math.min(1, alpha);
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = px.width > w * 1.1;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(px, Math.round(x - w / 2), Math.round(y - w / 2), w, w);
     ctx.restore();
   }
