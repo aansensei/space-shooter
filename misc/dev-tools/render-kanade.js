@@ -75,13 +75,20 @@ if (!src.includes(anchor)) throw new Error('anchor missing');
 src = src.replace(anchor, anchor + `
   window.__drawBody = (t, o) => { drawKanade(t, o); return px; };
   window.__drawBack = (t, o) => { drawKanadeBack(t, o); return px; };
-  window.__grid = { w: GRID_W, h: GRID_H, mult: RES_MULT };`);
+  window.__setRes = setSpriteRes;
+  window.__invalidate = invalidateSprite;
+  window.__grid = { w: GRID_W, h: GRID_H, get mult() { return RES_MULT; } };`);
 vm.runInContext(src, sandbox, { filename: 'kanade-cutscene.js' });
 
+// RES pins the supersample, which otherwise sizes itself to the screen.
+if (process.env.RES) sandbox.window.__setRes(Number(process.env.RES));
 const g = sandbox.window.__grid;
 
 if (process.env.BENCH === '1') {
-  const draw = sandbox.window.__drawBody;
+  // NOCACHE=1 drops the sprite cache before every call, so each one is a
+  // real draw rather than a key match.
+  const fresh = process.env.NOCACHE === '1' ? sandbox.window.__invalidate : () => {};
+  const draw = (t, o) => { fresh(); sandbox.window.__drawBody(t, o); };
   for (let i = 0; i < 40; i++) draw(i / 40, OPTS);       // warm up
   const N = 400;
   const t0 = process.hrtime.bigint();
@@ -90,7 +97,7 @@ if (process.env.BENCH === '1') {
   const perFrame = Number(t1 - t0) / 1e6 / N;
   console.log('drawKanade: ' + perFrame.toFixed(3) + ' ms/frame  (' +
               (perFrame / 16.67 * 100).toFixed(1) + '% of a 60fps budget)');
-  const back = sandbox.window.__drawBack;
+  const back = (t, o) => { fresh(); sandbox.window.__drawBack(t, o); };
   for (let i = 0; i < 20; i++) back(i / 20, OPTS);
   const b0 = process.hrtime.bigint();
   for (let i = 0; i < N; i++) back((i % 60) / 60, OPTS);
