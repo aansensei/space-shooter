@@ -1019,27 +1019,35 @@
     rect(64, 130, 1, 1, PAL.goldHi);
     rect(111, 120, 1, 1, PAL.goldHi);
 
-    const neck = smoothOutline([[86, 42], [96, 42], [98, 57], [91, 61], [84, 56]], 0.6);
+    // The neck: about 8 wide under the jaw, opening to 10 where the collar
+    // crosses it, so about 6.5 units of bare skin show between chin and gold.
+    // Below the collar it widens into the chest skin the bodice cuts off.
+    // The chin's own crescent, drawn with the head so it tilts with it, is
+    // the only shade under the jaw.
+    const neck = smoothOutline([[88, 43], [96, 43], [96.5, 50], [97.2, 55.5], [98, 58], [91.5, 61], [85, 57], [87, 55], [87.5, 50]], 0.6);
     bezierShape(neck[0], neck[1], PAL.skin);
-    const neckShade = smoothOutline([[94, 44], [98, 48], [97, 57], [93, 58]], 0.6);
-    bezierShape(neckShade[0], neckShade[1], PAL.skinShadow);
     bezierShape([76, 50], [
       [80, 48, 84, 47, 88, 48],
       [91, 51, 91, 56, 88, 60],
       [82, 59, 76, 57, 71, 56],
       [72, 53, 74, 51, 76, 50]
     ], PAL.skin);
+    // One short shade down the far side of the neck, where it meets the
+    // cream behind it.
+    bezierLine([95.8, 48.8], [[96.0, 50.0, 96.2, 51.3, 96.2, 52.5]], PAL.skinShadow, STROKE.hairline);
     bezierLine([72, 57], [[79, 59, 84, 60, 89, 57]], PAL.indigoDeep, STROKE.strap);
-    bezierShape([92, 48], [
-      [99, 46, 108, 49, 114, 56],
+    // The navy collar on her left starts low enough to leave the neck
+    // bare, and wraps only the foot of it.
+    bezierShape([95, 51.5], [
+      [101, 49.8, 108, 51.4, 114, 56],
       [116, 60, 112, 65, 107, 66],
-      [102, 61, 98, 56, 92, 54],
-      [91, 52, 91, 50, 92, 48]
+      [102, 62, 98.5, 59, 94, 57.5],
+      [93.4, 55.4, 93.8, 53.2, 95, 51.5]
     ], PAL.indigoMid);
-    bezierLine([94, 48], [[101, 48, 107, 51, 112, 57]], PAL.cream, STROKE.strap);
-    bezierLine([85, 52], [[89, 54, 94, 54, 98, 51]], PAL.gold, STROKE.band);
-    sparkle(91, 55, 2, PAL.goldHi);
-    rect(91, 56, 1, 2, PAL.eyeBlue);
+    bezierLine([96.8, 51.3], [[102, 50.6, 107.5, 52.4, 112, 57]], PAL.cream, STROKE.strap);
+    bezierLine([85.4, 53.4], [[88.4, 55.3, 94, 56.6, 98.5, 53.7]], PAL.gold, STROKE.band);
+    sparkle(91.2, 56.7, 2, PAL.goldHi);
+    rect(91, 57.7, 1, 2, PAL.eyeBlue);
 
     // Detail pass over the gown, under the face and front hair so nothing here
     // can crowd them. Everything is a thin line or a small flat shape: at this
@@ -1287,63 +1295,71 @@
     bezierShape([75, 34], [[73, 24, 76, 19, 81, 17], [81, 23, 79, 28, 75, 34]], PAL.hairMid);
     bezierShape([109, 34], [[111, 24, 108, 19, 103, 17], [103, 23, 105, 28, 109, 34]], PAL.hairMid);
 
-    // Shadow the fringe throws onto the forehead. A filled band across the
-    // whole forehead read as a smear of colour rather than as shade, so this
-    // is a few short strokes tucked just under the lock tips, which is the
-    // only place the hair is actually close enough to the skin to darken it.
-    bezierLine([83, 29], [[85, 31, 87, 32, 88, 31.6]], PAL.skinShadow, STROKE.seam);
-    bezierLine([90.5, 28], [[91.5, 29.6, 92.5, 30, 93.5, 29.4]], PAL.skinShadow, STROKE.fine);
-    bezierLine([96, 30], [[97.5, 31.8, 99, 32, 100, 30.4]], PAL.skinShadow, STROKE.seam);
-
-    // Fringe as one solid mass with a scalloped lower edge, the way cel anime
-    // draws it. Built from separate locks it left gaps between them showing
-    // the lit crown underneath, and the row of gaps read as the teeth of a
-    // comb sitting on her head. The lower edge stays above the eye line at
-    // y=38 throughout: crossing it puts bars over her eyes.
-    bezierShape([75, 26], [
+    // Fringe as one solid mass, the way cel anime draws it, split at the
+    // bottom into four locks of different length and lean: the outer two
+    // swing out toward the temples, the middle two point in toward the
+    // parting, and the longest sits just right of centre. Evenly spaced
+    // teeth of one length read as a curtain. Each lock bulges a little and
+    // ends in a narrow round tip; the notches between them are sharp and
+    // stay below the crown's inner edge so the crown never shows through.
+    // Every tip ends above the lashes.
+    const fringe = [[75, 26], [
       [76, 14, 83, 9, 92, 9],
       [101, 9, 108, 14, 109, 26],
-      [108, 30, 107, 32.6, 106, 34.3],
-      [104, 30, 102, 25, 101, 21],
-      [100, 27, 99, 31.6, 98, 35.1],
-      [96, 31, 95, 25, 94, 20],
-      [93, 26, 92.5, 30.6, 92, 33.4],
-      [91, 30, 90, 25, 89, 20],
-      [88, 27, 87, 31.6, 86, 35.1],
-      [84, 31, 82, 26, 80, 22],
-      [78, 27, 76, 30, 75, 26]
-    ], PAL.hairLight);
+      [108.6, 27.8, 106.6, 29.0, 104.4, 29.4],
+      [104.1, 31.0, 102.0, 33.7, 101.3, 34.1],
+      [100.8, 34.0, 98.4, 32.6, 97.2, 29.9],
+      [96.8, 32.2, 94.0, 35.0, 93.2, 35.3],
+      [92.6, 35.1, 91.2, 32.6, 91.0, 29.6],
+      [90.8, 31.2, 89.5, 32.2, 88.9, 32.4],
+      [88.4, 32.3, 86.9, 31.4, 86.4, 29.8],
+      [86.3, 31.6, 84.2, 33.6, 83.4, 34.0],
+      [82.9, 33.8, 82.2, 31.6, 81.0, 30.2],
+      [79.4, 29.4, 77, 28.6, 75, 26]
+    ]];
+    // The shadow it throws on the forehead: the same outline moved away from
+    // the light, kept to the face, so it runs along every lock and notch
+    // at the same width. Separate strokes under each notch outlined the
+    // notches in pink instead.
+    pctx.save();
+    tracePath([[81, 32], [[81, 40.8, 85.2, 46.0, 92, 47.8], [98.8, 46.0, 103, 40.8, 103, 32], [103, 20, 81, 20, 81, 32]]]);
+    pctx.clip();
+    pctx.translate(-LIGHT.x * 0.7, -LIGHT.y * 0.7);
+    tracePath(fringe);
+    pctx.fillStyle = PAL.skinShadow;
+    pctx.fill();
+    pctx.restore();
+    tracePath(fringe);
+    pctx.fillStyle = PAL.hairLight;
+    pctx.fill();
 
     // Two sidelocks dropping past the jaw, so the fringe does not end in a
     // hard line at the temples.
     bezierShape([78, 18], [[76, 30, 76, 42, 77, 52], [80, 44, 81, 32, 81, 22]], PAL.hairMid);
     bezierShape([106, 18], [[108, 30, 108, 42, 107, 52], [104, 44, 103, 32, 103, 22]], PAL.hairMid);
 
-    // Strand lines inside the fringe, following the locks the scalloped edge
-    // implies so the mass does not read as one flat card. Kept in the mid
-    // tone and started below the crown: in the shadow tone and run from the
-    // parting they cut across the fringe like scratches instead of sitting
-    // inside it.
-    bezierLine([85, 20], [[85.5, 25, 86, 30, 86, 34]], PAL.hairMid, STROKE.hairline);
-    bezierLine([90, 18], [[90, 24, 90, 29, 90, 32]], PAL.hairMid, STROKE.hairline);
-    bezierLine([94, 18], [[94, 24, 94, 29, 94, 32]], PAL.hairMid, STROKE.hairline);
+    // Three strand lines, each running down the axis of its own lock and
+    // stopping short of the tip, so the mass does not read as one flat card.
+    // Kept in the mid tone: in the shadow tone they cut across the fringe
+    // like scratches. More of them, straight and evenly spaced, made a
+    // barcode.
+    bezierLine([85.2, 20.0], [[85.3, 24.0, 85.0, 28.2, 84.2, 31.9]], PAL.hairMid, STROKE.hairline);
+    bezierLine([93.4, 17.5], [[93.9, 22.5, 93.8, 28.5, 93.3, 33.4]], PAL.hairMid, STROKE.hairline);
+    bezierLine([98.2, 21.5], [[99.0, 25.0, 99.8, 28.8, 100.4, 32.2]], PAL.hairMid, STROKE.hairline);
 
     // The top of the head. Filled in the brightest tone end to end it read
-    // as a white cap, so the pure white is kept to a broken sheen band and a
-    // few lit strands, and the dome gets what a head of hair has: shade down
-    // both sides, deeper on the far one, a parting the locks leave from, and
-    // an edge against the background.
+    // as a white cap, so the pure white is kept to a broken sheen band, and
+    // the dome gets what a head of hair has: shade down both sides, deeper
+    // on the far one, a parting the locks leave from, and an edge against
+    // the background.
     bezierShape([76.4, 25], [[76.6, 17, 81, 12, 87.5, 10.2], [83, 13.5, 80.2, 18, 79.4, 24]], PAL.hairMid);
     bezierShape([107.6, 25], [[107.4, 17, 103, 12, 96.5, 10.2], [101, 13.5, 103.8, 18, 104.6, 24]], PAL.hairMid);
     bezierLine([106.6, 24], [[106.4, 18, 103.5, 13.5, 99, 11]], PAL.hairShadow, STROKE.fine);
     bezierLine([92, 9.4], [[91.7, 11, 91.4, 12.6, 91.2, 14]], PAL.hairMid, STROKE.fine);
     bezierShape([78.8, 18.2], [[82, 14.4, 87, 13.2, 91.2, 13.6], [87, 14.8, 82.5, 16, 78.8, 18.2]], PAL.hairHi);
     bezierShape([93.4, 13.8], [[97, 13.6, 101, 14.8, 104, 17.6], [100.6, 16, 97, 15.2, 93.4, 13.8]], PAL.hairHi);
-    bezierLine([86.8, 19], [[87, 21, 87.1, 23, 87.1, 25]], PAL.hairHi, STROKE.fine);
-    bezierLine([96.6, 18.6], [[96.8, 20.4, 96.9, 22, 96.9, 24]], PAL.hairHi, STROKE.fine);
     bezierLine([75, 26], [[76, 14, 83, 9, 92, 9], [101, 9, 108, 14, 109, 26]], PAL.hairShadow, STROKE.fine);
     drawAhoge(92, 9.6, sway * 0.45);
-    bezierLine([99, 20], [[98.5, 25, 98, 30, 98, 34]], PAL.hairMid, STROKE.hairline);
 
     // Gold hair ornament: a star pinned where the fringe meets the temple,
     // with a short beaded chain falling from it. Gold is the only thing on
