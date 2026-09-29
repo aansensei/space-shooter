@@ -2934,8 +2934,16 @@
     if (!app || !app.stage) return;
     const want = clamp01(1 - reach * PIXI_FADE_RATE);
     const vis = want > 0.002;
-    if (app.stage.visible !== vis) app.stage.visible = vis;
-    if (vis && Math.abs(app.stage.alpha - want) > 0.004) app.stage.alpha = want;
+    let changed = false;
+    if (app.stage.visible !== vis) { app.stage.visible = vis; changed = true; }
+    if (vis && Math.abs(app.stage.alpha - want) > 0.004) { app.stage.alpha = want; changed = true; }
+    // The Pixi canvas sits above the game canvas, and while the frozen
+    // snapshot covers the screen draw() returns before it renders Pixi at
+    // all. Setting the stage's alpha alone then changed nothing on screen:
+    // the canvas kept the last frame it drew, and the player's bullets
+    // stayed at full strength on top of the freeze. Rendering here whenever
+    // the fade moves is what actually takes them off.
+    if (changed && app.renderer) app.renderer.render(app.stage);
   }
 
   function restorePixi() {
