@@ -150,19 +150,19 @@ function _goliathHealBoost(enemy, amount) {
     return amount * mult * _goliathWaningMult(0.80, _goliathWaningStacks(enemy));
 }
 
-// Waning Might (NEW): mỗi 35s True Form còn sống, Goliath yếu dần đi trên
+// Waning Might (NEW): mỗi 60s True Form còn sống, Goliath yếu dần đi trên
 // 3 trục cùng lúc: DR gốc, hiệu quả hồi HP/khiên, và sát thương tự gây ra.
 // Nhân dồn (không cộng thẳng, tránh về âm) chứ không có trần, đảm bảo trận
 // nào kéo dài cỡ nào cũng phải kết thúc mà không đụng vào sức mạnh đầu trận
-// (0 stack cho tới khi qua mốc 35s đầu tiên). Từ tầng thứ 3 trở đi, tốc độ
+// (0 stack cho tới khi qua mốc 60s đầu tiên). Từ tầng thứ 3 trở đi, tốc độ
 // suy yếu tăng mạnh hẳn (xem _goliathWaningMult) so với 2 tầng đầu.
 function _goliathWaningStacks(enemy) {
     if (!enemy._trueFormEnteredAt) return 0;
-    return Math.floor((performance.now() - enemy._trueFormEnteredAt) / 45000);
+    return Math.floor((performance.now() - enemy._trueFormEnteredAt) / 60000);
 }
 // The first 2 stacks decay at the plain per-stack rate (unchanged fight
 // feel early on); every stack past that squares the rate instead, so a
-// fight still dragging on by stack 3+ (105s+ in True Form) falls apart
+// fight still dragging on by stack 3+ (180s+ in True Form) falls apart
 // fast instead of grinding on forever at roughly the same pace.
 function _goliathWaningMult(rate, stacks) {
     if (stacks <= 2) return Math.pow(rate, stacks);

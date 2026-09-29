@@ -814,7 +814,7 @@ function dealDamage(enemy, source) {
         }
         // Goliath (NEW): riêng, không dùng bảng tier chung ở trên (giữ 0 nếu
         // chưa vào True Form). 40% ngay lúc vừa biến hình xong, decay tuyến
-        // tính về 25% trong 15s rồi giữ nguyên 25%. Cộng thêm +10% (không cộng
+        // tính về 33% trong 15s rồi giữ nguyên 33%. Cộng thêm +10% (không cộng
         // dồn dù trigger nhiều mốc cùng lúc — chỉ 1 lớp +10% duy nhất, refresh
         // lại 3.5s) mỗi lần HP tụt xuyên qua 75/50/25% — có thể lặp lại vô hạn
         // lần nếu hồi lên rồi tụt lại đúng mốc đó, khác hẳn khiên Threshold
@@ -823,7 +823,7 @@ function dealDamage(enemy, source) {
         // không bao giờ chạy tới khối evade này.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
             const _gDecayT = Math.min(1, (performance.now() - (enemy._trueFormEnteredAt || performance.now())) / 15000);
-            _evade = 0.40 - _gDecayT * 0.10;
+            _evade = 0.40 - _gDecayT * 0.07;
             if (enemy._evadeThresholdBuffEnd && performance.now() < enemy._evadeThresholdBuffEnd) _evade += 0.10;
             // Per AanSensei: a further permanent +10% evade once Unbroken
             // Will has actually triggered, on top of everything else above.
@@ -1171,7 +1171,7 @@ function dealDamage(enemy, source) {
     }
 
     if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-        combinedDR += 0.63 * _goliathWaningMult(0.85, _goliathWaningStacks(enemy)); // Inevitable: 63% base DR, decayed by Waning Might (docs/combat-scaling-rebalance.md Part 3, nudged up slightly per AanSensei's live-test hotfix)
+        combinedDR += 0.70 * _goliathWaningMult(0.90, _goliathWaningStacks(enemy)); // Inevitable: 70% base DR, x0.90 per Waning Might stack (docs/combat-scaling-rebalance.md Part 3)
         // Second phase, permanently tougher: once Unbroken Will has actually
         // triggered (not just its temporary 6s reinforcement window, which
         // ends), Goliath keeps a flat +12% DR for the rest of the fight -
@@ -1196,9 +1196,9 @@ function dealDamage(enemy, source) {
             combinedDR += 0.15; // Null Slash đang vận/đánh: +15% DR (docs/combat-scaling-rebalance.md Part 3)
         }
         // Tempered Resolve: đang vận bất kỳ skill nào (của chính Goliath hay
-        // Joker copy) thì +10% DR, bù lại cho việc bị chậm 35% + cấm dịch chuyển.
+        // Joker copy) thì +12% DR, bù lại cho việc bị chậm 35% + cấm dịch chuyển.
         if (_goliathIsCasting(enemy)) {
-            combinedDR += 0.10;
+            combinedDR += 0.12;
         }
     }
 
@@ -1402,11 +1402,11 @@ function dealDamage(enemy, source) {
         if (enemy.type === 'thaelis' && enemy.reincarnated) _flatArmor += 100;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same base and rate against both
-        // normal and %MaxHP-scaling hits now. The leading 50 is Goliath's own
+        // normal and %MaxHP-scaling hits now. The leading 120 is Goliath's own
         // standing armor and stays out of the ally-count multiplier, so it
         // holds at the same value whether or not he has anyone left alive.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-            _flatArmor += 50 + 180 * (source.percentDamage > 0
+            _flatArmor += 120 + 260 * (source.percentDamage > 0
                 ? (enemy._unifiedFrontScalingDRMult || 1)
                 : (enemy._unifiedFrontDRMult || 1));
         }
@@ -1415,12 +1415,12 @@ function dealDamage(enemy, source) {
         // already applied above. Bigger number than the other two sources
         // since it's gone the instant the cast ends, not a standing bonus.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _goliathIsCasting(enemy)) {
-            _flatArmor += 300;
+            _flatArmor += 450;
         }
         // Per AanSensei: a permanent flat-armor bump on top of the +12% DR
         // above, once Unbroken Will has actually triggered.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy._unbrokenWillUsed) {
-            _flatArmor += 250;
+            _flatArmor += 400;
         }
 
         if (_teslaShred) {
@@ -1429,7 +1429,10 @@ function dealDamage(enemy, source) {
             _teslaFlatBonus = TESLA_AURA_FLAT_DR_SHRED - _flatCut;
         }
 
-        const _armorLoss = Math.min(_flatArmor, 0.60 * _postDR);
+        // Goliath True Form's armor can take up to 70% of a hit; every other
+        // enemy stays at 60%.
+        const _armorCap = (enemy.type === 'goliath' && enemy.phase === 'true_form') ? 0.70 : 0.60;
+        const _armorLoss = Math.min(_flatArmor, _armorCap * _postDR);
         totalDamage = Math.max(0, _postDR - _armorLoss);
         if (_teslaShred) totalDamage = Math.ceil(totalDamage * _teslaDmgMult) + _teslaFlatBonus;
     }
@@ -1456,34 +1459,30 @@ function dealDamage(enemy, source) {
     // Inevitable (Goliath, True Form): CHỈ sát thương xuyên (isPiercing),
     // CHUẨN (true damage), và DOT mới được đánh full — sát thương BÌNH
     // THƯỜNG (%MaxHP, ăn shield trước — gồm cả đạn auto-fire cơ bản) bị
-    // giới hạn cứng 1.5% MaxHP/đòn (tính SAU khi đã trừ DR ở trên), +0.3%
+    // giới hạn cứng 1.1% MaxHP/đòn (tính SAU khi đã trừ DR ở trên), +0.25%
     // trần cho MỖI tầng debuff đang dính (bất kỳ sigil nào áp được lên
-    // Goliath — vd 2 tầng Vulnerability = 1.5%+0.6%=2.1%), trần tối đa 3%.
+    // Goliath — vd 2 tầng Vulnerability = 1.1%+0.5%=1.6%), trần tối đa 2.6%.
     // Không áp dụng cho Skill F/D/tia Photokrystos finale — 3 nguồn đó đã
     // return sớm qua Warding Palm ở đầu hàm, không bao giờ chạy tới đây.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && !source.isTrueDamage && !source.isPiercing
         && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot && !source._isSrDot) {
-        // Per AanSensei: base trimmed slightly (was 1.5%) to take a little
-        // more bite out of sustained rapid-fire chip damage specifically.
-        const _capPct = Math.min(0.03, 0.013 + _goliathDebuffStackCount(enemy) * 0.003);
+        // A low base keeps sustained rapid-fire chip damage from carrying
+        // the fight on its own.
+        const _capPct = Math.min(0.026, 0.011 + _goliathDebuffStackCount(enemy) * 0.0025);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
-    // Hotfix: piercing/true/DoT hits landed at full value with only the 60%
-    // base DR standing between them and Goliath's HP bar, since the cap
-    // above deliberately excludes them. That left them completely
-    // unbounded (unlike every other per-hit cap on this enemy, all of which
-    // also skip true damage), so a true-damage-heavy loadout could clear
-    // True Form in well under the intended ~1 minute at wave 5. Same shape
-    // as the cap above, just a higher ceiling so these sources stay
-    // meaningfully stronger than a capped normal hit rather than becoming
-    // identical to it.
+    // Piercing/true/DoT hits skip the cap above, so they get their own:
+    // without it only base DR would stand between them and Goliath's HP
+    // bar, and a true-damage-heavy loadout would clear True Form far faster
+    // than the intended fight length. Same shape as the cap above with a
+    // higher ceiling, so these sources stay stronger than a capped normal
+    // hit instead of becoming identical to it.
     if (enemy.type === 'goliath' && enemy.phase === 'true_form'
         && (source.isTrueDamage || source.isPiercing || source.isTeslaDot || source._isDtuDot || source._isNocToiDot || source._isSthDot || source._isSrDot)) {
-        // Per AanSensei: base trimmed slightly (was 4%) - this is the cap
-        // governing Tesla/Leo/Aquarius/Soul-Reaver-style DoT ticks, exactly
-        // the sustained rapid-fire sources this trim targets.
-        const _capPctTrue = Math.min(0.06, 0.035 + _goliathDebuffStackCount(enemy) * 0.003);
+        // This is the cap governing Tesla/Leo/Aquarius/Soul-Reaver-style DoT
+        // ticks: 3% base, +0.25% per debuff stack, 5% at most.
+        const _capPctTrue = Math.min(0.05, 0.030 + _goliathDebuffStackCount(enemy) * 0.0025);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPctTrue));
     }
 
