@@ -662,6 +662,48 @@
     return [rx + (139 - rx) * c, ry + (38.2 - ry) * c];
   }
 
+  // The whole casting arm for a given castExt, in grid units inside the
+  // shoulder drop: joints, curve controls and the frame the hand is drawn
+  // in. drawKanade draws from it and handPos anchors the spell to it, so
+  // the glow and the hand can never be worked out two different ways.
+  function castArm(castExt, fabricTrail) {
+    const mix = (a, b, k) => a + (b - a) * k;
+    // Every joint and control point runs from its resting place to its
+    // casting place. The elbow rises on the square of castExt, so the hand
+    // leads and the forearm straightens before the elbow lifts; raised in
+    // step with the hand it was high by the halfway point with the forearm
+    // bent down from it, which read as a broken arm.
+    const lift = castExt * castExt;
+    const wrist = castWrist(castExt, fabricTrail);
+    // At full cast the elbow sits a little below the line from shoulder to
+    // wrist, so the raised arm keeps a slight bend and the elbow reads.
+    // Straight, the arm looked like a hose and longer than it is.
+    const elbowX = mix(119 + fabricTrail * 0.15, 123, castExt), elbowY = mix(73, 46, lift);
+    const upperC = [mix(111, 112, castExt), mix(59, 50.5, castExt), mix(116, 118.5, castExt), mix(65, 47.5, lift)];
+    // The forearm's control points are placed along the line from elbow to
+    // wrist with a slight outward bow, rather than blended between two
+    // fixed sets: blended, they ran ahead of the late-rising elbow and put
+    // an S-bend in the forearm halfway up.
+    const fx = (wrist[0] - 1) - elbowX, fy = (wrist[1] + 1.2) - elbowY;
+    const fl = Math.hypot(fx, fy) || 1, bow = 0.9;
+    const bx = fy / fl * bow, by = -fx / fl * bow;
+    const foreC = [
+      elbowX + fx * 0.35 + bx, elbowY + fy * 0.35 + by,
+      elbowX + fx * 0.75 + bx * 0.5, elbowY + fy * 0.75 + by * 0.5
+    ];
+    // The hand points the way the end of the forearm points, so wrist, palm
+    // and fingers always agree with the arm; the only addition is the wrist
+    // bending back into the casting gesture as the arm rises.
+    const foreDX = (wrist[0] - 1) - foreC[2], foreDY = (wrist[1] + 1.2) - foreC[3];
+    const castEase = castExt * castExt * (3 - 2 * castExt);
+    const hand = {
+      x: wrist[0] + 0.5 * castExt, y: wrist[1] + 0.8 * castExt,
+      rot: Math.atan2(-foreDX, foreDY) - 0.85 * castEase,
+      size: mix(0.75, 1.05, castExt),
+    };
+    return { wrist, elbowX, elbowY, upperC, foreC, hand };
+  }
+
   // Both body sprites share one buffer, and at 60fps most frames were
   // redrawing a picture identical to the one already in it. The sway and bob
   // phase is quantised to 24 steps per cycle and everything else that changes
@@ -693,7 +735,7 @@
       // enough that a still face still hits the cache.
       Math.round((o.blinkAmount != null ? o.blinkAmount : (o.blink ? 1 : 0)) * 10) + ',' +
       Math.round((o.gazeX || 0) * 10) + ',' + Math.round((o.gazeY || 0) * 10) + ',' +
-      Math.round((o.headTurn || 0) * 1000);
+      Math.round((o.headTurn || 0) * 1000) + ',' + Math.round((o.magicLight || 0) * 10);
   }
 
   function drawKanade(t, opts) {
@@ -1135,30 +1177,8 @@
     // no fold, star or cuff band from the sleeve behind it lands on top.
     pctx.save();
     pctx.translate(0, shoulderDrop);
-    // Every joint and control point runs from its resting place to its
-    // casting place. The elbow rises on the square of castExt, so the hand
-    // leads and the forearm straightens before the elbow lifts; raised in
-    // step with the hand it was high by the halfway point with the forearm
-    // bent down from it, which read as a broken arm.
     const mix = (a, b, k) => a + (b - a) * k;
-    const lift = castExt * castExt;
-    const wrist = castWrist(castExt, fabricTrail);
-    // At full cast the elbow sits a little below the line from shoulder to
-    // wrist, so the raised arm keeps a slight bend and the elbow reads.
-    // Straight, the arm looked like a hose and longer than it is.
-    const elbowX = mix(119 + fabricTrail * 0.15, 123, castExt), elbowY = mix(73, 46, lift);
-    const upperC = [mix(111, 112, castExt), mix(59, 50.5, castExt), mix(116, 118.5, castExt), mix(65, 47.5, lift)];
-    // The forearm's control points are placed along the line from elbow to
-    // wrist with a slight outward bow, rather than blended between two
-    // fixed sets: blended, they ran ahead of the late-rising elbow and put
-    // an S-bend in the forearm halfway up.
-    const fx = (wrist[0] - 1) - elbowX, fy = (wrist[1] + 1.2) - elbowY;
-    const fl = Math.hypot(fx, fy) || 1, bow = 0.9;
-    const bx = fy / fl * bow, by = -fx / fl * bow;
-    const foreC = [
-      elbowX + fx * 0.35 + bx, elbowY + fy * 0.35 + by,
-      elbowX + fx * 0.75 + bx * 0.5, elbowY + fy * 0.75 + by * 0.5
-    ];
+    const { wrist, elbowX, elbowY, upperC, foreC, hand } = castArm(castExt, fabricTrail);
     // Raised toward the viewer the forearm reads wider, and against the dark
     // behind her it needs an edge; both grow from nothing at rest, where the
     // arm lies on pale cloth like the left one.
@@ -1182,16 +1202,10 @@
     // the raise it read as a splayed hand sprouting near her shoulder.
     const openT = Math.max(0, Math.min(1, (castExt - 0.25) / 0.5));
     const handOpen = openT * openT * (3 - 2 * openT) * 0.8;
-    // The hand points the way the end of the forearm points, so wrist, palm
-    // and fingers always agree with the arm; the only addition is the wrist
-    // bending back into the casting gesture as the arm rises.
-    const foreDX = (wrist[0] - 1) - foreC[2], foreDY = (wrist[1] + 1.2) - foreC[3];
-    const castEase = castExt * castExt * (3 - 2 * castExt);
     pctx.save();
-    pctx.translate(wrist[0] + 0.5 * castExt, wrist[1] + 0.8 * castExt);
-    pctx.rotate(Math.atan2(-foreDX, foreDY) - 0.85 * castEase);
-    const handSize = mix(0.75, 1.05, castExt);
-    pctx.scale(handSize, handSize);
+    pctx.translate(hand.x, hand.y);
+    pctx.rotate(hand.rot);
+    pctx.scale(hand.size, hand.size);
     // Thumb on the +1 side keeps the palm toward the viewer the whole way:
     // turned out a little while the hand hangs, turned in toward her as it
     // rises. On the other side it began inward and was carried round to the
@@ -1202,7 +1216,14 @@
     // Light thrown back onto her by the spell in her hand. The energy is
     // drawn on the main canvas over the sprite, so without this she stayed
     // lit as if nothing were happening six units from her face.
-    if (castExt > 0.05) {
+    // How strong it is comes from the pose (magicLight, 0..1), following the
+    // charge in her hand, so it grows with the spell instead of switching on
+    // at full strength the moment the arm starts to move. Tenths, the same
+    // step the sprite cache keys it by.
+    const magicLight = Math.round((opts.magicLight || 0) * 10) / 10;
+    if (magicLight > 0.01) {
+      pctx.save();
+      pctx.globalAlpha = magicLight;
       bezierLine([elbowX, elbowY - 2], [[foreC[0], foreC[1] - 2.5, foreC[2] - 1, foreC[3] - 2, wrist[0] - 1.5, wrist[1] - 0.6]], PAL.magicHi, STROKE.edge);
       bezierLine([100, 41], [[102, 44, 103, 46, 103, 48]], PAL.magic, STROKE.band);
       bezierLine([99, 36], [[101, 37, 102, 39, 102, 41]], PAL.magicHi, STROKE.seam);
@@ -1211,6 +1232,7 @@
       if (castExt > 0.5) {
         bezierLine([106, 46], [[108, 48, 109, 50, 109, 52]], PAL.magicHi, STROKE.fine);
       }
+      pctx.restore();
     }
     pctx.restore();
 
@@ -2203,22 +2225,27 @@
   // Where her raised hand actually is on screen. Both the energy glow and the
   // bursts fired by the summon and cast beats read from this, so they can
   // never end up pointing at different places.
+  const PALM = [0, 3.1];
   function handPos(L, pose, t) {
     if (!pose || !pose.opts) return null;
     const castExt = pose.opts.castExt || 0;
     if (castExt <= 0.02) return null;
-    // Matches the right arm in drawKanade, plus the lean/bob that
-    // drawKanade translates the whole body by before it draws anything.
+    // The arm drawKanade draws, with the same fabric trail, then the lean/bob
+    // it translates the whole body by and the shoulder drop the arm sits in.
     const lean = pose.opts.lean || 0;
     const bobAmp = pose.opts.bobAmp != null ? pose.opts.bobAmp : 1;
     const bob = Math.sin(t * Math.PI * 2) * bobAmp;
     const u = (L.box * pose.scale) / GRID_W;
-    // The same wrist path and shoulder drop the arm is drawn with.
-    const w = castWrist(castExt, 0);
+    const fabricTrail = (pose.opts.trail || 0) * 0.75 + (pose.opts.whip || 0);
+    const h = castArm(castExt, fabricTrail).hand;
     const drop = 1.5 * (1 - castExt);
+    // The middle of the palm in the hand's own frame, carried through its
+    // turn and size, so the spell sits in the hand rather than at the wrist.
+    const px = PALM[0] * h.size, py = PALM[1] * h.size;
+    const cos = Math.cos(h.rot), sin = Math.sin(h.rot);
     return {
-      x: pose.x + (w[0] + 0.5 * castExt + lean - GRID_W / 2) * u,
-      y: pose.y + (w[1] + 0.8 * castExt + drop + bob - GRID_H / 2) * u,
+      x: pose.x + (h.x + px * cos - py * sin + lean - GRID_W / 2) * u,
+      y: pose.y + (h.y + px * sin + py * cos + drop + bob - GRID_H / 2) * u,
       u,
     };
   }
@@ -2234,11 +2261,18 @@
     const hx = hand.x, hy = hand.y, u = hand.u;
 
     const pulse = 0.85 + 0.15 * Math.sin(now * 0.012);
-    const core = u * (3.4 + 5.2 * charge) * pulse;
+    // The impact blows the core up to nearly twice its size for a moment.
+    const core = u * (3.4 + 5.2 * charge) * pulse * (1 + 0.9 * (pose.impact || 0));
     const glow = energyGlow();
 
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = Math.min(1, pose.alpha) * (0.30 + 0.45 * charge);
+
+    // A wide, dim pool of the spell's light on everything around her hand.
+    const pool = u * 70 * (0.7 + 0.3 * charge);
+    ctx.globalAlpha = Math.min(1, pose.alpha) * 0.16 * charge;
+    ctx.drawImage(glow, hx - pool, hy - pool, pool * 2, pool * 2);
     ctx.globalAlpha = Math.min(1, pose.alpha) * (0.30 + 0.45 * charge);
 
     // Wide halo, then the bright core, both the same sprite at two sizes.
@@ -2249,7 +2283,7 @@
 
     // Motes spiralling inward. Position comes straight out of `now` and the
     // index, so this loop touches no state at all.
-    const motes = lowDetail() ? 8 : 16;
+    const motes = (lowDetail() ? 8 : 16) + Math.round((lowDetail() ? 6 : 14) * (pose.gather || 0));
     const reach = core * 4.4;
     ctx.fillStyle = 'rgba(224,180,255,0.9)';
     for (let i = 0; i < motes; i++) {
@@ -2392,14 +2426,16 @@
     });
   }
 
-  function updateDrawSakura() {
+  // fs is how many 60Hz frames this frame stands for, so the petals fall
+  // at the same speed at 60, 120 or 144Hz.
+  function updateDrawSakura(fs) {
     for (let i = sakuraPetals.length - 1; i >= 0; i--) {
       const p = sakuraPetals[i];
-      p.life++;
-      p.sway += p.swaySpeed;
-      p.x += p.vx + Math.sin(p.sway) * 0.4;
-      p.y += p.vy;
-      p.rot += p.rotSpeed;
+      p.life += fs;
+      p.sway += p.swaySpeed * fs;
+      p.x += (p.vx + Math.sin(p.sway) * 0.4) * fs;
+      p.y += p.vy * fs;
+      p.rot += p.rotSpeed * fs;
       if (p.life >= p.maxLife || p.y > canvas.height + 20) { sakuraPetals.splice(i, 1); continue; }
       const fade = Math.min(Math.min(1, p.life / 30), Math.min(1, (p.maxLife - p.life) / 40));
       ctx.save();
@@ -2415,8 +2451,8 @@
   }
 
   // Sparks thrown by the gate opening, the turn flash and the summon. Screen
-  // coordinates, one step per frame — the cutscene runs with the sim frozen,
-  // so there is no deltaTime to integrate here.
+  // coordinates. The sim is frozen, so there is no game deltaTime; each step
+  // is scaled by frameScale, worked out from the cutscene's own clock.
   let fxParticles = [];
 
   function spawnBurst(count, x, y, color, spdMin, spdRange, life, size) {
@@ -2431,17 +2467,520 @@
     }
   }
 
-  function updateDrawParticles() {
+  function updateDrawParticles(fs) {
+    const drag = Math.pow(0.97, fs);
     for (let i = fxParticles.length - 1; i >= 0; i--) {
       const p = fxParticles[i];
-      p.life++;
-      p.x += p.vx; p.y += p.vy; p.vx *= 0.97; p.vy *= 0.97;
+      p.life += fs;
+      p.x += p.vx * fs; p.y += p.vy * fs; p.vx *= drag; p.vy *= drag;
       if (p.life >= p.maxLife) { fxParticles.splice(i, 1); continue; }
       ctx.globalAlpha = 1 - p.life / p.maxLife;
       ctx.fillStyle = p.color;
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
       ctx.globalAlpha = 1;
     }
+  }
+
+  // Maou haki: the pressure of the stopped world, in violet. Three pieces,
+  // all worked out from `now`, elapsed time and a loop index, so none of it
+  // allocates, carries state between frames or builds a gradient; the only
+  // soft shape is the cached energyGlow sprite.
+
+  // On the edge of the stopped world as it spreads out of one point. The
+  // front's circle is stroked three times, pushed outward by three unrelated
+  // waves so the edge boils like flame instead of sliding as a clean ring,
+  // with short tongues licking out past it. At the start, while the front is
+  // still small, the point it opens from bursts with the same violet.
+  function drawFrontHaki(L, reach, wash, now) {
+    const tier = freezeTier();
+    if (tier >= 3 || wash <= 0.01 || reach <= 0.001 || reach >= 0.999) return;
+    const cx = L.gateX, cy = L.centerY, r = frontRadius(L, reach);
+    const s = Math.min(1, wash / 0.86);
+    const unit = Math.min(canvas.width, canvas.height) / 720;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const birth = 1 - clamp01(reach / 0.35);
+    if (birth > 0.01) {
+      const size = (70 + r * 0.9) * (0.92 + 0.08 * Math.sin(now * 0.02));
+      ctx.globalAlpha = s * birth * 0.9;
+      ctx.drawImage(energyGlow(), cx - size, cy - size, size * 2, size * 2);
+    }
+    const layers = tier === 0 ? 3 : (tier === 1 ? 2 : 1);
+    const segs = tier === 0 ? 96 : 64;
+    const COLORS = ['rgba(222,184,255,1)', 'rgba(164,86,255,1)', 'rgba(112,40,226,1)'];
+    for (let k = 0; k < layers; k++) {
+      const amp = (10 + k * 9) * unit, off = k * 10 * unit;
+      ctx.globalAlpha = s * (0.6 - k * 0.16);
+      ctx.strokeStyle = COLORS[k];
+      ctx.lineWidth = (k === 0 ? 2.4 : 4 + k * 3) * unit;
+      ctx.beginPath();
+      for (let i = 0; i <= segs; i++) {
+        const a = (i / segs) * Math.PI * 2;
+        const w = Math.sin(a * 7 + now * 0.004 + k) * 0.5
+          + Math.sin(a * 13 - now * 0.0063 + k * 2.1) * 0.3
+          + Math.sin(a * 23 + now * 0.011 + k * 4.3) * 0.2;
+        const rr = r + off + amp * (0.5 + 0.5 * w);
+        if (i === 0) ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+        else ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+      }
+      ctx.stroke();
+    }
+    // Lightning running along the front, a few arcs at a time.
+    if (tier <= 1) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const arcs = tier === 0 ? 4 : 2;
+      for (let i = 0; i < arcs; i++) {
+        const bucket = Math.floor(now / (70 + 30 * i));
+        if (hash(i, bucket) > 0.7) continue;
+        const a = hash(bucket, i + 1) * Math.PI * 2, span = 0.06 + 0.1 * hash(i, bucket + 2);
+        const rr = r + 6 * unit;
+        drawBolt(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, cx + Math.cos(a + span) * rr, cy + Math.sin(a + span) * rr,
+          bucket * 17 + i, 1.4 * unit, s * 0.85);
+      }
+    }
+    // Wisps are stroked in four strength bands, one path each, rather than
+    // one stroke call per wisp.
+    const wisps = tier === 0 ? 48 : (tier === 1 ? 28 : 0);
+    ctx.strokeStyle = 'rgba(196,128,255,1)';
+    ctx.lineWidth = 1.8 * unit;
+    ctx.lineCap = 'round';
+    for (let band = 0; band < 4 && wisps; band++) {
+      ctx.globalAlpha = s * 0.65 * (0.3 + band * 0.23);
+      ctx.beginPath();
+      for (let i = 0; i < wisps; i++) {
+        const ph = (now * 0.0011 + i * 0.618034) % 1;
+        if (Math.min(3, Math.floor(Math.sin(Math.PI * ph) * 4)) !== band) continue;
+        const a = i * 2.39996 + Math.sin(now * 0.0005 + i) * 0.06;
+        const base = r + (4 + ph * 22) * unit, len = (12 + 34 * ph) * unit;
+        ctx.moveTo(cx + Math.cos(a) * base, cy + Math.sin(a) * base);
+        ctx.lineTo(cx + Math.cos(a) * (base + len), cy + Math.sin(a) * (base + len));
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Lighting for the whole frame, the way a shot is lit rather than a scene
+  // is filled: the stopped world behind her is taken down so she is the
+  // brightest thing on screen, a spotlight vignette centred on her (on the
+  // gate while it opens) sinks the corners, and a soft backlight and a pool
+  // of light at her feet lift her off the backdrop. Every gradient is built
+  // once per screen size and position and reused.
+  const _spotCache = new Map();
+  function spotGradient(cx, cy, inner, outer) {
+    const key = canvas.width + 'x' + canvas.height + ':' + Math.round(cx) + ',' + Math.round(cy) + ',' + Math.round(inner);
+    let g = _spotCache.get(key);
+    if (!g) {
+      if (_spotCache.size > 8) _spotCache.clear();
+      g = ctx.createRadialGradient(cx, cy, inner, cx, cy, outer);
+      g.addColorStop(0, 'rgba(2,1,8,0)');
+      g.addColorStop(0.4, 'rgba(2,1,8,0.18)');
+      g.addColorStop(1, 'rgba(2,1,8,0.5)');
+      _spotCache.set(key, g);
+    }
+    return g;
+  }
+  function drawSpotlight(cx, cy, inner, alpha) {
+    if (alpha <= 0.01 || freezeTier() >= 3) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.fillStyle = spotGradient(cx, cy, inner, Math.hypot(canvas.width, canvas.height) * 0.62);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+  // How much the shot is lit around her: up as she arrives, held while she
+  // is on stage, down as she leaves.
+  function stageFocus(beatId, p) {
+    if (beatId === 'walkOut') return smootherstep(clamp01((p - 0.15) / 0.55));
+    if (beatId === 'think' || beatId === 'summon' || beatId === 'cast') return 1;
+    if (beatId === 'leave') return 1 - smootherstep(clamp01((p - 0.35) / 0.55));
+    return 0;
+  }
+  // The backlight and the floor pool, drawn behind her.
+  function drawStageLight(L, pose, focus, charge) {
+    if (focus <= 0.01 || freezeTier() >= 3) return;
+    const box = L.box * pose.scale, glow = energyGlow();
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const a = Math.min(1, pose.alpha) * focus;
+    const br = box * (0.46 + 0.06 * charge);
+    ctx.globalAlpha = a * (0.2 + 0.12 * charge);
+    ctx.drawImage(glow, pose.x - br * 0.75, pose.y - box * 0.12 - br, br * 1.5, br * 2);
+    const fw = box * 0.62, fh = box * 0.1;
+    ctx.globalAlpha = a * (0.32 + 0.2 * charge);
+    ctx.drawImage(glow, pose.x - fw, pose.y + box * 0.4 - fh, fw * 2, fh * 2);
+    ctx.restore();
+  }
+
+  // Cinematic light. Two cached sprites (a horizontal flare streak and the
+  // violet energyGlow) do all of it, so nothing here builds a gradient per
+  // frame.
+
+  // An anamorphic lens streak: a long thin horizontal band, bright in the
+  // middle and gone at the ends, the flare a wide-screen lens throws off a
+  // point of light.
+  let _flareStreak = null;
+  function flareStreak() {
+    if (_flareStreak) return _flareStreak;
+    const w = 256, h = 32;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    const gx = g.createLinearGradient(0, 0, w, 0);
+    gx.addColorStop(0, 'rgba(120,90,255,0)');
+    gx.addColorStop(0.35, 'rgba(150,120,255,0.45)');
+    gx.addColorStop(0.5, 'rgba(250,240,255,1)');
+    gx.addColorStop(0.65, 'rgba(150,120,255,0.45)');
+    gx.addColorStop(1, 'rgba(120,90,255,0)');
+    g.fillStyle = gx;
+    g.fillRect(0, 0, w, h);
+    // Fade it top and bottom so it is a soft band, not a bar.
+    g.globalCompositeOperation = 'destination-in';
+    const gy = g.createLinearGradient(0, 0, 0, h);
+    gy.addColorStop(0, 'rgba(0,0,0,0)');
+    gy.addColorStop(0.5, 'rgba(0,0,0,1)');
+    gy.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gy;
+    g.fillRect(0, 0, w, h);
+    _flareStreak = c;
+    return c;
+  }
+  function drawFlare(x, y, len, alpha) {
+    if (alpha <= 0.01 || freezeTier() >= 3) return;
+    const streak = flareStreak(), glow = energyGlow();
+    const th = Math.max(3, len * 0.018);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.drawImage(streak, x - len / 2, y - th * 2, len, th * 4);
+    ctx.drawImage(streak, x - len * 0.3, y - th / 2, len * 0.6, th);
+    const g = len * 0.05;
+    ctx.globalAlpha = Math.min(1, alpha) * 0.8;
+    ctx.drawImage(glow, x - g, y - g, g * 2, g * 2);
+    ctx.restore();
+  }
+
+  // Shafts of light pouring out of one point, turning slowly: soft wedges
+  // in violet white at low strength.
+  function drawGodRays(x, y, len, alpha, now) {
+    const tier = freezeTier();
+    if (alpha <= 0.01 || tier >= 2) return;
+    const rays = tier === 0 ? 11 : 7;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(214,190,255,1)';
+    // Each ray pulses on its own; they are filled in three strength bands,
+    // one path each.
+    for (let band = 0; band < 3; band++) {
+      ctx.globalAlpha = alpha * (0.45 + band * 0.27);
+      ctx.beginPath();
+      for (let i = 0; i < rays; i++) {
+        const pulse = 0.5 + 0.5 * Math.sin(now * 0.0017 + i * 1.3);
+        if (Math.min(2, Math.floor(pulse * 3)) !== band) continue;
+        const a = i * 2.39996 + now * 0.00012 * (i % 2 ? 1 : -1);
+        const hw = 0.035 + 0.05 * hash(i, 1.3);
+        const l = len * (0.55 + 0.45 * hash(i, 2.9));
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(a - hw) * l, y + Math.sin(a - hw) * l);
+        ctx.lineTo(x + Math.cos(a + hw) * l, y + Math.sin(a + hw) * l);
+        ctx.closePath();
+      }
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // The grade: the whole frame leans violet as she gathers the charge and
+  // as the impact lands. A plain translucent fill: a blend mode such as
+  // soft-light makes the GPU copy the whole frame to blend against, every
+  // frame of the charge.
+  function drawGrade(amount) {
+    if (amount <= 0.01 || freezeTier() >= 2) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.5, amount * 0.45);
+    ctx.fillStyle = 'rgb(58,22,110)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  // Violet lightning. A bolt is a jagged line between two points, its kinks
+  // taken from hash() of the bolt's seed, so the same seed always gives the
+  // same bolt and nothing is stored between frames. Callers change the seed
+  // every 60 to 110ms, which is what makes the lightning flicker and jump.
+  function hash(a, b) {
+    const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+    return v - Math.floor(v);
+  }
+  function drawBolt(x0, y0, x1, y1, seed, width, alpha) {
+    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len, segs = 9;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    for (let i = 1; i < segs; i++) {
+      const f = i / segs, off = (hash(seed, i) - 0.5) * len * 0.26 * Math.sin(Math.PI * f);
+      ctx.lineTo(x0 + dx * f + nx * off, y0 + dy * f + ny * off);
+    }
+    ctx.lineTo(x1, y1);
+    ctx.globalAlpha = alpha * 0.45;
+    ctx.strokeStyle = 'rgba(150,70,255,1)';
+    ctx.lineWidth = width * 3.2;
+    ctx.stroke();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = 'rgba(246,232,255,1)';
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
+  // Lightning while she gathers: short arcs crawling over her aura, more
+  // of them and more often as the charge builds, and past 0.6 a bolt now
+  // and then from the ring's edge into her raised hand.
+  function drawGatherLightning(L, pose, hand, now, power) {
+    const tier = freezeTier();
+    if (power < 0.25 || tier >= 2) return;
+    const box = L.box * pose.scale, cx = pose.x, cy = pose.y + box * 0.05;
+    const unit = Math.max(1, box / 360);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const n = Math.round((tier === 0 ? 5 : 3) * power);
+    for (let i = 0; i < n; i++) {
+      const bucket = Math.floor(now / (60 + 50 * hash(i, 9.1)));
+      // Not every slot fires in every bucket, so the arcs come and go.
+      if (hash(i, bucket) > 0.35 + 0.5 * power) continue;
+      const a = hash(bucket, i + 3) * Math.PI * 2, span = 0.5 + hash(i, bucket + 5) * 0.7;
+      const r0x = box * 0.27, r0y = box * 0.42;
+      drawBolt(cx + Math.cos(a) * r0x, cy + Math.sin(a) * r0y,
+        cx + Math.cos(a + span) * r0x * 1.1, cy + Math.sin(a + span) * r0y * 1.1,
+        bucket * 13 + i, 1.1 * unit, Math.min(1, pose.alpha) * (0.55 + 0.4 * power));
+    }
+    if (hand && power > 0.6 && tier === 0) {
+      const bucket = Math.floor(now / 110);
+      if (hash(bucket, 2.7) < (power - 0.6) * 1.6) {
+        const a = hash(bucket, 4.4) * Math.PI * 2;
+        drawBolt(L.standX + Math.cos(a) * L.ringR, L.centerY + Math.sin(a) * L.ringR, hand.x, hand.y,
+          bucket * 7 + 1, 1.3 * unit, Math.min(1, pose.alpha) * 0.8);
+      }
+    }
+    ctx.restore();
+  }
+
+  // The pull of power into her once her arm is up. Rings of haki closing
+  // in on her from outside the spell ring, each brightening as it shrinks,
+  // and streams of energy running from the ring's edge into her palm, their
+  // dashes marching inward. g 0..1 builds to the impact.
+  function drawGathering(L, pose, hand, now, g) {
+    const tier = freezeTier();
+    if (g <= 0.01 || tier >= 3) return;
+    const box = L.box * pose.scale, cx = pose.x, cy = pose.y + box * 0.02;
+    const a0 = Math.min(1, pose.alpha) * g;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    // Closing rings: each takes 760ms from 1.45 of the ring to her body,
+    // spaced so one is always arriving.
+    const rings = tier === 0 ? 3 : 2;
+    for (let i = 0; i < rings; i++) {
+      const ph = (now / 760 + i / rings) % 1;
+      const rad = L.ringR * (1.45 - 1.1 * ph * ph);
+      ctx.globalAlpha = a0 * 0.55 * Math.sin(Math.PI * ph) * (0.5 + 0.5 * ph);
+      ctx.strokeStyle = i % 2 ? 'rgba(170,92,255,1)' : 'rgba(224,190,255,1)';
+      ctx.lineWidth = Math.max(1, box * (0.006 + 0.01 * ph));
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rad, rad * 0.94, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Streams into the palm, one path, the dash pattern moving toward it.
+    if (hand) {
+      const n = tier === 0 ? 8 : 5;
+      ctx.globalAlpha = a0 * 0.7;
+      ctx.strokeStyle = 'rgba(214,168,255,1)';
+      ctx.lineWidth = Math.max(1, box * 0.005);
+      ctx.setLineDash([box * 0.05, box * 0.035]);
+      ctx.lineDashOffset = now * box * 0.0006;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const a = i * (Math.PI * 2 / n) + now * 0.0003;
+        const sx = L.standX + Math.cos(a) * L.ringR, sy = L.centerY + Math.sin(a) * L.ringR;
+        // Bowed sideways, so the streams curl in rather than run straight.
+        const mx = (sx + hand.x) / 2 + Math.cos(a + 1.3) * box * 0.18;
+        const my = (sy + hand.y) / 2 + Math.sin(a + 1.3) * box * 0.18;
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(mx, my, hand.x, hand.y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+  // Around her while she gathers it. Drawn behind the sprite: a violet swell
+  // behind the whole figure, tongues of aura rising off her outline, and
+  // streaks of power drawn in toward her from well outside the ring, all of
+  // it growing with the charge. power 0..1.
+  function drawHakiAura(L, pose, now, power) {
+    const tier = freezeTier();
+    if (power <= 0.02 || tier >= 3) return;
+    const box = L.box * pose.scale, cx = pose.x, cy = pose.y + box * 0.05;
+    const a0 = Math.min(1, pose.alpha) * power;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const hr = box * (0.42 + 0.1 * power) * (0.95 + 0.05 * Math.sin(now * 0.005));
+    ctx.globalAlpha = a0 * 0.4;
+    ctx.drawImage(energyGlow(), cx - hr * 0.8, cy - hr, hr * 1.6, hr * 2);
+    ctx.lineCap = 'round';
+    // Tongues: each starts on an oval round her body, climbs and thins out,
+    // on its own cycle so they never rise together.
+    // Batched into one path per colour and strength band: six strokes a
+    // frame however many tongues there are.
+    const n = tier === 0 ? 28 : (tier === 1 ? 18 : 10);
+    ctx.lineWidth = Math.max(1, box * 0.009);
+    for (let pass = 0; pass < 6; pass++) {
+      const pale = pass >= 3, band = pass % 3;
+      ctx.strokeStyle = pale ? 'rgba(226,186,255,1)' : 'rgba(160,80,255,1)';
+      ctx.globalAlpha = a0 * 0.75 * (0.35 + band * 0.32);
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        if ((i % 3 === 0) !== pale) continue;
+        const ph = (now * 0.0014 + i * 0.381966) % 1;
+        if (Math.min(2, Math.floor(Math.sin(Math.PI * ph) * 3)) !== band) continue;
+        const a = (i / n) * Math.PI * 2 + Math.sin(i * 1.7) * 0.2;
+        const bx = cx + Math.cos(a) * box * 0.25, by = cy + Math.sin(a) * box * 0.4;
+        const rise = box * (0.06 + 0.16 * ph) * (0.6 + 0.4 * power);
+        const sx = bx + Math.cos(a) * box * 0.03 * ph, sy = by - rise * 0.6;
+        const ex = sx + Math.sin(now * 0.006 + i) * box * 0.02, ey = sy - rise * 0.55;
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(sx + (ex - sx) * 0.2 + Math.cos(a) * box * 0.02, (sy + ey) / 2, ex, ey);
+      }
+      ctx.stroke();
+    }
+    // Inflow: streaks falling in toward her from outside the ring, faster
+    // and more of them as the charge builds.
+    if (tier <= 1) {
+      const m = Math.round((tier === 0 ? 22 : 12) * power);
+      ctx.strokeStyle = 'rgba(206,150,255,1)';
+      ctx.lineWidth = Math.max(1, box * 0.006);
+      for (let band = 0; band < 3 && m; band++) {
+        ctx.globalAlpha = a0 * 0.6 * (0.35 + band * 0.32);
+        ctx.beginPath();
+        for (let i = 0; i < m; i++) {
+          const ph = (now * (0.0009 + 0.0009 * power) + i * 0.618034) % 1;
+          if (Math.min(2, Math.floor(Math.sin(Math.PI * ph) * 3)) !== band) continue;
+          const a = i * 2.39996 + 0.4;
+          const far = box * (1.25 - 1.0 * ph), near = far - box * (0.08 + 0.1 * ph);
+          ctx.moveTo(cx + Math.cos(a) * far, cy + Math.sin(a) * far * 0.8);
+          ctx.lineTo(cx + Math.cos(a) * near, cy + Math.sin(a) * near * 0.8);
+        }
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // The release. At the summon a small wave leaves her palm; at the
+  // Distortion the whole gathered pressure goes out at once: a violet flash
+  // over the screen, rays from the palm, three pressure rings racing out
+  // and manga pressure lines behind them. Keyed to elapsed time against
+  // SUMMON_AT and APPLY_AT, from the palm position stored when each fired.
+  function drawCastRelease(cs, elapsed, now) {
+    const tier = freezeTier();
+    if (tier >= 3) return;
+    const W = canvas.width, H = canvas.height;
+    const unit = Math.min(W, H) / 720;
+    const EVENTS = [
+      { at: SUMMON_AT, pos: cs.summonFx, dur: 650, reach: 260 * unit, rings: 1, big: false },
+      { at: APPLY_AT, pos: cs.applyFx, dur: 1100, reach: Math.hypot(W, H) * 0.75, rings: 3, big: true },
+    ];
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    for (const ev of EVENTS) {
+      const k = elapsed - ev.at;
+      if (!ev.pos || k < 0 || k > ev.dur) continue;
+      const q = k / ev.dur, x = ev.pos[0], y = ev.pos[1];
+      if (ev.big) {
+        // A lens streak across the whole screen, fading over half a second.
+        drawFlare(x, y, W * 1.6, Math.pow(Math.max(0, 1 - k / 520), 1.5) * 0.95);
+        ctx.globalCompositeOperation = 'lighter';
+        // A flash of violet over everything, up in one frame and gone in 200ms.
+        const fl = Math.max(0, 1 - k / 200);
+        if (fl > 0) {
+          ctx.globalAlpha = 0.24 * fl * fl;
+          ctx.fillStyle = 'rgba(200,150,255,1)';
+          ctx.fillRect(0, 0, W, H);
+        }
+        // Rays: long thin wedges out of the palm, turning slowly.
+        const rays = tier === 0 ? 14 : 8;
+        const ra = Math.pow(1 - q, 2.4) * 0.22;
+        ctx.fillStyle = 'rgba(232,200,255,1)';
+        ctx.globalAlpha = ra;
+        ctx.beginPath();
+        for (let i = 0; i < rays; i++) {
+          const a = i * (Math.PI * 2 / rays) + now * 0.0004 + Math.sin(i * 3.1) * 0.12;
+          const len = Math.hypot(W, H) * (0.35 + 0.25 * ((i * 0.618034) % 1)) * (0.6 + 0.4 * Math.min(1, k / 120));
+          const hw = 0.012 + 0.016 * ((i * 0.381966) % 1);
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + Math.cos(a - hw) * len, y + Math.sin(a - hw) * len);
+          ctx.lineTo(x + Math.cos(a + hw) * len, y + Math.sin(a + hw) * len);
+          ctx.closePath();
+        }
+        ctx.fill();
+      }
+      // Lightning thrown out of the palm, flickering to a new shape every
+      // 70ms for the first 450ms.
+      if (ev.big && k < 450) {
+        const bucket = Math.floor(k / 70);
+        const count = tier === 0 ? 7 : 4;
+        ctx.lineJoin = 'round';
+        for (let i = 0; i < count; i++) {
+          const a = hash(i, bucket + 1) * Math.PI * 2;
+          const len = Math.min(W, H) * (0.25 + 0.3 * hash(bucket, i + 11));
+          drawBolt(x, y, x + Math.cos(a) * len, y + Math.sin(a) * len, bucket * 31 + i, 1.6 * unit, 1 - k / 450);
+        }
+      }
+      // Pressure rings, one after another.
+      for (let j = 0; j < ev.rings; j++) {
+        const qj = clamp01(q * 1.25 - j * 0.14);
+        if (qj <= 0 || qj >= 1) continue;
+        const rad = ev.reach * easeOutCubic(qj);
+        ctx.globalAlpha = Math.pow(1 - qj, 1.5) * (ev.big ? 0.85 : 0.6);
+        ctx.strokeStyle = j === 0 ? 'rgba(236,210,255,1)' : 'rgba(160,82,255,1)';
+        ctx.lineWidth = Math.max(1, (ev.big ? 9 : 4) * (1 - qj) * unit + unit);
+        ctx.beginPath();
+        ctx.arc(x, y, rad, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // Pressure lines trailing the first ring.
+      if (ev.big && tier <= 1) {
+        const lines = tier === 0 ? 36 : 20;
+        const rad = ev.reach * easeOutCubic(clamp01(q * 1.25));
+        ctx.strokeStyle = 'rgba(214,176,255,1)';
+        ctx.lineWidth = 1.6 * unit;
+        ctx.globalAlpha = Math.pow(1 - q, 2) * 0.55;
+        ctx.beginPath();
+        for (let i = 0; i < lines; i++) {
+          const a = i * 2.39996;
+          const inner = rad * (0.45 + 0.25 * ((i * 0.618034) % 1));
+          ctx.moveTo(x + Math.cos(a) * inner, y + Math.sin(a) * inner);
+          ctx.lineTo(x + Math.cos(a) * rad * 0.97, y + Math.sin(a) * rad * 0.97);
+        }
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Film bars top and bottom, riding in with the freeze front and out with
+  // it. Drawn under the banner and the boss bar so neither is covered.
+  function drawLetterbox(reach) {
+    if (reach <= 0.001) return;
+    const h = Math.round(canvas.height * 0.075 * reach);
+    ctx.save();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, h);
+    ctx.fillRect(0, canvas.height - h, canvas.width, h);
+    ctx.restore();
   }
 
   function roundRect(x, y, w, h, r) {
@@ -2490,10 +3029,56 @@
     ctx.restore();
   }
 
+  // The effect's name the way Dark Souls announces a boss falling: capitals
+  // in a light serif, spaced wide, in pale bone gold with a warm bloom, and
+  // growing very slowly the whole time it is up. A faint larger copy behind
+  // it is the soft double image that title card has. Letters are placed one
+  // at a time, since canvas letterSpacing is missing on older browsers.
+  // p is how far through the beat it is, 0..1.
+  function drawSoulsTitle(text, cx, cy, maxW, size, p) {
+    const caps = String(text).toUpperCase();
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    let px = size;
+    const measure = () => {
+      ctx.font = '400 ' + px + "px 'Cinzel', serif";
+      const track = px * 0.22;
+      const widths = Array.from(caps, ch => ctx.measureText(ch).width);
+      return { track, widths, total: widths.reduce((a, b) => a + b, 0) + track * (caps.length - 1) };
+    };
+    let m = measure();
+    if (m.total > maxW) { px = Math.max(14, Math.floor(px * maxW / m.total)); m = measure(); }
+    const grow = 1 + 0.06 * p;
+    const lay = (scale, fill) => {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+      let x = -m.total / 2;
+      ctx.fillStyle = fill;
+      for (let i = 0; i < caps.length; i++) {
+        ctx.fillText(caps[i], x, 0);
+        x += m.widths[i] + m.track;
+      }
+      ctx.restore();
+    };
+    const base = ctx.globalAlpha;
+    ctx.shadowColor = 'rgba(255,196,120,0.55)';
+    ctx.shadowBlur = px * 0.5;
+    ctx.globalAlpha = base * 0.22;
+    lay(grow * 1.035, '#f2dca6');
+    ctx.globalAlpha = base;
+    ctx.shadowBlur = px * 0.32;
+    lay(grow, '#e8d6a8');
+    ctx.shadowBlur = 0;
+    lay(grow, '#f4e8c6');
+    ctx.restore();
+  }
+
   // The announcement that runs over the cast beat: the wide banner art, the
   // rolled effect's name on top of it, and both halves of the pair — the
   // player-favouring hourglass and the enemy-favouring broken one.
-  function drawEffectBanner(effect, alpha, L) {
+  function drawEffectBanner(effect, alpha, L, p) {
     if (alpha <= 0.01) return;
     const w = Math.min(canvas.width * 0.82, 700);
     const h = w * 0.21;
@@ -2506,12 +3091,7 @@
     if (_tdBannerImg.complete && _tdBannerImg.naturalWidth) {
       ctx.drawImage(_tdBannerImg, cx - w / 2, top, w, h);
     }
-    ctx.shadowColor = 'rgba(190,140,255,0.9)';
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = '#f3e9ff';
-    ctx.font = "900 " + Math.max(18, Math.round(h * 0.34)) + "px 'Cinzel', serif";
-    ctx.fillText(effect.name, cx, top + h * 0.52);
-    ctx.shadowBlur = 0;
+    drawSoulsTitle(effect.name, cx, top + h * 0.52, w * 0.74, Math.max(18, Math.round(h * 0.36)), p || 0);
 
     // The pair reads as one line under the banner: the player-favouring
     // hourglass and its half on the left, the broken enemy one on the right.
@@ -2563,7 +3143,7 @@
     { id: 'gate',    ms: 900 },   // the reality gate tears open
     { id: 'walkOut', ms: 1900 },  // she steps out back-first, then turns to face forward
     { id: 'think',   ms: 1800 },  // she stands deciding, thought bubble up
-    { id: 'summon',  ms: 1300 },  // Goliath Alpha enters the arena for real
+    { id: 'summon',  ms: 1800 },  // she gathers the haki; Goliath Alpha enters the arena for real
     { id: 'cast',    ms: 2400 },  // the rolled effect applies, banner up
     { id: 'leave',   ms: 1800 },  // she turns, walks back into the gate
     { id: 'close',   ms: 1100 },  // gate shuts, overlay lifts, time resumes
@@ -2574,7 +3154,9 @@
   for (const b of BEATS) { BEAT_AT[b.id] = _beatAcc; _beatAcc += b.ms; }
   const TOTAL_MS = _beatAcc;
   // Where inside their own beats the two real game-logic side effects land.
-  const SUMMON_AT = BEAT_AT.summon + 0.55 * 1300;
+  // Goliath comes 715ms into the summon, once her arm is up; the rest of the
+  // beat is her gathering power before the cast.
+  const SUMMON_AT = BEAT_AT.summon + 715;
   const APPLY_AT = BEAT_AT.cast + 0.25 * 2400;
 
   function currentBeat(elapsed) {
@@ -2991,8 +3573,14 @@
   function ringState(beatId, p) {
     if (beatId === 'walkOut') return { alpha: clamp01((p - 0.25) / 0.35), energy: 0.45 };
     if (beatId === 'think') return { alpha: 1, energy: 0.5 };
-    if (beatId === 'summon') return { alpha: 1, energy: 0.6 + 0.4 * Math.sin(p * Math.PI) };
-    if (beatId === 'cast') return { alpha: 1, energy: 0.65 + 0.35 * Math.sin(p * Math.PI) };
+    if (beatId === 'summon' || beatId === 'cast') {
+      // Lit by the same charge as her hand, flaring on the impact, and
+      // easing to the leave beat's level before it starts.
+      const ms = castClock(beatId, p);
+      const out = smootherstep(clamp01((ms - CAST_T.lower1) / (CAST_T.end - CAST_T.lower1)));
+      const e = 0.5 + 0.5 * chargeAt(ms) + 0.35 * impactAt(ms);
+      return { alpha: 1, energy: e + (0.45 - e) * out };
+    }
     if (beatId === 'leave') return { alpha: clamp01(1 - p / 0.45), energy: 0.45 };
     return { alpha: 0, energy: 0 };
   }
@@ -3028,6 +3616,75 @@
     if (e < 60) return ease(e / 60);
     if (e < 90) return 1;
     return 1 - ease((e - 90) / 95);
+  }
+
+  // The summon and cast beats together, on one clock: milliseconds since
+  // the summon beat began. The two beats used to run the same raise, hold
+  // and lower each, so the arm came down at the end of the summon and went
+  // straight back up, and the charge dropped to nothing at the join. Now
+  // the arm goes up once, holds through the summon and the impact, and
+  // comes down once.
+  const BEAT_MS = {};
+  for (const b of BEATS) BEAT_MS[b.id] = b.ms;
+  const CAST_T = {
+    raise0: 156,                                      // anticipation ends, the arm starts up
+    raise1: 806,                                      // fully raised; the rest of the summon is gathering
+    impact: APPLY_AT - BEAT_AT.summon,                // the Distortion lands
+    lower0: BEAT_MS.summon + 0.38 * BEAT_MS.cast,     // the arm starts down
+    lower1: BEAT_MS.summon + 0.75 * BEAT_MS.cast,     // back at rest
+    end: BEAT_MS.summon + BEAT_MS.cast,
+  };
+  const FLASH_SPARKS_AT = (0.18 + 0.12 * Math.asin(0.9) / Math.PI) * BEAT_MS.leave;
+  function castClock(beatId, p) {
+    return beatId === 'summon' ? p * BEAT_MS.summon : BEAT_MS.summon + p * BEAT_MS.cast;
+  }
+  function castExtAt(ms) {
+    if (ms <= CAST_T.raise0) return 0;
+    if (ms < CAST_T.raise1) return smootherstep((ms - CAST_T.raise0) / (CAST_T.raise1 - CAST_T.raise0));
+    if (ms <= CAST_T.lower0) return 1;
+    if (ms < CAST_T.lower1) return 1 - smootherstep((ms - CAST_T.lower0) / (CAST_T.lower1 - CAST_T.lower0));
+    return 0;
+  }
+  // Power in her hand: it builds through the summon to 0.88, carries across
+  // into the cast at that level, peaks at the impact and drains as the arm
+  // comes down.
+  function chargeAt(ms) {
+    const S = BEAT_MS.summon;
+    if (ms < S) return 0.88 * smootherstep(clamp01((ms - 0.05 * S) / (0.95 * S)));
+    if (ms < CAST_T.impact) return 0.88 + 0.12 * smootherstep((ms - S) / (CAST_T.impact - S));
+    if (ms < CAST_T.lower0) return 1;
+    return 1 - smootherstep(clamp01((ms - CAST_T.lower0) / ((CAST_T.lower1 - CAST_T.lower0) * 0.85)));
+  }
+  // The kick of the impact, 0..1: up in about 70ms, gone in about half a
+  // second. Zero before the impact, so it cannot touch anything earlier.
+  function impactAt(ms) {
+    const k = ms - CAST_T.impact;
+    if (k <= 0) return 0;
+    return Math.min(1, (1 - Math.exp(-k / 35)) * Math.exp(-k / 220) / 0.63);
+  }
+  // Hair and sleeves swinging past rest once the arm is down, dying out over
+  // about 450ms.
+  function settleAt(ms) {
+    const k = ms - CAST_T.lower1;
+    return k <= 0 ? 0 : Math.sin(k / 70) * Math.exp(-k / 160);
+  }
+  // Her face across the join from thinking to casting. Mouth and brows can
+  // only switch, so the switch is hidden inside a blink: she keeps the
+  // serene look for the first 104ms of the summon, her eyes close, the face
+  // behind them becomes the smirk, and they open onto it over 150ms. Only
+  // then do they start following the hand. blink is null once the random
+  // blinks take over again.
+  function castEyes(ms) {
+    const shut = 104;
+    const ease = v => v * v * (3 - 2 * v);
+    if (ms < shut) return { expression: 'serene', blink: null, look: 0 };
+    if (ms < shut + 46) return { expression: 'smug', blink: 0.6 + 0.4 * ease((ms - shut) / 46), look: 0 };
+    if (ms < shut + 86) return { expression: 'smug', blink: 1, look: 0 };
+    if (ms < shut + 236) {
+      const o = ease((ms - shut - 86) / 150);
+      return { expression: 'smug', blink: 1 - o, look: o };
+    }
+    return { expression: 'smug', blink: null, look: 1 };
   }
 
   // Everything about how she is posed and placed this frame. Returns null on
@@ -3081,32 +3738,52 @@
     }
 
     if (beatId === 'summon' || beatId === 'cast') {
-      // Both beats reuse the prototype's cast pose: the arm sweeps up, holds,
-      // and comes back down.
-      let castExt;
-      if (p < 0.36) castExt = easeOutCubic(p / 0.36);
-      else if (p < 0.72) castExt = 1;
-      else castExt = 1 - easeInOut((p - 0.72) / 0.28);
-      // Power gathering: a fine tremor on top of the pose that grows with the
-      // raise, plus hair pulled up by it.
-      const charge = Math.sin(p * Math.PI);
+      // One gesture across both beats, read off the same clock: see castExtAt
+      // and the functions after it. Nothing here depends on the frame before,
+      // so a pause or a headless render lands on exactly the same pose.
+      const ms = castClock(beatId, p);
+      const castExt = castExtAt(ms);
+      const charge = chargeAt(ms);
+      const imp = impactAt(ms);
+      const mix = (a, b, k) => a + (b - a) * k;
+      // Her idle from the think beat eases into the casting stance over the
+      // first 300ms, and the stance eases toward the one she leaves in over
+      // the last stretch, so neither boundary makes the sway or the hair jump.
+      const into = smootherstep(clamp01(ms / 300));
+      const out = smootherstep(clamp01((ms - CAST_T.lower1) / (CAST_T.end - CAST_T.lower1)));
+      // Anticipation: before the arm moves she sinks a touch and leans away
+      // from it, the way anyone draws back before a throw.
+      const antic = ms < 260 ? Math.sin(Math.PI * ms / 260) : 0;
+      const eyes = castEyes(ms);
+      // The eyes find the hand a beat ahead of it, once they are open.
+      const lead = castExtAt(ms + 120) * eyes.look;
+      // Hair and sleeves follow the arm 80ms late, then ring out once it is
+      // down again; the impact throws them back with the head.
+      const hair = castExtAt(ms - 80);
+      const light = clamp01(castExt / 0.25) * Math.min(0.7, 0.58 * charge + 0.12 * imp);
+      // Gathering: from the moment the arm is up to the impact, the pull of
+      // power into her builds on its own curve.
+      const gather = ms < CAST_T.raise1 || ms >= CAST_T.impact ? 0
+        : smootherstep((ms - CAST_T.raise1) / (CAST_T.impact - CAST_T.raise1));
       return {
-        back: false, charge,
+        back: false, charge, impact: imp, gather,
         x: L.standX + Math.sin(now * 0.037) * charge * 0.6,
-        y: L.centerY - L.box * 0.012 * castExt,
-        scale: 1 + charge * 0.012,
+        y: L.centerY - L.box * 0.012 * castExt + L.box * 0.004 * antic,
+        scale: 1 + mix(breath(now) * 0.006, 0, into) + charge * 0.012 + imp * 0.004,
         alpha: 1, flash: 0,
         opts: {
-          swayAmp: 0.7, bobAmp: 0.35, castExt,
-          blinkAmount: blinkNow(now),
-          // Eyes follow the raised hand and the spell in it; the head draws
-          // back a hair while the arm comes up, and settles again.
-          gazeX: 0.85 * castExt, gazeY: -0.75 * castExt,
-          headTurn: -0.008 * Math.sin(Math.PI * Math.min(1, p / 0.36)),
-          lean: breath(now) * 0.7,
-          trail: idleTrail(now, 0.7) - 3.4 * castExt,
-          whip: Math.sin(now * 0.021) * charge * 1.2,
-          expression: 'smug',
+          swayAmp: mix(mix(1.7, 0.7, into), 1.1, out),
+          bobAmp: mix(mix(1.2, 0.35, into), 0.45, out),
+          castExt,
+          blinkAmount: eyes.blink != null ? eyes.blink : blinkNow(now),
+          gazeX: 0.85 * lead, gazeY: -0.75 * lead,
+          headTurn: -0.008 * Math.sin(Math.PI * clamp01((ms - CAST_T.raise0) / (CAST_T.raise1 - CAST_T.raise0))) - 0.006 * imp,
+          lean: mix(mix(breath(now) * 1.5, breath(now) * 0.7, into), 0, out) - 0.8 * antic - 1.2 * imp,
+          trail: mix(mix(idleTrail(now, 1), idleTrail(now, 0.7), into), idleTrail(now, 0.5), out)
+            - 3.4 * hair - 1.2 * imp + 1.6 * settleAt(ms),
+          whip: mix(Math.sin(now * 0.021) * charge * 1.2, flutter(now) * 0.6, out),
+          magicLight: Math.round(light * 10) / 10,
+          expression: eyes.expression,
         },
       };
     }
@@ -3231,11 +3908,13 @@
       // A short violet flare at her palm, as the summon leaves her hand. The
       // arrival itself is shown on Goliath, in drawSummonAura below.
       spawnBurst(18, fxX, fxY, '#d8b6ff', 2, 5, 22, 3);
+      cs.summonFx = [fxX, fxY];
     }
     if (!cs.applied && elapsed >= APPLY_AT) {
       cs.applied = true;
       if (typeof _applyTimelineDistortion === 'function') _applyTimelineDistortion(cs.effect);
       spawnBurst(40, fxX, fxY, '#d8b6ff', 2, 7, 34, 4);
+      cs.applyFx = [fxX, fxY];
     }
   }
 
@@ -3275,9 +3954,14 @@
     // elapsed time and runs to its end the instant the game unpauses.
     // Anything larger than a very long frame is that jump, not real time, so
     // it is carried into startedAt and the sequence resumes where it stopped.
+    // frameScale: how many 60Hz frames this one stands for, so everything
+    // that steps per frame moves at the same speed at 60, 120 or 144Hz. The
+    // first frame and the frame after a pause count as one.
+    let frameScale = 1;
     if (cs.lastNow !== undefined) {
       const dt = now - cs.lastNow;
       if (dt > 250) cs.startedAt += dt - 16;
+      else frameScale = Math.max(0, Math.min(3, dt / 16.6667));
     }
     cs.lastNow = now;
     const elapsed = now - cs.startedAt;
@@ -3318,18 +4002,41 @@
     ctx.restore();
     // The vignette and the lattice only make sense once the front has covered
     // the screen, so they come up with it rather than ahead of it.
-    drawVignette(wash * reach);
+    // The vignette closes in while she gathers the charge.
+    drawVignette(wash * reach * (1 + 0.3 * (pose && pose.charge ? pose.charge : 0)));
     ctx.save();
     clipToFront(L, reach);
     drawFreezeField(L, wash * reach, elapsed, now);
     ctx.restore();
+    drawFrontHaki(L, reach, wash, now);
+    const focus = stageFocus(beat.id, beat.p);
+    const charged = pose && pose.charge ? pose.charge : 0;
+    if (focus > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = (0.14 + 0.14 * charged) * focus * reach;
+      ctx.fillStyle = '#040210';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
     // Bullets dim with the front too, so nothing outside it goes dark early.
 
+    // Light pouring out of the point the stopped world opens from, strongest
+    // while the front is still spreading and while the gate tears open.
+    const rayLen = Math.hypot(canvas.width, canvas.height) * 0.8;
+    if (beat.id === 'freeze') drawGodRays(L.gateX, L.centerY, rayLen * Math.max(0.2, reach), 0.16 * Math.sin(Math.PI * Math.min(1, beat.p * 1.2)), now);
+    if (beat.id === 'gate') drawGodRays(L.gateX, L.centerY, rayLen, 0.12 * (1 - beat.p * 0.6), now);
     const openness = gateOpenness(beat.id, beat.p);
     if (openness > 0) {
       drawGate(L.gateX, L.centerY, L.gateR, openness, 1, now);
+      if (beat.id === 'gate') drawFlare(L.gateX, L.centerY, canvas.width * 1.1, 0.7 * Math.sin(Math.PI * Math.min(1, beat.p * 1.6)));
+      // 30 sparks for every 60Hz frame of the first 4% of the beat, however
+      // many frames actually land in it.
       if (beat.id === 'gate' && beat.p < 0.04) {
-        spawnBurst(30, L.gateX, L.centerY, '#9fe8ff', 1, 5, 44, 4);
+        const due = 30 * Math.ceil((beat.p * BEAT_MS.gate + 0.001) / 16.6667);
+        if (due > cs.gateSparks) {
+          spawnBurst(due - cs.gateSparks, L.gateX, L.centerY, '#9fe8ff', 1, 5, 44, 4);
+          cs.gateSparks = due;
+        }
       }
     }
 
@@ -3337,14 +4044,14 @@
     if (descending && typeof drawEnemy === 'function') {
       drawEnemy(descending);
       drawSummonAura(descending, descending._summonAuraQ || 0, now);
-      if (typeof _drawGoliathBossBar === 'function') _drawGoliathBossBar(descending);
     }
 
     const ring = ringState(beat.id, beat.p);
-    ringRot += 0.004 + ring.energy * 0.01;
+    ringRot += (0.004 + ring.energy * 0.01) * frameScale;
     drawSpellRing(L.standX, L.centerY, L.ringR, ring.energy, ring.alpha);
-    if (ring.alpha > 0.4 && sakuraPetals.length < 46 && Math.random() < 0.12) spawnSakuraPetal(L);
-    updateDrawSakura();
+    // The same petals per second at any refresh rate.
+    if (ring.alpha > 0.4 && sakuraPetals.length < 46 && Math.random() < 1 - Math.pow(1 - 0.12, frameScale)) spawnSakuraPetal(L);
+    updateDrawSakura(frameScale);
 
     if (pose) {
       fitSpriteBuffer(L.box);
@@ -3358,6 +4065,9 @@
       // depends on which way she is facing: seen from the front it sits
       // further from the camera and her head occludes it, seen from behind
       // it is the nearer of the two and occludes her hair instead.
+      drawStageLight(L, pose, focus, charged);
+      if (pose.charge) drawHakiAura(L, pose, now, Math.min(1, pose.charge * 0.9 + (pose.gather || 0) * 0.35 + (pose.impact || 0) * 0.3));
+      if (pose.gather) drawGathering(L, pose, handPos(L, pose, t), now, pose.gather);
       if (!pose.back) drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha, now);
       blitSprite(L, pose.x, pose.y, pose.scale, pose.alpha);
       // Drawn over her it would otherwise swallow the back of her head, so
@@ -3365,8 +4075,20 @@
       if (pose.back) drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha * 0.55, now);
       // Over her, since it gathers in front of the palm.
       if (pose.charge) drawCastEnergy(L, pose, t, now, pose.charge);
+      if (pose.charge) {
+        const hand = handPos(L, pose, t);
+        drawGatherLightning(L, pose, hand, now, pose.charge);
+        // A lens streak through her palm, flickering with the charge.
+        if (hand) drawFlare(hand.x, hand.y, L.box * (0.9 + 0.6 * pose.charge), pose.charge * 0.32 * (0.85 + 0.15 * Math.sin(now * 0.03)));
+      }
+      // 26 sparks for every 60Hz frame the turn flash stays above 0.9.
       if (pose.flash > 0.9 && fxParticles.length < 90) {
-        spawnBurst(26, pose.x, pose.y - L.box * 0.16, '#fff4ff', 2, 6, 24, 4);
+        const since = beat.p * BEAT_MS.leave - FLASH_SPARKS_AT;
+        const due = 26 * Math.ceil(Math.max(0.001, since) / 16.6667);
+        if (due > cs.flashSparks) {
+          spawnBurst(due - cs.flashSparks, pose.x, pose.y - L.box * 0.16, '#fff4ff', 2, 6, 24, 4);
+          cs.flashSparks = due;
+        }
       }
       if (beat.id === 'think') {
         drawThoughtBubble(L, pose.x + L.box * 0.30, pose.y - L.box * 0.34,
@@ -3374,11 +4096,23 @@
       }
     }
 
-    if (beat.id === 'cast') {
-      drawEffectBanner(cs.effect, Math.min(1, beat.p / 0.15) * Math.min(1, (1 - beat.p) / 0.12), L);
+    drawCastRelease(cs, elapsed, now);
+    updateDrawParticles(frameScale);
+    // The spotlight follows her; before she is out, it sits on the gate.
+    if (focus > 0.01 && pose) drawSpotlight(pose.x, pose.y - L.box * 0.05, L.box * 0.34, focus * (0.85 + 0.15 * charged));
+    const gateSpot = beat.id === 'gate' ? 0.7 * openness : (beat.id === 'walkOut' ? 0.7 * (1 - focus) : 0);
+    if (gateSpot > 0.01) drawSpotlight(L.gateX, L.centerY, L.gateR * 0.8, gateSpot);
+    if (pose && pose.charge) drawGrade(0.28 * pose.charge + 0.3 * (pose.impact || 0));
+    drawLetterbox(reach);
+    if (descending && typeof _drawGoliathBossBar === 'function') _drawGoliathBossBar(descending);
+    // The title comes up with the release, not before it: the screen belongs
+    // to her gathering power until the Distortion lands, then the name fades
+    // in over 450ms inside the shock wave and grows from there.
+    if (beat.id === 'cast' && elapsed >= APPLY_AT) {
+      const since = elapsed - APPLY_AT, left = BEAT_AT.cast + BEAT_MS.cast - elapsed;
+      const a = Math.min(1, since / 450) * Math.min(1, left / 290);
+      drawEffectBanner(cs.effect, a * a * (3 - 2 * a), L, since / (BEAT_AT.cast + BEAT_MS.cast - APPLY_AT));
     }
-
-    updateDrawParticles();
   }
 
   function beginKanadeCutscene(effect, waveNum) {
@@ -3393,12 +4127,16 @@
       ctx.globalAlpha = 0;
       ctx.shadowColor = 'rgba(190,140,255,0.9)';
       ctx.shadowBlur = 14;
-      ctx.font = "900 48px 'Cinzel', serif";
-      ctx.fillText(effect.name, -9999, -9999);
+      ctx.font = "400 48px 'Cinzel', serif";
+      ctx.fillText(effect.name.toUpperCase(), -9999, -9999);
       ctx.font = "16px 'Courier New', monospace";
       ctx.fillText(effect.playerHalf, -9999, -9999);
       ctx.restore();
     } catch (_) {}
+    // The glow and flare sprites are built once; building them here keeps
+    // that off the first frame that uses each.
+    energyGlow();
+    flareStreak();
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);
@@ -3416,6 +4154,7 @@
       startedAt: 0, lastNow: undefined, spawned: false, applied: false,
       cueIdx: 0, bedStarted: false,
       goliath: null,
+      gateSparks: 0, flashSparks: 0, summonFx: null, applyFx: null,
     };
   }
 
@@ -3472,6 +4211,7 @@
       bobAmp: m.still ? 0 : 1,
       castExt: m.castExt || 0,
       trail: m.trail || 0,
+      magicLight: m.magicLight != null ? m.magicLight : ((m.castExt || 0) > 0.05 ? 0.6 : 0),
     };
     fitSpriteBuffer(box);
     if (m.back) drawKanadeBack(t, opts); else drawKanade(t, opts);
