@@ -447,50 +447,90 @@
     ], PAL.skinShadow, STROKE.fine);
   }
 
-  // The raised casting hand, palm to the viewer, built the way a hand is
-  // drawn at this size: a palm, one block for the four fingers with their
-  // tips stepped, a thumb set apart from them, and creases. drawHand's single
-  // tapered mass suits a hand hanging at her side, but opened and raised it
-  // read as a mitten. Same frame as drawHand: wrist at (x, y), fingers down
-  // the local y axis, s the side the thumb is on, open 0..1 fans the fingers.
+  // Her hand, the same one for both sides and for every moment of the cast.
+  // Frame: wrist at (x, y), fingers pointing down the local y axis, s the
+  // side the thumb is on (+1 or -1), open 0..1 from a relaxed hanging hand
+  // to the open casting hand.
+  //
+  // The palm and the four fingers are one outline, so there are no seams
+  // where parts overlap. Its fingertip edge steps through four rounded tips
+  // of different lengths, middle longest and little finger shortest, rather
+  // than four equal bumps: equal tips read as a paw, and separate finger
+  // shapes read as a fork or a mitten. The thumb is a short tapered lobe
+  // growing out of the heel of the palm, lying along the curled fingers when
+  // closed and turned out about 37 degrees when open, never square to the
+  // hand. Every point runs smoothly between its closed and open place.
+  const HAND_CLOSED = [
+    [-1.9, -0.4], [-2.4, 1.8], [-2.55, 3.8], [-2.4, 5.3],
+    [-2.0, 6.25], [-1.45, 6.0], [-0.85, 7.2], [-0.25, 6.75], [0.45, 7.6],
+    [1.05, 6.85], [1.6, 7.2], [2.2, 6.4], [2.45, 4.9], [2.55, 3.3],
+    [2.25, 1.3], [1.9, -0.4]
+  ];
+  const HAND_OPEN = [
+    [-1.9, -0.4], [-2.5, 1.8], [-2.65, 4.0], [-2.6, 6.2],
+    [-2.25, 7.4], [-1.55, 7.05], [-0.9, 8.85], [-0.2, 8.2], [0.55, 9.5],
+    [1.25, 8.35], [1.95, 9.0], [2.5, 7.8], [2.6, 5.6], [2.65, 3.4],
+    [2.35, 1.3], [1.9, -0.4]
+  ];
+  // The two valleys that get a short parting line: little finger from
+  // ring, and middle from index. The middle pair stays one mass.
+  const HAND_PARTINGS = [5, 9];
   function drawCastHand(x, y, s, open) {
-    const k = 1.15, sp = open * 0.6;
-    const X = o => x + o * s * k, Y = o => y + o * k;
-    const palm = [[X(-2.1), Y(-0.6)], [
-      [X(-2.6), Y(1.2), X(-2.6), Y(3), X(-2.3), Y(4.4)],
-      [X(-0.8), Y(4.9), X(0.9), Y(4.9), X(2.3), Y(4.3)],
-      [X(2.6), Y(2.8), X(2.4), Y(0.8), X(1.9), Y(-0.6)]
-    ]];
-    const fingers = [[X(-2.3), Y(4)], [
-      [X(-2.6 - sp), Y(5.6), X(-2.8 - sp), Y(7), X(-2.4 - sp), Y(8.2)],
-      [X(-2.2 - sp), Y(9), X(-1.3 - sp * 0.5), Y(9.3), X(-0.9 - sp * 0.4), Y(8.9)],
-      [X(-0.6), Y(9.8), X(0.4), Y(9.9), X(0.7 + sp * 0.2), Y(9.3)],
-      [X(1.1 + sp * 0.4), Y(9.4), X(2 + sp * 0.6), Y(8.9), X(2.3 + sp * 0.6), Y(8)],
-      [X(2.6 + sp * 0.5), Y(6.6), X(2.5), Y(5.2), X(2.2), Y(4)]
-    ]];
-    const thumb = [[X(2.1), Y(0.6)], [
-      [X(3.5), Y(1.2), X(4.7), Y(2.6), X(5.1), Y(4)],
-      [X(5.3), Y(4.9), X(4.5), Y(5.3), X(4), Y(4.6)],
-      [X(3.4), Y(3.6), X(2.8), Y(3), X(2.2), Y(2.8)]
-    ]];
-    // The outline goes down first and the skin over it, so only its outer
-    // half survives and there is no line where the parts join. The palm's is
-    // left open across the wrist, where the forearm carries on.
-    bezierLine(palm[0], palm[1], PAL.outline, STROKE.edge);
-    pctx.strokeStyle = PAL.outline;
-    pctx.lineWidth = STROKE.edge;
-    pctx.lineJoin = 'round';
-    for (const o of [fingers, thumb]) { tracePath(o); pctx.stroke(); }
-    for (const o of [palm, fingers, thumb]) bezierShape(o[0], o[1], PAL.skin);
-    // Shade down the side of the palm away from the thumb, the knuckle line,
-    // two gaps that split the fingers into the index, the middle pair and
-    // the little finger (a gap per finger read as a fork at this size), and the
-    // crease the thumb folds along.
-    bezierLine([X(-2), Y(0.4)], [[X(-2.3), Y(2), X(-2.2), Y(3.4), X(-1.8), Y(4.3)]], PAL.skinShadow, STROKE.seam);
-    bezierLine([X(-2), Y(4.5)], [[X(-0.8), Y(5), X(0.9), Y(5), X(2), Y(4.4)]], PAL.skinShadow, STROKE.hairline);
-    line([[X(-1.3 - sp * 0.3), Y(6.2)], [X(-1.4 - sp * 0.5), Y(9)]], PAL.skinShadow, STROKE.fine);
-    line([[X(1.1), Y(6.2)], [X(1.2 + sp * 0.3), Y(9.2)]], PAL.skinShadow, STROKE.fine);
-    bezierLine([X(2), Y(1)], [[X(1.4), Y(2.2), X(1.2), Y(3.2), X(1.5), Y(4)]], PAL.skinShadow, STROKE.fine);
+    const k = 1.05;
+    const u = Math.max(0, Math.min(1, open / 0.8));
+    const m = (a, b) => a + (b - a) * u;
+    const P = (lx, ly) => [x + lx * s * k, y + ly * k];
+    // A little spread as the hand opens, fanning out from the middle
+    // finger; kept small so the open hand never turns into a starfish.
+    const pts = HAND_CLOSED.map((c, i) => {
+      const o = HAND_OPEN[i];
+      const spread = (i >= 4 && i <= 11) ? (c[0] - 0.45) * 0.08 * u : 0;
+      return P(m(c[0], o[0]) + spread, m(c[1], o[1]));
+    });
+    const hand = smoothOutline(pts, 0.9);
+    // The outline starts and stops a point short of the wrist on each side,
+    // where the forearm carries on; run up to the wrist it curled round the
+    // narrower forearm and read as a bracelet.
+    const edgeSegs = hand[1].slice(1, pts.length - 2);
+
+    // Thumb: a tapered lobe from a root on the heel of the palm.
+    const phi = m(0.12, 0.62), len = m(3.7, 3.9);
+    const d = [Math.sin(phi), Math.cos(phi)], n = [Math.cos(phi), -Math.sin(phi)];
+    const R = [m(2.0, 2.1), m(1.4, 1.2)];
+    const at = (a, b) => P(R[0] + d[0] * a + n[0] * b, R[1] + d[1] * a + n[1] * b);
+    const thumbPts = [at(-0.2, -1), at(0.7, 1.3), at(len - 0.9, 0.95), at(len, 0.1), at(len - 0.9, -0.75), at(1.5, -1)];
+    const thumb = smoothOutline(thumbPts, 0.8);
+
+    // Skin, then the hand's edge over it, then the thumb over both, so the
+    // hand's edge disappears under the thumb where they meet and there is no
+    // dark gap between them. The thumb's edge runs only down its outer side
+    // and round its tip.
+    bezierShape(hand[0], hand[1], PAL.skin);
+    bezierLine(pts[1], edgeSegs, PAL.outline, STROKE.seam);
+    bezierShape(thumb[0], thumb[1], PAL.skin);
+    bezierLine(thumb[1][0].slice(4), thumb[1].slice(1, 4), PAL.outline, STROKE.seam);
+
+    // Two short partings, starting just under their valleys and stopping
+    // well short of the palm.
+    const plen = m(1, 1.6);
+    for (const i of HAND_PARTINGS) {
+      const c = HAND_CLOSED[i], o = HAND_OPEN[i];
+      const vx = m(c[0], o[0]), vy = m(c[1], o[1]) - 0.35;
+      line([P(vx, vy), P(vx - 0.05, vy - plen)], PAL.skinShadow, STROKE.fine);
+    }
+    // The fold where the thumb lies against the hand, and a little shade
+    // down the side of the palm away from it.
+    bezierLine(at(1.5, -0.7), [[...at(2.3, -0.75), ...at(len - 1.6, -0.6), ...at(len - 1.1, -0.5)]], PAL.skinShadow, STROKE.fine);
+    bezierLine(P(-2.0, 0.6), [[...P(-2.3, 1.8), ...P(-2.35, 3.0), ...P(-2.2, 4.2)]], PAL.skinShadow, STROKE.seam);
+  }
+
+  // Where her right wrist is for a given castExt, in grid units before the
+  // shoulder drop: hanging at her side at 0, up by her head at 1. Shared by
+  // the arm drawing and by handPos, so the spell energy drawn on the main
+  // canvas stays in her hand the whole way up.
+  function castWrist(c, fabricTrail) {
+    const rx = 129 + (fabricTrail || 0) * 0.35, ry = 86.8;
+    return [rx + (139 - rx) * c, ry + (38.2 - ry) * c];
   }
 
   // Both body sprites share one buffer, and at 60fps most frames were
@@ -509,11 +549,15 @@
   // rather than in opts, so it cannot be caught by the key itself.
   let _spriteKey = '';
   function invalidateSprite() { _spriteKey = ''; }
+  //
+  // castExt gets 32 steps where everything else gets 8. It moves the whole
+  // right arm about fifty units, so at 8 steps the raise went up in jumps of
+  // six, more than ten screen pixels at 1080p, however smoothly castExt ran.
   function spriteKey(tag, t, o) {
     const q = v => Math.round((v || 0) * 8);
     return tag + Math.round(t * 24) + ':' +
       q(o.lean) + ',' + q(o.trail) + ',' + q(o.whip) + ',' + q(o.droop) + ',' +
-      q(o.walkStep) + ',' + q(o.castExt) + ',' + q(o.swayAmp) + ',' + q(o.bobAmp) +
+      q(o.walkStep) + ',' + Math.round((o.castExt || 0) * 32) + ',' + q(o.swayAmp) + ',' + q(o.bobAmp) +
       ':' + (o.expression || '') + (o.blink ? 'b' : '');
   }
 
@@ -744,7 +788,6 @@
     bezierLine([62 + fabricTrail * 0.15, 70], [[58 + fabricTrail * 0.3, 78, 53 + fabricTrail * 0.42, 85, 49 + fabricTrail * 0.5, 90]], PAL.skin, STROKE.limb);
     bezierLine([72, 56], [[66, 62, 60 + fabricTrail * 0.2, 74, 51 + fabricTrail * 0.45, 91]], PAL.skinShadow, STROKE.edge);
     // Left hand, hanging relaxed off the end of the forearm above.
-    drawHand(48 + fabricTrail * 0.5, 88.6, 1, 0);
 
     // Small shoulder-socket shading where each arm actually meets the
     // torso, so the join reads clearly instead of the arm just vanishing
@@ -752,97 +795,40 @@
     ellipse(75, 53, 2.2, 1.6, PAL.skinShadow);
     ellipse(105, 54 + shoulderDrop, 2.2, 1.6, PAL.skinShadow);
 
-    if (castExt > 0) {
-      const handX = 118 + castExt * 21;
-      const handY = 75 - castExt * 37;
-      // The elbow rises on the square of castExt: early in the raise the hand
-      // leads and the forearm straightens out, and only near the top does
-      // the elbow lift into the casting pose. Raised in step with the hand it
-      // was already high at the halfway point, with the forearm bent down
-      // from it, which read as a broken arm.
-      const elbowX = 115 + castExt * 10;
-      const elbowY = 62 - castExt * castExt * 20;
-      // Shoulder joint under the sleeve. Without it the sleeve appeared to
-      // start in mid air, with a gap between it and the bodice.
-      ellipse(105, 55, 5.5, 6, PAL.creamShadow);
-      // The sleeve's bend sits halfway to the elbow wherever the elbow is,
-      // so it follows the arm up. On fixed numbers it rose ahead of the
-      // lowered elbow and humped the sleeve into an arch.
-      const slX = (106 + elbowX) * 0.5 + 1.5, slY = (54 + elbowY) * 0.5 - 2.5 * castExt;
-      bezierLine([106, 54], [[111, 53, slX, slY, elbowX, elbowY]], PAL.creamMid, STROKE.sleeve);
-      bezierLine([106, 51], [[112, 50, slX + 1, slY - 3, elbowX, elbowY - 2]], PAL.cream, STROKE.strap);
-      bezierLine([108, 58], [[112, 57, slX + 1, slY + 3, elbowX, elbowY + 2]], PAL.indigoMid, STROKE.limb);
-      // Cuff where the sleeve ends and the forearm comes out.
-      bezierLine([elbowX - 3, elbowY + 4], [[elbowX, elbowY + 5, elbowX + 3, elbowY + 3, elbowX + 4, elbowY - 1]], PAL.goldDark, STROKE.edge);
-
-      // Forearm. It used to be a single 4.5-wide stroke against a 13-wide
-      // sleeve, so the arm shrank to a thread the moment it left the cloth.
-      // Drawn as outline, mass, then shadow, and tapered from elbow to wrist
-      // rather than held at one width.
-      // The first control point sits between elbow and hand, a little above
-      // both. Tied to fixed numbers it ran past the hand while the arm was
-      // halfway up and bent the forearm into a hook.
-      const midX = elbowX + (handX - elbowX) * 0.45, midY = (elbowY + handY) / 2 - 2 - castExt * 2;
-      const foreC = [midX, midY, handX - 3, handY + 2, handX, handY + 2];
-      bezierLine([elbowX, elbowY], [foreC], PAL.outline, STROKE.limbCast + STROKE.band);
-      bezierLine([elbowX, elbowY], [foreC], PAL.skin, STROKE.limbCast);
-      // Wrist, narrower than the forearm, laid over its end.
-      bezierLine([handX - 6, handY + 4], [[handX - 4, handY + 3, handX - 2, handY + 2, handX, handY + 2]], PAL.skin, STROKE.limb + STROKE.fine);
-      // Underside shadow, and a lit edge along the top where the spell is.
-      bezierLine([elbowX + 1, elbowY + 2], [[midX + 1, midY + 3, handX - 3, handY + 5, handX, handY + 4]], PAL.skinShadow, STROKE.band);
-      bezierLine([elbowX, elbowY - 2], [[midX, midY - 3, handX - 4, handY - 1, handX - 1, handY]], PAL.magicHi, STROKE.edge);
-      // The casting hand, rotated so it tracks the arm: near the body the
-      // hand still hangs, and by the top of the raise the fingers point up
-      // and out along it.
-      pctx.save();
-      pctx.translate(handX + 0.5, handY + 2);
-      pctx.rotate(-1 - castExt * 1.5);
-      drawCastHand(0, 0, -1, 0.45 + castExt * 0.35);
-      pctx.restore();
-
-      // Light thrown back onto her by the spell in her hand. The energy is
-      // drawn on the main canvas over the sprite, so without this she stayed
-      // lit as if nothing were happening six units from her face.
-      const lit = castExt;
-      if (lit > 0.05) {
-        bezierLine([100, 41], [[102, 44, 103, 46, 103, 48]], PAL.magic, STROKE.band);
-        bezierLine([99, 36], [[101, 37, 102, 39, 102, 41]], PAL.magicHi, STROKE.seam);
-        bezierLine([103, 52], [[106, 56, 108, 60, 108, 63]], PAL.magic, STROKE.band);
-        bezierLine([98, 62], [[102, 68, 105, 76, 106, 84]], PAL.magic, STROKE.edge);
-        if (lit > 0.5) {
-          sparkle(handX - 4, handY + 6, 2.2, PAL.magicHi);
-          bezierLine([106, 46], [[108, 48, 109, 50, 109, 52]], PAL.magicHi, STROKE.fine);
-        }
-      }
-    } else {
-      pctx.save();
-      pctx.translate(0, shoulderDrop);
-      clothPanel([[104, 52], [
-        [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
-        [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92],
-        [152 + fabricTrail, 99, 143 + fabricTrail * 0.9, 106, 135 + fabricTrail * 0.7, 102],
-        [127 + fabricTrail * 0.45, 97, 120, 91, 115, 104],
-        [109, 98, 104, 84, 104, 52]
-      ]], PAL.creamMid, 2.2, 1.2);
-      bezierLine([104, 52], [
-        [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
-        [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92]
-      ], PAL.outline, STROKE.seam);
-      bezierShape([115, 72], [
-        [125 + fabricTrail * 0.25, 80, 137 + fabricTrail * 0.65, 89, 146 + fabricTrail, 95],
-        [140 + fabricTrail * 0.85, 101, 128 + fabricTrail * 0.5, 93, 117, 85],
-        [115, 80, 114, 76, 115, 72]
-      ], PAL.indigo);
-      // Upper arm + forearm as two segments meeting at a real elbow bend,
-      // mirroring the left arm's fix above - elbow bent a bit more and the
-      // hand held a bit higher/closer-in than the left arm on purpose, so
-      // the pose doesn't read as a perfectly mirrored mannequin stance.
-      bezierLine([106, 54], [[111, 59, 116, 65, 119 + fabricTrail * 0.15, 73]], PAL.skin, STROKE.limbUpper);
-      bezierLine([119 + fabricTrail * 0.15, 73], [[122 + fabricTrail * 0.25, 79, 125 + fabricTrail * 0.32, 84, 128 + fabricTrail * 0.35, 88]], PAL.skin, STROKE.limb);
-      bezierLine([108, 57], [[114, 65, 118 + fabricTrail * 0.2, 78, 127 + fabricTrail * 0.33, 89]], PAL.skinShadow, STROKE.edge);
-      // Right hand, mirrored so its thumb faces the body like the left one's.
-      drawHand(129 + fabricTrail * 0.35, 86.8, -1, 0);
-      pctx.restore();
+    // Her right arm, one rig from hanging at her side to raised in the cast.
+    // The sleeve drape hangs from the shoulder the whole time and the bare
+    // arm lifts in front of it, the way the left arm lies over its own
+    // sleeve. Built as two drawings, one for each state, the sleeve vanished
+    // and a different one appeared the instant the cast began, and the hand
+    // jumped from her hip to her chest.
+    pctx.save();
+    pctx.translate(0, shoulderDrop);
+    clothPanel([[104, 52], [
+      [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
+      [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92],
+      [152 + fabricTrail, 99, 143 + fabricTrail * 0.9, 106, 135 + fabricTrail * 0.7, 102],
+      [127 + fabricTrail * 0.45, 97, 120, 91, 115, 104],
+      [109, 98, 104, 84, 104, 52]
+    ]], PAL.creamMid, 2.2, 1.2);
+    bezierLine([104, 52], [
+      [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
+      [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92]
+    ], PAL.outline, STROKE.seam);
+    bezierShape([115, 72], [
+      [125 + fabricTrail * 0.25, 80, 137 + fabricTrail * 0.65, 89, 146 + fabricTrail, 95],
+      [140 + fabricTrail * 0.85, 101, 128 + fabricTrail * 0.5, 93, 117, 85],
+      [115, 80, 114, 76, 115, 72]
+    ], PAL.indigo);
+    pctx.restore();
+    // Top tier: the rim light along the top of the right sleeve and the
+    // shade under both sleeves. They belong to the cloth, so they go down
+    // before the arms; drawn with the rest of the polish at the end, they
+    // ran straight across the right hand and the raised arm.
+    if (gfxLevel() === 0) {
+      bezierLine([106, 52], [[110, 57, 112, 62, 112, 66]], PAL.cream, STROKE.fine);
+      bezierLine([116, 70], [[124, 80, 132, 88, 139, 94]], PAL.cream, STROKE.fine);
+      bezierLine([51, 97], [[59, 101, 66, 101, 72, 97]], PAL.creamShadow, STROKE.seam);
+      bezierLine([129, 98], [[121, 102, 114, 102, 108, 98]], PAL.creamShadow, STROKE.seam);
     }
 
     // Shoulder caps, drawn last so they sit over the seam where each sleeve
@@ -885,7 +871,7 @@
     sparkle(99, 128, 3, PAL.gold);
     sparkle(73, 119, 2, PAL.goldHi);
     sparkle(116, 133, 2, PAL.goldHi);
-    sparkle(56 + fabricTrail * 0.5, 81, 2, PAL.gold);
+    sparkle(49 + fabricTrail * 0.5, 77, 2, PAL.gold);
     sparkle(136 + fabricTrail * 0.5, 82, 2, PAL.gold);
     rect(41 + fabricTrail * 0.8, 99, 1, 1, PAL.goldHi);
     rect(137 + fabricTrail * 0.8, 97, 1, 1, PAL.goldHi);
@@ -983,6 +969,88 @@
     sparkle(84, 134, 1.4, PAL.gold);
     sparkle(106, 139, 1.4, PAL.gold);
     sparkle(68, 133, 1.2, PAL.goldHi);
+
+    // Her left hand, the same hand as the right one closed, turned to hang
+    // along the forearm. Drawn after the sleeve detail like the right arm,
+    // so no fold or star crosses it.
+    // Turned by the direction of the end of the forearm, like the right
+    // hand; its thumb is on the side toward her body.
+    pctx.save();
+    pctx.translate(48.6 + fabricTrail * 0.5, 88.8);
+    pctx.rotate(Math.atan2(-((49 + fabricTrail * 0.5) - (53 + fabricTrail * 0.42)), 90 - 85));
+    pctx.scale(0.75, 0.75);
+    drawCastHand(0, 0, 1, 0);
+    pctx.restore();
+
+    // The right arm, drawn after the sleeve detail so that once it is raised
+    // no fold, star or cuff band from the sleeve behind it lands on top.
+    pctx.save();
+    pctx.translate(0, shoulderDrop);
+    // Every joint and control point runs from its resting place to its
+    // casting place. The elbow rises on the square of castExt, so the hand
+    // leads and the forearm straightens before the elbow lifts; raised in
+    // step with the hand it was high by the halfway point with the forearm
+    // bent down from it, which read as a broken arm.
+    const mix = (a, b, k) => a + (b - a) * k;
+    const lift = castExt * castExt;
+    const wrist = castWrist(castExt, fabricTrail);
+    const elbowX = mix(119 + fabricTrail * 0.15, 125, castExt), elbowY = mix(73, 42, lift);
+    const upperC = [mix(111, 112, castExt), mix(59, 50, castExt), mix(116, 119, castExt), mix(65, 45, lift)];
+    const foreC = [
+      mix(122 + fabricTrail * 0.25, 130, castExt), mix(79, 40, castExt),
+      mix(125 + fabricTrail * 0.32, 135.5, castExt), mix(84, 39.5, castExt)
+    ];
+    // Raised toward the viewer the forearm reads wider, and against the dark
+    // behind her it needs an edge; both grow from nothing at rest, where the
+    // arm lies on pale cloth like the left one.
+    const foreW = mix(STROKE.limb, STROKE.limb + STROKE.fine, castExt);
+    const edgeW = STROKE.edge * castExt;
+    const upperSeg = [[upperC[0], upperC[1], upperC[2], upperC[3], elbowX, elbowY]];
+    const foreSeg = [[foreC[0], foreC[1], foreC[2], foreC[3], wrist[0] - 1, wrist[1] + 1.2]];
+    bezierLine([106, 54], upperSeg, PAL.outline, STROKE.limbUpper + edgeW);
+    bezierLine([elbowX, elbowY], foreSeg, PAL.outline, foreW + edgeW);
+    bezierLine([106, 54], upperSeg, PAL.skin, STROKE.limbUpper);
+    bezierLine([elbowX, elbowY], foreSeg, PAL.skin, foreW);
+    // Shade along the underside of the arm.
+    bezierLine([108, 57], [[upperC[0] + 2, upperC[1] + 3, upperC[2] + 2, upperC[3] + 2.5, elbowX + 1.2, elbowY + 2]], PAL.skinShadow, STROKE.edge);
+    bezierLine([elbowX + 1, elbowY + 2], [[foreC[0] + 1, foreC[1] + 2.5, foreC[2], foreC[3] + 2.5, wrist[0] - 1, wrist[1] + 2.6]], PAL.skinShadow, STROKE.edge);
+
+    // One hand the whole way: it hangs relaxed, turns with the arm, and only
+    // opens once the arm is well on its way up. Open from the first frame of
+    // the raise it read as a splayed hand sprouting near her shoulder.
+    const openT = Math.max(0, Math.min(1, (castExt - 0.25) / 0.5));
+    const handOpen = openT * openT * (3 - 2 * openT) * 0.8;
+    // The hand points the way the end of the forearm points, so wrist, palm
+    // and fingers always agree with the arm; the only addition is the wrist
+    // bending back into the casting gesture as the arm rises.
+    const foreDX = (wrist[0] - 1) - foreC[2], foreDY = (wrist[1] + 1.2) - foreC[3];
+    const castEase = castExt * castExt * (3 - 2 * castExt);
+    pctx.save();
+    pctx.translate(wrist[0] + 0.5 * castExt, wrist[1] + 0.8 * castExt);
+    pctx.rotate(Math.atan2(-foreDX, foreDY) - 0.85 * castEase);
+    const handSize = mix(0.75, 1, castExt);
+    pctx.scale(handSize, handSize);
+    // Thumb on the +1 side keeps the palm toward the viewer the whole way:
+    // turned out a little while the hand hangs, turned in toward her as it
+    // rises. On the other side it began inward and was carried round to the
+    // outside by the raise, so the casting hand showed its back.
+    drawCastHand(0, 0, 1, handOpen);
+    pctx.restore();
+
+    // Light thrown back onto her by the spell in her hand. The energy is
+    // drawn on the main canvas over the sprite, so without this she stayed
+    // lit as if nothing were happening six units from her face.
+    if (castExt > 0.05) {
+      bezierLine([elbowX, elbowY - 2], [[foreC[0], foreC[1] - 2.5, foreC[2] - 1, foreC[3] - 2, wrist[0] - 1.5, wrist[1] - 0.6]], PAL.magicHi, STROKE.edge);
+      bezierLine([100, 41], [[102, 44, 103, 46, 103, 48]], PAL.magic, STROKE.band);
+      bezierLine([99, 36], [[101, 37, 102, 39, 102, 41]], PAL.magicHi, STROKE.seam);
+      bezierLine([103, 52], [[106, 56, 108, 60, 108, 63]], PAL.magic, STROKE.band);
+      bezierLine([98, 62], [[102, 68, 105, 76, 106, 84]], PAL.magic, STROKE.edge);
+      if (castExt > 0.5) {
+        bezierLine([106, 46], [[108, 48, 109, 50, 109, 52]], PAL.magicHi, STROKE.fine);
+      }
+    }
+    pctx.restore();
 
     // Everything from here to the ornaments is the head, tipped about the
     // neck.
@@ -1151,16 +1219,11 @@
       // side in every layout, so the light has a source in the scene rather
       // than being decoration.
       bezierLine([111, 20], [[116, 34, 117, 52, 115, 68]], PAL.hairHi, STROKE.seam);
-      bezierLine([106, 52], [[110, 57, 112, 62, 112, 66]], PAL.cream, STROKE.fine);
-      bezierLine([116, 70], [[124, 80, 132, 88, 139, 94]], PAL.cream, STROKE.fine);
       bezierLine([105, 96], [[112, 113, 118, 131, 123, 148]], PAL.cream, STROKE.fine);
 
-      // Contact shadows, so the parts sit in front of each other instead of
-      // all lying on one plane: under the chin, and under each sleeve where
-      // it crosses the gown.
+      // Contact shadow under the chin, so the head sits in front of the neck
+      // instead of on the same plane.
       bezierLine([84, 49], [[88, 52, 96, 52, 100, 49]], PAL.skinShadow, STROKE.edge);
-      bezierLine([51, 97], [[59, 101, 66, 101, 72, 97]], PAL.creamShadow, STROKE.seam);
-      bezierLine([129, 98], [[121, 102, 114, 102, 108, 98]], PAL.creamShadow, STROKE.seam);
 
       // Loose strands breaking off the side hair, tied to sway so they trail
       // the head.
@@ -1935,15 +1998,18 @@
     if (!pose || !pose.opts) return null;
     const castExt = pose.opts.castExt || 0;
     if (castExt <= 0.02) return null;
-    // Matches the casting branch in drawKanade, plus the lean/bob that
+    // Matches the right arm in drawKanade, plus the lean/bob that
     // drawKanade translates the whole body by before it draws anything.
     const lean = pose.opts.lean || 0;
     const bobAmp = pose.opts.bobAmp != null ? pose.opts.bobAmp : 1;
     const bob = Math.sin(t * Math.PI * 2) * bobAmp;
     const u = (L.box * pose.scale) / GRID_W;
+    // The same wrist path and shoulder drop the arm is drawn with.
+    const w = castWrist(castExt, 0);
+    const drop = 1.5 * (1 - castExt);
     return {
-      x: pose.x + (118 + castExt * 21 + lean - GRID_W / 2) * u,
-      y: pose.y + (75 - castExt * 37 + bob - GRID_H / 2) * u,
+      x: pose.x + (w[0] + 0.5 * castExt + lean - GRID_W / 2) * u,
+      y: pose.y + (w[1] + 0.8 * castExt + drop + bob - GRID_H / 2) * u,
       u,
     };
   }

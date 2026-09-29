@@ -1,39 +1,23 @@
-// Transition sheet: each option swept through its in-between values, one
-// row per option, plus the combinations the cutscene actually produces.
-// Endpoints are where a pose gets designed; the odd shapes turn up between
-// them, so this is the sheet to check before calling a pose change safe.
+// Hand diagnostic strip: the right hand cropped out of the full sprite at
+// each step of the cast, blown up nearest-neighbour, then the left hand at
+// rest, then the same poses at the size the game actually shows her. The
+// sprite cache is dropped before every pose so no cell can reuse another's
+// picture.
 //
-//   node misc/dev-tools/render-transitions.js
-//   OUT=transitions.png CELL=200 RES=3 node misc/dev-tools/render-transitions.js
+//   node misc/dev-tools/render-hands.js
+//   OUT=hands.png ZOOM=6 RES=3 node misc/dev-tools/render-hands.js
 //
 // Needs @napi-rs/canvas:  npm install @napi-rs/canvas --no-save
 const fs = require('fs');
 const vm = require('vm');
 const { createCanvas } = require('@napi-rs/canvas');
 
-const CELL = Number(process.env.CELL || 180);
-const OUT = process.env.OUT || 'transitions.png';
+const OUT = process.env.OUT || 'hands.png';
+const ZOOM = Number(process.env.ZOOM || 8);
 const RES = Number(process.env.RES || 3);
-
-const sweep = (key, values, back) => values.map(v => ({ label: key + ' ' + v, back: !!back, o: { [key]: v } }));
-const ROWS = [
-  sweep('castExt', [0, 0.05, 0.15, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9, 1]),
-  sweep('walkStep', [-1, -0.75, -0.5, 0, 0.5, 0.75, 1], true),
-  sweep('trail', [-6, -3, 0, 3, 6]).concat(sweep('trail', [-6, 0, 6], true)),
-  sweep('droop', [0, 0.25, 0.5, 0.75, 1]),
-  sweep('lean', [-6, -3, 0, 3, 6]),
-  // The hair and the ornaments swing on t, so a pose that looks right at one
-  // moment of the cycle can still break at another.
-  [0, 0.125, 0.25, 0.375, 0.5, 0.75].map(t => ({ label: 't ' + t, t, o: {} }))
-    .concat([0, 0.25, 0.5, 0.75].map(t => ({ label: 't ' + t, back: true, t, o: { walkStep: 0.6, trail: 4 } }))),
-  [
-    { label: 'cast .5 trail -1.7', o: { castExt: 0.5, trail: -1.7 } },
-    { label: 'cast 1 trail -3.4', o: { castExt: 1, trail: -3.4 } },
-    { label: 'droop 1 lean -3', o: { droop: 1, lean: -3 } },
-    { label: 'walk 1 trail -3', back: true, o: { walkStep: 1, trail: -3 } },
-    { label: 'walk -1 trail 3', back: true, o: { walkStep: -1, trail: 3 } },
-  ],
-];
+const STEPS = [0, 0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1];
+const T = 0.25;                 // bob is +1 unit at this t
+const CROP = 18;                // grid units around each hand
 
 function makeStubCtx() {
   const noop = () => {};
@@ -81,33 +65,53 @@ let src = fs.readFileSync('js/render/kanade-cutscene.js', 'utf8');
 const anchor = 'window._KANADE_CUTSCENE_MS = TOTAL_MS;';
 if (!src.includes(anchor)) throw new Error('anchor missing');
 src = src.replace(anchor, anchor + `
-  window.__drawBody = (t, o) => { drawKanade(t, o); return px; };
-  window.__drawBack = (t, o) => { drawKanadeBack(t, o); return px; };
+  window.__drawBody = (t, o) => { invalidateSprite(); drawKanade(t, o); return px; };
   window.__setRes = setSpriteRes;
-  window.__invalidate = invalidateSprite;
-  window.__grid = { w: GRID_W, h: GRID_H, get mult() { return RES_MULT; } };`);
+  window.__castWrist = castWrist;
+  window.__grid = { w: GRID_W, get mult() { return RES_MULT; } };`);
 vm.runInContext(src, sandbox, { filename: 'kanade-cutscene.js' });
 sandbox.window.__setRes(RES);
+const W = sandbox.window, g = W.__grid;
 
-const g = sandbox.window.__grid;
-const cols = Math.max(...ROWS.map(r => r.length));
-const LABEL = 14;
-const sheet = createCanvas(cols * CELL, ROWS.length * (CELL + LABEL));
+// Where to centre the crop: the wrist, dropped with the shoulder and
+// bobbed, shifted toward where the fingers point at that stage.
+function rightHandCentre(c) {
+  const w = W.__castWrist(c, 0);
+  return [w[0] + 2.5 + c, w[1] + 1.5 * (1 - c) + 1 + (3.5 - 6.5 * c)];
+}
+
+const cell = CROP * ZOOM, LABEL = 14, SMALL = 540;
+const cols = STEPS.length + 1;
+const sheet = createCanvas(cols * cell, cell + LABEL + SMALL / 3 + LABEL);
 const sctx = sheet.getContext('2d');
 sctx.fillStyle = '#241c3a';
 sctx.fillRect(0, 0, sheet.width, sheet.height);
 sctx.imageSmoothingEnabled = false;
-ROWS.forEach((row, r) => row.forEach((p, c) => {
-  // Drop the sprite cache first: two cells whose values round to the same
-  // cache key would otherwise show the same picture under different labels.
-  sandbox.window.__invalidate();
-  const buf = (p.back ? sandbox.window.__drawBack : sandbox.window.__drawBody)(p.t != null ? p.t : 0.25, p.o);
-  const x = c * CELL, y = r * (CELL + LABEL);
-  sctx.drawImage(buf, 0, 0, g.w * g.mult, g.h * g.mult, x, y, CELL, CELL);
+sctx.font = '11px monospace';
+sctx.textAlign = 'center';
+
+const put = (buf, cx, cy, x, y, label) => {
+  const m = g.mult;
+  sctx.drawImage(buf, (cx - CROP / 2) * m, (cy - CROP / 2) * m, CROP * m, CROP * m, x, y, cell, cell);
   sctx.fillStyle = 'rgba(190,180,230,0.9)';
-  sctx.font = '10px monospace';
-  sctx.textAlign = 'center';
-  sctx.fillText((p.back ? 'B ' : '') + p.label, x + CELL / 2, y + CELL + 10);
-}));
+  sctx.fillText(label, x + cell / 2, y + cell + 11);
+};
+
+STEPS.forEach((c, i) => {
+  const buf = W.__drawBody(T, { castExt: c });
+  const [cx, cy] = rightHandCentre(c);
+  put(buf, cx, cy, i * cell, 0, 'R castExt ' + c);
+});
+put(W.__drawBody(T, {}), 50, 93, STEPS.length * cell, 0, 'L rest');
+
+// The same poses at gameplay size: the sprite drawn at 1080p's 540px and
+// shown here at a third of that, each small cell a whole figure.
+const y2 = cell + LABEL;
+STEPS.concat([0]).forEach((c, i) => {
+  const buf = W.__drawBody(T, { castExt: c });
+  sctx.imageSmoothingEnabled = true;
+  sctx.drawImage(buf, 0, 0, g.w * g.mult, g.w * g.mult, i * cell + (cell - SMALL / 3) / 2, y2, SMALL / 3, SMALL / 3);
+  sctx.imageSmoothingEnabled = false;
+});
 fs.writeFileSync(OUT, sheet.toBuffer('image/png'));
 console.log('wrote', OUT, sheet.width + 'x' + sheet.height, '| mult', g.mult);

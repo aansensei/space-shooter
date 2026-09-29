@@ -99,6 +99,9 @@ sctx.fillRect(0, 0, sheet.width, sheet.height);
 sctx.imageSmoothingEnabled = false;
 
 POSES.forEach((p, i) => {
+  // Drop the sprite cache first: two cells whose values round to the same
+  // cache key would otherwise show the same picture under different labels.
+  sandbox.window.__invalidate();
   const buf = (p.back ? sandbox.window.__drawBack : sandbox.window.__drawBody)(0.25, p.o);
   const cx = (i % cols) * CELL;
   const cy = Math.floor(i / cols) * (CELL + LABEL);
