@@ -4942,7 +4942,7 @@
   const ECHO_ARM = [106, 16, 50, 80];
   const ECHO_PALM = [0, 3.1];
   let echoArt = null;
-  const echoShadowColor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowColor').set;
+  const echoShadowColor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowColor').set;
 
   function echoCanvas(w, h) {
     const c = document.createElement('canvas');

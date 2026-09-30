@@ -939,7 +939,7 @@ function _drawGoliathMeteorProjectiles() {
 
 // Endless Echo renders in world space, with the cast above Goliath's body.
 let _echoShipSprite = null, _echoShipBase = null, _echoShipHalo = null, _echoFormationSprite = null;
-const _echoShadowColor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowColor').set;
+const _echoShadowColor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowColor').set;
 // The violet hull and compact aura are baked when the player's hull changes.
 function _getEchoShipSprite() {
     const base = _getPlayerShipBaseSprite();
