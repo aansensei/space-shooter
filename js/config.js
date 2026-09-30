@@ -334,11 +334,14 @@ const YUUKI_HP_PCT_INTERVAL_MS = 250;
 const ADMIN_BLESSING_MIN_WAVE = 6;
 const ADMIN_BLESSING_CHANCE = 0.10;
 const ADMIN_BLESSING_MAX_PER_WAVE = 12;
-const ADMIN_BLESSING_HP_BONUS = 0.20;      // +20% Max HP, applied at spawn
-const ADMIN_BLESSING_SHIELD_BASE = 1000;   // shield = base + per-wave * wave
-const ADMIN_BLESSING_SHIELD_PER_WAVE = 20;
-const ADMIN_BLESSING_FLAT_DR = 100;        // both only while that shield holds
-const ADMIN_BLESSING_DR = 0.10;
+const ADMIN_BLESSING_HP_BONUS = 0.30;      // +30% Max HP, applied at spawn
+const ADMIN_BLESSING_SHIELD_BASE = 1500;   // shield = base + per-wave * wave
+const ADMIN_BLESSING_SHIELD_PER_WAVE = 30;
+const ADMIN_BLESSING_FLAT_DR = 200;        // both only while that shield holds
+const ADMIN_BLESSING_DR = 0.15;
+// Iron Body layers (each absorbs one whole hit): this many when blessed, and
+// the same again, once, the moment the granted shield breaks.
+const ADMIN_BLESSING_IRON_BODY = 3;
 const ADMIN_BLESSING_SPEED_MULT = 0.90;    // the cost: 10% slower
 // Which enemies can be blessed. Listed by type rather than by spawn tier
 // because _spawnWaveTier falls back to spawnApostle() when a tier's pool is

@@ -1874,6 +1874,8 @@ function update(rawDeltaTime) {
             }
         }
 
+        if (enemy._adminBlessing && enemy.hp > 0) _updateAdminBlessingGuard(enemy);
+
         // Envy 0.75% MaxHP/s regen (docs/combat-scaling-rebalance.md Part 3, applied to all envy-marked non-bullet enemies)
         if (enemy.levEnvy && enemy.hp > 0 && !enemy._markedForDeath &&
             !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo') {
@@ -2983,7 +2985,18 @@ function _applyAdminBlessing(enemy) {
     // Through the shared grant so Walpurgis scaling and the 50% Max HP
     // aggregate shield cap apply to it like any other enemy shield.
     _addEnemyShield(enemy, ADMIN_BLESSING_SHIELD_BASE + ADMIN_BLESSING_SHIELD_PER_WAVE * _waveNumber);
+    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + ADMIN_BLESSING_IRON_BODY;
     return true;
+}
+
+// The blessing's second guard: the frame its shield is gone, however it was
+// taken (a hit, a shield strip, a Vulnerability shave), it raises the same
+// Iron Body layers again. Once per enemy.
+function _updateAdminBlessingGuard(enemy) {
+    if (!enemy._adminBlessing || enemy._adminGuardSpent || (enemy.shield || 0) > 0) return;
+    enemy._adminGuardSpent = true;
+    enemy.ironBodyHits = (enemy.ironBodyHits || 0) + ADMIN_BLESSING_IRON_BODY;
+    createParticles(enemy.x, enemy.y, 14, '#f5d06b', 2, 7);
 }
 
 // The wave-time roll: eligible type, past the opening waves, under this

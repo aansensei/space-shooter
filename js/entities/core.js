@@ -1402,11 +1402,11 @@ function dealDamage(enemy, source) {
         if (enemy.type === 'thaelis' && enemy.reincarnated) _flatArmor += 100;
         // Unified Front (Goliath True Form): flat armor recomputed every 1s
         // off the current ally count, same base and rate against both
-        // normal and %MaxHP-scaling hits now. The leading 120 is Goliath's own
+        // normal and %MaxHP-scaling hits now. The leading 200 is Goliath's own
         // standing armor and stays out of the ally-count multiplier, so it
         // holds at the same value whether or not he has anyone left alive.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form') {
-            _flatArmor += 120 + 260 * (source.percentDamage > 0
+            _flatArmor += 200 + 340 * (source.percentDamage > 0
                 ? (enemy._unifiedFrontScalingDRMult || 1)
                 : (enemy._unifiedFrontDRMult || 1));
         }
@@ -1415,12 +1415,12 @@ function dealDamage(enemy, source) {
         // already applied above. Bigger number than the other two sources
         // since it's gone the instant the cast ends, not a standing bonus.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && _goliathIsCasting(enemy)) {
-            _flatArmor += 450;
+            _flatArmor += 600;
         }
         // Per AanSensei: a permanent flat-armor bump on top of the +12% DR
         // above, once Unbroken Will has actually triggered.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy._unbrokenWillUsed) {
-            _flatArmor += 400;
+            _flatArmor += 550;
         }
 
         if (_teslaShred) {
@@ -1429,9 +1429,9 @@ function dealDamage(enemy, source) {
             _teslaFlatBonus = TESLA_AURA_FLAT_DR_SHRED - _flatCut;
         }
 
-        // Goliath True Form's armor can take up to 70% of a hit; every other
+        // Goliath True Form's armor can take up to 75% of a hit; every other
         // enemy stays at 60%.
-        const _armorCap = (enemy.type === 'goliath' && enemy.phase === 'true_form') ? 0.70 : 0.60;
+        const _armorCap = (enemy.type === 'goliath' && enemy.phase === 'true_form') ? 0.75 : 0.60;
         const _armorLoss = Math.min(_flatArmor, _armorCap * _postDR);
         totalDamage = Math.max(0, _postDR - _armorLoss);
         if (_teslaShred) totalDamage = Math.ceil(totalDamage * _teslaDmgMult) + _teslaFlatBonus;
