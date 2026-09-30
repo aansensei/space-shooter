@@ -4937,7 +4937,80 @@
     ctx.restore();
   }
 
+  // Endless Echo (js/entities/goliath.js): Kanade reaches out of her gate in
+  // the middle of a fight. The gate and the raised casting arm are the cutscene's
+  // own, with the body held inside the gate's opening so that only the arm
+  // comes out into the arena.
+  //
+  // ECHO_ANCHOR is the grid point that sits on the gate's centre; with it left
+  // of her middle the raised forearm and hand end up past the rim. ECHO_ARM is
+  // the grid polygon around the raised arm that is let through the rim.
+  const ECHO_ANCHOR = [80, 50];
+  const ECHO_ARM = [[108, 47], [118, 40], [140, 18], [152, 20], [152, 34], [132, 55], [118, 64], [108, 64]];
+  const ECHO_PALM = [0, 3.1];
+
+  // info: x, y, gateR, box (sprite size in px), open (0..1), ext (arm raise
+  // 0..1), charge (0..1), alpha (her), gateAlpha, mirror (arm points left).
+  // Returns where her palm is on screen, or null while the arm is down.
+  function drawEchoCast(info, now) {
+    const gx = info.x, gy = info.y, box = info.box, u = box / GRID_W;
+    const ext = info.ext, charge = info.charge;
+    const L = { box };
+    const cx = gx + (90 - ECHO_ANCHOR[0]) * u, cy = gy + (90 - ECHO_ANCHOR[1]) * u;
+    const pose = {
+      x: cx, y: cy, scale: 1, alpha: info.alpha, back: false, charge, impact: 0,
+      gather: smootherstep(clamp01((charge - 0.3) / 0.7)),
+      opts: {
+        swayAmp: 0.7, bobAmp: 0.35, castExt: ext,
+        blinkAmount: blinkNow(now), gazeX: 0.85 * ext, gazeY: -0.75 * ext,
+        lean: 0, trail: idleTrail(now, 0.7), whip: Math.sin(now * 0.021) * charge * 1.2,
+        expression: 'smug',
+        magicLight: Math.round(clamp01(ext / 0.25) * Math.min(0.7, 0.58 * charge) * 10) / 10,
+        hairT: hairClock(now), hairEnergy: Math.min(1, charge),
+      },
+    };
+    const t = (now / 900) % 1;
+    ctx.save();
+    if (info.mirror) { ctx.translate(gx, 0); ctx.scale(-1, 1); ctx.translate(-gx, 0); }
+    drawGate(gx, gy, info.gateR, info.open, info.gateAlpha, now, now);
+    if (info.alpha > 0.01 && info.open > 0.15) {
+      fitSpriteBuffer(box);
+      drawKanade(t, pose.opts);
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(gx, gy, info.gateR * 0.9 * Math.max(0.025, info.open), info.gateR * 0.9, 0, 0, Math.PI * 2);
+      ctx.clip();
+      blitSprite(L, cx, cy, 1, info.alpha);
+      ctx.restore();
+      const armA = info.alpha * clamp01(ext * 3);
+      if (armA > 0.01) {
+        ctx.save();
+        ctx.beginPath();
+        ECHO_ARM.forEach((pt, i) => {
+          const X = gx + (pt[0] - ECHO_ANCHOR[0]) * u, Y = gy + (pt[1] - ECHO_ANCHOR[1]) * u;
+          if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
+        });
+        ctx.closePath();
+        ctx.clip();
+        blitSprite(L, cx, cy, 1, armA);
+        ctx.restore();
+      }
+      if (charge > 0.02) drawCastEnergy(L, pose, t, now, charge * info.alpha, 0.7);
+    }
+    ctx.restore();
+    if (ext <= 0.02) return null;
+    // the palm, worked out the way handPos does it, then mirrored if need be
+    const h = castArm(ext, 0).hand;
+    const px = ECHO_PALM[0] * h.size, py = ECHO_PALM[1] * h.size;
+    const cs = Math.cos(h.rot), sn = Math.sin(h.rot);
+    let hx = cx + (h.x + px * cs - py * sn - GRID_W / 2) * u;
+    const hy = cy + (h.y + px * sn + py * cs - GRID_H / 2) * u;
+    if (info.mirror) hx = 2 * gx - hx;
+    return { x: hx, y: hy, u };
+  }
+
   window._kanadeDebugModelDraw = drawKanadeDebugModel;
+  window._drawKanadeEchoCast = drawEchoCast;
   window.drawKanadeCutscene = drawKanadeCutscene;
   window._beginKanadeCutscene = beginKanadeCutscene;
   window._KANADE_CUTSCENE_MS = TOTAL_MS;

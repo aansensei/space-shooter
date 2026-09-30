@@ -60,6 +60,22 @@ function spawnGoliath() {
         _meteorChargeTimer: 0,
         _meteorCooldownEnd: 0,
         _meteorTargets: [],
+        // Endless Echo: Kanade replays the player's last 3s of flight as ghosts
+        _echoPhase: 'ready', // 'ready' | 'casting'
+        _echoCooldownEnd: 0,
+        _echoCastTimer: 0,
+        _echoSamples: [],
+        _echoSampleAcc: 0,
+        _echoTrail: [],
+        _echoTrailEnd: 0,
+        _echoReleaseAt: 0,
+        _echoCasts: 0,
+        _echoFull: true,
+        _echoSide: 1,
+        _echoGateX: 0,
+        _echoGateY: 0,
+        _echoHandX: null,
+        _echoHandY: null,
         // Threshold Ward: mốc HP đã kích hoạt (mỗi mốc chỉ cấp khiên 1 lần)
         _thresholdMilestonesHit: { 75: false, 50: false, 25: false },
         // Joker Thaelis (Tenacity, NEW): mốc HP 5% gần nhất đã phát thưởng,
@@ -216,6 +232,24 @@ const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.12;
 // full, so a burst can take 12% Hentry at once and then only what refills.
 const GOLIATH_HP_LOSS_CAP_FRAC = 0.12;
 const GOLIATH_HP_LOSS_WINDOW_MS = 4000;
+
+// Endless Echo: the player's path is sampled every 100ms and the last 1.5s of
+// it is replayed by two ghosts 1.2s apart at 0.6x speed, so each one lives
+// exactly 2.5s once it starts running. Kanade reaches out of her gate to cast
+// it: the windup is her arm raising and the ghosts condensing in her palm, the
+// close is her arm going back and the gate shutting after the release.
+const GOLIATH_ECHO_SAMPLE_MS = 100;
+const GOLIATH_ECHO_SAMPLES = 16;
+const GOLIATH_ECHO_MIN_SAMPLES = 10;
+const GOLIATH_ECHO_WINDUP_MS = 1400;
+const GOLIATH_ECHO_CLOSE_MS = 650;
+const GOLIATH_ECHO_FLIGHT_MS = 450;
+const GOLIATH_ECHO_GHOST_GAP_MS = 1200;
+const GOLIATH_ECHO_GHOST_SPEED = 0.6;
+const GOLIATH_ECHO_COOLDOWN_MS = 11000;
+const GOLIATH_ECHO_HIT_RADIUS = 26;
+// a step longer than this between two samples was a teleport, not flying
+const GOLIATH_ECHO_TELEPORT_PX = 220;
 // How long Absolute Verdict channels before the orb flies. The aim locks
 // 500ms before that, whatever the length, so the dodge window never shrinks.
 // The render file reads this too, so the charge-up art ends on the shot.
@@ -866,6 +900,8 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
+        _goliathEchoUpdate(enemy, deltaTime, now);
+
         _goliathUpdateJoker(enemy, deltaTime, now);
 
         // Threshold Ward (docs/combat-scaling-rebalance.md Part 4): 75/50/25%
@@ -950,6 +986,78 @@ function updateGoliath(enemy, deltaTime) {
     }
 }
 
+// Samples the player's path on game time (so a pause or freeze doesn't skew
+// it) and runs the cast. Ghosts themselves are updated in main.js.
+function _goliathEchoUpdate(enemy, deltaTime, now) {
+    enemy._echoSampleAcc = Math.min(enemy._echoSampleAcc + deltaTime, 500);
+    while (enemy._echoSampleAcc >= GOLIATH_ECHO_SAMPLE_MS) {
+        enemy._echoSampleAcc -= GOLIATH_ECHO_SAMPLE_MS;
+        enemy._echoSamples.push({ x: player.x, y: player.y });
+        if (enemy._echoSamples.length > GOLIATH_ECHO_SAMPLES) enemy._echoSamples.shift();
+    }
+    if (enemy._echoPhase === 'ready') {
+        if (now < enemy._echoCooldownEnd || enemy._echoSamples.length < GOLIATH_ECHO_MIN_SAMPLES) return;
+        if (_goliathIsCasting(enemy)) return;
+        enemy._echoPhase = 'casting';
+        enemy._echoCastTimer = 0;
+        enemy._echoTrail = enemy._echoSamples.slice();
+        enemy._echoFull = enemy._echoCasts === 0;
+        // the gate opens by the screen edge on the far side from him, so his
+        // drift during the cast can never carry him into it, and it stays put
+        // where it opened. side is which half he is in: 1 = left
+        const gate = _goliathEchoGateSize();
+        enemy._echoSide = enemy.x < canvas.width / 2 ? 1 : -1;
+        enemy._echoGateX = enemy._echoSide > 0 ? canvas.width - gate.r - 70 : gate.r + 70;
+        enemy._echoGateY = Math.max(gate.r + 30, Math.min(canvas.height * 0.5, enemy.y + 10));
+        if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-fracture-step', enemy.x, enemy.y);
+    } else {
+        enemy._echoCastTimer += deltaTime;
+        if (enemy._echoCastTimer >= GOLIATH_ECHO_WINDUP_MS) _goliathEchoRelease(enemy, now);
+    }
+}
+
+// Kanade's sprite box and gate radius in px, shared by the cast and its render
+function _goliathEchoGateSize() {
+    const box = Math.min(340, canvas.height * 0.44);
+    return { box, r: box * 0.235 };
+}
+
+function _goliathEchoRelease(enemy, now) {
+    const path = enemy._echoTrail;
+    window._goliathEchoes = window._goliathEchoes || [];
+    // the ghosts leave Kanade's palm, settle on the start of the path, and the
+    // second one holds there until the first is 1.2s into its run
+    const ox = enemy._echoHandX != null ? enemy._echoHandX : path[0].x;
+    const oy = enemy._echoHandY != null ? enemy._echoHandY : path[0].y;
+    for (let i = 0; i < 2; i++) {
+        window._goliathEchoes.push({
+            path, owner: enemy, atk: enemy.atk, idx: i,
+            age: 0, t: 0, startAt: GOLIATH_ECHO_FLIGHT_MS + i * GOLIATH_ECHO_GHOST_GAP_MS,
+            ox, oy, x: ox, y: oy,
+        });
+    }
+    enemy._echoPhase = 'ready';
+    enemy._echoCooldownEnd = now + GOLIATH_ECHO_COOLDOWN_MS;
+    enemy._echoReleaseAt = now;
+    enemy._echoCasts++;
+    // the trail stays on screen until the second ghost has finished it
+    enemy._echoTrailEnd = now + GOLIATH_ECHO_FLIGHT_MS + GOLIATH_ECHO_GHOST_GAP_MS
+        + (path.length - 1) * GOLIATH_ECHO_SAMPLE_MS / GOLIATH_ECHO_GHOST_SPEED;
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-launch', ox, oy);
+}
+
+// Where a ghost is `ms` into its replay. Between two samples it glides, but a
+// jump bigger than GOLIATH_ECHO_TELEPORT_PX was the player teleporting, so the
+// ghost holds and then snaps across the same way.
+function _goliathEchoPointAt(path, ms) {
+    const f = ms / GOLIATH_ECHO_SAMPLE_MS;
+    const i = Math.min(path.length - 1, Math.floor(f));
+    const a = path[i], b = path[Math.min(path.length - 1, i + 1)];
+    if (Math.hypot(b.x - a.x, b.y - a.y) > GOLIATH_ECHO_TELEPORT_PX) return a;
+    const k = f - i;
+    return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
+}
+
 // Sinh thiên thạch bay từ mọi mép màn hình vào — đa số hội tụ về THÂN (đến
 // sớm), số còn lại lệch hướng bay tới 2 khớp vai (đến muộn hơn), y hệt
 // prototype test-goliath.html đã duyệt.
@@ -1022,6 +1130,8 @@ function _goliathEnterTrueForm(enemy) {
     // Inevitable (NEW): Iron Body tuyệt đối 4s ngay sau khi biến hình xong
     // thành công — bảo vệ đúng khoảnh khắc vừa lộ diện, còn chưa kịp làm gì.
     enemy._transformIronBodyEnd = performance.now() + 4000;
+    // first echo waits out the iron body window plus a couple of seconds
+    enemy._echoCooldownEnd = performance.now() + 8000;
 
     // Evade (NEW): mốc thời gian bắt đầu decay từ 35% -> 25% trong 15s kể từ
     // đúng lúc biến hình xong — xem khối tính evade trong dealDamage.
@@ -1179,6 +1289,7 @@ function _goliathLockTargets(count) {
 function _goliathIsCasting(enemy) {
     if (enemy._verdictPhase === 'channeling') return true;
     if (enemy._meteorPhase === 'charging') return true;
+    if (enemy._echoPhase === 'casting') return true;
     const js = enemy._jokerState;
     if (js['Raphael'] && (js['Raphael'].telegraphing || js['Raphael'].firing)) return true;
     if (js['Egregor'] && (js['Egregor'].phase === 'charging' || js['Egregor'].phase === 'striking')) return true;

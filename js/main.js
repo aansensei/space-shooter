@@ -2508,6 +2508,34 @@ function update(rawDeltaTime) {
         });
     }
 
+    // Endless Echo ghosts replay a recorded player path. a hit costs 1 life via
+    // playerTakesHit like the meteor does. a ghost only hurts once it is running
+    // its path: before that it is flying out of Kanade's palm or waiting its turn.
+    if (window._goliathEchoes && window._goliathEchoes.length) {
+        window._goliathEchoes = window._goliathEchoes.filter(g => {
+            if (!g.owner || g.owner._deathPhase || !enemies.includes(g.owner)) return false;
+            g.age += deltaTime;
+            if (g.age < g.startAt) {
+                const f = Math.min(1, g.age / GOLIATH_ECHO_FLIGHT_MS);
+                const e = f * f * (3 - 2 * f);
+                g.x = g.ox + (g.path[0].x - g.ox) * e;
+                g.y = g.oy + (g.path[0].y - g.oy) * e;
+                return true;
+            }
+            g.t += deltaTime * GOLIATH_ECHO_GHOST_SPEED;
+            if (g.t >= (g.path.length - 1) * GOLIATH_ECHO_SAMPLE_MS) return false;
+            const p = _goliathEchoPointAt(g.path, g.t);
+            g.x = p.x; g.y = p.y;
+            if (Math.hypot(g.x - player.x, g.y - player.y) < GOLIATH_ECHO_HIT_RADIUS + (player.hitRadius || 15)) {
+                if (!_yuushaPierceRedirect(0.625 * (g.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                addExplosion(g.x, g.y, 60, '#a855f7');
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', g.x, g.y);
+                return false;
+            }
+            return true;
+        });
+    }
+
     // Leviathan Perseverance beams (independent objects)
     if (!window._levPersBeams) window._levPersBeams = [];
     if (window._levPersBeams.length) window._levPersBeams = window._levPersBeams.filter(beam => {
@@ -3455,6 +3483,7 @@ function startGame() {
     window._gfjShieldTimer = 0;
     window._gfjWasActive = false;
     window._goliathWaveHpBuff = 1;
+    window._goliathEchoes = [];
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];

@@ -606,6 +606,17 @@ window.debugSetYuukiBonus = function () {
     </div>
 
     <div class="dbg-section">
+      <div class="dbg-h">GOLIATH: ENDLESS ECHO</div>
+      <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">Kanade reaches out of her gate, two ghosts replay your last 1.5s of flight at 0.6x speed, each living 2.5s. Uses the True Form Goliath on screen, or spawns one. If fewer than 10 path samples are recorded it fills in a made-up path so the trail has something to show.</div>
+      <div class="dbg-row" style="flex-wrap:wrap;">
+        <button class="dbg-btn" onclick="debugEchoCast(true)">Spawn Goliath + Cast</button>
+        <button class="dbg-btn" onclick="debugEchoCast(false)">Cast Now</button>
+        <button class="dbg-btn" onclick="debugEchoLoop()">Auto-recast: <span id="dbgEchoLoopState">off</span></button>
+        <button class="dbg-btn danger" onclick="debugEchoClear()">Clear ghosts</button>
+      </div>
+    </div>
+
+    <div class="dbg-section">
       <div class="dbg-h">KANADE / TIMELINE DISTORTION</div>
       <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">The boss-wave cutscene and the effect it imposes. Playing it freezes the sim, the audio and the background exactly as a real boss wave does, and its summon beat spawns a real Goliath.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
@@ -1097,6 +1108,53 @@ window.debugSetYuukiBonus = function () {
 
     // Kanade's cutscene, driven exactly as a boss wave drives it so the freeze,
     // the audio gate, the background hold and the summon all behave the same.
+    // Endless Echo testing. Finds the True Form Goliath or makes one, then
+    // fires the cast as soon as the next frame can take it.
+    function _dbgEchoTarget(spawnIfMissing) {
+        let g = enemies.find(e => e.type === 'goliath' && e.phase === 'true_form');
+        if (!g && spawnIfMissing) {
+            spawnGoliath();
+            g = enemies.find(e => e.type === 'goliath');
+            g.slots.forEach((sl, i) => { if (!sl.filled) { sl.filled = true; sl.gem = GOLIATH_GEM_COLORS[i]; } });
+            _goliathEnterTrueForm(g);
+            g._transformIronBodyEnd = 0;
+        }
+        return g && g.phase === 'true_form' ? g : null;
+    }
+    window.debugEchoCast = function (spawnIfMissing) {
+        const g = _dbgEchoTarget(spawnIfMissing);
+        if (!g) return;
+        if (g._echoSamples.length < GOLIATH_ECHO_MIN_SAMPLES) {
+            g._echoSamples = Array.from({ length: GOLIATH_ECHO_SAMPLES }, (_, i) => ({
+                x: player.x - 110 + i * 14 + Math.sin(i * 0.6) * 40,
+                y: player.y - 10 - i * 7,
+            }));
+        }
+        g._echoCooldownEnd = 0;
+    };
+    let _dbgEchoLoopTimer = null;
+    window.debugEchoLoop = function () {
+        const label = document.getElementById('dbgEchoLoopState');
+        if (_dbgEchoLoopTimer) {
+            clearInterval(_dbgEchoLoopTimer);
+            _dbgEchoLoopTimer = null;
+            if (label) label.textContent = 'off';
+            return;
+        }
+        if (label) label.textContent = 'on';
+        _dbgEchoLoopTimer = setInterval(() => {
+            enemies.forEach(e => {
+                if (e.type === 'goliath' && e.phase === 'true_form' && e._echoPhase === 'ready') e._echoCooldownEnd = 0;
+            });
+        }, 500);
+    };
+    window.debugEchoClear = function () {
+        window._goliathEchoes = [];
+        enemies.forEach(e => {
+            if (e.type === 'goliath') { e._echoPhase = 'ready'; e._echoTrailEnd = 0; e._echoReleaseAt = 0; }
+        });
+    };
+
     window.debugPlayKanadeCutscene = function (noGoliath) {
         if (typeof window._beginKanadeCutscene !== 'function' || typeof _rollTimelineDistortion !== 'function') return;
         // The summon beat calls _spawnWaveGoliath itself. Stubbing it out for
@@ -1510,6 +1568,7 @@ window.debugSetYuukiBonus = function () {
             if (typeof _goliathEnterTrueForm === 'function') _goliathEnterTrueForm(e);
         }
         if (which === 'goliath_fracture' && e.type === 'goliath') e._fractureStepCooldownEnd = 0;
+        if (which === 'goliath_echo' && e.type === 'goliath') e._echoCooldownEnd = 0;
         if (which === 'goliath_verdict' && e.type === 'goliath') { e._verdictPhase = 'ready'; e._verdictCooldownEnd = 0; }
         if (which === 'goliath_unbroken' && e.type === 'goliath' && typeof _goliathTryUnbrokenWill === 'function') {
             _goliathTryUnbrokenWill(e, e.hp + 1); // fake a lethal hit to force the proc
@@ -1550,7 +1609,7 @@ window.debugSetYuukiBonus = function () {
         if (e.type === 'goliath' && e.phase === 'alpha') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_transform')">Force Transform</button>`;
         if (e.type === 'goliath' && e.phase === 'transforming') return `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_trueform')">Skip to True Form</button>`;
         if (e.type === 'goliath' && e.phase === 'true_form') {
-            let btns = `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_fracture')">Fracture Step</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_verdict')">Absolute Verdict</button>`;
+            let btns = `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_fracture')">Fracture Step</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_echo')">Endless Echo</button><button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_verdict')">Absolute Verdict</button>`;
             if (!e._unbrokenWillUsed) btns += `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_unbroken')">Unbroken Will</button>`;
             else if (!e._unbrokenWillWaveFired) btns += `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_unbroken_wave')">Fire Release Wave Now</button>`;
             btns += `<button class="dbg-btn" onclick="debugForceEnemySkill(${i},'goliath_btm_test')">Test BTM Hit</button>`;

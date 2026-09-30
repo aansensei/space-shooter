@@ -2238,6 +2238,7 @@ function draw(deltaTime) {
         _drawGoliathOrbs(); // Absolute Verdict orb (independent object)
         _drawGoliathSwords(); // Joker Marchosias-copy sword projectiles (independent objects)
         _drawGoliathMeteorProjectiles(); // Corrupted Meteor thrown projectile (independent objects)
+        _drawGoliathEchoes(); // Endless Echo trail + ghosts
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         if (typeof _drawUrielEffects === 'function') _drawUrielEffects(); // Holy Sword projectiles + death barrier
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash
@@ -2480,6 +2481,7 @@ function draw(deltaTime) {
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
+        _drawGoliathEchoCasts(); // Kanade's gate and arm, over his body
         // screen-space, separate pass so it's unaffected by goliath's own transform
         if (typeof _drawGoliathBossBar === 'function') {
             enemies.forEach(e => { if (e.type === 'goliath') _drawGoliathBossBar(e); });

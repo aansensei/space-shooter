@@ -130,6 +130,25 @@ function _drawGoliathFacetedCrystal(outline, core, lightAngle, colorDark, colorL
     }
 }
 
+// Glows that used to be re-blurred every frame with shadowBlur are painted once
+// here and then just blitted. `half` is the sprite's half size in logical px,
+// `res` how many sprite px per logical px (2 keeps thin lines crisp on hi-dpi).
+const _goliathFxCache = {};
+function _goliathFxSprite(key, half, res, paint) {
+    let c = _goliathFxCache[key];
+    if (c) return c;
+    c = document.createElement('canvas');
+    c.width = c.height = Math.ceil(half * 2 * res);
+    const g = c.getContext('2d');
+    g.scale(res, res);
+    g.translate(half, half);
+    paint(g);
+    return (_goliathFxCache[key] = c);
+}
+function _blitGoliathFx(sprite, half) {
+    ctx.drawImage(sprite, -half, -half, half * 2, half * 2);
+}
+
 function _drawGoliathVeins(veins, intensity) {
     for (const vein of veins) {
         ctx.beginPath();
@@ -137,12 +156,15 @@ function _drawGoliathVeins(veins, intensity) {
         for (let j = 1; j < vein.length; j++) ctx.lineTo(vein[j].x, vein[j].y);
         ctx.strokeStyle = 'rgba(20,8,0,0.9)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.stroke();
+        if (!_mobPerf) {
+            ctx.strokeStyle = `rgba(255,158,11,${0.10 + 0.14 * intensity})`;
+            ctx.lineWidth = 7 + intensity * 9;
+            ctx.stroke();
+        }
         ctx.strokeStyle = `rgba(255,158,11,${0.75 * intensity + 0.25})`;
         ctx.lineWidth = 1.4 + intensity * 2.2;
-        if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 8 + intensity * 22; }
         ctx.stroke();
     }
-    ctx.shadowBlur = 0;
 }
 
 function _drawGoliathGemDiamond(x, y, size, gem, glowMul, now) {
@@ -301,23 +323,24 @@ function _drawGoliathShoulderBoulder(jx, jy, alpha, seed) {
     ctx.save(); ctx.globalAlpha = alpha;
 
     ctx.save(); ctx.translate(jx, jy);
-    const goo = ctx.createRadialGradient(-R * 0.2, -R * 0.25, 0, 0, 0, R * 1.3);
-    goo.addColorStop(0, 'rgba(255,190,80,0.55)');
-    goo.addColorStop(0.6, 'rgba(255,120,20,0.35)');
-    goo.addColorStop(1, 'rgba(255,90,0,0)');
-    const pts = 12;
-    ctx.beginPath();
-    for (let i = 0; i <= pts; i++) {
-        const a = (i / pts) * Math.PI * 2;
-        const rr = R * 1.18 * (0.9 + 0.14 * Math.sin(a * 4 + seed) + 0.1 * Math.sin(a * 2.3 + seed * 1.3));
-        const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fillStyle = goo; ctx.fill();
-    if (!_mobPerf) { ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 22; }
-    ctx.strokeStyle = 'rgba(255,150,40,0.5)'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.shadowBlur = 0;
+    _blitGoliathFx(_goliathFxSprite('shoulderGoo' + seed, 200, 1, g => {
+        const goo = g.createRadialGradient(-R * 0.2, -R * 0.25, 0, 0, 0, R * 1.3);
+        goo.addColorStop(0, 'rgba(255,190,80,0.55)');
+        goo.addColorStop(0.6, 'rgba(255,120,20,0.35)');
+        goo.addColorStop(1, 'rgba(255,90,0,0)');
+        const pts = 12;
+        g.beginPath();
+        for (let i = 0; i <= pts; i++) {
+            const a = (i / pts) * Math.PI * 2;
+            const rr = R * 1.18 * (0.9 + 0.14 * Math.sin(a * 4 + seed) + 0.1 * Math.sin(a * 2.3 + seed * 1.3));
+            const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+            if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+        }
+        g.closePath();
+        g.fillStyle = goo; g.fill();
+        g.shadowColor = '#ff8c1a'; g.shadowBlur = 22;
+        g.strokeStyle = 'rgba(255,150,40,0.5)'; g.lineWidth = 3; g.stroke();
+    }), 200);
     // vài giọt slime nhỏ rủ quanh viền, chảy chậm theo thời gian
     for (let i = 0; i < 5; i++) {
         const a = (i / 5) * Math.PI * 2 + seed;
@@ -337,9 +360,9 @@ function _drawGoliathShoulderBoulder(jx, jy, alpha, seed) {
     const vein = _goliathGenerateVein(0, 0, Math.cos(seed) * R * 0.7, Math.sin(seed) * R * 0.7, 4, R * 0.45);
     ctx.beginPath();
     vein.forEach((v, i) => i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y));
+    if (!_mobPerf) { ctx.strokeStyle = 'rgba(255,140,30,0.18)'; ctx.lineWidth = 8; ctx.stroke(); }
     ctx.strokeStyle = 'rgba(255,170,50,0.85)'; ctx.lineWidth = 2.5;
-    if (!_mobPerf) { ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 10; }
-    ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.stroke();
     ctx.restore();
 
     ctx.restore();
@@ -366,8 +389,8 @@ function _drawGoliathRockArm(fromX, fromY, toX, toY, alpha, bowX) {
         if (i === 0) ctx.moveTo(pt.x, pt.y);
         else ctx.lineTo(pt.x + (Math.random() - 0.5) * 16, pt.y + (Math.random() - 0.5) * 16);
     }
+    if (!_mobPerf) { ctx.strokeStyle = 'rgba(255,158,11,0.2)'; ctx.lineWidth = 15; ctx.stroke(); }
     ctx.strokeStyle = 'rgba(255,158,11,0.85)'; ctx.lineWidth = 6;
-    if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 15; }
     ctx.stroke();
 
     ctx.beginPath();
@@ -377,7 +400,6 @@ function _drawGoliathRockArm(fromX, fromY, toX, toY, alpha, bowX) {
         else ctx.lineTo(pt.x + (Math.random() - 0.5) * 24, pt.y + (Math.random() - 0.5) * 24);
     }
     ctx.strokeStyle = 'rgba(255,200,50,0.5)'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.shadowBlur = 0;
 
     const seed = fromX + fromY;
     for (let i = 1; i <= numRocks; i++) {
@@ -402,13 +424,26 @@ function _drawGoliathFist(fx, fy, alpha, accent) {
 
     // vòng phù văn phép thuật quanh cổ tay (ma thuật "dính" rõ ràng hơn)
     ctx.save(); ctx.rotate(fx / 1000);
-    for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        ctx.beginPath(); ctx.arc(0, 0, R * 1.35, a, a + 0.3);
-        ctx.strokeStyle = `${accentColor}`; ctx.globalAlpha = alpha * 0.55;
-        ctx.lineWidth = 2.5;
-        if (!_mobPerf) { ctx.shadowColor = accentColor; ctx.shadowBlur = 10; }
-        ctx.stroke(); ctx.shadowBlur = 0;
+    if (alpha >= 0.999) {
+        // fully grown: R is a constant 58, so the ring is baked once per accent
+        ctx.globalAlpha = 0.55;
+        _blitGoliathFx(_goliathFxSprite('fistRing' + accentColor, 100, 2, g => {
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2;
+                g.beginPath(); g.arc(0, 0, 58 * 1.35, a, a + 0.3);
+                g.strokeStyle = accentColor; g.lineWidth = 2.5;
+                g.shadowColor = accentColor; g.shadowBlur = 10;
+                g.stroke();
+            }
+        }), 100);
+    } else {
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            ctx.beginPath(); ctx.arc(0, 0, R * 1.35, a, a + 0.3);
+            ctx.strokeStyle = `${accentColor}`; ctx.globalAlpha = alpha * 0.55;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
     }
     ctx.restore();
     ctx.globalAlpha = alpha;
@@ -430,9 +465,9 @@ function _drawGoliathFist(fx, fy, alpha, accent) {
             const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
             if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
+        if (!_mobPerf) { ctx.strokeStyle = 'rgba(157,0,255,0.22)'; ctx.lineWidth = 9; ctx.stroke(); }
         ctx.strokeStyle = 'rgba(196,132,252,0.9)'; ctx.lineWidth = 2.5;
-        if (!_mobPerf) { ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 12; }
-        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.stroke();
     } else if (accent === 'spikes') {
         for (let i = 0; i < 3; i++) {
             const a = -0.6 + i * 0.6;
@@ -444,8 +479,7 @@ function _drawGoliathFist(fx, fy, alpha, accent) {
             const spikeGrad = ctx.createLinearGradient(0, 0, Math.cos(a) * R * 1.35, Math.sin(a) * R * 1.35);
             spikeGrad.addColorStop(0, '#7a5a00'); spikeGrad.addColorStop(1, accentLight);
             ctx.fillStyle = spikeGrad;
-            if (!_mobPerf) { ctx.shadowColor = accentColor; ctx.shadowBlur = 10; }
-            ctx.fill(); ctx.shadowBlur = 0;
+            ctx.fill();
         }
     }
     ctx.restore();
@@ -625,12 +659,19 @@ function _drawGoliathMeteors(enemy, t, summonDur, now) {
 function _drawGoliathInevitableAura(now) {
     // To hơn 1 tí theo yêu cầu (220->260, viền hex 248->290)
     const pulse = 0.85 + Math.sin(now / 450) * 0.15;
-    ctx.beginPath(); ctx.arc(0, 0, 260, 0, Math.PI * 2);
-    const g = ctx.createRadialGradient(0, 0, 150, 0, 0, 260);
-    g.addColorStop(0, 'rgba(255,69,0,0)'); g.addColorStop(1, `rgba(255,69,0,${0.24 * pulse})`);
-    ctx.fillStyle = g;
-    if (!_mobPerf) { ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 26 * pulse; }
-    ctx.fill(); ctx.shadowBlur = 0;
+    // the disc and its glow are painted once; the pulse only scales how hard
+    // it is laid down
+    const a0 = ctx.globalAlpha;
+    ctx.globalAlpha = a0 * pulse;
+    _blitGoliathFx(_goliathFxSprite('inevDisc', 300, 1, g => {
+        g.beginPath(); g.arc(0, 0, 260, 0, Math.PI * 2);
+        const gr = g.createRadialGradient(0, 0, 150, 0, 0, 260);
+        gr.addColorStop(0, 'rgba(255,69,0,0)'); gr.addColorStop(1, 'rgba(255,69,0,0.24)');
+        g.fillStyle = gr;
+        g.shadowColor = '#ff4500'; g.shadowBlur = 26;
+        g.fill();
+    }), 300);
+    ctx.globalAlpha = a0;
     if (_mobPerf || _gfxLevel >= 2) return; // phần trang trí còn lại tốn nhiều shadowBlur, bỏ khi tier thấp
 
     ctx.save(); ctx.rotate(now / 6670);
@@ -644,13 +685,14 @@ function _drawGoliathInevitableAura(now) {
     ctx.restore();
 
     ctx.save(); ctx.rotate(-now / 1670);
-    for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        ctx.beginPath(); ctx.arc(0, 0, 290, a, a + 0.18);
-        ctx.strokeStyle = 'rgba(255,140,60,0.8)'; ctx.lineWidth = 3.5;
-        ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 10; ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
+    _blitGoliathFx(_goliathFxSprite('inevArcs', 320, 1, g => {
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            g.beginPath(); g.arc(0, 0, 290, a, a + 0.18);
+            g.strokeStyle = 'rgba(255,140,60,0.8)'; g.lineWidth = 3.5;
+            g.shadowColor = '#ff4500'; g.shadowBlur = 10; g.stroke();
+        }
+    }), 320);
     ctx.restore();
 
     if (Math.random() < 0.06) {
@@ -658,8 +700,9 @@ function _drawGoliathInevitableAura(now) {
         const vein = _goliathGenerateVein(0, 0, Math.cos(a) * 245, Math.sin(a) * 245, 4, 18);
         ctx.beginPath();
         vein.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.strokeStyle = 'rgba(255,69,0,0.22)'; ctx.lineWidth = 7; ctx.stroke();
         ctx.strokeStyle = 'rgba(255,180,120,0.8)'; ctx.lineWidth = 1.4;
-        ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.stroke();
     }
 }
 
@@ -901,6 +944,202 @@ function _drawGoliathMeteorProjectiles() {
 // quy chiếu với GOLIATH_SLOT_ANCHORS/GOLIATH_EYE_POS — viết lại từ đầu cho
 // đúng ngữ cảnh này (không copy nguyên khối từ prototype vì đó là hệ toạ độ
 // khác: state.x/state.y tuyệt đối, không phải cục bộ quanh gốc đã translate).
+// Endless Echo. Everything here is world space and hooked in render/core.js
+// next to the meteors. Kanade's gate and raised arm come from the cutscene
+// (js/render/kanade-cutscene.js), so they look exactly like her cast beat.
+let _echoShipSprite = null, _echoShipBase = null;
+// player hull painted violet once, re-baked only if the base sprite changes
+function _getEchoShipSprite() {
+    const base = _getPlayerShipBaseSprite();
+    if (_echoShipSprite && _echoShipBase === base) return _echoShipSprite;
+    const c = document.createElement('canvas');
+    c.width = base.width; c.height = base.height;
+    const g = c.getContext('2d');
+    g.drawImage(base, 0, 0);
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = 'rgba(150,80,255,0.85)';
+    g.fillRect(0, 0, c.width, c.height);
+    _echoShipBase = base;
+    return (_echoShipSprite = c);
+}
+
+// the violet ship at (x, y), scaled about its own centre
+function _drawEchoShip(x, y, scale, alpha) {
+    if (alpha <= 0.01) return;
+    const sprite = _getEchoShipSprite();
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.drawImage(sprite, -35, -35);
+    ctx.restore();
+}
+
+function _drawEchoTrail(path, fade, now) {
+    if (path.length < 2 || fade <= 0) return;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let pass = _mobPerf ? 1 : 0; pass < 2; pass++) {
+        ctx.lineWidth = pass === 0 ? 14 : 3.5;
+        for (let i = 1; i < path.length; i++) {
+            const a = path[i - 1], b = path[i];
+            if (Math.hypot(b.x - a.x, b.y - a.y) > GOLIATH_ECHO_TELEPORT_PX) continue;
+            // newest samples burn brighter so the direction reads at a glance
+            const k = 0.4 + 0.6 * (i / path.length);
+            ctx.strokeStyle = pass === 0
+                ? `rgba(168,85,247,${0.16 * k * fade})`
+                : `rgba(232,210,255,${0.7 * k * fade})`;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+    }
+    // chevrons along the way, pointing where the ghost will go
+    ctx.fillStyle = `rgba(255,255,255,${0.85 * fade})`;
+    for (let i = 2; i < path.length; i += 3) {
+        const a = path[i - 1], b = path[i];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 4 || d2 > GOLIATH_ECHO_TELEPORT_PX * GOLIATH_ECHO_TELEPORT_PX) continue;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(Math.atan2(dy, dx));
+        ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -5); ctx.lineTo(-4, 5); ctx.closePath(); ctx.fill();
+        ctx.restore();
+    }
+    // black cubes with red edges, the same shards as behind Kanade's gate
+    ctx.lineWidth = 1.2;
+    for (let i = 1; i < path.length; i += 5) {
+        ctx.save();
+        ctx.translate(path[i].x, path[i].y);
+        ctx.rotate(now / 700 + i);
+        ctx.fillStyle = `rgba(8,4,16,${0.9 * fade})`;
+        ctx.strokeStyle = `rgba(255,60,90,${0.85 * fade})`;
+        ctx.fillRect(-4, -4, 8, 8);
+        ctx.strokeRect(-4, -4, 8, 8);
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+// Kanade's gate and arm for one Goliath mid-cast, plus the two ghosts taking
+// shape over her palm. Records where the palm is so the release can throw the
+// ghosts from it.
+function _drawEchoCast(e, now) {
+    let u;
+    if (e._echoPhase === 'casting') {
+        u = e._echoCastTimer;
+    } else if (e._echoReleaseAt && now - e._echoReleaseAt < GOLIATH_ECHO_CLOSE_MS) {
+        u = GOLIATH_ECHO_WINDUP_MS + (now - e._echoReleaseAt);
+    } else {
+        return;
+    }
+    if (typeof window._drawKanadeEchoCast !== 'function') return;
+    const W = GOLIATH_ECHO_WINDUP_MS;
+    const clamp01 = t => Math.max(0, Math.min(1, t));
+    const ease = t => t * t * (3 - 2 * t);
+    const open = ease(clamp01(u / 300)) * (1 - ease(clamp01((u - (W + 200)) / (GOLIATH_ECHO_CLOSE_MS - 200))));
+    const ext = ease(clamp01((u - 250) / 600)) * (1 - ease(clamp01((u - W) / 350)));
+    const charge = ease(clamp01((u - 500) / (W - 500))) * (1 - clamp01((u - W) / 250));
+    const alpha = 1 - ease(clamp01((u - (W + 250)) / 350));
+    if (open <= 0.01) return;
+
+    // the gate was placed when the cast began and does not follow him
+    const { box, r: gateR } = _goliathEchoGateSize();
+    const palm = window._drawKanadeEchoCast({
+        x: e._echoGateX, y: e._echoGateY, gateR, box, open, ext, charge, alpha,
+        gateAlpha: e._echoFull ? 1 : 0.8, mirror: (e._echoSide || 1) > 0,
+    }, now);
+    if (!palm) return;
+    e._echoHandX = palm.x; e._echoHandY = palm.y;
+    if (e._echoPhase !== 'casting') return;
+
+    // two ghosts condensing above the palm, the second a little behind the first
+    for (let pass = 0; pass < 2; pass++) {
+        ctx.save();
+        if (pass === 0) ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 2; i++) {
+            const k = ease(clamp01((charge - 0.25 - i * 0.2) / 0.5));
+            if (k <= 0.01) continue;
+            const hx = palm.x + (i ? 1 : -1) * 44 * k;
+            const hy = palm.y - 34 * k + Math.sin(now / 240 + i * 2) * 4;
+            if (pass === 0) {
+                const halo = ctx.createRadialGradient(hx, hy, 0, hx, hy, 46);
+                halo.addColorStop(0, `rgba(216,180,254,${0.55 * k})`);
+                halo.addColorStop(1, 'rgba(168,85,247,0)');
+                ctx.fillStyle = halo;
+                ctx.beginPath(); ctx.arc(hx, hy, 46, 0, Math.PI * 2); ctx.fill();
+            } else {
+                _drawEchoShip(hx, hy, 0.6 + 0.6 * k, 0.35 + 0.65 * k);
+            }
+        }
+        ctx.restore();
+    }
+}
+
+function _drawGoliathEchoes() {
+    const now = performance.now();
+    for (const e of enemies) {
+        if (e.type !== 'goliath' || !e._echoTrail || !e._echoTrail.length) continue;
+        const casting = e._echoPhase === 'casting';
+        if (!casting && now >= e._echoTrailEnd) continue;
+        const fade = casting
+            ? Math.min(1, (e._echoCastTimer / GOLIATH_ECHO_WINDUP_MS) * 2.5)
+            : Math.max(0, Math.min(1, (e._echoTrailEnd - now) / 600));
+        _drawEchoTrail(e._echoTrail, fade, now);
+    }
+    const ghosts = window._goliathEchoes;
+    if (ghosts && ghosts.length) {
+        ctx.save();
+        for (const g of ghosts) {
+            const span = (g.path.length - 1) * GOLIATH_ECHO_SAMPLE_MS;
+            const flying = g.age < GOLIATH_ECHO_FLIGHT_MS;
+            const waiting = !flying && g.age < g.startAt;
+            let a = 0.9;
+            if (waiting) a = 0.4 + 0.15 * Math.sin(now / 160);
+            else if (!flying) a = 0.9 * Math.min(1, (span - g.t) / (300 * GOLIATH_ECHO_GHOST_SPEED));
+            if (a <= 0.01) continue;
+            // violet halo so a ghost is never lost against the background
+            ctx.globalCompositeOperation = 'lighter';
+            const hr = 44;
+            const halo = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, hr);
+            halo.addColorStop(0, `rgba(190,140,255,${0.42 * a})`);
+            halo.addColorStop(1, 'rgba(168,85,247,0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath(); ctx.arc(g.x, g.y, hr, 0, Math.PI * 2); ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            // a little red-shifted echo of the hull beside it
+            _drawEchoShip(g.x + 4 + Math.sin(now / 37 + g.x) * 2, g.y - 1, 1, 0.35 * a);
+            _drawEchoShip(g.x, g.y, 1, a);
+            if (flying) continue;
+            // the lethal radius, filled faintly so the danger zone is never a guess
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = `rgba(255,59,90,${waiting ? 0.05 : 0.14})`;
+            ctx.beginPath(); ctx.arc(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `rgba(255,59,90,${waiting ? 0.35 : 0.85})`;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath(); ctx.arc(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS, 0, Math.PI * 2); ctx.stroke();
+            if (waiting) {
+                // the ring fills as this ghost's turn comes up
+                const f = (g.age - GOLIATH_ECHO_FLIGHT_MS) / (g.startAt - GOLIATH_ECHO_FLIGHT_MS);
+                ctx.strokeStyle = 'rgba(232,210,255,0.95)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS + 9, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        ctx.restore();
+    }
+}
+
+// Kanade's gate and arm go over Goliath himself, so this runs after he is drawn
+function _drawGoliathEchoCasts() {
+    const now = performance.now();
+    for (const e of enemies) {
+        if (e.type === 'goliath') _drawEchoCast(e, now);
+    }
+}
+
 function _drawGoliathJokerEffects(enemy, now) {
     const js = enemy._jokerState;
 
@@ -1440,9 +1679,9 @@ function _drawGoliathGolemBody(lightAngle, now) {
         ctx.beginPath();
         seam.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
         ctx.strokeStyle = 'rgba(20,8,0,0.9)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+        if (!_mobPerf) { ctx.strokeStyle = `rgba(245,158,11,${0.10 + 0.10 * flick})`; ctx.lineWidth = 8 + flick * 6; ctx.stroke(); }
         ctx.strokeStyle = `rgba(255,158,11,${0.55 + 0.35 * flick})`; ctx.lineWidth = 1.8 + flick * 1.6;
-        if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 8 + flick * 14; }
-        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.stroke();
     });
 }
 
@@ -1460,13 +1699,15 @@ function _drawGoliathHalo(now) {
     ctx.globalAlpha = 0.9;
 
     ctx.save(); ctx.rotate(t * 0.12);
-    for (let i = 0; i < 10; i++) {
-        const a = (i / 10) * Math.PI * 2;
-        ctx.beginPath(); ctx.arc(0, 0, GOLIATH_HALO_R * 0.42, a, a + 0.34);
-        ctx.strokeStyle = 'rgba(245,158,11,0.55)'; ctx.lineWidth = 4;
-        if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 14; }
-        ctx.stroke(); ctx.shadowBlur = 0;
-    }
+    _blitGoliathFx(_goliathFxSprite('haloRing', 200, 1.5, g => {
+        for (let i = 0; i < 10; i++) {
+            const a = (i / 10) * Math.PI * 2;
+            g.beginPath(); g.arc(0, 0, GOLIATH_HALO_R * 0.42, a, a + 0.34);
+            g.strokeStyle = 'rgba(245,158,11,0.55)'; g.lineWidth = 4;
+            g.shadowColor = '#f59e0b'; g.shadowBlur = 14;
+            g.stroke();
+        }
+    }), 200);
     ctx.restore();
     ctx.save(); ctx.rotate(-t * 0.08);
     ctx.beginPath(); ctx.arc(0, 0, GOLIATH_HALO_R * 0.3, 0, Math.PI * 2);
@@ -1485,9 +1726,9 @@ function _drawGoliathHalo(now) {
             const py = p1.y + (p2.y - p1.y) * st + (s > 0 && s < segs ? jy : 0);
             if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
+        if (!_mobPerf) { ctx.strokeStyle = 'rgba(245,158,11,0.16)'; ctx.lineWidth = 18; ctx.stroke(); }
         ctx.strokeStyle = 'rgba(255,158,11,0.55)'; ctx.lineWidth = 6;
-        if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 16; }
-        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.stroke();
         ctx.strokeStyle = 'rgba(255,220,160,0.8)'; ctx.lineWidth = 2;
         ctx.stroke();
         for (let s = 1; s < segs; s++) {
@@ -1505,10 +1746,17 @@ function _drawGoliathHalo(now) {
         // Lơ lửng nhẹ — 4 quả cầu đỉnh trôi độc lập, lệch pha nhau
         const fx = Math.sin(t * 0.5 + i * 1.9) * 10, fy = Math.cos(t * 0.42 + i * 2.3) * 10;
         const vx = v.x + fx, vy = v.y + fy;
-        ctx.beginPath(); ctx.arc(vx, vy, 58, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255,158,11,${0.35 + 0.25 * pulse})`; ctx.lineWidth = 3;
-        if (!_mobPerf) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 18; }
-        ctx.stroke(); ctx.shadowBlur = 0;
+        // the ring and its glow are baked once, the pulse only scales the alpha
+        ctx.save();
+        ctx.globalAlpha *= (0.35 + 0.25 * pulse) / 0.6;
+        ctx.translate(vx, vy);
+        _blitGoliathFx(_goliathFxSprite('haloVertex', 100, 1.5, g => {
+            g.beginPath(); g.arc(0, 0, 58, 0, Math.PI * 2);
+            g.strokeStyle = 'rgba(255,158,11,0.6)'; g.lineWidth = 3;
+            g.shadowColor = '#f59e0b'; g.shadowBlur = 18;
+            g.stroke();
+        }), 100);
+        ctx.restore();
         _drawGoliathGolemChunk(vx, vy, 50, i * 31 + 7);
     });
 
