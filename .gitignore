@@ -9,3 +9,8 @@ misc/imagegen/
 misc/scratch/
 misc/tmp-pdfs/
 node_modules/
+# Briefs, prompts, plans and review notes stay on disk, out of the repo.
+misc/*.md
+docs/
+# Render checks, sheets and clips.
+tmp/
