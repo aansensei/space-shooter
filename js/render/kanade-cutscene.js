@@ -64,6 +64,11 @@
   // to decode video every frame is not worth it).
   const _frozenRealmImg = new Image();
   _frozenRealmImg.src = 'assets/images/game/effects/frozen-realm.jpg';
+  // The digital world on the far side of her gate: black cubes edged in red
+  // down a wire tunnel. Replacing this file changes it; nothing else needs
+  // to know.
+  const _gateWorldImg = new Image();
+  _gateWorldImg.src = 'assets/images/game/effects/kanade-gate-world.png';
   // Muted and inline so it is allowed to autoplay without a gesture. It is
   // only ever running while the cutscene is on screen: a decoding video is
   // real work and there is no reason to pay for it the rest of the run.
@@ -80,22 +85,22 @@
   _frozenRealmVid.addEventListener('error', () => { _realmVidOk = false; });
   _frozenRealmVid.src = 'assets/video/frozen-realm.mp4';
 
-  // Decoding a 720p frame every frame is the one part of this backdrop that
-  // costs real time, so the two reduced tiers fall back to the still.
+  // The video runs on every tier but the minimum, which shows the still
+  // frame instead; the video is light enough that Low keeps it.
   function realmVideoReady() {
     return _realmVidOk && _frozenRealmVid.readyState >= 2
-      && _frozenRealmVid.videoWidth > 0 && freezeTier() <= 1;
+      && _frozenRealmVid.videoWidth > 0 && freezeTier() <= 2;
   }
 
   function startRealmVideo() {
-    if (!_realmVidOk || freezeTier() > 1) return;
+    if (!_realmVidOk || freezeTier() > 2) return;
     try { _frozenRealmVid.currentTime = 0; _frozenRealmVid.play().catch(() => {}); } catch (_) {}
   }
 
   function stopRealmVideo() {
     try { _frozenRealmVid.pause(); _frozenRealmVid.currentTime = 0; } catch (_) {}
   }
-  [_tdBannerImg, _tdPlayerIconImg, _tdEnemyIconImg, _kanadeHaloImg, _frozenRealmImg].forEach(img => {
+  [_tdBannerImg, _tdPlayerIconImg, _tdEnemyIconImg, _kanadeHaloImg, _frozenRealmImg, _gateWorldImg].forEach(img => {
     img.decoding = 'async';
     if (img.decode) img.decode().catch(() => {});
   });
@@ -637,6 +642,33 @@
   // The ahoge: one strand standing up off the crown and curling over. sw
   // is how far its tip has swung; it is the lightest thing on her, so it
   // swings further and later than any lock of hair. Root at (x, y).
+  // Her hair's own motion, apart from the body's sway, so it still moves
+  // while she holds a pose. hairT is its clock (see poseFor), a cycle twice
+  // the body's so its cache steps land on the same frames as t's and add no
+  // redraws; without it the hair rides the body cycle. hairEnergy (0..1)
+  // swings it wider and lifts the ends while she gathers power, hairWind
+  // pushes the ends sideways and hairImpact throws them back from the spell.
+  // Amounts are in grid units at the tip of the long hair: osc is the swing
+  // alone, push the steady offset, long both together.
+  function computeHairMotion(t, opts) {
+    const ht = opts.hairT != null ? opts.hairT : t * 0.5;
+    const energy = clamp01(opts.hairEnergy || 0);
+    const TAU = Math.PI * 2;
+    const amp = 0.55 + 1.4 * energy;
+    const push = (opts.hairWind || 0) - (opts.hairImpact || 0);
+    const osc = lag => Math.sin(TAU * ht - lag) * amp;
+    return {
+      osc, push,
+      long: lag => osc(lag) + push,
+      // The fine loose strands run at twice the rate.
+      strand: lag => Math.sin(2 * TAU * ht - lag) * (0.35 + 0.6 * energy) + push * 0.7,
+      // The ahoge on its own lagged beat.
+      ahoge: Math.sin(TAU * ht - 1.1) * (0.3 + 0.35 * energy) - (opts.hairImpact || 0) * 0.5,
+      // How far the ends of the long hair rise, in units of droop.
+      lift: 0.3 * energy,
+    };
+  }
+
   // Short, with a slight S: out of the parting, bending one way and then
   // tipping the other at the end, tapering to a point, and at rest leaning
   // a little to one side rather than standing straight up. Its edge is a
@@ -735,7 +767,11 @@
       // enough that a still face still hits the cache.
       Math.round((o.blinkAmount != null ? o.blinkAmount : (o.blink ? 1 : 0)) * 10) + ',' +
       Math.round((o.gazeX || 0) * 10) + ',' + Math.round((o.gazeY || 0) * 10) + ',' +
-      Math.round((o.headTurn || 0) * 1000) + ',' + Math.round((o.magicLight || 0) * 10);
+      Math.round((o.headTurn || 0) * 1000) + ',' + Math.round((o.magicLight || 0) * 10) + ':' +
+      // Hair clock in 48 steps: at twice the body's period that is the same
+      // 37.5ms as t's 24, so it never adds a redraw on its own.
+      Math.round((o.hairT || 0) * 48) + ',' + q(o.hairWind) + ',' +
+      Math.round((o.hairEnergy || 0) * 10) + ',' + Math.round((o.hairImpact || 0) * 10);
   }
 
   // The face's features: eyes, brows, nose, mouth and blush, drawn inside
@@ -828,72 +864,77 @@
     // The hair behind her follows droop only halfway. Taken all the way, its
     // ends pushed out below the hem as one grey spike under the gown.
     const hairDrop = Math.min(droop, 0.5);
+    // The hair behind her takes the body's trail plus its own swing, and its
+    // ends lift a little with the charge.
+    const hm = computeHairMotion(t, opts);
+    const hTrail = trail + hm.long(1.1);
+    const hDrop = hairDrop - hm.lift;
 
     pctx.clearRect(0, 0, GRID_W, GRID_H);
     pctx.save();
     pctx.translate(lean, bob);
 
     bezierShape([79, 17], [
-      [67, 21, 61, 39, 61 + trail * 0.08, 68],
-      [61 + trail * 0.2, 98, 60 + trail * 0.5, 128 + hairDrop * 8, 54 + trail * 0.7, 141 + hairDrop * 7],
-      [59 + trail * 0.65, 147 + hairDrop * 5, 66 + trail * 0.45, 145 + hairDrop * 5, 71 + trail * 0.35, 138 + hairDrop * 7],
-      [73 + trail * 0.25, 149 + hairDrop * 6, 80 + trail * 0.15, 154 + hairDrop * 4, 84, 139 + hairDrop * 6],
-      [88, 151 + hairDrop * 5, 94, 153 + hairDrop * 4, 98, 137 + hairDrop * 6],
-      [104 + trail * 0.15, 151 + hairDrop * 5, 112 + trail * 0.35, 151 + hairDrop * 5, 116 + trail * 0.6, 139 + hairDrop * 7],
-      [122 + trail * 0.7, 124 + hairDrop * 8, 121 + trail * 0.2, 78, 119, 57],
+      [67, 21, 61, 39, 61 + hTrail * 0.08, 68],
+      [61 + hTrail * 0.2, 98, 60 + hTrail * 0.5, 128 + hDrop * 8, 54 + hTrail * 0.7, 141 + hDrop * 7],
+      [59 + hTrail * 0.65, 147 + hDrop * 5, 66 + hTrail * 0.45, 145 + hDrop * 5, 71 + hTrail * 0.35, 138 + hDrop * 7],
+      [73 + hTrail * 0.25, 149 + hDrop * 6, 80 + hTrail * 0.15, 154 + hDrop * 4, 84, 139 + hDrop * 6],
+      [88, 151 + hDrop * 5, 94, 153 + hDrop * 4, 98, 137 + hDrop * 6],
+      [104 + hTrail * 0.15, 151 + hDrop * 5, 112 + hTrail * 0.35, 151 + hDrop * 5, 116 + hTrail * 0.6, 139 + hDrop * 7],
+      [122 + hTrail * 0.7, 124 + hDrop * 8, 121 + hTrail * 0.2, 78, 119, 57],
       [116, 31, 108, 18, 99, 16],
       [92, 12, 85, 13, 79, 17]
     ], PAL.hairMid);
 
     bezierShape([78, 24], [
-      [68, 35, 65, 66, 66 + trail * 0.15, 96],
-      [65 + trail * 0.35, 119, 61 + trail * 0.6, 138 + hairDrop * 7, 55 + trail * 0.7, 141 + hairDrop * 7],
-      [61 + trail * 0.55, 144 + hairDrop * 5, 68 + trail * 0.35, 139 + hairDrop * 6, 72, 121],
+      [68, 35, 65, 66, 66 + hTrail * 0.15, 96],
+      [65 + hTrail * 0.35, 119, 61 + hTrail * 0.6, 138 + hDrop * 7, 55 + hTrail * 0.7, 141 + hDrop * 7],
+      [61 + hTrail * 0.55, 144 + hDrop * 5, 68 + hTrail * 0.35, 139 + hDrop * 6, 72, 121],
       [74, 87, 75, 48, 78, 24]
     ], PAL.hairShadow);
     bezierShape([103, 20], [
-      [112, 31, 116, 58, 115 + trail * 0.12, 88],
-      [116 + trail * 0.35, 116, 116 + trail * 0.62, 135 + hairDrop * 7, 112 + trail * 0.7, 148 + hairDrop * 6],
-      [107 + trail * 0.5, 150 + hairDrop * 5, 102 + trail * 0.3, 140 + hairDrop * 6, 100, 123],
+      [112, 31, 116, 58, 115 + hTrail * 0.12, 88],
+      [116 + hTrail * 0.35, 116, 116 + hTrail * 0.62, 135 + hDrop * 7, 112 + hTrail * 0.7, 148 + hDrop * 6],
+      [107 + hTrail * 0.5, 150 + hDrop * 5, 102 + hTrail * 0.3, 140 + hDrop * 6, 100, 123],
       [101, 87, 100, 43, 103, 20]
     ], PAL.hairDeep);
     // Dark outline along the outer edge of each side-hair strand only -
     // this is exactly where hair drapes right next to the sleeve fabric
     // and the two were blending into one shape with no separating line.
     bezierLine([78, 24], [
-      [68, 35, 65, 66, 66 + trail * 0.15, 96],
-      [65 + trail * 0.35, 119, 61 + trail * 0.6, 138 + hairDrop * 7, 55 + trail * 0.7, 141 + hairDrop * 7]
+      [68, 35, 65, 66, 66 + hTrail * 0.15, 96],
+      [65 + hTrail * 0.35, 119, 61 + hTrail * 0.6, 138 + hDrop * 7, 55 + hTrail * 0.7, 141 + hDrop * 7]
     ], PAL.outline, STROKE.seam);
     bezierLine([103, 20], [
-      [112, 31, 116, 58, 115 + trail * 0.12, 88],
-      [116 + trail * 0.35, 116, 116 + trail * 0.62, 135 + hairDrop * 7, 112 + trail * 0.7, 148 + hairDrop * 6]
+      [112, 31, 116, 58, 115 + hTrail * 0.12, 88],
+      [116 + hTrail * 0.35, 116, 116 + hTrail * 0.62, 135 + hDrop * 7, 112 + hTrail * 0.7, 148 + hDrop * 6]
     ], PAL.outline, STROKE.seam);
     bezierShape([84, 20], [
-      [78, 38, 77, 72, 78 + trail * 0.1, 101],
-      [78 + trail * 0.35, 121, 76 + trail * 0.52, 136 + hairDrop * 6, 72 + trail * 0.6, 143 + hairDrop * 6],
-      [78 + trail * 0.4, 141 + hairDrop * 4, 83 + trail * 0.2, 124 + hairDrop * 5, 84, 101],
+      [78, 38, 77, 72, 78 + hTrail * 0.1, 101],
+      [78 + hTrail * 0.35, 121, 76 + hTrail * 0.52, 136 + hDrop * 6, 72 + hTrail * 0.6, 143 + hDrop * 6],
+      [78 + hTrail * 0.4, 141 + hDrop * 4, 83 + hTrail * 0.2, 124 + hDrop * 5, 84, 101],
       [86, 70, 87, 39, 84, 20]
     ], PAL.hairLight);
     bezierShape([94, 18], [
-      [99, 37, 101, 67, 101 + trail * 0.08, 96],
-      [102 + trail * 0.3, 119, 105 + trail * 0.5, 134 + hairDrop * 6, 109 + trail * 0.58, 143 + hairDrop * 6],
-      [103 + trail * 0.38, 140 + hairDrop * 4, 97 + trail * 0.18, 124 + hairDrop * 5, 96, 101],
+      [99, 37, 101, 67, 101 + hTrail * 0.08, 96],
+      [102 + hTrail * 0.3, 119, 105 + hTrail * 0.5, 134 + hDrop * 6, 109 + hTrail * 0.58, 143 + hDrop * 6],
+      [103 + hTrail * 0.38, 140 + hDrop * 4, 97 + hTrail * 0.18, 124 + hDrop * 5, 96, 101],
       [93, 67, 91, 35, 94, 18]
     ], PAL.hairLight);
-    bezierLine([70, 35], [[68, 64, 70 + trail * 0.2, 101, 64 + trail * 0.55, 136 + hairDrop * 6]], PAL.hairDeep, STROKE.band);
-    bezierLine([81, 26], [[80, 54, 82 + trail * 0.12, 91, 78 + trail * 0.42, 128 + hairDrop * 5]], PAL.hairHi, STROKE.strap);
-    bezierLine([108, 28], [[111, 56, 109 + trail * 0.15, 92, 113 + trail * 0.48, 132 + hairDrop * 5]], PAL.hairShadow, STROKE.band);
+    bezierLine([70, 35], [[68, 64, 70 + hTrail * 0.2, 101, 64 + hTrail * 0.55, 136 + hDrop * 6]], PAL.hairDeep, STROKE.band);
+    bezierLine([81, 26], [[80, 54, 82 + hTrail * 0.12, 91, 78 + hTrail * 0.42, 128 + hDrop * 5]], PAL.hairHi, STROKE.strap);
+    bezierLine([108, 28], [[111, 56, 109 + hTrail * 0.15, 92, 113 + hTrail * 0.48, 132 + hDrop * 5]], PAL.hairShadow, STROKE.band);
 
     // Second pass over the back hair. It is the largest single area on the
     // sprite and was three flat fills, so it carried none of the detail the
     // rest of her has. Locks are built from alternating tones at uneven
     // spacing: evenly spaced lines of one colour read as corduroy.
-    bezierLine([65, 40], [[62, 66, 61 + trail * 0.3, 96, 58 + trail * 0.6, 126 + hairDrop * 6]], PAL.hairDeep, STROKE.edge);
-    bezierLine([70, 30], [[68, 58, 67 + trail * 0.25, 90, 65 + trail * 0.55, 124 + hairDrop * 6]], PAL.hairLight, STROKE.fine);
-    bezierLine([75, 46], [[73, 72, 72 + trail * 0.2, 100, 70 + trail * 0.45, 130 + hairDrop * 5]], PAL.hairShadow, STROKE.seam);
-    bezierLine([113, 40], [[116, 66, 117 + trail * 0.3, 96, 120 + trail * 0.6, 126 + hairDrop * 6]], PAL.hairDeep, STROKE.edge);
-    bezierLine([108, 34], [[110, 60, 111 + trail * 0.25, 92, 113 + trail * 0.55, 124 + hairDrop * 6]], PAL.hairLight, STROKE.fine);
-    bezierLine([103, 48], [[105, 74, 106 + trail * 0.2, 102, 108 + trail * 0.45, 130 + hairDrop * 5]], PAL.hairShadow, STROKE.seam);
+    bezierLine([65, 40], [[62, 66, 61 + hTrail * 0.3, 96, 58 + hTrail * 0.6, 126 + hDrop * 6]], PAL.hairDeep, STROKE.edge);
+    bezierLine([70, 30], [[68, 58, 67 + hTrail * 0.25, 90, 65 + hTrail * 0.55, 124 + hDrop * 6]], PAL.hairLight, STROKE.fine);
+    bezierLine([75, 46], [[73, 72, 72 + hTrail * 0.2, 100, 70 + hTrail * 0.45, 130 + hDrop * 5]], PAL.hairShadow, STROKE.seam);
+    bezierLine([113, 40], [[116, 66, 117 + hTrail * 0.3, 96, 120 + hTrail * 0.6, 126 + hDrop * 6]], PAL.hairDeep, STROKE.edge);
+    bezierLine([108, 34], [[110, 60, 111 + hTrail * 0.25, 92, 113 + hTrail * 0.55, 124 + hDrop * 6]], PAL.hairLight, STROKE.fine);
+    bezierLine([103, 48], [[105, 74, 106 + hTrail * 0.2, 102, 108 + hTrail * 0.45, 130 + hDrop * 5]], PAL.hairShadow, STROKE.seam);
 
     // Sheen band across the back hair, the anime convention for a lit head of
     // hair, kept low and broken so it does not look like a painted stripe.
@@ -902,9 +943,9 @@
 
     // Tips: a few strands breaking away from the mass at the bottom so the
     // hair does not end on one clean edge.
-    bezierLine([60 + trail * 0.6, 120], [[57 + trail * 0.7, 132, 56 + trail * 0.8, 142, 58 + trail * 0.9, 143 + hairDrop * 3]], PAL.hairMid, STROKE.seam);
-    bezierLine([118 + trail * 0.6, 122], [[121 + trail * 0.7, 134, 122 + trail * 0.8, 144, 120 + trail * 0.9, 147 + hairDrop * 4]], PAL.hairMid, STROKE.seam);
-    bezierLine([88, 130], [[87, 140, 87, 148, 88, 148 + hairDrop * 4]], PAL.hairShadow, STROKE.fine);
+    bezierLine([60 + hTrail * 0.6, 120], [[57 + hTrail * 0.7, 132, 56 + hTrail * 0.8, 142, 58 + hTrail * 0.9, 143 + hDrop * 3]], PAL.hairMid, STROKE.seam);
+    bezierLine([118 + hTrail * 0.6, 122], [[121 + hTrail * 0.7, 134, 122 + hTrail * 0.8, 144, 120 + hTrail * 0.9, 147 + hDrop * 4]], PAL.hairMid, STROKE.seam);
+    bezierLine([88, 130], [[87, 140, 87, 148, 88, 148 + hDrop * 4]], PAL.hairShadow, STROKE.fine);
 
     // Robe panels trailing behind her. Curves rather than polygons: as
     // polygons their corners came out under the hem as hard points, reading
@@ -1339,15 +1380,17 @@
     };
     drawFace(face);
 
-    bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
-    bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);
+    // Side hair: the body's sway plus its own swing, each side on its own lag.
+    const sideL = hm.long(0.6) * 0.7, sideR = hm.long(1.0) * 0.7;
+    bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4 + sideL, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
+    bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);
     // Locks inside the side hair. Without them each side is one flat slab
     // with a straight outer edge, which is most of what made the hair read as
     // a pair of curtains.
-    bezierLine([79, 26], [[76.5, 40, 76, 56, 76.5 + sway * 0.3, 70]], PAL.hairShadow, STROKE.seam);
-    bezierLine([83, 30], [[81, 44, 80.5, 60, 81 + sway * 0.25, 76]], PAL.hairHi, STROKE.fine);
-    bezierLine([105, 26], [[107.5, 40, 108, 56, 107.5 + sway * 0.3, 70]], PAL.hairDeep, STROKE.seam);
-    bezierLine([101, 30], [[103, 44, 103.5, 60, 103 + sway * 0.25, 76]], PAL.hairLight, STROKE.fine);
+    bezierLine([79, 26], [[76.5, 40, 76, 56, 76.5 + sway * 0.3 + sideL, 70]], PAL.hairShadow, STROKE.seam);
+    bezierLine([83, 30], [[81, 44, 80.5, 60, 81 + sway * 0.25 + sideL, 76]], PAL.hairHi, STROKE.fine);
+    bezierLine([105, 26], [[107.5, 40, 108, 56, 107.5 + sway * 0.3 + sideR, 70]], PAL.hairDeep, STROKE.seam);
+    bezierLine([101, 30], [[103, 44, 103.5, 60, 103 + sway * 0.25 + sideR, 76]], PAL.hairLight, STROKE.fine);
 
     // Crown drawn first in a light tone so it blends with the bangs sitting
     // on top of it, instead of reading as a separate dark "cap". Its inner
@@ -1428,7 +1471,7 @@
     bezierShape([78.8, 18.2], [[82, 14.4, 87, 13.2, 91.2, 13.6], [87, 14.8, 82.5, 16, 78.8, 18.2]], PAL.hairHi);
     bezierShape([93.4, 13.8], [[97, 13.6, 101, 14.8, 104, 17.6], [100.6, 16, 97, 15.2, 93.4, 13.8]], PAL.hairHi);
     bezierLine([75, 26], [[76, 14, 83, 9, 92, 9], [101, 9, 108, 14, 109, 26]], PAL.hairShadow, STROKE.fine);
-    drawAhoge(92, 9.6, sway * 0.45);
+    drawAhoge(92, 9.6, sway * 0.25 + hm.ahoge);
 
     // Gold hair ornament: a star pinned where the fringe meets the temple,
     // with a short beaded chain falling from it. Gold is the only thing on
@@ -1488,8 +1531,8 @@
 
       // Loose strands breaking off the side hair, tied to sway so they trail
       // the head.
-      bezierLine([77, 34], [[73, 44, 71, 54, 72 + sway * 0.5, 63]], PAL.hairLight, STROKE.hairline);
-      bezierLine([107, 38], [[111, 48, 113, 58, 112 + sway * 0.5, 67]], PAL.hairLight, STROKE.hairline);
+      bezierLine([77, 34], [[73, 44, 71, 54, 72 + sway * 0.3 + hm.strand(0.4), 63]], PAL.hairLight, STROKE.hairline);
+      bezierLine([107, 38], [[111, 48, 113, 58, 112 + sway * 0.3 + hm.strand(1.2), 67]], PAL.hairLight, STROKE.hairline);
 
       // The gold catching light on a slow cycle, the ornaments and the centre
       // band taking turns. Driven off t so it lands on the cache's own steps
@@ -1530,7 +1573,8 @@
     // How far the lower hair has swung, used in place of trail everywhere in
     // the hair so the whole mass follows a beat behind her. While she walks,
     // each step throws it the other way as her weight moves over the foot.
-    const hairTrail = trail + wave(1.1, 1.2) - walkStep * 1.2;
+    const hm = computeHairMotion(t, opts);
+    const hairTrail = trail + wave(1.1, 1.2) - walkStep * 1.2 + hm.long(1.1);
 
     pctx.clearRect(0, 0, GRID_W, GRID_H);
     pctx.save();
@@ -1807,9 +1851,9 @@
     // its own way, so the back reads as three bunches of hair moving past
     // each other rather than one striped curtain.
     const massSwing = [
-      wave(0.1, 0.6) - walkStep * 0.5,
-      wave(0.9, 0.35),
-      wave(1.7, 0.6) + walkStep * 0.5,
+      wave(0.1, 0.6) - walkStep * 0.5 + hm.osc(0.3) * 0.5,
+      wave(0.9, 0.35) + hm.osc(0.9) * 0.35,
+      wave(1.7, 0.6) + walkStep * 0.5 + hm.osc(1.6) * 0.5,
     ];
     const hang = (x0, y0, w, x1, y1, bend, c, k, lag, shaded, mass) => {
       const len = (y1 - y0) / 100;
@@ -1899,7 +1943,7 @@
     bezierLine([91, 11], hairL, PAL.hairShadow, STROKE.seam);
     // The same strand from behind, curling toward her right, which is the
     // viewer's right from this side too since it leans back over her head.
-    drawAhoge(90.6, 11.6, wave(0.8, 0.65));
+    drawAhoge(90.6, 11.6, wave(0.8, 0.4) + hm.ahoge);
 
     // Her ornaments, from behind. The orbital rings and the crystal drop are
     // on her left, so they sit on the viewer's left here, and the star pin
@@ -2072,13 +2116,43 @@
     return _gateInteriorGrad;
   }
 
-  function drawGate(x, y, radius, openness, alpha, now) {
+  // The world picture fades into the rim instead of ending on a hard edge.
+  let _gateWorldRimGrad = null;
+  function _gateWorldRim() {
+    if (!_gateWorldRimGrad) {
+      _gateWorldRimGrad = ctx.createRadialGradient(0, 0, 70, 0, 0, 150);
+      _gateWorldRimGrad.addColorStop(0, 'rgba(10,6,24,0)');
+      _gateWorldRimGrad.addColorStop(0.7, 'rgba(18,10,40,0.35)');
+      _gateWorldRimGrad.addColorStop(1, 'rgba(24,14,52,0.9)');
+    }
+    return _gateWorldRimGrad;
+  }
+  let _gateCoreGrad = null;
+  function _gateCore() {
+    if (!_gateCoreGrad) {
+      _gateCoreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 48);
+      _gateCoreGrad.addColorStop(0, 'rgba(242,231,255,1)');
+      _gateCoreGrad.addColorStop(0.35, 'rgba(154,116,230,0.6)');
+      _gateCoreGrad.addColorStop(1, 'rgba(22,14,50,0)');
+    }
+    return _gateCoreGrad;
+  }
+
+  // spin is the gate's own clock for everything that turns, in ms: it only
+  // runs while the gate is fully open (see gateSpin), so opening and closing
+  // are a pure sideways stretch with nothing inside turning.
+  function drawGate(x, y, radius, openness, alpha, now, spin) {
     if (openness <= 0 || alpha <= 0) return;
+    if (spin == null) spin = now;
     const R = 154;
     const k = radius / R;
     const squash = Math.max(0.025, openness);
     const lineComp = 1 / Math.max(0.2, squash);
     const pulse = 0.82 + Math.sin(now * 0.006) * 0.18;
+    // How far the gate's drawing has unfolded: rims draw on from the top and
+    // meet at the bottom, and the finer rings and runes come in with it.
+    const unfold = smootherstep(clamp01(openness / 0.85));
+    const top = -Math.PI / 2, sweepOn = Math.PI * unfold;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
@@ -2087,6 +2161,53 @@
     ctx.beginPath();
     ctx.arc(0, 0, R - 4, 0, Math.PI * 2);
     ctx.fill();
+
+    // Through the gate, the digital world she comes from: the picture turning
+    // slowly and breathing in and out, a smaller copy turning the other way on
+    // top for depth, and cubes streaming out of the vanishing point toward
+    // the viewer. Everything is clipped to the gate's opening.
+    const gTier = freezeTier();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, R - 6, 0, Math.PI * 2);
+    ctx.clip();
+    if (_gateWorldImg.complete && _gateWorldImg.naturalWidth) {
+      ctx.save();
+      ctx.rotate(spin * 0.00007);
+      const side = (R - 6) * 2 * (1.08 + 0.05 * Math.sin(now * 0.0011));
+      ctx.globalAlpha = alpha * 0.92;
+      ctx.drawImage(_gateWorldImg, -side / 2, -side / 2, side, side);
+      if (gTier === 0) {
+        ctx.rotate(-spin * 0.00022);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = alpha * 0.2;
+        const s2 = side * 0.55;
+        ctx.drawImage(_gateWorldImg, -s2 / 2, -s2 / 2, s2, s2);
+      }
+      ctx.restore();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = _gateWorldRim();
+      ctx.fillRect(-R, -R, R * 2, R * 2);
+    }
+    // Cubes, two depth bands, each one black fill and one red edge pass.
+    const cubes = gTier === 0 ? 34 : gTier === 1 ? 20 : gTier === 2 ? 10 : 0;
+    for (let band = 0; band < 2 && cubes; band++) {
+      ctx.beginPath();
+      for (let i = 0; i < cubes; i++) {
+        const ph = (now * 0.00032 + i * 0.618034) % 1;
+        if ((ph >= 0.5 ? 1 : 0) !== band) continue;
+        const e = ph * ph, a = i * 2.39996 + spin * 0.0002;
+        const r = 8 + e * (R - 22), sz = 1.5 + 13 * e;
+        ctx.rect(Math.cos(a) * r - sz / 2, Math.sin(a) * r - sz / 2, sz, sz);
+      }
+      ctx.globalAlpha = alpha * (band ? 0.95 : 0.55);
+      ctx.fillStyle = '#07050b';
+      ctx.fill();
+      ctx.strokeStyle = band ? 'rgb(255,58,92)' : 'rgb(190,40,90)';
+      ctx.lineWidth = (band ? 1.4 : 0.9) * lineComp;
+      ctx.stroke();
+    }
+    ctx.restore();
 
     ctx.save();
     ctx.beginPath();
@@ -2137,17 +2258,136 @@
     ctx.strokeStyle = `rgba(239,226,255,${0.82 + pulse * 0.16})`;
     ctx.lineWidth = 3.4 * lineComp;
     ctx.beginPath();
-    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.arc(0, 0, R, top - sweepOn, top + sweepOn);
     ctx.stroke();
     ctx.shadowBlur = 10;
     ctx.strokeStyle = 'rgba(178,137,255,0.82)';
     ctx.lineWidth = 2 * lineComp;
     ctx.beginPath();
-    ctx.arc(0, 0, R - 12, 0, Math.PI * 2);
+    ctx.arc(0, 0, R - 12, top + sweepOn, top - sweepOn, true);
     ctx.stroke();
 
+    // Segmented rings turning against each other outside and inside the
+    // rim, the inner one in the world's red, and a bright sweep chasing
+    // round the rim with a fading tail.
     ctx.save();
-    ctx.rotate(now * 0.0006);
+    ctx.rotate(-spin * 0.0005);
+    ctx.strokeStyle = 'rgba(220,198,255,0.8)';
+    ctx.lineWidth = 2.2 * lineComp;
+    ctx.beginPath();
+    for (let i = 0; i < Math.ceil(16 * unfold); i++) {
+      const a = i * Math.PI / 8;
+      ctx.moveTo(Math.cos(a) * (R + 8), Math.sin(a) * (R + 8));
+      ctx.arc(0, 0, R + 8, a, a + 0.24);
+    }
+    ctx.stroke();
+    ctx.rotate(spin * 0.0013);
+    ctx.strokeStyle = 'rgba(255,70,110,0.65)';
+    ctx.lineWidth = 1.5 * lineComp;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      ctx.moveTo(Math.cos(a) * (R - 24), Math.sin(a) * (R - 24));
+      ctx.arc(0, 0, R - 24, a, a + 0.55);
+    }
+    ctx.stroke();
+    ctx.restore();
+    const sweep = spin * 0.0024;
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 3 * lineComp;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, sweep - 0.7, sweep - 0.15);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.lineWidth = 3.6 * lineComp;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, sweep - 0.15, sweep + 0.18);
+    ctx.stroke();
+
+    // Finer layers, each one path, faded in as the gate unfolds: graduation
+    // ticks inside the rim, a band of runes outside it, circuit traces with
+    // lit nodes running from the centre to the rim, and a dashed data ring
+    // whose dashes run round it.
+    ctx.shadowBlur = 0;
+    const gT = freezeTier();
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.55 * unfold;
+    ctx.strokeStyle = 'rgb(214,196,255)';
+    ctx.lineWidth = 1 * lineComp;
+    ctx.beginPath();
+    for (let i = 0; i < 72; i++) {
+      const a = i * Math.PI / 36, r1 = R - 4, r0 = R - (i % 6 === 0 ? 11 : 7);
+      ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+      ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+    }
+    ctx.stroke();
+    if (gT <= 2) {
+      ctx.rotate(spin * 0.00035);
+      ctx.globalAlpha = alpha * 0.7 * unfold;
+      ctx.strokeStyle = 'rgb(230,214,255)';
+      ctx.lineWidth = 1.3 * lineComp;
+      ctx.beginPath();
+      const g0 = R + 18, g1 = R + 28, gm = (g0 + g1) / 2;
+      for (let i = 0; i < 36; i++) {
+        const a = (i / 36) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+        const tx = -sa * 2.6, ty = ca * 2.6, kind = Math.floor(hash(i, 3.3) * 4);
+        if (kind === 0) { ctx.moveTo(ca * g0, sa * g0); ctx.lineTo(ca * g1, sa * g1); }
+        else if (kind === 1) { ctx.moveTo(ca * g0 - tx, sa * g0 - ty); ctx.lineTo(ca * g1, sa * g1); ctx.lineTo(ca * g0 + tx, sa * g0 + ty); }
+        else if (kind === 2) { ctx.moveTo(ca * gm - tx, sa * gm - ty); ctx.lineTo(ca * gm + tx, sa * gm + ty); ctx.moveTo(ca * g0, sa * g0); ctx.lineTo(ca * gm, sa * gm); }
+        else { ctx.moveTo(ca * g0 + tx * 0.5, sa * g0 + ty * 0.5); ctx.lineTo(ca * g1 + tx * 0.5, sa * g1 + ty * 0.5); ctx.moveTo(ca * g1 - tx * 0.5, sa * g1 - ty * 0.5); ctx.lineTo(ca * gm - tx * 0.5, sa * gm - ty * 0.5); }
+      }
+      ctx.stroke();
+      ctx.rotate(-spin * 0.00035 - spin * 0.0003);
+      ctx.globalAlpha = alpha * 0.6 * unfold;
+      ctx.strokeStyle = 'rgb(255,70,105)';
+      ctx.lineWidth = 1.1 * lineComp;
+      ctx.beginPath();
+      const nodes = [];
+      for (let i = 0; i < 12; i++) {
+        const a = i * Math.PI / 6 + 0.13, step = (hash(i, 5.1) - 0.5) * 0.3;
+        const r0 = 58, r1 = 80 + hash(i, 2.2) * 24, r2 = R - 30;
+        ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+        ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1);
+        ctx.arc(0, 0, r1, a, a + step, step < 0);
+        ctx.lineTo(Math.cos(a + step) * r2, Math.sin(a + step) * r2);
+        nodes.push([Math.cos(a + step) * r2, Math.sin(a + step) * r2], [Math.cos(a) * r1, Math.sin(a) * r1]);
+      }
+      ctx.stroke();
+      ctx.fillStyle = 'rgb(255,150,170)';
+      ctx.beginPath();
+      for (const nd of nodes) { ctx.moveTo(nd[0] + 2.2, nd[1]); ctx.arc(nd[0], nd[1], 2.2, 0, Math.PI * 2); }
+      ctx.fill();
+      ctx.setLineDash([7, 6]);
+      ctx.lineDashOffset = -spin * 0.03;
+      ctx.globalAlpha = alpha * 0.5 * unfold;
+      ctx.strokeStyle = 'rgb(186,150,255)';
+      ctx.lineWidth = 1.4 * lineComp;
+      ctx.beginPath();
+      ctx.arc(0, 0, R * 0.62, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+
+    // While it tears open or shuts, bright horizontal slices flicker across
+    // the opening like a digital tear, a new set every 60ms.
+    if (openness < 0.98 && gT <= 2) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, 0, R - 6, 0, Math.PI * 2);
+      ctx.clip();
+      const bucket = Math.floor(now / 60);
+      ctx.globalAlpha = alpha * 0.7 * (1 - openness);
+      for (let i = 0; i < 6; i++) {
+        const yy = (hash(i, bucket) - 0.5) * 2 * (R - 20), hgt = 1.5 + hash(bucket, i + 9) * 3.5;
+        ctx.fillStyle = i % 3 ? 'rgb(236,222,255)' : 'rgb(255,70,105)';
+        ctx.fillRect(-R, yy, R * 2, hgt);
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.rotate(spin * 0.0006);
     ctx.strokeStyle = 'rgba(205,181,255,0.66)';
     ctx.lineWidth = 1.25 * lineComp;
     for (let i = 0; i < 12; i++) {
@@ -2167,7 +2407,7 @@
     ctx.restore();
 
     ctx.save();
-    ctx.rotate(-now * 0.0011);
+    ctx.rotate(-spin * 0.0011);
     ctx.strokeStyle = 'rgba(240,226,255,0.7)';
     ctx.lineWidth = 1.3 * lineComp;
     ctx.beginPath();
@@ -2190,7 +2430,7 @@
     ctx.restore();
 
     ctx.save();
-    ctx.rotate(now * 0.0009);
+    ctx.rotate(spin * 0.0009);
     for (let i = 0; i < 10; i++) {
       const a = i * Math.PI / 5;
       const rr = R + 12 + (i % 2) * 8;
@@ -2207,11 +2447,10 @@
     }
     ctx.restore();
 
-    const core = ctx.createRadialGradient(0, 0, 0, 0, 0, 48);
-    core.addColorStop(0, `rgba(242,231,255,${0.24 + pulse * 0.12})`);
-    core.addColorStop(0.35, 'rgba(154,116,230,0.2)');
-    core.addColorStop(1, 'rgba(22,14,50,0)');
-    ctx.fillStyle = core;
+    // The core, one cached gradient pulsing through its alpha.
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = alpha * (0.3 + pulse * 0.12);
+    ctx.fillStyle = _gateCore();
     ctx.beginPath();
     ctx.arc(0, 0, 48, 0, Math.PI * 2);
     ctx.fill();
@@ -2452,6 +2691,68 @@
       const r = R + 26;
       ctx.beginPath(); ctx.arc(Math.cos(a) * r, Math.sin(a) * r, 3.2, 0, Math.PI * 2); ctx.fill();
     }
+
+    // The rest of the circle, brighter as the spell charges. A trail behind
+    // each orbiting mote, a band of runes turning against the ring, an
+    // eight-pointed star in the middle and dashes outside, each drawn as one
+    // path.
+    const tier = freezeTier();
+    const e = Math.min(1.4, energy);
+    ctx.strokeStyle = 'hsla(320, 90%, 78%, ' + (0.25 + e * 0.25) + ')';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = ringRot * 1.6 + (i / 8) * Math.PI * 2;
+      ctx.moveTo(Math.cos(a - 0.34) * (R + 26), Math.sin(a - 0.34) * (R + 26));
+      ctx.arc(0, 0, R + 26, a - 0.34, a - 0.04);
+    }
+    ctx.stroke();
+    if (tier <= 2) {
+      ctx.save();
+      ctx.rotate(-ringRot * 2.6);
+      ctx.strokeStyle = 'hsla(285, 80%, 84%, ' + (0.3 + e * 0.35) + ')';
+      ctx.lineWidth = 1.7;
+      ctx.beginPath();
+      const r0 = R - 28, r1 = R - 14, rm = (r0 + r1) / 2;
+      for (let i = 0; i < 40; i++) {
+        const a = (i / 40) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+        const kind = Math.floor(hash(i, 7.7) * 4);
+        const tx = -sa * 3.2, ty = ca * 3.2;
+        if (kind === 0) { ctx.moveTo(ca * r0, sa * r0); ctx.lineTo(ca * r1, sa * r1); }
+        else if (kind === 1) { ctx.moveTo(ca * r0 + tx * 0.5, sa * r0 + ty * 0.5); ctx.lineTo(ca * r1 + tx * 0.5, sa * r1 + ty * 0.5); ctx.moveTo(ca * r0 - tx * 0.5, sa * r0 - ty * 0.5); ctx.lineTo(ca * rm - tx * 0.5, sa * rm - ty * 0.5); }
+        else if (kind === 2) { ctx.moveTo(ca * rm - tx, sa * rm - ty); ctx.lineTo(ca * rm + tx, sa * rm + ty); ctx.moveTo(ca * rm, sa * rm); ctx.lineTo(ca * r1, sa * r1); }
+        else { ctx.moveTo(ca * r0 - tx, sa * r0 - ty); ctx.lineTo(ca * r1, sa * r1); ctx.lineTo(ca * r0 + tx, sa * r0 + ty); }
+      }
+      ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.rotate(-ringRot * 1.3);
+      ctx.strokeStyle = 'hsla(280, 75%, 80%, ' + (0.14 + e * 0.26) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      // An eight-pointed star, one unbroken line through every third point.
+      const hr = R - 36;
+      for (let v = 0; v <= 8; v++) {
+        const a = -Math.PI / 2 + ((v * 3) % 8) * Math.PI / 4;
+        if (v === 0) ctx.moveTo(Math.cos(a) * hr, Math.sin(a) * hr); else ctx.lineTo(Math.cos(a) * hr, Math.sin(a) * hr);
+      }
+      ctx.moveTo(hr * 0.5, 0);
+      ctx.arc(0, 0, hr * 0.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.rotate(-ringRot * 0.8);
+      ctx.strokeStyle = 'hsla(270, 70%, 76%, ' + (0.2 + e * 0.25) + ')';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      for (let i = 0; i < 12; i++) {
+        const a = i * Math.PI / 6;
+        ctx.moveTo(Math.cos(a) * (R + 40), Math.sin(a) * (R + 40));
+        ctx.arc(0, 0, R + 40, a, a + 0.28);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.restore();
   }
 
@@ -2657,6 +2958,78 @@
     const fw = box * 0.62, fh = box * 0.1;
     ctx.globalAlpha = a * (0.32 + 0.2 * charge);
     ctx.drawImage(glow, pose.x - fw, pose.y + box * 0.4 - fh, fw * 2, fh * 2);
+    ctx.restore();
+  }
+
+  // Magic dust thrown off the gate's rim while it tears open or shuts:
+  // soft violet puffs drifting out and up, swelling and thinning as they go,
+  // and bright motes riding with them. Each piece is worked out from `now`
+  // and its index (where on the rim it left, how far it has drifted), so
+  // nothing is stored between frames. amount 0..1 comes from gateDust.
+  // spread is how wide the gate was when the dust left it: the current
+  // opening while it opens, full width while it closes, so dust left behind
+  // by a closing gate stays where it was and only fades.
+  let _dustPuff = null;
+  function dustPuff() {
+    if (_dustPuff) return _dustPuff;
+    const S = 64, c = document.createElement('canvas');
+    c.width = c.height = S;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    grad.addColorStop(0, 'rgba(200,150,255,0.9)');
+    grad.addColorStop(0.45, 'rgba(148,82,235,0.42)');
+    grad.addColorStop(1, 'rgba(104,40,205,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, S, S);
+    _dustPuff = c;
+    return c;
+  }
+  function gateDustSpread(beatId, openness) {
+    return beatId === 'gate' || beatId === 'leave' ? openness : 1;
+  }
+  function gateDust(beatId, p) {
+    if (beatId === 'gate') return 1 - smootherstep(clamp01((p - 0.55) / 0.45));
+    if (beatId === 'walkOut') return p < 0.62 ? 0 : Math.sin(Math.PI * clamp01((p - 0.62) / 0.38));
+    if (beatId === 'leave') return 1 - smootherstep(clamp01(p / 0.4));
+    if (beatId === 'close') return Math.sin(Math.PI * Math.min(1, p * 1.15));
+    return 0;
+  }
+  function drawGateDust(L, spread, amount, now) {
+    const tier = freezeTier();
+    if (amount <= 0.01 || tier >= 3) return;
+    const R = L.gateR, cx = L.gateX, cy = L.centerY;
+    const squash = Math.max(0.05, spread);
+    const puffs = tier === 0 ? 24 : tier === 1 ? 14 : 8;
+    const motes = tier === 0 ? 36 : tier === 1 ? 20 : 10;
+    const puff = dustPuff();
+    ctx.save();
+    for (let i = 0; i < puffs; i++) {
+      const cyc = now / 1500 + i * 0.618034, ph = cyc % 1, gen = Math.floor(cyc);
+      const a = hash(i, gen) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+      const drift = R * (0.08 + 0.32 * ph);
+      const x = cx + ca * R * squash + ca * drift + Math.sin(now * 0.0017 + i) * R * 0.04;
+      const y = cy + sa * R + sa * drift * 0.7 - ph * R * 0.22;
+      const size = R * (0.16 + 0.3 * ph) * (0.8 + 0.4 * hash(gen, i + 3));
+      ctx.globalAlpha = amount * 0.34 * Math.sin(Math.PI * ph);
+      ctx.drawImage(puff, x - size, y - size, size * 2, size * 2);
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    for (let band = 0; band < 2; band++) {
+      ctx.fillStyle = band ? 'rgb(226,190,255)' : 'rgb(176,112,255)';
+      ctx.globalAlpha = amount * (band ? 0.9 : 0.5);
+      ctx.beginPath();
+      for (let i = 0; i < motes; i++) {
+        const cyc = now / 1100 + i * 0.381966, ph = cyc % 1, gen = Math.floor(cyc);
+        if ((Math.sin(Math.PI * ph) > 0.6 ? 1 : 0) !== band) continue;
+        const a = hash(i + 50, gen) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+        const drift = R * (0.05 + 0.45 * ph);
+        const x = cx + ca * R * squash + ca * drift + Math.sin(now * 0.004 + i * 1.7) * R * 0.03;
+        const y = cy + sa * R + sa * drift * 0.6 - ph * R * 0.35;
+        const sz = Math.max(1, R * 0.012 * (1 - ph * 0.5));
+        ctx.rect(x - sz / 2, y - sz / 2, sz, sz);
+      }
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -3214,6 +3587,29 @@
     return null;
   }
 
+  // The gate's clock for everything that turns, in ms: time weighted by how
+  // open the gate is, so turning starts gently as it tears open, runs at
+  // full speed while it is open and slows as it closes, and never jumps.
+  // A plain function of the beat, integrated with Simpson's rule.
+  function gateOpenIntegral(beatId, p) {
+    const n = 16, h = p / n;
+    let sum = gateOpenness(beatId, 0) + gateOpenness(beatId, p);
+    for (let i = 1; i < n; i++) sum += (i % 2 ? 4 : 2) * gateOpenness(beatId, i * h);
+    return sum * h / 3 * BEAT_MS[beatId];
+  }
+  const GATE_SPIN_BEATS = ['gate', 'walkOut', 'think', 'summon', 'cast', 'leave', 'close'];
+  // Built on first use: BEAT_MS is declared further down the file.
+  let _gateSpinBefore = null;
+  function gateSpin(beatId, p) {
+    if (!_gateSpinBefore) {
+      _gateSpinBefore = {};
+      let acc = 0;
+      for (const b of GATE_SPIN_BEATS) { _gateSpinBefore[b] = acc; acc += gateOpenIntegral(b, 1); }
+    }
+    if (!(beatId in _gateSpinBefore)) return 0;
+    return _gateSpinBefore[beatId] + gateOpenIntegral(beatId, p);
+  }
+
   // Gate openness for a given beat: it tears open before she arrives, shuts
   // once she is clear of it, and reopens for her exit.
   function gateOpenness(beatId, p) {
@@ -3439,7 +3835,6 @@
   }
 
   function drawFrozenRealm(L, reach, now) {
-    if (freezeTier() >= 3) return;
     if (reach <= 0.02) return;
     const vid = realmVideoReady();
     const src = vid ? _frozenRealmVid : _frozenRealmImg;
@@ -3734,6 +4129,13 @@
     return { expression: 'smug', blink: null, look: 1 };
   }
 
+  // The hair's own clock: 1800ms a cycle, twice the body's, read straight
+  // off `now` so it runs on through every beat and through the turn to the
+  // back view without restarting, and holds still while the game is paused.
+  function hairClock(now) { return (now / 1800) % 1; }
+  // Standing hair energy when she is not casting.
+  const HAIR_IDLE_ENERGY = 0.1;
+
   // Everything about how she is posed and placed this frame. Returns null on
   // the beats where she is not on screen at all.
   function poseFor(L, beatId, p, now) {
@@ -3761,6 +4163,9 @@
           // Looking out at the viewer, with only the slowest drift.
           gazeX: drift(now) * 0.15, gazeY: 0,
           expression: 'neutral',
+          // When she stops, the hair swings on past and settles.
+          hairT: hairClock(now), hairEnergy: HAIR_IDLE_ENERGY,
+          hairWind: p < 0.70 ? 0 : 1.1 * Math.sin((p - 0.70) * 1900 / 95) * Math.exp(-(p - 0.70) * 1900 / 220),
         },
       };
     }
@@ -3780,6 +4185,7 @@
           // Her head tips a touch toward the thought bubble and back.
           headTurn: 0.01 * Math.sin(Math.PI * p),
           expression: 'serene',
+          hairT: hairClock(now), hairEnergy: HAIR_IDLE_ENERGY,
         },
       };
     }
@@ -3831,6 +4237,10 @@
           whip: mix(Math.sin(now * 0.021) * charge * 1.2, flutter(now) * 0.6, out),
           magicLight: Math.round(light * 10) / 10,
           expression: eyes.expression,
+          // The charge swings and lifts her hair; the impact throws it back.
+          hairT: hairClock(now),
+          hairEnergy: mix(mix(HAIR_IDLE_ENERGY, Math.min(1, charge + 0.2 * gather), into), 0.15, out),
+          hairImpact: imp,
         },
       };
     }
@@ -3859,6 +4269,7 @@
         gazeX: 0.9 * easeInOut(clamp01(p / 0.15)), gazeY: 0,
         headTurn: 0.006 * easeInOut(clamp01(p / 0.15)),
         expression: 'smug',
+        hairT: hairClock(now), hairEnergy: 0.15,
       },
     };
   }
@@ -4073,8 +4484,11 @@
     if (beat.id === 'freeze') drawGodRays(L.gateX, L.centerY, rayLen * Math.max(0.2, reach), 0.16 * Math.sin(Math.PI * Math.min(1, beat.p * 1.2)), now);
     if (beat.id === 'gate') drawGodRays(L.gateX, L.centerY, rayLen, 0.12 * (1 - beat.p * 0.6), now);
     const openness = gateOpenness(beat.id, beat.p);
+    // Dust first, behind the gate, and outside the openness check so it can
+    // finish fading after the gate has shut.
+    drawGateDust(L, gateDustSpread(beat.id, openness), gateDust(beat.id, beat.p), now);
     if (openness > 0) {
-      drawGate(L.gateX, L.centerY, L.gateR, openness, 1, now);
+      drawGate(L.gateX, L.centerY, L.gateR, openness, 1, now, gateSpin(beat.id, beat.p));
       if (beat.id === 'gate') drawFlare(L.gateX, L.centerY, canvas.width * 1.1, 0.7 * Math.sin(Math.PI * Math.min(1, beat.p * 1.6)));
       // 30 sparks for every 60Hz frame of the first 4% of the beat, however
       // many frames actually land in it.
@@ -4184,6 +4598,7 @@
     // that off the first frame that uses each.
     energyGlow();
     flareStreak();
+    dustPuff();
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);

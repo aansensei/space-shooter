@@ -41,6 +41,7 @@
         'assets/images/game/effects/timeline-distortion-banner.png',
         'assets/images/game/effects/kanade-halo.png',
         'assets/images/game/effects/frozen-realm.jpg',
+        'assets/images/game/effects/kanade-gate-world.png',
         'assets/images/game/icons/soul-reaver-debuff.png',
         'assets/images/game/icons/goliath-silence-debuff.png',
         'assets/images/game/icons/dargruel-root-silence-debuff.png',
