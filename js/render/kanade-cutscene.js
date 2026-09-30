@@ -4937,76 +4937,223 @@
     ctx.restore();
   }
 
-  // Endless Echo (js/entities/goliath.js): Kanade reaches out of her gate in
-  // the middle of a fight. The gate and the raised casting arm are the cutscene's
-  // own, with the body held inside the gate's opening so that only the arm
-  // comes out into the arena.
-  //
-  // ECHO_ANCHOR is the grid point that sits on the gate's centre; with it left
-  // of her middle the raised forearm and hand end up past the rim. ECHO_ARM is
-  // the grid polygon around the raised arm that is let through the rim.
+  // Endless Echo keeps its masked poses and portal artwork in private atlases.
   const ECHO_ANCHOR = [80, 50];
-  const ECHO_ARM = [[108, 47], [118, 40], [140, 18], [152, 20], [152, 34], [132, 55], [118, 64], [108, 64]];
+  const ECHO_ARM = [106, 16, 50, 80];
   const ECHO_PALM = [0, 3.1];
+  let echoArt = null;
+  const echoShadowColor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowColor').set;
 
-  // info: x, y, gateR, box (sprite size in px), open (0..1), ext (arm raise
-  // 0..1), charge (0..1), alpha (her), gateAlpha, mirror (arm points left).
-  // Returns where her palm is on screen, or null while the arm is down.
-  function drawEchoCast(info, now) {
-    const gx = info.x, gy = info.y, box = info.box, u = box / GRID_W;
-    const ext = info.ext, charge = info.charge;
-    const L = { box };
-    const cx = gx + (90 - ECHO_ANCHOR[0]) * u, cy = gy + (90 - ECHO_ANCHOR[1]) * u;
-    const pose = {
-      x: cx, y: cy, scale: 1, alpha: info.alpha, back: false, charge, impact: 0,
-      gather: smootherstep(clamp01((charge - 0.3) / 0.7)),
-      opts: {
-        swayAmp: 0.7, bobAmp: 0.35, castExt: ext,
-        blinkAmount: blinkNow(now), gazeX: 0.85 * ext, gazeY: -0.75 * ext,
-        lean: 0, trail: idleTrail(now, 0.7), whip: Math.sin(now * 0.021) * charge * 1.2,
-        expression: 'smug',
-        magicLight: Math.round(clamp01(ext / 0.25) * Math.min(0.7, 0.58 * charge) * 10) / 10,
-        hairT: hairClock(now), hairEnergy: Math.min(1, charge),
-      },
+  function echoCanvas(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+
+  function echoPrepare() {
+    if (echoArt) return echoArt;
+    const res = 3, steps = 24;
+    const body = [30, 0, 100, 110], cols = 5, rows = Math.ceil((steps + 1) / cols);
+    const art = echoArt = {
+      res, steps, body, ready: 0, worldReady: false,
+      bodies: echoCanvas(body[2] * res * cols, body[3] * res * rows),
+      arms: echoCanvas(ECHO_ARM[2] * res * cols, ECHO_ARM[3] * res * rows),
+      mask: echoCanvas(180 * res, 180 * res),
+      work: echoCanvas(180 * res, 180 * res),
+      armMask: echoCanvas(180 * res, 180 * res),
+      gate: echoCanvas(384, 384), back: echoCanvas(384, 384), front: echoCanvas(384, 384),
+      rings: echoCanvas(384, 384), world: echoCanvas(384, 384),
+      glow: echoCanvas(128, 128), dust: echoCanvas(24, 24), palms: [],
     };
-    const t = (now / 900) % 1;
-    ctx.save();
-    if (info.mirror) { ctx.translate(gx, 0); ctx.scale(-1, 1); ctx.translate(-gx, 0); }
-    drawGate(gx, gy, info.gateR, info.open, info.gateAlpha, now, now);
-    if (info.alpha > 0.01 && info.open > 0.15) {
-      fitSpriteBuffer(box);
-      drawKanade(t, pose.opts);
-      ctx.save();
-      ctx.beginPath();
-      ctx.ellipse(gx, gy, info.gateR * 0.9 * Math.max(0.025, info.open), info.gateR * 0.9, 0, 0, Math.PI * 2);
-      ctx.clip();
-      blitSprite(L, cx, cy, 1, info.alpha);
-      ctx.restore();
-      const armA = info.alpha * clamp01(ext * 3);
-      if (armA > 0.01) {
-        ctx.save();
-        ctx.beginPath();
-        ECHO_ARM.forEach((pt, i) => {
-          const X = gx + (pt[0] - ECHO_ANCHOR[0]) * u, Y = gy + (pt[1] - ECHO_ANCHOR[1]) * u;
-          if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
-        });
-        ctx.closePath();
-        ctx.clip();
-        blitSprite(L, cx, cy, 1, armA);
-        ctx.restore();
+    const m = art.mask.getContext('2d');
+    m.scale(res, res); m.translate(ECHO_ANCHOR[0], ECHO_ANCHOR[1]);
+    m.scale(180 * 0.235 * 1.06, 180 * 0.235 * 1.34);
+    const fade = m.createRadialGradient(0, 0, 0.62, 0, 0, 1);
+    fade.addColorStop(0, '#fff'); fade.addColorStop(0.55, 'rgba(255,255,255,0.85)');
+    fade.addColorStop(1, 'rgba(255,255,255,0)');
+    m.fillStyle = fade; m.fillRect(-1, -1, 2, 2);
+    m.setTransform(res, 0, 0, res, 0, 0); m.globalCompositeOperation = 'destination-in';
+    const torso = m.createLinearGradient(0, 66, 0, 108);
+    torso.addColorStop(0, '#fff'); torso.addColorStop(0.4, 'rgba(255,255,255,0.7)');
+    torso.addColorStop(1, 'rgba(255,255,255,0)');
+    m.fillStyle = torso; m.fillRect(0, 0, 180, 180);
+    const g = art.gate.getContext('2d');
+    g.translate(192, 192); g.scale(2, 2);
+    const interior = g.createRadialGradient(0, 0, 0, 0, 0, 80);
+    interior.addColorStop(0, '#1f133e'); interior.addColorStop(0.7, 'rgba(18,9,38,0.94)');
+    interior.addColorStop(1, 'rgba(24,10,45,0)');
+    g.fillStyle = interior; g.fillRect(-80, -80, 160, 160);
+    for (const front of [false, true]) {
+      const r = (front ? art.front : art.back).getContext('2d');
+      r.translate(192, 192); r.scale(2, 2);
+      const start = front ? -Math.PI / 2 : Math.PI / 2;
+      for (const [width, alpha] of [[14, 0.035], [9, 0.07], [5, 0.16], [1.7, 0.95]]) {
+        r.strokeStyle = `rgba(221,199,255,${alpha * (front ? 1 : 0.65)})`;
+        r.lineWidth = width; r.beginPath(); r.arc(0, 0, 80, start, start + Math.PI); r.stroke();
       }
-      if (charge > 0.02) drawCastEnergy(L, pose, t, now, charge * info.alpha, 0.7);
+      r.strokeStyle = 'rgba(164,112,240,0.75)'; r.lineWidth = 0.9;
+      r.beginPath(); r.arc(0, 0, 74, start, start + Math.PI); r.stroke();
+    }
+    const r = art.rings.getContext('2d');
+    r.translate(192, 192); r.scale(2, 2);
+    r.strokeStyle = 'rgba(222,200,255,0.8)'; r.lineWidth = 1;
+    r.beginPath();
+    for (let i = 0; i < 32; i++) {
+      const a = i * Math.PI / 16;
+      r.moveTo(Math.cos(a) * 86, Math.sin(a) * 86);
+      r.arc(0, 0, 86, a, a + 0.06);
+      if (i % 2 === 0) { r.moveTo(Math.cos(a) * 89, Math.sin(a) * 89); r.lineTo(Math.cos(a) * 93, Math.sin(a) * 93); }
+    }
+    r.stroke(); r.strokeStyle = 'rgba(255,70,110,0.7)';
+    r.beginPath();
+    for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; r.moveTo(Math.cos(a) * 67, Math.sin(a) * 67); r.arc(0, 0, 67, a, a + 0.5); }
+    r.stroke();
+    const h = art.glow.getContext('2d');
+    const light = h.createRadialGradient(64, 64, 0, 64, 64, 64);
+    light.addColorStop(0, 'rgba(255,244,255,0.9)'); light.addColorStop(0.16, 'rgba(224,186,255,0.65)');
+    light.addColorStop(0.48, 'rgba(153,83,230,0.16)'); light.addColorStop(1, 'rgba(127,56,200,0)');
+    h.fillStyle = light; h.fillRect(0, 0, 128, 128);
+    const d = art.dust.getContext('2d');
+    d.fillStyle = '#10081e'; d.fillRect(5, 5, 14, 14);
+    d.strokeStyle = '#ff537e'; d.lineWidth = 2; d.strokeRect(5, 5, 14, 14);
+    return art;
+  }
+
+  function echoBakeWorld(art) {
+    if (art.worldReady || !_gateWorldImg.complete || !_gateWorldImg.naturalWidth) return;
+    const g = art.world.getContext('2d');
+    g.drawImage(_gateWorldImg, 32, 32, 320, 320);
+    g.globalCompositeOperation = 'destination-in';
+    const fade = g.createRadialGradient(192, 192, 110, 192, 192, 160);
+    fade.addColorStop(0, '#fff'); fade.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = fade; g.fillRect(0, 0, 384, 384);
+    g.globalCompositeOperation = 'source-over';
+    art.worldReady = true;
+  }
+
+  function echoBakePose(art, index) {
+    const ext = index / art.steps, res = art.res;
+    fitSpriteBuffer(180 * res);
+    drawKanade(0, {
+      swayAmp: 0, bobAmp: 0, castExt: ext, blinkAmount: 0,
+      gazeX: 0.85 * ext, gazeY: -0.75 * ext, expression: 'smug',
+      trail: 0, whip: 0, hairT: 0, hairEnergy: 0.5, magicLight: 0.3 * ext,
+    });
+    const w = art.work.getContext('2d'), a = art.armMask.getContext('2d');
+    a.setTransform(res, 0, 0, res, 0, 0); a.clearRect(0, 0, 180, 180);
+    const arm = castArm(ext, 0), drop = 1.5 * (1 - ext), h = arm.hand;
+    a.fillStyle = '#fff'; a.strokeStyle = '#fff'; a.lineWidth = 15; a.lineCap = 'round';
+    a.beginPath(); a.moveTo(112, 58 + drop);
+    a.lineTo(arm.elbowX, arm.elbowY + drop); a.lineTo(arm.wrist[0], arm.wrist[1] + drop); a.stroke();
+    a.save(); a.translate(h.x, h.y + drop); a.rotate(h.rot); a.fillRect(-8, -17, 16, 25); a.restore();
+    const tileX = index % 5, tileY = Math.floor(index / 5);
+    const b = art.body;
+    w.globalCompositeOperation = 'source-over'; w.clearRect(0, 0, art.work.width, art.work.height);
+    w.drawImage(px, 0, 0, art.work.width, art.work.height);
+    w.globalCompositeOperation = 'source-atop'; w.fillStyle = 'rgba(144,101,218,0.13)';
+    w.fillRect(0, 0, art.work.width, art.work.height);
+    w.fillStyle = 'rgba(211,188,255,0.045)';
+    for (let y = 0; y < 110; y += 3) w.fillRect(0, y * res, art.work.width, res * 0.4);
+    w.globalCompositeOperation = 'destination-in'; w.drawImage(art.mask, 0, 0);
+    art.bodies.getContext('2d').drawImage(art.work, b[0] * res, b[1] * res, b[2] * res, b[3] * res,
+      tileX * b[2] * res, tileY * b[3] * res, b[2] * res, b[3] * res);
+    w.globalCompositeOperation = 'source-over'; w.clearRect(0, 0, art.work.width, art.work.height);
+    w.drawImage(px, 0, 0, art.work.width, art.work.height);
+    w.globalCompositeOperation = 'source-atop'; w.fillStyle = 'rgba(181,133,244,0.16)';
+    w.fillRect(0, 0, art.work.width, art.work.height);
+    w.globalCompositeOperation = 'destination-in'; w.drawImage(art.armMask, 0, 0);
+    w.globalCompositeOperation = 'destination-out'; w.drawImage(art.mask, 0, 0);
+    const bArm = ECHO_ARM;
+    art.arms.getContext('2d').drawImage(art.work, bArm[0] * res, bArm[1] * res, bArm[2] * res, bArm[3] * res,
+      tileX * bArm[2] * res, tileY * bArm[3] * res, bArm[2] * res, bArm[3] * res);
+    const x = ECHO_PALM[0] * h.size, y = ECHO_PALM[1] * h.size;
+    art.palms[index] = { x: h.x + x * Math.cos(h.rot) - y * Math.sin(h.rot),
+      y: h.y + x * Math.sin(h.rot) + y * Math.cos(h.rot) + drop };
+    art.ready = index + 1;
+  }
+
+  // Idle work never tints the shared cutscene buffer or changes its helpers.
+  function echoWarm() {
+    const art = echoPrepare();
+    echoBakeWorld(art);
+    if (art.ready <= art.steps) {
+      echoBakePose(art, art.ready);
+      if (window.requestIdleCallback) window.requestIdleCallback(echoWarm, { timeout: 1000 });
+      else setTimeout(echoWarm, 0);
+    } else {
+      art.work = null; art.armMask = null;
+    }
+  }
+  if (window.requestIdleCallback) window.requestIdleCallback(echoWarm, { timeout: 1000 });
+  else setTimeout(echoWarm, 0);
+  _gateWorldImg.addEventListener('load', () => { if (echoArt) echoBakeWorld(echoArt); });
+
+  // Returns the palm of the displayed pose in world space.
+  function drawEchoCast(info, now) {
+    const art = echoArt;
+    if (!art || !art.ready) return null;
+    const tier = freezeTier(), gx = info.x, gy = info.y;
+    const u = info.box / GRID_W, radius = info.gateR;
+    const index = Math.min(art.ready - 1, Math.round(clamp01(info.ext) * art.steps));
+    const poseExt = index / art.steps, palm = art.palms[index];
+    const retreat = (1 - poseExt) * Math.max(0, 1 - info.open) * 5;
+    const lean = Math.sin(poseExt * Math.PI) * 0.7 - retreat;
+    const hx = gx + (palm.x - ECHO_ANCHOR[0] + lean) * u;
+    const hy = gy + (palm.y - ECHO_ANCHOR[1]) * u;
+    const wide = Math.max(0.025, smootherstep(clamp01((info.open - 0.1) / 0.9)));
+    const tall = 0.15 + 0.85 * smootherstep(clamp01(info.open / 0.55));
+    const size = radius * 2.4, k = size / 384;
+    const alpha = info.alpha * 0.9 * smootherstep(clamp01(info.open / 0.65));
+    ctx.save(); echoShadowColor.call(ctx, 'transparent');
+    if (info.mirror) { ctx.translate(gx, 0); ctx.scale(-1, 1); ctx.translate(-gx, 0); }
+    ctx.save(); ctx.translate(gx, gy); ctx.scale(wide * 1.06 * k, tall * 1.34 * k);
+    ctx.globalAlpha = info.gateAlpha;
+    ctx.drawImage(art.gate, -192, -192);
+    if (tier < 2 && art.worldReady) {
+      ctx.save(); ctx.rotate(now * 0.00007); ctx.globalAlpha = info.gateAlpha * 0.58;
+      ctx.drawImage(art.world, -192, -192); ctx.restore();
+    }
+    ctx.drawImage(art.back, -192, -192);
+    if (tier < 2) { ctx.save(); ctx.rotate(-now * 0.00035); ctx.globalAlpha = info.gateAlpha * 0.8; ctx.drawImage(art.rings, -192, -192); ctx.restore(); }
+    ctx.restore();
+    if (alpha > 0.01) {
+      const b = art.body, res = art.res;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(art.bodies, (index % 5) * b[2] * res, Math.floor(index / 5) * b[3] * res, b[2] * res, b[3] * res,
+        gx + (b[0] - ECHO_ANCHOR[0] + lean) * u * wide,
+        gy + (b[1] - ECHO_ANCHOR[1]) * u * tall * wide, b[2] * u * wide, b[3] * u * tall * wide);
+    }
+    ctx.save(); ctx.translate(gx, gy); ctx.scale(wide * 1.06 * k, tall * 1.34 * k);
+    ctx.globalAlpha = info.gateAlpha; ctx.drawImage(art.front, -192, -192); ctx.restore();
+    if (alpha > 0.01 && poseExt > 0.02) {
+      const b = ECHO_ARM, res = art.res;
+      ctx.globalAlpha = alpha * smootherstep(clamp01(poseExt / 0.35));
+      ctx.drawImage(art.arms, (index % 5) * b[2] * res, Math.floor(index / 5) * b[3] * res, b[2] * res, b[3] * res,
+        gx + (b[0] - ECHO_ANCHOR[0] + lean) * u, gy + (b[1] - ECHO_ANCHOR[1]) * u, b[2] * u, b[3] * u);
+    }
+    if (tier < 2 && alpha > 0.01) {
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * info.charge * (tier === 0 ? 0.09 : 0.05);
+      ctx.drawImage(art.glow, gx - radius * 0.3, gy - radius * 0.7, radius * 3.1, radius * 1.4);
+      ctx.globalCompositeOperation = 'source-over';
+      const count = tier === 0 ? 6 : 3;
+      for (let i = 0; i < count; i++) {
+        const phase = (now * 0.00025 + i / count) % 1, a = i * 2.4;
+        const r = radius * (0.8 + phase * 0.55), s = 3 + phase * 4;
+        ctx.globalAlpha = info.gateAlpha * (1 - phase) * 0.6;
+        ctx.drawImage(art.dust, gx + Math.cos(a) * r - s / 2, gy + Math.sin(a) * r * 1.2 - s / 2, s, s);
+      }
+    }
+    if (poseExt > 0.02 && info.charge > 0.02) {
+      const core = u * (3 + 5 * info.charge), reach = core * 2.3;
+      ctx.globalCompositeOperation = tier < 2 ? 'lighter' : 'source-over';
+      ctx.globalAlpha = alpha * info.charge * 0.65;
+      ctx.drawImage(art.glow, hx - reach, hy - reach, reach * 2, reach * 2);
+      ctx.globalAlpha = alpha * info.charge;
+      ctx.drawImage(art.glow, hx - core, hy - core, core * 2, core * 2);
     }
     ctx.restore();
-    if (ext <= 0.02) return null;
-    // the palm, worked out the way handPos does it, then mirrored if need be
-    const h = castArm(ext, 0).hand;
-    const px = ECHO_PALM[0] * h.size, py = ECHO_PALM[1] * h.size;
-    const cs = Math.cos(h.rot), sn = Math.sin(h.rot);
-    let hx = cx + (h.x + px * cs - py * sn - GRID_W / 2) * u;
-    const hy = cy + (h.y + px * sn + py * cs - GRID_H / 2) * u;
-    if (info.mirror) hx = 2 * gx - hx;
-    return { x: hx, y: hy, u };
+    if (poseExt <= 0.02) return null;
+    return { x: info.mirror ? 2 * gx - hx : hx, y: hy, u };
   }
 
   window._kanadeDebugModelDraw = drawKanadeDebugModel;

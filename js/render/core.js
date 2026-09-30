@@ -2481,7 +2481,6 @@ function draw(deltaTime) {
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
-        _drawGoliathEchoCasts(); // Kanade's gate and arm, over his body
         // screen-space, separate pass so it's unaffected by goliath's own transform
         if (typeof _drawGoliathBossBar === 'function') {
             enemies.forEach(e => { if (e.type === 'goliath') _drawGoliathBossBar(e); });
@@ -2821,6 +2820,8 @@ function draw(deltaTime) {
     if (window._kanadeDebugModel && typeof window._kanadeDebugModelDraw === 'function') {
         window._kanadeDebugModelDraw();
     }
+    // Endless Echo stays above the domain, watch, HUD and other canvas layers.
+    if (gameState === "playing") _drawGoliathEchoCasts();
 }
 
 // Start Screen, Pisces Constellation

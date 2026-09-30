@@ -1006,9 +1006,23 @@ function _goliathEchoUpdate(enemy, deltaTime, now) {
         // drift during the cast can never carry him into it, and it stays put
         // where it opened. side is which half he is in: 1 = left
         const gate = _goliathEchoGateSize();
+        enemy._echoBox = gate.box;
         enemy._echoSide = enemy.x < canvas.width / 2 ? 1 : -1;
         enemy._echoGateX = enemy._echoSide > 0 ? canvas.width - gate.r - 70 : gate.r + 70;
         enemy._echoGateY = Math.max(gate.r + 30, Math.min(canvas.height * 0.5, enemy.y + 10));
+        if (canvas.height <= canvas.width && enemy._echoSide > 0) {
+            // The stats panel and sigil slots sit top right, so on that side the
+            // gate opens below the panel and clear of the slots.
+            const hudBottom = typeof window._statsHudBottom === 'number' ? window._statsHudBottom : 208;
+            enemy._echoGateX -= 30;
+            enemy._echoGateY = Math.max(enemy._echoGateY, hudBottom + gate.r * 1.6 + 8);
+        }
+        if (canvas.height > canvas.width) {
+            // The portrait gate sits below the stats and three sigil slots.
+            const hudBottom = typeof window._statsHudBottom === 'number' ? window._statsHudBottom : 208;
+            enemy._echoGateY = Math.min(canvas.height - gate.r * 1.5 - 20,
+                Math.max(enemy._echoGateY, hudBottom + 162 + gate.r * 1.5 + 14));
+        }
         if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-fracture-step', enemy.x, enemy.y);
     } else {
         enemy._echoCastTimer += deltaTime;
@@ -1018,7 +1032,7 @@ function _goliathEchoUpdate(enemy, deltaTime, now) {
 
 // Kanade's sprite box and gate radius in px, shared by the cast and its render
 function _goliathEchoGateSize() {
-    const box = Math.min(340, canvas.height * 0.44);
+    const box = Math.min(340, canvas.height * 0.44, canvas.height > canvas.width ? canvas.width * 0.72 : 340);
     return { box, r: box * 0.235 };
 }
 
