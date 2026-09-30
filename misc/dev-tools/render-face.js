@@ -5,6 +5,11 @@
 //
 //   node misc/dev-tools/render-face.js
 //   OUT=face.png ZOOM=8 RES=3 node misc/dev-tools/render-face.js
+//   FACE=js/render/kanade-face.js node misc/dev-tools/render-face.js
+//
+// FACE loads a face module (window.KanadeFace, see drawFace in
+// kanade-cutscene.js) after the cutscene, so a new face can be seen
+// without touching the cutscene file.
 //
 // Needs @napi-rs/canvas:  npm install @napi-rs/canvas --no-save
 const fs = require('fs');
@@ -69,6 +74,7 @@ src = src.replace(anchor, anchor + `
   window.__castWrist = castWrist;
   window.__grid = { w: GRID_W, get mult() { return RES_MULT; } };`);
 vm.runInContext(src, sandbox, { filename: 'kanade-cutscene.js' });
+if (process.env.FACE) vm.runInContext(fs.readFileSync(process.env.FACE, 'utf8'), sandbox, { filename: process.env.FACE });
 sandbox.window.__setRes(RES);
 const W = sandbox.window, g = W.__grid;
 

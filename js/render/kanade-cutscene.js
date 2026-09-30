@@ -738,6 +738,65 @@
       Math.round((o.headTurn || 0) * 1000) + ',' + Math.round((o.magicLight || 0) * 10);
   }
 
+  // The face's features: eyes, brows, nose, mouth and blush, drawn inside
+  // the head group over the skin oval and under the side hair and fringe.
+  // face = { expression, eye, brow, mouth, openEye, blink, gazeX, gazeY }.
+  function drawFaceFeatures(face) {
+    drawSimpleEye(88, 38, face.eye, face.blink, face.gazeX, face.gazeY);
+    drawSimpleEye(96, 38, face.eye, face.blink, face.gazeX, face.gazeY);
+    // Brows after the eyes, so a closing lid can never paint over them.
+    drawBrow(face.brow, false);
+    drawBrow(face.brow, true);
+    // The nose: a short angled shadow under its tip rather than a dash down
+    // the middle of the face.
+    bezierLine([92.6, 41.9], [[92.5, 42.1, 92.35, 42.3, 92.1, 42.4]], PAL.skinShadow, STROKE.hairline);
+    // The mouth sits 0.7 higher than it was drawn, with room below it for
+    // the chin.
+    pctx.save();
+    pctx.translate(0, -0.7);
+    drawMouth(face.mouth);
+    // Light on the lower lip, under the closed-mouth shapes only.
+    if (face.mouth !== 'open' && face.mouth !== 'tense') line([[91.5, 46.2], [92.5, 46.2]], PAL.blush, STROKE.fine);
+    pctx.restore();
+    // Blush as a wide, thin wash with two faint strokes on it; a solid oval
+    // read as a stamp, and darker strokes as scratches.
+    for (const bx of [83.6, 100.4]) {
+      ellipseF(bx, 41.2, 2.3, 0.75, PAL.blush);
+      for (const d of [-0.6, 0.6]) line([[bx + d - 0.3, 41.6], [bx + d + 0.3, 40.8]], PAL.blush, STROKE.hairline);
+    }
+  }
+
+  // The face can come from a separate file: js/render/kanade-face.js sets
+  // window.KanadeFace = { drawFeatures(api, face) } and it is used in place
+  // of drawFaceFeatures above. api hands it the sprite context and the same
+  // drawing helpers, palette and stroke widths the rest of her uses, plus
+  // the built-in features so it can keep any part of them. It draws in grid
+  // units inside the head group. The sprite is cached on its options, so
+  // the file must draw the same face for the same input and read no clock.
+  // If it throws, the built-in face is drawn and the error is logged once.
+  const FACE_API = {
+    ctx: pctx, PAL, STROKE,
+    bezierShape, bezierLine, line, poly, ellipse, ellipseF, smoothOutline, tracePath,
+    drawEye: drawSimpleEye, drawBrow, drawMouth, drawDefaultFeatures: drawFaceFeatures,
+  };
+  let _faceModuleFailed = false;
+  function drawFace(face) {
+    const mod = window.KanadeFace;
+    if (!_faceModuleFailed && mod && typeof mod.drawFeatures === 'function') {
+      pctx.save();
+      try {
+        mod.drawFeatures(FACE_API, face);
+        pctx.restore();
+        return;
+      } catch (err) {
+        pctx.restore();
+        _faceModuleFailed = true;
+        console.error('KanadeFace.drawFeatures failed; using the built-in face.', err);
+      }
+    }
+    drawFaceFeatures(face);
+  }
+
   function drawKanade(t, opts) {
     opts = opts || {};
     const _key = spriteKey('f', t, opts);
@@ -1267,30 +1326,13 @@
     // blinkAmount is 0..1; the older boolean blink still means fully shut.
     // Only open eyes blink or look about: closed and happy ones hold still.
     const openEye = !!OPEN_EYE_FAMILY[expr.eye];
-    const blinkAmt = openEye ? (opts.blinkAmount != null ? opts.blinkAmount : (opts.blink ? 1 : 0)) : 0;
-    const gazeX = openEye ? opts.gazeX || 0 : 0, gazeY = openEye ? opts.gazeY || 0 : 0;
-    drawSimpleEye(88, 38, expr.eye, blinkAmt, gazeX, gazeY);
-    drawSimpleEye(96, 38, expr.eye, blinkAmt, gazeX, gazeY);
-    // Brows after the eyes, so a closing lid can never paint over them.
-    drawBrow(expr.brow, false);
-    drawBrow(expr.brow, true);
-    // The nose: a short angled shadow under its tip rather than a dash down
-    // the middle of the face.
-    bezierLine([92.6, 41.9], [[92.5, 42.1, 92.35, 42.3, 92.1, 42.4]], PAL.skinShadow, STROKE.hairline);
-    // The mouth sits 0.7 higher than it was drawn, with room below it for
-    // the chin.
-    pctx.save();
-    pctx.translate(0, -0.7);
-    drawMouth(expr.mouth);
-    // Light on the lower lip, under the closed-mouth shapes only.
-    if (expr.mouth !== 'open' && expr.mouth !== 'tense') line([[91.5, 46.2], [92.5, 46.2]], PAL.blush, STROKE.fine);
-    pctx.restore();
-    // Blush as a wide, thin wash with two faint strokes on it; a solid oval
-    // read as a stamp, and darker strokes as scratches.
-    for (const bx of [83.6, 100.4]) {
-      ellipseF(bx, 41.2, 2.3, 0.75, PAL.blush);
-      for (const d of [-0.6, 0.6]) line([[bx + d - 0.3, 41.6], [bx + d + 0.3, 40.8]], PAL.blush, STROKE.hairline);
-    }
+    const face = {
+      expression: EXPRESSIONS[opts.expression] ? opts.expression : 'neutral',
+      eye: expr.eye, brow: expr.brow, mouth: expr.mouth, openEye,
+      blink: openEye ? (opts.blinkAmount != null ? opts.blinkAmount : (opts.blink ? 1 : 0)) : 0,
+      gazeX: openEye ? opts.gazeX || 0 : 0, gazeY: openEye ? opts.gazeY || 0 : 0,
+    };
+    drawFace(face);
 
     bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
     bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);

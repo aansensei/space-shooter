@@ -114,6 +114,7 @@
         'js/skills/sigil-aries.js',
         'js/skills/sigil-virgo.js',
         'js/render/core.js',
+        'js/render/kanade-face.js',
         'js/render/kanade-cutscene.js',
         'js/render/enemy-raphael.js',
         'js/render/enemy-thaelis.js',
