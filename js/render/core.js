@@ -2812,6 +2812,14 @@ function draw(deltaTime) {
         ctx.drawImage(_freezeSnap, 0, 0);
         ctx.globalAlpha = 1;
     }
+    // Mobile buttons are a DOM layer above the canvas, so the cutscene hides it
+    // while it plays. visibility, not display, so the sigil picker's own
+    // show/hide of #mc is left alone.
+    if (!!window._kanadeCutscene !== !!window._kanadeMcHidden) {
+        window._kanadeMcHidden = !!window._kanadeCutscene;
+        const _mcLayer = document.getElementById('mc');
+        if (_mcLayer) _mcLayer.style.visibility = window._kanadeMcHidden ? 'hidden' : '';
+    }
     // Kanade's boss-wave cutscene sits on top of everything, same as the
     // sigil picker - the sim is frozen behind it while it plays.
     if (window._kanadeCutscene && typeof drawKanadeCutscene === 'function') drawKanadeCutscene();
