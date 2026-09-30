@@ -139,14 +139,14 @@ function _goliathTrackResourceGain(enemy, amount) {
 // chính mình (Inevitable regen, Threshold Ward, hồi lúc bắt đầu vận skill...).
 function _goliathHealBoost(enemy, amount) {
     // docs/combat-scaling-rebalance.md Part 4: each source's own bonus is
-    // lowered, and their sum is capped at +50% before Waning Might applies.
+    // lowered, and their sum is capped at +40% before Waning Might applies.
     let bonus = 0;
     if (enemy._jokerState && enemy._jokerState['Thaelis']) bonus += 0.20;
     if (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) bonus += 0.10;
-    if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) bonus += 0.20;
+    if (enemy._unbrokenWillBuffEnd && performance.now() < enemy._unbrokenWillBuffEnd) bonus += 0.15;
     bonus += _walpurgisHealShieldMult() - 1; // Walpurgis (Huyết Dạ): +5% heal effectiveness per stack
     bonus += enemy._unifiedFrontHealPct || 0; // Unified Front: +2%/ally on the map, cap +20%
-    const mult = 1 + Math.min(0.50, bonus);
+    const mult = 1 + Math.min(0.40, bonus);
     return amount * mult * _goliathWaningMult(0.80, _goliathWaningStacks(enemy));
 }
 
@@ -210,7 +210,12 @@ function _goliathDmgBoost(enemy, amount) {
 // Will's lethal-save heal/shield/temporary Max HP, copied Thaelis
 // milestones, copied Marchosias barrier-break heal/shield) bypass this
 // budget entirely, per spec.
-const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.14;
+const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.12;
+// Hard ceiling on real HP lost in any rolling window, every source included
+// (Warding Palm, Back to Motherland, true damage, normal hits). Bucket starts
+// full, so a burst can take 12% Hentry at once and then only what refills.
+const GOLIATH_HP_LOSS_CAP_FRAC = 0.12;
+const GOLIATH_HP_LOSS_WINDOW_MS = 4000;
 // How long Absolute Verdict channels before the orb flies. The aim locks
 // 500ms before that, whatever the length, so the dodge window never shrinks.
 // The render file reads this too, so the charge-up art ends on the shot.
@@ -242,6 +247,15 @@ function _goliathDrawBudget(enemy, kind, requested) {
     return _goliathDrawBucket(enemy, tokensKey, atKey, cap, GOLIATH_BUDGET_WINDOW_MS, requested);
 }
 
+// every place that subtracts True Form HP runs the amount through here first,
+// so nothing can one-shot him no matter how it bypasses armor and caps
+function _goliathClampHpLoss(enemy, dmg) {
+    if (enemy.type !== 'goliath' || enemy.phase !== 'true_form' || !enemy._hentry) return dmg;
+    if (!(dmg > 0)) return dmg;
+    return _goliathDrawBucket(enemy, '_hpLossTokens', '_hpLossAt',
+        enemy._hentry * GOLIATH_HP_LOSS_CAP_FRAC, GOLIATH_HP_LOSS_WINDOW_MS, dmg);
+}
+
 // Ordinary Goliath shield capacity (docs/combat-scaling-rebalance.md Part 4):
 // aggregate shield cap of 0.30*Hentry, separate from the arc barrier's own
 // pool. Applies to both budgeted and one-time shield grants.
@@ -267,8 +281,8 @@ function _goliathApplySilence(durMs) {
 // vào đó — bất tử 4s (tái dùng đúng cổng Iron Body tuyệt đối của
 // _transformIronBodyEnd, không ngoại lệ nào xuyên nổi, kể cả true damage),
 // hồi đầy 100% Max HP, và +1 lớp Shield = 10% Hentry ngay lập tức. Sau khi 4s
-// bất tử đã hết hẳn (KHÔNG chồng lấn), mở ra cửa sổ 6s tiếp theo: +40% hiệu
-// quả hồi HP/khiên (cộng dồn qua _goliathHealBoost), +20% MaxHP (kèm HP hiện
+// bất tử đã hết hẳn (KHÔNG chồng lấn), mở ra cửa sổ 6s tiếp theo: +15% hiệu
+// quả hồi HP/khiên (cộng dồn qua _goliathHealBoost), +12% MaxHP (kèm HP hiện
 // tại cộng thẳng phần đó, tự rút lại khi hết hạn — xem updateGoliath), +15%
 // tốc độ bay — cửa sổ này được mở đúng lúc bắn sóng giải phóng, xem
 // entities.js updateGoliath. Trả về true nếu đã kích hoạt (đòn này KHÔNG trừ
@@ -328,6 +342,7 @@ function _goliathSettleLethalHp(enemy) {
 // callers that compute their own damage and bypass dealDamage's pipeline.
 // Returns true when Unbroken Will ate the hit and no HP was lost.
 function _goliathApplyTrueFormDamage(enemy, dmg) {
+    dmg = _goliathClampHpLoss(enemy, dmg);
     if (_goliathTryUnbrokenWill(enemy, dmg)) return true;
     enemy.hp -= dmg;
     _goliathSettleLethalHp(enemy);
@@ -854,14 +869,14 @@ function updateGoliath(enemy, deltaTime) {
         _goliathUpdateJoker(enemy, deltaTime, now);
 
         // Threshold Ward (docs/combat-scaling-rebalance.md Part 4): 75/50/25%
-        // HP milestones each grant a one-time 18% Hentry ordinary shield
+        // HP milestones each grant a one-time 15% Hentry ordinary shield
         // instead of feeding a pool that silently refills HP every frame it
         // stays covered.
         const hpPct = enemy.hp / enemy.maxHp;
         [75, 50, 25].forEach(mile => {
             if (!enemy._thresholdMilestonesHit[mile] && hpPct * 100 <= mile) {
                 enemy._thresholdMilestonesHit[mile] = true;
-                _goliathGrantShield(enemy, _goliathHealBoost(enemy, 0.18 * enemy._hentry));
+                _goliathGrantShield(enemy, _goliathHealBoost(enemy, 0.15 * enemy._hentry));
             }
         });
         // Evade (NEW): +10% 3.5s mỗi lần HP tụt XUYÊN QUA 75/50/25% — dùng HP
@@ -880,8 +895,8 @@ function updateGoliath(enemy, deltaTime) {
         // tốc độ/maxRadius), không gây sát thương/trừ mạng người chơi, nhưng
         // CÓ gây 50 + 20% MaxHp cho Sentinels (xem wave._isUnbrokenWave ở
         // main.js). Cùng lúc này, mở cửa sổ buff 6s hậu-cứu-mạng (KHÔNG chồng
-        // lấn với 4s bất tử vừa qua) — +15% Hentry MaxHp cấp ngay tại đây,
-        // +20% hiệu quả hồi HP/khiên và +15% tốc độ bay đọc trực tiếp từ
+        // lấn với 4s bất tử vừa qua) — +12% Hentry MaxHp cấp ngay tại đây,
+        // +15% hiệu quả hồi HP/khiên và +15% tốc độ bay đọc trực tiếp từ
         // _unbrokenWillBuffEnd ở nơi khác. Riêng +12% DR, +60 flat armor và
         // +10% evade (xem entities/core.js) là vĩnh viễn, không nằm trong
         // cửa sổ 6s này.
@@ -889,7 +904,7 @@ function updateGoliath(enemy, deltaTime) {
             enemy._unbrokenWillWaveFired = true;
             enemy._unbrokenWillBuffEnd = now + 6000;
             // docs/combat-scaling-rebalance.md Part 4
-            const _maxHpBonus = Math.ceil(0.15 * enemy._hentry);
+            const _maxHpBonus = Math.ceil(0.12 * enemy._hentry);
             enemy._unbrokenWillMaxHpBonus = _maxHpBonus;
             enemy.maxHp += _maxHpBonus;
             enemy.hp += _maxHpBonus;
@@ -916,11 +931,11 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
-        // Inevitable (docs/combat-scaling-rebalance.md Part 4): 0.9% Hentry/s,
+        // Inevitable (docs/combat-scaling-rebalance.md Part 4): 0.75% Hentry/s,
         // boosted, drawn from the shared repeatable heal budget instead of an
         // unbudgeted 2.5% of current Max HP every second.
         {
-            const _inevReq = _goliathHealBoost(enemy, 0.009 * enemy._hentry * (deltaTime / 1000));
+            const _inevReq = _goliathHealBoost(enemy, 0.0075 * enemy._hentry * (deltaTime / 1000));
             const _inevGranted = _goliathDrawBudget(enemy, 'heal', _inevReq);
             enemy.hp = Math.min(enemy.maxHp, enemy.hp + _inevGranted);
         }

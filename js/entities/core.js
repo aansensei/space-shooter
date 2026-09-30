@@ -1710,6 +1710,7 @@ function dealDamage(enemy, source) {
         if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
             totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
         }
+        totalDamage = _goliathClampHpLoss(enemy, totalDamage);
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;
@@ -1739,6 +1740,7 @@ function dealDamage(enemy, source) {
         if (isSentinel && typeof _yuushaTankAbsorbFromSentinelDamage === 'function') {
             totalDamage -= _yuushaTankAbsorbFromSentinelDamage(totalDamage);
         }
+        totalDamage = _goliathClampHpLoss(enemy, totalDamage);
         if (!_goliathTryUnbrokenWill(enemy, totalDamage)) {
             _hpDamageDealt = totalDamage;
             enemy.hp -= totalDamage;
