@@ -1136,6 +1136,11 @@
     // One short shade down the far side of the neck, where it meets the
     // cream behind it.
     bezierLine([95.8, 48.8], [[96.0, 50.0, 96.2, 51.3, 96.2, 52.5]], PAL.skinShadow, STROKE.hairline);
+    // A light hint of her left collarbone at the foot of the neck, kept clear
+    // of the gold choker so the two do not read as joined: short, a hairline,
+    // dipping slightly before it rises toward the shoulder. The right one is
+    // under the navy collar.
+    bezierLine([85.0, 54.7], [[83.8, 55.0, 82.5, 54.8, 81.1, 54.1]], PAL.skinShadow, STROKE.hairline);
     bezierLine([72, 57], [[79, 59, 84, 60, 89, 57]], PAL.indigoDeep, STROKE.strap);
     // The navy collar on her left starts low enough to leave the neck
     // bare, and wraps only the foot of it.

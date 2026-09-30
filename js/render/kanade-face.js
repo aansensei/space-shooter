@@ -112,7 +112,8 @@
     const c = api.ctx;
     for (const side of [-1, 1]) {
       c.save(); c.translate(92, 0); c.scale(side, 1);
-      let inner = 34.88, outer = 35.12;
+      // Raised 0.3 off the lashes, the tail 0.1 more, for a softer arch.
+      let inner = 34.58, outer = 34.72;
       if (style === 'raised') { inner -= 0.95; outer -= 0.85; }
       if (style === 'down') { inner += 0.45; outer += 0.08; }
       if (style === 'angryIn') { inner += 0.92; outer -= 0.35; }
