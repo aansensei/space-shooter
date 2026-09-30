@@ -653,19 +653,22 @@
   function computeHairMotion(t, opts) {
     const ht = opts.hairT != null ? opts.hairT : t * 0.5;
     const energy = clamp01(opts.hairEnergy || 0);
+    const boost = opts.hairBoost || 1;
     const TAU = Math.PI * 2;
-    const amp = 0.55 + 1.4 * energy;
+    const amp = (0.55 + 2.6 * energy) * boost;
     const push = (opts.hairWind || 0) - (opts.hairImpact || 0);
-    const osc = lag => Math.sin(TAU * ht - lag) * amp;
+    // With power in her the swing gets a fast ripple on top, as if the hair
+    // were caught in a draught coming up off her.
+    const osc = lag => Math.sin(TAU * ht - lag) * amp + Math.sin(2 * TAU * ht - lag * 1.7) * 0.7 * energy * energy;
     return {
       osc, push,
       long: lag => osc(lag) + push,
       // The fine loose strands run at twice the rate.
-      strand: lag => Math.sin(2 * TAU * ht - lag) * (0.35 + 0.6 * energy) + push * 0.7,
+      strand: lag => Math.sin(2 * TAU * ht - lag) * (0.35 + 1.1 * energy) + push * 0.7,
       // The ahoge on its own lagged beat.
       ahoge: Math.sin(TAU * ht - 1.1) * (0.3 + 0.35 * energy) - (opts.hairImpact || 0) * 0.5,
       // How far the ends of the long hair rise, in units of droop.
-      lift: 0.3 * energy,
+      lift: 0.6 * energy + (boost - 1) / 0.35 * 0.38,
     };
   }
 
@@ -771,7 +774,7 @@
       // Hair clock in 48 steps: at twice the body's period that is the same
       // 37.5ms as t's 24, so it never adds a redraw on its own.
       Math.round((o.hairT || 0) * 48) + ',' + q(o.hairWind) + ',' +
-      Math.round((o.hairEnergy || 0) * 10) + ',' + Math.round((o.hairImpact || 0) * 10);
+      Math.round((o.hairEnergy || 0) * 10) + ',' + Math.round((o.hairImpact || 0) * 10) + ',' + Math.round((o.hairBoost || 1) * 20);
   }
 
   // The face's features: eyes, brows, nose, mouth and blush, drawn inside
@@ -909,6 +912,22 @@
       [112, 31, 116, 58, 115 + hTrail * 0.12, 88],
       [116 + hTrail * 0.35, 116, 116 + hTrail * 0.62, 135 + hDrop * 7, 112 + hTrail * 0.7, 148 + hDrop * 6]
     ], PAL.outline, STROKE.seam);
+    // The spell's light catching the outer edge of her hair while she
+    // gathers it, as strong as the light on her arm and cheek.
+    const hairGlow = Math.round((opts.magicLight || 0) * 10) / 10;
+    if (hairGlow > 0.01) {
+      pctx.save();
+      pctx.globalAlpha = hairGlow;
+      bezierLine([78, 24], [
+        [68, 35, 65, 66, 66 + hTrail * 0.15, 96],
+        [65 + hTrail * 0.35, 119, 61 + hTrail * 0.6, 138 + hDrop * 7, 55 + hTrail * 0.7, 141 + hDrop * 7]
+      ], PAL.magic, STROKE.fine);
+      bezierLine([103, 20], [
+        [112, 31, 116, 58, 115 + hTrail * 0.12, 88],
+        [116 + hTrail * 0.35, 116, 116 + hTrail * 0.62, 135 + hDrop * 7, 112 + hTrail * 0.7, 148 + hDrop * 6]
+      ], PAL.magicHi, STROKE.fine);
+      pctx.restore();
+    }
     bezierShape([84, 20], [
       [78, 38, 77, 72, 78 + hTrail * 0.1, 101],
       [78 + hTrail * 0.35, 121, 76 + hTrail * 0.52, 136 + hDrop * 6, 72 + hTrail * 0.6, 143 + hDrop * 6],
@@ -1384,6 +1403,14 @@
     const sideL = hm.long(0.6) * 0.7, sideR = hm.long(1.0) * 0.7;
     bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4 + sideL, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
     bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);
+    const sideGlow = Math.round((opts.magicLight || 0) * 10) / 10;
+    if (sideGlow > 0.01) {
+      pctx.save();
+      pctx.globalAlpha = sideGlow;
+      bezierLine([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4 + sideL, 68]], PAL.magic, STROKE.hairline);
+      bezierLine([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68]], PAL.magicHi, STROKE.fine);
+      pctx.restore();
+    }
     // Locks inside the side hair. Without them each side is one flat slab
     // with a straight outer edge, which is most of what made the hair read as
     // a pair of curtains.
@@ -1531,8 +1558,10 @@
 
       // Loose strands breaking off the side hair, tied to sway so they trail
       // the head.
-      bezierLine([77, 34], [[73, 44, 71, 54, 72 + sway * 0.3 + hm.strand(0.4), 63]], PAL.hairLight, STROKE.hairline);
-      bezierLine([107, 38], [[111, 48, 113, 58, 112 + sway * 0.3 + hm.strand(1.2), 67]], PAL.hairLight, STROKE.hairline);
+      // With power in her they are thrown up and out.
+      const strandUp = hm.lift * 14;
+      bezierLine([77, 34], [[73, 44, 71 - strandUp * 0.3, 54 - strandUp * 0.5, 72 + sway * 0.3 + hm.strand(0.4) - strandUp * 0.4, 63 - strandUp]], PAL.hairLight, STROKE.hairline);
+      bezierLine([107, 38], [[111, 48, 113 + strandUp * 0.3, 58 - strandUp * 0.5, 112 + sway * 0.3 + hm.strand(1.2) + strandUp * 0.4, 67 - strandUp]], PAL.hairLight, STROKE.hairline);
 
       // The gold catching light on a slow cycle, the ornaments and the centre
       // band taking turns. Driven off t so it lands on the cache's own steps
@@ -2540,8 +2569,11 @@
   // Everything is positioned from `now` alone rather than from stored particle
   // state, so there is no array to grow, no objects allocated per frame and
   // nothing for the collector to sweep up mid-sequence.
-  function drawCastEnergy(L, pose, t, now, charge) {
+  function drawCastEnergy(L, pose, t, now, charge, extras) {
     if (charge <= 0.02) return;
+    shielded(k => drawCastEnergyRaw(L, k === 1 ? pose : Object.assign({}, pose, { alpha: pose.alpha * k }), t, now, charge, extras == null ? 1 : extras));
+  }
+  function drawCastEnergyRaw(L, pose, t, now, charge, extras) {
     const hand = handPos(L, pose, t);
     if (!hand) return;
     const hx = hand.x, hy = hand.y, u = hand.u;
@@ -2569,7 +2601,7 @@
 
     // Motes spiralling inward. Position comes straight out of `now` and the
     // index, so this loop touches no state at all.
-    const motes = (lowDetail() ? 8 : 16) + Math.round((lowDetail() ? 6 : 14) * (pose.gather || 0));
+    const motes = Math.round(((lowDetail() ? 8 : 16) + Math.round((lowDetail() ? 6 : 14) * (pose.gather || 0))) * extras);
     const reach = core * 4.4;
     ctx.fillStyle = 'rgba(224,180,255,0.9)';
     for (let i = 0; i < motes; i++) {
@@ -2961,6 +2993,135 @@
     ctx.restore();
   }
 
+  // The shot's shape over time, as weights the frame reads: the ring and
+  // its dressing calm down while she thinks, everything thins out while the
+  // power is compressed just before the release, goes quiet for the last
+  // tenth of a second, bursts, and settles fast so the title can be read.
+  // Pure functions of elapsed ms.
+  function cinema(elapsed) {
+    const e = elapsed, ss = v => smootherstep(clamp01(v));
+    const think0 = BEAT_AT.think, think1 = BEAT_AT.summon;
+    // Ring dressing (brightness) and its turning speed.
+    let deco = 1, spin = 1;
+    if (e >= think0 && e < think1 + 200) {
+      const k = e < think1 ? ss((e - think0) / 300) : 1 - ss((e - think1) / 200);
+      deco = 1 - 0.5 * k; spin = 1 - 0.7 * k;
+    }
+    const cIn = ss((e - 7700) / 100);                 // compression coming in
+    const quiet = ss((e - 8100) / 30) * (e < APPLY_AT ? 1 : 0);
+    if (e >= 7700 && e < RELEASE_AT) deco = 1 - 0.65 * cIn;
+    const settle = ss((e - 8480) / 100) * (1 - ss((e - 9400) / 400));
+    if (e >= 8480) deco = 1 - 0.6 * settle;
+    // Secondary sparks, lightning and motes: thinned, then stopped for the
+    // quiet, free during the burst, stopped again once it settles.
+    let extras = 1;
+    if (e >= 7700 && e < APPLY_AT) extras = (1 - 0.6 * cIn) * (1 - quiet);
+    if (e >= 8480) extras = 1 - ss((e - 8480) / 120);
+    if (e >= 9900) extras = 1;
+    // Streams pulled in run faster while the power is compressed, stop for
+    // the quiet, and stop again once the burst settles.
+    const inflowSpeed = e >= 7700 && e < APPLY_AT ? 1 + 0.6 * cIn : 1;
+    let inflow = 1;
+    if (e >= 8100 && e < APPLY_AT) inflow = 1 - quiet;
+    if (e >= 8480) inflow = extras;
+    // The closing haki rings pull in to 85% for the quiet.
+    const ringPull = 1 - 0.15 * quiet;
+    // Extra darkness behind her while the power is compressed.
+    const dark = e >= 7700 && e < RELEASE_AT ? 0.10 * cIn : 0;
+    // The palm flare drops to a fifth once the burst has passed.
+    const flare = e >= 8480 ? 1 - 0.8 * ss((e - 8480) / 320) * (1 - ss((e - 9400) / 400)) : 1;
+    // Camera: push in 7% from 6.60s to 8.10s, hold through the impact
+    // hold, pull back out in 100ms.
+    let zoom = 1;
+    if (e >= 6600 && e < 8100) { const q = (e - 6600) / 1500; zoom = 1 + 0.07 * q * q; }
+    else if (e >= 8100 && e < RELEASE_AT) zoom = 1.07;
+    else if (e >= RELEASE_AT && e < RELEASE_AT + 100) { const q = (e - RELEASE_AT) / 100; zoom = 1 + 0.07 * (1 - q) * (1 - q); }
+    // Shake: 300ms from the end of the hold, dying off as a square.
+    let shake = 0;
+    if (e >= RELEASE_AT && e < RELEASE_AT + 300) { const q = (e - RELEASE_AT) / 300; shake = (1 - q) * (1 - q); }
+    // Her eyes glow over the last half second, flash for two frames at
+    // 8.10s, and let go after the release.
+    let eyes = 0;
+    if (e >= 7700 && e < 8100) eyes = 0.35 * ss((e - 7700) / 400);
+    else if (e >= 8100 && e < 8133) eyes = 0.65;
+    else if (e >= 8133 && e < RELEASE_AT) eyes = 0.35;
+    else if (e >= RELEASE_AT) eyes = 0.35 * (1 - ss((e - RELEASE_AT) / 300));
+    // Hair: its swing up to 1.35 times and its ends lifted, at the peak.
+    const hairBoost = 1 + 0.35 * ss((e - 7700) / 400) * (1 - ss((e - RELEASE_AT) / 400));
+    // The eyes and forehead are kept clear of the release light.
+    const shield = e >= RELEASE_AT && e < 9000;
+    return { deco, spin, extras, inflow, inflowSpeed, ringPull, dark, flare, zoom, shake, eyes, hairBoost, shield, quiet };
+  }
+
+  // Draws a light twice when the face shield is up: at 30% everywhere and at
+  // the other 70% everywhere but an oval over her eyes and forehead, so the
+  // release never burns out the face. draw(k) draws with its alpha times k.
+  let _faceShield = null;
+  function shielded(draw) {
+    if (!_faceShield) { draw(1); return; }
+    const f = _faceShield;
+    draw(0.3);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-1e4, -1e4, 2e4, 2e4);
+    ctx.ellipse(f.x, f.y, f.rx, f.ry, 0, 0, Math.PI * 2);
+    ctx.clip('evenodd');
+    draw(0.7);
+    ctx.restore();
+  }
+
+  // Violet light in her eyes as the power peaks (see cinema().eyes): a small
+  // glow over each, added on top so the pupils still read through it.
+  function drawEyeGlow(L, pose, t, amount) {
+    if (amount <= 0.01 || freezeTier() >= 3) return;
+    const u = (L.box * pose.scale) / GRID_W;
+    const bob = Math.sin(t * Math.PI * 2) * (pose.opts.bobAmp != null ? pose.opts.bobAmp : 1);
+    const lean = pose.opts.lean || 0;
+    const r = 3.4 * u;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = Math.min(1, pose.alpha) * amount;
+    for (const ex of [88, 96]) {
+      const x = pose.x + (ex + lean - GRID_W / 2) * u, y = pose.y + (38 + bob - GRID_H / 2) * u;
+      ctx.drawImage(energyGlow(), x - r, y - r, r * 2, r * 2);
+    }
+    ctx.restore();
+  }
+
+  // A short streak of light behind her hand as it sweeps up (5.96s to
+  // 6.61s): the last 100ms of its path, gone 120ms after the arm arrives.
+  // The path comes from castExtAt, so nothing is recorded between frames.
+  function drawHandTrail(L, pose, t, elapsed) {
+    if (freezeTier() >= 2 || pose.back) return;
+    const start = BEAT_AT.summon + CAST_T.raise0, end = BEAT_AT.summon + CAST_T.raise1;
+    if (elapsed < start || elapsed > end + 120) return;
+    const fade = elapsed <= end ? 1 : 1 - (elapsed - end) / 120;
+    const pts = [];
+    for (let k = 0; k <= 10; k++) {
+      const e = Math.min(elapsed, end) - k * 10;
+      if (e < start) break;
+      const ext = castExtAt(e - BEAT_AT.summon);
+      const h = handPos(L, Object.assign({}, pose, { opts: Object.assign({}, pose.opts, { castExt: ext }) }), t);
+      if (h) pts.push(h);
+    }
+    if (pts.length < 2) return;
+    const unit = canvas.height / 1080;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const [w, a, c] of [[7, 0.15, 'rgb(170,100,255)'], [3, 0.8, 'rgb(236,214,255)']]) {
+      ctx.globalAlpha = a * fade;
+      ctx.strokeStyle = c;
+      ctx.lineWidth = w * unit;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // Magic dust thrown off the gate's rim while it tears open or shuts:
   // soft violet puffs drifting out and up, swelling and thinning as they go,
   // and bright motes riding with them. Each piece is worked out from `now`
@@ -2976,9 +3137,9 @@
     c.width = c.height = S;
     const g = c.getContext('2d');
     const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
-    grad.addColorStop(0, 'rgba(200,150,255,0.9)');
-    grad.addColorStop(0.45, 'rgba(148,82,235,0.42)');
-    grad.addColorStop(1, 'rgba(104,40,205,0)');
+    grad.addColorStop(0, 'rgba(172,92,255,0.95)');
+    grad.addColorStop(0.45, 'rgba(124,44,228,0.52)');
+    grad.addColorStop(1, 'rgba(86,20,180,0)');
     g.fillStyle = grad;
     g.fillRect(0, 0, S, S);
     _dustPuff = c;
@@ -3010,12 +3171,12 @@
       const x = cx + ca * R * squash + ca * drift + Math.sin(now * 0.0017 + i) * R * 0.04;
       const y = cy + sa * R + sa * drift * 0.7 - ph * R * 0.22;
       const size = R * (0.16 + 0.3 * ph) * (0.8 + 0.4 * hash(gen, i + 3));
-      ctx.globalAlpha = amount * 0.34 * Math.sin(Math.PI * ph);
+      ctx.globalAlpha = amount * 0.42 * Math.sin(Math.PI * ph);
       ctx.drawImage(puff, x - size, y - size, size * 2, size * 2);
     }
     ctx.globalCompositeOperation = 'lighter';
     for (let band = 0; band < 2; band++) {
-      ctx.fillStyle = band ? 'rgb(226,190,255)' : 'rgb(176,112,255)';
+      ctx.fillStyle = band ? 'rgb(206,150,255)' : 'rgb(150,70,255)';
       ctx.globalAlpha = amount * (band ? 0.9 : 0.5);
       ctx.beginPath();
       for (let i = 0; i < motes; i++) {
@@ -3068,6 +3229,9 @@
   }
   function drawFlare(x, y, len, alpha) {
     if (alpha <= 0.01 || freezeTier() >= 3) return;
+    shielded(k => drawFlareRaw(x, y, len, alpha * k));
+  }
+  function drawFlareRaw(x, y, len, alpha) {
     const streak = flareStreak(), glow = energyGlow();
     const th = Math.max(3, len * 0.018);
     ctx.save();
@@ -3155,16 +3319,17 @@
   // Lightning while she gathers: short arcs crawling over her aura, more
   // of them and more often as the charge builds, and past 0.6 a bolt now
   // and then from the ring's edge into her raised hand.
-  function drawGatherLightning(L, pose, hand, now, power) {
+  function drawGatherLightning(L, pose, hand, now, power, extras) {
     const tier = freezeTier();
-    if (power < 0.25 || tier >= 2) return;
+    if (extras == null) extras = 1;
+    if (power < 0.25 || tier >= 2 || extras <= 0.01) return;
     const box = L.box * pose.scale, cx = pose.x, cy = pose.y + box * 0.05;
     const unit = Math.max(1, box / 360);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    const n = Math.round((tier === 0 ? 5 : 3) * power);
+    const n = Math.round((tier === 0 ? 5 : 3) * power * extras);
     for (let i = 0; i < n; i++) {
       const bucket = Math.floor(now / (60 + 50 * hash(i, 9.1)));
       // Not every slot fires in every bucket, so the arcs come and go.
@@ -3177,7 +3342,7 @@
     }
     if (hand && power > 0.6 && tier === 0) {
       const bucket = Math.floor(now / 110);
-      if (hash(bucket, 2.7) < (power - 0.6) * 1.6) {
+      if (hash(bucket, 2.7) < (power - 0.6) * 1.6 * extras) {
         const a = hash(bucket, 4.4) * Math.PI * 2;
         drawBolt(L.standX + Math.cos(a) * L.ringR, L.centerY + Math.sin(a) * L.ringR, hand.x, hand.y,
           bucket * 7 + 1, 1.3 * unit, Math.min(1, pose.alpha) * 0.8);
@@ -3190,7 +3355,9 @@
   // in on her from outside the spell ring, each brightening as it shrinks,
   // and streams of energy running from the ring's edge into her palm, their
   // dashes marching inward. g 0..1 builds to the impact.
-  function drawGathering(L, pose, hand, now, g) {
+  function drawGathering(L, pose, hand, now, g, ringPull, inflowSpeed) {
+    if (ringPull == null) ringPull = 1;
+    if (inflowSpeed == null) inflowSpeed = 1;
     const tier = freezeTier();
     if (g <= 0.01 || tier >= 3) return;
     const box = L.box * pose.scale, cx = pose.x, cy = pose.y + box * 0.02;
@@ -3203,7 +3370,7 @@
     const rings = tier === 0 ? 3 : 2;
     for (let i = 0; i < rings; i++) {
       const ph = (now / 760 + i / rings) % 1;
-      const rad = L.ringR * (1.45 - 1.1 * ph * ph);
+      const rad = L.ringR * (1.45 - 1.1 * ph * ph) * ringPull;
       ctx.globalAlpha = a0 * 0.55 * Math.sin(Math.PI * ph) * (0.5 + 0.5 * ph);
       ctx.strokeStyle = i % 2 ? 'rgba(170,92,255,1)' : 'rgba(224,190,255,1)';
       ctx.lineWidth = Math.max(1, box * (0.006 + 0.01 * ph));
@@ -3218,7 +3385,7 @@
       ctx.strokeStyle = 'rgba(214,168,255,1)';
       ctx.lineWidth = Math.max(1, box * 0.005);
       ctx.setLineDash([box * 0.05, box * 0.035]);
-      ctx.lineDashOffset = now * box * 0.0006;
+      ctx.lineDashOffset = now * box * 0.0006 * inflowSpeed;
       ctx.beginPath();
       for (let i = 0; i < n; i++) {
         const a = i * (Math.PI * 2 / n) + now * 0.0003;
@@ -3239,7 +3406,9 @@
   // behind the whole figure, tongues of aura rising off her outline, and
   // streaks of power drawn in toward her from well outside the ring, all of
   // it growing with the charge. power 0..1.
-  function drawHakiAura(L, pose, now, power) {
+  function drawHakiAura(L, pose, now, power, inflowMul, inflowSpeed) {
+    if (inflowMul == null) inflowMul = 1;
+    if (inflowSpeed == null) inflowSpeed = 1;
     const tier = freezeTier();
     if (power <= 0.02 || tier >= 3) return;
     const box = L.box * pose.scale, cx = pose.x, cy = pose.y + box * 0.05;
@@ -3278,14 +3447,14 @@
     // Inflow: streaks falling in toward her from outside the ring, faster
     // and more of them as the charge builds.
     if (tier <= 1) {
-      const m = Math.round((tier === 0 ? 22 : 12) * power);
+      const m = Math.round((tier === 0 ? 22 : 12) * power * inflowMul);
       ctx.strokeStyle = 'rgba(206,150,255,1)';
       ctx.lineWidth = Math.max(1, box * 0.006);
       for (let band = 0; band < 3 && m; band++) {
         ctx.globalAlpha = a0 * 0.6 * (0.35 + band * 0.32);
         ctx.beginPath();
         for (let i = 0; i < m; i++) {
-          const ph = (now * (0.0009 + 0.0009 * power) + i * 0.618034) % 1;
+          const ph = (now * (0.0009 + 0.0009 * power) * inflowSpeed + i * 0.618034) % 1;
           if (Math.min(2, Math.floor(Math.sin(Math.PI * ph) * 3)) !== band) continue;
           const a = i * 2.39996 + 0.4;
           const far = box * (1.25 - 1.0 * ph), near = far - box * (0.08 + 0.1 * ph);
@@ -3310,7 +3479,7 @@
     const unit = Math.min(W, H) / 720;
     const EVENTS = [
       { at: SUMMON_AT, pos: cs.summonFx, dur: 650, reach: 260 * unit, rings: 1, big: false },
-      { at: APPLY_AT, pos: cs.applyFx, dur: 1100, reach: Math.hypot(W, H) * 0.75, rings: 3, big: true },
+      { at: RELEASE_AT, pos: cs.applyFx, dur: 1100, reach: Math.hypot(W, H) * 0.75, rings: 3, big: true },
     ];
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -3324,7 +3493,8 @@
         drawFlare(x, y, W * 1.6, Math.pow(Math.max(0, 1 - k / 520), 1.5) * 0.95);
         ctx.globalCompositeOperation = 'lighter';
         // A flash of violet over everything, up in one frame and gone in 200ms.
-        const fl = Math.max(0, 1 - k / 200);
+        // Peaks over two frames and is gone 100ms later.
+        const fl = k < 33 ? 1 : Math.max(0, 1 - (k - 33) / 100);
         if (fl > 0) {
           ctx.globalAlpha = 0.24 * fl * fl;
           ctx.fillStyle = 'rgba(200,150,255,1)';
@@ -3359,12 +3529,16 @@
           drawBolt(x, y, x + Math.cos(a) * len, y + Math.sin(a) * len, bucket * 31 + i, 1.6 * unit, 1 - k / 450);
         }
       }
-      // Pressure rings, one after another.
+      // Pressure rings, one after another. The release sends three hard,
+      // quick waves 50ms apart, each dimmer than the last and gone in about
+      // a fifth of a second.
       for (let j = 0; j < ev.rings; j++) {
-        const qj = clamp01(q * 1.25 - j * 0.14);
+        let qj, bright;
+        if (ev.big) { qj = (k - j * 50) / 260; bright = [1, 0.65, 0.35][j] * 0.9; }
+        else { qj = clamp01(q * 1.25 - j * 0.14); bright = 0.6; }
         if (qj <= 0 || qj >= 1) continue;
         const rad = ev.reach * easeOutCubic(qj);
-        ctx.globalAlpha = Math.pow(1 - qj, 1.5) * (ev.big ? 0.85 : 0.6);
+        ctx.globalAlpha = Math.pow(1 - qj, 1.5) * bright;
         ctx.strokeStyle = j === 0 ? 'rgba(236,210,255,1)' : 'rgba(160,82,255,1)';
         ctx.lineWidth = Math.max(1, (ev.big ? 9 : 4) * (1 - qj) * unit + unit);
         ctx.beginPath();
@@ -3469,7 +3643,7 @@
     };
     let m = measure();
     if (m.total > maxW) { px = Math.max(14, Math.floor(px * maxW / m.total)); m = measure(); }
-    const grow = 1 + 0.06 * p;
+    const grow = 1 + 0.03 * p;
     const lay = (scale, fill) => {
       ctx.save();
       ctx.translate(cx, cy);
@@ -3578,6 +3752,12 @@
   // beat is her gathering power before the cast.
   const SUMMON_AT = BEAT_AT.summon + 715;
   const APPLY_AT = BEAT_AT.cast + 0.25 * 2400;
+  // The impact hold: for five frames from APPLY_AT the picture stands still
+  // (the first of them the impact frame) while sound, the banner and the
+  // game logic run on. Everything the release throws out starts when the
+  // hold ends, not already partway through.
+  const HOLD_MS = 83.3;
+  const RELEASE_AT = APPLY_AT + HOLD_MS;
 
   function currentBeat(elapsed) {
     for (const b of BEATS) {
@@ -4100,7 +4280,7 @@
   // The kick of the impact, 0..1: up in about 70ms, gone in about half a
   // second. Zero before the impact, so it cannot touch anything earlier.
   function impactAt(ms) {
-    const k = ms - CAST_T.impact;
+    const k = ms - CAST_T.impact - HOLD_MS;
     if (k <= 0) return 0;
     return Math.min(1, (1 - Math.exp(-k / 35)) * Math.exp(-k / 220) / 0.63);
   }
@@ -4241,6 +4421,7 @@
           hairT: hairClock(now),
           hairEnergy: mix(mix(HAIR_IDLE_ENERGY, Math.min(1, charge + 0.2 * gather), into), 0.15, out),
           hairImpact: imp,
+          hairBoost: Math.round(cinema(BEAT_AT.summon + ms).hairBoost * 20) / 20,
         },
       };
     }
@@ -4404,8 +4585,8 @@
   function drawKanadeCutscene() {
     const cs = window._kanadeCutscene;
     if (!cs) return;
-    const now = (typeof _frozenNow === 'number' && _frozenNow > 0) ? _frozenNow : performance.now();
-    if (!cs.startedAt) cs.startedAt = now;
+    const realNow = (typeof _frozenNow === 'number' && _frozenNow > 0) ? _frozenNow : performance.now();
+    if (!cs.startedAt) cs.startedAt = realNow;
     // _frozenNow stops advancing while the game is paused (js/main.js) and
     // then snaps forward to the current time on resume, so the clock jumps by
     // however long the pause lasted. Left alone the sequence sees that as
@@ -4417,13 +4598,20 @@
     // first frame and the frame after a pause count as one.
     let frameScale = 1;
     if (cs.lastNow !== undefined) {
-      const dt = now - cs.lastNow;
+      const dt = realNow - cs.lastNow;
       if (dt > 250) cs.startedAt += dt - 16;
       else frameScale = Math.max(0, Math.min(3, dt / 16.6667));
     }
-    cs.lastNow = now;
-    const elapsed = now - cs.startedAt;
+    cs.lastNow = realNow;
+    const elapsed = realNow - cs.startedAt;
     const L = layout();
+    // The impact hold: the picture's clock stands still for HOLD_MS from
+    // APPLY_AT, so pose, sparks, ring and lightning all stop; elapsed, the
+    // sound and the side effects keep running.
+    const holding = elapsed >= APPLY_AT && elapsed < RELEASE_AT;
+    const now = holding ? realNow - (elapsed - APPLY_AT) : realNow;
+    if (holding) frameScale = 0;
+    const cine = cinema(elapsed);
 
     const beat = currentBeat(elapsed);
     if (!beat) { finishCutscene(cs); return; }
@@ -4453,6 +4641,23 @@
     }
     drivePixi(reach);
     drawFreezeWash(L, wash, reach);
+    // The camera: everything in the shot from here on is pushed in toward the
+    // point between her face and her hand, and shaken on the release. The
+    // wash under it, and the bars, title and boss bar over it, stay put.
+    ctx.save();
+    if (pose && (cine.zoom > 1.0005 || cine.shake > 0.001)) {
+      const u = (L.box * pose.scale) / GRID_W;
+      const fx = pose.x + (92 - GRID_W / 2) * u, fy = pose.y + (38 - GRID_H / 2) * u;
+      const hp = handPos(L, pose, t);
+      const cx = hp ? (fx + hp.x) / 2 : fx, cy = hp ? (fy + hp.y) / 2 : fy;
+      const low = freezeTier() >= 2;
+      const unit = canvas.height / 1080, bucket = Math.floor(realNow / 16.6667);
+      const sx = (hash(bucket, 1.1) * 2 - 1) * 8 * unit * cine.shake * (low ? 0.5 : 1);
+      const sy = (hash(bucket, 2.3) * 2 - 1) * 4 * unit * cine.shake * (low ? 0.5 : 1);
+      ctx.translate(cx + sx, cy + sy);
+      ctx.scale(cine.zoom, cine.zoom);
+      ctx.translate(-cx, -cy);
+    }
     drawFrozenRealm(L, reach, now);
     ctx.save();
     clipToFront(L, reach);
@@ -4471,7 +4676,7 @@
     const charged = pose && pose.charge ? pose.charge : 0;
     if (focus > 0.01) {
       ctx.save();
-      ctx.globalAlpha = (0.14 + 0.14 * charged) * focus * reach;
+      ctx.globalAlpha = Math.min(1, (0.14 + 0.14 * charged) * focus * reach + cine.dark);
       ctx.fillStyle = '#040210';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
@@ -4508,10 +4713,12 @@
     }
 
     const ring = ringState(beat.id, beat.p);
-    ringRot += (0.004 + ring.energy * 0.01) * frameScale;
-    drawSpellRing(L.standX, L.centerY, L.ringR, ring.energy, ring.alpha);
-    // The same petals per second at any refresh rate.
-    if (ring.alpha > 0.4 && sakuraPetals.length < 46 && Math.random() < 1 - Math.pow(1 - 0.12, frameScale)) spawnSakuraPetal(L);
+    ringRot += (0.004 + ring.energy * 0.01) * frameScale * cine.spin;
+    drawSpellRing(L.standX, L.centerY, L.ringR, ring.energy, ring.alpha * cine.deco);
+    // The same petals per second at any refresh rate, a quarter as many
+    // while she thinks.
+    const petalRate = beat.id === 'think' ? 0.03 : 0.12;
+    if (ring.alpha > 0.4 && sakuraPetals.length < 46 && Math.random() < 1 - Math.pow(1 - petalRate, frameScale)) spawnSakuraPetal(L);
     updateDrawSakura(frameScale);
 
     if (pose) {
@@ -4527,20 +4734,27 @@
       // further from the camera and her head occludes it, seen from behind
       // it is the nearer of the two and occludes her hair instead.
       drawStageLight(L, pose, focus, charged);
-      if (pose.charge) drawHakiAura(L, pose, now, Math.min(1, pose.charge * 0.9 + (pose.gather || 0) * 0.35 + (pose.impact || 0) * 0.3));
-      if (pose.gather) drawGathering(L, pose, handPos(L, pose, t), now, pose.gather);
+      if (pose.charge) drawHakiAura(L, pose, now, Math.min(1, pose.charge * 0.9 + (pose.gather || 0) * 0.35 + (pose.impact || 0) * 0.3), cine.inflow, cine.inflowSpeed);
+      if (pose.gather) drawGathering(L, pose, handPos(L, pose, t), now, pose.gather, cine.ringPull, cine.inflowSpeed);
+      drawHandTrail(L, pose, t, elapsed);
       if (!pose.back) drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha, now);
       blitSprite(L, pose.x, pose.y, pose.scale, pose.alpha);
+      if (!pose.back) drawEyeGlow(L, pose, t, cine.eyes);
       // Drawn over her it would otherwise swallow the back of her head, so
       // the near side of the halo is held back to about half strength.
       if (pose.back) drawHaloAt(L, pose.x, pose.y, pose.scale, pose.alpha * 0.55, now);
       // Over her, since it gathers in front of the palm.
-      if (pose.charge) drawCastEnergy(L, pose, t, now, pose.charge);
+      // The face shield for the release light, over her eyes and forehead.
+      if (cine.shield && !pose.back) {
+        const u = (L.box * pose.scale) / GRID_W;
+        _faceShield = { x: pose.x + (92 - GRID_W / 2) * u, y: pose.y + (35 - GRID_H / 2) * u, rx: 13 * u, ry: 11 * u };
+      }
+      if (pose.charge) drawCastEnergy(L, pose, t, now, pose.charge, cine.extras);
       if (pose.charge) {
         const hand = handPos(L, pose, t);
-        drawGatherLightning(L, pose, hand, now, pose.charge);
+        drawGatherLightning(L, pose, hand, now, pose.charge, cine.extras);
         // A lens streak through her palm, flickering with the charge.
-        if (hand) drawFlare(hand.x, hand.y, L.box * (0.9 + 0.6 * pose.charge), pose.charge * 0.32 * (0.85 + 0.15 * Math.sin(now * 0.03)));
+        if (hand) drawFlare(hand.x, hand.y, L.box * (0.9 + 0.6 * pose.charge), pose.charge * 0.32 * cine.flare * (0.85 + 0.15 * Math.sin(now * 0.03)));
       }
       // 26 sparks for every 60Hz frame the turn flash stays above 0.9.
       if (pose.flash > 0.9 && fxParticles.length < 90) {
@@ -4558,11 +4772,32 @@
     }
 
     drawCastRelease(cs, elapsed, now);
+    _faceShield = null;
     updateDrawParticles(frameScale);
     // The spotlight follows her; before she is out, it sits on the gate.
     if (focus > 0.01 && pose) drawSpotlight(pose.x, pose.y - L.box * 0.05, L.box * 0.34, focus * (0.85 + 0.15 * charged));
     const gateSpot = beat.id === 'gate' ? 0.7 * openness : (beat.id === 'walkOut' ? 0.7 * (1 - focus) : 0);
     if (gateSpot > 0.01) drawSpotlight(L.gateX, L.centerY, L.gateR * 0.8, gateSpot);
+    // The impact frame: one frame of flat dark violet with her shape burnt
+    // in bright, the moment the spell lands.
+    if (pose && elapsed >= APPLY_AT && elapsed < APPLY_AT + 16.7) {
+      ctx.save();
+      ctx.fillStyle = 'rgb(24,8,46)';
+      ctx.fillRect(-canvas.width, -canvas.height, canvas.width * 3, canvas.height * 3);
+      ctx.restore();
+      tintBuffer('#f6eeff', 1);
+      invalidateSprite();
+      blitSprite(L, pose.x, pose.y, pose.scale, 1);
+      const hp = handPos(L, pose, t);
+      if (hp) {
+        const r = L.box * 0.12;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(energyGlow(), hp.x - r, hp.y - r, r * 2, r * 2);
+        ctx.restore();
+      }
+    }
+    ctx.restore(); // camera
     if (pose && pose.charge) drawGrade(0.28 * pose.charge + 0.3 * (pose.impact || 0));
     drawLetterbox(reach);
     if (descending && typeof _drawGoliathBossBar === 'function') _drawGoliathBossBar(descending);
@@ -4572,7 +4807,7 @@
     if (beat.id === 'cast' && elapsed >= APPLY_AT) {
       const since = elapsed - APPLY_AT, left = BEAT_AT.cast + BEAT_MS.cast - elapsed;
       const a = Math.min(1, since / 450) * Math.min(1, left / 290);
-      drawEffectBanner(cs.effect, a * a * (3 - 2 * a), L, since / (BEAT_AT.cast + BEAT_MS.cast - APPLY_AT));
+      drawEffectBanner(cs.effect, a * a * (3 - 2 * a), L, clamp01((elapsed - APPLY_AT - 450) / 750));
     }
   }
 
