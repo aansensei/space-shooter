@@ -92,9 +92,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&family=Courier+New&display=swap"
         rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css?v=20260923a">
 
     <style>
@@ -249,6 +247,7 @@
             z-index: 1;
             will-change: opacity;
         }
+
         #skillg-crest img {
             position: absolute;
             inset: 0;
@@ -257,12 +256,17 @@
             object-fit: contain;
             display: block;
         }
-        #sgCrestDim { opacity: 0.35; }
+
+        #sgCrestDim {
+            opacity: 0.35;
+        }
+
         #sgCrestLit {
             opacity: 0;
             clip-path: inset(100% 0 0 0);
             transition: opacity 0.4s ease-out;
         }
+
         /* Embers riding the advancing edge of #sgCrestLit's reveal, like the
            crest is catching fire as it fills - top is synced by JS to the
            same boundary as the clip-path above. */
@@ -275,6 +279,7 @@
             opacity: 0;
             transition: opacity 0.3s ease-out;
         }
+
         .sg-ember {
             position: absolute;
             bottom: 0;
@@ -282,18 +287,30 @@
             height: 9px;
             margin-left: -4.5px;
             border-radius: 50%;
-            background: radial-gradient(circle, #fbffff 0%, #8fe9ff 45%, rgba(110,225,255,0) 75%);
+            background: radial-gradient(circle, #fbffff 0%, #8fe9ff 45%, rgba(110, 225, 255, 0) 75%);
             filter: blur(0.4px);
             opacity: 0;
             animation: sgEmberRise linear infinite;
         }
+
         .sg-ember-warm {
-            background: radial-gradient(circle, #fff8e6 0%, #ffcf7a 45%, rgba(255,180,90,0) 75%);
+            background: radial-gradient(circle, #fff8e6 0%, #ffcf7a 45%, rgba(255, 180, 90, 0) 75%);
         }
+
         @keyframes sgEmberRise {
-            0% { transform: translateY(0) scale(0.5); opacity: 0; }
-            18% { opacity: 0.9; }
-            100% { transform: translateY(-42px) scale(1); opacity: 0; }
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+
+            18% {
+                opacity: 0.9;
+            }
+
+            100% {
+                transform: translateY(-42px) scale(1);
+                opacity: 0;
+            }
         }
 
         /* --- CLICK TO START --- */
@@ -382,13 +399,14 @@
             font-size: 12px;
             font-weight: bold;
             color: #ffffff;
-            background: rgba(0,0,0,0.65);
+            background: rgba(0, 0, 0, 0.65);
             border-radius: 4px;
             padding: 3px 8px;
             pointer-events: none;
             user-select: none;
-            text-shadow: 0 1px 4px rgba(0,0,0,1);
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 1);
         }
+
         /* --- FPS TIP (one-time, iOS only, when rAF looks stuck near 60) --- */
         #fps-tip {
             display: none;
@@ -407,7 +425,11 @@
             color: #cdeeff;
             box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
         }
-        #fps-tip b { color: #00e5ff; }
+
+        #fps-tip b {
+            color: #00e5ff;
+        }
+
         #fps-tip-close {
             position: absolute;
             top: 6px;
@@ -420,6 +442,7 @@
             cursor: pointer;
             padding: 2px 4px;
         }
+
         /* --- DEBUG CONSOLE (F3 toggle) --- */
         #debug-panel {
             position: fixed;
@@ -432,24 +455,49 @@
             font-size: 9px;
             pointer-events: none;
         }
-        #debug-panel.visible { display: block; }
+
+        #debug-panel.visible {
+            display: block;
+        }
+
         #debug-console {
-            background: rgba(0,0,0,0.85);
-            border: 1px solid rgba(255,80,40,0.30);
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 80, 40, 0.30);
             border-radius: 6px;
             padding: 4px 6px;
             height: 160px;
             overflow-y: auto;
             pointer-events: auto;
             scrollbar-width: thin;
-            scrollbar-color: rgba(255,80,40,0.4) transparent;
+            scrollbar-color: rgba(255, 80, 40, 0.4) transparent;
         }
-        #debug-console::-webkit-scrollbar { width: 4px; }
-        #debug-console::-webkit-scrollbar-thumb { background: rgba(255,80,40,0.4); border-radius: 2px; }
-        .dbg-line { margin: 1px 0; line-height: 1.4; word-break: break-all; }
-        .dbg-err  { color: #ff5a3a; }
-        .dbg-warn { color: #ffc84a; }
-        .dbg-info { color: #8af0cc; }
+
+        #debug-console::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #debug-console::-webkit-scrollbar-thumb {
+            background: rgba(255, 80, 40, 0.4);
+            border-radius: 2px;
+        }
+
+        .dbg-line {
+            margin: 1px 0;
+            line-height: 1.4;
+            word-break: break-all;
+        }
+
+        .dbg-err {
+            color: #ff5a3a;
+        }
+
+        .dbg-warn {
+            color: #ffc84a;
+        }
+
+        .dbg-info {
+            color: #8af0cc;
+        }
     </style>
 
     <script>
@@ -531,15 +579,20 @@
          counter - the game can't tell whether a rate below the display's
          max (e.g. 60 on a 120Hz phone) comes from the OS/browser's own
          power-saving policy, thermal throttling, or true hardware limits. -->
-    <div id="debug-fps" title="Raw browser callback rate (requestAnimationFrame), not necessarily the display's max refresh rate - the browser/OS may cap this below hardware capability (power saving, thermal, etc.) and the page has no way to tell which.">rAF: --</div>
+    <div id="debug-fps"
+        title="Raw browser callback rate (requestAnimationFrame), not necessarily the display's max refresh rate - the browser/OS may cap this below hardware capability (power saving, thermal, etc.) and the page has no way to tell which.">
+        rAF: --</div>
 
     <!-- One-time tip, iOS only: shown if rAF looks stuck near 60 while
          High FPS is on, since that's WebKit's own "Prefer Page Rendering
          Updates near 60fps" preference (default on) - the page can't turn
          it off itself, only point the player at where to. -->
     <div id="fps-tip">
-        <span data-i18n="fpsTip.body">Your Safari looks capped near 60fps. To try for 120fps on ProMotion: turn off Low Power Mode, then in Settings search Safari's Advanced > Feature Flags and turn off "Prefer Page Rendering Updates near 60fps".</span>
-        <button id="fps-tip-close" onclick="document.getElementById('fps-tip').style.display='none'; try { localStorage.setItem('pisces_fps_tip_dismissed', '1'); } catch(_) {}">×</button>
+        <span data-i18n="fpsTip.body">Your Safari looks capped near 60fps. To try for 120fps on ProMotion: turn off Low
+            Power Mode, then in Settings search Safari's Advanced > Feature Flags and turn off "Prefer Page Rendering
+            Updates near 60fps".</span>
+        <button id="fps-tip-close"
+            onclick="document.getElementById('fps-tip').style.display='none'; try { localStorage.setItem('pisces_fps_tip_dismissed', '1'); } catch(_) {}">×</button>
     </div>
     <!-- Debug console (F3 toggle) -->
     <div id="debug-panel">
@@ -563,11 +616,14 @@
         <img id="sgCrestLit" src="assets/images/game/effects/skill-g-crest.png" alt="">
         <div id="sgCrestBlaze">
             <span class="sg-ember" style="left:8%; animation-delay:0s; animation-duration:1.4s;"></span>
-            <span class="sg-ember sg-ember-warm" style="left:22%; animation-delay:0.3s; animation-duration:1.7s;"></span>
+            <span class="sg-ember sg-ember-warm"
+                style="left:22%; animation-delay:0.3s; animation-duration:1.7s;"></span>
             <span class="sg-ember" style="left:37%; animation-delay:0.6s; animation-duration:1.3s;"></span>
-            <span class="sg-ember sg-ember-warm" style="left:50%; animation-delay:0.15s; animation-duration:1.6s;"></span>
+            <span class="sg-ember sg-ember-warm"
+                style="left:50%; animation-delay:0.15s; animation-duration:1.6s;"></span>
             <span class="sg-ember" style="left:63%; animation-delay:0.5s; animation-duration:1.5s;"></span>
-            <span class="sg-ember sg-ember-warm" style="left:78%; animation-delay:0.8s; animation-duration:1.8s;"></span>
+            <span class="sg-ember sg-ember-warm"
+                style="left:78%; animation-delay:0.8s; animation-duration:1.8s;"></span>
             <span class="sg-ember" style="left:92%; animation-delay:0.35s; animation-duration:1.4s;"></span>
         </div>
     </div>
@@ -619,7 +675,7 @@
     <!-- Yog-Sothoth domain: shown/hidden each frame from render/core.js's
          _drawYogShiftTeleportHint(), not toggled at the domain's various
          activation sites - simpler than mirroring every one of them. -->
-    <div id="yog-teleport-hint">←  →  to teleport</div>
+    <div id="yog-teleport-hint">← → to teleport</div>
 
     <button id="startBtn" style="display: none;">Start</button>
     <button id="mainMenuBtn" style="display: none;">Main Menu</button>
@@ -630,7 +686,8 @@
          _showConfirmMainMenu. Sits above pause-overlay's own z-index. -->
     <div id="confirmMenuOverlay">
         <div id="confirmMenuBox">
-            <p id="confirmMenuText" data-i18n="confirmMenu.message">Return to the main menu? Your current run will be lost.</p>
+            <p id="confirmMenuText" data-i18n="confirmMenu.message">Return to the main menu? Your current run will be
+                lost.</p>
             <div id="confirmMenuBtns">
                 <button id="confirmMenuYes" data-i18n="confirmMenu.yes">YES</button>
                 <button id="confirmMenuNo" data-i18n="confirmMenu.no">NO</button>
@@ -760,7 +817,7 @@
                     // is mid-load or the preview handler is unavailable.
                     const _fr = document.getElementById('guideFrame');
                     if (_fr && _fr.contentWindow && typeof _fr.contentWindow._stopMusicPreview === 'function') {
-                        try { _fr.contentWindow._stopMusicPreview(false); } catch (_) {}
+                        try { _fr.contentWindow._stopMusicPreview(false); } catch (_) { }
                     }
                     if (window.AudioMgr) window.AudioMgr.resumeBgm();
                     document.getElementById('guideOverlay').style.display = 'none';
@@ -812,20 +869,25 @@
                         font-size:14px; letter-spacing:4px; text-transform:uppercase;
                         text-shadow:0 0 12px rgba(0,229,255,0.5);" data-i18n="settings.title">⚙ Settings</h2>
                     <p style="margin:0 0 18px; text-align:center; color:rgba(0,229,255,0.45);
-                        font-size:10px; letter-spacing:2px;"><span data-i18n="settings.subtitlePre">Press</span> <kbd style="
+                        font-size:10px; letter-spacing:2px;"><span data-i18n="settings.subtitlePre">Press</span> <kbd
+                            style="
                             background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.35);
                             border-radius:4px; padding:1px 5px; font-family:monospace;
-                            color:#00e5ff; font-size:10px;">ESC</kbd> <span data-i18n="settings.subtitlePost">to pause / resume game</span></p>
+                            color:#00e5ff; font-size:10px;">ESC</kbd> <span data-i18n="settings.subtitlePost">to pause
+                            / resume game</span></p>
 
                     <!-- LANGUAGE -->
                     <select id="lang-select" style="display:none;">
                         <option value="en">English</option>
                         <option value="vi">Tiếng Việt</option>
                     </select>
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px;">
-                        <span class="stg-section-label" style="margin-bottom:0;" data-i18n="language.section">Language</span>
+                    <div
+                        style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px;">
+                        <span class="stg-section-label" style="margin-bottom:0;"
+                            data-i18n="language.section">Language</span>
                         <div id="lang-select-wrap" style="position:relative; width:150px;">
-                            <button type="button" id="lang-select-btn" class="stg-music-btn" onclick="toggleLangDropdown()">
+                            <button type="button" id="lang-select-btn" class="stg-music-btn"
+                                onclick="toggleLangDropdown()">
                                 <span id="lang-select-label" class="stg-music-label">English</span>
                                 <span class="stg-music-chevron">▾</span>
                             </button>
@@ -839,43 +901,57 @@
                     <div class="stg-section-label" data-i18n="graphics.section">Graphics</div>
 
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                        <label class="stg-toggle-row" style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
+                        <label class="stg-toggle-row"
+                            style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
                             <div class="stg-toggle-wrap" id="sq-wrap">
-                                <input type="checkbox" id="sq-check" checked onchange="onSmartQualityChange(this.checked)">
+                                <input type="checkbox" id="sq-check" checked
+                                    onchange="onSmartQualityChange(this.checked)">
                                 <div class="stg-toggle-track"></div>
                                 <div class="stg-toggle-thumb"></div>
                             </div>
-                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;" data-i18n="graphics.smartQuality">Smart Quality</span>
+                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;"
+                                data-i18n="graphics.smartQuality">Smart Quality</span>
                         </label>
                     </div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;" data-i18n="graphics.smartQualityDesc">
+                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;"
+                        data-i18n="graphics.smartQualityDesc">
                         Auto-adjusts graphics to maintain smooth performance.
                     </div>
 
                     <!-- Quality buttons. q-per (mobile only, tier 4) is hidden by
                          default and shown from JS once window._platform is known
                          to be 'mobile' - see the platform-select code below. -->
-                    <div id="quality-row" style="display:flex; gap:8px; margin-bottom:6px; opacity:0.35; pointer-events:none;">
-                        <button class="stg-q-btn" id="q-per"    onclick="onQualitySelect(4)" data-i18n="graphics.per" style="display:none;">PER</button>
-                        <button class="stg-q-btn" id="q-low"    onclick="onQualitySelect(2)" data-i18n="graphics.low">LOW</button>
-                        <button class="stg-q-btn" id="q-med"    onclick="onQualitySelect(1)" data-i18n="graphics.medium">MEDIUM</button>
-                        <button class="stg-q-btn" id="q-high"   onclick="onQualitySelect(0)" data-i18n="graphics.high">HIGH</button>
+                    <div id="quality-row"
+                        style="display:flex; gap:8px; margin-bottom:6px; opacity:0.35; pointer-events:none;">
+                        <button class="stg-q-btn" id="q-per" onclick="onQualitySelect(4)" data-i18n="graphics.per"
+                            style="display:none;">PER</button>
+                        <button class="stg-q-btn" id="q-low" onclick="onQualitySelect(2)"
+                            data-i18n="graphics.low">LOW</button>
+                        <button class="stg-q-btn" id="q-med" onclick="onQualitySelect(1)"
+                            data-i18n="graphics.medium">MEDIUM</button>
+                        <button class="stg-q-btn" id="q-high" onclick="onQualitySelect(0)"
+                            data-i18n="graphics.high">HIGH</button>
                     </div>
-                    <div id="quality-note" style="font-size:10px; color:rgba(255,200,74,0.5); margin-bottom:18px; padding-left:2px; line-height:1.5; display:block;" data-i18n="graphics.qualityNote">
+                    <div id="quality-note"
+                        style="font-size:10px; color:rgba(255,200,74,0.5); margin-bottom:18px; padding-left:2px; line-height:1.5; display:block;"
+                        data-i18n="graphics.qualityNote">
                         To choose a specific quality, please turn off Smart Quality.
                     </div>
 
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                        <label class="stg-toggle-row" style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
+                        <label class="stg-toggle-row"
+                            style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
                             <div class="stg-toggle-wrap" id="highfps-wrap">
                                 <input type="checkbox" id="highfps-check" checked>
                                 <div class="stg-toggle-track"></div>
                                 <div class="stg-toggle-thumb"></div>
                             </div>
-                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;" data-i18n="graphics.highFps">High FPS</span>
+                            <span style="color:#e0f4ff; font-size:12px; letter-spacing:1px;"
+                                data-i18n="graphics.highFps">High FPS</span>
                         </label>
                     </div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;" data-i18n="graphics.highFpsDesc">
+                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;"
+                        data-i18n="graphics.highFpsDesc">
                         Removes the ~45fps cap on mobile. Smoother on a strong device, uses more battery.
                     </div>
 
@@ -885,34 +961,37 @@
                     <div class="stg-section-label" data-i18n="audio.section">Audio</div>
 
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="audio.bgm">BGM</span>
-                        <input type="range" id="vol-bgm-slider" min="0" max="100" value="100"
-                            class="stg-slider"
-                            oninput="onAudioSlider('bgm', this.value)"
-                            style="--pct:100%;">
-                        <span id="vol-bgm-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
+                            data-i18n="audio.bgm">BGM</span>
+                        <input type="range" id="vol-bgm-slider" min="0" max="100" value="100" class="stg-slider"
+                            oninput="onAudioSlider('bgm', this.value)" style="--pct:100%;">
+                        <span id="vol-bgm-label"
+                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="audio.sfx">SFX</span>
-                        <input type="range" id="vol-sfx-slider" min="0" max="100" value="100"
-                            class="stg-slider"
-                            oninput="onAudioSlider('sfx', this.value)"
-                            style="--pct:100%;">
-                        <span id="vol-sfx-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
+                            data-i18n="audio.sfx">SFX</span>
+                        <input type="range" id="vol-sfx-slider" min="0" max="100" value="100" class="stg-slider"
+                            oninput="onAudioSlider('sfx', this.value)" style="--pct:100%;">
+                        <span id="vol-sfx-label"
+                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="audio.global">Global</span>
-                        <input type="range" id="vol-global-slider" min="0" max="100" value="100"
-                            class="stg-slider"
-                            oninput="onAudioSlider('global', this.value)"
-                            style="--pct:100%;">
-                        <span id="vol-global-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
+                            data-i18n="audio.global">Global</span>
+                        <input type="range" id="vol-global-slider" min="0" max="100" value="100" class="stg-slider"
+                            oninput="onAudioSlider('global', this.value)" style="--pct:100%;">
+                        <span id="vol-global-label"
+                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
 
                     <div style="margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; display:block; margin-bottom:8px;" data-i18n="audio.inGameMusic">In-Game Music</span>
+                        <span
+                            style="color:#a0cce0; font-size:11px; letter-spacing:1px; display:block; margin-bottom:8px;"
+                            data-i18n="audio.inGameMusic">In-Game Music</span>
                         <div id="music-select-wrap" style="position:relative;">
-                            <button type="button" id="music-select-btn" class="stg-music-btn" onclick="toggleMusicDropdown()">
+                            <button type="button" id="music-select-btn" class="stg-music-btn"
+                                onclick="toggleMusicDropdown()">
                                 <span id="music-select-label">Random</span>
                                 <span class="stg-music-chevron">▾</span>
                             </button>
@@ -926,12 +1005,12 @@
                     <div class="stg-section-label" data-i18n="background.section">Background</div>
 
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;" data-i18n="background.brightness">Brightness</span>
-                        <input type="range" id="bg-bright-slider" min="1" max="100" value="100"
-                            class="stg-slider"
-                            oninput="onBgBrightnessChange(this.value)"
-                            style="--pct:100%;">
-                        <span id="bg-bright-label" style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; min-width:56px;"
+                            data-i18n="background.brightness">Brightness</span>
+                        <input type="range" id="bg-bright-slider" min="1" max="100" value="100" class="stg-slider"
+                            oninput="onBgBrightnessChange(this.value)" style="--pct:100%;">
+                        <span id="bg-bright-label"
+                            style="color:#00e5ff; font-size:11px; min-width:32px; text-align:right;">100%</span>
                     </div>
 
                     <div class="stg-divider"></div>
@@ -940,26 +1019,36 @@
                     <div class="stg-section-label" data-i18n="gameplay.section">Gameplay</div>
 
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;" data-i18n="gameplay.screenShake">Screen Shake</span>
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;"
+                            data-i18n="gameplay.screenShake">Screen Shake</span>
                         <div style="display:flex; gap:6px;">
-                            <button class="stg-onoff-btn"                  id="shake-on"  onclick="onShakeChange(true)" data-i18n="gameplay.on">ON</button>
-                            <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)" data-i18n="gameplay.off">OFF</button>
+                            <button class="stg-onoff-btn" id="shake-on" onclick="onShakeChange(true)"
+                                data-i18n="gameplay.on">ON</button>
+                            <button class="stg-onoff-btn stg-onoff-active" id="shake-off" onclick="onShakeChange(false)"
+                                data-i18n="gameplay.off">OFF</button>
                         </div>
                     </div>
-                    <div style="font-size:10px; color:rgba(255,180,50,0.55); margin-bottom:4px; line-height:1.5;" data-i18n="gameplay.screenShakeWarn">
+                    <div style="font-size:10px; color:rgba(255,180,50,0.55); margin-bottom:4px; line-height:1.5;"
+                        data-i18n="gameplay.screenShakeWarn">
                         ⚠ Turning on screen shake may cause unexpected lag on some devices.
                     </div>
 
                     <!-- Only shown once the player has actually watched Kanade's
                          cutscene through once; before that it is not an option. -->
-                    <div id="kanade-skip-row" style="display:none; align-items:center; gap:10px; margin-top:14px; margin-bottom:4px;">
-                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;" data-i18n="gameplay.skipKanade">Skip Kanade Animation</span>
+                    <div id="kanade-skip-row"
+                        style="display:none; align-items:center; gap:10px; margin-top:14px; margin-bottom:4px;">
+                        <span style="color:#a0cce0; font-size:11px; letter-spacing:1px; flex:1;"
+                            data-i18n="gameplay.skipKanade">Skip Kanade Animation</span>
                         <div style="display:flex; gap:6px;">
-                            <button class="stg-onoff-btn"                  id="kanade-skip-on"  onclick="onKanadeSkipChange(true)" data-i18n="gameplay.on">ON</button>
-                            <button class="stg-onoff-btn stg-onoff-active" id="kanade-skip-off" onclick="onKanadeSkipChange(false)" data-i18n="gameplay.off">OFF</button>
+                            <button class="stg-onoff-btn" id="kanade-skip-on" onclick="onKanadeSkipChange(true)"
+                                data-i18n="gameplay.on">ON</button>
+                            <button class="stg-onoff-btn stg-onoff-active" id="kanade-skip-off"
+                                onclick="onKanadeSkipChange(false)" data-i18n="gameplay.off">OFF</button>
                         </div>
                     </div>
-                    <div id="kanade-skip-note" style="display:none; font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:4px; line-height:1.5;" data-i18n="gameplay.skipKanadeNote">
+                    <div id="kanade-skip-note"
+                        style="display:none; font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:4px; line-height:1.5;"
+                        data-i18n="gameplay.skipKanadeNote">
                         The boss wave still rolls and applies its Timeline Distortion either way.
                     </div>
 
@@ -967,26 +1056,33 @@
 
                     <!-- OFFLINE PLAY -->
                     <div class="stg-section-label" data-i18n="offline.section">Offline Play</div>
-                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;" data-i18n="offline.desc">
+                    <div style="font-size:10px; color:rgba(0,229,255,0.45); margin-bottom:12px; padding-left:2px; line-height:1.5;"
+                        data-i18n="offline.desc">
                         Download in advance to play without internet.
                     </div>
-                    <div style="color:#a0cce0; font-size:11px; letter-spacing:1px; margin-bottom:8px;" data-i18n="offline.downloadLabel">Download offline resources</div>
+                    <div style="color:#a0cce0; font-size:11px; letter-spacing:1px; margin-bottom:8px;"
+                        data-i18n="offline.downloadLabel">Download offline resources</div>
                     <select id="offline-pkg-select" style="display:none;">
                         <option value="basic" data-i18n="offline.pkgBasic">Basic (~33MB)</option>
                         <option value="full" data-i18n="offline.pkgFull">Full (~196MB)</option>
                     </select>
                     <div style="display:flex; gap:8px; margin-bottom:8px;">
                         <div id="offline-pkg-select-wrap" style="position:relative; flex:1;">
-                            <button type="button" id="offline-pkg-select-btn" class="stg-music-btn" onclick="toggleOfflinePkgDropdown()">
+                            <button type="button" id="offline-pkg-select-btn" class="stg-music-btn"
+                                onclick="toggleOfflinePkgDropdown()">
                                 <span id="offline-pkg-select-label" class="stg-music-label">Basic (~33MB)</span>
                                 <span class="stg-music-chevron">▾</span>
                             </button>
                             <div id="offline-pkg-dropdown" class="stg-music-dropdown" style="display:none;"></div>
                         </div>
-                        <button class="stg-btn-sm" id="offline-download-btn" onclick="downloadOfflinePackage()" data-i18n="offline.downloadBtn">Download</button>
+                        <button class="stg-btn-sm" id="offline-download-btn" onclick="downloadOfflinePackage()"
+                            data-i18n="offline.downloadBtn">Download</button>
                     </div>
-                    <div class="stg-offline-bar-track"><div class="stg-offline-bar-fill" id="offline-fill"></div></div>
-                    <div id="offline-status-text" style="font-size:10px; color:rgba(0,229,255,0.5); margin-top:5px; margin-bottom:12px;"></div>
+                    <div class="stg-offline-bar-track">
+                        <div class="stg-offline-bar-fill" id="offline-fill"></div>
+                    </div>
+                    <div id="offline-status-text"
+                        style="font-size:10px; color:rgba(0,229,255,0.5); margin-top:5px; margin-bottom:12px;"></div>
 
                     <div class="stg-divider"></div>
 
@@ -999,8 +1095,8 @@
                         box-shadow:0 0 15px rgba(0,229,255,0.2);
                         transition:all 0.2s;
                     " onmouseover="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.45),rgba(0,100,200,0.45))'"
-                       onmouseout="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25))'"
-                       data-i18n="settings.apply">
+                        onmouseout="this.style.background='linear-gradient(45deg,rgba(0,200,255,0.25),rgba(0,100,200,0.25))'"
+                        data-i18n="settings.apply">
                         Apply
                     </button>
                 </div>
@@ -1008,183 +1104,378 @@
 
             <style>
                 .stg-section-label {
-                    font-size:10px; letter-spacing:3px; text-transform:uppercase;
-                    color:rgba(0,229,255,0.4); margin-bottom:10px;
+                    font-size: 10px;
+                    letter-spacing: 3px;
+                    text-transform: uppercase;
+                    color: rgba(0, 229, 255, 0.4);
+                    margin-bottom: 10px;
                 }
+
                 .stg-divider {
-                    height:1px; background:rgba(0,229,255,0.12); margin:16px 0;
+                    height: 1px;
+                    background: rgba(0, 229, 255, 0.12);
+                    margin: 16px 0;
                 }
+
                 /* Toggle switch */
                 .stg-toggle-wrap {
-                    position:relative; width:38px; height:20px; flex-shrink:0;
+                    position: relative;
+                    width: 38px;
+                    height: 20px;
+                    flex-shrink: 0;
                 }
-                .stg-toggle-wrap input { opacity:0; width:0; height:0; position:absolute; }
+
+                .stg-toggle-wrap input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                    position: absolute;
+                }
+
                 .stg-toggle-track {
-                    position:absolute; inset:0; border-radius:20px;
-                    background:rgba(255,255,255,0.12);
-                    border:1px solid rgba(0,229,255,0.25);
-                    transition:background 0.25s, border-color 0.25s;
+                    position: absolute;
+                    inset: 0;
+                    border-radius: 20px;
+                    background: rgba(255, 255, 255, 0.12);
+                    border: 1px solid rgba(0, 229, 255, 0.25);
+                    transition: background 0.25s, border-color 0.25s;
                 }
+
                 .stg-toggle-thumb {
-                    position:absolute; top:3px; left:3px;
-                    width:14px; height:14px; border-radius:50%;
-                    background:rgba(255,255,255,0.4);
-                    transition:left 0.25s, background 0.25s;
+                    position: absolute;
+                    top: 3px;
+                    left: 3px;
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.4);
+                    transition: left 0.25s, background 0.25s;
                 }
-                .stg-toggle-wrap input:checked ~ .stg-toggle-track {
-                    background:rgba(0,229,255,0.25); border-color:#00e5ff;
+
+                .stg-toggle-wrap input:checked~.stg-toggle-track {
+                    background: rgba(0, 229, 255, 0.25);
+                    border-color: #00e5ff;
                 }
-                .stg-toggle-wrap input:checked ~ .stg-toggle-thumb {
-                    left:21px; background:#00e5ff;
+
+                .stg-toggle-wrap input:checked~.stg-toggle-thumb {
+                    left: 21px;
+                    background: #00e5ff;
                 }
+
                 /* Quality buttons */
                 .stg-q-btn {
-                    flex:1; padding:8px 0; border-radius:8px;
-                    font-family:'Courier New',monospace; font-size:11px;
-                    font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                    color:#00e5ff; background:rgba(0,20,40,0.7);
-                    border:1.5px solid rgba(0,229,255,0.3); cursor:pointer;
-                    transition:all 0.2s;
+                    flex: 1;
+                    padding: 8px 0;
+                    border-radius: 8px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                    text-transform: uppercase;
+                    color: #00e5ff;
+                    background: rgba(0, 20, 40, 0.7);
+                    border: 1.5px solid rgba(0, 229, 255, 0.3);
+                    cursor: pointer;
+                    transition: all 0.2s;
                 }
-                .stg-q-btn:hover { background:rgba(0,229,255,0.12); border-color:#00e5ff; }
+
+                .stg-q-btn:hover {
+                    background: rgba(0, 229, 255, 0.12);
+                    border-color: #00e5ff;
+                }
+
                 .stg-q-btn.stg-q-active {
-                    background:rgba(0,229,255,0.2); border-color:#00e5ff;
-                    color:#fff; box-shadow:0 0 10px rgba(0,229,255,0.3);
+                    background: rgba(0, 229, 255, 0.2);
+                    border-color: #00e5ff;
+                    color: #fff;
+                    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
                 }
+
                 /* ON/OFF buttons */
                 .stg-onoff-btn {
-                    padding:6px 14px; border-radius:6px;
-                    font-family:'Courier New',monospace; font-size:11px;
-                    font-weight:700; letter-spacing:1px;
-                    color:rgba(0,229,255,0.5); background:rgba(0,20,40,0.7);
-                    border:1.5px solid rgba(0,229,255,0.2); cursor:pointer;
-                    transition:all 0.2s;
+                    padding: 6px 14px;
+                    border-radius: 6px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                    color: rgba(0, 229, 255, 0.5);
+                    background: rgba(0, 20, 40, 0.7);
+                    border: 1.5px solid rgba(0, 229, 255, 0.2);
+                    cursor: pointer;
+                    transition: all 0.2s;
                 }
+
                 .stg-onoff-active {
-                    color:#fff; background:rgba(0,229,255,0.2);
-                    border-color:#00e5ff; box-shadow:0 0 8px rgba(0,229,255,0.25);
+                    color: #fff;
+                    background: rgba(0, 229, 255, 0.2);
+                    border-color: #00e5ff;
+                    box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
                 }
+
                 /* Offline Play */
                 .stg-select {
-                    flex:1; min-width:0; padding:7px 10px; border-radius:8px;
-                    font-family:'Courier New',monospace; font-size:11px;
-                    color:#e0f4ff; background:rgba(0,20,40,0.7);
-                    border:1.5px solid rgba(0,229,255,0.3); cursor:pointer;
+                    flex: 1;
+                    min-width: 0;
+                    padding: 7px 10px;
+                    border-radius: 8px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 11px;
+                    color: #e0f4ff;
+                    background: rgba(0, 20, 40, 0.7);
+                    border: 1.5px solid rgba(0, 229, 255, 0.3);
+                    cursor: pointer;
                 }
+
                 .stg-select option {
-                    background:#04121c; color:#e0f4ff;
+                    background: #04121c;
+                    color: #e0f4ff;
                 }
+
                 .stg-offline-bar-track {
-                    height:4px; border-radius:3px; background:rgba(0,30,50,0.7);
-                    border:1px solid rgba(0,229,255,0.2); overflow:hidden;
+                    height: 4px;
+                    border-radius: 3px;
+                    background: rgba(0, 30, 50, 0.7);
+                    border: 1px solid rgba(0, 229, 255, 0.2);
+                    overflow: hidden;
                 }
+
                 .stg-offline-bar-fill {
-                    height:100%; width:0%; background:#00e5ff;
-                    box-shadow:0 0 6px rgba(0,229,255,0.5); transition:width 0.2s;
+                    height: 100%;
+                    width: 0%;
+                    background: #00e5ff;
+                    box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+                    transition: width 0.2s;
                 }
+
                 .stg-btn-sm {
-                    padding:7px 14px; border-radius:8px; flex-shrink:0;
-                    font-family:'Courier New',monospace; font-size:11px;
-                    font-weight:700; letter-spacing:1px; text-transform:uppercase;
-                    color:#00e5ff; background:rgba(0,20,40,0.7);
-                    border:1.5px solid rgba(0,229,255,0.35); cursor:pointer;
-                    transition:all 0.2s;
+                    padding: 7px 14px;
+                    border-radius: 8px;
+                    flex-shrink: 0;
+                    font-family: 'Courier New', monospace;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                    text-transform: uppercase;
+                    color: #00e5ff;
+                    background: rgba(0, 20, 40, 0.7);
+                    border: 1.5px solid rgba(0, 229, 255, 0.35);
+                    cursor: pointer;
+                    transition: all 0.2s;
                 }
-                .stg-btn-sm:hover { background:rgba(0,229,255,0.15); }
+
+                .stg-btn-sm:hover {
+                    background: rgba(0, 229, 255, 0.15);
+                }
+
                 .stg-btn-sm:disabled {
-                    opacity:0.5; cursor:default; background:rgba(0,229,255,0.08);
+                    opacity: 0.5;
+                    cursor: default;
+                    background: rgba(0, 229, 255, 0.08);
                 }
+
                 /* Volume/brightness sliders */
                 .stg-slider {
-                    -webkit-appearance:none; appearance:none;
-                    flex:1; height:6px; border-radius:4px; cursor:pointer;
-                    background:linear-gradient(to right,
-                        #00e5ff 0%, #00e5ff var(--pct,100%),
-                        rgba(0,30,50,0.7) var(--pct,100%), rgba(0,30,50,0.7) 100%);
-                    border:1px solid rgba(0,229,255,0.25);
-                    outline:none;
+                    -webkit-appearance: none;
+                    appearance: none;
+                    flex: 1;
+                    height: 6px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    background: linear-gradient(to right,
+                            #00e5ff 0%, #00e5ff var(--pct, 100%),
+                            rgba(0, 30, 50, 0.7) var(--pct, 100%), rgba(0, 30, 50, 0.7) 100%);
+                    border: 1px solid rgba(0, 229, 255, 0.25);
+                    outline: none;
                 }
+
                 .stg-slider::-webkit-slider-thumb {
-                    -webkit-appearance:none;
-                    width:16px; height:16px; border-radius:50%;
-                    background:#00e5ff; border:2px solid #04121c;
-                    box-shadow:0 0 6px rgba(0,229,255,0.9), 0 0 12px rgba(0,229,255,0.45);
-                    cursor:pointer; transition:transform 0.12s;
+                    -webkit-appearance: none;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #00e5ff;
+                    border: 2px solid #04121c;
+                    box-shadow: 0 0 6px rgba(0, 229, 255, 0.9), 0 0 12px rgba(0, 229, 255, 0.45);
+                    cursor: pointer;
+                    transition: transform 0.12s;
                 }
-                .stg-slider::-webkit-slider-thumb:hover { transform:scale(1.15); }
+
+                .stg-slider::-webkit-slider-thumb:hover {
+                    transform: scale(1.15);
+                }
+
                 /* In-Game Music multi-select dropdown */
                 .stg-music-btn {
-                    width:100%; display:flex; justify-content:space-between; align-items:center;
-                    padding:9px 12px; border-radius:8px;
-                    font-family:'Courier New',monospace; font-size:12px;
-                    color:#e0f4ff; background:rgba(0,20,40,0.7);
-                    border:1.5px solid rgba(0,229,255,0.3); cursor:pointer;
-                    transition:all 0.2s;
+                    width: 100%;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 9px 12px;
+                    border-radius: 8px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 12px;
+                    color: #e0f4ff;
+                    background: rgba(0, 20, 40, 0.7);
+                    border: 1.5px solid rgba(0, 229, 255, 0.3);
+                    cursor: pointer;
+                    transition: all 0.2s;
                 }
-                .stg-music-btn:hover { border-color:#00e5ff; background:rgba(0,229,255,0.1); }
-                .stg-music-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; margin-right:8px; }
-                .stg-music-chevron { color:rgba(0,229,255,0.6); font-size:10px; transition:transform 0.2s; flex-shrink:0; }
-                .stg-music-btn.stg-music-open .stg-music-chevron { transform:rotate(180deg); }
+
+                .stg-music-btn:hover {
+                    border-color: #00e5ff;
+                    background: rgba(0, 229, 255, 0.1);
+                }
+
+                .stg-music-label {
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    text-align: left;
+                    margin-right: 8px;
+                }
+
+                .stg-music-chevron {
+                    color: rgba(0, 229, 255, 0.6);
+                    font-size: 10px;
+                    transition: transform 0.2s;
+                    flex-shrink: 0;
+                }
+
+                .stg-music-btn.stg-music-open .stg-music-chevron {
+                    transform: rotate(180deg);
+                }
+
                 .stg-music-dropdown {
-                    position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:20;
-                    max-height:200px; overflow-y:auto;
-                    background:rgba(2,10,22,0.98); border:1.5px solid rgba(0,229,255,0.35);
-                    border-radius:10px; padding:6px;
-                    box-shadow:0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,229,255,0.15);
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    top: calc(100% + 6px);
+                    z-index: 20;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    background: rgba(2, 10, 22, 0.98);
+                    border: 1.5px solid rgba(0, 229, 255, 0.35);
+                    border-radius: 10px;
+                    padding: 6px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.15);
                 }
+
                 .stg-music-row {
-                    display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:6px;
-                    cursor:pointer; font-size:11px; color:rgba(224,244,255,0.75);
-                    transition:background 0.15s, color 0.15s;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 7px 8px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    color: rgba(224, 244, 255, 0.75);
+                    transition: background 0.15s, color 0.15s;
                 }
-                .stg-music-row:hover { background:rgba(0,229,255,0.08); color:#e0f4ff; }
-                .stg-music-row-active { color:#fff; background:rgba(0,229,255,0.14); }
+
+                .stg-music-row:hover {
+                    background: rgba(0, 229, 255, 0.08);
+                    color: #e0f4ff;
+                }
+
+                .stg-music-row-active {
+                    color: #fff;
+                    background: rgba(0, 229, 255, 0.14);
+                }
+
                 .stg-music-check {
-                    width:16px; height:16px; border-radius:4px; flex-shrink:0;
-                    border:1.5px solid rgba(0,229,255,0.4); display:flex; align-items:center; justify-content:center;
-                    font-size:10px; line-height:1; color:#04121c; background:rgba(0,20,40,0.6);
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 4px;
+                    flex-shrink: 0;
+                    border: 1.5px solid rgba(0, 229, 255, 0.4);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 10px;
+                    line-height: 1;
+                    color: #04121c;
+                    background: rgba(0, 20, 40, 0.6);
                 }
-                .stg-music-row-active .stg-music-check { background:#00e5ff; border-color:#00e5ff; }
+
+                .stg-music-row-active .stg-music-check {
+                    background: #00e5ff;
+                    border-color: #00e5ff;
+                }
+
                 /* Themed scrollbars — the settings panel, music dropdown, and match stats panel */
-                #settings-panel, .stg-music-dropdown, #match-stats-panel {
-                    scrollbar-width:thin; scrollbar-color:rgba(0,229,255,0.4) rgba(0,20,40,0.3);
+                #settings-panel,
+                .stg-music-dropdown,
+                #match-stats-panel {
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(0, 229, 255, 0.4) rgba(0, 20, 40, 0.3);
                 }
-                #settings-panel::-webkit-scrollbar, .stg-music-dropdown::-webkit-scrollbar, #match-stats-panel::-webkit-scrollbar { width:6px; }
-                #settings-panel::-webkit-scrollbar-track, .stg-music-dropdown::-webkit-scrollbar-track, #match-stats-panel::-webkit-scrollbar-track {
-                    background:rgba(0,20,40,0.3); border-radius:3px;
+
+                #settings-panel::-webkit-scrollbar,
+                .stg-music-dropdown::-webkit-scrollbar,
+                #match-stats-panel::-webkit-scrollbar {
+                    width: 6px;
                 }
-                #settings-panel::-webkit-scrollbar-thumb, .stg-music-dropdown::-webkit-scrollbar-thumb, #match-stats-panel::-webkit-scrollbar-thumb {
-                    background:rgba(0,229,255,0.4); border-radius:3px;
+
+                #settings-panel::-webkit-scrollbar-track,
+                .stg-music-dropdown::-webkit-scrollbar-track,
+                #match-stats-panel::-webkit-scrollbar-track {
+                    background: rgba(0, 20, 40, 0.3);
+                    border-radius: 3px;
                 }
-                #settings-panel::-webkit-scrollbar-thumb:hover, .stg-music-dropdown::-webkit-scrollbar-thumb:hover, #match-stats-panel::-webkit-scrollbar-thumb:hover {
-                    background:rgba(0,229,255,0.65);
+
+                #settings-panel::-webkit-scrollbar-thumb,
+                .stg-music-dropdown::-webkit-scrollbar-thumb,
+                #match-stats-panel::-webkit-scrollbar-thumb {
+                    background: rgba(0, 229, 255, 0.4);
+                    border-radius: 3px;
                 }
+
+                #settings-panel::-webkit-scrollbar-thumb:hover,
+                .stg-music-dropdown::-webkit-scrollbar-thumb:hover,
+                #match-stats-panel::-webkit-scrollbar-thumb:hover {
+                    background: rgba(0, 229, 255, 0.65);
+                }
+
                 .stg-slider::-moz-range-thumb {
-                    width:14px; height:14px; border-radius:50%;
-                    background:#00e5ff; border:2px solid #04121c;
-                    box-shadow:0 0 6px rgba(0,229,255,0.9), 0 0 12px rgba(0,229,255,0.45);
-                    cursor:pointer; transition:transform 0.12s;
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    background: #00e5ff;
+                    border: 2px solid #04121c;
+                    box-shadow: 0 0 6px rgba(0, 229, 255, 0.9), 0 0 12px rgba(0, 229, 255, 0.45);
+                    cursor: pointer;
+                    transition: transform 0.12s;
                 }
-                .stg-slider::-moz-range-thumb:hover { transform:scale(1.15); }
+
+                .stg-slider::-moz-range-thumb:hover {
+                    transform: scale(1.15);
+                }
+
                 .stg-slider::-moz-range-track {
-                    height:6px; border-radius:4px; background:rgba(0,30,50,0.7);
+                    height: 6px;
+                    border-radius: 4px;
+                    background: rgba(0, 30, 50, 0.7);
                 }
+
                 .stg-slider::-moz-range-progress {
-                    height:6px; border-radius:4px; background:#00e5ff;
+                    height: 6px;
+                    border-radius: 4px;
+                    background: #00e5ff;
                 }
             </style>
 
             <script>
                 // Settings state (applied values)
-                window._smartQuality      = true;
+                window._smartQuality = true;
                 window._screenShakeEnabled = false;
-                window._masterVolume      = 1.0;
-                window._highFpsEnabled    = true;
+                window._masterVolume = 1.0;
+                window._highFpsEnabled = true;
 
                 // Store dataset on buttons for easy read-back
-                document.getElementById('q-per').dataset.level  = 4;
-                document.getElementById('q-low').dataset.level  = 2;
-                document.getElementById('q-med').dataset.level  = 1;
+                document.getElementById('q-per').dataset.level = 4;
+                document.getElementById('q-low').dataset.level = 2;
+                document.getElementById('q-med').dataset.level = 1;
                 document.getElementById('q-high').dataset.level = 0;
 
                 // Language switcher: swaps displayed text only (Settings UI,
@@ -1294,7 +1585,7 @@
                 try {
                     const savedLang = localStorage.getItem('pisces_lang');
                     if (savedLang === 'vi' || savedLang === 'en') window._lang = savedLang;
-                } catch (_) {}
+                } catch (_) { }
 
                 function applyLanguage() {
                     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -1314,7 +1605,7 @@
 
                 function onLanguageChange(lang) {
                     window._lang = lang;
-                    try { localStorage.setItem('pisces_lang', lang); } catch (_) {}
+                    try { localStorage.setItem('pisces_lang', lang); } catch (_) { }
                     applyLanguage();
                 }
                 window.onLanguageChange = onLanguageChange;
@@ -1332,13 +1623,13 @@
                     // Highlight quality button matching live _gfxLevel
                     const lvl = typeof window._gfxLevel !== 'undefined' ? window._gfxLevel : 0;
                     document.querySelectorAll('.stg-q-btn').forEach(b => b.classList.remove('stg-q-active'));
-                    const qMap = { 0:'q-high', 1:'q-med', 2:'q-low', 3:'q-low', 4:'q-per' };
+                    const qMap = { 0: 'q-high', 1: 'q-med', 2: 'q-low', 3: 'q-low', 4: 'q-per' };
                     const qBtn = document.getElementById(qMap[lvl] || 'q-high');
                     if (qBtn) qBtn.classList.add('stg-q-active');
 
                     // Audio: sync 3 sliders from AudioMgr persisted volumes
                     if (window.AudioMgr) {
-                        ['bgm','sfx','global'].forEach(cat => {
+                        ['bgm', 'sfx', 'global'].forEach(cat => {
                             const v = Math.round(window.AudioMgr.getVolume(cat) * 100);
                             const s = document.getElementById('vol-' + cat + '-slider');
                             const l = document.getElementById('vol-' + cat + '-label');
@@ -1395,7 +1686,7 @@
                         if (pct >= 100) { btn.textContent = 'Downloaded'; btn.disabled = true; }
                         else { btn.textContent = 'Download'; btn.disabled = false; }
                         if (statusText) statusText.textContent = st.cached + '/' + st.total + ' files (' + pct + '%)';
-                    } catch (_) {}
+                    } catch (_) { }
                 }
 
                 async function downloadOfflinePackage() {
@@ -1413,7 +1704,7 @@
                             fill.style.width = pct + '%';
                             btn.textContent = pct + '%';
                         });
-                    } catch (_) {}
+                    } catch (_) { }
                     sel.disabled = false;
                     refreshOfflineUI();
                 }
@@ -1424,7 +1715,7 @@
                     if (dd) dd.style.display = 'none';
                     if (btn) btn.classList.remove('stg-music-open');
                 }
-                document.getElementById('settingsOverlay').addEventListener('click', function(e) {
+                document.getElementById('settingsOverlay').addEventListener('click', function (e) {
                     if (e.target === this) closeSettings();
                 });
 
@@ -1579,7 +1870,7 @@
 
                 // Smart Quality toggle → only update row lock visually
                 function onSmartQualityChange(enabled) {
-                    const row  = document.getElementById('quality-row');
+                    const row = document.getElementById('quality-row');
                     const note = document.getElementById('quality-note');
                     if (enabled) {
                         row.style.opacity = '0.35';
@@ -1595,7 +1886,7 @@
                 // Quality button → only update active highlight
                 function onQualitySelect(level) {
                     document.querySelectorAll('.stg-q-btn').forEach(b => b.classList.remove('stg-q-active'));
-                    const map = { 0:'q-high', 1:'q-med', 2:'q-low', 3:'q-low', 4:'q-per' };
+                    const map = { 0: 'q-high', 1: 'q-med', 2: 'q-low', 3: 'q-low', 4: 'q-per' };
                     const btn = document.getElementById(map[level]);
                     if (btn) btn.classList.add('stg-q-active');
                 }
@@ -1616,12 +1907,12 @@
 
                 // Screen shake → only update button highlight
                 function onShakeChange(enabled) {
-                    document.getElementById('shake-on').classList.toggle('stg-onoff-active',  enabled);
+                    document.getElementById('shake-on').classList.toggle('stg-onoff-active', enabled);
                     document.getElementById('shake-off').classList.toggle('stg-onoff-active', !enabled);
                 }
 
                 function onKanadeSkipChange(enabled) {
-                    document.getElementById('kanade-skip-on').classList.toggle('stg-onoff-active',  enabled);
+                    document.getElementById('kanade-skip-on').classList.toggle('stg-onoff-active', enabled);
                     document.getElementById('kanade-skip-off').classList.toggle('stg-onoff-active', !enabled);
                 }
 
@@ -1705,7 +1996,7 @@
             document.getElementById('ico-on').style.display = _muted ? 'none' : 'block';
             document.getElementById('ico-off').style.display = _muted ? 'block' : 'none';
             if (window.AudioMgr) window.AudioMgr.setMuted(_muted);
-            if (_muted) { try { sndHyperjump.pause(); } catch (_) {} }
+            if (_muted) { try { sndHyperjump.pause(); } catch (_) { } }
         });
 
         // Click-to-start: first user gesture unlocks audio. AudioMgr owns BGM
@@ -1976,8 +2267,8 @@
     <!-- F3 DEBUG PANEL -->
     <script>
         (function () {
-            const panel    = document.getElementById('debug-panel');
-            const fpsEl    = document.getElementById('debug-fps');
+            const panel = document.getElementById('debug-panel');
+            const fpsEl = document.getElementById('debug-fps');
             const consoleEl = document.getElementById('debug-console');
             let visible = false;
             let lastFrameTime = performance.now();
@@ -2027,11 +2318,11 @@
             // when even that isn't enough, restricted to mobile since a
             // desktop machine that lags this hard has a different problem
             // no graphics tier fixes.
-            const _TIER_NAMES   = ['FULL', 'MED', 'LOW', 'MIN', 'PER'];
+            const _TIER_NAMES = ['FULL', 'MED', 'LOW', 'MIN', 'PER'];
             // FPS threshold để downgrade TO tier N
             const _TIER_DOWN_AT = [Infinity, 25, 15, 8, 4];
             // FPS threshold để upgrade FROM tier N (với buffer)
-            const _TIER_UP_AT   = [Infinity, 30, 20, 12, 6];
+            const _TIER_UP_AT = [Infinity, 30, 20, 12, 6];
 
             let _autoTier = 0;
             let _upgChecks = 0;       // upgrade cần 2 checks liên tiếp
@@ -2068,7 +2359,7 @@
             let _fpsTipShown = false;
             function _maybeShowFpsTip(fps, now) {
                 if (_fpsTipShown || !_isAppleDevice || window._highFpsEnabled !== true || !window._inGame) return;
-                try { if (localStorage.getItem('pisces_fps_tip_dismissed') === '1') { _fpsTipShown = true; return; } } catch (_) {}
+                try { if (localStorage.getItem('pisces_fps_tip_dismissed') === '1') { _fpsTipShown = true; return; } } catch (_) { }
                 if (!_fpsTipStartAt) _fpsTipStartAt = now;
                 // Wait 5s so early-load stutter doesn't read as a false positive.
                 if (now - _fpsTipStartAt < 5000) return;
@@ -2179,9 +2470,9 @@
             }
 
             const _origError = console.error.bind(console);
-            const _origWarn  = console.warn.bind(console);
-            console.error = function (...a) { addLine('dbg-err',  '[ERR] ' + a.join(' ')); _origError(...a); };
-            console.warn  = function (...a) { addLine('dbg-warn', '[WRN] ' + a.join(' ')); _origWarn(...a); };
+            const _origWarn = console.warn.bind(console);
+            console.error = function (...a) { addLine('dbg-err', '[ERR] ' + a.join(' ')); _origError(...a); };
+            console.warn = function (...a) { addLine('dbg-warn', '[WRN] ' + a.join(' ')); _origWarn(...a); };
 
             window.addEventListener('error', function (e) {
                 addLine('dbg-err', '[ERR] ' + e.message + ' (' + (e.filename || '?').split('/').pop() + ':' + e.lineno + ')');
@@ -2307,9 +2598,9 @@
         if ('serviceWorker' in navigator && _isDevHost) {
             navigator.serviceWorker.getRegistrations().then((regs) => {
                 regs.forEach((r) => r.unregister());
-            }).catch(() => {});
+            }).catch(() => { });
             if ('caches' in window) {
-                caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+                caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => { });
             }
         }
         if ('serviceWorker' in navigator && !_isDevHost) {
@@ -2367,20 +2658,20 @@
                         // back at the menu or the game is over.
                         if (typeof gameState !== 'undefined' && gameState === 'playing') return;
                         if (_forceUpdate) {
-                            if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
-                            reg.update().catch(() => {});
+                            if ('caches' in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => { });
+                            reg.update().catch(() => { });
                             return;
                         }
                         const now = Date.now();
                         if (now - _lastUpdateCheck < MIN_CHECK_INTERVAL) return;
                         _lastUpdateCheck = now;
-                        reg.update().catch(() => {});
+                        reg.update().catch(() => { });
                     };
                     _checkForUpdate();
                     document.addEventListener('visibilitychange', () => {
                         if (document.visibilityState === 'visible') _checkForUpdate();
                     });
-                }).catch(() => {});
+                }).catch(() => { });
             });
         }
 
@@ -2408,7 +2699,7 @@
                     _tagEl.textContent = 'cache: (no controller yet)';
                 }
             };
-            navigator.serviceWorker.ready.then(_askVersion).catch(() => {});
+            navigator.serviceWorker.ready.then(_askVersion).catch(() => { });
             navigator.serviceWorker.addEventListener('controllerchange', _askVersion);
         })();
     </script>
@@ -2430,6 +2721,7 @@
                 if (!b || _isGameplayBtn(b)) return;
                 window.AudioMgr.playSfx('click');
             }, true);
+
             // Hover sfx: one tick per button-enter. Uses mouseover + last-hover
             // tracking so re-entering the same element while still inside it
             // doesn't retrigger.
@@ -2445,7 +2737,7 @@
             }, true);
 
             // Overlay open/close sfx: wrap openGuide/openSettings/closeGuide/closeSettings
-            ['openGuide','openSettings','closeGuide','closeSettings'].forEach(fn => {
+            ['openGuide', 'openSettings', 'closeGuide', 'closeSettings'].forEach(fn => {
                 const orig = window[fn];
                 if (typeof orig === 'function') {
                     window[fn] = function () {
@@ -2510,7 +2802,9 @@
 
     <!-- MOBILE UI (injected after game scripts load) -->
     <div id="mc" style="display:none; position:fixed; inset:0; pointer-events:all; z-index:300;"></div>
-    <div id="sigil-pick-overlay" style="display:none; position:fixed; inset:0; z-index:9999999; touch-action:manipulation; -webkit-tap-highlight-color:transparent;"></div>
+    <div id="sigil-pick-overlay"
+        style="display:none; position:fixed; inset:0; z-index:9999999; touch-action:manipulation; -webkit-tap-highlight-color:transparent;">
+    </div>
 
     <style>
         /* Platform picker buttons */
@@ -2628,10 +2922,29 @@
             border-color: rgba(255, 255, 255, 0.55);
         }
 
-        #mb-yog.skill-active { border-color: rgba(255,204,0,0.9); background: rgba(255,204,0,0.14); box-shadow: 0 0 10px rgba(255,204,0,0.3); }
-        #mb-ch.skill-active  { border-color: rgba(0,229,255,0.9); background: rgba(0,229,255,0.14); box-shadow: 0 0 10px rgba(0,229,255,0.3); }
-        #mb-s.skill-active   { border-color: rgba(0,255,136,0.9); background: rgba(0,255,136,0.08); box-shadow: 0 0 10px rgba(0,255,136,0.25); }
-        #mb-g.skill-active   { border-color: rgba(0,255,200,0.9); background: rgba(0,255,200,0.1);  box-shadow: 0 0 10px rgba(0,255,200,0.25); }
+        #mb-yog.skill-active {
+            border-color: rgba(255, 204, 0, 0.9);
+            background: rgba(255, 204, 0, 0.14);
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+
+        #mb-ch.skill-active {
+            border-color: rgba(0, 229, 255, 0.9);
+            background: rgba(0, 229, 255, 0.14);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        #mb-s.skill-active {
+            border-color: rgba(0, 255, 136, 0.9);
+            background: rgba(0, 255, 136, 0.08);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.25);
+        }
+
+        #mb-g.skill-active {
+            border-color: rgba(0, 255, 200, 0.9);
+            background: rgba(0, 255, 200, 0.1);
+            box-shadow: 0 0 10px rgba(0, 255, 200, 0.25);
+        }
 
         .mb-ar:active {
             transform: scale(0.9);
@@ -2652,7 +2965,8 @@
             background: linear-gradient(180deg, rgba(0, 229, 255, 0.10), rgba(0, 40, 55, 0.20));
             border: 2px solid rgba(0, 229, 255, 0.45);
             box-shadow: 0 0 14px rgba(0, 229, 255, 0.22), inset 0 0 12px rgba(0, 229, 255, 0.12);
-            touch-action: none; /* raw drag, no browser scroll/zoom gestures fighting it */
+            touch-action: none;
+            /* raw drag, no browser scroll/zoom gestures fighting it */
         }
 
         /* Dead-zone boundary markers - thin lines at exactly +-JOY_DEADZONE
@@ -2839,7 +3153,7 @@
                 // and is a no-op there.
                 const R1 = 'calc(90px + env(safe-area-inset-right, 0px))';
                 const R2 = 'calc(10px + env(safe-area-inset-right, 0px))';
-                const B  = 'env(safe-area-inset-bottom, 0px)';
+                const B = 'env(safe-area-inset-bottom, 0px)';
                 // Skill cluster: CHARGE as a big central hub with A/S/D/F/G
                 // overlapping it and each other so the whole group reads as
                 // one connected cluster; Yog-Sothoth sits well clear above
