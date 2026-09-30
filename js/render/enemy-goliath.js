@@ -477,7 +477,7 @@ function _drawGoliathLimbs(enemy, growth) {
     // Absolute Verdict: cả 2 tay CHẤP LẠI NGAY MẮT để tụ quả cầu (không phải
     // giơ cao riêng lẻ) — đúng tư thế "channeling" thật.
     if (enemy._verdictPhase === 'channeling') {
-        const vp = Math.min(1, (enemy._verdictChannelTimer || 0) / 3000);
+        const vp = Math.min(1, (enemy._verdictChannelTimer || 0) / GOLIATH_VERDICT_CHANNEL_MS);
         lX = lX + (GOLIATH_EYE_POS.x - lX) * vp; lY = lY + (GOLIATH_EYE_POS.y - lY) * vp;
         rX = rX + (GOLIATH_EYE_POS.x - rX) * vp; rY = rY + (GOLIATH_EYE_POS.y - rY) * vp;
     }
@@ -508,7 +508,7 @@ function _drawGoliathLimbs(enemy, growth) {
     // dài tới người chơi được vẽ riêng ở lớp hiệu ứng 1:1 vì nếu vẽ ở đây,
     // khoảng cách thật sẽ bị co theo trueScale, không kéo dài đủ xa.
     if (enemy._verdictPhase === 'channeling') {
-        const p = Math.min(1, (enemy._verdictChannelTimer || 0) / 3000);
+        const p = Math.min(1, (enemy._verdictChannelTimer || 0) / GOLIATH_VERDICT_CHANNEL_MS);
         const radius = 10 + p * 55;
         const ex = GOLIATH_EYE_POS.x, ey = GOLIATH_EYE_POS.y;
         ctx.save();
@@ -1808,7 +1808,7 @@ function _drawGoliath(enemy) {
         // né trước khi quả cầu thật sự phóng. Vẽ ở lớp 1:1 này (không phải
         // trong scale(trueScale) ở trên) để khoảng cách thật không bị co lại.
         if (enemy._verdictPhase === 'channeling') {
-            const vp = Math.min(1, (enemy._verdictChannelTimer || 0) / 3000);
+            const vp = Math.min(1, (enemy._verdictChannelTimer || 0) / GOLIATH_VERDICT_CHANNEL_MS);
             const eyeLX = GOLIATH_EYE_POS.x * trueScale, eyeLY = GOLIATH_EYE_POS.y * trueScale;
             const aimX = enemy._verdictLocked ? enemy._verdictLockX : player.x;
             const aimY = enemy._verdictLocked ? enemy._verdictLockY : player.y;

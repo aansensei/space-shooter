@@ -275,7 +275,7 @@ const _ENEMY_ATK_TABLE = {
     dargruel: { e0: 25, h0: 12000 },
     egregor: { e0: 60, h0: 4000 },
     leviathan: { e0: 180, h0: 12000 },
-    goliath: { e0: 120, h0: 200000 }, // h0 applies to True Form only; Alpha has no numeric attack
+    goliath: { e0: 132, h0: 200000 }, // h0 applies to True Form only; Alpha has no numeric attack
 };
 
 // Snapshots an enemy's ATK (E = E0 * g(wave at spawn)) and H0 onto the

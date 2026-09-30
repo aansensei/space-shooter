@@ -189,11 +189,11 @@ function _goliathCountAllies() {
     return n;
 }
 
-// Fracture Step hậu-dịch-chuyển (NEW): +20% MỌI sát thương Goliath tự gây
-// ra (Joker copies, Absolute Verdict, Corrupted Meteor...) trong 1s sau khi
+// Fracture Step hậu-dịch-chuyển (NEW): +30% MỌI sát thương Goliath tự gây
+// ra (Joker copies, Absolute Verdict, Corrupted Meteor...) trong 1.5s sau khi
 // vừa dịch chuyển xong. Waning Might nhân dồn theo chiều ngược lại phía trên.
 function _goliathDmgBoost(enemy, amount) {
-    const fractureMult = (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? 1.20 : 1;
+    const fractureMult = (enemy._fractureBuffEnd && performance.now() < enemy._fractureBuffEnd) ? 1.30 : 1;
     return amount * fractureMult * _goliathWaningMult(0.85, _goliathWaningStacks(enemy));
 }
 
@@ -210,7 +210,11 @@ function _goliathDmgBoost(enemy, amount) {
 // Will's lethal-save heal/shield/temporary Max HP, copied Thaelis
 // milestones, copied Marchosias barrier-break heal/shield) bypass this
 // budget entirely, per spec.
-const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.12;
+const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.14;
+// How long Absolute Verdict channels before the orb flies. The aim locks
+// 500ms before that, whatever the length, so the dodge window never shrinks.
+// The render file reads this too, so the charge-up art ends on the shot.
+const GOLIATH_VERDICT_CHANNEL_MS = 2600;
 const GOLIATH_SHIELD_BUDGET_CAP_FRAC = 0.15;
 const GOLIATH_BUDGET_WINDOW_MS = 10000;
 
@@ -656,12 +660,12 @@ function updateGoliath(enemy, deltaTime) {
             enemy.hp = Math.min(enemy.hp, enemy.maxHp);
             enemy._unbrokenWillMaxHpBonus = 0;
         }
-        // Cast-end recovery (docs/combat-scaling-rebalance.md Part 4): 3%
+        // Cast-end recovery (docs/combat-scaling-rebalance.md Part 4): 4%
         // Hentry off a shared 4s cooldown, drawn from the repeatable budget,
         // instead of an uncooled 20% current Max HP burst every cast.
         if (!isCasting && enemy._wasCasting && now >= (enemy._castEndRecoveryCooldownEnd || 0)) {
             enemy._castEndRecoveryCooldownEnd = now + 4000;
-            const _granted = _goliathDrawBudget(enemy, 'heal', _goliathHealBoost(enemy, 0.03 * enemy._hentry));
+            const _granted = _goliathDrawBudget(enemy, 'heal', _goliathHealBoost(enemy, 0.04 * enemy._hentry));
             enemy.hp = Math.min(enemy.maxHp, enemy.hp + _granted);
         }
         enemy._wasCasting = isCasting;
@@ -740,10 +744,10 @@ function updateGoliath(enemy, deltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-fracture-step', enemy._fractureFromX, enemy._fractureFromY);
                 enemy.x = enemy._fractureToX; enemy.y = enemy._fractureToY;
                 enemy._restX = enemy.x; enemy._restY = enemy.y;
-                enemy._fractureIronBodyHits = Math.min(3, enemy._fractureIronBodyHits + 3);
-                // Hậu-dịch-chuyển (NEW, 1s): +20% sát thương Goliath gây ra,
+                enemy._fractureIronBodyHits = Math.min(4, enemy._fractureIronBodyHits + 4);
+                // Hậu-dịch-chuyển (NEW, 1.5s): +30% sát thương Goliath gây ra,
                 // +10% tốc độ bay, +15% hiệu quả heal/khiên (cộng dồn Tenacity).
-                enemy._fractureBuffEnd = now + 1000;
+                enemy._fractureBuffEnd = now + 1500;
                 enemy._fractureTeleportPhase = 'opening';
                 enemy._fractureTeleportStart = now;
                 addExplosion(enemy.x, enemy.y, enemy.size * 0.9, '#fff8e1');
@@ -762,7 +766,7 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
-        // Absolute Verdict: kênh 3s rồi phóng quả cầu xuyên phá (35% MaxHP
+        // Absolute Verdict: kênh 2.6s rồi phóng quả cầu xuyên phá (35% MaxHP
         // true damage vào Sentinel, -5 mạng người chơi nếu trúng)
         if (enemy._verdictPhase === 'ready' && now >= enemy._verdictCooldownEnd) {
             enemy._verdictPhase = 'channeling';
@@ -774,21 +778,21 @@ function updateGoliath(enemy, deltaTime) {
             // Chỉ TRACK vị trí người chơi tới trước lúc bắn 500ms — sau mốc đó
             // khoá cứng vị trí ngắm, không dí theo nữa, cho người chơi 1
             // khoảng thời gian rõ ràng để né trước khi quả cầu thật sự phóng.
-            if (!enemy._verdictLocked && enemy._verdictChannelTimer >= 2500) {
+            if (!enemy._verdictLocked && enemy._verdictChannelTimer >= GOLIATH_VERDICT_CHANNEL_MS - 500) {
                 enemy._verdictLocked = true;
                 enemy._verdictLockX = player.x; enemy._verdictLockY = player.y;
             }
-            if (enemy._verdictChannelTimer >= 3000) {
+            if (enemy._verdictChannelTimer >= GOLIATH_VERDICT_CHANNEL_MS) {
                 enemy._verdictPhase = 'ready';
                 enemy._verdictCooldownEnd = now + 8000;
                 if (window.AudioMgr) window.AudioMgr.stopGoliathVerdictCharge();
                 // Phóng ra từ MẮT (không phải tâm thân), theo đúng hướng đã
-                // khoá lúc 2500ms — không dùng vị trí tại đúng thời điểm bắn.
+                // khoá 500ms trước khi bắn — không dùng vị trí tại đúng thời điểm bắn.
                 const _eye = _goliathEyeWorldPos(enemy);
                 const vAngle = Math.atan2(enemy._verdictLockY - _eye.y, enemy._verdictLockX - _eye.x);
                 window._goliathOrbs = window._goliathOrbs || [];
                 window._goliathOrbs.push({
-                    x: _eye.x, y: _eye.y, vx: Math.cos(vAngle) * 420, vy: Math.sin(vAngle) * 420,
+                    x: _eye.x, y: _eye.y, vx: Math.cos(vAngle) * 480, vy: Math.sin(vAngle) * 480,
                     // Lost-HP/enrage category (docs/combat-scaling-rebalance.md Part 2)
                     dmg: 1.50 * enemy.atk * _enemyEnrageMult(enemy), owner: enemy, life: 4000,
                 });
@@ -816,8 +820,8 @@ function updateGoliath(enemy, deltaTime) {
                 const targets = enemy._meteorTargets;
                 // Số thiên thạch KHÔNG bằng số Apostle hút được nữa: 1 con ->
                 // 3 thiên thạch, 2 con -> 4, 3 con -> 5 (tối đa 5). 0 con vẫn
-                // quăng đúng 1 thiên thạch "trơn" như cũ.
-                const throwCount = targets.length > 0 ? Math.min(5, targets.length + 2) : 1;
+                // quăng 2 thiên thạch "trơn".
+                const throwCount = targets.length > 0 ? Math.min(5, targets.length + 2) : 2;
                 const _eye = _goliathEyeWorldPos(enemy);
                 const baseAng = Math.atan2(player.y - _eye.y, player.x - _eye.x);
                 window._goliathMeteors = window._goliathMeteors || [];
@@ -834,7 +838,7 @@ function updateGoliath(enemy, deltaTime) {
                     const spread = throwCount > 1 ? (i - (throwCount - 1) / 2) * 0.18 : 0;
                     const ang = baseAng + spread;
                     window._goliathMeteors.push({
-                        x: _eye.x, y: _eye.y, vx: Math.cos(ang) * 400, vy: Math.sin(ang) * 400,
+                        x: _eye.x, y: _eye.y, vx: Math.cos(ang) * 440, vy: Math.sin(ang) * 440,
                         owner: enemy, life: 4000, _fireTime: now,
                         // ATK category (docs/combat-scaling-rebalance.md Part 2)
                         atk: enemy.atk,
@@ -850,14 +854,14 @@ function updateGoliath(enemy, deltaTime) {
         _goliathUpdateJoker(enemy, deltaTime, now);
 
         // Threshold Ward (docs/combat-scaling-rebalance.md Part 4): 75/50/25%
-        // HP milestones each grant a one-time 15% Hentry ordinary shield
+        // HP milestones each grant a one-time 18% Hentry ordinary shield
         // instead of feeding a pool that silently refills HP every frame it
         // stays covered.
         const hpPct = enemy.hp / enemy.maxHp;
         [75, 50, 25].forEach(mile => {
             if (!enemy._thresholdMilestonesHit[mile] && hpPct * 100 <= mile) {
                 enemy._thresholdMilestonesHit[mile] = true;
-                _goliathGrantShield(enemy, _goliathHealBoost(enemy, 0.15 * enemy._hentry));
+                _goliathGrantShield(enemy, _goliathHealBoost(enemy, 0.18 * enemy._hentry));
             }
         });
         // Evade (NEW): +10% 3.5s mỗi lần HP tụt XUYÊN QUA 75/50/25% — dùng HP
@@ -876,7 +880,7 @@ function updateGoliath(enemy, deltaTime) {
         // tốc độ/maxRadius), không gây sát thương/trừ mạng người chơi, nhưng
         // CÓ gây 50 + 20% MaxHp cho Sentinels (xem wave._isUnbrokenWave ở
         // main.js). Cùng lúc này, mở cửa sổ buff 6s hậu-cứu-mạng (KHÔNG chồng
-        // lấn với 4s bất tử vừa qua) — +10% Hentry MaxHp cấp ngay tại đây,
+        // lấn với 4s bất tử vừa qua) — +15% Hentry MaxHp cấp ngay tại đây,
         // +20% hiệu quả hồi HP/khiên và +15% tốc độ bay đọc trực tiếp từ
         // _unbrokenWillBuffEnd ở nơi khác. Riêng +12% DR, +60 flat armor và
         // +10% evade (xem entities/core.js) là vĩnh viễn, không nằm trong
@@ -885,7 +889,7 @@ function updateGoliath(enemy, deltaTime) {
             enemy._unbrokenWillWaveFired = true;
             enemy._unbrokenWillBuffEnd = now + 6000;
             // docs/combat-scaling-rebalance.md Part 4
-            const _maxHpBonus = Math.ceil(0.10 * enemy._hentry);
+            const _maxHpBonus = Math.ceil(0.15 * enemy._hentry);
             enemy._unbrokenWillMaxHpBonus = _maxHpBonus;
             enemy.maxHp += _maxHpBonus;
             enemy.hp += _maxHpBonus;
@@ -912,11 +916,11 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
-        // Inevitable (docs/combat-scaling-rebalance.md Part 4): 0.75% Hentry/s,
+        // Inevitable (docs/combat-scaling-rebalance.md Part 4): 0.9% Hentry/s,
         // boosted, drawn from the shared repeatable heal budget instead of an
         // unbudgeted 2.5% of current Max HP every second.
         {
-            const _inevReq = _goliathHealBoost(enemy, 0.0075 * enemy._hentry * (deltaTime / 1000));
+            const _inevReq = _goliathHealBoost(enemy, 0.009 * enemy._hentry * (deltaTime / 1000));
             const _inevGranted = _goliathDrawBudget(enemy, 'heal', _inevReq);
             enemy.hp = Math.min(enemy.maxHp, enemy.hp + _inevGranted);
         }
@@ -988,9 +992,9 @@ function _goliathEnterTrueForm(enemy) {
     enemy.inCoronation = false; // giờ mới có thể bị nhắm mục tiêu
     enemy.size = 260; // giảm ~7% so với 280 theo yêu cầu
     const pulledCapped = Math.min(320000, enemy.damagePull);
-    // Per AanSensei: a flat 1.82 multiplier on the whole pool, applied after
-    // damagePull/gemPoints/Walpurgis so it lifts all three together.
-    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult() * 1.82);
+    // A flat x2.00 on the whole pool, applied after damagePull/gemPoints/
+    // Walpurgis so it lifts all three together.
+    const maxHp = Math.round((65000 + pulledCapped) * (1 + 0.25 * enemy.gemPoints) * _walpurgisHpMult() * 2.00);
     enemy.hp = maxHp; enemy.maxHp = maxHp;
     // Hentry (docs/combat-scaling-rebalance.md Part 4): Max HP at the moment
     // True Form starts, before Unbroken Will's temporary bonus. Every
@@ -1203,10 +1207,10 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                         // loseLife() thẳng bỏ qua toàn bộ các lớp bảo vệ đó.
                         if (Math.hypot(player.x - t.x, player.y - t.y) < (player.hitRadius || 15) + 30) {
                             // ATK category (docs/combat-scaling-rebalance.md Part 2)
-                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.625 * enemy.atk), true) && playerTakesHit(enemy)) _goliathApplySilence();
+                            if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 0.72 * enemy.atk), true) && playerTakesHit(enemy)) _goliathApplySilence();
                         }
                     } else if (t.ref && t.ref.hp > 0 && Math.hypot(t.ref.x - t.x, t.ref.y - t.y) < (t.ref.size || 20) + 30) {
-                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, 0.625 * enemy.atk), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
+                        dealDamage(t.ref, { damage: _goliathDmgBoost(enemy, 0.72 * enemy.atk), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                     }
                     addExplosion(t.x, t.y, 60, '#ff9a2e');
                 });
@@ -1354,7 +1358,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 if (hc > 0) {
                     _nsHitLanded = true;
                     // ATK category, no enrage on this copy (docs/combat-scaling-rebalance.md Part 2)
-                    const coeff = hc === 1 ? 0.75 : hc === 2 ? 0.875 : 1.00;
+                    const coeff = (hc === 1 ? 0.75 : hc === 2 ? 0.875 : 1.00) * 1.15;
                     for (const sn of hitSents) {
                         dealDamage(sn, { damage: _goliathDmgBoost(enemy, coeff * enemy.atk), isTrueDamage: true, _noHitSfx: true, _attackerType: 'goliath' });
                         addExplosion(sn.x, sn.y, 65, '#7700dd');
@@ -1425,7 +1429,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 let d1 = Math.abs(((curAngle - pAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                 if (d1 < 0.15 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 900) {
                     s._hitPlayer = true;
-                    if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 1.25 * enemy.atk), true) && playerTakesHit(enemy)) _goliathApplySilence();
+                    if (!_yuushaPierceRedirect(_goliathDmgBoost(enemy, 1.44 * enemy.atk), true) && playerTakesHit(enemy)) _goliathApplySilence();
                 }
             }
             // Sentinel: đúng công thức thật (ep*5%*ownerHits, trần 50% ep) —
@@ -1440,7 +1444,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 if (d2 < 0.15 && Math.hypot(sen.x - enemy.x, sen.y - enemy.y) < 900) {
                     s._hitSentinels.add(sen);
                     // ATK category (docs/combat-scaling-rebalance.md Part 2)
-                    dealDamage(sen, { damage: _goliathDmgBoost(enemy, 1.25 * enemy.atk), isTrueDamage: true, _attackerType: 'goliath' });
+                    dealDamage(sen, { damage: _goliathDmgBoost(enemy, 1.44 * enemy.atk), isTrueDamage: true, _attackerType: 'goliath' });
                 }
             }
             if (s.sweepTimer >= 1800) {
