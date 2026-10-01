@@ -670,6 +670,10 @@ function update(rawDeltaTime) {
         player._nullSlashSlowed = false;
     }
     const _nullSlashSpeedMult = (player._nullSlashSlowed) ? 0.50 : 1.0;
+    // Leviathan's death laser: 30% slow while on the beam and for 1s after,
+    // one flat multiplier that never stacks with itself. The same window also
+    // silences and cuts player ATK 20% (see _playerAtkDebuffMult).
+    const _levLaserSlowMult = (player._levLaserSlowEnd && currentTime < player._levLaserSlowEnd) ? 0.70 : 1.0;
 
     // Raphael's Wisdom Orb: 50% slow for 1s on a direct hit, 25% continuous
     // while standing in a scorched-ground zone the orb left behind
@@ -725,8 +729,8 @@ function update(rawDeltaTime) {
     // the screen in one sweep - trimmed a bit so lateral movement feels
     // proportional to the smaller width. PC/tablet unaffected.
     const _phoneMoveMult = window._deviceTier === 'phone' ? 0.90 : 1;
-    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _phoneMoveMult * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
-    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _phoneMoveMult * _nullSlashSpeedMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
+    if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
 
     // Uriel's Holy Sword aims at the player's position ~100ms ago instead of
     // the live position, so it can't be launched dead-on-arrival - keep a
@@ -2648,6 +2652,7 @@ function update(rawDeltaTime) {
         const warnTime = laser.warnTime || 1200;
         const activeTime = laser.activeTime || 800;
         const isActive = laser.elapsed >= warnTime;
+        const elapsedSinceFire = laser.elapsed - warnTime;
         const isDone = laser.elapsed >= warnTime + activeTime;
         if (isDone) return false;
 
@@ -2678,11 +2683,25 @@ function update(rawDeltaTime) {
             // own removal from the enemies array (its fields stay intact).
             const _lastRitesHs = _enemyHs(laser.ownerRef || {});
 
-            // Hit player (pixel distance OK, player is large target)
+            // Hit player (pixel distance OK, player is large target).
+            // Only the shot itself, the first 150ms after it fires, costs a
+            // life, and only 1 for the whole volley. Touching the beam after
+            // that just slows 30% and silences, refreshed while on it for 1s.
             const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
-            if (!laser.hitPlayer && perpPlayer < player.hitRadius + 25) {
-                laser.hitPlayer = true;
-                if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), true)) playerTakesHit({ type: 'leviathan' });
+            const inShot = !laser._shotDone || elapsedSinceFire < 150;
+            laser._shotDone = true;
+            if (perpPlayer < player.hitRadius + 25) {
+                const owner = laser.ownerRef || laser;
+                if (inShot) {
+                    if (!owner._deathShotHitPlayer) {
+                        owner._deathShotHitPlayer = true;
+                        if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), true)) playerTakesHit({ type: 'leviathan' });
+                    }
+                } else {
+                    player._levLaserSlowEnd = currentTime + 1000;
+                    player._silenced = true;
+                    player._silenceEnd = Math.max(player._silenceEnd || 0, currentTime + 1000);
+                }
             }
 
             sentinels.forEach(s => {

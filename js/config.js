@@ -249,11 +249,17 @@ function _sigilAtkMult() {
     return 1 + bonus;
 }
 
-// Goliath's on-hit weaken: any hit the player takes from Goliath cuts
-// player.atk by 30% for 1.5s. Getting hit again while it's already active
-// just refreshes the 1.5s window, it never stacks the reduction itself.
+// Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for
+// 1.5s, Leviathan's death laser cuts it by 20% while the player is on the beam
+// and 1s after. Each one only refreshes its own window, and when both are up
+// the deeper cut applies instead of the two multiplying.
 function _playerAtkDebuffMult() {
-    return (typeof player !== 'undefined' && player._goliathAtkDebuffEnd && performance.now() < player._goliathAtkDebuffEnd) ? 0.70 : 1.0;
+    if (typeof player === 'undefined') return 1.0;
+    const now = performance.now();
+    let mult = 1.0;
+    if (player._goliathAtkDebuffEnd && now < player._goliathAtkDebuffEnd) mult = 0.70;
+    if (player._levLaserSlowEnd && now < player._levLaserSlowEnd) mult = Math.min(mult, 0.80);
+    return mult;
 }
 
 // Per-species enemy ATK base (E0) and the fixed Max HP calibration (H0)
