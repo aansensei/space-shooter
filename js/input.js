@@ -300,6 +300,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Di chuyển bình thường
             if (e.code === "ArrowLeft") keys.left = true;
             if (e.code === "ArrowRight") keys.right = true;
+            if ((e.code === "ArrowLeft" || e.code === "ArrowRight") && !e.repeat) {
+                _updateSkillFDirection(e.code === "ArrowLeft" ? -1 : 1);
+            }
         }
 
         // Cancer sigil: a banked Riptide Surge takes priority over the

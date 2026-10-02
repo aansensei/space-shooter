@@ -327,6 +327,8 @@ After a 2-second charge, spawns a Death Star that pulls all enemies and enemy bu
 
 Charges up, then sweeps a massive plasma beam across the entire screen. Every enemy in the sweep path takes **999,999,999 damage** — instant kill, even through Absolute Shields.
 
+**Slash direction:** during the 1.5s charge, press **→** to sweep from left to right (the default when nothing is pressed) or **←** to sweep from right to left. The last press wins and locks when the sweep starts. With Cycle of Flow, which skips the charge, the arrow held when F is pressed decides. A small rounded pill at the top of the screen lights the chosen arrow and disappears as the slash fires. Cooldown, charge, sweep time and damage do not change.
+
 ---
 
 ### G — Life Domain / Tesla Matrix: Sinh Mệnh Kết Giới

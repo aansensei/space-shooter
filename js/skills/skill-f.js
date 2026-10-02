@@ -15,6 +15,22 @@ function _onSkillFKill(enemy) {
     _grantGreatSageGem(enemy);
 }
 
+let _skillFLeftHeld = false, _skillFRightHeld = false;
+
+// Keyboard presses and joystick edges select the direction during charge.
+function _updateSkillFDirection(pressedDirection) {
+    if (skillFState === "charging" && !gamePaused && performance.now() - skillFChargeStart < 1500) {
+        if (pressedDirection) {
+            skillFDirection = pressedDirection;
+        } else {
+            if (keys.left && !_skillFLeftHeld) skillFDirection = -1;
+            if (keys.right && !_skillFRightHeld) skillFDirection = 1;
+        }
+    }
+    _skillFLeftHeld = !!keys.left;
+    _skillFRightHeld = !!keys.right;
+}
+
 function activateSkillF() {
     const currentTime = performance.now();
     if (typeof player !== "undefined" && player._silenced) return; // Silence
@@ -38,6 +54,9 @@ function activateSkillF() {
     const onCooldown = currentTime - lastSkillF <= skillFCooldown;
     if (skillFState === "ready" && !onCooldown) {
         lastSkillF = currentTime;
+        skillFDirection = 1;
+        _skillFLeftHeld = !!keys.left;
+        _skillFRightHeld = !!keys.right;
         enemies.forEach(e => e.hitBySkillF = false);
         _skillFKillsThisSweep = 0;
         _checkMirrorLaserProc();
@@ -50,6 +69,7 @@ function activateSkillF() {
         }
         if (_hasBuff('dong_chay_luan_hoi')) {
             // Cycle of Flow: skip the charge phase entirely
+            skillFDirection = keys.left && !keys.right ? -1 : 1;
             skillFState = "sweeping";
             skillFSweepStart = currentTime;
             if (window.AudioMgr) window.AudioMgr.startSkillFFire();
@@ -64,6 +84,7 @@ function activateSkillF() {
 
 function updateSkillF(deltaTime) {
     const currentTime = performance.now();
+    if (skillFState === "charging") _updateSkillFDirection();
     if (skillFState === "charging" && currentTime - skillFChargeStart >= 1500) {
         skillFState = "sweeping";
         skillFSweepStart = currentTime;
@@ -94,7 +115,7 @@ function updateSkillF(deltaTime) {
             if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
             // Uriel's death barrier occludes the sweep like a flashlight hitting a wall.
             if (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(player.x, player.y, enemy.x, enemy.y)) continue;
-            let angle = Math.atan2(enemy.y - player.y, enemy.x - player.x);
+            let angle = Math.atan2(enemy.y - player.y, skillFDirection * (enemy.x - player.x));
             if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - coneHalfWidth) {
                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
@@ -129,11 +150,11 @@ function updateSkillF(deltaTime) {
         }
 
         let length = Math.random() * canvas.width;
-        let px = player.x + Math.cos(currentAngle) * length;
+        let px = player.x + skillFDirection * Math.cos(currentAngle) * length;
         let py = player.y + Math.sin(currentAngle) * length;
         particles.push({
             x: px, y: py,
-            vx: Math.cos(currentAngle + Math.PI / 2) * (Math.random() * 5 + 2),
+            vx: skillFDirection * Math.cos(currentAngle + Math.PI / 2) * (Math.random() * 5 + 2),
             vy: Math.sin(currentAngle + Math.PI / 2) * (Math.random() * 5 + 2),
             lifetime: 200 + Math.random() * 100, maxLifetime: 300,
             size: Math.random() * 4 + 2, color: 'cyan'

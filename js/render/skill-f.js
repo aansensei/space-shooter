@@ -26,6 +26,7 @@ function _drawRuyiStaff(len, w, angle, alpha, opts) {
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.rotate(angle);
+    ctx.scale(1, skillFDirection);
     ctx.globalAlpha = alpha;
 
     if (opts.richGlow) {
@@ -174,10 +175,10 @@ function drawSkillF() {
             if (spawnRate > 0 && _skillFChargeParticles.length < maxParticles) {
                 for (let i = 0; i < spawnRate; i++) {
                     // Great Sage: particles funnel in from the direction the
-                    // staff is about to swing (-PI), like the demo, instead
+                    // staff is about to swing, instead
                     // of a fully even 360° vortex
                     const a = _greatSage
-                        ? -Math.PI + (Math.random() - 0.5) * Math.PI * 1.5
+                        ? (skillFDirection === 1 ? -Math.PI : 0) + (Math.random() - 0.5) * Math.PI * 1.5
                         : Math.random() * Math.PI * 2;
                     const dist = Math.max(canvas.width, canvas.height) * (0.5 + Math.random() * 0.4);
                     const spin = (Math.random() < 0.5 ? -1 : 1) * (0.015 + Math.random() * 0.02);
@@ -280,7 +281,7 @@ function drawSkillF() {
         // pointing at the sweep's start angle, instead of the base skill's
         // cyan half-plane wash. Ported directly from the reference demo.
         const e_p = Math.pow(p, 2.5);
-        _drawRuyiStaff(radius * e_p, 35 * (0.2 + 0.8 * e_p), -Math.PI, e_p, { richGlow: true });
+        _drawRuyiStaff(radius * e_p, 35 * (0.2 + 0.8 * e_p), skillFDirection === 1 ? -Math.PI : 0, e_p, { richGlow: true });
         }
 
         // TARGET LOCK on every enemy — Great Sage swaps this for the Kim
@@ -489,13 +490,43 @@ function drawSkillF() {
             }
         }
 
+        // Direction pill at the top centre, below any boss bar. The chosen
+        // side gets the lit, bold arrow. It fades out as the slash fires.
+        ctx.save();
+        const hs = window._platform === 'mobile' ? canvas.width / window.innerWidth : 1;
+        const pillW = 150 * hs, pillH = 26 * hs;
+        const pillX = canvas.width / 2 - pillW / 2, pillY = 78 * hs, pillMid = pillY + pillH / 2;
+        ctx.globalAlpha = 0.9 * Math.min(1, p / 0.08, (1 - p) / 0.08);
+        ctx.fillStyle = 'rgba(0,8,18,0.75)';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2); else ctx.rect(pillX, pillY, pillW, pillH);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(127,255,255,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = `600 ${11 * hs}px Arial`;
+        ctx.fillStyle = '#dce8ed';
+        ctx.fillText('Slash', canvas.width / 2, pillMid + 0.5 * hs);
+        for (const side of [-1, 1]) {
+            const on = skillFDirection === side;
+            const ax = canvas.width / 2 + side * 46 * hs;
+            if (on) {
+                ctx.fillStyle = 'rgba(127,255,255,0.22)';
+                ctx.beginPath(); ctx.arc(ax, pillMid, 10 * hs, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.font = `${on ? 'bold ' : ''}${(on ? 17 : 14) * hs}px Arial`;
+            ctx.fillStyle = on ? '#7fffff' : '#82929c';
+            ctx.fillText(side === -1 ? '\u2190' : '\u2192', ax, pillMid);
+        }
+        ctx.restore();
+
         return;
     }
 
     // SWEEPING phase
     if (skillFState === "sweeping") {
         const sp = (now - skillFSweepStart) / skillFSweepDuration;
-        const currentAngle = -Math.PI + Math.PI * sp;
+        const startAngle = skillFDirection === 1 ? -Math.PI : 0;
+        const currentAngle = startAngle + skillFDirection * Math.PI * sp;
 
         if (!_greatSage) {
         // MATRIX RAIN inside the swept area
@@ -503,7 +534,7 @@ function drawSkillF() {
         // clip to the already-swept cone sector
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
-        ctx.arc(player.x, player.y, radius, -Math.PI, currentAngle);
+        ctx.arc(player.x, player.y, radius, startAngle, currentAngle, skillFDirection === -1);
         ctx.closePath();
         ctx.clip();
 
@@ -533,10 +564,11 @@ function drawSkillF() {
         {
             const ghostCount = _gfx < 1 ? 5 : _gfx < 2 ? 2 : 0;
             for (let trail = 1; trail <= ghostCount; trail++) {
-                const ghostAngle = currentAngle - trail * 0.10;
+                const ghostAngle = currentAngle - skillFDirection * trail * 0.10;
                 ctx.save();
                 ctx.translate(player.x, player.y);
                 ctx.rotate(ghostAngle);
+                ctx.scale(1, skillFDirection);
                 ctx.globalAlpha = Math.max(0.03, 0.24 - trail * 0.045);
                 ctx.fillStyle = 'rgba(0,255,255,0.9)';
                 ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(radius, -28); ctx.lineTo(radius, 28);
@@ -576,6 +608,7 @@ function drawSkillF() {
                 ctx.save();
                 ctx.translate(player.x, player.y);
                 ctx.rotate(mark.angle);
+                ctx.scale(1, skillFDirection);
                 ctx.globalAlpha = a * 0.45;
                 const sg = ctx.createLinearGradient(0, 0, radius, 0);
                 sg.addColorStop(0,   'rgba(220,255,255,0.9)');
@@ -627,6 +660,7 @@ function drawSkillF() {
         }
 
         ctx.rotate(currentAngle);
+        ctx.scale(1, skillFDirection);
 
         const bow = 30; // curve bulge of the blade edge, katana-style
         function _bladePath(halfW, bowAmt) {
@@ -732,7 +766,7 @@ function drawSkillF() {
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
-        ctx.arc(player.x, player.y, radius, -Math.PI, currentAngle);
+        ctx.arc(player.x, player.y, radius, startAngle, currentAngle, skillFDirection === -1);
         ctx.closePath();
         ctx.clip();
         const scanLine = (now / 3) % canvas.height;
@@ -750,7 +784,7 @@ function drawSkillF() {
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
-        ctx.arc(player.x, player.y, radius, -Math.PI, currentAngle);
+        ctx.arc(player.x, player.y, radius, startAngle, currentAngle, skillFDirection === -1);
         ctx.closePath();
         ctx.clip();
         const hR = _gfx < 1 ? 28 : 44;
@@ -799,7 +833,7 @@ function drawSkillF() {
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(player.x, player.y);
-        ctx.arc(player.x, player.y, radius * 1.3, -Math.PI, currentAngle);
+        ctx.arc(player.x, player.y, radius * 1.3, startAngle, currentAngle, skillFDirection === -1);
         ctx.closePath();
         const fanGrad = ctx.createRadialGradient(player.x, player.y, 200, player.x, player.y, radius * 1.3);
         fanGrad.addColorStop(0, 'rgba(251,191,36,0.58)');
@@ -821,6 +855,7 @@ function drawSkillF() {
             ctx.save();
             ctx.translate(player.x, player.y);
             ctx.rotate(mark.angle);
+            ctx.scale(1, skillFDirection);
             const sGrad = ctx.createLinearGradient(0, -mark.width / 2, 0, mark.width / 2);
             sGrad.addColorStop(0, 'rgba(253,230,138,0)');
             sGrad.addColorStop(0.5, `rgba(245,158,11,${a * 0.6})`);
@@ -879,6 +914,7 @@ function drawSkillF() {
         ctx.save();
         ctx.translate(player.x, player.y);
         ctx.rotate(currentAngle);
+        ctx.scale(1, skillFDirection);
         ctx.beginPath();
         ctx.ellipse(curLen, 0, curW * 0.6, curW * 1.5, 0, -Math.PI / 2, Math.PI / 2);
         ctx.fillStyle = '#fff';
