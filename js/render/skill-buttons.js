@@ -318,6 +318,22 @@ function drawSkillButtons() {
         });
     }
 
+    if (window._adaptiveCounterState) {
+        const state = window._adaptiveCounterState;
+        ctx.save();
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        for (const [i, skill] of ['A', 'S', 'D', 'F'].entries()) {
+            const resistance = state.resistance[skill];
+            if (state.last === skill && resistance <= 0) continue;
+            ctx.fillStyle = state.last === skill ? '#ff6978' : '#3ddc97';
+            const tag = state.last === skill ? '-' + Math.round(resistance * 100) + '%' : '+' + Math.round((TD_ADAPT_FRESH - 1) * 100) + '%';
+            ctx.fillText(tag, pillX + pW + 5, rowY(i + 1) + pH / 2);
+        }
+        ctx.restore();
+    }
+
     const divY = panelY + padY + 6 * (pH + rowGap) - rowGap + divGap;
     ctx.save();
     ctx.fillStyle = 'rgba(60,120,255,0.18)';

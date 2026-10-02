@@ -564,6 +564,16 @@ function _capPierceBurstDamage(enemy, dmg) {
     return allowed;
 }
 
+function _timelineFavorArmored(enemy) {
+    return window._administratorsFavorActive && enemy._adminBlessing && enemy.type !== 'goliath';
+}
+
+function _updateTimelineFavorRegen(enemy, deltaTime) {
+    if (!_timelineFavorArmored(enemy) || enemy.hp <= 0 || enemy._markedForDeath || enemy._deathPhase
+        || enemy.dyingLaserPhase || enemy.dying || (enemy.type === 'uriel' && enemy._stealthed)) return;
+    enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * TD_FAVOR_REGEN * deltaTime / 1000);
+}
+
 function dealDamage(enemy, source) {
     if (enemy.type === 'abyssal_chain') return;
 
@@ -602,7 +612,7 @@ function dealDamage(enemy, source) {
             // Per AanSensei: trimmed down a bit (was 15%/35%) - still a
             // meaningful chunk of Goliath's HP bar per hit, just not quite
             // as brutal against a Skill F/D-heavy loadout.
-            const dmg = enemy.maxHp * (_blocked ? 0.10 : 0.22);
+            const dmg = enemy.maxHp * (_blocked ? 0.10 : 0.22) * _adaptiveSkillMult(source, enemy);
             if (_blocked) createParticles(enemy.x, enemy.y, 14, '#c084fc', 3, 9);
             // This branch computes its own damage and returns before the main
             // pipeline below, so it has to go through the shared lethal path
@@ -899,7 +909,7 @@ function dealDamage(enemy, source) {
     // stacked the most temporary shield. "EP" (MaxHP+Shield) as a separate
     // scaling basis is retired; MaxHP alone is the only number that matters here.
     const effectiveHp = enemyMaxHp;
-    let totalDamage = Math.ceil(source.damage + (effectiveHp * (source.percentDamage || 0)));
+    let totalDamage = Math.ceil((source.damage + (effectiveHp * (source.percentDamage || 0))) * _adaptiveSkillMult(source, enemy));
 
     // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
     // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 40% khi
@@ -1147,6 +1157,7 @@ function dealDamage(enemy, source) {
     if (enemy._adminBlessing && enemy.shield > 0) {
         combinedDR += ADMIN_BLESSING_DR;
     }
+    if (_timelineFavorArmored(enemy)) combinedDR += TD_FAVOR_DR;
 
     if (enemy.type === 'marchosias') {
         combinedDR += 0.45;
@@ -1395,6 +1406,7 @@ function dealDamage(enemy, source) {
         if (enemy.type === 'uriel' && enemy._camoFlatDREnd && currentTime < enemy._camoFlatDREnd) _flatArmor += 100;
         // Administrator's Blessing, same shield-gated window as its % DR above.
         if (enemy._adminBlessing && enemy.shield > 0) _flatArmor += ADMIN_BLESSING_FLAT_DR;
+        if (_timelineFavorArmored(enemy)) _flatArmor += TD_FAVOR_FLAT_DR;
         // Thaelis Cocoon Guards: flat armor on top of the % DR above - still
         // fully bypassed by true damage, same as the % DR right above it.
         if (enemy.type === 'thaelis_guard') _flatArmor += THAELIS_COCOON_GUARD_FLAT_DR;
@@ -1731,6 +1743,7 @@ function dealDamage(enemy, source) {
         const _shieldBypass = enemy.type === 'thaelis' && source.isSpiritLaser;
         if (!_shieldBypass) {
             const damageToShield = Math.min(enemy.shield, totalDamage);
+            _consumeTimelineFavorShield(enemy, damageToShield);
             enemy.shield -= damageToShield;
             enemy.shield = Math.max(0, enemy.shield);
             totalDamage -= damageToShield;
@@ -2113,6 +2126,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
             s.hp = Math.max(0, s.hp - totalDmg);
         } else {
             const shieldAbsorb = Math.min(s.shield || 0, totalDmg);
+            _consumeTimelineFavorShield(s, shieldAbsorb);
             s.shield = Math.max(0, (s.shield || 0) - shieldAbsorb);
             const remainingDmg = totalDmg - shieldAbsorb;
             s.hp = Math.max(0, s.hp - remainingDmg);

@@ -52,6 +52,7 @@ function activateSkillA() {
     if (!canSpawnOrbs && !hasSolJudgment) return; // nothing would happen — don't consume the cooldown
 
     lastSkillA = currentTime;
+    _recordAdaptiveSkill('A');
     if (window.AudioMgr) window.AudioMgr.playSfx('skill-a-activate');
     _checkMirrorLaserProc();
 
@@ -416,7 +417,7 @@ function spawnScatteredProjectiles(x, y, count, damageProps) {
         scatteredProjectiles.push({
             x, y,
             vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12,
-            damage: damageProps.damage,
+            damage: damageProps.damage, _statSrc: 'Skill A: Scattered Projectiles',
             percentDamage: damageProps.percentDamage || 0,
             size: 4, lifetime: 3000, maxLifetime: 3000
         });

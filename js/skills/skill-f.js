@@ -54,6 +54,7 @@ function activateSkillF() {
     const onCooldown = currentTime - lastSkillF <= skillFCooldown;
     if (skillFState === "ready" && !onCooldown) {
         lastSkillF = currentTime;
+        _recordAdaptiveSkill('F');
         skillFDirection = 1;
         _skillFLeftHeld = !!keys.left;
         _skillFRightHeld = !!keys.right;

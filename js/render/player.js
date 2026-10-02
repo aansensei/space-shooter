@@ -165,6 +165,16 @@ function drawFinalDefense() {
     const now = performance.now();
     ctx.save();
 
+    if (window._administratorsFavorActive && window._tdFavorPlayerShield) {
+        ctx.strokeStyle = '#bb88ff';
+        ctx.fillStyle = 'rgba(160,82,255,0.10)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.width + 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    }
+
     if (playerAbsoluteShield) {
         // gold absolute shield – animated hexagonal segments
         const r = player.width + 12;

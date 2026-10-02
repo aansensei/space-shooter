@@ -148,6 +148,15 @@ function playerTakesHit(attacker) {
         }
     }
 
+    if (window._administratorsFavorActive && window._tdFavorPlayerShield) {
+        window._tdFavorPlayerShield = false;
+        window._tdFavorRecharge = TD_FAVOR_SHIELD_RECHARGE;
+        if (attacker && attacker._tdMultiHit) attacker._tdFavorBlocked = true;
+        createParticles(player.x, player.y, 10, '#bb88ff', 2, 6);
+        if (window.AudioMgr) window.AudioMgr.playSfx('shield-hit');
+        return false;
+    }
+
     // ƯU TIÊN 2: Khiên phòng hộ cuối cùng (Final Defense)
     if (finalDefense.playerShield) {
         finalDefense.playerShield = false;
@@ -377,7 +386,7 @@ function update(rawDeltaTime) {
     // Recomputed every frame (not just at wave transitions) so Goliath's
     // on-hit weaken decays smoothly 1.5s after the last hit instead of
     // only updating on the next wave boundary.
-    player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult();
+    player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult() * _playerAtkBuffMult();
 
     // Mobile: pin player.y to boundaryY every frame, triệt để fix position
     if (typeof _platform !== 'undefined' && _platform === 'mobile') {
@@ -416,6 +425,9 @@ function update(rawDeltaTime) {
         finalDefense.boundaryCooldownEnd += delay;
         lastEnemySpawn += delay;
     }
+
+    _updateTimelineDistortion(deltaTime, currentTime);
+    const _tdBulletSpeed = window._spacetimeFlowActive ? TD_FLOW_ENEMY_BULLET : 1;
 
     // recalc every frame bc enemies spawn and die constantly
     gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
@@ -1440,7 +1452,7 @@ function update(rawDeltaTime) {
                 // from elapsed travel distance rather than accumulated
                 // velocity - one smooth, repeatable curve for the whole
                 // flight instead of a flat line.
-                const _wSpdMult = dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
+                const _wSpdMult = dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
                 enemy._waveForward += enemy._waveSpeed * _wSpdMult;
                 const _ca = Math.cos(enemy._waveAngle), _sa = Math.sin(enemy._waveAngle);
                 const _wPhase = enemy._waveForward * enemy._waveFreq;
@@ -1456,14 +1468,14 @@ function update(rawDeltaTime) {
             } else if (enemy.type === 'enemy_bullet_small' && enemy._curveRate) {
                 // Touhou-style bloom (see spawn site): heading keeps rotating
                 // at this fragment's own fixed rate instead of staying dead straight.
-                enemy._curveAngle += enemy._curveRate * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
+                enemy._curveAngle += enemy._curveRate * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
                 enemy.vx = Math.cos(enemy._curveAngle) * enemy._curveSpeed;
                 enemy.vy = Math.sin(enemy._curveAngle) * enemy._curveSpeed;
-                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
-                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
+                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
+                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
             } else {
-                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
-                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier;
+                enemy.x += enemy.vx * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
+                enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
             }
 
             // Thaelis's large/small bullets curve and wave instead of flying
@@ -1554,6 +1566,7 @@ function update(rawDeltaTime) {
             updateLeviathan(enemy, deltaTime);
 
         } else if (enemy.type === 'goliath') {
+            _tickTimelineFlowBoss(enemy, deltaTime, currentTime);
             updateGoliath(enemy, deltaTime);
 
         } else if (enemy.type === 'veilshroud') {
@@ -1563,6 +1576,7 @@ function update(rawDeltaTime) {
             updateVeilshroudEcho(enemy, deltaTime);
 
         } else if (enemy.type === 'uriel') {
+            _updateTimelineFavorRegen(enemy, deltaTime);
             updateUriel(enemy, deltaTime);
 
         } else if (enemy.type !== 'embryo' && enemy.type !== 'marchosias_minion') {
@@ -1879,6 +1893,7 @@ function update(rawDeltaTime) {
         }
 
         if (enemy._adminBlessing && enemy.hp > 0) _updateAdminBlessingGuard(enemy);
+        if (enemy.type !== 'uriel') _updateTimelineFavorRegen(enemy, deltaTime);
 
         // Envy 0.75% MaxHP/s regen (docs/combat-scaling-rebalance.md Part 3, applied to all envy-marked non-bullet enemies)
         if (enemy.levEnvy && enemy.hp > 0 && !enemy._markedForDeath &&
@@ -2014,6 +2029,7 @@ function update(rawDeltaTime) {
     // gameover voice on a fast death.
     if (lives <= 0 && gameState === "playing") {
         gameState = "gameover";
+        if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
         _gameOverPlayTime = performance.now() - gameStartTime;
         showStartButton("Play Again"); showMainMenuButton(); showMatchStatsButton();
         window._lowHpActive = false;
@@ -2241,6 +2257,7 @@ function update(rawDeltaTime) {
     }
 
     updateSentinels(deltaTime);
+    _grantTimelineFavorSentinels();
     // Blessing of the Primordial: passive while Phōtokrystos is active.
     // now also spaceships - any ally-wide buff not tied to sentinel-squad
     // stuff (Vanguard Network, Herd Mentality, recoil) applies to them too
@@ -2418,15 +2435,17 @@ function update(rawDeltaTime) {
     if (window._goliathOrbs && window._goliathOrbs.length) {
         window._goliathOrbs = window._goliathOrbs.filter(orb => {
             orb.life -= deltaTime;
-            orb.x += orb.vx * (deltaTime / 1000);
-            orb.y += orb.vy * (deltaTime / 1000);
+            orb.x += orb.vx * (deltaTime / 1000) * _tdBulletSpeed;
+            orb.y += orb.vy * (deltaTime / 1000) * _tdBulletSpeed;
             if (orb.life <= 0 || orb.x < -100 || orb.x > canvas.width + 100 || orb.y < -100 || orb.y > canvas.height + 100) return false;
             if (!orb._hitPlayer && Math.hypot(orb.x - player.x, orb.y - player.y) < 108 + (player.hitRadius || 15)) {
                 orb._hitPlayer = true;
                 // playerTakesHit() (không phải loseLife() thẳng) để tôn trọng
                 // Yog-Sothoth Domain, Dream Realm né, khiên Skill A, v.v.
+                const _orbAttacker = { type: 'goliath', _tdMultiHit: true };
                 for (let li = 0; li < 5; li++) {
-                    if (!_yuushaPierceRedirect(orb.dmg, true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence(1250);
+                    if (!_yuushaPierceRedirect(orb.dmg, true) && playerTakesHit(_orbAttacker)) _goliathApplySilence(1250);
+                    if (_orbAttacker._tdFavorBlocked) break;
                 }
                 addExplosion(orb.x, orb.y, 80, '#9d00ff');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-verdict-impact', orb.x, orb.y);
@@ -2448,8 +2467,8 @@ function update(rawDeltaTime) {
     if (window._goliathSwords && window._goliathSwords.length) {
         window._goliathSwords = window._goliathSwords.filter(sw => {
             sw.life -= deltaTime;
-            sw.x += sw.vx * (deltaTime / 1000);
-            sw.y += sw.vy * (deltaTime / 1000);
+            sw.x += sw.vx * (deltaTime / 1000) * _tdBulletSpeed;
+            sw.y += sw.vy * (deltaTime / 1000) * _tdBulletSpeed;
             if (sw.life <= 0 || sw.x < -50 || sw.x > canvas.width + 50 || sw.y < -50 || sw.y > canvas.height + 50) return false;
             if (Math.hypot(sw.x - player.x, sw.y - player.y) < (sw.radius || 88) + (player.hitRadius || 15)) {
                 const _yHitsAlready = (sw.hitEnemies || []).length;
@@ -2483,8 +2502,8 @@ function update(rawDeltaTime) {
     if (window._goliathMeteors && window._goliathMeteors.length) {
         window._goliathMeteors = window._goliathMeteors.filter(m => {
             m.life -= deltaTime;
-            m.x += m.vx * (deltaTime / 1000);
-            m.y += m.vy * (deltaTime / 1000);
+            m.x += m.vx * (deltaTime / 1000) * _tdBulletSpeed;
+            m.y += m.vy * (deltaTime / 1000) * _tdBulletSpeed;
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
                 if (!_yuushaPierceRedirect(0.625 * (m.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
@@ -3049,10 +3068,12 @@ function _updateAdminBlessingGuard(enemy) {
 // The wave-time roll: eligible type, past the opening waves, under this
 // wave's ceiling, and then the chance itself.
 function _tryAdminBlessing(enemy) {
-    if (!enemy || !ADMIN_BLESSING_TYPES[enemy.type]) return false;
-    if (_waveNumber < ADMIN_BLESSING_MIN_WAVE) return false;
+    const favor = window._administratorsFavorActive;
+    if (!enemy || enemy.type === 'goliath' || !(ADMIN_BLESSING_TYPES[enemy.type]
+        || (favor && ['marchosias', 'veilshroud', 'uriel'].includes(enemy.type)))) return false;
+    if (!favor && _waveNumber < ADMIN_BLESSING_MIN_WAVE) return false;
     if (_adminBlessedThisWave >= ADMIN_BLESSING_MAX_PER_WAVE) return false;
-    if (Math.random() >= ADMIN_BLESSING_CHANCE) return false;
+    if (!favor && Math.random() >= ADMIN_BLESSING_CHANCE) return false;
     if (!_applyAdminBlessing(enemy)) return false;
     _adminBlessedThisWave++;
     return true;
@@ -3300,6 +3321,7 @@ function _updateWaveSystem(deltaTime, now) {
     if (_spawnDone) {
         const _alive = enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'debug_dummy').length;
         if (_alive === 0) {
+            if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
             // Debug "Spawn Wave's Full Roster" runs exactly one wave through
             // here: once it's spawned and cleared, hand control back to the
             // frozen sandbox instead of counting down into the next wave or
@@ -3451,6 +3473,7 @@ function gameLoop(timeStamp) {
 }
 
 function startGame() {
+    if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
     gameState = "playing"; lives = 12;
     score = 0;
     window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
@@ -3575,6 +3598,7 @@ function startGame() {
     }
     window._bgPaused = false;
     if (typeof _clearTimelineDistortion === 'function') _clearTimelineDistortion();
+    window._lastTimelineDistortionId = null;
     _tidalSurgeEffects = [];
     _oceanHunterBites = [];
     window._playerSigils = [];

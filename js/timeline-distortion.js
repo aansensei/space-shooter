@@ -40,9 +40,128 @@ function _stackCap(id) {
     return window._stackOverflowActive ? Infinity : entry.base;
 }
 
-// The pool Kanade rolls from. Only Stack Overflow is designed so far, so
-// every boss wave currently lands on it; adding a second entry is enough to
-// make the roll meaningful.
+const TIMELINE_DISTORTION_ART = {
+    stack_overflow: {
+        accent: '#a052ff',
+        banner: 'assets/images/game/effects/timeline-distortion-banner.png',
+        playerIcon: 'assets/images/game/icons/timeline-distortion-player.png',
+        enemyIcon: 'assets/images/game/icons/timeline-distortion-enemy.png',
+    },
+};
+for (const [id, accent] of Object.entries({
+    spacetime_flow: '#38e8ff', administrators_favor: '#f5c451', adaptive_counter: '#3ddc97',
+})) {
+    TIMELINE_DISTORTION_ART[id] = {
+        accent,
+        banner: 'assets/images/game/effects/timeline-distortion-banner-' + id + '.png',
+        playerIcon: 'assets/images/game/icons/timeline-distortion-player-' + id + '.png',
+        enemyIcon: 'assets/images/game/icons/timeline-distortion-enemy-' + id + '.png',
+    };
+}
+
+const _tdColorCache = {};
+function _timelineDistortionColors(accent) {
+    if (_tdColorCache[accent]) return _tdColorCache[accent];
+    const legacy = {
+        flash: 'rgba(200,150,255,1)', rays: 'rgba(232,200,255,1)',
+        ring: 'rgba(236,210,255,1)', accent: 'rgba(160,82,255,1)',
+        trail: 'rgba(214,176,255,1)', bolt: 'rgba(150,70,255,1)',
+        boltCore: 'rgba(246,232,255,1)', border: '#6a3caa',
+        glow: '#8a44ff', title: '#e2c8ff',
+    };
+    if (accent === TIMELINE_DISTORTION_ART.stack_overflow.accent) {
+        return (_tdColorCache[accent] = legacy);
+    }
+    const rgb = [1, 3, 5].map(i => parseInt(accent.slice(i, i + 2), 16));
+    const tint = amount => 'rgba(' + rgb.map(v => Math.round(v + (255 - v) * amount)).join(',') + ',1)';
+    return (_tdColorCache[accent] = {
+        flash: tint(0.4), rays: tint(0.7), ring: tint(0.75), accent: tint(0),
+        trail: tint(0.55), bolt: tint(0), boltCore: tint(0.9),
+        border: tint(0), glow: tint(0), title: tint(0.7),
+    });
+}
+
+function _timelineDistortionName(effect) {
+    return window._lang === 'vi' && effect.nameVi ? effect.nameVi : effect.name;
+}
+
+const _tdBossCooldowns = ['_verdictCooldownEnd', '_meteorCooldownEnd', '_echoCooldownEnd', '_fractureStepCooldownEnd'];
+const _tdJokerCooldowns = ['cooldownEnd', 'nextFireAt', 'reviveAt'];
+function _tickTimelineFlowBoss(enemy, deltaTime, now) {
+    if (!window._spacetimeFlowActive || enemy.type !== 'goliath' || enemy._deathPhase) return;
+    const advance = TD_FLOW_ENEMY_CD * deltaTime;
+    for (const key of _tdBossCooldowns) {
+        if (enemy[key] > now) enemy[key] = Math.max(now, enemy[key] - advance);
+    }
+    for (const state of Object.values(enemy._jokerState || {})) {
+        for (const key of _tdJokerCooldowns) {
+            if (state[key] > now) state[key] = Math.max(now, state[key] - advance);
+        }
+        if (state.lastSwordTriggerAt && now - state.lastSwordTriggerAt < TD_FLOW_JOKER_SWORD_CD) state.lastSwordTriggerAt -= advance;
+    }
+}
+
+function _grantTimelineFavorSentinels() {
+    if (!window._administratorsFavorActive) return;
+    for (const s of sentinels) {
+        if (s.hp <= 0 || s._tdFavorShieldGiven) continue;
+        s._tdFavorShieldGiven = true;
+        s._tdFavorShield = _addAllyShield(s, TD_FAVOR_SENTINEL_SHIELD_BASE + TD_FAVOR_SENTINEL_SHIELD_PER_WAVE * _waveNumber);
+    }
+}
+
+function _consumeTimelineFavorShield(unit, amount) {
+    if (unit._tdFavorShield > 0) unit._tdFavorShield = Math.max(0, unit._tdFavorShield - amount);
+}
+
+function _updateTimelineDistortion(deltaTime, now) {
+    if (window._spacetimeFlowActive) {
+        const advance = TD_FLOW_PLAYER_CD * deltaTime;
+        if (!skillAActive && now - lastSkillA < _skillACooldown()) lastSkillA -= Math.min(advance, _skillACooldown() - (now - lastSkillA));
+        if (!spirits.length && now - lastSkillS < skillSCooldown) lastSkillS -= Math.min(advance, skillSCooldown - (now - lastSkillS));
+        if (!skillDCharging && !deathStar && now - lastSkillD < skillDCooldown) lastSkillD -= Math.min(advance, skillDCooldown - (now - lastSkillD));
+        if (skillFState === 'ready' && now - lastSkillF < skillFCooldown) lastSkillF -= Math.min(advance, skillFCooldown - (now - lastSkillF));
+    }
+    if (window._administratorsFavorActive) {
+        for (const enemy of enemies) {
+            if (window._tdFavorSeenEnemies.has(enemy)) continue;
+            window._tdFavorSeenEnemies.add(enemy);
+            _tryAdminBlessing(enemy);
+        }
+        if (!window._tdFavorPlayerShield) {
+            window._tdFavorRecharge = Math.max(0, window._tdFavorRecharge - deltaTime);
+            if (!window._tdFavorRecharge) window._tdFavorPlayerShield = true;
+        }
+        _grantTimelineFavorSentinels();
+    }
+}
+
+function _recordAdaptiveSkill(skill) {
+    const state = window._adaptiveCounterState;
+    if (!state) return;
+    if (state.last === skill) {
+        state.resistance[skill] = Math.min(TD_ADAPT_CAP, state.resistance[skill] + TD_ADAPT_STEP);
+        state.fresh = false;
+    } else {
+        for (const key of Object.keys(state.resistance)) state.resistance[key] = 0;
+        state.fresh = true;
+    }
+    state.last = skill;
+}
+
+function _adaptiveSkillMult(source, enemy) {
+    const state = window._adaptiveCounterState;
+    if (!state || enemy.type !== 'goliath' || enemy.phase !== 'true_form') return 1;
+    if (source.isPhoto || source._isPhotoSourced || source.isSpirit || source.type === 'sentinel_auto' || source.type === 'sentinel_special') return 1;
+    const label = _classifyDamageSource(source, true);
+    let skill = source._isSkillF ? 'F' : source._isSkillD ? 'D' : source.isSpiritLaser ? 'S' : null;
+    if (!skill && /^Skill [ADF]:/.test(label)) skill = label.charAt(6);
+    if (!skill && label === 'Skill S: Spinner') skill = 'S';
+    if (!skill) return 1;
+    return (1 - state.resistance[skill]) * (state.last === skill && state.fresh ? TD_ADAPT_FRESH : 1);
+}
+
+// one paired effect per boss fight
 const TIMELINE_DISTORTION_POOL = [
     {
         id: 'stack_overflow',
@@ -52,10 +171,54 @@ const TIMELINE_DISTORTION_POOL = [
         apply() { window._stackOverflowActive = true; },
         clear() { window._stackOverflowActive = false; },
     },
+    {
+        id: 'spacetime_flow', name: 'SPACETIME FLOW', nameVi: 'DÒNG CHẢY KHÔNG THỜI GIAN',
+        playerHalf: 'Your cooldowns run 35% faster.',
+        enemyHalf: 'Enemy bullets and boss skills run faster too.',
+        apply() { window._spacetimeFlowActive = true; },
+        clear() { window._spacetimeFlowActive = false; },
+    },
+    {
+        id: 'administrators_favor', name: "ADMINISTRATOR'S FAVOR", nameVi: 'ÂN HUỆ CỦA QUẢN TRỊ VIÊN',
+        playerHalf: 'Kanade shields you and your Sentinels.',
+        enemyHalf: 'Her blessing marks your enemies and hardens them.',
+        apply() {
+            window._administratorsFavorActive = true;
+            window._tdFavorSeenEnemies = new WeakSet(enemies);
+            window._tdFavorPlayerShield = true;
+            window._tdFavorRecharge = 0;
+            player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult() * _playerAtkBuffMult();
+            _grantTimelineFavorSentinels();
+        },
+        clear() {
+            window._administratorsFavorActive = false;
+            window._tdFavorSeenEnemies = null;
+            window._tdFavorPlayerShield = false;
+            window._tdFavorRecharge = 0;
+            player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult() * _playerAtkBuffMult();
+            for (const s of sentinels) {
+                s.shield = Math.max(0, (s.shield || 0) - (s._tdFavorShield || 0));
+                delete s._tdFavorShield;
+                delete s._tdFavorShieldGiven;
+            }
+        },
+    },
+    {
+        id: 'adaptive_counter', name: 'ADAPTIVE COUNTER', nameVi: 'PHẢN CHẾ THÍCH ỨNG',
+        playerHalf: 'Switching skills makes the next one hit harder.',
+        enemyHalf: 'The boss adapts to a skill you keep repeating.',
+        apply() { window._adaptiveCounterState = { last: null, fresh: false, resistance: { A: 0, S: 0, D: 0, F: 0 } }; },
+        clear() { window._adaptiveCounterState = null; },
+    },
 ];
 
 function _rollTimelineDistortion() {
-    return TIMELINE_DISTORTION_POOL[Math.floor(Math.random() * TIMELINE_DISTORTION_POOL.length)];
+    const choices = TIMELINE_DISTORTION_POOL.length > 1
+        ? TIMELINE_DISTORTION_POOL.filter(effect => effect.id !== window._lastTimelineDistortionId)
+        : TIMELINE_DISTORTION_POOL;
+    const effect = choices[Math.floor(Math.random() * choices.length)];
+    window._lastTimelineDistortionId = effect.id;
+    return effect;
 }
 
 function _applyTimelineDistortion(effect) {
