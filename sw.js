@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v437';
+const CACHE_VERSION = 'v438';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -38,6 +38,15 @@ const CORE_FILES = [
     'assets/images/game/icons/timeline-distortion-player.png',
     'assets/images/game/icons/timeline-distortion-enemy.png',
     'assets/images/game/effects/timeline-distortion-banner.png',
+    'assets/images/game/icons/timeline-distortion-player-spacetime_flow.png',
+    'assets/images/game/icons/timeline-distortion-enemy-spacetime_flow.png',
+    'assets/images/game/effects/timeline-distortion-banner-spacetime_flow.png',
+    'assets/images/game/icons/timeline-distortion-player-administrators_favor.png',
+    'assets/images/game/icons/timeline-distortion-enemy-administrators_favor.png',
+    'assets/images/game/effects/timeline-distortion-banner-administrators_favor.png',
+    'assets/images/game/icons/timeline-distortion-player-adaptive_counter.png',
+    'assets/images/game/icons/timeline-distortion-enemy-adaptive_counter.png',
+    'assets/images/game/effects/timeline-distortion-banner-adaptive_counter.png',
     'assets/images/game/effects/kanade-halo.png',
     'assets/images/game/effects/frozen-realm.jpg',
     'assets/images/game/effects/kanade-gate-world.png',
