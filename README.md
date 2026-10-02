@@ -842,7 +842,7 @@ The cutscene is forced the first time a player ever reaches a boss wave. After t
 
 ### Timeline Distortion
 
-One paired anomaly per boss fight, rolled when the wave starts. Each pair has one half in the player's favour and one half in the enemy's. It is active for that fight only, never cumulative, and fully removed when the fight ends. The next boss wave rolls its own.
+One paired anomaly per boss fight, rolled when the wave starts. Each pair has one half in the player's favour and one half in the enemy's. It is active for that fight only, never cumulative, and fully removed when the fight ends. The next boss wave rolls its own, and it never rolls the same Distortion as the boss wave before it.
 
 **Stack Overflow** (first pair): every hard-capped stacking mechanic on both sides loses its ceiling for the fight.
 
@@ -862,6 +862,23 @@ The result is a speed contest: kill the boss fast and the uncapped stacks are yo
 **Vulnerability is deliberately excluded.** Its stacks are a trigger rather than a counter, since reaching 4 is what opens the true-damage window and that window expiring is what resets them. Uncapped, Goliath could climb past 4 while the window's own cooldown was still running, never hit the trigger again, and sit on permanent stacks with nothing left to reset them.
 
 Walpurgis's evade bonus is excluded for a different reason: it grows 0.05 per 5-wave stack, so uncapped it crosses 100% evade around wave 100 and the boss stops being killable at all.
+
+**Spacetime Flow** (cyan): time runs faster for both sides.
+
+- Player: Skill A, S, D and F cooldowns tick **35% faster** while they are cooling down. A skill that is still mid cast is not sped up, and Shift and G are unaffected.
+- Enemy: enemy bullets and Goliath's projectiles (Absolute Verdict's orb, Corrupted Meteor, the Marchosias swords) move **25% faster**, and Goliath's skill and Joker cooldowns tick **25% faster**. Windups and channels keep their normal length.
+
+**Administrator's Favor** (gold): Kanade's blessing reaches both sides.
+
+- Player: a one-hit violet shield on the ship, spent before Final Defense and recharged after **30s**. Every Sentinel gets a shield of **1000 + 20 x wave**, which the usual 30% Max HP shield cap trims in practice. **+10% ATK**.
+- Enemy: every eligible enemy that spawns is given Administrator's Blessing. Marchosias, Veilshroud and Uriel become eligible on top of the usual Elites and Dominators, the wave 6 gate and the 10% roll are ignored, and the 12 per wave cap stays. Goliath is never blessed. Blessed enemies also regenerate **1% Max HP per second** and carry **+100 flat DR and +10% DR** that stay on after the granted shield breaks.
+
+**Adaptive Counter** (emerald): the boss learns from the order of your casts among Skill A, S, D and F. This is not a timer.
+
+- Casting the same skill as your previous cast raises Goliath's resistance to that skill by **15 points per repeat**, up to **45%**.
+- Casting a different skill, or your first cast, clears all resistance and makes that cast fresh: **+20% damage** from that skill while it stays your most recent cast.
+- Only Skill A, D and F damage, plus Skill S's finale laser and Spinner, are affected, and only against Goliath True Form (Warding Palm included). Auto fire, Sentinels, ordinary spirit shots, Photokrystos and Skill G are untouched.
+- A small tag beside each skill on the panel shows the current value, red for a resistance and green for the fresh bonus.
 
 ### Administrator's Blessing
 
