@@ -620,12 +620,15 @@ window.debugSetYuukiBonus = function () {
       <div class="dbg-h">KANADE / TIMELINE DISTORTION</div>
       <div style="opacity:0.55; font-size:10px; margin-bottom:4px;">The boss-wave cutscene and the effect it imposes. Playing it freezes the sim, the audio and the background exactly as a real boss wave does, and its summon beat spawns a real Goliath.</div>
       <div class="dbg-row" style="flex-wrap:wrap;">
+        <select id="dbgTimelineDistortion" class="dbg-enemy-hp" style="width:100%; margin-bottom:4px;">
+          ${TIMELINE_DISTORTION_POOL.map(effect => '<option value="' + effect.id + '">' + effect.name + '</option>').join('')}
+        </select>
         <button class="dbg-btn" onclick="debugPlayKanadeCutscene()">Play Cutscene</button>
         <button class="dbg-btn" onclick="debugPlayKanadeCutscene(true)">Play (no Goliath)</button>
         <button class="dbg-btn danger" onclick="debugStopKanadeCutscene()">Stop</button>
       </div>
       <div class="dbg-row" style="flex-wrap:wrap; margin-top:6px;">
-        <button class="dbg-btn" onclick="debugToggleStackOverflow()">Toggle Stack Overflow</button>
+        <button class="dbg-btn" onclick="debugToggleStackOverflow()">Apply / Clear Selected</button>
         <span id="dbgStackOverflowState" style="font-size:10px; color:#7fd8ff; align-self:center;"></span>
       </div>
       <div class="dbg-row" style="flex-wrap:wrap; margin-top:6px;">
@@ -1155,6 +1158,11 @@ window.debugSetYuukiBonus = function () {
         });
     };
 
+    function _dbgSelectedTimelineDistortion() {
+        const select = document.getElementById('dbgTimelineDistortion');
+        return TIMELINE_DISTORTION_POOL.find(effect => effect.id === (select && select.value)) || TIMELINE_DISTORTION_POOL[0];
+    }
+
     window.debugPlayKanadeCutscene = function (noGoliath) {
         if (typeof window._beginKanadeCutscene !== 'function' || typeof _rollTimelineDistortion !== 'function') return;
         // The summon beat calls _spawnWaveGoliath itself. Stubbing it out for
@@ -1165,7 +1173,7 @@ window.debugSetYuukiBonus = function () {
             window._spawnWaveGoliath = function () {};
             setTimeout(() => { window._spawnWaveGoliath = _realSpawn; }, (window._KANADE_CUTSCENE_MS || 12000) + 500);
         }
-        window._beginKanadeCutscene(_rollTimelineDistortion(), typeof _waveNumber !== 'undefined' ? _waveNumber : 5);
+        window._beginKanadeCutscene(_dbgSelectedTimelineDistortion(), typeof _waveNumber !== 'undefined' ? _waveNumber : 5);
         refreshEnemyList();
     };
 
@@ -1180,15 +1188,16 @@ window.debugSetYuukiBonus = function () {
 
     window.debugToggleStackOverflow = function () {
         if (typeof _applyTimelineDistortion !== 'function') return;
-        if (window._timelineDistortion) _clearTimelineDistortion();
-        else _applyTimelineDistortion(_rollTimelineDistortion());
+        const selected = _dbgSelectedTimelineDistortion();
+        if (window._timelineDistortion && window._timelineDistortion.id === selected.id) _clearTimelineDistortion();
+        else _applyTimelineDistortion(selected);
         _dbgRefreshStackOverflowState();
     };
 
     function _dbgRefreshStackOverflowState() {
         const el = document.getElementById('dbgStackOverflowState');
         if (!el) return;
-        const on = !!window._stackOverflowActive;
+        const on = !!window._timelineDistortion;
         el.textContent = on
             ? 'active: ' + (window._timelineDistortion ? window._timelineDistortion.name : '?')
             : 'inactive';

@@ -22,6 +22,7 @@ function activateSkillS() {
     // Normal summon: standard 12s CD only
     if (currentTime - lastSkillS >= skillSCooldown) {
         lastSkillS = currentTime;
+        _recordAdaptiveSkill('S');
         _checkMirrorLaserProc();
         if (window.AudioMgr) window.AudioMgr.playSfxAt('skill-s-summon', player.x, player.y);
         primevalEnergy = 0; // Energy only accumulates from this new spirit

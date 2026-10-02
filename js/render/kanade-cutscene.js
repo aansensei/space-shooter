@@ -50,12 +50,42 @@
     invalidateSprite();
   }
 
-  const _tdBannerImg = new Image();
-  _tdBannerImg.src = 'assets/images/game/effects/timeline-distortion-banner.png';
-  const _tdPlayerIconImg = new Image();
-  _tdPlayerIconImg.src = 'assets/images/game/icons/timeline-distortion-player.png';
-  const _tdEnemyIconImg = new Image();
-  _tdEnemyIconImg.src = 'assets/images/game/icons/timeline-distortion-enemy.png';
+  const _tdImageCache = {};
+  function tdImage(path) {
+    if (!_tdImageCache[path]) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = path;
+      _tdImageCache[path] = img;
+    }
+    return _tdImageCache[path];
+  }
+  const _tdFallbackArt = TIMELINE_DISTORTION_ART.stack_overflow;
+  const _tdBannerImg = tdImage(_tdFallbackArt.banner);
+  const _tdPlayerIconImg = tdImage(_tdFallbackArt.playerIcon);
+  const _tdEnemyIconImg = tdImage(_tdFallbackArt.enemyIcon);
+  const _tdArtCache = {};
+  // Returns the effect's own art once all three images have loaded. Until
+  // then the Stack Overflow images stand in, but the accent stays the effect's.
+  window._getTimelineDistortionArt = function (effect) {
+    let entry = _tdArtCache[effect.id];
+    if (!entry) {
+      const art = TIMELINE_DISTORTION_ART[effect.id] || _tdFallbackArt;
+      entry = _tdArtCache[effect.id] = {
+        ready: {
+          art, banner: tdImage(art.banner), playerIcon: tdImage(art.playerIcon), enemyIcon: tdImage(art.enemyIcon),
+        },
+        stand: { art, banner: _tdBannerImg, playerIcon: _tdPlayerIconImg, enemyIcon: _tdEnemyIconImg },
+      };
+    }
+    const r = entry.ready;
+    const loaded = img => img.complete && img.naturalWidth;
+    return loaded(r.banner) && loaded(r.playerIcon) && loaded(r.enemyIcon) ? r : entry.stand;
+  };
+  _tdArtCache.stack_overflow = {
+    ready: { art: _tdFallbackArt, banner: _tdBannerImg, playerIcon: _tdPlayerIconImg, enemyIcon: _tdEnemyIconImg },
+  };
+  _tdArtCache.stack_overflow.stand = _tdArtCache.stack_overflow.ready;
   const _kanadeHaloImg = new Image();
   _kanadeHaloImg.src = 'assets/images/game/effects/kanade-halo.png';
   // The derelict citadel hanging in the void behind the stopped arena. The
@@ -3296,7 +3326,7 @@
     const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
     return v - Math.floor(v);
   }
-  function drawBolt(x0, y0, x1, y1, seed, width, alpha) {
+  function drawBolt(x0, y0, x1, y1, seed, width, alpha, glow, core) {
     const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len, segs = 9;
     ctx.beginPath();
@@ -3307,11 +3337,11 @@
     }
     ctx.lineTo(x1, y1);
     ctx.globalAlpha = alpha * 0.45;
-    ctx.strokeStyle = 'rgba(150,70,255,1)';
+    ctx.strokeStyle = glow || 'rgba(150,70,255,1)';
     ctx.lineWidth = width * 3.2;
     ctx.stroke();
     ctx.globalAlpha = alpha;
-    ctx.strokeStyle = 'rgba(246,232,255,1)';
+    ctx.strokeStyle = core || 'rgba(246,232,255,1)';
     ctx.lineWidth = width;
     ctx.stroke();
   }
@@ -3473,6 +3503,7 @@
   // and manga pressure lines behind them. Keyed to elapsed time against
   // SUMMON_AT and APPLY_AT, from the palm position stored when each fired.
   function drawCastRelease(cs, elapsed, now) {
+    const colors = _timelineDistortionColors(window._getTimelineDistortionArt(cs.effect).art.accent);
     const tier = freezeTier();
     if (tier >= 3) return;
     const W = canvas.width, H = canvas.height;
@@ -3492,18 +3523,18 @@
         // A lens streak across the whole screen, fading over half a second.
         drawFlare(x, y, W * 1.6, Math.pow(Math.max(0, 1 - k / 520), 1.5) * 0.95);
         ctx.globalCompositeOperation = 'lighter';
-        // A flash of violet over everything, up in one frame and gone in 200ms.
+        // a tinted flash across the screen
         // Peaks over two frames and is gone 100ms later.
         const fl = k < 33 ? 1 : Math.max(0, 1 - (k - 33) / 100);
         if (fl > 0) {
           ctx.globalAlpha = 0.24 * fl * fl;
-          ctx.fillStyle = 'rgba(200,150,255,1)';
+          ctx.fillStyle = colors.flash;
           ctx.fillRect(0, 0, W, H);
         }
         // Rays: long thin wedges out of the palm, turning slowly.
         const rays = tier === 0 ? 14 : 8;
         const ra = Math.pow(1 - q, 2.4) * 0.22;
-        ctx.fillStyle = 'rgba(232,200,255,1)';
+        ctx.fillStyle = colors.rays;
         ctx.globalAlpha = ra;
         ctx.beginPath();
         for (let i = 0; i < rays; i++) {
@@ -3526,7 +3557,7 @@
         for (let i = 0; i < count; i++) {
           const a = hash(i, bucket + 1) * Math.PI * 2;
           const len = Math.min(W, H) * (0.25 + 0.3 * hash(bucket, i + 11));
-          drawBolt(x, y, x + Math.cos(a) * len, y + Math.sin(a) * len, bucket * 31 + i, 1.6 * unit, 1 - k / 450);
+          drawBolt(x, y, x + Math.cos(a) * len, y + Math.sin(a) * len, bucket * 31 + i, 1.6 * unit, 1 - k / 450, colors.bolt, colors.boltCore);
         }
       }
       // Pressure rings, one after another. The release sends three hard,
@@ -3539,7 +3570,7 @@
         if (qj <= 0 || qj >= 1) continue;
         const rad = ev.reach * easeOutCubic(qj);
         ctx.globalAlpha = Math.pow(1 - qj, 1.5) * bright;
-        ctx.strokeStyle = j === 0 ? 'rgba(236,210,255,1)' : 'rgba(160,82,255,1)';
+        ctx.strokeStyle = j === 0 ? colors.ring : colors.accent;
         ctx.lineWidth = Math.max(1, (ev.big ? 9 : 4) * (1 - qj) * unit + unit);
         ctx.beginPath();
         ctx.arc(x, y, rad, 0, Math.PI * 2);
@@ -3549,7 +3580,7 @@
       if (ev.big && tier <= 1) {
         const lines = tier === 0 ? 36 : 20;
         const rad = ev.reach * easeOutCubic(clamp01(q * 1.25));
-        ctx.strokeStyle = 'rgba(214,176,255,1)';
+        ctx.strokeStyle = colors.trail;
         ctx.lineWidth = 1.6 * unit;
         ctx.globalAlpha = Math.pow(1 - q, 2) * 0.55;
         ctx.beginPath();
@@ -3674,6 +3705,7 @@
   // player-favouring hourglass and the enemy-favouring broken one.
   function drawEffectBanner(effect, alpha, L, p) {
     if (alpha <= 0.01) return;
+    const art = window._getTimelineDistortionArt(effect);
     const w = Math.min(canvas.width * 0.82, 700);
     const h = w * 0.21;
     const cx = canvas.width / 2;
@@ -3682,10 +3714,10 @@
     ctx.globalAlpha = Math.min(1, alpha);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (_tdBannerImg.complete && _tdBannerImg.naturalWidth) {
-      ctx.drawImage(_tdBannerImg, cx - w / 2, top, w, h);
+    if (art.banner.complete && art.banner.naturalWidth) {
+      ctx.drawImage(art.banner, cx - w / 2, top, w, h);
     }
-    drawSoulsTitle(effect.name, cx, top + h * 0.52, w * 0.74, Math.max(18, Math.round(h * 0.36)), p || 0);
+    drawSoulsTitle(_timelineDistortionName(effect), cx, top + h * 0.52, w * 0.74, Math.max(18, Math.round(h * 0.36)), p || 0);
 
     // The pair reads as one line under the banner: the player-favouring
     // hourglass and its half on the left, the broken enemy one on the right.
@@ -3694,8 +3726,8 @@
     // give a 6px font, which is unreadable.
     const iconR = Math.max(14, w * 0.045);
     const halves = [
-      { img: _tdPlayerIconImg, text: effect.playerHalf, dir: -1, color: '#ffe9a8' },
-      { img: _tdEnemyIconImg, text: effect.enemyHalf, dir: 1, color: '#ff9aa6' },
+      { img: art.playerIcon, text: effect.playerHalf, dir: -1, color: '#ffe9a8' },
+      { img: art.enemyIcon, text: effect.enemyHalf, dir: 1, color: '#ff9aa6' },
     ];
     // Below the ring, in the clear band under her, so neither line crosses her.
     const rowY = Math.min(canvas.height - iconR * 1.6, L.centerY + L.ringR + iconR * 1.4);
@@ -4834,6 +4866,8 @@
     energyGlow();
     flareStreak();
     dustPuff();
+    // Starts loading the effect's own banner and icons.
+    window._getTimelineDistortionArt(effect);
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);

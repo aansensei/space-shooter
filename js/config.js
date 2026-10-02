@@ -1,4 +1,20 @@
 // Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
+const TD_FLOW_PLAYER_CD = 0.35;
+const TD_FLOW_ENEMY_BULLET = 1.25;
+const TD_FLOW_ENEMY_CD = 0.25;
+const TD_FLOW_JOKER_SWORD_CD = 650;
+const TD_FAVOR_REGEN = 0.01;
+const TD_FAVOR_FLAT_DR = 100;
+const TD_FAVOR_DR = 0.10;
+const TD_FAVOR_SHIELD_RECHARGE = 30000;
+const TD_FAVOR_SENTINEL_SHIELD_BASE = 1000;
+const TD_FAVOR_SENTINEL_SHIELD_PER_WAVE = 20;
+const TD_FAVOR_ATK = 0.10;
+const TD_ADAPT_STEP = 0.15;
+const TD_ADAPT_CAP = 0.45;
+const TD_ADAPT_FRESH = 1.20;
+const TD_ADAPT_SKILLS = ['A', 'S', 'D', 'F'];
+
 const canvas = document.getElementById("gameCanvas");
 // Synchronize presentation because each frame clears and redraws this canvas.
 // Keep alpha enabled so the separate background canvas remains visible.
@@ -248,6 +264,10 @@ function _sigilAtkMult() {
     let bonus = 0;
     for (const s of sigils) bonus += SIGIL_ATK_BONUS[s.sigilId] || 0;
     return 1 + bonus;
+}
+
+function _playerAtkBuffMult() {
+    return window._administratorsFavorActive ? 1 + TD_FAVOR_ATK : 1;
 }
 
 // Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for

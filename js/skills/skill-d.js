@@ -8,6 +8,7 @@ function activateSkillD() {
     if (typeof player !== 'undefined' && player._silenced) return;
     if (gameState !== "playing" || window._sigilPicker || window._kanadeCutscene || skillDCharging || deathStar || currentTime - lastSkillD < skillDCooldown) return;
     _checkMirrorLaserProc();
+    _recordAdaptiveSkill('D');
     if (_hasBuff('dong_chay_luan_hoi')) {
         // Cycle of Flow: skip the charge phase entirely
         lastSkillD = currentTime;

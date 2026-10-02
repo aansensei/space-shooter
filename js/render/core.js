@@ -2547,6 +2547,7 @@ function draw(deltaTime) {
             if (_tAge > 0 && _tAge < 4000) {
                 const _tA = _tAge < 260 ? _tAge / 260 : (_tAge < 3200 ? 1 : Math.max(0, 1 - (_tAge - 3200) / 800));
                 const _e = window._timelineDistortion;
+                const _tdColors = _timelineDistortionColors(window._getTimelineDistortionArt(_e).art.accent);
                 const _tW = 360, _tH = 92;
                 const _tX = _wcx - _tW / 2, _tY = canvas.height * 0.60 - _tH / 2;
                 ctx.save();
@@ -2561,7 +2562,7 @@ function draw(deltaTime) {
                 else ctx.fillRect(_tX, _tY, _tW, _tH);
 
                 ctx.globalAlpha = _tA * 0.85;
-                ctx.strokeStyle = '#6a3caa'; ctx.lineWidth = 1;
+                ctx.strokeStyle = _tdColors.border; ctx.lineWidth = 1;
                 if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(_tX, _tY, _tW, _tH, 7); ctx.stroke(); }
                 else ctx.strokeRect(_tX, _tY, _tW, _tH);
 
@@ -2570,10 +2571,10 @@ function draw(deltaTime) {
                 ctx.fillStyle = '#7a5aa8';
                 ctx.fillText('T I M E L I N E   D I S T O R T I O N', _wcx, _tY + 22);
 
-                ctx.shadowBlur = 18; ctx.shadowColor = '#8a44ff';
+                ctx.shadowBlur = 18; ctx.shadowColor = _tdColors.glow;
                 ctx.font = 'bold 26px Arial';
-                ctx.fillStyle = '#e2c8ff';
-                ctx.fillText(_e.name, _wcx, _tY + 52);
+                ctx.fillStyle = _tdColors.title;
+                ctx.fillText(_timelineDistortionName(_e), _wcx, _tY + 52);
                 ctx.shadowBlur = 0;
 
                 ctx.font = '11px monospace';
