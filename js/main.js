@@ -3069,8 +3069,8 @@ function _updateAdminBlessingGuard(enemy) {
 // wave's ceiling, and then the chance itself.
 function _tryAdminBlessing(enemy) {
     const favor = window._administratorsFavorActive;
-    if (!enemy || enemy.type === 'goliath' || !(ADMIN_BLESSING_TYPES[enemy.type]
-        || (favor && ['marchosias', 'veilshroud', 'uriel'].includes(enemy.type)))) return false;
+    if (!enemy || enemy.type === 'goliath') return false;
+    if (!(ADMIN_BLESSING_TYPES[enemy.type] || (favor && _timelineFavorEligible(enemy.type)))) return false;
     if (!favor && _waveNumber < ADMIN_BLESSING_MIN_WAVE) return false;
     if (_adminBlessedThisWave >= ADMIN_BLESSING_MAX_PER_WAVE) return false;
     if (!favor && Math.random() >= ADMIN_BLESSING_CHANCE) return false;

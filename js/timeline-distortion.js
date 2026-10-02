@@ -93,12 +93,18 @@ function _tickTimelineFlowBoss(enemy, deltaTime, now) {
     for (const key of _tdBossCooldowns) {
         if (enemy[key] > now) enemy[key] = Math.max(now, enemy[key] - advance);
     }
-    for (const state of Object.values(enemy._jokerState || {})) {
+    for (const name in enemy._jokerState) {
+        const state = enemy._jokerState[name];
         for (const key of _tdJokerCooldowns) {
             if (state[key] > now) state[key] = Math.max(now, state[key] - advance);
         }
         if (state.lastSwordTriggerAt && now - state.lastSwordTriggerAt < TD_FLOW_JOKER_SWORD_CD) state.lastSwordTriggerAt -= advance;
     }
+}
+
+const TD_FAVOR_EXTRA_TYPES = { marchosias: true, veilshroud: true, uriel: true };
+function _timelineFavorEligible(type) {
+    return !!(ADMIN_BLESSING_TYPES[type] || TD_FAVOR_EXTRA_TYPES[type]);
 }
 
 function _grantTimelineFavorSentinels() {
@@ -124,7 +130,7 @@ function _updateTimelineDistortion(deltaTime, now) {
     }
     if (window._administratorsFavorActive) {
         for (const enemy of enemies) {
-            if (window._tdFavorSeenEnemies.has(enemy)) continue;
+            if (!_timelineFavorEligible(enemy.type) || window._tdFavorSeenEnemies.has(enemy)) continue;
             window._tdFavorSeenEnemies.add(enemy);
             _tryAdminBlessing(enemy);
         }
@@ -172,14 +178,14 @@ const TIMELINE_DISTORTION_POOL = [
         clear() { window._stackOverflowActive = false; },
     },
     {
-        id: 'spacetime_flow', name: 'SPACETIME FLOW', nameVi: 'DÒNG CHẢY KHÔNG THỜI GIAN',
+        id: 'spacetime_flow', name: 'SPACETIME FLOW', nameVi: 'DÒNG CHẢY THỜI KHÔNG',
         playerHalf: 'Your cooldowns run 35% faster.',
         enemyHalf: 'Enemy bullets and boss skills run faster too.',
         apply() { window._spacetimeFlowActive = true; },
         clear() { window._spacetimeFlowActive = false; },
     },
     {
-        id: 'administrators_favor', name: "ADMINISTRATOR'S FAVOR", nameVi: 'ÂN HUỆ CỦA QUẢN TRỊ VIÊN',
+        id: 'administrators_favor', name: "ADMINISTRATOR'S FAVOR", nameVi: 'ÂN SỦNG QUẢN TRỊ VIÊN',
         playerHalf: 'Kanade shields you and your Sentinels.',
         enemyHalf: 'Her blessing marks your enemies and hardens them.',
         apply() {
@@ -204,7 +210,7 @@ const TIMELINE_DISTORTION_POOL = [
         },
     },
     {
-        id: 'adaptive_counter', name: 'ADAPTIVE COUNTER', nameVi: 'PHẢN CHẾ THÍCH ỨNG',
+        id: 'adaptive_counter', name: 'ADAPTIVE COUNTER', nameVi: 'KẺ ĐỊCH HỌC HỎI',
         playerHalf: 'Switching skills makes the next one hit harder.',
         enemyHalf: 'The boss adapts to a skill you keep repeating.',
         apply() { window._adaptiveCounterState = { last: null, fresh: false, resistance: { A: 0, S: 0, D: 0, F: 0 } }; },

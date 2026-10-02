@@ -324,11 +324,12 @@ function drawSkillButtons() {
         ctx.font = 'bold 9px monospace';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        for (const [i, skill] of ['A', 'S', 'D', 'F'].entries()) {
+        for (let i = 0; i < TD_ADAPT_SKILLS.length; i++) {
+            const skill = TD_ADAPT_SKILLS[i];
             const resistance = state.resistance[skill];
-            if (state.last === skill && resistance <= 0) continue;
-            ctx.fillStyle = state.last === skill ? '#ff6978' : '#3ddc97';
-            const tag = state.last === skill ? '-' + Math.round(resistance * 100) + '%' : '+' + Math.round((TD_ADAPT_FRESH - 1) * 100) + '%';
+            const resisted = state.last === skill && resistance > 0;
+            ctx.fillStyle = resisted ? '#ff6978' : '#3ddc97';
+            const tag = resisted ? '-' + Math.round(resistance * 100) + '%' : '+' + Math.round((TD_ADAPT_FRESH - 1) * 100) + '%';
             ctx.fillText(tag, pillX + pW + 5, rowY(i + 1) + pH / 2);
         }
         ctx.restore();

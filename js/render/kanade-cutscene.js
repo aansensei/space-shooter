@@ -65,21 +65,27 @@
   const _tdPlayerIconImg = tdImage(_tdFallbackArt.playerIcon);
   const _tdEnemyIconImg = tdImage(_tdFallbackArt.enemyIcon);
   const _tdArtCache = {};
+  // Returns the effect's own art once all three images have loaded. Until
+  // then the Stack Overflow images stand in, but the accent stays the effect's.
   window._getTimelineDistortionArt = function (effect) {
-    const art = TIMELINE_DISTORTION_ART[effect.id] || _tdFallbackArt;
-    const images = _tdArtCache[effect.id] || (_tdArtCache[effect.id] = {
-      art, banner: tdImage(art.banner), playerIcon: tdImage(art.playerIcon), enemyIcon: tdImage(art.enemyIcon),
-    });
-    if (!images.banner.complete || !images.banner.naturalWidth
-        || !images.playerIcon.complete || !images.playerIcon.naturalWidth
-        || !images.enemyIcon.complete || !images.enemyIcon.naturalWidth) {
-      return _tdArtCache.stack_overflow;
+    let entry = _tdArtCache[effect.id];
+    if (!entry) {
+      const art = TIMELINE_DISTORTION_ART[effect.id] || _tdFallbackArt;
+      entry = _tdArtCache[effect.id] = {
+        ready: {
+          art, banner: tdImage(art.banner), playerIcon: tdImage(art.playerIcon), enemyIcon: tdImage(art.enemyIcon),
+        },
+        stand: { art, banner: _tdBannerImg, playerIcon: _tdPlayerIconImg, enemyIcon: _tdEnemyIconImg },
+      };
     }
-    return images;
+    const r = entry.ready;
+    const loaded = img => img.complete && img.naturalWidth;
+    return loaded(r.banner) && loaded(r.playerIcon) && loaded(r.enemyIcon) ? r : entry.stand;
   };
   _tdArtCache.stack_overflow = {
-    art: _tdFallbackArt, banner: _tdBannerImg, playerIcon: _tdPlayerIconImg, enemyIcon: _tdEnemyIconImg,
+    ready: { art: _tdFallbackArt, banner: _tdBannerImg, playerIcon: _tdPlayerIconImg, enemyIcon: _tdEnemyIconImg },
   };
+  _tdArtCache.stack_overflow.stand = _tdArtCache.stack_overflow.ready;
   const _kanadeHaloImg = new Image();
   _kanadeHaloImg.src = 'assets/images/game/effects/kanade-halo.png';
   // The derelict citadel hanging in the void behind the stopped arena. The
@@ -3320,7 +3326,7 @@
     const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
     return v - Math.floor(v);
   }
-  function drawBolt(x0, y0, x1, y1, seed, width, alpha) {
+  function drawBolt(x0, y0, x1, y1, seed, width, alpha, glow, core) {
     const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len, ny = dx / len, segs = 9;
     ctx.beginPath();
@@ -3331,11 +3337,11 @@
     }
     ctx.lineTo(x1, y1);
     ctx.globalAlpha = alpha * 0.45;
-    ctx.strokeStyle = 'rgba(150,70,255,1)';
+    ctx.strokeStyle = glow || 'rgba(150,70,255,1)';
     ctx.lineWidth = width * 3.2;
     ctx.stroke();
     ctx.globalAlpha = alpha;
-    ctx.strokeStyle = 'rgba(246,232,255,1)';
+    ctx.strokeStyle = core || 'rgba(246,232,255,1)';
     ctx.lineWidth = width;
     ctx.stroke();
   }
@@ -3551,25 +3557,7 @@
         for (let i = 0; i < count; i++) {
           const a = hash(i, bucket + 1) * Math.PI * 2;
           const len = Math.min(W, H) * (0.25 + 0.3 * hash(bucket, i + 11));
-          const x1 = x + Math.cos(a) * len, y1 = y + Math.sin(a) * len;
-          const seed = bucket * 31 + i, width = 1.6 * unit, alpha = 1 - k / 450;
-          const dx = x1 - x, dy = y1 - y, boltLen = Math.hypot(dx, dy) || 1;
-          const nx = -dy / boltLen, ny = dx / boltLen, segs = 9;
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          for (let n = 1; n < segs; n++) {
-            const f = n / segs, off = (hash(seed, n) - 0.5) * boltLen * 0.26 * Math.sin(Math.PI * f);
-            ctx.lineTo(x + dx * f + nx * off, y + dy * f + ny * off);
-          }
-          ctx.lineTo(x1, y1);
-          ctx.globalAlpha = alpha * 0.45;
-          ctx.strokeStyle = colors.bolt;
-          ctx.lineWidth = width * 3.2;
-          ctx.stroke();
-          ctx.globalAlpha = alpha;
-          ctx.strokeStyle = colors.boltCore;
-          ctx.lineWidth = width;
-          ctx.stroke();
+          drawBolt(x, y, x + Math.cos(a) * len, y + Math.sin(a) * len, bucket * 31 + i, 1.6 * unit, 1 - k / 450, colors.bolt, colors.boltCore);
         }
       }
       // Pressure rings, one after another. The release sends three hard,
@@ -4878,6 +4866,8 @@
     energyGlow();
     flareStreak();
     dustPuff();
+    // Starts loading the effect's own banner and icons.
+    window._getTimelineDistortionArt(effect);
     // She stops time, so the whole mix stops with it: music, ambience, every
     // sustained loop, and any one-shot that tries to fire while she holds it.
     if (window.AudioMgr && window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(true);

@@ -13,6 +13,7 @@ const TD_FAVOR_ATK = 0.10;
 const TD_ADAPT_STEP = 0.15;
 const TD_ADAPT_CAP = 0.45;
 const TD_ADAPT_FRESH = 1.20;
+const TD_ADAPT_SKILLS = ['A', 'S', 'D', 'F'];
 
 const canvas = document.getElementById("gameCanvas");
 // Synchronize presentation because each frame clears and redraws this canvas.
@@ -265,14 +266,14 @@ function _sigilAtkMult() {
     return 1 + bonus;
 }
 
-// Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for
-// 1.5s, Leviathan's death laser cuts it by 20% while the player is on the beam
-// and 1s after. Each one only refreshes its own window, and when both are up
-// the deeper cut applies instead of the two multiplying.
 function _playerAtkBuffMult() {
     return window._administratorsFavorActive ? 1 + TD_FAVOR_ATK : 1;
 }
 
+// Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for
+// 1.5s, Leviathan's death laser cuts it by 20% while the player is on the beam
+// and 1s after. Each one only refreshes its own window, and when both are up
+// the deeper cut applies instead of the two multiplying.
 function _playerAtkDebuffMult() {
     if (typeof player === 'undefined') return 1.0;
     const now = performance.now();
