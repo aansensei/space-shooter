@@ -458,6 +458,10 @@ function _goliathTryTriggerSword(enemy) {
     const now = performance.now();
     if (s.lastSwordTriggerAt && now - s.lastSwordTriggerAt < 650) return;
     if ((s.swordsThisCycle || 0) >= 10) return;
+    // a new volley waits for the skill gap; one already winding up can keep
+    // adding swords, except while Verdict channels
+    if (enemy._verdictPhase === 'channeling') return;
+    if (!s.windups.length && !_goliathCanStartSkill(enemy, now)) return;
     s.lastSwordTriggerAt = now;
     s.swordsThisCycle = (s.swordsThisCycle || 0) + 1;
     // Locks player + 2 more points (sentinels, or random positions if there
@@ -700,7 +704,23 @@ function updateGoliath(enemy, deltaTime) {
         const _fractureSpdMult = (enemy._fractureBuffEnd && now < enemy._fractureBuffEnd) ? 1.10 : 1;
         // Unbroken Will (NEW): +15% tốc độ bay trong cửa sổ 6s sau khi cứu mạng.
         const _unbrokenSpdMult = (enemy._unbrokenWillBuffEnd && now < enemy._unbrokenWillBuffEnd) ? 1.15 : 1;
-        enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1) * _fractureSpdMult * _unbrokenSpdMult;
+        const veilJoker = enemy._jokerState['Veilshroud'];
+        const inPhantomCopy = veilJoker && veilJoker.phantomEnd && now < veilJoker.phantomEnd;
+        // Đứng yên khi Phantom HOẶC đang giữa chuỗi dịch chuyển Fracture Step
+        // (đóng/mở vòng pháp trận) — không để weave đè lên vị trí đã khoá.
+        const inFractureTransition = enemy._fractureTeleportPhase === 'closing' || enemy._fractureTeleportPhase === 'opening';
+        const weaveHeld = inPhantomCopy || inFractureTransition;
+        // The weave clock stops while he is held in place, so the path picks
+        // up where it left off instead of jumping to wherever the clock got to.
+        if (!weaveHeld) {
+            enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1) * _fractureSpdMult * _unbrokenSpdMult;
+        }
+        // Coming out of a hold, blend from where he stands into the path,
+        // unless Fracture Step has just started a blend of its own.
+        if (enemy._weaveWasHeld && !weaveHeld && !(enemy._weaveEnterAt && now - enemy._weaveEnterAt < 1200)) {
+            enemy._weaveEnterX = enemy.x; enemy._weaveEnterY = enemy.y; enemy._weaveEnterAt = now;
+        }
+        enemy._weaveWasHeld = weaveHeld;
 
         // Unbroken Will (NEW): hết cửa sổ 6s thì rút lại đúng phần +20% MaxHP
         // đã cấp tạm thời (chỉ 1 lần duy nhất trong đời Goliath này).
@@ -719,12 +739,7 @@ function updateGoliath(enemy, deltaTime) {
         }
         enemy._wasCasting = isCasting;
 
-        const veilJoker = enemy._jokerState['Veilshroud'];
-        const inPhantomCopy = veilJoker && veilJoker.phantomEnd && now < veilJoker.phantomEnd;
-        // Đứng yên khi Phantom HOẶC đang giữa chuỗi dịch chuyển Fracture Step
-        // (đóng/mở vòng pháp trận) — không để weave đè lên vị trí đã khoá.
-        const inFractureTransition = enemy._fractureTeleportPhase === 'closing' || enemy._fractureTeleportPhase === 'opening';
-        if (!inPhantomCopy && !inFractureTransition) {
+        if (!weaveHeld) {
             const t = enemy._weaveClock / 1000 + enemy._weaveSeed;
             const ampX = canvas.width * 0.28, ampY = canvas.height * 0.10;
             const centerX = enemy._restX != null ? enemy._restX : canvas.width / 2;
@@ -766,7 +781,8 @@ function updateGoliath(enemy, deltaTime) {
                     dsThreat = distToDs < deathStar.size * SKILLD_CONTACT_MULT * 1.6 + enemy.size / 2;
                 }
                 threatNear = threatNear || dsThreat;
-                if (threatNear || !enemy._lastFractureAt || now - enemy._lastFractureAt >= 2000) {
+                if ((threatNear || !enemy._lastFractureAt || now - enemy._lastFractureAt >= 2000)
+                    && _goliathCanStartSkill(enemy, now, 'fracture')) {
                     enemy._lastFractureAt = now;
                     enemy._fractureStepCooldownEnd = now + 2000;
                     enemy._fractureTeleportPhase = 'closing';
@@ -856,7 +872,7 @@ function updateGoliath(enemy, deltaTime) {
         // giờ bị bỏ lỡ hoàn toàn. CD 4s, không tự tính là "vận skill" chậm
         // 35% cho gọn (đã có CD ngắn riêng), nhưng vẫn khoá Fracture Step
         // qua _goliathIsCasting như mọi skill khác.
-        if (enemy._meteorPhase === 'ready' && now >= enemy._meteorCooldownEnd) {
+        if (enemy._meteorPhase === 'ready' && now >= enemy._meteorCooldownEnd && _goliathCanStartSkill(enemy, now, 'meteor')) {
             const apostles = enemies.filter(e => e !== enemy && e.type === 'apostle' && e.hp > 0);
             apostles.sort(() => Math.random() - 0.5);
             enemy._meteorTargets = apostles.slice(0, 3);
@@ -903,6 +919,7 @@ function updateGoliath(enemy, deltaTime) {
         _goliathEchoUpdate(enemy, deltaTime, now);
 
         _goliathUpdateJoker(enemy, deltaTime, now);
+        _goliathSyncSkillGap(enemy, now);
 
         // Threshold Ward (docs/combat-scaling-rebalance.md Part 4): 75/50/25%
         // HP milestones each grant a one-time 15% Hentry ordinary shield
@@ -1300,6 +1317,59 @@ function _goliathLockTargets(count) {
 // Đang "vận" 1 kỹ năng bất kỳ (của chính Goliath hoặc bất kỳ bản copy Joker
 // nào) — dùng cho hạn chế mới: chậm 35% + cấm Fracture Step (dịch chuyển) +
 // hồi 15% MaxHP (1 lần lúc bắt đầu vận) + thêm 10% DR trong lúc vận.
+// Skill pacing. Every Goliath skill except Absolute Verdict and Kanade's
+// Endless Echo runs one at a time with a GOLIATH_SKILL_GAP_MS gap after it
+// ends, and none of them can start while Verdict is channeling. Echo keeps
+// its own rules and Verdict starts on its own cooldown.
+const GOLIATH_SKILL_GAP_MS = 500;
+function _goliathPacedSkillActive(enemy, now) {
+    if (enemy._fractureTeleportPhase === 'closing' || enemy._fractureTeleportPhase === 'opening') return true;
+    if (enemy._meteorPhase === 'charging') return true;
+    const js = enemy._jokerState;
+    const v = js['Veilshroud'];
+    if (v && ((v.phantomEnd && now < v.phantomEnd) || v.lightningPending)) return true;
+    const r = js['Raphael'];
+    if (r && (r.telegraphing || r.firing)) return true;
+    const e = js['Egregor'];
+    if (e && (e.phase === 'charging' || e.phase === 'striking')) return true;
+    const l = js['Leviathan'];
+    if (l && (l.phase === 'warning' || l.phase === 'sweeping')) return true;
+    const m = js['Marchosias'];
+    if (m && m.windups.length) return true;
+    return false;
+}
+// Starts the gap on the frame a paced skill finishes.
+function _goliathSyncSkillGap(enemy, now) {
+    const active = _goliathPacedSkillActive(enemy, now);
+    if (enemy._pacedSkillWasActive && !active) enemy._skillGapUntil = now + GOLIATH_SKILL_GAP_MS;
+    enemy._pacedSkillWasActive = active;
+    return active;
+}
+// `key` names the skill asking. Skills that are off cooldown and waiting for
+// the gap take turns in the order they became ready, so a short cooldown
+// skill cannot take every slot from the longer ones. A skill that stops asking
+// drops out of the queue. Without a key the queue is skipped.
+function _goliathCanStartSkill(enemy, now, key) {
+    let open = enemy._verdictPhase !== 'channeling'
+        && !_goliathSyncSkillGap(enemy, now) && now >= (enemy._skillGapUntil || 0);
+    if (key === undefined) return open;
+    const q = enemy._skillQueue || (enemy._skillQueue = {});
+    const mine = q[key] || (q[key] = { since: now, asked: now });
+    mine.asked = now;
+    if (!open) return false;
+    for (const k in q) {
+        const o = q[k];
+        if (k === key || now - o.asked > 100) continue;
+        if (o.since < mine.since) return false;
+    }
+    delete q[key];
+    return true;
+}
+// For a skill with no duration of its own, the gap starts the moment it fires.
+function _goliathInstantSkillUsed(enemy, now) {
+    enemy._skillGapUntil = now + GOLIATH_SKILL_GAP_MS;
+}
+
 function _goliathIsCasting(enemy) {
     if (enemy._verdictPhase === 'channeling') return true;
     if (enemy._meteorPhase === 'charging') return true;
@@ -1356,8 +1426,13 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 });
                 s.cooldownEnd = now + 3000;
             }
-        } else if (now >= (s.cooldownEnd || 0) && Math.random() < (deltaTime / 450) * 0.5) {
-            s.phantomEnd = now + 3000;
+        } else if (now >= (s.cooldownEnd || 0)) {
+            // the random roll decides when it wants to go, the queue when it can
+            if (!s.wantPhantom && Math.random() < (deltaTime / 450) * 0.5) s.wantPhantom = true;
+            if (s.wantPhantom && _goliathCanStartSkill(enemy, now, 'phantom')) {
+                s.wantPhantom = false;
+                s.phantomEnd = now + 3000;
+            }
         }
     }
     // Thaelis: passive thuần, DR áp trong combinedDR — không cần cập nhật gì ở đây
@@ -1369,7 +1444,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
         // đường đó — KHÔNG PHẢI 1 chùm tia xoay tròn như bản trước (xoay vậy
         // không cách nào né được).
         const s = js['Raphael'];
-        if (!s.telegraphing && !s.firing && now >= s.nextFireAt) {
+        if (!s.telegraphing && !s.firing && now >= s.nextFireAt && _goliathCanStartSkill(enemy, now, 'raphael')) {
             s.telegraphing = true;
             s.telegraphEnd = now + 1000;
             s.targets = _goliathLockTargets(2);
@@ -1453,7 +1528,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
         // KHÔNG port Boon & Bane — đó là cơ chế tự trừng phạt riêng của
         // Egregor lúc bị đánh trong lúc vận, không hợp vai trò boss.
         const s = js['Egregor'];
-        if (s.phase === 'ready' && now >= (s.cooldownEnd || 0)) {
+        if (s.phase === 'ready' && now >= (s.cooldownEnd || 0) && _goliathCanStartSkill(enemy, now, 'egregor')) {
             s.phase = 'charging'; s.windupTimer = 0;
             if (window.AudioMgr) window.AudioMgr.startNullSlashWindup();
         } else if (s.phase === 'charging') {
@@ -1527,8 +1602,9 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
 
     if (js['Dargruel']) {
         const s = js['Dargruel'];
-        if (now >= s.nextFireAt) {
+        if (now >= s.nextFireAt && _goliathCanStartSkill(enemy, now, 'dargruel')) {
             s.nextFireAt = now + 8000;
+            _goliathInstantSkillUsed(enemy, now);
             // Dùng đúng cơ chế Maou Haki thật (spawnBossShockwave): tự động
             // quét sạch đạn người chơi trong bán kính lan ra + gây sát thương
             // Sentinel — trước đây thiếu hẳn phần dọn đạn.
@@ -1546,7 +1622,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
 
     if (js['Leviathan']) {
         const s = js['Leviathan'];
-        if (s.phase === 'ready' && now >= (s.cooldownEnd || 0)) {
+        if (s.phase === 'ready' && now >= (s.cooldownEnd || 0) && _goliathCanStartSkill(enemy, now, 'leviathan')) {
             s.phase = 'warning'; s.warnTimer = 0;
         } else if (s.phase === 'warning') {
             s.warnTimer += deltaTime;
