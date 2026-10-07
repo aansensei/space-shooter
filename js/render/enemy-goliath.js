@@ -26,12 +26,29 @@ function _goliathLerpColor(hexA, hexB, t) {
     const bl = Math.round(a[2] + (b[2] - a[2]) * t);
     return `rgb(${r},${g},${bl})`;
 }
-function _goliathGenerateVein(x1, y1, x2, y2, segments, jitter) {
+// Crackle jitter on the body, halo and arms comes from a generator that is
+// re-seeded every 1/60 s and per line, so those lines flicker at the same
+// rate on a 60Hz screen and a 144Hz one, and hold still between ticks.
+let _goliathJitterState = 1;
+function _goliathJitterSeed(key) {
+    const tick = Math.floor(performance.now() / 16.667);
+    _goliathJitterState = (Math.imul(tick, 2654435761) ^ Math.imul(key + 1, 40503)) >>> 0 || 1;
+}
+function _goliathRand() {
+    let x = _goliathJitterState;
+    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    _goliathJitterState = x >>> 0;
+    return _goliathJitterState / 4294967296;
+}
+// `key`, when given, ties the jitter to that line and the 60Hz tick.
+function _goliathGenerateVein(x1, y1, x2, y2, segments, jitter, key) {
+    const rnd = key === undefined ? Math.random : _goliathRand;
+    if (key !== undefined) _goliathJitterSeed(key);
     const pts = [];
     for (let i = 0; i <= segments; i++) {
         const t = i / segments;
         let x = x1 + (x2 - x1) * t, y = y1 + (y2 - y1) * t;
-        if (i > 0 && i < segments) { x += (Math.random() - 0.5) * jitter; y += (Math.random() - 0.5) * jitter; }
+        if (i > 0 && i < segments) { x += (rnd() - 0.5) * jitter; y += (rnd() - 0.5) * jitter; }
         pts.push({ x, y });
     }
     return pts;
@@ -99,7 +116,17 @@ const GOLIATH_LIMB_JOINT = {
 // Khối pha lê nhiều facet (dùng chung Alpha/True Form/mảnh vỡ) — mỗi facet =
 // tam giác (core -> p1 -> p2), tô gradient sáng/tối theo góc so với nguồn
 // sáng giả lập để có chiều sâu thay vì hình phẳng 1 màu.
-function _drawGoliathFacetedCrystal(outline, core, lightAngle, colorDark, colorLight, outlineColor) {
+// Facet shading only depends on the outline, the light angle and the two
+// colours, all fixed per call site, so the fill and highlight styles are
+// worked out once per outline and reused.
+const _goliathFacetCache = new WeakMap();
+function _goliathFacetStyles(outline, core, lightAngle, colorDark, colorLight) {
+    let byKey = _goliathFacetCache.get(outline);
+    if (!byKey) _goliathFacetCache.set(outline, byKey = {});
+    const key = colorDark + colorLight + lightAngle + core.x + ',' + core.y;
+    let st = byKey[key];
+    if (st) return st;
+    st = { fills: [], highlights: [] };
     for (let i = 0; i < outline.length; i++) {
         const p1 = outline[i], p2 = outline[(i + 1) % outline.length];
         const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
@@ -107,25 +134,29 @@ function _drawGoliathFacetedCrystal(outline, core, lightAngle, colorDark, colorL
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
         const lightness = (Math.cos(diff) + 1) / 2;
+        st.fills.push(_goliathLerpColor(colorDark, colorLight, lightness * 0.85));
+        if (lightness > 0.6) st.highlights.push(i, `rgba(255,255,255,${(lightness - 0.6) * 1.6})`);
+    }
+    return (byKey[key] = st);
+}
+function _drawGoliathFacetedCrystal(outline, core, lightAngle, colorDark, colorLight, outlineColor) {
+    const st = _goliathFacetStyles(outline, core, lightAngle, colorDark, colorLight);
+    ctx.strokeStyle = outlineColor || 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.2;
+    for (let i = 0; i < outline.length; i++) {
+        const p1 = outline[i], p2 = outline[(i + 1) % outline.length];
         ctx.beginPath();
         ctx.moveTo(core.x, core.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.closePath();
-        ctx.fillStyle = _goliathLerpColor(colorDark, colorLight, lightness * 0.85);
+        ctx.fillStyle = st.fills[i];
         ctx.fill();
-        ctx.strokeStyle = outlineColor || 'rgba(0,0,0,0.7)'; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.stroke();
     }
     if (!_mobPerf) {
-        for (let i = 0; i < outline.length; i++) {
-            const p1 = outline[i], p2 = outline[(i + 1) % outline.length];
-            const midX = (p1.x + p2.x) / 2, midY = (p1.y + p2.y) / 2;
-            let diff = Math.atan2(midY - core.y, midX - core.x) - lightAngle;
-            while (diff > Math.PI) diff -= Math.PI * 2;
-            while (diff < -Math.PI) diff += Math.PI * 2;
-            const lightness = (Math.cos(diff) + 1) / 2;
-            if (lightness > 0.6) {
-                ctx.strokeStyle = `rgba(255,255,255,${(lightness - 0.6) * 1.6})`;
-                ctx.lineWidth = 1.5;
-                ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-            }
+        ctx.lineWidth = 1.5;
+        const h = st.highlights;
+        for (let j = 0; j < h.length; j += 2) {
+            const i = h[j], p1 = outline[i], p2 = outline[(i + 1) % outline.length];
+            ctx.strokeStyle = h[j + 1];
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
         }
     }
 }
@@ -144,6 +175,101 @@ function _goliathFxSprite(key, half, res, paint) {
     g.translate(half, half);
     paint(g);
     return (_goliathFxCache[key] = c);
+}
+// Every baked glow, by name. Draw sites ask for one through _goliathFx, and
+// _goliathPrewarmFx paints them all ahead of time so none of them is built on
+// the frame it first shows up.
+const GOLIATH_FX = {
+    shoulderGoo: { half: 200, res: 1, paint(g, seed) {
+        const R = 108;
+        const goo = g.createRadialGradient(-R * 0.2, -R * 0.25, 0, 0, 0, R * 1.3);
+        goo.addColorStop(0, 'rgba(255,190,80,0.55)');
+        goo.addColorStop(0.6, 'rgba(255,120,20,0.35)');
+        goo.addColorStop(1, 'rgba(255,90,0,0)');
+        const pts = 12;
+        g.beginPath();
+        for (let i = 0; i <= pts; i++) {
+            const a = (i / pts) * Math.PI * 2;
+            const rr = R * 1.18 * (0.9 + 0.14 * Math.sin(a * 4 + seed) + 0.1 * Math.sin(a * 2.3 + seed * 1.3));
+            const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+            if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+        }
+        g.closePath();
+        g.fillStyle = goo; g.fill();
+        g.shadowColor = '#ff8c1a'; g.shadowBlur = 22;
+        g.strokeStyle = 'rgba(255,150,40,0.5)'; g.lineWidth = 3; g.stroke();
+    } },
+    fistRing: { half: 100, res: 2, paint(g, accentColor) {
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            g.beginPath(); g.arc(0, 0, 58 * 1.35, a, a + 0.3);
+            g.strokeStyle = accentColor; g.lineWidth = 2.5;
+            g.shadowColor = accentColor; g.shadowBlur = 10;
+            g.stroke();
+        }
+    } },
+    inevDisc: { half: 300, res: 1, paint(g) {
+        g.beginPath(); g.arc(0, 0, 260, 0, Math.PI * 2);
+        const gr = g.createRadialGradient(0, 0, 150, 0, 0, 260);
+        gr.addColorStop(0, 'rgba(255,69,0,0)'); gr.addColorStop(1, 'rgba(255,69,0,0.24)');
+        g.fillStyle = gr;
+        g.shadowColor = '#ff4500'; g.shadowBlur = 26;
+        g.fill();
+    } },
+    inevArcs: { half: 320, res: 1, paint(g) {
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            g.beginPath(); g.arc(0, 0, 290, a, a + 0.18);
+            g.strokeStyle = 'rgba(255,140,60,0.8)'; g.lineWidth = 3.5;
+            g.shadowColor = '#ff4500'; g.shadowBlur = 10; g.stroke();
+        }
+    } },
+    haloRing: { half: 200, res: 1.5, paint(g) {
+        for (let i = 0; i < 10; i++) {
+            const a = (i / 10) * Math.PI * 2;
+            g.beginPath(); g.arc(0, 0, GOLIATH_HALO_R * 0.42, a, a + 0.34);
+            g.strokeStyle = 'rgba(245,158,11,0.55)'; g.lineWidth = 4;
+            g.shadowColor = '#f59e0b'; g.shadowBlur = 14;
+            g.stroke();
+        }
+    } },
+    haloVertex: { half: 100, res: 1.5, paint(g) {
+        g.beginPath(); g.arc(0, 0, 58, 0, Math.PI * 2);
+        g.strokeStyle = 'rgba(255,158,11,0.6)'; g.lineWidth = 3;
+        g.shadowColor = '#f59e0b'; g.shadowBlur = 18;
+        g.stroke();
+    } },
+    // Absolute Verdict: the distortion falloff, the core, its gold rim and the
+    // rim's glow, all fixed in size
+    verdictBody: { half: 180, res: 1, paint(g) {
+        const rg = g.createRadialGradient(0, 0, 101, 0, 0, 149);
+        rg.addColorStop(0, 'rgba(157,0,255,0.18)'); rg.addColorStop(1, 'rgba(157,0,255,0)');
+        g.beginPath(); g.arc(0, 0, 149, 0, Math.PI * 2); g.fillStyle = rg; g.fill();
+        const cg = g.createRadialGradient(0, 0, 0, 0, 0, 101);
+        cg.addColorStop(0, '#f3e8ff'); cg.addColorStop(0.22, '#c084fc'); cg.addColorStop(0.55, '#6d28d9');
+        cg.addColorStop(0.85, '#1a0a2e'); cg.addColorStop(1, 'rgba(10,0,20,0)');
+        g.beginPath(); g.arc(0, 0, 101, 0, Math.PI * 2);
+        g.fillStyle = cg; g.shadowColor = '#f59e0b'; g.shadowBlur = 26; g.fill();
+        g.strokeStyle = '#f59e0b'; g.lineWidth = 6; g.stroke();
+        g.shadowBlur = 0;
+        const hg = g.createRadialGradient(0, 0, 0, 0, 0, 30);
+        hg.addColorStop(0, 'rgba(255,255,255,0.9)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+        g.beginPath(); g.arc(0, 0, 30, 0, Math.PI * 2); g.fillStyle = hg; g.fill();
+    } },
+    verdictShard: { half: 26, res: 2, paint(g) {
+        g.beginPath(); g.moveTo(0, -14); g.lineTo(12, 7); g.lineTo(-12, 7); g.closePath();
+        g.fillStyle = '#c084fc'; g.shadowColor = '#9d00ff'; g.shadowBlur = 8; g.fill();
+    } },
+    // a soft round glow for trails and embers, tinted per colour
+    softDot: { half: 32, res: 1, paint(g, color) {
+        const gr = g.createRadialGradient(0, 0, 0, 0, 0, 32);
+        gr.addColorStop(0, color); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = gr; g.fillRect(-32, -32, 64, 64);
+    } },
+};
+function _goliathFx(name, arg) {
+    const d = GOLIATH_FX[name];
+    return _goliathFxSprite(arg === undefined ? name : name + arg, d.half, d.res, g => d.paint(g, arg));
 }
 function _blitGoliathFx(sprite, half) {
     ctx.drawImage(sprite, -half, -half, half * 2, half * 2);
@@ -290,11 +416,22 @@ function _drawGoliathSlots(enemy, originX, originY, showEye, now) {
 }
 
 // Khối đá gồ ghề kiểu golem (dùng cho vai + đốt tay + nắm đấm)
+// The fill gradient only depends on the radius, and the arm and fist radii are
+// a handful of fixed values, so gradients are kept per rounded radius.
+const _goliathBoulderGradCache = new Map();
+function _goliathBoulderGrad(r) {
+    let rg = _goliathBoulderGradCache.get(r);
+    if (rg) return rg;
+    rg = ctx.createRadialGradient(-r * 0.25, -r * 0.3, 0, 0, 0, r * 1.15);
+    rg.addColorStop(0, '#555560'); rg.addColorStop(0.5, '#2c2c36'); rg.addColorStop(1, '#0a0a0a');
+    if (_goliathBoulderGradCache.size > 64) _goliathBoulderGradCache.clear();
+    _goliathBoulderGradCache.set(r, rg);
+    return rg;
+}
 function _drawGoliathBoulderChunk(cx, cy, r, seed) {
+    r = Math.round(r * 4) / 4;
     ctx.save();
     ctx.translate(cx, cy);
-    const rg = ctx.createRadialGradient(-r * 0.25, -r * 0.3, 0, 0, 0, r * 1.15);
-    rg.addColorStop(0, '#555560'); rg.addColorStop(0.5, '#2c2c36'); rg.addColorStop(1, '#0a0a0a');
     const pts = 10;
     ctx.beginPath();
     for (let i = 0; i <= pts; i++) {
@@ -304,15 +441,17 @@ function _drawGoliathBoulderChunk(cx, cy, r, seed) {
         if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.closePath();
-    ctx.fillStyle = rg; ctx.fill();
+    ctx.fillStyle = _goliathBoulderGrad(r); ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 2; ctx.stroke();
+    // the four dents never overlap, so they share one path and one fill
+    ctx.beginPath();
     for (let i = 0; i < 4; i++) {
         const a = (i / 4) * Math.PI * 2 + seed;
-        ctx.save(); ctx.rotate(a);
-        ctx.beginPath(); ctx.ellipse(r * 0.4, 0, r * 0.22, r * 0.12, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
-        ctx.restore();
+        const ex = Math.cos(a) * r * 0.4, ey = Math.sin(a) * r * 0.4;
+        ctx.moveTo(ex + Math.cos(a) * r * 0.22, ey + Math.sin(a) * r * 0.22);
+        ctx.ellipse(ex, ey, r * 0.22, r * 0.12, a, 0, Math.PI * 2);
     }
+    ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
     ctx.restore();
 }
 function _drawGoliathShoulderBoulder(jx, jy, alpha, seed) {
@@ -323,24 +462,7 @@ function _drawGoliathShoulderBoulder(jx, jy, alpha, seed) {
     ctx.save(); ctx.globalAlpha = alpha;
 
     ctx.save(); ctx.translate(jx, jy);
-    _blitGoliathFx(_goliathFxSprite('shoulderGoo' + seed, 200, 1, g => {
-        const goo = g.createRadialGradient(-R * 0.2, -R * 0.25, 0, 0, 0, R * 1.3);
-        goo.addColorStop(0, 'rgba(255,190,80,0.55)');
-        goo.addColorStop(0.6, 'rgba(255,120,20,0.35)');
-        goo.addColorStop(1, 'rgba(255,90,0,0)');
-        const pts = 12;
-        g.beginPath();
-        for (let i = 0; i <= pts; i++) {
-            const a = (i / pts) * Math.PI * 2;
-            const rr = R * 1.18 * (0.9 + 0.14 * Math.sin(a * 4 + seed) + 0.1 * Math.sin(a * 2.3 + seed * 1.3));
-            const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
-            if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
-        }
-        g.closePath();
-        g.fillStyle = goo; g.fill();
-        g.shadowColor = '#ff8c1a'; g.shadowBlur = 22;
-        g.strokeStyle = 'rgba(255,150,40,0.5)'; g.lineWidth = 3; g.stroke();
-    }), 200);
+    _blitGoliathFx(_goliathFx('shoulderGoo', seed), 200);
     // vài giọt slime nhỏ rủ quanh viền, chảy chậm theo thời gian
     for (let i = 0; i < 5; i++) {
         const a = (i / 5) * Math.PI * 2 + seed;
@@ -357,7 +479,7 @@ function _drawGoliathShoulderBoulder(jx, jy, alpha, seed) {
 
     // vệt nứt phát sáng cam trên bề mặt đá — dấu vết ma thuật thẩm thấu vào đá
     ctx.save(); ctx.translate(jx, jy);
-    const vein = _goliathGenerateVein(0, 0, Math.cos(seed) * R * 0.7, Math.sin(seed) * R * 0.7, 4, R * 0.45);
+    const vein = _goliathGenerateVein(0, 0, Math.cos(seed) * R * 0.7, Math.sin(seed) * R * 0.7, 4, R * 0.45, 150 + seed);
     ctx.beginPath();
     vein.forEach((v, i) => i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y));
     if (!_mobPerf) { ctx.strokeStyle = 'rgba(255,140,30,0.18)'; ctx.lineWidth = 8; ctx.stroke(); }
@@ -384,10 +506,12 @@ function _drawGoliathRockArm(fromX, fromY, toX, toY, alpha, bowX) {
 
     ctx.beginPath();
     const steps = 15;
+    const side = bowX < 0 ? 0 : 1;
+    _goliathJitterSeed(200 + side);
     for (let i = 0; i <= steps; i++) {
         const pt = _goliathBezierPt(fromX, fromY, cx, cy, toX, toY, i / steps);
         if (i === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x + (Math.random() - 0.5) * 16, pt.y + (Math.random() - 0.5) * 16);
+        else ctx.lineTo(pt.x + (_goliathRand() - 0.5) * 16, pt.y + (_goliathRand() - 0.5) * 16);
     }
     if (!_mobPerf) { ctx.strokeStyle = 'rgba(255,158,11,0.2)'; ctx.lineWidth = 15; ctx.stroke(); }
     ctx.strokeStyle = 'rgba(255,158,11,0.85)'; ctx.lineWidth = 6;
@@ -397,7 +521,7 @@ function _drawGoliathRockArm(fromX, fromY, toX, toY, alpha, bowX) {
     for (let i = 0; i <= steps; i++) {
         const pt = _goliathBezierPt(fromX, fromY, cx, cy, toX, toY, i / steps);
         if (i === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x + (Math.random() - 0.5) * 24, pt.y + (Math.random() - 0.5) * 24);
+        else ctx.lineTo(pt.x + (_goliathRand() - 0.5) * 24, pt.y + (_goliathRand() - 0.5) * 24);
     }
     ctx.strokeStyle = 'rgba(255,200,50,0.5)'; ctx.lineWidth = 3; ctx.stroke();
 
@@ -427,15 +551,7 @@ function _drawGoliathFist(fx, fy, alpha, accent) {
     if (alpha >= 0.999) {
         // fully grown: R is a constant 58, so the ring is baked once per accent
         ctx.globalAlpha = 0.55;
-        _blitGoliathFx(_goliathFxSprite('fistRing' + accentColor, 100, 2, g => {
-            for (let i = 0; i < 8; i++) {
-                const a = (i / 8) * Math.PI * 2;
-                g.beginPath(); g.arc(0, 0, 58 * 1.35, a, a + 0.3);
-                g.strokeStyle = accentColor; g.lineWidth = 2.5;
-                g.shadowColor = accentColor; g.shadowBlur = 10;
-                g.stroke();
-            }
-        }), 100);
+        _blitGoliathFx(_goliathFx('fistRing', accentColor), 100);
     } else {
         for (let i = 0; i < 8; i++) {
             const a = (i / 8) * Math.PI * 2;
@@ -663,14 +779,7 @@ function _drawGoliathInevitableAura(now) {
     // it is laid down
     const a0 = ctx.globalAlpha;
     ctx.globalAlpha = a0 * pulse;
-    _blitGoliathFx(_goliathFxSprite('inevDisc', 300, 1, g => {
-        g.beginPath(); g.arc(0, 0, 260, 0, Math.PI * 2);
-        const gr = g.createRadialGradient(0, 0, 150, 0, 0, 260);
-        gr.addColorStop(0, 'rgba(255,69,0,0)'); gr.addColorStop(1, 'rgba(255,69,0,0.24)');
-        g.fillStyle = gr;
-        g.shadowColor = '#ff4500'; g.shadowBlur = 26;
-        g.fill();
-    }), 300);
+    _blitGoliathFx(_goliathFx('inevDisc'), 300);
     ctx.globalAlpha = a0;
     if (_mobPerf || _gfxLevel >= 2) return; // phần trang trí còn lại tốn nhiều shadowBlur, bỏ khi tier thấp
 
@@ -685,14 +794,7 @@ function _drawGoliathInevitableAura(now) {
     ctx.restore();
 
     ctx.save(); ctx.rotate(-now / 1670);
-    _blitGoliathFx(_goliathFxSprite('inevArcs', 320, 1, g => {
-        for (let i = 0; i < 8; i++) {
-            const a = (i / 8) * Math.PI * 2;
-            g.beginPath(); g.arc(0, 0, 290, a, a + 0.18);
-            g.strokeStyle = 'rgba(255,140,60,0.8)'; g.lineWidth = 3.5;
-            g.shadowColor = '#ff4500'; g.shadowBlur = 10; g.stroke();
-        }
-    }), 320);
+    _blitGoliathFx(_goliathFx('inevArcs'), 320);
     ctx.restore();
 
     if (Math.random() < 0.06) {
@@ -710,25 +812,49 @@ function _drawGoliathInevitableAura(now) {
 // vòng đời enemy vì nó phải tiếp tục bay/tồn tại kể cả khi rơi vào tình
 // huống hiếm là Goliath không còn nữa.
 function _drawGoliathOrbs() {
-    if (!window._goliathOrbs) return;
+    if (!window._goliathOrbs || !window._goliathOrbs.length) return;
     const now = performance.now();
+    const rich = !_mobPerf && _gfxLevel < 2;
+    const body = _goliathFx('verdictBody');
     window._goliathOrbs.forEach(p => {
-        // Gấp đôi kích thước (62->124 méo không gian, 42->84 lõi) + thêm 1
-        // lớp aura plasma nhiều tia lượn quanh quả cầu, theo yêu cầu. +20%
-        // thêm nữa theo yêu cầu sau (124->149, 84->101).
-        ctx.save();
-        ctx.beginPath(); ctx.arc(p.x, p.y, 149, 0, Math.PI * 2);
-        const rg = ctx.createRadialGradient(p.x, p.y, 101, p.x, p.y, 149);
-        rg.addColorStop(0, 'rgba(157,0,255,0.18)'); rg.addColorStop(1, 'rgba(157,0,255,0)');
-        ctx.fillStyle = rg; ctx.fill();
-        ctx.restore();
-
-        // Aura plasma: các dải năng lượng lượn sóng toả quanh quả cầu
-        if (!_mobPerf && _gfxLevel < 2) {
+        // Afterimages along the flight path, so the orb reads as heavy and
+        // fast instead of a disc sliding across the screen.
+        const spd = Math.hypot(p.vx || 0, p.vy || 0);
+        if (rich && spd > 1) {
             ctx.save();
-            for (let pl = 0; pl < 6; pl++) {
+            ctx.globalCompositeOperation = 'lighter';
+            for (let k = 4; k >= 1; k--) {
+                const back = k * 0.045;
+                const sc = 1 - k * 0.07;
+                ctx.globalAlpha = 0.16 - k * 0.03;
+                ctx.drawImage(body, p.x - p.vx * back - 180 * sc, p.y - p.vy * back - 180 * sc, 360 * sc, 360 * sc);
+            }
+            ctx.restore();
+        }
+
+        ctx.drawImage(body, p.x - 180, p.y - 180, 360, 360);
+
+        // Gravity ripples: two thin rings pulled outward from the rim, so
+        // the space around it looks bent.
+        if (rich) {
+            ctx.save();
+            ctx.lineWidth = 2;
+            for (let r = 0; r < 2; r++) {
+                const ph = ((now / 900) + r * 0.5) % 1;
+                ctx.globalAlpha = (1 - ph) * 0.5;
+                ctx.strokeStyle = r ? '#c084fc' : '#f5d08a';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 149 + ph * 70, 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Plasma ribbons around the orb. Their glow is one wide pass under
+        // all six instead of a blur on each.
+        if (rich) {
+            ctx.save();
+            ctx.lineCap = 'round';
+            const ribbon = (pl) => {
                 const baseA = now / 380 + pl * (Math.PI / 3);
-                ctx.beginPath();
                 for (let seg = 0; seg <= 10; seg++) {
                     const st = seg / 10;
                     const rr = 101 + Math.sin(now / 140 + pl * 2 + st * 8) * 22 + st * 24;
@@ -736,91 +862,61 @@ function _drawGoliathOrbs() {
                     const px2 = p.x + Math.cos(a2) * rr, py2 = p.y + Math.sin(a2) * rr;
                     if (seg === 0) ctx.moveTo(px2, py2); else ctx.lineTo(px2, py2);
                 }
+            };
+            ctx.beginPath();
+            for (let pl = 0; pl < 6; pl++) ribbon(pl);
+            ctx.strokeStyle = 'rgba(157,0,255,0.22)'; ctx.lineWidth = 10; ctx.stroke();
+            ctx.lineWidth = 3;
+            for (let pl = 0; pl < 6; pl++) {
+                ctx.beginPath(); ribbon(pl);
                 ctx.strokeStyle = `rgba(196,132,252,${0.35 + 0.25 * Math.sin(now / 200 + pl)})`;
-                ctx.lineWidth = 3;
-                ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 10;
                 ctx.stroke();
             }
-            ctx.shadowBlur = 0;
             ctx.restore();
         }
 
-        // 8 shards (up from 5), alternating sizes for a less uniform,
-        // denser-feeling debris ring.
+        // 8 shards in two orbits, alternating sizes
+        const shard = _goliathFx('verdictShard');
         for (let k = 0; k < 8; k++) {
             const ang = now / 250 + k * (Math.PI * 2 / 8);
             const orbitR = 125 + (k % 2 === 0 ? 0 : 14);
             const sx = p.x + Math.cos(ang) * orbitR, sy = p.y + Math.sin(ang) * orbitR;
-            const shardScale = k % 3 === 0 ? 1.3 : 1;
-            ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang * 2); ctx.scale(shardScale, shardScale);
-            ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(12, 7); ctx.lineTo(-12, 7); ctx.closePath();
-            ctx.fillStyle = '#c084fc';
-            if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#9d00ff'; ctx.shadowBlur = 8; }
-            ctx.fill(); ctx.shadowBlur = 0;
+            const sc = k % 3 === 0 ? 1.3 : 1;
+            ctx.save(); ctx.translate(sx, sy); ctx.rotate(ang * 2); ctx.scale(sc, sc);
+            ctx.drawImage(shard, -26, -26, 52, 52);
             ctx.restore();
         }
-        // Richer multi-stop core gradient (was a flat 2-stop purple->dark falloff)
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 101);
-        g.addColorStop(0, '#f3e8ff'); g.addColorStop(0.22, '#c084fc'); g.addColorStop(0.55, '#6d28d9');
-        g.addColorStop(0.85, '#1a0a2e'); g.addColorStop(1, 'rgba(10,0,20,0)');
-        ctx.beginPath(); ctx.arc(p.x, p.y, 101, 0, Math.PI * 2);
-        ctx.fillStyle = g;
-        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 26; }
-        ctx.fill();
 
         // Branching containment lightning crackling across the core surface,
         // matching Death Star's in-core arc technique (js/render/skill-d.js).
-        if (!_mobPerf && _gfxLevel < 2) {
+        if (rich) {
             ctx.save();
             ctx.translate(p.x, p.y);
-            ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-            ctx.lineWidth = 2;
-            ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 8;
+            ctx.lineCap = 'round';
+            const forks = [];
+            ctx.beginPath();
             for (let i = 0; i < 5; i++) {
-                ctx.save();
-                ctx.rotate(now * 0.0016 + i * 1.3);
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
+                const rot = now * 0.0016 + i * 1.3, c = Math.cos(rot), sn = Math.sin(rot);
                 let d = 0, py = 0;
-                const branchPoints = [];
-                for (let s = 0; s < 4; s++) {
+                ctx.moveTo(0, 0);
+                for (let st = 0; st < 4; st++) {
                     d += 12 + Math.random() * 12;
-                    py = (Math.random() - 0.5) * (12 + s * 9);
-                    ctx.lineTo(d, py);
-                    if (s > 0 && Math.random() < 0.5) branchPoints.push({ d, py });
-                }
-                ctx.stroke();
-                if (branchPoints.length > 0) {
-                    ctx.lineWidth = 1;
-                    ctx.strokeStyle = 'rgba(224,196,255,0.6)';
-                    for (const bp of branchPoints) {
-                        const forkAngle = (Math.random() - 0.5) * 1.4;
-                        const forkLen = 7 + Math.random() * 10;
-                        ctx.beginPath();
-                        ctx.moveTo(bp.d, bp.py);
-                        ctx.lineTo(bp.d + Math.cos(forkAngle) * forkLen, bp.py + Math.sin(forkAngle) * forkLen);
-                        ctx.stroke();
+                    py = (Math.random() - 0.5) * (12 + st * 9);
+                    ctx.lineTo(d * c - py * sn, d * sn + py * c);
+                    if (st > 0 && Math.random() < 0.5) {
+                        const fa = rot + (Math.random() - 0.5) * 1.4, fl = 7 + Math.random() * 10;
+                        const fx = d * c - py * sn, fy = d * sn + py * c;
+                        forks.push(fx, fy, fx + Math.cos(fa) * fl, fy + Math.sin(fa) * fl);
                     }
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
                 }
-                ctx.restore();
             }
-            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(200,150,255,0.35)'; ctx.lineWidth = 6; ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath();
+            for (let f = 0; f < forks.length; f += 4) { ctx.moveTo(forks[f], forks[f + 1]); ctx.lineTo(forks[f + 2], forks[f + 3]); }
+            ctx.strokeStyle = 'rgba(224,196,255,0.6)'; ctx.lineWidth = 1; ctx.stroke();
             ctx.restore();
         }
-
-        // Bright inner hotspot for extra depth on top of the gradient falloff
-        ctx.save();
-        const hotspotG = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 30);
-        hotspotG.addColorStop(0, 'rgba(255,255,255,0.9)');
-        hotspotG.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.beginPath(); ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
-        ctx.fillStyle = hotspotG; ctx.fill();
-        ctx.restore();
-
-        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 6;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 101, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
 
         // Yog-Sothoth danger-sense: rings the orb itself while it's in
         // flight, on top of Verdict's own runway-lane windup telegraph.
@@ -868,6 +964,20 @@ function _drawGoliathSwords() {
             ctx.beginPath(); ctx.arc(p.originX, p.originY, burstR * 0.5, 0, Math.PI * 2); ctx.fill();
             ctx.shadowBlur = 0;
             ctx.restore();
+        }
+
+        // Afterimages of the blade trailing its flight, fading out behind it.
+        if (!_mobPerf) {
+            const spd = Math.hypot(p.vx, p.vy) || 1;
+            const ux = p.vx / spd, uy = p.vy / spd;
+            ctx.lineCap = 'round';
+            for (let k = 3; k >= 1; k--) {
+                const bx = p.x - ux * k * 22, by = p.y - uy * k * 22;
+                ctx.strokeStyle = `rgba(255,${120 + k * 20},40,${0.32 - k * 0.08})`;
+                ctx.lineWidth = 10 - k * 2;
+                ctx.beginPath(); ctx.arc(bx, by, p.radius, sa + 0.15 * k, ea - 0.15 * k); ctx.stroke();
+            }
+            ctx.lineCap = 'butt';
         }
 
         ctx.strokeStyle = 'rgba(255,80,0,0.35)'; ctx.lineWidth = 18;
@@ -924,16 +1034,39 @@ function _drawGoliathMeteorProjectiles() {
         _drawGoliathBoulderChunk(0, 0, 28, (m._fireTime || 0) + now / 800);
         // Vết nứt phát sáng cam trên bề mặt đá — đọc rõ "nhiễm năng lượng"
         // thay vì chỉ 1 cục đá tối bay ngang qua màn hình.
+        ctx.beginPath();
         for (let vi = 0; vi < 3; vi++) {
             const va = (vi / 3) * Math.PI * 2 + (m._fireTime || 0);
             const vein = _goliathGenerateVein(0, 0, Math.cos(va) * 22, Math.sin(va) * 22, 3, 12);
-            ctx.beginPath();
             vein.forEach((v, i) => i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y));
-            ctx.strokeStyle = 'rgba(255,180,60,0.9)'; ctx.lineWidth = 2;
-            if (!_mobPerf) { ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 10; }
-            ctx.stroke(); ctx.shadowBlur = 0;
         }
+        ctx.strokeStyle = 'rgba(255,180,60,0.9)'; ctx.lineWidth = 2;
+        if (!_mobPerf) { ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 10; }
+        ctx.stroke(); ctx.shadowBlur = 0;
         ctx.restore();
+
+        // Embers shed from the tail: each one is born at the rock, drifts back
+        // along the flight line and fades, on a fixed cycle so the stream is
+        // the same at any frame rate.
+        if (!_mobPerf) {
+            const dot = _goliathFx('softDot', 'rgba(255,170,60,0.9)');
+            const ux = m.vx / dirLen, uy = m.vy / dirLen;
+            const seed = (m._fireTime || 0) * 0.001;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            for (let e = 0; e < 10; e++) {
+                const life = ((now / 650) + e / 10) % 1;
+                const jit = Math.sin(seed + e * 12.9898) * 43758.5453;
+                const side = (jit - Math.floor(jit) - 0.5) * 2;
+                const d = 30 + life * 150;
+                const ex = m.x - ux * d - uy * side * (10 + life * 26);
+                const ey = m.y - uy * d + ux * side * (10 + life * 26);
+                const r = 9 * (1 - life) + 3;
+                ctx.globalAlpha = (1 - life) * 0.85;
+                ctx.drawImage(dot, ex - r, ey - r, r * 2, r * 2);
+            }
+            ctx.restore();
+        }
     });
 }
 
@@ -1474,42 +1607,35 @@ function _drawGoliathJokerEffects(enemy, now) {
                     ctx.shadowBlur = 0;
                 }
 
-                // Hào quang plasma bùng phát quanh xúc tu — luôn hiện (mốc rage=5)
-                if (!_mobPerf) {
-                    ctx.shadowColor = '#ffb347'; ctx.shadowBlur = 88;
-                    const auraA = Math.min(0.32, 0.235 * ext);
+                // Every layer below is stroked segment by segment because its
+                // width tapers, so none of them carries a blur: a blur on each
+                // of the 38 segments was 150 blur passes a frame. The glow is
+                // built from wider, fainter strokes underneath instead.
+                const seg = (wMul, minW, style) => {
                     for (let si = 0; si < tentPts.length - 1; si++) {
                         const p0 = tentPts[si], p1 = tentPts[si + 1];
-                        ctx.strokeStyle = `rgba(255,140,0,${auraA * p0.w})`;
-                        ctx.lineWidth = Math.max(8, 125 * p0.w * rageSizeMult);
+                        ctx.strokeStyle = typeof style === 'function' ? style(p0) : style;
+                        ctx.lineWidth = Math.max(minW, wMul * p0.w);
                         ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
                     }
-                    ctx.shadowBlur = 0;
+                };
+                // Plasma aura flaring around the tentacle (rage 5 look)
+                if (!_mobPerf) {
+                    const auraA = Math.min(0.32, 0.235 * ext);
+                    seg(200 * rageSizeMult, 14, p0 => `rgba(255,150,40,${auraA * 0.35 * p0.w})`);
+                    seg(150 * rageSizeMult, 10, p0 => `rgba(255,140,0,${auraA * 0.6 * p0.w})`);
+                    seg(125 * rageSizeMult, 8, p0 => `rgba(255,140,0,${auraA * p0.w})`);
                 }
-
-                // Layer 0: lõi tối
-                if (!_mobPerf) { ctx.shadowColor = '#3a1200'; ctx.shadowBlur = 45; }
-                for (let si = 0; si < tentPts.length - 1; si++) {
-                    const p0 = tentPts[si], p1 = tentPts[si + 1];
-                    ctx.strokeStyle = 'rgba(40,15,0,0.97)'; ctx.lineWidth = Math.max(2, 92 * p0.w * rageSizeMult);
-                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
-                }
-                // Layer 1: thân cam đậm
-                if (!_mobPerf) { ctx.shadowColor = '#b34700'; ctx.shadowBlur = 28; }
-                for (let si = 0; si < tentPts.length - 1; si++) {
-                    const p0 = tentPts[si], p1 = tentPts[si + 1];
-                    ctx.strokeStyle = `rgba(180,60,0,${0.90 * ext})`; ctx.lineWidth = Math.max(1, 70 * p0.w * rageSizeMult);
-                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
-                }
-                // Layer 2: da ngoài cam sáng
-                if (!_mobPerf) { ctx.shadowColor = '#ff8c1a'; ctx.shadowBlur = 16; }
-                for (let si = 0; si < tentPts.length - 1; si++) {
-                    const p0 = tentPts[si], p1 = tentPts[si + 1];
-                    ctx.strokeStyle = `rgba(255,140,20,${0.72 * ext})`; ctx.lineWidth = Math.max(0.5, 46 * p0.w * rageSizeMult);
-                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
-                }
-                // Layer 3: vệt sáng bám tiếp tuyến
-                ctx.shadowBlur = 0;
+                // Layer 0: dark core, with a soft dark rim under it
+                if (!_mobPerf) seg(108 * rageSizeMult, 3, 'rgba(58,18,0,0.35)');
+                seg(92 * rageSizeMult, 2, 'rgba(40,15,0,0.97)');
+                // Layer 1: deep orange flesh
+                const fleshA = 0.90 * ext;
+                seg(70 * rageSizeMult, 1, `rgba(180,60,0,${fleshA})`);
+                // Layer 2: bright orange skin, with a hot halo just outside it
+                if (!_mobPerf) seg(54 * rageSizeMult, 1, `rgba(255,140,26,${0.25 * ext})`);
+                seg(46 * rageSizeMult, 0.5, `rgba(255,140,20,${0.72 * ext})`);
+                // Layer 3: sheen offset along the tangent
                 for (let si = 0; si < tentPts.length - 1; si++) {
                     const p0 = tentPts[si], p1 = tentPts[si + 1];
                     const sdx = p1.x - p0.x, sdy = p1.y - p0.y, sL = Math.hypot(sdx, sdy) || 1;
@@ -1517,14 +1643,9 @@ function _drawGoliathJokerEffects(enemy, now) {
                     ctx.strokeStyle = `rgba(255,210,140,${0.42 * p0.w * ext})`; ctx.lineWidth = Math.max(0.5, 19 * p0.w);
                     ctx.beginPath(); ctx.moveTo(p0.x + hpX * ho, p0.y + hpY * ho); ctx.lineTo(p1.x + hpX * ho, p1.y + hpY * ho); ctx.stroke();
                 }
-                // Layer 4: sống lưng mảnh
-                if (!_mobPerf) { ctx.shadowColor = '#ffb347'; ctx.shadowBlur = 12; }
-                for (let si = 0; si < tentPts.length - 1; si++) {
-                    const p0 = tentPts[si], p1 = tentPts[si + 1];
-                    ctx.strokeStyle = `rgba(255,190,80,${0.42 * p0.w * ext})`; ctx.lineWidth = Math.max(0.5, 7 * p0.w);
-                    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
-                }
-                ctx.shadowBlur = 0;
+                // Layer 4: thin glowing spine
+                if (!_mobPerf) seg(14, 1.5, p0 => `rgba(255,179,71,${0.18 * p0.w * ext})`);
+                seg(7, 0.5, p0 => `rgba(255,190,80,${0.42 * p0.w * ext})`);
 
                 // Giác hút
                 if (!_mobPerf) {
@@ -1639,10 +1760,7 @@ const GOLIATH_GOLEM_SEAMS = [
 // Khối đá đa giác nhiều mặt (facet), tô sáng/tối theo góc so với nguồn sáng
 // giả lập — giống kỹ thuật _drawGoliathFacetedCrystal — tạo khối rõ hơn hẳn
 // kiểu chấm lõm cũ (_drawGoliathBoulderChunk, vẫn giữ nguyên cho vai/tay/nắm).
-function _drawGoliathGolemChunk(cx, cy, r, seed, lightAngle) {
-    const la = lightAngle !== undefined ? lightAngle : -Math.PI / 3;
-    ctx.save();
-    ctx.translate(cx, cy);
+function _paintGoliathGolemChunk(g, r, seed, la) {
     const sides = 7;
     const outline = [];
     for (let i = 0; i < sides; i++) {
@@ -1657,18 +1775,67 @@ function _drawGoliathGolemChunk(cx, cy, r, seed, lightAngle) {
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
         const lightness = (Math.cos(diff) + 1) / 2;
-        ctx.beginPath();
-        ctx.moveTo(0, 0); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.closePath();
+        g.beginPath();
+        g.moveTo(0, 0); g.lineTo(p1.x, p1.y); g.lineTo(p2.x, p2.y); g.closePath();
         const shade = 0.14 + lightness * 0.36;
-        ctx.fillStyle = `rgb(${Math.round(10 + shade * 90)},${Math.round(10 + shade * 90)},${Math.round(14 + shade * 100)})`;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.3; ctx.stroke();
+        g.fillStyle = `rgb(${Math.round(10 + shade * 90)},${Math.round(10 + shade * 90)},${Math.round(14 + shade * 100)})`;
+        g.fill();
+        g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = 1.3; g.stroke();
         if (lightness > 0.62) {
-            ctx.strokeStyle = `rgba(255,255,255,${(lightness - 0.62) * 1.3})`;
-            ctx.lineWidth = 1.4;
-            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+            g.strokeStyle = `rgba(255,255,255,${(lightness - 0.62) * 1.3})`;
+            g.lineWidth = 1.4;
+            g.beginPath(); g.moveTo(p1.x, p1.y); g.lineTo(p2.x, p2.y); g.stroke();
         }
     }
+}
+// Every chunk in the body, the halo and the death crumble uses the same light
+// angle and a fixed shape per seed and radius, so each one is painted once
+// into a sprite and blitted after that.
+const GOLIATH_DEFAULT_LIGHT = -Math.PI / 3;
+function _goliathGolemChunkSprite(r, seed) {
+    const half = Math.ceil(r * 1.2) + 2;
+    return _goliathFxSprite('golem' + seed + '_' + r, half, 1, g => _paintGoliathGolemChunk(g, r, seed, GOLIATH_DEFAULT_LIGHT));
+}
+// Paints every baked Goliath sprite ahead of time, a few per idle slice, so
+// the frame True Form first appears on only has to blit them.
+let _goliathPrewarmed = false;
+function _goliathPrewarmFx() {
+    if (_goliathPrewarmed) return;
+    _goliathPrewarmed = true;
+    const jobs = [
+        () => _goliathFx('shoulderGoo', 11), () => _goliathFx('shoulderGoo', 47),
+        () => _goliathFx('fistRing', '#9d00ff'), () => _goliathFx('fistRing', '#fbbf24'),
+        () => _goliathFx('haloRing'), () => _goliathFx('haloVertex'),
+        () => _goliathFx('inevDisc'), () => _goliathFx('inevArcs'),
+    ];
+    for (const b of GOLIATH_GOLEM_BOULDERS) jobs.push(() => _goliathGolemChunkSprite(b.r, b.seed));
+    // the halo's edge chunks and vertex chunks, same seeds and radii as _drawGoliathHalo
+    for (let e = 0; e < 4; e++) {
+        for (let k = 1; k < 6; k++) {
+            const seed = e * 17 + k * 5, r = 22 + (k % 2) * 6;
+            jobs.push(() => _goliathGolemChunkSprite(r, seed));
+        }
+    }
+    for (let i = 0; i < 4; i++) jobs.push(() => _goliathGolemChunkSprite(50, i * 31 + 7));
+    const idle = typeof requestIdleCallback === 'function'
+        ? cb => requestIdleCallback(cb, { timeout: 500 })
+        : cb => setTimeout(() => cb({ timeRemaining: () => 0 }), 16);
+    const run = deadline => {
+        do { jobs.shift()(); } while (jobs.length && deadline.timeRemaining() > 4);
+        if (jobs.length) idle(run);
+    };
+    idle(run);
+}
+function _drawGoliathGolemChunk(cx, cy, r, seed, lightAngle) {
+    const la = lightAngle !== undefined ? lightAngle : GOLIATH_DEFAULT_LIGHT;
+    if (la === GOLIATH_DEFAULT_LIGHT) {
+        const half = Math.ceil(r * 1.2) + 2;
+        ctx.drawImage(_goliathGolemChunkSprite(r, seed), cx - half, cy - half, half * 2, half * 2);
+        return;
+    }
+    ctx.save();
+    ctx.translate(cx, cy);
+    _paintGoliathGolemChunk(ctx, r, seed, la);
     ctx.restore();
 }
 // Mỗi tảng đá lơ lửng độc lập với chênh pha CỰC NHỎ theo seed riêng — để cả
@@ -1686,7 +1853,7 @@ function _drawGoliathGolemBody(lightAngle, now) {
         const a = GOLIATH_GOLEM_BOULDERS[ia], b = GOLIATH_GOLEM_BOULDERS[ib];
         const af = _goliathBoulderFloat(a, t), bf = _goliathBoulderFloat(b, t);
         const flick = 0.6 + 0.4 * Math.sin(now / 450 + si * 1.4);
-        const seam = _goliathGenerateVein(a.x + af.fx, a.y + af.fy, b.x + bf.fx, b.y + bf.fy, 5, 14);
+        const seam = _goliathGenerateVein(a.x + af.fx, a.y + af.fy, b.x + bf.fx, b.y + bf.fy, 5, 14, 100 + si);
         ctx.beginPath();
         seam.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
         ctx.strokeStyle = 'rgba(20,8,0,0.9)'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
@@ -1710,15 +1877,7 @@ function _drawGoliathHalo(now) {
     ctx.globalAlpha = 0.9;
 
     ctx.save(); ctx.rotate(t * 0.12);
-    _blitGoliathFx(_goliathFxSprite('haloRing', 200, 1.5, g => {
-        for (let i = 0; i < 10; i++) {
-            const a = (i / 10) * Math.PI * 2;
-            g.beginPath(); g.arc(0, 0, GOLIATH_HALO_R * 0.42, a, a + 0.34);
-            g.strokeStyle = 'rgba(245,158,11,0.55)'; g.lineWidth = 4;
-            g.shadowColor = '#f59e0b'; g.shadowBlur = 14;
-            g.stroke();
-        }
-    }), 200);
+    _blitGoliathFx(_goliathFx('haloRing'), 200);
     ctx.restore();
     ctx.save(); ctx.rotate(-t * 0.08);
     ctx.beginPath(); ctx.arc(0, 0, GOLIATH_HALO_R * 0.3, 0, Math.PI * 2);
@@ -1729,10 +1888,11 @@ function _drawGoliathHalo(now) {
     for (let e = 0; e < 4; e++) {
         const p1 = verts[e], p2 = verts[(e + 1) % 4];
         const segs = 6;
+        _goliathJitterSeed(300 + e);
         ctx.beginPath();
         for (let s = 0; s <= segs; s++) {
             const st = s / segs;
-            const jx = (Math.random() - 0.5) * 14, jy = (Math.random() - 0.5) * 14;
+            const jx = (_goliathRand() - 0.5) * 14, jy = (_goliathRand() - 0.5) * 14;
             const px = p1.x + (p2.x - p1.x) * st + (s > 0 && s < segs ? jx : 0);
             const py = p1.y + (p2.y - p1.y) * st + (s > 0 && s < segs ? jy : 0);
             if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
@@ -1761,12 +1921,7 @@ function _drawGoliathHalo(now) {
         ctx.save();
         ctx.globalAlpha *= (0.35 + 0.25 * pulse) / 0.6;
         ctx.translate(vx, vy);
-        _blitGoliathFx(_goliathFxSprite('haloVertex', 100, 1.5, g => {
-            g.beginPath(); g.arc(0, 0, 58, 0, Math.PI * 2);
-            g.strokeStyle = 'rgba(255,158,11,0.6)'; g.lineWidth = 3;
-            g.shadowColor = '#f59e0b'; g.shadowBlur = 18;
-            g.stroke();
-        }), 100);
+        _blitGoliathFx(_goliathFx('haloVertex'), 100);
         ctx.restore();
         _drawGoliathGolemChunk(vx, vy, 50, i * 31 + 7);
     });
@@ -1818,7 +1973,7 @@ function _drawGoliathDeathCrumble(enemy, now, trueScale) {
         const p = Math.max(0, Math.min(1, (t - startDelay) / fallDur));
         if (p >= 1) return; // đã rơi hết khỏi khung hình
         if (p <= 0) {
-            _drawGoliathGolemChunk(b.x, b.y, b.r, b.seed, -Math.PI / 3);
+            _drawGoliathGolemChunk(b.x, b.y, b.r, b.seed);
             return;
         }
         const ease = p * p;
@@ -1829,7 +1984,8 @@ function _drawGoliathDeathCrumble(enemy, now, trueScale) {
         ctx.globalAlpha = 1 - p;
         ctx.translate(b.x + driftX, b.y + dropY);
         ctx.rotate(rot);
-        _drawGoliathGolemChunk(0, 0, b.r * (1 - p * 0.3), b.seed, -Math.PI / 3);
+        ctx.scale(1 - p * 0.3, 1 - p * 0.3);
+        _drawGoliathGolemChunk(0, 0, b.r, b.seed);
         ctx.restore();
         if (Math.random() < 0.3) {
             createParticles(enemy.x + (b.x + driftX) * trueScale, enemy.y + (b.y + dropY) * trueScale, 1, '#8a7050', 2, 4);
@@ -1839,6 +1995,7 @@ function _drawGoliathDeathCrumble(enemy, now, trueScale) {
 }
 
 function _drawGoliath(enemy) {
+    if (!_goliathPrewarmed) _goliathPrewarmFx();
     const now = performance.now();
     const lightAngle = -Math.PI / 3;
     const breath = (Math.sin(now / 400) + 1) / 2;
