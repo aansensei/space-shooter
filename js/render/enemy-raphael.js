@@ -922,6 +922,14 @@ function _drawRaphaelWisdomOrbs() {
     for (const o of raphaelWisdomOrbs) _drawRaphaelWisdomOrb(o);
 }
 
+// the orb's line is chosen when the gather starts, so the aim line can show it the whole time
+function _drawRaphaelWisdomTelegraphs() {
+    for (const o of raphaelWisdomOrbs) {
+        if (o.phase !== 'gather') continue;
+        _drawLaunchTelegraph(o.x, o.y, o.ang, 1 - o.gatherTimer / RAPHAEL_WISDOM_GATHER_MS);
+    }
+}
+
 // Scorched patches the Wisdom Orb leaves on each Sentinel it pierces - a
 // pulsing translucent ring that fades out over its life.
 function _drawRaphaelWisdomZone(z) {

@@ -162,6 +162,15 @@
                 if (bridgeEl) bridgeEl.volume = v;
             },
             get duration() { return source && source.buffer ? source.buffer.duration : NaN; },
+            // stopLoop/stopBgm seek to 0 through this so the next play() starts
+            // from the top; without it a cut-short or finished cue would resume
+            // from where it stopped (or from its very end, heard as silence)
+            set currentTime(t) {
+                const wasPlaying = playing;
+                if (wasPlaying) this.pause();
+                _savedPos = Math.max(0, t || 0);
+                if (wasPlaying) this.play();
+            },
             setSrc(src, loop = true) {
                 bridgeSrc = src; bufferPromise = _decodeBuffer(src); shouldLoop = loop;
                 _savedPos = 0;
@@ -782,7 +791,12 @@
         state.currentBgmId = track.id;
         if (!track.menuOnly) {
             state.bgmEl.setOnEnded(() => {
-                if (state.currentBgmId === track.id) playRandomInGameBgm();
+                if (state.currentBgmId !== track.id) return;
+                // a one-track selection picks the same song again, which
+                // _switchBgm would skip as "already loaded", so clear the id to replay it
+                const next = _pickInGameBgm();
+                if (next.id === track.id) state.currentBgmId = null;
+                _switchBgm(next);
             });
         }
         state.bgmEl.play().catch(() => {});

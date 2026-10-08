@@ -147,7 +147,7 @@ function updateSentinels(deltaTime) {
                     y: sentinel.y + Math.sin(angle) * sentinel.size,
                     damage: 0.0575 * player.atk * damageMultiplier * _bDmg, size: 30, type: 'sentinel_special',
                     target: sentinel.target, speedMultiplier: 1.12 * speedMultiplier,
-                    sourceSentinel: sentinel, _isSentinelBullet: true
+                    sourceSentinel: sentinel, _isSentinelBullet: true, _heading: angle
                 });
             } else {
                 const _bDmg2 = 1 + (sentinel._blessingDmg || 0);

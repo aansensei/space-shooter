@@ -230,7 +230,7 @@ const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.12;
 // Hard ceiling on real HP lost in any rolling window, every source included
 // (Warding Palm, Back to Motherland, true damage, normal hits). Bucket starts
 // full, so a burst can take 12% Hentry at once and then only what refills.
-const GOLIATH_HP_LOSS_CAP_FRAC = 0.12;
+const GOLIATH_HP_LOSS_CAP_FRAC = 0.13;
 const GOLIATH_HP_LOSS_WINDOW_MS = 4000;
 
 // Endless Echo: the player's path is sampled every 100ms and the last 1.5s of

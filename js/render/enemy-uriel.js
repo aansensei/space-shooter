@@ -859,3 +859,11 @@ function _drawUrielEffects() {
     _drawUrielMotes();
     _drawUrielBarriers();
 }
+
+function _drawUrielSwordTelegraphs() {
+    const now = performance.now();
+    for (const e of enemies) {
+        if (e.type !== 'uriel' || !e._swordCharging || e._stealthed) continue;
+        _drawLaunchTelegraph(e.x, e.y, _urielSwordAimAngle(e), (now - e._swordChargeStart) / 500);
+    }
+}

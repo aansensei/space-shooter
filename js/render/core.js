@@ -236,6 +236,29 @@ function _drawThreatRing(x, y, radius, progress) {
     ctx.restore();
 }
 
+// Thin red aim line for an enemy shot that is still charging, fading in as
+// the charge builds. Same red as the threat ring so every "this is coming at
+// you" cue reads alike. Two flat strokes per frame with no blur or gradient,
+// and the dashes march outward so the line reads as a direction, not a wall.
+function _drawLaunchTelegraph(x, y, ang, progress) {
+    const rgb = '255,46,46';
+    const len = Math.hypot(canvas.width, canvas.height);
+    const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+    const a = 0.25 + 0.4 * Math.min(1, Math.max(0, progress));
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey);
+    ctx.strokeStyle = `rgba(${rgb},${a * 0.3})`;
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    ctx.setLineDash([14, 10]);
+    ctx.lineDashOffset = -performance.now() * 0.06;
+    ctx.strokeStyle = `rgba(${rgb},${a})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+}
+
 // Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality)
 const _bulletSpriteCache = {};
 function _getBulletSprite(type, size, gfxLvl) {
@@ -252,25 +275,33 @@ function _getBulletSprite(type, size, gfxLvl) {
     let grad;
     switch (type) {
         case 'sentinel_special': {
-            if (highQ) {
-                cx.fillStyle = 'rgba(255,210,0,0.18)';
-                cx.beginPath();
-                cx.moveTo(ctr, ctr - sz * 0.75); cx.lineTo(ctr + sz * 0.5, ctr);
-                cx.lineTo(ctr, ctr + sz * 0.75); cx.lineTo(ctr - sz * 0.5, ctr);
-                cx.closePath(); cx.fill();
-            }
-            grad = cx.createRadialGradient(ctr, ctr - sz * 0.2, 0, ctr, ctr, sz * 0.5);
-            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#ffe066');
-            grad.addColorStop(0.7, '#e6a800'); grad.addColorStop(1, '#7a5000');
+            // gold arrowhead pointing +x, drawBullet rotates it to the flight heading
+            const u = sz / 23;
+            const P = (x, y) => [ctr + x * u, ctr + y * u];
+            const poly = (pts) => { cx.beginPath(); cx.moveTo(...P(...pts[0])); for (let k = 1; k < pts.length; k++) cx.lineTo(...P(...pts[k])); cx.closePath(); };
+            const glow = cx.createRadialGradient(...P(8, 0), 0, ...P(8, 0), 15 * u);
+            glow.addColorStop(0, 'rgba(255,205,90,0.3)'); glow.addColorStop(1, 'rgba(255,190,60,0)');
+            cx.fillStyle = glow;
+            cx.beginPath(); cx.arc(...P(8, 0), 15 * u, 0, Math.PI * 2); cx.fill();
+            const tail = cx.createLinearGradient(...P(-36, 0), ...P(-6, 0));
+            tail.addColorStop(0, 'rgba(255,190,70,0)'); tail.addColorStop(1, 'rgba(255,215,120,0.55)');
+            cx.fillStyle = tail;
+            poly([[-6, -3.5], [-36, 0], [-6, 3.5]]); cx.fill();
+            const shape = [[21, 0], [0, -9.5], [5, -3], [-11, -2.5], [-11, 2.5], [5, 3], [0, 9.5]];
+            grad = cx.createLinearGradient(...P(-11, 0), ...P(21, 0));
+            grad.addColorStop(0, '#9a6400'); grad.addColorStop(0.5, '#f7c23c'); grad.addColorStop(1, '#fff6d6');
             cx.fillStyle = grad;
-            cx.beginPath();
-            cx.moveTo(ctr, ctr - sz / 2); cx.lineTo(ctr + sz / 3, ctr);
-            cx.lineTo(ctr, ctr + sz / 2); cx.lineTo(ctr - sz / 3, ctr);
-            cx.closePath(); cx.fill();
-            cx.fillStyle = 'rgba(255,255,220,0.75)';
-            cx.beginPath();
-            cx.moveTo(ctr, ctr - sz / 2); cx.lineTo(ctr + sz * 0.12, ctr - sz * 0.1);
-            cx.lineTo(ctr, ctr - sz * 0.05); cx.closePath(); cx.fill();
+            poly(shape); cx.fill();
+            cx.strokeStyle = 'rgba(85,48,0,0.85)';
+            cx.lineWidth = 1.3 * u;
+            cx.lineJoin = 'round';
+            cx.stroke();
+            // lit upper facet and a bright spine so it reads as polished metal
+            cx.fillStyle = 'rgba(255,250,228,0.4)';
+            poly([[21, 0], [0, -9.5], [5, -3], [-11, -2.5], [-11, 0]]); cx.fill();
+            cx.strokeStyle = 'rgba(255,252,235,0.85)';
+            cx.lineWidth = 1.1 * u;
+            cx.beginPath(); cx.moveTo(...P(19, 0)); cx.lineTo(...P(-9, 0)); cx.stroke();
             break;
         }
         case 'player_charged': {
@@ -2245,6 +2276,10 @@ function draw(deltaTime) {
         _drawDimBreakZones();   // Lingering Dimension Break arcs (world-space, independent of Egregor)
         _drawEgregorDeathBursts(); // Dedicated Egregor death explosion, independent of Egregor's own lifetime
 
+        // player and sentinel bullets sit under the enemies so they never hide what they're hitting
+        // specials go last so the other bullets never bury them
+        bullets.forEach(b => { if (b.type !== 'sentinel_special') drawBullet(b); });
+        bullets.forEach(b => { if (b.type === 'sentinel_special') drawBullet(b); });
         // Draw non-bullet enemies first (background layer) — Goliath vẽ RIÊNG
         // sau cùng (sau cả Sigil HUD) vì Goliath giờ hay lượn gần viền trên
         // màn hình, dễ bị icon Sigil HUD đè lên nếu vẽ chung ở đây.
@@ -2260,7 +2295,6 @@ function draw(deltaTime) {
             const _pxbDt = performance.now() - _pxbT0;
             if (_pxbDt > 15) console.warn('[PIXI] drawBullets took ' + _pxbDt.toFixed(0) + 'ms (bullets=' + bullets.length + ')');
         } else {
-            bullets.forEach(drawBullet);
             spiritBullets.forEach(drawSpiritBullet);
         }
         spirits.forEach(drawSpirit);
@@ -2348,6 +2382,9 @@ function draw(deltaTime) {
         // skill effects) - Uriel's Holy Sword and Raphael's Wisdom Orb.
         // Both must stay readable no matter how much else is on screen.
         enemies.forEach(e => { if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') drawEnemy(e); });
+        // aim lines sit up here too, or Raphael's half-screen aura would wash them out
+        _drawUrielSwordTelegraphs();
+        _drawRaphaelWisdomTelegraphs();
         if (typeof _drawUrielHolySwords === 'function') _drawUrielHolySwords();
         _drawRaphaelWisdomOrbs();
 
