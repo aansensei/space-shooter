@@ -283,7 +283,7 @@ function fireAutoShot() {
         bullets.push({
             x: player.x, y: player.y - player.height / 2,
             vx: Math.cos(angle) * 13.44 * speedMultiplier, vy: Math.sin(angle) * 13.44 * speedMultiplier,
-            damage: 0.15 * player.atk, size: 6.5, type: 'player_auto',
+            damage: 0.16 * player.atk, size: 6.5, type: 'player_auto',
             applyVuln: true, vulnChance: 0.28,
             _muiTenVangCrit: _isCritVolley,
         });
@@ -1309,7 +1309,7 @@ function dealDamage(enemy, source) {
 
     // Sentinel Parry (khi Glory for Justice active)
     if (isSentinel && gloryForJusticeActive && (source.damage > 0 || source.percentDamage > 0)
-        && !source.isTeslaDot && !source.isChainLightning) {
+        && !source.isTeslaDot && !source.isChainLightning && !source._isWisdomZoneDot) {
         if (Math.random() < 0.20) {
             _triggerSentinelParry(enemy);
             return;
@@ -1481,7 +1481,7 @@ function dealDamage(enemy, source) {
         && !source.isTeslaDot && !source._isDtuDot && !source._isNocToiDot && !source._isSthDot && !source._isSrDot) {
         // A low base keeps sustained rapid-fire chip damage from carrying
         // the fight on its own.
-        const _capPct = Math.min(0.026, 0.011 + _goliathDebuffStackCount(enemy) * 0.0025);
+        const _capPct = Math.min(0.026, 0.0121 + _goliathDebuffStackCount(enemy) * 0.0025);
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * _capPct));
     }
     // Piercing/true/DoT hits skip the cap above, so they get their own:

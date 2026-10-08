@@ -276,6 +276,21 @@ function drawPlayerAura() {
 
 function drawBullet(b) {
     ctx.save();
+    if (b.type === 'sentinel_special') {
+        const _ss = _getBulletSprite('sentinel_special', b.size, _gfxLevel);
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b._heading !== undefined ? b._heading : -Math.PI / 2);
+        ctx.drawImage(_ss, -_ss.width / 2, -_ss.height / 2);
+        ctx.restore();
+        return;
+    }
+    // with Pixi on, bullets keep the plain sprite look (no smoke wisps or crit ring)
+    if (window._usePixi) {
+        const _ps = _getBulletSprite(b.type || 'player_auto', b.size, _gfxLevel);
+        ctx.drawImage(_ps, b.x - _ps.width / 2, b.y - _ps.height / 2);
+        ctx.restore();
+        return;
+    }
     // Smoke wisps (HIGH only), faint white puffs, barely visible
     if (_gfxLevel < 1) {
         const _now2 = performance.now();

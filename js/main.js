@@ -1157,6 +1157,14 @@ function update(rawDeltaTime) {
         // gọi nữa để bắt kịp. Khối check hp<=0 THỨ HAI (xa hơn nữa trong
         // vòng lặp, sau updateGoliath) vẫn xử lý chết thật bình thường khi
         // chuỗi hiệu ứng đã chạy xong và tự đưa hp về 0 thật.
+        // a Uriel that has dodged everything for 90s just dies, so one lucky
+        // survivor can't hang over the run for wave after wave. Counted in
+        // game time, and checked here rather than in updateUriel so it goes
+        // through Uriel's own death handling below (barrier, buff strip).
+        if (enemy.type === 'uriel') {
+            enemy._urielAliveMs = (enemy._urielAliveMs || 0) + deltaTime;
+            if (enemy._urielAliveMs >= 90000) enemy.hp = 0;
+        }
         if (enemy.hp <= 0 && enemy.type !== 'goliath') {
             // LEVIATHAN: death laser đã được spawn trong dealDamage khi HP→0
             // Không cần spawn thêm ở đây nữa
@@ -2114,9 +2122,9 @@ function update(rawDeltaTime) {
             if (b.target && enemies.includes(b.target) && !b.target.inCoronation && b.target.hp > 0) {
                 const dx = b.target.x - b.x, dy = b.target.y - b.y, d = Math.hypot(dx, dy);
                 const speed = (9 * 0.65) * (b.speedMultiplier || 1);
-                if (d > 0) { b.x += (dx / d) * speed * dt; b.y += (dy / d) * speed * dt; }
+                if (d > 0) { b.x += (dx / d) * speed * dt; b.y += (dy / d) * speed * dt; b._heading = Math.atan2(dy, dx); }
             } else {
-                if (!b.vxInitial) { b.vxInitial = 0; b.vyInitial = -(9 * 0.65) * (b.speedMultiplier || 1); }
+                if (!b.vxInitial) { b.vxInitial = 0; b.vyInitial = -(9 * 0.65) * (b.speedMultiplier || 1); b._heading = -Math.PI / 2; }
                 b.x += b.vxInitial * dt; b.y += b.vyInitial * dt;
             }
         } else { b.x += b.vx * dt; b.y += b.vy * dt; }

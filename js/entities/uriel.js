@@ -204,15 +204,23 @@ function _urielUpdateSword(enemy) {
     }
 }
 
-function _urielLaunchSword(enemy) {
+// Where the Holy Sword flies if it fires right now: the player's position
+// 100ms ago. The charge telegraph reads this every frame too, so the aim
+// line always matches the real shot.
+function _urielSwordAimAngle(enemy) {
     const hist = player._posHistory || [];
+    const now = performance.now();
+    let aim = { x: player.x, y: player.y };
+    for (const p of hist) { if (now - p.t >= 100) aim = p; }
+    return Math.atan2(aim.y - enemy.y, aim.x - enemy.x);
+}
+
+function _urielLaunchSword(enemy) {
     const now = performance.now();
     // Per AanSensei: at least 0.8s between launches, timed from this actual
     // fire (not from when the sword started charging or was queued).
     enemy._judgmentCooldownEnd = now + 800;
-    let aim = { x: player.x, y: player.y };
-    for (const p of hist) { if (now - p.t >= 100) aim = p; }
-    const ang = Math.atan2(aim.y - enemy.y, aim.x - enemy.x);
+    const ang = _urielSwordAimAngle(enemy);
     const spd = 806 / 60; // 806px/s baseline, expressed per 16.67ms frame like every other enemy projectile
     window._urielHolySwords = window._urielHolySwords || [];
     window._urielHolySwords.push({

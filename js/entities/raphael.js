@@ -167,7 +167,7 @@ function updateRaphaelWisdomZones(deltaTime) {
             for (const s of sentinels) {
                 if (s.hp <= 0) continue;
                 if (Math.hypot(s.x - z.x, s.y - z.y) <= z.radius) {
-                    dealDamage(s, { damage: z.atkPerSec * 0.1, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Wisdom Orb zone' });
+                    dealDamage(s, { damage: z.atkPerSec * 0.1, isTrueDamage: true, _noHitSfx: true, _isWisdomZoneDot: true, _statSrc: 'Wisdom Orb zone' });
                 }
             }
         }

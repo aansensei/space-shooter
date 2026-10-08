@@ -2,11 +2,11 @@
 // js/pixi-renderer.js, Pixi.js v8 WebGL renderer
 //
 // Phase 0: Transparent overlay canvas, feature flag
-// Phase 1: bullets, spirit bullets, particles → WebGL sprites (additive blend)
+// Phase 1: spirit bullets, particles → WebGL sprites (additive blend)
 // Phase 2: ctx.shadowBlur suppressed (383 calls eliminated → 10fps→144fps)
 // Phase 3: nebula atmosphere, bullet trails, hit-flash feedback
 //
-// Depends on render.js:  _getBulletSprite, _getSpiritSprite, _getGlowSprite, _getRingGlowSprite
+// Depends on render.js:  _getSpiritSprite, _getGlowSprite, _getRingGlowSprite
 
 window._usePixi          = false;
 window._pixiDrawBullets  = null;
@@ -55,14 +55,12 @@ window._pixiRender       = null;
     const riftLayer    = new PIXI.Container(); // dimensional rifts (via _pixiSpawnRift/_pixiDestroyRift)
     const trailLayer   = new PIXI.Container(); // bullet trails
     const particleLayer= new PIXI.Container(); // particles
-    const bulletLayer  = new PIXI.Container(); // bullets
     const spiritLayer  = new PIXI.Container(); // spirit bullets
     const flashLayer   = new PIXI.Container(); // hit flashes
     app.stage.addChild(nebulaLayer);
     app.stage.addChild(riftLayer);
     app.stage.addChild(trailLayer);
     app.stage.addChild(particleLayer);
-    app.stage.addChild(bulletLayer);
     app.stage.addChild(spiritLayer);
     app.stage.addChild(flashLayer);
 
@@ -72,10 +70,6 @@ window._pixiRender       = null;
         if (!canvas2d) return PIXI.Texture.EMPTY;
         if (_texCache[key]) return _texCache[key];
         return (_texCache[key] = PIXI.Texture.from(canvas2d));
-    }
-    function _getBulletTex(type, size, gfxLvl) {
-        const t = type || 'player_auto', sz = Math.max(1, Math.round(size));
-        return _canvasTex(_getBulletSprite(t, size, gfxLvl), 'b_' + t + '_' + sz + '_' + gfxLvl);
     }
     function _getSpiritTex(isPhoto, size) {
         const sz = Math.max(1, Math.round(size));
@@ -140,22 +134,11 @@ window._pixiRender       = null;
     // loading screen, see index.html) pays that cost while a stall is
     // invisible instead of during the first real combat frame.
     window._pixiWarmup = function () {
-        const gfx = window._gfxLevel || 0;
         const warm = [];
-        const bulletSpecs = [['player_auto', 8], ['player_charged', 14]];
         const glowSpecs = [
             ['#ffffff', 10], ['#ff3355', 14], ['#00ff88', 14], ['#ffd700', 10],
             ['lime', 12], ['#aa44ff', 16], ['#00e5cc', 10],
         ];
-        for (const [type, size] of bulletSpecs) {
-            const s = _acq();
-            _setTex(s, _getBulletTex(type, size, gfx));
-            s.anchor.set(0.5);
-            s.position.set(-9999, -9999);
-            s.blendMode = 'add';
-            bulletLayer.addChild(s);
-            warm.push(s);
-        }
         for (const [color] of glowSpecs) {
             const s = _acq();
             _setTex(s, _getGlowTex(color));
@@ -253,6 +236,7 @@ window._pixiRender       = null;
         let budget = Math.min(40, _TRAIL_CAP - _trails.length);
         for (let i = 0; i < bullets.length && budget > 0; i++, budget--) {
             const b = bullets[i];
+            if (b.type === 'sentinel_special') continue; // its sprite carries its own gold tail
             _trails.push({ x: b.x, y: b.y, alpha: 0.38, size: Math.max(2, b.size * 0.45) });
         }
     }
@@ -508,21 +492,11 @@ window._pixiRender       = null;
     };
 
     // PHASE 1, Bullets / spirits / particles
+    // Player and sentinel bullets are drawn on the game canvas under the
+    // enemies (this canvas sits above it), so here they only leave trails.
     window._pixiDrawBullets = function(bullets, spiritBullets) {
-        _spawnTrails(bullets); // record trail positions before layer clear
-        _clearLayer(bulletLayer);
+        _spawnTrails(bullets);
         _clearLayer(spiritLayer);
-        const gfx = window._gfxLevel || 0;
-
-        for (const b of bullets) {
-            const s = _acq();
-            _setTex(s, _getBulletTex(b.type, b.size, gfx));
-            s.anchor.set(0.5);
-            s.position.set(b.x, b.y);
-            s.alpha     = 1;
-            s.blendMode = 'add';
-            bulletLayer.addChild(s);
-        }
         for (const b of spiritBullets) {
             const s = _acq();
             _setTex(s, _getSpiritTex(b.isPhoto, b.size));
@@ -572,7 +546,6 @@ window._pixiRender       = null;
 
         if (!playing || window._sigilPicker) {
             // Clear stale game-layer content so it doesn't bleed onto UI screens or sigil picker
-            _clearLayer(bulletLayer);
             _clearLayer(spiritLayer);
             _clearLayer(particleLayer);
             _clearLayer(trailLayer);
