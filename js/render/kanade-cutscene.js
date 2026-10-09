@@ -5332,6 +5332,108 @@
     return c;
   }
 
+  // Portal artwork is prepared once, only on tiers that display it.
+  function echoBakePortalArt(art) {
+    if (art.portalReady || freezeTier() >= 2) return;
+    art.portalClockOuter = echoCanvas(384, 384);
+    art.portalClockInner = echoCanvas(384, 384);
+    art.portalDepth = echoCanvas(384, 384);
+    art.portalSeal = echoCanvas(128, 128);
+    art.portalMote = echoCanvas(24, 24);
+    art.portalJoints = [];
+    const outer = art.portalClockOuter.getContext('2d');
+    outer.translate(192, 192); outer.scale(2, 2);
+    outer.strokeStyle = 'rgba(169,143,231,0.22)'; outer.lineWidth = 4;
+    outer.beginPath(); outer.arc(0, 0, 84, 0, Math.PI * 2); outer.stroke();
+    outer.strokeStyle = 'rgba(230,220,255,0.82)'; outer.lineWidth = 0.65;
+    outer.beginPath(); outer.arc(0, 0, 84, 0, Math.PI * 2); outer.stroke();
+    outer.strokeStyle = 'rgba(210,196,252,0.8)'; outer.lineWidth = 0.9;
+    outer.beginPath();
+    for (let i = 0; i < 48; i++) {
+      const a = i * Math.PI / 24, major = i % 4 === 0;
+      const ri = major ? 87 : 88.5, ro = major ? 93 : 90.5;
+      outer.moveTo(Math.cos(a) * ri, Math.sin(a) * ri);
+      outer.lineTo(Math.cos(a) * ro, Math.sin(a) * ro);
+    }
+    outer.stroke();
+    outer.strokeStyle = 'rgba(178,158,239,0.66)'; outer.lineWidth = 0.75;
+    outer.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6 + 0.075;
+      outer.moveTo(Math.cos(a) * 91.5, Math.sin(a) * 91.5);
+      outer.arc(0, 0, 91.5, a, a + 0.34);
+    }
+    outer.stroke();
+    const inner = art.portalClockInner.getContext('2d');
+    inner.translate(192, 192); inner.scale(2, 2);
+    inner.strokeStyle = 'rgba(165,188,237,0.7)'; inner.lineWidth = 0.7;
+    inner.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      inner.moveTo(Math.cos(a) * 71, Math.sin(a) * 71);
+      inner.arc(0, 0, 71, a, a + 0.53);
+      inner.moveTo(Math.cos(a + 0.63) * 68.5, Math.sin(a + 0.63) * 68.5);
+      inner.lineTo(Math.cos(a + 0.63) * 73.5, Math.sin(a + 0.63) * 73.5);
+    }
+    inner.stroke(); inner.strokeStyle = 'rgba(221,209,254,0.5)'; inner.lineWidth = 0.45;
+    inner.beginPath(); inner.arc(0, 0, 66, 0, Math.PI * 2); inner.stroke();
+    const depth = art.portalDepth.getContext('2d');
+    const haze = depth.createRadialGradient(192, 192, 36, 192, 192, 164);
+    haze.addColorStop(0, 'rgba(30,33,70,0.12)');
+    haze.addColorStop(0.5, 'rgba(45,43,94,0.34)');
+    haze.addColorStop(0.82, 'rgba(92,77,150,0.21)');
+    haze.addColorStop(1, 'rgba(92,77,150,0)');
+    depth.fillStyle = haze; depth.fillRect(0, 0, 384, 384);
+    depth.translate(192, 192); depth.scale(2, 2);
+    depth.strokeStyle = 'rgba(184,167,227,0.22)'; depth.lineWidth = 0.6;
+    depth.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const r = 24 + i * 9, a = i * 1.35;
+      depth.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      depth.arc(0, 0, r, a, a + 1.8);
+    }
+    depth.stroke();
+    const seal = art.portalSeal.getContext('2d');
+    seal.translate(64, 64);
+    seal.strokeStyle = 'rgba(188,169,237,0.2)'; seal.lineWidth = 5;
+    seal.beginPath(); seal.arc(0, 0, 42, 0, Math.PI * 2); seal.stroke();
+    seal.strokeStyle = 'rgba(231,220,254,0.88)'; seal.lineWidth = 1.35;
+    seal.beginPath(); seal.arc(0, 0, 42, 0, Math.PI * 2); seal.stroke();
+    seal.strokeStyle = 'rgba(176,210,244,0.82)'; seal.lineWidth = 1.05;
+    seal.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      seal.moveTo(Math.cos(a) * 33, Math.sin(a) * 33);
+      seal.arc(0, 0, 33, a, a + 0.49);
+      seal.moveTo(Math.cos(a) * 47, Math.sin(a) * 47);
+      seal.lineTo(Math.cos(a) * 52, Math.sin(a) * 52);
+    }
+    seal.stroke();
+    const mote = art.portalMote.getContext('2d');
+    const moteLight = mote.createRadialGradient(12, 12, 0, 12, 12, 11);
+    moteLight.addColorStop(0, 'rgba(244,238,255,0.8)');
+    moteLight.addColorStop(0.18, 'rgba(213,212,255,0.7)');
+    moteLight.addColorStop(0.52, 'rgba(158,149,224,0.18)');
+    moteLight.addColorStop(1, 'rgba(158,149,224,0)');
+    mote.fillStyle = moteLight; mote.fillRect(0, 0, 24, 24);
+    mote.fillStyle = 'rgba(245,240,255,0.9)';
+    mote.beginPath(); mote.moveTo(12, 8); mote.lineTo(14, 12);
+    mote.lineTo(12, 16); mote.lineTo(10, 12); mote.closePath(); mote.fill();
+    for (let i = 0; i <= art.steps; i++) {
+      const ext = i / art.steps, arm = castArm(ext, 0), drop = 1.5 * (1 - ext);
+      art.portalJoints.push([112, 58 + drop, arm.elbowX, arm.elbowY + drop]);
+    }
+    art.portalReady = true;
+  }
+
+  function echoSchedulePortalArt(art) {
+    if (art.portalReady || art.portalPending || freezeTier() >= 2) return;
+    art.portalPending = true;
+    const bake = () => { echoBakePortalArt(art); art.portalPending = false; };
+    if (window.requestIdleCallback) window.requestIdleCallback(bake, { timeout: 1000 });
+    else setTimeout(bake, 0);
+  }
+
   function echoPrepare() {
     if (echoArt) return echoArt;
     const res = 3, steps = 24;
@@ -5398,6 +5500,7 @@
     const d = art.dust.getContext('2d');
     d.fillStyle = '#10081e'; d.fillRect(5, 5, 14, 14);
     d.strokeStyle = '#ff537e'; d.lineWidth = 2; d.strokeRect(5, 5, 14, 14);
+    echoSchedulePortalArt(art);
     return art;
   }
 
@@ -5471,7 +5574,131 @@
   _gateWorldImg.addEventListener('load', () => { if (echoArt) echoBakeWorld(echoArt); });
 
   // Returns the palm of the displayed pose in world space.
+  // The contact light follows the displayed arm across the unchanged portal ellipse.
+  function echoPortalBoundarySegment(art, gx, gy, rx, ry, ax, ay, bx, by, u, alpha) {
+    const sx = ax - gx, sy = ay - gy, dx = bx - ax, dy = by - ay;
+    const rrX = rx * rx, rrY = ry * ry;
+    const a = dx * dx / rrX + dy * dy / rrY;
+    const b = 2 * (sx * dx / rrX + sy * dy / rrY);
+    const c = sx * sx / rrX + sy * sy / rrY - 1;
+    const d = b * b - 4 * a * c;
+    if (a < 0.000001 || d < 0) return false;
+    const t = (-b + Math.sqrt(d)) / (2 * a);
+    if (t < 0 || t > 1) return false;
+    const x = ax + dx * t, y = ay + dy * t;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(dy, dx));
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * 0.38;
+    ctx.drawImage(art.glow, -u * 10, -u * 5, u * 20, u * 10);
+    ctx.globalAlpha = alpha * 0.36;
+    ctx.drawImage(art.portalSeal, -u * 7, -u * 4, u * 14, u * 8);
+    ctx.restore();
+    return true;
+  }
+
+  function drawEchoCastPortal(info, now) {
+    const art = echoArt;
+    if (!art || !art.ready) return null;
+    if (!art.portalReady) { echoSchedulePortalArt(art); return drawEchoCastBase(info, now); }
+    const tier = freezeTier(), gx = info.x, gy = info.y;
+    const u = info.box / GRID_W, radius = info.gateR;
+    const index = Math.min(art.ready - 1, Math.round(clamp01(info.ext) * art.steps));
+    const poseExt = index / art.steps, palm = art.palms[index];
+    const retreat = (1 - poseExt) * Math.max(0, 1 - info.open) * 5;
+    const lean = Math.sin(poseExt * Math.PI) * 0.7 - retreat;
+    const hx = gx + (palm.x - ECHO_ANCHOR[0] + lean) * u;
+    const hy = gy + (palm.y - ECHO_ANCHOR[1]) * u;
+    const wide = Math.max(0.025, smootherstep(clamp01((info.open - 0.1) / 0.9)));
+    const tall = 0.15 + 0.85 * smootherstep(clamp01(info.open / 0.55));
+    const size = radius * 2.4, k = size / 384;
+    const alpha = info.alpha * 0.9 * smootherstep(clamp01(info.open / 0.65));
+    const transition = wide * (1 - wide) * 4;
+    const collapse = transition * (info.closing ? 1 : clamp01((1 - info.alpha) * 2.5));
+    ctx.save(); echoShadowColor.call(ctx, 'transparent');
+    if (info.mirror) { ctx.translate(gx, 0); ctx.scale(-1, 1); ctx.translate(-gx, 0); }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.translate(gx, gy); ctx.scale(wide * 1.06 * k, tall * 1.34 * k);
+    ctx.globalAlpha = info.gateAlpha; ctx.drawImage(art.gate, -192, -192);
+    if (art.worldReady) {
+      ctx.save(); ctx.translate(Math.sin(now * 0.00013) * 4, Math.cos(now * 0.00011) * 3);
+      ctx.rotate(now * 0.000045); ctx.globalAlpha = info.gateAlpha * (tier === 0 ? 0.5 : 0.44);
+      ctx.drawImage(art.world, -192, -192); ctx.restore();
+    }
+    ctx.save(); ctx.rotate(-now * 0.00009); ctx.globalAlpha = info.gateAlpha * (tier === 0 ? 0.8 : 0.65);
+    ctx.drawImage(art.portalDepth, -192, -192); ctx.restore();
+    ctx.globalAlpha = info.gateAlpha; ctx.drawImage(art.back, -192, -192);
+    ctx.save(); ctx.rotate(-now * 0.00018 + (1 - info.open) * 0.8);
+    ctx.globalAlpha = info.gateAlpha * (0.58 + transition * 0.17);
+    ctx.drawImage(art.portalClockOuter, -192, -192); ctx.restore();
+    ctx.save(); ctx.rotate(now * 0.00031 - (1 - info.open) * 0.5);
+    ctx.globalAlpha = info.gateAlpha * (tier === 0 ? 0.54 : 0.38);
+    ctx.drawImage(art.portalClockInner, -192, -192); ctx.restore();
+    ctx.restore();
+    if (alpha > 0.01) {
+      const b = art.body, res = art.res;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(art.bodies, (index % 5) * b[2] * res, Math.floor(index / 5) * b[3] * res, b[2] * res, b[3] * res,
+        gx + (b[0] - ECHO_ANCHOR[0] + lean) * u * wide,
+        gy + (b[1] - ECHO_ANCHOR[1]) * u * tall * wide, b[2] * u * wide, b[3] * u * tall * wide);
+    }
+    ctx.save(); ctx.translate(gx, gy); ctx.scale(wide * 1.06 * k, tall * 1.34 * k);
+    ctx.globalAlpha = info.gateAlpha; ctx.drawImage(art.front, -192, -192);
+    if (collapse > 0.02) {
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = info.gateAlpha * collapse * 0.24;
+      ctx.drawImage(art.glow, -34, -190, 68, 380);
+      if (tier === 0) { ctx.globalAlpha = info.gateAlpha * collapse * 0.15; ctx.drawImage(art.portalClockOuter, -192, -192); }
+    }
+    ctx.restore();
+    if (alpha > 0.01 && poseExt > 0.02) {
+      const b = ECHO_ARM, res = art.res, armAlpha = alpha * smootherstep(clamp01(poseExt / 0.35));
+      const j = art.portalJoints[index], rx = radius * 1.06 * wide, ry = radius * 1.34 * tall;
+      const sx = gx + (j[0] - ECHO_ANCHOR[0] + lean) * u, sy = gy + (j[1] - ECHO_ANCHOR[1]) * u;
+      const ex = gx + (j[2] - ECHO_ANCHOR[0] + lean) * u, ey = gy + (j[3] - ECHO_ANCHOR[1]) * u;
+      if (!echoPortalBoundarySegment(art, gx, gy, rx, ry, ex, ey, hx, hy, u, armAlpha))
+        echoPortalBoundarySegment(art, gx, gy, rx, ry, sx, sy, ex, ey, u, armAlpha);
+      ctx.globalAlpha = armAlpha;
+      ctx.drawImage(art.arms, (index % 5) * b[2] * res, Math.floor(index / 5) * b[3] * res, b[2] * res, b[3] * res,
+        gx + (b[0] - ECHO_ANCHOR[0] + lean) * u, gy + (b[1] - ECHO_ANCHOR[1]) * u, b[2] * u, b[3] * u);
+    }
+    if (alpha > 0.01 && info.charge > 0.02 && poseExt > 0.02) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = alpha * info.charge * (tier === 0 ? 0.085 : 0.05);
+      ctx.drawImage(art.glow, gx + radius * 0.35, gy - radius * 0.2, radius * 1.45, radius * 0.95);
+      const count = tier === 0 ? 8 : 4;
+      for (let i = 0; i < count; i++) {
+        const phase = (now * 0.00065 + i / count) % 1, t = phase * phase, v = 1 - t;
+        const a = 0.18 + i / count * Math.PI * 0.75;
+        const sx = gx + Math.cos(a) * radius * wide * 0.92, sy = gy + Math.sin(a) * radius * tall * 1.12;
+        const bx = gx + radius * 1.02, by = gy + radius * 0.48;
+        const x = v * v * sx + 2 * v * t * bx + t * t * hx, y = v * v * sy + 2 * v * t * by + t * t * hy;
+        const s = u * (4 + phase * 2.5);
+        ctx.globalAlpha = alpha * info.charge * Math.sin(phase * Math.PI) * 0.56;
+        ctx.drawImage(art.portalMote, x - s / 2, y - s / 2, s, s);
+      }
+      const core = u * (2.2 + 3.8 * info.charge), reach = core * 2.8;
+      ctx.globalAlpha = alpha * info.charge * 0.46;
+      ctx.drawImage(art.glow, hx - reach, hy - reach, reach * 2, reach * 2);
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(-now * 0.0011);
+      const seal = u * (8 + info.charge * 8);
+      ctx.globalAlpha = alpha * info.charge * (tier === 0 ? 0.76 : 0.68);
+      ctx.drawImage(art.portalSeal, -seal, -seal, seal * 2, seal * 2);
+      if (tier === 0) {
+        ctx.rotate(now * 0.0023); ctx.globalAlpha = alpha * info.charge * 0.24;
+        ctx.drawImage(art.portalSeal, -seal * 1.25, -seal * 0.6, seal * 2.5, seal * 1.2);
+      }
+      ctx.restore(); ctx.globalAlpha = alpha * info.charge * 0.9;
+      ctx.drawImage(art.glow, hx - core, hy - core, core * 2, core * 2);
+    }
+    ctx.restore();
+    if (poseExt <= 0.02) return null;
+    return { x: info.mirror ? 2 * gx - hx : hx, y: hy, u };
+  }
+
   function drawEchoCast(info, now) {
+    if (freezeTier() < 2) return drawEchoCastPortal(info, now);
+    return drawEchoCastBase(info, now);
+  }
+
+  function drawEchoCastBase(info, now) {
     const art = echoArt;
     if (!art || !art.ready) return null;
     const tier = freezeTier(), gx = info.x, gy = info.y;
