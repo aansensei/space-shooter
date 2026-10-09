@@ -918,6 +918,8 @@ function _drawDimBreakZones() {
 }
 
 // Boss shockwaves (Maou Haki)
+// crest points for the Unbroken Will wave: cos, sin, wobble per segment, reused every frame
+const _ubWavePts = new Float32Array((48 + 1) * 3);
 function drawBossShockwaves() {
     const now = performance.now();
     bossShockwaves.forEach(wave => {
@@ -963,132 +965,181 @@ function drawBossShockwaves() {
             return;
         }
 
-        // Unbroken Will release wave: an ORANGE crashing tidal wave, not a
-        // clean geometric ring like the BTM one above. Radius is perturbed
-        // by 3 layered sine frequencies so the leading edge reads as a
-        // turbulent, foamy crest rather than a magic circle — the "vùng cấm
-        // đạn" (bullet-forbidden zone) it punches out should feel like raw
-        // water/force slamming outward, not an ornamental barrier.
+        // Unbroken Will release wave: Goliath's death refused, thrown out as
+        // a turbulent molten tide. A blinding core flash, slow light shafts
+        // and his crimson rune ring lead it out, then the wave itself: a dark
+        // trailing body, a second crimson crest, the burning orange roll, a
+        // foam white leading edge, and molten shards flung past it. Every
+        // glow is a wide faint stroke under a thin bright one instead of
+        // shadowBlur, the crest points live in reused typed arrays, and the
+        // costly full-screen layers drop out once the wave is wide.
         if (wave._isUnbrokenWave) {
             ctx.save(); ctx.translate(wave.x, wave.y);
-            const segs = 48;
+            const TAU = Math.PI * 2;
+            const segs = _mobPerf ? 32 : 48;
+            const R = wave.radius;
             const wob = (a) => 1
                 + Math.sin(a * 5  + now / 180) * 0.055
                 + Math.sin(a * 11 - now / 260) * 0.030
                 + Math.sin(a * 23 + now / 95)  * 0.015;
-
-            const bandW = Math.min(70, 18 + wave.radius * 0.06);
-            const outerPts = [], innerPts = [];
+            const bandW = Math.min(90, 22 + R * 0.08);
+            const pts = _ubWavePts;
             for (let i = 0; i <= segs; i++) {
-                const a = (i / segs) * Math.PI * 2;
-                const rOut = wave.radius * wob(a);
-                outerPts.push([Math.cos(a) * rOut, Math.sin(a) * rOut]);
-                innerPts.push([Math.cos(a) * Math.max(0, rOut - bandW), Math.sin(a) * Math.max(0, rOut - bandW)]);
+                const a = (i / segs) * TAU;
+                const w = wob(a);
+                pts[i * 3] = Math.cos(a); pts[i * 3 + 1] = Math.sin(a); pts[i * 3 + 2] = w;
+            }
+            const tracePath = (offset, mul) => {
+                ctx.beginPath();
+                for (let i = 0; i <= segs; i++) {
+                    const r = Math.max(0, R * mul * pts[i * 3 + 2] - offset);
+                    const x = pts[i * 3] * r, y = pts[i * 3 + 1] * r;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+            };
+
+            // opening flash: a white hot bloom on his body for the first moment
+            if (prog < 0.16 && typeof _goliathFx === 'function') {
+                const k = 1 - prog / 0.16;
+                const size = 260 + R * 1.4;
+                ctx.globalAlpha = k * 0.9;
+                ctx.drawImage(_goliathFx('softDot', 'rgba(255,214,150,1)'), -size / 2, -size / 2, size, size);
+                ctx.globalAlpha = 1;
             }
 
-            // Deep trailing water body — solid annulus, darkest layer.
+            // slow light shafts turning out from the core, kept short so they never fill the screen
+            if (!_mobPerf && R < 900) {
+                const rayLen = Math.min(R, 620);
+                const rayA = fade * 0.13 * (1 - R / 900);
+                ctx.fillStyle = `rgba(255,170,90,${rayA})`;
+                for (let ri = 0; ri < 10; ri++) {
+                    const a = (ri / 10) * TAU + now / 2600;
+                    const half = 0.06 + 0.03 * Math.sin(now / 300 + ri);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(Math.cos(a - half) * rayLen, Math.sin(a - half) * rayLen);
+                    ctx.lineTo(Math.cos(a + half) * rayLen, Math.sin(a + half) * rayLen);
+                    ctx.closePath(); ctx.fill();
+                }
+            }
+
+            // his crimson rune ring rides just inside the crest while the wave is still close
+            if (!_mobPerf && R > 60 && R < 700 && typeof _goliathFx === 'function') {
+                const sc = (R * 0.9) / 305;
+                ctx.save();
+                ctx.rotate(now / 1800);
+                ctx.globalAlpha = fade * 0.6 * (1 - R / 700);
+                ctx.drawImage(_goliathFx('phase2Ring'), -340 * sc, -340 * sc, 680 * sc, 680 * sc);
+                ctx.restore();
+            }
+
+            // deep trailing body: a dark molten annulus behind the crest
             ctx.beginPath();
-            ctx.moveTo(outerPts[0][0], outerPts[0][1]);
-            for (let i = 1; i <= segs; i++) ctx.lineTo(outerPts[i][0], outerPts[i][1]);
-            for (let i = segs; i >= 0; i--) ctx.lineTo(innerPts[i][0], innerPts[i][1]);
+            for (let i = 0; i <= segs; i++) {
+                const r = R * pts[i * 3 + 2];
+                if (i === 0) ctx.moveTo(pts[0] * r, pts[1] * r); else ctx.lineTo(pts[i * 3] * r, pts[i * 3 + 1] * r);
+            }
+            for (let i = segs; i >= 0; i--) {
+                const r = Math.max(0, R * pts[i * 3 + 2] - bandW);
+                ctx.lineTo(pts[i * 3] * r, pts[i * 3 + 1] * r);
+            }
             ctx.closePath();
-            ctx.fillStyle = `rgba(124,45,18,${fade * 0.32})`;
+            ctx.fillStyle = `rgba(124,32,14,${fade * 0.36})`;
             ctx.fill();
 
             // Mobile-only: tint the whole swept interior orange as the wave
-            // expands outward, not just the crest band — reads as the zone
-            // itself getting "infected" with the color, not just a passing
-            // ring. Purely additive gate; PC rendering above is untouched.
+            // expands outward, not just the crest band, so the zone itself
+            // reads as taken over by the colour.
             if (window._platform === 'mobile') {
-                const innerR = Math.max(0, wave.radius - bandW);
-
-                // Layered fills, each a smaller/deeper-orange disc stacked
-                // behind the last — real surf isn't one flat wash, it's
-                // several overlapping fronts of water at different depths.
-                ctx.beginPath(); ctx.arc(0, 0, innerR, 0, Math.PI * 2);
+                const innerR = Math.max(0, R - bandW);
+                ctx.beginPath(); ctx.arc(0, 0, innerR, 0, TAU);
                 ctx.fillStyle = `rgba(249,115,22,${fade * 0.30})`;
                 ctx.fill();
-                ctx.beginPath(); ctx.arc(0, 0, innerR * 0.7, 0, Math.PI * 2);
+                ctx.beginPath(); ctx.arc(0, 0, innerR * 0.7, 0, TAU);
                 ctx.fillStyle = `rgba(234,88,12,${fade * 0.20})`;
                 ctx.fill();
-                ctx.beginPath(); ctx.arc(0, 0, innerR * 0.42, 0, Math.PI * 2);
+                ctx.beginPath(); ctx.arc(0, 0, innerR * 0.42, 0, TAU);
                 ctx.fillStyle = `rgba(194,65,12,${fade * 0.14})`;
                 ctx.fill();
-
-                // Swash rings: thin arcs continuously receding inward from
-                // the band, like water surging back after the crest passes
-                // — sells motion inside the tint instead of a static disc.
                 ctx.lineWidth = 2;
                 for (let li = 0; li < 3; li++) {
                     const t2 = (now / 480 + li / 3) % 1;
                     const r2 = innerR * (1 - t2);
                     if (r2 <= 2) continue;
                     ctx.strokeStyle = `rgba(255,200,140,${fade * 0.35 * (1 - t2)})`;
-                    ctx.beginPath(); ctx.arc(0, 0, r2, 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, r2, 0, TAU); ctx.stroke();
                 }
             }
 
-            // Mid-roll: brighter ember orange, inset from the crest so the
-            // hottest color sits just behind the foam edge, not on top of it.
-            ctx.beginPath();
-            for (let i = 0; i <= segs; i++) {
-                const a = (i / segs) * Math.PI * 2;
-                const r = Math.max(0, wave.radius * wob(a) - bandW * 0.35);
-                const x = Math.cos(a) * r, y = Math.sin(a) * r;
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
+            // second crest: a crimson echo trailing behind the main one
+            tracePath(0, 0.8);
+            if (!_mobPerf) { ctx.strokeStyle = `rgba(220,38,38,${fade * 0.16})`; ctx.lineWidth = 20; ctx.stroke(); }
+            ctx.strokeStyle = `rgba(248,72,48,${fade * 0.6})`; ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // the burning orange roll just behind the foam edge
+            tracePath(bandW * 0.35, 1);
+            if (!_mobPerf) { ctx.strokeStyle = `rgba(249,115,22,${fade * 0.22})`; ctx.lineWidth = bandW * 1.15; ctx.stroke(); }
             ctx.strokeStyle = `rgba(249,115,22,${fade * 0.85})`;
             ctx.lineWidth = bandW * 0.55;
-            if (!_mobPerf) { ctx.shadowColor = '#f97316'; ctx.shadowBlur = 22; }
             ctx.stroke();
-            ctx.shadowBlur = 0;
+            ctx.strokeStyle = `rgba(255,170,80,${fade * 0.7})`;
+            ctx.lineWidth = bandW * 0.18;
+            ctx.stroke();
 
-            // Crest — the crashing leading edge itself, bright foam-white,
-            // traced along the SAME wobble so it hugs every bulge/trough.
-            ctx.beginPath();
-            for (let i = 0; i <= segs; i++) {
-                const [x, y] = outerPts[i];
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            if (!_mobPerf) { ctx.shadowColor = '#fff1e0'; ctx.shadowBlur = 14; }
-            ctx.strokeStyle = `rgba(255,241,224,${fade * 0.9})`;
+            // crest: the crashing leading edge, foam white over a soft bloom
+            tracePath(0, 1);
+            if (!_mobPerf) { ctx.strokeStyle = `rgba(255,236,214,${fade * 0.28})`; ctx.lineWidth = 11; ctx.stroke(); }
+            ctx.strokeStyle = `rgba(255,241,224,${fade * 0.95})`;
             ctx.lineWidth = 3;
             ctx.stroke();
-            ctx.shadowBlur = 0;
+
+            // molten shards flung past the crest, pointing outward
+            const shardCount = _mobPerf ? 12 : 26;
+            ctx.fillStyle = `rgba(255,196,120,${fade * 0.9})`;
+            for (let si = 0; si < shardCount; si++) {
+                const a = (si / shardCount) * TAU + si * 0.37 + now / 4000;
+                const rBase = R * wob(a) + 10 + (0.5 + 0.5 * Math.sin(now / 90 + si * 1.7)) * 34;
+                const len = 9 + (si % 3) * 4, wid = 3 + (si % 2) * 1.5;
+                const ca = Math.cos(a), sa = Math.sin(a);
+                const tx = ca * (rBase + len), ty = sa * (rBase + len);
+                const bx = ca * rBase, by = sa * rBase;
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(bx - sa * wid, by + ca * wid);
+                ctx.lineTo(bx + sa * wid, by - ca * wid);
+                ctx.closePath(); ctx.fill();
+            }
 
             if (!_mobPerf) {
-                // Foam clumps: denser/brighter right where the crest bulges
-                // outward most (peaks of the wobble), like whitecaps.
+                // whitecaps where the crest bulges outward most
                 for (let fi = 0; fi < segs; fi += 2) {
-                    const a = (fi / segs) * Math.PI * 2;
-                    const w = wob(a);
-                    if (w < 1.02) continue; // only on outward bulges
-                    const r = wave.radius * w;
+                    const w = pts[fi * 3 + 2];
+                    if (w < 1.02) continue;
+                    const r = R * w;
                     const jig = Math.sin(now / 140 + fi) * 6;
+                    const a = (fi / segs) * TAU;
                     const fx_ = Math.cos(a) * r + Math.cos(a + 1.6) * jig;
                     const fy_ = Math.sin(a) * r + Math.sin(a + 1.6) * jig;
                     const size = 2 + (w - 1) * 60;
                     ctx.fillStyle = `rgba(255,255,255,${fade * (0.45 + 0.4 * Math.sin(now / 100 + fi))})`;
-                    ctx.beginPath(); ctx.arc(fx_, fy_, size, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(fx_, fy_, size, 0, TAU); ctx.fill();
                 }
 
-                // Trailing wake — smoother, calmer ripples receding behind
-                // the crest, unlike the turbulent leading edge.
+                // calm wake rings receding behind the crest
                 ctx.strokeStyle = `rgba(253,186,116,${fade * 0.30})`;
                 ctx.lineWidth = 1.5;
-                ctx.beginPath(); ctx.arc(0, 0, Math.max(0, wave.radius * 0.78), 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 0, Math.max(0, R * 0.66), 0, TAU); ctx.stroke();
                 ctx.strokeStyle = `rgba(253,186,116,${fade * 0.18})`;
-                ctx.beginPath(); ctx.arc(0, 0, Math.max(0, wave.radius * 0.58), 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 0, Math.max(0, R * 0.5), 0, TAU); ctx.stroke();
 
-                // Outward spray streaks — short radial lines shooting past
-                // the crest, selling the push/force rather than a static ring.
+                // spray streaks shooting past the crest
                 ctx.strokeStyle = `rgba(255,237,213,${fade * 0.5})`;
                 ctx.lineWidth = 1.6;
                 for (let si = 0; si < 16; si++) {
-                    const a = (si / 16) * Math.PI * 2 + now / 3000;
-                    const rBase = wave.radius * wob(a);
+                    const a = (si / 16) * TAU + now / 3000;
+                    const rBase = R * wob(a);
                     const len = 10 + 14 * (0.5 + 0.5 * Math.sin(now / 130 + si));
                     ctx.beginPath();
                     ctx.moveTo(Math.cos(a) * (rBase - 4), Math.sin(a) * (rBase - 4));

@@ -260,6 +260,48 @@ const GOLIATH_FX = {
         g.beginPath(); g.moveTo(0, -14); g.lineTo(12, 7); g.lineTo(-12, 7); g.closePath();
         g.fillStyle = '#c084fc'; g.shadowColor = '#9d00ff'; g.shadowBlur = 8; g.fill();
     } },
+    // Unbroken Will's soft orange bloom, fixed in size, so it is blitted
+    // rather than rebuilt as a gradient every frame
+    unbrokenGlow: { half: 470, res: 0.5, paint(g) {
+        const gr = g.createRadialGradient(0, 0, GOLIATH_HALO_R * 0.3, 0, 0, GOLIATH_HALO_R * 1.15);
+        gr.addColorStop(0, 'rgba(249,115,22,0.22)'); gr.addColorStop(1, 'rgba(249,115,22,0)');
+        g.fillStyle = gr; g.beginPath(); g.arc(0, 0, GOLIATH_HALO_R * 1.15, 0, Math.PI * 2); g.fill();
+    } },
+    // phase two: a ragged corona of flame tongues hugging the body
+    phase2Corona: { half: 320, res: 1, paint(g) {
+        const pts = 36;
+        g.beginPath();
+        for (let i = 0; i <= pts; i++) {
+            const a = (i / pts) * Math.PI * 2;
+            const tongue = i % 2 === 0 ? 1 : 0.78;
+            const rr = (250 + 30 * Math.sin(a * 5) + 18 * Math.sin(a * 11 + 1.3)) * tongue;
+            const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+            if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+        }
+        g.closePath();
+        const gr = g.createRadialGradient(0, 0, 120, 0, 0, 300);
+        gr.addColorStop(0, 'rgba(255,60,20,0)');
+        gr.addColorStop(0.45, 'rgba(255,70,25,0.32)');
+        gr.addColorStop(0.75, 'rgba(255,140,50,0.22)');
+        gr.addColorStop(1, 'rgba(255,90,20,0)');
+        g.fillStyle = gr;
+        g.shadowColor = '#ff3b1f'; g.shadowBlur = 24;
+        g.fill();
+    } },
+    // phase two: a broken crimson rune ring with tick marks, turning against the halo
+    phase2Ring: { half: 340, res: 1, paint(g) {
+        g.shadowColor = '#ff2a1a'; g.shadowBlur = 12;
+        for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2;
+            g.beginPath(); g.arc(0, 0, 305, a + 0.06, a + 0.42);
+            g.strokeStyle = 'rgba(255,72,48,0.75)'; g.lineWidth = 4; g.stroke();
+            const ta = a + 0.48;
+            g.beginPath();
+            g.moveTo(Math.cos(ta) * 290, Math.sin(ta) * 290);
+            g.lineTo(Math.cos(ta) * 322, Math.sin(ta) * 322);
+            g.strokeStyle = 'rgba(255,200,170,0.8)'; g.lineWidth = 2.5; g.stroke();
+        }
+    } },
     // a soft round glow for trails and embers, tinted per colour
     softDot: { half: 32, res: 1, paint(g, color) {
         const gr = g.createRadialGradient(0, 0, 0, 0, 0, 32);
@@ -722,10 +764,16 @@ function _drawGoliathMoltenBlob(radius, intensity, now) {
     g.addColorStop(0, `rgba(255,140,30,${0.92 * intensity})`);
     g.addColorStop(0.55, `rgba(130,40,10,${0.85 * intensity})`);
     g.addColorStop(1, `rgba(25,10,5,${0.65 * intensity})`);
+    if (!_mobPerf) {
+        // baked glow behind the blob in place of a shadowBlur on its path
+        const gs = radius * 3;
+        const a0 = ctx.globalAlpha;
+        ctx.globalAlpha = a0 * 0.55 * intensity;
+        ctx.drawImage(_goliathFx('softDot', 'rgba(255,106,0,1)'), -gs / 2, -gs / 2, gs, gs);
+        ctx.globalAlpha = a0;
+    }
     ctx.fillStyle = g;
-    if (!_mobPerf) { ctx.shadowColor = '#ff6a00'; ctx.shadowBlur = 32 * intensity; }
     ctx.fill();
-    ctx.shadowBlur = 0;
     if (!_mobPerf) {
         for (let i = 0; i < 9; i++) {
             const a = (i / 9) * Math.PI * 2 + now / 2000;
@@ -737,6 +785,61 @@ function _drawGoliathMoltenBlob(radius, intensity, now) {
             ctx.fill();
         }
     }
+}
+
+// The summoning circle under Alpha while the meteors gather: two of his baked
+// rune rings turning against each other, plus streaks of energy pulled in
+// toward him. Drawn in his local space, intensity 0..1.
+function _drawGoliathSummonCircle(intensity, now) {
+    if (intensity <= 0) return;
+    ctx.save();
+    ctx.globalAlpha *= intensity;
+    ctx.save(); ctx.rotate(now / 1400); ctx.scale(0.62, 0.62);
+    _blitGoliathFx(_goliathFx('haloRing'), 200);
+    ctx.restore();
+    ctx.save(); ctx.rotate(-now / 2100); ctx.scale(0.5, 0.5);
+    _blitGoliathFx(_goliathFx('inevArcs'), 320);
+    ctx.restore();
+    const n = _mobPerf ? 8 : 16;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < n; i++) {
+        const ph = (now / 650 + i / n) % 1;
+        const a = i * 2.4;
+        const r = 280 - ph * 230;
+        ctx.strokeStyle = `rgba(255,196,120,${Math.sin(ph * Math.PI) * 0.6})`;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        ctx.lineTo(Math.cos(a) * (r + 34), Math.sin(a) * (r + 34));
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+// Light rays turning out from his centre, used by the crystallize snap and the
+// settle burst. Flat thin triangles, no gradients.
+function _drawGoliathLightRays(count, len, alpha, now, color) {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.fillStyle = `rgba(${color},${alpha})`;
+    for (let i = 0; i < count; i++) {
+        const a = (i / count) * Math.PI * 2 + now / 2400;
+        const half = 0.05 + 0.025 * Math.sin(now / 200 + i * 1.7);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a - half) * len, Math.sin(a - half) * len);
+        ctx.lineTo(Math.cos(a + half) * len, Math.sin(a + half) * len);
+        ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+}
+
+// A bright bloom at his centre, a baked sprite scaled to size
+function _drawGoliathBloom(size, alpha, color) {
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(_goliathFx('softDot', color), -size / 2, -size / 2, size, size);
+    ctx.restore();
 }
 
 // Thiên thạch bay từ mép màn hình vào (toạ độ TUYỆT ĐỐI màn hình, gọi ngoài
@@ -763,11 +866,22 @@ function _drawGoliathMeteors(enemy, t, summonDur, now) {
         ctx.lineTo(-m.size * 0.6, m.size * 0.7); ctx.lineTo(-m.size * 0.8, -m.size * 0.3);
         ctx.closePath();
         ctx.fillStyle = rockGrad; ctx.fill();
+        if (!_mobPerf) { ctx.strokeStyle = 'rgba(255,106,0,0.3)'; ctx.lineWidth = 6; ctx.stroke(); }
         ctx.strokeStyle = 'rgba(255,140,30,0.8)'; ctx.lineWidth = 1.5;
-        if (!_mobPerf) { ctx.shadowColor = '#ff6a00'; ctx.shadowBlur = 10; }
         ctx.stroke();
         ctx.restore();
     });
+    // every meteor that lands throws a short-lived impact ring where it hit
+    for (const m of enemy._meteors) {
+        if (!m.arrived) continue;
+        const k = (t - m.arriveAt * summonDur) / 0.35;
+        if (k < 0 || k > 1) continue;
+        const r = 8 + k * (40 + m.size * 2);
+        ctx.beginPath(); ctx.arc(m.toX, m.toY, r, 0, Math.PI * 2);
+        if (!_mobPerf) { ctx.strokeStyle = `rgba(255,120,30,${(1 - k) * 0.3})`; ctx.lineWidth = 10; ctx.stroke(); }
+        ctx.strokeStyle = `rgba(255,220,160,${(1 - k) * 0.85})`; ctx.lineWidth = 2.5;
+        ctx.stroke();
+    }
 }
 
 // Inevitable — trường giới hạn sát thương nhiều lớp (quầng nhiệt + lưới lục
@@ -1291,26 +1405,104 @@ function _drawGoliathJokerEffects(enemy, now) {
         const s = js['Veilshroud'];
         const inPhantom = s.phantomEnd && now < s.phantomEnd;
         if (inPhantom) {
-            // Không đè hình phantom riêng lên thân — phun plasma cam ngay từ
-            // các vết nứt CÓ SẴN trên thân (GOLIATH_TRUE_FORM_VEINS), giống
-            // chất plasma của Veilshroud nhưng bám theo hình dạng thật của Goliath.
+            // Phantom holds him still for 3s while he gathers the strike, so
+            // the wind-up has to read clearly: plasma bleeding from his own
+            // cracks, a haze building around him, motes and rings pulling in,
+            // and a countdown arc filling up to the moment the strike locks.
+            // Glows are baked sprites or wide faint strokes, no shadowBlur.
+            const p = Math.max(0, Math.min(1, 1 - (s.phantomEnd - now) / 3000));
+            const TAU = Math.PI * 2;
+            const dot = _goliathFx('softDot', 'rgba(255,130,40,1)');
+
+            const haze = 380 + 160 * p;
+            ctx.globalAlpha = 0.18 + 0.22 * p;
+            ctx.drawImage(dot, -haze / 2, -haze / 2, haze, haze);
+            ctx.globalAlpha = 1;
+
+            // the cracks live in the body's own scale, so draw them in it
+            const ts = enemy.size / 460;
+            ctx.save(); ctx.scale(ts, ts);
             GOLIATH_TRUE_FORM_VEINS.forEach((vein, vi) => {
                 const tip = vein[vein.length - 1];
                 const flick = 0.6 + 0.4 * Math.sin(now / 90 + vi * 2.1);
-                const flareR = 26 + 14 * flick;
-                const fg = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, flareR);
-                fg.addColorStop(0, `rgba(255,200,120,${0.55 * flick})`);
-                fg.addColorStop(0.5, `rgba(255,120,20,${0.35 * flick})`);
-                fg.addColorStop(1, 'rgba(255,90,0,0)');
-                ctx.fillStyle = fg;
-                ctx.beginPath(); ctx.arc(tip.x, tip.y, flareR, 0, Math.PI * 2); ctx.fill();
-                // vệt nứt phát sáng cam đậm hơn trong lúc Phantom
+                const flareR = (30 + 18 * flick) * (0.8 + 0.5 * p);
+                ctx.globalAlpha = 0.6 * flick;
+                ctx.drawImage(dot, tip.x - flareR, tip.y - flareR, flareR * 2, flareR * 2);
+                ctx.globalAlpha = 1;
                 ctx.beginPath();
                 vein.forEach((v, i) => i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y));
-                ctx.strokeStyle = `rgba(255,140,20,${0.5 * flick})`; ctx.lineWidth = 3.5;
-                if (!_mobPerf) { ctx.shadowColor = '#ff7a00'; ctx.shadowBlur = 14; }
-                ctx.stroke(); ctx.shadowBlur = 0;
+                if (!_mobPerf) { ctx.strokeStyle = `rgba(255,110,10,${0.22 * flick})`; ctx.lineWidth = 12; ctx.stroke(); }
+                ctx.strokeStyle = `rgba(255,170,60,${(0.45 + 0.4 * p) * flick})`; ctx.lineWidth = 3.5;
+                ctx.stroke();
             });
+            ctx.restore();
+
+            // rings closing in on him, faster as the charge builds
+            for (let i = 0; i < 3; i++) {
+                const ph = (now / (900 - 400 * p) + i / 3) % 1;
+                const r = 320 - ph * 220;
+                const a = Math.sin(ph * Math.PI) * (0.25 + 0.45 * p);
+                ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU);
+                if (!_mobPerf) { ctx.strokeStyle = `rgba(255,120,30,${a * 0.35})`; ctx.lineWidth = 12; ctx.stroke(); }
+                ctx.strokeStyle = `rgba(255,190,110,${a})`; ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
+
+            // plasma motes drawn in from all around
+            const motes = _mobPerf ? 6 : 12;
+            for (let i = 0; i < motes; i++) {
+                const tt = now / 1000 + i / motes;
+                const mph = tt % 1;
+                const ang = i * 2.39 + Math.floor(tt) * 1.3;
+                const r = 340 * (1 - mph) + 50;
+                const sz = 22 * (1 - mph * 0.5);
+                ctx.globalAlpha = Math.sin(mph * Math.PI) * 0.85;
+                ctx.drawImage(dot, Math.cos(ang) * r - sz / 2, Math.sin(ang) * r - sz / 2, sz, sz);
+            }
+            ctx.globalAlpha = 1;
+
+            // countdown arc: fills clockwise from the top, the strike locks when it closes
+            ctx.beginPath(); ctx.arc(0, 0, 250, 0, TAU);
+            ctx.strokeStyle = 'rgba(255,140,40,0.14)'; ctx.lineWidth = 6; ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 250, -Math.PI / 2, -Math.PI / 2 + p * TAU);
+            if (!_mobPerf) { ctx.strokeStyle = 'rgba(255,120,30,0.25)'; ctx.lineWidth = 16; ctx.stroke(); }
+            ctx.strokeStyle = 'rgba(255,200,120,0.9)'; ctx.lineWidth = 5;
+            ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt';
+
+            // He calls the storm down while he charges: bolts strike him from
+            // the sky on a beat that quickens toward the release, and arcs
+            // crackle off his body. Bolt shapes come from the 60Hz seeded
+            // vein generator, so they flicker like lightning at any refresh
+            // rate, and the glow is a wide faint stroke, no shadowBlur.
+            const strokeBolt = (pts, core, glowW, coreW, alpha) => {
+                ctx.beginPath();
+                pts.forEach((b, i) => i === 0 ? ctx.moveTo(b.x, b.y) : ctx.lineTo(b.x, b.y));
+                if (!_mobPerf) { ctx.strokeStyle = `rgba(255,120,30,${alpha * 0.32})`; ctx.lineWidth = glowW; ctx.stroke(); }
+                ctx.strokeStyle = `rgba(${core},${alpha})`; ctx.lineWidth = coreW; ctx.stroke();
+            };
+            ctx.lineJoin = 'round';
+            const beat = 430 - 250 * p;
+            const beatIdx = Math.floor(now / beat);
+            const since = now - beatIdx * beat;
+            if (since < 190) {
+                const k = 1 - since / 190;
+                const strikeX = Math.sin(beatIdx * 12.9898) * 170;
+                const bolt = _goliathGenerateVein(strikeX, -900, 0, -30, 10, 52, 900 + (beatIdx % 40));
+                strokeBolt(bolt, '255,238,205', 16, 3.2, k * 0.95);
+                const mid = bolt[4];
+                const branch = _goliathGenerateVein(mid.x, mid.y, mid.x + (strikeX > 0 ? 120 : -120), mid.y + 160, 5, 30, 960 + (beatIdx % 40));
+                strokeBolt(branch, '255,214,160', 9, 1.8, k * 0.7);
+                _drawGoliathBloom(190, k * 0.75, 'rgba(255,214,150,1)');
+            }
+            const arcs = _mobPerf ? 2 : 4;
+            for (let i = 0; i < arcs; i++) {
+                const a = i * 1.7 + Math.floor(now / 110) * 0.9;
+                const r0 = 70, len = 110 + 90 * p;
+                const arc = _goliathGenerateVein(Math.cos(a) * r0, Math.sin(a) * r0,
+                    Math.cos(a) * (r0 + len), Math.sin(a) * (r0 + len), 5, 28, 990 + i);
+                strokeBolt(arc, '255,226,180', 8, 1.6, 0.35 + 0.5 * p);
+            }
+            ctx.lineJoin = 'miter';
         }
         // Vòng cảnh báo dưới chân từng mục tiêu trong 1500ms trước khi sét rơi
         // (đúng lightningCountdownDuration thật của Veilshroud — trước đây
@@ -1807,6 +1999,10 @@ function _goliathPrewarmFx() {
         () => _goliathFx('fistRing', '#9d00ff'), () => _goliathFx('fistRing', '#fbbf24'),
         () => _goliathFx('haloRing'), () => _goliathFx('haloVertex'),
         () => _goliathFx('inevDisc'), () => _goliathFx('inevArcs'),
+        () => _goliathFx('unbrokenGlow'), () => _goliathFx('phase2Corona'), () => _goliathFx('phase2Ring'),
+        () => _goliathFx('softDot', 'rgba(255,110,40,1)'), () => _goliathFx('softDot', 'rgba(255,130,40,1)'),
+        () => _goliathFx('softDot', 'rgba(255,214,150,1)'), () => _goliathFx('softDot', 'rgba(255,106,0,1)'),
+        () => _goliathFx('softDot', 'rgba(255,244,228,1)'),
     ];
     for (const b of GOLIATH_GOLEM_BOULDERS) jobs.push(() => _goliathGolemChunkSprite(b.r, b.seed));
     // the halo's edge chunks and vertex chunks, same seeds and radii as _drawGoliathHalo
@@ -1867,7 +2063,7 @@ function _drawGoliathGolemBody(lightAngle, now) {
 // chuỗi đá nhỏ xen plasma cam (giống dây tether ở cánh tay), giữa halo là 1
 // vòng ma thuật xoay chậm. Gọi TRƯỚC thân nên luôn nằm phía sau.
 const GOLIATH_HALO_R = 400;
-function _drawGoliathHalo(now) {
+function _drawGoliathHalo(now, phase2) {
     const verts = [
         { x: 0, y: -GOLIATH_HALO_R }, { x: GOLIATH_HALO_R, y: 0 },
         { x: 0, y: GOLIATH_HALO_R }, { x: -GOLIATH_HALO_R, y: 0 },
@@ -1897,10 +2093,10 @@ function _drawGoliathHalo(now) {
             const py = p1.y + (p2.y - p1.y) * st + (s > 0 && s < segs ? jy : 0);
             if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
-        if (!_mobPerf) { ctx.strokeStyle = 'rgba(245,158,11,0.16)'; ctx.lineWidth = 18; ctx.stroke(); }
-        ctx.strokeStyle = 'rgba(255,158,11,0.55)'; ctx.lineWidth = 6;
+        if (!_mobPerf) { ctx.strokeStyle = phase2 ? 'rgba(239,58,40,0.2)' : 'rgba(245,158,11,0.16)'; ctx.lineWidth = 18; ctx.stroke(); }
+        ctx.strokeStyle = phase2 ? 'rgba(255,74,40,0.65)' : 'rgba(255,158,11,0.55)'; ctx.lineWidth = 6;
         ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,220,160,0.8)'; ctx.lineWidth = 2;
+        ctx.strokeStyle = phase2 ? 'rgba(255,196,170,0.85)' : 'rgba(255,220,160,0.8)'; ctx.lineWidth = 2;
         ctx.stroke();
         for (let s = 1; s < segs; s++) {
             const st = s / segs;
@@ -1938,21 +2134,53 @@ function _drawGoliathHalo(now) {
 function _drawGoliathUnbrokenAura(enemy, now) {
     if (!enemy._unbrokenWillBuffEnd || now >= enemy._unbrokenWillBuffEnd) return;
     ctx.save();
-    const glow = ctx.createRadialGradient(0, 0, GOLIATH_HALO_R * 0.3, 0, 0, GOLIATH_HALO_R * 1.15);
-    glow.addColorStop(0, 'rgba(249,115,22,0.22)');
-    glow.addColorStop(1, 'rgba(249,115,22,0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(0, 0, GOLIATH_HALO_R * 1.15, 0, Math.PI * 2); ctx.fill();
+    _blitGoliathFx(_goliathFx('unbrokenGlow'), 470);
 
+    // each ring is a wide faint stroke under a thin bright one, the look of
+    // a blurred ring without paying for shadowBlur every frame
     const ringPeriod = 900;
     for (let i = 0; i < 3; i++) {
         const phase = ((now + i * (ringPeriod / 3)) % ringPeriod) / ringPeriod;
         const r = GOLIATH_HALO_R * 0.35 + phase * GOLIATH_HALO_R * 0.95;
         const alpha = (1 - phase) * 0.6;
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+        if (!_mobPerf) { ctx.strokeStyle = `rgba(251,146,60,${alpha * 0.35})`; ctx.lineWidth = 12; ctx.stroke(); }
         ctx.strokeStyle = `rgba(253,186,116,${alpha})`; ctx.lineWidth = 3;
-        if (!_mobPerf) { ctx.shadowColor = '#fb923c'; ctx.shadowBlur = 16; }
-        ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+// Phase two: once Unbroken Will has spent itself and the 4s invulnerability
+// is over, Goliath burns for the rest of the fight. A flame corona and a
+// crimson rune ring turn around the body and embers rise off it. Everything
+// heavy is a baked sprite and the embers follow a fixed path off the clock,
+// so the whole layer is a handful of drawImage calls with no allocation.
+function _drawGoliathPhase2(enemy, now) {
+    if (!enemy._unbrokenWillUsed || !enemy._unbrokenWillInvulnEnd || now < enemy._unbrokenWillInvulnEnd) return;
+    const fade = Math.min(1, (now - enemy._unbrokenWillInvulnEnd) / 1500);
+    ctx.save();
+    const pulse = 0.8 + 0.2 * Math.sin(now / 320);
+    ctx.globalAlpha *= fade * pulse;
+    ctx.save(); ctx.rotate(now / 5000);
+    _blitGoliathFx(_goliathFx('phase2Corona'), 320);
+    ctx.restore();
+    ctx.globalAlpha = fade * 0.8;
+    ctx.save(); ctx.rotate(-now / 3200);
+    _blitGoliathFx(_goliathFx('phase2Ring'), 340);
+    ctx.restore();
+
+    const ember = _goliathFx('softDot', 'rgba(255,110,40,1)');
+    const count = _mobPerf ? 6 : 12, P = 2200;
+    for (let i = 0; i < count; i++) {
+        const tt = now + i * (P / count);
+        const ph = (tt % P) / P;
+        const a = i * 2.4 + Math.floor(tt / P) * 1.7;
+        const rr = 170 + ph * 190;
+        const x = Math.cos(a) * rr * 0.85, y = Math.sin(a) * rr * 0.6 - ph * 140;
+        const s = 26 * (1 - ph * 0.6);
+        ctx.globalAlpha = fade * Math.sin(ph * Math.PI) * 0.85;
+        ctx.drawImage(ember, x - s / 2, y - s / 2, s, s);
     }
     ctx.restore();
 }
@@ -2061,6 +2289,7 @@ function _drawGoliath(enemy) {
             // PHA SUMMON: Alpha vẫn đứng đó phát sáng dồn dập, thiên thạch từ
             // mọi hướng bay tới, mỗi lần va chạm khối nóng chảy quanh nó (và
             // quanh 2 khớp vai) phồng to hơn.
+            _drawGoliathSummonCircle(Math.min(1, t / 0.6), now);
             ctx.save();
             ctx.scale(alphaScale, alphaScale);
             _drawGoliathFacetedCrystal(GOLIATH_ALPHA_OUTLINE, GOLIATH_ALPHA_CORE, lightAngle, '#0a0a0a', '#3a3a42', 'rgba(0,0,0,0.7)');
@@ -2087,7 +2316,24 @@ function _drawGoliath(enemy) {
             const p = (t - SUMMON_DUR) / (FUSION_END - SUMMON_DUR);
             const shakeAmt = p * 8;
             ctx.translate((Math.random() - 0.5) * shakeAmt, (Math.random() - 0.5) * shakeAmt);
-            _drawGoliathMoltenBlob((230 + p * 40) * trueScale, 0.9 + Math.sin(now / 125) * 0.1, now);
+            // a column of light climbing out of the mass as it fuses
+            const colW = 70 + p * 130;
+            const col = ctx.createLinearGradient(-colW, 0, colW, 0);
+            col.addColorStop(0, 'rgba(255,170,80,0)');
+            col.addColorStop(0.5, `rgba(255,214,150,${0.18 + p * 0.3})`);
+            col.addColorStop(1, 'rgba(255,170,80,0)');
+            ctx.fillStyle = col;
+            ctx.fillRect(-colW, -900, colW * 2, 1800);
+            _drawGoliathSummonCircle(1 - p, now);
+            // heat rings pushing out from the surface
+            const blobR = (230 + p * 40) * trueScale;
+            for (let i = 0; i < 2; i++) {
+                const k = (now / 450 + i / 2) % 1;
+                ctx.beginPath(); ctx.arc(0, 0, blobR + k * 200, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255,150,60,${(1 - k) * 0.5})`; ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+            _drawGoliathMoltenBlob(blobR, 0.9 + Math.sin(now / 125) * 0.1, now);
             _drawGoliathVeins(GOLIATH_ALPHA_VEINS.map(v => v.map(pt => ({ x: pt.x * 1.6 * alphaScale, y: pt.y * 1.6 * alphaScale }))), 1.0);
         } else if (t < CRYSTALLIZE_END) {
             // PHA CRYSTALLIZE: khối nóng chảy nguội đi và kết tinh sắc nét
@@ -2095,6 +2341,7 @@ function _drawGoliath(enemy) {
             // sáng lần lượt
             const p = (t - FUSION_END) / (CRYSTALLIZE_END - FUSION_END);
             const ease = 1 - Math.pow(1 - p, 2);
+            _drawGoliathLightRays(_mobPerf ? 6 : 10, 520, (1 - p) * 0.22, now, '255,214,160');
             _drawGoliathMoltenBlob(270 * (1 - ease) * trueScale, 1 - ease, now);
             if (ease > 0.15) {
                 ctx.save(); ctx.globalAlpha = (ease - 0.15) / 0.85 * 0.6; ctx.scale(trueScale, trueScale);
@@ -2114,6 +2361,8 @@ function _drawGoliath(enemy) {
                 if (p > igniteAt && slot.filled && slot.gem) _drawGoliathGemDiamond(GOLIATH_SLOT_ANCHORS[i].x * growScale, GOLIATH_SLOT_ANCHORS[i].y * growScale, 15 * growScale, slot.gem, 1.6, now);
             });
             if (p > 0.7) _drawGoliathEye(GOLIATH_EYE_POS.x * growScale, GOLIATH_EYE_POS.y * growScale, 24 * growScale, enemy.x, enemy.y, now);
+            // the moment the magma sets, a white snap over the new body
+            if (p < 0.3) _drawGoliathBloom(760, (1 - p / 0.3) * 0.85, 'rgba(255,244,228,1)');
         } else {
             // PHA SETTLE: 2 chi (đã tự xây từ thiên thạch riêng ở Summon) vươn
             // hẳn ra khỏi thân — "thân xong tới tay" kiểu anime — rồi 1 sóng
@@ -2128,8 +2377,16 @@ function _drawGoliath(enemy) {
             _drawGoliathLimbs(enemy, limbPop);
             _drawGoliathSlots(enemy, enemy.x, enemy.y, true, now);
             ctx.restore();
-            ctx.beginPath(); ctx.arc(0, 0, p * 500, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(255,255,255,${1 - p})`; ctx.lineWidth = 6 * (1 - p); ctx.stroke();
+            _drawGoliathLightRays(_mobPerf ? 8 : 14, 260 + p * 520, (1 - p) * 0.3, now, '255,226,180');
+            if (p < 0.25) _drawGoliathBloom(520, (1 - p / 0.25) * 0.7, 'rgba(255,214,150,1)');
+            // two shock rings, a white one leading and an orange one behind it
+            const rings = [[p * 560, 'rgba(255,255,255,', 6], [p * 400, 'rgba(255,150,60,', 9]];
+            for (const [r, col, w] of rings) {
+                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+                if (!_mobPerf) { ctx.strokeStyle = col + (1 - p) * 0.25 + ')'; ctx.lineWidth = w * 3 * (1 - p) + 2; ctx.stroke(); }
+                ctx.strokeStyle = col + (1 - p) + ')'; ctx.lineWidth = w * (1 - p) + 0.5;
+                ctx.stroke();
+            }
         }
     } else { // true_form
         // Hình học TRUE_FORM_OUTLINE (và mọi toạ độ chi/khe/mắt) được tác giả
@@ -2173,8 +2430,10 @@ function _drawGoliath(enemy) {
         ctx.translate(idleBobX, idleBobY);
         ctx.save();
         ctx.scale(trueScale, trueScale);
-        _drawGoliathHalo(now);
+        const _phase2 = !!(enemy._unbrokenWillUsed && enemy._unbrokenWillInvulnEnd && now >= enemy._unbrokenWillInvulnEnd);
+        _drawGoliathHalo(now, _phase2);
         _drawGoliathUnbrokenAura(enemy, now);
+        _drawGoliathPhase2(enemy, now);
         GOLIATH_TRUE_FORM_FRAGMENTS.forEach((frag, fi) => {
             ctx.save();
             const driftX = frag.ox + Math.sin(now / 1660 + fi) * 10, driftY = frag.oy + Math.cos(now / 2000 + fi * 1.3) * 10;

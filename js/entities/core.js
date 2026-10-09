@@ -910,6 +910,7 @@ function dealDamage(enemy, source) {
     // scaling basis is retired; MaxHP alone is the only number that matters here.
     const effectiveHp = enemyMaxHp;
     let totalDamage = Math.ceil(((source.damage === undefined ? 0 : source.damage) + (effectiveHp * (source.percentDamage || 0))) * _adaptiveSkillMult(source, enemy));
+    if (isSentinel && source._attackerType === 'goliath') totalDamage = Math.ceil(totalDamage * GOLIATH_SENTINEL_DMG_MULT);
 
     // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
     // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 40% khi
@@ -1323,6 +1324,7 @@ function dealDamage(enemy, source) {
         // side's damage - this is an enemy attack landing on a Sentinel, so
         // none of them apply here (matches the main isSentinel guard above).
         let rawDmg = Math.ceil((source.damage || 0) + effHp * (source.percentDamage || 0));
+        if (source._attackerType === 'goliath') rawDmg = Math.ceil(rawDmg * GOLIATH_SENTINEL_DMG_MULT);
         rawDmg = Math.max(0, rawDmg);
         // BUG A fix: apply vanguard DR (each source 10%, max 30%)
         const _vIsTrueDmg = source.isTrueDamage || inTrueDmgWindow;
@@ -1338,7 +1340,7 @@ function dealDamage(enemy, source) {
             rawDmg = Math.ceil(rawDmg * (1 - _vDR));
         }
         rawDmg = Math.max(0, rawDmg);
-        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic', _vIsTrueDmg, enemy, source._attackerType || null);
+        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic', _vIsTrueDmg, enemy, source._attackerType || null, !!source._noAoeDamp);
         return;
     }
 
@@ -2073,7 +2075,8 @@ function dealDamage(enemy, source) {
 // targetSentinel: sentinel bị nhắm trực tiếp (nhận thêm 50% damage gốc)
 // attackerType: enemy.type gây damage, nếu có sẽ ghi Match Stats theo tên boss
 // thật (vd "Leviathan") thay vì rơi về nhãn chung chung "Boss Attack"
-function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSentinel = null, attackerType = null) {
+// noDamp skips both AoE dampening steps, for a single blow meant to land on every Sentinel at full weight
+function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSentinel = null, attackerType = null, noDamp = false) {
     if (!window._vanguardState || sentinels.length < 5) return;
     if (rawDmg <= 0) return;
     const vs = window._vanguardState;
@@ -2111,7 +2114,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
     else if (uniqueSources >= 5) multiSourceDamp = 0.72;
     else if (uniqueSources >= 3) multiSourceDamp = 0.84;
 
-    const dampenedDmg = Math.ceil(rawDmg * perSourceDamp * multiSourceDamp);
+    const dampenedDmg = noDamp ? Math.ceil(rawDmg) : Math.ceil(rawDmg * perSourceDamp * multiSourceDamp);
 
     // Option A: 60% thẳng vào target, 40% chia đều toàn đàn
     const n = sentinels.length;

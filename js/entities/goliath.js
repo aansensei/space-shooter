@@ -231,6 +231,9 @@ const GOLIATH_HEAL_BUDGET_CAP_FRAC = 0.12;
 // (Warding Palm, Back to Motherland, true damage, normal hits). Bucket starts
 // full, so a burst can take 12% Hentry at once and then only what refills.
 const GOLIATH_HP_LOSS_CAP_FRAC = 0.13;
+// every Goliath attack that lands on a Sentinel (anything carrying
+// _attackerType 'goliath') is scaled by this in dealDamage
+const GOLIATH_SENTINEL_DMG_MULT = 1.20;
 const GOLIATH_HP_LOSS_WINDOW_MS = 4000;
 
 // Endless Echo: the player's path is sampled every 100ms and the last 1.5s of
@@ -700,6 +703,9 @@ function updateGoliath(enemy, deltaTime) {
         // cấm Fracture Step (dịch chuyển) + hồi 20% MaxHP 1 LẦN DUY NHẤT ngay
         // khi vừa VẬN XONG (bắt cạnh xuống true->false, không phải mỗi frame).
         const isCasting = _goliathIsCasting(enemy);
+        // movement only slows for a skill he channels himself; while Kanade
+        // casts Endless Echo he keeps flying and Fracture Stepping at full pace
+        const isSelfCasting = _goliathIsCasting(enemy, false);
         // Fracture Step hậu-dịch-chuyển (NEW): +10% tốc độ bay trong 1s.
         const _fractureSpdMult = (enemy._fractureBuffEnd && now < enemy._fractureBuffEnd) ? 1.10 : 1;
         // Unbroken Will (NEW): +15% tốc độ bay trong cửa sổ 6s sau khi cứu mạng.
@@ -713,7 +719,7 @@ function updateGoliath(enemy, deltaTime) {
         // The weave clock stops while he is held in place, so the path picks
         // up where it left off instead of jumping to wherever the clock got to.
         if (!weaveHeld) {
-            enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isCasting ? 0.65 : 1) * _fractureSpdMult * _unbrokenSpdMult;
+            enemy._weaveClock = (enemy._weaveClock || 0) + deltaTime * (isSelfCasting ? 0.65 : 1) * _fractureSpdMult * _unbrokenSpdMult;
         }
         // Coming out of a hold, blend from where he stands into the path,
         // unless Fracture Step has just started a blend of its own.
@@ -765,7 +771,7 @@ function updateGoliath(enemy, deltaTime) {
         // trận đóng lại tại vị trí cũ (400ms), rồi mở ra tại vị trí mới
         // (400ms) — không còn dịch chuyển tức thời như trước.
         if (!enemy._fractureTeleportPhase || enemy._fractureTeleportPhase === 'idle') {
-            if (!isCasting && now >= enemy._fractureStepCooldownEnd) {
+            if (!isSelfCasting && now >= enemy._fractureStepCooldownEnd) {
                 const distToPlayer = Math.hypot(enemy.x - player.x, enemy.y - player.y);
                 let threatNear = distToPlayer < 100;
                 if (!threatNear && typeof bullets !== 'undefined') {
@@ -799,6 +805,15 @@ function updateGoliath(enemy, deltaTime) {
                     } else {
                         enemy._fractureToX = 150 + Math.random() * (canvas.width - 300);
                         enemy._fractureToY = canvas.height * 0.18 + Math.random() * (canvas.height * 0.35);
+                    }
+                    // Kanade's gate opened on the far half from him, so while
+                    // she casts he only steps within his own half and never
+                    // lands on top of her
+                    if (enemy._echoPhase === 'casting') {
+                        const half = canvas.width / 2;
+                        enemy._fractureToX = enemy._echoSide > 0
+                            ? Math.max(150, Math.min(half - 60, enemy._fractureToX))
+                            : Math.max(half + 60, Math.min(canvas.width - 150, enemy._fractureToX));
                     }
                 }
             }
@@ -1370,10 +1385,13 @@ function _goliathInstantSkillUsed(enemy, now) {
     enemy._skillGapUntil = now + GOLIATH_SKILL_GAP_MS;
 }
 
-function _goliathIsCasting(enemy) {
+// includeEcho false asks only about skills he channels himself. Endless Echo
+// is Kanade's cast, so it holds his other skills and his defenses but not his
+// movement.
+function _goliathIsCasting(enemy, includeEcho = true) {
     if (enemy._verdictPhase === 'channeling') return true;
     if (enemy._meteorPhase === 'charging') return true;
-    if (enemy._echoPhase === 'casting') return true;
+    if (includeEcho && enemy._echoPhase === 'casting') return true;
     const js = enemy._jokerState;
     if (js['Raphael'] && (js['Raphael'].telegraphing || js['Raphael'].firing)) return true;
     if (js['Egregor'] && (js['Egregor'].phase === 'charging' || js['Egregor'].phase === 'striking')) return true;
