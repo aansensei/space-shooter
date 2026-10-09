@@ -3,10 +3,14 @@
 (function () {
   'use strict';
 
-  // Warm sclera and a deeper rose mouth suit the skin; all other colours
-  // come from the host palette, including the dark lid shadow and blush.
+  // Warm sclera and a deeper rose mouth suit the skin. The iris gets a mid
+  // blue tier, a violet edge and a pale glint arc for depth, the sclera a
+  // cool fog under the lid, and the blush a paler rim so its edge is soft.
+  // Everything else comes from the host palette.
   const COLOR = Object.freeze({
     sclera: '#fff9f3', mouth: '#af4c6c',
+    eyeFog: '#d9d5e7', eyeMid: '#3674c9', eyeViolet: '#7e87d0', eyeGlint: '#b2e6ff',
+    blushEdge: '#fbd3cb',
   });
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const mix = (a, b, t) => a + (b - a) * t;
@@ -51,6 +55,11 @@
       c.save();
       aperture();
       c.fillStyle = COLOR.sclera; c.fill(); c.clip();
+      // A cool fog band under the lid gives the white of the eye some depth.
+      api.bezierShape([x0 - 0.1, end0 - 0.5], [
+        [-1.45, y1 - 0.5, 1.05, y2 - 0.5, x1 + 0.1, end1 - 0.5],
+        [1.05, y2 + 0.34, -1.45, y1 + 0.34, x0 - 0.1, end0 + 0.22],
+      ], COLOR.eyeFog);
       // The iris moves inside an eye-shaped clip. Its own inner clip keeps
       // the curved blue and cyan bands inside a 0.35-unit dark outer rim.
       const ox = clamp(Number(gx) || 0, -1, 1) * 0.47 * side;
@@ -60,17 +69,26 @@
       c.save();
       c.beginPath(); c.ellipse(ox, iy, 1.53, 1.72, 0, 0, Math.PI * 2); c.clip();
       api.ellipseF(ox, iy, 1.53, 1.72, p.eyeDeep);
-      // Bring blue above the pupil centre: the upper dark tier occupies
-      // about 40% of the visible, open iris rather than most of its height.
-      api.bezierShape([ox - 1.65, iy - 0.20], [
-        [ox - 0.75, iy - 0.58, ox + 0.72, iy - 0.58, ox + 1.65, iy - 0.20],
-        [ox + 1.9, iy + 2.5, ox - 1.9, iy + 2.5, ox - 1.65, iy - 0.20],
+      // Four tiers from the dark top down: deep, mid blue, blue, then the
+      // broad cyan base that keeps the iris readable at 2px per grid unit.
+      api.bezierShape([ox - 1.6, iy - 0.18], [
+        [ox - 0.9, iy - 0.56, ox + 0.65, iy - 0.55, ox + 1.6, iy - 0.13],
+        [ox + 1.8, iy + 2.3, ox - 1.8, iy + 2.3, ox - 1.6, iy - 0.18],
+      ], COLOR.eyeMid);
+      api.bezierShape([ox - 1.5, iy + 0.17], [
+        [ox - 0.80, iy - 0.02, ox + 0.74, iy - 0.03, ox + 1.5, iy + 0.20],
+        [ox + 1.7, iy + 2.2, ox - 1.7, iy + 2.2, ox - 1.5, iy + 0.17],
       ], p.eyeBlue);
-      // A broad, curved cyan base remains readable at 2px per grid unit.
-      api.bezierShape([ox - 1.48, iy + 0.70], [
-        [ox - 0.75, iy + 0.35, ox + 0.75, iy + 0.35, ox + 1.48, iy + 0.70],
-        [ox + 0.8, iy + 2.18, ox - 0.8, iy + 2.18, ox - 1.48, iy + 0.70],
+      api.bezierShape([ox - 1.43, iy + 0.79], [
+        [ox - 0.67, iy + 0.43, ox + 0.70, iy + 0.42, ox + 1.43, iy + 0.79],
+        [ox + 0.87, iy + 2.11, ox - 0.91, iy + 2.11, ox - 1.43, iy + 0.79],
       ], p.eyeLight);
+      // a violet edge on the inner side and a pale glint arc along the base
+      api.bezierShape([ox - 1.37, iy + 0.3], [
+        [ox - 1.07, iy + 0.6, ox - 0.80, iy + 1.07, ox - 0.69, iy + 1.49],
+        [ox - 1.10, iy + 1.4, ox - 1.54, iy + 0.75, ox - 1.37, iy + 0.3],
+      ], COLOR.eyeViolet);
+      api.bezierLine([ox - 0.91, iy + 1.35], [[ox - 0.39, iy + 1.60, ox + 0.45, iy + 1.57, ox + 0.96, iy + 1.20]], COLOR.eyeGlint, 0.19);
       api.ellipseF(ox, iy - 0.13, 0.63, 0.87, p.lid);
       c.restore();
       // One narrow navy lid shadow crosses both sclera and iris, following
@@ -104,6 +122,13 @@
     ], p.lid);
     if (b < 0.65) {
       api.bezierLine([1.08, mix(1.55, 0.52, b)], [[1.48, mix(1.39, 0.36, b), 1.90, 0.72, 2.10, 0.43]], p.hairShadow, 0.40 * (1 - b / 0.65));
+    }
+    if (b < 0.60) {
+      // one separate lash flicking up past the outer corner
+      api.bezierShape([2.29, end1 - 0.43], [
+        [2.64, end1 - 0.56, 2.85, end1 - 0.90, 2.99, end1 - 1.05],
+        [2.86, end1 - 0.46, 2.60, end1 - 0.13, 2.29, end1 - 0.43],
+      ], p.lid);
     }
     c.restore();
   }
@@ -160,10 +185,11 @@
 
   function drawFeatures(api, face) {
     const mode = face.eye || 'open';
-    // Keep the host's original blush colour. Larger patches, half a unit
-    // higher and inward, put the accent just below each outer eye corner.
+    // The host's blush colour sits just below each outer eye corner, inside
+    // a paler rim, so the patch reads as a soft flush rather than a hard disc.
     for (const x of [85.05, 98.95]) {
-      api.ellipseF(x, 40.9, 2.139, 0.805, api.PAL.blush);
+      api.ellipseF(x, 40.9, 2.30, 0.88, COLOR.blushEdge);
+      api.ellipseF(x, 40.9, 1.70, 0.58, api.PAL.blush);
     }
     const b = face.openEye === false ? 0 : face.blink;
     eye(api, 88, mode, b, face.gazeX, face.gazeY);
