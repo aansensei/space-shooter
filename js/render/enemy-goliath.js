@@ -1239,6 +1239,120 @@ function _drawEchoShip(x, y, scale, alpha) {
     ctx.restore();
 }
 
+// Time details reuse the hull, halo and formation sprites already cached by Echo.
+function _echoGhostClockTicks(path, fade, now) {
+    const full = _gfxLevel === 0, step = full ? 2 : 3;
+    ctx.save(); ctx.globalAlpha = fade * (full ? 0.42 : 0.34);
+    ctx.strokeStyle = '#d8c5ef'; ctx.lineWidth = 1.1; ctx.beginPath();
+    for (let i = 1; i < path.length; i += step) {
+        const a = path[i - 1], b = path[i], dx = b.x - a.x, dy = b.y - a.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 16 || d2 > GOLIATH_ECHO_TELEPORT_PX * GOLIATH_ECHO_TELEPORT_PX) continue;
+        const d = Math.sqrt(d2), nx = -dy / d, ny = dx / d;
+        const major = i % 3 === 1, r = major ? 5.5 : 3.3;
+        ctx.moveTo(b.x - nx * r, b.y - ny * r); ctx.lineTo(b.x + nx * r, b.y + ny * r);
+        if (full && major) {
+            const angle = Math.atan2(dy, dx), r2 = 8.5;
+            ctx.moveTo(b.x + Math.cos(angle - 0.7) * r2, b.y + Math.sin(angle - 0.7) * r2);
+            ctx.arc(b.x, b.y, r2, angle - 0.7, angle + 0.7);
+            const hand = angle - 0.8 + (now % 1200) / 1200 * 1.6;
+            ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + Math.cos(hand) * 5, b.y + Math.sin(hand) * 5);
+        }
+    }
+    ctx.stroke(); ctx.restore();
+}
+
+function _drawEchoGhostCharge(e, palm, charge, now, ease, clamp01) {
+    const full = _gfxLevel === 0;
+    ctx.save(); _echoShadowColor.call(ctx, 'transparent');
+    for (let i = 0; i < 2; i++) {
+        const k = ease(clamp01((charge - 0.18 - i * 0.16) / 0.56));
+        if (k <= 0.01) continue;
+        const spacing = Math.min(44, canvas.width * 0.09);
+        const hx = Math.max(32, Math.min(canvas.width - 32, palm.x + (i ? 1 : -1) * spacing * k));
+        const hy = Math.max(42, palm.y - 34 * k + Math.sin(now / 260 + i * 2) * 2);
+        const sprite = _getEchoShipSprite(), seal = 50 + 18 * k;
+        ctx.save(); ctx.translate(hx, hy); ctx.rotate((i ? -1 : 1) * now / 1100);
+        ctx.globalAlpha = k * 0.42;
+        ctx.drawImage(_echoFormationSprite, -seal / 2, -seal / 2, seal, seal);
+        if (full) {
+            ctx.rotate(-now / 580); ctx.globalAlpha = k * 0.18;
+            ctx.drawImage(_echoFormationSprite, -seal * 0.62, -seal * 0.36, seal * 1.24, seal * 0.72);
+        }
+        ctx.restore();
+        ctx.beginPath(); ctx.moveTo(palm.x, palm.y);
+        ctx.quadraticCurveTo(palm.x + (i ? 18 : -18), hy - 16, hx, hy);
+        ctx.strokeStyle = '#b88aeb'; ctx.lineWidth = full ? 5 : 3.5; ctx.globalAlpha = k * 0.16; ctx.stroke();
+        ctx.strokeStyle = '#ead5ff'; ctx.lineWidth = 1.05; ctx.globalAlpha = k * 0.66; ctx.stroke();
+        ctx.fillStyle = '#f5e9ff'; ctx.globalAlpha = k * 0.82; ctx.beginPath();
+        const motes = full ? 8 : 4;
+        for (let m = 0; m < motes; m++) {
+            const flow = (now / 520 + m / motes + i * 0.3) % 1, arc = Math.sin(flow * Math.PI);
+            const x = palm.x + (hx - palm.x) * flow + arc * Math.sin(m * 2.4 + now / 280) * 4;
+            const y = palm.y + (hy - palm.y) * flow - arc * 10, size = 0.9 + flow * 1.1;
+            ctx.moveTo(x, y - size); ctx.lineTo(x + size * 0.6, y);
+            ctx.lineTo(x, y + size); ctx.lineTo(x - size * 0.6, y); ctx.closePath();
+        }
+        ctx.fill();
+        ctx.save(); ctx.translate(hx, hy); ctx.scale(0.45 + 0.5 * k, 0.45 + 0.5 * k);
+        ctx.globalAlpha = k * 0.3; ctx.drawImage(_echoShipHalo, -40, -40, 80, 80);
+        ctx.save(); ctx.beginPath(); ctx.rect(-35, -35, sprite.width, sprite.height * (0.35 + 0.65 * k)); ctx.clip();
+        if (full) {
+            const split = (1 - k) * 4;
+            ctx.globalAlpha = k * (1 - k) * 0.3;
+            ctx.drawImage(sprite, -35 - split, -35 - 1.5); ctx.drawImage(sprite, -35 + split, -35 + 1.5);
+        }
+        ctx.globalAlpha = 0.25 + 0.75 * k; ctx.drawImage(sprite, -35, -35);
+        ctx.restore(); ctx.restore();
+    }
+    ctx.restore();
+}
+
+function _echoGhostOpacity(g, now) {
+    const span = (g.path.length - 1) * GOLIATH_ECHO_SAMPLE_MS;
+    if (g.age < GOLIATH_ECHO_FLIGHT_MS) return 0.9;
+    if (g.age < g.startAt) return 0.6 + 0.1 * Math.sin(now / 160);
+    return 0.9 * Math.min(1, (span - g.t) / (300 * GOLIATH_ECHO_GHOST_SPEED));
+}
+
+function _drawEchoGhostWake(g, now, alpha) {
+    const full = _gfxLevel === 0, flying = g.age < GOLIATH_ECHO_FLIGHT_MS;
+    const waiting = !flying && g.age < g.startAt;
+    if (waiting || alpha <= 0.01) return;
+    const sprite = _getEchoShipSprite(), count = full ? 2 : 1;
+    ctx.save(); _echoShadowColor.call(ctx, 'transparent');
+    if (flying) {
+        const p = g.path[0], f = Math.max(0, Math.min(1, g.age / GOLIATH_ECHO_FLIGHT_MS));
+        const tail = Math.max(0, f - 0.32), v = tail * tail * (3 - 2 * tail);
+        ctx.lineCap = 'round'; ctx.beginPath();
+        ctx.moveTo(g.ox + (p.x - g.ox) * v, g.oy + (p.y - g.oy) * v); ctx.lineTo(g.x, g.y);
+        ctx.strokeStyle = '#bc91f0'; ctx.lineWidth = full ? 6 : 4; ctx.globalAlpha = alpha * 0.12; ctx.stroke();
+        ctx.strokeStyle = '#f1ddff'; ctx.lineWidth = 1.2; ctx.globalAlpha = alpha * 0.36; ctx.stroke();
+        for (let i = count; i >= 1; i--) {
+            const t = Math.max(0, f - i * 0.075), u = t * t * (3 - 2 * t);
+            const x = g.ox + (p.x - g.ox) * u, y = g.oy + (p.y - g.oy) * u;
+            if (Math.hypot(x - g.x, y - g.y) < 3) continue;
+            ctx.globalAlpha = alpha * (i === 1 ? 0.12 : 0.065); ctx.drawImage(sprite, x - 35, y - 35);
+        }
+    } else {
+        for (let i = count; i >= 1; i--) {
+            const t = g.t - i * 65;
+            if (t < 0) continue;
+            const p = _goliathEchoPointAt(g.path, t), dx = p.x - g.x, dy = p.y - g.y;
+            if (dx * dx + dy * dy < 9 || dx * dx + dy * dy > 84 * 84) continue;
+            const from = Math.floor(t / GOLIATH_ECHO_SAMPLE_MS), to = Math.min(g.path.length - 1, Math.floor(g.t / GOLIATH_ECHO_SAMPLE_MS) + 1);
+            let jump = false;
+            for (let n = from; n < to; n++) {
+                const a = g.path[n], b = g.path[n + 1];
+                if ((b.x - a.x) ** 2 + (b.y - a.y) ** 2 > GOLIATH_ECHO_TELEPORT_PX * GOLIATH_ECHO_TELEPORT_PX) { jump = true; break; }
+            }
+            if (jump) continue;
+            ctx.globalAlpha = alpha * (i === 1 ? 0.11 : 0.055); ctx.drawImage(sprite, p.x - 35, p.y - 35);
+        }
+    }
+    ctx.restore();
+}
+
 function _drawEchoTrail(path, fade, now) {
     if (path.length < 2 || fade <= 0) return;
     const cheap = _mobPerf || _gfxLevel >= 2;
@@ -1270,6 +1384,7 @@ function _drawEchoTrail(path, fade, now) {
         ctx.lineTo(b.x - c * 4 - s * 5, b.y - s * 4 + c * 5); ctx.closePath();
     }
     ctx.fill();
+    if (!cheap) _echoGhostClockTicks(path, fade, now);
     if (!cheap) {
         ctx.globalAlpha = fade * 0.8; ctx.fillStyle = '#080410'; ctx.strokeStyle = '#ff3c5a'; ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -1304,11 +1419,13 @@ function _drawEchoCast(e, now) {
     const palm = window._drawKanadeEchoCast({
         x: e._echoGateX, y: e._echoGateY, gateR, box, open, ext, charge, alpha,
         gateAlpha: e._echoFull ? 1 : 0.8, mirror: (e._echoSide || 1) > 0,
+        closing: e._echoPhase !== 'casting',
     }, now);
     if (!palm) return;
     e._echoHandX = palm.x; e._echoHandY = palm.y;
     if (e._echoPhase !== 'casting') return;
     const cheap = _mobPerf || _gfxLevel >= 2;
+    if (!cheap) { _drawEchoGhostCharge(e, palm, charge, now, ease, clamp01); return; }
     // Two distinct hulls gather along light threads rather than inside a blob.
     ctx.save(); _echoShadowColor.call(ctx, 'transparent'); ctx.strokeStyle = '#dcc0ff'; ctx.lineWidth = 1.2;
     for (let i = 0; i < 2; i++) {
@@ -1347,7 +1464,7 @@ function _drawEchoCast(e, now) {
     ctx.restore();
 }
 
-function _drawGoliathEchoes() {
+function _drawGoliathEchoesLegacyGhosts() {
     const now = performance.now();
     for (const e of enemies) {
         if (e.type !== 'goliath' || !e._echoTrail || !e._echoTrail.length) continue;
@@ -1383,6 +1500,44 @@ function _drawGoliathEchoes() {
         }
         ctx.restore();
     }
+}
+
+function _drawGoliathEchoes() {
+    if (_mobPerf || _gfxLevel >= 2) return _drawGoliathEchoesLegacyGhosts();
+    const now = performance.now();
+    for (const e of enemies) {
+        if (e.type !== 'goliath' || !e._echoTrail || !e._echoTrail.length) continue;
+        const casting = e._echoPhase === 'casting';
+        if (!casting && now >= e._echoTrailEnd) continue;
+        const fade = casting ? Math.min(1, e._echoCastTimer / GOLIATH_ECHO_WINDUP_MS * 2.5)
+            : Math.max(0, Math.min(1, (e._echoTrailEnd - now) / 600));
+        _drawEchoTrail(e._echoTrail, fade, now);
+    }
+    const ghosts = window._goliathEchoes;
+    if (!ghosts || !ghosts.length) return;
+    ctx.save(); _echoShadowColor.call(ctx, 'transparent');
+    for (const g of ghosts) {
+        const a = _echoGhostOpacity(g, now);
+        if (a <= 0.01) continue;
+        _drawEchoGhostWake(g, now, a); _drawEchoShip(g.x, g.y, 1, a);
+    }
+    // All collision and wait rings are painted after every decorative hull.
+    for (const g of ghosts) {
+        const flying = g.age < GOLIATH_ECHO_FLIGHT_MS;
+        const waiting = !flying && g.age < g.startAt;
+        if (flying || _echoGhostOpacity(g, now) <= 0.01) continue;
+            // These rings stay sharp on every graphics tier.
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = `rgba(255,59,90,${waiting ? 0.05 : 0.14})`;
+            ctx.beginPath(); ctx.arc(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = `rgba(255,59,90,${waiting ? 0.55 : 0.95})`; ctx.lineWidth = 1.8; ctx.stroke();
+            if (waiting) {
+                const f = (g.age - GOLIATH_ECHO_FLIGHT_MS) / (g.startAt - GOLIATH_ECHO_FLIGHT_MS);
+                ctx.strokeStyle = 'rgba(232,210,255,0.95)'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS + 9, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); ctx.stroke();
+            }
+    }
+    ctx.restore();
 }
 
 // The gate and arm are drawn after Goliath's body.

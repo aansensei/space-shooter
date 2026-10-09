@@ -2307,6 +2307,8 @@ function draw(deltaTime) {
 
         drawRaphaelLasers();
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
+        // The portal sits beneath Echo hazards and the player on FULL and MED.
+        if (!_mobPerf && _gfxLevel < 2) _drawGoliathEchoCasts();
         _drawGoliathEchoes(); // Endless Echo trail + ghosts
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         if (typeof _drawUrielEffects === 'function') _drawUrielEffects(); // Holy Sword projectiles + death barrier
@@ -2910,8 +2912,8 @@ function draw(deltaTime) {
     if (window._kanadeDebugModel && typeof window._kanadeDebugModelDraw === 'function') {
         window._kanadeDebugModelDraw();
     }
-    // Endless Echo stays above the domain, watch, HUD and other canvas layers.
-    if (gameState === "playing") _drawGoliathEchoCasts();
+    // Cheap Echo retains its original overlay position.
+    if (gameState === "playing" && (_mobPerf || _gfxLevel >= 2)) _drawGoliathEchoCasts();
 }
 
 // Start Screen, Pisces Constellation
