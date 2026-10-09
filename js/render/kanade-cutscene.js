@@ -135,12 +135,27 @@
     if (img.decode) img.decode().catch(() => {});
   });
   const PAL = {
+    bodyRim: '#d6c3f9',
+    bodyCCreamShade: '#dcd5e2', bodyCCreamFold: '#ddd7e2', bodyCCreamLight: '#fff7ed', bodyCWhiteContact: '#bbb3ca', bodyCWhiteDeep: '#aaa3bd', bodyCNavyFold: '#29264f', bodyCNavyLight: '#575181', bodyCNavyContact: '#1d1a39', bodyCNavySatin: '#484373',
+    hairSilverH: '#d0cee5',
+    hairPearlH: '#f2f0fa',
+    hairShadeH: '#b7b3d5',
+    hairContactH: '#5e5984',
     hairShadow: '#6b6690', hairDeep: '#4a4570', hairMid: '#9f9cc4', hairLight: '#e7e5f5', hairHi: '#fffdf8',
     skin: '#ffe3d4', skinShadow: '#e3ac9d', blush: '#f5b7c2',
     eyeDeep: '#244f9d', eyeBlue: '#4f8fe0', eyeLight: '#8ed6ff', eyeHi: '#ffffff', lid: '#332b55',
     creamShadow: '#b8b2ca', creamMid: '#e9e5ea', cream: '#fffaf0',
     indigoDeep: '#110f24', indigo: '#292552', indigoMid: '#403a78', indigoHi: '#665ba1',
     goldDark: '#9b7131', gold: '#d8b35a', goldHi: '#fff0a3',
+    bodyLSkinShade: '#edc4b2',
+    bodyLSkinLight: '#fff0e3',
+    bodyLHandShade: '#efc6b5',
+    bodyLHandLight: '#fff0e4',
+    bodyLBootPlane: '#46415f',
+    bodyLBootFold: '#3a3659',
+    bodyLBootEdge: '#625d79',
+    bodyLBootSheen: '#8f879f',
+    bodyLGoldFacet: '#e9cf8b',
     bootDeep: '#15142a', boot: '#292647', bootHi: '#ece7ef',
     outline: '#231f38',
     // Light thrown back onto her by her own spell. Only used while casting.
@@ -216,7 +231,7 @@
     segments.forEach(s => pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]));
     pctx.stroke();
   }
-  function bezierShape(start, segments, c) {
+  function bodyBaseBezierShape(start, segments, c) {
     pctx.fillStyle = c;
     pctx.beginPath();
     pctx.moveTo(start[0], start[1]);
@@ -224,12 +239,60 @@
     pctx.closePath();
     pctx.fill();
   }
+
+  function bodyRimPath(outline, width, alpha) {
+    const append = () => {
+      pctx.moveTo(outline[0][0], outline[0][1]);
+      for (const s of outline[1]) pctx.bezierCurveTo(...s);
+      pctx.closePath();
+    };
+    pctx.save();
+    tracePath(outline); pctx.clip();
+    pctx.beginPath(); append();
+    pctx.save(); pctx.translate(-LIGHT.x * width, -LIGHT.y * width); append(); pctx.restore();
+    pctx.clip('evenodd');
+    pctx.globalCompositeOperation = 'source-atop';
+    pctx.globalAlpha *= alpha;
+    pctx.fillStyle = PAL.bodyRim;
+    pctx.fillRect(-180, -180, 540, 540);
+    pctx.restore();
+  }
+  function bezierShape(start, segments, color) {
+    bodyBaseBezierShape(start, segments, color);
+    if (color !== PAL.hairLight && color !== PAL.hairMid) return;
+    const ys = [start[1], ...segments.flatMap(s => [s[1], s[3], s[5]])];
+    if (Math.max(...ys) >= 62 && Math.max(...ys) - Math.min(...ys) > 18) {
+      bodyRimPath([start, segments], 0.88, 0.42);
+    }
+  }
+  function clothPanel(outline, base, shadeW, litW) {
+    bodyBaseClothPanel(outline, base, shadeW, litW);
+    if (base === PAL.cream || base === PAL.creamMid || base === PAL.creamShadow) {
+      bodyRimPath(outline, 0.78, 0.44);
+    }
+  }
+  function hairLock(x0, y0, w, x1, y1, bend, color) {
+    bodyBaseHairLock(x0, y0, w, x1, y1, bend, color);
+    if (x0 >= 105 && w >= 9 && color === PAL.hairDeep) {
+      const h = y1 - y0;
+      bodyRimPath([[x0 - w / 2, y0], [
+        [x0 - w / 2 + bend, y0 + h * 0.45, x1 - w * 0.3 + bend * 0.5, y1 - h * 0.22, x1, y1],
+        [x1 + w * 0.3 + bend * 0.5, y1 - h * 0.25, x0 + w / 2 + bend, y0 + h * 0.4, x0 + w / 2, y0]
+      ]], 0.65, 0.28);
+    }
+  }
+
+  function hairMassH(outline, c, planes) {
+    bodyBaseHairMassH(outline, c, planes);
+    if (c === PAL.hairSilverH) bodyRimPath(outline, 0.88, 0.42);
+  }
+
   function sparkle(x, y, size, c) {
     poly([[x, y - size], [x + 1, y - 1], [x + size, y], [x + 1, y + 1], [x, y + size], [x - 1, y + 1], [x - size, y], [x - 1, y - 1]], c);
   }
   // One lock of hair as a tapered ribbon: w wide where it leaves the head at
   // (x0, y0), narrowing to a point at (x1, y1). bend bows it sideways.
-  function hairLock(x0, y0, w, x1, y1, bend, c) {
+  function bodyBaseHairLock(x0, y0, w, x1, y1, bend, c) {
     const h = y1 - y0;
     bezierShape([x0 - w / 2, y0], [
       [x0 - w / 2 + bend, y0 + h * 0.45, x1 - w * 0.3 + bend * 0.5, y1 - h * 0.22, x1, y1],
@@ -244,29 +307,49 @@
     [PAL.hairShadow]: { shade: PAL.hairDeep, lit: PAL.hairMid },
     [PAL.hairDeep]: { shade: PAL.outline, lit: PAL.hairShadow },
   };
-  // A lock cel-shaded as a ribbon rather than a flat cutout: a shade band
-  // down its far side, a dark line where it lies over the lock beside it, a
-  // lit stroke down its near side and a fine strand inside. Same arguments as
-  // hairLock.
+  // All surface planes share the exact silhouette of the receiving lock.
+  function bodyBaseHairMassH(outline, c, planes) {
+    bezierShape(outline[0], outline[1], c);
+    pctx.save();
+    tracePath(outline);
+    pctx.clip();
+    for (const plane of planes) bezierShape(plane[0], plane[1], plane[2]);
+    pctx.restore();
+  }
+  // The highlight swells once along the lock and tapers at both ends.
   function hairLockShaded(x0, y0, w, x1, y1, bend, c) {
-    const tone = HAIR_TONES[c];
-    hairLock(x0, y0, w, x1, y1, bend, c);
-    hairLock(x0 + w * 0.33, y0, w * 0.34, x1 + 0.2, y1 - 1.5, bend, tone.shade);
-    const h = y1 - y0;
-    // A point on the lock at u (0 root, 1 tip), side -1 on its near edge,
-    // +1 on its far edge.
+    const tone = HAIR_TONES[c], h = y1 - y0;
+    const outline = [[x0 - w / 2, y0], [
+      [x0 - w / 2 + bend, y0 + h * 0.45, x1 - w * 0.3 + bend * 0.5, y1 - h * 0.22, x1, y1],
+      [x1 + w * 0.3 + bend * 0.5, y1 - h * 0.25, x0 + w / 2 + bend, y0 + h * 0.4, x0 + w / 2, y0]
+    ]];
     const at = (u, side) => {
       const v = 1 - u;
       const x = v * v * v * x0 + 3 * v * v * u * (x0 + bend) + 3 * v * u * u * (x1 + bend * 0.5) + u * u * u * x1;
       const y = v * v * v * y0 + 3 * v * v * u * (y0 + h * 0.43) + 3 * v * u * u * (y1 - h * 0.23) + u * u * u * y1;
       return [x + side * w * 0.5 * (1 - u * 0.85), y];
     };
-    line([at(0.45, -0.9), at(0.65, -0.9), at(0.86, -0.85)], tone.shade, STROKE.fine);
-    // The lit stroke starts at a different height on each lock, so the
-    // highlights do not line up across the hair.
-    const hs = 0.08 + ((x0 * 13) % 7) * 0.035;
-    line([at(hs, -0.45), at(hs + 0.12, -0.45), at(hs + 0.24, -0.4)], tone.lit, Math.min(STROKE.seam, w * 0.1));
-    line([at(0.3, 0.1), at(0.5, 0.15), at(0.72, 0.05)], tone.shade, STROKE.hairline);
+    hairLock(x0, y0, w, x1, y1, bend, c);
+    pctx.save();
+    tracePath(outline); pctx.clip();
+    hairLock(x0 + w * 0.28, y0, w * 0.41, x1 + 0.10, y1 - 0.6, bend,
+      c === PAL.hairLight ? PAL.hairShadeH : tone.shade);
+    const hs = 0.10 + ((x0 * 13) % 7) * 0.026;
+    const a = at(hs, -0.37), b = at(hs + 0.17, -0.37), d = at(hs + 0.43, -0.25);
+    const width = Math.min(1.35, w * 0.16);
+    bezierShape(a, [
+      [b[0] - width, b[1], d[0] - width * 0.2, d[1] - h * 0.07, d[0], d[1]],
+      [d[0] + width * 0.2, d[1] - h * 0.04, b[0] + width, b[1], a[0], a[1]]
+    ], c === PAL.hairLight ? PAL.hairPearlH : c === PAL.hairMid ? PAL.hairSilverH : tone.lit);
+    if (c === PAL.hairMid || c === PAL.hairShadow) {
+      const a = at(0.37, 0.58), b = at(0.55, 0.65), d = at(0.86, 0.73);
+      const width = Math.min(0.65, w * 0.08);
+      bezierShape(a, [
+        [b[0] - width, b[1], d[0] - width * 0.22, d[1], d[0], d[1]],
+        [d[0] + width * 0.22, d[1], b[0] + width, b[1], a[0], a[1]]
+      ], PAL.hairContactH);
+    }
+    pctx.restore();
   }
   // A closed outline laid out as points, run through a Catmull-Rom curve and
   // returned as the [start, segments] pair bezierShape takes. Cloth and flesh
@@ -306,12 +389,12 @@
   // darker; the cream shadow borrows the hair's lavender, which is the cool
   // shade the rest of the figure already uses.
   const CLOTH_TONES = {
-    [PAL.cream]: { shade: PAL.creamMid, lit: null },
-    [PAL.creamMid]: { shade: PAL.creamShadow, lit: PAL.cream },
-    [PAL.creamShadow]: { shade: PAL.hairMid, lit: PAL.creamMid },
-    [PAL.indigoMid]: { shade: PAL.indigo, lit: PAL.indigoHi },
-    [PAL.indigo]: { shade: PAL.indigoDeep, lit: PAL.indigoMid },
-    [PAL.indigoDeep]: { shade: null, lit: PAL.indigo },
+    [PAL.cream]: { shade: PAL.bodyCCreamShade, lit: null },
+    [PAL.creamMid]: { shade: PAL.bodyCWhiteContact, lit: PAL.bodyCCreamLight },
+    [PAL.creamShadow]: { shade: PAL.bodyCWhiteDeep, lit: PAL.creamMid },
+    [PAL.indigoMid]: { shade: PAL.bodyCNavyFold, lit: PAL.bodyCNavyLight },
+    [PAL.indigo]: { shade: PAL.bodyCNavyContact, lit: PAL.bodyCNavySatin },
+    [PAL.indigoDeep]: { shade: null, lit: PAL.bodyCNavyFold },
   };
   // A cloth panel lit by LIGHT: its base tone, a shade band inside the edges
   // that face away from the light and a narrower lit band inside the edges
@@ -322,7 +405,7 @@
   // panel, so they follow its outline exactly whatever its shape: whatever
   // the copy shifted toward the light does not cover is the shaded edge, and
   // whatever the copy shifted away does not cover is the lit one.
-  function clothPanel(outline, base, shadeW, litW) {
+  function bodyBaseClothPanel(outline, base, shadeW, litW) {
     const tone = CLOTH_TONES[base];
     const sw = shadeW == null ? 1.8 : shadeW, lw = litW == null ? 0.9 : litW;
     pctx.save();
@@ -343,6 +426,16 @@
     pctx.restore();
     pctx.fillStyle = base;
     pctx.fill();
+    pctx.restore();
+  }
+
+  // Cloth folds are opaque broad planes inside the panel's original moving path.
+  function bodyCPanel(outline, base, shadeW, litW, folds) {
+    clothPanel(outline, base, shadeW, litW);
+    pctx.save();
+    tracePath(outline);
+    pctx.clip();
+    for (const [start, segments, tone] of folds) bezierShape(start, segments, tone);
     pctx.restore();
   }
 
@@ -546,6 +639,60 @@
     [0.55, 0.63, 7.2, 9.3],
     [1.8, 0.61, 7.0, 8.85],
   ];
+  // Edge planes inherit the receiving shape and LIGHT inside its clip.
+  function bodyLMaterial(outline, base, shade, lit, sw, lw) {
+    pctx.save();
+    tracePath(outline); pctx.clip();
+    pctx.fillStyle = shade; pctx.fill();
+    pctx.save();
+    pctx.translate(LIGHT.x * sw, LIGHT.y * sw);
+    tracePath(outline); pctx.restore(); pctx.clip();
+    pctx.fillStyle = lit; pctx.fill();
+    pctx.save();
+    pctx.translate(-LIGHT.x * lw, -LIGHT.y * lw);
+    tracePath(outline); pctx.restore();
+    pctx.fillStyle = base; pctx.fill();
+    pctx.restore();
+  }
+  function bodyLClip(outline, paint) {
+    pctx.save(); tracePath(outline); pctx.clip();
+    paint(); pctx.restore();
+  }
+  // Stroke surfaces use a sampled envelope inset from the original skin stroke.
+  function bodyLSkinStroke(start, segments, width) {
+    const left = [], right = [];
+    let origin = start;
+    for (const seg of segments) {
+      for (let i = 0; i <= 14; i++) {
+        const t = i / 14, v = 1 - t;
+        const x = v * v * v * origin[0] + 3 * v * v * t * seg[0] + 3 * v * t * t * seg[2] + t * t * t * seg[4];
+        const y = v * v * v * origin[1] + 3 * v * v * t * seg[1] + 3 * v * t * t * seg[3] + t * t * t * seg[5];
+        const dx = 3 * v * v * (seg[0] - origin[0]) + 6 * v * t * (seg[2] - seg[0]) + 3 * t * t * (seg[4] - seg[2]);
+        const dy = 3 * v * v * (seg[1] - origin[1]) + 6 * v * t * (seg[3] - seg[1]) + 3 * t * t * (seg[5] - seg[3]);
+        const length = Math.hypot(dx, dy) || 1, r = width * 0.42;
+        left.push([x - dy / length * r, y + dx / length * r]);
+        right.push([x + dy / length * r, y - dx / length * r]);
+      }
+      origin = [seg[4], seg[5]];
+    }
+    pctx.save(); pctx.beginPath();
+    pctx.moveTo(...left[0]);
+    for (const point of left) pctx.lineTo(...point);
+    for (let i = right.length - 1; i >= 0; i--) pctx.lineTo(...right[i]);
+    pctx.closePath();
+    for (const point of [start, origin]) {
+      pctx.moveTo(point[0] + width * 0.42, point[1]);
+      pctx.arc(point[0], point[1], width * 0.42, 0, Math.PI * 2, true);
+    }
+    pctx.clip();
+    pctx.save(); pctx.translate(-LIGHT.x * width * 0.20, -LIGHT.y * width * 0.20);
+    bezierLine(start, segments, PAL.bodyLSkinShade, width * 0.48);
+    pctx.restore();
+    pctx.save(); pctx.translate(LIGHT.x * width * 0.13, LIGHT.y * width * 0.13);
+    bezierLine(start, segments, PAL.bodyLSkinLight, width * 0.25);
+    pctx.restore(); pctx.restore();
+  }
+
   function drawCastHand(x, y, s, open) {
     const k = 1.05, q = 0.552;
     const u = Math.max(0, Math.min(1, open / 0.8));
@@ -616,6 +763,19 @@
     // its tip.
     bezierLine(P(PL0[0], PL0[1]), segs.slice(1, segs.length - 1), PAL.outline, STROKE.edge);
     bezierShape(start, segs, PAL.skin);
+    bodyLClip([start, segs], () => {
+      bezierShape(P(-2.35, 0.25), [
+        seg([-2.65, 2.4], [-2.20, 4.6], [-1.70, fing[0].tip]),
+        seg([-1.20, fing[0].tip - 0.55], [-1.32, 3.0], [-1.02, 1.65]),
+        seg([-1.35, 0.75], [-1.82, 0.22], [-2.35, 0.25]),
+      ], PAL.bodyLHandShade);
+      bezierShape(P(0.24, 0.20), [
+        seg([0.55, 1.4], [1.32, 2.0], [1.58, 3.9]),
+        seg([1.15, 4.2], [0.75, 3.7], [0.35, 2.7]),
+        seg([-0.02, 1.7], [-0.15, 0.60], [0.24, 0.20]),
+      ], PAL.bodyLHandLight);
+    });
+
     // Short partings in shade, not outline, running back from each valley.
     // The middle one is always there; the outer two grow with the gaps, so
     // the relaxed hand keeps a single crease.
@@ -627,6 +787,15 @@
       line([P(vx, vy - 0.1), P(vx - 0.05, vy - 0.1 - len)], PAL.skinShadow, i === 1 ? STROKE.fine : STROKE.hairline);
     }
     bezierShape(tStart, tSegs, PAL.skin);
+    bodyLClip([tStart, tSegs], () => {
+      bezierShape(P(...at(0.05, -0.82)), [
+        seg(at(0.7, -0.95), at(len - 0.7, -0.66), at(len, -0.10)),
+        seg(at(len - 0.5, -0.18), at(1.30, -0.20), at(0.25, -0.31)),
+        seg(at(0.10, -0.50), at(0.06, -0.70), at(0.05, -0.82)),
+      ], PAL.bodyLHandShade);
+      bezierLine(P(...at(0.65, 0.45)), [seg(at(1.4, 0.49), at(len - 0.7, 0.31), at(len - 0.4, 0.15))], PAL.bodyLHandLight, 0.45);
+    });
+
     bezierLine(P(...at(0.7, root)), tSegs.slice(1, 4), PAL.outline, STROKE.seam);
 
     // A hint of the thumb's fold, and a little shade down the side of the
@@ -659,6 +828,28 @@
     pctx.fill();
     ellipse0(start[0], start[1], w0 / 2, c);
     ellipse0(s[4], s[5], w1 / 2, c);
+    if (c === PAL.skin) {
+      pctx.save(); pctx.beginPath();
+      pctx.moveTo(L[0][0], L[0][1]);
+      for (const point of L) pctx.lineTo(point[0], point[1]);
+      for (let i = Rt.length - 1; i >= 0; i--) pctx.lineTo(Rt[i][0], Rt[i][1]);
+      pctx.closePath();
+      for (const [x, y, radius] of [[start[0], start[1], w0 / 2], [s[4], s[5], w1 / 2]]) {
+        pctx.moveTo(x + radius, y); pctx.arc(x, y, radius, 0, Math.PI * 2, true);
+      }
+      pctx.clip();
+      const toBand = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+      const litRight = (Rt[6][0] - L[6][0]) * LIGHT.x + (Rt[6][1] - L[6][1]) * LIGHT.y > 0;
+      for (const [edge, inner, tone] of [[0, 0.30, PAL.bodyLSkinShade], [0.73, 0.91, PAL.bodyLSkinLight]]) {
+        const lo = litRight ? edge : 1 - inner, hi = litRight ? inner : 1 - edge;
+        pctx.beginPath(); pctx.moveTo(...toBand(L[0], Rt[0], lo));
+        for (let i = 0; i <= N; i++) pctx.lineTo(...toBand(L[i], Rt[i], lo));
+        for (let i = N; i >= 0; i--) pctx.lineTo(...toBand(L[i], Rt[i], hi));
+        pctx.closePath(); pctx.fillStyle = tone; pctx.fill();
+      }
+      pctx.restore();
+    }
+
   }
   // An unrounded circle, for the limb ends; ellipse() snaps to whole grid
   // units, which would put a step at each end of a smooth limb.
@@ -958,20 +1149,40 @@
       ], PAL.magicHi, STROKE.fine);
       pctx.restore();
     }
-    bezierShape([84, 20], [
+    hairMassH([[84, 20], [
       [78, 38, 77, 72, 78 + hTrail * 0.1, 101],
       [78 + hTrail * 0.35, 121, 76 + hTrail * 0.52, 136 + hDrop * 6, 72 + hTrail * 0.6, 143 + hDrop * 6],
       [78 + hTrail * 0.4, 141 + hDrop * 4, 83 + hTrail * 0.2, 124 + hDrop * 5, 84, 101],
       [86, 70, 87, 39, 84, 20]
-    ], PAL.hairLight);
-    bezierShape([94, 18], [
+    ]], PAL.hairSilverH, [
+      [[84.6, 44], [
+        [82.8, 61, 81.1, 90, 80.6 + hTrail * 0.18, 108],
+        [79.8 + hTrail * 0.30, 123, 76.1 + hTrail * 0.50, 138 + hDrop * 5, 72 + hTrail * 0.60, 143 + hDrop * 6],
+        [80.0 + hTrail * 0.40, 138 + hDrop * 4, 84.0 + hTrail * 0.20, 109, 84.6, 44]
+      ], PAL.hairShadeH],
+      [[82.35, 30], [
+        [77.3, 51, 78.0, 91, 76.7 + hTrail * 0.43, 131 + hDrop * 5],
+        [81.4 + hTrail * 0.24, 111, 83.0, 49, 82.35, 30]
+      ], PAL.hairPearlH]
+    ]);
+    hairMassH([[94, 18], [
       [99, 37, 101, 67, 101 + hTrail * 0.08, 96],
       [102 + hTrail * 0.3, 119, 105 + hTrail * 0.5, 134 + hDrop * 6, 109 + hTrail * 0.58, 143 + hDrop * 6],
       [103 + hTrail * 0.38, 140 + hDrop * 4, 97 + hTrail * 0.18, 124 + hDrop * 5, 96, 101],
       [93, 67, 91, 35, 94, 18]
-    ], PAL.hairLight);
+    ]], PAL.hairLight, [
+      [[94.0, 39], [
+        [98.0, 60, 100.0, 93, 100.6 + hTrail * 0.22, 116],
+        [102.5 + hTrail * 0.43, 135 + hDrop * 5, 105.0 + hTrail * 0.51, 142 + hDrop * 5, 109 + hTrail * 0.58, 143 + hDrop * 6],
+        [98.0 + hTrail * 0.2, 133, 94.0, 65, 94.0, 39]
+      ], PAL.hairShadeH],
+      [[97.2, 31], [
+        [101.7, 46, 105.5 + hTrail * 0.14, 109, 108.0 + hTrail * 0.52, 136 + hDrop * 5],
+        [102.0 + hTrail * 0.22, 115, 98.2, 49, 97.2, 31]
+      ], PAL.hairPearlH]
+    ]);
     bezierLine([70, 35], [[68, 64, 70 + hTrail * 0.2, 101, 64 + hTrail * 0.55, 136 + hDrop * 6]], PAL.hairDeep, STROKE.band);
-    bezierLine([81, 26], [[80, 54, 82 + hTrail * 0.12, 91, 78 + hTrail * 0.42, 128 + hDrop * 5]], PAL.hairHi, STROKE.strap);
+
     bezierLine([108, 28], [[111, 56, 109 + hTrail * 0.15, 92, 113 + hTrail * 0.48, 132 + hDrop * 5]], PAL.hairShadow, STROKE.band);
 
     // Second pass over the back hair. It is the largest single area on the
@@ -1014,10 +1225,13 @@
       const backFoot = walkStep * 4;
       const bl = smoothOutline([[82, 105], [88, 105], [88 - backFoot * 0.25, 143], [85 - backFoot, 158], [79 - backFoot, 157], [81 - backFoot * 0.4, 132]], 0.8);
       bezierShape(bl[0], bl[1], PAL.skinShadow);
+      bodyLMaterial([bl[0], bl[1]], PAL.skinShadow, PAL.skinShadow, PAL.bodyLSkinShade, 0.9, 0.4);
       const bb = smoothOutline([[80 - backFoot, 139], [88 - backFoot * 0.4, 140], [88 - backFoot, 160], [81 - backFoot, 164], [76 - backFoot, 160]], 0.6);
       bezierShape(bb[0], bb[1], PAL.bootDeep);
+      bodyLMaterial([bb[0], bb[1]], PAL.bootDeep, PAL.bootDeep, PAL.boot, 0.65, 0.50);
       const bs = smoothOutline([[78 - backFoot, 159], [90 - backFoot, 159], [91 - backFoot, 163], [83 - backFoot, 166], [77 - backFoot, 163]], 0.6);
       bezierShape(bs[0], bs[1], PAL.boot);
+      bodyLMaterial([bs[0], bs[1]], PAL.boot, PAL.bootDeep, PAL.bodyLBootFold, 0.65, 0.50);
     }
     // The far leg's boot, just showing under the hem beside the near one, so
     // she does not stand on a single leg down the middle of the gown. Kept
@@ -1027,6 +1241,7 @@
     if (Math.abs(walkStep) <= 0.04) {
       const farBoot = smoothOutline([[80, 148], [87, 148], [88, 164], [87, 172 - hipTilt], [81, 173 - hipTilt], [79.5, 164]], 0.6);
       bezierShape(farBoot[0], farBoot[1], PAL.bootDeep);
+      bodyLMaterial([farBoot[0], farBoot[1]], PAL.bootDeep, PAL.bootDeep, PAL.bodyLBootFold, 0.60, 0.55);
       // A thin lit edge down its outer side, so the dark boot does not sink
       // into the dark behind her and leave one leg under the gown.
       bezierLine([80.2, 151], [[79.6, 157, 79.7, 164, 81, 171.5 - hipTilt]], PAL.boot, STROKE.seam);
@@ -1040,6 +1255,7 @@
     // what sells the change is how much leg is visible, not the number.
     const leg = smoothOutline([[86, 92], [95, 92], [99, 126], [97, 158], [92, 158], [87, 128]], 0.8);
     bezierShape(leg[0], leg[1], PAL.skin);
+      bodyLMaterial([leg[0], leg[1]], PAL.skin, PAL.bodyLSkinShade, PAL.bodyLSkinLight, 1.5, 0.7);
     bezierLine(leg[0], leg[1].slice(0, 4), PAL.outline, STROKE.fine);
     // Soft contact shadow where the gown hem falls across the leg, so the
     // leg reads as clearly in front of/below the robe instead of the two
@@ -1062,10 +1278,22 @@
     // than as the near-black boot the rest of the outfit is built around.
     const bootMid = smoothOutline([[92, 148], [97, 149], [96.5, 166], [94, 168], [91.5, 165], [91.5, 154]], 0.6);
     bezierShape(bootMid[0], bootMid[1], PAL.boot);
+    bodyLMaterial([bootMid[0], bootMid[1]], PAL.boot, PAL.bootDeep, PAL.bodyLBootPlane, 0.95, 0.75);
+    bodyLClip([boot[0], boot[1]], () => {
+      bezierLine([91.8, 160.5], [[93.0, 159.9, 95.0, 160.0, 96.4, 160.8]], PAL.bodyLBootFold, STROKE.fine);
+    });
+
     const sole = smoothOutline([[89, 167], [101, 167], [102, 172], [96, 175], [89, 172]], 0.5);
     bezierShape(sole[0], sole[1], PAL.bootDeep);
-    rect(92.6, 150, 0.9, 15, PAL.bootHi);
+    bodyLMaterial([sole[0], sole[1]], PAL.bootDeep, PAL.bootDeep, PAL.bodyLBootEdge, 0.70, 0.70);
+    rect(92.6, 150, 0.9, 15, PAL.bodyLBootSheen);
     ellipse(95, 158, 2.4, 2, PAL.gold);
+    pctx.save(); pctx.beginPath(); pctx.ellipse(95, 158, 2, 2, 0, 0, Math.PI * 2); pctx.clip();
+    bezierShape([93.05, 157.6], [
+      [93.5, 156.1, 95.4, 155.8, 96.3, 156.8],
+      [95.1, 156.9, 94.1, 157.3, 93.05, 157.6],
+    ], PAL.bodyLGoldFacet);
+    pctx.restore();
     ellipse(95, 158, 1, 1, PAL.bootDeep);
     rect(91.4, 149, 0.7, 17, PAL.goldDark);
     // Thin gold ankle strap, picking up the trim on the rest of the outfit.
@@ -1073,35 +1301,98 @@
 
     const robeL = smoothOutline([[78, 75], [68, 86], [58 + fabricTrail * 0.15, 112], [52 + fabricTrail * 0.45, 142], [74 + fabricTrail * 0.15, 151], [89, 142], [94, 96]], 0.45);
     const robeR = smoothOutline([[102, 74], [114, 86], [124 + fabricTrail * 0.15, 113], [132 + fabricTrail * 0.45, 146], [108 + fabricTrail * 0.15, 154], [92, 142], [87, 96]], 0.45);
-    clothPanel(robeL, PAL.creamShadow);
-    clothPanel(robeR, PAL.creamMid);
+    bodyCPanel(robeL, PAL.creamShadow, null, null, [
+      [[69, 91], [
+        [65, 108, 60 + fabricTrail * 0.20, 129, 56 + fabricTrail * 0.43, 143],
+        [59 + fabricTrail * 0.34, 141, 64 + fabricTrail * 0.15, 126, 67, 109],
+        [69, 102, 70, 96, 69, 91]
+      ], PAL.bodyCWhiteDeep]
+    ]);
+    bodyCPanel(robeR, PAL.creamMid, null, null, [
+      [[113, 92], [
+        [119, 111, 125 + fabricTrail * 0.20, 132, 128 + fabricTrail * 0.43, 145],
+        [124 + fabricTrail * 0.34, 142, 120 + fabricTrail * 0.15, 126, 116, 109],
+        [114, 102, 112, 96, 113, 92]
+      ], PAL.bodyCCreamFold]
+    ]);
     // Outline along the widest outer edge of the gown's lower front panels
     // so the robe reads as one clear silhouette instead of merging into
     // whatever sits behind/beside it.
     bezierLine(robeL[0], robeL[1].slice(0, 4), PAL.outline, STROKE.seam);
     bezierLine(robeR[0], robeR[1].slice(0, 4), PAL.outline, STROKE.seam);
-    clothPanel(smoothOutline([[86, 78], [75, 91], [67 + fabricTrail * 0.1, 118], [63 + fabricTrail * 0.35, 148], [86, 145], [92, 126], [94, 87]], 0.45), PAL.cream);
-    clothPanel(smoothOutline([[94, 79], [107, 92], [116 + fabricTrail * 0.1, 121], [123 + fabricTrail * 0.35, 150], [101, 147], [93, 126], [87, 88]], 0.45), PAL.indigoMid);
+    bodyCPanel(smoothOutline([[86, 78], [75, 91], [67 + fabricTrail * 0.1, 118], [63 + fabricTrail * 0.35, 148], [86, 145], [92, 126], [94, 87]], 0.45), PAL.cream, null, null, [
+      [[78, 91], [
+        [74, 110, 71 + fabricTrail * 0.10, 129, 67 + fabricTrail * 0.25, 145],
+        [69 + fabricTrail * 0.25, 146, 74 + fabricTrail * 0.10, 130, 77, 110],
+        [79, 102, 80, 96, 78, 91]
+      ], PAL.bodyCCreamFold],
+      [[87, 87], [
+        [86, 105, 81, 129, 81, 145],
+        [84, 137, 87, 117, 90, 102],
+        [91, 94, 90, 89, 87, 87]
+      ], PAL.bodyCCreamShade]
+    ]);
+    bodyCPanel(smoothOutline([[94, 79], [107, 92], [116 + fabricTrail * 0.1, 121], [123 + fabricTrail * 0.35, 150], [101, 147], [93, 126], [87, 88]], 0.45), PAL.indigoMid, null, null, [
+      [[103, 91], [
+        [108, 108, 113 + fabricTrail * 0.10, 130, 117 + fabricTrail * 0.25, 147],
+        [113 + fabricTrail * 0.25, 141, 108 + fabricTrail * 0.10, 123, 106, 108],
+        [105, 100, 103, 95, 103, 91]
+      ], PAL.bodyCNavyLight],
+      [[98, 91], [
+        [101, 110, 102, 130, 105, 147],
+        [101, 146, 98, 128, 95, 109],
+        [94, 101, 96, 96, 98, 91]
+      ], PAL.bodyCNavyFold]
+    ]);
     const split = smoothOutline([[91, 91], [100, 105], [103, 133], [100, 151], [92, 145], [87, 126]], 0.45);
     bezierShape(split[0], split[1], PAL.indigoDeep);
     const thigh = smoothOutline([[92, 103], [98, 116], [96.5, 145], [90.5, 145.5], [87, 126]], 0.35);
     bezierShape(thigh[0], thigh[1], PAL.skin);
+      bodyLMaterial([thigh[0], thigh[1]], PAL.skin, PAL.bodyLSkinShade, PAL.bodyLSkinLight, 1.15, 0.5);
 
     clothPanel(smoothOutline([[77, 49], [86, 45], [101, 47], [109, 53], [104, 73], [98, 84], [82, 83], [75, 72]], 0.5), PAL.cream);
     const bodiceL = smoothOutline([[76, 49], [84, 48], [88, 79], [80, 82], [74, 69]], 0.7);
-    bezierShape(bodiceL[0], bodiceL[1], PAL.indigoMid);
+    bodyCPanel(bodiceL, PAL.indigoMid, 1.3, 0.7, [
+      [[79, 53], [
+        [80, 60, 82, 70, 83, 79],
+        [86, 80, 85, 70, 83, 61],
+        [82, 57, 80, 54, 79, 53]
+      ], PAL.bodyCNavySatin]
+    ]);
     const bodiceShade = smoothOutline([[91, 47], [105, 50], [103, 57], [92, 55]], 0.6);
     bezierShape(bodiceShade[0], bodiceShade[1], PAL.creamShadow);
     const bodiceMid = smoothOutline([[88, 54], [96, 55], [102, 82], [92, 88], [83, 82]], 0.7);
-    bezierShape(bodiceMid[0], bodiceMid[1], PAL.indigoDeep);
+    bodyCPanel(bodiceMid, PAL.indigoDeep, 1.5, 0.8, [
+      [[92, 59], [
+        [91, 66, 91, 78, 92, 85],
+        [96, 84, 97, 76, 97, 70],
+        [95, 66, 94, 61, 92, 59]
+      ], PAL.bodyCNavyContact],
+      [[96, 59], [
+        [99, 65, 101, 73, 101, 81],
+        [98, 78, 97, 68, 95, 62],
+        [95, 60, 95, 59, 96, 59]
+      ], PAL.bodyCNavySatin]
+    ]);
 
-    clothPanel([[76, 52], [
+    bodyCPanel([[76, 52], [
       [68, 49, 61, 54, 58 + fabricTrail * 0.15, 64],
       [52 + fabricTrail * 0.35, 76, 42 + fabricTrail * 0.75, 87, 33 + fabricTrail, 92],
       [31 + fabricTrail, 98, 39 + fabricTrail * 0.9, 105, 47 + fabricTrail * 0.7, 101],
       [55 + fabricTrail * 0.45, 97, 61, 91, 66, 104],
       [72, 99, 77, 85, 76, 52]
-    ]], PAL.creamMid, 2.2, 1.2);
+    ]], PAL.creamMid, 2.2, 1.2, [
+      [[71, 59], [
+        [66, 74, 54 + fabricTrail * 0.45, 90, 43 + fabricTrail * 0.85, 99],
+        [52 + fabricTrail * 0.60, 96, 64, 86, 69, 74],
+        [72, 66, 73, 62, 71, 59]
+      ], PAL.bodyCCreamFold],
+      [[74, 57], [
+        [76, 70, 73, 88, 67, 100],
+        [69, 91, 70, 78, 71, 67],
+        [71, 61, 73, 58, 74, 57]
+      ], PAL.bodyCWhiteContact]
+    ]);
     // Outline along the sleeve's own outer edge - same fix as the hair,
     // this is the other side of the "can't tell hair from sleeve" boundary.
     bezierLine([76, 52], [
@@ -1117,7 +1408,9 @@
     // (same technique the block/cast poses already use), instead of one
     // smooth curve with no visible joint reaching too far down.
     bezierLine([74, 53], [[69, 58, 64, 64, 62 + fabricTrail * 0.15, 70]], PAL.skin, STROKE.limbUpper);
+    bodyLSkinStroke([74, 53], [[69, 58, 64, 64, 62 + fabricTrail * 0.15, 70]], STROKE.limbUpper);
     bezierLine([62 + fabricTrail * 0.15, 70], [[58 + fabricTrail * 0.3, 78, 53 + fabricTrail * 0.42, 85, 49 + fabricTrail * 0.5, 90]], PAL.skin, STROKE.limb);
+    bodyLSkinStroke([62 + fabricTrail * 0.15, 70], [[58 + fabricTrail * 0.3, 78, 53 + fabricTrail * 0.42, 85, 49 + fabricTrail * 0.5, 90]], STROKE.limb);
     bezierLine([72, 56], [[66, 62, 60 + fabricTrail * 0.2, 74, 51 + fabricTrail * 0.45, 91]], PAL.skinShadow, STROKE.edge);
     // Left hand, hanging relaxed off the end of the forearm above.
 
@@ -1135,13 +1428,24 @@
     // jumped from her hip to her chest.
     pctx.save();
     pctx.translate(0, shoulderDrop);
-    clothPanel([[104, 52], [
+    bodyCPanel([[104, 52], [
       [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
       [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92],
       [152 + fabricTrail, 99, 143 + fabricTrail * 0.9, 106, 135 + fabricTrail * 0.7, 102],
       [127 + fabricTrail * 0.45, 97, 120, 91, 115, 104],
       [109, 98, 104, 84, 104, 52]
-    ]], PAL.creamMid, 2.2, 1.2);
+    ]], PAL.creamMid, 2.2, 1.2, [
+      [[110, 59], [
+        [116, 74, 128 + fabricTrail * 0.45, 90, 141 + fabricTrail * 0.85, 100],
+        [131 + fabricTrail * 0.60, 97, 117, 86, 113, 74],
+        [110, 67, 109, 62, 110, 59]
+      ], PAL.bodyCCreamLight],
+      [[106, 58], [
+        [104, 72, 108, 89, 114, 101],
+        [112, 91, 111, 78, 110, 67],
+        [109, 61, 107, 58, 106, 58]
+      ], PAL.bodyCWhiteContact]
+    ]);
     bezierLine([104, 52], [
       [113, 49, 121, 55, 124 + fabricTrail * 0.15, 65],
       [130 + fabricTrail * 0.35, 76, 140 + fabricTrail * 0.7, 87, 149 + fabricTrail, 92]
@@ -1187,12 +1491,7 @@
     bezierLine([72, 61], [[68, 70, 62, 79, 55 + fabricTrail * 0.4, 86]], PAL.outline, STROKE.fine);
     bezierLine([108, 61 + shoulderDrop], [[112, 70 + shoulderDrop, 118, 79, 125 + fabricTrail * 0.4, 87]], PAL.outline, STROKE.fine);
 
-    // Folds. Each one is a single thin line in a neighbouring tone, enough to
-    // tell the panels apart without adding shapes that cost fill time.
-    bezierLine([76, 96], [[72, 113, 69, 128, 67 + fabricTrail * 0.25, 144]], PAL.creamShadow, STROKE.fine);
-    bezierLine([86, 99], [[83, 116, 81, 131, 80, 146]], PAL.creamShadow, STROKE.fine);
-    bezierLine([106, 97], [[110, 114, 113, 129, 115 + fabricTrail * 0.25, 145]], PAL.indigoHi, STROKE.fine);
-    bezierLine([99, 100], [[102, 117, 104, 132, 105, 147]], PAL.indigoHi, STROKE.fine);
+    // Gold piping and ornaments sit over the clipped cloth planes.
     line([[88, 58], [91, 74], [91, 101], [94, 128]], PAL.gold, STROKE.edge);
     line([[95, 57], [94, 77], [96, 94], [95, 118], [98, 141]], PAL.goldDark, STROKE.edge);
     ellipse(92, 72, 2, 2, PAL.gold);
@@ -1346,6 +1645,7 @@
     bezierLine([106, 54], upperSeg, PAL.outline, STROKE.limbUpper + edgeW);
     taperedLimb([elbowX, elbowY], foreSeg[0], foreW0 + edgeW, foreW1 + edgeW, PAL.outline);
     bezierLine([106, 54], upperSeg, PAL.skin, STROKE.limbUpper);
+    bodyLSkinStroke([106, 54], upperSeg, STROKE.limbUpper);
     taperedLimb([elbowX, elbowY], foreSeg[0], foreW0, foreW1, PAL.skin);
     // Shade along the underside of the arm.
     bezierLine([108, 57], [[upperC[0] + 2, upperC[1] + 3, upperC[2] + 2, upperC[3] + 2.5, elbowX + 1.2, elbowY + 2]], PAL.skinShadow, STROKE.edge);
@@ -1431,8 +1731,14 @@
 
     // Side hair: the body's sway plus its own swing, each side on its own lag.
     const sideL = hm.long(0.6) * 0.7, sideR = hm.long(1.0) * 0.7;
-    bezierShape([82, 18], [[75, 23, 75, 46, 75 + sway * 0.4 + sideL, 68], [80, 50, 83, 28, 84, 18]], PAL.hairLight);
-    bezierShape([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68], [104, 50, 101, 28, 100, 18]], PAL.hairMid);
+    hairMassH([[82, 18], [[75, 23, 75, 46, 75 + sway * 0.4 + sideL, 68], [80, 50, 83, 28, 84, 18]]], PAL.hairLight, [
+      [[79.0, 25], [[75.8, 38, 76.0, 52, 76.1 + sway * 0.4 + sideL, 66], [79.2 + sway * 0.2 + sideL * 0.45, 57, 79.7, 38, 79.0, 25]], PAL.hairPearlH],
+      [[80.0, 49.0], [[77.9, 54, 76.5 + sway * 0.3 + sideL * 0.75, 61, 75 + sway * 0.4 + sideL, 68], [79.7 + sideL * 0.3, 63, 81.1, 54, 80.0, 49.0]], PAL.hairShadeH]
+    ]);
+    hairMassH([[102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68], [104, 50, 101, 28, 100, 18]]], PAL.hairMid, [
+      [[105.7, 25], [[108.4, 38, 108.6, 53, 108.7 + sway * 0.4 + sideR, 65], [106.2 + sideR * 0.4, 58, 104.8, 38, 105.7, 25]], PAL.hairSilverH],
+      [[104.0, 49.0], [[106.1, 54, 107.5 + sway * 0.3 + sideR * 0.75, 61, 109 + sway * 0.4 + sideR, 68], [104.6 + sideR * 0.3, 63, 102.8, 54, 104.0, 49.0]], PAL.hairShadow]
+    ]);
     const sideGlow = Math.round((opts.magicLight || 0) * 10) / 10;
     if (sideGlow > 0.01) {
       pctx.save();
@@ -1445,9 +1751,9 @@
     // with a straight outer edge, which is most of what made the hair read as
     // a pair of curtains.
     bezierLine([79, 26], [[76.5, 40, 76, 56, 76.5 + sway * 0.3 + sideL, 70]], PAL.hairShadow, STROKE.seam);
-    bezierLine([83, 30], [[81, 44, 80.5, 60, 81 + sway * 0.25 + sideL, 76]], PAL.hairHi, STROKE.fine);
+
     bezierLine([105, 26], [[107.5, 40, 108, 56, 107.5 + sway * 0.3 + sideR, 70]], PAL.hairDeep, STROKE.seam);
-    bezierLine([101, 30], [[103, 44, 103.5, 60, 103 + sway * 0.25 + sideR, 76]], PAL.hairLight, STROKE.fine);
+
 
     // Crown drawn first in a light tone so it blends with the bangs sitting
     // on top of it, instead of reading as a separate dark "cap". Its inner
@@ -1583,8 +1889,8 @@
       // Rim light down her far side. The gate she comes out of sits on that
       // side in every layout, so the light has a source in the scene rather
       // than being decoration.
-      bezierLine([111, 20], [[116, 34, 117, 52, 115, 68]], PAL.hairHi, STROKE.seam);
-      bezierLine([105, 96], [[112, 113, 118, 131, 123, 148]], PAL.cream, STROKE.fine);
+      bezierLine([111, 20], [[116, 34, 117, 52, 115, 68]], PAL.bodyRim, STROKE.seam);
+      bezierLine([105, 96], [[112, 113, 118, 131, 123, 148]], PAL.bodyRim, STROKE.fine);
 
       // Loose strands breaking off the side hair, tied to sway so they trail
       // the head.
@@ -1667,16 +1973,27 @@
         [x - 1, 168.5 + ly, x + 1, 168 + ly, x + 1.4, 166 + ly],
         [x + 1.2, 158 + ly, x + 1.6, 152 + ly, x + 1.6, 146 + ly]
       ], PAL.boot);
+      const bodyLBackMid = [[x - 3.6, 146 + ly], [
+        [x - 3.6, 152 + ly, x - 2.9, 157 + ly, x - 2.3, 160 + ly],
+        [x - 3, 163 + ly, x - 3.3, 166 + ly, x - 2.8, 168.5 + ly],
+        [x - 1, 168.5 + ly, x + 1, 168 + ly, x + 1.4, 166 + ly],
+        [x + 1.2, 158 + ly, x + 1.6, 152 + ly, x + 1.6, 146 + ly],
+      ]];
+      bodyLMaterial(bodyLBackMid, PAL.boot, PAL.bootDeep, PAL.bodyLBootPlane, 0.70, 0.60);
+      bodyLClip(bodyLBackMid, () => {
+        bezierLine([x - 2.7, 164.6 + ly], [[x - 1.8, 163.9 + ly, x - 0.4, 164.0 + ly, x + 0.85, 164.6 + ly]], PAL.bodyLBootFold, STROKE.fine);
+      });
       // Back seam, the pale trim the front view runs down the shin.
-      rect(x - 0.5, 147 + ly, 1, 12, PAL.bootHi);
+      rect(x - 0.5, 147 + ly, 1, 12, PAL.bodyLBootSheen);
       // Heel, split from the counter by a crease, with a gold cap.
       line([[x - 3.6, 170.4 + ly], [x + 3.6, 170.4 + ly]], PAL.outline, STROKE.fine);
-      line([[x - 2.4, 174.4 + ly], [x + 2.4, 174.4 + ly]], PAL.goldDark, STROKE.seam);
+      line([[x - 2.4, 174.4 + ly], [x + 2.4, 174.4 + ly]], PAL.bodyLGoldFacet, STROKE.seam);
       bezierLine([x - 3.6, 160 + ly], [[x - 1.6, 161.6 + ly, x + 1.6, 161.6 + ly, x + 3.6, 160 + ly]], PAL.gold, STROKE.seam);
-      ellipse(x, 161.3 + ly, 0.9, 0.9, PAL.goldHi);
+      ellipse(x, 161.3 + ly, 0.9, 0.9, PAL.bodyLGoldFacet);
       if (step > 0.1) {
         // Sole of the lifted foot, tipped up towards the viewer.
         bezierShape([x - 3.6, 172 + ly], [[x - 2, 175 + ly + step * 2, x + 2, 175 + ly + step * 2, x + 3.6, 172 + ly]], PAL.boot);
+        bodyLMaterial([[x - 3.6, 172 + ly], [[x - 2, 175 + ly + step * 2, x + 2, 175 + ly + step * 2, x + 3.6, 172 + ly]]], PAL.boot, PAL.bootDeep, PAL.bodyLBootEdge, 0.60, 0.65);
       }
     }
 
@@ -1684,26 +2001,32 @@
     // indigo panels set into its opening, so from behind the robe is all
     // there is: cream, flaring from under the arms to the hem, lit by the
     // same light as the front.
-    clothPanel([[77, 64], [
+    bodyCPanel([[77, 64], [
       [70, 80, 62 + fabricTrail * 0.1, 104, 58 + fabricTrail * 0.25, 124],
       [55 + fabricTrail * 0.35, 134, 53 + fabricTrail * 0.4, 141, 52 + fabricTrail * 0.45, 146],
       [66 + fabricTrail * 0.3, 150.5, 78, 151.5, 91, 151.5],
       [104, 151.5, 116 + fabricTrail * 0.3, 150.5, 130 + fabricTrail * 0.45, 146],
       [129 + fabricTrail * 0.4, 141, 127 + fabricTrail * 0.35, 134, 124 + fabricTrail * 0.25, 124],
       [120 + fabricTrail * 0.1, 104, 112, 80, 105, 64]
-    ]], PAL.creamMid, 2.4, 1.2);
+    ]], PAL.creamMid, 2.4, 1.2, [
+      [[74, 87], [
+        [69, 107, 65 + fabricTrail * 0.20, 129, 62 + fabricTrail * 0.40, 148],
+        [66 + fabricTrail * 0.32, 148, 70 + fabricTrail * 0.12, 129, 73, 110],
+        [75, 98, 76, 90, 74, 87]
+      ], PAL.bodyCWhiteContact],
+      [[105, 86], [
+        [111, 105, 117 + fabricTrail * 0.20, 129, 122 + fabricTrail * 0.40, 147],
+        [117 + fabricTrail * 0.30, 147, 111 + fabricTrail * 0.12, 124, 107, 106],
+        [105, 96, 103, 89, 105, 86]
+      ], PAL.bodyCCreamLight]
+    ]);
     bezierLine([52 + fabricTrail * 0.45, 146], [
       [66 + fabricTrail * 0.3, 150.5, 78, 151.5, 91, 151.5],
       [104, 151.5, 116 + fabricTrail * 0.3, 150.5, 130 + fabricTrail * 0.45, 146]
     ], PAL.outline, STROKE.seam);
     bezierLine([58 + fabricTrail * 0.25, 124], [[55 + fabricTrail * 0.35, 134, 53 + fabricTrail * 0.4, 141, 52 + fabricTrail * 0.45, 146]], PAL.outline, STROKE.seam);
     bezierLine([124 + fabricTrail * 0.25, 124], [[127 + fabricTrail * 0.35, 134, 129 + fabricTrail * 0.4, 141, 130 + fabricTrail * 0.45, 146]], PAL.outline, STROKE.seam);
-    // Folds, uneven in length and spacing, and the centre back seam, which
-    // only shows between the ends of her hair.
-    bezierLine([66, 114], [[64, 126, 63 + fabricTrail * 0.3, 136, 62 + fabricTrail * 0.4, 147]], PAL.creamMid, STROKE.fine);
-    bezierLine([73, 126], [[72, 134, 71, 142, 71, 150]], PAL.creamShadow, STROKE.fine);
-    bezierLine([110, 120], [[112, 131, 113 + fabricTrail * 0.3, 140, 114 + fabricTrail * 0.4, 150]], PAL.creamMid, STROKE.fine);
-    bezierLine([118, 110], [[120, 124, 122 + fabricTrail * 0.3, 136, 124 + fabricTrail * 0.4, 147]], PAL.creamShadow, STROKE.fine);
+    // The centre back seam remains visible between the ends of her hair.
     line([[91, 128], [91, 151]], PAL.goldDark, STROKE.fine);
     // Hem band, the same two-tone gold edge the front panels end on.
     bezierLine([53 + fabricTrail * 0.45, 144.6], [
@@ -1724,21 +2047,31 @@
     // sight and are the one place the back of the outfit shows its colour.
     // Her right panel, on the viewer's right here, is the shorter of the two,
     // as it is on the front view.
-    clothPanel([[80, 68], [
+    bodyCPanel([[80, 68], [
       [72, 74, 62 + fabricTrail * 0.3, 90, 52 + fabricTrail * 0.6, 106],
       [46 + fabricTrail * 0.8, 115, 41 + fabricTrail * 0.9, 123, 38 + fabricTrail, 130],
       [45 + fabricTrail * 0.8, 134, 54 + fabricTrail * 0.6, 136, 62 + fabricTrail * 0.45, 133],
       [70 + fabricTrail * 0.2, 121, 78, 102, 82, 84]
-    ]], PAL.indigo, 2, 1);
-    clothPanel([[102, 68], [
+    ]], PAL.indigo, 2, 1, [
+      [[76, 85], [
+        [70, 100, 62 + fabricTrail * 0.40, 120, 54 + fabricTrail * 0.65, 132],
+        [58 + fabricTrail * 0.55, 129, 68 + fabricTrail * 0.25, 113, 73, 98],
+        [76, 92, 77, 86, 76, 85]
+      ], PAL.bodyCNavySatin]
+    ]);
+    bodyCPanel([[102, 68], [
       [110, 74, 120 + fabricTrail * 0.3, 90, 130 + fabricTrail * 0.6, 106],
       [135 + fabricTrail * 0.8, 114, 139 + fabricTrail * 0.9, 120, 142 + fabricTrail, 126],
       [136 + fabricTrail * 0.8, 130, 128 + fabricTrail * 0.6, 132, 120 + fabricTrail * 0.45, 130],
       [112 + fabricTrail * 0.2, 119, 104, 102, 100, 84]
-    ]], PAL.indigo, 2, 1);
-    // A fold down each, and gold piping round the hanging edges.
-    bezierLine([74, 96], [[70 + fabricTrail * 0.2, 110, 64 + fabricTrail * 0.4, 122, 58 + fabricTrail * 0.55, 132]], PAL.indigoDeep, STROKE.fine);
-    bezierLine([109, 100], [[113 + fabricTrail * 0.2, 111, 118 + fabricTrail * 0.4, 120, 123 + fabricTrail * 0.55, 128]], PAL.indigoDeep, STROKE.fine);
+    ]], PAL.indigo, 2, 1, [
+      [[106, 84], [
+        [111, 99, 119 + fabricTrail * 0.40, 117, 126 + fabricTrail * 0.65, 128],
+        [122 + fabricTrail * 0.55, 126, 114 + fabricTrail * 0.25, 111, 109, 97],
+        [107, 92, 106, 86, 106, 84]
+      ], PAL.bodyCNavyLight]
+    ]);
+    // Gold piping follows the hanging edges of both navy panels.
     bezierLine([38 + fabricTrail, 130], [[45 + fabricTrail * 0.8, 134, 54 + fabricTrail * 0.6, 136, 62 + fabricTrail * 0.45, 133]], PAL.goldDark, STROKE.seam);
     bezierLine([142 + fabricTrail, 126], [[136 + fabricTrail * 0.8, 130, 128 + fabricTrail * 0.6, 132, 120 + fabricTrail * 0.45, 130]], PAL.goldDark, STROKE.seam);
     bezierLine([72, 75], [[62 + fabricTrail * 0.3, 90, 52 + fabricTrail * 0.6, 106, 38.6 + fabricTrail, 129]], PAL.goldDark, STROKE.hairline);
@@ -1751,20 +2084,32 @@
     // Sleeves. Each leaves the body at the shoulder seam, falls to a point
     // below the hand rather than standing out sideways, and ends in a gold
     // cuff where the lining turns.
-    clothPanel([[72, 54], [
+    bodyCPanel([[72, 54], [
       [67, 55, 63, 58, 61 + fabricTrail * 0.15, 63],
       [55 + fabricTrail * 0.35, 75, 46 + fabricTrail * 0.7, 89, 37 + fabricTrail, 102],
       [43 + fabricTrail * 0.85, 104, 50 + fabricTrail * 0.6, 103, 56 + fabricTrail * 0.4, 98],
       [61, 93, 66, 85, 69, 74],
       [71, 66, 72, 60, 72, 54]
-    ]], PAL.creamMid, 2.2, 1.2);
-    clothPanel([[110, 54], [
+    ]], PAL.creamMid, 2.2, 1.2, [
+      [[67, 60], [
+        [63, 73, 54 + fabricTrail * 0.45, 87, 43 + fabricTrail * 0.90, 99],
+        [49 + fabricTrail * 0.70, 96, 59 + fabricTrail * 0.25, 83, 64, 72],
+        [67, 66, 68, 61, 67, 60]
+      ], PAL.bodyCWhiteContact]
+    ]);
+    bodyCPanel([[110, 54], [
       [115, 55, 119, 58, 121 + fabricTrail * 0.15, 63],
       [127 + fabricTrail * 0.35, 75, 136 + fabricTrail * 0.7, 89, 145 + fabricTrail, 102],
       [139 + fabricTrail * 0.85, 104, 132 + fabricTrail * 0.6, 103, 126 + fabricTrail * 0.4, 98],
       [121, 93, 116, 85, 113, 74],
       [111, 66, 110, 60, 110, 54]
-    ]], PAL.creamMid, 2.2, 1.2);
+    ]], PAL.creamMid, 2.2, 1.2, [
+      [[115, 60], [
+        [120, 73, 130 + fabricTrail * 0.45, 88, 140 + fabricTrail * 0.90, 99],
+        [134 + fabricTrail * 0.70, 96, 124 + fabricTrail * 0.25, 84, 119, 72],
+        [116, 66, 114, 61, 115, 60]
+      ], PAL.bodyCCreamLight]
+    ]);
     // Lining showing at the lower edge, as it does on the front view.
     bezierShape([56 + fabricTrail * 0.4, 98], [
       [50 + fabricTrail * 0.6, 100, 44 + fabricTrail * 0.8, 101, 37 + fabricTrail, 102],
@@ -1782,9 +2127,8 @@
       [115, 55, 119, 58, 121 + fabricTrail * 0.15, 63],
       [127 + fabricTrail * 0.35, 75, 136 + fabricTrail * 0.7, 89, 145 + fabricTrail, 102]
     ], PAL.outline, STROKE.seam);
-    bezierLine([66, 64], [[61, 72, 54 + fabricTrail * 0.5, 83, 45 + fabricTrail * 0.9, 95]], PAL.creamShadow, STROKE.fine);
-    bezierLine([116, 64], [[121, 72, 128 + fabricTrail * 0.5, 83, 137 + fabricTrail * 0.9, 95]], PAL.creamShadow, STROKE.fine);
-    bezierLine([112, 72], [[117, 79, 123 + fabricTrail * 0.5, 88, 130 + fabricTrail * 0.9, 97]], PAL.creamShadow, STROKE.hairline);
+    // A pale crease follows the sleeve at its narrow inner edge.
+    bezierLine([112, 72], [[117, 79, 123 + fabricTrail * 0.5, 88, 130 + fabricTrail * 0.9, 97]], PAL.bodyCCreamFold, STROKE.hairline);
     bezierLine([38 + fabricTrail, 101.4], [[44 + fabricTrail * 0.85, 103, 50 + fabricTrail * 0.6, 102, 56 + fabricTrail * 0.4, 97.6]], PAL.goldDark, STROKE.seam);
     bezierLine([144 + fabricTrail, 101.4], [[138 + fabricTrail * 0.85, 103, 132 + fabricTrail * 0.6, 102, 126 + fabricTrail * 0.4, 97.6]], PAL.goldDark, STROKE.seam);
     bezierLine([39 + fabricTrail, 100.2], [[45 + fabricTrail * 0.85, 101.6, 50 + fabricTrail * 0.6, 100.6, 55 + fabricTrail * 0.4, 96.6]], PAL.gold, STROKE.hairline);
@@ -1811,9 +2155,13 @@
     bezierLine([111, 58], rUpper, PAL.outline, STROKE.limbUpper + STROKE.edge);
     bezierLine(rElbow, rFore, PAL.outline, STROKE.limb + STROKE.edge);
     bezierLine([71, 58], lUpper, PAL.skin, STROKE.limbUpper);
+    bodyLSkinStroke([71, 58], lUpper, STROKE.limbUpper);
     bezierLine(lElbow, lFore, PAL.skin, STROKE.limb);
+    bodyLSkinStroke(lElbow, lFore, STROKE.limb);
     bezierLine([111, 58], rUpper, PAL.skin, STROKE.limbUpper);
+    bodyLSkinStroke([111, 58], rUpper, STROKE.limbUpper);
     bezierLine(rElbow, rFore, PAL.skin, STROKE.limb);
+    bodyLSkinStroke(rElbow, rFore, STROKE.limb);
     // Shade on the side of each arm facing the body, away from the light.
     bezierLine([72.5, 60], [[70.5, 64, 67.5, 69, lElbow[0] + 2, lElbow[1] + 1.5], [61.5, lElbow[1] + 7, 58, lWrist[1] - 3, lWrist[0] + 1.5, lWrist[1]]], PAL.skinShadow, STROKE.edge);
     bezierLine([109.5, 60], [[111.5, 63.5, 115, 67.5, rElbow[0] - 1.5, rElbow[1] + 1.5], [123, rElbow[1] + 7.5, 127.5, rWrist[1] - 4, rWrist[0] - 1.5, rWrist[1]]], PAL.skinShadow, STROKE.band);
