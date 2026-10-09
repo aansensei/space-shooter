@@ -103,10 +103,14 @@ const THAELIS_REVIVE_HP_PCT = 0.40;
 const THAELIS_REVIVE_INVULN_MS = 1000;
 const THAELIS_COCOON_RETRIGGER_COOLDOWN_MS = 12000; // a revived Thaelis can't cocoon again this soon if it dies right away
 
-function _spawnThaelisCocoonGuard(cocoon) {
+// angle is passed when respawning, so the replacement stands where the dead
+// guard stood rather than on top of one that's still alive
+function _spawnThaelisCocoonGuard(cocoon, angle) {
     const hp = Math.round(THAELIS_COCOON_GUARD_HP_MIN + Math.random() * (THAELIS_COCOON_GUARD_HP_MAX - THAELIS_COCOON_GUARD_HP_MIN));
-    const slot = (cocoon._cocoonGuardSlot = (cocoon._cocoonGuardSlot || 0) + 1);
-    const angle = (slot / THAELIS_COCOON_GUARD_COUNT) * Math.PI * 2;
+    if (angle === undefined) {
+        const slot = (cocoon._cocoonGuardSlot = (cocoon._cocoonGuardSlot || 0) + 1);
+        angle = (slot / THAELIS_COCOON_GUARD_COUNT) * Math.PI * 2;
+    }
     const dist = cocoon.size * 0.95;
     enemies.push({
         x: cocoon.x + Math.cos(angle) * dist, y: cocoon.y + Math.sin(angle) * dist,
@@ -124,6 +128,7 @@ function _despawnCocoonGuards(cocoon) {
     for (const e of enemies) {
         if (e.type === 'thaelis_guard' && e._guardCocoon === cocoon && e.hp > 0) {
             e._guardConsumed = true; // skip the death->damage transfer, the cocoon is already resolved
+            e._noKillReward = true; // a cleared guard was never killed, so no score or kill procs
             e.hp = 0;
         }
     }
@@ -185,6 +190,7 @@ function _reviveThaelis(cocoon) {
         // away - without this a revived Thaelis could chain-cocoon forever.
         _cocoonCooldownUntil: performance.now() + THAELIS_COCOON_RETRIGGER_COOLDOWN_MS,
     });
+    _enemySnapshotAtk(enemies[enemies.length - 1], 'thaelis');
     addExplosion(cocoon.x, cocoon.y, cocoon.size * 1.6, '#22cc55');
     createParticles(cocoon.x, cocoon.y, 40, '#22cc55', 3, 10);
     _setShake(10, 300);

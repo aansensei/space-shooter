@@ -608,9 +608,11 @@ function updatePhotoBrangs(deltaTime) {
                         if (_hasBuff('cuc_han') && Math.random() < 0.75) {
                             tgt._slowEnd = Math.max(tgt._slowEnd || 0, now_b + 2000);
                             tgt._slowFactor = Math.max(tgt._slowFactor || 1, 1 / 0.70);
-                            const _cucCCImmune = tgt.type === 'goliath' || tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan'
+                            const _cucCCImmune = tgt.type === 'goliath' || tgt.type === 'egregor' || tgt.type === 'dargruel' || tgt.type === 'leviathan' || tgt.type === 'uriel'
+                                || tgt.type === 'thaelis_cocoon' || tgt.type === 'thaelis_guard'
                                 || (tgt.type === 'marchosias' && tgt.arcBarrier && tgt.arcBarrier.hp > 0)
-                                || (tgt.type === 'raphael' && tgt.raphaelInvulnerable);
+                                || (tgt.type === 'raphael' && tgt.raphaelInvulnerable)
+                                || tgt._urielCCImmune;
                             // CC-immune targets are never pulled - absolute, no exceptions.
                             if (!_cucCCImmune) {
                                 const _cdx = b.x - tgt.x, _cdy = b.y - tgt.y;
@@ -755,8 +757,10 @@ function updateBladeArcProjectiles(deltaTime) {
                     enemy._slowEnd = Math.max(enemy._slowEnd || 0, performance.now() + 2000);
                     enemy._slowFactor = Math.max(enemy._slowFactor || 1, 1 / 0.70);
                     const _cucArcCCImmune = enemy.type === 'goliath' || enemy.type === 'egregor' || enemy.type === 'dargruel' || enemy.type === 'leviathan' || enemy.type === 'uriel'
+                        || enemy.type === 'thaelis_cocoon' || enemy.type === 'thaelis_guard'
                         || (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0)
-                        || (enemy.type === 'raphael' && enemy.raphaelInvulnerable);
+                        || (enemy.type === 'raphael' && enemy.raphaelInvulnerable)
+                        || enemy._urielCCImmune;
                     // CC-immune targets are never pulled - absolute, no exceptions.
                     if (!_cucArcCCImmune) {
                         const _adx = arc.x - enemy.x, _ady = arc.y - enemy.y;

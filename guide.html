@@ -743,6 +743,7 @@
       }
     }
   </script>
+  <script src="js/canvas-guard.js"></script>
   <script src="js/render/core.js"></script>
   <script src="js/render/fx.js"></script>
   <script src="js/render/player.js"></script>
@@ -1339,6 +1340,12 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Skill F going silent after its first cast:</b> stopping a sound never actually rewound it, so the next cast resumed from wherever the last one stopped, often its very end. Every sustained sound (Skill F, Skill D, the charge hum, the laser and the rest) now restarts from the top.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Music stopping with a single track selected:</b> picking just one in game track played it once and then left the match silent. It now loops that track.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Gold bursts going off on the player non stop near Raphael:</b> the scorched zone a Wisdom Orb leaves on a Sentinel ticks every <span class="hg">100ms</span>, and each tick could roll Sentinel Parry, whose cue flashes a gold ring and shakes the screen on the player. With Glory for Justice up that meant a burst every half second or so. Zone ticks no longer roll Parry, same as Tesla DoT and Chain Lightning; the orb hit itself still can.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Game freezing around a revived Thaelis:</b> a Thaelis that came back from its Cocoon never got an attack stat, so every shot it fired carried broken damage. A hit on a Sentinel spread that into the Sentinel's HP, Glory's chain lightning carried it on to the Cocoon Guards, and drawing a Guard then crashed the whole frame, over and over. The revived Thaelis now gets its real attack stat. On top of that, a broken hit is dropped instead of applied, any enemy whose HP still goes bad is rolled back to its last good value, and a gradient colour that can't be read is repaired instead of stopping the frame.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Enemy hits on Sentinels set off player effects:</b> with Glory for Justice up, an enemy shot landing on a Sentinel or a Skill D ship arced chain lightning into the horde and could stack Vulnerability on the Sentinel itself. Only player side hits do either now.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Skill D ships shrugging off big enemy bullets:</b> large bullets dealt 0 damage to the Death Star's ships. They now hit for the same amount they deal to a Sentinel.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Thaelis Cocoon Guards:</b> clearing the Guards when a Cocoon resolves no longer pays out a full kill each (thousands of score plus every on kill proc). Finishing a Cocoon directly with Skill F, Back to Motherland or Danger Not Today now clears its Guards instead of leaving them standing inert, and a replacement Guard takes the fallen one's spot instead of stacking on a living one.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Arctic Chill pulling CC immune enemies:</b> its pull now skips the Cocoon, its Guards, Uriel, and every enemy under Uriel's CC immunity, matching the Overload Laser's pull.</li>
+<li><span class="ul-tag tag-fix">FIX</span> <b>Sentinel bullets aimed downward never cleared:</b> shots leaving through the bottom edge are now removed like every other edge.</li>
 </ul>
 </div>
 

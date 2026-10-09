@@ -440,7 +440,7 @@ function _drawThaelisCocoon(enemy) {
 function _drawThaelisGuard(enemy) {
     const now = performance.now();
     const r = enemy.size / 2;
-    const hpPct = Math.max(0, Math.min(1, enemy.hp / enemy.maxHp));
+    const hpPct = Math.max(0, Math.min(1, enemy.hp / enemy.maxHp)) || 0;
     const pulse = 0.5 + 0.5 * Math.sin(now / 220 + enemy.x);
     const cocoon = enemy._guardCocoon;
 

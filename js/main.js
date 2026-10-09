@@ -946,10 +946,11 @@ function update(rawDeltaTime) {
             // THAELIS_COCOON_GUARD_COUNT alive without a fixed schedule.
             if (enemy._cocoonGuardRespawnTimers && enemy._cocoonGuardRespawnTimers.length) {
                 for (let ti = enemy._cocoonGuardRespawnTimers.length - 1; ti >= 0; ti--) {
-                    enemy._cocoonGuardRespawnTimers[ti] -= deltaTime;
-                    if (enemy._cocoonGuardRespawnTimers[ti] <= 0) {
+                    const _rt = enemy._cocoonGuardRespawnTimers[ti];
+                    _rt.ms -= deltaTime;
+                    if (_rt.ms <= 0) {
                         enemy._cocoonGuardRespawnTimers.splice(ti, 1);
-                        _spawnThaelisCocoonGuard(enemy);
+                        _spawnThaelisCocoonGuard(enemy, _rt.angle);
                     }
                 }
             }
@@ -968,6 +969,15 @@ function update(rawDeltaTime) {
         // short delay. Also banks flat Shield per kill - see _reviveThaelis
         // for where that Shield ends up if the Cocoon survives to revive;
         // it's a reward, not part of the kill-count win condition.
+        // a cocoon can be finished off directly (Skill F, Back to Motherland,
+        // Danger Not Today) without going through the guard kill quota; its
+        // guards have nothing left to protect, so they clear out with it
+        if (enemy.type === 'thaelis_guard' && enemy.hp > 0 && enemy._guardCocoon && enemy._guardCocoon.hp <= 0) {
+            enemy._guardConsumed = true;
+            enemy._noKillReward = true;
+            enemy.hp = 0;
+        }
+
         if (enemy.type === 'thaelis_guard' && enemy.hp <= 0 && enemy._guardCocoon && !enemy._guardConsumed) {
             enemy._guardConsumed = true;
             const cocoon = enemy._guardCocoon;
@@ -979,7 +989,7 @@ function update(rawDeltaTime) {
                     _despawnCocoonGuards(cocoon);
                 } else {
                     cocoon._cocoonGuardRespawnTimers = cocoon._cocoonGuardRespawnTimers || [];
-                    cocoon._cocoonGuardRespawnTimers.push(THAELIS_COCOON_GUARD_RESPAWN_MS);
+                    cocoon._cocoonGuardRespawnTimers.push({ ms: THAELIS_COCOON_GUARD_RESPAWN_MS, angle: enemy._guardAngle });
                 }
             }
         }
@@ -1157,13 +1167,28 @@ function update(rawDeltaTime) {
         // gọi nữa để bắt kịp. Khối check hp<=0 THỨ HAI (xa hơn nữa trong
         // vòng lặp, sau updateGoliath) vẫn xử lý chết thật bình thường khi
         // chuỗi hiệu ứng đã chạy xong và tự đưa hp về 0 thật.
+        // hp or maxHp gone NaN/Infinity from any source would leave an
+        // enemy that can never die and break every hp-based draw. Roll it
+        // back to the last good value and name it once so it can be traced.
+        if (Number.isFinite(enemy.hp) && Number.isFinite(enemy.maxHp)) {
+            enemy._lastGoodHp = enemy.hp;
+            enemy._lastGoodMaxHp = enemy.maxHp;
+        } else {
+            if (!window._badHpWarned) {
+                window._badHpWarned = true;
+                console.warn('[enemy] non-finite hp repaired on ' + enemy.type + ' (hp ' + enemy.hp + ', maxHp ' + enemy.maxHp + ')');
+            }
+            enemy.maxHp = Number.isFinite(enemy.maxHp) ? enemy.maxHp : (enemy._lastGoodMaxHp || 1);
+            enemy.hp = Number.isFinite(enemy.hp) ? enemy.hp : (enemy._lastGoodHp !== undefined ? enemy._lastGoodHp : enemy.maxHp);
+        }
+
         // a Uriel that has dodged everything for 90s just dies, so one lucky
         // survivor can't hang over the run for wave after wave. Counted in
         // game time, and checked here rather than in updateUriel so it goes
         // through Uriel's own death handling below (barrier, buff strip).
         if (enemy.type === 'uriel') {
             enemy._urielAliveMs = (enemy._urielAliveMs || 0) + deltaTime;
-            if (enemy._urielAliveMs >= 90000) enemy.hp = 0;
+            if (enemy._urielAliveMs >= 90000) { enemy.hp = 0; enemy._noKillReward = true; }
         }
         if (enemy.hp <= 0 && enemy.type !== 'goliath') {
             // LEVIATHAN: death laser đã được spawn trong dealDamage khi HP→0
@@ -1310,7 +1335,7 @@ function update(rawDeltaTime) {
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
-                if (!enemy.hatched && !enemy._cocoonHatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
+                if (!enemy.hatched && !enemy._cocoonHatched && !enemy._coronationConsumed && !enemy._noKillReward) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
@@ -1524,7 +1549,7 @@ function update(rawDeltaTime) {
                         enemy.hp = 0;
                         // Lunar Aegis: same 15% evade allied units get vs enemy bullets (docs/combat-scaling-rebalance.md Part 5)
                         if (_hasBuff('giap_nguyet') && Math.random() < 0.15) break;
-                        let _shipDmg = (enemy.type === 'enemy_bullet_small') ? Math.ceil(ship.maxHp * 0.15) : enemy.hp;
+                        let _shipDmg = (enemy.type === 'enemy_bullet_small') ? Math.ceil(ship.maxHp * 0.15) : (enemy.damage || 0);
                         if ((ship._gaiaBarrier || 0) > 0) {
                             const _gAbsorb = Math.min(_shipDmg, ship._gaiaBarrier);
                             ship._gaiaBarrier -= _gAbsorb;
@@ -1991,7 +2016,7 @@ function update(rawDeltaTime) {
             }
 
             if (!enemy.type.startsWith('enemy_bullet') && enemy.type !== 'embryo' && enemy.type !== 'veilshroud_echo') {
-                if (!enemy.hatched && !enemy._cocoonHatched && !enemy._coronationConsumed) handleEnemyKill(enemy);
+                if (!enemy.hatched && !enemy._cocoonHatched && !enemy._coronationConsumed && !enemy._noKillReward) handleEnemyKill(enemy);
             } else if (enemy.type !== 'embryo') {
                 if (!enemy.isSplit) addExplosion(enemy.x, enemy.y, enemy.size, 'red');
             }
@@ -2129,7 +2154,7 @@ function update(rawDeltaTime) {
             }
         } else { b.x += b.vx * dt; b.y += b.vy * dt; }
 
-        if (b.y < -b.size || b.x < -b.size || b.x > canvas.width + b.size) { bullets.splice(i, 1); continue; }
+        if (b.y < -b.size || b.y > canvas.height + b.size || b.x < -b.size || b.x > canvas.width + b.size) { bullets.splice(i, 1); continue; }
 
         // Uriel's death barrier blocks everything player-side: normal
         // bullets die on contact, piercing bullets stop instead of passing through.
@@ -3440,7 +3465,7 @@ function gameLoop(timeStamp) {
     const _profOn = true;
     const _t0 = _profOn ? performance.now() : 0;
     if (!gamePaused && !loading && !window._sigilPicker && !window._kanadeCutscene) {
-        update(Math.min(deltaTime, 50) * _debugSpeed);
+        update(Math.max(0, Math.min(deltaTime, 50)) * _debugSpeed);
     }
     const _t1 = _profOn ? performance.now() : 0;
     // Only advance while unpaused - see its declaration in config.js. Frozen
@@ -3452,7 +3477,7 @@ function gameLoop(timeStamp) {
     // the Pixi bullet/particle layer, both driven from inside draw()) underneath
     // it is pure wasted GPU/CPU work, real enough to feel like lag on mobile.
     if (!window._guideOpen) {
-        draw(gamePaused || loading ? 0 : Math.min(deltaTime, 50) * _debugSpeed);
+        draw(gamePaused || loading ? 0 : Math.max(0, Math.min(deltaTime, 50)) * _debugSpeed);
     }
     if (_profOn) {
         const _t2 = performance.now();

@@ -909,7 +909,7 @@ function dealDamage(enemy, source) {
     // stacked the most temporary shield. "EP" (MaxHP+Shield) as a separate
     // scaling basis is retired; MaxHP alone is the only number that matters here.
     const effectiveHp = enemyMaxHp;
-    let totalDamage = Math.ceil((source.damage + (effectiveHp * (source.percentDamage || 0))) * _adaptiveSkillMult(source, enemy));
+    let totalDamage = Math.ceil(((source.damage === undefined ? 0 : source.damage) + (effectiveHp * (source.percentDamage || 0))) * _adaptiveSkillMult(source, enemy));
 
     // Warding Palm (NEW, thử nghiệm): mọi sát thương từ Phōtokrystos (đạn
     // homing gắn isPhoto, boomerang gắn _isPhotoSourced) giảm thẳng 40% khi
@@ -1579,6 +1579,17 @@ function dealDamage(enemy, source) {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.50));
     }
 
+    // A NaN or infinite hit would poison shield and hp for good (NaN never
+    // passes hp <= 0, so the target could no longer die). Drop it as a miss
+    // and name the source once so it can be traced.
+    if (!Number.isFinite(totalDamage)) {
+        if (!window._badDamageWarned) {
+            window._badDamageWarned = true;
+            console.warn('[dealDamage] non-finite damage dropped on ' + enemy.type + ': ' + JSON.stringify(source, (k, v) => (k && typeof v === 'object') ? undefined : v));
+        }
+        return;
+    }
+
     // Tenacity (Thaelis): its own Shield stacks block MỌI đòn (kể cả
     // piercing và true damage). Ngoại lệ duy nhất: isSpiritLaser xuyên qua -
     // so this early check drains it before the generic Shield absorb further
@@ -1974,7 +1985,9 @@ function dealDamage(enemy, source) {
         window._levDeathLaserSoundPending = true;
     }
 
-    const isChainable = gloryForJusticeActive && !source.isChainLightning && !source.isTeslaDot && !source._teslaBolt;
+    // only player-side hits chain; an enemy shot landing on a Sentinel or a
+    // Skill D ship is not something to arc into the enemy horde
+    const isChainable = gloryForJusticeActive && !isSentinel && !isSpaceship && !source.isChainLightning && !source.isTeslaDot && !source._teslaBolt;
 
     if (isChainable && currentTime > chainLightningCooldownEnd) {
         chainLightningCooldownEnd = currentTime + 150;
@@ -1983,6 +1996,7 @@ function dealDamage(enemy, source) {
         for (const otherEnemy of enemies) {
             if (chainedCount >= 8) break;
             if (otherEnemy.type === 'veilshroud_echo' || otherEnemy.inCoronation) continue; // untargetable
+            if (otherEnemy.type === 'thaelis_cocoon' || otherEnemy.type === 'thaelis_guard') continue; // immune to chain lightning, same as Skill A's
             if (otherEnemy !== enemy && !otherEnemy.type.startsWith('enemy_bullet') && Math.hypot(enemy.x - otherEnemy.x, enemy.y - otherEnemy.y) < 150) {
                 let debuff = Math.random() < 0.60;
                 dealDamage(otherEnemy, { damage: chainDamage, isChainLightning: true, applySoulReaver: debuff, _noHitSfx: true });
@@ -1996,10 +2010,13 @@ function dealDamage(enemy, source) {
     }
 
     // Trigger Trọng thương: player auto 25%, tất cả nguồn khác 15% (bao gồm chain lightning và tesla)
-    if (source.applyVuln && Math.random() < (source.vulnChance || 0)) {
-        applyVulnerability(enemy);
-    } else if (!source.applyVuln && Math.random() < 0.15) {
-        applyVulnerability(enemy);
+    // Vulnerability is an enemy debuff, so friendly units taking hits never roll it
+    if (!isSentinel && !isSpaceship) {
+        if (source.applyVuln && Math.random() < (source.vulnChance || 0)) {
+            applyVulnerability(enemy);
+        } else if (!source.applyVuln && Math.random() < 0.15) {
+            applyVulnerability(enemy);
+        }
     }
 
     // Sigil: Shadow Twin trigger — every 10th hit from any player-ally source (sentinels excluded)

@@ -69,6 +69,7 @@
         'assets/images/game/enemies/uriel-holy-sword.png',
         'assets/images/game/enemies/raphael-wisdom-orb.png',
         'js/vendor/pixi.min.js',
+        'js/canvas-guard.js',
         'js/audio.js',
         'js/background.js',
         'js/config.js',
