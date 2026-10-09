@@ -707,7 +707,7 @@ For **1 second** after arriving, Goliath gains **+30% damage dealt**, **+10% fli
 
 **Passive: Unbroken Will**
 
-Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **4 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions), is revived to a **full 100% of its Max HP**, and immediately gains a Barrier layer worth **15% of its entry Max HP (Hentry)**. For the following **6 seconds**, starting the instant the 4-second invulnerability ends (not overlapping it): **+15% effectiveness on all heal/shield it receives** (stacks with everything else), **+12% of Hentry as Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. On top of that, once Unbroken Will has triggered, Goliath permanently keeps an extra **+12% Damage Reduction**, **+550 flat armor**, and **+10% evade** for the rest of the fight — the second phase is meant to be a genuine full second fight, not a weakened continuation. The instant the 4-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave costs the player **no lives** and deals only **0.06% of Goliath's own Max HP as true damage** to Sentinels; it's a release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
+Triggers exactly **once** per Goliath: the first hit that would otherwise kill it is negated entirely instead. Goliath becomes fully invulnerable for **4 seconds** (the same absolute Iron Body rule as the post-transform window — no exceptions), is revived to a **full 100% of its Max HP**, and immediately gains a Barrier layer worth **15% of its entry Max HP (Hentry)**. For the following **6 seconds**, starting the instant the 4-second invulnerability ends (not overlapping it): **+15% effectiveness on all heal/shield it receives** (stacks with everything else), **+12% of Hentry as Max HP** (granted as real, usable HP, reverted automatically when the window ends), and **+15% flight speed** — the body visibly flickers for the duration as a tell. On top of that, once Unbroken Will has triggered, Goliath permanently keeps an extra **+12% Damage Reduction**, **+550 flat armor**, and **+10% evade** for the rest of the fight — the second phase is meant to be a genuine full second fight, not a weakened continuation. The instant the 4-second invulnerability ends, Goliath releases an orange shockwave identical in mechanics to Maou Haki (same speed, radius, and screen-wide bullet-clearing behavior) — but this wave costs the player **no lives** and deals **50% of each Sentinel's own Max HP as true damage** to every Sentinel it reaches, never shaved by the Vanguard AoE dampening; it's a release of the pent-up invulnerability, telegraphed by a brief casting flash on Goliath's body.
 
 **Passive: Absolute Verdict**
 
@@ -719,7 +719,7 @@ CD **4s**. Goliath raises a hand and pulls up to **3 random living Apostles** at
 
 **Skill: Endless Echo**
 
-CD **11s** after each cast, the first one **8 seconds** into True Form. Kanade reaches into the fight. Goliath records the player's flight every 100ms and keeps the last **1.5 seconds** of it. Kanade opens her reality gate (the same one from the boss-wave cutscene) by the screen edge on the side away from Goliath, placed once when the cast begins so it never follows him, raises her casting arm and gathers light in her palm for **1.4 seconds** while two ghosts of the player's ship take shape. While she casts, Goliath counts as channeling: 35% slower, no Fracture Step, and Tempered Resolve applies.
+CD **11s** after each cast, the first one **8 seconds** into True Form. Kanade reaches into the fight. Goliath records the player's flight every 100ms and keeps the last **1.5 seconds** of it. Kanade opens her reality gate (the same one from the boss-wave cutscene) by the screen edge on the side away from Goliath, placed once when the cast begins so it never follows him, raises her casting arm and gathers light in her palm for **1.4 seconds** while two ghosts of the player's ship take shape. While she casts, Goliath keeps flying at full speed and can still Fracture Step, staying in his own half of the screen so he never lands on her gate. Tempered Resolve still applies.
 
 On release the ghosts fly from her palm to the start of the recorded path. Ghost 1 replays it at once, ghost 2 waits there **1.2 seconds**. Each ghost replays at **0.6x** speed and lives exactly **2.5 seconds**, and a teleport in the recorded path is replayed as a jump. Touching a ghost costs **1 life** and **silences the player for 0.75 seconds** (hit radius 26px). Ghosts do not hurt Sentinels and vanish if Goliath dies. The path is drawn as a violet trail with arrows, every running ghost carries a red lethal ring, and a waiting ghost carries a ring that fills until its turn, so the skill is always dodgeable. Kanade then lowers her arm, fades, and the gate closes. The dev console has a GOLIATH: ENDLESS ECHO section to spawn and cast it on demand.
 
@@ -742,6 +742,14 @@ Every 1 second, recounts every living player-side unit on the map right now (the
 - **Flat armor:** `200 + 340 × (1 + 5% × min(N, 12))` (the 200 is Goliath's own standing armor and stays outside the ally-count multiplier) — subtracted after the % DR above, same shared flat-armor pool Tempered Resolve (below) and Walpurgis add into.
 - **Healing/shield effectiveness:** `+2% per ally, capped at +20%` — stacks with every other heal/shield bonus Goliath has.
 - **Shield top-up:** every second, grants a Shield worth `0.25% of Hentry × min(N, 8)`, drawn from the shared shield budget.
+
+**Passive: Sentinel Breaker**
+
+Every Goliath attack that lands on a Sentinel deals **20% more** damage, on top of everything else that scales it.
+
+**Passive: Second Phase**
+
+Once Unbroken Will has spent itself and its 4-second invulnerability is over, Goliath burns for the rest of the fight: a flame corona and a crimson rune ring turn around his body, embers rise off him, and his halo runs red. It is purely a tell for the permanent bonuses Unbroken Will already grants.
 
 **Passive: Weaken on Hit**
 

@@ -259,6 +259,34 @@ function _drawLaunchTelegraph(x, y, ang, progress) {
     ctx.restore();
 }
 
+// Round energy-orb bullet, baked once into a sprite: a soft falloff halo,
+// the shaded body, a thin bright rim that keeps the edge crisp at small
+// sizes, a hot white core and a glint. All of it lives in the cached
+// sprite, so a screen full of these still costs one drawImage each.
+function _bakeOrbBullet(cx, ctr, sz, highQ, p) {
+    const TAU = Math.PI * 2;
+    if (highQ) {
+        const halo = cx.createRadialGradient(ctr, ctr, sz * 0.5, ctr, ctr, sz * 1.55);
+        halo.addColorStop(0, `rgba(${p.glow},0.32)`); halo.addColorStop(1, `rgba(${p.glow},0)`);
+        cx.fillStyle = halo; cx.beginPath(); cx.arc(ctr, ctr, sz * 1.55, 0, TAU); cx.fill();
+    }
+    const body = cx.createRadialGradient(ctr - sz * 0.25, ctr - sz * 0.25, 0, ctr, ctr, sz);
+    for (const [o, col] of p.body) body.addColorStop(o, col);
+    cx.fillStyle = body; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, TAU); cx.fill();
+    const rimW = Math.max(1, sz * 0.16);
+    cx.strokeStyle = p.rim; cx.lineWidth = rimW;
+    cx.beginPath(); cx.arc(ctr, ctr, sz - rimW / 2, 0, TAU); cx.stroke();
+    if (p.innerRing) {
+        cx.strokeStyle = p.innerRing; cx.lineWidth = Math.max(1, sz * 0.06);
+        cx.beginPath(); cx.arc(ctr, ctr, sz * 0.62, 0, TAU); cx.stroke();
+    }
+    const core = cx.createRadialGradient(ctr, ctr, 0, ctr, ctr, sz * 0.45);
+    core.addColorStop(0, 'rgba(255,255,255,0.9)'); core.addColorStop(1, 'rgba(255,255,255,0)');
+    cx.fillStyle = core; cx.beginPath(); cx.arc(ctr, ctr, sz * 0.45, 0, TAU); cx.fill();
+    cx.fillStyle = p.glint;
+    cx.beginPath(); cx.ellipse(ctr - sz * 0.32, ctr - sz * 0.32, sz * 0.24, sz * 0.13, -0.8, 0, TAU); cx.fill();
+}
+
 // Bullet sprite cache: full bullet appearance pre-rendered once per (type, size, quality)
 const _bulletSpriteCache = {};
 function _getBulletSprite(type, size, gfxLvl) {
@@ -302,36 +330,49 @@ function _getBulletSprite(type, size, gfxLvl) {
             cx.strokeStyle = 'rgba(255,252,235,0.85)';
             cx.lineWidth = 1.1 * u;
             cx.beginPath(); cx.moveTo(...P(19, 0)); cx.lineTo(...P(-9, 0)); cx.stroke();
+            // light catching the upper leading edge, and a hot core running down the tail
+            cx.strokeStyle = 'rgba(255,253,240,0.9)';
+            cx.lineWidth = 0.9 * u;
+            cx.beginPath(); cx.moveTo(...P(20, -0.4)); cx.lineTo(...P(0.6, -9)); cx.stroke();
+            const tailCore = cx.createLinearGradient(...P(-30, 0), ...P(-7, 0));
+            tailCore.addColorStop(0, 'rgba(255,240,190,0)'); tailCore.addColorStop(1, 'rgba(255,248,220,0.75)');
+            cx.strokeStyle = tailCore;
+            cx.lineWidth = 1.2 * u;
+            cx.beginPath(); cx.moveTo(...P(-7, 0)); cx.lineTo(...P(-30, 0)); cx.stroke();
+            if (highQ) {
+                // small four point glint on the tip
+                cx.strokeStyle = 'rgba(255,255,240,0.85)';
+                cx.lineWidth = 0.8 * u;
+                cx.beginPath();
+                cx.moveTo(...P(17, 0)); cx.lineTo(...P(25, 0));
+                cx.moveTo(...P(21, -4)); cx.lineTo(...P(21, 4));
+                cx.stroke();
+            }
             break;
         }
         case 'player_charged': {
-            if (highQ) { cx.fillStyle = 'rgba(100,180,255,0.2)'; cx.beginPath(); cx.arc(ctr, ctr, sz * 1.45, 0, Math.PI * 2); cx.fill(); }
-            grad = cx.createRadialGradient(ctr - sz * 0.2, ctr - sz * 0.2, 0, ctr, ctr, sz);
-            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.35, '#88ccff');
-            grad.addColorStop(0.7, '#2277dd'); grad.addColorStop(1, 'rgba(0,60,180,0.5)');
-            cx.fillStyle = grad; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
-            cx.fillStyle = 'rgba(255,255,255,0.6)';
-            cx.beginPath(); cx.ellipse(ctr - sz * 0.25, ctr - sz * 0.25, sz * 0.22, sz * 0.13, -0.8, 0, Math.PI * 2); cx.fill();
+            // the charged shot gets an extra inner ring to read as a denser shot
+            _bakeOrbBullet(cx, ctr, sz, highQ, {
+                glow: '100,180,255',
+                body: [[0, '#f0f8ff'], [0.35, '#8fcfff'], [0.75, '#2272dd'], [1, '#0a2f80']],
+                rim: 'rgba(190,225,255,0.85)', innerRing: 'rgba(255,255,255,0.3)', glint: 'rgba(255,255,255,0.7)',
+            });
             break;
         }
         case 'sentinel_auto': case 'sentinel_death': {
-            if (highQ) { cx.fillStyle = 'rgba(0,200,220,0.15)'; cx.beginPath(); cx.arc(ctr, ctr, sz * 1.4, 0, Math.PI * 2); cx.fill(); }
-            grad = cx.createRadialGradient(ctr - sz * 0.2, ctr - sz * 0.2, 0, ctr, ctr, sz);
-            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#44ffee');
-            grad.addColorStop(0.7, '#00aaaa'); grad.addColorStop(1, 'rgba(0,60,80,0.5)');
-            cx.fillStyle = grad; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
-            cx.fillStyle = 'rgba(200,255,255,0.55)';
-            cx.beginPath(); cx.ellipse(ctr - sz * 0.2, ctr - sz * 0.2, sz * 0.2, sz * 0.12, -0.8, 0, Math.PI * 2); cx.fill();
+            _bakeOrbBullet(cx, ctr, sz, highQ, {
+                glow: '0,210,225',
+                body: [[0, '#eaffff'], [0.35, '#5ff7ea'], [0.75, '#00a5aa'], [1, '#004a5c']],
+                rim: 'rgba(170,255,248,0.8)', glint: 'rgba(225,255,255,0.7)',
+            });
             break;
         }
         default: { // player_auto and any unknown type
-            if (highQ) { cx.fillStyle = 'rgba(160,80,255,0.15)'; cx.beginPath(); cx.arc(ctr, ctr, sz * 1.4, 0, Math.PI * 2); cx.fill(); }
-            grad = cx.createRadialGradient(ctr - sz * 0.2, ctr - sz * 0.2, 0, ctr, ctr, sz);
-            grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#cc88ff');
-            grad.addColorStop(0.7, '#7700cc'); grad.addColorStop(1, 'rgba(40,0,80,0.5)');
-            cx.fillStyle = grad; cx.beginPath(); cx.arc(ctr, ctr, sz, 0, Math.PI * 2); cx.fill();
-            cx.fillStyle = 'rgba(240,200,255,0.55)';
-            cx.beginPath(); cx.ellipse(ctr - sz * 0.2, ctr - sz * 0.2, sz * 0.22, sz * 0.13, -0.8, 0, Math.PI * 2); cx.fill();
+            _bakeOrbBullet(cx, ctr, sz, highQ, {
+                glow: '170,90,255',
+                body: [[0, '#f4e6ff'], [0.35, '#c27dff'], [0.75, '#7a12d6'], [1, '#3d0480']],
+                rim: 'rgba(222,180,255,0.8)', glint: 'rgba(250,235,255,0.7)',
+            });
             break;
         }
     }
@@ -2266,9 +2307,6 @@ function draw(deltaTime) {
 
         drawRaphaelLasers();
         _drawLeviathanEffects(); // death lasers + perseverance sweep (outside enemy lifetime)
-        _drawGoliathOrbs(); // Absolute Verdict orb (independent object)
-        _drawGoliathSwords(); // Joker Marchosias-copy sword projectiles (independent objects)
-        _drawGoliathMeteorProjectiles(); // Corrupted Meteor thrown projectile (independent objects)
         _drawGoliathEchoes(); // Endless Echo trail + ghosts
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         if (typeof _drawUrielEffects === 'function') _drawUrielEffects(); // Holy Sword projectiles + death barrier
@@ -2518,6 +2556,12 @@ function draw(deltaTime) {
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
+        // his projectiles launch from inside his body and halo, so they draw
+        // above him; underneath, a Verdict orb that struck a nearby Sentinel
+        // could live and die entirely hidden, reading as a charge that never fired
+        _drawGoliathOrbs(); // Absolute Verdict orb (independent object)
+        _drawGoliathSwords(); // Joker Marchosias-copy sword projectiles (independent objects)
+        _drawGoliathMeteorProjectiles(); // Corrupted Meteor thrown projectile (independent objects)
         // screen-space, separate pass so it's unaffected by goliath's own transform
         if (typeof _drawGoliathBossBar === 'function') {
             enemies.forEach(e => { if (e.type === 'goliath') _drawGoliathBossBar(e); });

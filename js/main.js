@@ -538,12 +538,12 @@ function update(rawDeltaTime) {
             return;
         }
 
-        // Unbroken Will release wave: cơ chế y hệt Maou Haki (cùng tốc
-        // độ/maxRadius, quét sạch đạn của người chơi + tinh linh trong bán
-        // kính), KHÔNG gây sát thương/trừ mạng người chơi — nhưng CÓ gây
-        // 100 + 20% MaxHp của Goliath dưới dạng true damage cho Sentinels
-        // (chịu DR/khiên bình thường như mọi đòn khác), đây là cái giá thật
-        // của việc cứu mạng, không phải hoàn toàn vô hại như trước.
+        // Unbroken Will release wave: same speed and reach as Maou Haki and
+        // sweeps the player's and the spirit's bullets inside it. It never
+        // costs the player a life, but every Sentinel it reaches takes half
+        // of its own Max HP as true damage (plus Goliath's Sentinel bonus),
+        // and the Vanguard AoE dampening doesn't shave it, so surviving his
+        // death really costs the player's side something.
         if (wave._isUnbrokenWave) {
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
@@ -565,7 +565,7 @@ function update(rawDeltaTime) {
                 if (!wave.hitSentinels.has(sentinel)) {
                     const d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
                     if (d <= wave.radius) {
-                        dealDamage(sentinel, { damage: 0.00060 * (wave._hs || 0), isTrueDamage: true, _vanguardTag: wave._id, _attackerType: 'goliath' });
+                        dealDamage(sentinel, { damage: 0, percentDamage: 0.50, isTrueDamage: true, _noAoeDamp: true, _vanguardTag: wave._id, _attackerType: 'goliath' });
                         wave.hitSentinels.add(sentinel);
                         addExplosion(sentinel.x, sentinel.y, 40, '#f97316');
                     }
