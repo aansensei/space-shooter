@@ -58,7 +58,7 @@ A fast-paced arcade space shooter with deep combat mechanics, percentage-based d
 
 **Iron Body** is a state of complete invulnerability — the target is immune to all damage from all sources, including base damage, percentage damage, true damage, Death Star, and Skill F. Iron Body is fundamentally different from high DR: it is absolute, not a reduction. Examples: Leviathan's All for One shield, the player inside Yog-Sothoth Domain.
 
-**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Death Star pull, Tesla Coil slow, Dimensional Rift slow, Orb Sacrifice slow. CC Immunity does not block damage. **Egregor** and **Dargruel** have permanent CC Immunity. **Goliath** (True Form, via Inevitable) also has permanent CC Immunity. Dominant petrification ignores CC immunity and cleansing, but Goliath's administrator powers (Endless Echo and Joker) continue casting and cooling down.
+**CC Immunity** means the target cannot be displaced or slowed by any crowd control effect — Death Star pull, Tesla Coil slow, Dimensional Rift slow, Orb Sacrifice slow. CC Immunity does not block damage. **Egregor** and **Dargruel** have permanent CC Immunity. **Goliath** (True Form, via Inevitable) also has permanent CC Immunity. Leo's petrification is dominant: it holds CC immune enemies too and Unbroken Will cannot cleanse it, though Goliath's Endless Echo and Joker keep running.
 
 When **Glory for Justice** is active, all friendly damage is multiplied by **1.55×**. When **Accurate Parry** is active, all friendly damage is additionally multiplied by **1.25×** (stacks on top of Glory for Justice).
 
@@ -271,7 +271,7 @@ Summons a Spirit that orbits near you for **35 seconds**, firing homing bullets 
 
 - **Spirit Bullet:** 13.8% ATK, homing, +10% flight speed bonus.
 - **Blade Arc:** Every 5 shots, fires a wide sweeping arc (radius 125) dealing 20.7% ATK + 1.5% Max HP (24.8% ATK + 1.5% Max HP with the Twin Blades sigil).
-- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (1.15% ATK per tick, true damage), then launches a single Spinner: 5-second lifetime, bounces off every screen edge (speed boost on launch and each bounce), 24% ATK + 1.5% Max HP true damage on contact (900ms cooldown per enemy, so it can re-hit the same target repeatedly over its life without doing it every single frame), and every 0.3s near an enemy slashes 4 mini Arc Blades in a cross pattern (41% ATK piercing each, 47% ATK with Twin Blades). Both the contact hit and the arc blades share one diminishing-returns rule: a repeat hit on a target within 1s of the last Spinner hit that landed on it deals 30% less.
+- **Finale (at 35s):** The Spirit drifts to the screen center, charges for 2.5 seconds while firing continuous lasers (1.15% ATK per tick, true damage), then launches a single Spinner: 5-second lifetime, bounces off every screen edge (speed boost on launch and each bounce), 20% ATK + 1.8% Max HP true damage on contact (900ms cooldown per enemy, so it can re-hit the same target repeatedly over its life without doing it every single frame), every 0.3s near an enemy slashes 4 mini Arc Blades in a cross pattern (43% ATK piercing each, 50% ATK with Twin Blades), and every full second it stays alive throws 4 more mini Arc Blades (41% ATK piercing each, 47% ATK with Twin Blades). Every Spinner hit, contact or blade, applies Soul Reaver for 2s (refreshed, never stacked). Both the contact hit and the arc blades share one diminishing-returns rule: a repeat hit on a target within 1s of the last Spinner hit that landed on it deals 30% less.
 
 ---
 
@@ -329,7 +329,7 @@ Charges up, then sweeps a massive plasma beam across the entire screen. Every en
 
 **Slash direction:** during the 1.5s charge, press **→** to sweep from left to right (the default when nothing is pressed) or **←** to sweep from right to left. The last press wins and locks when the sweep starts. With Cycle of Flow, which skips the charge, the arrow held when F is pressed decides. A small rounded pill at the top of the screen lights the chosen arrow and disappears as the slash fires. Cooldown, charge, sweep time and damage do not change.
 
-Skill F and its own boomerangs, blade arcs and Great Sage gem attacks can erase Endless Echo ghosts at their current position. Ghosts grant no kill rewards. Uriel barriers still block the hit.
+**Endless Echo ghosts:** the sweep in every variant, the boomerangs and blade arcs Skill F launches, and Great Sage's stolen gem attacks cut Endless Echo ghosts they hit (flying out of Kanade's palm, waiting or running), using the same hit test they use on enemies. A cut ghost gives no score, no sigil charge and no on-kill effects, and Uriel's Protection barrier still blocks the cut.
 
 ---
 
@@ -383,11 +383,13 @@ Every real cast of Annihilation Sweep also phases the player and every sentinel 
 
 ### Leo
 
-**Lion's Roar (ATK):** While GFJ is active, attacks inflict Burn: 30% ATK per stack, ticking every 500ms for 3s (resets on a new hit, stacks x3). Burn bypasses 50% enemy DR. Every hit also deals bonus damage equal to 1% of the target's lost HP. Wildfire: an enemy that dies while Burning spreads its stacks to up to 6 enemies within 150px.
+**Lion's Roar (ATK):** While GFJ is active, attacks inflict Burn: 30% ATK per stack every 500ms for 3s (a new hit refreshes it and adds a stack, up to 3). Burn bypasses 50% of enemy DR. Every hit also deals bonus damage equal to 1% of the target's lost HP. Wildfire: an enemy that dies while Burning passes its Burn stacks to up to 6 enemies within 150px.
 
-**Divine Fate (SPEC):** Wave start: all enemies are petrified for 5s (new spawns too) and all damage is +60%. Killing Burning enemies charges the Fate meter, and Burn ticks on Abnormal or higher enemies charge it slowly. Every 1% of charge grants +0.15% ATK (up to +15% when full). When full, press Space to petrify every enemy for 3s with the same +60% damage. This empties the meter and its ATK bonus, and the meter rests for 8s. Petrify is a dominant effect: it ignores CC immunity and cannot be cleansed. On impact, enemies are silenced for 0.5s and interrupted skills restart their full cooldowns. Goliath's UNIQUE SKILL powers, Endless Echo and Joker, continue unaffected. Against a living Goliath True Form, the Fate meter also charges 2% per second, including its debuff immunity windows. This charge pauses during petrification, the 8s rest and while ready.
+**Divine Fate (SPEC):** Wave start: every enemy is petrified for 5s (new spawns too) and all damage is +60%. Petrify ignores CC immunity and cannot be cleansed: petrified enemies cannot move, attack or cast, and their cooldowns pause. Goliath's UNIQUE SKILLs (Endless Echo and Joker) are unaffected. Fate meter: Burning kills charge it (Apostle 5%, Abnormal and Elite 20%, Dominator 35%) and each Burn tick on an Abnormal or higher enemy charges 0.5%. Every 1% grants +0.15% ATK (up to +15%). When full, press Space to petrify every enemy for 3s with the same +60% damage. When any petrify runs out, each petrified enemy shatters for 100% ATK. The meter and its ATK bonus drop to 0, and charging resumes 8s after the petrify ends.
 
-Burning kills charge 5% for Apostles, 20% for Abnormal and Elite, and 35% for Dominators. Eligible Burn ticks charge 0.5%. Both Leo skills are required for the meter and its ATK bonus. Charging pauses during petrification, while ready, and for 8s after petrification ends. Space and mobile CHARGE release Cancer first, then Leo.
+The Fate meter and its ATK bonus need both Leo skills. It does not charge while petrify is running, while it is full, or during the 8s rest. Space and the mobile CHARGE button release one banked sigil per press, Cancer's Riptide Surge first, and Silence blocks both. Petrified enemies' cooldowns and casts pause and resume where they stopped, with no burst afterwards. Launched projectiles and ghosts keep flying, outside pulls such as Riptide still move petrified enemies, and Goliath Alpha, his transformation and every death sequence are never petrified. Wildfire spreads on the frame after the kill, never above the Burn stack cap, and never onto DoT immune targets (Uriel, Thaelis Guards and cocoons, Raphael under Custos Aeternus, Goliath under Unbroken Will) or enemies in Coronation.
+
+---
 
 ## Enemies
 
@@ -733,7 +735,7 @@ CD **11s** after each cast, the first one **8 seconds** into True Form. Kanade r
 
 On release the ghosts fly from her palm to the start of the recorded path. Ghost 1 replays it at once, ghost 2 waits there **1.2 seconds**. Each ghost replays at **0.6x** speed and lives exactly **2.5 seconds**, and a teleport in the recorded path is replayed as a jump. Touching a ghost costs **1 life** and **silences the player for 0.75 seconds** (hit radius 26px). Ghosts do not hurt Sentinels and vanish if Goliath dies. The path is drawn as a violet trail with arrows, every running ghost carries a red lethal ring, and a waiting ghost carries a ring that fills until its turn, so the skill is always dodgeable. Kanade then lowers her arm, fades, and the gate closes. The dev console has a GOLIATH: ENDLESS ECHO section to spawn and cast it on demand.
 
-Skill F can cut these ghosts during flight, waiting or replay, without kill rewards. Uriel barriers still protect them. Endless Echo and Joker are administrator UNIQUE SKILL powers: their casts and cooldowns continue through Leo petrification.
+Skill F, the boomerangs and blade arcs it launches, and Great Sage's stolen gem attacks can cut these ghosts while they fly out, wait or replay, with no kill reward. Uriel's Protection barrier blocks the cut, and once both ghosts of a cast are cut the trail fades out. Endless Echo and Joker are Goliath's UNIQUE SKILLs and keep running while Leo has him petrified.
 
 **Passive: Warding Palm**
 
