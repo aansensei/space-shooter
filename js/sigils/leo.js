@@ -1,19 +1,12 @@
-// Pisces: Space Journey — © 2024 An Nguyen. Licensed under the MIT License.
-// Leo sigil data (EN + VI). Split out of the old monolithic
-// js/sigils.js; loaded after js/sigils/core.js, which declares SIGIL_DEFS and
-// SIGIL_I18N_VI as empty objects for every sigil file to assign its own entry into.
-
+// Leo sigil descriptions in English and Vietnamese.
 SIGIL_DEFS.leo = {
-        name: 'Leo', element: 'Fire', color: '#EF9F27',
-        buffs: [
-            { id: 'su_tu_hong', name: "Lion's Roar", type: 'ATK', typeC: '#ef4444',
-              desc: 'While GFJ active, attacks inflict Burn: 300 DoT per stack, ticking every 500ms for 3s (resets on new hit, stacks x3). Burn bypasses 50% enemy DR. Attacks emit fire. Every hit also deals bonus damage equal to 1% of the target\'s own lost HP.' },
-            { id: 'than_menh', name: 'Divine Fate', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Wave start: 5s freeze — all enemies stop moving (new spawns also frozen) + all damage +60%' },
-        ]
+    name: 'Leo', element: 'Fire', color: '#EF9F27',
+    buffs: [
+        { id: 'su_tu_hong', name: "Lion's Roar", type: 'ATK', typeC: '#ef4444', desc: "While GFJ is active, attacks inflict Burn: 30% ATK per stack, ticking every 500ms for 3s (resets on a new hit, stacks x3). Burn bypasses 50% enemy DR. Every hit also deals bonus damage equal to 1% of the target's lost HP. Wildfire: an enemy that dies while Burning spreads its stacks to up to 6 enemies within 150px." },
+        { id: 'than_menh', name: 'Divine Fate', type: 'SPEC', typeC: '#f59e0b', desc: "Wave start: all enemies are petrified for 5s (new spawns too) and all damage is +60%. Killing Burning enemies charges the Fate meter, and Burn ticks on Abnormal or higher enemies charge it slowly. Every 1% of charge grants +0.15% ATK (up to +15% when full). When full, press Space to petrify every enemy for 3s with the same +60% damage. This empties the meter and its ATK bonus, and the meter rests for 8s. Petrify is a dominant effect: it ignores CC immunity and cannot be cleansed. On impact, enemies are silenced for 0.5s and interrupted skills restart their full cooldowns. Goliath's UNIQUE SKILL powers, Endless Echo and Joker, continue unaffected. Against a living Goliath True Form, the Fate meter also charges 2% per second, including its debuff immunity windows. This charge pauses during petrification, the 8s rest and while ready." },
+    ]
 };
-
 SIGIL_I18N_VI.leo = { name: 'Sư Tử', element: 'Hỏa', buffs: {
-        su_tu_hong: { name: 'Sư Tử Hống', desc: 'Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 300 sát thương mỗi lớp, tick mỗi 500ms trong 3s (reset khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giáp kẻ địch. Đòn đánh phát ra lửa. Mỗi đòn còn gây thêm sát thương bằng 1% HP đã mất của mục tiêu.' },
-        than_menh: { name: 'Thần Mệnh', desc: 'Đầu mỗi wave: đóng băng 5s — mọi kẻ địch ngừng di chuyển (kể cả địch mới xuất hiện) + toàn bộ sát thương +60%' },
+    su_tu_hong: { name: 'Sư Tử Hống', desc: "Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 30% ATK mỗi lớp, tick mỗi 500ms trong 3s (làm mới khi trúng đòn mới, cộng dồn x3). Bỏng xuyên 50% giảm sát thương của địch. Mỗi đòn còn gây thêm sát thương bằng 1% HP đã mất của mục tiêu. Lửa Lan: kẻ địch chết khi đang Bỏng truyền số lớp của nó sang tối đa 6 kẻ địch trong 150px." },
+    than_menh: { name: 'Thần Mệnh', desc: "Đầu mỗi wave, mọi kẻ địch bị hóa đá 5s (kể cả địch mới xuất hiện), toàn bộ sát thương +60%. Hạ kẻ địch đang Bỏng sẽ nạp thanh Thần Mệnh, tick Bỏng lên địch hạng Abnormal trở lên cũng nạp chậm. Mỗi 1% thanh nạp cho +0.15% ATK (tối đa +15% khi đầy). Khi đầy, nhấn Space để hóa đá mọi kẻ địch 3s với cùng +60% sát thương. Việc này làm thanh và thưởng ATK về 0, sau đó thanh nghỉ 8s. Hóa đá là hiệu ứng dominant: bỏ qua miễn khống chế và không thể bị xóa. Khi hóa đá, quái bị Câm Lặng 0.5s, chiêu bị ngắt phải hồi chiêu lại từ đầu. UNIQUE SKILL của Goliath (Dư Âm Đêm Vô Tận và Joker) vẫn hoạt động bình thường. Khi Goliath Chân Thân còn sống, thanh Thần Mệnh tự nạp thêm 2% mỗi giây, kể cả lúc hắn miễn Bỏng. Nguồn nạp này dừng khi hóa đá, trong 8s nghỉ và khi thanh đã đầy." },
 }};

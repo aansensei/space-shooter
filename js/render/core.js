@@ -2310,6 +2310,7 @@ function draw(deltaTime) {
         // The portal sits beneath Echo hazards and the player on FULL and MED.
         if (!_mobPerf && _gfxLevel < 2) _drawGoliathEchoCasts();
         _drawGoliathEchoes(); // Endless Echo trail + ghosts
+        _drawEchoSlashEffects();
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         if (typeof _drawUrielEffects === 'function') _drawUrielEffects(); // Holy Sword projectiles + death barrier
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash
@@ -2354,6 +2355,8 @@ function draw(deltaTime) {
         drawPlayer();
         if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
         if (typeof _drawTidalSurgeMeter === 'function') _drawTidalSurgeMeter();
+        if (typeof _drawLeoFateMeter === 'function') _drawLeoFateMeter();
+        if (typeof _drawLeoReadyAura === 'function') _drawLeoReadyAura();
         if (typeof _drawCancerReadyAura === 'function') _drawCancerReadyAura();
         if (typeof _drawGreatSageReadyAura === 'function') _drawGreatSageReadyAura();
         if (typeof _drawGreatSageGemGrantBurst === 'function') _drawGreatSageGemGrantBurst();
@@ -2551,6 +2554,7 @@ function draw(deltaTime) {
         if (typeof drawSigilHUD === 'function') drawSigilHUD();
         if (typeof _drawGreatSageReleasePrompt === 'function') _drawGreatSageReleasePrompt();
         if (typeof _drawTidalSurgeReadyPrompt === 'function') _drawTidalSurgeReadyPrompt();
+        if (typeof _drawLeoFateReadyPrompt === 'function') _drawLeoFateReadyPrompt();
         if (typeof _drawBloodArrowReadyPrompt === 'function') _drawBloodArrowReadyPrompt();
         if (typeof _drawBloodArrowChargeVignette === 'function') _drawBloodArrowChargeVignette();
         if (typeof _drawGreatSageChargeVignette === 'function') _drawGreatSageChargeVignette();
@@ -2558,6 +2562,7 @@ function draw(deltaTime) {
 
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
+        if (typeof _drawLeoEffects === 'function') _drawLeoEffects();
         // his projectiles launch from inside his body and halo, so they draw
         // above him; underneath, a Verdict orb that struck a nearby Sentinel
         // could live and die entirely hidden, reading as a charge that never fired

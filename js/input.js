@@ -305,14 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Cancer sigil: a banked Riptide Surge takes priority over the
-        // normal charge/laser, same "works any time, doesn't touch the
-        // normal skill's own state" shape as Great Sage's gem release.
-        if (e.code === "Space" && window._tidalSurgeReady
+        // A fresh Space press releases Cancer first, then Leo.
+        if (e.code === "Space" && (window._tidalSurgeReady || window._leoFateReady)
             && !(typeof player !== 'undefined' && player._silenced)) {
-            _releaseTidalSurge();
+            if (!e.repeat) _releaseReadySpaceSigil();
             e.preventDefault();
-        } else if (e.code === "Space" && !charging && !laserActive && !skillShiftActive
+        } else if (e.code === "Space" && !e.repeat && !charging && !laserActive && !skillShiftActive
             && !(typeof player !== 'undefined' && player._silenced)) {
             const _now = performance.now();
             if (_hasBuff('dong_chay_luan_hoi')) {

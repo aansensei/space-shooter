@@ -61,6 +61,14 @@ const AUTOPLAY_STEP = 90; // px a candidate dodge step is scored against
 
 // Every live threat that will cross the player's y-row within the lookahead
 // window, with where it'll actually be when it gets there.
+function debugFillLeoFate() {
+    if (!_leoHasFateMeter()) return;
+    window._leoFateMeter = LEO_FATE_METER_MAX;
+    window._leoFateReady = true;
+    window._leoChargeFlashMs = 300;
+    player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult() * _playerAtkBuffMult();
+}
+
 function _autoplayScanThreats() {
     const threats = [];
     for (const e of enemies) {
@@ -121,12 +129,10 @@ function _autoplayTick() {
         if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
         if (typeof activateSkillG === 'function') activateSkillG();
 
-        // Cancer - Riptide Surge: a banked release is free (doesn't touch
-        // any other cooldown) and just needs a Space press whenever it's
-        // ready, same priority Space itself gives it in input.js.
-        if (window._tidalSurgeReady && typeof _releaseTidalSurge === 'function'
+        // Autoplay uses the same banked sigil priority as Space and CHARGE.
+        if ((window._tidalSurgeReady || window._leoFateReady) && typeof _releaseReadySpaceSigil === 'function'
             && !(typeof player !== 'undefined' && player._silenced)) {
-            _releaseTidalSurge();
+            _releaseReadySpaceSigil();
         }
 
         // Movement + Skill Shift engage: both driven off the same
@@ -491,6 +497,7 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugForceSkill('Shift')">Shift</button>
         <button class="dbg-btn" onclick="debugForceSkill('Laser')">Laser</button>
         <button class="dbg-btn" onclick="debugForceSkill('Photokrystos')">Photokrystos</button>
+        <button class="dbg-btn" onclick="debugFillLeoFate()">Leo: Fill Fate</button>
         <button class="dbg-btn" onclick="debugForceSkill('S-Spinner')">S Finale (Spinner)</button>
         <button class="dbg-btn" onclick="debugForceSkill('TeslaCoil')">Spawn Tesla Coil</button>
       </div>

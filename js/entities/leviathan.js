@@ -132,7 +132,8 @@ function updateLeviathan(enemy, deltaTime) {
 
     // PHASE 2: ALL FOR ONE SHIELD
     if (enemy.afoShieldActive) {
-        if (enemy.afoKillCount >= enemy.afoKillQuota && !enemy.afoAnnouncePending && !enemy.afoAnnouncing) {
+        if (enemy.afoKillCount >= enemy.afoKillQuota && !enemy.afoAnnouncePending && !enemy.afoAnnouncing
+            && now >= (enemy.perseveranceCooldown || 0)) {
             enemy.afoAnnouncePending = true;
             enemy.perseveranceCharging = true;
             enemy.perseveranceChargeStart = now;

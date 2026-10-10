@@ -1478,6 +1478,7 @@ function _drawGoliathEchoesLegacyGhosts() {
     if (ghosts && ghosts.length) {
         ctx.save(); _echoShadowColor.call(ctx, 'transparent');
         for (const g of ghosts) {
+            if (g._slashed) continue;
             const span = (g.path.length - 1) * GOLIATH_ECHO_SAMPLE_MS;
             const flying = g.age < GOLIATH_ECHO_FLIGHT_MS;
             const waiting = !flying && g.age < g.startAt;
@@ -1517,12 +1518,14 @@ function _drawGoliathEchoes() {
     if (!ghosts || !ghosts.length) return;
     ctx.save(); _echoShadowColor.call(ctx, 'transparent');
     for (const g of ghosts) {
+        if (g._slashed) continue;
         const a = _echoGhostOpacity(g, now);
         if (a <= 0.01) continue;
         _drawEchoGhostWake(g, now, a); _drawEchoShip(g.x, g.y, 1, a);
     }
     // All collision and wait rings are painted after every decorative hull.
     for (const g of ghosts) {
+        if (g._slashed) continue;
         const flying = g.age < GOLIATH_ECHO_FLIGHT_MS;
         const waiting = !flying && g.age < g.startAt;
         if (flying || _echoGhostOpacity(g, now) <= 0.01) continue;
@@ -1538,6 +1541,33 @@ function _drawGoliathEchoes() {
             }
     }
     ctx.restore();
+}
+
+function _drawEchoSlashEffects() {
+    const low = _mobPerf || _gfxLevel >= 2;
+    for (const fx of window._echoSlashFx || []) {
+        const t = Math.max(0, Math.min(1, fx.age / 300));
+        if (low && t > 0.35) continue;
+        ctx.save(); ctx.translate(fx.x, fx.y); ctx.rotate(fx.angle); ctx.globalAlpha = 1 - t;
+        ctx.strokeStyle = '#f3e8ff'; ctx.lineWidth = low ? 2 : 3;
+        ctx.beginPath(); ctx.moveTo(-34, -7); ctx.lineTo(34, 7); ctx.stroke();
+        if (!low) {
+            const sprite = _getEchoShipSprite();
+            for (const side of [-1, 1]) {
+                ctx.save(); ctx.translate(side * t * 13, side * t * 19);
+                ctx.beginPath(); ctx.rect(-42, side < 0 ? -42 : 0, 84, 42); ctx.clip();
+                ctx.drawImage(sprite, -35, -35); ctx.restore();
+                ctx.strokeStyle = '#ff3b5a'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(side * t * 15, side * t * 15, GOLIATH_ECHO_HIT_RADIUS, side < 0 ? Math.PI : 0, side < 0 ? Math.PI * 2 : Math.PI); ctx.stroke();
+            }
+            ctx.fillStyle = '#c084fc';
+            for (let i = 0; i < (_gfxLevel < 1 ? 10 : 5); i++) {
+                const a = i * 2.399;
+                ctx.fillRect(Math.cos(a) * t * 42, Math.sin(a) * t * 42, 2, 2);
+            }
+        }
+        ctx.restore();
+    }
 }
 
 // The gate and arm are drawn after Goliath's body.

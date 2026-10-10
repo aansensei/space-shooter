@@ -8,6 +8,7 @@
 // higher enemy also plunders that enemy's own gem, immediately, one of each
 // kind held at a time (max 3)
 function _onSkillFKill(enemy) {
+    _leoRememberBurnKill(enemy);
     _skillFKillsThisSweep++;
     if (!_hasBuff('cuop_bao_tang')) return;
     _skillFHitFlashes.push({ x: enemy.x, y: enemy.y, r: (enemy.size || 20) + 5, time: performance.now() });
@@ -16,6 +17,96 @@ function _onSkillFKill(enemy) {
 }
 
 let _skillFLeftHeld = false, _skillFRightHeld = false;
+window._echoSlashFx = [];
+
+function _echoSlashBlocked(cx, cy, g) {
+    return (typeof _urielBarrierBlocksPoint === 'function' && _urielBarrierBlocksPoint(g.x, g.y))
+        || (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(cx, cy, g.x, g.y));
+}
+
+function _slashEcho(g, angle, cx, cy) {
+    if (g._slashed || !Number.isFinite(g.x) || !Number.isFinite(g.y) || !Number.isFinite(angle)
+        || _echoSlashBlocked(cx, cy, g)) return;
+    g._slashed = true;
+    if (window._echoSlashFx.length < 32) window._echoSlashFx.push({ x: g.x, y: g.y, angle, age: 0 });
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', g.x, g.y);
+    const owner = g.owner;
+    if (owner && owner._echoTrail === g.path) {
+        let remaining = false;
+        for (const other of window._goliathEchoes) {
+            if (other !== g && !other._slashed && other.owner === owner && other.path === g.path) { remaining = true; break; }
+        }
+        if (!remaining) owner._echoTrailEnd = Math.min(owner._echoTrailEnd || Infinity, performance.now() + 180);
+    }
+}
+
+// The radius expands the same cone used for Skill F's enemy hit test.
+function _skillFSweepHits(x, y, radius, currentAngle, width) {
+    const dx = skillFDirection * (x - player.x), dy = y - player.y;
+    const d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    if (d > canvas.width + radius) return false;
+    if (a < currentAngle && a > currentAngle - width) return true;
+    if (radius <= 0) return false;
+    for (let i = 0; i < 2; i++) {
+        const edge = currentAngle - i * width;
+        const t = Math.max(0, Math.min(canvas.width, dx * Math.cos(edge) + dy * Math.sin(edge)));
+        if (Math.hypot(dx - t * Math.cos(edge), dy - t * Math.sin(edge)) <= radius) return true;
+    }
+    return false;
+}
+
+function _trySlashEchoBySweep(g) {
+    if (g._slashed || skillFState !== 'sweeping') return;
+    const progress = (performance.now() - skillFSweepStart) / skillFSweepDuration;
+    if (progress < 0 || progress >= 1) return;
+    const angle = -Math.PI + Math.PI * progress;
+    const width = _hasBuff('cuop_bao_tang') ? Math.min(0.2 * (1 + _skillFKillsThisSweep * 0.5), 0.9) : 0.2;
+    if (_skillFSweepHits(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS, angle, width)) {
+        _slashEcho(g, skillFDirection === 1 ? angle : Math.PI - angle, player.x, player.y);
+    }
+}
+
+function _slashEchoesCircle(x, y, radius, angle, sourceX, sourceY) {
+    for (const g of window._goliathEchoes || []) {
+        if (!g._slashed && Math.hypot(g.x - x, g.y - y) <= radius + GOLIATH_ECHO_HIT_RADIUS) {
+            _slashEcho(g, angle, sourceX == null ? x : sourceX, sourceY == null ? y : sourceY);
+        }
+    }
+}
+
+function _slashEchoesLine(x, y, ex, ey, width) {
+    const dx = ex - x, dy = ey - y, len2 = dx * dx + dy * dy;
+    if (!Number.isFinite(len2) || len2 <= 0) return;
+    for (const g of window._goliathEchoes || []) {
+        const t = Math.max(0, Math.min(1, ((g.x - x) * dx + (g.y - y) * dy) / len2));
+        if (Math.hypot(g.x - x - t * dx, g.y - y - t * dy) <= width + GOLIATH_ECHO_HIT_RADIUS) {
+            _slashEcho(g, Math.atan2(dy, dx), x, y);
+        }
+    }
+}
+
+function _slashEchoesSector(x, y, angle, halfWidth, range) {
+    for (const g of window._goliathEchoes || []) {
+        const d = Math.hypot(g.x - x, g.y - y);
+        const a = Math.atan2(g.y - y, g.x - x) - angle;
+        const diff = Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+        const extra = Math.asin(Math.min(1, GOLIATH_ECHO_HIT_RADIUS / Math.max(1, d)));
+        if (d <= range + GOLIATH_ECHO_HIT_RADIUS && diff <= halfWidth + extra) _slashEcho(g, angle, x, y);
+    }
+}
+
+function _trySlashEchoByProjectiles(g) {
+    for (const arc of bladeArcProjectiles) {
+        if (arc._fromSkillF && Math.hypot(g.x - arc.x, g.y - arc.y) <= arc.radius + GOLIATH_ECHO_HIT_RADIUS) {
+            _slashEcho(g, Math.atan2(arc.vy, arc.vx), arc.originX == null ? player.x : arc.originX, arc.originY == null ? player.y : arc.originY);
+        }
+    }
+    for (const b of photoBrangs) {
+        if (b._fromSkillF && Math.hypot(g.x - b.x, g.y - b.y) <= (b._radius || BRANG_R_DEFAULT) + GOLIATH_ECHO_HIT_RADIUS) {
+            _slashEcho(g, Math.atan2(b.vy, b.vx), b._originX, b._originY);
+        }
+    }
+}
 
 // Keyboard presses and joystick edges select the direction during charge.
 function _updateSkillFDirection(pressedDirection) {
@@ -74,7 +165,7 @@ function activateSkillF() {
             skillFState = "sweeping";
             skillFSweepStart = currentTime;
             if (window.AudioMgr) window.AudioMgr.startSkillFFire();
-            if (_hasBuff('song_luoi')) spawnPhotoBrangs(player.x, player.y, 2, true);
+            if (_hasBuff('song_luoi')) spawnPhotoBrangs(player.x, player.y, 2, true, true);
         } else {
             skillFState = "charging";
             skillFChargeStart = currentTime;
@@ -84,6 +175,10 @@ function activateSkillF() {
 }
 
 function updateSkillF(deltaTime) {
+    for (let i = window._echoSlashFx.length - 1; i >= 0; i--) {
+        window._echoSlashFx[i].age += deltaTime;
+        if (window._echoSlashFx[i].age >= 300) window._echoSlashFx.splice(i, 1);
+    }
     const currentTime = performance.now();
     if (skillFState === "charging") _updateSkillFDirection();
     if (skillFState === "charging" && currentTime - skillFChargeStart >= 1500) {
@@ -92,7 +187,7 @@ function updateSkillF(deltaTime) {
         if (window.AudioMgr) { window.AudioMgr.stopSkillFCharge(); window.AudioMgr.startSkillFFire(); }
         if (_hasBuff('song_luoi')) {
             // Twin Blades: Skill F sweep now throws 2 boomerangs from the player instead of blade arcs
-            spawnPhotoBrangs(player.x, player.y, 2, true);
+            spawnPhotoBrangs(player.x, player.y, 2, true, true);
         }
     }
     if (skillFState === "sweeping") {
@@ -107,6 +202,8 @@ function updateSkillF(deltaTime) {
         // sweep, not with elapsed time, snowballing up to 4.5x its base width
         const coneHalfWidth = _hasBuff('cuop_bao_tang') ? Math.min(0.2 * (1 + _skillFKillsThisSweep * 0.5), 0.2 * 4.5) : 0.2;
 
+        for (const g of window._goliathEchoes || []) _trySlashEchoBySweep(g);
+
         for (let enemy of enemies) {
             if (enemy.hitBySkillF) continue;
             if (enemy.type === 'abyssal_chain') continue; // piercing, immune to skill F
@@ -116,8 +213,7 @@ function updateSkillF(deltaTime) {
             if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
             // Uriel's death barrier occludes the sweep like a flashlight hitting a wall.
             if (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(player.x, player.y, enemy.x, enemy.y)) continue;
-            let angle = Math.atan2(enemy.y - player.y, skillFDirection * (enemy.x - player.x));
-            if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - coneHalfWidth) {
+            if (_skillFSweepHits(enemy.x, enemy.y, 0, currentAngle, coneHalfWidth)) {
                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive && !_hasBuff('tu_huyet')) {

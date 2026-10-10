@@ -2150,6 +2150,7 @@
 
             // Return to main menu from in-game
             window._returnToMainMenu = function () {
+                if (typeof _leoReset === 'function') _leoReset();
                 const _po = document.getElementById('pause-overlay');
                 if (_po) _po.style.display = 'none';
                 gamePaused = false;
@@ -2488,16 +2489,16 @@
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
     <script src="js/audio.js?v=20261008a"></script>
-    <script src="js/offline.js?v=20261008a"></script>
+    <script src="js/offline.js?v=20261009f"></script>
     <script src="js/background.js?v=20260923a"></script>
-    <script src="js/config.js?v=20260929b"></script>
+    <script src="js/config.js?v=20261009f"></script>
     <script src="js/timeline-distortion.js?v=20260926k"></script>
     <script src="js/sigils/core.js?v=20260905d"></script>
     <script src="js/sigils/aries.js?v=20260906a"></script>
     <script src="js/sigils/taurus.js?v=20260914b"></script>
     <script src="js/sigils/gemini.js?v=20260906a"></script>
     <script src="js/sigils/cancer.js?v=20260914b"></script>
-    <script src="js/sigils/leo.js?v=20260906a"></script>
+    <script src="js/sigils/leo.js?v=20261009f"></script>
     <script src="js/sigils/virgo.js?v=20260906a"></script>
     <script src="js/sigils/libra.js?v=20260909a"></script>
     <script src="js/sigils/scorpio.js?v=20260901a"></script>
@@ -2507,22 +2508,23 @@
     <script src="js/sigils/pisces.js?v=20260901a"></script>
     <script src="js/sigils/than.js?v=20260901a"></script>
     <script src="js/yuusha-party.js?v=20260914b"></script>
-    <script src="js/entities/core.js?v=20261009a"></script>
+    <script src="js/entities/core.js?v=20261009f"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
     <script src="js/entities/veilshroud.js?v=20260917a"></script>
-    <script src="js/entities/uriel.js?v=20261008b"></script>
+    <script src="js/entities/uriel.js?v=20261009f"></script>
     <script src="js/entities/egregor.js?v=20260917a"></script>
-    <script src="js/entities/leviathan.js?v=20260917a"></script>
-    <script src="js/entities/marchosias.js?v=20260907a"></script>
+    <script src="js/entities/leviathan.js?v=20261009f"></script>
+    <script src="js/entities/marchosias.js?v=20261009f"></script>
     <script src="js/entities/misc-enemies.js?v=20261008a"></script>
-    <script src="js/entities/raphael.js?v=20261008a"></script>
-    <script src="js/entities/goliath.js?v=20261009b"></script>
+    <script src="js/entities/raphael.js?v=20261009f"></script>
+    <script src="js/entities/goliath.js?v=20261009f"></script>
     <script src="js/skills/skill-a.js?v=20260925b"></script>
-    <script src="js/skills/skill-s-spirit.js?v=20261008a"></script>
+    <script src="js/skills/skill-s-spirit.js?v=20261009f"></script>
     <script src="js/skills/skill-d.js?v=20260925b"></script>
-    <script src="js/skills/sigil-great-sage.js?v=20260914b"></script>
+    <script src="js/skills/sigil-great-sage.js?v=20261009f"></script>
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
-    <script src="js/skills/skill-f.js?v=20260925b"></script>
+    <script src="js/skills/sigil-leo.js?v=20261009f"></script>
+    <script src="js/skills/skill-f.js?v=20261009f"></script>
     <script src="js/skills/skill-g.js?v=20260925b"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>
     <script src="js/skills/misc-mechanics.js?v=20260911a"></script>
@@ -2530,46 +2532,43 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261009c"></script>
+    <script src="js/render/core.js?v=20261009f"></script>
     <script src="js/render/kanade-face.js?v=20261009a"></script>
     <script src="js/render/kanade-cutscene.js?v=20261009b"></script>
     <script src="js/render/fx.js?v=20261009a"></script>
     <script src="js/render/player.js?v=20261008a"></script>
-    <script src="js/render/enemy-common.js?v=20260926k"></script>
+    <script src="js/render/enemy-common.js?v=20261009f"></script>
     <script src="js/render/enemy-raphael.js?v=20261008b"></script>
     <script src="js/render/enemy-thaelis.js?v=20261008a"></script>
     <script src="js/render/enemy-dargruel.js?v=20260914a"></script>
     <script src="js/render/enemy-marchosias.js?v=20260913a"></script>
     <script src="js/render/enemy-leviathan.js?v=20260914b"></script>
-    <script src="js/render/enemy-goliath.js?v=20261009d"></script>
+    <script src="js/render/enemy-goliath.js?v=20261009f"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260913e"></script>
     <script src="js/render/enemy-uriel.js?v=20261008c"></script>
     <script src="js/render/enemy-egregor.js?v=20260911a"></script>
     <script src="js/render/skill-s-spirit.js?v=20260909a"></script>
     <script src="js/render/skill-a.js?v=20260911a"></script>
     <script src="js/render/skill-d.js?v=20260914b"></script>
-    <script src="js/render/skill-f.js?v=20260914b"></script>
+    <script src="js/render/skill-f.js?v=20261009f"></script>
     <script src="js/render/sigil-cancer.js?v=20260914b"></script>
+    <script src="js/render/sigil-leo.js?v=20261009f"></script>
     <script src="js/render/skill-g.js?v=20260923f"></script>
-    <script src="js/render/skill-buttons.js?v=20260917a"></script>
+    <script src="js/render/skill-buttons.js?v=20261009f"></script>
     <script src="js/pixi-renderer.js?v=20261008b"></script>
-    <script src="js/input.js?v=20260925b"></script>
+    <script src="js/input.js?v=20261009f"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20261009a"></script>
+    <script src="js/main.js?v=20261009f"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20260927e';
-            document.head.appendChild(_dbgScript);
+            _dbgScript.src = 'js/debug-console.js?v=20261009f';
+            document.body.appendChild(_dbgScript);
         }
-    </script>
-
-    <script>
-        // Offline play: registers sw.js, which serves cached files when the
-        // network is unavailable. The Settings panel's "Offline Play"
+        // Register the worker that supports the offline download section.
         // section (js/offline.js) drives explicit package downloads on top
         // of this — registering here just makes the worker exist so those
         // downloads have a cache to write into.
@@ -3289,11 +3288,10 @@
                             _syncMovementSwap();
                         }
                     } else if (id === 'mb-ch') {
-                        // Cancer sigil: a banked Riptide Surge takes priority over the
-                        // normal charge/laser, same as the keyboard Space path in input.js
-                        if (window._tidalSurgeReady && !(typeof player !== 'undefined' && player._silenced)) {
-                            _releaseTidalSurge();
-                        } else if (!charging && !laserActive && !skillShiftActive) {
+                        // CHARGE uses the same Cancer then Leo priority as Space.
+                        if ((window._tidalSurgeReady || window._leoFateReady) && !player._silenced) {
+                            _releaseReadySpaceSigil();
+                        } else if (!charging && !laserActive && !skillShiftActive && !player._silenced) {
                             const _now = performance.now();
                             if (_hasBuff('dong_chay_luan_hoi')) {
                                 // Cycle of Flow: skip the charge phase entirely, same as the keyboard path
@@ -3322,11 +3320,12 @@
                     } else if (id === 'mb-ch') {
                         if (charging && !laserActive) {
                             const dur = performance.now() - chargeStartTime;
-                            if (dur < overloadChargeTime) {
+                            if (dur < overloadChargeTime && !player._silenced) {
                                 const m = 1 + ((Math.min(dur, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
                                 fireChargedBullet(Math.min(m, maxMultiplier));
                             }
                             charging = false;
+                            if (window.AudioMgr) window.AudioMgr.stopCharging();
                         }
                     } else if (id === 'mb-left') { keys.left = false; }
                     else if (id === 'mb-right') { keys.right = false; }
@@ -3681,7 +3680,14 @@
                         // say on this button's glow too.
                         const _charging = typeof charging !== 'undefined' && charging;
                         const _laserActive = typeof laserActive !== 'undefined' && laserActive;
-                        if (window._tidalSurgeReady) {
+                        if (window._leoFateReady && !window._tidalSurgeReady) {
+                            _mbReadyGlow('mb-ch-cv', [
+                                [0, '#fff2ce'], [0.3, '#ffd27a'], [0.6, '#ef9f27'], [0.85, '#bc5f17'], [1, '#471c13'],
+                            ], now);
+                            document.getElementById('mb-ch')?.classList.remove('cd');
+                            document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _lastReadyGlow.ch = true;
+                        } else if (window._tidalSurgeReady) {
                             _mbReadyGlow('mb-ch-cv', [
                                 [0, 'rgba(220,255,250,1)'], [0.3, 'rgba(94,234,212,1)'], [0.6, 'rgba(0,200,225,1)'], [0.85, 'rgba(0,120,170,1)'], [1, 'rgba(3,50,80,1)'],
                             ], now);

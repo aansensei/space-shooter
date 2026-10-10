@@ -1408,7 +1408,12 @@ function _drawGreatSageReleasePrompt() {
     const now = performance.now();
     const ready72 = gems.length >= 3 && (typeof _hasBuff === 'function' && _hasBuff('bien_hoa_72'));
     const pulse = 0.7 + 0.3 * Math.sin(now / 320);
-    const cx = canvas.width / 2, cy = canvas.height * 0.5;
+    const cx = canvas.width / 2;
+    let cy = canvas.height * 0.5;
+    if (typeof _leoHasFateMeter === 'function' && _leoHasFateMeter()
+        && Number.isFinite(window._leoHudTop) && Math.abs(player.x - cx) < 179) {
+        cy = Math.max(28, Math.min(cy, window._leoHudTop - 28));
+    }
     const label = ready72 ? '72 TRANSFORMATIONS READY' : 'STOLEN GEM READY';
     const sub = ready72 ? 'F: unleash all 3 at once' : `F: release (${gems.length}/3 banked)`;
 

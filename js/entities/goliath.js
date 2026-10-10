@@ -364,6 +364,7 @@ function _goliathSettleLethalHp(enemy) {
     if (!enemy._unbrokenWillUsed) { enemy.hp = Math.max(1, enemy.hp); return; }
     if (enemy.hp > 0) return;
     if (enemy._deathPhase) { enemy.hp = Math.max(0, enemy.hp); return; }
+    _leoRememberBurnKill(enemy);
     enemy._deathPhase = 'core';
     enemy._deathPhaseTimer = 0;
     enemy._deathGemsExploded = 0;

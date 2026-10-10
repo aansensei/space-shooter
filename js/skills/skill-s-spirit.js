@@ -451,12 +451,12 @@ function updatePhotokrystos(spirit, deltaTime) {
 
 const MAX_PHOTO_BRANGS = 10;
 const MAX_BRANG_PENDING = 5;
-function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
+function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive, fromSkillF) {
     const _photo = spirits.find(s => s.isPhotokrystos);
     const validTargets = enemies.filter(e =>
         !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && !e.inCoronation && e.hp > 0 && !e._markedForDeath && !e._stealthed
     );
-    if (validTargets.length === 0) return;
+    if (validTargets.length === 0 && !(fromSkillF && (window._goliathEchoes || []).some(g => !g._slashed))) return;
 
     // Đếm brang đang active (không đang về)
     const activeCount = photoBrangs.filter(b => !b._recalling).length;
@@ -469,6 +469,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
         const spaceInQueue = MAX_BRANG_PENDING - (_photo._brangPending || 0);
         const actualQueue  = Math.min(toQueue, spaceInQueue);
         _photo._brangPending = (_photo._brangPending || 0) + actualQueue;
+        if (fromSkillF) _photo._brangPendingF = (_photo._brangPendingF || 0) + actualQueue;
         // Gọi những cái cũ nhất về để nhường chỗ
         let toRecall = actualQueue;
         for (let _bi = 0; _bi < photoBrangs.length && toRecall > 0; _bi++) {
@@ -483,11 +484,13 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive) {
     if (throwNow > 0) { player._empowerFlashStart = performance.now(); player._empowerFlashEnd = player._empowerFlashStart + 320; }
     for (let b = 0; b < throwNow; b++) {
         const shuffled = _shuffleArray(validTargets);
-        const first = shuffled[0];
+        const first = shuffled[0] || (window._goliathEchoes || []).find(g => !g._slashed);
+        if (!first) break;
         const dx = first.x - fromX, dy = first.y - fromY;
         const d = Math.hypot(dx, dy) || 1;
         const _isExtra = songLuoiActive && b >= 2;
         photoBrangs.push({
+            _fromSkillF: !!fromSkillF, _originX: fromX, _originY: fromY,
             x: fromX, y: fromY,
             vx: (dx / d) * 17.5, vy: (dy / d) * 17.5,
             targets: shuffled,
@@ -522,12 +525,15 @@ function updatePhotoBrangs(deltaTime) {
                 b.vy += (_rdy / _rd * 35 - b.vy) * 0.28;
                 b.x  += b.vx * dt;
                 b.y  += b.vy * dt;
+                if (b._fromSkillF) _slashEchoesCircle(b.x, b.y, b._radius || BRANG_R_DEFAULT, Math.atan2(b.vy, b.vx), b._originX, b._originY);
                 if (_rd < 35) {
                     photoBrangs.splice(i, 1);
                     // Phóng pending nếu còn
                     if ((_photo._brangPending || 0) > 0) {
                         _photo._brangPending--;
-                        spawnPhotoBrangs(_photo.x, _photo.y, 1);
+                        const fromF = (_photo._brangPendingF || 0) > 0;
+                        if (fromF) _photo._brangPendingF--;
+                        spawnPhotoBrangs(_photo.x, _photo.y, 1, false, fromF);
                     }
                 }
             } else {
@@ -658,6 +664,8 @@ function updatePhotoBrangs(deltaTime) {
         b.x += b.vx * dt;
         b.y += b.vy * dt;
 
+        if (b._fromSkillF) _slashEchoesCircle(b.x, b.y, b._radius || BRANG_R_DEFAULT, Math.atan2(b.vy, b.vx), b._originX, b._originY);
+
         // Destroy enemy bullets along path
         for (let ei = enemies.length - 1; ei >= 0; ei--) {
             const eb = enemies[ei];
@@ -714,6 +722,7 @@ function updateBladeArcProjectiles(deltaTime) {
     }
     for (let i = bladeArcProjectiles.length - 1; i >= 0; i--) {
         let arc = bladeArcProjectiles[i];
+        if (arc._fromSkillF) _slashEchoesCircle(arc.x, arc.y, arc.radius, Math.atan2(arc.vy, arc.vx), arc.originX == null ? player.x : arc.originX, arc.originY == null ? player.y : arc.originY);
         arc.x += arc.vx * dt;
         arc.y += arc.vy * dt;
         if (arc.x < -arc.radius || arc.x > canvas.width + arc.radius || arc.y < -arc.radius || arc.y > canvas.height + arc.radius) {

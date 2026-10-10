@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v445';
+const CACHE_VERSION = 'v448';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -70,6 +70,7 @@ const CORE_FILES = [
     'assets/images/game/icons/soul-reaver-debuff.png',
     'assets/images/game/sigils/cancer-whirlpool-oceanfloor.png',
     'assets/images/game/sigils/tidal-meter-frame.png',
+    'assets/images/game/sigils/leo-meter-frame.png',
     'assets/images/game/sigils/great-sage-gem-frame.png',
     'assets/images/game/enemies/marchosias-hexagon-armor.png',
     'assets/images/game/enemies/thaelis-cocoon.png',
@@ -116,6 +117,7 @@ const CORE_FILES = [
     'js/skills/skill-d.js',
     'js/skills/sigil-great-sage.js',
     'js/skills/sigil-cancer.js',
+    'js/skills/sigil-leo.js',
     'js/skills/skill-f.js',
     'js/skills/skill-g.js',
     'js/skills/skill-shift.js',
@@ -144,6 +146,7 @@ const CORE_FILES = [
     'js/render/skill-d.js',
     'js/render/skill-f.js',
     'js/render/sigil-cancer.js',
+    'js/render/sigil-leo.js',
     'js/render/skill-g.js',
     'js/render/skill-s-spirit.js',
 ];

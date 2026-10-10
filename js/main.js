@@ -404,6 +404,8 @@ function update(rawDeltaTime) {
     const deltaTime = rawDeltaTime * timeScale; // Bẻ cong deltaTime vật lý
     const dt = deltaTime / 16.67;
 
+    _leoBeginFrame(deltaTime, currentTime);
+
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
     gameElapsedTime += deltaTime;
 
@@ -516,6 +518,7 @@ function update(rawDeltaTime) {
                             e.hp = Math.max(0, e.hp - rawDmg);
                         }
                         _recordStat('allyDamage', 'Skill S: Back to Motherland', rawDmg);
+                        if (e.hp <= 0 || e._deathPhase) _leoRememberBurnKill(e);
                         e.shield = 0;
                         e.absoluteShield = false;
                         e.raphaelInvulnerable = false;
@@ -928,6 +931,17 @@ function update(rawDeltaTime) {
             enemy.hp = 1;
         }
 
+        // Dominant petrification holds owned actions, leaving external forces active.
+        if (_leoFreezeEnemy(enemy, currentTime)) {
+            // Administrator powers keep casting while Goliath's body is stone.
+            if (enemy.type === 'goliath') {
+                _goliathEchoUpdate(enemy, deltaTime, currentTime);
+                _goliathUpdateJoker(enemy, deltaTime, currentTime);
+                _goliathSyncSkillGap(enemy, currentTime);
+            }
+            continue;
+        }
+
         if (enemy.type === 'debug_dummy') {
             if (enemy.hp <= 0) { enemy.hp = enemy.maxHp; enemy._state = 'idle'; enemy._stateTime = 0; }
             if ((enemy._isImmune || enemy._ironActive) && enemy._lastHpBeforeFrame !== undefined && enemy.hp < enemy._lastHpBeforeFrame) {
@@ -1083,9 +1097,9 @@ function update(rawDeltaTime) {
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 5000;
-                createRaphaelTelegraph(enemy.x, enemy.y, player, enemy.atk);
+                createRaphaelTelegraph(enemy.x, enemy.y, player, enemy.atk, enemy);
                 let availableSents = _shuffleArray(sentinels).slice(0, 3);
-                availableSents.forEach(s => createRaphaelTelegraph(enemy.x, enemy.y, s, enemy.atk));
+                availableSents.forEach(s => createRaphaelTelegraph(enemy.x, enemy.y, s, enemy.atk, enemy));
             }
         }
 
@@ -2569,6 +2583,7 @@ function update(rawDeltaTime) {
     // its path: before that it is flying out of Kanade's palm or waiting its turn.
     if (window._goliathEchoes && window._goliathEchoes.length) {
         window._goliathEchoes = window._goliathEchoes.filter(g => {
+            if (g._slashed) return false;
             if (!g.owner || g.owner._deathPhase || !enemies.includes(g.owner)) return false;
             g.age += deltaTime;
             if (g.age < g.startAt) {
@@ -2576,12 +2591,17 @@ function update(rawDeltaTime) {
                 const e = f * f * (3 - 2 * f);
                 g.x = g.ox + (g.path[0].x - g.ox) * e;
                 g.y = g.oy + (g.path[0].y - g.oy) * e;
-                return true;
+                _trySlashEchoBySweep(g);
+                _trySlashEchoByProjectiles(g);
+                return !g._slashed;
             }
             g.t += deltaTime * GOLIATH_ECHO_GHOST_SPEED;
             if (g.t >= (g.path.length - 1) * GOLIATH_ECHO_SAMPLE_MS) return false;
             const p = _goliathEchoPointAt(g.path, g.t);
             g.x = p.x; g.y = p.y;
+            _trySlashEchoBySweep(g);
+            _trySlashEchoByProjectiles(g);
+            if (g._slashed) return false;
             if (Math.hypot(g.x - player.x, g.y - player.y) < GOLIATH_ECHO_HIT_RADIUS + (player.hitRadius || 15)) {
                 if (!_yuushaPierceRedirect(0.625 * (g.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
                 addExplosion(g.x, g.y, 60, '#a855f7');
@@ -3199,19 +3219,6 @@ function _updateSigilPassives(now, deltaTime) {
         if (now - window._tuyetLanLastKill > 6000) window._tuyetLanStacks = 0;
     }
 
-    if (_hasBuff('than_menh') && window._thanMenhEndTime > 0 && now < window._thanMenhEndTime) {
-        for (const e of enemies) {
-            if (!e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain') {
-                e._thanMenhFrozen = true;
-            }
-        }
-    } else {
-        if (window._thanMenhEndTime > 0 && now >= window._thanMenhEndTime) {
-            for (const e of enemies) { e._thanMenhFrozen = false; }
-            window._thanMenhEndTime = 0;
-        }
-    }
-
     if (_hasBuff('dien_tu_truong') && (skillGActive || skillGCharge >= 100)) {
         // docs/combat-scaling-rebalance.md Part 5: discrete 100ms ticks of a
         // flat 0.35% Max HP (3.5%/s) instead of scaling a tiny per-frame
@@ -3242,11 +3249,14 @@ function _updateSigilPassives(now, deltaTime) {
     if (_hasBuff('su_tu_hong') && gloryForJusticeActive && window._sthBurning) {
         for (const [e, burnData] of window._sthBurning.entries()) {
             if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
+            if (now >= burnData.expiry || !_leoCanBurn(e)) { window._sthBurning.delete(e); continue; }
             if (now >= burnData.nextTick) {
-                const stacks = Math.min(_stackCap('sunLionBurn'), burnData.stacks || 1);
-                const dmg = 0.30 * player.atk * stacks; // docs/combat-scaling-rebalance.md Part 5
+                const stacks = Math.min(_stackCap('sunLionBurn'), Number.isFinite(burnData.stacks) ? Math.max(1, burnData.stacks) : 1);
+                const dmg = LEO_BURN_ATK_PER_STACK * player.atk * stacks;
+                if (!Number.isFinite(dmg)) continue;
                 dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
-                burnData.nextTick = now + 500;
+                if (_leoEnemyRank(e) > 0) _leoChargeFate(LEO_FATE_BURN_TICK_CHARGE);
+                burnData.nextTick = now + LEO_BURN_TICK_MS;
             }
             if (now >= burnData.expiry) window._sthBurning.delete(e);
         }
@@ -3259,7 +3269,7 @@ function _updateWaveSystem(deltaTime, now) {
         _waveRestTimer = Math.max(0, _waveRestTimer - deltaTime);
         if (_waveRestTimer <= 0) {
             _waveNumber++;
-            player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult();
+            player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult() * _playerAtkBuffMult();
             if (_waveNumber >= 8 && (_waveNumber - 8) % 2 === 0) {
                 _yuukiBonus = Math.min(3.00, _yuukiBonus + 0.20);
             }
@@ -3329,7 +3339,7 @@ function _updateWaveSystem(deltaTime, now) {
             _wavePhase = 'spawning';
             _waveAnnouncedAt = now;
             if (window.AudioMgr) window.AudioMgr.playSfx('new-wave');
-            if (_hasBuff('than_menh')) window._thanMenhEndTime = now + 5000;
+            if (_hasBuff('than_menh')) _leoStartPetrify(LEO_FATE_WAVE_MS, 'wave');
         }
         return;
     }
@@ -3453,6 +3463,7 @@ function gameLoop(timeStamp) {
         lastEnemySpawn += _pauseDelay;
     }
     window._wasPausedLastFrame = gamePaused;
+    _leoSyncSuspension(gamePaused || !!window._sigilPicker || !!window._kanadeCutscene, performance.now());
 
     const _debugSpeed = (typeof window._debugGameSpeed === 'number' && window._debugGameSpeed > 0) ? window._debugGameSpeed : 1;
     // Coarse profiling for the still-unexplained Safari FPS collapse on
@@ -3559,6 +3570,7 @@ function startGame() {
     window._gfjWasActive = false;
     window._goliathWaveHpBuff = 1;
     window._goliathEchoes = [];
+    window._echoSlashFx = [];
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];
@@ -3648,7 +3660,7 @@ function startGame() {
     window._yuushaMageCasts = 0;
     window._yuushaReplenishLastCheck = 0; window._yuushaReplenishCooldownEnd = 0;
     window._coiMongEndTime = 0;
-    window._thanMenhEndTime = 0;
+    _leoReset();
     window._tuyetLanStacks = 0;
     window._tuyetLanLastKill = 0;
     window._muiTenVangHitCount = 0;

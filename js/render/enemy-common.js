@@ -1127,27 +1127,8 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // Divine Fate (than_menh): stone overlay on frozen enemies
-    if (enemy._thanMenhFrozen && !enemy.type.startsWith('enemy_bullet')) {
-        const _sNow = performance.now();
-        const _sPulse = 0.65 + 0.15 * Math.sin(_sNow / 300);
-        const _sr = enemy.size / 2 + 3;
-        ctx.save();
-        ctx.globalAlpha = _sPulse * 0.72;
-        ctx.fillStyle = '#9e9e8a';
-        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, _sr, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 0.55;
-        ctx.strokeStyle = '#5a5a4a';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(enemy.x - _sr * 0.3, enemy.y - _sr * 0.55);
-        ctx.lineTo(enemy.x + _sr * 0.15, enemy.y + _sr * 0.1);
-        ctx.lineTo(enemy.x - _sr * 0.1, enemy.y + _sr * 0.5);
-        ctx.moveTo(enemy.x + _sr * 0.2, enemy.y - _sr * 0.4);
-        ctx.lineTo(enemy.x + _sr * 0.45, enemy.y + _sr * 0.35);
-        ctx.stroke();
-        ctx.restore();
-    }
+    if (typeof _drawLeoEnemyStatus === 'function') _drawLeoEnemyStatus(enemy);
+
 }
 
 

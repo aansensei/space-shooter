@@ -19,7 +19,7 @@ function _raphaelRegisterWisdomHit(enemy) {
     // hits (piercing AoE skills especially) could otherwise cross a multiple
     // of 80 more than once before the first orb even leaves gather.
     if (enemy._wisdomHitCount % 80 === 0 && performance.now() - (enemy._wisdomOrbLastLaunchAt || -Infinity) >= 1000) {
-        _raphaelSpawnWisdomOrb(enemy);
+        if (!enemy._thanMenhFrozen && !(enemy._leoSilenceMs > 0)) _raphaelSpawnWisdomOrb(enemy);
     }
 }
 
@@ -89,6 +89,7 @@ function updateRaphaelWisdomOrbs(deltaTime) {
         const o = raphaelWisdomOrbs[i];
 
         if (o.phase === 'gather') {
+            if (o.enemy._thanMenhFrozen) continue;
             o.gatherTimer -= deltaTime;
             if (o.gatherTimer <= 0) {
                 o.phase = 'launch';
