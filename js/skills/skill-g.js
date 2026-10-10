@@ -298,6 +298,7 @@ function updateTeslaCoils(deltaTime, currentTime) {
         const coil = teslaCoils[i];
 
         enemies.forEach(enemy => {
+            if (enemy.type === 'abyssal_chain') return;   // has no speed to push back with, its y would turn NaN
             if (enemy.type === 'veilshroud_echo') return; // untargetable
             if (enemy.inCoronation) return;               // untargetable during coronation
             let enemyRadius = enemy.type.startsWith('enemy_bullet') ? enemy.size : enemy.size / 2;
