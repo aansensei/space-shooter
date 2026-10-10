@@ -817,11 +817,13 @@ function _spinnerDrMult(enemy, now) {
     return (last !== undefined && now - last < 1000) ? 0.70 : 1.0;
 }
 
+// Every Spinner hit, body or mini blade, also applies Soul Reaver for 2s
+// (dealDamage's applySoulReaver: refreshes, never stacks, Uriel is immune).
 // Fires the Spinner's 4-direction mini Arc Blade volley (cross pattern,
-// N/E/S/W) - shared by both triggers that launch it: the periodic proximity
-// check in updateSpiritSpinners() and the independent per-collision trigger
-// on the Spinner's own body-contact hit.
-function _fireSpinnerBlades(s, now) {
+// N/E/S/W). The proximity and collision triggers in updateSpiritSpinners()
+// use the base ratios (43% ATK, 50% with Twin Blades); the once-per-second
+// volley passes its own (41% ATK, 47% with Twin Blades).
+function _fireSpinnerBlades(s, now, atkRatio, twinAtkRatio) {
     // Arc-blade launch: a sudden 4-way crosshair flash of cyan light over
     // the Spinner, a beat before the blades snap out. Read by
     // drawSpiritSpinner() every frame while now < this.
@@ -831,13 +833,13 @@ function _fireSpinnerBlades(s, now) {
     // multiplier/stagger the Spirit's own Blade Arc gets from this sigil.
     const _twinBlades = _hasBuff('song_luoi');
     // docs/combat-scaling-rebalance.md Part 5
-    const _bladeDmg = _twinBlades ? 0.47 * player.atk : 0.41 * player.atk;
+    const _bladeDmg = (_twinBlades ? twinAtkRatio : atkRatio) * player.atk;
     for (let d = 0; d < 4; d++) {
         const a = (Math.PI / 2) * d;
         bladeArcProjectiles.push({
             x: s.x, y: s.y, vx: Math.cos(a) * 15.84, vy: Math.sin(a) * 15.84,
             radius: 70, damage: _bladeDmg, hitEnemies: [],
-            isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, _statSrc: s._statSrc,
+            isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, applySoulReaver: true, _statSrc: s._statSrc,
         });
         if (_twinBlades) {
             if (!window._pendingBlades) window._pendingBlades = [];
@@ -845,7 +847,7 @@ function _fireSpinnerBlades(s, now) {
                 spawnAt: now + 15,
                 data: { x: s.x, y: s.y, vx: Math.cos(a) * 15.84, vy: Math.sin(a) * 15.84,
                     radius: 70 * 1.20, damage: _bladeDmg, hitEnemies: [],
-                    isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, _statSrc: s._statSrc },
+                    isPiercing: true, _barrierPiercing: true, isSpinnerBlade: true, applySoulReaver: true, _statSrc: s._statSrc },
             });
         }
     }
@@ -966,7 +968,7 @@ function updateSpiritSpinners(deltaTime) {
                 const _drMult = _spinnerDrMult(enemy, now);
                 // Small target-Max-HP term kept deliberately (per AanSensei):
                 // a rare once-per-0.9s Finale hit, not a spammy source.
-                dealDamage(enemy, { damage: Math.round(0.24 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.015 * _songLuoiMult * _drMult, isTrueDamage: true, _statSrc: s._statSrc });
+                dealDamage(enemy, { damage: Math.round(0.20 * player.atk * _songLuoiMult * _drMult), percentDamage: 0.018 * _songLuoiMult * _drMult, isTrueDamage: true, applySoulReaver: true, _statSrc: s._statSrc });
                 if (_hasBuff('song_luoi')) s._songLuoiStacks = 0;
                 // On-hit: a sharp crack - jagged magenta shards plus a quick
                 // white flash at the contact point, selling the heavy true damage.
@@ -985,7 +987,7 @@ function updateSpiritSpinners(deltaTime) {
             if (now >= (s._collisionBladeCooldowns.get(enemy) || 0)) {
                 s._collisionBladeCooldowns.set(enemy, now + 650);
                 if (now >= (s._lastBladeVolleyAt || 0)) {
-                    _fireSpinnerBlades(s, now);
+                    _fireSpinnerBlades(s, now, 0.43, 0.50);
                     s._lastBladeVolleyAt = now + 300;
                 }
             }
@@ -1003,6 +1005,15 @@ function updateSpiritSpinners(deltaTime) {
                     enemy.x += (_sdx / _sd) * 38; enemy.y += (_sdy / _sd) * 38;
                 }
             }
+        }
+
+        // Every full second it stays alive, 4 more mini arc blades fly out
+        // whether or not anything is nearby. Game time, so a pause or Skill
+        // Shift's slowdown stretches it like everything else.
+        s._periodicBladeMs = (s._periodicBladeMs || 0) + deltaTime;
+        while (s._periodicBladeMs >= 1000) {
+            s._periodicBladeMs -= 1000;
+            _fireSpinnerBlades(s, now, 0.41, 0.47);
         }
 
         // Every 300ms, if any enemy is close enough, slash 4 mini arc blades
@@ -1023,7 +1034,7 @@ function updateSpiritSpinners(deltaTime) {
                 // Shares s._lastBladeVolleyAt with the collision trigger above -
                 // skips this tick's volley if that one just fired one.
                 if (now >= (s._lastBladeVolleyAt || 0)) {
-                    _fireSpinnerBlades(s, now);
+                    _fireSpinnerBlades(s, now, 0.43, 0.50);
                     s._lastBladeVolleyAt = now + 300;
                 }
             } else {
