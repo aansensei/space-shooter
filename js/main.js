@@ -432,9 +432,15 @@ function update(rawDeltaTime) {
     const _tdBulletSpeed = window._spacetimeFlowActive ? TD_FLOW_ENEMY_BULLET : 1;
 
     // recalc every frame bc enemies spawn and die constantly
-    gloryForJusticeActive = (enemies.filter(e => !e.type.startsWith('enemy_bullet') && e.type !== 'abyssal_chain').length > 4) || skillGActive ||
-        (typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) ||
-        enemies.some(e => e.type === 'dargruel' || e.type === 'thaelis' || e.type === 'raphael' || e.type === 'marchosias' || e.type === 'veilshroud' || e.type === 'egregor' || e.type === 'leviathan' || e.type === 'goliath');
+    // Counted in one pass, without building a filtered array every frame.
+    let _gfjBodies = 0, _gfjBoss = false;
+    for (let _gi = 0; _gi < enemies.length; _gi++) {
+        const t = enemies[_gi].type;
+        if (t === 'dargruel' || t === 'thaelis' || t === 'raphael' || t === 'marchosias' || t === 'veilshroud' || t === 'egregor' || t === 'leviathan' || t === 'goliath') { _gfjBoss = true; break; }
+        if (!t.startsWith('enemy_bullet') && t !== 'abyssal_chain') _gfjBodies++;
+    }
+    gloryForJusticeActive = _gfjBodies > 4 || _gfjBoss || skillGActive ||
+        (typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done));
 
     // Accurate Parry expiry
     if (accurateParryActive && performance.now() >= accurateParryEndTime) {

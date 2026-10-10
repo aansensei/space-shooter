@@ -58,12 +58,15 @@
     // overlapping concurrent instances of the same clip (autoshot firing
     // faster than one copy can finish, etc.) with no pooling required.
     const _bufferCache = {};
+    // Decoded buffers by src, so a one-shot can start without a promise hop.
+    const _decodedBuffers = {};
     function _decodeBuffer(src) {
         if (!actx) return Promise.resolve(null);
         if (_bufferCache[src]) return _bufferCache[src];
         const p = fetch(src)
             .then(r => r.arrayBuffer())
             .then(ab => actx.decodeAudioData(ab))
+            .then(buf => { if (buf) _decodedBuffers[src] = buf; return buf; })
             .catch(e => { console.warn('[Audio] buffer decode failed for ' + src, e); return null; });
         _bufferCache[src] = p;
         return p;
@@ -76,20 +79,29 @@
     // fair trade against ever blocking on decode mid-gameplay.
     // returns a cancel handle - most callers ignore it, but a long one-shot
     // (gameover) needs to be killable if the player bails to menu mid-ring
-    function _playVoice(src, gainValue, bypass) {
+    // Live positional one-shots. Past the cap a new combat sound is dropped:
+    // dozens of overlapping hits are inaudible as separate sounds but each
+    // costs nodes. Non-positional cues (wave, game over) are never capped.
+    const MAX_SFX_VOICES = 24;
+    let _liveVoices = 0;
+    function _playVoice(src, gainValue, bypass, capped) {
         if (!actx || gainValue <= 0) return { cancel() {} };
         let cancelled = false, liveNode = null;
-        _decodeBuffer(src).then(buf => {
-            if (!buf || cancelled) return;
+        const start = buf => {
+            if (!buf || cancelled || (capped && _liveVoices >= MAX_SFX_VOICES)) return;
             const g = actx.createGain();
             g.gain.value = gainValue;
             g.connect(bypass ? _bypassGain : _duckGain);
             const node = actx.createBufferSource();
             node.buffer = buf;
             node.connect(g);
+            if (capped) _liveVoices++;
+            node.onended = () => { if (capped) _liveVoices = Math.max(0, _liveVoices - 1); try { g.disconnect(); } catch (_) {} };
             node.start(0);
             liveNode = node;
-        });
+        };
+        const ready = _decodedBuffers[src];
+        if (ready) start(ready); else _decodeBuffer(src).then(start);
         return {
             cancel() {
                 cancelled = true;
@@ -611,10 +623,22 @@
         stopLoop('kanadeCollapseEl');
     }
 
+    // The same sfx started again within this window would only stack on the
+    // first one, louder and phasing, so it is skipped.
+    const SFX_REPEAT_MS = 35;
+    const _sfxLastAt = {};
+    function _sfxTooSoon(key) {
+        const t = performance.now();
+        if (t - (_sfxLastAt[key] || -Infinity) < SFX_REPEAT_MS) return true;
+        _sfxLastAt[key] = t;
+        return false;
+    }
+
     function playSfx(key) {
         if (_timeFrozen) return;
         const p = state.pool[key];
         if (!p) return;
+        if (_sfxTooSoon(key)) return;
         const g = sfxGain(key);
         if (g <= 0) return;
         return _playVoice(p.src, g, p.bypass);
@@ -629,7 +653,8 @@
         if (!p) return;
         const g = sfxGain(key) * _distanceGain(x, y);
         if (g <= 0.005) return;
-        _playVoice(p.src, g, p.bypass);
+        if (_sfxTooSoon(key)) return;
+        _playVoice(p.src, g, p.bypass, true);
     }
 
     // Loop controls for sustained sfx (charging, laser, crawl, idle, ...). Idempotent.

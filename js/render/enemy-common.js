@@ -532,6 +532,32 @@ function _drawAdminBlessingAura(enemy) {
     ctx.restore();
 }
 
+// Soul Reaver badge: the halo (at its brightest pulse) and the icon, with and
+// without its red glow, baked once the art has loaded.
+let _soulReaverIconCache = null;
+function _getSoulReaverIconSprites(R) {
+    const loaded = _soulReaverIconImg.complete && _soulReaverIconImg.naturalWidth > 0;
+    if (_soulReaverIconCache && (_soulReaverIconCache.icon || !loaded)) return _soulReaverIconCache;
+    const halo = document.createElement('canvas'); halo.width = halo.height = Math.ceil(R * 3.4) + 2;
+    const h = halo.getContext('2d'), hc = halo.width / 2;
+    const hg = h.createRadialGradient(hc, hc, R * 0.5, hc, hc, R * 1.7);
+    hg.addColorStop(0, 'rgba(255, 40, 40, 0.6)'); hg.addColorStop(1, 'rgba(255, 40, 40, 0)');
+    h.fillStyle = hg; h.beginPath(); h.arc(hc, hc, R * 1.7, 0, Math.PI * 2); h.fill();
+    let icon = null, iconGlow = null;
+    if (loaded) {
+        const pad = 14, size = R * 2 + pad * 2;
+        icon = document.createElement('canvas'); icon.width = icon.height = size;
+        const i = icon.getContext('2d'); i.imageSmoothingQuality = 'high';
+        i.drawImage(_soulReaverIconImg, pad, pad, R * 2, R * 2);
+        iconGlow = document.createElement('canvas'); iconGlow.width = iconGlow.height = size;
+        const ig = iconGlow.getContext('2d');
+        ig.shadowColor = '#ff2a2a'; ig.shadowBlur = 10;
+        ig.drawImage(icon, 0, 0);
+    }
+    _soulReaverIconCache = { halo, icon, iconGlow };
+    return _soulReaverIconCache;
+}
+
 function drawEnemy(enemy) {
     // Uriel, fully stealthed (Camouflage): invisible, untargetable, skip
     // every overlay below too (vuln icon, shield bar, Walpurgis aura...).
@@ -770,17 +796,17 @@ function drawEnemy(enemy) {
         ctx.scale(pulse, pulse);
         // Pulsing red glow ring behind the badge so it reads as an active
         // debuff from across a busy screen, not just a small dark dot.
+        const _srSpr = _getSoulReaverIconSprites(R);
         if (!_mobPerf) {
-            const ga = 0.35 + 0.25 * Math.sin(now / 180);
-            const g = ctx.createRadialGradient(0, 0, R * 0.5, 0, 0, R * 1.7);
-            g.addColorStop(0, `rgba(255, 40, 40, ${ga})`);
-            g.addColorStop(1, 'rgba(255, 40, 40, 0)');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.arc(0, 0, R * 1.7, 0, Math.PI * 2); ctx.fill();
+            // Baked halo at full strength; the pulse only changes its opacity.
+            const _srAlpha = ctx.globalAlpha;
+            ctx.globalAlpha = _srAlpha * (0.35 + 0.25 * Math.sin(now / 180)) / 0.6;
+            ctx.drawImage(_srSpr.halo, -_srSpr.halo.width / 2, -_srSpr.halo.height / 2);
+            ctx.globalAlpha = _srAlpha;
         }
-        if (_soulReaverIconImg.complete && _soulReaverIconImg.naturalWidth) {
-            if (!_mobPerf) { ctx.shadowColor = '#ff2a2a'; ctx.shadowBlur = 10; }
-            ctx.drawImage(_soulReaverIconImg, -R, -R, R * 2, R * 2);
+        if (_srSpr.icon) {
+            const icon = _mobPerf ? _srSpr.icon : _srSpr.iconGlow;
+            ctx.drawImage(icon, -icon.width / 2, -icon.height / 2);
         } else {
             ctx.strokeStyle = '#ff2a2a'; ctx.lineWidth = 3;
             if (!_mobPerf) { ctx.shadowColor = 'red'; ctx.shadowBlur = 10; }
@@ -1175,6 +1201,21 @@ function _drawEmbryo(enemy) {
     ctx.restore();
 }
 
+const _enemyBulletRingSprites = new Map();
+function _getEnemyBulletRingSprite(isLarge, size) {
+    const key = (isLarge ? 'L' : 'S') + Math.round(size * 2);
+    let c = _enemyBulletRingSprites.get(key);
+    if (c) return c;
+    const blur = isLarge ? 12 : 8, r = size + 1.5, half = Math.ceil(r + blur * 2 + 3);
+    c = document.createElement('canvas'); c.width = c.height = half * 2;
+    const g = c.getContext('2d');
+    g.strokeStyle = '#ffffff'; g.lineWidth = isLarge ? 2.5 : 1.8;
+    g.shadowColor = 'white'; g.shadowBlur = blur;
+    g.beginPath(); g.arc(half, half, r, 0, Math.PI * 2); g.stroke();
+    _enemyBulletRingSprites.set(key, c);
+    return c;
+}
+
 function _drawEnemyBullet(enemy) {
     const now = performance.now();
     ctx.save();
@@ -1206,10 +1247,15 @@ function _drawEnemyBullet(enemy) {
     const blink = _gfxLevel >= 2 ? 0.78 : (0.55 + 0.45 * Math.sin(now / 90));
     ctx.strokeStyle = `rgba(255,255,255,${blink})`;
     ctx.lineWidth = isLarge ? 2.5 : 1.8;
-    if (_gfxLevel < 1) ctx.shadowColor = 'white';
-    if (_gfxLevel < 1) ctx.shadowBlur = isLarge ? 12 : 8;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
-    ctx.shadowBlur = 0;
+    if (_gfxLevel < 1) {
+        // HIGH: the haloed ring is baked per bullet size and blinks by opacity.
+        const ring = _getEnemyBulletRingSprite(isLarge, enemy.size);
+        ctx.globalAlpha = blink;
+        ctx.drawImage(ring, enemy.x - ring.width / 2, enemy.y - ring.height / 2);
+        ctx.globalAlpha = 1;
+    } else {
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.size + 1.5, 0, Math.PI * 2); ctx.stroke();
+    }
 
     // Static body (glow halo, gradient core, outline, inner spark, highlight)
     // pre-rendered once per (isLarge, size, quality) - see _getEnemyBulletSprite().
@@ -1221,15 +1267,103 @@ function _drawEnemyBullet(enemy) {
 
 // Marchosias
 
+// Everything static in the Vulnerability icon (dark disc, glowing ring, LED
+// dots, split heart, stack numeral and dots) is baked per stack count, and the
+// neon X separately, so a marked enemy costs two drawImage calls per frame
+// instead of clips, gradients and a dozen blurred fills.
+const _VULN_ICON_R = 11, _VULN_ICON_HALF = 30;
+const _vulnIconSprites = {};
+function _vulnIconSprite(kind, glow) {
+    const key = kind + (glow ? 'g' : 'n');
+    if (_vulnIconSprites[key]) return _vulnIconSprites[key];
+    const R = _VULN_ICON_R;
+    const c = document.createElement('canvas'); c.width = c.height = _VULN_ICON_HALF * 2;
+    const g = c.getContext('2d');
+    g.translate(_VULN_ICON_HALF, _VULN_ICON_HALF);
+    const blur = (color, b) => { g.shadowColor = color; g.shadowBlur = glow ? b : 0; };
+    if (kind === 'x') {
+        blur('#ff1a40', 10);
+        g.lineCap = 'round';
+        for (const [ang, len, lw, edge] of [[-Math.PI / 4, 0.85, 2.2, 'rgba(255,255,255,0.9)'], [Math.PI / 4, 0.65, 1.7, 'rgba(255,255,255,0.85)']]) {
+            g.save(); g.rotate(ang);
+            const lg = g.createLinearGradient(-R * len, 0, R * len, 0);
+            lg.addColorStop(0, edge); lg.addColorStop(0.5, '#ff1a40'); lg.addColorStop(1, edge);
+            g.strokeStyle = lg; g.lineWidth = lw;
+            g.beginPath(); g.moveTo(-R * len, 0); g.lineTo(R * len, 0); g.stroke();
+            g.restore();
+        }
+        _vulnIconSprites[key] = c;
+        return c;
+    }
+    const stacks = kind;
+    g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(10,0,3,0.82)'; g.fill();
+    g.strokeStyle = '#ff1a40'; g.lineWidth = 1.8;
+    blur('#ff1a40', 8); g.stroke(); g.shadowBlur = 0;
+    for (const ly of [-R + 1.5, R - 1.5]) {
+        g.fillStyle = '#ff1a40'; blur('#ff1a40', 6);
+        g.beginPath(); g.arc(0, ly, 2.2, 0, Math.PI * 2); g.fill();
+        g.shadowBlur = 0;
+    }
+    // The heart split in two halves, offset from each other.
+    for (const clipLeft of [true, false]) {
+        g.save();
+        g.beginPath();
+        if (clipLeft) g.rect(-R, -R, R * 0.92, R * 2);
+        else g.rect(-R * 0.08, -R, R * 1.1, R * 2);
+        g.clip();
+        g.translate(clipLeft ? -1.5 : 1.5, clipLeft ? -1 : 1);
+        const k = 0.45;
+        g.beginPath();
+        g.moveTo(0, 2 * k);
+        g.bezierCurveTo(-8 * k, -2 * k, -10 * k, -8 * k, 0, -8 * k);
+        g.bezierCurveTo(10 * k, -8 * k, 8 * k, -2 * k, 0, 2 * k);
+        g.bezierCurveTo(-4 * k, 5 * k, -8 * k, 7 * k, 0, 11 * k);
+        g.bezierCurveTo(8 * k, 7 * k, 4 * k, 5 * k, 0, 2 * k);
+        g.closePath();
+        const grad = g.createRadialGradient(-1, -2, 0, 0, 0, 9 * k);
+        grad.addColorStop(0, '#3a2a2e'); grad.addColorStop(0.5, '#2a1c20'); grad.addColorStop(1, '#150a0c');
+        g.fillStyle = grad; blur('#ff1a40', 6); g.fill(); g.shadowBlur = 0;
+        g.strokeStyle = 'rgba(255,26,64,0.25)'; g.lineWidth = 0.5;
+        for (let ci = -8; ci <= 8; ci += 4) { g.beginPath(); g.moveTo(ci * k, -9 * k); g.lineTo(ci * k, 11 * k); g.stroke(); }
+        g.strokeStyle = clipLeft ? '#ff1a40' : 'rgba(255,100,80,0.6)';
+        g.lineWidth = clipLeft ? 1.5 : 0.8;
+        blur('#ff1a40', 5);
+        g.beginPath(); g.moveTo(0, -9 * k); g.lineTo(0, 11 * k); g.stroke();
+        g.shadowBlur = 0;
+        g.restore();
+    }
+    if (stacks > 0) {
+        const rx = R * 0.72, ry = R * 0.82;
+        g.beginPath(); g.arc(rx, ry, 5.5, 0, Math.PI * 2);
+        g.fillStyle = 'rgba(8,0,2,0.9)'; g.fill();
+        g.font = 'bold 7px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = stacks === 4 ? '#ff6680' : '#ff3355';
+        blur('#ff1a40', 5);
+        g.fillText(['I', 'II', 'III', 'IV'][stacks - 1], rx, ry);
+        g.shadowBlur = 0;
+    }
+    for (let i = 0; i < 3; i++) {
+        const filled = i < stacks;
+        g.beginPath(); g.arc(-4 + i * 4, R + 5, 2, 0, Math.PI * 2);
+        g.fillStyle = filled ? '#ff1a40' : 'rgba(255,26,64,0.25)';
+        if (filled) blur('#ff1a40', 5);
+        g.fill(); g.shadowBlur = 0;
+    }
+    _vulnIconSprites[key] = c;
+    return c;
+}
+
 function _drawVulnerabilityIcon(enemy) {
     const now = performance.now();
-    const stacks = enemy.vulnStacks || 0;
+    const stacks = Math.max(0, Math.min(4, enemy.vulnStacks || 0));
     const remaining = Math.max(0, (enemy.vulnEndTime - now) / 3000); // 0..1
 
     // Icon đặt phía trên enemy, offset sang phải nếu có soulReaver
     const iconX = enemy.soulReaver ? enemy.x + 14 : enemy.x;
     const iconY = enemy.y - (enemy.size || 20) - 28;
-    const R = 11; // bán kính icon
+    const R = _VULN_ICON_R; // bán kính icon
+    const glow = !_mobPerf && _gfxLevel < 2;
 
     ctx.save();
     ctx.translate(iconX, iconY);
@@ -1238,115 +1372,14 @@ function _drawVulnerabilityIcon(enemy) {
     const pulse = 0.97 + 0.03 * Math.sin(now / 200);
     ctx.scale(pulse, pulse);
 
-    // Nền tròn tối
-    ctx.beginPath();
-    ctx.arc(0, 0, R, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(10,0,3,0.82)';
-    ctx.fill();
+    ctx.drawImage(_vulnIconSprite(stacks, glow), -_VULN_ICON_HALF, -_VULN_ICON_HALF);
 
-    // Viền đỏ + glow
-    ctx.strokeStyle = '#ff1a40';
-    ctx.lineWidth = 1.8;
-    if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 8;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // LED dots top & bottom (từ design)
-    for (const [lx, ly] of [[0, -R + 1.5], [0, R - 1.5]]) {
-        ctx.fillStyle = '#ff1a40';
-        if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(lx, ly, 2.2, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-    }
-
-    // Trái tim bị chẻ đôi (hai nửa lệch nhau)
-    // Vẽ heart path bằng bezier, clip thành 2 nửa, dịch chúng ra
-    const drawHeart = (clipLeft) => {
-        ctx.save();
-        // Clip nửa trái hoặc phải
-        ctx.beginPath();
-        if (clipLeft) ctx.rect(-R, -R, R * 0.92, R * 2);
-        else ctx.rect(-R * 0.08, -R, R * 1.1, R * 2);
-        ctx.clip();
-
-        // Offset lệch nhau
-        const ox = clipLeft ? -1.5 : 1.5;
-        const oy = clipLeft ? -1 : 1;
-        ctx.translate(ox, oy);
-
-        // Heart shape
-        const s = 0.45;
-        ctx.beginPath();
-        ctx.moveTo(0, 2 * s);
-        ctx.bezierCurveTo(-8 * s, -2 * s, -10 * s, -8 * s, 0, -8 * s);
-        ctx.bezierCurveTo(10 * s, -8 * s, 8 * s, -2 * s, 0, 2 * s);
-        ctx.bezierCurveTo(-4 * s, 5 * s, -8 * s, 7 * s, 0, 11 * s);
-        ctx.bezierCurveTo(8 * s, 7 * s, 4 * s, 5 * s, 0, 2 * s);
-        ctx.closePath();
-
-        // Kim loại tối + ánh đỏ
-        const grad = ctx.createRadialGradient(-1, -2, 0, 0, 0, 9 * s);
-        grad.addColorStop(0, '#3a2a2e');
-        grad.addColorStop(0.5, '#2a1c20');
-        grad.addColorStop(1, '#150a0c');
-        ctx.fillStyle = grad;
-        if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 6;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-
-        // Mạch điện mờ (circuit lines)
-        ctx.strokeStyle = 'rgba(255,26,64,0.25)';
-        ctx.lineWidth = 0.5;
-        for (let ci = -8; ci <= 8; ci += 4) {
-            ctx.beginPath();
-            ctx.moveTo(ci * s, -9 * s); ctx.lineTo(ci * s, 11 * s);
-            ctx.stroke();
-        }
-
-        // Viền sáng đỏ ở mép cắt
-        ctx.strokeStyle = clipLeft ? '#ff1a40' : 'rgba(255,100,80,0.6)';
-        ctx.lineWidth = clipLeft ? 1.5 : 0.8;
-        if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 5;
-        ctx.beginPath();
-        ctx.moveTo(0, -9 * s); ctx.lineTo(0, 11 * s);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        ctx.restore();
-    };
-
-    drawHeart(true);
-    drawHeart(false);
-
-    // Dấu X neon laser
+    // Dấu X neon laser: the baked X flares by opacity.
     const xFlare = 0.7 + 0.3 * Math.sin(now / 120);
-    if (!_mobPerf && _gfxLevel < 2) ctx.shadowColor = '#ff1a40'; if (!_mobPerf && _gfxLevel < 2) ctx.shadowBlur = 10 * xFlare;
-
-    // Line 1: dài hơn, góc -45°
-    ctx.save();
-    ctx.rotate(-Math.PI / 4);
-    const lg1 = ctx.createLinearGradient(-R * 0.85, 0, R * 0.85, 0);
-    lg1.addColorStop(0, 'rgba(255,255,255,0.9)');
-    lg1.addColorStop(0.5, '#ff1a40');
-    lg1.addColorStop(1, 'rgba(255,255,255,0.9)');
-    ctx.strokeStyle = lg1; ctx.lineWidth = 2.2 * xFlare;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-R * 0.85, 0); ctx.lineTo(R * 0.85, 0); ctx.stroke();
-    ctx.restore();
-
-    // Line 2: ngắn hơn, góc +45°
-    ctx.save();
-    ctx.rotate(Math.PI / 4);
-    const lg2 = ctx.createLinearGradient(-R * 0.65, 0, R * 0.65, 0);
-    lg2.addColorStop(0, 'rgba(255,255,255,0.85)');
-    lg2.addColorStop(0.5, '#ff1a40');
-    lg2.addColorStop(1, 'rgba(255,255,255,0.85)');
-    ctx.strokeStyle = lg2; ctx.lineWidth = 1.7 * xFlare;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-R * 0.65, 0); ctx.lineTo(R * 0.65, 0); ctx.stroke();
-    ctx.restore();
-
-    ctx.shadowBlur = 0;
+    const ga = ctx.globalAlpha;
+    ctx.globalAlpha = ga * (0.5 + 0.5 * xFlare);
+    ctx.drawImage(_vulnIconSprite('x', glow), -_VULN_ICON_HALF, -_VULN_ICON_HALF);
+    ctx.globalAlpha = ga;
 
     // Tia lửa tại giao điểm X
     for (let si = 0; si < 4; si++) {
@@ -1359,40 +1392,12 @@ function _drawVulnerabilityIcon(enemy) {
         ctx.fill();
     }
 
-    // Stack indicator + cooldown ring
     // Cooldown ring (depletes counterclockwise)
     ctx.strokeStyle = `rgba(255,26,64,${0.4 + 0.3 * remaining})`;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(0, 0, R + 3.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * remaining);
     ctx.stroke();
-
-    // Roman numeral stack count — bottom-right corner of the ring
-    if (stacks > 0) {
-        const _romans = ['I', 'II', 'III', 'IV'];
-        const _rx = R * 0.72, _ry = R * 0.82;
-        ctx.save();
-        ctx.beginPath(); ctx.arc(_rx, _ry, 5.5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(8,0,2,0.9)'; ctx.fill();
-        ctx.font = 'bold 7px serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = stacks === 4 ? '#ff6680' : '#ff3355';
-        if (!_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
-        ctx.fillText(_romans[stacks - 1], _rx, _ry);
-        ctx.shadowBlur = 0;
-        ctx.restore();
-    }
-
-    // Stack dots dưới icon
-    for (let s = 0; s < 3; s++) {
-        const filled = s < stacks;
-        ctx.beginPath();
-        ctx.arc(-4 + s * 4, R + 5, 2, 0, Math.PI * 2);
-        ctx.fillStyle = filled ? '#ff1a40' : 'rgba(255,26,64,0.25)';
-        if (filled && !_mobPerf && _gfxLevel < 2) { ctx.shadowColor = '#ff1a40'; ctx.shadowBlur = 5; }
-        ctx.fill();
-        ctx.shadowBlur = 0;
-    }
 
     // Sword queue counter (green) + cycle counter (gold) — always visible while barrier alive
     {
@@ -1635,6 +1640,26 @@ function _getApostleRingSprite(hueBucket) {
     return spr;
 }
 
+// The apostle's glowing eye (gradient plus halo) baked per hue bucket at a
+// reference radius; each frame only scales it with the pulse.
+const _APOSTLE_EYE_REF_R = 32, _APOSTLE_EYE_PAD = 32;
+const _apostleEyeSprites = {};
+function _getApostleEyeSprite(hueBucket, glow) {
+    const key = hueBucket + (glow ? 'g' : 'n');
+    if (_apostleEyeSprites[key]) return _apostleEyeSprites[key];
+    const R = _APOSTLE_EYE_REF_R, half = R + _APOSTLE_EYE_PAD;
+    const c = document.createElement('canvas'); c.width = c.height = half * 2;
+    const g = c.getContext('2d');
+    const glowColor = `hsl(${10 + hueBucket},100%,55%)`;
+    const grad = g.createRadialGradient(half, half, 0, half, half, R);
+    grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, glowColor); grad.addColorStop(1, 'transparent');
+    g.fillStyle = grad;
+    if (glow) { g.shadowColor = glowColor; g.shadowBlur = 14 * 2; }
+    g.beginPath(); g.arc(half, half, R, 0, Math.PI * 2); g.fill();
+    _apostleEyeSprites[key] = c;
+    return c;
+}
+
 function _drawNormalEnemy(enemy) {
     // Coronation overrides normal rendering
     if (enemy.inCoronation) {
@@ -1682,14 +1707,11 @@ function _drawNormalEnemy(enemy) {
     const eyeR = r * 0.5;
     ctx.fillStyle = '#0a0a0f';
     ctx.beginPath(); ctx.arc(0, 0, eyeR * 1.1, 0, Math.PI * 2); ctx.fill();
-    const eyeGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, eyeR * pulse);
-    eyeGrad.addColorStop(0, '#ffffff');
-    eyeGrad.addColorStop(0.3, glowColor);
-    eyeGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = eyeGrad;
-    if (!_mobPerf) { ctx.shadowColor = glowColor; ctx.shadowBlur = 14; }
-    ctx.beginPath(); ctx.arc(0, 0, eyeR * pulse, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
+    {
+        const eyeSpr = _getApostleEyeSprite(hueBucket, !_mobPerf);
+        const k = (eyeR * pulse) / _APOSTLE_EYE_REF_R, half = eyeSpr.width / 2 * k;
+        ctx.drawImage(eyeSpr, -half, -half, half * 2, half * 2);
+    }
     // Pupil
     ctx.fillStyle = '#050508';
     ctx.beginPath(); ctx.arc(0, 0, eyeR * 0.25, 0, Math.PI * 2); ctx.fill();

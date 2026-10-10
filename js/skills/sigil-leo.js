@@ -155,8 +155,11 @@ const _leoActionClocks = [
     'perseveranceChargeStart', 'perseveranceCooldown',
 ];
 
+// Only these types carry any of the clocks above.
+const _leoClockTypes = new Set(['goliath', 'egregor', 'uriel', 'veilshroud', 'marchosias', 'raphael', 'leviathan']);
+
 function _leoShiftClocks(e, delay) {
-    if (!Number.isFinite(delay) || delay <= 0) return;
+    if (!Number.isFinite(delay) || delay <= 0 || !_leoClockTypes.has(e.type)) return;
     for (const key of _leoActionClocks) {
         if (Number.isFinite(e[key]) && e[key] > 0) e[key] += delay;
     }

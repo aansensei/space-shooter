@@ -62,19 +62,40 @@ function _drawTidalSurgeMeter() {
     }
     ctx.restore();
 
-    if (_tidalMeterFrameImg.complete && _tidalMeterFrameImg.naturalWidth > 0) {
-        ctx.save();
+    const sprites = _getTidalMeterSprites();
+    if (sprites) {
         if (!_mobPerf) {
+            // The teal halo is baked once; the pulse only changes its opacity.
             const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 500);
-            ctx.shadowColor = '#5eead4';
-            ctx.shadowBlur = 10 + pulse * 6;
-            // A second pass at a slightly bigger blur reads as a proper soft
-            // glow halo instead of a thin single-pass edge glow.
-            ctx.drawImage(_tidalMeterFrameImg, x, y, w, h);
+            const ga = ctx.globalAlpha;
+            ctx.globalAlpha = ga * (0.55 + 0.45 * pulse);
+            ctx.drawImage(sprites.glow, x - TIDAL_METER_GLOW_PAD, y - TIDAL_METER_GLOW_PAD);
+            ctx.globalAlpha = ga;
         }
-        ctx.drawImage(_tidalMeterFrameImg, x, y, w, h);
-        ctx.restore();
+        ctx.drawImage(sprites.frame, x, y, w, h);
     }
+}
+
+// The frame and its halo, baked once the art has loaded, so the 1376x768
+// source is never resampled or blurred per frame.
+const TIDAL_METER_GLOW_PAD = 24;
+let _tidalMeterSprites = null;
+function _getTidalMeterSprites() {
+    if (_tidalMeterSprites) return _tidalMeterSprites;
+    if (!(_tidalMeterFrameImg.complete && _tidalMeterFrameImg.naturalWidth > 0)) return null;
+    const w = 110, h = Math.ceil(w * TIDAL_METER_FRAME_ASPECT);
+    const frame = document.createElement('canvas'); frame.width = w * 2; frame.height = h * 2;
+    const f = frame.getContext('2d');
+    f.imageSmoothingEnabled = true; f.imageSmoothingQuality = 'high';
+    f.drawImage(_tidalMeterFrameImg, 0, 0, frame.width, frame.height);
+    const glow = document.createElement('canvas');
+    glow.width = w + TIDAL_METER_GLOW_PAD * 2; glow.height = h + TIDAL_METER_GLOW_PAD * 2;
+    const g = glow.getContext('2d');
+    g.shadowColor = '#5eead4'; g.shadowBlur = 16;
+    g.drawImage(frame, TIDAL_METER_GLOW_PAD, TIDAL_METER_GLOW_PAD, w, h);
+    g.drawImage(frame, TIDAL_METER_GLOW_PAD, TIDAL_METER_GLOW_PAD, w, h);
+    _tidalMeterSprites = { frame, glow };
+    return _tidalMeterSprites;
 }
 
 // Riptide Surge ready aura: once the tide meter is full, a soft ocean-toned

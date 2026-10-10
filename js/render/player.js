@@ -367,6 +367,84 @@ function drawSpiritBullet(b) {
 // drawImage, the same fix already proven on Uriel's eyes (render/enemy-uriel.js).
 const _PLAYER_SHIP_PAD_X = 35, _PLAYER_SHIP_PAD_Y = 35, _PLAYER_SHIP_H = 100;
 let _playerShipBaseSprite = null;
+// The visibility beacon's halo: the hull outline blurred once at its peak
+// radius. drawPlayer only pulses this sprite's opacity, so the beacon costs
+// no shadowBlur per frame on any tier.
+const _PLAYER_BEACON_PAD_X = 70, _PLAYER_BEACON_PAD_Y = 50;
+let _playerBeaconGlowSprite = null;
+function _tracePlayerBeacon(g) {
+    g.beginPath();
+    g.moveTo(0, -10); g.lineTo(28, 10); g.lineTo(26, 16);
+    g.lineTo(8, 12); g.lineTo(-8, 12); g.lineTo(-26, 16);
+    g.lineTo(-28, 10); g.closePath();
+}
+function _getPlayerBeaconGlowSprite() {
+    if (_playerBeaconGlowSprite) return _playerBeaconGlowSprite;
+    const c = document.createElement('canvas');
+    c.width = _PLAYER_BEACON_PAD_X * 2; c.height = _PLAYER_BEACON_PAD_Y * 2;
+    const g = c.getContext('2d');
+    g.translate(_PLAYER_BEACON_PAD_X, _PLAYER_BEACON_PAD_Y);
+    g.shadowColor = '#00d4ff'; g.shadowBlur = 30;
+    g.strokeStyle = 'rgba(0, 210, 255, 0.9)'; g.lineWidth = 2.2;
+    _tracePlayerBeacon(g); g.stroke(); g.stroke();
+    _playerBeaconGlowSprite = c;
+    return c;
+}
+
+// Great Sage's gem frame and its amber halo, baked once at the drawn size so
+// the source art is never resampled or blurred per frame.
+const GREAT_SAGE_FRAME_GLOW_PAD = 22;
+let _greatSageFrameSprites = null;
+function _getGreatSageFrameSprites(frameW, frameH) {
+    const s = _greatSageFrameSprites;
+    if (s && s.w === frameW && s.h === frameH) return s;
+    const frame = document.createElement('canvas');
+    frame.width = Math.ceil(frameW * 2); frame.height = Math.ceil(frameH * 2);
+    const f = frame.getContext('2d');
+    f.imageSmoothingEnabled = true; f.imageSmoothingQuality = 'high';
+    f.drawImage(_greatSageGemFrameImg, 0, 0, frame.width, frame.height);
+    const glow = document.createElement('canvas');
+    glow.width = Math.ceil(frameW + GREAT_SAGE_FRAME_GLOW_PAD * 2); glow.height = Math.ceil(frameH + GREAT_SAGE_FRAME_GLOW_PAD * 2);
+    const g = glow.getContext('2d');
+    g.shadowColor = '#f59e0b'; g.shadowBlur = 14;
+    g.drawImage(frame, GREAT_SAGE_FRAME_GLOW_PAD, GREAT_SAGE_FRAME_GLOW_PAD, frameW, frameH);
+    _greatSageFrameSprites = { frame, glow, w: frameW, h: frameH };
+    return _greatSageFrameSprites;
+}
+
+// Engine flame gradients are built once over a unit height; each flame is
+// drawn with its y axis scaled to the current flame length instead.
+let _playerFlameGrads = null;
+function _drawPlayerFlame(cx, flameH, now) {
+    if (!_playerFlameGrads) {
+        const outer = ctx.createLinearGradient(0, 0, 0, 1);
+        outer.addColorStop(0, 'rgba(255,255,255,0.95)');
+        outer.addColorStop(0.15, '#aaffff');
+        outer.addColorStop(0.5, 'rgba(0,160,255,0.7)');
+        outer.addColorStop(1, 'rgba(0,80,200,0)');
+        const inner = ctx.createLinearGradient(0, 0, 0, 0.55);
+        inner.addColorStop(0, 'rgba(255,255,255,0.8)');
+        inner.addColorStop(1, 'rgba(180,240,255,0)');
+        _playerFlameGrads = { outer, inner };
+    }
+    if (!(flameH > 0)) return;
+    const jitter = Math.sin(now / 40 + cx) * 1.5;
+    ctx.save();
+    ctx.translate(cx, 27); ctx.scale(1, flameH);
+    ctx.fillStyle = _playerFlameGrads.outer;
+    ctx.beginPath();
+    ctx.moveTo(-2.5, 0);
+    ctx.quadraticCurveTo(jitter, 0.5, Math.sin(now / 55) * 1.2, 1);
+    ctx.lineTo(2.5, 0);
+    ctx.closePath(); ctx.fill();
+    // secondary inner hot flame
+    ctx.fillStyle = _playerFlameGrads.inner;
+    ctx.beginPath();
+    ctx.moveTo(-1.2, 0); ctx.lineTo(0, 0.55); ctx.lineTo(1.2, 0);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+}
+
 function _getPlayerShipBaseSprite() {
     if (_playerShipBaseSprite) return _playerShipBaseSprite;
     const c = document.createElement('canvas');
@@ -664,14 +742,13 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     // Pulsing visibility beacon — ship outline strobes to stay visible in bullet hell
     const _pulseA = 0.45 + 0.55 * Math.abs(Math.sin(now / 520));
     const _blinkPhase = Math.abs(Math.sin(now / 380));
-    ctx.shadowBlur = 18 + 14 * _pulseA;
-    ctx.shadowColor = '#00d4ff';
+    const _beaconAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = _beaconAlpha * (0.35 + 0.65 * _pulseA);
+    ctx.drawImage(_getPlayerBeaconGlowSprite(), -_PLAYER_BEACON_PAD_X, -_PLAYER_BEACON_PAD_Y);
+    ctx.globalAlpha = _beaconAlpha;
     ctx.strokeStyle = `rgba(0, 210, 255, ${0.45 + 0.55 * _blinkPhase})`;
     ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    ctx.moveTo(0, -10); ctx.lineTo(28, 10); ctx.lineTo(26, 16);
-    ctx.lineTo(8, 12); ctx.lineTo(-8, 12); ctx.lineTo(-26, 16);
-    ctx.lineTo(-28, 10); ctx.closePath();
+    _tracePlayerBeacon(ctx);
     ctx.stroke();
     // Second outline pass at peak blink for extra pop
     if (_blinkPhase > 0.75) {
@@ -690,36 +767,12 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
     const flameT = now / 60;
     const flameH = 10 + Math.sin(flameT) * 6 + Math.sin(flameT * 2.3) * 3;
 
-    const makeFlame = (cx) => {
-        const jitter = (Math.sin(now / 40 + cx) * 1.5);
-        const fg = ctx.createLinearGradient(cx, 27, cx, 27 + flameH);
-        fg.addColorStop(0, 'rgba(255,255,255,0.95)');
-        fg.addColorStop(0.15, '#aaffff');
-        fg.addColorStop(0.5, 'rgba(0,160,255,0.7)');
-        fg.addColorStop(1, 'rgba(0,80,200,0)');
-        ctx.fillStyle = fg;
-        ctx.beginPath();
-        ctx.moveTo(cx - 2.5, 27);
-        ctx.quadraticCurveTo(cx + jitter, 27 + flameH * 0.5, cx + (Math.sin(now / 55) * 1.2), 27 + flameH);
-        ctx.lineTo(cx + 2.5, 27);
-        ctx.closePath(); ctx.fill();
-        // secondary inner hot flame
-        const fg2 = ctx.createLinearGradient(cx, 27, cx, 27 + flameH * 0.55);
-        fg2.addColorStop(0, 'rgba(255,255,255,0.8)');
-        fg2.addColorStop(1, 'rgba(180,240,255,0)');
-        ctx.fillStyle = fg2;
-        ctx.beginPath();
-        ctx.moveTo(cx - 1.2, 27);
-        ctx.lineTo(cx, 27 + flameH * 0.55);
-        ctx.lineTo(cx + 1.2, 27);
-        ctx.closePath(); ctx.fill();
-    };
     // Her freeze stops the engines too. These are the brightest thing the ship
     // draws, near-white at the nozzle, and the overlay only takes the scene
     // down to 14 percent, so they went on burning through a stopped world
     // while the hull behind them had already gone dark.
     const _engineOut = !!window._kanadeCutscene;
-    if (!_engineOut) { makeFlame(-6); makeFlame(6); }
+    if (!_engineOut) { _drawPlayerFlame(-6, flameH, now); _drawPlayerFlame(6, flameH, now); }
 
     // Engine glow bloom (HIGH only)
     if (_gfxLevel < 1 && !_engineOut) {
@@ -871,13 +924,16 @@ function drawPlayer(alpha = 1, xOffset = 0, pos = null) {
         // Glow flickers softly on HIGH/MEDIUM graphics (a slow pulse plus an
         // occasional brief dim dip, like guttering torchlight) - off entirely
         // on LOW/mobile-perf, matching every other glow in this file.
+        const _gsSprites = _getGreatSageFrameSprites(frameW, frameH);
         if (!_mobPerf && (window._gfxLevel || 0) < 2) {
             const flicker = 0.8 + 0.2 * Math.sin(gNow / 260) - (Math.sin(gNow / 970) > 0.96 ? 0.35 : 0);
-            ctx.shadowColor = '#f59e0b';
-            ctx.shadowBlur = 14 * Math.max(0.3, flicker);
+            // Baked halo; the flicker only changes its opacity.
+            const _gsAlpha = ctx.globalAlpha;
+            ctx.globalAlpha = _gsAlpha * Math.max(0.3, flicker);
+            ctx.drawImage(_gsSprites.glow, -frameW / 2 - GREAT_SAGE_FRAME_GLOW_PAD, -frameH / 2 - GREAT_SAGE_FRAME_GLOW_PAD);
+            ctx.globalAlpha = _gsAlpha;
         }
-        ctx.drawImage(_greatSageGemFrameImg, -frameW / 2, -frameH / 2, frameW, frameH);
-        ctx.shadowBlur = 0;
+        ctx.drawImage(_gsSprites.frame, -frameW / 2, -frameH / 2, frameW, frameH);
 
         for (let i = 0; i < 3; i++) {
             const sx = (i - 1) * slotOffsetX;
