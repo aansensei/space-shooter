@@ -518,7 +518,6 @@ function update(rawDeltaTime) {
                             e.hp = Math.max(0, e.hp - rawDmg);
                         }
                         _recordStat('allyDamage', 'Skill S: Back to Motherland', rawDmg);
-                        if (e.hp <= 0 || e._deathPhase) _leoRememberBurnKill(e);
                         e.shield = 0;
                         e.absoluteShield = false;
                         e.raphaelInvulnerable = false;
@@ -625,6 +624,7 @@ function update(rawDeltaTime) {
 
     raphaelLasers.forEach(laser => {
         if (!laser.fired) {
+            if (laser.owner && laser.owner._thanMenhFrozen) return; // telegraph holds while Raphael is stone
             laser.delay -= deltaTime;
             if (laser.delay <= 0) {
                 laser.fired = true;
@@ -931,9 +931,10 @@ function update(rawDeltaTime) {
             enemy.hp = 1;
         }
 
-        // Dominant petrification holds owned actions, leaving external forces active.
-        if (_leoFreezeEnemy(enemy, currentTime)) {
-            // Administrator powers keep casting while Goliath's body is stone.
+        // Divine Fate petrification: the enemy's own movement, attacks and
+        // casts are skipped. Outside pulls still move it. Goliath's UNIQUE
+        // SKILLs (Endless Echo and Joker) are not affected and keep running.
+        if (_leoFreezeEnemy(enemy, currentTime, deltaTime)) {
             if (enemy.type === 'goliath') {
                 _goliathEchoUpdate(enemy, deltaTime, currentTime);
                 _goliathUpdateJoker(enemy, deltaTime, currentTime);
@@ -3249,14 +3250,12 @@ function _updateSigilPassives(now, deltaTime) {
     if (_hasBuff('su_tu_hong') && gloryForJusticeActive && window._sthBurning) {
         for (const [e, burnData] of window._sthBurning.entries()) {
             if (!enemies.includes(e) || e.hp <= 0) { window._sthBurning.delete(e); continue; }
-            if (now >= burnData.expiry || !_leoCanBurn(e)) { window._sthBurning.delete(e); continue; }
             if (now >= burnData.nextTick) {
                 const stacks = Math.min(_stackCap('sunLionBurn'), Number.isFinite(burnData.stacks) ? Math.max(1, burnData.stacks) : 1);
-                const dmg = LEO_BURN_ATK_PER_STACK * player.atk * stacks;
-                if (!Number.isFinite(dmg)) continue;
-                dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
-                if (_leoEnemyRank(e) > 0) _leoChargeFate(LEO_FATE_BURN_TICK_CHARGE);
+                const dmg = LEO_BURN_ATK_PER_STACK * player.atk * stacks; // docs/combat-scaling-rebalance.md Part 5
                 burnData.nextTick = now + LEO_BURN_TICK_MS;
+                if (Number.isFinite(dmg)) dealDamage(e, { damage: dmg, percentDamage: 0, _isSthDot: true });
+                if (_leoEnemyRank(e) > 0 && _leoCanBurn(e)) _leoChargeFate(LEO_FATE_BURN_TICK_CHARGE);
             }
             if (now >= burnData.expiry) window._sthBurning.delete(e);
         }
@@ -3339,7 +3338,7 @@ function _updateWaveSystem(deltaTime, now) {
             _wavePhase = 'spawning';
             _waveAnnouncedAt = now;
             if (window.AudioMgr) window.AudioMgr.playSfx('new-wave');
-            if (_hasBuff('than_menh')) _leoStartPetrify(LEO_FATE_WAVE_MS, 'wave');
+            if (_hasBuff('than_menh')) _leoStartPetrify(LEO_FATE_WAVE_MS, false);
         }
         return;
     }
@@ -3463,7 +3462,7 @@ function gameLoop(timeStamp) {
         lastEnemySpawn += _pauseDelay;
     }
     window._wasPausedLastFrame = gamePaused;
-    _leoSyncSuspension(gamePaused || !!window._sigilPicker || !!window._kanadeCutscene, performance.now());
+    _leoSyncSuspension(gamePaused || loading || !!window._sigilPicker || !!window._kanadeCutscene, performance.now());
 
     const _debugSpeed = (typeof window._debugGameSpeed === 'number' && window._debugGameSpeed > 0) ? window._debugGameSpeed : 1;
     // Coarse profiling for the still-unexplained Safari FPS collapse on

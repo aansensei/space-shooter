@@ -93,7 +93,7 @@ function _urielOnIBConsumed() {
 }
 
 function _urielTriggerCamo(enemy) {
-    if (enemy._thanMenhFrozen || enemy._leoSilenceMs > 0) return;
+    if (enemy._thanMenhFrozen) return; // petrified: no new casts
     const now = performance.now();
     if (enemy._camoPhase !== 'idle' || now < (enemy._camoCDReadyAt || 0)) return;
     // A charge already underway gets cancelled and banked as a queued shot
@@ -180,7 +180,7 @@ function _urielUpdateCamouflage(enemy, deltaTime) {
 // stealthed; queued shots auto-release from updateUriel() the instant it's
 // visible and free again.
 function _urielTriggerSword(enemy) {
-    if (enemy._thanMenhFrozen || enemy._leoSilenceMs > 0) return;
+    if (enemy._thanMenhFrozen) return; // petrified: no new casts
     if (enemy._stealthed || enemy._swordCharging || enemy._swordFiring) {
         enemy._urielSwordQueued = (enemy._urielSwordQueued || 0) + 1;
         return;

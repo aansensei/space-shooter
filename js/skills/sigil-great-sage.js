@@ -89,7 +89,6 @@ function _castStolenGemAttack(type, comboMult) {
     if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', player.x, player.y);
 
     if (type === 'thaelis') {
-        _slashEchoesCircle(player.x, player.y, player.width * 1.5, -Math.PI / 4);
         // Tenacity Barrier: the player gets 1 Iron Body layer (blocks the
         // next hit outright), sentinels get a 3s window of 50% dodge chance
         // per hit instead — matching how the real barrier protects Goliath
@@ -193,7 +192,7 @@ function _updateGreatSageEffects(deltaTime) {
                 fx.angles.forEach(angle => {
                     const lineStart = { x: fx.x, y: fx.y };
                     const lineEnd = { x: fx.x + Math.cos(angle) * fullLen, y: fx.y + Math.sin(angle) * fullLen };
-                    _slashEchoesLine(fx.x, fx.y, lineEnd.x, lineEnd.y, 15);
+                    _slashEchoesLine(lineStart, lineEnd, GOLIATH_ECHO_HIT_RADIUS + 15);
                     for (const enemy of enemies) {
                         if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         if (distToSegment(enemy, lineStart, lineEnd) < (enemy.size || 20) + 15) {
@@ -226,7 +225,7 @@ function _updateGreatSageEffects(deltaTime) {
         } else if (fx.type === 'veilshroud') {
             if (fx.timer >= fx.dur) {
                 fx.points.forEach(pt => {
-                    _slashEchoesCircle(pt.x, pt.y, 30, -Math.PI / 4, player.x, player.y);
+                    _slashEchoesCircle(pt.x, pt.y, GOLIATH_ECHO_HIT_RADIUS + 30, -Math.PI / 4);
                     for (const enemy of enemies) {
                         if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         if (Math.hypot(enemy.x - pt.x, enemy.y - pt.y) < (enemy.size || 20) + 30) {
@@ -259,7 +258,7 @@ function _updateGreatSageEffects(deltaTime) {
                     // render's own extend/sweep/retract curve reads correctly.
                     fx.phase = 'strike'; fx.timer = 0; fx.dur = 950;
                     const arcR = fx.R;
-                    _slashEchoesSector(fx.x, fx.y, fx.angle, Math.PI / 2, arcR);
+                    _slashEchoesSector(fx.x, fx.y, fx.angle, Math.PI / 2, arcR + GOLIATH_ECHO_HIT_RADIUS);
                     for (const enemy of enemies) {
                         if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
                         const d = Math.hypot(enemy.x - fx.x, enemy.y - fx.y);
@@ -278,7 +277,7 @@ function _updateGreatSageEffects(deltaTime) {
             }
         } else if (fx.type === 'shockwave') {
             const curRadius = Math.min(fx.maxRadius, fx.speed * (fx.timer / 16.67));
-            _slashEchoesCircle(fx.x, fx.y, curRadius, -Math.PI / 4);
+            _slashEchoesCircle(fx.x, fx.y, curRadius + 20, -Math.PI / 4);
             for (const enemy of enemies) {
                 if (fx.hitEnemies.includes(enemy)) continue;
                 if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
@@ -300,7 +299,7 @@ function _updateGreatSageEffects(deltaTime) {
                 fx.phase = 'sweeping'; fx.timer = 0;
             } else if (fx.phase === 'sweeping') {
                 const curAngle = fx.startAngle + (fx.timer / fx.sweepDur) * Math.PI * 2;
-                _slashEchoesSector(fx.x, fx.y, curAngle, 0.15, Math.hypot(canvas.width, canvas.height));
+                _slashEchoesSector(fx.x, fx.y, curAngle, 0.15, Infinity);
                 for (const enemy of enemies) {
                     if (fx.hitEnemies.includes(enemy)) continue;
                     if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
@@ -324,7 +323,7 @@ function _updateGreatSageEffects(deltaTime) {
             if (target) fx.angle = Math.atan2(target.y - fx.y, target.x - fx.x);
             if (fx.timer >= fx.dur) {
                 bladeArcProjectiles.push({
-                    _fromSkillF: true, originX: fx.x, originY: fx.y,
+                    _fromSkillF: true,
                     x: fx.x, y: fx.y,
                     vx: Math.cos(fx.angle) * 26, vy: Math.sin(fx.angle) * 26,
                     radius: 60, damage: 0.63 * player.atk * fx.comboMult, percentDamage: 0.025, isTrueDamage: true, // docs/combat-scaling-rebalance.md Part 5

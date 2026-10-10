@@ -490,7 +490,7 @@ function spawnPhotoBrangs(fromX, fromY, count, songLuoiActive, fromSkillF) {
         const d = Math.hypot(dx, dy) || 1;
         const _isExtra = songLuoiActive && b >= 2;
         photoBrangs.push({
-            _fromSkillF: !!fromSkillF, _originX: fromX, _originY: fromY,
+            _fromSkillF: !!fromSkillF,
             x: fromX, y: fromY,
             vx: (dx / d) * 17.5, vy: (dy / d) * 17.5,
             targets: shuffled,
@@ -525,7 +525,6 @@ function updatePhotoBrangs(deltaTime) {
                 b.vy += (_rdy / _rd * 35 - b.vy) * 0.28;
                 b.x  += b.vx * dt;
                 b.y  += b.vy * dt;
-                if (b._fromSkillF) _slashEchoesCircle(b.x, b.y, b._radius || BRANG_R_DEFAULT, Math.atan2(b.vy, b.vx), b._originX, b._originY);
                 if (_rd < 35) {
                     photoBrangs.splice(i, 1);
                     // Phóng pending nếu còn
@@ -664,8 +663,6 @@ function updatePhotoBrangs(deltaTime) {
         b.x += b.vx * dt;
         b.y += b.vy * dt;
 
-        if (b._fromSkillF) _slashEchoesCircle(b.x, b.y, b._radius || BRANG_R_DEFAULT, Math.atan2(b.vy, b.vx), b._originX, b._originY);
-
         // Destroy enemy bullets along path
         for (let ei = enemies.length - 1; ei >= 0; ei--) {
             const eb = enemies[ei];
@@ -722,7 +719,6 @@ function updateBladeArcProjectiles(deltaTime) {
     }
     for (let i = bladeArcProjectiles.length - 1; i >= 0; i--) {
         let arc = bladeArcProjectiles[i];
-        if (arc._fromSkillF) _slashEchoesCircle(arc.x, arc.y, arc.radius, Math.atan2(arc.vy, arc.vx), arc.originX == null ? player.x : arc.originX, arc.originY == null ? player.y : arc.originY);
         arc.x += arc.vx * dt;
         arc.y += arc.vy * dt;
         if (arc.x < -arc.radius || arc.x > canvas.width + arc.radius || arc.y < -arc.radius || arc.y > canvas.height + arc.radius) {

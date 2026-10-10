@@ -8,7 +8,6 @@
 // higher enemy also plunders that enemy's own gem, immediately, one of each
 // kind held at a time (max 3)
 function _onSkillFKill(enemy) {
-    _leoRememberBurnKill(enemy);
     _skillFKillsThisSweep++;
     if (!_hasBuff('cuop_bao_tang')) return;
     _skillFHitFlashes.push({ x: enemy.x, y: enemy.y, r: (enemy.size || 20) + 5, time: performance.now() });
@@ -19,91 +18,89 @@ function _onSkillFKill(enemy) {
 let _skillFLeftHeld = false, _skillFRightHeld = false;
 window._echoSlashFx = [];
 
-function _echoSlashBlocked(cx, cy, g) {
+// Skill F cuts Endless Echo ghosts. A cut ghost is only flagged; main.js's
+// per-frame _goliathEchoes filter is what drops it. Every test below is the
+// one the same attack uses on enemies, with GOLIATH_ECHO_HIT_RADIUS standing
+// in for the enemy's body size. An Uriel barrier between the attack and the
+// ghost, or around the ghost, protects it.
+function _echoSlashBlocked(fromX, fromY, g) {
     return (typeof _urielBarrierBlocksPoint === 'function' && _urielBarrierBlocksPoint(g.x, g.y))
-        || (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(cx, cy, g.x, g.y));
+        || (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(fromX, fromY, g.x, g.y));
 }
 
-function _slashEcho(g, angle, cx, cy) {
-    if (g._slashed || !Number.isFinite(g.x) || !Number.isFinite(g.y) || !Number.isFinite(angle)
-        || _echoSlashBlocked(cx, cy, g)) return;
+function _slashEcho(g, angle, fromX, fromY) {
+    if (g._slashed || !Number.isFinite(g.x) || !Number.isFinite(g.y) || _echoSlashBlocked(fromX, fromY, g)) return;
     g._slashed = true;
-    if (window._echoSlashFx.length < 32) window._echoSlashFx.push({ x: g.x, y: g.y, angle, age: 0 });
+    if (window._echoSlashFx.length < 32) window._echoSlashFx.push({ x: g.x, y: g.y, angle: Number.isFinite(angle) ? angle : 0, age: 0 });
     if (window.AudioMgr) window.AudioMgr.playSfxAt('spirit-arc-slash', g.x, g.y);
+    // With both ghosts of a cast gone, the trail fades out quickly.
     const owner = g.owner;
     if (owner && owner._echoTrail === g.path) {
-        let remaining = false;
         for (const other of window._goliathEchoes) {
-            if (other !== g && !other._slashed && other.owner === owner && other.path === g.path) { remaining = true; break; }
+            if (other !== g && !other._slashed && other.owner === owner && other.path === g.path) return;
         }
-        if (!remaining) owner._echoTrailEnd = Math.min(owner._echoTrailEnd || Infinity, performance.now() + 180);
+        owner._echoTrailEnd = Math.min(owner._echoTrailEnd || Infinity, performance.now() + 180);
     }
 }
 
-// The radius expands the same cone used for Skill F's enemy hit test.
-function _skillFSweepHits(x, y, radius, currentAngle, width) {
-    const dx = skillFDirection * (x - player.x), dy = y - player.y;
-    const d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
-    if (d > canvas.width + radius) return false;
-    if (a < currentAngle && a > currentAngle - width) return true;
-    if (radius <= 0) return false;
-    for (let i = 0; i < 2; i++) {
-        const edge = currentAngle - i * width;
-        const t = Math.max(0, Math.min(canvas.width, dx * Math.cos(edge) + dy * Math.sin(edge)));
-        if (Math.hypot(dx - t * Math.cos(edge), dy - t * Math.sin(edge)) <= radius) return true;
-    }
-    return false;
+// Skill F's own hit test: the target's center inside the sweep cone.
+function _skillFConeHits(x, y, currentAngle, coneHalfWidth) {
+    const angle = Math.atan2(y - player.y, skillFDirection * (x - player.x));
+    return Math.hypot(x - player.x, y - player.y) < canvas.width && angle < currentAngle && angle > currentAngle - coneHalfWidth;
+}
+
+// Ransacked Treasury: the cone widens with every kill landed this sweep, not
+// with elapsed time, snowballing up to 4.5x its base width.
+function _skillFConeHalfWidth() {
+    return _hasBuff('cuop_bao_tang') ? Math.min(0.2 * (1 + _skillFKillsThisSweep * 0.5), 0.2 * 4.5) : 0.2;
 }
 
 function _trySlashEchoBySweep(g) {
     if (g._slashed || skillFState !== 'sweeping') return;
     const progress = (performance.now() - skillFSweepStart) / skillFSweepDuration;
-    if (progress < 0 || progress >= 1) return;
+    if (!(progress >= 0 && progress < 1)) return;
     const angle = -Math.PI + Math.PI * progress;
-    const width = _hasBuff('cuop_bao_tang') ? Math.min(0.2 * (1 + _skillFKillsThisSweep * 0.5), 0.9) : 0.2;
-    if (_skillFSweepHits(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS, angle, width)) {
+    if (_skillFConeHits(g.x, g.y, angle, _skillFConeHalfWidth())) {
         _slashEcho(g, skillFDirection === 1 ? angle : Math.PI - angle, player.x, player.y);
     }
 }
 
-function _slashEchoesCircle(x, y, radius, angle, sourceX, sourceY) {
+// Great Sage area attacks. reach already includes the ghost's size term.
+function _slashEchoesCircle(x, y, reach, angle) {
     for (const g of window._goliathEchoes || []) {
-        if (!g._slashed && Math.hypot(g.x - x, g.y - y) <= radius + GOLIATH_ECHO_HIT_RADIUS) {
-            _slashEcho(g, angle, sourceX == null ? x : sourceX, sourceY == null ? y : sourceY);
-        }
+        if (!g._slashed && Math.hypot(g.x - x, g.y - y) < reach) _slashEcho(g, angle, x, y);
     }
 }
 
-function _slashEchoesLine(x, y, ex, ey, width) {
-    const dx = ex - x, dy = ey - y, len2 = dx * dx + dy * dy;
-    if (!Number.isFinite(len2) || len2 <= 0) return;
+function _slashEchoesLine(start, end, reach) {
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
     for (const g of window._goliathEchoes || []) {
-        const t = Math.max(0, Math.min(1, ((g.x - x) * dx + (g.y - y) * dy) / len2));
-        if (Math.hypot(g.x - x - t * dx, g.y - y - t * dy) <= width + GOLIATH_ECHO_HIT_RADIUS) {
-            _slashEcho(g, Math.atan2(dy, dx), x, y);
-        }
+        if (!g._slashed && distToSegment(g, start, end) < reach) _slashEcho(g, angle, start.x, start.y);
     }
 }
 
 function _slashEchoesSector(x, y, angle, halfWidth, range) {
     for (const g of window._goliathEchoes || []) {
-        const d = Math.hypot(g.x - x, g.y - y);
-        const a = Math.atan2(g.y - y, g.x - x) - angle;
-        const diff = Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
-        const extra = Math.asin(Math.min(1, GOLIATH_ECHO_HIT_RADIUS / Math.max(1, d)));
-        if (d <= range + GOLIATH_ECHO_HIT_RADIUS && diff <= halfWidth + extra) _slashEcho(g, angle, x, y);
+        if (g._slashed || Math.hypot(g.x - x, g.y - y) > range) continue;
+        let dA = Math.atan2(g.y - y, g.x - x) - angle;
+        while (dA > Math.PI) dA -= Math.PI * 2;
+        while (dA < -Math.PI) dA += Math.PI * 2;
+        if (Math.abs(dA) < halfWidth) _slashEcho(g, angle, x, y);
     }
 }
 
+// Blade arcs and boomerangs launched by Skill F; other sources never cut ghosts.
 function _trySlashEchoByProjectiles(g) {
     for (const arc of bladeArcProjectiles) {
-        if (arc._fromSkillF && Math.hypot(g.x - arc.x, g.y - arc.y) <= arc.radius + GOLIATH_ECHO_HIT_RADIUS) {
-            _slashEcho(g, Math.atan2(arc.vy, arc.vx), arc.originX == null ? player.x : arc.originX, arc.originY == null ? player.y : arc.originY);
+        if (g._slashed) return;
+        if (arc._fromSkillF && Math.hypot(g.x - arc.x, g.y - arc.y) < arc.radius + GOLIATH_ECHO_HIT_RADIUS) {
+            _slashEcho(g, Math.atan2(arc.vy, arc.vx), arc.x, arc.y);
         }
     }
     for (const b of photoBrangs) {
-        if (b._fromSkillF && Math.hypot(g.x - b.x, g.y - b.y) <= (b._radius || BRANG_R_DEFAULT) + GOLIATH_ECHO_HIT_RADIUS) {
-            _slashEcho(g, Math.atan2(b.vy, b.vx), b._originX, b._originY);
+        if (g._slashed) return;
+        if (b._fromSkillF && Math.hypot(g.x - b.x, g.y - b.y) < (b._radius || 48) + GOLIATH_ECHO_HIT_RADIUS) {
+            _slashEcho(g, Math.atan2(b.vy, b.vx), b.x, b.y);
         }
     }
 }
@@ -198,9 +195,7 @@ function updateSkillF(deltaTime) {
             return;
         }
         let currentAngle = -Math.PI + Math.PI * sweepProgress;
-        // Ransacked Treasury: the cone widens with every kill landed this
-        // sweep, not with elapsed time, snowballing up to 4.5x its base width
-        const coneHalfWidth = _hasBuff('cuop_bao_tang') ? Math.min(0.2 * (1 + _skillFKillsThisSweep * 0.5), 0.2 * 4.5) : 0.2;
+        const coneHalfWidth = _skillFConeHalfWidth();
 
         for (const g of window._goliathEchoes || []) _trySlashEchoBySweep(g);
 
@@ -213,7 +208,7 @@ function updateSkillF(deltaTime) {
             if (enemy._stealthed) continue; // Uriel mid-Camouflage: fully invisible and untargetable
             // Uriel's death barrier occludes the sweep like a flashlight hitting a wall.
             if (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(player.x, player.y, enemy.x, enemy.y)) continue;
-            if (_skillFSweepHits(enemy.x, enemy.y, 0, currentAngle, coneHalfWidth)) {
+            if (_skillFConeHits(enemy.x, enemy.y, currentAngle, coneHalfWidth)) {
                 if (enemy.type === 'marchosias' && enemy.arcBarrier && enemy.arcBarrier.hp > 0) {
                     if (Math.random() < 0.10) _tryTriggerMarchosiasCounter(enemy);
                 } else if (enemy.type === 'leviathan' && enemy.afoShieldActive && !_hasBuff('tu_huyet')) {

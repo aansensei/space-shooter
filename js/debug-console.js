@@ -61,14 +61,6 @@ const AUTOPLAY_STEP = 90; // px a candidate dodge step is scored against
 
 // Every live threat that will cross the player's y-row within the lookahead
 // window, with where it'll actually be when it gets there.
-function debugFillLeoFate() {
-    if (!_leoHasFateMeter()) return;
-    window._leoFateMeter = LEO_FATE_METER_MAX;
-    window._leoFateReady = true;
-    window._leoChargeFlashMs = 300;
-    player.atk = PLAYER_BASE_ATK * _playerAtkWaveMult(_waveNumber) * _sigilAtkMult() * _playerAtkDebuffMult() * _playerAtkBuffMult();
-}
-
 function _autoplayScanThreats() {
     const threats = [];
     for (const e of enemies) {
@@ -129,7 +121,9 @@ function _autoplayTick() {
         if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
         if (typeof activateSkillG === 'function') activateSkillG();
 
-        // Autoplay uses the same banked sigil priority as Space and CHARGE.
+        // Cancer's Riptide Surge, then Leo's Divine Fate: a banked release is
+        // free (doesn't touch any other cooldown) and just needs a Space press
+        // whenever it's ready, same priority Space itself gives it in input.js.
         if ((window._tidalSurgeReady || window._leoFateReady) && typeof _releaseReadySpaceSigil === 'function'
             && !(typeof player !== 'undefined' && player._silenced)) {
             _releaseReadySpaceSigil();
@@ -497,7 +491,6 @@ window.debugSetYuukiBonus = function () {
         <button class="dbg-btn" onclick="debugForceSkill('Shift')">Shift</button>
         <button class="dbg-btn" onclick="debugForceSkill('Laser')">Laser</button>
         <button class="dbg-btn" onclick="debugForceSkill('Photokrystos')">Photokrystos</button>
-        <button class="dbg-btn" onclick="debugFillLeoFate()">Leo: Fill Fate</button>
         <button class="dbg-btn" onclick="debugForceSkill('S-Spinner')">S Finale (Spinner)</button>
         <button class="dbg-btn" onclick="debugForceSkill('TeslaCoil')">Spawn Tesla Coil</button>
       </div>
@@ -557,6 +550,19 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugCancerClear()">Clear State</button>
         </div>
         <div style="opacity:0.5; font-size:10px;">"Fill Meter" mirrors real absorb/passive feed up to ready. "Force Release" simulates the real Space press. "Ocean Hunter" drops the nearest enemy to 5% HP so the real execute check fires on its own.</div>
+      </div>
+      <div id="dbgLeoSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
+        <div class="dbg-h" style="font-size:10px;">LEO, DIVINE FATE / WILDFIRE</div>
+        <div id="dbgLeoState" style="font-size:10px; opacity:0.7; margin-bottom:4px;"></div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugLeoSetFate(100)">Fill Fate to Ready</button>
+          <button class="dbg-btn" onclick="debugLeoSetFate(50)">Fate 50%</button>
+          <button class="dbg-btn" onclick="debugLeoRelease()">Release (Space)</button>
+          <button class="dbg-btn" onclick="debugLeoPetrify(3000)">Petrify 3s now</button>
+          <button class="dbg-btn" onclick="debugLeoPetrify(5000)">Wave Petrify 5s</button>
+          <button class="dbg-btn" onclick="debugLeoClear()">Clear State</button>
+        </div>
+        <div style="opacity:0.5; font-size:10px;">Every button equips Leo first if it is missing. "Release" goes through the real Space path (Cancer first if both are ready, blocked while silenced). "Petrify 3s now" skips the meter but still starts the 8s rest; "Wave Petrify 5s" is the wave start version with no rest. "Clear State" empties the meter, rest, petrify and every Burn.</div>
       </div>
     </div>
 
@@ -813,12 +819,14 @@ window.debugSetYuukiBonus = function () {
         updateSessionStatus();
         _refreshGreatSageGemDisplay();
         _refreshCancerStateDisplay();
+        _refreshLeoStateDisplay();
         if (refreshTimer) clearInterval(refreshTimer);
         refreshTimer = setInterval(() => {
             const _t0 = performance.now();
             refreshEnemyList(); refreshSentinelList(); refreshDummyStatus(); updateSessionStatus();
             _refreshGreatSageGemDisplay();
             _refreshCancerStateDisplay();
+            _refreshLeoStateDisplay();
             _dbgRefreshStackOverflowState();
             const _dt = performance.now() - _t0;
             if (_dt > 15) console.warn('[DBGPANEL] refresh took ' + _dt.toFixed(0) + 'ms');
@@ -1438,6 +1446,46 @@ window.debugSetYuukiBonus = function () {
         if (typeof _oceanHunterBites !== 'undefined') _oceanHunterBites.length = 0;
         _refreshCancerStateDisplay();
     };
+    // Leo debug: every button equips the sigil first so it works from a bare sandbox.
+    function _dbgEnsureLeo() {
+        if (typeof _hasSigil === 'function' && !_hasSigil('leo') && typeof window.debugToggleSigil === 'function') {
+            window.debugToggleSigil('leo', true);
+            if (typeof syncSigilCheckboxes === 'function') syncSigilCheckboxes();
+        }
+        return typeof _leoHasFateMeter === 'function';
+    }
+    window.debugLeoSetFate = function (pct) {
+        if (!_dbgEnsureLeo()) return;
+        window._leoFateRestMs = 0;
+        window._leoFateMeter = Math.max(0, Math.min(LEO_FATE_METER_MAX, pct));
+        window._leoFateReady = window._leoFateMeter >= LEO_FATE_METER_MAX;
+        window._leoChargeFlashMs = 300;
+        _refreshLeoStateDisplay();
+    };
+    window.debugLeoRelease = function () {
+        if (!_dbgEnsureLeo()) return;
+        if ((window._tidalSurgeReady || window._leoFateReady) && !player._silenced) _releaseReadySpaceSigil();
+        _refreshLeoStateDisplay();
+    };
+    window.debugLeoPetrify = function (ms) {
+        if (!_dbgEnsureLeo()) return;
+        _leoStartPetrify(ms, ms === LEO_FATE_ACTIVE_MS);
+        _refreshLeoStateDisplay();
+    };
+    window.debugLeoClear = function () {
+        if (typeof _leoReset === 'function') _leoReset();
+        _refreshLeoStateDisplay();
+    };
+    function _refreshLeoStateDisplay() {
+        const el = document.getElementById('dbgLeoState');
+        if (!el) return;
+        if (typeof _hasSigil !== 'function' || !_hasSigil('leo')) { el.textContent = 'Leo not equipped (any button below equips it)'; return; }
+        const pct = typeof _leoFatePercent === 'function' ? _leoFatePercent() : 0;
+        el.textContent = `Fate: ${pct.toFixed(1)}% ${window._leoFateReady ? '(READY)' : ''} · ATK +${(pct * LEO_FATE_ATK_PER_PERCENT * 100).toFixed(1)}%`
+            + ` · Petrify: ${(window._leoPetrifyMs / 1000).toFixed(1)}s · Rest: ${(window._leoFateRestMs / 1000).toFixed(1)}s`
+            + ` · Burning: ${window._sthBurning ? window._sthBurning.size : 0}`;
+    }
+
     function _refreshCancerStateDisplay() {
         const section = document.getElementById('dbgCancerSection');
         const equipped = typeof _hasSigil === 'function' && _hasSigil('cancer');

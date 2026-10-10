@@ -1127,8 +1127,8 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
+    // Lion's Roar Burn flames and Divine Fate stone (js/render/sigil-leo.js)
     if (typeof _drawLeoEnemyStatus === 'function') _drawLeoEnemyStatus(enemy);
-
 }
 
 

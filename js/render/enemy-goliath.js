@@ -1553,7 +1553,7 @@ function _drawEchoSlashEffects() {
         ctx.beginPath(); ctx.moveTo(-34, -7); ctx.lineTo(34, 7); ctx.stroke();
         if (!low) {
             const sprite = _getEchoShipSprite();
-            for (const side of [-1, 1]) {
+            for (let side = -1; side <= 1; side += 2) {
                 ctx.save(); ctx.translate(side * t * 13, side * t * 19);
                 ctx.beginPath(); ctx.rect(-42, side < 0 ? -42 : 0, 84, 42); ctx.clip();
                 ctx.drawImage(sprite, -35, -35); ctx.restore();

@@ -272,18 +272,18 @@ function _playerAtkBuffMult() {
     return favor * (1 + LEO_FATE_ATK_PER_PERCENT * fate);
 }
 
+// Leo: Burn, Wildfire and the Divine Fate meter (js/skills/sigil-leo.js).
 const LEO_FATE_METER_MAX = 100;
 const LEO_FATE_APOSTLE_KILL = 5;
 const LEO_FATE_ABNORMAL_KILL = 20;
 const LEO_FATE_DOMINATOR_KILL = 35;
 const LEO_FATE_BURN_TICK_CHARGE = 0.5;
-const LEO_FATE_GOLIATH_CHARGE_PER_SECOND = 2;
 const LEO_FATE_ATK_PER_PERCENT = 0.0015;
 const LEO_FATE_WAVE_MS = 5000;
 const LEO_FATE_ACTIVE_MS = 3000;
 const LEO_FATE_REST_MS = 8000;
 const LEO_FATE_DAMAGE_MULT = 1.60;
-const LEO_FATE_SILENCE_MS = 500;
+const LEO_FATE_SHATTER_ATK = 1.00;
 const LEO_BURN_ATK_PER_STACK = 0.30;
 const LEO_BURN_TICK_MS = 500;
 const LEO_BURN_DURATION_MS = 3000;

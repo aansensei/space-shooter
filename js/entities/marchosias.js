@@ -155,7 +155,7 @@ function _triggerArcBarrierBreak(enemy) {
 
 // Kích hoạt Sword — tối đa 4 lần mỗi barrier cycle, cooldown 650ms giữa các lần
 function _tryTriggerMarchosiasCounter(enemy) {
-    if (enemy._thanMenhFrozen || enemy._leoSilenceMs > 0) return;
+    if (enemy._thanMenhFrozen) return; // petrified: no new casts
     const now = performance.now();
     if (enemy.hp <= 0 || enemy._markedForDeath) return;
     if (!enemy.marchosiasWindups) enemy.marchosiasWindups = [];

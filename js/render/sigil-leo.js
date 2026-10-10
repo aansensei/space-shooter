@@ -1,4 +1,7 @@
-// Cached bronze frame and flame sprites keep Leo's HUD inexpensive.
+// Pisces: Space Journey. © 2024 An Nguyen. Licensed under the MIT License.
+// Leo sigil VFX: the Divine Fate meter over the ship, its ready prompt and
+// aura, Burn and stone overlays on enemies, Wildfire sparks. Every gradient,
+// glow and the stone texture is baked once into cached canvases.
 const _leoMeterFrameImg = new Image();
 _leoMeterFrameImg.src = 'assets/images/game/sigils/leo-meter-frame.png';
 _leoMeterFrameImg.onload = () => { _leoRenderCache = null; };
@@ -7,6 +10,12 @@ const LEO_METER_HOLE_FRAC = { x0: 193 / 1376, x1: 1183 / 1376, y0: 325 / 768, y1
 const LEO_METER_HOLE_SPANS = [[244,1132],[239,1137],[235,1141],[232,1144],[229,1147],[227,1149],[225,1151],[223,1153],[221,1155],[220,1156],[218,1158],[217,1159],[216,1160],[214,1162],[213,1163],[212,1164],[211,1165],[210,1166],[209,1167],[208,1168],[207,1169],[206,1170],[206,1170],[205,1171],[204,1172],[203,1173],[203,1173],[202,1174],[201,1175],[201,1175],[200,1176],[200,1176],[199,1177],[199,1177],[198,1178],[198,1178],[197,1179],[197,1179],[197,1179],[196,1180],[196,1180],[196,1180],[195,1181],[195,1181],[195,1181],[195,1181],[194,1182],[194,1182],[194,1182],[194,1182],[194,1182],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[194,1183],[194,1182],[194,1182],[194,1182],[194,1182],[195,1181],[195,1181],[195,1181],[195,1181],[196,1180],[196,1180],[196,1180],[197,1179],[197,1179],[197,1179],[198,1178],[198,1178],[199,1177],[199,1177],[200,1176],[200,1176],[201,1175],[201,1175],[202,1174],[203,1173],[203,1173],[204,1172],[205,1171],[206,1170],[206,1170],[207,1169],[208,1168],[209,1167],[210,1166],[211,1165],[212,1164],[213,1163],[214,1162],[216,1160],[217,1159],[218,1158],[220,1156],[221,1155],[223,1153],[225,1151],[227,1149],[229,1147],[232,1144],[235,1141],[239,1137],[244,1132]];
 let _leoRenderCache = null;
 
+// Older Safari has no roundRect; a plain rect stands in there.
+function _leoRoundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
+}
+
 function _createLeoMeterFrame() {
     const c = document.createElement('canvas'); c.width = 1376; c.height = 768;
     const g = c.getContext('2d');
@@ -14,7 +23,7 @@ function _createLeoMeterFrame() {
     metal.addColorStop(0, '#ffd27a'); metal.addColorStop(0.35, '#ef9f27');
     metal.addColorStop(0.7, '#6a2816'); metal.addColorStop(1, '#ef9f27');
     g.fillStyle = metal; g.strokeStyle = '#ffd27a'; g.lineWidth = 12;
-    g.beginPath(); g.roundRect(152, 294, 1072, 180, 90); g.fill(); g.stroke();
+    _leoRoundRect(g, 152, 294, 1072, 180, 90); g.fill(); g.stroke();
     for (const side of [-1, 1]) {
         g.save(); g.translate(688 + side * 512, 384); g.scale(side, 1);
         for (let i = -2; i <= 2; i++) {
@@ -34,7 +43,7 @@ function _createLeoMeterFrame() {
     g.fillStyle = '#ffd27a'; g.beginPath(); g.arc(0, 0, 15, 0, Math.PI * 2); g.fill(); g.restore();
     // The cutout has no painted fill or glow inside it.
     g.globalCompositeOperation = 'destination-out';
-    g.beginPath(); g.roundRect(180, 324, 1016, 120, 60); g.fill();
+    _leoRoundRect(g, 180, 324, 1016, 120, 60); g.fill();
     g.globalCompositeOperation = 'source-over';
     return c;
 }
@@ -63,7 +72,7 @@ function _leoSprites() {
             for (let i = 0; i < row.length; i += 2) m.fillRect(row[i], y0 + y, row[i + 1] - row[i], 1);
         }
     } else {
-        m.beginPath(); m.roundRect(180, 324, 1016, 120, 60); m.fill();
+        _leoRoundRect(m, 180, 324, 1016, 120, 60); m.fill();
     }
     const meter = document.createElement('canvas'); meter.width = 110; meter.height = Math.ceil(110 * LEO_METER_FRAME_ASPECT);
     const glowSource = document.createElement('canvas'); glowSource.width = meter.width; glowSource.height = meter.height;
@@ -127,7 +136,7 @@ function _drawLeoFateMeter() {
     ctx.save();
     if (window._leoFateReady) {
         ctx.strokeStyle = `rgba(255,210,122,${0.35 + pulse * 0.45})`; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(hx - 2, hy - 2, hw + 4, hh + 4, hh / 2 + 2); ctx.stroke();
+        _leoRoundRect(ctx, hx - 2, hy - 2, hw + 4, hh + 4, hh / 2 + 2); ctx.stroke();
         if (!_mobPerf && _gfxLevel < 2) {
             for (let i = 0; i < (_gfxLevel < 1 ? 4 : 2); i++) {
                 const t = ((window._leoFxClock / 650 + i * 0.3) % 1);
@@ -151,14 +160,15 @@ function _drawLeoFateReadyPrompt() {
     if (!window._leoFateReady || window._tidalSurgeReady) return;
     const x = canvas.width / 2;
     let y = canvas.height * 0.5;
+    // Sits above Great Sage's prompt and clear of the meter stack over the ship.
     const sagePrompt = typeof _greatSageGems !== 'undefined' && _greatSageGems.length > 0;
     if (sagePrompt) y -= 48;
-    const frameTop = player.y - player.height / 2 - (110 * LEO_METER_FRAME_ASPECT + 6)
-        * (_hasBuff('trieu_hoi') ? 2 : 1) - (window._greatSageFrameClearance || 0);
-    if (Math.abs(player.x - x) < 179) y = Math.max(28, Math.min(y, frameTop - (sagePrompt ? 76 : 28)));
+    if (Number.isFinite(window._leoHudTop) && Math.abs(player.x - x) < 179) {
+        y = Math.max(28, Math.min(y, window._leoHudTop - (sagePrompt ? 76 : 28)));
+    }
     const vi = window._lang === 'vi';
     ctx.save(); ctx.fillStyle = 'rgba(24,12,8,0.75)';
-    ctx.beginPath(); ctx.roundRect(x - 124, y - 20, 248, 40, 8); ctx.fill();
+    _leoRoundRect(ctx, x - 124, y - 20, 248, 40, 8); ctx.fill();
     ctx.strokeStyle = '#ef9f27'; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffd27a';
     ctx.font = 'bold 13px "Courier New", monospace';
@@ -230,6 +240,51 @@ function _drawLeoEnemyStatus(enemy) {
     }
 }
 
+// Petrify running out: a gold flash, an expanding ring, stone shards flung
+// out and falling, and (High only) cracks of light from the core.
+function _drawLeoShatter(fx, t, low) {
+    const r = fx.r, x = fx.x, y = fx.y;
+    if (!(r > 0) || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    const fade = 1 - t;
+    if (t < 0.25) {
+        ctx.globalAlpha = (1 - t / 0.25) * 0.55;
+        ctx.fillStyle = '#fff2ce';
+        ctx.beginPath(); ctx.arc(x, y, r * (0.9 + t), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = fade * 0.9;
+    ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = (low ? 2 : 4) * fade + 0.5;
+    ctx.beginPath(); ctx.arc(x, y, r + 10 + t * (r * 0.9 + 36), 0, Math.PI * 2); ctx.stroke();
+    if (!low && _gfxLevel < 1 && t < 0.6) {
+        ctx.globalAlpha = (1 - t / 0.6) * 0.8; ctx.strokeStyle = '#fff2ce'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+            const a = fx.seed + i * 1.2566, len = r * (0.35 + t * 1.1);
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + Math.cos(a + 0.18) * len * 0.55, y + Math.sin(a + 0.18) * len * 0.55);
+            ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+        }
+        ctx.stroke();
+    }
+    const shards = low ? 4 : (_gfxLevel < 1 ? 12 : 7);
+    const ease = 1 - (1 - t) * (1 - t);
+    ctx.globalAlpha = fade;
+    for (let i = 0; i < shards; i++) {
+        const a = fx.seed + i * 2.399;
+        const d = r * 0.35 + ease * (r * 0.8 + 34 + (i % 3) * 10);
+        const sx = x + Math.cos(a) * d, sy = y + Math.sin(a) * d + t * t * 30;
+        const s = (low ? 5 : 5 + (i % 4) * 1.5) * (1 - t * 0.4);
+        const spin = a + t * (5 + (i % 3));
+        const c = Math.cos(spin), sn = Math.sin(spin);
+        ctx.fillStyle = i % 3 === 0 ? '#e8d7a1' : (i % 3 === 1 ? '#ada691' : '#6f7277');
+        ctx.beginPath();
+        ctx.moveTo(sx + c * s, sy + sn * s);
+        ctx.lineTo(sx - sn * s * 0.7, sy + c * s * 0.7);
+        ctx.lineTo(sx - c * s * 0.8, sy - sn * s * 0.8);
+        ctx.closePath(); ctx.fill();
+        if (!low) { ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1; ctx.stroke(); }
+    }
+}
+
 function _drawLeoEffects() {
     const low = _mobPerf || _gfxLevel >= 2;
     ctx.save();
@@ -242,6 +297,8 @@ function _drawLeoEffects() {
             if (t > 0.7) { ctx.strokeStyle = '#ffd27a'; ctx.beginPath(); ctx.arc(fx.tx, fx.ty, 3 + t * 8, 0, Math.PI * 2); ctx.stroke(); }
         } else if (fx.kind === 'ring') {
             ctx.strokeStyle = '#ef9f27'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(fx.x, fx.y, 3 + t * 32, 0, Math.PI * 2); ctx.stroke();
+        } else if (fx.kind === 'shatter') {
+            _drawLeoShatter(fx, t, low);
         } else if (fx.kind === 'stone') {
             ctx.fillStyle = '#ada691';
             for (let i = 0; i < (low ? 2 : _gfxLevel < 1 ? 8 : 4); i++) {

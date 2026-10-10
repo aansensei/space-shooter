@@ -255,7 +255,6 @@ function handleEnemyKill(enemy) {
             lastSkillF = Math.min(_now, lastSkillF - _cdReducProtected);
         }
     }
-
 }
 
 function fireAutoShot() {
@@ -996,7 +995,7 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Sigil: Divine Fate — +60% dmg during 5s freeze window at wave start (docs/combat-scaling-rebalance.md Part 5)
+    // Sigil: Divine Fate: +60% dmg while enemies are petrified, at wave start or from the Fate meter (docs/combat-scaling-rebalance.md Part 5)
     if (_hasBuff('than_menh') && window._leoPetrifyMs > 0) {
         totalDamage = Math.ceil(totalDamage * LEO_FATE_DAMAGE_MULT);
     }
@@ -1877,7 +1876,8 @@ function dealDamage(enemy, source) {
         }
     }
 
-    // Landed allied hits refresh Leo's Burn while Glory for Justice is active.
+    // Lion's Roar (su_tu_hong): while GfJ is active, any landed allied hit
+    // adds or refreshes a Burn stack. Ticks run in main.js (_updateSigilPassives).
     if (_hasBuff('su_tu_hong') && !isSentinel && gloryForJusticeActive && !source._isSthDot
         && !isSpaceship && !source._isSkillF && !source._isSkillD && totalDamage > 0) {
         _leoAddBurn(enemy, 1, performance.now());
@@ -2030,9 +2030,9 @@ function dealDamage(enemy, source) {
             // Gift trigger looking the same as the passive low-HP crackle.
             enemy._demonGiftFlashAt = performance.now();
         };
-        if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); _leoDargruelShockwave(enemy); enemy.demonGift90Triggered = true; }
+        if (oldPercent > 0.90 && newPercent <= 0.90 && !enemy.demonGift90Triggered) { _demonTrigger(); if (!enemy._thanMenhFrozen) spawnBossShockwave(enemy.x, enemy.y, 'dargruel', 0.0095 * _enemyHs(enemy)); enemy.demonGift90Triggered = true; }
         if (oldPercent > 0.70 && newPercent <= 0.70 && !enemy.demonGift70Triggered) { _demonTrigger(); enemy.demonGift70Triggered = true; }
-        if (oldPercent > 0.50 && newPercent <= 0.50 && !enemy.demonGift50Triggered) { _demonTrigger(); _leoDargruelShockwave(enemy); enemy.demonGift50Triggered = true; }
+        if (oldPercent > 0.50 && newPercent <= 0.50 && !enemy.demonGift50Triggered) { _demonTrigger(); if (!enemy._thanMenhFrozen) spawnBossShockwave(enemy.x, enemy.y, 'dargruel', 0.0095 * _enemyHs(enemy)); enemy.demonGift50Triggered = true; }
         if (oldPercent > 0.30 && newPercent <= 0.30 && !enemy.demonGift30Triggered) { _demonTrigger(); enemy.demonGift30Triggered = true; }
         if (oldPercent > 0.01 && newPercent <= 0.01 && !enemy.demonGift1Triggered) { _demonTrigger(); enemy.demonGift1Triggered = true; }
     }
@@ -2054,7 +2054,6 @@ function dealDamage(enemy, source) {
         if (oldPct > 0.40 && newPct <= 0.40 && !enemy._tenacityBarrier40) { _grantShield(); enemy._tenacityBarrier40 = true; }
         if (oldPct > 0.10 && newPct <= 0.10 && !enemy._tenacityBarrier10) { _grantShield(); enemy._tenacityBarrier10 = true; }
     }
-    if (!isSentinel && !isSpaceship && (enemy.hp <= 0 || enemy._deathPhase)) _leoRememberBurnKill(enemy);
 }
 // Leviathan moved to js/entities/leviathan.js.
 

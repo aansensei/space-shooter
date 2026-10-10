@@ -357,11 +357,11 @@ function drawSkillButtons() {
             : { cd: laserCooldownDuration, lastAct: now - (laserCooldownDuration - _spcRem * 1000), active: false };
     }
     _pill(_spaceY, '⎵ SPC', '#3B82F6', _spaceOpts);
-    if (window._leoFateReady && !window._tidalSurgeReady) _pillReadyWash(_spaceY, [
-        [0, '#fff2ce'], [0.3, '#ffd27a'], [0.6, '#ef9f27'], [0.85, '#bc5f17'], [1, '#471c13'],
-    ], now);
-    else if (window._tidalSurgeReady) _pillReadyWash(_spaceY, [
+    if (window._tidalSurgeReady) _pillReadyWash(_spaceY, [
         [0, 'rgba(3,50,80,1)'], [0.35, 'rgba(0,140,180,1)'], [0.65, 'rgba(0,220,235,1)'], [0.85, 'rgba(94,234,212,1)'], [1, 'rgba(220,255,250,1)'],
+    ]);
+    else if (window._leoFateReady) _pillReadyWash(_spaceY, [
+        [0, '#471c13'], [0.35, '#bc5f17'], [0.65, '#ef9f27'], [0.85, '#ffd27a'], [1, '#fff2ce'],
     ]);
 
     // Cycle of Flow: a full screen-width of movement just shaved 0.5s off
