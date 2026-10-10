@@ -179,6 +179,46 @@
             letter-spacing: 2px;
         }
 
+        /* Main menu Guide and Settings: a light sweep, lift and brighter
+           glow under a mouse. Touch screens skip it so a tap never leaves
+           the button stuck in its hover look. */
+        #guideBtn, #settingsBtn { position: relative; overflow: hidden; }
+        #guideBtn::after, #settingsBtn::after {
+            content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+            background: linear-gradient(100deg, transparent, rgba(160, 245, 255, 0.35), transparent);
+            transform: skewX(-20deg); pointer-events: none; opacity: 0;
+        }
+        .menu-btn-ico { display: inline-block; transition: transform 0.45s ease; }
+        @media (hover: hover) and (pointer: fine) {
+            #guideBtn:hover, #settingsBtn:hover {
+                color: #e6fdff !important;
+                background: rgba(0, 60, 90, 0.85) !important;
+                border-color: #00e5ff !important;
+                box-shadow: 0 0 26px rgba(0, 229, 255, 0.45), inset 0 0 12px rgba(0, 229, 255, 0.18) !important;
+                text-shadow: 0 0 8px rgba(0, 229, 255, 0.8);
+                transform: translateY(-2px);
+            }
+            #guideBtn:hover::after, #settingsBtn:hover::after {
+                opacity: 1; left: 120%; transition: left 0.6s ease, opacity 0.2s;
+            }
+            #guideBtn:hover .menu-btn-ico { transform: rotate(60deg) scale(1.15); }
+            #settingsBtn:hover .menu-btn-ico { transform: rotate(90deg); }
+            #guideBtn:active, #settingsBtn:active { transform: translateY(0) scale(0.97); }
+        }
+        #guideBtn:focus-visible, #settingsBtn:focus-visible { outline: 2px solid #00e5ff; outline-offset: 3px; }
+
+        /* On touch screens the in-game Mute and ESC buttons sit over a canvas
+           that redraws every frame, so a backdrop blur would be recomputed
+           each frame by the compositor. A slightly denser plain fill reads
+           the same at that size. */
+        @media (hover: none) and (pointer: coarse) {
+            #mute-btn, #mb-esc {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                background: rgba(28, 32, 52, 0.62) !important;
+            }
+        }
+
         #start-hyperjump-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
@@ -743,7 +783,7 @@
                         cursor:pointer; backdrop-filter:blur(8px);
                         box-shadow:0 0 20px rgba(0,229,255,0.15);
                         transition:all 0.25s;
-                    ">⬡ Guide</button>
+                    "><span class="menu-btn-ico">⬡</span> Guide</button>
                     <button id="settingsBtn" onclick="openSettings()" style="
                         flex:1; padding:12px 0;
                         font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700;
@@ -753,7 +793,7 @@
                         cursor:pointer; backdrop-filter:blur(8px);
                         box-shadow:0 0 20px rgba(0,229,255,0.15);
                         transition:all 0.25s;
-                    ">⚙ Settings</button>
+                    "><span class="menu-btn-ico">⚙</span> Settings</button>
                 </div>
 
                 <button id="start-hyperjump-btn">Initiate Hyperjump</button>
@@ -2371,6 +2411,7 @@
                 }
             }
 
+            let _lastFpsHtml = '';
             function tick(now) {
                 const dt = now - lastFrameTime;
                 lastFrameTime = now;
@@ -2379,7 +2420,8 @@
                 let sum = 0;
                 for (let i = frameTimes.length - 1; i >= 0; i--) {
                     sum += frameTimes[i];
-                    if (sum > 500) { frameTimes = frameTimes.slice(i); break; }
+                    // Trimmed in place, so no new array is made every frame.
+                    if (sum > 500) { if (i > 0) { frameTimes.copyWithin(0, i); frameTimes.length -= i; } break; }
                 }
                 const avg = sum / frameTimes.length;
                 const fps = avg > 0 ? Math.round(1000 / avg) : 0;
@@ -2434,11 +2476,15 @@
                 // to reveal that happened. Surfacing it here turns "why does
                 // High look wrong on my phone" into something checkable at a
                 // glance instead of a mystery.
+                // Written only when the text changes: a DOM write every frame
+                // costs a style and layout pass each time, 120 a second on a
+                // 120Hz phone.
                 if (window._inGame) {
-                    fpsEl.style.display = 'block';
+                    if (fpsEl.style.display !== 'block') fpsEl.style.display = 'block';
                     const _liveLvl = typeof window._gfxLevel !== 'undefined' ? window._gfxLevel : 0;
-                    fpsEl.innerHTML = 'rAF: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>'
+                    const _fpsHtml = 'rAF: <span style="color:' + fpsColor(fps) + ';font-weight:bold">' + fps + '</span>'
                         + ' <span style="opacity:0.7">' + (_TIER_NAMES[_liveLvl] || 'FULL') + '</span>';
+                    if (_fpsHtml !== _lastFpsHtml) { fpsEl.innerHTML = _fpsHtml; _lastFpsHtml = _fpsHtml; }
                 }
                 requestAnimationFrame(tick);
             }
@@ -2537,22 +2583,22 @@
     <script src="js/render/kanade-cutscene.js?v=20261010c"></script>
     <script src="js/render/fx.js?v=20261009a"></script>
     <script src="js/render/player.js?v=20261010c"></script>
-    <script src="js/render/enemy-common.js?v=20261010c"></script>
-    <script src="js/render/enemy-raphael.js?v=20261008b"></script>
+    <script src="js/render/enemy-common.js?v=20261010d"></script>
+    <script src="js/render/enemy-raphael.js?v=20261010d"></script>
     <script src="js/render/enemy-thaelis.js?v=20261008a"></script>
-    <script src="js/render/enemy-dargruel.js?v=20260914a"></script>
-    <script src="js/render/enemy-marchosias.js?v=20260913a"></script>
+    <script src="js/render/enemy-dargruel.js?v=20261010d"></script>
+    <script src="js/render/enemy-marchosias.js?v=20261010d"></script>
     <script src="js/render/enemy-leviathan.js?v=20260914b"></script>
-    <script src="js/render/enemy-goliath.js?v=20261010a"></script>
+    <script src="js/render/enemy-goliath.js?v=20261010d"></script>
     <script src="js/render/enemy-veilshroud.js?v=20260913e"></script>
-    <script src="js/render/enemy-uriel.js?v=20261008c"></script>
-    <script src="js/render/enemy-egregor.js?v=20260911a"></script>
+    <script src="js/render/enemy-uriel.js?v=20261010d"></script>
+    <script src="js/render/enemy-egregor.js?v=20261010d"></script>
     <script src="js/render/skill-s-spirit.js?v=20260909a"></script>
     <script src="js/render/skill-a.js?v=20260911a"></script>
     <script src="js/render/skill-d.js?v=20260914b"></script>
     <script src="js/render/skill-f.js?v=20261010a"></script>
-    <script src="js/render/sigil-cancer.js?v=20261010c"></script>
-    <script src="js/render/sigil-leo.js?v=20261010c"></script>
+    <script src="js/render/sigil-cancer.js?v=20261010d"></script>
+    <script src="js/render/sigil-leo.js?v=20261010d"></script>
     <script src="js/render/skill-g.js?v=20260923f"></script>
     <script src="js/render/skill-buttons.js?v=20261010a"></script>
     <script src="js/pixi-renderer.js?v=20261008b"></script>
