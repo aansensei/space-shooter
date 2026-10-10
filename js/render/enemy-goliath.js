@@ -2687,15 +2687,20 @@ function _drawGoliath(enemy) {
                 ctx.stroke(); ctx.shadowBlur = 0;
             });
             const tickCount = Math.floor(vDist / 40);
+            // Lane ticks glow from one cached sprite instead of a blurred fill each.
+            const tickGlow = !_mobPerf ? _getGlowSprite('rgba(255,0,0,0.75)', 9) : null;
+            const tickR = 3 + vp * 2;
             for (let i = 0; i <= tickCount; i++) {
                 const tickX = i * 40;
                 const blink = 0.5 + 0.5 * Math.sin(now / 120 - i * 0.8);
-                [-laneW, laneW].forEach(offset => {
-                    ctx.beginPath(); ctx.arc(tickX, offset, 3 + vp * 2, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255,80,80,${(0.3 + vp * 0.5) * blink})`;
-                    if (!_mobPerf) { ctx.shadowColor = 'red'; ctx.shadowBlur = 8; }
-                    ctx.fill(); ctx.shadowBlur = 0;
-                });
+                const a = (0.3 + vp * 0.5) * blink;
+                for (let side = -1; side <= 1; side += 2) {
+                    const offset = side * laneW;
+                    if (tickGlow) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * a; ctx.drawImage(tickGlow, tickX - 9, offset - 9); ctx.globalAlpha = ga; }
+                    ctx.beginPath(); ctx.arc(tickX, offset, tickR, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,80,80,${a})`;
+                    ctx.fill();
+                }
             }
             ctx.restore();
 
@@ -2714,10 +2719,9 @@ function _drawGoliath(enemy) {
                     const my = eyeLY + Math.sin(ang) * dist;
                     const moteAlpha = (0.3 + vp * 0.5) * (0.6 + 0.4 * Math.sin(now / 150 + i));
                     ctx.save();
-                    ctx.shadowColor = '#2a0040'; ctx.shadowBlur = 6;
+                    // No blur: its near black purple halo did not show on his dark body.
                     ctx.fillStyle = `rgba(60,0,90,${moteAlpha})`;
                     ctx.beginPath(); ctx.arc(mx, my, 2.5 + vp * 1.5, 0, Math.PI * 2); ctx.fill();
-                    ctx.shadowBlur = 0;
                     // Faint trailing streak behind the direction of travel (away from the eye)
                     ctx.strokeStyle = `rgba(80,0,120,${moteAlpha * 0.5})`;
                     ctx.lineWidth = 1.5;

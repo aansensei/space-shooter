@@ -142,11 +142,14 @@ function _drawEgregor(enemy) {
                 ctx.quadraticCurveTo(side * 20 * sc, 25 * sc, 0, 0);
                 ctx.fillStyle = isRage ? '#660000' : '#004455';
                 ctx.fill();
-                if (!_mobPerf) { ctx.shadowColor = isRage ? '#ff4444' : '#00ffff'; ctx.shadowBlur = 8; }
+                if (!_mobPerf) {
+                    ctx.strokeStyle = isRage ? 'rgba(255,68,68,0.2)' : 'rgba(0,255,255,0.2)';
+                    ctx.lineWidth = 7;
+                    ctx.stroke();
+                }
                 ctx.strokeStyle = isRage ? '#ff4444' : '#00ffff';
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                ctx.shadowBlur = 0;
                 // Gill vein line
                 ctx.beginPath();
                 ctx.moveTo(0, 0);

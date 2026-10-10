@@ -222,15 +222,16 @@ function _drawMarchosias(enemy) {
             // the one part of this cluster too costly for MED
             ctx.save();
             ctx.fillStyle = `rgba(220,255,240,${0.7 + _tickPulse * 0.3})`;
-            ctx.shadowColor = '#c8ffe6'; ctx.shadowBlur = 6;
+            const _moGlow = _getGlowSprite('rgba(200,255,230,0.8)', 6);
             for (let mo = 0; mo < 6; mo++) {
                 const moA = now / 700 + (mo / 6) * Math.PI * 2;
                 const moR = r * 0.4 + Math.sin(now / 220 + mo) * r * 0.03;
+                const mx = Math.cos(moA) * moR, my = Math.sin(moA) * moR;
+                if (_moGlow) ctx.drawImage(_moGlow, mx - 6, my - 6);
                 ctx.beginPath();
-                ctx.arc(Math.cos(moA) * moR, Math.sin(moA) * moR, 1.4, 0, Math.PI * 2);
+                ctx.arc(mx, my, 1.4, 0, Math.PI * 2);
                 ctx.fill();
             }
-            ctx.shadowBlur = 0;
             ctx.restore();
         }
     }

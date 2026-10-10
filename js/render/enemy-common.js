@@ -558,6 +558,22 @@ function _getSoulReaverIconSprites(R) {
     return _soulReaverIconCache;
 }
 
+// Leviathan Envy's white ring with its halo, baked per radius.
+const _envyRingSprites = new Map();
+function _getEnvyRingSprite(r0) {
+    const key = Math.round(r0);
+    let c = _envyRingSprites.get(key);
+    if (c) return c;
+    const half = key + 22;
+    c = document.createElement('canvas'); c.width = c.height = half * 2;
+    const g = c.getContext('2d');
+    g.strokeStyle = '#ffffff'; g.lineWidth = 2.5;
+    g.shadowColor = '#ffffff'; g.shadowBlur = 16;
+    g.beginPath(); g.arc(half, half, key, 0, Math.PI * 2); g.stroke();
+    _envyRingSprites.set(key, c);
+    return c;
+}
+
 function drawEnemy(enemy) {
     // Uriel, fully stealthed (Camouflage): invisible, untargetable, skip
     // every overlay below too (vuln icon, shield bar, Walpurgis aura...).
@@ -747,17 +763,21 @@ function drawEnemy(enemy) {
         ctx.save();
         ctx.globalAlpha = 1;
 
-        // Outer glow ring
-        if (!_mobPerf) ctx.shadowColor = '#ffffff';
-        if (!_mobPerf) ctx.shadowBlur = 16;
-        ctx.strokeStyle = `rgba(255,255,255,${0.7 + pulse * 0.3})`;
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, r0, 0, Math.PI * 2);
-        ctx.stroke();
+        // Outer glow ring: the haloed ring is baked per radius and pulses by opacity.
+        if (!_mobPerf) {
+            const ring = _getEnvyRingSprite(r0);
+            ctx.globalAlpha = 0.7 + pulse * 0.3;
+            ctx.drawImage(ring, enemy.x - ring.width / 2, enemy.y - ring.height / 2);
+            ctx.globalAlpha = 1;
+        } else {
+            ctx.strokeStyle = `rgba(255,255,255,${0.7 + pulse * 0.3})`;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, r0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
 
         // Spinning dashed inner ring
-        ctx.shadowBlur = 0;
         ctx.strokeStyle = `rgba(220,240,255,${0.45 + pulse * 0.2})`;
         ctx.lineWidth = 1.2;
         ctx.setLineDash([5, 5]);
@@ -768,16 +788,17 @@ function drawEnemy(enemy) {
         ctx.restore();
         ctx.setLineDash([]);
 
-        // 4 corner dots
+        // 4 corner dots, each over a cached glow sprite
+        const dotGlow = !_mobPerf ? _getGlowSprite('rgba(170,204,255,0.9)', 7) : null;
         ctx.fillStyle = `rgba(255,255,255,${pulse})`;
-        if (!_mobPerf) ctx.shadowColor = '#aaccff'; if (!_mobPerf) ctx.shadowBlur = 8;
         for (let d = 0; d < 4; d++) {
             const a = (now0 / 2000) + d * Math.PI / 2;
+            const dx = enemy.x + Math.cos(a) * r0, dy = enemy.y + Math.sin(a) * r0;
+            if (dotGlow) ctx.drawImage(dotGlow, dx - 7, dy - 7);
             ctx.beginPath();
-            ctx.arc(enemy.x + Math.cos(a) * r0, enemy.y + Math.sin(a) * r0, 2, 0, Math.PI * 2);
+            ctx.arc(dx, dy, 2, 0, Math.PI * 2);
             ctx.fill();
         }
-        ctx.shadowBlur = 0;
         ctx.restore();
     }
 
@@ -930,11 +951,17 @@ function drawEnemy(enemy) {
             const spR = (enemy.size / 2) * (3.0 * (1 - sp) + 0.9);
             ctx.save();
             ctx.globalAlpha = (1 - sp) * 0.9;
+            // A wide faint stroke under the ring stands in for a blurred halo,
+            // since a whole wave can spawn on the same frame.
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, spR, 0, Math.PI * 2);
+            if (!_mobPerf) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+                ctx.lineWidth = (2.5 * (1 - sp) + 0.5) * 5;
+                ctx.stroke();
+            }
             ctx.strokeStyle = 'rgba(255,255,255,0.95)';
             ctx.lineWidth = 2.5 * (1 - sp) + 0.5;
-            if (!_mobPerf) { ctx.shadowColor = 'white'; ctx.shadowBlur = 20; }
-            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, spR, 0, Math.PI * 2); ctx.stroke();
-            ctx.shadowBlur = 0;
+            ctx.stroke();
             ctx.restore();
         }
     }

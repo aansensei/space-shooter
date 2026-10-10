@@ -238,11 +238,15 @@ function _drawDargruel(enemy) {
         ctx.save();
         ctx.translate(Math.cos(a) * r * 0.6, Math.sin(a) * r * 0.6);
         ctx.rotate(a);
-        if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 8 * runePulse; }
-        ctx.strokeStyle = `rgba(220,170,255,${0.5 + 0.5 * runePulse})`;
-        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, -5); ctx.lineTo(3, 0); ctx.lineTo(0, 5); ctx.lineTo(-3, 0); ctx.closePath();
+        if (!_mobPerf) {
+            ctx.strokeStyle = `rgba(200,110,255,${0.22 * runePulse})`;
+            ctx.lineWidth = 5;
+            ctx.stroke();
+        }
+        ctx.strokeStyle = `rgba(220,170,255,${0.5 + 0.5 * runePulse})`;
+        ctx.lineWidth = 1;
         ctx.stroke();
         ctx.restore();
     }
@@ -265,11 +269,15 @@ function _drawDargruel(enemy) {
         ctx.strokeStyle = 'rgba(2,0,6,0.95)';
         ctx.lineWidth = r * 0.08;
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, tailLen); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, tailLen);
+        if (!_mobPerf) {
+            ctx.strokeStyle = 'rgba(200,110,255,0.18)';
+            ctx.lineWidth = r * 0.045 + 6;
+            ctx.stroke();
+        }
         ctx.strokeStyle = 'rgba(190,110,255,0.75)';
         ctx.lineWidth = r * 0.045;
-        if (!_mobPerf) { ctx.shadowColor = '#c86eff'; ctx.shadowBlur = 7; }
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, tailLen); ctx.stroke();
-        ctx.shadowBlur = 0;
+        ctx.stroke();
         ctx.setLineDash([]);
         ctx.restore();
     }

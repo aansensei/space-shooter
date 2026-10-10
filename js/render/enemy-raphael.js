@@ -365,6 +365,7 @@ function drawRaphael(enemy) {
         if (!_mobPerf) { ctx.shadowColor = pulseColor; ctx.shadowBlur = 10 * (1 - tp); }
         ctx.strokeStyle = pulseColor; ctx.lineWidth = 4 * (1 - tp) + 1;
         ctx.beginPath(); ctx.arc(0, 0, currentR, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0; // only the wave itself glows, not the dashes and spokes below
         ctx.save();
         ctx.rotate(tp * Math.PI * 0.5);
         ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.8})`; ctx.lineWidth = 1.5;
@@ -434,15 +435,17 @@ function drawRaphael(enemy) {
             const _hitsLeft = Math.max(0, 20 - (enemy.raphaelCustosHits || 0));
             const _pipR = shieldR + 9;
             ctx.save();
+            // Live pips glow from one cached sprite rather than a blurred fill each.
+            const _pipGlow = !_mobPerf ? _getGlowSprite('rgba(255,215,0,0.85)', 5) : null;
             for (let i = 0; i < 20; i++) {
                 const a = (i / 20) * Math.PI * 2 - Math.PI / 2;
                 const _spent = i >= _hitsLeft;
+                const px = Math.cos(a) * _pipR, py = Math.sin(a) * _pipR;
+                if (_pipGlow && !_spent) ctx.drawImage(_pipGlow, px - 5, py - 5);
                 ctx.fillStyle = _spent ? 'rgba(255,215,0,0.12)' : `rgba(255,240,180,${0.75 + 0.25 * Math.sin(now / 200 + i)})`;
-                if (!_mobPerf && !_spent) { ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 4; }
                 ctx.beginPath();
-                ctx.arc(Math.cos(a) * _pipR, Math.sin(a) * _pipR, _spent ? 1.1 : 1.6, 0, Math.PI * 2);
+                ctx.arc(px, py, _spent ? 1.1 : 1.6, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.shadowBlur = 0;
             }
             ctx.restore();
         }

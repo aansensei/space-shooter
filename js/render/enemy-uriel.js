@@ -34,12 +34,17 @@ function _drawUrielBuffRing(enemy) {
     ctx.strokeStyle = hasIB ? 'rgba(255,225,130,0.9)' : 'rgba(255,225,130,0.35)';
     ctx.lineWidth = hasIB ? 2 : 1.3;
     ctx.setLineDash([5, 5]);
-    if (!_mobPerf && _gfxLevel < 2 && hasIB) { ctx.shadowColor = URIEL_GOLD; ctx.shadowBlur = 8; }
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
+    if (!_mobPerf && _gfxLevel < 2 && hasIB) {
+        // A wide faint stroke under the dashes stands in for the blurred halo.
+        const lw = ctx.lineWidth, ss = ctx.strokeStyle;
+        ctx.setLineDash([]); ctx.strokeStyle = 'rgba(255,225,130,0.16)'; ctx.lineWidth = 7;
+        ctx.stroke();
+        ctx.setLineDash([5, 5]); ctx.strokeStyle = ss; ctx.lineWidth = lw;
+    }
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.shadowBlur = 0;
     ctx.restore();
 }
 
