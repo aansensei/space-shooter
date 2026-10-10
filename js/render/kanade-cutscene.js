@@ -102,7 +102,10 @@
   // Muted and inline so it is allowed to autoplay without a gesture. It is
   // only ever running while the cutscene is on screen: a decoding video is
   // real work and there is no reason to pay for it the rest of the run.
-  let _realmVidOk = false;
+  // iOS Safari and Android data saver ignore preload, so nothing loads and
+  // canplay never fires until play() is called. play() is therefore never
+  // gated on canplay; the still covers the gap until a frame is decoded.
+  let _realmVidFailed = false;
   const _frozenRealmVid = document.createElement('video');
   _frozenRealmVid.muted = true;
   _frozenRealmVid.defaultMuted = true;
@@ -111,19 +114,23 @@
   _frozenRealmVid.setAttribute('playsinline', '');
   _frozenRealmVid.setAttribute('muted', '');
   _frozenRealmVid.preload = 'auto';
-  _frozenRealmVid.addEventListener('canplay', () => { _realmVidOk = true; });
-  _frozenRealmVid.addEventListener('error', () => { _realmVidOk = false; });
+  _frozenRealmVid.addEventListener('error', () => { _realmVidFailed = true; });
   _frozenRealmVid.src = 'assets/video/frozen-realm.mp4';
+  // WebKit pauses muted video that is not in the page or not visible, so it
+  // sits in the DOM as a near transparent 1px dot rather than detached.
+  _frozenRealmVid.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
+  const _attachRealmVid = () => { if (!_frozenRealmVid.isConnected && document.body) document.body.appendChild(_frozenRealmVid); };
+  if (document.body) _attachRealmVid(); else document.addEventListener('DOMContentLoaded', _attachRealmVid);
 
   // The video runs on every tier but the minimum, which shows the still
   // frame instead; the video is light enough that Low keeps it.
   function realmVideoReady() {
-    return _realmVidOk && _frozenRealmVid.readyState >= 2
+    return !_realmVidFailed && _frozenRealmVid.readyState >= 2
       && _frozenRealmVid.videoWidth > 0 && freezeTier() <= 2;
   }
 
   function startRealmVideo() {
-    if (!_realmVidOk || freezeTier() > 2) return;
+    if (_realmVidFailed || freezeTier() > 2) return;
     try { _frozenRealmVid.currentTime = 0; _frozenRealmVid.play().catch(() => {}); } catch (_) {}
   }
 

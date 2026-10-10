@@ -4,10 +4,8 @@
 // glow and the stone texture is baked once into cached canvases.
 const _leoMeterFrameImg = new Image();
 _leoMeterFrameImg.src = 'assets/images/game/sigils/leo-meter-frame.png';
-_leoMeterFrameImg.onload = () => { _leoRenderCache = null; };
 const LEO_METER_FRAME_ASPECT = 768 / 1376;
 const LEO_METER_HOLE_FRAC = { x0: 193 / 1376, x1: 1183 / 1376, y0: 325 / 768, y1: 443 / 768 };
-const LEO_METER_HOLE_SPANS = [[244,1132],[239,1137],[235,1141],[232,1144],[229,1147],[227,1149],[225,1151],[223,1153],[221,1155],[220,1156],[218,1158],[217,1159],[216,1160],[214,1162],[213,1163],[212,1164],[211,1165],[210,1166],[209,1167],[208,1168],[207,1169],[206,1170],[206,1170],[205,1171],[204,1172],[203,1173],[203,1173],[202,1174],[201,1175],[201,1175],[200,1176],[200,1176],[199,1177],[199,1177],[198,1178],[198,1178],[197,1179],[197,1179],[197,1179],[196,1180],[196,1180],[196,1180],[195,1181],[195,1181],[195,1181],[195,1181],[194,1182],[194,1182],[194,1182],[194,1182],[194,1182],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[193,1183],[194,1183],[194,1182],[194,1182],[194,1182],[194,1182],[195,1181],[195,1181],[195,1181],[195,1181],[196,1180],[196,1180],[196,1180],[197,1179],[197,1179],[197,1179],[198,1178],[198,1178],[199,1177],[199,1177],[200,1176],[200,1176],[201,1175],[201,1175],[202,1174],[203,1173],[203,1173],[204,1172],[205,1171],[206,1170],[206,1170],[207,1169],[208,1168],[209,1167],[210,1166],[211,1165],[212,1164],[213,1163],[214,1162],[216,1160],[217,1159],[218,1158],[220,1156],[221,1155],[223,1153],[225,1151],[227,1149],[229,1147],[232,1144],[235,1141],[239,1137],[244,1132]];
 let _leoRenderCache = null;
 
 // Older Safari has no roundRect; a plain rect stands in there.
@@ -48,38 +46,34 @@ function _createLeoMeterFrame() {
     return c;
 }
 
+// The frame art is baked once at twice its drawn size, so the 1376x768
+// source is never resampled per frame.
+const LEO_METER_W = 110;
 function _leoSprites() {
     if (_leoRenderCache) return _leoRenderCache;
-    const fill = document.createElement('canvas'); fill.width = 1024; fill.height = 120;
-    const f = fill.getContext('2d'), grad = f.createLinearGradient(0, 0, 1024, 0);
-    grad.addColorStop(0, '#6a2816'); grad.addColorStop(0.5, '#ef9f27'); grad.addColorStop(1, '#ffd27a');
-    f.fillStyle = grad; f.fillRect(0, 0, 1024, 120);
+    const fill = document.createElement('canvas'); fill.width = 512; fill.height = 16;
+    const f = fill.getContext('2d'), grad = f.createLinearGradient(0, 0, 512, 0);
+    grad.addColorStop(0, '#c2410c'); grad.addColorStop(0.55, '#ef9f27'); grad.addColorStop(1, '#ffe29a');
+    f.fillStyle = grad; f.fillRect(0, 0, 512, 16);
+    // A lighter band along the top reads as a lit liquid surface at small sizes.
+    f.fillStyle = 'rgba(255,242,206,0.35)'; f.fillRect(0, 2, 512, 4);
     const flame = document.createElement('canvas'); flame.width = 32; flame.height = 40;
     const p = flame.getContext('2d');
     p.fillStyle = '#ef9f27'; p.beginPath(); p.moveTo(16, 1);
     p.bezierCurveTo(31, 18, 32, 36, 16, 39); p.bezierCurveTo(0, 36, 1, 20, 16, 1); p.fill();
     p.fillStyle = '#ffd27a'; p.beginPath(); p.moveTo(16, 17);
     p.quadraticCurveTo(29, 36, 16, 37); p.quadraticCurveTo(6, 33, 16, 17); p.fill();
-    const frame = _createLeoMeterFrame();
-    const mask = document.createElement('canvas'); mask.width = 1376; mask.height = 768;
-    const m = mask.getContext('2d');
-    m.fillStyle = '#fff';
-    if (_leoMeterFrameImg.complete && _leoMeterFrameImg.naturalWidth > 0) {
-        // Alpha spans are measured offline, so direct file loading also works.
-        const y0 = Math.round(LEO_METER_HOLE_FRAC.y0 * 768);
-        for (let y = 0; y < LEO_METER_HOLE_SPANS.length; y++) {
-            const row = LEO_METER_HOLE_SPANS[y];
-            for (let i = 0; i < row.length; i += 2) m.fillRect(row[i], y0 + y, row[i + 1] - row[i], 1);
-        }
-    } else {
-        _leoRoundRect(m, 180, 324, 1016, 120, 60); m.fill();
-    }
-    const meter = document.createElement('canvas'); meter.width = 110; meter.height = Math.ceil(110 * LEO_METER_FRAME_ASPECT);
-    const glowSource = document.createElement('canvas'); glowSource.width = meter.width; glowSource.height = meter.height;
+    const loaded = _leoMeterFrameImg.complete && _leoMeterFrameImg.naturalWidth > 0;
+    const frame = document.createElement('canvas');
+    frame.width = LEO_METER_W * 2; frame.height = Math.ceil(LEO_METER_W * 2 * LEO_METER_FRAME_ASPECT);
+    const fr = frame.getContext('2d');
+    fr.imageSmoothingEnabled = true; fr.imageSmoothingQuality = 'high';
+    fr.drawImage(loaded ? _leoMeterFrameImg : _createLeoMeterFrame(), 0, 0, frame.width, frame.height);
+    const glowSource = document.createElement('canvas'); glowSource.width = LEO_METER_W; glowSource.height = Math.ceil(LEO_METER_W * LEO_METER_FRAME_ASPECT);
     const s = glowSource.getContext('2d');
-    s.drawImage(_leoMeterFrameImg.complete && _leoMeterFrameImg.naturalWidth > 0 ? _leoMeterFrameImg : frame, 0, 0, 110, 110 * LEO_METER_FRAME_ASPECT);
-    s.globalCompositeOperation = 'source-in'; s.fillStyle = '#ef9f27'; s.fillRect(0, 0, 110, meter.height);
-    const glow = document.createElement('canvas'); glow.width = 160; glow.height = meter.height + 50;
+    s.drawImage(frame, 0, 0, glowSource.width, glowSource.height);
+    s.globalCompositeOperation = 'source-in'; s.fillStyle = '#ef9f27'; s.fillRect(0, 0, glowSource.width, glowSource.height);
+    const glow = document.createElement('canvas'); glow.width = LEO_METER_W + 50; glow.height = glowSource.height + 50;
     const b = glow.getContext('2d'); b.filter = 'blur(7px)'; b.drawImage(glowSource, 25, 25); b.filter = 'none';
     const stone = document.createElement('canvas'); stone.width = stone.height = 128;
     const t = stone.getContext('2d');
@@ -99,13 +93,20 @@ function _leoSprites() {
         t.beginPath(); t.moveTo(x, 8); t.lineTo(x + 9, 39); t.lineTo(x - 5, 62);
         t.lineTo(x + 12, 89); t.lineTo(x + 4, 120); t.stroke();
     }
-    _leoRenderCache = { frame, fill, flame, mask, meter, glow, stone };
+    _leoRenderCache = { frame, fill, flame, glow, stone, loaded };
     return _leoRenderCache;
 }
 
+// Same order as Cancer's tide meter: dark well and fill clipped to the
+// measured opening, then the frame on top, which also hides the corners
+// of the clip rectangle outside the capsule.
 function _drawLeoFateMeter() {
     if (!_leoHasFateMeter()) return;
-    const sprites = _leoSprites(), w = 110, h = w * LEO_METER_FRAME_ASPECT;
+    let sprites = _leoSprites();
+    if (!sprites.loaded && _leoMeterFrameImg.complete && _leoMeterFrameImg.naturalWidth > 0) {
+        _leoRenderCache = null; sprites = _leoSprites();
+    }
+    const w = LEO_METER_W, h = w * LEO_METER_FRAME_ASPECT;
     const tidal = _hasBuff('trieu_hoi') ? 110 * TIDAL_METER_FRAME_ASPECT + 6 : 0;
     const x = player.x - w / 2;
     const y = player.y - player.height / 2 - h - 6 - (window._greatSageFrameClearance || 0) - tidal;
@@ -113,28 +114,27 @@ function _drawLeoFateMeter() {
     const hx = x + w * LEO_METER_HOLE_FRAC.x0, hy = y + h * LEO_METER_HOLE_FRAC.y0;
     const hw = w * (LEO_METER_HOLE_FRAC.x1 - LEO_METER_HOLE_FRAC.x0);
     const hh = h * (LEO_METER_HOLE_FRAC.y1 - LEO_METER_HOLE_FRAC.y0);
-    const pct = _leoFatePercent(), pulse = 0.5 + 0.5 * Math.sin(window._leoFxClock / 260);
-    ctx.save();
-    ctx.globalAlpha = (_mobPerf || _gfxLevel >= 2 ? 0.22 : 0.48)
-        + (window._leoFateReady ? 0.28 * pulse : 0.07 * pulse);
-    ctx.drawImage(sprites.glow, x - 25, y - 25); ctx.restore();
-    // The measured alpha mask clips the fill to every pixel of the actual opening.
-    const g = sprites.meter.getContext('2d');
-    g.clearRect(0, 0, sprites.meter.width, sprites.meter.height);
-    g.fillStyle = '#24100c'; g.fillRect(0, 0, w, h);
-    if (pct > 0) {
-        const fw = hw * pct / LEO_FATE_METER_MAX;
-        g.drawImage(sprites.fill, 0, 0, sprites.fill.width * pct / LEO_FATE_METER_MAX, 120, hx - x, 0, fw, h);
+    const pct = _leoFatePercent(), ratio = pct / LEO_FATE_METER_MAX;
+    const pulse = 0.5 + 0.5 * Math.sin(window._leoFxClock / 260);
+    if (!_mobPerf && _gfxLevel < 2) {
+        ctx.globalAlpha = 0.48 + (window._leoFateReady ? 0.28 * pulse : 0.07 * pulse);
+        ctx.drawImage(sprites.glow, x - 25, y - 25);
+        ctx.globalAlpha = 1;
     }
-    if (window._leoChargeFlashMs > 0) {
-        g.fillStyle = 'rgba(255,242,206,0.65)';
-        g.fillRect(hx - x + hw * (1 - window._leoChargeFlashMs / 300), 0, 5, h);
-    }
-    g.globalCompositeOperation = 'destination-in'; g.drawImage(sprites.mask, 0, 0, w, h);
-    g.globalCompositeOperation = 'source-over'; ctx.drawImage(sprites.meter, x, y);
-    const img = _leoMeterFrameImg.complete && _leoMeterFrameImg.naturalWidth > 0 ? _leoMeterFrameImg : sprites.frame;
     ctx.save();
+    ctx.beginPath(); ctx.rect(hx, hy, hw, hh); ctx.clip();
+    ctx.fillStyle = '#2a120c'; ctx.fillRect(hx, hy, hw, hh);
+    if (ratio > 0) {
+        const fw = hw * ratio;
+        ctx.drawImage(sprites.fill, 0, 0, Math.max(1, sprites.fill.width * ratio), sprites.fill.height, hx, hy, fw, hh);
+        // A bright leading edge marks progress even at a few percent, and
+        // flares for a moment each time charge comes in.
+        ctx.fillStyle = window._leoChargeFlashMs > 0 ? '#ffffff' : '#fff2ce';
+        ctx.fillRect(hx + Math.max(0, fw - 1.5), hy, 1.5, hh);
+    }
+    ctx.restore();
     if (window._leoFateReady) {
+        ctx.save();
         ctx.strokeStyle = `rgba(255,210,122,${0.35 + pulse * 0.45})`; ctx.lineWidth = 2;
         _leoRoundRect(ctx, hx - 2, hy - 2, hw + 4, hh + 4, hh / 2 + 2); ctx.stroke();
         if (!_mobPerf && _gfxLevel < 2) {
@@ -144,14 +144,20 @@ function _drawLeoFateMeter() {
                 ctx.drawImage(sprites.flame, hx + (i % 2 ? hw - 5 : 0), hy - 3 - t * 13, 5, 7);
             }
         }
+        ctx.restore();
     }
-    ctx.globalAlpha = 1; ctx.drawImage(img, x, y, w, h);
-    ctx.font = 'bold 10px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffd27a';
+    ctx.drawImage(sprites.frame, x, y, w, h);
+    // Dark outline keeps the ATK readout legible over the ship's own rings.
     const bonus = pct * LEO_FATE_ATK_PER_PERCENT * 100;
-    ctx.fillText('+' + bonus.toFixed(bonus % 1 ? 1 : 0) + '% ATK', player.x, hy + hh + 16);
+    ctx.save();
+    ctx.font = 'bold 10px "Courier New", monospace'; ctx.textAlign = 'center';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,8,4,0.85)'; ctx.fillStyle = '#ffd27a';
+    const label = '+' + bonus.toFixed(bonus % 1 ? 1 : 0) + '% ATK';
+    ctx.strokeText(label, player.x, hy + hh + 16); ctx.fillText(label, player.x, hy + hh + 16);
     if (window._leoFateRestMs > 0) {
-        ctx.fillStyle = '#ba9977'; ctx.font = '9px "Courier New", monospace';
-        ctx.fillText((window._leoFateRestMs / 1000).toFixed(1) + 's', player.x, hy - 4);
+        ctx.font = '9px "Courier New", monospace'; ctx.fillStyle = '#e8d7a1';
+        const rest = (window._leoFateRestMs / 1000).toFixed(1) + 's';
+        ctx.strokeText(rest, player.x, hy - 4); ctx.fillText(rest, player.x, hy - 4);
     }
     ctx.restore();
 }
@@ -211,33 +217,41 @@ function _drawLeoEnemyStatus(enemy) {
     const grow = Math.min(1, age / 180);
     const ending = window._leoPetrifyMs < 600;
     const pulse = ending ? 0.5 + 0.5 * Math.sin(window._leoFxClock / 40) : 1;
-    ctx.save(); ctx.beginPath(); ctx.rect(enemy.x - r, enemy.y + r - r * 2 * grow, r * 2, r * 2 * grow); ctx.clip();
-    ctx.globalAlpha = 0.53 + pulse * 0.12;
-    ctx.drawImage(_leoSprites().stone, enemy.x - r, enemy.y - r, r * 2, r * 2);
-    ctx.globalAlpha = ending ? 0.8 : 0.45; ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = ending ? 2 : 1;
+    const ga = ctx.globalAlpha;
+    // The stone creeps up from below by cropping the sprite's source rect,
+    // which needs no clip and no save/restore per petrified enemy.
+    const stone = _leoSprites().stone, sh = stone.height * grow;
+    ctx.globalAlpha = ga * (0.53 + pulse * 0.12);
+    if (sh >= 1) ctx.drawImage(stone, 0, stone.height - sh, stone.width, sh, enemy.x - r, enemy.y + r - r * 2 * grow, r * 2, r * 2 * grow);
+    if (grow < 1) {
+        if (!low) {
+            ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1; ctx.globalAlpha = ga * (1 - grow) * 0.8;
+            const lineY = enemy.y + r - r * 2 * grow;
+            const half = Math.sqrt(Math.max(0, r * r - (lineY - enemy.y) * (lineY - enemy.y)));
+            ctx.beginPath(); ctx.moveTo(enemy.x - half, lineY); ctx.lineTo(enemy.x + half, lineY); ctx.stroke();
+        }
+        ctx.globalAlpha = ga;
+        return;
+    }
+    ctx.globalAlpha = ga * (ending ? 0.8 : 0.45); ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = ending ? 2 : 1;
     const n = low ? 1 : (_gfxLevel < 1 ? 4 : 2);
+    ctx.beginPath();
     for (let i = 0; i < n; i++) {
         const dx = (i / n - 0.5) * r;
-        ctx.beginPath(); ctx.moveTo(enemy.x + dx, enemy.y - r * 0.7);
-        ctx.lineTo(enemy.x + dx + r * 0.2, enemy.y); ctx.lineTo(enemy.x + dx - r * 0.1, enemy.y + r * 0.65); ctx.stroke();
+        ctx.moveTo(enemy.x + dx, enemy.y - r * 0.7);
+        ctx.lineTo(enemy.x + dx + r * 0.2, enemy.y); ctx.lineTo(enemy.x + dx - r * 0.1, enemy.y + r * 0.65);
     }
-    ctx.globalAlpha = 0.45 + pulse * 0.25; ctx.strokeStyle = '#e8d7a1'; ctx.lineWidth = low ? 1 : 1.5;
+    ctx.stroke();
+    ctx.globalAlpha = ga * (0.45 + pulse * 0.25); ctx.strokeStyle = '#e8d7a1'; ctx.lineWidth = low ? 1 : 1.5;
     ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r - 1, 0, Math.PI * 2); ctx.stroke();
-    if (grow < 1 && !low) {
-        ctx.strokeStyle = '#ffd27a'; ctx.globalAlpha = (1 - grow) * 0.8;
-        const lineY = enemy.y + r - r * 2 * grow;
-        const half = Math.sqrt(Math.max(0, r * r - (lineY - enemy.y) * (lineY - enemy.y)));
-        ctx.beginPath(); ctx.moveTo(enemy.x - half, lineY); ctx.lineTo(enemy.x + half, lineY); ctx.stroke();
-    }
-    ctx.restore();
     if (!low) {
-        ctx.save(); ctx.fillStyle = '#ada691';
+        ctx.fillStyle = '#ada691';
         for (let i = 0; i < (_gfxLevel < 1 ? 4 : 2); i++) {
             const t = ((window._leoFxClock / 500 + i * 0.27) % 1);
-            ctx.globalAlpha = 1 - t; ctx.fillRect(enemy.x + Math.sin(i * 7) * r * 0.7, enemy.y + r * 0.4 + t * 14, 2, 2);
+            ctx.globalAlpha = ga * (1 - t); ctx.fillRect(enemy.x + Math.sin(i * 7) * r * 0.7, enemy.y + r * 0.4 + t * 14, 2, 2);
         }
-        ctx.restore();
     }
+    ctx.globalAlpha = ga;
 }
 
 // Petrify running out: a gold flash, an expanding ring, stone shards flung
