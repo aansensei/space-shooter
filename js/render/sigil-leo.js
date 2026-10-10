@@ -180,7 +180,9 @@ function _drawLeoFateReadyPrompt() {
     ctx.font = 'bold 13px "Courier New", monospace';
     ctx.fillText(vi ? 'THẦN MỆNH SẴN SÀNG' : 'DIVINE FATE READY', x, y - 8);
     ctx.font = '11px "Courier New", monospace';
-    ctx.fillText(vi ? 'Space: hóa đá mọi kẻ địch' : 'Space: petrify all enemies', x, y + 10);
+    // Phones have no Space key; the CHARGE button releases it there.
+    const key = window._platform === 'mobile' ? 'CHARGE' : 'Space';
+    ctx.fillText(key + (vi ? ': hóa đá mọi kẻ địch' : ': petrify all enemies'), x, y + 10);
     ctx.restore();
 }
 

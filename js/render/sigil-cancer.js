@@ -553,7 +553,9 @@ function _drawTidalSurgeReadyPrompt() {
     const cx = canvas.width / 2, cy = canvas.height * 0.5;
     const vi = window._lang === 'vi';
     const label = vi ? 'TRIỀU CƯỜNG SẴN SÀNG' : 'TIDE READY';
-    const sub = vi ? 'Space: triệu hồi xoáy nước' : 'Space: summon the whirlpool';
+    // Phones have no Space key; the CHARGE button releases it there.
+    const key = window._platform === 'mobile' ? 'CHARGE' : 'Space';
+    const sub = key + (vi ? ': triệu hồi xoáy nước' : ': summon the whirlpool');
 
     ctx.save();
     ctx.font = 'bold 13px "Courier New", Consolas, monospace';
