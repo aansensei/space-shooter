@@ -1,4 +1,4 @@
-// Dawn Herald artwork is baked once. Live passes only transform cached sprites.
+// Dawn Herald artwork is baked once, when the sigil is picked. Live passes only transform cached sprites.
 let _dauRenderCache = null;
 const _dauChargeParticles = [];
 for (let i = 0; i < 24; i++) _dauChargeParticles.push({ phase: i * 0.618034, angle: i * 2.39996, feather: i % 4 === 0 });
@@ -163,12 +163,6 @@ function _dauSprites() {
             g.fillStyle = '#fffde0'; g.beginPath(); g.arc(86, -178, 4, 0, Math.PI * 2); g.fill();
         }));
     }
-    const hud = [];
-    for (let i = 0; i <= 120; i++) hud.push(_dauBake(96, 96, g => {
-        if (!i) return;
-        g.strokeStyle = '#FFD23F'; g.lineWidth = 2;
-        g.beginPath(); g.arc(48, 48, 43, Math.PI * 0.1, Math.PI * (0.1 + 0.8 * i / 120)); g.stroke();
-    }));
     const impacts = [];
     for (const count of [6, 3]) impacts.push(_dauBake(128, 128, g => {
         g.drawImage(glow, 24, 24, 80, 80); g.drawImage(thinRing, 17, 17, 94, 94);
@@ -177,7 +171,7 @@ function _dauSprites() {
             g.drawImage(star, 57 + Math.cos(a) * 43, 57 + Math.sin(a) * 43, 14, 14);
         }
     }));
-    _dauRenderCache = { glow, ring, thinRing, ray, dawn, needle, trail, feather, star, sun, crack, roosters, solar, fireBand, hud, impacts };
+    _dauRenderCache = { glow, ring, thinRing, ray, dawn, needle, trail, feather, star, sun, crack, roosters, solar, fireBand, impacts };
     return _dauRenderCache;
 }
 
@@ -371,7 +365,10 @@ function _drawDauHud() {
     const pulse = 0.5 + 0.5 * Math.sin(pct * 55 + charge * 18);
     const x = player.x + Math.sin(pct * 950) * charge;
     const size = Math.max(player.width, player.height) + 24;
-    _dauImage(_dauSprites().hud[Math.floor(pct * 120)], x, player.y, size, size, 0, 0.35 + charge * (0.2 + pulse * 0.45));
+    if (pct <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 0.35 + charge * (0.2 + pulse * 0.45));
+    ctx.strokeStyle = '#FFD23F'; ctx.lineWidth = size / 48;
+    ctx.beginPath(); ctx.arc(x, player.y, size * 43 / 96, Math.PI * 0.1, Math.PI * (0.1 + 0.8 * pct)); ctx.stroke();
+    ctx.restore();
 }
-
-_dauSprites();

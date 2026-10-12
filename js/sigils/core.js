@@ -134,7 +134,11 @@ function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'hiep_luc') { /* synergy — no separate state, keyed off doi_hinh_chien arrays */ }
     if (buffId === 'su_tu_hong')   { window._sthBurning = new Map(); }
     if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(15, lives + 4); } // docs/combat-scaling-rebalance.md Part 5
-    if (buffId === 'kim_ke_bao_hieu') { if (typeof _dauReset === 'function') _dauReset(); }
+    if (buffId === 'kim_ke_bao_hieu') {
+        if (typeof _dauReset === 'function') _dauReset();
+        // Baked here, at the pick, so no player without the sigil pays for it.
+        if (typeof _dauSprites === 'function') _dauSprites();
+    }
 }
 
 // Deck-deal intro: cards leave a single face-down stack at the panel's
@@ -995,12 +999,14 @@ function _drawZodiacGlyph(id, cx, cy, r, color) {
     const tinted = _getTintedZodiacGlyph(id, color, size);
     ctx.save();
     if (tinted) {
-        if (id !== 'dau') { ctx.shadowColor = color; ctx.shadowBlur = 9; }
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 9;
         ctx.drawImage(tinted, cx - size / 2, cy - size / 2, size, size);
     } else {
         // Sprite not decoded yet (first instant after page load) - a plain
         // glowing dot so the glyph never goes fully invisible.
-        if (id !== 'dau') { ctx.shadowColor = color; ctx.shadowBlur = 6; }
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 6;
         ctx.fillStyle = color;
         ctx.beginPath(); ctx.arc(cx, cy, r * 0.3, 0, Math.PI * 2); ctx.fill();
     }
