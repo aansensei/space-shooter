@@ -871,7 +871,7 @@ function dealDamage(enemy, source) {
             _skillDEvadeDmgBonus = Math.max(0, 0.10 - _evade);
             _evade = Math.max(0, _evade - 0.10);
         }
-        if (typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy)) {
+        if (source._dauReflect || (typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy))) {
             if (enemy.type === 'goliath') {
                 _evade = Math.max(0, _evade - DAU_GOLIATH_EVADE_CUT);
             } else {

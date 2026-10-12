@@ -179,6 +179,27 @@ async function main() {
                     assert(hp-e.hp===Math.ceil((250+20000+6.9)*1.2),'Daybreak');
                 }finally{dealDamage=original;}
             });
+            test('C: a turned skill cannot be evaded, even before the ring marks its caster', () => {
+                const r=Math.random;
+                try{const e=_dauMob('uriel');enemies.push(e);Math.random=()=>0.5;const plain=e.hp;dealDamage(e,{damage:100,isTrueDamage:true});assert(e.hp===plain,'Uriel evades a plain hit at 0.99');
+                    assert(!_dauHasDaybreak(e),'no mark yet');_dauAddReflection('uriel',{x:e.x,y:e.y,owner:e,vx:1,vy:1});_dauUpdateReflections(1);assert(e.hp<plain,'turned sword lands');
+                }finally{Math.random=r;}
+            });
+            test('C: Goliath only loses 30 percentage points of evade against a turned skill', () => {
+                const r=Math.random;
+                try{spawnGoliath();const e=enemies.at(-1);_goliathEnterTrueForm(e);e.hp=e.maxHp=1000000;e._trueFormEnteredAt=performance.now();e._transformIronBodyEnd=0;e._fractureIronBodyHits=0;e._unbrokenWillUsed=false;e.shield=0;
+                    const turn=()=>{const hp=e.hp;_dauAddReflection('verdict',{x:e.x,y:e.y,owner:e,vx:1,vy:1});_dauUpdateReflections(1);return hp-e.hp;};
+                    Math.random=()=>0.11;assert(hit(e)===0,'plain hit is evaded at 0.40');assert(turn()>0,'turned Verdict lands at 0.10');
+                    Math.random=()=>0.05;assert(turn()===0,'the remaining 0.10 evade still applies');
+                }finally{Math.random=r;}
+            });
+            test('C: a turned skill passes ordinary and Uriel granted Iron Body without spending a layer', () => {
+                const r=Math.random;
+                try{Math.random=()=>0.99;const e=_dauMob();e.ironBodyHits=3;enemies.push(e);const hp=e.hp;dealDamage(e,{damage:100,isTrueDamage:true});assert(e.hp===hp&&e.ironBodyHits===2,'a plain hit spends a layer');
+                    _dauAddReflection('uriel',{x:e.x,y:e.y,owner:e,vx:1,vy:1});_dauUpdateReflections(1);assert(e.hp<hp,'turned skill damages through');assert(e.ironBodyHits===2,'no layer spent');
+                    const u=_dauMob();u._urielIB=true;enemies.push(u);const uhp=u.hp;_dauAddReflection('uriel',{x:u.x,y:u.y,owner:u,vx:1,vy:1});_dauUpdateReflections(1);assert(u.hp<uhp,'passes the granted layer');
+                }finally{Math.random=r;}
+            });
             test('C: reflected Wisdom leaves no DoT, chains no root and meteors no splash', () => {
                 const random=Math.random,takeHit=playerTakesHit;let hits=0;Math.random=()=>0;playerTakesHit=()=>{hits++;return true;};try{
                     const owner=_dauMob('apostle',player.x+300,player.y-300);enemies.push(owner);

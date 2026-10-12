@@ -167,7 +167,9 @@ function _dauCanReceiveDaybreak(e) {
     return true;
 }
 
-const _dauReflectSource = { damage: 0, percentDamage: 0, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Golden Needle: Reflect' };
+// A turned skill usually reaches its caster before the ring does, so it carries
+// the Daybreak evade rule itself, and it passes ordinary Iron Body layers.
+const _dauReflectSource = { damage: 0, percentDamage: 0, isTrueDamage: true, _noHitSfx: true, _bypassIronBody: true, _dauReflect: true, _statSrc: 'Golden Needle: Reflect' };
 
 function _dauReflectOwner(kind, p) {
     return kind === 'raphael' ? p.enemy : kind === 'dargruel' ? p.ownerRef : p.owner;
