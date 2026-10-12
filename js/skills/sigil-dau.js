@@ -4,7 +4,8 @@
 function _dauCanTarget(e) {
     return !!(e && e.hp > 0 && !e._markedForDeath && !e._deathPhase && !e.inCoronation
         && !e._stealthed && !e.type.startsWith('enemy_bullet')
-        && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'embryo');
+        && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'embryo'
+        && e.type !== 'thaelis_cocoon');
 }
 
 const _dauKnockbackMax = 256;
@@ -16,11 +17,16 @@ function _dauCanPush(e) {
 }
 
 function _dauPush(e) {
-    if (!_dauCanPush(e) || e.y <= e.size / 2) return;
+    if (!_dauCanPush(e)) return;
+    // True Form Goliath rewrites his position from the weave path every frame,
+    // so he recoils through _dauLift and settles back instead of being moved.
+    const recoil = e.type === 'goliath' && e.phase === 'true_form';
+    if (!recoil && e.y <= e.size / 2) return;
     for (let i = 0; i < _dauKnockbackMax; i++) {
         const k = window._dauKnockbacks[i];
         if (k.target) continue;
-        k.target = e; k.age = 0; k.distance = Math.min(DAU_KNOCKBACK_PX, e.y - e.size / 2);
+        k.target = e; k.age = 0; k.recoil = recoil;
+        k.distance = recoil ? DAU_KNOCKBACK_PX : Math.min(DAU_KNOCKBACK_PX, e.y - e.size / 2);
         e._dauPushFlashMs = DAU_KNOCKBACK_MS;
         return;
     }
@@ -30,7 +36,17 @@ function _dauAdvanceKnockback(deltaTime) {
     for (let i = 0; i < _dauKnockbackMax; i++) {
         const k = window._dauKnockbacks[i], e = k.target;
         if (!e) continue;
-        if (!_dauCanPush(e) || enemies.indexOf(e) < 0) { k.target = null; continue; }
+        if (!_dauCanPush(e) || enemies.indexOf(e) < 0) { e._dauLift = 0; k.target = null; continue; }
+        if (k.recoil) {
+            k.age += deltaTime;
+            const rise = 1 - Math.min(1, k.age / DAU_KNOCKBACK_MS);
+            const settle = Math.max(0, Math.min(1, (k.age - DAU_KNOCKBACK_MS) / DAU_KNOCKBACK_RECOVER_MS));
+            // Overlapping crows add up, so the lift is rebuilt from zero each frame.
+            if (e._dauLiftStamp !== window._dauClock) { e._dauLiftStamp = window._dauClock; e._dauLift = 0; }
+            e._dauLift += k.distance * (1 - rise * rise) * (1 - settle * settle * (3 - 2 * settle));
+            if (settle >= 1) k.target = null;
+            continue;
+        }
         const before = Math.min(1, k.age / DAU_KNOCKBACK_MS);
         k.age += deltaTime;
         const after = Math.min(1, k.age / DAU_KNOCKBACK_MS);
@@ -186,6 +202,7 @@ function _dauTriggerCrow() {
         maxRadius: maxR,
         returns: 0,
         _hitEnemies: new Set(),
+        _ahead: new Set(),
     });
 }
 
@@ -233,8 +250,11 @@ function _dauBeginFrame(deltaTime, currentTime) {
                 const e = enemies[j];
                 if (!e || ring._hitEnemies.has(e)) continue;
                 const d = Math.hypot(e.x - ring.x, e.y - ring.y);
-                if (d <= ring.radius && (previousRadius === 0 || d > previousRadius)) {
-                    ring._hitEnemies.add(e);
+                if (d > ring.radius) { ring._ahead.add(e); continue; }
+                ring._hitEnemies.add(e);
+                // The ring only sweeps what it has seen ahead of its edge. Anything
+                // first seen behind the edge spawned after the ring had passed.
+                if (previousRadius === 0 || ring._ahead.has(e)) {
                     if (e.type && e.type.startsWith('enemy_bullet')) {
                         if (e.hp <= 0) continue;
                         e.hp = 0;
@@ -285,7 +305,7 @@ function _dauReset() {
     }
     if (!window._dauKnockbacks) {
         window._dauKnockbacks = [];
-        for (let i = 0; i < _dauKnockbackMax; i++) window._dauKnockbacks.push({ target: null, age: 0, distance: 0 });
+        for (let i = 0; i < _dauKnockbackMax; i++) window._dauKnockbacks.push({ target: null, age: 0, distance: 0, recoil: false });
     }
     for (let i = 0; i < _dauKnockbackMax; i++) window._dauKnockbacks[i].target = null;
     for (let i = 0; i < DAU_FX_MAX; i++) {
@@ -297,7 +317,7 @@ function _dauReset() {
             if (enemies[i]) {
                 enemies[i]._dauCrowId = 0; enemies[i]._dauSunMs = 0;
                 enemies[i]._dauFlashMs = 0; enemies[i]._dauRevealPending = false;
-                enemies[i]._dauPushFlashMs = 0;
+                enemies[i]._dauPushFlashMs = 0; enemies[i]._dauLift = 0;
                 if (enemies[i]._rootEnd === enemies[i]._dauPinEnd) enemies[i]._rootEnd = 0;
                 enemies[i]._dauPinEnd = 0;
             }
