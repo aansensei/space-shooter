@@ -2574,6 +2574,7 @@ function draw(deltaTime) {
         if (typeof _drawGoliathBossBar === 'function') {
             enemies.forEach(e => { if (e.type === 'goliath') _drawGoliathBossBar(e); });
         }
+        if (typeof _drawGoliathKillBanner === 'function') _drawGoliathKillBanner();
 
         // Wave announcement banner (center screen)
         const _wa = _waveAnnouncedAt || 0;

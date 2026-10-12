@@ -2459,6 +2459,96 @@ function _strokeGoliathCrackPath(scale, grow) {
     ctx.stroke();
 }
 
+// Kill banner shown over Goliath's death: four calligraphy characters in a
+// column with a spaced line under them, baked once per size and language.
+// The glow is layered wide strokes so it bakes the same on every device.
+const GOLIATH_KILL_GLYPHS = '天空崩塌';
+const GOLIATH_KILL_FONT = '"LXGW WenKai TC", "Noto Serif TC", "PMingLiU", serif';
+const GOLIATH_KILL_SUB_FONT = '"Cormorant Garamond", "Cinzel", serif';
+let _goliathKillBannerCache = null, _goliathKillFontsRequested = false;
+
+function _requestGoliathKillFonts() {
+    if (_goliathKillFontsRequested || !document.fonts || !document.fonts.load) return;
+    _goliathKillFontsRequested = true;
+    document.fonts.load('700 64px ' + GOLIATH_KILL_FONT, GOLIATH_KILL_GLYPHS).catch(() => {});
+    document.fonts.load('600 24px ' + GOLIATH_KILL_SUB_FONT, 'THIÊN KHÔNG SỤP ĐỔ HEAVENS').catch(() => {});
+}
+
+function _goliathKillBannerSprite(fs, vi) {
+    const fontsReady = !!(document.fonts && document.fonts.check && document.fonts.check('700 64px ' + GOLIATH_KILL_FONT, GOLIATH_KILL_GLYPHS));
+    const key = fs + '|' + vi + '|' + fontsReady;
+    if (_goliathKillBannerCache && _goliathKillBannerCache.key === key) return _goliathKillBannerCache.canvas;
+    const sub = vi ? 'THIÊN KHÔNG SỤP ĐỔ' : 'THE HEAVENS HAVE FALLEN';
+    const subSize = Math.max(11, Math.round(fs * 0.26)), gap = subSize * 0.42;
+    const step = fs * 1.04, pad = Math.ceil(fs * 0.35);
+    const c = document.createElement('canvas');
+    const g = c.getContext('2d');
+    g.font = '600 ' + subSize + 'px ' + GOLIATH_KILL_SUB_FONT;
+    let subW = 0;
+    for (const ch of sub) subW += g.measureText(ch).width + gap;
+    subW -= gap;
+    c.width = Math.ceil(Math.max(fs * 1.4, subW) + pad * 2);
+    c.height = Math.ceil(step * GOLIATH_KILL_GLYPHS.length + subSize * 2.2 + pad * 2);
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    const cx = c.width / 2;
+    g.font = '700 ' + fs + 'px ' + GOLIATH_KILL_FONT;
+    const glyphs = [...GOLIATH_KILL_GLYPHS];
+    const layers = [[fs * 0.34, 'rgba(255,214,170,0.06)'], [fs * 0.2, 'rgba(255,226,196,0.1)'], [fs * 0.09, 'rgba(255,240,224,0.22)']];
+    for (const [w, col] of layers) {
+        g.lineWidth = w; g.strokeStyle = col;
+        glyphs.forEach((ch, i) => g.strokeText(ch, cx, pad + step * (i + 0.5)));
+    }
+    g.fillStyle = '#fbf7ef';
+    glyphs.forEach((ch, i) => g.fillText(ch, cx, pad + step * (i + 0.5)));
+    const sy = pad + step * glyphs.length + subSize * 1.2;
+    g.font = '600 ' + subSize + 'px ' + GOLIATH_KILL_SUB_FONT;
+    g.textAlign = 'left';
+    let x = cx - subW / 2;
+    for (const ch of sub) {
+        const w = g.measureText(ch).width;
+        g.lineWidth = subSize * 0.35; g.strokeStyle = 'rgba(0,0,0,0.45)'; g.strokeText(ch, x, sy);
+        g.fillStyle = 'rgba(236,228,214,0.92)'; g.fillText(ch, x, sy);
+        x += w + gap;
+    }
+    _goliathKillBannerCache = { key, canvas: c };
+    return c;
+}
+
+// Fades in as the death sequence starts and is gone just before it ends, so
+// the sigil picker that follows opens on a clean screen.
+function _drawGoliathKillBanner() {
+    let g = null;
+    for (const e of enemies) {
+        if (e.type !== 'goliath') continue;
+        if (e.phase === 'true_form') _requestGoliathKillFonts();
+        if (e._deathPhase) { g = e; break; }
+    }
+    if (!g) return;
+    const total = GOLIATH_DEATH_CORE_DUR + GOLIATH_DEATH_CRUMBLE_DUR;
+    const el = (g._deathPhase === 'crumble' ? GOLIATH_DEATH_CORE_DUR : 0) + (g._deathPhaseTimer || 0);
+    const fadeOutStart = total - 750, fadeOutEnd = total - 120;
+    if (!(el >= 0) || el >= fadeOutEnd) return;
+    const fadeIn = Math.min(1, el / 450);
+    const alpha = el < fadeOutStart ? fadeIn : Math.max(0, 1 - (el - fadeOutStart) / (fadeOutEnd - fadeOutStart));
+    if (alpha <= 0.01) return;
+    const fs = Math.round(Math.max(28, Math.min(canvas.height * 0.105, canvas.width * 0.15)));
+    const sprite = _goliathKillBannerSprite(fs, window._lang === 'vi');
+    const ease = 1 - (1 - fadeIn) * (1 - fadeIn);
+    const scale = 1.14 - 0.14 * ease + (el > fadeOutStart ? 0.04 * (1 - alpha) : 0);
+    const cx = canvas.width / 2, cy = canvas.height * 0.46;
+    ctx.save();
+    const shade = _getGlowSprite('rgba(0,0,0,0.7)', 128);
+    if (shade) {
+        const sw = sprite.width * 1.9, sh = sprite.height * 1.25;
+        ctx.globalAlpha = alpha * 0.85;
+        ctx.drawImage(shade, cx - sw / 2, cy - sh / 2, sw, sh);
+    }
+    ctx.globalAlpha = alpha;
+    const w = sprite.width * scale, h = sprite.height * scale;
+    ctx.drawImage(sprite, cx - w / 2, cy - h / 2, w, h);
+    ctx.restore();
+}
+
 // Death effects drawn in world units around Goliath's center. Core phase:
 // molten cracks spread from the core, each gem bursts with a ring and the
 // core swells. Crumble phase: a flash, two shockwaves and the core rising
