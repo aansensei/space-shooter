@@ -226,6 +226,7 @@ function _urielLaunchSword(enemy) {
     const spd = 806 / 60; // 806px/s baseline, expressed per 16.67ms frame like every other enemy projectile
     window._urielHolySwords = window._urielHolySwords || [];
     window._urielHolySwords.push({
+        owner: enemy,
         x: enemy.x, y: enemy.y, ang,
         vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
         life: 1, _releaseFlash: 1, hitSentinels: [],

@@ -359,6 +359,21 @@ The second Vietnamese Zodiac sigil is **Dậu**, element **Metal (Kim)**, color 
 
 **Golden Needle (ATK):** each erased bullet returns from its position as a homing needle, up to 16 per crow, for **60% ATK true damage**. A dead target is replaced by the nearest living target. Each crow also sends one star needle at each of the **7 strongest enemies by Max HP**, after a **350ms warning**, for **200% ATK true damage** and a **1.5s pin**. Fewer targets get fewer needles. CC immunity prevents the pin.
 
+Enemy skill projectiles the ring touches have a 35% chance to be turned back on their caster. Each launched object rolls once per crow, with at most 16 reflections. Golden copies home to their caster, retarget the nearest valid enemy when necessary and dissolve if none remains. Reflected originals cannot leave DoT, root or splash.
+
+| Reflected skill | True damage |
+| --- | --- |
+| Marchosias Swords | 150% ATK + 1% target Max HP |
+| Uriel Judgment (Holy Sword) | 250% ATK + 2% target Max HP |
+| Raphael Wisdom Orb | 250% ATK + 2% target Max HP |
+| Dargruel Abyssal Chains | 200% ATK + 1.5% target Max HP |
+| Goliath Corrupted Meteor | 300% ATK + 2% target Max HP |
+| Goliath Absolute Verdict | 600% ATK + 3% target Max HP |
+
+Ordinary bullets keep their existing needle conversion. Lumen Nova, Perseverance, Leviathan death laser, Maou Haki, Psychic Tempest, Null Slash, Void Strike, Endless Echo and every Joker copy cannot reflect. Delayed Marchosias blades and gathering Wisdom Orbs are skipped. Native Absolute Verdict and Corrupted Meteor remain eligible even while Goliath has Joker active.
+
+Golden replicas preserve their original shape, with a fire trail at Full and Medium, a flash at reversal and a larger impact than star needles. The reflected Absolute Verdict produces the largest impact. Low removes the fire trail. Minimum and Performance draw one replica layer and the impact.
+
 Light gathers progressively throughout the 10s cycle: quiet embers, orbiting lights and feathers, a faint rooster, then a contracting ring and faster pulses before the crow. A fiery rooster rises against a large sun, broad sunrise rays and a warm dawn, followed by soft layered light ripples, Dominant impact streaks and luminous needles. Full and Medium retain the whole sequence. Low removes the large sun, wing edge flames, echo ring, impact speed streaks, charge silhouette, convergence streaks and needle tails, and halves particles. Minimum and Performance retain one ring, needle impacts, Daybreak suns and the charge HUD arc. The glyph is white transparent line art tinted by the game. The crow sound awaits its supplied audio file; needle hits reuse the existing impact cue.
 
 ### Great Sage — Đấu Chiến Thắng Phật

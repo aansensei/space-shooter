@@ -171,7 +171,70 @@ function _dauSprites() {
             g.drawImage(star, 57 + Math.cos(a) * 43, 57 + Math.sin(a) * 43, 14, 14);
         }
     }));
-    _dauRenderCache = { glow, ring, thinRing, ray, dawn, needle, trail, feather, star, sun, crack, roosters, solar, fireBand, impacts };
+    const reflectShapes = {};
+    reflectShapes.uriel = _dauBake(192, 192, g => {
+        if (typeof _urielSwordImg !== 'undefined' && _urielSwordImg.complete && _urielSwordImg.naturalWidth) {
+            g.drawImage(_urielSwordImg, 0, 0, 192, 192);
+            g.globalCompositeOperation = 'source-in';
+            const gold = g.createLinearGradient(0, 0, 192, 192);
+            gold.addColorStop(0, '#fffde3'); gold.addColorStop(0.55, '#ffe082'); gold.addColorStop(1, '#dd8c13');
+            g.fillStyle = gold; g.fillRect(0, 0, 192, 192);
+        } else {
+            g.fillStyle = '#fff4b0'; g.beginPath(); g.moveTo(96, 6); g.lineTo(103, 123); g.lineTo(89, 123); g.closePath(); g.fill();
+            g.strokeStyle = '#ffd23f'; g.lineWidth = 8; g.beginPath(); g.moveTo(64, 130); g.lineTo(128, 130); g.moveTo(96, 130); g.lineTo(96, 178); g.stroke();
+        }
+    });
+    reflectShapes.marchosias = _dauBake(224, 224, g => {
+        g.translate(112, 112); g.strokeStyle = '#ffce54'; g.lineWidth = 18;
+        g.beginPath(); g.arc(0, 0, 88, -Math.PI / 2, Math.PI / 2); g.stroke();
+        g.strokeStyle = '#fffce0'; g.lineWidth = 5; g.stroke();
+        g.fillStyle = '#fff0a0';
+        for (let i = 0; i <= 7; i++) {
+            const a = -Math.PI / 2 + i * Math.PI / 7;
+            g.beginPath(); g.moveTo(Math.cos(a - 0.035) * 89, Math.sin(a - 0.035) * 89);
+            g.lineTo(Math.cos(a) * 99, Math.sin(a) * 99); g.lineTo(Math.cos(a + 0.035) * 89, Math.sin(a + 0.035) * 89); g.fill();
+        }
+        g.drawImage(glow, -10, -10, 20, 20);
+    });
+    for (const kind of ['raphael', 'verdict']) reflectShapes[kind] = _dauBake(256, 256, g => {
+        g.drawImage(glow, 0, 0, 256, 256);
+        const core = g.createRadialGradient(110, 103, 3, 128, 128, 83);
+        core.addColorStop(0, '#fffde7'); core.addColorStop(0.42, '#ffe893'); core.addColorStop(0.78, '#edb632'); core.addColorStop(1, 'rgba(224,130,11,0.25)');
+        g.fillStyle = core; g.beginPath(); g.arc(128, 128, 83, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#fff2a7'; g.lineWidth = 4; g.stroke();
+        if (kind === 'raphael') {
+            g.lineWidth = 2; g.beginPath(); g.ellipse(128, 128, 96, 35, -0.5, 0, Math.PI * 2); g.stroke();
+            for (let i = 0; i < 6; i++) g.drawImage(star, 120 + Math.cos(i * Math.PI / 3) * 96, 120 + Math.sin(i * Math.PI / 3) * 96, 16, 16);
+        } else { g.drawImage(star, 56, 56, 144, 144); g.drawImage(thinRing, 15, 15, 226, 226); }
+    });
+    reflectShapes.meteor = _dauBake(128, 128, g => {
+        g.drawImage(glow, 0, 0, 128, 128);
+        const rock = g.createLinearGradient(32, 26, 98, 100);
+        rock.addColorStop(0, '#fff8c4'); rock.addColorStop(0.4, '#ffd76b'); rock.addColorStop(1, '#ac6710');
+        g.fillStyle = rock; g.strokeStyle = '#ffe59a'; g.lineWidth = 3; g.beginPath();
+        for (let i = 0; i < 9; i++) { const a = i * Math.PI * 2 / 9, r = 37 + i % 3 * 4; if (i) g.lineTo(64 + Math.cos(a) * r, 64 + Math.sin(a) * r); else g.moveTo(64 + Math.cos(a) * r, 64 + Math.sin(a) * r); }
+        g.closePath(); g.fill(); g.stroke();
+        g.beginPath(); g.moveTo(43, 35); g.lineTo(58, 61); g.lineTo(81, 56); g.moveTo(58, 61); g.lineTo(52, 96); g.stroke();
+    });
+    reflectShapes.dargruel = _dauBake(128, 64, g => {
+        g.strokeStyle = '#ffe290'; g.lineWidth = 4;
+        for (let i = 0; i < 5; i++) { g.beginPath(); g.ellipse(16 + i * 19, 32, 14, 8, i % 2 ? 0.6 : -0.6, 0, Math.PI * 2); g.stroke(); }
+        g.fillStyle = '#fff6c4'; g.beginPath(); g.moveTo(126, 32); g.lineTo(104, 16); g.lineTo(104, 48); g.closePath(); g.fill();
+    });
+    const reflectFire = _dauBake(384, 96, g => {
+        const gold = g.createLinearGradient(0, 0, 384, 0);
+        gold.addColorStop(0, 'rgba(255,151,20,0)'); gold.addColorStop(0.7, 'rgba(255,180,32,0.65)'); gold.addColorStop(1, '#fff2b5');
+        g.fillStyle = gold;
+        for (let i = 0; i < 9; i++) { g.beginPath(); g.moveTo(384, 48); g.bezierCurveTo(250, 12 + i * 8, 190, 70 - i * 7, i * 19, 18 + i * 7); g.bezierCurveTo(240, 32 + i * 3, 285, 55, 384, 48); g.fill(); }
+    });
+    const reflectBlast = _dauBake(512, 512, g => {
+        g.drawImage(glow, 0, 0, 512, 512); g.drawImage(ring, 34, 34, 444, 444); g.drawImage(star, 151, 151, 210, 210);
+        for (let i = 0; i < 18; i++) {
+            const a = i * Math.PI * 2 / 18;
+            g.save(); g.translate(256, 256); g.rotate(a); g.drawImage(reflectFire, 30, -9, 205, 18); g.restore();
+        }
+    });
+    _dauRenderCache = { glow, ring, thinRing, ray, dawn, needle, trail, feather, star, sun, crack, roosters, solar, fireBand, impacts, reflectShapes, reflectFire, reflectBlast };
     return _dauRenderCache;
 }
 
@@ -267,7 +330,7 @@ function _drawDauRing() {
     }
     for (let i = 0; i < DAU_FX_MAX; i++) {
         const fx = window._dauFx[i];
-        if (fx.life <= 0 || fx.age >= fx.life) continue;
+        if (fx.life <= 0 || fx.age >= fx.life || fx.kind >= 4) continue;
         const t = fx.age / fx.life;
         if (gfx >= 3 && fx.kind !== 1) continue;
         if (fx.kind === 2) { _dauImage(s.crack, fx.x, fx.y, 100 + t * 90, 170 + t * 80, -0.1, 1 - t); continue; }
@@ -291,6 +354,7 @@ function _drawDauRing() {
 function _drawDauStatus() {
     if (!_hasBuff('kim_ke_bao_hieu') || gameState !== 'playing') return;
     const s = _dauSprites(), gfx = window._gfxLevel || 0;
+    _drawDauReflections(s, gfx);
     for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
         if (e.hp <= 0) continue;
@@ -317,6 +381,34 @@ function _drawDauStatus() {
         }
         _dauImage(s.needle, n.x, n.y - (n.kind === 2 ? 28 : 0), w, n.kind === 0 ? 10 : 18, n.kind === 2 ? Math.PI / 2 : n.angle, n.kind === 2 ? Math.min(1, n.pinMs / 200) : 1);
     }
+}
+
+function _drawDauReflections(s, gfx) {
+    const list = window._dauReflections;
+    for (let i = 0; i < list.length; i++) {
+        const r = list[i], large = r.kind === 'verdict';
+        const width = large ? 180 : r.kind === 'marchosias' ? 200 : r.kind === 'uriel' ? 108 : r.kind === 'dargruel' ? 80 : 72;
+        const height = r.kind === 'dargruel' ? 40 : width;
+        if (gfx < 2) _dauImage(s.reflectFire, r.x - Math.cos(r.angle) * width, r.y - Math.sin(r.angle) * width, width * 2.7, height * 0.5, r.angle, 0.65);
+        const angle = r.kind === 'uriel' ? r.angle + Math.PI / 2 : r.kind === 'marchosias' ? r.age / 110 : r.angle;
+        _dauImage(s.reflectShapes[r.kind], r.x, r.y, width, height, angle, 1);
+    }
+}
+
+function _drawDauReflectImpacts() {
+    if (!_hasBuff('tu_hoa_cham') || gameState !== 'playing') return;
+    const s = _dauSprites(), gfx = window._gfxLevel || 0;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < DAU_FX_MAX; i++) {
+        const f = window._dauFx[i];
+        if (f.kind < 4 || f.life <= 0 || f.age >= f.life) continue;
+        const t = f.age / f.life, fade = (1 - t) * (1 - t);
+        if (gfx >= 3) { _dauImage(s.glow, f.x, f.y, 35 + t * 55, 35 + t * 55, 0, fade); continue; }
+        const size = f.kind === 6 ? 200 + t * 430 : f.kind === 5 ? 100 + t * 250 : (40 + t * 100) * f.scale;
+        _dauImage(f.kind === 4 ? s.impacts[gfx === 2 ? 1 : 0] : s.reflectBlast, f.x, f.y, size, size, t * 0.25, fade * 0.85);
+        if (gfx < 2 && f.kind === 6) _dauImage(s.thinRing, f.x, f.y, size * 1.25, size * 1.25, 0, fade * 0.65);
+    }
+    ctx.restore();
 }
 
 function _dauSmooth(value) {

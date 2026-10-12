@@ -167,6 +167,88 @@ function _dauCanReceiveDaybreak(e) {
     return true;
 }
 
+const _dauReflectSource = { damage: 0, percentDamage: 0, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Golden Needle: Reflect' };
+
+function _dauReflectOwner(kind, p) {
+    return kind === 'raphael' ? p.enemy : kind === 'dargruel' ? p.ownerRef : p.owner;
+}
+
+function _dauReflectEligible(kind, p) {
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p._jokerState) return false;
+    if (p.life !== undefined && p.life <= 0) return false;
+    if (kind === 'marchosias' && (p.delay > 0 || p.active === false)) return false;
+    if (kind === 'raphael' && p.phase !== 'launch') return false;
+    if (kind === 'dargruel' && (p.type !== 'abyssal_chain' || p.hp <= 0)) return false;
+    const owner = _dauReflectOwner(kind, p);
+    // Only the native Verdict and Meteor arrays accept a Goliath owner.
+    return kind === 'verdict' || kind === 'meteor' || !owner || owner.type !== 'goliath';
+}
+
+function _dauAddReflection(kind, p) {
+    const list = window._dauReflections;
+    if (list.length >= DAU_FX_MAX) return false;
+    for (let i = 0; i < DAU_FX_MAX; i++) {
+        const r = window._dauReflectPool[i];
+        if (r.active) continue;
+        const nativeSpeed = kind === 'raphael' ? Math.max(p.speed || 0, RAPHAEL_WISDOM_LAUNCH_SPEED_MAX) / 16.67
+            : Math.hypot(p.vx || 0, p.vy || 0) / (kind === 'meteor' || kind === 'verdict' ? 1000 : 16.67);
+        r.active = true; r.kind = kind; r.x = p.x; r.y = p.y; r.age = 0;
+        r.target = _dauReflectOwner(kind, p); r.speed = Math.max(1.4, nativeSpeed * 1.5);
+        r.angle = Math.atan2(-(p.vy || Math.sin(p.ang || 0)), -(p.vx || Math.cos(p.ang || 0)));
+        list.push(r);
+        _dauEmit(4, p.x, p.y, 300, kind === 'verdict' ? 1.6 : 1);
+        return true;
+    }
+    return false;
+}
+
+function _dauReflectArray(ring, previousRadius, list, kind) {
+    if (!list) return;
+    for (let i = list.length - 1; i >= 0; i--) {
+        const p = list[i];
+        if (!_dauReflectEligible(kind, p) || ring._hitEnemies.has(p)) continue;
+        const dx = p.x - ring.x, dy = p.y - ring.y;
+        if (dx * dx + dy * dy > ring.radius * ring.radius) { ring._ahead.add(p); continue; }
+        ring._hitEnemies.add(p);
+        if (previousRadius !== 0 && !ring._ahead.has(p)) continue;
+        const success = Math.random() < DAU_REFLECT_CHANCE;
+        if (!success || ring.reflected >= DAU_REFLECT_MAX || !_dauAddReflection(kind, p)) continue;
+        ring.reflected++;
+        for (let j = i; j < list.length - 1; j++) list[j] = list[j + 1];
+        list.pop();
+    }
+}
+
+function _dauUpdateReflections(deltaTime) {
+    const list = window._dauReflections;
+    for (let i = list.length - 1; i >= 0; i--) {
+        const r = list[i];
+        r.age += deltaTime;
+        let target = r.target;
+        if (!_dauCanTarget(target) || enemies.indexOf(target) < 0) {
+            target = _dauClosest(r.x, r.y); r.target = target;
+        }
+        if (target) {
+            const dx = target.x - r.x, dy = target.y - r.y, dist = Math.hypot(dx, dy);
+            const travel = r.speed * deltaTime;
+            r.angle = Math.atan2(dy, dx);
+            if (dist > travel + target.size * 0.25) {
+                r.x += dx / dist * travel; r.y += dy / dist * travel;
+                continue;
+            }
+            const def = DAU_REFLECT[r.kind];
+            _dauReflectSource.damage = def.atk * player.atk;
+            _dauReflectSource.percentDamage = def.percentDamage;
+            dealDamage(target, _dauReflectSource);
+            _dauEmit(r.kind === 'verdict' ? 6 : 5, target.x, target.y, r.kind === 'verdict' ? 850 : 600);
+            if (window.AudioMgr) window.AudioMgr.playSfxAt('blood-arrow-impact', target.x, target.y);
+            if (r.kind === 'verdict' && typeof _setShake === 'function' && (window._gfxLevel || 0) < 3) _setShake(8, 250);
+        }
+        r.active = false; r.target = null;
+        list[i] = list[list.length - 1]; list.pop();
+    }
+}
+
 function _dauHasDaybreak(enemy) {
     return !!(enemy && enemy._dauCrowId === window._dauCrowId && window._dauDaybreakMs > 0);
 }
@@ -201,6 +283,7 @@ function _dauTriggerCrow() {
         radius: 0,
         maxRadius: maxR,
         returns: 0,
+        reflected: 0,
         _hitEnemies: new Set(),
         _ahead: new Set(),
     });
@@ -238,12 +321,21 @@ function _dauBeginFrame(deltaTime, currentTime) {
 
     const rings = window._dauRings;
     _dauUpdateNeedles(deltaTime, currentTime);
+    _dauUpdateReflections(deltaTime);
     if (!rings || !rings.length) return;
 
     for (let i = rings.length - 1; i >= 0; i--) {
         const ring = rings[i];
         const previousRadius = ring.radius;
         ring.radius += DAU_RING_SPEED * deltaTime;
+        if (_hasBuff('tu_hoa_cham')) {
+            _dauReflectArray(ring, previousRadius, marchosiasBlades, 'marchosias');
+            _dauReflectArray(ring, previousRadius, window._urielHolySwords, 'uriel');
+            _dauReflectArray(ring, previousRadius, raphaelWisdomOrbs, 'raphael');
+            _dauReflectArray(ring, previousRadius, enemies, 'dargruel');
+            _dauReflectArray(ring, previousRadius, window._goliathMeteors, 'meteor');
+            _dauReflectArray(ring, previousRadius, window._goliathOrbs, 'verdict');
+        }
 
         if (typeof enemies !== 'undefined') {
             for (let j = 0; j < enemies.length; j++) {
@@ -296,6 +388,12 @@ function _dauReset() {
     window._dauRings = window._dauRings || []; window._dauRings.length = 0;
     window._dauNeedles = window._dauNeedles || []; window._dauNeedles.length = 0;
     window._dauStarTargets = window._dauStarTargets || []; window._dauStarTargets.length = 0;
+    window._dauReflections = window._dauReflections || []; window._dauReflections.length = 0;
+    if (!window._dauReflectPool) {
+        window._dauReflectPool = [];
+        for (let i = 0; i < DAU_FX_MAX; i++) window._dauReflectPool.push({ active: false, kind: '', x: 0, y: 0, age: 0, speed: 0, angle: 0, target: null });
+    }
+    for (let i = 0; i < DAU_FX_MAX; i++) { window._dauReflectPool[i].active = false; window._dauReflectPool[i].target = null; }
     if (!window._dauFx) {
         window._dauFx = []; window._dauNeedlePool = [];
         for (let i = 0; i < DAU_FX_MAX; i++) {

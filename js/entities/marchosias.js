@@ -185,6 +185,7 @@ function _fireMarchosiasDeathSwords(enemy) {
         const spread = (idx - (count - 1) / 2) * 0.18;
         const angle = baseAngle + spread;
         marchosiasBlades.push({
+            owner: enemy,
             x: enemy.x, y: enemy.y,
             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
             angle, radius: 88,

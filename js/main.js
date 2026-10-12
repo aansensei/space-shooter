@@ -1326,6 +1326,7 @@ function update(rawDeltaTime) {
                         const spread = (idx - (count - 1) / 2) * 0.18;
                         const angle = baseAngle + spread;
                         marchosiasBlades.push({
+                            owner: enemy,
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
                             angle, radius: 88,
@@ -1865,6 +1866,7 @@ function update(rawDeltaTime) {
                         const tx = windup.target.x, ty = windup.target.y;
                         const angle = Math.atan2(ty - enemy.y, tx - enemy.x);
                         marchosiasBlades.push({
+                            owner: enemy,
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
                             angle: angle, radius: 88,
@@ -1983,6 +1985,7 @@ function update(rawDeltaTime) {
                         const spread = (idx - (count - 1) / 2) * 0.18;
                         const angle = baseAngle + spread;
                         marchosiasBlades.push({
+                            owner: enemy,
                             x: enemy.x, y: enemy.y,
                             vx: Math.cos(angle) * 13.2, vy: Math.sin(angle) * 13.2,
                             angle, radius: 88,

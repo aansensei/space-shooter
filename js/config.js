@@ -308,6 +308,16 @@ const DAU_STAR_NEEDLES = 7;
 const DAU_STAR_NEEDLE_ATK = 2.00;
 const DAU_PIN_MS = 1500;
 const DAU_FX_MAX = 64;
+const DAU_REFLECT_CHANCE = 0.35;
+const DAU_REFLECT_MAX = 16;
+const DAU_REFLECT = {
+    marchosias: { atk: 1.50, percentDamage: 0.01 },
+    uriel: { atk: 2.50, percentDamage: 0.02 },
+    raphael: { atk: 2.50, percentDamage: 0.02 },
+    dargruel: { atk: 2.00, percentDamage: 0.015 },
+    meteor: { atk: 3.00, percentDamage: 0.02 },
+    verdict: { atk: 6.00, percentDamage: 0.03 },
+};
 
 // Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for
 // 1.5s, Leviathan's death laser cuts it by 20% while the player is on the beam
