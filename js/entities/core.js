@@ -1531,9 +1531,7 @@ function dealDamage(enemy, source) {
     // hit through for more than a slice of its pool).
     if (enemy.type === 'uriel') {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.30));
-        if (typeof _urielOnHitLanded === 'function' && !(typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy))) {
-            _urielOnHitLanded(enemy);
-        }
+        if (typeof _urielOnHitLanded === 'function') _urielOnHitLanded(enemy);
     }
 
     // Inevitable (Leviathan): if hit > 20% maxHP, cap at 10% for 3s (2s cooldown after it ends)
