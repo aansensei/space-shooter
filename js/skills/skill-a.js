@@ -122,7 +122,8 @@ function updateSkillA(deltaTime) {
     let dt = deltaTime / 16.67;
     const rotationSpeed = 0.02 * dt;
 
-    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy._stealthed && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= skillASensorRadius);
+    // The Thaelis cocoon is untargetable; only its Guards can be locked.
+    let availableEnemy = enemies.find(enemy => !enemy.isTargetedByA && !enemy.inCoronation && !enemy._stealthed && !enemy.type.startsWith('enemy_bullet') && enemy.type !== 'abyssal_chain' && enemy.type !== 'veilshroud_echo' && enemy.type !== 'thaelis_cocoon' && Math.hypot(enemy.x - player.x, enemy.y - player.y) <= skillASensorRadius);
 
     if (availableEnemy) {
         let availableOrb = skillAOrbs.find(orb => !orb.target && !orb.isDefensive && !orb._pierced);
@@ -178,7 +179,7 @@ function updateSkillA(deltaTime) {
                 continue;
             }
             for (const _pe of enemies) {
-                if (_pe.type.startsWith('enemy_bullet') || _pe.type === 'abyssal_chain' || _pe.type === 'veilshroud_echo' || _pe.inCoronation || _pe.hp <= 0) continue;
+                if (_pe.type.startsWith('enemy_bullet') || _pe.type === 'abyssal_chain' || _pe.type === 'veilshroud_echo' || _pe.type === 'thaelis_cocoon' || _pe.inCoronation || _pe.hp <= 0) continue;
                 if (orb._pierceHits.has(_pe)) continue;
                 if (Math.hypot(_pe.x - orb.x, _pe.y - orb.y) < _pe.size / 2 + orb.size) {
                     orb._pierceHits.add(_pe);
