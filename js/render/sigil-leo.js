@@ -78,22 +78,52 @@ function _leoSprites() {
     const stone = document.createElement('canvas'); stone.width = stone.height = 128;
     const t = stone.getContext('2d');
     t.beginPath(); t.arc(64, 64, 62, 0, Math.PI * 2); t.clip();
-    const mineral = t.createLinearGradient(22, 12, 106, 118);
-    mineral.addColorStop(0, '#d7d3bb'); mineral.addColorStop(0.45, '#8d948f'); mineral.addColorStop(1, '#454a50');
+    // Shaded like a sphere lit from the upper left, then mineral facets,
+    // hairline fractures and a dark rim with a highlight arc.
+    const mineral = t.createRadialGradient(44, 38, 6, 64, 64, 70);
+    mineral.addColorStop(0, '#ece4c9'); mineral.addColorStop(0.45, '#a4a196'); mineral.addColorStop(1, '#3d4248');
     t.fillStyle = mineral; t.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 14; i++) {
-        const a = i * 2.399, x = 64 + Math.cos(a) * (24 + i * 2), y = 64 + Math.sin(a) * (24 + i * 2);
-        t.fillStyle = i % 2 ? 'rgba(237,228,197,0.20)' : 'rgba(26,32,44,0.23)';
-        t.beginPath(); t.moveTo(x - 24, y - 12); t.lineTo(x + 8, y - 22);
-        t.lineTo(x + 26, y + 9); t.lineTo(x - 12, y + 25); t.closePath(); t.fill();
+    for (let i = 0; i < 16; i++) {
+        const a = i * 2.399, x = 64 + Math.cos(a) * (20 + i * 2.5), y = 64 + Math.sin(a) * (20 + i * 2.5);
+        t.fillStyle = i % 2 ? 'rgba(244,236,206,0.16)' : 'rgba(22,26,36,0.2)';
+        t.beginPath(); t.moveTo(x - 22, y - 10); t.lineTo(x + 9, y - 20);
+        t.lineTo(x + 24, y + 8); t.lineTo(x - 11, y + 23); t.closePath(); t.fill();
     }
-    t.strokeStyle = 'rgba(31,34,43,0.6)'; t.lineWidth = 1.6;
-    for (let i = 0; i < 7; i++) {
-        const x = 18 + i * 15;
-        t.beginPath(); t.moveTo(x, 8); t.lineTo(x + 9, 39); t.lineTo(x - 5, 62);
-        t.lineTo(x + 12, 89); t.lineTo(x + 4, 120); t.stroke();
+    t.strokeStyle = 'rgba(28,30,38,0.55)'; t.lineWidth = 1.2;
+    for (let i = 0; i < 6; i++) {
+        const a = i * 1.047 + 0.4;
+        t.beginPath(); t.moveTo(64 + Math.cos(a) * 14, 64 + Math.sin(a) * 14);
+        t.lineTo(64 + Math.cos(a + 0.25) * 36, 64 + Math.sin(a + 0.25) * 36);
+        t.lineTo(64 + Math.cos(a - 0.1) * 62, 64 + Math.sin(a - 0.1) * 62); t.stroke();
     }
-    _leoRenderCache = { frame, fill, flame, glow, stone, loaded };
+    t.lineWidth = 7; t.strokeStyle = 'rgba(20,22,30,0.55)';
+    t.beginPath(); t.arc(64, 64, 62, 0, Math.PI * 2); t.stroke();
+    t.lineWidth = 3; t.strokeStyle = 'rgba(255,246,220,0.55)';
+    t.beginPath(); t.arc(64, 64, 56, Math.PI * 1.05, Math.PI * 1.55); t.stroke();
+    // Gold veins of light in the stone, baked with layered strokes so no blur
+    // is needed at draw time.
+    const veins = document.createElement('canvas'); veins.width = veins.height = 128;
+    const v = veins.getContext('2d');
+    v.lineCap = 'round'; v.lineJoin = 'round';
+    v.beginPath();
+    for (let i = 0; i < 5; i++) {
+        const a = i * 1.2566 + 0.5;
+        let x = 64 + Math.cos(a) * 6, y = 64 + Math.sin(a) * 6;
+        v.moveTo(x, y);
+        for (let k = 1; k <= 4; k++) {
+            const ak = a + 0.32 * Math.sin(i * 3.1 + k * 2.2);
+            x = 64 + Math.cos(ak) * k * 14; y = 64 + Math.sin(ak) * k * 14;
+            v.lineTo(x, y);
+            if (k === 2) {
+                const b = ak + (i % 2 ? 0.7 : -0.7);
+                v.moveTo(x, y); v.lineTo(x + Math.cos(b) * 15, y + Math.sin(b) * 15); v.moveTo(x, y);
+            }
+        }
+    }
+    v.strokeStyle = 'rgba(255,170,60,0.16)'; v.lineWidth = 9; v.stroke();
+    v.strokeStyle = 'rgba(255,196,92,0.45)'; v.lineWidth = 4; v.stroke();
+    v.strokeStyle = '#fff1c8'; v.lineWidth = 1.4; v.stroke();
+    _leoRenderCache = { frame, fill, flame, glow, stone, veins, loaded };
     return _leoRenderCache;
 }
 
@@ -220,14 +250,26 @@ function _drawLeoEnemyStatus(enemy) {
     const ending = window._leoPetrifyMs < 600;
     const pulse = ending ? 0.5 + 0.5 * Math.sin(window._leoFxClock / 40) : 1;
     const ga = ctx.globalAlpha;
+    const sprites = _leoSprites();
+    // A gold ring closes onto the enemy as it turns to stone.
+    if (age < 320) {
+        const k = age / 320;
+        ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = low ? 1.5 : 2.5;
+        ctx.globalAlpha = ga * (1 - k) * 0.9;
+        ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r * (1.9 - 0.9 * k), 0, Math.PI * 2); ctx.stroke();
+        if (!low) {
+            ctx.lineWidth = 1; ctx.globalAlpha = ga * (1 - k) * 0.6;
+            ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r * (2.4 - 1.3 * k), 0, Math.PI * 2); ctx.stroke();
+        }
+    }
     // The stone creeps up from below by cropping the sprite's source rect,
     // which needs no clip and no save/restore per petrified enemy.
-    const stone = _leoSprites().stone, sh = stone.height * grow;
-    ctx.globalAlpha = ga * (0.53 + pulse * 0.12);
+    const stone = sprites.stone, sh = stone.height * grow;
+    ctx.globalAlpha = ga * (0.62 + pulse * 0.1);
     if (sh >= 1) ctx.drawImage(stone, 0, stone.height - sh, stone.width, sh, enemy.x - r, enemy.y + r - r * 2 * grow, r * 2, r * 2 * grow);
     if (grow < 1) {
         if (!low) {
-            ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1; ctx.globalAlpha = ga * (1 - grow) * 0.8;
+            ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = 1.5; ctx.globalAlpha = ga * (1 - grow) * 0.9;
             const lineY = enemy.y + r - r * 2 * grow;
             const half = Math.sqrt(Math.max(0, r * r - (lineY - enemy.y) * (lineY - enemy.y)));
             ctx.beginPath(); ctx.moveTo(enemy.x - half, lineY); ctx.lineTo(enemy.x + half, lineY); ctx.stroke();
@@ -235,17 +277,11 @@ function _drawLeoEnemyStatus(enemy) {
         ctx.globalAlpha = ga;
         return;
     }
-    ctx.globalAlpha = ga * (ending ? 0.8 : 0.45); ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = ending ? 2 : 1;
-    const n = low ? 1 : (_gfxLevel < 1 ? 4 : 2);
-    ctx.beginPath();
-    for (let i = 0; i < n; i++) {
-        const dx = (i / n - 0.5) * r;
-        ctx.moveTo(enemy.x + dx, enemy.y - r * 0.7);
-        ctx.lineTo(enemy.x + dx + r * 0.2, enemy.y); ctx.lineTo(enemy.x + dx - r * 0.1, enemy.y + r * 0.65);
-    }
-    ctx.stroke();
-    ctx.globalAlpha = ga * (0.45 + pulse * 0.25); ctx.strokeStyle = '#e8d7a1'; ctx.lineWidth = low ? 1 : 1.5;
-    ctx.beginPath(); ctx.arc(enemy.x, enemy.y, r - 1, 0, Math.PI * 2); ctx.stroke();
+    // Veins breathe slowly while the stone holds and flare before it breaks.
+    const breathe = 0.5 + 0.5 * Math.sin(window._leoFxClock / 420 + enemy.x * 0.01);
+    ctx.globalAlpha = ga * (ending ? 0.55 + 0.45 * pulse : 0.3 + 0.25 * breathe);
+    const vr = ending ? r * (1 + 0.08 * pulse) : r;
+    ctx.drawImage(sprites.veins, enemy.x - vr, enemy.y - vr, vr * 2, vr * 2);
     if (!low) {
         ctx.fillStyle = '#ada691';
         for (let i = 0; i < (_gfxLevel < 1 ? 4 : 2); i++) {
@@ -256,27 +292,46 @@ function _drawLeoEnemyStatus(enemy) {
     ctx.globalAlpha = ga;
 }
 
-// Petrify running out: a gold flash, an expanding ring, stone shards flung
-// out and falling, and (High only) cracks of light from the core.
+// Petrify running out: a gold flash, two rings, light rays from the core,
+// stone shards flung out and falling and a puff of stone dust.
 function _drawLeoShatter(fx, t, low) {
     const r = fx.r, x = fx.x, y = fx.y;
     if (!(r > 0) || !Number.isFinite(x) || !Number.isFinite(y)) return;
     const fade = 1 - t;
-    if (t < 0.25) {
-        ctx.globalAlpha = (1 - t / 0.25) * 0.55;
-        ctx.fillStyle = '#fff2ce';
-        ctx.beginPath(); ctx.arc(x, y, r * (0.9 + t), 0, Math.PI * 2); ctx.fill();
+    if (t < 0.3) {
+        const flash = _getGlowSprite('rgba(255,232,170,0.95)', 64);
+        if (flash) {
+            const fs = r * (1.4 + t * 2.2) + 12;
+            ctx.globalAlpha = (1 - t / 0.3) * 0.9;
+            ctx.drawImage(flash, x - fs, y - fs, fs * 2, fs * 2);
+        }
+    }
+    if (!low) {
+        const dust = _getGlowSprite('rgba(176,170,152,0.6)', 32);
+        if (dust) {
+            ctx.globalAlpha = fade * 0.55;
+            for (let i = 0; i < 3; i++) {
+                const a = fx.seed + i * 2.094, d = t * (r * 0.6 + 18);
+                const ds = r * 0.55 + t * (r * 0.5 + 16);
+                ctx.drawImage(dust, x + Math.cos(a) * d - ds, y + Math.sin(a) * d + t * 10 - ds, ds * 2, ds * 2);
+            }
+        }
     }
     ctx.globalAlpha = fade * 0.9;
     ctx.strokeStyle = '#ffd27a'; ctx.lineWidth = (low ? 2 : 4) * fade + 0.5;
     ctx.beginPath(); ctx.arc(x, y, r + 10 + t * (r * 0.9 + 36), 0, Math.PI * 2); ctx.stroke();
-    if (!low && _gfxLevel < 1 && t < 0.6) {
-        ctx.globalAlpha = (1 - t / 0.6) * 0.8; ctx.strokeStyle = '#fff2ce'; ctx.lineWidth = 1.5;
+    if (!low && t > 0.08) {
+        const t2 = (t - 0.08) / 0.92;
+        ctx.globalAlpha = (1 - t2) * 0.6; ctx.strokeStyle = '#fff2ce'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, r * 0.6 + t2 * (r * 1.3 + 50), 0, Math.PI * 2); ctx.stroke();
+    }
+    if (!low && t < 0.6) {
+        ctx.globalAlpha = (1 - t / 0.6) * 0.85; ctx.strokeStyle = '#fff2ce'; ctx.lineWidth = 1.5;
         ctx.beginPath();
-        for (let i = 0; i < 5; i++) {
-            const a = fx.seed + i * 1.2566, len = r * (0.35 + t * 1.1);
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + Math.cos(a + 0.18) * len * 0.55, y + Math.sin(a + 0.18) * len * 0.55);
+        for (let i = 0; i < (_gfxLevel < 1 ? 7 : 5); i++) {
+            const a = fx.seed + i * 0.8976, len = r * (0.45 + t * 1.5) + 8;
+            ctx.moveTo(x + Math.cos(a) * r * 0.2, y + Math.sin(a) * r * 0.2);
+            ctx.lineTo(x + Math.cos(a + 0.12) * len * 0.55, y + Math.sin(a + 0.12) * len * 0.55);
             ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
         }
         ctx.stroke();
