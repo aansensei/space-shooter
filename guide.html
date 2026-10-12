@@ -55,25 +55,6 @@
     body.lang-vi, body.lang-vi * {
       font-family: 'Sora', sans-serif !important;
     }
-    /* Vietnamese sigil buff/theme text runs noticeably longer than the
-       English original — the flip-cards are aspect-ratio-locked (not
-       content-sized), so without this the extra text bleeds past the card
-       into whatever sits below it. Give VI cards more room and trim the
-       type scale slightly instead of reflowing the whole grid. */
-    /* aspect-ratio locks card height to its (grid-derived) width regardless
-       of content, so longer VI text either clips or bleeds into the card
-       below — no amount of shrinking text reliably wins that fight. Instead,
-       let the front face size itself in normal flow (only it stays static;
-       the back face still overlays it absolutely for the flip animation),
-       so the card is exactly as tall as its own translated text needs. */
-    body.lang-vi .sfc { aspect-ratio: unset; }
-    body.lang-vi .sfc-inner { height: auto; }
-    body.lang-vi .sfc-front { position: relative; height: auto; min-height: 280px; }
-    body.lang-vi .sfc-back { position: absolute; inset: 0; height: 100%; }
-    body.lang-vi .sfc-row { font-size: 10px; line-height: 1.36; }
-    body.lang-vi .sbd { font-size: 9.5px; }
-    body.lang-vi .sfc-theme { font-size: 8px; letter-spacing: 1.2px; }
-    body.lang-vi .sfc-name { font-size: 11px; letter-spacing: 2px; }
 
     :root {
       --bg: #03030f;
@@ -529,17 +510,22 @@
     .sfc-name { font-family:'Orbitron', 'Be Vietnam Pro', sans-serif; font-size:12px; font-weight:700; letter-spacing:3px; color:var(--sc,var(--cyan)); text-align:center; margin-bottom:3px; }
     .sfc-el { font-size:10px; color:var(--dim); text-align:center; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px; }
     .sfc-theme { font-family:'Share Tech Mono', 'Be Vietnam Pro', monospace; font-size:9px; color:rgba(140,165,210,0.85); text-align:center; letter-spacing:2px; border-top:1px solid rgba(255,255,255,0.09); border-bottom:1px solid rgba(255,255,255,0.09); padding:5px 0; margin-bottom:9px; }
-    .sfc-buffs { flex:1; display:flex; flex-direction:column; gap:7px; }
-    .sfc-row { font-size:11px; line-height:1.44; color:#c8d8f0; }
+    /* Every card has the same size in both languages; when a blessing runs
+       long, the list scrolls inside the card instead of resizing it. */
+    .sfc-buffs { flex:1; min-height:0; display:flex; flex-direction:column; gap:7px; overflow-y:auto; overscroll-behavior:contain; padding-right:4px; margin-right:-4px; scrollbar-width:thin; scrollbar-color:var(--sc,rgba(0,200,255,0.5)) transparent; }
+    .sfc-buffs::-webkit-scrollbar { width:4px; }
+    .sfc-buffs::-webkit-scrollbar-thumb { background:var(--sc,rgba(0,200,255,0.5)); border-radius:2px; }
+    .sfc-buffs::-webkit-scrollbar-track { background:transparent; }
+    .sfc-row { font-size:10.5px; line-height:1.42; color:#c8d8f0; flex-shrink:0; }
     .sfc-row b { color:#e0eeff; }
-    .sbd { color:rgba(165,190,228,0.88); font-size:10.5px; }
+    .sbd { color:rgba(165,190,228,0.88); font-size:10px; }
     .sbt { display:inline-block; font-size:8px; font-weight:700; letter-spacing:0.5px; padding:2px 6px; border-radius:3px; margin-right:4px; vertical-align:middle; }
     .sbt.atk { background:rgba(239,68,68,.16); color:#f87171; border:1px solid rgba(239,68,68,.32); }
     .sbt.def { background:rgba(59,130,246,.16); color:#60a5fa; border:1px solid rgba(59,130,246,.32); }
     .sbt.heal { background:rgba(34,197,94,.16); color:#4ade80; border:1px solid rgba(34,197,94,.32); }
     .sbt.spec { background:rgba(245,158,11,.16); color:#fbbf24; border:1px solid rgba(245,158,11,.32); }
     .sfc-hint { font-size:9px; color:rgba(90,120,175,0.5); text-align:center; letter-spacing:1.5px; margin-top:6px; text-transform:uppercase; }
-    .sfc-story { flex:1; font-family:'Cinzel', 'Be Vietnam Pro', serif; font-size:11.5px; line-height:1.7; color:rgba(210,228,252,0.92); overflow:hidden; }
+    .sfc-story { flex:1; min-height:0; font-family:'Cinzel', 'Be Vietnam Pro', serif; font-size:11.5px; line-height:1.7; color:rgba(210,228,252,0.92); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--sc,rgba(0,200,255,0.5)) transparent; }
   </style>
 </head>
 
@@ -1334,6 +1320,8 @@
 <li><span class="ul-tag tag-fix">FIX</span> <b>Skill A locked onto the Thaelis cocoon:</b> the cocoon is untargetable, so Thunder Orbs wasted themselves on it during a resurrection. Orbs now only lock onto and pierce through its Guards.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Goliath Alpha showed no gem until the third:</b> gems only went into his sockets once three were waiting, so the first two vanished into his body. Each gem now takes its socket the moment it lands, with a flash and a ring, as the guide always described.</li>
 <li><span class="ul-tag tag-fix">FIX</span> <b>Goliath's shield bar stayed up while he died:</b> the bar over his head is now hidden for the whole death sequence.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Short sigil text in matches:</b> every blessing in the sigil picker now has a one or two sentence description in English and Vietnamese, with numbers matching the current game. The full details stay in this guide.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Guide sigil cards:</b> English and Vietnamese cards now share one size, and a long blessing scrolls inside its card instead of being cut off or stretching it.</li>
 <li><span class="ul-tag tag-global">GLOBAL</span> <b>FPS counter:</b> the corner chip now reads FPS instead of rAF, and clicking or holding it in a match no longer opens the internal debug panel.</li>
 </ul></div>
 <div class="ul-entry" style="--ul-accent:#c084fc">
