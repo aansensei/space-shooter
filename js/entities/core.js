@@ -122,6 +122,7 @@ function distToSegment(p, v, w) {
 
 function handleEnemyKill(enemy) {
     _leoOnEnemyKill(enemy);
+    _dauOnEnemyKill(enemy);
     if (window.AudioMgr) {
         window.AudioMgr.playSfxAt('enemy-death', enemy.x, enemy.y);
         // Layered on top of the generic death sfx for enemies killed by

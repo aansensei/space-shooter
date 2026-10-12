@@ -266,8 +266,17 @@ function _dauHasDaybreak(enemy) {
     return !!(enemy && enemy._dauCrowId === window._dauCrowId && window._dauDaybreakMs > 0);
 }
 
+// Killing a Daybreak enemy brings the next crow closer, up to a cap per crow.
+function _dauOnEnemyKill(e) {
+    if (!_dauHasDaybreak(e) || window._dauCrowRefund >= DAU_KILL_REFUND_MAX_MS) return;
+    const gain = Math.min(DAU_KILL_REFUND_MS, DAU_KILL_REFUND_MAX_MS - window._dauCrowRefund);
+    window._dauCrowRefund += gain;
+    window._dauCrowTimer += gain;
+}
+
 function _dauTriggerCrow() {
     window._dauCrowTimer = 0;
+    window._dauCrowRefund = 0;
     window._dauCrowCounter = (window._dauCrowCounter || 0) + 1;
     window._dauCrowId = window._dauCrowCounter;
     window._dauDaybreakMs = DAU_DAYBREAK_MS;
@@ -394,6 +403,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
 
 function _dauReset() {
     window._dauCrowTimer = 0;
+    window._dauCrowRefund = 0;
     window._dauCrowCounter = 0;
     window._dauCrowId = 0;
     window._dauDaybreakMs = 0;
