@@ -50,7 +50,9 @@ function _dauBeginFrame(deltaTime, currentTime) {
     window._dauDaybreakMs = Math.max(0, (window._dauDaybreakMs || 0) - deltaTime);
     window._dauCrowTimer = (window._dauCrowTimer || 0) + deltaTime;
     if (window._dauCrowTimer >= DAU_CROW_INTERVAL_MS) {
+        const remainder = window._dauCrowTimer % DAU_CROW_INTERVAL_MS;
         _dauTriggerCrow();
+        window._dauCrowTimer = remainder;
     }
 
     const rings = window._dauRings;
