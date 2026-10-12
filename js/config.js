@@ -247,8 +247,8 @@ function _atkWaveMult(wave) { return 1 + 0.02 * Math.min(15, Math.max(0, wave - 
 
 // Player-only wave growth (per AanSensei: buff the player's own scaling
 // so it pulls ahead of the enemy curve above rather than tracking it 1:1).
-// +3% per wave up to +57% at wave 20+, where it plateaus.
-function _playerAtkWaveMult(wave) { return 1 + 0.03 * Math.min(19, Math.max(0, wave - 1)); }
+// +3% per wave, capped at +50% from wave 18 on.
+function _playerAtkWaveMult(wave) { return Math.min(1.5, 1 + 0.03 * Math.max(0, wave - 1)); }
 
 // Per-sigil ATK bonus (per AanSensei): each of the 13 sigils grants a
 // different flat percentage bump to player.atk on top of everything else,
