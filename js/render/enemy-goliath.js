@@ -2459,12 +2459,15 @@ function _strokeGoliathCrackPath(scale, grow) {
     ctx.stroke();
 }
 
-// Kill banner shown over Goliath's death: four calligraphy characters in a
-// column with a spaced line under them, baked once per size and language.
-// The glow is layered wide strokes so it bakes the same on every device.
+// Kill banner shown over Goliath's death, staged like a wuxia title card:
+// an ink stroke is brushed down the screen, the four characters slam onto it
+// one by one with a flash, an ink splash and a jolt, then the subtitle is
+// wiped in under them. Every piece is baked once per size and language; the
+// glow is layered wide strokes so it bakes the same on every device.
 const GOLIATH_KILL_GLYPHS = '天空崩塌';
 const GOLIATH_KILL_FONT = '"LXGW WenKai TC", "Noto Serif TC", "PMingLiU", serif';
 const GOLIATH_KILL_SUB_FONT = '"Cormorant Garamond", "Cinzel", serif';
+const GOLIATH_KILL_STAMP_AT = 300, GOLIATH_KILL_STAMP_GAP = 170, GOLIATH_KILL_STAMP_DROP = 150;
 let _goliathKillBannerCache = null, _goliathKillFontsRequested = false, _goliathKillVignette = null;
 
 // Small radial sprite stretched over the whole screen: clear center, near
@@ -2489,48 +2492,78 @@ function _requestGoliathKillFonts() {
     document.fonts.load('600 24px ' + GOLIATH_KILL_SUB_FONT, 'THIÊN KHÔNG SỤP ĐỔ HEAVENS').catch(() => {});
 }
 
-function _goliathKillBannerSprite(fs, vi) {
-    const fontsReady = !!(document.fonts && document.fonts.check && document.fonts.check('700 64px ' + GOLIATH_KILL_FONT, GOLIATH_KILL_GLYPHS));
-    const key = fs + '|' + vi + '|' + fontsReady;
-    if (_goliathKillBannerCache && _goliathKillBannerCache.key === key) return _goliathKillBannerCache.canvas;
-    const sub = vi ? 'THIÊN KHÔNG SỤP ĐỔ' : 'THE HEAVENS HAVE FALLEN';
-    const subSize = Math.max(11, Math.round(fs * 0.26)), gap = subSize * 0.42;
-    const step = fs * 1.04, pad = Math.ceil(fs * 0.35);
-    const c = document.createElement('canvas');
+// A rough vertical brush stroke: a ragged dark body plus dry bristle streaks.
+function _bakeGoliathInkStroke(w, h) {
+    const c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h);
     const g = c.getContext('2d');
-    g.font = '600 ' + subSize + 'px ' + GOLIATH_KILL_SUB_FONT;
-    let subW = 0;
-    for (const ch of sub) subW += g.measureText(ch).width + gap;
-    subW -= gap;
-    c.width = Math.ceil(Math.max(fs * 1.4, subW) + pad * 2);
-    c.height = Math.ceil(step * GOLIATH_KILL_GLYPHS.length + subSize * 2.2 + pad * 2);
-    g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
-    const cx = c.width / 2;
-    g.font = '700 ' + fs + 'px ' + GOLIATH_KILL_FONT;
-    const glyphs = [...GOLIATH_KILL_GLYPHS];
-    const layers = [[fs * 0.34, 'rgba(255,214,170,0.06)'], [fs * 0.2, 'rgba(255,226,196,0.1)'], [fs * 0.09, 'rgba(255,240,224,0.22)']];
-    for (const [w, col] of layers) {
-        g.lineWidth = w; g.strokeStyle = col;
-        glyphs.forEach((ch, i) => g.strokeText(ch, cx, pad + step * (i + 0.5)));
+    const mid = w / 2, half = w * 0.36;
+    g.beginPath();
+    for (let k = 0; k <= 40; k++) {
+        const y = h * k / 40, taper = Math.min(1, 0.55 + k / 6, (40 - k) / 12);
+        g.lineTo(mid - half * taper * (0.74 + 0.14 * Math.sin(k * 1.7) + 0.12 * Math.sin(k * 4.3 + 2)), y);
     }
-    g.fillStyle = '#fbf7ef';
-    glyphs.forEach((ch, i) => g.fillText(ch, cx, pad + step * (i + 0.5)));
-    const sy = pad + step * glyphs.length + subSize * 1.2;
-    g.font = '600 ' + subSize + 'px ' + GOLIATH_KILL_SUB_FONT;
-    g.textAlign = 'left';
-    let x = cx - subW / 2;
-    for (const ch of sub) {
-        const w = g.measureText(ch).width;
-        g.lineWidth = subSize * 0.35; g.strokeStyle = 'rgba(0,0,0,0.45)'; g.strokeText(ch, x, sy);
-        g.fillStyle = 'rgba(236,228,214,0.92)'; g.fillText(ch, x, sy);
-        x += w + gap;
+    for (let k = 40; k >= 0; k--) {
+        const y = h * k / 40, taper = Math.min(1, 0.55 + k / 6, (40 - k) / 12);
+        g.lineTo(mid + half * taper * (0.74 + 0.14 * Math.sin(k * 2.3 + 1) + 0.12 * Math.sin(k * 3.7)), y);
     }
-    _goliathKillBannerCache = { key, canvas: c };
+    g.closePath();
+    g.fillStyle = 'rgba(6,4,8,0.72)'; g.fill();
+    g.strokeStyle = 'rgba(6,4,8,0.22)'; g.lineCap = 'round';
+    for (let i = 0; i < 14; i++) {
+        const x = mid + (i / 13 - 0.5) * half * 2.3;
+        g.lineWidth = 1 + (i % 3);
+        g.beginPath(); g.moveTo(x, h * (0.02 + 0.05 * (i % 4))); g.lineTo(x + Math.sin(i) * 4, h * (0.86 + 0.03 * (i % 5))); g.stroke();
+    }
     return c;
 }
 
-// Fades in as the death sequence starts and is gone just before it ends, so
-// the sigil picker that follows opens on a clean screen.
+function _goliathKillBannerParts(fs, vi) {
+    const fontsReady = !!(document.fonts && document.fonts.check && document.fonts.check('700 64px ' + GOLIATH_KILL_FONT, GOLIATH_KILL_GLYPHS));
+    const key = fs + '|' + vi + '|' + fontsReady;
+    if (_goliathKillBannerCache && _goliathKillBannerCache.key === key) return _goliathKillBannerCache;
+    const glyphPad = Math.ceil(fs * 0.3), gs = Math.ceil(fs * 1.2 + glyphPad * 2);
+    const layers = [[fs * 0.34, 'rgba(255,214,170,0.06)'], [fs * 0.2, 'rgba(255,226,196,0.1)'], [fs * 0.09, 'rgba(255,240,224,0.22)']];
+    const glyphs = [], flashes = [];
+    for (const ch of GOLIATH_KILL_GLYPHS) {
+        const c = document.createElement('canvas'); c.width = c.height = gs;
+        const g = c.getContext('2d');
+        g.font = '700 ' + fs + 'px ' + GOLIATH_KILL_FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+        for (const [w, col] of layers) { g.lineWidth = w; g.strokeStyle = col; g.strokeText(ch, gs / 2, gs / 2); }
+        g.fillStyle = '#fbf7ef'; g.fillText(ch, gs / 2, gs / 2);
+        glyphs.push(c);
+        // Solid white copy used for the landing flash.
+        const f = document.createElement('canvas'); f.width = f.height = gs;
+        const fg = f.getContext('2d');
+        fg.font = g.font; fg.textAlign = 'center'; fg.textBaseline = 'middle'; fg.lineJoin = 'round';
+        fg.lineWidth = fs * 0.12; fg.strokeStyle = '#ffffff'; fg.strokeText(ch, gs / 2, gs / 2);
+        fg.fillStyle = '#ffffff'; fg.fillText(ch, gs / 2, gs / 2);
+        flashes.push(f);
+    }
+    const sub = vi ? 'THIÊN KHÔNG SỤP ĐỔ' : 'THE HEAVENS HAVE FALLEN';
+    const subSize = Math.max(11, Math.round(fs * 0.26)), gap = subSize * 0.42;
+    const sc = document.createElement('canvas');
+    const sg = sc.getContext('2d');
+    sg.font = '600 ' + subSize + 'px ' + GOLIATH_KILL_SUB_FONT;
+    let subW = 0;
+    for (const ch of sub) subW += sg.measureText(ch).width + gap;
+    subW -= gap;
+    sc.width = Math.ceil(subW + subSize); sc.height = Math.ceil(subSize * 1.8);
+    sg.font = '600 ' + subSize + 'px ' + GOLIATH_KILL_SUB_FONT; sg.textBaseline = 'middle'; sg.lineJoin = 'round';
+    let x = subSize / 2;
+    for (const ch of sub) {
+        const w = sg.measureText(ch).width;
+        sg.lineWidth = subSize * 0.35; sg.strokeStyle = 'rgba(0,0,0,0.45)'; sg.strokeText(ch, x, sc.height / 2);
+        sg.fillStyle = 'rgba(236,228,214,0.92)'; sg.fillText(ch, x, sc.height / 2);
+        x += w + gap;
+    }
+    const step = fs * 1.04;
+    const ink = _bakeGoliathInkStroke(fs * 2.1, step * GOLIATH_KILL_GLYPHS.length + fs * 0.9);
+    _goliathKillBannerCache = { key, glyphs, flashes, gs, sub: sc, ink, step, subSize };
+    return _goliathKillBannerCache;
+}
+
+// Plays over the death sequence and is gone just before it ends, so the
+// sigil picker that follows opens on a clean screen.
 function _drawGoliathKillBanner() {
     let g = null;
     for (const e of enemies) {
@@ -2543,45 +2576,95 @@ function _drawGoliathKillBanner() {
     const el = (g._deathPhase === 'crumble' ? GOLIATH_DEATH_CORE_DUR : 0) + (g._deathPhaseTimer || 0);
     const fadeOutStart = total - 750, fadeOutEnd = total - 120;
     if (!(el >= 0) || el >= fadeOutEnd) return;
-    const fadeIn = Math.min(1, el / 450);
-    const alpha = el < fadeOutStart ? fadeIn : Math.max(0, 1 - (el - fadeOutStart) / (fadeOutEnd - fadeOutStart));
-    if (alpha <= 0.01) return;
+    const out = el < fadeOutStart ? 1 : Math.max(0, 1 - (el - fadeOutStart) / (fadeOutEnd - fadeOutStart));
+    if (out <= 0.01) return;
     const fs = Math.round(Math.max(28, Math.min(canvas.height * 0.105, canvas.width * 0.15)));
-    const sprite = _goliathKillBannerSprite(fs, window._lang === 'vi');
-    const ease = 1 - (1 - fadeIn) * (1 - fadeIn);
-    const scale = 1.14 - 0.14 * ease + (el > fadeOutStart ? 0.04 * (1 - alpha) : 0);
-    const cx = canvas.width / 2, cy = canvas.height * 0.46;
+    const P = _goliathKillBannerParts(fs, window._lang === 'vi');
+    const n = P.glyphs.length;
     const W = canvas.width, H = canvas.height;
+    const cx = W / 2, colH = P.step * n, cy = H * 0.44;
+    const top = cy - colH / 2;
+    const drift = el > fadeOutStart ? 1 + 0.05 * (1 - out) : 1;
     ctx.save();
+
     // Cinematic frame: the screen dims, the edges close in and letterbox
-    // bars slide in, all following the banner's own fade.
+    // bars slide in.
     const frameIn = Math.min(1, el / 300);
-    const frameA = el < fadeOutStart ? frameIn : alpha;
-    ctx.globalAlpha = frameA * 0.28;
+    const frameA = Math.min(frameIn, out);
+    ctx.globalAlpha = frameA * 0.3;
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = frameA;
     ctx.drawImage(_goliathKillVignetteSprite(), -W * 0.08, -H * 0.08, W * 1.16, H * 1.16);
     const bar = H * 0.09 * (1 - (1 - frameIn) * (1 - frameIn));
     ctx.globalAlpha = frameA * 0.94;
     ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
-    const shade = _getGlowSprite('rgba(0,0,0,0.7)', 128);
-    if (shade) {
-        const sw = sprite.width * 1.9, sh = sprite.height * 1.25;
-        ctx.globalAlpha = alpha * 0.85;
-        ctx.drawImage(shade, cx - sw / 2, cy - sh / 2, sw, sh);
+
+    // The ink stroke is brushed down from the top before the first stamp.
+    const inkK = Math.max(0, Math.min(1, (el - 80) / 360));
+    if (inkK > 0) {
+        const ih = P.ink.height * (1 - (1 - inkK) * (1 - inkK) * (1 - inkK));
+        ctx.globalAlpha = out * 0.95;
+        ctx.drawImage(P.ink, 0, 0, P.ink.width, ih, cx - P.ink.width / 2, top - fs * 0.45, P.ink.width, ih);
     }
-    ctx.globalAlpha = alpha;
-    const w = sprite.width * scale, h = sprite.height * scale;
-    ctx.drawImage(sprite, cx - w / 2, cy - h / 2, w, h);
-    // A thin light line opens outward under the subtitle.
-    const lineK = Math.max(0, Math.min(1, (el - 250) / 700));
-    if (lineK > 0) {
-        const lw = W * 0.34 * (1 - (1 - lineK) * (1 - lineK));
-        const ly = cy + h / 2 - h * 0.055;
-        ctx.globalAlpha = alpha * 0.75;
+
+    // Each character slams down, flashes and throws ink.
+    for (let i = 0; i < n; i++) {
+        const land = GOLIATH_KILL_STAMP_AT + i * GOLIATH_KILL_STAMP_GAP;
+        const t = el - (land - GOLIATH_KILL_STAMP_DROP);
+        if (t < 0) continue;
+        const gy = top + P.step * (i + 0.5);
+        if (t < GOLIATH_KILL_STAMP_DROP) {
+            const k = t / GOLIATH_KILL_STAMP_DROP, kk = k * k;
+            const sc = (2.3 - 1.3 * kk) * drift, s = P.gs * sc;
+            ctx.globalAlpha = out * Math.min(1, k * 1.6) * 0.9;
+            ctx.drawImage(P.glyphs[i], cx - s / 2, gy - s / 2 - fs * 0.25 * (1 - kk), s, s);
+            continue;
+        }
+        const since = t - GOLIATH_KILL_STAMP_DROP;
+        if (!(g._killStamps & (1 << i))) {
+            g._killStamps = (g._killStamps || 0) | (1 << i);
+            _setShake(i === n - 1 ? 9 : 5, 140);
+        }
+        const jolt = since < 90 ? (1 - since / 90) * fs * 0.03 : 0;
+        const s = P.gs * drift * (1 + (since < 120 ? 0.06 * (1 - since / 120) : 0));
+        const gx = cx + (jolt ? Math.sin(since * 1.7 + i) * jolt : 0);
+        if (since < 520) {
+            const k = since / 520;
+            ctx.fillStyle = '#060408';
+            for (let d = 0; d < 9; d++) {
+                const a = i * 1.3 + d * 0.698, dist = fs * (0.45 + 0.75 * (1 - (1 - k) * (1 - k))) * (0.7 + 0.3 * ((d * 7) % 5) / 4);
+                const r = fs * (0.05 + 0.03 * (d % 3)) * (1 - k * 0.6);
+                ctx.globalAlpha = out * (1 - k) * 0.85;
+                ctx.beginPath(); ctx.arc(gx + Math.cos(a) * dist * 1.25, gy + Math.sin(a) * dist * 0.8, r, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+        ctx.globalAlpha = out;
+        ctx.drawImage(P.glyphs[i], gx - s / 2, gy - s / 2, s, s);
+        if (since < 260) {
+            const k = since / 260;
+            ctx.globalAlpha = out * (1 - k) * 0.9;
+            ctx.drawImage(P.flashes[i], gx - s / 2, gy - s / 2, s, s);
+            const fsz = s * (1 + 0.5 * k);
+            ctx.globalAlpha = out * (1 - k) * 0.35;
+            ctx.drawImage(P.flashes[i], gx - fsz / 2, gy - fsz / 2, fsz, fsz);
+        }
+    }
+
+    // After the last stamp the subtitle is wiped in from the left and a
+    // thin light line opens under it.
+    const lastLand = GOLIATH_KILL_STAMP_AT + (n - 1) * GOLIATH_KILL_STAMP_GAP;
+    const subK = Math.max(0, Math.min(1, (el - lastLand - 120) / 520));
+    const subY = top + colH + P.subSize * 1.15;
+    if (subK > 0) {
+        const sw = P.sub.width * subK;
+        ctx.globalAlpha = out;
+        ctx.drawImage(P.sub, 0, 0, sw, P.sub.height, cx - P.sub.width / 2, subY - P.sub.height / 2, sw, P.sub.height);
+        const lw = W * 0.34 * (1 - (1 - subK) * (1 - subK));
+        const ly = subY + P.sub.height * 0.62;
+        ctx.globalAlpha = out * 0.75;
         ctx.fillStyle = '#e8dcc4';
         ctx.fillRect(cx - lw / 2, ly, lw, 1.5);
-        ctx.globalAlpha = alpha * 0.25;
+        ctx.globalAlpha = out * 0.25;
         ctx.fillRect(cx - lw * 0.4, ly - 2, lw * 0.8, 5.5);
     }
     ctx.restore();
