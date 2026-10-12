@@ -144,7 +144,11 @@ function handleEnemyKill(enemy) {
     // a Skill F sweep. This universal hook also catches Goliath once its own
     // multi-phase death sequence finally brings its hp to 0 for real.
     if (typeof _grantGreatSageGem === 'function') _grantGreatSageGem(enemy);
-    score = Math.ceil(score + enemy.maxHp * 6);
+    // Kill score per point of Max HP: 4 on wave 1, easing down to 3 by wave 10.
+    const _killScoreMult = 4 - Math.min(1, Math.max(0, (_waveNumber - 1) / 9));
+    // Goliath's Max HP dwarfs a whole wave, so his kill is worth 500,000 at most.
+    const _killScore = enemy.maxHp * _killScoreMult;
+    score = Math.ceil(score + (enemy.type === 'goliath' ? Math.min(500000, _killScore) : _killScore));
     // Primeval Creation: +1.25% energy per kill from non-spirit sources
     if (!enemy._spiritKillCounted) {
         const _peGainMult = _hasBuff('dong_chay_luan_hoi') ? 1.50 : 1; // Cycle of Flow: +50% charge rate
