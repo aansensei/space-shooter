@@ -76,14 +76,6 @@ function _dauBeginFrame(deltaTime, currentTime) {
                         e.hp = 0;
                     } else {
                         if (e.type === 'uriel' && e._camoPhase === 'stealthed') {
-                            if (!e._camoNextPicked || !Number.isFinite(e._camoNextX) || !Number.isFinite(e._camoNextY)) {
-                                const cw = (typeof canvas !== 'undefined' && canvas.width) ? canvas.width : 800;
-                                const ch = (typeof canvas !== 'undefined' && canvas.height) ? canvas.height : 600;
-                                const es = e.size || 60;
-                                e._camoNextPicked = true;
-                                e._camoNextX = es / 2 + Math.random() * (cw - es);
-                                e._camoNextY = es / 2 + Math.random() * (ch * 0.5 - es);
-                            }
                             e._camoTimer = Math.max(e._camoTimer || 0, 1750);
                         }
                         if (_dauCanReceiveDaybreak(e)) {
