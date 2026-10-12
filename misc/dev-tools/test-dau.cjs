@@ -136,9 +136,10 @@ async function main() {
                 for(let i=0;i<60;i++){const e=_dauMob('enemy_bullet',90+i%12*95,90+Math.floor(i/12)*85);e.size=7;e.vx=e.vy=0;enemies.push(e);shots.push(e);}
                 window._dauChargePreviewOff=mode==='charge'&&!enabled;
                 let total=0,frames=0,peak=0;
+                const windowFrames=mode==='crow'?Math.ceil(Math.hypot(canvas.width,canvas.height)/DAU_RING_SPEED/(1000/120))+40:300;
                 for(let cycle=0;cycle<6;cycle++) {
                     _dauReset();if(mode==='crow'&&enabled)_dauTriggerCrow();
-                    for(let f=0;f<120;f++) {
+                    for(let f=0;f<windowFrames;f++) {
                         for(let i=0;i<bodies.length;i++){const e=bodies[i];e.hp=e.maxHp;e.x=70+i%10*120;e.y=65+Math.floor(i/10)*70;e.shield=0;}
                         for(let i=0;i<shots.length;i++){const e=shots[i];e.hp=e.maxHp;e.x=90+i%12*95;e.y=90+Math.floor(i/12)*85;if(enemies.indexOf(e)<0)enemies.push(e);}
                         if(mode==='charge')window._dauCrowTimer=9400;
@@ -176,7 +177,7 @@ async function main() {
             results.push({name:'Guide renders the actual glyph in '+lang,pass:title.includes(lang==='en'?'DAWN HERALD':'MÃO NHẬT TINH QUAN')});
             await card.screenshot({path:path.join(preview,'guide-'+lang+'.png')});
         }
-        const report={tests:results,pageErrors:errors,timings,measurement:'CPU time around production update and draw in desktop headless Chrome at 1280x800, 120Hz simulation, 80 enemies and 60 bullets, 600 measured frames after 120 warmup frames per scene'};
+        const report={tests:results,pageErrors:errors,timings,measurement:'CPU time around production update and draw in desktop headless Chrome at 1280x800, 120Hz simulation, 80 enemies and 60 bullets. Crow: complete screen diagonal traversal plus 40 frames, five measured cycles after one warmup cycle. Charge: five measured cycles of 300 frames after one warmup cycle.'};
         fs.writeFileSync(path.join(preview,'test-results.json'),JSON.stringify(report,null,2));
         console.log(JSON.stringify(report,null,2));
         if(results.some(r=>!r.pass)||errors.length)process.exitCode=1;
