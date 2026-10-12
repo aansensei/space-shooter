@@ -102,6 +102,13 @@ function _dauSprites() {
         g.stroke();
         g.strokeStyle = 'rgba(255,226,146,0.28)'; g.lineWidth = 1.5;
         for (const y of [40, 62, 88]) { g.beginPath(); g.moveTo(0, y); g.lineTo(192, y); g.stroke(); }
+        // Both ends fade over the part that overlaps the next segment, so
+        // neighbours drawn additively sum to one unbroken band.
+        g.globalCompositeOperation = 'destination-in';
+        const ends = g.createLinearGradient(0, 0, 192, 0);
+        ends.addColorStop(0, 'rgba(255,255,255,0)'); ends.addColorStop(0.2, '#fff');
+        ends.addColorStop(0.8, '#fff'); ends.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = ends; g.fillRect(0, 0, 192, 128);
     });
     const roosters = [];
     for (let frame = 0; frame < 3; frame++) {
@@ -296,11 +303,13 @@ function _drawDauRing() {
             continue;
         }
         const segments = gfx === 2 ? 16 : 36;
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
         for (let k = 0; k < segments; k++) {
             const a = k * Math.PI * 2 / segments + clock / 15000;
             const rr = radius - 42;
-            _dauImage(s.fireBand, r.x + Math.cos(a) * rr, r.y + Math.sin(a) * rr, radius * Math.PI * 2 / segments * 1.12, 128, a + Math.PI / 2, alpha);
+            _dauImage(s.fireBand, r.x + Math.cos(a) * rr, r.y + Math.sin(a) * rr, radius * Math.PI * 2 / segments * 1.25, 128, a + Math.PI / 2, alpha);
         }
+        ctx.restore();
         if (gfx < 2 && radius > DAU_RING_SPEED * 120) {
             const echo = radius - DAU_RING_SPEED * 120;
             _dauImage(s.ring, r.x, r.y, echo * 2, echo * 2, -clock / 17000, alpha * 0.38);
