@@ -2465,7 +2465,22 @@ function _strokeGoliathCrackPath(scale, grow) {
 const GOLIATH_KILL_GLYPHS = '天空崩塌';
 const GOLIATH_KILL_FONT = '"LXGW WenKai TC", "Noto Serif TC", "PMingLiU", serif';
 const GOLIATH_KILL_SUB_FONT = '"Cormorant Garamond", "Cinzel", serif';
-let _goliathKillBannerCache = null, _goliathKillFontsRequested = false;
+let _goliathKillBannerCache = null, _goliathKillFontsRequested = false, _goliathKillVignette = null;
+
+// Small radial sprite stretched over the whole screen: clear center, near
+// black corners.
+function _goliathKillVignetteSprite() {
+    if (_goliathKillVignette) return _goliathKillVignette;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(128, 128, 40, 128, 128, 182);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.55, 'rgba(0,0,0,0.35)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.95)');
+    g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
+    _goliathKillVignette = c;
+    return c;
+}
 
 function _requestGoliathKillFonts() {
     if (_goliathKillFontsRequested || !document.fonts || !document.fonts.load) return;
@@ -2536,7 +2551,19 @@ function _drawGoliathKillBanner() {
     const ease = 1 - (1 - fadeIn) * (1 - fadeIn);
     const scale = 1.14 - 0.14 * ease + (el > fadeOutStart ? 0.04 * (1 - alpha) : 0);
     const cx = canvas.width / 2, cy = canvas.height * 0.46;
+    const W = canvas.width, H = canvas.height;
     ctx.save();
+    // Cinematic frame: the screen dims, the edges close in and letterbox
+    // bars slide in, all following the banner's own fade.
+    const frameIn = Math.min(1, el / 300);
+    const frameA = el < fadeOutStart ? frameIn : alpha;
+    ctx.globalAlpha = frameA * 0.28;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = frameA;
+    ctx.drawImage(_goliathKillVignetteSprite(), -W * 0.08, -H * 0.08, W * 1.16, H * 1.16);
+    const bar = H * 0.09 * (1 - (1 - frameIn) * (1 - frameIn));
+    ctx.globalAlpha = frameA * 0.94;
+    ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
     const shade = _getGlowSprite('rgba(0,0,0,0.7)', 128);
     if (shade) {
         const sw = sprite.width * 1.9, sh = sprite.height * 1.25;
@@ -2546,6 +2573,17 @@ function _drawGoliathKillBanner() {
     ctx.globalAlpha = alpha;
     const w = sprite.width * scale, h = sprite.height * scale;
     ctx.drawImage(sprite, cx - w / 2, cy - h / 2, w, h);
+    // A thin light line opens outward under the subtitle.
+    const lineK = Math.max(0, Math.min(1, (el - 250) / 700));
+    if (lineK > 0) {
+        const lw = W * 0.34 * (1 - (1 - lineK) * (1 - lineK));
+        const ly = cy + h / 2 - h * 0.055;
+        ctx.globalAlpha = alpha * 0.75;
+        ctx.fillStyle = '#e8dcc4';
+        ctx.fillRect(cx - lw / 2, ly, lw, 1.5);
+        ctx.globalAlpha = alpha * 0.25;
+        ctx.fillRect(cx - lw * 0.4, ly - 2, lw * 0.8, 5.5);
+    }
     ctx.restore();
 }
 
