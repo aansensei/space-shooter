@@ -20,9 +20,9 @@ window._echoSlashFx = [];
 
 // Skill F cuts Endless Echo ghosts. A cut ghost is only flagged; main.js's
 // per-frame _goliathEchoes filter is what drops it. Every test below is the
-// one the same attack uses on enemies, with GOLIATH_ECHO_HIT_RADIUS standing
-// in for the enemy's body size. An Uriel barrier between the attack and the
-// ghost, or around the ghost, protects it.
+// one the same attack uses on enemies, widened by GOLIATH_ECHO_HIT_RADIUS so
+// any part of the ghost's body counts. An Uriel barrier between the attack
+// and the ghost, or around the ghost, protects it.
 function _echoSlashBlocked(fromX, fromY, g) {
     return (typeof _urielBarrierBlocksPoint === 'function' && _urielBarrierBlocksPoint(g.x, g.y))
         || (typeof _urielBarrierBlocksSegment === 'function' && _urielBarrierBlocksSegment(fromX, fromY, g.x, g.y));
@@ -55,12 +55,29 @@ function _skillFConeHalfWidth() {
     return _hasBuff('cuop_bao_tang') ? Math.min(0.2 * (1 + _skillFKillsThisSweep * 0.5), 0.2 * 4.5) : 0.2;
 }
 
-function _trySlashEchoBySweep(g) {
+// The sweep cone grown by radius. Ghosts replay the player's own path, so
+// they usually sit level with the ship, right on the cone's first and last
+// edge, where a center only test never reaches them.
+function _skillFConeTouches(x, y, radius, currentAngle, coneHalfWidth) {
+    if (_skillFConeHits(x, y, currentAngle, coneHalfWidth)) return true;
+    const dx = skillFDirection * (x - player.x), dy = y - player.y;
+    for (let i = 0; i < 2; i++) {
+        const edge = currentAngle - i * coneHalfWidth;
+        const c = Math.cos(edge), s = Math.sin(edge);
+        const t = Math.max(0, Math.min(canvas.width, dx * c + dy * s));
+        if (Math.hypot(dx - t * c, dy - t * s) <= radius) return true;
+    }
+    return false;
+}
+
+// progress is clamped so the sweep's final frame still reaches the last edge.
+function _trySlashEchoBySweep(g, progressOverride) {
     if (g._slashed || skillFState !== 'sweeping') return;
-    const progress = (performance.now() - skillFSweepStart) / skillFSweepDuration;
-    if (!(progress >= 0 && progress < 1)) return;
-    const angle = -Math.PI + Math.PI * progress;
-    if (_skillFConeHits(g.x, g.y, angle, _skillFConeHalfWidth())) {
+    const progress = progressOverride != null ? progressOverride
+        : (performance.now() - skillFSweepStart) / skillFSweepDuration;
+    if (!(progress >= 0)) return;
+    const angle = -Math.PI + Math.PI * Math.min(1, progress);
+    if (_skillFConeTouches(g.x, g.y, GOLIATH_ECHO_HIT_RADIUS, angle, _skillFConeHalfWidth())) {
         _slashEcho(g, skillFDirection === 1 ? angle : Math.PI - angle, player.x, player.y);
     }
 }
@@ -190,6 +207,7 @@ function updateSkillF(deltaTime) {
     if (skillFState === "sweeping") {
         let sweepProgress = (currentTime - skillFSweepStart) / skillFSweepDuration;
         if (sweepProgress >= 1) {
+            for (const g of window._goliathEchoes || []) _trySlashEchoBySweep(g, 1);
             skillFState = "ready";
             if (window.AudioMgr) window.AudioMgr.stopSkillFFire();
             return;
