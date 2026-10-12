@@ -308,7 +308,7 @@ const DAU_STAR_NEEDLES = 7;
 const DAU_STAR_NEEDLE_ATK = 2.00;
 const DAU_PIN_MS = 1500;
 const DAU_FX_MAX = 64;
-const DAU_REFLECT_CHANCE = 0.35;
+const DAU_REFLECT_CHANCE = 0.50;
 const DAU_REFLECT_MAX = 16;
 const DAU_REFLECT = {
     marchosias: { atk: 1.50, percentDamage: 0.01 },

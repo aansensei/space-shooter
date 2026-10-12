@@ -94,10 +94,11 @@ async function main() {
             const cases = [['marchosias',150,0.01],['uriel',250,0.02],['raphael',250,0.02],['dargruel',200,0.015],['meteor',300,0.02],['verdict',600,0.03]];
             for (const [kind,atk,percent] of cases) {
                 test('C: '+kind+' reflects once and deals exact real damage', () => {
-                    const random=Math.random; Math.random=()=>0.349;
+                    const random=Math.random; Math.random=()=>0.499;
                     try {
                         const owner=_dauMob('apostle',player.x+300,player.y-300);owner.hp=owner.maxHp=10000;enemies.push(owner);
                         const p=_dauSkill(kind,owner);_dauTriggerCrow();_dauBeginFrame(1,performance.now());
+                        assert(DAU_REFLECT_CHANCE===0.50,'50 percent chance');
                         assert(!_dauSkillList(kind).includes(p)&&window._dauReflections.length===1,'remove and copy');
                         assert(window._dauReflections[0].target===owner,'caster');
                         window._dauNeedles.length=0;const hp=owner.hp;_dauUpdateReflections(1000);
@@ -108,7 +109,7 @@ async function main() {
                 });
                 test('C: '+kind+' failed roll stays harmful and never rolls twice', () => {
                     const random=Math.random, takeHit=playerTakesHit;let rolls=0,hits=0;
-                    Math.random=()=>{rolls++;return 0.35;}; playerTakesHit=()=>{hits++;return true;};
+                    Math.random=()=>{rolls++;return 0.50;}; playerTakesHit=()=>{hits++;return true;};
                     try {
                         const owner=_dauMob('apostle',player.x+300,player.y-300);enemies.push(owner);
                         const p=_dauSkill(kind,owner);_dauTriggerCrow();_dauBeginFrame(1,performance.now());
@@ -259,7 +260,7 @@ async function main() {
                     spawnGoliath();const g=enemies.at(-1);g.slots.forEach((s,i)=>{s.filled=true;s.gem=GOLIATH_GEM_COLORS[i];});_goliathEnterTrueForm(g);
                     g._transformIronBodyEnd=0;g._trueFormEnteredAt=performance.now()-10000;g._unbrokenWillUsed=true;g.hp=g.maxHp=1000000;g.x=640;g.y=180;
                     spawnUriel();const u=enemies.at(-1);u.x=350;u.y=190;u._camoPhase='shielded';u.ironBodyHits=0;
-                    const random=Math.random;Math.random=()=>0.349;
+                    const random=Math.random;Math.random=()=>0.499;
                     try{const kind=phase==='reflection'?'uriel':'verdict',owner=kind==='uriel'?u:g;
                         _dauSkill(kind,owner,640,460);_dauTriggerCrow();window._dauNeedles.length=0;_dauBeginFrame(450,performance.now());
                         if(phase==='reflection')_dauUpdateReflections(60);else{Math.random=()=>0.999;const hp=g.hp;_dauUpdateReflections(1000);if(g.hp>=hp)throw Error('Verdict preview must damage Goliath');for(const f of window._dauFx)if(f.kind===6&&f.life>0)f.age=260;}
@@ -285,7 +286,7 @@ async function main() {
                 for(let i=0;i<60;i++){const e=_dauMob('enemy_bullet',90+i%12*95,90+Math.floor(i/12)*85);e.size=7;e.vx=e.vy=0;enemies.push(e);shots.push(e);}
                 window._dauChargePreviewOff=mode==='charge'&&!enabled;
                 let total=0,frames=0,peak=0,reflected=0;
-                const random=Math.random;if(mode==='crow')Math.random=()=>0.349;
+                const random=Math.random;if(mode==='crow')Math.random=()=>0.499;
                 const windowFrames=mode==='crow'?Math.ceil(Math.hypot(canvas.width,canvas.height)/DAU_RING_SPEED/(1000/120))+40:300;
                 for(let cycle=0;cycle<6;cycle++) {
                     enemies=bodies.concat(shots);marchosiasBlades=[];raphaelWisdomOrbs=[];raphaelWisdomZones=[];window._urielHolySwords=[];window._goliathOrbs=[];window._goliathMeteors=[];
@@ -332,7 +333,7 @@ async function main() {
             results.push({name:'Guide renders the actual glyph in '+lang,pass:title.includes(lang==='en'?'DAWN HERALD':'MÃO NHẬT TINH QUAN')});
             await card.screenshot({path:path.join(preview,'guide-'+lang+'.png')});
         }
-        const report={tests:results,pageErrors:errors,timings,measurement:'CPU time around production update and draw in desktop headless Chrome at 1280x800, 120Hz simulation, 80 enemies and 60 bullets, plus 12 launched skill objects per crow cycle. Crow: fixed random 0.349, complete screen diagonal traversal plus 40 frames, five measured cycles after one warmup cycle. Charge: five measured cycles of 300 frames after one warmup cycle. Fixture restoration is outside the timed window.'};
+        const report={tests:results,pageErrors:errors,timings,measurement:'CPU time around production update and draw in desktop headless Chrome at 1280x800, 120Hz simulation, 80 enemies and 60 bullets, plus 12 launched skill objects per crow cycle. Crow: fixed random 0.499, complete screen diagonal traversal plus 40 frames, five measured cycles after one warmup cycle. Charge: five measured cycles of 300 frames after one warmup cycle. Fixture restoration is outside the timed window.'};
         fs.writeFileSync(path.join(preview,'test-results.json'),JSON.stringify(report,null,2));
         console.log(JSON.stringify(report,null,2));
         if(results.some(r=>!r.pass)||errors.length)process.exitCode=1;
