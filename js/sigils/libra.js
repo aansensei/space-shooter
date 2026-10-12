@@ -7,13 +7,13 @@ SIGIL_DEFS.libra = {
         name: 'Libra', element: 'Blood Sorcery', color: '#378ADD',
         buffs: [
             { id: 'mui_ten_apollo', name: "Blood Arrow", type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Skill A cooldown -2s while Libra is equipped. Skill A banks a stack per press; press again with a target to trigger the charge and release everything banked, each firing 5 piercing arrows (1 big marking the highest-MaxHP enemy, 4 small on other enemies, denser clusters preferred). The big arrow pierces for 450 dmg and explodes as true damage for 600 + 3.5% Max HP (up to +60% more from DR); small arrows pierce for 270 and explode as piercing damage (still blocked by shield) for 270 + 2.5% Max HP plus 3% of the target\'s already-lost HP, but fly 20% faster. Explosions apply 2 Vulnerability stacks; a repeat hit on the same enemy deals 30% less.' },
+              desc: 'Skill A cooldown -2s. Each press banks a volley of 5 piercing arrows; press with a target in sight to fire everything banked. Arrows explode and apply Vulnerability.' },
             { id: 'xuyen_pha', name: 'Astral Pierce', type: 'ATK', typeC: '#ef4444',
-              desc: 'Skill A orbs pierce through their target on impact and continue flying to the screen edge, dealing hit damage to every enemy they cross. Orb size +30%, damage +20%.' },
+              desc: 'Skill A orbs pierce through their target to the screen edge, hitting every enemy on the way. Orb size +30%, damage +20%.' },
         ]
 };
 
 SIGIL_I18N_VI.libra = { name: 'Thiên Bình', element: 'Huyết Quỷ Thuật', buffs: {
-        mui_ten_apollo: { name: 'Huyết Tiễn', desc: 'Giảm 2s hồi chiêu Skill A khi trang bị Thiên Bình. Skill A tích 1 stack mỗi lần ấn; ấn lại khi có mục tiêu để kích hoạt và xả hết stack đang tích, mỗi stack bắn 1 loạt 5 mũi tên xuyên (1 mũi lớn đánh dấu kẻ Max HP cao nhất, 4 mũi nhỏ đánh dấu kẻ khác, ưu tiên khu đông địch). Mũi lớn gây 450 sát thương xuyên và nổ sát thương chuẩn (xuyên giáp/khiên) 600 gốc + 3.5% Max HP (tối đa +60% từ giáp mục tiêu); mũi nhỏ gây 270 sát thương xuyên và nổ sát thương xuyên (vẫn bị khiên chặn) 270 gốc + 2.5% Max HP cộng thêm 3% HP đã mất của mục tiêu, nhưng bay nhanh hơn 20%. Vụ nổ gây 2 lớp Trọng Thương; trúng lại cùng 1 kẻ địch gây ít hơn 30% sát thương.' },
-        xuyen_pha: { name: 'Tinh Xuyên', desc: 'Cầu năng lượng Skill A xuyên qua mục tiêu khi va chạm và tiếp tục bay tới mép màn hình, gây sát thương cho mọi kẻ địch nó đi qua. Kích thước cầu +30%, sát thương +20%.' },
+        mui_ten_apollo: { name: 'Huyết Tiễn', desc: 'Hồi chiêu Skill A -2s. Mỗi lần ấn tích 1 loạt 5 mũi tên xuyên; ấn khi có mục tiêu để bắn hết. Mũi tên phát nổ và gây Trọng Thương.' },
+        xuyen_pha: { name: 'Tinh Xuyên', desc: 'Cầu Skill A xuyên qua mục tiêu tới mép màn hình, trúng mọi kẻ địch trên đường bay. Kích thước cầu +30%, sát thương +20%.' },
 }};

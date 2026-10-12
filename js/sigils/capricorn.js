@@ -7,13 +7,13 @@ SIGIL_DEFS.capricorn = {
         name: 'Capricorn', element: 'Earth', color: '#4D9B2A',
         buffs: [
             { id: 'lai_kep', name: 'Compound Interest', type: 'HEAL', typeC: '#22c55e',
-              desc: 'Each kill grants +0.8% PE; every 5% PE gained increases all ally fire rate by 1.5% (max +40%, preserved through BTM). While the great spirit is alive, every ally attack deals +225 bonus true damage.' },
+              desc: 'Kills charge Primeval Energy, which raises all ally fire rate (up to +40%). While the great spirit lives, ally attacks deal 22.5% ATK bonus true damage.' },
             { id: 'tuyet_lan', name: 'Avalanche', type: 'SPEC', typeC: '#f59e0b',
-              desc: 'Each kill grants +0.5% global damage (resets after 6s without a kill, max +40%)' },
+              desc: 'Each kill adds +0.5% damage, up to +40%. It resets after 6s without a kill.' },
         ]
 };
 
 SIGIL_I18N_VI.capricorn = { name: 'Ma Kết', element: 'Thổ', buffs: {
-        lai_kep: { name: 'Lãi Kép', desc: 'Mỗi lần hạ gục nhận +0.8% Max HP; mỗi 5% Max HP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, mỗi đòn đánh của phe ta gây thêm +225 sát thương thật.' },
-        tuyet_lan: { name: 'Tuyết Lăn', desc: 'Mỗi lần hạ gục nhận +0.5% sát thương toàn cục (reset sau 6s không hạ gục, tối đa +40%)' },
+        lai_kep: { name: 'Lãi Kép', desc: 'Hạ gục nạp Năng Lượng Nguyên Thủy, giúp tăng tốc độ bắn toàn phe ta (tối đa +40%). Khi đại tinh linh còn sống, đòn của phe ta gây thêm 22.5% ATK sát thương chuẩn.' },
+        tuyet_lan: { name: 'Tuyết Lăn', desc: 'Mỗi lần hạ gục +0.5% sát thương, tối đa +40%. Mất hết sau 6s không hạ gục.' },
 }};

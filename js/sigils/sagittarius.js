@@ -7,13 +7,13 @@ SIGIL_DEFS.sagittarius = {
         name: 'Sagittarius', element: 'Fire', color: '#EF9F27',
         buffs: [
             { id: 'song_luoi', name: 'Twin Blades', type: 'ATK', typeC: '#ef4444',
-              desc: 'Spirit arc slash fires 2 blades (249 + 1.5% Max HP each, 2nd fires 15ms later), plus a 25% chance for a 3rd blade. Each boomerang has 30% chance for 2 extra. Skill F sweep now throws 2 boomerangs from the player instead of blade arcs. Extra blades have +20% radius. Every auto-fire shot has a 15% chance to fire an arc blade (345 dmg), same as the spirit\'s.' },
+              desc: 'Spirit slashes fire extra blades, boomerangs can multiply, Skill F throws 2 boomerangs and auto fire can launch arc blades. Also empowers the Spinner.' },
             { id: 'cuc_han', name: 'Arctic Chill', type: 'ATK', typeC: '#ef4444',
-              desc: 'Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward projectile. CC-immune targets are never pulled, but are still slowed. Remembrance Spirit and Phōtokrystos fire rate +20%.' },
+              desc: 'Boomerangs and arc slashes often slow enemies by 30% and pull them in. Remembrance Spirit and Phōtokrystos fire 20% faster. Also applies to the Spinner.' },
         ]
 };
 
 SIGIL_I18N_VI.sagittarius = { name: 'Nhân Mã', element: 'Hỏa', buffs: {
-        song_luoi: { name: 'Song Lưỡi', desc: 'Đòn chém cung của Tinh Linh bắn 2 lưỡi kiếm (249 + 1.5% Max HP mỗi lưỡi, lưỡi thứ 2 bắn trễ 15ms), cộng thêm 25% cơ hội có lưỡi thứ 3. Mỗi boomerang có 30% cơ hội thêm 2 boomerang phụ. Skill F giờ ném 2 boomerang từ người chơi thay vì chém cung. Lưỡi kiếm phụ có +20% bán kính. Mỗi phát bắn tự động có 15% cơ hội bắn ra 1 lưỡi kiếm cung (345 sát thương), giống của Tinh Linh.' },
-        cuc_han: { name: 'Cực Hàn', desc: 'Boomerang và chém cung: 75% cơ hội làm chậm 30% trong 2s và hút về phía đạn. Kẻ địch miễn nhiễm khống chế không bao giờ bị hút, nhưng vẫn bị chậm. Tốc độ bắn của Tinh Linh Hoài Niệm và Phōtokrystos +20%.' },
+        song_luoi: { name: 'Song Lưỡi', desc: 'Tinh Linh chém thêm lưỡi kiếm, boomerang có thể nhân lên, Skill F ném 2 boomerang và đạn tự động có thể phóng lưỡi kiếm cung. Cũng tăng sức cho Spinner.' },
+        cuc_han: { name: 'Cực Hàn', desc: 'Boomerang và chém cung thường làm chậm kẻ địch 30% và hút chúng lại. Tinh Linh Hoài Niệm và Phōtokrystos bắn nhanh hơn 20%. Cũng áp dụng cho Spinner.' },
 }};
