@@ -17,6 +17,7 @@ function _onSkillFKill(enemy) {
 
 let _skillFLeftHeld = false, _skillFRightHeld = false;
 window._echoSlashFx = [];
+window._bulletSlashFx = [];
 
 // Skill F cuts Endless Echo ghosts. A cut ghost is only flagged; main.js's
 // per-frame _goliathEchoes filter is what drops it. Every test below is the
@@ -193,6 +194,10 @@ function updateSkillF(deltaTime) {
         window._echoSlashFx[i].age += deltaTime;
         if (window._echoSlashFx[i].age >= 300) window._echoSlashFx.splice(i, 1);
     }
+    for (let i = window._bulletSlashFx.length - 1; i >= 0; i--) {
+        window._bulletSlashFx[i].age += deltaTime;
+        if (window._bulletSlashFx[i].age >= BULLET_SLASH_FX_MS) window._bulletSlashFx.splice(i, 1);
+    }
     const currentTime = performance.now();
     if (skillFState === "charging") _updateSkillFDirection();
     if (skillFState === "charging" && currentTime - skillFChargeStart >= 1500) {
@@ -246,6 +251,13 @@ function updateSkillF(deltaTime) {
                         createParticles(enemy.x, enemy.y, 6, '#ffd700', 2, 7);
                         enemy.hitBySkillF = true;
                         continue;
+                    }
+                    // The cut effect only exists on High and Medium graphics.
+                    if (enemy.type.startsWith('enemy_bullet') && _gfxLevel < 2 && window._bulletSlashFx.length < 48
+                        && Number.isFinite(enemy.x) && Number.isFinite(enemy.y)) {
+                        // The cut runs along the beam, so the halves split across it.
+                        const beam = skillFDirection === 1 ? currentAngle : Math.PI - currentAngle;
+                        window._bulletSlashFx.push({ x: enemy.x, y: enemy.y, angle: beam, r: Math.max(3, enemy.size || 6), large: enemy.type === 'enemy_bullet_large', age: 0 });
                     }
                     enemy.shield = 0;
                     enemy.hp = 0;

@@ -2311,6 +2311,7 @@ function draw(deltaTime) {
         if (!_mobPerf && _gfxLevel < 2) _drawGoliathEchoCasts();
         _drawGoliathEchoes(); // Endless Echo trail + ghosts
         _drawEchoSlashEffects();
+        _drawBulletSlashFx();
         _drawVeilshroudEffects(); // lightning strikes + echo explosion zones
         if (typeof _drawUrielEffects === 'function') _drawUrielEffects(); // Holy Sword projectiles + death barrier
         _drawEgregorEffects();   // Psychic Tempest telegraphs/strikes + Null Slash

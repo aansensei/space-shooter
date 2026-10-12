@@ -140,6 +140,53 @@ function _drawRuyiStaff(len, w, angle, alpha, opts) {
     ctx.restore();
 }
 
+// An enemy bullet cut by the sweep: a flash, a bright slash across it, the
+// two halves drifting apart and a few sparks. High and Medium only; lower
+// tiers never create these.
+function _drawBulletSlashFx() {
+    const list = window._bulletSlashFx;
+    if (!list || !list.length) return;
+    if (_gfxLevel >= 2) { list.length = 0; return; }
+    const spark = _getGlowSprite('rgba(160,245,255,0.9)', 10);
+    const flash = _getGlowSprite('rgba(235,255,255,0.95)', 24);
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const fx of list) {
+        const t = Math.min(1, fx.age / BULLET_SLASH_FX_MS);
+        const r = fx.r, len = r * 5 + 22;
+        ctx.save();
+        ctx.translate(fx.x, fx.y); ctx.rotate(fx.angle);
+        const off = t * (r + 8);
+        ctx.globalAlpha = 1 - t;
+        ctx.fillStyle = fx.large ? '#ff6a20' : '#e01010';
+        ctx.beginPath(); ctx.arc(0, -off, r, Math.PI, Math.PI * 2); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, off, r, 0, Math.PI); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#ffd2c2';
+        ctx.fillRect(-r, -off - 1, r * 2, 1.5);
+        ctx.fillRect(-r, off - 0.5, r * 2, 1.5);
+        if (spark && t < 0.6) {
+            ctx.globalAlpha = 1 - t / 0.6;
+            for (let i = -1; i <= 1; i += 2) ctx.drawImage(spark, i * (6 + t * 26) - 10, i * t * 6 - 10, 20, 20);
+        }
+        const sweep = Math.min(1, t * 3);
+        if (flash && t < 0.35) {
+            const fs = r * 2.4 + 10;
+            ctx.globalAlpha = 1 - t / 0.35;
+            ctx.drawImage(flash, -fs, -fs, fs * 2, fs * 2);
+        }
+        ctx.globalAlpha = 0.35 * (1 - t);
+        ctx.strokeStyle = '#38e8ff'; ctx.lineWidth = 11 * (1 - t) + 2;
+        ctx.beginPath(); ctx.moveTo(-len / 2, 0); ctx.lineTo(-len / 2 + len * sweep, 0); ctx.stroke();
+        ctx.globalAlpha = 1 - t;
+        ctx.strokeStyle = '#7ff3ff'; ctx.lineWidth = 5 * (1 - t) + 1.5;
+        ctx.beginPath(); ctx.moveTo(-len / 2, 0); ctx.lineTo(-len / 2 + len * sweep, 0); ctx.stroke();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(-len / 2, 0); ctx.lineTo(-len / 2 + len * sweep, 0); ctx.stroke();
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
 function drawSkillF() {
     // Frozen while paused (see config.js) so the sweep's angle - derived
     // from elapsed time since skillFSweepStart - stops advancing instead of

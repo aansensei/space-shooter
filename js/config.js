@@ -134,6 +134,7 @@ const skillFCooldown = 7000;
 let skillFState = "ready", skillFChargeStart, skillFSweepStart;
 let skillFDirection = 1;
 const skillFSweepDuration = 1000;
+const BULLET_SLASH_FX_MS = 380;
 // Great Sage sigil (Ransacked Treasury): up to 3 stolen enemy gems held at
 // once, one of each kind (FIFO — oldest is the one spent first), each one an
 // enemy type string from SKILL_F_ELITE_TIERS below. Never decays on its own.

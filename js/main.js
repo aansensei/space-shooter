@@ -3576,6 +3576,7 @@ function startGame() {
     window._goliathWaveHpBuff = 1;
     window._goliathEchoes = [];
     window._echoSlashFx = [];
+    window._bulletSlashFx = [];
     bossShockwaves = [];
     raphaelLasers = [];
     marchosiasBlades = [];
