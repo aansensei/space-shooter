@@ -634,17 +634,16 @@ function updateGoliath(enemy, deltaTime) {
             }
         }
 
-        // Corrupted Genesis: quét các enemy Abnormal-tier trở lên đã chết
-        // trong danh sách liên kết, thu bảo thạch màu tương ứng nguồn gốc.
-        // (Việc rơi bảo thạch + tính damagePull thực hiện trong dealDamage
-        // và death-hook ở main.js — hàm này chỉ lo việc HẤP THỤ khi đủ 3+.)
-        if ((enemy._pendingGems || []).length >= 3 && enemy.slots.some(s => !s.filled)) {
+        // Corrupted Genesis: a gem that lands takes the next empty socket
+        // right away unless that kind is already socketed; duplicates wait
+        // in _pendingGems. Drops and Damage Pull happen in main.js.
+        if ((enemy._pendingGems || []).length && enemy.slots.some(s => !s.filled)) {
             const used = new Set(enemy.slots.filter(s => s.filled).map(s => s.gem.name));
             for (let i = 0; i < enemy._pendingGems.length && enemy.slots.some(s => !s.filled); i++) {
                 const gem = enemy._pendingGems[i];
                 if (used.has(gem.name)) continue;
                 const slot = enemy.slots.find(s => !s.filled);
-                slot.filled = true; slot.gem = gem;
+                slot.filled = true; slot.gem = gem; slot._filledAt = now;
                 used.add(gem.name);
                 enemy._pendingGems.splice(i, 1); i--;
             }
@@ -1213,13 +1212,9 @@ function _goliathEnterTrueForm(enemy) {
         else if (name === 'Leviathan') enemy._jokerState[name] = { phase: 'ready', cooldownEnd: 0, warnTimer: 0, sweepTimer: 0, sweepOrigin: 0 };
     });
 
-    // Bảo thạch dư (NEW): _pendingGems chỉ được nhét vào khe khi có ĐỦ 3
-    // viên chờ sẵn VÀ còn khe trống có màu khác — nếu gem bay tới đúng lúc cả
-    // 3 khe (khác màu) vừa lấp xong, hoặc trùng màu 1 khe đã có, nó kẹt lại
-    // trong _pendingGems vĩnh viễn (Alpha đã kết thúc, không còn vòng lặp
-    // nào xử lý tiếp). Tới lúc True Form đã hình thành, gom hết số dư đó lại
-    // — thay vì bỏ phí — chuyển thẳng thành 1 lớp khiên 1 lần = 20% MaxHP
-    // cho kẻ địch còn sống gần Goliath nhất.
+    // Leftover gems: duplicates of a socketed kind, or gems still flying
+    // when the sockets filled, become a one time shield on the living enemy
+    // nearest Goliath once True Form is reached.
     const _leftoverGemCount = (enemy._pendingGems || []).length + (enemy._flyingGems || []).length;
     if (_leftoverGemCount > 0) {
         const _nearby = enemies.filter(e => e !== enemy && e.hp > 0 && !e._markedForDeath

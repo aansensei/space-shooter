@@ -442,6 +442,18 @@ function _drawGoliathSlots(enemy, originX, originY, showEye, now) {
         const _gemGone = i < (enemy._deathGemsExploded || 0);
         if (slot.filled && !_gemGone) {
             _drawGoliathGemDiamond(anchor.x, anchor.y, 20, slot.gem, 1, now);
+            // A freshly socketed gem flashes and sends out a ring.
+            const since = now - (slot._filledAt || -1e9);
+            if (since >= 0 && since < 450) {
+                const k = since / 450;
+                ctx.save();
+                ctx.globalAlpha = 1 - k;
+                ctx.strokeStyle = slot.gem.mid; ctx.lineWidth = 4 * (1 - k) + 1;
+                ctx.beginPath(); ctx.arc(anchor.x, anchor.y, 18 + k * 34, 0, Math.PI * 2); ctx.stroke();
+                ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.7 * (1 - k) * (1 - k);
+                ctx.beginPath(); ctx.moveTo(anchor.x, anchor.y - 22); ctx.lineTo(anchor.x + 16, anchor.y); ctx.lineTo(anchor.x, anchor.y + 22); ctx.lineTo(anchor.x - 16, anchor.y); ctx.closePath(); ctx.fill();
+                ctx.restore();
+            }
         } else {
             ctx.save();
             ctx.translate(anchor.x, anchor.y);
@@ -2396,6 +2408,14 @@ function _drawGoliathDeathCrumble(enemy, now, trueScale) {
         ctx.save();
         ctx.globalAlpha = 1 - p;
         ctx.translate(b.x + driftX, b.y + dropY);
+        // A falling chunk keeps a molten glow behind it that cools as it drops.
+        const molten = _getGlowSprite('rgba(255,140,40,0.85)', 64);
+        if (molten) {
+            const s = b.r * (1.5 - p * 0.5);
+            ctx.globalAlpha = (1 - p) * (1 - p) * 0.9;
+            ctx.drawImage(molten, -s, -s, s * 2, s * 2);
+            ctx.globalAlpha = 1 - p;
+        }
         ctx.rotate(rot);
         ctx.scale(1 - p * 0.3, 1 - p * 0.3);
         _drawGoliathGolemChunk(0, 0, b.r, b.seed);
@@ -2404,6 +2424,117 @@ function _drawGoliathDeathCrumble(enemy, now, trueScale) {
             createParticles(enemy.x + (b.x + driftX) * trueScale, enemy.y + (b.y + dropY) * trueScale, 1, '#8a7050', 2, 4);
         }
     });
+    ctx.restore();
+}
+
+// Death cracks: fixed jagged lines out of the core, built once. Each entry is
+// a flat list of x,y pairs in true form units.
+const GOLIATH_DEATH_CRACKS = (() => {
+    const out = [];
+    for (let i = 0; i < 9; i++) {
+        const base = (i / 9) * Math.PI * 2 + 0.3 * Math.sin(i * 7.1);
+        const pts = [0, 0];
+        let a = base, r = 0;
+        for (let k = 0; k < 5; k++) {
+            r += 34 + 10 * Math.sin(i * 3.3 + k * 1.7);
+            a += 0.35 * Math.sin(i * 5.9 + k * 2.3);
+            pts.push(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        out.push(pts);
+    }
+    return out;
+})();
+
+function _strokeGoliathCrackPath(scale, grow) {
+    ctx.beginPath();
+    for (const pts of GOLIATH_DEATH_CRACKS) {
+        const segs = (pts.length / 2 - 1) * grow;
+        ctx.moveTo(0, 0);
+        for (let k = 1; k <= Math.ceil(segs); k++) {
+            const f = Math.min(1, segs - (k - 1));
+            const x0 = pts[k * 2 - 2], y0 = pts[k * 2 - 1];
+            ctx.lineTo((x0 + (pts[k * 2] - x0) * f) * scale, (y0 + (pts[k * 2 + 1] - y0) * f) * scale);
+        }
+    }
+    ctx.stroke();
+}
+
+// Death effects drawn in world units around Goliath's center. Core phase:
+// molten cracks spread from the core, each gem bursts with a ring and the
+// core swells. Crumble phase: a flash, two shockwaves and the core rising
+// away as the body falls apart.
+function _drawGoliathDeathFx(enemy, now, trueScale) {
+    const t = enemy._deathPhaseTimer || 0;
+    const low = _mobPerf || _gfxLevel >= 2;
+    ctx.save();
+    if (enemy._deathPhase === 'core') {
+        const k = Math.min(1, t / GOLIATH_DEATH_CORE_DUR);
+        const flicker = 0.75 + 0.25 * Math.sin(now / 45);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        if (!low) {
+            ctx.globalAlpha = 0.28 * flicker;
+            ctx.strokeStyle = '#ff7a1a'; ctx.lineWidth = 11;
+            _strokeGoliathCrackPath(trueScale, k);
+        }
+        ctx.globalAlpha = 0.9 * flicker;
+        ctx.strokeStyle = '#ffb347'; ctx.lineWidth = 3;
+        _strokeGoliathCrackPath(trueScale, k);
+        ctx.globalAlpha = flicker;
+        ctx.strokeStyle = '#fff3d6'; ctx.lineWidth = 1.2;
+        _strokeGoliathCrackPath(trueScale, k);
+
+        const core = _getGlowSprite('rgba(255,190,90,0.9)', 64);
+        if (core) {
+            const s = (40 + 90 * k * k) * (0.9 + 0.1 * flicker);
+            ctx.globalAlpha = 0.35 + 0.55 * k;
+            ctx.drawImage(core, -s, -s, s * 2, s * 2);
+        }
+        for (let i = 0; i < (enemy._deathGemsExploded || 0); i++) {
+            const pt = t - (i + 1) * 350;
+            if (pt < 0 || pt >= 520) continue;
+            const q = pt / 520;
+            const slot = enemy.slots[i];
+            const color = slot && slot.gem ? slot.gem.mid : '#f59e0b';
+            const ax = GOLIATH_SLOT_ANCHORS[i].x * trueScale, ay = GOLIATH_SLOT_ANCHORS[i].y * trueScale;
+            ctx.globalAlpha = 1 - q;
+            ctx.strokeStyle = color; ctx.lineWidth = 6 * (1 - q) + 1;
+            ctx.beginPath(); ctx.arc(ax, ay, 14 + q * 90, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(ax, ay, 8 + q * 55, 0, Math.PI * 2); ctx.stroke();
+            const burst = _getGlowSprite('rgba(255,255,255,0.95)', 48);
+            if (burst && q < 0.5) {
+                const s = 30 + q * 80;
+                ctx.globalAlpha = 1 - q * 2;
+                ctx.drawImage(burst, ax - s, ay - s, s * 2, s * 2);
+            }
+        }
+    } else if (enemy._deathPhase === 'crumble') {
+        if (t < 520) {
+            const q = t / 520;
+            const flash = _getGlowSprite('rgba(255,236,200,0.95)', 96);
+            if (flash) {
+                const s = 120 + q * 260;
+                ctx.globalAlpha = (1 - q) * (1 - q);
+                ctx.drawImage(flash, -s, -s, s * 2, s * 2);
+            }
+        }
+        for (let w = 0; w < 2; w++) {
+            const q = (t - w * 180) / 900;
+            if (q < 0 || q >= 1) continue;
+            ctx.globalAlpha = (1 - q) * (w ? 0.6 : 0.95);
+            ctx.strokeStyle = w ? '#ff9a3c' : '#ffe2a8'; ctx.lineWidth = (w ? 3 : 5) * (1 - q) + 1;
+            ctx.beginPath(); ctx.arc(0, 0, 40 + q * (w ? 260 : 340), 0, Math.PI * 2); ctx.stroke();
+        }
+        const rise = Math.min(1, t / GOLIATH_DEATH_CRUMBLE_DUR);
+        const soul = _getGlowSprite('rgba(255,210,140,0.9)', 48);
+        if (soul && rise < 1) {
+            const s = 46 * (1 - rise * 0.6);
+            ctx.globalAlpha = (1 - rise) * (0.8 + 0.2 * Math.sin(now / 60));
+            ctx.drawImage(soul, -s, -rise * 150 - s, s * 2, s * 2);
+            ctx.fillStyle = '#fffaf0';
+            ctx.beginPath(); ctx.arc(0, -rise * 150, 6 * (1 - rise) + 1, 0, Math.PI * 2); ctx.fill();
+        }
+    }
     ctx.restore();
 }
 
@@ -2587,6 +2718,7 @@ function _drawGoliath(enemy) {
         // hiệu ứng nên không cần thêm gì ở đây.
         if (enemy._deathPhase === 'crumble') {
             _drawGoliathDeathCrumble(enemy, now, trueScale);
+            _drawGoliathDeathFx(enemy, now, trueScale);
             ctx.restore();
             return;
         }
@@ -2660,6 +2792,7 @@ function _drawGoliath(enemy) {
             ctx.strokeStyle = '#443322'; ctx.lineWidth = 3; ctx.stroke();
             ctx.restore();
         }
+        if (enemy._deathPhase === 'core') _drawGoliathDeathFx(enemy, now, trueScale);
 
         // Absolute Verdict: vùng cảnh báo runway-light — 2 đường đỏ song song
         // 2 bên (như đèn viền đường băng), phát ra từ MẮT. Chỉ TRACK người

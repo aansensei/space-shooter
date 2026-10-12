@@ -1024,8 +1024,8 @@ function drawEnemy(enemy) {
         _drawNormalEnemy(enemy);
     }
 
-    // Shield bar
-    if (enemy.shield > 0) {
+    // Shield bar, hidden once a boss has started dying.
+    if (enemy.shield > 0 && !enemy._deathPhase) {
         const bw = enemy.size, bh = 5;
         const bx = enemy.x - bw / 2, by = enemy.y - enemy.size / 2 - 15;
         ctx.fillStyle = 'rgba(0,80,160,0.5)'; ctx.fillRect(bx, by, bw, bh);
