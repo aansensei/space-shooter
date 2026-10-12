@@ -356,6 +356,18 @@ function _goliathDebuffImmune(enemy) {
         && performance.now() < enemy._debuffImmuneEnd);
 }
 
+// Single way into the True Form death sequence, so the roar opens it no
+// matter which damage path landed the kill. Only the roar plays here; the
+// destruction sound waits for the body to break apart at the end of the
+// core phase.
+function _goliathBeginDeath(enemy) {
+    enemy._deathPhase = 'core';
+    enemy._deathPhaseTimer = 0;
+    enemy._deathGemsExploded = 0;
+    enemy.hp = 1;
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
+}
+
 function _goliathSettleLethalHp(enemy) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form') {
         enemy.hp = Math.max(0, enemy.hp);
@@ -364,14 +376,8 @@ function _goliathSettleLethalHp(enemy) {
     if (!enemy._unbrokenWillUsed) { enemy.hp = Math.max(1, enemy.hp); return; }
     if (enemy.hp > 0) return;
     if (enemy._deathPhase) { enemy.hp = Math.max(0, enemy.hp); return; }
-    enemy._deathPhase = 'core';
-    enemy._deathPhaseTimer = 0;
-    enemy._deathGemsExploded = 0;
-    enemy.hp = 1;
+    _goliathBeginDeath(enemy);
     enemy._markedForDeath = false;
-    // Only the roar plays here; the destruction sound waits for the body to
-    // break apart at the end of the core phase.
-    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
 }
 
 // Subtract HP from True Form through Unbroken Will and the floor above, for
@@ -593,11 +599,7 @@ function updateGoliath(enemy, deltaTime) {
         // actually gets decided, instead of chasing down every individual
         // bypass source one at a time.
         if (!enemy._unbrokenWillUsed && _goliathTryUnbrokenWill(enemy, 1)) return;
-        enemy._deathPhase = 'core';
-        enemy._deathPhaseTimer = 0;
-        enemy._deathGemsExploded = 0;
-        enemy.hp = 1;
-        if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
+        _goliathBeginDeath(enemy);
         _goliathUpdateDeathSequence(enemy, deltaTime, now);
         return;
     }

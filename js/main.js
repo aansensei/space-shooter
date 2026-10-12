@@ -363,10 +363,7 @@ function update(rawDeltaTime) {
         const _g = enemies[_gi];
         if (_g.type !== 'goliath' || _g.phase !== 'true_form') continue;
         if (!_g._deathPhase && _g.hp <= 0) {
-            _g._deathPhase = 'core';
-            _g._deathPhaseTimer = 0;
-            _g._deathGemsExploded = 0;
-            _g.hp = 1;
+            _goliathBeginDeath(_g);
         } else if ((_g._deathPhase === 'core' || _g._deathPhase === 'crumble') && _g.hp <= 0) {
             _g.hp = 1;
         }
@@ -931,10 +928,7 @@ function update(rawDeltaTime) {
         // chung trước khi chuỗi hiệu ứng chết theo pha kịp ghim hp=1. Đây là
         // lớp phòng thủ kép cùng với updateGoliath()'s own check bên dưới.
         if (enemy.type === 'goliath' && enemy.phase === 'true_form' && enemy.hp <= 0 && !enemy._deathPhase) {
-            enemy._deathPhase = 'core';
-            enemy._deathPhaseTimer = 0;
-            enemy._deathGemsExploded = 0;
-            enemy.hp = 1;
+            _goliathBeginDeath(enemy);
         }
 
         // Divine Fate petrification: the enemy's own movement, attacks and
