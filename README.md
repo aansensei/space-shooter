@@ -66,7 +66,7 @@ When **Glory for Justice** is active, all friendly damage is multiplied by **1.5
 
 ## Player Stats & Attacks
 
-Every friendly damage number below (and every Sigil/Sentinel number elsewhere in this doc) is expressed as a percentage of the player's own **ATK** stat, not a flat number — that's what stays constant across rebalances, not the raw damage. ATK starts at a base value and grows two ways: **+3%/wave up to Wave 20** (plateaus at +57%), and a flat bonus per equipped Sigil (each of the 13 grants a different amount, roughly 2-12%, weighted toward how offense-focused its kit is).
+Every friendly damage number below (and every Sigil/Sentinel number elsewhere in this doc) is expressed as a percentage of the player's own **ATK** stat, not a flat number — that's what stays constant across rebalances, not the raw damage. ATK starts at a base value and grows two ways: **+3%/wave up to Wave 18** (plateaus at +50%), and a flat bonus per equipped Sigil (each of the 13 grants a different amount, roughly 2-12%, weighted toward how offense-focused its kit is).
 
 **Auto-Fire** — Fires 5 bullets in a 45-degree spread every **135ms** (+20% vs base). Each bullet deals **16% ATK**. Bullet speed increased +20%. Each bullet independently rolls a **28% chance** to apply Vulnerability (Trọng Thương).
 
