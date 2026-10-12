@@ -717,8 +717,6 @@ function updateGoliath(enemy, deltaTime) {
         // (đóng/mở vòng pháp trận) — không để weave đè lên vị trí đã khoá.
         const inFractureTransition = enemy._fractureTeleportPhase === 'closing' || enemy._fractureTeleportPhase === 'opening';
         const weaveHeld = inPhantomCopy || inFractureTransition;
-        // True while this frame writes his position outright, from the weave or a teleport.
-        let _positionRebuilt = !weaveHeld;
         // The weave clock stops while he is held in place, so the path picks
         // up where it left off instead of jumping to wherever the clock got to.
         if (!weaveHeld) {
@@ -827,7 +825,6 @@ function updateGoliath(enemy, deltaTime) {
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-fracture-step', enemy._fractureFromX, enemy._fractureFromY);
                 enemy.x = enemy._fractureToX; enemy.y = enemy._fractureToY;
                 enemy._restX = enemy.x; enemy._restY = enemy.y;
-                _positionRebuilt = true;
                 enemy._fractureIronBodyHits = Math.min(4, enemy._fractureIronBodyHits + 4);
                 // Hậu-dịch-chuyển (NEW, 1.5s): +30% sát thương Goliath gây ra,
                 // +10% tốc độ bay, +15% hiệu quả heal/khiên (cộng dồn Tenacity).
@@ -848,14 +845,6 @@ function updateGoliath(enemy, deltaTime) {
                 enemy._weaveEnterY = enemy.y;
                 enemy._weaveEnterAt = now;
             }
-        }
-
-        // Dawn Herald's knockback is a recoil on top of wherever he stands. A frame
-        // that rebuilt his position takes the whole lift, a held frame only the change.
-        const _dauLift = enemy._dauLift || 0;
-        if (_dauLift || enemy._dauLiftApplied) {
-            enemy.y -= _positionRebuilt ? _dauLift : _dauLift - (enemy._dauLiftApplied || 0);
-            enemy._dauLiftApplied = _dauLift;
         }
 
         // Absolute Verdict: kênh 2.6s rồi phóng quả cầu xuyên phá (35% MaxHP

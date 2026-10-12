@@ -18,15 +18,15 @@ function _dauCanPush(e) {
 
 function _dauPush(e) {
     if (!_dauCanPush(e)) return;
-    // True Form Goliath rewrites his position from the weave path every frame,
-    // so he recoils through _dauLift and settles back instead of being moved.
-    const recoil = e.type === 'goliath' && e.phase === 'true_form';
-    if (!recoil && e.y <= e.size / 2) return;
+    // Two kinds of enemy cannot keep a push, so they recoil and settle back:
+    // True Form Goliath, who rewrites his position from the weave path every
+    // frame, and anything without room for the whole push below the top edge.
+    const recoil = (e.type === 'goliath' && e.phase === 'true_form') || e.y - e.size / 2 < DAU_KNOCKBACK_PX;
     for (let i = 0; i < _dauKnockbackMax; i++) {
         const k = window._dauKnockbacks[i];
         if (k.target) continue;
         k.target = e; k.age = 0; k.recoil = recoil;
-        k.distance = recoil ? DAU_KNOCKBACK_PX : Math.min(DAU_KNOCKBACK_PX, e.y - e.size / 2);
+        k.distance = DAU_KNOCKBACK_PX;
         e._dauPushFlashMs = DAU_KNOCKBACK_MS;
         return;
     }
@@ -53,6 +53,17 @@ function _dauAdvanceKnockback(deltaTime) {
         const movement = k.distance * ((1 - before) * (1 - before) - (1 - after) * (1 - after));
         if (e.y > e.size / 2) e.y -= Math.min(movement, e.y - e.size / 2);
         if (after >= 1) k.target = null;
+    }
+}
+
+// A recoil sits on top of the enemy's own position. _dauBeginFrame takes it off
+// before anything moves and this puts the current lift back once the enemy loop
+// is done, so no movement code ever reads or overwrites it.
+function _dauEndFrame() {
+    for (let i = 0; i < _dauKnockbackMax; i++) {
+        const k = window._dauKnockbacks[i], e = k.target;
+        if (!e || !k.recoil || e._dauLiftApplied || !e._dauLift) continue;
+        e.y -= e._dauLift; e._dauLiftApplied = e._dauLift;
     }
 }
 
@@ -310,6 +321,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
         if (e._dauSunMs > 0) e._dauSunMs = Math.max(0, e._dauSunMs - deltaTime);
         if (e._dauFlashMs > 0) e._dauFlashMs = Math.max(0, e._dauFlashMs - deltaTime);
         if (e._dauPushFlashMs > 0) e._dauPushFlashMs = Math.max(0, e._dauPushFlashMs - deltaTime);
+        if (e._dauLiftApplied) { e.y += e._dauLiftApplied; e._dauLiftApplied = 0; }
         if (e._dauRevealPending && !e._stealthed) {
             e._dauRevealPending = false; _dauEmit(2, e.x, e.y, 600);
         }
@@ -417,7 +429,7 @@ function _dauReset() {
             if (enemies[i]) {
                 enemies[i]._dauCrowId = 0; enemies[i]._dauSunMs = 0;
                 enemies[i]._dauFlashMs = 0; enemies[i]._dauRevealPending = false;
-                enemies[i]._dauPushFlashMs = 0; enemies[i]._dauLift = 0;
+                enemies[i]._dauPushFlashMs = 0; enemies[i]._dauLift = 0; enemies[i]._dauLiftApplied = 0;
                 if (enemies[i]._rootEnd === enemies[i]._dauPinEnd) enemies[i]._rootEnd = 0;
                 enemies[i]._dauPinEnd = 0;
             }

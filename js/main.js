@@ -2076,6 +2076,7 @@ function update(rawDeltaTime) {
             }
         }
     }
+    if (typeof _dauEndFrame === 'function') _dauEndFrame();
 
     // Checked once per frame regardless of enemies.length: lives can hit 0
     // from any loseLife() call site (playerTakesHit, boundary crossing,
