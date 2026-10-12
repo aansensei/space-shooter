@@ -78,7 +78,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
                         if (e.type === 'uriel' && e._camoPhase === 'stealthed') {
                             e._camoTimer = Math.max(e._camoTimer || 0, 1750);
                         }
-                        if (_dauCanReceiveDaybreak(e)) {
+                        if (_dauCanReceiveDaybreak(e) && ring.crowId === window._dauCrowId) {
                             e._dauCrowId = ring.crowId;
                         }
                     }
