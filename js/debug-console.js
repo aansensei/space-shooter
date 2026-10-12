@@ -564,6 +564,12 @@ window.debugSetYuukiBonus = function () {
         </div>
         <div style="opacity:0.5; font-size:10px;">Every button equips Leo first if it is missing. "Release" goes through the real Space path (Cancer first if both are ready, blocked while silenced). "Petrify 3s now" skips the meter but still starts the 8s rest; "Wave Petrify 5s" is the wave start version with no rest. "Clear State" empties the meter, rest, petrify and every Burn.</div>
       </div>
+      <div id="dbgDauSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
+        <div class="dbg-h" style="font-size:10px;">DAWN HERALD (DAU), DAYBREAK CROW</div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugDauCrow()">Trigger Crow Now</button>
+        </div>
+      </div>
     </div>
 
     <div class="dbg-section">
@@ -1475,6 +1481,13 @@ window.debugSetYuukiBonus = function () {
     window.debugLeoClear = function () {
         if (typeof _leoReset === 'function') _leoReset();
         _refreshLeoStateDisplay();
+    };
+    window.debugDauCrow = function () {
+        if (typeof _hasSigil === 'function' && !_hasSigil('dau') && typeof window.debugToggleSigil === 'function') {
+            window.debugToggleSigil('dau', true);
+            if (typeof syncSigilCheckboxes === 'function') syncSigilCheckboxes();
+        }
+        if (typeof _dauTriggerCrow === 'function') _dauTriggerCrow();
     };
     function _refreshLeoStateDisplay() {
         const el = document.getElementById('dbgLeoState');

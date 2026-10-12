@@ -12,6 +12,7 @@ function _hasAnyDebuff(enemy) {
     if (enemy._yogMark) return true;
     if (enemy._inDimensionalRift) return true;
     if (window._sthBurning && window._sthBurning.has(enemy)) return true;
+    if (typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy)) return true;
     return false;
 }
 
@@ -870,6 +871,13 @@ function dealDamage(enemy, source) {
             _skillDEvadeDmgBonus = Math.max(0, 0.10 - _evade);
             _evade = Math.max(0, _evade - 0.10);
         }
+        if (typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy)) {
+            if (enemy.type === 'goliath') {
+                _evade = Math.max(0, _evade - DAU_GOLIATH_EVADE_CUT);
+            } else {
+                _evade = 0;
+            }
+        }
         if (_evade > 0 && Math.random() < _evade) {
             if (enemy.type === 'goliath') {
                 // Riêng cho Goliath: vòng lục giác tím giãn ra + thân nhấp
@@ -987,6 +995,11 @@ function dealDamage(enemy, source) {
     // Soul Reaver, Dimensional Rift, Yog mark, ...) grants +25% dmg taken (docs/combat-scaling-rebalance.md Part 5)
     if (_hasBuff('ky_su_dien') && !isSentinel && _hasAnyDebuff(enemy)) {
         totalDamage = Math.ceil(totalDamage * 1.25);
+    }
+
+    // Sigil: Daybreak Crow (Dawn Herald) bonus incoming damage
+    if (!isSentinel && typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy)) {
+        totalDamage = Math.ceil(totalDamage * DAU_DAYBREAK_DAMAGE_MULT);
     }
 
     // Sigil: Death Mark — linear 0%→40% from 100%→21% HP; flat +50% at ≤20% (docs/combat-scaling-rebalance.md Part 5)
@@ -1518,7 +1531,9 @@ function dealDamage(enemy, source) {
     // hit through for more than a slice of its pool).
     if (enemy.type === 'uriel') {
         totalDamage = Math.min(totalDamage, Math.ceil(enemy.maxHp * 0.30));
-        if (typeof _urielOnHitLanded === 'function') _urielOnHitLanded(enemy);
+        if (typeof _urielOnHitLanded === 'function' && !(typeof _dauHasDaybreak === 'function' && _dauHasDaybreak(enemy))) {
+            _urielOnHitLanded(enemy);
+        }
     }
 
     // Inevitable (Leviathan): if hit > 20% maxHP, cap at 10% for 3s (2s cooldown after it ends)

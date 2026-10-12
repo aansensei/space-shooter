@@ -15,7 +15,7 @@ const SIGIL_ORDER = ['aries','taurus','gemini','cancer','leo','virgo',
 // currently just Great Sage) - appended into the random pool at run start
 // alongside SIGIL_ORDER (see window._sigilPool in main.js) rather than
 // interleaved into that fixed sequence.
-const SIGIL_EXTRA = ['than'];
+const SIGIL_EXTRA = ['than', 'dau'];
 
 // Vietnamese display text for the sigil picker (name/element/buff name/buff
 // desc only) — SIGIL_DEFS above stays English and is what all game LOGIC
@@ -134,6 +134,7 @@ function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'hiep_luc') { /* synergy — no separate state, keyed off doi_hinh_chien arrays */ }
     if (buffId === 'su_tu_hong')   { window._sthBurning = new Map(); }
     if (buffId === 'hoan_sinh')    { if (typeof lives !== 'undefined') lives = Math.min(15, lives + 4); } // docs/combat-scaling-rebalance.md Part 5
+    if (buffId === 'kim_ke_bao_hieu') { if (typeof _dauReset === 'function') _dauReset(); }
 }
 
 // Deck-deal intro: cards leave a single face-down stack at the panel's
@@ -937,7 +938,7 @@ function _drawFlyIn(p, elapsed) {
 // Cached per (sigil, color) since the same pair redraws every frame.
 const _zodiacGlyphImgs = {};
 const _zodiacTintCache = {};
-['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than'].forEach(id => {
+['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces', 'than', 'dau'].forEach(id => {
     const img = new Image();
     img.src = 'assets/images/game/zodiac/zodiac_' + id + '.png';
     img.decode().catch(() => {});

@@ -258,7 +258,7 @@ function _playerAtkWaveMult(wave) { return Math.min(1.5, 1 + 0.03 * Math.max(0, 
 const SIGIL_ATK_BONUS = {
     aries: 0.12, taurus: 0.04, gemini: 0.08, cancer: 0.04, leo: 0.11,
     virgo: 0.09, libra: 0.08, scorpio: 0.08, sagittarius: 0.11,
-    capricorn: 0.05, aquarius: 0.06, pisces: 0.05, than: 0.09,
+    capricorn: 0.05, aquarius: 0.06, pisces: 0.05, than: 0.09, dau: 0.07,
 };
 function _sigilAtkMult() {
     const sigils = (typeof window !== 'undefined' && window._playerSigils) || [];
@@ -292,6 +292,19 @@ const LEO_BURN_DURATION_MS = 3000;
 const LEO_WILDFIRE_TARGETS = 6;
 const LEO_WILDFIRE_RADIUS = 150;
 const LEO_FX_MAX = 96;
+
+// Dawn Herald: Daybreak Crow and Golden Needle (js/skills/sigil-dau.js).
+const DAU_CROW_INTERVAL_MS = 10000;
+const DAU_RING_SPEED = 0.9;
+const DAU_DAYBREAK_MS = 4000;
+const DAU_DAYBREAK_DAMAGE_MULT = 1.20;
+const DAU_GOLIATH_EVADE_CUT = 0.30;
+const DAU_NEEDLE_RETURN_MAX = 16;
+const DAU_NEEDLE_RETURN_ATK = 0.60;
+const DAU_STAR_NEEDLES = 7;
+const DAU_STAR_NEEDLE_ATK = 2.00;
+const DAU_PIN_MS = 1500;
+const DAU_FX_MAX = 64;
 
 // Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for
 // 1.5s, Leviathan's death laser cuts it by 20% while the player is on the beam

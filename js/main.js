@@ -402,6 +402,7 @@ function update(rawDeltaTime) {
     const dt = deltaTime / 16.67;
 
     _leoBeginFrame(deltaTime, currentTime);
+    if (typeof _dauBeginFrame === 'function') _dauBeginFrame(deltaTime, currentTime);
 
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
     gameElapsedTime += deltaTime;
@@ -3661,6 +3662,7 @@ function startGame() {
     window._yuushaReplenishLastCheck = 0; window._yuushaReplenishCooldownEnd = 0;
     window._coiMongEndTime = 0;
     _leoReset();
+    if (typeof _dauReset === 'function') _dauReset();
     window._tuyetLanStacks = 0;
     window._tuyetLanLastKill = 0;
     window._muiTenVangHitCount = 0;

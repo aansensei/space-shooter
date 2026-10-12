@@ -2564,6 +2564,7 @@ function draw(deltaTime) {
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
         if (typeof _drawLeoEffects === 'function') _drawLeoEffects();
+        if (typeof _drawDauRing === 'function') _drawDauRing();
         // his projectiles launch from inside his body and halo, so they draw
         // above him; underneath, a Verdict orb that struck a nearby Sentinel
         // could live and die entirely hidden, reading as a charge that never fired

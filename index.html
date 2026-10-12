@@ -2193,6 +2193,7 @@
             // Return to main menu from in-game
             window._returnToMainMenu = function () {
                 if (typeof _leoReset === 'function') _leoReset();
+                if (typeof _dauReset === 'function') _dauReset();
                 const _po = document.getElementById('pause-overlay');
                 if (_po) _po.style.display = 'none';
                 gamePaused = false;
@@ -2532,6 +2533,7 @@
     <script src="js/sigils/aquarius.js?v=20261012c"></script>
     <script src="js/sigils/pisces.js?v=20261012c"></script>
     <script src="js/sigils/than.js?v=20261012c"></script>
+    <script src="js/sigils/dau.js?v=20261013a"></script>
     <script src="js/yuusha-party.js?v=20260914b"></script>
     <script src="js/entities/core.js?v=20261012k"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
@@ -2549,6 +2551,7 @@
     <script src="js/skills/sigil-great-sage.js?v=20261010a"></script>
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
     <script src="js/skills/sigil-leo.js?v=20261010c"></script>
+    <script src="js/skills/sigil-dau.js?v=20261013a"></script>
     <script src="js/skills/skill-f.js?v=20261012b"></script>
     <script src="js/skills/skill-g.js?v=20261010b"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>

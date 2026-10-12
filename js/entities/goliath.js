@@ -349,6 +349,7 @@ function _goliathClearDebuffs(enemy) {
     enemy._yogMarkAccum = 0;
     enemy._inDimensionalRift = false;
     if (window._sthBurning) window._sthBurning.delete(enemy);
+    enemy._dauCrowId = 0;
 }
 
 function _goliathDebuffImmune(enemy) {
