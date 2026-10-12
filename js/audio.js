@@ -1048,7 +1048,7 @@
         _makePool('leviathan-perseverance', 'assets/audio/sfx/leviathan-perseverance.mp3', 2);
         _makePool('goliath-death',          'assets/audio/sfx/goliath-death.mp3',          1);
         _makePool('goliath-kill-stamp',     'assets/audio/sfx/goliath-kill-stamp.mp3',     4);
-        _makePool('goliath-kill-ambience',  'assets/audio/sfx/goliath-kill-ambience.mp3',  1);
+        _makePool('goliath-kill-ambience',  'assets/audio/sfx/goliath-kill-ambience.mp3',  1, true); // bypass duck so it stays clear
         _makePool('goliath-spawn',          'assets/audio/sfx/goliath-spawn.mp3',          1, true); // bypass duck so it stays clear, matches goliath-transform
         _makePool('goliath-corrupted-meteor', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 2);
         _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1);

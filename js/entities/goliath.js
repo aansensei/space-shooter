@@ -369,10 +369,9 @@ function _goliathSettleLethalHp(enemy) {
     enemy._deathGemsExploded = 0;
     enemy.hp = 1;
     enemy._markedForDeath = false;
-    if (window.AudioMgr) {
-        window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y);
-        window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
-    }
+    // Only the roar plays here; the destruction sound waits for the body to
+    // break apart at the end of the core phase.
+    if (window.AudioMgr) window.AudioMgr.playSfxAt('goliath-death-roar', enemy.x, enemy.y);
 }
 
 // Subtract HP from True Form through Unbroken Will and the floor above, for
@@ -1291,6 +1290,8 @@ function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
         if (t >= GOLIATH_DEATH_CORE_DUR) {
             enemy._deathPhase = 'crumble';
             enemy._deathPhaseTimer = 0;
+            // The body breaks apart now, so the destruction sound plays with it.
+            if (window.AudioMgr) { window.AudioMgr.stopGoliathIdle(); window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y); }
         }
     } else if (enemy._deathPhase === 'crumble') {
         // Kết thúc thẳng ngay khi đá rụng hết — không còn pha "hoá bụi" +
@@ -1298,7 +1299,6 @@ function _goliathUpdateDeathSequence(enemy, deltaTime, now) {
         if (t >= GOLIATH_DEATH_CRUMBLE_DUR) {
             enemy.hp = 0;
             enemy._markedForDeath = true;
-            if (window.AudioMgr) { window.AudioMgr.stopGoliathIdle(); window.AudioMgr.playSfxAt('goliath-death', enemy.x, enemy.y); }
         }
     }
 }
