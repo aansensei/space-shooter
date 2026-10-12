@@ -157,7 +157,7 @@
         'assets/audio/sfx/egregor-nullslash-slash.mp3', 'assets/audio/sfx/egregor-nullslash-windup.mp3', 'assets/audio/sfx/egregor-tempest-strike.mp3',
         'assets/audio/sfx/enemy-death.mp3', 'assets/audio/sfx/enemy-hit.wav', 'assets/audio/sfx/engine.mp3',
         'assets/audio/sfx/enuma-elish-charge.mp3', 'assets/audio/sfx/enuma-elish-release.mp3',
-        'assets/audio/sfx/gameover.mp3', 'assets/audio/sfx/gate-of-babylon.mp3', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 'assets/audio/sfx/goliath-death.mp3', 'assets/audio/sfx/goliath-kill-stamp.mp3',
+        'assets/audio/sfx/gameover.mp3', 'assets/audio/sfx/gate-of-babylon.mp3', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 'assets/audio/sfx/goliath-death.mp3', 'assets/audio/sfx/goliath-kill-stamp.mp3', 'assets/audio/sfx/goliath-kill-ambience.mp3',
         'assets/audio/sfx/goliath-death-roar.mp3', 'assets/audio/sfx/goliath-fracture-step.mp3', 'assets/audio/sfx/goliath-idle.mp3',
         'assets/audio/sfx/goliath-descend.mp3',
         'assets/audio/sfx/goliath-spawn.mp3', 'assets/audio/sfx/goliath-transform.mp3', 'assets/audio/sfx/goliath-verdict-charge.mp3',

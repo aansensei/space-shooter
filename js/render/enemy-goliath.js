@@ -2578,6 +2578,11 @@ function _drawGoliathKillBanner() {
     if (!(el >= 0) || el >= fadeOutEnd) return;
     const out = el < fadeOutStart ? 1 : Math.max(0, 1 - (el - fadeOutStart) / (fadeOutEnd - fadeOutStart));
     if (out <= 0.01) return;
+    // The ambience bed starts with the banner and dies out as it fades.
+    if (!g._killAmbienceSfx) {
+        g._killAmbienceSfx = true;
+        if (window.AudioMgr) window.AudioMgr.playSfx('goliath-kill-ambience');
+    }
     const fs = Math.round(Math.max(28, Math.min(canvas.height * 0.105, canvas.width * 0.15)));
     const P = _goliathKillBannerParts(fs, window._lang === 'vi');
     const n = P.glyphs.length;
