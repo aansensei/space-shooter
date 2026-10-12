@@ -1,6 +1,146 @@
 // Pisces: Space Journey. (c) 2024 An Nguyen. Licensed under the MIT License.
-// Dawn Herald sigil core mechanics: Daybreak Crow timer, expanding light ring,
-// bullet clearing, Uriel unstealth, and Daybreak mark tracking.
+// Dawn Herald uses simulation time and bounded reusable needle and effect pools.
+
+function _dauCanTarget(e) {
+    return !!(e && e.hp > 0 && !e._markedForDeath && !e._deathPhase && !e.inCoronation
+        && !e._stealthed && !e.type.startsWith('enemy_bullet')
+        && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'embryo');
+}
+
+const _dauKnockbackMax = 256;
+
+function _dauCanPush(e) {
+    return e && e.hp > 0 && !e.type.startsWith('enemy_bullet')
+        && e.type !== 'abyssal_chain' && e.type !== 'veilshroud_echo' && e.type !== 'thaelis_cocoon'
+        && !e.inCoronation && !e._stealthed && !e._deathPhase && !e.dyingLaserPhase;
+}
+
+function _dauPush(e) {
+    if (!_dauCanPush(e) || e.y <= e.size / 2) return;
+    for (let i = 0; i < _dauKnockbackMax; i++) {
+        const k = window._dauKnockbacks[i];
+        if (k.target) continue;
+        k.target = e; k.age = 0; k.distance = Math.min(DAU_KNOCKBACK_PX, e.y - e.size / 2);
+        e._dauPushFlashMs = DAU_KNOCKBACK_MS;
+        return;
+    }
+}
+
+function _dauAdvanceKnockback(deltaTime) {
+    for (let i = 0; i < _dauKnockbackMax; i++) {
+        const k = window._dauKnockbacks[i], e = k.target;
+        if (!e) continue;
+        if (!_dauCanPush(e) || enemies.indexOf(e) < 0) { k.target = null; continue; }
+        const before = Math.min(1, k.age / DAU_KNOCKBACK_MS);
+        k.age += deltaTime;
+        const after = Math.min(1, k.age / DAU_KNOCKBACK_MS);
+        const movement = k.distance * ((1 - before) * (1 - before) - (1 - after) * (1 - after));
+        if (e.y > e.size / 2) e.y -= Math.min(movement, e.y - e.size / 2);
+        if (after >= 1) k.target = null;
+    }
+}
+
+function _dauClosest(x, y) {
+    let target = null, best = Infinity;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!_dauCanTarget(e)) continue;
+        const dx = e.x - x, dy = e.y - y, d = dx * dx + dy * dy;
+        if (d < best) { best = d; target = e; }
+    }
+    return target;
+}
+
+function _dauEmit(kind, x, y, life, scale = 1) {
+    const fx = window._dauFx[window._dauFxCursor];
+    window._dauFxCursor = (window._dauFxCursor + 1) % DAU_FX_MAX;
+    fx.kind = kind; fx.x = x; fx.y = y; fx.age = 0; fx.life = life;
+    fx.scale = scale;
+}
+
+function _dauAddNeedle(kind, x, y, target, star) {
+    const list = window._dauNeedles;
+    if (list.length >= DAU_FX_MAX) return;
+    let needle = null;
+    for (let i = 0; i < DAU_FX_MAX; i++) {
+        if (!window._dauNeedlePool[i].active) { needle = window._dauNeedlePool[i]; break; }
+    }
+    if (!needle) return;
+    needle.active = true; needle.kind = kind; needle.x = x; needle.y = y;
+    needle.sx = x; needle.sy = y; needle.target = target; needle.age = 0;
+    needle.angle = -Math.PI / 2; needle.star = star; needle.pinMs = 0;
+    list.push(needle);
+}
+
+function _dauStarNeedles() {
+    const top = window._dauStarTargets;
+    top.length = 0;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!_dauCanTarget(e)) continue;
+        let pos = 0;
+        while (pos < top.length && top[pos].maxHp >= e.maxHp) pos++;
+        if (pos >= DAU_STAR_NEEDLES) continue;
+        if (top.length < DAU_STAR_NEEDLES) top.length++;
+        for (let j = top.length - 1; j > pos; j--) top[j] = top[j - 1];
+        top[pos] = e;
+    }
+    for (let i = 0; i < top.length; i++) {
+        _dauAddNeedle(1, canvas.width * (0.20 + i * 0.10), 28 + (i % 3) * 22, top[i], i);
+    }
+}
+
+function _dauPinAllowed(e) {
+    return e.type !== 'egregor' && e.type !== 'dargruel' && e.type !== 'leviathan'
+        && !(e.type === 'goliath' && e.phase === 'true_form')
+        && !(e.type === 'marchosias' && e.arcBarrier && e.arcBarrier.hp > 0)
+        && !(e.type === 'raphael' && e.raphaelInvulnerable) && !e._urielCCImmune
+        && !(typeof _goliathDebuffImmune === 'function' && _goliathDebuffImmune(e));
+}
+
+const _dauReturnSource = { damage: 0, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Golden Needle' };
+const _dauStarSource = { damage: 0, isTrueDamage: true, _noHitSfx: true, _statSrc: 'Golden Needle' };
+
+function _dauUpdateNeedles(deltaTime, currentTime) {
+    const list = window._dauNeedles;
+    for (let i = list.length - 1; i >= 0; i--) {
+        const n = list[i];
+        n.age += deltaTime;
+        let target = n.target;
+        if (n.kind === 2) {
+            n.pinMs -= deltaTime;
+            if (target && target.hp > 0 && n.pinMs > 0) { n.x = target.x; n.y = target.y; continue; }
+        } else {
+            if (!_dauCanTarget(target) || enemies.indexOf(target) < 0) {
+                target = n.kind === 0 ? _dauClosest(n.x, n.y) : null;
+                n.target = target;
+            }
+            if (target) {
+                if (n.kind === 1 && n.age < 350) continue;
+                const dx = target.x - n.x, dy = target.y - n.y, dist = Math.hypot(dx, dy);
+                const travel = (n.kind === 0 ? 1.4 : 3.6) * deltaTime;
+                n.angle = Math.atan2(dy, dx);
+                if (dist > travel + target.size * 0.25) {
+                    n.x += dx / dist * travel; n.y += dy / dist * travel;
+                    continue;
+                }
+                const source = n.kind === 0 ? _dauReturnSource : _dauStarSource;
+                source.damage = (n.kind === 0 ? DAU_NEEDLE_RETURN_ATK : DAU_STAR_NEEDLE_ATK) * player.atk;
+                dealDamage(target, source);
+                _dauEmit(1, target.x, target.y, 360);
+                if (window.AudioMgr) window.AudioMgr.playSfxAt('blood-arrow-impact', target.x, target.y);
+                if (n.kind === 1 && _dauPinAllowed(target)) {
+                    target._rootEnd = currentTime + DAU_PIN_MS;
+                    target._dauPinEnd = target._rootEnd;
+                    n.kind = 2; n.pinMs = DAU_PIN_MS; n.x = target.x; n.y = target.y;
+                    continue;
+                }
+            }
+        }
+        n.active = false; n.target = null;
+        list[i] = list[list.length - 1]; list.pop();
+    }
+}
 
 function _dauCanReceiveDaybreak(e) {
     if (!e || e.hp <= 0) return false;
@@ -20,6 +160,11 @@ function _dauTriggerCrow() {
     window._dauCrowCounter = (window._dauCrowCounter || 0) + 1;
     window._dauCrowId = window._dauCrowCounter;
     window._dauDaybreakMs = DAU_DAYBREAK_MS;
+    window._dauBurstMs = 0;
+    window._dauBurstX = player.x; window._dauBurstY = player.y;
+    if (window.AudioMgr) window.AudioMgr.playSfx('dau-crow');
+    if (typeof _setShake === 'function' && (window._gfxLevel || 0) < 3) _setShake(7, 240);
+    if (_hasBuff('tu_hoa_cham')) _dauStarNeedles();
 
     const px = (typeof player !== 'undefined' && Number.isFinite(player.x))
         ? player.x
@@ -39,6 +184,7 @@ function _dauTriggerCrow() {
         y: py,
         radius: 0,
         maxRadius: maxR,
+        returns: 0,
         _hitEnemies: new Set(),
     });
 }
@@ -50,6 +196,22 @@ function _dauBeginFrame(deltaTime, currentTime) {
         || (typeof window !== 'undefined' && (window._sigilPicker || window._kanadeCutscene))) return;
 
     window._dauDaybreakMs = Math.max(0, (window._dauDaybreakMs || 0) - deltaTime);
+    window._dauClock += deltaTime;
+    _dauAdvanceKnockback(deltaTime);
+    window._dauBurstMs += deltaTime;
+    for (let i = 0; i < DAU_FX_MAX; i++) {
+        const fx = window._dauFx[i];
+        if (fx.age < fx.life) fx.age += deltaTime;
+    }
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (e._dauSunMs > 0) e._dauSunMs = Math.max(0, e._dauSunMs - deltaTime);
+        if (e._dauFlashMs > 0) e._dauFlashMs = Math.max(0, e._dauFlashMs - deltaTime);
+        if (e._dauPushFlashMs > 0) e._dauPushFlashMs = Math.max(0, e._dauPushFlashMs - deltaTime);
+        if (e._dauRevealPending && !e._stealthed) {
+            e._dauRevealPending = false; _dauEmit(2, e.x, e.y, 600);
+        }
+    }
     window._dauCrowTimer = (window._dauCrowTimer || 0) + deltaTime;
     if (window._dauCrowTimer >= DAU_CROW_INTERVAL_MS) {
         const remainder = window._dauCrowTimer % DAU_CROW_INTERVAL_MS;
@@ -58,6 +220,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
     }
 
     const rings = window._dauRings;
+    _dauUpdateNeedles(deltaTime, currentTime);
     if (!rings || !rings.length) return;
 
     for (let i = rings.length - 1; i >= 0; i--) {
@@ -73,13 +236,24 @@ function _dauBeginFrame(deltaTime, currentTime) {
                 if (d <= ring.radius && (previousRadius === 0 || d > previousRadius)) {
                     ring._hitEnemies.add(e);
                     if (e.type && e.type.startsWith('enemy_bullet')) {
+                        if (e.hp <= 0) continue;
                         e.hp = 0;
+                        _dauEmit(0, e.x, e.y, 420);
+                        if (_hasBuff('tu_hoa_cham') && ring.returns < DAU_NEEDLE_RETURN_MAX) {
+                            ring.returns++;
+                            _dauAddNeedle(0, e.x, e.y, _dauClosest(e.x, e.y), -1);
+                        }
                     } else {
+                        _dauPush(e);
+                        if (_dauCanPush(e)) _dauEmit(3, e.x, e.y, 420, Math.max(0.7, e.size / 60));
                         if (e.type === 'uriel' && e._camoPhase === 'stealthed') {
                             e._camoTimer = Math.max(e._camoTimer || 0, 1750);
+                            e._dauRevealPending = true;
                         }
                         if (_dauCanReceiveDaybreak(e) && ring.crowId === window._dauCrowId) {
                             e._dauCrowId = ring.crowId;
+                            e._dauSunMs = window._dauDaybreakMs + 300;
+                            e._dauFlashMs = 180;
                         }
                     }
                 }
@@ -97,27 +271,38 @@ function _dauReset() {
     window._dauCrowCounter = 0;
     window._dauCrowId = 0;
     window._dauDaybreakMs = 0;
-    window._dauRings = [];
-    if (typeof enemies !== 'undefined') {
-        for (let i = 0; i < enemies.length; i++) {
-            if (enemies[i]) enemies[i]._dauCrowId = 0;
+    window._dauClock = 0; window._dauBurstMs = 2000;
+    window._dauBurstX = 0; window._dauBurstY = 0; window._dauFxCursor = 0;
+    window._dauRings = window._dauRings || []; window._dauRings.length = 0;
+    window._dauNeedles = window._dauNeedles || []; window._dauNeedles.length = 0;
+    window._dauStarTargets = window._dauStarTargets || []; window._dauStarTargets.length = 0;
+    if (!window._dauFx) {
+        window._dauFx = []; window._dauNeedlePool = [];
+        for (let i = 0; i < DAU_FX_MAX; i++) {
+            window._dauFx.push({ kind: 0, x: 0, y: 0, age: 0, life: 0, scale: 1 });
+            window._dauNeedlePool.push({ active: false, target: null });
         }
     }
-}
-
-function _drawDauRing() {
-    const rings = window._dauRings;
-    if (!rings || !rings.length || typeof ctx === 'undefined') return;
-    ctx.save();
-    ctx.strokeStyle = '#FFD23F';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < rings.length; i++) {
-        const ring = rings[i];
-        ctx.beginPath();
-        ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
-        ctx.stroke();
+    if (!window._dauKnockbacks) {
+        window._dauKnockbacks = [];
+        for (let i = 0; i < _dauKnockbackMax; i++) window._dauKnockbacks.push({ target: null, age: 0, distance: 0 });
     }
-    ctx.restore();
+    for (let i = 0; i < _dauKnockbackMax; i++) window._dauKnockbacks[i].target = null;
+    for (let i = 0; i < DAU_FX_MAX; i++) {
+        window._dauFx[i].life = 0;
+        window._dauNeedlePool[i].active = false; window._dauNeedlePool[i].target = null;
+    }
+    if (typeof enemies !== 'undefined') {
+        for (let i = 0; i < enemies.length; i++) {
+            if (enemies[i]) {
+                enemies[i]._dauCrowId = 0; enemies[i]._dauSunMs = 0;
+                enemies[i]._dauFlashMs = 0; enemies[i]._dauRevealPending = false;
+                enemies[i]._dauPushFlashMs = 0;
+                if (enemies[i]._rootEnd === enemies[i]._dauPinEnd) enemies[i]._rootEnd = 0;
+                enemies[i]._dauPinEnd = 0;
+            }
+        }
+    }
 }
 
 _dauReset();

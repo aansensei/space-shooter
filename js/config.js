@@ -295,10 +295,12 @@ const LEO_FX_MAX = 96;
 
 // Dawn Herald: Daybreak Crow and Golden Needle (js/skills/sigil-dau.js).
 const DAU_CROW_INTERVAL_MS = 10000;
-const DAU_RING_SPEED = 0.9;
+const DAU_RING_SPEED = 0.65;
 const DAU_DAYBREAK_MS = 4000;
 const DAU_DAYBREAK_DAMAGE_MULT = 1.20;
 const DAU_GOLIATH_EVADE_CUT = 0.30;
+const DAU_KNOCKBACK_PX = 36;
+const DAU_KNOCKBACK_MS = 220;
 const DAU_NEEDLE_RETURN_MAX = 16;
 const DAU_NEEDLE_RETURN_ATK = 0.60;
 const DAU_STAR_NEEDLES = 7;

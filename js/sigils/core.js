@@ -995,14 +995,12 @@ function _drawZodiacGlyph(id, cx, cy, r, color) {
     const tinted = _getTintedZodiacGlyph(id, color, size);
     ctx.save();
     if (tinted) {
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 9;
+        if (id !== 'dau') { ctx.shadowColor = color; ctx.shadowBlur = 9; }
         ctx.drawImage(tinted, cx - size / 2, cy - size / 2, size, size);
     } else {
         // Sprite not decoded yet (first instant after page load) - a plain
         // glowing dot so the glyph never goes fully invisible.
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 6;
+        if (id !== 'dau') { ctx.shadowColor = color; ctx.shadowBlur = 6; }
         ctx.fillStyle = color;
         ctx.beginPath(); ctx.arc(cx, cy, r * 0.3, 0, Math.PI * 2); ctx.fill();
     }

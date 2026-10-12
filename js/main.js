@@ -922,6 +922,8 @@ function update(rawDeltaTime) {
 
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
+        const _dauPinned = enemy._dauPinEnd > currentTime && typeof _dauPinAllowed === 'function' && _dauPinAllowed(enemy);
+        const _dauPinX = enemy.x, _dauPinY = enemy.y;
 
         // GOLIATH True Form: bắt hp<=0 NGAY ĐẦU vòng lặp, trước MỌI xử lý
         // khác trong frame này — không để bất kỳ đoạn code nào (kể cả những
@@ -1958,6 +1960,8 @@ function update(rawDeltaTime) {
                 _goliathTrackResourceGain(enemy, enemy.hp - _hpBefore);
             }
         }
+
+        if (_dauPinned) { enemy.x = _dauPinX; enemy.y = _dauPinY; }
 
         if (enemy.hp <= 0) {
             // LEVIATHAN: laser đã spawn trong dealDamage → die bình thường

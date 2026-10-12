@@ -2265,6 +2265,7 @@ function draw(deltaTime) {
     // Background full canvas
     drawSpaceBackground(deltaTime);
     if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
+    if (typeof _drawDauRing === 'function') _drawDauRing();
 
     if (gameState === "playing" && skillShiftActive) drawYogSothothDomain();
 
@@ -2329,6 +2330,7 @@ function draw(deltaTime) {
         // Blood Arrow's impact bloom draws AFTER enemies so it sits layered
         // on top of whatever it just hit, instead of hiding underneath it.
         drawSolArrowLilies();
+        if (typeof _drawDauStatus === 'function') _drawDauStatus();
         if (typeof _drawBloodArrowTargetRings === 'function') _drawBloodArrowTargetRings();
         _drawVineBinds(); // Phōtokrystos DNT Vine Bind — growth + slow aura, on top of rooted enemies
         if (window._usePixi && window._pixiDrawBullets) {
@@ -2419,6 +2421,8 @@ function draw(deltaTime) {
         if (skillDCharging) drawSkillDCharging();
         if (charging) drawChargeMeter();
         if (skillShiftActive) drawSkillShiftEffects();
+
+        if (typeof _drawDauHud === 'function') _drawDauHud();
 
         // TOP LAYER, ALWAYS VISIBLE: enemy bullets, plus the two fast
         // player-facing dodge hazards that used to be able to get buried
@@ -2564,7 +2568,6 @@ function draw(deltaTime) {
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
         if (typeof _drawLeoEffects === 'function') _drawLeoEffects();
-        if (typeof _drawDauRing === 'function') _drawDauRing();
         // his projectiles launch from inside his body and halo, so they draw
         // above him; underneath, a Verdict orb that struck a nearby Sentinel
         // could live and die entirely hidden, reading as a charge that never fired

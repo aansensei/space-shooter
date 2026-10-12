@@ -66,7 +66,7 @@ When **Glory for Justice** is active, all friendly damage is multiplied by **1.5
 
 ## Player Stats & Attacks
 
-Every friendly damage number below (and every Sigil/Sentinel number elsewhere in this doc) is expressed as a percentage of the player's own **ATK** stat, not a flat number — that's what stays constant across rebalances, not the raw damage. ATK starts at a base value and grows two ways: **+3%/wave up to Wave 18** (plateaus at +50%), and a flat bonus per equipped Sigil (each of the 13 grants a different amount, roughly 2-12%, weighted toward how offense-focused its kit is).
+Every friendly damage number below (and every Sigil/Sentinel number elsewhere in this doc) is expressed as a percentage of the player's own **ATK** stat, which stays constant across rebalances. ATK starts at a base value and grows two ways: **+3%/wave up to Wave 18** (plateaus at +50%), and a flat bonus per equipped Sigil (each of the 14 grants a different amount, roughly 2 to 12%, weighted toward its offensive abilities).
 
 **Auto-Fire** — Fires 5 bullets in a 45-degree spread every **135ms** (+20% vs base). Each bullet deals **16% ATK**. Bullet speed increased +20%. Each bullet independently rolls a **28% chance** to apply Vulnerability (Trọng Thương).
 
@@ -350,6 +350,16 @@ Activates Glory for Justice immediately. Spawns Energy Orbs at enemy kill locati
 ## Sigils
 
 Every wave 5 and wave 10, a sigil-pick screen offers 4 random choices from the full pool; picking one grants **both** of its buffs permanently for the rest of the run, and that sigil cannot be offered again. Twelve entries in the pool are tied to the Western zodiac signs (Aries through Pisces). **Great Sage** is the first entry of a separate, planned "Vietnamese Zodiac" (12 con giáp) set, drawn from its own pool alongside the zodiac signs rather than replacing any of them. Element: Earth (its 72 Transformations map to the 72 Earthly Fiends of Chinese numerology, not to any metal).
+
+### Dawn Herald: Mão Nhật Tinh Quan
+
+The second Vietnamese Zodiac sigil is **Dậu**, element **Metal (Kim)**, color **#FFD23F**, with **+7% ATK**.
+
+**Daybreak Crow (SPEC):** every 10s of active simulation time, a light ring clears enemy bullets, shoves enemies upward by **36px over 220ms** as a **Dominant** force, and reveals camouflaged Uriel. The shove slows toward the end, moves CC immune enemies and Goliath during Unbroken Will immunity, and respects the top edge. Stealth, coronation, chains, echoes, cocoons and death sequences are excluded. Enemies touched receive Daybreak for the remainder of a global 4s window: +20% incoming damage and no body evade. Goliath loses 30 percentage points of evade. Uriel's landed hits still permanently erode his evade by 5 percentage points down to 30%, and ten hits still trigger Camouflage. Debuff immunity and separate barriers keep their native rules. Pause, the sigil picker and Kanade's cutscene hold the clock.
+
+**Golden Needle (ATK):** each erased bullet returns from its position as a homing needle, up to 16 per crow, for **60% ATK true damage**. A dead target is replaced by the nearest living target. Each crow also sends one star needle at each of the **7 strongest enemies by Max HP**, after a **350ms warning**, for **200% ATK true damage** and a **1.5s pin**. Fewer targets get fewer needles. CC immunity prevents the pin.
+
+Light gathers progressively throughout the 10s cycle: quiet embers, orbiting lights and feathers, a faint rooster, then a contracting ring and faster pulses before the crow. A fiery rooster rises against a large sun, broad sunrise rays and a warm dawn, followed by soft layered light ripples, Dominant impact streaks and luminous needles. Full and Medium retain the whole sequence. Low removes the large sun, wing edge flames, echo ring, impact speed streaks, charge silhouette, convergence streaks and needle tails, and halves particles. Minimum and Performance retain one ring, needle impacts, Daybreak suns and the charge HUD arc. The glyph is white transparent line art tinted by the game. The crow sound awaits its supplied audio file; needle hits reuse the existing impact cue.
 
 ### Great Sage — Đấu Chiến Thắng Phật
 
