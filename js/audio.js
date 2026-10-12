@@ -416,7 +416,7 @@
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
         'raphael-idle': 1.0, 'raphael-wisdom-charge': 1.0, 'raphael-wisdom-launch': 1.15, 'raphael-wisdom-impact': 1.1,
-        'uriel-idle': 1.0, 'uriel-sword-launch': 1.15, 'uriel-death-roar': 1.15,
+        'uriel-idle': 1.0, 'uriel-sword-launch': 1.15, 'uriel-death-roar': 1.0,
         'uriel-sword-windup': 1.15, 'uriel-sword-impact': 1.15,
         'uriel-sword-hover': 0.6, // wind texture while the blade is actually in flight, not a lead cue
         'uriel-sword-launch-burst': 1.15, // layered under uriel-sword-launch for extra punch
@@ -437,6 +437,14 @@
     // rather than disappearing entirely.
     const POS_MAX_RANGE_FRAC = 0.55;
     const POS_MIN_GAIN = 0.12;
+    // Boss story beats: death roars, Goliath arriving, transforming, refusing
+    // to die and breaking apart. A boss sits at the far end of the screen, so
+    // falloff would leave these at the floor. They play at full level and are
+    // never dropped at the voice cap. Each fires a few times per match.
+    const BOSS_CUE_SFX = new Set([
+        'leviathan-death-roar', 'goliath-death-roar', 'egregor-death-roar', 'uriel-death-roar',
+        'goliath-death', 'goliath-spawn', 'goliath-transform', 'goliath-unbroken-wave',
+    ]);
     function _distanceGain(x, y) {
         if (typeof player === 'undefined' || typeof canvas === 'undefined') return 1;
         const dist = Math.hypot(x - player.x, y - player.y);
@@ -651,10 +659,11 @@
         if (_timeFrozen) return;
         const p = state.pool[key];
         if (!p) return;
-        const g = sfxGain(key) * _distanceGain(x, y);
+        const cue = BOSS_CUE_SFX.has(key);
+        const g = sfxGain(key) * (cue ? 1 : _distanceGain(x, y));
         if (g <= 0.005) return;
         if (_sfxTooSoon(key)) return;
-        _playVoice(p.src, g, p.bypass, true);
+        _playVoice(p.src, g, p.bypass, !cue);
     }
 
     // Loop controls for sustained sfx (charging, laser, crawl, idle, ...). Idempotent.
@@ -1025,7 +1034,7 @@
         _makePool('dimension-break',  'assets/audio/sfx/dimension-break.mp3',  2);
         _makePool('egregor-nullslash-slash', 'assets/audio/sfx/egregor-nullslash-slash.mp3', 2);
         _makePool('egregor-nullslash-hit',   'assets/audio/sfx/egregor-nullslash-hit.mp3',   2);
-        _makePool('egregor-death-roar',      'assets/audio/sfx/egregor-death-roar.mp3',      1);
+        _makePool('egregor-death-roar',      'assets/audio/sfx/egregor-death-roar.mp3',      1, true); // bypass duck so it stays clear
         _makePool('egregor-tempest-strike',  'assets/audio/sfx/egregor-tempest-strike.mp3',  2);
         _makePool('chain-lightning',         'assets/audio/sfx/chain-lightning.mp3',         4);
         _makePool('photokrystos-summon-converge', 'assets/audio/sfx/photokrystos-summon-converge.mp3', 1);
@@ -1046,13 +1055,13 @@
         _makePool('goliath-fracture-step',  'assets/audio/sfx/goliath-fracture-step.mp3',  2);
         _makePool('goliath-verdict-impact', 'assets/audio/sfx/goliath-verdict-impact.mp3', 2);
         _makePool('leviathan-perseverance', 'assets/audio/sfx/leviathan-perseverance.mp3', 2);
-        _makePool('goliath-death',          'assets/audio/sfx/goliath-death.mp3',          1);
+        _makePool('goliath-death',          'assets/audio/sfx/goliath-death.mp3',          1, true); // bypass duck so it stays clear
         _makePool('goliath-kill-stamp',     'assets/audio/sfx/goliath-kill-stamp.mp3',     4);
         _makePool('goliath-kill-ambience',  'assets/audio/sfx/goliath-kill-ambience.mp3',  1, true); // bypass duck so it stays clear
         _makePool('goliath-spawn',          'assets/audio/sfx/goliath-spawn.mp3',          1, true); // bypass duck so it stays clear, matches goliath-transform
         _makePool('goliath-corrupted-meteor', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 2);
-        _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1);
-        _makePool('leviathan-death-roar',    'assets/audio/sfx/leviathan-death-roar.mp3',    1);
+        _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1, true); // bypass duck so it stays clear
+        _makePool('leviathan-death-roar',    'assets/audio/sfx/leviathan-death-roar.mp3',    1, true); // bypass duck so it stays clear
         _makePool('uriel-sword-launch',     'assets/audio/sfx/uriel-sword-launch.mp3',     2);
         _makePool('uriel-sword-launch-burst', 'assets/audio/sfx/uriel-sword-launch-burst.mp3', 2);
         _makePool('uriel-sword-windup',     'assets/audio/sfx/uriel-sword-windup.mp3',     2);
@@ -1060,7 +1069,7 @@
         _makePool('uriel-camo-vanish',      'assets/audio/sfx/uriel-camo-vanish.mp3',      1);
         _makePool('uriel-camo-reappear',    'assets/audio/sfx/uriel-camo-reappear.mp3',    1);
         _makePool('uriel-barrier-spawn',    'assets/audio/sfx/uriel-barrier-spawn.mp3',    1);
-        _makePool('uriel-death-roar',       'assets/audio/sfx/uriel-death-roar.mp3',       1);
+        _makePool('uriel-death-roar',       'assets/audio/sfx/uriel-death-roar.mp3',       1, true); // bypass duck so it stays clear
         _makePool('raphael-wisdom-charge',  'assets/audio/sfx/raphael-wisdom-charge.mp3',  2);
         _makePool('raphael-wisdom-launch',  'assets/audio/sfx/raphael-wisdom-launch.mp3',  2);
         _makePool('raphael-wisdom-impact',  'assets/audio/sfx/raphael-wisdom-impact.mp3',  3);
