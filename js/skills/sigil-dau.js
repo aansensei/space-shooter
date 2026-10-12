@@ -32,7 +32,9 @@ function _dauTriggerCrow() {
         : 1000;
 
     window._dauRings = window._dauRings || [];
+    if (window._dauRings.length >= DAU_FX_MAX) window._dauRings.shift();
     window._dauRings.push({
+        crowId: window._dauCrowId,
         x: px,
         y: py,
         radius: 0,
@@ -85,7 +87,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
                             e._camoTimer = Math.max(e._camoTimer || 0, 1750);
                         }
                         if (_dauCanReceiveDaybreak(e)) {
-                            e._dauCrowId = window._dauCrowId;
+                            e._dauCrowId = ring.crowId;
                         }
                     }
                 }
