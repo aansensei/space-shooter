@@ -1771,6 +1771,11 @@ function dealDamage(enemy, source) {
         }
     }
 
+    // Divine Fate: every hit that lands on a Digiform enemy charges the meter.
+    if (enemy.type === 'goliath' && !enemy._deathPhase && _hpDamageDealt + _shieldDamageDealt > 0) {
+        _leoChargeFate(LEO_FATE_DIGIFORM_HIT_CHARGE);
+    }
+
     // Pisces Dream Realm: enemies marked by black hole accumulate the
     // actual HP+shield loss from this hit (docs/combat-scaling-rebalance.md
     // Part 5 - was the pre-shield raw damage attempt, which could overcount
