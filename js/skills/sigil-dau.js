@@ -58,6 +58,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
 
     for (let i = rings.length - 1; i >= 0; i--) {
         const ring = rings[i];
+        const previousRadius = ring.radius;
         ring.radius += DAU_RING_SPEED * deltaTime;
 
         if (typeof enemies !== 'undefined') {
@@ -65,7 +66,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
                 const e = enemies[j];
                 if (!e || ring._hitEnemies.has(e)) continue;
                 const d = Math.hypot(e.x - ring.x, e.y - ring.y);
-                if (d <= ring.radius) {
+                if (d <= ring.radius && (previousRadius === 0 || d > previousRadius)) {
                     ring._hitEnemies.add(e);
                     if (e.type && e.type.startsWith('enemy_bullet')) {
                         e.hp = 0;
