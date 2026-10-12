@@ -2613,6 +2613,12 @@ function _drawGoliathKillBanner() {
         const t = el - (land - GOLIATH_KILL_STAMP_DROP);
         if (t < 0) continue;
         const gy = top + P.step * (i + 0.5);
+        // The stamp sound peaks about 85ms in, so it starts that much before
+        // the character lands.
+        if (t >= GOLIATH_KILL_STAMP_DROP - 85 && !(g._killStampSfx & (1 << i))) {
+            g._killStampSfx = (g._killStampSfx || 0) | (1 << i);
+            if (window.AudioMgr) window.AudioMgr.playSfx('goliath-kill-stamp');
+        }
         if (t < GOLIATH_KILL_STAMP_DROP) {
             const k = t / GOLIATH_KILL_STAMP_DROP, kk = k * k;
             const sc = (2.3 - 1.3 * kk) * drift, s = P.gs * sc;

@@ -412,7 +412,7 @@
         'dargruel-chain-launch': 1.0, 'dargruel-chain-root': 1.0,
         'metal-hit': 1.0, 'phantom-strike': 1.0, 'goliath-transform': 1.0,
         'goliath-idle': 1.0, 'goliath-fracture-step': 1.0, 'goliath-verdict-impact': 1.0, 'goliath-verdict-charge': 1.0,
-        'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0,
+        'leviathan-perseverance': 1.0, 'goliath-death': 1.0, 'goliath-spawn': 1.0, 'goliath-kill-stamp': 1.0,
         'goliath-corrupted-meteor': 1.0, 'goliath-unbroken-wave': 1.0,
         'goliath-death-roar': 1.0, 'leviathan-death-roar': 1.0, 'leviathan-idle': 1.0,
         'raphael-idle': 1.0, 'raphael-wisdom-charge': 1.0, 'raphael-wisdom-launch': 1.15, 'raphael-wisdom-impact': 1.1,
@@ -1047,6 +1047,7 @@
         _makePool('goliath-verdict-impact', 'assets/audio/sfx/goliath-verdict-impact.mp3', 2);
         _makePool('leviathan-perseverance', 'assets/audio/sfx/leviathan-perseverance.mp3', 2);
         _makePool('goliath-death',          'assets/audio/sfx/goliath-death.mp3',          1);
+        _makePool('goliath-kill-stamp',     'assets/audio/sfx/goliath-kill-stamp.mp3',     4);
         _makePool('goliath-spawn',          'assets/audio/sfx/goliath-spawn.mp3',          1, true); // bypass duck so it stays clear, matches goliath-transform
         _makePool('goliath-corrupted-meteor', 'assets/audio/sfx/goliath-corrupted-meteor.mp3', 2);
         _makePool('goliath-death-roar',      'assets/audio/sfx/goliath-death-roar.mp3',      1);
