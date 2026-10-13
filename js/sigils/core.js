@@ -703,6 +703,27 @@ function _sigilRerollRect(L, yOff) {
     return { x: confirmBtn.x + confirmBtn.w + gap, y: confirmBtn.y, w, h };
 }
 
+// The element in the sigil's colour with the flat ATK it grants beside it,
+// centred as one line. The number comes straight from SIGIL_ATK_BONUS.
+function _drawSigilElementLine(sigilId, def, cx, y, fontPx) {
+    const bonus = SIGIL_ATK_BONUS[sigilId] || 0;
+    const plain = `${fontPx}px "Courier New", monospace`;
+    ctx.font = plain;
+    ctx.fillStyle = def.color;
+    if (!bonus) { ctx.fillText(def.element, cx, y); return; }
+    const left = def.element + ' \u00b7 ', atk = `+${Math.round(bonus * 100)}% ATK`;
+    const leftW = ctx.measureText(left).width;
+    ctx.font = 'bold ' + plain;
+    const startX = cx - (leftW + ctx.measureText(atk).width) / 2;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffe9a8';
+    ctx.fillText(atk, startX + leftW, y);
+    ctx.font = plain;
+    ctx.fillStyle = def.color;
+    ctx.fillText(left, startX, y);
+    ctx.textAlign = 'center';
+}
+
 function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, compact) {
     const x = cx - w / 2, y = cy - h / 2;
     const [r, g, b] = _hexRgb3(def.color);
@@ -749,9 +770,7 @@ function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, 
     ctx.font = `bold ${compact ? 11 : 13}px "Courier New", monospace`;
     ctx.fillText(def.name, cx, compact ? y + 62 : y + 116);
 
-    ctx.fillStyle = `rgba(${r},${g},${b},1.0)`;
-    ctx.font = `${compact ? 9 : 10}px "Courier New", monospace`;
-    ctx.fillText(def.element, cx, compact ? y + 73 : y + 131);
+    _drawSigilElementLine(sigilId, def, cx, compact ? y + 73 : y + 131, compact ? 9 : 10);
 
     ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
     ctx.lineWidth = 0.8;
@@ -798,9 +817,7 @@ function _drawSigilCardMobile(cx, cy, w, h, sigilId, def, now) {
     ctx.font = `bold 17px "Courier New", monospace`;
     ctx.fillText(def.name, cx, y + 84);
 
-    ctx.fillStyle = `rgba(${r},${g},${b},1.0)`;
-    ctx.font = `11px "Courier New", monospace`;
-    ctx.fillText(def.element, cx, y + 100);
+    _drawSigilElementLine(sigilId, def, cx, y + 100, 11);
 
     ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
     ctx.lineWidth = 0.8;
