@@ -250,15 +250,16 @@ function _atkWaveMult(wave) { return 1 + 0.02 * Math.min(15, Math.max(0, wave - 
 // +3% per wave, capped at +50% from wave 18 on.
 function _playerAtkWaveMult(wave) { return Math.min(1.5, 1 + 0.03 * Math.max(0, wave - 1)); }
 
-// Per-sigil ATK bonus (per AanSensei): each of the 13 sigils grants a
-// different flat percentage bump to player.atk on top of everything else,
-// weighted toward how offense-focused that sigil's own theme is (Aries/
-// Sagittarius highest, Taurus/Cancer's support-and-defense kits lowest).
+// Per-sigil ATK bonus (per AanSensei): each sigil grants a flat percentage
+// bump to player.atk on top of everything else, sized to make up for what
+// its kit lacks. A kit that already multiplies damage or defends well gets
+// little, one that needs raw ATK gets more, and Pisces, with no attack of
+// its own, gets the most.
 // Additive across every equipped sigil, applied in _sigilAtkMult() below.
 const SIGIL_ATK_BONUS = {
-    aries: 0.12, taurus: 0.04, gemini: 0.08, cancer: 0.04, leo: 0.11,
-    virgo: 0.09, libra: 0.08, scorpio: 0.08, sagittarius: 0.11,
-    capricorn: 0.05, aquarius: 0.06, pisces: 0.05, than: 0.09, dau: 0.07,
+    aries: 0.08, taurus: 0.05, gemini: 0.09, cancer: 0.04, leo: 0.06,
+    virgo: 0.06, libra: 0.10, scorpio: 0.06, sagittarius: 0.10,
+    capricorn: 0.05, aquarius: 0.09, pisces: 0.20, than: 0.08, dau: 0.05,
 };
 function _sigilAtkMult() {
     const sigils = (typeof window !== 'undefined' && window._playerSigils) || [];
