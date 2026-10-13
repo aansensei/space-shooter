@@ -66,7 +66,7 @@ When **Glory for Justice** is active, all friendly damage is multiplied by **1.5
 
 ## Player Stats & Attacks
 
-Every friendly damage number below (and every Sigil/Sentinel number elsewhere in this doc) is expressed as a percentage of the player's own **ATK** stat, which stays constant across rebalances. ATK starts at a base value and grows two ways: **+3%/wave up to Wave 18** (plateaus at +50%), and a flat bonus per equipped Sigil (each of the 14 grants a different amount, roughly 2 to 12%, weighted toward its offensive abilities).
+Every friendly damage number below (and every Sigil/Sentinel number elsewhere in this doc) is expressed as a percentage of the player's own **ATK** stat, which stays constant across rebalances. ATK starts at a base value and grows two ways: **+3%/wave up to Wave 18** (plateaus at +50%), and a flat bonus per equipped Sigil (each of the 14 grants a different amount, from 4% to 20%: less for a kit that already multiplies damage or defends well, more for one that needs raw ATK, and the most for Pisces, which has no attack of its own).
 
 **Auto-Fire** — Fires 5 bullets in a 45-degree spread every **135ms** (+20% vs base). Each bullet deals **16% ATK**. Bullet speed increased +20%. Each bullet independently rolls a **28% chance** to apply Vulnerability (Trọng Thương).
 
@@ -353,7 +353,7 @@ Every wave 5 and wave 10, a sigil-pick screen offers 4 random choices from the f
 
 ### Dawn Herald: Mão Nhật Tinh Quan
 
-The second Vietnamese Zodiac sigil is **Dậu**, element **Metal (Kim)**, color **#FFD23F**, with **+7% ATK**.
+The second Vietnamese Zodiac sigil is **Dậu**, element **Metal (Kim)**, color **#FFD23F**, with **+5% ATK**.
 
 **Daybreak Crow (SPEC):** every 10s of active simulation time, a light ring clears enemy bullets, shoves enemies upward by **36px over 220ms** as a **Dominant** force, and reveals camouflaged Uriel. The shove slows toward the end and moves CC immune enemies. An enemy without room for the whole push below the top edge, and True Form Goliath, who follows a fixed path, are instead lifted the same 36px and settle back over 0.7s, even during Unbroken Will immunity. Stealth, coronation, chains, echoes, cocoons and death sequences are excluded. Enemies touched receive Daybreak for the remainder of a global 4s window: +20% incoming damage and no body evade. Goliath loses 30 percentage points of evade. Each Daybreak enemy killed brings the next crow 0.3s closer, up to 5s per crow. Uriel's landed hits still permanently erode his evade by 5 percentage points down to 30%, and ten hits still trigger Camouflage. Debuff immunity and separate barriers keep their native rules. Pause, the sigil picker and Kanade's cutscene hold the clock.
 
