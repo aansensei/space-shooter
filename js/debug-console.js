@@ -507,6 +507,7 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugForceAccurateParry()">Force Accurate Parry (4s)</button>
           <button class="dbg-btn" onclick="debugForceSilence('dargruel')">Silence: Dargruel (root+silence, 4s)</button>
           <button class="dbg-btn" onclick="debugForceSilence('goliath')">Silence: Goliath (silence only, 4s)</button>
+          <button class="dbg-btn" onclick="debugPiscesRefund()">Pisces: Refund 2s to every skill (needs Cycle of Flow)</button>
         </div>
         <div style="opacity:0.5; font-size:10px;">Glory for Justice isn't a toggle — it auto-activates whenever &gt;4 enemies are on screen, an Abnormal+ enemy is present, Skill G is active, or Photokrystos is active. Spawn any boss type below (or 5+ enemies) to trigger it. Vulnerability is applied per-enemy — see the "+Vuln" button on each row in Active Enemies.</div>
       </div>
@@ -1390,6 +1391,17 @@ window.debugSetYuukiBonus = function () {
         player._silenced = true;
         player._silenceEnd = performance.now() + 4000;
         player._rooted = (kind === 'dargruel');
+    };
+
+    // Pisces testing: puts every skill on cooldown, then refunds 2s to each
+    // through the path kills and movement use. One click shows the slot
+    // outlines, the ship aura and a full 12 Flow points.
+    window.debugPiscesRefund = function () {
+        if (typeof _markCdGlow !== 'function' || !_hasBuff('dong_chay_luan_hoi')) return;
+        const now = performance.now();
+        lastSkillShift = lastSkillA = lastSkillS = lastSkillD = lastSkillF = now - 2000;
+        laserCooldownEnd = now + laserCooldownDuration - 2000;
+        for (const slot in window._cdGlowEnd) _markCdGlow(slot, now, 2000);
     };
 
     // Great Sage sigil testing: "Fire" calls the same _castStolenGemAttack

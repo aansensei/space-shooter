@@ -776,6 +776,12 @@ function update(rawDeltaTime) {
             const _grantA = _goliathDrawBucket(window, '_pofCdTokensA', '_pofCdAtA', 2000, 1000, 500);
             const _grantS = _goliathDrawBucket(window, '_pofCdTokensS', '_pofCdAtS', 2000, 1000, 500);
             const _grantLaser = _goliathDrawBucket(window, '_pofCdTokensLaser', '_pofCdAtLaser', 2000, 1000, 500);
+            if (_grantA > 0 && _cofNow - lastSkillA < _skillACooldown()) _markCdGlow('A', _cofNow, Math.min(_grantA, _skillACooldown() - (_cofNow - lastSkillA)));
+            if (_grantS > 0 && _cofNow - lastSkillS < skillSCooldown) _markCdGlow('S', _cofNow, Math.min(_grantS, skillSCooldown - (_cofNow - lastSkillS)));
+            if (_grantLaser > 0 && laserCooldownEnd > _cofNow) _markCdGlow('SPC', _cofNow, Math.min(_grantLaser, laserCooldownEnd - _cofNow));
+            if (_cofNow - lastSkillD < skillDCooldown) _markCdGlow('D', _cofNow, Math.min(500, skillDCooldown - (_cofNow - lastSkillD)));
+            if (_cofNow - lastSkillF < skillFCooldown) _markCdGlow('F', _cofNow, Math.min(500, skillFCooldown - (_cofNow - lastSkillF)));
+            if (_cofNow - lastSkillShift < skillShiftCooldown) _markCdGlow('SH', _cofNow, Math.min(500, skillShiftCooldown - (_cofNow - lastSkillShift)));
             lastSkillA = Math.min(_cofNow, lastSkillA - _grantA);
             lastSkillS = Math.min(_cofNow, lastSkillS - _grantS);
             lastSkillD = Math.min(_cofNow, lastSkillD - 500);
@@ -786,7 +792,6 @@ function update(rawDeltaTime) {
             // then clamping to _cofNow would force it fully ready off a
             // single screen-width of movement instead of shaving 0.5s.
             laserCooldownEnd -= _grantLaser;
-            window._cofFlashEnd = _cofNow + 400;
         }
     }
 
@@ -2485,6 +2490,8 @@ function update(rawDeltaTime) {
 
     // Update Leviathan handled inside enemies for loop above
 
+    _piscesUpdate(deltaTime);
+
     _profChk.push(performance.now()); // end of updateSkillA/D/F/spirits/etc. batch
     // Goliath Absolute Verdict orb (independent object) — xuyên phá, không
     // thể bị chặn/deflect/CC (không check gì ngoài va chạm trực tiếp),
@@ -3669,6 +3676,8 @@ function startGame() {
     window._yuushaMageCasts = 0;
     window._yuushaReplenishLastCheck = 0; window._yuushaReplenishCooldownEnd = 0;
     window._coiMongEndTime = 0;
+    for (const slot in window._cdGlowEnd) window._cdGlowEnd[slot] = 0;
+    _piscesReset();
     _leoReset();
     if (typeof _dauReset === 'function') _dauReset();
     window._tuyetLanStacks = 0;

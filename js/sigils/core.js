@@ -115,6 +115,7 @@ function _completeSigilPicker(sigilId) {
 }
 
 function _onSigilApplied(sigilId, buffId) {
+    if (buffId === 'dong_chay_luan_hoi') { _piscesReset(); _piscesSprites(); }
     if (buffId === 'tuyet_lan')    { window._tuyetLanStacks = 0; window._tuyetLanLastKill = 0; }
     if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; window._bongDoiCharging = false; window._bongDoiCooldownEnd = 0; }
     if (buffId === 'cong_babylon') { window._gobCooldownEnd = 0; window._gobSequences = []; }

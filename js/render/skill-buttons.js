@@ -206,6 +206,18 @@ function drawSkillButtons() {
             ctx.beginPath(); ctx.moveTo(cx+d,cy-d); ctx.lineTo(cx-d,cy+d); ctx.stroke();
         }
 
+        const glowEnd = window._cdGlowEnd[opts.slot] || 0;
+        if (now < glowEnd) {
+            const fade = (glowEnd - now) / 450;
+            ctx.strokeStyle = color;
+            if ((window._gfxLevel || 0) < 2) {
+                ctx.globalAlpha = 0.22 * fade; ctx.lineWidth = 5;
+                ctx.strokeRect(pillX, py, pW, pH);
+            }
+            ctx.globalAlpha = 0.9 * fade; ctx.lineWidth = 2;
+            ctx.strokeRect(pillX, py, pW, pH);
+        }
+
         ctx.restore();
     }
 
@@ -247,12 +259,14 @@ function drawSkillButtons() {
     }
 
     _pill(rowY(0), skillShiftActive ? '⏸ SH' : 'SH', '#A855F7', {
+        slot: 'SH',
         cd: skillShiftCooldown, lastAct: lastSkillShift,
         active: skillShiftActive, activeLabel: 'SHIFT',
     });
 
     const _aCdDone = now - lastSkillA >= _skillACooldown();
     _pill(rowY(1), 'A', '#3B82F6', {
+        slot: 'A',
         cd: _skillACooldown(), lastAct: lastSkillA,
         active: _aCdDone && skillAOrbs.length >= maxSkillAOrbs,
         activeLabel: 'MAX',
@@ -273,11 +287,13 @@ function drawSkillButtons() {
         const _combatAge = _photo._combatStartTime ? (gameElapsedTime - _photo._combatStartTime) : 0;
         const _photoRemain = Math.max(0, 40000 - _combatAge);
         _pill(rowY(2), 'S', '#10B981', {
+            slot: 'S',
             cd: 40000, lastAct: now - (40000 - _photoRemain), active: true, activeLabel: 'BTM ' + (_photoRemain / 1000).toFixed(0) + 's',
         });
     } else if (_normalSpirit) {
         const _sReady = primevalEnergy >= 100;
         _pill(rowY(2), 'S', _sReady ? '#00ff88' : '#22C55E', {
+            slot: 'S',
             charge: Math.min(100, primevalEnergy), active: false,
         });
         // Primeval Creation ready (press S again to summon Phōtokrystos) -
@@ -287,6 +303,7 @@ function drawSkillButtons() {
         ]);
     } else {
         _pill(rowY(2), 'S', '#22C55E', {
+            slot: 'S',
             cd: skillSCooldown, lastAct: lastSkillS, active: _anySpiritAlive,
         });
     }
@@ -295,15 +312,16 @@ function drawSkillButtons() {
         let _dOpts;
         if (skillDCharging) {
             const _dc = Math.min(100, (now - skillDChargeStartTime) / skillDChargeTime * 100);
-            _dOpts = { charge: _dc, active: false };
+            _dOpts = { slot: 'D', charge: _dc, active: false };
         } else {
             const _dCdDone = now - lastSkillD >= skillDCooldown;
-            _dOpts = { cd: skillDCooldown, lastAct: lastSkillD, active: !_dCdDone && !!deathStar, activeLabel: 'D-STAR' };
+            _dOpts = { slot: 'D', cd: skillDCooldown, lastAct: lastSkillD, active: !_dCdDone && !!deathStar, activeLabel: 'D-STAR' };
         }
         _pill(rowY(3), 'D', '#9333EA', _dOpts);
     }
 
     _pill(rowY(4), 'F', '#EF4444', {
+        slot: 'F',
         cd: skillFCooldown, lastAct: lastSkillF, active: skillFState !== 'ready', activeLabel: 'ACTIVE',
     });
     if (_greatSageGems.length > 0) _pillReadyWash(rowY(4), [
@@ -356,6 +374,7 @@ function drawSkillButtons() {
             ? { cd: laserCooldownDuration, lastAct: now - laserCooldownDuration, active: false }
             : { cd: laserCooldownDuration, lastAct: now - (laserCooldownDuration - _spcRem * 1000), active: false };
     }
+    _spaceOpts.slot = 'SPC';
     _pill(_spaceY, '⎵ SPC', '#3B82F6', _spaceOpts);
     if (window._tidalSurgeReady) _pillReadyWash(_spaceY, [
         [0, 'rgba(3,50,80,1)'], [0.35, 'rgba(0,140,180,1)'], [0.65, 'rgba(0,220,235,1)'], [0.85, 'rgba(94,234,212,1)'], [1, 'rgba(220,255,250,1)'],
@@ -364,21 +383,6 @@ function drawSkillButtons() {
         [0, '#471c13'], [0.35, '#bc5f17'], [0.65, '#ef9f27'], [0.85, '#ffd27a'], [1, '#fff2ce'],
     ]);
 
-    // Cycle of Flow: a full screen-width of movement just shaved 0.5s off
-    // every cooldown above — flash the whole panel so the reward actually
-    // reads as "something happened to my skills", on mobile and PC alike
-    // since this is the same canvas draw either way.
-    if (window._cofFlashEnd && now < window._cofFlashEnd) {
-        const _cofT = 1 - (window._cofFlashEnd - now) / 400;
-        ctx.save();
-        ctx.globalAlpha = 0.45 * (1 - _cofT);
-        ctx.strokeStyle = '#7F77DD';
-        ctx.lineWidth = 2.5;
-        if (!_mobPerf) { ctx.shadowColor = '#7F77DD'; ctx.shadowBlur = 12; }
-        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(panelX - 2 - _cofT * 4, panelY - 2 - _cofT * 4, panelW + 4 + _cofT * 8, panelH + 4 + _cofT * 8, 8); ctx.stroke(); }
-        else ctx.strokeRect(panelX - 2 - _cofT * 4, panelY - 2 - _cofT * 4, panelW + 4 + _cofT * 8, panelH + 4 + _cofT * 8);
-        ctx.restore();
-    }
 }
 
 //  VEILSHROUD RENDER

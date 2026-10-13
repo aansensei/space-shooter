@@ -252,11 +252,16 @@ function handleEnemyKill(enemy) {
             const _grantA = _goliathDrawBucket(window, '_pofCdTokensA', '_pofCdAtA', 2000, 1000, _cdReduc);
             const _grantS = _goliathDrawBucket(window, '_pofCdTokensS', '_pofCdAtS', 2000, 1000, _cdReduc);
             const _grantLaser = _goliathDrawBucket(window, '_pofCdTokensLaser', '_pofCdAtLaser', 2000, 1000, _cdReduc);
+            if (_grantA > 0 && _now - lastSkillA < _skillACooldown()) _markCdGlow('A', _now, Math.min(_grantA, _skillACooldown() - (_now - lastSkillA)));
+            if (_grantS > 0 && _now - lastSkillS < skillSCooldown) _markCdGlow('S', _now, Math.min(_grantS, skillSCooldown - (_now - lastSkillS)));
+            if (_grantLaser > 0 && laserCooldownEnd > _now) _markCdGlow('SPC', _now, Math.min(_grantLaser, laserCooldownEnd - _now));
             lastSkillA = Math.min(_now, lastSkillA - _grantA);
             lastSkillS = Math.min(_now, lastSkillS - _grantS);
             laserCooldownEnd = Math.max(0, laserCooldownEnd - _grantLaser);
         }
         if (_cdReducProtected > 0) {
+            if (_now - lastSkillD < skillDCooldown) _markCdGlow('D', _now, Math.min(_cdReducProtected, skillDCooldown - (_now - lastSkillD)));
+            if (_now - lastSkillF < skillFCooldown) _markCdGlow('F', _now, Math.min(_cdReducProtected, skillFCooldown - (_now - lastSkillF)));
             lastSkillD = Math.min(_now, lastSkillD - _cdReducProtected);
             lastSkillF = Math.min(_now, lastSkillF - _cdReducProtected);
         }

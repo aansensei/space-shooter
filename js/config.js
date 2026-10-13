@@ -253,8 +253,8 @@ function _playerAtkWaveMult(wave) { return Math.min(1.5, 1 + 0.03 * Math.max(0, 
 // Per-sigil ATK bonus (per AanSensei): each sigil grants a flat percentage
 // bump to player.atk on top of everything else, sized to make up for what
 // its kit lacks. A kit that already multiplies damage or defends well gets
-// little, one that needs raw ATK gets more, and Pisces, with no attack of
-// its own, gets the most.
+// little, one that needs raw ATK gets more. Pisces receives 20% to support
+// its cooldown focused kit.
 // Additive across every equipped sigil, applied in _sigilAtkMult() below.
 const SIGIL_ATK_BONUS = {
     aries: 0.08, taurus: 0.05, gemini: 0.09, cancer: 0.04, leo: 0.06,
@@ -322,6 +322,14 @@ const DAU_REFLECT = {
     meteor: { atk: 3.00, percentDamage: 0.02 },
     verdict: { atk: 6.00, percentDamage: 0.03 },
 };
+
+const PISCES_FISH_COST_MS = 12000;
+const PISCES_FLOW_CAP_MS = 24000;
+const PISCES_FISH_INTERVAL_MS = 2000;
+const PISCES_FISH_FORM_MS = 420;
+const PISCES_FISH_LIFE_MS = 3200;
+const PISCES_FISH_SPEED = 0.55;
+const PISCES_FISH_ATK = 0.65;
 
 // Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for
 // 1.5s, Leviathan's death laser cuts it by 20% while the player is on the beam
@@ -564,6 +572,13 @@ window._yuushaFloatingTexts = [];
 window._yuushaReplenishLastCheck = 0;
 window._yuushaReplenishCooldownEnd = 0;
 window._coiMongEndTime = 0;
+window._cofAuraEnd = 0;
+window._piscesFlowMs = 0;
+window._cdGlowEnd = { SH: 0, A: 0, S: 0, D: 0, F: 0, SPC: 0 };
+function _markCdGlow(slot, now, reduction = 0) {
+    window._cdGlowEnd[slot] = now + 450;
+    if (reduction > 0) _piscesOnCdReduction(reduction, now);
+}
 window._thanMenhEndTime = 0;
 window._tuyetLanStacks = 0;
 window._tuyetLanLastKill = 0;

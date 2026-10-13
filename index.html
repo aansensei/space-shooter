@@ -2515,11 +2515,11 @@
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
     <script src="js/audio.js?v=20261013j"></script>
-    <script src="js/offline.js?v=20261013j"></script>
+    <script src="js/offline.js?v=20261013k"></script>
     <script src="js/background.js?v=20260923a"></script>
-    <script src="js/config.js?v=20261013k"></script>
+    <script src="js/config.js?v=20261013n"></script>
     <script src="js/timeline-distortion.js?v=20260926k"></script>
-    <script src="js/sigils/core.js?v=20261013l"></script>
+    <script src="js/sigils/core.js?v=20261013m"></script>
     <script src="js/sigils/aries.js?v=20261012c"></script>
     <script src="js/sigils/taurus.js?v=20261012c"></script>
     <script src="js/sigils/gemini.js?v=20261012c"></script>
@@ -2531,11 +2531,11 @@
     <script src="js/sigils/sagittarius.js?v=20261012c"></script>
     <script src="js/sigils/capricorn.js?v=20261012c"></script>
     <script src="js/sigils/aquarius.js?v=20261012c"></script>
-    <script src="js/sigils/pisces.js?v=20261012c"></script>
+    <script src="js/sigils/pisces.js?v=20261013b"></script>
     <script src="js/sigils/than.js?v=20261012c"></script>
     <script src="js/sigils/dau.js?v=20261013i"></script>
     <script src="js/yuusha-party.js?v=20260914b"></script>
-    <script src="js/entities/core.js?v=20261013h"></script>
+    <script src="js/entities/core.js?v=20261013j"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
     <script src="js/entities/veilshroud.js?v=20260917a"></script>
     <script src="js/entities/uriel.js?v=20261013d"></script>
@@ -2552,6 +2552,7 @@
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
     <script src="js/skills/sigil-leo.js?v=20261010c"></script>
     <script src="js/skills/sigil-dau.js?v=20261013j"></script>
+    <script src="js/skills/sigil-pisces.js?v=20261013c"></script>
     <script src="js/skills/skill-f.js?v=20261012b"></script>
     <script src="js/skills/skill-g.js?v=20261010b"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>
@@ -2560,7 +2561,7 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261013d"></script>
+    <script src="js/render/core.js?v=20261013g"></script>
     <script src="js/render/kanade-face.js?v=20261009a"></script>
     <script src="js/render/kanade-cutscene.js?v=20261010c"></script>
     <script src="js/render/fx.js?v=20261009a"></script>
@@ -2582,19 +2583,20 @@
     <script src="js/render/sigil-cancer.js?v=20261010d"></script>
     <script src="js/render/sigil-leo.js?v=20261012b"></script>
     <script src="js/render/sigil-dau.js?v=20261013g"></script>
+    <script src="js/render/sigil-pisces.js?v=20261013c"></script>
     <script src="js/render/skill-g.js?v=20260923f"></script>
-    <script src="js/render/skill-buttons.js?v=20261010a"></script>
+    <script src="js/render/skill-buttons.js?v=20261013a"></script>
     <script src="js/pixi-renderer.js?v=20261008b"></script>
     <script src="js/input.js?v=20261010a"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20261013g"></script>
+    <script src="js/main.js?v=20261013i"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20261013b';
+            _dbgScript.src = 'js/debug-console.js?v=20261013c';
             document.head.appendChild(_dbgScript);
         }
     </script>
@@ -3465,6 +3467,7 @@
             // which rules out object-count-driven causes for that case.
             let _cdCtxCache = {};
             let _lastRingFrac = {};
+            const _lastCdGlowActive = { SH: false, A: false, S: false, D: false, F: false, SPC: false };
             // _initMobileControls() rebuilds #mc's innerHTML (new canvas
             // elements, same ids) on every resize/orientation event on iOS.
             // Without clearing these, the cache keeps pointing at the old,
@@ -3484,8 +3487,9 @@
                 }
                 return c;
             }
-            function _paintRing(cvId, frac, color, force) {
-                if (!force && _lastRingFrac[cvId] === frac) return;
+            function _paintRing(cvId, frac, color, force, slot) {
+                const glow = window._cdGlowEnd && window._cdGlowEnd[slot] > performance.now();
+                if (!force && !glow && !_lastCdGlowActive[slot] && _lastRingFrac[cvId] === frac) return;
                 _lastRingFrac[cvId] = frac;
                 const ctx = _cdCtx(cvId);
                 if (!ctx) return;
@@ -3500,6 +3504,23 @@
                 ctx.beginPath();
                 ctx.arc(29, 29, 26, -Math.PI / 2, -Math.PI / 2 + (1 - frac) * Math.PI * 2);
                 ctx.stroke();
+            }
+
+            function _mbCdGlow(cvId, slot, color, now) {
+                const glowEnd = window._cdGlowEnd && window._cdGlowEnd[slot] || 0;
+                _lastCdGlowActive[slot] = now < glowEnd;
+                if (!_lastCdGlowActive[slot]) return;
+                const c = _cdCtx(cvId);
+                if (!c) return;
+                const fade = (glowEnd - now) / 450;
+                c.save();
+                c.strokeStyle = color;
+                c.beginPath(); c.arc(29, 29, 28, 0, Math.PI * 2);
+                if ((window._gfxLevel || 0) < 2) {
+                    c.globalAlpha = 0.22 * fade; c.lineWidth = 5; c.stroke();
+                }
+                c.globalAlpha = 0.9 * fade; c.lineWidth = 2; c.stroke();
+                c.restore();
             }
 
             // Radial gradient fill (a list of [offset, color] stops) plus a
@@ -3607,7 +3628,7 @@
                             document.getElementById('mb-yog')?.classList.add('skill-active');
                         } else {
                             const yr = _ready(lastSkillShift, skillShiftCooldown);
-                            _paintRing('mb-yog-cv', yr, '#ffcc00', _justUnsilenced);
+                            _paintRing('mb-yog-cv', yr, '#ffcc00', _justUnsilenced, 'SH');
                             document.getElementById('mb-yog')?.classList.toggle('cd', yr < 1);
                             document.getElementById('mb-yog')?.classList.remove('skill-active');
                         }
@@ -3623,7 +3644,7 @@
                             _lastReadyGlow.a = true;
                         } else {
                             const ar = _ready(lastSkillA, skillACooldown);
-                            _paintRing('mb-a-cv', ar, '#8888ff', _justUnsilenced || _lastReadyGlow.a);
+                            _paintRing('mb-a-cv', ar, '#8888ff', _justUnsilenced || _lastReadyGlow.a, 'A');
                             document.getElementById('mb-a')?.classList.toggle('cd', ar < 1);
                             document.getElementById('mb-a')?.classList.remove('skill-active');
                             _lastReadyGlow.a = false;
@@ -3671,14 +3692,14 @@
                             const _oCd = (typeof _spiritCooldownOverrideUntil !== 'undefined' && _spiritCooldownOverrideUntil > now)
                                 ? (_spiritCooldownOverrideUntil - now + skillSCooldown) : skillSCooldown;
                             const sr = _ready(lastSkillS, _oCd);
-                            _paintRing('mb-s-cv', sr, '#00e5ff', _justUnsilenced || _lastReadyGlow.s);
+                            _paintRing('mb-s-cv', sr, '#00e5ff', _justUnsilenced || _lastReadyGlow.s, 'S');
                             document.getElementById('mb-s')?.classList.toggle('cd', sr < 1);
                             document.getElementById('mb-s')?.classList.remove('skill-active');
                             _lastReadyGlow.s = false;
                         }
                         // D
                         const dr = _ready(lastSkillD, skillDCooldown);
-                        _paintRing('mb-d-cv', dr, '#bb88ff', _justUnsilenced);
+                        _paintRing('mb-d-cv', dr, '#bb88ff', _justUnsilenced, 'D');
                         document.getElementById('mb-d')?.classList.toggle('cd', dr < 1);
                         // F - a banked Great Sage stolen gem bypasses this
                         // button's own cooldown entirely (same as Cancer's
@@ -3693,7 +3714,7 @@
                             _lastReadyGlow.f = true;
                         } else {
                             const fr = _ready(lastSkillF, skillFCooldown);
-                            _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced || _lastReadyGlow.f);
+                            _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced || _lastReadyGlow.f, 'F');
                             document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
                             document.getElementById('mb-f')?.classList.remove('skill-active');
                             _lastReadyGlow.f = false;
@@ -3759,11 +3780,18 @@
                             _lastReadyGlow.ch = false;
                         } else {
                             const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
-                            _paintRing('mb-ch-cv', cr, '#00e5ff', _justUnsilenced || _lastReadyGlow.ch);
+                            _paintRing('mb-ch-cv', cr, '#00e5ff', _justUnsilenced || _lastReadyGlow.ch, 'SPC');
                             _lastReadyGlow.ch = false;
                             document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
                             document.getElementById('mb-ch')?.classList.remove('skill-active');
                         }
+
+                        _mbCdGlow('mb-yog-cv', 'SH', '#ffcc00', now);
+                        _mbCdGlow('mb-a-cv', 'A', '#8888ff', now);
+                        _mbCdGlow('mb-s-cv', 'S', '#00e5ff', now);
+                        _mbCdGlow('mb-d-cv', 'D', '#bb88ff', now);
+                        _mbCdGlow('mb-f-cv', 'F', '#ff6666', now);
+                        _mbCdGlow('mb-ch-cv', 'SPC', '#00e5ff', now);
 
                         // Silence X overlay on all skill buttons — only
                         // relevant while actually silenced (a rare debuff
