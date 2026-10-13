@@ -509,6 +509,12 @@
     .sfc-glyph-sm-cv { display:block; width:48px; height:48px; margin:0 auto 10px; filter:drop-shadow(0 0 6px var(--sc,#00e5ff)); }
     .sfc-name { font-family:'Orbitron', 'Be Vietnam Pro', sans-serif; font-size:12px; font-weight:700; letter-spacing:3px; color:var(--sc,var(--cyan)); text-align:center; margin-bottom:3px; }
     .sfc-el { font-size:10px; color:var(--dim); text-align:center; letter-spacing:2px; text-transform:uppercase; margin-bottom:5px; }
+    .sfc-atk { display:flex; align-items:center; gap:8px; margin:1px 0 7px; }
+    .sfc-atk::before, .sfc-atk::after { content:''; flex:1; height:1px; background:linear-gradient(90deg, transparent, var(--sc,var(--cyan))); opacity:0.55; }
+    .sfc-atk::after { transform:scaleX(-1); }
+    .sfc-atk span { font-family:'Share Tech Mono', 'Be Vietnam Pro', monospace; font-size:9px; letter-spacing:2px; color:var(--sc,var(--cyan)); padding:2px 10px; border:1px solid var(--sc,var(--cyan)); border-radius:999px; background:rgba(6,10,22,0.75); box-shadow:0 0 8px var(--scl,transparent); white-space:nowrap; }
+    .sfc-atk b { color:#ffe9a8; font-weight:700; }
+    .sfc-atk + .sfc-theme { border-top:none; padding-top:0; }
     .sfc-theme { font-family:'Share Tech Mono', 'Be Vietnam Pro', monospace; font-size:9px; color:rgba(140,165,210,0.85); text-align:center; letter-spacing:2px; border-top:1px solid rgba(255,255,255,0.09); border-bottom:1px solid rgba(255,255,255,0.09); padding:5px 0; margin-bottom:9px; }
     /* Every card has the same size in both languages; when a blessing runs
        long, the list scrolls inside the card instead of resizing it. */
@@ -917,7 +923,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">ARIES</div><div class="sfc-el">Fire</div><div class="sfc-theme">VANGUARD ASSAULT</div>
+<canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">ARIES</div><div class="sfc-el">Fire</div><div class="sfc-atk"><span>ATK <b>+8%</b></span></div><div class="sfc-theme">VANGUARD ASSAULT</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Gate of Babylon</b> <span class="sbd">Any landed ally hit (except Skill D/F) can open gates around the player and fire 14 blades in a fan, each piercing every enemy in its path: 7.5% ATK true dmg per enemy hit (1.5s CD).</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Enuma Elish</b> <span class="sbd">Every 30 landed ally hits summons a phantom double of the player that hurls a giant spear through the highest-priority enemy's direction, piercing the whole line: each one hit takes 18x ATK + 5% of its own Max HP as true dmg, no cap (0.5s CD).</span></div>
@@ -930,7 +936,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="taurus"></canvas><div class="sfc-name">TAURUS</div><div class="sfc-el">Earth</div><div class="sfc-theme">SQUAD FORMATION</div>
+<canvas class="sfc-glyph-cv" data-sigil="taurus"></canvas><div class="sfc-name">TAURUS</div><div class="sfc-el">Earth</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">SQUAD FORMATION</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Yuusha Party</b> <span class="sbd">Summon a squad of 4 Sentinels that follow in formation above the player, one of each role (Tank 300 HP, Support/Marksman/Mage 200 HP each). Each member has its own HP bar and role-specific weapon, respawns 5s after falling (same role), and shares every buff real Sentinels get (Blessing, Gaia Protection/Barrier, Lunar Aegis, Last Stand, Glory for Justice). Enemy bullets passing near the squad can strike a member: Tanks draw ~75% of it. Piercing enemy attacks that would cost the player a life instead strike every living squad member at once, each taking 1.5x that same attack's real-Sentinel damage (non-piercing hits are unaffected). Every 1s, if no real Sentinels remain, 2 are spawned back in (2s cooldown).</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Squad Synergy</b> <span class="sbd">Tank: absorb meter fills from squad damage and from the share it soaks (30%) off each hit real Sentinels take; at 100 fires a piercing SentinelBlade sweep (6% ATK true dmg + 4% of current Primeval Energy, per enemy) and self-heals up to 3% ATK (capped at 8% of its own Max HP). Support: heals the 2 lowest-HP% targets across both the squad and real Sentinels for up to 7.5% ATK each (capped at 20% of their own Max HP, never the player). Marksman: auto-fires a piercing arrow every 0.3s (11.2% ATK + 5% of current Primeval Energy). Mage: orbiting crystal flies to the nearest enemy roughly every 1s and detonates an arcane AoE zone (3s, 7.5% ATK + 4% of current Primeval Energy/tick).</span></div>
@@ -943,7 +949,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="gemini"></canvas><div class="sfc-name">GEMINI</div><div class="sfc-el">Air</div><div class="sfc-theme">MIRROR TACTICS</div>
+<canvas class="sfc-glyph-cv" data-sigil="gemini"></canvas><div class="sfc-name">GEMINI</div><div class="sfc-el">Air</div><div class="sfc-atk"><span>ATK <b>+9%</b></span></div><div class="sfc-theme">MIRROR TACTICS</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Shadow Twin</b> <span class="sbd">Every 10th hit landed by any allied source (Sentinels excluded) charges for 0.5s, then a phantom twin ship appears at a random screen edge and fires 3 volleys of piercing plasma orbs at random enemies clear across the screen: each volley is 1 large orb flanked by 2 small orbs. Small: 11.2% ATK. Large: 27% ATK + 2.5% Max HP. Applies 1 Vulnerability stack + Soul Reaver on hit. 0.5s cooldown before it can trigger again.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Mirror Laser</b> <span class="sbd">Overload summons 2 entities (top left and bottom right) moving vertically (+25% speed), firing horizontal beams at 60% of the original beam's dmg. The original beam is buffed +20%. Every skill cast or auto-fire shot also has a 5% chance (+0.3% per miss) to fire a piercing green-purple laser column: 52.5% ATK + 2.5% Max HP every 125ms for 3s, no pull, stacks with Overload Laser (6s CD after the 3s burn ends).</span></div>
@@ -956,7 +962,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="cancer"></canvas><div class="sfc-name">CANCER</div><div class="sfc-el">Water</div><div class="sfc-theme">LUNAR TIDE</div>
+<canvas class="sfc-glyph-cv" data-sigil="cancer"></canvas><div class="sfc-name">CANCER</div><div class="sfc-el">Water</div><div class="sfc-atk"><span>ATK <b>+4%</b></span></div><div class="sfc-theme">LUNAR TIDE</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt def">DEF</span><b>Lunar Aegis</b> <span class="sbd">Gaia Protection activates without GFJ; Gaia Barrier absorption +30%; sentinels gain +15% evade. Ocean Hunter: any enemy at 8% HP or below is instantly finished off by a killer whale lunging in.</span></div>
 <div class="sfc-row"><span class="sbt heal">HEAL</span><b>Tidal Flow</b> <span class="sbd">Sentinels regenerate 3% MaxHP/s (scales with tier); healing effectiveness +30%. Each sentinel gains 1 Iron Body layer; 8s CD starts only after it is consumed. If no sentinel is left, 2 are summoned back in (checked every 1s, 2s CD). Riptide Surge: absorbed hits feed a shared tide meter, plus a passive trickle scaling with how many sentinels are up (50/60/75 per s for 1/2/3+ alive); overflow banks up to +30% as a head start. Once full, press Space to erupt a whirlpool at every enemy on screen (up to 10, closest first), pulling everything nearby toward center (a Dominant-tagged pull, not ordinary crowd control - CC-immune enemies and bullets get dragged in too, see the DOMINANT glossary card) - anything caught takes 7.5% ATK true damage every 100ms it's inside, once per victim per activation - before bursting for 97% ATK + 3.5% Max HP true damage when the whale bites.</span></div>
@@ -969,7 +975,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">LEO</div><div class="sfc-el">Fire</div><div class="sfc-theme">SOLAR FIRE</div>
+<canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">LEO</div><div class="sfc-el">Fire</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">SOLAR FIRE</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Lion's Roar</b> <span class="sbd">While GFJ is active, attacks inflict Burn: 30% ATK per stack every 500ms for 3s (a new hit refreshes it and adds a stack, up to 3). Burn bypasses 50% of enemy DR. Every hit also deals bonus damage equal to 1% of the target's lost HP. Wildfire: an enemy that dies while Burning passes its Burn stacks to up to 6 enemies within 150px.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Divine Fate</b> <span class="sbd">Wave start: every enemy is petrified for 5s (new spawns too) and all damage is +60%. Petrify is Dominant; Goliath's UNIQUE SKILLs (Endless Echo and Joker) still run. With Lion's Roar, a Fate meter fills: Burning kills charge it (Apostle 5%, Abnormal and Elite 20%, Dominator 35%), each Burn tick on an Abnormal or higher enemy adds 1.5% and each hit on a Digiform enemy adds 0.1%. Every 1% grants +0.15% ATK (up to +15%). When full, press Space (CHARGE on mobile) to petrify every enemy for 3s with the same +60% damage. When any petrify ends, every enemy still petrified shatters for 100% ATK. The meter then empties, and charging resumes 8s after the petrify ends.</span></div>
@@ -982,7 +988,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">VIRGO</div><div class="sfc-el">Earth</div><div class="sfc-theme">PRECISION STRIKE</div>
+<canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">VIRGO</div><div class="sfc-el">Earth</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">PRECISION STRIKE</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Forest Guardian</b> <span class="sbd">Every 6th auto volley: 3x dmg, Vulnerability, root and silence 1s. Bullets glow gold. While 5+ enemies are on screen, every 4s a vine-wrapped log sweeps across the screen (60% of screen width), dealing 150% ATK + 10% of each target's lost HP.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Circuit Engineer</b> <span class="sbd">Tesla DoT, Coil dmg, and Coil aura dmg +30%. Destroying a Coil: Skill G charge +10 points. Enemies carrying any debuff (slow, DoT, Vulnerability, Soul Reaver, etc.) take +25% dmg from all sources.</span></div>
@@ -995,7 +1001,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="libra"></canvas><div class="sfc-name">LIBRA</div><div class="sfc-el">Blood Sorcery</div><div class="sfc-theme">CRIMSON RECKONING</div>
+<canvas class="sfc-glyph-cv" data-sigil="libra"></canvas><div class="sfc-name">LIBRA</div><div class="sfc-el">Blood Sorcery</div><div class="sfc-atk"><span>ATK <b>+10%</b></span></div><div class="sfc-theme">CRIMSON RECKONING</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Blood Arrow</b> <span class="sbd">Skill A cooldown -2s while Libra is equipped. Skill A banks a stack per press; press again with a target to trigger the charge and release everything banked, each firing 5 piercing arrows (1 big marking the highest-MaxHP enemy, 4 small on other enemies, denser clusters preferred). Big arrow: 45% ATK pierce dmg, explodes as true dmg for 60% ATK + 3.5% Max HP (up to +60% more from target DR). Small arrows: 27% ATK pierce dmg, explode as piercing dmg (shield still blocks it) for 27% ATK + 2.5% Max HP plus 3% of the target's lost HP, fly 20% faster. Explosions apply 2 Vulnerability stacks; a repeat hit on the same enemy deals 30% less.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Astral Pierce</b> <span class="sbd">Skill A orbs punch straight through their target on impact and continue to the screen edge, damaging every enemy they cross. Orb size +30%, damage +20%.</span></div>
@@ -1008,7 +1014,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">SCORPIO</div><div class="sfc-el">Water</div><div class="sfc-theme">DEATH'S MARK</div>
+<canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">SCORPIO</div><div class="sfc-el">Water</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">DEATH'S MARK</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt heal">HEAL</span><b>Resurrection</b> <span class="sbd">On pick: +4 lives immediately. Life bonus rate: +1 life per 300,000 pts.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Death Mark</b> <span class="sbd">Dmg bonus ramps linearly from 0% at full HP to +50% at 21% HP, then a flat +65% at 20% HP and below. Skill F blade arc pierces Iron Body. Enemy at ≤5% HP: instantly killed by a lightning strike + blood-flower burst.</span></div>
@@ -1021,7 +1027,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="sagittarius"></canvas><div class="sfc-name">SAGITTARIUS</div><div class="sfc-el">Fire</div><div class="sfc-theme">SPIRIT BLADES</div>
+<canvas class="sfc-glyph-cv" data-sigil="sagittarius"></canvas><div class="sfc-name">SAGITTARIUS</div><div class="sfc-el">Fire</div><div class="sfc-atk"><span>ATK <b>+10%</b></span></div><div class="sfc-theme">SPIRIT BLADES</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Twin Blades</b> <span class="sbd">Spirit arc slash fires 2 blades (+20% each, 15ms apart), plus a 25% chance for a 3rd blade. Each boomerang proc has two independent 30% chances to add 2 extra boomerangs each. Skill F sweep now throws 2 boomerangs from the player instead of blade arcs. Extra blades have +20% radius. Every auto-fire shot has a 15% chance to fire an arc blade (34.5% ATK), same as the spirit's. Also empowers the Spinner (Skill S finale): doubles its mini Arc Blade volley every proc (4→8, +20% damage each, 2nd wave 15ms later at +20% radius), and grants <b>Ricochet Hunter</b> — each wall bounce soft-locks the Spinner's trajectory partway toward a nearby enemy (within a 60° cone) and stacks +15% damage on its next body-contact hit (max 3 stacks, +45%), resetting the instant it lands one.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Arctic Chill</b> <span class="sbd">Boomerang and arc slash: 75% chance to slow 30% for 2s and pull toward player. CC-immune enemies are never pulled, but are still slowed. Remembrance Spirit and Phōtokrystos fire rate +20%. Also applies to the Spinner: its body-contact hits get the same 75% chance slow+pull, and its Arc Blade slash beat fires 20% faster.</span></div>
@@ -1034,7 +1040,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="capricorn"></canvas><div class="sfc-name">CAPRICORN</div><div class="sfc-el">Earth</div><div class="sfc-theme">COMPOUND GROWTH</div>
+<canvas class="sfc-glyph-cv" data-sigil="capricorn"></canvas><div class="sfc-name">CAPRICORN</div><div class="sfc-el">Earth</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">COMPOUND GROWTH</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt heal">HEAL</span><b>Compound Interest</b> <span class="sbd">Kill: +0.8% PE. Every 5% PE gained: all ally fire rate +1.5% (max +40%, preserved through BTM). While the great spirit is alive: primary ally attacks deal +22.5% ATK bonus true dmg (100ms per-target cooldown).</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Avalanche</b> <span class="sbd">Kill: +0.5% global dmg. Resets after 6s without a kill. Max +40%.</span></div>
@@ -1047,7 +1053,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="aquarius"></canvas><div class="sfc-name">AQUARIUS</div><div class="sfc-el">Air</div><div class="sfc-theme">ELECTRIC STORM</div>
+<canvas class="sfc-glyph-cv" data-sigil="aquarius"></canvas><div class="sfc-name">AQUARIUS</div><div class="sfc-el">Air</div><div class="sfc-atk"><span>ATK <b>+9%</b></span></div><div class="sfc-theme">ELECTRIC STORM</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Chain Lightning</b> <span class="sbd">Tesla DoT: 50% chance to arc to nearest enemy within 150px. Skill G charge rate +35%. While Skill G is active, each energy orb that expires without pairing into a Tesla coil grants a stacking +8% ally dmg buff (max 6 stacks, +48% total, 5s each) and is siphoned into an extra Skill A orb if there's room.</span></div>
 <div class="sfc-row"><span class="sbt def">DEF</span><b>Magnetic Field</b> <span class="sbd">While Skill G is active or fully charged: enemies within 300px slowed 30% and suffer 6.5% ATK DoT every 100ms (65% ATK/s).</span></div>
@@ -1060,7 +1066,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">PISCES</div><div class="sfc-el">Water</div><div class="sfc-theme">FLOW AND EVASION</div>
+<canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">PISCES</div><div class="sfc-el">Water</div><div class="sfc-atk"><span>ATK <b>+20%</b></span></div><div class="sfc-theme">FLOW AND EVASION</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Dream Realm</b> <span class="sbd">Shift: negate all dmg 2.5s and mark all enemies on screen (instant 1 Vulnerability stack each). After 1.65s, marked enemies burst for 50% of accumulated dmg plus 15% of lost HP, capped at 25% of the target's own Max HP. Shares a 6s minimum retrigger interval with itself, so repeated short Shift activations can't chain into near-continuous invulnerability.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cycle of Flow</b> <span class="sbd">Kill apostle: -0.75s Skill A/S/Overload Laser CD (Skill D/F keep the larger -1s). Kill abnormal/elite: -1s (D/F: -1.5s). Kill dominator: -1.5s (D/F: -2s). Kill Egregor: -2s (D/F: -3s). A/S/Laser's kill- and movement-based reductions share a rolling budget capped at 2s of total reduction per real second; D/F/Shift are uncapped. Every full screen-width of actual movement: -0.5s all skill CD. Charge rate for Skill G +35% (Phōtokrystos stays +50%). Skill D, Skill F and Overload Laser fire instantly, skipping their charge phase (Shift unaffected).</span></div>
@@ -1073,7 +1079,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#D62839;--scl:rgba(214,40,57,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="than"></canvas><div class="sfc-name">GREAT SAGE</div><div class="sfc-el">Earth</div><div class="sfc-theme">STOLEN POWER</div>
+<canvas class="sfc-glyph-cv" data-sigil="than"></canvas><div class="sfc-name">GREAT SAGE</div><div class="sfc-el">Earth</div><div class="sfc-atk"><span>ATK <b>+8%</b></span></div><div class="sfc-theme">STOLEN POWER</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Ransacked Treasury</b> <span class="sbd">Annihilation Sweep becomes the Ruyi Jingu Bang, widening with every kill landed in a single cast (up to 4.5x), and every real cast phases you and your sentinels untargetable for 1s. Killing an Elite-tier-or-higher enemy steals that enemy's own gem (up to 3 held, one of each kind) - killing Goliath instead steals all 3 gems it's holding at once, since it's already made of 3 other bosses' stolen powers. Pressing F anytime with a gem banked unleashes a real copy of that enemy's own signature attack, no cooldown needed.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>72 Transformations</b> <span class="sbd">Every F press still spends just 1 gem - but while 3 different gems are held at once, the one being spent hits 1.65x as hard.</span></div>
@@ -1086,7 +1092,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#FFD23F;--scl:rgba(255,210,63,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="dau"></canvas><div class="sfc-name">DAWN HERALD</div><div class="sfc-el">Metal</div><div class="sfc-theme">THE FIRST LIGHT</div>
+<canvas class="sfc-glyph-cv" data-sigil="dau"></canvas><div class="sfc-name">DAWN HERALD</div><div class="sfc-el">Metal</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">THE FIRST LIGHT</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Daybreak Crow</b> <span class="sbd">Every 10s a light ring clears enemy bullets, shoves enemies upward by 36px over 220ms (Dominant), reveals camouflaged Uriel and marks enemies with Daybreak for a global 4s window. Daybreak grants +20% incoming damage and disables body evade. Goliath loses 30 percentage points of evade. Each Daybreak enemy killed brings the next crow 0.3s closer, up to 5s per crow. Uriel still loses 5 percentage points of evade on every landed hit, down to 30%, and ten hits still trigger Camouflage. Debuff immunity and separate barriers retain their rules. Dominant displacement also moves CC immune enemies, excluding stealth, coronation, cocoons and death sequences. Enemies without room for the whole push below the top edge, and True Form Goliath, are lifted the same distance and settle back over 0.7s, even during Unbroken Will immunity. Light gathers throughout the 10s cycle, followed by a fiery rooster, a rising sun and a thick flame ring. The clock pauses with the match, sigil picker and Kanade cutscene.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Golden Needle</b> <span class="sbd">Each erased bullet becomes a homing golden needle at its own position, up to 16 per crow, for 60% ATK true damage. A dead target is replaced by the nearest living enemy. Seven star needles strike the seven strongest enemies by Max HP after a 350ms warning for 200% ATK true damage and a 1.5s pin. Fewer enemies get fewer needles. CC immunity blocks the pin. Enemy skill projectiles the ring touches are turned back on their caster. A turned skill cannot be evaded, though Goliath only loses 30 percentage points of evade against it, and it passes ordinary Iron Body layers and the ones Uriel grants. Up to 9 skills are turned per crow, and anything past the ninth flies on untouched. The golden copy returns to its caster or the nearest valid enemy if the caster is gone. True damage: Marchosias Swords, 150% ATK + 1% Max HP; Uriel Judgment, 250% ATK + 2% Max HP; Raphael Wisdom Orb, 250% ATK + 2% Max HP; Dargruel Abyssal Chains, 200% ATK + 1.5% Max HP; Goliath Corrupted Meteor, 300% ATK + 2% Max HP; Goliath Absolute Verdict, 600% ATK + 3% Max HP. Reflected originals leave no DoT, root or splash. Ordinary bullets retain their needle conversion. Lumen Nova, Perseverance, Leviathan death laser, Maou Haki, Psychic Tempest, Null Slash, Void Strike, Endless Echo and all Joker copies cannot reflect. Delayed blades and gathering orbs are skipped.</span></div>
@@ -1314,7 +1320,7 @@
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Dawn Herald effects:</b> light gathers around the ship through the 10s cycle, then the crow raises a fiery rooster against a rising sun, with sunrise rays and a ring of light crossing the arena. Medium and Low graphics draw fewer layers.</li>
 <li><span class="ul-tag tag-feat">FEAT</span> <b>Dawn Herald sounds:</b> the crow now has a voice, with a rising charge in the last second before it, the wave of light spreading out, and separate sounds for needle hits, star needle strikes and a turned skill.</li>
 <li><span class="ul-tag tag-perf">PERF</span> <b>Dawn Herald:</b> its sprites are baked once when the sigil is picked, its effects come from fixed pools, and nothing is built per frame.</li>
-<li><span class="ul-tag tag-global">GLOBAL</span> <b>Sigil cards show their ATK bonus:</b> every card in the sigil picker now lists the flat ATK the sigil grants next to its element, so the number is visible before you choose.</li>
+<li><span class="ul-tag tag-global">GLOBAL</span> <b>Sigil cards show their ATK bonus:</b> every card in the sigil picker and in this guide now lists the flat ATK the sigil grants next to its element, so the number is visible before you choose.</li>
 </ul></div>
 <div class="ul-entry" style="--ul-accent:#ef9f27">
 <div class="ul-head"><span class="ul-ver">v6.9.1: LION'S FATE</span></div>
@@ -2345,7 +2351,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">BẠCH DƯƠNG</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">CÔNG KÍCH TIÊN PHONG</div>
+<canvas class="sfc-glyph-cv" data-sigil="aries"></canvas><div class="sfc-name">BẠCH DƯƠNG</div><div class="sfc-el">Hỏa</div><div class="sfc-atk"><span>ATK <b>+8%</b></span></div><div class="sfc-theme">CÔNG KÍCH TIÊN PHONG</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Cổng Babylon</b> <span class="sbd">Mỗi đòn đánh trúng từ bất kỳ nguồn phe ta nào (trừ Skill D và Skill F) có thể mở cổng quanh người chơi và phóng 14 lưỡi kiếm theo hình quạt, mỗi lưỡi xuyên qua mọi kẻ địch trên đường bay: 7.5% ATK sát thương chuẩn mỗi kẻ địch bị xuyên (hồi chiêu 1.5s).</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Enuma Elish</b> <span class="sbd">Cứ mỗi 30 đòn đánh trúng, triệu hồi 1 bản thể ma ảnh của người chơi phóng 1 lưỡi thương khổng lồ xuyên qua toàn bộ đường bay theo hướng kẻ địch ưu tiên cao nhất: mỗi kẻ bị xuyên nhận 18 lần ATK + 5% Max HP của chính nó dưới dạng sát thương chuẩn, không giới hạn (hồi chiêu 0.5s).</span></div>
@@ -2358,7 +2364,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="taurus"></canvas><div class="sfc-name">KIM NGƯU</div><div class="sfc-el">Thổ</div><div class="sfc-theme">ĐỘI HÌNH CHIẾN ĐẤU</div>
+<canvas class="sfc-glyph-cv" data-sigil="taurus"></canvas><div class="sfc-name">KIM NGƯU</div><div class="sfc-el">Thổ</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">ĐỘI HÌNH CHIẾN ĐẤU</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Tổ Đội Dũng Giả</b> <span class="sbd">Triệu hồi đội hình 4 Vệ Binh bám theo đội hình phía trên người chơi, đủ 4 vai trò (Tank 300 HP, Support/Marksman/Mage mỗi con 200 HP). Mỗi thành viên có thanh HP riêng, vũ khí theo vai trò, hồi sinh sau 5s nếu gục (giữ nguyên vai trò cũ), và nhận đủ mọi buff mà Vệ Binh thật có (Blessing, Gaia Protection/Barrier, Lunar Aegis, Last Stand, Glory for Justice). Đạn địch bay gần đội hình có thể trúng 1 thành viên: Tank hứng ~75% số đó. Đòn tấn công xuyên (piercing) của địch đáng lẽ khiến người chơi mất mạng sẽ đánh trúng CẢ 4 thành viên còn sống cùng lúc, mỗi đứa chịu 1.5 lần sát thương mà chính đòn đó gây lên Vệ Binh thật (đạn/đòn thường không xuyên thì không có cơ chế này). Mỗi 1s, nếu bản đồ không còn Vệ Binh thật nào thì tự động spawn lại 2 con (hồi chiêu 2s).</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Hiệp Lực Tổ Đội</b> <span class="sbd">Tank: thanh hấp thụ đầy từ sát thương đội hình VÀ sát thương Vệ Binh thật nhận phải; đầy 100 → phóng lưỡi chém xuyên SentinelBlade (6% ATK sát thương chuẩn + 4% Năng Lượng Nguyên Thủy hiện có, mỗi kẻ địch) kèm tự hồi tối đa 3% ATK (giới hạn 8% Max HP của chính nó). Support: hồi máu cho 2 mục tiêu %HP thấp nhất trong CẢ đội hình lẫn Vệ Binh thật (không phải người chơi), mỗi người tối đa 7.5% ATK (giới hạn 20% Max HP của mục tiêu). Marksman: tự động bắn mũi tên xuyên mỗi 0.3s (11.2% ATK + 5% Năng Lượng Nguyên Thủy hiện có). Mage: ngọc vệ tinh bay đến kẻ địch gần nhất khoảng mỗi 1s và nổ vùng arcane AoE (3s, 7.5% ATK + 4% Năng Lượng Nguyên Thủy hiện có/tick).</span></div>
@@ -2371,7 +2377,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="gemini"></canvas><div class="sfc-name">SONG TỬ</div><div class="sfc-el">Phong</div><div class="sfc-theme">CHIẾN THUẬT GƯƠNG</div>
+<canvas class="sfc-glyph-cv" data-sigil="gemini"></canvas><div class="sfc-name">SONG TỬ</div><div class="sfc-el">Phong</div><div class="sfc-atk"><span>ATK <b>+9%</b></span></div><div class="sfc-theme">CHIẾN THUẬT GƯƠNG</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Ảnh Song</b> <span class="sbd">Mỗi đòn đánh trúng thứ 10 từ bất kỳ nguồn phe ta nào (trừ Vệ Binh) tích 0.5s, sau đó 1 tàu bóng ma xuất hiện ở một cạnh màn hình ngẫu nhiên và bắn 3 đợt cầu plasma xuyên phá vào kẻ địch ngẫu nhiên, bay xuyên suốt màn hình. Mỗi đợt gồm 1 cầu lớn kèm 2 cầu nhỏ. Cầu nhỏ: 11.2% ATK sát thương. Cầu lớn: 27% ATK + 2.5% Max HP sát thương. Mỗi lần trúng gây 1 lớp Trọng Thương và Đoạt Hồn. Hồi chiêu 0.5s trước khi kích hoạt lại.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Gương Quang Tuyến</b> <span class="sbd">Overload Laser sinh ra 2 thực thể gương (trên-trái & dưới-phải) di chuyển dọc theo hướng ngược nhau (+25% tốc độ), mỗi cái bắn 1 tia laser ngang bằng 60% sát thương tia gốc. Tia gốc được buff +20%. Ngoài ra, mỗi lần dùng skill hoặc bắn tự động có 5% cơ hội (+0.3% mỗi lần trượt, reset khi kích hoạt) bắn ra 1 cột laser xanh-tím xuyên phá gây 52.5% ATK + 2.5% Max HP mỗi 125ms trong 3s — không hút địch, cộng dồn với Overload Laser (hồi chiêu 6s sau khi cột laser 3s cháy hết).</span></div>
@@ -2384,7 +2390,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="cancer"></canvas><div class="sfc-name">CỰ GIẢI</div><div class="sfc-el">Thủy</div><div class="sfc-theme">THỦY TRIỀU NGUYỆT</div>
+<canvas class="sfc-glyph-cv" data-sigil="cancer"></canvas><div class="sfc-name">CỰ GIẢI</div><div class="sfc-el">Thủy</div><div class="sfc-atk"><span>ATK <b>+4%</b></span></div><div class="sfc-theme">THỦY TRIỀU NGUYỆT</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt def">DEF</span><b>Nguyệt Giáp</b> <span class="sbd">Gaia Protection kích hoạt mà không cần Glory for Justice; khả năng hấp thụ của Gaia Barrier +30%; Vệ Binh nhận +15% né tránh. Sát Thủ Đại Dương: kẻ địch còn 8% HP trở xuống lập tức bị 1 con cá voi sát thủ lao vào cắn chết.</span></div>
 <div class="sfc-row"><span class="sbt heal">HEAL</span><b>Triều Lưu</b> <span class="sbd">Vệ Binh hồi 3% Max HP/s (tăng theo cấp bậc); hiệu quả hồi máu +30%. Mỗi Vệ Binh nhận 1 lớp Iron Body; hồi chiêu 8s chỉ bắt đầu sau khi lớp đó bị tiêu hao. Nếu không còn Vệ Binh, sẽ triệu hồi lại 2 con (kiểm tra mỗi 1s, hồi chiêu 2s). Triều Cường: đòn bị hấp thụ đổ vào 1 thanh triều dùng chung, cộng thêm lượng thụ động theo số Vệ Binh còn sống (50/60/75 mỗi giây ứng với 1/2/3+ con); tràn được tích thêm tối đa +30% làm đà cho lần sau. Khi đầy, ấn Space để tạo xoáy nước tại từng kẻ địch trên màn hình (tối đa 10, gần nhất trước), hút mọi thứ quanh đó vào tâm (lực Áp Chế, không phải khống chế thông thường - kể cả kẻ địch miễn khống chế và đạn địch vẫn bị hút, xem thẻ ÁP CHẾ) - thứ gì dính vào chịu 7.5% ATK sát thương chuẩn mỗi 100ms, tối đa 1 lần/nạn nhân mỗi lượt kích hoạt - rồi nổ tung gây 97% ATK + 3.5% Max HP sát thương chuẩn khi cá voi cắn xuống.</span></div>
@@ -2397,7 +2403,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">SƯ TỬ</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">HỎA DƯƠNG</div>
+<canvas class="sfc-glyph-cv" data-sigil="leo"></canvas><div class="sfc-name">SƯ TỬ</div><div class="sfc-el">Hỏa</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">HỎA DƯƠNG</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Sư Tử Hống</b> <span class="sbd">Trong lúc Glory for Justice kích hoạt, đòn đánh gây Bỏng: 30% ATK mỗi lớp, tick mỗi 500ms trong 3s (đòn mới làm mới thời gian và cộng thêm 1 lớp, tối đa 3). Bỏng xuyên 50% giảm sát thương của kẻ địch. Mỗi đòn còn gây thêm sát thương bằng 1% HP đã mất của mục tiêu. Lửa Lan: kẻ địch chết khi đang Bỏng truyền số lớp Bỏng của nó sang tối đa 6 kẻ địch trong 150px.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Thần Mệnh</b> <span class="sbd">Đầu mỗi wave: mọi kẻ địch bị hóa đá 5s (kể cả địch mới xuất hiện), toàn bộ sát thương +60%. Hóa đá là Áp Chế; UNIQUE SKILL của Goliath (Dư Âm Đêm Vô Tận và Joker) vẫn chạy. Có Sư Tử Hống thì thanh Thần Mệnh được nạp: hạ kẻ địch đang Bỏng nạp thanh (Apostle 5%, Abnormal và Elite 20%, Dominator 35%), mỗi tick Bỏng lên kẻ địch hạng Abnormal trở lên nạp 1.5% và mỗi đòn trúng kẻ địch Digiform nạp 0.1%. Mỗi 1% cho +0.15% ATK (tối đa +15%). Khi đầy, nhấn Space (CHARGE trên điện thoại) để hóa đá mọi kẻ địch 3s với cùng +60% sát thương. Khi hóa đá kết thúc, mỗi kẻ địch còn đang hóa đá vỡ ra, chịu sát thương bằng 100% ATK. Sau đó thanh về 0, 8s sau khi hết hóa đá mới nạp lại.</span></div>
@@ -2410,7 +2416,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">XỬ NỮ</div><div class="sfc-el">Thổ</div><div class="sfc-theme">CHUẨN KÍCH</div>
+<canvas class="sfc-glyph-cv" data-sigil="virgo"></canvas><div class="sfc-name">XỬ NỮ</div><div class="sfc-el">Thổ</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">CHUẨN KÍCH</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Hộ Lâm</b> <span class="sbd">Mỗi đợt bắn tự động thứ 6 kích hoạt Chí Mạng: sát thương x3, gây Trọng Thương, trói + câm lặng 1s. Đạn phát sáng vàng. Khi có 5+ kẻ địch trên màn hình, mỗi 4s 1 nắm đấm gỗ bọc dây leo quét ngang màn hình (60% chiều rộng màn hình), gây 150% ATK + 10% HP đã mất của mỗi mục tiêu.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Kỹ Sư Mạch</b> <span class="sbd">Sát thương theo thời gian Tesla, Cuộn Tesla, và hào quang Cuộn +30%; phá hủy 1 Cuộn Tesla cấp thêm 10 điểm nạp năng lượng G. Kẻ địch mang bất kỳ hiệu ứng bất lợi nào (chậm, sát thương theo thời gian, Trọng Thương, Đoạt Hồn,...) nhận +25% sát thương từ mọi nguồn.</span></div>
@@ -2423,7 +2429,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="libra"></canvas><div class="sfc-name">THIÊN BÌNH</div><div class="sfc-el">Huyết Quỷ Thuật</div><div class="sfc-theme">HUYẾT SẮC PHÁN QUYẾT</div>
+<canvas class="sfc-glyph-cv" data-sigil="libra"></canvas><div class="sfc-name">THIÊN BÌNH</div><div class="sfc-el">Huyết Quỷ Thuật</div><div class="sfc-atk"><span>ATK <b>+10%</b></span></div><div class="sfc-theme">HUYẾT SẮC PHÁN QUYẾT</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Huyết Tiễn</b> <span class="sbd">Giảm 2s hồi chiêu Skill A khi trang bị Thiên Bình. Skill A tích 1 stack mỗi lần ấn; ấn lại khi có mục tiêu để kích hoạt và xả hết stack đang tích, mỗi stack bắn 1 loạt 5 mũi tên xuyên (1 mũi lớn đánh dấu kẻ Max HP cao nhất, 4 mũi nhỏ đánh dấu kẻ khác, ưu tiên khu đông địch). Mũi lớn: 45% ATK sát thương xuyên, nổ sát thương chuẩn 60% ATK + 3.5% Max HP (tối đa +60% nữa từ giáp mục tiêu). Mũi nhỏ: 27% ATK sát thương xuyên, nổ sát thương xuyên (khiên vẫn chặn được) 27% ATK + 2.5% Max HP cộng 3% HP đã mất của mục tiêu, bay nhanh hơn 20%. Vụ nổ gây 2 lớp Trọng Thương; trúng lại cùng 1 kẻ địch gây ít hơn 30% sát thương.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Tinh Xuyên</b> <span class="sbd">Cầu năng lượng Skill A xuyên qua mục tiêu khi va chạm và tiếp tục bay tới mép màn hình, gây sát thương cho mọi kẻ địch nó đi qua. Kích thước cầu +30%, sát thương +20%.</span></div>
@@ -2436,7 +2442,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">BỌ CẠP</div><div class="sfc-el">Thủy</div><div class="sfc-theme">TỬ THẦN CHI ẤN</div>
+<canvas class="sfc-glyph-cv" data-sigil="scorpio"></canvas><div class="sfc-name">BỌ CẠP</div><div class="sfc-el">Thủy</div><div class="sfc-atk"><span>ATK <b>+6%</b></span></div><div class="sfc-theme">TỬ THẦN CHI ẤN</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt heal">HEAL</span><b>Hoàn Sinh</b> <span class="sbd">Khi chọn: nhận ngay +4 mạng. Tỉ lệ thưởng mạng: +1 mạng mỗi 300,000 điểm (thay vì 500,000).</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Tử Ấn</b> <span class="sbd">HP 100%→21%: sát thương tăng tuyến tính +0%→+50%. HP ≤20%: +65% sát thương từ mọi nguồn. HP ≤5%: sét đánh kết liễu ngay lập tức. Vòng cung lưỡi kiếm Skill F xuyên qua Iron Body. Kẻ địch dưới 50% HP hiện vòng cảnh báo màu xanh cyan.</span></div>
@@ -2449,7 +2455,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#EF9F27;--scl:rgba(239,159,39,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="sagittarius"></canvas><div class="sfc-name">NHÂN MÃ</div><div class="sfc-el">Hỏa</div><div class="sfc-theme">LƯỠI KIẾM LINH HỒN</div>
+<canvas class="sfc-glyph-cv" data-sigil="sagittarius"></canvas><div class="sfc-name">NHÂN MÃ</div><div class="sfc-el">Hỏa</div><div class="sfc-atk"><span>ATK <b>+10%</b></span></div><div class="sfc-theme">LƯỠI KIẾM LINH HỒN</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Song Lưỡi</b> <span class="sbd">Đòn chém cung của Tinh Linh bắn 2 lưỡi kiếm (+20% mỗi lưỡi, lưỡi thứ 2 bắn trễ 15ms), cộng thêm 25% cơ hội có lưỡi thứ 3. Mỗi boomerang có 2 lượt cơ hội độc lập 30% để thêm 2 boomerang phụ mỗi lượt. Skill F giờ ném 2 boomerang từ người chơi thay vì chém cung. Lưỡi kiếm phụ có +20% bán kính. Mỗi phát bắn tự động có 15% cơ hội bắn ra 1 lưỡi kiếm cung (34.5% ATK), giống của Tinh Linh. Cũng tăng cường cho Spinner (chiêu cuối Skill S): nhân đôi loạt lưỡi kiếm phụ mỗi lần bắn (4→8, +20% sát thương mỗi lưỡi, đợt 2 bắn trễ 15ms với +20% bán kính), và cấp <b>Thợ Săn Dội Đạn</b> — mỗi lần Spinner bật tường sẽ tự chỉnh hướng bay lệch 1 phần về phía kẻ địch gần đó (trong cung 60°) và cộng dồn +15% sát thương cho đòn chạm kế tiếp (tối đa 3 lớp, +45%), reset về 0 ngay khi trúng đòn.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Cực Hàn</b> <span class="sbd">Boomerang và chém cung: 75% cơ hội làm chậm 30% trong 2s và hút về phía đạn. Kẻ địch miễn nhiễm khống chế không bao giờ bị hút, nhưng vẫn bị chậm. Tốc độ bắn của Tinh Linh Hoài Niệm và Phōtokrystos +20%. Cũng áp dụng cho Spinner: đòn chạm thân nhận cùng 75% cơ hội làm chậm+hút, và nhịp chém lưỡi kiếm phụ nhanh hơn 20%.</span></div>
@@ -2462,7 +2468,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#4D9B2A;--scl:rgba(77,155,42,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="capricorn"></canvas><div class="sfc-name">MA KẾT</div><div class="sfc-el">Thổ</div><div class="sfc-theme">TĂNG TRƯỞNG KÉP</div>
+<canvas class="sfc-glyph-cv" data-sigil="capricorn"></canvas><div class="sfc-name">MA KẾT</div><div class="sfc-el">Thổ</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">TĂNG TRƯỞNG KÉP</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt heal">HEAL</span><b>Lãi Kép</b> <span class="sbd">Mỗi lần hạ gục nhận +0.8% Max HP; mỗi 5% Max HP nhận được tăng 1.5% tốc độ bắn của toàn phe ta (tối đa +40%, giữ nguyên qua BTM). Trong lúc đại tinh linh còn sống, đòn đánh chính của phe ta gây thêm +22.5% ATK sát thương thật (hồi chiêu 100ms mỗi mục tiêu).</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Tuyết Lăn</b> <span class="sbd">Mỗi lần hạ gục nhận +0.5% sát thương toàn cục (reset sau 6s không hạ gục, tối đa +40%).</span></div>
@@ -2475,7 +2481,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#378ADD;--scl:rgba(55,138,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="aquarius"></canvas><div class="sfc-name">BẢO BÌNH</div><div class="sfc-el">Phong</div><div class="sfc-theme">LÔI BÃO</div>
+<canvas class="sfc-glyph-cv" data-sigil="aquarius"></canvas><div class="sfc-name">BẢO BÌNH</div><div class="sfc-el">Phong</div><div class="sfc-atk"><span>ATK <b>+9%</b></span></div><div class="sfc-theme">LÔI BÃO</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Liên Hoàn Lôi</b> <span class="sbd">Sát thương theo thời gian Tesla: 50% cơ hội lan sang kẻ địch gần nhất trong bán kính 150px. Tốc độ nạp Skill G +35%. Trong lúc Skill G kích hoạt, mỗi cầu năng lượng hết hạn mà chưa ghép thành Cuộn Tesla sẽ cho +8% sát thương phe ta (cộng dồn, tối đa 6 lớp, tổng +48%, mỗi lớp 5s), và được hút thành 1 cầu Skill A phụ nếu Skill A còn chỗ.</span></div>
 <div class="sfc-row"><span class="sbt def">DEF</span><b>Điện Từ Trường</b> <span class="sbd">Trong lúc Skill G kích hoạt hoặc nạp đầy, kẻ địch trong bán kính 300px bị chậm 30% và chịu sát thương theo thời gian 6.5% ATK mỗi 100ms (65% ATK/s).</span></div>
@@ -2488,7 +2494,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#7F77DD;--scl:rgba(127,119,221,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">SONG NGƯ</div><div class="sfc-el">Thủy</div><div class="sfc-theme">DÒNG CHẢY VÀ NÉ TRÁNH</div>
+<canvas class="sfc-glyph-cv" data-sigil="pisces"></canvas><div class="sfc-name">SONG NGƯ</div><div class="sfc-el">Thủy</div><div class="sfc-atk"><span>ATK <b>+20%</b></span></div><div class="sfc-theme">DÒNG CHẢY VÀ NÉ TRÁNH</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cõi Mộng</b> <span class="sbd">Kích hoạt Shift vô hiệu hóa mọi sát thương của địch trong 2.5s và đánh dấu toàn bộ kẻ địch trên màn hình (mỗi con nhận ngay 1 lớp Trọng Thương). Sau 1.65s, kẻ địch bị đánh dấu bùng nổ gây 50% sát thương đã tích lũy trong lúc bị đánh dấu cộng 15% HP đã mất của chúng, tối đa 25% Max HP của chính chúng. Có chung 1 mốc hồi chiêu tối thiểu 6s, nên Shift bấm liên tục không thể nối thành bất tử gần như vô hạn.</span></div>
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Dòng Chảy Luân Hồi</b> <span class="sbd">Hạ Apostle: −0.75s hồi chiêu Skill A/S/Overload Laser (Skill D/F vẫn giữ mức −1s cũ, lớn hơn). Hạ Abnormal/Elite: −1s (D/F: −1.5s). Hạ Dominator: −1.5s (D/F: −2s). Hạ Egregor: −2s (D/F: −3s). Phần giảm hồi chiêu từ hạ gục và di chuyển của A/S/Laser dùng chung 1 ngân sách xoay vòng, tối đa 2s giảm mỗi giây thực; D/F/Shift không bị giới hạn này. Mỗi lần di chuyển đủ 1 bề ngang màn hình vẫn giảm 0.5s hồi chiêu mọi skill. Tốc độ nạp Skill G +35% (Phōtokrystos vẫn +50%). Skill D, Skill F và Overload Laser bắn ngay lập tức, bỏ qua hoàn toàn giai đoạn nạp (không ảnh hưởng Shift).</span></div>
@@ -2501,7 +2507,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#D62839;--scl:rgba(214,40,57,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="than"></canvas><div class="sfc-name">ĐẤU CHIẾN THẮNG PHẬT</div><div class="sfc-el">Thổ</div><div class="sfc-theme">SỨC MẠNH CƯỚP ĐOẠT</div>
+<canvas class="sfc-glyph-cv" data-sigil="than"></canvas><div class="sfc-name">ĐẤU CHIẾN THẮNG PHẬT</div><div class="sfc-el">Thổ</div><div class="sfc-atk"><span>ATK <b>+8%</b></span></div><div class="sfc-theme">SỨC MẠNH CƯỚP ĐOẠT</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Cướp Long Cung</b> <span class="sbd">Thiên Ý Trảm hóa thành Như Ý Kim Cô Bổng, tự nới rộng theo số kill hạ được trong 1 lượt quét (tối đa 4.5 lần), và mỗi lần quét thật sẽ tàng hình bạn cùng toàn bộ sentinel trong 1s. Hạ được kẻ địch từ Elite trở lên sẽ cướp luôn bảo thạch của chính nó (tối đa 3 viên khác loại cùng lúc), riêng hạ Goliath thì cướp trọn 3 viên nó đang giữ cùng lúc do bản thân nó vốn đã ghép từ sức mạnh cướp được của 3 kẻ địch khác. Bấm F bất cứ lúc nào có bảo thạch sẽ tung ra bản sao thật đòn đánh đặc trưng của kẻ địch đó, không cần chờ hồi chiêu.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>72 Phép Biến Hóa</b> <span class="sbd">Mỗi lần bấm F vẫn chỉ tiêu 1 viên - nhưng khi đang giữ đủ 3 viên khác loại cùng lúc, viên được dùng sẽ mạnh hơn x1.65.</span></div>
@@ -2514,7 +2520,7 @@
 
 <div class="sfc" onclick="this.classList.toggle('flipped')" style="--sc:#FFD23F;--scl:rgba(255,210,63,0.12)">
 <div class="sfc-inner"><div class="sfc-front">
-<canvas class="sfc-glyph-cv" data-sigil="dau"></canvas><div class="sfc-name">MÃO NHẬT TINH QUAN</div><div class="sfc-el">Kim</div><div class="sfc-theme">ÁNH SÁNG ĐẦU NGÀY</div>
+<canvas class="sfc-glyph-cv" data-sigil="dau"></canvas><div class="sfc-name">MÃO NHẬT TINH QUAN</div><div class="sfc-el">Kim</div><div class="sfc-atk"><span>ATK <b>+5%</b></span></div><div class="sfc-theme">ÁNH SÁNG ĐẦU NGÀY</div>
 <div class="sfc-buffs">
 <div class="sfc-row"><span class="sbt spec">SPEC</span><b>Kim Kê Báo Hiểu</b> <span class="sbd">Mỗi 10s vòng sáng xóa đạn địch, đẩy kẻ địch lên 36px trong 220ms (Áp Chế), kéo Uriel khỏi tàng hình và gắn Rạng Đông trong cửa sổ toàn cục 4s. Kẻ địch mang dấu nhận thêm 20% sát thương và không né được. Goliath chỉ mất 30 điểm phần trăm né. Mỗi kẻ địch mang Rạng Đông bị hạ rút ngắn tiếng gáy kế tiếp 0.3s, tối đa 5s mỗi tiếng gáy. Mỗi đòn trúng Uriel vẫn mài 5 điểm phần trăm né đến sàn 30%, và chuỗi 10 đòn trúng vẫn kích hoạt tàng hình. Miễn debuff và kết giới giữ cơ chế riêng. Lực Áp Chế đẩy cả địch miễn CC, bỏ qua tàng hình, đăng quang, kén và chuỗi chết. Kẻ địch không còn đủ chỗ dưới mép trên để bị đẩy trọn quãng, cùng Goliath Chân Thân, bị hất lên cùng quãng đó rồi trở về chỗ cũ trong 0.7s, kể cả khi đang miễn debuff. Ánh sáng tụ dần trong 10s rồi bùng thành gà thần lửa, thái dương và vòng sáng mềm nhiều lớp. Đồng hồ dừng khi pause, mở chọn sigil và cutscene Kanade.</span></div>
 <div class="sfc-row"><span class="sbt atk">ATK</span><b>Tú Hoa Châm</b> <span class="sbd">Mỗi viên đạn bị xóa biến thành kim vàng tại đúng vị trí đó, tự tìm kẻ địch gần nhất, tối đa 16 kim mỗi tiếng gáy, gây 60% ATK sát thương chuẩn. Mục tiêu chết thì kim chọn mục tiêu khác. Bảy kim sao chọn bảy kẻ địch có Max HP cao nhất, báo trước 350ms rồi gây 200% ATK sát thương chuẩn và ghim 1.5s. Ít kẻ địch thì ít kim. Miễn khống chế chặn ghim. Chiêu thức dạng phóng ra bị vòng sáng chạm tới bị phản ngược về kẻ tung chiêu. Chiêu bị phản không thể bị né (riêng Goliath chỉ bị trừ 30 điểm phần trăm né) và xuyên các lớp Iron Body thường cùng lớp do Uriel cấp. Mỗi tiếng gáy phản tối đa 9 chiêu, chiêu thứ mười trở đi bay tiếp như thường. Bản sao vàng tìm chủ của chiêu, chủ mất thì tìm kẻ địch hợp lệ gần nhất. Sát thương chuẩn: kiếm Marchosias, 150% ATK + 1% Max HP; Judgment của Uriel, 250% ATK + 2% Max HP; Wisdom Orb của Raphael, 250% ATK + 2% Max HP; Abyssal Chains của Dargruel, 200% ATK + 1.5% Max HP; Corrupted Meteor của Goliath, 300% ATK + 2% Max HP; Absolute Verdict của Goliath, 600% ATK + 3% Max HP. Chiêu bị phản không để lại DoT, trói hay nổ lan. Đạn thường vẫn đổi thành kim như cũ. Không phản Lumen Nova, Perseverance, laser lúc chết của Leviathan, Maou Haki, Psychic Tempest, Null Slash, Void Strike, Endless Echo và mọi bản sao Joker. Bỏ qua lưỡi còn chờ và cầu đang tụ lực.</span></div>

@@ -261,6 +261,13 @@ async function main() {
             gamePaused=true; return results;
         });
         results.push({name:'Backquote opens the debug console',pass:debugKeyboard});
+        {
+            // The guide is static HTML, so its cards must be kept equal to the game's table by hand.
+            const table=Function('return {'+fs.readFileSync(path.join(root,'js/config.js'),'utf8').match(/const SIGIL_ATK_BONUS = \{([\s\S]*?)\};/)[1]+'}')();
+            const cards=[...fs.readFileSync(path.join(root,'guide.html'),'utf8').matchAll(/class="sfc-glyph-cv" data-sigil="([a-z]+)"><\/canvas><div class="sfc-name">[^<]*<\/div><div class="sfc-el">[^<]*<\/div><div class="sfc-atk"><span>ATK <b>\+(\d+)%<\/b><\/span><\/div>/g)];
+            const wrong=cards.filter(m=>Number(m[2])!==Math.round(table[m[1]]*100)).map(m=>m[1]);
+            results.push({name:'Guide cards list the same ATK bonus as the game table',pass:cards.length===2*Object.keys(table).length&&!wrong.length,error:cards.length+' cards, mismatched: '+wrong.join(',')});
+        }
         for(const r of results)if(!r.pass)console.log(JSON.stringify(r));
         const preview = path.join(root, 'misc/dau-vfx-preview');
         fs.mkdirSync(preview, {recursive:true});
