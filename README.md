@@ -359,7 +359,7 @@ The second Vietnamese Zodiac sigil is **Dậu**, element **Metal (Kim)**, color 
 
 **Golden Needle (ATK):** each erased bullet returns from its position as a homing needle, up to 16 per crow, for **60% ATK true damage**. A dead target is replaced by the nearest living target. Each crow also sends one star needle at each of the **7 strongest enemies by Max HP**, after a **350ms warning**, for **200% ATK true damage** and a **1.5s pin**. Fewer targets get fewer needles. CC immunity prevents the pin.
 
-Enemy skill projectiles the ring touches have a 50% chance to be turned back on their caster. A turned skill cannot be evaded, though Goliath only loses 30 percentage points of evade against it, and it passes ordinary Iron Body layers and the ones Uriel grants. Each launched object rolls once per crow, with at most 16 reflections. Golden copies home to their caster, retarget the nearest valid enemy when necessary and dissolve if none remains. Reflected originals cannot leave DoT, root or splash.
+Enemy skill projectiles the ring touches are turned back on their caster. A turned skill cannot be evaded, though Goliath only loses 30 percentage points of evade against it, and it passes ordinary Iron Body layers and the ones Uriel grants. Each launched object is turned at most once per crow, with at most 9 reflections per crow. Anything past the ninth flies on untouched. Golden copies home to their caster, retarget the nearest valid enemy when necessary and dissolve if none remains. Reflected originals cannot leave DoT, root or splash.
 
 | Reflected skill | True damage |
 | --- | --- |

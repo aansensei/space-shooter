@@ -78,7 +78,7 @@ async function main() {
             test('B: 350ms warning, real true damage and 1.5s pin', () => { const e=_dauMob('apostle',player.x,100); enemies.push(e); _dauTriggerCrow(); const hp=e.hp; _dauUpdateNeedles(349,performance.now()); assert(e.hp===hp,'warning'); _dauUpdateNeedles(1,performance.now()); for(let i=0;i<40 && e.hp===hp;i++) _dauUpdateNeedles(10,performance.now()); assert(Math.abs(hp-e.hp-206.9)<1e-7,'star damage '+(hp-e.hp)); assert(e._rootEnd===performance.now()+1500,'pin'); _dauReset(); e._rootEnd=0; _dauAddNeedle(0,e.x,e.y,e,-1); _dauUpdateNeedles(1,performance.now()); assert(Math.abs(hp-e.hp-273.8)<1e-7,'return damage'); });
             test('B: pin holds native Uriel movement and respects CC immunity', () => { spawnUriel(); const e=enemies.at(-1); e.ironBodyHits=0; e._camoPhase='shielded'; e._camoTimer=0; e._rootEnd=e._dauPinEnd=performance.now()+1500; const x=e.x,y=e.y; _dauStep(100); assert(e.x===x && e.y===y,'Uriel patrol'); for(const type of ['egregor','dargruel','leviathan']) assert(!_dauPinAllowed(_dauMob(type)),type); const g=_dauMob('goliath'); g.phase='true_form'; g._debuffImmuneEnd=performance.now()+1500; assert(!_dauPinAllowed(g),'immune Goliath'); const m=_dauMob('marchosias'); m.arcBarrier={hp:100}; assert(!_dauPinAllowed(m),'barrier'); });
             test('B: native cleanup gives the same bullet rewards as Motherland', () => { const clear = dau => { _dauTestReset(); window._playerSigils=dau?[{sigilId:'dau'}]:[]; for(let i=0;i<40;i++){const b=_dauMob('enemy_bullet',player.x+100+i,player.y-100); b.vx=b.vy=0; enemies.push(b);} const before=score; if(dau) _dauTriggerCrow(); else bossShockwaves.push({active:true,x:player.x,y:player.y,radius:0,speed:200,maxRadius:2000,_isBTMWave:true,_hitEnemies:new Set()}); _dauStep(100); return score-before; }; const btm=clear(false),dau=clear(true); assert(dau===btm,'reward mismatch '+dau+' '+btm); });
-            test('B: needle sources and reused impact sound are exact', () => { const damage=dealDamage, audio=window.AudioMgr, calls=[],sounds=[]; try { dealDamage=(e,s)=>calls.push({...s}); window.AudioMgr={playSfx:k=>sounds.push(k),playSfxAt:k=>sounds.push(k)}; const e=_dauMob(); enemies.push(e); _dauTriggerCrow(); _dauAddNeedle(0,e.x,e.y,e,-1); _dauUpdateNeedles(1000,performance.now()); assert(calls.some(s=>s.damage===60)&&calls.some(s=>s.damage===200),'coefficients'); assert(calls.every(s=>s.isTrueDamage&&s._noHitSfx&&s._statSrc==='Golden Needle'),'provenance'); assert(sounds.includes('dau-crow')&&sounds.includes('blood-arrow-impact'),'sound routes'); } finally {dealDamage=damage;window.AudioMgr=audio;} });
+            test('B: needle sources and reused impact sound are exact', () => { const damage=dealDamage, audio=window.AudioMgr, calls=[],sounds=[]; try { dealDamage=(e,s)=>calls.push({...s}); window.AudioMgr={playSfx:k=>sounds.push(k),playSfxAt:k=>sounds.push(k)}; const e=_dauMob(); enemies.push(e); _dauTriggerCrow(); _dauAddNeedle(0,e.x,e.y,e,-1); _dauUpdateNeedles(1000,performance.now()); assert(calls.some(s=>s.damage===60)&&calls.some(s=>s.damage===200),'coefficients'); assert(calls.every(s=>s.isTrueDamage&&s._noHitSfx&&s._statSrc==='Golden Needle'),'provenance'); assert(sounds.includes('dau-crow')&&sounds.includes('dau-wave')&&sounds.includes('dau-needle-hit'),'sound routes'); } finally {dealDamage=damage;window.AudioMgr=audio;} });
             test('B: no Golden Needle buff produces no needles', () => { const buffs=SIGIL_DEFS.dau.buffs; try {SIGIL_DEFS.dau.buffs=[buffs[0]]; const e=_dauMob(),b=_dauMob('enemy_bullet'); enemies.push(e,b); _dauTriggerCrow(); _dauBeginFrame(100,performance.now()); assert(!window._dauNeedles.length&&b.hp===0,'buff gate');} finally {SIGIL_DEFS.dau.buffs=buffs;} });
             test('B: queues stay bounded and reset releases all targets', () => { enemies.push(_dauMob('apostle',player.x,100)); for(let i=0;i<100;i++){_dauTriggerCrow();_dauEmit(1,100,100,400);} assert(window._dauNeedles.length<=64&&window._dauFx.length===64&&window._dauRings.length<=64,'caps'); _dauReset(); assert(!window._dauNeedles.length&&!window._dauRings.length&&window._dauNeedlePool.every(n=>!n.active&&!n.target)&&window._dauFx.every(f=>f.life===0),'release'); });
             test('B: all graphics tiers draw without live sprite baking', () => { const cache=_dauRenderCache; for(const level of [0,1,2,3,4]){_dauTestReset(); _applyGfxLevel(level); enemies.push(_dauMob('apostle',player.x,player.y-100)); _dauTriggerCrow(); for(let i=0;i<8;i++){_dauStep(50); draw(50);} assert(_dauRenderCache===cache,'cache '+level);} });
@@ -101,15 +101,29 @@ async function main() {
                 _dauTriggerCrow();assert(window._dauCrowRefund===0&&window._dauCrowTimer===0,'the cap resets with each crow');
                 const again=mob();again._dauCrowId=window._dauCrowId;handleEnemyKill(again);assert(window._dauCrowTimer===DAU_KILL_REFUND_MS,'and counts again');
             });
+            test('B: every Dawn Herald sound fires once at its own moment', () => {
+                const audio=window.AudioMgr,sounds=[];
+                try{window.AudioMgr={playSfx:k=>sounds.push(k),playSfxAt:k=>sounds.push(k)};const count=k=>sounds.filter(s=>s===k).length;
+                    window._dauCrowTimer=DAU_CROW_INTERVAL_MS-DAU_CHARGE_CUE_MS-50;_dauBeginFrame(40,performance.now());assert(count('dau-charge')===0,'charge waits for the last second');
+                    _dauBeginFrame(40,performance.now());_dauBeginFrame(40,performance.now());assert(count('dau-charge')===1,'charge cues once');
+                    gamePaused=true;_dauBeginFrame(5000,performance.now());gamePaused=false;assert(count('dau-crow')===0,'nothing while paused');
+                    _dauBeginFrame(DAU_CHARGE_CUE_MS,performance.now());assert(count('dau-crow')===1&&count('dau-wave')===1&&count('dau-charge')===1,'crow and wave fire together');
+                    const e=_dauMob('apostle',player.x+40,player.y-200);enemies.push(e);window._dauNeedles.length=0;for(const n of window._dauNeedlePool){n.active=false;n.target=null;}
+                    _dauAddNeedle(0,e.x,e.y,e,-1);_dauAddNeedle(1,e.x,e.y,e,0);_dauUpdateNeedles(1000,performance.now());
+                    assert(count('dau-needle-hit')===1&&count('dau-star-strike')===1,'needle and star strike');
+                    _dauAddReflection('uriel',{x:e.x,y:e.y,owner:e,vx:1,vy:1});assert(count('dau-reflect')===1,'a turned skill');
+                    window._dauCrowTimer=DAU_CROW_INTERVAL_MS-500;_dauBeginFrame(16,performance.now());assert(count('dau-charge')===2,'and the charge cues again for the next crow');
+                }finally{window.AudioMgr=audio;gamePaused=false;}
+            });
             test('B: progressive charge caps and pause keep the same phase', () => { const cache=_dauRenderCache; for(const level of [0,1,2,3,4]) { _applyGfxLevel(level); window._dauCrowTimer=9700; gamePaused=true; _dauBeginFrame(5000,performance.now()); assert(window._dauCrowTimer===9700,'paused phase'); _drawDauRing();_drawDauHud();assert(_dauRenderCache===cache&&_dauChargeParticles.length===24,'reused charge pool');gamePaused=false;} });
             const cases = [['marchosias',150,0.01],['uriel',250,0.02],['raphael',250,0.02],['dargruel',200,0.015],['meteor',300,0.02],['verdict',600,0.03]];
             for (const [kind,atk,percent] of cases) {
                 test('C: '+kind+' reflects once and deals exact real damage', () => {
-                    const random=Math.random; Math.random=()=>0.499;
+                    const random=Math.random; Math.random=()=>0.999;
                     try {
                         const owner=_dauMob('apostle',player.x+300,player.y-300);owner.hp=owner.maxHp=10000;enemies.push(owner);
                         const p=_dauSkill(kind,owner);_dauTriggerCrow();_dauBeginFrame(1,performance.now());
-                        assert(DAU_REFLECT_CHANCE===0.50,'50 percent chance');
+                        assert(DAU_REFLECT_CHANCE===1,'every touched skill turns');
                         assert(!_dauSkillList(kind).includes(p)&&window._dauReflections.length===1,'remove and copy');
                         assert(window._dauReflections[0].target===owner,'caster');
                         window._dauNeedles.length=0;const hp=owner.hp;_dauUpdateReflections(1000);
@@ -118,13 +132,13 @@ async function main() {
                         assert(DAU_REFLECT[kind].atk===atk/100&&DAU_REFLECT[kind].percentDamage===percent,'table');
                     } finally {Math.random=random;}
                 });
-                test('C: '+kind+' failed roll stays harmful and never rolls twice', () => {
+                test('C: '+kind+' past the crow cap stays harmful and is never tried twice', () => {
                     const random=Math.random, takeHit=playerTakesHit;let rolls=0,hits=0;
                     Math.random=()=>{rolls++;return 0.50;}; playerTakesHit=()=>{hits++;return true;};
                     try {
                         const owner=_dauMob('apostle',player.x+300,player.y-300);enemies.push(owner);
-                        const p=_dauSkill(kind,owner);_dauTriggerCrow();_dauBeginFrame(1,performance.now());
-                        assert(_dauSkillList(kind).includes(p)&&!window._dauReflections.length,'failed roll');
+                        const p=_dauSkill(kind,owner);_dauTriggerCrow();window._dauRings.at(-1).reflected=DAU_REFLECT_MAX;_dauBeginFrame(1,performance.now());
+                        assert(_dauSkillList(kind).includes(p)&&!window._dauReflections.length,'past the cap');
                         const first=rolls;_dauBeginFrame(1,performance.now());assert(rolls===first&&first===1,'one draw');
                         window._playerSigils=[];window._dauNeedles.length=0;p.x=player.x;p.y=player.y;p.vx=p.vy=p.speed=0;
                         if(kind==='uriel')_updateUrielEffects(1);else if(kind==='raphael')updateRaphaelWisdomOrbs(1);else if(kind==='marchosias')updateMarchosiasBlades(1);else _dauStep(1);
@@ -227,11 +241,11 @@ async function main() {
                     _dauUpdateReflections(1);assert(window._dauReflections[0].target===near,state);enemies=[];_dauUpdateReflections(1);assert(!window._dauReflections.length,'dissolve');
                 }
             });
-            test('C: per crow cap is 16, excess originals survive and pool reuse is bounded', () => {
+            test('C: per crow cap is 9, excess originals survive and pool reuse is bounded', () => {
                 const random=Math.random;Math.random=()=>0;try{
                     const owner=_dauMob('apostle',player.x+300,player.y-300);enemies.push(owner);
                     for(let i=0;i<24;i++)_dauSkill('meteor',owner);_dauTriggerCrow();_dauBeginFrame(1,performance.now());
-                    assert(window._dauReflections.length===16&&window._goliathMeteors.length===8,'cap');
+                    assert(DAU_REFLECT_MAX===9&&window._dauReflections.length===DAU_REFLECT_MAX&&window._goliathMeteors.length===24-DAU_REFLECT_MAX,'cap');
                     for(let c=0;c<8;c++){for(let i=0;i<24;i++)_dauSkill('meteor',owner);_dauTriggerCrow();_dauBeginFrame(1,performance.now());}
                     assert(window._dauReflections.length<=DAU_FX_MAX&&window._dauReflectPool.length===DAU_FX_MAX,'pool ceiling');
                     const pool=window._dauReflectPool;_dauReset();assert(pool===window._dauReflectPool&&pool.every(p=>!p.active&&!p.target),'reuse and release');
