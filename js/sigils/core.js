@@ -703,24 +703,41 @@ function _sigilRerollRect(L, yOff) {
     return { x: confirmBtn.x + confirmBtn.w + gap, y: confirmBtn.y, w, h };
 }
 
-// The element in the sigil's colour with the flat ATK it grants beside it,
-// centred as one line. The number comes straight from SIGIL_ATK_BONUS.
-function _drawSigilElementLine(sigilId, def, cx, y, fontPx) {
+// The card's divider, split around a small plate that carries the flat ATK
+// the sigil grants. The number comes straight from SIGIL_ATK_BONUS.
+function _drawSigilAtkDivider(sigilId, def, cx, divY, x0, x1, fontPx) {
+    const [r, g, b] = _hexRgb3(def.color);
     const bonus = SIGIL_ATK_BONUS[sigilId] || 0;
-    const plain = `${fontPx}px "Courier New", monospace`;
-    ctx.font = plain;
-    ctx.fillStyle = def.color;
-    if (!bonus) { ctx.fillText(def.element, cx, y); return; }
-    const left = def.element + ' \u00b7 ', atk = `+${Math.round(bonus * 100)}% ATK`;
-    const leftW = ctx.measureText(left).width;
-    ctx.font = 'bold ' + plain;
-    const startX = cx - (leftW + ctx.measureText(atk).width) / 2;
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
+    ctx.lineWidth = 0.8;
+    if (!bonus) { ctx.beginPath(); ctx.moveTo(x0, divY); ctx.lineTo(x1, divY); ctx.stroke(); return; }
+    const label = 'ATK ', value = `+${Math.round(bonus * 100)}%`;
+    const plain = `${fontPx}px "Courier New", monospace`, bold = 'bold ' + plain;
+    ctx.font = plain; const labelW = ctx.measureText(label).width;
+    ctx.font = bold; const valueW = ctx.measureText(value).width;
+    const plateH = fontPx + 6, plateW = labelW + valueW + plateH + 4, half = plateW / 2 + 7;
+    ctx.beginPath();
+    ctx.moveTo(x0, divY); ctx.lineTo(cx - half, divY);
+    ctx.moveTo(cx + half, divY); ctx.lineTo(x1, divY);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(${r},${g},${b},0.9)`;
+    for (const side of [-1, 1]) {
+        const dx = cx + side * half;
+        ctx.beginPath();
+        ctx.moveTo(dx - 3, divY); ctx.lineTo(dx, divY - 3); ctx.lineTo(dx + 3, divY); ctx.lineTo(dx, divY + 3);
+        ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(6,10,22,0.88)';
+    _drawRoundRect(cx - plateW / 2, divY - plateH / 2, plateW, plateH, plateH / 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.85)`;
+    ctx.lineWidth = 1;
+    _drawRoundRect(cx - plateW / 2, divY - plateH / 2, plateW, plateH, plateH / 2);
+    ctx.stroke();
+    const textX = cx - (labelW + valueW) / 2, textY = divY + fontPx * 0.34;
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffe9a8';
-    ctx.fillText(atk, startX + leftW, y);
-    ctx.font = plain;
-    ctx.fillStyle = def.color;
-    ctx.fillText(left, startX, y);
+    ctx.font = plain; ctx.fillStyle = `rgba(${r},${g},${b},0.95)`; ctx.fillText(label, textX, textY);
+    ctx.font = bold; ctx.fillStyle = '#ffe9a8'; ctx.fillText(value, textX + labelW, textY);
     ctx.textAlign = 'center';
 }
 
@@ -770,12 +787,12 @@ function _drawSigilCard(cx, cy, w, h, sigilId, def, isHovered, isSelected, now, 
     ctx.font = `bold ${compact ? 11 : 13}px "Courier New", monospace`;
     ctx.fillText(def.name, cx, compact ? y + 62 : y + 116);
 
-    _drawSigilElementLine(sigilId, def, cx, compact ? y + 73 : y + 131, compact ? 9 : 10);
+    ctx.fillStyle = `rgba(${r},${g},${b},1.0)`;
+    ctx.font = `${compact ? 9 : 10}px "Courier New", monospace`;
+    ctx.fillText(def.element, cx, compact ? y + 71 : y + 130);
 
-    ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
-    ctx.lineWidth = 0.8;
-    const divY = compact ? y + 80 : y + 141;
-    ctx.beginPath(); ctx.moveTo(x + 12, divY); ctx.lineTo(x + w - 12, divY); ctx.stroke();
+    const divY = compact ? y + 81 : y + 145;
+    _drawSigilAtkDivider(sigilId, def, cx, divY, x + 12, x + w - 12, compact ? 8 : 9);
 
     ctx.beginPath();
     ctx.rect(x, y, w, h);
@@ -817,12 +834,12 @@ function _drawSigilCardMobile(cx, cy, w, h, sigilId, def, now) {
     ctx.font = `bold 17px "Courier New", monospace`;
     ctx.fillText(def.name, cx, y + 84);
 
-    _drawSigilElementLine(sigilId, def, cx, y + 100, 11);
+    ctx.fillStyle = `rgba(${r},${g},${b},1.0)`;
+    ctx.font = `11px "Courier New", monospace`;
+    ctx.fillText(def.element, cx, y + 99);
 
-    ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
-    ctx.lineWidth = 0.8;
-    const divY = y + 112;
-    ctx.beginPath(); ctx.moveTo(x + 14, divY); ctx.lineTo(x + w - 14, divY); ctx.stroke();
+    const divY = y + 114;
+    _drawSigilAtkDivider(sigilId, def, cx, divY, x + 14, x + w - 14, 10);
 
     ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
     const rowH = Math.max(40, (h - 112 - 16) / 2);
