@@ -155,7 +155,9 @@ function _dauUpdateNeedles(deltaTime, currentTime) {
                 source.damage = (n.kind === 0 ? DAU_NEEDLE_RETURN_ATK : DAU_STAR_NEEDLE_ATK) * player.atk;
                 dealDamage(target, source);
                 _dauEmit(1, target.x, target.y, 360);
-                if (window.AudioMgr) window.AudioMgr.playSfxAt('blood-arrow-impact', target.x, target.y);
+                // Needles land on enemies at the far end of the screen, where distance
+                // falloff would bury them, so these play at their own set level.
+                if (window.AudioMgr) window.AudioMgr.playSfx(n.kind === 0 ? 'dau-needle-hit' : 'dau-star-strike');
                 if (n.kind === 1 && _dauPinAllowed(target)) {
                     target._rootEnd = currentTime + DAU_PIN_MS;
                     target._dauPinEnd = target._rootEnd;
@@ -210,6 +212,7 @@ function _dauAddReflection(kind, p) {
         r.angle = Math.atan2(-(p.vy || Math.sin(p.ang || 0)), -(p.vx || Math.cos(p.ang || 0)));
         list.push(r);
         _dauEmit(4, p.x, p.y, 300, kind === 'verdict' ? 1.6 : 1);
+        if (window.AudioMgr) window.AudioMgr.playSfx('dau-reflect');
         return true;
     }
     return false;
@@ -282,7 +285,8 @@ function _dauTriggerCrow() {
     window._dauDaybreakMs = DAU_DAYBREAK_MS;
     window._dauBurstMs = 0;
     window._dauBurstX = player.x; window._dauBurstY = player.y;
-    if (window.AudioMgr) window.AudioMgr.playSfx('dau-crow');
+    window._dauChargeCued = false;
+    if (window.AudioMgr) { window.AudioMgr.playSfx('dau-crow'); window.AudioMgr.playSfx('dau-wave'); }
     if (typeof _setShake === 'function' && (window._gfxLevel || 0) < 3) _setShake(7, 240);
     if (_hasBuff('tu_hoa_cham')) _dauStarNeedles();
 
@@ -336,6 +340,12 @@ function _dauBeginFrame(deltaTime, currentTime) {
         }
     }
     window._dauCrowTimer = (window._dauCrowTimer || 0) + deltaTime;
+    // The charge clip runs once into each crow, timed to end as the crow starts.
+    if (!window._dauChargeCued && window._dauCrowTimer >= DAU_CROW_INTERVAL_MS - DAU_CHARGE_CUE_MS
+        && window._dauCrowTimer < DAU_CROW_INTERVAL_MS) {
+        window._dauChargeCued = true;
+        if (window.AudioMgr) window.AudioMgr.playSfx('dau-charge');
+    }
     if (window._dauCrowTimer >= DAU_CROW_INTERVAL_MS) {
         const remainder = window._dauCrowTimer % DAU_CROW_INTERVAL_MS;
         _dauTriggerCrow();
@@ -404,6 +414,7 @@ function _dauBeginFrame(deltaTime, currentTime) {
 function _dauReset() {
     window._dauCrowTimer = 0;
     window._dauCrowRefund = 0;
+    window._dauChargeCued = false;
     window._dauCrowCounter = 0;
     window._dauCrowId = 0;
     window._dauDaybreakMs = 0;

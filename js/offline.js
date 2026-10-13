@@ -156,6 +156,8 @@
         'assets/audio/sfx/chain-lightning.mp3',
         'assets/audio/sfx/charged-shot.mp3', 'assets/audio/sfx/charging.mp3', 'assets/audio/sfx/click.mp3',
         'assets/audio/sfx/coronation.mp3', 'assets/audio/sfx/dargruel-chain-launch.mp3', 'assets/audio/sfx/dargruel-chain-root.mp3',
+        'assets/audio/sfx/dau-charge.mp3', 'assets/audio/sfx/dau-crow.mp3', 'assets/audio/sfx/dau-needle-hit.mp3',
+        'assets/audio/sfx/dau-reflect.mp3', 'assets/audio/sfx/dau-star-strike.mp3', 'assets/audio/sfx/dau-wave.mp3',
         'assets/audio/sfx/dimension-break.mp3', 'assets/audio/sfx/dimensional-rift.mp3',
         'assets/audio/sfx/egregor-crawl.mp3', 'assets/audio/sfx/egregor-death-roar.mp3', 'assets/audio/sfx/egregor-nullslash-hit.mp3',
         'assets/audio/sfx/egregor-nullslash-slash.mp3', 'assets/audio/sfx/egregor-nullslash-windup.mp3', 'assets/audio/sfx/egregor-tempest-strike.mp3',

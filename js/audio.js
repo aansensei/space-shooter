@@ -429,6 +429,10 @@
         'yog-sothoth-domain-theme': 1.0,
         'gate-of-babylon': 1.0, 'enuma-elish-charge': 1.0, 'enuma-elish-release': 1.0,
         'cancer-whirlpool-spin': 1.0, 'cancer-whale-splash': 1.0, 'cancer-whale-bite': 1.0,
+        // Dawn Herald. The charge cue repeats before every crow and its clip is
+        // the loudest of the set, so it sits well under the crow it leads into.
+        'dau-crow': 1.0, 'dau-wave': 0.8, 'dau-charge': 0.5,
+        'dau-needle-hit': 0.6, 'dau-star-strike': 0.7, 'dau-reflect': 0.9,
     };
 
     // Positional sfx fall off with distance from the player ship. maxRangeFrac
@@ -1093,6 +1097,12 @@
 
         _makePool('cancer-whale-splash', 'assets/audio/sfx/cancer-whale-splash.mp3', 3);
         _makePool('cancer-whale-bite',   'assets/audio/sfx/cancer-whale-bite.mp3',   4);
+        _makePool('dau-crow',        'assets/audio/sfx/dau-crow.mp3',        1);
+        _makePool('dau-wave',        'assets/audio/sfx/dau-wave.mp3',        1);
+        _makePool('dau-charge',      'assets/audio/sfx/dau-charge.mp3',      1);
+        _makePool('dau-needle-hit',  'assets/audio/sfx/dau-needle-hit.mp3',  6);
+        _makePool('dau-star-strike', 'assets/audio/sfx/dau-star-strike.mp3', 4);
+        _makePool('dau-reflect',     'assets/audio/sfx/dau-reflect.mp3',     3);
 
         state.ambientEl  = _makeBufferLoop();
         state.ambientEl.setSrc('assets/audio/sfx/ingame.mp3');
