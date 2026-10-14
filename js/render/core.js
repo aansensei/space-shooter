@@ -2278,6 +2278,7 @@ function draw(deltaTime) {
 
     // Background full canvas
     drawSpaceBackground(deltaTime);
+    _drawPiscesAmbience();
     if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
     if (typeof _drawDauRing === 'function') _drawDauRing();
     _drawPiscesFish();

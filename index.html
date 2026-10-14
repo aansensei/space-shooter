@@ -2439,6 +2439,13 @@
                             // low" since most players never wait that long.
                             _applyTier(Math.min(_autoTier - 1, _targetTier(avg1s)), avg1s);
                         }
+                    } else if (typeof _gfxLevelDecided !== 'undefined' && !_gfxLevelDecided) {
+                        // A phone that never drops below 25fps never changes tier, so
+                        // the first check commits the tier it measured. Until a tier
+                        // is committed, _initMobilePerf keeps mobile in its safe mode
+                        // with every glow and extra layer off.
+                        _upgChecks = 0;
+                        _applyTier(target, avg1s);
                     } else {
                         _upgChecks = 0;
                     }
@@ -2556,7 +2563,7 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261014a"></script>
+    <script src="js/render/core.js?v=20261014c"></script>
     <script src="js/render/kanade-face.js?v=20261009a"></script>
     <script src="js/render/kanade-cutscene.js?v=20261010c"></script>
     <script src="js/render/fx.js?v=20261009a"></script>
@@ -2578,13 +2585,13 @@
     <script src="js/render/sigil-cancer.js?v=20261013n"></script>
     <script src="js/render/sigil-leo.js?v=20261014a"></script>
     <script src="js/render/sigil-dau.js?v=20261013p"></script>
-    <script src="js/render/sigil-pisces.js?v=20261014b"></script>
+    <script src="js/render/sigil-pisces.js?v=20261014c"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
     <script src="js/render/skill-buttons.js?v=20261013a"></script>
     <script src="js/pixi-renderer.js?v=20261008b"></script>
     <script src="js/input.js?v=20261014a"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20261014a"></script>
+    <script src="js/main.js?v=20261014c"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the

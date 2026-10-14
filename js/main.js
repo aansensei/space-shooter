@@ -95,6 +95,8 @@ function playerTakesHit(attacker) {
     if (skillShiftActive) {
         // ACCURATE PARRY: đỡ được 1 đòn trong domain → kích hoạt buff
         _triggerAccurateParry();
+        // Pisces plays its Dream Realm parry for every hit the domain stops
+        if (_hasBuff('coi_mong')) _piscesDreamBlock();
         return false;
     }
 

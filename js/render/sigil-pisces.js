@@ -23,9 +23,11 @@ const _piscesCastPool = [];
 for (let i = 0; i < 3; i++) _piscesCastPool.push({ active: false, born: 0, life: 0, kind: 0, seed: i });
 const _piscesBoostPool = [];
 for (let i = 0; i < 4; i++) _piscesBoostPool.push({ active: false, born: 0, life: 0, kind: 0, seed: i });
+const _piscesParryPool = [];
+for (let i = 0; i < 3; i++) _piscesParryPool.push({ active: false, born: 0, life: 0, angle: 0 });
 
-let _piscesBurstCursor = 0, _piscesRefundCursor = 0, _piscesBlockCursor = 0, _piscesCastCursor = 0, _piscesBoostCursor = 0;
-let _piscesLastBlockAt = -1000, _piscesLastBoostG = -1000, _piscesLastBoostS = -1000;
+let _piscesBurstCursor = 0, _piscesRefundCursor = 0, _piscesBlockCursor = 0, _piscesCastCursor = 0, _piscesBoostCursor = 0, _piscesParryCursor = 0;
+let _piscesLastBlockAt = -1000, _piscesLastBoostG = -1000, _piscesLastBoostS = -1000, _piscesLastParryAt = -1000;
 let _piscesLastCoiMongEnd = 0, _piscesCoiMongBurstAt = -10000;
 let _piscesLastCoiMongCd = 0, _piscesCoiMongReadyAt = -10000;
 let _piscesPrevPlayerX = NaN, _piscesPrevPlayerY = NaN, _piscesMoveDirX = 0, _piscesMoveDirY = -1;
@@ -1037,7 +1039,175 @@ function _piscesSprites() {
         }
     });
 
+    // Background halo: the great Mucha nimbus that stands behind his figures,
+    // with a mosaic rim, a zodiac tick band, beads and twelve whiplash petals.
+    const bgHalo = _piscesBake(512, 512, g => {
+        g.translate(256, 256);
+        const wash = g.createRadialGradient(0, 0, 40, 0, 0, 250);
+        wash.addColorStop(0, 'rgba(127,119,221,0.10)');
+        wash.addColorStop(0.6, 'rgba(38,36,90,0.18)');
+        wash.addColorStop(0.9, 'rgba(117,206,247,0.14)');
+        wash.addColorStop(1, 'rgba(38,36,90,0)');
+        g.fillStyle = wash;
+        g.beginPath(); g.arc(0, 0, 250, 0, Math.PI * 2); g.fill();
+        for (let i = 0; i < 48; i++) {
+            const a0 = i * Math.PI * 2 / 48, a1 = a0 + Math.PI * 2 / 48 - 0.02;
+            g.fillStyle = i % 2 === 0 ? 'rgba(127,119,221,0.55)' : 'rgba(117,206,247,0.45)';
+            g.beginPath();
+            g.arc(0, 0, 244, a0, a1);
+            g.arc(0, 0, 226, a1, a0, true);
+            g.closePath();
+            g.fill();
+        }
+        g.strokeStyle = 'rgba(234,246,255,0.85)';
+        g.lineWidth = 2;
+        g.beginPath(); g.arc(0, 0, 245, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = 'rgba(140,230,255,0.72)';
+        g.lineWidth = 1.4;
+        g.beginPath(); g.arc(0, 0, 225, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = 'rgba(233,216,166,0.78)';
+        g.lineWidth = 1.2;
+        g.beginPath(); g.arc(0, 0, 212, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = 'rgba(233,216,166,0.55)';
+        g.lineWidth = 0.9;
+        for (let i = 0; i < 72; i++) {
+            const a = i * Math.PI * 2 / 72, r0 = i % 6 === 0 ? 200 : 206;
+            g.beginPath();
+            g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0);
+            g.lineTo(Math.cos(a) * 212, Math.sin(a) * 212);
+            g.stroke();
+        }
+        for (let i = 0; i < 36; i++) {
+            const a = (i + 0.5) * Math.PI * 2 / 36;
+            g.fillStyle = i % 3 === 0 ? '#E9D8A6' : '#EAF6FF';
+            g.beginPath(); g.arc(Math.cos(a) * 192, Math.sin(a) * 192, 1.8, 0, Math.PI * 2); g.fill();
+        }
+        g.lineCap = 'round';
+        for (let i = 0; i < 12; i++) {
+            g.save();
+            g.rotate(i * Math.PI * 2 / 12);
+            const petal = g.createLinearGradient(72, 0, 182, 0);
+            petal.addColorStop(0, 'rgba(127,119,221,0.10)');
+            petal.addColorStop(0.6, 'rgba(117,206,247,0.30)');
+            petal.addColorStop(1, 'rgba(234,246,255,0.45)');
+            g.fillStyle = petal;
+            g.beginPath();
+            g.moveTo(74, 0);
+            g.bezierCurveTo(108, -22, 140, 16, 180, -6);
+            g.bezierCurveTo(146, 26, 104, -8, 74, 0);
+            g.fill();
+            g.strokeStyle = 'rgba(140,230,255,0.62)';
+            g.lineWidth = 1.1;
+            g.beginPath();
+            g.moveTo(74, 0);
+            g.bezierCurveTo(108, -22, 140, 16, 180, -6);
+            g.stroke();
+            g.strokeStyle = 'rgba(234,246,255,0.55)';
+            g.lineWidth = 0.9;
+            g.beginPath();
+            g.moveTo(180, -6); g.bezierCurveTo(190, -12, 188, -24, 178, -22); g.bezierCurveTo(170, -20, 172, -12, 178, -13);
+            g.stroke();
+            g.restore();
+        }
+        g.strokeStyle = 'rgba(233,216,166,0.70)';
+        g.lineWidth = 1.2;
+        g.beginPath(); g.arc(0, 0, 70, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = 'rgba(140,230,255,0.45)';
+        g.lineWidth = 0.9;
+        g.beginPath(); g.arc(0, 0, 58, 0, Math.PI * 2); g.stroke();
+        _piscesPaintWavelets(g, 0, 0, 158, 24, 0.5);
+        for (let i = 0; i < 8; i++) {
+            const a = i * Math.PI / 4 + Math.PI / 8;
+            _piscesPaintStar(g, Math.cos(a) * 116, Math.sin(a) * 116, i % 2 === 0 ? 2.6 : 1.9, i % 2 === 0);
+        }
+    });
+
+    // Background side border, tiling vertically: two twining whiplash stems,
+    // water lilies on alternating sides, a bead line and a rising fish.
+    const bgBorder = _piscesBake(96, 768, g => {
+        const H = 768, TAU = Math.PI * 2;
+        g.strokeStyle = 'rgba(234,246,255,0.70)';
+        g.lineWidth = 1.6;
+        g.beginPath(); g.moveTo(4, 0); g.lineTo(4, H); g.stroke();
+        g.strokeStyle = 'rgba(233,216,166,0.62)';
+        g.lineWidth = 1;
+        g.beginPath(); g.moveTo(10, 0); g.lineTo(10, H); g.stroke();
+        for (let y = 16; y < H; y += 32) {
+            g.fillStyle = (y / 32 | 0) % 3 === 0 ? '#E9D8A6' : '#EAF6FF';
+            g.beginPath(); g.arc(17, y, 1.5, 0, TAU); g.fill();
+        }
+        g.lineCap = 'round';
+        for (let k = 0; k < 2; k++) {
+            g.strokeStyle = k === 0 ? 'rgba(140,230,255,0.72)' : 'rgba(127,119,221,0.62)';
+            g.lineWidth = k === 0 ? 1.6 : 1.1;
+            g.beginPath();
+            for (let s = 0; s <= 96; s++) {
+                const y = s * H / 96;
+                const x = 46 + Math.sin(y / H * TAU * 2 + k * Math.PI) * 20;
+                if (s === 0) g.moveTo(x, y); else g.lineTo(x, y);
+            }
+            g.stroke();
+        }
+        for (let j = 0; j < 4; j++) {
+            const y = 96 + j * 192, side = j % 2 === 0 ? 1 : -1;
+            const cx = 46 + side * 20;
+            g.save();
+            g.translate(cx, y);
+            for (let p = -2; p <= 2; p++) {
+                g.save();
+                g.rotate(p * 0.42 + (side > 0 ? 0 : Math.PI));
+                g.fillStyle = p === 0 ? 'rgba(234,246,255,0.55)' : 'rgba(117,206,247,0.40)';
+                g.strokeStyle = 'rgba(234,246,255,0.62)';
+                g.lineWidth = 0.8;
+                g.beginPath();
+                g.moveTo(0, 0);
+                g.quadraticCurveTo(10, -6, 22, 0);
+                g.quadraticCurveTo(10, 6, 0, 0);
+                g.fill(); g.stroke();
+                g.restore();
+            }
+            _piscesPaintStar(g, 0, 0, 2.2, true);
+            g.restore();
+            g.strokeStyle = 'rgba(140,230,255,0.55)';
+            g.lineWidth = 0.9;
+            g.beginPath();
+            g.moveTo(46 - side * 20, y + 48);
+            g.bezierCurveTo(46 - side * 34, y + 40, 46 - side * 34, y + 24, 46 - side * 24, y + 22);
+            g.bezierCurveTo(46 - side * 16, y + 22, 46 - side * 18, y + 32, 46 - side * 24, y + 31);
+            g.stroke();
+        }
+        _piscesPaintMiniFish(g, 46, 384, -Math.PI / 2, 0.9, 0.85);
+        _piscesPaintWavelets(g, 46, 192, 12, 6, 0.45);
+        _piscesPaintWavelets(g, 46, 576, 12, 6, 0.45);
+    });
+
+    // Background medallion: a small water lily rosette that drifts down like a petal.
+    const bgMedallion = _piscesBake(64, 64, g => {
+        g.translate(32, 32);
+        for (let i = 0; i < 8; i++) {
+            g.save();
+            g.rotate(i * Math.PI / 4);
+            const petal = g.createLinearGradient(4, 0, 26, 0);
+            petal.addColorStop(0, 'rgba(127,119,221,0.35)');
+            petal.addColorStop(1, 'rgba(234,246,255,0.80)');
+            g.fillStyle = petal;
+            g.beginPath();
+            g.moveTo(5, 0);
+            g.quadraticCurveTo(16, -7, 27, 0);
+            g.quadraticCurveTo(16, 7, 5, 0);
+            g.fill();
+            g.restore();
+        }
+        g.strokeStyle = 'rgba(233,216,166,0.80)';
+        g.lineWidth = 1;
+        g.beginPath(); g.arc(0, 0, 9, 0, Math.PI * 2); g.stroke();
+        g.strokeStyle = 'rgba(140,230,255,0.60)';
+        g.beginPath(); g.arc(0, 0, 29, 0, Math.PI * 2); g.stroke();
+        _piscesPaintStar(g, 0, 0, 2.6, true);
+    });
+
     _piscesRenderCache = {
+        bgHalo, bgBorder, bgMedallion,
         bubble, overflowBubble, emptyBubble, mist, current, pointRingBase,
         frames, brightFrames, fishConstellation, fishNimbus, fishWake, tailRibbon,
         ripple, droplet, impactGlow, splashCrown, barrierRipple,
@@ -1050,8 +1220,8 @@ function _piscesSprites() {
 }
 
 function _piscesEventsReset() {
-    _piscesBurstCursor = _piscesRefundCursor = _piscesBlockCursor = _piscesCastCursor = _piscesBoostCursor = 0;
-    _piscesLastBlockAt = _piscesLastBoostG = _piscesLastBoostS = -1000;
+    _piscesBurstCursor = _piscesRefundCursor = _piscesBlockCursor = _piscesCastCursor = _piscesBoostCursor = _piscesParryCursor = 0;
+    _piscesLastBlockAt = _piscesLastBoostG = _piscesLastBoostS = _piscesLastParryAt = -1000;
     _piscesLastCoiMongEnd = _piscesLastCoiMongCd = 0;
     _piscesCoiMongBurstAt = _piscesCoiMongReadyAt = -10000;
     _piscesPrevPlayerX = _piscesPrevPlayerY = NaN;
@@ -1069,6 +1239,7 @@ function _piscesEventsReset() {
     for (let i = 0; i < _piscesBlockPool.length; i++) _piscesBlockPool[i].active = false;
     for (let i = 0; i < _piscesCastPool.length; i++) _piscesCastPool[i].active = false;
     for (let i = 0; i < _piscesBoostPool.length; i++) _piscesBoostPool[i].active = false;
+    for (let i = 0; i < _piscesParryPool.length; i++) _piscesParryPool[i].active = false;
 }
 
 function _piscesRefund(totalMs, slotCount, x, y) {
@@ -1122,6 +1293,15 @@ function _piscesDreamBlock() {
     ev.born = now;
     ev.life = 540;
     ev.angle = (_piscesBlockCursor * 2.39996) % (Math.PI * 2);
+    // A bullet stream lands many blocks in a row, so the parry bloom plays at most every 420ms.
+    if (now - _piscesLastParryAt < 420) return;
+    _piscesLastParryAt = now;
+    const parry = _piscesParryPool[_piscesParryCursor];
+    _piscesParryCursor = (_piscesParryCursor + 1) % _piscesParryPool.length;
+    parry.active = true;
+    parry.born = now;
+    parry.life = 760;
+    parry.angle = ev.angle;
 }
 
 function _piscesDreamBurst(x, y, size, power) {
@@ -1384,6 +1564,55 @@ function _drawPiscesSummonLight(sprites, low) {
         }
         ctx.globalCompositeOperation = 'source-over';
     }
+}
+
+// Mucha ornament layer over the space background while Pisces is held, at
+// High and Medium only: a slowly turning nimbus behind the playfield and
+// vine borders flowing down both edges. High adds lily rosettes drifting
+// down like petals.
+function _drawPiscesAmbience() {
+    const gfx = window._gfxLevel || 0;
+    if (gfx >= 2 || _mobPerf) return;
+    if (!_hasBuff('dong_chay_luan_hoi') && !_hasBuff('coi_mong')) return;
+    const now = performance.now();
+    const sprites = _piscesSprites();
+    const W = canvas.width, H = canvas.height;
+    ctx.save();
+
+    const halo = Math.min(W, H) * 0.95;
+    ctx.save();
+    ctx.translate(W / 2, H * 0.4);
+    ctx.rotate(now / 40000);
+    ctx.globalAlpha = 0.13 + 0.03 * Math.sin(now / 3200);
+    ctx.drawImage(sprites.bgHalo, -halo / 2, -halo / 2, halo, halo);
+    ctx.restore();
+
+    const bw = Math.max(48, Math.min(96, W * 0.06));
+    const tileH = bw * 8;
+    const drift = (now / 70) % tileH;
+    ctx.globalAlpha = 0.22;
+    for (let y = drift - tileH; y < H; y += tileH) ctx.drawImage(sprites.bgBorder, 0, y, bw, tileH);
+    ctx.save();
+    ctx.translate(W, 0);
+    ctx.scale(-1, 1);
+    for (let y = drift - tileH; y < H; y += tileH) ctx.drawImage(sprites.bgBorder, 0, y, bw, tileH);
+    ctx.restore();
+
+    if (gfx === 0) {
+        ctx.globalAlpha = 0.17;
+        const span = H + 80;
+        for (let i = 0; i < 5; i++) {
+            const y = (now / (55 + i * 9) + i * span * 0.37) % span - 40;
+            const x = W * (0.16 + i * 0.17) + Math.sin(now / 2600 + i * 1.7) * 22;
+            const size = 34 + (i % 3) * 7;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(now / 5200 + i);
+            ctx.drawImage(sprites.bgMedallion, -size / 2, -size / 2, size, size);
+            ctx.restore();
+        }
+    }
+    ctx.restore();
 }
 
 function _drawPiscesFish() {
@@ -2030,6 +2259,62 @@ function _drawPiscesEvents() {
                 ctx.restore();
                 ctx.globalAlpha = 0.85 * (1 - t);
                 ctx.drawImage(sprites.starNode, bx - 9, by - 9, 18, 18);
+            }
+        }
+
+        // Dream Realm parry: moonlight blooms from the ship, the shield nimbus
+        // rings outward, a splash crown rises where the hit landed, and the two
+        // fish spring apart from the Alrescha knot that binds them.
+        for (let i = 0; i < _piscesParryPool.length; i++) {
+            const ev = _piscesParryPool[i];
+            if (!ev.active) continue;
+            const age = now - ev.born;
+            if (age >= ev.life || age < 0) { ev.active = false; continue; }
+            const t = age / ev.life;
+            const easeOut = 1 - (1 - t) * (1 - t);
+            const fadeOut = 1 - t;
+            const ca = Math.cos(ev.angle), sa = Math.sin(ev.angle);
+            const hx = player.x + ca * 54, hy = player.y + sa * 54;
+
+            ctx.globalCompositeOperation = 'lighter';
+            const bloom = 200 + easeOut * 260;
+            ctx.globalAlpha = (low ? 0.34 : 0.5) * fadeOut * fadeOut;
+            ctx.drawImage(sprites.summonLight, player.x - bloom / 2, player.y - bloom / 2, bloom, bloom);
+            ctx.globalCompositeOperation = 'source-over';
+
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(ev.angle + easeOut * 0.5);
+            const nim = 112 + easeOut * 132;
+            ctx.globalAlpha = 0.78 * fadeOut;
+            ctx.drawImage(sprites.shieldNimbus, -nim / 2, -nim / 2, nim, nim);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(hx, hy);
+            ctx.rotate(ev.angle);
+            const crown = 58 + easeOut * 46;
+            ctx.globalAlpha = 0.9 * fadeOut;
+            ctx.drawImage(sprites.splashCrown, -crown / 2, -crown / 2, crown, crown);
+            ctx.restore();
+
+            if (low) continue;
+            const knot = 30 * (0.7 + 0.5 * Math.sin(Math.PI * Math.min(1, t * 1.6)));
+            ctx.globalAlpha = 0.92 * fadeOut;
+            ctx.drawImage(sprites.alreschaKnot, hx - knot / 2, hy - knot / 2, knot, knot);
+            const swim = Math.sin(Math.PI * t);
+            for (let s = -1; s <= 1; s += 2) {
+                // each fish leaves along the shield tangent and curls outward
+                const tx = -sa * s, ty = ca * s;
+                const dist = 14 + easeOut * 72;
+                const fx = hx + tx * dist + ca * easeOut * 30;
+                const fy = hy + ty * dist + sa * easeOut * 30;
+                ctx.save();
+                ctx.translate(fx, fy);
+                ctx.rotate(Math.atan2(ty + sa * 0.45, tx + ca * 0.45));
+                ctx.globalAlpha = 0.86 * swim;
+                ctx.drawImage(sprites.fishConstellation, -40, -25, 80, 50);
+                ctx.restore();
             }
         }
     }
