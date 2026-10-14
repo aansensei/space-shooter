@@ -29,6 +29,7 @@ let _piscesLastBlockAt = -1000, _piscesLastBoostG = -1000, _piscesLastBoostS = -
 let _piscesLastCoiMongEnd = 0, _piscesCoiMongBurstAt = -10000;
 let _piscesLastCoiMongCd = 0, _piscesCoiMongReadyAt = -10000;
 let _piscesPrevPlayerX = NaN, _piscesPrevPlayerY = NaN, _piscesMoveDirX = 0, _piscesMoveDirY = -1;
+let _piscesSkyAlpha = 0, _piscesSkyLastAt = 0;
 
 const _piscesStarCoords = [
     [-0.55, 0.10, 2.8], [-0.72, 0.00, 3.6], [-0.82, -0.14, 4.1], [-0.68, -0.28, 4.2],
@@ -837,6 +838,131 @@ function _piscesSprites() {
         }
     });
 
+    // Dream Realm screen light: indigo edges with a lavender rim, stretched over the screen.
+    const dreamVignette = _piscesBake(256, 256, g => {
+        const grad = g.createRadialGradient(128, 128, 60, 128, 128, 182);
+        grad.addColorStop(0, 'rgba(38,36,90,0)');
+        grad.addColorStop(0.55, 'rgba(38,36,90,0.10)');
+        grad.addColorStop(0.8, 'rgba(127,119,221,0.30)');
+        grad.addColorStop(1, 'rgba(38,36,90,0.78)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 256, 256);
+    });
+
+    // Dream Realm frame corner, top left: a quarter mosaic nimbus with whiplash curls, beads and a fish.
+    const dreamCorner = _piscesBake(240, 240, g => {
+        const wash = g.createRadialGradient(0, 0, 10, 0, 0, 210);
+        wash.addColorStop(0, 'rgba(38,36,90,0.55)');
+        wash.addColorStop(0.7, 'rgba(38,36,90,0.22)');
+        wash.addColorStop(1, 'rgba(38,36,90,0)');
+        g.fillStyle = wash;
+        g.fillRect(0, 0, 240, 240);
+        for (let i = 0; i < 12; i++) {
+            const a0 = i * (Math.PI / 2) / 12, a1 = a0 + (Math.PI / 2) / 12 - 0.02;
+            g.fillStyle = i % 2 === 0 ? 'rgba(127,119,221,0.55)' : 'rgba(117,206,247,0.45)';
+            g.beginPath();
+            g.arc(0, 0, 170, a0, a1);
+            g.arc(0, 0, 152, a1, a0, true);
+            g.closePath();
+            g.fill();
+        }
+        g.strokeStyle = 'rgba(234,246,255,0.85)';
+        g.lineWidth = 1.5;
+        g.beginPath(); g.arc(0, 0, 171, 0, Math.PI / 2); g.stroke();
+        g.strokeStyle = 'rgba(140,230,255,0.70)';
+        g.lineWidth = 1.1;
+        g.beginPath(); g.arc(0, 0, 151, 0, Math.PI / 2); g.stroke();
+        g.strokeStyle = 'rgba(233,216,166,0.72)';
+        g.lineWidth = 0.9;
+        g.beginPath(); g.arc(0, 0, 143, 0, Math.PI / 2); g.stroke();
+        for (let i = 0; i <= 12; i++) {
+            const a = i * (Math.PI / 2) / 12;
+            g.fillStyle = i % 4 === 0 ? '#E9D8A6' : '#EAF6FF';
+            g.beginPath(); g.arc(Math.cos(a) * 180, Math.sin(a) * 180, 1.7, 0, Math.PI * 2); g.fill();
+        }
+        g.lineCap = 'round';
+        g.strokeStyle = 'rgba(140,230,255,0.80)';
+        g.lineWidth = 1.6;
+        g.beginPath(); g.moveTo(6, 228); g.bezierCurveTo(30, 150, 70, 90, 118, 70); g.bezierCurveTo(150, 58, 176, 30, 228, 6); g.stroke();
+        g.strokeStyle = 'rgba(234,246,255,0.65)';
+        g.lineWidth = 0.9;
+        g.beginPath(); g.moveTo(14, 220); g.bezierCurveTo(38, 152, 76, 98, 120, 80); g.bezierCurveTo(152, 66, 180, 40, 220, 14); g.stroke();
+        g.strokeStyle = 'rgba(140,230,255,0.75)';
+        g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(228, 6); g.bezierCurveTo(238, 14, 232, 26, 222, 22); g.bezierCurveTo(214, 18, 218, 10, 224, 12); g.stroke();
+        g.beginPath(); g.moveTo(6, 228); g.bezierCurveTo(14, 238, 26, 232, 22, 222); g.bezierCurveTo(18, 214, 10, 218, 12, 224); g.stroke();
+        _piscesPaintWavelets(g, 0, 0, 120, 10, 0.4);
+        _piscesPaintMiniFish(g, 92, 92, Math.PI / 4, 1.15, 0.9);
+        _piscesPaintStar(g, 46, 46, 4.0, true);
+        _piscesPaintStar(g, 150, 30, 2.4, false);
+        _piscesPaintStar(g, 30, 150, 2.4, false);
+    });
+
+    // Moonlight falling on a forming fish: a soft tapered beam with dappled light near its foot.
+    const moonShaft = _piscesBake(96, 256, g => {
+        const across = g.createLinearGradient(0, 0, 96, 0);
+        across.addColorStop(0, 'rgba(140,230,255,0)');
+        across.addColorStop(0.5, 'rgba(234,246,255,0.55)');
+        across.addColorStop(1, 'rgba(140,230,255,0)');
+        g.fillStyle = across;
+        g.beginPath();
+        g.moveTo(34, 0); g.lineTo(62, 0); g.lineTo(96, 256); g.lineTo(0, 256);
+        g.closePath();
+        g.fill();
+        for (let i = 0; i < 9; i++) {
+            const y = 150 + (i % 5) * 20, x = 20 + ((i * 37) % 56);
+            g.fillStyle = i % 3 === 0 ? 'rgba(234,246,255,0.55)' : 'rgba(140,230,255,0.40)';
+            g.beginPath(); g.ellipse(x, y, 5 - (i % 3), 2.2, 0, 0, Math.PI * 2); g.fill();
+        }
+        g.globalCompositeOperation = 'destination-in';
+        const down = g.createLinearGradient(0, 0, 0, 256);
+        down.addColorStop(0, 'rgba(255,255,255,0.15)');
+        down.addColorStop(0.65, 'rgba(255,255,255,0.85)');
+        down.addColorStop(0.9, 'rgba(255,255,255,1)');
+        down.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = down;
+        g.fillRect(0, 0, 96, 256);
+    });
+
+    // Fish summon screen light: a cool moonlit bloom spreading from the summon point.
+    const summonLight = _piscesBake(256, 256, g => {
+        const grad = g.createRadialGradient(128, 128, 4, 128, 128, 128);
+        grad.addColorStop(0, 'rgba(234,246,255,0.60)');
+        grad.addColorStop(0.18, 'rgba(140,230,255,0.34)');
+        grad.addColorStop(0.45, 'rgba(117,206,247,0.14)');
+        grad.addColorStop(0.75, 'rgba(127,119,221,0.06)');
+        grad.addColorStop(1, 'rgba(127,119,221,0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 256, 256);
+    });
+
+    // Fish summon screen light: moonlight hanging down from the top edge like a curtain.
+    const lightCurtain = _piscesBake(64, 256, g => {
+        const grad = g.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, 'rgba(140,230,255,0.42)');
+        grad.addColorStop(0.25, 'rgba(127,119,221,0.20)');
+        grad.addColorStop(0.6, 'rgba(127,119,221,0.05)');
+        grad.addColorStop(1, 'rgba(127,119,221,0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 64, 256);
+    });
+
+    // The title screen's Pisces constellation, for the sky while both fish swim.
+    const skyPisces = _piscesBake(512, 320, g => {
+        const cx = 256, cy = 168, sc = 290;
+        g.strokeStyle = 'rgba(140,230,255,0.55)';
+        g.lineWidth = 1.4;
+        g.lineCap = 'round';
+        for (let i = 0; i < _piscesStarLines.length; i++) {
+            const p0 = _piscesStarCoords[_piscesStarLines[i][0]], p1 = _piscesStarCoords[_piscesStarLines[i][1]];
+            g.beginPath(); g.moveTo(cx + p0[0] * sc, cy + p0[1] * sc); g.lineTo(cx + p1[0] * sc, cy + p1[1] * sc); g.stroke();
+        }
+        for (let i = 0; i < _piscesStarCoords.length; i++) {
+            const p = _piscesStarCoords[i];
+            _piscesPaintStar(g, cx + p[0] * sc, cy + p[1] * sc, Math.max(1.6, (5.2 - p[2]) * 1.6), i === 2);
+        }
+    });
+
     // Fish stun crown: a mosaic nimbus seen edge on, floating over the held enemy.
     const stunHalo = _piscesBake(144, 64, g => {
         const cx = 72, cy = 32;
@@ -917,7 +1043,8 @@ function _piscesSprites() {
         ripple, droplet, impactGlow, splashCrown, barrierRipple,
         constellationChord, alreschaKnot, starNode, whiplashStream,
         shieldNimbus, shieldInner, shieldArc, markStages, markBloom, burstHalo,
-        stunHalo, stunBind
+        stunHalo, stunBind, dreamVignette, dreamCorner, moonShaft, skyPisces,
+        summonLight, lightCurtain
     };
     return _piscesRenderCache;
 }
@@ -929,6 +1056,7 @@ function _piscesEventsReset() {
     _piscesCoiMongBurstAt = _piscesCoiMongReadyAt = -10000;
     _piscesPrevPlayerX = _piscesPrevPlayerY = NaN;
     _piscesMoveDirX = 0; _piscesMoveDirY = -1;
+    _piscesSkyAlpha = 0; _piscesSkyLastAt = 0;
     _piscesBubblePoints = _piscesBubbleClock = 0;
     _piscesBubblePulseEnd.fill(0);
     for (let i = 0; i < 2; i++) {
@@ -1184,11 +1312,86 @@ function _piscesRecordFishNode(idx, fish) {
     }
 }
 
+// Screen light behind the fish layer: the Pisces constellation fades into the
+// sky while a fish swims, brighter with two, and moonlight falls on each fish
+// as it forms.
+function _drawPiscesSkyLight(sprites, gfx, low) {
+    const now = performance.now();
+    const dt = Math.max(0, Math.min(100, now - _piscesSkyLastAt));
+    _piscesSkyLastAt = now;
+    const swimming = (_piscesFishPool[0].active ? 1 : 0) + (_piscesFishPool[1].active ? 1 : 0);
+    const target = swimming === 2 ? 1 : swimming === 1 ? 0.6 : 0;
+    const stepA = dt / 450;
+    _piscesSkyAlpha = _piscesSkyAlpha < target ? Math.min(target, _piscesSkyAlpha + stepA) : Math.max(target, _piscesSkyAlpha - stepA);
+    if (_piscesSkyAlpha > 0 && gfx < 3) {
+        const w = Math.min(canvas.width * 0.72, 760), h = w * (320 / 512);
+        const ease = _piscesSkyAlpha * _piscesSkyAlpha * (3 - 2 * _piscesSkyAlpha);
+        ctx.globalAlpha = ease * (0.20 + 0.04 * Math.sin(now / 1400));
+        ctx.drawImage(sprites.skyPisces, canvas.width / 2 - w / 2, canvas.height * 0.26 - h / 2, w, h);
+    }
+    if (low) return;
+    for (let i = 0; i < _piscesFishPool.length; i++) {
+        const fish = _piscesFishPool[i];
+        if (!fish.active || fish.age >= PISCES_FISH_FORM_MS + 260) continue;
+        const t = fish.age / (PISCES_FISH_FORM_MS + 260);
+        const beamH = Math.max(80, fish.y + 30);
+        const beamW = 70 + 40 * Math.sin(Math.PI * t);
+        ctx.globalAlpha = 0.42 * Math.sin(Math.PI * t);
+        ctx.drawImage(sprites.moonShaft, fish.x - beamW / 2, fish.y + 30 - beamH, beamW, beamH);
+    }
+}
+
+// Dream Realm screen light: the edges sink into indigo and four Mucha corners
+// frame the screen while the shield holds, fading in over 280ms and out over
+// its last 400ms.
+function _drawPiscesDreamFrame(sprites, now, low) {
+    if (!_hasBuff('coi_mong')) return;
+    const end = window._coiMongEndTime || 0;
+    if (now >= end) return;
+    const fade = Math.max(0, Math.min(1, (now - (end - 2500)) / 280, (end - now) / 400));
+    if (fade <= 0) return;
+    const W = canvas.width, H = canvas.height;
+    ctx.globalAlpha = fade * (low ? 0.4 : 0.55);
+    ctx.drawImage(sprites.dreamVignette, 0, 0, W, H);
+    if (low) return;
+    const s = Math.max(110, Math.min(260, Math.min(W, H) * 0.3)) * (0.92 + 0.08 * fade);
+    ctx.globalAlpha = fade * 0.9;
+    ctx.drawImage(sprites.dreamCorner, 0, 0, s, s);
+    ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
+    ctx.save(); ctx.translate(0, H); ctx.scale(1, -1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
+    ctx.save(); ctx.translate(W, H); ctx.scale(-1, -1); ctx.drawImage(sprites.dreamCorner, 0, 0, s, s); ctx.restore();
+}
+
+// Fish summon screen light: as a fish forms, moonlight blooms across the screen
+// from where it appears and a soft curtain hangs from the top edge, rising
+// and settling over 650ms. Drawn additively, so it lifts the scene without a flash.
+function _drawPiscesSummonLight(sprites, low) {
+    if (!_hasBuff('dong_chay_luan_hoi')) return;
+    const W = canvas.width, H = canvas.height;
+    for (let i = 0; i < _piscesFishPool.length; i++) {
+        const fish = _piscesFishPool[i];
+        if (!fish.active || fish.age >= 650) continue;
+        const t = fish.age / 650;
+        const bell = Math.sin(Math.PI * Math.min(1, t * 1.35)) * (1 - t * 0.35);
+        if (bell <= 0) continue;
+        ctx.globalCompositeOperation = 'lighter';
+        const size = Math.max(W, H) * (1.1 + t * 0.5);
+        ctx.globalAlpha = bell * (low ? 0.30 : 0.48);
+        ctx.drawImage(sprites.summonLight, fish.x - size / 2, fish.y - size / 2, size, size);
+        if (!low) {
+            ctx.globalAlpha = bell * 0.42;
+            ctx.drawImage(sprites.lightCurtain, 0, 0, W, H * 0.62);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+    }
+}
+
 function _drawPiscesFish() {
     if (!_hasBuff('dong_chay_luan_hoi')) return;
     const gfx = window._gfxLevel || 0, low = _mobPerf || gfx >= 2;
     const sprites = _piscesSprites();
     ctx.save();
+    _drawPiscesSkyLight(sprites, gfx, low);
 
     for (let fIdx = 0; fIdx < _piscesFishPool.length; fIdx++) {
         const fish = _piscesFishPool[fIdx];
@@ -1675,6 +1878,8 @@ function _drawPiscesEvents() {
     const gfx = window._gfxLevel || 0, low = _mobPerf || gfx >= 2;
     const sprites = _piscesSprites();
     ctx.save();
+    _drawPiscesDreamFrame(sprites, now, low);
+    _drawPiscesSummonLight(sprites, low);
 
     for (let i = 0; i < _piscesRefundPool.length; i++) {
         const ev = _piscesRefundPool[i];
