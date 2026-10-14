@@ -29,6 +29,7 @@ function _leoReset() {
     if (typeof enemies !== 'undefined') {
         for (const e of enemies) {
             e._thanMenhFrozen = false;
+            e._leoStone = false;
             e._leoPetrifyLastAt = null;
             e._leoDeathBurn = null;
         }
@@ -177,15 +178,19 @@ function _leoSyncCastAudio(e, frozen) {
 }
 
 // Called for every enemy from the main update loop. Returns true when the
-// enemy is petrified and its own update must be skipped this frame.
+// enemy is held, either petrified by Leo or stunned by a Pisces fish, and its
+// own update must be skipped this frame. Both holds are Dominant and share
+// _thanMenhFrozen, so every cast and movement check honours them alike; only
+// the petrify turns the enemy to stone (_leoStone) and shatters it.
 function _leoFreezeEnemy(e, now, deltaTime) {
-    const frozen = window._leoPetrifyMs > 0 && _leoCanPetrify(e);
+    const stone = window._leoPetrifyMs > 0 && _leoCanPetrify(e);
+    const stunned = !stone && e._piscesStunMs > 0 && _leoCanPetrify(e);
+    if (e._piscesStunMs > 0) e._piscesStunMs = Math.max(0, e._piscesStunMs - deltaTime);
+    const frozen = stone || stunned;
     if (e._thanMenhFrozen && e._leoPetrifyLastAt != null) _leoShiftClocks(e, now - e._leoPetrifyLastAt);
     if (frozen && e._thanMenhFrozen && Number.isFinite(e._arcBarrierReviveAt)) e._arcBarrierReviveAt += deltaTime;
-    if (frozen && !e._thanMenhFrozen) {
-        e._leoStoneStarted = window._leoFxClock;
-        _leoSyncCastAudio(e, true);
-    } else if (!frozen && e._thanMenhFrozen) {
+    if (stone && !e._leoStone) e._leoStoneStarted = window._leoFxClock;
+    if (!stone && e._leoStone) {
         const r = Math.min(100, (e.size || 40) / 2);
         // The stone shatters when the petrify runs out, for 100% ATK. An enemy
         // released early by dying or a death sequence only crumbles.
@@ -200,6 +205,11 @@ function _leoFreezeEnemy(e, now, deltaTime) {
         } else {
             _leoVisual({ kind: 'stone', x: e.x, y: e.y, r, age: 0, life: 450 });
         }
+    }
+    e._leoStone = stone;
+    if (frozen && !e._thanMenhFrozen) {
+        _leoSyncCastAudio(e, true);
+    } else if (!frozen && e._thanMenhFrozen) {
         if (e.hp > 0 && !e._deathPhase && !e._markedForDeath) _leoSyncCastAudio(e, false);
         // An outside pull may have moved him, so he blends back into his path.
         if (e.type === 'goliath' && e.phase === 'true_form') {

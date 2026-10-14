@@ -628,6 +628,7 @@ function updatePhotoBrangs(deltaTime) {
                         }
                         if (tgt.hp <= 0 && !tgt._spiritKillCounted) {
                             tgt._spiritKillCounted = true;
+                            if (_hasBuff('dong_chay_luan_hoi') && primevalEnergy < 100) _piscesChargeBoost('S');
                             primevalEnergy = Math.min(100, primevalEnergy + 2 * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1));
                         }
                     }
@@ -777,6 +778,7 @@ function updateBladeArcProjectiles(deltaTime) {
                 // Primeval Creation: blade arc from spirit = +2%
                 if (arc.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
                     enemy._spiritKillCounted = true;
+                    if (_hasBuff('dong_chay_luan_hoi') && primevalEnergy < 100) _piscesChargeBoost('S');
                     primevalEnergy = Math.min(100, primevalEnergy + 2 * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1));
                 }
                 // Mini arc blade on-hit: a crescent flash wrapping the enemy's
@@ -1086,6 +1088,7 @@ function updateSpiritBullets(deltaTime) {
                 // Primeval Creation: +2% from spirit kills (handleEnemyKill gives +1.25% to others)
                 if (b.isSpirit && enemy.hp <= 0 && !enemy._spiritKillCounted) {
                     enemy._spiritKillCounted = true;
+                    if (_hasBuff('dong_chay_luan_hoi') && primevalEnergy < 100) _piscesChargeBoost('S');
                     primevalEnergy = Math.min(100, primevalEnergy + 2 * (_hasBuff('dong_chay_luan_hoi') ? 1.50 : 1));
                 }
                 b.lifetime = 0;

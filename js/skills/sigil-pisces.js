@@ -87,7 +87,11 @@ function _piscesUpdate(deltaTime) {
                     blocked = true;
                 } else {
                     blocked = checkMarchosiasArcBarrier(e, _piscesFishSource, fish.x, fish.y);
-                    if (!blocked) dealDamage(e, _piscesFishSource);
+                    if (!blocked) {
+                        dealDamage(e, _piscesFishSource);
+                        // The hold runs in _leoFreezeEnemy, the same Dominant freeze as Leo's petrify.
+                        e._piscesStunMs = Math.max(e._piscesStunMs || 0, PISCES_FISH_STUN_MS);
+                    }
                 }
                 _piscesEmit(blocked ? 3 : 1, e.x, e.y, 300, fish.angle, e.size || 24, blocked ? null : e);
                 if (!blocked) fish.hitMs = 140;

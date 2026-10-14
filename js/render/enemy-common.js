@@ -592,6 +592,9 @@ function drawEnemy(enemy) {
         if (enemy.vulnStacks && enemy.vulnStacks > 0 && enemy.vulnEndTime && performance.now() < enemy.vulnEndTime) {
             _drawVulnerabilityIcon(enemy);
         }
+        // Pisces marks and fish stuns show on dummies too, so the sandbox can test them.
+        if (enemy._yogMark && typeof _drawPiscesDreamMark === 'function') _drawPiscesDreamMark(enemy);
+        if (enemy._piscesStunMs > 0 && typeof _drawPiscesStun === 'function') _drawPiscesStun(enemy);
         return;
     }
     // Abyssal Chain render
@@ -1164,21 +1167,10 @@ function drawEnemy(enemy) {
         ctx.restore();
     }
 
-    // Yog-Sothoth mark (coi_mong): purple spiral ring on marked enemies
-    if (enemy._yogMark) {
-        const _ymNow = performance.now();
-        const _elapsed = _ymNow - enemy._yogMarkStart;
-        const _progress = Math.min(1, _elapsed / 1650);
-        const _ymPulse = 0.5 + 0.5 * Math.sin(_ymNow / 100);
-        ctx.save();
-        ctx.strokeStyle = `rgba(139,92,246,${(0.6 + 0.4 * _ymPulse) * (1 - _progress * 0.3)})`;
-        ctx.lineWidth = 2;
-        if (!_mobPerf) { ctx.shadowColor = '#8b5cf6'; ctx.shadowBlur = 14; }
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size / 2 + 9 + _progress * 6, 0, Math.PI * 2 * _progress);
-        ctx.stroke();
-        ctx.restore();
-    }
+    // Dream Realm mark (coi_mong): the countdown nimbus lives in js/render/sigil-pisces.js.
+    if (enemy._yogMark && typeof _drawPiscesDreamMark === 'function') _drawPiscesDreamMark(enemy);
+    // Pisces fish stun (Dominant): nimbus crown and water bind from js/render/sigil-pisces.js.
+    if (enemy._piscesStunMs > 0 && typeof _drawPiscesStun === 'function') _drawPiscesStun(enemy);
 
     // Lion's Roar Burn flames and Divine Fate stone (js/render/sigil-leo.js)
     if (typeof _drawLeoEnemyStatus === 'function') _drawLeoEnemyStatus(enemy);

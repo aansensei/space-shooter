@@ -2585,6 +2585,7 @@ function draw(deltaTime) {
         // Goliath vẽ SAU Sigil HUD — luôn nổi bật, không bị icon Sigil che khuất
         enemies.forEach(e => { if (e.type === 'goliath') drawEnemy(e); });
         _drawPiscesImpacts();
+        if (_hasBuff('dong_chay_luan_hoi') || _hasBuff('coi_mong')) _drawPiscesEvents();
         if (typeof _drawLeoEffects === 'function') _drawLeoEffects();
         if (typeof _drawDauReflectImpacts === 'function') _drawDauReflectImpacts();
         // his projectiles launch from inside his body and halo, so they draw

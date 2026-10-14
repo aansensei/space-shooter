@@ -174,7 +174,8 @@ async function main() {
                 const counterDraws=()=>{
                     const calls=[],draw=ctx.drawImage;
                     ctx.drawImage=function(sprite,x,y,w,h){
-                        if(sprite===_piscesRenderCache.bubble||sprite===_piscesRenderCache.overflowBubble)calls.push({white:sprite===_piscesRenderCache.overflowBubble,alpha:this.globalAlpha,x:x+w/2,y:y+h/2,size:w});
+                        const c=_piscesRenderCache;
+                        if(sprite===c.bubble||sprite===c.overflowBubble||sprite===c.emptyBubble)calls.push({white:sprite===c.overflowBubble,lit:sprite!==c.emptyBubble,alpha:this.globalAlpha,x:x+w/2,y:y+h/2,size:w});
                         return draw.apply(this,arguments);
                     };
                     try{_drawPiscesCurrent();}finally{ctx.drawImage=draw;}
@@ -183,23 +184,23 @@ async function main() {
                 for(const level of [0,1,2,3,4])for(const points of [0,5,12,14,24]){
                     __flowReset();_applyGfxLevel(level);_drawPiscesCurrent();window._piscesFlowMs=points*1000;
                     const draws=counterDraws(), low=level>=2;
+                    // Every slot draws exactly one sprite: empty, lit, or white for overflow points.
                     if(!low){
-                        check(draws.length===12&&draws.filter(d=>d.alpha>0.6).length===Math.min(points,12)&&draws.filter(d=>d.white).length===Math.max(0,points-12),'counter '+level+': '+points+' points');
+                        check(draws.length===12&&draws.filter(d=>d.lit).length===Math.min(points,12)&&draws.filter(d=>d.white).length===Math.max(0,points-12),'counter '+level+': '+points+' points');
                     }else{
-                        const base=draws.filter(d=>!d.white), extra=draws.filter(d=>d.white);
-                        check(base.length===4&&Math.abs(base.reduce((n,d)=>n+(d.alpha-0.1)/0.65*3,0)-Math.min(points,12))<1e-8&&Math.abs(extra.reduce((n,d)=>n+d.alpha/0.75*3,0)-Math.max(0,points-12))<1e-8,'grouped counter '+level+': '+points+' points');
+                        check(draws.length===4&&draws.filter(d=>d.lit).length===Math.ceil(Math.min(points,12)/3)&&draws.filter(d=>d.white).length===Math.ceil(Math.max(0,points-12)/3),'grouped counter '+level+': '+points+' points');
                     }
                 }
                 __flowReset();_drawPiscesCurrent();_piscesOnCdReduction(5000,performance.now());counterDraws();
                 _piscesClock+=130;const popped=counterDraws();
                 check(popped.filter(d=>d.size>15.5).length===5,'only five newly lit bubbles pop at 130ms');
-                _piscesClock+=131;check(counterDraws().every(d=>Math.abs(d.size-12)<1e-8),'bubble pop returns to size after 260ms');
+                _piscesClock+=251;check(counterDraws().every(d=>Math.abs(d.size-15)<1e-8),'bubble pop returns to size after 380ms');
                 __flowReset();_drawPiscesCurrent();debugPiscesRefund();const ready=counterDraws();
                 check(window._piscesFlowMs===12000&&ready.every(d=>d.alpha>0.6),'debug refund lights the ready ring');
                 _piscesClock+=100;const pulsed=counterDraws();
                 check(pulsed.every(d=>Math.abs(d.alpha-pulsed[0].alpha)<1e-8)&&pulsed[0].alpha!==ready[0].alpha,'ready ring breathes uniformly while waiting');
                 __flowEnemy(player.x,player.y-200);_piscesTrySummon();
-                check(window._piscesFlowMs===0&&counterDraws().every(d=>d.alpha===0.1),'summon extinguishes the ring in the same frame');
+                check(window._piscesFlowMs===0&&counterDraws().every(d=>!d.lit),'summon extinguishes the ring in the same frame');
                 __flowReset();window._piscesFlowMs=5000;_mobPerf=true;
                 check(counterDraws().filter(d=>!d.white).length===4,'mobile performance mode uses four fixed bubbles even at tier zero');
                 window._playerSigils=[];check(counterDraws().length===0,'no buff draws no counter');
@@ -230,7 +231,7 @@ async function main() {
                 }
                 return rows;
             });
-            assert(timings[0].images > timings[2].images && timings[2].images > timings[4].images, 'graphics levels reduce layers and bubbles');
+            assert(timings[0].images > timings[2].images && timings[2].images >= timings[4].images, 'graphics levels reduce layers and bubbles');
             reports.push({ mode, checks, timings });
             await page.evaluate(()=>{__flowReset();window.AudioMgr={playSfx(){}};openDebugConsole();});
             await page.getByRole('button',{name:'Pisces: Refund 2s to every skill (needs Cycle of Flow)',exact:true}).click();

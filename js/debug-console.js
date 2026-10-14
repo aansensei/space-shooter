@@ -210,7 +210,10 @@ function _autoplayTick() {
         if (_autoplayChargeReleaseAt === 0) {
             if (!charging && !laserActive && !skillShiftActive) {
                 if (typeof _hasBuff === 'function' && _hasBuff('dong_chay_luan_hoi')) {
-                    if (now >= laserCooldownEnd && typeof _activateOverloadLaser === 'function') _activateOverloadLaser(now);
+                    if (now >= laserCooldownEnd && typeof _activateOverloadLaser === 'function') {
+                        _activateOverloadLaser(now);
+                        if (typeof _piscesInstantCast === 'function') _piscesInstantCast('SPC');
+                    }
                 } else {
                     charging = true; chargeStartTime = now;
                     if (window.AudioMgr) window.AudioMgr.startCharging();
@@ -1402,6 +1405,7 @@ window.debugSetYuukiBonus = function () {
         lastSkillShift = lastSkillA = lastSkillS = lastSkillD = lastSkillF = now - 2000;
         laserCooldownEnd = now + laserCooldownDuration - 2000;
         for (const slot in window._cdGlowEnd) _markCdGlow(slot, now, 2000);
+        _flushPiscesRefund(NaN, NaN);
     };
 
     // Great Sage sigil testing: "Fire" calls the same _castStolenGemAttack

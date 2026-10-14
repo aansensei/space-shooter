@@ -154,6 +154,7 @@ function handleEnemyKill(enemy) {
     // Primeval Creation: +1.25% energy per kill from non-spirit sources
     if (!enemy._spiritKillCounted) {
         const _peGainMult = _hasBuff('dong_chay_luan_hoi') ? 1.50 : 1; // Cycle of Flow: +50% charge rate
+        if (_hasBuff('dong_chay_luan_hoi') && (primevalEnergy || 0) < 100) _piscesChargeBoost('S');
         primevalEnergy = Math.min(100, (primevalEnergy || 0) + 1.25 * _peGainMult);
     }
     // Blessing HP regen handled in main.js update loop
@@ -212,6 +213,7 @@ function handleEnemyKill(enemy) {
 
     if (skillGCharge < 100) {
         const _gChargeGain = 0.5 * (_hasBuff('set_day_chuyen') ? 1.35 : 1) * (_hasBuff('dong_chay_luan_hoi') ? 1.35 : 1) * (_hasBuff('ky_su_dien') ? 1.10 : 1); // Chain Lightning: +35%, Cycle of Flow: +35% (docs/combat-scaling-rebalance.md Part 5), Circuit Engineer: +10%
+        if (_hasBuff('dong_chay_luan_hoi')) _piscesChargeBoost('G');
         skillGCharge = Math.min(100, skillGCharge + _gChargeGain);
     }
     if (skillGActive) {
@@ -265,6 +267,7 @@ function handleEnemyKill(enemy) {
             lastSkillD = Math.min(_now, lastSkillD - _cdReducProtected);
             lastSkillF = Math.min(_now, lastSkillF - _cdReducProtected);
         }
+        _flushPiscesRefund(enemy.x, enemy.y);
     }
 }
 

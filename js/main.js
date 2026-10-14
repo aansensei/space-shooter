@@ -70,6 +70,7 @@ function playerTakesHit(attacker) {
 
     // Dream Realm: 20% chance to negate a hit while active
     if (_hasBuff('coi_mong') && performance.now() < (window._coiMongEndTime || 0)) {
+        if (typeof _piscesDreamBlock === 'function') _piscesDreamBlock();
         return false;
     }
 
@@ -794,6 +795,7 @@ function update(rawDeltaTime) {
             // then clamping to _cofNow would force it fully ready off a
             // single screen-width of movement instead of shaving 0.5s.
             laserCooldownEnd -= _grantLaser;
+            _flushPiscesRefund(NaN, NaN);
         }
     }
 
@@ -3678,8 +3680,10 @@ function startGame() {
     window._yuushaMageCasts = 0;
     window._yuushaReplenishLastCheck = 0; window._yuushaReplenishCooldownEnd = 0;
     window._coiMongEndTime = 0;
+    window._coiMongCooldownEnd = 0;
     for (const slot in window._cdGlowEnd) window._cdGlowEnd[slot] = 0;
     _piscesReset();
+    _piscesEventsReset();
     _leoReset();
     if (typeof _dauReset === 'function') _dauReset();
     window._tuyetLanStacks = 0;

@@ -244,7 +244,8 @@ function _drawLeoEnemyStatus(enemy) {
             ctx.drawImage(flame, enemy.x + Math.cos(a) * r - 4, enemy.y + Math.sin(a) * r - 8, 8, 12);
         }
     }
-    if (!enemy._thanMenhFrozen) return;
+    // Only the petrify turns an enemy to stone; a Pisces stun holds it too but draws its own nimbus.
+    if (!enemy._leoStone) return;
     const r = enemy.size / 2 + 3;
     if (!Number.isFinite(r) || r <= 0) return;
     const age = Math.max(0, window._leoFxClock - (enemy._leoStoneStarted || 0));

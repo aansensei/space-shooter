@@ -14,6 +14,7 @@ function activateSkillD() {
         lastSkillD = currentTime;
         deathStar = { x: player.x, y: player.y - player.height, size: 10, maxSize: 120, vy: -1.8, activeTime: 0, nextMarkAt: 500, laserAt: -1, markedTargets: [] };
         if (window.AudioMgr) window.AudioMgr.startDeathStar();
+        if (typeof _piscesInstantCast === 'function') _piscesInstantCast('D');
         return;
     }
     skillDCharging = true;
@@ -244,7 +245,7 @@ function updateSkillD(deltaTime) {
                     Math.ceil(enemy.maxHp * 0.25)
                 );
                 if (_expDmg > 0) dealDamage(enemy, { damage: _expDmg, isTrueDamage: true, _yogExplosion: true });
-                createParticles(enemy.x, enemy.y, 15, '#8b5cf6', 3, 8);
+                if (typeof _piscesDreamBurst === 'function') _piscesDreamBurst(enemy.x, enemy.y, enemy.size, _expDmg / Math.max(1, Math.ceil(enemy.maxHp * 0.25)));
                 enemy._yogMark = false;
                 enemy._yogMarkAccum = 0;
             }

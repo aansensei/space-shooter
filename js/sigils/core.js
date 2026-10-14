@@ -116,6 +116,7 @@ function _completeSigilPicker(sigilId) {
 
 function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'dong_chay_luan_hoi') { _piscesReset(); _piscesSprites(); }
+    if (buffId === 'coi_mong') _piscesSprites();
     if (buffId === 'tuyet_lan')    { window._tuyetLanStacks = 0; window._tuyetLanLastKill = 0; }
     if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; window._bongDoiCharging = false; window._bongDoiCooldownEnd = 0; }
     if (buffId === 'cong_babylon') { window._gobCooldownEnd = 0; window._gobSequences = []; }
@@ -1171,20 +1172,9 @@ function drawSigilShipUpgrades() {
         try { drawYuushaParty(); } catch (err) { console.warn('drawYuushaParty failed:', err); }
     }
 
-    // Dream Realm (coi_mong): cyan shield shimmer when negating damage
-    if (_hasBuff('coi_mong') && now < (window._coiMongEndTime || 0)) {
-        const fade = Math.min(1, (window._coiMongEndTime - now) / 350);
-        const pulse = 0.55 + 0.45 * Math.sin(now / 110);
-        ctx.save();
-        ctx.globalAlpha = fade;
-        ctx.strokeStyle = `rgba(34,211,238,${0.7 + 0.3 * pulse})`;
-        ctx.lineWidth = 3;
-        if (!_mobPerf) { ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 22; }
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-    }
+    // Dream Realm (coi_mong): the nimbus shield, its opening bloom and the
+    // ready cue live in js/render/sigil-pisces.js.
+    if (typeof _drawPiscesDreamShield === 'function') _drawPiscesDreamShield();
 }
 
 function _drawRoundRect(x, y, w, h, r) {

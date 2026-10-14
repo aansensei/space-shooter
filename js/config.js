@@ -328,7 +328,9 @@ const PISCES_FLOW_CAP_MS = 24000;
 const PISCES_FISH_INTERVAL_MS = 2000;
 const PISCES_FISH_FORM_MS = 420;
 const PISCES_FISH_LIFE_MS = 3200;
-const PISCES_FISH_SPEED = 0.55;
+const PISCES_FISH_SPEED = 0.6875;
+// A fish that lands a hit holds the enemy for this long, through CC immunity (Dominant).
+const PISCES_FISH_STUN_MS = 1000;
 const PISCES_FISH_ATK = 0.65;
 
 // Player ATK debuffs. Goliath's on-hit weaken cuts player.atk by 30% for
@@ -575,9 +577,22 @@ window._coiMongEndTime = 0;
 window._cofAuraEnd = 0;
 window._piscesFlowMs = 0;
 window._cdGlowEnd = { SH: 0, A: 0, S: 0, D: 0, F: 0, SPC: 0 };
+window._piscesRefundMs = 0;
+window._piscesRefundSlots = 0;
 function _markCdGlow(slot, now, reduction = 0) {
     window._cdGlowEnd[slot] = now + 450;
-    if (reduction > 0) _piscesOnCdReduction(reduction, now);
+    if (reduction > 0) {
+        _piscesOnCdReduction(reduction, now);
+        window._piscesRefundMs += reduction;
+        window._piscesRefundSlots++;
+    }
+}
+// Hands the refunds gathered since the last call to the Pisces effects as one
+// event. x, y is the enemy that was killed, or NaN when movement paid for it.
+function _flushPiscesRefund(x, y) {
+    if (window._piscesRefundMs > 0 && typeof _piscesRefund === 'function') _piscesRefund(window._piscesRefundMs, window._piscesRefundSlots, x, y);
+    window._piscesRefundMs = 0;
+    window._piscesRefundSlots = 0;
 }
 window._thanMenhEndTime = 0;
 window._tuyetLanStacks = 0;

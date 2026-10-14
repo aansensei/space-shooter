@@ -180,6 +180,7 @@ function activateSkillF() {
             skillFState = "sweeping";
             skillFSweepStart = currentTime;
             if (window.AudioMgr) window.AudioMgr.startSkillFFire();
+            if (typeof _piscesInstantCast === 'function') _piscesInstantCast('F');
             if (_hasBuff('song_luoi')) spawnPhotoBrangs(player.x, player.y, 2, true, true);
         } else {
             skillFState = "charging";

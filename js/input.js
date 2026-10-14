@@ -319,7 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const _now = performance.now();
             if (_hasBuff('dong_chay_luan_hoi')) {
                 // Cycle of Flow: skip the charge phase entirely
-                if (_now >= laserCooldownEnd) _activateOverloadLaser(_now);
+                if (_now >= laserCooldownEnd) {
+                    _activateOverloadLaser(_now);
+                    if (typeof _piscesInstantCast === 'function') _piscesInstantCast('SPC');
+                }
             } else {
                 charging = true; chargeStartTime = _now;
                 if (window.AudioMgr) window.AudioMgr.startCharging();
