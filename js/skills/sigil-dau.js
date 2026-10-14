@@ -155,6 +155,8 @@ function _dauUpdateNeedles(deltaTime, currentTime) {
                 source.damage = (n.kind === 0 ? DAU_NEEDLE_RETURN_ATK : DAU_STAR_NEEDLE_ATK) * player.atk;
                 dealDamage(target, source);
                 _dauEmit(1, target.x, target.y, 360);
+                // A star needle also raises ripples where it lands.
+                if (n.kind === 1) _dauEmit(2, target.x, target.y, 600);
                 // Needles land on enemies at the far end of the screen, where distance
                 // falloff would bury them, so these play at their own set level.
                 if (window.AudioMgr) window.AudioMgr.playSfx(n.kind === 0 ? 'dau-needle-hit' : 'dau-star-strike');
