@@ -2741,7 +2741,7 @@ function draw(deltaTime) {
         const _rH = _hMob ? 22 : 26;
         const _yuukiRow = _yuukiBonus > 0 ? _rH : 0;
         const _walpurgisRow = _walpurgisStacks() > 0 ? _rH : 0;
-        const _hH = (_hMob ? 158 : 198) + _yuukiRow + _walpurgisRow;
+        const _hH = (_hMob ? 172 : 198) + _yuukiRow + _walpurgisRow;
         // Other screen elements read this edge in canvas coordinates.
         window._statsHudBottom = (_hY + _hH) * (window._hudScale || 1);
 

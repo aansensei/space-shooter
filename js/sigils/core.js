@@ -1063,7 +1063,7 @@ function drawSigilHUD() {
     const panelH = 3 * (R * 2) + 2 * slotGap + 20;
     const panelX = canvas.width - panelW - 12;
     // The stats panel publishes a canvas edge that is converted to HUD coordinates.
-    const hH = (isMob ? 158 : 198) + (_yuukiBonus > 0 ? (isMob ? 22 : 26) : 0);
+    const hH = (isMob ? 172 : 198) + (_yuukiBonus > 0 ? (isMob ? 22 : 26) : 0);
     const statsHudBottom = typeof window._statsHudBottom === 'number' ? window._statsHudBottom / (window._hudScale || 1) : (10 + hH);
     const panelY = statsHudBottom + 6;
 
