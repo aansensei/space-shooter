@@ -453,6 +453,7 @@ function _drawBloodArrowReadyPrompt() {
     const label = vi ? `HUYẾT TIỄN SẴN SÀNG x${stacks}` : `BLOOD ARROW READY x${stacks}`;
     const sub = vi ? 'A (cần mục tiêu): bắn' : 'A (needs a target): fire';
 
+    _beginScreenHud(cx, cy);
     ctx.save();
     ctx.font = 'bold 13px "Courier New", Consolas, monospace';
     const labelW = ctx.measureText(label).width;
@@ -476,6 +477,7 @@ function _drawBloodArrowReadyPrompt() {
     ctx.fillStyle = 'rgba(255,180,180,0.75)';
     ctx.fillText(sub, cx, cy + 10);
     ctx.restore();
+    _endScreenHud();
 }
 
 // While a Blood Arrow stack is banked, ring-mark every enemy that would

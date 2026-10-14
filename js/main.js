@@ -746,8 +746,10 @@ function update(rawDeltaTime) {
     const _xBeforeMove = player.x;
     // A phone's play area is narrow enough that full speed crosses most of
     // the screen in one sweep - trimmed a bit so lateral movement feels
-    // proportional to the smaller width. PC/tablet unaffected.
-    const _phoneMoveMult = window._deviceTier === 'phone' ? 0.90 : 1;
+    // proportional to the smaller width. PC/tablet unaffected. A landscape
+    // phone widens the world by _hudScale, so the ship speeds up by the same
+    // ratio and still crosses the screen in the same time.
+    const _phoneMoveMult = window._deviceTier === 'phone' ? 0.90 * (window._hudScale || 1) : 1;
     if (keys.left && player.x > player.width / 2 && !player._rooted) player.x -= player.speed * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
     if (keys.right && player.x < canvas.width - player.width / 2 && !player._rooted) player.x += player.speed * _phoneMoveMult * _nullSlashSpeedMult * _levLaserSlowMult * _dimBreakMult * _wisdomOrbSpeedMult * dt;
 

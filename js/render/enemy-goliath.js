@@ -2583,7 +2583,8 @@ function _drawGoliathKillBanner() {
         g._killAmbienceSfx = true;
         if (window.AudioMgr) window.AudioMgr.playSfx('goliath-kill-ambience');
     }
-    const fs = Math.round(Math.max(28, Math.min(canvas.height * 0.105, canvas.width * 0.15)));
+    const hudScale = window._hudScale || 1;
+    const fs = Math.round(Math.max(28, Math.min(canvas.height / hudScale * 0.105, canvas.width / hudScale * 0.15)));
     const P = _goliathKillBannerParts(fs, window._lang === 'vi');
     const n = P.glyphs.length;
     const W = canvas.width, H = canvas.height;
@@ -2604,6 +2605,7 @@ function _drawGoliathKillBanner() {
     ctx.globalAlpha = frameA * 0.94;
     ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar);
 
+    _beginScreenHud(cx, cy);
     // The ink stroke is brushed down from the top before the first stamp.
     const inkK = Math.max(0, Math.min(1, (el - 80) / 360));
     if (inkK > 0) {
@@ -2670,7 +2672,7 @@ function _drawGoliathKillBanner() {
         const sw = P.sub.width * subK;
         ctx.globalAlpha = out;
         ctx.drawImage(P.sub, 0, 0, sw, P.sub.height, cx - P.sub.width / 2, subY - P.sub.height / 2, sw, P.sub.height);
-        const lw = W * 0.34 * (1 - (1 - subK) * (1 - subK));
+        const lw = W / hudScale * 0.34 * (1 - (1 - subK) * (1 - subK));
         const ly = subY + P.sub.height * 0.62;
         ctx.globalAlpha = out * 0.75;
         ctx.fillStyle = '#e8dcc4';
@@ -2678,6 +2680,7 @@ function _drawGoliathKillBanner() {
         ctx.globalAlpha = out * 0.25;
         ctx.fillRect(cx - lw * 0.4, ly - 2, lw * 0.8, 5.5);
     }
+    _endScreenHud();
     ctx.restore();
 }
 
@@ -3323,11 +3326,12 @@ function _drawGoliath(enemy) {
 function _drawGoliathBossBar(enemy) {
     if (enemy.type !== 'goliath' || enemy.phase !== 'true_form' || enemy._deathPhase) return;
     const now = performance.now();
-    const w = Math.min(560, canvas.width * 0.72);
+    const w = Math.min(560, canvas.width / (window._hudScale || 1) * 0.72);
     const x = (canvas.width - w) / 2;
     const titleY = 16;
     const barY = titleY + 20;
     const barH = 14;
+    _beginScreenHud(canvas.width / 2, 0);
 
     // unbroken will 4s invuln -> bar reads frosted white/ice instead of red.
     // Also true while the shared absolute-invuln gate (_transformIronBodyEnd)
@@ -3470,4 +3474,5 @@ function _drawGoliathBossBar(enemy) {
         ctx.fillText((window._lang === 'vi' ? 'KHIÊN ' : 'SHIELD ') + _shieldShown.toLocaleString() + (_shieldOverflow ? '+' : ''), x + w, rowY + rowH - 3);
         ctx.restore();
     }
+    _endScreenHud();
 }

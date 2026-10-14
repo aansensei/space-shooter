@@ -203,6 +203,7 @@ function _drawLeoFateReadyPrompt() {
         y = Math.max(28, Math.min(y, window._leoHudTop - (sagePrompt ? 76 : 28)));
     }
     const vi = window._lang === 'vi';
+    _beginScreenHud(x, canvas.height / 2);
     ctx.save(); ctx.fillStyle = 'rgba(24,12,8,0.75)';
     _leoRoundRect(ctx, x - 124, y - 20, 248, 40, 8); ctx.fill();
     ctx.strokeStyle = '#ef9f27'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -214,6 +215,7 @@ function _drawLeoFateReadyPrompt() {
     const key = window._platform === 'mobile' ? 'CHARGE' : 'Space';
     ctx.fillText(key + (vi ? ': hóa đá mọi kẻ địch' : ': petrify all enemies'), x, y + 10);
     ctx.restore();
+    _endScreenHud();
 }
 
 function _drawLeoReadyAura() {

@@ -187,11 +187,12 @@ function _pickerLayout() {
         const margin = 10;
         const panelPad = 14;
         const cols = 1, rows = 1, gapX = 0, gapY = 0;
-        const panelW = canvas.width - margin * 2;
+        const hudScale = window._hudScale || 1;
+        const panelW = canvas.width / hudScale - margin * 2;
         const cardW = panelW - panelPad * 2;
 
         const titleH = 42, confirmH = 44, navH = 20; // titleH reserves room for a swipe-hint line under the title; navH is just the dot row
-        const availH = canvas.height - margin * 2;
+        const availH = canvas.height / hudScale - margin * 2;
         const fixedH = panelPad * 2 + titleH + navH + confirmH + 10;
         const cardH = Math.max(190, Math.min(360, availH - fixedH));
 
@@ -405,6 +406,7 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
     const hasSelected = p.selectedSigil != null;
     const dealing = dealElapsed != null;
 
+    _beginScreenHud(canvas.width / 2, canvas.height / 2);
     ctx.save();
 
     ctx.globalAlpha = slideEase * 0.94;
@@ -682,6 +684,7 @@ function _drawPickerCards(p, slideEase, dealElapsed) {
     }
 
     ctx.restore();
+    _endScreenHud();
 }
 
 function _sigilConfirmRect(L, yOff) {
@@ -1059,13 +1062,12 @@ function drawSigilHUD() {
     const panelW = R * 2 + 16;
     const panelH = 3 * (R * 2) + 2 * slotGap + 20;
     const panelX = canvas.width - panelW - 12;
-    // Anchor below the real stats HUD panel (js/render/core.js), which
-    // publishes its own actual bottom edge — avoids the two files keeping
-    // separate copies of the same height formula that could drift apart.
+    // The stats panel publishes a canvas edge that is converted to HUD coordinates.
     const hH = (isMob ? 158 : 198) + (_yuukiBonus > 0 ? (isMob ? 22 : 26) : 0);
-    const statsHudBottom = typeof window._statsHudBottom === 'number' ? window._statsHudBottom : (10 + hH);
+    const statsHudBottom = typeof window._statsHudBottom === 'number' ? window._statsHudBottom / (window._hudScale || 1) : (10 + hH);
     const panelY = statsHudBottom + 6;
 
+    _beginScreenHud(canvas.width, 0);
     ctx.save();
 
     ctx.fillStyle = 'rgba(0,4,14,0.60)';
@@ -1120,6 +1122,7 @@ function drawSigilHUD() {
     }
 
     ctx.restore();
+    _endScreenHud();
 }
 
 function drawSigilShipUpgrades() {
@@ -1323,9 +1326,13 @@ function _handleSigilPickerMouseMove(ex, ey) {
 document.addEventListener('DOMContentLoaded', () => {
     function _canvasCoords(clientX, clientY) {
         const rect = canvas.getBoundingClientRect();
+        const hudScale = window._hudScale || 1;
+        const x = (clientX - rect.left) * (canvas.width / rect.width);
+        const y = (clientY - rect.top) * (canvas.height / rect.height);
+        if (hudScale === 1) return [x, y];
         return [
-            (clientX - rect.left) * (canvas.width / rect.width),
-            (clientY - rect.top)  * (canvas.height / rect.height),
+            canvas.width / 2 + (x - canvas.width / 2) / hudScale,
+            canvas.height / 2 + (y - canvas.height / 2) / hudScale,
         ];
     }
 

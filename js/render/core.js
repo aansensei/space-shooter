@@ -76,6 +76,20 @@ let _gfxLevel = 0;
 window._gfxLevel = 0;
 window._particleScale = 1.0;
 
+// Screen HUDs keep their size while the world canvas expands.
+function _beginScreenHud(x, y) {
+    const scale = window._hudScale || 1;
+    if (scale === 1) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.translate(-x, -y);
+}
+
+function _endScreenHud() {
+    if ((window._hudScale || 1) !== 1) ctx.restore();
+}
+
 const _GFX_PARTICLE_SCALE = [1.0, 0.65, 0.35, 0.2, 0.12];
 const _GFX_PARTICLE_CAP   = [350,  250,  150, 100, 60];
 
@@ -2593,6 +2607,7 @@ function draw(deltaTime) {
             if (_wAge < 2800) {
                 const _wAlpha = _wAge < 200 ? _wAge / 200 : (_wAge < 2100 ? 1 : Math.max(0, 1 - (_wAge - 2100) / 700));
                 const _bW = 272, _bH = 116, _bX = _wcx - _bW / 2, _bY = _wcy - _bH / 2;
+                _beginScreenHud(_wcx, _wcy);
                 ctx.save();
                 ctx.textAlign = 'center';
 
@@ -2635,6 +2650,7 @@ function draw(deltaTime) {
                 ctx.fillText('—  I N C O M I N G  —', _wcx, _bY + _bH - 11);
 
                 ctx.restore();
+                _endScreenHud();
             }
         }
         // Timeline Distortion announcement, for the runs where Kanade's cutscene
@@ -2649,6 +2665,7 @@ function draw(deltaTime) {
                 const _tdColors = _timelineDistortionColors(window._getTimelineDistortionArt(_e).art.accent);
                 const _tW = 360, _tH = 92;
                 const _tX = _wcx - _tW / 2, _tY = canvas.height * 0.60 - _tH / 2;
+                _beginScreenHud(_wcx, canvas.height * 0.60);
                 ctx.save();
                 ctx.textAlign = 'center';
 
@@ -2682,6 +2699,7 @@ function draw(deltaTime) {
                 ctx.fillStyle = '#ff9fbf';
                 ctx.fillText(_e.enemyHalf, _wcx, _tY + 84);
                 ctx.restore();
+                _endScreenHud();
             }
         }
 
@@ -2691,6 +2709,7 @@ function draw(deltaTime) {
             const _isClear = _waveRestTimer <= 3100;
             const _age = (_isClear ? 3000 : (typeof WAVE_REST_DURATION !== 'undefined' ? WAVE_REST_DURATION : 5000)) - _waveRestTimer;
             const _alpha = _age < 300 ? _age / 300 : 0.72;
+            _beginScreenHud(_wcx, _wcy);
             ctx.save();
             ctx.textAlign = 'center';
             ctx.globalAlpha = _alpha * 0.38;
@@ -2708,9 +2727,11 @@ function draw(deltaTime) {
             ctx.shadowBlur = 8; ctx.shadowColor = _isClear ? '#22aa55' : '#2244aa';
             ctx.fillText(`${_restSec}s`, _wcx, _wcy + 16);
             ctx.restore();
+            _endScreenHud();
         }
 
         // HUD panel (top right)
+        _beginScreenHud(canvas.width, 0);
         ctx.save();
         const _hMob = _isMobile;
         const _hW = _hMob ? 148 : 192;
@@ -2721,10 +2742,8 @@ function draw(deltaTime) {
         const _yuukiRow = _yuukiBonus > 0 ? _rH : 0;
         const _walpurgisRow = _walpurgisStacks() > 0 ? _rH : 0;
         const _hH = (_hMob ? 158 : 198) + _yuukiRow + _walpurgisRow;
-        // Sigil HUD (js/sigils/core.js) anchors itself below this panel and used to
-        // keep its own hardcoded copy of this height formula, which could
-        // silently drift out of sync — read this instead of duplicating it.
-        window._statsHudBottom = _hY + _hH;
+        // Other screen elements read this edge in canvas coordinates.
+        window._statsHudBottom = (_hY + _hH) * (window._hudScale || 1);
 
         // Panel background
         ctx.globalAlpha = 0.28;
@@ -2845,6 +2864,7 @@ function draw(deltaTime) {
         }
 
         ctx.restore();
+        _endScreenHud();
     } else if (gameState === "start") {
         _drawStartScreen();
     } else if (gameState === "gameover") {
@@ -2856,6 +2876,7 @@ function draw(deltaTime) {
         ctx.fillStyle = _rvg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         // Ornamental divider, two lines with a rotated square diamond
+        _beginScreenHud(_cx, _cy);
         const _deco = (y) => {
             const lw = 290;
             ctx.strokeStyle = "rgba(178,122,26,0.58)";
@@ -2886,6 +2907,7 @@ function draw(deltaTime) {
         const _ptm = Math.floor(_pt / 60000);
         const _pts = Math.floor((_pt % 60000) / 1000);
         ctx.fillText("Time  ·  " + _ptm + ":" + (_pts < 10 ? "0" : "") + _pts, _cx, _cy + 68);
+        _endScreenHud();
     }
     if (window._usePixi && window._pixiRender) {
         const _pxT0 = performance.now();

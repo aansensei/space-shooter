@@ -111,6 +111,7 @@ function drawSkillGBarrier() {
         const activeElapsed = now - _skillGActivatedAt;
         const textT = Math.min(activeElapsed / 150, 1) * Math.max(0, 1 - (activeElapsed - 150) / 1250);
         if (textT > 0.02) {
+            _beginScreenHud(canvas.width / 2, canvas.height / 2);
             ctx.save();
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             const mx = canvas.width / 2, my = canvas.height / 2 - 60;
@@ -133,6 +134,7 @@ function drawSkillGBarrier() {
             if (!_mobPerf) ctx.shadowBlur = 10;
             ctx.fillText('— Tinh Vương: Sinh Mệnh Kết Giới —', mx, my - 43);
             ctx.restore();
+            _endScreenHud();
         }
 
         // Activation shockwaves: two staggered rings racing out from the

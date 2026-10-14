@@ -557,6 +557,7 @@ function _drawTidalSurgeReadyPrompt() {
     const key = window._platform === 'mobile' ? 'CHARGE' : 'Space';
     const sub = key + (vi ? ': triệu hồi xoáy nước' : ': summon the whirlpool');
 
+    _beginScreenHud(cx, cy);
     ctx.save();
     ctx.font = 'bold 13px "Courier New", Consolas, monospace';
     const labelW = ctx.measureText(label).width;
@@ -581,6 +582,7 @@ function _drawTidalSurgeReadyPrompt() {
     ctx.fillStyle = 'rgba(200,240,235,0.85)';
     ctx.fillText(sub, cx, cy + 10);
     ctx.restore();
+    _endScreenHud();
 }
 
 // Riptide Surge's own charge vignette (shares _updateDrawChargeVignette with

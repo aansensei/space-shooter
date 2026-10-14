@@ -539,8 +539,9 @@ function drawSkillF() {
 
         // Direction pill at the top centre, below any boss bar. The chosen
         // side gets the lit, bold arrow. It fades out as the slash fires.
+        _beginScreenHud(canvas.width / 2, 0);
         ctx.save();
-        const hs = window._platform === 'mobile' ? canvas.width / window.innerWidth : 1;
+        const hs = (window._platform === 'mobile' ? canvas.width / window.innerWidth : 1) / (window._hudScale || 1);
         const pillW = 150 * hs, pillH = 26 * hs;
         const pillX = canvas.width / 2 - pillW / 2, pillY = 78 * hs, pillMid = pillY + pillH / 2;
         ctx.globalAlpha = 0.9 * Math.min(1, p / 0.08, (1 - p) / 0.08);
@@ -565,6 +566,7 @@ function drawSkillF() {
             ctx.fillText(side === -1 ? '\u2190' : '\u2192', ax, pillMid);
         }
         ctx.restore();
+        _endScreenHud();
 
         return;
     }
@@ -1464,6 +1466,7 @@ function _drawGreatSageReleasePrompt() {
     const label = ready72 ? '72 TRANSFORMATIONS READY' : 'STOLEN GEM READY';
     const sub = ready72 ? 'F: unleash all 3 at once' : `F: release (${gems.length}/3 banked)`;
 
+    _beginScreenHud(cx, canvas.height / 2);
     ctx.save();
     ctx.font = 'bold 13px "Courier New", Consolas, monospace';
     const labelW = ctx.measureText(label).width;
@@ -1488,6 +1491,7 @@ function _drawGreatSageReleasePrompt() {
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillText(sub, cx, cy + 10);
     ctx.restore();
+    _endScreenHud();
 }
 
 // Great Sage's own charge vignette (shares _updateDrawChargeVignette with
