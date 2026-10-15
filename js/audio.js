@@ -190,6 +190,9 @@
             setOnEnded(cb) { onEndedCb = cb; },
             play() {
                 if (!actx || !bufferPromise) return Promise.resolve();
+                // already sounding: a second start would leave the first
+                // source running underneath, heard as the track doubling
+                if (playing) return Promise.resolve();
                 playing = true;
                 const myBufferPromise = bufferPromise;
                 // A fresh decode takes real async time, so a quick stop+
@@ -696,7 +699,9 @@
         if (state.bgmEl) { try { state.bgmEl.pause(); } catch (_) {} }
     }
     function resumeBgm() {
-        if (state.muted) return;
+        // while the whole mix is paused (pause screen), BGM stays down;
+        // resumeAll() brings it back with everything else
+        if (state.muted || _pauseSnapshot) return;
         if (state.bgmEl && state.bgmEl.paused) { try { state.bgmEl.play().catch(() => {}); } catch (_) {} }
     }
 
