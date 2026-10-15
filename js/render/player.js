@@ -219,18 +219,24 @@ function drawFinalDefense() {
         ctx.restore();
     }
 
-    if (finalDefense.boundaryShield) {
-        ctx.fillStyle = 'rgba(0,255,255,0.18)';
-        if (!_mobPerf) ctx.shadowColor = 'cyan';
-        if (!_mobPerf) ctx.shadowBlur = 20;
-        ctx.fillRect(0, boundaryY, canvas.width, 10);
-        ctx.strokeStyle = 'rgba(0,255,255,0.6)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, boundaryY);
-        ctx.lineTo(canvas.width, boundaryY);
-        ctx.stroke();
-    }
+    ctx.restore();
+}
+
+// The boundary barrier is a fixed line across the field, drawn apart from the
+// ship's own shields so it never moves with the ship.
+function drawBoundaryShield() {
+    if (!finalDefense.boundaryShield) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,255,255,0.18)';
+    if (!_mobPerf) ctx.shadowColor = 'cyan';
+    if (!_mobPerf) ctx.shadowBlur = 20;
+    ctx.fillRect(0, boundaryY, canvas.width, 10);
+    ctx.strokeStyle = 'rgba(0,255,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, boundaryY);
+    ctx.lineTo(canvas.width, boundaryY);
+    ctx.stroke();
     ctx.restore();
 }
 

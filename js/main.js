@@ -3673,7 +3673,7 @@ function startGame() {
     window._sigilRerollsLeft = 2;
     if (typeof _triggerSigilPicker === 'function' && (window._sigilPool || []).length > 0 && !window._debugSkipSigilPick) {
         _wavePhase = 'sigil_pick';
-        _triggerSigilPicker();
+        _triggerSigilPicker(true);
     }
     window._yuushaSquad = [];
     window._yuushaBlades = []; window._yuushaProjectiles = []; window._yuushaParticles = [];

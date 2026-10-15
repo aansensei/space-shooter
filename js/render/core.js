@@ -2291,6 +2291,15 @@ function draw(deltaTime) {
 
     drawSkillGBarrier();
 
+    // camera zoom of the opening ship entry: the battlefield moves, the HUD below does not
+    const _camZoom = gameState === "playing" ? _shipEntryZoom() : 1;
+    if (_camZoom !== 1) {
+        ctx.save();
+        ctx.translate(canvas.width / 2, player.y);
+        ctx.scale(_camZoom, _camZoom);
+        ctx.translate(-canvas.width / 2, -player.y);
+    }
+
     if (gameState === "playing") {
         sentinels.forEach(drawSentinel);
         // Vanguard Network threads (5+ sentinels)
@@ -2373,6 +2382,15 @@ function draw(deltaTime) {
         }
         _drawPiscesCurrent();
         _drawPiscesAura();
+        // the opening sigil pick flies the ship and its shield in; only where they are drawn moves
+        const _entryY = _shipEntryOffsetY();
+        if (_entryY !== 0) {
+            const _entryS = _shipEntryScale();
+            ctx.save();
+            ctx.translate(player.x, player.y + _entryY);
+            ctx.scale(_entryS, _entryS);
+            ctx.translate(-player.x, -player.y);
+        }
         drawPlayer();
         if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
         if (typeof _drawTidalSurgeMeter === 'function') _drawTidalSurgeMeter();
@@ -2387,6 +2405,16 @@ function draw(deltaTime) {
         _drawDomainCloseBursts(); // Skill Shift domain closing collapse
         _drawYogBulletClearBursts(); // Skill Shift bullet-clear paint streaks
         drawFinalDefense();
+        if (_entryY !== 0) ctx.restore();
+        // the boundary barrier stays put through the entry zoom
+        if (_camZoom !== 1) {
+            ctx.save();
+            ctx.translate(canvas.width / 2, player.y);
+            ctx.scale(1 / _camZoom, 1 / _camZoom);
+            ctx.translate(-canvas.width / 2, -player.y);
+        }
+        drawBoundaryShield();
+        if (_camZoom !== 1) ctx.restore();
 
         if (charging && !laserActive) drawChargeEffect();
         explosions.forEach(drawExplosion);
@@ -2453,6 +2481,7 @@ function draw(deltaTime) {
         _drawRaphaelWisdomTelegraphs();
         if (typeof _drawUrielHolySwords === 'function') _drawUrielHolySwords();
         _drawRaphaelWisdomOrbs();
+        if (_camZoom !== 1) ctx.restore();
 
         // boundary line
         ctx.save();

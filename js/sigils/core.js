@@ -62,10 +62,14 @@ function _hasBuff(id)  {
     });
 }
 
-function _triggerSigilPicker() {
+// entry is true only for the pick that opens a run: confirming it flies the
+// ship in from below the screen instead of playing the mid-run fly_in.
+function _triggerSigilPicker(entry) {
     const shuffled = _shuffleArray(window._sigilPool || []);
     const options = shuffled.slice(0, Math.min(4, shuffled.length));
     window._sigilPicker = {
+        entry: !!entry,
+        entryOrb: null,
         phase: 'deal',
         startTime: performance.now(),
         options,
@@ -103,7 +107,14 @@ function _completeSigilPicker(sigilId) {
     const mc = document.getElementById('mc');
     if (mc) {
         mc.style.pointerEvents = 'all';
-        if (typeof _platform !== 'undefined' && _platform === 'mobile') mc.style.display = 'block';
+        if (typeof _platform !== 'undefined' && _platform === 'mobile') {
+            // the touch controls fade in rather than popping over the settled ship
+            mc.style.transition = 'opacity 0.28s ease-out';
+            mc.style.opacity = '0';
+            mc.style.display = 'block';
+            void mc.offsetWidth; // commit opacity 0 so the change below animates
+            mc.style.opacity = '1';
+        }
     }
     // First sigil confirm swaps menu → random in-game BGM. Wave 5/10 re-picks
     // keep whatever in-game track is already playing.
@@ -173,8 +184,13 @@ function drawSigilPicker() {
 
     if (p.phase === 'fly_in') {
         const elapsed = now - p.flyStart;
-        _drawFlyIn(p, elapsed);
-        if (elapsed >= 1000) _completeSigilPicker(p.selectedSigil);
+        if (p.entry) {
+            _drawShipEntry(p, elapsed);
+            if (elapsed >= SHIP_ENTRY_MS) _completeSigilPicker(p.selectedSigil);
+        } else {
+            _drawFlyIn(p, elapsed);
+            if (elapsed >= 1000) _completeSigilPicker(p.selectedSigil);
+        }
         return;
     }
 }
@@ -967,6 +983,222 @@ function _drawFlyIn(p, elapsed) {
         _drawZodiacGlyph(p.selectedSigil, player.x, player.y, 28 * (1 + landA), def.color);
     }
 
+    ctx.restore();
+}
+
+// Run opening: the cards fold back up the way they were dealt, the ship climbs
+// from below the screen to its battle spot with a short overshoot, and the
+// chosen sigil's light streams from the middle of the screen into the hull.
+const SHIP_ENTRY_MS = 760;
+const _SHIP_ENTRY_RISE_START = 120, _SHIP_ENTRY_RISE_END = 600, _SHIP_ENTRY_OVERSHOOT = 10, _SHIP_ENTRY_START_SCALE = 1.7;
+const _SHIP_ENTRY_ORB_START = 200, _SHIP_ENTRY_ORB_END = 600;
+let _shipEntryTrailSprite = null;
+
+// Draw offset for the real ship while the opening pick is open. It waits below
+// the screen until the confirm, so the run starts with an empty battlefield.
+function _shipEntryOffsetY() {
+    const p = window._sigilPicker;
+    if (!p || !p.entry) return 0;
+    const below = canvas.height - player.y + player.height * _SHIP_ENTRY_START_SCALE + 40;
+    if (p.phase !== 'fly_in') return below;
+    const e = performance.now() - p.flyStart;
+    if (e <= _SHIP_ENTRY_RISE_START) return below;
+    if (e < _SHIP_ENTRY_RISE_END) {
+        const t = (e - _SHIP_ENTRY_RISE_START) / (_SHIP_ENTRY_RISE_END - _SHIP_ENTRY_RISE_START);
+        const k = 1 - (1 - t) * (1 - t) * (1 - t);
+        return below - (below + _SHIP_ENTRY_OVERSHOOT) * k;
+    }
+    const t = Math.min(1, (e - _SHIP_ENTRY_RISE_END) / (SHIP_ENTRY_MS - _SHIP_ENTRY_RISE_END));
+    return -_SHIP_ENTRY_OVERSHOOT * (1 - t * t * (3 - 2 * t));
+}
+
+// Camera zoom of the battlefield during the opening entry, about the ship's
+// row. It starts close in behind the cards, pulls back a little past normal
+// while the ship climbs, then kicks in once as the sigil light lands and
+// settles at 1 exactly when the entry ends.
+const _SHIP_ENTRY_ZOOM_START = 1.12, _SHIP_ENTRY_ZOOM_WIDE = 0.97, _SHIP_ENTRY_ZOOM_KICK = 0.035;
+function _shipEntryZoom() {
+    const p = window._sigilPicker;
+    if (!p || !p.entry) return 1;
+    if (p.phase !== 'fly_in') return _SHIP_ENTRY_ZOOM_START;
+    const e = performance.now() - p.flyStart;
+    if (e < _SHIP_ENTRY_ORB_END) {
+        const t = e / _SHIP_ENTRY_ORB_END;
+        const k = t * t * (3 - 2 * t);
+        return _SHIP_ENTRY_ZOOM_START + (_SHIP_ENTRY_ZOOM_WIDE - _SHIP_ENTRY_ZOOM_START) * k;
+    }
+    const u = Math.min(1, (e - _SHIP_ENTRY_ORB_END) / (SHIP_ENTRY_MS - _SHIP_ENTRY_ORB_END));
+    return _SHIP_ENTRY_ZOOM_WIDE + (1 - _SHIP_ENTRY_ZOOM_WIDE) * (u * u * (3 - 2 * u)) + _SHIP_ENTRY_ZOOM_KICK * Math.sin(Math.PI * u);
+}
+
+// The ship comes in from near the camera: large below the screen, shrinking
+// to its real size by the end of the climb.
+function _shipEntryScale() {
+    const p = window._sigilPicker;
+    if (!p || !p.entry) return 1;
+    if (p.phase !== 'fly_in') return _SHIP_ENTRY_START_SCALE;
+    const e = performance.now() - p.flyStart;
+    const t = Math.max(0, Math.min(1, (e - _SHIP_ENTRY_RISE_START) / (_SHIP_ENTRY_RISE_END - _SHIP_ENTRY_RISE_START)));
+    const k = 1 - (1 - t) * (1 - t);
+    return _SHIP_ENTRY_START_SCALE + (1 - _SHIP_ENTRY_START_SCALE) * k;
+}
+
+function _getShipEntryTrail() {
+    if (_shipEntryTrailSprite) return _shipEntryTrailSprite;
+    const c = document.createElement('canvas');
+    c.width = 32; c.height = 128;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 0, 128);
+    grad.addColorStop(0, 'rgba(234,246,255,0.95)');
+    grad.addColorStop(0.16, 'rgba(0,229,255,0.75)');
+    grad.addColorStop(0.6, 'rgba(0,120,220,0.25)');
+    grad.addColorStop(1, 'rgba(0,60,160,0)');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(6, 0); g.quadraticCurveTo(16, -4, 26, 0);
+    g.lineTo(17, 128); g.lineTo(15, 128);
+    g.closePath(); g.fill();
+    _shipEntryTrailSprite = c;
+    return c;
+}
+
+// A soft orb and a comet tail in the sigil's colour, baked once when the
+// opening pick is confirmed. The tail's head sits at its right edge.
+function _bakeShipEntryOrb(color) {
+    const [r, g, b] = _hexRgb3(color);
+    const orb = document.createElement('canvas');
+    orb.width = orb.height = 96;
+    const o = orb.getContext('2d');
+    const glow = o.createRadialGradient(48, 48, 0, 48, 48, 48);
+    glow.addColorStop(0, 'rgba(255,255,255,1)');
+    glow.addColorStop(0.2, `rgba(${r},${g},${b},0.92)`);
+    glow.addColorStop(0.55, `rgba(${r},${g},${b},0.3)`);
+    glow.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    o.fillStyle = glow;
+    o.fillRect(0, 0, 96, 96);
+
+    const comet = document.createElement('canvas');
+    comet.width = 192; comet.height = 40;
+    const c = comet.getContext('2d');
+    const along = c.createLinearGradient(0, 0, 192, 0);
+    along.addColorStop(0, `rgba(${r},${g},${b},0)`);
+    along.addColorStop(0.55, `rgba(${r},${g},${b},0.45)`);
+    along.addColorStop(0.9, `rgba(${r},${g},${b},0.9)`);
+    along.addColorStop(1, 'rgba(255,255,255,1)');
+    c.fillStyle = along;
+    c.beginPath();
+    c.moveTo(0, 20);
+    c.quadraticCurveTo(120, 9, 176, 8);
+    c.arc(176, 20, 12, -Math.PI / 2, Math.PI / 2);
+    c.quadraticCurveTo(120, 31, 0, 20);
+    c.closePath();
+    c.fill();
+    return { orb, comet };
+}
+
+function _drawShipEntry(p, elapsed) {
+    if (elapsed < 280) {
+        const k = 1 - elapsed / 280;
+        _drawPickerCards(p, k * k * (3 - 2 * k), null);
+    }
+    const def = SIGIL_DEFS[p.selectedSigil];
+    if (!def) return;
+    if (!p.entryOrb) p.entryOrb = _bakeShipEntryOrb(def.color);
+    const orb = p.entryOrb.orb, comet = p.entryOrb.comet;
+    const shipY = player.y + _shipEntryOffsetY();
+
+    ctx.save();
+    // same camera zoom as the battlefield, so the light lands where the ship is drawn
+    const zoom = _shipEntryZoom();
+    ctx.translate(canvas.width / 2, player.y);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-canvas.width / 2, -player.y);
+    ctx.globalCompositeOperation = 'lighter';
+
+    // engine trails stretch while the ship climbs and shrink as it slows
+    if (elapsed > _SHIP_ENTRY_RISE_START && elapsed < _SHIP_ENTRY_RISE_END + 120) {
+        const t = Math.min(1, (elapsed - _SHIP_ENTRY_RISE_START) / (_SHIP_ENTRY_RISE_END - _SHIP_ENTRY_RISE_START));
+        const thrust = (1 - t) * (1 - t);
+        const fadeIn = Math.min(1, (elapsed - _SHIP_ENTRY_RISE_START) / 80);
+        const fadeOut = elapsed > _SHIP_ENTRY_RISE_END ? 1 - (elapsed - _SHIP_ENTRY_RISE_END) / 120 : 1;
+        const s = _shipEntryScale();
+        const len = (26 + 150 * thrust) * s;
+        const trail = _getShipEntryTrail();
+        ctx.globalAlpha = fadeIn * fadeOut * (0.45 + 0.55 * thrust);
+        ctx.drawImage(trail, player.x - 14 * s, shipY + 26 * s, 16 * s, len);
+        ctx.drawImage(trail, player.x - 2 * s, shipY + 26 * s, 16 * s, len);
+    }
+
+    // the sigil's energy gathers at the centre: six motes spiral in while a ring
+    // closes around them and the core swells
+    const cx = canvas.width / 2, cy = canvas.height * 0.42;
+    if (elapsed < _SHIP_ENTRY_ORB_START) {
+        const k = elapsed / _SHIP_ENTRY_ORB_START;
+        const ease = k * k * (3 - 2 * k);
+        for (let i = 0; i < 6; i++) {
+            const a = i * (Math.PI / 3) + ease * 2.4;
+            const rad = 120 * (1 - ease);
+            const ms = 26 * (0.6 + 0.4 * (1 - ease));
+            ctx.globalAlpha = Math.min(1, k * 3) * (0.5 + 0.5 * ease);
+            ctx.drawImage(orb, cx + Math.cos(a) * rad - ms / 2, cy + Math.sin(a) * rad - ms / 2, ms, ms);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = def.color;
+        ctx.globalAlpha = 0.8 * Math.sin(Math.PI * k);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 10 + 80 * (1 - ease), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'lighter';
+        const s = 30 + 90 * ease;
+        ctx.globalAlpha = ease;
+        ctx.drawImage(orb, cx - s / 2, cy - s / 2, s, s);
+    } else if (elapsed < _SHIP_ENTRY_ORB_END) {
+        // then it leaves as one comet, curving out to the side and accelerating
+        // down into the ship wherever the ship is this frame
+        const t = (elapsed - _SHIP_ENTRY_ORB_START) / (_SHIP_ENTRY_ORB_END - _SHIP_ENTRY_ORB_START);
+        const arc = Math.min(canvas.width * 0.1, 90);
+        const k = t * t;
+        const ox = cx + (player.x - cx) * k + Math.sin(Math.PI * t) * arc;
+        const oy = cy + (shipY - cy) * k;
+        const vx = (player.x - cx) * 2 * t + Math.cos(Math.PI * t) * Math.PI * arc;
+        const vy = (shipY - cy) * 2 * t;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        const len = 50 + Math.min(220, speed * 0.28);
+        ctx.save();
+        ctx.translate(ox, oy);
+        ctx.rotate(Math.atan2(vy, vx));
+        ctx.globalAlpha = 0.95;
+        ctx.drawImage(comet, -len + 14, -14, len, 28);
+        ctx.restore();
+        const s = 110 - 50 * t;
+        ctx.globalAlpha = 1;
+        ctx.drawImage(orb, ox - s / 2, oy - s / 2, s, s);
+    }
+
+    // arrival: the hull flares in the sigil colour, a ring opens and the glyph settles on it
+    if (elapsed >= _SHIP_ENTRY_ORB_END) {
+        const u = Math.min(1, (elapsed - _SHIP_ENTRY_ORB_END) / (SHIP_ENTRY_MS - _SHIP_ENTRY_ORB_END));
+        const s = 70 + 60 * u;
+        ctx.globalAlpha = 0.9 * (1 - u);
+        ctx.drawImage(orb, player.x - s / 2, shipY - s / 2, s, s);
+        ctx.globalCompositeOperation = 'source-over';
+        // two rings open past the shield, the second a beat behind
+        ctx.strokeStyle = def.color;
+        for (let i = 0; i < 2; i++) {
+            const ru = Math.max(0, Math.min(1, u * 1.25 - i * 0.25));
+            if (ru <= 0 || ru >= 1) continue;
+            ctx.globalAlpha = (1 - ru) * (i === 0 ? 1 : 0.6);
+            ctx.lineWidth = (i === 0 ? 4 : 2) * (1 - ru) + 0.5;
+            ctx.beginPath();
+            ctx.arc(player.x, shipY, 34 + 80 * ru, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 0.85 * (1 - u);
+        ctx.translate(player.x, shipY);
+        ctx.scale(1 + 0.35 * u, 1 + 0.35 * u);
+        _drawZodiacGlyph(p.selectedSigil, 0, 0, 26, def.color);
+    }
     ctx.restore();
 }
 
