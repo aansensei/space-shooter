@@ -144,7 +144,6 @@
             z-index: 2;
             pointer-events: all;
             background: rgba(10, 25, 47, 0.4);
-            backdrop-filter: blur(4px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -231,6 +230,46 @@
             display: none;
             flex-direction: column;
             align-items: center;
+        }
+
+        /* Hyperjump footer: one line of text and a thin bar along the bottom edge,
+           filling over the jump and fading out with the menu. */
+        #jump-footer {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: calc(22px + env(safe-area-inset-bottom));
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 9px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        #jump-footer.active { opacity: 1; }
+        #jump-footer-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+        }
+        #jump-footer-track {
+            width: min(220px, 50vw);
+            height: 2px;
+            border-radius: 2px;
+            background: rgba(0, 229, 255, 0.15);
+            overflow: hidden;
+        }
+        #jump-footer-bar {
+            width: 100%;
+            height: 100%;
+            background: #00e5ff;
+            box-shadow: 0 0 6px #00e5ff;
+            transform-origin: left center;
+            transform: scaleX(0);
         }
 
         .progress-container {
@@ -1995,6 +2034,10 @@
                     <div id="progress-bar" class="progress-bar"></div>
                 </div>
             </div>
+            <div id="jump-footer" aria-hidden="true">
+                <div id="jump-footer-text">Wandering across the sea of thousands of stars</div>
+                <div id="jump-footer-track"><div id="jump-footer-bar"></div></div>
+            </div>
         </div>
     </div>
 
@@ -2051,131 +2094,700 @@
     </script>
 
     <script>
-        // STAR FIELD + HYPERJUMP (GIỮ NGUYÊN CODE GỐC)
+        // MENU STAR FIELD, PISCES CONSTELLATION AND HYPERJUMP
         (() => {
             const starCanvas = document.getElementById('star-canvas');
             const ctx = starCanvas.getContext('2d');
+            const isTouch = (navigator.maxTouchPoints || 0) > 0;
+            const TAU = Math.PI * 2;
 
             let width = window.innerWidth;
             let height = window.innerHeight;
             starCanvas.width = width;
             starCanvas.height = height;
 
-            const stars = [];
-            const numStars = 7000;
-            let speed = 0.8;
-            let isWarping = false;
-            let isSimulationRunning = true;
-            let warpStartTime = 0;
+            // Stars live in typed arrays grouped by colour, so each group draws with one
+            // sprite and one streak style. The colours follow the game's palette:
+            // white, blue white, cyan, lavender, gold and rose. A quarter of the stars
+            // are far and slow, the rest the near field the camera flies through.
+            // About four in nine stars belong to the menu; the rest only exist as
+            // streaks during the jump, which fills the warp without making the
+            // menu heavier.
+            const STAR_COUNT = isTouch ? 4000 : 7200;
+            const GROUP_RGB = ['255,255,255', '185,210,255', '120,235,255', '170,160,245', '240,220,170', '255,175,205'];
+            const GROUP_SHARE = [0.42, 0.18, 0.13, 0.12, 0.1, 0.05];
+            const GROUPS = GROUP_RGB.length;
+            const GROUP_STREAK = GROUP_RGB.map(c => 'rgb(' + c + ')');
+            const STREAK_ALPHA = [0.38, 0.68, 1];
+            const STREAK_WIDTH = [1.1, 2.2, 3.6];
+            const groupStart = new Int32Array(GROUPS + 1);
+            const sx = new Float32Array(STAR_COUNT), sy = new Float32Array(STAR_COUNT), sz = new Float32Array(STAR_COUNT);
+            const sSpeed = new Float32Array(STAR_COUNT), sSize = new Float32Array(STAR_COUNT);
+            const px = new Float32Array(STAR_COUNT), py = new Float32Array(STAR_COUNT), pr = new Float32Array(STAR_COUNT);
+            const ppx = new Float32Array(STAR_COUNT), ppy = new Float32Array(STAR_COUNT), pa = new Float32Array(STAR_COUNT);
+            const warpOnly = new Uint8Array(STAR_COUNT);
+            for (let i = 0; i < STAR_COUNT; i++) warpOnly[i] = i % 9 >= 4 ? 1 : 0;
 
-            const constellations = [
-                {
-                    points: [
-                        { x: -0.2, y: -0.2 }, { x: -0.15, y: -0.25 }, { x: -0.1, y: -0.15 }, { x: -0.18, y: -0.1 },
-                        { x: -0.08, y: -0.05 }, { x: 0, y: 0 }, { x: 0.1, y: 0.05 },
-                        { x: 0.18, y: 0.02 }, { x: 0.25, y: 0.05 }, { x: 0.28, y: 0.15 }, { x: 0.15, y: 0.12 }
-                    ],
-                    links: [[0, 1], [1, 2], [2, 3], [3, 0], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], [10, 7]]
-                },
-                {
-                    points: [{ x: 0.25, y: -0.3 }, { x: 0.3, y: -0.35 }, { x: 0.4, y: -0.38 }, { x: 0.45, y: -0.32 }],
-                    links: [[0, 1], [1, 2], [2, 3]]
-                },
-                {
-                    points: [
-                        { x: -0.4, y: 0.2 }, { x: -0.35, y: 0.25 }, { x: -0.3, y: 0.35 },
-                        { x: -0.2, y: 0.38 }, { x: -0.15, y: 0.3 }, { x: -0.18, y: 0.25 }
-                    ],
-                    links: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]
+            function seedStar(i, anyDepth) {
+                const far = (i & 3) === 0;
+                sx[i] = (Math.random() - 0.5) * width * 2;
+                sy[i] = (Math.random() - 0.5) * height * 2;
+                sz[i] = anyDepth ? Math.random() * width : width;
+                sSpeed[i] = far ? 0.1 + Math.random() * 0.2 : 1 + Math.random() * 0.5;
+                sSize[i] = far ? Math.random() * 1.4 + 1.2 : Math.random() * 1.0 + 0.6;
+            }
+            {
+                let n = 0;
+                for (let g = 0; g < GROUPS; g++) {
+                    groupStart[g] = n;
+                    n = g === GROUPS - 1 ? STAR_COUNT : n + Math.round(STAR_COUNT * GROUP_SHARE[g]);
                 }
-            ];
+                groupStart[GROUPS] = STAR_COUNT;
+                for (let i = 0; i < STAR_COUNT; i++) seedStar(i, true);
+            }
 
-            constellations.forEach(c => {
-                c.points.forEach(p => {
-                    p.twinkleOffset = Math.random() * Math.PI * 2;
-                    p.twinkleSpeed = 0.001 + Math.random() * 0.002;
-                    p.size = 1.5 + Math.random() * 1.5;
+            function bake(w, h, paint) {
+                const c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                paint(c.getContext('2d'));
+                return c;
+            }
+            // Each star is a small lit sphere: a white hot centre, its colour toward
+            // the rim, and a soft glow around it.
+            const STAR_SPRITE_SCALE = 7;
+            const starSprite = GROUP_RGB.map(rgb => bake(64, 64, g => {
+                const glow = g.createRadialGradient(32, 32, 6, 32, 32, 32);
+                glow.addColorStop(0, 'rgba(' + rgb + ',0.45)');
+                glow.addColorStop(0.4, 'rgba(' + rgb + ',0.12)');
+                glow.addColorStop(1, 'rgba(' + rgb + ',0)');
+                g.fillStyle = glow;
+                g.fillRect(0, 0, 64, 64);
+                const ball = g.createRadialGradient(30.5, 30.5, 0.5, 32, 32, 8);
+                ball.addColorStop(0, 'rgba(255,255,255,1)');
+                ball.addColorStop(0.45, 'rgba(' + rgb + ',1)');
+                ball.addColorStop(1, 'rgba(' + rgb + ',0.85)');
+                g.fillStyle = ball;
+                g.beginPath(); g.arc(32, 32, 8, 0, TAU); g.fill();
+            }));
+            // Far stars that flash now and then, a four point sparkle.
+            const twinkleSprite = bake(32, 32, g => {
+                const core = g.createRadialGradient(16, 16, 0, 16, 16, 7);
+                core.addColorStop(0, 'rgba(255,255,255,1)');
+                core.addColorStop(0.4, 'rgba(160,235,255,0.6)');
+                core.addColorStop(1, 'rgba(160,235,255,0)');
+                g.fillStyle = core;
+                g.fillRect(0, 0, 32, 32);
+                for (let k = 0; k < 2; k++) {
+                    const sp = k === 0 ? g.createLinearGradient(0, 16, 32, 16) : g.createLinearGradient(16, 0, 16, 32);
+                    sp.addColorStop(0, 'rgba(200,240,255,0)');
+                    sp.addColorStop(0.5, 'rgba(240,252,255,0.9)');
+                    sp.addColorStop(1, 'rgba(200,240,255,0)');
+                    g.fillStyle = sp;
+                    if (k === 0) g.fillRect(0, 15.5, 32, 1); else g.fillRect(15.5, 0, 1, 32);
+                }
+            });
+            const piscesStarSprite = bake(48, 48, g => {
+                const grad = g.createRadialGradient(24, 24, 0, 24, 24, 24);
+                grad.addColorStop(0, 'rgba(255,255,255,1)');
+                grad.addColorStop(0.18, 'rgba(200,255,255,0.95)');
+                grad.addColorStop(0.45, 'rgba(0,229,255,0.35)');
+                grad.addColorStop(1, 'rgba(0,229,255,0)');
+                g.fillStyle = grad;
+                g.fillRect(0, 0, 48, 48);
+                g.strokeStyle = 'rgba(234,246,255,0.7)';
+                g.lineWidth = 1;
+                g.beginPath();
+                g.moveTo(24, 6); g.lineTo(24, 42);
+                g.moveTo(6, 24); g.lineTo(42, 24);
+                g.stroke();
+            });
+            const washSprite = bake(256, 256, g => {
+                const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+                grad.addColorStop(0, 'rgba(160,240,255,0.55)');
+                grad.addColorStop(0.35, 'rgba(0,180,255,0.28)');
+                grad.addColorStop(0.7, 'rgba(70,40,170,0.12)');
+                grad.addColorStop(1, 'rgba(20,10,60,0)');
+                g.fillStyle = grad;
+                g.fillRect(0, 0, 256, 256);
+            });
+            // Nebula clouds: a few overlapping soft blobs per sprite, seeded so the
+            // shapes are the same on every load.
+            const NEBULA_RGB = [[70, 40, 170], [0, 130, 190], [140, 60, 200]];
+            const nebulaSprite = NEBULA_RGB.map((rgb, k) => bake(256, 256, g => {
+                let seed = 97 + k * 31;
+                const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+                for (let b = 0; b < 7; b++) {
+                    const bx = 70 + rnd() * 116, by = 70 + rnd() * 116, br = 40 + rnd() * 60;
+                    const grad = g.createRadialGradient(bx, by, 0, bx, by, br);
+                    const a = 0.16 + rnd() * 0.12;
+                    grad.addColorStop(0, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + a + ')');
+                    grad.addColorStop(1, 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',0)');
+                    g.fillStyle = grad;
+                    g.fillRect(0, 0, 256, 256);
+                }
+            }));
+            const NEBULA_COUNT = 6;
+            const nx = new Float32Array(NEBULA_COUNT), ny = new Float32Array(NEBULA_COUNT), nz = new Float32Array(NEBULA_COUNT);
+            const nKind = new Uint8Array(NEBULA_COUNT);
+            function seedNebula(i, anyDepth) {
+                nx[i] = (Math.random() - 0.5) * width * 1.6;
+                ny[i] = (Math.random() - 0.5) * height * 1.2;
+                nz[i] = anyDepth ? width * (0.6 + Math.random() * 2.4) : width * 3;
+                nKind[i] = i % 3;
+            }
+            for (let i = 0; i < NEBULA_COUNT; i++) seedNebula(i, true);
+
+            // The far sky, baked once at full resolution on a square big enough to
+            // turn: a Milky Way band of dense faint stars, coloured gas along it and
+            // dark dust lanes, with scattered field stars. It turns very slowly, sits
+            // at infinity so it only shifts a hair with the camera, and fades out
+            // once the jump streaks.
+            let skyLayer = null, skyW = 0, skyH = 0, skyD = 0;
+            const HERO_N = 7;
+            const heroX = new Float32Array(HERO_N), heroY = new Float32Array(HERO_N), heroS = new Float32Array(HERO_N), heroP = new Float32Array(HERO_N);
+            const TW_N = 40;
+            const twX = new Float32Array(TW_N), twY = new Float32Array(TW_N), twS = new Float32Array(TW_N), twP = new Float32Array(TW_N), twF = new Float32Array(TW_N);
+            function bakeSky() {
+                skyW = width; skyH = height;
+                const D = Math.ceil(Math.hypot(width, height)) + 4;
+                skyD = D;
+                skyLayer = bake(D, D, g => {
+                    let seed = 4242;
+                    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+                    const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+                    const ang = -0.42, ca = Math.cos(ang), sa = Math.sin(ang);
+                    const bx = D * 0.5, by = D * 0.52, len = D * 1.05, bw = Math.min(width, height) * 0.2;
+                    const along = (t, off) => [bx + ca * t - sa * off, by + sa * t + ca * off];
+                    const gas = ['255,220,180', '255,90,170', '40,200,210', '120,150,255'];
+                    for (let k = 0; k < 28; k++) {
+                        const t = (rnd() - 0.5) * len * 0.9, off = gauss() * bw * 0.45;
+                        const [x, y] = along(t, off);
+                        const r = bw * (0.5 + rnd() * 1.1);
+                        const core = Math.abs(t) < len * 0.18;
+                        const c = core ? gas[0] : gas[1 + ((rnd() * 3) | 0)];
+                        const grad = g.createRadialGradient(x, y, 0, x, y, r);
+                        grad.addColorStop(0, 'rgba(' + c + ',' + (core ? 0.09 : 0.05).toFixed(2) + ')');
+                        grad.addColorStop(1, 'rgba(' + c + ',0)');
+                        g.fillStyle = grad;
+                        g.fillRect(x - r, y - r, r * 2, r * 2);
+                    }
+                    const tint = ['255,255,255', '190,210,255', '255,225,190'];
+                    const dust = Math.round(D * D / 110);
+                    for (let i = 0; i < dust; i++) {
+                        const t = (rnd() - 0.5) * len, off = gauss() * bw;
+                        const [x, y] = along(t, off);
+                        const fall = 1 - Math.min(1, Math.abs(off) / bw) * 0.65;
+                        const c = rnd();
+                        g.fillStyle = 'rgba(' + tint[c < 0.6 ? 0 : c < 0.8 ? 1 : 2] + ',' + ((0.12 + rnd() * 0.55) * fall).toFixed(3) + ')';
+                        g.fillRect(x, y, 1, 1);
+                    }
+                    // dust lanes: long dark smears down the spine of the band
+                    g.globalCompositeOperation = 'destination-out';
+                    for (let i = 0; i < 46; i++) {
+                        const t = (rnd() - 0.5) * len * 0.85, off = gauss() * bw * 0.2;
+                        const [x, y] = along(t, off);
+                        const r = bw * (0.12 + rnd() * 0.25);
+                        g.save();
+                        g.translate(x, y);
+                        g.rotate(ang + (rnd() - 0.5) * 0.5);
+                        g.scale(1, 0.32 + rnd() * 0.2);
+                        const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
+                        grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+                        grad.addColorStop(1, 'rgba(0,0,0,0)');
+                        g.fillStyle = grad;
+                        g.fillRect(-r, -r, r * 2, r * 2);
+                        g.restore();
+                    }
+                    g.globalCompositeOperation = 'source-over';
+                    const field = Math.round(D * D / 130);
+                    for (let i = 0; i < field; i++) {
+                        const c = rnd();
+                        g.fillStyle = 'rgba(' + tint[c < 0.7 ? 0 : c < 0.85 ? 1 : 2] + ',' + (0.12 + rnd() * 0.5).toFixed(3) + ')';
+                        g.fillRect(rnd() * D, rnd() * D, rnd() < 0.85 ? 1 : 1.6, 1);
+                    }
+                    for (let i = 0; i < TW_N; i++) {
+                        twX[i] = (rnd() - 0.5) * D * 0.9;
+                        twY[i] = (rnd() - 0.5) * D * 0.9;
+                        twS[i] = 8 + rnd() * 10;
+                        twP[i] = rnd() * TAU;
+                        twF[i] = 0.0009 + rnd() * 0.0016;
+                    }
+                    for (let i = 0; i < HERO_N; i++) {
+                        heroX[i] = (rnd() - 0.5) * width * 0.95;
+                        heroY[i] = (rnd() - 0.5) * height * 0.9;
+                        heroS[i] = 18 + rnd() * 22;
+                        heroP[i] = rnd() * TAU;
+                    }
                 });
+            }
+
+            // A bright star with thin diffraction spikes, drawn live so it can twinkle.
+            const heroSprite = bake(96, 96, g => {
+                const glow = g.createRadialGradient(48, 48, 0, 48, 48, 22);
+                glow.addColorStop(0, 'rgba(255,255,255,1)');
+                glow.addColorStop(0.25, 'rgba(210,230,255,0.6)');
+                glow.addColorStop(1, 'rgba(160,200,255,0)');
+                g.fillStyle = glow;
+                g.fillRect(0, 0, 96, 96);
+                for (let k = 0; k < 2; k++) {
+                    const sp = k === 0 ? g.createLinearGradient(0, 48, 96, 48) : g.createLinearGradient(48, 0, 48, 96);
+                    sp.addColorStop(0, 'rgba(200,225,255,0)');
+                    sp.addColorStop(0.5, 'rgba(235,245,255,0.85)');
+                    sp.addColorStop(1, 'rgba(200,225,255,0)');
+                    g.fillStyle = sp;
+                    if (k === 0) g.fillRect(0, 47.4, 96, 1.2); else g.fillRect(47.4, 0, 1.2, 96);
+                }
             });
 
-            for (let i = 0; i < numStars; i++) {
-                let isDistant = Math.random() < 0.25;
-                let colorType = Math.random();
-                let r = 255, g = 255, b = 255;
-                if (isDistant) {
-                    if (colorType < 0.33) { r = 150; g = 220; b = 255; }
-                    else if (colorType < 0.66) { r = 255; g = 180; b = 220; }
-                    else { r = 220; g = 150; b = 255; }
-                }
-                stars.push({
-                    x: (Math.random() - 0.5) * width * 2, y: (Math.random() - 0.5) * height * 2,
-                    z: Math.random() * width, r, g, b,
-                    speedMod: isDistant ? (0.1 + Math.random() * 0.2) : (1 + Math.random() * 0.5),
-                    sizeMod: isDistant ? (Math.random() * 2 + 1.5) : (Math.random() * 1.2 + 0.5)
+            // The distant sun in the top right: halo, a horizontal lens streak, and
+            // a small ring sprite reused for the lens ghosts.
+            const sunSprite = bake(256, 256, g => {
+                const halo = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+                halo.addColorStop(0, 'rgba(255,255,255,1)');
+                halo.addColorStop(0.06, 'rgba(235,250,255,0.95)');
+                halo.addColorStop(0.18, 'rgba(140,230,255,0.4)');
+                halo.addColorStop(0.5, 'rgba(60,140,255,0.1)');
+                halo.addColorStop(1, 'rgba(40,80,200,0)');
+                g.fillStyle = halo;
+                g.fillRect(0, 0, 256, 256);
+                const streak = g.createLinearGradient(0, 128, 256, 128);
+                streak.addColorStop(0, 'rgba(120,220,255,0)');
+                streak.addColorStop(0.5, 'rgba(200,245,255,0.75)');
+                streak.addColorStop(1, 'rgba(120,220,255,0)');
+                g.fillStyle = streak;
+                g.fillRect(0, 126.5, 256, 3);
+            });
+            const ghostSprite = bake(64, 64, g => {
+                const ring = g.createRadialGradient(32, 32, 18, 32, 32, 32);
+                ring.addColorStop(0, 'rgba(120,230,255,0)');
+                ring.addColorStop(0.7, 'rgba(120,230,255,0.22)');
+                ring.addColorStop(0.85, 'rgba(180,140,255,0.12)');
+                ring.addColorStop(1, 'rgba(120,230,255,0)');
+                g.fillStyle = ring;
+                g.fillRect(0, 0, 64, 64);
+            });
+
+            bakeSky();
+
+            // The title screen's Pisces stars, each set at its own depth. Seen from
+            // one camera position they line up into the constellation; the menu
+            // opens away from that spot and drifts into it.
+            const PISCES = [
+                [-0.55, 0.10, 2.8], [-0.72, 0.00, 3.6], [-0.82, -0.14, 4.1], [-0.68, -0.28, 4.2],
+                [-0.48, -0.32, 4.3], [-0.30, -0.20, 3.9], [-0.38, -0.06, 3.7],
+                [-0.22, 0.08, 4.4], [-0.06, 0.18, 4.3], [0.10, 0.12, 4.2],
+                [0.26, 0.04, 3.5], [0.42, -0.10, 3.7], [0.58, -0.22, 4.0], [0.62, -0.06, 3.8],
+                [0.54, 0.12, 4.1], [0.38, 0.22, 3.9], [0.22, 0.18, 3.6]
+            ];
+            const PISCES_LINES = [
+                0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 0,
+                6, 7, 7, 8, 8, 9, 9, 10,
+                10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 10
+            ];
+            const PISCES_N = PISCES.length;
+            const PISCES_DEPTH = new Float32Array([1.1, 0.9, 1.7, 2.3, 1.3, 0.95, 2.0, 1.5, 1.0, 2.2, 1.2, 1.8, 0.9, 1.4, 2.1, 1.05, 1.6]);
+            const PISCES_TWINKLE = new Float32Array(PISCES_N);
+            for (let i = 0; i < PISCES_N; i++) PISCES_TWINKLE[i] = i * 2.399;
+            // Ring slots for the gate, handed out in the order the stars sit around
+            // the vanishing point (the constellation hangs above it), centred on
+            // their mean angle so the swirl spreads them evenly without crossings.
+            const PISCES_SLOT_ANGLE = new Float32Array(PISCES_N);
+            const PISCES_ORDER = new Int32Array(PISCES_N);
+            {
+                const ang = PISCES.map(p => Math.atan2(p[1] - 0.75, p[0] + 0.1));
+                const order = ang.map((a, i) => i).sort((a, b) => ang[a] - ang[b]);
+                const mean = ang.reduce((s, a) => s + a, 0) / PISCES_N;
+                order.forEach((idx, k) => {
+                    PISCES_ORDER[k] = idx;
+                    PISCES_SLOT_ANGLE[idx] = mean + (k - (PISCES_N - 1) / 2) * TAU / PISCES_N;
                 });
             }
+            const pisX = new Float32Array(PISCES_N), pisY = new Float32Array(PISCES_N), pisS = new Float32Array(PISCES_N);
+            const ALIGN_MS = 2400;
+            let alignStart = -1;
 
-            function drawStars() {
+            // Camera offset in world pixels; the stars shift by it scaled to their
+            // depth, which is what makes the field read as 3D.
+            let tiltX = 0, tiltY = 0, tiltTX = 0, tiltTY = 0;
+            let camX = 0, camY = 0;
+
+            // Hyperjump timeline in ms from the launch press, timed to the hyperjump
+            // sound: the gate pass lands on its 2.5s peak and the game takes over at
+            // 3.5s, under a full white flash.
+            const J_PREP = 150, J_MORPH_END = 750, J_GATE_START = 600, J_PASS = 2500, J_HANDOFF = 3500;
+            let jumpStart = -1, jumpSkipShift = 0, handedOff = false, flashUp = false;
+            let speed = 0.8;
+            let isSimulationRunning = true;
+            let lastFrame = 0;
+            let tunnelTravel = 0;
+
+            const smooth = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+            const easeInOut = t => t <= 0 ? 0 : t >= 1 ? 1 : (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+            let pisLS = 0, pisLCX = 0, pisLCY = 0;
+            function piscesLayout() {
+                pisLS = Math.min(0.34 * Math.min(width, height * 1.5), 0.6 * width, 0.62 * height);
+                pisLCX = width / 2 + 0.1 * pisLS;
+                pisLCY = height * (height > width ? 0.2 : 0.24);
+            }
+
+            function drawStars(now) {
                 if (!isSimulationRunning) return;
+                const dt = lastFrame ? Math.min(50, now - lastFrame) : 16.667;
+                lastFrame = now;
+                const step = dt / 16.667;
                 const cx = width / 2, cy = height / 2;
-                if (isWarping) {
-                    let progress = Math.min((Date.now() - warpStartTime) / 3500, 1);
-                    speed = 0.8 + Math.pow(progress, 4) * 200;
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                } else {
-                    speed = 0.8;
-                    ctx.fillStyle = '#000000';
-                }
-                ctx.fillRect(0, 0, width, height);
+                const jt = jumpStart >= 0 ? now - jumpStart + jumpSkipShift : -1;
 
-                let ca = isWarping ? Math.max(0, 1 - (Date.now() - warpStartTime) / 1500) : 0.7;
-                if (ca > 0) {
-                    constellations.forEach(c => {
-                        ctx.strokeStyle = `rgba(0,229,255,${ca * 0.3})`;
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        c.links.forEach(link => {
-                            let p1 = c.points[link[0]], p2 = c.points[link[1]];
-                            ctx.moveTo(cx + p1.x * width, cy + p1.y * width);
-                            ctx.lineTo(cx + p2.x * width, cy + p2.y * width);
-                        });
-                        ctx.stroke();
-                        c.points.forEach(p => {
-                            let tw = Math.sin(Date.now() * p.twinkleSpeed + p.twinkleOffset);
-                            let sa = ca * (0.4 + 0.6 * tw);
-                            ctx.fillStyle = `rgba(200,255,255,${sa})`;
-                            ctx.beginPath(); ctx.arc(cx + p.x * width, cy + p.y * width, p.size + tw * 0.5, 0, Math.PI * 2); ctx.fill();
-                            ctx.fillStyle = `rgba(0,229,255,${sa * 0.4})`;
-                            ctx.beginPath(); ctx.arc(cx + p.x * width, cy + p.y * width, p.size * 3, 0, Math.PI * 2); ctx.fill();
-                        });
-                    });
+                // speed profile: idle drift, then the old jump's curve, climbing to its
+                // peak on the white flash
+                if (jt < 0) speed = 0.8;
+                else { const p = Math.min(1, jt / J_HANDOFF); speed = 0.8 + p * p * p * p * 200; }
+                // the jump streaks from the first frame, as the old one did
+                const streaking = jt >= 0;
+                // the streak fill keeps 70 percent of the last frame, so additive layers
+                // build up to about 3.3 times; this keeps them at their menu brightness
+                const glowScale = streaking ? 0.3 : 1;
+
+                // tilt follows the pointer or the phone, recentred during the jump
+                if (jt >= 0) { tiltTX = 0; tiltTY = 0; }
+                const follow = Math.min(1, dt / 220);
+                tiltX += (tiltTX - tiltX) * follow;
+                tiltY += (tiltTY - tiltY) * follow;
+                const alignK = alignStart < 0 ? 0 : easeInOut((now - alignStart) / ALIGN_MS);
+                const prepK = jt < 0 ? 0 : smooth(jt / J_PREP);
+                const driftK = Math.max(alignK, prepK);
+                camX = 0.24 * width * (1 - driftK) + tiltX * 0.022 * width;
+                camY = -0.12 * height * (1 - driftK) + tiltY * 0.018 * height;
+
+                ctx.globalAlpha = 1;
+                ctx.globalCompositeOperation = 'source-over';
+                // near the peak the view shudders a few pixels
+                const peakK = jt < 0 ? 0 : Math.max(0, (speed - 60) / 140);
+                const shake = 3.5 * peakK * peakK;
+                ctx.setTransform(1, 0, 0, 1, shake * Math.sin(now * 0.093), shake * Math.cos(now * 0.081));
+                ctx.fillStyle = streaking ? 'rgba(0,0,0,0.3)' : '#000';
+                ctx.fillRect(-8, -8, width + 16, height + 16);
+
+                const skyA = streaking ? Math.max(0, 1 - (speed - 3) / 30) * glowScale : 1;
+                if (skyLayer && skyA > 0.01) {
+                    const rot = now * 0.000008;
+                    const skx = cx - camX * 0.04, sky = cy - camY * 0.04;
+                    ctx.save();
+                    ctx.globalAlpha = skyA;
+                    ctx.translate(skx, sky);
+                    ctx.rotate(rot);
+                    ctx.drawImage(skyLayer, -skyD / 2, -skyD / 2);
+                    ctx.restore();
+                    // bright stars turn with the sky but keep their spikes upright
+                    const rc = Math.cos(rot), rs = Math.sin(rot);
+                    ctx.globalCompositeOperation = 'lighter';
+                    for (let i = 0; i < HERO_N; i++) {
+                        const tw = 0.65 + 0.35 * Math.sin(now * 0.0017 + heroP[i]);
+                        const s = heroS[i] * (0.85 + 0.15 * tw);
+                        const hx = skx + heroX[i] * rc - heroY[i] * rs, hy = sky + heroX[i] * rs + heroY[i] * rc;
+                        ctx.globalAlpha = skyA * tw;
+                        ctx.drawImage(heroSprite, hx - s, hy - s, s * 2, s * 2);
+                    }
+                    // far stars flash briefly, each on its own slow beat
+                    for (let i = 0; i < TW_N; i++) {
+                        const w = Math.sin(now * twF[i] + twP[i]);
+                        if (w <= 0.35) continue;
+                        const k = (w - 0.35) / 0.65;
+                        const f = k * k * k;
+                        const tx = skx + twX[i] * rc - twY[i] * rs, ty = sky + twX[i] * rs + twY[i] * rc;
+                        if (tx < -20 || ty < -20 || tx > width + 20 || ty > height + 20) continue;
+                        const ts = twS[i] * (0.6 + 0.4 * f);
+                        ctx.globalAlpha = skyA * f;
+                        ctx.drawImage(twinkleSprite, tx - ts, ty - ts, ts * 2, ts * 2);
+                    }
+                    // the sun and its lens ghosts, gone early in the jump
+                    const sunA = skyA * (jt < 0 ? 1 : Math.max(0, 1 - jt / 900));
+                    if (sunA > 0.01) {
+                        const sx0 = width * 0.86 - camX * 0.04, sy0 = height * 0.1 - camY * 0.04;
+                        const ss = Math.min(width, height) * 0.55 * (0.92 + 0.08 * Math.sin(now * 0.0009));
+                        ctx.globalAlpha = 0.85 * sunA;
+                        ctx.drawImage(sunSprite, sx0 - ss / 2, sy0 - ss / 2, ss, ss);
+                        for (let k = 0; k < 3; k++) {
+                            const f = 0.55 + k * 0.4;
+                            const gs = 22 + k * 20;
+                            ctx.globalAlpha = 0.45 * sunA;
+                            ctx.drawImage(ghostSprite, sx0 + (cx - sx0) * f - gs, sy0 + (cy - sy0) * f - gs, gs * 2, gs * 2);
+                        }
+                    }
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1;
                 }
 
-                for (let i = 0; i < numStars; i++) {
-                    let s = stars[i], spd = speed * s.speedMod;
-                    s.z -= spd;
-                    if (s.z <= 0) { s.x = (Math.random() - 0.5) * width * 2; s.y = (Math.random() - 0.5) * height * 2; s.z = width; }
-                    let px = cx + (s.x / s.z) * width, py = cy + (s.y / s.z) * width;
-                    let radius = Math.max(1, Math.min(8, (width / s.z) * s.sizeMod));
-                    let alpha = Math.max(0.1, Math.min(1, 1.5 - (s.z / width)));
-                    if (isWarping) {
-                        let pz = s.z + spd, ppx = cx + (s.x / pz) * width, ppy = cy + (s.y / pz) * width;
-                        ctx.lineWidth = radius;
-                        ctx.strokeStyle = `rgba(${s.r},${s.g},${s.b},${alpha})`;
-                        ctx.beginPath(); ctx.moveTo(ppx, ppy); ctx.lineTo(px, py); ctx.stroke();
-                    } else {
-                        ctx.fillStyle = `rgba(${s.r},${s.g},${s.b},${alpha})`;
-                        ctx.beginPath(); ctx.arc(px, py, radius, 0, Math.PI * 2); ctx.fill();
+                // nebulae, far behind and drifting in slowly
+                ctx.globalCompositeOperation = 'lighter';
+                for (let i = 0; i < NEBULA_COUNT; i++) {
+                    nz[i] -= speed * 0.12 * step * (streaking ? 3 : 1);
+                    if (nz[i] < width * 0.15) seedNebula(i, false);
+                    const z = nz[i];
+                    const size = width * 0.8 * width / z;
+                    if (size > width * 4) continue;
+                    const fadeFar = Math.min(1, (width * 3 - z) / (width * 0.8));
+                    const fadeNear = Math.min(1, (z - width * 0.15) / (width * 0.35));
+                    const a = 0.32 * fadeFar * fadeNear * glowScale;
+                    if (a <= 0.01) continue;
+                    const nxs = cx + ((nx[i] - camX) / z) * width, nys = cy + ((ny[i] - camY) / z) * width;
+                    ctx.globalAlpha = a;
+                    ctx.drawImage(nebulaSprite[nKind[i]], nxs - size / 2, nys - size / 2, size, size);
+                }
+                ctx.globalCompositeOperation = 'source-over';
+
+                // project every star once
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    if (!streaking && warpOnly[i]) { pr[i] = 0; continue; }
+                    const spd = speed * sSpeed[i];
+                    sz[i] -= spd * step;
+                    if (sz[i] <= 0) seedStar(i, false);
+                    const z = sz[i];
+                    const x = cx + ((sx[i] - camX) / z) * width;
+                    const y = cy + ((sy[i] - camY) / z) * width;
+                    const r = Math.max(0.8, Math.min(9, (width / z) * sSize[i] * 1.15));
+                    if (x < -10 || x > width + 10 || y < -10 || y > height + 10) { pr[i] = 0; continue; }
+                    // far stars fade harder than before, which deepens the field
+                    const a = Math.max(0.08, Math.min(1, 1.35 - z / width));
+                    px[i] = x; py[i] = y; pr[i] = r; pa[i] = a * a * 0.95 + 0.05;
+                    if (streaking) {
+                        // the streak reaches back two and a half 60fps steps, so the
+                        // segments of successive frames overlap into one unbroken line
+                        // at any refresh rate
+                        const pz = z + spd * 2.5;
+                        ppx[i] = cx + ((sx[i] - camX) / pz) * width;
+                        ppy[i] = cy + ((sy[i] - camY) / pz) * width;
                     }
                 }
+
+                if (streaking) {
+                    // each streak keeps its own depth brightness (three steps) and
+                    // width; the wider ones get a faint broad pass under them, the glow
+                    // the old blurred menu used to give them
+                    ctx.lineCap = 'round';
+                    for (let g = 0; g < GROUPS; g++) {
+                        ctx.strokeStyle = GROUP_STREAK[g];
+                        for (let wb = 0; wb < 3; wb++) {
+                            const lo = wb === 0 ? 0 : wb === 1 ? 2 : 4, hi = wb === 0 ? 2 : wb === 1 ? 4 : 99;
+                            for (let ab = 0; ab < 3; ab++) {
+                                ctx.beginPath();
+                                let any = false;
+                                for (let i = groupStart[g]; i < groupStart[g + 1]; i++) {
+                                    const r = pr[i];
+                                    if (r <= lo || r > hi) continue;
+                                    const a = pa[i];
+                                    if ((a < 0.3 ? 0 : a < 0.65 ? 1 : 2) !== ab) continue;
+                                    ctx.moveTo(ppx[i], ppy[i]);
+                                    ctx.lineTo(px[i], py[i]);
+                                    any = true;
+                                }
+                                if (!any) continue;
+                                if (wb > 0) {
+                                    ctx.globalAlpha = STREAK_ALPHA[ab] * 0.22;
+                                    ctx.lineWidth = STREAK_WIDTH[wb] * 2.8;
+                                    ctx.stroke();
+                                }
+                                ctx.globalAlpha = STREAK_ALPHA[ab];
+                                ctx.lineWidth = STREAK_WIDTH[wb];
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                    ctx.lineCap = 'butt';
+                    ctx.globalAlpha = 1;
+                } else {
+                    for (let g = 0; g < GROUPS; g++) {
+                        const sprite = starSprite[g];
+                        for (let i = groupStart[g]; i < groupStart[g + 1]; i++) {
+                            const r = pr[i];
+                            if (r <= 0) continue;
+                            const sz2 = r * STAR_SPRITE_SCALE;
+                            ctx.globalAlpha = pa[i];
+                            ctx.drawImage(sprite, px[i] - sz2 / 2, py[i] - sz2 / 2, sz2, sz2);
+                        }
+                    }
+                    ctx.globalAlpha = 1;
+                }
+
+                drawPisces(now, jt, driftK, cx, cy, glowScale);
+                drawTunnel(jt, cx, cy, glowScale, step);
+                drawJumpLight(jt, cx, cy, glowScale);
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+                // the jump peaks in a full white flash that opens onto the sigil cards
+                if (jt >= J_HANDOFF - 350 && !flashUp) {
+                    flashUp = true;
+                    whiteFlash.style.transition = 'opacity 0.35s ease-in';
+                    whiteFlash.style.opacity = '1';
+                }
+                if (jt >= 0 && !handedOff && jt >= J_HANDOFF) handoff();
+                if (isSimulationRunning) requestAnimationFrame(drawStars);
+            }
+
+            function drawPisces(now, jt, driftK, cx, cy, glowScale) {
+                piscesLayout();
+                // during the jump the constellation folds into a ring gate that
+                // rushes at the camera and passes it
+                const morph = jt < 0 ? 0 : easeInOut((jt - J_PREP) / (J_MORPH_END - J_PREP));
+                const gateK = jt < 0 ? 0 : Math.min(1, Math.max(0, (jt - J_GATE_START) / (J_PASS + 150 - J_GATE_START)));
+                const gateZ = 1 - 0.93 * gateK * gateK;
+                const ringR = 0.15 * Math.min(width, height) / gateZ;
+                if (jt >= 0 && ringR > Math.hypot(width, height) * 1.2) return;
+                const spin = jt < 0 ? 0 : jt * 0.0012;
+                const grow = 1 / Math.pow(gateZ, 0.6);
+                const brighten = 0.7 + 0.3 * driftK;
+                for (let i = 0; i < PISCES_N; i++) {
+                    const p = PISCES[i];
+                    const d = PISCES_DEPTH[i];
+                    const shapeX = pisLCX + p[0] * pisLS - camX / d;
+                    const shapeY = pisLCY + p[1] * pisLS - camY / d;
+                    if (morph <= 0) {
+                        pisX[i] = shapeX; pisY[i] = shapeY;
+                    } else {
+                        // swirl in polar terms around the jump's vanishing point, each
+                        // star heading for the ring slot that matches its own angle,
+                        // so no two paths cross
+                        const r0 = Math.hypot(shapeX - cx, shapeY - cy);
+                        const t0 = Math.atan2(shapeY - cy, shapeX - cx);
+                        let dt = PISCES_SLOT_ANGLE[i] + spin - t0;
+                        dt -= TAU * Math.round(dt / TAU);
+                        const th = t0 + dt * morph, rr = r0 + (ringR - r0) * morph;
+                        pisX[i] = cx + Math.cos(th) * rr;
+                        pisY[i] = cy + Math.sin(th) * rr;
+                    }
+                    pisS[i] = (6.4 - p[2]) * 8 * grow;
+                }
+                // lines of the constellation once it lines up, stretching with the
+                // swirl, then the ring's own edge in slot order
+                const lineA = 0.5 * smooth((driftK - 0.78) / 0.22) * Math.sqrt(1 - morph);
+                ctx.strokeStyle = '#00E5FF';
+                ctx.lineWidth = 1.2;
+                if (lineA > 0.01) {
+                    ctx.globalAlpha = lineA;
+                    ctx.beginPath();
+                    for (let k = 0; k < PISCES_LINES.length; k += 2) {
+                        ctx.moveTo(pisX[PISCES_LINES[k]], pisY[PISCES_LINES[k]]);
+                        ctx.lineTo(pisX[PISCES_LINES[k + 1]], pisY[PISCES_LINES[k + 1]]);
+                    }
+                    ctx.stroke();
+                }
+                if (morph > 0.01) {
+                    ctx.globalAlpha = 0.6 * morph * morph * (0.4 + 0.6 * glowScale);
+                    ctx.lineWidth = 1.5 * grow;
+                    ctx.beginPath();
+                    ctx.moveTo(pisX[PISCES_ORDER[0]], pisY[PISCES_ORDER[0]]);
+                    for (let k = 1; k < PISCES_N; k++) ctx.lineTo(pisX[PISCES_ORDER[k]], pisY[PISCES_ORDER[k]]);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                ctx.globalCompositeOperation = 'lighter';
+                for (let i = 0; i < PISCES_N; i++) {
+                    const tw = 0.8 + 0.2 * Math.sin(now * 0.0021 + PISCES_TWINKLE[i]);
+                    const s = pisS[i] * tw;
+                    ctx.globalAlpha = brighten * tw * (0.4 + 0.6 * glowScale);
+                    ctx.drawImage(piscesStarSprite, pisX[i] - s / 2, pisY[i] - s / 2, s, s);
+                }
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 1;
+            }
+
+            // Hyperspace tunnel: rings of cyan light rush out of the vanishing point
+            // toward the camera, more and brighter as the speed climbs. The streak
+            // fill smears them into a tube.
+            const TUNNEL_RINGS = 7;
+            function drawTunnel(jt, cx, cy, glowScale, step) {
+                if (jt < 0 || speed < 12) return;
+                const k = Math.min(1, (speed - 12) / 150);
+                tunnelTravel += speed * step * 0.00045;
+                const base = Math.min(width, height) * 0.16;
+                const far = 1.8;
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.strokeStyle = '#7FE9FF';
+                for (let r = 0; r < TUNNEL_RINGS; r++) {
+                    const z = far - ((r / TUNNEL_RINGS + tunnelTravel) % 1) * (far - 0.12);
+                    const rad = base / z;
+                    const fadeIn = Math.min(1, (far - z) / 0.5);
+                    ctx.globalAlpha = 0.5 * k * fadeIn * glowScale;
+                    ctx.lineWidth = 1 + 3 / z;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, rad, 0, TAU);
+                    ctx.stroke();
+                }
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = 1;
+            }
+
+            // passing through the gate: a cyan wash and a shockwave ring, no white flash
+            function drawJumpLight(jt, cx, cy, glowScale) {
+                // the vanishing point brightens with speed, a tunnel of light ahead
+                if (jt >= 0 && speed > 3) {
+                    const k = Math.min(1, speed / 140);
+                    const cs = Math.min(width, height) * (0.5 + 0.9 * k);
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.globalAlpha = 0.4 * k * glowScale;
+                    ctx.drawImage(washSprite, cx - cs / 2, cy - cs / 2, cs, cs);
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1;
+                }
+                if (jt < J_PASS - 150 || jt > J_PASS + 600) return;
+                const k = (jt - (J_PASS - 150)) / 750;
+                const diag = Math.hypot(width, height);
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = 0.5 * glowScale * Math.sin(Math.PI * Math.min(1, k * 1.4));
+                const ws = diag * 1.3;
+                ctx.drawImage(washSprite, cx - ws / 2, cy - ws / 2, ws, ws);
+                ctx.globalCompositeOperation = 'source-over';
+                const rk = Math.max(0, (jt - J_PASS) / 600);
+                if (rk > 0 && rk < 1) {
+                    const e = 1 - (1 - rk) * (1 - rk);
+                    ctx.globalAlpha = 0.8 * (1 - rk);
+                    ctx.strokeStyle = '#8CE6FF';
+                    ctx.lineWidth = 6 * (1 - rk) + 1;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 20 + e * diag * 0.7, 0, TAU);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            function startLoop() {
+                if (isSimulationRunning && lastFrame) return;
+                isSimulationRunning = true;
+                lastFrame = 0;
                 requestAnimationFrame(drawStars);
             }
-            drawStars();
+            requestAnimationFrame(drawStars);
 
             window.addEventListener('resize', () => {
                 width = window.innerWidth; height = window.innerHeight;
                 starCanvas.width = width; starCanvas.height = height;
+                // the iOS toolbar showing or hiding changes the height a little; only a
+                // real size change rebakes the sky
+                if (Math.abs(width - skyW) > skyW * 0.15 || Math.abs(height - skyH) > skyH * 0.15) bakeSky();
             });
+
+            // pointer or finger tilts the camera on the menu; on phones that report
+            // orientation without asking, tilting the phone does too
+            window.addEventListener('pointermove', e => {
+                if (jumpStart >= 0) return;
+                tiltTX = Math.max(-1, Math.min(1, (e.clientX / width - 0.5) * 2));
+                tiltTY = Math.max(-1, Math.min(1, (e.clientY / height - 0.5) * 2));
+            }, { passive: true });
+            // the phone's tilt counts from how it was held when the menu opened
+            let tiltBaseG = NaN, tiltBaseB = NaN;
+            window.addEventListener('deviceorientation', e => {
+                if (jumpStart >= 0 || e.gamma == null || e.beta == null) return;
+                if (isNaN(tiltBaseG)) { tiltBaseG = e.gamma; tiltBaseB = e.beta; }
+                tiltTX = Math.max(-1, Math.min(1, (e.gamma - tiltBaseG) / 25));
+                tiltTY = Math.max(-1, Math.min(1, (e.beta - tiltBaseB) / 25));
+            }, { passive: true });
+
+            // the constellation lines up once the menu is actually in view
+            function beginAlign() { alignStart = performance.now(); tiltBaseG = NaN; tiltBaseB = NaN; }
+            const clickToStart = document.getElementById('click-to-start');
+            if (clickToStart && getComputedStyle(clickToStart).display !== 'none') clickToStart.addEventListener('click', beginAlign, { once: true });
+            else beginAlign();
 
             const lockScreen = document.getElementById('lock-screen');
             const loadingScreen = document.getElementById('loading-screen');
@@ -2184,6 +2796,82 @@
             const progressBar = document.getElementById('progress-bar');
             const realStartBtn = document.getElementById('startBtn');
             const whiteFlash = document.getElementById('white-flash');
+            const jumpFooter = document.getElementById('jump-footer');
+            const jumpFooterBar = document.getElementById('jump-footer-bar');
+
+            // the footer bar fills linearly until the game takes over
+            function runFooterBar(remainingMs) {
+                jumpFooterBar.style.transition = 'transform ' + Math.max(0, remainingMs) + 'ms linear';
+                jumpFooterBar.style.transform = 'scaleX(1)';
+            }
+
+            // The WebGL warmup stalls the page for a moment, so it runs once after
+            // load while the click-to-start screen still covers everything,
+            // retrying until the Pixi renderer has finished starting.
+            let pixiWarmed = false;
+            function pixiWarm() {
+                if (pixiWarmed || typeof window._pixiWarmup !== 'function') return;
+                pixiWarmed = true;
+                window._pixiWarmup();
+            }
+            window.addEventListener('load', () => {
+                let tries = 0;
+                const attempt = () => {
+                    pixiWarm();
+                    if (!pixiWarmed && ++tries < 20) setTimeout(attempt, 250);
+                };
+                setTimeout(attempt, 0);
+            });
+
+            // a tap or key during the jump cuts straight to the gate pass
+            function onJumpSkip() {
+                if (jumpStart < 0 || handedOff) return;
+                const jt = performance.now() - jumpStart + jumpSkipShift;
+                if (jt < 250 || jt >= J_PASS) return;
+                jumpSkipShift += J_PASS - jt;
+                runFooterBar(J_HANDOFF - J_PASS);
+            }
+            window.addEventListener('pointerdown', onJumpSkip);
+            window.addEventListener('keydown', onJumpSkip);
+
+            function handoff() {
+                handedOff = true;
+                window._inGame = true;
+                loadingScreen.style.display = 'none';
+                // the screen is fully white here, so the menu and the field go away
+                // at once behind it; the white holds a beat, then clears onto the cards
+                finishJump();
+                whiteFlash.style.transition = 'opacity 0.9s ease-out 0.15s';
+                whiteFlash.style.opacity = '0';
+                if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
+                if (typeof _initMobileControls === 'function') _initMobileControls();
+
+                // Ambient (space) + engine now; in-game BGM waits for sigil confirm
+                if (window.AudioMgr) {
+                    window.AudioMgr.stopBgm();
+                    window.AudioMgr.startAmbient();
+                    window.AudioMgr.startEngine();
+                }
+
+                // REVERTED: preloading guide.html here (immediately, or
+                // deferred 5s, both were tried) reliably crashed the
+                // standalone PWA webview a few seconds into EVERY run,
+                // confirmed via the persisted on-device console log
+                // (the crash landed right after _prepareGuideForGame()
+                // fired, regardless of delay). That made things worse
+                // than the original bug: 100% of runs crashed instead
+                // of only the ones where the player actually opened
+                // Guide. Guide stays lazily loaded, only on the
+                // player's first actual Guide click (see openGuide()).
+            }
+
+            function finishJump() {
+                isSimulationRunning = false;
+                jumpStart = -1;
+                easterEggOverlay.style.display = 'none';
+                easterEggOverlay.style.transition = '';
+                easterEggOverlay.style.opacity = '';
+            }
 
             // Return to main menu from in-game
             window._returnToMainMenu = function () {
@@ -2204,20 +2892,30 @@
                 const _mc2 = document.getElementById('mc');
                 if (_mc2) _mc2.style.pointerEvents = 'all';
                 // Restore overlay & lock screen
+                easterEggOverlay.style.transition = '';
+                easterEggOverlay.style.opacity = '';
+                easterEggOverlay.style.pointerEvents = '';
+                uiWrapper.style.pointerEvents = '';
                 easterEggOverlay.style.display = 'block';
                 lockScreen.style.display = 'flex';
                 loadingScreen.style.display = 'none';
+                loadingScreen.style.opacity = '';
+                progressBar.style.transition = '';
                 progressBar.style.width = '0%';
-                uiWrapper.style.backdropFilter = '';
                 uiWrapper.style.background = '';
+                jumpFooter.classList.remove('active');
+                whiteFlash.style.transition = '';
+                whiteFlash.style.opacity = '0';
+                jumpFooterBar.style.transition = 'none';
+                jumpFooterBar.style.transform = 'scaleX(0)';
                 // Show guide/settings buttons
                 const _gb = document.getElementById('guideBtn'); if (_gb) _gb.style.display = '';
                 const _sb = document.getElementById('settingsBtn'); if (_sb) _sb.style.display = '';
-                // Restart star animation
-                isWarping = false;
+                // the field restarts away from the constellation and drifts back into it
+                jumpStart = -1; jumpSkipShift = 0; handedOff = false;
                 speed = 0.8;
-                isSimulationRunning = true;
-                drawStars();
+                beginAlign();
+                startLoop();
                 // Audio: back to title BGM, drop every sustained loop + duck
                 // state that might still be active from the run just left
                 // (e.g. low-hp heartbeat — stopLowHp() also lifts its
@@ -2245,60 +2943,32 @@
             };
 
             document.getElementById('start-hyperjump-btn').addEventListener('click', () => {
+                if (jumpStart >= 0) return;
                 lockScreen.style.display = 'none';
                 const _gb = document.getElementById('guideBtn'); if (_gb) _gb.style.display = 'none';
                 const _sb = document.getElementById('settingsBtn'); if (_sb) _sb.style.display = 'none';
-                uiWrapper.style.backdropFilter = 'none';
                 uiWrapper.style.background = 'transparent';
-                loadingScreen.style.display = 'flex';
-                isWarping = true;
-                warpStartTime = Date.now();
+                jumpStart = performance.now();
+                jumpSkipShift = 0;
+                handedOff = false;
+                flashUp = false;
+                startLoop();
+                jumpFooter.classList.add('active');
+                jumpFooterBar.style.transition = 'none';
+                jumpFooterBar.style.transform = 'scaleX(0)';
+                void jumpFooterBar.offsetWidth; // commit the empty bar so the fill animates
+                runFooterBar(J_HANDOFF);
 
                 // AudioMgr owns menu BGM already; only fire the one-shot warp SFX
                 if (!_muted) sndHyperjump.play().catch(() => { });
 
                 // Pay the one-time Safari WebGL texture/shader-compile cost
-                // now, during this 3.5s loading animation, instead of on
-                // the first real combat frame (see js/pixi-renderer.js's
-                // window._pixiWarmup for why this exists).
-                if (typeof window._pixiWarmup === 'function') window._pixiWarmup();
+                // before the first real combat frame (see js/pixi-renderer.js's
+                // window._pixiWarmup for why this exists). It normally ran
+                // already behind the click-to-start screen; this covers a
+                // player who got here before the renderer was ready.
+                pixiWarm();
 
-                setTimeout(() => { progressBar.style.width = '100%'; }, 50);
-                setTimeout(() => {
-                    whiteFlash.style.transition = 'opacity 1s ease-in';
-                    whiteFlash.style.opacity = '1';
-                }, 2500);
-                setTimeout(() => {
-                    window._inGame = true;
-                    isSimulationRunning = false;
-                    easterEggOverlay.style.display = 'none';
-                    if (realStartBtn) { realStartBtn.style.display = 'none'; realStartBtn.click(); }
-                    if (typeof _initMobileControls === 'function') _initMobileControls();
-
-                    // Ambient (space) + engine now; in-game BGM waits for sigil confirm
-                    if (window.AudioMgr) {
-                        window.AudioMgr.stopBgm();
-                        window.AudioMgr.startAmbient();
-                        window.AudioMgr.startEngine();
-                    }
-
-                    // REVERTED: preloading guide.html here (immediately, or
-                    // deferred 5s — both were tried) reliably crashed the
-                    // standalone-PWA webview a few seconds into EVERY run,
-                    // confirmed via the persisted on-device console log
-                    // (the crash landed right after _prepareGuideForGame()
-                    // fired, regardless of delay). That made things worse
-                    // than the original bug: 100% of runs crashed instead
-                    // of only the ones where the player actually opened
-                    // Guide. Back to loading guide.html lazily, only on the
-                    // player's first actual Guide click (see openGuide()) —
-                    // still not a full fix, but no longer breaks every run.
-
-                    setTimeout(() => {
-                        whiteFlash.style.transition = 'opacity 1.5s ease-out';
-                        whiteFlash.style.opacity = '0';
-                    }, 100);
-                }, 3500);
             });
         })();
     </script>
