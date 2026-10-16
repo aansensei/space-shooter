@@ -373,7 +373,7 @@
         // still lands under full scale. Raising this number instead would
         // only clip it.
         'kanade-time-freeze': 1.2, 'kanade-frozen-ambience': 1.55,
-        'kanade-collapse-loop': 0.5,
+        'kanade-collapse-loop': 0.5, 'kanade-fermata': 0.8,
         'kanade-gate-open': 1.0, 'kanade-emerge': 0.9, 'kanade-think': 0.8,
         'kanade-summon': 1.1, 'goliath-descend': 1.0,
         'stack-overflow-cast': 1.2, 'timeline-distortion-banner': 1.0,
@@ -496,6 +496,7 @@
         ambientEl: null,     // ingame.mp3 space background (grouped under SFX)
         kanadeAmbienceEl: null, // looping bed under Kanade's frozen-time cutscene
         kanadeCollapseEl: null, // second bed layer: the world coming apart
+        kanadeMusicEl: null,    // Fermata, the cutscene's score, played once over both beds
         engineEl: null,      // engine loop
         laserEl: null,       // sustained laser loop
         chargingEl: null,    // charging hum loop (Space-hold overload laser, 3s)
@@ -602,14 +603,18 @@
     // beat the Distortion lands while the ambience holds steady.
     const KANADE_AMBIENCE_SRC = 'assets/audio/sfx/kanade-frozen-ambience.mp3';
     const KANADE_COLLAPSE_SRC = 'assets/audio/sfx/kanade-collapse-loop.mp3';
+    // Fermata is cut to the 12.4s sequence: the piano opening runs under the
+    // gate and her entrance, it falls silent for the summon and the cast, and
+    // its swell lands just after the Distortion, then fades with the gate.
+    const KANADE_MUSIC_SRC = 'assets/audio/sfx/kanade-fermata.mp3';
 
-    function _startBedLayer(refKey, src, key) {
+    function _startBedLayer(refKey, src, key, loop = true) {
         const el = state[refKey];
         if (!el || !el.paused) return;
         // Both beds open on a swell, so every showing should hear them from
         // the top. setSrc is what clears the saved loop position, and the
         // buffer is already cached by then, so this costs nothing.
-        el.setSrc(src);
+        el.setSrc(src, loop);
         el.volume = Math.min(1, sfxGain(key));
         try { el.play().catch(() => {}); } catch (_) {}
     }
@@ -618,6 +623,7 @@
         if (state.muted) return;
         _startBedLayer('kanadeAmbienceEl', KANADE_AMBIENCE_SRC, 'kanade-frozen-ambience');
         _startBedLayer('kanadeCollapseEl', KANADE_COLLAPSE_SRC, 'kanade-collapse-loop');
+        _startBedLayer('kanadeMusicEl', KANADE_MUSIC_SRC, 'kanade-fermata', false);
     }
 
     // Scales each layer against its own configured level, so the cutscene can
@@ -636,6 +642,7 @@
     function stopCutsceneAmbience() {
         stopLoop('kanadeAmbienceEl');
         stopLoop('kanadeCollapseEl');
+        stopLoop('kanadeMusicEl');
     }
 
     // The same sfx started again within this window would only stack on the
@@ -715,6 +722,7 @@
             ambient:  !!(state.ambientEl  && !state.ambientEl.paused),
             kanadeAmbience: !!(state.kanadeAmbienceEl && !state.kanadeAmbienceEl.paused),
             kanadeCollapse: !!(state.kanadeCollapseEl && !state.kanadeCollapseEl.paused),
+            kanadeMusic: !!(state.kanadeMusicEl && !state.kanadeMusicEl.paused),
             engine:   !!(state.engineEl   && !state.engineEl.paused),
             laser:    !!(state.laserEl    && !state.laserEl.paused),
             charging: !!(state.chargingEl && !state.chargingEl.paused),
@@ -736,7 +744,7 @@
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
             raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
+        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -747,6 +755,7 @@
         if (s.ambient  && state.ambientEl)  try { state.ambientEl.play().catch(() => {}); } catch (_) {}
         if (s.kanadeAmbience && state.kanadeAmbienceEl) try { state.kanadeAmbienceEl.play().catch(() => {}); } catch (_) {}
         if (s.kanadeCollapse && state.kanadeCollapseEl) try { state.kanadeCollapseEl.play().catch(() => {}); } catch (_) {}
+        if (s.kanadeMusic && state.kanadeMusicEl) try { state.kanadeMusicEl.play().catch(() => {}); } catch (_) {}
         if (s.engine   && state.engineEl)   try { state.engineEl.play().catch(() => {}); } catch (_) {}
         if (s.laser    && state.laserEl)    try { state.laserEl.play().catch(() => {}); } catch (_) {}
         if (s.charging && state.chargingEl) try { state.chargingEl.play().catch(() => {}); } catch (_) {}
@@ -868,6 +877,7 @@
         if (state.ambientEl) state.ambientEl.volume = Math.min(1, sfxGain('ambient'));
         if (state.kanadeAmbienceEl) state.kanadeAmbienceEl.volume = Math.min(1, sfxGain('kanade-frozen-ambience'));
         if (state.kanadeCollapseEl) state.kanadeCollapseEl.volume = Math.min(1, sfxGain('kanade-collapse-loop'));
+        if (state.kanadeMusicEl) state.kanadeMusicEl.volume = Math.min(1, sfxGain('kanade-fermata'));
         if (state.engineEl)  state.engineEl.volume  = Math.min(1, sfxGain('engine'));
         if (state.laserEl)   state.laserEl.volume   = Math.min(1, sfxGain('laser'));
         if (state.chargingEl) state.chargingEl.volume = Math.min(1, sfxGain('charging'));
@@ -1118,8 +1128,10 @@
         // bed inaudible under a cutscene that has silenced everything else.
         state.kanadeAmbienceEl = _makeBufferLoop(true);
         state.kanadeCollapseEl = _makeBufferLoop(true);
+        state.kanadeMusicEl = _makeBufferLoop(true);
         state.kanadeAmbienceEl.setSrc(KANADE_AMBIENCE_SRC);
         state.kanadeCollapseEl.setSrc(KANADE_COLLAPSE_SRC);
+        state.kanadeMusicEl.setSrc(KANADE_MUSIC_SRC, false);
         state.engineEl   = _makeBufferLoop();
         state.engineEl.setSrc('assets/audio/sfx/engine.mp3');
         state.laserEl    = _makeBufferLoop();

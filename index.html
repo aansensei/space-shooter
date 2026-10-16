@@ -3251,8 +3251,8 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
-    <script src="js/audio.js?v=20261015b"></script>
-    <script src="js/offline.js?v=20261013k"></script>
+    <script src="js/audio.js?v=20261016b"></script>
+    <script src="js/offline.js?v=20261016b"></script>
     <script src="js/background.js?v=20260923a"></script>
     <script src="js/config.js?v=20261014a"></script>
     <script src="js/timeline-distortion.js?v=20260926k"></script>
@@ -3298,7 +3298,7 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261015a"></script>
+    <script src="js/render/core.js?v=20261015e"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
     <script src="js/render/kanade-cutscene.js?v=20261016a"></script>
     <script src="js/render/fx.js?v=20261009a"></script>
@@ -3666,22 +3666,32 @@
             pointer-events: none;
         }
 
-        /* Arrow buttons */
+        /* Arrow buttons, shown in place of the joystick while Yog-Sothoth
+           charges; they wear the joystick's neon cyan so the swap reads as the
+           same control changing shape. */
         .mb-ar {
             width: 72px;
             height: 72px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(180deg, rgba(0, 229, 255, 0.10), rgba(0, 40, 55, 0.20));
+            border: 2px solid rgba(0, 229, 255, 0.45);
+            box-shadow: 0 0 14px rgba(0, 229, 255, 0.22), inset 0 0 12px rgba(0, 229, 255, 0.12);
         }
 
         .mb-ar svg {
             width: 30px;
             height: 30px;
             pointer-events: none;
+            stroke: rgba(160, 245, 255, 0.95);
         }
 
         .mb-ar.held {
-            background: rgba(255, 255, 255, 0.25);
+            background: radial-gradient(circle at 35% 30%, rgba(200, 255, 250, 0.55), rgba(0, 200, 220, 0.3) 60%, rgba(0, 100, 120, 0.25) 100%);
+            border-color: rgba(180, 255, 240, 0.9);
+            box-shadow: 0 0 18px rgba(94, 234, 212, 0.7);
+        }
+
+        .mb-ar.held svg {
+            stroke: #ffffff;
         }
 
         .mb-sk.held {
@@ -3720,8 +3730,6 @@
 
         .mb-ar:active {
             transform: scale(0.9);
-            background: rgba(255, 255, 255, 0.20);
-            border-color: rgba(255, 255, 255, 0.55);
             transition: transform 0.05s, background 0.05s;
         }
 
@@ -4001,12 +4009,12 @@
                     <div class="mb-joy-knob" id="mb-joy-knob"></div>
                 </div>
                 <div id="mb-yog-arrows" style="display:none;">
-                <button class="mb mb-ar" style="position:fixed;bottom:calc(46px + ${B});right:${R1};"
+                <button class="mb mb-ar" id="mb-left" style="position:fixed;bottom:calc(46px + ${B});right:${R1};"
                     ontouchstart="event.preventDefault();_mbDown('mb-left')" ontouchend="_mbUp('mb-left')" ontouchcancel="_mbUp('mb-left')"
                     onmousedown="_mbDown('mb-left')" onmouseup="_mbUp('mb-left')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
-                <button class="mb mb-ar" style="position:fixed;bottom:calc(46px + ${B});right:${R2};"
+                <button class="mb mb-ar" id="mb-right" style="position:fixed;bottom:calc(46px + ${B});right:${R2};"
                     ontouchstart="event.preventDefault();_mbDown('mb-right')" ontouchend="_mbUp('mb-right')" ontouchcancel="_mbUp('mb-right')"
                     onmousedown="_mbDown('mb-right')" onmouseup="_mbUp('mb-right')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -4033,11 +4041,14 @@
             // can't miss a frame the way a poll theoretically could, and it's
             // the only thing that ever writes these two elements' display,
             // so the two can never end up visible at once.
+            let _lastMoveSwap = null;
             function _syncMovementSwap() {
+                const wantArrows = typeof skillShiftActive !== 'undefined' && skillShiftActive;
+                if (wantArrows === _lastMoveSwap) return;
                 const joyEl = document.getElementById('mb-joy');
                 const arrowsEl = document.getElementById('mb-yog-arrows');
                 if (!joyEl || !arrowsEl) return;
-                const wantArrows = typeof skillShiftActive !== 'undefined' && skillShiftActive;
+                _lastMoveSwap = wantArrows;
                 joyEl.style.display = wantArrows ? 'none' : 'flex';
                 arrowsEl.style.display = wantArrows ? 'block' : 'none';
                 if (wantArrows && typeof _joyTouchId !== 'undefined' && _joyTouchId !== null) _joyReset();
@@ -4104,13 +4115,16 @@
                         if (typeof cancelSkillShift === 'function') cancelSkillShift();
                         _syncMovementSwap();
                     } else if (id === 'mb-ch') {
+                        // same as releasing Space: fire the charged shot unless
+                        // silenced, and stop the looping charge sound
                         if (charging && !laserActive) {
                             const dur = performance.now() - chargeStartTime;
-                            if (dur < overloadChargeTime) {
+                            if (dur < overloadChargeTime && !(typeof player !== 'undefined' && player._silenced)) {
                                 const m = 1 + ((Math.min(dur, maxChargeTime) / maxChargeTime) * (maxMultiplier - 1));
                                 fireChargedBullet(Math.min(m, maxMultiplier));
                             }
                             charging = false;
+                            if (window.AudioMgr) window.AudioMgr.stopCharging();
                         }
                     } else if (id === 'mb-left') { keys.left = false; }
                     else if (id === 'mb-right') { keys.right = false; }
@@ -4131,23 +4145,28 @@
             const JOY_MAX = 45;      // px the knob can travel before clamping (base is 120px wide)
             const JOY_DEADZONE = 8;  // px of travel before a direction engages - matches the .mb-joy-divider lines
 
+            // touchmove can fire faster than the display, so the knob is only
+            // written when it moves a whole pixel or crosses the dead zone
+            let _joyLastDx = 0;
             function _joyUpdate(clientX) {
-                const dx = Math.max(-JOY_MAX, Math.min(JOY_MAX, clientX - _joyCenterX));
-                const knob = document.getElementById('mb-joy-knob');
+                const dx = Math.round(Math.max(-JOY_MAX, Math.min(JOY_MAX, clientX - _joyCenterX)));
                 const engaged = Math.abs(dx) > JOY_DEADZONE;
-                if (knob) {
-                    knob.style.transform = `translateX(${dx}px)`;
-                    knob.classList.toggle('engaged', engaged);
-                }
                 keys.left = engaged && dx < 0;
                 keys.right = engaged && dx > 0;
+                if (dx === _joyLastDx) return;
+                _joyLastDx = dx;
+                const knob = _mbEl('mb-joy-knob');
+                if (knob) knob.style.transform = 'translateX(' + dx + 'px)';
+                _mbClass('mb-joy-knob', 'engaged', engaged);
             }
 
             function _joyReset() {
                 _joyTouchId = null;
                 keys.left = false; keys.right = false;
-                const knob = document.getElementById('mb-joy-knob');
-                if (knob) { knob.style.transform = 'translateX(0px)'; knob.classList.remove('engaged'); }
+                _joyLastDx = 0;
+                const knob = _mbEl('mb-joy-knob');
+                if (knob) knob.style.transform = 'translateX(0px)';
+                _mbClass('mb-joy-knob', 'engaged', false);
             }
 
             function _joyStart(clientX, touchId) {
@@ -4227,7 +4246,38 @@
             window._resetCooldownRingCache = function () {
                 _cdCtxCache = {};
                 _lastRingFrac = {};
+                _mbEls = {};
+                _mbWritten.clear();
+                _lastMoveSwap = null;
+                _joyLastDx = 0;
             };
+            // The buttons and the last class or text written to each. The loop
+            // runs every frame (120 times a second on ProMotion), and a classList
+            // or textContent write marks styles dirty even when nothing changes,
+            // so the DOM is only touched when a value actually changes.
+            let _mbEls = {};
+            const _mbWritten = new Map();
+            function _mbEl(id) {
+                let e = _mbEls[id];
+                if (e === undefined) e = _mbEls[id] = document.getElementById(id);
+                return e;
+            }
+            function _mbClass(id, name, on) {
+                const key = id + ' ' + name;
+                if (_mbWritten.get(key) === on) return;
+                const e = _mbEl(id);
+                if (!e) return;
+                e.classList.toggle(name, on);
+                _mbWritten.set(key, on);
+            }
+            function _mbText(id, text) {
+                const key = id + ' #text';
+                if (_mbWritten.get(key) === text) return;
+                const e = _mbEl(id);
+                if (!e) return;
+                e.textContent = text;
+                _mbWritten.set(key, text);
+            }
             function _cdCtx(cvId) {
                 let c = _cdCtxCache[cvId];
                 if (c === undefined) {
@@ -4373,13 +4423,13 @@
                                 yc.fillStyle = `rgba(255,204,0,${0.06 * pulse})`;
                                 yc.beginPath(); yc.arc(29, 29, 26, 0, Math.PI * 2); yc.fill();
                             }
-                            document.getElementById('mb-yog')?.classList.remove('cd');
-                            document.getElementById('mb-yog')?.classList.add('skill-active');
+                            _mbClass('mb-yog', 'cd', false);
+                            _mbClass('mb-yog', 'skill-active', true);
                         } else {
                             const yr = _ready(lastSkillShift, skillShiftCooldown);
                             _paintRing('mb-yog-cv', yr, '#ffcc00', _justUnsilenced, 'SH');
-                            document.getElementById('mb-yog')?.classList.toggle('cd', yr < 1);
-                            document.getElementById('mb-yog')?.classList.remove('skill-active');
+                            _mbClass('mb-yog', 'cd', yr < 1);
+                            _mbClass('mb-yog', 'skill-active', false);
                         }
                         // A - a banked Blood Arrow (Libra) stack bypasses this
                         // button's own cooldown entirely, same treatment as
@@ -4388,14 +4438,14 @@
                             _mbReadyGlow('mb-a-cv', [
                                 [0, 'rgba(255,255,255,1)'], [0.45, 'rgba(200,0,0,1)'], [1, 'rgba(80,0,0,1)'],
                             ], now);
-                            document.getElementById('mb-a')?.classList.remove('cd');
-                            document.getElementById('mb-a')?.classList.add('skill-active');
+                            _mbClass('mb-a', 'cd', false);
+                            _mbClass('mb-a', 'skill-active', true);
                             _lastReadyGlow.a = true;
                         } else {
                             const ar = _ready(lastSkillA, skillACooldown);
                             _paintRing('mb-a-cv', ar, '#8888ff', _justUnsilenced || _lastReadyGlow.a, 'A');
-                            document.getElementById('mb-a')?.classList.toggle('cd', ar < 1);
-                            document.getElementById('mb-a')?.classList.remove('skill-active');
+                            _mbClass('mb-a', 'cd', ar < 1);
+                            _mbClass('mb-a', 'skill-active', false);
                             _lastReadyGlow.a = false;
                         }
                         // S
@@ -4413,11 +4463,12 @@
                                 ], now);
                                 _lastReadyGlow.s = true;
                             } else {
-                                // Draw mana bar on canvas — animates every frame,
-                                // so always redrawn, via the cached context instead
-                                // of a fresh getElementById+getContext lookup each frame.
+                                // Mana bar on the cached canvas, redrawn only when
+                                // the energy it shows has changed.
                                 const _sc = _cdCtx('mb-s-cv');
-                                if (_sc) {
+                                const _manaKey = 'mana' + Math.round(_pEnergy * 2);
+                                if (_sc && (_lastRingFrac['mb-s-cv'] !== _manaKey || _justUnsilenced || _lastReadyGlow.s)) {
+                                    _lastRingFrac['mb-s-cv'] = _manaKey;
                                     _sc.clearRect(0, 0, 58, 58);
                                     // Background circle
                                     _sc.strokeStyle = 'rgba(0,255,136,0.25)';
@@ -4435,21 +4486,21 @@
                                 }
                                 _lastReadyGlow.s = false;
                             }
-                            document.getElementById('mb-s')?.classList.toggle('cd', false);
-                            document.getElementById('mb-s')?.classList.add('skill-active');
+                            _mbClass('mb-s', 'cd', false);
+                            _mbClass('mb-s', 'skill-active', true);
                         } else {
                             const _oCd = (typeof _spiritCooldownOverrideUntil !== 'undefined' && _spiritCooldownOverrideUntil > now)
                                 ? (_spiritCooldownOverrideUntil - now + skillSCooldown) : skillSCooldown;
                             const sr = _ready(lastSkillS, _oCd);
                             _paintRing('mb-s-cv', sr, '#00e5ff', _justUnsilenced || _lastReadyGlow.s, 'S');
-                            document.getElementById('mb-s')?.classList.toggle('cd', sr < 1);
-                            document.getElementById('mb-s')?.classList.remove('skill-active');
+                            _mbClass('mb-s', 'cd', sr < 1);
+                            _mbClass('mb-s', 'skill-active', false);
                             _lastReadyGlow.s = false;
                         }
                         // D
                         const dr = _ready(lastSkillD, skillDCooldown);
                         _paintRing('mb-d-cv', dr, '#bb88ff', _justUnsilenced, 'D');
-                        document.getElementById('mb-d')?.classList.toggle('cd', dr < 1);
+                        _mbClass('mb-d', 'cd', dr < 1);
                         // F - a banked Great Sage stolen gem bypasses this
                         // button's own cooldown entirely (same as Cancer's
                         // tidal surge below), so it gets its own gradient
@@ -4458,26 +4509,23 @@
                             _mbReadyGlow('mb-f-cv', [
                                 [0, 'rgba(255,215,60,1)'], [0.45, 'rgba(255,140,20,1)'], [0.8, 'rgba(255,60,20,1)'], [1, 'rgba(150,10,10,1)'],
                             ], now);
-                            document.getElementById('mb-f')?.classList.remove('cd');
-                            document.getElementById('mb-f')?.classList.add('skill-active');
+                            _mbClass('mb-f', 'cd', false);
+                            _mbClass('mb-f', 'skill-active', true);
                             _lastReadyGlow.f = true;
                         } else {
                             const fr = _ready(lastSkillF, skillFCooldown);
                             _paintRing('mb-f-cv', fr, '#ff6666', _justUnsilenced || _lastReadyGlow.f, 'F');
-                            document.getElementById('mb-f')?.classList.toggle('cd', fr < 1);
-                            document.getElementById('mb-f')?.classList.remove('skill-active');
+                            _mbClass('mb-f', 'cd', fr < 1);
+                            _mbClass('mb-f', 'skill-active', false);
                             _lastReadyGlow.f = false;
                         }
                         // G, charge based 0-100
                         const gc = typeof skillGCharge !== 'undefined' ? skillGCharge : 0;
                         const gr = (typeof skillGActive !== 'undefined' && skillGActive) ? 1 : gc / 100;
                         _paintRing('mb-g-cv', gr, '#00ffcc', _justUnsilenced);
-                        const gEl = document.getElementById('mb-g');
-                        if (gEl) {
-                            gEl.classList.toggle('cd', gr < 1);
-                            gEl.classList.toggle('skill-active', typeof skillGActive !== 'undefined' && skillGActive);
-                            gEl.querySelector('span').textContent = (gr < 1 && !skillGActive) ? Math.floor(gr * 100) + '%' : 'G';
-                        }
+                        _mbClass('mb-g', 'cd', gr < 1);
+                        _mbClass('mb-g', 'skill-active', typeof skillGActive !== 'undefined' && skillGActive);
+                        _mbText('mb-g-lbl', (gr < 1 && !skillGActive) ? Math.floor(gr * 100) + '%' : 'G');
                         // CHARGE / laser: a banked Riptide Surge, then a
                         // banked Divine Fate, takes priority over both, same
                         // as the keyboard Space path and _mbDown('mb-ch')
@@ -4488,15 +4536,15 @@
                             _mbReadyGlow('mb-ch-cv', [
                                 [0, 'rgba(220,255,250,1)'], [0.3, 'rgba(94,234,212,1)'], [0.6, 'rgba(0,200,225,1)'], [0.85, 'rgba(0,120,170,1)'], [1, 'rgba(3,50,80,1)'],
                             ], now);
-                            document.getElementById('mb-ch')?.classList.remove('cd');
-                            document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _mbClass('mb-ch', 'cd', false);
+                            _mbClass('mb-ch', 'skill-active', true);
                             _lastReadyGlow.ch = true;
                         } else if (window._leoFateReady) {
                             _mbReadyGlow('mb-ch-cv', [
                                 [0, '#fff2ce'], [0.3, '#ffd27a'], [0.6, '#ef9f27'], [0.85, '#bc5f17'], [1, '#471c13'],
                             ], now);
-                            document.getElementById('mb-ch')?.classList.remove('cd');
-                            document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _mbClass('mb-ch', 'cd', false);
+                            _mbClass('mb-ch', 'skill-active', true);
                             _lastReadyGlow.ch = true;
                         } else if (_charging) {
                             const cc = _cdCtx('mb-ch-cv');
@@ -4512,8 +4560,8 @@
                                 cc.lineWidth = 4;
                                 cc.beginPath(); cc.arc(29, 29, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * chFrac); cc.stroke();
                             }
-                            document.getElementById('mb-ch')?.classList.remove('cd');
-                            document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _mbClass('mb-ch', 'cd', false);
+                            _mbClass('mb-ch', 'skill-active', true);
                             _lastReadyGlow.ch = false;
                         } else if (_laserActive) {
                             const cc = _cdCtx('mb-ch-cv');
@@ -4524,15 +4572,15 @@
                                 cc.lineWidth = 3; cc.lineCap = 'round';
                                 cc.beginPath(); cc.arc(29, 29, 26, 0, Math.PI * 2); cc.stroke();
                             }
-                            document.getElementById('mb-ch')?.classList.remove('cd');
-                            document.getElementById('mb-ch')?.classList.add('skill-active');
+                            _mbClass('mb-ch', 'cd', false);
+                            _mbClass('mb-ch', 'skill-active', true);
                             _lastReadyGlow.ch = false;
                         } else {
                             const cr = _readyEnd(laserCooldownEnd, laserCooldownDuration);
                             _paintRing('mb-ch-cv', cr, '#00e5ff', _justUnsilenced || _lastReadyGlow.ch, 'SPC');
                             _lastReadyGlow.ch = false;
-                            document.getElementById('mb-ch')?.classList.toggle('cd', cr < 1);
-                            document.getElementById('mb-ch')?.classList.remove('skill-active');
+                            _mbClass('mb-ch', 'cd', cr < 1);
+                            _mbClass('mb-ch', 'skill-active', false);
                         }
 
                         _mbCdGlow('mb-yog-cv', 'SH', '#ffcc00', now);

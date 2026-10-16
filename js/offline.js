@@ -174,7 +174,7 @@
         'assets/audio/sfx/hover.mp3', 'assets/audio/sfx/hyperjump.mp3',
         'assets/audio/sfx/ingame.mp3',
         'assets/audio/sfx/kanade-collapse-loop.mp3',
-        'assets/audio/sfx/kanade-depart.mp3', 'assets/audio/sfx/kanade-emerge.mp3', 'assets/audio/sfx/kanade-frozen-ambience.mp3',
+        'assets/audio/sfx/kanade-depart.mp3', 'assets/audio/sfx/kanade-emerge.mp3', 'assets/audio/sfx/kanade-fermata.mp3', 'assets/audio/sfx/kanade-frozen-ambience.mp3',
         'assets/audio/sfx/kanade-gate-open.mp3', 'assets/audio/sfx/kanade-summon.mp3', 'assets/audio/sfx/kanade-think.mp3',
         'assets/audio/sfx/kanade-time-freeze.mp3', 'assets/audio/sfx/kanade-time-resume.mp3',
         'assets/audio/sfx/laser.mp3', 'assets/audio/sfx/laser-fire.mp3',
@@ -207,10 +207,12 @@
         // Prefer the live list from AudioMgr (single source of truth) —
         // falls back to a hand-kept mirror only if audio.js hasn't loaded
         // yet for some reason.
+        // Fermata is the Kanade cutscene's score in full; it plays only in the
+        // Guide's music archive, so it is not in the in-game rotation list.
         if (window.AudioMgr && typeof window.AudioMgr.list === 'function') {
-            return window.AudioMgr.list().map((t) => t.src);
+            return window.AudioMgr.list().map((t) => t.src).concat(['assets/audio/bgm/fermata.mp3']);
         }
-        return [];
+        return ['assets/audio/bgm/fermata.mp3'];
     }
 
     const PACKAGES = {

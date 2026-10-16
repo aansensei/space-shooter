@@ -2977,7 +2977,14 @@ function draw(deltaTime) {
     // sigil picker - the sim is frozen behind it while it plays.
     if (window._kanadeCutscene && typeof drawKanadeCutscene === 'function') drawKanadeCutscene();
     // Debug console's Kanade model viewer, over everything including the
-    // cutscene so it can be opened at any time.
+    // cutscene so it can be opened at any time. The Pixi canvas sits above
+    // this one, and its nebulae and particles would tint her through the
+    // viewer, so it is hidden while the viewer is open.
+    if (!!window._kanadeDebugModel !== !!window._kanadeDebugPixiHidden) {
+        window._kanadeDebugPixiHidden = !!window._kanadeDebugModel;
+        const _pxLayer = document.getElementById('pixiCanvas');
+        if (_pxLayer) _pxLayer.style.visibility = window._kanadeDebugPixiHidden ? 'hidden' : '';
+    }
     if (window._kanadeDebugModel && typeof window._kanadeDebugModelDraw === 'function') {
         window._kanadeDebugModelDraw();
     }
