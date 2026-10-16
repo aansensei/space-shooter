@@ -2109,6 +2109,7 @@
             if (window.AudioMgr) {
                 window.AudioMgr.unlockContext(); // Web Audio graph needs a user gesture to start
                 window.AudioMgr.playMenuBgm();
+                window.AudioMgr.startMenuSpace();
             }
         }, { once: true });
     </script>
@@ -2480,6 +2481,11 @@
                 // peak on the white flash
                 if (jt < 0) speed = 0.8;
                 else { const p = Math.min(1, jt / J_HANDOFF); speed = 0.8 + p * p * p * p * 200; }
+                // the space ambience swells with the jump, then fades out under the flash
+                if (jt >= 0 && window.AudioMgr) {
+                    const p = Math.min(1, jt / J_HANDOFF);
+                    window.AudioMgr.setMenuSpaceGain((1 + 0.5 * p) * Math.min(1, Math.max(0, (J_HANDOFF - jt) / 700)));
+                }
                 // the jump streaks from the first frame, as the old one did
                 const streaking = jt >= 0;
                 // the streak fill keeps 70 percent of the last frame, so additive layers
@@ -2914,6 +2920,7 @@
                 // Ambient (space) + engine now; in-game BGM waits for sigil confirm
                 if (window.AudioMgr) {
                     window.AudioMgr.stopBgm();
+                    window.AudioMgr.stopMenuSpace();
                     window.AudioMgr.startAmbient();
                     window.AudioMgr.startEngine();
                 }
@@ -3003,6 +3010,7 @@
                     window.AudioMgr.exitGoliathTransformDuck();
                     window.AudioMgr.exitTimeDomain();
                     window.AudioMgr.playMenuBgm();
+                    window.AudioMgr.startMenuSpace();
                 }
                 window._inGame = false;
             };
@@ -3251,8 +3259,8 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
-    <script src="js/audio.js?v=20261016b"></script>
-    <script src="js/offline.js?v=20261016b"></script>
+    <script src="js/audio.js?v=20261016c"></script>
+    <script src="js/offline.js?v=20261016c"></script>
     <script src="js/background.js?v=20260923a"></script>
     <script src="js/config.js?v=20261014a"></script>
     <script src="js/timeline-distortion.js?v=20260926k"></script>

@@ -374,6 +374,7 @@
         // only clip it.
         'kanade-time-freeze': 1.2, 'kanade-frozen-ambience': 1.55,
         'kanade-collapse-loop': 0.5, 'kanade-fermata': 0.8,
+        'menu-space': 0.5,
         'kanade-gate-open': 1.0, 'kanade-emerge': 0.9, 'kanade-think': 0.8,
         'kanade-summon': 1.1, 'goliath-descend': 1.0,
         'stack-overflow-cast': 1.2, 'timeline-distortion-banner': 1.0,
@@ -497,6 +498,8 @@
         kanadeAmbienceEl: null, // looping bed under Kanade's frozen-time cutscene
         kanadeCollapseEl: null, // second bed layer: the world coming apart
         kanadeMusicEl: null,    // Fermata, the cutscene's score, played once over both beds
+        menuSpaceEl: null,      // space ambience under the menu theme, on the sfx slider
+        menuSpaceIdx: -1,
         engineEl: null,      // engine loop
         laserEl: null,       // sustained laser loop
         chargingEl: null,    // charging hum loop (Space-hold overload laser, 3s)
@@ -639,6 +642,26 @@
         }
     }
 
+    // The start screen's space ambience: one of three takes of the same loop,
+    // picked at random once per launch of the game and kept for every return
+    // to the menu, so only one 30s take is ever decoded and held in memory.
+    // It sits under the menu theme and follows the sfx slider, while the
+    // theme follows the bgm slider.
+    const MENU_SPACE_SRC = ['assets/audio/sfx/menu-space-1.mp3', 'assets/audio/sfx/menu-space-2.mp3', 'assets/audio/sfx/menu-space-3.mp3'];
+    function startMenuSpace() {
+        const el = state.menuSpaceEl;
+        if (!el || !el.paused) return;
+        if (state.menuSpaceIdx < 0) state.menuSpaceIdx = Math.floor(Math.random() * MENU_SPACE_SRC.length);
+        el.setSrc(MENU_SPACE_SRC[state.menuSpaceIdx]);
+        el.volume = Math.min(1, sfxGain('menu-space'));
+        try { el.play().catch(() => {}); } catch (_) {}
+    }
+    // The hyperjump shapes it against its own configured level.
+    function setMenuSpaceGain(mul) {
+        if (state.menuSpaceEl) state.menuSpaceEl.volume = Math.min(1, sfxGain('menu-space') * Math.max(0, mul));
+    }
+    function stopMenuSpace() { stopLoop('menuSpaceEl'); }
+
     function stopCutsceneAmbience() {
         stopLoop('kanadeAmbienceEl');
         stopLoop('kanadeCollapseEl');
@@ -723,6 +746,7 @@
             kanadeAmbience: !!(state.kanadeAmbienceEl && !state.kanadeAmbienceEl.paused),
             kanadeCollapse: !!(state.kanadeCollapseEl && !state.kanadeCollapseEl.paused),
             kanadeMusic: !!(state.kanadeMusicEl && !state.kanadeMusicEl.paused),
+            menuSpace: !!(state.menuSpaceEl && !state.menuSpaceEl.paused),
             engine:   !!(state.engineEl   && !state.engineEl.paused),
             laser:    !!(state.laserEl    && !state.laserEl.paused),
             charging: !!(state.chargingEl && !state.chargingEl.paused),
@@ -744,7 +768,7 @@
             urielSwordHover: !!(state.urielSwordHoverEl && !state.urielSwordHoverEl.paused),
             raphaelIdle: !!(state.raphaelIdleEl && !state.raphaelIdleEl.paused),
         };
-        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
+        [state.bgmEl, state.ambientEl, state.kanadeAmbienceEl, state.kanadeCollapseEl, state.kanadeMusicEl, state.menuSpaceEl, state.engineEl, state.laserEl, state.chargingEl, state.skillGLoopEl, state.skillDChargeEl, state.skillFChargeEl, state.skillFFireEl, state.blackholeEl, state.maouHakiEl, state.lowHpEl, state.nullSlashWindupEl, state.crawlEl, state.photokrystosIdleEl, state.goliathIdleEl, state.goliathVerdictChargeEl, state.cancerWhirlpoolEl, state.leviathanIdleEl, state.urielIdleEl, state.urielSwordHoverEl, state.raphaelIdleEl]
             .forEach(el => { if (el) { try { el.pause(); } catch (_) {} } });
     }
     function resumeAll() {
@@ -756,6 +780,7 @@
         if (s.kanadeAmbience && state.kanadeAmbienceEl) try { state.kanadeAmbienceEl.play().catch(() => {}); } catch (_) {}
         if (s.kanadeCollapse && state.kanadeCollapseEl) try { state.kanadeCollapseEl.play().catch(() => {}); } catch (_) {}
         if (s.kanadeMusic && state.kanadeMusicEl) try { state.kanadeMusicEl.play().catch(() => {}); } catch (_) {}
+        if (s.menuSpace && state.menuSpaceEl) try { state.menuSpaceEl.play().catch(() => {}); } catch (_) {}
         if (s.engine   && state.engineEl)   try { state.engineEl.play().catch(() => {}); } catch (_) {}
         if (s.laser    && state.laserEl)    try { state.laserEl.play().catch(() => {}); } catch (_) {}
         if (s.charging && state.chargingEl) try { state.chargingEl.play().catch(() => {}); } catch (_) {}
@@ -878,6 +903,7 @@
         if (state.kanadeAmbienceEl) state.kanadeAmbienceEl.volume = Math.min(1, sfxGain('kanade-frozen-ambience'));
         if (state.kanadeCollapseEl) state.kanadeCollapseEl.volume = Math.min(1, sfxGain('kanade-collapse-loop'));
         if (state.kanadeMusicEl) state.kanadeMusicEl.volume = Math.min(1, sfxGain('kanade-fermata'));
+        if (state.menuSpaceEl) state.menuSpaceEl.volume = Math.min(1, sfxGain('menu-space'));
         if (state.engineEl)  state.engineEl.volume  = Math.min(1, sfxGain('engine'));
         if (state.laserEl)   state.laserEl.volume   = Math.min(1, sfxGain('laser'));
         if (state.chargingEl) state.chargingEl.volume = Math.min(1, sfxGain('charging'));
@@ -1132,6 +1158,7 @@
         state.kanadeAmbienceEl.setSrc(KANADE_AMBIENCE_SRC);
         state.kanadeCollapseEl.setSrc(KANADE_COLLAPSE_SRC);
         state.kanadeMusicEl.setSrc(KANADE_MUSIC_SRC, false);
+        state.menuSpaceEl = _makeBufferLoop();
         state.engineEl   = _makeBufferLoop();
         state.engineEl.setSrc('assets/audio/sfx/engine.mp3');
         state.laserEl    = _makeBufferLoop();
@@ -1193,6 +1220,7 @@
         pauseBgm, resumeBgm,
         pauseAll, resumeAll, setTimeFrozen,
         playCutsceneSfx, startCutsceneAmbience, setCutsceneBedGains, stopCutsceneAmbience,
+        startMenuSpace, setMenuSpaceGain, stopMenuSpace,
         list: () => BGM_LIST.slice(),
         currentBgmId: () => state.currentBgmId,
         getSelectedBgmIds, isBgmSelected, toggleBgmSelection,
