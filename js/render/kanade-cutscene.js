@@ -348,10 +348,17 @@
     ]);
   }
   // Uneven tapered islands describe a ring of reflected light on the crown.
+  // The shine ring across the crown, the band of reflected light anime hair
+  // carries. It breaks where the locks part, and each piece sits on a softer
+  // band of its own so its lower edge melts into the hair instead of ending
+  // in a hard line.
   function hairCrownRing() {
-    bodyBaseBezierShape([78.7, 22.4], [[80.7, 18.6, 85.4, 17.1, 88.7, 17.3], [85.6, 18.1, 81.9, 21.8, 78.7, 22.4]], PAL.hairSoftLight);
-    bodyBaseBezierShape([89.6, 17.4], [[92.1, 16.4, 97.2, 17.6, 99.2, 18.9], [96.4, 18.6, 92.2, 19.7, 89.6, 17.4]], PAL.hairHi);
-    bodyBaseBezierShape([100.4, 19.1], [[102.9, 19.9, 105.4, 22.1, 106.1, 24.1], [103.9, 22.8, 102.2, 22.2, 100.4, 19.1]], PAL.hairPearlH);
+    bodyBaseBezierShape([78.2, 23.6], [[80.2, 18.6, 84.6, 16.6, 88.6, 16.5], [88.7, 17.9, 88.6, 19.1, 88.4, 20.0], [84.8, 20.2, 81.2, 21.9, 78.2, 23.6]], PAL.hairSoftLight);
+    bodyBaseBezierShape([89.4, 16.4], [[92.6, 15.8, 96.2, 16.0, 99.1, 17.0], [98.9, 18.3, 98.6, 19.4, 98.2, 20.2], [95.4, 19.4, 92.4, 19.3, 89.3, 19.9], [89.2, 18.8, 89.3, 17.5, 89.4, 16.4]], PAL.hairSoftLight);
+    bodyBaseBezierShape([99.9, 17.3], [[102.6, 18.3, 105.0, 20.6, 106.3, 23.7], [104.4, 22.4, 102.1, 21.3, 99.3, 20.6], [99.6, 19.6, 99.8, 18.4, 99.9, 17.3]], PAL.hairSoftLight);
+    bodyBaseBezierShape([79.4, 22.2], [[81.2, 18.9, 84.8, 17.4, 88.5, 17.3], [88.5, 18.0, 88.4, 18.6, 88.3, 19.0], [84.9, 19.2, 81.8, 20.5, 79.4, 22.2]], PAL.hairHi);
+    bodyBaseBezierShape([89.5, 17.2], [[92.6, 16.7, 96.0, 16.9, 98.8, 17.7], [98.7, 18.4, 98.5, 18.9, 98.3, 19.3], [95.4, 18.5, 92.4, 18.4, 89.4, 18.9], [89.4, 18.3, 89.4, 17.7, 89.5, 17.2]], PAL.hairHi);
+    bodyBaseBezierShape([100.2, 18.0], [[102.6, 19.0, 104.6, 20.9, 105.5, 22.8], [103.8, 21.7, 101.8, 20.7, 99.7, 20.0], [99.9, 19.3, 100.1, 18.6, 100.2, 18.0]], PAL.hairHi);
   }
   // A closed outline laid out as points, run through a Catmull-Rom curve and
   // returned as the [start, segments] pair bezierShape takes. Cloth and flesh
