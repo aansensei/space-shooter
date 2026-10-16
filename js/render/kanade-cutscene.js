@@ -144,6 +144,7 @@
   const PAL = {
     bodyRim: '#d6c3f9',
     bodyCCreamShade: '#dcd5e2', bodyCCreamFold: '#ddd7e2', bodyCCreamLight: '#fff7ed', bodyCWhiteContact: '#bbb3ca', bodyCWhiteDeep: '#aaa3bd', bodyCNavyFold: '#29264f', bodyCNavyLight: '#575181', bodyCNavyContact: '#1d1a39', bodyCNavySatin: '#484373',
+    hairLavender: '#b8bfd8', hairBlueShade: '#8f9abb', hairSoftLight: '#d8ddeb',
     hairSilverH: '#d0cee5',
     hairPearlH: '#f2f0fa',
     hairShadeH: '#b7b3d5',
@@ -291,7 +292,6 @@
 
   function hairMassH(outline, c, planes) {
     bodyBaseHairMassH(outline, c, planes);
-    if (c === PAL.hairSilverH) bodyRimPath(outline, 0.88, 0.42);
   }
 
   function sparkle(x, y, size, c) {
@@ -316,47 +316,42 @@
   };
   // All surface planes share the exact silhouette of the receiving lock.
   function bodyBaseHairMassH(outline, c, planes) {
-    bezierShape(outline[0], outline[1], c);
+    bodyBaseBezierShape(outline[0], outline[1], c);
     pctx.save();
     tracePath(outline);
     pctx.clip();
-    for (const plane of planes) bezierShape(plane[0], plane[1], plane[2]);
+    for (const plane of planes) bodyBaseBezierShape(plane[0], plane[1], plane[2]);
     pctx.restore();
   }
-  // The highlight swells once along the lock and tapers at both ends.
+  // Broad opaque planes follow the lock and taper with its volume.
   function hairLockShaded(x0, y0, w, x1, y1, bend, c) {
-    const tone = HAIR_TONES[c], h = y1 - y0;
+    const h = y1 - y0, tone = HAIR_TONES[c];
     const outline = [[x0 - w / 2, y0], [
       [x0 - w / 2 + bend, y0 + h * 0.45, x1 - w * 0.3 + bend * 0.5, y1 - h * 0.22, x1, y1],
       [x1 + w * 0.3 + bend * 0.5, y1 - h * 0.25, x0 + w / 2 + bend, y0 + h * 0.4, x0 + w / 2, y0]
     ]];
-    const at = (u, side) => {
+    const at = u => {
       const v = 1 - u;
-      const x = v * v * v * x0 + 3 * v * v * u * (x0 + bend) + 3 * v * u * u * (x1 + bend * 0.5) + u * u * u * x1;
-      const y = v * v * v * y0 + 3 * v * v * u * (y0 + h * 0.43) + 3 * v * u * u * (y1 - h * 0.23) + u * u * u * y1;
-      return [x + side * w * 0.5 * (1 - u * 0.85), y];
+      return [v * v * v * x0 + 3 * v * v * u * (x0 + bend) + 3 * v * u * u * (x1 + bend * 0.5) + u * u * u * x1,
+        v * v * v * y0 + 3 * v * v * u * (y0 + h * 0.43) + 3 * v * u * u * (y1 - h * 0.23) + u * u * u * y1];
     };
-    hairLock(x0, y0, w, x1, y1, bend, c);
-    pctx.save();
-    tracePath(outline); pctx.clip();
-    hairLock(x0 + w * 0.28, y0, w * 0.41, x1 + 0.10, y1 - 0.6, bend,
-      c === PAL.hairLight ? PAL.hairShadeH : tone.shade);
-    const hs = 0.10 + ((x0 * 13) % 7) * 0.026;
-    const a = at(hs, -0.37), b = at(hs + 0.17, -0.37), d = at(hs + 0.43, -0.25);
-    const width = Math.min(1.35, w * 0.16);
-    bezierShape(a, [
-      [b[0] - width, b[1], d[0] - width * 0.2, d[1] - h * 0.07, d[0], d[1]],
-      [d[0] + width * 0.2, d[1] - h * 0.04, b[0] + width, b[1], a[0], a[1]]
-    ], c === PAL.hairLight ? PAL.hairPearlH : c === PAL.hairMid ? PAL.hairSilverH : tone.lit);
-    if (c === PAL.hairMid || c === PAL.hairShadow) {
-      const a = at(0.37, 0.58), b = at(0.55, 0.65), d = at(0.86, 0.73);
-      const width = Math.min(0.65, w * 0.08);
-      bezierShape(a, [
-        [b[0] - width, b[1], d[0] - width * 0.22, d[1], d[0], d[1]],
-        [d[0] + width * 0.22, d[1], b[0] + width, b[1], a[0], a[1]]
-      ], PAL.hairContactH);
-    }
-    pctx.restore();
+    const a = at(0.2), b = at(0.41), d = at(0.72), width = w * 0.33;
+    hairMassH(outline, c, [
+      [[x0 - w * 0.46, y0], [
+        [x0 - w * 0.4 + bend, y0 + h * 0.4, x1 - w * 0.16 + bend * 0.5, y1 - h * 0.2, x1, y1],
+        [x1 - w * 0.04, y1 - h * 0.25, x0 - w * 0.12 + bend, y0 + h * 0.4, x0 - w * 0.18, y0]
+      ], c === PAL.hairLight ? PAL.hairSoftLight : PAL.hairLavender],
+      [a, [
+        [b[0] - width * 0.8, b[1], d[0] - width * 0.25, d[1] - h * 0.12, d[0], d[1]],
+        [d[0] + width * 0.5, d[1] - h * 0.18, b[0] + width, b[1], a[0], a[1]]
+      ], c === PAL.hairLight ? PAL.hairPearlH : tone ? tone.lit : PAL.hairSoftLight]
+    ]);
+  }
+  // Uneven tapered islands describe a ring of reflected light on the crown.
+  function hairCrownRing() {
+    bodyBaseBezierShape([78.7, 22.4], [[80.7, 18.6, 85.4, 17.1, 88.7, 17.3], [85.6, 18.1, 81.9, 21.8, 78.7, 22.4]], PAL.hairSoftLight);
+    bodyBaseBezierShape([89.6, 17.4], [[92.1, 16.4, 97.2, 17.6, 99.2, 18.9], [96.4, 18.6, 92.2, 19.7, 89.6, 17.4]], PAL.hairHi);
+    bodyBaseBezierShape([100.4, 19.1], [[102.9, 19.9, 105.4, 22.1, 106.1, 24.1], [103.9, 22.8, 102.2, 22.2, 100.4, 19.1]], PAL.hairPearlH);
   }
   // A closed outline laid out as points, run through a Catmull-Rom curve and
   // returned as the [start, segments] pair bezierShape takes. Cloth and flesh
@@ -1106,29 +1101,29 @@
     pctx.translate(lean, bob);
 
     bezierShape([79, 17], [
-      [67, 21, 61, 39, 61 + hTrail * 0.08, 68],
-      [61 + hTrail * 0.2, 98, 60 + hTrail * 0.5, 128 + hDrop * 8, 54 + hTrail * 0.7, 141 + hDrop * 7],
+      [72, 21, 66, 39, 66 + hTrail * 0.08, 68],
+      [65 + hTrail * 0.2, 98, 62 + hTrail * 0.5, 128 + hDrop * 8, 57 + hTrail * 0.7, 145 + hDrop * 7],
       [59 + hTrail * 0.65, 147 + hDrop * 5, 66 + hTrail * 0.45, 145 + hDrop * 5, 71 + hTrail * 0.35, 138 + hDrop * 7],
       [73 + hTrail * 0.25, 149 + hDrop * 6, 80 + hTrail * 0.15, 154 + hDrop * 4, 84, 139 + hDrop * 6],
       [88, 151 + hDrop * 5, 94, 153 + hDrop * 4, 98, 137 + hDrop * 6],
       [104 + hTrail * 0.15, 151 + hDrop * 5, 112 + hTrail * 0.35, 151 + hDrop * 5, 116 + hTrail * 0.6, 139 + hDrop * 7],
-      [122 + hTrail * 0.7, 124 + hDrop * 8, 121 + hTrail * 0.2, 78, 119, 57],
-      [116, 31, 108, 18, 99, 16],
+      [120 + hTrail * 0.7, 124 + hDrop * 8, 117 + hTrail * 0.2, 78, 114, 57],
+      [111, 31, 108, 18, 99, 16],
       [92, 12, 85, 13, 79, 17]
-    ], PAL.hairMid);
+    ], PAL.hairLavender);
 
     bezierShape([78, 24], [
       [68, 35, 65, 66, 66 + hTrail * 0.15, 96],
       [65 + hTrail * 0.35, 119, 61 + hTrail * 0.6, 138 + hDrop * 7, 55 + hTrail * 0.7, 141 + hDrop * 7],
       [61 + hTrail * 0.55, 144 + hDrop * 5, 68 + hTrail * 0.35, 139 + hDrop * 6, 72, 121],
       [74, 87, 75, 48, 78, 24]
-    ], PAL.hairShadow);
+    ], PAL.hairBlueShade);
     bezierShape([103, 20], [
       [112, 31, 116, 58, 115 + hTrail * 0.12, 88],
       [116 + hTrail * 0.35, 116, 116 + hTrail * 0.62, 135 + hDrop * 7, 112 + hTrail * 0.7, 148 + hDrop * 6],
       [107 + hTrail * 0.5, 150 + hDrop * 5, 102 + hTrail * 0.3, 140 + hDrop * 6, 100, 123],
       [101, 87, 100, 43, 103, 20]
-    ], PAL.hairDeep);
+    ], PAL.hairLavender);
     // Dark outline along the outer edge of each side-hair strand only -
     // this is exactly where hair drapes right next to the sleeve fabric
     // and the two were blending into one shape with no separating line.
@@ -1156,63 +1151,9 @@
       ], PAL.magicHi, STROKE.fine);
       pctx.restore();
     }
-    hairMassH([[84, 20], [
-      [78, 38, 77, 72, 78 + hTrail * 0.1, 101],
-      [78 + hTrail * 0.35, 121, 76 + hTrail * 0.52, 136 + hDrop * 6, 72 + hTrail * 0.6, 143 + hDrop * 6],
-      [78 + hTrail * 0.4, 141 + hDrop * 4, 83 + hTrail * 0.2, 124 + hDrop * 5, 84, 101],
-      [86, 70, 87, 39, 84, 20]
-    ]], PAL.hairSilverH, [
-      [[84.6, 44], [
-        [82.8, 61, 81.1, 90, 80.6 + hTrail * 0.18, 108],
-        [79.8 + hTrail * 0.30, 123, 76.1 + hTrail * 0.50, 138 + hDrop * 5, 72 + hTrail * 0.60, 143 + hDrop * 6],
-        [80.0 + hTrail * 0.40, 138 + hDrop * 4, 84.0 + hTrail * 0.20, 109, 84.6, 44]
-      ], PAL.hairShadeH],
-      [[82.35, 30], [
-        [77.3, 51, 78.0, 91, 76.7 + hTrail * 0.43, 131 + hDrop * 5],
-        [81.4 + hTrail * 0.24, 111, 83.0, 49, 82.35, 30]
-      ], PAL.hairPearlH]
-    ]);
-    hairMassH([[94, 18], [
-      [99, 37, 101, 67, 101 + hTrail * 0.08, 96],
-      [102 + hTrail * 0.3, 119, 105 + hTrail * 0.5, 134 + hDrop * 6, 109 + hTrail * 0.58, 143 + hDrop * 6],
-      [103 + hTrail * 0.38, 140 + hDrop * 4, 97 + hTrail * 0.18, 124 + hDrop * 5, 96, 101],
-      [93, 67, 91, 35, 94, 18]
-    ]], PAL.hairLight, [
-      [[94.0, 39], [
-        [98.0, 60, 100.0, 93, 100.6 + hTrail * 0.22, 116],
-        [102.5 + hTrail * 0.43, 135 + hDrop * 5, 105.0 + hTrail * 0.51, 142 + hDrop * 5, 109 + hTrail * 0.58, 143 + hDrop * 6],
-        [98.0 + hTrail * 0.2, 133, 94.0, 65, 94.0, 39]
-      ], PAL.hairShadeH],
-      [[97.2, 31], [
-        [101.7, 46, 105.5 + hTrail * 0.14, 109, 108.0 + hTrail * 0.52, 136 + hDrop * 5],
-        [102.0 + hTrail * 0.22, 115, 98.2, 49, 97.2, 31]
-      ], PAL.hairPearlH]
-    ]);
-    bezierLine([70, 35], [[68, 64, 70 + hTrail * 0.2, 101, 64 + hTrail * 0.55, 136 + hDrop * 6]], PAL.hairDeep, STROKE.band);
-
-    bezierLine([108, 28], [[111, 56, 109 + hTrail * 0.15, 92, 113 + hTrail * 0.48, 132 + hDrop * 5]], PAL.hairShadow, STROKE.band);
-
-    // Second pass over the back hair. It is the largest single area on the
-    // sprite and was three flat fills, so it carried none of the detail the
-    // rest of her has. Locks are built from alternating tones at uneven
-    // spacing: evenly spaced lines of one colour read as corduroy.
-    bezierLine([65, 40], [[62, 66, 61 + hTrail * 0.3, 96, 58 + hTrail * 0.6, 126 + hDrop * 6]], PAL.hairDeep, STROKE.edge);
-    bezierLine([70, 30], [[68, 58, 67 + hTrail * 0.25, 90, 65 + hTrail * 0.55, 124 + hDrop * 6]], PAL.hairLight, STROKE.fine);
-    bezierLine([75, 46], [[73, 72, 72 + hTrail * 0.2, 100, 70 + hTrail * 0.45, 130 + hDrop * 5]], PAL.hairShadow, STROKE.seam);
-    bezierLine([113, 40], [[116, 66, 117 + hTrail * 0.3, 96, 120 + hTrail * 0.6, 126 + hDrop * 6]], PAL.hairDeep, STROKE.edge);
-    bezierLine([108, 34], [[110, 60, 111 + hTrail * 0.25, 92, 113 + hTrail * 0.55, 124 + hDrop * 6]], PAL.hairLight, STROKE.fine);
-    bezierLine([103, 48], [[105, 74, 106 + hTrail * 0.2, 102, 108 + hTrail * 0.45, 130 + hDrop * 5]], PAL.hairShadow, STROKE.seam);
-
-    // Sheen band across the back hair, the anime convention for a lit head of
-    // hair, kept low and broken so it does not look like a painted stripe.
-    bezierLine([66, 52], [[72, 47, 79, 45, 84, 47]], PAL.hairHi, STROKE.band);
-    bezierLine([100, 47], [[106, 45, 113, 47, 118, 53]], PAL.hairHi, STROKE.band);
-
-    // Tips: a few strands breaking away from the mass at the bottom so the
-    // hair does not end on one clean edge.
-    bezierLine([60 + hTrail * 0.6, 120], [[57 + hTrail * 0.7, 132, 56 + hTrail * 0.8, 142, 58 + hTrail * 0.9, 143 + hDrop * 3]], PAL.hairMid, STROKE.seam);
-    bezierLine([118 + hTrail * 0.6, 122], [[121 + hTrail * 0.7, 134, 122 + hTrail * 0.8, 144, 120 + hTrail * 0.9, 147 + hDrop * 4]], PAL.hairMid, STROKE.seam);
-    bezierLine([88, 130], [[87, 140, 87, 148, 88, 148 + hDrop * 4]], PAL.hairShadow, STROKE.fine);
+    // Long underlayers remain behind the shoulders and gown.
+    hairLockShaded(82, 20, 14, 68 + hTrail * 0.6, 148 + hDrop * 5, -5, PAL.hairSoftLight);
+    hairLockShaded(102, 20, 14, 112 + hTrail * 0.6, 149 + hDrop * 5, 3, PAL.hairLight);
 
     // Robe panels trailing behind her. Curves rather than polygons: as
     // polygons their corners came out under the hem as hard points, reading
@@ -1738,13 +1679,23 @@
 
     // Side hair: the body's sway plus its own swing, each side on its own lag.
     const sideL = hm.long(0.6) * 0.7, sideR = hm.long(1.0) * 0.7;
-    hairMassH([[82, 18], [[75, 23, 75, 46, 75 + sway * 0.4 + sideL, 68], [80, 50, 83, 28, 84, 18]]], PAL.hairLight, [
-      [[79.0, 25], [[75.8, 38, 76.0, 52, 76.1 + sway * 0.4 + sideL, 66], [79.2 + sway * 0.2 + sideL * 0.45, 57, 79.7, 38, 79.0, 25]], PAL.hairPearlH],
-      [[80.0, 49.0], [[77.9, 54, 76.5 + sway * 0.3 + sideL * 0.75, 61, 75 + sway * 0.4 + sideL, 68], [79.7 + sideL * 0.3, 63, 81.1, 54, 80.0, 49.0]], PAL.hairShadeH]
+    hairMassH([[82, 18], [
+      [76, 27, 76, 47, 76.8 + sideL * 0.2, 63],
+      [77 + sideL * 0.4, 80, 76 + sideL * 0.7, 95, 73.5 + sway * 0.4 + sideL, 104],
+      [82 + sideL * 0.6, 95, 83 + sideL * 0.2, 66, 82, 47],
+      [81.2, 33, 83, 24, 84, 18]
+    ]], PAL.hairSoftLight, [
+      [[79.2, 28], [[76.4, 45, 76.8 + sideL * 0.3, 72, 75.4 + sideL * 0.85, 98], [79.1 + sideL * 0.65, 90, 79.4 + sideL * 0.2, 48, 79.2, 28]], PAL.hairLavender],
+      [[80.1, 35], [[77.8, 52, 78.2 + sideL * 0.4, 74, 78.1 + sideL * 0.55, 87], [82.4 + sideL * 0.3, 69, 82, 46, 80.1, 35]], PAL.hairPearlH]
     ]);
-    hairMassH([[102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68], [104, 50, 101, 28, 100, 18]]], PAL.hairMid, [
-      [[105.7, 25], [[108.4, 38, 108.6, 53, 108.7 + sway * 0.4 + sideR, 65], [106.2 + sideR * 0.4, 58, 104.8, 38, 105.7, 25]], PAL.hairSilverH],
-      [[104.0, 49.0], [[106.1, 54, 107.5 + sway * 0.3 + sideR * 0.75, 61, 109 + sway * 0.4 + sideR, 68], [104.6 + sideR * 0.3, 63, 102.8, 54, 104.0, 49.0]], PAL.hairShadow]
+    hairMassH([[102, 18], [
+      [108, 27, 108, 47, 107.2 + sideR * 0.2, 63],
+      [107 + sideR * 0.4, 80, 108 + sideR * 0.7, 94, 110.5 + sway * 0.4 + sideR, 102],
+      [102 + sideR * 0.6, 94, 101 + sideR * 0.2, 66, 102, 47],
+      [102.8, 33, 101, 24, 100, 18]
+    ]], PAL.hairLight, [
+      [[103.5, 30], [[100.9, 48, 101.8 + sideR * 0.2, 81, 110.5 + sideR, 102], [105.3 + sideR * 0.7, 84, 104.7 + sideR * 0.2, 45, 103.5, 30]], PAL.hairLavender],
+      [[105.5, 32], [[108.4, 49, 108.6 + sideR * 0.4, 74, 107.1 + sideR * 0.6, 87], [104.2 + sideR * 0.3, 67, 104, 45, 105.5, 32]], PAL.hairPearlH]
     ]);
     const sideGlow = Math.round((opts.magicLight || 0) * 10) / 10;
     if (sideGlow > 0.01) {
@@ -1754,14 +1705,6 @@
       bezierLine([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68]], PAL.magicHi, STROKE.fine);
       pctx.restore();
     }
-    // Locks inside the side hair. Without them each side is one flat slab
-    // with a straight outer edge, which is most of what made the hair read as
-    // a pair of curtains.
-    bezierLine([79, 26], [[76.5, 40, 76, 56, 76.5 + sway * 0.3 + sideL, 70]], PAL.hairShadow, STROKE.seam);
-
-    bezierLine([105, 26], [[107.5, 40, 108, 56, 107.5 + sway * 0.3 + sideR, 70]], PAL.hairDeep, STROKE.seam);
-
-
     // Crown drawn first in a light tone so it blends with the bangs sitting
     // on top of it, instead of reading as a separate dark "cap". Its inner
     // edge sits low enough that the dome has real thickness: pulled up near
@@ -1799,6 +1742,19 @@
       [82.9, 33.8, 82.2, 31.6, 81.0, 30.2],
       [79.4, 29.4, 77, 28.6, 75, 26]
     ]];
+    // One more lock of the fringe, longer than the rest, falling from the
+    // parting between her eyes, the first thing that makes her read as
+    // Kanade. It grows out of the fringe mass, leans a little and ends in a
+    // round tip level with her lower lashes, drawn with the same shadow and
+    // single strand line as the other locks so it belongs to them. It swings
+    // a beat behind the head.
+    const midSwing = sway * 0.1 + hm.long(0.3) * 0.15;
+    const midLock = [[90.1, 27.2], [
+      [90.3, 32.0, 91.0, 36.4, 92.15 + midSwing, 39.9],
+      [92.55 + midSwing, 40.3, 92.95 + midSwing * 0.7, 39.9, 93.05 + midSwing * 0.6, 39.3],
+      [93.5, 35.4, 93.7, 31.2, 93.4, 27.0],
+      [92.3, 26.4, 91.1, 26.5, 90.1, 27.2]
+    ]];
     // The shadow it throws on the forehead: the same outline moved away from
     // the light, kept to the face, so it runs along every lock and notch
     // at the same width. Separate strokes under each notch outlined the
@@ -1810,37 +1766,32 @@
     tracePath(fringe);
     pctx.fillStyle = PAL.skinShadow;
     pctx.fill();
+    // the middle lock throws a narrower shadow, since a long lock with the
+    // full width of it reads as a crack; it is laid before the fringe so the
+    // fringe covers its root
+    pctx.translate(LIGHT.x * 0.4, LIGHT.y * 0.4);
+    tracePath(midLock);
+    pctx.fill();
     pctx.restore();
     tracePath(fringe);
     pctx.fillStyle = PAL.hairLight;
     pctx.fill();
+    tracePath(midLock);
+    pctx.fillStyle = PAL.hairLight;
+    pctx.fill();
+    bezierLine([92.1, 29.0], [[92.2, 32.4, 92.4, 35.4, 92.6 + midSwing * 0.8, 37.6]], PAL.hairMid, STROKE.hairline);
 
     // Two sidelocks dropping past the jaw, so the fringe does not end in a
     // hard line at the temples.
     bezierShape([78, 18], [[76, 30, 76, 42, 77, 52], [80, 44, 81, 32, 81, 22]], PAL.hairMid);
     bezierShape([106, 18], [[108, 30, 108, 42, 107, 52], [104, 44, 103, 32, 103, 22]], PAL.hairMid);
 
-    // Three strand lines, each running down the axis of its own lock and
-    // stopping short of the tip, so the mass does not read as one flat card.
-    // Kept in the mid tone: in the shadow tone they cut across the fringe
-    // like scratches. More of them, straight and evenly spaced, made a
-    // barcode.
-    bezierLine([85.2, 20.0], [[85.3, 24.0, 85.0, 28.2, 84.2, 31.9]], PAL.hairMid, STROKE.hairline);
-    bezierLine([93.4, 17.5], [[93.9, 22.5, 93.8, 28.5, 93.3, 33.4]], PAL.hairMid, STROKE.hairline);
-    bezierLine([98.2, 21.5], [[99.0, 25.0, 99.8, 28.8, 100.4, 32.2]], PAL.hairMid, STROKE.hairline);
-
-    // The top of the head. Filled in the brightest tone end to end it read
-    // as a white cap, so the pure white is kept to a broken sheen band, and
-    // the dome gets what a head of hair has: shade down both sides, deeper
-    // on the far one, a parting the locks leave from, and an edge against
-    // the background.
-    bezierShape([76.4, 25], [[76.6, 17, 81, 12, 87.5, 10.2], [83, 13.5, 80.2, 18, 79.4, 24]], PAL.hairMid);
-    bezierShape([107.6, 25], [[107.4, 17, 103, 12, 96.5, 10.2], [101, 13.5, 103.8, 18, 104.6, 24]], PAL.hairMid);
-    bezierLine([106.6, 24], [[106.4, 18, 103.5, 13.5, 99, 11]], PAL.hairShadow, STROKE.fine);
-    bezierLine([92, 9.4], [[91.7, 11, 91.4, 12.6, 91.2, 14]], PAL.hairMid, STROKE.fine);
-    bezierShape([78.8, 18.2], [[82, 14.4, 87, 13.2, 91.2, 13.6], [87, 14.8, 82.5, 16, 78.8, 18.2]], PAL.hairHi);
-    bezierShape([93.4, 13.8], [[97, 13.6, 101, 14.8, 104, 17.6], [100.6, 16, 97, 15.2, 93.4, 13.8]], PAL.hairHi);
-    bezierLine([75, 26], [[76, 14, 83, 9, 92, 9], [101, 9, 108, 14, 109, 26]], PAL.hairShadow, STROKE.fine);
+    // Broad temple shade and a broken crown reflection keep the fringe quiet.
+    bodyBaseBezierShape([76.4, 25], [[76.6, 17, 81, 12, 87.5, 10.2], [83, 14, 80.2, 20, 79.4, 25]], PAL.hairLavender);
+    bodyBaseBezierShape([107.6, 25], [[107.4, 17, 103, 12, 96.5, 10.2], [101, 13.5, 103.8, 18, 104.6, 24]], PAL.hairSoftLight);
+    bezierLine([92, 9.4], [[91.7, 11, 91.4, 12.6, 91.2, 14]], PAL.hairLavender, STROKE.hairline);
+    hairCrownRing();
+    bezierLine([75, 26], [[76, 14, 83, 9, 92, 9], [101, 9, 108, 14, 109, 26]], PAL.hairBlueShade, STROKE.fine);
     drawAhoge(92, 9.6, sway * 0.25 + hm.ahoge);
 
     // Gold hair ornament: a star pinned where the fringe meets the temple,
@@ -1896,15 +1847,15 @@
       // Rim light down her far side. The gate she comes out of sits on that
       // side in every layout, so the light has a source in the scene rather
       // than being decoration.
-      bezierLine([111, 20], [[116, 34, 117, 52, 115, 68]], PAL.bodyRim, STROKE.seam);
+      bezierLine([107, 26], [[109, 38, 108.5, 53, 107.8 + sideR * 0.3, 68]], PAL.hairSoftLight, STROKE.hairline);
       bezierLine([105, 96], [[112, 113, 118, 131, 123, 148]], PAL.bodyRim, STROKE.fine);
 
       // Loose strands breaking off the side hair, tied to sway so they trail
       // the head.
       // With power in her they are thrown up and out.
       const strandUp = hm.lift * 14;
-      bezierLine([77, 34], [[73, 44, 71 - strandUp * 0.3, 54 - strandUp * 0.5, 72 + sway * 0.3 + hm.strand(0.4) - strandUp * 0.4, 63 - strandUp]], PAL.hairLight, STROKE.hairline);
-      bezierLine([107, 38], [[111, 48, 113 + strandUp * 0.3, 58 - strandUp * 0.5, 112 + sway * 0.3 + hm.strand(1.2) + strandUp * 0.4, 67 - strandUp]], PAL.hairLight, STROKE.hairline);
+      bezierLine([77, 34], [[75, 44, 74 - strandUp * 0.1, 54 - strandUp * 0.3, 74 + sway * 0.3 + hm.strand(0.4) - strandUp * 0.15, 63 - strandUp]], PAL.hairLight, STROKE.hairline);
+      bezierLine([107, 38], [[109, 48, 110 + strandUp * 0.1, 58 - strandUp * 0.3, 110 + sway * 0.3 + hm.strand(1.2) + strandUp * 0.15, 67 - strandUp]], PAL.hairLight, STROKE.hairline);
 
       // The gold catching light on a slow cycle, the ornaments and the centre
       // band taking turns. Driven off t so it lands on the cache's own steps
@@ -2193,14 +2144,14 @@
     const hairR = [
       [101, 11, 107.5, 14.5, 109, 25],
       [110, 33, 108.5, 38, 109, 43],
-      [110.5, 50, 114.5, 55, 115.5 + hairTrail * 0.05, 62],
-      [116.5 + hairTrail * 0.1, 80, 117.5 + hairTrail * 0.2, 100, 118.5 + hairTrail * 0.35, 120]
+      [108.5, 50, 109.5, 55, 110 + hairTrail * 0.05, 62],
+      [111 + hairTrail * 0.1, 80, 113 + hairTrail * 0.2, 100, 115 + hairTrail * 0.35, 120]
     ];
     const hairL = [
       [81, 11, 74.5, 14.5, 73, 25],
       [72, 33, 73.5, 38, 73, 43],
-      [71.5, 50, 67.5, 55, 66.5 + hairTrail * 0.05, 62],
-      [65.5 + hairTrail * 0.1, 80, 64.5 + hairTrail * 0.2, 100, 63.5 + hairTrail * 0.35, 120]
+      [73.5, 50, 72.5, 55, 72 + hairTrail * 0.05, 62],
+      [71 + hairTrail * 0.1, 80, 69 + hairTrail * 0.2, 100, 67 + hairTrail * 0.35, 120]
     ];
     // The left side walked back up from the bottom, to close the shape.
     const hairLUp = hairL.map((s, i) => [s[2], s[3], s[0], s[1], ...(i ? hairL[i - 1].slice(4) : [91, 11])]).reverse();
@@ -2216,26 +2167,15 @@
     pctx.translate(1.3, 0.5);
     bezierLine([109, 25], [hairR[1], hairR[2], hairR[3]], PAL.outline, STROKE.band);
     pctx.restore();
-    // Its lower edge is a run of short points sitting above where the locks
-    // end, so the locks drawn over it make the ragged edge.
-    bezierShape([91, 11], hairR.concat([
-      [119.5 + hairTrail * 0.45, 128, 119 + hairTrail * 0.5, 133, 117 + hairTrail * 0.55, 138],
-      [115.5 + hairTrail * 0.5, 131, 115 + hairTrail * 0.45, 126, 114.5 + hairTrail * 0.45, 123],
-      [113 + hairTrail * 0.5, 128, 112 + hairTrail * 0.5, 132, 110 + hairTrail * 0.55, 136],
-      [109.5 + hairTrail * 0.5, 129, 109 + hairTrail * 0.45, 124, 109 + hairTrail * 0.45, 121],
-      [108 + hairTrail * 0.5, 126, 107 + hairTrail * 0.5, 130, 105 + hairTrail * 0.55, 135],
-      [103 + hairTrail * 0.5, 129, 101 + hairTrail * 0.45, 124, 100 + hairTrail * 0.45, 121],
-      [98 + hairTrail * 0.5, 127, 97 + hairTrail * 0.5, 131, 96 + hairTrail * 0.5, 136],
-      [94 + hairTrail * 0.45, 129, 93 + hairTrail * 0.45, 125, 92 + hairTrail * 0.45, 122],
-      [90 + hairTrail * 0.5, 127, 89 + hairTrail * 0.5, 130, 88 + hairTrail * 0.5, 133],
-      [86 + hairTrail * 0.45, 128, 85 + hairTrail * 0.45, 124, 84 + hairTrail * 0.45, 121],
-      [82 + hairTrail * 0.5, 127, 80 + hairTrail * 0.5, 131, 78 + hairTrail * 0.55, 136],
-      [76 + hairTrail * 0.5, 130, 75 + hairTrail * 0.45, 126, 74 + hairTrail * 0.45, 123],
-      [72 + hairTrail * 0.5, 128, 70.5 + hairTrail * 0.5, 131, 69 + hairTrail * 0.55, 134],
-      [67.5 + hairTrail * 0.5, 129, 67 + hairTrail * 0.45, 125, 66.5 + hairTrail * 0.45, 123],
-      [66 + hairTrail * 0.5, 128, 65.5 + hairTrail * 0.5, 133, 65 + hairTrail * 0.55, 138],
-      [63.5 + hairTrail * 0.5, 132, 63 + hairTrail * 0.45, 126, 63.5 + hairTrail * 0.35, 120]
-    ], hairLUp), PAL.hairMid);
+    // Three tapered ends leave the lower gown visible beside the lengths.
+    bodyBaseBezierShape([91, 11], hairR.concat([
+      [115 + hairTrail * 0.45, 126, 113 + hairTrail * 0.5, 131, 110 + hairTrail * 0.55, 133],
+      [106 + hairTrail * 0.45, 131, 104 + hairTrail * 0.4, 124, 102 + hairTrail * 0.4, 119],
+      [100 + hairTrail * 0.45, 126, 96 + hairTrail * 0.5, 132, 92 + hairTrail * 0.5, 134],
+      [86 + hairTrail * 0.45, 131, 83 + hairTrail * 0.4, 126, 81 + hairTrail * 0.4, 120],
+      [79 + hairTrail * 0.45, 126, 76 + hairTrail * 0.5, 131, 72 + hairTrail * 0.55, 132],
+      [69 + hairTrail * 0.5, 130, 67 + hairTrail * 0.45, 126, 67 + hairTrail * 0.35, 120]
+    ], hairLUp), PAL.hairSoftLight);
 
     // Everything inside the hair is clipped to its outline, left open at the
     // bottom for the lock ends, so no lock can bulge out past the edge line.
@@ -2245,7 +2185,7 @@
     hairR.forEach(s => pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]));
     pctx.lineTo(128 + hairTrail, 165);
     pctx.lineTo(54 + hairTrail, 165);
-    pctx.lineTo(63.5 + hairTrail * 0.35, 120);
+    pctx.lineTo(67 + hairTrail * 0.35, 120);
     hairLUp.forEach(s => pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]));
     pctx.clip();
 
@@ -2275,79 +2215,25 @@
       const mid = wave(lag + 0.6, len * 0.9) - walkStep * len * 0.3 + massSwing[mass] * len * 0.5;
       (shaded ? hairLockShaded : hairLock)(x0, y0, w, tipX(x1, k) + tip, y1, bend + mid - tip * 0.35, c);
     };
-    // The outer locks, darker as they turn away from the light.
-    hang(73, 13, 10, 59, 146, -3, PAL.hairShadow, 0.75, 0.2, true, 0);
-    hang(109, 13, 10, 123, 148, 3, PAL.hairDeep, 0.75, 1, true, 2);
-    hang(77, 13, 7, 65, 136, -1.5, PAL.hairMid, 0.7, 0.35, true, 0);
-    hang(105, 13, 7, 117, 139, 1.5, PAL.hairShadow, 0.7, 0.9, true, 2);
-    // A dark layer showing between the lighter locks lower down. Its tops
-    // are covered by the locks in front of it.
-    hang(80, 40, 6, 63, 138, -2, PAL.hairShadow, 0.7, 0.8, false, 0);
-    hang(102, 40, 6, 119, 141, 2, PAL.hairDeep, 0.7, 1.3, false, 2);
-    hang(88, 40, 9, 81, 150, -0.5, PAL.hairShadow, 0.55, 1, false, 1);
-    hang(96, 40, 9, 101, 147, 1, PAL.hairDeep, 0.55, 1.2, false, 1);
-    // The front locks run unbroken from the crown to their ends, so the pale
-    // head and the lengths below it are the same hair. Drawn left to right,
-    // each lies over the one before it, so a lock's shade band shows only
-    // where it parts from its neighbour.
-    // The middle mass hangs longest and the two sides end at different
-    // heights, so the tips step down unevenly across the back.
-    hang(79.5, 12, 8, 67, 126, -1.5, PAL.hairMid, 0.62, 0.3, true, 0);
-    hang(84.5, 12, 9, 72, 138, -1, PAL.hairLight, 0.6, 0.45, true, 0);
-    hang(87.5, 12, 5, 84, 118, -0.5, PAL.hairLight, 0.52, 0.6, true, 1);
-    hang(90.5, 12, 9, 88, 145, 0, PAL.hairLight, 0.5, 0.55, true, 1);
-    hang(97, 12, 9, 96, 150, 0.5, PAL.hairLight, 0.5, 0.7, true, 1);
-    hang(102, 12, 8, 110, 136, 1.5, PAL.hairMid, 0.6, 0.8, true, 2);
-    hang(105.5, 14, 5, 116, 130, 1.5, PAL.hairShadow, 0.65, 0.95, true, 2);
+    // Three overlapping lengths retain their separate motion phases.
+    hang(80, 12, 23, 72, 149, -0.8, PAL.hairSoftLight, 0.6, 0.45, true, 0);
+    hang(91, 12, 24, 93, 152, 0.2, PAL.hairLight, 0.5, 0.55, true, 1);
+    hang(103, 12, 21, 112, 148, 0.6, PAL.hairLight, 0.6, 0.8, true, 2);
 
-    // The partings between the masses: a dark wedge that opens from nothing
-    // below the shoulders to a gap near the ends, following the masses on
-    // either side as they swing, so the gap widens and closes as they move.
-    const parting = (xTop, yTop, xBot, yBot, a, b) => {
-      const sw = (massSwing[a] + massSwing[b]) * 0.5 * (yBot - yTop) / 100;
-      const xb = tipX(xBot, 0.55) + sw;
-      const open = 1.2 + Math.abs(massSwing[a] - massSwing[b]) * 0.8;
-      bezierShape([xTop, yTop], [
-        [xTop - 0.4, yTop + (yBot - yTop) * 0.5, xb - open, yBot - 18, xb - open * 0.5, yBot],
-        [xb + open * 0.3, yBot - 2, xb + open, yBot - 18, xTop + 0.4, yTop + (yBot - yTop) * 0.5]
-      ], PAL.hairDeep);
-    };
-    parting(84, 64, 77.5, 128, 0, 1);
-    parting(100, 60, 105.5, 132, 1, 2);
-
-    // Locks curving round the skull from the crown, which is what gives the
-    // head a round back to it.
-    bezierLine([90, 13], [[83, 20, 79, 32, 80.5, 46]], PAL.hairMid, STROKE.fine);
-    bezierLine([92.5, 13], [[94, 24, 95, 36, 94, 47]], PAL.hairMid, STROKE.fine);
-    bezierLine([95, 13], [[100.5, 21, 103, 33, 101.5, 47]], PAL.hairShadow, STROKE.fine);
-    bezierLine([88, 14], [[84, 24, 84, 36, 86.5, 47]], PAL.hairMid, STROKE.hairline);
-    bezierLine([93.5, 12.5], [[98, 18, 99.5, 28, 98.5, 40]], PAL.hairMid, STROKE.hairline);
-    bezierLine([89, 13], [[80, 17, 76, 26, 76, 38]], PAL.hairShadow, STROKE.hairline);
-    bezierLine([94, 12.5], [[103, 16, 106.5, 24, 106.5, 34]], PAL.hairShadow, STROKE.hairline);
-    // The whorl at the crown the locks all start from.
-    bezierLine([89.5, 12.6], [[90.5, 11.8, 92, 11.8, 93, 12.8]], PAL.hairShadow, STROKE.fine);
-
-    // Shine band round the crown. A stroke of even width with blunt ends
-    // reads as tape stuck to the head, and separate dashes read as
-    // stitching, so each band follows the curve of the skull, swells in the
-    // middle and tapers to nothing at both ends, with a few uneven nicks in
-    // its lower edge where the locks under it part.
-    {
-      const cx = 91, cy = 36, rx = 15.4, ry = 14;
-      const at = (a, d) => [cx + Math.sin(a) * (rx - d), cy - Math.cos(a) * (ry - d)];
-      const nick = { 3: 0.3, 6: 0.55, 8: 0.2 };
-      for (const [a0, a1, thick, c] of [[-1.2, 0.2, 2.6, PAL.hairHi], [0.34, 1.02, 1.4, PAL.hairLight]]) {
-        const n = 11;
-        const segs = [];
-        const put = p => segs.push([p[0], p[1], p[0], p[1], p[0], p[1]]);
-        for (let i = 1; i <= n; i++) put(at(a0 + (a1 - a0) * i / n, 2.6));
-        for (let i = n - 1; i >= 1; i--) {
-          const w = thick * Math.sin(Math.PI * i / n) * (nick[i] || 1);
-          put(at(a0 + (a1 - a0) * i / n, 2.6 + w));
-        }
-        bezierShape(at(a0, 2.6), segs, c);
-      }
-    }
+    // The crown joins the lengths without a row of vertical strand lines.
+    bodyBaseBezierShape([91, 11], [
+      [82, 11, 75, 17, 74, 28], [73.5, 41, 77, 49, 78, 59],
+      [77, 37, 82, 18, 91, 11]
+    ], PAL.hairLavender);
+    bodyBaseBezierShape([92, 11], [
+      [101, 12, 107, 19, 108, 29], [109, 41, 105, 51, 105, 59],
+      [106, 37, 102, 18, 92, 11]
+    ], PAL.hairSoftLight);
+    bezierLine([89.5, 12.6], [[90.5, 11.8, 92, 11.8, 93, 12.8]], PAL.hairLavender, STROKE.hairline);
+    pctx.save();
+    pctx.translate(-1, 3);
+    hairCrownRing();
+    pctx.restore();
 
     pctx.restore();
 
@@ -2404,7 +2290,7 @@
     if (gfxLevel() === 0) {
       // Rim light down the far side, from the gate, as on the front view.
       bezierLine([98, 13.2], [[103, 14.5, 106.6, 19, 107, 29]], PAL.hairHi, STROKE.fine);
-      bezierLine([114.8, 62], [[115.8, 80, 116.7 + hairTrail * 0.2, 100, 117.7 + hairTrail * 0.35, 119]], PAL.hairLight, STROKE.fine);
+      bezierLine([110.2, 62], [[111.2, 80, 113.2 + hairTrail * 0.2, 100, 115.2 + hairTrail * 0.35, 119]], PAL.hairSoftLight, STROKE.hairline);
       bezierLine([122 + fabricTrail * 0.15, 63], [[128 + fabricTrail * 0.35, 75, 136 + fabricTrail * 0.7, 88, 144 + fabricTrail, 100]], PAL.cream, STROKE.fine);
       bezierLine([127.4 + fabricTrail * 0.35, 136], [[128.4 + fabricTrail * 0.4, 140, 129 + fabricTrail * 0.4, 142, 129.4 + fabricTrail * 0.45, 144]], PAL.cream, STROKE.fine);
 
@@ -2415,16 +2301,14 @@
 
       // Two loose strands breaking off the ends of the locks, trailing
       // further than the locks do.
-      bezierLine([tipX(70, 0.5), 128], [[tipX(69, 0.6), 133, tipX(67.5, 0.75), 137, tipX(66, 0.9), 141]], PAL.hairLight, STROKE.hairline);
-      bezierLine([tipX(111, 0.5), 130], [[tipX(112.5, 0.6), 135, tipX(114, 0.75), 139, tipX(116, 0.9), 144]], PAL.hairMid, STROKE.hairline);
+      bezierLine([tipX(72, 0.5), 127], [[tipX(71, 0.6), 133, tipX(70, 0.65), 139, tipX(70.5, 0.7), 144]], PAL.hairLavender, STROKE.hairline);
+      bezierLine([tipX(112, 0.5), 128], [[tipX(113, 0.6), 135, tipX(114, 0.65), 139, tipX(113.5, 0.7), 144]], PAL.hairLavender, STROKE.hairline);
 
       // Flyaways: single hairs lifting off the outline, lighter than any
       // lock, so they flutter at twice the rate.
-      const fa = quiver(0.4, 0.9), fb = quiver(1.9, 0.9), fc = quiver(3.1, 1.1);
-      bezierLine([74, 30], [[71, 35, 69 + fa * 0.5, 40, 68 + fa, 46]], PAL.hairLight, STROKE.hairline);
-      bezierLine([108.5, 31], [[111, 36, 113 + fb * 0.5, 42, 114 + fb, 48]], PAL.hairMid, STROKE.hairline);
-      bezierLine([66.5, 70], [[63.5, 80, 62 + fc * 0.6, 88, 62.5 + fc, 96]], PAL.hairLight, STROKE.hairline);
-      bezierLine([116, 74], [[119, 84, 120 + fa * 0.6, 92, 119.5 + fa, 100]], PAL.hairMid, STROKE.hairline);
+      const fa = quiver(0.4, 0.9), fb = quiver(1.9, 0.9);
+      bezierLine([74, 30], [[72, 35, 71.5 + fa * 0.4, 40, 71.8 + fa * 0.6, 46]], PAL.hairLight, STROKE.hairline);
+      bezierLine([108.5, 31], [[110, 36, 110.5 + fb * 0.4, 42, 110.2 + fb * 0.6, 48]], PAL.hairMid, STROKE.hairline);
 
       // The gold catching light on the same slow cycle as the front view.
       const glint = Math.sin(t * Math.PI * 2);

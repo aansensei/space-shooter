@@ -24,19 +24,19 @@
     c.scale(side, 1);
     const wide = mode === 'wide';
     const half = wide ? 2.72 : 2.62;
-    // These are Bezier control heights, not ellipse radii. More opening
-    // at the centre is essential for the iris to read at 2px/grid unit.
-    // Raising the upper controls by 0.4 adds about 0.3 to the visible
-    // opening: roughly 10% taller, without widening or moving the iris.
-    const top = (mode === 'narrow' ? -1.16 : mode === 'droop' ? -1.50 : wide ? -2.64 : -2.18) - 0.40;
+    // These are Bezier control heights, not ellipse radii. The resting eye
+    // is half lidded: the upper lid crosses the top quarter of the iris,
+    // which gives her calm, slightly tired look. Only the surprised eye
+    // opens fully.
+    const top = mode === 'narrow' ? -1.05 : mode === 'droop' ? -1.30 : wide ? -3.04 : -1.52;
     const bottom = wide ? 2.55 : 2.42;
     const closedMode = mode === 'happy' || mode === 'soft' || mode === 'shut';
     let b = closedMode ? 1 : clamp(Number(blink) || 0, 0, 1);
     if (mode === 'up') b = Math.max(0.16, b);
 
     const x0 = -half, x1 = half;
-    // Narrow the outer half of relaxed eyes; keep the surprised eye wide.
-    const end0 = mix(-0.12, 0, b), end1 = mix(wide ? -0.40 : -0.12, -0.15, b);
+    // Relaxed eyes dip a little at the outer corner; the surprised eye lifts.
+    const end0 = mix(-0.12, 0, b), end1 = mix(wide ? -0.40 : 0.04, -0.15, b);
     const closeCurve = mode === 'happy' ? -1.0 : mode === 'shut' ? 0.8 : 0.63;
     const y1 = mix(top - 0.08, closeCurve, b);
     const y2 = mix(top + (wide ? 0.02 : 0.50), closeCurve, b);
@@ -89,7 +89,7 @@
         [ox - 1.10, iy + 1.4, ox - 1.54, iy + 0.75, ox - 1.37, iy + 0.3],
       ], COLOR.eyeViolet);
       api.bezierLine([ox - 0.91, iy + 1.35], [[ox - 0.39, iy + 1.60, ox + 0.45, iy + 1.57, ox + 0.96, iy + 1.20]], COLOR.eyeGlint, 0.19);
-      api.ellipseF(ox, iy - 0.13, 0.63, 0.87, p.lid);
+      api.ellipseF(ox, iy - 0.10, 0.52, 0.72, p.lid);
       c.restore();
       // One narrow navy lid shadow crosses both sclera and iris, following
       // the current lid. No pale overlay can wash out the dark iris tier.
@@ -109,7 +109,7 @@
     }
 
     // Filled lash tapers at the inner corner and becomes fuller outside.
-    const thick = mix(1.66, 0.46, b);
+    const thick = mix(wide ? 1.66 : 1.84, 0.46, b);
     api.bezierShape([x0, end0], [
       [-1.45, y1, 1.05, y2, x1, end1],
       [1.14, y2 - thick, -1.20, y1 - thick * 0.75, x0, end0],
@@ -172,6 +172,11 @@
       api.bezierLine([90.90, 44.91], [[91.5, 44.26, 92.55, 44.26, 93.12, 44.80]], c, 0.50);
       return;
     }
+    if (style === 'neutral') {
+      // closed, the corners turned up just enough to read as a quiet smile
+      api.bezierLine([90.85, 44.42], [[91.45, 44.86, 92.55, 44.86, 93.15, 44.40]], c, 0.46);
+      return;
+    }
     const soft = style === 'soft', smirk = style === 'smirk', smile = style === 'smile';
     const w = soft ? 0.97 : smile ? 1.58 : 1.29;
     const right = smirk ? 44.20 : 44.52;
@@ -186,10 +191,12 @@
   function drawFeatures(api, face) {
     const mode = face.eye || 'open';
     // The host's blush colour sits just below each outer eye corner, inside
-    // a paler rim, so the patch reads as a soft flush rather than a hard disc.
+    // a paler rim. Her resting face carries only the faint rim; the full
+    // flush comes with happiness or a fluster.
+    const flushed = face.expression === 'happy' || face.expression === 'surprised';
     for (const x of [85.05, 98.95]) {
-      api.ellipseF(x, 40.9, 2.30, 0.88, COLOR.blushEdge);
-      api.ellipseF(x, 40.9, 1.70, 0.58, api.PAL.blush);
+      api.ellipseF(x, 40.9, flushed ? 2.30 : 1.90, flushed ? 0.88 : 0.62, COLOR.blushEdge);
+      if (flushed) api.ellipseF(x, 40.9, 1.70, 0.58, api.PAL.blush);
     }
     const b = face.openEye === false ? 0 : face.blink;
     eye(api, 88, mode, b, face.gazeX, face.gazeY);
