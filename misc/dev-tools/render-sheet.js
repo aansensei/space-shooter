@@ -50,12 +50,15 @@ function makeStubCtx() {
 let spriteCanvas = null;
 const sandbox = {
   console, performance: { now: () => 1000 }, Math,
-  Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
+  Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } addEventListener() {} },
+  setTimeout() {},
+  CanvasRenderingContext2D: class { set shadowColor(value) {} },
   document: {
+    body: { appendChild() {} }, addEventListener() {},
     createElement(kind) {
       if (kind === 'canvas' && !spriteCanvas) { spriteCanvas = createCanvas(1024, 1024); return spriteCanvas; }
       if (kind === 'canvas') return createCanvas(8, 8);
-      return { setAttribute() {}, addEventListener() {}, play() { return Promise.resolve(); }, pause() {} };
+      return { style: {}, setAttribute() {}, addEventListener() {}, play() { return Promise.resolve(); }, pause() {} };
     },
   },
   canvas: { width: 1280, height: 720 },
@@ -73,6 +76,7 @@ sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
 vm.runInContext(fs.readFileSync('js/timeline-distortion.js', 'utf8'), sandbox, { filename: 'td.js' });
+vm.runInContext(fs.readFileSync('js/render/kanade-face.js', 'utf8'), sandbox, { filename: 'kanade-face.js' });
 
 let src = fs.readFileSync('js/render/kanade-cutscene.js', 'utf8');
 const anchor = 'window._KANADE_CUTSCENE_MS = TOTAL_MS;';

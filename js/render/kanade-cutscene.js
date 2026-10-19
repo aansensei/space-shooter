@@ -33,7 +33,42 @@
   const RES_MIN = 2, RES_MAX = 3;
   let RES_MULT = 0;
   const px = document.createElement('canvas');
-  const pctx = px.getContext('2d');
+  let pctx = px.getContext('2d');
+  const clothesLayers = [makeClothesLayer(), makeClothesLayer()];
+  let clothesParent = null, clothesMask = 0;
+  function makeClothesLayer() {
+    const canvas = document.createElement('canvas');
+    return { canvas, ctx: canvas.getContext('2d'), valid: false, pose: new Float64Array(6), points: new Float32Array(32), mask: 0 };
+  }
+  function beginClothesLayer(layer, opts) {
+    const pose = layer.pose;
+    if (layer.valid && pose[0] === RES_MULT && pose[1] === (opts.trail || 0) && pose[2] === (opts.whip || 0) &&
+      pose[3] === (opts.droop || 0) && pose[4] === (opts.walkStep || 0) && pose[5] === (opts.castExt || 0)) return false;
+    layer.valid = true;
+    pose[0] = RES_MULT; pose[1] = opts.trail || 0; pose[2] = opts.whip || 0;
+    pose[3] = opts.droop || 0; pose[4] = opts.walkStep || 0; pose[5] = opts.castExt || 0;
+    if (layer.canvas.width !== px.width || layer.canvas.height !== px.height) {
+      layer.canvas.width = px.width; layer.canvas.height = px.height;
+      layer.ctx.setTransform(RES_MULT, 0, 0, RES_MULT, 0, 0);
+      layer.ctx.lineCap = 'round'; layer.ctx.lineJoin = 'round';
+      layer.ctx.save();
+    }
+    layer.ctx.restore(); layer.ctx.save();
+    clothesParent = pctx; clothesMask = jewelMask;
+    pctx = layer.ctx; jewelMask = 0;
+    pctx.clearRect(0, 0, GRID_W, GRID_H);
+    return true;
+  }
+  function finishClothesLayer(layer, fresh) {
+    if (fresh) {
+      layer.points.set(jewelPoints); layer.mask = jewelMask;
+      pctx = clothesParent; jewelMask = clothesMask;
+    }
+    pctx.drawImage(layer.canvas, 0, 0, GRID_W, GRID_H);
+    for (let slot = 0; slot < 16; slot++) {
+      if (layer.mask & (1 << slot)) jewelAnchor(slot, layer.points[slot * 2], layer.points[slot * 2 + 1]);
+    }
+  }
   function setSpriteRes(mult) {
     RES_MULT = mult;
     px.width = GRID_W * mult; px.height = GRID_H * mult;
@@ -237,23 +272,23 @@
     pctx.lineCap = 'round';
     pctx.lineJoin = 'round';
     pctx.beginPath();
-    pctx.moveTo(start[0], start[1]);
-    segments.forEach(s => pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]));
+    hairMoveTo(start[0], start[1]);
+    for (const s of segments) hairCurveTo(s);
     pctx.stroke();
   }
   function bodyBaseBezierShape(start, segments, c) {
     pctx.fillStyle = c;
     pctx.beginPath();
-    pctx.moveTo(start[0], start[1]);
-    segments.forEach(s => pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]));
+    hairMoveTo(start[0], start[1]);
+    for (const s of segments) hairCurveTo(s);
     pctx.closePath();
     pctx.fill();
   }
 
   function bodyRimPath(outline, width, alpha) {
     const append = () => {
-      pctx.moveTo(outline[0][0], outline[0][1]);
-      for (const s of outline[1]) pctx.bezierCurveTo(...s);
+      hairMoveTo(outline[0][0], outline[0][1]);
+      for (const s of outline[1]) hairCurveTo(s);
       pctx.closePath();
     };
     pctx.save();
@@ -449,8 +484,8 @@
   function tracePath(outline) {
     const start = outline[0];
     pctx.beginPath();
-    pctx.moveTo(start[0], start[1]);
-    for (const s of outline[1]) pctx.bezierCurveTo(s[0], s[1], s[2], s[3], s[4], s[5]);
+    hairMoveTo(start[0], start[1]);
+    for (const s of outline[1]) hairCurveTo(s);
     pctx.closePath();
   }
 
@@ -812,9 +847,9 @@
 
     // Thumb, in its own frame: along d from a root on the heel of the palm,
     // n across it toward the outside.
-    const phi = m(0.12, 0.6), len = m(3.4, 3.6), tr = 0.72, root = m(1.35, 1.45);
+    const phi = m(0.12, 0.70), len = m(3.4, 4.2), tr = 0.62, root = m(1.05, 1.12);
     const d = [Math.sin(phi), Math.cos(phi)], nn = [Math.cos(phi), -Math.sin(phi)];
-    const R = [m(2.0, 2.1), m(1.4, 1.2)];
+    const R = [m(2.0, 2.05), m(1.4, 1.8)];
     const at = (a, b) => [R[0] + d[0] * a + nn[0] * b, R[1] + d[1] * a + nn[1] * b];
     const c0 = len - tr;
     const tSegs = [
@@ -856,10 +891,10 @@
     // the relaxed hand keeps a single crease.
     for (let i = 0; i < 3; i++) {
       const a = fing[i], b = fing[i + 1];
-      const len = i === 1 ? m(1.1, 0.8) : 0.9 * gap;
+      const len = i === 1 ? m(0.75, 0.45) : 0.45 * gap;
       if (len < 0.05) continue;
       const vx = (a.cx + a.r + b.cx - b.r) / 2, vy = Math.min(a.capY, b.capY) - m(0.05, 0.15) - 0.6 * gap;
-      line([P(vx, vy - 0.1), P(vx - 0.05, vy - 0.1 - len)], PAL.skinShadow, i === 1 ? STROKE.fine : STROKE.hairline);
+      line([P(vx, vy - 0.1), P(vx - 0.05, vy - 0.1 - len)], PAL.bodyLHandShade, STROKE.hairline);
     }
     bezierShape(tStart, tSegs, PAL.skin);
     bodyLClip([tStart, tSegs], () => {
@@ -871,7 +906,7 @@
       bezierLine(P(...at(0.65, 0.45)), [seg(at(1.4, 0.49), at(len - 0.7, 0.31), at(len - 0.4, 0.15))], PAL.bodyLHandLight, 0.45);
     });
 
-    bezierLine(P(...at(0.7, root)), tSegs.slice(1, 4), PAL.outline, STROKE.seam);
+    bezierLine(P(...at(0.7, root)), tSegs.slice(1, 4), PAL.skinShadow, STROKE.fine);
 
     // A hint of the thumb's fold, and a little shade down the side of the
     // palm away from the thumb.
@@ -946,26 +981,48 @@
   // pushes the ends sideways and hairImpact throws them back from the spell.
   // Amounts are in grid units at the tip of the long hair: osc is the swing
   // alone, push the steady offset, long both together.
+  const hairMotion = {
+    phase: 0, bodyPhase: 0, bobAmp: 1, amp: 1.3, energy: 0, push: 0, lift: 0, ahoge: 0,
+    osc(lag) {
+      return Math.sin(this.phase - lag) * this.amp + Math.sin(2 * this.phase - lag * 1.7) * 0.7 * this.energy * this.energy;
+    },
+    long(lag) { return this.osc(lag) + this.push; },
+    strand(lag) { return Math.sin(2 * this.phase - lag) * (0.35 + 1.1 * this.energy) + this.push * 0.7; },
+  };
+  let hairMode = 0;
+  function hairX(x, y) {
+    if (!hairMode) return x;
+    const root = hairMode === 3 ? 26 : 20, span = hairMode === 3 ? 15 : hairMode === 2 ? 84 : 128;
+    const depth = Math.max(0, Math.min(1, (y - root) / span));
+    const beat = 0.2 + Math.max(0, Math.min(1, (x - 60) / 60)) * 0.9;
+    const amount = hairMode === 3 ? 0.18 : 1;
+    return x + depth * depth * amount * (hairMotion.osc(beat + depth * 1.7) + hairMotion.push);
+  }
+  function hairY(y) {
+    if (!hairMode) return y;
+    const root = hairMode === 3 ? 26 : 20, span = hairMode === 3 ? 15 : 128;
+    const depth = Math.max(0, Math.min(1, (y - root) / span));
+    const lagged = (Math.sin(hairMotion.bodyPhase - depth * 1.1) - Math.sin(hairMotion.bodyPhase)) * hairMotion.bobAmp * depth;
+    return Math.min(y + lagged * (hairMode === 3 ? 0.12 : 1), y > 140 ? 149.5 : 180);
+  }
+  function hairMoveTo(x, y) { pctx.moveTo(hairX(x, y), hairY(y)); }
+  function hairCurveTo(s) {
+    pctx.bezierCurveTo(hairX(s[0], s[1]), hairY(s[1]), hairX(s[2], s[3]), hairY(s[3]), hairX(s[4], s[5]), hairY(s[5]));
+  }
   function computeHairMotion(t, opts) {
     const ht = opts.hairT != null ? opts.hairT : t * 0.5;
     const energy = clamp01(opts.hairEnergy || 0);
     const boost = opts.hairBoost || 1;
     const TAU = Math.PI * 2;
-    const amp = (0.55 + 2.6 * energy) * boost;
-    const push = (opts.hairWind || 0) - (opts.hairImpact || 0);
-    // With power in her the swing gets a fast ripple on top, as if the hair
-    // were caught in a draught coming up off her.
-    const osc = lag => Math.sin(TAU * ht - lag) * amp + Math.sin(2 * TAU * ht - lag * 1.7) * 0.7 * energy * energy;
-    return {
-      osc, push,
-      long: lag => osc(lag) + push,
-      // The fine loose strands run at twice the rate.
-      strand: lag => Math.sin(2 * TAU * ht - lag) * (0.35 + 1.1 * energy) + push * 0.7,
-      // The ahoge on its own lagged beat.
-      ahoge: Math.sin(TAU * ht - 1.1) * (0.3 + 0.35 * energy) - (opts.hairImpact || 0) * 0.5,
-      // How far the ends of the long hair rise, in units of droop.
-      lift: 0.6 * energy + (boost - 1) / 0.35 * 0.38,
-    };
+    hairMotion.phase = TAU * ht;
+    hairMotion.bodyPhase = TAU * t;
+    hairMotion.bobAmp = opts.bobAmp != null ? opts.bobAmp : 1;
+    hairMotion.amp = (1.3 + 2.6 * energy) * boost;
+    hairMotion.energy = energy;
+    hairMotion.push = (opts.hairWind || 0) - (opts.hairImpact || 0);
+    hairMotion.ahoge = Math.sin(TAU * ht - 1.1) * (0.3 + 0.35 * energy) - (opts.hairImpact || 0) * 0.5;
+    hairMotion.lift = 0.6 * energy + (boost - 1) / 0.35 * 0.38;
+    return hairMotion;
   }
 
   // Short, with a slight S: out of the parting, bending one way and then
@@ -1030,47 +1087,48 @@
     const hand = {
       x: wrist[0] + 0.5 * castExt, y: wrist[1] + 0.8 * castExt,
       rot: Math.atan2(-foreDX, foreDY) - 0.85 * castEase,
-      size: mix(0.75, 1.05, castExt),
+      size: mix(0.9, 1.15, castExt),
     };
     return { wrist, elbowX, elbowY, upperC, foreC, hand };
   }
 
-  // Both body sprites share one buffer, and at 60fps most frames were
-  // redrawing a picture identical to the one already in it. The sway and bob
-  // phase is quantised to 24 steps per cycle and everything else that changes
-  // the drawing is folded into a key; when the key matches the last one the
-  // draw is skipped and the existing buffer is blitted again.
-  //
-  // 24 steps is not a compromise, it is the rate hand-drawn animation runs at.
-  // The tag keeps the two views apart, since they write to the same buffer.
-  //
-  // The one thing that can invalidate the buffer from outside is tintBuffer,
-  // which paints into it after the draw returns. Skipping the draw would let
-  // that tint stack on itself and the sprite would darken frame by frame, so
-  // the caller clears the key whenever it tints. The flash lives on the pose
-  // rather than in opts, so it cannot be caught by the key itself.
+  // The shared sprite buffer redraws only when its quantised pose changes.
+  // Higher graphics tiers sample more phases while mobile keeps its budget.
   let _spriteKey = '';
   function invalidateSprite() { _spriteKey = ''; }
-  //
-  // castExt gets 32 steps where everything else gets 8. It moves the whole
-  // right arm about fifty units, so at 8 steps the raise went up in jumps of
-  // six, more than ten screen pixels at 1080p, however smoothly castExt ran.
+  const spriteState = new Float64Array(21);
+  const spriteNext = new Float64Array(21);
+  let spriteRevision = 0, spriteExpression = '', spriteTag = '';
   function spriteKey(tag, t, o) {
-    const q = v => Math.round((v || 0) * 8);
-    return tag + Math.round(t * 24) + ':' +
-      q(o.lean) + ',' + q(o.trail) + ',' + q(o.whip) + ',' + q(o.droop) + ',' +
-      q(o.walkStep) + ',' + Math.round((o.castExt || 0) * 32) + ',' + q(o.swayAmp) + ',' + q(o.bobAmp) +
-      ':' + (o.expression || '') + ':' +
-      // Blink in tenths, gaze in tenths of its range, head turn in
-      // thousandths of a radian: fine enough to move smoothly, coarse
-      // enough that a still face still hits the cache.
-      Math.round((o.blinkAmount != null ? o.blinkAmount : (o.blink ? 1 : 0)) * 10) + ',' +
-      Math.round((o.gazeX || 0) * 10) + ',' + Math.round((o.gazeY || 0) * 10) + ',' +
-      Math.round((o.headTurn || 0) * 1000) + ',' + Math.round((o.magicLight || 0) * 10) + ':' +
-      // Hair clock in 48 steps: at twice the body's period that is the same
-      // 37.5ms as t's 24, so it never adds a redraw on its own.
-      Math.round((o.hairT || 0) * 48) + ',' + q(o.hairWind) + ',' +
-      Math.round((o.hairEnergy || 0) * 10) + ',' + Math.round((o.hairImpact || 0) * 10) + ',' + Math.round((o.hairBoost || 1) * 20);
+    const tier = freezeTier(), steps = tier < 2 ? 36 : 24;
+    const v = spriteNext;
+    v[0] = Math.round(t * steps);
+    v[1] = Math.round((o.lean || 0) * 8);
+    v[2] = Math.round((o.trail || 0) * 8);
+    v[3] = Math.round((o.whip || 0) * 8);
+    v[4] = Math.round((o.droop || 0) * 8);
+    v[5] = Math.round((o.walkStep || 0) * 8);
+    v[6] = Math.round((o.castExt || 0) * 32);
+    v[7] = Math.round((o.swayAmp != null ? o.swayAmp : 1.5) * 8);
+    v[8] = Math.round((o.bobAmp != null ? o.bobAmp : 1) * 8);
+    v[9] = Math.round((o.blinkAmount != null ? o.blinkAmount : (o.blink ? 1 : 0)) * 10);
+    v[10] = Math.round((o.gazeX || 0) * 10);
+    v[11] = Math.round((o.gazeY || 0) * 10);
+    v[12] = Math.round((o.headTurn || 0) * 1000);
+    v[13] = Math.round((o.magicLight || 0) * 10);
+    v[14] = Math.round((o.hairT != null ? o.hairT : t * 0.5) * steps * 2);
+    v[15] = Math.round((o.hairWind || 0) * 8);
+    v[16] = Math.round((o.hairEnergy || 0) * 10);
+    v[17] = Math.round((o.hairImpact || 0) * 10);
+    v[18] = Math.round((o.hairBoost || 1) * 20);
+    v[19] = tier; v[20] = RES_MULT;
+    let dirty = tag !== spriteTag || (o.expression || '') !== spriteExpression;
+    for (let i = 0; i <= 20; i++) if (v[i] !== spriteState[i]) { dirty = true; break; }
+    if (dirty) {
+      spriteState.set(v); spriteTag = tag; spriteExpression = o.expression || '';
+      spriteRevision++;
+    }
+    return spriteRevision;
   }
 
   // The face's features: eyes, brows, nose, mouth and blush, drawn inside
@@ -1160,13 +1218,6 @@
     pctx.moveTo(x, y - h); pctx.lineTo(x + h * 0.45, y);
     pctx.lineTo(x, y + h * 0.15); pctx.closePath(); pctx.fill();
   }
-  function cloakClasp(x, y, slot) {
-    ellipseF(x, y, 1.6, 1.6, PAL.goldDark);
-    ellipseF(x, y, 1.27, 1.27, PAL.gold);
-    jewelCrystal(x, y, 1.1);
-    bezierLine([x - 1.1, y + 1.1], [[x - 0.1, y + 2, x + 1.8, y + 1.2, x + 2.2, y - 0.2]], PAL.gold, STROKE.hairline);
-    jewelAnchor(slot, x, y);
-  }
   // A frame on the existing arm curve keeps each band clear of the hand.
   function armJewelFrame(start, seg, t, paint) {
     const v = 1 - t;
@@ -1178,7 +1229,11 @@
     paint(); pctx.restore();
   }
   function armJewelry(start, upper, slot) {
-    armJewelFrame(start, upper, 0.12, () => cloakClasp(0, 0, slot - 2));
+    armJewelFrame(start, upper, 0.12, () => {
+      bezierLine([-3.2, 0], [[-1.8, 0.8, 1.7, 0.8, 3.2, 0]], PAL.gold, STROKE.fine);
+      jewelCrystal(0, 0.45, 0.65);
+      jewelAnchor(slot - 2, 0, 0.45);
+    });
     armJewelFrame(start, upper, 0.55, () => {
       bezierLine([-3.2, 0], [[-1.8, 1.1, 1.7, 1.1, 3.2, 0]], PAL.gold, STROKE.fine);
       jewelCrystal(0, 0.7, 0.85);
@@ -1447,10 +1502,10 @@
     top -= 3.5;
     const outline = back ? [[x - 4.2, top], [
       [x - 5, top + 8, x - 4, ground - 17, x - 2.7, ground - 12],
-      [x - 2.5, ground - 8, x - 4, ground - 6, x - 3.3, ground - 2],
-      [x - 3.2, ground - 0.1, x - 2, ground + 0.2, x, ground + 0.2],
-      [x + 2, ground + 0.2, x + 3.2, ground - 0.1, x + 3.3, ground - 2],
-      [x + 4, ground - 6, x + 2.5, ground - 8, x + 2.7, ground - 12],
+      [x - 3.1, ground - 8, x - 4.9, ground - 6, x - 4.3, ground - 2],
+      [x - 4.1, ground - 0.1, x - 2.6, ground + 0.2, x, ground + 0.2],
+      [x + 2.6, ground + 0.2, x + 4.1, ground - 0.1, x + 4.3, ground - 2],
+      [x + 4.9, ground - 6, x + 3.1, ground - 8, x + 2.7, ground - 12],
       [x + 4, ground - 17, x + 5, top + 8, x + 4.2, top]
     ]] : [[x - 3.6, top], [
       [x - 4.2, top + 8, x - 3.5, ground - 15, x - 3, ground - 10],
@@ -1461,6 +1516,13 @@
       [x + 2.4, ground - 5.5, x + 0.4, ground - 6, x + 1.6, ground - 10],
       [x + 3, ground - 15, x + 4.1, top + 8, x + 3.6, top]
     ]];
+    if (back) {
+      const outer = x < 91 ? -1 : 1;
+      bezierShape([x + outer * 2.6, ground - 7], [
+        [x + outer * 4.6, ground - 6.4, x + outer * 5.6, ground - 3.4, x + outer * 5.2, ground - 1.7],
+        [x + outer * 4.7, ground - 0.4, x + outer * 3.4, ground - 0.3, x + outer * 2.8, ground - 0.5]
+      ], PAL.bootDeep);
+    }
     bodyLMaterial(outline, PAL.boot, PAL.bootDeep, PAL.bodyLBootEdge, 1, 0.5);
     bodyLClip(outline, () => {
       bezierShape([x + 0.4, top + 2], [[x + 2.6, top + 9, x + 1.2, ground - 18, x - 0.2, ground - 12], [x - 0.6, ground - 20, x - 1.6, top + 7, x + 0.4, top + 2]], PAL.bodyLBootPlane);
@@ -1524,13 +1586,14 @@
     // The hair behind her takes the body's trail plus its own swing, and its
     // ends lift a little with the charge.
     const hm = computeHairMotion(t, opts);
-    const hTrail = trail + hm.long(1.1);
+    const hTrail = trail;
     const hDrop = hairDrop - hm.lift;
 
     pctx.clearRect(0, 0, GRID_W, GRID_H);
     pctx.save();
     pctx.translate(lean, bob);
 
+    hairMode = 1;
     bezierShape([79, 17], [
       [72, 21, 66, 39, 66 + hTrail * 0.08, 68],
       [65 + hTrail * 0.2, 98, 62 + hTrail * 0.5, 128 + hDrop * 8, 57 + hTrail * 0.7, 145 + hDrop * 7],
@@ -1585,235 +1648,235 @@
     // Long underlayers remain behind the shoulders and gown.
     hairLockShaded(82, 20, 14, 68 + hTrail * 0.6, 148 + hDrop * 5, -5, PAL.hairSoftLight);
     hairLockShaded(102, 20, 14, 112 + hTrail * 0.6, 149 + hDrop * 5, 3, PAL.hairLight);
+    hairMode = 0;
 
-    // The dark lining continues from the sleeve turn into the hanging tails.
-    lowerCloth([[63 + fabricTrail * 0.15, 72], [
-      [52 + fabricTrail * 0.4, 84, 43 + fabricTrail * 0.8, 100, 40 + fabricTrail, 115 + droop * 12],
-      [39 + fabricTrail, 122 + droop * 10, 47 + fabricTrail * 0.7, 129 + droop * 10, 57 + fabricTrail * 0.45, 128 + droop * 10],
-      [68, 119, 76, 101, 78, 91]
-    ]], PAL.indigo, [
-      [[59, 85], [[53, 101, 43 + fabricTrail, 116, 48 + fabricTrail * 0.7, 125], [50 + fabricTrail * 0.6, 116, 60, 99, 59, 85]], PAL.bodyCNavyFold]
-    ]);
-    lowerCloth([[117 + fabricTrail * 0.15, 72], [
-      [128 + fabricTrail * 0.4, 85, 140 + fabricTrail * 0.8, 106, 143 + fabricTrail, 124 + droop * 12],
-      [144 + fabricTrail, 131 + droop * 10, 132 + fabricTrail * 0.7, 138 + droop * 10, 122 + fabricTrail * 0.45, 133 + droop * 10],
-      [111, 119, 104, 101, 102, 91]
-    ]], PAL.indigo, [
-      [[120, 85], [[128, 101, 139 + fabricTrail, 122, 135 + fabricTrail * 0.7, 133], [132 + fabricTrail * 0.6, 117, 122, 99, 120, 85]], PAL.bodyCNavySatin]
-    ]);
-    liningStars(50 + fabricTrail * 0.65, 115, 1);
-    liningStars(133 + fabricTrail * 0.65, 121, -1);
-    bezierShape([43 + fabricTrail, 101], [[38 + fabricTrail, 109, 43 + fabricTrail * 0.9, 117, 50 + fabricTrail * 0.65, 121], [55 + fabricTrail * 0.5, 124, 58, 127, 56, 129], [51, 130, 45 + fabricTrail * 0.8, 124, 43 + fabricTrail * 0.9, 120], [39 + fabricTrail, 114, 39 + fabricTrail, 108, 43 + fabricTrail, 101]], PAL.creamMid);
-    bezierShape([41.3 + fabricTrail, 108], [[41.7 + fabricTrail, 116, 47.2 + fabricTrail * 0.6, 122, 53.3, 125.8], [46, 123, 40 + fabricTrail, 115, 41.3 + fabricTrail, 108]], PAL.bodyCWhiteContact);
-    bezierLine([43 + fabricTrail, 101], [[39 + fabricTrail, 110, 44 + fabricTrail * 0.8, 117, 50 + fabricTrail * 0.65, 121], [55, 124, 58, 127, 56, 129]], PAL.goldDark, STROKE.fine);
-    bezierShape([137 + fabricTrail, 103], [[145 + fabricTrail, 114, 140 + fabricTrail * 0.9, 122, 132 + fabricTrail * 0.65, 126], [126 + fabricTrail * 0.5, 130, 125, 133, 128, 135], [134, 136, 140 + fabricTrail * 0.8, 128, 142 + fabricTrail * 0.9, 124], [146 + fabricTrail, 116, 142 + fabricTrail, 108, 137 + fabricTrail, 103]], PAL.creamMid);
-    bezierShape([142 + fabricTrail, 112], [[144 + fabricTrail, 121, 134 + fabricTrail * 0.6, 128, 128.2, 133], [132, 126, 141 + fabricTrail, 120, 142 + fabricTrail, 112]], PAL.bodyCCreamFold);
-    bezierLine([137 + fabricTrail, 103], [[144 + fabricTrail, 114, 139 + fabricTrail * 0.8, 123, 132 + fabricTrail * 0.65, 126], [126, 130, 125, 133, 128, 135]], PAL.gold, STROKE.fine);
+    const freshClothes = beginClothesLayer(clothesLayers[0], opts);
+    if (freshClothes) {
+      // The dark lining continues from the sleeve turn into the hanging tails.
+      lowerCloth([[63 + fabricTrail * 0.15, 72], [
+        [52 + fabricTrail * 0.4, 84, 43 + fabricTrail * 0.8, 100, 40 + fabricTrail, 115 + droop * 12],
+        [39 + fabricTrail, 122 + droop * 10, 47 + fabricTrail * 0.7, 129 + droop * 10, 57 + fabricTrail * 0.45, 128 + droop * 10],
+        [68, 119, 76, 101, 78, 91]
+      ]], PAL.indigo, [
+        [[59, 85], [[53, 101, 43 + fabricTrail, 116, 48 + fabricTrail * 0.7, 125], [50 + fabricTrail * 0.6, 116, 60, 99, 59, 85]], PAL.bodyCNavyFold]
+      ]);
+      lowerCloth([[117 + fabricTrail * 0.15, 72], [
+        [128 + fabricTrail * 0.4, 85, 140 + fabricTrail * 0.8, 106, 143 + fabricTrail, 124 + droop * 12],
+        [144 + fabricTrail, 131 + droop * 10, 132 + fabricTrail * 0.7, 138 + droop * 10, 122 + fabricTrail * 0.45, 133 + droop * 10],
+        [111, 119, 104, 101, 102, 91]
+      ]], PAL.indigo, [
+        [[120, 85], [[128, 101, 139 + fabricTrail, 122, 135 + fabricTrail * 0.7, 133], [132 + fabricTrail * 0.6, 117, 122, 99, 120, 85]], PAL.bodyCNavySatin]
+      ]);
+      liningStars(50 + fabricTrail * 0.65, 115, 1);
+      liningStars(133 + fabricTrail * 0.65, 121, -1);
+      bezierShape([43 + fabricTrail, 101], [[38 + fabricTrail, 109, 43 + fabricTrail * 0.9, 117, 50 + fabricTrail * 0.65, 121], [55 + fabricTrail * 0.5, 124, 58, 127, 56, 129], [51, 130, 45 + fabricTrail * 0.8, 124, 43 + fabricTrail * 0.9, 120], [39 + fabricTrail, 114, 39 + fabricTrail, 108, 43 + fabricTrail, 101]], PAL.creamMid);
+      bezierShape([41.3 + fabricTrail, 108], [[41.7 + fabricTrail, 116, 47.2 + fabricTrail * 0.6, 122, 53.3, 125.8], [46, 123, 40 + fabricTrail, 115, 41.3 + fabricTrail, 108]], PAL.bodyCWhiteContact);
+      bezierLine([43 + fabricTrail, 101], [[39 + fabricTrail, 110, 44 + fabricTrail * 0.8, 117, 50 + fabricTrail * 0.65, 121], [55, 124, 58, 127, 56, 129]], PAL.goldDark, STROKE.fine);
+      bezierShape([137 + fabricTrail, 103], [[145 + fabricTrail, 114, 140 + fabricTrail * 0.9, 122, 132 + fabricTrail * 0.65, 126], [126 + fabricTrail * 0.5, 130, 125, 133, 128, 135], [134, 136, 140 + fabricTrail * 0.8, 128, 142 + fabricTrail * 0.9, 124], [146 + fabricTrail, 116, 142 + fabricTrail, 108, 137 + fabricTrail, 103]], PAL.creamMid);
+      bezierShape([142 + fabricTrail, 112], [[144 + fabricTrail, 121, 134 + fabricTrail * 0.6, 128, 128.2, 133], [132, 126, 141 + fabricTrail, 120, 142 + fabricTrail, 112]], PAL.bodyCCreamFold);
+      bezierLine([137 + fabricTrail, 103], [[144 + fabricTrail, 114, 139 + fabricTrail * 0.8, 123, 132 + fabricTrail * 0.65, 126], [126, 130, 125, 133, 128, 135]], PAL.gold, STROKE.fine);
 
-    const backFoot = walkStep * 4;
-    const farLift = Math.abs(walkStep) * 7;
-    const farLeg = smoothOutline([[82, 105], [88, 105], [88 - backFoot * 0.25, 143], [85 - backFoot, 158 - farLift], [79 - backFoot, 157 - farLift], [81 - backFoot * 0.4, 132]], 0.6);
-    bodyLMaterial(farLeg, PAL.skinShadow, PAL.skinShadow, PAL.bodyLSkinShade, 0.9, 0.4);
-    lowerBoot(82.5 - backFoot, 148 - farLift, 173.2 - hipTilt - farLift, false);
+      const backFoot = walkStep * 4;
+      const farLift = Math.abs(walkStep) * 7;
+      const farLeg = smoothOutline([[82, 105], [88, 105], [88 - backFoot * 0.25, 143], [85 - backFoot, 158 - farLift], [79 - backFoot, 157 - farLift], [81 - backFoot * 0.4, 132]], 0.6);
+      bodyLMaterial(farLeg, PAL.skinShadow, PAL.skinShadow, PAL.bodyLSkinShade, 0.9, 0.4);
+      lowerBoot(82.5 - backFoot, 148 - farLift, 173.2 - hipTilt - farLift, false);
 
-    const robeL = [[78, 75], [
-      [69, 85, 62, 103, 58 + fabricTrail * 0.15, 118],
-      [56 + fabricTrail * 0.25, 129, 53 + fabricTrail * 0.4, 136, 52 + fabricTrail * 0.45, 142],
-      [55 + fabricTrail * 0.4, 147, 63 + fabricTrail * 0.3, 146, 68 + fabricTrail * 0.2, 149],
-      [75 + fabricTrail * 0.15, 153, 84, 150, 89, 142],
-      [91, 130, 92, 110, 94, 96], [91, 84, 84, 77, 78, 75]
-    ]];
-    const robeR = [[102, 74], [
-      [114, 87, 121, 102, 124 + fabricTrail * 0.15, 116],
-      [127 + fabricTrail * 0.25, 130, 130 + fabricTrail * 0.4, 139, 132 + fabricTrail * 0.45, 146],
-      [128 + fabricTrail * 0.4, 151, 120 + fabricTrail * 0.3, 149, 115 + fabricTrail * 0.2, 152],
-      [107 + fabricTrail * 0.15, 156, 100, 150, 100, 142],
-      [99, 126, 90, 107, 87, 96], [90, 83, 97, 76, 102, 74]
-    ]];
-    lowerCloth(robeL, PAL.creamMid, [
-      [[69, 91], [[65, 109, 62 + fabricTrail * 0.2, 130, 56 + fabricTrail * 0.4, 143], [61 + fabricTrail * 0.3, 145, 67, 121, 69, 91]], PAL.bodyCWhiteContact],
-      [[79, 84], [[73, 104, 70, 126, 68, 149], [77, 139, 76, 107, 79, 84]], PAL.bodyCCreamLight]
-    ]);
-    lowerCloth(robeR, PAL.creamMid, [
-      [[111, 89], [[118, 112, 122 + fabricTrail * 0.2, 133, 130 + fabricTrail * 0.4, 146], [121 + fabricTrail * 0.3, 146, 114, 119, 111, 89]], PAL.bodyCCreamFold],
-      [[105, 85], [[108, 108, 109, 130, 115, 152], [105, 142, 103, 106, 105, 85]], PAL.cream]
-    ]);
-    for (const robe of [robeL, robeR]) bezierLine(robe[0], robe[1].slice(0, 4), PAL.outline, STROKE.fine);
-    const whiteSkirt = smoothOutline([[86, 78], [75, 93], [69, 114], [63 + fabricTrail * 0.35, 147], [75, 150], [85, 145], [89, 126], [94, 87]], 0.5);
-    lowerCloth(whiteSkirt, PAL.cream, [
-      [[79, 88], [[74, 110, 76, 131, 68, 147], [73, 146, 79, 121, 79, 88]], PAL.bodyCCreamFold],
-      [[87, 88], [[83, 107, 85, 128, 82, 146], [88, 138, 90, 105, 87, 88]], PAL.bodyCCreamShade]
-    ]);
-    bodyLClip(whiteSkirt, () => {
-      for (const [x, end] of [[76.5, 70], [82, 77.5], [86.5, 83]]) {
-        bezierShape([x, 97], [[x - 1.4, 115, end + 1, 135, end, 146], [end + 1.6, 137, x + 0.2, 115, x, 97]], PAL.bodyCCreamFold);
-        bezierLine([x + 0.5, 102], [[x, 116, end + 1.7, 136, end + 0.5, 144]], PAL.bodyCCreamLight, STROKE.hairline);
-      }
-      const hem = [whiteSkirt[0], ...whiteSkirt[1].map(p => p.slice(4))];
-      const segs = whiteSkirt[1].slice(3, 5);
-      pctx.save(); pctx.translate(0, -1.1);
-      bezierLine(hem[3], segs, PAL.bodyCCreamShade, STROKE.hairline);
-      pctx.beginPath(); pctx.strokeStyle = PAL.bodyCCreamShade; pctx.lineWidth = STROKE.hairline;
-      for (let i = 0; i < 9; i++) {
-        const x = 65 + fabricTrail * 0.3 + i * 2.1, y = 148.3 - Math.pow((x - 74) / 9, 2) * 2.4;
-        pctx.moveTo(x - 0.8, y - 0.1); pctx.bezierCurveTo(x - 0.8, y + 1.2, x + 0.8, y + 1.2, x + 0.8, y - 0.1);
-      }
-      pctx.stroke(); pctx.restore();
-      clothTrim([89.3, 104], [[88.8, 115, 87.4, 128, 85.8, 138], [85.3, 142, 84.7, 144.2, 84.2, 145.3]], 0, true);
-    });
-    const navySkirt = smoothOutline([[94, 79], [107, 92], [114, 115], [123 + fabricTrail * 0.35, 150], [111, 152], [101, 147], [93, 126], [87, 88]], 0.5);
-    lowerCloth(navySkirt, PAL.indigo, [
-      [[102, 91], [[106, 109, 107, 134, 115, 150], [113, 132, 109, 106, 102, 91]], PAL.bodyCNavyLight],
-      [[99, 94], [[100, 115, 98, 136, 104, 148], [108, 139, 104, 111, 99, 94]], PAL.bodyCNavyContact],
-      [[110, 105], [[116, 124, 118, 140, 122, 149], [120, 132, 114, 112, 110, 105]], PAL.bodyCNavySatin]
-    ]);
-    bodyLClip(navySkirt, () => {
-      pctx.fillStyle = PAL.bodyCNavySatin; pctx.beginPath();
-      for (const [x, y, r] of [[102, 104, 0.35], [108, 112, 0.3], [103, 122, 0.4], [111, 129, 0.3], [106, 140, 0.4], [116, 146, 0.3], [112, 119, 0.25], [117, 137, 0.3]]) {
-        pctx.moveTo(x + r, y); pctx.arc(x, y, r, 0, Math.PI * 2);
-      }
-      pctx.fill();
-      clothTrim([101.4, 107], [[103.8, 119, 104, 135, 103.1, 145]], 0, true);
-    });
-    const split = smoothOutline([[91, 91], [100, 105], [102, 126], [101, 150], [92, 151], [87, 146], [87, 126]], 0.45);
-    bezierShape(split[0], split[1], PAL.indigoDeep);
-    // The leg tapers from thigh (about 8.8 wide) to knee (6.8), swells a
-    // little at the calf (7.0) and narrows into the boot shaft (6.2) on one
-    // axis, so thigh, knee and calf read as one limb.
-    const thigh = smoothOutline([
-      [92, 103], [95.8, 108], [97.6, 116], [97.6, 122], [97.1, 127.5], [97.6, 131],
-      [98.5, 135.5], [98.4, 141], [98.8, 146.5], [92.2, 146.5], [92.2, 141],
-      [91.6, 135.5], [90.5, 129], [89.4, 123], [89.2, 116], [90.2, 108]
-    ], 0.5);
-    bodyLMaterial(thigh, PAL.skin, PAL.bodyLSkinShade, PAL.skin, 1.1, 0.3);
-    bodyLClip(thigh, () => {
-      // shade down the side away from the light, thinning into the boot
-      const shade = smoothOutline([
-        [89.2, 114], [90.7, 115], [91.3, 122], [91.7, 128.5], [92.9, 135.5],
-        [93.3, 141], [93.3, 147], [91.8, 147], [92.1, 141], [91.5, 135.5], [90.4, 129], [89.3, 123]
+      const robeL = [[78, 75], [
+        [69, 85, 62, 103, 58 + fabricTrail * 0.15, 118],
+        [56 + fabricTrail * 0.25, 129, 53 + fabricTrail * 0.4, 136, 52 + fabricTrail * 0.45, 142],
+        [55 + fabricTrail * 0.4, 147, 63 + fabricTrail * 0.3, 146, 68 + fabricTrail * 0.2, 149],
+        [75 + fabricTrail * 0.15, 153, 84, 150, 89, 142],
+        [91, 130, 92, 110, 94, 96], [91, 84, 84, 77, 78, 75]
+      ]];
+      const robeR = [[102, 74], [
+        [114, 87, 121, 102, 124 + fabricTrail * 0.15, 116],
+        [127 + fabricTrail * 0.25, 130, 130 + fabricTrail * 0.4, 139, 132 + fabricTrail * 0.45, 146],
+        [128 + fabricTrail * 0.4, 151, 120 + fabricTrail * 0.3, 149, 115 + fabricTrail * 0.2, 152],
+        [107 + fabricTrail * 0.15, 156, 100, 150, 100, 142],
+        [99, 126, 90, 107, 87, 96], [90, 83, 97, 76, 102, 74]
+      ]];
+      lowerCloth(robeL, PAL.creamMid, [
+        [[69, 91], [[65, 109, 62 + fabricTrail * 0.2, 130, 56 + fabricTrail * 0.4, 143], [61 + fabricTrail * 0.3, 145, 67, 121, 69, 91]], PAL.bodyCWhiteContact],
+        [[79, 84], [[73, 104, 70, 126, 68, 149], [77, 139, 76, 107, 79, 84]], PAL.bodyCCreamLight]
+      ]);
+      lowerCloth(robeR, PAL.creamMid, [
+        [[111, 89], [[118, 112, 122 + fabricTrail * 0.2, 133, 130 + fabricTrail * 0.4, 146], [121 + fabricTrail * 0.3, 146, 114, 119, 111, 89]], PAL.bodyCCreamFold],
+        [[105, 85], [[108, 108, 109, 130, 115, 152], [105, 142, 103, 106, 105, 85]], PAL.cream]
+      ]);
+      for (const robe of [robeL, robeR]) bezierLine(robe[0], robe[1].slice(0, 4), PAL.outline, STROKE.fine);
+      const whiteSkirt = smoothOutline([[86, 78], [75, 93], [69, 114], [63 + fabricTrail * 0.35, 147], [75, 150], [85, 145], [89, 126], [94, 87]], 0.5);
+      lowerCloth(whiteSkirt, PAL.cream, [
+        [[79, 88], [[74, 110, 76, 131, 68, 147], [73, 146, 79, 121, 79, 88]], PAL.bodyCCreamFold],
+        [[87, 88], [[83, 107, 85, 128, 82, 146], [88, 138, 90, 105, 87, 88]], PAL.bodyCCreamShade]
+      ]);
+      bodyLClip(whiteSkirt, () => {
+        for (const [x, end] of [[76.5, 70], [82, 77.5], [86.5, 83]]) {
+          bezierShape([x, 97], [[x - 1.4, 115, end + 1, 135, end, 146], [end + 1.6, 137, x + 0.2, 115, x, 97]], PAL.bodyCCreamFold);
+          bezierLine([x + 0.5, 102], [[x, 116, end + 1.7, 136, end + 0.5, 144]], PAL.bodyCCreamLight, STROKE.hairline);
+        }
+        const hem = [whiteSkirt[0], ...whiteSkirt[1].map(p => p.slice(4))];
+        const segs = whiteSkirt[1].slice(3, 5);
+        pctx.save(); pctx.translate(0, -1.1);
+        bezierLine(hem[3], segs, PAL.bodyCCreamShade, STROKE.hairline);
+        pctx.beginPath(); pctx.strokeStyle = PAL.bodyCCreamShade; pctx.lineWidth = STROKE.hairline;
+        for (let i = 0; i < 9; i++) {
+          const x = 65 + fabricTrail * 0.3 + i * 2.1, y = 148.3 - Math.pow((x - 74) / 9, 2) * 2.4;
+          pctx.moveTo(x - 0.8, y - 0.1); pctx.bezierCurveTo(x - 0.8, y + 1.2, x + 0.8, y + 1.2, x + 0.8, y - 0.1);
+        }
+        pctx.stroke(); pctx.restore();
+        clothTrim([89.3, 104], [[88.8, 115, 87.4, 128, 85.8, 138], [85.3, 142, 84.7, 144.2, 84.2, 145.3]], 0, true);
+      });
+      const navySkirt = smoothOutline([[94, 79], [107, 92], [114, 115], [123 + fabricTrail * 0.35, 150], [111, 152], [101, 147], [93, 126], [87, 88]], 0.5);
+      lowerCloth(navySkirt, PAL.indigo, [
+        [[102, 91], [[106, 109, 107, 134, 115, 150], [113, 132, 109, 106, 102, 91]], PAL.bodyCNavyLight],
+        [[99, 94], [[100, 115, 98, 136, 104, 148], [108, 139, 104, 111, 99, 94]], PAL.bodyCNavyContact],
+        [[110, 105], [[116, 124, 118, 140, 122, 149], [120, 132, 114, 112, 110, 105]], PAL.bodyCNavySatin]
+      ]);
+      bodyLClip(navySkirt, () => {
+        pctx.fillStyle = PAL.bodyCNavySatin; pctx.beginPath();
+        for (const [x, y, r] of [[102, 104, 0.35], [108, 112, 0.3], [103, 122, 0.4], [111, 129, 0.3], [106, 140, 0.4], [116, 146, 0.3], [112, 119, 0.25], [117, 137, 0.3]]) {
+          pctx.moveTo(x + r, y); pctx.arc(x, y, r, 0, Math.PI * 2);
+        }
+        pctx.fill();
+        clothTrim([101.4, 107], [[103.8, 119, 104, 135, 103.1, 145]], 0, true);
+      });
+      const split = smoothOutline([[91, 91], [100, 105], [102, 126], [101, 150], [92, 151], [87, 146], [87, 126]], 0.45);
+      bezierShape(split[0], split[1], PAL.indigoDeep);
+      // The leg tapers from thigh (about 8.8 wide) to knee (6.8), swells a
+      // little at the calf (7.0) and narrows into the boot shaft (6.2) on one
+      // axis, so thigh, knee and calf read as one limb.
+      const thigh = smoothOutline([
+        [92, 103], [95.8, 108], [97.6, 116], [97.6, 122], [97.1, 127.5], [97.6, 131],
+        [98.5, 135.5], [98.4, 141], [98.8, 146.5], [92.2, 146.5], [92.2, 141],
+        [91.6, 135.5], [90.5, 129], [89.4, 123], [89.2, 116], [90.2, 108]
       ], 0.5);
-      bezierShape(shade[0], shade[1], PAL.bodyLSkinShade);
-      // a soft fall of shade under the kneecap, kept to the inner half
-      bezierShape([92.4, 129.4], [[93.4, 130.5, 94.8, 130.7, 95.6, 130.2], [94.6, 131.4, 93.1, 131.3, 92.4, 129.4]], PAL.bodyLSkinShade);
-    });
-    lowerBoot(95.5, 145, 175, false);
+      bodyLMaterial(thigh, PAL.skin, PAL.bodyLSkinShade, PAL.skin, 1.1, 0.3);
+      bodyLClip(thigh, () => {
+        // shade down the side away from the light, thinning into the boot
+        const shade = smoothOutline([
+          [89.2, 114], [90.7, 115], [91.3, 122], [91.7, 128.5], [92.9, 135.5],
+          [93.3, 141], [93.3, 147], [91.8, 147], [92.1, 141], [91.5, 135.5], [90.4, 129], [89.3, 123]
+        ], 0.5);
+        bezierShape(shade[0], shade[1], PAL.bodyLSkinShade);
+        // a soft fall of shade under the kneecap, kept to the inner half
+        bezierShape([92.4, 129.4], [[93.4, 130.5, 94.8, 130.7, 95.6, 130.2], [94.6, 131.4, 93.1, 131.3, 92.4, 129.4]], PAL.bodyLSkinShade);
+      });
+      lowerBoot(95.5, 145, 175, false);
 
-    // The narrow neck opens into bare shoulders above the dropped gown.
-    const neck = [[88, 43], [
-      [89.2, 47.8, 89.2, 50.2, 86, 51.5],
-      [82, 52, 78, 50.5, 74, 52],
-      [72, 53, 71, 55, 71.5, 57],
-      [76, 58, 80, 60, 84, 61],
-      [89, 63, 96, 63, 101, 61],
-      [105, 60, 109, 58 + shoulderDrop, 109, 56 + shoulderDrop],
-      [108, 53 + shoulderDrop, 106, 52 + shoulderDrop, 103, 52],
-      [101, 52, 99.5, 52, 98, 51.5],
-      [94.8, 50.2, 94.8, 47.8, 96, 43]
-    ]];
-    bezierShape(neck[0], neck[1], PAL.skin);
-    // Collarbone hints stay beside the neck and clear of its center.
-    bezierLine([84, 54.4], [[82.4, 54.8, 80.5, 54.3, 79, 53.8]], PAL.bodyLSkinShade, STROKE.hairline);
-    bezierLine([99, 54.4], [[100.5, 54.8, 102, 54.2 + shoulderDrop, 103, 53.8 + shoulderDrop]], PAL.bodyLSkinShade, STROKE.hairline);
-    pctx.save(); pctx.translate(0, 88); pctx.scale(1, 31 / 29); pctx.translate(0, -88);
-    fittedCloth(smoothOutline([[76, 60], [84, 59], [92, 61], [101, 59], [107, 60], [104, 73], [98, 84], [82, 83], [75, 72]], 0.5), PAL.cream, []);
-    fittedCloth(smoothOutline([[76, 60], [84, 59], [88, 79], [80, 82], [74, 69]], 0.5), PAL.indigoMid, [
-      [[79, 62], [[80, 67, 82, 75, 83, 79], [86, 80, 84, 66, 79, 62]], PAL.bodyCNavySatin]
-    ]);
-    // Subtle clockwork stays inside the fitted navy panels.
-    const bodiceMid = smoothOutline([[84, 59], [92, 60.5], [100, 59], [104, 72], [102, 82], [92, 88], [83, 82]], 0.5);
-    fittedCloth(bodiceMid, PAL.indigoDeep, [
-      [[91, 62], [[90, 70, 90, 79, 92, 85], [96, 84, 96, 72, 94, 66], [93, 64, 92, 62, 91, 62]], PAL.bodyCNavyContact],
-      [[98, 62], [[101, 68, 102, 76, 101, 81], [98, 78, 97, 68, 98, 62]], PAL.bodyCNavySatin]
-    ]);
-    bodyLClip(waistPath(bodiceMid), () => {
-      pctx.strokeStyle = PAL.bodyCNavySatin + '38'; pctx.lineWidth = STROKE.hairline;
-      pctx.beginPath();
-      for (const [x, y, r] of [[89, 67, 3.4], [97, 77, 4.2], [88, 83, 2.5]]) {
-        pctx.moveTo(x + r, y); pctx.arc(x, y, r, 0, Math.PI * 2);
-        pctx.moveTo(x, y - r * 0.65); pctx.lineTo(x, y); pctx.lineTo(x + r * 0.55, y + r * 0.2);
+      // The narrow neck opens into bare shoulders above the dropped gown.
+      const neck = [[88, 43], [
+        [89.2, 47.8, 89.2, 50.2, 86, 51.5],
+        [82, 52, 78, 50.5, 74, 52],
+        [72, 53, 71, 55, 71.5, 57],
+        [76, 58, 80, 60, 84, 61],
+        [89, 63, 96, 63, 101, 61],
+        [105, 60, 109, 58 + shoulderDrop, 109, 56 + shoulderDrop],
+        [108, 53 + shoulderDrop, 106, 52 + shoulderDrop, 103, 52],
+        [101, 52, 99.5, 52, 98, 51.5],
+        [94.8, 50.2, 94.8, 47.8, 96, 43]
+      ]];
+      bezierShape(neck[0], neck[1], PAL.skin);
+      // Collarbone hints stay beside the neck and clear of its center.
+      bezierLine([84, 54.4], [[82.4, 54.8, 80.5, 54.3, 79, 53.8]], PAL.bodyLSkinShade, STROKE.hairline);
+      bezierLine([99, 54.4], [[100.5, 54.8, 102, 54.2 + shoulderDrop, 103, 53.8 + shoulderDrop]], PAL.bodyLSkinShade, STROKE.hairline);
+      pctx.save(); pctx.translate(0, 88); pctx.scale(1, 31 / 29); pctx.translate(0, -88);
+      fittedCloth(smoothOutline([[76, 60], [84, 59], [92, 61], [101, 59], [107, 60], [104, 73], [98, 84], [82, 83], [75, 72]], 0.5), PAL.cream, []);
+      fittedCloth(smoothOutline([[76, 60], [84, 59], [88, 79], [80, 82], [74, 69]], 0.5), PAL.indigoMid, [
+        [[79, 62], [[80, 67, 82, 75, 83, 79], [86, 80, 84, 66, 79, 62]], PAL.bodyCNavySatin]
+      ]);
+      // Subtle clockwork stays inside the fitted navy panels.
+      const bodiceMid = smoothOutline([[84, 59], [92, 60.5], [100, 59], [104, 72], [102, 82], [92, 88], [83, 82]], 0.5);
+      fittedCloth(bodiceMid, PAL.indigoDeep, [
+        [[91, 62], [[90, 70, 90, 79, 92, 85], [96, 84, 96, 72, 94, 66], [93, 64, 92, 62, 91, 62]], PAL.bodyCNavyContact],
+        [[98, 62], [[101, 68, 102, 76, 101, 81], [98, 78, 97, 68, 98, 62]], PAL.bodyCNavySatin]
+      ]);
+      bodyLClip(waistPath(bodiceMid), () => {
+        pctx.strokeStyle = PAL.bodyCNavySatin + '38'; pctx.lineWidth = STROKE.hairline;
+        pctx.beginPath();
+        for (const [x, y, r] of [[89, 67, 3.4], [97, 77, 4.2], [88, 83, 2.5]]) {
+          pctx.moveTo(x + r, y); pctx.arc(x, y, r, 0, Math.PI * 2);
+          pctx.moveTo(x, y - r * 0.65); pctx.lineTo(x, y); pctx.lineTo(x + r * 0.55, y + r * 0.2);
+        }
+        pctx.stroke();
+      });
+
+      pctx.restore();
+      lowerSleeve(-1, fabricTrail, 0, false);
+      // Her right arm, one rig from hanging at her side to raised in the cast.
+      // The sleeve drape hangs from the shoulder the whole time and the bare
+      // arm lifts in front of it, the way the left arm lies over its own
+      // sleeve. Built as two drawings, one for each state, the sleeve vanished
+      // and a different one appeared the instant the cast began, and the hand
+      // jumped from her hip to her chest.
+      pctx.save();
+      pctx.translate(0, shoulderDrop);
+      lowerSleeve(1, fabricTrail, castExt, false);
+      pctx.restore();
+
+      // Fine embroidery follows the fitted seams from chest to waist.
+      pctx.save(); pctx.translate(0, 88); pctx.scale(1, 31 / 29); pctx.translate(0, -88);
+      waistLine([86, 61], [[87.7, 67, 88.3, 73, 87.9, 79], [87.7, 82, 88.1, 84, 89, 86]], PAL.gold, STROKE.fine);
+      waistLine([99, 61], [[97, 67, 96.2, 73, 96.5, 79], [96.7, 82, 96, 84, 95, 86]], PAL.goldDark, STROKE.fine);
+      lapisStone(92, 72, 1.75, 1.75, 14);
+      pctx.restore();
+      bezierLine([91, 79], [[90.8, 83, 91.5, 87, 91, 91]], PAL.gold, STROKE.fine);
+      sparkle(91, 91, 2.3, PAL.gold);
+      for (const [x, y] of [[85, 89], [103, 91]]) {
+        ellipseF(x, y, 1.2, 1.3, PAL.gold);
+        ellipseF(x, y, 0.5, 0.6, PAL.indigo);
       }
-      pctx.stroke();
-    });
 
-    pctx.restore();
-    lowerSleeve(-1, fabricTrail, 0, false);
-    // Her right arm, one rig from hanging at her side to raised in the cast.
-    // The sleeve drape hangs from the shoulder the whole time and the bare
-    // arm lifts in front of it, the way the left arm lies over its own
-    // sleeve. Built as two drawings, one for each state, the sleeve vanished
-    // and a different one appeared the instant the cast began, and the hand
-    // jumped from her hip to her chest.
-    pctx.save();
-    pctx.translate(0, shoulderDrop);
-    lowerSleeve(1, fabricTrail, castExt, false);
-    pctx.restore();
+      // The collar center has its upper edge at y 55.2 on the standing grid.
+      bezierLine([87, 54.5], [[89, 56.5, 94.8, 56.5, 97, 54.5]], PAL.gold, STROKE.band);
+      bezierLine([84, 57.7], [[88, 61, 96, 61, 100, 57.7]], PAL.goldDark, STROKE.fine);
+      bezierShape([92, 56.5], [[93, 57.5, 93.7, 58.5, 94, 59.1], [93.5, 59.8, 92.5, 61.1, 92, 61.8], [91.5, 61.1, 90.5, 59.8, 90, 59.1], [90.5, 58.1, 91.3, 57.1, 92, 56.5]], PAL.gold);
+      bezierShape([92, 57.7], [[92.5, 58.3, 92.8, 58.7, 93, 59.1], [92.7, 59.7, 92.3, 60.2, 92, 60.7], [91.7, 60.2, 91.3, 59.7, 91, 59.1], [91.3, 58.5, 91.6, 58.1, 92, 57.7]], PAL.eyeBlue);
 
-    // Fine embroidery follows the fitted seams from chest to waist.
-    pctx.save(); pctx.translate(0, 88); pctx.scale(1, 31 / 29); pctx.translate(0, -88);
-    waistLine([86, 61], [[87.7, 67, 88.3, 73, 87.9, 79], [87.7, 82, 88.1, 84, 89, 86]], PAL.gold, STROKE.fine);
-    waistLine([99, 61], [[97, 67, 96.2, 73, 96.5, 79], [96.7, 82, 96, 84, 95, 86]], PAL.goldDark, STROKE.fine);
-    lapisStone(92, 72, 1.75, 1.75, 14);
-    pctx.restore();
-    bezierLine([91, 79], [[90.8, 83, 91.5, 87, 91, 91]], PAL.gold, STROKE.fine);
-    sparkle(91, 91, 2.3, PAL.gold);
-    waistJewelry(sway);
-    for (const [x, y] of [[85, 89], [103, 91]]) {
-      ellipseF(x, y, 1.2, 1.3, PAL.gold);
-      ellipseF(x, y, 0.5, 0.6, PAL.indigo);
+      jewelAnchor(0, 92, 59.1);
+
+      // Detail pass over the gown, under the face and front hair so nothing here
+      // can crowd them. Everything is a thin line or a small flat shape: at this
+      // sprite size anything finer than about one grid unit never resolves, it
+      // only costs draw time.
+
+      // Embroidery follows the cloth edges and stops outside the exposed leg.
+      bezierLine([86, 79], [[77, 93, 71, 115, 69, 131], [67, 141, 65, 145, 64 + fabricTrail * 0.35, 147], [72, 151, 81, 150, 85, 145]], PAL.goldDark, STROKE.fine);
+      bezierLine([94, 80], [[106, 94, 113, 116, 116, 130], [119, 139, 122, 146, 123 + fabricTrail * 0.35, 150], [116, 153, 107, 151, 101, 147]], PAL.gold, STROKE.fine);
+      bezierLine([91.5, 99], [[90, 112, 86.2, 122, 88.2, 129], [89.5, 137, 89.3, 142, 90.6, 146]], PAL.goldDark, STROKE.hairline);
+      bezierLine([98.8, 114], [[100.8, 128, 98.8, 139, 101, 147]], PAL.gold, STROKE.hairline);
+      bezierLine([52 + fabricTrail * 0.45, 142], robeL[1].slice(2, 4), PAL.goldDark, STROKE.fine);
+      bezierLine([132 + fabricTrail * 0.45, 146], robeR[1].slice(2, 4), PAL.gold, STROKE.fine);
+      bodyLClip(robeL, () => clothTrim([52 + fabricTrail * 0.45, 142], robeL[1].slice(2, 4), -1.9, false));
+      bodyLClip(robeR, () => clothTrim([132 + fabricTrail * 0.45, 146], robeR[1].slice(2, 4), 1.9, false));
+      sparkle(73, 113, 1.6, PAL.gold);
+      sparkle(68, 135, 1.5, PAL.gold);
+      sparkle(114.5, 125, 1.6, PAL.gold);
+      sparkle(120, 142, 1.4, PAL.gold);
+
+      // Bodice seams either side of the centre band, and a waist line, so the
+      // torso stops being one unbroken dark field.
+      waistLine([88, 58], [[87, 70.7, 87, 84, 88, 94]], PAL.indigoHi, STROKE.hairline);
+      waistLine([96, 58], [[97, 70.7, 97, 84, 96, 94]], PAL.indigoHi, STROKE.hairline);
+      bezierLine([86, 90 + hipTilt], [[89, 93 + hipTilt * 0.5, 95, 93 - hipTilt * 0.5, 98, 90 - hipTilt]], PAL.goldDark, STROKE.fine);
+
+      // Gold at the collar and the sleeve openings. The metal is the only part
+      // of the outfit that can catch light, so more of it is what reads as
+      // expensive rather than more cloth detail would.
+      bezierLine([82, 60.3], [[86, 64.3, 98, 64.3, 102, 60.3]], PAL.goldDark, STROKE.edge);
+      bezierLine([83, 59.3], [[87, 62.3, 97, 62.3, 101, 59.3]], PAL.gold, STROKE.fine);
+      waistLine([86, 75], [[89, 77, 95, 77, 98, 75]], PAL.goldDark, STROKE.fine);
+      ellipse(89, 86, 1.2, 1.2, PAL.gold);
+      ellipse(95, 86, 1.2, 1.2, PAL.gold);
+
+      // A contact shadow follows the upper bodice seam.
+      bezierLine([78, 64.5], [[84, 68.7, 100, 68.7, 106, 64.5]], PAL.indigoDeep, STROKE.seam);
     }
-
-    // The collar center has its upper edge at y 55.2 on the standing grid.
-    bezierLine([87, 54.5], [[89, 56.5, 94.8, 56.5, 97, 54.5]], PAL.gold, STROKE.band);
-    bezierLine([84, 57.7], [[88, 61, 96, 61, 100, 57.7]], PAL.goldDark, STROKE.fine);
-    bezierShape([92, 56.5], [[93, 57.5, 93.7, 58.5, 94, 59.1], [93.5, 59.8, 92.5, 61.1, 92, 61.8], [91.5, 61.1, 90.5, 59.8, 90, 59.1], [90.5, 58.1, 91.3, 57.1, 92, 56.5]], PAL.gold);
-    bezierShape([92, 57.7], [[92.5, 58.3, 92.8, 58.7, 93, 59.1], [92.7, 59.7, 92.3, 60.2, 92, 60.7], [91.7, 60.2, 91.3, 59.7, 91, 59.1], [91.3, 58.5, 91.6, 58.1, 92, 57.7]], PAL.eyeBlue);
-
-    jewelAnchor(0, 92, 59.1);
-
-    // Detail pass over the gown, under the face and front hair so nothing here
-    // can crowd them. Everything is a thin line or a small flat shape: at this
-    // sprite size anything finer than about one grid unit never resolves, it
-    // only costs draw time.
-
-    // Embroidery follows the cloth edges and stops outside the exposed leg.
-    bezierLine([86, 79], [[77, 93, 71, 115, 69, 131], [67, 141, 65, 145, 64 + fabricTrail * 0.35, 147], [72, 151, 81, 150, 85, 145]], PAL.goldDark, STROKE.fine);
-    bezierLine([94, 80], [[106, 94, 113, 116, 116, 130], [119, 139, 122, 146, 123 + fabricTrail * 0.35, 150], [116, 153, 107, 151, 101, 147]], PAL.gold, STROKE.fine);
-    bezierLine([91.5, 99], [[90, 112, 86.2, 122, 88.2, 129], [89.5, 137, 89.3, 142, 90.6, 146]], PAL.goldDark, STROKE.hairline);
-    bezierLine([98.8, 114], [[100.8, 128, 98.8, 139, 101, 147]], PAL.gold, STROKE.hairline);
-    bezierLine([52 + fabricTrail * 0.45, 142], robeL[1].slice(2, 4), PAL.goldDark, STROKE.fine);
-    bezierLine([132 + fabricTrail * 0.45, 146], robeR[1].slice(2, 4), PAL.gold, STROKE.fine);
-    bodyLClip(robeL, () => clothTrim([52 + fabricTrail * 0.45, 142], robeL[1].slice(2, 4), -1.9, false));
-    bodyLClip(robeR, () => clothTrim([132 + fabricTrail * 0.45, 146], robeR[1].slice(2, 4), 1.9, false));
-    sparkle(73, 113, 1.6, PAL.gold);
-    sparkle(68, 135, 1.5, PAL.gold);
-    sparkle(114.5, 125, 1.6, PAL.gold);
-    sparkle(120, 142, 1.4, PAL.gold);
-
-    // Bodice seams either side of the centre band, and a waist line, so the
-    // torso stops being one unbroken dark field.
-    waistLine([88, 58], [[87, 70.7, 87, 84, 88, 94]], PAL.indigoHi, STROKE.hairline);
-    waistLine([96, 58], [[97, 70.7, 97, 84, 96, 94]], PAL.indigoHi, STROKE.hairline);
-    bezierLine([86, 90 + hipTilt], [[89, 93 + hipTilt * 0.5, 95, 93 - hipTilt * 0.5, 98, 90 - hipTilt]], PAL.goldDark, STROKE.fine);
-
-    // Gold at the collar and the sleeve openings. The metal is the only part
-    // of the outfit that can catch light, so more of it is what reads as
-    // expensive rather than more cloth detail would.
-    bezierLine([82, 60.3], [[86, 64.3, 98, 64.3, 102, 60.3]], PAL.goldDark, STROKE.edge);
-    bezierLine([83, 59.3], [[87, 62.3, 97, 62.3, 101, 59.3]], PAL.gold, STROKE.fine);
-    waistLine([86, 75], [[89, 77, 95, 77, 98, 75]], PAL.goldDark, STROKE.fine);
-    ellipse(89, 86, 1.2, 1.2, PAL.gold);
-    ellipse(95, 86, 1.2, 1.2, PAL.gold);
-
-    // Contact shadows. Each one marks where something sits in front of
-    // something else, and together they are what turns a set of flat panels
-    // into a figure with depth.
-    bezierLine([78, 64.5], [[84, 68.7, 100, 68.7, 106, 64.5]], PAL.indigoDeep, STROKE.seam);
-    bezierLine([74, 74], [[80, 80, 86, 84, 88, 92]], PAL.creamShadow, STROKE.fine);
-    bezierLine([110, 74], [[104, 80, 98, 84, 96, 92]], PAL.indigoDeep, STROKE.fine);
-
+    finishClothesLayer(clothesLayers[0], freshClothes);
+    waistJewelry(sway);
     chestChain(castExt, fabricTrail, shoulderDrop);
     // Skin is drawn in front of the sleeve with a tapered elbow and wrist.
-    const leftHandFrame = {x:48.6 + fabricTrail * 0.5,y:88.8,rot:Math.atan2(-((49 + fabricTrail * 0.5) - (53 + fabricTrail * 0.42)),90 - 85),size:0.75,side:1};
+    const leftHandFrame = {x:48.6 + fabricTrail * 0.5,y:88.8,rot:Math.atan2(-((49 + fabricTrail * 0.5) - (53 + fabricTrail * 0.42)),90 - 85),size:0.9,side:1};
     shapedArm([74, 53], [69, 58, 64, 64, 62 + fabricTrail * 0.15, 70], [58 + fabricTrail * 0.3, 78, 53 + fabricTrail * 0.42, 85, 49 + fabricTrail * 0.5, 90], leftHandFrame);
 
     armJewelry([74, 53], [69, 58, 64, 64, 62 + fabricTrail * 0.15, 70], 3);
@@ -1828,7 +1891,7 @@
     pctx.save();
     pctx.translate(48.6 + fabricTrail * 0.5, 88.8);
     pctx.rotate(Math.atan2(-((49 + fabricTrail * 0.5) - (53 + fabricTrail * 0.42)), 90 - 85));
-    pctx.scale(0.75, 0.75);
+    pctx.scale(leftHandFrame.size, leftHandFrame.size);
     drawCastHand(0, 0, 1, 0);
     finishWrist(1);
     pctx.restore();
@@ -1936,7 +1999,8 @@
     }
 
     // Side hair: the body's sway plus its own swing, each side on its own lag.
-    const sideL = hm.long(0.6) * 0.7, sideR = hm.long(1.0) * 0.7;
+    const sideL = hm.strand(0.6) * 0.22, sideR = hm.strand(1.0) * 0.22;
+    hairMode = 2;
     hairMassH([[82, 18], [
       [76, 27, 76, 47, 76.8 + sideL * 0.2, 63],
       [77 + sideL * 0.4, 80, 76 + sideL * 0.7, 95, 73.5 + sway * 0.4 + sideL, 104],
@@ -1963,6 +2027,7 @@
       bezierLine([102, 18], [[109, 23, 109, 46, 109 + sway * 0.4 + sideR, 68]], PAL.magicHi, STROKE.fine);
       pctx.restore();
     }
+    hairMode = 0;
     // Crown drawn first in a light tone so it blends with the bangs sitting
     // on top of it, instead of reading as a separate dark "cap". Its inner
     // edge sits low enough that the dome has real thickness: pulled up near
@@ -2013,6 +2078,7 @@
       [93.5, 35.4, 93.7, 31.2, 93.4, 27.0],
       [92.3, 26.4, 91.1, 26.5, 90.1, 27.2]
     ]];
+    hairMode = 3;
     // The shadow it throws on the forehead: the same outline moved away from
     // the light, kept to the face, so it runs along every lock and notch
     // at the same width. Separate strokes under each notch outlined the
@@ -2050,6 +2116,7 @@
     bezierLine([92, 9.4], [[91.7, 11, 91.4, 12.6, 91.2, 14]], PAL.hairLavender, STROKE.hairline);
     hairCrownRing();
     bezierLine([75, 26], [[76, 14, 83, 9, 92, 9], [101, 9, 108, 14, 109, 26]], PAL.hairBlueShade, STROKE.fine);
+    hairMode = 0;
     drawAhoge(92, 9.6, sway * 0.25 + hm.ahoge);
     hairSurfaceDetail(false, hm, sway, hTrail);
 
@@ -2104,8 +2171,7 @@
 
     // Top graphics tier only. Everything below this line is polish rather
     // than information, so the tiers under it get the sprite as it stands and
-    // pay nothing for it. The sprite cache is what buys the room: this is
-    // drawn 24 times a second, not 60.
+    // pay nothing for it. The sprite cache reuses unchanged pose phases.
     if (gfxLevel() === 0) {
       // Rim light down her far side. The gate she comes out of sits on that
       // side in every layout, so the light has a source in the scene rather
@@ -2150,7 +2216,7 @@
     // the hair so the whole mass follows a beat behind her. While she walks,
     // each step throws it the other way as her weight moves over the foot.
     const hm = computeHairMotion(t, opts);
-    const hairTrail = trail + wave(1.1, 1.2) - walkStep * 1.2 + hm.long(1.1);
+    const hairTrail = trail + wave(1.1, 1.2) - walkStep * 1.2;
 
     pctx.clearRect(0, 0, GRID_W, GRID_H);
     pctx.save();
@@ -2161,66 +2227,79 @@
     // right here. Light still comes from the viewer's left, so the left half
     // of each piece carries the lit tone and the right half the shaded one.
 
-    // Heels lift with the existing step while the calf remains continuous.
-    for (const [bx, step] of [[84.5, Math.max(0, walkStep)], [97.5, Math.max(0, -walkStep)]]) {
-      const ly = -step * 5;
-      const lx = (bx < 91 ? -1 : 1) * step * Math.abs(backFoot) * 0.2;
-      lowerBoot(bx + lx, 144 + ly, 175 + ly, true);
-    }
+    const freshClothes = beginClothesLayer(clothesLayers[1], opts);
+    if (freshClothes) {
+      // Heels lift with the existing step while the calf remains continuous.
+      for (const [bx, step] of [[84.5, Math.max(0, walkStep)], [97.5, Math.max(0, -walkStep)]]) {
+        const ly = -step * 5;
+        const lx = (bx < 91 ? -1 : 1) * step * Math.abs(backFoot) * 0.2;
+        lowerBoot(bx + lx, 144 + ly, 175 + ly, true);
+      }
 
-    // The back hem rolls into broad folds beneath the long hair.
-    const backCoat = [[77, 64], [
-      [70, 80, 62 + fabricTrail * 0.1, 104, 58 + fabricTrail * 0.25, 124],
-      [55 + fabricTrail * 0.35, 134, 53 + fabricTrail * 0.4, 141, 52 + fabricTrail * 0.45, 146],
-      [60 + fabricTrail * 0.35, 151, 66 + fabricTrail * 0.2, 146.5, 74, 150],
-      [81, 153, 86, 150, 91, 151.5],
-      [98, 154, 104, 149, 111, 150],
-      [119 + fabricTrail * 0.2, 151.5, 124 + fabricTrail * 0.35, 150, 130 + fabricTrail * 0.45, 146],
-      [129 + fabricTrail * 0.4, 141, 127 + fabricTrail * 0.35, 134, 124 + fabricTrail * 0.25, 124],
-      [120 + fabricTrail * 0.1, 104, 112, 80, 105, 64]
-    ]];
-    lowerCloth(backCoat, PAL.creamMid, [
-      [[74, 87], [[68, 109, 67, 132, 60, 148], [67, 145, 72, 111, 74, 87]], PAL.bodyCWhiteContact],
-      [[81, 100], [[77, 119, 79, 137, 74, 150], [83, 145, 84, 121, 81, 100]], PAL.bodyCCreamFold],
-      [[105, 86], [[111, 109, 111, 135, 119, 150], [119, 132, 110, 108, 105, 86]], PAL.cream],
-      [[98, 108], [[99, 128, 96, 140, 98, 152], [103, 144, 102, 124, 98, 108]], PAL.bodyCCreamFold]
-    ]);
-    bezierLine([52 + fabricTrail * 0.45, 146], backCoat[1].slice(2, 6), PAL.bodyCWhiteDeep, 1.4);
-    bezierLine([52 + fabricTrail * 0.45, 146], backCoat[1].slice(2, 6), PAL.gold, STROKE.fine);
-    bodyLClip(backCoat, () => clothTrim([52 + fabricTrail * 0.45, 146], backCoat[1].slice(2, 6), -1.9, false));
-    for (const side of [-1, 1]) {
-      pctx.save();
-      if (side > 0) { pctx.translate(182, 68); pctx.scale(-1, 0.94); pctx.translate(0, -68); }
-      const f = side > 0 ? -fabricTrail : fabricTrail;
-      const lining = [[80, 68], [
-        [72, 74, 62 + f * 0.3, 90, 52 + f * 0.6, 106],
-        [46 + f * 0.8, 115, 41 + f * 0.9, 123, 38 + f, 130],
-        [44 + f * 0.8, 134, 51 + f * 0.6, 133, 57 + f * 0.45, 134],
-        [66 + f * 0.2, 131, 77, 105, 82, 84]
+      // The navy underskirt peeks below the coat on her left.
+      const navyHem = [[52 + fabricTrail * 0.45, 146], [
+        [60 + fabricTrail * 0.35, 151, 66 + fabricTrail * 0.2, 146.5, 74, 150],
+        [81, 153, 86, 150, 91, 151.5]
       ]];
-      lowerCloth(lining, PAL.creamMid, [
-        [[72, 85], [[65, 104, 51 + f * 0.7, 123, 44 + f * 0.8, 131], [56 + f * 0.5, 127, 69, 104, 72, 85]], side > 0 ? PAL.bodyCCreamFold : PAL.bodyCWhiteContact]
-      ]);
-      bezierShape([56 + f * 0.45, 99], [[48 + f * 0.6, 109, 48 + f * 0.7, 116, 55 + f * 0.45, 122], [60, 126, 63, 130, 57 + f * 0.45, 134], [64, 131, 64, 124, 57, 119], [51, 114, 52, 107, 56 + f * 0.45, 99]], PAL.indigo);
-      bezierLine([56 + f * 0.45, 99], [[48 + f * 0.6, 109, 48 + f * 0.7, 116, 55 + f * 0.45, 122], [60, 126, 63, 130, 57 + f * 0.45, 134]], PAL.gold, STROKE.fine);
-      bodyLClip(lining, () => {
-        clothTrim([38 + f, 130], lining[1].slice(2, 3), -1.7, false);
-        liningStars(53.8 + f * 0.55, 113, 1);
-      });
-      bezierLine([38 + f, 130], lining[1].slice(2, 3), PAL.goldDark, STROKE.fine);
-      sparkle(46 + f * 0.8, 131.5, 1.4, PAL.gold);
+      pctx.save(); pctx.translate(0, 2);
+      bezierShape(navyHem[0], navyHem[1].concat([[90, 144, 66, 141, 52 + fabricTrail * 0.45, 146]]), PAL.indigo);
+      bezierLine(navyHem[0], navyHem[1], PAL.gold, STROKE.fine);
       pctx.restore();
-    }
-    // Small shoulder tips remain visible beside the broad loose hair.
-    const backShoulders = smoothOutline([[71, 58], [77, 53], [85, 51], [98, 51], [105, 53], [111, 58], [109, 63], [101, 67], [81, 67], [73, 63]], 0.6);
-    bodyLMaterial(backShoulders, PAL.skin, PAL.bodyLSkinShade, PAL.skinSoftLight, 1, 0.5);
-    fittedCloth(smoothOutline([[75, 61], [91, 63], [107, 61], [108, 70], [101, 86], [82, 86], [74, 70]], 0.55), PAL.indigo, [
-      [[77, 65], [[78, 74, 83, 80, 83, 86], [79, 82, 75, 72, 77, 65]], PAL.bodyCNavyFold],
-      [[105, 65], [[104, 75, 100, 81, 100, 86], [106, 80, 108, 72, 105, 65]], PAL.bodyCNavyContact]
-    ]);
-    lowerSleeve(-1, fabricTrail, 0, true);
-    lowerSleeve(1, fabricTrail, 0, true);
 
+      // The back hem rolls into broad folds beneath the long hair.
+      const backCoat = [[77, 64], [
+        [70, 80, 62 + fabricTrail * 0.1, 104, 58 + fabricTrail * 0.25, 124],
+        [55 + fabricTrail * 0.35, 134, 53 + fabricTrail * 0.4, 141, 52 + fabricTrail * 0.45, 146],
+        [60 + fabricTrail * 0.35, 151, 66 + fabricTrail * 0.2, 146.5, 74, 150],
+        [81, 153, 86, 150, 91, 151.5],
+        [98, 154, 104, 149, 111, 150],
+        [119 + fabricTrail * 0.2, 151.5, 124 + fabricTrail * 0.35, 150, 130 + fabricTrail * 0.45, 146],
+        [129 + fabricTrail * 0.4, 141, 127 + fabricTrail * 0.35, 134, 124 + fabricTrail * 0.25, 124],
+        [120 + fabricTrail * 0.1, 104, 112, 80, 105, 64]
+      ]];
+      lowerCloth(backCoat, PAL.creamMid, [
+        [[74, 87], [[68, 109, 67, 132, 60, 148], [67, 145, 72, 111, 74, 87]], PAL.bodyCWhiteContact],
+        [[81, 100], [[77, 119, 79, 137, 74, 150], [83, 145, 84, 121, 81, 100]], PAL.bodyCCreamFold],
+        [[105, 86], [[111, 109, 111, 135, 119, 150], [119, 132, 110, 108, 105, 86]], PAL.cream],
+        [[98, 108], [[99, 128, 96, 140, 98, 152], [103, 144, 102, 124, 98, 108]], PAL.bodyCCreamFold]
+      ]);
+      bezierLine([52 + fabricTrail * 0.45, 146], backCoat[1].slice(2, 6), PAL.bodyCWhiteDeep, 1.4);
+      bezierLine([52 + fabricTrail * 0.45, 146], backCoat[1].slice(2, 6), PAL.gold, STROKE.fine);
+      bodyLClip(backCoat, () => clothTrim([52 + fabricTrail * 0.45, 146], backCoat[1].slice(2, 6), -1.9, false));
+      for (const side of [-1, 1]) {
+        pctx.save();
+        if (side > 0) { pctx.translate(182, 68); pctx.scale(-1, 0.94); pctx.translate(0, -68); }
+        const f = side > 0 ? -fabricTrail : fabricTrail;
+        const lining = [[80, 68], [
+          [72, 74, 62 + f * 0.3, 90, 52 + f * 0.6, 106],
+          [46 + f * 0.8, 115, 41 + f * 0.9, 123, 38 + f, 130],
+          [44 + f * 0.8, 134, 51 + f * 0.6, 133, 57 + f * 0.45, 134],
+          [66 + f * 0.2, 131, 77, 105, 82, 84]
+        ]];
+        lowerCloth(lining, PAL.creamMid, [
+          [[72, 85], [[65, 104, 51 + f * 0.7, 123, 44 + f * 0.8, 131], [56 + f * 0.5, 127, 69, 104, 72, 85]], side > 0 ? PAL.bodyCCreamFold : PAL.bodyCWhiteContact]
+        ]);
+        bezierShape([56 + f * 0.45, 99], [[48 + f * 0.6, 109, 48 + f * 0.7, 116, 55 + f * 0.45, 122], [60, 126, 63, 130, 57 + f * 0.45, 134], [64, 131, 64, 124, 57, 119], [51, 114, 52, 107, 56 + f * 0.45, 99]], PAL.indigo);
+        bezierLine([56 + f * 0.45, 99], [[48 + f * 0.6, 109, 48 + f * 0.7, 116, 55 + f * 0.45, 122], [60, 126, 63, 130, 57 + f * 0.45, 134]], PAL.gold, STROKE.fine);
+        bodyLClip(lining, () => {
+          clothTrim([38 + f, 130], lining[1].slice(2, 3), -1.7, false);
+          liningStars(53.8 + f * 0.55, 113, 1);
+        });
+        bezierLine([38 + f, 130], lining[1].slice(2, 3), PAL.goldDark, STROKE.fine);
+        sparkle(46 + f * 0.8, 131.5, 1.4, PAL.gold);
+        pctx.restore();
+      }
+      // Small shoulder tips remain visible beside the broad loose hair.
+      const backShoulders = smoothOutline([[71, 58], [77, 53], [85, 51], [98, 51], [105, 53], [111, 58], [109, 63], [101, 67], [81, 67], [73, 63]], 0.6);
+      bodyLMaterial(backShoulders, PAL.skin, PAL.bodyLSkinShade, PAL.skinSoftLight, 1, 0.5);
+      fittedCloth(smoothOutline([[75, 61], [91, 63], [107, 61], [108, 70], [101, 86], [82, 86], [74, 70]], 0.55), PAL.indigo, [
+        [[77, 65], [[78, 74, 83, 80, 83, 86], [79, 82, 75, 72, 77, 65]], PAL.bodyCNavyFold],
+        [[105, 65], [[104, 75, 100, 81, 100, 86], [106, 80, 108, 72, 105, 65]], PAL.bodyCNavyContact]
+      ]);
+      lowerSleeve(-1, fabricTrail, 0, true);
+      lowerSleeve(1, fabricTrail, 0, true);
+    }
+    finishClothesLayer(clothesLayers[1], freshClothes);
     hemPendant(52 + fabricTrail * 0.45, 146, wave(0.7, 0.18), 11);
     hemPendant(130 + fabricTrail * 0.45, 146, wave(1.1, 0.18), 12);
     bezierLine([77, 83], [[86, 88, 98, 89, 107, 84]], PAL.gold, STROKE.fine);
@@ -2238,8 +2317,8 @@
     const lFore = [[60, lElbow[1] + 6, 57, lWrist[1] - 4, lWrist[0], lWrist[1]]];
     const rUpper = [[114, 62, 117.5, 66, rElbow[0], rElbow[1]]];
     const rFore = [[124, rElbow[1] + 7, 129, rWrist[1] - 5, rWrist[0], rWrist[1]]];
-    shapedArm([71, 58], lUpper[0], lFore[0], {x:lWrist[0],y:lWrist[1]-0.6,rot:Math.atan2(-(lWrist[0]-lFore[0][2]),lWrist[1]-lFore[0][3]),size:0.75,side:1});
-    shapedArm([111, 58], rUpper[0], rFore[0], {x:rWrist[0],y:rWrist[1]-0.6,rot:Math.atan2(-(rWrist[0]-rFore[0][2]),rWrist[1]-rFore[0][3]),size:0.75,side:-1});
+    shapedArm([71, 58], lUpper[0], lFore[0], {x:lWrist[0],y:lWrist[1]-0.6,rot:Math.atan2(-(lWrist[0]-lFore[0][2]),lWrist[1]-lFore[0][3]),size:0.9,side:1});
+    shapedArm([111, 58], rUpper[0], rFore[0], {x:rWrist[0],y:rWrist[1]-0.6,rot:Math.atan2(-(rWrist[0]-rFore[0][2]),rWrist[1]-rFore[0][3]),size:0.9,side:-1});
     armJewelry([71, 58], lUpper[0], 3);
     armJewelry([111, 58], rUpper[0], 4);
     // The same hand as the front view, relaxed, turned along each forearm
@@ -2248,7 +2327,7 @@
       pctx.save();
       pctx.translate(wr[0], wr[1] - 0.6);
       pctx.rotate(Math.atan2(-(wr[0] - fore[2]), wr[1] - fore[3]));
-      pctx.scale(0.75, 0.75);
+      pctx.scale(0.9, 0.9);
       drawCastHand(0, 0, sd, 0);
       finishWrist(sd);
       pctx.restore();
@@ -2259,6 +2338,7 @@
     // the three cannot drift apart. It rounds over the skull, then falls
     // outward below the ears, matching the mirrored front hair envelope
     // while covering the middle of her back.
+    hairMode = 1;
     const hairR = [
       [103, 11, 108.5, 18, 110, 30],
       [111, 35, 112.5, 40, 113.25, 45],
@@ -2284,15 +2364,11 @@
     }
     const hairLUp = hairL.map((seg, i) => [seg[2], seg[3], seg[0], seg[1], ...(i ? hairL[i - 1].slice(4) : [91, 11])]).reverse();
     const ends = [
-      [121, 136, 119, 142, 117.5, 145.5],
-      [114, 143, 114, 136, 111, 134],
-      [109, 140, 108, 145, 106, 147.5],
-      [102, 145, 101, 137, 99, 134],
-      [96, 140, 94, 144, 92, 146],
-      [88, 143, 87, 138, 86, 134],
-      [83, 141, 81, 146, 78, 148.9],
-      [75, 145, 75, 138, 73, 134],
-      [70, 137, 69, 141, 65, 145],
+      [121, 136, 119, 141, 117.5, 144],
+      [113, 141, 108, 128, 105, 120],
+      [103, 132, 98, 143, 92, 148],
+      [87, 143, 81, 130, 78, 122],
+      [75, 134, 70, 143, 65, 144.5],
       [64, 141, 62, 136, 62.25, 130]
     ].map(seg => seg.map((v, i) => i % 2 ? v : drift(v, seg[i + 1])));
     const backHair = [[91, 11], hairR.concat(ends, hairLUp)];
@@ -2303,11 +2379,11 @@
     bodyBaseBezierShape(backHair[0], backHair[1], PAL.hairLight);
     const tipX = (x, k) => x + hairTrail * k;
     const massSwing = [
-      wave(0.1, 0.6) - walkStep * 0.5 + hm.osc(0.3) * 0.5,
-      wave(0.9, 0.35) + hm.osc(0.9) * 0.35,
-      wave(1.7, 0.6) + walkStep * 0.5 + hm.osc(1.6) * 0.5
+      wave(0.1, 0.6) - walkStep * 0.5,
+      wave(0.9, 0.35),
+      wave(1.7, 0.6) + walkStep * 0.5
     ];
-    // Three broad flowing planes share one opaque silhouette and staggered tips.
+    // Broad planes follow the separated locks and their staggered tips.
     bodyLClip(backHair, () => {
       const l = hairTrail * 0.65 + massSwing[0], m = hairTrail * 0.65 + massSwing[1], r = hairTrail * 0.65 + massSwing[2];
       bodyBaseBezierShape([85, 12], [
@@ -2319,8 +2395,8 @@
         [70 + l, 132, 71 + l * 0.7, 105, 72, 81], [72, 49, 74, 29, 83, 17]
       ], PAL.hairSoftLight);
       bodyBaseBezierShape([91, 11], [
-        [86, 38, 90, 61, 87 + m * 0.2, 87], [85 + m * 0.4, 111, 83 + m, 137, 78 + m, 149],
-        [88 + m, 139, 96 + m * 0.6, 110, 96, 84], [97, 52, 94, 26, 91, 11]
+        [86, 38, 90, 61, 87 + m * 0.2, 87], [85 + m * 0.4, 111, 87 + m, 137, 92 + m, 148],
+        [98 + m, 139, 100 + m * 0.6, 110, 96, 84], [97, 52, 94, 26, 91, 11]
       ], PAL.hairPearlH);
       bodyBaseBezierShape([98, 13], [
         [108, 31, 107, 58, 109 + r * 0.2, 84], [112 + r * 0.4, 111, 115 + r, 133, 118 + r, 146],
@@ -2338,8 +2414,11 @@
     });
     bezierLine([91, 11], hairR, PAL.hairBlueShade, STROKE.hairline);
     bezierLine([91, 11], hairL, PAL.hairLavender, STROKE.hairline);
-    drawAhoge(90.6, 11.6, wave(0.8, 0.4) + hm.ahoge);
+    pctx.save(); tracePath(backHair); pctx.clip();
     hairSurfaceDetail(true, hm, 0, hairTrail);
+    pctx.restore();
+    hairMode = 0;
+    drawAhoge(90.6, 11.6, wave(0.8, 0.4) + hm.ahoge);
 
     // Her ornaments, from behind. The orbital rings and the crystal drop are
     // on her left, so they sit on the viewer's left here, and the star pin
@@ -5307,10 +5386,12 @@
       bobAmp: m.still ? 0 : 1,
       castExt: m.castExt || 0,
       trail: m.trail || 0,
+      hairT: m.still ? 0 : (now / 1800) % 1,
+      hairEnergy: m.still ? 0 : 0.1 + (m.castExt || 0) * 0.7,
       magicLight: m.magicLight != null ? m.magicLight : ((m.castExt || 0) > 0.05 ? 0.6 : 0),
     };
     fitSpriteBuffer(box);
-    if (m.back) drawKanadeBack(t, opts); else drawKanade(t, opts);
+    if (m.back) drawKanadeBack(m.still ? 0 : t, opts); else drawKanade(m.still ? 0 : t, opts);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(px, ox, oy, box, box);
     ctx.imageSmoothingEnabled = true;
