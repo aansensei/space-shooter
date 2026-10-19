@@ -951,7 +951,7 @@
     const energy = clamp01(opts.hairEnergy || 0);
     const boost = opts.hairBoost || 1;
     const TAU = Math.PI * 2;
-    const amp = (0.55 + 2.6 * energy) * boost;
+    const amp = (1.3 + 2.6 * energy) * boost;
     const push = (opts.hairWind || 0) - (opts.hairImpact || 0);
     // With power in her the swing gets a fast ripple on top, as if the hair
     // were caught in a draught coming up off her.
@@ -1029,7 +1029,7 @@
     const castEase = castExt * castExt * (3 - 2 * castExt);
     const hand = {
       x: wrist[0] + 0.5 * castExt, y: wrist[1] + 0.8 * castExt,
-      rot: Math.atan2(-foreDX, foreDY) - 0.85 * castEase,
+      rot: Math.atan2(-foreDX, foreDY) - 0.5 * castEase,
       size: mix(0.75, 1.05, castExt),
     };
     return { wrist, elbowX, elbowY, upperC, foreC, hand };
@@ -1808,8 +1808,6 @@
     // something else, and together they are what turns a set of flat panels
     // into a figure with depth.
     bezierLine([78, 64.5], [[84, 68.7, 100, 68.7, 106, 64.5]], PAL.indigoDeep, STROKE.seam);
-    bezierLine([74, 74], [[80, 80, 86, 84, 88, 92]], PAL.creamShadow, STROKE.fine);
-    bezierLine([110, 74], [[104, 80, 98, 84, 96, 92]], PAL.indigoDeep, STROKE.fine);
 
     chestChain(castExt, fabricTrail, shoulderDrop);
     // Skin is drawn in front of the sleeve with a tapered elbow and wrist.
@@ -5308,6 +5306,8 @@
       castExt: m.castExt || 0,
       trail: m.trail || 0,
       magicLight: m.magicLight != null ? m.magicLight : ((m.castExt || 0) > 0.05 ? 0.6 : 0),
+      // The hair's own clock, as in the cutscene, so it moves here too.
+      hairT: m.still ? 0 : hairClock(now), hairEnergy: m.still ? 0 : HAIR_IDLE_ENERGY,
     };
     fitSpriteBuffer(box);
     if (m.back) drawKanadeBack(t, opts); else drawKanade(t, opts);

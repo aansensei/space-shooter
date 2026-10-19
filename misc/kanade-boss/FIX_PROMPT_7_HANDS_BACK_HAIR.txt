@@ -1,0 +1,106 @@
+TASK FOR A CODING AGENT WITH FILE ACCESS
+
+Files: js/render/kanade-cutscene.js (body sprite: drawKanade, drawKanadeBack,
+drawCastHand, castArm, armJewelry, lowerBoot, computeHairMotion), and
+index.html + sw.js for the version bump. Line numbers below are approximate,
+find things by function name.
+
+ALREADY DONE (do not redo)
+- Removed the two waist "contact shadow" strokes that drew over the hair.
+- Wrist bend at full cast reduced from 0.85 to 0.5 rad in castArm.
+- Idle hair swing raised (computeHairMotion amp base 0.55 -> 1.3) and the
+  debug model viewer now passes hairT/hairEnergy like the cutscene does.
+- misc/dev-tools/render-kanade.js runs again and loads kanade-face.js.
+
+HOW TO CHECK YOUR WORK (do this before and after every change)
+  npm install @napi-rs/canvas --no-save
+  SCALE=5 RES=2 OUT=front.png node misc/dev-tools/render-kanade.js
+  BACK=1 SCALE=5 RES=2 OUT=back.png node misc/dev-tools/render-kanade.js
+  OPTS='{"castExt":1}' SCALE=5 RES=2 OUT=cast.png node misc/dev-tools/render-kanade.js
+  OPTS='{"hairT":0.25,"hairEnergy":0.1}' ...   (hair at one extreme)
+  BENCH=1 NOCACHE=1 node misc/dev-tools/render-kanade.js   (cost per redraw)
+RES=2 is what a 1080p screen uses, so judge readability at RES=2. Look at
+the PNGs yourself, zoomed on the area you changed, and compare with the
+reference art in misc/kanade-boss/. If misc/dev-tools/render-sheet.js or
+render-viewer.js crash the same way render-kanade.js did, give them the
+same stubs (document.body/addEventListener, element.style, Image
+addEventListener, setTimeout, CanvasRenderingContext2D) and load
+js/render/kanade-face.js first.
+
+1. HANDS
+a) Too small. Resting hands are drawn at scale 0.75 and the cast hand goes
+   to 1.05 (castArm hand.size, leftHandFrame.size in drawKanade, the
+   pctx.scale(0.75, 0.75) before the left drawCastHand, and the two 0.75s in
+   drawKanadeBack). Hand length should be about 0.7 of the forearm; it is
+   about 0.4 at rest and 0.57 at full cast. Try about 0.9 at rest and 1.15
+   at cast. shapedArm takes its wrist width from handFrame.size, so pass the
+   same size there to keep wrist and hand joined. handPos uses
+   castArm().hand, so the spell glow follows by itself; check it still sits
+   in the palm.
+b) Thumb of the open cast hand reads as a flat, square tab stuck to the
+   side of the palm. In drawCastHand (thumb block, phi/len/tr/root) make it a
+   tapered thumb with a round tip, a bit longer (len about 4.2 open), turned
+   out about 35-45 degrees from the index side, rooted higher on the heel of
+   the palm.
+c) Resting front hand on the viewer's right shows a hard dark "L" along
+   the thumb against the light sleeve. Likely the thumb edge stroke
+   (bezierLine ... PAL.outline, STROKE.seam near the end of drawCastHand).
+   Confirm by toggling it, then soften it (skinShadow, or only round the
+   tip) instead of deleting the edge everywhere.
+d) The dark partings between the open fingers read as claw marks at RES=2.
+   Use a lighter shade or shorter lines.
+
+2. SHOULDER DISC
+armJewelry puts cloakClasp (a 1.6 radius gold disc with a crystal) at
+t=0.12 on each upper arm; it reads as a doll's ball joint. Replace it with
+a thin band like the t=0.55 one, or shrink it to radius 0.9 or less. Keep
+calling jewelAnchor with the same slot numbers (slot - 2): the jewel glint
+code and the back view's isPointInPath check over slots 1..4 depend on them.
+
+3. BACK VIEW (drawKanadeBack)
+a) The front gown is half cream, half navy (navy on her left), but the
+   back is all cream. Add a thin navy underskirt edge, 1.5-2.5 units,
+   peeking below the backCoat hem on her left side, which is the VIEWER'S
+   LEFT in the back view, with a gold trim line like the front hem. Draw it
+   after the boots and before backCoat.
+b) Back boots look thin and short next to the front ones. In lowerBoot the
+   back outline narrows to about +-3.3 at the foot while the front toe
+   flares to +6. Widen the back heel/foot to about +-4.3 and let a little
+   toe show past the heel on the outer side. Compare front.png and
+   back.png at the same scale.
+c) The back hair is one even curtain. Split the ends (the `ends` array and
+   the three planes inside bodyLClip(backHair)) into 2-3 separate locks with
+   background showing between them, lengths varying by about 4 units, each
+   with its own swing lag. Keep every tip above about y=150 so nothing pokes
+   out under the hem (see the hairDrop comment in drawKanade).
+
+4. HAIR MOTION AND MORE FRAMES
+The hair still moves stiffly. Make it move like a chain:
+- the swing should travel down the hair, so the roots barely move and the
+  tips lag furthest (grow the lag with distance from the head, not one lag
+  per mass);
+- front side locks (hairMassH, sideL/sideR, now scaled by 0.7) and the
+  fringe tips should swing a little on their own beat;
+- the hair ends should lag the body's bob vertically too, not only sway.
+"More frames": spriteKey quantises t to 24 steps per 900 ms cycle and hairT
+to 48 steps per 1800 ms, so the sprite redraws about 27 times a second. One
+uncached front redraw costs about 18 ms in the node bench and almost none
+of that depends on RES, so simply doubling the steps would double the
+cost. Do this in order:
+  1) measure in Chrome (Performance panel, cutscene running, also with
+     mobile CPU throttling at 4x);
+  2) if there is headroom, raise the steps (t 24 -> 36 or 48, hairT to
+     match) and check that the cache still hits when she stands still;
+  3) if there is not, cache what does not move separately (for example the
+     gown, legs and boots in their own buffer, redrawn only when lean,
+     trail, droop, walkStep or castExt change) and redraw only hair, face
+     and arms each step, then raise the steps.
+Report the before/after ms per frame.
+
+DO NOT CHANGE
+The face (js/render/kanade-face.js), the palette, the Echo crops and the
+cast timing. Do not add new colours; use PAL.
+
+WHEN DONE
+Bump the ?v= on kanade-cutscene.js in index.html and CACHE_VERSION in
+sw.js, render front/back/cast once more, and commit.

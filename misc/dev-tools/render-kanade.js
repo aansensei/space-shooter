@@ -37,15 +37,19 @@ const sandbox = {
   console,
   performance: { now: () => 1000 },
   Math,
-  Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
+  setTimeout() {},
+  CanvasRenderingContext2D: Object.getPrototypeOf(createCanvas(1, 1).getContext('2d')).constructor,
+  Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } addEventListener() {} },
   document: {
+    body: null,
+    addEventListener() {},
     createElement(kind) {
       if (kind === 'canvas' && !spriteCanvas) {
         spriteCanvas = createCanvas(360, 360);
         return spriteCanvas;
       }
       if (kind === 'canvas') return createCanvas(8, 8);
-      return { setAttribute() {}, addEventListener() {}, play() { return Promise.resolve(); }, pause() {} };
+      return { style: {}, setAttribute() {}, addEventListener() {}, play() { return Promise.resolve(); }, pause() {} };
     },
   },
   canvas: { width: 1280, height: 720 },
@@ -67,6 +71,8 @@ sandbox.window = sandbox;
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
+// The face the game draws comes from its own file, loaded before the body.
+vm.runInContext(fs.readFileSync('js/render/kanade-face.js', 'utf8'), sandbox, { filename: 'kanade-face.js' });
 vm.runInContext(fs.readFileSync('js/timeline-distortion.js', 'utf8'), sandbox, { filename: 'td.js' });
 
 let src = fs.readFileSync('js/render/kanade-cutscene.js', 'utf8');
