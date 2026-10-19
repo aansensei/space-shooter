@@ -58,7 +58,10 @@ const I18N = {
     rcFmtLandscape: "Landscape 1200x630 (Link, Post)",
     rcBtnDownload: "Download (PNG)",
     rcBtnShare: "Share",
-    rcShareSaved: "Share image saved"
+    rcShareSaved: "Image downloaded",
+    rcSaveStarted: "Downloading. If it does not show up, press and hold the image to save it",
+    rcSaveHint: "Press and hold the image to save it",
+    rcSaveFailed: "Could not create the image, please try again"
   },
   vi: {
     rcAstralSub: "Nhật Ký Chuyến Bay",
@@ -111,7 +114,10 @@ const I18N = {
     rcFmtLandscape: "Ngang 1200x630 (Link, Bài đăng)",
     rcBtnDownload: "Tải Về (PNG)",
     rcBtnShare: "Chia Sẻ",
-    rcShareSaved: "Đã lưu ảnh chia sẻ"
+    rcShareSaved: "Đã tải ảnh về máy",
+    rcSaveStarted: "Đang tải ảnh về. Nếu chưa thấy, nhấn giữ ảnh để lưu",
+    rcSaveHint: "Nhấn giữ ảnh để lưu vào máy",
+    rcSaveFailed: "Chưa tạo được ảnh, bạn thử lại nhé"
   }
 };
 
@@ -1840,7 +1846,9 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
             '</label>' +
             '<div class="rc-preview-frame">' +
               '<canvas class="rc-share-canvas" id="rcShareCanvas"></canvas>' +
+              '<img class="rc-share-img" id="rcShareImg" alt="">' +
             '</div>' +
+            '<div class="rc-save-hint">' + t("rcSaveHint", useLang) + '</div>' +
           '</div>' +
           '<div class="rc-modal-footer">' +
             '<button type="button" class="rc-btn rc-btn-primary" id="rcBtnDownloadCard">' + t("rcBtnDownload", useLang) + '</button>' +
@@ -1913,12 +1921,14 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   }
 
   // Wire Action Buttons
-  const showToast = function(msg) {
+  let toastTimer = 0;
+  const showToast = function(msg, ms) {
     const toast = container.querySelector("#rcToast");
     if (!toast) return;
     toast.textContent = msg;
     toast.classList.add("rc-show");
-    setTimeout(function() { toast.classList.remove("rc-show"); }, 2200);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { toast.classList.remove("rc-show"); }, ms || 2200);
   };
 
   const btnPlayAgain = container.querySelector("#rcBtnPlayAgain");
@@ -1941,13 +1951,59 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   const btnCreateImg = container.querySelector("#rcBtnCreateImg");
   const btnCloseModal = container.querySelector("#rcBtnCloseModal");
   const fmtBtns = container.querySelectorAll("[data-sharefmt]");
+  const shareImg = container.querySelector("#rcShareImg");
+  const previewFrame = container.querySelector(".rc-preview-frame");
+
+  // Every draw marks the PNG stale; a new one is encoded once drawing pauses,
+  // so the save buttons can hand it over inside the tap itself.
+  let cardBlob = null, cardUrl = "", cardTimer = 0, cardVersion = 0;
+  const encodeCard = function() {
+    cardTimer = 0;
+    const v = cardVersion;
+    shareCanvas.toBlob(function(blob) {
+      if (!blob || v !== cardVersion || !_recapState.active) return;
+      cardBlob = blob;
+      if (cardUrl) URL.revokeObjectURL(cardUrl);
+      cardUrl = URL.createObjectURL(blob);
+      if (shareImg) shareImg.src = cardUrl;
+      if (previewFrame) previewFrame.classList.add("rc-img-ready");
+    }, "image/png");
+  };
+  const drawCard = function() {
+    drawShareCard(shareCanvas, useData, useLang, _recapState.shareFormat);
+    cardVersion++;
+    cardBlob = null;
+    if (previewFrame) previewFrame.classList.remove("rc-img-ready");
+    clearTimeout(cardTimer);
+    cardTimer = setTimeout(encodeCard, 250);
+  };
+  const withCardBlob = function(fn) {
+    if (cardBlob) { fn(cardBlob); return; }
+    shareCanvas.toBlob(function(blob) { fn(blob); }, "image/png");
+  };
+  const cardFileName = function() {
+    return "pisces-voyage-" + Math.round(useData.score || 0) + "-" + _recapState.shareFormat + ".png";
+  };
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isTouch = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  if (shareImg) {
+    // The page blocks the context menu everywhere; this image is the one
+    // place a long press must reach it.
+    shareImg.addEventListener("contextmenu", function(e) { e.stopPropagation(); });
+  }
+  _recapState.cleanupFns.push(function() {
+    clearTimeout(cardTimer);
+    clearTimeout(toastTimer);
+    if (cardUrl) URL.revokeObjectURL(cardUrl);
+    cardUrl = "";
+  });
 
   if (btnCreateImg && shareModal) {
     btnCreateImg.addEventListener("click", function() {
       shareModal.classList.add("rc-open");
-      drawShareCard(shareCanvas, useData, useLang, _recapState.shareFormat);
+      drawCard();
       Promise.all([_rcLoadFonts(useLang), _rcNeedsViFont(_recapState.pilotName) ? _rcLoadFonts("vi") : null]).then(function() {
-        if (_recapState.active) drawShareCard(shareCanvas, useData, useLang, _recapState.shareFormat);
+        if (_recapState.active) drawCard();
       });
     });
   }
@@ -1963,7 +2019,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
       for (let j = 0; j < fmtBtns.length; j++) {
         fmtBtns[j].classList.toggle("rc-active", fmtBtns[j].getAttribute("data-sharefmt") === fmt);
       }
-      drawShareCard(shareCanvas, useData, useLang, fmt);
+      drawCard();
     });
   }
 
@@ -1973,7 +2029,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   let nameRaf = 0;
   const redrawCard = function() {
     nameRaf = 0;
-    if (_recapState.active) drawShareCard(shareCanvas, useData, useLang, _recapState.shareFormat);
+    if (_recapState.active) drawCard();
   };
   const queueRedraw = function() {
     if (!nameRaf) nameRaf = requestAnimationFrame(redrawCard);
@@ -2007,24 +2063,41 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
   const btnDownloadCard = container.querySelector("#rcBtnDownloadCard");
   if (btnDownloadCard && shareCanvas) {
     btnDownloadCard.addEventListener("click", function() {
-      drawShareCard(shareCanvas, useData, useLang, _recapState.shareFormat);
-      const link = document.createElement("a");
-      link.download = "pisces-voyage-" + Math.round(useData.score || 0) + "-" + _recapState.shareFormat + ".png";
-      link.href = shareCanvas.toDataURL("image/png");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast(t("rcShareSaved", useLang));
+      withCardBlob(function(blob) {
+        if (!blob) { showToast(t("rcSaveFailed", useLang)); return; }
+        const name = cardFileName();
+        // iPhone downloads land in Files, so its share sheet's Save Image is
+        // the way into Photos.
+        if (isIOS && navigator.canShare) {
+          const file = new File([blob], name, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file] }).catch(function(err) {
+              if (!err || err.name !== "AbortError") showToast(t("rcSaveHint", useLang), 3600);
+            });
+            return;
+          }
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = name;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+        // A download can fail silently on phones, so they also get the long press way.
+        if (isTouch) showToast(t("rcSaveStarted", useLang), 4200);
+        else showToast(t("rcShareSaved", useLang));
+      });
     });
   }
 
   const btnNativeShare = container.querySelector("#rcBtnNativeShare");
   if (btnNativeShare && shareCanvas) {
     btnNativeShare.addEventListener("click", function() {
-      drawShareCard(shareCanvas, useData, useLang, _recapState.shareFormat);
-      shareCanvas.toBlob(function(blob) {
-        if (!blob) return;
-        const file = new File([blob], "pisces-voyage-" + Math.round(useData.score || 0) + ".png", { type: "image/png" });
+      withCardBlob(function(blob) {
+        if (!blob) { showToast(t("rcSaveFailed", useLang)); return; }
+        const file = new File([blob], cardFileName(), { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           navigator.share({
             title: "Pisces: Space Journey",
@@ -2032,7 +2105,7 @@ function openRecap(container, data, lang, onPlayAgain, onMainMenu) {
             files: [file]
           }).catch(function() {});
         }
-      }, "image/png");
+      });
     });
   }
 

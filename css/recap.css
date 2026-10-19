@@ -858,6 +858,36 @@
   height: auto;
   display: block;
 }
+/* The finished PNG sits exactly over the canvas once it is encoded, so a long
+   press on a phone (or a right click) saves the real image. */
+.rc-preview-frame {
+  position: relative;
+}
+.rc-share-img {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  visibility: hidden;
+  -webkit-touch-callout: default;
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+.rc-preview-frame.rc-img-ready .rc-share-img {
+  visibility: visible;
+}
+.rc-save-hint {
+  display: none;
+  margin-top: -4px;
+  font-family: var(--rc-font-italic);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--rc-silver-dim);
+}
+@media (pointer: coarse) {
+  .rc-save-hint { display: block; }
+}
 .rc-modal-footer {
   position: relative;
   display: flex;
