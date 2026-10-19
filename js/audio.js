@@ -500,6 +500,7 @@
         kanadeMusicEl: null,    // Fermata, the cutscene's score, played once over both beds
         menuSpaceEl: null,      // space ambience under the menu theme, on the sfx slider
         menuSpaceIdx: -1,
+        menuSpaceHeld: false,   // paused by pauseBgm while a Music Archive track plays
         engineEl: null,      // engine loop
         laserEl: null,       // sustained laser loop
         chargingEl: null,    // charging hum loop (Space-hold overload laser, 3s)
@@ -660,7 +661,7 @@
     function setMenuSpaceGain(mul) {
         if (state.menuSpaceEl) state.menuSpaceEl.volume = Math.min(1, sfxGain('menu-space') * Math.max(0, mul));
     }
-    function stopMenuSpace() { stopLoop('menuSpaceEl'); }
+    function stopMenuSpace() { state.menuSpaceHeld = false; stopLoop('menuSpaceEl'); }
 
     function stopCutsceneAmbience() {
         stopLoop('kanadeAmbienceEl');
@@ -725,14 +726,24 @@
     // Pause/resume the current BGM without clearing currentBgmId. Used when the
     // music-archive preview plays a track and needs the main BGM to duck out,
     // then come back when the preview stops.
+    // The Guide's Music Archive holds the menu theme and the space ambience
+    // under it while a track plays, so the track is heard on its own.
     function pauseBgm() {
         if (state.bgmEl) { try { state.bgmEl.pause(); } catch (_) {} }
+        if (state.menuSpaceEl && !state.menuSpaceEl.paused) {
+            state.menuSpaceHeld = true;
+            try { state.menuSpaceEl.pause(); } catch (_) {}
+        }
     }
     function resumeBgm() {
         // while the whole mix is paused (pause screen), BGM stays down;
         // resumeAll() brings it back with everything else
         if (state.muted || _pauseSnapshot) return;
         if (state.bgmEl && state.bgmEl.paused) { try { state.bgmEl.play().catch(() => {}); } catch (_) {} }
+        if (state.menuSpaceHeld) {
+            state.menuSpaceHeld = false;
+            if (state.menuSpaceEl) try { state.menuSpaceEl.play().catch(() => {}); } catch (_) {}
+        }
     }
 
     // Full-mix pause: freezes bgm + every sustained loop and records what was
