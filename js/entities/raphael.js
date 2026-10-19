@@ -69,7 +69,7 @@ const RAPHAEL_WISDOM_LIFE_MS = 4500;
 function _raphaelSpawnWisdomOrb(enemy) {
     const ang = _raphaelBestWisdomAngle(enemy);
     raphaelWisdomOrbs.push({
-        x: enemy.x, y: enemy.y, ang, enemy,
+        x: enemy.x, y: enemy.y, ang, enemy, type: 'raphael',
         phase: 'gather', gatherTimer: RAPHAEL_WISDOM_GATHER_MS,
         speed: RAPHAEL_WISDOM_LAUNCH_SPEED_MIN,
         life: RAPHAEL_WISDOM_LIFE_MS,
@@ -101,8 +101,10 @@ function updateRaphaelWisdomOrbs(deltaTime) {
         }
 
         o.speed = Math.min(RAPHAEL_WISDOM_LAUNCH_SPEED_MAX, o.speed + RAPHAEL_WISDOM_ACCEL * dt);
+        const capX = o.x, capY = o.y;
         o.x += Math.cos(o.ang) * o.speed * dt;
         o.y += Math.sin(o.ang) * o.speed * dt;
+        if (_capStopProjectile(o, capX, capY, 'skill', false, 21)) { raphaelWisdomOrbs.splice(i, 1); continue; }
         o.life -= deltaTime;
 
         if (o.life <= 0 || o.x < -80 || o.x > canvas.width + 80 || o.y < -80 || o.y > canvas.height + 80) {
@@ -114,7 +116,7 @@ function updateRaphaelWisdomOrbs(deltaTime) {
             if (s.hp <= 0 || o.hitTargets.includes(s)) continue;
             if (Math.hypot(s.x - o.x, s.y - o.y) < (s.size || 20) + 21) {
                 o.hitTargets.push(s);
-                dealDamage(s, { damage: o.atk, isTrueDamage: true, isPiercing: true, _statSrc: 'Wisdom Orb' });
+                dealDamage(s, { damage: o.atk, isTrueDamage: true, isPiercing: true, _statSrc: 'Wisdom Orb', _capSource: o });
                 // Zone inherits the same own-Max-HP basis as the orb itself
                 // (0.00375*Hs/s = 0.25 x the orb's own 0.01875*Hs hit, per
                 // the spec's stated per-second rate), not the target's HP.
@@ -126,7 +128,7 @@ function updateRaphaelWisdomOrbs(deltaTime) {
 
         if (!o.playerHit && Math.hypot(player.x - o.x, player.y - o.y) < (player.hitRadius || 6) + 21) {
             o.playerHit = true;
-            playerTakesHit({ type: 'raphael' });
+            playerTakesHit(o);
             player._wisdomOrbSlowed = true;
             player._wisdomOrbSlowEnd = performance.now() + 1000;
             createParticles(player.x, player.y, 20, '#ffe27a', 2, 7);
@@ -167,12 +169,12 @@ function updateRaphaelWisdomZones(deltaTime) {
             z._tickTimer -= 100;
             for (const s of sentinels) {
                 if (s.hp <= 0) continue;
-                if (Math.hypot(s.x - z.x, s.y - z.y) <= z.radius) {
-                    dealDamage(s, { damage: z.atkPerSec * 0.1, isTrueDamage: true, _noHitSfx: true, _isWisdomZoneDot: true, _statSrc: 'Wisdom Orb zone' });
+                if (Math.hypot(s.x - z.x, s.y - z.y) <= z.radius && !_capBlocksSource(z, s, 'area')) {
+                    dealDamage(s, { damage: z.atkPerSec * 0.1, isTrueDamage: true, _noHitSfx: true, _isWisdomZoneDot: true, _statSrc: 'Wisdom Orb zone', _capSource: z, _capKind: 'area' });
                 }
             }
         }
-        if (Math.hypot(player.x - z.x, player.y - z.y) <= z.radius) _playerInAnyZone = true;
+        if (Math.hypot(player.x - z.x, player.y - z.y) <= z.radius && !_capBlocksSource(z, player, 'debuff')) _playerInAnyZone = true;
     }
     player._inWisdomZone = _playerInAnyZone;
 }

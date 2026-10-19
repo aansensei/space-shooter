@@ -590,7 +590,7 @@ function update(rawDeltaTime) {
 
         for (let i = bullets.length - 1; i >= 0; i--) {
             let d = Math.hypot(bullets[i].x - wave.x, bullets[i].y - wave.y);
-            if (d < wave.radius + 20) {
+            if (d < wave.radius + 20 && !_capBlocksSource(wave, bullets[i], 'area')) {
                 createParticles(bullets[i].x, bullets[i].y, 3, 'purple', 1, 3);
                 bullets.splice(i, 1);
             }
@@ -598,7 +598,7 @@ function update(rawDeltaTime) {
         for (let i = spiritBullets.length - 1; i >= 0; i--) {
             if (spiritBullets[i].isPhoto) continue; // Phōtokrystos bullets immune to Maou Haki
             let d = Math.hypot(spiritBullets[i].x - wave.x, spiritBullets[i].y - wave.y);
-            if (d < wave.radius + 20) {
+            if (d < wave.radius + 20 && !_capBlocksSource(wave, spiritBullets[i], 'area')) {
                 createParticles(spiritBullets[i].x, spiritBullets[i].y, 3, 'purple', 1, 3);
                 spiritBullets.splice(i, 1);
             }
@@ -611,8 +611,8 @@ function update(rawDeltaTime) {
         sentinels.forEach(sentinel => {
             if (!wave.hitSentinels.has(sentinel)) {
                 let d = Math.hypot(sentinel.x - wave.x, sentinel.y - wave.y);
-                if (d <= wave.radius) {
-                    dealDamage(sentinel, { damage: wave._dmg, _vanguardTag: wave._id, _attackerType: wave._ownerType });
+                if (d <= wave.radius && !_capBlocksSource(wave, sentinel, 'area')) {
+                    dealDamage(sentinel, { damage: wave._dmg, _vanguardTag: wave._id, _attackerType: wave._ownerType, _capSource: wave, _capKind: 'area' });
                     wave.hitSentinels.add(sentinel);
                     addExplosion(sentinel.x, sentinel.y, 40, 'purple');
                 }
@@ -647,13 +647,13 @@ function update(rawDeltaTime) {
                     // Feed the squad the same snapshotted atk-based payload real
                     // Sentinels take (docs/combat-scaling-rebalance.md Part 2),
                     // not a fraction of each member's own maxHp.
-                    if (!_yuushaPierceRedirect(laser.atk || 0, false)) playerTakesHit({ type: 'raphael' });
+                    if (!_yuushaPierceRedirect(laser.atk || 0, false, laser)) playerTakesHit(laser);
                 }
 
                 if (!laser._id) laser._id = 'raphael_laser_' + performance.now().toFixed(0);
                 sentinels.forEach(s => {
-                    if (distToSegment(s, laser.start, laser.end) < s.size + 15) {
-                        dealDamage(s, { damage: laser.atk, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'raphael' });
+                    if (distToSegment(s, laser.start, laser.end) < s.size + 15 && !_capBlocksSource(laser, s)) {
+                        dealDamage(s, { damage: laser.atk, _vanguardTag: laser._id, _noHitSfx: true, _attackerType: 'raphael', _capSource: laser });
                         addExplosion(s.x, s.y, 20, 'red');
                     }
                 });
@@ -745,7 +745,7 @@ function update(rawDeltaTime) {
                 let _dbAng = Math.atan2(_dbDy, _dbDx) - dbz.angle;
                 while (_dbAng >  Math.PI) _dbAng -= 2 * Math.PI;
                 while (_dbAng < -Math.PI) _dbAng += 2 * Math.PI;
-                if (Math.abs(_dbAng) <= Math.PI / 2 + 0.15) { _dimBreakMult = 0.80; }
+                if (Math.abs(_dbAng) <= Math.PI / 2 + 0.15 && !_capBlocksSource(dbz, player, 'debuff')) { _dimBreakMult = 0.80; }
             }
         }
     }
@@ -937,6 +937,7 @@ function update(rawDeltaTime) {
 
     for (let i = enemies.length - 1; i >= 0; i--) {
         let enemy = enemies[i];
+        const capMoveX = enemy.x, capMoveY = enemy.y;
         const _dauPinned = enemy._dauPinEnd > currentTime && typeof _dauPinAllowed === 'function' && _dauPinAllowed(enemy);
         const _dauPinX = enemy.x, _dauPinY = enemy.y;
 
@@ -1274,6 +1275,7 @@ function update(rawDeltaTime) {
                     countdown: enemy.lightningCountdown,
                     duration: enemy.lightningCountdownDuration || 1500,
                     targetRef: enemy.lightningTargetRef,
+                    originX: enemy.x, originY: enemy.y,
                     targetX: enemy.lightningTargetX,
                     targetY: enemy.lightningTargetY,
                     atk: enemy.atk,
@@ -1420,6 +1422,7 @@ function update(rawDeltaTime) {
         if (enemy.type === 'abyssal_chain') {
             enemy.x += enemy.vx * dt;
             enemy.y += enemy.vy * dt;
+            if (_capStopProjectile(enemy, capMoveX, capMoveY, 'skill', false, enemy.size)) { enemy.hp = 0; continue; }
 
             // Triangle molecule particles, spawn + update
             if (!enemy.molParticles) enemy.molParticles = [];
@@ -1452,7 +1455,7 @@ function update(rawDeltaTime) {
             }
 
             // Hit player
-            if (!enemy._hitPlayer && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius) {
+            if (!enemy._hitPlayer && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size + player.hitRadius && !_capBlocksSource(enemy, player, 'debuff')) {
                 enemy._hitPlayer = true;
                 if (enemy.isDarkened) {
                     // Darkened chain: costs 1 life, no root/silence
@@ -1472,7 +1475,7 @@ function update(rawDeltaTime) {
             // Hit sentinel
             if (enemy.hp > 0) {
                 for (const s of sentinels) {
-                    if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size) {
+                    if (Math.hypot(enemy.x - s.x, enemy.y - s.y) < enemy.size + s.size && !_capBlocksSource(enemy, s, 'skill')) {
                         if (_hasBuff('giap_nguyet') && Math.random() < 0.15) {
                             // Lunar Aegis: 15% sentinel evade — chain consumed, no damage (docs/combat-scaling-rebalance.md Part 5)
                         } else if (s.ironBody && currentTime < s.ironBodyEnd) {
@@ -1487,7 +1490,7 @@ function update(rawDeltaTime) {
                             const _chainAtkMult = enemy.isDarkened ? 2.40 : 1.80;
                             const rawDmgChain = (enemy.ownerRef && enemy.ownerRef.atk || 0) * _chainAtkMult;
                             if (sentinels.length >= 5) {
-                                _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s);
+                                _applyVanguardDamage(rawDmgChain, 'chain_' + enemy.originX, true, s, null, false, enemy);
                             } else {
                                 // True damage bypasses Gaia consistently
                                 // (docs/combat-scaling-rebalance.md Part 3) -
@@ -1545,6 +1548,8 @@ function update(rawDeltaTime) {
                 enemy.y += enemy.vy * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _tdBulletSpeed;
             }
 
+            if (_capStopProjectile(enemy, capMoveX, capMoveY, 'bullet', false, enemy.size)) { enemy.hp = 0; continue; }
+
             // Thaelis's large/small bullets curve and wave instead of flying
             // in a straight line, so they can drift off any edge (not just
             // the bottom, which is all the generic boundaryY cull below
@@ -1565,9 +1570,9 @@ function update(rawDeltaTime) {
                     if (_hasBuff('giap_nguyet') && Math.random() < 0.15) {
                         // Lunar Aegis: 15% sentinel evade — bullet consumed, no damage (docs/combat-scaling-rebalance.md Part 5)
                     } else if (enemy.type === 'enemy_bullet_small') {
-                        dealDamage(sentinel, { damage: sentinel.maxHp * 0.15, _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
+                        dealDamage(sentinel, { damage: sentinel.maxHp * 0.15, _capSource: enemy, _capKind: 'bullet', _vanguardTag: 'bsm_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     } else {
-                        dealDamage(sentinel, { damage: enemy.damage, _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
+                        dealDamage(sentinel, { damage: enemy.damage, _capSource: enemy, _capKind: 'bullet', _vanguardTag: 'blt_' + Math.round(enemy.x) + '_' + Math.round(enemy.y) });
                     }
                     enemy.hp = 0;
                     break;
@@ -1579,7 +1584,7 @@ function update(rawDeltaTime) {
             // AI targeting — see the plan's rationale for why).
             if (enemy.hp > 0) {
                 for (const ship of window.skillDSpaceships) {
-                    if (Math.hypot(enemy.x - ship.x, enemy.y - ship.y) < enemy.size + ship.size / 2) {
+                    if (Math.hypot(enemy.x - ship.x, enemy.y - ship.y) < enemy.size + ship.size / 2 && !_capBlocksSource(enemy, ship, 'bullet')) {
                         enemy.hp = 0;
                         // Lunar Aegis: same 15% evade allied units get vs enemy bullets (docs/combat-scaling-rebalance.md Part 5)
                         if (_hasBuff('giap_nguyet') && Math.random() < 0.15) break;
@@ -1666,6 +1671,7 @@ function update(rawDeltaTime) {
             // at full speed feels unfair versus PC/tablet - trimmed a bit.
             const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
             enemy.y += enemy.speed * _phoneSpeedMul * dt * teslaSpeedMultiplier * raphaelSpeedMultiplier * _coronaSlow * _riftSlowMul * _orbSlowMul * _thanMenhMul * _dtuSlowMul * _cucHanMul * _rootMul * _vineSlowMul * _teslaBoltSlowMul;
+            _capHoldBody(enemy, capMoveX, capMoveY);
 
             if (!enemy.inCoronation && Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
                 playerTakesHit(enemy);
@@ -1946,6 +1952,7 @@ function update(rawDeltaTime) {
             const _mmSlowMul = _mmRiftSlow * _mmOrbSlow;
             const _mmPhoneMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
             if (mmd > 0) { enemy.x += (mmdx / mmd) * enemy.speed * _mmPhoneMul * dt * _mmSlowMul; enemy.y += (mmdy / mmd) * enemy.speed * _mmPhoneMul * dt * _mmSlowMul; }
+            _capHoldBody(enemy, capMoveX, capMoveY);
             enemy.shootTimer -= deltaTime;
             if (enemy.shootTimer <= 0) {
                 enemy.shootTimer = 1000;
@@ -2508,9 +2515,11 @@ function update(rawDeltaTime) {
     // 35% MaxHP true damage vào Sentinel, -5 mạng người chơi.
     if (window._goliathOrbs && window._goliathOrbs.length) {
         window._goliathOrbs = window._goliathOrbs.filter(orb => {
+            const capX = orb.x, capY = orb.y;
             orb.life -= deltaTime;
             orb.x += orb.vx * (deltaTime / 1000) * _tdBulletSpeed;
             orb.y += orb.vy * (deltaTime / 1000) * _tdBulletSpeed;
+            _capStopProjectile(orb, capX, capY, 'skill', true, 108);
             if (orb.life <= 0 || orb.x < -100 || orb.x > canvas.width + 100 || orb.y < -100 || orb.y > canvas.height + 100) return false;
             if (!orb._hitPlayer && Math.hypot(orb.x - player.x, orb.y - player.y) < 108 + (player.hitRadius || 15)) {
                 orb._hitPlayer = true;
@@ -2575,9 +2584,11 @@ function update(rawDeltaTime) {
     // thì nổ gây sát thương lan 25% Max HP true damage cho các Sentinel gần đó.
     if (window._goliathMeteors && window._goliathMeteors.length) {
         window._goliathMeteors = window._goliathMeteors.filter(m => {
+            const capX = m.x, capY = m.y;
             m.life -= deltaTime;
             m.x += m.vx * (deltaTime / 1000) * _tdBulletSpeed;
             m.y += m.vy * (deltaTime / 1000) * _tdBulletSpeed;
+            _capStopProjectile(m, capX, capY, 'skill', true, 46);
             if (m.life <= 0 || m.x < -80 || m.x > canvas.width + 80 || m.y < -80 || m.y > canvas.height + 80) return false;
             if (Math.hypot(m.x - player.x, m.y - player.y) < 46 + (player.hitRadius || 15)) {
                 if (!_yuushaPierceRedirect(0.625 * (m.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
@@ -2666,9 +2677,9 @@ function update(rawDeltaTime) {
         // Destroy player bullets in beam path.
         // Sol Arrow and Shadow Twin orbs live in their own arrays and are never
         // touched here — immune to the Perseverance sweep, same as Maou Haki.
-        bullets = bullets.filter(b => !angHit(b.x, b.y, 14));
-        spiritBullets = spiritBullets.filter(b => !angHit(b.x, b.y, 14));
-        skillAOrbs = skillAOrbs.filter(b => !angHit(b.x, b.y, 14));
+        bullets = bullets.filter(b => !angHit(b.x, b.y, 14) || _capBlocksSource(beam, b));
+        spiritBullets = spiritBullets.filter(b => !angHit(b.x, b.y, 14) || _capBlocksSource(beam, b));
+        skillAOrbs = skillAOrbs.filter(b => !angHit(b.x, b.y, 14) || _capBlocksSource(beam, b));
 
         // Hit sentinels, route qua Vanguard Network nếu active, else direct true damage
         if (!beam.hitSentinels) beam.hitSentinels = new Map();
@@ -2684,13 +2695,13 @@ function update(rawDeltaTime) {
         if (angHit(player.x, player.y, 18)) {
             if (!beam.hitPlayer) {
                 beam.hitPlayer = true;
-                if (!_yuushaPierceRedirect(_persAtk * Math.min(5 / 6, ownerHits / 12), true)) playerTakesHit(beam.ownerRef || { type: 'leviathan' });
+                if (!_yuushaPierceRedirect(_persAtk * Math.min(5 / 6, ownerHits / 12), true, beam)) playerTakesHit(beam);
             }
         } else {
             beam.hitPlayer = false;
         }
         sentinels.forEach(s => {
-            if (angHit(s.x, s.y, 20)) {
+            if (angHit(s.x, s.y, 20) && !_capBlocksSource(beam, s)) {
                 const last = beam.hitSentinels.get(s) || 0;
                 if (nowMs2 - last > 80) {
                     beam.hitSentinels.set(s, nowMs2);
@@ -2699,7 +2710,7 @@ function update(rawDeltaTime) {
                     if (sentinels.length >= 5) {
                         // Vanguard Network: dùng beam.id làm sourceTag cho AoE dampening
                         // Unified to true damage, same route as the direct branch below.
-                        _applyVanguardDamage(dmg, beam.id, true, s, 'leviathan');
+                        _applyVanguardDamage(dmg, beam.id, true, s, 'leviathan', false, beam);
                     } else {
                         // Trực tiếp (< 5 sentinels)
                         if (!(s.ironBody && nowMs2 < s.ironBodyEnd)) {
@@ -2789,12 +2800,12 @@ function update(rawDeltaTime) {
             const perpPlayer = Math.abs((player.x - laser.ox) * dy - (player.y - laser.oy) * dx);
             const inShot = !laser._shotDone || elapsedSinceFire < 150;
             laser._shotDone = true;
-            if (perpPlayer < player.hitRadius + 25) {
+            if (perpPlayer < player.hitRadius + 25 && !_capBlocksSource(laser, player)) {
                 const owner = laser.ownerRef || laser;
                 if (inShot) {
                     if (!owner._deathShotHitPlayer) {
                         owner._deathShotHitPlayer = true;
-                        if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), true)) playerTakesHit({ type: 'leviathan' });
+                        if (!_yuushaPierceRedirect(_lastRitesHs * Math.min(0.01375, 0.000375 * hits), true, laser)) playerTakesHit(laser);
                     }
                 } else {
                     player._levLaserSlowEnd = currentTime + 1000;
@@ -2804,12 +2815,12 @@ function update(rawDeltaTime) {
             }
 
             sentinels.forEach(s => {
-                if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15)) {
+                if (!laser.hitSentinels.has(s) && angHitLaser(s.x, s.y, 15) && !_capBlocksSource(laser, s)) {
                     laser.hitSentinels.add(s);
                     const dmg = _lastRitesHs * Math.min(0.01375, 0.000375 * hits);
                     if (sentinels.length >= 5) {
                         // Resolved as true damage on every route per spec.
-                        _applyVanguardDamage(dmg, laser.id, true, s, 'leviathan');
+                        _applyVanguardDamage(dmg, laser.id, true, s, 'leviathan', false, laser);
                     } else {
                         if (!(s.ironBody && performance.now() < s.ironBodyEnd)) {
                             // True damage bypasses Gaia consistently (docs/combat-scaling-rebalance.md Part 3)
@@ -2851,7 +2862,7 @@ function update(rawDeltaTime) {
     if (window._veilshroudPendingStrikes.length) window._veilshroudPendingStrikes = window._veilshroudPendingStrikes.filter(ps => {
         ps.countdown += deltaTime;
         if (ps.countdown >= ps.duration) {
-            _veilshroudStrike({ lightningTargetX: ps.targetX, lightningTargetY: ps.targetY, atk: ps.atk });
+            _veilshroudStrike({ x: ps.originX, y: ps.originY, type: 'veilshroud', lightningTargetX: ps.targetX, lightningTargetY: ps.targetY, atk: ps.atk });
             return false;
         }
         return true;
@@ -2891,14 +2902,14 @@ function update(rawDeltaTime) {
 
             // Damage ticks: sentinels
             for (const s of sentinels) {
-                if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius) {
+                if (Math.hypot(s.x - ez.x, s.y - ez.y) < ez.radius && !_capBlocksSource(ez, s, 'area')) {
                     const dmg = 0.006 * (ez.hs || 0);
-                    dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl' });
+                    dealDamage(s, { damage: dmg, percentDamage: 0, _vanguardTag: 'veil_echo_expl', _capSource: ez, _capKind: 'area' });
                     createParticles(s.x, s.y, 6, '#cc44ff', 1, 4);
                 }
             }
             // Damage ticks: player, visual hit only, no life loss
-            if (!ez.hitPlayerThisTick && Math.hypot(player.x - ez.x, player.y - ez.y) < ez.radius) {
+            if (!ez.hitPlayerThisTick && Math.hypot(player.x - ez.x, player.y - ez.y) < ez.radius && !_capBlocksSource(ez, player, 'area')) {
                 ez.hitPlayerThisTick = true;
                 createParticles(player.x, player.y, 8, '#cc44ff', 2, 6);
             }

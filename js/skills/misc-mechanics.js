@@ -9,6 +9,7 @@ function updateMarchosiasBlades(deltaTime) {
     const dt = deltaTime / 16.67;
     for (let i = marchosiasBlades.length - 1; i >= 0; i--) {
         const blade = marchosiasBlades[i];
+        blade.type = 'marchosias';
 
         // Nếu đang trong warning phase, đếm ngược delay
         if (!blade.active) {
@@ -20,15 +21,17 @@ function updateMarchosiasBlades(deltaTime) {
         }
 
         // Active, di chuyển bình thường
+        const capX = blade.x, capY = blade.y;
         blade.x += blade.vx * dt;
         blade.y += blade.vy * dt;
+        if (_capStopProjectile(blade, capX, capY, 'skill', false, blade.radius)) { marchosiasBlades.splice(i, 1); continue; }
 
         // Hit player
         if (!blade.hitPlayer && Math.hypot(blade.x - player.x, blade.y - player.y) < blade.radius + player.hitRadius) {
             blade.hitPlayer = true;
             const _yHitsAlready = blade.hitEnemies.length;
             const _yCoeff = _yHitsAlready === 0 ? 1.62 : _yHitsAlready === 1 ? 1.38 : 1.26;
-            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(_yCoeff * (blade.atk || 0), false)) playerTakesHit({ type: 'marchosias' });
+            if (typeof _yuushaPierceRedirect !== 'function' || !_yuushaPierceRedirect(_yCoeff * (blade.atk || 0), false, blade)) playerTakesHit(blade);
             if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', blade.x, blade.y);
         }
         // Hit sentinel, damage scales down with number of sentinels already hit
@@ -39,7 +42,7 @@ function updateMarchosiasBlades(deltaTime) {
                 // maxHp. 1st hit: 1.62E, 2nd: 1.38E, 3rd+: 1.26E.
                 const hitsAlready = blade.hitEnemies.length;
                 const coeff = hitsAlready === 0 ? 1.62 : hitsAlready === 1 ? 1.38 : 1.26;
-                dealDamage(s, { damage: (blade.atk || 0) * coeff, _noHitSfx: true, _attackerType: 'marchosias' });
+                dealDamage(s, { damage: (blade.atk || 0) * coeff, _noHitSfx: true, _attackerType: 'marchosias', _capSource: blade, _capKind: 'skill' });
                 blade.hitEnemies.push(s);
                 addExplosion(s.x, s.y, 20, '#ff6600');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', s.x, s.y);

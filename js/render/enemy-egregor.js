@@ -315,8 +315,10 @@ function _drawEgregorEffects() {
     const now = performance.now();
     for (const enemy of enemies) {
         if (enemy.type !== 'egregor') continue;
+        ctx.save();
         const ox = enemy._tempestOriginX || enemy.x;
         const oy = enemy._tempestOriginY || enemy.y;
+        _capClipEnemyDraw(ctx, ox, oy, enemy);
 
         // MIND LINK RANGE INDICATOR (red dashed circle 600px)
         ctx.save();
@@ -520,6 +522,12 @@ function _drawEgregorEffects() {
                 ctx.restore();
             }
         }
+
+        ctx.restore();
+        ctx.save();
+        _capClipEnemyDraw(ctx,
+            enemy._nullSlashPhase === 'striking' && enemy._nullSlashOriginX !== undefined ? enemy._nullSlashOriginX : enemy.x,
+            enemy._nullSlashPhase === 'striking' && enemy._nullSlashOriginY !== undefined ? enemy._nullSlashOriginY : enemy.y, enemy);
 
         // NULL SLASH, CHARGING (semicircle telegraph + charge glow)
         if (enemy._nullSlashPhase === 'charging') {
@@ -1073,5 +1081,6 @@ function _drawEgregorEffects() {
             } // end ext > 0.01
         }
 
+        ctx.restore();
     }
 }

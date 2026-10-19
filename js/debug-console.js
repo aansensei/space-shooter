@@ -1543,7 +1543,8 @@ window.debugSetYuukiBonus = function () {
         const phase = !st ? 'none' : st.elapsed < 350 ? 'falling' : st.elapsed < 900 ? 'splitting' : st.elapsed < 4900 ? 'walls up' : 'collapsing';
         el.textContent = 'Stacks: ' + stacks + ' (+' + (stacks * 0.5).toFixed(1) + '% dmg) · since last: ' + ((window._capSinceGain || 0) / 1000).toFixed(1) + 's'
             + ' · Ley: ' + Math.round(window._capLey || 0) + '% ' + (window._capricornReady ? '(READY)' : '') + ' · Mountain: ' + phase
-            + (st ? ' · wall hits: ' + st.walls.map(w => w.broken ? 'X' : w.hitCount).join('/') : '');
+            + (st ? ' · wall hits: ' + st.walls.map(w => w.broken ? 'X' : w.hitCount).join('/') : '')
+            + ' · blocked: ' + Object.entries(window._capBlockedCounts || {}).map(([kind, n]) => kind + '=' + n).join(' ');
     }
     window.debugCapricornStacks = function (n) {
         if (typeof _capAddStacks !== 'function') return;
@@ -1570,6 +1571,14 @@ window.debugSetYuukiBonus = function () {
         window._capricornReady = true;
         _releaseCapricorn();
         _refreshCapricornStateDisplay();
+    };
+    window.debugCapricornDropAt = function (x, y) {
+        if (!Number.isFinite(x) || !Number.isFinite(y) || typeof _capBuildMountain !== 'function') return null;
+        const st = _capBuildMountain(x, y);
+        window._capMountain = st; window._capLey = 0; window._capricornReady = false;
+        if (typeof _capOnCast === 'function') _capOnCast(st);
+        _refreshCapricornStateDisplay();
+        return st;
     };
     window.debugCapricornClear = function () {
         const stacks = window._capStacks;

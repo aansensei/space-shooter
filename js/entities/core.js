@@ -422,7 +422,7 @@ function createRaphaelTelegraph(startX, startY, target, atk, owner) {
     let endX = startX + Math.cos(angle) * length;
     let endY = startY + Math.sin(angle) * length;
     raphaelLasers.push({
-        owner,
+        owner, type: 'raphael',
         start: { x: startX, y: startY },
         end: { x: endX, y: endY },
         delay: 1000,
@@ -584,6 +584,8 @@ function _updateTimelineFavorRegen(enemy, deltaTime) {
 }
 
 function dealDamage(enemy, source) {
+    if (window._capMountain && (enemy.hasOwnProperty('shotsFiredSinceSpecial') || enemy.role || window.skillDSpaceships.includes(enemy))
+        && _capBlocksSource(source, enemy)) return;
     if (enemy.type === 'abyssal_chain') return;
 
     // GOLIATH Alpha/Transforming: bất khả xâm phạm tuyệt đối (Iron Body vĩnh
@@ -1361,7 +1363,7 @@ function dealDamage(enemy, source) {
             rawDmg = Math.ceil(rawDmg * (1 - _vDR));
         }
         rawDmg = Math.max(0, rawDmg);
-        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic', _vIsTrueDmg, enemy, source._attackerType || null, !!source._noAoeDamp);
+        _applyVanguardDamage(rawDmg, source._vanguardTag || 'generic', _vIsTrueDmg, enemy, source._attackerType || null, !!source._noAoeDamp, source);
         return;
     }
 
@@ -1986,7 +1988,7 @@ function dealDamage(enemy, source) {
         angles.slice(0, NUM_WINGS).forEach((targetAngle, k) => {
             const defaultAngle = (Math.PI * 2 / NUM_WINGS) * k - Math.PI / 2;
             window._levDeathLasers.push({
-                ox: lx, oy: ly,
+                ox: lx, oy: ly, type: 'leviathan',
                 ownerRef: enemy,
                 angle: targetAngle,          // góc cuối (nơi laser bắn)
                 startAngle: defaultAngle,     // góc đầu (vị trí cánh ban đầu)
@@ -2093,7 +2095,7 @@ function dealDamage(enemy, source) {
 // attackerType: enemy.type gây damage, nếu có sẽ ghi Match Stats theo tên boss
 // thật (vd "Leviathan") thay vì rơi về nhãn chung chung "Boss Attack"
 // noDamp skips both AoE dampening steps, for a single blow meant to land on every Sentinel at full weight
-function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSentinel = null, attackerType = null, noDamp = false) {
+function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSentinel = null, attackerType = null, noDamp = false, attackSource = null) {
     if (!window._vanguardState || sentinels.length < 5) return;
     if (rawDmg <= 0) return;
     const vs = window._vanguardState;
@@ -2141,6 +2143,7 @@ function _applyVanguardDamage(rawDmg, sourceTag, isTrueDamage = false, targetSen
 
     let _vanguardStatTotal = 0;
     sentinels.forEach(s => {
+        if (_capBlocksSource(attackSource, s)) return;
         if (s.ironBody && now < s.ironBodyEnd) return;
         const isTarget = targetSentinel !== null && s === targetSentinel;
         let totalDmg = dmgPerSentinel + (isTarget ? targetExtra : 0);

@@ -46,10 +46,13 @@ function updateVeilshroud(enemy, deltaTime) {
     const dt = deltaTime / 16.67;
 
     // Movement (không di chuyển trong phantom)
+    const capX = enemy.x, capY = enemy.y;
     if (!enemy.inPhantom) {
         const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
         enemy.y += enemy.speed * _phoneSpeedMul * dt;
     }
+
+    _capHoldBody(enemy, capX, capY);
 
     // Va chạm người chơi
     if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < enemy.size / 2 + player.hitRadius) {
@@ -135,23 +138,25 @@ function _veilshroudStrike(enemy) {
     // Tạo object sét, lưu targets bị trúng để render hiệu ứng riêng
     if (!window._veilshroudLightnings) window._veilshroudLightnings = [];
     const _lt = {
-        x: tx, y: ty,
+        x: tx, y: ty, ownerRef: enemy,
         life: 700, maxLife: 700,
         strikeRadius: 100,
         hitSentinelPositions: [],  // {x,y} mỗi sentinel bị trúng
         hitPlayer: false,
         playerHitPos: null,
     };
+    const capStopped = _capShields(enemy.x, enemy.y, tx, ty, 'laser', enemy);
+    if (capStopped) { _lt.x = _capCross.x; _lt.y = _capCross.y; enemy._lastLightningX = _lt.x; enemy._lastLightningY = _lt.y; }
     window._veilshroudLightnings.push(_lt);
 
     _setShake(9, 350);
     if (window.AudioMgr) window.AudioMgr.playSfxAt('phantom-strike', tx, ty);
 
     // Trúng người chơi
-    if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30) {
+    if (Math.hypot(player.x - tx, player.y - ty) < player.hitRadius + 30 && !capStopped && !_capBlocksSource(enemy, player) && !_capShields(tx, ty, player.x, player.y, 'area', enemy)) {
         _lt.hitPlayer = true;
         _lt.playerHitPos = { x: player.x, y: player.y };
-        if (!_yuushaPierceRedirect(enemy.atk || 0, false)) playerTakesHit(enemy);
+        if (!_yuushaPierceRedirect(enemy.atk || 0, false, enemy)) playerTakesHit(enemy);
         addExplosion(player.x, player.y, 90, '#ff0033');
         createParticles(player.x, player.y, 35, '#ffffff', 4, 14);
         createParticles(player.x, player.y, 20, '#ff3355', 2, 8);
@@ -160,18 +165,18 @@ function _veilshroudStrike(enemy) {
 
     // Trúng sentinel trong phạm vi 100px
     for (const s of sentinels) {
-        if (Math.hypot(s.x - tx, s.y - ty) < 100) {
+        if (Math.hypot(s.x - tx, s.y - ty) < 100 && !capStopped && !_capBlocksSource(enemy, s) && !_capShields(tx, ty, s.x, s.y, 'area', enemy)) {
             _lt.hitSentinelPositions.push({ x: s.x, y: s.y });
             // ATK category (docs/combat-scaling-rebalance.md Part 2): snapshotted
             // at launch, so a delayed post-death strike still uses the host's
             // real atk instead of reading a since-removed enemy.
-            dealDamage(s, { damage: enemy.atk || 0, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx, _noHitSfx: true });
+            dealDamage(s, { damage: enemy.atk || 0, percentDamage: 0, _vanguardTag: 'veil_lightning_' + tx, _capSource: enemy, _noHitSfx: true });
             addExplosion(s.x, s.y, 60, '#ff1133');
             createParticles(s.x, s.y, 22, '#ffffff', 3, 10);
             createParticles(s.x, s.y, 14, '#ff3355', 2, 7);
         }
     }
-    createParticles(tx, ty, 35, '#ff1133', 3, 10);
+    createParticles(_lt.x, _lt.y, 35, '#ff1133', 3, 10);
 }
 
 function _veilshroudFireVolley(enemy) {
@@ -240,14 +245,14 @@ function _veilshroudEchoExplode(enemy) {
     createParticles(x, y, 30, '#ffffff', 2, 9);
 
     // The collapse erases any ally-side projectile caught in it, arc blades included
-    bullets = bullets.filter(b => Math.hypot(b.x - x, b.y - y) >= r);
-    bladeArcProjectiles = bladeArcProjectiles.filter(p => Math.hypot(p.x - x, p.y - y) >= r);
+    bullets = bullets.filter(b => Math.hypot(b.x - x, b.y - y) >= r || _capBlocksSource(enemy, b, 'area'));
+    bladeArcProjectiles = bladeArcProjectiles.filter(p => Math.hypot(p.x - x, p.y - y) >= r || _capBlocksSource(enemy, p, 'area'));
 
     // Caught in the collapse: -1 life outright, same save-system stack as
     // any other hit (Dream Realm, Great Sage, Yog-Sothoth, Skill A's own
     // defensive orb, Final Defense all still get first say via playerTakesHit).
     if (Math.hypot(player.x - x, player.y - y) < r) {
-        playerTakesHit({ type: 'veilshroud_echo' });
+        playerTakesHit(enemy);
     }
 
     // Tạo vùng nổ tick

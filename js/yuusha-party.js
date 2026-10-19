@@ -906,13 +906,15 @@ function _updateYuushaFormation(slotsChanged) {
 // `isTrueDamage` mirrors the source attack's own flag, so it bypasses DR/
 // shield here exactly as it would against a real Sentinel (Part 3).
 // Returns true if redirected (caller should skip its own playerTakesHit call).
-function _yuushaPierceRedirect(value, isTrueDamage) {
+function _yuushaPierceRedirect(value, isTrueDamage, attacker = null) {
+    if (_capBlocksSource(attacker, player)) return true;
     if (!_hasBuff('doi_hinh_chien') || !(value > 0)) return false;
     const alive = (window._yuushaSquad || []).filter(s => s.hp > 0);
     if (alive.length === 0) return false;
 
     const now = performance.now();
     alive.forEach(member => {
+        if (_capBlocksSource(attacker, member)) return;
         const rawDmg = value * 1.5;
         const actualDmg = _yuushaApplyDamage(member, rawDmg, now, isTrueDamage);
         if (member.role === 'Tank' && actualDmg > 0) _yuushaFillTankAbsorb(member, actualDmg * 2.2);
@@ -1015,7 +1017,7 @@ function _checkYuushaBulletCollisions(now) {
             const d = Math.hypot(e.x - s.x, e.y - s.y);
             if (d < e.size + s.radius && d < nearestDist) { nearestDist = d; nearest = s; }
         }
-        if (!nearest) continue;
+        if (!nearest || _capBlocksSource(e, nearest, 'bullet')) continue;
 
         // Once a hit is confirmed, a Tank soaks it for the squad 75% of the time
         const member = (tanks.length > 0 && Math.random() < 0.75)
@@ -1028,6 +1030,7 @@ function _checkYuushaBulletCollisions(now) {
         // HP (Part 2 decoupled the two - a partially-shot-down bullet no
         // longer deals less damage).
         const rawDmg = e.type === 'enemy_bullet_small' ? member.maxHp * 0.15 : Math.min(member.maxHp * 0.3, e.damage || 0);
+        if (_capBlocksSource(e, member, 'bullet')) continue;
         const actualDmg = _yuushaApplyDamage(member, rawDmg, now, false);
         e.hp = 0;
 

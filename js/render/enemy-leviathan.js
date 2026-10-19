@@ -150,8 +150,10 @@ function _drawLeviathanEffects() {
             const _bx = beam.ownerRef ? beam.ownerRef.x : beam.ox;
             const _by = beam.ownerRef ? beam.ownerRef.y : beam.oy;
             const seed = beam.ox * 0.017 + beam.oy * 0.013;
+            const len = _capBeamLength(beam, _bx, _by, sweepAngle, Math.hypot(canvas.width, canvas.height) * 1.5, true);
 
             ctx.save();
+            _capClipEnemyDraw(ctx, _bx, _by, beam);
             ctx.translate(_bx, _by);
             ctx.rotate(sweepAngle);
 
@@ -292,7 +294,9 @@ function _drawLeviathanEffects() {
         // instead of trusting that to stay true forever.
         const _lx = laser.ownerRef ? laser.ownerRef.x : laser.ox;
         const _ly = laser.ownerRef ? laser.ownerRef.y : laser.oy;
+        const len = _capBeamLength(laser, _lx, _ly, isActive ? laser.angle : currentAngle, Math.hypot(canvas.width, canvas.height) * 1.5, isActive);
         ctx.save();
+        _capClipEnemyDraw(ctx, _lx, _ly, laser);
         ctx.translate(_lx, _ly);
 
         if (!isActive) {

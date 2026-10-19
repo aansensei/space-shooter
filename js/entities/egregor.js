@@ -83,7 +83,9 @@ function updateEgregor(enemy, deltaTime) {
     // Move at 10% speed during NullSlash windup, full speed otherwise
     const _nsMoveMult = (enemy._nullSlashPhase === 'charging') ? 0.10 : 1.0;
     const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
+    const capX = enemy.x, capY = enemy.y;
     enemy.y += enemy.speed * _phoneSpeedMul * _speedMult * _nsMoveMult * dt;
+    _capHoldBody(enemy, capX, capY);
     if (enemy.x < enemy.size) enemy.x = enemy.size;
     if (enemy.x > canvas.width - enemy.size) enemy.x = canvas.width - enemy.size;
 
@@ -143,19 +145,21 @@ function _updateEgregorTempest(enemy, deltaTime, now, cooldown) {
             const _hitSentinels = new Set();
             for (const t of enemy._tempestTargets) {
                 t.struck = true; t.strikeLife = 700;
+                t.x = ox; t.y = oy; t.type = 'egregor'; t.ownerRef = enemy;
                 t._mainBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty, 16, 32);
                 t._outerBolt = _egregorGenBolt(ox, oy, t.tx, t.ty, 12, 48);
                 t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
                 t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
+                if (_capShields(ox, oy, t.tx, t.ty, 'laser', enemy)) continue;
                 // Damage (radius 100px), player and each sentinel hit at most once per cast
-                if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-                    if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false)) playerTakesHit(enemy);
+                if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100 && !_capBlocksSource(t, player) && !_capShields(t.tx, t.ty, player.x, player.y, 'area', enemy)) {
+                    if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false, t)) playerTakesHit(enemy);
                     _playerHit = true;
                 }
                 for (const s of sentinels) {
-                    if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
+                    if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100 && !_capBlocksSource(t, s) && !_capShields(t.tx, t.ty, s.x, s.y, 'area', enemy)) {
                         // Own-Max-HP category (docs/combat-scaling-rebalance.md Part 2)
-                        dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
+                        dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
                         _hitSentinels.add(s);
                     }
                 }
@@ -201,17 +205,19 @@ function _forceFireEgregorTempest(enemy) {
     const _hitSentinels = new Set();
     for (const t of enemy._tempestTargets) {
         t.struck = true; t.strikeLife = 700;
+        t.x = ox; t.y = oy; t.type = 'egregor'; t.ownerRef = enemy;
         t._mainBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty, 16, 32);
         t._outerBolt = _egregorGenBolt(ox, oy, t.tx, t.ty, 12, 48);
         t._thinBolt  = _egregorGenBolt(ox, oy, t.tx, t.ty,  8, 18);
         t._branchA   = _egregorGenBolt(ox, oy, t.tx, t.ty, 10, 38);
-        if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100) {
-            if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false)) playerTakesHit(enemy);
+        if (_capShields(ox, oy, t.tx, t.ty, 'laser', enemy)) continue;
+        if (!_playerHit && Math.hypot(player.x - t.tx, player.y - t.ty) < 100 && !_capBlocksSource(t, player) && !_capShields(t.tx, t.ty, player.x, player.y, 'area', enemy)) {
+            if (!_yuushaPierceRedirect(0.015 * _enemyHs(enemy), false, t)) playerTakesHit(enemy);
             _playerHit = true;
         }
         for (const s of sentinels) {
-            if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100) {
-                dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor' });
+            if (!_hitSentinels.has(s) && Math.hypot(s.x - t.tx, s.y - t.ty) < 100 && !_capBlocksSource(t, s) && !_capShields(t.tx, t.ty, s.x, s.y, 'area', enemy)) {
+                dealDamage(s, { damage: 0.015 * _enemyHs(enemy), isTrueDamage: false, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
                 _hitSentinels.add(s);
             }
         }
@@ -282,7 +288,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             let _nsHitLanded = false;
 
             // Player hit
-            if (_inSlash(player.x, player.y)) {
+            if (_inSlash(player.x, player.y) && !_capBlocksSource(enemy, player, 'debuff')) {
                 if (typeof skillShiftActive !== 'undefined' && skillShiftActive) {
                     _triggerAccurateParry(); // Yog-Sothoth dodge, no life, no slow
                 } else {
@@ -297,7 +303,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
             }
 
             // Sentinel hits, all sentinels inside the arc sector
-            const hitSents = sentinels.filter(s => _inSlash(s.x, s.y));
+            const hitSents = sentinels.filter(s => _inSlash(s.x, s.y) && !_capBlocksSource(enemy, s));
             const hc = hitSents.length;
             if (hc > 0) {
                 // Lost-HP/enrage category (docs/combat-scaling-rebalance.md
@@ -306,7 +312,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                 const coeff = hc === 1 ? 1.50 : hc === 2 ? 1.75 : 2.00;
                 const _nsDmg = coeff * enemy.atk * _enemyEnrageMult(enemy);
                 for (const s of hitSents) {
-                    dealDamage(s, { damage: _nsDmg, isTrueDamage: true, _noHitSfx: true, _attackerType: 'egregor' });
+                    dealDamage(s, { damage: _nsDmg, isTrueDamage: true, _noHitSfx: true, _attackerType: 'egregor', _capSource: enemy });
                     addExplosion(s.x, s.y, 65, '#7700dd');
                     createParticles(s.x, s.y, 18, '#cc44ff', 3, 7);
                 }
@@ -328,7 +334,7 @@ function _updateEgregorNullSlash(enemy, deltaTime, now) {
                           + (enemy._rageStacks || 0) * 5;
             if (!window._dimBreakZones) window._dimBreakZones = [];
             window._dimBreakZones.push({
-                cx: ox, cy: oy,
+                cx: ox, cy: oy, ownerRef: enemy,
                 arcR: _dbArcR,
                 angle: enemy._nullSlashAngle,
                 arcStart: enemy._nullSlashAngle - Math.PI / 2,

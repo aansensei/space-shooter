@@ -96,7 +96,9 @@ function updateLeviathan(enemy, deltaTime) {
 
     // MOVE DOWN
     const _phoneSpeedMul = window._deviceTier === 'phone' ? 0.88 : 1.0;
+    const capX = enemy.x, capY = enemy.y;
     enemy.y += enemy.speed * _phoneSpeedMul * (deltaTime / 16.67);
+    _capHoldBody(enemy, capX, capY);
     if (enemy.y > canvas.height + enemy.size) { enemy.hp = 0; return; }
 
     // Re-apply Envy to enemies that spawned after this Leviathan
@@ -230,7 +232,7 @@ function _spawnPerseveranceBeam(enemy, now) {
     if (!window._levPersBeams) window._levPersBeams = [];
     if (window.AudioMgr) window.AudioMgr.playSfxAt('leviathan-perseverance', enemy.x, enemy.y);
     window._levPersBeams.push({
-        ox: enemy.x, oy: enemy.y,
+        ox: enemy.x, oy: enemy.y, type: 'leviathan',
         sweepOrigin: -Math.PI,        // bắt đầu từ -180°
         sweepStart: now,
         duration: 1800,               // 1.8s quét đủ 360°

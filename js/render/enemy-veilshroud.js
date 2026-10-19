@@ -511,6 +511,8 @@ function _drawVeilshroudEffects() {
 
             ctx.save();
 
+            _capClipEnemyDraw(ctx, lt.ownerRef ? lt.ownerRef.x : lt.x, lt.ownerRef ? lt.ownerRef.y : 0, lt);
+
             // Outer shockwave circle
             const waveR = lt.strikeRadius * (1.3 - prog * 0.3);
             ctx.globalAlpha = alpha * 0.5;
@@ -608,6 +610,7 @@ function _drawVeilshroudEffects() {
         for (const ez of window._veilshroudExplosions) {
             const prog = ez.life / ez.maxLife; // 1→0
             ctx.save();
+            _capClipEnemyDraw(ctx, ez.x, ez.y, ez);
 
             // Solid boundary ring
             ctx.globalAlpha = prog * 0.9;

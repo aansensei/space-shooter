@@ -1606,7 +1606,7 @@ function _goliathUpdateJoker(enemy, deltaTime, now) {
                 const _dbArcR = Math.hypot(s.targetX - s.originX, s.targetY - s.originY);
                 if (!window._dimBreakZones) window._dimBreakZones = [];
                 window._dimBreakZones.push({
-                    cx: s.originX, cy: s.originY, arcR: _dbArcR, angle: s.angle,
+                    cx: s.originX, cy: s.originY, ownerRef: enemy, arcR: _dbArcR, angle: s.angle,
                     arcStart: s.angle - Math.PI / 2, spawnAt: now, expireAt: now + 1000,
                 });
             }

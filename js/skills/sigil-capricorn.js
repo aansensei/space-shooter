@@ -27,6 +27,7 @@ function _capricornReset() {
     window._capricornReady = false;
     window._capMountain = null;
     window._capClock = 0;
+    window._capBlockedCounts = { bullet: 0, skill: 0, laser: 0, body: 0, area: 0, debuff: 0 };
 }
 _capricornReset();
 
@@ -162,30 +163,121 @@ function _capBreakWall(st, i) {
     const w = st.walls[i];
     if (w.broken) return;
     w.broken = true; w.brokenAt = st.elapsed;
-    if (typeof _capOnWallHit === 'function') _capOnWallHit(st, w.curX, w.curY, 'skill');
+    _capRecordBlock(i, w.curX, w.curY, 'skill');
     if (window.AudioMgr) window.AudioMgr.playSfxAt('dimension-break', w.curX, w.curY);
 }
 
-function _capIsGoliath(o) { return !!o && o.type === 'goliath'; }
+function _capIsGoliath(o) {
+    if (!o) return false;
+    if (o._capSource) o = o._capSource;
+    return o.type === 'goliath' || o._attackerType === 'goliath' || o._ownerType === 'goliath' || o._isUnbrokenWave === true
+        || (o.ownerRef && o.ownerRef.type === 'goliath') || (o.owner && o.owner.type === 'goliath')
+        || (o.enemy && o.enemy.type === 'goliath');
+}
 
-// Launched enemy skills, the same arrays Dawn Herald can turn back. Goliath's
-// own meteors and verdict orbs break a wall instead of being stopped.
+const _capCross = { x: 0, y: 0, wall: -1, t: 0 };
+
+// Finds the nearest intersection with the full thickness of three screens.
+function _capWallCrossing(ax, ay, bx, by, out, radius = 0) {
+    const st = window._capMountain;
+    if (!_capWallsUp(st)) return false;
+    let best = Infinity, index = -1;
+    for (let i = 0; i < 3; i++) {
+        const w = st.walls[i];
+        if (w.broken) continue;
+        const dx = ax - w.curX, dy = ay - w.curY;
+        const x = dx * w.cos + dy * w.sin, y = -dx * w.sin + dy * w.cos;
+        const vx = (bx - ax) * w.cos + (by - ay) * w.sin;
+        const vy = -(bx - ax) * w.sin + (by - ay) * w.cos;
+        const hw = w.w / 2 + radius, ht = CAP_WALL_HALF_T + radius;
+        let lo = 0, hi = 1;
+        if (Math.abs(vx) < 1e-9) { if (Math.abs(x) > hw) continue; }
+        else {
+            const p = (-hw - x) / vx, q = (hw - x) / vx;
+            lo = Math.max(lo, Math.min(p, q)); hi = Math.min(hi, Math.max(p, q));
+        }
+        if (Math.abs(vy) < 1e-9) { if (Math.abs(y) > ht) continue; }
+        else {
+            const p = (-ht - y) / vy, q = (ht - y) / vy;
+            lo = Math.max(lo, Math.min(p, q)); hi = Math.min(hi, Math.max(p, q));
+        }
+        if (lo <= hi && lo < best) { best = lo; index = i; }
+    }
+    if (index < 0) return false;
+    if (out) { out.x = ax + (bx - ax) * best; out.y = ay + (by - ay) * best; out.wall = index; out.t = best; }
+    return true;
+}
+
+function _capRecordBlock(index, x, y, kind) {
+    const st = window._capMountain;
+    if (!st || index < 0) return;
+    st.walls[index].hitCount++;
+    const counts = window._capBlockedCounts;
+    if (counts && counts[kind] !== undefined) counts[kind]++;
+    if (typeof _capOnWallHit === 'function') _capOnWallHit(st, x, y, kind);
+}
+
+// Every enemy hit, area tick and debuff uses the same occlusion test.
+function _capShields(srcX, srcY, targetX, targetY, kind = 'laser', owner = null) {
+    if (!_capWallsUp(window._capMountain) || _capIsGoliath(owner)) return false;
+    if (!Number.isFinite(srcX) || !Number.isFinite(srcY) || !Number.isFinite(targetX) || !Number.isFinite(targetY)) return false;
+    if (!_capWallCrossing(srcX, srcY, targetX, targetY, _capCross)) return false;
+    _capRecordBlock(_capCross.wall, _capCross.x, _capCross.y, kind);
+    return true;
+}
+
+function _capBlocksSource(source, target, kind) {
+    if (!_capWallsUp(window._capMountain) || !source || !target || source._isBTMWave || _capIsGoliath(source)) return false;
+    const s = source._capSource || source;
+    const x = Number.isFinite(s.ox) ? s.ox : Number.isFinite(s.cx) ? s.cx : s.start ? s.start.x : s.x;
+    const y = Number.isFinite(s.oy) ? s.oy : Number.isFinite(s.cy) ? s.cy : s.start ? s.start.y : s.y;
+    return _capShields(x, y, target.x, target.y, kind || source._capKind || 'laser', source);
+}
+
+function _capWallBlocksHit(attacker) { return _capBlocksSource(attacker, player); }
+
+// Swept collision runs after movement and before any projectile hit code.
+function _capStopProjectile(p, ax, ay, kind = 'skill', breaks = false, radius = 8) {
+    if (!_capWallsUp(window._capMountain) || (!breaks && _capIsGoliath(p))) return false;
+    if (!_capWallCrossing(ax, ay, p.x, p.y, _capCross, radius)) return false;
+    if (breaks) { _capBreakWall(window._capMountain, _capCross.wall); return false; }
+    _capRecordBlock(_capCross.wall, _capCross.x, _capCross.y, kind);
+    return true;
+}
+
 function _capBlockArray(st, list, kind) {
     if (!list) return;
-    const goliathOwned = kind === 'meteor' || kind === 'verdict';
     for (let i = list.length - 1; i >= 0; i--) {
         const p = list[i];
-        if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-        // Only skills already in flight, by the same test Dawn Herald uses.
-        if (typeof _dauReflectEligible === 'function' && !_dauReflectEligible(kind, p)) continue;
-        const wi = _capWallAt(p.x, p.y, p.radius || p.size / 2 || 8);
-        if (wi < 0) continue;
-        const owner = p.owner || p.ownerRef || p.enemy;
-        if (goliathOwned || _capIsGoliath(owner)) { _capBreakWall(st, wi); continue; }
-        if (typeof _capOnWallHit === 'function') _capOnWallHit(st, p.x, p.y, 'skill');
-        st.walls[wi].hitCount++;
+        if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.life <= 0) continue;
+        if (kind === 'marchosias' && (p.delay > 0 || p.active === false)) continue;
+        if (kind === 'raphael' && p.phase !== 'launch') continue;
+        const breaks = kind === 'meteor' || kind === 'verdict';
+        const r = kind === 'uriel' ? 46 : kind === 'raphael' ? 21 : kind === 'verdict' ? 108 : kind === 'meteor' ? 46 : p.radius || 8;
+        if (!_capStopProjectile(p, p.x, p.y, 'skill', breaks, r)) continue;
         for (let j = i; j < list.length - 1; j++) list[j] = list[j + 1];
         list.pop();
+    }
+}
+
+// A body keeps its approach side and slides along the screen, including teleports.
+function _capHoldBody(e, ax, ay) {
+    if (!_capWallsUp(window._capMountain) || !e || _capIsGoliath(e) || e._deathPhase
+        || e.type === 'veilshroud_echo' || e.type === 'thaelis_cocoon' || e.type === 'embryo') return;
+    const r = (e.size || 40) * 0.4;
+    let index = -1;
+    if (_capWallCrossing(ax, ay, e.x, e.y, _capCross, r)) index = _capCross.wall;
+    if (index < 0) return;
+    const w = window._capMountain.walls[index];
+    const prevY = -(ax - w.curX) * w.sin + (ay - w.curY) * w.cos;
+    const side = prevY > CAP_WALL_HALF_T ? 1 : -1;
+    const lx = Math.max(-w.w / 2 - r, Math.min(w.w / 2 + r, (e.x - w.curX) * w.cos + (e.y - w.curY) * w.sin));
+    const ly = side * (CAP_WALL_HALF_T + r + 0.01);
+    e.x = w.curX + lx * w.cos - ly * w.sin;
+    e.y = w.curY + lx * w.sin + ly * w.cos;
+    if (e._capBodyHitAt === undefined || window._capClock - e._capBodyHitAt >= 100) {
+        e._capBodyHitAt = window._capClock;
+        _capRecordBlock(index, _capCross.x, _capCross.y, 'body');
     }
 }
 
@@ -193,75 +285,41 @@ function _capBlockEnemies(st) {
     for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         if (!e || e.hp <= 0 || !Number.isFinite(e.x)) continue;
-        if (e.type.startsWith('enemy_bullet')) {
-            const wi = _capWallAt(e.x, e.y, (e.size || 8) / 2);
-            if (wi < 0) continue;
-            // Goliath's own shots pass the screens untouched, by his own rules.
-            if (_capIsGoliath(e.ownerRef)) continue;
-            e.hp = 0;
-            st.walls[wi].hitCount++;
-            if (typeof _capOnWallHit === 'function') _capOnWallHit(st, e.x, e.y, 'bullet');
-            continue;
-        }
-        if (e.type === 'abyssal_chain') {
-            const wi = _capWallAt(e.x, e.y, (e.size || 20) / 2);
-            if (wi < 0) continue;
-            if (typeof _capOnWallHit === 'function') _capOnWallHit(st, e.x, e.y, 'skill');
-            enemies.splice(i, 1);
-            continue;
-        }
-        // Goliath's body neither breaks nor is held by the screens; only his
-        // meteors and Verdict orbs break them.
-        if (e.type === 'veilshroud_echo' || e.type === 'goliath' || e._deathPhase) continue;
-        const r = (e.size || 40) / 2;
-        const wi = _capWallAt(e.x, e.y, r * 0.8);
-        if (wi < 0) continue;
-        // A body that reaches a wall is held on its far side from the ship.
-        const w = st.walls[wi];
-        _capWallLocal(w, e.x, e.y, _capLocal);
-        const ly = -(CAP_WALL_HALF_T + r * 0.8);
-        if (_capLocal.ly > ly) {
-            e.x = w.curX + _capLocal.lx * w.cos - ly * w.sin;
-            e.y = w.curY + _capLocal.lx * w.sin + ly * w.cos;
-            if (!e._capBodyHitAt || window._capClock - e._capBodyHitAt > 400) {
-                e._capBodyHitAt = window._capClock;
-                if (typeof _capOnWallHit === 'function') _capOnWallHit(st, e.x, e.y + r * 0.6, 'body');
-            }
-        }
+        if (e.type.startsWith('enemy_bullet') || e.type === 'abyssal_chain') {
+            if (_capStopProjectile(e, e.x, e.y, e.type === 'abyssal_chain' ? 'skill' : 'bullet', false, e.size || 8)) e.hp = 0;
+        } else _capHoldBody(e, e.x, e.y);
     }
 }
 
-// Segment test: does the line from (ax, ay) to (bx, by) cross a standing wall?
-function _capWallCrossing(ax, ay, bx, by, out) {
+function _capBeamLength(source, x, y, angle, length, record = false) {
+    if (_capIsGoliath(source) || !_capWallsUp(window._capMountain)) return length;
+    if (!_capWallCrossing(x, y, x + Math.cos(angle) * length, y + Math.sin(angle) * length, _capCross)) return length;
+    if (record && (!source || source._capBeamHitAt === undefined || window._capClock - source._capBeamHitAt >= 80)) {
+        _capRecordBlock(_capCross.wall, _capCross.x, _capCross.y, 'laser');
+        if (source) source._capBeamHitAt = window._capClock;
+    }
+    return length * _capCross.t;
+}
+
+// The wall shadow clips line effects and area rings in world coordinates.
+function _capClipEnemyDraw(g, x, y, owner) {
     const st = window._capMountain;
-    if (!_capWallsUp(st)) return false;
+    if (!_capWallsUp(st) || _capIsGoliath(owner)) return;
+    const far = Math.hypot(canvas.width, canvas.height) * 8;
     for (let i = 0; i < 3; i++) {
         const w = st.walls[i];
         if (w.broken) continue;
-        const hx = w.cos * w.w / 2, hy = w.sin * w.w / 2;
-        const x1 = w.curX - hx, y1 = w.curY - hy, x2 = w.curX + hx, y2 = w.curY + hy;
-        const d = (bx - ax) * (y2 - y1) - (by - ay) * (x2 - x1);
-        if (Math.abs(d) < 1e-6) continue;
-        const t = ((x1 - ax) * (y2 - y1) - (y1 - ay) * (x2 - x1)) / d;
-        const u = ((x1 - ax) * (by - ay) - (y1 - ay) * (bx - ax)) / d;
-        if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-            if (out) { out.x = ax + (bx - ax) * t; out.y = ay + (by - ay) * t; }
-            return true;
-        }
+        const side = (-(x - w.curX) * w.sin + (y - w.curY) * w.cos) > 0 ? 1 : -1;
+        const cx = w.curX - w.sin * CAP_WALL_HALF_T * side, cy = w.curY + w.cos * CAP_WALL_HALF_T * side;
+        const ax = cx - w.cos * w.w / 2, ay = cy - w.sin * w.w / 2;
+        const bx = cx + w.cos * w.w / 2, by = cy + w.sin * w.w / 2;
+        const ad = Math.hypot(ax - x, ay - y) || 1, bd = Math.hypot(bx - x, by - y) || 1;
+        g.beginPath(); g.rect(-far, -far, far * 2, far * 2);
+        g.moveTo(ax, ay); g.lineTo(bx, by);
+        g.lineTo(bx + (bx - x) / bd * far, by + (by - y) / bd * far);
+        g.lineTo(ax + (ax - x) / ad * far, ay + (ay - y) / ad * far); g.closePath();
+        g.clip('evenodd');
     }
-    return false;
-}
-const _capCross = { x: 0, y: 0 };
-
-// Called from playerTakesHit: beams, shockwaves and anything else that comes
-// from an attacker on the far side of a wall is stopped by it. Goliath keeps
-// his own rules and is never stopped.
-function _capWallBlocksHit(attacker) {
-    if (!window._capMountain || !attacker || !Number.isFinite(attacker.x) || !Number.isFinite(attacker.y)) return false;
-    if (_capIsGoliath(attacker) || _capIsGoliath(attacker.ownerRef)) return false;
-    if (!_capWallCrossing(attacker.x, attacker.y, player.x, player.y, _capCross)) return false;
-    if (typeof _capOnWallHit === 'function') _capOnWallHit(window._capMountain, _capCross.x, _capCross.y, 'laser');
-    return true;
 }
 
 function _capricornBeginFrame(deltaTime) {

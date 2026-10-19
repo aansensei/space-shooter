@@ -226,7 +226,7 @@ function _urielLaunchSword(enemy) {
     const spd = 806 / 60; // 806px/s baseline, expressed per 16.67ms frame like every other enemy projectile
     window._urielHolySwords = window._urielHolySwords || [];
     window._urielHolySwords.push({
-        owner: enemy,
+        owner: enemy, type: 'uriel_holysword',
         x: enemy.x, y: enemy.y, ang,
         vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
         life: 1, _releaseFlash: 1, hitSentinels: [],
@@ -243,7 +243,9 @@ function _urielLaunchSword(enemy) {
 function updateUriel(enemy, deltaTime) {
     const dt = deltaTime / 16.67;
 
+    const capX = enemy.x, capY = enemy.y;
     _urielUpdateCamouflage(enemy, deltaTime);
+    _capHoldBody(enemy, capX, capY);
 
     // Movement: patrol the upper half only, weaving between waypoints,
     // never rushing the player. Frozen while stealthed.
@@ -258,6 +260,8 @@ function updateUriel(enemy, deltaTime) {
             enemy.y += (dy / dist) * sp * dt;
         }
     }
+
+    _capHoldBody(enemy, capX, capY);
 
     // Self Iron Body: refresh 1 layer every 2s (never stacks past 1). A
     // soft white pulse ring sells the moment the layer actually refreshes.
@@ -365,7 +369,9 @@ function _updateUrielEffects(deltaTime) {
     if (swords && swords.length) {
         for (let i = swords.length - 1; i >= 0; i--) {
             const s = swords[i];
+            const capX = s.x, capY = s.y;
             s.x += s.vx * dt; s.y += s.vy * dt;
+            if (_capStopProjectile(s, capX, capY, 'skill', false, 46)) { swords.splice(i, 1); continue; }
             if (s._releaseFlash > 0) s._releaseFlash -= dt * 0.08;
 
             // Fading motion trail, plus the odd sparkle mote flung off the
@@ -381,7 +387,7 @@ function _updateUrielEffects(deltaTime) {
 
             if (!s._hitPlayer && Math.hypot(s.x - player.x, s.y - player.y) < 46 + player.hitRadius) {
                 s._hitPlayer = true;
-                if (playerTakesHit({ type: 'uriel_holysword' })) {
+                if (playerTakesHit(s)) {
                     player._urielJudgedEnd = performance.now() + 3000;
                 }
                 addExplosion(s.x, s.y, 60, '#ffe27a');
@@ -392,7 +398,7 @@ function _updateUrielEffects(deltaTime) {
                 if (sen.hp <= 0 || s.hitSentinels.includes(sen)) continue;
                 if (Math.hypot(s.x - sen.x, s.y - sen.y) < 46 + sen.size / 2) {
                     s.hitSentinels.push(sen);
-                    dealDamage(sen, { damage: s.atk, isTrueDamage: true, isPiercing: true, _statSrc: 'Uriel: Holy Sword' });
+                    dealDamage(sen, { damage: s.atk, isTrueDamage: true, isPiercing: true, _statSrc: 'Uriel: Holy Sword', _capSource: s });
                     addExplosion(sen.x, sen.y, 40, '#bfe0ff');
                     if (window.AudioMgr) window.AudioMgr.playSfxAt('uriel-sword-impact', sen.x, sen.y);
                 }

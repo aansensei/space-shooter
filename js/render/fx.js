@@ -7,14 +7,19 @@
 
 function drawRaphaelLasers() {
     raphaelLasers.forEach(laser => {
+        const dx = laser.end.x - laser.start.x, dy = laser.end.y - laser.start.y;
+        const distance = Math.hypot(dx, dy), angle = Math.atan2(dy, dx);
+        const length = _capBeamLength(laser, laser.start.x, laser.start.y, angle, distance, laser.fired);
+        const endX = laser.start.x + Math.cos(angle) * length, endY = laser.start.y + Math.sin(angle) * length;
         ctx.save();
+        _capClipEnemyDraw(ctx, laser.start.x, laser.start.y, laser);
         if (!laser.fired) {
             // Wide warning zone
             ctx.strokeStyle = "rgba(255,0,0,0.12)";
             ctx.lineWidth = 22;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
-            ctx.lineTo(laser.end.x, laser.end.y);
+            ctx.lineTo(endX, endY);
             ctx.stroke();
             // Dashed targeting line
             ctx.strokeStyle = "rgba(255,100,100,0.9)";
@@ -23,13 +28,13 @@ function drawRaphaelLasers() {
             if (!_mobPerf) ctx.shadowColor = 'red'; if (!_mobPerf) ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
-            ctx.lineTo(laser.end.x, laser.end.y);
+            ctx.lineTo(endX, endY);
             ctx.stroke();
             ctx.setLineDash([]);
             // tiny crosshair dot at end
             ctx.fillStyle = 'rgba(255,80,80,0.9)';
             ctx.beginPath();
-            ctx.arc(laser.end.x, laser.end.y, 5, 0, Math.PI * 2);
+            ctx.arc(endX, endY, 5, 0, Math.PI * 2);
             ctx.fill();
         } else {
             let prog = laser.duration / 200;
@@ -40,7 +45,7 @@ function drawRaphaelLasers() {
             if (!_mobPerf) ctx.shadowBlur = 40;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
-            ctx.lineTo(laser.end.x, laser.end.y);
+            ctx.lineTo(endX, endY);
             ctx.stroke();
             // core beam
             ctx.strokeStyle = `rgba(255,80,80,${prog})`;
@@ -48,7 +53,7 @@ function drawRaphaelLasers() {
             if (!_mobPerf) ctx.shadowBlur = 20;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
-            ctx.lineTo(laser.end.x, laser.end.y);
+            ctx.lineTo(endX, endY);
             ctx.stroke();
             // bright center
             ctx.strokeStyle = `rgba(255,255,255,${prog})`;
@@ -56,7 +61,7 @@ function drawRaphaelLasers() {
             ctx.shadowBlur = 0;
             ctx.beginPath();
             ctx.moveTo(laser.start.x, laser.start.y);
-            ctx.lineTo(laser.end.x, laser.end.y);
+            ctx.lineTo(endX, endY);
             ctx.stroke();
         }
         ctx.restore();
@@ -874,6 +879,7 @@ function _drawDimBreakZones() {
         const dbAlpha = Math.max(0, (dbz.expireAt - now) / 1000);
         if (dbAlpha <= 0) continue;
         ctx.save();
+        _capClipEnemyDraw(ctx, dbz.cx, dbz.cy, dbz);
         ctx.lineCap = 'round';
         const dbEnd = dbz.arcStart + Math.PI;
 
@@ -1152,6 +1158,7 @@ function drawBossShockwaves() {
         }
 
         ctx.save();
+        _capClipEnemyDraw(ctx, wave.x, wave.y, wave);
         ctx.translate(wave.x, wave.y);
         // Slow heavy pulse for the oppressive fill/ring, separate from the
         // faster "blink" used for sparkle/accent flicker below — a slow
