@@ -2998,19 +2998,7 @@ function draw(deltaTime) {
 }
 
 // Start Screen, Pisces Constellation
-function _drawStartScreen() {
-    const now = performance.now();
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-
-    // Pisces constellation star positions (normalized -1..1 → screen)
-    // Based on real Pisces star pattern: two fish connected by a cord
-    const scale = Math.min(canvas.width, canvas.height) * 0.30;
-    const offX = cx;
-    const offY = cy - scale * 0.05;
-
-    // Stars: [x, y, magnitude], normalized coords centered on constellation
-    const piscesStars = [
+const _startPiscesStars = [
         // Western fish (top-left loop)
         [-0.55, 0.10, 2.8], // η Psc
         [-0.72, 0.00, 3.6], // ο Psc
@@ -3032,13 +3020,28 @@ function _drawStartScreen() {
         [0.38, 0.22, 3.9],
         [0.22, 0.18, 3.6], // ε Psc
     ];
-
-    // Constellation lines (index pairs)
-    const lines = [
+const _startPiscesLines = [
         [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 0], // western fish loop
         [6, 7], [7, 8], [8, 9], [9, 10],                  // cord
         [10, 11], [11, 12], [12, 13], [13, 14], [14, 15], [15, 16], [16, 10] // eastern fish loop
     ];
+
+function _drawStartScreen() {
+    const now = performance.now();
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    // Pisces constellation star positions (normalized -1..1 → screen)
+    // Based on real Pisces star pattern: two fish connected by a cord
+    const scale = Math.min(canvas.width, canvas.height) * 0.30;
+    const offX = cx;
+    const offY = cy - scale * 0.05;
+
+    // Stars: [x, y, magnitude], normalized coords centered on constellation
+    const piscesStars = _startPiscesStars;
+
+    // Constellation lines (index pairs)
+    const lines = _startPiscesLines;
 
     // Draw constellation lines, sáng rõ hơn
     ctx.save();

@@ -66,7 +66,7 @@
         const p = fetch(src)
             .then(r => r.arrayBuffer())
             .then(ab => actx.decodeAudioData(ab))
-            .then(buf => { if (buf) _decodedBuffers[src] = buf; return buf; })
+            .then(buf => { if (buf && _bufferCache[src] === p) _decodedBuffers[src] = buf; return buf; })
             .catch(e => { console.warn('[Audio] buffer decode failed for ' + src, e); return null; });
         _bufferCache[src] = p;
         return p;
@@ -900,7 +900,10 @@
     // picked instead of sitting in memory unused.
     function _evictStaleBgmBuffers(keepSrc) {
         BGM_LIST.forEach(t => {
-            if (!t.menuOnly && t.src !== keepSrc) delete _bufferCache[t.src];
+            if (!t.menuOnly && t.src !== keepSrc) {
+                delete _bufferCache[t.src];
+                delete _decodedBuffers[t.src];
+            }
         });
     }
 

@@ -355,6 +355,8 @@ function _activateOverloadLaser(currentTime) {
     if (window.AudioMgr) { window.AudioMgr.stopCharging(); window.AudioMgr.startLaser(); }
 }
 
+const _updateProfileScratch = [], _updateProfileScratch2 = [], _updateProfileScratch3 = [];
+const _updateAllyScratch = [];
 function update(rawDeltaTime) {
     if (gameState !== "playing" || gamePaused) return;
     const currentTime = performance.now();
@@ -383,7 +385,8 @@ function update(rawDeltaTime) {
     // createParticles/fireAutoShot found nothing that scales with the
     // current tiny enemy/bullet counts, so the cost must be hiding in one
     // of these calls specifically.
-    const _profChk = [performance.now()];
+    const _profChk = _updateProfileScratch;
+    _profChk.length = 1; _profChk[0] = performance.now();
     _updateSkillReadySfx(currentTime);
 
     // Recomputed every frame (not just at wave transitions) so Goliath's
@@ -2142,7 +2145,8 @@ function update(rawDeltaTime) {
     // Splits the 'wave+sigil+bulletsLoop' bucket further — that bucket is
     // the one consistently showing 100-200ms+ spikes in on-device [PROF2]
     // logs, pin down exactly which piece inside it is the real cost.
-    const _profChk3 = [performance.now()];
+    const _profChk3 = _updateProfileScratch3;
+    _profChk3.length = 1; _profChk3[0] = performance.now();
     // Skill Shift (Lãnh Địa): xóa toàn bộ enemy bullet, không cho spawn mới
     if (skillShiftActive) {
         // Abyssal Chains survive YOG, piercing, cannot be cleared by any means.
@@ -2342,7 +2346,13 @@ function update(rawDeltaTime) {
     // stuff (Vanguard Network, Herd Mentality, recoil) applies to them too
     const _photoActive = typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done);
     const _levOnField = enemies.some(e => e.type === 'leviathan' && e.hp > 0);
-    const _allyUnits = [...sentinels, ...window.skillDSpaceships, ...(window._yuushaSquad || []).filter(s => s.hp > 0)];
+    const _allyUnits = _updateAllyScratch;
+    let allyCount = 0;
+    for (let i = 0; i < sentinels.length; i++) _allyUnits[allyCount++] = sentinels[i];
+    for (let i = 0; i < window.skillDSpaceships.length; i++) _allyUnits[allyCount++] = window.skillDSpaceships[i];
+    const squad = window._yuushaSquad;
+    if (squad) for (let i = 0; i < squad.length; i++) if (squad[i].hp > 0) _allyUnits[allyCount++] = squad[i];
+    _allyUnits.length = allyCount;
     _allyUnits.forEach(s => {
         // Base blessing DR: +10%, +5% more if Leviathan on field (docs/combat-scaling-rebalance.md Part 3)
         s._blessingDR = _photoActive ? (0.10 + (_levOnField ? 0.05 : 0)) : 0;
@@ -2468,7 +2478,8 @@ function update(rawDeltaTime) {
     // Split further — the coarser "skillA-D-F+spirits+etc" bucket was the
     // dominant cost in 2 of 3 on-device samples (100-125ms), pin down
     // exactly which of these 13 calls it actually is.
-    const _profChk2 = [performance.now()];
+    const _profChk2 = _updateProfileScratch2;
+    _profChk2.length = 1; _profChk2[0] = performance.now();
     updateVulnerabilityWindows(); _profChk2.push(performance.now());
     updateSoulReaverDoT(deltaTime); _profChk2.push(performance.now());
     updateSkillA(deltaTime); _profChk2.push(performance.now());
@@ -2634,7 +2645,10 @@ function update(rawDeltaTime) {
                 return !g._slashed;
             }
             g.t += deltaTime * GOLIATH_ECHO_GHOST_SPEED;
-            if (g.t >= (g.path.length - 1) * GOLIATH_ECHO_SAMPLE_MS) return false;
+            if (g.t >= (g.path.length - 1) * GOLIATH_ECHO_SAMPLE_MS) {
+                const end = g.path[g.path.length - 1];
+                _echoQueueBurst(end.x, end.y, currentTime, false); return false;
+            }
             const p = _goliathEchoPointAt(g.path, g.t);
             g.x = p.x; g.y = p.y;
             _trySlashEchoBySweep(g);
@@ -2642,6 +2656,7 @@ function update(rawDeltaTime) {
             if (g._slashed) return false;
             if (Math.hypot(g.x - player.x, g.y - player.y) < GOLIATH_ECHO_HIT_RADIUS + (player.hitRadius || 15)) {
                 if (!_yuushaPierceRedirect(0.625 * (g.atk || 0), true) && playerTakesHit({ type: 'goliath' })) _goliathApplySilence();
+                _echoQueueBurst(player.x, player.y, currentTime, true);
                 addExplosion(g.x, g.y, 60, '#a855f7');
                 if (window.AudioMgr) window.AudioMgr.playSfxAt('metal-hit', g.x, g.y);
                 return false;
@@ -3549,6 +3564,7 @@ function gameLoop(timeStamp) {
 }
 
 function startGame() {
+    _updateAllyScratch.length = 0;
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
     gameState = "playing"; lives = 12;
     score = 0;

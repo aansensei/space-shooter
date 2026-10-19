@@ -75,6 +75,7 @@ function drawSkillButton(x, y, key, color, cooldown, lastActivation, activeCondi
     ctx.restore();
 }
 
+const _skillButtonRgb = Object.create(null);
 function drawSkillButtons() {
     const now = performance.now();
     const skillAReady = (now - lastSkillA >= _skillACooldown()) && skillAOrbs.length < maxSkillAOrbs;
@@ -88,8 +89,9 @@ function drawSkillButtons() {
     const pillX = panelX + padX;
 
     function _hexRgb(hex) {
+        if (_skillButtonRgb[hex]) return _skillButtonRgb[hex];
         const n = parseInt(hex.replace('#', ''), 16);
-        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+        return (_skillButtonRgb[hex] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]);
     }
 
     ctx.save();

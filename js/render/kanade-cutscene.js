@@ -5491,6 +5491,12 @@
     art.portalDepth = echoCanvas(384, 384);
     art.portalSeal = echoCanvas(128, 128);
     art.portalMote = echoCanvas(24, 24);
+    art.portalCube = echoCanvas(48, 48);
+    const cube = art.portalCube.getContext('2d');
+    cube.fillStyle = '#130c29'; cube.strokeStyle = '#cbb5f4'; cube.lineWidth = 1.5;
+    cube.beginPath(); cube.moveTo(12, 10); cube.lineTo(34, 14); cube.lineTo(31, 36); cube.lineTo(9, 31); cube.closePath(); cube.fill(); cube.stroke();
+    cube.strokeStyle = '#8c68b5'; cube.beginPath(); cube.moveTo(34, 14); cube.lineTo(40, 8); cube.lineTo(37, 29); cube.lineTo(31, 36);
+    cube.moveTo(12, 10); cube.lineTo(18, 5); cube.lineTo(40, 8); cube.stroke();
     art.portalJoints = [];
     const outer = art.portalClockOuter.getContext('2d');
     outer.translate(192, 192); outer.scale(2, 2);
@@ -5659,11 +5665,19 @@
     if (art.worldReady || !_gateWorldImg.complete || !_gateWorldImg.naturalWidth) return;
     const g = art.world.getContext('2d');
     g.drawImage(_gateWorldImg, 32, 32, 320, 320);
+    g.globalCompositeOperation = 'color'; g.fillStyle = '#bba0ed'; g.fillRect(32, 32, 320, 320);
     g.globalCompositeOperation = 'destination-in';
     const fade = g.createRadialGradient(192, 192, 110, 192, 192, 160);
     fade.addColorStop(0, '#fff'); fade.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = fade; g.fillRect(0, 0, 384, 384);
     g.globalCompositeOperation = 'source-over';
+    art.worldNear = echoCanvas(384, 384);
+    const near = art.worldNear.getContext('2d'); near.drawImage(art.world, 0, 0);
+    near.globalCompositeOperation = 'destination-in';
+    const band = near.createRadialGradient(192, 192, 20, 192, 192, 160);
+    band.addColorStop(0, 'rgba(255,255,255,0)'); band.addColorStop(.4, 'rgba(255,255,255,0)');
+    band.addColorStop(.7, '#fff'); band.addColorStop(1, 'rgba(255,255,255,0)');
+    near.fillStyle = band; near.fillRect(0, 0, 384, 384);
     art.worldReady = true;
   }
 
@@ -5770,12 +5784,32 @@
     ctx.save(); ctx.translate(gx, gy); ctx.scale(wide * 1.06 * k, tall * 1.34 * k);
     ctx.globalAlpha = info.gateAlpha; ctx.drawImage(art.gate, -192, -192);
     if (art.worldReady) {
-      ctx.save(); ctx.translate(Math.sin(now * 0.00013) * 4, Math.cos(now * 0.00011) * 3);
-      ctx.rotate(now * 0.000045); ctx.globalAlpha = info.gateAlpha * (tier === 0 ? 0.5 : 0.44);
+      ctx.save(); ctx.beginPath(); ctx.arc(0, 0, 157, 0, Math.PI * 2); ctx.clip();
+      ctx.save(); ctx.translate(-12 + Math.sin(now * .00019) * 3, -7 + Math.cos(now * .00017) * 2);
+      ctx.rotate(now * .000025); ctx.globalAlpha = info.gateAlpha * .74;
       ctx.drawImage(art.world, -192, -192); ctx.restore();
+      ctx.save(); ctx.translate(Math.sin(now * .00034) * 7, Math.cos(now * .00029) * 5);
+      ctx.rotate(-now * .000055); ctx.globalAlpha = info.gateAlpha * .4;
+      const nearSize = 410 + Math.sin(now * .0008) * 10;
+      ctx.drawImage(art.worldNear, -nearSize / 2, -nearSize / 2, nearSize, nearSize); ctx.restore();
+      const cubes = tier === 0 ? 18 : 9;
+      for (let i = 0; i < cubes; i++) {
+        const travel = (now * .00022 + i * .618034) % 1, z = travel * travel, a = i * 2.39996;
+        const x = -12 + Math.cos(a) * z * 150, y = -7 + Math.sin(a) * z * 150, side = 3 + z * 24;
+        ctx.globalAlpha = info.gateAlpha * Math.sin(travel * Math.PI) * .7;
+        ctx.drawImage(art.portalCube, x - side / 2, y - side / 2, side, side);
+      }
+      ctx.restore();
     }
     ctx.save(); ctx.rotate(-now * 0.00009); ctx.globalAlpha = info.gateAlpha * (tier === 0 ? 0.8 : 0.65);
     ctx.drawImage(art.portalDepth, -192, -192); ctx.restore();
+    const tunnelCount = tier === 0 ? 3 : 2;
+    for (let i = tunnelCount; i >= 1; i--) {
+      const travel = (now * .00013 + i / tunnelCount) % 1, depth = .28 + travel * .64;
+      ctx.save(); ctx.translate((1 - depth) * -20, (1 - depth) * -10);
+      ctx.rotate(-now * .00012 + i * .18); ctx.globalAlpha = info.gateAlpha * Math.sin(travel * Math.PI) * .3;
+      ctx.drawImage(art.portalClockInner, -192 * depth, -192 * depth, 384 * depth, 384 * depth); ctx.restore();
+    }
     ctx.globalAlpha = info.gateAlpha; ctx.drawImage(art.back, -192, -192);
     ctx.save(); ctx.rotate(-now * 0.00018 + (1 - info.open) * 0.8);
     ctx.globalAlpha = info.gateAlpha * (0.58 + transition * 0.17);
@@ -5841,9 +5875,11 @@
     }
     ctx.restore();
     if (poseExt <= 0.02) return null;
-    return { x: info.mirror ? 2 * gx - hx : hx, y: hy, u };
+    echoPalmResult.x = info.mirror ? 2 * gx - hx : hx; echoPalmResult.y = hy; echoPalmResult.u = u;
+    return echoPalmResult;
   }
 
+  const echoPalmResult = { x: 0, y: 0, u: 0 };
   function drawEchoCast(info, now) {
     if (freezeTier() < 2) return drawEchoCastPortal(info, now);
     return drawEchoCastBase(info, now);
@@ -5913,7 +5949,8 @@
     }
     ctx.restore();
     if (poseExt <= 0.02) return null;
-    return { x: info.mirror ? 2 * gx - hx : hx, y: hy, u };
+    echoPalmResult.x = info.mirror ? 2 * gx - hx : hx; echoPalmResult.y = hy; echoPalmResult.u = u;
+    return echoPalmResult;
   }
 
   window._kanadeDebugModelDraw = drawKanadeDebugModel;

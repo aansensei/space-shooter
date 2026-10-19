@@ -2894,8 +2894,11 @@
                 setTimeout(attempt, 0);
             });
 
-            // a tap or key during the jump cuts straight to the gate pass
-            function onJumpSkip() {
+            // The jump always plays in full. Only a press inside the debug
+            // console cuts straight to the gate pass, for testing.
+            function onJumpSkip(e) {
+                const t = e && e.target;
+                if (!t || typeof t.closest !== 'function' || !t.closest('#debugConsoleOverlay')) return;
                 if (jumpStart < 0 || handedOff) return;
                 const jt = performance.now() - jumpStart + jumpSkipShift;
                 if (jt < 250 || jt >= J_PASS) return;
@@ -3259,7 +3262,7 @@
 
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
-    <script src="js/audio.js?v=20261018a"></script>
+    <script src="js/audio.js?v=20261019echo2"></script>
     <script src="js/offline.js?v=20261018c"></script>
     <script src="js/background.js?v=20260923a"></script>
     <script src="js/config.js?v=20261018c"></script>
@@ -3307,9 +3310,9 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261018c"></script>
+    <script src="js/render/core.js?v=20261019echo2"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
-    <script src="js/render/kanade-cutscene.js?v=20261018b"></script>
+    <script src="js/render/kanade-cutscene.js?v=20261019echo2"></script>
     <script src="js/render/fx.js?v=20261019a"></script>
     <script src="js/render/player.js?v=20261015a"></script>
     <script src="js/render/enemy-common.js?v=20261018c"></script>
@@ -3318,7 +3321,7 @@
     <script src="js/render/enemy-dargruel.js?v=20261010d"></script>
     <script src="js/render/enemy-marchosias.js?v=20261010d"></script>
     <script src="js/render/enemy-leviathan.js?v=20261019a"></script>
-    <script src="js/render/enemy-goliath.js?v=20261013n"></script>
+    <script src="js/render/enemy-goliath.js?v=20261019echo2"></script>
     <script src="js/render/enemy-veilshroud.js?v=20261019a"></script>
     <script src="js/render/enemy-uriel.js?v=20261010d"></script>
     <script src="js/render/enemy-egregor.js?v=20261019a"></script>
@@ -3332,11 +3335,11 @@
     <script src="js/render/sigil-pisces.js?v=20261014c"></script>
     <script src="js/render/sigil-capricorn.js?v=20261018c"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
-    <script src="js/render/skill-buttons.js?v=20261018c"></script>
+    <script src="js/render/skill-buttons.js?v=20261019echo2"></script>
     <script src="js/pixi-renderer.js?v=20261008b"></script>
     <script src="js/input.js?v=20261018c"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20261019a"></script>
+    <script src="js/main.js?v=20261019echo2"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
