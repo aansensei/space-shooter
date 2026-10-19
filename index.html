@@ -780,8 +780,10 @@
         <!-- Shows which Service Worker cache version is actually controlling
              this page right now - queried live off sw.js, not hardcoded, so
              it can't drift from what's really installed. Bottom-right corner
-             of the main menu only, out of the way of everything else. -->
-        <div id="cacheVersionTag" style="position:fixed; right:10px; bottom:8px; z-index:5;
+             of the main menu only, out of the way of everything else. Kept
+             inside the safe area so rounded phone corners don't clip it. -->
+        <div id="cacheVersionTag" style="position:fixed; right:calc(22px + env(safe-area-inset-right, 0px));
+            bottom:calc(10px + env(safe-area-inset-bottom, 0px)); z-index:5;
             font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:1px;
             color:rgba(0,229,255,0.45); pointer-events:none; user-select:none;"></div>
         <canvas id="star-canvas"></canvas>
