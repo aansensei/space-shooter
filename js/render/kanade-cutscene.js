@@ -354,6 +354,7 @@
   // All surface planes share the exact silhouette of the receiving lock.
   function bodyBaseHairMassH(outline, c, planes) {
     bodyBaseBezierShape(outline[0], outline[1], c);
+    occludeJewels();
     pctx.save();
     tracePath(outline);
     pctx.clip();
@@ -1399,6 +1400,7 @@
       left.push(a); right.push(b); centers.push(lerp(a,b,0.5));
     }
     bezierShape(outline[0], outline[1], PAL.skin);
+    occludeJewels();
     bezierLine(outline[0], baseSegments.slice(0,last), PAL.skinShadow, STROKE.hairline);
     bezierLine(right[last], baseSegments.slice(last + 1), PAL.skinShadow, STROKE.hairline);
     bodyLClip(outline, () => {
@@ -1618,13 +1620,11 @@
       [107 + hTrail * 0.5, 150 + hDrop * 5, 102 + hTrail * 0.3, 140 + hDrop * 6, 100, 123],
       [101, 87, 100, 43, 103, 20]
     ], PAL.hairLavender);
-    // Dark outline along the outer edge of each side-hair strand only -
-    // this is exactly where hair drapes right next to the sleeve fabric
-    // and the two were blending into one shape with no separating line.
+    // Soft strand edges separate the loose hair from the sleeve.
     bezierLine([78, 24], [
       [68, 35, 65, 66, 66 + hTrail * 0.15, 96],
       [65 + hTrail * 0.35, 119, 61 + hTrail * 0.6, 138 + hDrop * 7, 55 + hTrail * 0.7, 141 + hDrop * 7]
-    ], PAL.outline, STROKE.seam);
+    ], PAL.hairBlueShade, STROKE.seam);
     bezierLine([103, 20], [
       [112, 31, 116, 58, 115 + hTrail * 0.12, 88],
       [116 + hTrail * 0.35, 116, 116 + hTrail * 0.62, 135 + hDrop * 7, 112 + hTrail * 0.7, 148 + hDrop * 6]
@@ -1704,7 +1704,7 @@
         [[111, 89], [[118, 112, 122 + fabricTrail * 0.2, 133, 130 + fabricTrail * 0.4, 146], [121 + fabricTrail * 0.3, 146, 114, 119, 111, 89]], PAL.bodyCCreamFold],
         [[105, 85], [[108, 108, 109, 130, 115, 152], [105, 142, 103, 106, 105, 85]], PAL.cream]
       ]);
-      for (const robe of [robeL, robeR]) bezierLine(robe[0], robe[1].slice(0, 4), PAL.outline, STROKE.fine);
+      for (const robe of [robeL, robeR]) bezierLine(robe[0], robe[1].slice(0, 4), robe === robeL ? PAL.bodyCWhiteDeep : PAL.outline, STROKE.fine);
       const whiteSkirt = smoothOutline([[86, 78], [75, 93], [69, 114], [63 + fabricTrail * 0.35, 147], [75, 150], [85, 145], [89, 126], [94, 87]], 0.5);
       lowerCloth(whiteSkirt, PAL.cream, [
         [[79, 88], [[74, 110, 76, 131, 68, 147], [73, 146, 79, 121, 79, 88]], PAL.bodyCCreamFold],
@@ -2537,45 +2537,95 @@
     });
   }
 
-  let jewelryFlareCanvas = null;
-  function jewelryFlare() {
-    if (jewelryFlareCanvas) return jewelryFlareCanvas;
-    const c = document.createElement('canvas'); c.width = c.height = 64;
-    const g = c.getContext('2d'), glow = g.createRadialGradient(32, 32, 0, 32, 32, 30);
-    glow.addColorStop(0, 'rgba(255,242,197,0.7)');
-    glow.addColorStop(0.3, 'rgba(255,231,160,0.18)');
-    glow.addColorStop(1, 'rgba(255,231,160,0)');
-    g.fillStyle = glow; g.fillRect(0, 0, 64, 64);
-    g.fillStyle = PAL.goldHi; g.beginPath();
-    g.moveTo(32, 6); g.quadraticCurveTo(34, 29, 53, 32);
-    g.quadraticCurveTo(34, 35, 32, 58); g.quadraticCurveTo(30, 35, 11, 32);
-    g.quadraticCurveTo(30, 29, 32, 6); g.fill();
-    jewelryFlareCanvas = c; return c;
+  function makeJewelryFlare(color) {
+    const c = document.createElement('canvas'); c.width = c.height = 32;
+    const g = c.getContext('2d');
+    g.fillStyle = color + '80'; g.beginPath();
+    g.moveTo(16, 2); g.quadraticCurveTo(16.7, 15.2, 28, 16);
+    g.quadraticCurveTo(16.8, 16.8, 16, 30); g.quadraticCurveTo(15.2, 16.8, 4, 16);
+    g.quadraticCurveTo(15.3, 15.2, 16, 2); g.fill();
+    const core = g.createRadialGradient(16, 16, 0, 16, 16, 3.5);
+    core.addColorStop(0, color); core.addColorStop(0.3, color + 'c0'); core.addColorStop(1, color + '00');
+    g.fillStyle = core; g.fillRect(12, 12, 8, 8); return c;
   }
+  const jewelryGoldFlare = makeJewelryFlare(PAL.goldHi), jewelryBlueFlare = makeJewelryFlare(PAL.eyeLight);
+  function jewelryFlare(blue) { return blue ? jewelryBlueFlare : jewelryGoldFlare; }
   // This clock excludes pause jumps and holds its phase during impact.
   function jewelryTime(elapsed) {
     return elapsed - Math.max(0, Math.min(HOLD_MS, elapsed - APPLY_AT));
   }
-  function drawJewelryGlints(L, x, y, scale, alpha, time) {
-    const tier = window._gfxLevel || 0;
-    if (tier >= 3 || window._mobPerf || alpha <= 0.01 || scale <= 0.01 || !jewelMask) return;
-    const w = Math.round(L.box * scale), u = w / GRID_W;
-    const ox = Math.round(x - w / 2), oy = Math.round(y - w / 2), flare = jewelryFlare();
-    let visible = 0;
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true;
-    for (let i = 0; i < 16; i++) {
-      if (!(jewelMask & (1 << i))) continue;
-      if (tier === 2 && visible++ % 2) continue;
-      const lapis = i >= 14, cycle = 3100 + i * 137, duration = lapis ? 200 : 280 + (i % 3) * 40;
-      const phase = ((time + i * 367) % cycle + cycle) % cycle;
-      if (phase >= duration) continue;
-      const pulse = Math.sin(Math.PI * phase / duration) ** 2;
-      if (pulse < 0.01) continue;
-      const size = (lapis ? 4.4 : 6.5) * u * (0.7 + pulse * 0.3);
-      ctx.globalAlpha = Math.min(1, alpha) * pulse * (lapis ? 0.42 : 0.9);
-      ctx.drawImage(flare, ox + jewelPoints[i * 2] * u - size / 2, oy + jewelPoints[i * 2 + 1] * u - size / 2, size, size);
+  const twinkleSlots = new Uint8Array([8, 9, 5, 6, 0, 14, 13, 3]);
+  const twinkleSizes = new Float32Array([5.4, 9, 3.4, 3.4, 4.6, 7.8, 6.8, 5]);
+  const twinkleDue = new Float64Array(8), twinkleStart = new Float64Array(8), twinkleCycle = new Uint32Array(8);
+  let twinkleTime = -1, twinkleLastStart = -1000;
+  function twinkleSeed(spot, cycle) {
+    let n = Math.imul(spot + 17, 374761393) ^ Math.imul(cycle + 31, 668265263);
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  }
+  function resetTwinkles(time) {
+    const base = Math.max(0, Math.floor(time / 6000) * 6000);
+    for (let i = 0; i < 8; i++) {
+      twinkleCycle[i] = Math.floor(base / 3500);
+      twinkleDue[i] = base + 200 + i * 310 + twinkleSeed(i, twinkleCycle[i]) * 180;
+      twinkleStart[i] = -Infinity;
     }
-    ctx.restore();
+    twinkleLastStart = base - 1000; twinkleTime = base;
+  }
+  function occludeJewels() {
+    for (let i = 0; i < 8; i++) {
+      const slot = twinkleSlots[i];
+      if ((jewelMask & (1 << slot)) && pctx.isPointInPath(jewelPoints[slot * 2] * RES_MULT, jewelPoints[slot * 2 + 1] * RES_MULT)) jewelMask &= ~(1 << slot);
+    }
+  }
+  function updateTwinkles(time, limit, gemsOnly) {
+    if (twinkleTime < 0 || time < twinkleTime || time - twinkleTime > 6000) resetTwinkles(time);
+    for (let event = 0; event < 64; event++) {
+      let next = -1, due = Infinity;
+      for (let i = 0; i < 8; i++) {
+        if ((gemsOnly && i === 7) || !(jewelMask & (1 << twinkleSlots[i]))) continue;
+        if (twinkleDue[i] < due) { due = twinkleDue[i]; next = i; }
+      }
+      if (next < 0) break;
+      let start = Math.max(due, twinkleLastStart + 100);
+      for (;;) {
+        let active = 0, firstEnd = Infinity;
+        for (let i = 0; i < 8; i++) {
+          if ((gemsOnly && i === 7) || !(jewelMask & (1 << twinkleSlots[i]))) continue;
+          const end = twinkleStart[i] + 440;
+          if (twinkleStart[i] <= start && start < end) { active++; firstEnd = Math.min(firstEnd, end); }
+        }
+        if (active < limit) break;
+        start = firstEnd;
+      }
+      if (start > time) break;
+      twinkleStart[next] = start; twinkleLastStart = start;
+      twinkleDue[next] = start + 2500 + twinkleSeed(next, ++twinkleCycle[next]) * 2500;
+    }
+    twinkleTime = time;
+  }
+  function drawJewelryGlints(L, x, y, scale, alpha, time) {
+    if (alpha <= 0.01 || scale <= 0.01 || !jewelMask) return;
+    const tier = gfxLevel(), gemsOnly = tier >= 4 || (typeof _mobPerf !== 'undefined' && _mobPerf);
+    const limit = tier >= 3 || gemsOnly ? 1 : 2;
+    updateTwinkles(time, limit, gemsOnly);
+    const w = Math.round(L.box * scale), u = w / GRID_W;
+    const ox = Math.round(x - w / 2), oy = Math.round(y - w / 2);
+    let visible = 0;
+    for (let i = 0; i < 8 && visible < limit; i++) {
+      if ((gemsOnly && i === 7) || !(jewelMask & (1 << twinkleSlots[i]))) continue;
+      const age = time - twinkleStart[i];
+      if (age < 0 || age >= 440) continue;
+      const pulse = age < 120 ? smootherstep(age / 120) : age < 180 ? 1 : 1 - smootherstep((age - 180) / 260);
+      if (pulse <= 0.001) continue;
+      const slot = twinkleSlots[i], size = twinkleSizes[i] * u;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true;
+      ctx.globalAlpha = Math.min(1, alpha) * pulse * 0.75;
+      ctx.translate(ox + jewelPoints[slot * 2] * u, oy + jewelPoints[slot * 2 + 1] * u);
+      ctx.rotate(-0.13 + age / 440 * 0.26);
+      ctx.drawImage(jewelryFlare(i !== 7), -size / 2, -size / 2, size, size);
+      ctx.restore(); visible++;
+    }
   }
 
   function blitSprite(L, x, y, scale, alpha) {
@@ -5343,6 +5393,7 @@
     [75, 'cast hand'], [95, 'waist'], [150, 'hem'], [175, 'soles'],
   ];
 
+  const debugJewelryLayout = { box: 0 };
   function drawKanadeDebugModel() {
     const m = window._kanadeDebugModel;
     if (!m) return;
@@ -5395,6 +5446,8 @@
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(px, ox, oy, box, box);
     ctx.imageSmoothingEnabled = true;
+    debugJewelryLayout.box = box;
+    drawJewelryGlints(debugJewelryLayout, W / 2, H / 2, 1, 1, now);
 
     if (m.grid) {
       ctx.font = '11px monospace';

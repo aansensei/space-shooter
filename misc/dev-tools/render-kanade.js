@@ -82,6 +82,11 @@ src = src.replace(anchor, anchor + `
   window.__drawBack = (t, o) => { drawKanadeBack(t, o); return px; };
   window.__setRes = setSpriteRes;
   window.__invalidate = invalidateSprite;
+  window.__drawJewels = (target, box, time) => {
+    const parent = ctx; ctx = target;
+    drawJewelryGlints({ box }, box / 2, box / 2, 1, 1, time);
+    ctx = parent;
+  };
   window.__grid = { w: GRID_W, h: GRID_H, get mult() { return RES_MULT; } };`);
 vm.runInContext(src, sandbox, { filename: 'kanade-cutscene.js' });
 
@@ -120,5 +125,6 @@ octx.fillStyle = '#241c3a';
 octx.fillRect(0, 0, out.width, out.height);
 octx.imageSmoothingEnabled = false;
 octx.drawImage(buf, 0, 0, g.w * g.mult, g.h * g.mult, 0, 0, out.width, out.height);
+if (process.env.TWINKLE === '1') sandbox.window.__drawJewels(octx, out.width, Number(process.env.JEWEL_TIME || 1000));
 fs.writeFileSync(OUT, out.toBuffer('image/png'));
 console.log('wrote', OUT, out.width + 'x' + out.height, '| grid', g.w + 'x' + g.h, 'mult', g.mult);

@@ -14,7 +14,7 @@ sctx.fillRect(0, 0, W, H);
 let spriteCanvas = null;
 const sandbox = {
   console,
-  performance: { now: () => 1000 },
+  performance: { now: () => Number(process.env.NOW || 1000) },
   Math,
   Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } addEventListener() {} },
   setTimeout() {},
