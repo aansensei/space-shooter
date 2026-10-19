@@ -6,7 +6,7 @@ function showStartButton(text) {
     btn.textContent = text;
     const _isGO = typeof gameState !== 'undefined' && gameState === "gameover";
     // min() clamps the Game Over position to a safe distance from the bottom
-    // edge on short viewports, same fix as #mainMenuBtn/#matchStatsBtn in
+    // edge on short viewports, same fix as #mainMenuBtn in
     // css/style.css (123px slot: between their 58px and 188px).
     btn.style.top = _isGO ? "min(calc(50% + 143px), calc(100% - 123px))" : "50%";
     btn.style.transform = _isGO ? "translateX(-50%)" : "translate(-50%, -50%)";
@@ -35,17 +35,6 @@ function hideMainMenuButton() {
     if (btn) btn.style.display = "none";
 }
 
-function showMatchStatsButton() {
-    const btn = document.getElementById("matchStatsBtn");
-    if (btn) btn.style.display = "block";
-}
-
-function hideMatchStatsButton() {
-    const btn = document.getElementById("matchStatsBtn");
-    if (btn) btn.style.display = "none";
-    if (typeof closeMatchStats === 'function') closeMatchStats();
-}
-
 // Shared Yes/No guard in front of both Main Menu buttons (the Game Over
 // screen's standalone one and the pause screen's) so an accidental click
 // doesn't immediately discard the current run. Yes runs whichever real
@@ -71,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gameState = "start";
             hideStartButton();
             hideMainMenuButton();
-            hideMatchStatsButton();
+            if (typeof window._closeVoyageRecap === 'function') window._closeVoyageRecap();
             screenShake.duration = 0;
             if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
         };
@@ -208,12 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pauseMenuBtn = document.getElementById("main-menu-btn");
     if (pauseMenuBtn) {
-        const _goMenuFromPause = () => {
-            gameState = "start";
-            screenShake.duration = 0;
-            if (typeof window._returnToMainMenu === 'function') window._returnToMainMenu();
-        };
-        const _confirmGoMenuFromPause = () => _showConfirmMainMenu(_goMenuFromPause);
+        // Yes ends the run into the Voyage Recap; its own Main Menu button
+        // then goes straight to the menu.
+        const _confirmGoMenuFromPause = () => _showConfirmMainMenu(() => _endRun(true));
         pauseMenuBtn.addEventListener('click', _confirmGoMenuFromPause);
         pauseMenuBtn.addEventListener('touchstart', (e) => { e.preventDefault(); _confirmGoMenuFromPause(); }, { passive: false });
     }

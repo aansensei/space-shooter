@@ -94,7 +94,7 @@ function _triggerSigilPicker(entry) {
 
 function _completeSigilPicker(sigilId) {
     window._playerSigils = window._playerSigils || [];
-    window._playerSigils.push({ sigilId });
+    window._playerSigils.push({ sigilId, atWave: typeof _waveNumber === 'number' ? _waveNumber : 0 });
     window._sigilPool = (window._sigilPool || []).filter(id => id !== sigilId);
     const def = SIGIL_DEFS[sigilId];
     if (def) def.buffs.forEach(b => _onSigilApplied(sigilId, b.id));

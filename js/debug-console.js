@@ -268,7 +268,7 @@ const VERIFY_GOLIATH_BUDGET_MS = 300000; // Goliath waves (multiples of 5) never
 
 function _verifyResetWaveState(waveNum) {
     enemies.length = 0;
-    window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
+    window._matchStats = _newMatchStats();
     lives = 12;
     if (typeof player !== 'undefined' && typeof canvas !== 'undefined') {
         player.x = canvas.width / 2;
@@ -358,27 +358,41 @@ window.runCombatVerification = async function () {
     return results;
 };
 
-// Live Match Stat: opens the same overlay/tabs the Game Over screen uses
-// (match-stats.js is pure UI reading window._matchStats, no gameState gate),
-// then keeps re-rendering the currently open tab on an interval so numbers
-// update while still playing instead of staying a frozen snapshot. Self-stops
-// by watching the overlay's own display style, so it doesn't matter whether
-// the player closes it via the panel's own ✕ button or anything else.
-let _liveMatchStatsTimer = null;
-function _debugOpenLiveMatchStats() {
-    if (typeof openMatchStats !== 'function') return;
-    openMatchStats();
-    if (_liveMatchStatsTimer) return;
-    _liveMatchStatsTimer = setInterval(() => {
-        const overlay = document.getElementById('matchStatsOverlay');
-        if (!overlay || overlay.style.display === 'none') {
-            clearInterval(_liveMatchStatsTimer);
-            _liveMatchStatsTimer = null;
-            return;
-        }
-        _renderMatchStatsTab(window._msLastTab || 'allyDamage');
-    }, 500);
+// Voyage Recap from the debug console: this run's numbers so far, or a long
+// made up run with every section filled, without having to die first.
+function _debugSampleRecapData() {
+    const timeline = [];
+    let seed = 7;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 168; i++) {
+        const wave = Math.min(14, 1 + Math.floor(i / 12));
+        timeline.push({ t: (i + 1) * 5, wave, allyDamage: Math.round((2000 + wave * 900) * (0.7 + rnd() * 0.6) * (i % 12 === 11 ? 3.5 : 1)), damageTaken: Math.round(wave * 40 * (rnd() < 0.2 ? 3 : 0.5) * rnd()), kills: Math.round((4 + wave) * (0.5 + rnd())) });
+    }
+    return {
+        score: 1284650, wave: 14, timeMs: 842000, livesStart: 12, livesLost: 12, cause: 'Leviathan',
+        sigils: [['capricorn', 0], ['leo', 5], ['pisces', 10]].map(([id, w]) => ({ id, name: SIGIL_DEFS[id].name, vi: (SIGIL_I18N_VI[id] || {}).name || SIGIL_DEFS[id].name, color: SIGIL_DEFS[id].color, atWave: w })),
+        kills: { total: 1873, byType: { Apostle: 1320, Thaelis: 96, Marchosias: 88, Veilshroud: 77, Egregor: 71, Raphael: 61, Uriel: 58, Leviathan: 44, Dargruel: 42, Embryo: 15, Goliath: 1 } },
+        matchStats: {
+            allyDamage: { 'Player Auto-Fire': 2840000, 'Sentinel Auto-Fire': 1910000, 'Mountainfall': 1420000, 'Skill D: Death Star': 1180000, 'Divine Fate: Shatter': 960000, 'Skill G: Tesla Coil': 720000, 'Chain Lightning': 510000, 'Skill S: Remembrance Spirit': 480000, 'Solar Flare': 350000, 'Player Charged Shot': 260000, 'Pisces: Flow Fish': 140000, 'Other': 60000 },
+            enemyDamage: { 'Enemy Bullet': 182000, 'Leviathan': 96000, 'Goliath': 88000, 'Raphael': 41000, 'Egregor': 38000, 'Boss Attack': 12000 },
+            lifeLoss: { 'Enemy Bullet': 4, 'Leviathan': 3, 'Goliath': 2, 'Raphael': 1, 'Egregor': 1, 'Uriel': 1 },
+        },
+        timeline,
+    };
 }
+window.debugOpenRecap = function (sample) {
+    if (typeof window._openVoyageRecap !== 'function') return;
+    window._openVoyageRecap(sample ? _debugSampleRecapData() : null);
+    // Same voice a real death plays; menu return cancels it through _gameoverVoice.
+    if (window.AudioMgr) {
+        if (window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(false, false);
+        if (window._gameoverVoice) window._gameoverVoice.cancel();
+        window._gameoverVoice = window.AudioMgr.playSfx('gameover');
+    }
+};
+window.debugCloseRecap = function () {
+    if (typeof window._closeVoyageRecap === 'function') window._closeVoyageRecap();
+};
 
 // Directly override the two globals driving Walpurgis (Huyết Dạ, scales
 // off _waveNumber — see _walpurgisStacks in config.js) and the Yuuki HUD
@@ -422,7 +436,9 @@ window.debugSetYuukiBonus = function () {
       <span style="opacity:0.55; font-size:10px;">or press P</span>
     </div>
     <div class="dbg-row" style="margin-bottom:14px;">
-      <button class="dbg-btn" onclick="_debugOpenLiveMatchStats()">Match Stat (Live)</button>
+      <button class="dbg-btn" onclick="debugOpenRecap(false)">Voyage Recap (this run)</button>
+      <button class="dbg-btn" onclick="debugOpenRecap(true)">Voyage Recap (sample run)</button>
+      <button class="dbg-btn" onclick="debugCloseRecap()">Close Recap</button>
     </div>
     <div class="dbg-section">
       <div class="dbg-h">GAME SPEED</div>

@@ -5,7 +5,7 @@
 //
 // One cache, versioned by CACHE_NAME. Bump the version string whenever the
 // CORE_FILES list changes so old clients pick up the new set on next visit.
-const CACHE_VERSION = 'v499';
+const CACHE_VERSION = 'v500';
 const CACHE_NAME = 'pisces-cache-' + CACHE_VERSION;
 
 // App shell — everything needed for the game to boot and run at all.
@@ -17,6 +17,7 @@ const CORE_FILES = [
     'guide.html',
     'manifest.json',
     'css/style.css',
+    'css/recap.css',
     'assets/images/site/gameplay.png',
     'assets/images/site/logo.png',
     'assets/images/site/pisces_banner.png',
@@ -97,7 +98,6 @@ const CORE_FILES = [
     'js/entities/raphael.js',
     'js/entities/goliath.js',
     'js/input.js',
-    'js/match-stats.js',
     'js/main.js',
     'js/pixi-renderer.js',
     'js/sigils/core.js',
@@ -150,6 +150,7 @@ const CORE_FILES = [
     'js/render/player.js',
     'js/render/skill-a.js',
     'js/render/skill-buttons.js',
+    'js/recap.js',
     'js/render/skill-d.js',
     'js/render/skill-f.js',
     'js/render/sigil-cancer.js',

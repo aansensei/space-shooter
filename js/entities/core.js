@@ -121,6 +121,7 @@ function distToSegment(p, v, w) {
 }
 
 function handleEnemyKill(enemy) {
+    _recordKill(_enemyTypeLabel(enemy.type));
     _leoOnEnemyKill(enemy);
     _dauOnEnemyKill(enemy);
     if (window.AudioMgr) {

@@ -49,14 +49,17 @@ function loseLife(cause) {
     }
 
     lives--;
+    window._matchStats.livesLost++;
     // Uriel's Judged debuff: any life lost while it's active costs 1 extra
     // life on top of the one just taken (net -2), a hard punish for
     // getting hit again inside its 3s window.
     if (player._urielJudgedEnd && performance.now() < player._urielJudgedEnd) {
         lives--;
+        window._matchStats.livesLost++;
         createParticles(player.x, player.y, 14, '#ffd76b', 3, 8);
     }
     _recordStat('lifeLoss', cause || 'Unknown');
+    window._matchStats.lastCause = cause || 'Unknown';
     window._hitVignetteStart = performance.now(); // trigger red border flash
     if (window.AudioMgr) window.AudioMgr.playSfx('life-lost');
 }
@@ -353,6 +356,64 @@ function _activateOverloadLaser(currentTime) {
         ];
     }
     if (window.AudioMgr) { window.AudioMgr.stopCharging(); window.AudioMgr.startLaser(); }
+}
+
+// Ends the run and opens the Voyage Recap with the gameover voice. Death
+// passes quit = false; the pause screen's Main Menu passes true, which marks
+// the recap as a quit.
+function _endRun(quit) {
+    gameState = "gameover";
+    if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
+    _gameOverPlayTime = performance.now() - gameStartTime;
+    if (quit) {
+        window._matchStats.quit = true;
+        // Leaving mid sigil pick skips _completeSigilPicker, the only place
+        // that hides its overlay.
+        window._sigilPicker = null;
+        const sov = document.getElementById('sigil-pick-overlay');
+        if (sov) sov.style.display = 'none';
+        // Leaving mid Kanade cutscene skips its teardown, so the freeze she
+        // put on the stage is undone here.
+        if (window._kanadeCutscene) {
+            window._kanadeCutscene = null;
+            window._kanadeSnapAlpha = 1;
+            if (window._pixiApp && window._pixiApp.stage) window._pixiApp.stage.alpha = 1;
+            if (window.AudioMgr && window.AudioMgr.stopCutsceneAmbience) window.AudioMgr.stopCutsceneAmbience();
+        }
+        const po = document.getElementById('pause-overlay');
+        if (po) po.style.display = 'none';
+        gamePaused = false;
+        window._bgPaused = false;
+        lastTimeStamp = performance.now();
+    }
+    if (typeof window._openVoyageRecap === 'function') window._openVoyageRecap();
+    window._lowHpActive = false;
+    // The run can end mid any sustained loop (engine, a skill charge, Maou
+    // Haki, Egregor's crawl, the low-hp heartbeat...), so every one of them
+    // stops here and only the gameover voice is left playing.
+    if (window.AudioMgr) {
+        // Kanade's time stop gates every sfx; lift it (without restarting
+        // the frozen loops) so the gameover voice is heard.
+        if (window.AudioMgr.setTimeFrozen) window.AudioMgr.setTimeFrozen(false, false);
+        window.AudioMgr.stopAmbient();
+        window.AudioMgr.stopEngine();
+        window.AudioMgr.stopLaser();
+        window.AudioMgr.stopCharging();
+        window.AudioMgr.stopSkillDCharge();
+        window.AudioMgr.stopSkillFCharge();
+        window.AudioMgr.stopSkillFFire();
+        window.AudioMgr.stopDeathStar();
+        window.AudioMgr.stopMaouHaki();
+        window.AudioMgr.stopLowHp();
+        window.AudioMgr.stopNullSlashWindup();
+        window.AudioMgr.stopEgregorCrawl();
+        window.AudioMgr.stopPhotokrystosIdle();
+        window.AudioMgr.stopSkillGLoop();
+        window.AudioMgr.exitGoliathTransformDuck();
+        window.AudioMgr.exitTimeDomain();
+        window.AudioMgr.stopBgm();
+        window._gameoverVoice = window.AudioMgr.playSfx('gameover');
+    }
 }
 
 const _updateProfileScratch = [], _updateProfileScratch2 = [], _updateProfileScratch3 = [];
@@ -2109,37 +2170,7 @@ function update(rawDeltaTime) {
     // inside the enemies loop above meant it silently skipped that frame,
     // delaying gameover and leaving the low-hp heartbeat looping under the
     // gameover voice on a fast death.
-    if (lives <= 0 && gameState === "playing") {
-        gameState = "gameover";
-        if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
-        _gameOverPlayTime = performance.now() - gameStartTime;
-        showStartButton("Play Again"); showMainMenuButton(); showMatchStatsButton();
-        window._lowHpActive = false;
-        // Death can land mid any sustained loop (engine, a skill charge,
-        // Maou Haki, Egregor's crawl, the low-hp heartbeat...) - drop every
-        // one of them here so only the gameover voice is left playing,
-        // instead of just the two that used to matter most.
-        if (window.AudioMgr) {
-            window.AudioMgr.stopAmbient();
-            window.AudioMgr.stopEngine();
-            window.AudioMgr.stopLaser();
-            window.AudioMgr.stopCharging();
-            window.AudioMgr.stopSkillDCharge();
-            window.AudioMgr.stopSkillFCharge();
-            window.AudioMgr.stopSkillFFire();
-            window.AudioMgr.stopDeathStar();
-            window.AudioMgr.stopMaouHaki();
-            window.AudioMgr.stopLowHp();
-            window.AudioMgr.stopNullSlashWindup();
-            window.AudioMgr.stopEgregorCrawl();
-            window.AudioMgr.stopPhotokrystosIdle();
-            window.AudioMgr.stopSkillGLoop();
-            window.AudioMgr.exitGoliathTransformDuck();
-            window.AudioMgr.exitTimeDomain();
-            window.AudioMgr.stopBgm();
-            window._gameoverVoice = window.AudioMgr.playSfx('gameover');
-        }
-    }
+    if (lives <= 0 && gameState === "playing") _endRun(false);
 
     _profChk.push(performance.now()); // end of enemies loop
     // Splits the 'wave+sigil+bulletsLoop' bucket further — that bucket is
@@ -3568,7 +3599,7 @@ function startGame() {
     if (window._timelineDistortion && window._timelineDistortion.id !== 'stack_overflow') _clearTimelineDistortion();
     gameState = "playing"; lives = 12;
     score = 0;
-    window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
+    window._matchStats = _newMatchStats();
     nextLifeMilestone = 500000;
     bullets = []; enemies = []; explosions = []; particles = []; marchoDeathBursts = []; marchoBarrierBursts = []; raphaelDeathBursts = []; raphaelWisdomOrbs = []; raphaelWisdomZones = [];
     skillAOrbs = []; scatteredProjectiles = [];
@@ -3747,7 +3778,7 @@ function startGame() {
     skillASensorRadius = Math.min(canvas.width, canvas.height) * 0.9;
     hideStartButton();
     hideMainMenuButton();
-    hideMatchStatsButton();
+    if (typeof window._closeVoyageRecap === 'function') window._closeVoyageRecap();
     lastTimeStamp = performance.now();
     // gameLoop đang chạy liên tục từ draw(16.67) ở cuối file, không cần khởi động lại
 }

@@ -1,0 +1,1053 @@
+/* Pisces: Space Journey. (c) 2024 An Nguyen. Licensed under the MIT License.
+   Voyage Recap screen (js/recap.js). Every class starts with rc- so nothing
+   here reaches the rest of the game. */
+#recapOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999990;
+  touch-action: pan-y;
+}
+#recapOverlay, #recapOverlay * {
+  box-sizing: border-box;
+}
+#recapOverlay h1, #recapOverlay p {
+  margin: 0;
+}
+.rc-root {
+  --rc-electric: #00E5FF;
+  --rc-turquoise: #3FA9F5;
+  --rc-sapphire: #0B2A5B;
+  --rc-night-1: #02020C;
+  --rc-night-2: #0A0F2A;
+  --rc-night-3: #12204A;
+  --rc-silver: #DCE8F5;
+  --rc-silver-dim: #8CA6C6;
+  --rc-gold: #E8C46A;
+  --rc-crimson: #FF4D6D;
+  --rc-font-title: 'Cinzel', 'Palatino Linotype', Georgia, serif;
+  --rc-font-ui: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
+  --rc-font-italic: 'Playfair Display', Georgia, serif;
+  font-family: var(--rc-font-ui);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+/* Cinzel and Orbitron break Vietnamese marks. */
+.rc-root.rc-lang-vi {
+  --rc-font-title: 'Playfair Display', Georgia, serif;
+  --rc-font-ui: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
+  --rc-font-italic: 'Cormorant Garamond', Georgia, serif;
+}
+.rc-root .st-desc {
+  font-size: 11px;
+  color: var(--rc-silver-dim);
+  line-height: 1.35;
+}
+.rc-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #02020C 0%, #0A0F2A 55%, #12204A 100%);
+  color: var(--rc-silver);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.rc-bg-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.rc-bottom-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 220px;
+  background: radial-gradient(ellipse at 50% 100%, rgba(0, 229, 255, 0.22) 0%, rgba(63, 169, 245, 0.08) 45%, transparent 78%);
+  pointer-events: none;
+  z-index: 1;
+}
+.rc-scroll {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 24px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 169, 245, 0.45) rgba(2, 2, 12, 0.4);
+}
+.rc-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.rc-scroll::-webkit-scrollbar-track {
+  background: rgba(2, 2, 12, 0.4);
+}
+.rc-scroll::-webkit-scrollbar-thumb {
+  background: rgba(63, 169, 245, 0.45);
+  border-radius: 3px;
+}
+.rc-container {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Sequenced entrance animations */
+.rc-stage-item {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rc-stage-item.rc-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Header / Title */
+.rc-header {
+  position: relative;
+  text-align: center;
+  padding: 4px 16px 6px;
+}
+.rc-pisces-emblem {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 110px;
+  pointer-events: none;
+  opacity: 0.32;
+}
+.rc-subtitle-top {
+  font-family: var(--rc-font-italic);
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--rc-turquoise);
+  margin-bottom: 4px;
+}
+.rc-title {
+  font-family: var(--rc-font-title);
+  font-size: clamp(22px, 2.8vw, 32px);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rc-silver);
+  text-shadow: 0 0 22px rgba(0, 229, 255, 0.45);
+  margin: 2px 0 6px;
+}
+.rc-divider-ornate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto;
+  max-width: 440px;
+}
+.rc-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(63, 169, 245, 0.65) 50%, rgba(232, 196, 106, 0.85) 100%);
+}
+.rc-divider-line.rc-right {
+  background: linear-gradient(90deg, rgba(232, 196, 106, 0.85) 0%, rgba(63, 169, 245, 0.65) 50%, transparent 100%);
+}
+.rc-star-oct {
+  width: 14px;
+  height: 14px;
+  color: var(--rc-gold);
+  flex-shrink: 0;
+}
+
+/* Plates: opaque panels with two clipped corners. The outer layer is the lit
+   edge and ::before is the fill, inset by 1px. */
+.rc-card {
+  position: relative;
+  isolation: isolate;
+  padding: 12px 16px 14px;
+  background: linear-gradient(160deg, rgba(0, 229, 255, 0.55) 0%, rgba(63, 169, 245, 0.16) 28%, rgba(63, 169, 245, 0.12) 72%, rgba(232, 196, 106, 0.5) 100%);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+}
+.rc-card::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(7, 16, 40, 0.97) 0%, rgba(3, 8, 22, 0.97) 100%);
+  clip-path: polygon(13.5px 0, 100% 0, 100% calc(100% - 13.5px), calc(100% - 13.5px) 100%, 0 100%, 0 13.5px);
+}
+/* Short lit strip along the top edge, like a hull marking. */
+.rc-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  width: 36%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.8) 0%, rgba(0, 229, 255, 0) 100%);
+  pointer-events: none;
+}
+
+/* Small gold diamond that marks every heading. */
+.rc-mark {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  transform: rotate(45deg);
+  border: 1px solid var(--rc-gold);
+  background: var(--rc-gold);
+  box-shadow: inset 0 0 0 1.5px #061024;
+}
+
+.rc-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+.rc-section-head::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(63, 169, 245, 0.45) 0%, rgba(63, 169, 245, 0) 100%);
+}
+.rc-section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--rc-font-title);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rc-silver);
+  white-space: nowrap;
+}
+.rc-section-sub {
+  order: 2;
+  font-family: var(--rc-font-italic);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--rc-silver-dim);
+  text-align: right;
+}
+
+/* Hero numbers sit on one band between two hairlines, no boxes. */
+.rc-hero-metrics {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  padding: 10px 0;
+}
+.rc-hero-metrics::before,
+.rc-hero-metrics::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(63, 169, 245, 0) 0%, rgba(63, 169, 245, 0.5) 18%, rgba(232, 196, 106, 0.75) 50%, rgba(63, 169, 245, 0.5) 82%, rgba(63, 169, 245, 0) 100%);
+}
+.rc-hero-metrics::before { top: 0; }
+.rc-hero-metrics::after { bottom: 0; }
+.rc-metric-box {
+  position: relative;
+  padding: 4px 14px;
+  text-align: center;
+  min-width: 0;
+}
+.rc-metric-box + .rc-metric-box {
+  border-left: 1px solid rgba(63, 169, 245, 0.2);
+}
+.rc-metric-label {
+  font-family: var(--rc-font-ui);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--rc-turquoise);
+  margin-bottom: 4px;
+}
+.rc-metric-primary .rc-metric-label {
+  color: var(--rc-gold);
+}
+.rc-metric-val {
+  font-family: var(--rc-font-title);
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--rc-silver);
+  letter-spacing: 0.06em;
+}
+.rc-metric-primary .rc-metric-val {
+  font-size: clamp(24px, 2.8vw, 36px);
+  color: #F4FBFF;
+  text-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
+}
+.rc-metric-sub {
+  font-family: var(--rc-font-italic);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--rc-silver-dim);
+  margin-top: 3px;
+}
+
+/* Cause of fall reads as one engraved line under the numbers. */
+.rc-epitaph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 0 12px 2px;
+  text-align: center;
+}
+.rc-epitaph-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rc-epitaph .rc-mark {
+  border-color: var(--rc-crimson);
+  background: var(--rc-crimson);
+  box-shadow: inset 0 0 0 1.5px #050814;
+}
+.rc-epitaph-text {
+  font-family: var(--rc-font-italic);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--rc-silver-dim);
+}
+.rc-epitaph-cause {
+  font-family: var(--rc-font-title);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  color: var(--rc-crimson);
+  text-shadow: 0 0 12px rgba(255, 77, 109, 0.35);
+  margin-left: 6px;
+  text-transform: uppercase;
+}
+.rc-epitaph-lives {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 120, 140, 0.85);
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 77, 109, 0.35);
+}
+
+/* Main 2-column grid for PC / Landscape */
+.rc-main-grid {
+  display: grid;
+  grid-template-columns: 0.95fr 1.3fr;
+  gap: 12px;
+  align-items: start;
+}
+.rc-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Sigil Constellation Strip */
+.rc-sigil-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 124px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(11, 42, 91, 0.45) 0%, rgba(2, 4, 16, 0) 75%);
+  border-top: 1px solid rgba(63, 169, 245, 0.14);
+  border-bottom: 1px solid rgba(63, 169, 245, 0.14);
+  overflow: hidden;
+}
+.rc-sigil-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.rc-sigil-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 10px;
+}
+.rc-sigil-legend:empty {
+  display: none;
+}
+.rc-sigil-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--rc-silver);
+}
+.rc-sigil-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  transform: rotate(45deg);
+}
+.rc-sigil-wave {
+  color: var(--rc-silver-dim);
+  font-size: 10px;
+}
+
+/* Kills Breakdown */
+.rc-kills-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.rc-kills-total-num {
+  font-family: var(--rc-font-title);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--rc-electric);
+}
+.rc-kills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rc-kill-row {
+  display: grid;
+  grid-template-columns: 118px 1fr 68px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.rc-kill-name {
+  color: var(--rc-silver);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Ruler track: a faint tick every tenth. */
+.rc-kill-bar-bg {
+  height: 6px;
+  background: repeating-linear-gradient(90deg, rgba(63, 169, 245, 0.2) 0 1px, transparent 1px 10%), rgba(6, 14, 36, 0.9);
+  overflow: hidden;
+}
+.rc-kill-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(63, 169, 245, 0.35) 0%, var(--rc-electric) 100%);
+  box-shadow: inset -2px 0 0 #E6FDFF;
+}
+.rc-kill-count {
+  text-align: right;
+  font-family: var(--rc-font-title);
+  font-weight: 700;
+  color: var(--rc-silver);
+}
+.rc-empty {
+  padding: 14px 6px;
+  text-align: center;
+  font-family: var(--rc-font-italic);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--rc-silver-dim);
+}
+
+/* Match Analysis (3 tabs + donut + horizontal bars) */
+/* Tabs are plain labels over one hairline; the active one gets a lit bar. */
+.rc-tabs {
+  display: flex;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(63, 169, 245, 0.2);
+}
+.rc-tab-btn {
+  appearance: none;
+  position: relative;
+  flex: 1;
+  background: none;
+  border: 0;
+  color: var(--rc-silver-dim);
+  font-family: var(--rc-font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 6px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.rc-tab-btn::after {
+  content: "";
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: -1px;
+  height: 2px;
+  background: var(--rc-electric);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+.rc-tab-btn:hover {
+  color: var(--rc-silver);
+}
+.rc-tab-btn.rc-active {
+  color: var(--rc-electric);
+}
+.rc-tab-btn.rc-active::after {
+  transform: scaleX(1);
+}
+.rc-tab-btn.rc-tab-danger.rc-active {
+  color: var(--rc-crimson);
+}
+.rc-tab-btn.rc-tab-danger::after {
+  background: var(--rc-crimson);
+  box-shadow: 0 0 8px rgba(255, 77, 109, 0.6);
+}
+
+.rc-analysis-body {
+  display: grid;
+  grid-template-columns: 156px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+.rc-donut-wrap {
+  position: relative;
+  width: 156px;
+  height: 156px;
+  margin: 0 auto;
+}
+.rc-donut-canvas {
+  width: 156px;
+  height: 156px;
+  display: block;
+}
+.rc-stat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 156px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.rc-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.rc-stat-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11px;
+  gap: 8px;
+}
+.rc-stat-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rc-silver);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-stat-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.rc-stat-numbers {
+  color: var(--rc-electric);
+  font-family: var(--rc-font-title);
+  font-weight: 700;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.rc-stat-track {
+  height: 6px;
+  background: rgba(6, 16, 44, 0.9);
+  border-radius: 0;
+  overflow: hidden;
+}
+.rc-stat-fill {
+  height: 100%;
+  border-radius: 0;
+}
+
+/* Timeline Chart */
+.rc-timeline-wrap {
+  position: relative;
+  width: 100%;
+  height: 168px;
+  background: rgba(2, 6, 18, 0.6);
+  border-top: 1px solid rgba(63, 169, 245, 0.14);
+  border-bottom: 1px solid rgba(63, 169, 245, 0.14);
+  overflow: hidden;
+}
+.rc-timeline-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.rc-timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--rc-silver-dim);
+}
+.rc-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rc-legend-line {
+  width: 16px;
+  height: 2px;
+}
+.rc-timeline-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px 0;
+  margin-top: 12px;
+}
+.rc-sum-cell {
+  min-width: 0;
+  padding: 2px 10px;
+  border-left: 1px solid rgba(63, 169, 245, 0.22);
+}
+.rc-sum-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rc-silver-dim);
+  margin-bottom: 3px;
+}
+.rc-sum-val {
+  font-family: var(--rc-font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rc-silver);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Footer Action Buttons */
+.rc-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(2, 4, 14, 0.55) 0%, rgba(2, 4, 14, 0.95) 100%);
+  z-index: 5;
+}
+.rc-actions::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(63, 169, 245, 0) 0%, rgba(63, 169, 245, 0.45) 30%, rgba(232, 196, 106, 0.65) 50%, rgba(63, 169, 245, 0.45) 70%, rgba(63, 169, 245, 0) 100%);
+}
+
+/* Buttons are long hex plates. The outer layer is the edge colour, ::before
+   is the fill inset by 1px and ::after is the light that sweeps on hover. */
+.rc-btn {
+  --rc-btn-edge: rgba(140, 166, 198, 0.45);
+  --rc-btn-fill: linear-gradient(180deg, #0a1630 0%, #050b1c 100%);
+  appearance: none;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 172px;
+  padding: 13px 34px;
+  border: 0;
+  background: var(--rc-btn-edge);
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%);
+  font-family: var(--rc-font-title);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--rc-silver-dim);
+  cursor: pointer;
+  overflow: hidden;
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.rc-btn::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -2;
+  background: var(--rc-btn-fill);
+  clip-path: polygon(13.5px 0, calc(100% - 13.5px) 0, 100% 50%, calc(100% - 13.5px) 100%, 13.5px 100%, 0 50%);
+}
+.rc-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.14) 50%, rgba(255, 255, 255, 0) 60%);
+  transform: translateX(-100%);
+  transition: transform 0.55s ease;
+  pointer-events: none;
+}
+.rc-btn:hover::after {
+  transform: translateX(100%);
+}
+.rc-btn:hover {
+  --rc-btn-edge: rgba(220, 232, 245, 0.75);
+  color: var(--rc-silver);
+}
+.rc-btn:active {
+  transform: translateY(1px);
+}
+.rc-btn:focus-visible {
+  outline: none;
+  --rc-btn-edge: var(--rc-electric);
+}
+.rc-btn-primary,
+.rc-btn-primary:focus-visible {
+  --rc-btn-edge: linear-gradient(90deg, #3FA9F5 0%, #00E5FF 50%, #3FA9F5 100%);
+  --rc-btn-fill: linear-gradient(180deg, #0f4677 0%, #082a52 55%, #061d3c 100%);
+  min-width: 196px;
+  color: #EAFDFF;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+}
+.rc-btn-primary:hover {
+  --rc-btn-edge: linear-gradient(90deg, #00E5FF 0%, #DFFBFF 50%, #00E5FF 100%);
+  --rc-btn-fill: linear-gradient(180deg, #145a96 0%, #0a3566 55%, #072447 100%);
+  color: #FFFFFF;
+}
+/* Gold plate, the same brass the old game over buttons used. */
+.rc-btn-share {
+  --rc-btn-edge: rgba(232, 196, 106, 0.6);
+  --rc-btn-fill: linear-gradient(180deg, #19130a 0%, #0a0805 100%);
+  color: rgba(232, 196, 106, 0.92);
+}
+.rc-btn-share:hover {
+  --rc-btn-edge: rgba(244, 216, 140, 0.95);
+  color: #F4D88C;
+}
+
+/* Share Card Modal */
+.rc-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(1, 3, 10, 0.88);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+.rc-modal-backdrop.rc-open {
+  display: flex;
+}
+.rc-modal {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 680px;
+  max-height: 92%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, rgba(232, 196, 106, 0.7) 0%, rgba(63, 169, 245, 0.22) 32%, rgba(63, 169, 245, 0.18) 70%, rgba(0, 229, 255, 0.6) 100%);
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+}
+.rc-modal::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  background: linear-gradient(180deg, #081430 0%, #030816 100%);
+  clip-path: polygon(17.5px 0, 100% 0, 100% calc(100% - 17.5px), calc(100% - 17.5px) 100%, 0 100%, 0 17.5px);
+}
+.rc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 8px 26px;
+}
+.rc-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--rc-font-title);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--rc-silver);
+  text-transform: uppercase;
+}
+/* Diamond close button; the icon turns back so it still reads as an X. */
+.rc-modal-close {
+  appearance: none;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid rgba(140, 166, 198, 0.4);
+  color: var(--rc-silver-dim);
+  transform: rotate(45deg);
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+.rc-modal-close svg {
+  transform: rotate(-45deg);
+}
+.rc-modal-close:hover {
+  color: var(--rc-electric);
+  border-color: var(--rc-electric);
+}
+.rc-modal-body {
+  padding: 4px 18px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.rc-format-switch {
+  display: flex;
+  width: 100%;
+  max-width: 540px;
+  border-bottom: 1px solid rgba(63, 169, 245, 0.2);
+}
+/* Print mount: the card sits inside a thin brass line and a dark margin. */
+.rc-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: calc(100% - 10px);
+  margin: 5px;
+  padding: 6px;
+  background: #010208;
+  border: 1px solid rgba(232, 196, 106, 0.38);
+  box-shadow: 0 0 0 4px #030816, 0 0 0 5px rgba(63, 169, 245, 0.22);
+}
+.rc-share-canvas {
+  max-width: 100%;
+  max-height: 340px;
+  width: auto;
+  height: auto;
+  display: block;
+}
+.rc-modal-footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 18px 16px;
+}
+.rc-modal-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(63, 169, 245, 0) 0%, rgba(63, 169, 245, 0.35) 50%, rgba(63, 169, 245, 0) 100%);
+}
+
+/* Callsign field: label, underlined input and a character counter. The input
+   uses a face with Vietnamese marks in both languages. */
+.rc-name-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 540px;
+  padding: 0 4px;
+}
+.rc-name-label {
+  font-family: var(--rc-font-title);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rc-gold);
+  white-space: nowrap;
+}
+.rc-name-input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  background: rgba(2, 6, 18, 0.7);
+  border: 0;
+  border-bottom: 1px solid rgba(63, 169, 245, 0.35);
+  border-radius: 0;
+  outline: none;
+  color: var(--rc-silver);
+  font-family: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  user-select: text;
+  -webkit-user-select: text;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.rc-name-input::placeholder {
+  color: rgba(140, 166, 198, 0.45);
+}
+.rc-name-input:focus {
+  border-bottom-color: var(--rc-electric);
+  box-shadow: 0 1px 0 0 var(--rc-electric), 0 8px 14px -12px rgba(0, 229, 255, 0.8);
+}
+.rc-name-count {
+  min-width: 36px;
+  text-align: right;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--rc-silver-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toast Banner */
+.rc-toast {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: rgba(11, 42, 91, 0.96);
+  border: 1px solid var(--rc-electric);
+  color: var(--rc-silver);
+  padding: 8px 16px;
+  border-radius: 0;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s ease;
+  z-index: 90;
+}
+.rc-toast.rc-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Opening: the header holds the middle of the screen at a larger size while
+   the title settles, then .rc-intro comes off and it lifts into place. */
+.rc-root.rc-intro .rc-scroll {
+  overflow: hidden;
+}
+.rc-header.rc-stage-item {
+  transition: opacity 0.5s ease, transform 0.75s cubic-bezier(0.76, 0, 0.24, 1);
+}
+.rc-root.rc-intro .rc-header {
+  transform: translateY(var(--rc-intro-y, 0px)) scale(var(--rc-intro-s, 1.5));
+}
+.rc-title {
+  transition: text-shadow 0.8s ease;
+}
+.rc-root.rc-intro .rc-title {
+  text-shadow: 0 0 30px rgba(0, 229, 255, 0.75), 0 0 2px rgba(255, 255, 255, 0.6);
+  animation: rcTitleIn 1.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rc-root.rc-intro .rc-subtitle-top {
+  animation: rcFadeUp 0.6s 0.55s ease both;
+}
+.rc-root.rc-intro .rc-pisces-emblem {
+  animation: rcEmblemIn 1.4s 0.2s ease both;
+}
+.rc-divider-line {
+  transform-origin: right center;
+}
+.rc-divider-line.rc-right {
+  transform-origin: left center;
+}
+.rc-root.rc-intro .rc-divider-line {
+  animation: rcLineIn 0.9s 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rc-root.rc-intro .rc-divider-ornate .rc-star-oct {
+  animation: rcStarIn 0.7s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes rcTitleIn {
+  0% { opacity: 0; letter-spacing: 0.55em; filter: blur(6px); }
+  55% { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; letter-spacing: 0.16em; filter: blur(0); }
+}
+@keyframes rcFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes rcEmblemIn {
+  from { opacity: 0; }
+  to { opacity: 0.32; }
+}
+@keyframes rcLineIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes rcStarIn {
+  from { opacity: 0; transform: scale(0) rotate(-180deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* Phones held upright stack everything in one column. */
+@media (max-width: 600px) and (orientation: portrait) {
+  .rc-scroll { padding: 14px 12px 20px; }
+  .rc-main-grid { grid-template-columns: 1fr; }
+  .rc-analysis-body { grid-template-columns: 1fr; }
+  .rc-timeline-summary { grid-template-columns: repeat(2, 1fr); }
+  .rc-actions { padding: 10px 12px; gap: 8px; }
+  .rc-btn { padding: 12px 16px; font-size: 11px; letter-spacing: 0.12em; min-width: 0; flex: 1; }
+  .rc-modal-header { padding-left: 20px; }
+  .rc-header { padding-top: 44px; }
+}
+
+/* Phones on their side keep two columns and trim the chrome. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .rc-scroll { padding: 6px 12px 10px; }
+  .rc-container { gap: 6px; }
+  .rc-header { padding: 2px 6px; }
+  .rc-subtitle-top { font-size: 10px; margin-bottom: 1px; }
+  .rc-title { font-size: 17px; margin: 0 0 2px; }
+  .rc-hero-metrics { grid-template-columns: repeat(3, 1fr); padding: 5px 0; }
+  .rc-metric-primary .rc-metric-val { font-size: 19px; }
+  .rc-metric-box { padding: 5px 8px; }
+  .rc-metric-label { font-size: 8px; margin-bottom: 2px; }
+  .rc-metric-val { font-size: 15px; }
+  .rc-metric-sub { display: none; }
+  .rc-epitaph { padding: 4px 10px; }
+  .rc-epitaph-text, .rc-epitaph-cause { font-size: 12px; }
+  .rc-main-grid { grid-template-columns: 0.95fr 1.25fr; gap: 8px; }
+  .rc-sigil-canvas-wrap { height: 100px; }
+  .rc-timeline-wrap { height: 130px; }
+  .rc-actions { padding: 8px 14px; }
+  .rc-btn { padding: 9px 24px; font-size: 11px; min-width: 150px; }
+}
+
+@media (max-width: 760px) {
+  .rc-hero-metrics { grid-template-columns: 1fr 1fr; }
+  .rc-metric-primary { grid-column: 1 / -1; padding-bottom: 8px; margin-bottom: 6px; border-bottom: 1px solid rgba(63, 169, 245, 0.2); }
+  .rc-metric-primary + .rc-metric-box { border-left: 0; }
+  .rc-main-grid { grid-template-columns: 1fr; }
+  .rc-analysis-body { grid-template-columns: 1fr; }
+  .rc-timeline-summary { grid-template-columns: repeat(2, 1fr); }
+}

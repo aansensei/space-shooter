@@ -493,13 +493,47 @@ let keys = {}, gamePaused = false, loading = false, lastTimeStamp = 0;
 let _frozenNow = performance.now();
 
 // match stats, reset in startGame. label -> cumulative total (damage
-// maps) or count (lifeLoss). amount defaults to 1 for lifeLoss calls
-window._matchStats = { allyDamage: {}, enemyDamage: {}, lifeLoss: {} };
+// maps) or count (lifeLoss). amount defaults to 1 for lifeLoss calls.
+// kills counts defeated enemies by label, and timeline keeps one bucket per
+// step of game time (5s, doubled whenever the list would pass 720 buckets)
+// for the Voyage Recap chart.
+const MATCH_TIMELINE_STEP_MS = 5000;
+const MATCH_TIMELINE_MAX = 720;
+function _newMatchStats() {
+    return { allyDamage: {}, enemyDamage: {}, lifeLoss: {}, kills: {}, killsTotal: 0, livesLost: 0, lastCause: '', quit: false, timeline: [], step: MATCH_TIMELINE_STEP_MS };
+}
+window._matchStats = _newMatchStats();
+function _matchBucket() {
+    const st = window._matchStats, now = typeof gameElapsedTime === 'number' ? gameElapsedTime : 0;
+    let tl = st.timeline, idx = Math.floor(now / st.step);
+    while (tl.length <= idx) {
+        if (tl.length >= MATCH_TIMELINE_MAX) {
+            // Halve the resolution: each pair of buckets becomes one.
+            const merged = [];
+            for (let i = 0; i + 1 < tl.length; i += 2) {
+                const a = tl[i], b = tl[i + 1];
+                merged.push({ t: b.t, wave: b.wave, allyDamage: a.allyDamage + b.allyDamage, damageTaken: a.damageTaken + b.damageTaken, kills: a.kills + b.kills });
+            }
+            st.timeline = tl = merged; st.step *= 2; idx = Math.floor(now / st.step);
+            continue;
+        }
+        tl.push({ t: (tl.length + 1) * st.step / 1000, wave: typeof _waveNumber === 'number' ? _waveNumber : 0, allyDamage: 0, damageTaken: 0, kills: 0 });
+    }
+    return tl[idx];
+}
 function _recordStat(category, label, amount) {
     const bucket = window._matchStats[category];
     const amt = amount === undefined ? 1 : amount;
     if (!bucket || !amt) return;
     bucket[label] = (bucket[label] || 0) + amt;
+    if (category === 'allyDamage') _matchBucket().allyDamage += amt;
+    else if (category === 'enemyDamage') _matchBucket().damageTaken += amt;
+}
+function _recordKill(label) {
+    const st = window._matchStats;
+    st.kills[label] = (st.kills[label] || 0) + 1;
+    st.killsTotal++;
+    _matchBucket().kills++;
 }
 // label a dealDamage() source for stats only, doesn't touch gameplay.
 // checks existing flags first, falls back to source._statSrc, else "Other"

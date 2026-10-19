@@ -2911,39 +2911,7 @@ function draw(deltaTime) {
         _rvg.addColorStop(1, "rgba(0,0,0,0.97)");
         ctx.fillStyle = _rvg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // Ornamental divider, two lines with a rotated square diamond
-        _beginScreenHud(_cx, _cy);
-        const _deco = (y) => {
-            const lw = 290;
-            ctx.strokeStyle = "rgba(178,122,26,0.58)";
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(_cx - lw / 2, y); ctx.lineTo(_cx - 22, y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(_cx + 22, y); ctx.lineTo(_cx + lw / 2, y); ctx.stroke();
-            ctx.save(); ctx.translate(_cx, y); ctx.rotate(Math.PI / 4);
-            ctx.fillStyle = "rgba(195,138,32,0.72)";
-            ctx.fillRect(-5, -5, 10, 10);
-            ctx.restore();
-        };
-        _deco(_cy - 112);
-        // "GAME OVER"
-        ctx.textAlign = "center";
-        ctx.shadowColor = "rgba(130,8,8,0.95)";
-        ctx.shadowBlur = 38;
-        ctx.font = "900 62px 'Cinzel', serif";
-        ctx.fillStyle = "#8b1919";
-        ctx.fillText("GAME OVER", _cx, _cy - 60);
-        ctx.shadowBlur = 0;
-        _deco(_cy - 18);
-        // Stats
-        ctx.font = "400 20px 'Cinzel', serif";
-        ctx.fillStyle = "rgba(215,185,122,0.88)";
-        ctx.fillText("Wave  ·  " + (typeof _waveNumber !== 'undefined' ? _waveNumber : 1), _cx, _cy + 12);
-        ctx.fillText("Total Score  ·  " + score.toLocaleString(), _cx, _cy + 40);
-        const _pt = typeof _gameOverPlayTime !== 'undefined' ? _gameOverPlayTime : 0;
-        const _ptm = Math.floor(_pt / 60000);
-        const _pts = Math.floor((_pt % 60000) / 1000);
-        ctx.fillText("Time  ·  " + _ptm + ":" + (_pts < 10 ? "0" : "") + _pts, _cx, _cy + 68);
-        _endScreenHud();
+        // The Voyage Recap (js/recap.js) covers the screen from here.
     }
     if (window._usePixi && window._pixiRender) {
         const _pxT0 = performance.now();
