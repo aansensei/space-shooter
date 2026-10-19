@@ -305,12 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Cancer and Leo sigils: a banked Riptide Surge or Divine Fate takes
-        // priority over the normal charge/laser, same "works any time, doesn't
-        // touch the normal skill's own state" shape as Great Sage's gem
-        // release. Each fresh press releases one, Cancer first; key repeat
-        // from holding Space never releases the second.
-        if (e.code === "Space" && (window._tidalSurgeReady || window._leoFateReady)
+        // Cancer, Leo and Capricorn sigils: a banked Riptide Surge, Divine Fate
+        // or Mountainfall takes priority over the normal charge/laser, same
+        // "works any time, doesn't touch the normal skill's own state" shape as
+        // Great Sage's gem release. Each fresh press releases one, Cancer
+        // first, then Leo; key repeat from holding Space never releases the second.
+        if (e.code === "Space" && (window._tidalSurgeReady || window._leoFateReady || window._capricornReady)
             && !(typeof player !== 'undefined' && player._silenced)) {
             if (!e.repeat) _releaseReadySpaceSigil();
             e.preventDefault();

@@ -18,7 +18,7 @@ const TIMELINE_STACK_CAPS = {
     vulnerability:       { side: 'player', base: 4, overflow: false, where: 'js/entities/core.js applyVulnerability' },
     teslaCoil:           { side: 'player', base: TESLA_STACK_MAX, where: 'js/skills/skill-g.js _launchTeslaBolt' },
     chainLightning:      { side: 'player', base: 6,               where: 'js/skills/skill-g.js orb pairing' },
-    avalancheStacks:     { side: 'player', base: 80,              where: 'js/entities/core.js kill hook' },
+    avalancheStacks:     { side: 'player', base: 80,              where: 'js/skills/sigil-capricorn.js _capAddStacks' },
     avalancheMult:       { side: 'player', base: 0.40,            where: 'js/entities/core.js dealDamage' },
     sunLionBurn:         { side: 'player', base: 3,               where: 'js/entities/core.js + js/main.js burn DoT' },
     spiritBounce:        { side: 'player', base: 3,               where: 'js/skills/skill-s-spirit.js wall bounce' },

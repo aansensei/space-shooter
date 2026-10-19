@@ -121,10 +121,10 @@ function _autoplayTick() {
         if (typeof activateSkillF === 'function' && (_realEnemyCount > 0 || _greatSageGemReady)) activateSkillF();
         if (typeof activateSkillG === 'function') activateSkillG();
 
-        // Cancer's Riptide Surge, then Leo's Divine Fate: a banked release is
+        // Cancer's Riptide Surge, Leo's Divine Fate, then Capricorn's Mountainfall: a banked release is
         // free (doesn't touch any other cooldown) and just needs a Space press
         // whenever it's ready, same priority Space itself gives it in input.js.
-        if ((window._tidalSurgeReady || window._leoFateReady) && typeof _releaseReadySpaceSigil === 'function'
+        if ((window._tidalSurgeReady || window._leoFateReady || window._capricornReady) && typeof _releaseReadySpaceSigil === 'function'
             && !(typeof player !== 'undefined' && player._silenced)) {
             _releaseReadySpaceSigil();
         }
@@ -510,7 +510,6 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugForceAccurateParry()">Force Accurate Parry (4s)</button>
           <button class="dbg-btn" onclick="debugForceSilence('dargruel')">Silence: Dargruel (root+silence, 4s)</button>
           <button class="dbg-btn" onclick="debugForceSilence('goliath')">Silence: Goliath (silence only, 4s)</button>
-          <button class="dbg-btn" onclick="debugPiscesRefund()">Pisces: Refund 2s to every skill (needs Cycle of Flow)</button>
         </div>
         <div style="opacity:0.5; font-size:10px;">Glory for Justice isn't a toggle — it auto-activates whenever &gt;4 enemies are on screen, an Abnormal+ enemy is present, Skill G is active, or Photokrystos is active. Spawn any boss type below (or 5+ enemies) to trigger it. Vulnerability is applied per-enemy — see the "+Vuln" button on each row in Active Enemies.</div>
       </div>
@@ -555,7 +554,7 @@ window.debugSetYuukiBonus = function () {
         </div>
         <div style="opacity:0.5; font-size:10px;">"Fill Meter" mirrors real absorb/passive feed up to ready. "Force Release" simulates the real Space press. "Ocean Hunter" drops the nearest enemy to 5% HP so the real execute check fires on its own.</div>
       </div>
-      <div id="dbgLeoSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
+      <div id="dbgLeoSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
         <div class="dbg-h" style="font-size:10px;">LEO, DIVINE FATE / WILDFIRE</div>
         <div id="dbgLeoState" style="font-size:10px; opacity:0.7; margin-bottom:4px;"></div>
         <div class="dbg-row" style="flex-wrap:wrap;">
@@ -566,13 +565,33 @@ window.debugSetYuukiBonus = function () {
           <button class="dbg-btn" onclick="debugLeoPetrify(5000)">Wave Petrify 5s</button>
           <button class="dbg-btn" onclick="debugLeoClear()">Clear State</button>
         </div>
-        <div style="opacity:0.5; font-size:10px;">Every button equips Leo first if it is missing. "Release" goes through the real Space path (Cancer first if both are ready, blocked while silenced). "Petrify 3s now" skips the meter but still starts the 8s rest; "Wave Petrify 5s" is the wave start version with no rest. "Clear State" empties the meter, rest, petrify and every Burn.</div>
+        <div style="opacity:0.5; font-size:10px;">Shown while Leo is equipped. "Release" goes through the real Space path (Cancer first if both are ready, blocked while silenced). "Petrify 3s now" skips the meter but still starts the 8s rest; "Wave Petrify 5s" is the wave start version with no rest. "Clear State" empties the meter, rest, petrify and every Burn.</div>
       </div>
-      <div id="dbgDauSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12);">
+      <div id="dbgDauSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
         <div class="dbg-h" style="font-size:10px;">DAWN HERALD (DAU), DAYBREAK CROW</div>
         <div class="dbg-row" style="flex-wrap:wrap;">
           <button class="dbg-btn" onclick="debugDauCrow()">Trigger Crow Now</button>
         </div>
+      </div>
+      <div id="dbgPiscesSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
+        <div class="dbg-h" style="font-size:10px;">PISCES, CYCLE OF FLOW</div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugPiscesRefund()">Refund 2s to every skill (needs Cycle of Flow)</button>
+        </div>
+      </div>
+      <div id="dbgCapricornSection" style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,229,255,0.12); display:none;">
+        <div class="dbg-h" style="font-size:10px;">CAPRICORN, COMPOUND INTEREST / MOUNTAINFALL</div>
+        <div id="dbgCapricornState" style="font-size:10px; opacity:0.7; margin-bottom:4px;"></div>
+        <div class="dbg-row" style="flex-wrap:wrap;">
+          <button class="dbg-btn" onclick="debugCapricornStacks(10)">+10 Stacks</button>
+          <button class="dbg-btn" onclick="debugCapricornStacks(80)">Max Stacks (80)</button>
+          <button class="dbg-btn" onclick="debugCapricornDecay()">Start Loss Warning</button>
+          <button class="dbg-btn" onclick="debugCapricornFillLey()">Fill Ley to Ready</button>
+          <button class="dbg-btn" onclick="debugCapricornRelease()">Release (Space)</button>
+          <button class="dbg-btn" onclick="debugCapricornDrop()">Drop Mountain Now</button>
+          <button class="dbg-btn" onclick="debugCapricornClear()">Clear State</button>
+        </div>
+        <div style="opacity:0.5; font-size:10px;">"+10 Stacks" goes through the real stack gain, so it also fills the Ley meter. "Start Loss Warning" jumps to 4s without a stack: the circle cracks for 2s, then every stack is lost. "Release" uses the real Space path (Cancer, then Leo, then Capricorn; blocked while silenced or while a mountain is up). "Drop Mountain Now" skips the meter.</div>
       </div>
     </div>
 
@@ -830,6 +849,7 @@ window.debugSetYuukiBonus = function () {
         _refreshGreatSageGemDisplay();
         _refreshCancerStateDisplay();
         _refreshLeoStateDisplay();
+        _refreshSigilSections();
         if (refreshTimer) clearInterval(refreshTimer);
         refreshTimer = setInterval(() => {
             const _t0 = performance.now();
@@ -837,6 +857,7 @@ window.debugSetYuukiBonus = function () {
             _refreshGreatSageGemDisplay();
             _refreshCancerStateDisplay();
             _refreshLeoStateDisplay();
+            _refreshSigilSections();
             _dbgRefreshStackOverflowState();
             const _dt = performance.now() - _t0;
             if (_dt > 15) console.warn('[DBGPANEL] refresh took ' + _dt.toFixed(0) + 'ms');
@@ -1080,6 +1101,7 @@ window.debugSetYuukiBonus = function () {
             const i = window._playerSigils.findIndex(s => s.sigilId === sigilId);
             if (i !== -1) window._playerSigils.splice(i, 1);
         }
+        _refreshSigilSections();
     };
 
     // Spawn enemy / sentinel
@@ -1505,10 +1527,60 @@ window.debugSetYuukiBonus = function () {
         }
         if (typeof _dauTriggerCrow === 'function') _dauTriggerCrow();
     };
+    // Each sigil's debug section shows only while that sigil is equipped.
+    const _DBG_SIGIL_SECTIONS = [['dbgLeoSection', 'leo'], ['dbgDauSection', 'dau'], ['dbgPiscesSection', 'pisces'], ['dbgCapricornSection', 'capricorn']];
+    function _refreshSigilSections() {
+        for (const [id, sigil] of _DBG_SIGIL_SECTIONS) {
+            const section = document.getElementById(id);
+            if (section) section.style.display = typeof _hasSigil === 'function' && _hasSigil(sigil) ? '' : 'none';
+        }
+        _refreshCapricornStateDisplay();
+    }
+    function _refreshCapricornStateDisplay() {
+        const el = document.getElementById('dbgCapricornState');
+        if (!el || typeof _hasSigil !== 'function' || !_hasSigil('capricorn')) return;
+        const st = window._capMountain, stacks = window._capStacks || 0;
+        const phase = !st ? 'none' : st.elapsed < 350 ? 'falling' : st.elapsed < 900 ? 'splitting' : st.elapsed < 4900 ? 'walls up' : 'collapsing';
+        el.textContent = 'Stacks: ' + stacks + ' (+' + (stacks * 0.5).toFixed(1) + '% dmg) · since last: ' + ((window._capSinceGain || 0) / 1000).toFixed(1) + 's'
+            + ' · Ley: ' + Math.round(window._capLey || 0) + '% ' + (window._capricornReady ? '(READY)' : '') + ' · Mountain: ' + phase
+            + (st ? ' · wall hits: ' + st.walls.map(w => w.broken ? 'X' : w.hitCount).join('/') : '');
+    }
+    window.debugCapricornStacks = function (n) {
+        if (typeof _capAddStacks !== 'function') return;
+        _capAddStacks(n);
+        _refreshCapricornStateDisplay();
+    };
+    window.debugCapricornDecay = function () {
+        if ((window._capStacks || 0) > 0) window._capSinceGain = CAP_WARN_MS;
+        _refreshCapricornStateDisplay();
+    };
+    window.debugCapricornFillLey = function () {
+        if (window._capMountain) return;
+        window._capLey = 100;
+        window._capricornReady = true;
+        _refreshCapricornStateDisplay();
+    };
+    window.debugCapricornRelease = function () {
+        if ((window._tidalSurgeReady || window._leoFateReady || window._capricornReady) && !player._silenced) _releaseReadySpaceSigil();
+        _refreshCapricornStateDisplay();
+    };
+    window.debugCapricornDrop = function () {
+        if (window._capMountain || typeof _releaseCapricorn !== 'function') return;
+        window._capLey = 100;
+        window._capricornReady = true;
+        _releaseCapricorn();
+        _refreshCapricornStateDisplay();
+    };
+    window.debugCapricornClear = function () {
+        const stacks = window._capStacks;
+        if (typeof _capricornReset === 'function') _capricornReset();
+        if (stacks > 0 && typeof _capOnStacksLost === 'function') _capOnStacksLost();
+        _refreshCapricornStateDisplay();
+    };
     function _refreshLeoStateDisplay() {
         const el = document.getElementById('dbgLeoState');
         if (!el) return;
-        if (typeof _hasSigil !== 'function' || !_hasSigil('leo')) { el.textContent = 'Leo not equipped (any button below equips it)'; return; }
+        if (typeof _hasSigil !== 'function' || !_hasSigil('leo')) return;
         const pct = typeof _leoFatePercent === 'function' ? _leoFatePercent() : 0;
         el.textContent = `Fate: ${pct.toFixed(1)}% ${window._leoFateReady ? '(READY)' : ''} · ATK +${(pct * LEO_FATE_ATK_PER_PERCENT * 100).toFixed(1)}%`
             + ` · Petrify: ${(window._leoPetrifyMs / 1000).toFixed(1)}s · Rest: ${(window._leoFateRestMs / 1000).toFixed(1)}s`

@@ -595,8 +595,6 @@ function _flushPiscesRefund(x, y) {
     window._piscesRefundSlots = 0;
 }
 window._thanMenhEndTime = 0;
-window._tuyetLanStacks = 0;
-window._tuyetLanLastKill = 0;
 window._muiTenVangHitCount = 0;
 window._sthBurning = new Map();
 window._laiKepPEAccum = 0;

@@ -416,6 +416,14 @@ The Fate meter and its ATK bonus need both Leo skills. It does not charge while 
 
 ---
 
+### Capricorn
+
+**Compound Interest (SPEC):** Each kill charges +0.8 Primeval Energy for Skill S on top of the usual 1.25, and every 5 points it charges gives all allies +1.5% fire rate (max +40%, kept through summons). While Phōtokrystos lives, primary ally hits deal +22.5% ATK true damage, once per 250ms per target, never on Goliath. Every kill, and every whole Primeval Energy point charged from hitting a giant enemy, is one stack: +0.5% damage each, up to 80 stacks (+40%). All stacks are lost after 6s without a new one; the ink circle around the ship cracks from the 4th second as a warning.
+
+**Mountainfall (SPEC):** Every stack fills 2.5% of the Ley meter (40 stacks fill it). When full, Space or the mobile CHARGE button drops a mountain on the densest enemy group at least 200px above the ship (an 80px grid search, ties broken by total HP). After 350ms it lands for **12x ATK + 4% Max HP** to every enemy within 170px and buries them for **1.5s** (Dominant, the same hold as Leo's petrify and the Pisces fish stun). Stacks are kept. The mountain splits into three rock screens in an arc along its foot that block from 600ms to 4900ms: enemy bullets are erased, launched skills (Marchosias blades, Uriel swords, Raphael orbs, Dargruel chains) are stopped, enemy bodies are held on the far side, and any hit whose attacker sits behind a screen (beams, shockwaves) is stopped by the line of sight check in playerTakesHit. Allied shots pass through. Goliath keeps his own rules: his meteors and Verdict orbs break a screen, while his body and ordinary shots pass through. With Cancer or Leo also ready, one press releases Cancer, then Leo, then Mountainfall.
+
+---
+
 ## Enemies
 
 *All enemies have a hidden +15% HP bonus applied to their base stats.*
@@ -901,7 +909,7 @@ One paired anomaly per boss fight, rolled when the wave starts. Each pair has on
 |---|---|---|
 | Tesla Coil combo stacks | Player | 5 |
 | Chain Lightning | Player | 6 |
-| Avalanche | Player | 80 stacks / +40% |
+| Compound Interest | Player | 80 stacks / +40% |
 | Sun Lion's burn | Player | 3 |
 | Spirit bounce damage | Player | 3 |
 | Walpurgis heal/shield scaling | Enemy | +30% |

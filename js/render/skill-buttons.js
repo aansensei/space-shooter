@@ -382,6 +382,9 @@ function drawSkillButtons() {
     else if (window._leoFateReady) _pillReadyWash(_spaceY, [
         [0, '#471c13'], [0.35, '#bc5f17'], [0.65, '#ef9f27'], [0.85, '#ffd27a'], [1, '#fff2ce'],
     ]);
+    else if (window._capricornReady) _pillReadyWash(_spaceY, [
+        [0, '#0b0d14'], [0.35, '#2f3b44'], [0.65, '#6f7f78'], [0.85, '#b9c2cc'], [1, '#e8edf2'],
+    ]);
 
 }
 

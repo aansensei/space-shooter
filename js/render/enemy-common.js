@@ -595,6 +595,7 @@ function drawEnemy(enemy) {
         // Pisces marks and fish stuns show on dummies too, so the sandbox can test them.
         if (enemy._yogMark && typeof _drawPiscesDreamMark === 'function') _drawPiscesDreamMark(enemy);
         if (enemy._piscesStunMs > 0 && typeof _drawPiscesStun === 'function') _drawPiscesStun(enemy);
+        if (enemy._capBuryMs > 0 && typeof _drawCapricornBurial === 'function') _drawCapricornBurial(enemy);
         return;
     }
     // Abyssal Chain render
@@ -1171,6 +1172,8 @@ function drawEnemy(enemy) {
     if (enemy._yogMark && typeof _drawPiscesDreamMark === 'function') _drawPiscesDreamMark(enemy);
     // Pisces fish stun (Dominant): nimbus crown and water bind from js/render/sigil-pisces.js.
     if (enemy._piscesStunMs > 0 && typeof _drawPiscesStun === 'function') _drawPiscesStun(enemy);
+    // Mountainfall burial (Dominant): an ink rock cap from js/render/sigil-capricorn.js.
+    if (enemy._capBuryMs > 0 && typeof _drawCapricornBurial === 'function') _drawCapricornBurial(enemy);
 
     // Lion's Roar Burn flames and Divine Fate stone (js/render/sigil-leo.js)
     if (typeof _drawLeoEnemyStatus === 'function') _drawLeoEnemyStatus(enemy);

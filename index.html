@@ -3260,11 +3260,11 @@
     <script src="js/vendor/pixi.min.js"></script>
     <script src="js/canvas-guard.js?v=20261008a"></script>
     <script src="js/audio.js?v=20261018a"></script>
-    <script src="js/offline.js?v=20261016c"></script>
+    <script src="js/offline.js?v=20261018c"></script>
     <script src="js/background.js?v=20260923a"></script>
-    <script src="js/config.js?v=20261014a"></script>
-    <script src="js/timeline-distortion.js?v=20260926k"></script>
-    <script src="js/sigils/core.js?v=20261015a"></script>
+    <script src="js/config.js?v=20261018c"></script>
+    <script src="js/timeline-distortion.js?v=20261018c"></script>
+    <script src="js/sigils/core.js?v=20261018c"></script>
     <script src="js/sigils/aries.js?v=20261012c"></script>
     <script src="js/sigils/taurus.js?v=20261012c"></script>
     <script src="js/sigils/gemini.js?v=20261012c"></script>
@@ -3274,13 +3274,13 @@
     <script src="js/sigils/libra.js?v=20261012c"></script>
     <script src="js/sigils/scorpio.js?v=20261012c"></script>
     <script src="js/sigils/sagittarius.js?v=20261012c"></script>
-    <script src="js/sigils/capricorn.js?v=20261012c"></script>
+    <script src="js/sigils/capricorn.js?v=20261018c"></script>
     <script src="js/sigils/aquarius.js?v=20261012c"></script>
     <script src="js/sigils/pisces.js?v=20261014a"></script>
     <script src="js/sigils/than.js?v=20261012c"></script>
     <script src="js/sigils/dau.js?v=20261018a"></script>
     <script src="js/yuusha-party.js?v=20260914b"></script>
-    <script src="js/entities/core.js?v=20261014a"></script>
+    <script src="js/entities/core.js?v=20261018c"></script>
     <script src="js/entities/sentinel.js?v=20261008a"></script>
     <script src="js/entities/veilshroud.js?v=20260917a"></script>
     <script src="js/entities/uriel.js?v=20261013d"></script>
@@ -3295,9 +3295,10 @@
     <script src="js/skills/skill-d.js?v=20261014a"></script>
     <script src="js/skills/sigil-great-sage.js?v=20261010a"></script>
     <script src="js/skills/sigil-cancer.js?v=20260914b"></script>
-    <script src="js/skills/sigil-leo.js?v=20261014a"></script>
+    <script src="js/skills/sigil-leo.js?v=20261018c"></script>
     <script src="js/skills/sigil-dau.js?v=20261013p"></script>
     <script src="js/skills/sigil-pisces.js?v=20261014a"></script>
+    <script src="js/skills/sigil-capricorn.js?v=20261018c"></script>
     <script src="js/skills/skill-f.js?v=20261014a"></script>
     <script src="js/skills/skill-g.js?v=20261010b"></script>
     <script src="js/skills/skill-shift.js?v=20260909d"></script>
@@ -3306,12 +3307,12 @@
     <script src="js/skills/sigil-gemini.js?v=20260911a"></script>
     <script src="js/skills/sigil-aries.js?v=20260902a"></script>
     <script src="js/skills/sigil-virgo.js?v=20260911a"></script>
-    <script src="js/render/core.js?v=20261015e"></script>
+    <script src="js/render/core.js?v=20261018c"></script>
     <script src="js/render/kanade-face.js?v=20261015c"></script>
     <script src="js/render/kanade-cutscene.js?v=20261018b"></script>
     <script src="js/render/fx.js?v=20261009a"></script>
     <script src="js/render/player.js?v=20261015a"></script>
-    <script src="js/render/enemy-common.js?v=20261014a"></script>
+    <script src="js/render/enemy-common.js?v=20261018c"></script>
     <script src="js/render/enemy-raphael.js?v=20261010d"></script>
     <script src="js/render/enemy-thaelis.js?v=20261008a"></script>
     <script src="js/render/enemy-dargruel.js?v=20261010d"></script>
@@ -3329,19 +3330,20 @@
     <script src="js/render/sigil-leo.js?v=20261014a"></script>
     <script src="js/render/sigil-dau.js?v=20261013p"></script>
     <script src="js/render/sigil-pisces.js?v=20261014c"></script>
+    <script src="js/render/sigil-capricorn.js?v=20261018c"></script>
     <script src="js/render/skill-g.js?v=20261013n"></script>
-    <script src="js/render/skill-buttons.js?v=20261013a"></script>
+    <script src="js/render/skill-buttons.js?v=20261018c"></script>
     <script src="js/pixi-renderer.js?v=20261008b"></script>
-    <script src="js/input.js?v=20261014a"></script>
+    <script src="js/input.js?v=20261018c"></script>
     <script src="js/match-stats.js?v=20260914b"></script>
-    <script src="js/main.js?v=20261015a"></script>
+    <script src="js/main.js?v=20261018c"></script>
     <script>
         // Debug/cheat console is a local-dev-only tool (spawn/kill any
         // enemy, force skills, edit HP, etc.) — never fetch/load it on the
         // real deployed site, only when actually running locally.
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
             const _dbgScript = document.createElement('script');
-            _dbgScript.src = 'js/debug-console.js?v=20261018a';
+            _dbgScript.src = 'js/debug-console.js?v=20261018c';
             document.head.appendChild(_dbgScript);
         }
     </script>
@@ -4091,7 +4093,7 @@
                         // Cancer and Leo sigils: a banked Riptide Surge or Divine Fate
                         // takes priority over the normal charge/laser, one per press,
                         // Cancer first, same as the keyboard Space path in input.js
-                        if ((window._tidalSurgeReady || window._leoFateReady) && !(typeof player !== 'undefined' && player._silenced)) {
+                        if ((window._tidalSurgeReady || window._leoFateReady || window._capricornReady) && !(typeof player !== 'undefined' && player._silenced)) {
                             _releaseReadySpaceSigil();
                         } else if (!charging && !laserActive && !skillShiftActive) {
                             const _now = performance.now();
@@ -4550,6 +4552,13 @@
                         } else if (window._leoFateReady) {
                             _mbReadyGlow('mb-ch-cv', [
                                 [0, '#fff2ce'], [0.3, '#ffd27a'], [0.6, '#ef9f27'], [0.85, '#bc5f17'], [1, '#471c13'],
+                            ], now);
+                            _mbClass('mb-ch', 'cd', false);
+                            _mbClass('mb-ch', 'skill-active', true);
+                            _lastReadyGlow.ch = true;
+                        } else if (window._capricornReady) {
+                            _mbReadyGlow('mb-ch-cv', [
+                                [0, '#e8edf2'], [0.3, '#b9c2cc'], [0.6, '#6f7f78'], [0.85, '#2f3b44'], [1, '#0b0d14'],
                             ], now);
                             _mbClass('mb-ch', 'cd', false);
                             _mbClass('mb-ch', 'skill-active', true);

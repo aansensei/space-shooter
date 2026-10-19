@@ -128,12 +128,12 @@ function _completeSigilPicker(sigilId) {
 function _onSigilApplied(sigilId, buffId) {
     if (buffId === 'dong_chay_luan_hoi') { _piscesReset(); _piscesSprites(); }
     if (buffId === 'coi_mong') _piscesSprites();
-    if (buffId === 'tuyet_lan')    { window._tuyetLanStacks = 0; window._tuyetLanLastKill = 0; }
     if (buffId === 'bong_doi')     { window._bongDoiHitCount = 0; window._bongDoiCharging = false; window._bongDoiCooldownEnd = 0; }
     if (buffId === 'cong_babylon') { window._gobCooldownEnd = 0; window._gobSequences = []; }
     if (buffId === 'enuma_elish')  { window._eeHitCounter = 0; window._eeSequences = []; }
     if (buffId === 'mui_ten_vang') { window._muiTenVangHitCount = 0; }
-    if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; }
+    if (buffId === 'lai_kep')      { window._laiKepPEAccum = 0; window._laiKepFireRateBonus = 0; window._capStacks = 0; window._capSinceGain = 0; window._capPEFrac = 0; }
+    if (buffId === 'thai_son_ap_dinh') { window._capLey = 0; window._capricornReady = false; window._capMountain = null; }
     if (buffId === 'doi_hinh_chien') {
         window._yuushaSquad = [];
         window._yuushaBlades = []; window._yuushaProjectiles = []; window._yuushaParticles = [];

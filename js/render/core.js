@@ -2279,6 +2279,7 @@ function draw(deltaTime) {
     // Background full canvas
     drawSpaceBackground(deltaTime);
     _drawPiscesAmbience();
+    _drawCapricornBackdrop();
     if (typeof _drawCancerOceanAmbience === 'function') _drawCancerOceanAmbience();
     if (typeof _drawDauRing === 'function') _drawDauRing();
     _drawPiscesFish();
@@ -2374,6 +2375,7 @@ function draw(deltaTime) {
         drawSkillDBolts();
 
         drawBossShockwaves();
+        _drawCapricornMountain();
 
         if (laserActive) {
             playerClones.forEach(clone => drawPlayer(0.45, clone.xOffset));
@@ -2393,8 +2395,11 @@ function draw(deltaTime) {
         }
         drawPlayer();
         if (typeof drawSigilShipUpgrades === 'function') drawSigilShipUpgrades();
+        _capReserveRingSpace();
         if (typeof _drawTidalSurgeMeter === 'function') _drawTidalSurgeMeter();
         if (typeof _drawLeoFateMeter === 'function') _drawLeoFateMeter();
+        _drawCapricornMeter();
+        _drawCapricornStackRing();
         if (typeof _drawLeoReadyAura === 'function') _drawLeoReadyAura();
         if (typeof _drawCancerReadyAura === 'function') _drawCancerReadyAura();
         if (typeof _drawGreatSageReadyAura === 'function') _drawGreatSageReadyAura();

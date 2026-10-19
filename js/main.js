@@ -74,6 +74,9 @@ function playerTakesHit(attacker) {
         return false;
     }
 
+    // Mountainfall: a hit from beyond a standing rock wall is stopped by it.
+    if (_capWallBlocksHit(attacker)) return false;
+
     // Great Sage: 1s of untargetable phase-out after every real Annihilation
     // Sweep, same rule as Veilshroud's own ghost (undetectable, every hit
     // passes through with no damage). Sentinels get the matching check in
@@ -406,6 +409,7 @@ function update(rawDeltaTime) {
 
     _leoBeginFrame(deltaTime, currentTime);
     if (typeof _dauBeginFrame === 'function') _dauBeginFrame(deltaTime, currentTime);
+    _capricornBeginFrame(deltaTime);
 
     // Tích lũy thời gian game thực tế (dùng cho HUD timer và spawn rate)
     gameElapsedTime += deltaTime;
@@ -3238,10 +3242,6 @@ function _updateSigilPassives(now, deltaTime) {
         if (_yuDt > 10) console.warn('[YUUSHA] updateYuushaParty took ' + _yuDt.toFixed(0) + 'ms (blades=' + (window._yuushaBlades || []).length + ', projs=' + (window._yuushaProjectiles || []).length + ', zones=' + (window._yuushaDotZones || []).length + ', particles=' + (window._yuushaParticles || []).length + ', enemies=' + (typeof enemies !== 'undefined' ? enemies.length : '?') + ')');
     }
 
-    if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
-        if (now - window._tuyetLanLastKill > 6000) window._tuyetLanStacks = 0;
-    }
-
     if (_hasBuff('dien_tu_truong') && (skillGActive || skillGCharge >= 100)) {
         // docs/combat-scaling-rebalance.md Part 5: discrete 100ms ticks of a
         // flat 0.35% Max HP (3.5%/s) instead of scaling a tiny per-frame
@@ -3688,8 +3688,7 @@ function startGame() {
     _piscesEventsReset();
     _leoReset();
     if (typeof _dauReset === 'function') _dauReset();
-    window._tuyetLanStacks = 0;
-    window._tuyetLanLastKill = 0;
+    _capricornReset();
     window._muiTenVangHitCount = 0;
     window._muiTenVangVolleyCount = 0;
     window._sthBurning = new Map();

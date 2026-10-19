@@ -222,12 +222,9 @@ function handleEnemyKill(enemy) {
 
     const _now = performance.now();
 
-    if (_hasBuff('tuyet_lan')) {
-        window._tuyetLanStacks = Math.min(_stackCap('avalancheStacks'), (window._tuyetLanStacks || 0) + 1); // docs/combat-scaling-rebalance.md Part 5: cap matches the new 40% multiplier cap
-        window._tuyetLanLastKill = _now;
-    }
-
     if (_hasBuff('lai_kep')) {
+        // Compound Interest: every kill is one stack (js/skills/sigil-capricorn.js).
+        _capAddStacks(1);
         const _peGain = 0.008;
         const _prevAccum = window._laiKepPEAccum || 0;
         window._laiKepPEAccum = _prevAccum + _peGain;
@@ -961,7 +958,7 @@ function dealDamage(enemy, source) {
     }
 
     // docs/combat-scaling-rebalance.md Part 5: none of this outgoing-buff
-    // chain (Glory, Parry, Yuuki, Avalanche, Chain Lightning, Circuit
+    // chain (Glory, Parry, Yuuki, Compound Interest, Chain Lightning, Circuit
     // Engineer, Death Mark, Divine Fate, Vulnerability stacks, Skill D
     // evade overflow, Dimensional Rift) re-applies to the Yog-Sothoth marked
     // explosion - its accumulated damage already had each of these applied
@@ -986,9 +983,9 @@ function dealDamage(enemy, source) {
         totalDamage = Math.ceil(totalDamage * (1 + _yuukiBonus));
     }
 
-    // Sigil: Avalanche — global damage multiplier (per kill stacks, max 40%), docs/combat-scaling-rebalance.md Part 5
-    if (_hasBuff('tuyet_lan') && window._tuyetLanStacks > 0) {
-        totalDamage = Math.ceil(totalDamage * (1 + Math.min(_stackCap('avalancheMult'), window._tuyetLanStacks * 0.005)));
+    // Compound Interest stacks: +0.5% damage each, up to +40%.
+    if (_hasBuff('lai_kep') && window._capStacks > 0) {
+        totalDamage = Math.ceil(totalDamage * _capDamageMult());
     }
 
     // Sigil: Chain Lightning — unpaired Skill G energy orbs grant a stacking dmg buff (max 6x, 5s each)
@@ -1048,7 +1045,7 @@ function dealDamage(enemy, source) {
     //
     // Added here, after every multiplier above, rather than in the middle of
     // them. Sitting mid-chain it was itself multiplied by everything
-    // downstream (Avalanche, Chain Lightning, Circuit Engineer, Death Mark,
+    // downstream (Compound Interest, Chain Lightning, Circuit Engineer, Death Mark,
     // Divine Fate, Vulnerability, Skill D's evade overflow, Dimensional
     // Rift), so on a stacked build +5.25% Max HP landed as roughly ten times
     // that and the weapon's own damage stopped mattering. It still goes
@@ -1718,6 +1715,7 @@ function dealDamage(enemy, source) {
     if (enemy.maxHp > 50000 && typeof primevalEnergy !== 'undefined' && _hitSizeForBurst > 0) {
         const _pePctDealt = (_hitSizeForBurst / enemy.maxHp) * 100;
         primevalEnergy = Math.min(100, primevalEnergy + _pePctDealt * 1.5);
+        _capOnPEGain(_pePctDealt * 1.5);
     }
 
     // Vết chém (NEW): riêng cho Goliath, khi bị arc blade/boomerang trúng
@@ -1914,9 +1912,9 @@ function dealDamage(enemy, source) {
         _leoAddBurn(enemy, 1, performance.now());
     }
 
-    // Compound Interest (docs/combat-scaling-rebalance.md Part 5): 1.50A true
+    // Compound Interest (docs/combat-scaling-rebalance.md Part 5): 0.225A true
     // damage (bypasses shield and DR, like isTrueDamage elsewhere in this
-    // function) on primary hits only, gated to once per 100ms per target so
+    // function) on primary hits only, gated to once per 250ms per target so
     // it can't be procced many times a second by fast multi-hit sources -
     // while Photokrystos is alive. Goliath luật riêng (Inevitable/Warding
     // Palm) phải luôn trên mọi sigil, kể cả bypass nhỏ này.
@@ -1925,7 +1923,7 @@ function dealDamage(enemy, source) {
         && !source.isTeslaDot && !source._isNocToiDot && !source._isDtuDot && !source._isSthDot && !source._isSrDot && !source._yogExplosion
         && typeof spirits !== 'undefined' && spirits.some(s => s.isPhotokrystos && !s._done)) {
         const _laiKepNow = performance.now();
-        if (!enemy._laiKepLastAt || _laiKepNow - enemy._laiKepLastAt >= 100) {
+        if (!enemy._laiKepLastAt || _laiKepNow - enemy._laiKepLastAt >= 250) {
             enemy._laiKepLastAt = _laiKepNow;
             enemy.hp = Math.max(0, enemy.hp - 0.225 * player.atk);
             if (enemy.hp <= 0) enemy._markedForDeath = true;
